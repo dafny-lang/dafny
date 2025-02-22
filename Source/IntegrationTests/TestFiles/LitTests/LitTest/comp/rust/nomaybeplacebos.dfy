@@ -1,5 +1,5 @@
 // NONUNIFORM: Test of the output of the Rust translation
-// RUN: %baredafny translate rs "%s" > "%t"
+// RUN: %baredafny translate rs --enforce-determinism "%s" > "%t"
 // RUN: %OutputCheck --file-to-check "%S/nomaybeplacebos-rust/src/nomaybeplacebos.rs" "%S/nomaybeplacebos.check"
 
 

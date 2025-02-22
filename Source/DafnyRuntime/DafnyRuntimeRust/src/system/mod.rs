@@ -12,15 +12,15 @@ pub mod _System {
     #[cfg(feature = "sync")] pub use ::std::sync::{Arc as Rc}; #[cfg(not(feature = "sync"))] pub use ::std::rc::Rc;
     pub use ::std::cmp::Eq;
     pub use ::std::hash::Hash;
+    pub use ::std::cmp::PartialEq;
     pub use ::std::hash::Hasher;
-    pub use ::std::default::Default;
     pub use ::std::convert::AsRef;
     pub use crate::SequenceIter;
     pub use crate::seq;
 
     pub type nat = DafnyInt;
 
-    #[derive(PartialEq, Clone)]
+    #[derive(Clone)]
     pub enum Tuple2<T0: DafnyType, T1: DafnyType> {
         _T2 {
             _0: T0,
@@ -82,7 +82,24 @@ pub mod _System {
         }
     }
 
-    impl<T0: DafnyType + Eq, T1: DafnyType + Eq> Eq
+    impl<T0: DafnyType + Eq + Hash, T1: DafnyType + Eq + Hash> PartialEq
+        for Tuple2<T0, T1> {
+        fn eq(&self, other: &Self) -> bool {
+            match (
+                    self,
+                    other
+                ) {
+                (Tuple2::_T2{_0, _1, }, Tuple2::_T2{_0: _2__0, _1: _2__1, }) => {
+                    _0 == _2__0 && _1 == _2__1
+                },
+                _ => {
+                    false
+                },
+            }
+        }
+    }
+
+    impl<T0: DafnyType + Eq + Hash, T1: DafnyType + Eq + Hash> Eq
         for Tuple2<T0, T1> {}
 
     impl<T0: DafnyType + Hash, T1: DafnyType + Hash> Hash
@@ -97,16 +114,6 @@ pub mod _System {
         }
     }
 
-    impl<T0: DafnyType + Default, T1: DafnyType + Default> Default
-        for Tuple2<T0, T1> {
-        fn default() -> Tuple2<T0, T1> {
-            Tuple2::_T2 {
-                _0: Default::default(),
-                _1: Default::default()
-            }
-        }
-    }
-
     impl<T0: DafnyType, T1: DafnyType> AsRef<Tuple2<T0, T1>>
         for Tuple2<T0, T1> {
         fn as_ref(&self) -> &Self {
@@ -114,7 +121,7 @@ pub mod _System {
         }
     }
 
-    #[derive(PartialEq, Clone)]
+    #[derive(Clone)]
     pub enum Tuple0 {
         _T0 {}
     }
@@ -147,6 +154,23 @@ pub mod _System {
         }
     }
 
+    impl PartialEq
+        for Tuple0 {
+        fn eq(&self, other: &Self) -> bool {
+            match (
+                    self,
+                    other
+                ) {
+                (Tuple0::_T0{}, Tuple0::_T0{}) => {
+                    true
+                },
+                _ => {
+                    false
+                },
+            }
+        }
+    }
+
     impl Eq
         for Tuple0 {}
 
@@ -161,13 +185,6 @@ pub mod _System {
         }
     }
 
-    impl Default
-        for Tuple0 {
-        fn default() -> Tuple0 {
-            Tuple0::_T0 {}
-        }
-    }
-
     impl AsRef<Tuple0>
         for Tuple0 {
         fn as_ref(&self) -> &Self {
@@ -175,7 +192,7 @@ pub mod _System {
         }
     }
 
-    #[derive(PartialEq, Clone)]
+    #[derive(Clone)]
     pub enum Tuple1<T0: DafnyType> {
         _T1 {
             _0: T0
@@ -227,7 +244,24 @@ pub mod _System {
         }
     }
 
-    impl<T0: DafnyType + Eq> Eq
+    impl<T0: DafnyType + Eq + Hash> PartialEq
+        for Tuple1<T0> {
+        fn eq(&self, other: &Self) -> bool {
+            match (
+                    self,
+                    other
+                ) {
+                (Tuple1::_T1{_0, }, Tuple1::_T1{_0: _2__0, }) => {
+                    _0 == _2__0
+                },
+                _ => {
+                    false
+                },
+            }
+        }
+    }
+
+    impl<T0: DafnyType + Eq + Hash> Eq
         for Tuple1<T0> {}
 
     impl<T0: DafnyType + Hash> Hash
@@ -241,15 +275,6 @@ pub mod _System {
         }
     }
 
-    impl<T0: DafnyType + Default> Default
-        for Tuple1<T0> {
-        fn default() -> Tuple1<T0> {
-            Tuple1::_T1 {
-                _0: Default::default()
-            }
-        }
-    }
-
     impl<T0: DafnyType> AsRef<Tuple1<T0>>
         for Tuple1<T0> {
         fn as_ref(&self) -> &Self {
@@ -257,7 +282,7 @@ pub mod _System {
         }
     }
 
-    #[derive(PartialEq, Clone)]
+    #[derive(Clone)]
     pub enum Tuple3<T0: DafnyType, T1: DafnyType, T2: DafnyType> {
         _T3 {
             _0: T0,
@@ -329,7 +354,24 @@ pub mod _System {
         }
     }
 
-    impl<T0: DafnyType + Eq, T1: DafnyType + Eq, T2: DafnyType + Eq> Eq
+    impl<T0: DafnyType + Eq + Hash, T1: DafnyType + Eq + Hash, T2: DafnyType + Eq + Hash> PartialEq
+        for Tuple3<T0, T1, T2> {
+        fn eq(&self, other: &Self) -> bool {
+            match (
+                    self,
+                    other
+                ) {
+                (Tuple3::_T3{_0, _1, _2, }, Tuple3::_T3{_0: _2__0, _1: _2__1, _2: _2__2, }) => {
+                    _0 == _2__0 && _1 == _2__1 && _2 == _2__2
+                },
+                _ => {
+                    false
+                },
+            }
+        }
+    }
+
+    impl<T0: DafnyType + Eq + Hash, T1: DafnyType + Eq + Hash, T2: DafnyType + Eq + Hash> Eq
         for Tuple3<T0, T1, T2> {}
 
     impl<T0: DafnyType + Hash, T1: DafnyType + Hash, T2: DafnyType + Hash> Hash
@@ -345,17 +387,6 @@ pub mod _System {
         }
     }
 
-    impl<T0: DafnyType + Default, T1: DafnyType + Default, T2: DafnyType + Default> Default
-        for Tuple3<T0, T1, T2> {
-        fn default() -> Tuple3<T0, T1, T2> {
-            Tuple3::_T3 {
-                _0: Default::default(),
-                _1: Default::default(),
-                _2: Default::default()
-            }
-        }
-    }
-
     impl<T0: DafnyType, T1: DafnyType, T2: DafnyType> AsRef<Tuple3<T0, T1, T2>>
         for Tuple3<T0, T1, T2> {
         fn as_ref(&self) -> &Self {
@@ -363,7 +394,7 @@ pub mod _System {
         }
     }
 
-    #[derive(PartialEq, Clone)]
+    #[derive(Clone)]
     pub enum Tuple4<T0: DafnyType, T1: DafnyType, T2: DafnyType, T3: DafnyType> {
         _T4 {
             _0: T0,
@@ -445,7 +476,24 @@ pub mod _System {
         }
     }
 
-    impl<T0: DafnyType + Eq, T1: DafnyType + Eq, T2: DafnyType + Eq, T3: DafnyType + Eq> Eq
+    impl<T0: DafnyType + Eq + Hash, T1: DafnyType + Eq + Hash, T2: DafnyType + Eq + Hash, T3: DafnyType + Eq + Hash> PartialEq
+        for Tuple4<T0, T1, T2, T3> {
+        fn eq(&self, other: &Self) -> bool {
+            match (
+                    self,
+                    other
+                ) {
+                (Tuple4::_T4{_0, _1, _2, _3, }, Tuple4::_T4{_0: _2__0, _1: _2__1, _2: _2__2, _3: _2__3, }) => {
+                    _0 == _2__0 && _1 == _2__1 && _2 == _2__2 && _3 == _2__3
+                },
+                _ => {
+                    false
+                },
+            }
+        }
+    }
+
+    impl<T0: DafnyType + Eq + Hash, T1: DafnyType + Eq + Hash, T2: DafnyType + Eq + Hash, T3: DafnyType + Eq + Hash> Eq
         for Tuple4<T0, T1, T2, T3> {}
 
     impl<T0: DafnyType + Hash, T1: DafnyType + Hash, T2: DafnyType + Hash, T3: DafnyType + Hash> Hash
@@ -462,18 +510,6 @@ pub mod _System {
         }
     }
 
-    impl<T0: DafnyType + Default, T1: DafnyType + Default, T2: DafnyType + Default, T3: DafnyType + Default> Default
-        for Tuple4<T0, T1, T2, T3> {
-        fn default() -> Tuple4<T0, T1, T2, T3> {
-            Tuple4::_T4 {
-                _0: Default::default(),
-                _1: Default::default(),
-                _2: Default::default(),
-                _3: Default::default()
-            }
-        }
-    }
-
     impl<T0: DafnyType, T1: DafnyType, T2: DafnyType, T3: DafnyType> AsRef<Tuple4<T0, T1, T2, T3>>
         for Tuple4<T0, T1, T2, T3> {
         fn as_ref(&self) -> &Self {
@@ -481,7 +517,7 @@ pub mod _System {
         }
     }
 
-    #[derive(PartialEq, Clone)]
+    #[derive(Clone)]
     pub enum Tuple5<T0: DafnyType, T1: DafnyType, T2: DafnyType, T3: DafnyType, T4: DafnyType> {
         _T5 {
             _0: T0,
@@ -573,7 +609,24 @@ pub mod _System {
         }
     }
 
-    impl<T0: DafnyType + Eq, T1: DafnyType + Eq, T2: DafnyType + Eq, T3: DafnyType + Eq, T4: DafnyType + Eq> Eq
+    impl<T0: DafnyType + Eq + Hash, T1: DafnyType + Eq + Hash, T2: DafnyType + Eq + Hash, T3: DafnyType + Eq + Hash, T4: DafnyType + Eq + Hash> PartialEq
+        for Tuple5<T0, T1, T2, T3, T4> {
+        fn eq(&self, other: &Self) -> bool {
+            match (
+                    self,
+                    other
+                ) {
+                (Tuple5::_T5{_0, _1, _2, _3, _4, }, Tuple5::_T5{_0: _2__0, _1: _2__1, _2: _2__2, _3: _2__3, _4: _2__4, }) => {
+                    _0 == _2__0 && _1 == _2__1 && _2 == _2__2 && _3 == _2__3 && _4 == _2__4
+                },
+                _ => {
+                    false
+                },
+            }
+        }
+    }
+
+    impl<T0: DafnyType + Eq + Hash, T1: DafnyType + Eq + Hash, T2: DafnyType + Eq + Hash, T3: DafnyType + Eq + Hash, T4: DafnyType + Eq + Hash> Eq
         for Tuple5<T0, T1, T2, T3, T4> {}
 
     impl<T0: DafnyType + Hash, T1: DafnyType + Hash, T2: DafnyType + Hash, T3: DafnyType + Hash, T4: DafnyType + Hash> Hash
@@ -591,19 +644,6 @@ pub mod _System {
         }
     }
 
-    impl<T0: DafnyType + Default, T1: DafnyType + Default, T2: DafnyType + Default, T3: DafnyType + Default, T4: DafnyType + Default> Default
-        for Tuple5<T0, T1, T2, T3, T4> {
-        fn default() -> Tuple5<T0, T1, T2, T3, T4> {
-            Tuple5::_T5 {
-                _0: Default::default(),
-                _1: Default::default(),
-                _2: Default::default(),
-                _3: Default::default(),
-                _4: Default::default()
-            }
-        }
-    }
-
     impl<T0: DafnyType, T1: DafnyType, T2: DafnyType, T3: DafnyType, T4: DafnyType> AsRef<Tuple5<T0, T1, T2, T3, T4>>
         for Tuple5<T0, T1, T2, T3, T4> {
         fn as_ref(&self) -> &Self {
@@ -611,7 +651,7 @@ pub mod _System {
         }
     }
 
-    #[derive(PartialEq, Clone)]
+    #[derive(Clone)]
     pub enum Tuple6<T0: DafnyType, T1: DafnyType, T2: DafnyType, T3: DafnyType, T4: DafnyType, T5: DafnyType> {
         _T6 {
             _0: T0,
@@ -713,7 +753,24 @@ pub mod _System {
         }
     }
 
-    impl<T0: DafnyType + Eq, T1: DafnyType + Eq, T2: DafnyType + Eq, T3: DafnyType + Eq, T4: DafnyType + Eq, T5: DafnyType + Eq> Eq
+    impl<T0: DafnyType + Eq + Hash, T1: DafnyType + Eq + Hash, T2: DafnyType + Eq + Hash, T3: DafnyType + Eq + Hash, T4: DafnyType + Eq + Hash, T5: DafnyType + Eq + Hash> PartialEq
+        for Tuple6<T0, T1, T2, T3, T4, T5> {
+        fn eq(&self, other: &Self) -> bool {
+            match (
+                    self,
+                    other
+                ) {
+                (Tuple6::_T6{_0, _1, _2, _3, _4, _5, }, Tuple6::_T6{_0: _2__0, _1: _2__1, _2: _2__2, _3: _2__3, _4: _2__4, _5: _2__5, }) => {
+                    _0 == _2__0 && _1 == _2__1 && _2 == _2__2 && _3 == _2__3 && _4 == _2__4 && _5 == _2__5
+                },
+                _ => {
+                    false
+                },
+            }
+        }
+    }
+
+    impl<T0: DafnyType + Eq + Hash, T1: DafnyType + Eq + Hash, T2: DafnyType + Eq + Hash, T3: DafnyType + Eq + Hash, T4: DafnyType + Eq + Hash, T5: DafnyType + Eq + Hash> Eq
         for Tuple6<T0, T1, T2, T3, T4, T5> {}
 
     impl<T0: DafnyType + Hash, T1: DafnyType + Hash, T2: DafnyType + Hash, T3: DafnyType + Hash, T4: DafnyType + Hash, T5: DafnyType + Hash> Hash
@@ -732,20 +789,6 @@ pub mod _System {
         }
     }
 
-    impl<T0: DafnyType + Default, T1: DafnyType + Default, T2: DafnyType + Default, T3: DafnyType + Default, T4: DafnyType + Default, T5: DafnyType + Default> Default
-        for Tuple6<T0, T1, T2, T3, T4, T5> {
-        fn default() -> Tuple6<T0, T1, T2, T3, T4, T5> {
-            Tuple6::_T6 {
-                _0: Default::default(),
-                _1: Default::default(),
-                _2: Default::default(),
-                _3: Default::default(),
-                _4: Default::default(),
-                _5: Default::default()
-            }
-        }
-    }
-
     impl<T0: DafnyType, T1: DafnyType, T2: DafnyType, T3: DafnyType, T4: DafnyType, T5: DafnyType> AsRef<Tuple6<T0, T1, T2, T3, T4, T5>>
         for Tuple6<T0, T1, T2, T3, T4, T5> {
         fn as_ref(&self) -> &Self {
@@ -753,7 +796,7 @@ pub mod _System {
         }
     }
 
-    #[derive(PartialEq, Clone)]
+    #[derive(Clone)]
     pub enum Tuple7<T0: DafnyType, T1: DafnyType, T2: DafnyType, T3: DafnyType, T4: DafnyType, T5: DafnyType, T6: DafnyType> {
         _T7 {
             _0: T0,
@@ -865,7 +908,24 @@ pub mod _System {
         }
     }
 
-    impl<T0: DafnyType + Eq, T1: DafnyType + Eq, T2: DafnyType + Eq, T3: DafnyType + Eq, T4: DafnyType + Eq, T5: DafnyType + Eq, T6: DafnyType + Eq> Eq
+    impl<T0: DafnyType + Eq + Hash, T1: DafnyType + Eq + Hash, T2: DafnyType + Eq + Hash, T3: DafnyType + Eq + Hash, T4: DafnyType + Eq + Hash, T5: DafnyType + Eq + Hash, T6: DafnyType + Eq + Hash> PartialEq
+        for Tuple7<T0, T1, T2, T3, T4, T5, T6> {
+        fn eq(&self, other: &Self) -> bool {
+            match (
+                    self,
+                    other
+                ) {
+                (Tuple7::_T7{_0, _1, _2, _3, _4, _5, _6, }, Tuple7::_T7{_0: _2__0, _1: _2__1, _2: _2__2, _3: _2__3, _4: _2__4, _5: _2__5, _6: _2__6, }) => {
+                    _0 == _2__0 && _1 == _2__1 && _2 == _2__2 && _3 == _2__3 && _4 == _2__4 && _5 == _2__5 && _6 == _2__6
+                },
+                _ => {
+                    false
+                },
+            }
+        }
+    }
+
+    impl<T0: DafnyType + Eq + Hash, T1: DafnyType + Eq + Hash, T2: DafnyType + Eq + Hash, T3: DafnyType + Eq + Hash, T4: DafnyType + Eq + Hash, T5: DafnyType + Eq + Hash, T6: DafnyType + Eq + Hash> Eq
         for Tuple7<T0, T1, T2, T3, T4, T5, T6> {}
 
     impl<T0: DafnyType + Hash, T1: DafnyType + Hash, T2: DafnyType + Hash, T3: DafnyType + Hash, T4: DafnyType + Hash, T5: DafnyType + Hash, T6: DafnyType + Hash> Hash
@@ -885,21 +945,6 @@ pub mod _System {
         }
     }
 
-    impl<T0: DafnyType + Default, T1: DafnyType + Default, T2: DafnyType + Default, T3: DafnyType + Default, T4: DafnyType + Default, T5: DafnyType + Default, T6: DafnyType + Default> Default
-        for Tuple7<T0, T1, T2, T3, T4, T5, T6> {
-        fn default() -> Tuple7<T0, T1, T2, T3, T4, T5, T6> {
-            Tuple7::_T7 {
-                _0: Default::default(),
-                _1: Default::default(),
-                _2: Default::default(),
-                _3: Default::default(),
-                _4: Default::default(),
-                _5: Default::default(),
-                _6: Default::default()
-            }
-        }
-    }
-
     impl<T0: DafnyType, T1: DafnyType, T2: DafnyType, T3: DafnyType, T4: DafnyType, T5: DafnyType, T6: DafnyType> AsRef<Tuple7<T0, T1, T2, T3, T4, T5, T6>>
         for Tuple7<T0, T1, T2, T3, T4, T5, T6> {
         fn as_ref(&self) -> &Self {
@@ -907,7 +952,7 @@ pub mod _System {
         }
     }
 
-    #[derive(PartialEq, Clone)]
+    #[derive(Clone)]
     pub enum Tuple8<T0: DafnyType, T1: DafnyType, T2: DafnyType, T3: DafnyType, T4: DafnyType, T5: DafnyType, T6: DafnyType, T7: DafnyType> {
         _T8 {
             _0: T0,
@@ -1029,7 +1074,24 @@ pub mod _System {
         }
     }
 
-    impl<T0: DafnyType + Eq, T1: DafnyType + Eq, T2: DafnyType + Eq, T3: DafnyType + Eq, T4: DafnyType + Eq, T5: DafnyType + Eq, T6: DafnyType + Eq, T7: DafnyType + Eq> Eq
+    impl<T0: DafnyType + Eq + Hash, T1: DafnyType + Eq + Hash, T2: DafnyType + Eq + Hash, T3: DafnyType + Eq + Hash, T4: DafnyType + Eq + Hash, T5: DafnyType + Eq + Hash, T6: DafnyType + Eq + Hash, T7: DafnyType + Eq + Hash> PartialEq
+        for Tuple8<T0, T1, T2, T3, T4, T5, T6, T7> {
+        fn eq(&self, other: &Self) -> bool {
+            match (
+                    self,
+                    other
+                ) {
+                (Tuple8::_T8{_0, _1, _2, _3, _4, _5, _6, _7, }, Tuple8::_T8{_0: _2__0, _1: _2__1, _2: _2__2, _3: _2__3, _4: _2__4, _5: _2__5, _6: _2__6, _7: _2__7, }) => {
+                    _0 == _2__0 && _1 == _2__1 && _2 == _2__2 && _3 == _2__3 && _4 == _2__4 && _5 == _2__5 && _6 == _2__6 && _7 == _2__7
+                },
+                _ => {
+                    false
+                },
+            }
+        }
+    }
+
+    impl<T0: DafnyType + Eq + Hash, T1: DafnyType + Eq + Hash, T2: DafnyType + Eq + Hash, T3: DafnyType + Eq + Hash, T4: DafnyType + Eq + Hash, T5: DafnyType + Eq + Hash, T6: DafnyType + Eq + Hash, T7: DafnyType + Eq + Hash> Eq
         for Tuple8<T0, T1, T2, T3, T4, T5, T6, T7> {}
 
     impl<T0: DafnyType + Hash, T1: DafnyType + Hash, T2: DafnyType + Hash, T3: DafnyType + Hash, T4: DafnyType + Hash, T5: DafnyType + Hash, T6: DafnyType + Hash, T7: DafnyType + Hash> Hash
@@ -1050,22 +1112,6 @@ pub mod _System {
         }
     }
 
-    impl<T0: DafnyType + Default, T1: DafnyType + Default, T2: DafnyType + Default, T3: DafnyType + Default, T4: DafnyType + Default, T5: DafnyType + Default, T6: DafnyType + Default, T7: DafnyType + Default> Default
-        for Tuple8<T0, T1, T2, T3, T4, T5, T6, T7> {
-        fn default() -> Tuple8<T0, T1, T2, T3, T4, T5, T6, T7> {
-            Tuple8::_T8 {
-                _0: Default::default(),
-                _1: Default::default(),
-                _2: Default::default(),
-                _3: Default::default(),
-                _4: Default::default(),
-                _5: Default::default(),
-                _6: Default::default(),
-                _7: Default::default()
-            }
-        }
-    }
-
     impl<T0: DafnyType, T1: DafnyType, T2: DafnyType, T3: DafnyType, T4: DafnyType, T5: DafnyType, T6: DafnyType, T7: DafnyType> AsRef<Tuple8<T0, T1, T2, T3, T4, T5, T6, T7>>
         for Tuple8<T0, T1, T2, T3, T4, T5, T6, T7> {
         fn as_ref(&self) -> &Self {
@@ -1073,7 +1119,7 @@ pub mod _System {
         }
     }
 
-    #[derive(PartialEq, Clone)]
+    #[derive(Clone)]
     pub enum Tuple9<T0: DafnyType, T1: DafnyType, T2: DafnyType, T3: DafnyType, T4: DafnyType, T5: DafnyType, T6: DafnyType, T7: DafnyType, T8: DafnyType> {
         _T9 {
             _0: T0,
@@ -1205,7 +1251,24 @@ pub mod _System {
         }
     }
 
-    impl<T0: DafnyType + Eq, T1: DafnyType + Eq, T2: DafnyType + Eq, T3: DafnyType + Eq, T4: DafnyType + Eq, T5: DafnyType + Eq, T6: DafnyType + Eq, T7: DafnyType + Eq, T8: DafnyType + Eq> Eq
+    impl<T0: DafnyType + Eq + Hash, T1: DafnyType + Eq + Hash, T2: DafnyType + Eq + Hash, T3: DafnyType + Eq + Hash, T4: DafnyType + Eq + Hash, T5: DafnyType + Eq + Hash, T6: DafnyType + Eq + Hash, T7: DafnyType + Eq + Hash, T8: DafnyType + Eq + Hash> PartialEq
+        for Tuple9<T0, T1, T2, T3, T4, T5, T6, T7, T8> {
+        fn eq(&self, other: &Self) -> bool {
+            match (
+                    self,
+                    other
+                ) {
+                (Tuple9::_T9{_0, _1, _2, _3, _4, _5, _6, _7, _8, }, Tuple9::_T9{_0: _2__0, _1: _2__1, _2: _2__2, _3: _2__3, _4: _2__4, _5: _2__5, _6: _2__6, _7: _2__7, _8: _2__8, }) => {
+                    _0 == _2__0 && _1 == _2__1 && _2 == _2__2 && _3 == _2__3 && _4 == _2__4 && _5 == _2__5 && _6 == _2__6 && _7 == _2__7 && _8 == _2__8
+                },
+                _ => {
+                    false
+                },
+            }
+        }
+    }
+
+    impl<T0: DafnyType + Eq + Hash, T1: DafnyType + Eq + Hash, T2: DafnyType + Eq + Hash, T3: DafnyType + Eq + Hash, T4: DafnyType + Eq + Hash, T5: DafnyType + Eq + Hash, T6: DafnyType + Eq + Hash, T7: DafnyType + Eq + Hash, T8: DafnyType + Eq + Hash> Eq
         for Tuple9<T0, T1, T2, T3, T4, T5, T6, T7, T8> {}
 
     impl<T0: DafnyType + Hash, T1: DafnyType + Hash, T2: DafnyType + Hash, T3: DafnyType + Hash, T4: DafnyType + Hash, T5: DafnyType + Hash, T6: DafnyType + Hash, T7: DafnyType + Hash, T8: DafnyType + Hash> Hash
@@ -1227,23 +1290,6 @@ pub mod _System {
         }
     }
 
-    impl<T0: DafnyType + Default, T1: DafnyType + Default, T2: DafnyType + Default, T3: DafnyType + Default, T4: DafnyType + Default, T5: DafnyType + Default, T6: DafnyType + Default, T7: DafnyType + Default, T8: DafnyType + Default> Default
-        for Tuple9<T0, T1, T2, T3, T4, T5, T6, T7, T8> {
-        fn default() -> Tuple9<T0, T1, T2, T3, T4, T5, T6, T7, T8> {
-            Tuple9::_T9 {
-                _0: Default::default(),
-                _1: Default::default(),
-                _2: Default::default(),
-                _3: Default::default(),
-                _4: Default::default(),
-                _5: Default::default(),
-                _6: Default::default(),
-                _7: Default::default(),
-                _8: Default::default()
-            }
-        }
-    }
-
     impl<T0: DafnyType, T1: DafnyType, T2: DafnyType, T3: DafnyType, T4: DafnyType, T5: DafnyType, T6: DafnyType, T7: DafnyType, T8: DafnyType> AsRef<Tuple9<T0, T1, T2, T3, T4, T5, T6, T7, T8>>
         for Tuple9<T0, T1, T2, T3, T4, T5, T6, T7, T8> {
         fn as_ref(&self) -> &Self {
@@ -1251,7 +1297,7 @@ pub mod _System {
         }
     }
 
-    #[derive(PartialEq, Clone)]
+    #[derive(Clone)]
     pub enum Tuple10<T0: DafnyType, T1: DafnyType, T2: DafnyType, T3: DafnyType, T4: DafnyType, T5: DafnyType, T6: DafnyType, T7: DafnyType, T8: DafnyType, T9: DafnyType> {
         _T10 {
             _0: T0,
@@ -1393,7 +1439,24 @@ pub mod _System {
         }
     }
 
-    impl<T0: DafnyType + Eq, T1: DafnyType + Eq, T2: DafnyType + Eq, T3: DafnyType + Eq, T4: DafnyType + Eq, T5: DafnyType + Eq, T6: DafnyType + Eq, T7: DafnyType + Eq, T8: DafnyType + Eq, T9: DafnyType + Eq> Eq
+    impl<T0: DafnyType + Eq + Hash, T1: DafnyType + Eq + Hash, T2: DafnyType + Eq + Hash, T3: DafnyType + Eq + Hash, T4: DafnyType + Eq + Hash, T5: DafnyType + Eq + Hash, T6: DafnyType + Eq + Hash, T7: DafnyType + Eq + Hash, T8: DafnyType + Eq + Hash, T9: DafnyType + Eq + Hash> PartialEq
+        for Tuple10<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9> {
+        fn eq(&self, other: &Self) -> bool {
+            match (
+                    self,
+                    other
+                ) {
+                (Tuple10::_T10{_0, _1, _2, _3, _4, _5, _6, _7, _8, _9, }, Tuple10::_T10{_0: _2__0, _1: _2__1, _2: _2__2, _3: _2__3, _4: _2__4, _5: _2__5, _6: _2__6, _7: _2__7, _8: _2__8, _9: _2__9, }) => {
+                    _0 == _2__0 && _1 == _2__1 && _2 == _2__2 && _3 == _2__3 && _4 == _2__4 && _5 == _2__5 && _6 == _2__6 && _7 == _2__7 && _8 == _2__8 && _9 == _2__9
+                },
+                _ => {
+                    false
+                },
+            }
+        }
+    }
+
+    impl<T0: DafnyType + Eq + Hash, T1: DafnyType + Eq + Hash, T2: DafnyType + Eq + Hash, T3: DafnyType + Eq + Hash, T4: DafnyType + Eq + Hash, T5: DafnyType + Eq + Hash, T6: DafnyType + Eq + Hash, T7: DafnyType + Eq + Hash, T8: DafnyType + Eq + Hash, T9: DafnyType + Eq + Hash> Eq
         for Tuple10<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9> {}
 
     impl<T0: DafnyType + Hash, T1: DafnyType + Hash, T2: DafnyType + Hash, T3: DafnyType + Hash, T4: DafnyType + Hash, T5: DafnyType + Hash, T6: DafnyType + Hash, T7: DafnyType + Hash, T8: DafnyType + Hash, T9: DafnyType + Hash> Hash
@@ -1416,24 +1479,6 @@ pub mod _System {
         }
     }
 
-    impl<T0: DafnyType + Default, T1: DafnyType + Default, T2: DafnyType + Default, T3: DafnyType + Default, T4: DafnyType + Default, T5: DafnyType + Default, T6: DafnyType + Default, T7: DafnyType + Default, T8: DafnyType + Default, T9: DafnyType + Default> Default
-        for Tuple10<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9> {
-        fn default() -> Tuple10<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9> {
-            Tuple10::_T10 {
-                _0: Default::default(),
-                _1: Default::default(),
-                _2: Default::default(),
-                _3: Default::default(),
-                _4: Default::default(),
-                _5: Default::default(),
-                _6: Default::default(),
-                _7: Default::default(),
-                _8: Default::default(),
-                _9: Default::default()
-            }
-        }
-    }
-
     impl<T0: DafnyType, T1: DafnyType, T2: DafnyType, T3: DafnyType, T4: DafnyType, T5: DafnyType, T6: DafnyType, T7: DafnyType, T8: DafnyType, T9: DafnyType> AsRef<Tuple10<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9>>
         for Tuple10<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9> {
         fn as_ref(&self) -> &Self {
@@ -1441,7 +1486,7 @@ pub mod _System {
         }
     }
 
-    #[derive(PartialEq, Clone)]
+    #[derive(Clone)]
     pub enum Tuple11<T0: DafnyType, T1: DafnyType, T2: DafnyType, T3: DafnyType, T4: DafnyType, T5: DafnyType, T6: DafnyType, T7: DafnyType, T8: DafnyType, T9: DafnyType, T10: DafnyType> {
         _T11 {
             _0: T0,
@@ -1593,7 +1638,24 @@ pub mod _System {
         }
     }
 
-    impl<T0: DafnyType + Eq, T1: DafnyType + Eq, T2: DafnyType + Eq, T3: DafnyType + Eq, T4: DafnyType + Eq, T5: DafnyType + Eq, T6: DafnyType + Eq, T7: DafnyType + Eq, T8: DafnyType + Eq, T9: DafnyType + Eq, T10: DafnyType + Eq> Eq
+    impl<T0: DafnyType + Eq + Hash, T1: DafnyType + Eq + Hash, T2: DafnyType + Eq + Hash, T3: DafnyType + Eq + Hash, T4: DafnyType + Eq + Hash, T5: DafnyType + Eq + Hash, T6: DafnyType + Eq + Hash, T7: DafnyType + Eq + Hash, T8: DafnyType + Eq + Hash, T9: DafnyType + Eq + Hash, T10: DafnyType + Eq + Hash> PartialEq
+        for Tuple11<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10> {
+        fn eq(&self, other: &Self) -> bool {
+            match (
+                    self,
+                    other
+                ) {
+                (Tuple11::_T11{_0, _1, _2, _3, _4, _5, _6, _7, _8, _9, _10, }, Tuple11::_T11{_0: _2__0, _1: _2__1, _2: _2__2, _3: _2__3, _4: _2__4, _5: _2__5, _6: _2__6, _7: _2__7, _8: _2__8, _9: _2__9, _10: _2__10, }) => {
+                    _0 == _2__0 && _1 == _2__1 && _2 == _2__2 && _3 == _2__3 && _4 == _2__4 && _5 == _2__5 && _6 == _2__6 && _7 == _2__7 && _8 == _2__8 && _9 == _2__9 && _10 == _2__10
+                },
+                _ => {
+                    false
+                },
+            }
+        }
+    }
+
+    impl<T0: DafnyType + Eq + Hash, T1: DafnyType + Eq + Hash, T2: DafnyType + Eq + Hash, T3: DafnyType + Eq + Hash, T4: DafnyType + Eq + Hash, T5: DafnyType + Eq + Hash, T6: DafnyType + Eq + Hash, T7: DafnyType + Eq + Hash, T8: DafnyType + Eq + Hash, T9: DafnyType + Eq + Hash, T10: DafnyType + Eq + Hash> Eq
         for Tuple11<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10> {}
 
     impl<T0: DafnyType + Hash, T1: DafnyType + Hash, T2: DafnyType + Hash, T3: DafnyType + Hash, T4: DafnyType + Hash, T5: DafnyType + Hash, T6: DafnyType + Hash, T7: DafnyType + Hash, T8: DafnyType + Hash, T9: DafnyType + Hash, T10: DafnyType + Hash> Hash
@@ -1617,25 +1679,6 @@ pub mod _System {
         }
     }
 
-    impl<T0: DafnyType + Default, T1: DafnyType + Default, T2: DafnyType + Default, T3: DafnyType + Default, T4: DafnyType + Default, T5: DafnyType + Default, T6: DafnyType + Default, T7: DafnyType + Default, T8: DafnyType + Default, T9: DafnyType + Default, T10: DafnyType + Default> Default
-        for Tuple11<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10> {
-        fn default() -> Tuple11<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10> {
-            Tuple11::_T11 {
-                _0: Default::default(),
-                _1: Default::default(),
-                _2: Default::default(),
-                _3: Default::default(),
-                _4: Default::default(),
-                _5: Default::default(),
-                _6: Default::default(),
-                _7: Default::default(),
-                _8: Default::default(),
-                _9: Default::default(),
-                _10: Default::default()
-            }
-        }
-    }
-
     impl<T0: DafnyType, T1: DafnyType, T2: DafnyType, T3: DafnyType, T4: DafnyType, T5: DafnyType, T6: DafnyType, T7: DafnyType, T8: DafnyType, T9: DafnyType, T10: DafnyType> AsRef<Tuple11<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10>>
         for Tuple11<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10> {
         fn as_ref(&self) -> &Self {
@@ -1643,7 +1686,7 @@ pub mod _System {
         }
     }
 
-    #[derive(PartialEq, Clone)]
+    #[derive(Clone)]
     pub enum Tuple12<T0: DafnyType, T1: DafnyType, T2: DafnyType, T3: DafnyType, T4: DafnyType, T5: DafnyType, T6: DafnyType, T7: DafnyType, T8: DafnyType, T9: DafnyType, T10: DafnyType, T11: DafnyType> {
         _T12 {
             _0: T0,
@@ -1805,7 +1848,24 @@ pub mod _System {
         }
     }
 
-    impl<T0: DafnyType + Eq, T1: DafnyType + Eq, T2: DafnyType + Eq, T3: DafnyType + Eq, T4: DafnyType + Eq, T5: DafnyType + Eq, T6: DafnyType + Eq, T7: DafnyType + Eq, T8: DafnyType + Eq, T9: DafnyType + Eq, T10: DafnyType + Eq, T11: DafnyType + Eq> Eq
+    impl<T0: DafnyType + Eq + Hash, T1: DafnyType + Eq + Hash, T2: DafnyType + Eq + Hash, T3: DafnyType + Eq + Hash, T4: DafnyType + Eq + Hash, T5: DafnyType + Eq + Hash, T6: DafnyType + Eq + Hash, T7: DafnyType + Eq + Hash, T8: DafnyType + Eq + Hash, T9: DafnyType + Eq + Hash, T10: DafnyType + Eq + Hash, T11: DafnyType + Eq + Hash> PartialEq
+        for Tuple12<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11> {
+        fn eq(&self, other: &Self) -> bool {
+            match (
+                    self,
+                    other
+                ) {
+                (Tuple12::_T12{_0, _1, _2, _3, _4, _5, _6, _7, _8, _9, _10, _11, }, Tuple12::_T12{_0: _2__0, _1: _2__1, _2: _2__2, _3: _2__3, _4: _2__4, _5: _2__5, _6: _2__6, _7: _2__7, _8: _2__8, _9: _2__9, _10: _2__10, _11: _2__11, }) => {
+                    _0 == _2__0 && _1 == _2__1 && _2 == _2__2 && _3 == _2__3 && _4 == _2__4 && _5 == _2__5 && _6 == _2__6 && _7 == _2__7 && _8 == _2__8 && _9 == _2__9 && _10 == _2__10 && _11 == _2__11
+                },
+                _ => {
+                    false
+                },
+            }
+        }
+    }
+
+    impl<T0: DafnyType + Eq + Hash, T1: DafnyType + Eq + Hash, T2: DafnyType + Eq + Hash, T3: DafnyType + Eq + Hash, T4: DafnyType + Eq + Hash, T5: DafnyType + Eq + Hash, T6: DafnyType + Eq + Hash, T7: DafnyType + Eq + Hash, T8: DafnyType + Eq + Hash, T9: DafnyType + Eq + Hash, T10: DafnyType + Eq + Hash, T11: DafnyType + Eq + Hash> Eq
         for Tuple12<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11> {}
 
     impl<T0: DafnyType + Hash, T1: DafnyType + Hash, T2: DafnyType + Hash, T3: DafnyType + Hash, T4: DafnyType + Hash, T5: DafnyType + Hash, T6: DafnyType + Hash, T7: DafnyType + Hash, T8: DafnyType + Hash, T9: DafnyType + Hash, T10: DafnyType + Hash, T11: DafnyType + Hash> Hash
@@ -1830,26 +1890,6 @@ pub mod _System {
         }
     }
 
-    impl<T0: DafnyType + Default, T1: DafnyType + Default, T2: DafnyType + Default, T3: DafnyType + Default, T4: DafnyType + Default, T5: DafnyType + Default, T6: DafnyType + Default, T7: DafnyType + Default, T8: DafnyType + Default, T9: DafnyType + Default, T10: DafnyType + Default, T11: DafnyType + Default> Default
-        for Tuple12<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11> {
-        fn default() -> Tuple12<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11> {
-            Tuple12::_T12 {
-                _0: Default::default(),
-                _1: Default::default(),
-                _2: Default::default(),
-                _3: Default::default(),
-                _4: Default::default(),
-                _5: Default::default(),
-                _6: Default::default(),
-                _7: Default::default(),
-                _8: Default::default(),
-                _9: Default::default(),
-                _10: Default::default(),
-                _11: Default::default()
-            }
-        }
-    }
-
     impl<T0: DafnyType, T1: DafnyType, T2: DafnyType, T3: DafnyType, T4: DafnyType, T5: DafnyType, T6: DafnyType, T7: DafnyType, T8: DafnyType, T9: DafnyType, T10: DafnyType, T11: DafnyType> AsRef<Tuple12<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11>>
         for Tuple12<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11> {
         fn as_ref(&self) -> &Self {
@@ -1857,7 +1897,7 @@ pub mod _System {
         }
     }
 
-    #[derive(PartialEq, Clone)]
+    #[derive(Clone)]
     pub enum Tuple13<T0: DafnyType, T1: DafnyType, T2: DafnyType, T3: DafnyType, T4: DafnyType, T5: DafnyType, T6: DafnyType, T7: DafnyType, T8: DafnyType, T9: DafnyType, T10: DafnyType, T11: DafnyType, T12: DafnyType> {
         _T13 {
             _0: T0,
@@ -2029,7 +2069,24 @@ pub mod _System {
         }
     }
 
-    impl<T0: DafnyType + Eq, T1: DafnyType + Eq, T2: DafnyType + Eq, T3: DafnyType + Eq, T4: DafnyType + Eq, T5: DafnyType + Eq, T6: DafnyType + Eq, T7: DafnyType + Eq, T8: DafnyType + Eq, T9: DafnyType + Eq, T10: DafnyType + Eq, T11: DafnyType + Eq, T12: DafnyType + Eq> Eq
+    impl<T0: DafnyType + Eq + Hash, T1: DafnyType + Eq + Hash, T2: DafnyType + Eq + Hash, T3: DafnyType + Eq + Hash, T4: DafnyType + Eq + Hash, T5: DafnyType + Eq + Hash, T6: DafnyType + Eq + Hash, T7: DafnyType + Eq + Hash, T8: DafnyType + Eq + Hash, T9: DafnyType + Eq + Hash, T10: DafnyType + Eq + Hash, T11: DafnyType + Eq + Hash, T12: DafnyType + Eq + Hash> PartialEq
+        for Tuple13<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12> {
+        fn eq(&self, other: &Self) -> bool {
+            match (
+                    self,
+                    other
+                ) {
+                (Tuple13::_T13{_0, _1, _2, _3, _4, _5, _6, _7, _8, _9, _10, _11, _12, }, Tuple13::_T13{_0: _2__0, _1: _2__1, _2: _2__2, _3: _2__3, _4: _2__4, _5: _2__5, _6: _2__6, _7: _2__7, _8: _2__8, _9: _2__9, _10: _2__10, _11: _2__11, _12: _2__12, }) => {
+                    _0 == _2__0 && _1 == _2__1 && _2 == _2__2 && _3 == _2__3 && _4 == _2__4 && _5 == _2__5 && _6 == _2__6 && _7 == _2__7 && _8 == _2__8 && _9 == _2__9 && _10 == _2__10 && _11 == _2__11 && _12 == _2__12
+                },
+                _ => {
+                    false
+                },
+            }
+        }
+    }
+
+    impl<T0: DafnyType + Eq + Hash, T1: DafnyType + Eq + Hash, T2: DafnyType + Eq + Hash, T3: DafnyType + Eq + Hash, T4: DafnyType + Eq + Hash, T5: DafnyType + Eq + Hash, T6: DafnyType + Eq + Hash, T7: DafnyType + Eq + Hash, T8: DafnyType + Eq + Hash, T9: DafnyType + Eq + Hash, T10: DafnyType + Eq + Hash, T11: DafnyType + Eq + Hash, T12: DafnyType + Eq + Hash> Eq
         for Tuple13<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12> {}
 
     impl<T0: DafnyType + Hash, T1: DafnyType + Hash, T2: DafnyType + Hash, T3: DafnyType + Hash, T4: DafnyType + Hash, T5: DafnyType + Hash, T6: DafnyType + Hash, T7: DafnyType + Hash, T8: DafnyType + Hash, T9: DafnyType + Hash, T10: DafnyType + Hash, T11: DafnyType + Hash, T12: DafnyType + Hash> Hash
@@ -2055,27 +2112,6 @@ pub mod _System {
         }
     }
 
-    impl<T0: DafnyType + Default, T1: DafnyType + Default, T2: DafnyType + Default, T3: DafnyType + Default, T4: DafnyType + Default, T5: DafnyType + Default, T6: DafnyType + Default, T7: DafnyType + Default, T8: DafnyType + Default, T9: DafnyType + Default, T10: DafnyType + Default, T11: DafnyType + Default, T12: DafnyType + Default> Default
-        for Tuple13<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12> {
-        fn default() -> Tuple13<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12> {
-            Tuple13::_T13 {
-                _0: Default::default(),
-                _1: Default::default(),
-                _2: Default::default(),
-                _3: Default::default(),
-                _4: Default::default(),
-                _5: Default::default(),
-                _6: Default::default(),
-                _7: Default::default(),
-                _8: Default::default(),
-                _9: Default::default(),
-                _10: Default::default(),
-                _11: Default::default(),
-                _12: Default::default()
-            }
-        }
-    }
-
     impl<T0: DafnyType, T1: DafnyType, T2: DafnyType, T3: DafnyType, T4: DafnyType, T5: DafnyType, T6: DafnyType, T7: DafnyType, T8: DafnyType, T9: DafnyType, T10: DafnyType, T11: DafnyType, T12: DafnyType> AsRef<Tuple13<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12>>
         for Tuple13<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12> {
         fn as_ref(&self) -> &Self {
@@ -2083,7 +2119,7 @@ pub mod _System {
         }
     }
 
-    #[derive(PartialEq, Clone)]
+    #[derive(Clone)]
     pub enum Tuple14<T0: DafnyType, T1: DafnyType, T2: DafnyType, T3: DafnyType, T4: DafnyType, T5: DafnyType, T6: DafnyType, T7: DafnyType, T8: DafnyType, T9: DafnyType, T10: DafnyType, T11: DafnyType, T12: DafnyType, T13: DafnyType> {
         _T14 {
             _0: T0,
@@ -2265,7 +2301,24 @@ pub mod _System {
         }
     }
 
-    impl<T0: DafnyType + Eq, T1: DafnyType + Eq, T2: DafnyType + Eq, T3: DafnyType + Eq, T4: DafnyType + Eq, T5: DafnyType + Eq, T6: DafnyType + Eq, T7: DafnyType + Eq, T8: DafnyType + Eq, T9: DafnyType + Eq, T10: DafnyType + Eq, T11: DafnyType + Eq, T12: DafnyType + Eq, T13: DafnyType + Eq> Eq
+    impl<T0: DafnyType + Eq + Hash, T1: DafnyType + Eq + Hash, T2: DafnyType + Eq + Hash, T3: DafnyType + Eq + Hash, T4: DafnyType + Eq + Hash, T5: DafnyType + Eq + Hash, T6: DafnyType + Eq + Hash, T7: DafnyType + Eq + Hash, T8: DafnyType + Eq + Hash, T9: DafnyType + Eq + Hash, T10: DafnyType + Eq + Hash, T11: DafnyType + Eq + Hash, T12: DafnyType + Eq + Hash, T13: DafnyType + Eq + Hash> PartialEq
+        for Tuple14<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13> {
+        fn eq(&self, other: &Self) -> bool {
+            match (
+                    self,
+                    other
+                ) {
+                (Tuple14::_T14{_0, _1, _2, _3, _4, _5, _6, _7, _8, _9, _10, _11, _12, _13, }, Tuple14::_T14{_0: _2__0, _1: _2__1, _2: _2__2, _3: _2__3, _4: _2__4, _5: _2__5, _6: _2__6, _7: _2__7, _8: _2__8, _9: _2__9, _10: _2__10, _11: _2__11, _12: _2__12, _13: _2__13, }) => {
+                    _0 == _2__0 && _1 == _2__1 && _2 == _2__2 && _3 == _2__3 && _4 == _2__4 && _5 == _2__5 && _6 == _2__6 && _7 == _2__7 && _8 == _2__8 && _9 == _2__9 && _10 == _2__10 && _11 == _2__11 && _12 == _2__12 && _13 == _2__13
+                },
+                _ => {
+                    false
+                },
+            }
+        }
+    }
+
+    impl<T0: DafnyType + Eq + Hash, T1: DafnyType + Eq + Hash, T2: DafnyType + Eq + Hash, T3: DafnyType + Eq + Hash, T4: DafnyType + Eq + Hash, T5: DafnyType + Eq + Hash, T6: DafnyType + Eq + Hash, T7: DafnyType + Eq + Hash, T8: DafnyType + Eq + Hash, T9: DafnyType + Eq + Hash, T10: DafnyType + Eq + Hash, T11: DafnyType + Eq + Hash, T12: DafnyType + Eq + Hash, T13: DafnyType + Eq + Hash> Eq
         for Tuple14<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13> {}
 
     impl<T0: DafnyType + Hash, T1: DafnyType + Hash, T2: DafnyType + Hash, T3: DafnyType + Hash, T4: DafnyType + Hash, T5: DafnyType + Hash, T6: DafnyType + Hash, T7: DafnyType + Hash, T8: DafnyType + Hash, T9: DafnyType + Hash, T10: DafnyType + Hash, T11: DafnyType + Hash, T12: DafnyType + Hash, T13: DafnyType + Hash> Hash
@@ -2292,28 +2345,6 @@ pub mod _System {
         }
     }
 
-    impl<T0: DafnyType + Default, T1: DafnyType + Default, T2: DafnyType + Default, T3: DafnyType + Default, T4: DafnyType + Default, T5: DafnyType + Default, T6: DafnyType + Default, T7: DafnyType + Default, T8: DafnyType + Default, T9: DafnyType + Default, T10: DafnyType + Default, T11: DafnyType + Default, T12: DafnyType + Default, T13: DafnyType + Default> Default
-        for Tuple14<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13> {
-        fn default() -> Tuple14<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13> {
-            Tuple14::_T14 {
-                _0: Default::default(),
-                _1: Default::default(),
-                _2: Default::default(),
-                _3: Default::default(),
-                _4: Default::default(),
-                _5: Default::default(),
-                _6: Default::default(),
-                _7: Default::default(),
-                _8: Default::default(),
-                _9: Default::default(),
-                _10: Default::default(),
-                _11: Default::default(),
-                _12: Default::default(),
-                _13: Default::default()
-            }
-        }
-    }
-
     impl<T0: DafnyType, T1: DafnyType, T2: DafnyType, T3: DafnyType, T4: DafnyType, T5: DafnyType, T6: DafnyType, T7: DafnyType, T8: DafnyType, T9: DafnyType, T10: DafnyType, T11: DafnyType, T12: DafnyType, T13: DafnyType> AsRef<Tuple14<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13>>
         for Tuple14<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13> {
         fn as_ref(&self) -> &Self {
@@ -2321,7 +2352,7 @@ pub mod _System {
         }
     }
 
-    #[derive(PartialEq, Clone)]
+    #[derive(Clone)]
     pub enum Tuple15<T0: DafnyType, T1: DafnyType, T2: DafnyType, T3: DafnyType, T4: DafnyType, T5: DafnyType, T6: DafnyType, T7: DafnyType, T8: DafnyType, T9: DafnyType, T10: DafnyType, T11: DafnyType, T12: DafnyType, T13: DafnyType, T14: DafnyType> {
         _T15 {
             _0: T0,
@@ -2513,7 +2544,24 @@ pub mod _System {
         }
     }
 
-    impl<T0: DafnyType + Eq, T1: DafnyType + Eq, T2: DafnyType + Eq, T3: DafnyType + Eq, T4: DafnyType + Eq, T5: DafnyType + Eq, T6: DafnyType + Eq, T7: DafnyType + Eq, T8: DafnyType + Eq, T9: DafnyType + Eq, T10: DafnyType + Eq, T11: DafnyType + Eq, T12: DafnyType + Eq, T13: DafnyType + Eq, T14: DafnyType + Eq> Eq
+    impl<T0: DafnyType + Eq + Hash, T1: DafnyType + Eq + Hash, T2: DafnyType + Eq + Hash, T3: DafnyType + Eq + Hash, T4: DafnyType + Eq + Hash, T5: DafnyType + Eq + Hash, T6: DafnyType + Eq + Hash, T7: DafnyType + Eq + Hash, T8: DafnyType + Eq + Hash, T9: DafnyType + Eq + Hash, T10: DafnyType + Eq + Hash, T11: DafnyType + Eq + Hash, T12: DafnyType + Eq + Hash, T13: DafnyType + Eq + Hash, T14: DafnyType + Eq + Hash> PartialEq
+        for Tuple15<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14> {
+        fn eq(&self, other: &Self) -> bool {
+            match (
+                    self,
+                    other
+                ) {
+                (Tuple15::_T15{_0, _1, _2, _3, _4, _5, _6, _7, _8, _9, _10, _11, _12, _13, _14, }, Tuple15::_T15{_0: _2__0, _1: _2__1, _2: _2__2, _3: _2__3, _4: _2__4, _5: _2__5, _6: _2__6, _7: _2__7, _8: _2__8, _9: _2__9, _10: _2__10, _11: _2__11, _12: _2__12, _13: _2__13, _14: _2__14, }) => {
+                    _0 == _2__0 && _1 == _2__1 && _2 == _2__2 && _3 == _2__3 && _4 == _2__4 && _5 == _2__5 && _6 == _2__6 && _7 == _2__7 && _8 == _2__8 && _9 == _2__9 && _10 == _2__10 && _11 == _2__11 && _12 == _2__12 && _13 == _2__13 && _14 == _2__14
+                },
+                _ => {
+                    false
+                },
+            }
+        }
+    }
+
+    impl<T0: DafnyType + Eq + Hash, T1: DafnyType + Eq + Hash, T2: DafnyType + Eq + Hash, T3: DafnyType + Eq + Hash, T4: DafnyType + Eq + Hash, T5: DafnyType + Eq + Hash, T6: DafnyType + Eq + Hash, T7: DafnyType + Eq + Hash, T8: DafnyType + Eq + Hash, T9: DafnyType + Eq + Hash, T10: DafnyType + Eq + Hash, T11: DafnyType + Eq + Hash, T12: DafnyType + Eq + Hash, T13: DafnyType + Eq + Hash, T14: DafnyType + Eq + Hash> Eq
         for Tuple15<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14> {}
 
     impl<T0: DafnyType + Hash, T1: DafnyType + Hash, T2: DafnyType + Hash, T3: DafnyType + Hash, T4: DafnyType + Hash, T5: DafnyType + Hash, T6: DafnyType + Hash, T7: DafnyType + Hash, T8: DafnyType + Hash, T9: DafnyType + Hash, T10: DafnyType + Hash, T11: DafnyType + Hash, T12: DafnyType + Hash, T13: DafnyType + Hash, T14: DafnyType + Hash> Hash
@@ -2541,29 +2589,6 @@ pub mod _System {
         }
     }
 
-    impl<T0: DafnyType + Default, T1: DafnyType + Default, T2: DafnyType + Default, T3: DafnyType + Default, T4: DafnyType + Default, T5: DafnyType + Default, T6: DafnyType + Default, T7: DafnyType + Default, T8: DafnyType + Default, T9: DafnyType + Default, T10: DafnyType + Default, T11: DafnyType + Default, T12: DafnyType + Default, T13: DafnyType + Default, T14: DafnyType + Default> Default
-        for Tuple15<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14> {
-        fn default() -> Tuple15<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14> {
-            Tuple15::_T15 {
-                _0: Default::default(),
-                _1: Default::default(),
-                _2: Default::default(),
-                _3: Default::default(),
-                _4: Default::default(),
-                _5: Default::default(),
-                _6: Default::default(),
-                _7: Default::default(),
-                _8: Default::default(),
-                _9: Default::default(),
-                _10: Default::default(),
-                _11: Default::default(),
-                _12: Default::default(),
-                _13: Default::default(),
-                _14: Default::default()
-            }
-        }
-    }
-
     impl<T0: DafnyType, T1: DafnyType, T2: DafnyType, T3: DafnyType, T4: DafnyType, T5: DafnyType, T6: DafnyType, T7: DafnyType, T8: DafnyType, T9: DafnyType, T10: DafnyType, T11: DafnyType, T12: DafnyType, T13: DafnyType, T14: DafnyType> AsRef<Tuple15<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14>>
         for Tuple15<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14> {
         fn as_ref(&self) -> &Self {
@@ -2571,7 +2596,7 @@ pub mod _System {
         }
     }
 
-    #[derive(PartialEq, Clone)]
+    #[derive(Clone)]
     pub enum Tuple16<T0: DafnyType, T1: DafnyType, T2: DafnyType, T3: DafnyType, T4: DafnyType, T5: DafnyType, T6: DafnyType, T7: DafnyType, T8: DafnyType, T9: DafnyType, T10: DafnyType, T11: DafnyType, T12: DafnyType, T13: DafnyType, T14: DafnyType, T15: DafnyType> {
         _T16 {
             _0: T0,
@@ -2773,7 +2798,24 @@ pub mod _System {
         }
     }
 
-    impl<T0: DafnyType + Eq, T1: DafnyType + Eq, T2: DafnyType + Eq, T3: DafnyType + Eq, T4: DafnyType + Eq, T5: DafnyType + Eq, T6: DafnyType + Eq, T7: DafnyType + Eq, T8: DafnyType + Eq, T9: DafnyType + Eq, T10: DafnyType + Eq, T11: DafnyType + Eq, T12: DafnyType + Eq, T13: DafnyType + Eq, T14: DafnyType + Eq, T15: DafnyType + Eq> Eq
+    impl<T0: DafnyType + Eq + Hash, T1: DafnyType + Eq + Hash, T2: DafnyType + Eq + Hash, T3: DafnyType + Eq + Hash, T4: DafnyType + Eq + Hash, T5: DafnyType + Eq + Hash, T6: DafnyType + Eq + Hash, T7: DafnyType + Eq + Hash, T8: DafnyType + Eq + Hash, T9: DafnyType + Eq + Hash, T10: DafnyType + Eq + Hash, T11: DafnyType + Eq + Hash, T12: DafnyType + Eq + Hash, T13: DafnyType + Eq + Hash, T14: DafnyType + Eq + Hash, T15: DafnyType + Eq + Hash> PartialEq
+        for Tuple16<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15> {
+        fn eq(&self, other: &Self) -> bool {
+            match (
+                    self,
+                    other
+                ) {
+                (Tuple16::_T16{_0, _1, _2, _3, _4, _5, _6, _7, _8, _9, _10, _11, _12, _13, _14, _15, }, Tuple16::_T16{_0: _2__0, _1: _2__1, _2: _2__2, _3: _2__3, _4: _2__4, _5: _2__5, _6: _2__6, _7: _2__7, _8: _2__8, _9: _2__9, _10: _2__10, _11: _2__11, _12: _2__12, _13: _2__13, _14: _2__14, _15: _2__15, }) => {
+                    _0 == _2__0 && _1 == _2__1 && _2 == _2__2 && _3 == _2__3 && _4 == _2__4 && _5 == _2__5 && _6 == _2__6 && _7 == _2__7 && _8 == _2__8 && _9 == _2__9 && _10 == _2__10 && _11 == _2__11 && _12 == _2__12 && _13 == _2__13 && _14 == _2__14 && _15 == _2__15
+                },
+                _ => {
+                    false
+                },
+            }
+        }
+    }
+
+    impl<T0: DafnyType + Eq + Hash, T1: DafnyType + Eq + Hash, T2: DafnyType + Eq + Hash, T3: DafnyType + Eq + Hash, T4: DafnyType + Eq + Hash, T5: DafnyType + Eq + Hash, T6: DafnyType + Eq + Hash, T7: DafnyType + Eq + Hash, T8: DafnyType + Eq + Hash, T9: DafnyType + Eq + Hash, T10: DafnyType + Eq + Hash, T11: DafnyType + Eq + Hash, T12: DafnyType + Eq + Hash, T13: DafnyType + Eq + Hash, T14: DafnyType + Eq + Hash, T15: DafnyType + Eq + Hash> Eq
         for Tuple16<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15> {}
 
     impl<T0: DafnyType + Hash, T1: DafnyType + Hash, T2: DafnyType + Hash, T3: DafnyType + Hash, T4: DafnyType + Hash, T5: DafnyType + Hash, T6: DafnyType + Hash, T7: DafnyType + Hash, T8: DafnyType + Hash, T9: DafnyType + Hash, T10: DafnyType + Hash, T11: DafnyType + Hash, T12: DafnyType + Hash, T13: DafnyType + Hash, T14: DafnyType + Hash, T15: DafnyType + Hash> Hash
@@ -2802,30 +2844,6 @@ pub mod _System {
         }
     }
 
-    impl<T0: DafnyType + Default, T1: DafnyType + Default, T2: DafnyType + Default, T3: DafnyType + Default, T4: DafnyType + Default, T5: DafnyType + Default, T6: DafnyType + Default, T7: DafnyType + Default, T8: DafnyType + Default, T9: DafnyType + Default, T10: DafnyType + Default, T11: DafnyType + Default, T12: DafnyType + Default, T13: DafnyType + Default, T14: DafnyType + Default, T15: DafnyType + Default> Default
-        for Tuple16<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15> {
-        fn default() -> Tuple16<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15> {
-            Tuple16::_T16 {
-                _0: Default::default(),
-                _1: Default::default(),
-                _2: Default::default(),
-                _3: Default::default(),
-                _4: Default::default(),
-                _5: Default::default(),
-                _6: Default::default(),
-                _7: Default::default(),
-                _8: Default::default(),
-                _9: Default::default(),
-                _10: Default::default(),
-                _11: Default::default(),
-                _12: Default::default(),
-                _13: Default::default(),
-                _14: Default::default(),
-                _15: Default::default()
-            }
-        }
-    }
-
     impl<T0: DafnyType, T1: DafnyType, T2: DafnyType, T3: DafnyType, T4: DafnyType, T5: DafnyType, T6: DafnyType, T7: DafnyType, T8: DafnyType, T9: DafnyType, T10: DafnyType, T11: DafnyType, T12: DafnyType, T13: DafnyType, T14: DafnyType, T15: DafnyType> AsRef<Tuple16<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15>>
         for Tuple16<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15> {
         fn as_ref(&self) -> &Self {
@@ -2833,7 +2851,7 @@ pub mod _System {
         }
     }
 
-    #[derive(PartialEq, Clone)]
+    #[derive(Clone)]
     pub enum Tuple17<T0: DafnyType, T1: DafnyType, T2: DafnyType, T3: DafnyType, T4: DafnyType, T5: DafnyType, T6: DafnyType, T7: DafnyType, T8: DafnyType, T9: DafnyType, T10: DafnyType, T11: DafnyType, T12: DafnyType, T13: DafnyType, T14: DafnyType, T15: DafnyType, T16: DafnyType> {
         _T17 {
             _0: T0,
@@ -3045,7 +3063,24 @@ pub mod _System {
         }
     }
 
-    impl<T0: DafnyType + Eq, T1: DafnyType + Eq, T2: DafnyType + Eq, T3: DafnyType + Eq, T4: DafnyType + Eq, T5: DafnyType + Eq, T6: DafnyType + Eq, T7: DafnyType + Eq, T8: DafnyType + Eq, T9: DafnyType + Eq, T10: DafnyType + Eq, T11: DafnyType + Eq, T12: DafnyType + Eq, T13: DafnyType + Eq, T14: DafnyType + Eq, T15: DafnyType + Eq, T16: DafnyType + Eq> Eq
+    impl<T0: DafnyType + Eq + Hash, T1: DafnyType + Eq + Hash, T2: DafnyType + Eq + Hash, T3: DafnyType + Eq + Hash, T4: DafnyType + Eq + Hash, T5: DafnyType + Eq + Hash, T6: DafnyType + Eq + Hash, T7: DafnyType + Eq + Hash, T8: DafnyType + Eq + Hash, T9: DafnyType + Eq + Hash, T10: DafnyType + Eq + Hash, T11: DafnyType + Eq + Hash, T12: DafnyType + Eq + Hash, T13: DafnyType + Eq + Hash, T14: DafnyType + Eq + Hash, T15: DafnyType + Eq + Hash, T16: DafnyType + Eq + Hash> PartialEq
+        for Tuple17<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16> {
+        fn eq(&self, other: &Self) -> bool {
+            match (
+                    self,
+                    other
+                ) {
+                (Tuple17::_T17{_0, _1, _2, _3, _4, _5, _6, _7, _8, _9, _10, _11, _12, _13, _14, _15, _16, }, Tuple17::_T17{_0: _2__0, _1: _2__1, _2: _2__2, _3: _2__3, _4: _2__4, _5: _2__5, _6: _2__6, _7: _2__7, _8: _2__8, _9: _2__9, _10: _2__10, _11: _2__11, _12: _2__12, _13: _2__13, _14: _2__14, _15: _2__15, _16: _2__16, }) => {
+                    _0 == _2__0 && _1 == _2__1 && _2 == _2__2 && _3 == _2__3 && _4 == _2__4 && _5 == _2__5 && _6 == _2__6 && _7 == _2__7 && _8 == _2__8 && _9 == _2__9 && _10 == _2__10 && _11 == _2__11 && _12 == _2__12 && _13 == _2__13 && _14 == _2__14 && _15 == _2__15 && _16 == _2__16
+                },
+                _ => {
+                    false
+                },
+            }
+        }
+    }
+
+    impl<T0: DafnyType + Eq + Hash, T1: DafnyType + Eq + Hash, T2: DafnyType + Eq + Hash, T3: DafnyType + Eq + Hash, T4: DafnyType + Eq + Hash, T5: DafnyType + Eq + Hash, T6: DafnyType + Eq + Hash, T7: DafnyType + Eq + Hash, T8: DafnyType + Eq + Hash, T9: DafnyType + Eq + Hash, T10: DafnyType + Eq + Hash, T11: DafnyType + Eq + Hash, T12: DafnyType + Eq + Hash, T13: DafnyType + Eq + Hash, T14: DafnyType + Eq + Hash, T15: DafnyType + Eq + Hash, T16: DafnyType + Eq + Hash> Eq
         for Tuple17<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16> {}
 
     impl<T0: DafnyType + Hash, T1: DafnyType + Hash, T2: DafnyType + Hash, T3: DafnyType + Hash, T4: DafnyType + Hash, T5: DafnyType + Hash, T6: DafnyType + Hash, T7: DafnyType + Hash, T8: DafnyType + Hash, T9: DafnyType + Hash, T10: DafnyType + Hash, T11: DafnyType + Hash, T12: DafnyType + Hash, T13: DafnyType + Hash, T14: DafnyType + Hash, T15: DafnyType + Hash, T16: DafnyType + Hash> Hash
@@ -3075,31 +3110,6 @@ pub mod _System {
         }
     }
 
-    impl<T0: DafnyType + Default, T1: DafnyType + Default, T2: DafnyType + Default, T3: DafnyType + Default, T4: DafnyType + Default, T5: DafnyType + Default, T6: DafnyType + Default, T7: DafnyType + Default, T8: DafnyType + Default, T9: DafnyType + Default, T10: DafnyType + Default, T11: DafnyType + Default, T12: DafnyType + Default, T13: DafnyType + Default, T14: DafnyType + Default, T15: DafnyType + Default, T16: DafnyType + Default> Default
-        for Tuple17<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16> {
-        fn default() -> Tuple17<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16> {
-            Tuple17::_T17 {
-                _0: Default::default(),
-                _1: Default::default(),
-                _2: Default::default(),
-                _3: Default::default(),
-                _4: Default::default(),
-                _5: Default::default(),
-                _6: Default::default(),
-                _7: Default::default(),
-                _8: Default::default(),
-                _9: Default::default(),
-                _10: Default::default(),
-                _11: Default::default(),
-                _12: Default::default(),
-                _13: Default::default(),
-                _14: Default::default(),
-                _15: Default::default(),
-                _16: Default::default()
-            }
-        }
-    }
-
     impl<T0: DafnyType, T1: DafnyType, T2: DafnyType, T3: DafnyType, T4: DafnyType, T5: DafnyType, T6: DafnyType, T7: DafnyType, T8: DafnyType, T9: DafnyType, T10: DafnyType, T11: DafnyType, T12: DafnyType, T13: DafnyType, T14: DafnyType, T15: DafnyType, T16: DafnyType> AsRef<Tuple17<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16>>
         for Tuple17<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16> {
         fn as_ref(&self) -> &Self {
@@ -3107,7 +3117,7 @@ pub mod _System {
         }
     }
 
-    #[derive(PartialEq, Clone)]
+    #[derive(Clone)]
     pub enum Tuple18<T0: DafnyType, T1: DafnyType, T2: DafnyType, T3: DafnyType, T4: DafnyType, T5: DafnyType, T6: DafnyType, T7: DafnyType, T8: DafnyType, T9: DafnyType, T10: DafnyType, T11: DafnyType, T12: DafnyType, T13: DafnyType, T14: DafnyType, T15: DafnyType, T16: DafnyType, T17: DafnyType> {
         _T18 {
             _0: T0,
@@ -3329,7 +3339,24 @@ pub mod _System {
         }
     }
 
-    impl<T0: DafnyType + Eq, T1: DafnyType + Eq, T2: DafnyType + Eq, T3: DafnyType + Eq, T4: DafnyType + Eq, T5: DafnyType + Eq, T6: DafnyType + Eq, T7: DafnyType + Eq, T8: DafnyType + Eq, T9: DafnyType + Eq, T10: DafnyType + Eq, T11: DafnyType + Eq, T12: DafnyType + Eq, T13: DafnyType + Eq, T14: DafnyType + Eq, T15: DafnyType + Eq, T16: DafnyType + Eq, T17: DafnyType + Eq> Eq
+    impl<T0: DafnyType + Eq + Hash, T1: DafnyType + Eq + Hash, T2: DafnyType + Eq + Hash, T3: DafnyType + Eq + Hash, T4: DafnyType + Eq + Hash, T5: DafnyType + Eq + Hash, T6: DafnyType + Eq + Hash, T7: DafnyType + Eq + Hash, T8: DafnyType + Eq + Hash, T9: DafnyType + Eq + Hash, T10: DafnyType + Eq + Hash, T11: DafnyType + Eq + Hash, T12: DafnyType + Eq + Hash, T13: DafnyType + Eq + Hash, T14: DafnyType + Eq + Hash, T15: DafnyType + Eq + Hash, T16: DafnyType + Eq + Hash, T17: DafnyType + Eq + Hash> PartialEq
+        for Tuple18<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17> {
+        fn eq(&self, other: &Self) -> bool {
+            match (
+                    self,
+                    other
+                ) {
+                (Tuple18::_T18{_0, _1, _2, _3, _4, _5, _6, _7, _8, _9, _10, _11, _12, _13, _14, _15, _16, _17, }, Tuple18::_T18{_0: _2__0, _1: _2__1, _2: _2__2, _3: _2__3, _4: _2__4, _5: _2__5, _6: _2__6, _7: _2__7, _8: _2__8, _9: _2__9, _10: _2__10, _11: _2__11, _12: _2__12, _13: _2__13, _14: _2__14, _15: _2__15, _16: _2__16, _17: _2__17, }) => {
+                    _0 == _2__0 && _1 == _2__1 && _2 == _2__2 && _3 == _2__3 && _4 == _2__4 && _5 == _2__5 && _6 == _2__6 && _7 == _2__7 && _8 == _2__8 && _9 == _2__9 && _10 == _2__10 && _11 == _2__11 && _12 == _2__12 && _13 == _2__13 && _14 == _2__14 && _15 == _2__15 && _16 == _2__16 && _17 == _2__17
+                },
+                _ => {
+                    false
+                },
+            }
+        }
+    }
+
+    impl<T0: DafnyType + Eq + Hash, T1: DafnyType + Eq + Hash, T2: DafnyType + Eq + Hash, T3: DafnyType + Eq + Hash, T4: DafnyType + Eq + Hash, T5: DafnyType + Eq + Hash, T6: DafnyType + Eq + Hash, T7: DafnyType + Eq + Hash, T8: DafnyType + Eq + Hash, T9: DafnyType + Eq + Hash, T10: DafnyType + Eq + Hash, T11: DafnyType + Eq + Hash, T12: DafnyType + Eq + Hash, T13: DafnyType + Eq + Hash, T14: DafnyType + Eq + Hash, T15: DafnyType + Eq + Hash, T16: DafnyType + Eq + Hash, T17: DafnyType + Eq + Hash> Eq
         for Tuple18<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17> {}
 
     impl<T0: DafnyType + Hash, T1: DafnyType + Hash, T2: DafnyType + Hash, T3: DafnyType + Hash, T4: DafnyType + Hash, T5: DafnyType + Hash, T6: DafnyType + Hash, T7: DafnyType + Hash, T8: DafnyType + Hash, T9: DafnyType + Hash, T10: DafnyType + Hash, T11: DafnyType + Hash, T12: DafnyType + Hash, T13: DafnyType + Hash, T14: DafnyType + Hash, T15: DafnyType + Hash, T16: DafnyType + Hash, T17: DafnyType + Hash> Hash
@@ -3360,32 +3387,6 @@ pub mod _System {
         }
     }
 
-    impl<T0: DafnyType + Default, T1: DafnyType + Default, T2: DafnyType + Default, T3: DafnyType + Default, T4: DafnyType + Default, T5: DafnyType + Default, T6: DafnyType + Default, T7: DafnyType + Default, T8: DafnyType + Default, T9: DafnyType + Default, T10: DafnyType + Default, T11: DafnyType + Default, T12: DafnyType + Default, T13: DafnyType + Default, T14: DafnyType + Default, T15: DafnyType + Default, T16: DafnyType + Default, T17: DafnyType + Default> Default
-        for Tuple18<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17> {
-        fn default() -> Tuple18<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17> {
-            Tuple18::_T18 {
-                _0: Default::default(),
-                _1: Default::default(),
-                _2: Default::default(),
-                _3: Default::default(),
-                _4: Default::default(),
-                _5: Default::default(),
-                _6: Default::default(),
-                _7: Default::default(),
-                _8: Default::default(),
-                _9: Default::default(),
-                _10: Default::default(),
-                _11: Default::default(),
-                _12: Default::default(),
-                _13: Default::default(),
-                _14: Default::default(),
-                _15: Default::default(),
-                _16: Default::default(),
-                _17: Default::default()
-            }
-        }
-    }
-
     impl<T0: DafnyType, T1: DafnyType, T2: DafnyType, T3: DafnyType, T4: DafnyType, T5: DafnyType, T6: DafnyType, T7: DafnyType, T8: DafnyType, T9: DafnyType, T10: DafnyType, T11: DafnyType, T12: DafnyType, T13: DafnyType, T14: DafnyType, T15: DafnyType, T16: DafnyType, T17: DafnyType> AsRef<Tuple18<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17>>
         for Tuple18<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17> {
         fn as_ref(&self) -> &Self {
@@ -3393,7 +3394,7 @@ pub mod _System {
         }
     }
 
-    #[derive(PartialEq, Clone)]
+    #[derive(Clone)]
     pub enum Tuple19<T0: DafnyType, T1: DafnyType, T2: DafnyType, T3: DafnyType, T4: DafnyType, T5: DafnyType, T6: DafnyType, T7: DafnyType, T8: DafnyType, T9: DafnyType, T10: DafnyType, T11: DafnyType, T12: DafnyType, T13: DafnyType, T14: DafnyType, T15: DafnyType, T16: DafnyType, T17: DafnyType, T18: DafnyType> {
         _T19 {
             _0: T0,
@@ -3625,7 +3626,24 @@ pub mod _System {
         }
     }
 
-    impl<T0: DafnyType + Eq, T1: DafnyType + Eq, T2: DafnyType + Eq, T3: DafnyType + Eq, T4: DafnyType + Eq, T5: DafnyType + Eq, T6: DafnyType + Eq, T7: DafnyType + Eq, T8: DafnyType + Eq, T9: DafnyType + Eq, T10: DafnyType + Eq, T11: DafnyType + Eq, T12: DafnyType + Eq, T13: DafnyType + Eq, T14: DafnyType + Eq, T15: DafnyType + Eq, T16: DafnyType + Eq, T17: DafnyType + Eq, T18: DafnyType + Eq> Eq
+    impl<T0: DafnyType + Eq + Hash, T1: DafnyType + Eq + Hash, T2: DafnyType + Eq + Hash, T3: DafnyType + Eq + Hash, T4: DafnyType + Eq + Hash, T5: DafnyType + Eq + Hash, T6: DafnyType + Eq + Hash, T7: DafnyType + Eq + Hash, T8: DafnyType + Eq + Hash, T9: DafnyType + Eq + Hash, T10: DafnyType + Eq + Hash, T11: DafnyType + Eq + Hash, T12: DafnyType + Eq + Hash, T13: DafnyType + Eq + Hash, T14: DafnyType + Eq + Hash, T15: DafnyType + Eq + Hash, T16: DafnyType + Eq + Hash, T17: DafnyType + Eq + Hash, T18: DafnyType + Eq + Hash> PartialEq
+        for Tuple19<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, T18> {
+        fn eq(&self, other: &Self) -> bool {
+            match (
+                    self,
+                    other
+                ) {
+                (Tuple19::_T19{_0, _1, _2, _3, _4, _5, _6, _7, _8, _9, _10, _11, _12, _13, _14, _15, _16, _17, _18, }, Tuple19::_T19{_0: _2__0, _1: _2__1, _2: _2__2, _3: _2__3, _4: _2__4, _5: _2__5, _6: _2__6, _7: _2__7, _8: _2__8, _9: _2__9, _10: _2__10, _11: _2__11, _12: _2__12, _13: _2__13, _14: _2__14, _15: _2__15, _16: _2__16, _17: _2__17, _18: _2__18, }) => {
+                    _0 == _2__0 && _1 == _2__1 && _2 == _2__2 && _3 == _2__3 && _4 == _2__4 && _5 == _2__5 && _6 == _2__6 && _7 == _2__7 && _8 == _2__8 && _9 == _2__9 && _10 == _2__10 && _11 == _2__11 && _12 == _2__12 && _13 == _2__13 && _14 == _2__14 && _15 == _2__15 && _16 == _2__16 && _17 == _2__17 && _18 == _2__18
+                },
+                _ => {
+                    false
+                },
+            }
+        }
+    }
+
+    impl<T0: DafnyType + Eq + Hash, T1: DafnyType + Eq + Hash, T2: DafnyType + Eq + Hash, T3: DafnyType + Eq + Hash, T4: DafnyType + Eq + Hash, T5: DafnyType + Eq + Hash, T6: DafnyType + Eq + Hash, T7: DafnyType + Eq + Hash, T8: DafnyType + Eq + Hash, T9: DafnyType + Eq + Hash, T10: DafnyType + Eq + Hash, T11: DafnyType + Eq + Hash, T12: DafnyType + Eq + Hash, T13: DafnyType + Eq + Hash, T14: DafnyType + Eq + Hash, T15: DafnyType + Eq + Hash, T16: DafnyType + Eq + Hash, T17: DafnyType + Eq + Hash, T18: DafnyType + Eq + Hash> Eq
         for Tuple19<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, T18> {}
 
     impl<T0: DafnyType + Hash, T1: DafnyType + Hash, T2: DafnyType + Hash, T3: DafnyType + Hash, T4: DafnyType + Hash, T5: DafnyType + Hash, T6: DafnyType + Hash, T7: DafnyType + Hash, T8: DafnyType + Hash, T9: DafnyType + Hash, T10: DafnyType + Hash, T11: DafnyType + Hash, T12: DafnyType + Hash, T13: DafnyType + Hash, T14: DafnyType + Hash, T15: DafnyType + Hash, T16: DafnyType + Hash, T17: DafnyType + Hash, T18: DafnyType + Hash> Hash
@@ -3657,33 +3675,6 @@ pub mod _System {
         }
     }
 
-    impl<T0: DafnyType + Default, T1: DafnyType + Default, T2: DafnyType + Default, T3: DafnyType + Default, T4: DafnyType + Default, T5: DafnyType + Default, T6: DafnyType + Default, T7: DafnyType + Default, T8: DafnyType + Default, T9: DafnyType + Default, T10: DafnyType + Default, T11: DafnyType + Default, T12: DafnyType + Default, T13: DafnyType + Default, T14: DafnyType + Default, T15: DafnyType + Default, T16: DafnyType + Default, T17: DafnyType + Default, T18: DafnyType + Default> Default
-        for Tuple19<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, T18> {
-        fn default() -> Tuple19<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, T18> {
-            Tuple19::_T19 {
-                _0: Default::default(),
-                _1: Default::default(),
-                _2: Default::default(),
-                _3: Default::default(),
-                _4: Default::default(),
-                _5: Default::default(),
-                _6: Default::default(),
-                _7: Default::default(),
-                _8: Default::default(),
-                _9: Default::default(),
-                _10: Default::default(),
-                _11: Default::default(),
-                _12: Default::default(),
-                _13: Default::default(),
-                _14: Default::default(),
-                _15: Default::default(),
-                _16: Default::default(),
-                _17: Default::default(),
-                _18: Default::default()
-            }
-        }
-    }
-
     impl<T0: DafnyType, T1: DafnyType, T2: DafnyType, T3: DafnyType, T4: DafnyType, T5: DafnyType, T6: DafnyType, T7: DafnyType, T8: DafnyType, T9: DafnyType, T10: DafnyType, T11: DafnyType, T12: DafnyType, T13: DafnyType, T14: DafnyType, T15: DafnyType, T16: DafnyType, T17: DafnyType, T18: DafnyType> AsRef<Tuple19<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, T18>>
         for Tuple19<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, T18> {
         fn as_ref(&self) -> &Self {
@@ -3691,7 +3682,7 @@ pub mod _System {
         }
     }
 
-    #[derive(PartialEq, Clone)]
+    #[derive(Clone)]
     pub enum Tuple20<T0: DafnyType, T1: DafnyType, T2: DafnyType, T3: DafnyType, T4: DafnyType, T5: DafnyType, T6: DafnyType, T7: DafnyType, T8: DafnyType, T9: DafnyType, T10: DafnyType, T11: DafnyType, T12: DafnyType, T13: DafnyType, T14: DafnyType, T15: DafnyType, T16: DafnyType, T17: DafnyType, T18: DafnyType, T19: DafnyType> {
         _T20 {
             _0: T0,
@@ -3933,7 +3924,24 @@ pub mod _System {
         }
     }
 
-    impl<T0: DafnyType + Eq, T1: DafnyType + Eq, T2: DafnyType + Eq, T3: DafnyType + Eq, T4: DafnyType + Eq, T5: DafnyType + Eq, T6: DafnyType + Eq, T7: DafnyType + Eq, T8: DafnyType + Eq, T9: DafnyType + Eq, T10: DafnyType + Eq, T11: DafnyType + Eq, T12: DafnyType + Eq, T13: DafnyType + Eq, T14: DafnyType + Eq, T15: DafnyType + Eq, T16: DafnyType + Eq, T17: DafnyType + Eq, T18: DafnyType + Eq, T19: DafnyType + Eq> Eq
+    impl<T0: DafnyType + Eq + Hash, T1: DafnyType + Eq + Hash, T2: DafnyType + Eq + Hash, T3: DafnyType + Eq + Hash, T4: DafnyType + Eq + Hash, T5: DafnyType + Eq + Hash, T6: DafnyType + Eq + Hash, T7: DafnyType + Eq + Hash, T8: DafnyType + Eq + Hash, T9: DafnyType + Eq + Hash, T10: DafnyType + Eq + Hash, T11: DafnyType + Eq + Hash, T12: DafnyType + Eq + Hash, T13: DafnyType + Eq + Hash, T14: DafnyType + Eq + Hash, T15: DafnyType + Eq + Hash, T16: DafnyType + Eq + Hash, T17: DafnyType + Eq + Hash, T18: DafnyType + Eq + Hash, T19: DafnyType + Eq + Hash> PartialEq
+        for Tuple20<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, T18, T19> {
+        fn eq(&self, other: &Self) -> bool {
+            match (
+                    self,
+                    other
+                ) {
+                (Tuple20::_T20{_0, _1, _2, _3, _4, _5, _6, _7, _8, _9, _10, _11, _12, _13, _14, _15, _16, _17, _18, _19, }, Tuple20::_T20{_0: _2__0, _1: _2__1, _2: _2__2, _3: _2__3, _4: _2__4, _5: _2__5, _6: _2__6, _7: _2__7, _8: _2__8, _9: _2__9, _10: _2__10, _11: _2__11, _12: _2__12, _13: _2__13, _14: _2__14, _15: _2__15, _16: _2__16, _17: _2__17, _18: _2__18, _19: _2__19, }) => {
+                    _0 == _2__0 && _1 == _2__1 && _2 == _2__2 && _3 == _2__3 && _4 == _2__4 && _5 == _2__5 && _6 == _2__6 && _7 == _2__7 && _8 == _2__8 && _9 == _2__9 && _10 == _2__10 && _11 == _2__11 && _12 == _2__12 && _13 == _2__13 && _14 == _2__14 && _15 == _2__15 && _16 == _2__16 && _17 == _2__17 && _18 == _2__18 && _19 == _2__19
+                },
+                _ => {
+                    false
+                },
+            }
+        }
+    }
+
+    impl<T0: DafnyType + Eq + Hash, T1: DafnyType + Eq + Hash, T2: DafnyType + Eq + Hash, T3: DafnyType + Eq + Hash, T4: DafnyType + Eq + Hash, T5: DafnyType + Eq + Hash, T6: DafnyType + Eq + Hash, T7: DafnyType + Eq + Hash, T8: DafnyType + Eq + Hash, T9: DafnyType + Eq + Hash, T10: DafnyType + Eq + Hash, T11: DafnyType + Eq + Hash, T12: DafnyType + Eq + Hash, T13: DafnyType + Eq + Hash, T14: DafnyType + Eq + Hash, T15: DafnyType + Eq + Hash, T16: DafnyType + Eq + Hash, T17: DafnyType + Eq + Hash, T18: DafnyType + Eq + Hash, T19: DafnyType + Eq + Hash> Eq
         for Tuple20<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, T18, T19> {}
 
     impl<T0: DafnyType + Hash, T1: DafnyType + Hash, T2: DafnyType + Hash, T3: DafnyType + Hash, T4: DafnyType + Hash, T5: DafnyType + Hash, T6: DafnyType + Hash, T7: DafnyType + Hash, T8: DafnyType + Hash, T9: DafnyType + Hash, T10: DafnyType + Hash, T11: DafnyType + Hash, T12: DafnyType + Hash, T13: DafnyType + Hash, T14: DafnyType + Hash, T15: DafnyType + Hash, T16: DafnyType + Hash, T17: DafnyType + Hash, T18: DafnyType + Hash, T19: DafnyType + Hash> Hash
@@ -3962,34 +3970,6 @@ pub mod _System {
                     Hash::hash(_18, _state);
                     Hash::hash(_19, _state)
                 },
-            }
-        }
-    }
-
-    impl<T0: DafnyType + Default, T1: DafnyType + Default, T2: DafnyType + Default, T3: DafnyType + Default, T4: DafnyType + Default, T5: DafnyType + Default, T6: DafnyType + Default, T7: DafnyType + Default, T8: DafnyType + Default, T9: DafnyType + Default, T10: DafnyType + Default, T11: DafnyType + Default, T12: DafnyType + Default, T13: DafnyType + Default, T14: DafnyType + Default, T15: DafnyType + Default, T16: DafnyType + Default, T17: DafnyType + Default, T18: DafnyType + Default, T19: DafnyType + Default> Default
-        for Tuple20<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, T18, T19> {
-        fn default() -> Tuple20<T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, T18, T19> {
-            Tuple20::_T20 {
-                _0: Default::default(),
-                _1: Default::default(),
-                _2: Default::default(),
-                _3: Default::default(),
-                _4: Default::default(),
-                _5: Default::default(),
-                _6: Default::default(),
-                _7: Default::default(),
-                _8: Default::default(),
-                _9: Default::default(),
-                _10: Default::default(),
-                _11: Default::default(),
-                _12: Default::default(),
-                _13: Default::default(),
-                _14: Default::default(),
-                _15: Default::default(),
-                _16: Default::default(),
-                _17: Default::default(),
-                _18: Default::default(),
-                _19: Default::default()
             }
         }
     }

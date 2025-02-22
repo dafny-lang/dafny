@@ -1,22 +1,28 @@
 // NONUNIFORM: Rust-specific tests
-// RUN: %baredafny run --target=rs "%s" > "%t"
+// RUN: %baredafny run --target=rs "%s" --enforce-determinism > "%t"
 // RUN: %diff "%s.expect" "%t"
-// RUN: %baredafny run --target=rs --raw-pointers "%s" > "%t"
+// RUN: %baredafny run --target=rs --raw-pointers --enforce-determinism "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
+
+datatype D = D(value: int)
 
 class Y {
   var c: int
   ghost var Repr: set<object>
-  const d: int
-  constructor(c: int) ensures this.c == c && d == c {
+  const d: D
+  constructor(c: int) ensures this.c == c && d.value == c {
     this.c := c;
-    this.d := c;
+    if c == 1 {
+      this.d := D(1);
+    } else {
+      this.d := D(c);
+    }
     this.Repr := {this};
   }
 
-  constructor Two() ensures c == 2 == d {
+  constructor Two() ensures c == 2 == d.value {
     this.c := 2;
-    this.d := c;
+    this.d := D(c);
     this.Repr := {this};
   }
 }

@@ -1,5 +1,5 @@
 // NONUNIFORM: Rust-specific tests
-// RUN: %baredafny run --target=rs "%s" > "%t"
+// RUN: %baredafny run --target=rs --enforce-determinism "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 // Checks that, despite module B being prefixed with A, there will be a "mod B" somewhere
 // and not an encoding like "mod A_B".

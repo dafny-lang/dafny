@@ -1,5 +1,5 @@
 // NONUNIFORM: Tests generation of elephant assignment to shadowed variable
-// RUN: %baredafny run --target=rs "%s" > "%t"
+// RUN: %baredafny run --target=rs --enforce-determinism "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 datatype Option = Some(value: string) | None() {
