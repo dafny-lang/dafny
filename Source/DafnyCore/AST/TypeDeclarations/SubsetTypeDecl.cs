@@ -26,18 +26,17 @@ public class SubsetTypeDecl : TypeSynonymDecl, RedirectingTypeDecl, ICanAutoReve
     }
   }
 
-  public SubsetTypeDecl(IOrigin origin, Name name, TypeParameterCharacteristics characteristics, List<TypeParameter> typeArgs, ModuleDefinition module,
-    BoundVar id, Expression constraint, WKind witnessKind, Expression witness,
+  [SyntaxConstructor]
+  public SubsetTypeDecl(IOrigin origin, Name nameNode, TypeParameterCharacteristics characteristics, 
+    List<TypeParameter> typeArgs, ModuleDefinition enclosingModuleDefinition,
+    BoundVar var, Expression constraint, WKind witnessKind, Expression witness,
     Attributes attributes)
-    : base(origin, name, characteristics, typeArgs, module, id.Type, attributes) {
+    : base(origin, nameNode, characteristics, typeArgs, enclosingModuleDefinition, var.Type, attributes) {
     Contract.Requires(origin != null);
-    Contract.Requires(name != null);
     Contract.Requires(typeArgs != null);
-    Contract.Requires(module != null);
-    Contract.Requires(id != null && id.Type != null);
     Contract.Requires(constraint != null);
     Contract.Requires((witnessKind == WKind.Compiled || witnessKind == WKind.Ghost) == (witness != null));
-    Var = id;
+    Var = var;
     Constraint = constraint;
     Witness = witness;
     WitnessKind = witnessKind;

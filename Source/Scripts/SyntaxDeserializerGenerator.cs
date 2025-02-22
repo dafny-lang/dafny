@@ -11,7 +11,7 @@ using Type = System.Type;
 
 namespace IntegrationTests;
 
-public class SyntaxDeserializerGenerator : PostParseAstVisitor {
+public class SyntaxDeserializerGenerator : SyntaxAstVisitor {
 
   private readonly HashSet<Type> typesWithHardcodedDeserializer = [typeof(Token), typeof(Specification<>)];
 
@@ -31,7 +31,7 @@ partial class SyntaxDeserializer {}")!;
   public static async Task Handle(string outputFile) {
     var program = typeof(TopLevelDecl);
     var generator = new SyntaxDeserializerGenerator();
-    generator.VisitTypesFromRoots([program]);
+    generator.VisitTypesFromRoots([program, typeof(SourceOrigin)]);
 
     var deserializerUnit = SyntaxFactory.ParseCompilationUnit(@"
 // Generated file
@@ -144,21 +144,21 @@ if (actualType == typeof({typeString})) {{
   private string GetReadTypeCall(Type parameterType, bool nullable) {
     string parameterTypeReadCall;
     var newType = MappedTypes.GetValueOrDefault(parameterType, parameterType);
+    var optionString = nullable ? "Option" : "";
     if (newType.IsArray) {
       var elementType = newType.GetGenericArguments()[0];
       var elementRead = GetReadTypeCall(elementType, false);
       var elementTypeString = ToGenericTypeString(elementType, false, false);
-      return $"ReadArray<{elementTypeString}>(() => {elementRead})";
+      return $"ReadArray{optionString}<{elementTypeString}>(() => {elementRead})";
     }
 
     if (newType.IsGenericType && newType.IsAssignableTo(typeof(IEnumerable))) {
       var elementType = newType.GetGenericArguments()[0];
       var elementRead = GetReadTypeCall(elementType, false);
       var elementTypeString = ToGenericTypeString(elementType, false, false);
-      return $"ReadList<{elementTypeString}>(() => {elementRead})";
+      return $"ReadList{optionString}<{elementTypeString}>(() => {elementRead})";
     }
 
-    var optionString = nullable ? "Option" : "";
     var genericTypeString = ToGenericTypeString(parameterType, true, false);
     if (newType.IsAbstract || newType == typeof(object)) {
       parameterTypeReadCall = $"ReadAbstract{optionString}<{genericTypeString}>()";

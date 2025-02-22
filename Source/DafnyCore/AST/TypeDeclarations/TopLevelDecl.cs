@@ -25,7 +25,8 @@ public abstract class TopLevelDecl : Declaration, TypeParameter.ParentType {
   }
 
   [SyntaxConstructor]
-  protected TopLevelDecl(IOrigin origin, Name nameNode, ModuleDefinition enclosingModuleDefinition, List<TypeParameter> typeArgs, Attributes attributes)
+  protected TopLevelDecl(IOrigin origin, Name nameNode, ModuleDefinition enclosingModuleDefinition, 
+    List<TypeParameter> typeArgs, Attributes attributes)
     : base(origin, nameNode, attributes) {
     EnclosingModuleDefinition = enclosingModuleDefinition;
     TypeArgs = typeArgs;

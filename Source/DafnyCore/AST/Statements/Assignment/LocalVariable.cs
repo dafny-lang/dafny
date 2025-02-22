@@ -1,3 +1,4 @@
+#nullable enable
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 using System.Linq;
@@ -34,18 +35,17 @@ public class LocalVariable : RangeNode, IVariable, IAttributeBearingDeclaration 
     }
   }
 
-  public LocalVariable(IOrigin origin, string name, Type type, bool isGhost)
+  [SyntaxConstructor]
+  public LocalVariable(IOrigin origin, string name, Type? syntacticType, bool isGhost)
     : base(origin) {
-    Contract.Requires(name != null);
-    Contract.Requires(type != null);  // can be a proxy, though
 
     this.name = name;
-    IsTypeExplicit = type != null;
-    this.SyntacticType = type ?? new InferredTypeProxy();
-    if (type is InferredTypeProxy) {
-      ((InferredTypeProxy)type).KeepConstraints = true;
-    }
-    this.IsGhost = isGhost;
+    IsTypeExplicit = syntacticType != null;
+    SyntacticType = syntacticType; // ?? new InferredTypeProxy();
+    // if (syntacticType is InferredTypeProxy) {
+    //   ((InferredTypeProxy)syntacticType).KeepConstraints = true;
+    // }
+    IsGhost = isGhost;
   }
 
   public string Name {
@@ -84,8 +84,8 @@ public class LocalVariable : RangeNode, IVariable, IAttributeBearingDeclaration 
   }
 
   // TODO rename and update comment? Or make it nullable?
-  public readonly Type SyntacticType;  // this is the type mentioned in the declaration, if any
-  Type IVariable.OptionalType => SyntacticType;
+  public readonly Type? SyntacticType;  // this is the type mentioned in the declaration, if any
+  Type? IVariable.OptionalType => SyntacticType;
 
   [FilledInDuringResolution]
   internal Type type;  // this is the declared or inferred type of the variable; it is non-null after resolution (even if resolution fails)

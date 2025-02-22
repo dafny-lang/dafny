@@ -6,8 +6,10 @@ namespace Microsoft.Dafny;
 public class TypeSynonymDecl : TypeSynonymDeclBase, RevealableTypeDecl {
   public override string WhatKind => "type synonym";
 
-  public TypeSynonymDecl(IOrigin origin, Name name, TypeParameterCharacteristics characteristics, List<TypeParameter> typeArgs, ModuleDefinition module, Type rhs, Attributes attributes)
-    : base(origin, name, characteristics, typeArgs, module, rhs, attributes) {
+  [SyntaxConstructor]
+  public TypeSynonymDecl(IOrigin origin, Name nameNode, TypeParameterCharacteristics characteristics, 
+    List<TypeParameter> typeArgs, ModuleDefinition enclosingModuleDefinition, Type rhs, Attributes attributes)
+    : base(origin, nameNode, characteristics, typeArgs, enclosingModuleDefinition, rhs, attributes) {
     this.NewSelfSynonym();
   }
   public TopLevelDecl AsTopLevelDecl => this;

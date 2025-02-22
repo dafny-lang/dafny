@@ -1,5 +1,6 @@
 using System.Collections;
 using System.CommandLine;
+using System.Numerics;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Text;
@@ -138,6 +139,9 @@ public class Serializer(IEncoder encoder, IReadOnlyList<INamedTypeSymbol> parsed
       case IDictionary dict:
         SerializeMap(dict, expectedType);
         break;
+      case BigInteger i:
+        encoder.WriteInt((int)i);
+        break;
       case int i:
         encoder.WriteInt(i);
         break;
@@ -199,15 +203,15 @@ public class Serializer(IEncoder encoder, IReadOnlyList<INamedTypeSymbol> parsed
     var instanceType = obj.GetType();
     Type? foundType = instanceType;
     while (foundType != null && !fieldsPerType.ContainsKey(
-             PostParseAstVisitor.CutOffGenericSuffixPartOfName(foundType.Name))) {
+             SyntaxAstVisitor.CutOffGenericSuffixPartOfName(foundType.Name))) {
       foundType = foundType.BaseType;
     }
 
     if (foundType == null) {
-      throw new Exception();
+      throw new Exception($"Could not find schema type for {instanceType}");
     }
 
-    var fieldNames = fieldsPerType[PostParseAstVisitor.CutOffGenericSuffixPartOfName(foundType.Name)];
+    var fieldNames = fieldsPerType[SyntaxAstVisitor.CutOffGenericSuffixPartOfName(foundType.Name)];
     var fieldsPerName = GetSerializableFields(foundType).ToDictionary(f => {
 
       var fieldName = f.Name;
@@ -242,7 +246,7 @@ public class Serializer(IEncoder encoder, IReadOnlyList<INamedTypeSymbol> parsed
                                              BindingFlags.Instance |
                                              BindingFlags.Public |
                                              BindingFlags.NonPublic));
-      result = type.BaseType;
+      result = result.BaseType;
     }
     return fields;
   }

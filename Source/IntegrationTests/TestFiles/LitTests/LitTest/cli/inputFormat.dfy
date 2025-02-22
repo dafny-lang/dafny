@@ -2,15 +2,11 @@
 // RUN: ! %verify --input-format Binary --stdin < %t.assertFalse.dbin > %t
 // RUN: %diff "%s.expect" "%t"
 
-// additional.dfy
-
-const intMax := 4294967296
-
 type nat32 = x: int32
   | x >= 0
 
 type int32 = x: int
-  | -4294967296 < x && x < intMax
+  | -4294967296 < x && x < 4294967296
 
 class Fibonacci {
   static function Spec(n: nat): nat
@@ -50,7 +46,7 @@ class Fibonacci {
     ensures Spec(i) <= Spec(j)
   {
     var x := i;
-    while(x < j) 
+    while x < j  
       invariant x <= j
       invariant Spec(i) <= Spec(x)
     {

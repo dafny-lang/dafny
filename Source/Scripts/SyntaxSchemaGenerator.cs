@@ -11,7 +11,7 @@ using Type = System.Type;
 
 namespace IntegrationTests;
 
-public class SyntaxSchemaGenerator : PostParseAstVisitor {
+public class SyntaxSchemaGenerator : SyntaxAstVisitor {
   private CompilationUnitSyntax compilationUnit = CompilationUnit();
 
   public static Command GetCommand() {
@@ -30,7 +30,7 @@ public class SyntaxSchemaGenerator : PostParseAstVisitor {
   public string GenerateAll() {
 
     var rootType = typeof(FilesContainer);
-    VisitTypesFromRoots([rootType]);
+    VisitTypesFromRoots([rootType, typeof(SourceOrigin)]);
     compilationUnit = compilationUnit.NormalizeWhitespace();
 
     var hasErrors = CheckCorrectness(compilationUnit);

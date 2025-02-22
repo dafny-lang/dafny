@@ -1,3 +1,16 @@
+class SourceOrigin
+{
+    Token startToken;
+    Token endToken;
+    Token center;
+}
+
+class Token
+{
+    Int32 line;
+    Int32 col;
+}
+
 class FilesContainer
 {
     List<FileStart> files;
@@ -15,20 +28,11 @@ abstract class Node
 
 abstract class RangeNode : Node
 {
-    SourceOrigin origin;
+    IOrigin origin;
 }
 
-class SourceOrigin
+abstract class IOrigin
 {
-    Token startToken;
-    Token endToken;
-    Token center;
-}
-
-class Token
-{
-    Int32 line;
-    Int32 col;
 }
 
 class Name : RangeNode
@@ -44,7 +48,7 @@ abstract class Declaration : RangeNode
 
 abstract class NodeWithComputedRange : Node
 {
-    SourceOrigin origin;
+    IOrigin origin;
 }
 
 abstract class Type : NodeWithComputedRange
@@ -132,7 +136,7 @@ abstract class SuffixExpr : ConcreteSyntaxExpression
 
 class ApplySuffix : SuffixExpr
 {
-    SourceOrigin? atTok;
+    IOrigin? atTok;
     ActualBindings bindings;
     Token? closeParen;
 }
@@ -144,7 +148,7 @@ class ActualBindings : NodeWithComputedRange
 
 class ActualBinding : NodeWithComputedRange
 {
-    SourceOrigin? formalParameterName;
+    IOrigin? formalParameterName;
     Expression actual;
     Boolean isGhost;
 }
@@ -187,7 +191,7 @@ class ExprRhs : AssignmentRhs
 
 class Specification<T> : NodeWithComputedRange where T : Node
 {
-    List<T> expressions;
+    List<T>? expressions;
     Attributes? attributes;
 }
 
@@ -200,7 +204,7 @@ class AttributedExpression
 
 class Label
 {
-    SourceOrigin tok;
+    IOrigin tok;
     String name;
 }
 
@@ -264,7 +268,7 @@ abstract class MemberDecl : Declaration
 
 abstract class MethodOrFunction : MemberDecl
 {
-    SourceOrigin? signatureEllipsis;
+    IOrigin? signatureEllipsis;
     List<TypeParameter> typeArgs;
     List<Formal> ins;
     List<AttributedExpression> req;
@@ -379,7 +383,7 @@ class AssignStatement : ConcreteAssignStatement
 class LocalVariable : RangeNode
 {
     String name;
-    Type type;
+    Type? syntacticType;
     Boolean isGhost;
 }
 
@@ -389,7 +393,7 @@ class Function : MethodOrFunction
     Formal? result;
     Type resultType;
     Expression? body;
-    SourceOrigin? byMethodTok;
+    IOrigin? byMethodTok;
     BlockStmt? byMethodBody;
 }
 
@@ -419,7 +423,7 @@ class LiteralModuleDecl : ModuleDecl
 class ModuleDefinition : RangeNode
 {
     Name nameNode;
-    List<SourceOrigin> prefixIds;
+    List<IOrigin> prefixIds;
     ModuleKindEnum moduleKind;
     Implements? implements;
     Attributes? attributes;

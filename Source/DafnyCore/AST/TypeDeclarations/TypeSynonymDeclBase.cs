@@ -13,13 +13,12 @@ public abstract class TypeSynonymDeclBase : TopLevelDecl, RedirectingTypeDecl, I
   }
   public readonly Type Rhs;
 
-  protected TypeSynonymDeclBase(IOrigin origin, Name name, TypeParameterCharacteristics characteristics, List<TypeParameter> typeArgs, ModuleDefinition module, Type rhs, Attributes attributes)
-    : base(origin, name, module, typeArgs, attributes) {
+  [SyntaxConstructor]
+  protected TypeSynonymDeclBase(IOrigin origin, Name nameNode, TypeParameterCharacteristics characteristics, 
+    List<TypeParameter> typeArgs, ModuleDefinition enclosingModuleDefinition, Type rhs, Attributes attributes)
+    : base(origin, nameNode, enclosingModuleDefinition, typeArgs, attributes) {
     Contract.Requires(origin != null);
-    Contract.Requires(name != null);
     Contract.Requires(typeArgs != null);
-    Contract.Requires(module != null);
-    Contract.Requires(rhs != null);
     Characteristics = characteristics;
     Rhs = rhs;
   }

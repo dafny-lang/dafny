@@ -26,7 +26,7 @@ namespace Microsoft.Dafny
 
         public Name ReadName()
         {
-            var parameter0 = ReadSourceOrigin();
+            var parameter0 = ReadAbstract<IOrigin>();
             var parameter1 = ReadString();
             return new Name(parameter0, parameter1);
         }
@@ -43,7 +43,7 @@ namespace Microsoft.Dafny
 
         public UserDefinedType ReadUserDefinedType()
         {
-            var parameter0 = ReadSourceOrigin();
+            var parameter0 = ReadAbstract<IOrigin>();
             var parameter1 = ReadAbstract<Expression>();
             return new UserDefinedType(parameter0, parameter1);
         }
@@ -60,7 +60,7 @@ namespace Microsoft.Dafny
 
         public IdentifierExpr ReadIdentifierExpr()
         {
-            var parameter0 = ReadSourceOrigin();
+            var parameter0 = ReadAbstract<IOrigin>();
             var parameter1 = ReadString();
             return new IdentifierExpr(parameter0, parameter1);
         }
@@ -77,7 +77,7 @@ namespace Microsoft.Dafny
 
         public AutoGhostIdentifierExpr ReadAutoGhostIdentifierExpr()
         {
-            var parameter0 = ReadSourceOrigin();
+            var parameter0 = ReadAbstract<IOrigin>();
             var parameter1 = ReadString();
             return new AutoGhostIdentifierExpr(parameter0, parameter1);
         }
@@ -94,7 +94,7 @@ namespace Microsoft.Dafny
 
         public BinaryExpr ReadBinaryExpr()
         {
-            var parameter0 = ReadSourceOrigin();
+            var parameter0 = ReadAbstract<IOrigin>();
             var parameter1 = ReadBinaryExprOpcode();
             var parameter2 = ReadAbstract<Expression>();
             var parameter3 = ReadAbstract<Expression>();
@@ -119,7 +119,7 @@ namespace Microsoft.Dafny
 
         public LiteralExpr ReadLiteralExpr()
         {
-            var parameter0 = ReadSourceOrigin();
+            var parameter0 = ReadAbstract<IOrigin>();
             var parameter1 = ReadAbstract<Object>();
             return new LiteralExpr(parameter0, parameter1);
         }
@@ -136,7 +136,7 @@ namespace Microsoft.Dafny
 
         public ITEExpr ReadITEExpr()
         {
-            var parameter0 = ReadSourceOrigin();
+            var parameter0 = ReadAbstract<IOrigin>();
             var parameter1 = ReadBoolean();
             var parameter2 = ReadAbstract<Expression>();
             var parameter3 = ReadAbstract<Expression>();
@@ -156,9 +156,9 @@ namespace Microsoft.Dafny
 
         public ApplySuffix ReadApplySuffix()
         {
-            var parameter0 = ReadSourceOrigin();
+            var parameter0 = ReadAbstract<IOrigin>();
             var parameter2 = ReadAbstract<Expression>();
-            var parameter1 = ReadSourceOriginOption();
+            var parameter1 = ReadAbstractOption<IOrigin>();
             var parameter3 = ReadActualBindings();
             var parameter4 = ReadTokenOption();
             return new ApplySuffix(parameter0, parameter1, parameter2, parameter3, parameter4);
@@ -176,7 +176,7 @@ namespace Microsoft.Dafny
 
         public ActualBindings ReadActualBindings()
         {
-            var parameter0 = ReadSourceOrigin();
+            var parameter0 = ReadAbstract<IOrigin>();
             var parameter1 = ReadList<ActualBinding>(() => ReadActualBinding());
             return new ActualBindings(parameter0, parameter1);
         }
@@ -193,8 +193,8 @@ namespace Microsoft.Dafny
 
         public ActualBinding ReadActualBinding()
         {
-            var parameter0 = ReadSourceOrigin();
-            var parameter1 = ReadSourceOriginOption();
+            var parameter0 = ReadAbstract<IOrigin>();
+            var parameter1 = ReadAbstractOption<IOrigin>();
             var parameter2 = ReadAbstract<Expression>();
             var parameter3 = ReadBoolean();
             return new ActualBinding(parameter0, parameter1, parameter2, parameter3);
@@ -212,9 +212,9 @@ namespace Microsoft.Dafny
 
         public NameSegment ReadNameSegment()
         {
-            var parameter0 = ReadSourceOrigin();
+            var parameter0 = ReadAbstract<IOrigin>();
             var parameter1 = ReadString();
-            var parameter2 = ReadList<Type>(() => ReadAbstract<Type>());
+            var parameter2 = ReadListOption<Type>(() => ReadAbstract<Type>());
             return new NameSegment(parameter0, parameter1, parameter2);
         }
 
@@ -230,7 +230,7 @@ namespace Microsoft.Dafny
 
         public IntType ReadIntType()
         {
-            var parameter0 = ReadSourceOrigin();
+            var parameter0 = ReadAbstract<IOrigin>();
             return new IntType(parameter0);
         }
 
@@ -246,7 +246,7 @@ namespace Microsoft.Dafny
 
         public Attributes ReadAttributes()
         {
-            var parameter0 = ReadSourceOrigin();
+            var parameter0 = ReadAbstract<IOrigin>();
             var parameter1 = ReadString();
             var parameter2 = ReadList<Expression>(() => ReadAbstract<Expression>());
             var parameter3 = ReadAttributesOption();
@@ -265,7 +265,7 @@ namespace Microsoft.Dafny
 
         public ExprRhs ReadExprRhs()
         {
-            var parameter0 = ReadSourceOrigin();
+            var parameter0 = ReadAbstract<IOrigin>();
             var parameter2 = ReadAttributesOption();
             var parameter1 = ReadAbstract<Expression>();
             return new ExprRhs(parameter0, parameter1, parameter2);
@@ -301,7 +301,7 @@ namespace Microsoft.Dafny
 
         public Label ReadLabel()
         {
-            var parameter0 = ReadSourceOrigin();
+            var parameter0 = ReadAbstract<IOrigin>();
             var parameter1 = ReadString();
             return new Label(parameter0, parameter1);
         }
@@ -318,7 +318,7 @@ namespace Microsoft.Dafny
 
         public AssertLabel ReadAssertLabel()
         {
-            var parameter0 = ReadSourceOrigin();
+            var parameter0 = ReadAbstract<IOrigin>();
             var parameter1 = ReadString();
             return new AssertLabel(parameter0, parameter1);
         }
@@ -335,7 +335,7 @@ namespace Microsoft.Dafny
 
         public TypeParameter ReadTypeParameter()
         {
-            var parameter0 = ReadSourceOrigin();
+            var parameter0 = ReadAbstract<IOrigin>();
             var parameter1 = ReadName();
             var parameter5 = ReadAttributesOption();
             var parameter2 = ReadTPVarianceSyntax();
@@ -392,7 +392,7 @@ namespace Microsoft.Dafny
 
         public FrameExpression ReadFrameExpression()
         {
-            var parameter0 = ReadSourceOrigin();
+            var parameter0 = ReadAbstract<IOrigin>();
             var parameter1 = ReadAbstract<Expression>();
             var parameter2 = ReadString();
             return new FrameExpression(parameter0, parameter1, parameter2);
@@ -410,7 +410,7 @@ namespace Microsoft.Dafny
 
         public Formal ReadFormal()
         {
-            var parameter0 = ReadSourceOrigin();
+            var parameter0 = ReadAbstract<IOrigin>();
             var parameter1 = ReadName();
             var parameter2 = ReadAbstract<Type>();
             var parameter4 = ReadBoolean();
@@ -436,12 +436,12 @@ namespace Microsoft.Dafny
 
         public Method ReadMethod()
         {
-            var parameter0 = ReadSourceOrigin();
+            var parameter0 = ReadAbstract<IOrigin>();
             var parameter1 = ReadName();
             var parameter2 = ReadAttributesOption();
             var parameter3 = ReadBoolean();
             var parameter4 = ReadBoolean();
-            var parameter14 = ReadSourceOriginOption();
+            var parameter14 = ReadAbstractOption<IOrigin>();
             var parameter5 = ReadList<TypeParameter>(() => ReadTypeParameter());
             var parameter6 = ReadList<Formal>(() => ReadFormal());
             var parameter7 = ReadList<AttributedExpression>(() => ReadAttributedExpression());
@@ -467,7 +467,7 @@ namespace Microsoft.Dafny
 
         public AssertStmt ReadAssertStmt()
         {
-            var parameter0 = ReadSourceOrigin();
+            var parameter0 = ReadAbstract<IOrigin>();
             var parameter3 = ReadAttributesOption();
             var parameter1 = ReadAbstract<Expression>();
             var parameter2 = ReadAssertLabelOption();
@@ -486,7 +486,7 @@ namespace Microsoft.Dafny
 
         public ReturnStmt ReadReturnStmt()
         {
-            var parameter0 = ReadSourceOrigin();
+            var parameter0 = ReadAbstract<IOrigin>();
             var parameter2 = ReadAttributesOption();
             var parameter1 = ReadList<AssignmentRhs>(() => ReadAbstract<AssignmentRhs>());
             return new ReturnStmt(parameter0, parameter1, parameter2);
@@ -504,7 +504,7 @@ namespace Microsoft.Dafny
 
         public BlockStmt ReadBlockStmt()
         {
-            var parameter0 = ReadSourceOrigin();
+            var parameter0 = ReadAbstract<IOrigin>();
             var parameter1 = ReadAttributesOption();
             var parameter2 = ReadList<Statement>(() => ReadAbstract<Statement>());
             return new BlockStmt(parameter0, parameter1, parameter2);
@@ -522,7 +522,7 @@ namespace Microsoft.Dafny
 
         public WhileStmt ReadWhileStmt()
         {
-            var parameter0 = ReadSourceOrigin();
+            var parameter0 = ReadAbstract<IOrigin>();
             var parameter6 = ReadAttributesOption();
             var parameter2 = ReadList<AttributedExpression>(() => ReadAttributedExpression());
             var parameter3 = ReadSpecification<Expression>();
@@ -544,7 +544,7 @@ namespace Microsoft.Dafny
 
         public IfStmt ReadIfStmt()
         {
-            var parameter0 = ReadSourceOrigin();
+            var parameter0 = ReadAbstract<IOrigin>();
             var parameter5 = ReadAttributesOption();
             var parameter1 = ReadBoolean();
             var parameter2 = ReadAbstract<Expression>();
@@ -565,7 +565,7 @@ namespace Microsoft.Dafny
 
         public VarDeclStmt ReadVarDeclStmt()
         {
-            var parameter0 = ReadSourceOrigin();
+            var parameter0 = ReadAbstract<IOrigin>();
             var parameter3 = ReadAttributesOption();
             var parameter1 = ReadList<LocalVariable>(() => ReadLocalVariable());
             var parameter2 = ReadAbstractOption<ConcreteAssignStatement>();
@@ -584,7 +584,7 @@ namespace Microsoft.Dafny
 
         public AssignStatement ReadAssignStatement()
         {
-            var parameter0 = ReadSourceOrigin();
+            var parameter0 = ReadAbstract<IOrigin>();
             var parameter4 = ReadAttributesOption();
             var parameter1 = ReadList<Expression>(() => ReadAbstract<Expression>());
             var parameter2 = ReadList<AssignmentRhs>(() => ReadAbstract<AssignmentRhs>());
@@ -604,9 +604,9 @@ namespace Microsoft.Dafny
 
         public LocalVariable ReadLocalVariable()
         {
-            var parameter0 = ReadSourceOrigin();
+            var parameter0 = ReadAbstract<IOrigin>();
             var parameter1 = ReadString();
-            var parameter2 = ReadAbstract<Type>();
+            var parameter2 = ReadAbstractOption<Type>();
             var parameter3 = ReadBoolean();
             return new LocalVariable(parameter0, parameter1, parameter2, parameter3);
         }
@@ -623,12 +623,12 @@ namespace Microsoft.Dafny
 
         public Function ReadFunction()
         {
-            var parameter0 = ReadSourceOrigin();
+            var parameter0 = ReadAbstract<IOrigin>();
             var parameter1 = ReadName();
             var parameter16 = ReadAttributesOption();
             var parameter2 = ReadBoolean();
             var parameter3 = ReadBoolean();
-            var parameter17 = ReadSourceOriginOption();
+            var parameter17 = ReadAbstractOption<IOrigin>();
             var parameter5 = ReadList<TypeParameter>(() => ReadTypeParameter());
             var parameter6 = ReadList<Formal>(() => ReadFormal());
             var parameter9 = ReadList<AttributedExpression>(() => ReadAttributedExpression());
@@ -639,7 +639,7 @@ namespace Microsoft.Dafny
             var parameter7 = ReadFormalOption();
             var parameter8 = ReadAbstract<Type>();
             var parameter13 = ReadAbstractOption<Expression>();
-            var parameter14 = ReadSourceOriginOption();
+            var parameter14 = ReadAbstractOption<IOrigin>();
             var parameter15 = ReadBlockStmtOption();
             return new Function(parameter0, parameter1, parameter2, parameter3, parameter4, parameter5, parameter6, parameter7, parameter8, parameter9, parameter10, parameter11, parameter12, parameter13, parameter14, parameter15, parameter16, parameter17);
         }
@@ -657,7 +657,7 @@ namespace Microsoft.Dafny
         public ClassDecl ReadClassDecl()
         {
             Microsoft.Dafny.ModuleDefinition parameter4 = null;
-            var parameter0 = ReadSourceOrigin();
+            var parameter0 = ReadAbstract<IOrigin>();
             var parameter1 = ReadName();
             var parameter2 = ReadAttributesOption();
             var parameter3 = ReadList<TypeParameter>(() => ReadTypeParameter());
@@ -680,12 +680,12 @@ namespace Microsoft.Dafny
         public DefaultClassDecl ReadDefaultClassDecl()
         {
             Microsoft.Dafny.ModuleDefinition parameter4 = null;
-            var parameter0 = ReadSourceOrigin();
+            var parameter0 = ReadAbstract<IOrigin>();
             var parameter1 = ReadName();
             var parameter2 = ReadAttributesOption();
             var parameter3 = ReadList<TypeParameter>(() => ReadTypeParameter());
             var parameter5 = ReadList<MemberDecl>(() => ReadAbstract<MemberDecl>());
-            var parameter6 = ReadList<Type>(() => ReadAbstract<Type>());
+            var parameter6 = ReadListOption<Type>(() => ReadAbstract<Type>());
             return new DefaultClassDecl(parameter0, parameter1, parameter2, parameter3, parameter4, parameter5, parameter6);
         }
 
@@ -703,7 +703,7 @@ namespace Microsoft.Dafny
         {
             Microsoft.Dafny.DafnyOptions parameter0 = null;
             Microsoft.Dafny.ModuleDefinition parameter4 = null;
-            var parameter1 = ReadSourceOrigin();
+            var parameter1 = ReadAbstract<IOrigin>();
             var parameter2 = ReadName();
             var parameter3 = ReadAttributesOption();
             var parameter5 = ReadString();
@@ -724,9 +724,9 @@ namespace Microsoft.Dafny
         public ModuleDefinition ReadModuleDefinition()
         {
             Microsoft.Dafny.ModuleDefinition parameter5 = null;
-            var parameter0 = ReadSourceOrigin();
+            var parameter0 = ReadAbstract<IOrigin>();
             var parameter1 = ReadName();
-            var parameter2 = ReadList<IOrigin>(() => ReadSourceOrigin());
+            var parameter2 = ReadList<IOrigin>(() => ReadAbstract<IOrigin>());
             var parameter3 = ReadModuleKindEnum();
             var parameter4 = ReadImplementsOption();
             var parameter6 = ReadAttributesOption();
