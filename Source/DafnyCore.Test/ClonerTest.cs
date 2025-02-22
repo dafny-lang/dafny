@@ -31,11 +31,11 @@ public class ClonerTest {
     var formal2 = new Formal(new SourceOrigin(tokenBodyStart, tokenBodyStart), "b", Microsoft.Dafny.Type.Bool, true, false, null) {
       IsTypeExplicit = false
     };
-    var dummyDecl = new Method(rangeToken, new Name(rangeToken, "hello"), 
-      null, false, false, [], [formal1, formal2], 
-      [], [], 
+    var dummyDecl = new Method(rangeToken, new Name(rangeToken, "hello"),
+      null, false, false, [], [formal1, formal2],
+      [], [],
       new Specification<FrameExpression>(), new Specification<Expression>([], null),
-      [], new Specification<FrameExpression>([], null), 
+      [], new Specification<FrameExpression>([], null),
       new BlockStmt(rangeToken, []), Token.NoToken);
 
     dummyDecl.BodyStartTok = tokenBodyStart;

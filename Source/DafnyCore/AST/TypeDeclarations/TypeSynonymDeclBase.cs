@@ -14,7 +14,7 @@ public abstract class TypeSynonymDeclBase : TopLevelDecl, RedirectingTypeDecl, I
   public abstract Type Rhs { get; }
 
   [SyntaxConstructor]
-  protected TypeSynonymDeclBase(IOrigin origin, Name nameNode, TypeParameterCharacteristics characteristics, 
+  protected TypeSynonymDeclBase(IOrigin origin, Name nameNode, TypeParameterCharacteristics characteristics,
     List<TypeParameter> typeArgs, ModuleDefinition enclosingModuleDefinition, Attributes attributes)
     : base(origin, nameNode, enclosingModuleDefinition, typeArgs, attributes) {
     Contract.Requires(origin != null);

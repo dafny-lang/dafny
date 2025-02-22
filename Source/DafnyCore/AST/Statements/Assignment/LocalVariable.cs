@@ -80,7 +80,7 @@ public class LocalVariable : RangeNode, IVariable, IAttributeBearingDeclaration 
 
   public readonly Type? SyntacticType;
 
-  public Type? safeSyntacticType; 
+  public Type? safeSyntacticType;
   public Type SafeSyntacticType =>
     safeSyntacticType ??= SyntacticType ?? new InferredTypeProxy {
       KeepConstraints = true

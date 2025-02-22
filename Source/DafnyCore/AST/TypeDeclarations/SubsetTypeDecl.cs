@@ -28,7 +28,7 @@ public class SubsetTypeDecl : TypeSynonymDecl, RedirectingTypeDecl, ICanAutoReve
   }
 
   [SyntaxConstructor]
-  public SubsetTypeDecl(IOrigin origin, Name nameNode, TypeParameterCharacteristics characteristics, 
+  public SubsetTypeDecl(IOrigin origin, Name nameNode, TypeParameterCharacteristics characteristics,
     List<TypeParameter> typeArgs, ModuleDefinition enclosingModuleDefinition,
     BoundVar var, Expression constraint, WKind witnessKind, Expression? witness,
     Attributes? attributes)

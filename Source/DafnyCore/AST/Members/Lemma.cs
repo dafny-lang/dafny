@@ -18,7 +18,7 @@ public class Lemma : Method {
     [Captured] Specification<Expression> decreases,
     [Captured] BlockStmt body,
     Attributes attributes, IOrigin signatureEllipsis)
-    : base(origin, nameNode, attributes, hasStaticKeyword, true, 
+    : base(origin, nameNode, attributes, hasStaticKeyword, true,
       typeArgs, ins, req, ens, reads, decreases, outs, mod, body, signatureEllipsis) {
   }
 

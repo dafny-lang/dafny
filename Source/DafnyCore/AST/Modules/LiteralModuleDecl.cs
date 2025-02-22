@@ -46,7 +46,7 @@ public class LiteralModuleDecl : ModuleDecl, ICanFormat, IHasSymbolChildren {
   }
 
   [SyntaxConstructor]
-  public LiteralModuleDecl(DafnyOptions options, IOrigin origin, Name nameNode, Attributes? attributes, 
+  public LiteralModuleDecl(DafnyOptions options, IOrigin origin, Name nameNode, Attributes? attributes,
     ModuleDefinition enclosingModuleDefinition, string cloneId, ModuleDefinition moduleDef)
     : base(options, origin, nameNode, attributes, enclosingModuleDefinition, cloneId) {
     ModuleDef = moduleDef;

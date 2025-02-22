@@ -197,7 +197,7 @@ public class Attributes : NodeWithComputedRange, ICanFormat {
   /// - return false, leave value unmodified, and call reporter with an error string.
   /// </summary>
   public enum MatchingValueOption { Empty, Bool, Int, String, Expression }
-  public static bool ContainsMatchingValue(Attributes? attrs, string nm, ref object? value, 
+  public static bool ContainsMatchingValue(Attributes? attrs, string nm, ref object? value,
     IReadOnlySet<MatchingValueOption> allowed, Action<string> reporter) {
     var args = FindExpressions(attrs, nm);
     if (args == null) {

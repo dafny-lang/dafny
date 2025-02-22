@@ -6,7 +6,7 @@ type nat32 = x: int32
   | x >= 0
 
 type int32 = x: int
-  | -2147483647 < x && x < 2147483647
+  | -0x7fff_ffff <= x && x <= 0x7fff_ffff // lower bound is incorrect
 
 class Fibonacci {
   static function Spec(n: nat): nat
@@ -18,11 +18,11 @@ class Fibonacci {
   }
 
   static method Implementation(n: nat32) returns (r: nat32)
-    requires Spec(n) <= 2147483647
+    requires Spec(n) <= 0x7fff_ffff
     ensures r == Spec(n)
   {
     if n == 0 {
-      return 0;
+      return 1;
     }
     var previousResult: int32 := 0;
     var result: int32 := 1;
