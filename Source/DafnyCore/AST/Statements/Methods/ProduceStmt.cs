@@ -19,6 +19,7 @@ public abstract class ProduceStmt : Statement {
     }
   }
 
+  [SyntaxConstructor]
   protected ProduceStmt(IOrigin origin, List<AssignmentRhs> rhss, Attributes attributes)
     : base(origin, attributes) {
     this.Rhss = rhss;

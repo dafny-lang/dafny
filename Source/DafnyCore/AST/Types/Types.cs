@@ -14,6 +14,7 @@ public abstract class Type : NodeWithComputedRange {
   public static readonly IntType Int = new IntType();
   public static readonly RealType Real = new RealType();
 
+  [SyntaxConstructor]
   protected Type(IOrigin origin = null) : base(origin) {
   }
 
@@ -1781,6 +1782,7 @@ public class RealVarietiesSupertype : ArtificialType {
 /// A NonProxy type is a fully constrained type.  It may contain members.
 /// </summary>
 public abstract class NonProxyType : Type {
+  [SyntaxConstructor]
   protected NonProxyType(IOrigin origin = null) : base(origin) {
   }
 
@@ -1789,6 +1791,17 @@ public abstract class NonProxyType : Type {
 }
 
 public abstract class BasicType : NonProxyType {
+
+  protected BasicType() : base(null) {
+  }
+
+  [SyntaxConstructor]
+  protected BasicType(IOrigin origin) : base(origin) {
+  }
+
+  protected BasicType(Cloner cloner, NonProxyType original) : base(cloner, original) {
+  }
+
   public override IEnumerable<INode> Children => Enumerable.Empty<Node>();
   public override bool ComputeMayInvolveReferences(ISet<DatatypeDecl>/*?*/ visitedDatatypes) {
     return false;
@@ -1804,7 +1817,7 @@ public abstract class BasicType : NonProxyType {
 }
 
 public class BoolType : BasicType {
-  [System.Diagnostics.Contracts.Pure]
+  [Pure]
   public override string TypeName(DafnyOptions options, ModuleDefinition context, bool parseAble) {
     return "bool";
   }
@@ -1826,7 +1839,15 @@ public class CharType : BasicType {
 }
 
 public class IntType : BasicType {
-  [System.Diagnostics.Contracts.Pure]
+
+  [SyntaxConstructor]
+  public IntType(IOrigin origin) : base(origin) {
+  }
+
+  public IntType() {
+  }
+
+  [Pure]
   public override string TypeName(DafnyOptions options, ModuleDefinition context, bool parseAble) {
     return "int";
   }
@@ -1910,7 +1931,7 @@ public class SelfType : NonProxyType {
   public TypeParameter TypeArg;
   public Type ResolvedType;
   public SelfType() : base() {
-    TypeArg = new TypeParameter(SourceOrigin.NoToken, new Name("selfType"), TypeParameter.TPVarianceSyntax.NonVariant_Strict);
+    TypeArg = new TypeParameter(SourceOrigin.NoToken, new Name("selfType"), TPVarianceSyntax.NonVariant_Strict);
   }
 
   [System.Diagnostics.Contracts.Pure]

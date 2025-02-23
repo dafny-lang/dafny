@@ -15,7 +15,7 @@ public abstract class NonglobalVariable : NodeWithComputedRange, IVariable {
     this.NameNode = nameNode;
     IsTypeExplicit = type != null;
     this.type = type ?? new InferredTypeProxy();
-    this.isGhost = isGhost;
+    this.IsGhost = isGhost;
   }
 
   [ContractInvariantMethod]
@@ -121,15 +121,9 @@ public abstract class NonglobalVariable : NodeWithComputedRange, IVariable {
   public abstract bool IsMutable {
     get;
   }
-  bool isGhost;  // readonly after resolution
-  public bool IsGhost {
-    get {
-      return isGhost;
-    }
-    set {
-      isGhost = value;
-    }
-  }
+
+  public bool IsGhost { get; set; }
+
   public void MakeGhost() {
     IsGhost = true;
   }

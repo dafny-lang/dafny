@@ -1,11 +1,14 @@
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 using System.Linq;
+using Newtonsoft.Json;
+using NJsonSchema.Converters;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 
 namespace Microsoft.Dafny;
 
-public abstract class TopLevelDecl : Declaration, TypeParameter.ParentType, ISymbol {
+[JsonConverter(typeof(JsonInheritanceConverter<TopLevelDecl>), "discriminator")]
+public abstract class TopLevelDecl : Declaration, TypeParameter.ParentType {
   public abstract string WhatKind { get; }
   public string WhatKindAndName => $"{WhatKind} '{Name}'";
   [BackEdge]
@@ -16,16 +19,15 @@ public abstract class TopLevelDecl : Declaration, TypeParameter.ParentType, ISym
     Contract.Invariant(cce.NonNullElements(TypeArgs));
   }
 
-  protected TopLevelDecl(Cloner cloner, TopLevelDecl original, ModuleDefinition parent) : base(cloner, original) {
+  protected TopLevelDecl(Cloner cloner, TopLevelDecl original, ModuleDefinition enclosingModule) : base(cloner, original) {
     TypeArgs = original.TypeArgs.ConvertAll(cloner.CloneTypeParam);
-    EnclosingModuleDefinition = parent;
+    EnclosingModuleDefinition = enclosingModule;
   }
 
   [SyntaxConstructor]
-  protected TopLevelDecl(IOrigin origin, Name nameNode, ModuleDefinition enclosingModuleDefinition, List<TypeParameter> typeArgs, Attributes attributes)
+  protected TopLevelDecl(IOrigin origin, Name nameNode, ModuleDefinition enclosingModuleDefinition,
+    List<TypeParameter> typeArgs, Attributes attributes)
     : base(origin, nameNode, attributes) {
-    Contract.Requires(origin != null);
-    Contract.Requires(cce.NonNullElements(typeArgs));
     EnclosingModuleDefinition = enclosingModuleDefinition;
     TypeArgs = typeArgs;
   }

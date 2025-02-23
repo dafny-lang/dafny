@@ -15,6 +15,7 @@ public class IdentifierExpr : Expression, IHasReferences, ICloneable<IdentifierE
 
   public string DafnyName => Origin.line > 0 ? Origin.PrintOriginal() : Name;
 
+  [SyntaxConstructor]
   public IdentifierExpr(IOrigin origin, string name)
     : base(origin) {
     Contract.Requires(origin != null);
@@ -52,7 +53,7 @@ public class IdentifierExpr : Expression, IHasReferences, ICloneable<IdentifierE
     return expr.Resolved is IdentifierExpr identifierExpr && identifierExpr.Var == variable;
   }
 
-  public IEnumerable<Reference> GetReferences() {
+  public virtual IEnumerable<Reference> GetReferences() {
     return Enumerable.Repeat(new Reference(Origin, Var), 1);
   }
 

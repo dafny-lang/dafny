@@ -12,6 +12,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Boogie;
 using DafnyServer;
+using Microsoft.Extensions.Logging.Abstractions;
 using Bpl = Microsoft.Boogie;
 
 namespace Microsoft.Dafny {
@@ -46,7 +47,7 @@ namespace Microsoft.Dafny {
       reporter = new ConsoleErrorReporter(options);
       var fs = new InMemoryFileSystem(ImmutableDictionary<Uri, string>.Empty.Add(uri, source));
       var file = DafnyFile.HandleDafnyFile(fs, reporter, reporter.Options, uri, Token.NoToken, false);
-      var parseResult = await new ProgramParser().ParseFiles(fname, new[] { file },
+      var parseResult = await new ProgramParser(NullLogger<ProgramParser>.Instance, OnDiskFileSystem.Instance).ParseFiles(fname, new[] { file },
         reporter, CancellationToken.None);
 
       var success = !reporter.HasErrors;
