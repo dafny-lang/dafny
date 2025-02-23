@@ -601,6 +601,124 @@ module Std.Actions {
     }
   }
 
+  trait ActionCompositionProof<T, M, R> {
+    ghost function FirstAction(): Action<T, M>
+    ghost function SecondAction(): Action<M, R>
+
+    ghost predicate ComposedCanConsume(composedHistory: seq<(T, R)>, next: T)
+
+    lemma CanInvokeFirst(firstHistory: seq<(T, M)>, composedHistory: seq<(T, R)>, next: T)
+    requires FirstAction().CanProduce(firstHistory)
+      requires ComposedCanConsume(composedHistory, next)
+      requires Inputs(firstHistory) == Inputs(composedHistory)
+      ensures FirstAction().CanConsume(firstHistory, next)
+
+    ghost predicate ComposedCanProduce(composedHistory: seq<(T, R)>): (result: bool)
+      ensures composedHistory == [] ==> result
+    
+    lemma CanInvokeSecond(secondHistory: seq<(M, R)>, composedHistory: seq<(T, R)>, next: M)
+      requires SecondAction().CanProduce(secondHistory)
+      requires Outputs(secondHistory) == Outputs(composedHistory)
+      ensures SecondAction().CanConsume(secondHistory, next)
+  }
+
+  class ComposedAction<T, M, R> extends Action<T, R> {
+
+    const first: Action<T, M>
+    const second: Action<M, R>
+
+    const compositionProof: ActionCompositionProof<T, M, R>
+
+    constructor(first: Action<T, M>, second: Action<M, R>, compositionProof: ActionCompositionProof<T, M, R>) 
+      requires first.Valid()
+      requires first.history == []
+      requires second.Valid()
+      requires second.history == []
+      requires first.Repr !! second.Repr
+      requires compositionProof.FirstAction() == first
+      requires compositionProof.SecondAction() == second
+      ensures Valid()
+      ensures history == []
+      ensures this.compositionProof == compositionProof
+    {
+      this.first := first;
+      this.second := second;
+      this.compositionProof := compositionProof;
+
+      history := [];
+      Repr := {this} + first.Repr + second.Repr;
+      height := first.height + second.height + 1;
+    }
+
+    ghost predicate Valid()
+      reads this, Repr
+      ensures Valid() ==> this in Repr
+      ensures Valid() ==> CanProduce(history)
+      decreases height, 0
+    {
+      && this in Repr
+      && ValidComponent(first)
+      && ValidComponent(second)
+      && first.Repr !! second.Repr
+      && CanProduce(history)
+      && Inputs(history) == Inputs(first.history)
+      && Outputs(first.history) == Inputs(second.history)
+      && Outputs(second.history) == Outputs(history)
+      && compositionProof.FirstAction() == first
+      && compositionProof.SecondAction() == second
+    }
+
+    ghost predicate CanConsume(history: seq<(T, R)>, next: T)
+      decreases height
+    {
+      compositionProof.ComposedCanConsume(history, next)
+    }
+    ghost predicate CanProduce(history: seq<(T, R)>)
+      decreases height
+    {
+      compositionProof.ComposedCanProduce(history)
+    }
+
+    method Invoke(t: T) returns (r: R)
+      requires Requires(t)
+      reads Reads(t)
+      modifies Modifies(t)
+      decreases Decreases(t).Ordinal()
+      ensures Ensures(t, r)
+    {
+      assert Requires(t);
+
+      assert first.Valid();
+      assert first.CanProduce(first.history);
+      compositionProof.CanInvokeFirst(first.history, history, t);
+      var m := first.Invoke(t);
+
+      assert second.Valid();
+      compositionProof.CanInvokeSecond(second.history, history, m);
+      r := second.Invoke(m);
+
+      Update(t, r);
+      Repr := {this} + first.Repr + second.Repr;
+
+      // TODO:
+      assume {:axiom} Valid();
+    }
+
+    method RepeatUntil(t: T, stop: R -> bool, ghost eventuallyStopsProof: ProducesTerminatedProof<T, R>)
+      requires Valid()
+      requires eventuallyStopsProof.Action() == this
+      requires eventuallyStopsProof.FixedInput() == t
+      requires eventuallyStopsProof.StopFn() == stop
+      requires forall i <- Consumed() :: i == t
+      reads Repr
+      modifies Repr
+      decreases Repr
+      ensures Valid()
+    {
+      DefaultRepeatUntil(this, t, stop, eventuallyStopsProof);
+    }
+  }
+
   // Other primitives/examples todo:
   //  * Promise-like single-use Action<T, ()> to capture a value for reading later
   //  * datatype/codatatype-based enumerations
