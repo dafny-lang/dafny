@@ -53,7 +53,7 @@ public class IdentifierExpr : Expression, IHasReferences, ICloneable<IdentifierE
     return expr.Resolved is IdentifierExpr identifierExpr && identifierExpr.Var == variable;
   }
 
-  public IEnumerable<Reference> GetReferences() {
+  public virtual IEnumerable<Reference> GetReferences() {
     return Enumerable.Repeat(new Reference(Origin, Var), 1);
   }
 

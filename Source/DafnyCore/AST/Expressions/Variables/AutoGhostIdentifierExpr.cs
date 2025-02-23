@@ -1,3 +1,5 @@
+using System.Collections.Generic;
+
 namespace Microsoft.Dafny;
 
 /// <summary>
@@ -18,5 +20,9 @@ public class AutoGhostIdentifierExpr : IdentifierExpr, ICloneable<AutoGhostIdent
 
   public new AutoGhostIdentifierExpr Clone(Cloner cloner) {
     return new AutoGhostIdentifierExpr(cloner, this);
+  }
+
+  public override IEnumerable<Reference> GetReferences() {
+    return [];
   }
 }
