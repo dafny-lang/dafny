@@ -16,6 +16,7 @@ namespace Microsoft.Dafny;
 
 public class DafnyFile {
   public const string DafnyFileExtension = ".dfy";
+  public const string DafnyBinaryExtension = ".dbin";
   public string FilePath => CanonicalPath;
   public string Extension { get; private set; }
   public string CanonicalPath { get; }

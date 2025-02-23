@@ -281,9 +281,9 @@ public class ProgramParser {
     if (uri == DafnyFile.StdInUri) {
       inputType = options.Get(CommonOptionBag.InputType);
     } else {
-      inputType = uri.LocalPath.EndsWith(DafnyFile.DafnyFileExtension)
-        ? CommonOptionBag.InputTypeEnum.Source
-        : CommonOptionBag.InputTypeEnum.Binary;
+      inputType = uri.LocalPath.EndsWith(DafnyFile.DafnyBinaryExtension)
+        ? CommonOptionBag.InputTypeEnum.Binary
+        : CommonOptionBag.InputTypeEnum.Source;
     }
     if (inputType == CommonOptionBag.InputTypeEnum.Source) {
       var text = SourcePreprocessor.ProcessDirectives(reader, []);
