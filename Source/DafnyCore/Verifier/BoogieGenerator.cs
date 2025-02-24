@@ -1672,13 +1672,7 @@ namespace Microsoft.Dafny {
       Bpl.Expr s1 = FunctionCall(f.Origin, BuiltinFunction.LayerSucc, null, s0);
       args1.Add(FunctionCall(f.Origin, BuiltinFunction.LayerSucc, null, s1));
       args0.Add(s1);
-      if (f.IsOpaque || f.IsMadeImplicitlyOpaque(options)) {
-        var bvReveal = new Bpl.BoundVariable(f.Origin, new Bpl.TypedIdent(f.Origin, "$reveal", Boogie.Type.Bool));
-        formals.Add(bvReveal);
-        var sReveal = new Bpl.IdentifierExpr(f.Origin, bvReveal);
-        args1.Add(sReveal);
-        args0.Add(sReveal);
-      }
+
 
       Bpl.BoundVariable bv;
       Bpl.IdentifierExpr s;
