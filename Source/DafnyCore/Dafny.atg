@@ -4474,31 +4474,27 @@ ActualBinding<out ActualBinding binding, bool isGhost, bool allowDecreasesTo>
 QuantifierExpression<out Expression q, bool allowLemma, bool allowLambda>
 = (. Contract.Ensures(Contract.ValueAtReturn(out q) != null);
      Token/*!*/ x = Token.NoToken;
-     bool univ = false;
      List<BoundVar/*!*/> bvars;
      Attributes attrs;
      Expression range;
      q = dummyExpr;
   .)
-  ( Forall                                     (. x = t;  univ = true; .)
+  ( Forall                                     (. x = t; .)
+    QuantifierDomain<out bvars, out attrs, out range, true, true, true>
+    
+    ( ForallStatementEnsuresAndBody<out var forallStatement, x, bvars, attrs, range>
+      Expression<out var expr, allowLemma, allowLambda>
+      (. q = new StmtExpr(forallStatement.Origin, forallStatement, expr); .)    
+    | QSep
+      Expression<out var body, allowLemma, allowLambda>
+      (. q = new ForallExpr(new SourceOrigin(x, t), bvars, range, body, attrs); .)
+    )
+  
   | Exists                                     (. x = t; .)
-  )
-  QuantifierDomain<out bvars, out attrs, out range, true, true, true>
-  ( IF(univ && (la.kind == _ensures || la.kind == _lbrace))
-    // It's a forall statement. Parse it as part of a StmtExpr.
-    ForallStatementEnsuresAndBody<out var forallStatement, x, bvars, attrs, range>
-    Expression<out var expr, allowLemma, allowLambda>
-    (. q = new StmtExpr(forallStatement.Origin, forallStatement, expr);
-    .)
-
-  | QSep
+    QuantifierDomain<out bvars, out attrs, out range, true, true, true>
+    QSep
     Expression<out var body, allowLemma, allowLambda>
-    (. if (univ) {
-         q = new ForallExpr(new SourceOrigin(x, t), bvars, range, body, attrs);
-       } else {
-         q = new ExistsExpr(new SourceOrigin(x, t), bvars, range, body, attrs);
-       }
-    .)
+    (. q = new ExistsExpr(new SourceOrigin(x, t), bvars, range, body, attrs); .)
   )
   .
 
