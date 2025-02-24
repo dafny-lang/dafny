@@ -214,6 +214,11 @@ namespace Microsoft.Dafny {
         return CloneExpressionTranslator(this, BoogieGenerator, Predef, HeapExpr, This, applyLimited_CurrentFunction, layerInterCluster, layerIntraCluster, readsFrame, modifiesFrame, true);
       }
 
+      public ExpressionTranslator WithZeroFuel() {
+        Contract.Ensures(Contract.Result<ExpressionTranslator>() != null);
+        return CloneExpressionTranslator(this, BoogieGenerator, Predef, HeapExpr, This, applyLimited_CurrentFunction, new FuelSetting(BoogieGenerator, 0), layerIntraCluster, readsFrame, modifiesFrame, true);
+      }
+
       public ExpressionTranslator LimitedFunctions(Function applyLimited_CurrentFunction, Boogie.Expr layerArgument) {
         Contract.Requires(applyLimited_CurrentFunction != null);
         Contract.Requires(layerArgument != null);
