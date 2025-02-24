@@ -608,7 +608,7 @@ module Std.Actions {
     ghost predicate ComposedCanConsume(composedHistory: seq<(T, R)>, next: T)
 
     lemma CanInvokeFirst(firstHistory: seq<(T, M)>, composedHistory: seq<(T, R)>, next: T)
-    requires FirstAction().CanProduce(firstHistory)
+      requires FirstAction().CanProduce(firstHistory)
       requires ComposedCanConsume(composedHistory, next)
       requires Inputs(firstHistory) == Inputs(composedHistory)
       ensures FirstAction().CanConsume(firstHistory, next)
@@ -679,7 +679,7 @@ module Std.Actions {
       compositionProof.ComposedCanProduce(history)
     }
 
-    method Invoke(t: T) returns (r: R)
+    method {:rlimit 0} Invoke(t: T) returns (r: R)
       requires Requires(t)
       reads Reads(t)
       modifies Modifies(t)
@@ -700,8 +700,10 @@ module Std.Actions {
       Update(t, r);
       Repr := {this} + first.Repr + second.Repr;
 
-      // TODO:
-      assume {:axiom} Valid();
+      assert Inputs(history) == Inputs(first.history);
+      assert Outputs(first.history) == Inputs(second.history);
+      assert Outputs(second.history) == Outputs(history);
+      assert CanProduce(history);
     }
 
     method RepeatUntil(t: T, stop: R -> bool, ghost eventuallyStopsProof: ProducesTerminatedProof<T, R>)
