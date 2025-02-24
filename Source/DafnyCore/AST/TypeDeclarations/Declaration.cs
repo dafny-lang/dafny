@@ -110,7 +110,7 @@ public abstract class Declaration : RangeNode, IAttributeBearingDeclaration, ISy
   protected string? sanitizedName;
   public virtual string SanitizedName => sanitizedName ??= NonglobalVariable.SanitizeName(Name);
 
-  protected string enclosingModuleName; // Computed at the same time as compileName
+  protected string? enclosingModuleName; // Computed at the same time as compileName
 
   protected string? compileName;
 
@@ -140,10 +140,10 @@ public abstract class Declaration : RangeNode, IAttributeBearingDeclaration, ISy
   public string GetQualificationName(DafnyOptions options) {
     if (compileName == null) {
       GetCompileName(options); // Sets the enclosing module name if defined by externs.
-      return enclosingModuleName;
+      return enclosingModuleName!;
     }
 
-    return enclosingModuleName;
+    return enclosingModuleName!;
   }
 
   public Attributes? Attributes;  // readonly, except during class merging in the refinement transformations and when changed by Compiler.MarkCapitalizationConflict
