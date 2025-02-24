@@ -231,7 +231,7 @@ namespace Microsoft.Dafny {
         Contract.Requires(0 <= offset);
         Contract.Ensures(Contract.Result<ExpressionTranslator>() != null);
 
-        return CloneExpressionTranslator(this, BoogieGenerator, Predef, HeapExpr, This, applyLimited_CurrentFunction, layerInterCluster.Offset(offset), layerIntraCluster, readsFrame, modifiesFrame, stripLits);
+        return CloneExpressionTranslator(this, BoogieGenerator, Predef, HeapExpr, This, applyLimited_CurrentFunction, layerInterCluster.Offset(0), layerIntraCluster, readsFrame, modifiesFrame, stripLits);
       }
 
       public ExpressionTranslator DecreaseFuel(int offset) {
