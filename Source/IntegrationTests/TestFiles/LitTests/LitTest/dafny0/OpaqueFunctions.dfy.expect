@@ -23,6 +23,7 @@ OpaqueFunctions.dfy(160,6): Error: assertion might not hold
 OpaqueFunctions.dfy(165,31): Error: assertion might not hold
 OpaqueFunctions.dfy(181,4): Error: assertion might not hold
 OpaqueFunctions.dfy(246,12): Error: assertion might not hold
+OpaqueFunctions.dfy(254,12): Error: assertion might not hold
 OpaqueFunctions.dfy(261,12): Error: assertion might not hold
 OpaqueFunctions.dfy(326,6): Error: assertion might not hold
 OpaqueFunctions.dfy(328,6): Error: assertion might not hold
