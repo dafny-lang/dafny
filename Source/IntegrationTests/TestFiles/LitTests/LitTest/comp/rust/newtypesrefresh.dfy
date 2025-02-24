@@ -1,5 +1,5 @@
 // NONUNIFORM: Test of Rust's ability to support newtypes
-// RUN: %baredafny run -t:rs --type-system-refresh --general-newtypes "%s"
+// RUN: %baredafny run -t:rs --type-system-refresh --general-newtypes --enforce-determinism "%s"
 
 newtype BoolWrapper = bool {
   const n: int := if this then 1 else 0
