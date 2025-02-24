@@ -1,4 +1,4 @@
-Maps.dfy(200,11): Warning: Could not find a trigger for this quantifier. Without a trigger, the quantifier may cause brittle verification. To silence this warning, add an explicit trigger using the {:trigger} attribute. For more information, see the section quantifier instantiation rules in the reference manual.
+Maps.dfy(200,11): Warning: Could not find a trigger for this quantifier. Without a trigger, the quantifier may cause brittle verification. To silence this warning, add an explicit trigger using the {:trigger} attribute. For more information, see the section on quantifier instantiation rules in the reference manual.
 Maps.dfy(78,7): Error: element might not be in domain
 Maps.dfy(128,3): Error: assertion might not hold
 Maps.dfy(220,36): Error: key expressions might be referring to the same value
