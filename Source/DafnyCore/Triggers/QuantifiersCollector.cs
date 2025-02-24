@@ -45,8 +45,8 @@ namespace Microsoft.Dafny.Triggers {
       if (expr is LetExpr { Exact: false } letExpr) {
         // create a corresponding exists quantifier
         Contract.Assert(letExpr.RHSs.Count == 1); // let-such-that expressions have exactly 1 RHS
-        // Note, trigger selection adds some attributes. These will remain in the following exists expression. So, Boogie translation needs
-        // to look at letExpr.SuchThatExists.Attributes (not letExpr.Attributes) to find them.
+        // Note, trigger selection adds some attributes. These will remain in the following exists expression. They
+        // make it back to the letExpr via the ActionsOnSelectedTriggers below.
         var existsExpr = new ExistsExpr(letExpr.Origin, letExpr.BoundVars.ToList(), null, letExpr.RHSs[0],
           new Attributes("_delayTriggerWarning", new List<Expression>(), letExpr.Attributes)) {
           Type = Type.Bool
