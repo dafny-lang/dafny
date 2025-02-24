@@ -221,7 +221,7 @@ public partial class BoogieGenerator {
             Contract.Assert(trigger.Count != 0);
             var terms = trigger.ConvertAll(expr => {
               expr = Substitute(expr, receiver, argsSubstMap, s0.MethodSelect.TypeArgumentSubstitutionsWithParents());
-              return callEtran.TrExpr(expr);
+              return callEtran.WithZeroFuel().TrExpr(expr);
             });
             tr = new Trigger(trigger[0].Origin, true, terms, tr);
           }
