@@ -32,11 +32,11 @@ public class ClonerTest {
       IsTypeExplicit = false
     };
     var dummyDecl = new Method(rangeToken, new Name(rangeToken, "hello"),
-      false, false, [], [formal1, formal2],
+      null, false, false, [], [formal1, formal2],
       [], [],
-      new Specification<FrameExpression>(), new Specification<FrameExpression>([], null),
-      [], new Specification<Expression>([], null),
-      new BlockStmt(rangeToken, []), null, Token.NoToken, false);
+      new Specification<FrameExpression>(), new Specification<Expression>([], null),
+      [], new Specification<FrameExpression>([], null),
+      new BlockStmt(rangeToken, []), Token.NoToken);
 
     dummyDecl.BodyStartTok = tokenBodyStart;
     var cloner = new Cloner();

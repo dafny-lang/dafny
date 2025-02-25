@@ -1,6 +1,5 @@
 // Copyright by the contributors to the Dafny Project
 // SPDX-License-Identifier: MIT
-
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -26,6 +25,16 @@ namespace Microsoft.Dafny {
 
   public static class Util {
 
+    public static IEnumerable<T> IgnoreNulls<T>(params T[] values) {
+      var result = new List<T>();
+      foreach (var value in values) {
+        if (value != null) {
+          result.Add(value);
+        }
+      }
+
+      return result;
+    }
     public static Task WaitForComplete<T>(this IObservable<T> observable) {
       var result = new TaskCompletionSource();
       observable.Subscribe(_ => { }, e => result.SetException(e), () => result.SetResult());

@@ -93,6 +93,7 @@ public abstract class Expression : NodeWithComputedRange {
     }
 #endif
 
+  [SyntaxConstructor]
   protected Expression(IOrigin origin) : base(origin) {
     Contract.Requires(origin != null);
     Contract.Ensures(type == null);  // we would have liked to have written Type==null, but that's not admissible or provable

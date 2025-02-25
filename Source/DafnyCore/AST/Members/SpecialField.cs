@@ -28,11 +28,11 @@ public class SpecialField : Field {
     : this(origin, new Name(origin, name), specialId, idParam, false, isGhost, isMutable, isUserMutable, type, attributes) {
   }
 
-  public SpecialField(IOrigin origin, Name name, ID specialId, object idParam,
+  public SpecialField(IOrigin origin, Name nameNode, ID specialId, object idParam,
     bool hasStaticKeyword, bool isGhost, bool isMutable, bool isUserMutable, Type type, Attributes attributes)
-    : base(origin, name, hasStaticKeyword, isGhost, isMutable, isUserMutable, type, attributes) {
+    : base(origin, nameNode, hasStaticKeyword, isGhost, isMutable, isUserMutable, type, attributes) {
     Contract.Requires(origin != null);
-    Contract.Requires(name != null);
+    Contract.Requires(nameNode != null);
     Contract.Requires(!isUserMutable || isMutable);
     Contract.Requires(type != null);
 
@@ -65,8 +65,8 @@ public class DatatypeDiscriminator : SpecialField {
     get { return "discriminator"; }
   }
 
-  public DatatypeDiscriminator(IOrigin origin, Name name, ID specialId, object idParam, bool isGhost, Type type, Attributes attributes)
-    : base(origin, name, specialId, idParam, false, isGhost, false, false, type, attributes) {
+  public DatatypeDiscriminator(IOrigin origin, Name nameNode, ID specialId, object idParam, bool isGhost, Type type, Attributes attributes)
+    : base(origin, nameNode, specialId, idParam, false, isGhost, false, false, type, attributes) {
   }
 }
 
@@ -81,12 +81,12 @@ public class DatatypeDestructor : SpecialField {
     Contract.Invariant(EnclosingCtors.Count == CorrespondingFormals.Count);
   }
 
-  public DatatypeDestructor(IOrigin origin, DatatypeCtor enclosingCtor, Formal correspondingFormal, Name name, string compiledName, bool isGhost, Type type, Attributes attributes)
-    : base(origin, name, SpecialField.ID.UseIdParam, compiledName, false, isGhost, false, false, type, attributes) {
+  public DatatypeDestructor(IOrigin origin, DatatypeCtor enclosingCtor, Formal correspondingFormal, Name nameNode, string compiledName, bool isGhost, Type type, Attributes attributes)
+    : base(origin, nameNode, SpecialField.ID.UseIdParam, compiledName, false, isGhost, false, false, type, attributes) {
     Contract.Requires(origin != null);
     Contract.Requires(enclosingCtor != null);
     Contract.Requires(correspondingFormal != null);
-    Contract.Requires(name != null);
+    Contract.Requires(nameNode != null);
     Contract.Requires(type != null);
     EnclosingCtors.Add(enclosingCtor);  // more enclosing constructors may be added later during resolution
     CorrespondingFormals.Add(correspondingFormal);  // more corresponding formals may be added later during resolution

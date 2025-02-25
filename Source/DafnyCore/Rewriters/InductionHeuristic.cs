@@ -62,7 +62,7 @@ public static class InductionHeuristic {
       // For recursive functions:  arguments are "prominent"
       // For non-recursive function:  arguments are "prominent" if the call is
       var rec = e.Function.IsRecursive && e.CoCall != FunctionCallExpr.CoCallResolution.Yes;
-      var decr = e.Function.Decreases.Expressions;
+      var decr = e.Function.Decreases.Expressions!;
       bool variantArgument;
       if (options.InductionHeuristic < 6) {
         variantArgument = rec;

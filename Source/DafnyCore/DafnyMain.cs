@@ -12,6 +12,7 @@ using System.Diagnostics.Contracts;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Boogie;
+using Microsoft.Extensions.Logging.Abstractions;
 
 namespace Microsoft.Dafny {
 
@@ -67,7 +68,8 @@ namespace Microsoft.Dafny {
         _ => throw new ArgumentOutOfRangeException()
       };
 
-      var parseResult = await new ProgramParser().ParseFiles(programName, files, reporter, CancellationToken.None);
+      var parseResult = await new ProgramParser(NullLogger<ProgramParser>.Instance, OnDiskFileSystem.Instance).
+        ParseFiles(programName, files, reporter, CancellationToken.None);
       var program = parseResult.Program;
       var errorCount = program.Reporter.ErrorCount;
       if (errorCount != 0) {

@@ -1,3 +1,4 @@
+#nullable enable
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 using System.Linq;
@@ -16,7 +17,7 @@ public class BlockStmt : Statement, ICloneable<BlockStmt>, ICanFormat {
   }
 
   [SyntaxConstructor]
-  public BlockStmt(IOrigin origin, Attributes attributes, List<Statement> body) : base(origin, attributes) {
+  public BlockStmt(IOrigin origin, Attributes? attributes, List<Statement> body) : base(origin, attributes) {
     Body = body;
   }
 
@@ -30,7 +31,6 @@ public class BlockStmt : Statement, ICloneable<BlockStmt>, ICanFormat {
   public override IEnumerable<Statement> SubStatements => Body;
 
   public virtual void AppendStmt(Statement s) {
-    Contract.Requires(s != null);
     Body.Add(s);
   }
 
@@ -78,7 +78,7 @@ public class BlockStmt : Statement, ICloneable<BlockStmt>, ICanFormat {
   }
 
   public override void ResolveGhostness(ModuleResolver resolver, ErrorReporter reporter, bool mustBeErasable,
-    ICodeContext codeContext, string proofContext,
+    ICodeContext codeContext, string? proofContext,
     bool allowAssumptionVariables, bool inConstructorInitializationPhase) {
     IsGhost = mustBeErasable;  // set .IsGhost before descending into substatements (since substatements may do a 'break' out of this block)
     if (this is DividedBlockStmt ds) {

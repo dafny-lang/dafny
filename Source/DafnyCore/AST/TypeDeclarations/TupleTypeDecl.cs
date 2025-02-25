@@ -17,10 +17,10 @@ public class TupleTypeDecl : IndDatatypeDecl {
   /// <summary>
   /// Construct a resolved built-in tuple type with "dim" arguments.  "systemModule" is expected to be the _System module.
   /// </summary>
-  public TupleTypeDecl(List<bool> argumentGhostness, ModuleDefinition systemModule, [CanBeNull] TupleTypeDecl nonGhostTupleTypeDecl, Attributes attributes)
-    : this(systemModule, CreateCovariantTypeParameters(argumentGhostness.Count), argumentGhostness, attributes) {
+  public TupleTypeDecl(List<bool> argumentGhostness, ModuleDefinition systemEnclosingModule, [CanBeNull] TupleTypeDecl nonGhostTupleTypeDecl, Attributes attributes)
+    : this(systemEnclosingModule, CreateCovariantTypeParameters(argumentGhostness.Count), argumentGhostness, attributes) {
     Contract.Requires(0 <= argumentGhostness.Count);
-    Contract.Requires(systemModule != null);
+    Contract.Requires(systemEnclosingModule != null);
 
     // Resolve the type parameters here
     Contract.Assert(TypeArgs.Count == Dims);
@@ -33,11 +33,11 @@ public class TupleTypeDecl : IndDatatypeDecl {
     NonGhostTupleTypeDecl = nonGhostTupleTypeDecl;
   }
 
-  private TupleTypeDecl(ModuleDefinition systemModule, List<TypeParameter> typeArgs, List<bool> argumentGhostness, Attributes attributes)
-    : base(SourceOrigin.NoToken, new Name(SystemModuleManager.TupleTypeName(argumentGhostness)), systemModule, typeArgs,
+  private TupleTypeDecl(ModuleDefinition systemEnclosingModule, List<TypeParameter> typeArgs, List<bool> argumentGhostness, Attributes attributes)
+    : base(SourceOrigin.NoToken, new Name(SystemModuleManager.TupleTypeName(argumentGhostness)), systemEnclosingModule, typeArgs,
       CreateConstructors(typeArgs, argumentGhostness),
       [], [], attributes, false) {
-    Contract.Requires(systemModule != null);
+    Contract.Requires(systemEnclosingModule != null);
     Contract.Requires(typeArgs != null);
     Contract.Assert(Ctors.Count == 1);
     ArgumentGhostness = argumentGhostness;
@@ -58,7 +58,7 @@ public class TupleTypeDecl : IndDatatypeDecl {
     Contract.Requires(0 <= dims);
     var ts = new List<TypeParameter>();
     for (int i = 0; i < dims; i++) {
-      var tp = new TypeParameter(SourceOrigin.NoToken, new Name("T" + i), TypeParameter.TPVarianceSyntax.Covariant_Strict);
+      var tp = new TypeParameter(SourceOrigin.NoToken, new Name("T" + i), TPVarianceSyntax.Covariant_Strict);
       tp.NecessaryForEqualitySupportOfSurroundingInductiveDatatype = true;
       ts.Add(tp);
     }

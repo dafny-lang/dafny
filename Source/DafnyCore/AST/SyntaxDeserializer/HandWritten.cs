@@ -3,6 +3,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Numerics;
 
 namespace Microsoft.Dafny;
 
@@ -28,7 +29,7 @@ public partial class SyntaxDeserializer(IDecoder decoder) {
   private Specification<T> ReadSpecification<T>() where T : Node {
     var parameter0 = ReadAbstract<IOrigin>();
     if (typeof(T) == typeof(FrameExpression)) {
-      var parameter1 = ReadList<T>(() => (T)(object)ReadFrameExpression());
+      var parameter1 = ReadListOption<T>(() => (T)(object)ReadFrameExpression());
       var parameter2 = ReadAttributesOption();
       return new Specification<T>(parameter0, parameter1, parameter2);
     } else {
@@ -51,7 +52,11 @@ public partial class SyntaxDeserializer(IDecoder decoder) {
     return ReadArray<T>(readElement).ToList();
   }
 
-  public Token ReadTokenOption() {
+  public Token? ReadTokenOption() {
+    var isNull = decoder.ReadIsNull();
+    if (isNull) {
+      return null;
+    }
     return ReadToken();
   }
 
@@ -102,6 +107,7 @@ public partial class SyntaxDeserializer(IDecoder decoder) {
     var typeName = decoder.ReadQualifiedName();
     var actualType = System.Type.GetType("Microsoft.Dafny." + typeName) ??
                  System.Type.GetType("System." + typeName) ??
+                 (typeName == "BigInteger" ? typeof(BigInteger) : null) ??
                  throw new Exception($"Type not found: {typeName}, expected type {typeof(T).Name}, position {decoder.Position}");
     return DeserializeGeneric<T>(actualType);
   }
@@ -116,13 +122,6 @@ public partial class SyntaxDeserializer(IDecoder decoder) {
 
   public bool ReadBoolean() {
     return decoder.ReadBool();
-  }
-
-  public SourceOrigin ReadSourceOrigin() {
-    var start = ReadToken();
-    var end = ReadToken();
-    var center = ReadToken();
-    return new SourceOrigin(start, end, center);
   }
 
   public string? ReadStringOption() {
@@ -155,6 +154,10 @@ public partial class SyntaxDeserializer(IDecoder decoder) {
       return (T)(object)decoder.ReadInt32();
     }
 
+    if (actualType == typeof(BigInteger)) {
+      return (T)(object)new BigInteger(decoder.ReadInt32());
+    }
+
     if (actualType == typeof(SourceOrigin)) {
       return (T)(object)ReadSourceOrigin();
     }
@@ -175,7 +178,12 @@ public class FilesContainer(List<FileStart> files) {
   public List<FileStart> Files { get; } = files;
 }
 
-public class FileStart(string uri, List<TopLevelDecl> topLevelDecls) {
-  public string Uri { get; } = uri;
-  public List<TopLevelDecl> TopLevelDecls { get; } = topLevelDecls;
+public class FileStart {
+  public string Uri { get; }
+  public List<TopLevelDecl> TopLevelDecls { get; }
+
+  public FileStart(string uri, List<TopLevelDecl> topLevelDecls) {
+    Uri = uri;
+    TopLevelDecls = topLevelDecls;
+  }
 }

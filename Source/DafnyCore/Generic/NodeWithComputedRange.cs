@@ -11,8 +11,9 @@ public abstract class NodeWithComputedRange : Node {
 
   private IOrigin origin;
 
+  [SyntaxConstructor]
   protected NodeWithComputedRange(IOrigin? origin = null) {
-    this.origin = origin ?? Token.NoToken;
+    this.origin = origin ?? SourceOrigin.NoToken;
   }
 
   protected NodeWithComputedRange(Cloner cloner, NodeWithComputedRange original) {

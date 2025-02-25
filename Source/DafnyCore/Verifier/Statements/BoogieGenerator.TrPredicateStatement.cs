@@ -102,7 +102,7 @@ namespace Microsoft.Dafny {
             if (v is LocalVariable) {
               var vcopy = new LocalVariable(stmt.Origin, string.Format("##{0}#{1}", name, v.Name), v.Type,
                 v.IsGhost);
-              vcopy.type = vcopy.SyntacticType; // resolve local here
+              vcopy.type = vcopy.SafeSyntacticType; // resolve local here
               IdentifierExpr ie = new IdentifierExpr(vcopy.Origin,
                 vcopy.AssignUniqueName(CurrentDeclaration.IdGenerator));
               ie.Var = vcopy;

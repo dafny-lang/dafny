@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 using System.Linq;
+using JetBrains.Annotations;
 
 namespace Microsoft.Dafny;
 
@@ -14,7 +15,7 @@ namespace Microsoft.Dafny;
 /// is recorded by the parser.
 /// </summary>
 public class CasePattern<VT> : NodeWithComputedRange
-  where VT : class, IVariable {
+  where VT : IVariable {
   public readonly string Id;
   // After successful resolution, exactly one of the following two fields is non-null.
 
@@ -36,7 +37,7 @@ public class CasePattern<VT> : NodeWithComputedRange
     }
 
     if (original.Arguments != null) {
-      Arguments = original.Arguments.Select(cloner.CloneCasePattern<VT>).ToList();
+      Arguments = original.Arguments.Select(cloner.CloneCasePattern).ToList();
     }
 
     // In this case, tt is important to resolve the resolved fields AFTER the Arguments above.
@@ -121,6 +122,6 @@ public class CasePattern<VT> : NodeWithComputedRange
     }
   }
 
-  public override IEnumerable<INode> Children => Var == null ? (Arguments ?? Enumerable.Empty<Node>()) : new[] { Var };
+  public override IEnumerable<INode> Children => Var == null ? (Arguments ?? Enumerable.Empty<Node>()) : new[] { (INode)Var };
   public override IEnumerable<INode> PreResolveChildren => Children;
 }

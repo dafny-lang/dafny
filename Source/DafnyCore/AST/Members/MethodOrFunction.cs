@@ -31,17 +31,17 @@ public abstract class MethodOrFunction : MemberDecl, ICodeContainer {
 
   [SyntaxConstructor]
   protected MethodOrFunction(IOrigin origin, Name nameNode, bool hasStaticKeyword, bool isGhost,
-    Attributes attributes, IOrigin signatureEllipsis, List<TypeParameter> typeArgs, List<Formal> ins,
+    Attributes? attributes, IOrigin? signatureEllipsis, List<TypeParameter> typeArgs, List<Formal> ins,
     List<AttributedExpression> req,
     List<AttributedExpression> ens,
-    Specification<FrameExpression> reads,
+    [Captured] Specification<FrameExpression> reads,
     Specification<Expression> decreases)
     : base(origin, nameNode, hasStaticKeyword, isGhost, attributes) {
     TypeArgs = typeArgs;
-    this.SignatureEllipsis = signatureEllipsis;
     Req = req;
+    this.SignatureEllipsis = signatureEllipsis;
+    this.Reads = reads;
     Decreases = decreases;
-    Reads = reads;
     Ens = ens;
     Ins = ins;
   }
@@ -51,9 +51,9 @@ public abstract class MethodOrFunction : MemberDecl, ICodeContainer {
     this.Req = original.Req.ConvertAll(cloner.CloneAttributedExpr);
     this.Decreases = cloner.CloneSpecExpr(original.Decreases);
     this.Ens = original.Ens.ConvertAll(cloner.CloneAttributedExpr);
-    this.SignatureEllipsis = original.SignatureEllipsis;
     this.Reads = cloner.CloneSpecFrameExpr(original.Reads);
     this.Ins = original.Ins.ConvertAll(p => cloner.CloneFormal(p, false));
+    this.SignatureEllipsis = original.SignatureEllipsis;
     if (cloner.CloneResolvedFields) {
       this.ContainsHide = original.ContainsHide;
     }
