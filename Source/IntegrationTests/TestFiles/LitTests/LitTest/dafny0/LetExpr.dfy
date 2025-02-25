@@ -120,9 +120,8 @@ method Theorem0(n: int)
   requires 1 <= n;
   ensures 1 <= Fib(n);
 {
-  if (n < 3) {
+  if (n < 2) {
   } else {
-    Theorem0(n-2);
     Theorem0(n-1);
   }
 }
@@ -138,7 +137,8 @@ ghost function Theorem2(n: int): int
   requires 1 <= n;
   ensures 1 <= Fib(n);
 {
-  if n < 3 then 5 else
+  if n <= 2 then Fib(n)
+  else
     var x := Theorem2(n-2);
     var y := Theorem2(n-1);
     x + y
@@ -148,7 +148,8 @@ ghost function Theorem3(n: int): int
   requires 1 <= n;
   ensures 1 <= Fib(n);
 {
-  if n < 3 then 5 else
+  if n <= 2 then Fib(n)
+  else
     var x := Theorem3(n-2);
     var y := Theorem3(n-1);
     5
