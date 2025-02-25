@@ -87,8 +87,10 @@ lemma equiv_perm(a: int, b: int, l: List<int>, l': List<int>)
   forall z {
     calc {
       nb_occ(z, L);
+      (if z == a then 1 else 0) + nb_occ (z, Cons(b, l));
       (if z == a && z == b then 2 else if z == a || z == b then 1 else 0) + nb_occ(z, l);
       (if z == a && z == b then 2 else if z == a || z == b then 1 else 0) + nb_occ(z, l');
+      (if z == b then 1 else 0) + nb_occ (z, Cons(a, l'));
       nb_occ(z, L');
     }
   }
