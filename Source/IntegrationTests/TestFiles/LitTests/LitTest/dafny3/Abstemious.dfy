@@ -192,7 +192,9 @@ lemma Fib_Correct(n: nat)
     calc {
       nth(n, F);
     ==
-      nth(n-2, F.tail.tail);
+      nth(n - 1, F.tail);
+    ==
+      nth (n-2, F.tail.tail);
     ==
       nth(n-2, add(Fib(), Fib().tail));
     ==  { add_Correct(n-2, Fib(), Fib().tail); }
