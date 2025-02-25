@@ -81,12 +81,10 @@ public class ForallStmt : Statement, ICloneable<ForallStmt>, ICanFormat {
       // dig into Body to find a single statement
       Statement s = Body;
       while (true) {
-        var block = s as BlockStmt;
-        if (block != null && block.Body.Count == 1) {
+        if (s is BlockStmt { Body: { Count: 1 } } block) {
           s = block.Body[0];
           // dig further into s
-        } else if (s is AssignStatement) {
-          var update = (AssignStatement)s;
+        } else if (s is AssignStatement update) {
           if (update.ResolvedStatements?.Count == 1) {
             s = update.ResolvedStatements[0];
             // dig further into s
