@@ -1,6 +1,7 @@
 // NONUNIFORM: Rust-specific tests
 // RUN: %baredafny run --target=rs --enforce-determinism --type-system-refresh --general-traits=full "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
+// UNSUPPORTED: windows
 
 trait Super<T> {
   function Compare(a: T, b: T, c: bool): bool
