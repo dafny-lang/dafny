@@ -585,7 +585,7 @@ namespace Microsoft.Dafny {
           var newBv = new BoundVar(bv.Origin, bv.Name, tt);
           newBoundVars.Add(newBv);
           // update substMap to reflect the new BoundVar substitutions
-          var ie = new IdentifierExpr(newBv.Origin, newBv.Name) { Var = newBv, Type = newBv.Type };
+          var ie = new IdentifierExpr(newBv.Origin, newBv);
           substMap.Add(bv, ie);
         }
       }
@@ -1048,16 +1048,15 @@ namespace Microsoft.Dafny {
       // For quantifiers and setComprehesion we want to make sure that we don't introduce name clashes with
       // the enclosing scopes.
 
-      var q = e as QuantifierExpr;
-      if (q != null && q.SplitQuantifier != null) {
+      if (e is QuantifierExpr { SplitQuantifier: not null } quantifierExpr) {
         if (forceSubstituteOfBoundVars) {
-          return Substitute(q.SplitQuantifierExpression);
+          return Substitute(quantifierExpr.SplitQuantifierExpression);
         } else {
-          return SubstituteComprehensionExpr((ComprehensionExpr)q.SplitQuantifierExpression, false);
+          return SubstituteComprehensionExpr((ComprehensionExpr)quantifierExpr.SplitQuantifierExpression, false);
         }
       }
 
-      var newBoundVars = CreateBoundVarSubstitutions(e.BoundVars, forceSubstituteOfBoundVars && (expr is ForallExpr || expr is ExistsExpr || expr is SetComprehension));
+      var newBoundVars = CreateBoundVarSubstitutions(e.BoundVars, forceSubstituteOfBoundVars && expr is ForallExpr or ExistsExpr or SetComprehension);
       var newRange = e.Range == null ? null : Substitute(e.Range);
       var newTerm = Substitute(e.Term);
       var newAttrs = SubstAttributes(e.Attributes);

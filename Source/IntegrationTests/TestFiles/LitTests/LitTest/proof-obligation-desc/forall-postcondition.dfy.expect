@@ -1,4 +1,4 @@
-forall-postcondition.dfy(6,4): Warning: Could not find a trigger for this quantifier. Without a trigger, the quantifier may cause brittle verification. To silence this warning, add an explicit trigger using the {:trigger} attribute. For more information, see the section quantifier instantiation rules in the reference manual.
+forall-postcondition.dfy(6,4): Warning: Could not find a trigger for this quantifier. Without a trigger, the quantifier may cause brittle verification. To silence this warning, add an explicit trigger using the {:trigger} attribute. For more information, see the section on quantifier instantiation rules in the reference manual.
 forall-postcondition.dfy(6,27): Error: possible violation of postcondition of forall statement
  Asserted expression: b
 

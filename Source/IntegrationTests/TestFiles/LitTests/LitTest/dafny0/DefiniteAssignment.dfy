@@ -329,21 +329,21 @@ module AssignSuchThatReference {
 
   method BadCompiled0()
   {
-    // we don't expect any "variable used before defined" errors on the next line,
-    // and no null errors, either.
+    // we don't expect any "variable used before defined" errors on the next line
     var d: D :| d.x == d.x;  // error: cannot prove existence of such a "d"
   }
-  method BadCompiled1()
+  method BadCompiled1(y: D)
   {
     var d: D;
-    // we don't expect any "variable used before defined" errors on the next line,
-    // and no null errors, either.
+    // we don't expect any "variable used before defined" errors on the next line
     d :| d.x == d.x;  // error: cannot prove existence of such a "d"
   }
+
   method Good(y: D)
+    requires y.x < 100
   {
     var d: D;
-    d :| d.x == d.x;  // fine, since parameter "y" serves as a witness
+    d :| d.x == d.x;  // fine, since the presence of "y.x" makes the verifier try "y" as a witness
   }
 }
 

@@ -1,7 +1,7 @@
 // RUN: %exits-with 4 %build "%s" --relax-definite-assignment --allow-axioms > "%t"
 // RUN: %diff "%s.expect" "%t"
 
-predicate {:opaque} P<W>(w: W) {
+opaque predicate P<W>(w: W) {
   true
 }
 
@@ -76,7 +76,9 @@ method Correct2<W>(s: seq<W>) returns (ghost r: Option<W>)
   }
   var b := exists w: W :: P(w);
   ghost var nonempty: W := s[0]; // this leads the verifier to see that W must be nonempty after all
-  ghost var w: W :| b ==> P(w);
+  ghost var w: W :| b ==> P(w) by {
+    var pw := P(nonempty); // introduce something to trigger quantification with
+  }
   return Some(w);
 }
 
@@ -87,6 +89,7 @@ method Correct3<W>(s: seq<W>) returns (ghost r: Option<W>)
   }
   var b := exists w: W :: P(w);
   ghost var w: W := s[0]; // assign w a throwaway value, just for long enough to show that W is nonempty after all
+  ghost var pw := P(w); // introduce something to trigger quantification with
   w :| b ==> P(w);
   return Some(w);
 }

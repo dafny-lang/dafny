@@ -1,5 +1,5 @@
 // NONUNIFORM: Rust-specific tests
-// RUN: %baredafny run --target=rs --emit-uncompilable-code "%s" > "%t"
+// RUN: %baredafny run --target=rs --emit-uncompilable-code --enforce-determinism "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 newtype U8 = x: int | 0 <= x <= 255
