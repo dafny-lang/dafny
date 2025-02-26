@@ -1087,7 +1087,7 @@ namespace Microsoft.Dafny {
     private void AddTraitParentAxioms() {
       foreach (ModuleDefinition m in program.RawModules()) {
         foreach (var c in m.TopLevelDecls.OfType<TopLevelDeclWithMembers>().Where(RevealedInScope)) {
-          foreach (var parentTypeInExtendsClause in c.ParentTraits) {
+          foreach (var parentTypeInExtendsClause in c.Traits) {
             var childType = UserDefinedType.FromTopLevelDecl(c.Origin, c);
             var parentType = (UserDefinedType)parentTypeInExtendsClause;
             if (parentType.IsRefType) {
@@ -2444,7 +2444,9 @@ namespace Microsoft.Dafny {
       Contract.Ensures(Contract.ValueAtReturn(out bv) != null);
       Contract.Ensures(Contract.ValueAtReturn(out ie) != null);
 
-      bv = new BoundVar(tok, CurrentIdGenerator.FreshId(prefix), iv.Type); // use this temporary variable counter, but for a Dafny name (the idea being that the number and the initial "_" in the name might avoid name conflicts)
+      // use this temporary variable counter CurrentIdGenerator.FreshId(prefix), but for a Dafny name (the idea being that
+      // the number and the initial "_" in the name might avoid name conflicts)
+      bv = new BoundVar(tok, CurrentIdGenerator.FreshId(prefix), iv.Type, iv.IsGhost);
       ie = new IdentifierExpr(tok, bv.Name) {
         Var = bv, // resolve here
         Type = bv.Type // resolve here
@@ -4524,7 +4526,8 @@ namespace Microsoft.Dafny {
       return splits;
     }
 
-    Bpl.Trigger TrTrigger(ExpressionTranslator etran, Attributes attribs, IOrigin tok, Dictionary<IVariable, Expression> substMap = null) {
+    Bpl.Trigger TrTrigger(ExpressionTranslator etran, Attributes attribs, IOrigin tok, Dictionary<IVariable, Expression> substMap = null,
+      List<BoundVar> keepOnlyThoseTermsThatMentionTheseVariables = null) {
       Contract.Requires(etran != null);
       Contract.Requires(tok != null);
       var argsEtran = etran.WithNoLits();
@@ -4532,15 +4535,17 @@ namespace Microsoft.Dafny {
       foreach (var trigger in attribs.AsEnumerable().Where(aa => aa.Name == "trigger").Select(aa => aa.Args)) {
         List<Bpl.Expr> tt = [];
         foreach (var arg in trigger) {
-          Bpl.Expr term;
-          if (substMap == null) {
-            term = argsEtran.TrExpr(arg);
-          } else {
-            term = argsEtran.TrExpr(Substitute(arg, null, substMap));
+          var term = substMap == null ? arg : Substitute(arg, null, substMap);
+          if (keepOnlyThoseTermsThatMentionTheseVariables == null ||
+              keepOnlyThoseTermsThatMentionTheseVariables.Exists(boundVariable =>
+                FreeVariablesUtil.ContainsFreeVariable(term, false, boundVariable))) {
+            tt.Add(StripBoxAdjustments(argsEtran.TrExpr(term)));
           }
-          tt.Add(StripBoxAdjustments(term));
         }
-        tr = new Bpl.Trigger(tok, true, tt, tr);
+
+        if (tt.Count != 0) {
+          tr = new Bpl.Trigger(tok, true, tt, tr);
+        }
       }
       return tr;
     }
@@ -4711,6 +4716,11 @@ namespace Microsoft.Dafny {
       return s.Substitute(expr);
     }
 
+    public static Attributes SubstituteAttributes(Attributes attributes, Dictionary<IVariable, Expression> substMap) {
+      var s = new Substituter(null, substMap, new Dictionary<TypeParameter, Type>());
+      return s.SubstAttributes(attributes);
+    }
+
     public static Expression InlineLet(LetExpr letExpr) {
       Contract.Requires(letExpr.LHSs.All(p => p.Var != null));
       var substMap = new Dictionary<IVariable, Expression>();
@@ -4829,7 +4839,7 @@ namespace Microsoft.Dafny {
       return vars;
     }
 
-    public Bpl.Expr/*?*/ GetTyWhereClause(Bpl.Expr expr, TypeParameter.TypeParameterCharacteristics characteristics) {
+    public Bpl.Expr/*?*/ GetTyWhereClause(Bpl.Expr expr, TypeParameterCharacteristics characteristics) {
       Contract.Requires(expr != null);
       if (characteristics.ContainsNoReferenceTypes) {
         return FunctionCall(expr.tok, "$AlwaysAllocated", Bpl.Type.Bool, expr);

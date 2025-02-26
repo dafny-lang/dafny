@@ -33,6 +33,11 @@ public class LiteralExpr : Expression, ICloneable<LiteralExpr> {
     return Expression.IsBoolLiteral(e, out var value) && value;
   }
 
+  public static bool IsFalse(Expression e) {
+    Contract.Requires(e != null);
+    return Expression.IsBoolLiteral(e, out var value) && !value;
+  }
+
   public static bool IsEmptySet(Expression e) {
     Contract.Requires(e != null);
     return StripParens(e) is SetDisplayExpr display && display.Elements.Count == 0;
@@ -46,6 +51,12 @@ public class LiteralExpr : Expression, ICloneable<LiteralExpr> {
   public static bool IsEmptySequence(Expression e) {
     Contract.Requires(e != null);
     return StripParens(e) is SeqDisplayExpr display && display.Elements.Count == 0;
+  }
+
+  [SyntaxConstructor]
+  public LiteralExpr(IOrigin origin, object value)
+    : base(origin) {
+    this.Value = value is int n ? new BigInteger(n) : value;
   }
 
   public LiteralExpr(IOrigin origin)

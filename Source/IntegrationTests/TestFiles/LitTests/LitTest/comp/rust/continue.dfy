@@ -1,7 +1,7 @@
 // NONUNIFORM: Rust-specific tests
-// RUN: %baredafny run --target=rs "%s" > "%t"
+// RUN: %baredafny run --target=rs --enforce-determinism "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
-// RUN: %baredafny run --target=rs --raw-pointers "%s" > "%t"
+// RUN: %baredafny run --target=rs --raw-pointers --enforce-determinism "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 method Main() {

@@ -5,6 +5,7 @@ using System.Linq;
 namespace Microsoft.Dafny;
 
 public abstract class ClassLikeDecl : TopLevelDeclWithMembers, RevealableTypeDecl, ICanFormat, IHasDocstring {
+  public override bool IsRefining { get; }
   public NonNullTypeDecl NonNullTypeDecl; // returns non-null value iff IsReferenceTypeDecl
 
   public override bool CanBeRevealed() { return true; }
@@ -26,10 +27,11 @@ public abstract class ClassLikeDecl : TopLevelDeclWithMembers, RevealableTypeDec
 
   public ClassLikeDecl(IOrigin origin, Name name, ModuleDefinition module,
     List<TypeParameter> typeArgs, [Captured] List<MemberDecl> members, Attributes attributes, bool isRefining, List<Type>/*?*/ traits)
-    : base(origin, name, module, typeArgs, members, attributes, isRefining, traits) {
+    : base(origin, name, module, typeArgs, members, attributes, traits) {
     Contract.Requires(origin != null);
     Contract.Requires(name != null);
     Contract.Requires(module != null);
+    IsRefining = isRefining;
     Contract.Requires(cce.NonNullElements(typeArgs));
     Contract.Requires(cce.NonNullElements(members));
   }
@@ -70,7 +72,7 @@ public abstract class ClassLikeDecl : TopLevelDeclWithMembers, RevealableTypeDec
 
     Attributes.SetIndents(Attributes, indentBefore, formatter);
 
-    foreach (var parent in ParentTraits) {
+    foreach (var parent in Traits) {
       formatter.SetTypeIndentation(parent);
     }
 

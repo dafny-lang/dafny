@@ -113,8 +113,6 @@ public class Function : MethodOrFunction, TypeParameter.ParentType, ICallable, I
   public IOrigin /*?*/ ByMethodTok; // null iff ByMethodBody is null
   public BlockStmt /*?*/ ByMethodBody;
   [FilledInDuringResolution] public Method /*?*/ ByMethodDecl; // if ByMethodBody is non-null
-  public bool SignatureIsOmitted => SignatureEllipsis != null; // is "false" for all Function objects that survive into resolution
-  public readonly IOrigin SignatureEllipsis;
   public Function OverriddenFunction;
   public Function Original => OverriddenFunction == null ? this : OverriddenFunction.Original;
   public override bool IsOverrideThatAddsBody => base.IsOverrideThatAddsBody && Body != null;
@@ -232,7 +230,7 @@ public class Function : MethodOrFunction, TypeParameter.ParentType, ICallable, I
     List<AttributedExpression> req, Specification<FrameExpression> reads, List<AttributedExpression> ens, Specification<Expression> decreases,
     Expression/*?*/ body, IOrigin/*?*/ byMethodTok, BlockStmt/*?*/ byMethodBody,
     Attributes attributes, IOrigin/*?*/ signatureEllipsis)
-    : base(range, name, hasStaticKeyword, isGhost, attributes, signatureEllipsis != null, typeArgs, ins, req, ens, decreases) {
+    : base(range, name, hasStaticKeyword, isGhost, attributes, signatureEllipsis, typeArgs, ins, req, ens, reads, decreases) {
 
     Contract.Requires(Origin != null);
     Contract.Requires(name != null);
@@ -247,11 +245,9 @@ public class Function : MethodOrFunction, TypeParameter.ParentType, ICallable, I
     this.IsFueled = false;  // Defaults to false.  Only set to true if someone mentions this function in a fuel annotation
     this.Result = result;
     this.ResultType = result != null ? result.Type : resultType;
-    this.Reads = reads;
     this.Body = body;
     this.ByMethodTok = byMethodTok;
     this.ByMethodBody = byMethodBody;
-    this.SignatureEllipsis = signatureEllipsis;
     this.IsOpaque = isOpaque || Attributes.Contains(attributes, "opaque");
 
     if (attributes != null) {
@@ -535,7 +531,7 @@ experimentalPredicateAlwaysGhost - Compiled functions are written `function`. Gh
 
     object autoRevealDepsVal = null;
     bool autoRevealDeps = Attributes.ContainsMatchingValue(Attributes, "autoRevealDependencies",
-      ref autoRevealDepsVal, new List<Attributes.MatchingValueOption> {
+      ref autoRevealDepsVal, new HashSet<Attributes.MatchingValueOption> {
         Attributes.MatchingValueOption.Bool,
         Attributes.MatchingValueOption.Int
       }, s => reporter.Error(MessageSource.Rewriter, ErrorLevel.Error, Origin, s));

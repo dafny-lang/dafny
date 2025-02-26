@@ -327,7 +327,7 @@ namespace Microsoft.Dafny {
        *         return dp.Decl is TopLevelDeclWithMembers md && md.ParentTraits.Count != 0;
        * For now, every reference type except "object" has trait supertypes.
        */
-      if (dp.Decl is TopLevelDeclWithMembers md && md.ParentTraits.Count != 0) {
+      if (dp.Decl is TopLevelDeclWithMembers md && md.Traits.Count != 0) {
         // this type has explicitly declared parent traits
         return true;
       }

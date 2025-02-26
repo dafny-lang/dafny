@@ -9,6 +9,7 @@ public abstract class RangeNode : Node {
     origin = cloner.Origin(original.Origin);
   }
 
+  [SyntaxConstructor]
   protected RangeNode(IOrigin origin) {
     this.origin = origin;
   }

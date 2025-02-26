@@ -1,4 +1,4 @@
-alternative-is-complete.dfy(7,2): Error: alternative cases fail to cover all possibilities
+alternative-is-complete.dfy(7,2): Error: alternative cases may not cover all possibilities
  Asserted expression: false
    in an added catch-all case:
      case true => ...

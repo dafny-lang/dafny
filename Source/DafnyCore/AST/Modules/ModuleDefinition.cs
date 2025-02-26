@@ -68,6 +68,7 @@ Generate module names in the older A_mB_mC style instead of the current A.B.C sc
   }
   public readonly List<IOrigin> PrefixIds; // The qualified module name, except the last segment when a
                                            // nested module declaration is outside its enclosing module
+  [BackEdge]
   public ModuleDefinition EnclosingModule;  // readonly, except can be changed by resolver for prefix-named modules when the real parent is discovered
   public Attributes Attributes { get; set; }
   public string WhatKind => "module definition";
@@ -156,14 +157,14 @@ Generate module names in the older A_mB_mC style instead of the current A.B.C sc
     }
   }
 
-  public ModuleDefinition(IOrigin tok, Name name, List<IOrigin> prefixIds, ModuleKindEnum moduleKind, bool isFacade,
-    Implements implements, ModuleDefinition parent, Attributes attributes) : base(tok) {
-    Contract.Requires(tok != null);
+  public ModuleDefinition(IOrigin origin, Name name, List<IOrigin> prefixIds, ModuleKindEnum moduleKind, bool isFacade,
+    Implements implements, ModuleDefinition enclosingModule, Attributes attributes) : base(origin) {
+    Contract.Requires(origin != null);
     Contract.Requires(name != null);
     this.NameNode = name;
     this.PrefixIds = prefixIds;
     this.Attributes = attributes;
-    this.EnclosingModule = parent;
+    this.EnclosingModule = enclosingModule;
     this.Implements = implements;
     this.ModuleKind = moduleKind;
     this.IsFacade = isFacade;
@@ -1049,7 +1050,7 @@ Generate module names in the older A_mB_mC style instead of the current A.B.C sc
         traitsProgress[traitDecl] = false; // indicate that traitDecl is currently being visited
 
         var inheritsFromObject = traitDecl.IsObjectTrait;
-        foreach (var parent in traitDecl.ParentTraits) {
+        foreach (var parent in traitDecl.Traits) {
           if (parent is UserDefinedType udt) {
             if (ResolveNamePath(udt.NamePath) is TraitDecl parentTrait) {
               if (parentTrait.EnclosingModuleDefinition == this) {
