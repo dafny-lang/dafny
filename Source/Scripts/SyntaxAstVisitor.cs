@@ -7,7 +7,7 @@ namespace Scripts;
 /// <summary>
 /// Visits the classes and fields of the Dafny AST that are used by the parser
 /// </summary>
-public abstract class PostParseAstVisitor {
+public abstract class SyntaxAstVisitor {
 
   /// <summary>
   /// Sometimes a type has an incorrect base-type in the sense that it does not

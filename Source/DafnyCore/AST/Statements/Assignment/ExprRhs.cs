@@ -1,3 +1,4 @@
+#nullable enable
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 
@@ -17,9 +18,14 @@ public class ExprRhs : AssignmentRhs, ICloneable<ExprRhs> {
     Expr = cloner.CloneExpr(original.Expr);
   }
 
-  public ExprRhs(Expression expr, Attributes attrs = null)
+  [SyntaxConstructor]
+  public ExprRhs(IOrigin origin, Expression expr, Attributes? attributes = null)
+    : base(origin, attributes) {
+    Expr = expr;
+  }
+
+  public ExprRhs(Expression expr, Attributes? attrs = null)
     : base(expr.Origin, attrs) {
-    Contract.Requires(expr != null);
     Expr = expr;
   }
   public override bool CanAffectPreviouslyKnownExpressions { get { return false; } }

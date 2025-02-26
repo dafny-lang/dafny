@@ -37,7 +37,8 @@ public class TextDecoder(string input) : IDecoder {
   }
 
   private Exception Error(string expectation) {
-    throw new Exception($"Expected {expectation} at {position} but found {Remainder.Take(5)}");
+    throw new Exception($"Expected {expectation} at {position} but found " +
+                        $"{Remainder.Substring(0, Math.Max(Remainder.Length, 5))}");
   }
 
   public bool ReadBool() {

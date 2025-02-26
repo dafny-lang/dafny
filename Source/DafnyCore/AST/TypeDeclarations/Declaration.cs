@@ -4,6 +4,8 @@ using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 using System.Linq;
 using Microsoft.Dafny.Auditor;
+using Newtonsoft.Json;
+using NJsonSchema.Converters;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 
 namespace Microsoft.Dafny;
@@ -35,10 +37,10 @@ public abstract class Declaration : RangeNode, IAttributeBearingDeclaration, ISy
 
   [SyntaxConstructor]
   protected Declaration(IOrigin origin, Name nameNode, Attributes attributes) : base(origin) {
-    Contract.Requires(origin != null);
     this.NameNode = nameNode;
     this.Attributes = attributes;
   }
+
 
   public bool HasAxiomAttribute =>
     Attributes.Contains(Attributes, Attributes.AxiomAttributeName);
@@ -147,10 +149,12 @@ public abstract class Declaration : RangeNode, IAttributeBearingDeclaration, ISy
   }
 
   public Attributes? Attributes;  // readonly, except during class merging in the refinement transformations and when changed by Compiler.MarkCapitalizationConflict
+
   Attributes? IAttributeBearingDeclaration.Attributes {
     get => Attributes;
     set => Attributes = value;
   }
+
   string IAttributeBearingDeclaration.WhatKind =>
     this is TopLevelDecl topLevelDecl
       ? topLevelDecl.WhatKind

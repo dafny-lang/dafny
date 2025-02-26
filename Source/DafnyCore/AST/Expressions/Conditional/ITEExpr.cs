@@ -30,6 +30,7 @@ public class ITEExpr : Expression, ICanFormat, ICloneable<ITEExpr> {
     Contract.Invariant(Els != null);
   }
 
+  [SyntaxConstructor]
   public ITEExpr(IOrigin origin, bool isBindingGuard, Expression test, Expression thn, Expression els)
     : base(origin) {
     Contract.Requires(origin != null);

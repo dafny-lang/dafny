@@ -31,8 +31,8 @@ public class AlternativeLoopStmt : LoopStmt, ICloneable<AlternativeLoopStmt>, IC
   }
   public AlternativeLoopStmt(IOrigin origin,
     List<AttributedExpression> invariants, Specification<Expression> decreases, Specification<FrameExpression> mod,
-    List<GuardedAlternative> alternatives, bool usesOptionalBraces, Attributes attrs)
-    : base(origin, invariants, decreases, mod, attrs) {
+    List<GuardedAlternative> alternatives, bool usesOptionalBraces, Attributes attributes)
+    : base(origin, invariants, decreases, mod, attributes) {
     Contract.Requires(origin != null);
     Contract.Requires(alternatives != null);
     this.Alternatives = alternatives;

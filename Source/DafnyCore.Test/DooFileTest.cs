@@ -36,7 +36,7 @@ public class DooFileTest {
     var rootUri = new Uri(fullFilePath);
     Microsoft.Dafny.Type.ResetScopes();
     var errorReporter = new ConsoleErrorReporter(options);
-    var parseResult = await new ProgramParser().Parse(dafnyProgramText, rootUri, errorReporter);
+    var parseResult = await ProgramParser.Parse(dafnyProgramText, rootUri, errorReporter);
     Assert.Equal(0, errorReporter.ErrorCount);
     return parseResult.Program;
   }

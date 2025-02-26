@@ -16,7 +16,9 @@ public class Program : NodeWithComputedRange {
   }
 
   public bool HasParseErrors { get; set; }
-  public readonly string FullName;
+
+  public string FullName { get; }
+
   /// <summary>
   /// If this is a placeholder module, code generation will look for a unique module that replaces this one,
   /// and use it to set this field. 
@@ -26,7 +28,9 @@ public class Program : NodeWithComputedRange {
   // Resolution essentially flattens the module hierarchy, for
   // purposes of translation and compilation.
   [FilledInDuringResolution] public Dictionary<ModuleDefinition, ModuleSignature> ModuleSigs;
-  [FilledInDuringResolution] public IEnumerable<ModuleDefinition> CompileModules => new[] { SystemModuleManager.SystemModule }.Concat(Modules());
+
+  [FilledInDuringResolution]
+  public IEnumerable<ModuleDefinition> CompileModules => new[] { SystemModuleManager.SystemModule }.Concat(Modules());
   // Contains the definitions to be used for compilation.
 
   public Method MainMethod; // Method to be used as main if compiled
@@ -35,6 +39,7 @@ public class Program : NodeWithComputedRange {
   public DefaultModuleDefinition DefaultModuleDef => (DefaultModuleDefinition)DefaultModule.ModuleDef;
   public SystemModuleManager SystemModuleManager;
   public DafnyOptions Options => Reporter.Options;
+
   public ErrorReporter Reporter { get; set; }
 
   public ProofDependencyManager ProofDependencyManager { get; set; } = new();
@@ -57,7 +62,7 @@ public class Program : NodeWithComputedRange {
   /// </summary>
   public Program AfterParsingClone { get; set; }
 
-  public Program(string name, [Captured] LiteralModuleDecl module, [Captured] SystemModuleManager systemModuleManager, ErrorReporter reporter,
+  public Program(string name, LiteralModuleDecl module, SystemModuleManager systemModuleManager, ErrorReporter reporter,
     CompilationData compilation) {
     Contract.Requires(name != null);
     Contract.Requires(module != null);
