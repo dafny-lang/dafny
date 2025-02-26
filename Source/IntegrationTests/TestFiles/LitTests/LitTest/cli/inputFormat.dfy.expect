@@ -1,4 +1,4 @@
-inputFormat.dfy(25,6): Error: a postcondition could not be proved on this return path
-inputFormat.dfy(22,14): Related location: this is the postcondition that could not be proved
+inputFormat.dfy(19,6): Error: a postcondition could not be proved on this return path
+inputFormat.dfy(16,14): Related location: this is the postcondition that could not be proved
 
 Dafny program verifier finished with 5 verified, 1 error

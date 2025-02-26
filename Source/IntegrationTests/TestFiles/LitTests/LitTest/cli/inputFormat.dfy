@@ -1,12 +1,6 @@
 // RUN: %tobinary %s > %t.assertFalse.dbin
-// RUN: ! %verify --input-format Binary --stdin < %t.assertFalse.dbin > %t
+// RUN: ! %verify --input-format Binary %S/Inputs/additional.dfy --stdin < %t.assertFalse.dbin > %t
 // RUN: %diff "%s.expect" "%t"
-
-type nat32 = x: int32
-  | x >= 0
-
-type int32 = x: int
-  | -0x7fff_ffff <= x && x <= 0x7fff_ffff // lower bound is incorrect
 
 class Fibonacci {
   static function Spec(n: nat): nat
