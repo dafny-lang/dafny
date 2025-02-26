@@ -24,6 +24,7 @@ method Main() {
 datatype List<X> = Nil | Cons(head: X, tail: List<X>)
 
 function Length(xs: List): nat
+  ensures Length (xs) == 0 <==> xs == Nil
 {
   match xs
   case Nil => 0
@@ -184,6 +185,10 @@ lemma SMN_Correct(xs: List<nat>, n: nat, len: nat)
         }
       }
     }
+  } else if len == 1 {
+    assert Elements(xs.tail) == {};
+  } else {
+
   }
 }
 
