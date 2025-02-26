@@ -33,6 +33,11 @@ public class LiteralExpr : Expression, ICloneable<LiteralExpr> {
     return Expression.IsBoolLiteral(e, out var value) && value;
   }
 
+  public static bool IsFalse(Expression e) {
+    Contract.Requires(e != null);
+    return Expression.IsBoolLiteral(e, out var value) && !value;
+  }
+
   public static bool IsEmptySet(Expression e) {
     Contract.Requires(e != null);
     return StripParens(e) is SetDisplayExpr display && display.Elements.Count == 0;
