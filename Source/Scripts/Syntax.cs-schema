@@ -1,3 +1,7 @@
+abstract class IOrigin
+{
+}
+
 class SourceOrigin : IOrigin
 {
     Token startToken;
@@ -29,10 +33,6 @@ abstract class Node
 abstract class RangeNode : Node
 {
     IOrigin origin;
-}
-
-abstract class IOrigin
-{
 }
 
 class Name : RangeNode

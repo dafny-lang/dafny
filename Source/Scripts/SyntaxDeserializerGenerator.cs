@@ -112,6 +112,9 @@ private {typeString} Read{typeString2}() {{
 
     var typeString = ToGenericTypeString(type);
     var constructor = GetParseConstructor(type);
+    if (constructor == null) {
+      return;
+    }
     var parameters = constructor.GetParameters();
 
     var deserializeMethodName = $"Read{typeString}";
