@@ -74,6 +74,7 @@ public class Attributes : NodeWithComputedRange, ICanFormat {
   }
 
   public Attributes(string name, [Captured] List<Expression> args, Attributes? prev) : base(Token.NoToken) {
+    Contract.Requires(name != UserSuppliedAtAttribute.AtName || this is UserSuppliedAtAttribute);
     Name = name;
     Args = args;
     Prev = prev;

@@ -140,7 +140,7 @@ public class Serializer(IEncoder encoder, IReadOnlyList<INamedTypeSymbol> parsed
         SerializeMap(dict, expectedType);
         break;
       case BigInteger i:
-        encoder.WriteInt((int)i);
+        encoder.WriteInt(i);
         break;
       case int i:
         encoder.WriteInt(i);

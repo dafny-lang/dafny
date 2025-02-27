@@ -1,11 +1,7 @@
 #nullable enable
-using System;
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
-using System.Linq;
 using Microsoft.Dafny.Auditor;
-using Newtonsoft.Json;
-using NJsonSchema.Converters;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 
 namespace Microsoft.Dafny;

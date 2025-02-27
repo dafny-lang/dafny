@@ -122,7 +122,6 @@ public class Method : MethodOrFunction, TypeParameter.ParentType,
   public Method(Cloner cloner, Method original) : base(cloner, original) {
     this.Outs = original.Outs.ConvertAll(p => cloner.CloneFormal(p, false));
 
-    this.Reads = cloner.CloneSpecFrameExpr(original.Reads);
     this.Mod = cloner.CloneSpecFrameExpr(original.Mod);
     this.Body = cloner.CloneMethodBody(original);
     this.IsByMethod = original.IsByMethod;

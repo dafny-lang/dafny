@@ -48,6 +48,7 @@ public abstract class TopLevelDeclWithMembers : TopLevelDecl, IHasSymbolChildren
     }
 
     public void Record(TraitDecl traitHead, UserDefinedType parentType) {
+      Contract.Requires(parentType.ResolvedClass is NonNullTypeDecl nntd && nntd.ViewAsClass == traitHead);
 
       if (!info.TryGetValue(traitHead, out var list)) {
         list = [];
@@ -96,6 +97,8 @@ public abstract class TopLevelDeclWithMembers : TopLevelDecl, IHasSymbolChildren
   }
 
   public List<Type> RawTraitsWithArgument(List<Type> typeArgs) {
+    Contract.Requires(typeArgs.Count == TypeArgs.Count);
+    
     // Instantiate with the actual type arguments
     var subst = TypeParameter.SubstitutionMap(TypeArgs, typeArgs);
     var isReferenceType = this is ClassLikeDecl { IsReferenceTypeDecl: true };

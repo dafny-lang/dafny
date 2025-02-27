@@ -28,8 +28,6 @@ public class Formal : NonglobalVariable {
     Attributes? attributes = null,
     bool isOld = false, bool isNameOnly = false, bool isOlder = false, string? nameForCompilation = null)
     : base(origin, nameNode, type, isGhost) {
-    Contract.Requires(origin != null);
-    Contract.Requires(type != null);
     Contract.Requires(inParam || defaultValue == null);
     Contract.Requires(!isNameOnly || (inParam && !nameNode.Value.StartsWith("#")));
     InParam = inParam;
