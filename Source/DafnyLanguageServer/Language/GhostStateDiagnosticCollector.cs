@@ -93,7 +93,7 @@ Send notifications that indicate which lines are ghost.".TrimStart());
         IOrigin startToken;
         if (updateStatement.Lhss.Count > 0) {
           startToken = updateStatement.Lhss[0].Origin;
-        } else if (updateStatement.ResolvedStatements.Count > 0) {
+        } else if (updateStatement.ResolvedStatements!.Count > 0) {
           // This branch handles the case where the UpdateStmt consists of an CallStmt without of left hand side.
           // otherwise, we'd only mark parentheses and the semi-colon of the CallStmt. 
           startToken = GetStartTokenFromResolvedStatement(updateStatement.ResolvedStatements[0]);

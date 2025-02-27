@@ -82,7 +82,7 @@ public class SkeletonStatement : Statement, ICloneable<SkeletonStatement>, ICanF
   }
 
   public override void ResolveGhostness(ModuleResolver resolver, ErrorReporter reporter, bool mustBeErasable,
-    ICodeContext codeContext, string proofContext,
+    ICodeContext codeContext, string? proofContext,
     bool allowAssumptionVariables, bool inConstructorInitializationPhase) {
     IsGhost = mustBeErasable;
     if (S != null) {

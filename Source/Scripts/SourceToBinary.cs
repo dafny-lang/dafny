@@ -1,5 +1,6 @@
 using System.Collections;
 using System.CommandLine;
+using System.Numerics;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Text;
@@ -31,7 +32,7 @@ public class SourceToBinary {
     var options = DafnyOptions.Default;
     var errorReporter = new BatchErrorReporter(options);
     var input = await File.ReadAllTextAsync(inputFile);
-    var parseResult = await new ProgramParser().Parse(input, new Uri(Path.GetFullPath(inputFile)), errorReporter);
+    var parseResult = await ProgramParser.Parse(input, new Uri(Path.GetFullPath(inputFile)), errorReporter);
 
     var syntaxSchema = ResourceLoader.GetResourceAsString("Syntax.cs-schema");
     var output = new StringBuilder();
@@ -138,6 +139,9 @@ public class Serializer(IEncoder encoder, IReadOnlyList<INamedTypeSymbol> parsed
       case IDictionary dict:
         SerializeMap(dict, expectedType);
         break;
+      case BigInteger i:
+        encoder.WriteInt(i);
+        break;
       case int i:
         encoder.WriteInt(i);
         break;
@@ -199,15 +203,15 @@ public class Serializer(IEncoder encoder, IReadOnlyList<INamedTypeSymbol> parsed
     var instanceType = obj.GetType();
     Type? foundType = instanceType;
     while (foundType != null && !fieldsPerType.ContainsKey(
-             PostParseAstVisitor.CutOffGenericSuffixPartOfName(foundType.Name))) {
+             SyntaxAstVisitor.CutOffGenericSuffixPartOfName(foundType.Name))) {
       foundType = foundType.BaseType;
     }
 
     if (foundType == null) {
-      throw new Exception();
+      throw new Exception($"Could not find schema type for {instanceType}");
     }
 
-    var fieldNames = fieldsPerType[PostParseAstVisitor.CutOffGenericSuffixPartOfName(foundType.Name)];
+    var fieldNames = fieldsPerType[SyntaxAstVisitor.CutOffGenericSuffixPartOfName(foundType.Name)];
     var fieldsPerName = GetSerializableFields(foundType).ToDictionary(f => {
 
       var fieldName = f.Name;
@@ -236,13 +240,13 @@ public class Serializer(IEncoder encoder, IReadOnlyList<INamedTypeSymbol> parsed
 
   private static IEnumerable<FieldInfo> GetSerializableFields(Type type) {
     var fields = new List<FieldInfo>();
-    Type? currentType = type;
-    while (currentType != null && currentType != typeof(object)) {
-      fields.InsertRange(0, currentType.GetFields(BindingFlags.DeclaredOnly |
-                                                  BindingFlags.Instance |
-                                                  BindingFlags.Public |
-                                                  BindingFlags.NonPublic));
-      currentType = currentType.BaseType;
+    Type? result = type;
+    while (result != null && result != typeof(object)) {
+      fields.InsertRange(0, result.GetFields(BindingFlags.DeclaredOnly |
+                                             BindingFlags.Instance |
+                                             BindingFlags.Public |
+                                             BindingFlags.NonPublic));
+      result = result.BaseType;
     }
     return fields;
   }

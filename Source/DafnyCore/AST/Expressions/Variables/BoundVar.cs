@@ -10,10 +10,10 @@ public class BoundVar : NonglobalVariable {
 
   public BoundVar(IOrigin origin, string name, Type type, bool isGhost = false) : this(origin, new Name(origin.StartToken, name), type, isGhost) { }
 
-  public BoundVar(IOrigin origin, Name name, Type type, bool isGhost)
-    : base(origin, name, type, isGhost) {
+  [SyntaxConstructor]
+  public BoundVar(IOrigin origin, Name nameNode, Type type, bool isGhost = false)
+    : base(origin, nameNode, type, isGhost) {
     Contract.Requires(origin != null);
-    Contract.Requires(name != null);
     Contract.Requires(type != null);
   }
 }
