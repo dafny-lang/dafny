@@ -198,8 +198,8 @@ namespace Microsoft.Dafny {
         var s = (VarDeclPattern)stmt;
         foreach (var local in s.LocalVars) {
           int prevErrorCount = ErrorCount;
-          resolver.ResolveType(local.Origin, local.SyntacticType, resolutionContext, ResolveTypeOptionEnum.InferTypeProxies, null);
-          local.type = ErrorCount == prevErrorCount ? local.type = local.SyntacticType : new InferredTypeProxy();
+          resolver.ResolveType(local.Origin, local.SafeSyntacticType, resolutionContext, ResolveTypeOptionEnum.InferTypeProxies, null);
+          local.type = ErrorCount == prevErrorCount ? local.type = local.SafeSyntacticType : new InferredTypeProxy();
           local.PreType = Type2PreType(local.type);
         }
         ResolveExpression(s.RHS, resolutionContext);
@@ -559,8 +559,8 @@ namespace Microsoft.Dafny {
         // Add the locals to the scope
         foreach (var local in locals) {
           int prevErrorCount = ErrorCount;
-          resolver.ResolveType(local.Origin, local.SyntacticType, resolutionContext, ResolveTypeOptionEnum.InferTypeProxies, null);
-          local.type = ErrorCount == prevErrorCount ? local.SyntacticType : new InferredTypeProxy();
+          resolver.ResolveType(local.Origin, local.SafeSyntacticType, resolutionContext, ResolveTypeOptionEnum.InferTypeProxies, null);
+          local.type = ErrorCount == prevErrorCount ? local.SafeSyntacticType : new InferredTypeProxy();
           ScopePushAndReport(local, "local-variable", true);
         }
         // With the new locals in scope, it's now time to resolve the attributes on all the locals

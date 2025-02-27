@@ -2,7 +2,6 @@ using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 using System.Linq;
 using Microsoft.Dafny.Auditor;
-using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 
 namespace Microsoft.Dafny;
 
@@ -71,9 +70,11 @@ public abstract class MemberDecl : Declaration, ISymbol {
   protected MemberDecl(IOrigin origin, Name nameNode, bool hasStaticKeyword, bool isGhost, Attributes attributes)
     : base(origin, nameNode, attributes) {
     Contract.Requires(origin != null);
+    Contract.Requires(nameNode != null);
     this.hasStaticKeyword = hasStaticKeyword;
     this.isGhost = isGhost;
   }
+
   /// <summary>
   /// Returns className+"."+memberName.  Available only after resolution.
   /// </summary>

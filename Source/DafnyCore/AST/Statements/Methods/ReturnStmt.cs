@@ -1,3 +1,4 @@
+#nullable enable
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 
@@ -14,7 +15,8 @@ public class ReturnStmt : ProduceStmt, ICloneable<ReturnStmt> {
     ReverifyPost = original.ReverifyPost;
   }
 
-  public ReturnStmt(IOrigin origin, List<AssignmentRhs> rhss, Attributes attributes = null)
+  [SyntaxConstructor]
+  public ReturnStmt(IOrigin origin, List<AssignmentRhs> rhss, Attributes? attributes = null)
     : base(origin, rhss, attributes) {
     Contract.Requires(origin != null);
   }

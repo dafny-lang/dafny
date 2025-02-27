@@ -3606,9 +3606,9 @@ namespace Microsoft.Dafny {
         // Resolve the types of the locals
         foreach (var local in s.Locals) {
           int prevErrorCount = reporter.Count(ErrorLevel.Error);
-          ResolveType(local.Origin, local.SyntacticType, resolutionContext, ResolveTypeOptionEnum.InferTypeProxies, null);
+          ResolveType(local.Origin, local.SafeSyntacticType, resolutionContext, ResolveTypeOptionEnum.InferTypeProxies, null);
           if (reporter.Count(ErrorLevel.Error) == prevErrorCount) {
-            local.type = local.SyntacticType;
+            local.type = local.SafeSyntacticType;
           } else {
             local.type = new InferredTypeProxy();
           }
@@ -3643,9 +3643,9 @@ namespace Microsoft.Dafny {
         VarDeclPattern s = (VarDeclPattern)stmt;
         foreach (var local in s.LocalVars) {
           int prevErrorCount = reporter.Count(ErrorLevel.Error);
-          ResolveType(local.Origin, local.SyntacticType, resolutionContext, ResolveTypeOptionEnum.InferTypeProxies, null);
+          ResolveType(local.Origin, local.SafeSyntacticType, resolutionContext, ResolveTypeOptionEnum.InferTypeProxies, null);
           if (reporter.Count(ErrorLevel.Error) == prevErrorCount) {
-            local.type = local.SyntacticType;
+            local.type = local.SafeSyntacticType;
           } else {
             local.type = new InferredTypeProxy();
           }
@@ -4987,10 +4987,10 @@ namespace Microsoft.Dafny {
             reporter.Error(MessageSource.Resolver, t.Origin, "formal type parameter '{0}' is not used according to its variance specification", tp.Name);
           } else if (tp.StrictVariance && lax) {
             string hint;
-            if (tp.VarianceSyntax == TypeParameter.TPVarianceSyntax.NonVariant_Strict) {
+            if (tp.VarianceSyntax == TPVarianceSyntax.NonVariant_Strict) {
               hint = string.Format(" (perhaps try declaring '{0}' as '-{0}' or '!{0}')", tp.Name);
             } else {
-              Contract.Assert(tp.VarianceSyntax == TypeParameter.TPVarianceSyntax.Covariant_Strict);
+              Contract.Assert(tp.VarianceSyntax == TPVarianceSyntax.Covariant_Strict);
               hint = string.Format(" (perhaps try changing the declaration from '+{0}' to '*{0}')", tp.Name);
             }
             reporter.Error(MessageSource.Resolver, t.Origin, "formal type parameter '{0}' is not used according to its variance specification (it is used left of an arrow){1}", tp.Name, hint);

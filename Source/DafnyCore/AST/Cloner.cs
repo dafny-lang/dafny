@@ -1,3 +1,4 @@
+
 // Copyright by the contributors to the Dafny Project
 // SPDX-License-Identifier: MIT
 
@@ -81,7 +82,7 @@ namespace Microsoft.Dafny {
       } else if (d is TypeSynonymDecl) {
         var dd = (TypeSynonymDecl)d;
         var tps = dd.TypeArgs.ConvertAll(CloneTypeParam);
-        return new TypeSynonymDecl(Origin(dd.Origin), dd.NameNode.Clone(this), CloneTPChar(dd.Characteristics), tps,
+        return new ConcreteTypeSynonymDecl(Origin(dd.Origin), dd.NameNode.Clone(this), CloneTPChar(dd.Characteristics), tps,
           newParent, CloneType(dd.Rhs), CloneAttributes(dd.Attributes));
       } else if (d is NewtypeDecl) {
         var dd = (NewtypeDecl)d;
@@ -150,8 +151,8 @@ namespace Microsoft.Dafny {
         var dd = (ClassDecl)d;
         var tps = dd.TypeArgs.ConvertAll(CloneTypeParam);
         var mm = dd.Members.ConvertAll(member => CloneMember(member, false));
-        return new ClassDecl(Origin(dd.Origin), dd.NameNode.Clone(this), newParent, tps, mm,
-          CloneAttributes(dd.Attributes), dd.IsRefining, dd.Traits.ConvertAll(CloneType));
+        return new ClassDecl(Origin(dd.Origin), dd.NameNode.Clone(this),
+          CloneAttributes(dd.Attributes), tps, newParent, mm, dd.Traits.ConvertAll(CloneType), dd.IsRefining);
       } else if (d is ModuleDecl) {
         if (d is LiteralModuleDecl moduleDecl) {
           return new LiteralModuleDecl(this, moduleDecl, newParent);
@@ -195,7 +196,7 @@ namespace Microsoft.Dafny {
     public TypeParameter CloneTypeParam(TypeParameter tp) {
       return (TypeParameter)typeParameterClones.GetOrCreate(tp,
         () => new TypeParameter(Origin(tp.Origin), tp.NameNode.Clone(this), tp.VarianceSyntax,
-          CloneTPChar(tp.Characteristics), tp.TypeBounds.ConvertAll(CloneType)));
+          CloneTPChar(tp.Characteristics), tp.TypeBounds.ConvertAll(CloneType), tp.Attributes));
     }
 
     public virtual MemberDecl CloneMember(MemberDecl member, bool isReference) {
@@ -293,9 +294,9 @@ namespace Microsoft.Dafny {
     }
 
     public virtual VT CloneIVariable<VT>(VT v, bool isReference)
-      where VT : class, IVariable {
+      where VT : IVariable {
       if (v == null) {
-        return null;
+        return default;
       }
 
       var iv = (IVariable)v;
@@ -391,7 +392,7 @@ namespace Microsoft.Dafny {
     }
 
     public virtual CasePattern<VT> CloneCasePattern<VT>(CasePattern<VT> pat)
-      where VT : class, IVariable {
+      where VT : IVariable {
       Contract.Requires(pat != null);
       return new CasePattern<VT>(this, pat);
     }
