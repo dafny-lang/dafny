@@ -1,3 +1,4 @@
+#nullable enable
 using System;
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
@@ -19,7 +20,7 @@ public abstract class Declaration : RangeNode, IAttributeBearingDeclaration, ISy
   public virtual IOrigin NavigationToken => NameNode.Origin;
 
   public string Name => NameNode.Value;
-  public bool IsRefining;
+  public virtual bool IsRefining => false;
 
   private VisibilityScope opaqueScope = new();
   private VisibilityScope revealScope = new();
@@ -32,12 +33,11 @@ public abstract class Declaration : RangeNode, IAttributeBearingDeclaration, ISy
     Attributes = cloner.CloneAttributes(original.Attributes);
   }
 
-  protected Declaration(IOrigin origin, Name name, Attributes attributes, bool isRefining) : base(origin) {
+  [SyntaxConstructor]
+  protected Declaration(IOrigin origin, Name nameNode, Attributes attributes) : base(origin) {
     Contract.Requires(origin != null);
-    Contract.Requires(name != null);
-    this.NameNode = name;
+    this.NameNode = nameNode;
     this.Attributes = attributes;
-    this.IsRefining = isRefining;
   }
 
   public bool HasAxiomAttribute =>
@@ -108,22 +108,47 @@ public abstract class Declaration : RangeNode, IAttributeBearingDeclaration, ISy
     return IsRevealedInScope(scope) || opaqueScope.VisibleInScope(scope);
   }
 
-  protected string sanitizedName;
+  protected string? sanitizedName;
   public virtual string SanitizedName => sanitizedName ??= NonglobalVariable.SanitizeName(Name);
 
-  protected string compileName;
+  protected string enclosingModuleName; // Computed at the same time as compileName
+
+  protected string? compileName;
 
   public virtual string GetCompileName(DafnyOptions options) {
     if (compileName == null) {
-      this.IsExtern(options, out _, out compileName);
+      this.IsExtern(options, out var possibleEnclosingModuleName, out compileName);
+      if (!IsCompiled) {
+        enclosingModuleName = possibleEnclosingModuleName;
+      }
+      if (this is TopLevelDecl topDecl) {
+        enclosingModuleName ??= topDecl.EnclosingModuleDefinition.GetCompileName(options);
+      }
+
       compileName ??= SanitizedName;
     }
 
     return compileName;
   }
 
-  public Attributes Attributes;  // readonly, except during class merging in the refinement transformations and when changed by Compiler.MarkCapitalizationConflict
-  Attributes IAttributeBearingDeclaration.Attributes {
+  public bool IsCompiled {
+    get {
+      var compile = true;
+      return !Attributes.ContainsBool(Attributes, "compile", ref compile) || compile;
+    }
+  }
+
+  public string GetQualificationName(DafnyOptions options) {
+    if (compileName == null) {
+      GetCompileName(options); // Sets the enclosing module name if defined by externs.
+      return enclosingModuleName;
+    }
+
+    return enclosingModuleName;
+  }
+
+  public Attributes? Attributes;  // readonly, except during class merging in the refinement transformations and when changed by Compiler.MarkCapitalizationConflict
+  Attributes? IAttributeBearingDeclaration.Attributes {
     get => Attributes;
     set => Attributes = value;
   }

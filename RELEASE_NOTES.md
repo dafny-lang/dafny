@@ -2,7 +2,7 @@
 
 See [docs/dev/news/](docs/dev/news/).
 
-# 4.9.2
+# 4.10.0
 
 ## New features
 

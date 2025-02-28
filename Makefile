@@ -87,7 +87,7 @@ z3-ubuntu:
 	chmod +x "${DIR}"/Binaries/z3/bin/z3-*
 
 format:
-	dotnet format whitespace Source/Dafny.sln --exclude Source/DafnyCore/Scanner.cs --exclude Source/DafnyCore/Parser.cs --exclude boogie --exclude Source/DafnyCore/GeneratedFromDafny/* --exclude Source/DafnyCore.Test/GeneratedFromDafny/* --exclude Source/DafnyRuntime/DafnyRuntimeSystemModule.cs
+	dotnet format whitespace Source/Dafny.sln --exclude Source/DafnyCore/Generic/Deserializer/Generated.cs --exclude Source/DafnyCore/Scanner.cs --exclude Source/DafnyCore/Parser.cs --exclude boogie --exclude Source/DafnyCore/GeneratedFromDafny/* --exclude Source/DafnyCore.Test/GeneratedFromDafny/* --exclude Source/DafnyRuntime/DafnyRuntimeSystemModule.cs
 
 clean:
 	(cd "${DIR}"; cd Source; rm -rf Dafny/bin Dafny/obj DafnyDriver/bin DafnyDriver/obj DafnyRuntime/obj DafnyRuntime/bin DafnyServer/bin DafnyServer/obj DafnyPipeline/obj DafnyPipeline/bin DafnyCore/obj DafnyCore/bin)
@@ -110,6 +110,8 @@ update-rs-module:
 
 update-go-module:
 	(cd "${DIR}"; cd Source/DafnyRuntime/DafnyRuntimeGo; make update-system-module)
+	(cd "${DIR}"; cd Source/DafnyRuntime/DafnyRuntimeDafny; make update-go)
+  
 
 update-runtime-dafny:
 	(cd "${DIR}"; cd Source/DafnyRuntime/DafnyRuntimeDafny; make update-go)
@@ -130,3 +132,17 @@ pr: exe dfy-to-cs-exe pr-nogeneration
 
 # Same as `make pr` but useful when resolving conflicts, to take the last compiled version of Dafny first
 pr-conflict: dfy-to-cs-exe dfy-to-cs-exe pr-nogeneration
+
+gen-integration: gen-schema gen-deserializer
+
+PARSED_AST_FILE=Source/Scripts/Syntax.cs-schema
+gen-schema:
+	./script.sh generate-parsed-ast $(PARSED_AST_FILE)
+  
+GENERATED_DESERIALIZER_FILE=Source/DafnyCore/AST/SyntaxDeserializer/generated.cs
+gen-deserializer:
+	./script.sh generate-syntax-deserializer ${GENERATED_DESERIALIZER_FILE}
+
+test-integration: gen-integration
+	(git status --porcelain || (echo 'Consider running `make gen-integration`'; exit 1; ))
+	

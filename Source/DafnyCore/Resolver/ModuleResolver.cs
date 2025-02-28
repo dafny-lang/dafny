@@ -1030,7 +1030,7 @@ namespace Microsoft.Dafny {
         // check that only reference types (classes and some traits) inherit from 'object'
         foreach (TopLevelDecl d in declarations.Where(d => d is TopLevelDeclWithMembers and not ClassLikeDecl)) {
           var nonReferenceTypeDecl = (TopLevelDeclWithMembers)d;
-          foreach (var parentType in nonReferenceTypeDecl.ParentTraits.Where(t => t.IsRefType)) {
+          foreach (var parentType in nonReferenceTypeDecl.Traits.Where(t => t.IsRefType)) {
             reporter.Error(MessageSource.Resolver, parentType is UserDefinedType parentUdt ? parentUdt.Origin : nonReferenceTypeDecl.Origin,
               $"{nonReferenceTypeDecl.WhatKind} is not allowed to extend '{parentType}', because it is a reference type");
             break; // one error message per "decl" is enough
@@ -1477,7 +1477,7 @@ namespace Microsoft.Dafny {
           }
 
           if (d is TopLevelDeclWithMembers topLevelDeclWithMembers) {
-            foreach (var parentTrait in topLevelDeclWithMembers.ParentTraits) {
+            foreach (var parentTrait in topLevelDeclWithMembers.Traits) {
               CheckVariance(parentTrait, topLevelDeclWithMembers, TypeParameter.TPVariance.Co, false);
             }
           }
@@ -2103,7 +2103,7 @@ namespace Microsoft.Dafny {
       currentClass = cl;
       allTypeParameters.PushMarker();
       ResolveTypeParameters(cl.TypeArgs, false, cl);
-      foreach (var parentTrait in cl.ParentTraits) {
+      foreach (var parentTrait in cl.Traits) {
         var prevErrorCount = reporter.Count(ErrorLevel.Error);
         ResolveType(cl.Origin, parentTrait, new NoContext(cl.EnclosingModuleDefinition), ResolveTypeOptionEnum.DontInfer, null);
         if (prevErrorCount == reporter.Count(ErrorLevel.Error)) {
@@ -2126,6 +2126,12 @@ namespace Microsoft.Dafny {
               reporter.Error(MessageSource.Resolver, parentTypeToken,
                 $"{cl.WhatKind} '{cl.Name}' is in a different module than trait '{trait.FullName}'. A {cl.WhatKind} may only extend a trait " +
                 $"in the same module, unless the parent trait is annotated with {{:termination false}} or the {cl.WhatKind} with @AssumeCrossModuleTermination.");
+            }
+
+            if (cl is TraitDecl td) {
+              // If the parent trait's type parameters contain all the type parameters of this trait,
+              // it can be downcasted at run-time to cl trait. We record this dependency in td
+              trait.TraitDeclsCanBeDowncastedTo.Add(td);
             }
           } else {
             reporter.Error(MessageSource.Resolver, parentTypeToken, $"a {cl.WhatKind} can only extend traits (found '{parentTrait}')");
@@ -2187,7 +2193,7 @@ namespace Microsoft.Dafny {
       }
 
       // populate .ParentTypeInformation and .ParentFormalTypeParametersToActuals for the immediate parent traits
-      foreach (var tt in cl.ParentTraits) {
+      foreach (var tt in cl.Traits) {
         var udt = (UserDefinedType)tt;
         var trait = (TraitDecl)((udt.ResolvedClass as NonNullTypeDecl)?.ViewAsClass ?? udt.ResolvedClass);
         cl.ParentTypeInformation.Record(trait, udt);
@@ -2985,11 +2991,7 @@ namespace Microsoft.Dafny {
             var i = 0;
             foreach (var otherTp in otherDt.TypeArgs) {
               if (otherTp.NecessaryForEqualitySupportOfSurroundingInductiveDatatype) {
-                var tp = otherUdt.TypeArgs[i].AsTypeParameter;
-                if (tp != null) {
-                  tp.NecessaryForEqualitySupportOfSurroundingInductiveDatatype = true;
-                  thingsChanged = true;
-                }
+                DetermineEqualitySupportType(otherUdt.TypeArgs[i], ref thingsChanged);
               }
 
               i++;

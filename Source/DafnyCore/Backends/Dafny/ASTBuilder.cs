@@ -166,9 +166,9 @@ namespace Microsoft.Dafny.Compilers {
   interface TraitContainer : Container {
     void AddTrait(Trait item);
 
-    public TraitBuilder Trait(string name, List<DAST.TypeArgDecl> typeParams, List<DAST.Type> parents,
-      ISequence<_IAttribute> attributes, string docString, _ITraitType traitType) {
-      return new TraitBuilder(this, name, docString, typeParams, parents, attributes, traitType);
+    public TraitBuilder Trait(string name, List<TypeArgDecl> typeParams, List<DAST.Type> parents,
+      ISequence<_IAttribute> attributes, string docString, _ITraitType traitType, List<DAST.Type> downcastableTraits) {
+      return new TraitBuilder(this, name, docString, typeParams, parents, attributes, traitType, downcastableTraits);
     }
   }
 
@@ -179,16 +179,18 @@ namespace Microsoft.Dafny.Compilers {
     private readonly List<DAST.Type> parents;
     readonly List<DAST.Method> body = [];
     private ISequence<_IAttribute> attributes;
-    private string docString;
-    private _ITraitType traitType;
+    private readonly string docString;
+    private readonly _ITraitType traitType;
+    private readonly List<DAST.Type> downcastableTraits;
 
-    public TraitBuilder(TraitContainer parent, string name, string docString, List<DAST.TypeArgDecl> typeParams, List<DAST.Type> parents, ISequence<_IAttribute> attributes, _ITraitType traitType) {
+    public TraitBuilder(TraitContainer parent, string name, string docString, List<DAST.TypeArgDecl> typeParams, List<DAST.Type> parents, ISequence<_IAttribute> attributes, _ITraitType traitType, List<DAST.Type> downcastableTraits) {
       this.parent = parent;
       this.name = name;
       this.typeParams = typeParams;
       this.attributes = attributes;
       this.docString = docString;
       this.traitType = traitType;
+      this.downcastableTraits = downcastableTraits;
       this.parents = parents;
     }
 
@@ -215,6 +217,7 @@ namespace Microsoft.Dafny.Compilers {
         Sequence<DAST.TypeArgDecl>.FromArray(typeParams.ToArray()),
         traitType,
         Sequence<DAST.Type>.FromArray(parents.ToArray()),
+        Sequence<DAST.Type>.FromArray(downcastableTraits.ToArray()),
         Sequence<DAST.Method>.FromArray(body.ToArray()),
         attributes)
       );
@@ -225,10 +228,11 @@ namespace Microsoft.Dafny.Compilers {
   interface NewtypeContainer : Container {
     void AddNewtype(Newtype item);
 
-    public NewtypeBuilder Newtype(string name, List<DAST.TypeArgDecl> typeParams,
-      DAST.Type baseType, NewtypeRange newtypeRange, Option<DAST.NewtypeConstraint> constraint, List<DAST.Statement> witnessStmts, DAST.Expression witness,
-      ISequence<_IAttribute> attributes, string docString) {
-      return new NewtypeBuilder(this, name, typeParams, newtypeRange, baseType, constraint, witnessStmts, witness, attributes, docString);
+    public NewtypeBuilder Newtype(string name, List<TypeArgDecl> typeParams,
+      DAST.Type baseType, NewtypeRange newtypeRange, Option<NewtypeConstraint> constraint,
+      List<DAST.Statement> witnessStmts, DAST.Expression witness,
+      ISequence<_IAttribute> attributes, string docString, _IEqualitySupport equalitySupport) {
+      return new NewtypeBuilder(this, name, typeParams, newtypeRange, baseType, constraint, witnessStmts, witness, attributes, docString, equalitySupport);
     }
   }
 
@@ -244,11 +248,12 @@ namespace Microsoft.Dafny.Compilers {
     private ISequence<_IAttribute> attributes;
     private readonly List<DAST._IMethod> methods;
     private string docString;
+    private _IEqualitySupport equalitySupport;
 
     public NewtypeBuilder(NewtypeContainer parent, string name, List<TypeArgDecl> typeParams,
       NewtypeRange newtypeRange, DAST.Type baseType, Option<DAST.NewtypeConstraint> constraint, List<DAST.Statement> statements,
       DAST.Expression witness,
-      ISequence<_IAttribute> attributes, string docString) {
+      ISequence<_IAttribute> attributes, string docString, _IEqualitySupport equalitySupport) {
       this.parent = parent;
       this.name = name;
       this.typeParams = typeParams;
@@ -259,6 +264,7 @@ namespace Microsoft.Dafny.Compilers {
       this.witness = witness;
       this.attributes = attributes;
       this.docString = docString;
+      this.equalitySupport = equalitySupport;
       this.methods = [];
     }
 
@@ -282,6 +288,7 @@ namespace Microsoft.Dafny.Compilers {
         this.witness == null
           ? Option<DAST._IExpression>.create_None()
           : Option<DAST._IExpression>.create_Some(this.witness),
+        equalitySupport,
         attributes,
         Sequence<DAST._IMethod>.FromArray(methods.ToArray())
       ));
@@ -341,9 +348,10 @@ namespace Microsoft.Dafny.Compilers {
   interface DatatypeContainer : Container {
     void AddDatatype(Datatype item);
 
-    public DatatypeBuilder Datatype(string name, string enclosingModule, List<DAST.TypeArgDecl> typeParams,
-      List<DAST.DatatypeCtor> ctors, bool isCo, ISequence<_IAttribute> attributes, string docString, List<DAST.Type> superTraitTypes) {
-      return new DatatypeBuilder(this, name, docString, enclosingModule, typeParams, ctors, isCo, attributes, superTraitTypes);
+    public DatatypeBuilder Datatype(string name, string enclosingModule, List<TypeArgDecl> typeParams,
+      List<DAST.DatatypeCtor> ctors, bool isCo, ISequence<_IAttribute> attributes, string docString,
+      List<DAST.Type> superTraitTypes, List<DAST.Type> superNegativeTraitTypes, _IEqualitySupport equalitySupport) {
+      return new DatatypeBuilder(this, name, docString, enclosingModule, typeParams, ctors, isCo, attributes, superTraitTypes, superNegativeTraitTypes, equalitySupport);
     }
   }
 
@@ -355,11 +363,13 @@ namespace Microsoft.Dafny.Compilers {
     readonly List<DAST.DatatypeCtor> ctors;
     readonly bool isCo;
     readonly List<DAST.Method> body = [];
-    private ISequence<_IAttribute> attributes;
-    private string docString;
-    private List<DAST.Type> superTraitTypes;
+    readonly ISequence<_IAttribute> attributes;
+    readonly string docString;
+    readonly List<DAST.Type> superTraitTypes;
+    readonly List<DAST.Type> superNegativeTraitTypes;
+    private _IEqualitySupport equalitySupport;
 
-    public DatatypeBuilder(DatatypeContainer parent, string name, string docString, string enclosingModule, List<DAST.TypeArgDecl> typeParams, List<DAST.DatatypeCtor> ctors, bool isCo, ISequence<_IAttribute> attributes, List<DAST.Type> superTraitTypes) {
+    public DatatypeBuilder(DatatypeContainer parent, string name, string docString, string enclosingModule, List<DAST.TypeArgDecl> typeParams, List<DAST.DatatypeCtor> ctors, bool isCo, ISequence<_IAttribute> attributes, List<DAST.Type> superTraitTypes, List<DAST.Type> superNegativeTraitTypes, _IEqualitySupport equalitySupport) {
       this.parent = parent;
       this.name = name;
       this.docString = docString;
@@ -369,6 +379,8 @@ namespace Microsoft.Dafny.Compilers {
       this.isCo = isCo;
       this.attributes = attributes;
       this.superTraitTypes = superTraitTypes;
+      this.superNegativeTraitTypes = superNegativeTraitTypes;
+      this.equalitySupport = equalitySupport;
     }
 
     public void AddMethod(DAST.Method item) {
@@ -387,8 +399,9 @@ namespace Microsoft.Dafny.Compilers {
         Sequence<DAST.TypeArgDecl>.FromArray(typeParams.ToArray()),
         Sequence<DAST.DatatypeCtor>.FromArray(ctors.ToArray()),
         Sequence<DAST.Method>.FromArray(body.ToArray()),
-        this.isCo, attributes,
-        Sequence<DAST.Type>.FromArray(superTraitTypes.ToArray())
+        this.isCo, equalitySupport, attributes,
+        Sequence<DAST.Type>.FromArray(superTraitTypes.ToArray()),
+          Sequence<DAST.Type>.FromArray(superNegativeTraitTypes.ToArray())
       ));
       return parent;
     }
@@ -405,9 +418,9 @@ namespace Microsoft.Dafny.Compilers {
       ISequence<_IAttribute> attributes,
       string name,
       List<TypeArgDecl> typeArgs,
-      Sequence<DAST.Formal> params_,
+      Sequence<DAST.Formal> params_, Sequence<DAST.Formal> inheritedParams,
       List<DAST.Type> outTypes, List<ISequence<Rune>> outVars) {
-      return new MethodBuilder(this, isStatic, hasBody, outVarsAreUninitFieldsToAssign, wasFunction, overridingPath, docString, attributes, name, typeArgs, params_, outTypes, outVars);
+      return new MethodBuilder(this, isStatic, hasBody, outVarsAreUninitFieldsToAssign, wasFunction, overridingPath, docString, attributes, name, typeArgs, params_, inheritedParams, outTypes, outVars);
     }
 
     public object Finish();
@@ -423,6 +436,7 @@ namespace Microsoft.Dafny.Compilers {
     readonly ISequence<ISequence<Rune>> overridingPath;
     readonly List<DAST.TypeArgDecl> typeArgs;
     readonly Sequence<DAST.Formal> params_;
+    readonly Sequence<DAST.Formal> inheritedParams;
     readonly List<DAST.Type> outTypes;
     readonly List<ISequence<Rune>> outVars;
     readonly List<object> body = [];
@@ -437,9 +451,8 @@ namespace Microsoft.Dafny.Compilers {
       ISequence<_IAttribute> attributes,
       string name,
       List<DAST.TypeArgDecl> typeArgs,
-      Sequence<DAST.Formal> params_,
-      List<DAST.Type> outTypes, List<ISequence<Rune>> outVars
-    ) {
+      Sequence<DAST.Formal> params_, Sequence<DAST.Formal> inheritedParams,
+      List<DAST.Type> outTypes, List<ISequence<Rune>> outVars) {
       this.parent = parent;
       this.isStatic = isStatic;
       this.hasBody = hasBody;
@@ -453,6 +466,7 @@ namespace Microsoft.Dafny.Compilers {
       this.params_ = params_;
       this.outTypes = outTypes;
       this.outVars = outVars;
+      this.inheritedParams = inheritedParams;
     }
 
     public List<object> ForkList() {
@@ -483,6 +497,7 @@ namespace Microsoft.Dafny.Compilers {
         Sequence<Rune>.UnicodeFromString(this.name),
         Sequence<DAST.TypeArgDecl>.FromArray(typeArgs.ToArray()),
         params_,
+        inheritedParams,
         Sequence<DAST.Statement>.FromArray(builtStatements.ToArray()),
         Sequence<DAST.Type>.FromArray(outTypes.ToArray()),
         outVars != null ? Option<ISequence<ISequence<Rune>>>.create_Some(Sequence<ISequence<Rune>>.FromArray(outVars.ToArray())) : Option<ISequence<ISequence<Rune>>>.create_None()
@@ -563,7 +578,7 @@ namespace Microsoft.Dafny.Compilers {
       return ret;
     }
 
-    public CallStmtBuilder Call(ISequence<_IFormal> signature) {
+    public CallStmtBuilder Call(_ICallSignature signature) {
       var ret = new CallStmtBuilder(signature);
       AddBuildable(ret);
       return ret;
@@ -966,9 +981,9 @@ namespace Microsoft.Dafny.Compilers {
     List<DAST.Type> typeArgs = null;
     readonly List<object> args = [];
     List<ISequence<Rune>> outs = null;
-    public readonly ISequence<_IFormal> Signature;
+    public readonly _ICallSignature Signature;
 
-    public CallStmtBuilder(ISequence<_IFormal> signature) {
+    public CallStmtBuilder(_ICallSignature signature) {
       this.Signature = signature;
     }
 
@@ -1283,7 +1298,7 @@ namespace Microsoft.Dafny.Compilers {
       return ret;
     }
 
-    CallExprBuilder Call(ISequence<_IFormal> signature) {
+    CallExprBuilder Call(_ICallSignature signature) {
       var ret = new CallExprBuilder(signature);
       AddBuildable(ret);
       return ret;
@@ -1468,9 +1483,9 @@ namespace Microsoft.Dafny.Compilers {
     readonly List<object> args = [];
     List<ISequence<Rune>> outs = null;
 
-    public ISequence<_IFormal> Signature { get; }
+    public _ICallSignature Signature { get; }
 
-    public CallExprBuilder(ISequence<_IFormal> signature) {
+    public CallExprBuilder(_ICallSignature signature) {
       Signature = signature;
     }
 

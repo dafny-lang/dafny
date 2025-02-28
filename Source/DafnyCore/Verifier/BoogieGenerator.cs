@@ -22,6 +22,7 @@ using DafnyCore.Verifier;
 using JetBrains.Annotations;
 using Microsoft.Dafny;
 using Microsoft.Dafny.Triggers;
+using Serilog.Events;
 using PODesc = Microsoft.Dafny.ProofObligationDescription;
 using static Microsoft.Dafny.GenericErrors;
 
@@ -700,6 +701,10 @@ namespace Microsoft.Dafny {
         return new Bpl.Program();
       }
 
+      if (Options.GetOrOptionDefault(CommonOptionBag.LogLevelOption).CompareTo(LogEventLevel.Verbose) <= 0) {
+        Options.OutputWriter.WriteLine("Starting translation to Boogie of module " + forModule.FullDafnyName);
+      }
+
       foreach (var plugin in p.Options.Plugins) {
         foreach (var rewriter in plugin.GetRewriters(p.Reporter)) {
           rewriter.PreVerify(forModule);
@@ -1082,7 +1087,7 @@ namespace Microsoft.Dafny {
     private void AddTraitParentAxioms() {
       foreach (ModuleDefinition m in program.RawModules()) {
         foreach (var c in m.TopLevelDecls.OfType<TopLevelDeclWithMembers>().Where(RevealedInScope)) {
-          foreach (var parentTypeInExtendsClause in c.ParentTraits) {
+          foreach (var parentTypeInExtendsClause in c.Traits) {
             var childType = UserDefinedType.FromTopLevelDecl(c.Origin, c);
             var parentType = (UserDefinedType)parentTypeInExtendsClause;
             if (parentType.IsRefType) {
@@ -4824,7 +4829,7 @@ namespace Microsoft.Dafny {
       return vars;
     }
 
-    public Bpl.Expr/*?*/ GetTyWhereClause(Bpl.Expr expr, TypeParameter.TypeParameterCharacteristics characteristics) {
+    public Bpl.Expr/*?*/ GetTyWhereClause(Bpl.Expr expr, TypeParameterCharacteristics characteristics) {
       Contract.Requires(expr != null);
       if (characteristics.ContainsNoReferenceTypes) {
         return FunctionCall(expr.tok, "$AlwaysAllocated", Bpl.Type.Bool, expr);

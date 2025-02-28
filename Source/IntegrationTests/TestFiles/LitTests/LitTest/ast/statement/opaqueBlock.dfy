@@ -217,3 +217,13 @@ method ImplicitModifiesClause(w: Wrapper)
   }
   assert w.x == 2;
 }
+
+method FreshEnsures() {
+  var c: object;
+  opaque
+    ensures fresh(c) // !old(allocated(c)) && allocated(c)
+  {
+    c := new object;
+  }
+  assert false;
+}
