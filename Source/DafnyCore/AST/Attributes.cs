@@ -74,7 +74,6 @@ public class Attributes : NodeWithComputedRange, ICanFormat {
   }
 
   public Attributes(string name, [Captured] List<Expression> args, Attributes? prev) : base(Token.NoToken) {
-    Contract.Requires(cce.NonNullElements(args));
     Contract.Requires(name != UserSuppliedAtAttribute.AtName || this is UserSuppliedAtAttribute);
     Name = name;
     Args = args;
@@ -164,7 +163,7 @@ public class Attributes : NodeWithComputedRange, ICanFormat {
   /// - if the attribute is {:nm e1,...,en}, then returns (e1,...,en)
   /// Otherwise, returns null.
   /// </summary>
-  public static List<Expression>? FindExpressions(Attributes attrs, string nm) {
+  public static List<Expression>? FindExpressions(Attributes? attrs, string nm) {
     Contract.Requires(nm != null);
     foreach (var attr in attrs.AsEnumerable()) {
       if (attr.Name == nm) {
@@ -181,7 +180,7 @@ public class Attributes : NodeWithComputedRange, ICanFormat {
     List<List<Expression>>? ret = null;
     for (; attrs != null; attrs = attrs.Prev) {
       if (attrs.Name == nm) {
-        ret = ret ?? [];   // Avoid allocating the list in the common case where we don't find nm
+        ret ??= [];   // Avoid allocating the list in the common case where we don't find nm
         ret.Add(attrs.Args);
       }
     }
@@ -199,8 +198,8 @@ public class Attributes : NodeWithComputedRange, ICanFormat {
   /// - return false, leave value unmodified, and call reporter with an error string.
   /// </summary>
   public enum MatchingValueOption { Empty, Bool, Int, String, Expression }
-  public static bool ContainsMatchingValue(Attributes attrs, string nm, ref object value,
-    ISet<MatchingValueOption> allowed, Action<string> reporter) {
+  public static bool ContainsMatchingValue(Attributes? attrs, string nm, ref object? value,
+    IReadOnlySet<MatchingValueOption> allowed, Action<string> reporter) {
     var args = FindExpressions(attrs, nm);
     if (args == null) {
       return false;
@@ -212,15 +211,15 @@ public class Attributes : NodeWithComputedRange, ICanFormat {
         return false;
       }
     } else if (args.Count == 1) {
-      var arg = args[0];
+      Expression arg = args[0];
       var literal = arg as LiteralExpr;
       if (literal is { Value: bool } && allowed.Contains(MatchingValueOption.Bool)) {
         value = literal.Value;
         return true;
-      } else if (literal != null && literal.Value is BigInteger && allowed.Contains(MatchingValueOption.Int)) {
+      } else if (literal is { Value: BigInteger } && allowed.Contains(MatchingValueOption.Int)) {
         value = literal.Value;
         return true;
-      } else if (arg is StringLiteralExpr stringLiteral && stringLiteral.Value is string && allowed.Contains(MatchingValueOption.String)) {
+      } else if (arg is StringLiteralExpr { Value: string } stringLiteral && allowed.Contains(MatchingValueOption.String)) {
         value = stringLiteral.Value;
         return true;
       } else if (allowed.Contains(MatchingValueOption.Expression)) {
@@ -236,7 +235,7 @@ public class Attributes : NodeWithComputedRange, ICanFormat {
     }
   }
 
-  public override IEnumerable<INode> Children => Args.Concat<Node>(
+  public override IEnumerable<INode> Children => Args.Concat(
     Prev == null
       ? Enumerable.Empty<Node>()
       : new List<Node> { Prev });
@@ -271,7 +270,7 @@ public class Attributes : NodeWithComputedRange, ICanFormat {
   }
 
   // Typically, {:} are indented when @-attributes are not
-  public static void SetIndents(Attributes attrs, int indentBefore, TokenNewIndentCollector formatter) {
+  public static void SetIndents(Attributes? attrs, int indentBefore, TokenNewIndentCollector formatter) {
     foreach (var attribute in attrs.AsEnumerable()) {
       if (attribute.StartToken.val == UserSuppliedAtAttribute.AtName) {
         attribute.SetIndent(indentBefore, formatter);
@@ -309,7 +308,7 @@ public class Attributes : NodeWithComputedRange, ICanFormat {
     var bindings = atAttribute.UserSuppliedPreResolveBindings;
 
     if (name == null) {
-      program.Reporter.Error(MessageSource.Resolver, atAttribute.Origin, "Attribute not recognized: " + atAttribute.ToString());
+      program.Reporter.Error(MessageSource.Resolver, atAttribute.Origin, "Attribute not recognized: " + atAttribute);
       return null;
     }
 
@@ -333,7 +332,7 @@ public class Attributes : NodeWithComputedRange, ICanFormat {
     atAttribute.Arg.Type = Type.Int; // Dummy type to avoid crashes
     var intDecl = resolver.SystemModuleManager.valuetypeDecls.First(valueTypeDecl => valueTypeDecl.Name == PreType.TypeNameInt);
 
-    atAttribute.Arg.PreType = new DPreType(intDecl, [], null);
+    atAttribute.Arg.PreType = new DPreType(intDecl, []);
 
     switch (name) {
       case "AssumeCrossModuleTermination": {
@@ -642,7 +641,7 @@ public class Attributes : NodeWithComputedRange, ICanFormat {
   // Given resolved bindings, gets the i-th argument according to the
   // declaration formals order
   private static bool Get(ActualBindings bindings, int i, out Expression? expr) {
-    if (bindings.Arguments.Count < i + 1) {
+    if (bindings.Arguments!.Count < i + 1) {
       expr = null;
       return false;
     }
@@ -655,7 +654,7 @@ public class Attributes : NodeWithComputedRange, ICanFormat {
   // obtained from built-in @-attribute definitions
   private static void ResolveLikeDatatypeConstructor(Program program, Formal[] formals, string attrName,
     UserSuppliedAtAttribute attrs, ActualBindings bindings, ModuleResolver resolver) {
-    var resolutionContext = new ResolutionContext(new NoContext(program.DefaultModuleDef), false); ;
+    var resolutionContext = new ResolutionContext(new NoContext(program.DefaultModuleDef), false);
     var typeMap = new Dictionary<TypeParameter, Type>();
     resolver.ResolveActualParameters(bindings, formals.ToList(), attrs.Origin,
       attrs, resolutionContext, typeMap, null);

@@ -18,7 +18,7 @@ public abstract class ExtremeLemma : Method {
     TypeOfK = lemma.TypeOfK;
   }
 
-  public ExtremeLemma(IOrigin origin, Name name,
+  public ExtremeLemma(IOrigin origin, Name nameNode,
     bool hasStaticKeyword, ExtremePredicate.KType typeOfK,
     List<TypeParameter> typeArgs,
     List<Formal> ins, [Captured] List<Formal> outs,
@@ -29,9 +29,9 @@ public abstract class ExtremeLemma : Method {
     Specification<Expression> decreases,
     BlockStmt body,
     Attributes attributes, IOrigin signatureEllipsis)
-    : base(origin, name, hasStaticKeyword, true, typeArgs, ins, outs, req, reads, mod, ens, decreases, body, attributes, signatureEllipsis) {
+    : base(origin, nameNode, attributes, hasStaticKeyword, true, typeArgs, ins, req, ens, reads, decreases, outs, mod, body, signatureEllipsis) {
     Contract.Requires(origin != null);
-    Contract.Requires(name != null);
+    Contract.Requires(nameNode != null);
     Contract.Requires(cce.NonNullElements(typeArgs));
     Contract.Requires(cce.NonNullElements(ins));
     Contract.Requires(cce.NonNullElements(outs));
@@ -48,7 +48,7 @@ public abstract class ExtremeLemma : Method {
 public class LeastLemma : ExtremeLemma {
   public override string WhatKind => "least lemma";
 
-  public LeastLemma(IOrigin origin, Name name,
+  public LeastLemma(IOrigin origin, Name nameNode,
     bool hasStaticKeyword, ExtremePredicate.KType typeOfK,
     List<TypeParameter> typeArgs,
     List<Formal> ins, [Captured] List<Formal> outs,
@@ -59,9 +59,9 @@ public class LeastLemma : ExtremeLemma {
     Specification<Expression> decreases,
     BlockStmt body,
     Attributes attributes, IOrigin signatureEllipsis)
-    : base(origin, name, hasStaticKeyword, typeOfK, typeArgs, ins, outs, req, reads, mod, ens, decreases, body, attributes, signatureEllipsis) {
+    : base(origin, nameNode, hasStaticKeyword, typeOfK, typeArgs, ins, outs, req, reads, mod, ens, decreases, body, attributes, signatureEllipsis) {
     Contract.Requires(origin != null);
-    Contract.Requires(name != null);
+    Contract.Requires(nameNode != null);
     Contract.Requires(cce.NonNullElements(typeArgs));
     Contract.Requires(cce.NonNullElements(ins));
     Contract.Requires(cce.NonNullElements(outs));
@@ -78,7 +78,7 @@ public class LeastLemma : ExtremeLemma {
 public class GreatestLemma : ExtremeLemma {
   public override string WhatKind => "greatest lemma";
 
-  public GreatestLemma(IOrigin origin, Name name,
+  public GreatestLemma(IOrigin origin, Name nameNode,
     bool hasStaticKeyword, ExtremePredicate.KType typeOfK,
     List<TypeParameter> typeArgs,
     List<Formal> ins, [Captured] List<Formal> outs,
@@ -89,9 +89,9 @@ public class GreatestLemma : ExtremeLemma {
     Specification<Expression> decreases,
     BlockStmt body,
     Attributes attributes, IOrigin signatureEllipsis)
-    : base(origin, name, hasStaticKeyword, typeOfK, typeArgs, ins, outs, req, reads, mod, ens, decreases, body, attributes, signatureEllipsis) {
+    : base(origin, nameNode, hasStaticKeyword, typeOfK, typeArgs, ins, outs, req, reads, mod, ens, decreases, body, attributes, signatureEllipsis) {
     Contract.Requires(origin != null);
-    Contract.Requires(name != null);
+    Contract.Requires(nameNode != null);
     Contract.Requires(cce.NonNullElements(typeArgs));
     Contract.Requires(cce.NonNullElements(ins));
     Contract.Requires(cce.NonNullElements(outs));

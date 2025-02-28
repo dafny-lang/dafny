@@ -3257,7 +3257,8 @@ namespace Microsoft.Dafny.Compilers {
       wr.Write(", ");
       var fromType = (ArrowType)expr.Initializer.Type.NormalizeExpand();
       var atd = (ArrowTypeDecl)fromType.ResolvedClass;
-      var tParam = new UserDefinedType(expr.Origin, new TypeParameter(expr.Origin, new Name("X"), TypeParameter.TPVarianceSyntax.NonVariant_Strict));
+      var tParam = new UserDefinedType(expr.Origin,
+        new TypeParameter(expr.Origin, new Name("X"), TPVarianceSyntax.NonVariant_Strict));
       var toType = new ArrowType(expr.Origin, atd, [Type.Int], tParam);
       var initWr = EmitCoercionIfNecessary(fromType, toType, expr.Origin, wr);
       initWr.Append(Expr(expr.Initializer, inLetExprBody, wStmts));

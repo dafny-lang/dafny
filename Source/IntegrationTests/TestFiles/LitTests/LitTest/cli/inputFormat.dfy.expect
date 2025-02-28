@@ -1,3 +1,4 @@
-inputFormat.dfy(6,2): Error: assertion might not hold
+inputFormat.dfy(19,6): Error: a postcondition could not be proved on this return path
+inputFormat.dfy(16,14): Related location: this is the postcondition that could not be proved
 
-Dafny program verifier finished with 0 verified, 1 error
+Dafny program verifier finished with 5 verified, 1 error

@@ -1,4 +1,8 @@
-class SourceOrigin
+abstract class IOrigin
+{
+}
+
+class SourceOrigin : IOrigin
 {
     Token startToken;
     Token endToken;
@@ -31,8 +35,9 @@ abstract class RangeNode : Node
     IOrigin origin;
 }
 
-abstract class IOrigin
+class Name : RangeNode
 {
+    String value;
 }
 
 abstract class Declaration : RangeNode
@@ -46,9 +51,139 @@ abstract class NodeWithComputedRange : Node
     IOrigin origin;
 }
 
-class Specification<T> : NodeWithComputedRange where T : Node
+abstract class Type : NodeWithComputedRange
 {
-    List<T> expressions;
+}
+
+abstract class NonProxyType : Type
+{
+}
+
+class UserDefinedType : NonProxyType
+{
+    Expression namePath;
+}
+
+abstract class Expression : NodeWithComputedRange
+{
+}
+
+class IdentifierExpr : Expression
+{
+    String name;
+}
+
+class AutoGhostIdentifierExpr : IdentifierExpr
+{
+}
+
+class BinaryExpr : Expression
+{
+    BinaryExprOpcode op;
+    Expression e0;
+    Expression e1;
+}
+
+enum BinaryExprOpcode
+{
+    Iff,
+    Imp,
+    Exp,
+    And,
+    Or,
+    Eq,
+    Neq,
+    Lt,
+    Le,
+    Ge,
+    Gt,
+    Disjoint,
+    In,
+    NotIn,
+    LeftShift,
+    RightShift,
+    Add,
+    Sub,
+    Mul,
+    Div,
+    Mod,
+    BitwiseAnd,
+    BitwiseOr,
+    BitwiseXor
+}
+
+class LiteralExpr : Expression
+{
+    Object value;
+}
+
+class ITEExpr : Expression
+{
+    Boolean isBindingGuard;
+    Expression test;
+    Expression thn;
+    Expression els;
+}
+
+abstract class ConcreteSyntaxExpression : Expression
+{
+}
+
+class ParensExpression : ConcreteSyntaxExpression
+{
+    Expression e;
+}
+
+class NegationExpression : ConcreteSyntaxExpression
+{
+    Expression e;
+}
+
+abstract class SuffixExpr : ConcreteSyntaxExpression
+{
+    Expression lhs;
+}
+
+class ApplySuffix : SuffixExpr
+{
+    IOrigin? atTok;
+    ActualBindings bindings;
+    Token? closeParen;
+}
+
+class ActualBindings : NodeWithComputedRange
+{
+    List<ActualBinding> argumentBindings;
+}
+
+class ActualBinding : NodeWithComputedRange
+{
+    IOrigin? formalParameterName;
+    Expression actual;
+    Boolean isGhost;
+}
+
+class NameSegment : ConcreteSyntaxExpression
+{
+    String name;
+    List<Type>? optTypeArguments;
+}
+
+abstract class DisplayExpression : Expression
+{
+    List<Expression> elements;
+}
+
+abstract class BasicType : NonProxyType
+{
+}
+
+class IntType : BasicType
+{
+}
+
+abstract class AssignmentRhs : NodeWithComputedRange
+{
     Attributes? attributes;
 }
 
@@ -59,20 +194,22 @@ class Attributes : NodeWithComputedRange
     Attributes? prev;
 }
 
-abstract class Expression : NodeWithComputedRange
+class ExprRhs : AssignmentRhs
 {
+    Expression expr;
 }
 
-class LiteralExpr : Expression
+class Specification<T> : NodeWithComputedRange where T : Node
 {
-    Object value;
+    List<T>? expressions;
+    Attributes? attributes;
 }
 
 class AttributedExpression
 {
     Expression e;
-    AssertLabel label;
-    Attributes attributes;
+    AssertLabel? label;
+    Attributes? attributes;
 }
 
 class Label
@@ -85,11 +222,6 @@ class AssertLabel : Label
 {
 }
 
-class Name : RangeNode
-{
-    String value;
-}
-
 abstract class TopLevelDecl : Declaration
 {
     List<TypeParameter> typeArgs;
@@ -97,13 +229,9 @@ abstract class TopLevelDecl : Declaration
 
 class TypeParameter : Declaration
 {
-    TypeParameterTPVarianceSyntax varianceSyntax;
+    TPVarianceSyntax varianceSyntax;
     TypeParameterCharacteristics characteristics;
     List<Type> typeBounds;
-}
-
-abstract class Type : NodeWithComputedRange
-{
 }
 
 class TypeParameterCharacteristics
@@ -127,13 +255,61 @@ enum TypeParameterEqualitySupportValue
     Unspecified
 }
 
-enum TypeParameterTPVarianceSyntax
+enum TPVarianceSyntax
 {
     NonVariant_Strict,
     NonVariant_Permissive,
     Covariant_Strict,
     Covariant_Permissive,
     Contravariance
+}
+
+abstract class TypeSynonymDeclBase : TopLevelDecl
+{
+    TypeParameterCharacteristics characteristics;
+}
+
+abstract class TypeSynonymDecl : TypeSynonymDeclBase
+{
+}
+
+class SubsetTypeDecl : TypeSynonymDecl
+{
+    BoundVar var;
+    Expression constraint;
+    SubsetTypeDeclWKind witnessKind;
+    Expression? witness;
+}
+
+enum SubsetTypeDeclWKind
+{
+    CompiledZero,
+    Compiled,
+    Ghost,
+    OptOut,
+    Special
+}
+
+abstract class NonglobalVariable : NodeWithComputedRange
+{
+    Name nameNode;
+    Type type;
+    Boolean isGhost;
+}
+
+class Formal : NonglobalVariable
+{
+    Boolean inParam;
+    Expression? defaultValue;
+    Attributes? attributes;
+    Boolean isOld;
+    Boolean isNameOnly;
+    Boolean isOlder;
+    String? nameForCompilation;
+}
+
+class BoundVar : NonglobalVariable
+{
 }
 
 abstract class TopLevelDeclWithMembers : TopLevelDecl
@@ -165,29 +341,11 @@ class FrameExpression : NodeWithComputedRange
     String fieldName;
 }
 
-abstract class NonglobalVariable : NodeWithComputedRange
-{
-    Name nameNode;
-    Type type;
-    Boolean isGhost;
-}
-
-class Formal : NonglobalVariable
-{
-    Boolean inParam;
-    Expression defaultValue;
-    Attributes attributes;
-    Boolean isOld;
-    Boolean isNameOnly;
-    Boolean isOlder;
-    String nameForCompilation;
-}
-
 class Method : MethodOrFunction
 {
     List<Formal> outs;
     Specification<FrameExpression> mod;
-    BlockStmt body;
+    BlockStmt? body;
     Boolean isByMethod;
 }
 
@@ -206,11 +364,132 @@ class AssertStmt : PredicateStmt
     AssertLabel? label;
 }
 
+abstract class ProduceStmt : Statement
+{
+    List<AssignmentRhs> rhss;
+}
+
+class ReturnStmt : ProduceStmt
+{
+}
+
+abstract class LoopStmt : Statement
+{
+    List<AttributedExpression> invariants;
+    Specification<Expression> decreases;
+    Specification<FrameExpression> mod;
+}
+
+abstract class OneBodyLoopStmt : LoopStmt
+{
+    BlockStmt body;
+}
+
 class BlockStmt : Statement
 {
     List<Statement> body;
 }
 
+class WhileStmt : OneBodyLoopStmt
+{
+    Expression guard;
+}
+
+class IfStmt : Statement
+{
+    Boolean isBindingGuard;
+    Expression? guard;
+    BlockStmt thn;
+    Statement? els;
+}
+
+class VarDeclStmt : Statement
+{
+    List<LocalVariable> locals;
+    ConcreteAssignStatement? assign;
+}
+
+abstract class ConcreteAssignStatement : Statement
+{
+    List<Expression> lhss;
+}
+
+class AssignStatement : ConcreteAssignStatement
+{
+    List<AssignmentRhs> rhss;
+    Boolean canMutateKnownState;
+}
+
+class LocalVariable : RangeNode
+{
+    String name;
+    Type? syntacticType;
+    Boolean isGhost;
+}
+
+class Function : MethodOrFunction
+{
+    Boolean isOpaque;
+    Formal? result;
+    Type resultType;
+    Expression? body;
+    IOrigin? byMethodTok;
+    BlockStmt? byMethodBody;
+}
+
+abstract class ClassLikeDecl : TopLevelDeclWithMembers
+{
+}
+
+class ClassDecl : ClassLikeDecl
+{
+    Boolean isRefining;
+}
+
 class DefaultClassDecl : TopLevelDeclWithMembers
 {
+}
+
+abstract class ModuleDecl : Declaration
+{
+    String cloneId;
+}
+
+class LiteralModuleDecl : ModuleDecl
+{
+    ModuleDefinition moduleDef;
+}
+
+class ModuleDefinition : RangeNode
+{
+    Name nameNode;
+    List<IOrigin> prefixIds;
+    ModuleKindEnum moduleKind;
+    Implements? implements;
+    Attributes? attributes;
+    List<TopLevelDecl> sourceDecls;
+}
+
+class Implements
+{
+    ImplementationKind Kind;
+    ModuleQualifiedId Target;
+}
+
+class ModuleQualifiedId : Node
+{
+    List<Name> path;
+}
+
+enum ImplementationKind
+{
+    Refinement,
+    Replacement
+}
+
+enum ModuleKindEnum
+{
+    Concrete,
+    Abstract,
+    Replaceable
 }
