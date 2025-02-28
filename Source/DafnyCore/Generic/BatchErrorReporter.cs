@@ -9,7 +9,7 @@ public class BatchErrorReporter : ErrorReporter {
 
   public void CopyDiagnostics(ErrorReporter intoReporter) {
     foreach (var diagnostic in AllMessages) {
-      intoReporter.Message(diagnostic.Source, diagnostic.Level, diagnostic.ErrorId, diagnostic.Token, diagnostic.Message);
+      intoReporter.Message(diagnostic.Source, diagnostic.Level, diagnostic.ErrorId, diagnostic.Origin, diagnostic.Message);
     }
   }
 

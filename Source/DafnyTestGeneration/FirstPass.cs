@@ -73,14 +73,14 @@ public class FirstPass {
         $"Test generation returned {Errors.Count()} errors. Fix them to proceed:");
       foreach (var error in Errors) {
         var errorId = error.ErrorId == "none" ? "Error" : error.ErrorId;
-        errorReporter.Error(MessageSource.TestGeneration, errorId, error.Token, error.Message);
+        errorReporter.Error(MessageSource.TestGeneration, errorId, error.Origin, error.Message);
       }
     }
     if (Warnings.Count() != 0 && !options.TestGenOptions.IgnoreWarnings) {
       errorReporter.Warning(MessageSource.TestGeneration, "", program.StartToken,
         $"Test generation returned {Warnings.Count()} warnings:");
       foreach (var warning in Warnings) {
-        errorReporter.Warning(MessageSource.TestGeneration, warning.ErrorId, warning.Token, warning.Message);
+        errorReporter.Warning(MessageSource.TestGeneration, warning.ErrorId, warning.Origin, warning.Message);
       }
     }
   }

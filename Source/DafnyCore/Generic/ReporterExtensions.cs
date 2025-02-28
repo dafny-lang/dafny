@@ -35,7 +35,7 @@ public static class ErrorReporterExtensions {
 
     var dafnyToken = BoogieGenerator.ToDafnyToken(useRange, error.Tok);
 
-    var tokens = new[] { dafnyToken }.Concat(relatedInformation.Select(i => i.Token)).ToList();
+    var tokens = new[] { dafnyToken }.Concat(relatedInformation.Select(i => i.Origin)).ToList();
     IOrigin previous = tokens.Last();
     foreach (var (inner, outer) in relatedInformation.Zip(tokens).Reverse()) {
       previous = new NestedOrigin(outer, previous, inner.Message);

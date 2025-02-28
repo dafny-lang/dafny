@@ -194,7 +194,7 @@ public static class VerifyCommand {
       }
 
       foreach (var diagnostic in batchReporter.AllMessages.Order()) {
-        compilation.Compilation.Reporter.Message(diagnostic.Source, diagnostic.Level, diagnostic.ErrorId, diagnostic.Token,
+        compilation.Compilation.Reporter.Message(diagnostic.Source, diagnostic.Level, diagnostic.ErrorId, diagnostic.Origin,
           diagnostic.Message);
       }
     });

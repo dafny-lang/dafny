@@ -72,7 +72,7 @@ public class MatchStmtVerifier {
       generator.DefiniteAssignmentTrackers = prevDefiniteAssignmentTrackers;
 
       Expr guard = Expr.Eq(source, r);
-      ifCmd = new IfCmd(mc.Origin, guard, b.Collect(mc.Origin.Center), ifCmd, els, BlockRewriter.AllowSplitQ);
+      ifCmd = new IfCmd(mc.Origin, guard, b.Collect(mc.Origin), ifCmd, els, BlockRewriter.AllowSplitQ);
       els = null;
       generator.CurrentIdGenerator.Pop();
     }
