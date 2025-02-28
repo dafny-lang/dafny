@@ -7,7 +7,8 @@ using VCGeneration;
 namespace Microsoft.Dafny;
 
 public static class ErrorReporterExtensions {
-  public static void ReportBoogieError(this ErrorReporter reporter, ErrorInformation error, DafnyModel? counterexampleModel = null, bool useRange = true) {
+  public static void ReportBoogieError(this ErrorReporter reporter, ErrorInformation error,
+    DafnyModel? counterexampleModel = null, bool useRange = true) {
     var usingSnippets = reporter.Options.Get(Snippets.ShowSnippets);
     var relatedInformation = new List<DafnyRelatedInformation>();
     foreach (var auxiliaryInformation in error.Aux) {
@@ -35,7 +36,7 @@ public static class ErrorReporterExtensions {
 
     var dafnyToken = BoogieGenerator.ToDafnyToken(useRange, error.Tok);
 
-    var diagnostic = new DafnyDiagnostic(MessageSource.Verifier, null, dafnyToken.ToLspLocation(), error.Msg,
+    var diagnostic = new DafnyDiagnostic(MessageSource.Verifier, null, dafnyToken.Center.ToLspLocation(), error.Msg,
       ErrorLevel.Error, relatedInformation);
     reporter.MessageCore(diagnostic);
   }
