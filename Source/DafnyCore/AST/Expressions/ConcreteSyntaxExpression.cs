@@ -21,6 +21,7 @@ public abstract class ConcreteSyntaxExpression : Expression {
   [FilledInDuringResolution]
   public Expression ResolvedExpression { get; set; }
 
+  [SyntaxConstructor]
   protected ConcreteSyntaxExpression(IOrigin origin)
     : base(origin) {
   }

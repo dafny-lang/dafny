@@ -11,17 +11,15 @@ public abstract class TypeSynonymDeclBase : TopLevelDecl, RedirectingTypeDecl, I
   public bool SupportsEquality {
     get { return Characteristics.EqualitySupport != TypeParameter.EqualitySupportValue.Unspecified; }
   }
-  public readonly Type Rhs;
+  public abstract Type Rhs { get; }
 
-  protected TypeSynonymDeclBase(IOrigin origin, Name name, TypeParameterCharacteristics characteristics, List<TypeParameter> typeArgs, ModuleDefinition module, Type rhs, Attributes attributes)
-    : base(origin, name, module, typeArgs, attributes) {
+  [SyntaxConstructor]
+  protected TypeSynonymDeclBase(IOrigin origin, Name nameNode, TypeParameterCharacteristics characteristics,
+    List<TypeParameter> typeArgs, ModuleDefinition enclosingModuleDefinition, Attributes attributes)
+    : base(origin, nameNode, enclosingModuleDefinition, typeArgs, attributes) {
     Contract.Requires(origin != null);
-    Contract.Requires(name != null);
     Contract.Requires(typeArgs != null);
-    Contract.Requires(module != null);
-    Contract.Requires(rhs != null);
     Characteristics = characteristics;
-    Rhs = rhs;
   }
   /// <summary>
   /// Return .Rhs instantiated with "typeArgs", but only look at the part of .Rhs that is in scope.

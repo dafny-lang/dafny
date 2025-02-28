@@ -704,7 +704,7 @@ namespace Microsoft.Dafny {
                 // to BVD what this variable stands for and display it as such to the user.
                 Type et = p.Type.Subst(e.GetTypeArgumentSubstitutions());
                 LocalVariable local = new LocalVariable(p.Origin, "##" + p.Name, et, p.IsGhost);
-                local.type = local.SyntacticType;  // resolve local here
+                local.type = local.SafeSyntacticType;  // resolve local here
                 var ie = new IdentifierExpr(local.Origin, local.AssignUniqueName(CurrentDeclaration.IdGenerator)) {
                   Var = local
                 };

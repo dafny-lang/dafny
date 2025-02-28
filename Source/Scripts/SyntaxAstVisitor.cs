@@ -7,7 +7,7 @@ namespace Scripts;
 /// <summary>
 /// Visits the classes and fields of the Dafny AST that are used by the parser
 /// </summary>
-public abstract class PostParseAstVisitor {
+public abstract class SyntaxAstVisitor {
 
   /// <summary>
   /// Sometimes a type has an incorrect base-type in the sense that it does not
@@ -17,6 +17,7 @@ public abstract class PostParseAstVisitor {
   protected static Dictionary<Type, Type?> OverrideBaseType = new() {
     { typeof(TypeParameter), typeof(Declaration) },
     { typeof(ModuleDecl), typeof(Declaration) },
+    { typeof(SourceOrigin), typeof(IOrigin) },
     { typeof(AttributedExpression), null }
   };
 
@@ -84,9 +85,9 @@ public abstract class PostParseAstVisitor {
     HandleClass(type);
     var baseType = OverrideBaseType.GetOrDefault(type, () => type.BaseType);
     if (baseType != null && baseType != typeof(ValueType) && baseType != typeof(object)) {
-      var myParseConstructor = GetParseConstructor(type);
+      var myParseConstructor = GetParseConstructor(type)!;
       var baseParseConstructor = GetParseConstructor(baseType);
-      var missingParameters =
+      var missingParameters = baseParseConstructor == null ? [] :
         baseParseConstructor.GetParameters().Select(p => p.Name)
           .Except(myParseConstructor.GetParameters().Select(p => p.Name)).ToList();
       if (missingParameters.Any()) {
@@ -156,7 +157,7 @@ public abstract class PostParseAstVisitor {
     toVisit.Push(type);
   }
 
-  protected static ConstructorInfo GetParseConstructor(Type type) {
+  protected static ConstructorInfo? GetParseConstructor(Type type) {
     var constructors = type.GetConstructors(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
     return constructors.Where(c => !c.IsPrivate &&
                                    !c.GetParameters().Any(p => p.ParameterType.IsAssignableTo(typeof(Cloner)))).MaxBy(c =>

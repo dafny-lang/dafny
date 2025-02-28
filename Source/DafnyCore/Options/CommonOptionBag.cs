@@ -12,15 +12,6 @@ namespace Microsoft.Dafny;
 
 public class CommonOptionBag {
 
-  public enum InputTypeEnum {
-    Source,
-    Binary
-  }
-
-  public static readonly Option<InputTypeEnum> InputType = new("--input-format", () => InputTypeEnum.Source) {
-    IsHidden = true
-  };
-
   public static void EnsureStaticConstructorHasRun() { }
 
   public enum ProgressLevel { None, Symbol, Batch }
@@ -276,6 +267,15 @@ true - Print debug information for the new type system.".TrimStart()) {
   };
 
   public static readonly Option<bool> WarnAsErrors = new("--warn-as-errors", () => true, "(Deprecated). Please use --allow-warnings instead") {
+    IsHidden = true
+  };
+
+  public enum InputTypeEnum {
+    Source,
+    Binary
+  }
+
+  public static readonly Option<InputTypeEnum> InputType = new("--input-format", () => InputTypeEnum.Source) {
     IsHidden = true
   };
 

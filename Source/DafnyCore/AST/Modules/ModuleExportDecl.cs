@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 using System.Linq;
-using System.Security.AccessControl;
 
 namespace Microsoft.Dafny;
 
@@ -10,7 +9,6 @@ namespace Microsoft.Dafny;
 /// Represents the exports of a module.
 /// </summary>
 public class ModuleExportDecl : ModuleDecl, ICanFormat {
-  public override bool IsRefining { get; }
   public readonly bool IsDefault;
   public List<ExportSignature> Exports; // list of TopLevelDecl that are included in the export
   public List<IOrigin> Extends; // list of exports that are extended
@@ -24,27 +22,30 @@ public class ModuleExportDecl : ModuleDecl, ICanFormat {
 
   public ModuleDefinition EffectiveModule = null;
 
-  public ModuleExportDecl(Cloner cloner, ModuleExportDecl original, ModuleDefinition parent)
-    : base(cloner, original, parent) {
+  public ModuleExportDecl(Cloner cloner, ModuleExportDecl original, ModuleDefinition enclosingModule)
+    : base(cloner, original, enclosingModule) {
     Exports = original.Exports.Select(s => new ExportSignature(cloner, s)).ToList();
     Extends = original.Extends.Select(cloner.Origin).ToList();
     ProvideAll = original.ProvideAll;
     RevealAll = original.RevealAll;
+    IsRefining = original.IsRefining;
     IsDefault = original.IsDefault;
     ThisScope = new VisibilityScope(FullSanitizedName);
     SetupDefaultSignature();
   }
 
-  public ModuleExportDecl(DafnyOptions options, IOrigin origin, Name name, ModuleDefinition parent,
+  public override bool IsRefining { get; }
+
+  public ModuleExportDecl(DafnyOptions options, IOrigin origin, Name name, Attributes attributes, ModuleDefinition enclosingModule,
     List<ExportSignature> exports, List<IOrigin> extends,
     bool provideAll, bool revealAll, bool isDefault, bool isRefining, Guid cloneId)
-    : base(options, origin, name, parent, false, cloneId) {
+    : base(options, origin, name, attributes, enclosingModule, cloneId) {
     Contract.Requires(exports != null);
-    IsRefining = isRefining;
     IsDefault = isDefault;
     Exports = exports;
     Extends = extends;
     ProvideAll = provideAll;
+    IsRefining = isRefining;
     RevealAll = revealAll;
     ThisScope = new VisibilityScope(this.FullSanitizedName);
     SetupDefaultSignature();
