@@ -114,12 +114,62 @@ class Concat:
         q = deque([self])
         while q:
             e = q.pop()
-            if isinstance(e, list):
+            if isinstance(e, list) or isinstance(e, Slice):
                 l += e
             elif isinstance(e, Concat):
                 q.append(e.r)
                 q.append(e.l)
         return l
+
+class Slice:
+    """
+    Internal class enabling constant time slices of Seqs.
+    This should only be used internally from the Seq class when a Seq is sliced.
+    This class assumes the source data is immutable, which is true for Seqs.
+    """
+    def __init__(self, source, start=0, stop=None, step=1):
+        if isinstance(source, Slice):
+            # A Slice constructed from a Slice shares the same underlying source list,
+            self._source = source._source
+            # but updates its indices based on the original Slice's indices:
+            self._start = source._start + start * source._step
+            self._step = source._step * step
+            self._stop = (
+                source._stop
+                if stop is None
+                else source._start + stop * source._step
+            )
+        else:
+            # source will not change if it is constructed from a Seq because Dafny Seqs are immutable.
+            self._source = source
+            self._start = start
+            self._stop = len(source) if stop is None else stop
+            self._step = step
+
+    def __getitem__(self, index):
+        if isinstance(index, slice):
+            # Slice in constant time by returning a reference to the source list with updated indices
+            start, stop, step = index.indices(len(self))
+            return Slice(
+                self._source,
+                self._start + start * self._step,
+                self._start + stop * self._step,
+                self._step * step,
+            )
+        # Access the corresponding element in the source list
+        if index < 0:
+            index += len(self)
+        if index < 0 or index >= len(self):
+            raise IndexError("Slice index out of range")
+        return self._source[self._start + index * self._step]
+
+    def __len__(self):
+        # Constant-time len
+        return max(0, (self._stop - self._start + (self._step - 1)) // self._step)
+
+    def __iter__(self):
+        for i in range(self._start, self._stop, self._step):
+            yield self._source[i]
 
 class Seq:
     def __init__(self, iterable = None, isStr = False):
@@ -135,8 +185,25 @@ class Seq:
         See docs/Compilation/StringsAndChars.md.
         '''
 
-        self.elems = iterable if isinstance(iterable, Concat) else (list(iterable) if iterable is not None else [])
-        self.len = len(self.elems)
+        if isinstance(iterable, Seq):
+            # Seqs' elements are immutable.
+            # The new Seq can reference the original Seq's properties.
+            self.elems = iterable.elems
+            self.len = iterable.len
+            self.isStr = iterable.isStr
+            return
+        elif isinstance(iterable, Slice):
+            # Slices are lazy slices.
+            # Accessing self.elems returns the underlying Slice in constant time.
+            # Turning this into a list, or accessing self.Elements, returns a list of the Slice's elements in linear time.
+            self.elems = iterable
+            self.len = len(iterable)
+            self.isStr = isStr
+            return
+        else:
+            self.elems = iterable if isinstance(iterable, Concat) else (list(iterable) if iterable is not None else [])
+            self.len = len(self.elems)
+
         if isStr is None:
             self.isStr = None
         else:
@@ -151,6 +218,8 @@ class Seq:
     def Elements(self):
         if isinstance(self.elems, Concat):
             self.elems = self.elems.flatten()
+        if isinstance(self.elems, Slice):
+            self.elems = list(self.elems)
         return self.elems
 
     @property
@@ -177,8 +246,12 @@ class Seq:
 
     def __getitem__(self, key):
         if isinstance(key, slice):
-            indices = range(*key.indices(len(self)))
-            return Seq((self.Elements[i] for i in indices), isStr=self.isStr)
+            start, stop, step = key.indices(len(self))
+            elements = self.elems if isinstance(self.elems, Slice) else self.Elements
+            return Seq(Slice(elements, start=start, stop=stop, step=step), isStr=self.isStr)
+        elif isinstance(self.elems, Slice):
+            # The .Elements call takes linear time, but a single element can be retrieved from a Slice in constant time.
+            return self.elems[key]
         return self.Elements.__getitem__(key)
 
     def set(self, key, value):

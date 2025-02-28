@@ -28,9 +28,6 @@ public class ProgramParser {
   protected readonly ILogger<ProgramParser> logger;
   private readonly IFileSystem fileSystem;
 
-  public ProgramParser() : this(NullLogger<ProgramParser>.Instance, OnDiskFileSystem.Instance) {
-  }
-
   public ProgramParser(ILogger<ProgramParser> logger, IFileSystem fileSystem) {
     this.logger = logger;
     this.fileSystem = fileSystem;
@@ -280,8 +277,15 @@ public class ProgramParser {
     Uri uri, CancellationToken cancellationToken) /* throws System.IO.IOException */ {
     Contract.Requires(uri != null);
     using var reader = fileSnapshot.Reader;
-
-    if (options.Get(CommonOptionBag.InputType) == CommonOptionBag.InputTypeEnum.Source) {
+    CommonOptionBag.InputTypeEnum inputType;
+    if (uri == DafnyFile.StdInUri) {
+      inputType = options.Get(CommonOptionBag.InputType);
+    } else {
+      inputType = uri.LocalPath.EndsWith(DafnyFile.DafnyBinaryExtension)
+        ? CommonOptionBag.InputTypeEnum.Binary
+        : CommonOptionBag.InputTypeEnum.Source;
+    }
+    if (inputType == CommonOptionBag.InputTypeEnum.Source) {
       var text = SourcePreprocessor.ProcessDirectives(reader, []);
       return ParseFile(options, fileSnapshot.Version, text, uri, cancellationToken);
     }
@@ -328,10 +332,11 @@ public class ProgramParser {
     return new Parser(errorReporter.Options, scanner, errors, cancellationToken);
   }
 
-  public async Task<ProgramParseResult> Parse(string source, Uri uri, ErrorReporter reporter) {
+  public static async Task<ProgramParseResult> Parse(string source, Uri uri, ErrorReporter reporter) {
     var fs = new InMemoryFileSystem(ImmutableDictionary<Uri, string>.Empty.Add(uri, source));
+    var parser = new ProgramParser(NullLogger<ProgramParser>.Instance, fs);
     var file = DafnyFile.HandleDafnyFile(fs, reporter, reporter.Options, uri, Token.NoToken, false);
     var files = new[] { file };
-    return await ParseFiles(uri.ToString(), files, reporter, CancellationToken.None);
+    return await parser.ParseFiles(uri.ToString(), files, reporter, CancellationToken.None);
   }
 }

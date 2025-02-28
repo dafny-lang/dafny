@@ -1,5 +1,5 @@
+using System.Numerics;
 using System.Text;
-using IntegrationTests;
 
 namespace Scripts;
 
@@ -16,7 +16,7 @@ class TextEncoder(StringBuilder writer) : IEncoder {
     writer.Append(' ');
   }
 
-  public void WriteInt(int value) {
+  public void WriteInt(BigInteger value) {
     writer.Append(value);
     writer.Append(";");
     writer.Append(' ');

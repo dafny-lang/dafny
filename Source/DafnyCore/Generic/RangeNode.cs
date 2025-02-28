@@ -1,3 +1,5 @@
+using Newtonsoft.Json;
+
 namespace Microsoft.Dafny;
 
 public abstract class RangeNode : Node {
