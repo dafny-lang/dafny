@@ -91,17 +91,17 @@ method ContradictoryAssumeMethod(n: int)
       Assert.Equal(8, diagnostics.Length);
       Assert.Contains(diagnostics, diagnostic =>
         diagnostic.Severity == DiagnosticSeverity.Warning &&
-        diagnostic.Range == new Range(3, 11, 3, 16) &&
+        diagnostic.Range == new Range(3, 11, 3, 12) &&
         diagnostic.Message == "unnecessary (or partly unnecessary) assume statement"
         );
       Assert.Contains(diagnostics, diagnostic =>
         diagnostic.Severity == DiagnosticSeverity.Warning &&
-        diagnostic.Range == new Range(13, 4, 13, 18) &&
+        diagnostic.Range == new Range(13, 4, 13, 10) &&
         diagnostic.Message == "proved using contradictory assumptions: assertion always holds. (Use the `{:contradiction}` attribute on the `assert` statement to silence.)"
       );
       Assert.Contains(diagnostics, diagnostic =>
         diagnostic.Severity == DiagnosticSeverity.Warning &&
-        diagnostic.Range == new Range(12, 11, 12, 17) &&
+        diagnostic.Range == new Range(12, 11, 12, 12) &&
         diagnostic.Message == "unnecessary (or partly unnecessary) assume statement"
       );
       Directory.Delete(directory, true);
