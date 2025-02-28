@@ -3542,7 +3542,7 @@ namespace Microsoft.Dafny {
       var substMap = new Dictionary<IVariable, Expression>();
       foreach (BoundVar bv in boundVars) {
         LocalVariable local = new LocalVariable(bv.Origin, nameSuffix == null ? bv.Name : bv.Name + nameSuffix, bv.Type, bv.IsGhost);
-        local.type = local.SyntacticType;  // resolve local here
+        local.type = local.SafeSyntacticType;  // resolve local here
         IdentifierExpr ie = new IdentifierExpr(local.Origin, local.AssignUniqueName(CurrentDeclaration.IdGenerator));
         ie.Var = local; ie.Type = ie.Var.Type;  // resolve ie here
         substMap.Add(bv, ie);
@@ -3587,7 +3587,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(etran != null);
 
       var local = new LocalVariable(v.Origin, v.Name, v.Type, v.IsGhost);
-      local.type = local.SyntacticType;  // resolve local here
+      local.type = local.SafeSyntacticType;  // resolve local here
       var ie = new IdentifierExpr(local.Origin, local.AssignUniqueName(CurrentDeclaration.IdGenerator));
       ie.Var = local; ie.Type = ie.Var.Type;  // resolve ie here
       substMap.Add(v, ie);
@@ -4075,12 +4075,12 @@ namespace Microsoft.Dafny {
     internal class BoogieWrapper : Expression {
       public readonly Bpl.Expr Expr;
 
-      public BoogieWrapper(Bpl.Expr expr, Type dafnyType)
+      public BoogieWrapper(Bpl.Expr expr, Type type)
         : base(ToDafnyToken(false, expr.tok)) {
         Contract.Requires(expr != null);
-        Contract.Requires(dafnyType != null);
+        Contract.Requires(type != null);
         Expr = expr;
-        Type = dafnyType;  // resolve immediately
+        Type = type;  // resolve immediately
       }
     }
 

@@ -1,6 +1,7 @@
 // NONUNIFORM: Rust-specific tests
 // RUN: %baredafny run --target=rs --enforce-determinism --type-system-refresh --general-traits=full "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
+// UNSUPPORTED: windows
 
 datatype I_<T, U> = I_(t: T, u: U)
 

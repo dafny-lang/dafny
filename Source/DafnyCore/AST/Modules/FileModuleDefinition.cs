@@ -1,9 +1,10 @@
+#nullable enable
+using System;
 using System.Collections.Generic;
 using System.Linq;
+using NJsonSchema.Annotations;
 
 namespace Microsoft.Dafny;
-
-
 
 /// <summary>
 /// This is a temporary container of everything declared at the top level of a file, including include directives.
@@ -16,7 +17,7 @@ public class FileModuleDefinition : ModuleDefinition {
 
   public FileModuleDefinition(IOrigin origin) :
     base(origin, new Name("_module"), [],
-      ModuleKindEnum.Concrete, false, null, null, null) {
+      ModuleKindEnum.Concrete, false, null, null!, null) {
     {
     }
   }

@@ -7,12 +7,11 @@ using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.Dafny;
 using Scripts;
-using NullabilityInfo = System.Reflection.NullabilityInfo;
 using Type = System.Type;
 
 namespace IntegrationTests;
 
-public class SyntaxDeserializerGenerator : PostParseAstVisitor {
+public class SyntaxDeserializerGenerator : SyntaxAstVisitor {
 
   private readonly HashSet<Type> typesWithHardcodedDeserializer = [typeof(Token), typeof(Specification<>)];
 
@@ -32,7 +31,7 @@ partial class SyntaxDeserializer {}")!;
   public static async Task Handle(string outputFile) {
     var program = typeof(TopLevelDecl);
     var generator = new SyntaxDeserializerGenerator();
-    generator.VisitTypesFromRoots([program]);
+    generator.VisitTypesFromRoots([program, typeof(SourceOrigin)]);
 
     var deserializerUnit = SyntaxFactory.ParseCompilationUnit(@"
 // Generated file
@@ -111,9 +110,11 @@ private {typeString} Read{typeString2}() {{
       return;
     }
 
-
     var typeString = ToGenericTypeString(type);
     var constructor = GetParseConstructor(type);
+    if (constructor == null) {
+      return;
+    }
     var parameters = constructor.GetParameters();
 
     var deserializeMethodName = $"Read{typeString}";
@@ -121,22 +122,12 @@ private {typeString} Read{typeString2}() {{
       return;
     }
 
-    var fields = type.GetFields().ToDictionary(f => f.Name.ToLower(), f => f);
-    var properties = type.GetProperties().ToDictionary(p => p.Name.ToLower(), p => p);
     for (var schemaIndex = 0; schemaIndex < schemaToConstructorPosition.Count; schemaIndex++) {
       var constructorIndex = schemaToConstructorPosition[schemaIndex];
       var parameter = parameters[constructorIndex];
 
-      var lower = parameter.Name!.ToLower();
       var nullabilityContext = new NullabilityInfoContext();
-      NullabilityInfo nullabilityInfo;
-      if (fields.TryGetValue(lower, out var fieldInfo)) {
-        nullabilityInfo = nullabilityContext.Create(fieldInfo);
-      } else if (properties.TryGetValue(lower, out var propertyInfo)) {
-        nullabilityInfo = nullabilityContext.Create(propertyInfo);
-      } else {
-        throw new Exception();
-      }
+      var nullabilityInfo = nullabilityContext.Create(parameter);
       bool isNullable = nullabilityInfo.ReadState == NullabilityState.Nullable;
       var parameterTypeReadCall = GetReadTypeCall(parameter.ParameterType, isNullable);
       statements.AppendLine(
@@ -156,21 +147,21 @@ if (actualType == typeof({typeString})) {{
   private string GetReadTypeCall(Type parameterType, bool nullable) {
     string parameterTypeReadCall;
     var newType = MappedTypes.GetValueOrDefault(parameterType, parameterType);
+    var optionString = nullable ? "Option" : "";
     if (newType.IsArray) {
       var elementType = newType.GetGenericArguments()[0];
       var elementRead = GetReadTypeCall(elementType, false);
       var elementTypeString = ToGenericTypeString(elementType, false, false);
-      return $"ReadArray<{elementTypeString}>(() => {elementRead})";
+      return $"ReadArray{optionString}<{elementTypeString}>(() => {elementRead})";
     }
 
     if (newType.IsGenericType && newType.IsAssignableTo(typeof(IEnumerable))) {
       var elementType = newType.GetGenericArguments()[0];
       var elementRead = GetReadTypeCall(elementType, false);
       var elementTypeString = ToGenericTypeString(elementType, false, false);
-      return $"ReadList<{elementTypeString}>(() => {elementRead})";
+      return $"ReadList{optionString}<{elementTypeString}>(() => {elementRead})";
     }
 
-    var optionString = nullable ? "Option" : "";
     var genericTypeString = ToGenericTypeString(parameterType, true, false);
     if (newType.IsAbstract || newType == typeof(object)) {
       parameterTypeReadCall = $"ReadAbstract{optionString}<{genericTypeString}>()";
