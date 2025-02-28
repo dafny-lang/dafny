@@ -19,7 +19,7 @@ module Std.GenericActions {
   //
   // (The behavior of a generic action may also be non-deterministic,
   // but this case seems less useful in practice,
-  // so the definition of a MostlyGenericFunction
+  // so the definition of a MostlyGenericAction
   // that may only modify the heap deterministically
   // is left as an invitation to the sufficiently motivated Dafny contributor!)
   //

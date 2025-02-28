@@ -39,7 +39,7 @@ module Std.Enumerators {
 
     lemma ProducesTerminated(history: seq<((), Option<T>)>)
       requires Action().CanProduce(history)
-      requires (forall i <- Inputs(history) :: i == FixedInput())
+      requires forall i <- Inputs(history) :: i == FixedInput()
       ensures exists n: nat | n <= Limit() :: Terminated(Outputs(history), StopFn(), n)
 
     // For better readability
@@ -179,7 +179,7 @@ module Std.Enumerators {
 
     lemma ProducesTerminated(history: seq<((), Option<T>)>)
       requires Action().CanProduce(history)
-      requires (forall i <- Inputs(history) :: i == FixedInput())
+      requires forall i <- Inputs(history) :: i == FixedInput()
       ensures exists n: nat | n <= Limit() :: Terminated(Outputs(history), StopFn(), n)
     {
       assert Terminated(Outputs(history), StopFn(), |elements|);
@@ -220,7 +220,7 @@ module Std.Enumerators {
       ensures Ensures(t, r)
     {
       label start:
-      while (|buffer.values| == 0)
+      while |buffer.values| == 0
         invariant upstream.Repr !! buffer.Repr
         invariant fresh(Repr - old(Repr))
         invariant fresh(buffer.Repr - old(buffer.Repr))
@@ -282,7 +282,7 @@ module Std.Enumerators {
 
     lemma {:axiom} ProducesTerminated(history: seq<((), Option<T>)>)
       requires Action().CanProduce(history)
-      requires (forall i <- Inputs(history) :: i == FixedInput())
+      requires forall i <- Inputs(history) :: i == FixedInput()
       ensures exists n: nat | n <= Limit() :: Terminated(Outputs(history), StopFn(), n)
     {
       // TODO

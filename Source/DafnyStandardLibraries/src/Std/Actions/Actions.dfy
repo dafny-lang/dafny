@@ -26,7 +26,7 @@ module Std.Actions {
   // the CanConsume and CanProduce predicates,
   // which the action's specification of behavior are drawn from,
   // specifically avoid reading the current state of the action.
-  // That is so extrisnic properties of an action do NOT depend on their current state.
+  // That is so extrinsic properties of an action do NOT depend on their current state.
   // This is key to ensure that you can prove properties of a given action that
   // will continue to hold as the Dafny heap changes.
   // This approach works because Dafny understands that for a given object,
@@ -189,7 +189,7 @@ module Std.Actions {
     modifies a.Repr
     ensures a.Valid()
   {
-    while (true)
+    while true
       modifies a.Repr
       invariant fresh(a.Repr - old(a.Repr))
       invariant a.Valid()
@@ -261,7 +261,7 @@ module Std.Actions {
 
     lemma ProducesTerminated(history: seq<(T, R)>)
       requires Action().CanProduce(history)
-      requires (forall i <- Inputs(history) :: i == FixedInput())
+      requires forall i <- Inputs(history) :: i == FixedInput()
       ensures exists n: nat | n <= Limit() :: Terminated(Outputs(history), StopFn(), n)
 
     // Termination metric
@@ -292,11 +292,12 @@ module Std.Actions {
       ProducesTerminated(Action().history);
       var m: nat :| m <= Limit() && Terminated(after, StopFn(), m);
       if n < |before| {
-        assert StopFn()(before[|before| - 1]);
-        assert !StopFn()(Action().Produced()[|Action().Produced()| - 1]);
-        assert |Action().Produced()| <= m;
-        assert !StopFn()(Action().Produced()[|before| - 1]);
-        assert false;
+        assert false by {
+          assert StopFn()(before[|before| - 1]);
+          assert !StopFn()(Action().Produced()[|Action().Produced()| - 1]);
+          assert |Action().Produced()| <= m;
+          assert !StopFn()(Action().Produced()[|before| - 1]);
+        }
       } else {
         TerminatedDefinesNonTerminalCount(before, StopFn(), n);
         assert NonTerminalCount(before, StopFn()) <= n;
@@ -409,6 +410,28 @@ module Std.Actions {
     }
   }
 
+  type TotalFunctionAction<T, R> = a: FunctionAction<T, R> | a.f.requires == (t => true) witness *
+
+  class TotalFunctionConsumesAllProof<T, R> extends ConsumesAllProof<T, R> {
+
+    const action: TotalFunctionAction<T, R>
+
+    ghost constructor(action: TotalFunctionAction<T, R>)
+      ensures this.action == action
+    {
+      this.action := action;
+    }
+
+    ghost function Action(): Action<T, R> {
+      action
+    }
+
+    lemma CanConsumeAll(history: seq<(T, R)>, next: T)
+      requires Action().CanProduce(history)
+      ensures Action().CanConsume(history, next)
+    {}
+  }
+
   // TODO: Move to Enumerators?
   class FunctionalEnumerator<S, T> extends Action<(), Option<T>> {
 
@@ -449,14 +472,11 @@ module Std.Actions {
     {
       var next := stepFn(state);
       match next {
-        case Some(result) => {
-          var (newState, result') := result;
+        case Some((newState, result')) =>
           state := newState;
           r := Some(result');
-        }
-        case None => {
+        case None =>
           r := None;
-        }
       }
       Update(t, r);
     }
@@ -601,35 +621,14 @@ module Std.Actions {
     }
   }
 
-  trait ActionCompositionProof<T, M, R> {
-    ghost function FirstAction(): Action<T, M>
-    ghost function SecondAction(): Action<M, R>
-
-    ghost predicate ComposedCanConsume(composedHistory: seq<(T, R)>, next: T)
-
-    lemma CanInvokeFirst(firstHistory: seq<(T, M)>, composedHistory: seq<(T, R)>, next: T)
-      requires FirstAction().CanProduce(firstHistory)
-      requires ComposedCanConsume(composedHistory, next)
-      requires Inputs(firstHistory) == Inputs(composedHistory)
-      ensures FirstAction().CanConsume(firstHistory, next)
-
-    ghost predicate ComposedCanProduce(composedHistory: seq<(T, R)>): (result: bool)
-      ensures composedHistory == [] ==> result
-    
-    lemma CanInvokeSecond(secondHistory: seq<(M, R)>, composedHistory: seq<(T, R)>, next: M)
-      requires SecondAction().CanProduce(secondHistory)
-      requires Outputs(secondHistory) == Outputs(composedHistory)
-      ensures SecondAction().CanConsume(secondHistory, next)
-  }
-
   class ComposedAction<T, M, R> extends Action<T, R> {
 
     const first: Action<T, M>
     const second: Action<M, R>
 
-    const compositionProof: ActionCompositionProof<T, M, R>
+    ghost const compositionProof: ActionCompositionProof<T, M, R>
 
-    constructor(first: Action<T, M>, second: Action<M, R>, compositionProof: ActionCompositionProof<T, M, R>) 
+    constructor(first: Action<T, M>, second: Action<M, R>, ghost compositionProof: ActionCompositionProof<T, M, R>) 
       requires first.Valid()
       requires first.history == []
       requires second.Valid()
@@ -694,15 +693,26 @@ module Std.Actions {
       var m := first.Invoke(t);
 
       assert second.Valid();
-      compositionProof.CanInvokeSecond(second.history, history, m);
+      compositionProof.CanInvokeSecond(second.history, history, t, m);
       r := second.Invoke(m);
 
       Update(t, r);
       Repr := {this} + first.Repr + second.Repr;
 
+      assert Inputs(history) == old(Inputs(first.history)) + [t];
       assert Inputs(history) == Inputs(first.history);
+
+      assert Outputs(first.history) == old(Outputs(first.history)) + [m];
+      assert Inputs(second.history) == old(Inputs(second.history)) + [m];
       assert Outputs(first.history) == Inputs(second.history);
+
+      assert Outputs(history) == old(Outputs(second.history)) + [r];
       assert Outputs(second.history) == Outputs(history);
+
+      compositionProof.CanReturn(first.history, second.history, history);
+
+      assert history == old(history) + [(t, r)];
+      assert compositionProof.ComposedCanProduce(history);
       assert CanProduce(history);
     }
 
@@ -720,6 +730,101 @@ module Std.Actions {
       DefaultRepeatUntil(this, t, stop, eventuallyStopsProof);
     }
   }
+
+  trait ActionCompositionProof<T, M, R> {
+    ghost function FirstAction(): Action<T, M>
+    ghost function SecondAction(): Action<M, R>
+
+    ghost predicate ComposedCanConsume(composedHistory: seq<(T, R)>, next: T)
+
+    lemma CanInvokeFirst(firstHistory: seq<(T, M)>, composedHistory: seq<(T, R)>, next: T)
+      requires FirstAction().CanProduce(firstHistory)
+      requires ComposedCanConsume(composedHistory, next)
+      requires Inputs(firstHistory) == Inputs(composedHistory)
+      ensures FirstAction().CanConsume(firstHistory, next)
+
+    lemma CanInvokeSecond(secondHistory: seq<(M, R)>, composedHistory: seq<(T, R)>, nextT: T, nextM: M)
+      requires SecondAction().CanProduce(secondHistory)
+      requires Outputs(secondHistory) == Outputs(composedHistory)
+      ensures SecondAction().CanConsume(secondHistory, nextM)
+
+    lemma CanReturn(firstHistory: seq<(T, M)>, secondHistory: seq<(M, R)>, composedHistory: seq<(T, R)>)
+      requires FirstAction().CanProduce(firstHistory)
+      requires SecondAction().CanProduce(secondHistory)
+      ensures ComposedCanProduce(composedHistory)
+
+    ghost predicate ComposedCanProduce(composedHistory: seq<(T, R)>): (result: bool)
+      ensures composedHistory == [] ==> result
+  }
+
+  // Minimal proof for composing actions with no preconditions,
+  // but also creates a composition with no constraints on the outputs.
+  class TotalActionCompositionProof<T, M, R> extends ActionCompositionProof<T, M, R> {
+
+    const firstConsumeAllProof: ConsumesAllProof<T, M>
+    const secondConsumeAllProof: ConsumesAllProof<M, R>
+
+    ghost constructor(firstConsumeAllProof: ConsumesAllProof<T, M>,
+                secondConsumeAllProof: ConsumesAllProof<M, R>)
+    {
+      this.firstConsumeAllProof := firstConsumeAllProof;
+      this.secondConsumeAllProof := secondConsumeAllProof;
+    }
+
+    ghost function FirstAction(): Action<T, M> {
+      firstConsumeAllProof.Action()
+    }
+
+    ghost function SecondAction(): Action<M, R> {
+      secondConsumeAllProof.Action()
+    }
+
+    ghost predicate ComposedCanConsume(composedHistory: seq<(T, R)>, next: T) {
+      true
+    }
+
+    lemma CanInvokeFirst(firstHistory: seq<(T, M)>, composedHistory: seq<(T, R)>, next: T)
+      requires FirstAction().CanProduce(firstHistory)
+      requires ComposedCanConsume(composedHistory, next)
+      requires Inputs(firstHistory) == Inputs(composedHistory)
+      ensures FirstAction().CanConsume(firstHistory, next)
+    {
+      assert firstConsumeAllProof.Action().CanProduce(firstHistory);
+      firstConsumeAllProof.CanConsumeAll(firstHistory, next);
+    }
+
+    lemma CanInvokeSecond(secondHistory: seq<(M, R)>, composedHistory: seq<(T, R)>, nextT: T, nextM: M)
+      requires SecondAction().CanProduce(secondHistory)
+      requires Outputs(secondHistory) == Outputs(composedHistory)
+      ensures SecondAction().CanConsume(secondHistory, nextM)
+    {
+      assert secondConsumeAllProof.Action().CanProduce(secondHistory);
+      secondConsumeAllProof.CanConsumeAll(secondHistory, nextM);
+    }
+
+    lemma CanReturn(firstHistory: seq<(T, M)>, secondHistory: seq<(M, R)>, composedHistory: seq<(T, R)>)
+      requires FirstAction().CanProduce(firstHistory)
+      requires SecondAction().CanProduce(secondHistory)
+      ensures ComposedCanProduce(composedHistory)
+    {
+
+    }
+
+    ghost predicate ComposedCanProduce(composedHistory: seq<(T, R)>): (result: bool)
+      ensures composedHistory == [] ==> result
+    {
+      true
+    }
+  }
+
+  // TODO for more complicated action composition:
+    //   // Existance proof
+    // ghost function ValidMiddle(composedHistory: seq<(T, R)>): (middle: Option<seq<M>>)
+    //   ensures middle.Some? ==> (
+    //     && |middle.value| == |composedHistory|
+    //     && FirstAction().CanProduce(Seq.Zip(Inputs(composedHistory), middle.value))
+    //     && SecondAction().CanProduce(Seq.Zip(middle.value, Outputs(composedHistory)))
+    //   )
 
   // Other primitives/examples todo:
   //  * Promise-like single-use Action<T, ()> to capture a value for reading later

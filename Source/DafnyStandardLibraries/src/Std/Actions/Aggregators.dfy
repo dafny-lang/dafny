@@ -20,15 +20,15 @@ module Std.Aggregators {
   //   for example, and therefore has finite capacity.
   //   
   //   Perhaps we should have:
-  //     - IEnumerator = Action<(), T> (potentially infinite enumeration)
-  //     - Enumerator = Action<(), Option<T>> + proofs of eventually producing None (finite enumeration)
-  //     - IAggregator = Action<T, ()> (potentially infinite aggregation)
-  //     - Aggregator = Action<T, boolean> + proofs of eventually producing false (finite aggregation)
+  //     - IProducer = Action<(), T> (potentially infinite elements)
+  //     - Producer = Action<(), Option<T>> + proofs of eventually producing None (finite elements)
+  //     - IConsumer = Action<T, ()> (potentially infinite elements)
+  //     - Consumer = Action<T, boolean> + proofs of eventually producing false (finite elements)
   //
   //   It may make sense to have more than one ForEach as well: 
-  //   one that connects an IEnumerator and an IAggregator together and runs forever (decreases *),
-  //   one that connects an Enumerator and an IAggregator with a proof that the aggregator has adequate capacity,
-  //   and one that connects an Enumerator and an Aggregator with no additional proof obligation.
+  //   one that connects an IProducer and an IConsumer together and runs forever (decreases *),
+  //   one that connects an Producer and an Consumer with a proof that the aggregator has adequate capacity,
+  //   and one that connects an Producer and an IConsumer with no additional proof obligation.
   @AssumeCrossModuleTermination
   trait Accumulator<T> extends Action<T, ()>, ConsumesAllProof<T, ()> {
 
@@ -51,7 +51,86 @@ module Std.Aggregators {
     }
   }
 
-  class ArrayAggregator<T> extends Accumulator<T> {
+  @AssumeCrossModuleTermination
+  class ArrayAggregator<T> extends Action<T, bool> {
+
+    var storage: array<T>
+    var size: nat
+
+    ghost predicate Valid()
+      reads this, Repr
+      ensures Valid() ==> this in Repr
+      ensures Valid() ==>
+                && CanProduce(history)
+      decreases height, 0
+    {
+      && this in Repr
+      && storage in Repr
+      && size <= storage.Length
+      && Consumed() == storage[..size]
+    }
+
+    constructor (storage: array<T>)
+      ensures Valid()
+      ensures history == []
+    {
+      history := [];
+      height := 1;
+      Repr := {this} + {storage};
+      this.storage := storage;
+      this.size := 0;
+    }
+
+    ghost predicate CanConsume(history: seq<(T, bool)>, next: T)
+      decreases height
+    {
+      true
+    }
+    ghost predicate CanProduce(history: seq<(T, bool)>)
+      decreases height
+    {
+      true
+    }
+
+    method Invoke(t: T) returns (r: bool)
+      requires Requires(t)
+      reads Reads(t)
+      modifies Modifies(t)
+      decreases Decreases(t).Ordinal()
+      ensures Ensures(t, r)
+    {
+      assert Requires(t);
+
+      if size == storage.Length {
+        r := false;
+      } else {
+        storage[size] := t;
+        size := size + 1;
+        r := true;
+      }
+
+      Update(t, r);
+      Repr := {this} + {storage};
+      assert Consumed() == old(Consumed()) + [t];
+      assume {:axiom} Valid();
+    }
+
+    method RepeatUntil(t: T, stop: bool -> bool, ghost eventuallyStopsProof: ProducesTerminatedProof<T, bool>)
+      requires Valid()
+      requires eventuallyStopsProof.Action() == this
+      requires eventuallyStopsProof.FixedInput() == t
+      requires eventuallyStopsProof.StopFn() == stop
+      requires forall i <- Consumed() :: i == t
+      reads Repr
+      modifies Repr
+      decreases Repr
+      ensures Valid()
+    {
+      DefaultRepeatUntil(this, t, stop, eventuallyStopsProof);
+    }
+  }
+
+  class DynamicArrayAggregator<T> extends Accumulator<T> {
 
     var storage: DynamicArray<T>
 
@@ -70,7 +149,7 @@ module Std.Aggregators {
       && Consumed() == storage.items
     }
 
-    constructor()
+    constructor ()
       ensures Valid()
       ensures fresh(Repr - {this})
       ensures history == []
@@ -221,7 +300,7 @@ module Std.Aggregators {
 
     var values: seq<T>
 
-    constructor()
+    constructor ()
       ensures Valid()
       ensures fresh(Repr)
     {

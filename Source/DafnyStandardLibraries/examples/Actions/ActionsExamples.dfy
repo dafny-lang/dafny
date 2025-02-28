@@ -43,7 +43,7 @@ module ActionsExamples {
       && nextValue == |history|
     }
 
-    constructor()
+    constructor ()
       ensures Valid()
       ensures fresh(Repr)
       ensures history == []
@@ -123,7 +123,7 @@ module ActionsExamples {
     for enumerated := 0 to 5
       invariant e.Valid()
       invariant enumerated == |e.history|
-      invariant fresh(e.Repr - old@before(e.Repr))
+      invariant fresh(e.Repr)
     {
       var x := e.Invoke(());
       copy := copy + {x};
@@ -137,7 +137,7 @@ module ActionsExamples {
   }
 
   method {:rlimit 0} AggregatorExample() {
-    var a: ArrayAggregator<nat> := new ArrayAggregator();
+    var a: DynamicArrayAggregator<nat> := new DynamicArrayAggregator();
     var _ := a.Invoke(1);
     var _ := a.Invoke(2);
     var _ := a.Invoke(3);
@@ -177,4 +177,15 @@ module ActionsExamples {
       }
     }
   }
+
+  // method ComposedActionExample() {
+  //   var addOne: Action<nat, nat> := new FunctionAction(x => x + 1);
+  //   var double: Action<nat, nat> := new FunctionAction(x => x * 2);
+
+  //   ghost var firstConsumesAll := new TotalFunctionConsumesAllProof(addOne);
+  //   ghost var secondConsumesAll := new TotalFunctionConsumesAllProof(double);
+  //   var composeProof := new TotalActionCompositionProof(firstConsumesAll, secondConsumesAll);
+
+  //   var composed := new ComposedAction(addOne, double, composeProof);
+  // }
 }
