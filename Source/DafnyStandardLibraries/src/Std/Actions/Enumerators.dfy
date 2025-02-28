@@ -6,6 +6,133 @@ module Std.Enumerators {
   import opened Wrappers
   import opened Math
 
+  @AssumeCrossModuleTermination
+  trait IProducer<T> extends Action<(), T> {}
+
+  // A proof that a given action only produces
+  // elements from a given set.
+  trait ProducesSetProof<I> {
+    ghost function Action(): Action<(), I>
+    ghost function Set(): set<I>
+
+    lemma ProducesSet(history: seq<((), I)>)
+      requires Action().ValidHistory(history)
+      ensures |history| <= |Set()|
+      ensures Seq.HasNoDuplicates(OutputsOf(history))
+      ensures Seq.ToSet(OutputsOf(history)) <= Set()
+  }
+
+  class SetIProducer<T(==)> extends IProducer<T>, ProducesSetProof<T> {
+    ghost const original: set<T>
+    var remaining: set<T>
+
+    ghost predicate Valid()
+      reads this, Repr
+      ensures Valid() ==> this in Repr
+      ensures Valid() ==> ValidHistory(history)
+      decreases height, 0
+    {
+      && this in Repr
+      && ValidHistory(history)
+      && remaining == original - Enumerated(history)
+    }
+
+    constructor(s: set<T>)
+      ensures Valid()
+      ensures fresh(Repr)
+      ensures history == []
+      ensures s == original
+    {
+      original := s;
+      remaining := s;
+
+      history := [];
+      Repr := {this};
+      height := 1;
+
+      reveal Seq.HasNoDuplicates();
+      reveal Seq.ToSet();
+    }
+
+    ghost function Action(): Action<(), T> {
+      this
+    }
+
+    ghost function Set(): set<T> {
+      original
+    }
+
+    lemma ProducesSet(history: seq<((), T)>)
+      requires Action().ValidHistory(history)
+      ensures |history| <= |Set()|
+      ensures Seq.ToSet(OutputsOf(history)) <= Set()
+    {}
+
+    ghost function Enumerated(history: seq<((), T)>): set<T> {
+      Seq.ToSet(OutputsOf(history))
+    }
+
+    ghost predicate ValidInput(history: seq<((), T)>, next: ())
+      decreases height
+    {
+      |history| < |original|
+    }
+    ghost predicate ValidHistory(history: seq<((), T)>)
+      decreases height
+    {
+      && |history| <= |original|
+      && Seq.HasNoDuplicates(OutputsOf(history))
+      && Enumerated(history) <= original
+    }
+
+    lemma EnumeratedCardinality()
+      requires Valid()
+      ensures |Enumerated(history)| == |history|
+    {
+      reveal Seq.ToSet();
+      Seq.LemmaCardinalityOfSetNoDuplicates(OutputsOf(history));
+    }
+
+    method Invoke(i: ()) returns (o: T)
+      requires Requires(i)
+      reads Reads(i)
+      modifies Modifies(i)
+      decreases Decreases(i).Ordinal()
+      ensures Ensures(i, o)
+    {
+      assert Requires(i);
+
+      EnumeratedCardinality();
+      assert 0 < |remaining|;
+
+      o :| o in remaining;
+      remaining := remaining - {o};
+
+      UpdateHistory(i, o);
+      Repr := {this};
+
+      assert OutputsOf(history) == OutputsOf(old(history)) + [o];
+      reveal Seq.ToSet();
+      assert o !in OutputsOf(old(history));
+      reveal Seq.HasNoDuplicates();
+      Seq.LemmaNoDuplicatesInConcat(OutputsOf(old(history)), [o]);
+    }
+
+    method RepeatUntil(i: (), stop: T -> bool, ghost eventuallyStopsProof: ProducesTerminatedProof<(), T>)
+      requires Valid()
+      requires eventuallyStopsProof.Action() == this
+      requires eventuallyStopsProof.FixedInput() == i
+      requires eventuallyStopsProof.StopFn() == stop
+      requires forall i <- Inputs() :: i == i
+      reads Repr
+      modifies Repr
+      decreases Repr
+      ensures Valid()
+    {
+      DefaultRepeatUntil(this, i, stop, eventuallyStopsProof);
+    }
+  }
+
   // Actions that consume nothing and produce an Option<T>, 
   // where None indicate there are no more values to produce.
   //
@@ -25,22 +152,22 @@ module Std.Enumerators {
       r.None?
     }
 
-    ghost predicate CanConsume(history: seq<((), Option<T>)>, next: ())
-      requires CanProduce(history)
+    ghost predicate ValidInput(history: seq<((), Option<T>)>, next: ())
+      requires ValidHistory(history)
       decreases height
     {
       true
     }
 
-    lemma CanConsumeAll(history: seq<((), Option<T>)>, next: ())
-      requires Action().CanProduce(history)
-      ensures Action().CanConsume(history, next)
+    lemma AnyInputIsValid(history: seq<((), Option<T>)>, next: ())
+      requires Action().ValidHistory(history)
+      ensures Action().ValidInput(history, next)
     {}
 
     lemma ProducesTerminated(history: seq<((), Option<T>)>)
-      requires Action().CanProduce(history)
-      requires forall i <- Inputs(history) :: i == FixedInput()
-      ensures exists n: nat | n <= Limit() :: Terminated(Outputs(history), StopFn(), n)
+      requires Action().ValidHistory(history)
+      requires forall i <- InputsOf(history) :: i == FixedInput()
+      ensures exists n: nat | n <= Limit() :: Terminated(OutputsOf(history), StopFn(), n)
 
     // For better readability
     method Next() returns (r: Option<T>)
@@ -52,11 +179,11 @@ module Std.Enumerators {
     {
       assert Requires(());
 
-      CanConsumeAll(history, ());
+      AnyInputIsValid(history, ());
       label before:
       r := Invoke(());
       if r.Some? {
-        assert forall i <- old(Action().Consumed()) :: i == ();
+        assert forall i <- old(Action().Inputs()) :: i == ();
         InvokeUntilTerminationMetricDecreased@before(r);
       }
     }
@@ -81,7 +208,7 @@ module Std.Enumerators {
     requires e.Repr !! a.Repr
     modifies e.Repr, a.Repr
     // TODO: complete post-condition
-    // ensures Enumerated(e.Produced()) == a.Consumed()
+    // ensures Enumerated(e.Outputs()) == a.Inputs()
   {
     var t := e.Next();
     while t != None
@@ -90,7 +217,7 @@ module Std.Enumerators {
       invariant e.Repr !! a.Repr
       decreases e.Remaining()
     {
-      a.CanConsumeAll(a.history, t.value);
+      a.AnyInputIsValid(a.history, t.value);
       a.Accept(t.value);
 
       t := e.Next();
@@ -120,21 +247,21 @@ module Std.Enumerators {
     ghost predicate Valid()
       reads this, Repr
       ensures Valid() ==> this in Repr
-      ensures Valid() ==> CanProduce(history)
+      ensures Valid() ==> ValidHistory(history)
       decreases height, 0
     {
       && this in Repr
-      && CanProduce(history)
+      && ValidHistory(history)
     }
 
-    ghost predicate CanProduce(history: seq<((), Option<T>)>)
+    ghost predicate ValidHistory(history: seq<((), Option<T>)>)
       decreases height
     {
       var index := |history|;
       var values := Min(index, |elements|);
       var nones := index - values;
-      && (forall i <- Inputs(history) :: i == ())
-      && Outputs(history) == Seq.Map(x => Some(x), elements[..values]) + Seq.Repeat(None, nones)
+      && (forall i <- InputsOf(history) :: i == ())
+      && OutputsOf(history) == Seq.Map(x => Some(x), elements[..values]) + Seq.Repeat(None, nones)
     }
 
     method Invoke(t: ()) returns (value: Option<T>)
@@ -152,9 +279,9 @@ module Std.Enumerators {
         value := Some(elements[index]);
         index := index + 1;
       }
-      Update((), value);
+      UpdateHistory((), value);
       // TODO: Doable but annoying
-      assume {:axiom} CanProduce(history);
+      assume {:axiom} ValidHistory(history);
       assert Valid();
     }
 
@@ -164,7 +291,7 @@ module Std.Enumerators {
       requires eventuallyStopsProof.Action() == this
       requires eventuallyStopsProof.FixedInput() == t
       requires eventuallyStopsProof.StopFn() == stop
-      requires forall i <- Consumed() :: i == t
+      requires forall i <- Inputs() :: i == t
       reads Repr
       modifies Repr
       decreases Repr
@@ -178,11 +305,11 @@ module Std.Enumerators {
     }
 
     lemma ProducesTerminated(history: seq<((), Option<T>)>)
-      requires Action().CanProduce(history)
-      requires forall i <- Inputs(history) :: i == FixedInput()
-      ensures exists n: nat | n <= Limit() :: Terminated(Outputs(history), StopFn(), n)
+      requires Action().ValidHistory(history)
+      requires forall i <- InputsOf(history) :: i == FixedInput()
+      ensures exists n: nat | n <= Limit() :: Terminated(OutputsOf(history), StopFn(), n)
     {
-      assert Terminated(Outputs(history), StopFn(), |elements|);
+      assert Terminated(OutputsOf(history), StopFn(), |elements|);
     }
 
   }
@@ -195,18 +322,18 @@ module Std.Enumerators {
     ghost predicate Valid()
       reads this, Repr
       ensures Valid() ==> this in Repr
-      ensures Valid() ==> CanProduce(history)
+      ensures Valid() ==> ValidHistory(history)
       decreases height, 0
     {
       && this in Repr
       && ValidComponent(upstream)
       && ValidComponent(buffer)
       && upstream.Repr !! buffer.Repr
-      && CanProduce(history)
+      && ValidHistory(history)
     }
 
     // TODO: needs refinement
-    ghost predicate CanProduce(history: seq<((), Option<T>)>)
+    ghost predicate ValidHistory(history: seq<((), Option<T>)>)
       decreases height
     {
       true
@@ -248,7 +375,7 @@ module Std.Enumerators {
       } else {
         r := None;
       }
-      Update(t, r);
+      UpdateHistory(t, r);
 
       assume {:axiom} Valid();
     }
@@ -267,7 +394,7 @@ module Std.Enumerators {
       requires eventuallyStopsProof.Action() == this
       requires eventuallyStopsProof.FixedInput() == t
       requires eventuallyStopsProof.StopFn() == stop
-      requires forall i <- Consumed() :: i == t
+      requires forall i <- Inputs() :: i == t
       reads Repr
       modifies Repr
       decreases Repr
@@ -281,9 +408,9 @@ module Std.Enumerators {
     }
 
     lemma {:axiom} ProducesTerminated(history: seq<((), Option<T>)>)
-      requires Action().CanProduce(history)
-      requires forall i <- Inputs(history) :: i == FixedInput()
-      ensures exists n: nat | n <= Limit() :: Terminated(Outputs(history), StopFn(), n)
+      requires Action().ValidHistory(history)
+      requires forall i <- InputsOf(history) :: i == FixedInput()
+      ensures exists n: nat | n <= Limit() :: Terminated(OutputsOf(history), StopFn(), n)
     {
       // TODO
       assume {:axiom} false;

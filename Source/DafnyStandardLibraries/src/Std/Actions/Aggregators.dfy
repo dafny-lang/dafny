@@ -30,7 +30,7 @@ module Std.Aggregators {
   //   one that connects an Producer and an Consumer with a proof that the aggregator has adequate capacity,
   //   and one that connects an Producer and an IConsumer with no additional proof obligation.
   @AssumeCrossModuleTermination
-  trait Accumulator<T> extends Action<T, ()>, ConsumesAllProof<T, ()> {
+  trait Accumulator<T> extends Action<T, ()>, TotalActionProof<T, ()> {
 
     ghost function Action(): Action<T, ()> {
       this
@@ -45,7 +45,7 @@ module Std.Aggregators {
     {
       assert Requires(t);
 
-      CanConsumeAll(history, t);
+      AnyInputIsValid(history, t);
       var r := Invoke(t);
       assert r == ();
     }
@@ -61,13 +61,13 @@ module Std.Aggregators {
       reads this, Repr
       ensures Valid() ==> this in Repr
       ensures Valid() ==>
-                && CanProduce(history)
+                && ValidHistory(history)
       decreases height, 0
     {
       && this in Repr
       && storage in Repr
       && size <= storage.Length
-      && Consumed() == storage[..size]
+      && Inputs() == storage[..size]
     }
 
     constructor (storage: array<T>)
@@ -81,12 +81,12 @@ module Std.Aggregators {
       this.size := 0;
     }
 
-    ghost predicate CanConsume(history: seq<(T, bool)>, next: T)
+    ghost predicate ValidInput(history: seq<(T, bool)>, next: T)
       decreases height
     {
       true
     }
-    ghost predicate CanProduce(history: seq<(T, bool)>)
+    ghost predicate ValidHistory(history: seq<(T, bool)>)
       decreases height
     {
       true
@@ -109,9 +109,9 @@ module Std.Aggregators {
         r := true;
       }
 
-      Update(t, r);
+      UpdateHistory(t, r);
       Repr := {this} + {storage};
-      assert Consumed() == old(Consumed()) + [t];
+      assert Inputs() == old(Inputs()) + [t];
       assume {:axiom} Valid();
     }
 
@@ -120,7 +120,7 @@ module Std.Aggregators {
       requires eventuallyStopsProof.Action() == this
       requires eventuallyStopsProof.FixedInput() == t
       requires eventuallyStopsProof.StopFn() == stop
-      requires forall i <- Consumed() :: i == t
+      requires forall i <- Inputs() :: i == t
       reads Repr
       modifies Repr
       decreases Repr
@@ -138,7 +138,7 @@ module Std.Aggregators {
       reads this, Repr
       ensures Valid() ==> this in Repr
       ensures Valid() ==>
-                && CanProduce(history)
+                && ValidHistory(history)
       decreases height, 0
     {
       && this in Repr
@@ -146,7 +146,7 @@ module Std.Aggregators {
       && this !in storage.Repr
       && storage.Repr <= Repr
       && storage.Valid?()
-      && Consumed() == storage.items
+      && Inputs() == storage.items
     }
 
     constructor ()
@@ -162,12 +162,12 @@ module Std.Aggregators {
       this.storage := a;
     }
 
-    ghost predicate CanConsume(history: seq<(T, ())>, next: T)
+    ghost predicate ValidInput(history: seq<(T, ())>, next: T)
       decreases height
     {
       true
     }
-    ghost predicate CanProduce(history: seq<(T, ())>)
+    ghost predicate ValidHistory(history: seq<(T, ())>)
       decreases height
     {
       true
@@ -182,13 +182,13 @@ module Std.Aggregators {
     {
       assert Requires(t);
 
-      assert Consumed() == storage.items;
+      assert Inputs() == storage.items;
       storage.Push(t);
 
       r := ();
-      Update(t, r);
+      UpdateHistory(t, r);
       Repr := {this} + {storage} + storage.Repr;
-      assert Consumed() == old(Consumed()) + [t];
+      assert Inputs() == old(Inputs()) + [t];
       assert Valid();
     }
 
@@ -197,7 +197,7 @@ module Std.Aggregators {
       requires eventuallyStopsProof.Action() == this
       requires eventuallyStopsProof.FixedInput() == t
       requires eventuallyStopsProof.StopFn() == stop
-      requires forall i <- Consumed() :: i == t
+      requires forall i <- Inputs() :: i == t
       reads Repr
       modifies Repr
       decreases Repr
@@ -206,9 +206,9 @@ module Std.Aggregators {
       DefaultRepeatUntil(this, t, stop, eventuallyStopsProof);
     }
 
-    lemma CanConsumeAll(history: seq<(T, ())>, next: T)
-      requires Action().CanProduce(history)
-      ensures Action().CanConsume(history, next)
+    lemma AnyInputIsValid(history: seq<(T, ())>, next: T)
+      requires Action().ValidHistory(history)
+      ensures Action().ValidInput(history, next)
     {}
   }
 
@@ -229,26 +229,26 @@ module Std.Aggregators {
       this.history := [];
       new;
       reveal Seq.FoldLeft();
-      assert value == Seq.FoldLeft(f, init, Consumed());
+      assert value == Seq.FoldLeft(f, init, Inputs());
     }
 
     ghost predicate Valid()
       reads this, Repr
       ensures Valid() ==> this in Repr
       ensures Valid() ==>
-                && CanProduce(history)
+                && ValidHistory(history)
       decreases height, 0
     {
       && this in Repr
-      && value == Seq.FoldLeft(f, init, Consumed())
+      && value == Seq.FoldLeft(f, init, Inputs())
     }
 
-    ghost predicate CanConsume(history: seq<(T, ())>, next: T)
+    ghost predicate ValidInput(history: seq<(T, ())>, next: T)
       decreases height
     {
       true
     }
-    ghost predicate CanProduce(history: seq<(T, ())>)
+    ghost predicate ValidHistory(history: seq<(T, ())>)
       decreases height
     {
       true
@@ -265,13 +265,13 @@ module Std.Aggregators {
 
       value := f(value, t);
       r := ();
-      Update(t, ());
+      UpdateHistory(t, ());
 
-      assert old(value) == Seq.FoldLeft(f, init, old(Consumed()));
-      assert Consumed() == old(Consumed()) + [t];
+      assert old(value) == Seq.FoldLeft(f, init, old(Inputs()));
+      assert Inputs() == old(Inputs()) + [t];
       reveal Seq.FoldLeft();
-      Seq.LemmaFoldLeftDistributesOverConcat(f, init, old(Consumed()), [t]);
-      assert value == Seq.FoldLeft(f, init, Consumed());
+      Seq.LemmaFoldLeftDistributesOverConcat(f, init, old(Inputs()), [t]);
+      assert value == Seq.FoldLeft(f, init, Inputs());
       assert Valid();
     }
 
@@ -280,7 +280,7 @@ module Std.Aggregators {
       requires eventuallyStopsProof.Action() == this
       requires eventuallyStopsProof.FixedInput() == t
       requires eventuallyStopsProof.StopFn() == stop
-      requires forall i <- Consumed() :: i == t
+      requires forall i <- Inputs() :: i == t
       reads Repr
       modifies Repr
       decreases Repr
@@ -289,9 +289,9 @@ module Std.Aggregators {
       DefaultRepeatUntil(this, t, stop, eventuallyStopsProof);
     }
 
-    lemma CanConsumeAll(history: seq<(T, ())>, next: T)
-      requires Action().CanProduce(history)
-      ensures Action().CanConsume(history, next)
+    lemma AnyInputIsValid(history: seq<(T, ())>, next: T)
+      requires Action().ValidHistory(history)
+      ensures Action().ValidInput(history, next)
     {}
   }
 
@@ -312,20 +312,20 @@ module Std.Aggregators {
     ghost predicate Valid()
       reads this, Repr
       ensures Valid() ==> this in Repr
-      ensures Valid() ==> CanProduce(history)
+      ensures Valid() ==> ValidHistory(history)
       decreases height, 0
     {
       this in Repr
     }
 
-    ghost predicate CanConsume(history: seq<(T, ())>, next: T)
-      requires CanProduce(history)
+    ghost predicate ValidInput(history: seq<(T, ())>, next: T)
+      requires ValidHistory(history)
       decreases height
     {
       true
     }
 
-    ghost predicate CanProduce(history: seq<(T, ())>)
+    ghost predicate ValidHistory(history: seq<(T, ())>)
       decreases height
     {
       true
@@ -341,7 +341,7 @@ module Std.Aggregators {
       values := values + [t];
       r := ();
 
-      Update(t, r);
+      UpdateHistory(t, r);
       assert Valid();
     }
 
@@ -350,7 +350,7 @@ module Std.Aggregators {
       requires eventuallyStopsProof.Action() == this
       requires eventuallyStopsProof.FixedInput() == t
       requires eventuallyStopsProof.StopFn() == stop
-      requires forall i <- Consumed() :: i == t
+      requires forall i <- Inputs() :: i == t
       reads Repr
       modifies Repr
       decreases Repr
@@ -370,9 +370,9 @@ module Std.Aggregators {
       values := values[1..];
     }
 
-    lemma CanConsumeAll(history: seq<(T, ())>, next: T)
-      requires Action().CanProduce(history)
-      ensures Action().CanConsume(history, next)
+    lemma AnyInputIsValid(history: seq<(T, ())>, next: T)
+      requires Action().ValidHistory(history)
+      ensures Action().ValidInput(history, next)
     {}
   }
 }

@@ -23,14 +23,14 @@ module Std.Actions {
   // what inputs it consumed and outputs it produced in the past.
   // 
   // A key design point for making this possible in Dafny:
-  // the CanConsume and CanProduce predicates,
+  // the ValidInput and ValidHistory predicates,
   // which the action's specification of behavior are drawn from,
   // specifically avoid reading the current state of the action.
   // That is so extrinsic properties of an action do NOT depend on their current state.
   // This is key to ensure that you can prove properties of a given action that
   // will continue to hold as the Dafny heap changes.
   // This approach works because Dafny understands that for a given object,
-  // the implementation of CanConsume/CanProduce cannot change over time.
+  // the implementation of ValidInput/ValidHistory cannot change over time.
   //
   // The downside is that these are then forced to use quantifiers
   // to talk about all possible states of an action.
@@ -43,12 +43,10 @@ module Std.Actions {
   // regardless of how many input or output values it consumes and produces,
   // despite only defining two type parameters.
   // Implementors should feel free to use the () unit type or tuple types
-  // for T and R, under the assumption that
+  // for I and O, under the assumption that
   // future Dafny backends will be able to easily optimize
   // away the overhead of passing around a pointless () value
   // or wrapping up multiple values into a tuple.
-  //
-  // TODO: Better type parameter names for T and R?
   //
   // === Errors ===
   //
@@ -56,16 +54,16 @@ module Std.Actions {
   // there are many error producing and handling patterns that
   // can be expressed, even within the same type signature:
   //
-  // 1. An Action<T, Option<R>> can produce None to indicate there is no value,
-  //    but the action could still be called again. Similarly a Result<R, E>
+  // 1. An Action<I, Option<O>> can produce None to indicate there is no value,
+  //    but the action could still be called again. Similarly a Result<O, E>
   //    output could indicate a failure that is only related to that invocation.
-  // 2. An Action<T, Option<R>> could also produce None to indicate the action
+  // 2. An Action<I, Option<O>> could also produce None to indicate the action
   //    is "exhausted" and cannot produce any more values.
-  //    This is the basis for the Enumerator specialization.
-  //    Similarly a Result<R, E> could indicate the action is broken
+  //    This is the basis for the Producer specialization.
+  //    Similarly a Result<O, E> could indicate the action is broken
   //    for abnormal reasons and can't be called again.
-  // 3. An Action<T, Option<Result<R, E>> can indicate both cases independently:
-  //    a Some(Success(R)) provides another value, 
+  // 3. An Action<I, Option<Result<O, E>> can indicate both cases independently:
+  //    a Some(Success(O)) provides another value, 
   //    a None indicate no more values,
   //    and a Some(Failure(E)) indicates an error.
   //    The error could be fatal or recoverable depending on the protocol.
@@ -81,110 +79,137 @@ module Std.Actions {
   //
   //    along with rules for what sequences of these values are valid
   //    (e.g. once Done appears no other constructors can appear,
-  //    and perhaps if you get a FatalError the CanConsume constraints
+  //    and perhaps if you get a FatalError the ValidInput constraints
   //    don't even let you invoke the action again)
   //
   // The key point in distinguishing these semantics 
-  // is how CanConsume and CanProduce are constrained, 
+  // is how ValidInput and ValidHistory are constrained, 
   // defining the protocol for using the action across time,
   // depending on what inputs and outputs occur.
   // All of the above cases are useful for precisely modeling behavior over time,
   // and so this library provides explicity specializations for some common patterns
   // (see Aggregators and Enumerators in particular)
   // but allows for basically any well-founded approach.
+  //
+  // === Specializations ===
+  //
+  // In practice, many actions fit into a more specific version of this concept.
+  // See the other sibling files for some useful specializations:
+  //
+  //     - IProducer<T> = Action<(), T> (consumes nothing, potentially produces infinite elements)
+  //     - Producer<T>  = Action<(), Option<T>> + proofs of eventually producing None (consumes nothing, can produce finite elements)
+  //     - IConsumer<T> = Action<T, ()> (consumes potentially infinite elements, produces nothing)
+  //     - Consumer<T>  = Action<T, boolean> + proofs of eventually producing false (can consume finite elements, produces nothing)
+  //
+  // These concepts are duals to each other (IProducer/IConsumer, and Producer/Consumer).
+  // The generic signatures of Producer and Consumer are not exact mirror-images
+  // because in both cases they must produce an additional piece of boolean information
+  // about whether they are "exhausted".
+  // In practice, the most common traits will usually be Producer and IConsumer. 
+  // That is, most data sources in real programs tend to produce finite elements, 
+  // but most data sinks tend to have no constraints.
+  //
   @AssumeCrossModuleTermination
-  trait Action<T, R> extends GenericAction<T, R>, Validatable {
+  trait Action<I, O> extends GenericAction<I, O>, Validatable {
 
-    ghost var history: seq<(T, R)>
+    ghost var history: seq<(I, O)>
 
     ghost predicate Valid()
       reads this, Repr
       ensures Valid() ==> this in Repr
-      ensures Valid() ==> CanProduce(history)
+      ensures Valid() ==> ValidHistory(history)
       decreases height, 0
 
 
-    ghost predicate CanConsume(history: seq<(T, R)>, next: T)
-      requires CanProduce(history)
+    ghost predicate ValidHistory(history: seq<(I, O)>)
       decreases height
 
-    ghost predicate CanProduce(history: seq<(T, R)>)
+    ghost predicate ValidInput(history: seq<(I, O)>, next: I)
+      requires ValidHistory(history)
       decreases height
 
-    ghost predicate Requires(t: T)
-      reads Reads(t)
+    // This is mainly defined for clarity and symmetry.
+    // It's less useful in practice than ValidHistory().
+    ghost predicate ValidOutput(history: seq<(I, O)>, nextInput: I, nextOutput: O)
+      decreases height
+    {
+      ValidHistory(history + [(nextInput, nextOutput)])
+    }
+
+    ghost predicate Requires(i: I)
+      reads Reads(i)
     {
       && Valid()
-      && CanConsume(history, t)
+      && ValidInput(history, i)
     }
-    ghost function Reads(t: T): set<object>
+    ghost function Reads(i: I): set<object>
       reads this
-      ensures this in Reads(t)
+      ensures this in Reads(i)
     {
       {this} + Repr
     }
-    ghost function Modifies(t: T): set<object>
-      reads Reads(t)
+    ghost function Modifies(i: I): set<object>
+      reads Reads(i)
     {
       Repr
     }
-    ghost function Decreases(t: T): TerminationMetric
-      reads Reads(t)
+    ghost function Decreases(i: I): TerminationMetric
+      reads Reads(i)
     {
       NatTerminationMetric(height)
     }
-    twostate predicate Ensures(t: T, new r: R)
-      reads Reads(t)
+    twostate predicate Ensures(i: I, new o: O)
+      reads Reads(i)
     {
       && Valid()
-      && history == old(history) + [(t, r)]
+      && history == old(history) + [(i, o)]
       && fresh(Repr - old(Repr))
     }
 
     // Possibly optimized extensions
 
     // Equivalent to DefaultRepeatUntil below, but may be implemented more efficiently.
-    method RepeatUntil(t: T, stop: R -> bool, ghost eventuallyStopsProof: ProducesTerminatedProof<T, R>)
+    method RepeatUntil(i: I, stop: O -> bool, ghost eventuallyStopsProof: ProducesTerminatedProof<I, O>)
       requires Valid()
       requires eventuallyStopsProof.Action() == this
-      requires eventuallyStopsProof.FixedInput() == t
+      requires eventuallyStopsProof.FixedInput() == i
       requires eventuallyStopsProof.StopFn() == stop
-      requires forall i <- Consumed() :: i == t
+      requires forall input <- Inputs() :: input == i
       reads Repr
       modifies Repr
       decreases Repr
       ensures Valid()
-    //ensures history == old(history) + (n copies of t)/(n - 1 not stop values + stop)
+    //TODO: ensures history == old(history) + (n copies of i)/(n - 1 not stop values + stop)
 
     // Convenience methods for specifications
 
-    ghost method Update(t: T, r: R)
+    ghost method UpdateHistory(i: I, o: O)
       reads `history
       modifies `history
-      ensures history == old(history) + [(t, r)]
+      ensures history == old(history) + [(i, o)]
     {
-      history := history + [(t, r)];
+      history := history + [(i, o)];
     }
 
-    ghost function Consumed(): seq<T>
+    ghost function Inputs(): seq<I>
       reads this
     {
-      Inputs(history)
+      InputsOf(history)
     }
 
-    ghost function Produced(): seq<R>
+    ghost function Outputs(): seq<O>
       reads this
     {
-      Outputs(history)
+      OutputsOf(history)
     }
   }
 
-  method DefaultRepeatUntil<T, R>(a: Action<T, R>, t: T, stop: R -> bool, ghost eventuallyStopsProof: ProducesTerminatedProof<T, R>)
+  method DefaultRepeatUntil<I, O>(a: Action<I, O>, i: I, stop: O -> bool, ghost eventuallyStopsProof: ProducesTerminatedProof<I, O>)
     requires a.Valid()
     requires eventuallyStopsProof.Action() == a
-    requires eventuallyStopsProof.FixedInput() == t
+    requires eventuallyStopsProof.FixedInput() == i
     requires eventuallyStopsProof.StopFn() == stop
-    requires forall i <- a.Consumed() :: i == t
+    requires forall input <- a.Inputs() :: input == i
     reads a.Repr
     modifies a.Repr
     ensures a.Valid()
@@ -193,58 +218,59 @@ module Std.Actions {
       modifies a.Repr
       invariant fresh(a.Repr - old(a.Repr))
       invariant a.Valid()
-      invariant forall i <- a.Consumed() :: i == t
+      invariant forall input <- a.Inputs() :: input == i
       decreases eventuallyStopsProof.Remaining()
     {
       label beforeInvoke:
       assert a.Valid();
-      assert a.CanProduce(a.history);
-      eventuallyStopsProof.CanConsumeAll(a.history, t);
-      assert a.CanConsume(a.history, t);
-      var next := a.Invoke(t);
+      assert a.ValidHistory(a.history);
+      eventuallyStopsProof.AnyInputIsValid(a.history, i);
+      assert a.ValidInput(a.history, i);
+      var next := a.Invoke(i);
       var nextV := next;
       if stop(nextV) {
         break;
       }
+
       eventuallyStopsProof.InvokeUntilTerminationMetricDecreased@beforeInvoke(next);
     }
   }
 
   // Common action invariants
 
-  function Inputs<T, R>(history: seq<(T, R)>): seq<T> {
-    Seq.Map((e: (T, R)) => e.0, history)
+  function InputsOf<I, O>(history: seq<(I, O)>): seq<I> {
+    Seq.Map((e: (I, O)) => e.0, history)
   }
 
-  function Outputs<T, R>(history: seq<(T, R)>): seq<R> {
-    Seq.Map((e: (T, R)) => e.1, history)
+  function OutputsOf<I, O>(history: seq<(I, O)>): seq<O> {
+    Seq.Map((e: (I, O)) => e.1, history)
   }
 
-  // A proof that a given action accepts any T value as input,
+  // A proof that a given action accepts any I value as input,
   // independent of history.
-  trait ConsumesAllProof<T, R> {
-    ghost function Action(): Action<T, R>
+  trait TotalActionProof<I, O> {
+    ghost function Action(): Action<I, O>
 
-    lemma CanConsumeAll(history: seq<(T, R)>, next: T)
-      requires Action().CanProduce(history)
-      ensures Action().CanConsume(history, next)
+    lemma AnyInputIsValid(history: seq<(I, O)>, next: I)
+      requires Action().ValidHistory(history)
+      ensures Action().ValidInput(history, next)
   }
 
-  ghost predicate OnlyProduces<T, R>(i: Action<T, R>, history: seq<(T, R)>, c: R) {
-    i.CanProduce(history) <==> forall e <- history :: e.1 == c
+  ghost predicate OnlyOutputs<I, O>(i: Action<I, O>, history: seq<(I, O)>, c: O) {
+    i.ValidHistory(history) <==> forall e <- history :: e.1 == c
   }
 
-  ghost predicate Terminated<T>(s: seq<T>, stop: T -> bool, n: nat) {
+  ghost predicate Terminated<I>(s: seq<I>, stop: I -> bool, n: nat) {
     forall i | 0 <= i < |s| :: n <= i <==> stop(s[i])
   }
 
-  lemma TerminatedDistributes<T>(left: seq<T>, right: seq<T>, stop: T -> bool, n: nat)
+  lemma TerminatedDistributes<I>(left: seq<I>, right: seq<I>, stop: I -> bool, n: nat)
     requires Terminated(left, stop, |left|)
     requires Terminated(right, stop, n)
     ensures Terminated(left + right, stop, |left| + n)
   {}
 
-  lemma TerminatedUndistributes<T>(left: seq<T>, right: seq<T>, stop: T -> bool, n: nat)
+  lemma TerminatedUndistributes<I>(left: seq<I>, right: seq<I>, stop: I -> bool, n: nat)
     requires Terminated(left + right, stop, n)
     ensures Terminated(left, stop, n)
     ensures Terminated(right, stop, Max(0, n - |left|))
@@ -253,40 +279,40 @@ module Std.Actions {
     assert forall i | 0 <= i < |right| :: right[i] == (left + right)[i + |left|];
   }
 
-  trait ProducesTerminatedProof<T, R> extends ConsumesAllProof<T, R> {
+  trait ProducesTerminatedProof<I, O> extends TotalActionProof<I, O> {
 
-    ghost function FixedInput(): T
-    ghost function StopFn(): R -> bool
+    ghost function FixedInput(): I
+    ghost function StopFn(): O -> bool
     ghost function Limit(): nat
 
-    lemma ProducesTerminated(history: seq<(T, R)>)
-      requires Action().CanProduce(history)
-      requires forall i <- Inputs(history) :: i == FixedInput()
-      ensures exists n: nat | n <= Limit() :: Terminated(Outputs(history), StopFn(), n)
+    lemma ProducesTerminated(history: seq<(I, O)>)
+      requires Action().ValidHistory(history)
+      requires forall i <- InputsOf(history) :: i == FixedInput()
+      ensures exists n: nat | n <= Limit() :: Terminated(OutputsOf(history), StopFn(), n)
 
     // Termination metric
     ghost function Remaining(): nat
       requires Action().Valid()
-      requires forall i <- Action().Consumed() :: i == FixedInput()
+      requires forall i <- Action().Inputs() :: i == FixedInput()
       reads Action().Repr
     {
       ProducesTerminated(Action().history);
-      var n: nat :| n <= Limit() && Terminated(Action().Produced(), StopFn(), n);
-      TerminatedDefinesNonTerminalCount(Action().Produced(), StopFn(), n);
-      Limit() - NonTerminalCount(Action().Produced(), StopFn())
+      var n: nat :| n <= Limit() && Terminated(Action().Outputs(), StopFn(), n);
+      TerminatedDefinesNonTerminalCount(Action().Outputs(), StopFn(), n);
+      Limit() - NonTerminalCount(Action().Outputs(), StopFn())
     }
 
-    twostate lemma InvokeUntilTerminationMetricDecreased(new nextProduced: R)
+    twostate lemma InvokeUntilTerminationMetricDecreased(new nextProduced: O)
       requires old(Action().Valid())
       requires Action().Valid()
-      requires forall i <- old(Action().Consumed()) :: i == FixedInput()
-      requires Action().Consumed() == old(Action().Consumed()) + [FixedInput()]
-      requires Action().Produced() == old(Action().Produced()) + [nextProduced]
+      requires forall i <- old(Action().Inputs()) :: i == FixedInput()
+      requires Action().Inputs() == old(Action().Inputs()) + [FixedInput()]
+      requires Action().Outputs() == old(Action().Outputs()) + [nextProduced]
       requires !StopFn()(nextProduced)
       ensures Remaining() < old(Remaining())
     {
-      var before := old(Action().Produced());
-      var after := Action().Produced();
+      var before := old(Action().Outputs());
+      var after := Action().Outputs();
       ProducesTerminated(old(Action().history));
       var n: nat :| n <= Limit() && Terminated(before, StopFn(), n);
       ProducesTerminated(Action().history);
@@ -294,9 +320,9 @@ module Std.Actions {
       if n < |before| {
         assert false by {
           assert StopFn()(before[|before| - 1]);
-          assert !StopFn()(Action().Produced()[|Action().Produced()| - 1]);
-          assert |Action().Produced()| <= m;
-          assert !StopFn()(Action().Produced()[|before| - 1]);
+          assert !StopFn()(Action().Outputs()[|Action().Outputs()| - 1]);
+          assert |Action().Outputs()| <= m;
+          assert !StopFn()(Action().Outputs()[|before| - 1]);
         }
       } else {
         TerminatedDefinesNonTerminalCount(before, StopFn(), n);
@@ -308,14 +334,14 @@ module Std.Actions {
     }
   }
 
-  function NonTerminalCount<T>(produced: seq<T>, stop: T -> bool): nat {
+  function NonTerminalCount<I>(produced: seq<I>, stop: I -> bool): nat {
     if |produced| == 0 || stop(produced[0]) then
       0
     else
       1 + NonTerminalCount(produced[1..], stop)
   }
 
-  lemma TerminatedDefinesNonTerminalCount<T>(s: seq<T>, stop: T -> bool, n: nat)
+  lemma TerminatedDefinesNonTerminalCount<I>(s: seq<I>, stop: I -> bool, n: nat)
     requires Terminated(s, stop, n)
     ensures NonTerminalCount(s, stop) == Min(|s|, n)
   {
@@ -329,24 +355,24 @@ module Std.Actions {
     }
   }
 
-  class FunctionAction<T, R> extends Action<T, R> {
+  class FunctionAction<I, O> extends Action<I, O> {
 
     // TODO: Can we support ~>?
-    const f: T --> R
+    const f: I --> O
 
     ghost predicate Valid()
       reads this, Repr
       ensures Valid() ==> this in Repr
       ensures Valid() ==>
-                && CanProduce(history)
+                && ValidHistory(history)
       decreases height, 0
     {
       && this in Repr
-      && CanProduce(history)
-      && Produced() == Seq.MapPartialFunction(f, Consumed())
+      && ValidHistory(history)
+      && Outputs() == Seq.MapPartialFunction(f, Inputs())
     }
 
-    constructor(f: T -> R)
+    constructor(f: I -> O)
       ensures Valid()
       ensures this.f == f
       ensures fresh(Repr)
@@ -358,277 +384,152 @@ module Std.Actions {
       Repr := {this};
     }
 
-    ghost predicate CanConsume(history: seq<(T, R)>, next: T)
-      requires CanProduce(history)
+    ghost predicate ValidInput(history: seq<(I, O)>, next: I)
+      requires ValidHistory(history)
       decreases height
     {
       f.requires(next)
     }
-    ghost predicate CanProduce(history: seq<(T, R)>)
+    ghost predicate ValidHistory(history: seq<(I, O)>)
       decreases height
     {
       forall e <- history :: f.requires(e.0) && e.1 == f(e.0)
     }
 
-    method {:rlimit 0} Invoke(t: T) returns (r: R)
-      requires Requires(t)
-      reads Reads(t)
-      modifies Modifies(t)
-      decreases Decreases(t).Ordinal()
-      ensures Ensures(t, r)
+    method {:rlimit 0} Invoke(i: I) returns (o: O)
+      requires Requires(i)
+      reads Reads(i)
+      modifies Modifies(i)
+      decreases Decreases(i).Ordinal()
+      ensures Ensures(i, o)
     {
-      assert Requires(t);
+      assert Requires(i);
       assert Valid();
-      r := f(t);
-      Update(t, r);
+      o := f(i);
+      UpdateHistory(i, o);
 
       calc {
-        Produced();
-        old(Produced()) + [r];
-        old(Seq.MapPartialFunction(f, Consumed())) + [f(t)];
-        Seq.MapPartialFunction(f, old(Consumed())) + [f(t)];
-        Seq.MapPartialFunction(f, old(Consumed())) + Seq.MapPartialFunction(f, [t]);
-        { Seq.LemmaMapPartialFunctionDistributesOverConcat(f, old(Consumed()), [t]); }
-        Seq.MapPartialFunction(f, old(Consumed()) + [t]);
-        Seq.MapPartialFunction(f, Consumed());
+        Outputs();
+        old(Outputs()) + [o];
+        old(Seq.MapPartialFunction(f, Inputs())) + [f(i)];
+        Seq.MapPartialFunction(f, old(Inputs())) + [f(i)];
+        Seq.MapPartialFunction(f, old(Inputs())) + Seq.MapPartialFunction(f, [i]);
+        { Seq.LemmaMapPartialFunctionDistributesOverConcat(f, old(Inputs()), [i]); }
+        Seq.MapPartialFunction(f, old(Inputs()) + [i]);
+        Seq.MapPartialFunction(f, Inputs());
       }
       assert Valid();
     }
 
-    method RepeatUntil(t: T, stop: R -> bool, ghost eventuallyStopsProof: ProducesTerminatedProof<T, R>)
+    method RepeatUntil(i: I, stop: O -> bool, ghost eventuallyStopsProof: ProducesTerminatedProof<I, O>)
       requires Valid()
       requires eventuallyStopsProof.Action() == this
-      requires eventuallyStopsProof.FixedInput() == t
+      requires eventuallyStopsProof.FixedInput() == i
       requires eventuallyStopsProof.StopFn() == stop
-      requires forall i <- Consumed() :: i == t
+      requires forall input <- Inputs() :: input == i
       reads Repr
       modifies Repr
       decreases Repr
       ensures Valid()
     {
-      DefaultRepeatUntil(this, t, stop, eventuallyStopsProof);
+      DefaultRepeatUntil(this, i, stop, eventuallyStopsProof);
     }
   }
 
-  type TotalFunctionAction<T, R> = a: FunctionAction<T, R> | a.f.requires == (t => true) witness *
+  type TotalFunctionAction<I, O> = a: FunctionAction<I, O> | a.f.requires == (i => true) witness *
 
-  class TotalFunctionConsumesAllProof<T, R> extends ConsumesAllProof<T, R> {
+  class TotalFunctionTotalActionProof<I, O> extends TotalActionProof<I, O> {
 
-    const action: TotalFunctionAction<T, R>
+    const action: TotalFunctionAction<I, O>
 
-    ghost constructor(action: TotalFunctionAction<T, R>)
+    ghost constructor(action: TotalFunctionAction<I, O>)
       ensures this.action == action
     {
       this.action := action;
     }
 
-    ghost function Action(): Action<T, R> {
+    ghost function Action(): Action<I, O> {
       action
     }
 
-    lemma CanConsumeAll(history: seq<(T, R)>, next: T)
-      requires Action().CanProduce(history)
-      ensures Action().CanConsume(history, next)
+    lemma AnyInputIsValid(history: seq<(I, O)>, next: I)
+      requires Action().ValidHistory(history)
+      ensures Action().ValidInput(history, next)
     {}
   }
 
   // TODO: Move to Enumerators?
-  class FunctionalEnumerator<S, T> extends Action<(), Option<T>> {
+  class FunctionalEnumerator<S, I> extends Action<(), Option<I>> {
 
-    const stepFn: S -> Option<(S, T)>
+    const stepFn: S -> Option<(S, I)>
     var state: S
 
     ghost predicate Valid()
       reads this, Repr
       ensures Valid() ==> this in Repr
-      ensures Valid() ==> CanProduce(history)
+      ensures Valid() ==> ValidHistory(history)
       decreases height, 0
     {
       this in Repr
     }
 
-    constructor(state: S, stepFn: S -> Option<(S, T)>) {
+    constructor(state: S, stepFn: S -> Option<(S, I)>) {
       this.state := state;
       this.stepFn := stepFn;
     }
 
-    ghost predicate CanConsume(history: seq<((), Option<T>)>, next: ())
+    ghost predicate ValidInput(history: seq<((), Option<I>)>, next: ())
       decreases height
     {
       true
     }
-    ghost predicate CanProduce(history: seq<((), Option<T>)>)
+    ghost predicate ValidHistory(history: seq<((), Option<I>)>)
       decreases height
     {
       true
     }
 
-    method Invoke(t: ()) returns (r: Option<T>)
-      requires Requires(t)
+    method Invoke(i: ()) returns (o: Option<I>)
+      requires Requires(i)
       reads Repr
-      modifies Modifies(t)
-      decreases Decreases(t).Ordinal()
-      ensures Ensures(t, r)
+      modifies Modifies(i)
+      decreases Decreases(i).Ordinal()
+      ensures Ensures(i, o)
     {
       var next := stepFn(state);
       match next {
         case Some((newState, result')) =>
           state := newState;
-          r := Some(result');
+          o := Some(result');
         case None =>
-          r := None;
+          o := None;
       }
-      Update(t, r);
+      UpdateHistory(i, o);
     }
 
-    method RepeatUntil(t: (), stop: Option<T> -> bool, ghost eventuallyStopsProof: ProducesTerminatedProof<(), Option<T>>)
+    method RepeatUntil(i: (), stop: Option<I> -> bool, ghost eventuallyStopsProof: ProducesTerminatedProof<(), Option<I>>)
       requires Valid()
       requires eventuallyStopsProof.Action() == this
-      requires eventuallyStopsProof.FixedInput() == t
+      requires eventuallyStopsProof.FixedInput() == i
       requires eventuallyStopsProof.StopFn() == stop
-      requires forall i <- Consumed() :: i == t
+      requires forall i <- Inputs() :: i == i
       reads Repr
       modifies Repr
       decreases Repr
       ensures Valid()
     {
-      DefaultRepeatUntil(this, t, stop, eventuallyStopsProof);
+      DefaultRepeatUntil(this, i, stop, eventuallyStopsProof);
     }
   }
 
-  // A proof that a given action only produces
-  // elements from a given set.
-  trait ProducesSetProof<T> {
-    ghost function Action(): Action<(), T>
-    ghost function Set(): set<T>
+  class ComposedAction<I, M, O> extends Action<I, O> {
 
-    lemma ProducesSet(history: seq<((), T)>)
-      requires Action().CanProduce(history)
-      ensures |history| <= |Set()|
-      ensures Seq.HasNoDuplicates(Outputs(history))
-      ensures Seq.ToSet(Outputs(history)) <= Set()
-  }
+    const first: Action<I, M>
+    const second: Action<M, O>
 
-  // TODO: Rename/relocate, this isn't a finite Enumerator of Option<T>
-  class SetEnumerator<T(==)> extends Action<(), T>, ProducesSetProof<T> {
-    ghost const original: set<T>
-    var remaining: set<T>
+    ghost const compositionProof: ActionCompositionProof<I, M, O>
 
-    ghost predicate Valid()
-      reads this, Repr
-      ensures Valid() ==> this in Repr
-      ensures Valid() ==> CanProduce(history)
-      decreases height, 0
-    {
-      && this in Repr
-      && CanProduce(history)
-      && remaining == original - Enumerated(history)
-    }
-
-    constructor(s: set<T>)
-      ensures Valid()
-      ensures fresh(Repr)
-      ensures history == []
-      ensures s == original
-    {
-      original := s;
-      remaining := s;
-
-      history := [];
-      Repr := {this};
-      height := 1;
-
-      reveal Seq.HasNoDuplicates();
-      reveal Seq.ToSet();
-    }
-
-    ghost function Action(): Action<(), T> {
-      this
-    }
-
-    ghost function Set(): set<T> {
-      original
-    }
-
-    lemma ProducesSet(history: seq<((), T)>)
-      requires Action().CanProduce(history)
-      ensures |history| <= |Set()|
-      ensures Seq.ToSet(Outputs(history)) <= Set()
-    {}
-
-    ghost function Enumerated(history: seq<((), T)>): set<T> {
-      Seq.ToSet(Outputs(history))
-    }
-
-    ghost predicate CanConsume(history: seq<((), T)>, next: ())
-      decreases height
-    {
-      |history| < |original|
-    }
-    ghost predicate CanProduce(history: seq<((), T)>)
-      decreases height
-    {
-      && |history| <= |original|
-      && Seq.HasNoDuplicates(Outputs(history))
-      && Enumerated(history) <= original
-    }
-
-    lemma EnumeratedCardinality()
-      requires Valid()
-      ensures |Enumerated(history)| == |history|
-    {
-      reveal Seq.ToSet();
-      Seq.LemmaCardinalityOfSetNoDuplicates(Outputs(history));
-    }
-
-    method Invoke(t: ()) returns (r: T)
-      requires Requires(t)
-      reads Reads(t)
-      modifies Modifies(t)
-      decreases Decreases(t).Ordinal()
-      ensures Ensures(t, r)
-    {
-      assert Requires(t);
-
-      EnumeratedCardinality();
-      assert 0 < |remaining|;
-
-      r :| r in remaining;
-      remaining := remaining - {r};
-
-      Update(t, r);
-      Repr := {this};
-
-      assert Outputs(history) == Outputs(old(history)) + [r];
-      reveal Seq.ToSet();
-      assert r !in Outputs(old(history));
-      reveal Seq.HasNoDuplicates();
-      Seq.LemmaNoDuplicatesInConcat(Outputs(old(history)), [r]);
-    }
-
-    method RepeatUntil(t: (), stop: T -> bool, ghost eventuallyStopsProof: ProducesTerminatedProof<(), T>)
-      requires Valid()
-      requires eventuallyStopsProof.Action() == this
-      requires eventuallyStopsProof.FixedInput() == t
-      requires eventuallyStopsProof.StopFn() == stop
-      requires forall i <- Consumed() :: i == t
-      reads Repr
-      modifies Repr
-      decreases Repr
-      ensures Valid()
-    {
-      DefaultRepeatUntil(this, t, stop, eventuallyStopsProof);
-    }
-  }
-
-  class ComposedAction<T, M, R> extends Action<T, R> {
-
-    const first: Action<T, M>
-    const second: Action<M, R>
-
-    ghost const compositionProof: ActionCompositionProof<T, M, R>
-
-    constructor(first: Action<T, M>, second: Action<M, R>, ghost compositionProof: ActionCompositionProof<T, M, R>) 
+    constructor(first: Action<I, M>, second: Action<M, O>, ghost compositionProof: ActionCompositionProof<I, M, O>) 
       requires first.Valid()
       requires first.history == []
       requires second.Valid()
@@ -652,165 +553,165 @@ module Std.Actions {
     ghost predicate Valid()
       reads this, Repr
       ensures Valid() ==> this in Repr
-      ensures Valid() ==> CanProduce(history)
+      ensures Valid() ==> ValidHistory(history)
       decreases height, 0
     {
       && this in Repr
       && ValidComponent(first)
       && ValidComponent(second)
       && first.Repr !! second.Repr
-      && CanProduce(history)
-      && Inputs(history) == Inputs(first.history)
-      && Outputs(first.history) == Inputs(second.history)
-      && Outputs(second.history) == Outputs(history)
+      && ValidHistory(history)
+      && InputsOf(history) == InputsOf(first.history)
+      && OutputsOf(first.history) == InputsOf(second.history)
+      && OutputsOf(second.history) == OutputsOf(history)
       && compositionProof.FirstAction() == first
       && compositionProof.SecondAction() == second
     }
 
-    ghost predicate CanConsume(history: seq<(T, R)>, next: T)
+    ghost predicate ValidInput(history: seq<(I, O)>, next: I)
       decreases height
     {
-      compositionProof.ComposedCanConsume(history, next)
+      compositionProof.ComposedValidInput(history, next)
     }
-    ghost predicate CanProduce(history: seq<(T, R)>)
+    ghost predicate ValidHistory(history: seq<(I, O)>)
       decreases height
     {
-      compositionProof.ComposedCanProduce(history)
+      compositionProof.ComposedValidHistory(history)
     }
 
-    method {:rlimit 0} Invoke(t: T) returns (r: R)
-      requires Requires(t)
-      reads Reads(t)
-      modifies Modifies(t)
-      decreases Decreases(t).Ordinal()
-      ensures Ensures(t, r)
+    method {:rlimit 0} Invoke(i: I) returns (o: O)
+      requires Requires(i)
+      reads Reads(i)
+      modifies Modifies(i)
+      decreases Decreases(i).Ordinal()
+      ensures Ensures(i, o)
     {
-      assert Requires(t);
+      assert Requires(i);
 
       assert first.Valid();
-      assert first.CanProduce(first.history);
-      compositionProof.CanInvokeFirst(first.history, history, t);
-      var m := first.Invoke(t);
+      assert first.ValidHistory(first.history);
+      compositionProof.CanInvokeFirst(first.history, history, i);
+      var m := first.Invoke(i);
 
       assert second.Valid();
-      compositionProof.CanInvokeSecond(second.history, history, t, m);
-      r := second.Invoke(m);
+      compositionProof.CanInvokeSecond(second.history, history, i, m);
+      o := second.Invoke(m);
 
-      Update(t, r);
+      UpdateHistory(i, o);
       Repr := {this} + first.Repr + second.Repr;
 
-      assert Inputs(history) == old(Inputs(first.history)) + [t];
-      assert Inputs(history) == Inputs(first.history);
+      assert InputsOf(history) == old(InputsOf(first.history)) + [i];
+      assert InputsOf(history) == InputsOf(first.history);
 
-      assert Outputs(first.history) == old(Outputs(first.history)) + [m];
-      assert Inputs(second.history) == old(Inputs(second.history)) + [m];
-      assert Outputs(first.history) == Inputs(second.history);
+      assert OutputsOf(first.history) == old(OutputsOf(first.history)) + [m];
+      assert InputsOf(second.history) == old(InputsOf(second.history)) + [m];
+      assert OutputsOf(first.history) == InputsOf(second.history);
 
-      assert Outputs(history) == old(Outputs(second.history)) + [r];
-      assert Outputs(second.history) == Outputs(history);
+      assert OutputsOf(history) == old(OutputsOf(second.history)) + [o];
+      assert OutputsOf(second.history) == OutputsOf(history);
 
       compositionProof.CanReturn(first.history, second.history, history);
 
-      assert history == old(history) + [(t, r)];
-      assert compositionProof.ComposedCanProduce(history);
-      assert CanProduce(history);
+      assert history == old(history) + [(i, o)];
+      assert compositionProof.ComposedValidHistory(history);
+      assert ValidHistory(history);
     }
 
-    method RepeatUntil(t: T, stop: R -> bool, ghost eventuallyStopsProof: ProducesTerminatedProof<T, R>)
+    method RepeatUntil(i: I, stop: O -> bool, ghost eventuallyStopsProof: ProducesTerminatedProof<I, O>)
       requires Valid()
       requires eventuallyStopsProof.Action() == this
-      requires eventuallyStopsProof.FixedInput() == t
+      requires eventuallyStopsProof.FixedInput() == i
       requires eventuallyStopsProof.StopFn() == stop
-      requires forall i <- Consumed() :: i == t
+      requires forall input <- Inputs() :: input == i
       reads Repr
       modifies Repr
       decreases Repr
       ensures Valid()
     {
-      DefaultRepeatUntil(this, t, stop, eventuallyStopsProof);
+      DefaultRepeatUntil(this, i, stop, eventuallyStopsProof);
     }
   }
 
-  trait ActionCompositionProof<T, M, R> {
-    ghost function FirstAction(): Action<T, M>
-    ghost function SecondAction(): Action<M, R>
+  trait ActionCompositionProof<I, M, O> {
+    ghost function FirstAction(): Action<I, M>
+    ghost function SecondAction(): Action<M, O>
 
-    ghost predicate ComposedCanConsume(composedHistory: seq<(T, R)>, next: T)
+    ghost predicate ComposedValidInput(composedHistory: seq<(I, O)>, next: I)
 
-    lemma CanInvokeFirst(firstHistory: seq<(T, M)>, composedHistory: seq<(T, R)>, next: T)
-      requires FirstAction().CanProduce(firstHistory)
-      requires ComposedCanConsume(composedHistory, next)
-      requires Inputs(firstHistory) == Inputs(composedHistory)
-      ensures FirstAction().CanConsume(firstHistory, next)
+    lemma CanInvokeFirst(firstHistory: seq<(I, M)>, composedHistory: seq<(I, O)>, next: I)
+      requires FirstAction().ValidHistory(firstHistory)
+      requires ComposedValidInput(composedHistory, next)
+      requires InputsOf(firstHistory) == InputsOf(composedHistory)
+      ensures FirstAction().ValidInput(firstHistory, next)
 
-    lemma CanInvokeSecond(secondHistory: seq<(M, R)>, composedHistory: seq<(T, R)>, nextT: T, nextM: M)
-      requires SecondAction().CanProduce(secondHistory)
-      requires Outputs(secondHistory) == Outputs(composedHistory)
-      ensures SecondAction().CanConsume(secondHistory, nextM)
+    lemma CanInvokeSecond(secondHistory: seq<(M, O)>, composedHistory: seq<(I, O)>, nextT: I, nextM: M)
+      requires SecondAction().ValidHistory(secondHistory)
+      requires OutputsOf(secondHistory) == OutputsOf(composedHistory)
+      ensures SecondAction().ValidInput(secondHistory, nextM)
 
-    lemma CanReturn(firstHistory: seq<(T, M)>, secondHistory: seq<(M, R)>, composedHistory: seq<(T, R)>)
-      requires FirstAction().CanProduce(firstHistory)
-      requires SecondAction().CanProduce(secondHistory)
-      ensures ComposedCanProduce(composedHistory)
+    lemma CanReturn(firstHistory: seq<(I, M)>, secondHistory: seq<(M, O)>, composedHistory: seq<(I, O)>)
+      requires FirstAction().ValidHistory(firstHistory)
+      requires SecondAction().ValidHistory(secondHistory)
+      ensures ComposedValidHistory(composedHistory)
 
-    ghost predicate ComposedCanProduce(composedHistory: seq<(T, R)>): (result: bool)
+    ghost predicate ComposedValidHistory(composedHistory: seq<(I, O)>): (result: bool)
       ensures composedHistory == [] ==> result
   }
 
   // Minimal proof for composing actions with no preconditions,
   // but also creates a composition with no constraints on the outputs.
-  class TotalActionCompositionProof<T, M, R> extends ActionCompositionProof<T, M, R> {
+  class TotalActionCompositionProof<I, M, O> extends ActionCompositionProof<I, M, O> {
 
-    const firstConsumeAllProof: ConsumesAllProof<T, M>
-    const secondConsumeAllProof: ConsumesAllProof<M, R>
+    const firstConsumeAllProof: TotalActionProof<I, M>
+    const secondConsumeAllProof: TotalActionProof<M, O>
 
-    ghost constructor(firstConsumeAllProof: ConsumesAllProof<T, M>,
-                secondConsumeAllProof: ConsumesAllProof<M, R>)
+    ghost constructor(firstConsumeAllProof: TotalActionProof<I, M>,
+                secondConsumeAllProof: TotalActionProof<M, O>)
     {
       this.firstConsumeAllProof := firstConsumeAllProof;
       this.secondConsumeAllProof := secondConsumeAllProof;
     }
 
-    ghost function FirstAction(): Action<T, M> {
+    ghost function FirstAction(): Action<I, M> {
       firstConsumeAllProof.Action()
     }
 
-    ghost function SecondAction(): Action<M, R> {
+    ghost function SecondAction(): Action<M, O> {
       secondConsumeAllProof.Action()
     }
 
-    ghost predicate ComposedCanConsume(composedHistory: seq<(T, R)>, next: T) {
+    ghost predicate ComposedValidInput(composedHistory: seq<(I, O)>, next: I) {
       true
     }
 
-    lemma CanInvokeFirst(firstHistory: seq<(T, M)>, composedHistory: seq<(T, R)>, next: T)
-      requires FirstAction().CanProduce(firstHistory)
-      requires ComposedCanConsume(composedHistory, next)
-      requires Inputs(firstHistory) == Inputs(composedHistory)
-      ensures FirstAction().CanConsume(firstHistory, next)
+    lemma CanInvokeFirst(firstHistory: seq<(I, M)>, composedHistory: seq<(I, O)>, next: I)
+      requires FirstAction().ValidHistory(firstHistory)
+      requires ComposedValidInput(composedHistory, next)
+      requires InputsOf(firstHistory) == InputsOf(composedHistory)
+      ensures FirstAction().ValidInput(firstHistory, next)
     {
-      assert firstConsumeAllProof.Action().CanProduce(firstHistory);
-      firstConsumeAllProof.CanConsumeAll(firstHistory, next);
+      assert firstConsumeAllProof.Action().ValidHistory(firstHistory);
+      firstConsumeAllProof.AnyInputIsValid(firstHistory, next);
     }
 
-    lemma CanInvokeSecond(secondHistory: seq<(M, R)>, composedHistory: seq<(T, R)>, nextT: T, nextM: M)
-      requires SecondAction().CanProduce(secondHistory)
-      requires Outputs(secondHistory) == Outputs(composedHistory)
-      ensures SecondAction().CanConsume(secondHistory, nextM)
+    lemma CanInvokeSecond(secondHistory: seq<(M, O)>, composedHistory: seq<(I, O)>, nextT: I, nextM: M)
+      requires SecondAction().ValidHistory(secondHistory)
+      requires OutputsOf(secondHistory) == OutputsOf(composedHistory)
+      ensures SecondAction().ValidInput(secondHistory, nextM)
     {
-      assert secondConsumeAllProof.Action().CanProduce(secondHistory);
-      secondConsumeAllProof.CanConsumeAll(secondHistory, nextM);
+      assert secondConsumeAllProof.Action().ValidHistory(secondHistory);
+      secondConsumeAllProof.AnyInputIsValid(secondHistory, nextM);
     }
 
-    lemma CanReturn(firstHistory: seq<(T, M)>, secondHistory: seq<(M, R)>, composedHistory: seq<(T, R)>)
-      requires FirstAction().CanProduce(firstHistory)
-      requires SecondAction().CanProduce(secondHistory)
-      ensures ComposedCanProduce(composedHistory)
+    lemma CanReturn(firstHistory: seq<(I, M)>, secondHistory: seq<(M, O)>, composedHistory: seq<(I, O)>)
+      requires FirstAction().ValidHistory(firstHistory)
+      requires SecondAction().ValidHistory(secondHistory)
+      ensures ComposedValidHistory(composedHistory)
     {
 
     }
 
-    ghost predicate ComposedCanProduce(composedHistory: seq<(T, R)>): (result: bool)
+    ghost predicate ComposedValidHistory(composedHistory: seq<(I, O)>): (result: bool)
       ensures composedHistory == [] ==> result
     {
       true
@@ -819,15 +720,15 @@ module Std.Actions {
 
   // TODO for more complicated action composition:
     //   // Existance proof
-    // ghost function ValidMiddle(composedHistory: seq<(T, R)>): (middle: Option<seq<M>>)
+    // ghost function ValidMiddle(composedHistory: seq<(I, O)>): (middle: Option<seq<M>>)
     //   ensures middle.Some? ==> (
     //     && |middle.value| == |composedHistory|
-    //     && FirstAction().CanProduce(Seq.Zip(Inputs(composedHistory), middle.value))
-    //     && SecondAction().CanProduce(Seq.Zip(middle.value, Outputs(composedHistory)))
+    //     && FirstAction().ValidHistory(Seq.Zip(InputsOf(composedHistory), middle.value))
+    //     && SecondAction().ValidHistory(Seq.Zip(middle.value, OutputsOf(composedHistory)))
     //   )
 
   // Other primitives/examples todo:
-  //  * Promise-like single-use Action<T, ()> to capture a value for reading later
+  //  * Promise-like single-use Action<I, ()> to capture a value for reading later
   //  * datatype/codatatype-based enumerations
   //  * How to state the invariant that a constructor as an action creates a new object every time?
   //    * Lemma that takes produced as input, instead of forall produced?

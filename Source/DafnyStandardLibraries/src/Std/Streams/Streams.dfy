@@ -43,12 +43,12 @@ module Std.Streams {
       requires Valid()
       reads this, Repr
 
-    ghost function ConcatenatedOutputs(history: seq<((), Option<bytes>)>): bytes {
-      Flatten(Enumerated(Outputs(history)))
+    ghost function ConcatenatedOutputsOf(history: seq<((), Option<bytes>)>): bytes {
+      Flatten(Enumerated(OutputsOf(history)))
     }
 
     // TODO: refine the specification to relate ContentLength()
-    // to ConcatenatedOutputs(history)
+    // to ConcatenatedOutputsOf(history)
   }
 
   trait RewindableByteStream extends ByteStream {
@@ -58,7 +58,7 @@ module Std.Streams {
     ghost predicate Valid()
       reads this, Repr
       ensures Valid() ==> this in Repr
-      ensures Valid() ==> CanProduce(history)
+      ensures Valid() ==> ValidHistory(history)
       decreases height, 0
 
     function ContentLength(): (res: uint64)
@@ -66,19 +66,19 @@ module Std.Streams {
       reads this, Repr
       ensures res as int == |data|
 
-    ghost predicate CanProduce(history: seq<((), Option<bytes>)>)
+    ghost predicate ValidHistory(history: seq<((), Option<bytes>)>)
       decreases height
     {
-      && (forall o <- Enumerated(Outputs(history)) :: 0 < |o|)
-      && ConcatenatedOutputs(history) <= data
+      && (forall o <- Enumerated(OutputsOf(history)) :: 0 < |o|)
+      && ConcatenatedOutputsOf(history) <= data
     }
 
     lemma {:axiom} ProducesTerminated(history: seq<((), Option<bytes>)>)
-      requires Action().CanProduce(history)
-      requires (forall i <- Inputs(history) :: i == FixedInput())
-      ensures exists n: nat | n <= Limit() :: Terminated(Outputs(history), StopFn(), n)
+      requires Action().ValidHistory(history)
+      requires (forall i <- InputsOf(history) :: i == FixedInput())
+      ensures exists n: nat | n <= Limit() :: Terminated(OutputsOf(history), StopFn(), n)
     // {
-    //   assert Terminated(Outputs(history), StopFn(), |Enumerated(Outputs(history))|);
+    //   assert Terminated(OutputsOf(history), StopFn(), |Enumerated(OutputsOf(history))|);
     // }
 
     method RepeatUntil(t: (), stop: Option<bytes> -> bool, ghost eventuallyStopsProof: ProducesTerminatedProof<(), Option<bytes>>)
@@ -86,7 +86,7 @@ module Std.Streams {
       requires eventuallyStopsProof.Action() == this
       requires eventuallyStopsProof.FixedInput() == t
       requires eventuallyStopsProof.StopFn() == stop
-      requires forall i <- Consumed() :: i == t
+      requires forall i <- Inputs() :: i == t
       reads Repr
       modifies Repr
       decreases Repr
@@ -120,24 +120,24 @@ module Std.Streams {
     ghost predicate Valid()
       reads this, Repr
       ensures Valid() ==> this in Repr
-      ensures Valid() ==> CanProduce(history)
+      ensures Valid() ==> ValidHistory(history)
       decreases height, 0
     {
       && this in Repr
       && ValidComponent(wrapped)
-      && CanProduce(history)
+      && ValidHistory(history)
     }
 
-    ghost predicate CanProduce(history: seq<((), Option<bytes>)>)
+    ghost predicate ValidHistory(history: seq<((), Option<bytes>)>)
       decreases height
     {
-      && (forall o <- Enumerated(Outputs(history)) :: 0 < |o|)
+      && (forall o <- Enumerated(OutputsOf(history)) :: 0 < |o|)
     }
 
     lemma {:axiom} ProducesTerminated(history: seq<((), Option<BoundedInts.bytes>)>)
-      requires Action().CanProduce(history)
-      requires (forall i <- Inputs(history) :: i == FixedInput())
-      ensures exists n: nat | n <= Limit() :: Terminated(Outputs(history), StopFn(), n)
+      requires Action().ValidHistory(history)
+      requires (forall i <- InputsOf(history) :: i == FixedInput())
+      ensures exists n: nat | n <= Limit() :: Terminated(OutputsOf(history), StopFn(), n)
 
     ghost function Limit(): nat {
       wrapped.Limit()
@@ -181,7 +181,7 @@ module Std.Streams {
 
       assert Valid();
       r := wrapped.Next();
-      Update(t, r);
+      UpdateHistory(t, r);
 
       // TODO: Work to do
       assume {:axiom} Ensures(t, r);
@@ -192,7 +192,7 @@ module Std.Streams {
       requires eventuallyStopsProof.Action() == this
       requires eventuallyStopsProof.FixedInput() == t
       requires eventuallyStopsProof.StopFn() == stop
-      requires forall i <- Consumed() :: i == t
+      requires forall i <- Inputs() :: i == t
       reads Repr
       modifies Repr
       decreases Repr
@@ -214,22 +214,22 @@ module Std.Streams {
     ghost predicate Valid()
       reads this, Repr
       ensures Valid() ==> this in Repr
-      ensures Valid() ==> CanProduce(history)
+      ensures Valid() ==> ValidHistory(history)
       decreases height, 0
     {
       && this in Repr
-      && CanProduce(history)
+      && ValidHistory(history)
       && s == data
       && |s| <= UINT64_MAX as int
       && position as int <= |s|
-      && ConcatenatedOutputs(history) == s[..position]
+      && ConcatenatedOutputsOf(history) == s[..position]
       && 0 < chunkSize
     }
 
     lemma {:axiom} ProducesTerminated(history: seq<((), Option<BoundedInts.bytes>)>)
-      requires Action().CanProduce(history)
-      requires (forall i <- Inputs(history) :: i == FixedInput())
-      ensures exists n: nat | n <= Limit() :: Terminated(Outputs(history), StopFn(), n)
+      requires Action().ValidHistory(history)
+      requires (forall i <- InputsOf(history) :: i == FixedInput())
+      ensures exists n: nat | n <= Limit() :: Terminated(OutputsOf(history), StopFn(), n)
 
     ghost function Limit(): nat {
       |s|
@@ -308,7 +308,7 @@ module Std.Streams {
         r := Some(s[position..newPosition]);
         position := newPosition;
       }
-      Update(t, r);
+      UpdateHistory(t, r);
 
       // TODO: Work to do
       assume {:axiom} Ensures(t, r);

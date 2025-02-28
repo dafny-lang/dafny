@@ -35,11 +35,11 @@ module ActionsExamples {
     ghost predicate Valid()
       reads this, Repr
       ensures Valid() ==> this in Repr
-      ensures Valid() ==> CanProduce(history)
+      ensures Valid() ==> ValidHistory(history)
       decreases height, 0
     {
       && this in Repr
-      && CanProduce(history)
+      && ValidHistory(history)
       && nextValue == |history|
     }
 
@@ -54,15 +54,15 @@ module ActionsExamples {
       height := 1;
     }
 
-    ghost predicate CanConsume(history: seq<((), Box)>, next: ())
+    ghost predicate ValidInput(history: seq<((), Box)>, next: ())
       decreases height
     {
       true
     }
-    ghost predicate CanProduce(history: seq<((), Box)>)
+    ghost predicate ValidHistory(history: seq<((), Box)>)
       decreases height
     {
-      Seq.Map((b: Box) => b.i, Outputs(history)) == SeqRange(|history|)
+      Seq.Map((b: Box) => b.i, OutputsOf(history)) == SeqRange(|history|)
     }
 
     method Invoke(t: ()) returns (r: Box)
@@ -73,10 +73,10 @@ module ActionsExamples {
       ensures Ensures(t, r)
     {
       assert Requires(t);
-      ghost var producedBefore := Produced();
+      ghost var producedBefore := Outputs();
 
       r := new Box(nextValue);
-      Update(t, r);
+      UpdateHistory(t, r);
       Repr := {this};
       nextValue := nextValue + 1;
 
@@ -89,7 +89,7 @@ module ActionsExamples {
       requires eventuallyStopsProof.Action() == this
       requires eventuallyStopsProof.FixedInput() == t
       requires eventuallyStopsProof.StopFn() == stop
-      requires forall i <- Consumed() :: i == t
+      requires forall i <- Inputs() :: i == t
       reads Repr
       modifies Repr
       decreases Repr
@@ -101,11 +101,11 @@ module ActionsExamples {
 
   method {:rlimit 0} BoxEnumeratorExample() {
     var enum: BoxEnumerator := new BoxEnumerator();
-    assert |enum.Produced()| == 0;
+    assert |enum.Outputs()| == 0;
     var a := enum.Invoke(());
 
-    assert enum.Produced() == [a];
-    assert Seq.Map((b: Box) => b.i, enum.Produced()) == SeqRange(1) == [0];
+    assert enum.Outputs() == [a];
+    assert Seq.Map((b: Box) => b.i, enum.Outputs()) == SeqRange(1) == [0];
     // assert a.i == 0;
 
     // var b := enum.Invoke(());
@@ -114,10 +114,10 @@ module ActionsExamples {
     // var e := enum.Invoke(());
   }
 
-  method SetEnumeratorExample() {
+  method SetIProducerExample() {
     var s: set<nat> := {1, 2, 3, 4, 5};
     var copy: set<nat> := {};
-    var e: SetEnumerator<nat> := new SetEnumerator(s);
+    var e: SetIProducer<nat> := new SetIProducer(s);
 
     label before:
     for enumerated := 0 to 5
@@ -144,7 +144,7 @@ module ActionsExamples {
     var _ := a.Invoke(4);
     var _ := a.Invoke(5);
     var _ := a.Invoke(6);
-    assert a.Consumed() == [1, 2, 3, 4, 5, 6];
+    assert a.Inputs() == [1, 2, 3, 4, 5, 6];
     assert a.storage.items == [1, 2, 3, 4, 5, 6];
   }
 
@@ -172,7 +172,7 @@ module ActionsExamples {
       assert a.Valid();
 
       if u.Some? {
-        a.CanConsumeAll(a.history, u.value);
+        a.AnyInputIsValid(a.history, u.value);
         a.Accept(u.value);
       }
     }
@@ -182,8 +182,8 @@ module ActionsExamples {
   //   var addOne: Action<nat, nat> := new FunctionAction(x => x + 1);
   //   var double: Action<nat, nat> := new FunctionAction(x => x * 2);
 
-  //   ghost var firstConsumesAll := new TotalFunctionConsumesAllProof(addOne);
-  //   ghost var secondConsumesAll := new TotalFunctionConsumesAllProof(double);
+  //   ghost var firstConsumesAll := new TotalFunctionTotalActionProof(addOne);
+  //   ghost var secondConsumesAll := new TotalFunctionTotalActionProof(double);
   //   var composeProof := new TotalActionCompositionProof(firstConsumesAll, secondConsumesAll);
 
   //   var composed := new ComposedAction(addOne, double, composeProof);

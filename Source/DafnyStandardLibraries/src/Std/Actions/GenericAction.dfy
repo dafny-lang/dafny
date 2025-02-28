@@ -29,30 +29,30 @@ module Std.GenericActions {
   // as they make simplifying assumptions that are true for many reusable actions.
   // However, this more general action may be more flexible
   // when accepting any kind of callback in a higher-order method.
-  trait GenericAction<T, R> {
+  trait GenericAction<I, O> {
 
     // Specification predicates
 
-    ghost predicate Requires(t: T)
-      reads Reads(t)
-    ghost function Reads(t: T): set<object>
+    ghost predicate Requires(i: I)
+      reads Reads(i)
+    ghost function Reads(i: I): set<object>
       reads this
-      ensures this in Reads(t)
-    ghost function Modifies(t: T): set<object>
-      reads Reads(t)
-    ghost function Decreases(t: T): TerminationMetric
-      reads Reads(t)
-    twostate predicate Ensures(t: T, new r: R)
-      reads Reads(t)
+      ensures this in Reads(i)
+    ghost function Modifies(i: I): set<object>
+      reads Reads(i)
+    ghost function Decreases(i: I): TerminationMetric
+      reads Reads(i)
+    twostate predicate Ensures(i: I, new o: O)
+      reads Reads(i)
 
     // Actual action implementation
 
-    method Invoke(t: T) returns (r: R)
-      requires Requires(t)
-      reads Reads(t)
-      modifies Modifies(t)
-      decreases Decreases(t).Ordinal()
-      ensures Ensures(t, r)
+    method Invoke(i: I) returns (o: O)
+      requires Requires(i)
+      reads Reads(i)
+      modifies Modifies(i)
+      decreases Decreases(i).Ordinal()
+      ensures Ensures(i, o)
   }
 
 }
