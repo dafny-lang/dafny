@@ -33,6 +33,12 @@ namespace Microsoft.Dafny {
     public static Range ToLspRange(this IOrigin range) {
       return range.ToDafnyRange().ToLspRange();
     }
+    public static Location ToLspLocation(this IOrigin range) {
+      return new Location() {
+        Uri = DocumentUri.From(range.Center.Uri),
+        Range = range.ToLspRange()
+      };
+    }
 
     /// <summary>
     /// Gets the LSP range of the specified token.

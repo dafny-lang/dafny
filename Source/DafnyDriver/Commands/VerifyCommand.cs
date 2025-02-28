@@ -6,11 +6,8 @@ using System.Linq;
 using System.Reactive.Subjects;
 using System.Threading;
 using System.Threading.Tasks;
-using DafnyCore;
-using DafnyCore.Options;
 using DafnyDriver.Commands;
 using Microsoft.Boogie;
-using Microsoft.Dafny.Compilers;
 
 namespace Microsoft.Dafny;
 
@@ -194,8 +191,7 @@ public static class VerifyCommand {
       }
 
       foreach (var diagnostic in batchReporter.AllMessages.Order()) {
-        compilation.Compilation.Reporter.Message(diagnostic.Source, diagnostic.Level, diagnostic.ErrorId, diagnostic.Token,
-          diagnostic.Message);
+        compilation.Compilation.Reporter.MessageCore(diagnostic);
       }
     });
 

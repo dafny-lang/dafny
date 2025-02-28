@@ -3,6 +3,7 @@ using System;
 using System.Diagnostics.Contracts;
 using System.IO;
 using Newtonsoft.Json;
+using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 
 namespace Microsoft.Dafny;
 
@@ -153,6 +154,22 @@ public static class TokenExtensions {
   }
 
   public static bool IsSet(this IOrigin token) => token.Uri != null;
+
+
+
+  public static string TokenToString(this Location location, DafnyOptions options) {
+    var currentDirectory = Directory.GetCurrentDirectory();
+    var path = location.Uri.Path;
+    string filename = location.Uri.Scheme switch {
+      "stdin" => "<stdin>",
+      "transcript" => Path.GetFileName(path),
+      _ => options.UseBaseNameForFileName
+        ? Path.GetFileName(path)
+        : (path.StartsWith(currentDirectory) ? Path.GetRelativePath(currentDirectory, path) : path)
+    };
+
+    return $"{filename}({location.Range.Start.Line},{location.Range.Start.Character})";
+  }
 
   public static string TokenToString(this IOrigin tok, DafnyOptions options) {
     if (ReferenceEquals(tok, Token.Cli)) {
