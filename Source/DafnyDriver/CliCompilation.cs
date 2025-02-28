@@ -123,8 +123,7 @@ public class CliCompilation {
           Interlocked.Increment(ref warningCount);
         }
         var dafnyDiagnostic = newDiagnostic.Diagnostic;
-        consoleReporter.Message(dafnyDiagnostic.Source, dafnyDiagnostic.Level,
-          dafnyDiagnostic.ErrorId, dafnyDiagnostic.Token, dafnyDiagnostic.Message);
+        consoleReporter.MessageCore(dafnyDiagnostic);
       } else if (ev is FinishedParsing finishedParsing) {
         if (errorCount > 0) {
           var programName = finishedParsing.ParseResult.Program.Name;

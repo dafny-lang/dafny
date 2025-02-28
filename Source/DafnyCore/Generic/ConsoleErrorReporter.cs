@@ -18,21 +18,23 @@ public class ConsoleErrorReporter : BatchErrorReporter {
     }
   }
 
-  protected override bool MessageCore(MessageSource source, ErrorLevel level, string errorId, IOrigin tok, string msg) {
-    var printMessage = base.MessageCore(source, level, errorId, tok, msg) && (Options is { PrintTooltips: true } || level != ErrorLevel.Info);
+  public override bool MessageCore(DafnyDiagnostic dafnyDiagnostic) {
+    var printMessage = base.MessageCore(dafnyDiagnostic) && (Options is { PrintTooltips: true } || dafnyDiagnostic.Level != ErrorLevel.Info);
+
     if (!printMessage) {
       return false;
     }
 
     // Extra indent added to make it easier to distinguish multiline error messages for clients that rely on the CLI
-    msg = msg.Replace("\n", "\n ");
+    var msg = dafnyDiagnostic.Message.Replace("\n", "\n ");
 
     ConsoleColor previousColor = Console.ForegroundColor;
     if (Options.OutputWriter == Console.Out) {
-      Console.ForegroundColor = ColorForLevel(level);
+      Console.ForegroundColor = ColorForLevel(dafnyDiagnostic.Level);
     }
-    var errorLine = ErrorToString(level, tok, msg);
+    var errorLine = ErrorToString(dafnyDiagnostic.Level, dafnyDiagnostic.Token, msg);
 
+    var errorId = dafnyDiagnostic.ErrorId;
     if (Options.Verbose && !String.IsNullOrEmpty(errorId) && errorId != "none") {
       errorLine += " (ID: " + errorId + ")\n";
       var info = ErrorRegistry.GetDetail(errorId);
@@ -43,32 +45,20 @@ public class ConsoleErrorReporter : BatchErrorReporter {
       errorLine += "\n";
     }
 
-    if (Options.Get(Snippets.ShowSnippets) && tok.Uri != null) {
+    if (Options.Get(Snippets.ShowSnippets)) {
       var tw = new StringWriter();
-      Snippets.WriteSourceCodeSnippet(Options, tok, tw);
+      Snippets.WriteSourceCodeSnippet(Options, dafnyDiagnostic.Token, tw);
       errorLine += tw.ToString();
     }
 
-    var innerToken = tok;
-    while (innerToken is NestedOrigin nestedToken) {
-      innerToken = nestedToken.Inner;
-      if (innerToken.Filepath == nestedToken.Filepath &&
-          innerToken.line == nestedToken.line &&
-          innerToken.col == nestedToken.col) {
-        continue;
-      }
+    foreach (var related in dafnyDiagnostic.RelatedInformation) {
+      var innerMessage = related.Message;
+      innerMessage = "Related location: " + innerMessage;
 
-      var innerMessage = nestedToken.Message;
-      if (innerMessage == null) {
-        innerMessage = "Related location";
-      } else {
-        innerMessage = "Related location: " + innerMessage;
-      }
-
-      errorLine += $"{innerToken.TokenToString(Options)}: {innerMessage}\n";
-      if (Options.Get(Snippets.ShowSnippets) && tok.Uri != null) {
+      errorLine += $"{related.Token.TokenToString(Options)}: {innerMessage}\n";
+      if (Options.Get(Snippets.ShowSnippets)) {
         var tw = new StringWriter();
-        Snippets.WriteSourceCodeSnippet(Options, innerToken, tw);
+        Snippets.WriteSourceCodeSnippet(Options, related.Token, tw);
         errorLine += tw.ToString();
       }
     }

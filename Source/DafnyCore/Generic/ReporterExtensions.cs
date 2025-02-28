@@ -35,12 +35,9 @@ public static class ErrorReporterExtensions {
 
     var dafnyToken = BoogieGenerator.ToDafnyToken(useRange, error.Tok);
 
-    var tokens = new[] { dafnyToken }.Concat(relatedInformation.Select(i => i.Token)).ToList();
-    IOrigin previous = tokens.Last();
-    foreach (var (inner, outer) in relatedInformation.Zip(tokens).Reverse()) {
-      previous = new NestedOrigin(outer, previous, inner.Message);
-    }
-    reporter.Message(MessageSource.Verifier, ErrorLevel.Error, null, previous, error.Msg);
+    var diagnostic = new DafnyDiagnostic(MessageSource.Verifier, null, dafnyToken.ToLspLocation(), error.Msg,
+      ErrorLevel.Error, relatedInformation);
+    reporter.MessageCore(diagnostic);
   }
 
   private const string RelatedLocationCategory = "Related location";
@@ -70,7 +67,7 @@ public static class ErrorReporterExtensions {
 
     message ??= "this proposition could not be proved";
 
-    yield return new DafnyRelatedInformation(token, message);
+    yield return new DafnyRelatedInformation(token.ToLspLocation(), message);
     if (inner != null) {
       foreach (var nestedInformation in CreateDiagnosticRelatedInformationFor(inner, newMessage, usingSnippets)) {
         yield return nestedInformation;

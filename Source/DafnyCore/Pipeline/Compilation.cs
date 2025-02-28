@@ -543,7 +543,7 @@ public class Compilation : IDisposable {
     ReportDiagnosticsInResult(options, canVerify.NavigationToken.val, BoogieGenerator.ToDafnyToken(true, task.Token),
       task.Split.Implementation.GetTimeLimit(options), result, errorReporter);
 
-    return diagnostics.OrderBy(d => d.Token.GetLspPosition()).ToList();
+    return diagnostics.OrderBy(d => d.Token.Range.Start).ToList();
   }
 
   public static void ReportDiagnosticsInResult(DafnyOptions options, string name, IOrigin token,

@@ -9,6 +9,7 @@ using System.Linq;
 using System.Diagnostics.Contracts;
 using DAST.Format;
 using Microsoft.Boogie;
+using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using Std.Wrappers;
 
 namespace Microsoft.Dafny.Compilers {

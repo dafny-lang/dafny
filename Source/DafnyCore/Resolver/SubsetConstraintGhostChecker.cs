@@ -1,4 +1,6 @@
+using System.Collections.Generic;
 using JetBrains.Annotations;
+using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 
 namespace Microsoft.Dafny;
 
@@ -9,19 +11,20 @@ namespace Microsoft.Dafny;
 public class SubsetConstraintGhostChecker : ProgramTraverser {
   private class FirstErrorCollector : ErrorReporter {
     public string FirstCollectedMessage = "";
-    public IOrigin FirstCollectedToken = Token.NoToken;
+    public Location FirstCollectedToken;
     public bool Collected = false;
 
     public bool Message(MessageSource source, ErrorLevel level, IOrigin tok, string msg) {
       return Message(source, level, ErrorRegistry.NoneId, tok, msg);
     }
 
-    protected override bool MessageCore(MessageSource source, ErrorLevel level, string errorId, IOrigin tok, string msg) {
-      if (!Collected && level == ErrorLevel.Error) {
-        FirstCollectedMessage = msg;
-        FirstCollectedToken = tok;
+    public override bool MessageCore(DafnyDiagnostic dafnyDiagnostic) {
+      if (!Collected && dafnyDiagnostic.Level == ErrorLevel.Error) {
+        FirstCollectedMessage = dafnyDiagnostic.Message;
+        FirstCollectedToken = dafnyDiagnostic.Token;
         Collected = true;
       }
+
       return true;
     }
 
@@ -87,19 +90,20 @@ public class SubsetConstraintGhostChecker : ProgramTraverser {
           if (!declWithConstraints.ConstraintIsCompilable) {
 
             IOrigin finalToken = boundVar.Origin;
+            var relatedInformation = new List<DafnyRelatedInformation>();
             if (declWithConstraints.Constraint != null && declWithConstraints.Constraint.Origin.line != 0) {
               var errorCollector = new FirstErrorCollector(reporter.Options);
               ExpressionTester.CheckIsCompilable(null, errorCollector, declWithConstraints.Constraint,
                 new CodeContextWrapper(declWithConstraints, true));
               if (errorCollector.Collected) {
-                finalToken = new NestedOrigin(finalToken, errorCollector.FirstCollectedToken,
-                  "The constraint is not compilable because " + errorCollector.FirstCollectedMessage
-                );
+                relatedInformation.Add(new DafnyRelatedInformation(errorCollector.FirstCollectedToken,
+                  "The constraint is not compilable because " + errorCollector.FirstCollectedMessage));
               }
             }
-            this.reporter.Error(MessageSource.Resolver, finalToken,
-              $"{boundVar.Type} is a {declWithConstraints.WhatKind} and its constraint is not compilable, " +
-              $"hence it cannot yet be used as the type of a bound variable in {e.WhatKind}.");
+            var message = $"{boundVar.Type} is a {declWithConstraints.WhatKind} and its constraint is not compilable, " +
+                          $"hence it cannot yet be used as the type of a bound variable in {e.WhatKind}.";
+            reporter.MessageCore(new DafnyDiagnostic(MessageSource.Resolver, null,
+              boundVar.Origin.Center.ToLspLocation(), message, ErrorLevel.Error, relatedInformation));
           }
         }
       }

@@ -6,36 +6,33 @@ using System.IO;
 using System.Linq;
 using System.Text.Json;
 using System.Text.Json.Nodes;
-using VCGeneration;
-using static Microsoft.Dafny.ErrorRegistry;
+using OmniSharp.Extensions.LanguageServer.Protocol.Models;
+using Range = OmniSharp.Extensions.LanguageServer.Protocol.Models.Range;
 
 namespace Microsoft.Dafny;
 
-record DiagnosticMessageData(MessageSource source, ErrorLevel level, Boogie.IToken tok, string? category, string message, List<ErrorInformation.AuxErrorInfo>? related) {
-  private static JsonObject SerializePosition(Boogie.IToken tok) {
+record DiagnosticMessageData(MessageSource source, ErrorLevel level, Location tok,
+  string? category, string message, IReadOnlyList<DafnyRelatedInformation> related) {
+  private static JsonObject SerializePosition(Position position) {
     return new JsonObject {
-      ["pos"] = tok.pos,
-      ["line"] = tok.line,
-      ["character"] = tok.col - 1
+      ["line"] = position.Line,
+      ["character"] = position.Character
     };
   }
 
-  private static JsonObject SerializeRange(Boogie.IToken tok) {
-    var range = new JsonObject {
-      ["start"] = SerializePosition(tok),
+  private static JsonObject SerializeRange(Range range) {
+    var result = new JsonObject {
+      ["start"] = SerializePosition(range.Start),
+      ["end"] = SerializePosition(range.End)
     };
-    var origin = BoogieGenerator.ToDafnyToken(true, tok);
-    if (origin.IncludesRange) {
-      range["end"] = SerializePosition(origin.EndToken);
-    }
-    return range;
+    return result;
   }
 
-  private static JsonObject SerializeToken(Boogie.IToken tok) {
+  private static JsonObject SerializeLocation(Location tok) {
     return new JsonObject {
-      ["filename"] = tok.filename,
-      ["uri"] = ((IOrigin)tok).Uri.AbsoluteUri,
-      ["range"] = SerializeRange(tok)
+      ["filename"] = tok.Uri.Path,
+      ["uri"] = tok.Uri.ToString(),
+      ["range"] = SerializeRange(tok.Range)
     };
   }
 
@@ -52,37 +49,21 @@ record DiagnosticMessageData(MessageSource source, ErrorLevel level, Boogie.ITok
     return category == null ? message : $"{category}: {message}";
   }
 
-  private static JsonObject SerializeRelated(Boogie.IToken tok, string? category, string message) {
+  private static JsonObject SerializeRelated(Location location, string message) {
     return new JsonObject {
-      ["location"] = SerializeToken(tok),
-      ["message"] = SerializeMessage(category, message),
+      ["location"] = SerializeLocation(location),
+      ["message"] = message,
     };
   }
 
-  private static IEnumerable<JsonNode> SerializeInnerTokens(Boogie.IToken tok) {
-    while (tok is NestedOrigin nestedToken) {
-      tok = nestedToken.Inner;
-      var message = nestedToken.Message != null ? "Related location: " + nestedToken.Message : "Related location";
-      yield return SerializeRelated(tok, null, message);
-    }
-  }
-
-  private static IEnumerable<JsonNode> SerializeAuxInfo(ErrorInformation.AuxErrorInfo aux) {
-    yield return SerializeRelated(aux.Tok, aux.Category, aux.Msg);
-    foreach (var n in SerializeInnerTokens(aux.Tok)) {
-      yield return n;
-    }
-  }
-
   public JsonNode ToJson() {
-    var auxRelated = related?.SelectMany(SerializeAuxInfo) ?? [];
-    var innerRelated = SerializeInnerTokens(tok);
+    var auxRelated = related.Select(aux => (JsonNode)SerializeRelated(aux.Token, aux.Message));
     return new JsonObject {
-      ["location"] = SerializeToken(tok),
+      ["location"] = SerializeLocation(tok),
       ["severity"] = SerializeErrorLevel(level),
       ["message"] = SerializeMessage(category, message),
       ["source"] = source.ToString(),
-      ["relatedInformation"] = new JsonArray(auxRelated.Concat(innerRelated).ToArray())
+      ["relatedInformation"] = new JsonArray(auxRelated.ToArray())
     };
   }
 
@@ -92,16 +73,18 @@ record DiagnosticMessageData(MessageSource source, ErrorLevel level, Boogie.ITok
 }
 
 public class DafnyJsonConsolePrinter : DafnyConsolePrinter {
-  public override void ReportBplError(Boogie.IToken tok, string message, bool error, TextWriter tw, string? category = null) {
-    var level = error ? ErrorLevel.Error : ErrorLevel.Warning;
-    new DiagnosticMessageData(MessageSource.Verifier, level, tok, category, message, null).WriteJsonTo(tw);
-  }
+  // public override void ReportBplError(Boogie.IToken tok, string message, bool error, TextWriter tw, string? category = null) {
+  //   var level = error ? ErrorLevel.Error : ErrorLevel.Warning;
+  //   new DiagnosticMessageData(MessageSource.Verifier, level, tok, category, message, null).WriteJsonTo(tw);
+  // }
 
   public override void WriteErrorInformation(VCGeneration.ErrorInformation errorInfo, TextWriter tw, bool skipExecutionTrace = true) {
     var related = errorInfo.Aux.Where(e =>
-      !(skipExecutionTrace && (e.Category ?? "").Contains("Execution trace"))).ToList();
+      !(skipExecutionTrace && (e.Category ?? "").Contains("Execution trace"))).Select(aei => new DafnyRelatedInformation(
+      BoogieGenerator.ToDafnyToken(false, aei.Tok).Center.ToLspLocation(), aei.FullMsg)).ToList();
+
     new DiagnosticMessageData(MessageSource.Verifier, ErrorLevel.Error,
-      errorInfo.Tok, errorInfo.Category, errorInfo.Msg, related).WriteJsonTo(tw);
+      BoogieGenerator.ToDafnyToken(false, errorInfo.Tok).Center.ToLspLocation(), errorInfo.Category, errorInfo.Msg, related).WriteJsonTo(tw);
     tw.Flush();
   }
 
@@ -110,9 +93,10 @@ public class DafnyJsonConsolePrinter : DafnyConsolePrinter {
 }
 
 public class JsonConsoleErrorReporter : BatchErrorReporter {
-  protected override bool MessageCore(MessageSource source, ErrorLevel level, string errorID, Dafny.IOrigin tok, string msg) {
-    if (base.MessageCore(source, level, errorID, tok, msg) && (Options is { PrintTooltips: true } || level != ErrorLevel.Info)) {
-      new DiagnosticMessageData(source, level, tok, level == ErrorLevel.Error ? "Error" : null, msg, null).WriteJsonTo(Options.OutputWriter);
+  public override bool MessageCore(DafnyDiagnostic dafnyDiagnostic) {
+    if (base.MessageCore(dafnyDiagnostic) && (Options is { PrintTooltips: true } || dafnyDiagnostic.Level != ErrorLevel.Info)) {
+      new DiagnosticMessageData(dafnyDiagnostic.Source, dafnyDiagnostic.Level, dafnyDiagnostic.Token,
+        dafnyDiagnostic.Level == ErrorLevel.Error ? "Error" : null, dafnyDiagnostic.Message, dafnyDiagnostic.RelatedInformation).WriteJsonTo(Options.OutputWriter);
       return true;
     }
 
