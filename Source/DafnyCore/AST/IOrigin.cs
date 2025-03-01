@@ -30,9 +30,7 @@ public interface IOrigin : Microsoft.Boogie.IToken {
 
   Token StartToken { get; }
   Token EndToken { get; }
-  Token Center {
-    get;
-  }
+  Token Center { get; }
 
   /// <summary>
   /// TrailingTrivia contains everything after the token,

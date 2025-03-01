@@ -36,7 +36,7 @@ public static class ErrorReporterExtensions {
 
     var dafnyToken = BoogieGenerator.ToDafnyToken(useRange, error.Tok);
 
-    var diagnostic = new DafnyDiagnostic(MessageSource.Verifier, null, dafnyToken.Center.ToLspLocation(), error.Msg,
+    var diagnostic = new DafnyDiagnostic(MessageSource.Verifier, null!, dafnyToken.Center.ToLspLocation(), error.Msg,
       ErrorLevel.Error, relatedInformation);
     reporter.MessageCore(diagnostic);
   }

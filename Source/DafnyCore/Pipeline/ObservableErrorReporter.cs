@@ -28,7 +28,7 @@ namespace Microsoft.Dafny {
     }
 
     public override bool MessageCore(DafnyDiagnostic dafnyDiagnostic) {
-      AddDiagnosticForFile(dafnyDiagnostic, dafnyDiagnostic.Token.Uri.ToUri());
+      AddDiagnosticForFile(dafnyDiagnostic, dafnyDiagnostic.Token?.Uri.ToUri() ?? entryUri);
       return true;
     }
 

@@ -95,7 +95,7 @@ public class DafnyJsonConsolePrinter : DafnyConsolePrinter {
 public class JsonConsoleErrorReporter : BatchErrorReporter {
   public override bool MessageCore(DafnyDiagnostic dafnyDiagnostic) {
     if (base.MessageCore(dafnyDiagnostic) && (Options is { PrintTooltips: true } || dafnyDiagnostic.Level != ErrorLevel.Info)) {
-      new DiagnosticMessageData(dafnyDiagnostic.Source, dafnyDiagnostic.Level, dafnyDiagnostic.Token,
+      new DiagnosticMessageData(dafnyDiagnostic.Source, dafnyDiagnostic.Level, dafnyDiagnostic.Token!,
         dafnyDiagnostic.Level == ErrorLevel.Error ? "Error" : null, dafnyDiagnostic.Message, dafnyDiagnostic.RelatedInformation).WriteJsonTo(Options.OutputWriter);
       return true;
     }

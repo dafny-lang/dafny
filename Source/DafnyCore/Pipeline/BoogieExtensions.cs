@@ -1,4 +1,5 @@
-﻿using Microsoft.Dafny.LanguageServer.Workspace;
+﻿using System;
+using Microsoft.Dafny.LanguageServer.Workspace;
 using OmniSharp.Extensions.LanguageServer.Protocol;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using Range = OmniSharp.Extensions.LanguageServer.Protocol.Models.Range;

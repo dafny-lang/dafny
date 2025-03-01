@@ -1037,7 +1037,7 @@ method test(i: int, j: int) {
     }
 
     [Fact]
-    public async Task OpeningDocumentWithFailedCallUnderlinesAllOfIt() {
+    public async Task OpeningDocumentWithFailedCallUnderlinesOnlyOpeningParens() {
       var source = @"
 method test() {
   other(2, 1);
@@ -1054,12 +1054,12 @@ method other(i: int, j: int)
       Assert.Single(diagnostics);
       Assert.Equal(MessageSource.Verifier.ToString(), diagnostics[0].Source);
       Assert.Equal(DiagnosticSeverity.Error, diagnostics[0].Severity);
-      Assert.Equal(new Range((1, 2), (1, 14)), diagnostics[0].Range);
+      Assert.Equal(new Range((1, 7), (1, 8)), diagnostics[0].Range);
       await AssertNoDiagnosticsAreComing(CancellationToken);
     }
 
     [Fact]
-    public async Task OpeningDocumentWithFailedCallExpressionUnderlinesAllOfIt() {
+    public async Task OpeningDocumentWithFailedCallExpressionUnderlinesOnlyOpeningParens() {
       var source = @"
 method test() {
   var x := 1 + other(2, 1);
@@ -1077,7 +1077,7 @@ function other(i: int, j: int): int
       Assert.Single(diagnostics);
       Assert.Equal(MessageSource.Verifier.ToString(), diagnostics[0].Source);
       Assert.Equal(DiagnosticSeverity.Error, diagnostics[0].Severity);
-      Assert.Equal(new Range((1, 15), (1, 26)), diagnostics[0].Range);
+      Assert.Equal(new Range((1, 20), (1, 21)), diagnostics[0].Range);
       await AssertNoDiagnosticsAreComing(CancellationToken);
     }
 
