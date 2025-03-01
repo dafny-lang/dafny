@@ -103,7 +103,7 @@ namespace Microsoft.Dafny {
         return;
       }
 
-      if (!(stmt is ForallStmt || stmt is ForLoopStmt)) {  // "forall" and "for" statements do their own attribute resolution below
+      if (!(stmt is ForallStmt or ForLoopStmt)) {  // "forall" and "for" statements do their own attribute resolution below
         ResolveAttributes(stmt, resolutionContext, false);
       }
       if (stmt is PrintStmt) {
@@ -526,7 +526,7 @@ namespace Microsoft.Dafny {
     private void ResolveConcreteUpdateStmt(ConcreteAssignStatement assign, List<LocalVariable> locals, ResolutionContext resolutionContext) {
       Contract.Requires(assign != null || locals != null);
       // We have four cases.
-      Contract.Assert(assign == null || assign is AssignSuchThatStmt || assign is AssignStatement || assign is AssignOrReturnStmt);
+      Contract.Assert(assign is null or AssignSuchThatStmt or AssignStatement or AssignOrReturnStmt);
       // 0.  There is no update.  This is easy, we will just resolve the locals.
       // 1.  The update is an AssignSuchThatStmt.  This is also straightforward:  first
       //     resolve the locals, which adds them to the scope, and then resolve the update.
