@@ -65,7 +65,7 @@ public class ITEExpr : Expression, ICanFormat, ICloneable<ITEExpr> {
   public bool SetIndent(int indentBefore, TokenNewIndentCollector formatter) {
     var lineThen = 0;
     var colThen = 0;
-    IOrigin thenToken = null;
+    Token thenToken = null;
     foreach (var token in OwnedTokens) {
       switch (token.val) {
         case "if": {

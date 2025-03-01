@@ -94,7 +94,7 @@ public class AbstractTypeDecl : TopLevelDeclWithMembers, RevealableTypeDecl, ICa
     if (GetStartTriviaDocstring(out var triviaFound)) {
       return triviaFound;
     }
-    IOrigin openingBlock = null;
+    Token openingBlock = null;
     foreach (var token in OwnedTokens) {
       if (token.val == "{") {
         openingBlock = token;

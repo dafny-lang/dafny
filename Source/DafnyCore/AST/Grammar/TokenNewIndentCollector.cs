@@ -122,7 +122,7 @@ public class TokenNewIndentCollector : TopDownVisitor<int> {
     }
 
     // Best heuristic for new elements is to indent them using the method's formatting
-    SetMethodLikeIndent(stmt.Origin, stmt.OwnedTokens, indentBefore);
+    SetMethodLikeIndent(stmt.StartToken, stmt.OwnedTokens, indentBefore);
     SetIndentations(stmt.EndToken, -1, -1, indentBefore);
 
     return true;
@@ -141,7 +141,7 @@ public class TokenNewIndentCollector : TopDownVisitor<int> {
   // Given a token, finds the indentation that was expected before it.
   // Used for frame expressions to initially copy the indentation of "reads", "requires", etc.
 
-  public int GetIndentAbove(IOrigin token) {
+  public int GetIndentAbove(Token token) {
     if (PosToIndentations(token.pos).Above is var aboveIndentation and not -1) {
       return aboveIndentation;
     }
@@ -149,7 +149,7 @@ public class TokenNewIndentCollector : TopDownVisitor<int> {
     return GetIndentBelowOrInlineOrAbove(token.Prev);
   }
 
-  public int GetIndentInlineOrAbove(IOrigin token) {
+  public int GetIndentInlineOrAbove(Token token) {
     if (PosToIndentations(token.pos).Inline is var indentation and not -1) {
       return indentation;
     }
@@ -157,7 +157,7 @@ public class TokenNewIndentCollector : TopDownVisitor<int> {
     return GetIndentAbove(token);
   }
 
-  public int GetIndentBelowOrInlineOrAbove(IOrigin token) {
+  public int GetIndentBelowOrInlineOrAbove(Token token) {
     if (token == null || token == Token.NoToken) {
       return 0;
     }
@@ -173,7 +173,7 @@ public class TokenNewIndentCollector : TopDownVisitor<int> {
   // Get the precise column this token will be at after reformatting.
   // Requires all tokens before to have been formatted.
 
-  public int GetNewTokenVisualIndent(IOrigin token, int defaultIndent) {
+  public int GetNewTokenVisualIndent(Token token, int defaultIndent) {
     var previousTrivia = token.Prev != null ? token.Prev.TrailingTrivia : "";
     previousTrivia += token.LeadingTrivia;
     var lastNL = previousTrivia.LastIndexOf('\n');
@@ -206,7 +206,7 @@ public class TokenNewIndentCollector : TopDownVisitor<int> {
     return token.col - 1;
   }
 
-  private static int GetTrailingSpace(IOrigin token) {
+  private static int GetTrailingSpace(Token token) {
     var c = 0;
     while (c < token.TrailingTrivia.Length && token.TrailingTrivia[c] == ' ') {
       c++;
@@ -217,7 +217,7 @@ public class TokenNewIndentCollector : TopDownVisitor<int> {
 
   // Given a token such as `var ` immediately followed by another token
   // returns the indent so that everything after it is aligned with the first token.
-  public int GetRightAlignIndentAfter(IOrigin token, int indentFallback) {
+  public int GetRightAlignIndentAfter(Token token, int indentFallback) {
     var trailingSpace = GetTrailingSpace(token);
     return GetNewTokenVisualIndent(token, indentFallback) + token.val.Length + trailingSpace;
   }
@@ -225,7 +225,7 @@ public class TokenNewIndentCollector : TopDownVisitor<int> {
   private static readonly Regex FollowedByNewlineRegex = new Regex("^[ \t]*([\r\n]|//)");
   private readonly Uri fileToFormat;
 
-  public static bool IsFollowedByNewline(IOrigin token) {
+  public static bool IsFollowedByNewline(Token token) {
     return FollowedByNewlineRegex.IsMatch(token.TrailingTrivia);
   }
 
@@ -253,7 +253,7 @@ public class TokenNewIndentCollector : TopDownVisitor<int> {
 
   // functions, methods, predicates, iterators, can all be formatted using this method.
   // See FormatterWorksForMethodsInModule in Formatter.cs to see how methods are formatted.
-  public void SetMethodLikeIndent(IOrigin startToken, IEnumerable<IOrigin> ownedTokens, int indent) {
+  public void SetMethodLikeIndent(Token startToken, IEnumerable<Token> ownedTokens, int indent) {
     var indent2 = indent + SpaceTab;
     if (startToken.val != "{") {
       SetIndentations(startToken, indent, indent, indent2);
@@ -322,7 +322,7 @@ public class TokenNewIndentCollector : TopDownVisitor<int> {
     }
   }
 
-  public void SetTypeLikeIndentation(int indent, IEnumerable<IOrigin> tokens) {
+  public void SetTypeLikeIndentation(int indent, IEnumerable<Token> tokens) {
     var commaIndent = indent + SpaceTab;
     var rightIndent = indent + SpaceTab;
     foreach (var token in tokens) {
@@ -579,7 +579,7 @@ public class TokenNewIndentCollector : TopDownVisitor<int> {
     Visit(body, indent);
   }
 
-  public bool SetIndentPrintRevealStmt(int indent, IEnumerable<IOrigin> ownedTokens) {
+  public bool SetIndentPrintRevealStmt(int indent, IEnumerable<Token> ownedTokens) {
     var commaIndent = indent + SpaceTab;
     var innerIndent = indent + SpaceTab;
     var afterSemicolonIndent = indent;
@@ -724,7 +724,7 @@ public class TokenNewIndentCollector : TopDownVisitor<int> {
     }
   }
 
-  public bool SetIndentParensExpression(int indent, IEnumerable<IOrigin> ownedTokens) {
+  public bool SetIndentParensExpression(int indent, IEnumerable<Token> ownedTokens) {
     var itemIndent = indent + SpaceTab;
     var commaIndent = indent;
 
@@ -763,14 +763,14 @@ public class TokenNewIndentCollector : TopDownVisitor<int> {
     return true;
   }
 
-  public bool SetIndentCases(int indent, IEnumerable<IOrigin> ownedTokens, Action indentInside) {
+  public bool SetIndentCases(int indent, IEnumerable<Token> ownedTokens, Action indentInside) {
     var caseIndent = indent;
     var afterArrowIndent = indent + SpaceTab;
     var decreasesElemIndent = indent + SpaceTab + SpaceTab;
     var commaIndent = decreasesElemIndent;
     // Need to ensure that the "case" is at least left aligned with the match/if/while keyword
     IOrigin decisionToken = null;
-    var allTokens = ownedTokens as IOrigin[] ?? ownedTokens.ToArray();
+    var allTokens = ownedTokens as Token[] ?? ownedTokens.ToArray();
     foreach (var token in allTokens) {
       if (SetIndentLabelTokens(token, indent)) {
         continue;
@@ -856,7 +856,7 @@ public class TokenNewIndentCollector : TopDownVisitor<int> {
     return false;
   }
 
-  public bool SetIndentVarDeclStmt(int indent, IEnumerable<IOrigin> ownedTokens, bool noLHS, bool isLetExpr) {
+  public bool SetIndentVarDeclStmt(int indent, IEnumerable<Token> ownedTokens, bool noLHS, bool isLetExpr) {
     var rightIndent = indent + SpaceTab;
     var commaIndent = indent + SpaceTab;
     var afterSemicolonIndent = indent;
@@ -926,7 +926,7 @@ public class TokenNewIndentCollector : TopDownVisitor<int> {
     return true;
   }
 
-  public bool SetIndentLabelTokens(IOrigin token, int indent) {
+  public bool SetIndentLabelTokens(Token token, int indent) {
     if (token.val == "label") {
       SetOpeningIndentedRegion(token, indent);
     } else if (token.val == ":" && token.Prev.Prev.val == "label") {
@@ -938,7 +938,7 @@ public class TokenNewIndentCollector : TopDownVisitor<int> {
     return true;
   }
 
-  public void SetIndentLikeLoop(IEnumerable<IOrigin> ownedTokens, Statement body, int indent) {
+  public void SetIndentLikeLoop(IEnumerable<Token> ownedTokens, Statement body, int indent) {
     var decreasesElemIndent = indent + SpaceTab;
     var commaIndent = indent + SpaceTab;
     var first = true;
@@ -1120,7 +1120,7 @@ public class TokenNewIndentCollector : TopDownVisitor<int> {
   ///                ^rightIndent
   ///           ^commaIndent
   /// 
-  public void SetAlign(int indent, IOrigin token, out int rightIndent, out int commaIndent) {
+  public void SetAlign(int indent, Token token, out int rightIndent, out int commaIndent) {
     SetIndentations(token, indent, indent);
     rightIndent = GetRightAlignIndentAfter(token, indent);
     commaIndent = GetNewTokenVisualIndent(token, indent) + token.val.Length - 1;
@@ -1136,7 +1136,7 @@ public class TokenNewIndentCollector : TopDownVisitor<int> {
   ///        ^ rightIndent
   /// else Z
   /// 
-  public void SetAlignOpen(IOrigin token, int indent) {
+  public void SetAlignOpen(Token token, int indent) {
     var rightIndent = GetRightAlignIndentAfter(token, indent);
     SetIndentations(token, indent, indent, rightIndent);
   }

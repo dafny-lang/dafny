@@ -387,7 +387,7 @@ public class Method : MethodOrFunction, TypeParameter.ParentType,
       return triviaFound;
     }
 
-    IOrigin? lastClosingParenthesis = null;
+    Token? lastClosingParenthesis = null;
     foreach (var token in OwnedTokens) {
       if (token.val == ")") {
         lastClosingParenthesis = token;

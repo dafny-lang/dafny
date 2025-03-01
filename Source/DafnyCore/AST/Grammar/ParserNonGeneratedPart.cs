@@ -485,7 +485,7 @@ public partial class Parser {
   // Indeed 'name' could be the last expression of an ensures clause, and the attribute
   // could belong to the next method declaration otherwise.
   bool IsAtCall() {
-    IOrigin pt = la;
+    Token pt = la;
     if (pt.val != "@") {
       return false;
     }

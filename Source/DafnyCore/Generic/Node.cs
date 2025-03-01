@@ -32,7 +32,7 @@ public abstract class Node : INode {
   private static readonly Regex StartDocstringExtractor =
     new Regex($@"/\*\*(?<multilinecontent>{TriviaFormatterHelper.MultilineCommentContent})\*/");
 
-  protected IReadOnlyList<IOrigin> OwnedTokensCache;
+  protected IReadOnlyList<Token> OwnedTokensCache;
 
   public virtual bool SingleFileToken => true;
   public Token StartToken => Origin?.StartToken;
@@ -72,7 +72,7 @@ public abstract class Node : INode {
   /// A token is owned by a node if it was used to parse this node,
   /// but is not owned by any of this Node's children
   /// </summary>
-  public IEnumerable<IOrigin> OwnedTokens {
+  public IEnumerable<Token> OwnedTokens {
     get {
       if (OwnedTokensCache != null) {
         return OwnedTokensCache;
@@ -89,7 +89,7 @@ public abstract class Node : INode {
         ToDictionary(g => g.Key, g => g.MaxBy(child => child.EndToken.pos).EndToken
       );
 
-      var result = new List<IOrigin>();
+      var result = new List<Token>();
       if (StartToken == null) {
         Contract.Assume(EndToken == null);
       } else {
