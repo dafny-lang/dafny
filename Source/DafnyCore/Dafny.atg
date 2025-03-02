@@ -1959,8 +1959,8 @@ FunctionDecl<DeclModifierData dmod, out Function/*!*/ f>
      if (isGhost) {
        foreach (var formal in formals) {
          if (formal.IsGhost) {
-           IOrigin t = formal.Origin;
-           IOrigin ghostToken = null;
+           var t = formal.EndToken;
+           Token ghostToken = null;
            while (t != null && t.val != "," && t.val != "(") {
             if (t.val == "ghost") {
               ghostToken = t;
@@ -2320,7 +2320,7 @@ AssignStatement<out Statement/*!*/ s>
      Expression e;
      AssignmentRhs r;
      BlockStmt proof = null;
-     Token operatorToken = Token.NoToken;
+     Location operatorToken = null;
      Token endTok = Token.NoToken;
      Token startToken = Token.NoToken;
      Attributes attrs = null;
@@ -2337,17 +2337,17 @@ AssignStatement<out Statement/*!*/ s>
                                    (. lhss.Add(e); .)
     { "," Lhs<out e>               (. lhss.Add(e); .)
     }
-    ( ":="                         (. operatorToken = t; .)
+    ( ":="                         (. operatorToken = t.ToLspLocation(); .)
       Rhs<out r>                   (. rhss.Add(r); .)
       { "," Rhs<out r>             (. rhss.Add(r); .)
       }
-    | ":|"                         (. operatorToken = t; .)
+    | ":|"                         (. operatorToken = t.ToLspLocation(); .)
       [ IF(la.kind == _assume)     /* an Expression can also begin with an "assume", so this says to resolve it to pick up any "assume" here */
         "assume"                      (. var tok = t; .)
         { Attribute<ref tokenAttrs> } (. suchThatAssume = new AttributedToken(tok, tokenAttrs); .)
       ]
       Expression<out suchThat, false, true>
-    | ":-"                         (. operatorToken = t; .)
+    | ":-"                         (. operatorToken = t.ToLspLocation(); .)
       [ IF(IsAssumeTypeKeyword(la))   /* an Expression can also begin with these keywords, so this says to resolve it to pick up the keyword here */
         ("expect"|"assert"|"assume")  (. var tok = t; .)
         { Attribute<ref tokenAttrs> } (. keywordToken = new AttributedToken(tok, tokenAttrs); .)
@@ -2372,7 +2372,7 @@ AssignStatement<out Statement/*!*/ s>
                                       SemErr(ErrorId.p_missing_semicolon, new SourceOrigin(startToken, t), "missing semicolon at end of statement");
                                    .)   
   )
-| ":-"                             (. operatorToken = t; startToken = t; .)
+| ":-"                             (. operatorToken = t.ToLspLocation(); startToken = t; .)
    [ IF(IsAssumeTypeKeyword(la))      /* an Expression can also begin with these keywords, so this says to resolve it to pick up the keyword here */
       ("expect"|"assert"|"assume")    (. var tok = t; .)
       { Attribute<ref tokenAttrs> }   (. keywordToken = new AttributedToken(tok, tokenAttrs); .)
@@ -2543,11 +2543,11 @@ VarDeclStatement<.out Statement/*!*/ s.>
        var lhsExprs = new List<Expression>();
        if (isGhost || (rhss.Count == 0 && exceptionRhs == null && suchThat == null)) { // explicitly ghost or no init
          foreach (var lhs in lhss) {
-           lhsExprs.Add(new IdentifierExpr(lhs.Center, lhs.Name));
+           lhsExprs.Add(new IdentifierExpr(lhs.Origin, lhs.Name));
          }
        } else { // not explicitly ghost, but with init - so auto-ghost
          foreach (var lhs in lhss) {
-           lhsExprs.Add(new AutoGhostIdentifierExpr(lhs.Center, lhs.Name) );
+           lhsExprs.Add(new AutoGhostIdentifierExpr(lhs.Origin, lhs.Name) );
          }
        }
        var rangeToken = new SourceOrigin(startToken, t);

@@ -19,7 +19,7 @@ public class SourceOrigin : IOrigin, IComparable<SourceOrigin> {
   public bool InclusiveEnd => endToken != null;
   public bool IncludesRange => true;
 
-  public SourceOrigin(Token startToken, Token? endToken, Token center) 
+  public SourceOrigin(Token startToken, Token? endToken, Token center)
     : this(startToken, endToken, center.ToLspLocation()) {
   }
 
@@ -28,7 +28,7 @@ public class SourceOrigin : IOrigin, IComparable<SourceOrigin> {
     this.endToken = endToken;
     StartToken = startToken;
     Center = center ?? new Location() {
-      Uri = DocumentUri.From(Uri), 
+      Uri = DocumentUri.From(Uri),
       Range = this.ToLspRange()
     };
   }

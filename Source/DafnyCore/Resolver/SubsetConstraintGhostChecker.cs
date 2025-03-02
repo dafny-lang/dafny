@@ -21,7 +21,7 @@ public class SubsetConstraintGhostChecker : ProgramTraverser {
     public override bool MessageCore(DafnyDiagnostic dafnyDiagnostic) {
       if (!Collected && dafnyDiagnostic.Level == ErrorLevel.Error) {
         FirstCollectedMessage = dafnyDiagnostic.Message;
-        FirstCollectedToken = dafnyDiagnostic.Token;
+        FirstCollectedToken = dafnyDiagnostic.Location;
         Collected = true;
       }
 

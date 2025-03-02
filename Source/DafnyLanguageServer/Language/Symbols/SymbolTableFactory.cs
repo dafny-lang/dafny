@@ -186,7 +186,7 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
         cancellationToken.ThrowIfCancellationRequested();
         base.Visit(expressionDotName);
         if (typeResolver.TryGetTypeSymbol(expressionDotName.Lhs, out var leftHandSideType)) {
-          RegisterDesignator(leftHandSideType, expressionDotName, expressionDotName.Center, expressionDotName.SuffixName);
+          RegisterDesignator(leftHandSideType, expressionDotName, expressionDotName.Origin, expressionDotName.SuffixName);
         }
       }
 

@@ -67,7 +67,7 @@ namespace DafnyPipeline.Test {
 
         if (reporter.HasErrors) {
           var error = reporter.AllMessagesByLevel[ErrorLevel.Error][0];
-          Assert.False(true, $"{error.Message}: line {error.Token.Range.Start.Line} col {error.Token.Range.Start.Character}");
+          Assert.False(true, $"{error.Message}: line {error.Location.Range.Start.Line} col {error.Location.Range.Start.Character}");
         }
 
         var firstToken = dafnyProgram.GetFirstTokenForUri(uri);
@@ -162,7 +162,7 @@ namespace DafnyPipeline.Test {
       ReportNotOwnedToken(programNotIndented, notOwnedToken, posToOwnerNode);
     }
 
-    private static void ReportNotOwnedToken(string programNotIndented, IOrigin notOwnedToken,
+    private static void ReportNotOwnedToken(string programNotIndented, Token notOwnedToken,
       Dictionary<int, List<INode>> posToOwnerNode) {
       var nextOwnedToken = notOwnedToken.Next;
       while (nextOwnedToken != null && !posToOwnerNode.ContainsKey(nextOwnedToken.pos)) {
@@ -183,8 +183,8 @@ namespace DafnyPipeline.Test {
       );
     }
 
-    private static IOrigin? GetFirstNotOwnedToken(IOrigin firstToken, HashSet<int> tokensWithoutOwner) {
-      IOrigin? notOwnedToken = firstToken;
+    private static Token? GetFirstNotOwnedToken(Token firstToken, HashSet<int> tokensWithoutOwner) {
+      Token? notOwnedToken = firstToken;
       while (notOwnedToken != null && !tokensWithoutOwner.Contains(notOwnedToken.pos)) {
         notOwnedToken = notOwnedToken.Next;
       }
@@ -192,7 +192,7 @@ namespace DafnyPipeline.Test {
       return notOwnedToken;
     }
 
-    private static HashSet<int> CollectTokensWithoutOwner(Program dafnyProgram, IOrigin firstToken,
+    private static HashSet<int> CollectTokensWithoutOwner(Program dafnyProgram, Token firstToken,
       out Dictionary<int, List<INode>> posToOwnerNode) {
       HashSet<int> tokensWithoutOwner = [];
       var posToOwnerNodeInner = new Dictionary<int, List<INode>>();

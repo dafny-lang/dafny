@@ -1,115 +1,10 @@
-
-using System;
 using System.Diagnostics.Contracts;
 using System.IO;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 
 namespace Microsoft.Dafny;
 
-/// <summary>
-/// Has one-indexed line and column fields
-/// </summary>
-public class Token : IOrigin {
-
-  public Token peekedTokens; // Used only internally by Coco when the scanner "peeks" tokens. Normally null at the end of parsing
-  public static readonly Token NoToken = new();
-  public static readonly Token Cli = new(1, 1);
-  public static readonly Token Ide = new(1, 1);
-  public string filename => Path.GetFileName(Filepath);
-
-  public Token() : this(0, 0) { }
-
-  [SyntaxConstructor]
-  public Token(int line, int col) {
-    this.line = line;
-    this.col = col;
-    this.val = "";
-  }
-
-  public bool IsSourceToken => this != NoToken;
-  public int kind { get; set; } // Used by coco, so we can't rename it to Kind
-
-  public bool IsInherited(ModuleDefinition m) {
-    return false;
-  }
-
-  public bool InclusiveEnd => true;
-  public bool IncludesRange => false;
-  public string ActualFilename => Filepath;
-  public string Filepath => Uri?.LocalPath;
-  public Uri Uri { get; set; }
-  public Token StartToken => this;
-  public Token EndToken => this;
-
-  public Location Center => this.ToLspLocation();
-
-  public int pos { get; set; } // Used by coco, so we can't rename it to Pos
-
-  /// <summary>
-  /// One-indexed
-  /// </summary>
-  public int col { get; set; } // Used by coco, so we can't rename it to Col
-
-  /// <summary>
-  /// One-indexed
-  /// </summary>
-  public int line { get; set; } // Used by coco, so we can't rename it to Line
-
-  public string val { get; set; } // Used by coco, so we can't rename it to Val
-
-  public string LeadingTrivia { get; set; } = "";
-
-  public string TrailingTrivia { get; set; } = "";
-
-  public Token Next { get; set; } // The next token
-
-  public Token Prev { get; set; } // The previous token
-
-  public bool IsValid => this.ActualFilename != null;
-
-  public SourceOrigin To(Token end) => new(this, end);
-
-  public IOrigin WithVal(string newVal) {
-    return new Token {
-      pos = pos,
-      col = col,
-      line = line,
-      Prev = Prev,
-      Next = Next,
-      Uri = Uri,
-      kind = kind,
-      val = newVal
-    };
-  }
-
-  public bool IsCopy => false;
-
-  public int CompareTo(Boogie.IToken other) {
-    if (line != other.line) {
-      return line.CompareTo(other.line);
-    }
-    return col.CompareTo(other.col);
-  }
-
-  public override int GetHashCode() {
-    return pos;
-  }
-
-  public override string ToString() {
-    return $"'{val}': {Path.GetFileName(Filepath)}@{pos} - @{line}:{col}";
-  }
-
-  public int CompareTo(IOrigin other) {
-    if (line != other.line) {
-      return line.CompareTo(other.line);
-    }
-    return col.CompareTo(other.col);
-  }
-}
-
 public static class TokenExtensions {
-
-
   public static DafnyRange ToDafnyRange(this IOrigin origin, bool includeTrailingWhitespace = false) {
     var startLine = origin.StartToken.line - 1;
     var startColumn = origin.StartToken.col - 1;
@@ -203,10 +98,6 @@ public class NestedOrigin : OriginWrapper {
   public IOrigin Outer { get { return WrappedToken; } }
   public readonly IOrigin Inner;
   public readonly string Message;
-
-  public override IOrigin WithVal(string newVal) {
-    return this;
-  }
 }
 
 /// <summary>
@@ -223,10 +114,6 @@ public class QuantifiedVariableDomainOrigin : OriginWrapper {
     get { return WrappedToken.val; }
     set { WrappedToken.val = value; }
   }
-
-  public override IOrigin WithVal(string newVal) {
-    return new QuantifiedVariableDomainOrigin((WrappedToken.WithVal(newVal)));
-  }
 }
 
 /// <summary>
@@ -242,9 +129,5 @@ public class QuantifiedVariableRangeOrigin : OriginWrapper {
   public override string val {
     get { return WrappedToken.val; }
     set { WrappedToken.val = value; }
-  }
-
-  public override IOrigin WithVal(string newVal) {
-    return new QuantifiedVariableRangeOrigin(WrappedToken.WithVal(newVal));
   }
 }

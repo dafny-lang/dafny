@@ -45,13 +45,13 @@ public class RangeComparer : IComparer<Range> {
   }
 }
 
-public record DafnyDiagnostic(MessageSource Source, string ErrorId, Location? Token, string Message, ErrorLevel Level,
+public record DafnyDiagnostic(MessageSource Source, string ErrorId, Location? Location, string Message, ErrorLevel Level,
   IReadOnlyList<DafnyRelatedInformation> RelatedInformation) : IComparable<DafnyDiagnostic> {
   public int CompareTo(DafnyDiagnostic? other) {
     if (other == null) {
       return 1;
     }
-    var r0 = LocationComparer.Instance.Compare(Token, other.Token);
+    var r0 = LocationComparer.Instance.Compare(Location, other.Location);
     if (r0 != 0) {
       return r0;
     }
@@ -75,26 +75,26 @@ public record DafnyDiagnostic(MessageSource Source, string ErrorId, Location? To
   }
 }
 
-class OriginCenterComparer : IComparer<IOrigin> {
-  public static readonly OriginCenterComparer Instance = new();
-
-  public int Compare(IOrigin? x, IOrigin? y) {
-    if (x == null) {
-      return -1;
-    }
-
-    if (y == null) {
-      return 1;
-    }
-
-    if (x is NestedOrigin nestedX && y is NestedOrigin nestedY) {
-      var outer = Compare(nestedX.Outer, nestedY.Outer);
-      if (outer != 0) {
-        return outer;
-      }
-
-      return Compare(nestedX.Inner, nestedY.Inner);
-    }
-    return x.Center.CompareTo(y.Center);
-  }
-}
+// class OriginCenterComparer : IComparer<IOrigin> {
+//   public static readonly OriginCenterComparer Instance = new();
+//
+//   public int Compare(IOrigin? x, IOrigin? y) {
+//     if (x == null) {
+//       return -1;
+//     }
+//
+//     if (y == null) {
+//       return 1;
+//     }
+//
+//     if (x is NestedOrigin nestedX && y is NestedOrigin nestedY) {
+//       var outer = Compare(nestedX.Outer, nestedY.Outer);
+//       if (outer != 0) {
+//         return outer;
+//       }
+//
+//       return Compare(nestedX.Inner, nestedY.Inner);
+//     }
+//     return x.Center.CompareTo(y.Center);
+//   }
+// }

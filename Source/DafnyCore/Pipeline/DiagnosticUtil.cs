@@ -11,7 +11,7 @@ public static class DiagnosticUtil {
       Code = dafnyDiagnostic.ErrorId,
       Severity = ToSeverity(dafnyDiagnostic.Level),
       Message = dafnyDiagnostic.Message,
-      Range = dafnyDiagnostic.Token.Range,
+      Range = dafnyDiagnostic.Location.Range,
       Source = dafnyDiagnostic.Source.ToString(),
       RelatedInformation = dafnyDiagnostic.RelatedInformation.Select(r =>
         new DiagnosticRelatedInformation {

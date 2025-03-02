@@ -105,10 +105,10 @@ public class ModuleExportDecl : ModuleDecl, ICanFormat {
     }
 
     var tentativeTrivia = "";
-    if (Center.pos < EndToken.pos) {
-      tentativeTrivia = (Center.TrailingTrivia + Center.Next?.LeadingTrivia).Trim();
+    if (StartToken.pos < EndToken.pos) { // TODO used to be Center
+      tentativeTrivia = (StartToken.TrailingTrivia + StartToken.Next?.LeadingTrivia).Trim();
     } else {
-      tentativeTrivia = Center.TrailingTrivia.Trim();
+      tentativeTrivia = StartToken.TrailingTrivia.Trim();
     }
     if (tentativeTrivia != "") {
       return tentativeTrivia;

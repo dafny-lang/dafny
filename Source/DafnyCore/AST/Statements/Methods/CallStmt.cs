@@ -5,74 +5,6 @@ using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 
 namespace Microsoft.Dafny;
 
-/// <summary>
-/// This class temporarily exists to retain old behavior
-/// When it comes to where errors are reported.
-///
-/// For function calls, the following location is used to report precondition failures:
-/// 
-/// someFunction(x, y);
-/// ^           ^
-/// old     future
-///
-/// For assertions, when the condition does not hold
-/// assert P(x)
-/// ^       ^
-/// future  old
-/// </summary>
-class OverrideCenter : OriginWrapper {
-  public OverrideCenter(IOrigin wrappedToken, IOrigin newCenter) : base(wrappedToken) {
-    this.Center = newCenter.Center;
-  }
-
-  public override Location Center { get; }
-
-  public override IOrigin WithVal(string newVal) {
-    throw new System.NotImplementedException();
-  }
-
-  // public override int col {
-  //   get => Center.col;
-  //   set => throw new System.NotImplementedException();
-  // }
-  //
-  // public override int line {
-  //   get => Center.line;
-  //   set => throw new System.NotImplementedException();
-  // }
-  //
-  // public override int pos {
-  //   get => Center.pos;
-  //   set => throw new System.NotImplementedException();
-  // }
-  //
-  // public override string val {
-  //   get => Center.val;
-  //   set => throw new System.NotImplementedException();
-  // }
-  //
-  // public override string LeadingTrivia {
-  //   get => Center.LeadingTrivia;
-  //   set => throw new System.NotImplementedException();
-  // }
-  //
-  // public override string TrailingTrivia {
-  //   get => Center.TrailingTrivia;
-  //   set => throw new System.NotImplementedException();
-  // }
-  //
-  // public override Token Next {
-  //   get => Center.Next;
-  //   set => throw new System.NotImplementedException();
-  // }
-  //
-  // public override Token Prev {
-  //   get => Center.Prev;
-  //   set => throw new System.NotImplementedException();
-  // }
-}
-
-/// <summary>
 /// A CallStmt is always resolved.  It is typically produced as a resolved counterpart of the syntactic AST note ApplySuffix.
 /// </summary>
 public class CallStmt : Statement, ICloneable<CallStmt> {
@@ -102,7 +34,7 @@ public class CallStmt : Statement, ICloneable<CallStmt> {
     : base(
       /* it would be better if the correct rangeOrigin was passed in,
        then the parameter overrideToken would become obsolete */
-      new OverrideCenter(rangeOrigin, overrideToken ?? memSel.EndToken.Next)) {
+      new OverrideCenter(rangeOrigin, overrideToken ?? memSel.EndToken.Next.ToLspLocation())) {
     Contract.Requires(rangeOrigin != null);
     Contract.Requires(cce.NonNullElements(lhs));
     Contract.Requires(memSel != null);
