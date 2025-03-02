@@ -1833,7 +1833,10 @@ namespace Microsoft.Dafny {
                 }
               }
               if (allowMethodCall) {
-                Contract.Assert(!e.Bindings.WasResolved); // we expect that .Bindings has not yet been processed, so we use just .ArgumentBindings in the next line
+                Contract.Assert(!e.Bindings.WasResolved); // we expect that .Bindings has not yet been processed, so we use just .ArgumentBindings in the next lines
+                foreach (var binding in e.Bindings.ArgumentBindings) {
+                  ResolveExpression(binding.Actual, resolutionContext);
+                }
                 e.MethodCallInfo = new MethodCallInformation(e.Origin, mse, e.Bindings.ArgumentBindings);
                 return e.MethodCallInfo;
               } else {
