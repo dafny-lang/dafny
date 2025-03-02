@@ -24,6 +24,14 @@ public class AssignStatement : ConcreteAssignStatement, ICloneable<AssignStateme
 
   public override IEnumerable<Statement> PreResolveSubStatements => [];
 
+  public override IEnumerable<IdentifierExpr> GetAssignedLocals() {
+    foreach (var resolvedStmt in ResolvedStatements) {
+      foreach (var assignedLocal in resolvedStmt.GetAssignedLocals()) {
+        yield return assignedLocal;
+      }
+    }
+  }
+
   [ContractInvariantMethod]
   void ObjectInvariant() {
     Contract.Invariant(cce.NonNullElements(Lhss));
