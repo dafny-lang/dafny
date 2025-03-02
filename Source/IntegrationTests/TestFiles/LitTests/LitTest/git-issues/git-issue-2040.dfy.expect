@@ -1,0 +1,2 @@
+git-issue-2040.dfy(11,8): Error: wrong number of arguments (got 0, but datatype constructor 'B' expects 1: (c: C))
+1 resolution/type errors detected in git-issue-2040.dfy

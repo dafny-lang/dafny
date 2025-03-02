@@ -12,5 +12,7 @@ Datatypes.dfy(349,4): Error: missing case in match expression: Nil
 Datatypes.dfy(356,7): Error: missing case in match expression: Cons(_, _)
 Datatypes.dfy(356,7): Error: missing case in match expression: Nil
 Datatypes.dfy(377,21): Error: RHS is not certain to look like the pattern 'AAA'
+Datatypes.dfy(493,6): Error: assertion might not hold
+Datatypes.dfy(495,6): Error: assertion might not hold
 
-Dafny program verifier finished with 28 verified, 13 errors
+Dafny program verifier finished with 29 verified, 15 errors

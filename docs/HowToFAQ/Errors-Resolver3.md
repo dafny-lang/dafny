@@ -3,7 +3,7 @@
 
 <!-- FILE ./DafnyCore/Resolver/NameResolutionAndTypeInference.cs -->
 
-## **Error: newtypes must be based on some numeric type (got _type_)**
+## **Error: a newtype ('_type_') must be based on some non-reference, non-trait, non-arrow, non-ORDINAL, non-datatype type (got _type_)**
 
 ```dafny
 datatype D = A | B
@@ -26,7 +26,7 @@ of the newtype. This is different than, say, a set comprehension like
 `set i: int :: i*2` where the expression after the `::` gives the elements
 of the set directly.
 
-## **Error: subset-type constraint must be of type bool (instead got _type_)**
+## **Error: subset type constraint must be of type bool (instead got _type_)**
 
 ```dafny
 type T = i: int | i
@@ -40,6 +40,7 @@ of the set directly.
 
 ## **Error: witness expression must have type '_type_' (got '_type_')**
 
+<!-- %check-resolve %options --type-system-refresh=false --general-traits=legacy --general-newtypes=false -->
 ```dafny
 type T = i: int | 100 < i < 102 witness true
 ```
@@ -52,7 +53,7 @@ the witness may not be an expression of some different type.
 
 <!-- 2 instances -->
 
-## **Error: the argument of a unary minus must have numeric or bitvector type (instead got _type_)**
+## **Error: type of unary - must be of a numeric or bitvector type (instead got _type_)**
 
 ```dafny
 datatype D = A | B
@@ -139,7 +140,7 @@ _This error message is not yet documented. Please report any source code that pr
 const d := [4.0, 6]
 ```
 
-## **Error: All domain elements of map display must have some common supertype (got _type_, but needed type or type of previous elements is _type_)**
+## **Error: All elements of display must have some common supertype (got _type_, but needed type or type of previous elements is _type_)**
 
 ```dafny
 const d := map[2 := 3, 4.0 := 6]
@@ -148,7 +149,7 @@ const d := map[2 := 3, 4.0 := 6]
 A map display associates a number of domain values with corresponding range values using the syntax _domain value_ := _range value_. 
 All the domain values must have the same type or a common supertype.
 
-## **Error: All range elements of map display must have some common supertype (got _type_, but needed type or type of previous elements is _type_)**
+## **Error: All elements of display must have some common supertype (got _type_, but needed type or type of previous elements is _type_)**
 
 ```dafny
 const d := map[2 := 3, 4 := 6.0 ]
@@ -323,6 +324,7 @@ from `nat` to values of the element type of the sequence.
 
 ## **Error: sequence-construction initializer expression expected to have type '_type_' (instead got '_type_')_hint_**
 
+<!-- %check-resolve %options --type-system-refresh=false --general-traits=legacy --general-newtypes=false -->
 ```dafny
 const s := seq(10, 20)
 ```
@@ -423,6 +425,7 @@ corresponding to their unicode value.
 
 ## **Error: type conversion to a real-based type is allowed only from numeric and bitvector types, char, and ORDINAL (got _type_)**
 
+<!-- %check-resolve %options --type-system-refresh=false --general-traits=legacy --general-newtypes=false -->
 ```dafny
 const x: real := true as real
 ```
@@ -466,7 +469,7 @@ Not all pairs of types have implicit or even explicit conversions. But there are
 to the ORDINAL type from numeric types. Even `char` values have an integer representation and 
 ORDINAL value corresponding to their unicode value.
 
-## **Error: type cast to reference type '_type_' must be from an expression assignable to it (got '_type_')**
+## **Error: type cast to reference type '_type_' must be from an expression of a compatible type (got '_type_')**
 
 ```dafny
 method m(i: int) {
@@ -478,7 +481,7 @@ The Dafny `as` is a type cast. But Dafny only allows such casts (or checks with 
 be cast from one to the other. In this case, something that is not a reference type is attempting to be cast
 to a type that is a reference type.
 
-## **Error: type conversions are not supported to this type (got _type_)**
+## **Error: type cast to type '_type_' must be from an expression of a compatible type (got '_type_')**
 
 ```dafny
 datatype D = A | B
@@ -507,6 +510,7 @@ a datatype type is not allowed.
 
 ## **Error: first argument to _op_ must be of type bool (instead got _type_)**
 
+<!-- %check-resolve %options --type-system-refresh=false --general-traits=legacy --general-newtypes=false -->
 ```dafny
 const b := true
 const i := 4
@@ -518,6 +522,7 @@ Dafny does not have any implicit conversion to or from `bool` values.
 
 ## **Error: second argument to _op_ must be of type bool (instead got _type_)**
 
+<!-- %check-resolve %options --type-system-refresh=false --general-traits=legacy --general-newtypes=false -->
 ```dafny
 const b := true
 const i := 4
@@ -529,6 +534,7 @@ Dafny does not have any implicit conversion to or from `bool` values.
 
 ## **Error: range of quantified variable must be of type bool (instead got _type_)**
 
+<!-- %check-resolve %options --type-system-refresh=false --general-traits=legacy --general-newtypes=false -->
 ```dafny
 function f(i: set<int>): set<int> { set k: int <- i |  true || k  }
 ```
@@ -540,6 +546,7 @@ when it is not a `bool`, this error message occurs.
 
 ## **Error: arguments must have comparable types (got _type_ and _type_)**
 
+<!-- %check-resolve %options --type-system-refresh=false --general-traits=legacy --general-newtypes=false -->
 ```dafny
 datatype D = D()
 const z := 0 == D()
@@ -600,7 +607,7 @@ For example, two different int-based subtypes would be converted to int, or two 
 classes that extend the same trait could be converted to values of that trait.
 Where Dafny cannot determine such a common supertype, the comparison is illegal and this error message results.
 
-## **Error: arguments to _op_ must be of a numeric type, bitvector type, ORDINAL, char, a sequence type, or a set-like type (instead got _type_ and _type_)**
+## **Error: arguments to _op_ must be of a numeric type, bitvector type, ORDINAL, char, a sequence type, or a set-like type (instead got _type_)**
 
 ```dafny
 const x: map<int,int>
@@ -614,7 +621,7 @@ But they are not used for comparing maps or reference values.
 
 <!-- 2 instances -->
 
-## **Error: type of _op_ must be a bitvector type (instead got _type_)**
+## **Error: type of _op_ must be of a bitvector type (instead got _type_)**
 
 ```dafny
 const z :=  0 << 1
@@ -655,6 +662,7 @@ But not for all types. There is no `+` for datatypes or references, for example.
 
 ## **Error: type of left argument to + (_type_) must agree with the result type (_type_)**
 
+<!-- %check-resolve %options --type-system-refresh=false --general-traits=legacy --general-newtypes=false -->
 ```dafny
 const z := 0 + {1}
 ```
@@ -673,7 +681,7 @@ Though the `+` operand applies to many of Dafny's types, the left- and right- op
 the same type or convertible to the same type. For example, there is no conversion from a type to a 
 collection of that type.
 
-## **Error: type of - must be of a numeric type, bitvector type, ORDINAL, char, or a set-like or map-like type (instead got _type_)**
+## **Error: type of - must be of a numeric type, a bitvector type, ORDINAL, char, or a set-like or map-like type (instead got _type_)**
 
 ```dafny
 datatype D = D()
@@ -687,6 +695,7 @@ But not for all types. There is no `-` for datatypes or references, for example.
 
 ## **Error: type of left argument to - (_type_) must agree with the result type (_type_)**
 
+<!-- %check-resolve %options --type-system-refresh=false --general-traits=legacy --general-newtypes=false -->
 ```dafny
 const z := 0 - {1}
 ```
@@ -738,7 +747,7 @@ Typically the result of the expression is determined by the left operand.
 This message then is stating that the right operand has a different type.
 
 
-## **Error: second argument to _op_ must be a set, multiset, or sequence with elements of type _type_, or a map with domain _type_ (instead got _type_)**
+## **Error: second argument to _op_ must be a set, a multiset, a sequence with elements of type int, or a map with domain int (instead got _type_)**
 
 ```dafny
 function ff(i: int, j: real): bool { i in j }
@@ -751,6 +760,7 @@ is deprecated in favor of `i in m.Keys`,
 
 ## **Error: domain of quantified variable must be a set, multiset, or sequence with elements of type _type_, or a map with domain _type_ (instead got _type_)**
 
+<!-- %check-resolve %options --type-system-refresh=false --general-traits=legacy --general-newtypes=false -->
 ```dafny
 function f(i: int): set<bool> { set k <- i |  k }
 ```

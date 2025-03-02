@@ -142,7 +142,7 @@ public abstract class Statement : RangeNode, IAttributeBearingDeclaration {
   /// </summary>
   public static Statement StripByBlocks(Statement stmt) {
     while (stmt is BlockByProofStmt blockByProofStmt) {
-      stmt = blockByProofStmt;
+      stmt = blockByProofStmt.Body;
     }
     return stmt;
   }

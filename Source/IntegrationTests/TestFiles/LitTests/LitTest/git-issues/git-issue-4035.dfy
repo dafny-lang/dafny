@@ -4,7 +4,7 @@
 module ConstInTrait {
   type ReallyEmpty = x: int | false witness *
 
-  trait UnimplementableTrait {
+  trait UnimplementableTrait extends object {
     const x: ReallyEmpty
   }
 

@@ -289,6 +289,14 @@ namespace Microsoft.Dafny {
           }
         case LiteralExpr:
           CheckResultToBeInType(expr.Origin, expr, expr.Type, locals, builder, etran);
+          if (expr is StringLiteralExpr stringLiteralExpr) {
+            var ancestorSeqType = (SeqType)expr.Type.NormalizeToAncestorType();
+            var elementType = ancestorSeqType.Arg;
+            foreach (var ch in Util.UnescapedCharacters(options, (string)stringLiteralExpr.Value, stringLiteralExpr.IsVerbatim)) {
+              var rawElement = FunctionCall(GetToken(stringLiteralExpr), BuiltinFunction.CharFromInt, null, Boogie.Expr.Literal(ch));
+              CheckSubrange(expr.Origin, rawElement, Type.Char, elementType, expr, builder);
+            }
+          }
           break;
         case ThisExpr:
         case WildcardExpr:

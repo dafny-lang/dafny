@@ -124,6 +124,14 @@ class PreTypeToTypeVisitor : ASTVisitor<IASTVisitorContext> {
         VisitPattern(lhs, context);
       }
     } else if (expr is DatatypeValue datatypeValue) {
+      // If the datatype has no type parameters, then .InferredTypeArgs.Count == .InferredPreTypeArgs.Count == 0.
+      // If it has type parameters, say n of them, then:
+      //     with Ctor(args),                 .InferredTypeArgs.Count == 0 and .InferredPreTypeArgs.Count == n
+      //     with Dt<TArgs>.Ctor(args),       .InferredTypeArgs.Count == .InferredPreTypeArgs.Count == n
+      //     with Dt.Ctor(args),              .InferredTypeArgs.Count == .InferredPreTypeArgs.Count == n where the .InferredTypeArgs are
+      //                                      all InferredTypeProxy's.
+      // Note that "TArgs" may contain types whose type arguments are InferredTypeProxy's; this happens if a type argument
+      // in "TArgs" is given without its arguments
       Contract.Assert(datatypeValue.InferredTypeArgs.Count == 0 || datatypeValue.InferredTypeArgs.Count == datatypeValue.InferredPreTypeArgs.Count);
       if (datatypeValue.InferredTypeArgs.Any(typeArg => typeArg is InferredTypeProxy)) {
         Contract.Assert(datatypeValue.InferredTypeArgs.All(typeArg => typeArg is InferredTypeProxy));
@@ -132,15 +140,15 @@ class PreTypeToTypeVisitor : ASTVisitor<IASTVisitorContext> {
       Contract.Assert(datatypeValue.InferredPreTypeArgs.Count == datatypeDecl.TypeArgs.Count);
 
       for (var i = 0; i < datatypeDecl.TypeArgs.Count; i++) {
-        var formal = datatypeDecl.TypeArgs[i];
         var actualPreType = datatypeValue.InferredPreTypeArgs[i];
         if (i < datatypeValue.InferredTypeArgs.Count) {
           var givenTypeOrProxy = datatypeValue.InferredTypeArgs[i];
           PreType2TypeUtil.Combine(givenTypeOrProxy, actualPreType, givenTypeOrProxy is TypeProxy);
         } else {
-          datatypeValue.InferredTypeArgs.Add(PreType2TypeUtil.PreType2RefinableType(actualPreType, formal.Variance));
+          datatypeValue.InferredTypeArgs.Add(PreType2TypeUtil.PreType2RefinableType(actualPreType));
         }
       }
+
     } else if (expr is ConversionExpr conversionExpr) {
       PreType2TypeUtil.Combine(conversionExpr.ToType, conversionExpr.PreType, false);
       expr.Type = conversionExpr.ToType;
@@ -190,7 +198,7 @@ class PreTypeToTypeVisitor : ASTVisitor<IASTVisitorContext> {
     }
 
     // Case: refinement-wrapper pre-type type
-    expr.UnnormalizedType = PreType2TypeUtil.PreType2RefinableType(expr.PreType, TypeParameter.TPVariance.Co);
+    expr.UnnormalizedType = PreType2TypeUtil.PreType2RefinableType(expr.PreType);
   }
 
   private void VisitPattern<VT>(CasePattern<VT> casePattern, IASTVisitorContext context) where VT : class, IVariable {
