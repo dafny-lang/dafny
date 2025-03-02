@@ -605,6 +605,8 @@ namespace Microsoft.Dafny {
       } else {
         Contract.Assert(rhs is HavocRhs);
       }
+
+      ResolveAttributes(rhs, resolutionContext, false);
     }
 
     /// <summary>
@@ -640,8 +642,6 @@ namespace Microsoft.Dafny {
         if (isEffectful && firstEffectfulRhs == null) {
           firstEffectfulRhs = rhs.Origin;
         }
-
-        ResolveAttributes(rhs, resolutionContext, false);
       }
 
       // figure out what kind of UpdateStmt this is

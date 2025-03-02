@@ -19,4 +19,4 @@ Basics.dfy(474,4): Error: assertion might not hold
 Basics.dfy(476,2): Error: assertion might not hold
 Basics.dfy(623,17): Error: result of operation might violate newtype constraint for 'int8'
 
-Dafny program verifier finished with 52 verified, 20 errors
+Dafny program verifier finished with 53 verified, 20 errors

@@ -697,4 +697,18 @@ module VarScopes {
       value as real
     }
   }
+
+  function ExpectInt(x: int): bv19 {
+    3
+  }
+
+  method TestScopingOfAttribute(p: int, q: int, r: int, s: int) returns (outcome: Outcome)
+  {
+    // In the following, the newly introduced variable is not supposed to be in scope in the attribute
+    var p := Int2Real(p) {:myAttr ExpectInt(p)};
+    var q := Int2Real(q) {:myAttr ExpectInt(q)};
+    var r := r as real {:myAttribute ExpectInt(r)};
+    var s :- Success(s) {:myAttribute ExpectInt(s)};
+    outcome := Success(100);
+  }
 }
