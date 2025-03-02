@@ -1795,8 +1795,8 @@ namespace Microsoft.Dafny {
               Contract.Assert(callee.Ins.Count == rr.Args.Count);  // this should have been checked already
             }
             // further bookkeeping
-            if (callee is ExtremePredicate) {
-              ((ExtremePredicate)callee).Uses.Add(rr);
+            if (callee is ExtremePredicate extremePredicateCallee) {
+              extremePredicateCallee.Uses.Add(rr);
             }
             r = rr;
             ResolveExpression(r, resolutionContext);
@@ -1817,13 +1817,13 @@ namespace Microsoft.Dafny {
         } else {
           // e.Lhs is used as if it were a function value, but it isn't
           var lhs = e.Lhs.Resolved;
-          if (lhs != null && lhs.PreType is PreTypePlaceholderModule) {
+          if (lhs is { PreType: PreTypePlaceholderModule }) {
             ReportError(e.Origin, "name of module ({0}) is used as a function", ((ResolverIdentifierExpr)lhs).Decl.Name);
-          } else if (lhs != null && lhs.PreType is PreTypePlaceholderType) {
+          } else if (lhs is { PreType: PreTypePlaceholderType }) {
             var ri = (ResolverIdentifierExpr)lhs;
             ReportError(e.Origin, "name of {0} ({1}) is used as a function", ri.Decl.WhatKind, ri.Decl.Name);
           } else {
-            if (lhs is MemberSelectExpr mse && mse.Member is Method) {
+            if (lhs is MemberSelectExpr { Member: Method } mse) {
               if (atLabel != null) {
                 Contract.Assert(mse != null); // assured by the parser
                 if (mse.Member is TwoStateLemma) {
