@@ -86,7 +86,7 @@ public class SourceOrigin : IOrigin, IComparable<SourceOrigin> {
   public static IOrigin NoToken => Token.NoToken;
   private readonly Token? endToken;
 
-  public Location Center {
+  public Location? Center {
     get;
   }
   public string TrailingTrivia {

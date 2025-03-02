@@ -91,12 +91,12 @@ public class ProofDependencyWarnings {
     var usedDependencies =
       coveredElements
         .Select(manager.GetFullIdDependency)
-        .OrderBy(dep => dep.Range.Center)
+        .OrderBy(dep => dep.Range.Center.Range.Start)
         .ThenBy(dep => dep.Description);
     var unusedDependencies =
       potentialDependencies
         .Except(usedDependencies)
-        .OrderBy(dep => dep.Range.Center)
+        .OrderBy(dep => dep.Range.Center.Range.Start)
         .ThenBy(dep => dep.Description).ToList();
 
     foreach (var unusedDependency in unusedDependencies) {
