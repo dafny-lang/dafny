@@ -1,4 +1,5 @@
 ﻿using System;
+using JetBrains.Annotations;
 using Microsoft.Dafny.LanguageServer.Workspace;
 using OmniSharp.Extensions.LanguageServer.Protocol;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
@@ -34,7 +35,11 @@ namespace Microsoft.Dafny {
     public static Range ToLspRange(this IOrigin range) {
       return range.ToDafnyRange().ToLspRange();
     }
+    [CanBeNull]
     public static Location ToLspLocation(this Token range) {
+      if (range.Uri == null) {
+        return null;
+      }
       return new Location() {
         Uri = DocumentUri.From(range.Uri),
         Range = range.ToLspRange()

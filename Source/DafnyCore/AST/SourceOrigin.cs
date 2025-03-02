@@ -27,10 +27,13 @@ public class SourceOrigin : IOrigin, IComparable<SourceOrigin> {
   public SourceOrigin(Token startToken, Token? endToken, Location? center = null) {
     this.endToken = endToken;
     StartToken = startToken;
-    Center = center ?? new Location() {
-      Uri = DocumentUri.From(Uri),
-      Range = this.ToLspRange()
-    };
+    Center = center;
+    if (Center == null && Uri != null) {
+      Center = new Location {
+        Uri = DocumentUri.From(Uri),
+        Range = this.ToLspRange()
+      };
+    }
   }
 
   public int CompareTo(IToken? other) {
