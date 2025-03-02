@@ -312,7 +312,7 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
           moduleSymbol,
           moduleSymbol.Declaration.Origin,
           moduleSymbol.Declaration.NavigationToken.GetLspRange(),
-          moduleSymbol.Declaration.Origin.ToLspRange()
+          moduleSymbol.Declaration.Origin.Center?.Range
         );
         VisitChildren(moduleSymbol);
         return Unit.Value;

@@ -109,7 +109,7 @@ Send notifications about the verification status of each line in the program.
                 Attributes.Contains(member.Attributes, "only"));
               AddAndPossiblyMigrateVerificationTree(verificationTree);
               if (member is Function { ByMethodBody: { } } function) {
-                var verificationTreeRangeByMethod = function.ByMethodBody.Origin.ToLspRange();
+                var verificationTreeRangeByMethod = function.ByMethodBody.Origin.Center.Range;
                 var verificationTreeByMethod = new TopLevelDeclMemberVerificationTree(
                   "by method part of function",
                   member.Name,

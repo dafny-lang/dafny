@@ -45,7 +45,7 @@ public class RangeComparer : IComparer<Range> {
   }
 }
 
-public record DafnyDiagnostic(MessageSource Source, string ErrorId, Location? Location, string Message, ErrorLevel Level,
+public record DafnyDiagnostic(MessageSource Source, string? ErrorId, Location? Location, string Message, ErrorLevel Level,
   IReadOnlyList<DafnyRelatedInformation> RelatedInformation) : IComparable<DafnyDiagnostic> {
   public int CompareTo(DafnyDiagnostic? other) {
     if (other == null) {

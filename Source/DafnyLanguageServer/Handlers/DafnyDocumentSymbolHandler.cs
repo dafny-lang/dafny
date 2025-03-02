@@ -59,7 +59,7 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
         return children;
       }
 
-      var range = symbol.Origin.ToLspRange();
+      var range = symbol.Origin.ToLspRange2();
       return new DocumentSymbol[] {
         new() {
           Children = children,
@@ -67,7 +67,7 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
           Detail = documentation,
           Range = range,
           Kind = symbol.Kind.Value,
-          SelectionRange = symbol.NavigationToken == Token.NoToken ? range : symbol.NavigationToken.ToLspRange()
+          SelectionRange = symbol.NavigationToken == Token.NoToken ? range : symbol.NavigationToken.Center.Range
         }
       };
     }

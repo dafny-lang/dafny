@@ -31,7 +31,7 @@ public class SourceOrigin : IOrigin, IComparable<SourceOrigin> {
     if (Center == null && Uri != null) {
       Center = new Location {
         Uri = DocumentUri.From(Uri),
-        Range = this.ToLspRange()
+        Range = this.ToLspRange2()
       };
     }
   }

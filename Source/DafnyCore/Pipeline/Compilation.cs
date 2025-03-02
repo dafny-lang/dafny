@@ -14,6 +14,7 @@ using System.Threading.Tasks;
 using Microsoft.Boogie;
 using Microsoft.Dafny.Compilers;
 using Microsoft.Extensions.Logging;
+using OmniSharp.Extensions.LanguageServer.Protocol;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using VC;
 using VCGeneration;
@@ -374,14 +375,16 @@ public class Compilation : IDisposable {
 
       if (!onlyPrepareVerificationForGutterTests) {
         var groups = GroupOverlappingRanges(tasks).
-          OrderBy(g => g.Group.StartToken);
+          OrderBy(g => g.Group.Start);
         foreach (var tokenTasks in groups) {
           var functions = tokenTasks.Tasks.SelectMany(t => t.Split.HiddenFunctions.Select(f => f.tok).
             OfType<FromDafnyNode>().Select(n => n.Node).
-            OfType<Function>()).Distinct().OrderBy(f => f.Origin.Center);
+            OfType<Function>()).Distinct().OrderBy(f => f.Origin.Center.Range.Start);
           var hiddenFunctions = string.Join(", ", functions.Select(f => f.FullDafnyName));
           if (!string.IsNullOrEmpty(hiddenFunctions)) {
-            Reporter.Info(MessageSource.Verifier, tokenTasks.Group, $"hidden functions: {hiddenFunctions}");
+            Reporter.MessageCore(new DafnyDiagnostic(MessageSource.Verifier, null!,
+              new Location { Uri = DocumentUri.From(canVerify.Origin.Uri), Range = tokenTasks.Group },
+              $"hidden functions: {hiddenFunctions}", ErrorLevel.Info, []));
           }
         }
 
@@ -399,24 +402,24 @@ public class Compilation : IDisposable {
   }
 
 
-  public static IEnumerable<(IOrigin Group, List<IVerificationTask> Tasks)> GroupOverlappingRanges(IReadOnlyList<IVerificationTask> ranges) {
+  public static IEnumerable<(Range Group, List<IVerificationTask> Tasks)> GroupOverlappingRanges(IReadOnlyList<IVerificationTask> ranges) {
     if (!ranges.Any()) {
       return [];
     }
     var sortedTasks = ranges.OrderBy(r =>
       BoogieGenerator.ToDafnyToken(true, r.Token).StartToken).ToList();
-    var groups = new List<(IOrigin Group, List<IVerificationTask> Tasks)>();
+    var groups = new List<(Range Group, List<IVerificationTask> Tasks)>();
     var currentGroup = new List<IVerificationTask> { sortedTasks[0] };
-    var currentGroupRange = BoogieGenerator.ToDafnyToken(true, currentGroup[0].Token);
+    var currentGroupRange = BoogieGenerator.ToDafnyToken(true, currentGroup[0].Token).Center.Range;
 
     for (int i = 1; i < sortedTasks.Count; i++) {
       var currentTask = sortedTasks[i];
-      var currentTaskRange = BoogieGenerator.ToDafnyToken(true, currentTask.Token);
+      var currentTaskRange = BoogieGenerator.ToDafnyToken(true, currentTask.Token).Center.Range;
       bool overlapsWithGroup = currentGroupRange.Intersects(currentTaskRange);
 
       if (overlapsWithGroup) {
-        if (currentTaskRange.EndToken.pos > currentGroupRange.EndToken.pos) {
-          currentGroupRange = new SourceOrigin(currentGroupRange.StartToken, currentTaskRange.EndToken, currentGroupRange.Center);
+        if (currentTaskRange.End.Character > currentGroupRange.End.Character) {
+          currentGroupRange = new Range(currentGroupRange.Start, currentTaskRange.End);
         }
         currentGroup.Add(currentTask);
       } else {

@@ -32,9 +32,10 @@ namespace Microsoft.Dafny {
     /// <param name="startToken">The token to get the range of.</param>
     /// <param name="endToken">An optional other token to get the end of the range of.</param>
     /// <returns>The LSP range of the token.</returns>
-    public static Range ToLspRange(this IOrigin range) {
+    public static Range ToLspRange2(this IOrigin range) {
       return range.ToDafnyRange().ToLspRange();
     }
+    
     [CanBeNull]
     public static Location ToLspLocation(this Token range) {
       if (range.Uri == null) {
@@ -42,7 +43,7 @@ namespace Microsoft.Dafny {
       }
       return new Location() {
         Uri = DocumentUri.From(range.Uri),
-        Range = range.ToLspRange()
+        Range = range.ToLspRange2()
       };
     }
 

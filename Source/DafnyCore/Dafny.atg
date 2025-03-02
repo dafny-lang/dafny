@@ -4278,7 +4278,7 @@ NameSegment<out Expression e>
       AtCall<out atLabel, out openParen, out args> ]
   )
   /* Note, since HashCall updates id.val, we make sure not to use id.val until after the possibility of calling HashCall. */
-  (. e = new NameSegment(new SourceOrigin(id, t), id.val, typeArgs);
+  (. e = new NameSegment(new SourceOrigin(id, t, id), id.val, typeArgs);
      if (openParen != null) {
        e = new ApplySuffix(new SourceOrigin(id, t, openParen), atLabel, e, args, t);
      } else {
@@ -4293,7 +4293,7 @@ NameSegmentForTypeName<out Expression e, bool inExpressionContext>
 = (. Token id;  List<Type> typeArgs; .)
   Ident<out id>
   OptGenericInstantiation<out typeArgs, inExpressionContext>
-  (. e = new NameSegment(new SourceOrigin(id, t), id.val, typeArgs);
+  (. e = new NameSegment(new SourceOrigin(id, t, id), id.val, typeArgs);
   .)
   .
 

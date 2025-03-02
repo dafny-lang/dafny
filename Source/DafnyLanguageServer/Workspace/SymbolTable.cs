@@ -117,7 +117,7 @@ public class SymbolTable {
     if (navigationRanges.TryGetValue(uri, out var rangesForFile)) {
       return rangesForFile.Query(position).
         SelectMany(node => NodeToReferences.GetOrDefault(node, () => (ISet<IOrigin>)new HashSet<IOrigin>())).
-        Select(u => new Location { Uri = u.Filepath, Range = u.GetLspRange() }).Distinct();
+        Select(u => u.Center).Distinct();
     }
     return [];
   }
@@ -145,7 +145,7 @@ public class SymbolTable {
 
     var character = new Range(position, new Position(position.Line, position.Character + 1));
     var options = forFile.Query(position)
-      .Where(n => n.ToLspRange().Contains(character)).OrderBy(o => o.Length);
+      .Where(n => n.Center.Range.Contains(character)).OrderBy(o => o.Length);
     return options
       .Select(node => Declarations.TryGetValue(node, out var declaration)
         ? declaration : ReferenceToNode.GetValueOrDefault(node))
