@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 using System.Linq;
+using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 
 namespace Microsoft.Dafny;
 
@@ -20,55 +21,55 @@ namespace Microsoft.Dafny;
 /// future  old
 /// </summary>
 class OverrideCenter : OriginWrapper {
-  public OverrideCenter(IOrigin wrappedToken, Token newCenter) : base(wrappedToken) {
-    this.Center = newCenter;
+  public OverrideCenter(IOrigin wrappedToken, IOrigin newCenter) : base(wrappedToken) {
+    this.Center = newCenter.Center;
   }
 
-  public override Token Center { get; }
+  public override Location Center { get; }
 
   public override IOrigin WithVal(string newVal) {
     throw new System.NotImplementedException();
   }
 
-  public override int col {
-    get => Center.col;
-    set => throw new System.NotImplementedException();
-  }
-
-  public override int line {
-    get => Center.line;
-    set => throw new System.NotImplementedException();
-  }
-
-  public override int pos {
-    get => Center.pos;
-    set => throw new System.NotImplementedException();
-  }
-
-  public override string val {
-    get => Center.val;
-    set => throw new System.NotImplementedException();
-  }
-
-  public override string LeadingTrivia {
-    get => Center.LeadingTrivia;
-    set => throw new System.NotImplementedException();
-  }
-
-  public override string TrailingTrivia {
-    get => Center.TrailingTrivia;
-    set => throw new System.NotImplementedException();
-  }
-
-  public override Token Next {
-    get => Center.Next;
-    set => throw new System.NotImplementedException();
-  }
-
-  public override Token Prev {
-    get => Center.Prev;
-    set => throw new System.NotImplementedException();
-  }
+  // public override int col {
+  //   get => Center.col;
+  //   set => throw new System.NotImplementedException();
+  // }
+  //
+  // public override int line {
+  //   get => Center.line;
+  //   set => throw new System.NotImplementedException();
+  // }
+  //
+  // public override int pos {
+  //   get => Center.pos;
+  //   set => throw new System.NotImplementedException();
+  // }
+  //
+  // public override string val {
+  //   get => Center.val;
+  //   set => throw new System.NotImplementedException();
+  // }
+  //
+  // public override string LeadingTrivia {
+  //   get => Center.LeadingTrivia;
+  //   set => throw new System.NotImplementedException();
+  // }
+  //
+  // public override string TrailingTrivia {
+  //   get => Center.TrailingTrivia;
+  //   set => throw new System.NotImplementedException();
+  // }
+  //
+  // public override Token Next {
+  //   get => Center.Next;
+  //   set => throw new System.NotImplementedException();
+  // }
+  //
+  // public override Token Prev {
+  //   get => Center.Prev;
+  //   set => throw new System.NotImplementedException();
+  // }
 }
 
 /// <summary>
@@ -97,7 +98,7 @@ public class CallStmt : Statement, ICloneable<CallStmt> {
   public Expression Receiver => MethodSelect.Obj;
   public Method Method => (Method)MethodSelect.Member;
 
-  public CallStmt(IOrigin rangeOrigin, List<Expression> lhs, MemberSelectExpr memSel, List<ActualBinding> args, Token overrideToken = null)
+  public CallStmt(IOrigin rangeOrigin, List<Expression> lhs, MemberSelectExpr memSel, List<ActualBinding> args, Location overrideToken = null)
     : base(
       /* it would be better if the correct rangeOrigin was passed in,
        then the parameter overrideToken would become obsolete */

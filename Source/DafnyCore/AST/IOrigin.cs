@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 
 namespace Microsoft.Dafny;
 
@@ -30,7 +31,7 @@ public interface IOrigin : Microsoft.Boogie.IToken {
 
   Token StartToken { get; }
   Token EndToken { get; }
-  Token Center { get; }
+  Location Center { get; }
 
   /// <summary>
   /// TrailingTrivia contains everything after the token,

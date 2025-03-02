@@ -34,9 +34,9 @@ namespace Microsoft.Dafny {
     public static Range ToLspRange(this IOrigin range) {
       return range.ToDafnyRange().ToLspRange();
     }
-    public static Location ToLspLocation(this IOrigin range) {
+    public static Location ToLspLocation(this Token range) {
       return new Location() {
-        Uri = DocumentUri.From(range.Center.Uri),
+        Uri = DocumentUri.From(range.Uri),
         Range = range.ToLspRange()
       };
     }

@@ -81,10 +81,10 @@ public class DafnyJsonConsolePrinter : DafnyConsolePrinter {
   public override void WriteErrorInformation(VCGeneration.ErrorInformation errorInfo, TextWriter tw, bool skipExecutionTrace = true) {
     var related = errorInfo.Aux.Where(e =>
       !(skipExecutionTrace && (e.Category ?? "").Contains("Execution trace"))).Select(aei => new DafnyRelatedInformation(
-      BoogieGenerator.ToDafnyToken(false, aei.Tok).Center.ToLspLocation(), aei.FullMsg)).ToList();
+      BoogieGenerator.ToDafnyToken(false, aei.Tok).Center, aei.FullMsg)).ToList();
 
     new DiagnosticMessageData(MessageSource.Verifier, ErrorLevel.Error,
-      BoogieGenerator.ToDafnyToken(false, errorInfo.Tok).Center.ToLspLocation(), errorInfo.Category, errorInfo.Msg, related).WriteJsonTo(tw);
+      BoogieGenerator.ToDafnyToken(false, errorInfo.Tok).Center, errorInfo.Category, errorInfo.Msg, related).WriteJsonTo(tw);
     tw.Flush();
   }
 

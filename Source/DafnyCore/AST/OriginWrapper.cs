@@ -1,5 +1,6 @@
 using System;
 using System.Diagnostics.Contracts;
+using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 
 namespace Microsoft.Dafny;
 
@@ -33,7 +34,7 @@ public abstract class OriginWrapper : IOrigin {
 
   public virtual Token StartToken => WrappedToken.StartToken;
   public virtual Token EndToken => WrappedToken.EndToken;
-  public virtual Token Center => WrappedToken.Center;
+  public virtual Location Center => WrappedToken.Center;
 
   public bool IsValid {
     get { return WrappedToken.IsValid; }

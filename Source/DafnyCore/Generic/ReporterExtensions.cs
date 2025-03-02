@@ -36,7 +36,7 @@ public static class ErrorReporterExtensions {
 
     var dafnyToken = BoogieGenerator.ToDafnyToken(useRange, error.Tok);
 
-    var diagnostic = new DafnyDiagnostic(MessageSource.Verifier, null!, dafnyToken.Center.ToLspLocation(), error.Msg,
+    var diagnostic = new DafnyDiagnostic(MessageSource.Verifier, null!, dafnyToken.Center, error.Msg,
       ErrorLevel.Error, relatedInformation);
     reporter.MessageCore(diagnostic);
   }
@@ -68,7 +68,7 @@ public static class ErrorReporterExtensions {
 
     message ??= "this proposition could not be proved";
 
-    yield return new DafnyRelatedInformation(token.ToLspLocation(), message);
+    yield return new DafnyRelatedInformation(token.Center, message);
     if (inner != null) {
       foreach (var nestedInformation in CreateDiagnosticRelatedInformationFor(inner, newMessage, usingSnippets)) {
         yield return nestedInformation;

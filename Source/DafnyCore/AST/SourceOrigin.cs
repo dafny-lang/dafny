@@ -3,11 +3,14 @@ using System;
 using System.Collections;
 using System.Text;
 using Microsoft.Boogie;
+using OmniSharp.Extensions.LanguageServer.Protocol;
+using OmniSharp.Extensions.LanguageServer.Protocol.Models;
+using Range = OmniSharp.Extensions.LanguageServer.Protocol.Models.Range;
 
 namespace Microsoft.Dafny;
 
 public class SourceOrigin : IOrigin, IComparable<SourceOrigin> {
-  public Uri Uri => Center.Uri;
+  public Uri Uri => StartToken.Uri;
 
   public Token StartToken { get; }
 
@@ -16,11 +19,18 @@ public class SourceOrigin : IOrigin, IComparable<SourceOrigin> {
   public bool InclusiveEnd => endToken != null;
   public bool IncludesRange => true;
 
+  public SourceOrigin(Token startToken, Token? endToken, Token center) 
+    : this(startToken, endToken, center.ToLspLocation()) {
+  }
+
   [SyntaxConstructor]
-  public SourceOrigin(Token startToken, Token? endToken, Token? center = null) {
+  public SourceOrigin(Token startToken, Token? endToken, Location? center = null) {
     this.endToken = endToken;
     StartToken = startToken;
-    Center = center ?? startToken;
+    Center = center ?? new Location() {
+      Uri = DocumentUri.From(Uri), 
+      Range = this.ToLspRange()
+    };
   }
 
   public int CompareTo(IToken? other) {
@@ -73,26 +83,26 @@ public class SourceOrigin : IOrigin, IComparable<SourceOrigin> {
   public static IOrigin NoToken => Token.NoToken;
   private readonly Token? endToken;
 
-  public Token Center {
+  public Location Center {
     get;
   }
   public string TrailingTrivia {
-    get => Center.TrailingTrivia;
+    get => StartToken.TrailingTrivia;
     set => throw new InvalidOperationException();
   }
 
   public string LeadingTrivia {
-    get => Center.LeadingTrivia;
+    get => StartToken.LeadingTrivia;
     set => throw new InvalidOperationException();
   }
 
   public Token Next {
-    get => Center.Next;
+    get => StartToken.Next;
     set => throw new InvalidOperationException();
   }
 
   public Token Prev {
-    get => Center.Prev;
+    get => StartToken.Prev;
     set => throw new InvalidOperationException();
   }
 
@@ -104,27 +114,27 @@ public class SourceOrigin : IOrigin, IComparable<SourceOrigin> {
 
   public bool IsSourceToken => !ReferenceEquals(this, NoToken);
   public int kind {
-    get => Center.kind;
+    get => StartToken.kind;
     set => throw new NotImplementedException();
   }
 
   public int pos {
-    get => Center.pos;
+    get => StartToken.pos;
     set => throw new NotImplementedException();
   }
 
   public int col {
-    get => Center.col;
+    get => StartToken.col;
     set => throw new NotImplementedException();
   }
 
   public int line {
-    get => Center.line;
+    get => StartToken.line;
     set => throw new NotImplementedException();
   }
 
   public string val {
-    get => Center.val;
+    get => StartToken.val;
     set => throw new InvalidOperationException();
   }
 

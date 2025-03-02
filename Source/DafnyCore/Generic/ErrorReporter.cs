@@ -55,7 +55,7 @@ public abstract class ErrorReporter {
       );
     }
 
-    var dafnyDiagnostic = new DafnyDiagnostic(source, errorId!, rootTok.Center.ToLspLocation(), msg, level, relatedInformation);
+    var dafnyDiagnostic = new DafnyDiagnostic(source, errorId!, rootTok.Center, msg, level, relatedInformation);
     return MessageCore(dafnyDiagnostic);
   }
 

@@ -103,7 +103,7 @@ public class SubsetConstraintGhostChecker : ProgramTraverser {
             var message = $"{boundVar.Type} is a {declWithConstraints.WhatKind} and its constraint is not compilable, " +
                           $"hence it cannot yet be used as the type of a bound variable in {e.WhatKind}.";
             reporter.MessageCore(new DafnyDiagnostic(MessageSource.Resolver, null,
-              boundVar.Origin.Center.ToLspLocation(), message, ErrorLevel.Error, relatedInformation));
+              boundVar.Origin.Center, message, ErrorLevel.Error, relatedInformation));
           }
         }
       }
