@@ -149,7 +149,7 @@ namespace Microsoft.Dafny.Compilers {
       wr.WriteLine("from math import floor");
       wr.WriteLine("from itertools import count");
       // If (cacheConstVariablesCliFlag):
-      wr.WriteLine("import functools.lru_cache");
+      wr.WriteLine("from functools import lru_cache");
       wr.WriteLine();
       // Don't emit `import module_` for generated modules in the DafnyRuntimePython.
       // The DafnyRuntimePython doesn't have a module.py file, so the import isn't valid.
