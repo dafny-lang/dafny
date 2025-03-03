@@ -13,6 +13,7 @@ module Std.Actions {
   import opened Math
   import Collections.Seq
 
+  //
   // A composable imperative action.
   //
   // Specializes GenericAction to assume its behavior can be specified
@@ -87,8 +88,7 @@ module Std.Actions {
   // defining the protocol for using the action across time,
   // depending on what inputs and outputs occur.
   // All of the above cases are useful for precisely modeling behavior over time,
-  // and so this library provides explicity specializations for some common patterns
-  // (see Aggregators and Enumerators in particular)
+  // and so this library provides explicit specializations for some common patterns
   // but allows for basically any well-founded approach.
   //
   // === Specializations ===
@@ -96,17 +96,34 @@ module Std.Actions {
   // In practice, many actions fit into a more specific version of this concept.
   // See the other sibling files for some useful specializations:
   //
-  //     - IProducer<T> = Action<(), T> (consumes nothing, potentially produces infinite elements)
-  //     - Producer<T>  = Action<(), Option<T>> + proofs of eventually producing None (consumes nothing, can produce finite elements)
-  //     - IConsumer<T> = Action<T, ()> (consumes potentially infinite elements, produces nothing)
-  //     - Consumer<T>  = Action<T, boolean> + proofs of eventually producing false (can consume finite elements, produces nothing)
+  // TODO: ASCII Table?
   //
-  // These concepts are duals to each other (IProducer/IConsumer, and Producer/Consumer).
-  // The generic signatures of Producer and Consumer are not exact mirror-images
+  //     - Producer<T>    = Action<(), T>         (consumes nothing, must produce values if preconditions are met)
+  //     - DynProducer<T> = Action<(), Option<T>> (consumes nothing, may be eventually exhausted and output None)
+  //     - Consumer<T>    = Action<T, ()>         (produces nothing, must consume values if preconditions are met)
+  //     - DynConsumer<T> = Action<T, boolean>    (produces nothing, may be eventually exhausted and output false)
+  //
+  // These concepts are duals to each other (Producer/Consumer, and DynProducer/DynConsumer).
+  // The generic signatures of DynProducer and DynConsumer are not exact mirror-images
   // because in both cases they must produce an additional piece of boolean information
   // about whether they are "exhausted".
-  // In practice, the most common traits will usually be Producer and IConsumer. 
-  // That is, most data sources in real programs tend to produce finite elements, 
+  //
+  // Note that both Producers and DynProducers may produce infinite elements.
+  // If an action may only produce finite elements,
+  // DynProducer is usually a better fit
+  // as it can dynamically decide to stop producing values
+  // and only output None.
+  // A Producer by contrast has to produce a value if given ValidInput(),
+  // so if it can run out of values it has to express
+  // under what conditions in ValidInput().
+  // If an action will always produce infinite elements,
+  // such as a random number generator,
+  // then Producer is a better fit and avoids having to wrap every value
+  // in an Option<T>.
+  //
+  // In practice, the most common traits will usually be DynProducer and Consumer. 
+  // That is, most data sources in real programs tend to produce finite elements,
+  // and it's usually impractical and/or unnecessary to specify how many statically,
   // but most data sinks tend to have no constraints.
   //
   @AssumeCrossModuleTermination
@@ -457,71 +474,6 @@ module Std.Actions {
       ensures Action().ValidInput(history, next)
     {}
   }
-
-  // TODO: Move to Enumerators?
-  class FunctionalEnumerator<S, I> extends Action<(), Option<I>> {
-
-    const stepFn: S -> Option<(S, I)>
-    var state: S
-
-    ghost predicate Valid()
-      reads this, Repr
-      ensures Valid() ==> this in Repr
-      ensures Valid() ==> ValidHistory(history)
-      decreases height, 0
-    {
-      this in Repr
-    }
-
-    constructor(state: S, stepFn: S -> Option<(S, I)>) {
-      this.state := state;
-      this.stepFn := stepFn;
-    }
-
-    ghost predicate ValidInput(history: seq<((), Option<I>)>, next: ())
-      decreases height
-    {
-      true
-    }
-    ghost predicate ValidHistory(history: seq<((), Option<I>)>)
-      decreases height
-    {
-      true
-    }
-
-    method Invoke(i: ()) returns (o: Option<I>)
-      requires Requires(i)
-      reads Repr
-      modifies Modifies(i)
-      decreases Decreases(i).Ordinal()
-      ensures Ensures(i, o)
-    {
-      var next := stepFn(state);
-      match next {
-        case Some((newState, result')) =>
-          state := newState;
-          o := Some(result');
-        case None =>
-          o := None;
-      }
-      UpdateHistory(i, o);
-    }
-
-    method RepeatUntil(i: (), stop: Option<I> -> bool, ghost eventuallyStopsProof: ProducesTerminatedProof<(), Option<I>>)
-      requires Valid()
-      requires eventuallyStopsProof.Action() == this
-      requires eventuallyStopsProof.FixedInput() == i
-      requires eventuallyStopsProof.StopFn() == stop
-      requires forall i <- Inputs() :: i == i
-      reads Repr
-      modifies Repr
-      decreases Repr
-      ensures Valid()
-    {
-      DefaultRepeatUntil(this, i, stop, eventuallyStopsProof);
-    }
-  }
-
   class ComposedAction<I, M, O> extends Action<I, O> {
 
     const first: Action<I, M>
@@ -707,9 +659,7 @@ module Std.Actions {
       requires FirstAction().ValidHistory(firstHistory)
       requires SecondAction().ValidHistory(secondHistory)
       ensures ComposedValidHistory(composedHistory)
-    {
-
-    }
+    {}
 
     ghost predicate ComposedValidHistory(composedHistory: seq<(I, O)>): (result: bool)
       ensures composedHistory == [] ==> result
@@ -728,12 +678,12 @@ module Std.Actions {
     //   )
 
   // Other primitives/examples todo:
+  //  * CrossProduct(Dynproducer1, dynproducer2)
   //  * Promise-like single-use Action<I, ()> to capture a value for reading later
   //  * datatype/codatatype-based enumerations
   //  * How to state the invariant that a constructor as an action creates a new object every time?
   //    * Lemma that takes produced as input, instead of forall produced?
   //  * Expressing that an Action "Eventually produces something" (look at how VMC models this for randomness)
-  //    * IsEnumerator(a) == "a eventually produces None" && "a then only produces None"
   //    * Build on that to make CrossProduct(enumerable1, enumerable2)
   //  * Example of adapting an iterator
   //  * Example of enumerating all possible values of a type (for test generation)

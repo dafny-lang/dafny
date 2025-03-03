@@ -8,7 +8,7 @@ module Std.Streams {
 
   import opened Wrappers
   import opened Actions
-  import opened Enumerators
+  import opened Producers
   import opened BoundedInts
   import opened Collections.Seq
 
@@ -36,7 +36,7 @@ module Std.Streams {
   //    since it can't be augmented by sub-traits.
   //
   @AssumeCrossModuleTermination
-  trait ByteStream extends Enumerator<BoundedInts.bytes> {
+  trait ByteStream extends DynProducer<BoundedInts.bytes> {
 
     // The total length of all produced bytes
     function ContentLength(): (res: uint64)
@@ -110,11 +110,11 @@ module Std.Streams {
   }
 
   /*
-   * Wraps an Enumerator up as a non-rewindable DataStream.
+   * Wraps an DynProducer up as a non-rewindable DataStream.
    */
-  class EnumeratorDataStream extends ByteStream {
+  class DynProducerDataStream extends ByteStream {
 
-    const wrapped: Enumerator<BoundedInts.bytes>
+    const wrapped: DynProducer<BoundedInts.bytes>
     const length: uint64
 
     ghost predicate Valid()
@@ -143,7 +143,7 @@ module Std.Streams {
       wrapped.Limit()
     }
 
-    constructor(wrapped: Enumerator<BoundedInts.bytes>, length: uint64)
+    constructor(wrapped: DynProducer<BoundedInts.bytes>, length: uint64)
       requires wrapped.Valid()
       requires wrapped.history == []
       ensures Valid()

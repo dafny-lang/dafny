@@ -1,13 +1,13 @@
 
-module Std.Enumerators {
+module Std.Producers {
 
   import opened Actions
-  import opened Aggregators
+  import opened Consumers
   import opened Wrappers
   import opened Math
 
   @AssumeCrossModuleTermination
-  trait IProducer<T> extends Action<(), T> {}
+  trait Producer<T> extends Action<(), T> {}
 
   // A proof that a given action only produces
   // elements from a given set.
@@ -22,7 +22,7 @@ module Std.Enumerators {
       ensures Seq.ToSet(OutputsOf(history)) <= Set()
   }
 
-  class SetIProducer<T(==)> extends IProducer<T>, ProducesSetProof<T> {
+  class SetIProducer<T(==)> extends Producer<T>, ProducesSetProof<T> {
     ghost const original: set<T>
     var remaining: set<T>
 
@@ -133,12 +133,70 @@ module Std.Enumerators {
     }
   }
 
+  // TODO: FunctionalDynProducer too?
+  class FunctionalProducer<S, T> extends Producer<T> {
+
+    const stepFn: S -> (S, T)
+    var state: S
+
+    ghost predicate Valid()
+      reads this, Repr
+      ensures Valid() ==> this in Repr
+      ensures Valid() ==> ValidHistory(history)
+      decreases height, 0
+    {
+      this in Repr
+    }
+
+    constructor(state: S, stepFn: S -> (S, T)) {
+      this.state := state;
+      this.stepFn := stepFn;
+    }
+
+    ghost predicate ValidInput(history: seq<((), T)>, next: ())
+      decreases height
+    {
+      true
+    }
+    ghost predicate ValidHistory(history: seq<((), T)>)
+      decreases height
+    {
+      true
+    }
+
+    method Invoke(i: ()) returns (o: T)
+      requires Requires(i)
+      reads Repr
+      modifies Modifies(i)
+      decreases Decreases(i).Ordinal()
+      ensures Ensures(i, o)
+    {
+      var (newState, result') := stepFn(state);
+      state := newState;
+      o := result';
+
+      UpdateHistory(i, o);
+    }
+
+    method RepeatUntil(i: (), stop: T -> bool, ghost eventuallyStopsProof: ProducesTerminatedProof<(), T>)
+      requires Valid()
+      requires eventuallyStopsProof.Action() == this
+      requires eventuallyStopsProof.FixedInput() == i
+      requires eventuallyStopsProof.StopFn() == stop
+      requires forall i <- Inputs() :: i == i
+      reads Repr
+      modifies Repr
+      decreases Repr
+      ensures Valid()
+    {
+      DefaultRepeatUntil(this, i, stop, eventuallyStopsProof);
+    }
+  }
+
   // Actions that consume nothing and produce an Option<T>, 
   // where None indicate there are no more values to produce.
-  //
-  // TODO: a bit more than that at least.
   @AssumeCrossModuleTermination
-  trait Enumerator<T> extends Action<(), Option<T>>, ProducesTerminatedProof<(), Option<T>> {
+  trait DynProducer<T> extends Action<(), Option<T>>, ProducesTerminatedProof<(), Option<T>> {
     ghost function Action(): Action<(), Option<T>> {
       this
     }
@@ -200,9 +258,14 @@ module Std.Enumerators {
   //
   // Compose(e, a).RepeatUntil((), o -> o.None?)
   //
-  // so that extern implementations of Enumerator that are push-based
+  // so that extern implementations of DynProducer that are push-based
   // can implement this by attaching `a` as a callback.
-  method ForEach<T>(e: Enumerator<T>, a: Accumulator<T>)
+  //
+  // TODO: It may make sense to have more than one ForEach as well: 
+  // one that connects an IProducer and an IConsumer together and runs forever (decreases *),
+  // one that connects an Producer and an Consumer with a proof that the consumer has adequate capacity,
+  // and one that connects an Producer and an IConsumer with no additional proof obligation.
+  method ForEach<T>(e: DynProducer<T>, a: Consumer<T>)
     requires e.Valid()
     requires a.Valid()
     requires e.Repr !! a.Repr
@@ -227,7 +290,7 @@ module Std.Enumerators {
     }
   }
 
-  class SeqEnumerator<T> extends Enumerator<T> {
+  class SeqDynProducer<T> extends DynProducer<T> {
 
     const elements: seq<T>
     var index: nat
@@ -314,9 +377,9 @@ module Std.Enumerators {
 
   }
 
-  trait Pipeline<U, T> extends Enumerator<T> {
+  trait Pipeline<U, T> extends DynProducer<T> {
 
-    const upstream: Enumerator<U>
+    const upstream: DynProducer<U>
     const buffer: Collector<T>
 
     ghost predicate Valid()
@@ -380,7 +443,7 @@ module Std.Enumerators {
       assume {:axiom} Valid();
     }
 
-    method Process(u: Option<U>, a: Accumulator<T>)
+    method Process(u: Option<U>, a: Consumer<T>)
       requires Valid()
       requires a.Valid()
       requires Repr !! a.Repr

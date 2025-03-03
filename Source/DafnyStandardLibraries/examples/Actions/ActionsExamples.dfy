@@ -1,7 +1,7 @@
 module ActionsExamples {
   import opened Std.Actions
-  import opened Std.Enumerators
-  import opened Std.Aggregators
+  import opened Std.Producers
+  import opened Std.Consumers
   import opened Std.Wrappers
 
   // Demonstration that actions can consume/produce reference values as well,
@@ -136,8 +136,8 @@ module ActionsExamples {
     // assert copy == s;
   }
 
-  method {:rlimit 0} AggregatorExample() {
-    var a: DynamicArrayAggregator<nat> := new DynamicArrayAggregator();
+  method {:rlimit 0} ConsumerExample() {
+    var a: DynamicArrayConsumer<nat> := new DynamicArrayConsumer();
     var _ := a.Invoke(1);
     var _ := a.Invoke(2);
     var _ := a.Invoke(3);
@@ -150,7 +150,7 @@ module ActionsExamples {
 
   @AssumeCrossModuleTermination
   class ExamplePipeline<T> extends Pipeline<T, T> {
-    constructor(upstream: Enumerator<T>)
+    constructor(upstream: DynProducer<T>)
       requires upstream.Valid()
       ensures Valid()
     {
@@ -163,7 +163,7 @@ module ActionsExamples {
       this.height := upstream.height + buffer.height + 1;
     }
 
-    method Process(u: Option<T>, a: Accumulator<T>)
+    method Process(u: Option<T>, a: Consumer<T>)
       requires a.Valid()
       reads a.Repr
       modifies a.Repr

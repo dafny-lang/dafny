@@ -3,34 +3,15 @@
  *  SPDX-License-Identifier: MIT
  *******************************************************************************/
 
-module Std.Aggregators {
+module Std.Consumers {
 
   import opened Actions
   import opened Wrappers
   import opened DynamicArray
   import Collections.Seq
 
-  // TODO: Not 100% confident in the exact name and signature here:
-  // * As per the module name, I think I like "Aggregator" as the dual to "Enumerator" better
-  // * This signature is not a complete dual of Enumerator: an Enumerator is a finite enumeration,
-  //   and one where the number of elements isn't statically known
-  //   (returns an Option<T> rather than a T). A dual to that concept should also be allowed
-  //   to accept only a finite number of elements, so it should probably return a boolean.
-  //   This would be the kind of Action that writes element in sequence into a fixed-length array,
-  //   for example, and therefore has finite capacity.
-  //   
-  //   Perhaps we should have:
-  //     - IProducer = Action<(), T> (potentially infinite elements)
-  //     - Producer = Action<(), Option<T>> + proofs of eventually producing None (finite elements)
-  //     - IConsumer = Action<T, ()> (potentially infinite elements)
-  //     - Consumer = Action<T, boolean> + proofs of eventually producing false (finite elements)
-  //
-  //   It may make sense to have more than one ForEach as well: 
-  //   one that connects an IProducer and an IConsumer together and runs forever (decreases *),
-  //   one that connects an Producer and an Consumer with a proof that the aggregator has adequate capacity,
-  //   and one that connects an Producer and an IConsumer with no additional proof obligation.
   @AssumeCrossModuleTermination
-  trait Accumulator<T> extends Action<T, ()>, TotalActionProof<T, ()> {
+  trait Consumer<T> extends Action<T, ()>, TotalActionProof<T, ()> {
 
     ghost function Action(): Action<T, ()> {
       this
@@ -52,7 +33,29 @@ module Std.Aggregators {
   }
 
   @AssumeCrossModuleTermination
-  class ArrayAggregator<T> extends Action<T, bool> {
+  trait DynConsumer<T> extends Action<T, bool> {
+
+    ghost function Action(): Action<T, bool> {
+      this
+    }
+
+    // For better readability
+    method Accept(t: T)
+      returns (o: bool)
+      requires Requires(t)
+      reads Reads(t)
+      modifies Modifies(t)
+      ensures Ensures(t, o)
+    {
+      assert Requires(t);
+
+      o := Invoke(t);
+    }
+  }
+
+  // TODO: Name implies it's consuming arrays
+  @AssumeCrossModuleTermination
+  class ArrayDynConsumer<T> extends DynConsumer<T> {
 
     var storage: array<T>
     var size: nat
@@ -130,7 +133,7 @@ module Std.Aggregators {
     }
   }
 
-  class DynamicArrayAggregator<T> extends Accumulator<T> {
+  class DynamicArrayConsumer<T> extends Consumer<T> {
 
     var storage: DynamicArray<T>
 
@@ -212,7 +215,7 @@ module Std.Aggregators {
     {}
   }
 
-  class FoldingAccumulator<T, R> extends Accumulator<T> {
+  class FoldingConsumer<T, R> extends Consumer<T> {
 
     ghost const init: R
     const f: (R, T) -> R
@@ -295,8 +298,8 @@ module Std.Aggregators {
     {}
   }
 
-  // TODO: This is also a FoldingAccumulator([], (x, y) => x + [y])
-  class Collector<T> extends Accumulator<T> {
+  // TODO: This is also a FoldingConsumer([], (x, y) => x + [y])
+  class Collector<T> extends Consumer<T> {
 
     var values: seq<T>
 
