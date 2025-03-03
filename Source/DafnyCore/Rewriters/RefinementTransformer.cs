@@ -38,10 +38,6 @@ namespace Microsoft.Dafny {
       return $"refinement of {WrappedToken} by {InheritingModule.Name}";
     }
 
-    public override IOrigin WithVal(string newVal) {
-      return new RefinementOrigin(WrappedToken.WithVal(newVal), InheritingModule);
-    }
-
     public override bool IsCopy => true;
 
     public override bool IsInherited(ModuleDefinition m) {

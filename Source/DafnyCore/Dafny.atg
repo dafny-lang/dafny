@@ -1959,8 +1959,8 @@ FunctionDecl<DeclModifierData dmod, out Function/*!*/ f>
      if (isGhost) {
        foreach (var formal in formals) {
          if (formal.IsGhost) {
-           IOrigin t = formal.Origin;
-           IOrigin ghostToken = null;
+           var t = formal.EndToken;
+           Token ghostToken = null;
            while (t != null && t.val != "," && t.val != "(") {
             if (t.val == "ghost") {
               ghostToken = t;
