@@ -52,6 +52,10 @@ public static class TokenExtensions {
 
 
   public static string LocationToString(this Location location, DafnyOptions options) {
+    if (location == null) {
+      return "CLI";
+    }
+
     var currentDirectory = Directory.GetCurrentDirectory();
     var path = location.Uri.Path;
     string filename = location.Uri.Scheme switch {

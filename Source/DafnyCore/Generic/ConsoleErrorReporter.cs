@@ -32,6 +32,7 @@ public class ConsoleErrorReporter : BatchErrorReporter {
     if (Options.OutputWriter == Console.Out) {
       Console.ForegroundColor = ColorForLevel(dafnyDiagnostic.Level);
     }
+
     var errorLine = ErrorToString(dafnyDiagnostic.Level, dafnyDiagnostic.Location, msg);
 
     var errorId = dafnyDiagnostic.ErrorId;
@@ -45,7 +46,7 @@ public class ConsoleErrorReporter : BatchErrorReporter {
       errorLine += "\n";
     }
 
-    if (Options.Get(Snippets.ShowSnippets)) {
+    if (Options.Get(Snippets.ShowSnippets) && dafnyDiagnostic.Location != null) {
       var tw = new StringWriter();
       Snippets.WriteSourceCodeSnippet(Options, dafnyDiagnostic.Location, tw);
       errorLine += tw.ToString();

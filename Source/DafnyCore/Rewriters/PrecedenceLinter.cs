@@ -155,7 +155,9 @@ namespace Microsoft.Dafny {
           VisitIndependentComponent(quantifierExpr.Range);
         }
         VisitRhsComponent(expr.Origin, quantifierExpr.Term,
-          expr.Origin.line == quantifierExpr.Term.StartToken.line ? expr.Origin.col + 1 : quantifierExpr.Term.StartToken.col,
+          expr.Origin.line == quantifierExpr.Term.StartToken.line
+            ? expr.Origin.Center.Range.Start.Character + 2
+            : quantifierExpr.Term.StartToken.col,
           "body of " + (expr is ForallExpr ? "forall" : "exists"));
         return false; // indicate that we've already processed expr's subexpressions
 
