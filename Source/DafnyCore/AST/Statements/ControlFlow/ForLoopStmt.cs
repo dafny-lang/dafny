@@ -22,8 +22,8 @@ public class ForLoopStmt : OneBodyLoopStmt, ICloneable<ForLoopStmt>, ICanFormat 
 
   public ForLoopStmt(IOrigin origin, BoundVar loopIndexVariable, Expression start, Expression/*?*/ end, bool goingUp,
     List<AttributedExpression> invariants, Specification<Expression> decreases, Specification<FrameExpression> mod,
-    BlockStmt /*?*/ body, Attributes attrs)
-    : base(origin, invariants, decreases, mod, body, attrs) {
+    BlockStmt /*?*/ body, Attributes attributes)
+    : base(origin, invariants, decreases, mod, body, attributes) {
     Contract.Requires(origin != null);
     Contract.Requires(loopIndexVariable != null);
     Contract.Requires(start != null);

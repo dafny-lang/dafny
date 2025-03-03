@@ -1,3 +1,4 @@
+#nullable enable
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
@@ -14,23 +15,13 @@ public class TypeParameter : TopLevelDecl {
 
   public bool IsAutoCompleted => Name.StartsWith("_");
 
-  ParentType parent;
-  public ParentType Parent {
-    get {
-      return parent;
-    }
-    set {
-      Contract.Requires(Parent == null);  // set it only once
-      Contract.Requires(value != null);
-      parent = value;
-    }
-  }
+  public ParentType? Parent { get; set; }
 
   public override string SanitizedName {
     get {
       if (sanitizedName == null) {
         var name = Name;
-        if (parent is MemberDecl && !name.StartsWith("_")) {
+        if (Parent is MemberDecl && !name.StartsWith("_")) {
           // prepend "_" to type parameters of functions and methods, to ensure they don't clash with type parameters of the enclosing type
           name = "_" + name;
         }
@@ -42,14 +33,6 @@ public class TypeParameter : TopLevelDecl {
 
   public override string GetCompileName(DafnyOptions options) => SanitizedName;
 
-  /// <summary>
-  /// NonVariant_Strict     (default) - non-variant, no uses left of an arrow
-  /// NonVariant_Permissive    !      - non-variant
-  /// Covariant_Strict         +      - co-variant, no uses left of an arrow
-  /// Covariant_Permissive     *      - co-variant
-  /// Contravariant            -      - contra-variant
-  /// </summary>
-  public enum TPVarianceSyntax { NonVariant_Strict, NonVariant_Permissive, Covariant_Strict, Covariant_Permissive, Contravariance }
   public static string VarianceString(TPVarianceSyntax varianceSyntax) {
     switch (varianceSyntax) {
       case TPVarianceSyntax.NonVariant_Strict: return "";
@@ -134,7 +117,7 @@ public class TypeParameter : TopLevelDecl {
   public bool NecessaryForEqualitySupportOfSurroundingInductiveDatatype = false;  // computed during resolution; relevant only when Parent denotes an IndDatatypeDecl
 
   public bool IsToplevelScope { // true if this type parameter is on a toplevel (ie. class C<T>), and false if it is on a member (ie. method m<T>(...))
-    get { return parent is TopLevelDecl; }
+    get { return Parent is TopLevelDecl; }
   }
   public int PositionalIndex; // which type parameter this is (ie. in C<S, T, U>, S is 0, T is 1 and U is 2).
 
@@ -153,16 +136,15 @@ public class TypeParameter : TopLevelDecl {
   [SyntaxConstructor]
   public TypeParameter(IOrigin origin, Name nameNode, TPVarianceSyntax varianceSyntax,
     TypeParameterCharacteristics characteristics,
-    List<Type> typeBounds, Attributes attributes = null)
+    List<Type> typeBounds, Attributes? attributes = null)
     : base(origin, nameNode, null, [], attributes) {
-    Contract.Requires(origin != null);
     Characteristics = characteristics;
     VarianceSyntax = varianceSyntax;
     TypeBounds = typeBounds;
   }
 
   public TypeParameter(IOrigin origin, Name name, TPVarianceSyntax varianceSyntax)
-    : this(origin, name, varianceSyntax, new TypeParameterCharacteristics(false), []) {
+    : this(origin, name, varianceSyntax, TypeParameterCharacteristics.Default(), [], null) {
     Contract.Requires(origin != null);
     Contract.Requires(name != null);
   }
@@ -180,7 +162,7 @@ public class TypeParameter : TopLevelDecl {
     var cloner = new Cloner();
     return typeParameters.ConvertAll(tp => {
       var typeBounds = tp.TypeBounds.ConvertAll(cloner.CloneType);
-      return new TypeParameter(tp.Origin, tp.NameNode, tp.VarianceSyntax, tp.Characteristics, typeBounds);
+      return new TypeParameter(tp.Origin, tp.NameNode, tp.VarianceSyntax, tp.Characteristics, typeBounds, tp.Attributes);
     });
   }
 
@@ -193,12 +175,12 @@ public class TypeParameter : TopLevelDecl {
 
   public override SymbolKind? Kind => SymbolKind.TypeParameter;
   public override string GetDescription(DafnyOptions options) {
-    return null; // TODO test the effect of this
+    return null!; // TODO test the effect of this
   }
 
   public static TypeParameterCharacteristics GetExplicitCharacteristics(TopLevelDecl d) {
     Contract.Requires(d != null);
-    TypeParameterCharacteristics characteristics = new TypeParameterCharacteristics(false);
+    TypeParameterCharacteristics characteristics = TypeParameterCharacteristics.Default();
     if (d is AbstractTypeDecl) {
       var dd = (AbstractTypeDecl)d;
       characteristics = dd.Characteristics;
@@ -214,9 +196,6 @@ public class TypeParameter : TopLevelDecl {
   }
 
   public static Dictionary<TypeParameter, Type> SubstitutionMap(List<TypeParameter> formals, List<Type> actuals) {
-    Contract.Requires(formals != null);
-    Contract.Requires(actuals != null);
-    Contract.Requires(formals.Count == actuals.Count);
     var subst = new Dictionary<TypeParameter, Type>();
     for (int i = 0; i < formals.Count; i++) {
       subst.Add(formals[i], actuals[i]);
@@ -228,3 +207,12 @@ public class TypeParameter : TopLevelDecl {
     return includeTypeBounds ? TypeBounds : [];
   }
 }
+
+/// <summary>
+/// NonVariant_Strict     (default) - non-variant, no uses left of an arrow
+/// NonVariant_Permissive    !      - non-variant
+/// Covariant_Strict         +      - co-variant, no uses left of an arrow
+/// Covariant_Permissive     *      - co-variant
+/// Contravariant            -      - contra-variant
+/// </summary>
+public enum TPVarianceSyntax { NonVariant_Strict, NonVariant_Permissive, Covariant_Strict, Covariant_Permissive, Contravariance }
