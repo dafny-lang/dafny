@@ -130,10 +130,6 @@ module CollectionsExamples {
     @Test
     method TestSorting() {
       expect MergeSortBy((x, y) => x <= y, Reverse(s)) == s;
-
-      var asSet := ToSet(s);
-      var asSortedSeq := SetToSortedSeq(asSet, (x, y) => x <= y);
-      expect asSortedSeq == [1, 2, 3, 5, 8, 13, 21];
     }
   }
 

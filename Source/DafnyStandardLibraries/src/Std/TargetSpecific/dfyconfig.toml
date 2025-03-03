@@ -7,7 +7,7 @@ includes = []
 # Options that help support more values of consuming context options
 # (mostly turning on any more restrictive verification)
 track-print-effects = true
-enforce-determinism = false
+enforce-determinism = true
 reads-clauses-on-methods = true
 
 # Options important for sustainable development
