@@ -118,8 +118,10 @@ module List refines Monad {
     calc {
        Bind(Return(x),f);
     == Join(Map(Cons(x,Nil),f));
-    == Join(Cons(f(x),Nil));
-    == Concat(f(x),Nil);
+    == {assert Map(Nil, f) == Nil;}
+       Join(Cons(f(x),Nil));
+    == {assert Join<A>(Nil) == Nil;}
+       Concat(f(x),Nil);
     == { assert forall xs: M<B> {:induction} :: Concat(xs,Nil) == xs; }
        f(x);
     }
@@ -146,7 +148,8 @@ module List refines Monad {
       == { RightIdentity(xs); }
          Concat(Return(x),xs);
       == Concat(Cons(x,Nil),xs);
-      == Cons(x,xs);
+      == {assert Concat(Nil, xs) == xs;}
+        Cons(x,xs);
       == m;
       }
   }
