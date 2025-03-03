@@ -505,7 +505,7 @@ public class IteratorDecl : ClassDecl, IMethodCodeContext, ICanVerify, ICodeCont
       return triviaFound;
     }
 
-    IOrigin lastClosingParenthesis = null;
+    Token lastClosingParenthesis = null;
     foreach (var token in OwnedTokens) {
       if (token.val == ")") {
         lastClosingParenthesis = token;
