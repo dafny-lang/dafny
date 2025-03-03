@@ -187,7 +187,7 @@ module Std.Actions {
     // Possibly optimized extensions
 
     // Equivalent to DefaultRepeatUntil below, but may be implemented more efficiently.
-    method RepeatUntil(i: I, stop: O -> bool, ghost eventuallyStopsProof: ProducesTerminatedProof<I, O>)
+    method RepeatUntil(i: I, stop: O -> bool, ghost eventuallyStopsProof: OutputsTerminatedProof<I, O>)
       requires Valid()
       requires eventuallyStopsProof.Action() == this
       requires eventuallyStopsProof.FixedInput() == i
@@ -222,7 +222,7 @@ module Std.Actions {
     }
   }
 
-  method DefaultRepeatUntil<I, O>(a: Action<I, O>, i: I, stop: O -> bool, ghost eventuallyStopsProof: ProducesTerminatedProof<I, O>)
+  method DefaultRepeatUntil<I, O>(a: Action<I, O>, i: I, stop: O -> bool, ghost eventuallyStopsProof: OutputsTerminatedProof<I, O>)
     requires a.Valid()
     requires eventuallyStopsProof.Action() == a
     requires eventuallyStopsProof.FixedInput() == i
@@ -297,13 +297,13 @@ module Std.Actions {
     assert forall i | 0 <= i < |right| :: right[i] == (left + right)[i + |left|];
   }
 
-  trait ProducesTerminatedProof<I, O> extends TotalActionProof<I, O> {
+  trait OutputsTerminatedProof<I, O> extends TotalActionProof<I, O> {
 
     ghost function FixedInput(): I
     ghost function StopFn(): O -> bool
     ghost function Limit(): nat
 
-    lemma ProducesTerminated(history: seq<(I, O)>)
+    lemma OutputsTerminated(history: seq<(I, O)>)
       requires Action().ValidHistory(history)
       requires forall i <- InputsOf(history) :: i == FixedInput()
       ensures exists n: nat | n <= Limit() :: Terminated(OutputsOf(history), StopFn(), n)
@@ -314,7 +314,7 @@ module Std.Actions {
       requires forall i <- Action().Inputs() :: i == FixedInput()
       reads Action().Repr
     {
-      ProducesTerminated(Action().history);
+      OutputsTerminated(Action().history);
       var n: nat :| n <= Limit() && Terminated(Action().Outputs(), StopFn(), n);
       TerminatedDefinesNonTerminalCount(Action().Outputs(), StopFn(), n);
       Limit() - NonTerminalCount(Action().Outputs(), StopFn())
@@ -331,9 +331,9 @@ module Std.Actions {
     {
       var before := old(Action().Outputs());
       var after := Action().Outputs();
-      ProducesTerminated(old(Action().history));
+      OutputsTerminated(old(Action().history));
       var n: nat :| n <= Limit() && Terminated(before, StopFn(), n);
-      ProducesTerminated(Action().history);
+      OutputsTerminated(Action().history);
       var m: nat :| m <= Limit() && Terminated(after, StopFn(), m);
       if n < |before| {
         assert false by {
@@ -439,7 +439,7 @@ module Std.Actions {
       assert Valid();
     }
 
-    method RepeatUntil(i: I, stop: O -> bool, ghost eventuallyStopsProof: ProducesTerminatedProof<I, O>)
+    method RepeatUntil(i: I, stop: O -> bool, ghost eventuallyStopsProof: OutputsTerminatedProof<I, O>)
       requires Valid()
       requires eventuallyStopsProof.Action() == this
       requires eventuallyStopsProof.FixedInput() == i
@@ -570,7 +570,7 @@ module Std.Actions {
       assert ValidHistory(history);
     }
 
-    method RepeatUntil(i: I, stop: O -> bool, ghost eventuallyStopsProof: ProducesTerminatedProof<I, O>)
+    method RepeatUntil(i: I, stop: O -> bool, ghost eventuallyStopsProof: OutputsTerminatedProof<I, O>)
       requires Valid()
       requires eventuallyStopsProof.Action() == this
       requires eventuallyStopsProof.FixedInput() == i

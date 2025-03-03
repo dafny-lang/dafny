@@ -118,7 +118,7 @@ module Std.Consumers {
       assume {:axiom} Valid();
     }
 
-    method RepeatUntil(t: T, stop: bool -> bool, ghost eventuallyStopsProof: ProducesTerminatedProof<T, bool>)
+    method RepeatUntil(t: T, stop: bool -> bool, ghost eventuallyStopsProof: OutputsTerminatedProof<T, bool>)
       requires Valid()
       requires eventuallyStopsProof.Action() == this
       requires eventuallyStopsProof.FixedInput() == t
@@ -195,7 +195,7 @@ module Std.Consumers {
       assert Valid();
     }
 
-    method RepeatUntil(t: T, stop: (()) -> bool, ghost eventuallyStopsProof: ProducesTerminatedProof<T, ()>)
+    method RepeatUntil(t: T, stop: (()) -> bool, ghost eventuallyStopsProof: OutputsTerminatedProof<T, ()>)
       requires Valid()
       requires eventuallyStopsProof.Action() == this
       requires eventuallyStopsProof.FixedInput() == t
@@ -278,7 +278,7 @@ module Std.Consumers {
       assert Valid();
     }
 
-    method RepeatUntil(t: T, stop: (()) -> bool, ghost eventuallyStopsProof: ProducesTerminatedProof<T, ()>)
+    method RepeatUntil(t: T, stop: (()) -> bool, ghost eventuallyStopsProof: OutputsTerminatedProof<T, ()>)
       requires Valid()
       requires eventuallyStopsProof.Action() == this
       requires eventuallyStopsProof.FixedInput() == t
@@ -348,7 +348,7 @@ module Std.Consumers {
       assert Valid();
     }
 
-    method RepeatUntil(t: T, stop: (()) -> bool, ghost eventuallyStopsProof: ProducesTerminatedProof<T, ()>)
+    method RepeatUntil(t: T, stop: (()) -> bool, ghost eventuallyStopsProof: OutputsTerminatedProof<T, ()>)
       requires Valid()
       requires eventuallyStopsProof.Action() == this
       requires eventuallyStopsProof.FixedInput() == t

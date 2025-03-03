@@ -73,7 +73,7 @@ module Std.Streams {
       && ConcatenatedOutputsOf(history) <= data
     }
 
-    lemma {:axiom} ProducesTerminated(history: seq<((), Option<bytes>)>)
+    lemma {:axiom} OutputsTerminated(history: seq<((), Option<bytes>)>)
       requires Action().ValidHistory(history)
       requires (forall i <- InputsOf(history) :: i == FixedInput())
       ensures exists n: nat | n <= Limit() :: Terminated(OutputsOf(history), StopFn(), n)
@@ -81,7 +81,7 @@ module Std.Streams {
     //   assert Terminated(OutputsOf(history), StopFn(), |Enumerated(OutputsOf(history))|);
     // }
 
-    method RepeatUntil(t: (), stop: Option<bytes> -> bool, ghost eventuallyStopsProof: ProducesTerminatedProof<(), Option<bytes>>)
+    method RepeatUntil(t: (), stop: Option<bytes> -> bool, ghost eventuallyStopsProof: OutputsTerminatedProof<(), Option<bytes>>)
       requires Valid()
       requires eventuallyStopsProof.Action() == this
       requires eventuallyStopsProof.FixedInput() == t
@@ -134,7 +134,7 @@ module Std.Streams {
       && (forall o <- Enumerated(OutputsOf(history)) :: 0 < |o|)
     }
 
-    lemma {:axiom} ProducesTerminated(history: seq<((), Option<BoundedInts.bytes>)>)
+    lemma {:axiom} OutputsTerminated(history: seq<((), Option<BoundedInts.bytes>)>)
       requires Action().ValidHistory(history)
       requires (forall i <- InputsOf(history) :: i == FixedInput())
       ensures exists n: nat | n <= Limit() :: Terminated(OutputsOf(history), StopFn(), n)
@@ -187,7 +187,7 @@ module Std.Streams {
       assume {:axiom} Ensures(t, r);
     }
 
-    method RepeatUntil(t: (), stop: Option<bytes> -> bool, ghost eventuallyStopsProof: ProducesTerminatedProof<(), Option<bytes>>)
+    method RepeatUntil(t: (), stop: Option<bytes> -> bool, ghost eventuallyStopsProof: OutputsTerminatedProof<(), Option<bytes>>)
       requires Valid()
       requires eventuallyStopsProof.Action() == this
       requires eventuallyStopsProof.FixedInput() == t
@@ -226,7 +226,7 @@ module Std.Streams {
       && 0 < chunkSize
     }
 
-    lemma {:axiom} ProducesTerminated(history: seq<((), Option<BoundedInts.bytes>)>)
+    lemma {:axiom} OutputsTerminated(history: seq<((), Option<BoundedInts.bytes>)>)
       requires Action().ValidHistory(history)
       requires (forall i <- InputsOf(history) :: i == FixedInput())
       ensures exists n: nat | n <= Limit() :: Terminated(OutputsOf(history), StopFn(), n)

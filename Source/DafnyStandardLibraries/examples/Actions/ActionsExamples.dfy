@@ -86,7 +86,7 @@ module ActionsExamples {
       assert Valid();
     }
 
-    method RepeatUntil(t: (), stop: Box -> bool, ghost eventuallyStopsProof: ProducesTerminatedProof<(), Box>)
+    method RepeatUntil(t: (), stop: Box -> bool, ghost eventuallyStopsProof: OutputsTerminatedProof<(), Box>)
       requires Valid()
       requires eventuallyStopsProof.Action() == this
       requires eventuallyStopsProof.FixedInput() == t

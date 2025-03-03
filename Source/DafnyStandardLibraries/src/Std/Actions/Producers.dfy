@@ -118,7 +118,7 @@ module Std.Producers {
       Seq.LemmaNoDuplicatesInConcat(OutputsOf(old(history)), [o]);
     }
 
-    method RepeatUntil(i: (), stop: T -> bool, ghost eventuallyStopsProof: ProducesTerminatedProof<(), T>)
+    method RepeatUntil(i: (), stop: T -> bool, ghost eventuallyStopsProof: OutputsTerminatedProof<(), T>)
       requires Valid()
       requires eventuallyStopsProof.Action() == this
       requires eventuallyStopsProof.FixedInput() == i
@@ -178,7 +178,7 @@ module Std.Producers {
       UpdateHistory(i, o);
     }
 
-    method RepeatUntil(i: (), stop: T -> bool, ghost eventuallyStopsProof: ProducesTerminatedProof<(), T>)
+    method RepeatUntil(i: (), stop: T -> bool, ghost eventuallyStopsProof: OutputsTerminatedProof<(), T>)
       requires Valid()
       requires eventuallyStopsProof.Action() == this
       requires eventuallyStopsProof.FixedInput() == i
@@ -196,7 +196,7 @@ module Std.Producers {
   // Actions that consume nothing and produce an Option<T>, 
   // where None indicate there are no more values to produce.
   @AssumeCrossModuleTermination
-  trait DynProducer<T> extends Action<(), Option<T>>, ProducesTerminatedProof<(), Option<T>> {
+  trait DynProducer<T> extends Action<(), Option<T>>, OutputsTerminatedProof<(), Option<T>> {
     ghost function Action(): Action<(), Option<T>> {
       this
     }
@@ -222,7 +222,7 @@ module Std.Producers {
       ensures Action().ValidInput(history, next)
     {}
 
-    lemma ProducesTerminated(history: seq<((), Option<T>)>)
+    lemma OutputsTerminated(history: seq<((), Option<T>)>)
       requires Action().ValidHistory(history)
       requires forall i <- InputsOf(history) :: i == FixedInput()
       ensures exists n: nat | n <= Limit() :: Terminated(OutputsOf(history), StopFn(), n)
@@ -349,7 +349,7 @@ module Std.Producers {
     }
 
 
-    method RepeatUntil(t: (), stop: Option<T> -> bool, ghost eventuallyStopsProof: ProducesTerminatedProof<(), Option<T>>)
+    method RepeatUntil(t: (), stop: Option<T> -> bool, ghost eventuallyStopsProof: OutputsTerminatedProof<(), Option<T>>)
       requires Valid()
       requires eventuallyStopsProof.Action() == this
       requires eventuallyStopsProof.FixedInput() == t
@@ -367,7 +367,7 @@ module Std.Producers {
       |elements|
     }
 
-    lemma ProducesTerminated(history: seq<((), Option<T>)>)
+    lemma OutputsTerminated(history: seq<((), Option<T>)>)
       requires Action().ValidHistory(history)
       requires forall i <- InputsOf(history) :: i == FixedInput()
       ensures exists n: nat | n <= Limit() :: Terminated(OutputsOf(history), StopFn(), n)
@@ -441,7 +441,7 @@ module Std.Producers {
       UpdateHistory((), result);
     }
 
-    method RepeatUntil(t: (), stop: Option<T> -> bool, ghost eventuallyStopsProof: ProducesTerminatedProof<(), Option<T>>)
+    method RepeatUntil(t: (), stop: Option<T> -> bool, ghost eventuallyStopsProof: OutputsTerminatedProof<(), Option<T>>)
       requires Valid()
       requires eventuallyStopsProof.Action() == this
       requires eventuallyStopsProof.FixedInput() == t
@@ -459,7 +459,7 @@ module Std.Producers {
       source.Limit()
     }
 
-    lemma ProducesTerminated(history: seq<((), Option<T>)>)
+    lemma OutputsTerminated(history: seq<((), Option<T>)>)
       requires Action().ValidHistory(history)
       requires forall i <- InputsOf(history) :: i == FixedInput()
       ensures exists n: nat | n <= Limit() :: Terminated(OutputsOf(history), StopFn(), n)
@@ -545,7 +545,7 @@ module Std.Producers {
       ensures a.ValidAndDisjoint()
     // TODO: need a postcondition that a was invoked at least once etc
 
-    method RepeatUntil(t: (), stop: Option<T> -> bool, ghost eventuallyStopsProof: ProducesTerminatedProof<(), Option<T>>)
+    method RepeatUntil(t: (), stop: Option<T> -> bool, ghost eventuallyStopsProof: OutputsTerminatedProof<(), Option<T>>)
       requires Valid()
       requires eventuallyStopsProof.Action() == this
       requires eventuallyStopsProof.FixedInput() == t
@@ -563,7 +563,7 @@ module Std.Producers {
       upstream.Limit()
     }
 
-    lemma {:axiom} ProducesTerminated(history: seq<((), Option<T>)>)
+    lemma {:axiom} OutputsTerminated(history: seq<((), Option<T>)>)
       requires Action().ValidHistory(history)
       requires forall i <- InputsOf(history) :: i == FixedInput()
       ensures exists n: nat | n <= Limit() :: Terminated(OutputsOf(history), StopFn(), n)
