@@ -192,6 +192,9 @@ public abstract class Statement : RangeNode, IAttributeBearingDeclaration {
       Concat<Node>(
       PreResolveSubStatements).Concat(PreResolveSubExpressions);
 
+  /// <summary>
+  /// GetAssignedLocals should only be called after successful resolution
+  /// </summary>
   public virtual IEnumerable<IdentifierExpr> GetAssignedLocals() => [];
 
 

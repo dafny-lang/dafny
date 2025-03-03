@@ -25,7 +25,7 @@ public class AssignStatement : ConcreteAssignStatement, ICloneable<AssignStateme
   public override IEnumerable<Statement> PreResolveSubStatements => [];
 
   public override IEnumerable<IdentifierExpr> GetAssignedLocals() {
-    foreach (var resolvedStmt in ResolvedStatements) {
+    foreach (var resolvedStmt in ResolvedStatements!) { // GetAssignedLocals should only be called after successful resolution
       foreach (var assignedLocal in resolvedStmt.GetAssignedLocals()) {
         yield return assignedLocal;
       }
