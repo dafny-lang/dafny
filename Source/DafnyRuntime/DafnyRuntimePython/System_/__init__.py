@@ -2,7 +2,7 @@ import sys
 from typing import Callable, Any, TypeVar, NamedTuple
 from math import floor
 from itertools import count
-import functools.lru_cache
+from functools import lru_cache
 
 import _dafny as _dafny
 
