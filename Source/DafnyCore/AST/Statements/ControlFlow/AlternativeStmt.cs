@@ -27,8 +27,8 @@ public class AlternativeStmt : Statement, ICloneable<AlternativeStmt>, ICanForma
     Alternatives = alternatives;
     UsesOptionalBraces = usesOptionalBraces;
   }
-  public AlternativeStmt(IOrigin origin, List<GuardedAlternative> alternatives, bool usesOptionalBraces, Attributes attrs)
-    : base(origin, attrs) {
+  public AlternativeStmt(IOrigin origin, List<GuardedAlternative> alternatives, bool usesOptionalBraces, Attributes attributes)
+    : base(origin, attributes) {
     Contract.Requires(alternatives != null);
     Alternatives = alternatives;
     UsesOptionalBraces = usesOptionalBraces;

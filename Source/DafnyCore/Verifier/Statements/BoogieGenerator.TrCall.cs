@@ -183,7 +183,7 @@ public partial class BoogieGenerator {
     for (int i = 0; i < callee.Ins.Count; i++) {
       var formal = callee.Ins[i];
       var local = new LocalVariable(formal.Origin, formal.Name + "#", formal.Type.Subst(tySubst), formal.IsGhost);
-      local.type = local.SyntacticType;  // resolve local here
+      local.type = local.SafeSyntacticType;  // resolve local here
       var localName = local.AssignUniqueName(CurrentDeclaration.IdGenerator);
       var ie = new IdentifierExpr(local.Origin, localName);
       ie.Var = local; ie.Type = ie.Var.Type;  // resolve ie here
@@ -212,7 +212,10 @@ public partial class BoogieGenerator {
         } else {
           actual = Args[i];
         }
-        if (!(actual is DefaultValueExpression)) {
+
+        if (actual is DefaultValueExpression) {
+          builder.Add(TrAssumeCmd(actual.Origin, etran.CanCallAssumption(actual)));
+        } else {
           TrStmt_CheckWellformed(actual, builder, locals, etran, true);
         }
         builder.Add(new CommentCmd("ProcessCallStmt: CheckSubrange"));

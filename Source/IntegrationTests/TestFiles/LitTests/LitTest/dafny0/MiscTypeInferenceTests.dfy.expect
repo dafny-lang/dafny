@@ -5,8 +5,8 @@ MiscTypeInferenceTests.dfy(24,11): Error: value does not satisfy the subset cons
 MiscTypeInferenceTests.dfy(27,11): Error: value of expression (of type 'int -> int') is not known to be an instance of type 'int ~> nat'
 MiscTypeInferenceTests.dfy(50,4): Error: assertion might not hold
 MiscTypeInferenceTests.dfy(50,13): Error: function precondition could not be proved
-MiscTypeInferenceTests.dfy(109,18): Error: cannot establish the existence of LHS values that satisfy the such-that predicate
-MiscTypeInferenceTests.dfy(110,18): Error: cannot establish the existence of LHS values that satisfy the such-that predicate
+MiscTypeInferenceTests.dfy(109,18): Error: cannot establish the existence of LHS values that satisfy the such-that predicate. Note, no trigger was found for the such-that predicate, which may be the reason the proof failed. To give a trigger explicitly, use the {:trigger} attribute. For more information, see the section on quantifier instantiation rules in the reference manual.
+MiscTypeInferenceTests.dfy(110,18): Error: cannot establish the existence of LHS values that satisfy the such-that predicate. Note, no trigger was found for the such-that predicate, which may be the reason the proof failed. To give a trigger explicitly, use the {:trigger} attribute. For more information, see the section on quantifier instantiation rules in the reference manual.
 MiscTypeInferenceTests.dfy(143,15): Error: value does not satisfy the subset constraints of 'nat'
 MiscTypeInferenceTests.dfy(155,15): Error: value does not satisfy the subset constraints of 'nat'
 

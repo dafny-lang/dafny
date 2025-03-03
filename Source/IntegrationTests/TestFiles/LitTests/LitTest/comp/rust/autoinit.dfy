@@ -1,5 +1,5 @@
 // NONUNIFORM: Can't create class instances without constructors as Rust does not support Dafny defaults since subset types are erased
-// RUN: %exits-with 3 %baredafny run --target=rs "%s" > "%t"
+// RUN: %exits-with 2 %baredafny run %args --enforce-determinism --target=rs "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 class Test<T(0)> {
