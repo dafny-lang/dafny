@@ -100,7 +100,7 @@ lemma AppendLength(xs: List, ys: List)
 {
 }
 
-lemma RevLength(xs: List)
+lemma RevLength<T>(xs: List<T>)
   ensures length(rev(xs)) == length(xs)
 {
   match xs {
@@ -110,6 +110,7 @@ lemma RevLength(xs: List)
         length(append(rev(rest), Cons(x, Nil)));
         { AppendLength(rev(rest), Cons(x, Nil)); }
         length(rev(rest)) + length(Cons(x, Nil));
+        length(rev(rest)) + 1 + length<T>(Nil);
         length(rev(rest)) + 1;
       }
   }
