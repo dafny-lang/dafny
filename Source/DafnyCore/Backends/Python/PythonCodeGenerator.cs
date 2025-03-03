@@ -624,8 +624,8 @@ namespace Microsoft.Dafny.Compilers {
       methodWriter.WriteLine(isStatic ? $"@{DafnyRuntimeModule}.classproperty" : "@property");
       // if (isConst and cacheConstVariablesCliFlag)
       if (isConst) {
-        // methodWriter.WriteLine("@functools.lru_cache(maxsize=defaultConstCacheSizeCliArg)");
-        methodWriter.WriteLine("@functools.lru_cache(maxsize=None)");
+        // methodWriter.WriteLine("@lru_cache(maxsize=defaultConstCacheSizeCliArg)");
+        methodWriter.WriteLine("@lru_cache(maxsize=None)");
       }
       return methodWriter.NewBlockPy(header: $"def {name}({(isStatic ? "instance" : "self")}):");
     }
