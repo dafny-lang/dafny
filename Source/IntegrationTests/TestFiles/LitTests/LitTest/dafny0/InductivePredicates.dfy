@@ -88,7 +88,7 @@ lemma InfNotEven()
 lemma Test()
 {
   assert !Even(N(1));  // Dafny can prove this
-  assert !Even(N(3));
+  assert {:fuel Even,2} !Even(N(5));
   assert !Even(N(17));  // error: this holds, but Dafny can't prove it directly (but see lemma below)
 }
 
