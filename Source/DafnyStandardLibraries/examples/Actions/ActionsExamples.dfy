@@ -4,6 +4,8 @@ module ActionsExamples {
   import opened Std.Consumers
   import opened Std.Wrappers
 
+  // TODO: A basic loop over all values of a DynProducer.
+
   // Demonstration that actions can consume/produce reference values as well,
   // despite the usual challenges of quantifying over such types.
 

@@ -13,6 +13,7 @@ module Std.Actions {
   import opened Math
   import Collections.Seq
 
+  // TODO: Move to readme, and/or convert to dafny docs
   //
   // A composable imperative action.
   //
@@ -678,6 +679,7 @@ module Std.Actions {
     //   )
 
   // Other primitives/examples todo:
+  //  * Filter(DynProducer, predicate)
   //  * CrossProduct(Dynproducer1, dynproducer2)
   //  * Promise-like single-use Action<I, ()> to capture a value for reading later
   //  * datatype/codatatype-based enumerations

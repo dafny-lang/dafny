@@ -377,6 +377,99 @@ module Std.Producers {
 
   }
 
+  class FilteredDynProducer<T> extends DynProducer<T> {
+
+    const source: DynProducer<T>
+    const filter: T -> bool
+
+    constructor (source: DynProducer<T>, filter: T -> bool)
+      requires source.Valid()
+      ensures Valid()
+      ensures history == []
+      ensures fresh(Repr - source.Repr)
+    {
+      this.source := source;
+      this.filter := filter;
+
+      Repr := {this} + source.Repr;
+      height := source.height + 1;
+      history := [];
+    }
+
+    ghost predicate Valid()
+      reads this, Repr
+      ensures Valid() ==> this in Repr
+      ensures Valid() ==> ValidHistory(history)
+      decreases height, 0
+    {
+      && this in Repr
+      && ValidComponent(source)
+      && ValidHistory(history)
+    }
+
+    ghost predicate ValidHistory(history: seq<((), Option<T>)>)
+      decreases height
+    {
+      true
+    }
+
+    @IsolateAssertions
+    method Invoke(t: ()) returns (result: Option<T>)
+      requires Requires(t)
+      reads Reads(t)
+      modifies Modifies(t)
+      decreases Decreases(t).Ordinal()
+      ensures Ensures(t, result)
+    {
+      assert Requires(t);
+
+      while true
+        invariant fresh(Repr - old(Repr))
+        invariant Valid()
+        invariant ValidComponent(source)
+        invariant history == old(history)
+        decreases source.Remaining()
+      {
+        result := source.Next();
+        Repr := {this} + source.Repr;
+
+        if result.None? || filter(result.value) {
+          break;
+        }
+      }
+
+      UpdateHistory((), result);
+    }
+
+    method RepeatUntil(t: (), stop: Option<T> -> bool, ghost eventuallyStopsProof: ProducesTerminatedProof<(), Option<T>>)
+      requires Valid()
+      requires eventuallyStopsProof.Action() == this
+      requires eventuallyStopsProof.FixedInput() == t
+      requires eventuallyStopsProof.StopFn() == stop
+      requires forall i <- Inputs() :: i == t
+      reads Repr
+      modifies Repr
+      decreases Repr
+      ensures Valid()
+    {
+      DefaultRepeatUntil(this, t, stop, eventuallyStopsProof);
+    }
+
+    ghost function Limit(): nat {
+      source.Limit()
+    }
+
+    lemma ProducesTerminated(history: seq<((), Option<T>)>)
+      requires Action().ValidHistory(history)
+      requires forall i <- InputsOf(history) :: i == FixedInput()
+      ensures exists n: nat | n <= Limit() :: Terminated(OutputsOf(history), StopFn(), n)
+    {
+      // TODO
+      assume {:axiom} Terminated(OutputsOf(history), StopFn(), Limit());
+    }
+  }
+
+
   trait Pipeline<U, T> extends DynProducer<T> {
 
     const upstream: DynProducer<U>
