@@ -19,8 +19,8 @@ public class SourceOrigin : IOrigin, IComparable<SourceOrigin> {
   public bool InclusiveEnd => endToken != null;
   public bool IncludesRange => true;
 
-  public SourceOrigin(Token startToken, Token? endToken, Token center)
-    : this(startToken, endToken, center.ToLspLocation()) {
+  public SourceOrigin(Token startToken, Token? endToken, Token? center)
+    : this(startToken, endToken, center?.ToLspLocation()) {
   }
 
   [SyntaxConstructor]
