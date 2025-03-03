@@ -93,34 +93,35 @@ public class SourceOrigin : IOrigin, IComparable<SourceOrigin> {
   public bool IsCopy => false;
 
   public bool IsSourceToken => !ReferenceEquals(this, NoToken);
-  public int kind {
+
+  int IToken.kind {
     get => StartToken.kind;
     set => throw new NotImplementedException();
   }
 
-  public int pos {
+  int IToken.pos {
     get => throw new InvalidOperationException();
     set => throw new NotImplementedException();
   }
 
-  public int col {
+  int IToken.col {
     get => StartToken.line;
     set => throw new NotImplementedException();
   }
 
-  public int line {
+  int IToken.line {
     get => StartToken.line;
     set => throw new NotImplementedException();
   }
 
-  public string val {
+  string IToken.val {
     get => throw new InvalidOperationException();
     set => throw new InvalidOperationException();
   }
 
-  public bool IsValid => true;
+  bool IToken.IsValid => true;
 
-  public int CompareTo(SourceOrigin? other) {
+  int IComparable<SourceOrigin>.CompareTo(SourceOrigin? other) {
     throw new NotImplementedException();
   }
 }
