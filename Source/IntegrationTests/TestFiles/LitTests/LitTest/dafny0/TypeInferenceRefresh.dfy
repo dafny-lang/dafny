@@ -1053,6 +1053,35 @@ module CollectionUpdates {
   }
 }
 
+module ConstWithValueOfSubsetType {
+  const f := (n: nat) => n as real
+
+  function N(): nat
+  const g := var n := N(); n
+
+  predicate NeedsNat(n: nat)
+  type MT = u: int | 0 <= u && var n := N(); NeedsNat(n + u) witness *
+
+  method ForEach<X>(s: set<X>, f: X -> real) returns (r: real) {
+    r := 0.0;
+    var s := s;
+    while s != {} {
+      var x :| x in s;
+      r := r + f(x);
+      s := s - {x};
+    }
+  }
+
+  method M(s: set<nat>) returns (r: real) {
+    r := ForEach(s, f);
+
+    var flocal := (n: nat) => n as real;
+    r := ForEach(s, flocal);
+
+    var glocal := N();
+  }
+}
+
 /****************************************************************************************
  ******** TO DO *************************************************************************
  ****************************************************************************************

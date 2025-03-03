@@ -39,6 +39,13 @@ public class TypeRefinementVisitor : ASTVisitor<IASTVisitorContext> {
     systemModuleManager.Options.OutputWriter.WriteLine($"------------------- (end of type-refinement flows, {moduleDescription})");
   }
 
+  public override void VisitField(Field field) {
+    base.VisitField(field);
+    if (field is ConstantField { Rhs: { } rhs } constantField) {
+      flows.Add(new FlowIntoVariable(constantField, rhs, field.Origin, ":="));
+    }
+  }
+
   protected override bool VisitOneExpression(Expression expr, IASTVisitorContext context) {
     if (expr is DatatypeUpdateExpr datatypeUpdateExpr) {
       // How a DatatypeUpdateExpr desugars depends on whether or not the expression is ghost, which hasn't been determined
