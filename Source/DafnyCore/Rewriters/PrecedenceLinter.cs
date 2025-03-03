@@ -95,7 +95,7 @@ namespace Microsoft.Dafny {
           // use the .StartToken for these expressions.
           column = expr.StartToken.col;
         } else {
-          column = expr.Origin.col;
+          column = expr.Origin.Center.Range.Start.Character + 1;
         }
         if (column < st.Column) {
           st.Column = column;

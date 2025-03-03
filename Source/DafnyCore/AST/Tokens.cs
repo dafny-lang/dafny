@@ -66,24 +66,25 @@ public static class TokenExtensions {
   }
 
   public static string TokenToString(this IOrigin tok, DafnyOptions options) {
-    if (ReferenceEquals(tok, Token.Cli)) {
-      return "CLI";
-    }
-
-    if (tok.Uri == null) {
-      return $"({tok.line},{tok.col - 1})";
-    }
-
-    var currentDirectory = Directory.GetCurrentDirectory();
-    string filename = tok.Uri.Scheme switch {
-      "stdin" => "<stdin>",
-      "transcript" => Path.GetFileName(tok.Filepath),
-      _ => options.UseBaseNameForFileName
-        ? Path.GetFileName(tok.Filepath)
-        : (tok.Filepath.StartsWith(currentDirectory) ? Path.GetRelativePath(currentDirectory, tok.Filepath) : tok.Filepath)
-    };
-
-    return $"{filename}({tok.line},{tok.col - 1})";
+    return tok.Center.LocationToString(options);
+    // if (ReferenceEquals(tok, Token.Cli)) {
+    //   return "CLI";
+    // }
+    //
+    // if (tok.Uri == null) {
+    //   return $"({tok.line},{tok.col - 1})";
+    // }
+    //
+    // var currentDirectory = Directory.GetCurrentDirectory();
+    // string filename = tok.Uri.Scheme switch {
+    //   "stdin" => "<stdin>",
+    //   "transcript" => Path.GetFileName(tok.Filepath),
+    //   _ => options.UseBaseNameForFileName
+    //     ? Path.GetFileName(tok.Filepath)
+    //     : (tok.Filepath.StartsWith(currentDirectory) ? Path.GetRelativePath(currentDirectory, tok.Filepath) : tok.Filepath)
+    // };
+    //
+    // return $"{filename}({tok.line},{tok.col - 1})";
   }
 }
 

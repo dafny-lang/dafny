@@ -104,12 +104,12 @@ public class SourceOrigin : IOrigin, IComparable<SourceOrigin> {
   }
 
   public int col {
-    get => throw new InvalidOperationException();
+    get => StartToken.line;
     set => throw new NotImplementedException();
   }
 
   public int line {
-    get => throw new InvalidOperationException();
+    get => StartToken.line;
     set => throw new NotImplementedException();
   }
 

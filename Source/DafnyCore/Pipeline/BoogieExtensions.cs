@@ -96,6 +96,10 @@ namespace Microsoft.Dafny {
       };
     }
 
+    public static FilePosition ToFilePosition(this Location location) {
+      return new FilePosition(location.Uri.ToUri(), location.Range.Start);
+    }
+
     public static FilePosition GetFilePosition(this IOrigin token, bool end = false) {
       return new FilePosition(token.Uri, GetLspPosition(token, end));
     }

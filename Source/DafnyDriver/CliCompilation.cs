@@ -250,14 +250,14 @@ public class CliCompilation {
     foreach (var canVerifiesForModule in canVerifiesPerModule.
                OrderBy(v => v.Key.Origin.pos)) {
       var toAwait = new List<ICanVerify>();
-      foreach (var canVerify in canVerifiesForModule.OrderBy(v => v.Origin.pos)) {
+      foreach (var canVerify in canVerifiesForModule.OrderBy(v => v.Origin.StartToken.pos)) {
         var results = new CliCanVerifyState();
         canVerifyResults[canVerify] = results;
         if (VerifiedAssertions) {
           results.TaskFilter = t => KeepVerificationTask(t, filterRange);
         }
 
-        var shouldVerify = await Compilation.VerifyLocation(canVerify.Origin.GetFilePosition(), results.TaskFilter, randomSeed);
+        var shouldVerify = await Compilation.VerifyLocation(canVerify.Center.ToFilePosition(), results.TaskFilter, randomSeed);
         if (shouldVerify) {
           toAwait.Add(canVerify);
         }
