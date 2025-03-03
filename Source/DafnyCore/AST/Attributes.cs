@@ -730,14 +730,23 @@ public static class AttributesExtensions {
 
 // {:..} Attributes parsed are built using this class
 public class UserSuppliedAttributes : Attributes {
-  public readonly IOrigin OpenBrace;
-  public readonly IOrigin CloseBrace;
+  public readonly IOrigin OpenBrace; // TODO replace with property that uses Origin
+  public readonly IOrigin CloseBrace; // TODO replace with property that uses Origin
   public bool Recognized;  // set to true to indicate an attribute that is processed by some part of Dafny; this allows it to be colored in the IDE
-  public UserSuppliedAttributes(IOrigin origin, IOrigin openBrace, IOrigin closeBrace, List<Expression> args, Attributes? prev)
-    : base(origin.val, args, prev) {
-    SetOrigin(origin);
+
+  public UserSuppliedAttributes(Token nameToken, Token openBrace, Token closeBrace, List<Expression> args,
+    Attributes? prev)
+    : base(nameToken.val, args, prev) {
+    SetOrigin(new SourceOrigin(openBrace, closeBrace, nameToken));
     OpenBrace = openBrace;
     CloseBrace = closeBrace;
+  }
+
+  public UserSuppliedAttributes(IOrigin origin, string name, List<Expression> args, Attributes? prev)
+    : base(name, args, prev) {
+    SetOrigin(origin);
+    OpenBrace = origin.StartToken;
+    CloseBrace = origin.EndToken;
   }
 }
 

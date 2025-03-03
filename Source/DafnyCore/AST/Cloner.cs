@@ -335,7 +335,7 @@ namespace Microsoft.Dafny {
         // skip this attribute, since it would have been produced during resolution
         return CloneAttributes(attrs.Prev);
       } else if (attrs is UserSuppliedAttributes usa) {
-        return new UserSuppliedAttributes(Origin(usa.Origin), Origin(usa.OpenBrace), Origin(usa.CloseBrace),
+        return new UserSuppliedAttributes(Origin(usa.Origin), usa.Name,
           attrs.Args.ConvertAll(CloneExpr), CloneAttributes(attrs.Prev));
       } else if (attrs is UserSuppliedAtAttribute usaa) {
         var arg = CloneExpr(usaa.Arg);

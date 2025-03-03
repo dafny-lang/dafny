@@ -89,29 +89,6 @@ public class SourceOrigin : IOrigin, IComparable<SourceOrigin> {
   public Location? Center {
     get;
   }
-  public string TrailingTrivia {
-    get => StartToken.TrailingTrivia;
-    set => throw new InvalidOperationException();
-  }
-
-  public string LeadingTrivia {
-    get => StartToken.LeadingTrivia;
-    set => throw new InvalidOperationException();
-  }
-
-  public Token Next {
-    get => StartToken.Next;
-    set => throw new InvalidOperationException();
-  }
-
-  public Token Prev {
-    get => StartToken.Prev;
-    set => throw new InvalidOperationException();
-  }
-
-  public IOrigin WithVal(string newVal) {
-    throw new NotImplementedException();
-  }
 
   public bool IsCopy => false;
 
@@ -122,22 +99,22 @@ public class SourceOrigin : IOrigin, IComparable<SourceOrigin> {
   }
 
   public int pos {
-    get => StartToken.pos;
+    get => throw new InvalidOperationException();
     set => throw new NotImplementedException();
   }
 
   public int col {
-    get => StartToken.col;
+    get => throw new InvalidOperationException();
     set => throw new NotImplementedException();
   }
 
   public int line {
-    get => StartToken.line;
+    get => throw new InvalidOperationException();
     set => throw new NotImplementedException();
   }
 
   public string val {
-    get => StartToken.val;
+    get => throw new InvalidOperationException();
     set => throw new InvalidOperationException();
   }
 
