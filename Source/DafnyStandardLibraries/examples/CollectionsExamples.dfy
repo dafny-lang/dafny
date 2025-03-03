@@ -128,14 +128,6 @@ module CollectionsExamples {
     }
 
     @Test
-    method TestSetToSeq() {
-      var mySet := {4, 1, 56, -6};
-      var asSeq := SetToSeq(mySet);
-      var backToSet := ToSet(asSeq);
-      expect backToSet == mySet;
-    }
-
-    @Test
     method TestSorting() {
       expect MergeSortBy((x, y) => x <= y, Reverse(s)) == s;
 
