@@ -154,25 +154,32 @@ public static class TokenExtensions {
 
   public static bool IsSet(this IOrigin token) => token.Uri != null;
 
-  public static string TokenToString(this IOrigin tok, DafnyOptions options) {
-    if (ReferenceEquals(tok, Token.Cli)) {
+  public static string TokenToString(this IOrigin origin, DafnyOptions options) {
+    if (ReferenceEquals(origin, Token.Cli)) {
       return "CLI";
     }
 
-    if (tok.Uri == null) {
-      return $"({tok.line},{tok.col - 1})";
+    if (origin.Uri == null) {
+      if (options.Get(CommonOptionBag.PrintDiagnosticsRanges)) {
+        return $"({origin.line}:{origin.col - 1}-{origin.line}:{origin.col - 1 + origin.val.Length})";
+      }
+      return $"({origin.line},{origin.col - 1})";
     }
 
     var currentDirectory = Directory.GetCurrentDirectory();
-    string filename = tok.Uri.Scheme switch {
+    string filename = origin.Uri.Scheme switch {
       "stdin" => "<stdin>",
-      "transcript" => Path.GetFileName(tok.Filepath),
+      "transcript" => Path.GetFileName(origin.Filepath),
       _ => options.UseBaseNameForFileName
-        ? Path.GetFileName(tok.Filepath)
-        : (tok.Filepath.StartsWith(currentDirectory) ? Path.GetRelativePath(currentDirectory, tok.Filepath) : tok.Filepath)
+        ? Path.GetFileName(origin.Filepath)
+        : (origin.Filepath.StartsWith(currentDirectory) ? Path.GetRelativePath(currentDirectory, origin.Filepath) : origin.Filepath)
     };
 
-    return $"{filename}({tok.line},{tok.col - 1})";
+    var center = origin.Center;
+    if (options.Get(CommonOptionBag.PrintDiagnosticsRanges)) {
+      return $"{filename}({center.line}:{center.col - 1}-{center.line}:{center.col - 1 + center.val.Length})";
+    }
+    return $"{filename}({center.line},{center.col - 1})";
   }
 }
 
