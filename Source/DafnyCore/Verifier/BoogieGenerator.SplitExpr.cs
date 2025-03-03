@@ -510,7 +510,7 @@ namespace Microsoft.Dafny {
 
           // F#canCall(args)
           Bpl.IdentifierExpr canCallFuncID = new Bpl.IdentifierExpr(expr.Origin, f.FullSanitizedName + "#canCall", Bpl.Type.Bool);
-          List<Bpl.Expr> args = etran.FunctionInvocationArguments(fexp, null, null);
+          List<Bpl.Expr> args = etran.FunctionInvocationArguments(fexp, etran.GetLayerArgument(f), null);
           Bpl.Expr canCall = new Bpl.NAryExpr(GetToken(expr), new Bpl.FunctionCall(canCallFuncID), args);
 
           Bpl.Expr fargs;
