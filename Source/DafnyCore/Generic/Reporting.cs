@@ -17,7 +17,7 @@ namespace Microsoft.Dafny {
     Project, Parser, Cloner, RefinementTransformer, Rewriter, Resolver, Translator, Verifier, Compiler, Documentation, TestGeneration
   }
 
-  public record DafnyRelatedInformation(Location Token, string Message);
+  public record DafnyRelatedInformation(Location Location, string Message);
 
   public class ErrorReporterSink : ErrorReporter {
     public ErrorReporterSink(DafnyOptions options) : base(options) { }

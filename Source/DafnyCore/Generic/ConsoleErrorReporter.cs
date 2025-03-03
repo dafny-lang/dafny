@@ -55,10 +55,10 @@ public class ConsoleErrorReporter : BatchErrorReporter {
       var innerMessage = related.Message;
       innerMessage = "Related location: " + innerMessage;
 
-      errorLine += $"{related.Token.TokenToString(Options)}: {innerMessage}\n";
+      errorLine += $"{related.Location.LocationToString(Options)}: {innerMessage}\n";
       if (Options.Get(Snippets.ShowSnippets)) {
         var tw = new StringWriter();
-        Snippets.WriteSourceCodeSnippet(Options, related.Token, tw);
+        Snippets.WriteSourceCodeSnippet(Options, related.Location, tw);
         errorLine += tw.ToString();
       }
     }

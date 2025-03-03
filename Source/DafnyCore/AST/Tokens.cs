@@ -51,7 +51,7 @@ public static class TokenExtensions {
 
 
 
-  public static string TokenToString(this Location location, DafnyOptions options) {
+  public static string LocationToString(this Location location, DafnyOptions options) {
     var currentDirectory = Directory.GetCurrentDirectory();
     var path = location.Uri.Path;
     string filename = location.Uri.Scheme switch {
@@ -62,7 +62,7 @@ public static class TokenExtensions {
         : (path.StartsWith(currentDirectory) ? Path.GetRelativePath(currentDirectory, path) : path)
     };
 
-    return $"{filename}({location.Range.Start.Line},{location.Range.Start.Character})";
+    return $"{filename}({location.Range.Start.Line + 1},{location.Range.Start.Character})";
   }
 
   public static string TokenToString(this IOrigin tok, DafnyOptions options) {

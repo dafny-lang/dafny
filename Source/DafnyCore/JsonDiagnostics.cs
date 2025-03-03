@@ -57,7 +57,7 @@ record DiagnosticMessageData(MessageSource source, ErrorLevel level, Location to
   }
 
   public JsonNode ToJson() {
-    var auxRelated = related.Select(aux => (JsonNode)SerializeRelated(aux.Token, aux.Message));
+    var auxRelated = related.Select(aux => (JsonNode)SerializeRelated(aux.Location, aux.Message));
     return new JsonObject {
       ["location"] = SerializeLocation(tok),
       ["severity"] = SerializeErrorLevel(level),

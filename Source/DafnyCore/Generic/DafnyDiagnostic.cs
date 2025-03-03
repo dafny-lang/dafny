@@ -40,7 +40,7 @@ public class RangeComparer : IComparer<Range> {
     if (y == null) {
       return 1;
     }
-    var startResult = x.Start.CompareTo(y);
+    var startResult = x.Start.CompareTo(y.Start);
     return startResult == 0 ? x.End.CompareTo(y.End) : startResult;
   }
 }
@@ -58,7 +58,7 @@ public record DafnyDiagnostic(MessageSource Source, string? ErrorId, Location? L
 
     for (var index = 0; index < RelatedInformation.Count; index++) {
       if (other.RelatedInformation.Count > index) {
-        var r1 = LocationComparer.Instance.Compare(RelatedInformation[index].Token, other.RelatedInformation[index].Token);
+        var r1 = LocationComparer.Instance.Compare(RelatedInformation[index].Location, other.RelatedInformation[index].Location);
         if (r1 != 0) {
           return r1;
         }

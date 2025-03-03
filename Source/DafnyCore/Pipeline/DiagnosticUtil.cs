@@ -15,7 +15,7 @@ public static class DiagnosticUtil {
       Source = dafnyDiagnostic.Source.ToString(),
       RelatedInformation = dafnyDiagnostic.RelatedInformation.Select(r =>
         new DiagnosticRelatedInformation {
-          Location = r.Token,
+          Location = r.Location,
           Message = r.Message
         }).ToList(),
       CodeDescription = dafnyDiagnostic.ErrorId == null

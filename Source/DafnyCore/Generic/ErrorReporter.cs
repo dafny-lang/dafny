@@ -222,6 +222,6 @@ public abstract class ErrorReporter {
     return $"{tok.TokenToString(Options)}: {header.ToString()}: {msg}";
   }
   public string ErrorToString(ErrorLevel header, Location tok, string msg) {
-    return $"{tok.TokenToString(Options)}: {header.ToString()}: {msg}";
+    return $"{tok.LocationToString(Options)}: {header.ToString()}: {msg}";
   }
 }

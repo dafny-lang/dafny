@@ -196,7 +196,7 @@ public class ProofDependencyWarnings {
 
       switch (assertDepProvenByFact) {
         case CallDependency call: {
-            factConsumer = $"precondition{(call.call.Method.Req.Count > 1 ? "s" : "")} of the method call {call.Range.Center.TokenToString(options)}";
+            factConsumer = $"precondition{(call.call.Method.Req.Count > 1 ? "s" : "")} of the method call {call.Range.Center.LocationToString(options)}";
             break;
           }
         case ProofObligationDependency { ProofObligation: AssertStatementDescription }: {
