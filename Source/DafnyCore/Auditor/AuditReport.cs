@@ -167,7 +167,7 @@ public class AuditReport {
 
     foreach (var (decl, assumptions) in assumptionsByDecl) {
       foreach (var assumption in assumptions) {
-        text.AppendLine($"{decl.Origin.TokenToString(options)}:{assumption.Warning()}");
+        text.AppendLine($"{decl.Origin.OriginToString(options)}:{assumption.Warning()}");
       }
     }
 

@@ -16,7 +16,9 @@ public class TokenRange(Token startToken, Token? endToken) : IComparable<TokenRa
   public Token EndToken => endToken ?? StartToken;
 
   public Uri Uri => StartToken.Uri;
-  public int Length => EndToken.pos - StartToken.pos + (InclusiveEnd ? EndToken.val.Length : 0);
+  public int Length => EndToken.pos - StartToken.pos + EndLength;
+
+  public int EndLength => InclusiveEnd ? EndToken.val.Length : 0;
 
   public int CompareTo(TokenRange? other) {
     if (other == null) {

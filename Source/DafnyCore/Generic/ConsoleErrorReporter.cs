@@ -57,7 +57,7 @@ public class ConsoleErrorReporter : BatchErrorReporter {
         innerMessage = "Related location: " + innerMessage;
       }
 
-      errorLine += $"{related.Token.TokenToString(Options)}: {innerMessage}\n";
+      errorLine += $"{related.Token.OriginToString(Options)}: {innerMessage}\n";
       if (Options.Get(Snippets.ShowSnippets)) {
         var tw = new StringWriter();
         Snippets.WriteSourceCodeSnippet(Options, related.Token.EntireRange, tw);
