@@ -1,0 +1,1 @@
+Fix soundness issue that could occur when using an opaque block and old or fresh in its ensures clause 

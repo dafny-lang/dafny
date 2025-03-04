@@ -1,3 +1,4 @@
+#nullable enable
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 using System.Linq;
@@ -9,11 +10,19 @@ public class DefaultClassDecl : TopLevelDeclWithMembers, RevealableTypeDecl {
   public override bool AcceptThis => false;
 
   public TopLevelDecl AsTopLevelDecl => this;
-  public TypeDeclSynonymInfo SynonymInfo { get; set; }
+  public TypeDeclSynonymInfo? SynonymInfo { get; set; }
 
-  public DefaultClassDecl(ModuleDefinition module, [Captured] List<MemberDecl> members)
-    : base(SourceOrigin.NoToken, new Name("_default"), module, new List<TypeParameter>(), members, null, false, null) {
-    Contract.Requires(module != null);
+
+  [SyntaxConstructor]
+  public DefaultClassDecl(IOrigin origin, Name nameNode, Attributes? attributes,
+    List<TypeParameter> typeArgs, ModuleDefinition enclosingModuleDefinition,
+    List<MemberDecl> members, List<Type>? traits = null)
+    : base(origin, nameNode, enclosingModuleDefinition, typeArgs, members, attributes, traits) {
+  }
+
+  public DefaultClassDecl(ModuleDefinition enclosingModule, [Captured] List<MemberDecl> members)
+    : base(SourceOrigin.NoToken, new Name("_default"), enclosingModule, [], members, null) {
+    Contract.Requires(enclosingModule != null);
     Contract.Requires(cce.NonNullElements(members));
     this.NewSelfSynonym();
   }

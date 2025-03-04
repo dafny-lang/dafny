@@ -12,10 +12,10 @@ public class ConstantField : SpecialField, ICallable, ICanAutoRevealDependencies
 
   public override bool IsOpaque { get; }
 
-  public ConstantField(IOrigin origin, Name name, Expression/*?*/ rhs, bool hasStaticKeyword, bool isGhost, bool isOpaque, Type type, Attributes attributes)
-    : base(origin, name, ID.UseIdParam, NonglobalVariable.SanitizeName(name.Value), hasStaticKeyword, isGhost, false, false, type, attributes) {
+  public ConstantField(IOrigin origin, Name nameNode, Expression/*?*/ rhs, bool hasStaticKeyword, bool isGhost, bool isOpaque, Type type, Attributes attributes)
+    : base(origin, nameNode, ID.UseIdParam, NonglobalVariable.SanitizeName(nameNode.Value), hasStaticKeyword, isGhost, false, false, type, attributes) {
     Contract.Requires(Origin != null);
-    Contract.Requires(name != null);
+    Contract.Requires(nameNode != null);
     Contract.Requires(type != null);
     this.Rhs = rhs;
     this.IsOpaque = isOpaque;
@@ -28,8 +28,8 @@ public class ConstantField : SpecialField, ICallable, ICanAutoRevealDependencies
   public bool ContainsHide { get; set; }
 
   public new bool IsGhost { get { return this.isGhost; } }
-  public List<TypeParameter> TypeArgs { get { return new List<TypeParameter>(); } }
-  public List<Formal> Ins { get { return new List<Formal>(); } }
+  public List<TypeParameter> TypeArgs { get { return []; } }
+  public List<Formal> Ins { get { return []; } }
   public ModuleDefinition EnclosingModule { get { return this.EnclosingClass.EnclosingModuleDefinition; } }
   public bool MustReverify { get { return false; } }
   public bool AllowsNontermination { get { throw new cce.UnreachableException(); } }

@@ -35,7 +35,7 @@ public class BlockByProofStmt : Statement, ICanResolveNewAndOld, ICanPrint,
     var prevLblStmts = resolver.EnclosingStatementLabels;
     var prevLoopStack = resolver.LoopStack;
     resolver.EnclosingStatementLabels = new Scope<Statement>(resolver.Options);
-    resolver.LoopStack = new List<Statement>();
+    resolver.LoopStack = [];
     resolver.ResolveStatement(proof, resolutionContext);
     resolver.EnclosingStatementLabels = prevLblStmts;
     resolver.LoopStack = prevLoopStack;

@@ -32,38 +32,41 @@ public class NewtypeDecl : TopLevelDeclWithMembers, RevealableTypeDecl, Redirect
 
   [FilledInDuringResolution] public bool TargetTypeCoversAllBitPatterns; // "target complete" -- indicates that any bit pattern that can fill the target type is a value of the newtype
 
-  public NewtypeDecl(IOrigin origin, Name name, List<TypeParameter> typeParameters, ModuleDefinition module,
+  public NewtypeDecl(IOrigin origin, Name nameNode, List<TypeParameter> typeParameters, ModuleDefinition enclosingModule,
     Type baseType,
     SubsetTypeDecl.WKind witnessKind, Expression witness, List<Type> parentTraits, List<MemberDecl> members, Attributes attributes, bool isRefining)
-    : base(origin, name, module, typeParameters, members, attributes, isRefining, parentTraits) {
+    : base(origin, nameNode, enclosingModule, typeParameters, members, attributes, parentTraits) {
     Contract.Requires(origin != null);
-    Contract.Requires(name != null);
-    Contract.Requires(module != null);
-    Contract.Requires(isRefining ^ (baseType != null));
+    Contract.Requires(nameNode != null);
+    Contract.Requires(enclosingModule != null);
     Contract.Requires((witnessKind == SubsetTypeDecl.WKind.Compiled || witnessKind == SubsetTypeDecl.WKind.Ghost) == (witness != null));
     Contract.Requires(members != null);
     BaseType = baseType;
     Witness = witness;
+    IsRefining = isRefining;
     WitnessKind = witnessKind;
     this.NewSelfSynonym();
   }
-  public NewtypeDecl(IOrigin origin, Name name, List<TypeParameter> typeParameters, ModuleDefinition module,
+  public NewtypeDecl(IOrigin origin, Name nameNode, List<TypeParameter> typeParameters, ModuleDefinition enclosingModule,
     BoundVar bv, Expression constraint,
     SubsetTypeDecl.WKind witnessKind, Expression witness, List<Type> parentTraits, List<MemberDecl> members, Attributes attributes, bool isRefining)
-    : base(origin, name, module, typeParameters, members, attributes, isRefining, parentTraits) {
+    : base(origin, nameNode, enclosingModule, typeParameters, members, attributes, parentTraits) {
     Contract.Requires(origin != null);
-    Contract.Requires(name != null);
-    Contract.Requires(module != null);
+    Contract.Requires(nameNode != null);
+    Contract.Requires(enclosingModule != null);
     Contract.Requires(bv != null && bv.Type != null);
     Contract.Requires((witnessKind == SubsetTypeDecl.WKind.Compiled || witnessKind == SubsetTypeDecl.WKind.Ghost) == (witness != null));
     Contract.Requires(members != null);
     BaseType = bv.Type;
     Var = bv;
+    IsRefining = isRefining;
     Constraint = constraint;
     Witness = witness;
     WitnessKind = witnessKind;
     this.NewSelfSynonym();
   }
+
+  public override bool IsRefining { get; }
 
   public Type ConcreteBaseType(List<Type> typeArguments) {
     Contract.Requires(TypeArgs.Count == typeArguments.Count);
@@ -132,8 +135,8 @@ public class NewtypeDecl : TopLevelDeclWithMembers, RevealableTypeDecl, Redirect
   bool ICodeContext.IsGhost {
     get { throw new NotSupportedException(); }  // if .IsGhost is needed, the object should always be wrapped in an CodeContextWrapper
   }
-  List<TypeParameter> ICodeContext.TypeArgs { get { return TypeArgs; } }
-  List<Formal> ICodeContext.Ins { get { return new List<Formal>(); } }
+  List<TypeParameter> ICodeContext.TypeArgs => TypeArgs;
+  List<Formal> ICodeContext.Ins => [];
   ModuleDefinition IASTVisitorContext.EnclosingModule { get { return EnclosingModuleDefinition; } }
   bool ICodeContext.MustReverify { get { return false; } }
   bool ICodeContext.AllowsNontermination { get { return false; } }

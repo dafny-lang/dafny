@@ -948,78 +948,6 @@ module Std.Collections.Seq {
     }
   }
 
-
-  /**********************************************************
-   *
-   *  Sets to Ordered Sequences
-   *
-   ***********************************************************/
-
-  /* Converts a set to a sequence (ghost). */
-  ghost function SetToSeqSpec<T>(s: set<T>): (xs: seq<T>)
-    ensures multiset(s) == multiset(xs)
-  {
-    if s == {} then [] else var x :| x in s; [x] + SetToSeqSpec(s - {x})
-  }
-
-  /* Converts a set to a sequence (compiled). */
-  method SetToSeq<T>(s: set<T>) returns (xs: seq<T>)
-    ensures multiset(s) == multiset(xs)
-  {
-    xs := [];
-    var left: set<T> := s;
-    while left != {}
-      invariant multiset(left) + multiset(xs) == multiset(s)
-    {
-      var x :| x in left;
-      left := left - {x};
-      xs := xs + [x];
-    }
-  }
-
-  /* Proves that any two sequences that are sorted by a total order and that have the same elements are equal. */
-  lemma SortedUnique<T(!new)>(xs: seq<T>, ys: seq<T>, R: (T, T) -> bool)
-    requires SortedBy(R, xs)
-    requires SortedBy(R, ys)
-    requires TotalOrdering(R)
-    requires multiset(xs) == multiset(ys)
-    ensures xs == ys
-  {
-    if xs == [] {
-      assert multiset(xs) == multiset{};
-      assert multiset(ys) == multiset{};
-      assert ys == [];
-    } else {
-      assert xs == [xs[0]] + xs[1..];
-      assert ys == [ys[0]] + ys[1..];
-      assert multiset(xs[1..]) == multiset(xs) - multiset{xs[0]};
-      assert multiset(ys[1..]) == multiset(ys) - multiset{ys[0]};
-      assert multiset(xs[1..]) == multiset(ys[1..]);
-      SortedUnique(xs[1..], ys[1..], R);
-    }
-  }
-
-  /* Converts a set to a sequence that is ordered w.r.t. a given total order (ghost). */
-  ghost function SetToSortedSeqSpec<T(!new)>(s: set<T>, R: (T, T) -> bool): (xs: seq<T>)
-    requires TotalOrdering(R)
-    ensures multiset(s) == multiset(xs)
-    ensures SortedBy(R, xs)
-  {
-    MergeSortBy(R, SetToSeqSpec(s))
-  }
-
-  /* Converts a set to a sequence that is ordered w.r.t. a given total order (compiled). */
-  method SetToSortedSeq<T(!new)>(s: set<T>, R: (T, T) -> bool) returns (xs: seq<T>)
-    requires TotalOrdering(R)
-    ensures multiset(s) == multiset(xs)
-    ensures SortedBy(R, xs)
-  {
-    xs := SetToSeq(s);
-    xs := MergeSortBy(R, xs);
-    SortedUnique(xs, SetToSortedSeqSpec(s, R), R);
-  }
-
-
   /****************************
    **  Sorting sequences
    ***************************** */
@@ -1076,4 +1004,26 @@ module Std.Collections.Seq {
     requires TotalOrdering(lessOrEqual)
     ensures SortedBy(lessOrEqual, [newFirst] + s)
   {}
+
+  /* Proves that any two sequences that are sorted by a total order and that have the same elements are equal. */
+  lemma SortedUnique<T(!new)>(xs: seq<T>, ys: seq<T>, R: (T, T) -> bool)
+    requires SortedBy(R, xs)
+    requires SortedBy(R, ys)
+    requires TotalOrdering(R)
+    requires multiset(xs) == multiset(ys)
+    ensures xs == ys
+  {
+    if xs == [] {
+      assert multiset(xs) == multiset{};
+      assert multiset(ys) == multiset{};
+      assert ys == [];
+    } else {
+      assert xs == [xs[0]] + xs[1..];
+      assert ys == [ys[0]] + ys[1..];
+      assert multiset(xs[1..]) == multiset(xs) - multiset{xs[0]};
+      assert multiset(ys[1..]) == multiset(ys) - multiset{ys[0]};
+      assert multiset(xs[1..]) == multiset(ys[1..]);
+      SortedUnique(xs[1..], ys[1..], R);
+    }
+  }
 }

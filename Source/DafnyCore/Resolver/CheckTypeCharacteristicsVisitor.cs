@@ -9,8 +9,8 @@ namespace Microsoft.Dafny;
 /// In addition, this visitor checks that operations that require equality are applied to
 /// types that really do support equality; this, too, is checked only in compiled contexts.
 /// </summary>
-class CheckTypeCharacteristics_Visitor : ResolverTopDownVisitor<bool> {
-  public CheckTypeCharacteristics_Visitor(ErrorReporter reporter)
+class CheckTypeCharacteristicsVisitor : ResolverTopDownVisitor<bool> {
+  public CheckTypeCharacteristicsVisitor(ErrorReporter reporter)
     : base(reporter) {
     Contract.Requires(reporter != null);
   }
@@ -361,7 +361,7 @@ class CheckTypeCharacteristics_Visitor : ResolverTopDownVisitor<bool> {
   ///     * [type X must] support auto-initialization
   ///     * [type X must] be nonempty
   /// </summary>
-  public static bool CheckCharacteristics(TypeParameter.TypeParameterCharacteristics formal, Type actual, bool inGhostContext,
+  public static bool CheckCharacteristics(TypeParameterCharacteristics formal, Type actual, bool inGhostContext,
     out string whatIsNeeded, out string hint, out RefinementErrors.ErrorId errorId) {
     Contract.Ensures(Contract.Result<bool>() || (Contract.ValueAtReturn(out whatIsNeeded) != null && Contract.ValueAtReturn(out hint) != null));
     if (!inGhostContext && formal.EqualitySupport != TypeParameter.EqualitySupportValue.Unspecified && !actual.SupportsEquality) {

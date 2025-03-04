@@ -1,6 +1,8 @@
 // CHECK: .*/// Docstring for test method.*
 // CHECK: .*/// Multi-line.*
-// CHECK: .*docstring\.dfy\(7,1\).*
+// CHECK: .*/// ```dafny.*
+// CHECK: .*///|   And this indented comment should not be compiled to Rust executable docstring
+// CHECK: .*docstring\.dfy\(28,1\).*
 // CHECK: .*/// Docstring for functions.*
 // CHECK: .*/// Docstring for classes 1.*
 // CHECK: .*/// Docstring for datatype.*
@@ -11,5 +13,6 @@
 // CHECK: .*/// Docstring for module.*
 // CHECK: .*/// Docstring for classes 2.*
 // CHECK: .*/// Allocates an UNINITIALIZED instance. Only the Dafny compiler should use that.*
+// CHECK: .*/// Docstring for class constructor.*
 // CHECK: .*/// Docstring for predicate.*
 // CHECK: .*/// Docstring for const.*

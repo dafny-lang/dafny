@@ -8,11 +8,31 @@ using Action = System.Action;
 
 namespace Microsoft.Dafny;
 
+/// <summary>
+/// Indicates that this constructor is used to define an AST type corresponding to the syntax of Dafny
+///
+/// These constructors are invoked by the Dafny parser defined in Dafny.atg
+/// and by the Dafny deserializer.
+///
+/// The attribute is used by DeserializerGenerator.
+/// </summary>
+[AttributeUsage(AttributeTargets.Constructor)]
+public class SyntaxConstructorAttribute : Attribute { }
+
+/// <summary>
+/// Used by the command '--generate-parsed-ast'. This attribute will cause the field to be ignored.
+/// Some constructors used during parsing also have a parameter whose value that points to the container of the object that is
+/// to be constructed. This parameters should not end up in the generated 'parsed AST', so their related fields
+/// are annotated with this attribute.
+/// </summary>
+[AttributeUsage(AttributeTargets.Parameter | AttributeTargets.Field)]
+public class BackEdge : Attribute { }
+
 public abstract class Node : INode {
   private static readonly Regex StartDocstringExtractor =
     new Regex($@"/\*\*(?<multilinecontent>{TriviaFormatterHelper.MultilineCommentContent})\*/");
 
-  protected IReadOnlyList<IOrigin> OwnedTokensCache;
+  protected IReadOnlyList<Token> OwnedTokensCache;
 
   public virtual bool SingleFileToken => true;
   public Token StartToken => Origin?.StartToken;
@@ -52,7 +72,7 @@ public abstract class Node : INode {
   /// A token is owned by a node if it was used to parse this node,
   /// but is not owned by any of this Node's children
   /// </summary>
-  public IEnumerable<IOrigin> OwnedTokens {
+  public IEnumerable<Token> OwnedTokens {
     get {
       if (OwnedTokensCache != null) {
         return OwnedTokensCache;
@@ -69,7 +89,7 @@ public abstract class Node : INode {
         ToDictionary(g => g.Key, g => g.MaxBy(child => child.EndToken.pos).EndToken
       );
 
-      var result = new List<IOrigin>();
+      var result = new List<Token>();
       if (StartToken == null) {
         Contract.Assume(EndToken == null);
       } else {
@@ -118,7 +138,7 @@ public abstract class Node : INode {
   // containing this node, or null if it is not contained in any.
   // </summary>
   public virtual IEnumerable<Assumption> Assumptions(Declaration decl) {
-    return Enumerable.Empty<Assumption>();
+    return [];
   }
 
   public ISet<INode> Visit(Func<INode, bool> beforeChildren = null, Action<INode> afterChildren = null, Action<Exception> reportError = null) {

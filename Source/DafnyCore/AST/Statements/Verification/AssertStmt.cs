@@ -1,3 +1,4 @@
+#nullable enable
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 using Microsoft.Dafny.Auditor;
@@ -5,7 +6,7 @@ using Microsoft.Dafny.Auditor;
 namespace Microsoft.Dafny;
 
 public class AssertStmt : PredicateStmt, ICloneable<AssertStmt>, ICanFormat {
-  public readonly AssertLabel Label;
+  public readonly AssertLabel? Label;
 
   public AssertStmt Clone(Cloner cloner) {
     return new AssertStmt(cloner, this);
@@ -15,18 +16,19 @@ public class AssertStmt : PredicateStmt, ICloneable<AssertStmt>, ICanFormat {
     Label = original.Label == null ? null : new AssertLabel(cloner.Origin(original.Label.Tok), original.Label.Name);
   }
 
-  public static AssertStmt CreateErrorAssert(INode node, string message, Expression guard = null) {
+  public static AssertStmt CreateErrorAssert(INode node, string message, Expression? guard = null) {
     var errorMessage = new StringLiteralExpr(node.Origin, message, true);
     errorMessage.Type = new SeqType(Type.Char);
-    var attr = new Attributes("error", new List<Expression> { errorMessage }, null);
+    var attr = new Attributes("error", [errorMessage], null);
     guard ??= Expression.CreateBoolLiteral(node.Origin, false);
     var assertFalse = new AssertStmt(node.Origin, guard, null, attr);
     assertFalse.IsGhost = true;
     return assertFalse;
   }
 
-  public AssertStmt(IOrigin origin, Expression expr, AssertLabel/*?*/ label, Attributes attrs)
-    : base(origin, expr, attrs) {
+  [SyntaxConstructor]
+  public AssertStmt(IOrigin origin, Expression expr, AssertLabel? label, Attributes? attributes)
+    : base(origin, expr, attributes) {
     Contract.Requires(origin != null);
     Contract.Requires(expr != null);
     Label = label;
@@ -34,8 +36,8 @@ public class AssertStmt : PredicateStmt, ICloneable<AssertStmt>, ICanFormat {
 
   public void AddCustomizedErrorMessage(IOrigin tok, string s) {
     var args = new List<Expression>() { new StringLiteralExpr(tok, s, true) };
-    IOrigin openBrace = tok;
-    IOrigin closeBrace = new Token(tok.line, tok.col + 7 + s.Length + 1); // where 7 = length(":error ")
+    var openBrace = tok;
+    var closeBrace = new Token(tok.line, tok.col + 7 + s.Length + 1); // where 7 = length(":error ")
     this.Attributes = new UserSuppliedAttributes(tok, openBrace, closeBrace, args, this.Attributes);
   }
 
@@ -67,7 +69,7 @@ public class AssertStmt : PredicateStmt, ICloneable<AssertStmt>, ICanFormat {
     }
 
     if (this.HasUserAttribute("only", out var attribute)) {
-      resolver.Reporter.Warning(MessageSource.Verifier, ResolutionErrors.ErrorId.r_assert_only_assumes_others.ToString(), attribute.Origin,
+      resolver.Reporter.Warning(MessageSource.Verifier, ResolutionErrors.ErrorId.r_assert_only_assumes_others.ToString(), attribute!.Origin,
         "Assertion with {:only} temporarily transforms other assertions into assumptions");
       if (attribute.Args.Count >= 1
           && attribute.Args[0] is LiteralExpr { Value: string value }
@@ -86,7 +88,7 @@ public class AssertStmt : PredicateStmt, ICloneable<AssertStmt>, ICanFormat {
       return false;
     }
 
-    if (attribute.Args.Count != 1 || attribute.Args[0] is not LiteralExpr { Value: var value }) {
+    if (attribute!.Args.Count != 1 || attribute.Args[0] is not LiteralExpr { Value: var value }) {
       return true;
     }
 
@@ -107,7 +109,7 @@ public class AssertStmt : PredicateStmt, ICloneable<AssertStmt>, ICanFormat {
 
   public override void ResolveGhostness(ModuleResolver resolver, ErrorReporter reporter, bool mustBeErasable,
     ICodeContext codeContext,
-    string proofContext, bool allowAssumptionVariables, bool inConstructorInitializationPhase) {
+    string? proofContext, bool allowAssumptionVariables, bool inConstructorInitializationPhase) {
     IsGhost = true;
   }
 }

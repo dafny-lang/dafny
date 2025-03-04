@@ -16,7 +16,7 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
   /// LSP Synchronization handler for symbol based events, i.e. the client requests the symbols of the specified document.
   /// </summary>
   public class DafnyDocumentSymbolHandler : DocumentSymbolHandlerBase {
-    private static readonly SymbolInformationOrDocumentSymbol[] EmptySymbols = Array.Empty<SymbolInformationOrDocumentSymbol>();
+    private static readonly SymbolInformationOrDocumentSymbol[] EmptySymbols = [];
 
     private readonly ILogger logger;
     private readonly IProjectDatabase projects;

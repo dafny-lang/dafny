@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 using System.Linq;
+using JetBrains.Annotations;
 
 namespace Microsoft.Dafny;
 
@@ -14,7 +15,7 @@ namespace Microsoft.Dafny;
 /// is recorded by the parser.
 /// </summary>
 public class CasePattern<VT> : NodeWithComputedRange
-  where VT : class, IVariable {
+  where VT : IVariable {
   public readonly string Id;
   // After successful resolution, exactly one of the following two fields is non-null.
 
@@ -26,7 +27,7 @@ public class CasePattern<VT> : NodeWithComputedRange
   [FilledInDuringResolution] public Expression Expr;  // an r-value version of the CasePattern;
 
   public void MakeAConstructor() {
-    this.Arguments = new List<CasePattern<VT>>();
+    this.Arguments = [];
   }
 
   public CasePattern(Cloner cloner, CasePattern<VT> original) : base(cloner, original) {
@@ -36,7 +37,7 @@ public class CasePattern<VT> : NodeWithComputedRange
     }
 
     if (original.Arguments != null) {
-      Arguments = original.Arguments.Select(cloner.CloneCasePattern<VT>).ToList();
+      Arguments = original.Arguments.Select(cloner.CloneCasePattern).ToList();
     }
 
     // In this case, tt is important to resolve the resolved fields AFTER the Arguments above.
@@ -75,7 +76,7 @@ public class CasePattern<VT> : NodeWithComputedRange
       this.Expr = new IdentifierExpr(this.Origin, this.Var);
     } else {
       var dtValue = new DatatypeValue(this.Origin, this.Ctor.EnclosingDatatype.Name, this.Id,
-        this.Arguments == null ? new List<Expression>() : this.Arguments.ConvertAll(arg => arg.Expr));
+        this.Arguments == null ? [] : this.Arguments.ConvertAll(arg => arg.Expr));
       dtValue.Ctor = this.Ctor;  // resolve here
       dtValue.InferredTypeArgs.AddRange(dtvTypeArgs);  // resolve here
       dtValue.Type = new UserDefinedType(this.Origin, this.Ctor.EnclosingDatatype.Name, this.Ctor.EnclosingDatatype, dtvTypeArgs);
@@ -96,7 +97,7 @@ public class CasePattern<VT> : NodeWithComputedRange
       };
     } else {
       var dtValue = new DatatypeValue(this.Origin, this.Ctor.EnclosingDatatype.Name, this.Id,
-        this.Arguments == null ? new List<Expression>() : this.Arguments.ConvertAll(arg => arg.Expr)) {
+        this.Arguments == null ? [] : this.Arguments.ConvertAll(arg => arg.Expr)) {
         Ctor = this.Ctor,
         PreType = new DPreType(this.Ctor.EnclosingDatatype, dtvPreTypeArgs)
       };
@@ -121,6 +122,6 @@ public class CasePattern<VT> : NodeWithComputedRange
     }
   }
 
-  public override IEnumerable<INode> Children => Var == null ? (Arguments ?? Enumerable.Empty<Node>()) : new[] { Var };
+  public override IEnumerable<INode> Children => Var == null ? (Arguments ?? Enumerable.Empty<Node>()) : new[] { (INode)Var };
   public override IEnumerable<INode> PreResolveChildren => Children;
 }

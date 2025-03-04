@@ -2,7 +2,6 @@ using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 using System.Linq;
 using Microsoft.Dafny.Auditor;
-using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 
 namespace Microsoft.Dafny;
 
@@ -67,13 +66,15 @@ public abstract class MemberDecl : Declaration, ISymbol {
     this.isGhost = original.isGhost;
   }
 
-  protected MemberDecl(IOrigin origin, Name name, bool hasStaticKeyword, bool isGhost, Attributes attributes, bool isRefining)
-    : base(origin, name, attributes, isRefining) {
+  [SyntaxConstructor]
+  protected MemberDecl(IOrigin origin, Name nameNode, bool hasStaticKeyword, bool isGhost, Attributes attributes)
+    : base(origin, nameNode, attributes) {
     Contract.Requires(origin != null);
-    Contract.Requires(name != null);
+    Contract.Requires(nameNode != null);
     this.hasStaticKeyword = hasStaticKeyword;
     this.isGhost = isGhost;
   }
+
   /// <summary>
   /// Returns className+"."+memberName.  Available only after resolution.
   /// </summary>
@@ -115,7 +116,7 @@ public abstract class MemberDecl : Declaration, ISymbol {
     }
   }
 
-  public virtual IEnumerable<Expression> SubExpressions => Enumerable.Empty<Expression>();
+  public virtual IEnumerable<Expression> SubExpressions => [];
 
   public override IEnumerable<Assumption> Assumptions(Declaration decl) {
     foreach (var a in base.Assumptions(this)) {
@@ -148,7 +149,7 @@ public abstract class MemberDecl : Declaration, ISymbol {
       receiver.Type = ModuleResolver.GetReceiverType(tok, this);  // resolve here
     }
 
-    arguments = new List<Expression>();
+    arguments = [];
     foreach (var inFormal in ins) {
       Expression inE;
       if (substMap.TryGetValue(inFormal, out inE)) {

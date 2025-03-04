@@ -8,7 +8,7 @@ namespace Microsoft.Dafny;
 /// <summary>
 /// This class is used only inside the resolver itself. It gets hung in the AST in uncompleted name segments.
 /// </summary>
-class Resolver_IdentifierExpr : Expression, IHasReferences, ICloneable<Resolver_IdentifierExpr> {
+class ResolverIdentifierExpr : Expression, IHasReferences, ICloneable<ResolverIdentifierExpr> {
   public readonly TopLevelDecl Decl;
   public readonly List<Type> TypeArgs;
   [ContractInvariantMethod]
@@ -16,10 +16,10 @@ class Resolver_IdentifierExpr : Expression, IHasReferences, ICloneable<Resolver_
     Contract.Invariant(Decl != null);
     Contract.Invariant(TypeArgs != null);
     Contract.Invariant(TypeArgs.Count == Decl.TypeArgs.Count);
-    Contract.Invariant(Type is ResolverType_Module || Type is ResolverType_Type);
+    Contract.Invariant(Type is ResolverTypeModule or ResolverTypeType);
   }
 
-  public Resolver_IdentifierExpr(Cloner cloner, Resolver_IdentifierExpr original) : base(cloner, original) {
+  public ResolverIdentifierExpr(Cloner cloner, ResolverIdentifierExpr original) : base(cloner, original) {
     Decl = original.Decl;
     TypeArgs = original.TypeArgs;
   }
@@ -38,39 +38,39 @@ class Resolver_IdentifierExpr : Expression, IHasReferences, ICloneable<Resolver_
       throw new NotSupportedException();
     }
   }
-  public class ResolverType_Module : ResolverType {
+  public class ResolverTypeModule : ResolverType {
     [System.Diagnostics.Contracts.Pure]
     public override string TypeName(DafnyOptions options, ModuleDefinition context, bool parseAble) {
       Contract.Assert(parseAble == false);
       return "#module";
     }
     public override bool Equals(Type that, bool keepConstraints = false) {
-      return that.NormalizeExpand(keepConstraints) is ResolverType_Module;
+      return that.NormalizeExpand(keepConstraints) is ResolverTypeModule;
     }
   }
-  public class ResolverType_Type : ResolverType {
+  public class ResolverTypeType : ResolverType {
     [System.Diagnostics.Contracts.Pure]
     public override string TypeName(DafnyOptions options, ModuleDefinition context, bool parseAble) {
       Contract.Assert(parseAble == false);
       return "#type";
     }
     public override bool Equals(Type that, bool keepConstraints = false) {
-      return that.NormalizeExpand(keepConstraints) is ResolverType_Type;
+      return that.NormalizeExpand(keepConstraints) is ResolverTypeType;
     }
   }
 
-  public Resolver_IdentifierExpr(IOrigin origin, TopLevelDecl decl, List<Type> typeArgs)
+  public ResolverIdentifierExpr(IOrigin origin, TopLevelDecl decl, List<Type> typeArgs)
     : base(origin) {
     Contract.Requires(origin != null);
     Contract.Requires(decl != null);
     Contract.Requires(typeArgs != null && typeArgs.Count == decl.TypeArgs.Count);
     Decl = decl;
     TypeArgs = typeArgs;
-    Type = decl is ModuleDecl ? (Type)new ResolverType_Module() : new ResolverType_Type();
+    Type = decl is ModuleDecl ? (Type)new ResolverTypeModule() : new ResolverTypeType();
     PreType = decl is ModuleDecl ? new PreTypePlaceholderModule() : new PreTypePlaceholderType();
   }
-  public Resolver_IdentifierExpr(IOrigin origin, TypeParameter tp)
-    : this(origin, tp, new List<Type>()) {
+  public ResolverIdentifierExpr(IOrigin origin, TypeParameter tp)
+    : this(origin, tp, []) {
     Contract.Requires(origin != null);
     Contract.Requires(tp != null);
   }
@@ -79,7 +79,7 @@ class Resolver_IdentifierExpr : Expression, IHasReferences, ICloneable<Resolver_
     return new[] { new Reference(Center, Decl) };
   }
 
-  public Resolver_IdentifierExpr Clone(Cloner cloner) {
-    return new Resolver_IdentifierExpr(cloner, this);
+  public ResolverIdentifierExpr Clone(Cloner cloner) {
+    return new ResolverIdentifierExpr(cloner, this);
   }
 }

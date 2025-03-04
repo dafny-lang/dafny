@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 using System.Numerics;
 
+
 namespace Microsoft.Dafny;
 
 public class LiteralExpr : Expression, ICloneable<LiteralExpr> {
@@ -33,6 +34,11 @@ public class LiteralExpr : Expression, ICloneable<LiteralExpr> {
     return Expression.IsBoolLiteral(e, out var value) && value;
   }
 
+  public static bool IsFalse(Expression e) {
+    Contract.Requires(e != null);
+    return Expression.IsBoolLiteral(e, out var value) && !value;
+  }
+
   public static bool IsEmptySet(Expression e) {
     Contract.Requires(e != null);
     return StripParens(e) is SetDisplayExpr display && display.Elements.Count == 0;
@@ -48,24 +54,30 @@ public class LiteralExpr : Expression, ICloneable<LiteralExpr> {
     return StripParens(e) is SeqDisplayExpr display && display.Elements.Count == 0;
   }
 
+  [SyntaxConstructor]
+  public LiteralExpr(IOrigin origin, object value)
+    : base(origin) {
+    this.Value = value is int n ? new BigInteger(n) : value;
+  }
+
   public LiteralExpr(IOrigin origin)
     : base(origin) {  // represents the Dafny literal "null"
     Contract.Requires(origin != null);
     this.Value = null;
   }
 
-  public LiteralExpr(IOrigin origin, BigInteger n)
+  public LiteralExpr(IOrigin origin, BigInteger value)
     : base(origin) {
     Contract.Requires(origin != null);
-    Contract.Requires(0 <= n.Sign);
-    this.Value = n;
+    Contract.Requires(0 <= value.Sign);
+    this.Value = value;
   }
 
-  public LiteralExpr(IOrigin origin, BaseTypes.BigDec n)
+  public LiteralExpr(IOrigin origin, BaseTypes.BigDec value)
     : base(origin) {
-    Contract.Requires(0 <= n.Mantissa.Sign);
+    Contract.Requires(0 <= value.Mantissa.Sign);
     Contract.Requires(origin != null);
-    this.Value = n;
+    this.Value = value;
   }
 
   public LiteralExpr(IOrigin origin, int n)
@@ -75,10 +87,10 @@ public class LiteralExpr : Expression, ICloneable<LiteralExpr> {
     this.Value = new BigInteger(n);
   }
 
-  public LiteralExpr(IOrigin origin, bool b)
+  public LiteralExpr(IOrigin origin, bool value)
     : base(origin) {
     Contract.Requires(origin != null);
-    this.Value = b;
+    this.Value = value;
   }
 
   /// <summary>
@@ -86,11 +98,11 @@ public class LiteralExpr : Expression, ICloneable<LiteralExpr> {
   /// two reasons:  both of these literals store a string in .Value, and string literals also carry an
   /// additional field.
   /// </summary>
-  protected LiteralExpr(IOrigin origin, string s)
+  protected LiteralExpr(IOrigin origin, string value)
     : base(origin) {
     Contract.Requires(origin != null);
-    Contract.Requires(s != null);
-    this.Value = s;
+    Contract.Requires(value != null);
+    this.Value = value;
   }
 
   public LiteralExpr(Cloner cloner, LiteralExpr original) : base(cloner, original) {
@@ -103,9 +115,9 @@ public class LiteralExpr : Expression, ICloneable<LiteralExpr> {
 }
 
 public class CharLiteralExpr : LiteralExpr, ICloneable<CharLiteralExpr> {
-  public CharLiteralExpr(IOrigin origin, string s)
-    : base(origin, s) {
-    Contract.Requires(s != null);
+  public CharLiteralExpr(IOrigin origin, string value)
+    : base(origin, value) {
+    Contract.Requires(value != null);
   }
 
   public CharLiteralExpr(Cloner cloner, CharLiteralExpr original) : base(cloner, original) {
@@ -118,9 +130,9 @@ public class CharLiteralExpr : LiteralExpr, ICloneable<CharLiteralExpr> {
 
 public class StringLiteralExpr : LiteralExpr, ICloneable<StringLiteralExpr> {
   public readonly bool IsVerbatim;
-  public StringLiteralExpr(IOrigin origin, string s, bool isVerbatim)
-    : base(origin, s) {
-    Contract.Requires(s != null);
+  public StringLiteralExpr(IOrigin origin, string value, bool isVerbatim)
+    : base(origin, value) {
+    Contract.Requires(value != null);
     IsVerbatim = isVerbatim;
   }
 
@@ -148,6 +160,7 @@ public class NegationExpression : ConcreteSyntaxExpression, ICloneable<NegationE
     E = cloner.CloneExpr(original.E);
   }
 
+  [SyntaxConstructor]
   public NegationExpression(IOrigin origin, Expression e)
     : base(origin) {
     Contract.Requires(origin != null);

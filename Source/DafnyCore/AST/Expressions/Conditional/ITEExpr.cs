@@ -30,6 +30,7 @@ public class ITEExpr : Expression, ICanFormat, ICloneable<ITEExpr> {
     Contract.Invariant(Els != null);
   }
 
+  [SyntaxConstructor]
   public ITEExpr(IOrigin origin, bool isBindingGuard, Expression test, Expression thn, Expression els)
     : base(origin) {
     Contract.Requires(origin != null);
@@ -64,7 +65,7 @@ public class ITEExpr : Expression, ICanFormat, ICloneable<ITEExpr> {
   public bool SetIndent(int indentBefore, TokenNewIndentCollector formatter) {
     var lineThen = 0;
     var colThen = 0;
-    IOrigin thenToken = null;
+    Token thenToken = null;
     foreach (var token in OwnedTokens) {
       switch (token.val) {
         case "if": {

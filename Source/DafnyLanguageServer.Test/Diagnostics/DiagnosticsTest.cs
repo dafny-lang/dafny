@@ -19,6 +19,26 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Synchronization {
     private readonly string testFilesDirectory = Path.Combine(Directory.GetCurrentDirectory(), "Synchronization/TestFiles");
 
     [Fact]
+    public async Task NestedModuleRange() {
+      var source = @"
+module A {
+  function A(x: int): int {
+    true
+  }
+  function B(x: int): int {
+    1
+  }
+}
+method Main() {
+}".TrimStart();
+      var documentItem = CreateAndOpenTestDocument(source);
+      var diagnostics1 = await GetLastDiagnostics(documentItem);
+      var startOrdered = diagnostics1.OrderBy(r => r.Range.Start).ToList();
+      Assert.Equal(new Range(0, 7, 0, 8), startOrdered[0].Range);
+      Assert.Equal(new Range(1, 2, 3, 3), startOrdered[1].Range);
+    }
+
+    [Fact]
     public async Task ResolutionErrorMigration() {
       var source = @"module ResolutionError {
   import   UnderlineComments2

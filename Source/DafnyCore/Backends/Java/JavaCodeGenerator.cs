@@ -67,7 +67,7 @@ namespace Microsoft.Dafny.Compilers {
 
     private string ModuleName;
     private string ModulePath;
-    private readonly List<GenericCompilationInstrumenter> Instrumenters = new();
+    private readonly List<GenericCompilationInstrumenter> Instrumenters = [];
 
     public void AddInstrumenter(GenericCompilationInstrumenter compilationInstrumenter) {
       Instrumenters.Add(compilationInstrumenter);
@@ -708,7 +708,7 @@ namespace Microsoft.Dafny.Compilers {
         }
         // When accessing a static member, leave off the type arguments
         if (member != null) {
-          return TypeName_UDT(s, new List<TypeParameter.TPVariance>(), new List<Type>(), wr, udt.Origin, erased);
+          return TypeName_UDT(s, [], [], wr, udt.Origin, erased);
         } else {
           return TypeName_UDT(s, udt, wr, udt.Origin, erased);
         }
@@ -1294,12 +1294,13 @@ namespace Microsoft.Dafny.Compilers {
 
     protected override void EmitMapDisplay(MapType mt, IOrigin tok, List<ExpressionPair> elements, bool inLetExprBody,
         ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
-      wr.Write($"{DafnyMapClass}.fromElements");
-      wr.Write("(");
-      string sep = "";
+      wr.Write($"{DafnyMapClass}.fromElements(");
+      var tuple2 = DafnyTupleClass(2);
+      wr.Write($"({tuple2}<{BoxedTypeName(mt.Domain, wr, tok)}, {BoxedTypeName(mt.Range, wr, tok)}>[])new {tuple2}[]{{");
+      string sep = " ";
       foreach (ExpressionPair p in elements) {
         wr.Write(sep);
-        wr.Write($"new {DafnyTupleClass(2)}(");
+        wr.Write($"new {tuple2}(");
         var coercedW = EmitCoercionIfNecessary(from: p.A.Type, to: NativeObjectType, tok: p.A.Origin, wr: wr);
         coercedW.Append(Expr(p.A, inLetExprBody, wStmts));
         wr.Write(", ");
@@ -1308,7 +1309,7 @@ namespace Microsoft.Dafny.Compilers {
         wr.Write(")");
         sep = ", ";
       }
-      wr.Write(")");
+      wr.Write(" })");
     }
 
     protected override void GetSpecialFieldInfo(SpecialField.ID id, object idParam, Type receiverType, out string compiledName, out string preString, out string postString) {
@@ -1536,7 +1537,7 @@ namespace Microsoft.Dafny.Compilers {
 
     private ConcreteSyntaxTree EmitArraySelect(int dimCount, out List<ConcreteSyntaxTree> wIndices, Type elmtType, ConcreteSyntaxTree wr) {
       elmtType = DatatypeWrapperEraser.SimplifyType(Options, elmtType);
-      wIndices = new List<ConcreteSyntaxTree>();
+      wIndices = [];
       ConcreteSyntaxTree w;
       if (dimCount == 1) {
         if (elmtType.IsTypeParameter) {
@@ -2600,7 +2601,7 @@ namespace Microsoft.Dafny.Compilers {
         } else if (cl is DatatypeDecl dt) {
           relevantTypeArgs = udt.TypeArgs;
         } else {
-          relevantTypeArgs = new List<Type>();
+          relevantTypeArgs = [];
           for (int i = 0; i < cl.TypeArgs.Count; i++) {
             if (NeedsTypeDescriptor(cl.TypeArgs[i])) {
               relevantTypeArgs.Add(udt.TypeArgs[i]);
@@ -2652,7 +2653,7 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected override void OrganizeModules(Program program, out List<ModuleDefinition> modules) {
-      modules = new List<ModuleDefinition>();
+      modules = [];
       foreach (var m in program.CompileModules) {
         if (!m.IsDefaultModule && !m.Name.Equals("_System")) {
           modules.Add(m);
@@ -3073,7 +3074,7 @@ namespace Microsoft.Dafny.Compilers {
       wr.WriteLine();
       var typeParams = new List<TypeParameter>();
       for (var j = 0; j < i; j++) {
-        typeParams.Add(new TypeParameter(SourceOrigin.NoToken, new Name($"T{j}"), TypeParameter.TPVarianceSyntax.Covariant_Permissive));
+        typeParams.Add(new TypeParameter(SourceOrigin.NoToken, new Name($"T{j}"), TPVarianceSyntax.Covariant_Permissive));
       }
       var typeParamString = TypeParameters(typeParams);
       var initializer = string.Format("Default({0})", Util.Comma(i, j => $"_td_T{j}.defaultValue()"));
@@ -3630,7 +3631,7 @@ namespace Microsoft.Dafny.Compilers {
 
       GenerateIsMethod(nt, cw.StaticMemberWriter);
 
-      if (nt.ParentTraits.Count != 0) {
+      if (nt.Traits.Count != 0) {
         DeclareBoxedNewtype(nt, cw.InstanceMemberWriter);
       }
 

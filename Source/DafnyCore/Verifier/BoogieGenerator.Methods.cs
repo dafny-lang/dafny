@@ -222,19 +222,14 @@ namespace Microsoft.Dafny {
       Contract.Requires(is_array == (f == null));
       Contract.Requires(sink != null && Predef != null);
 
-      Bpl.Expr heightAntecedent = Bpl.Expr.True;
       if (f is ConstantField cf) {
         AddWellformednessCheck(cf);
-        if (InVerificationScope(cf)) {
-          var etran = new ExpressionTranslator(this, Predef, f.Origin, null);
-          heightAntecedent = Bpl.Expr.Lt(Bpl.Expr.Literal(cf.EnclosingModule.CallGraph.GetSCCRepresentativePredecessorCount(cf)), etran.FunctionContextHeight());
-        }
       }
 
       if (f is ConstantField && f.IsStatic) {
-        AddStaticConstFieldAllocationAxiom(fieldDeclaration, f, c, heightAntecedent);
+        AddStaticConstFieldAllocationAxiom(fieldDeclaration, f, c);
       } else {
-        AddInstanceFieldAllocationAxioms(fieldDeclaration, f, c, is_array, heightAntecedent);
+        AddInstanceFieldAllocationAxioms(fieldDeclaration, f, c, is_array);
       }
     }
 
@@ -245,7 +240,7 @@ namespace Microsoft.Dafny {
     ///     // If "c" is an array declaration, then the bound variables also include the index variables "ii" and "h[o, f]" has the form "h[o, Index(ii)]".
     ///     // If "f" is readonly, then "h[o, f]" has the form "f(o)" (for special fields) or "f(G,o)" (for programmer-declared const fields),
     ///     // so "h" and $IsHeap(h) are omitted.
-    ///     axiom fh < FunctionContextHeight ==>
+    ///     axiom
     ///       (forall o: ref, h: Heap, G : Ty ::
     ///         { h[o, f], TClassA(G) }
     ///         $IsHeap(h) &&
@@ -255,7 +250,7 @@ namespace Microsoft.Dafny {
     ///
     ///     // allocation axiom:
     ///     // As above for "G" and "ii", but "h" is included no matter what.
-    ///     axiom fh < FunctionContextHeight ==>
+    ///     axiom
     ///       (forall o: ref, h: Heap, G : Ty ::
     ///         { h[o, f], TClassA(G) }
     ///         $IsHeap(h) &&
@@ -264,8 +259,7 @@ namespace Microsoft.Dafny {
     ///         ==>
     ///         $IsAlloc(h[o, f], TT(PP), h));
     /// </summary>
-    private void AddInstanceFieldAllocationAxioms(Bpl.Declaration fieldDeclaration, Field f, TopLevelDeclWithMembers c,
-      bool is_array, Expr heightAntecedent) {
+    private void AddInstanceFieldAllocationAxioms(Bpl.Declaration fieldDeclaration, Field f, TopLevelDeclWithMembers c, bool is_array) {
       var bvsTypeAxiom = new List<Bpl.Variable>();
       var bvsAllocationAxiom = new List<Bpl.Variable>();
 
@@ -382,7 +376,7 @@ namespace Microsoft.Dafny {
       }
 
       Bpl.Expr ax = BplForall(bvsTypeAxiom, tr, BplImp(ante, is_hf));
-      AddOtherDefinition(fieldDeclaration, new Bpl.Axiom(c.Origin, BplImp(heightAntecedent, ax), $"{c}.{f}: Type axiom"));
+      AddOtherDefinition(fieldDeclaration, new Bpl.Axiom(c.Origin, ax, $"{c}.{f}: Type axiom"));
 
       if (isalloc_hf != null) {
         if (!is_array && !f.IsMutable) {
@@ -393,8 +387,9 @@ namespace Microsoft.Dafny {
         ante = BplAnd(ante, isalloc_o);
 
         // compute a different trigger
-        t_es = new List<Bpl.Expr>();
-        t_es.Add(oDotF);
+        t_es = [
+          oDotF
+        ];
         if (!is_array && !f.IsMutable) {
           // since "h" is not part of oDotF, we add a separate term that mentions "h"
           t_es.Add(isalloc_o);
@@ -407,7 +402,7 @@ namespace Microsoft.Dafny {
         tr = new Bpl.Trigger(c.Origin, true, t_es);
 
         ax = BplForall(bvsAllocationAxiom, tr, BplImp(ante, isalloc_hf));
-        AddOtherDefinition(fieldDeclaration, new Boogie.Axiom(c.Origin, BplImp(heightAntecedent, ax), $"{c}.{f}: Allocation axiom"));
+        AddOtherDefinition(fieldDeclaration, new Boogie.Axiom(c.Origin, ax, $"{c}.{f}: Allocation axiom"));
       }
     }
 
@@ -415,7 +410,7 @@ namespace Microsoft.Dafny {
     /// For a static (necessarily "const") field "f" in a class "c(G)", the expression corresponding to "h[o, f]" or "f(G,o)" above is "f(G)",
     /// so generate:
     ///     // type axiom:
-    ///     axiom fh < FunctionContextHeight ==>
+    ///     axiom
     ///       (forall G : Ty ::
     ///         { f(G) }
     ///         $Is(f(G), TT(PP)));
@@ -423,7 +418,7 @@ namespace Microsoft.Dafny {
     ///     axiom $Is(f(G), TT);
     ///
     ///     // allocation axiom:
-    ///     axiom fh < FunctionContextHeight ==>
+    ///     axiom
     ///       (forall h: Heap, G : Ty ::
     ///         { $IsAlloc(f(G), TT(PP), h) }
     ///         $IsHeap(h)
@@ -432,15 +427,15 @@ namespace Microsoft.Dafny {
     ///
     ///
     /// The axioms above could be optimised to something along the lines of:
-    ///     axiom fh < FunctionContextHeight ==>
+    ///     axiom
     ///       (forall o: ref, h: Heap ::
     ///         { h[o, f] }
     ///         $IsHeap(h) && o != null && Tag(dtype(o)) = TagClass
     ///         ==>
     ///         (h[o, alloc] ==> $IsAlloc(h[o, f], TT(TClassA_Inv_i(dtype(o)),..), h)) &&
     ///         $Is(h[o, f], TT(TClassA_Inv_i(dtype(o)),..), h);
-    /// <summary>
-    private void AddStaticConstFieldAllocationAxiom(Boogie.Declaration fieldDeclaration, Field f, TopLevelDeclWithMembers c, Expr heightAntecedent) {
+    /// </summary>
+    private void AddStaticConstFieldAllocationAxiom(Boogie.Declaration fieldDeclaration, Field f, TopLevelDeclWithMembers c) {
 
       var bvsTypeAxiom = new List<Bpl.Variable>();
       var bvsAllocationAxiom = new List<Bpl.Variable>();
@@ -452,7 +447,7 @@ namespace Microsoft.Dafny {
       var oDotF = new Boogie.NAryExpr(c.Origin, new Boogie.FunctionCall(GetReadonlyField(f)), tyexprs);
       var is_hf = MkIs(oDotF, f.Type); // $Is(h[o, f], ..)
       Boogie.Expr ax = bvsTypeAxiom.Count == 0 ? is_hf : BplForall(bvsTypeAxiom, BplTrigger(oDotF), is_hf);
-      var isAxiom = new Boogie.Axiom(c.Origin, BplImp(heightAntecedent, ax), $"{c}.{f}: Type axiom");
+      var isAxiom = new Boogie.Axiom(c.Origin, ax, $"{c}.{f}: Type axiom");
       AddOtherDefinition(fieldDeclaration, isAxiom);
 
       {
@@ -461,7 +456,7 @@ namespace Microsoft.Dafny {
         var isGoodHeap = FunctionCall(c.Origin, BuiltinFunction.IsGoodHeap, null, h);
         var isalloc_hf = MkIsAlloc(oDotF, f.Type, h); // $IsAlloc(h[o, f], ..)
         ax = BplForall(bvsAllocationAxiom, BplTrigger(isalloc_hf), BplImp(isGoodHeap, isalloc_hf));
-        var isAllocAxiom = new Boogie.Axiom(c.Origin, BplImp(heightAntecedent, ax), $"{c}.{f}: Allocation axiom");
+        var isAllocAxiom = new Boogie.Axiom(c.Origin, ax, $"{c}.{f}: Allocation axiom");
         sink.AddTopLevelDeclaration(isAllocAxiom);
       }
     }
@@ -470,7 +465,7 @@ namespace Microsoft.Dafny {
       //this adds: axiom implements$J(class.C, typeInstantiations);
       var vars = MkTyParamBinders(GetTypeParams(c), out var tyexprs);
 
-      foreach (var parent in c.ParentTraits) {
+      foreach (var parent in c.Traits) {
         var trait = ((UserDefinedType)parent).AsParentTraitDecl();
         Contract.Assert(trait != null);
         var arg = ClassTyCon(c, tyexprs);
@@ -661,7 +656,7 @@ namespace Microsoft.Dafny {
 
       // also play havoc with the out parameters
       if (outParams.Count != 0) {  // don't create an empty havoc statement
-        List<Boogie.IdentifierExpr> outH = new List<Boogie.IdentifierExpr>();
+        List<Boogie.IdentifierExpr> outH = [];
         foreach (Boogie.Variable b in outParams) {
           Contract.Assert(b != null);
           outH.Add(new Boogie.IdentifierExpr(b.tok, b));
@@ -696,7 +691,7 @@ namespace Microsoft.Dafny {
     public void ApplyModifiesEffect(INode node, ExpressionTranslator etran, BoogieStmtListBuilder builder,
       Specification<FrameExpression> modifies, bool allowsAllocation, bool isGhostContext) {
       // play havoc with the heap according to the modifies clause
-      builder.Add(new Boogie.HavocCmd(node.Origin, new List<Boogie.IdentifierExpr> { etran.HeapCastToIdentifierExpr }));
+      builder.Add(new Boogie.HavocCmd(node.Origin, [etran.HeapCastToIdentifierExpr]));
       // assume the usual two-state boilerplate information
       foreach (BoilerplateTriple tri in GetTwoStateBoilerplate(node.Origin, modifies.Expressions, isGhostContext, allowsAllocation, etran.Old, etran, etran.Old)) {
         if (tri.IsFree) {
@@ -761,7 +756,7 @@ namespace Microsoft.Dafny {
           TypeApplicationJustMember = m.TypeArgs.ConvertAll(tp => (Type)new UserDefinedType(tp.Origin, tp)),
           Type = new InferredTypeProxy()
         };
-        var recursiveCall = new CallStmt(m.Origin, new List<Expression>(), methodSel, recursiveCallArgs) {
+        var recursiveCall = new CallStmt(m.Origin, [], methodSel, recursiveCallArgs) {
           IsGhost = m.IsGhost
         };
 
@@ -922,7 +917,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(m.EnclosingClass != null && m.EnclosingClass is ClassLikeDecl);
 
       // play havoc with the heap according to the modifies clause
-      builder.Add(new Bpl.HavocCmd(m.Origin, new List<Bpl.IdentifierExpr> { etran.HeapCastToIdentifierExpr }));
+      builder.Add(new Bpl.HavocCmd(m.Origin, [etran.HeapCastToIdentifierExpr]));
       // assume the usual two-state boilerplate information
       foreach (BoilerplateTriple tri in GetTwoStateBoilerplate(m.Origin, m.Mod.Expressions, m.IsGhost, m.AllowsAllocation, etran.Old, etran, etran.Old)) {
         if (tri.IsFree) {
@@ -1000,8 +995,6 @@ namespace Microsoft.Dafny {
       }
       // the procedure itself
       var req = new List<Boogie.Requires>();
-      // free requires fh == FunctionContextHeight;
-      req.Add(FreeRequires(f.Origin, etran.HeightContext(f), null));
       if (f is TwoStateFunction) {
         // free requires prevHeap == Heap && HeapSucc(prevHeap, currHeap) && IsHeap(currHeap)
         var a0 = Boogie.Expr.Eq(prevHeap, ordinaryEtran.HeapExpr);
@@ -1021,7 +1014,7 @@ namespace Microsoft.Dafny {
 
       var name = MethodName(f, MethodTranslationKind.OverrideCheck);
       var implicitParameters = Util.Concat(typeInParams, inParams_Heap);
-      var proc = new Boogie.Procedure(f.Origin, name, new List<Boogie.TypeVariable>(),
+      var proc = new Boogie.Procedure(f.Origin, name, [],
         Util.Concat(implicitParameters, inParams), outParams,
         false, req, mod, ens, etran.TrAttributes(f.Attributes, null));
       AddVerboseNameAttribute(proc, f.FullDafnyName, MethodTranslationKind.OverrideCheck);
@@ -1190,7 +1183,7 @@ namespace Microsoft.Dafny {
       Dictionary<IVariable, Expression> substMap,
       Dictionary<TypeParameter, Type> typeMap) {
       //getting framePrime
-      List<FrameExpression> traitFrameExps = new List<FrameExpression>();
+      List<FrameExpression> traitFrameExps = [];
       FunctionCallSubstituter sub = null;
       foreach (var e in func.OverriddenFunction.Reads.Expressions) {
         sub ??= new FunctionCallSubstituter(substMap, typeMap, (TraitDecl)func.OverriddenFunction.EnclosingClass, (TopLevelDeclWithMembers)func.EnclosingClass);
@@ -1214,7 +1207,7 @@ namespace Microsoft.Dafny {
       Bpl.IdentifierExpr f = new Bpl.IdentifierExpr(tok, fVar);
       Bpl.Expr ante = BplAnd(Bpl.Expr.Neq(o, Predef.Null), etran.IsAlloced(tok, o));
       Bpl.Expr consequent = InRWClause(tok, o, f, traitFrameExps, etran, null, null);
-      Bpl.Expr lambda = new Bpl.LambdaExpr(tok, new List<TypeVariable>(), new List<Variable> { oVar, fVar }, null,
+      Bpl.Expr lambda = new Bpl.LambdaExpr(tok, [], [oVar, fVar], null,
                                            BplImp(ante, consequent));
 
       //to initialize $_ReadsFrame variable to Frame'
@@ -1223,7 +1216,7 @@ namespace Microsoft.Dafny {
       // emit: assert (forall o: ref, f: Field :: o != null && $Heap[o,alloc] && (o,f) in subFrame ==> $_ReadsFrame[o,f]);
       Bpl.Expr oInCallee = InRWClause(tok, o, f, func.Reads.Expressions, etran, null, null);
       Bpl.Expr consequent2 = InRWClause(tok, o, f, traitFrameExps, etran, null, null);
-      Bpl.Expr q = new Bpl.ForallExpr(tok, new List<TypeVariable>(), new List<Variable> { oVar, fVar },
+      Bpl.Expr q = new Bpl.ForallExpr(tok, [], [oVar, fVar],
                                       BplImp(BplAnd(ante, oInCallee), consequent2));
       var description = new TraitFrame(func.WhatKind, false, func.Reads.Expressions, traitFrameExps);
       builder.Add(Assert(tok, q, description, builder.Context, kv));
@@ -1447,11 +1440,10 @@ namespace Microsoft.Dafny {
       var canCallImp = BplImp(canCallFunc, canCallOverridingFunc);
 
       // The axiom
-      Boogie.Expr ax = BplForall(f.Origin, new List<Boogie.TypeVariable>(), forallFormals, null, tr,
+      Boogie.Expr ax = BplForall(f.Origin, [], forallFormals, null, tr,
         BplImp(ante, BplAnd(canCallImp, synonyms)));
-      var activate = AxiomActivation(overridingFunction, etran);
       var comment = $"override axiom for {f.FullSanitizedName} in {overridingFunction.EnclosingClass.WhatKind} {overridingFunction.EnclosingClass.FullSanitizedName}";
-      return new Boogie.Axiom(f.Origin, BplImp(activate, ax), comment);
+      return new Boogie.Axiom(f.Origin, ax, comment);
     }
 
     /// <summary>
@@ -1644,10 +1636,10 @@ namespace Microsoft.Dafny {
       List<FrameExpression> classFrameExps;
       List<FrameExpression> originalTraitFrameExps;
       if (isModifies) {
-        classFrameExps = m.Mod != null ? m.Mod.Expressions : new List<FrameExpression>();
+        classFrameExps = m.Mod != null ? m.Mod.Expressions : [];
         originalTraitFrameExps = m.OverriddenMethod.Mod?.Expressions;
       } else {
-        classFrameExps = m.Reads != null ? m.Reads.Expressions : new List<FrameExpression>();
+        classFrameExps = m.Reads != null ? m.Reads.Expressions : [];
         originalTraitFrameExps = m.OverriddenMethod.Reads?.Expressions;
       }
 
@@ -1681,7 +1673,7 @@ namespace Microsoft.Dafny {
       // emit: assert (forall o: ref, f: Field :: o != null && $Heap[o,alloc] && (o,f) in subFrame ==> $_Frame[o,f]);
       var oInCallee = InRWClause(tok, o, f, classFrameExps, etran, null, null);
       var consequent2 = InRWClause(tok, o, f, traitFrameExps, etran, null, null);
-      var q = new Boogie.ForallExpr(tok, new List<TypeVariable>(), new List<Variable> { oVar, fVar },
+      var q = new Boogie.ForallExpr(tok, [], [oVar, fVar],
         BplImp(BplAnd(ante, oInCallee), consequent2));
       var description = new TraitFrame(m.WhatKind, isModifies, classFrameExps, traitFrameExps);
       builder.Add(Assert(m.Origin, q, description, builder.Context, kv));
@@ -1689,7 +1681,7 @@ namespace Microsoft.Dafny {
 
     // Return a way to know if an assertion should be converted to an assumption
     private void SetAssertionOnlyFilter(Node m) {
-      List<IOrigin> rangesOnly = new List<IOrigin>();
+      List<IOrigin> rangesOnly = [];
       m.Visit(node => {
         if (node is AssertStmt assertStmt &&
             assertStmt.HasAssertOnlyAttribute(out var assertOnlyKind)) {
@@ -1770,7 +1762,7 @@ namespace Microsoft.Dafny {
       var req = GetRequires();
       var mod = new List<Bpl.IdentifierExpr> { ordinaryEtran.HeapCastToIdentifierExpr };
       var ens = GetEnsures();
-      var proc = new Bpl.Procedure(m.Origin, name, new List<Bpl.TypeVariable>(),
+      var proc = new Bpl.Procedure(m.Origin, name, [],
         inParams, outParams.Values.ToList(), false, req, mod, ens, etran.TrAttributes(m.Attributes, null));
       AddVerboseNameAttribute(proc, m.FullDafnyName, kind);
 
@@ -1788,8 +1780,6 @@ namespace Microsoft.Dafny {
         var req = new List<Boogie.Requires>();
         // FREE PRECONDITIONS
         if (kind == MethodTranslationKind.SpecWellformedness || kind == MethodTranslationKind.Implementation || kind == MethodTranslationKind.OverrideCheck) {  // the other cases have no need for a free precondition
-          // free requires mh == ModuleContextHeight && fh == FunctionContextHeight;
-          req.Add(FreeRequires(m.Origin, etran.HeightContext(m), null));
           if (m is TwoStateLemma) {
             // free requires prevHeap == Heap && HeapSucc(prevHeap, currHeap) && IsHeap(currHeap)
             var a0 = Boogie.Expr.Eq(prevHeap, ordinaryEtran.HeapExpr);
@@ -1943,7 +1933,7 @@ namespace Microsoft.Dafny {
 
     internal IEnumerable<Bpl.Expr> TypeBoundAxioms(IOrigin tok, List<TypeParameter> typeParameters) {
       foreach (var typeParameter in typeParameters.Where(typeParameter => typeParameter.TypeBounds.Any())) {
-        TypeBoundAxiomExpressions(tok, new List<Variable>(), new UserDefinedType(typeParameter), typeParameter.TypeBounds,
+        TypeBoundAxiomExpressions(tok, [], new UserDefinedType(typeParameter), typeParameter.TypeBounds,
           out var isBoxExpr, out var isAllocBoxExpr);
         yield return isBoxExpr;
         yield return isAllocBoxExpr;

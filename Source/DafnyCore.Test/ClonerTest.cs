@@ -11,8 +11,7 @@ public class ClonerTest {
     public DummyDecl(Cloner cloner, Declaration original) : base(cloner, original) {
     }
 
-    public DummyDecl(IOrigin origin, Name name, Attributes attributes, bool isRefining) : base(origin, name,
-      attributes, isRefining) {
+    public DummyDecl(IOrigin origin, Name name, Attributes attributes) : base(origin, name, attributes) {
     }
 
     public override SymbolKind? Kind => null;
@@ -33,11 +32,11 @@ public class ClonerTest {
       IsTypeExplicit = false
     };
     var dummyDecl = new Method(rangeToken, new Name(rangeToken, "hello"),
-      false, false, new List<TypeParameter>(), new List<Formal> { formal1, formal2 },
-      new List<Formal>(), new List<AttributedExpression>(),
-      new Specification<FrameExpression>(), new Specification<FrameExpression>(new List<FrameExpression>(), null),
-      new List<AttributedExpression>(), new Specification<Expression>(new List<Expression>(), null),
-      new BlockStmt(rangeToken, new List<Statement>()), null, Token.NoToken, false);
+      null, false, false, [], [formal1, formal2],
+      [], [],
+      new Specification<FrameExpression>(), new Specification<Expression>([], null),
+      [], new Specification<FrameExpression>([], null),
+      new BlockStmt(rangeToken, []), Token.NoToken);
 
     dummyDecl.BodyStartTok = tokenBodyStart;
     var cloner = new Cloner();

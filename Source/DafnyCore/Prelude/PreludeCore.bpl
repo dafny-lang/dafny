@@ -481,14 +481,6 @@ axiom (forall o: ORDINAL, m,n: int ::
     (m - n <= 0 ==> ORD#Plus(ORD#Minus(o, ORD#FromNat(m)), ORD#FromNat(n)) == ORD#Plus(o, ORD#FromNat(n-m))));
 
 // ---------------------------------------------------------------
-// -- Axiom contexts ---------------------------------------------
-// ---------------------------------------------------------------
-
-// used to make sure function axioms are not used while their consistency is being checked
-const $ModuleContextHeight: int;
-const $FunctionContextHeight: int;
-
-// ---------------------------------------------------------------
 // -- Layers of function encodings -------------------------------
 // ---------------------------------------------------------------
 

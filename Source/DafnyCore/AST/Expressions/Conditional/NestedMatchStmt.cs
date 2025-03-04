@@ -22,8 +22,9 @@ public class NestedMatchStmt : Statement, ICloneable<NestedMatchStmt>, ICanForma
     Attributes.ContainsBool(Attributes, "split", ref splitMatch);
     foreach (var c in Cases) {
       if (!Attributes.Contains(c.Attributes, "split")) {
-        List<Expression> args = new List<Expression>();
-        args.Add(Expression.CreateBoolLiteral(c.Origin, splitMatch));
+        List<Expression> args = [
+          Expression.CreateBoolLiteral(c.Origin, splitMatch)
+        ];
         Attributes attrs = new Attributes("split", args, c.Attributes);
         c.Attributes = attrs;
       }
@@ -72,8 +73,8 @@ public class NestedMatchStmt : Statement, ICloneable<NestedMatchStmt>, ICanForma
     }
   }
 
-  public NestedMatchStmt(IOrigin origin, Expression source, [Captured] List<NestedMatchCaseStmt> cases, bool usesOptionalBraces, Attributes attrs = null)
-    : base(origin, attrs) {
+  public NestedMatchStmt(IOrigin origin, Expression source, [Captured] List<NestedMatchCaseStmt> cases, bool usesOptionalBraces, Attributes attributes = null)
+    : base(origin, attributes) {
     Contract.Requires(source != null);
     Contract.Requires(cce.NonNullElements(cases));
     Source = source;

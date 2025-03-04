@@ -9,7 +9,7 @@ class CoCallResolution {
   readonly Function currentFunction;
   readonly bool dealsWithCodatatypes;
   public bool HasIntraClusterCallsInDestructiveContexts = false;
-  public readonly List<CoCallInfo> FinalCandidates = new List<CoCallInfo>();
+  public readonly List<CoCallInfo> FinalCandidates = [];
 
   public CoCallResolution(Function currentFunction, bool dealsWithCodatatypes) {
     Contract.Requires(currentFunction != null);

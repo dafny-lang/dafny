@@ -49,6 +49,9 @@ async function synchronizeRepositoryWithNewVersionNumber() {
   //# * Compile the standard libraries and update their binaries which are checked in
   await executeWithTimeout("make -C Source/DafnyStandardLibraries update-binary", 50*minutes);
 
+  // Verify that binaries have been updated.
+  await sanityCheckStandardLibraries(version);
+
   //# * Recompile Dafny so that standard libraries are in the executable.
   await execute("make exe");
   
@@ -96,6 +99,29 @@ async function synchronizeRepositoryWithNewVersionNumber() {
   await replaceInFile(/DafnyRuntime-(\d+\.\d+\.\d+)\.jar/, `DafnyRuntime-${version}.jar`,
     `Source/DafnyRuntime/DafnyRuntime.csproj`, existingVersion);
 }
+
+// Unzips the file Source/DafnyStandardLibraries/binaries/DafnyStandardLibraries.doo (it's actually a zip file)
+// Fetch the content of Source/DafnyStandardLibraries/binaries/DafnyStandardLibraries/manifest.toml
+// Verify that dafny_version = "Major.Minor.Patch.0" corresponds ot the version that is provided
+async function sanityCheckStandardLibraries(version) {
+  if(testMode) {
+    console.log("Would have run a sanity check");
+    return;
+  }
+  console.log("Sanity-checking standard libraries");
+  try {
+    await execute("unzip -o Source/DafnyStandardLibraries/binaries/DafnyStandardLibraries.doo -d Source/DafnyStandardLibraries/binaries/DafnyStandardLibraries");
+  } catch(e) {
+    console.log("Could not unzip Source/DafnyStandardLibraries/binaries/DafnyStandardLibraries.doo", e);
+    throw e;
+  }
+  var manifest = await fs.promises.readFile("Source/DafnyStandardLibraries/binaries/DafnyStandardLibraries/manifest.toml", "utf-8");
+  var match = manifest.match(/dafny_version = "(\d+\.\d+\.\d+)/);
+  assert_eq(match != null, true, "Could not find dafny_version in manifest.toml");
+  assert_eq(match[1], version, `dafny_version in manifest.toml is ${match[1]} but should have been ${version}. Something went wrong`);
+  await execute("rm -rf Source/DafnyStandardLibraries/binaries/DafnyStandardLibraries");
+}
+
 
 // Returns the current version number
 async function getVersionNumber() {
@@ -362,8 +388,8 @@ async function ensureTakesIntoAccountAllReleaseInstructions() {
   }
 }
 
-function assert_eq(got, expected) {
+function assert_eq(got, expected, msg=undefined) {
   if(got != expected) {
-    throw "Expected " + expected + ", got " + got;
+    throw "Expected " + expected + ", got " + got + (msg != undefined ? " - " + msg : "");
   }
 }
