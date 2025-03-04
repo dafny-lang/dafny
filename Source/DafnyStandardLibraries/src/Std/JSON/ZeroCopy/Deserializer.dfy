@@ -64,7 +64,7 @@ module Std.JSON.ZeroCopy.Deserializer {
     @ResourceLimit("1000e6")
     function Structural<T>(cs: FreshCursor, parser: Parser<T>)
       : (pr: ParseResult<Structural<T>>)
-      requires forall cs :: parser.fn.requires(cs)
+      requires forall cs: FreshCursor :: parser.fn.requires(cs)
       ensures pr.Success? ==> pr.value.StrictlySplitFrom?(cs, st => Spec.Structural(st, parser.spec))
     {
       var SP(before, cs) := WS(cs);
@@ -78,7 +78,7 @@ module Std.JSON.ZeroCopy.Deserializer {
     @ResourceLimit("100e6")
     function TryStructural(cs: FreshCursor)
       : (sp: Split<Structural<jopt>>)
-      ensures sp.SplitFrom?(cs, st => Spec.Structural(st, SpecView))
+      ensures sp.SplitFrom?(cs, (st: Structural<jopt>) => Spec.Structural(st, SpecView))
     {
       var SP(before, cs) := WS(cs);
       var SP(val, cs) := cs.SkipByte().Split();
@@ -171,9 +171,9 @@ module Std.JSON.ZeroCopy.Deserializer {
                                 close: Split<Structural<jclose>>)
       : (sp: Split<TBracketed>)
       requires Grammar.NoTrailingSuffix(elems.t)
-      requires open.StrictlySplitFrom?(cs, c => Spec.Structural(c, SpecView))
+      requires open.StrictlySplitFrom?(cs, (c: Structural<jopen>) => Spec.Structural(c, SpecView))
       requires elems.SplitFrom?(open.cs, SuffixedElementsSpec)
-      requires close.StrictlySplitFrom?(elems.cs, c => Spec.Structural(c, SpecView))
+      requires close.StrictlySplitFrom?(elems.cs, (c: Structural<jclose>) => Spec.Structural(c, SpecView))
       ensures sp.StrictlySplitFrom?(cs, BracketedSpec)
     {
       var sp := SP(Grammar.Bracketed(open.t, elems.t, close.t), close.cs);
@@ -203,7 +203,7 @@ module Std.JSON.ZeroCopy.Deserializer {
       requires elems.cs.StrictlySplitFrom?(json.cs)
       requires elems.SplitFrom?(cs0, SuffixedElementsSpec)
       requires elem.StrictlySplitFrom?(elems.cs, ElementSpec)
-      requires sep.StrictlySplitFrom?(elem.cs, c => Spec.Structural(c, SpecView))
+      requires sep.StrictlySplitFrom?(elem.cs, (c: Structural<jcomma>) => Spec.Structural(c, SpecView))
       requires forall e | e in elems.t :: e.suffix.NonEmpty?
       ensures elems'.StrictlySplitFrom?(cs0, SuffixedElementsSpec)
       ensures forall e | e in elems'.t :: e.suffix.NonEmpty?
@@ -260,13 +260,13 @@ module Std.JSON.ZeroCopy.Deserializer {
       requires elems.cs.StrictlySplitFrom?(json.cs)
       requires elems.SplitFrom?(cs0, SuffixedElementsSpec)
       requires elem.StrictlySplitFrom?(elems.cs, ElementSpec)
-      requires sep.StrictlySplitFrom?(elem.cs, c => Spec.Structural(c, SpecView))
+      requires sep.StrictlySplitFrom?(elem.cs, (c: Structural<jclose>) => Spec.Structural(c, SpecView))
       requires forall e | e in elems.t :: e.suffix.NonEmpty?
       ensures elems'.StrictlySplitFrom?(cs0, SuffixedElementsSpec)
       ensures NoTrailingSuffix(elems'.t)
       ensures elems'.cs.Length() < elems.cs.Length()
       ensures elems'.cs.StrictlySplitFrom?(json.cs)
-      ensures sep.StrictlySplitFrom?(elems'.cs, c => Spec.Structural(c, SpecView))
+      ensures sep.StrictlySplitFrom?(elems'.cs, (c: Structural<jclose>) => Spec.Structural(c, SpecView))
     {
       var suffixed := Suffixed(elem.t, Empty());
       var elems' := SP(elems.t + [suffixed], elem.cs);
@@ -294,16 +294,16 @@ module Std.JSON.ZeroCopy.Deserializer {
         var sp := Core.TryStructural(cs);
         var s0 := sp.t.t.Peek();
         && ((!cs.BOF? || !cs.EOF?) && s0 == SEPARATOR as opt_byte ==> var sp: Split<Structural<jcomma>> := sp; sp.cs.StrictSuffixOf?(cs))
-        && (s0 == SEPARATOR as opt_byte ==> var sp: Split<Structural<jcomma>> := sp; sp.SplitFrom?(cs, st => Spec.Structural(st, SpecView)))
+        && (s0 == SEPARATOR as opt_byte ==> var sp: Split<Structural<jcomma>> := sp; sp.SplitFrom?(cs, (st: Structural<jcomma>) => Spec.Structural(st, SpecView)))
         && ((!cs.BOF? || !cs.EOF?) && s0 == CLOSE as opt_byte ==> var sp: Split<Structural<jclose>> := sp; sp.cs.StrictSuffixOf?(cs))
-        && (s0 == CLOSE as opt_byte ==> var sp: Split<Structural<jclose>> := sp; sp.SplitFrom?(cs, st => Spec.Structural(st, SpecView)))
+        && (s0 == CLOSE as opt_byte ==> var sp: Split<Structural<jclose>> := sp; sp.SplitFrom?(cs, (st: Structural<jclose>) => Spec.Structural(st, SpecView)))
     {
       var sp := Core.TryStructural(cs);
       var s0 := sp.t.t.Peek();
       assert (!cs.BOF? || !cs.EOF?) && s0 == SEPARATOR as opt_byte ==> var sp: Split<Structural<jcomma>> := sp; sp.cs.StrictSuffixOf?(cs);
-      assert s0 == SEPARATOR as opt_byte ==> var sp: Split<Structural<jcomma>> := sp; sp.SplitFrom?(cs, st => Spec.Structural(st, SpecView));
+      assert s0 == SEPARATOR as opt_byte ==> var sp: Split<Structural<jcomma>> := sp; sp.SplitFrom?(cs, (st: Structural<jcomma>) => Spec.Structural(st, SpecView));
       assert (!cs.BOF? || !cs.EOF?) && s0 == CLOSE as opt_byte ==> var sp: Split<Structural<jclose>> := sp; sp.cs.StrictSuffixOf?(cs);
-      assert s0 == CLOSE as opt_byte ==> var sp: Split<Structural<jclose>> := sp; sp.SplitFrom?(cs, st => Spec.Structural(st, SpecView));
+      assert s0 == CLOSE as opt_byte ==> var sp: Split<Structural<jclose>> := sp; sp.SplitFrom?(cs, (st: Structural<jclose>) => Spec.Structural(st, SpecView));
     }
 
     @IsolateAssertions
@@ -323,7 +323,7 @@ module Std.JSON.ZeroCopy.Deserializer {
       elems: Split<seq<TSuffixedElement>>
     ) // DISCUSS: Why is this function reverified once per instantiation of the module?
       : (pr: ParseResult<TBracketed>)
-      requires open.StrictlySplitFrom?(cs0, c => Spec.Structural(c, SpecView))
+      requires open.StrictlySplitFrom?(cs0, (c: Structural<jopen>) => Spec.Structural(c, SpecView))
       requires elems.cs.StrictlySplitFrom?(json.cs)
       requires elems.SplitFrom?(open.cs, SuffixedElementsSpec)
       requires forall e | e in elems.t :: e.suffix.NonEmpty?
@@ -360,9 +360,9 @@ module Std.JSON.ZeroCopy.Deserializer {
             assert {:focus} elems.cs.StrictlySplitFrom?(json.cs);
             assert elems.SplitFrom?(open.cs, SuffixedElementsSpec);
             assert elem.StrictlySplitFrom?(elems.cs, ElementSpec);
-            assert sep.StrictlySplitFrom?(elem.cs, c => Spec.Structural(c, SpecView)) by {
-              assert sep.BytesSplitFrom?(elem.cs, c => Spec.Structural(c, SpecView)) by {
-                assert sep.SplitFrom?(elem.cs, c => Spec.Structural(c, SpecView));
+            assert sep.StrictlySplitFrom?(elem.cs, (c: Structural<jcomma>) => Spec.Structural(c, SpecView)) by {
+              assert sep.BytesSplitFrom?(elem.cs, (c: Structural<jcomma>) => Spec.Structural(c, SpecView)) by {
+                assert sep.SplitFrom?(elem.cs, (c: Structural<jcomma>) => Spec.Structural(c, SpecView));
               }
               assert sep.cs.StrictlySplitFrom?(elem.cs) by {
                 assert sep.cs.BOF?;
@@ -397,9 +397,9 @@ module Std.JSON.ZeroCopy.Deserializer {
             assert elems.cs.StrictlySplitFrom?(json.cs);
             assert elems.SplitFrom?(open.cs, SuffixedElementsSpec);
             assert elem.StrictlySplitFrom?(elems.cs, ElementSpec);
-            assert sep.StrictlySplitFrom?(elem.cs, c => Spec.Structural(c, SpecView)) by {
-              assert sep.BytesSplitFrom?(elem.cs, c => Spec.Structural(c, SpecView)) by {
-                assert sep.SplitFrom?(elem.cs, c => Spec.Structural(c, SpecView));
+            assert sep.StrictlySplitFrom?(elem.cs, (c: Structural<jclose>) => Spec.Structural(c, SpecView)) by {
+              assert sep.BytesSplitFrom?(elem.cs, (c: Structural<jclose>) => Spec.Structural(c, SpecView)) by {
+                assert sep.SplitFrom?(elem.cs, (c: Structural<jclose>) => Spec.Structural(c, SpecView));
               }
               assert sep.cs.StrictlySplitFrom?(elem.cs) by {
                 assert sep.cs.BOF?;
@@ -919,7 +919,7 @@ module Std.JSON.ZeroCopy.Deserializer {
                                colon: Split<Structural<jcolon>>, v: Split<Value>)
       : (sp: Split<jKeyValue>)
       requires k.StrictlySplitFrom?(cs, Spec.String)
-      requires colon.StrictlySplitFrom?(k.cs, c => Spec.Structural(c, SpecView))
+      requires colon.StrictlySplitFrom?(k.cs, (c: Structural<jcolon>) => Spec.Structural(c, SpecView))
       requires v.StrictlySplitFrom?(colon.cs, Spec.Value)
       ensures sp.StrictlySplitFrom?(cs, ElementSpec)
     {
@@ -951,7 +951,7 @@ module Std.JSON.ZeroCopy.Deserializer {
       var p := Parsers.Parser(Colon, SpecView);
       assert p.Valid?();
       var colon :- Core.Structural(k.cs, p);
-      assert colon.StrictlySplitFrom?(k.cs, st => Spec.Structural(st, SpecView));
+      assert colon.StrictlySplitFrom?(k.cs, (st: Structural<jcolon>) => Spec.Structural(st, SpecView));
       assert colon.cs.StrictlySplitFrom?(json.cs);
 
       assert json.fn.requires(colon.cs) by {
