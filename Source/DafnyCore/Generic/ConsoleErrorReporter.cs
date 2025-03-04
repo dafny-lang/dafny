@@ -4,7 +4,7 @@ using DafnyCore;
 
 namespace Microsoft.Dafny;
 
-public class ConsoleErrorReporter : BatchErrorReporter {
+public class ConsoleErrorReporter(DafnyOptions options) : BatchErrorReporter(options) {
   private ConsoleColor ColorForLevel(ErrorLevel level) {
     switch (level) {
       case ErrorLevel.Error:
@@ -71,8 +71,5 @@ public class ConsoleErrorReporter : BatchErrorReporter {
     }
 
     return true;
-  }
-
-  public ConsoleErrorReporter(DafnyOptions options) : base(options) {
   }
 }

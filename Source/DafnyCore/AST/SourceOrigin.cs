@@ -3,6 +3,7 @@ using System;
 using System.Collections;
 using System.Text;
 using Microsoft.Boogie;
+using Microsoft.Dafny.LanguageServer.IntegrationTest.Util;
 using OmniSharp.Extensions.LanguageServer.Protocol;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using Range = OmniSharp.Extensions.LanguageServer.Protocol.Models.Range;
@@ -105,12 +106,12 @@ public class SourceOrigin : IOrigin, IComparable<SourceOrigin> {
   }
 
   int IToken.col {
-    get => StartToken.line;
+    get => Center.Range.Start.Character;
     set => throw new NotImplementedException();
   }
 
   int IToken.line {
-    get => StartToken.line;
+    get => Center.Range.Start.Line + 1;
     set => throw new NotImplementedException();
   }
 
