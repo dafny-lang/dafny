@@ -278,7 +278,7 @@ module Std.JSON.ZeroCopy.Deserializer {
         assert SuffixedElementsSpec(elems.t) + ElementSpec(suffixed.t) + elem.cs.Bytes() == SuffixedElementsSpec(elems'.t) + elem.cs.Bytes() by {
           assert SuffixedElementsSpec(elems.t) + SuffixedElementSpec(suffixed) == SuffixedElementsSpec(elems.t + [suffixed]) by {
             SpecProperties.ConcatBytes_Linear(elems.t, [suffixed], SuffixedElementSpec);
-            assert Spec.ConcatBytes(elems.t, SuffixedElementSpec) + Spec.ConcatBytes([suffixed], SuffixedElementSpec) ==  Spec.ConcatBytes(elems.t + [suffixed], SuffixedElementSpec);
+            assert Spec.ConcatBytes(elems.t, SuffixedElementSpec) + Spec.ConcatBytes<TSuffixedElement>([suffixed], SuffixedElementSpec) == Spec.ConcatBytes(elems.t + [suffixed], SuffixedElementSpec);
           }
         }
       }
