@@ -107,7 +107,6 @@ namespace Microsoft.Dafny.Compilers {
       Feature.ForLoops,
       Feature.Traits,
       Feature.RuntimeCoverageReport,
-      Feature.MultiDimensionalArrays,
       Feature.NonNativeNewtypes
     };
 
@@ -1264,7 +1263,36 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected override ILvalue MultiSelectLvalue(MultiSelectExpr ll, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
-      throw new UnsupportedFeatureException(ll.Origin, Feature.MultiDimensionalArrays);
+      if (ll.Indices.Count > 16) {
+        throw new UnsupportedFeatureException(ll.Origin, Feature.ArraysWithMoreThan16Dims);
+      }
+
+      if (!ll.Array.Type.IsArrayType) {
+        throw new InvalidOperationException();
+      }
+
+      EmitExpr(
+        ll.Array, false,
+        EmitCoercionIfNecessary(
+          ll.Array.Type,
+          ll.Array.Type.IsNonNullRefType || !ll.Array.Type.IsRefType ? null : UserDefinedType.CreateNonNullType((UserDefinedType)ll.Array.Type.NormalizeExpand()),
+          ll.Origin, WrBuffer(out var arrayBuf)
+        ),
+        wStmts
+      );
+
+      var array = arrayBuf.Finish();
+
+      var indices = ll.Indices.Select(idx => {
+        EmitExpr(idx, false, WrBuffer(out var indexBuf), wStmts);
+        return indexBuf.Finish();
+      }).ToArray();
+
+      return new ExprLvalue(
+        (DAST.Expression)DAST.Expression.create_Index(array, DAST.CollKind.create_Array(), Sequence<DAST.Expression>.FromElements(indices)),
+        (DAST.AssignLhs)DAST.AssignLhs.create_Index(array, Sequence<DAST.Expression>.FromElements(indices)),
+        this
+      );
     }
 
     protected override void EmitPrintStmt(ConcreteSyntaxTree wr, Expression arg) {
