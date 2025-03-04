@@ -23,30 +23,6 @@ using Microsoft.Dafny.Plugins;
 using static Microsoft.Dafny.RefinementErrors;
 
 namespace Microsoft.Dafny {
-  public class RefinementOrigin : OriginWrapper {
-    public readonly ModuleDefinition InheritingModule;
-
-
-    public RefinementOrigin(IOrigin tok, ModuleDefinition m)
-      : base(tok) {
-      Contract.Requires(tok != null);
-      Contract.Requires(m != null);
-      this.InheritingModule = m;
-    }
-
-    public override string ToString() {
-      return $"refinement of {WrappedToken} by {InheritingModule.Name}";
-    }
-
-    public override bool IsCopy => true;
-
-    public override bool IsInherited(ModuleDefinition m) {
-      return InheritingModule == m;
-    }
-
-    public override string Filepath => WrappedToken.Filepath + "[" + InheritingModule.Name + "]";
-  }
-
   /// <summary>
   /// The "RefinementTransformer" is responsible for transforming a refining module (that is,
   /// a module defined as "module Y refines X") according to the body of this module and
