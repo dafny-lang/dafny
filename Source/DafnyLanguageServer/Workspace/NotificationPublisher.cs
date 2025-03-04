@@ -289,8 +289,8 @@ namespace Microsoft.Dafny.LanguageServer.Workspace {
         languageServer.TextDocument.SendNotification(new GhostDiagnosticsParams {
           Uri = uri,
           Version = state.Version,
-          Diagnostics = current.Select(r => new Diagnostic {
-            Range = r
+          Diagnostics = current.Select(range => new Diagnostic {
+            Range = range
           }).ToArray(),
         });
       }
