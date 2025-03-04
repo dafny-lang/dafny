@@ -11,7 +11,6 @@ public abstract class OriginWrapper : IOrigin {
     WrappedToken = wrappedToken;
   }
 
-  public abstract IOrigin WithVal(string newVal);
   public virtual bool IsCopy => WrappedToken.IsCopy;
 
   public virtual int col {
@@ -57,22 +56,6 @@ public abstract class OriginWrapper : IOrigin {
   public virtual string val {
     get { return WrappedToken.val; }
     set { WrappedToken.val = value; }
-  }
-  public virtual string LeadingTrivia {
-    get { return WrappedToken.LeadingTrivia; }
-    set { throw new NotSupportedException(); }
-  }
-  public virtual string TrailingTrivia {
-    get { return WrappedToken.TrailingTrivia; }
-    set { throw new NotSupportedException(); }
-  }
-  public virtual Token Next {
-    get { return WrappedToken.Next; }
-    set { throw new NotSupportedException(); }
-  }
-  public virtual Token Prev {
-    get { return WrappedToken.Prev; }
-    set { throw new NotSupportedException(); }
   }
 
   public int CompareTo(IOrigin other) {
