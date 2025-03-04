@@ -624,9 +624,10 @@ namespace Microsoft.Dafny.Compilers {
       methodWriter.WriteLine(isStatic ? $"@{DafnyRuntimeModule}.classproperty" : "@property");
       // if (isConst and cacheConstVariablesCliFlag)
       if (isConst) {
-        // maxsize controls the number of cached entries based on unique parameter values.
-        // Since const methods only take `self` or `instance`, which do not change,
-        // maxsize can be safely set to 1.
+        // maxsize's value represents the number of unique inputs to the function whose outputs are cached.
+        // Setting this to 1 means that only 1 input/output pair is cached.
+        // Since const methods only take `self` or `instance` and no other parameters, there is only 1 input/output pair.
+        // maxsize can be fixed to 1.
         methodWriter.WriteLine("@lru_cache(maxsize=1)");
       }
       return methodWriter.NewBlockPy(header: $"def {name}({(isStatic ? "instance" : "self")}):");
