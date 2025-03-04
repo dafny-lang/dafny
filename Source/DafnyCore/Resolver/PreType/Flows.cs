@@ -426,6 +426,13 @@ class FlowFromTypeArgument : FlowIntoExpr {
     this.argumentIndex = argumentIndex;
   }
 
+  public FlowFromTypeArgument(Type sink, Type source, int argumentIndex, IOrigin tok)
+    : base(sink, tok) {
+    Contract.Requires(0 <= argumentIndex);
+    this.source = source;
+    this.argumentIndex = argumentIndex;
+  }
+
   protected override Type GetSourceType() {
     var sourceType = source.NormalizeToAncestorType();
     Contract.Assert(argumentIndex < sourceType.TypeArgs.Count);

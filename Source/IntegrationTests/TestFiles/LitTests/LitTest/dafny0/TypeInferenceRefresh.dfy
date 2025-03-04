@@ -1082,6 +1082,36 @@ module ConstWithValueOfSubsetType {
   }
 }
 
+module RangeSelectExpr {
+  function SameSequence<X>(s: seq<X>): seq<X> { s }
+
+  type pos = x: int | 0 < x witness 1
+
+  lemma SimpleTest(xs: seq<nat>, ps: seq<pos>, arr: array<nat>, i: nat, x: int)
+  {
+    var ys := SameSequence(xs); // seq<nat>
+    var zs := SameSequence(xs[0..]); // seq<nat>
+
+    var za := SameSequence(arr[0..]); // seq<nat>
+
+    var aas := xs[0..]; // seq<nat>
+
+    var bbs; // seq<int>
+    bbs := xs[0..];
+    bbs := ps[0..];
+
+    // Check, by some verified assertions and a seq-update, that the types of the local variables were inferred as expected.
+    ys, zs, za, aas, bbs := *, *, *, *, *;
+    assert i < |ys| ==> 0 <= ys[i];
+    assert i < |zs| ==> 0 <= zs[i];
+    assert i < |za| ==> 0 <= za[i];
+    assert i < |aas| ==> 0 <= aas[i];
+    if i < |bbs| {
+      var updated := bbs[i := x];
+    }
+  }
+}
+
 /****************************************************************************************
  ******** TO DO *************************************************************************
  ****************************************************************************************

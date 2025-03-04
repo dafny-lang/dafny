@@ -186,6 +186,9 @@ class PreTypeToTypeVisitor : ASTVisitor<IASTVisitorContext> {
     if (expr is SeqSelectExpr { Seq: { Type: { AsMultiSetType: { } } } }) {
       expr.UnnormalizedType = systemModuleManager.Nat();
       return;
+    } else if (expr is SeqSelectExpr { SelectOne: false }) {
+      expr.Type = PreType2TypeUtil.PreType2FixedType(expr.PreType);
+      return;
     }
 
     // Case: fixed pre-type type

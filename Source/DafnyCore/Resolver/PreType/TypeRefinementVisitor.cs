@@ -68,7 +68,7 @@ public class TypeRefinementVisitor : ASTVisitor<IASTVisitorContext> {
       var seqType = selectExpr.Seq.Type.NormalizeToAncestorType();
       if (!selectExpr.SelectOne) {
         var sinkType = selectExpr.Type.NormalizeToAncestorType().AsSeqType;
-        flows.Add(new FlowFromType(sinkType.Arg, seqType.TypeArgs[0], expr.Origin));
+        flows.Add(new FlowFromTypeArgument(sinkType.Arg, unnormalizedSeqType, 0, expr.Origin));
       } else if (seqType.AsSeqType != null || seqType.IsArrayType) {
         flows.Add(new FlowFromTypeArgument(expr, unnormalizedSeqType, 0));
       } else if (seqType.IsMapType || seqType.IsIMapType) {
@@ -352,7 +352,7 @@ public class TypeRefinementVisitor : ASTVisitor<IASTVisitorContext> {
       VisitPattern(varDeclPattern.LHS, () => TypeRefinementWrapper.NormalizeSansBottom(varDeclPattern.RHS), context);
     } else if (stmt is SingleAssignStmt { Lhs: IdentifierExpr lhsIdentifierExpr } assignStmt) {
       if (assignStmt is { Rhs: ExprRhs exprRhs }) {
-        flows.Add(new FlowIntoVariable(lhsIdentifierExpr.Var, exprRhs.Expr, assignStmt.Origin, ":="));
+        flows.Add(new FlowIntoVariable(lhsIdentifierExpr.Var, exprRhs.Expr, assignStmt.Origin, $"{lhsIdentifierExpr.Var.Name} :="));
       } else if (assignStmt is { Rhs: TypeRhs tRhs }) {
         flows.Add(new FlowFromType(lhsIdentifierExpr.Var.UnnormalizedType, tRhs.Type, assignStmt.Origin, ":= new"));
       }
