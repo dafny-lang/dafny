@@ -53,8 +53,9 @@ function GetConstant(): int {
       var document = await Projects.GetResolvedDocumentAsyncNormalizeUri(documentItem.Uri);
       Assert.NotNull(document);
       var diagnostics = await GetLastDiagnostics(documentItem);
-      Assert.Single(diagnostics);
+      Assert.Equal(2, diagnostics.Length);
       Assert.Equal(MessageSource.Resolver.ToString(), diagnostics[0].Source);
+      Assert.Equal(MessageSource.Resolver.ToString(), diagnostics[1].Source);
     }
 
     [Fact]

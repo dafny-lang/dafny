@@ -271,3 +271,21 @@ module ReferenceTypes {
     }
   }
 }
+
+module ExplicitTypeParameters {
+  function FId<T>(t: T): T { t }
+  method MId<T>(z: T) returns (r: T) { r := z; }
+  datatype Record<T> = Record(g: T)
+
+  method Test(u: int)
+    ensures true
+  {
+    if * {
+      var vv := FId<nat>(u); // error: u may be negative
+    } else if * {
+      var qq := MId<nat>(u); // error: u may be negative
+    } else {
+      var rr := Record<nat>.Record(u); // error: u may be negative
+    }
+  }
+}

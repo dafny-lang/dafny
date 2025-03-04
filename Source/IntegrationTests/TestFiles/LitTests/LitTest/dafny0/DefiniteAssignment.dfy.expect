@@ -36,4 +36,4 @@ DefiniteAssignment.dfy(438,13): Error: variable 'g', which is subject to definit
 DefiniteAssignment.dfy(441,2): Error: out-parameter 'r'', which is subject to definite-assignment rules, might be uninitialized at this return point
 DefiniteAssignment.dfy(449,2): Error: out-parameter 'r', which is subject to definite-assignment rules, might be uninitialized at this return point
 
-Dafny program verifier finished with 15 verified, 37 errors
+Dafny program verifier finished with 14 verified, 37 errors

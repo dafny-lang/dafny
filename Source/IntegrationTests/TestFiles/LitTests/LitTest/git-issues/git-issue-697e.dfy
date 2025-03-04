@@ -1,4 +1,4 @@
-// RUN: %testDafnyForEachCompiler "%s" -- --relax-definite-assignment
+// RUN: %testDafnyForEachCompiler "%s" -- --type-system-refresh=false --general-newtypes=false --relax-definite-assignment
 
 datatype Cell = Cell(x: int)
 type EvenCell = c: Cell | c.x % 2 == 0 witness Cell(0)

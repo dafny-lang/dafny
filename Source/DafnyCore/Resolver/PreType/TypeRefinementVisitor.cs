@@ -39,6 +39,13 @@ public class TypeRefinementVisitor : ASTVisitor<IASTVisitorContext> {
     systemModuleManager.Options.OutputWriter.WriteLine($"------------------- (end of type-refinement flows, {moduleDescription})");
   }
 
+  public override void VisitField(Field field) {
+    base.VisitField(field);
+    if (field is ConstantField { Rhs: { } rhs } constantField) {
+      flows.Add(new FlowIntoVariable(constantField, rhs, field.Origin, ":="));
+    }
+  }
+
   protected override bool VisitOneExpression(Expression expr, IASTVisitorContext context) {
     if (expr is DatatypeUpdateExpr datatypeUpdateExpr) {
       // How a DatatypeUpdateExpr desugars depends on whether or not the expression is ghost, which hasn't been determined
@@ -61,7 +68,7 @@ public class TypeRefinementVisitor : ASTVisitor<IASTVisitorContext> {
       var seqType = selectExpr.Seq.Type.NormalizeToAncestorType();
       if (!selectExpr.SelectOne) {
         var sinkType = selectExpr.Type.NormalizeToAncestorType().AsSeqType;
-        flows.Add(new FlowFromType(sinkType.Arg, seqType.TypeArgs[0], expr.Origin));
+        flows.Add(new FlowFromTypeArgument(sinkType.Arg, unnormalizedSeqType, 0, expr.Origin));
       } else if (seqType.AsSeqType != null || seqType.IsArrayType) {
         flows.Add(new FlowFromTypeArgument(expr, unnormalizedSeqType, 0));
       } else if (seqType.IsMapType || seqType.IsIMapType) {
@@ -161,6 +168,21 @@ public class TypeRefinementVisitor : ASTVisitor<IASTVisitorContext> {
         flows.Add(new FlowFromComputedTypeIgnoreHeadTypes(expr, () => new MapType(mapDisplayExpr.Finite,
             TypeRefinementWrapper.NormalizeSansBottom(element.A), TypeRefinementWrapper.NormalizeSansBottom(element.B)),
           "map display"));
+      }
+
+    } else if (expr is SeqUpdateExpr seqUpdateExpr) {
+      if (expr.Type is MultiSetType multiSetType) {
+        flows.Add(new FlowBetweenExpressions(expr, seqUpdateExpr.Seq, "multiset update (source)"));
+        flows.Add(new FlowFromComputedTypeIgnoreHeadTypes(expr,
+          () => new MultiSetType(TypeRefinementWrapper.NormalizeSansBottom(seqUpdateExpr.Index)),
+          "multiset update (element)"));
+      } else if (expr.Type is MapType mapType) {
+        flows.Add(new FlowBetweenExpressions(expr, seqUpdateExpr.Seq, "map update (source)"));
+        flows.Add(new FlowFromComputedTypeIgnoreHeadTypes(expr, () => new MapType(mapType.Finite,
+            TypeRefinementWrapper.NormalizeSansBottom(seqUpdateExpr.Index), TypeRefinementWrapper.NormalizeSansBottom(seqUpdateExpr.Value)),
+          "map update (element)"));
+      } else {
+        // nothing to do for sequences
       }
 
     } else if (expr is SetComprehension setComprehension) {
@@ -330,7 +352,7 @@ public class TypeRefinementVisitor : ASTVisitor<IASTVisitorContext> {
       VisitPattern(varDeclPattern.LHS, () => TypeRefinementWrapper.NormalizeSansBottom(varDeclPattern.RHS), context);
     } else if (stmt is SingleAssignStmt { Lhs: IdentifierExpr lhsIdentifierExpr } assignStmt) {
       if (assignStmt is { Rhs: ExprRhs exprRhs }) {
-        flows.Add(new FlowIntoVariable(lhsIdentifierExpr.Var, exprRhs.Expr, assignStmt.Origin, ":="));
+        flows.Add(new FlowIntoVariable(lhsIdentifierExpr.Var, exprRhs.Expr, assignStmt.Origin, $"{lhsIdentifierExpr.Var.Name} :="));
       } else if (assignStmt is { Rhs: TypeRhs tRhs }) {
         flows.Add(new FlowFromType(lhsIdentifierExpr.Var.UnnormalizedType, tRhs.Type, assignStmt.Origin, ":= new"));
       }

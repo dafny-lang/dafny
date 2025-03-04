@@ -121,8 +121,8 @@ outdir="$dir/../Test/docexamples"
 
 coverage=0
 permOptions="--show-snippets:false "
-defOptions="--function-syntax:4 --use-basename-for-filename"
-legacyOptions="-functionSyntax:4 -useBaseNameForFileName -showSnippets:0"
+defOptions="--function-syntax:4 --use-basename-for-filename --type-system-refresh=true --general-traits=datatype --general-newtypes=true"
+legacyOptions="-functionSyntax:4 -useBaseNameForFileName -showSnippets:0 /typeSystemRefresh /generalTraits:datatype /generalNewtypes"
 
 while getopts 'c' opt; do
   case "$opt" in

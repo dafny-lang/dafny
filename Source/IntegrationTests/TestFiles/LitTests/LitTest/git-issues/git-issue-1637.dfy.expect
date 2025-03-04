@@ -1,2 +1,2 @@
-git-issue-1637.dfy(19,6): Error: incorrect argument type for predicate parameter 'f' (expected Thing -> seq<uint8>, found Thing -> Fii) (covariance for type parameter at index 1 expects seq<uint8> :> Fii)
+git-issue-1637.dfy(19,6): Error: incorrect argument type for predicate parameter 'f' (expected Thing -> seq<uint8>, found Thing ~> Fii) (covariant type parameter 'R' would require seq<uint8> :> Fii)
 1 resolution/type errors detected in git-issue-1637.dfy

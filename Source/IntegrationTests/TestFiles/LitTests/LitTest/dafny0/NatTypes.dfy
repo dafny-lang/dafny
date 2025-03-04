@@ -1,4 +1,4 @@
-// RUN: %exits-with 4 %verify --relax-definite-assignment --allow-deprecation "%s" > "%t"
+// RUN: %exits-with 4 %verify --relax-definite-assignment "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 method M(n: nat) {
@@ -11,11 +11,11 @@ method Main() {
 }
 
 class MyClass {
-  var f: nat;
+  var f: nat
 
   method CheckField(x: nat, y: int)
-    requires 0 <= y;
-    modifies this;
+    requires 0 <= y
+    modifies this
   {
     var y: nat := y;
 
@@ -41,11 +41,11 @@ method Generic<T>(i: int, t0: T, t1: T) returns (r: T) {
     var n: nat := 5;
     if
     case true =>
-      var j := Generic(i-1, n, -4);  // error: the type parameter is inferred as nat, but -4 is not a nat
-      assert 0 <= j;
+      var j := Generic(i-1, n, -4);  // type parameter inferred to be "int", so "j" will be "int"
+      assert 0 <= j; // error: "j" has type "int"
     case true =>
-      var j := Generic(i-1, n, 4);
-      assert 0 <= j;  // fine, since type parameter was inferred as nat in previous call
+      var j := Generic(i-1, n, 4);  // type parameter is inferred as "int"
+      assert 0 <= j; // error: "j" has type "int"
     case true =>
       var j := Generic(i-1, n as int, -4);  // now, the type parameter is inferred as int
       assert 0 <= j;  // error: result may not be a nat
@@ -61,8 +61,8 @@ method HenEric<T>(i: int, t0: T, t1: T) returns (r: T) {
     var n: nat := 5;
     if
     case true =>
-      var q := FenEric(n, -4);  // error: type parameter is inferred as nat, but -4 is not a nat
-      assert 0 <= q;
+      var q := FenEric(n, -4);  // type parameter inferred to be "int", so "j" will be "int"
+      assert 0 <= q; // error: "j" has type "int"
     case true =>
       var q := FenEric(n, 4);
       assert 0 <= q;  // fine, since type parameter was inferred as nat in previous call
@@ -122,8 +122,8 @@ function GE<T>(d: GenEric?<T>): bool { true }
 method TestGenEric() {
   var ge;
   if (ge != null) {
-    var b := GE(ge);
-    var n: nat := ge.f;  // the generic instantiation is inferred to be nat, so this is okay
+    var b := GE(ge); // type parameter inferred as "int"
+    var n: nat := ge.f;  // error: ge.f has type "int"
   }
 }
 
@@ -155,20 +155,20 @@ ghost function TakesANat(n: nat): bool
 }
 
 ghost function Naturally(): nat
-  ensures TakesANat(Naturally());  // the wellformedness of this check requires
+  ensures TakesANat(Naturally())  // the wellformedness of this check requires
 {
   17
 }
 
 ghost function Integrally_Bad(): int
-  ensures TakesANat(Integrally_Bad());  // error: well-formedness check fails
+  ensures TakesANat(Integrally_Bad())  // error: well-formedness check fails
 {
   17
 }
 
 ghost function Integrally_Good(): int
-  ensures 0 <= Integrally_Good();
-  ensures TakesANat(Integrally_Good());  // here, the needed information follows from the preceding ensures clause
+  ensures 0 <= Integrally_Good()
+  ensures TakesANat(Integrally_Good())  // here, the needed information follows from the preceding ensures clause
 {
   17
 }
@@ -178,9 +178,15 @@ ghost function Integrally_Good(): int
 datatype GList<G> = GNil | GCons(G, GList<G>)
 
 method GList_Append(xs: GList<nat>, x: int) returns (ys: GList<nat>) {
-  if 100 <= x {
-    ys := GCons(x, xs);  // fine, result is a GList<nat> and x is a nat
+  if x < 100 {
+    ys := GCons(x as nat, xs);  // error: result is a GList<nat>, but x may not be a nat
+  } else if 200 <= x {
+    ys := GCons(x as nat, xs);  // fine, result is a GList<nat> and x is a nat
+  } else if 200 <= x {
+    ys := GList.GCons(x as nat, xs);  // fine, result is a GList<nat> and x is a nat
+  } else if 300 <= x {
+    ys := GList<nat>.GCons(x, xs);  // fine, result is a GList<nat> and x is provably a nat
   } else {
-    ys := GCons(x, xs);  // error: result is a GList<nat>, but x may not be a nat
+    ys := GCons(x, xs);  // error: RHS is inferred as GList<int> and xs is not GList<int>
   }
 }

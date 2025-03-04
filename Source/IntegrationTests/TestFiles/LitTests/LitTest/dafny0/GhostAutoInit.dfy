@@ -3,7 +3,7 @@
 
 module DeclaredTypes {
 
-  trait MaybeEmpty { }
+  trait MaybeEmpty extends object { }
   type GhostAutoInit = x: MaybeEmpty? | true ghost witness null
   type CompileAutoInit = MaybeEmpty?
 
@@ -264,14 +264,14 @@ module FiftyShadesOfGhost {
   }
 
   method V(cell: LongCell) {
-    if m, n, x, y :| cell == LongGH(m, n, x, y) {  // all 4 get bound to values
+    if m: G, n: G, x, y :| cell == LongGH(m, n, x, y) {  // all 4 get bound to values
       // we're in a ghost context here
       GhostCallee(m, n, x, y);  // all fine
     }
   }
 
   method W(cell: SmallCell) {
-    if m, x :| cell == SmallGH(m, x) {  // all 2 get bound to values
+    if m: G, x :| cell == SmallGH(m, x) {  // all 2 get bound to values
       // this is still a ghost context
       GhostCallee(m, m, x, x);  // all fine
     }
