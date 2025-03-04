@@ -148,7 +148,7 @@ abstract module {:options "/functionSyntax:4"} Dafny {
       requires forall i | 0 <= i < size :: values[i].Set?
       // Explicitly doesn't ensure Valid()!
       ensures ret.Valid()
-      // This is imporant, because it's tempting to just return this when possible
+      // This is important, because it's tempting to just return this when possible
       // to save allocations, but that leads to inconsistencies.
       ensures ret as object != this as object
       ensures |ret.values| as size_t == size
