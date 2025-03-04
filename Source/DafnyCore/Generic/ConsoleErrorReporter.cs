@@ -54,7 +54,11 @@ public class ConsoleErrorReporter(DafnyOptions options) : BatchErrorReporter(opt
 
     foreach (var related in dafnyDiagnostic.RelatedInformation) {
       var innerMessage = related.Message;
-      innerMessage = "Related location: " + innerMessage;
+      if (string.IsNullOrEmpty(innerMessage)) {
+        innerMessage = "Related location";
+      } else {
+        innerMessage = "Related location: " + innerMessage;
+      }
 
       errorLine += $"{related.Location.LocationToString(Options)}: {innerMessage}\n";
       if (Options.Get(Snippets.ShowSnippets)) {

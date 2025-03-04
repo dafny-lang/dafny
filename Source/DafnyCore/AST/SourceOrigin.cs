@@ -106,12 +106,12 @@ public class SourceOrigin : IOrigin, IComparable<SourceOrigin> {
   }
 
   int IToken.col {
-    get => Center.Range.Start.Character;
+    get => Center?.Range.Start.Character ?? -1;
     set => throw new NotImplementedException();
   }
 
   int IToken.line {
-    get => Center.Range.Start.Line + 1;
+    get => Center?.Range.Start.Line + 1 ?? -1;
     set => throw new NotImplementedException();
   }
 

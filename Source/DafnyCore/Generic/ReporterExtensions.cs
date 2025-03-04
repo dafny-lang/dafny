@@ -31,7 +31,8 @@ public static class ErrorReporterExtensions {
     }
 
     if (error.Tok is NestedOrigin { Inner: var innerToken, Message: var msg }) {
-      relatedInformation.AddRange(CreateDiagnosticRelatedInformationFor(innerToken, msg, usingSnippets));
+      relatedInformation.AddRange(CreateDiagnosticRelatedInformationFor(innerToken, msg
+        ?? "this proposition could not be proved", usingSnippets));
     }
 
     var dafnyToken = BoogieGenerator.ToDafnyToken(useRange, error.Tok);
@@ -65,8 +66,6 @@ public static class ErrorReporterExtensions {
     //     message = FormatRelated(dafnyToken.PrintOriginal());
     //   }
     // }
-
-    message ??= "this proposition could not be proved";
 
     yield return new DafnyRelatedInformation(token.Center, message);
     if (inner != null) {
