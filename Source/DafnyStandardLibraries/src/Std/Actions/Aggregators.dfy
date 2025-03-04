@@ -148,6 +148,7 @@ module Std.Aggregators {
       this.value := init;
       this.Repr := {this};
       this.history := [];
+      this.height := 0;
       new;
       reveal Seq.FoldLeft();
       assert value == Seq.FoldLeft(f, init, Consumed());
@@ -228,6 +229,7 @@ module Std.Aggregators {
       values := [];
       history := [];
       Repr := {this};
+      height := 0;
     }
 
     ghost predicate Valid()

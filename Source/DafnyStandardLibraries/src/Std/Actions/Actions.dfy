@@ -355,6 +355,7 @@ module Std.Actions {
 
       history := [];
       Repr := {this};
+      height := 0;
     }
 
     ghost predicate CanConsume(history: seq<(T, R)>, next: T)
@@ -427,6 +428,9 @@ module Std.Actions {
     constructor(state: S, stepFn: S -> Option<(S, T)>) {
       this.state := state;
       this.stepFn := stepFn;
+      this.Repr := {this};
+      this.height := 0;
+      this.history := [];
     }
 
     ghost predicate CanConsume(history: seq<((), Option<T>)>, next: ())

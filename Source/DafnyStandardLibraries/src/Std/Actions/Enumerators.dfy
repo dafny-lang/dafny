@@ -115,6 +115,7 @@ module Std.Enumerators {
 
       Repr := {this};
       history := [];
+      height := 0;
     }
 
     ghost predicate Valid()
