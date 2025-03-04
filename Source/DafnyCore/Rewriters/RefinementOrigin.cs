@@ -2,15 +2,15 @@ using System.Diagnostics.Contracts;
 
 namespace Microsoft.Dafny;
 
-public class RefinementOrigin : OriginWrapper {
+public class RefinementOrigin : NestedOrigin {
   public readonly ModuleDefinition InheritingModule;
 
 
-  public RefinementOrigin(IOrigin tok, ModuleDefinition m)
-    : base(tok) {
-    Contract.Requires(tok != null);
-    Contract.Requires(m != null);
-    this.InheritingModule = m;
+  public RefinementOrigin(IOrigin refineeOrigin, ModuleDefinition inheritingModule)
+    : base(refineeOrigin, inheritingModule.Origin, "refining module") {
+    Contract.Requires(refineeOrigin != null);
+    Contract.Requires(inheritingModule != null);
+    this.InheritingModule = inheritingModule;
   }
 
   public override string ToString() {
@@ -19,9 +19,7 @@ public class RefinementOrigin : OriginWrapper {
 
   public override bool IsCopy => true;
 
-  public override bool IsInherited(ModuleDefinition m) {
-    return InheritingModule == m;
+  public override bool IsInherited(ModuleDefinition module) {
+    return InheritingModule == module;
   }
-
-  public override string Filepath => WrappedToken.Filepath + "[" + InheritingModule.Name + "]";
 }
