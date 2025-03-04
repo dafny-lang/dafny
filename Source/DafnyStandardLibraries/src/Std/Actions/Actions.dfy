@@ -400,6 +400,7 @@ module Std.Actions {
 
       history := [];
       Repr := {this};
+      height := 0;
     }
 
     ghost predicate ValidInput(history: seq<(I, O)>, next: I)

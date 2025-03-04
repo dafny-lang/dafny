@@ -22,116 +22,117 @@ module Std.Producers {
       ensures Seq.ToSet(OutputsOf(history)) <= Set()
   }
 
-  class SetIProducer<T(==)> extends Producer<T>, ProducesSetProof<T> {
-    ghost const original: set<T>
-    var remaining: set<T>
+  // TODO: Great example but can't build with --enforce-determinism
+  // class SetIProducer<T(==)> extends Producer<T>, ProducesSetProof<T> {
+  //   ghost const original: set<T>
+  //   var remaining: set<T>
 
-    ghost predicate Valid()
-      reads this, Repr
-      ensures Valid() ==> this in Repr
-      ensures Valid() ==> ValidHistory(history)
-      decreases height, 0
-    {
-      && this in Repr
-      && ValidHistory(history)
-      && remaining == original - Enumerated(history)
-    }
+  //   ghost predicate Valid()
+  //     reads this, Repr
+  //     ensures Valid() ==> this in Repr
+  //     ensures Valid() ==> ValidHistory(history)
+  //     decreases height, 0
+  //   {
+  //     && this in Repr
+  //     && ValidHistory(history)
+  //     && remaining == original - Enumerated(history)
+  //   }
 
-    constructor(s: set<T>)
-      ensures Valid()
-      ensures fresh(Repr)
-      ensures history == []
-      ensures s == original
-    {
-      original := s;
-      remaining := s;
+  //   constructor(s: set<T>)
+  //     ensures Valid()
+  //     ensures fresh(Repr)
+  //     ensures history == []
+  //     ensures s == original
+  //   {
+  //     original := s;
+  //     remaining := s;
 
-      history := [];
-      Repr := {this};
-      height := 1;
+  //     history := [];
+  //     Repr := {this};
+  //     height := 1;
 
-      reveal Seq.HasNoDuplicates();
-      reveal Seq.ToSet();
-    }
+  //     reveal Seq.HasNoDuplicates();
+  //     reveal Seq.ToSet();
+  //   }
 
-    ghost function Action(): Action<(), T> {
-      this
-    }
+  //   ghost function Action(): Action<(), T> {
+  //     this
+  //   }
 
-    ghost function Set(): set<T> {
-      original
-    }
+  //   ghost function Set(): set<T> {
+  //     original
+  //   }
 
-    lemma ProducesSet(history: seq<((), T)>)
-      requires Action().ValidHistory(history)
-      ensures |history| <= |Set()|
-      ensures Seq.ToSet(OutputsOf(history)) <= Set()
-    {}
+  //   lemma ProducesSet(history: seq<((), T)>)
+  //     requires Action().ValidHistory(history)
+  //     ensures |history| <= |Set()|
+  //     ensures Seq.ToSet(OutputsOf(history)) <= Set()
+  //   {}
 
-    ghost function Enumerated(history: seq<((), T)>): set<T> {
-      Seq.ToSet(OutputsOf(history))
-    }
+  //   ghost function Enumerated(history: seq<((), T)>): set<T> {
+  //     Seq.ToSet(OutputsOf(history))
+  //   }
 
-    ghost predicate ValidInput(history: seq<((), T)>, next: ())
-      decreases height
-    {
-      |history| < |original|
-    }
-    ghost predicate ValidHistory(history: seq<((), T)>)
-      decreases height
-    {
-      && |history| <= |original|
-      && Seq.HasNoDuplicates(OutputsOf(history))
-      && Enumerated(history) <= original
-    }
+  //   ghost predicate ValidInput(history: seq<((), T)>, next: ())
+  //     decreases height
+  //   {
+  //     |history| < |original|
+  //   }
+  //   ghost predicate ValidHistory(history: seq<((), T)>)
+  //     decreases height
+  //   {
+  //     && |history| <= |original|
+  //     && Seq.HasNoDuplicates(OutputsOf(history))
+  //     && Enumerated(history) <= original
+  //   }
 
-    lemma EnumeratedCardinality()
-      requires Valid()
-      ensures |Enumerated(history)| == |history|
-    {
-      reveal Seq.ToSet();
-      Seq.LemmaCardinalityOfSetNoDuplicates(OutputsOf(history));
-    }
+  //   lemma EnumeratedCardinality()
+  //     requires Valid()
+  //     ensures |Enumerated(history)| == |history|
+  //   {
+  //     reveal Seq.ToSet();
+  //     Seq.LemmaCardinalityOfSetNoDuplicates(OutputsOf(history));
+  //   }
 
-    method Invoke(i: ()) returns (o: T)
-      requires Requires(i)
-      reads Reads(i)
-      modifies Modifies(i)
-      decreases Decreases(i).Ordinal()
-      ensures Ensures(i, o)
-    {
-      assert Requires(i);
+  //   method Invoke(i: ()) returns (o: T)
+  //     requires Requires(i)
+  //     reads Reads(i)
+  //     modifies Modifies(i)
+  //     decreases Decreases(i).Ordinal()
+  //     ensures Ensures(i, o)
+  //   {
+  //     assert Requires(i);
 
-      EnumeratedCardinality();
-      assert 0 < |remaining|;
+  //     EnumeratedCardinality();
+  //     assert 0 < |remaining|;
 
-      o :| o in remaining;
-      remaining := remaining - {o};
+  //     o :| o in remaining;
+  //     remaining := remaining - {o};
 
-      UpdateHistory(i, o);
-      Repr := {this};
+  //     UpdateHistory(i, o);
+  //     Repr := {this};
 
-      assert OutputsOf(history) == OutputsOf(old(history)) + [o];
-      reveal Seq.ToSet();
-      assert o !in OutputsOf(old(history));
-      reveal Seq.HasNoDuplicates();
-      Seq.LemmaNoDuplicatesInConcat(OutputsOf(old(history)), [o]);
-    }
+  //     assert OutputsOf(history) == OutputsOf(old(history)) + [o];
+  //     reveal Seq.ToSet();
+  //     assert o !in OutputsOf(old(history));
+  //     reveal Seq.HasNoDuplicates();
+  //     Seq.LemmaNoDuplicatesInConcat(OutputsOf(old(history)), [o]);
+  //   }
 
-    method RepeatUntil(i: (), stop: T -> bool, ghost eventuallyStopsProof: OutputsTerminatedProof<(), T>)
-      requires Valid()
-      requires eventuallyStopsProof.Action() == this
-      requires eventuallyStopsProof.FixedInput() == i
-      requires eventuallyStopsProof.StopFn() == stop
-      requires forall i <- Inputs() :: i == i
-      reads Repr
-      modifies Repr
-      decreases Repr
-      ensures Valid()
-    {
-      DefaultRepeatUntil(this, i, stop, eventuallyStopsProof);
-    }
-  }
+  //   method RepeatUntil(i: (), stop: T -> bool, ghost eventuallyStopsProof: OutputsTerminatedProof<(), T>)
+  //     requires Valid()
+  //     requires eventuallyStopsProof.Action() == this
+  //     requires eventuallyStopsProof.FixedInput() == i
+  //     requires eventuallyStopsProof.StopFn() == stop
+  //     requires forall i <- Inputs() :: i == i
+  //     reads Repr
+  //     modifies Repr
+  //     decreases Repr
+  //     ensures Valid()
+  //   {
+  //     DefaultRepeatUntil(this, i, stop, eventuallyStopsProof);
+  //   }
+  // }
 
   // TODO: FunctionalDynProducer too?
   class FunctionalProducer<S, T> extends Producer<T> {
@@ -151,6 +152,9 @@ module Std.Producers {
     constructor(state: S, stepFn: S -> (S, T)) {
       this.state := state;
       this.stepFn := stepFn;
+      this.Repr := {this};
+      this.height := 0;
+      this.history := [];
     }
 
     ghost predicate ValidInput(history: seq<((), T)>, next: ())
@@ -305,6 +309,7 @@ module Std.Producers {
 
       Repr := {this};
       history := [];
+      height := 0;
     }
 
     ghost predicate Valid()
@@ -562,7 +567,6 @@ module Std.Producers {
   class CrossProductdDynProducer<T> extends DynProducer<T> {
 
     const first: DynProducer<T>
-    var currentFirst: Option<T>
     const second: DynProducer<T>
 
     constructor (first: DynProducer<T>, second: DynProducer<T>)
@@ -579,6 +583,7 @@ module Std.Producers {
 
       Repr := {this} + first.Repr + second.Repr;
       history := [];
+      height := first.height + second.height + 1;
     }
 
     ghost predicate Valid()
