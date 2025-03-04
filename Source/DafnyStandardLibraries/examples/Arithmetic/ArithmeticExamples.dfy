@@ -47,7 +47,7 @@ module ArithmeticExamples {
     method TestSeqExtend() {
       expect SeqExtend([], 3) == [0, 0, 0];
       expect SeqExtend([1], 3) == [1, 0, 0];
-      expect SeqExtend([3,0,2], 4) == [3,0,2,0];
+      expect SeqExtend([3 as digit, 0 as digit, 2 as digit], 4) == [3,0,2,0];
     }
 
     @Test

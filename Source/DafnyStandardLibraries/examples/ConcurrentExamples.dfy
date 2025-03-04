@@ -27,7 +27,7 @@ module ConcurrentExamples {
       ensures fresh({mutex, box, primary, secondaryA, secondaryB})
     {
       mutex := new Lock();
-      box := new AtomicBox(p1, 0);
+      box := new AtomicBox<nat>(p1, 0);
       primary := new MutableMap(p2);
       secondaryA := new MutableMap(p2);
       secondaryB := new MutableMap(p2);
