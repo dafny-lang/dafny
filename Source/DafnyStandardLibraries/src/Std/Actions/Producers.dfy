@@ -119,19 +119,6 @@ module Std.Producers {
   //     Seq.LemmaNoDuplicatesInConcat(OutputsOf(old(history)), [o]);
   //   }
 
-  //   method RepeatUntil(i: (), stop: T -> bool, ghost eventuallyStopsProof: OutputsTerminatedProof<(), T>)
-  //     requires Valid()
-  //     requires eventuallyStopsProof.Action() == this
-  //     requires eventuallyStopsProof.FixedInput() == i
-  //     requires eventuallyStopsProof.StopFn() == stop
-  //     requires forall i <- Inputs() :: i == i
-  //     reads Repr
-  //     modifies Repr
-  //     decreases Repr
-  //     ensures Valid()
-  //   {
-  //     DefaultRepeatUntil(this, i, stop, eventuallyStopsProof);
-  //   }
   // }
 
   // TODO: FunctionalDynProducer too?
@@ -180,20 +167,6 @@ module Std.Producers {
       o := result';
 
       UpdateHistory(i, o);
-    }
-
-    method RepeatUntil(i: (), stop: T -> bool, ghost eventuallyStopsProof: OutputsTerminatedProof<(), T>)
-      requires Valid()
-      requires eventuallyStopsProof.Action() == this
-      requires eventuallyStopsProof.FixedInput() == i
-      requires eventuallyStopsProof.StopFn() == stop
-      requires forall i <- Inputs() :: i == i
-      reads Repr
-      modifies Repr
-      decreases Repr
-      ensures Valid()
-    {
-      DefaultRepeatUntil(this, i, stop, eventuallyStopsProof);
     }
   }
 
@@ -249,6 +222,31 @@ module Std.Producers {
         InvokeUntilTerminationMetricDecreased@before(r);
       }
     }
+
+    method ForEachRemaining(consumer: Consumer<T>)
+      requires Valid()
+      requires consumer.Valid()
+      requires Repr !! consumer.Repr
+      modifies Repr, consumer.Repr
+      // TODO: complete post-condition
+      // ensures Enumerated(e.Outputs()) == a.Inputs()
+    {
+      var t := Next();
+      while t != None
+        invariant ValidAndDisjoint()
+        invariant consumer.ValidAndDisjoint()
+        invariant Repr !! consumer.Repr
+        decreases Remaining()
+      {
+        consumer.AnyInputIsValid(consumer.history, t.value);
+        consumer.Accept(t.value);
+
+        t := Next();
+        if t == None {
+          break;
+        }
+      }
+    }
   }
 
   function Enumerated<T>(produced: seq<Option<T>>): seq<T> {
@@ -256,42 +254,6 @@ module Std.Producers {
       []
     else
       [produced[0].value] + Enumerated(produced[1..])
-  }
-
-  // TODO: This needs to be refactored to be just a helper method for
-  //
-  // Compose(e, a).RepeatUntil((), o -> o.None?)
-  //
-  // so that extern implementations of DynProducer that are push-based
-  // can implement this by attaching `a` as a callback.
-  //
-  // TODO: It may make sense to have more than one ForEach as well: 
-  // one that connects an IProducer and an IConsumer together and runs forever (decreases *),
-  // one that connects an Producer and an Consumer with a proof that the consumer has adequate capacity,
-  // and one that connects an Producer and an IConsumer with no additional proof obligation.
-  method ForEach<T>(e: DynProducer<T>, a: Consumer<T>)
-    requires e.Valid()
-    requires a.Valid()
-    requires e.Repr !! a.Repr
-    modifies e.Repr, a.Repr
-    // TODO: complete post-condition
-    // ensures Enumerated(e.Outputs()) == a.Inputs()
-  {
-    var t := e.Next();
-    while t != None
-      invariant e.ValidAndDisjoint()
-      invariant a.ValidAndDisjoint()
-      invariant e.Repr !! a.Repr
-      decreases e.Remaining()
-    {
-      a.AnyInputIsValid(a.history, t.value);
-      a.Accept(t.value);
-
-      t := e.Next();
-      if t == None {
-        break;
-      }
-    }
   }
 
   class SeqDynProducer<T> extends DynProducer<T> {
@@ -351,21 +313,6 @@ module Std.Producers {
       // TODO: Doable but annoying
       assume {:axiom} ValidHistory(history);
       assert Valid();
-    }
-
-
-    method RepeatUntil(t: (), stop: Option<T> -> bool, ghost eventuallyStopsProof: OutputsTerminatedProof<(), Option<T>>)
-      requires Valid()
-      requires eventuallyStopsProof.Action() == this
-      requires eventuallyStopsProof.FixedInput() == t
-      requires eventuallyStopsProof.StopFn() == stop
-      requires forall i <- Inputs() :: i == t
-      reads Repr
-      modifies Repr
-      decreases Repr
-      ensures Valid()
-    {
-      DefaultRepeatUntil(this, t, stop, eventuallyStopsProof);
     }
 
     ghost function Limit(): nat {
@@ -446,20 +393,6 @@ module Std.Producers {
       UpdateHistory((), result);
     }
 
-    method RepeatUntil(t: (), stop: Option<T> -> bool, ghost eventuallyStopsProof: OutputsTerminatedProof<(), Option<T>>)
-      requires Valid()
-      requires eventuallyStopsProof.Action() == this
-      requires eventuallyStopsProof.FixedInput() == t
-      requires eventuallyStopsProof.StopFn() == stop
-      requires forall i <- Inputs() :: i == t
-      reads Repr
-      modifies Repr
-      decreases Repr
-      ensures Valid()
-    {
-      DefaultRepeatUntil(this, t, stop, eventuallyStopsProof);
-    }
-
     ghost function Limit(): nat {
       source.Limit()
     }
@@ -534,20 +467,6 @@ module Std.Producers {
       }
 
       UpdateHistory((), result);
-    }
-
-    method RepeatUntil(t: (), stop: Option<T> -> bool, ghost eventuallyStopsProof: OutputsTerminatedProof<(), Option<T>>)
-      requires Valid()
-      requires eventuallyStopsProof.Action() == this
-      requires eventuallyStopsProof.FixedInput() == t
-      requires eventuallyStopsProof.StopFn() == stop
-      requires forall i <- Inputs() :: i == t
-      reads Repr
-      modifies Repr
-      decreases Repr
-      ensures Valid()
-    {
-      DefaultRepeatUntil(this, t, stop, eventuallyStopsProof);
     }
 
     ghost function Limit(): nat {
@@ -625,20 +544,6 @@ module Std.Producers {
       }
 
       UpdateHistory((), result);
-    }
-
-    method RepeatUntil(t: (), stop: Option<T> -> bool, ghost eventuallyStopsProof: OutputsTerminatedProof<(), Option<T>>)
-      requires Valid()
-      requires eventuallyStopsProof.Action() == this
-      requires eventuallyStopsProof.FixedInput() == t
-      requires eventuallyStopsProof.StopFn() == stop
-      requires forall i <- Inputs() :: i == t
-      reads Repr
-      modifies Repr
-      decreases Repr
-      ensures Valid()
-    {
-      DefaultRepeatUntil(this, t, stop, eventuallyStopsProof);
     }
 
     ghost function Limit(): nat {
@@ -729,20 +634,6 @@ module Std.Producers {
       modifies Repr, a.Repr
       ensures a.ValidAndDisjoint()
     // TODO: need a postcondition that a was invoked at least once etc
-
-    method RepeatUntil(t: (), stop: Option<T> -> bool, ghost eventuallyStopsProof: OutputsTerminatedProof<(), Option<T>>)
-      requires Valid()
-      requires eventuallyStopsProof.Action() == this
-      requires eventuallyStopsProof.FixedInput() == t
-      requires eventuallyStopsProof.StopFn() == stop
-      requires forall i <- Inputs() :: i == t
-      reads Repr
-      modifies Repr
-      decreases Repr
-      ensures Valid()
-    {
-      DefaultRepeatUntil(this, t, stop, eventuallyStopsProof);
-    }
 
     ghost function Limit(): nat {
       upstream.Limit()

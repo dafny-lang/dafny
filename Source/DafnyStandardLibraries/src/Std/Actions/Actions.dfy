@@ -184,21 +184,6 @@ module Std.Actions {
       && fresh(Repr - old(Repr))
     }
 
-    // Possibly optimized extensions
-
-    // Equivalent to DefaultRepeatUntil below, but may be implemented more efficiently.
-    method RepeatUntil(i: I, stop: O -> bool, ghost eventuallyStopsProof: OutputsTerminatedProof<I, O>)
-      requires Valid()
-      requires eventuallyStopsProof.Action() == this
-      requires eventuallyStopsProof.FixedInput() == i
-      requires eventuallyStopsProof.StopFn() == stop
-      requires forall input <- Inputs() :: input == i
-      reads Repr
-      modifies Repr
-      decreases Repr
-      ensures Valid()
-    //TODO: ensures history == old(history) + (n copies of i)/(n - 1 not stop values + stop)
-
     // Convenience methods for specifications
 
     ghost method UpdateHistory(i: I, o: O)
@@ -219,38 +204,6 @@ module Std.Actions {
       reads this
     {
       OutputsOf(history)
-    }
-  }
-
-  method DefaultRepeatUntil<I, O>(a: Action<I, O>, i: I, stop: O -> bool, ghost eventuallyStopsProof: OutputsTerminatedProof<I, O>)
-    requires a.Valid()
-    requires eventuallyStopsProof.Action() == a
-    requires eventuallyStopsProof.FixedInput() == i
-    requires eventuallyStopsProof.StopFn() == stop
-    requires forall input <- a.Inputs() :: input == i
-    reads a.Repr
-    modifies a.Repr
-    ensures a.Valid()
-  {
-    while true
-      modifies a.Repr
-      invariant fresh(a.Repr - old(a.Repr))
-      invariant a.Valid()
-      invariant forall input <- a.Inputs() :: input == i
-      decreases eventuallyStopsProof.Remaining()
-    {
-      label beforeInvoke:
-      assert a.Valid();
-      assert a.ValidHistory(a.history);
-      eventuallyStopsProof.AnyInputIsValid(a.history, i);
-      assert a.ValidInput(a.history, i);
-      var next := a.Invoke(i);
-      var nextV := next;
-      if stop(nextV) {
-        break;
-      }
-
-      eventuallyStopsProof.InvokeUntilTerminationMetricDecreased@beforeInvoke(next);
     }
   }
 
@@ -439,20 +392,6 @@ module Std.Actions {
       }
       assert Valid();
     }
-
-    method RepeatUntil(i: I, stop: O -> bool, ghost eventuallyStopsProof: OutputsTerminatedProof<I, O>)
-      requires Valid()
-      requires eventuallyStopsProof.Action() == this
-      requires eventuallyStopsProof.FixedInput() == i
-      requires eventuallyStopsProof.StopFn() == stop
-      requires forall input <- Inputs() :: input == i
-      reads Repr
-      modifies Repr
-      decreases Repr
-      ensures Valid()
-    {
-      DefaultRepeatUntil(this, i, stop, eventuallyStopsProof);
-    }
   }
 
   type TotalFunctionAction<I, O> = a: FunctionAction<I, O> | a.f.requires == (i => true) witness *
@@ -569,20 +508,6 @@ module Std.Actions {
       assert history == old(history) + [(i, o)];
       assert compositionProof.ComposedValidHistory(history);
       assert ValidHistory(history);
-    }
-
-    method RepeatUntil(i: I, stop: O -> bool, ghost eventuallyStopsProof: OutputsTerminatedProof<I, O>)
-      requires Valid()
-      requires eventuallyStopsProof.Action() == this
-      requires eventuallyStopsProof.FixedInput() == i
-      requires eventuallyStopsProof.StopFn() == stop
-      requires forall input <- Inputs() :: input == i
-      reads Repr
-      modifies Repr
-      decreases Repr
-      ensures Valid()
-    {
-      DefaultRepeatUntil(this, i, stop, eventuallyStopsProof);
     }
   }
 

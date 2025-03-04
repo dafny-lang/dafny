@@ -117,20 +117,6 @@ module Std.Consumers {
       assert Inputs() == old(Inputs()) + [t];
       assume {:axiom} Valid();
     }
-
-    method RepeatUntil(t: T, stop: bool -> bool, ghost eventuallyStopsProof: OutputsTerminatedProof<T, bool>)
-      requires Valid()
-      requires eventuallyStopsProof.Action() == this
-      requires eventuallyStopsProof.FixedInput() == t
-      requires eventuallyStopsProof.StopFn() == stop
-      requires forall i <- Inputs() :: i == t
-      reads Repr
-      modifies Repr
-      decreases Repr
-      ensures Valid()
-    {
-      DefaultRepeatUntil(this, t, stop, eventuallyStopsProof);
-    }
   }
 
   class DynamicArrayConsumer<T> extends Consumer<T> {
@@ -193,20 +179,6 @@ module Std.Consumers {
       Repr := {this} + {storage} + storage.Repr;
       assert Inputs() == old(Inputs()) + [t];
       assert Valid();
-    }
-
-    method RepeatUntil(t: T, stop: (()) -> bool, ghost eventuallyStopsProof: OutputsTerminatedProof<T, ()>)
-      requires Valid()
-      requires eventuallyStopsProof.Action() == this
-      requires eventuallyStopsProof.FixedInput() == t
-      requires eventuallyStopsProof.StopFn() == stop
-      requires forall i <- Inputs() :: i == t
-      reads Repr
-      modifies Repr
-      decreases Repr
-      ensures Valid()
-    {
-      DefaultRepeatUntil(this, t, stop, eventuallyStopsProof);
     }
 
     lemma AnyInputIsValid(history: seq<(T, ())>, next: T)
@@ -279,20 +251,6 @@ module Std.Consumers {
       assert Valid();
     }
 
-    method RepeatUntil(t: T, stop: (()) -> bool, ghost eventuallyStopsProof: OutputsTerminatedProof<T, ()>)
-      requires Valid()
-      requires eventuallyStopsProof.Action() == this
-      requires eventuallyStopsProof.FixedInput() == t
-      requires eventuallyStopsProof.StopFn() == stop
-      requires forall i <- Inputs() :: i == t
-      reads Repr
-      modifies Repr
-      decreases Repr
-      ensures Valid()
-    {
-      DefaultRepeatUntil(this, t, stop, eventuallyStopsProof);
-    }
-
     lemma AnyInputIsValid(history: seq<(T, ())>, next: T)
       requires Action().ValidHistory(history)
       ensures Action().ValidInput(history, next)
@@ -348,20 +306,6 @@ module Std.Consumers {
 
       UpdateHistory(t, r);
       assert Valid();
-    }
-
-    method RepeatUntil(t: T, stop: (()) -> bool, ghost eventuallyStopsProof: OutputsTerminatedProof<T, ()>)
-      requires Valid()
-      requires eventuallyStopsProof.Action() == this
-      requires eventuallyStopsProof.FixedInput() == t
-      requires eventuallyStopsProof.StopFn() == stop
-      requires forall i <- Inputs() :: i == t
-      reads Repr
-      modifies Repr
-      decreases Repr
-      ensures Valid()
-    {
-      DefaultRepeatUntil(this, t, stop, eventuallyStopsProof);
     }
 
     method Pop() returns (t: T)

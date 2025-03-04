@@ -81,20 +81,6 @@ module Std.Streams {
     //   assert Terminated(OutputsOf(history), StopFn(), |Enumerated(OutputsOf(history))|);
     // }
 
-    method RepeatUntil(t: (), stop: Option<bytes> -> bool, ghost eventuallyStopsProof: OutputsTerminatedProof<(), Option<bytes>>)
-      requires Valid()
-      requires eventuallyStopsProof.Action() == this
-      requires eventuallyStopsProof.FixedInput() == t
-      requires eventuallyStopsProof.StopFn() == stop
-      requires forall i <- Inputs() :: i == t
-      reads Repr
-      modifies Repr
-      decreases Repr
-      ensures Valid()
-    {
-      DefaultRepeatUntil(this, t, stop, eventuallyStopsProof);
-    }
-
     function Position(): (res: uint64)
       requires Valid()
       reads this, Repr
@@ -185,20 +171,6 @@ module Std.Streams {
 
       // TODO: Work to do
       assume {:axiom} Ensures(t, r);
-    }
-
-    method RepeatUntil(t: (), stop: Option<bytes> -> bool, ghost eventuallyStopsProof: OutputsTerminatedProof<(), Option<bytes>>)
-      requires Valid()
-      requires eventuallyStopsProof.Action() == this
-      requires eventuallyStopsProof.FixedInput() == t
-      requires eventuallyStopsProof.StopFn() == stop
-      requires forall i <- Inputs() :: i == t
-      reads Repr
-      modifies Repr
-      decreases Repr
-      ensures Valid()
-    {
-      DefaultRepeatUntil(this, t, stop, eventuallyStopsProof);
     }
   }
 
