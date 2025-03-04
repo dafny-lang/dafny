@@ -774,6 +774,25 @@ module Std.Collections.Seq {
     }
   }
 
+  lemma {:induction false} LemmaMapPartialFunctionDistributesOverConcat<T,R>(f: (T --> R), xs: seq<T>, ys: seq<T>)
+    requires X: forall i :: 0 <= i < |xs| ==> f.requires(xs[i])
+    requires Y: forall j :: 0 <= j < |ys| ==> f.requires(ys[j])
+    ensures MapPartialFunction(f, xs + ys) == MapPartialFunction(f, xs) + MapPartialFunction(f, ys)
+  {
+    if |xs| == 0 {
+      assert xs + ys == ys;
+    } else {
+      calc {
+        MapPartialFunction(f, reveal X, Y; xs + ys);
+        { assert (xs + ys)[0] == xs[0]; assert (xs + ys)[1..] == xs[1..] + ys; }
+        MapPartialFunction(f, [xs[0]]) + MapPartialFunction(f, xs[1..] + ys);
+        MapPartialFunction(f, [xs[0]]) + MapPartialFunction(f, reveal X; xs[1..]) + MapPartialFunction(f, reveal Y; ys);
+        {assert [(xs + ys)[0]] + xs[1..] + ys == xs + ys;}
+        MapPartialFunction(f, xs) + MapPartialFunction(f, ys);
+      }
+    }
+  }
+
   /* Returns the subsequence consisting of those elements of a sequence that satisfy a given
      predicate. */
   opaque function Filter<T>(f: (T ~> bool), xs: seq<T>): (result: seq<T>)
