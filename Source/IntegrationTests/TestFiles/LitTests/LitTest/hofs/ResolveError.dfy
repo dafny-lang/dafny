@@ -114,3 +114,28 @@ module AritySituations {
     u := r(x);
   }
 }
+
+module Arrows {
+  type MyInt = int
+
+  function A(o: object, x: MyInt): nat
+    requires x != 10
+    reads o
+  function B(o: object, x: MyInt): nat
+    reads o
+  function C(o: object, x: MyInt): nat
+    requires x != 10
+  function D(o: object, x: MyInt): nat
+
+  method Test() returns (x: int) {
+    x := A; // error
+    x := B; // error
+    x := C; // error
+    x := D; // error
+
+    x := (o: object, x: MyInt) requires x != 10 reads o => 2 as nat; // error
+    x := (o: object, x: MyInt) reads o => 2 as nat; // error
+    x := (o: object, x: MyInt) requires x != 10 => 2 as nat; // error
+    x := (o: object, x: MyInt) => 2 as nat; // error
+  }
+}

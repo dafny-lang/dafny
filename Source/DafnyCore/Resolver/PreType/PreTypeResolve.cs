@@ -131,19 +131,32 @@ namespace Microsoft.Dafny {
       return decl;
     }
 
-    TopLevelDecl BuiltInArrowTypeDecl(int arity) {
-      Contract.Requires(0 <= arity);
-      var name = ArrowType.ArrowTypeName(arity);
-      if (!preTypeInferenceModuleState.PreTypeBuiltins.TryGetValue(name, out var decl)) {
-        // the arrow type declaration should already have been created by the parser
-        decl = resolver.SystemModuleManager.ArrowTypeDecls[arity];
-        preTypeInferenceModuleState.PreTypeBuiltins.Add(name, decl);
-      }
-      return decl;
+    DPreType BuiltInArrowType(List<PreType> inPreTypes, PreType resultPreType, bool hasReads, bool hasReq) {
+      var generalArrowTypeDecl = BuiltInArrowTypeDecl(inPreTypes.Count);
+      var preTypeArguments = Util.Snoc(inPreTypes, resultPreType);
+      var printablePreType = hasReads ? null : new DPreType(BuiltInArrowTypeDecl(inPreTypes.Count, hasReads, hasReq), preTypeArguments);
+      return new DPreType(generalArrowTypeDecl, preTypeArguments, printablePreType);
     }
 
-    DPreType BuiltInArrowType(List<PreType> inPreTypes, PreType resultPreType) {
-      return new DPreType(BuiltInArrowTypeDecl(inPreTypes.Count), Util.Snoc(inPreTypes, resultPreType));
+    TopLevelDecl BuiltInArrowTypeDecl(int arity, bool hasReads = true, bool hasReq = true) {
+      Contract.Requires(0 <= arity);
+      if (hasReads) {
+        return BuiltInArrowTypeDeclAny(arity, ArrowType.ArrowTypeName(arity), resolver.SystemModuleManager.ArrowTypeDecls);
+      } else if (hasReq) {
+        return BuiltInArrowTypeDeclAny(arity, ArrowType.PartialArrowTypeName(arity), resolver.SystemModuleManager.PartialArrowTypeDecls);
+      } else {
+        return BuiltInArrowTypeDeclAny(arity, ArrowType.TotalArrowTypeName(arity), resolver.SystemModuleManager.TotalArrowTypeDecls);
+      }
+    }
+
+    private TopLevelDecl BuiltInArrowTypeDeclAny<TD>(int arity, string arrowTypeName, Dictionary<int, TD> arrowTypeDecls) where TD : TopLevelDecl {
+      Contract.Requires(0 <= arity);
+      if (!preTypeInferenceModuleState.PreTypeBuiltins.TryGetValue(arrowTypeName, out var decl)) {
+        // the arrow type declaration should already have been created by the parser
+        decl = arrowTypeDecls[arity];
+        preTypeInferenceModuleState.PreTypeBuiltins.Add(arrowTypeName, decl);
+      }
+      return decl;
     }
 
     DPreType BuiltInArrayType(int dims, PreType elementPreType) {

@@ -703,7 +703,7 @@ namespace Microsoft.Dafny {
             }
             ResolveExpression(e.Term, resolutionContext);
             scope.PopMarker();
-            lambdaExpr.PreType = BuiltInArrowType(e.BoundVars.ConvertAll(v => v.PreType), e.Body.PreType);
+            lambdaExpr.PreType = BuiltInArrowType(e.BoundVars.ConvertAll(v => v.PreType), e.Body.PreType, e.Reads.Expressions.Count != 0, e.Range != null);
             break;
           }
         case WildcardExpr: {
@@ -1698,7 +1698,7 @@ namespace Microsoft.Dafny {
         AddTypeBoundConstraints(tok, function.TypeArgs, subst);
         var inParamTypes = function.Ins.ConvertAll(f => f.PreType.Substitute(subst));
         var resultType = Type2PreType(function.ResultType).Substitute(subst);
-        rr.PreType = BuiltInArrowType(inParamTypes, resultType);
+        rr.PreType = BuiltInArrowType(inParamTypes, resultType, function.Reads.Expressions.Count != 0, function.Req.Count != 0);
       } else {
         // the member is a method
         var method = (Method)member;
