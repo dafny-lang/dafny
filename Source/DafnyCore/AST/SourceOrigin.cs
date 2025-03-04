@@ -100,7 +100,7 @@ public class SourceOrigin : IOrigin, IComparable<SourceOrigin> {
   }
 
   int IToken.pos {
-    get => throw new InvalidOperationException();
+    get => StartToken.pos;
     set => throw new NotImplementedException();
   }
 

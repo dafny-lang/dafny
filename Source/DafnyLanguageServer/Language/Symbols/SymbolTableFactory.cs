@@ -165,14 +165,14 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
 
       public override void Visit(Formal formal) {
         cancellationToken.ThrowIfCancellationRequested();
-        RegisterDesignator(currentScope, formal, formal.Origin, formal.Name);
+        RegisterDesignator(currentScope, formal, formal.Origin.Center, formal.Name);
         RegisterTypeDesignator(currentScope, formal.Type);
         base.Visit(formal);
       }
 
       public override void Visit(NonglobalVariable variable) {
         cancellationToken.ThrowIfCancellationRequested();
-        RegisterDesignator(currentScope, variable, variable.Origin, variable.Name);
+        RegisterDesignator(currentScope, variable, variable.Origin.Center, variable.Name);
         RegisterTypeDesignator(currentScope, variable.Type);
         base.Visit(variable);
       }
@@ -186,13 +186,13 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
         cancellationToken.ThrowIfCancellationRequested();
         base.Visit(expressionDotName);
         if (typeResolver.TryGetTypeSymbol(expressionDotName.Lhs, out var leftHandSideType)) {
-          RegisterDesignator(leftHandSideType, expressionDotName, expressionDotName.Origin, expressionDotName.SuffixName);
+          RegisterDesignator(leftHandSideType, expressionDotName, expressionDotName.Origin.Center, expressionDotName.SuffixName);
         }
       }
 
       public override void Visit(NameSegment nameSegment) {
         cancellationToken.ThrowIfCancellationRequested();
-        RegisterDesignator(currentScope, nameSegment, nameSegment.Origin, nameSegment.Name);
+        RegisterDesignator(currentScope, nameSegment, nameSegment.Origin.Center, nameSegment.Name);
       }
 
       public override void Visit(TypeRhs typeRhs) {
@@ -203,12 +203,12 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
 
       public override void Visit(FrameExpression frameExpression) {
         cancellationToken.ThrowIfCancellationRequested();
-        RegisterDesignator(currentScope, frameExpression, frameExpression.Origin, frameExpression.FieldName);
+        RegisterDesignator(currentScope, frameExpression, frameExpression.Origin.Center, frameExpression.FieldName);
       }
 
       public override void Visit(IdentifierExpr identifierExpression) {
         cancellationToken.ThrowIfCancellationRequested();
-        RegisterDesignator(currentScope, identifierExpression, identifierExpression.Origin, identifierExpression.Name);
+        RegisterDesignator(currentScope, identifierExpression, identifierExpression.Origin.Center, identifierExpression.Name);
         base.Visit(identifierExpression);
       }
 
@@ -225,39 +225,39 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
         //      The "typeRhs" only points to the "new" keyword with its token.
         //      Find an alternative to get the type designator without requiring the resolver.
         if (type is UserDefinedType userDefinedType) {
-          RegisterDesignator(scope, type, userDefinedType.NamePath.Origin, userDefinedType.Name);
+          RegisterDesignator(scope, type, userDefinedType.NamePath.Origin.Center, userDefinedType.Name);
         }
       }
 
-      private void RegisterDesignator(ILegacySymbol scope, AstElement node, Boogie.IToken token, string identifier) {
+      private void RegisterDesignator(ILegacySymbol scope, AstElement node, Location? token, string identifier) {
         var symbol = GetSymbolDeclarationByName(scope, identifier);
+        if (token == null) {
+          return;
+        }
         if (symbol != null) {
-          if (ReferenceEquals(token, Token.NoToken)) {
-            return;
-          }
           // Many resolutions for automatically generated nodes (e.g. Decreases, Update when initializating a variable
           // at declaration) cause duplicated visits. These cannot be prevented at this time as it seems there's no way
           // to distinguish nodes from automatically created one (i.e. nodes of the original syntax tree vs. nodes of the
           // abstract syntax tree). We just ignore such duplicates until more information is availabe in the AST.
-          var range = token.GetLspRange();
+          var range = token.Range;
 
-          var dafnyToken = (IOrigin)token;
+          var dafnyToken = token;
           var symbolLookupForUri =
-            SymbolLookup.GetValueOrDefault(dafnyToken.Uri) ?? new IntervalTree<Position, ILocalizableSymbol>();
-          SymbolLookup = SymbolLookup.SetItem(dafnyToken.Uri, symbolLookupForUri);
+            SymbolLookup.GetValueOrDefault(dafnyToken.Uri.ToUri()) ?? new IntervalTree<Position, ILocalizableSymbol>();
+          SymbolLookup = SymbolLookup.SetItem(dafnyToken.Uri.ToUri(), symbolLookupForUri);
 
           symbolLookupForUri.Add(range.Start, range.End, symbol);
           if (designators.TryGetValue(node, out var registeredSymbol)) {
             if (registeredSymbol != symbol) {
-              logger.LogDebug("Conflicting symbol resolution of designator named {Identifier} in {Filename}@({Line},{Column})",
-                identifier, token.GetDocumentFileName(), token.line, token.col);
+              logger.LogDebug("Conflicting symbol resolution of designator named {Identifier} in {Filename}@({Line + 1},{Column})",
+                identifier, token.Uri.Path, token.Range.Start.Line, token.Range.Start.Character);
             }
           } else {
             designators.Add(node, symbol);
           }
         } else {
-          logger.LogDebug("could not resolve the symbol of designator named {Identifier} in {Filename}@({Line},{Column})",
-            identifier, token.GetDocumentFileName(), token.line, token.col);
+          logger.LogDebug("could not resolve the symbol of designator named {Identifier} in {Filename}@({Line},{Column + 1})",
+            identifier, token.Uri.Path, token.Range.Start.Line, token.Range.Start.Character);
         }
       }
 
