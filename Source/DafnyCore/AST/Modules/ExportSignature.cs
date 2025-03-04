@@ -28,7 +28,6 @@ public class ExportSignature : NodeWithComputedRange, IHasReferences {
     ClassId = prefix;
     Id = id;
     Opaque = opaque;
-    OwnedTokensCache = new List<IOrigin>() { Origin, prefixTok };
   }
 
   public ExportSignature(IOrigin idOrigin, string id, bool opaque) : base(idOrigin) {
@@ -36,7 +35,6 @@ public class ExportSignature : NodeWithComputedRange, IHasReferences {
     Contract.Requires(id != null);
     Id = id;
     Opaque = opaque;
-    OwnedTokensCache = new List<IOrigin>() { Origin };
   }
 
   public ExportSignature(Cloner cloner, ExportSignature original) : base(cloner, original) {
@@ -44,7 +42,6 @@ public class ExportSignature : NodeWithComputedRange, IHasReferences {
     Opaque = original.Opaque;
     ClassId = original.ClassId;
     ClassIdTok = cloner.Origin(original.ClassIdTok);
-    OwnedTokensCache = new List<IOrigin>() { Origin };
   }
 
   public override string ToString() {

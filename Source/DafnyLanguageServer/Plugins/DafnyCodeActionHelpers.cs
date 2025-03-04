@@ -37,7 +37,7 @@ public static class DafnyCodeActionHelpers {
   /// <param name="endToken">The position of the closing brace</param>
   /// <param name="text">The document text</param>
   /// <returns>(extra indentation for a statement, current indentation)</returns>
-  public static (string, string) GetIndentationBefore(IOrigin endToken, int startLine, int startCol) {
+  public static (string, string) GetIndentationBefore(Token endToken, int startLine, int startCol) {
     var indentation = 0;
     var indentationBrace = endToken.col - 1;
     var firstNewline = true;
