@@ -25,7 +25,7 @@ class ImplicitFailingAssertionCodeActionProvider : DiagnosticDafnyCodeActionProv
   }
 
   protected static List<INode>? FindInnermostNodeIntersecting(INode node, Range range) {
-    if (node.StartToken.line > 0 && !node.Origin.Center.Range.Intersects(range)) {
+    if (node.StartToken.line > 0 && !node.Origin.ToLspRange2().Intersects(range)) {
       return null;
     }
 
