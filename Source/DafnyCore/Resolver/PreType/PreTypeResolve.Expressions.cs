@@ -1178,7 +1178,7 @@ namespace Microsoft.Dafny {
 
     public Expression ResolveNameSegment(NameSegment expr, bool isLastNameSegment, List<ActualBinding> args,
       ResolutionContext resolutionContext, bool allowMethodCall, bool complain = true) {
-      return ResolveNameSegment(expr, isLastNameSegment, args, resolutionContext, allowMethodCall, complain, false);
+      return ResolveNameSegment(expr, isLastNameSegment, args, resolutionContext, allowMethodCall, out _, complain, false);
     }
 
     /// <summary>
@@ -1204,16 +1204,19 @@ namespace Microsoft.Dafny {
     /// <param name="resolutionContext"></param>
     /// <param name="allowMethodCall">If false, generates an error if the name denotes a method. If true and the name denotes a method, returns
     /// a MemberSelectExpr whose .Member is a Method.</param>
+    /// <param name="shadowedModule">See description of method CheckForAmbiguityInShadowedImportedModule.</param>
     /// <param name="complain"></param>
     /// <param name="specialOpaqueHackAllowance">If "true", treats an expression "f" where "f" is an instance function, as "this.f", even though
     /// there is no "this" in scope. This seems like a terrible hack, because it breaks scope invariants about the AST. But, for now, it's here
     /// to mimic what the legacy resolver does.</param>
     public Expression ResolveNameSegment(NameSegment expr, bool isLastNameSegment, List<ActualBinding> args,
-      ResolutionContext resolutionContext, bool allowMethodCall, bool complain, bool specialOpaqueHackAllowance) {
+      ResolutionContext resolutionContext, bool allowMethodCall, out ModuleDecl shadowedModule, bool complain, bool specialOpaqueHackAllowance) {
       Contract.Requires(expr != null);
       Contract.Requires(!expr.WasResolved());
       Contract.Requires(resolutionContext != null);
       Contract.Ensures(Contract.Result<Expression>() == null || args != null);
+
+      shadowedModule = null;
 
       if (expr.OptTypeArguments != null) {
         foreach (var ty in expr.OptTypeArguments) {
@@ -1278,6 +1281,10 @@ namespace Microsoft.Dafny {
 
       } else if (resolver.moduleInfo.TopLevels.TryGetValue(name, out var decl)) {
         // ----- 3. Member of the enclosing module
+
+        // Record which imported module, if any, was shadowed by `name` in the current module.
+        shadowedModule = resolver.moduleInfo.ShadowedImportedModules.GetValueOrDefault(name);
+
         if (decl is AmbiguousTopLevelDecl ambiguousTopLevelDecl) {
           if (complain) {
             ReportError(expr.Origin,
@@ -1475,9 +1482,10 @@ namespace Microsoft.Dafny {
 
       // resolve the LHS expression
       // LHS should not be reveal lemma
+      ModuleDecl shadowedImport = null;
       ResolutionContext nonRevealOpts = resolutionContext with { InReveal = false };
       if (expr.Lhs is NameSegment) {
-        ResolveNameSegment((NameSegment)expr.Lhs, false, null, nonRevealOpts, false);
+        ResolveNameSegment((NameSegment)expr.Lhs, false, null, nonRevealOpts, allowMethodCall: false, out shadowedImport, complain: true, specialOpaqueHackAllowance: false);
       } else if (expr.Lhs is ExprDotName) {
         ResolveDotSuffix((ExprDotName)expr.Lhs, false, false, null, nonRevealOpts, false);
       } else {
@@ -1626,6 +1634,7 @@ namespace Microsoft.Dafny {
         // an error has been reported above; we won't fill in .ResolvedExpression, but we still must fill in .PreType
         expr.PreType = CreatePreTypeProxy("ExprDotName error, so using proxy instead");
       } else {
+        resolver.CheckForAmbiguityInShadowedImportedModule(shadowedImport, name, expr.Origin, false, isLastNameSegment);
         expr.ResolvedExpression = r;
         // TODO: do we need something analogous to this for pre-types?  expr.Type = r.Type.UseInternalSynonym();
         expr.PreType = r.PreType;

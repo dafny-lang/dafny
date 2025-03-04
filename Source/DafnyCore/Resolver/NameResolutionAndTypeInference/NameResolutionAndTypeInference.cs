@@ -5738,7 +5738,7 @@ namespace Microsoft.Dafny {
     /// Note the extra care for the constructor case, which is needed because the constructors of datatype `M.M` are
     /// exposed through both `M` and `M.M`, without ambiguity.
     /// </summary>
-    private void CheckForAmbiguityInShadowedImportedModule(ModuleDecl moduleDecl, string name,
+    public void CheckForAmbiguityInShadowedImportedModule(ModuleDecl moduleDecl, string name,
       IOrigin tok, bool useCompileSignatures, bool isLastNameSegment) {
       if (moduleDecl != null && NameConflictsWithModuleContents(moduleDecl, name, useCompileSignatures, isLastNameSegment)) {
         reporter.Error(MessageSource.Resolver, tok,
