@@ -354,36 +354,6 @@ namespace Std.Collections.Seq {
         return Dafny.Helpers.Id<Func<__T, __A, __A>>(f)((xs).Select(BigInteger.Zero), Std.Collections.Seq.__default.FoldRight<__A, __T>(f, (xs).Drop(BigInteger.One), init));
       }
     }
-    public static Dafny.ISequence<__T> SetToSeq<__T>(Dafny.ISet<__T> s)
-    {
-      Dafny.ISequence<__T> xs = Dafny.Sequence<__T>.Empty;
-      xs = Dafny.Sequence<__T>.FromElements();
-      Dafny.ISet<__T> _0_left;
-      _0_left = s;
-      while (!(_0_left).Equals(Dafny.Set<__T>.FromElements())) {
-        __T _1_x;
-        foreach (__T _assign_such_that_0 in (_0_left).Elements) {
-          _1_x = (__T)_assign_such_that_0;
-          if ((_0_left).Contains(_1_x)) {
-            goto after__ASSIGN_SUCH_THAT_0;
-          }
-        }
-        throw new System.Exception("assign-such-that search produced no value");
-      after__ASSIGN_SUCH_THAT_0: ;
-        _0_left = Dafny.Set<__T>.Difference(_0_left, Dafny.Set<__T>.FromElements(_1_x));
-        xs = Dafny.Sequence<__T>.Concat(xs, Dafny.Sequence<__T>.FromElements(_1_x));
-      }
-      return xs;
-    }
-    public static Dafny.ISequence<__T> SetToSortedSeq<__T>(Dafny.ISet<__T> s, Func<__T, __T, bool> R)
-    {
-      Dafny.ISequence<__T> xs = Dafny.Sequence<__T>.Empty;
-      Dafny.ISequence<__T> _out0;
-      _out0 = Std.Collections.Seq.__default.SetToSeq<__T>(s);
-      xs = _out0;
-      xs = Std.Collections.Seq.__default.MergeSortBy<__T>(R, xs);
-      return xs;
-    }
     public static Dafny.ISequence<__T> MergeSortBy<__T>(Func<__T, __T, bool> lessThanOrEq, Dafny.ISequence<__T> a)
     {
       if ((new BigInteger((a).Count)) <= (BigInteger.One)) {
