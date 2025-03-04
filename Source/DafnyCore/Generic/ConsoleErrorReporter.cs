@@ -4,7 +4,7 @@ using DafnyCore;
 
 namespace Microsoft.Dafny;
 
-public class ConsoleErrorReporter : BatchErrorReporter {
+public class ConsoleErrorReporter(DafnyOptions options) : BatchErrorReporter(options) {
   private ConsoleColor ColorForLevel(ErrorLevel level) {
     switch (level) {
       case ErrorLevel.Error:
@@ -18,21 +18,24 @@ public class ConsoleErrorReporter : BatchErrorReporter {
     }
   }
 
-  protected override bool MessageCore(MessageSource source, ErrorLevel level, string errorId, IOrigin tok, string msg) {
-    var printMessage = base.MessageCore(source, level, errorId, tok, msg) && (Options is { PrintTooltips: true } || level != ErrorLevel.Info);
+  public override bool MessageCore(DafnyDiagnostic dafnyDiagnostic) {
+    var printMessage = base.MessageCore(dafnyDiagnostic) && (Options is { PrintTooltips: true } || dafnyDiagnostic.Level != ErrorLevel.Info);
+
     if (!printMessage) {
       return false;
     }
 
     // Extra indent added to make it easier to distinguish multiline error messages for clients that rely on the CLI
-    msg = msg.Replace("\n", "\n ");
+    var msg = dafnyDiagnostic.Message.Replace("\n", "\n ");
 
     ConsoleColor previousColor = Console.ForegroundColor;
     if (Options.OutputWriter == Console.Out) {
-      Console.ForegroundColor = ColorForLevel(level);
+      Console.ForegroundColor = ColorForLevel(dafnyDiagnostic.Level);
     }
-    var errorLine = ErrorToString(level, tok, msg);
 
+    var errorLine = ErrorToString(dafnyDiagnostic.Level, dafnyDiagnostic.Location, msg);
+
+    var errorId = dafnyDiagnostic.ErrorId;
     if (Options.Verbose && !String.IsNullOrEmpty(errorId) && errorId != "none") {
       errorLine += " (ID: " + errorId + ")\n";
       var info = ErrorRegistry.GetDetail(errorId);
@@ -43,32 +46,24 @@ public class ConsoleErrorReporter : BatchErrorReporter {
       errorLine += "\n";
     }
 
-    if (Options.Get(Snippets.ShowSnippets) && tok.Uri != null) {
+    if (Options.Get(Snippets.ShowSnippets) && dafnyDiagnostic.Location != null) {
       var tw = new StringWriter();
-      Snippets.WriteSourceCodeSnippet(Options, tok, tw);
+      Snippets.WriteSourceCodeSnippet(Options, dafnyDiagnostic.Location, tw);
       errorLine += tw.ToString();
     }
 
-    var innerToken = tok;
-    while (innerToken is NestedOrigin nestedToken) {
-      innerToken = nestedToken.Inner;
-      if (innerToken.Filepath == nestedToken.Filepath &&
-          innerToken.line == nestedToken.line &&
-          innerToken.col == nestedToken.col) {
-        continue;
-      }
-
-      var innerMessage = nestedToken.Message;
-      if (innerMessage == null) {
+    foreach (var related in dafnyDiagnostic.RelatedInformation) {
+      var innerMessage = related.Message;
+      if (string.IsNullOrEmpty(innerMessage)) {
         innerMessage = "Related location";
       } else {
         innerMessage = "Related location: " + innerMessage;
       }
 
-      errorLine += $"{innerToken.TokenToString(Options)}: {innerMessage}\n";
-      if (Options.Get(Snippets.ShowSnippets) && tok.Uri != null) {
+      errorLine += $"{related.Location.LocationToString(Options)}: {innerMessage}\n";
+      if (Options.Get(Snippets.ShowSnippets)) {
         var tw = new StringWriter();
-        Snippets.WriteSourceCodeSnippet(Options, innerToken, tw);
+        Snippets.WriteSourceCodeSnippet(Options, related.Location, tw);
         errorLine += tw.ToString();
       }
     }
@@ -80,8 +75,5 @@ public class ConsoleErrorReporter : BatchErrorReporter {
     }
 
     return true;
-  }
-
-  public ConsoleErrorReporter(DafnyOptions options) : base(options) {
   }
 }

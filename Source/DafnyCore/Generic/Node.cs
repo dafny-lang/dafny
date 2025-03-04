@@ -4,6 +4,7 @@ using System.Diagnostics.Contracts;
 using System.Linq;
 using System.Text.RegularExpressions;
 using Microsoft.Dafny.Auditor;
+using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using Action = System.Action;
 
 namespace Microsoft.Dafny;
@@ -38,7 +39,7 @@ public abstract class Node : INode {
   public Token StartToken => Origin?.StartToken;
 
   public Token EndToken => Origin?.EndToken;
-  public Token Center => Origin?.Center;
+  public Location Center => Origin?.Center;
 
   /// <summary>
   /// These children should be such that they contain information produced by resolution such as inferred types

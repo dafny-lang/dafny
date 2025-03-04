@@ -1,9 +1,7 @@
-using System;
 using System.Collections.Generic;
 using System.Linq;
 using DafnyCore.Verifier;
 using Microsoft.Boogie;
-using Microsoft.Dafny.Triggers;
 using VC;
 
 namespace Microsoft.Dafny;
@@ -93,12 +91,12 @@ public class ProofDependencyWarnings {
     var usedDependencies =
       coveredElements
         .Select(manager.GetFullIdDependency)
-        .OrderBy(dep => dep.Range.Center)
+        .OrderBy(dep => dep.Range.Center.Range.Start)
         .ThenBy(dep => dep.Description);
     var unusedDependencies =
       potentialDependencies
         .Except(usedDependencies)
-        .OrderBy(dep => dep.Range.Center)
+        .OrderBy(dep => dep.Range.Center.Range.Start)
         .ThenBy(dep => dep.Description).ToList();
 
     foreach (var unusedDependency in unusedDependencies) {
@@ -198,7 +196,7 @@ public class ProofDependencyWarnings {
 
       switch (assertDepProvenByFact) {
         case CallDependency call: {
-            factConsumer = $"precondition{(call.call.Method.Req.Count > 1 ? "s" : "")} of the method call {call.Range.Center.Next.TokenToString(options)}";
+            factConsumer = $"precondition{(call.call.Method.Req.Count > 1 ? "s" : "")} of the method call {call.Range.Center.LocationToString(options)}";
             break;
           }
         case ProofObligationDependency { ProofObligation: AssertStatementDescription }: {

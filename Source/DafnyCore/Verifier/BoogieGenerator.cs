@@ -22,6 +22,7 @@ using DafnyCore.Verifier;
 using JetBrains.Annotations;
 using Microsoft.Dafny;
 using Microsoft.Dafny.Triggers;
+using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using Serilog.Events;
 using PODesc = Microsoft.Dafny.ProofObligationDescription;
 using static Microsoft.Dafny.GenericErrors;
@@ -3502,9 +3503,9 @@ namespace Microsoft.Dafny {
       return new Bpl.AssertCmd(tok, expr, description, attributes);
     }
 
-    private ISet<(Uri, int)> reportedAssertions = new HashSet<(Uri, int)>();
+    private ISet<Location> reportedAssertions = new HashSet<Location>();
     private void ReportAssertion(IOrigin tok, ProofObligationDescription description) {
-      if (!reportedAssertions.Add((tok.Uri, tok.pos))) {
+      if (!reportedAssertions.Add(tok.Center)) {
         return;
       }
 
@@ -3622,7 +3623,8 @@ namespace Microsoft.Dafny {
       Contract.Requires(builder != null);
       Contract.Requires(stmt != null);
       Contract.Requires(comment != null);
-      builder.Add(new Bpl.CommentCmd(string.Format("----- {0} ----- {1}({2},{3})", comment, stmt.Origin.Filepath, stmt.Origin.line, stmt.Origin.col)));
+      builder.Add(new Bpl.CommentCmd(string.Format("----- {0} ----- {1}({2},{3})", comment, stmt.Origin.Filepath,
+        stmt.Origin.Center.Range.Start.Line + 1, stmt.Origin.Center.Range.Start.Character)));
     }
 
     /// <summary>

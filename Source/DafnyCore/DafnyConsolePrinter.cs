@@ -79,37 +79,37 @@ public class DafnyConsolePrinter : ConsolePrinter {
     Options = options;
   }
 
-  public override void ReportBplError(Boogie.IToken tok, string message, bool error, TextWriter tw, string category = null) {
-
-    if (Options.Verbosity == CoreOptions.VerbosityLevel.Silent) {
-      return;
-    }
-
-    if (category != null) {
-      message = $"{category}: {message}";
-    }
-
-    var dafnyToken = BoogieGenerator.ToDafnyToken(options.Get(Snippets.ShowSnippets), tok);
-    message = $"{dafnyToken.TokenToString(Options)}: {message}";
-
-    if (error) {
-      ErrorWriteLine(tw, message);
-    } else {
-      tw.WriteLine(message);
-    }
-
-    if (Options.Get(Snippets.ShowSnippets)) {
-      if (tok is IOrigin dafnyTok) {
-        Snippets.WriteSourceCodeSnippet(Options, dafnyTok, tw);
-      } else {
-        ErrorWriteLine(tw, "No Dafny location information, so snippet can't be generated.");
-      }
-    }
-
-    if (tok is NestedOrigin nestedToken) {
-      ReportBplError(nestedToken.Inner, "Related location", false, tw);
-    }
-  }
+  // public override void ReportBplError(Boogie.IToken tok, string message, bool error, TextWriter tw, string category = null) {
+  //
+  //   if (Options.Verbosity == CoreOptions.VerbosityLevel.Silent) {
+  //     return;
+  //   }
+  //
+  //   if (category != null) {
+  //     message = $"{category}: {message}";
+  //   }
+  //
+  //   var dafnyToken = BoogieGenerator.ToDafnyToken(options.Get(Snippets.ShowSnippets), tok);
+  //   message = $"{dafnyToken.TokenToString(Options)}: {message}";
+  //
+  //   if (error) {
+  //     ErrorWriteLine(tw, message);
+  //   } else {
+  //     tw.WriteLine(message);
+  //   }
+  //
+  //   if (Options.Get(Snippets.ShowSnippets)) {
+  //     if (tok is IOrigin dafnyTok) {
+  //       Snippets.WriteSourceCodeSnippet(Options, dafnyTok, tw);
+  //     } else {
+  //       ErrorWriteLine(tw, "No Dafny location information, so snippet can't be generated.");
+  //     }
+  //   }
+  //
+  //   if (tok is NestedOrigin nestedToken) {
+  //     ReportBplError(nestedToken.Inner, "Related location", false, tw);
+  //   }
+  // }
 
   public override void ReportEndVerifyImplementation(Implementation implementation, ImplementationRunResult result) {
     var impl = new ImplementationLogEntry(implementation.VerboseName, implementation.tok);

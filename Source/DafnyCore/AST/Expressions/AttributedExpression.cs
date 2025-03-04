@@ -39,10 +39,10 @@ public class AttributedExpression : NodeWithComputedRange, IAttributeBearingDecl
     Attributes = attributes;
   }
 
-  public void AddCustomizedErrorMessage(IOrigin tok, string s) {
+  public void AddCustomizedErrorMessage(Token tok, string s) {
     var args = new List<Expression>() { new StringLiteralExpr(tok, s, true) };
-    IOrigin openBrace = tok;
-    IOrigin closeBrace = new Token(tok.line, tok.col + 7 + s.Length + 1); // where 7 = length(":error ")
+    var openBrace = tok;
+    var closeBrace = new Token(tok.line, tok.col + 7 + s.Length + 1); // where 7 = length(":error ")
     this.Attributes = new UserSuppliedAttributes(tok, openBrace, closeBrace, args, this.Attributes);
   }
 

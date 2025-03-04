@@ -34,7 +34,7 @@ public class AssertStmt : PredicateStmt, ICloneable<AssertStmt>, ICanFormat {
     Label = label;
   }
 
-  public void AddCustomizedErrorMessage(IOrigin tok, string s) {
+  public void AddCustomizedErrorMessage(Token tok, string s) {
     var args = new List<Expression>() { new StringLiteralExpr(tok, s, true) };
     var openBrace = tok;
     var closeBrace = new Token(tok.line, tok.col + 7 + s.Length + 1); // where 7 = length(":error ")

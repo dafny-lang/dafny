@@ -7,7 +7,8 @@ using VCGeneration;
 namespace Microsoft.Dafny;
 
 public static class ErrorReporterExtensions {
-  public static void ReportBoogieError(this ErrorReporter reporter, ErrorInformation error, DafnyModel? counterexampleModel = null, bool useRange = true) {
+  public static void ReportBoogieError(this ErrorReporter reporter, ErrorInformation error,
+    DafnyModel? counterexampleModel = null, bool useRange = true) {
     var usingSnippets = reporter.Options.Get(Snippets.ShowSnippets);
     var relatedInformation = new List<DafnyRelatedInformation>();
     foreach (var auxiliaryInformation in error.Aux) {
@@ -30,17 +31,15 @@ public static class ErrorReporterExtensions {
     }
 
     if (error.Tok is NestedOrigin { Inner: var innerToken, Message: var msg }) {
-      relatedInformation.AddRange(CreateDiagnosticRelatedInformationFor(innerToken, msg, usingSnippets));
+      relatedInformation.AddRange(CreateDiagnosticRelatedInformationFor(innerToken, msg
+        ?? "this proposition could not be proved", usingSnippets));
     }
 
     var dafnyToken = BoogieGenerator.ToDafnyToken(useRange, error.Tok);
 
-    var tokens = new[] { dafnyToken }.Concat(relatedInformation.Select(i => i.Token)).ToList();
-    IOrigin previous = tokens.Last();
-    foreach (var (inner, outer) in relatedInformation.Zip(tokens).Reverse()) {
-      previous = new NestedOrigin(outer, previous, inner.Message);
-    }
-    reporter.Message(MessageSource.Verifier, ErrorLevel.Error, null, previous, error.Msg);
+    var diagnostic = new DafnyDiagnostic(MessageSource.Verifier, null!, dafnyToken.Center, error.Msg,
+      ErrorLevel.Error, relatedInformation);
+    reporter.MessageCore(diagnostic);
   }
 
   private const string RelatedLocationCategory = "Related location";
@@ -68,9 +67,7 @@ public static class ErrorReporterExtensions {
     //   }
     // }
 
-    message ??= "this proposition could not be proved";
-
-    yield return new DafnyRelatedInformation(token, message);
+    yield return new DafnyRelatedInformation(token.Center, message);
     if (inner != null) {
       foreach (var nestedInformation in CreateDiagnosticRelatedInformationFor(inner, newMessage, usingSnippets)) {
         yield return nestedInformation;

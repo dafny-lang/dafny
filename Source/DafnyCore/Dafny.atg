@@ -2320,7 +2320,7 @@ AssignStatement<out Statement/*!*/ s>
      Expression e;
      AssignmentRhs r;
      BlockStmt proof = null;
-     Token operatorToken = Token.NoToken;
+     Location operatorToken = null;
      Token endTok = Token.NoToken;
      Token startToken = Token.NoToken;
      Attributes attrs = null;
@@ -2337,17 +2337,17 @@ AssignStatement<out Statement/*!*/ s>
                                    (. lhss.Add(e); .)
     { "," Lhs<out e>               (. lhss.Add(e); .)
     }
-    ( ":="                         (. operatorToken = t; .)
+    ( ":="                         (. operatorToken = t.ToLspLocation(); .)
       Rhs<out r>                   (. rhss.Add(r); .)
       { "," Rhs<out r>             (. rhss.Add(r); .)
       }
-    | ":|"                         (. operatorToken = t; .)
+    | ":|"                         (. operatorToken = t.ToLspLocation(); .)
       [ IF(la.kind == _assume)     /* an Expression can also begin with an "assume", so this says to resolve it to pick up any "assume" here */
         "assume"                      (. var tok = t; .)
         { Attribute<ref tokenAttrs> } (. suchThatAssume = new AttributedToken(tok, tokenAttrs); .)
       ]
       Expression<out suchThat, false, true>
-    | ":-"                         (. operatorToken = t; .)
+    | ":-"                         (. operatorToken = t.ToLspLocation(); .)
       [ IF(IsAssumeTypeKeyword(la))   /* an Expression can also begin with these keywords, so this says to resolve it to pick up the keyword here */
         ("expect"|"assert"|"assume")  (. var tok = t; .)
         { Attribute<ref tokenAttrs> } (. keywordToken = new AttributedToken(tok, tokenAttrs); .)
@@ -2372,7 +2372,7 @@ AssignStatement<out Statement/*!*/ s>
                                       SemErr(ErrorId.p_missing_semicolon, new SourceOrigin(startToken, t), "missing semicolon at end of statement");
                                    .)   
   )
-| ":-"                             (. operatorToken = t; startToken = t; .)
+| ":-"                             (. operatorToken = t.ToLspLocation(); startToken = t; .)
    [ IF(IsAssumeTypeKeyword(la))      /* an Expression can also begin with these keywords, so this says to resolve it to pick up the keyword here */
       ("expect"|"assert"|"assume")    (. var tok = t; .)
       { Attribute<ref tokenAttrs> }   (. keywordToken = new AttributedToken(tok, tokenAttrs); .)
@@ -2543,11 +2543,11 @@ VarDeclStatement<.out Statement/*!*/ s.>
        var lhsExprs = new List<Expression>();
        if (isGhost || (rhss.Count == 0 && exceptionRhs == null && suchThat == null)) { // explicitly ghost or no init
          foreach (var lhs in lhss) {
-           lhsExprs.Add(new IdentifierExpr(lhs.Center, lhs.Name));
+           lhsExprs.Add(new IdentifierExpr(lhs.Origin, lhs.Name));
          }
        } else { // not explicitly ghost, but with init - so auto-ghost
          foreach (var lhs in lhss) {
-           lhsExprs.Add(new AutoGhostIdentifierExpr(lhs.Center, lhs.Name) );
+           lhsExprs.Add(new AutoGhostIdentifierExpr(lhs.Origin, lhs.Name) );
          }
        }
        var rangeToken = new SourceOrigin(startToken, t);
@@ -3648,9 +3648,9 @@ AsExpression<out Expression e, bool allowLemma, bool allowLambda, bool allowBitw
 UnaryExpression<out Expression e, bool allowLemma, bool allowLambda, bool allowBitwiseOps>
 = (. Contract.Ensures(Contract.ValueAtReturn(out e) != null); Token/*!*/ x;  e = dummyExpr; .)
   ( "-"                                             (. x = t; .)
-    UnaryExpression<out e, allowLemma, allowLambda, allowBitwiseOps>  (. e = new NegationExpression(new SourceOrigin(x, t, x), e); .)
+    UnaryExpression<out e, allowLemma, allowLambda, allowBitwiseOps>  (. e = new NegationExpression(new SourceOrigin(x, t), e); .)
   | NegOp                                           (. x = t; .)
-    UnaryExpression<out e, allowLemma, allowLambda, allowBitwiseOps>  (. e = new UnaryOpExpr(new SourceOrigin(x, t, x), UnaryOpExpr.Opcode.Not, e); .)
+    UnaryExpression<out e, allowLemma, allowLambda, allowBitwiseOps>  (. e = new UnaryOpExpr(new SourceOrigin(x, t), UnaryOpExpr.Opcode.Not, e); .)
   | PrimaryExpression<out e, allowLemma, allowLambda, allowBitwiseOps>
   )
   .
@@ -4278,7 +4278,7 @@ NameSegment<out Expression e>
       AtCall<out atLabel, out openParen, out args> ]
   )
   /* Note, since HashCall updates id.val, we make sure not to use id.val until after the possibility of calling HashCall. */
-  (. e = new NameSegment(new SourceOrigin(id, t), id.val, typeArgs);
+  (. e = new NameSegment(new SourceOrigin(id, t, id), id.val, typeArgs);
      if (openParen != null) {
        e = new ApplySuffix(new SourceOrigin(id, t, openParen), atLabel, e, args, t);
      } else {
@@ -4293,7 +4293,7 @@ NameSegmentForTypeName<out Expression e, bool inExpressionContext>
 = (. Token id;  List<Type> typeArgs; .)
   Ident<out id>
   OptGenericInstantiation<out typeArgs, inExpressionContext>
-  (. e = new NameSegment(new SourceOrigin(id, t), id.val, typeArgs);
+  (. e = new NameSegment(new SourceOrigin(id, t, id), id.val, typeArgs);
   .)
   .
 
@@ -4597,10 +4597,9 @@ Attribute<ref Attributes attrs>
   [ Expressions<args> ]
   "}"                         (. closeBrace = t; .)
   (. 
-     var rtok = new SourceOrigin(openBrace, t, x);
      var rtok2 = new SourceOrigin(openBrace, t, /* change to x */ openBrace);
      if (!CheckAttribute(errors, x, rtok2)) return;
-     attrs = new UserSuppliedAttributes(rtok, openBrace, closeBrace, args, attrs);
+     attrs = new UserSuppliedAttributes(x, openBrace, closeBrace, args, attrs);
   .)
   .
 
