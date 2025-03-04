@@ -469,6 +469,186 @@ module Std.Producers {
     }
   }
 
+  class ConcatenatedDynProducer<T> extends DynProducer<T> {
+
+    const first: DynProducer<T>
+    const second: DynProducer<T>
+
+    constructor (first: DynProducer<T>, second: DynProducer<T>)
+      requires first.Valid()
+      requires second.Valid()
+      requires first.Repr !! second.Repr
+      ensures Valid()
+      ensures history == []
+      ensures fresh(Repr - first.Repr - second.Repr)
+    {
+      this.first := first;
+      this.second := second;
+
+      Repr := {this} + first.Repr + second.Repr;
+      height := first.height + second.height + 1;
+      history := [];
+    }
+
+    ghost predicate Valid()
+      reads this, Repr
+      ensures Valid() ==> this in Repr
+      ensures Valid() ==> ValidHistory(history)
+      decreases height, 0
+    {
+      && this in Repr
+      && ValidComponent(first)
+      && ValidComponent(second)
+      && first.Repr !! second.Repr
+      && ValidHistory(history)
+    }
+
+    ghost predicate ValidHistory(history: seq<((), Option<T>)>)
+      decreases height
+    {
+      // TODO
+      true
+    }
+
+    @IsolateAssertions
+    method Invoke(t: ()) returns (result: Option<T>)
+      requires Requires(t)
+      reads Reads(t)
+      modifies Modifies(t)
+      decreases Decreases(t).Ordinal()
+      ensures Ensures(t, result)
+    {
+      assert Requires(t);
+
+      result := first.Next();
+      Repr := {this} + first.Repr + second.Repr;
+
+      if result.None? {
+        result := second.Next();
+        Repr := {this} + first.Repr + second.Repr;
+      }
+
+      UpdateHistory((), result);
+    }
+
+    method RepeatUntil(t: (), stop: Option<T> -> bool, ghost eventuallyStopsProof: OutputsTerminatedProof<(), Option<T>>)
+      requires Valid()
+      requires eventuallyStopsProof.Action() == this
+      requires eventuallyStopsProof.FixedInput() == t
+      requires eventuallyStopsProof.StopFn() == stop
+      requires forall i <- Inputs() :: i == t
+      reads Repr
+      modifies Repr
+      decreases Repr
+      ensures Valid()
+    {
+      DefaultRepeatUntil(this, t, stop, eventuallyStopsProof);
+    }
+
+    ghost function Limit(): nat {
+      first.Limit() + second.Limit()
+    }
+
+    lemma OutputsTerminated(history: seq<((), Option<T>)>)
+      requires Action().ValidHistory(history)
+      requires forall i <- InputsOf(history) :: i == FixedInput()
+      ensures exists n: nat | n <= Limit() :: Terminated(OutputsOf(history), StopFn(), n)
+    {
+      // TODO
+      assume {:axiom} Terminated(OutputsOf(history), StopFn(), Limit());
+    }
+  }
+
+  class CrossProductdDynProducer<T> extends DynProducer<T> {
+
+    const first: DynProducer<T>
+    var currentFirst: Option<T>
+    const second: DynProducer<T>
+
+    constructor (first: DynProducer<T>, second: DynProducer<T>)
+      requires first.Valid()
+      requires second.Valid()
+      requires first.Repr !! second.Repr
+      ensures Valid()
+      ensures history == []
+      ensures fresh(Repr - first.Repr - second.Repr)
+    {
+      this.first := first;
+      this.second := second;
+      height := first.height + second.height + 1;
+
+      Repr := {this} + first.Repr + second.Repr;
+      history := [];
+    }
+
+    ghost predicate Valid()
+      reads this, Repr
+      ensures Valid() ==> this in Repr
+      ensures Valid() ==> ValidHistory(history)
+      decreases height, 0
+    {
+      && this in Repr
+      && ValidComponent(first)
+      && ValidComponent(second)
+      && first.Repr !! second.Repr
+      && ValidHistory(history)
+    }
+
+    ghost predicate ValidHistory(history: seq<((), Option<T>)>)
+      decreases height
+    {
+      // TODO
+      true
+    }
+
+    @IsolateAssertions
+    method Invoke(t: ()) returns (result: Option<T>)
+      requires Requires(t)
+      reads Reads(t)
+      modifies Modifies(t)
+      decreases Decreases(t).Ordinal()
+      ensures Ensures(t, result)
+    {
+      assert Requires(t);
+
+      result := first.Next();
+      Repr := {this} + first.Repr + second.Repr;
+
+      if result.None? {
+        result := second.Next();
+        Repr := {this} + first.Repr + second.Repr;
+      }
+
+      UpdateHistory((), result);
+    }
+
+    method RepeatUntil(t: (), stop: Option<T> -> bool, ghost eventuallyStopsProof: OutputsTerminatedProof<(), Option<T>>)
+      requires Valid()
+      requires eventuallyStopsProof.Action() == this
+      requires eventuallyStopsProof.FixedInput() == t
+      requires eventuallyStopsProof.StopFn() == stop
+      requires forall i <- Inputs() :: i == t
+      reads Repr
+      modifies Repr
+      decreases Repr
+      ensures Valid()
+    {
+      DefaultRepeatUntil(this, t, stop, eventuallyStopsProof);
+    }
+
+    ghost function Limit(): nat {
+      first.Limit() + second.Limit()
+    }
+
+    lemma OutputsTerminated(history: seq<((), Option<T>)>)
+      requires Action().ValidHistory(history)
+      requires forall i <- InputsOf(history) :: i == FixedInput()
+      ensures exists n: nat | n <= Limit() :: Terminated(OutputsOf(history), StopFn(), n)
+    {
+      // TODO
+      assume {:axiom} Terminated(OutputsOf(history), StopFn(), Limit());
+    }
+  }
 
   trait Pipeline<U, T> extends DynProducer<T> {
 
