@@ -27,7 +27,7 @@ public class AssertStmt : PredicateStmt, ICloneable<AssertStmt>, ICanFormat {
   }
 
   [SyntaxConstructor]
-  public AssertStmt(IOrigin origin, Expression expr, AssertLabel? label, Attributes attributes)
+  public AssertStmt(IOrigin origin, Expression expr, AssertLabel? label, Attributes? attributes)
     : base(origin, expr, attributes) {
     Contract.Requires(origin != null);
     Contract.Requires(expr != null);
@@ -36,8 +36,8 @@ public class AssertStmt : PredicateStmt, ICloneable<AssertStmt>, ICanFormat {
 
   public void AddCustomizedErrorMessage(IOrigin tok, string s) {
     var args = new List<Expression>() { new StringLiteralExpr(tok, s, true) };
-    IOrigin openBrace = tok;
-    IOrigin closeBrace = new Token(tok.line, tok.col + 7 + s.Length + 1); // where 7 = length(":error ")
+    var openBrace = tok;
+    var closeBrace = new Token(tok.line, tok.col + 7 + s.Length + 1); // where 7 = length(":error ")
     this.Attributes = new UserSuppliedAttributes(tok, openBrace, closeBrace, args, this.Attributes);
   }
 
@@ -109,7 +109,7 @@ public class AssertStmt : PredicateStmt, ICloneable<AssertStmt>, ICanFormat {
 
   public override void ResolveGhostness(ModuleResolver resolver, ErrorReporter reporter, bool mustBeErasable,
     ICodeContext codeContext,
-    string proofContext, bool allowAssumptionVariables, bool inConstructorInitializationPhase) {
+    string? proofContext, bool allowAssumptionVariables, bool inConstructorInitializationPhase) {
     IsGhost = true;
   }
 }

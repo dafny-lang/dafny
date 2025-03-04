@@ -7,7 +7,6 @@ using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 namespace Microsoft.Dafny;
 
 public abstract class DatatypeDecl : TopLevelDeclWithMembers, RevealableTypeDecl, ICallable, ICanFormat, IHasDocstring, ICanAutoRevealDependencies {
-  public override bool IsRefining { get; }
   public override bool CanBeRevealed() { return true; }
   public readonly List<DatatypeCtor> Ctors;
 
@@ -22,19 +21,23 @@ public abstract class DatatypeDecl : TopLevelDeclWithMembers, RevealableTypeDecl
 
   public override IEnumerable<INode> PreResolveChildren => Ctors.Concat(base.PreResolveChildren);
 
-  public DatatypeDecl(IOrigin origin, Name name, ModuleDefinition module, List<TypeParameter> typeArgs,
+  public DatatypeDecl(IOrigin origin, Name nameNode, ModuleDefinition enclosingModule, List<TypeParameter> typeArgs,
     [Captured] List<DatatypeCtor> ctors, List<Type> parentTraits, List<MemberDecl> members, Attributes attributes, bool isRefining)
-    : base(origin, name, module, typeArgs, members, attributes, parentTraits) {
+    : base(origin, nameNode, enclosingModule, typeArgs, members, attributes, parentTraits) {
     Contract.Requires(origin != null);
-    Contract.Requires(name != null);
-    Contract.Requires(module != null);
-    IsRefining = isRefining;
+    Contract.Requires(nameNode != null);
+    Contract.Requires(enclosingModule != null);
     Contract.Requires(cce.NonNullElements(typeArgs));
     Contract.Requires(cce.NonNullElements(ctors));
     Contract.Requires(cce.NonNullElements(members));
+    Contract.Requires((isRefining && ctors.Count == 0) || (!isRefining && 1 <= ctors.Count));
     Ctors = ctors;
     this.NewSelfSynonym();
+    IsRefining = isRefining;
   }
+
+  public override bool IsRefining { get; }
+
   public bool HasFinitePossibleValues {
     get {
       // Note, to determine finiteness, it doesn't matter if the constructors are ghost or non-ghost.

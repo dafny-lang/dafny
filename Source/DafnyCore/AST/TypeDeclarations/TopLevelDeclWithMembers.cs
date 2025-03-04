@@ -1,3 +1,4 @@
+#nullable enable
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Diagnostics.Contracts;
@@ -8,11 +9,10 @@ using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 namespace Microsoft.Dafny;
 
 public abstract class TopLevelDeclWithMembers : TopLevelDecl, IHasSymbolChildren {
-  public override bool IsRefining { get; }
   public readonly List<MemberDecl> Members;
 
   // TODO remove this and instead clone the AST after parsing.
-  public ImmutableList<MemberDecl> MembersBeforeResolution;
+  public ImmutableList<MemberDecl>? MembersBeforeResolution;
 
   // The following fields keep track of parent traits
   public readonly List<MemberDecl> InheritedMembers = [];  // these are instance members declared in parent traits
@@ -25,7 +25,6 @@ public abstract class TopLevelDeclWithMembers : TopLevelDecl, IHasSymbolChildren
   public readonly List<TraitDecl> ParentTraitHeads = [];
 
   internal bool HeadDerivesFrom(TopLevelDecl b) {
-    Contract.Requires(b != null);
     return this == b || this.ParentTraitHeads.Exists(tr => tr.HeadDerivesFrom(b));
   }
 
@@ -36,7 +35,7 @@ public abstract class TopLevelDeclWithMembers : TopLevelDecl, IHasSymbolChildren
     }
   }
 
-  [FilledInDuringResolution] public InheritanceInformationClass ParentTypeInformation;
+  [FilledInDuringResolution] public InheritanceInformationClass? ParentTypeInformation;
   public class InheritanceInformationClass {
     private readonly Dictionary<TraitDecl, List<(Type, List<TraitDecl> /*via this parent path*/)>> info = new Dictionary<TraitDecl, List<(Type, List<TraitDecl>)>>();
 
@@ -49,8 +48,6 @@ public abstract class TopLevelDeclWithMembers : TopLevelDecl, IHasSymbolChildren
     }
 
     public void Record(TraitDecl traitHead, UserDefinedType parentType) {
-      Contract.Requires(traitHead != null);
-      Contract.Requires(parentType != null);
       Contract.Requires(parentType.ResolvedClass is NonNullTypeDecl nntd && nntd.ViewAsClass == traitHead);
 
       if (!info.TryGetValue(traitHead, out var list)) {
@@ -61,9 +58,6 @@ public abstract class TopLevelDeclWithMembers : TopLevelDecl, IHasSymbolChildren
     }
 
     public void Extend(TraitDecl parent, InheritanceInformationClass parentInfo, Dictionary<TypeParameter, Type> typeMap) {
-      Contract.Requires(parent != null);
-      Contract.Requires(parentInfo != null);
-      Contract.Requires(typeMap != null);
 
       foreach (var entry in parentInfo.info) {
         var traitHead = entry.Key;
@@ -90,12 +84,9 @@ public abstract class TopLevelDeclWithMembers : TopLevelDecl, IHasSymbolChildren
 
   [SyntaxConstructor]
   protected TopLevelDeclWithMembers(IOrigin origin, Name nameNode, ModuleDefinition enclosingModuleDefinition,
-    List<TypeParameter> typeArgs, List<MemberDecl> members, Attributes attributes,
-    List<Type>/*?*/ traits = null)
+    List<TypeParameter> typeArgs, List<MemberDecl> members, Attributes? attributes,
+    List<Type>? traits = null)
     : base(origin, nameNode, enclosingModuleDefinition, typeArgs, attributes) {
-    Contract.Requires(origin != null);
-    Contract.Requires(cce.NonNullElements(typeArgs));
-    Contract.Requires(cce.NonNullElements(members));
     Members = members;
     Traits = traits ?? [];
     SetMembersBeforeResolution();
@@ -106,8 +97,8 @@ public abstract class TopLevelDeclWithMembers : TopLevelDecl, IHasSymbolChildren
   }
 
   public List<Type> RawTraitsWithArgument(List<Type> typeArgs) {
-    Contract.Requires(typeArgs != null);
     Contract.Requires(typeArgs.Count == TypeArgs.Count);
+
     // Instantiate with the actual type arguments
     var subst = TypeParameter.SubstitutionMap(TypeArgs, typeArgs);
     var isReferenceType = this is ClassLikeDecl { IsReferenceTypeDecl: true };
@@ -125,8 +116,6 @@ public abstract class TopLevelDeclWithMembers : TopLevelDecl, IHasSymbolChildren
   }
 
   public static List<UserDefinedType> CommonTraits(TopLevelDeclWithMembers a, TopLevelDeclWithMembers b) {
-    Contract.Requires(a != null);
-    Contract.Requires(b != null);
     var aa = a.TraitAncestors();
     var bb = b.TraitAncestors();
     aa.IntersectWith(bb);
@@ -157,7 +146,6 @@ public abstract class TopLevelDeclWithMembers : TopLevelDecl, IHasSymbolChildren
   /// This method assumes the .ParentTraits fields have been checked for various cycle restrictions.
   /// </summary>
   private void AddTraitAncestors(ISet<TraitDecl> s) {
-    Contract.Requires(s != null);
     foreach (var parent in Traits) {
       var udt = (UserDefinedType)parent;  // in a successfully resolved program, we expect all .ParentTraits to be a UserDefinedType
       TraitDecl tr;
@@ -197,12 +185,9 @@ public abstract class TopLevelDeclWithMembers : TopLevelDecl, IHasSymbolChildren
   }
 
   public void RegisterMembers(ModuleResolver resolver, Dictionary<string, MemberDecl> members) {
-    Contract.Requires(this != null);
-    Contract.Requires(members != null);
 
     foreach (MemberDecl m in Members) {
-      if (!members.ContainsKey(m.Name)) {
-        members.Add(m.Name, m);
+      if (members.TryAdd(m.Name, m)) {
         if (m is Constructor) {
           Contract.Assert(this is ClassLikeDecl); // the parser ensures this condition
           if (this is TraitDecl) {
@@ -218,7 +203,7 @@ public abstract class TopLevelDeclWithMembers : TopLevelDecl, IHasSymbolChildren
           Type typeOfK;
           if ((m is ExtremePredicate && ((ExtremePredicate)m).KNat) ||
               (m is ExtremeLemma && ((ExtremeLemma)m).KNat)) {
-            typeOfK = new UserDefinedType(m.Origin, "nat", (List<Type>)null);
+            typeOfK = new UserDefinedType(m.Origin, "nat", null);
           } else {
             typeOfK = new BigOrdinalType();
           }
@@ -249,7 +234,7 @@ public abstract class TopLevelDeclWithMembers : TopLevelDecl, IHasSymbolChildren
             // prepend _k to the given decreases clause
             var decr = new List<Expression>();
             decr.Add(new IdentifierExpr(extremeLemma.Origin, k.Name));
-            decr.AddRange(extremeLemma.Decreases.Expressions.ConvertAll(cloner.CloneExpr));
+            decr.AddRange(extremeLemma.Decreases.Expressions!.ConvertAll(cloner.CloneExpr));
             // Create prefix lemma.  Note that the body is not cloned, but simply shared.
             // For a greatest lemma, the postconditions are filled in after the greatest lemma's postconditions have been resolved.
             // For a least lemma, the preconditions are filled in after the least lemma's preconditions have been resolved.
@@ -292,7 +277,7 @@ public static class RevealableTypeDeclHelper {
   public static InternalTypeSynonymDecl SelfSynonymDecl(this RevealableTypeDecl rtd) =>
     rtd.SynonymInfo.SelfSynonymDecl;
 
-  public static UserDefinedType SelfSynonym(this RevealableTypeDecl rtd, List<Type> args, Expression /*?*/ namePath = null) =>
+  public static UserDefinedType SelfSynonym(this RevealableTypeDecl rtd, List<Type> args, Expression? namePath = null) =>
     rtd.SynonymInfo.SelfSynonym(args, namePath);
 
   //Internal implementations are called before extensions, so this is safe

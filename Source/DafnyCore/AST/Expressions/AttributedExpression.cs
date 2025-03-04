@@ -1,3 +1,4 @@
+#nullable enable
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 using System.Linq;
@@ -6,22 +7,14 @@ namespace Microsoft.Dafny;
 
 public class AttributedExpression : NodeWithComputedRange, IAttributeBearingDeclaration {
   public readonly Expression E;
-  public readonly AssertLabel/*?*/ Label;
+  public readonly AssertLabel? Label;
 
   [ContractInvariantMethod]
   void ObjectInvariant() {
     Contract.Invariant(E != null);
   }
 
-  private Attributes attributes;
-  public Attributes Attributes {
-    get {
-      return attributes;
-    }
-    set {
-      attributes = value;
-    }
-  }
+  public Attributes? Attributes { get; set; }
 
   string IAttributeBearingDeclaration.WhatKind => "expression";
 
@@ -36,12 +29,11 @@ public class AttributedExpression : NodeWithComputedRange, IAttributeBearingDecl
     Contract.Requires(e != null);
   }
 
-  public AttributedExpression(Expression e, Attributes attrs) : this(e, null, attrs) {
+  public AttributedExpression(Expression e, Attributes? attributes) : this(e, null, attributes) {
   }
 
   [SyntaxConstructor]
-  public AttributedExpression(Expression e, AssertLabel/*?*/ label, Attributes attributes) : base(e.Origin) {
-    Contract.Requires(e != null);
+  public AttributedExpression(Expression e, AssertLabel? label, Attributes? attributes) : base(e.Origin) {
     E = e;
     Label = label;
     Attributes = attributes;

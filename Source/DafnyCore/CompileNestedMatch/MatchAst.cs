@@ -153,8 +153,8 @@ public class MatchStmt : Statement, IMatch, ICloneable<MatchStmt> {
   }
 
   public MatchStmt(IOrigin origin, Expression source, [Captured] List<MatchCaseStmt> cases,
-    bool usesOptionalBraces, Attributes attrs, MatchingContext context = null)
-    : base(origin, attrs) {
+    bool usesOptionalBraces, Attributes attributes, MatchingContext context = null)
+    : base(origin, attributes) {
     Contract.Requires(origin != null);
     Contract.Requires(source != null);
     Contract.Requires(cce.NonNullElements(cases));
