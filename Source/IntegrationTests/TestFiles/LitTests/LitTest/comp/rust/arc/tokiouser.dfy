@@ -12,7 +12,7 @@ function CreateConstant(n: nat): int -> nat {
   i => n
 }
 datatype Option<+T> = None | Some(value: T)
-trait UpperTrait {
+trait UpperTrait extends object {
   function ReturnWhatWasGiven(i: int): int {
     i
   }
