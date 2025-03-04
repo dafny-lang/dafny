@@ -142,7 +142,9 @@ public abstract class Node : INode {
     return [];
   }
 
-  public ISet<INode> Visit(Func<INode, bool> beforeChildren = null, Action<INode> afterChildren = null, Action<Exception> reportError = null) {
+  public ISet<INode> Visit(Func<INode, bool> beforeChildren = null,
+    Action<INode> afterChildren = null,
+    Action<Exception> reportError = null) {
     reportError ??= _ => { };
     beforeChildren ??= node => true;
 

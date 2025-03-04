@@ -106,7 +106,7 @@ public class SourceOrigin : IOrigin, IComparable<SourceOrigin> {
   }
 
   int IToken.col {
-    get => Center?.Range.Start.Character ?? -1;
+    get => Center?.Range.Start.Character + 1 ?? -1;
     set => throw new NotImplementedException();
   }
 

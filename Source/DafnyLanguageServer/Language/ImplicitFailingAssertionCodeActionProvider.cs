@@ -17,13 +17,8 @@ namespace Microsoft.Dafny.LanguageServer.Language;
 /// For now, it offers to inline a failing postcondition if its failure is
 /// indicated on the '{' -- meaning there is no explicit return.
 /// </summary>
-class ImplicitFailingAssertionCodeActionProvider : DiagnosticDafnyCodeActionProvider {
-  private readonly DafnyOptions options;
-
-  public ImplicitFailingAssertionCodeActionProvider(ILogger<DafnyCodeActionHandler> logger, DafnyOptions options) : base(logger) {
-    this.options = options;
-  }
-
+class ImplicitFailingAssertionCodeActionProvider(ILogger<DafnyCodeActionHandler> logger, DafnyOptions options)
+  : DiagnosticDafnyCodeActionProvider(logger) {
   protected static List<INode>? FindInnermostNodeIntersecting(INode node, Range range) {
     if (node.StartToken.line > 0 && !node.Origin.ToLspRange2().Intersects(range)) {
       return null;
@@ -262,16 +257,17 @@ class ImplicitFailingAssertionCodeActionProvider : DiagnosticDafnyCodeActionProv
     var implicitlyFailing = new List<Expression>() { };
     var explicitlyFailing = new List<Expression>() { };
     input.VerificationTree?.Visit(tree => {
-      if (tree is AssertionVerificationTree assertTree &&
-          assertTree.Finished &&
-          assertTree.Range.Intersects(selection) &&
-          assertTree.StatusVerification is GutterVerificationStatus.Error or GutterVerificationStatus.Inconclusive &&
-          assertTree.GetAssertion()?.Description is ProofObligationDescription description &&
-          description.GetAssertedExpr(options) is { } assertedExpr) {
-        if (description.IsImplicit) {
-          implicitlyFailing.Add(assertedExpr);
-        } else {
-          explicitlyFailing.Add(assertedExpr);
+      if (tree is AssertionVerificationTree assertTree) {
+        if (assertTree.Finished &&
+            assertTree.Range.Intersects(selection) &&
+            assertTree.StatusVerification is GutterVerificationStatus.Error or GutterVerificationStatus.Inconclusive &&
+            assertTree.GetAssertion()?.Description is ProofObligationDescription description &&
+            description.GetAssertedExpr(options) is { } assertedExpr) {
+          if (description.IsImplicit) {
+            implicitlyFailing.Add(assertedExpr);
+          } else {
+            explicitlyFailing.Add(assertedExpr);
+          }
         }
       }
     });

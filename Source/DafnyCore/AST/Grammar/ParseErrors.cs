@@ -769,7 +769,7 @@ in a loop after it is allocated, or to initialize with a function, as in
 `var a:= new int[2,2]((i: int, j: int)=>i+j)`.
 ".TrimStart());
 
-    ActionSignature sharedLambda = delegate (SourceOrigin range) {
+    ActionSignature sharedLambda = delegate (IOrigin range) {
       return [
         OneAction("replace with ':='", range, ":=", false),
         OneAction("replace with ':-", range, ":-", false),
