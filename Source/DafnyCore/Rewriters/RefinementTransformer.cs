@@ -1023,7 +1023,7 @@ namespace Microsoft.Dafny {
                 // that the condition is inherited.
                 var e = refinementCloner.CloneExpr(oldPredicateStmt.Expr);
                 var attrs = refinementCloner.MergeAttributes(oldPredicateStmt.Attributes, skeletonAssert.Attributes);
-                body.Add(new AssertStmt(new NestedOrigin(skeletonAssert.Origin, oldPredicateStmt.Expr.Origin, "refined assertion"), e, skeletonAssert.Label, attrs));
+                body.Add(new AssertStmt(new NestedOrigin(skeletonAssert.Origin, oldPredicateStmt.Expr.Origin, "refined proposition"), e, skeletonAssert.Label, attrs));
                 Reporter.Info(MessageSource.RefinementTransformer, c.ConditionEllipsis, "assume->assert: " + Printer.ExprToString(Reporter.Options, e));
                 i++; j++;
               }
