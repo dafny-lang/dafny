@@ -35,7 +35,7 @@ method Main() {
       var diagnostics1 = await GetLastDiagnostics(documentItem);
       var startOrdered = diagnostics1.OrderBy(r => r.Range.Start).ToList();
       Assert.Equal(new Range(0, 7, 0, 8), startOrdered[0].Range);
-      Assert.Equal(new Range(1, 2, 3, 3), startOrdered[1].Range);
+      Assert.Equal(new Range(2, 4, 2, 8), startOrdered[1].Range);
     }
 
     [Fact]
