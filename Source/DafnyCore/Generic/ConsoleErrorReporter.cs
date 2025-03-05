@@ -56,6 +56,8 @@ public class ConsoleErrorReporter(DafnyOptions options) : BatchErrorReporter(opt
       var innerMessage = related.Message;
       if (string.IsNullOrEmpty(innerMessage)) {
         innerMessage = "Related location";
+      } else {
+        innerMessage = "Related location: " + innerMessage;
       }
 
       errorLine += $"{related.Location.LocationToString(Options)}: {innerMessage}\n";

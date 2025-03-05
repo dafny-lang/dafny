@@ -68,8 +68,10 @@ public static class ErrorReporterExtensions {
         //   }
         // }
         yield return new DafnyRelatedInformation(nestedOrigin.Inner.Center, nestedOrigin.Message);
+        innerToken = nestedOrigin.Inner;
+      } else {
+        innerToken = wrapper.WrappedToken;
       }
-      innerToken = wrapper.WrappedToken;
     }
   }
 }
