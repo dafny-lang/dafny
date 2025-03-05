@@ -26,7 +26,8 @@ ConstantErrors.dfy(166,10): Error: recursive constraint dependency involving a n
 ConstantErrors.dfy(180,10): Error: recursive constraint dependency involving a newtype: A -> MakeA -> b -> MakeC -> C -> D -> E -> f -> G -> H -> I -> j -> K -> L -> M -> n -> A
 ConstantErrors.dfy(207,7): Error: cycle among redirecting types (newtypes, subset types, type synonyms): A -> B -> C -> D -> A
 ConstantErrors.dfy(215,8): Error: static non-ghost const field 'g' of type 'G' (which does not have a default compiled value) must give a defining value
-ConstantErrors.dfy[R0](220,8): Error: static non-ghost const field 'g' of type 'G' (which does not have a default compiled value) must give a defining value
+ConstantErrors.dfy(220,8): Error: static non-ghost const field 'g' of type 'G' (which does not have a default compiled value) must give a defining value
+ConstantErrors.dfy(224,7): Related location: refining module
 ConstantErrors.dfy(263,8): Error: the type of a const declaration (l) in a refining class (_default) must be syntactically the same as for the const being refined
 ConstantErrors.dfy(264,8): Error: a const re-declaration (m) can give an initializing expression only if the const in the refinement base does not
 ConstantErrors.dfy(266,8): Error: a const re-declaration (y) must be to add 'ghost' to the const declaration
