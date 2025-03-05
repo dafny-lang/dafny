@@ -625,9 +625,10 @@ namespace Microsoft.Dafny.Compilers {
       // if (isConst and cacheConstVariablesCliFlag)
       if (isConst) {
         // maxsize's value represents the number of unique inputs to the function whose outputs are cached.
-        // Setting this to 1 means that only 1 input/output pair is cached.
-        // Since const methods only take `self` or `instance` and no other parameters, there is only 1 input/output pair.
-        // maxsize can be fixed to 1.
+        // Setting this to 1 means that only 1 input/output pair will be cached,
+        //   and a new input will evict the existing input/output pair from the cache.
+        // However, const methods only take `self` or `instance`, and no other parameters.
+        // So there is only 1 input/output pair, and maxsize can be fixed to 1.
         methodWriter.WriteLine("@lru_cache(maxsize=1)");
       }
       return methodWriter.NewBlockPy(header: $"def {name}({(isStatic ? "instance" : "self")}):");
