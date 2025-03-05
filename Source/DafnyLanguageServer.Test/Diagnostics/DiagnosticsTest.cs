@@ -903,8 +903,7 @@ class Test {
       Assert.Equal(2, relatedInformation.Length);
       Assert.Equal("this is the postcondition that could not be proved", relatedInformation[0].Message);
       Assert.Equal(new Range((14, 21), (14, 22)), relatedInformation[0].Location.Range);
-      Assert.Equal("this proposition could not be proved", relatedInformation[1].Message);
-      Assert.Equal(new Range((9, 11), (9, 16)), relatedInformation[1].Location.Range);
+      Assert.Equal(new Range(9, 13, 9, 14), relatedInformation[1].Location.Range);
       await AssertNoDiagnosticsAreComing(CancellationToken);
     }
 

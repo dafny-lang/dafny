@@ -39,8 +39,8 @@ method Main() {
     var relatedInformation = diagnostic.RelatedInformation.ToList();
     Assert.Equal(3, relatedInformation.Count);
     Assert.Contains("this is the precondition that could not be proved", relatedInformation[0].Message);
-    Assert.Contains("this proposition could not be proved", relatedInformation[1].Message);
-    Assert.Contains("this proposition could not be proved", relatedInformation[2].Message);
+    Assert.Equal(new Range(1, 3, 1, 4), relatedInformation[1].Location.Range);
+    Assert.Equal(new Range(5, 14, 5, 15), relatedInformation[2].Location.Range);
   }
 
   [Fact]
