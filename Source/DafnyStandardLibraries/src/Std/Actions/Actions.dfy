@@ -125,7 +125,6 @@ module Std.Actions {
       ensures Valid() ==> ValidHistory(history)
       decreases height, 0
 
-
     ghost predicate ValidHistory(history: seq<(I, O)>)
       decreases height
 
@@ -133,13 +132,9 @@ module Std.Actions {
       requires ValidHistory(history)
       decreases height
 
-    // This is mainly defined for clarity and symmetry.
-    // It's less useful in practice than ValidHistory().
-    ghost predicate ValidOutput(history: seq<(I, O)>, nextInput: I, nextOutput: O)
+    twostate predicate ValidOutput(history: seq<(I, O)>, nextInput: I, new nextOutput: O)
       decreases height
-    {
-      ValidHistory(history + [(nextInput, nextOutput)])
-    }
+      ensures ValidOutput(history, nextInput, nextOutput) ==> ValidHistory(history + [(nextInput, nextOutput)])
 
     ghost predicate Requires(i: I)
       reads Reads(i)
@@ -166,9 +161,9 @@ module Std.Actions {
     twostate predicate Ensures(i: I, new o: O)
       reads Reads(i)
     {
-      && Valid()
+      && ValidAndDisjoint()
+      && ValidOutput(old(history), i, o)
       && history == old(history) + [(i, o)]
-      && fresh(Repr - old(Repr))
     }
 
     // Convenience methods for specifications
@@ -206,10 +201,12 @@ module Std.Actions {
 
   // A proof that a given action accepts any I value as input,
   // independent of history.
-  trait TotalActionProof<I, O> {
+  @AssumeCrossModuleTermination
+  trait TotalActionProof<I, O> extends Validatable {
     ghost function Action(): Action<I, O>
 
     lemma AnyInputIsValid(history: seq<(I, O)>, next: I)
+      requires Valid()
       requires Action().ValidHistory(history)
       ensures Action().ValidInput(history, next)
   }
@@ -316,7 +313,6 @@ module Std.Actions {
 
   class FunctionAction<I, O> extends Action<I, O> {
 
-    // TODO: Can we support ~>?
     const f: I --> O
 
     ghost predicate Valid()
@@ -344,16 +340,22 @@ module Std.Actions {
       height := 0;
     }
 
+    ghost predicate ValidHistory(history: seq<(I, O)>)
+      decreases height
+    {
+      forall e <- history :: f.requires(e.0) && e.1 == f(e.0)
+    }
     ghost predicate ValidInput(history: seq<(I, O)>, next: I)
       requires ValidHistory(history)
       decreases height
     {
       f.requires(next)
     }
-    ghost predicate ValidHistory(history: seq<(I, O)>)
+    twostate predicate ValidOutput(history: seq<(I, O)>, nextInput: I, new nextOutput: O)
       decreases height
+      ensures ValidOutput(history, nextInput, nextOutput) ==> ValidHistory(history + [(nextInput, nextOutput)])
     {
-      forall e <- history :: f.requires(e.0) && e.1 == f(e.0)
+      ValidHistory(history + [(nextInput, nextOutput)])
     }
 
     method {:rlimit 0} Invoke(i: I) returns (o: O)
@@ -382,16 +384,32 @@ module Std.Actions {
     }
   }
 
-  type TotalFunctionAction<I, O> = a: FunctionAction<I, O> | a.f.requires == (i => true) witness *
+  // A simple proof of an action being total.
+  // Relies on quantifiers so it only works for non-reference types.
+  @AssumeCrossModuleTermination
+  class DefaultTotalActionProof<I(!new), O(!new)> extends TotalActionProof<I, O> {
 
-  class TotalFunctionTotalActionProof<I, O> extends TotalActionProof<I, O> {
+    const action: Action<I, O>
 
-    const action: TotalFunctionAction<I, O>
-
-    ghost constructor(action: TotalFunctionAction<I, O>)
+    ghost constructor(action: Action<I, O>)
+      requires action.Valid()
+      requires forall history: seq<(I, O)>, input: I | action.ValidHistory(history) :: action.ValidInput(history, input)
       ensures this.action == action
+      ensures Valid()
+      ensures fresh(Repr)
     {
       this.action := action;
+      Repr := {this};
+      height := 0;
+    }
+
+    ghost predicate Valid()
+      reads this, Repr
+      ensures Valid() ==> this in Repr
+      decreases height, 0
+    {
+      && Repr == {this}
+      && forall history: seq<(I, O)>, input: I | action.ValidHistory(history) :: action.ValidInput(history, input)
     }
 
     ghost function Action(): Action<I, O> {
@@ -399,6 +417,7 @@ module Std.Actions {
     }
 
     lemma AnyInputIsValid(history: seq<(I, O)>, next: I)
+      requires Valid()
       requires Action().ValidHistory(history)
       ensures Action().ValidInput(history, next)
     {}
@@ -449,18 +468,26 @@ module Std.Actions {
       && compositionProof.SecondAction() == second
     }
 
-    ghost predicate ValidInput(history: seq<(I, O)>, next: I)
-      decreases height
-    {
-      compositionProof.ComposedValidInput(history, next)
-    }
     ghost predicate ValidHistory(history: seq<(I, O)>)
       decreases height
     {
       compositionProof.ComposedValidHistory(history)
     }
+    ghost predicate ValidInput(history: seq<(I, O)>, next: I)
+      decreases height
+    {
+      compositionProof.ComposedValidInput(history, next)
+    }
+    twostate predicate ValidOutput(history: seq<(I, O)>, nextInput: I, new nextOutput: O)
+      decreases height
+      ensures ValidOutput(history, nextInput, nextOutput) ==> ValidHistory(history + [(nextInput, nextOutput)])
+    {
+      ValidHistory(history + [(nextInput, nextOutput)])
+    }
 
-    method {:rlimit 0} Invoke(i: I) returns (o: O)
+    @IsolateAssertions
+    @ResourceLimit("0")
+    method Invoke(i: I) returns (o: O)
       requires Requires(i)
       reads Reads(i)
       modifies Modifies(i)
@@ -480,6 +507,7 @@ module Std.Actions {
 
       UpdateHistory(i, o);
       Repr := {this} + first.Repr + second.Repr;
+      height := first.height + second.height + 1;
 
       assert InputsOf(history) == old(InputsOf(first.history)) + [i];
       assert InputsOf(history) == InputsOf(first.history);
@@ -558,6 +586,7 @@ module Std.Actions {
       ensures FirstAction().ValidInput(firstHistory, next)
     {
       assert firstConsumeAllProof.Action().ValidHistory(firstHistory);
+      assume {:axiom} firstConsumeAllProof.Valid();
       firstConsumeAllProof.AnyInputIsValid(firstHistory, next);
     }
 
@@ -567,6 +596,7 @@ module Std.Actions {
       ensures SecondAction().ValidInput(secondHistory, nextM)
     {
       assert secondConsumeAllProof.Action().ValidHistory(secondHistory);
+      assume {:axiom} secondConsumeAllProof.Valid();
       secondConsumeAllProof.AnyInputIsValid(secondHistory, nextM);
     }
 

@@ -7,5 +7,6 @@ standard-libraries = true
 reads-clauses-on-methods = true
 enforce-determinism = true
 resource-limit = 1000000
-warn-redundant-assumptions = true
+# TODO: change this back. Necessary because I have to say `assert Requires(t)` in examples
+warn-redundant-assumptions = false
 warn-contradictory-assumptions = true

@@ -13,10 +13,6 @@ module Std.Consumers {
   @AssumeCrossModuleTermination
   trait IConsumer<T> extends Action<T, ()> {
 
-    ghost function Action(): Action<T, ()> {
-      this
-    }
-
     // For better readability
     method Accept(t: T)
       requires Requires(t)
@@ -83,15 +79,21 @@ module Std.Consumers {
       this.size := 0;
     }
 
+    ghost predicate ValidHistory(history: seq<(T, bool)>)
+      decreases height
+    {
+      |history| <= storage.Length
+    }
     ghost predicate ValidInput(history: seq<(T, bool)>, next: T)
       decreases height
     {
       |history| < storage.Length
     }
-    ghost predicate ValidHistory(history: seq<(T, bool)>)
+    twostate predicate ValidOutput(history: seq<(T, bool)>, nextInput: T, new nextOutput: bool)
       decreases height
+      ensures ValidOutput(history, nextInput, nextOutput) ==> ValidHistory(history + [(nextInput, nextOutput)])
     {
-      true
+      ValidHistory(history + [(nextInput, nextOutput)])
     }
 
     method Invoke(t: T) returns (r: bool)
@@ -118,7 +120,8 @@ module Std.Consumers {
     }
   }
 
-  class DynamicArrayConsumer<T> extends IConsumer<T> {
+  @AssumeCrossModuleTermination
+  class DynamicArrayConsumer<T> extends IConsumer<T>, TotalActionProof<T, ()> {
 
     var storage: DynamicArray<T>
 
@@ -150,15 +153,21 @@ module Std.Consumers {
       this.storage := a;
     }
 
+    ghost predicate ValidHistory(history: seq<(T, ())>)
+      decreases height
+    {
+      true
+    }
     ghost predicate ValidInput(history: seq<(T, ())>, next: T)
       decreases height
     {
       true
     }
-    ghost predicate ValidHistory(history: seq<(T, ())>)
+    twostate predicate ValidOutput(history: seq<(T, ())>, nextInput: T, new nextOutput: ())
       decreases height
+      ensures ValidOutput(history, nextInput, nextOutput) ==> ValidHistory(history + [(nextInput, nextOutput)])
     {
-      true
+      ValidHistory(history + [(nextInput, nextOutput)])
     }
 
     method Invoke(t: T) returns (r: ())
@@ -178,6 +187,10 @@ module Std.Consumers {
       Repr := {this} + {storage} + storage.Repr;
       assert Inputs() == old(Inputs()) + [t];
       assert Valid();
+    }
+
+    ghost function Action(): Action<T, ()> {
+      this
     }
 
     lemma AnyInputIsValid(history: seq<(T, ())>, next: T)
@@ -218,15 +231,21 @@ module Std.Consumers {
       && value == Seq.FoldLeft(f, init, Inputs())
     }
 
+    ghost predicate ValidHistory(history: seq<(T, ())>)
+      decreases height
+    {
+      true
+    }
     ghost predicate ValidInput(history: seq<(T, ())>, next: T)
       decreases height
     {
       true
     }
-    ghost predicate ValidHistory(history: seq<(T, ())>)
+    twostate predicate ValidOutput(history: seq<(T, ())>, nextInput: T, new nextOutput: ())
       decreases height
+      ensures ValidOutput(history, nextInput, nextOutput) ==> ValidHistory(history + [(nextInput, nextOutput)])
     {
-      true
+      ValidHistory(history + [(nextInput, nextOutput)])
     }
 
     method Invoke(t: T) returns (r: ())
@@ -250,6 +269,10 @@ module Std.Consumers {
       assert Valid();
     }
 
+    ghost function Action(): Action<T, ()> {
+      this
+    }
+
     lemma AnyInputIsValid(history: seq<(T, ())>, next: T)
       requires Action().ValidHistory(history)
       ensures Action().ValidInput(history, next)
@@ -257,7 +280,8 @@ module Std.Consumers {
   }
 
   // TODO: This is also a FoldingConsumer([], (x, y) => x + [y])
-  class Collector<T> extends IConsumer<T> {
+  @AssumeCrossModuleTermination
+  class Collector<T> extends IConsumer<T>, TotalActionProof<T, ()> {
 
     var values: seq<T>
 
@@ -280,17 +304,22 @@ module Std.Consumers {
       this in Repr
     }
 
+    ghost predicate ValidHistory(history: seq<(T, ())>)
+      decreases height
+    {
+      true
+    }
     ghost predicate ValidInput(history: seq<(T, ())>, next: T)
       requires ValidHistory(history)
       decreases height
     {
       true
     }
-
-    ghost predicate ValidHistory(history: seq<(T, ())>)
+    twostate predicate ValidOutput(history: seq<(T, ())>, nextInput: T, new nextOutput: ())
       decreases height
+      ensures ValidOutput(history, nextInput, nextOutput) ==> ValidHistory(history + [(nextInput, nextOutput)])
     {
-      true
+      ValidHistory(history + [(nextInput, nextOutput)])
     }
 
     method Invoke(t: T) returns (r: ())
@@ -316,6 +345,10 @@ module Std.Consumers {
     {
       t := values[0];
       values := values[1..];
+    }
+
+    ghost function Action(): Action<T, ()> {
+      this
     }
 
     lemma AnyInputIsValid(history: seq<(T, ())>, next: T)

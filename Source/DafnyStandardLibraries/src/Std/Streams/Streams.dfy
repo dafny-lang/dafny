@@ -66,6 +66,12 @@ module Std.Streams {
       reads this, Repr
       ensures res as int == |data|
 
+    twostate predicate ValidOutput(history: seq<((), Option<bytes>)>, nextInput: (), new nextOutput: Option<bytes>)
+      decreases height
+      ensures ValidOutput(history, nextInput, nextOutput) ==> ValidHistory(history + [(nextInput, nextOutput)])
+    {
+      ValidHistory(history + [(nextInput, nextOutput)])
+    }
     ghost predicate ValidHistory(history: seq<((), Option<bytes>)>)
       decreases height
     {
@@ -114,6 +120,12 @@ module Std.Streams {
       && ValidHistory(history)
     }
 
+    twostate predicate ValidOutput(history: seq<((), Option<bytes>)>, nextInput: (), new nextOutput: Option<bytes>)
+      decreases height
+      ensures ValidOutput(history, nextInput, nextOutput) ==> ValidHistory(history + [(nextInput, nextOutput)])
+    {
+      ValidHistory(history + [(nextInput, nextOutput)])
+    }
     ghost predicate ValidHistory(history: seq<((), Option<bytes>)>)
       decreases height
     {

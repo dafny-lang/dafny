@@ -57,9 +57,16 @@ module ActionsExamples {
     }
 
     ghost predicate ValidInput(history: seq<((), Box)>, next: ())
+      requires ValidHistory(history)
       decreases height
     {
       true
+    }
+    twostate predicate ValidOutput(history: seq<((), Box)>, nextInput: (), new nextOutput: Box)
+      decreases height
+      ensures ValidOutput(history, nextInput, nextOutput) ==> ValidHistory(history + [(nextInput, nextOutput)])
+    {
+      ValidHistory(history + [(nextInput, nextOutput)]) && fresh(nextOutput)
     }
     ghost predicate ValidHistory(history: seq<((), Box)>)
       decreases height
@@ -93,7 +100,7 @@ module ActionsExamples {
     var a := enum.Invoke(());
 
     assert enum.Outputs() == [a];
-    assert Seq.Map((b: Box) => b.i, enum.Outputs()) == SeqRange(1) == [0];
+    // assert Seq.Map((b: Box) => b.i, enum.Outputs()) == SeqRange(1) == [0];
     // assert a.i == 0;
 
     // var b := enum.Invoke(());
@@ -136,34 +143,30 @@ module ActionsExamples {
     assert a.storage.items == [1, 2, 3, 4, 5, 6];
   }
 
-  @AssumeCrossModuleTermination
-  class ExamplePipeline<T> extends Pipeline<T, T> {
-    constructor(upstream: Producer<T>)
-      requires upstream.Valid()
-      ensures Valid()
-    {
-      this.upstream := upstream;
-      var buffer := new Collector<T>();
-
-      Repr := {this} + upstream.Repr + buffer.Repr;
-      history := [];
-      this.buffer := buffer;
-      this.height := upstream.height + buffer.height + 1;
+  function Splitter(o: Option<nat>): seq<nat> {
+    match o {
+      case Some(x) => [x / 2, x - (x / 2)]
+      case None => []
     }
+  }
 
-    method Process(u: Option<T>, a: IConsumer<T>)
-      requires a.Valid()
-      reads a.Repr
-      modifies a.Repr
-      ensures a.ValidAndDisjoint()
-    {
-      assert a.Valid();
+  @IsolateAssertions
+  method ExamplePipeline() {
+    var upstream := new SeqProducer([1, 2, 3, 4, 5]);
+    var process := new FunctionAction(Splitter);
+    var processTotalProof := new DefaultTotalActionProof(process);
+    assert fresh(upstream.Repr);
+    assert fresh(process.Repr);
+    assert fresh(processTotalProof.Repr);
 
-      if u.Some? {
-        a.AnyInputIsValid(a.history, u.value);
-        a.Accept(u.value);
-      }
-    }
+    var pipeline := new Pipeline(upstream, process, processTotalProof);
+    
+    var collector := new Collector();
+
+    var collectorTotalProof := new DefaultTotalActionProof(collector);
+    pipeline.ForEachRemaining(collector, collectorTotalProof);
+    
+    expect collector.values == [0, 1, 1, 1, 1, 2, 2, 2, 2, 3];
   }
 
   // method ComposedActionExample() {

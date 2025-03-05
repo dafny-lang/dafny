@@ -145,15 +145,21 @@ module Std.Producers {
       this.history := [];
     }
 
+    ghost predicate ValidHistory(history: seq<((), T)>)
+      decreases height
+    {
+      true
+    }
     ghost predicate ValidInput(history: seq<((), T)>, next: ())
       decreases height
     {
       true
     }
-    ghost predicate ValidHistory(history: seq<((), T)>)
+    twostate predicate ValidOutput(history: seq<((), T)>, nextInput: (), new nextOutput: T)
       decreases height
+      ensures ValidOutput(history, nextInput, nextOutput) ==> ValidHistory(history + [(nextInput, nextOutput)])
     {
-      true
+      ValidHistory(history + [(nextInput, nextOutput)])
     }
 
     method Invoke(i: ()) returns (o: T)
@@ -228,10 +234,11 @@ module Std.Producers {
     }
 
     @IsolateAssertions
-    method ForEachRemaining(consumer: IConsumer<T>, totalActionProof: TotalActionProof<T, ()>)
+    method ForEachRemaining(consumer: IConsumer<T>, ghost totalActionProof: TotalActionProof<T, ()>)
       requires Valid()
       requires consumer.Valid()
-      requires Repr !! consumer.Repr
+      requires Repr !! consumer.Repr !! totalActionProof.Repr
+      requires totalActionProof.Valid()
       requires totalActionProof.Action() == consumer
       modifies Repr, consumer.Repr
       // TODO: complete post-condition
@@ -242,6 +249,7 @@ module Std.Producers {
         invariant ValidAndDisjoint()
         invariant consumer.ValidAndDisjoint()
         invariant Repr !! consumer.Repr
+        invariant totalActionProof.Valid()
         decreases Remaining()
       {
         totalActionProof.AnyInputIsValid(consumer.history, t.value);
@@ -291,6 +299,12 @@ module Std.Producers {
       && ValidHistory(history)
     }
 
+    twostate predicate ValidOutput(history: seq<((), Option<T>)>, nextInput: (), new nextOutput: Option<T>)
+      decreases height
+      ensures ValidOutput(history, nextInput, nextOutput) ==> ValidHistory(history + [(nextInput, nextOutput)])
+    {
+      ValidHistory(history + [(nextInput, nextOutput)])
+    }
     ghost predicate ValidHistory(history: seq<((), Option<T>)>)
       decreases height
     {
@@ -366,9 +380,16 @@ module Std.Producers {
       && ValidHistory(history)
     }
 
+    twostate predicate ValidOutput(history: seq<((), Option<T>)>, nextInput: (), new nextOutput: Option<T>)
+      decreases height
+      ensures ValidOutput(history, nextInput, nextOutput) ==> ValidHistory(history + [(nextInput, nextOutput)])
+    {
+      ValidHistory(history + [(nextInput, nextOutput)])
+    }
     ghost predicate ValidHistory(history: seq<((), Option<T>)>)
       decreases height
     {
+      // TODO: Refine
       true
     }
 
@@ -449,6 +470,12 @@ module Std.Producers {
       && ValidHistory(history)
     }
 
+    twostate predicate ValidOutput(history: seq<((), Option<T>)>, nextInput: (), new nextOutput: Option<T>)
+      decreases height
+      ensures ValidOutput(history, nextInput, nextOutput) ==> ValidHistory(history + [(nextInput, nextOutput)])
+    {
+      ValidHistory(history + [(nextInput, nextOutput)])
+    }
     ghost predicate ValidHistory(history: seq<((), Option<T>)>)
       decreases height
     {
@@ -516,12 +543,16 @@ module Std.Producers {
     const process: Action<Option<U>, seq<T>>
     var currentInner: Producer?<T>
 
-    const processTotalProof: TotalActionProof<Option<U>, seq<T>>
+    ghost const processTotalProof: TotalActionProof<Option<U>, seq<T>>
 
-    constructor (original: Producer<U>, process: Action<Option<U>, seq<T>>, processTotalProof: TotalActionProof<Option<U>, seq<T>>)
+    constructor (original: Producer<U>, process: Action<Option<U>, seq<T>>, ghost processTotalProof: TotalActionProof<Option<U>, seq<T>>)
       requires original.Valid()
       requires process.Valid()
+      requires processTotalProof.Valid()
       requires processTotalProof.Action() == process
+      requires original.Repr !! process.Repr !! processTotalProof.Repr
+      ensures Valid()
+      ensures fresh(Repr - original.Repr - process.Repr - processTotalProof.Repr)
     {
       this.original := original;
       this.originalDone := false;
@@ -529,8 +560,8 @@ module Std.Producers {
 
       this.processTotalProof := processTotalProof;
       this.history := [];
-      this.Repr := {this} + original.Repr + process.Repr;
-      this.height := original.height + process.height + 1;
+      this.Repr := {this} + original.Repr + process.Repr + processTotalProof.Repr;
+      this.height := original.height + process.height + processTotalProof.height + 1;
       this.currentInner := null;
     }
 
@@ -543,12 +574,20 @@ module Std.Producers {
       && this in Repr
       && ValidComponent(original)
       && ValidComponent(process)
+      && ValidComponent(processTotalProof)
       && (currentInner != null ==> ValidComponent(currentInner))
-      && original.Repr !! process.Repr !! (if currentInner != null then currentInner.Repr else {})
+      && original.Repr !! process.Repr !! processTotalProof.Repr !!
+          (if currentInner != null then currentInner.Repr else {})
       && ValidHistory(history)
       && processTotalProof.Action() == process
     }
 
+    twostate predicate ValidOutput(history: seq<((), Option<T>)>, nextInput: (), new nextOutput: Option<T>)
+      decreases height
+      ensures ValidHistory(history + [(nextInput, nextOutput)])
+    {
+      ValidHistory(history + [(nextInput, nextOutput)])
+    }
     // TODO: needs refinement
     ghost predicate ValidHistory(history: seq<((), Option<T>)>)
       decreases height
@@ -571,6 +610,7 @@ module Std.Producers {
         invariant fresh(Repr - old(Repr))
         invariant Valid()
         invariant history == old(history)
+        invariant processTotalProof.Valid()
         decreases original.Remaining(), !originalDone, currentInner,
                   if currentInner != null then currentInner.Remaining() else 0
       {
@@ -582,28 +622,28 @@ module Std.Producers {
           }
 
           var nextOuter := original.Next();
-          Repr := {this} + original.Repr + process.Repr;
-          height := original.height + process.height + 1;
+          Repr := {this} + original.Repr + process.Repr + processTotalProof.Repr;
+          height := original.height + process.height + processTotalProof.height + 1;
           assert Valid();
           
           processTotalProof.AnyInputIsValid(process.history, nextOuter);
 
           var nextChunk := process.Invoke(nextOuter);
-          Repr := {this} + original.Repr + process.Repr;
-          height := original.height + process.height + 1;
+          Repr := {this} + original.Repr + process.Repr + processTotalProof.Repr;
+          height := original.height + process.height + processTotalProof.height + 1;
           assert Valid();
           
           currentInner := new SeqProducer(nextChunk);
           assert currentInner.Valid();
-          this.Repr := {this} + original.Repr + process.Repr + currentInner.Repr;
-          height := original.height + process.height + currentInner.height + 1;
+          this.Repr := {this} + original.Repr + process.Repr + processTotalProof.Repr + currentInner.Repr;
+          height := original.height + process.height + processTotalProof.height + currentInner.height + 1;
           assert ValidComponent(currentInner);
 
           originalDone := nextOuter.None?;
         } else {
           r := currentInner.Next();
-          this.Repr := {this} + original.Repr + process.Repr + currentInner.Repr;
-          height := original.height + process.height + currentInner.height + 1;
+          this.Repr := {this} + original.Repr + process.Repr + processTotalProof.Repr + currentInner.Repr;
+          height := original.height + process.height + processTotalProof.height + currentInner.height + 1;
           assert Valid();
 
           if r.None? {
