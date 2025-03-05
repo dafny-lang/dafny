@@ -61,7 +61,7 @@ module Std.Actions {
   //    output could indicate a failure that is only related to that invocation.
   // 2. An Action<I, Option<O>> could also produce None to indicate the action
   //    is "exhausted" and cannot produce any more values.
-  //    This is the basis for the Producer specialization.
+  //    This is the basis for the IProducer specialization.
   //    Similarly a Result<O, E> could indicate the action is broken
   //    for abnormal reasons and can't be called again.
   // 3. An Action<I, Option<Result<O, E>> can indicate both cases independently:
@@ -99,30 +99,17 @@ module Std.Actions {
   //
   // TODO: ASCII Table?
   //
-  //     - Producer<T>    = Action<(), T>         (consumes nothing, must produce values if preconditions are met)
-  //     - DynProducer<T> = Action<(), Option<T>> (consumes nothing, may be eventually exhausted and output None)
-  //     - Consumer<T>    = Action<T, ()>         (produces nothing, must consume values if preconditions are met)
-  //     - DynConsumer<T> = Action<T, boolean>    (produces nothing, may be eventually exhausted and output false)
+  //     - IProducer<T> = Action<(), T>         (consumes nothing, may produce infinite values)
+  //     - Producer<T>  = Action<(), Option<T>> (consumes nothing, must prduce finite values)
+  //     - IConsumer<T> = Action<T, ()>         (produces nothing, may consume infinite values)
+  //     - Consumer<T>  = Action<T, boolean>    (produces nothing, may be eventually exhausted and output false)
   //
-  // These concepts are duals to each other (Producer/Consumer, and DynProducer/DynConsumer).
-  // The generic signatures of DynProducer and DynConsumer are not exact mirror-images
+  // These concepts are duals to each other (IProducer/IConsumer, and Producer/Consumer).
+  // The generic signatures of Producer and Consumer are not exact mirror-images
   // because in both cases they must produce an additional piece of boolean information
   // about whether they are "exhausted".
   //
-  // Note that both Producers and DynProducers may produce infinite elements.
-  // If an action may only produce finite elements,
-  // DynProducer is usually a better fit
-  // as it can dynamically decide to stop producing values
-  // and only output None.
-  // A Producer by contrast has to produce a value if given ValidInput(),
-  // so if it can run out of values it has to express
-  // under what conditions in ValidInput().
-  // If an action will always produce infinite elements,
-  // such as a random number generator,
-  // then Producer is a better fit and avoids having to wrap every value
-  // in an Option<T>.
-  //
-  // In practice, the most common traits will usually be DynProducer and Consumer. 
+  // In practice, the most common traits will usually be Producer and IConsumer. 
   // That is, most data sources in real programs tend to produce finite elements,
   // and it's usually impractical and/or unnecessary to specify how many statically,
   // but most data sinks tend to have no constraints.
@@ -256,6 +243,7 @@ module Std.Actions {
     ghost function StopFn(): O -> bool
     ghost function Limit(): nat
 
+    // TODO: Return n instead of exists n
     lemma OutputsTerminated(history: seq<(I, O)>)
       requires Action().ValidHistory(history)
       requires forall i <- InputsOf(history) :: i == FixedInput()
@@ -605,8 +593,8 @@ module Std.Actions {
     //   )
 
   // Other primitives/examples todo:
-  //  * Filter(DynProducer, predicate)
-  //  * CrossProduct(Dynproducer1, dynproducer2)
+  //  * CrossProduct(producer of producer1, producer2)
+  //  * Flatten(producer of producers)
   //  * Promise-like single-use Action<I, ()> to capture a value for reading later
   //  * datatype/codatatype-based enumerations
   //  * How to state the invariant that a constructor as an action creates a new object every time?

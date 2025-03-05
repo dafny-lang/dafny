@@ -1,4 +1,5 @@
 
+
 module Std.Producers {
 
   import opened Actions
@@ -7,7 +8,7 @@ module Std.Producers {
   import opened Math
 
   @AssumeCrossModuleTermination
-  trait Producer<T> extends Action<(), T> {}
+  trait IProducer<T> extends Action<(), T> {}
 
   // A proof that a given action only produces
   // elements from a given set.
@@ -23,7 +24,7 @@ module Std.Producers {
   }
 
   // TODO: Great example but can't build with --enforce-determinism
-  // class SetIProducer<T(==)> extends Producer<T>, ProducesSetProof<T> {
+  // class SetIProducer<T(==)> extends IProducer<T>, ProducesSetProof<T> {
   //   ghost const original: set<T>
   //   var remaining: set<T>
 
@@ -121,8 +122,8 @@ module Std.Producers {
 
   // }
 
-  // TODO: FunctionalDynProducer too?
-  class FunctionalProducer<S, T> extends Producer<T> {
+  // TODO: FunctionalProducer too?
+  class FunctionalIProducer<S, T> extends IProducer<T> {
 
     const stepFn: S -> (S, T)
     var state: S
@@ -173,7 +174,7 @@ module Std.Producers {
   // Actions that consume nothing and produce an Option<T>, 
   // where None indicate there are no more values to produce.
   @AssumeCrossModuleTermination
-  trait DynProducer<T> extends Action<(), Option<T>>, OutputsTerminatedProof<(), Option<T>> {
+  trait Producer<T> extends Action<(), Option<T>>, OutputsTerminatedProof<(), Option<T>> {
     ghost function Action(): Action<(), Option<T>> {
       this
     }
@@ -210,7 +211,7 @@ module Std.Producers {
       reads Reads(())
       modifies Modifies(())
       ensures Ensures((), r)
-      ensures r.Some? ==> Remaining() < old(Remaining())
+      ensures if r.Some? then Remaining() < old(Remaining()) else Remaining() == old(Remaining())
     {
       assert Requires(());
 
@@ -220,13 +221,18 @@ module Std.Producers {
       if r.Some? {
         assert forall i <- old(Action().Inputs()) :: i == ();
         InvokeUntilTerminationMetricDecreased@before(r);
+      } else {
+        // TODO
+        assume {:axiom} Remaining() == old(Remaining());
       }
     }
 
-    method ForEachRemaining(consumer: Consumer<T>)
+    @IsolateAssertions
+    method ForEachRemaining(consumer: IConsumer<T>, totalActionProof: TotalActionProof<T, ()>)
       requires Valid()
       requires consumer.Valid()
       requires Repr !! consumer.Repr
+      requires totalActionProof.Action() == consumer
       modifies Repr, consumer.Repr
       // TODO: complete post-condition
       // ensures Enumerated(e.Outputs()) == a.Inputs()
@@ -238,7 +244,7 @@ module Std.Producers {
         invariant Repr !! consumer.Repr
         decreases Remaining()
       {
-        consumer.AnyInputIsValid(consumer.history, t.value);
+        totalActionProof.AnyInputIsValid(consumer.history, t.value);
         consumer.Accept(t.value);
 
         t := Next();
@@ -256,7 +262,7 @@ module Std.Producers {
       [produced[0].value] + Enumerated(produced[1..])
   }
 
-  class SeqDynProducer<T> extends DynProducer<T> {
+  class SeqProducer<T> extends Producer<T> {
 
     const elements: seq<T>
     var index: nat
@@ -265,6 +271,7 @@ module Std.Producers {
       ensures Valid()
       ensures history == []
       ensures fresh(Repr)
+      reads {}
     {
       this.elements := elements;
       this.index := 0;
@@ -329,12 +336,12 @@ module Std.Producers {
 
   }
 
-  class FilteredDynProducer<T> extends DynProducer<T> {
+  class FilteredProducer<T> extends Producer<T> {
 
-    const source: DynProducer<T>
+    const source: Producer<T>
     const filter: T -> bool
 
-    constructor (source: DynProducer<T>, filter: T -> bool)
+    constructor (source: Producer<T>, filter: T -> bool)
       requires source.Valid()
       ensures Valid()
       ensures history == []
@@ -384,6 +391,7 @@ module Std.Producers {
       {
         result := source.Next();
         Repr := {this} + source.Repr;
+        height := source.height + 1;
 
         if result.None? || filter(result.value) {
           break;
@@ -407,12 +415,12 @@ module Std.Producers {
     }
   }
 
-  class ConcatenatedDynProducer<T> extends DynProducer<T> {
+  class ConcatenatedProducer<T> extends Producer<T> {
 
-    const first: DynProducer<T>
-    const second: DynProducer<T>
+    const first: Producer<T>
+    const second: Producer<T>
 
-    constructor (first: DynProducer<T>, second: DynProducer<T>)
+    constructor (first: Producer<T>, second: Producer<T>)
       requires first.Valid()
       requires second.Valid()
       requires first.Repr !! second.Repr
@@ -459,13 +467,13 @@ module Std.Producers {
       assert Requires(t);
 
       result := first.Next();
-      Repr := {this} + first.Repr + second.Repr;
 
       if result.None? {
         result := second.Next();
-        Repr := {this} + first.Repr + second.Repr;
       }
 
+      Repr := {this} + first.Repr + second.Repr;
+      height := first.height + second.height + 1;
       UpdateHistory((), result);
     }
 
@@ -483,26 +491,47 @@ module Std.Producers {
     }
   }
 
-  class CrossProductdDynProducer<T> extends DynProducer<T> {
+  // A producer that wraps another producer
+  // and applies a transformation to each incoming element
+  // that results in zero or more outgoing elements.
+  // Essentially the Action equivalent of Seq.Flatten(Seq.Map(process, original)).
+  //
+  // Note that process accepts an Option<U> rather than a U,
+  // so that it has awareness of when the original is exhausted
+  // and can emit its own trailing elements if neccessary.
+  //
+  // It would arguably be better for process
+  // to produce a Producer<T> instead of a seq<T>,
+  // but that runs into limitations of the Action trait,
+  // namely that it's not possible to ensure that
+  // process only outputs Producers that are ValidAndDisjoint().
+  //
+  // Mainly provided so that external integrations
+  // can recognize this pattern and optimize
+  // for non-blocking push-based producers.
+  class Pipeline<U, T> extends Producer<T> {
 
-    const first: DynProducer<T>
-    const second: DynProducer<T>
+    const original: Producer<U>
+    var originalDone: bool
+    const process: Action<Option<U>, seq<T>>
+    var currentInner: Producer?<T>
 
-    constructor (first: DynProducer<T>, second: DynProducer<T>)
-      requires first.Valid()
-      requires second.Valid()
-      requires first.Repr !! second.Repr
-      ensures Valid()
-      ensures history == []
-      ensures fresh(Repr - first.Repr - second.Repr)
+    const processTotalProof: TotalActionProof<Option<U>, seq<T>>
+
+    constructor (original: Producer<U>, process: Action<Option<U>, seq<T>>, processTotalProof: TotalActionProof<Option<U>, seq<T>>)
+      requires original.Valid()
+      requires process.Valid()
+      requires processTotalProof.Action() == process
     {
-      this.first := first;
-      this.second := second;
-      height := first.height + second.height + 1;
+      this.original := original;
+      this.originalDone := false;
+      this.process := process;
 
-      Repr := {this} + first.Repr + second.Repr;
-      history := [];
-      height := first.height + second.height + 1;
+      this.processTotalProof := processTotalProof;
+      this.history := [];
+      this.Repr := {this} + original.Repr + process.Repr;
+      this.height := original.height + process.height + 1;
+      this.currentInner := null;
     }
 
     ghost predicate Valid()
@@ -512,70 +541,12 @@ module Std.Producers {
       decreases height, 0
     {
       && this in Repr
-      && ValidComponent(first)
-      && ValidComponent(second)
-      && first.Repr !! second.Repr
+      && ValidComponent(original)
+      && ValidComponent(process)
+      && (currentInner != null ==> ValidComponent(currentInner))
+      && original.Repr !! process.Repr !! (if currentInner != null then currentInner.Repr else {})
       && ValidHistory(history)
-    }
-
-    ghost predicate ValidHistory(history: seq<((), Option<T>)>)
-      decreases height
-    {
-      // TODO
-      true
-    }
-
-    @IsolateAssertions
-    method Invoke(t: ()) returns (result: Option<T>)
-      requires Requires(t)
-      reads Reads(t)
-      modifies Modifies(t)
-      decreases Decreases(t).Ordinal()
-      ensures Ensures(t, result)
-    {
-      assert Requires(t);
-
-      result := first.Next();
-      Repr := {this} + first.Repr + second.Repr;
-
-      if result.None? {
-        result := second.Next();
-        Repr := {this} + first.Repr + second.Repr;
-      }
-
-      UpdateHistory((), result);
-    }
-
-    ghost function Limit(): nat {
-      first.Limit() + second.Limit()
-    }
-
-    lemma OutputsTerminated(history: seq<((), Option<T>)>)
-      requires Action().ValidHistory(history)
-      requires forall i <- InputsOf(history) :: i == FixedInput()
-      ensures exists n: nat | n <= Limit() :: Terminated(OutputsOf(history), StopFn(), n)
-    {
-      // TODO
-      assume {:axiom} Terminated(OutputsOf(history), StopFn(), Limit());
-    }
-  }
-
-  trait Pipeline<U, T> extends DynProducer<T> {
-
-    const upstream: DynProducer<U>
-    const buffer: Collector<T>
-
-    ghost predicate Valid()
-      reads this, Repr
-      ensures Valid() ==> this in Repr
-      ensures Valid() ==> ValidHistory(history)
-      decreases height, 0
-    {
-      && this in Repr
-      && ValidComponent(upstream)
-      && ValidComponent(buffer)
-      && upstream.Repr !! buffer.Repr
-      && ValidHistory(history)
+      && processTotalProof.Action() == process
     }
 
     // TODO: needs refinement
@@ -585,58 +556,68 @@ module Std.Producers {
       true
     }
 
+    @IsolateAssertions
+    @ResourceLimit("0")
     method Invoke(t: ()) returns (r: Option<T>)
       requires Requires(t)
-      reads Repr
+      reads this, Repr
       modifies Modifies(t)
       decreases Decreases(t).Ordinal()
       ensures Ensures(t, r)
     {
-      label start:
-      while |buffer.values| == 0
-        invariant upstream.Repr !! buffer.Repr
-        invariant fresh(Repr - old(Repr))
-        invariant fresh(buffer.Repr - old(buffer.Repr))
-        invariant fresh(upstream.Repr - old(upstream.Repr))
-        invariant Valid()
-        invariant buffer.ValidAndDisjoint()
-        invariant upstream.ValidAndDisjoint()
-        invariant history == old(history)
-        modifies Repr
-        decreases upstream.Remaining()
-      {
-        var u := upstream.Next();
-        Repr := {this} + upstream.Repr + buffer.Repr;
+      r := None;
 
-        assume {:axiom} Repr !! buffer.Repr;
-        Process(u, buffer);
-        if u.None? {
-          break;
+      while true
+        invariant fresh(Repr - old(Repr))
+        invariant Valid()
+        invariant history == old(history)
+        decreases original.Remaining(), !originalDone, currentInner,
+                  if currentInner != null then currentInner.Remaining() else 0
+      {
+        label LoopEntry:
+        assert true decreases to false;
+        if currentInner == null {
+          if originalDone {
+            break;
+          }
+
+          var nextOuter := original.Next();
+          Repr := {this} + original.Repr + process.Repr;
+          height := original.height + process.height + 1;
+          assert Valid();
+          
+          processTotalProof.AnyInputIsValid(process.history, nextOuter);
+
+          var nextChunk := process.Invoke(nextOuter);
+          Repr := {this} + original.Repr + process.Repr;
+          height := original.height + process.height + 1;
+          assert Valid();
+          
+          currentInner := new SeqProducer(nextChunk);
+          assert currentInner.Valid();
+          this.Repr := {this} + original.Repr + process.Repr + currentInner.Repr;
+          height := original.height + process.height + currentInner.height + 1;
+          assert ValidComponent(currentInner);
+
+          originalDone := nextOuter.None?;
+        } else {
+          r := currentInner.Next();
+          this.Repr := {this} + original.Repr + process.Repr + currentInner.Repr;
+          height := original.height + process.height + currentInner.height + 1;
+          assert Valid();
+
+          if r.None? {
+            currentInner := null;
+          }
         }
       }
 
-      if 0 < |buffer.values| {
-        var next := buffer.Pop();
-        r := Some(next);
-      } else {
-        r := None;
-      }
       UpdateHistory(t, r);
-
-      assume {:axiom} Valid();
     }
 
-    method Process(u: Option<U>, a: Consumer<T>)
-      requires Valid()
-      requires a.Valid()
-      requires Repr !! a.Repr
-      reads Repr, a.Repr
-      modifies Repr, a.Repr
-      ensures a.ValidAndDisjoint()
-    // TODO: need a postcondition that a was invoked at least once etc
-
     ghost function Limit(): nat {
-      upstream.Limit()
+      // TODO: Wrong, processing may produce more values.
+      original.Limit()
     }
 
     lemma {:axiom} OutputsTerminated(history: seq<((), Option<T>)>)

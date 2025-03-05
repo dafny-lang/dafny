@@ -36,7 +36,7 @@ module Std.Streams {
   //    since it can't be augmented by sub-traits.
   //
   @AssumeCrossModuleTermination
-  trait ByteStream extends DynProducer<BoundedInts.bytes> {
+  trait ByteStream extends Producer<BoundedInts.bytes> {
 
     // The total length of all produced bytes
     function ContentLength(): (res: uint64)
@@ -96,11 +96,11 @@ module Std.Streams {
   }
 
   /*
-   * Wraps an DynProducer up as a non-rewindable DataStream.
+   * Wraps an Producer up as a non-rewindable DataStream.
    */
-  class DynProducerDataStream extends ByteStream {
+  class ProducerDataStream extends ByteStream {
 
-    const wrapped: DynProducer<BoundedInts.bytes>
+    const wrapped: Producer<BoundedInts.bytes>
     const length: uint64
 
     ghost predicate Valid()
@@ -129,7 +129,7 @@ module Std.Streams {
       wrapped.Limit()
     }
 
-    constructor(wrapped: DynProducer<BoundedInts.bytes>, length: uint64)
+    constructor(wrapped: Producer<BoundedInts.bytes>, length: uint64)
       requires wrapped.Valid()
       requires wrapped.history == []
       ensures Valid()

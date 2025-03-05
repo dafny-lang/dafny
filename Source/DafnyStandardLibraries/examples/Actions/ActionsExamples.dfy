@@ -4,7 +4,7 @@ module ActionsExamples {
   import opened Std.Consumers
   import opened Std.Wrappers
 
-  // TODO: A basic loop over all values of a DynProducer.
+  // TODO: A basic loop over all values of a Producer.
 
   // Demonstration that actions can consume/produce reference values as well,
   // despite the usual challenges of quantifying over such types.
@@ -138,7 +138,7 @@ module ActionsExamples {
 
   @AssumeCrossModuleTermination
   class ExamplePipeline<T> extends Pipeline<T, T> {
-    constructor(upstream: DynProducer<T>)
+    constructor(upstream: Producer<T>)
       requires upstream.Valid()
       ensures Valid()
     {
@@ -151,7 +151,7 @@ module ActionsExamples {
       this.height := upstream.height + buffer.height + 1;
     }
 
-    method Process(u: Option<T>, a: Consumer<T>)
+    method Process(u: Option<T>, a: IConsumer<T>)
       requires a.Valid()
       reads a.Repr
       modifies a.Repr

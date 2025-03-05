@@ -11,7 +11,7 @@ module Std.Consumers {
   import Collections.Seq
 
   @AssumeCrossModuleTermination
-  trait Consumer<T> extends Action<T, ()>, TotalActionProof<T, ()> {
+  trait IConsumer<T> extends Action<T, ()> {
 
     ghost function Action(): Action<T, ()> {
       this
@@ -26,14 +26,13 @@ module Std.Consumers {
     {
       assert Requires(t);
 
-      AnyInputIsValid(history, t);
       var r := Invoke(t);
       assert r == ();
     }
   }
 
   @AssumeCrossModuleTermination
-  trait DynConsumer<T> extends Action<T, bool> {
+  trait Consumer<T> extends Action<T, bool> {
 
     ghost function Action(): Action<T, bool> {
       this
@@ -55,9 +54,9 @@ module Std.Consumers {
 
   // TODO: Name implies it's consuming arrays
   @AssumeCrossModuleTermination
-  class ArrayDynConsumer<T> extends DynConsumer<T> {
+  class ArrayConsumer<T> extends Consumer<T> {
 
-    var storage: array<T>
+    const storage: array<T>
     var size: nat
 
     ghost predicate Valid()
@@ -87,7 +86,7 @@ module Std.Consumers {
     ghost predicate ValidInput(history: seq<(T, bool)>, next: T)
       decreases height
     {
-      true
+      |history| < storage.Length
     }
     ghost predicate ValidHistory(history: seq<(T, bool)>)
       decreases height
@@ -115,11 +114,11 @@ module Std.Consumers {
       UpdateHistory(t, r);
       Repr := {this} + {storage};
       assert Inputs() == old(Inputs()) + [t];
-      assume {:axiom} Valid();
+      assert Valid();
     }
   }
 
-  class DynamicArrayConsumer<T> extends Consumer<T> {
+  class DynamicArrayConsumer<T> extends IConsumer<T> {
 
     var storage: DynamicArray<T>
 
@@ -187,7 +186,7 @@ module Std.Consumers {
     {}
   }
 
-  class FoldingConsumer<T, R> extends Consumer<T> {
+  class FoldingConsumer<T, R> extends IConsumer<T> {
 
     ghost const init: R
     const f: (R, T) -> R
@@ -258,7 +257,7 @@ module Std.Consumers {
   }
 
   // TODO: This is also a FoldingConsumer([], (x, y) => x + [y])
-  class Collector<T> extends Consumer<T> {
+  class Collector<T> extends IConsumer<T> {
 
     var values: seq<T>
 

@@ -7,7 +7,7 @@ module Std.Frames {
     // Ghost state tracking the common set of objects most
     // methods need to read.
     ghost var Repr: set<object>
-    ghost const height: nat
+    ghost var height: nat
 
     ghost predicate Valid()
       reads this, Repr
