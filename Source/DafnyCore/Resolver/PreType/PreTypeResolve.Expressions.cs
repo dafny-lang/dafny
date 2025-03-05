@@ -791,10 +791,8 @@ namespace Microsoft.Dafny {
       Constraints.AddDefaultAdvice(expr.PreType, defaultType);
 
       Constraints.AddGuardedConstraint(() => {
-        if (expr.PreType.UrAncestor(this) is DPreType dPreType) {
-          if (dPreType.Decl.Name != typeName) {
-            ReportError(expr, $"{exprKind} used as if it had type {{0}}", expr.PreType);
-          } else if (valuePreType == null) {
+        if (expr.PreType.UrAncestor(this) is DPreType dPreType && dPreType.Decl.Name == typeName) {
+          if (valuePreType == null) {
             AddSubtypeConstraint(dPreType.Arguments[0], elementPreType, expr.Origin,
               $"element type of {exprKind} expected to be {{0}} (got {{1}})");
           } else {
