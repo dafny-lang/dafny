@@ -15,7 +15,9 @@ public static class ErrorReporterExtensions {
       if (auxiliaryInformation.Category == RelatedMessageCategory || auxiliaryInformation.Category == AssertedExprCategory) {
         error.Msg += "\n" + auxiliaryInformation.FullMsg;
       } else if (auxiliaryInformation.Category == RelatedLocationCategory) {
-        relatedInformation.AddRange(CreateDiagnosticRelatedInformationFor(BoogieGenerator.ToDafnyToken(true, auxiliaryInformation.Tok), auxiliaryInformation.Msg, usingSnippets));
+        var auxiliaryToken = BoogieGenerator.ToDafnyToken(true, auxiliaryInformation.Tok);
+        relatedInformation.Add(new DafnyRelatedInformation(auxiliaryToken.Center, auxiliaryInformation.Msg));
+        relatedInformation.AddRange(CreateDiagnosticRelatedInformationFor(auxiliaryToken, usingSnippets));
       } else {
         // The execution trace is an additional auxiliary which identifies itself with
         // line=0 and character=0. These positions cause errors when exposing them, Furthermore,
@@ -30,10 +32,7 @@ public static class ErrorReporterExtensions {
       error.Msg += "\n" + $"Related counterexample:\n{counterexampleModel}";
     }
 
-    if (error.Tok is NestedOrigin { Inner: var innerToken, Message: var msg }) {
-      relatedInformation.AddRange(CreateDiagnosticRelatedInformationFor(innerToken, msg
-        ?? "this proposition could not be proved", usingSnippets));
-    }
+    relatedInformation.AddRange(CreateDiagnosticRelatedInformationFor(BoogieGenerator.ToDafnyToken(true, error.Tok), usingSnippets));
 
     var dafnyToken = BoogieGenerator.ToDafnyToken(useRange, error.Tok);
 
@@ -51,27 +50,26 @@ public static class ErrorReporterExtensions {
     return $"Could not prove: {related}";
   }
 
-  public static IEnumerable<DafnyRelatedInformation> CreateDiagnosticRelatedInformationFor(IOrigin token, string? message, bool usingSnippets) {
-    var (tokenForMessage, inner, newMessage) = token is NestedOrigin nestedToken ? (nestedToken.Outer, nestedToken.Inner, nestedToken.Message) : (token, null, null);
-    var dafnyToken = BoogieGenerator.ToDafnyToken(true, tokenForMessage);
-
-    // Turning this on changes many regression tests, in a way that might be considered good,
-    // but it should be turned on in a separate PR
-    // There seem to be no LSP tests for this behavior, so turning it off did not affect those.
-    // if (!usingSnippets && dafnyToken.IncludesRange) {
-    //   if (message == PostConditionFailingMessage) {
-    //     var postcondition = dafnyToken.PrintOriginal();
-    //     message = $"this postcondition might not hold: {postcondition}";
-    //   } else if (message == null|| message == RelatedLocationMessage*/) {
-    //     message = FormatRelated(dafnyToken.PrintOriginal());
-    //   }
-    // }
-
-    yield return new DafnyRelatedInformation(token.Center, message);
-    if (inner != null) {
-      foreach (var nestedInformation in CreateDiagnosticRelatedInformationFor(inner, newMessage, usingSnippets)) {
-        yield return nestedInformation;
+  public static IEnumerable<DafnyRelatedInformation> CreateDiagnosticRelatedInformationFor(IOrigin token, bool usingSnippets) {
+    var innerToken = token;
+    while(innerToken is OriginWrapper wrapper) {
+      if (innerToken is NestedOrigin nestedOrigin) {
+        // Turning this on changes many regression tests, in a way that might be considered good,
+        // but it should be turned on in a separate PR
+        // There seem to be no LSP tests for this behavior, so turning it off did not affect those.
+        
+        // var dafnyToken = BoogieGenerator.ToDafnyToken(true, nestedOrigin.Outer);
+        // if (!usingSnippets && dafnyToken.IncludesRange) {
+        //   if (message == PostConditionFailingMessage) {
+        //     var postcondition = dafnyToken.PrintOriginal();
+        //     message = $"this postcondition might not hold: {postcondition}";
+        //   } else if (message == null|| message == RelatedLocationMessage*/) {
+        //     message = FormatRelated(dafnyToken.PrintOriginal());
+        //   }
+        // }
+        yield return new DafnyRelatedInformation(nestedOrigin.Inner.Center, nestedOrigin.Message);
       }
+      innerToken = wrapper.WrappedToken;
     }
   }
 }

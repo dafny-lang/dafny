@@ -48,12 +48,8 @@ public abstract class ErrorReporter {
     var relatedInformation = new List<DafnyRelatedInformation>();
 
     var usingSnippets = Options.Get(Snippets.ShowSnippets);
-    if (rootTok is NestedOrigin nestedToken) {
-      relatedInformation.AddRange(
-        ErrorReporterExtensions.CreateDiagnosticRelatedInformationFor(
-          nestedToken.Inner, nestedToken.Message, usingSnippets)
-      );
-    }
+    relatedInformation.AddRange(
+      ErrorReporterExtensions.CreateDiagnosticRelatedInformationFor(rootTok, usingSnippets));
 
     var dafnyDiagnostic = new DafnyDiagnostic(source, errorId!, rootTok.Center, msg, level, relatedInformation);
     return MessageCore(dafnyDiagnostic);

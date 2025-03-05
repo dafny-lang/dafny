@@ -23,30 +23,6 @@ using Microsoft.Dafny.Plugins;
 using static Microsoft.Dafny.RefinementErrors;
 
 namespace Microsoft.Dafny {
-  public class RefinementOrigin : OriginWrapper {
-    public readonly ModuleDefinition InheritingModule;
-
-
-    public RefinementOrigin(IOrigin tok, ModuleDefinition m)
-      : base(tok) {
-      Contract.Requires(tok != null);
-      Contract.Requires(m != null);
-      this.InheritingModule = m;
-    }
-
-    public override string ToString() {
-      return $"refinement of {WrappedToken} by {InheritingModule.Name}";
-    }
-
-    public override bool IsCopy => true;
-
-    public override bool IsInherited(ModuleDefinition m) {
-      return InheritingModule == m;
-    }
-
-    public override string Filepath => WrappedToken.Filepath + "[" + InheritingModule.Name + "]";
-  }
-
   /// <summary>
   /// The "RefinementTransformer" is responsible for transforming a refining module (that is,
   /// a module defined as "module Y refines X") according to the body of this module and
@@ -1009,8 +985,8 @@ namespace Microsoft.Dafny {
            */
           if (cur is SkeletonStatement) {
             var c = (SkeletonStatement)cur;
-            var S = c.S;
-            if (S == null) {
+            var skeletonStatementType = c.S;
+            if (skeletonStatementType == null) {
               var nxt = i + 1 == skeleton.Count ? null : skeleton[i + 1];
               if (nxt != null && nxt is SkeletonStatement && ((SkeletonStatement)nxt).S == null) {
                 // "...; ...;" is the same as just "...;", so skip this one
@@ -1034,11 +1010,10 @@ namespace Microsoft.Dafny {
               }
               i++;
 
-            } else if (S is AssertStmt) {
-              var skel = (AssertStmt)S;
+            } else if (skeletonStatementType is AssertStmt skeletonAssert) {
               Contract.Assert(c.ConditionOmitted);
-              var oldAssume = oldS as PredicateStmt;
-              if (oldAssume == null) {
+              var oldPredicateStmt = oldS as PredicateStmt;
+              if (oldPredicateStmt == null) {
                 Error(ErrorId.ref_mismatched_assert, cur.Origin, "assert template does not match inherited statement");
                 i++;
               } else {
@@ -1046,15 +1021,15 @@ namespace Microsoft.Dafny {
                 // that this assertion is supposed to be translated into a check.  That is,
                 // it is not allowed to be just assumed in the translation, despite the fact
                 // that the condition is inherited.
-                var e = refinementCloner.CloneExpr(oldAssume.Expr);
-                var attrs = refinementCloner.MergeAttributes(oldAssume.Attributes, skel.Attributes);
-                body.Add(new AssertStmt(new NestedOrigin(skel.Origin, e.Origin), e, skel.Label, attrs));
+                var e = refinementCloner.CloneExpr(oldPredicateStmt.Expr);
+                var attrs = refinementCloner.MergeAttributes(oldPredicateStmt.Attributes, skeletonAssert.Attributes);
+                body.Add(new AssertStmt(new NestedOrigin(skeletonAssert.Origin, oldPredicateStmt.Expr.Origin, "refined proposition"), e, skeletonAssert.Label, attrs));
                 Reporter.Info(MessageSource.RefinementTransformer, c.ConditionEllipsis, "assume->assert: " + Printer.ExprToString(Reporter.Options, e));
                 i++; j++;
               }
 
-            } else if (S is ExpectStmt) {
-              var skel = (ExpectStmt)S;
+            } else if (skeletonStatementType is ExpectStmt) {
+              var skel = (ExpectStmt)skeletonStatementType;
               Contract.Assert(c.ConditionOmitted);
               var oldExpect = oldS as ExpectStmt;
               if (oldExpect == null) {
@@ -1069,8 +1044,8 @@ namespace Microsoft.Dafny {
                 i++; j++;
               }
 
-            } else if (S is AssumeStmt) {
-              var skel = (AssumeStmt)S;
+            } else if (skeletonStatementType is AssumeStmt) {
+              var skel = (AssumeStmt)skeletonStatementType;
               Contract.Assert(c.ConditionOmitted);
               var oldAssume = oldS as AssumeStmt;
               if (oldAssume == null) {
@@ -1084,8 +1059,8 @@ namespace Microsoft.Dafny {
                 i++; j++;
               }
 
-            } else if (S is IfStmt) {
-              var skel = (IfStmt)S;
+            } else if (skeletonStatementType is IfStmt) {
+              var skel = (IfStmt)skeletonStatementType;
               Contract.Assert(c.ConditionOmitted);
               var oldIf = oldS as IfStmt;
               if (oldIf == null) {
@@ -1101,8 +1076,8 @@ namespace Microsoft.Dafny {
                 i++; j++;
               }
 
-            } else if (S is WhileStmt) {
-              var skel = (WhileStmt)S;
+            } else if (skeletonStatementType is WhileStmt) {
+              var skel = (WhileStmt)skeletonStatementType;
               var oldWhile = oldS as WhileStmt;
               if (oldWhile == null) {
                 Error(ErrorId.ref_mismatched_while_statement, cur.Origin, "while-statement template does not match inherited statement");
@@ -1125,8 +1100,8 @@ namespace Microsoft.Dafny {
                 i++; j++;
               }
 
-            } else if (S is ModifyStmt) {
-              var skel = (ModifyStmt)S;
+            } else if (skeletonStatementType is ModifyStmt) {
+              var skel = (ModifyStmt)skeletonStatementType;
               Contract.Assert(c.ConditionOmitted);
               var oldModifyStmt = oldS as ModifyStmt;
               if (oldModifyStmt == null) {

@@ -3,4 +3,4 @@ Dafny program verifier finished with 1 verified, 0 errors
 5
 
 Dafny program verifier finished with 1 verified, 0 errors
-[Program halted] RefineContract.dfy[M](6,16): Runtime failure of ensures clause from RefineContract.dfy[M](6,16)
+[Program halted] RefineContract.dfy(6,16): Runtime failure of ensures clause from RefineContract.dfy(6,16)
