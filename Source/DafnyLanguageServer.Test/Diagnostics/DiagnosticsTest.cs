@@ -19,6 +19,48 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Synchronization {
     private readonly string testFilesDirectory = Path.Combine(Directory.GetCurrentDirectory(), "Synchronization/TestFiles");
 
     [Fact]
+    public async Task Refinement() {
+      var source = @"
+module A {
+  class T {
+    method M(x: int) returns (y: int)
+      requires 0 <= x
+      ensures 0 <= y
+    {
+      y := 2 * x;
+    }
+    method N(x: int)
+      decreases *
+    {
+      N(x);
+    }
+  }
+}
+
+module B refines A {
+  class T ... {
+    method M(x: int) returns (y: int)
+      ensures y % 3 == 0  // add a postcondition
+    method N...
+      decreases 4
+    {
+      ...;
+    }
+  }
+}";
+      var documentItem = CreateAndOpenTestDocument(source);
+      var diagnostics1 = await GetLastDiagnostics(documentItem, DiagnosticSeverity.Error);
+      var startOrdered = diagnostics1.OrderBy(r => r.Range.Start).ToList();
+      Assert.Equal(new Range(6, 4, 6, 5), startOrdered[0].Range);
+      Assert.Equal("a postcondition could not be proved on this return path", startOrdered[0].Message);
+      Assert.Equal("this is the postcondition that could not be proved", startOrdered[0].RelatedInformation!.ElementAt(0).Message);
+      Assert.Equal(new Range(12, 6, 12, 11), startOrdered[1].Range);
+      Assert.Equal("decreases clause might not decrease", startOrdered[1].Message);
+      Assert.Equal(new Range(17, 0, 27, 1), startOrdered[1].RelatedInformation!.ElementAt(0).Location.Range);
+      Assert.Equal("refining module", startOrdered[1].RelatedInformation.ElementAt(0).Message);
+    }
+
+    [Fact]
     public async Task NestedModuleRange() {
       var source = @"
 module A {

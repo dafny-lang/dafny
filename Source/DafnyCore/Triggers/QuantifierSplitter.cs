@@ -75,26 +75,25 @@ namespace Microsoft.Dafny.Triggers {
       var binary = body as BinaryExpr;
 
       if (quantifier is ForallExpr) {
-        IEnumerable<Expression> stream;
+        IReadOnlyList<Expression> stream;
         if (binary != null && (binary.Op == BinaryExpr.Opcode.Imp || binary.Op == BinaryExpr.Opcode.Or)) {
-          stream = SplitAndStitch(binary, BinaryExpr.Opcode.And);
+          stream = SplitAndStitch(binary, BinaryExpr.Opcode.And).ToList();
         } else {
-          stream = SplitExpr(body, BinaryExpr.Opcode.And);
+          stream = SplitExpr(body, BinaryExpr.Opcode.And).ToList();
         }
+
         foreach (var e in stream) {
-          var tok = new NestedOrigin(quantifier.Origin, e.Origin, "in subexpression at");
-          yield return new ForallExpr(tok, quantifier.BoundVars, quantifier.Range, e, TriggerUtils.CopyAttributes(quantifier.Attributes)) { Type = quantifier.Type, Bounds = quantifier.Bounds };
+          yield return new ForallExpr(quantifier.Origin, quantifier.BoundVars, quantifier.Range, e, TriggerUtils.CopyAttributes(quantifier.Attributes)) { Type = quantifier.Type, Bounds = quantifier.Bounds };
         }
       } else if (quantifier is ExistsExpr) {
-        IEnumerable<Expression> stream;
+        IReadOnlyList<Expression> stream;
         if (binary != null && binary.Op == BinaryExpr.Opcode.And) {
-          stream = SplitAndStitch(binary, BinaryExpr.Opcode.Or);
+          stream = SplitAndStitch(binary, BinaryExpr.Opcode.Or).ToList();
         } else {
-          stream = SplitExpr(body, BinaryExpr.Opcode.Or);
+          stream = SplitExpr(body, BinaryExpr.Opcode.Or).ToList();
         }
         foreach (var e in stream) {
-          var tok = body?.Origin == e.Origin ? quantifier.Origin : new NestedOrigin(quantifier.Origin, e.Origin, "in subexpression at");
-          yield return new ExistsExpr(tok, quantifier.BoundVars, quantifier.Range, e, TriggerUtils.CopyAttributes(quantifier.Attributes)) { Type = quantifier.Type, Bounds = quantifier.Bounds };
+          yield return new ExistsExpr(quantifier.Origin, quantifier.BoundVars, quantifier.Range, e, TriggerUtils.CopyAttributes(quantifier.Attributes)) { Type = quantifier.Type, Bounds = quantifier.Bounds };
         }
       } else {
         yield return quantifier;
