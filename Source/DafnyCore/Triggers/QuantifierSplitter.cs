@@ -82,7 +82,7 @@ namespace Microsoft.Dafny.Triggers {
           stream = SplitExpr(body, BinaryExpr.Opcode.And);
         }
         foreach (var e in stream) {
-          var tok = new NestedOrigin(quantifier.Origin, e.Origin, "in subexpression at");
+          var tok = quantifier.Origin; //new NestedOrigin(quantifier.Origin, e.Origin, "in subexpression at");
           yield return new ForallExpr(tok, quantifier.BoundVars, quantifier.Range, e, TriggerUtils.CopyAttributes(quantifier.Attributes)) { Type = quantifier.Type, Bounds = quantifier.Bounds };
         }
       } else if (quantifier is ExistsExpr) {
@@ -93,7 +93,7 @@ namespace Microsoft.Dafny.Triggers {
           stream = SplitExpr(body, BinaryExpr.Opcode.Or);
         }
         foreach (var e in stream) {
-          var tok = body?.Origin == e.Origin ? quantifier.Origin : new NestedOrigin(quantifier.Origin, e.Origin, "in subexpression at");
+          var tok = quantifier.Origin; //body?.Origin == e.Origin ? quantifier.Origin : new NestedOrigin(quantifier.Origin, e.Origin, "in subexpression at");
           yield return new ExistsExpr(tok, quantifier.BoundVars, quantifier.Range, e, TriggerUtils.CopyAttributes(quantifier.Attributes)) { Type = quantifier.Type, Bounds = quantifier.Bounds };
         }
       } else {
