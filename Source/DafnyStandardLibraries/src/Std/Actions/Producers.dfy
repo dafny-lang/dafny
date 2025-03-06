@@ -122,7 +122,6 @@ module Std.Producers {
 
   // }
 
-  // TODO: FunctionalProducer too?
   class FunctionalIProducer<S, T> extends IProducer<T> {
 
     const stepFn: S -> (S, T)
@@ -137,7 +136,9 @@ module Std.Producers {
       this in Repr
     }
 
-    constructor(state: S, stepFn: S -> (S, T)) {
+    constructor(state: S, stepFn: S -> (S, T)) 
+      ensures Valid()
+    {
       this.state := state;
       this.stepFn := stepFn;
       this.Repr := {this};
@@ -260,6 +261,96 @@ module Std.Producers {
           break;
         }
       }
+    }
+  }
+
+  class LimitedProducer<T> extends Producer<T> {
+
+    const original: IProducer<T>
+    const limit: nat
+    var produced: nat
+
+    ghost const originalTotalAction: TotalActionProof<(), T>
+
+    constructor(original: IProducer<T>, limit: nat, ghost originalTotalAction: TotalActionProof<(), T>)
+      requires original.Valid()
+      requires originalTotalAction.Valid()
+      requires originalTotalAction.Action() == original
+      requires original.Repr !! originalTotalAction.Repr
+      ensures Valid()
+      ensures history == []
+      ensures fresh(Repr - original.Repr - originalTotalAction.Repr)
+    {
+      this.original := original;
+      this.limit := limit;
+      this.produced := 0;
+      this.originalTotalAction := originalTotalAction;
+
+      Repr := {this} + original.Repr + originalTotalAction.Repr;
+      history := [];
+      height := original.height + originalTotalAction.height + 1;
+    }
+
+    ghost predicate Valid()
+      reads this, Repr
+      ensures Valid() ==> this in Repr
+      ensures Valid() ==> ValidHistory(history)
+      decreases height, 0
+    {
+      && this in Repr
+      && ValidComponent(original)
+      && ValidComponent(originalTotalAction)
+      && original.Repr !! originalTotalAction.Repr
+      && originalTotalAction.Action() == original
+      && ValidHistory(history)
+      && produced <= limit
+    }
+
+    twostate predicate ValidOutput(history: seq<((), Option<T>)>, nextInput: (), new nextOutput: Option<T>)
+      decreases height
+      ensures ValidOutput(history, nextInput, nextOutput) ==> ValidHistory(history + [(nextInput, nextOutput)])
+    {
+      ValidHistory(history + [(nextInput, nextOutput)])
+    }
+    ghost predicate ValidHistory(history: seq<((), Option<T>)>)
+      decreases height
+    {
+      true
+    }
+
+    method Invoke(t: ()) returns (value: Option<T>)
+      requires Requires(t)
+      reads this, Repr
+      modifies Modifies(t)
+      decreases Decreases(t).Ordinal()
+      ensures Ensures(t, value)
+    {
+      assert Requires(t);
+
+      if produced == limit {
+        value := None;
+      } else {
+        originalTotalAction.AnyInputIsValid(original.history, ());
+        var v := original.Invoke(());
+        value := Some(v);
+        produced := produced + 1;
+      }
+
+      UpdateHistory(t, value);
+      Repr := {this} + original.Repr + originalTotalAction.Repr;
+      height := original.height + originalTotalAction.height + 1;
+    }
+
+    ghost function Limit(): nat {
+      limit
+    }
+
+    lemma OutputsTerminated(history: seq<((), Option<T>)>)
+      requires Action().ValidHistory(history)
+      requires forall i <- InputsOf(history) :: i == FixedInput()
+      ensures exists n: nat | n <= Limit() :: Terminated(OutputsOf(history), StopFn(), n)
+    {
+      assume {:axiom} Terminated(OutputsOf(history), StopFn(), limit);
     }
   }
 

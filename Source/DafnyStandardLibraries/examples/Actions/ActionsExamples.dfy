@@ -4,7 +4,30 @@ module ActionsExamples {
   import opened Std.Consumers
   import opened Std.Wrappers
 
-  // TODO: A basic loop over all values of a Producer.
+  // Demonstrating the simplest idiom
+  // for looping over the values produced by a Producer<T>
+  method SimpleProducerLoop() {
+    var p := MakeProducer();
+    while true 
+      invariant p.Valid()
+      invariant fresh(p.Repr)
+      decreases p.Remaining()
+    {
+      var next := p.Next();
+      if next.None? {
+        break;
+      }
+
+      expect 0 <= next.value < 5;
+    }
+  }
+
+  method MakeProducer() returns (p: Producer<nat>)
+    ensures p.Valid()
+    ensures fresh(p.Repr)
+  {
+    p := new SeqProducer([1, 2, 3, 4, 5]);
+  }
 
   // Demonstration that actions can consume/produce reference values as well,
   // despite the usual challenges of quantifying over such types.
@@ -13,7 +36,6 @@ module ActionsExamples {
     const i: nat
 
     constructor(i: nat)
-      reads {}
       ensures this.i == i
     {
       this.i := i;
@@ -76,7 +98,7 @@ module ActionsExamples {
 
     method Invoke(t: ()) returns (r: Box)
       requires Requires(t)
-      reads Reads(t)
+      reads Repr
       modifies Modifies(t)
       decreases Decreases(t).Ordinal()
       ensures Ensures(t, r)
