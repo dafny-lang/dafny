@@ -131,28 +131,6 @@ module ActionsExamples {
     // var e := enum.Invoke(());
   }
 
-  // method SetIProducerExample() {
-  //   var s: set<nat> := {1, 2, 3, 4, 5};
-  //   var copy: set<nat> := {};
-  //   var e: SetIProducer<nat> := new SetIProducer(s);
-
-  //   label before:
-  //   for enumerated := 0 to 5
-  //     invariant e.Valid()
-  //     invariant enumerated == |e.history|
-  //     invariant fresh(e.Repr)
-  //   {
-  //     var x := e.Invoke(());
-  //     copy := copy + {x};
-  //   }
-
-  //   // TODO: cool enough that we can statically invoke
-  //   // the enumerator the right number of times!
-  //   // But now prove that copy == s!
-  //   // assert |copy| == 5;
-  //   // assert copy == s;
-  // }
-
   method {:rlimit 0} ConsumerExample() {
     var a: DynamicArrayConsumer<nat> := new DynamicArrayConsumer();
     var _ := a.Invoke(1);

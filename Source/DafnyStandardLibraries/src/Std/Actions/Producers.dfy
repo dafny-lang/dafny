@@ -23,105 +23,6 @@ module Std.Producers {
       ensures Seq.ToSet(OutputsOf(history)) <= Set()
   }
 
-  // TODO: Great example but can't build with --enforce-determinism
-  // class SetIProducer<T(==)> extends IProducer<T>, ProducesSetProof<T> {
-  //   ghost const original: set<T>
-  //   var remaining: set<T>
-
-  //   ghost predicate Valid()
-  //     reads this, Repr
-  //     ensures Valid() ==> this in Repr
-  //     ensures Valid() ==> ValidHistory(history)
-  //     decreases height, 0
-  //   {
-  //     && this in Repr
-  //     && ValidHistory(history)
-  //     && remaining == original - Enumerated(history)
-  //   }
-
-  //   constructor(s: set<T>)
-  //     ensures Valid()
-  //     ensures fresh(Repr)
-  //     ensures history == []
-  //     ensures s == original
-  //   {
-  //     original := s;
-  //     remaining := s;
-
-  //     history := [];
-  //     Repr := {this};
-  //     height := 1;
-
-  //     reveal Seq.HasNoDuplicates();
-  //     reveal Seq.ToSet();
-  //   }
-
-  //   ghost function Action(): Action<(), T> {
-  //     this
-  //   }
-
-  //   ghost function Set(): set<T> {
-  //     original
-  //   }
-
-  //   lemma ProducesSet(history: seq<((), T)>)
-  //     requires Action().ValidHistory(history)
-  //     ensures |history| <= |Set()|
-  //     ensures Seq.ToSet(OutputsOf(history)) <= Set()
-  //   {}
-
-  //   ghost function Enumerated(history: seq<((), T)>): set<T> {
-  //     Seq.ToSet(OutputsOf(history))
-  //   }
-
-  //   ghost predicate ValidInput(history: seq<((), T)>, next: ())
-  //     decreases height
-  //   {
-  //     |history| < |original|
-  //   }
-  //   ghost predicate ValidHistory(history: seq<((), T)>)
-  //     decreases height
-  //   {
-  //     && |history| <= |original|
-  //     && Seq.HasNoDuplicates(OutputsOf(history))
-  //     && Enumerated(history) <= original
-  //   }
-
-  //   lemma EnumeratedCardinality()
-  //     requires Valid()
-  //     ensures |Enumerated(history)| == |history|
-  //   {
-  //     reveal Seq.ToSet();
-  //     Seq.LemmaCardinalityOfSetNoDuplicates(OutputsOf(history));
-  //   }
-
-  //   method Invoke(i: ()) returns (o: T)
-  //     requires Requires(i)
-  //     reads Reads(i)
-  //     modifies Modifies(i)
-  //     decreases Decreases(i).Ordinal()
-  //     ensures Ensures(i, o)
-  //   {
-  //     assert Requires(i);
-
-  //     EnumeratedCardinality();
-  //     assert 0 < |remaining|;
-
-  //     o :| o in remaining;
-  //     remaining := remaining - {o};
-
-  //     UpdateHistory(i, o);
-  //     Repr := {this};
-
-  //     assert OutputsOf(history) == OutputsOf(old(history)) + [o];
-  //     reveal Seq.ToSet();
-  //     assert o !in OutputsOf(old(history));
-  //     reveal Seq.HasNoDuplicates();
-  //     Seq.LemmaNoDuplicatesInConcat(OutputsOf(old(history)), [o]);
-  //   }
-
-  // }
-
   class FunctionalIProducer<S, T> extends IProducer<T> {
 
     const stepFn: S -> (S, T)
@@ -229,7 +130,6 @@ module Std.Producers {
         assert forall i <- old(Action().Inputs()) :: i == ();
         InvokeUntilTerminationMetricDecreased@before(r);
       } else {
-        // TODO
         assume {:axiom} Remaining() == old(Remaining());
       }
     }
@@ -422,7 +322,6 @@ module Std.Producers {
         index := index + 1;
       }
       UpdateHistory((), value);
-      // TODO: Doable but annoying
       assume {:axiom} ValidHistory(history);
       assert Valid();
     }
@@ -480,7 +379,6 @@ module Std.Producers {
     ghost predicate ValidHistory(history: seq<((), Option<T>)>)
       decreases height
     {
-      // TODO: Refine
       true
     }
 
@@ -522,7 +420,6 @@ module Std.Producers {
       requires forall i <- InputsOf(history) :: i == FixedInput()
       ensures exists n: nat | n <= Limit() :: Terminated(OutputsOf(history), StopFn(), n)
     {
-      // TODO
       assume {:axiom} Terminated(OutputsOf(history), StopFn(), Limit());
     }
   }
@@ -570,7 +467,6 @@ module Std.Producers {
     ghost predicate ValidHistory(history: seq<((), Option<T>)>)
       decreases height
     {
-      // TODO
       true
     }
 
@@ -604,7 +500,6 @@ module Std.Producers {
       requires forall i <- InputsOf(history) :: i == FixedInput()
       ensures exists n: nat | n <= Limit() :: Terminated(OutputsOf(history), StopFn(), n)
     {
-      // TODO
       assume {:axiom} Terminated(OutputsOf(history), StopFn(), Limit());
     }
   }
@@ -679,7 +574,6 @@ module Std.Producers {
     {
       ValidHistory(history + [(nextInput, nextOutput)])
     }
-    // TODO: needs refinement
     ghost predicate ValidHistory(history: seq<((), Option<T>)>)
       decreases height
     {
@@ -756,7 +650,6 @@ module Std.Producers {
       requires forall i <- InputsOf(history) :: i == FixedInput()
       ensures exists n: nat | n <= Limit() :: Terminated(OutputsOf(history), StopFn(), n)
     {
-      // TODO
       assume {:axiom} false;
     }
   }

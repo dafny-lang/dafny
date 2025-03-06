@@ -280,6 +280,7 @@ module Std.Consumers {
   }
 
   // TODO: This is also a FoldingConsumer([], (x, y) => x + [y])
+  // Or a SeqConsumer?
   @AssumeCrossModuleTermination
   class Collector<T> extends IConsumer<T>, TotalActionProof<T, ()> {
 

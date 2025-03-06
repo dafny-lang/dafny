@@ -3,7 +3,6 @@
  *  SPDX-License-Identifier: MIT
  *******************************************************************************/
 
-// TODO: Relocate under Actions/ instead, I don't think Streams has to be a separate library?
 module Std.Streams {
 
   import opened Wrappers
@@ -23,11 +22,8 @@ module Std.Streams {
   // because there are lots of ways to implement a stream
   // where having to replay forces buffering all previous values in memory,
   // which often defeats the purpose of streaming in the first place.
-  // In particular, boto3 currently (quite implicitly)
-  // requires file-like streams with the ability to seek,
-  // but we don't want to force the same requirements on all streams.
   //
-  // Known limitations:
+  // TODO:
   //
   //  * ContentLength should be an Option<uint64>,
   //    but that currently ends up running into a conflict
@@ -83,9 +79,6 @@ module Std.Streams {
       requires Action().ValidHistory(history)
       requires (forall i <- InputsOf(history) :: i == FixedInput())
       ensures exists n: nat | n <= Limit() :: Terminated(OutputsOf(history), StopFn(), n)
-    // {
-    //   assert Terminated(OutputsOf(history), StopFn(), |Enumerated(OutputsOf(history))|);
-    // }
 
     function Position(): (res: uint64)
       requires Valid()
@@ -181,7 +174,6 @@ module Std.Streams {
       r := wrapped.Next();
       UpdateHistory(t, r);
 
-      // TODO: Work to do
       assume {:axiom} Ensures(t, r);
     }
   }
@@ -268,7 +260,6 @@ module Std.Streams {
     {
       position := newPosition;
       history := [((), Some(s[..position]))];
-      // TODO: work to do
       assume {:axiom} Valid();
     }
 
@@ -281,8 +272,6 @@ module Std.Streams {
     {
       assert Requires(t);
 
-      // TODO: assert Valid() doesn't verify in 4.9.1?
-      assume {:axiom} Valid();
       if position == |s| as uint64 {
         r := None;
       } else {
@@ -294,7 +283,6 @@ module Std.Streams {
       }
       UpdateHistory(t, r);
 
-      // TODO: Work to do
       assume {:axiom} Ensures(t, r);
     }
   }

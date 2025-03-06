@@ -613,25 +613,11 @@ module Std.Actions {
     }
   }
 
-  // TODO for more complicated action composition:
-    //   // Existance proof
-    // ghost function ValidMiddle(composedHistory: seq<(I, O)>): (middle: Option<seq<M>>)
-    //   ensures middle.Some? ==> (
-    //     && |middle.value| == |composedHistory|
-    //     && FirstAction().ValidHistory(Seq.Zip(InputsOf(composedHistory), middle.value))
-    //     && SecondAction().ValidHistory(Seq.Zip(middle.value, OutputsOf(composedHistory)))
-    //   )
-
   // Other primitives/examples todo:
-  //  * CrossProduct(producer of producer1, producer2)
-  //  * Flatten(producer of producers)
   //  * Promise-like single-use Action<I, ()> to capture a value for reading later
   //  * datatype/codatatype-based enumerations
-  //  * How to state the invariant that a constructor as an action creates a new object every time?
-  //    * Lemma that takes produced as input, instead of forall produced?
   //  * Expressing that an Action "Eventually produces something" (look at how VMC models this for randomness)
   //    * Build on that to make CrossProduct(enumerable1, enumerable2)
-  //  * Example of adapting an iterator
   //  * Example of enumerating all possible values of a type (for test generation)
   //    * Needs to handle infinite types too, hence needs the "eventually produces something" concept
   //  * Document: useful pattern to add an Action<Command, Result> facade
