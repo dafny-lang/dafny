@@ -39,8 +39,10 @@ module Std.Streams {
       requires Valid()
       reads this, Repr
 
-    ghost function ConcatenatedOutputsOf(history: seq<((), Option<bytes>)>): bytes {
-      Flatten(Enumerated(OutputsOf(history)))
+    ghost function ConcatenatedOutputsOf(history: seq<((), Option<bytes>)>): bytes
+      requires NoneTerminated(OutputsOf(history))
+    {
+      Flatten(ProducedOf(OutputsOf(history)))
     }
 
     // TODO: refine the specification to relate ContentLength()
@@ -68,17 +70,11 @@ module Std.Streams {
     {
       ValidHistory(history + [(nextInput, nextOutput)])
     }
-    ghost predicate ValidHistory(history: seq<((), Option<bytes>)>)
+    ghost predicate ValidProduced(produced: seq<bytes>)
       decreases height
     {
-      && (forall o <- Enumerated(OutputsOf(history)) :: 0 < |o|)
-      && ConcatenatedOutputsOf(history) <= data
+      Flatten(produced) <= data
     }
-
-    lemma {:axiom} OutputsTerminated(history: seq<((), Option<bytes>)>)
-      requires Action().ValidHistory(history)
-      requires (forall i <- InputsOf(history) :: i == FixedInput())
-      ensures exists n: nat | n <= Limit() :: Terminated(OutputsOf(history), StopFn(), n)
 
     function Position(): (res: uint64)
       requires Valid()
@@ -119,20 +115,16 @@ module Std.Streams {
     {
       ValidHistory(history + [(nextInput, nextOutput)])
     }
-    ghost predicate ValidHistory(history: seq<((), Option<bytes>)>)
+    ghost predicate ValidProduced(produced: seq<bytes>)
       decreases height
     {
-      && (forall o <- Enumerated(OutputsOf(history)) :: 0 < |o|)
+      |produced| <= limit
     }
 
-    lemma {:axiom} OutputsTerminated(history: seq<((), Option<BoundedInts.bytes>)>)
-      requires Action().ValidHistory(history)
-      requires (forall i <- InputsOf(history) :: i == FixedInput())
-      ensures exists n: nat | n <= Limit() :: Terminated(OutputsOf(history), StopFn(), n)
-
-    ghost function Limit(): nat {
-      wrapped.Limit()
-    }
+    lemma ProducesLessThanLimit(produced: seq<bytes>) 
+      requires ValidProduced(produced)
+      ensures |produced| <= limit
+    {}
 
     constructor(wrapped: Producer<BoundedInts.bytes>, length: uint64)
       requires wrapped.Valid()
@@ -143,6 +135,7 @@ module Std.Streams {
       this.wrapped := wrapped;
       this.length := length;
 
+      this.limit := wrapped.limit;
       this.history := [];
       this.Repr := {this} + wrapped.Repr;
       this.height := wrapped.height + 1;
@@ -202,14 +195,10 @@ module Std.Streams {
       && 0 < chunkSize
     }
 
-    lemma {:axiom} OutputsTerminated(history: seq<((), Option<BoundedInts.bytes>)>)
-      requires Action().ValidHistory(history)
-      requires (forall i <- InputsOf(history) :: i == FixedInput())
-      ensures exists n: nat | n <= Limit() :: Terminated(OutputsOf(history), StopFn(), n)
-
-    ghost function Limit(): nat {
-      |s|
-    }
+    lemma ProducesLessThanLimit(produced: seq<bytes>) 
+      requires ValidProduced(produced)
+      ensures |produced| <= limit
+    {}
 
     constructor(s: BoundedInts.bytes, chunkSize: uint64)
       requires |s| <= UINT64_MAX as int
@@ -221,6 +210,7 @@ module Std.Streams {
       this.position := 0;
       this.chunkSize := chunkSize;
 
+      this.limit := |s|;
       this.history := [];
       this.Repr := {this};
       this.height := 1;

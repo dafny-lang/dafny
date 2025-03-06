@@ -215,100 +215,45 @@ module Std.Actions {
     i.ValidHistory(history) <==> forall e <- history :: e.1 == c
   }
 
-  ghost predicate Terminated<I>(s: seq<I>, stop: I -> bool, n: nat) {
-    forall i | 0 <= i < |s| :: n <= i <==> stop(s[i])
-  }
+  // ghost predicate Terminated<I>(s: seq<I>, stop: I -> bool, n: nat) {
+  //   forall i | 0 <= i < |s| :: n <= i <==> stop(s[i])
+  // }
 
-  lemma TerminatedDistributes<I>(left: seq<I>, right: seq<I>, stop: I -> bool, n: nat)
-    requires Terminated(left, stop, |left|)
-    requires Terminated(right, stop, n)
-    ensures Terminated(left + right, stop, |left| + n)
-  {}
+  // lemma TerminatedComposition<I>(left: seq<I>, right: seq<I>, stop: I -> bool, n: nat)
+  //   requires Terminated(left, stop, |left|)
+  //   requires Terminated(right, stop, n)
+  //   ensures Terminated(left + right, stop, |left| + n)
+  // {}
 
-  lemma TerminatedUndistributes<I>(left: seq<I>, right: seq<I>, stop: I -> bool, n: nat)
-    requires Terminated(left + right, stop, n)
-    ensures Terminated(left, stop, n)
-    ensures Terminated(right, stop, Max(0, n - |left|))
-  {
-    assert forall i | 0 <= i < |left| :: left[i] == (left + right)[i];
-    assert forall i | 0 <= i < |right| :: right[i] == (left + right)[i + |left|];
-  }
+  // lemma TerminatedDecomposition<I>(left: seq<I>, right: seq<I>, stop: I -> bool, n: nat)
+  //   requires Terminated(left + right, stop, n)
+  //   ensures Terminated(left, stop, n)
+  //   ensures Terminated(right, stop, Max(0, n - |left|))
+  // {
+  //   assert forall i | 0 <= i < |left| :: left[i] == (left + right)[i];
+  //   assert forall i | 0 <= i < |right| :: right[i] == (left + right)[i + |left|];
+  // }
 
-  trait OutputsTerminatedProof<I, O> extends TotalActionProof<I, O> {
+  // function NonTerminals<I>(produced: seq<I>, stop: I -> bool): seq<I> {
+  //   if |produced| == 0 || stop(produced[0]) then
+  //     []
+  //   else
+  //     [produced[0]] + NonTerminals(produced[1..], stop)
+  // }
 
-    ghost function FixedInput(): I
-    ghost function StopFn(): O -> bool
-    ghost function Limit(): nat
-
-    lemma OutputsTerminated(history: seq<(I, O)>)
-      requires Action().ValidHistory(history)
-      requires forall i <- InputsOf(history) :: i == FixedInput()
-      ensures exists n: nat | n <= Limit() :: Terminated(OutputsOf(history), StopFn(), n)
-
-    // Termination metric
-    ghost function Remaining(): nat
-      requires Action().Valid()
-      requires forall i <- Action().Inputs() :: i == FixedInput()
-      reads Action().Repr
-    {
-      OutputsTerminated(Action().history);
-      var n: nat :| n <= Limit() && Terminated(Action().Outputs(), StopFn(), n);
-      TerminatedDefinesNonTerminalCount(Action().Outputs(), StopFn(), n);
-      Limit() - NonTerminalCount(Action().Outputs(), StopFn())
-    }
-
-    twostate lemma InvokeUntilTerminationMetricDecreased(new nextProduced: O)
-      requires old(Action().Valid())
-      requires Action().Valid()
-      requires forall i <- old(Action().Inputs()) :: i == FixedInput()
-      requires Action().Inputs() == old(Action().Inputs()) + [FixedInput()]
-      requires Action().Outputs() == old(Action().Outputs()) + [nextProduced]
-      requires !StopFn()(nextProduced)
-      ensures Remaining() < old(Remaining())
-    {
-      var before := old(Action().Outputs());
-      var after := Action().Outputs();
-      OutputsTerminated(old(Action().history));
-      var n: nat :| n <= Limit() && Terminated(before, StopFn(), n);
-      OutputsTerminated(Action().history);
-      var m: nat :| m <= Limit() && Terminated(after, StopFn(), m);
-      if n < |before| {
-        assert false by {
-          assert StopFn()(before[|before| - 1]);
-          assert !StopFn()(Action().Outputs()[|Action().Outputs()| - 1]);
-          assert |Action().Outputs()| <= m;
-          assert !StopFn()(Action().Outputs()[|before| - 1]);
-        }
-      } else {
-        TerminatedDefinesNonTerminalCount(before, StopFn(), n);
-        assert NonTerminalCount(before, StopFn()) <= n;
-        TerminatedDistributes(before, [nextProduced], StopFn(), 1);
-        assert Terminated(after, StopFn(), |after|);
-        TerminatedDefinesNonTerminalCount(after, StopFn(), |after|);
-      }
-    }
-  }
-
-  function NonTerminalCount<I>(produced: seq<I>, stop: I -> bool): nat {
-    if |produced| == 0 || stop(produced[0]) then
-      0
-    else
-      1 + NonTerminalCount(produced[1..], stop)
-  }
-
-  lemma TerminatedDefinesNonTerminalCount<I>(s: seq<I>, stop: I -> bool, n: nat)
-    requires Terminated(s, stop, n)
-    ensures NonTerminalCount(s, stop) == Min(|s|, n)
-  {
-    if n == 0 || |s| == 0 {
-    } else {
-      if stop(s[0]) {
-      } else {
-        assert 1 <= NonTerminalCount(s, stop);
-        TerminatedDefinesNonTerminalCount(s[1..], stop, n - 1);
-      }
-    }
-  }
+  // lemma TerminatedDefinesNonTerminalCount<I>(s: seq<I>, stop: I -> bool, n: nat)
+  //   requires Terminated(s, stop, n)
+  //   ensures |NonTerminals(s, stop)| == Min(|s|, n)
+  // {
+  //   if n == 0 || |s| == 0 {
+  //   } else {
+  //     if stop(s[0]) {
+  //     } else {
+  //       assert 1 <= |NonTerminals(s, stop)|;
+  //       TerminatedDefinesNonTerminalCount(s[1..], stop, n - 1);
+  //     }
+  //   }
+  // }
 
   class FunctionAction<I, O> extends Action<I, O> {
 
@@ -421,6 +366,7 @@ module Std.Actions {
       ensures Action().ValidInput(history, next)
     {}
   }
+
   class ComposedAction<I, M, O> extends Action<I, O> {
 
     const first: Action<I, M>
