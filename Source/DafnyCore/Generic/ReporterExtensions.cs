@@ -52,12 +52,12 @@ public static class ErrorReporterExtensions {
 
   public static IEnumerable<DafnyRelatedInformation> CreateDiagnosticRelatedInformationFor(IOrigin token, bool usingSnippets) {
     var innerToken = token;
-    while(innerToken is OriginWrapper wrapper) {
+    while (innerToken is OriginWrapper wrapper) {
       if (innerToken is NestedOrigin nestedOrigin) {
         // Turning this on changes many regression tests, in a way that might be considered good,
         // but it should be turned on in a separate PR
         // There seem to be no LSP tests for this behavior, so turning it off did not affect those.
-        
+
         // var dafnyToken = BoogieGenerator.ToDafnyToken(true, nestedOrigin.Outer);
         // if (!usingSnippets && dafnyToken.IncludesRange) {
         //   if (message == PostConditionFailingMessage) {

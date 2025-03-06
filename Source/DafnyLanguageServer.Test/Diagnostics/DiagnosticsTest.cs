@@ -54,7 +54,7 @@ module B refines A {
       Assert.Equal(new Range(6, 4, 6, 5), startOrdered[0].Range);
       Assert.Equal("a postcondition could not be proved on this return path", startOrdered[0].Message);
       Assert.Equal("this is the postcondition that could not be proved", startOrdered[0].RelatedInformation!.ElementAt(0).Message);
-      Assert.Equal(new Range(12, 6, 12, 11), startOrdered[1].Range);
+      Assert.Equal(new Range(12, 7, 12, 8), startOrdered[1].Range);
       Assert.Equal("decreases clause might not decrease", startOrdered[1].Message);
       Assert.Equal(new Range(17, 0, 27, 1), startOrdered[1].RelatedInformation!.ElementAt(0).Location.Range);
       Assert.Equal("refining module", startOrdered[1].RelatedInformation.ElementAt(0).Message);
@@ -622,7 +622,7 @@ method Multiply(x: int, y: int) returns (product: int)
       Assert.Single(diagnostics[0].RelatedInformation);
       var relatedInformation = diagnostics[0].RelatedInformation.First();
       Assert.Equal("this is the postcondition that could not be proved", relatedInformation.Message);
-      Assert.Equal(new Range(new Position(2, 38), new Position(2, 40)), relatedInformation.Location.Range);
+      Assert.Equal(new Range(new Position(2, 30), new Position(2, 42)), relatedInformation.Location.Range);
       await AssertNoDiagnosticsAreComing(CancellationToken);
     }
 
@@ -944,8 +944,8 @@ class Test {
       var relatedInformation = diagnostics[0].RelatedInformation.ToArray();
       Assert.Equal(2, relatedInformation.Length);
       Assert.Equal("this is the postcondition that could not be proved", relatedInformation[0].Message);
-      Assert.Equal(new Range((14, 21), (14, 22)), relatedInformation[0].Location.Range);
-      Assert.Equal(new Range(9, 13, 9, 14), relatedInformation[1].Location.Range);
+      Assert.Equal(new Range((14, 16), (14, 23)), relatedInformation[0].Location.Range);
+      Assert.Equal(new Range(9, 11, 9, 16), relatedInformation[1].Location.Range);
       await AssertNoDiagnosticsAreComing(CancellationToken);
     }
 
