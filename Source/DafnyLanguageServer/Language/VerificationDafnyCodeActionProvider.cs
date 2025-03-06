@@ -31,7 +31,7 @@ class VerificationDafnyCodeActionProvider : DiagnosticDafnyCodeActionProvider {
       return null;
     }
 
-    var range = FindTokenRangeFromLspRange(input, relatedInformation.Location.Range);
+    var range = FindTokenRangeFromLspRange(input, relatedInformation.Location.Range, true);
     if (range == null) {
       return null;
     }
