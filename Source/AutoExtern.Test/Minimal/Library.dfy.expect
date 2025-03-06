@@ -1,19 +1,19 @@
 ﻿
-  trait {:compile false} {:extern} Intf {
+  trait {:compile false} {:extern} Intf extends object {
     var {:extern "Prop"} Intf_Prop: System.String // interface property
   }
 
-  trait {:compile false} {:extern} Impl extends Intf {
+  trait {:compile false} {:extern} Impl extends object, Intf {
     var Field: System.int32
     var Prop: System.String // property
   }
 
-  trait {:compile false} {:extern} ICanClone<T> {
+  trait {:compile false} {:extern} ICanClone<T> extends object {
   }
 
-  trait {:compile false} {:extern} Base {
+  trait {:compile false} {:extern} Base extends object {
   }
 
-  trait {:compile false} {:extern} Derived {
+  trait {:compile false} {:extern} Derived extends object {
   }
 
