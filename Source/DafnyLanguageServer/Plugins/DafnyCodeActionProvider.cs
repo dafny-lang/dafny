@@ -99,6 +99,14 @@ public abstract class DiagnosticDafnyCodeActionProvider : DafnyCodeActionProvide
       return null;
     }
 
-    return startNode.Origin;
+    var startToken = startNode.CoveredTokens.FirstOrDefault(t => t.line - 1 == start.Line && t.col - 1 == start.Character);
+    if (startToken == null) {
+      logger.LogError($"Could not find starting token for position {start} in node {startNode}");
+      return null;
+    }
+    var end = range.End;
+    var endNode = input.Program.FindNode<Node>(input.Uri.ToUri(), end.ToDafnyPosition());
+    var endToken = endNode.CoveredTokens.FirstOrDefault(t => t.line - 1 == end.Line && t.col - 1 + t.val.Length == end.Character);
+    return new SourceOrigin(startToken, endToken);
   }
 }

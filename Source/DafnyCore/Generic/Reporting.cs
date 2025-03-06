@@ -19,9 +19,7 @@ namespace Microsoft.Dafny {
 
   public record DafnyRelatedInformation(Location Location, string Message);
 
-  public class ErrorReporterSink : ErrorReporter {
-    public ErrorReporterSink(DafnyOptions options) : base(options) { }
-
+  public class ErrorReporterSink(DafnyOptions options) : ErrorReporter(options) {
     public override bool MessageCore(DafnyDiagnostic dafnyDiagnostic) {
       return false;
     }

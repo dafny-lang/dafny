@@ -16,7 +16,7 @@ public static class ErrorReporterExtensions {
         error.Msg += "\n" + auxiliaryInformation.FullMsg;
       } else if (auxiliaryInformation.Category == RelatedLocationCategory) {
         var auxiliaryToken = BoogieGenerator.ToDafnyToken(true, auxiliaryInformation.Tok);
-        relatedInformation.Add(new DafnyRelatedInformation(auxiliaryToken.Center, auxiliaryInformation.Msg));
+        relatedInformation.Add(new DafnyRelatedInformation(auxiliaryToken.GetLocation(), auxiliaryInformation.Msg));
         relatedInformation.AddRange(CreateDiagnosticRelatedInformationFor(auxiliaryToken, usingSnippets));
       } else {
         // The execution trace is an additional auxiliary which identifies itself with
@@ -67,7 +67,7 @@ public static class ErrorReporterExtensions {
         //     message = FormatRelated(dafnyToken.PrintOriginal());
         //   }
         // }
-        yield return new DafnyRelatedInformation(nestedOrigin.Inner.Center, nestedOrigin.Message);
+        yield return new DafnyRelatedInformation(nestedOrigin.Inner.GetLocation(), nestedOrigin.Message);
         innerToken = nestedOrigin.Inner;
       } else {
         innerToken = wrapper.WrappedToken;
