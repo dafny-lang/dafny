@@ -696,7 +696,7 @@ namespace Microsoft.Dafny {
                 // to BVD what this variable stands for and display it as such to the user.
                 Type et = p.Type.Subst(e.GetTypeArgumentSubstitutions());
                 LocalVariable local = new LocalVariable(p.Origin, "##" + p.Name, et, p.IsGhost);
-                local.type = local.SyntacticType;  // resolve local here
+                local.type = local.SafeSyntacticType;  // resolve local here
                 var ie = new IdentifierExpr(local.Origin, local.AssignUniqueName(CurrentDeclaration.IdGenerator)) {
                   Var = local
                 };
@@ -1544,7 +1544,8 @@ namespace Microsoft.Dafny {
           builder.Add(ifCmd);
 
           var bounds = lhsVars.ConvertAll(_ => (BoundedPool)new SpecialAllocIndependenceAllocatedBoundedPool());  // indicate "no alloc" (is this what we want?)
-          GenerateAndCheckGuesses(e.Origin, lhsVars, bounds, e.RHSs[0], TrTrigger(etran, e.Attributes, e.Origin), builder, etran);
+          GenerateAndCheckGuesses(e.Origin, lhsVars, bounds, e.RHSs[0], e.Attributes, Attributes.Contains(e.Attributes, "_noAutoTriggerFound"),
+            builder, etran);
         }
         // assume typeAntecedent(b);
         builder.Add(TrAssumeCmd(e.Origin, typeAntecedent));

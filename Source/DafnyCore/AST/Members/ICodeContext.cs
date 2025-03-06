@@ -102,7 +102,7 @@ public class CallableWrapper : CodeContextWrapper, ICallable {
   public bool AllowsAllocation => CwInner.AllowsAllocation;
 
   public bool SingleFileToken => CwInner.SingleFileToken;
-  public IEnumerable<IOrigin> OwnedTokens => CwInner.OwnedTokens;
+  public IEnumerable<Token> OwnedTokens => CwInner.OwnedTokens;
   public IOrigin Origin => CwInner.Origin;
   public IOrigin NavigationToken => CwInner.NavigationToken;
   public SymbolKind? Kind => CwInner.Kind;

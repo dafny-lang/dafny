@@ -45,7 +45,8 @@ ParameterResolution.dfy(163,13): Error: a refining formal parameter ('x') in a r
 ParameterResolution.dfy(172,14): Error: a refining formal parameter ('x') in a refinement module is not allowed to give a default-value expression
 ParameterResolution.dfy(174,12): Error: a refining formal parameter ('x') in a refinement module is not allowed to give a default-value expression
 ParameterResolution.dfy(169,12): Error: wrong number of arguments (got 0, but function 'O' expects 1: (x: int))
-ParameterResolution.dfy[RefinementB](147,12): Error: wrong number of arguments (got 0, but function 'O' expects 1: (x: int))
+ParameterResolution.dfy(147,12): Error: wrong number of arguments (got 0, but function 'O' expects 1: (x: int))
+ParameterResolution.dfy(160,7): Related location: refining module
 ParameterResolution.dfy(193,22): Error: type parameter 'X' (inferred to be '?') in the function call to 'F' could not be determined
 ParameterResolution.dfy(194,14): Error: type parameter 'X' (inferred to be '?') in the function call to 'F' could not be determined
 ParameterResolution.dfy(196,30): Error: type parameter 'X' (inferred to be '?') in the function call to 'F' could not be determined

@@ -497,11 +497,31 @@ module RAST
       visibility.ToString() + fn.ToString(ind)
     }
   }
-  datatype Attribute = RawAttribute(content: string) {
+  datatype Attribute =
+    | ApplyAttribute(name: string, derived: seq<string>) {
+    static const DeriveClone :=
+      ApplyAttribute("derive", ["Clone"])
+    static const DeriveCloneAndCopy :=
+      ApplyAttribute("derive", ["Clone", "Copy"])
+    static const CfgTest :=
+      ApplyAttribute("cfg", ["test"])
+    static function Name(name: string): Attribute {
+      ApplyAttribute(name, [])
+    }
+
+    function ToString(ind: string): string {
+      match this {
+        case ApplyAttribute(name, derived) =>
+          var arguments := if |derived| != 0 then
+                             "("+SeqToString(derived, (derived: string) => derived, ", ")+")"
+                           else "";
+          "#["+name+arguments+"]"
+      }
+    }
     static function ToStringMultiple(attributes: seq<Attribute>, ind: string): string {
       SeqToString(
         attributes,
-        (attribute: Attribute) => attribute.content + "\n" + ind)
+        (attribute: Attribute) => attribute.ToString(ind) + "\n" + ind)
     }
   }
 
@@ -679,6 +699,8 @@ module RAST
 
   const BoxPath := std.MSel("boxed").MSel("Box")
 
+  const BoxType := BoxPath.AsType()
+
   const Ptr := PtrPath.AsExpr()
 
   function PtrType(underlying: Type): Type {
@@ -718,6 +740,13 @@ module RAST
     | Self()   // Self::...
     | PMemberSelect(base: Path, name: string)
   {
+    static const DowncastPrefix := "_Downcast_"
+    function ToDowncast(): Path {
+      match this {
+        case PMemberSelect(base, name) => PMemberSelect(base, DowncastPrefix + name)
+        case _ => this
+      }
+    }
     function MSel(name: string): Path {
       PMemberSelect(this, name)
     }
@@ -773,6 +802,55 @@ module RAST
     | TSynonym(display: Type, base: Type)
     | TMetaData(display: Type, nameonly copySemantics: bool, nameonly overflow: bool)
   {
+    /** Removes the synonym and metadata elements of a type */
+    function RemoveSynonyms(): (t: Type)
+      ensures t == this || t < this
+    {
+      match this {
+        case TSynonym(display, base) =>
+          display.RemoveSynonyms()
+        case TMetaData(display, _, _) =>
+          display.RemoveSynonyms()
+        case _ =>
+          this
+      }
+    }
+    /** Given a type, returns the _Downcast_* prefix version of that type */
+    function ToDowncast(): Option<Type> {
+      var t := this.RemoveSynonyms();
+      if t.IsRc() then t.RcUnderlying().ToDowncast() else // For Rc-wrapped datatypes
+      if t.IsBoxDyn() then t.BoxDynUnderlying().ToDowncast() else // For general traits
+      match t {
+        case TypeFromPath(path) => Some(TypeFromPath(path.ToDowncast()))
+        case TypeApp(baseName, arguments) =>
+          var baseNameExpr :- baseName.ToDowncast();
+          Some(baseNameExpr.Apply(arguments))
+        case TIdentifier(name) =>
+          Some(TIdentifier(Path.DowncastPrefix + name))
+        case _ => None
+      }
+    }
+    /** Given a type, returns the _Downcast_* prefix version of that type but suitable to call methods */
+    function ToDowncastExpr(): Option<Expr> {
+      var tpe :- this.ToDowncast();
+      tpe.ToExpr()
+    }
+    /** Converts Name<Args...> (the type) to Name::<Args...> (the expr) */
+    function ToExpr(): Option<Expr> {
+      match this {
+        case TypeFromPath(path) => Some(ExprFromPath(path))
+        case TypeApp(baseName, arguments) =>
+          var baseNameExpr :- baseName.ToExpr();
+          Some(baseNameExpr.ApplyType(arguments))
+        case TSynonym(display, base) =>
+          display.ToExpr()
+        case TMetaData(display, _, _) =>
+          display.ToExpr()
+        case TIdentifier(name) =>
+          Some(Identifier(name))
+        case _ => None
+      }
+    }
     function Expand(): (r: Type)
       ensures !r.TSynonym? && !r.TMetaData? && (!TSynonym? && !TMetaData? ==> r == this)
     {
@@ -1106,13 +1184,29 @@ module RAST
       }
     }
 
+    /** Returns true if the type has the shape Rc<T>, so that one can extract T = .arguments[0]
+      * Useful to detect rc-wrapped datatypes */
     predicate IsRc() {
       TypeApp? && (baseName == RcType || baseName == ArcType) && |arguments| == 1
     }
-    function RcUnderlying(): Type
+    function RcUnderlying(): (t: Type)
       requires IsRc()
+      ensures t < this
     {
       arguments[0]
+    }
+
+    /** Returns true if the type has the shape Box<dyn T>, so that one can extract T = .arguments[0].underlying
+      * Useful to detect general traits */
+    predicate IsBoxDyn() {
+      this.TypeApp? && this.baseName == BoxType && |arguments| == 1 && arguments[0].DynType?
+    }
+
+    function BoxDynUnderlying(): (t: Type)
+      requires IsBoxDyn()
+      ensures t < this
+    {
+      arguments[0].underlying
     }
   }
 
@@ -1135,6 +1229,7 @@ module RAST
   const DafnyTypeEq := dafny_runtime.MSel("DafnyTypeEq").AsType()
   const Eq := std.MSel("cmp").MSel("Eq").AsType()
   const Hash := std.MSel("hash").MSel("Hash").AsType()
+  const PartialEq := std.MSel("cmp").MSel("PartialEq").AsType()
   const DafnyInt := dafny_runtime.MSel("DafnyInt").AsType()
   const SyncType := std.MSel("marker").MSel("Sync").AsType()
   const SendType := std.MSel("marker").MSel("Send").AsType()
@@ -1633,6 +1728,8 @@ module RAST
                 PrecedenceAssociativity(9, LeftToRight)
               else
                 PrecedenceAssociativity(110, RightToLeft)
+            case "=>" => // Not a Rust operation, used in the map macro syntax
+              PrecedenceAssociativity(120, RightToLeft)
             case _ => PrecedenceAssociativity(0, RequiresParentheses)
           }
         case Lambda(_, _, _) => PrecedenceAssociativity(300, LeftToRight)
@@ -1853,6 +1950,13 @@ module RAST
           assert r.RawExpr?; AddIndent(r.content, ind)
       }
     }
+    function And(rhs2: Expr): Expr {
+      if this == LiteralBool(true) then rhs2 else
+      BinaryOp("&&", this, rhs2, Format.BinaryOpFormat.NoFormat)
+    }
+    function Equals(rhs2: Expr): Expr {
+      BinaryOp("==", this, rhs2, Format.BinaryOpFormat.NoFormat)
+    }
     function Then(rhs2: Expr): Expr {
       if this.StmtExpr? then
         StmtExpr(stmt, rhs.Then(rhs2))
@@ -1966,6 +2070,19 @@ module RAST
           body.ToString(ind + IND) +
           "\n" + ind + "}"
       }
+    }
+  }
+  predicate IsBorrowUpcastBox(r: Expr) {
+    match r {
+      case UnaryOp("&", Call(Call(CallType(name, targs0), args0), args1), _) =>
+        name == dafny_runtime.MSel("upcast_box").AsExpr() && |args0| == 0 &&
+        |args1| == 1 &&
+        match args1[0] {
+          case Call(Select(Identifier("self"), clone), args2) =>
+            |args2| == 0
+          case _ => false
+        }
+      case _ => false
     }
   }
 

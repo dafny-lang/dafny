@@ -1,3 +1,4 @@
+#nullable enable
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 using System.Linq;
@@ -7,11 +8,11 @@ namespace Microsoft.Dafny;
 public class NameSegment : ConcreteSyntaxExpression, ICloneable<NameSegment>, ICanFormat {
   public readonly string Name;
   public Name NameNode => new Name(Origin, Name);
-  public readonly List<Type> OptTypeArguments;
-  public NameSegment(IOrigin origin, string name, List<Type> optTypeArguments)
+  public readonly List<Type>? OptTypeArguments;
+
+  [SyntaxConstructor]
+  public NameSegment(IOrigin origin, string name, List<Type>? optTypeArguments)
     : base(origin) {
-    Contract.Requires(origin != null);
-    Contract.Requires(name != null);
     Contract.Requires(optTypeArguments == null || optTypeArguments.Count > 0);
     Name = name;
     OptTypeArguments = optTypeArguments;

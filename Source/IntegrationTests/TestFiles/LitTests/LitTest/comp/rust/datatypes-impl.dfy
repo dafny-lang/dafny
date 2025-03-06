@@ -1,5 +1,5 @@
 // NONUNIFORM: Tests generation of print, and equality in Rust for function / non-(==) type members
-// RUN: %baredafny run --target=rs "%s" > "%t"
+// RUN: %baredafny run --target=rs --enforce-determinism "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 datatype F = F(i: nat, f: int -> int)

@@ -90,9 +90,8 @@ namespace DafnyTestGeneration {
     private static void AddVerificationGoalsToEntryPoints(Program program) {
       foreach (var entryPoint in Utils.AllMemberDeclarationsWithAttribute(program.DefaultModule,
                  TestGenerationOptions.TestEntryAttribute)) {
-        var trivialAssertion = new AssertStmt(entryPoint.Origin,
-          new LiteralExpr(entryPoint.StartToken, true), null, null);
-        if (entryPoint is Method method && method.Body != null && method.Body.Body != null) {
+        var trivialAssertion = new AssertStmt(entryPoint.Origin, new LiteralExpr(entryPoint.StartToken, true), null, null);
+        if (entryPoint is Method method && method.Body != null && method.Body?.Body != null) {
           method.Body.Body.Insert(0, trivialAssertion);
         } else if (entryPoint is Function function && function.Body != null) {
           function.Body = new StmtExpr(entryPoint.StartToken, trivialAssertion, function.Body);

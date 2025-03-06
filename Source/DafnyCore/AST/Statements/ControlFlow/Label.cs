@@ -13,9 +13,9 @@ public class Label {
     }
     return uniqueId;
   }
-  public Label(IOrigin tok, string/*?*/ label) {
+  public Label(IOrigin tok, string/*?*/ name) {
     Contract.Requires(tok != null);
     Tok = tok;
-    Name = label;
+    Name = name;
   }
 }

@@ -363,7 +363,7 @@ namespace Microsoft.Dafny {
             PrintAttributes(local.Attributes, AtAttributesOnSameLineIndent, () => { });
           }
           wr.Write(" {0}", local.DisplayName);
-          PrintType(": ", local.SyntacticType);
+          PrintType(": ", local.SafeSyntacticType);
           sep = ",";
         }
         if (s.Assign != null) {
