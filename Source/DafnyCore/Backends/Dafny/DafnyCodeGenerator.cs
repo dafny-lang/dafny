@@ -70,7 +70,7 @@ namespace Microsoft.Dafny.Compilers {
       if (emitUncompilableCode && currentBuilder is Container container) {
         container.AddUnsupported($"{TokenToString(tok)}: {why}");
       } else {
-        throw new UnsupportedInvalidOperationException(why);
+        throw new UnsupportedInvalidOperationException($"{TokenToString(tok)}: {why}");
       }
     }
 
