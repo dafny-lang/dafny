@@ -143,7 +143,7 @@ public class SymbolTable {
       return null;
     }
 
-    var character = new Range(position, new Position(position.Line, position.Character + 1));
+    var character = new Range(position, new Position(position.Line, position.Character));
     var options = forFile.Query(position)
       .Where(n => n.Center.Range.Contains(character)).OrderBy(o => o.Length);
     return options

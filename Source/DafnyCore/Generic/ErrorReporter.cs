@@ -41,7 +41,7 @@ public abstract class ErrorReporter {
     return MessageCore(source, level, errorId, tok, msg);
   }
 
-  protected bool MessageCore(MessageSource source, ErrorLevel level, string errorId, IOrigin rootTok, string msg) {
+  public bool MessageCore(MessageSource source, ErrorLevel level, string errorId, IOrigin rootTok, string msg) {
     if (ErrorsOnly && level != ErrorLevel.Error) {
       return false;
     }
