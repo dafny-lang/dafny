@@ -60,8 +60,8 @@ namespace Microsoft.Dafny.Compilers {
       Feature.RuntimeCoverageReport
     };
 
-    private List<DatatypeDecl> datatypeDecls = new();
-    private List<string> classDefaults = new();
+    private List<DatatypeDecl> datatypeDecls = [];
+    private List<string> classDefaults = [];
 
     /*
      * Unlike other Dafny and Dafny's other backends, C++ cares about
@@ -149,7 +149,7 @@ namespace Microsoft.Dafny.Compilers {
     public override void EmitCallToMain(Method mainMethod, string baseName, ConcreteSyntaxTree wr) {
       var w = wr.NewBlock("int main(int argc, char *argv[])");
       var tryWr = w.NewBlock("try");
-      tryWr.WriteLine(string.Format("{0}::{1}::{2}(dafny_get_args(argc, argv));", mainMethod.EnclosingClass.EnclosingModuleDefinition.GetCompileName(Options), mainMethod.EnclosingClass.GetCompileName(Options), mainMethod.Name));
+      tryWr.WriteLine(string.Format("{0}::{1}::{2}(dafny_get_args(argc, argv));", mainMethod.EnclosingClass.EnclosingModuleDefinition.GetCompileName(Options), clName(mainMethod.EnclosingClass), mainMethod.Name));
       var catchWr = w.NewBlock("catch (DafnyHaltException & e)");
       catchWr.WriteLine("std::cout << \"Program halted: \" << e.what() << std::endl;");
     }
@@ -226,9 +226,18 @@ namespace Microsoft.Dafny.Compilers {
 
     protected override string GetHelperModuleName() => "_dafny";
 
-    protected override IClassWriter CreateClass(string moduleName, string name, bool isExtern, string/*?*/ fullPrintName, List<TypeParameter>/*?*/ typeParameters, TopLevelDecl cls, List<Type>/*?*/ superClasses, IOrigin tok, ConcreteSyntaxTree wr) {
+    private string clName(TopLevelDecl cl) {
+      var className = IdName(cl);
+      if (cl is ClassDecl || cl is DefaultClassDecl) {
+        return className;
+      }
+      return "class_" + className;
+    }
+
+    protected override IClassWriter CreateClass(string moduleName, bool isExtern, string/*?*/ fullPrintName, List<TypeParameter>/*?*/ typeParameters, TopLevelDecl cls, List<Type>/*?*/ superClasses, IOrigin tok, ConcreteSyntaxTree wr) {
+      var className = clName(cls);
       if (isExtern) {
-        throw new UnsupportedFeatureException(tok, Feature.ExternalClasses, String.Format("extern in class {0}", name));
+        throw new UnsupportedFeatureException(tok, Feature.ExternalClasses, String.Format("extern in class {0}", className));
       }
       if (superClasses != null && superClasses.Any(trait => !trait.IsObject)) {
         throw new UnsupportedFeatureException(tok, Feature.Traits);
@@ -242,17 +251,17 @@ namespace Microsoft.Dafny.Compilers {
         classDefWriter.WriteLine(DeclareTemplate(typeParameters));
       }
 
-      var methodDeclWriter = classDefWriter.NewBlock(string.Format("class {0}", name), ";");
+      var methodDeclWriter = classDefWriter.NewBlock(string.Format("class {0}", className), ";");
       var methodDefWriter = wr;
 
-      classDeclWriter.WriteLine("class {0};", name);
+      classDeclWriter.WriteLine("class {0};", className);
 
       methodDeclWriter.Write("public:\n");
       methodDeclWriter.WriteLine("// Default constructor");
-      methodDeclWriter.WriteLine("{0}() {{}}", name);
+      methodDeclWriter.WriteLine("{0}() {{}}", className);
 
       // Create the code for the specialization of get_default
-      var fullName = moduleName + "::" + name;
+      var fullName = moduleName + "::" + className;
       var getDefaultStr = String.Format("template <{0}>\nstruct get_default<std::shared_ptr<{1}{2} > > {{\n",
         TypeParameters(typeParameters),
         fullName,
@@ -266,7 +275,7 @@ namespace Microsoft.Dafny.Compilers {
 
       var fieldWriter = methodDeclWriter;
 
-      return new ClassWriter(name, this, methodDeclWriter, methodDefWriter, fieldWriter, wr);
+      return new ClassWriter(className, this, methodDeclWriter, methodDefWriter, fieldWriter, wr);
     }
 
     protected override bool SupportsProperties { get => false; }
@@ -615,8 +624,8 @@ namespace Microsoft.Dafny.Compilers {
       } else {
         throw new UnsupportedFeatureException(nt.Origin, Feature.NonNativeNewtypes);
       }
-      var className = "class_" + IdName(nt);
-      var cw = CreateClass(nt.EnclosingModuleDefinition.GetCompileName(Options), className, nt, wr) as ClassWriter;
+      var cw = CreateClass(nt.EnclosingModuleDefinition.GetCompileName(Options), nt, wr) as ClassWriter;
+      var className = clName(nt);
       var w = cw.MethodDeclWriter;
       if (nt.WitnessKind == SubsetTypeDecl.WKind.Compiled) {
         var witness = new ConcreteSyntaxTree(w.RelativeIndentLevel);
@@ -632,7 +641,7 @@ namespace Microsoft.Dafny.Compilers {
 
       GetNativeInfo(nt.NativeType.Sel, out var nt_name, out var literalSuffice, out var needsCastAfterArithmetic);
       var wDefault = w.NewBlock(string.Format("static {0} get_Default()", nt_name));
-      var udt = new UserDefinedType(nt.Origin, nt.Name, nt, new List<Type>());
+      var udt = new UserDefinedType(nt.Origin, nt.Name, nt, []);
       var d = TypeInitializationValue(udt, wr, nt.Origin, false, false);
       wDefault.WriteLine("return {0};", d);
 
@@ -653,8 +662,8 @@ namespace Microsoft.Dafny.Compilers {
 
       this.modDeclWr.WriteLine("{0} using {1} = {2};", templateDecl, IdName(sst), TypeName(sst.Var.Type, wr, sst.Origin));
 
-      var className = "class_" + IdName(sst);
-      var cw = CreateClass(sst.EnclosingModuleDefinition.GetCompileName(Options), className, sst, wr) as ClassWriter;
+      var cw = CreateClass(sst.EnclosingModuleDefinition.GetCompileName(Options), sst, wr) as ClassWriter;
+      var className = clName(sst);
       var w = cw.MethodDeclWriter;
 
       if (sst.WitnessKind == SubsetTypeDecl.WKind.Compiled) {
@@ -785,7 +794,7 @@ namespace Microsoft.Dafny.Compilers {
 
       wr.Write("{0} {1}{2}::{3}",
         targetReturnTypeReplacement ?? "void",
-        m.EnclosingClass.GetCompileName(Options),
+        clName(m.EnclosingClass),
         InstantiateTemplate(m.EnclosingClass.TypeArgs),
         IdName(m));
 
@@ -1043,7 +1052,7 @@ namespace Microsoft.Dafny.Compilers {
       } else if (cl is NewtypeDecl) {
         var td = (NewtypeDecl)cl;
         if (td.Witness != null) {
-          return td.EnclosingModuleDefinition.GetCompileName(Options) + "::class_" + td.GetCompileName(Options) + "::Witness";
+          return td.EnclosingModuleDefinition.GetCompileName(Options) + "::" + clName(td) + "::Witness";
         } else if (td.NativeType != null) {
           return "0";
         } else {
@@ -1052,7 +1061,7 @@ namespace Microsoft.Dafny.Compilers {
       } else if (cl is SubsetTypeDecl) {
         var td = (SubsetTypeDecl)cl;
         if (td.WitnessKind == SubsetTypeDecl.WKind.Compiled) {
-          return td.EnclosingModuleDefinition.GetCompileName(Options) + "::class_" + td.GetCompileName(Options) + "::Witness";
+          return td.EnclosingModuleDefinition.GetCompileName(Options) + "::" + clName(td) + "::Witness";
         } else if (td.WitnessKind == SubsetTypeDecl.WKind.Special) {
           // WKind.Special is only used with -->, ->, and non-null types:
           Contract.Assert(ArrowType.IsPartialArrowTypeName(td.Name) || ArrowType.IsTotalArrowTypeName(td.Name) || td is NonNullTypeDecl);
@@ -1762,7 +1771,7 @@ namespace Microsoft.Dafny.Compilers {
         // This used to work, but now obj comes in wanting to use TypeName on the class, which results in (std::shared_ptr<_module::MyClass>)::c;
         //return SuffixLvalue(obj, "::{0}", member.CompileName);
         return SimpleLvalue(wr => {
-          wr.Write("{0}::{1}::{2}", IdProtect(member.EnclosingClass.EnclosingModuleDefinition.GetCompileName(Options)), IdProtect(member.EnclosingClass.GetCompileName(Options)), IdProtect(member.GetCompileName(Options)));
+          wr.Write("{0}::{1}::{2}", IdProtect(member.EnclosingClass.EnclosingModuleDefinition.GetCompileName(Options)), IdProtect(clName(member.EnclosingClass)), IdProtect(member.GetCompileName(Options)));
         });
       } else if (member is DatatypeDestructor dtor && dtor.EnclosingClass is TupleTypeDecl) {
         return SuffixLvalue(obj, ".get<{0}>()", dtor.Name);

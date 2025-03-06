@@ -12,8 +12,10 @@ module RAST
   // Past that, we use Dafny system tuples (see https://www.reddit.com/r/rust/comments/11gvkda/why_rust_std_only_provides_trait_implementation/)
   const MAX_TUPLE_SIZE := 12
 
-  // Default Indentation
-  const IND := "  "
+  // Default Rust-like indentation
+  const IND := "    "
+
+  const DocStringPrefix: string := "/// "
 
   datatype RASTTopDownVisitor<!T(!new)> =
     RASTTopDownVisitor(
@@ -351,9 +353,61 @@ module RAST
     else FoldLeft(f, f(init, xs[0]), xs[1..])
   }
 
+  function GatherSimpleQuotes(docstring: string, acc: string := ""): (r: string)
+    ensures |r| <= |acc| + |docstring|
+  {
+    if |docstring| == 0 || docstring[0] != '`' then acc else
+    GatherSimpleQuotes(docstring[1..], acc + "`")
+  }
+
+  // Converts Dafny docstring into Rust docstring that won't normally cause issue with `cargo doc`
+  // - Escape blocks ```...``` to ```dafny ...``` but keep ```rs...``` intact
+  // - Every line starting with 4 or more spaces gets its first space replaced by a `|`
+  function ConvertDocstring(dafnyDocstring: string, ind: string, newlineStarted: bool := true, codeMarker: Option<string> := None): string {
+    if |dafnyDocstring| == 0 then dafnyDocstring
+    else if dafnyDocstring[0] == '\n' then
+      "\n" + ind + DocStringPrefix + ConvertDocstring(dafnyDocstring[1..], ind, true, codeMarker)
+    else if dafnyDocstring[0] == ' ' then
+      if codeMarker.None? && newlineStarted && |dafnyDocstring| > 4 && dafnyDocstring[..4] == "    " then
+        "|   " + ConvertDocstring(dafnyDocstring[4..], ind, false, codeMarker)
+      else
+        " " + ConvertDocstring(dafnyDocstring[1..], ind, newlineStarted, codeMarker)
+    else if newlineStarted then
+      if && codeMarker.Some?
+         && |dafnyDocstring| >= |codeMarker.value| + 1
+         && dafnyDocstring[..|codeMarker.value| + 1] == codeMarker.value + "\n" then
+        // End of code delimiter
+        codeMarker.value + ConvertDocstring(dafnyDocstring[|codeMarker.value|..], ind, false, None)
+      else if codeMarker.None? && |dafnyDocstring| >= 3 then
+        var prefix := dafnyDocstring[..3];
+        if prefix == "```" then
+          var prefix := GatherSimpleQuotes(dafnyDocstring);
+          var remaining := dafnyDocstring[|prefix|..];
+          if |remaining| == 0 || remaining[0] == ' ' || remaining[0] == '\n' then
+            // ``` becomes ```dafny
+            // It's Dafny docstring, we want to ensure we add the Dafny identifier there
+            prefix + "dafny" + ConvertDocstring(dafnyDocstring[|prefix|..], ind, false, Some(prefix))
+          else if && |remaining| >= 3
+                  && remaining[..2] == "rs"
+                  && (remaining[2] == ' ' || remaining[2] == '\n') then
+            // ```rs becomes ```
+            prefix + ConvertDocstring(dafnyDocstring[|prefix|+2..], ind, false, Some(prefix))
+          else
+            prefix + ConvertDocstring(dafnyDocstring[|prefix|..], ind, false, Some(prefix))
+        else
+          dafnyDocstring[..1] + ConvertDocstring(dafnyDocstring[1..], ind, false, codeMarker)
+      else if && codeMarker.Some?
+              && |codeMarker.value| <= |dafnyDocstring|
+              && dafnyDocstring[..|codeMarker.value|] == codeMarker.value then
+        codeMarker.value + ConvertDocstring(dafnyDocstring[|codeMarker.value|..], ind, false, None)
+      else
+        dafnyDocstring[..1] + ConvertDocstring(dafnyDocstring[1..], ind, false, codeMarker)
+    else
+      dafnyDocstring[..1] + ConvertDocstring(dafnyDocstring[1..], ind, false, codeMarker)
+  }
   function ToDocstringPrefix(docString: string, ind: string): string {
     if docString == "" then "" else
-    "/// " + AddIndent(docString, ind + "/// ") + "\n" + ind
+    DocStringPrefix + ConvertDocstring(docString, ind) + "\n" + ind
   }
 
   datatype Mod =
@@ -443,11 +497,31 @@ module RAST
       visibility.ToString() + fn.ToString(ind)
     }
   }
-  datatype Attribute = RawAttribute(content: string) {
+  datatype Attribute =
+    | ApplyAttribute(name: string, derived: seq<string>) {
+    static const DeriveClone :=
+      ApplyAttribute("derive", ["Clone"])
+    static const DeriveCloneAndCopy :=
+      ApplyAttribute("derive", ["Clone", "Copy"])
+    static const CfgTest :=
+      ApplyAttribute("cfg", ["test"])
+    static function Name(name: string): Attribute {
+      ApplyAttribute(name, [])
+    }
+
+    function ToString(ind: string): string {
+      match this {
+        case ApplyAttribute(name, derived) =>
+          var arguments := if |derived| != 0 then
+                             "("+SeqToString(derived, (derived: string) => derived, ", ")+")"
+                           else "";
+          "#["+name+arguments+"]"
+      }
+    }
     static function ToStringMultiple(attributes: seq<Attribute>, ind: string): string {
       SeqToString(
         attributes,
-        (attribute: Attribute) => attribute.content + "\n" + ind)
+        (attribute: Attribute) => attribute.ToString(ind) + "\n" + ind)
     }
   }
 
@@ -608,8 +682,10 @@ module RAST
   const SelfBorrowedMut := BorrowedMut(SelfOwned)
 
   const RcPath := std.MSel("rc").MSel("Rc")
+  const ArcPath := std.MSel("sync").MSel("Arc")
 
   const RcType := RcPath.AsType()
+  const ArcType := ArcPath.AsType()
 
   const ObjectPath: Path := dafny_runtime.MSel("Object")
 
@@ -623,15 +699,14 @@ module RAST
 
   const BoxPath := std.MSel("boxed").MSel("Box")
 
+  const BoxType := BoxPath.AsType()
+
   const Ptr := PtrPath.AsExpr()
 
   function PtrType(underlying: Type): Type {
     PtrPath.AsType().Apply([underlying])
   }
 
-  function Rc(underlying: Type): Type {
-    TypeApp(RcType, [underlying])
-  }
   function RefCell(underlying: Type): Type {
     TypeApp(RefcellType, [underlying])
   }
@@ -665,6 +740,13 @@ module RAST
     | Self()   // Self::...
     | PMemberSelect(base: Path, name: string)
   {
+    static const DowncastPrefix := "_Downcast_"
+    function ToDowncast(): Path {
+      match this {
+        case PMemberSelect(base, name) => PMemberSelect(base, DowncastPrefix + name)
+        case _ => this
+      }
+    }
     function MSel(name: string): Path {
       PMemberSelect(this, name)
     }
@@ -720,6 +802,55 @@ module RAST
     | TSynonym(display: Type, base: Type)
     | TMetaData(display: Type, nameonly copySemantics: bool, nameonly overflow: bool)
   {
+    /** Removes the synonym and metadata elements of a type */
+    function RemoveSynonyms(): (t: Type)
+      ensures t == this || t < this
+    {
+      match this {
+        case TSynonym(display, base) =>
+          display.RemoveSynonyms()
+        case TMetaData(display, _, _) =>
+          display.RemoveSynonyms()
+        case _ =>
+          this
+      }
+    }
+    /** Given a type, returns the _Downcast_* prefix version of that type */
+    function ToDowncast(): Option<Type> {
+      var t := this.RemoveSynonyms();
+      if t.IsRc() then t.RcUnderlying().ToDowncast() else // For Rc-wrapped datatypes
+      if t.IsBoxDyn() then t.BoxDynUnderlying().ToDowncast() else // For general traits
+      match t {
+        case TypeFromPath(path) => Some(TypeFromPath(path.ToDowncast()))
+        case TypeApp(baseName, arguments) =>
+          var baseNameExpr :- baseName.ToDowncast();
+          Some(baseNameExpr.Apply(arguments))
+        case TIdentifier(name) =>
+          Some(TIdentifier(Path.DowncastPrefix + name))
+        case _ => None
+      }
+    }
+    /** Given a type, returns the _Downcast_* prefix version of that type but suitable to call methods */
+    function ToDowncastExpr(): Option<Expr> {
+      var tpe :- this.ToDowncast();
+      tpe.ToExpr()
+    }
+    /** Converts Name<Args...> (the type) to Name::<Args...> (the expr) */
+    function ToExpr(): Option<Expr> {
+      match this {
+        case TypeFromPath(path) => Some(ExprFromPath(path))
+        case TypeApp(baseName, arguments) =>
+          var baseNameExpr :- baseName.ToExpr();
+          Some(baseNameExpr.ApplyType(arguments))
+        case TSynonym(display, base) =>
+          display.ToExpr()
+        case TMetaData(display, _, _) =>
+          display.ToExpr()
+        case TIdentifier(name) =>
+          Some(Identifier(name))
+        case _ => None
+      }
+    }
     function Expand(): (r: Type)
       ensures !r.TSynonym? && !r.TMetaData? && (!TSynonym? && !TMetaData? ==> r == this)
     {
@@ -822,7 +953,7 @@ module RAST
       || (TMetaData? && (copySemantics || display.CanReadWithoutClone()))
     }
     predicate IsRcOrBorrowedRc() {
-      (TypeApp? && baseName == RcType) ||
+      IsRc() ||
       (Borrowed? && underlying.IsRcOrBorrowedRc()) ||
       (TSynonym? && base.IsRcOrBorrowedRc())
     }
@@ -1053,13 +1184,29 @@ module RAST
       }
     }
 
+    /** Returns true if the type has the shape Rc<T>, so that one can extract T = .arguments[0]
+      * Useful to detect rc-wrapped datatypes */
     predicate IsRc() {
-      this.TypeApp? && this.baseName == RcType && |arguments| == 1
+      TypeApp? && (baseName == RcType || baseName == ArcType) && |arguments| == 1
     }
-    function RcUnderlying(): Type
+    function RcUnderlying(): (t: Type)
       requires IsRc()
+      ensures t < this
     {
       arguments[0]
+    }
+
+    /** Returns true if the type has the shape Box<dyn T>, so that one can extract T = .arguments[0].underlying
+      * Useful to detect general traits */
+    predicate IsBoxDyn() {
+      this.TypeApp? && this.baseName == BoxType && |arguments| == 1 && arguments[0].DynType?
+    }
+
+    function BoxDynUnderlying(): (t: Type)
+      requires IsBoxDyn()
+      ensures t < this
+    {
+      arguments[0].underlying
     }
   }
 
@@ -1082,7 +1229,10 @@ module RAST
   const DafnyTypeEq := dafny_runtime.MSel("DafnyTypeEq").AsType()
   const Eq := std.MSel("cmp").MSel("Eq").AsType()
   const Hash := std.MSel("hash").MSel("Hash").AsType()
+  const PartialEq := std.MSel("cmp").MSel("PartialEq").AsType()
   const DafnyInt := dafny_runtime.MSel("DafnyInt").AsType()
+  const SyncType := std.MSel("marker").MSel("Sync").AsType()
+  const SendType := std.MSel("marker").MSel("Send").AsType()
 
   function SystemTuple(elements: seq<Expr>): Expr {
     var size := Strings.OfNat(|elements|);
@@ -1578,6 +1728,8 @@ module RAST
                 PrecedenceAssociativity(9, LeftToRight)
               else
                 PrecedenceAssociativity(110, RightToLeft)
+            case "=>" => // Not a Rust operation, used in the map macro syntax
+              PrecedenceAssociativity(120, RightToLeft)
             case _ => PrecedenceAssociativity(0, RequiresParentheses)
           }
         case Lambda(_, _, _) => PrecedenceAssociativity(300, LeftToRight)
@@ -1798,6 +1950,13 @@ module RAST
           assert r.RawExpr?; AddIndent(r.content, ind)
       }
     }
+    function And(rhs2: Expr): Expr {
+      if this == LiteralBool(true) then rhs2 else
+      BinaryOp("&&", this, rhs2, Format.BinaryOpFormat.NoFormat)
+    }
+    function Equals(rhs2: Expr): Expr {
+      BinaryOp("==", this, rhs2, Format.BinaryOpFormat.NoFormat)
+    }
     function Then(rhs2: Expr): Expr {
       if this.StmtExpr? then
         StmtExpr(stmt, rhs.Then(rhs2))
@@ -1889,17 +2048,7 @@ module RAST
     MaybePlaceboPath.FSel("from").Apply1(underlying)
   }
 
-  const std_rc := std.MSel("rc")
-
-  const std_rc_Rc := std_rc.MSel("Rc")
-
-  const std_rc_Rc_new := std_rc_Rc.FSel("new")
-
   const std_default_Default_default := std_default_Default.FSel("default").Apply0()
-
-  function RcNew(underlying: Expr): Expr {
-    Call(std_rc_Rc_new, [underlying])
-  }
 
   function IntoUsize(underlying: Expr): Expr {
     dafny_runtime.MSel("DafnyUsize").FSel("into_usize").Apply1(underlying)
@@ -1921,6 +2070,19 @@ module RAST
           body.ToString(ind + IND) +
           "\n" + ind + "}"
       }
+    }
+  }
+  predicate IsBorrowUpcastBox(r: Expr) {
+    match r {
+      case UnaryOp("&", Call(Call(CallType(name, targs0), args0), args1), _) =>
+        name == dafny_runtime.MSel("upcast_box").AsExpr() && |args0| == 0 &&
+        |args1| == 1 &&
+        match args1[0] {
+          case Call(Select(Identifier("self"), clone), args2) =>
+            |args2| == 0
+          case _ => false
+        }
+      case _ => false
     }
   }
 

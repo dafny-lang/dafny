@@ -349,7 +349,7 @@ public class XConstraint {
             Contract.Assert(a.TypeArgs.Count == b.TypeArgs.Count);
             var cl = a is UserDefinedType ? ((UserDefinedType)a).ResolvedClass : null;
             for (int i = 0; i < a.TypeArgs.Count; i++) {
-              resolver.AllXConstraints.Add(new XConstraint_EquatableArg(tok,
+              resolver.AllXConstraints.Add(new XConstraintEquatableArg(tok,
                 a.TypeArgs[i], b.TypeArgs[i],
                 a is CollectionType || (cl != null && cl.TypeArgs[i].Variance != TypeParameter.TPVariance.Non),
                 a.IsRefType,
@@ -362,7 +362,7 @@ public class XConstraint {
       case "EquatableArg": {
           t = Types[0].NormalizeExpandKeepConstraints();
           var u = Types[1].NormalizeExpandKeepConstraints();
-          var moreExactThis = (XConstraint_EquatableArg)this;
+          var moreExactThis = (XConstraintEquatableArg)this;
           if (t is TypeProxy && u is TypeProxy) {
             return false;  // not enough information to do anything sensible
           } else if (t is TypeProxy || u is TypeProxy) {
@@ -409,7 +409,7 @@ public class XConstraint {
             Contract.Assert(a.TypeArgs.Count == b.TypeArgs.Count);
             var cl = a is UserDefinedType ? ((UserDefinedType)a).ResolvedClass : null;
             for (int i = 0; i < a.TypeArgs.Count; i++) {
-              resolver.AllXConstraints.Add(new XConstraint_EquatableArg(tok,
+              resolver.AllXConstraints.Add(new XConstraintEquatableArg(tok,
                 a.TypeArgs[i], b.TypeArgs[i],
                 a is CollectionType || (cl != null && cl.TypeArgs[i].Variance != TypeParameter.TPVariance.Non),
                 false,
@@ -565,11 +565,11 @@ public class XConstraintWithExprs : XConstraint {
   }
 }
 
-public class XConstraint_EquatableArg : XConstraint {
+public class XConstraintEquatableArg : XConstraint {
   public bool AllowSuperSub;
   public bool TreatTypeParamAsWild;
-  public XConstraint_EquatableArg(IOrigin tok, Type a, Type b, bool allowSuperSub, bool treatTypeParamAsWild, TypeConstraint.ErrorMsg errMsg)
-    : base(tok, "EquatableArg", new Type[] { a, b }, errMsg) {
+  public XConstraintEquatableArg(IOrigin tok, Type a, Type b, bool allowSuperSub, bool treatTypeParamAsWild, TypeConstraint.ErrorMsg errMsg)
+    : base(tok, "EquatableArg", [a, b], errMsg) {
     Contract.Requires(tok != null);
     Contract.Requires(a != null);
     Contract.Requires(b != null);

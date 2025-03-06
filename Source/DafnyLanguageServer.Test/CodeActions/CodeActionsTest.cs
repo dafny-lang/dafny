@@ -1,14 +1,15 @@
-﻿using Microsoft.Dafny.LanguageServer.IntegrationTest.Extensions;
+﻿using System;
 using OmniSharp.Extensions.LanguageServer.Protocol.Document;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
+using Castle.Core.Internal;
 using Microsoft.Dafny.LanguageServer.IntegrationTest.Util;
 using Xunit;
 using Xunit.Abstractions;
-using XunitAssertMessages;
+using Range = OmniSharp.Extensions.LanguageServer.Protocol.Models.Range;
 
 namespace Microsoft.Dafny.LanguageServer.IntegrationTest.CodeActions {
   public class CodeActionTest : ClientBasedLanguageServerTest {
@@ -77,6 +78,21 @@ method><".TrimStart(), out var source, out var positions,
     }
 
     [Fact]
+    public async Task TestAssertFalseNotSuggestingItself() {
+      await TestNoCodeAction(@"
+method NoCodeAction() {
+  assert fal><se;
+}");
+    }
+
+    [Fact]
+    public async Task TestEnsureFalseNotSuggestingItself() {
+      await TestNoCodeAction(@"
+method NoCodeAction() ensures f><alse {
+}", excepted: message => message == "Assert postcondition at return location where it fails");
+    }
+
+    [Fact]
     public async Task TestInsertion() {
       await TestCodeAction(@"
 datatype L = N | C(t: L)
@@ -94,13 +110,103 @@ method Dac(c: L)
     }
 
     [Fact]
+    public async Task TestCalcIntroduction() {
+      await TestCodeAction(@"
+method Test() {
+  assert 1 =><= 2(>Insert a calc statement-> by {
+    calc {
+      1;
+      2;
+    }
+  }:::;<)
+}");
+    }
+
+    [Fact]
+    public async Task TestCalcIntroductionEquiv() {
+      await TestCodeAction(@"
+method Test() {
+  assert true <=><=> false(>Insert a calc statement-> by {
+    calc <==> {
+      true;
+      false;
+    }
+  }:::;<)
+}");
+    }
+
+    [Fact]
+    public async Task TestForallIntroduction() {
+      await TestCodeAction(@"
+method Test() {
+  assert for><all i | i % 4 == 1 :: i % 2 == 0(>Insert a forall statement-> by {
+    forall i: int | i % 4 == 1 ensures i % 2 == 0 {
+      assert i % 2 == 0;
+    }
+  }:::;<)
+}");
+    }
+
+    [Fact]
+    public async Task TestForallIntroductionFunction() {
+      await TestCodeAction(@"
+function Test(): int {
+  assert for><all i | i % 4 == 1 :: i % 2 == 0(>Insert a forall statement-> by {
+    forall i: int | i % 4 == 1 ensures i % 2 == 0 {
+      assert i % 2 == 0;
+    }
+  }:::;<)
+  1
+}");
+    }
+
+    [Fact]
     public async Task GitIssue4401CorrectInsertionPlace() {
       await TestCodeAction(@"
 predicate P(i: int)
 
-method Test() {(>Insert explicit failing assertion->
-  assert exists x: int :: P(x);<)
-  var x :><| P(x);
+method Test() {
+  var x :><| P(x)(>Insert explicit failing assertion-> by {
+    assert exists x: int :: P(x);
+  }:::;<)
+}");
+    }
+
+    [Fact]
+    public async Task InsertIntoByStatement() {
+      await TestCodeAction(@"
+predicate P(i: int)
+
+function Test(i: int): int
+  requires P(i) {
+  i
+}
+
+method TestMethod() {
+  assert Test><(1) == 1 by {
+    (>Insert explicit failing assertion->assert P(1);
+    <)calc {
+      1;
+      1;
+    }
+  }
+}");
+    }
+
+    [Fact]
+    public async Task InsertIntoEmptyByStatement() {
+      await TestCodeAction(@"
+predicate P(i: int)
+
+function Test(i: int): int
+  requires P(i) {
+  i
+}
+
+method TestMethod() {
+  assert Test><(1) == 1 by {
+  (>Insert explicit failing assertion->  assert P(1);
+  <)}
 }");
     }
 
@@ -111,9 +217,10 @@ module Test {
   class TheTest {
     predicate P(i: int)
 
-    method Test() {(>Insert explicit failing assertion->
-      assert exists x: int :: P(x);<)
-      var x :><| P(x);
+    method Test() {
+      var x :><| P(x)(>Insert explicit failing assertion-> by {
+        assert exists x: int :: P(x);
+      }:::;<)
     }
   }
 }");
@@ -239,17 +346,50 @@ function Test(e: D, inputs: map<int, int>): bool {
     }
 
     [Fact]
-    public async Task ExplicitDivisionByZero() {
+    public async Task ExplicitDivisionByZeroFunction() {
       await TestCodeAction(@"
-method Foo(i: int)
+function Foo(i: int): int
 {
   (>Insert explicit failing assertion->assert i + 1 != 0;
   <)var x := 2>< / (i + 1); 
+  x
 }");
     }
 
     [Fact]
-    public async Task ExplicitDivisionImp() {
+    public async Task ExplicitDivisionByZeroMethod() {
+      await TestCodeAction(@"
+method Foo(i: int)
+{
+  var x := 2>< / (i + 1)(>Insert explicit failing assertion-> by {
+    assert i + 1 != 0;
+  }:::;<)
+}");
+    }
+
+    [Fact]
+    public async Task ExplicitDivisionImpFunction() {
+      await TestCodeAction(@"
+function Foo(b: bool, i: int, j: int): bool
+{
+  var x := b ==> (>Insert explicit failing assertion->assert i + 1 != 0;
+                 <)2 ></ (i + 1) == j;
+  x
+}");
+    }
+
+    [Fact]
+    public async Task ExplicitDivisionImpImpMethod() {
+      await TestCodeAction(@"
+method Foo(b: bool, i: int, j: int)
+{
+  var x := b ==> b ==> (>Insert explicit failing assertion->assert i + 1 != 0;
+                       <)2 ></ (i + 1) == j;
+}");
+    }
+
+    [Fact]
+    public async Task ExplicitDivisionImpMethod() {
       await TestCodeAction(@"
 method Foo(b: bool, i: int, j: int)
 {
@@ -263,13 +403,26 @@ method Foo(b: bool, i: int, j: int)
       await TestCodeAction(@"
 method Foo(b: bool, i: int, j: int)
 {
-  (>Insert explicit failing assertion->assert i + 1 != 0;
-  <)var x := 2 ></ (i + 1) == j ==> b;
+  var x := 2 ></ (i + 1) == j ==> b(>Insert explicit failing assertion-> by {
+    assert i + 1 != 0;
+  }:::;<)
 }");
     }
 
     [Fact]
-    public async Task ExplicitDivisionAnd() {
+    public async Task ExplicitDivisionAndFunction() {
+      await TestCodeAction(@"
+function Foo(b: bool, i: int, j: int): bool
+{
+  var x := b && (>Insert explicit failing assertion->assert i + 1 != 0;
+                <)2 ></ (i + 1) == j;
+  x
+}");
+    }
+
+
+    [Fact]
+    public async Task ExplicitDivisionAndMethod() {
       await TestCodeAction(@"
 method Foo(b: bool, i: int, j: int)
 {
@@ -279,12 +432,24 @@ method Foo(b: bool, i: int, j: int)
     }
 
     [Fact]
-    public async Task ExplicitDivisionAnd2() {
+    public async Task ExplicitDivisionAnd2Function() {
       await TestCodeAction(@"
-method Foo(b: bool, i: int, j: int)
+function Foo(b: bool, i: int, j: int): bool
 {
   (>Insert explicit failing assertion->assert i + 1 != 0;
   <)var x := 2 ></ (i + 1) == j && b;
+  x
+}");
+    }
+
+    [Fact]
+    public async Task ExplicitDivisionAnd2Method() {
+      await TestCodeAction(@"
+method Foo(b: bool, i: int, j: int)
+{
+  var x := 2 ></ (i + 1) == j && b(>Insert explicit failing assertion-> by {
+    assert i + 1 != 0;
+  }:::;<)
 }");
     }
 
@@ -304,35 +469,69 @@ method Foo(b: bool, i: int, j: int)
       await TestCodeAction(@"
 method Foo(b: bool, i: int, j: int)
 {
-  (>Insert explicit failing assertion->assert i + 1 != 0;
-  <)var x := 2 ></ (i + 1) == j || b;
+  var x := 2 ></ (i + 1) == j || b(>Insert explicit failing assertion-> by {
+    assert i + 1 != 0;
+  }:::;<)
 }");
     }
-
-
 
     [Fact]
     public async Task ExplicitDivisionAddParentheses() {
       await TestCodeAction(@"
 method Foo(b: bool, i: int, j: int)
 {
-  (>Insert explicit failing assertion->assert (match b case true => i + 1 case false => i - 1) != 0;
-  <)var x := 2 ></ match b case true => i + 1 case false => i - 1;
+  var x := 2 ></ match b case true => i + 1 case false => i - 1(>Insert explicit failing assertion-> by {
+    assert (match b case true => i + 1 case false => i - 1) != 0;
+  }:::;<)
 }");
     }
 
     [Fact]
-    public async Task ExplicitDivisionExp() {
+    public async Task ExplicitDivisionAddParentheses2() {
+      await TestCodeAction(@"
+function Foo(b: bool, i: int, j: int): int
+{
+  (>Insert explicit failing assertion->assert (match b case true => i + 1 case false => i - 1) != 0;
+  <)var x := 2 ></ match b case true => i + 1 case false => i - 1;
+  x
+}");
+    }
+
+    [Fact]
+    public async Task ExplicitDivisionExpMethod() {
       await TestCodeAction(@"
 method Foo(b: bool, i: int, j: int)
 {
-  (>Insert explicit failing assertion->assert i + 1 != 0;
-  <)var x := b <== 2 ></ (i + 1) == j;
+  var x := b <== 2 ></ (i + 1) == j(>Insert explicit failing assertion-> by {
+    assert i + 1 != 0;
+  }:::;<)
 }");
     }
 
     [Fact]
-    public async Task ExplicitDivisionExp2() {
+    public async Task ExplicitDivisionExpFunction() {
+      await TestCodeAction(@"
+function Foo(b: bool, i: int, j: int): int
+{
+  (>Insert explicit failing assertion->assert i + 1 != 0;
+  <)var x := b <== 2 ></ (i + 1) == j;
+  2
+}");
+    }
+
+    [Fact]
+    public async Task ExplicitDivisionExp2Function() {
+      await TestCodeAction(@"
+function Foo(b: bool, i: int, j: int): bool
+{
+  var x := (>Insert explicit failing assertion->(assert i + 1 != 0;
+            2 / (i + 1) == j):::2 ></ (i + 1) == j<) <== b;
+  x
+}");
+    }
+
+    [Fact]
+    public async Task ExplicitDivisionExp2Method() {
       await TestCodeAction(@"
 method Foo(b: bool, i: int, j: int)
 {
@@ -342,7 +541,7 @@ method Foo(b: bool, i: int, j: int)
     }
 
     [Fact]
-    public async Task ExplicitDivisionByZeroFunction() {
+    public async Task ExplicitDivisionByZeroIfFunction() {
       await TestCodeAction(@"
 function Foo(i: int): int
 {
@@ -357,7 +556,7 @@ function Foo(i: int): int
 
 
     [Fact]
-    public async Task ExplicitDivisionByZeroFunctionLetExpr() {
+    public async Task ExplicitDivisionByZeroMatchFunctionLetExpr() {
       await TestCodeAction(@"
 function Foo(i: int): int
 {
@@ -371,6 +570,23 @@ function Foo(i: int): int
 
     private static readonly Regex NewlineRegex = new Regex("\r?\n");
 
+    private async Task TestNoCodeAction(string source, Func<string, bool> excepted = null) {
+      await SetUp(o => o.Set(CommonOptionBag.RelaxDefiniteAssignment, true));
+      MarkupTestFile.GetPositionsAndAnnotatedRanges(source.TrimStart(), out var output, out var positions,
+        out var ranges);
+      var documentItem = await CreateOpenAndWaitForResolve(output);
+      var diagnostics = await GetLastDiagnostics(documentItem);
+      Assert.Equal(0, ranges.Count);
+      foreach (var position in positions) {
+        var completionList = await RequestCodeActionAsync(documentItem, new Range(position, position));
+        completionList = excepted == null
+          ? completionList
+          : completionList.Where(completion =>
+            completion.CodeAction is not { Title: var title } || !excepted(title)).ToList();
+        Assert.Empty(completionList);
+      }
+    }
+
     private async Task TestCodeAction(string source) {
       await SetUp(o => o.Set(CommonOptionBag.RelaxDefiniteAssignment, true));
 
@@ -378,7 +594,9 @@ function Foo(i: int): int
         out var ranges);
       var documentItem = await CreateOpenAndWaitForResolve(output);
       var diagnostics = await GetLastDiagnostics(documentItem);
-      Assert.Equal(ranges.Count, diagnostics.Length);
+      if (ranges.Count != diagnostics.Length) {
+        Assert.True(ranges.Count == diagnostics.Length, string.Join("\n", diagnostics.Select(d => d.ToString())));
+      }
 
       if (positions.Count != ranges.Count) {
         positions = ranges.Select(r => r.Range.Start).ToList();
@@ -409,8 +627,13 @@ function Foo(i: int): int
           }
         }
 
-        Assert.True(found,
-          $"Did not find the code action '{expectedTitle}'. Available were:{string.Join(",", otherTitles)}");
+        if (otherTitles.IsNullOrEmpty()) {
+          // Parsing gone wrong, we display diagnostics
+          Assert.True(false, output + "\n" + string.Join("\n", diagnostics.Select(d => d.ToString())));
+        } else {
+          Assert.True(found,
+            $"Did not find the code action '{expectedTitle}'. Available were:{string.Join(",", otherTitles)}");
+        }
       }
     }
 

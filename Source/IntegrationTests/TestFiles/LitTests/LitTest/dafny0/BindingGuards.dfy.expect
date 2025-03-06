@@ -159,11 +159,16 @@ method P3(m: int, n: int)
 
 ghost function f(s: set<int>): int
 {
-  if exists x :: x in s then
-    var x :| x in s;
+  if x :| x in s then
     x
   else
     0
+}
+
+ghost function f'(s: set<int>): int
+{
+  var r := if x :| x in s then x else 0;
+  r
 }
 
 predicate AltSyntaxP(x: int)
@@ -304,11 +309,11 @@ method AltSyntax9(x: int, y: int, c: Color)
 datatype Color = Red | Green | Blue
 BindingGuards.dfy(85,10): Error: a postcondition could not be proved on this return path
 BindingGuards.dfy(71,12): Related location: this is the postcondition that could not be proved
-BindingGuards.dfy(134,9): Error: assertion might not hold
+BindingGuards.dfy(134,10): Error: assertion might not hold
 BindingGuards.dfy(6,8): Related location: this proposition could not be proved
-BindingGuards.dfy(139,2): Error: alternative cases fail to cover all possibilities
-BindingGuards.dfy(147,2): Error: alternative cases fail to cover all possibilities
-BindingGuards.dfy(272,2): Error: missing case in match statement: Blue
-BindingGuards.dfy(272,2): Error: missing case in match statement: Green
+BindingGuards.dfy(139,2): Error: alternative cases may not cover all possibilities
+BindingGuards.dfy(147,2): Error: alternative cases may not cover all possibilities
+BindingGuards.dfy(278,2): Error: missing case in match statement: Blue
+BindingGuards.dfy(278,2): Error: missing case in match statement: Green
 
 Dafny program verifier finished with 10 verified, 6 errors

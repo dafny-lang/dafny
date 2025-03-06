@@ -15,7 +15,7 @@ public abstract class NonglobalVariable : NodeWithComputedRange, IVariable {
     this.NameNode = nameNode;
     IsTypeExplicit = type != null;
     this.type = type ?? new InferredTypeProxy();
-    this.isGhost = isGhost;
+    this.IsGhost = isGhost;
   }
 
   [ContractInvariantMethod]
@@ -40,7 +40,7 @@ public abstract class NonglobalVariable : NodeWithComputedRange, IVariable {
     return uniqueName ??= generator.FreshId(Name + "#");
   }
 
-  static char[] specialChars = { '\'', '_', '?', '\\', '#' };
+  static char[] specialChars = ['\'', '_', '?', '\\', '#'];
   /// <summary>
   /// Mangle name <c>nm</c> by replacing and escaping characters most likely to cause issues when compiling and
   /// when translating to Boogie.  This transformation is injective.
@@ -121,15 +121,9 @@ public abstract class NonglobalVariable : NodeWithComputedRange, IVariable {
   public abstract bool IsMutable {
     get;
   }
-  bool isGhost;  // readonly after resolution
-  public bool IsGhost {
-    get {
-      return isGhost;
-    }
-    set {
-      isGhost = value;
-    }
-  }
+
+  public bool IsGhost { get; set; }
+
   public void MakeGhost() {
     IsGhost = true;
   }

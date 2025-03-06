@@ -217,16 +217,16 @@ namespace Microsoft.Dafny.Compilers {
     protected virtual bool IncludeExternallyImportedMembers { get => false; }
     protected virtual bool SupportsStaticsInGenericClasses => true;
     protected virtual bool TraitRepeatsInheritedDeclarations => false;
-    protected virtual bool InstanceMethodsAllowedToCallTraitMethods => true;
-    protected IClassWriter CreateClass(string moduleName, string name, TopLevelDecl cls, ConcreteSyntaxTree wr) {
-      return CreateClass(moduleName, name, false, null, cls.TypeArgs,
+    protected virtual bool InstanceMethodsCanOnlyCallOverridenTraitMethods => false;
+    protected IClassWriter CreateClass(string moduleName, TopLevelDecl cls, ConcreteSyntaxTree wr) {
+      return CreateClass(moduleName, false, null, cls.TypeArgs,
         cls, (cls as TopLevelDeclWithMembers)?.ParentTypeInformation.UniqueParentTraits(), null, wr);
     }
 
     /// <summary>
     /// "tok" can be "null" if "superClasses" is.
     /// </summary>
-    protected abstract IClassWriter CreateClass(string moduleName, string name, bool isExtern, string/*?*/ fullPrintName,
+    protected abstract IClassWriter CreateClass(string moduleName, bool isExtern, string/*?*/ fullPrintName,
       List<TypeParameter> typeParameters, TopLevelDecl cls, List<Type>/*?*/ superClasses, IOrigin tok, ConcreteSyntaxTree wr);
 
     /// <summary>
@@ -518,7 +518,7 @@ namespace Microsoft.Dafny.Compilers {
       Contract.Assert(lhss.Count == lhsTypes.Count);
       Contract.Assert(lhsTypes.Count == rhsTypes.Count);
 
-      wRhss = new List<ConcreteSyntaxTree>();
+      wRhss = [];
       var rhsVars = new List<string>();
       foreach (var rhsType in rhsTypes) {
         string target = ProtectedFreshId("_rhs");
@@ -528,7 +528,7 @@ namespace Microsoft.Dafny.Compilers {
 
       List<ILvalue> lhssn;
       if (lhss.Count > 1) {
-        lhssn = new List<ILvalue>();
+        lhssn = [];
         for (int i = 0; i < lhss.Count; ++i) {
           Expression lexpr = lhsExprs[i].Resolved;
           ILvalue lhs = lhss[i];
@@ -549,7 +549,7 @@ namespace Microsoft.Dafny.Compilers {
             if (selectExpr.Seq.Type.IsArrayType || selectExpr.Seq.Type.NormalizeToAncestorType().AsSeqType != null) {
               targetIndex = ArrayIndexToNativeInt(targetIndex, selectExpr.E0.Type);
             }
-            ILvalue newLhs = new ArrayLvalueImpl(this, targetArray, new List<Action<ConcreteSyntaxTree>>() { wIndex => EmitIdentifier(targetIndex, wIndex) }, lhsTypes[i]);
+            ILvalue newLhs = new ArrayLvalueImpl(this, targetArray, [wIndex => EmitIdentifier(targetIndex, wIndex)], lhsTypes[i]);
             lhssn.Add(newLhs);
 
           } else if (lexpr is MultiSelectExpr multiSelectExpr) {
@@ -1439,6 +1439,14 @@ namespace Microsoft.Dafny.Compilers {
     /// </summary>
     protected abstract void EmitTypeTest(string localName, Type fromType, Type toType, IOrigin tok, ConcreteSyntaxTree wr);
 
+
+    protected virtual void EmitTypeTestExpr(Expression expr, Type fromType, Type toType, IOrigin tok,
+      bool inLetExprBody, ConcreteSyntaxTree wr, ref ConcreteSyntaxTree wStmts) {
+      var name = $"_is_{GetUniqueAstNumber(expr)}";
+      wr = CreateIIFE_ExprBody(name, fromType, tok, expr, inLetExprBody, Type.Bool, expr.Origin, wr, ref wStmts);
+      EmitTypeTest(name, fromType, toType, tok, wr);
+    }
+
     /// <summary>
     /// Emit a conjunct that tests if the Dafny real number "source" is an integer, like:
     ///    "TestIsInteger(source) && "
@@ -1606,7 +1614,7 @@ namespace Microsoft.Dafny.Compilers {
       Contract.Assert(enclosingModule == null);
       enclosingModule = module;
       var wr = CreateModule(module, module.GetCompileName(Options), module.IsDefaultModule, externModule, libraryName, module.Attributes, programNode);
-      var v = new CheckHasNoAssumes_Visitor(this, wr);
+      var v = new CheckHasNoAssumesVisitor(this, wr);
       foreach (TopLevelDecl d in module.TopLevelDecls) {
         if (!ProgramResolver.ShouldCompile(d)) {
           continue;
@@ -1618,14 +1626,13 @@ namespace Microsoft.Dafny.Compilers {
           bool externP = Attributes.Contains(at.Attributes, "extern");
           if (externP) {
             var exprs = Attributes.FindExpressions(at.Attributes, "extern");
-            Contract.Assert(exprs != null); // because externP is true
-            if (exprs.Count == 1) {
-              DeclareExternType(at, exprs[0], wr);
-            } else {
-              Error(ErrorId.c_abstract_type_needs_hint, d.Origin,
-                "Abstract type ('{0}') with extern attribute requires a compile hint. Expected {{:extern compile_type_hint}}",
-                wr, at.FullName);
+            if (exprs == null || exprs.Count == 0) {
+              exprs = new List<Expression>() {
+                Expression.CreateStringLiteral(Token.NoToken, at.Name)
+              };
             }
+            Contract.Assert(exprs != null); // because externP is true
+            DeclareExternType(at, exprs[0], wr);
 
             v.Visit(exprs);
           } else {
@@ -1685,7 +1692,6 @@ namespace Microsoft.Dafny.Compilers {
 
           if (include) {
             var cw = CreateClass(IdProtect(d.EnclosingModuleDefinition.GetCompileName(Options)),
-              IdName(defaultClassDecl),
               classIsExtern, defaultClassDecl.FullName,
               defaultClassDecl.TypeArgs, defaultClassDecl,
               defaultClassDecl.ParentTypeInformation.UniqueParentTraits(), defaultClassDecl.Origin, wr);
@@ -1700,7 +1706,7 @@ namespace Microsoft.Dafny.Compilers {
           var (classIsExtern, include) = GetIsExternAndIncluded(cl);
 
           if (include) {
-            var cw = CreateClass(IdProtect(d.EnclosingModuleDefinition.GetCompileName(Options)), IdName(cl),
+            var cw = CreateClass(IdProtect(d.EnclosingModuleDefinition.GetCompileName(Options)),
               classIsExtern, cl.FullName,
               cl.TypeArgs, cl, cl.ParentTypeInformation.UniqueParentTraits(), cl.Origin, wr);
             CompileClassMembers(program, cl, cw);
@@ -1801,11 +1807,11 @@ namespace Microsoft.Dafny.Compilers {
       foreach (var file in files.Where(f => f.StartsWith(header))) {
         var parts = file.Split('.');
         var realName = string.Join('/', parts.SkipLast(1).Skip(2)) + "." + parts.Last();
-        ReadRuntimeSystem(file, useFiles ? wr.NewFile(realName) : wr);
+        ImportRuntimeTo(file, useFiles ? wr.NewFile(realName) : wr);
       }
     }
 
-    private void ReadRuntimeSystem(string filename, ConcreteSyntaxTree wr) {
+    private void ImportRuntimeTo(string filename, ConcreteSyntaxTree wr) {
       Contract.Requires(filename != null);
       Contract.Requires(wr != null);
 
@@ -2076,8 +2082,8 @@ namespace Microsoft.Dafny.Compilers {
       return true;
     }
 
-    void OrderedBySCC(List<MemberDecl> decls, TopLevelDeclWithMembers c) {
-      List<ConstantField> consts = new List<ConstantField>();
+    protected void OrderedBySCC(List<MemberDecl> decls, TopLevelDeclWithMembers c) {
+      List<ConstantField> consts = [];
       foreach (var decl in decls) {
         if (decl is ConstantField) {
           consts.Add((ConstantField)decl);
@@ -2152,7 +2158,7 @@ namespace Microsoft.Dafny.Compilers {
       Contract.Ensures(thisContext == null);
 
       var errorWr = classWriter.ErrorWriter();
-      var v = new CheckHasNoAssumes_Visitor(this, errorWr);
+      var v = new CheckHasNoAssumesVisitor(this, errorWr);
 
       var inheritedMembers = c.InheritedMembers;
       OrderedBySCC(inheritedMembers, c);
@@ -2160,9 +2166,9 @@ namespace Microsoft.Dafny.Compilers {
 
       if (c is not TraitDecl || TraitRepeatsInheritedDeclarations) {
         thisContext = c;
-        var canRedeclareMemberDefinedInTrait = c is not ClassLikeDecl and not DatatypeDecl and not NewtypeDecl ||
-                                                InstanceMethodsAllowedToCallTraitMethods;
         foreach (var member in inheritedMembers.Select(memberx => (memberx as Function)?.ByMethodDecl ?? memberx)) {
+          var canRedeclareMemberDefinedInTrait = c is not ClassLikeDecl and not DatatypeDecl and not NewtypeDecl ||
+                                                 !InstanceMethodsCanOnlyCallOverridenTraitMethods || member.IsOverrideThatAddsBody;
           enclosingDeclaration = member;
           Contract.Assert(!member.IsStatic);  // only instance members should ever be added to .InheritedMembers
           if (member.IsGhost) {
@@ -2170,25 +2176,29 @@ namespace Microsoft.Dafny.Compilers {
           } else if (c is TraitDecl) {
             RedeclareInheritedMember(member, classWriter);
           } else if (member is ConstantField) {
-            var cf = (ConstantField)member;
-            var cfType = cf.Type.Subst(c.ParentFormalTypeParametersToActuals);
-            if (cf.Rhs == null && c is ClassLikeDecl) {
-              // create a backing field, since this constant field may be assigned in constructors
-              Contract.Assert(!cf.IsStatic); // as checked above, only instance members can be inherited
-              classWriter.DeclareField(InternalFieldPrefix + cf.GetCompileName(Options), c, false, false, cfType, cf.Origin, PlaceboValue(cfType, errorWr, cf.Origin, true), cf);
-            }
-            var w = CreateFunctionOrGetter(cf, IdName(cf), c, false, true, true, classWriter);
-            Contract.Assert(w != null);  // since the previous line asked for a body
-            if (cf.Rhs != null) {
-              EmitCallToInheritedConstRHS(cf, w);
-            } else if (!cf.IsStatic && c is ClassLikeDecl) {
-              var sw = EmitReturnExpr(w);
-              sw = EmitCoercionIfNecessary(cfType, cf.Type, cf.Origin, sw);
-              // get { return this._{0}; }
-              EmitThis(sw);
-              sw.Write(".{0}{1}", InternalFieldPrefix, cf.GetCompileName(Options));
-            } else {
-              EmitReturnExpr(PlaceboValue(cfType, errorWr, cf.Origin, true), w);
+            if (canRedeclareMemberDefinedInTrait) {
+              var cf = (ConstantField)member;
+              var cfType = cf.Type.Subst(c.ParentFormalTypeParametersToActuals);
+              if (cf.Rhs == null && c is ClassLikeDecl) {
+                // create a backing field, since this constant field may be assigned in constructors
+                Contract.Assert(!cf.IsStatic); // as checked above, only instance members can be inherited
+                classWriter.DeclareField(InternalFieldPrefix + cf.GetCompileName(Options), c, false, false, cfType,
+                  cf.Origin, PlaceboValue(cfType, errorWr, cf.Origin, true), cf);
+              }
+
+              var w = CreateFunctionOrGetter(cf, IdName(cf), c, false, true, true, classWriter);
+              Contract.Assert(w != null); // since the previous line asked for a body
+              if (cf.Rhs != null) {
+                EmitCallToInheritedConstRHS(cf, w);
+              } else if (!cf.IsStatic && c is ClassLikeDecl) {
+                var sw = EmitReturnExpr(w);
+                sw = EmitCoercionIfNecessary(cfType, cf.Type, cf.Origin, sw);
+                // get { return this._{0}; }
+                EmitThis(sw);
+                sw.Write(".{0}{1}", InternalFieldPrefix, cf.GetCompileName(Options));
+              } else {
+                EmitReturnExpr(PlaceboValue(cfType, errorWr, cf.Origin, true), w);
+              }
             }
           } else if (member is Field f) {
             var fType = f.Type.Subst(c.ParentFormalTypeParametersToActuals);
@@ -2213,7 +2223,10 @@ namespace Microsoft.Dafny.Compilers {
           } else if (member is Function fn) {
             if (!IsExternallyImported(fn) && canRedeclareMemberDefinedInTrait) {
               Contract.Assert(fn.Body != null);
-              var w = classWriter.CreateFunction(IdName(fn), CombineAllTypeArguments(fn), fn.Ins, fn.ResultType, fn.Origin, fn.IsStatic, true, fn, true, false);
+              var typeArguments = InstanceMethodsCanOnlyCallOverridenTraitMethods ?
+                  new List<TypeArgumentInstantiation>()
+                : CombineAllTypeArguments(fn);
+              var w = classWriter.CreateFunction(IdName(fn), typeArguments, fn.Ins, fn.ResultType, fn.Origin, fn.IsStatic, true, fn, true, false);
               w = EmitReturnExpr(w);
               EmitCallToInheritedFunction(fn, null, w);
             }
@@ -2221,7 +2234,10 @@ namespace Microsoft.Dafny.Compilers {
             if (!IsExternallyImported(method)
                 && canRedeclareMemberDefinedInTrait) {
               Contract.Assert(method.Body != null);
-              var w = classWriter.CreateMethod(method, CombineAllTypeArguments(member), true, true, false);
+              var typeArguments = InstanceMethodsCanOnlyCallOverridenTraitMethods ?
+                new List<TypeArgumentInstantiation>()
+                : CombineAllTypeArguments(member);
+              var w = classWriter.CreateMethod(method, typeArguments, true, true, false);
               var wBefore = w.Fork();
               var wCall = w.Fork();
               var wAfter = w;
@@ -2255,7 +2271,7 @@ namespace Microsoft.Dafny.Compilers {
           } else if (f is ConstantField) {
             var cf = (ConstantField)f;
             if (cf.IsStatic && !SupportsStaticsInGenericClasses && cf.EnclosingClass.TypeArgs.Count != 0) {
-              var wBody = classWriter.CreateFunction(IdName(cf), CombineAllTypeArguments(cf), new List<Formal>(), cf.Type, cf.Origin, true, true, member, false, false);
+              var wBody = classWriter.CreateFunction(IdName(cf), CombineAllTypeArguments(cf), [], cf.Type, cf.Origin, true, true, member, false, false);
               Contract.Assert(wBody != null);  // since the previous line asked for a body
               if (cf.Rhs != null) {
                 CompileReturnBody(cf.Rhs, f.Type, wBody, null);
@@ -2272,9 +2288,9 @@ namespace Microsoft.Dafny.Compilers {
                 // because a newtype value is always represented as some existing type.
                 // Likewise, an instance const with a RHS in a trait needs to be modeled as a static function (in the companion class)
                 // that takes a parameter, because trait-equivalents in target languages don't allow implementations.
-                wBody = classWriter.CreateFunction(IdName(cf), CombineAllTypeArguments(cf), new List<Formal>(), cf.Type, cf.Origin, InstanceConstAreStatic(), true, cf, false, true);
+                wBody = classWriter.CreateFunction(IdName(cf), CombineAllTypeArguments(cf), [], cf.Type, cf.Origin, InstanceConstAreStatic(), true, cf, false, true);
                 Contract.Assert(wBody != null);  // since the previous line asked for a body
-                if (c is TraitDecl) {
+                if (c is TraitDecl && !InstanceMethodsCanOnlyCallOverridenTraitMethods) {
                   // also declare a function for the field in the interface
                   var wBodyInterface = CreateFunctionOrGetter(cf, IdName(cf), c, false, false, false, classWriter);
                   Contract.Assert(wBodyInterface == null);  // since the previous line said not to create a body
@@ -2401,7 +2417,7 @@ namespace Microsoft.Dafny.Compilers {
       var typeArgs = CombineAllTypeArguments(cf);
       var typeDescriptors = ForTypeDescriptors(typeArgs, cf.EnclosingClass, cf, false);
       if (NeedsTypeDescriptors(typeDescriptors)) {
-        return classWriter.CreateFunction(name, typeArgs, new List<Formal>(), cf.Type, cf.Origin, isStatic, createBody, cf, forBodyInheritance, false);
+        return classWriter.CreateFunction(name, typeArgs, [], cf.Type, cf.Origin, isStatic, createBody, cf, forBodyInheritance, false);
       } else {
         return classWriter.CreateGetter(name, enclosingDecl, cf.Type, cf.Origin, isStatic, true, createBody, cf, forBodyInheritance);
       }
@@ -2460,6 +2476,10 @@ namespace Microsoft.Dafny.Compilers {
       wr.Write(")");
     }
 
+    protected virtual ConcreteSyntaxTree StartCall(Function f, ConcreteSyntaxTree wr) {
+      return wr;
+    }
+
     /// <summary>
     /// "heir" is the type declaration that inherits the function. Or, it can be "null" to indicate that the function is declared in
     /// the type itself, in which case the "call to inherited" is actually a call from the dynamically dispatched function to its implementation.
@@ -2484,6 +2504,8 @@ namespace Microsoft.Dafny.Compilers {
       // In a target language that requires type coercions, the function declared in "thisContext" has
       // the same signature as in "f.Original.EnclosingClass".
       wr = EmitCoercionIfNecessary(f.ResultType, f.Original.ResultType, f.Origin, wr);
+
+      wr = StartCall(f, wr);
 
       var companionName = CompanionMemberIdName(f);
       var calleeReceiverType = UserDefinedType.FromTopLevelDecl(f.Origin, f.EnclosingClass).Subst(thisContext.ParentFormalTypeParametersToActuals);
@@ -2685,7 +2707,7 @@ namespace Microsoft.Dafny.Compilers {
     /// <seealso cref="HasCapitalizationConflict"/>
     private void CheckForCapitalizationConflicts<T>(IEnumerable<T> canChange, IEnumerable<T> cantChange = null) where T : Declaration {
       if (cantChange == null) {
-        cantChange = Enumerable.Empty<T>();
+        cantChange = [];
       }
       IDictionary<string, T> declsByCapName = new Dictionary<string, T>();
       ISet<string> fixedNames = new HashSet<string>(from decl in cantChange select Capitalize(decl.GetCompileName(Options)));
@@ -2733,7 +2755,7 @@ namespace Microsoft.Dafny.Compilers {
     protected virtual string PrefixForForcedCapitalization { get => "Cap_"; }
 
     private static void MarkCapitalizationConflict(Declaration decl) {
-      decl.Attributes = new Attributes(CapitalizationConflictAttribute, new List<Expression>(), decl.Attributes);
+      decl.Attributes = new Attributes(CapitalizationConflictAttribute, [], decl.Attributes);
     }
 
     protected static bool HasCapitalizationConflict(Declaration decl) {
@@ -2770,13 +2792,13 @@ namespace Microsoft.Dafny.Compilers {
               unit = new LiteralExpr(f.Origin, n);
               unit.Type = f.ResultType;
             } else if (resultType.AsSetType != null) {
-              unit = new SetDisplayExpr(f.Origin, !resultType.IsISetType, new List<Expression>());
+              unit = new SetDisplayExpr(f.Origin, !resultType.IsISetType, []);
               unit.Type = f.ResultType;
             } else if (resultType.AsMultiSetType != null) {
-              unit = new MultiSetDisplayExpr(f.Origin, new List<Expression>());
+              unit = new MultiSetDisplayExpr(f.Origin, []);
               unit.Type = f.ResultType;
             } else if (resultType.AsSeqType != null) {
-              unit = new SeqDisplayExpr(f.Origin, new List<Expression>());
+              unit = new SeqDisplayExpr(f.Origin, []);
               unit.Type = f.ResultType;
             } else {
               Contract.Assert(false);  // unexpected type
@@ -3264,10 +3286,10 @@ namespace Microsoft.Dafny.Compilers {
 
     // ----- Stmt ---------------------------------------------------------------------------------
 
-    public class CheckHasNoAssumes_Visitor : BottomUpVisitor {
+    public class CheckHasNoAssumesVisitor : BottomUpVisitor {
       readonly SinglePassCodeGenerator codeGenerator;
       ConcreteSyntaxTree wr;
-      public CheckHasNoAssumes_Visitor(SinglePassCodeGenerator c, ConcreteSyntaxTree wr) {
+      public CheckHasNoAssumesVisitor(SinglePassCodeGenerator c, ConcreteSyntaxTree wr) {
         Contract.Requires(c != null);
         codeGenerator = c;
         this.wr = wr;
@@ -3293,7 +3315,7 @@ namespace Microsoft.Dafny.Compilers {
       Contract.Requires(wr != null);
       TrStmt(stmt, wr, wStmts);
       if (stmt.IsGhost) {
-        TrStmtList(new List<Statement>(), EmitBlock(wr));
+        TrStmtList([], EmitBlock(wr));
       }
     }
 
@@ -3503,7 +3525,7 @@ namespace Microsoft.Dafny.Compilers {
       } else if (bound is DatatypeBoundedPool) {
         var b = (DatatypeBoundedPool)bound;
         collectionWriter = (wr) => EmitDatatypeBoundedPool(bv, propertySuffix, inLetExprBody, wr, wStmts);
-        return new UserDefinedType(bv.Origin, new NameSegment(bv.Origin, b.Decl.Name, new())) {
+        return new UserDefinedType(bv.Origin, new NameSegment(bv.Origin, b.Decl.Name, [])) {
           ResolvedClass = b.Decl
         };
       } else {
@@ -3823,7 +3845,7 @@ namespace Microsoft.Dafny.Compilers {
       if (ll.Seq.Type.IsArrayType || ll.Seq.Type.NormalizeToAncestorType().AsSeqType != null) {
         index = ArrayIndexToNativeInt(index, ll.E0.Type);
       }
-      return new ArrayLvalueImpl(this, arr, new List<Action<ConcreteSyntaxTree>>() { wIndex => wIndex.Write(index) }, ll.Type);
+      return new ArrayLvalueImpl(this, arr, [wIndex => wIndex.Write(index)], ll.Type);
     }
 
     protected virtual ILvalue MultiSelectLvalue(MultiSelectExpr ll, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
@@ -4158,9 +4180,11 @@ namespace Microsoft.Dafny.Compilers {
         var ii = 0;
         foreach (var v in typeRhs.InitDisplay) {
           pwStmts = wStmts.Fork();
-          var (wArray, wElement) = EmitArrayUpdate(new List<Action<ConcreteSyntaxTree>> { wIndex => EmitExprAsNativeInt(new LiteralExpr(null, ii) {
-            Type = Type.Int
-          }, false, wIndex, wStmts) }, v.Type, wStmts);
+          var (wArray, wElement) = EmitArrayUpdate([
+            wIndex => EmitExprAsNativeInt(new LiteralExpr(null, ii) {
+              Type = Type.Int
+            }, false, wIndex, wStmts)
+          ], v.Type, wStmts);
           if (ii == 0 && nwElement0 != null) {
             EmitIdentifier(nwElement0, wElement);
           } else {
@@ -4844,9 +4868,7 @@ namespace Microsoft.Dafny.Compilers {
       //      Notes:
       //        - The constraint of a non-null reference type can be omitted in some cases, see note (c) above.
       if (fromType.IsTraitType || fromType.IsRefType) {
-        var name = $"_is_{GetUniqueAstNumber(expr)}";
-        wr = CreateIIFE_ExprBody(name, fromType, expr.Origin, expr.E, inLetExprBody, Type.Bool, expr.Origin, wr, ref wStmts);
-        EmitTypeTest(name, fromType, expr.ToType, expr.Origin, wr);
+        EmitTypeTestExpr(expr.E, fromType, expr.ToType, expr.Origin, inLetExprBody, wr, ref wStmts);
         return;
       }
 
@@ -5151,8 +5173,8 @@ namespace Microsoft.Dafny.Compilers {
       var fvs = FreeVariablesUtil.ComputeFreeVariables(Options, expr);
       var sm = new Dictionary<IVariable, Expression>();
 
-      bvars = new List<BoundVar>();
-      fexprs = new List<Expression>();
+      bvars = [];
+      fexprs = [];
       foreach (var fv in fvs) {
         if (fv.IsGhost) {
           continue;

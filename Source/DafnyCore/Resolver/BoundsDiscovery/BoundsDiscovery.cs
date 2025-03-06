@@ -161,7 +161,7 @@ namespace Microsoft.Dafny {
           Type = Type.Bool
         };
 
-        var attributes = new Attributes("_reads", new List<Expression>(), null);
+        var attributes = new Attributes("_reads", [], null);
         return new SetComprehension(e.Origin, true, boundVarDecls, inCollection, objUse, attributes) {
           Type = new SetType(true, elementType)
         };
@@ -325,8 +325,8 @@ namespace Microsoft.Dafny {
     public static List<BoundedPool> DiscoverAllBounds_SingleVar<VT>(VT v, Expression expr,
       out bool constraintConsistsSolelyOfRangeConstraints) where VT : IVariable {
       expr = Expression.CreateAnd(GetImpliedTypeConstraint(v, v.Type), expr);
-      return DiscoverAllBounds_Aux_SingleVar(new List<VT> { v }, 0, expr, true,
-        new List<BoundedPool>() { null }, out constraintConsistsSolelyOfRangeConstraints);
+      return DiscoverAllBounds_Aux_SingleVar([v], 0, expr, true,
+        [null], out constraintConsistsSolelyOfRangeConstraints);
     }
 
     /// <summary>
@@ -375,12 +375,11 @@ namespace Microsoft.Dafny {
           }
           continue;
         }
-        if (conjunct is UnaryOpExpr || conjunct is OldExpr) {
+        if (conjunct is UnaryOpExpr or OldExpr) {
           // we also consider a unary expression sitting immediately inside an old
           var unary = conjunct as UnaryOpExpr ?? ((OldExpr)conjunct).E.Resolved as UnaryOpExpr;
           if (unary != null) {
-            var ide = unary.E.Resolved as IdentifierExpr;
-            if (ide != null && ide.Var == (IVariable)bv) {
+            if (unary.E.Resolved is IdentifierExpr ide && ide.Var == (IVariable)bv) {
               if (unary.ResolvedOp == UnaryOpExpr.ResolvedOpcode.BoolNot) {
                 bounds.Add(new ExactBoundedPool(Expression.CreateBoolLiteral(Token.NoToken, false)));
               } else if (unary.ResolvedOp == UnaryOpExpr.ResolvedOpcode.Allocated) {

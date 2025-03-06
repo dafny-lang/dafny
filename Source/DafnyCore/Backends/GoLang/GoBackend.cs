@@ -125,7 +125,7 @@ public class GoBackend : ExecutableBackend {
       return true;
     }
 
-    List<string> goArgs = new();
+    List<string> goArgs = [];
     if (run) {
       goArgs.Add("run");
     } else {

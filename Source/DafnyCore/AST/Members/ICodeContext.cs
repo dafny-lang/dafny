@@ -102,7 +102,7 @@ public class CallableWrapper : CodeContextWrapper, ICallable {
   public bool AllowsAllocation => CwInner.AllowsAllocation;
 
   public bool SingleFileToken => CwInner.SingleFileToken;
-  public IEnumerable<IOrigin> OwnedTokens => CwInner.OwnedTokens;
+  public IEnumerable<Token> OwnedTokens => CwInner.OwnedTokens;
   public IOrigin Origin => CwInner.Origin;
   public IOrigin NavigationToken => CwInner.NavigationToken;
   public SymbolKind? Kind => CwInner.Kind;
@@ -135,8 +135,8 @@ public class NoContext : ICodeContext {
     set => throw new NotSupportedException();
   }
   bool ICodeContext.IsGhost { get { return true; } }
-  List<TypeParameter> ICodeContext.TypeArgs { get { return new List<TypeParameter>(); } }
-  List<Formal> ICodeContext.Ins { get { return new List<Formal>(); } }
+  List<TypeParameter> ICodeContext.TypeArgs { get { return []; } }
+  List<Formal> ICodeContext.Ins { get { return []; } }
   ModuleDefinition IASTVisitorContext.EnclosingModule { get { return Module; } }
   bool ICodeContext.MustReverify { get { Contract.Assume(false, "should not be called on NoContext"); throw new cce.UnreachableException(); } }
   public string FullSanitizedName { get { Contract.Assume(false, "should not be called on NoContext"); throw new cce.UnreachableException(); } }

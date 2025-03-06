@@ -23,34 +23,6 @@ using Microsoft.Dafny.Plugins;
 using static Microsoft.Dafny.RefinementErrors;
 
 namespace Microsoft.Dafny {
-  public class RefinementOrigin : OriginWrapper {
-    public readonly ModuleDefinition InheritingModule;
-
-
-    public RefinementOrigin(IOrigin tok, ModuleDefinition m)
-      : base(tok) {
-      Contract.Requires(tok != null);
-      Contract.Requires(m != null);
-      this.InheritingModule = m;
-    }
-
-    public override string ToString() {
-      return $"refinement of {WrappedToken} by {InheritingModule.Name}";
-    }
-
-    public override IOrigin WithVal(string newVal) {
-      return new RefinementOrigin(WrappedToken.WithVal(newVal), InheritingModule);
-    }
-
-    public override bool IsCopy => true;
-
-    public override bool IsInherited(ModuleDefinition m) {
-      return InheritingModule == m;
-    }
-
-    public override string Filepath => WrappedToken.Filepath + "[" + InheritingModule.Name + "]";
-  }
-
   /// <summary>
   /// The "RefinementTransformer" is responsible for transforming a refining module (that is,
   /// a module defined as "module Y refines X") according to the body of this module and
@@ -174,7 +146,7 @@ namespace Microsoft.Dafny {
 
       if (m.Implements?.Target.Decl == null) {
         // do this also for non-refining modules
-        CheckSuperfluousRefiningMarks(m.TopLevelDecls, new List<string>());
+        CheckSuperfluousRefiningMarks(m.TopLevelDecls, []);
         AddDefaultBaseTypeToUnresolvedNewtypes(m.TopLevelDecls);
       } else {
         // There is a refinement parent and it resolved OK
@@ -239,7 +211,7 @@ namespace Microsoft.Dafny {
       }
 
       // Merge the declarations of prev into the declarations of m
-      List<string> processedDecl = new List<string>();
+      List<string> processedDecl = [];
       foreach (var originalDeclaration in prev.TopLevelDecls) {
         processedDecl.Add(originalDeclaration.Name);
         if (!declaredNames.TryGetValue(originalDeclaration.Name, out var newPointer)) {
@@ -336,7 +308,7 @@ namespace Microsoft.Dafny {
             // check that od's type characteristics are respected by nw's
             var newType = UserDefinedType.FromTopLevelDecl(nw.Origin,
               nw is ClassLikeDecl { NonNullTypeDecl: { } nonNullTypeDecl } ? nonNullTypeDecl : nw);
-            if (!CheckTypeCharacteristics_Visitor.CheckCharacteristics(od.Characteristics, newType, false, out var whatIsNeeded, out var hint, out var errorId)) {
+            if (!CheckTypeCharacteristicsVisitor.CheckCharacteristics(od.Characteristics, newType, false, out var whatIsNeeded, out var hint, out var errorId)) {
               var typeCharacteristicsSyntax = od.Characteristics.ToString();
               Error(errorId, nw.Origin,
                 $"to be a refinement of {od.WhatKind} '{od.EnclosingModuleDefinition.Name}.{od.Name}' declared with {typeCharacteristicsSyntax}, " +
@@ -418,9 +390,9 @@ namespace Microsoft.Dafny {
         if (derivedPointer == original.OriginalSignature.ModuleDef) {
           HashSet<string> exports;
           if (derived is AliasModuleDecl) {
-            exports = new HashSet<string>(((AliasModuleDecl)derived).Exports.ConvertAll(t => t.val));
+            exports = [.. ((AliasModuleDecl)derived).Exports.ConvertAll(t => t.val)];
           } else if (derived is AbstractModuleDecl) {
-            exports = new HashSet<string>(((AbstractModuleDecl)derived).Exports.ConvertAll(t => t.val));
+            exports = [.. ((AbstractModuleDecl)derived).Exports.ConvertAll(t => t.val)];
           } else {
             Error(ErrorId.ref_base_module_must_be_abstract_or_alias, derived, "a module ({0}) can only be refined by an alias module or a module facade", original.Name);
             return false;
@@ -558,9 +530,7 @@ namespace Microsoft.Dafny {
           previousMethod.Outs.ConvertAll(o => refinementCloner.CloneFormal(o, false)),
           req, reads, mod, ens, decreases, body, refinementCloner.MergeAttributes(previousMethod.Attributes, moreAttributes), null);
       } else {
-        return new Method(origin, newName, previousMethod.HasStaticKeyword, previousMethod.IsGhost, tps, ins,
-          previousMethod.Outs.ConvertAll(o => refinementCloner.CloneFormal(o, false)),
-          req, reads, mod, ens, decreases, body, refinementCloner.MergeAttributes(previousMethod.Attributes, moreAttributes), null, previousMethod.IsByMethod);
+        return new Method(origin, newName, refinementCloner.MergeAttributes(previousMethod.Attributes, moreAttributes), previousMethod.HasStaticKeyword, previousMethod.IsGhost, tps, ins, req, ens, reads, decreases, previousMethod.Outs.ConvertAll(o => refinementCloner.CloneFormal(o, false)), mod, body, null, previousMethod.IsByMethod);
       }
     }
 
@@ -632,7 +602,7 @@ namespace Microsoft.Dafny {
     TopLevelDeclWithMembers MergeClass(TopLevelDeclWithMembers nw, TopLevelDeclWithMembers prev) {
       CheckAgreement_TypeParameters(nw.Origin, prev.TypeArgs, nw.TypeArgs, nw.Name, nw.WhatKind);
 
-      prev.ParentTraits.ForEach(item => nw.ParentTraits.Add(refinementCloner.CloneType(item)));
+      prev.Traits.ForEach(item => nw.Traits.Add(refinementCloner.CloneType(item)));
       nw.Attributes = refinementCloner.MergeAttributes(prev.Attributes, nw.Attributes);
 
       // Create a simple name-to-member dictionary.  Ignore any duplicates at this time.
@@ -1015,8 +985,8 @@ namespace Microsoft.Dafny {
            */
           if (cur is SkeletonStatement) {
             var c = (SkeletonStatement)cur;
-            var S = c.S;
-            if (S == null) {
+            var skeletonStatementType = c.S;
+            if (skeletonStatementType == null) {
               var nxt = i + 1 == skeleton.Count ? null : skeleton[i + 1];
               if (nxt != null && nxt is SkeletonStatement && ((SkeletonStatement)nxt).S == null) {
                 // "...; ...;" is the same as just "...;", so skip this one
@@ -1040,11 +1010,10 @@ namespace Microsoft.Dafny {
               }
               i++;
 
-            } else if (S is AssertStmt) {
-              var skel = (AssertStmt)S;
+            } else if (skeletonStatementType is AssertStmt skeletonAssert) {
               Contract.Assert(c.ConditionOmitted);
-              var oldAssume = oldS as PredicateStmt;
-              if (oldAssume == null) {
+              var oldPredicateStmt = oldS as PredicateStmt;
+              if (oldPredicateStmt == null) {
                 Error(ErrorId.ref_mismatched_assert, cur.Origin, "assert template does not match inherited statement");
                 i++;
               } else {
@@ -1052,15 +1021,15 @@ namespace Microsoft.Dafny {
                 // that this assertion is supposed to be translated into a check.  That is,
                 // it is not allowed to be just assumed in the translation, despite the fact
                 // that the condition is inherited.
-                var e = refinementCloner.CloneExpr(oldAssume.Expr);
-                var attrs = refinementCloner.MergeAttributes(oldAssume.Attributes, skel.Attributes);
-                body.Add(new AssertStmt(new NestedOrigin(skel.Origin, e.Origin), e, skel.Label, attrs));
+                var e = refinementCloner.CloneExpr(oldPredicateStmt.Expr);
+                var attrs = refinementCloner.MergeAttributes(oldPredicateStmt.Attributes, skeletonAssert.Attributes);
+                body.Add(new AssertStmt(new NestedOrigin(skeletonAssert.Origin, oldPredicateStmt.Expr.Origin, "refined proposition"), e, skeletonAssert.Label, attrs));
                 Reporter.Info(MessageSource.RefinementTransformer, c.ConditionEllipsis, "assume->assert: " + Printer.ExprToString(Reporter.Options, e));
                 i++; j++;
               }
 
-            } else if (S is ExpectStmt) {
-              var skel = (ExpectStmt)S;
+            } else if (skeletonStatementType is ExpectStmt) {
+              var skel = (ExpectStmt)skeletonStatementType;
               Contract.Assert(c.ConditionOmitted);
               var oldExpect = oldS as ExpectStmt;
               if (oldExpect == null) {
@@ -1075,8 +1044,8 @@ namespace Microsoft.Dafny {
                 i++; j++;
               }
 
-            } else if (S is AssumeStmt) {
-              var skel = (AssumeStmt)S;
+            } else if (skeletonStatementType is AssumeStmt) {
+              var skel = (AssumeStmt)skeletonStatementType;
               Contract.Assert(c.ConditionOmitted);
               var oldAssume = oldS as AssumeStmt;
               if (oldAssume == null) {
@@ -1090,8 +1059,8 @@ namespace Microsoft.Dafny {
                 i++; j++;
               }
 
-            } else if (S is IfStmt) {
-              var skel = (IfStmt)S;
+            } else if (skeletonStatementType is IfStmt) {
+              var skel = (IfStmt)skeletonStatementType;
               Contract.Assert(c.ConditionOmitted);
               var oldIf = oldS as IfStmt;
               if (oldIf == null) {
@@ -1107,8 +1076,8 @@ namespace Microsoft.Dafny {
                 i++; j++;
               }
 
-            } else if (S is WhileStmt) {
-              var skel = (WhileStmt)S;
+            } else if (skeletonStatementType is WhileStmt) {
+              var skel = (WhileStmt)skeletonStatementType;
               var oldWhile = oldS as WhileStmt;
               if (oldWhile == null) {
                 Error(ErrorId.ref_mismatched_while_statement, cur.Origin, "while-statement template does not match inherited statement");
@@ -1131,8 +1100,8 @@ namespace Microsoft.Dafny {
                 i++; j++;
               }
 
-            } else if (S is ModifyStmt) {
-              var skel = (ModifyStmt)S;
+            } else if (skeletonStatementType is ModifyStmt) {
+              var skel = (ModifyStmt)skeletonStatementType;
               Contract.Assert(c.ConditionOmitted);
               var oldModifyStmt = oldS as ModifyStmt;
               if (oldModifyStmt == null) {
@@ -1147,7 +1116,7 @@ namespace Microsoft.Dafny {
                   // Note, it is important to call MergeBlockStmt here (rather than just setting "mbody" to "skel.Body"), even
                   // though we're passing in an empty block as its second argument. The reason for this is that MergeBlockStmt
                   // also sets ".ReverifyPost" to "true" for any "return" statements.
-                  mbody = MergeBlockStmt(skel.Body, new BlockStmt(oldModifyStmt.Origin, new List<Statement>()));
+                  mbody = MergeBlockStmt(skel.Body, new BlockStmt(oldModifyStmt.Origin, []));
                 } else if (skel.Body == null) {
                   Error(ErrorId.ref_mismatched_statement_body, cur.Origin, "modify template must have a body if the inherited modify statement does");
                   mbody = null;
@@ -1237,7 +1206,7 @@ namespace Microsoft.Dafny {
 
           } else if (cur is AssignStatement) {
             var nw = (AssignStatement)cur;
-            List<Statement> stmtGenerated = new List<Statement>();
+            List<Statement> stmtGenerated = [];
             bool doMerge = false;
             if (oldS is AssignStatement) {
               var s = (AssignStatement)oldS;
@@ -1440,7 +1409,7 @@ namespace Microsoft.Dafny {
       if (cOld.Body == null && cNew.Body == null) {
         newBody = null;
       } else if (cOld.Body == null) {
-        newBody = MergeBlockStmt(cNew.Body, new BlockStmt(cOld.Origin, new List<Statement>()));
+        newBody = MergeBlockStmt(cNew.Body, new BlockStmt(cOld.Origin, []));
       } else if (cNew.Body == null) {
         Error(ErrorId.ref_mismatched_while_body, cNew.Origin, "while template must have a body if the inherited while statement does");
         newBody = null;
@@ -1458,15 +1427,15 @@ namespace Microsoft.Dafny {
         return refinementCloner.CloneStmt(oldStmt, false);
       } else if (skeleton is IfStmt || skeleton is SkeletonStatement) {
         // wrap a block statement around the if statement
-        skeleton = new BlockStmt(skeleton.Origin, new List<Statement>() { skeleton });
+        skeleton = new BlockStmt(skeleton.Origin, [skeleton]);
       }
 
       if (oldStmt == null) {
         // make it into an empty block statement
-        oldStmt = new BlockStmt(skeleton.Origin, new List<Statement>());
+        oldStmt = new BlockStmt(skeleton.Origin, []);
       } else if (oldStmt is IfStmt || oldStmt is SkeletonStatement) {
         // wrap a block statement around the if statement
-        oldStmt = new BlockStmt(skeleton.Origin, new List<Statement>() { oldStmt });
+        oldStmt = new BlockStmt(skeleton.Origin, [oldStmt]);
       }
 
       Contract.Assert(skeleton is BlockStmt && oldStmt is BlockStmt);
@@ -1635,7 +1604,7 @@ namespace Microsoft.Dafny {
         // refining module, retain its name but not be default, unless the refining module has the same name
         ModuleExportDecl dex = d as ModuleExportDecl;
         if (dex.IsDefault && d.Name != newParent.Name) {
-          ddex = new ModuleExportDecl(ddex.Options, dex.Origin, d.NameNode, newParent, dex.Exports, dex.Extends,
+          ddex = new ModuleExportDecl(ddex.Options, dex.Origin, d.NameNode, d.Attributes, newParent, dex.Exports, dex.Extends,
             dex.ProvideAll, dex.RevealAll, false, true, Guid.NewGuid());
         }
         ddex.SetupDefaultSignature();

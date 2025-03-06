@@ -877,7 +877,7 @@ public class ReadFrameSubset : ProofObligationDescription {
   [CanBeNull] private readonly IFrameScope scope;
 
   public ReadFrameSubset(string whatKind, FrameExpression subsetFrame, List<FrameExpression> supersetFrames, Expression readExpression = null, [CanBeNull] IFrameScope scope = null)
-    : this(whatKind, new List<FrameExpression> { subsetFrame }, supersetFrames, readExpression, scope) { }
+    : this(whatKind, [subsetFrame], supersetFrames, readExpression, scope) { }
 
   public ReadFrameSubset(string whatKind, List<FrameExpression> subsetFrames, List<FrameExpression> supersetFrames, Expression readExpression = null, [CanBeNull] IFrameScope scope = null)
     : this(whatKind, Utils.MakeDafnyMultiFrameCheck(supersetFrames, subsetFrames), readExpression, scope) { }
@@ -1137,7 +1137,7 @@ public class AlternativeIsComplete : ProofObligationDescription {
     $"alternative cases cover all possibilities";
 
   public override string FailureDescription =>
-    $"alternative cases fail to cover all possibilities";
+    $"alternative cases may not cover all possibilities";
 
   public override string ShortDescription => "alternative complete";
 
@@ -1423,26 +1423,6 @@ public class ForRangeAssignable : ProofObligationDescription {
   }
 }
 
-public class ValidInRecursion : ProofObligationDescription {
-  public override string SuccessDescription =>
-    $"{what} is valid in recursive setting";
-
-  public override string FailureDescription =>
-    $"cannot use {what} in recursive setting.{hint ?? ""}";
-
-  public override string ShortDescription => "valid in recursion";
-
-  public override bool ProvedOutsideUserCode => true;
-
-  private readonly string what;
-  private readonly string hint;
-
-  public ValidInRecursion(string what, string hint) {
-    this.what = what;
-    this.hint = hint;
-  }
-}
-
 public class IsNonRecursive : ProofObligationDescription {
   public override string SuccessDescription =>
     "default value is non-recursive";
@@ -1559,15 +1539,15 @@ public class InRange : ProofObligationDescription {
       Expression bound = sequence.Type.IsArrayType ?
           new MemberSelectExpr(sequence.Origin, sequence, new Name("Length" + (dimension >= 0 ? "" + dimension : "")))
         : new UnaryOpExpr(sequence.Origin, UnaryOpExpr.Opcode.Cardinality, sequence);
-      return new ChainingExpression(sequence.Origin, new List<Expression>() {
-        new LiteralExpr(sequence.Origin, 0),
+      return new ChainingExpression(sequence.Origin, [
+          new LiteralExpr(sequence.Origin, 0),
         index,
         bound
-      }, new List<BinaryExpr.Opcode>() {
-        BinaryExpr.Opcode.Le,
-        upperExcluded ? BinaryExpr.Opcode.Lt : BinaryExpr.Opcode.Le
-      }, new List<IOrigin>() { Token.NoToken, Token.NoToken },
-        new List<Expression>() { null, null });
+        ], [
+          BinaryExpr.Opcode.Le,
+          upperExcluded ? BinaryExpr.Opcode.Lt : BinaryExpr.Opcode.Le
+        ], [Token.NoToken, Token.NoToken],
+        [null, null]);
     }
 
     return new BinaryExpr(sequence.Origin, BinaryExpr.Opcode.In,
@@ -1599,14 +1579,14 @@ public class SequenceSelectRangeValid : ProofObligationDescription {
   }
 
   public override Expression GetAssertedExpr(DafnyOptions options) {
-    return new ChainingExpression(sequence.Origin, new List<Expression>() {
+    return new ChainingExpression(sequence.Origin, [
       lowerBound,
       upperBound,
       new UnaryOpExpr(sequence.Origin, UnaryOpExpr.Opcode.Cardinality, sequence)
-    }, new List<BinaryExpr.Opcode>() {
+    ], [
       BinaryExpr.Opcode.Le,
       BinaryExpr.Opcode.Le
-    }, new List<IOrigin>() { Token.NoToken, Token.NoToken }, new List<Expression>() { null, null });
+    ], [Token.NoToken, Token.NoToken], [null, null]);
   }
 }
 
@@ -1765,18 +1745,25 @@ public class LetSuchThatUnique : ProofObligationDescription {
 public class LetSuchThatExists : ProofObligationDescription {
   private readonly Expression condition;
   private readonly List<BoundVar> bvars;
+  private bool autoTriggerSearchFailed;
 
   public override string SuccessDescription =>
     "a value exists that satisfies this let-such-that expression";
 
   public override string FailureDescription =>
-    "cannot establish the existence of LHS values that satisfy the such-that predicate";
+    "cannot establish the existence of LHS values that satisfy the such-that predicate" +
+    (autoTriggerSearchFailed
+      ? ". Note, no trigger was found for the such-that predicate, which may be the reason the proof failed. " +
+        "To give a trigger explicitly, use the {:trigger} attribute. " +
+        "For more information, see the section on quantifier instantiation rules in the reference manual."
+      : "");
 
   public override string ShortDescription => "let-such-that exists";
 
-  public LetSuchThatExists(List<BoundVar> bvars, Expression condition) {
+  public LetSuchThatExists(List<BoundVar> bvars, Expression condition, bool autoTriggerSearchFailed) {
     this.condition = condition;
     this.bvars = bvars;
+    this.autoTriggerSearchFailed = autoTriggerSearchFailed;
   }
   public override Expression GetAssertedExpr(DafnyOptions options) {
     return new ExistsExpr(bvars[0].Origin, bvars,
@@ -1837,7 +1824,7 @@ public class ConcurrentFrameEmpty : ProofObligationDescription {
     var args = bvars.Select(bvar => new IdentifierExpr(Token.NoToken, bvar) as Expression).ToList();
     var call = new ApplyExpr(Token.NoToken, func, args, Token.NoToken);
     var isEmpty = new BinaryExpr(Token.NoToken, BinaryExpr.Opcode.Eq, call,
-      new SetDisplayExpr(Token.NoToken, true, new()));
+      new SetDisplayExpr(Token.NoToken, true, []));
     return new ForallExpr(Token.NoToken, bvars, null, isEmpty, null);
   }
 }
@@ -1891,16 +1878,16 @@ internal class Utils {
 
   public static void MakeQuantifierVarsForDims(List<Expression> dims, out List<BoundVar> vars, out List<Expression> varExprs, out Expression range) {
     var zero = new LiteralExpr(Token.NoToken, 0);
-    vars = dims.Select((_, i) => new BoundVar("i" + i, Type.Int)).ToList();
+    vars = dims.Select((dim, i) => new BoundVar(dim.Origin, "i" + i, Type.Int)).ToList();
 
     // can't assign to out-param immediately, since it's accessed in the lambda below
     var tempVarExprs = vars.Select(var => new IdentifierExpr(Token.NoToken, var) as Expression).ToList();
     var indexRanges = dims.Select((dim, i) => new ChainingExpression(
       Token.NoToken,
-      new() { zero, tempVarExprs[i], dim },
-      new() { BinaryExpr.Opcode.Le, BinaryExpr.Opcode.Lt },
-      new() { Token.NoToken, Token.NoToken },
-      new() { null, null }
+      [zero, tempVarExprs[i], dim],
+      [BinaryExpr.Opcode.Le, BinaryExpr.Opcode.Lt],
+      [Token.NoToken, Token.NoToken],
+      [null, null]
     ) as Expression).ToList();
     varExprs = tempVarExprs;
 
@@ -1972,7 +1959,7 @@ internal class Utils {
     }
 
     if (disjuncts.Count == 0) {
-      var emptySet = new SetDisplayExpr(Token.NoToken, true, new());
+      var emptySet = new SetDisplayExpr(Token.NoToken, true, []);
       disjuncts.Add(new BinaryExpr(Token.NoToken, BinaryExpr.Opcode.In, objOperand, emptySet));
     }
 
@@ -1984,7 +1971,7 @@ internal class Utils {
 
     return new ForallExpr(
       Token.NoToken,
-      new() { objVar },
+      [objVar],
       new BinaryExpr(Token.NoToken, BinaryExpr.Opcode.In, objOperand, objOrObjSet),
       check,
       null

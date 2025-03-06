@@ -7,21 +7,19 @@ using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 namespace Microsoft.Dafny;
 
 public abstract class TypeSynonymDeclBase : TopLevelDecl, RedirectingTypeDecl, IHasDocstring {
-  public TypeParameter.TypeParameterCharacteristics Characteristics;  // the resolver may change the .EqualitySupport component of this value from Unspecified to InferredRequired (for some signatures that may immediately imply that equality support is required)
+  public TypeParameterCharacteristics Characteristics;  // the resolver may change the .EqualitySupport component of this value from Unspecified to InferredRequired (for some signatures that may immediately imply that equality support is required)
   public bool SupportsEquality {
     get { return Characteristics.EqualitySupport != TypeParameter.EqualitySupportValue.Unspecified; }
   }
-  public readonly Type Rhs;
+  public abstract Type Rhs { get; }
 
-  protected TypeSynonymDeclBase(IOrigin origin, Name name, TypeParameter.TypeParameterCharacteristics characteristics, List<TypeParameter> typeArgs, ModuleDefinition module, Type rhs, Attributes attributes)
-    : base(origin, name, module, typeArgs, attributes, false) {
+  [SyntaxConstructor]
+  protected TypeSynonymDeclBase(IOrigin origin, Name nameNode, TypeParameterCharacteristics characteristics,
+    List<TypeParameter> typeArgs, ModuleDefinition enclosingModuleDefinition, Attributes attributes)
+    : base(origin, nameNode, enclosingModuleDefinition, typeArgs, attributes) {
     Contract.Requires(origin != null);
-    Contract.Requires(name != null);
     Contract.Requires(typeArgs != null);
-    Contract.Requires(module != null);
-    Contract.Requires(rhs != null);
     Characteristics = characteristics;
-    Rhs = rhs;
   }
   /// <summary>
   /// Return .Rhs instantiated with "typeArgs", but only look at the part of .Rhs that is in scope.
@@ -81,7 +79,7 @@ public abstract class TypeSynonymDeclBase : TopLevelDecl, RedirectingTypeDecl, I
 
   bool ICodeContext.IsGhost => throw new NotSupportedException(); // if .IsGhost is needed, the object should always be wrapped in an CodeContextWrapper
   List<TypeParameter> ICodeContext.TypeArgs => TypeArgs;
-  List<Formal> ICodeContext.Ins => new();
+  List<Formal> ICodeContext.Ins => [];
   ModuleDefinition IASTVisitorContext.EnclosingModule { get { return EnclosingModuleDefinition; } }
   bool ICodeContext.MustReverify { get { return false; } }
   bool ICodeContext.AllowsNontermination { get { return false; } }

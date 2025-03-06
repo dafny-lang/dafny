@@ -29,7 +29,7 @@ public class AutoReqFunctionRewriter : IRewriter {
           parentFunction = fn;  // Remember where the recursion started
           containsMatch = false;  // Assume no match statements are involved
 
-          List<AttributedExpression> auto_reqs = new List<AttributedExpression>();
+          List<AttributedExpression> auto_reqs = [];
 
           // First handle all of the requirements' preconditions
           foreach (AttributedExpression req in fn.Req) {
@@ -42,7 +42,7 @@ public class AutoReqFunctionRewriter : IRewriter {
 
           // Then the body itself, if any
           if (fn.Body != null) {
-            auto_reqs = new List<AttributedExpression>();
+            auto_reqs = [];
             foreach (Expression e in GenerateAutoReqs(fn.Body)) {
               auto_reqs.Add(CreateAutoAttributedExpression(e));
             }
@@ -56,7 +56,7 @@ public class AutoReqFunctionRewriter : IRewriter {
           parentFunction = null;
           containsMatch = false; // Assume no match statements are involved
 
-          List<AttributedExpression> auto_reqs = new List<AttributedExpression>();
+          List<AttributedExpression> auto_reqs = [];
           foreach (AttributedExpression req in method.Req) {
             List<Expression> local_auto_reqs = GenerateAutoReqs(req.E);
             foreach (Expression local_auto_req in local_auto_reqs) {
@@ -134,7 +134,7 @@ public class AutoReqFunctionRewriter : IRewriter {
   }
 
   List<Expression> gatherReqs(Function f, List<Expression> args, List<Type> typeArguments, Expression f_this) {
-    List<Expression> translated_f_reqs = new List<Expression>();
+    List<Expression> translated_f_reqs = [];
 
     if (f.Req.Count > 0) {
       Dictionary<IVariable, Expression/*!*/> substMap = new Dictionary<IVariable, Expression>();
@@ -171,7 +171,7 @@ public class AutoReqFunctionRewriter : IRewriter {
   }
 
   List<Expression> GenerateAutoReqs(Expression expr) {
-    List<Expression> reqs = new List<Expression>();
+    List<Expression> reqs = [];
 
     if (expr is LiteralExpr) {
     } else if (expr is ThisExpr) {
@@ -250,7 +250,7 @@ public class AutoReqFunctionRewriter : IRewriter {
       containsMatch = true;
       reqs.AddRange(GenerateAutoReqs(e.Source));
 
-      List<MatchCaseExpr> newMatches = new List<MatchCaseExpr>();
+      List<MatchCaseExpr> newMatches = [];
       foreach (MatchCaseExpr caseExpr in e.Cases) {
         //MatchCaseExpr c = new MatchCaseExpr(caseExpr.Tok, caseExpr.Id, caseExpr.Arguments, andify(caseExpr.Tok, generateAutoReqs(caseExpr.Body)));
         //c.Ctor = caseExpr.Ctor; // resolve here

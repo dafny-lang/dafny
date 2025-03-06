@@ -44,7 +44,7 @@ public class MergeOrderedTest {
     third.OnCompleted();
     outer.OnCompleted();
 
-    Assert.Equal(new List<int>() { 1, 2, 3, 4, 5, 6, -1 }, list);
+    Assert.Equal([1, 2, 3, 4, 5, 6, -1], list);
   }
 
   [Fact]
@@ -62,7 +62,7 @@ public class MergeOrderedTest {
     first.OnNext(1);
     first.OnCompleted();
 
-    Assert.Equal(new List<int>() { 1, -1 }, list);
+    Assert.Equal([1, -1], list);
   }
 
   [Fact]
@@ -80,7 +80,7 @@ public class MergeOrderedTest {
     merged.OnNext(first);
     merged.OnCompleted();
 
-    Assert.Equal(new List<int>() { 1, -1 }, list);
+    Assert.Equal([1, -1], list);
   }
 
   [Fact]
@@ -99,6 +99,6 @@ public class MergeOrderedTest {
     first.OnNext(1);
     first.OnCompleted();
 
-    Assert.Equal(new List<int>() { 1, -1 }, list);
+    Assert.Equal([1, -1], list);
   }
 }

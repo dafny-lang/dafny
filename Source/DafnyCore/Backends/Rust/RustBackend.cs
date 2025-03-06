@@ -26,12 +26,16 @@ public class RustBackend : DafnyExecutableBackend {
   public override bool TextualTargetIsExecutable => false;
 
   public static readonly Option<string> RustModuleNameOption = new("--rust-module-name",
-    @"The enclosing Rust module name for the currently translated code, i.e. what goes between crate:: ...  ::module_name".TrimStart()) {
+    @"The enclosing Rust module name for the currently translated code, i.e. what goes between crate:: ...  ::module_name") {
   };
-  public override IEnumerable<Option<string>> SupportedOptions => new List<Option<string>> { RustModuleNameOption };
+  public static readonly Option<bool> RustSyncOption = new("--rust-sync",
+    @"Ensures that all values implement the Sync and Send traits") {
+  };
+  public override IEnumerable<Option> SupportedOptions => new List<Option> { RustModuleNameOption, RustSyncOption };
 
   static RustBackend() {
     OptionRegistry.RegisterOption(RustModuleNameOption, OptionScope.Translation);
+    OptionRegistry.RegisterOption(RustSyncOption, OptionScope.Translation);
   }
 
   public override IReadOnlySet<string> SupportedNativeTypes =>
@@ -93,7 +97,15 @@ public class RustBackend : DafnyExecutableBackend {
     foreach (var keyValue in ImportFilesMapping(dafnyProgramName)) {
       var fullRustExternName = keyValue.Key;
       var expectedRustName = keyValue.Value;
-      File.Copy(fullRustExternName, Path.Combine(targetDirectory, expectedRustName), true);
+      var targetName = Path.Combine(targetDirectory, expectedRustName);
+      if (fullRustExternName == targetName) {
+        return true;
+      }
+      File.Copy(fullRustExternName, targetName, true);
+    }
+
+    if (Options.IncludeRuntime) {
+      ImportRuntimeTo(Path.GetDirectoryName(targetDirectory));
     }
     return await base.OnPostGenerate(dafnyProgramName, targetDirectory, outputWriter);
   }
@@ -112,6 +124,58 @@ public class RustBackend : DafnyExecutableBackend {
     string callToMain /*?*/, string targetFilename /*?*/, ReadOnlyCollection<string> otherFileNames,
     bool runAfterCompile, TextWriter outputWriter) {
     var targetDirectory = Path.GetDirectoryName(Path.GetDirectoryName(targetFilename));
+    ImportRuntimeTo(targetDirectory);
+
+    await WriteCargoFile(callToMain, targetFilename, targetDirectory);
+
+    var args = new List<string> {
+      "build",
+      "--quiet"
+    };
+
+    if (callToMain == null) {
+      args.Add("--lib");
+    } else {
+      args.Add("--bin");
+      args.Add(Path.GetFileNameWithoutExtension(targetFilename));
+    }
+
+    var psi = PrepareProcessStartInfo("cargo", args);
+    psi.WorkingDirectory = targetDirectory;
+    return (0 == await RunProcess(psi, outputWriter, outputWriter, "Error while compiling Rust files."), null);
+  }
+
+  private static async Task WriteCargoFile(string callToMain, string targetFilename, string targetDirectory) {
+    await using (var cargoToml = new FileStream(Path.Combine(targetDirectory, "Cargo.toml"), FileMode.Create, FileAccess.Write)) {
+      await using var cargoTomlWriter = new StreamWriter(cargoToml);
+      await cargoTomlWriter.WriteLineAsync("[package]");
+      var packageName = Path.GetFileNameWithoutExtension(targetFilename);
+      // package name cannot start with a digit
+      if (char.IsDigit(packageName[0])) {
+        packageName = "_" + packageName;
+      }
+      await cargoTomlWriter.WriteLineAsync($"name = \"{packageName}\"");
+      await cargoTomlWriter.WriteLineAsync("version = \"0.1.0\"");
+      await cargoTomlWriter.WriteLineAsync("edition = \"2021\"");
+      await cargoTomlWriter.WriteLineAsync();
+      await cargoTomlWriter.WriteLineAsync("[dependencies]");
+      await cargoTomlWriter.WriteLineAsync("dafny_runtime = { path = \"runtime\" }");
+      await cargoTomlWriter.WriteLineAsync();
+
+      if (callToMain == null) {
+        await cargoTomlWriter.WriteLineAsync("[lib]");
+        await cargoTomlWriter.WriteLineAsync("path = \"src/" + Path.GetFileName(targetFilename) + "\"");
+        await cargoTomlWriter.WriteLineAsync();
+      } else {
+        await cargoTomlWriter.WriteLineAsync("[[bin]]");
+        await cargoTomlWriter.WriteLineAsync($"name = \"{Path.GetFileNameWithoutExtension(targetFilename)}\"");
+        await cargoTomlWriter.WriteLineAsync("path = \"src/" + Path.GetFileName(targetFilename) + "\"");
+        await cargoTomlWriter.WriteLineAsync();
+      }
+    }
+  }
+
+  private static void ImportRuntimeTo(string targetDirectory) {
     var runtimeDirectory = Path.Combine(targetDirectory, "runtime");
     if (Directory.Exists(runtimeDirectory)) {
       Directory.Delete(runtimeDirectory, true);
@@ -142,51 +206,8 @@ public class RustBackend : DafnyExecutableBackend {
       using var outFile = new FileStream(Path.Combine(runtimeDirectory, dotToSlashPath), FileMode.Create, FileAccess.Write);
       stream.CopyTo(outFile);
     });
-
-    await using (var cargoToml = new FileStream(Path.Combine(targetDirectory, "Cargo.toml"), FileMode.Create, FileAccess.Write)) {
-      await using var cargoTomlWriter = new StreamWriter(cargoToml);
-      await cargoTomlWriter.WriteLineAsync("[package]");
-      var packageName = Path.GetFileNameWithoutExtension(targetFilename);
-      // package name cannot start with a digit
-      if (char.IsDigit(packageName[0])) {
-        packageName = "_" + packageName;
-      }
-      await cargoTomlWriter.WriteLineAsync($"name = \"{packageName}\"");
-      await cargoTomlWriter.WriteLineAsync("version = \"0.1.0\"");
-      await cargoTomlWriter.WriteLineAsync("edition = \"2021\"");
-      await cargoTomlWriter.WriteLineAsync();
-      await cargoTomlWriter.WriteLineAsync("[dependencies]");
-      await cargoTomlWriter.WriteLineAsync("dafny_runtime = { path = \"runtime\" }");
-      await cargoTomlWriter.WriteLineAsync();
-
-      if (callToMain == null) {
-        await cargoTomlWriter.WriteLineAsync("[lib]");
-        await cargoTomlWriter.WriteLineAsync("path = \"src/" + Path.GetFileName(targetFilename) + "\"");
-        await cargoTomlWriter.WriteLineAsync();
-      } else {
-        await cargoTomlWriter.WriteLineAsync("[[bin]]");
-        await cargoTomlWriter.WriteLineAsync($"name = \"{Path.GetFileNameWithoutExtension(targetFilename)}\"");
-        await cargoTomlWriter.WriteLineAsync("path = \"src/" + Path.GetFileName(targetFilename) + "\"");
-        await cargoTomlWriter.WriteLineAsync();
-      }
-    }
-
-    var args = new List<string> {
-      "build",
-      "--quiet"
-    };
-
-    if (callToMain == null) {
-      args.Add("--lib");
-    } else {
-      args.Add("--bin");
-      args.Add(Path.GetFileNameWithoutExtension(targetFilename));
-    }
-
-    var psi = PrepareProcessStartInfo("cargo", args);
-    psi.WorkingDirectory = targetDirectory;
-    return (0 == await RunProcess(psi, outputWriter, outputWriter, "Error while compiling Rust files."), null);
   }
+
   public override Encoding OutputWriterEncoding => Encoding.UTF8;
 
   public override async Task<bool> RunTargetProgram(string dafnyProgramName, string targetProgramText,

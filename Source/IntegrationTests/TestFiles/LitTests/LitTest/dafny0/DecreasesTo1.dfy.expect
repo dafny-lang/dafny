@@ -4,7 +4,7 @@ DecreasesTo1.dfy(23,2): Error: assertion might not hold
  Asserted expression: x - 1 decreases to x
 DecreasesTo1.dfy(27,2): Error: assertion might not hold
  Asserted expression: (x, y - 1 decreases to x, y)
-DecreasesTo1.dfy(39,34): Error: decreases clause might not decrease
+DecreasesTo1.dfy(39,39): Error: decreases clause might not decrease
  Asserted expression: n + m decreases to n + m + 1
 DecreasesTo1.dfy(49,20): Error: decreases clause might not decrease
  Asserted expression: old(n + m) decreases to n + m + 1

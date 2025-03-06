@@ -34,7 +34,7 @@ public class ShortCircuitRemoval : Setup {
   private async Task<Method> ShortCircuitRemovalTest(string source, string expected, bool isByMethod = true) {
     // If the following assertion fails, rename the corresponding variables in expected output of each test
     Assert.Equal(RemoveShortCircuitingRewriter.TmpVarPrefix, "#tmp");
-    var options = GetDafnyOptions(new List<Action<DafnyOptions>>(), output);
+    var options = GetDafnyOptions([], output);
     var program = await Parse(new BatchErrorReporter(options), source, false);
     var success = InliningTranslator.TranslateForFutureInlining(program, options, out var boogieProgram);
     Assert.True(success);

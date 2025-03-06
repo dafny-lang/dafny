@@ -22,6 +22,7 @@ using DafnyCore.Verifier;
 using JetBrains.Annotations;
 using Microsoft.Dafny;
 using Microsoft.Dafny.Triggers;
+using Serilog.Events;
 using PODesc = Microsoft.Dafny.ProofObligationDescription;
 using static Microsoft.Dafny.GenericErrors;
 
@@ -31,7 +32,7 @@ namespace Microsoft.Dafny {
     public DafnyOptions Options => options;
     public const string NameSeparator = "$$";
     public const string CallPrefix = "Call";
-    private HashSet<Uri> filesWhereOnlyMembersAreVerified = new();
+    private HashSet<Uri> filesWhereOnlyMembersAreVerified = [];
 
     ErrorReporter reporter;
     // TODO(wuestholz): Enable this once Dafny's recommended Z3 version includes changeset 0592e765744497a089c42021990740f303901e67.
@@ -120,7 +121,7 @@ namespace Microsoft.Dafny {
     readonly Dictionary<TopLevelDecl/*!*/, Bpl.Constant/*!*/>/*!*/ classes = new Dictionary<TopLevelDecl/*!*/, Bpl.Constant/*!*/>();
     readonly Dictionary<TopLevelDecl, string>/*!*/ classConstants = new Dictionary<TopLevelDecl, string>();
     readonly Dictionary<Function, string> functionHandles = new Dictionary<Function, string>();
-    readonly List<FuelConstant> functionFuel = new List<FuelConstant>();
+    readonly List<FuelConstant> functionFuel = [];
     readonly Dictionary<Function, Bpl.Expr> functionReveals = new();
     readonly Dictionary<Field/*!*/, Bpl.Constant/*!*/>/*!*/ fields = new Dictionary<Field/*!*/, Bpl.Constant/*!*/>();
     readonly Dictionary<Field/*!*/, Bpl.Function/*!*/>/*!*/ fieldFunctions = new Dictionary<Field/*!*/, Bpl.Function/*!*/>();
@@ -308,7 +309,7 @@ namespace Microsoft.Dafny {
         Contract.Requires(tok != null);
         Contract.Ensures(Contract.Result<Bpl.Type>() != null);
 
-        return new Bpl.CtorType(tok, fieldName, new List<Bpl.Type> { });
+        return new Bpl.CtorType(tok, fieldName, []);
       }
 
       public Bpl.IdentifierExpr Alloc(Bpl.IToken tok) {
@@ -370,16 +371,16 @@ namespace Microsoft.Dafny {
         Contract.Requires(tyTagFamilyType != null);
         #endregion
 
-        this.CharType = new Bpl.CtorType(Token.NoToken, charType, new List<Bpl.Type>());
-        Bpl.CtorType refT = new Bpl.CtorType(Token.NoToken, refType, new List<Bpl.Type>());
+        this.CharType = new Bpl.CtorType(Token.NoToken, charType, []);
+        Bpl.CtorType refT = new Bpl.CtorType(Token.NoToken, refType, []);
         this.RefType = refT;
-        this.BoxType = new Bpl.CtorType(Token.NoToken, boxType, new List<Bpl.Type>());
-        this.SetType = new Bpl.CtorType(Token.NoToken, setTypeCtor, new List<Bpl.Type> { });
-        this.ISetType = new Bpl.TypeSynonymAnnotation(Token.NoToken, isetTypeCtor, new List<Bpl.Type> { });
-        this.MultiSetType = new Bpl.CtorType(Token.NoToken, multiSetTypeCtor, new List<Bpl.Type> { });
-        this.SeqType = new Bpl.CtorType(Token.NoToken, seqTypeCtor, new List<Bpl.Type> { });
-        this.MapType = new Bpl.CtorType(Token.NoToken, mapTypeCtor, new List<Bpl.Type> { });
-        this.IMapType = new Bpl.CtorType(Token.NoToken, imapTypeCtor, new List<Bpl.Type> { });
+        this.BoxType = new Bpl.CtorType(Token.NoToken, boxType, []);
+        this.SetType = new Bpl.CtorType(Token.NoToken, setTypeCtor, []);
+        this.ISetType = new Bpl.TypeSynonymAnnotation(Token.NoToken, isetTypeCtor, []);
+        this.MultiSetType = new Bpl.CtorType(Token.NoToken, multiSetTypeCtor, []);
+        this.SeqType = new Bpl.CtorType(Token.NoToken, seqTypeCtor, []);
+        this.MapType = new Bpl.CtorType(Token.NoToken, mapTypeCtor, []);
+        this.IMapType = new Bpl.CtorType(Token.NoToken, imapTypeCtor, []);
         this.ArrayLength = arrayLength;
         this.RealFloor = realFloor;
         this.ORDINAL_IsLimit = ORD_isLimit;
@@ -398,19 +399,19 @@ namespace Microsoft.Dafny {
         this.Tuple2Constructor = tuple2Constructor;
         this.Tuple2TypeConstructor = tuple2TypeConstructor;
         this.seqTypeCtor = seqTypeCtor;
-        this.Bv0Type = new Bpl.TypeSynonymAnnotation(Token.NoToken, bv0TypeDecl, new List<Bpl.Type>());
+        this.Bv0Type = new Bpl.TypeSynonymAnnotation(Token.NoToken, bv0TypeDecl, []);
         this.fieldName = fieldNameType;
         this.HeapType = heap.TypedIdent.Type;
         this.HeapVarName = heap.Name;
-        this.Ty = new Bpl.CtorType(Token.NoToken, tyType, new List<Bpl.Type>());
-        this.TyTag = new Bpl.CtorType(Token.NoToken, tyTagType, new List<Bpl.Type>());
-        this.TyTagFamily = new Bpl.CtorType(Token.NoToken, tyTagFamilyType, new List<Bpl.Type>());
-        this.ClassNameType = new Bpl.CtorType(Token.NoToken, classNameType, new List<Bpl.Type>());
-        this.NameFamilyType = new Bpl.CtorType(Token.NoToken, nameFamilyType, new List<Bpl.Type>());
-        this.DatatypeType = new Bpl.CtorType(Token.NoToken, datatypeType, new List<Bpl.Type>());
-        this.HandleType = new Bpl.CtorType(Token.NoToken, handleType, new List<Bpl.Type>());
-        this.LayerType = new Bpl.CtorType(Token.NoToken, layerType, new List<Bpl.Type>());
-        this.DtCtorId = new Bpl.CtorType(Token.NoToken, dtCtorId, new List<Bpl.Type>());
+        this.Ty = new Bpl.CtorType(Token.NoToken, tyType, []);
+        this.TyTag = new Bpl.CtorType(Token.NoToken, tyTagType, []);
+        this.TyTagFamily = new Bpl.CtorType(Token.NoToken, tyTagFamilyType, []);
+        this.ClassNameType = new Bpl.CtorType(Token.NoToken, classNameType, []);
+        this.NameFamilyType = new Bpl.CtorType(Token.NoToken, nameFamilyType, []);
+        this.DatatypeType = new Bpl.CtorType(Token.NoToken, datatypeType, []);
+        this.HandleType = new Bpl.CtorType(Token.NoToken, handleType, []);
+        this.LayerType = new Bpl.CtorType(Token.NoToken, layerType, []);
+        this.DtCtorId = new Bpl.CtorType(Token.NoToken, dtCtorId, []);
         this.AllocField = allocField;
         this.Null = new Bpl.IdentifierExpr(Token.NoToken, "null", refT);
       }
@@ -700,6 +701,10 @@ namespace Microsoft.Dafny {
         return new Bpl.Program();
       }
 
+      if (Options.GetOrOptionDefault(CommonOptionBag.LogLevelOption).CompareTo(LogEventLevel.Verbose) <= 0) {
+        Options.OutputWriter.WriteLine("Starting translation to Boogie of module " + forModule.FullDafnyName);
+      }
+
       foreach (var plugin in p.Options.Plugins) {
         foreach (var rewriter in plugin.GetRewriters(p.Reporter)) {
           rewriter.PreVerify(forModule);
@@ -808,7 +813,7 @@ namespace Microsoft.Dafny {
         }
       }
 
-      filesWhereOnlyMembersAreVerified = new();
+      filesWhereOnlyMembersAreVerified = [];
 
       AddTraitParentAxioms();
 
@@ -901,10 +906,10 @@ namespace Microsoft.Dafny {
       if (binary) {
         var a0 = BplFormalVar(null, t, true);
         var a1 = BplFormalVar(null, t, true);
-        args = new List<Variable>() { a0, a1 };
+        args = [a0, a1];
       } else {
         var a0 = BplFormalVar(null, t, true);
-        args = new List<Variable>() { a0 };
+        args = [a0];
       }
       var r = BplFormalVar(null, resultType ?? t, false);
       Bpl.QKeyValue attr;
@@ -913,7 +918,7 @@ namespace Microsoft.Dafny {
       } else {
         attr = new Bpl.QKeyValue(tok, "bvbuiltin", new List<object>() { smtFunctionName }, null);
       }
-      var func = new Bpl.Function(tok, namePrefix + w, new List<TypeVariable>(), args, r, null, attr);
+      var func = new Bpl.Function(tok, namePrefix + w, [], args, r, null, attr);
       if (w == 0) {
         if (resultType != null) {
           func.Body = Bpl.Expr.Literal(bodyForBv0);
@@ -933,7 +938,7 @@ namespace Microsoft.Dafny {
       List<Bpl.Variable> args;
       var a0 = BplFormalVar(null, t, true);
       var a1 = BplFormalVar(null, t, true);
-      args = new List<Variable>() { a0, a1 };
+      args = [a0, a1];
       var r = BplFormalVar(null, t, false);
       Bpl.QKeyValue attr;
       if (w == 0) {
@@ -941,7 +946,7 @@ namespace Microsoft.Dafny {
       } else {
         attr = new Bpl.QKeyValue(tok, "bvbuiltin", new List<object>() { smtFunctionName }, null);
       }
-      var func = new Bpl.Function(tok, namePrefix + w, new List<TypeVariable>(), args, r, null, attr);
+      var func = new Bpl.Function(tok, namePrefix + w, [], args, r, null, attr);
       if (w == 0) {
         func.Body = BplBvLiteralExpr(tok, BaseTypes.BigNum.ZERO, w);
       }
@@ -964,8 +969,8 @@ namespace Microsoft.Dafny {
         var smt_int2bv = string.Format("(_ int2bv {0})", w);
         attr = new Bpl.QKeyValue(tok, "bvbuiltin", new List<object>() { smt_int2bv }, null);  // SMT-LIB 2 calls this function nat2bv, but Z3 apparently calls it int2bv
       }
-      func = new Bpl.Function(tok, "nat_to_bv" + w, new List<TypeVariable>(),
-        new List<Variable>() { BplFormalVar(null, Bpl.Type.Int, true) }, BplFormalVar(null, bv, false),
+      func = new Bpl.Function(tok, "nat_to_bv" + w, [],
+        [BplFormalVar(null, Bpl.Type.Int, true)], BplFormalVar(null, bv, false),
         null, attr);
       if (w == 0) {
         func.Body = BplBvLiteralExpr(tok, BaseTypes.BigNum.ZERO, w);
@@ -975,21 +980,21 @@ namespace Microsoft.Dafny {
       if (w == 0) {
         // function {:inline} nat_from_bv0_smt(Bv0) : int { 0 }
         attr = InlineAttribute(tok);
-        func = new Bpl.Function(tok, "nat_from_bv" + w, new List<TypeVariable>(),
-          new List<Variable>() { BplFormalVar(null, bv, true) }, BplFormalVar(null, Bpl.Type.Int, false),
+        func = new Bpl.Function(tok, "nat_from_bv" + w, [],
+          [BplFormalVar(null, bv, true)], BplFormalVar(null, Bpl.Type.Int, false),
           null, attr);
         func.Body = Bpl.Expr.Literal(0);
         sink.AddTopLevelDeclaration(func);
       } else {
         // function {:bvbuiltin "bv2int"} smt_nat_from_bv67(bv67) : int;
         attr = new Bpl.QKeyValue(tok, "bvbuiltin", new List<object>() { "bv2int" }, null);  // SMT-LIB 2 calls this function bv2nat, but Z3 apparently calls it bv2int
-        var smtFunc = new Bpl.Function(tok, "smt_nat_from_bv" + w, new List<TypeVariable>(),
-          new List<Variable>() { BplFormalVar(null, bv, true) }, BplFormalVar(null, Bpl.Type.Int, false),
+        var smtFunc = new Bpl.Function(tok, "smt_nat_from_bv" + w, [],
+          [BplFormalVar(null, bv, true)], BplFormalVar(null, Bpl.Type.Int, false),
           null, attr);
         sink.AddTopLevelDeclaration(smtFunc);
         // function nat_from_bv67(bv67) : int;
-        func = new Bpl.Function(tok, "nat_from_bv" + w, new List<TypeVariable>(),
-          new List<Variable>() { BplFormalVar(null, bv, true) }, BplFormalVar(null, Bpl.Type.Int, false),
+        func = new Bpl.Function(tok, "nat_from_bv" + w, [],
+          [BplFormalVar(null, bv, true)], BplFormalVar(null, Bpl.Type.Int, false),
           null, null);
         sink.AddTopLevelDeclaration(func);
         // axiom (forall b: bv67 :: { nat_from_bv67(b) }
@@ -1003,7 +1008,7 @@ namespace Microsoft.Dafny {
           Bpl.Expr.Le(Bpl.Expr.Literal(0), bv2nat),
           Bpl.Expr.Lt(bv2nat, Bpl.Expr.Literal(BaseTypes.BigNum.FromBigInt(BigInteger.One << w)))),
           Bpl.Expr.Eq(bv2nat, smt_bv2nat));
-        var ax = new Bpl.ForallExpr(tok, new List<Variable>() { bVar }, BplTrigger(bv2nat), body);
+        var ax = new Bpl.ForallExpr(tok, [bVar], BplTrigger(bv2nat), body);
         sink.AddTopLevelDeclaration(new Bpl.Axiom(tok, ax));
       }
     }
@@ -1082,7 +1087,7 @@ namespace Microsoft.Dafny {
     private void AddTraitParentAxioms() {
       foreach (ModuleDefinition m in program.RawModules()) {
         foreach (var c in m.TopLevelDecls.OfType<TopLevelDeclWithMembers>().Where(RevealedInScope)) {
-          foreach (var parentTypeInExtendsClause in c.ParentTraits) {
+          foreach (var parentTypeInExtendsClause in c.Traits) {
             var childType = UserDefinedType.FromTopLevelDecl(c.Origin, c);
             var parentType = (UserDefinedType)parentTypeInExtendsClause;
             if (parentType.IsRefType) {
@@ -1096,7 +1101,7 @@ namespace Microsoft.Dafny {
             var bvarsTypeParameters = MkTyParamBinders(GetTypeParams(c), out _);
 
             // axioms with "$IsBox(...) ==> ..." and "$IsAllocBox(...) ==> ..."
-            TypeBoundAxiomExpressions(c.Origin, bvarsTypeParameters, childType, new List<Type>() { parentType },
+            TypeBoundAxiomExpressions(c.Origin, bvarsTypeParameters, childType, [parentType],
               out var isBoxExpr, out var isAllocBoxExpr);
 
             var heapVar = BplBoundVar("$heap", Predef.HeapType, out var heap);
@@ -1124,7 +1129,7 @@ namespace Microsoft.Dafny {
             //     $IsAlloc($o, C(T), $Heap) ==> $IsAlloc($o, J(G(T)), $Heap);
             var isAllocC = MkIsAlloc(o, childType, heap);
             var isAllocJ = MkIsAlloc(oj, parentType, heap);
-            bvs = new List<Bpl.Variable>();
+            bvs = [];
             bvs.AddRange(bvarsTypeParameters);
             bvs.Add(oVar);
             bvs.Add(heapVar);
@@ -1291,8 +1296,8 @@ namespace Microsoft.Dafny {
       Contract.Ensures(cce.NonNullElements(Contract.ValueAtReturn(out args)));
 
       var varNameGen = CurrentIdGenerator.NestedFreshIdGenerator("a#");
-      bvs = new List<Variable>();
-      args = new List<Bpl.Expr>();
+      bvs = [];
+      args = [];
       foreach (var arg in formals) {
         Contract.Assert(arg != null);
         var nm = varNameGen.FreshId(string.Format("#{0}#", bvs.Count));
@@ -1408,7 +1413,7 @@ namespace Microsoft.Dafny {
     private Implementation AddImplementationWithAttributes(IOrigin tok, Procedure proc, List<Variable> inParams,
       List<Variable> outParams, Variables localVariables, StmtList stmts, QKeyValue kv) {
       Bpl.Implementation impl = new Bpl.Implementation(tok, proc.Name,
-        new List<Bpl.TypeVariable>(), inParams, outParams,
+        [], inParams, outParams,
         localVariables.Values.ToList<Variable>(), stmts, kv);
       AddVerboseNameAttribute(impl, proc.VerboseName);
       if (options.IsUsingZ3()) {
@@ -1473,7 +1478,7 @@ namespace Microsoft.Dafny {
 
         this.boogieGenerator = boogieGenerator;
 
-        List<Expression> rArgs = new List<Expression>();
+        List<Expression> rArgs = [];
         foreach (BoundVar p in mc.Arguments) {
           IdentifierExpr ie = new IdentifierExpr(p.Origin, p.AssignUniqueName(boogieGenerator.CurrentDeclaration.IdGenerator));
           ie.Var = p; ie.Type = ie.Var.Type;  // resolve it here
@@ -1482,15 +1487,16 @@ namespace Microsoft.Dafny {
         // create and resolve datatype value
         var r = new DatatypeValue(mc.Origin, mc.Ctor.EnclosingDatatype.Name, mc.Ctor.Name, rArgs);
         r.Ctor = mc.Ctor;
-        r.Type = new UserDefinedType(mc.Origin, mc.Ctor.EnclosingDatatype.Name, new List<Type>()/*this is not right, but it seems like it won't matter here*/);
+        r.Type = new UserDefinedType(mc.Origin, mc.Ctor.EnclosingDatatype.Name,
+          [] /*this is not right, but it seems like it won't matter here*/);
 
         Dictionary<IVariable, Expression> substMap = new Dictionary<IVariable, Expression>();
         substMap.Add(formal, r);
 
         // Fill in the fields
-        Formals = new List<Formal>();
-        ReplacementExprs = new List<Expression>();
-        ReplacementFormals = new List<BoundVar>();
+        Formals = [];
+        ReplacementExprs = [];
+        ReplacementFormals = [];
         SubstMap = new Dictionary<IVariable, Expression>();
         if (prev != null) {
           Formals.AddRange(prev.Formals);
@@ -1560,25 +1566,9 @@ namespace Microsoft.Dafny {
 
       var body = BplImp(BplAnd(BplAnd(isGoodHeap, olderTag), BplAnd(funcAppl, newer)), older);
       var tr = new Bpl.Trigger(f.Origin, true, new List<Bpl.Expr> { olderTag });
-      var olderCondition = new Bpl.ForallExpr(f.Origin, new List<Bpl.TypeVariable>(), new List<Variable>() { heapVar }, null, tr, body);
+      var olderCondition = new Bpl.ForallExpr(f.Origin, [], [heapVar], null, tr, body);
       return (olderParameterCount, olderCondition);
     }
-
-    Bpl.Expr AxiomActivation(Function f, ExpressionTranslator etran, bool strict = false) {
-      Contract.Requires(f != null);
-      Contract.Requires(etran != null);
-      Contract.Requires(VisibleInScope(f));
-      if (InVerificationScope(f)) {
-        if (strict) {
-          return Bpl.Expr.Lt(Bpl.Expr.Literal(forModule.CallGraph.GetSCCRepresentativePredecessorCount(f)), etran.FunctionContextHeight());
-        } else {
-          return Bpl.Expr.Le(Bpl.Expr.Literal(forModule.CallGraph.GetSCCRepresentativePredecessorCount(f)), etran.FunctionContextHeight());
-        }
-      } else {
-        return Bpl.Expr.True;
-      }
-    }
-
 
     Bpl.Type TrReceiverType(MemberDecl f) {
       Contract.Requires(f != null);
@@ -1659,7 +1649,7 @@ namespace Microsoft.Dafny {
       var funcAppl0 = new Bpl.NAryExpr(f.Origin, funcID, args0);
 
       Bpl.Trigger tr = new Bpl.Trigger(f.Origin, true, new List<Bpl.Expr> { funcAppl1 });
-      Bpl.Expr ax = new Bpl.ForallExpr(f.Origin, new List<Bpl.TypeVariable>(), formals, null, tr, Bpl.Expr.Eq(funcAppl1, funcAppl0));
+      Bpl.Expr ax = new Bpl.ForallExpr(f.Origin, [], formals, null, tr, Bpl.Expr.Eq(funcAppl1, funcAppl0));
       AddOtherDefinition(GetOrCreateFunction(f), new Bpl.Axiom(f.Origin, ax, "layer synonym axiom"));
     }
 
@@ -1733,7 +1723,7 @@ namespace Microsoft.Dafny {
       var funcAppl0 = new Bpl.NAryExpr(f.Origin, funcID, args0);
 
       Bpl.Trigger tr = new Bpl.Trigger(f.Origin, true, new List<Bpl.Expr> { funcAppl2 });
-      Bpl.Expr ax = new Bpl.ForallExpr(f.Origin, new List<Bpl.TypeVariable>(), formals, null, tr, Bpl.Expr.Eq(funcAppl1, funcAppl0));
+      Bpl.Expr ax = new Bpl.ForallExpr(f.Origin, [], formals, null, tr, Bpl.Expr.Eq(funcAppl1, funcAppl0));
       AddOtherDefinition(GetOrCreateFunction(f), (new Bpl.Axiom(f.Origin, ax, "fuel synonym axiom")));
     }
 
@@ -2087,7 +2077,7 @@ namespace Microsoft.Dafny {
       Bpl.Expr oNotNull = Bpl.Expr.Neq(o, Predef.Null);
       Bpl.Expr ante = BplAnd(oNotNull, etran.IsAlloced(tok, o));
       Bpl.Expr consequent = InRWClause(tok, o, f, frameClause, etran, null, null);
-      Bpl.Expr lambda = new Bpl.LambdaExpr(tok, new List<TypeVariable>(), new List<Variable> { oVar, fVar }, null,
+      Bpl.Expr lambda = new Bpl.LambdaExpr(tok, [], [oVar, fVar], null,
                                            BplImp(ante, consequent));
 
       builder.Add(Bpl.Cmd.SimpleAssign(tok, new Bpl.IdentifierExpr(tok, frame), lambda));
@@ -2133,7 +2123,7 @@ namespace Microsoft.Dafny {
       var oInCallee = InRWClause(tok, o, f, calleeFrame, etran, receiverReplacement, substMap);
       var inEnclosingFrame = Bpl.Expr.Select(enclosingFrame, o, f);
 
-      var q = new Bpl.ForallExpr(tok, new List<TypeVariable>(), new List<Variable> { oVar, fVar },
+      var q = new Bpl.ForallExpr(tok, [], [oVar, fVar],
                                       BplImp(BplAnd(ante, oInCallee), inEnclosingFrame));
       if (IsExprAlways(q, true)) {
         return;
@@ -2160,7 +2150,7 @@ namespace Microsoft.Dafny {
       var inFrame = Bpl.Expr.Select(frame, o, f);
       var notInFrame = Bpl.Expr.Not(inFrame);
 
-      var q = new Bpl.ForallExpr(tok, new List<TypeVariable>(), new List<Variable> { oVar, fVar },
+      var q = new Bpl.ForallExpr(tok, [], [oVar, fVar],
         BplImp(ante, notInFrame));
       if (IsExprAlways(q, true)) {
         return;
@@ -2295,7 +2285,7 @@ namespace Microsoft.Dafny {
           Bpl.Expr XsubI = FunctionCall(tok, BuiltinFunction.SeqIndex, Predef.BoxType, etran.TrExpr(e), i);
           // TODO: the equality in the next line should be changed to one that understands extensionality
           //TRIG (exists $i: int :: 0 <= $i && $i < Seq#Length(read($h0, this, _module.DoublyLinkedList.Nodes)) && Seq#Index(read($h0, this, _module.DoublyLinkedList.Nodes), $i) == $Box($o))
-          disjunct = new Bpl.ExistsExpr(tok, new List<Variable> { iVar }, BplAnd(iBounds, Bpl.Expr.Eq(XsubI, boxO)));  // LL_TRIGGER
+          disjunct = new Bpl.ExistsExpr(tok, [iVar], BplAnd(iBounds, Bpl.Expr.Eq(XsubI, boxO)));  // LL_TRIGGER
         } else {
           // o == e
           disjunct = Bpl.Expr.Eq(o, etran.TrExpr(e));
@@ -2447,13 +2437,6 @@ namespace Microsoft.Dafny {
       }
     }
 
-    void CheckFunctionSelectWF(string what, BoogieStmtListBuilder builder, ExpressionTranslator etran, Expression e, string hint) {
-      if (e is MemberSelectExpr sel && sel.Member is Function fn) {
-        Bpl.Expr assertion = !InVerificationScope(fn) ? Bpl.Expr.True : Bpl.Expr.Not(etran.HeightContext(fn));
-        builder.Add(Assert(GetToken(e), assertion, new ValidInRecursion(what, hint), builder.Context));
-      }
-    }
-
     void CloneVariableAsBoundVar(IOrigin tok, IVariable iv, string prefix, out BoundVar bv, out IdentifierExpr ie) {
       Contract.Requires(tok != null);
       Contract.Requires(iv != null);
@@ -2461,7 +2444,9 @@ namespace Microsoft.Dafny {
       Contract.Ensures(Contract.ValueAtReturn(out bv) != null);
       Contract.Ensures(Contract.ValueAtReturn(out ie) != null);
 
-      bv = new BoundVar(tok, CurrentIdGenerator.FreshId(prefix), iv.Type); // use this temporary variable counter, but for a Dafny name (the idea being that the number and the initial "_" in the name might avoid name conflicts)
+      // use this temporary variable counter CurrentIdGenerator.FreshId(prefix), but for a Dafny name (the idea being that
+      // the number and the initial "_" in the name might avoid name conflicts)
+      bv = new BoundVar(tok, CurrentIdGenerator.FreshId(prefix), iv.Type, iv.IsGhost);
       ie = new IdentifierExpr(tok, bv.Name) {
         Var = bv, // resolve here
         Type = bv.Type // resolve here
@@ -2574,7 +2559,7 @@ namespace Microsoft.Dafny {
       var xVar = locals.GetOrAdd(new Bpl.LocalVariable(e.Origin, new Bpl.TypedIdent(e.Origin, name, isSetType || isMultisetType ? TrType(type) : Bpl.Type.Int)));
       var x = new Bpl.IdentifierExpr(e.Origin, xVar);
       // havoc $x
-      builder.Add(new Bpl.HavocCmd(e.Origin, new List<Bpl.IdentifierExpr>() { x }));
+      builder.Add(new Bpl.HavocCmd(e.Origin, [x]));
 
       var s = etran.TrExpr(e);
       if (isSetType) {
@@ -2642,7 +2627,7 @@ namespace Microsoft.Dafny {
               axiom = whereClause;
             } else {
               var tr = new Bpl.Trigger(td.Origin, true, new List<Bpl.Expr> { funcAppl });
-              axiom = new Bpl.ForallExpr(td.Origin, new List<Bpl.TypeVariable>(), argBoundVars, null, tr, whereClause);
+              axiom = new Bpl.ForallExpr(td.Origin, [], argBoundVars, null, tr, whereClause);
             }
             AddOtherDefinition(func, BplAxiom(axiom));
           }
@@ -2730,7 +2715,7 @@ namespace Microsoft.Dafny {
           formals.Add(new Bpl.Formal(p.Origin, new Bpl.TypedIdent(p.Origin, p.AssignUniqueName(f.IdGenerator), TrType(p.Type)), true));
         }
         var res = new Bpl.Formal(f.Origin, new Bpl.TypedIdent(f.Origin, Bpl.TypedIdent.NoName, TrType(f.ResultType)), false);
-        func = new Bpl.Function(new FromDafnyNode(f), f.FullSanitizedName, new List<Bpl.TypeVariable>(), formals, res, "function declaration for " + f.FullName);
+        func = new Bpl.Function(new FromDafnyNode(f), f.FullSanitizedName, [], formals, res, "function declaration for " + f.FullName);
         if (InsertChecksums) {
           InsertChecksum(f, func);
         }
@@ -2756,7 +2741,7 @@ namespace Microsoft.Dafny {
           formals.Add(new Bpl.Formal(p.Origin, new Bpl.TypedIdent(p.Origin, p.AssignUniqueName(f.IdGenerator), TrType(p.Type)), true));
         }
         var res = new Bpl.Formal(f.Origin, new Bpl.TypedIdent(f.Origin, Bpl.TypedIdent.NoName, Bpl.Type.Bool), false);
-        canCallF = new Bpl.Function(f.Origin, f.FullSanitizedName + "#canCall", new List<Bpl.TypeVariable>(), formals, res);
+        canCallF = new Bpl.Function(f.Origin, f.FullSanitizedName + "#canCall", [], formals, res);
       }
       return canCallF;
     }
@@ -2825,7 +2810,7 @@ namespace Microsoft.Dafny {
     }
 
     private static void AddVerboseNameAttribute(Bpl.NamedDeclaration targetDecl, string verboseName) {
-      targetDecl.AddAttribute("verboseName", new object[] { verboseName });
+      targetDecl.AddAttribute("verboseName", [verboseName]);
     }
 
     private static void AddSmtOptionAttribute(Bpl.NamedDeclaration targetDecl, string name, string value) {
@@ -3049,17 +3034,17 @@ namespace Microsoft.Dafny {
       Bpl.Expr heapOF;
       Bpl.Expr preHeapOF;
       if (fieldGranularity) {
-        typeVars = new List<TypeVariable> { };
+        typeVars = [];
         var fVar = new Bpl.BoundVariable(tok, new Bpl.TypedIdent(tok, "$f", Predef.FieldName(tok)));
         f = new Bpl.IdentifierExpr(tok, fVar);
-        quantifiedVars = new List<Variable> { oVar, fVar };
+        quantifiedVars = [oVar, fVar];
         heapOF = ReadHeap(tok, etran.HeapExpr, o, f);
         preHeapOF = ReadHeap(tok, etranPre.HeapExpr, o, f);
       } else {
         // object granularity
-        typeVars = new List<TypeVariable>();
+        typeVars = [];
         f = null;
-        quantifiedVars = new List<Variable> { oVar };
+        quantifiedVars = [oVar];
         heapOF = ReadHeap(tok, etran.HeapExpr, o);
         preHeapOF = ReadHeap(tok, etranPre.HeapExpr, o);  // Box type is Bpl.Type.Bool, but no need to unbox for equality check
       }
@@ -3101,7 +3086,7 @@ namespace Microsoft.Dafny {
       consequent = BplOr(consequent, Bpl.Expr.SelectTok(tok, frameExpr, o, f));
 
       Bpl.Trigger tr = new Bpl.Trigger(tok, true, new List<Bpl.Expr> { heapOF });
-      return new Bpl.ForallExpr(tok, new List<TypeVariable>(), new List<Variable> { oVar, fVar }, null, tr, BplImp(ante, consequent));
+      return new Bpl.ForallExpr(tok, [], [oVar, fVar], null, tr, BplImp(ante, consequent));
     }
     // ----- Type ---------------------------------------------------------------------------------
 
@@ -3328,10 +3313,6 @@ namespace Microsoft.Dafny {
         return ftok != null ? ftok.WrappedToken : tok;
       }
 
-      public override IOrigin WithVal(string newVal) {
-        return new ForceCheckOrigin(WrappedToken.WithVal(newVal));
-      }
-
       public override bool IsInherited(ModuleDefinition m) {
         return false;
       }
@@ -3451,7 +3432,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(codeContext != null && Predef != null);
       Contract.Ensures(Contract.Result<Bpl.StmtList>() != null);
 
-      TrStmtList(new List<Statement> { block }, builder, locals, etran, introduceScope ? block.Origin : null, processLabels: false);
+      TrStmtList([block], builder, locals, etran, introduceScope ? block.Origin : null, processLabels: false);
       return builder.Collect(block.Origin);  // TODO: would be nice to have an end-curly location for "block"
     }
 
@@ -3557,14 +3538,14 @@ namespace Microsoft.Dafny {
       var substMap = new Dictionary<IVariable, Expression>();
       foreach (BoundVar bv in boundVars) {
         LocalVariable local = new LocalVariable(bv.Origin, nameSuffix == null ? bv.Name : bv.Name + nameSuffix, bv.Type, bv.IsGhost);
-        local.type = local.SyntacticType;  // resolve local here
+        local.type = local.SafeSyntacticType;  // resolve local here
         IdentifierExpr ie = new IdentifierExpr(local.Origin, local.AssignUniqueName(CurrentDeclaration.IdGenerator));
         ie.Var = local; ie.Type = ie.Var.Type;  // resolve ie here
         substMap.Add(bv, ie);
         Bpl.LocalVariable bvar = new Bpl.LocalVariable(local.Origin, new Bpl.TypedIdent(local.Origin, local.AssignUniqueName(CurrentDeclaration.IdGenerator), TrType(local.Type)));
         locals.GetOrAdd(bvar);
         var bIe = new Bpl.IdentifierExpr(bvar.tok, bvar);
-        builder.Add(new Bpl.HavocCmd(bv.Origin, new List<Bpl.IdentifierExpr> { bIe }));
+        builder.Add(new Bpl.HavocCmd(bv.Origin, [bIe]));
         Bpl.Expr wh = GetWhereClause(bv.Origin, bIe, local.Type, etran, IsAllocType.ISALLOC);
         if (wh != null) {
           typeAntecedent = BplAnd(typeAntecedent, wh);
@@ -3602,7 +3583,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(etran != null);
 
       var local = new LocalVariable(v.Origin, v.Name, v.Type, v.IsGhost);
-      local.type = local.SyntacticType;  // resolve local here
+      local.type = local.SafeSyntacticType;  // resolve local here
       var ie = new IdentifierExpr(local.Origin, local.AssignUniqueName(CurrentDeclaration.IdGenerator));
       ie.Var = local; ie.Type = ie.Var.Type;  // resolve ie here
       substMap.Add(v, ie);
@@ -3610,7 +3591,7 @@ namespace Microsoft.Dafny {
       var bvar = new Bpl.LocalVariable(local.Origin, new Bpl.TypedIdent(local.Origin, local.AssignUniqueName(CurrentDeclaration.IdGenerator), TrType(local.Type)));
       locals.GetOrAdd(bvar);
       var bIe = new Bpl.IdentifierExpr(bvar.tok, bvar);
-      builder.Add(new Bpl.HavocCmd(v.Origin, new List<Bpl.IdentifierExpr> { bIe }));
+      builder.Add(new Bpl.HavocCmd(v.Origin, [bIe]));
       var wh = GetWhereClause(v.Origin, bIe, local.Type, etran, ISALLOC);
       return wh ?? Bpl.Expr.True;
     }
@@ -3621,7 +3602,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(varPrefix != null);
       Contract.Requires(builder != null);
       Contract.Requires(decreases != null);
-      List<Bpl.Expr> oldBfs = new List<Bpl.Expr>();
+      List<Bpl.Expr> oldBfs = [];
       var idGen = new VerificationIdGenerator();
       foreach (Expression e in decreases) {
         Contract.Assert(e != null);
@@ -4068,11 +4049,11 @@ namespace Microsoft.Dafny {
       if (mc.ProjectionFunctions == null) {
         var varNameGen = CurrentIdGenerator.NestedFreshIdGenerator(string.Format("map$project${0}#", projectionFunctionCount));
         projectionFunctionCount++;
-        mc.ProjectionFunctions = new List<Bpl.Function>();
+        mc.ProjectionFunctions = [];
         foreach (var bv in mc.BoundVars) {
           var arg = BplFormalVar(null, TrType(mc.TermLeft.Type), false);
           var res = BplFormalVar(null, TrType(bv.Type), true);
-          var projectFn = new Bpl.Function(mc.Origin, varNameGen.FreshId(string.Format("#{0}#", bv.Name)), new List<Variable>() { arg }, res);
+          var projectFn = new Bpl.Function(mc.Origin, varNameGen.FreshId(string.Format("#{0}#", bv.Name)), [arg], res);
           mc.ProjectionFunctions.Add(projectFn);
           sink.AddTopLevelDeclaration(projectFn);
         }
@@ -4090,12 +4071,12 @@ namespace Microsoft.Dafny {
     internal class BoogieWrapper : Expression {
       public readonly Bpl.Expr Expr;
 
-      public BoogieWrapper(Bpl.Expr expr, Type dafnyType)
+      public BoogieWrapper(Bpl.Expr expr, Type type)
         : base(ToDafnyToken(false, expr.tok)) {
         Contract.Requires(expr != null);
-        Contract.Requires(dafnyType != null);
+        Contract.Requires(type != null);
         Expr = expr;
-        Type = dafnyType;  // resolve immediately
+        Type = type;  // resolve immediately
       }
     }
 
@@ -4541,23 +4522,26 @@ namespace Microsoft.Dafny {
       return splits;
     }
 
-    Bpl.Trigger TrTrigger(ExpressionTranslator etran, Attributes attribs, IOrigin tok, Dictionary<IVariable, Expression> substMap = null) {
+    Bpl.Trigger TrTrigger(ExpressionTranslator etran, Attributes attribs, IOrigin tok, Dictionary<IVariable, Expression> substMap = null,
+      List<BoundVar> keepOnlyThoseTermsThatMentionTheseVariables = null) {
       Contract.Requires(etran != null);
       Contract.Requires(tok != null);
       var argsEtran = etran.WithNoLits();
       Bpl.Trigger tr = null;
       foreach (var trigger in attribs.AsEnumerable().Where(aa => aa.Name == "trigger").Select(aa => aa.Args)) {
-        List<Bpl.Expr> tt = new List<Bpl.Expr>();
+        List<Bpl.Expr> tt = [];
         foreach (var arg in trigger) {
-          Bpl.Expr term;
-          if (substMap == null) {
-            term = argsEtran.TrExpr(arg);
-          } else {
-            term = argsEtran.TrExpr(Substitute(arg, null, substMap));
+          var term = substMap == null ? arg : Substitute(arg, null, substMap);
+          if (keepOnlyThoseTermsThatMentionTheseVariables == null ||
+              keepOnlyThoseTermsThatMentionTheseVariables.Exists(boundVariable =>
+                FreeVariablesUtil.ContainsFreeVariable(term, false, boundVariable))) {
+            tt.Add(StripBoxAdjustments(argsEtran.TrExpr(term)));
           }
-          tt.Add(StripBoxAdjustments(term));
         }
-        tr = new Bpl.Trigger(tok, true, tt, tr);
+
+        if (tt.Count != 0) {
+          tr = new Bpl.Trigger(tok, true, tt, tr);
+        }
       }
       return tr;
     }
@@ -4588,7 +4572,7 @@ namespace Microsoft.Dafny {
 
       // now translate it with the correct layer and heapExpr
       foreach (var trigger in attribs.AsEnumerable().Where(aa => aa.Name == "trigger")) {
-        List<Bpl.Expr> tt = new List<Bpl.Expr>();
+        List<Bpl.Expr> tt = [];
         foreach (var arg in trigger.Args) {
           Bpl.Expr term;
           if (substMap == null) {
@@ -4635,7 +4619,7 @@ namespace Microsoft.Dafny {
 
       var args = Attributes.FindExpressions(attributes, "_induction");
       if (args == null) {
-        return new List<VarType>();  // don't apply induction
+        return [];  // don't apply induction
       } else {
         return args.ConvertAll(e => e is ThisExpr ? null : (VarType)((IdentifierExpr)e).Var);
       }
@@ -4728,6 +4712,11 @@ namespace Microsoft.Dafny {
       return s.Substitute(expr);
     }
 
+    public static Attributes SubstituteAttributes(Attributes attributes, Dictionary<IVariable, Expression> substMap) {
+      var s = new Substituter(null, substMap, new Dictionary<TypeParameter, Type>());
+      return s.SubstAttributes(attributes);
+    }
+
     public static Expression InlineLet(LetExpr letExpr) {
       Contract.Requires(letExpr.LHSs.All(p => p.Var != null));
       var substMap = new Dictionary<IVariable, Expression>();
@@ -4797,7 +4786,7 @@ namespace Microsoft.Dafny {
       }
     }
     class VariableNameVisitor : Boogie.StandardVisitor {
-      public readonly HashSet<string> Names = new HashSet<string>();
+      public readonly HashSet<string> Names = [];
       public override Expr VisitIdentifierExpr(Bpl.IdentifierExpr node) {
         Names.Add(node.Name);
         return base.VisitIdentifierExpr(node);
@@ -4821,7 +4810,7 @@ namespace Microsoft.Dafny {
 
     List<Bpl.Variable> MkTyParamBinders(List<TypeParameter> args, out List<Bpl.Expr> exprs) {
       var vars = new List<Bpl.Variable>();
-      exprs = new List<Bpl.Expr>();
+      exprs = [];
       foreach (TypeParameter v in args) {
         vars.Add(BplBoundVar(NameTypeParam(v), Predef.Ty, out var e));
         exprs.Add(e);
@@ -4837,7 +4826,7 @@ namespace Microsoft.Dafny {
     // For incoming formals
     List<Bpl.Variable> MkTyParamFormals(List<TypeParameter> args, out List<Bpl.Expr> exprs, bool includeWhereClause, bool named) {
       var vars = new List<Bpl.Variable>();
-      exprs = new List<Bpl.Expr>();
+      exprs = [];
       foreach (TypeParameter v in args) {
         var whereClause = includeWhereClause ? GetTyWhereClause(new Bpl.IdentifierExpr(v.Origin, NameTypeParam(v), Predef.Ty), v.Characteristics) : null;
         vars.Add(BplFormalVar(named ? NameTypeParam(v) : null, Predef.Ty, true, out var e, whereClause));
@@ -4846,7 +4835,7 @@ namespace Microsoft.Dafny {
       return vars;
     }
 
-    public Bpl.Expr/*?*/ GetTyWhereClause(Bpl.Expr expr, TypeParameter.TypeParameterCharacteristics characteristics) {
+    public Bpl.Expr/*?*/ GetTyWhereClause(Bpl.Expr expr, TypeParameterCharacteristics characteristics) {
       Contract.Requires(expr != null);
       if (characteristics.ContainsNoReferenceTypes) {
         return FunctionCall(expr.tok, "$AlwaysAllocated", Bpl.Type.Bool, expr);
@@ -4862,7 +4851,7 @@ namespace Microsoft.Dafny {
       }
     }
 
-    static readonly List<Boolean> Bools = new List<Boolean> { false, true };
+    static readonly List<Boolean> Bools = [false, true];
 
     public Expr GetRevealConstant(Function f) {
       this.CreateRevealableConstant(f);

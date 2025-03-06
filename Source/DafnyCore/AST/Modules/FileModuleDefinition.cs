@@ -1,5 +1,8 @@
+#nullable enable
+using System;
 using System.Collections.Generic;
 using System.Linq;
+using NJsonSchema.Annotations;
 
 namespace Microsoft.Dafny;
 
@@ -10,11 +13,11 @@ namespace Microsoft.Dafny;
 /// https://github.com/dafny-lang/dafny/issues/3027
 /// </summary>
 public class FileModuleDefinition : ModuleDefinition {
-  public List<Include> Includes { get; } = new();
+  public List<Include> Includes { get; } = [];
 
-  public FileModuleDefinition(IOrigin token) :
-    base(token, new Name("_module"), new List<IOrigin>(),
-      ModuleKindEnum.Concrete, false, null, null, null) {
+  public FileModuleDefinition(IOrigin origin) :
+    base(origin, new Name("_module"), [],
+      ModuleKindEnum.Concrete, false, null, null!, null) {
     {
     }
   }

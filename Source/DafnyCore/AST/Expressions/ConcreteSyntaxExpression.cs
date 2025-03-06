@@ -21,10 +21,12 @@ public abstract class ConcreteSyntaxExpression : Expression {
   [FilledInDuringResolution]
   public Expression ResolvedExpression { get; set; }
 
+  [SyntaxConstructor]
   protected ConcreteSyntaxExpression(IOrigin origin)
     : base(origin) {
   }
-  public override IEnumerable<INode> Children => ResolvedExpression == null ? Array.Empty<Node>() : new[] { ResolvedExpression };
+  public override IEnumerable<INode> Children => ResolvedExpression == null ? Array.Empty<Node>() : [ResolvedExpression
+  ];
   public override IEnumerable<Expression> SubExpressions {
     get {
       if (ResolvedExpression != null) {
@@ -41,7 +43,7 @@ public abstract class ConcreteSyntaxExpression : Expression {
     }
   }
 
-  public virtual IEnumerable<Expression> PreResolveSubExpressions => Enumerable.Empty<Expression>();
+  public virtual IEnumerable<Expression> PreResolveSubExpressions => [];
   public override IEnumerable<INode> PreResolveChildren => PreResolveSubExpressions;
 
   public override IEnumerable<Type> ComponentTypes => ResolvedExpression.ComponentTypes;

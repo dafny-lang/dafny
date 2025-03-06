@@ -250,7 +250,7 @@ public class InductionRewriter : IRewriter {
     if (Attributes.Contains(attributes, "inductionTrigger")) {
       // Empty triggers are not valid at the Boogie level, but they indicate that we don't want automatic selection
       Triggers.SplitPartTriggerWriter.DisableEmptyTriggers(attributes, "inductionTrigger");
-      return Attributes.FindAllExpressions(attributes, "inductionTrigger") ?? new List<List<Expression>>(); // Never null
+      return Attributes.FindAllExpressions(attributes, "inductionTrigger") ?? []; // Never null
     }
 
     // Construct a quantifier, because that's what the trigger-generating machinery expects.
@@ -299,7 +299,7 @@ public class InductionRewriter : IRewriter {
       Reporter.Message(MessageSource.Rewriter, warningLevel, null, errorToken,
         "Could not find a trigger for the induction hypothesis. Without a trigger, this may cause brittle verification. " +
         "Change or remove the {:induction} attribute to generate a different induction hypothesis, or add {:nowarn} to silence this warning. " +
-        "For more information, see the section quantifier instantiation rules in the reference manual.");
+        "For more information, see the section on quantifier instantiation rules in the reference manual.");
     }
 
     foreach (var trigger in result) {

@@ -183,7 +183,7 @@ public partial class BoogieGenerator {
     for (int i = 0; i < callee.Ins.Count; i++) {
       var formal = callee.Ins[i];
       var local = new LocalVariable(formal.Origin, formal.Name + "#", formal.Type.Subst(tySubst), formal.IsGhost);
-      local.type = local.SyntacticType;  // resolve local here
+      local.type = local.SafeSyntacticType;  // resolve local here
       var localName = local.AssignUniqueName(CurrentDeclaration.IdGenerator);
       var ie = new IdentifierExpr(local.Origin, localName);
       ie.Var = local; ie.Type = ie.Var.Type;  // resolve ie here
@@ -212,7 +212,10 @@ public partial class BoogieGenerator {
         } else {
           actual = Args[i];
         }
-        if (!(actual is DefaultValueExpression)) {
+
+        if (actual is DefaultValueExpression) {
+          builder.Add(TrAssumeCmd(actual.Origin, etran.CanCallAssumption(actual)));
+        } else {
           TrStmt_CheckWellformed(actual, builder, locals, etran, true);
         }
         builder.Add(new CommentCmd("ProcessCallStmt: CheckSubrange"));
@@ -371,7 +374,7 @@ public partial class BoogieGenerator {
         //    havoc e; assume e == UnBox(tmpVar);
         // because that will reap the benefits of e's where clause, so that some additional type information will be known about
         // the out-parameter.
-        Bpl.Cmd cmd = new Bpl.HavocCmd(bLhs.tok, new List<Bpl.IdentifierExpr> { bLhs });
+        Bpl.Cmd cmd = new Bpl.HavocCmd(bLhs.tok, [bLhs]);
         builder.Add(cmd);
         cmd = TrAssumeCmd(bLhs.tok, Bpl.Expr.Eq(bLhs, FunctionCall(bLhs.tok, BuiltinFunction.Unbox, TrType(LhsTypes[i]), tmpVarIdE)));
         builder.Add(cmd);

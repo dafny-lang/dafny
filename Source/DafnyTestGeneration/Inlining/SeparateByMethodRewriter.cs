@@ -16,7 +16,7 @@ namespace DafnyTestGeneration.Inlining;
 /// </summary>
 public class SeparateByMethodRewriter : IRewriter {
 
-  private readonly List<Method> methodsToAdd = new();
+  private readonly List<Method> methodsToAdd = [];
 
   protected internal SeparateByMethodRewriter(ErrorReporter reporter) :
     base(reporter) {

@@ -1,5 +1,5 @@
-LetExpr.dfy(45,2): Warning: Could not find a trigger for this quantifier. Without a trigger, the quantifier may cause brittle verification. To silence this warning, add an explicit trigger using the {:trigger} attribute. For more information, see the section quantifier instantiation rules in the reference manual.
-LetExpr.dfy(206,4): Warning: Could not find a trigger for this quantifier. Without a trigger, the quantifier may cause brittle verification. To silence this warning, add an explicit trigger using the {:trigger} attribute. For more information, see the section quantifier instantiation rules in the reference manual.
+LetExpr.dfy(45,2): Warning: Could not find a trigger for this quantifier. Without a trigger, the quantifier may cause brittle verification. To silence this warning, add an explicit trigger using the {:trigger} attribute. For more information, see the section on quantifier instantiation rules in the reference manual.
+LetExpr.dfy(206,4): Warning: Could not find a trigger for this quantifier. Without a trigger, the quantifier may cause brittle verification. To silence this warning, add an explicit trigger using the {:trigger} attribute. For more information, see the section on quantifier instantiation rules in the reference manual.
 LetExpr.dfy(9,2): Error: assertion might not hold
 LetExpr.dfy(109,6): Error: assertion might not hold
 LetExpr.dfy(260,18): Error: value does not satisfy the subset constraints of 'nat'
@@ -15,7 +15,7 @@ LetExpr.dfy(390,33): Error: assertion might not hold
 LetExpr.dfy(403,24): Error: assertion might not hold
 
 Dafny program verifier finished with 37 verified, 13 errors
-LetExpr.dfy.tmp.print.dfy(44,2): Warning: Could not find a trigger for this quantifier. Without a trigger, the quantifier may cause brittle verification. To silence this warning, add an explicit trigger using the {:trigger} attribute. For more information, see the section quantifier instantiation rules in the reference manual.
-LetExpr.dfy.tmp.print.dfy(279,4): Warning: Could not find a trigger for this quantifier. Without a trigger, the quantifier may cause brittle verification. To silence this warning, add an explicit trigger using the {:trigger} attribute. For more information, see the section quantifier instantiation rules in the reference manual.
+LetExpr.dfy.tmp.print.dfy(44,2): Warning: Could not find a trigger for this quantifier. Without a trigger, the quantifier may cause brittle verification. To silence this warning, add an explicit trigger using the {:trigger} attribute. For more information, see the section on quantifier instantiation rules in the reference manual.
+LetExpr.dfy.tmp.print.dfy(279,4): Warning: Could not find a trigger for this quantifier. Without a trigger, the quantifier may cause brittle verification. To silence this warning, add an explicit trigger using the {:trigger} attribute. For more information, see the section on quantifier instantiation rules in the reference manual.
 
 Dafny program verifier did not attempt verification

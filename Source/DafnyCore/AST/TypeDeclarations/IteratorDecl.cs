@@ -30,7 +30,7 @@ public class IteratorDecl : ClassDecl, IMethodCodeContext, ICanVerify, ICodeCont
   [FilledInDuringResolution] public Method Member_MoveNext;  // created during registration phase of resolution;
   public readonly LocalVariable YieldCountVariable;
 
-  public IteratorDecl(IOrigin origin, Name name, ModuleDefinition module, List<TypeParameter> typeArgs,
+  public IteratorDecl(IOrigin origin, Name nameNode, ModuleDefinition enclosingModule, List<TypeParameter> typeArgs,
     List<Formal> ins, List<Formal> outs,
     Specification<FrameExpression> reads, Specification<FrameExpression> mod, Specification<Expression> decreases,
     List<AttributedExpression> requires,
@@ -38,10 +38,10 @@ public class IteratorDecl : ClassDecl, IMethodCodeContext, ICanVerify, ICodeCont
     List<AttributedExpression> yieldRequires,
     List<AttributedExpression> yieldEnsures,
     BlockStmt body, Attributes attributes, IOrigin signatureEllipsis)
-    : base(origin, name, module, typeArgs, new List<MemberDecl>(), attributes, signatureEllipsis != null, null) {
+    : base(origin, nameNode, attributes, typeArgs, enclosingModule, [], null, signatureEllipsis != null) {
     Contract.Requires(origin != null);
-    Contract.Requires(name != null);
-    Contract.Requires(module != null);
+    Contract.Requires(nameNode != null);
+    Contract.Requires(enclosingModule != null);
     Contract.Requires(typeArgs != null);
     Contract.Requires(ins != null);
     Contract.Requires(outs != null);
@@ -64,12 +64,12 @@ public class IteratorDecl : ClassDecl, IMethodCodeContext, ICanVerify, ICodeCont
     Body = body;
     SignatureEllipsis = signatureEllipsis;
 
-    OutsFields = new List<Field>();
-    OutsHistoryFields = new List<Field>();
-    DecreasesFields = new List<Field>();
+    OutsFields = [];
+    OutsHistoryFields = [];
+    DecreasesFields = [];
 
     YieldCountVariable = new LocalVariable(origin, "_yieldCount", new EverIncreasingType(), true);
-    YieldCountVariable.type = YieldCountVariable.SyntacticType;  // resolve YieldCountVariable here
+    YieldCountVariable.type = YieldCountVariable.SafeSyntacticType;  // resolve YieldCountVariable here
   }
 
   /// <summary>
@@ -207,7 +207,7 @@ public class IteratorDecl : ClassDecl, IMethodCodeContext, ICanVerify, ICodeCont
     foreach (var p in OutsHistoryFields) {
       // ensures this.ys == [];
       ens.Add(new AttributedExpression(new BinaryExpr(p.Origin, BinaryExpr.Opcode.Eq,
-        new ExprDotName(p.Origin, new ThisExpr(p.Origin), p.NameNode, null), new SeqDisplayExpr(p.Origin, new List<Expression>()))));
+        new ExprDotName(p.Origin, new ThisExpr(p.Origin), p.NameNode, null), new SeqDisplayExpr(p.Origin, []))));
     }
     // ensures this.Valid();
     var valid_call = AutoContractsRewriter.CreateUnresolvedValidCall(tok);
@@ -216,7 +216,7 @@ public class IteratorDecl : ClassDecl, IMethodCodeContext, ICanVerify, ICodeCont
     // ensures this._new == {};
     ens.Add(new AttributedExpression(new BinaryExpr(tok, BinaryExpr.Opcode.Eq,
       new ExprDotName(tok, new ThisExpr(tok), new Name("_new"), null),
-      new SetDisplayExpr(tok, true, new List<Expression>()))));
+      new SetDisplayExpr(tok, true, []))));
     // ensures this._decreases0 == old(DecreasesClause[0]) && ...;
     Contract.Assert(Decreases.Expressions.Count == DecreasesFields.Count);
     for (int i = 0; i < Decreases.Expressions.Count; i++) {
@@ -267,7 +267,7 @@ public class IteratorDecl : ClassDecl, IMethodCodeContext, ICanVerify, ICodeCont
       var ite = new ITEExpr(tok, false, new IdentifierExpr(tok, "more"),
         new BinaryExpr(tok, BinaryExpr.Opcode.Add,
           new OldExpr(tok, new ExprDotName(tok, new ThisExpr(tok), ys.NameNode, null)),
-          new SeqDisplayExpr(tok, new List<Expression>() { new ExprDotName(tok, new ThisExpr(tok), y.NameNode, null) })),
+          new SeqDisplayExpr(tok, [new ExprDotName(tok, new ThisExpr(tok), y.NameNode, null)])),
         new OldExpr(tok, new ExprDotName(tok, new ThisExpr(tok), ys.NameNode, null)));
       var eq = new BinaryExpr(tok, BinaryExpr.Opcode.Eq, new ExprDotName(tok, new ThisExpr(tok), ys.NameNode, null), ite);
       ens.Add(new AttributedExpression(eq));
@@ -319,7 +319,7 @@ public class IteratorDecl : ClassDecl, IMethodCodeContext, ICanVerify, ICodeCont
       new OldExpr(tok, frameSet))));
 
     // ensures this._modifies == old(ModifiesClause)
-    modSetSingletons = new List<Expression>();
+    modSetSingletons = [];
     frameSet = new SetDisplayExpr(tok, true, modSetSingletons);
     foreach (var fr in Modifies.Expressions) {
       if (fr.FieldName != null) {
@@ -436,33 +436,32 @@ public class IteratorDecl : ClassDecl, IMethodCodeContext, ICanVerify, ICodeCont
     // iterator type) does.
     // --- here comes the constructor
     var init = new Constructor(rangeToken, new Name(NameNode.Origin, "_ctor"), false,
-      new List<TypeParameter>(), Ins,
-      new List<AttributedExpression>(),
+      [], Ins,
+      [],
       new Specification<FrameExpression>(),
-      new Specification<FrameExpression>(new List<FrameExpression>(), null),
-      new List<AttributedExpression>(),
-      new Specification<Expression>(new List<Expression>(), null),
+      new Specification<FrameExpression>([], null),
+      [],
+      new Specification<Expression>([], null),
       null, SystemModuleManager.AxiomAttribute(), null);
     // --- here comes predicate Valid()
     var valid = new Predicate(rangeToken, new Name(NameNode.Origin, "Valid"), false, true, false,
-      new List<TypeParameter>(),
-      new List<Formal>(),
+      [],
+      [],
       null,
-      new List<AttributedExpression>(),
+      [],
       new Specification<FrameExpression>(),
-      new List<AttributedExpression>(),
-      new Specification<Expression>(new List<Expression>(), null),
+      [],
+      new Specification<Expression>([], null),
       null, Predicate.BodyOriginKind.OriginalOrInherited, null, null, SystemModuleManager.AxiomAttribute(), null);
     // --- here comes method MoveNext
-    var moveNext = new Method(rangeToken, new Name(NameNode.Origin, "MoveNext"), false, false,
-      new List<TypeParameter>(),
-      new List<Formal>(), new List<Formal>() { new Formal(Origin, "more", Type.Bool, false, false, null) },
-      new List<AttributedExpression>(),
-      new Specification<FrameExpression>(),
-      new Specification<FrameExpression>(new List<FrameExpression>(), null),
-      new List<AttributedExpression>(),
-      new Specification<Expression>(new List<Expression>(), null),
-      null, SystemModuleManager.AxiomAttribute(Attributes.Find(Attributes, "print")), null);
+    var moveNext = new Method(rangeToken, new Name(NameNode.Origin, "MoveNext"),
+      SystemModuleManager.AxiomAttribute(Attributes.Find(Attributes, "print")), false,
+      false,
+      [], [], [], [], new Specification<FrameExpression>(),
+      new Specification<Expression>([], null),
+      [new Formal(Origin, "more", Type.Bool, false, false, null)],
+      new Specification<FrameExpression>([], null), null, null);
+
     // add these implicit members to the class
     init.EnclosingClass = this;
     init.InheritVisibility(this);
@@ -506,7 +505,7 @@ public class IteratorDecl : ClassDecl, IMethodCodeContext, ICanVerify, ICodeCont
       return triviaFound;
     }
 
-    IOrigin lastClosingParenthesis = null;
+    Token lastClosingParenthesis = null;
     foreach (var token in OwnedTokens) {
       if (token.val == ")") {
         lastClosingParenthesis = token;

@@ -31,9 +31,14 @@ namespace Microsoft.Dafny {
         while (true) {
           var ite = (ITEExpr)expr;
           wr.Write("if ");
-          PrintExpression(ite.Test, false);
+          if (options.DafnyPrintResolvedFile == null) {
+            PrintGuard(ite.IsBindingGuard, ite.Test);
+          } else {
+            PrintExpression(ite.Test, false);
+          }
           wr.WriteLine(" then");
-          PrintExtendedExpr(ite.Thn, indent + IndentAmount, true, false);
+          var thenBranch = options.DafnyPrintResolvedFile == null && ite.IsBindingGuard ? ((LetExpr)ite.Thn).Body : ite.Thn;
+          PrintExtendedExpr(thenBranch, indent + IndentAmount, true, false);
           expr = ite.Els;
           if (expr is ITEExpr) {
             Indent(indent); wr.Write("else ");
@@ -571,12 +576,12 @@ namespace Microsoft.Dafny {
         if (parensNeeded) { wr.Write("("); }
         if (!e.Lhs.IsImplicit) {
           PrintExpr(e.Lhs, opBindingStrength, false, false, !parensNeeded && isFollowedBySemicolon, -1, keyword);
-          if (e.Lhs.Type is Resolver_IdentifierExpr.ResolverType_Type) {
+          if (e.Lhs.Type is ResolverIdentifierExpr.ResolverTypeType) {
             Contract.Assert(e.Lhs is NameSegment || e.Lhs is ExprDotName);  // these are the only expressions whose .Type can be ResolverType_Type
             if (options.DafnyPrintResolvedFile != null && options.PrintMode == PrintModes.Everything) {
               // The printing of e.Lhs printed the type arguments only if they were given explicitly in the input.
               var optionalTypeArgs = e.Lhs is NameSegment ns ? ns.OptTypeArguments : ((ExprDotName)e.Lhs).OptTypeArguments;
-              if (optionalTypeArgs == null && e.Lhs.Resolved is Resolver_IdentifierExpr ri) {
+              if (optionalTypeArgs == null && e.Lhs.Resolved is ResolverIdentifierExpr ri) {
                 PrintTypeInstantiation(ri.TypeArgs);
               }
             }
@@ -1150,9 +1155,14 @@ namespace Microsoft.Dafny {
         bool parensNeeded = !isRightmost;
         if (parensNeeded) { wr.Write("("); }
         wr.Write("if ");
-        PrintExpression(ite.Test, false);
+        if (options.DafnyPrintResolvedFile == null) {
+          PrintGuard(ite.IsBindingGuard, ite.Test);
+        } else {
+          PrintExpression(ite.Test, false);
+        }
         wr.Write(" then ");
-        PrintExpression(ite.Thn, false);
+        var thenBranch = options.DafnyPrintResolvedFile == null && ite.IsBindingGuard ? ((LetExpr)ite.Thn).Body : ite.Thn;
+        PrintExpression(thenBranch, false);
         wr.Write(" else ");
         PrintExpression(ite.Els, !parensNeeded && isFollowedBySemicolon);
         if (parensNeeded) { wr.Write(")"); }
@@ -1228,7 +1238,7 @@ namespace Microsoft.Dafny {
         wr.Write("[BoogieWrapper]");  // this is somewhat unexpected, but we can get here if the /trace switch is used, so it seems best to cover this case here
       } else if (expr is BoogieGenerator.BoogieFunctionCall) {
         wr.Write("[BoogieFunctionCall]");  // this prevents debugger watch window crash
-      } else if (expr is Resolver_IdentifierExpr) {
+      } else if (expr is ResolverIdentifierExpr) {
         wr.Write("[Resolver_IdentifierExpr]");  // we can get here in the middle of a debugging session
       } else if (expr is DecreasesToExpr decreasesToExpr) {
         var opBindingStrength = BindingStrengthDecreasesTo;

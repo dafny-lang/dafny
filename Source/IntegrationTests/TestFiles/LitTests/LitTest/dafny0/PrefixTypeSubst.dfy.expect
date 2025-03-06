@@ -649,7 +649,7 @@ module DefaultValueExpressionSubstitution {
    */
   method Test()
   {
-    var r: int := 3 + Fa<real>(7, 7 + var x: real :| true; 7);
+    var r: int := 3 + Fa<real>(7, 7 + var x: real /*{:_delayTriggerWarning}*/ /*{:_noAutoTriggerFound}*/ :| true; 7);
     r := r + Fb<real>({});
     var rs: set<real> := {2.7};
     r := r + Fc<real>(rs, forall xa: real {:trigger xa in rs} :: xa in rs ==> true);
@@ -688,19 +688,19 @@ module DefaultValueExpressionSubstitution {
   }
 }
 PrefixTypeSubst.dfy(52,0): Error: a postcondition could not be proved on this return path
-PrefixTypeSubst.dfy(51,30): Related location: this is the postcondition that could not be proved
-PrefixTypeSubst.dfy(19,17): Related location: this proposition could not be proved
+PrefixTypeSubst.dfy(51,40): Related location: this is the postcondition that could not be proved
+PrefixTypeSubst.dfy(19,24): Related location: this proposition could not be proved
 PrefixTypeSubst.dfy(58,0): Error: a postcondition could not be proved on this return path
-PrefixTypeSubst.dfy(57,30): Related location: this is the postcondition that could not be proved
-PrefixTypeSubst.dfy(19,17): Related location: this proposition could not be proved
+PrefixTypeSubst.dfy(57,40): Related location: this is the postcondition that could not be proved
+PrefixTypeSubst.dfy(19,24): Related location: this proposition could not be proved
 PrefixTypeSubst.dfy(64,0): Error: a postcondition could not be proved on this return path
-PrefixTypeSubst.dfy(63,30): Related location: this is the postcondition that could not be proved
-PrefixTypeSubst.dfy(19,17): Related location: this proposition could not be proved
+PrefixTypeSubst.dfy(63,40): Related location: this is the postcondition that could not be proved
+PrefixTypeSubst.dfy(19,24): Related location: this proposition could not be proved
 PrefixTypeSubst.dfy(70,0): Error: a postcondition could not be proved on this return path
-PrefixTypeSubst.dfy(69,30): Related location: this is the postcondition that could not be proved
-PrefixTypeSubst.dfy(19,17): Related location: this proposition could not be proved
+PrefixTypeSubst.dfy(69,40): Related location: this is the postcondition that could not be proved
+PrefixTypeSubst.dfy(19,24): Related location: this proposition could not be proved
 PrefixTypeSubst.dfy(85,9): Error: a postcondition could not be proved on this return path
-PrefixTypeSubst.dfy(81,30): Related location: this is the postcondition that could not be proved
-PrefixTypeSubst.dfy(19,17): Related location: this proposition could not be proved
+PrefixTypeSubst.dfy(81,40): Related location: this is the postcondition that could not be proved
+PrefixTypeSubst.dfy(19,24): Related location: this proposition could not be proved
 
 Dafny program verifier finished with 12 verified, 5 errors

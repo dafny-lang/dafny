@@ -6,23 +6,23 @@ induction-triggers.dfy(7,6): Info: {:induction n}
 induction-triggers.dfy(7,6): Info: {:inductionTrigger f(n)}
 induction-triggers.dfy(10,21): Info: {:inductionTrigger f(n)}
 induction-triggers.dfy(25,6): Info: omitting automatic induction (for induction-variable candidate n) because of lack of triggers
-induction-triggers.dfy(28,19): Warning: Could not find a trigger for the induction hypothesis. Without a trigger, this may cause brittle verification. Change or remove the {:induction} attribute to generate a different induction hypothesis, or add {:nowarn} to silence this warning. For more information, see the section quantifier instantiation rules in the reference manual.
+induction-triggers.dfy(28,19): Warning: Could not find a trigger for the induction hypothesis. Without a trigger, this may cause brittle verification. Change or remove the {:induction} attribute to generate a different induction hypothesis, or add {:nowarn} to silence this warning. For more information, see the section on quantifier instantiation rules in the reference manual.
 induction-triggers.dfy(28,19): Info: {:induction n}
 induction-triggers.dfy(31,44): Info: {:induction n}
 induction-triggers.dfy(34,26): Info: {:induction n}
 induction-triggers.dfy(35,26): Info: {:induction n}
 induction-triggers.dfy(36,39): Info: {:induction n}
 induction-triggers.dfy(39,44): Info: {:induction n}
-induction-triggers.dfy(42,21): Warning: Could not find a trigger for the induction hypothesis. Without a trigger, this may cause brittle verification. Change or remove the {:induction} attribute to generate a different induction hypothesis, or add {:nowarn} to silence this warning. For more information, see the section quantifier instantiation rules in the reference manual.
+induction-triggers.dfy(42,21): Warning: Could not find a trigger for the induction hypothesis. Without a trigger, this may cause brittle verification. Change or remove the {:induction} attribute to generate a different induction hypothesis, or add {:nowarn} to silence this warning. For more information, see the section on quantifier instantiation rules in the reference manual.
 induction-triggers.dfy(19,2): Info: ensures f(ih_n)
 induction-triggers.dfy(13,58): Error: a postcondition could not be proved on this return path
-induction-triggers.dfy(13,53): Related location: this is the postcondition that could not be proved
-induction-triggers.dfy(3,47): Related location: this proposition could not be proved
+induction-triggers.dfy(13,54): Related location: this is the postcondition that could not be proved
+induction-triggers.dfy(3,48): Related location: this proposition could not be proved
 induction-triggers.dfy(25,42): Error: a postcondition could not be proved on this return path
-induction-triggers.dfy(25,33): Related location: this is the postcondition that could not be proved
-induction-triggers.dfy(3,47): Related location: this proposition could not be proved
+induction-triggers.dfy(25,34): Related location: this is the postcondition that could not be proved
+induction-triggers.dfy(3,48): Related location: this proposition could not be proved
 induction-triggers.dfy(39,80): Error: a postcondition could not be proved on this return path
-induction-triggers.dfy(39,71): Related location: this is the postcondition that could not be proved
-induction-triggers.dfy(3,47): Related location: this proposition could not be proved
+induction-triggers.dfy(39,72): Related location: this is the postcondition that could not be proved
+induction-triggers.dfy(3,48): Related location: this proposition could not be proved
 
 Dafny program verifier finished with 17 verified, 3 errors

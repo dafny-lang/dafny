@@ -10,7 +10,7 @@ using Microsoft.VisualStudio.TestPlatform.ObjectModel.Logging;
 namespace Microsoft.Dafny {
   public class CSVTestLogger : ITestLoggerWithParameters {
 
-    private readonly ConcurrentBag<TestResult> results = new();
+    private readonly ConcurrentBag<TestResult> results = [];
     private TextWriter writer;
     private readonly TextWriter logWriter;
     private string writerFilename;

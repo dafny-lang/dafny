@@ -40,16 +40,13 @@ namespace Microsoft.Dafny {
           } else if (d is DatatypeDecl dt) {
             foreach (var tp in dt.TypeArgs) {
               if (tp.Characteristics.EqualitySupport == TypeParameter.EqualitySupportValue.Unspecified) {
-                // here's our chance to infer the need for equality support
-                foreach (var ctor in dt.Ctors) {
-                  foreach (var arg in ctor.Formals) {
-                    if (InferAndSetEqualitySupport(tp, arg.Type, reporter)) {
-                      inferredSomething = true;
-                      goto DONE_DT; // break out of the doubly-nested loop
-                    }
-                  }
-                }
-              DONE_DT:;
+                inferredSomething = inferredSomething || dt.Ctors.Any(ctor =>
+                  ctor.Formals.Any(arg =>
+                    InferAndSetEqualitySupport(tp, arg.Type, reporter)
+                  )
+                ) || dt.Traits.Any(parentType =>
+                  InferAndSetEqualitySupport(tp, parentType, reporter)
+                );
               }
             }
           } else if (d is TypeSynonymDecl syn) {
@@ -211,7 +208,7 @@ namespace Microsoft.Dafny {
     }
 
     private static void Check(List<TopLevelDecl> declarations, bool isAnExport, ErrorReporter reporter) {
-      var visitor = new CheckTypeCharacteristics_Visitor(reporter);
+      var visitor = new CheckTypeCharacteristicsVisitor(reporter);
 
       foreach (var d in declarations) {
         CheckAttributes(d.Attributes, visitor);
@@ -225,7 +222,7 @@ namespace Microsoft.Dafny {
             visitor.Visit(iter.Body, false);
           }
         } else if (d is ClassLikeDecl cl) {
-          foreach (var parentTrait in cl.ParentTraits) {
+          foreach (var parentTrait in cl.Traits) {
             visitor.VisitType(cl.Origin, parentTrait, false);
           }
         } else if (d is DatatypeDecl dt) {
@@ -238,7 +235,7 @@ namespace Microsoft.Dafny {
           if (!isAnExport) {
             if (syn.SupportsEquality && !syn.Rhs.SupportsEquality) {
               reporter.Error(MessageSource.Resolver, syn.Origin, "type '{0}' declared as supporting equality, but the RHS type ({1}) might not{2}",
-                syn.Name, syn.Rhs, CheckTypeCharacteristics_Visitor.TypeEqualityErrorMessageHint(syn.Rhs));
+                syn.Name, syn.Rhs, CheckTypeCharacteristicsVisitor.TypeEqualityErrorMessageHint(syn.Rhs));
             }
             if (syn.Characteristics.IsNonempty && !syn.Rhs.IsNonempty) {
               reporter.Error(MessageSource.Resolver, syn.Origin, "type '{0}' declared as being nonempty, but the RHS type ({1}) may be empty",
@@ -298,13 +295,13 @@ namespace Microsoft.Dafny {
       }
     }
 
-    private static void CheckAttributes(Attributes attributes, CheckTypeCharacteristics_Visitor visitor) {
+    private static void CheckAttributes(Attributes attributes, CheckTypeCharacteristicsVisitor visitor) {
       for (var attr = attributes; attr != null; attr = attr.Prev) {
         attr.Args.ForEach(e => visitor.Visit(e, true));
       }
     }
 
-    private static void CheckFormals(List<Formal> formals, bool isGhostContext, CheckTypeCharacteristics_Visitor visitor) {
+    private static void CheckFormals(List<Formal> formals, bool isGhostContext, CheckTypeCharacteristicsVisitor visitor) {
       foreach (var p in formals) {
         visitor.VisitType(p.Origin, p.Type, isGhostContext || p.IsGhost);
         if (p.DefaultValue != null) {
@@ -315,7 +312,7 @@ namespace Microsoft.Dafny {
 
     private static void CheckSpecification(List<AttributedExpression> requires, Specification<FrameExpression> frame,
       List<AttributedExpression> ensures, [CanBeNull] Specification<Expression> decreases,
-      CheckTypeCharacteristics_Visitor visitor) {
+      CheckTypeCharacteristicsVisitor visitor) {
 
       foreach (var aexpr in requires) {
         CheckAttributes(aexpr.Attributes, visitor);

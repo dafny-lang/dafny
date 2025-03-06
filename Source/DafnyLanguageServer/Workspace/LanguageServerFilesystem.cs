@@ -114,6 +114,6 @@ public class LanguageServerFilesystem : IFileSystem {
     var inMemoryFiles = openFiles.Keys.Select(openFileUri => openFileUri.LocalPath);
     var inMemory = new InMemoryDirectoryInfoFromDotNet8(root, inMemoryFiles);
 
-    return new CombinedDirectoryInfo(new[] { inMemory, OnDiskFileSystem.Instance.GetDirectoryInfoBase(root) });
+    return new CombinedDirectoryInfo([inMemory, OnDiskFileSystem.Instance.GetDirectoryInfoBase(root)]);
   }
 }

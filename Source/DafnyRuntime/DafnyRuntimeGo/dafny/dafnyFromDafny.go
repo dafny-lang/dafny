@@ -88,7 +88,7 @@ TAIL_CALL_START:
 		_ = _0_concat
 		_0_concat = e.(*ConcatSequence)
 		if !(Companion_Default___.SizeAdditionInRange(stack.Size, Companion_Default___.ONE__SIZE())) {
-			panic("dafnyRuntime.dfy[DafnyGo](766,6): " + (SeqOfString("expectation violation")).String())
+			panic("dafnyRuntime.dfy(766,6): " + (SeqOfString("expectation violation")).String())
 		}
 		(stack).AddLast((_0_concat).Right())
 		{
@@ -102,9 +102,9 @@ TAIL_CALL_START:
 			e = _in1
 			stack = _in2
 			goto TAIL_CALL_START
-			goto L0_0
+			goto L0
 		}
-	L0_0:
+	L0:
 	} else if func(_is_3 Sequence) bool {
 		return InstanceOf(_is_3, (*LazySequence)(nil))
 	}(e) {
@@ -152,13 +152,13 @@ TAIL_CALL_START:
 				e = _in7
 				stack = _in8
 				goto TAIL_CALL_START
-				goto L1_1_0_0_0
+				goto L1
 			}
-		L1_1_0_0_0:
+		L1:
 		}
 	} else {
 		if !(false) {
-			panic("dafnyRuntime.dfy[DafnyGo](789,6): " + (SeqOfString("Unsupported Sequence implementation")).String())
+			panic("dafnyRuntime.dfy(789,6): " + (SeqOfString("Unsupported Sequence implementation")).String())
 		}
 	}
 }
@@ -421,7 +421,7 @@ func (_static *CompanionStruct_Sequence_) Concatenate(left Sequence, right Seque
 	var ret Sequence = (Sequence)(nil)
 	_ = ret
 	if !(Companion_Default___.SizeAdditionInRange((left).Cardinality(), (right).Cardinality())) {
-		panic("dafnyRuntime.dfy[DafnyGo](594,6): " + (Companion_Sequence_.Concatenate(Companion_Sequence_.Concatenate(SeqOfString("Concatenation result cardinality would be larger than the maximum ("), Companion_Helpers_.DafnyValueToDafnyString(Companion_Default___.SIZE__T__MAX())), SeqOfString(")"))).String())
+		panic("dafnyRuntime.dfy(594,6): " + (Companion_Sequence_.Concatenate(Companion_Sequence_.Concatenate(SeqOfString("Concatenation result cardinality would be larger than the maximum ("), Companion_Helpers_.DafnyValueToDafnyString(Companion_Default___.SIZE__T__MAX())), SeqOfString(")"))).String())
 	}
 	var _0_left_k Sequence
 	_ = _0_left_k
