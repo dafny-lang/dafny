@@ -71,9 +71,11 @@ mkdir -p $P
 
 CWD=`pwd`
 cd $P
+(git clone https://github.com/dafny-lang/dafny.git -b $branch --depth 1) || \
 (git clone git@github.com:dafny-lang/dafny.git -b $branch --depth 1) || \
 (echo "Retrying with the HTTPS protocol..." && git clone https://github.com/dafny-lang/dafny.git -b $branch --depth 1) || \
     (echo FAILED to clone dafny; exit 1)
+(git clone https://github.com/dafny-lang/dafny-lang.github.io.git -b main --depth 1) || \
 (git clone git@github.com:dafny-lang/dafny-lang.github.io.git -b main --depth 1) || \
     (echo "Retrying with the HTTPS protocol..." && git clone https://github.com/dafny-lang/dafny-lang.github.io.git -b main --depth 1) || \
     (echo FAILED to clone dafny-lang.github.io; exit 1)
@@ -81,7 +83,6 @@ cd $CWD
 
 ## Location of the dafny-lang.github.io repo
 T=$P/dafny-lang.github.io
-##T=/Users/davidcok/projects/dafny/dafny-lang.github.io
 
 cd "$P/dafny/docs"
 
