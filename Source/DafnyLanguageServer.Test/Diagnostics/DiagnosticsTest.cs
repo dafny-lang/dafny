@@ -302,7 +302,7 @@ function bullspec(s:seq<nat>, u:seq<nat>): (r: nat)
       await GetNextDiagnostics(documentItem); // Migrated verification diagnostics.
       var diagnostics2 = await GetNextDiagnostics(documentItem);
       Assert.Equal(3, diagnostics2.Length);
-      Assert.Equal("Parser", diagnostics2[0].Source);
+      Assert.Equal(MessageSource.Parser.ToString(), diagnostics2[0].Source);
       Assert.Equal(DiagnosticSeverity.Error, diagnostics2[0].Severity);
       ApplyChange(ref documentItem, ((7, 20), (7, 25)), "");
       Assert.Equal(PublishedVerificationStatus.Stale, await PopNextStatus());
@@ -432,7 +432,7 @@ method Multiply(x: int, y: int) returns (product: int
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var diagnostics = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken);
       Assert.Single(diagnostics);
-      Assert.Equal("Parser", diagnostics[0].Source);
+      Assert.Equal(MessageSource.Parser.ToString(), diagnostics[0].Source);
       Assert.Equal(DiagnosticSeverity.Error, diagnostics[0].Severity);
       await AssertNoDiagnosticsAreComing(CancellationToken);
     }
@@ -480,9 +480,9 @@ method Multiply(x: int, y: int) returns (product: int)
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var diagnostics = await GetLastDiagnostics(documentItem);
       Assert.Equal(2, diagnostics.Length);
-      Assert.Equal("Resolver", diagnostics[0].Source);
+      Assert.Equal(MessageSource.Resolver.ToString(), diagnostics[0].Source);
       Assert.Equal(DiagnosticSeverity.Error, diagnostics[0].Severity);
-      Assert.Equal("Resolver", diagnostics[1].Source);
+      Assert.Equal(MessageSource.Resolver.ToString(), diagnostics[1].Source);
       Assert.Equal(DiagnosticSeverity.Error, diagnostics[1].Severity);
       await AssertNoDiagnosticsAreComing(CancellationToken);
     }
@@ -607,7 +607,7 @@ method Multiply(x: int, y: int) returns (product: int)
 
       var diagnostics = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken);
       Assert.Single(diagnostics);
-      Assert.Equal("Parser", diagnostics[0].Source);
+      Assert.Equal(MessageSource.Parser.ToString(), diagnostics[0].Source);
       Assert.Equal(DiagnosticSeverity.Error, diagnostics[0].Severity);
       await AssertNoDiagnosticsAreComing(CancellationToken);
     }
@@ -636,7 +636,7 @@ method Multiply(x: int, y: int) returns (product: int)
 
       var diagnostics = await GetNextDiagnostics(documentItem);
       Assert.Single(diagnostics);
-      Assert.Equal("Parser", diagnostics[0].Source);
+      Assert.Equal(MessageSource.Parser.ToString(), diagnostics[0].Source);
       Assert.Equal(DiagnosticSeverity.Error, diagnostics[0].Severity);
       await AssertNoDiagnosticsAreComing(CancellationToken);
     }
@@ -769,7 +769,7 @@ method Multiply(x: int, y: int) returns (product: int
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var diagnostics = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken);
       Assert.Single(diagnostics);
-      Assert.Equal("Project", diagnostics[0].Source);
+      Assert.Equal(MessageSource.Project.ToString(), diagnostics[0].Source);
       Assert.Equal(DiagnosticSeverity.Error, diagnostics[0].Severity);
       Assert.Equal(new Range((0, 8), (0, 26)), diagnostics[0].Range);
       await AssertNoDiagnosticsAreComing(CancellationToken);
@@ -782,7 +782,7 @@ method Multiply(x: int, y: int) returns (product: int
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var diagnostics = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken);
       Assert.Single(diagnostics);
-      Assert.Equal("Parser", diagnostics[0].Source);
+      Assert.Equal(MessageSource.Parser.ToString(), diagnostics[0].Source);
       Assert.Equal(DiagnosticSeverity.Error, diagnostics[0].Severity);
       Assert.Equal(new Range((0, 0), (0, 1)), diagnostics[0].Range);
       await AssertNoDiagnosticsAreComing(CancellationToken);
@@ -811,7 +811,7 @@ module ModC {
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var diagnostics = await diagnosticsReceiver.AwaitNextDiagnosticsAsync(CancellationToken);
       Assert.Single(diagnostics);
-      Assert.Equal("Parser", diagnostics[0].Source);
+      Assert.Equal(MessageSource.Parser.ToString(), diagnostics[0].Source);
       Assert.Equal(DiagnosticSeverity.Error, diagnostics[0].Severity);
       Assert.Equal(new Range((0, 0), (0, 1)), diagnostics[0].Range);
       await AssertNoDiagnosticsAreComing(CancellationToken);
