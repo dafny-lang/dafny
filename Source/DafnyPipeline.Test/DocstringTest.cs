@@ -782,7 +782,8 @@ iterator Iter2(x: int) yields (y: int)
         }
 
         foreach (var (nodeTokenValue, expectedDocstring) in tests) {
-          var targetNode = FindNode(dafnyProgram, node => node.Origin.val == nodeTokenValue);
+          var targetNode = FindNode(dafnyProgram,
+            node => (node is Declaration declaration) && declaration.Name == nodeTokenValue);
           if (targetNode == null) {
             Assert.NotNull(targetNode);
           }

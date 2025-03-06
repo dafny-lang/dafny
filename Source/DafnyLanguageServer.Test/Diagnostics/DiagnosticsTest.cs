@@ -622,7 +622,7 @@ method Multiply(x: int, y: int) returns (product: int)
       Assert.Single(diagnostics[0].RelatedInformation);
       var relatedInformation = diagnostics[0].RelatedInformation.First();
       Assert.Equal("this is the postcondition that could not be proved", relatedInformation.Message);
-      Assert.Equal(new Range(new Position(2, 30), new Position(2, 42)), relatedInformation.Location.Range);
+      Assert.Equal(new Range(new Position(2, 38), new Position(2, 40)), relatedInformation.Location.Range);
       await AssertNoDiagnosticsAreComing(CancellationToken);
     }
 
@@ -944,8 +944,8 @@ class Test {
       var relatedInformation = diagnostics[0].RelatedInformation.ToArray();
       Assert.Equal(2, relatedInformation.Length);
       Assert.Equal("this is the postcondition that could not be proved", relatedInformation[0].Message);
-      Assert.Equal(new Range((14, 16), (14, 23)), relatedInformation[0].Location.Range);
-      Assert.Equal(new Range(9, 11, 9, 16), relatedInformation[1].Location.Range);
+      Assert.Equal(new Range((14, 21), (14, 22)), relatedInformation[0].Location.Range);
+      Assert.Equal(new Range(9, 13, 9, 14), relatedInformation[1].Location.Range);
       await AssertNoDiagnosticsAreComing(CancellationToken);
     }
 
