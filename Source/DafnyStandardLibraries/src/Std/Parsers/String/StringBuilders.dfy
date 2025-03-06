@@ -1,7 +1,7 @@
 module Std.Parsers.StringBuilders refines Builders {
   import P = StringParsers
   export StringBuilders extends Builders
-    provides S, Int, Nat, WS, Except, Digit, DigitNumber
+    provides S, Int, Nat, WS, Except, Digit, DigitNumber, DebugSummaryInput, PrintDebugSummaryOutput, FailureToString, Apply
 
   function S(s: string): B<string> {
     B(P.String(s))
@@ -9,7 +9,7 @@ module Std.Parsers.StringBuilders refines Builders {
   function Int(): B<int> {
     B(P.Int())
   }
-  function Nat(): B<int> {
+  function Nat(): B<nat> {
     B(P.Nat())
   }
   function Digit(): B<char> {
@@ -30,9 +30,12 @@ module Std.Parsers.StringBuilders refines Builders {
   method {:print} PrintDebugSummaryOutput<R>(name: string, input: string, result: P.ParseResult<R>) {
     P.PrintDebugSummaryOutput(name, input, result);
   }
-  method FailureToString<R>(input: string, result: P.ParseResult<R>) returns (s: string)
+  function FailureToString<R>(input: string, result: P.ParseResult<R>): (s: string)
     requires result.Failure?
   {
-    s := P.FailureToString(input, result);
+    P.FailureToString(input, result)
+  }
+  function Apply<T>(parser: B<T>, input: string): P.ParseResult<T> {
+    parser.apply(P.A.Input(input, 0, |input|))
   }
 }

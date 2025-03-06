@@ -18,8 +18,8 @@ abstract module Std.Parsers.Builders {
   export
     provides P
     provides O
-    provides Ok
-    provides Fail
+    provides Return
+    provides Throw
     provides Rec
     provides B.e_I
     provides B.I_e
@@ -37,6 +37,7 @@ abstract module Std.Parsers.Builders {
     provides B.OneOrMore
     provides B.Debug
     provides End
+    provides IntToString
     reveals CharTest
     reveals B
     reveals Rec, RecMap
@@ -44,6 +45,13 @@ abstract module Std.Parsers.Builders {
 
   type FailureLevel = P.FailureLevel
   type RecMapSel<A> = string -> B<A>
+
+  function Return<T>(t: T): B<T> {
+    B(P.Succeed(t))
+  }
+  function Throw<T>(message: string, level: FailureLevel := P.Recoverable): B<T> {
+    B(P.Fail(message,  level))
+  }
 
   // Wrap the constructor in a class where the size is constant so that users
   // don'result need to provide it.
@@ -85,7 +93,7 @@ abstract module Std.Parsers.Builders {
     }
 
     /** Use a function that can print to debug*/
-    function Debug<D>(name: string, onEnter: (string, seq<P.C>) -> D, onExit: (string, D, P.ParseResult<R>) -> ()): (p: B<R>) {
+    function Debug<D>(name: string, onEnter: (string, P.Input) -> D, onExit: (string, D, P.ParseResult<R>) -> ()): (p: B<R>) {
       B(P.Debug(apply, name, onEnter, onExit))
     }
 
@@ -121,20 +129,10 @@ abstract module Std.Parsers.Builders {
     }
   }
 
-  function Ok<R>(result: R): (p: B<R>)
-  {
-    B(P.Succeed(result))
-  }
-
-  function Fail<R>(message: string, level: FailureLevel := FailureLevel.Recoverable): (p: B<R>)
-  {
-    B(P.Fail(message, level))
-  }
-
   function O<R>(alternatives: seq<B<R>>): B<R>
     // Declares a set of alternatives as a single list
   {
-    if |alternatives| == 0 then Fail("no alternative") else
+    if |alternatives| == 0 then Throw("no alternative") else
     if |alternatives| == 1 then alternatives[0]
     else
       B(P.Or(alternatives[0].apply, O(alternatives[1..]).apply))
@@ -177,5 +175,9 @@ abstract module Std.Parsers.Builders {
                                 ).apply),
         fun
       ))
+  }
+
+  function IntToString(input: int): string {
+    P.IntToString(input)
   }
 }

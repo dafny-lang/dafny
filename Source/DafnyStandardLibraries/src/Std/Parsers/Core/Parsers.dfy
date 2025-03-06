@@ -1,3 +1,24 @@
+abstract module Std.Parsers.AbstractInput {
+  // Can be either a sequence, a sequence and pointers to this sequence, or an array and pointers to the array
+  type Input
+  type C(!new, ==)
+
+  ghost function View(self: Input): (r: seq<C>)
+    ensures |View(self)| == Length(self)
+  function Length(self: Input): nat
+  function CharAt(self: Input, i: int): C
+    requires 0 <= i < Length(self)
+    ensures CharAt(self, i) == View(self)[i]
+  function Drop(self: Input, start: int): Input
+    requires 0 <= start <= Length(self)
+    ensures View(self)[start..] == View(Drop(self, start))
+  function Slice(self: Input, start: int, end: int): Input
+    requires 0 <= start <= end <= Length(self)
+    ensures View(self)[start..end] == View(Slice(self, start, end))
+  predicate Equals(self: Input, other: Input)
+    ensures Equals(self, other) <==> View(self) == View(other)
+}
+
 abstract module Std.Parsers.Core
 // Functional parsers consuming sequences seq<C> from the left to the right.
 // For parsers over strings, please refer to the StringParsers module
@@ -7,8 +28,8 @@ abstract module Std.Parsers.Core
   export
     provides
       C, // The character type
+      Input, // The sequence type
       Wrappers, // Imported module
-      Valid,
       Succeed,
       Epsilon,
       Fail,
@@ -39,12 +60,13 @@ abstract module Std.Parsers.Core
       OneOrMore,
       Recursive,
       RecursiveMap,
-      intToString,
-      digitToInt,
-      stringToInt,
+      IntToString,
+      DigitToInt,
+      StringToInt,
       ParseResult.IsFailure,
       ParseResult.PropagateFailure,
-      ParseResult.Extract
+      ParseResult.Extract,
+      A // The abstract input
     reveals
       Parser,
       ParserSelector,
@@ -56,10 +78,14 @@ abstract module Std.Parsers.Core
 
   export All reveals *
 
-  type C(!new, ==)
+  import A : AbstractInput
+
+  type C = A.C
+  type Input = A.Input
+
   // The character of the sequence being parsed
 
-  type Parser<+R> = seq<C> -> ParseResult<R>
+  type Parser<+R> = Input -> ParseResult<R>
   // A parser is a total function from a position to a parse result
   // Because it returns a delta pos, it cannot return a position negative from the origing
   // If the parsing is out of context, it will return a failure.
@@ -74,7 +100,7 @@ abstract module Std.Parsers.Core
   datatype FailureData =
     FailureData(
       message: string,
-      remaining: seq<C>,
+      remaining: Input,
       next: Option<FailureData>)
   // A Parser failure can mention several places
   // (e.g. which could have continued to parse)
@@ -102,10 +128,10 @@ abstract module Std.Parsers.Core
       // ParseResult is the type of what a parser taking a seq<C> would return
     | Failure(level: FailureLevel, data: FailureData)
       // Returned if a parser failed.
-    | Success(result: R, remaining: seq<C>)
+    | Success(result: R, remaining: Input)
   // Returned if a parser succeeds, with the increment in the position
   {
-    function Remaining(): seq<C>
+    function Remaining(): Input
       // If Remaining() is the same as the input, the parser is "uncommitted",
       // which means combinators like Or and ZeroOrMore can try alternatives
     {
@@ -132,7 +158,7 @@ abstract module Std.Parsers.Core
       Failure(level, data)
     }
 
-    function Extract(): (R, seq<C>)
+    function Extract(): (R, Input)
       requires !IsFailure()
     {
       (result, remaining)
@@ -160,31 +186,33 @@ abstract module Std.Parsers.Core
       case _ => this
     }
 
-    predicate NeedsAlternative(input: seq<C>)
+    predicate NeedsAlternative(input: Input)
       // Returns true if the parser result
       // - Is a failure
       // - Is recoverable
       // - Did not consume any input (not-committed)
     {
-      Failure? && level == Recoverable && input == Remaining()
+      Failure? && level == Recoverable && A.Equals(input, Remaining())
     }
   }
 
-  predicate IsRemaining(input: seq<C>, remaining: seq<C>)
+  predicate IsRemaining(input: Input, remaining: Input)
     // True if remaining is a suffix of the input
   {
-    && |remaining| <= |input|
-    && input[|input|-|remaining|..] == remaining
+    && A.Length(remaining) <= A.Length(input)
+    && A.Equals(A.Drop(input, A.Length(input)-A.Length(remaining)), remaining)
   }
 
-  opaque ghost predicate Valid<R>(underlying: Parser<R>)
+  // Cannot express this predicate if Input is allocated. Add once we accept quantification over unallocated objects
+  // when they are allocated
+  /*opaque ghost predicate Valid<R>(underlying: Parser<R>)
     // A parser is valid iff for any input, it never returns a fatal error
     // and always returns a suffix of its input
   {
-    forall input: seq<C> ::
+    forall input: Input ::
       && (underlying(input).Failure? ==> underlying(input).level == Recoverable)
       && IsRemaining(input, underlying(input).Remaining())
-  }
+  }*/
 
   // ########################################
   // Parser combinators.
@@ -195,7 +223,7 @@ abstract module Std.Parsers.Core
   opaque function Succeed<R>(result: R): (p: Parser<R>)
     // A parser that does not consume any input and returns the given value
   {
-    (input: seq<C>) => Success(result, input)
+    (input: Input) => Success(result, input)
   }
 
   opaque function Epsilon(): (p: Parser<()>)
@@ -207,20 +235,20 @@ abstract module Std.Parsers.Core
   opaque function Fail<R>(message: string, level: FailureLevel := Recoverable): Parser<R>
     // A parser that does not consume any input and returns the given failure
   {
-    (input: seq<C>) => Failure(level, FailureData(message, input, Option.None))
+    (input: Input) => Failure(level, FailureData(message, input, Option.None))
   }
 
   opaque function Result<R>(result: ParseResult<R>): Parser<R>
     // A parser that always returns the given result
   {
-    (input: seq<C>) => result
+    (input: Input) => result
   }
 
   opaque function EndOfString(): Parser<()>
     // A parser that fails if the string has not been entirely consumed
   {
-    (input: seq<C>) =>
-      if |input| == 0 then Success((), input)
+    (input: Input) =>
+      if A.Length(input) == 0 then Success((), input)
       else Failure(Recoverable, FailureData("expected end of string", input, Option.None))
   }
 
@@ -233,7 +261,7 @@ abstract module Std.Parsers.Core
     // to the right parser generator.
     // For a more general version, look at BindSucceeds
   {
-    (input: seq<C>)
+    (input: Input)
     =>
       var (leftResult, remaining) :- left(input);
       right(leftResult)(remaining)
@@ -241,14 +269,14 @@ abstract module Std.Parsers.Core
 
   opaque function BindSucceeds<L, R>(
     left: Parser<L>,
-    right: (L, seq<C>) -> Parser<R>
+    right: (L, Input) -> Parser<R>
   ) : (p: Parser<R>)
     // Fails if the left parser fails.
     // If the left parser succeeds, provides its result and its remaining
     // to the right parser generator and returns its result applied to the remaining
     // For a more general version, look at BindResult
   {
-    (input: seq<C>)
+    (input: Input)
     =>
       var (leftResult, remaining) :- left(input);
       right(leftResult, remaining)(remaining)
@@ -256,13 +284,13 @@ abstract module Std.Parsers.Core
 
   opaque function BindResult<L, R>(
     left: Parser<L>,
-    right: (ParseResult<L>, seq<C>) -> Parser<R>
+    right: (ParseResult<L>, Input) -> Parser<R>
   ) : (p: Parser<R>)
     // Given a left parser and a parser generator based on the output
     // of the left parser,
     // returns the result of the right parser applied on the original input
   {
-    (input: seq<C>)
+    (input: Input)
     =>
       right(left(input), input)(input)
   }
@@ -274,7 +302,7 @@ abstract module Std.Parsers.Core
     // ensures forall pos | MapSpec(size, underlying, mappingFunc, pos) ::
     //          p.requires(pos)
   {
-    (input: seq<C>) =>
+    (input: Input) =>
       var (result, remaining) :- underlying(input);
       var u := mappingFunc(result);
       Success(u, remaining)
@@ -284,7 +312,7 @@ abstract module Std.Parsers.Core
     // Returns a parser that succeeds if the underlying parser fails
     // and vice-versa. The result does not consume any input
   {
-    (input: seq<C>) =>
+    (input: Input) =>
       var l := underlying(input);
       if l.IsFailure() then
         if l.IsFatal() then l.PropagateFailure()
@@ -299,7 +327,7 @@ abstract module Std.Parsers.Core
     // Make the two parsers parse the same string and, if both suceed,
     // returns a pair of the two results, with the remaining of the right
   {
-    (input: seq<C>) =>
+    (input: Input) =>
       var (l, remainingLeft) :- left(input);
       var (r, remainingRight) :- right(input);
       Success((l, r), remainingRight)
@@ -315,7 +343,7 @@ abstract module Std.Parsers.Core
     //   then return what right returns
     // - Otherwise return both errors
   {
-    (input: seq<C>) =>
+    (input: Input) =>
       var p := left(input);
       if !p.NeedsAlternative(input) then p else
       var p2 := right(input);
@@ -342,7 +370,7 @@ abstract module Std.Parsers.Core
     // - If the failure is fatal, returns it as-it
     // - If the failure is recoverable, returns it without comitting the input
   {
-    (input: seq<C>) =>
+    (input: Input) =>
       var p := underlying(input);
       if p.IsFailure() then
         if p.IsFatal() then
@@ -360,7 +388,7 @@ abstract module Std.Parsers.Core
     // - If the failure is fatal, returns it as-it
     // - If the failure is recoverable, returns it without comitting the input
   {
-    (input: seq<C>) =>
+    (input: Input) =>
       var p := underlying(input);
       if p.IsFailure() then
         if p.IsFatal() then
@@ -385,7 +413,7 @@ abstract module Std.Parsers.Core
     // Transforms a recoverable failure into None,
     // and wraps a success into Some(...)
   {
-    (input: seq<C>) =>
+    (input: Input) =>
       var u := underlying(input);
       if u.IsFatalFailure() then u.PropagateFailure()
       else
@@ -401,7 +429,7 @@ abstract module Std.Parsers.Core
     // Apply two consecutive parsers consecutively
     // If both succeed, apply the mapper to the result and return it
   {
-    (input: seq<C>)
+    (input: Input)
     =>
       var (l, remaining) :- left(input);
       var (r, remaining2) :- right(remaining);
@@ -415,7 +443,7 @@ abstract module Std.Parsers.Core
     // Apply two consecutive parsers consecutively
     // If both succeed, return the pair of the two results
   {
-    (input: seq<C>) =>
+    (input: Input) =>
       var (l, remaining) :- left(input);
       var (r, remaining2) :- right(remaining);
       Success((l, r), remaining2)
@@ -440,12 +468,50 @@ abstract module Std.Parsers.Core
   }
 
   /** Use a function that can print to debug, and possibly modify the parser*/
-  opaque function Debug<R, D>(underlying: Parser<R>, name: string, onEnter: (string, seq<C>) -> D, onExit: (string, D, ParseResult<R>) -> ()): (p: Parser<R>) {
-    (input: seq<C>) =>
+  opaque function Debug<R, D>(underlying: Parser<R>, name: string, onEnter: (string, Input) -> D, onExit: (string, D, ParseResult<R>) -> ()): (p: Parser<R>) {
+    (input: Input) =>
       var debugData := onEnter(name, input);
       var output := underlying(input);
       var _ := onExit(name, debugData, output);
       output
+  }
+
+  // A datatype that avoid a quadratic complexity in concatenating long sequences.
+  
+  datatype SeqB<A> = SeqBCons(last: A, init: SeqB<A>) | SeqBNil {
+    function Append(elem: A): SeqB<A> {
+      SeqBCons(elem, this)
+    }
+    function Length(): nat {
+      if SeqBNil? then 0 else 1 + init.Length()
+    }
+    function ToSequence(): seq<A>
+      ensures |ToSequence()| == Length()
+    {
+      if SeqBNil? then [] else init.ToSequence() + [last]
+    } by method {
+      if SeqBNil? {
+        return [];
+      }
+      var defaultElem := last;
+      var l := Length();
+      var elements := new A[l](i => defaultElem);
+      var t := this;
+      var i := l;
+        assert t.ToSequence() + elements[i..] == ToSequence();
+      while !t.SeqBNil?
+        decreases i
+        invariant 0 <= i <= l
+        invariant i == t.Length()
+        invariant t.ToSequence() + elements[i..] == ToSequence()
+      {
+        i := i - 1;
+        elements[i] := t.last;
+        t := t.init;
+        assert t.ToSequence() + elements[i..] == ToSequence();
+      }
+      return elements[..];
+    }
   }
 
   opaque function ZeroOrMore<R>(
@@ -454,7 +520,8 @@ abstract module Std.Parsers.Core
     // Repeats the underlying parser until the first failure
     // that accepts alternatives, and returns the underlying sequence
   {
-    Rep(underlying, (result: seq<R>, r: R) => result + [r], [])
+    Map(Rep(underlying, (result: SeqB<R>, r: R) => result.Append(r), SeqBNil),
+     (result: SeqB<R>) => result.ToSequence())
   }
 
   opaque function OneOrMore<R>(underlying: Parser<R>): (p: Parser<seq<R>>)
@@ -462,7 +529,10 @@ abstract module Std.Parsers.Core
     // Will return a failure if there is not at least one match
   {
     Bind(underlying, (r: R) =>
-           Rep(underlying, (s: seq<R>, r': R) => s + [r'], [r]))
+      Map(
+        Rep(underlying, (result: SeqB<R>, r: R) => result.Append(r), SeqBCons(r, SeqBNil)),
+        (result: SeqB<R>) => result.ToSequence()
+        ))
   }
 
   opaque function Rep<A, B>(
@@ -474,7 +544,7 @@ abstract module Std.Parsers.Core
     // that accepts alternatives, combining results to an accumulator
     // and return the final accumulator
   {
-    (input: seq<C>) => Rep_(underlying, combine, acc, input)
+    (input: Input) => Rep_(underlying, combine, acc, input)
   }
 
   opaque function RepSep<A, B>(
@@ -484,9 +554,16 @@ abstract module Std.Parsers.Core
     // Repeats the underlying parser interleaved with a separator
     // Returns a sequence of results
   {
-    Bind(Maybe(underlying), (result: Option<A>) =>
-           if result.None? then Succeed<seq<A>>([]) else
-           Rep(ConcatR(separator, underlying), (acc: seq<A>, a: A) => acc + [a], [result.value]))
+    Bind(
+      Maybe(underlying),
+      (result: Option<A>) =>
+        if result.None? then Succeed<seq<A>>([]) else
+        Map(
+          Rep(
+            ConcatR(separator, underlying),
+            (acc: SeqB<A>, a: A) => acc.Append(a),
+            SeqBCons(result.value, SeqBNil)),
+            (result: SeqB<A>) => result.ToSequence()))
   }
 
   opaque function RepMerge<A>(
@@ -518,15 +595,15 @@ abstract module Std.Parsers.Core
     underlying: Parser<B>,
     combine: (A, B) -> A,
     acc: A,
-    input: seq<C>
+    input: Input
   ): (p: ParseResult<A>)
-    decreases |input|
+    decreases A.Length(input)
     // ZeroOrMore the underlying parser over the input until a recoverable failure happens
     // and returns the accumulated results
   {
     match underlying(input)
     case Success(result, remaining) =>
-      if |remaining| >= |input| then Success(acc, input) else
+      if A.Length(remaining) >= A.Length(input) then Success(acc, input) else
       Rep_(underlying, combine, combine(acc, result), remaining)
     case failure =>
       if failure.NeedsAlternative(input) then
@@ -543,21 +620,21 @@ abstract module Std.Parsers.Core
     // Careful: This function is not tail-recursive and will consume stack.
     // Prefer using Rep() or ZeroOrMore() for sequences
   {
-    (input: seq<C>) => Recursive_(underlying, input)
+    (input: Input) => Recursive_(underlying, input)
   }
 
   opaque function Recursive_<R(!new)>(
     underlying: Parser<R> -> Parser<R>,
-    input: seq<C>
+    input: Input
   ): (p: ParseResult<R>)
     // Implementation for Recursive()
-    decreases |input|
+    decreases A.Length(input)
   {
     var callback: Parser<R> :=
-      (remaining: seq<C>) =>
-        if |remaining| < |input| then
+      (remaining: Input) =>
+        if A.Length(remaining) < A.Length(input) then
           Recursive_(underlying, remaining)
-        else if |remaining| == |input| then
+        else if A.Length(remaining) == A.Length(input) then
           Failure(Recoverable, FailureData("no progress", remaining, Option.None))
         else
           Failure(Fatal, FailureData("fixpoint called with an increasing remaining sequence", remaining, Option.None));
@@ -572,7 +649,7 @@ abstract module Std.Parsers.Core
     // and set 'fun' as the initial parser.
     // Careful: This function is not tail-recursive and will consume stack
   {
-    (input: seq<C>) => RecursiveMap_(underlying, fun, input)
+    (input: Input) => RecursiveMap_(underlying, fun, input)
   }
 
   datatype RecursiveDef<!R> = RecursiveDef(
@@ -584,10 +661,10 @@ abstract module Std.Parsers.Core
   opaque function RecursiveMap_<R(!new)>(
     underlying: map<string, RecursiveDef<R>>,
     fun: string,
-    input: seq<C>
+    input: Input
   ): (p: ParseResult<R>)
     // Implementation for RecursiveMap()
-    decreases |input|, if fun in underlying then underlying[fun].order else 0
+    decreases A.Length(input), if fun in underlying then underlying[fun].order else 0
   {
     if fun !in underlying then Failure(Fatal, FailureData("parser '"+fun+"' not found", input, Option.None)) else
     var RecursiveDef(orderFun, definitionFun) := underlying[fun];
@@ -599,12 +676,12 @@ abstract module Std.Parsers.Core
              Fail(fun' + " not defined", Fatal)
            else
              var RecursiveDef(orderFun', definitionFun') := underlying[fun'];
-             (remaining: seq<C>) =>
-               if |remaining| < |input| || (|remaining| == |input| && orderFun' < orderFun) then
+             (remaining: Input) =>
+               if A.Length(remaining) < A.Length(input) || (A.Length(remaining) == A.Length(input) && orderFun' < orderFun) then
                  RecursiveMap_(underlying, fun', remaining)
-               else if |remaining| == |input| then
+               else if A.Length(remaining) == A.Length(input) then
                  Failure(Recoverable, FailureData("non-progressing recursive call requires that order of '"
-                                                  +fun'+"' ("+intToString(orderFun')+") is lower than the order of '"+fun+"' ("+intToString(orderFun)+")", remaining, Option.None))
+                                                  +fun'+"' ("+IntToString(orderFun')+") is lower than the order of '"+fun+"' ("+IntToString(orderFun)+")", remaining, Option.None))
                else
                  Failure(Fatal, FailureData("parser did not return a suffix of the input", remaining, Option.None))
            ; p);
@@ -615,39 +692,39 @@ abstract module Std.Parsers.Core
     // A parser that returns the current char if it passes the test
     // Returns a recoverable error based on the name otherwise
   {
-    (input: seq<C>) =>
-      if 0 < |input| && test(input[0]) then Success(input[0], input[1..])
+    (input: Input) =>
+      if 0 < A.Length(input) && test(A.CharAt(input, 0)) then Success(A.CharAt(input, 0), A.Drop(input, 1))
       else Failure(Recoverable,
                    FailureData("expected a "+name, input, Option.None))
   }
 
-  opaque function intToString(n: int): string
+  opaque function IntToString(n: int): string
     // Converts an integer to a string
     decreases if n < 0 then 1 - n else n
   {
-    if n < 0 then "-" + intToString(-n) else
+    if n < 0 then "-" + IntToString(-n) else
     match n
     case 0 => "0" case 1 => "1" case 2 => "2" case 3 => "3" case 4 => "4"
     case 5 => "5" case 6 => "6" case 7 => "7" case 8 => "8" case 9 => "9"
-    case _ => intToString(n / 10) + intToString(n % 10)
+    case _ => IntToString(n / 10) + IntToString(n % 10)
   }
 
-  opaque function digitToInt(c: char): int {
+  opaque function DigitToInt(c: char): int {
     match c
     case '0' => 0 case '1' => 1 case '2' => 2 case '3' => 3 case '4' => 4
     case '5' => 5 case '6' => 6 case '7' => 7 case '8' => 8 case '9' => 9
     case _ => -1
   }
 
-  opaque function stringToInt(s: string): int
+  opaque function StringToInt(s: string): int
     // Converts a string to a string
     decreases |s|
   {
     if |s| == 0 then 0 else
-    if |s| == 1 then digitToInt(s[0])
+    if |s| == 1 then DigitToInt(s[0])
     else if s[0] == '-' then
-      0 - stringToInt(s[1..])
+      0 - StringToInt(s[1..])
     else
-      stringToInt(s[0..|s|-1])*10 + stringToInt(s[|s|-1..|s|])
+      StringToInt(s[0..|s|-1])*10 + StringToInt(s[|s|-1..|s|])
   }
 }
