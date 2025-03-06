@@ -368,6 +368,7 @@ module Std.Producers {
       && this in Repr
       && ValidComponent(source)
       && ValidHistory(history)
+      && |history| <= |source.history|
     }
 
     twostate predicate ValidOutput(history: seq<((), Option<T>)>, nextInput: (), new nextOutput: Option<T>)
@@ -420,7 +421,8 @@ module Std.Producers {
       requires forall i <- InputsOf(history) :: i == FixedInput()
       ensures exists n: nat | n <= Limit() :: Terminated(OutputsOf(history), StopFn(), n)
     {
-      assume {:axiom} Terminated(OutputsOf(history), StopFn(), Limit());
+      var n :| Terminated(OutputsOf(history), StopFn(), n);
+      assert n < source.Limit();
     }
   }
 

@@ -240,7 +240,6 @@ module Std.Actions {
     ghost function StopFn(): O -> bool
     ghost function Limit(): nat
 
-    // TODO: Return n instead of exists n
     lemma OutputsTerminated(history: seq<(I, O)>)
       requires Action().ValidHistory(history)
       requires forall i <- InputsOf(history) :: i == FixedInput()
@@ -551,66 +550,6 @@ module Std.Actions {
 
     ghost predicate ComposedValidHistory(composedHistory: seq<(I, O)>): (result: bool)
       ensures composedHistory == [] ==> result
-  }
-
-  // Minimal proof for composing actions with no preconditions,
-  // but also creates a composition with no constraints on the outputs.
-  class TotalActionCompositionProof<I, M, O> extends ActionCompositionProof<I, M, O> {
-
-    const firstConsumeAllProof: TotalActionProof<I, M>
-    const secondConsumeAllProof: TotalActionProof<M, O>
-
-    ghost constructor(firstConsumeAllProof: TotalActionProof<I, M>,
-                secondConsumeAllProof: TotalActionProof<M, O>)
-    {
-      this.firstConsumeAllProof := firstConsumeAllProof;
-      this.secondConsumeAllProof := secondConsumeAllProof;
-    }
-
-    ghost function FirstAction(): Action<I, M> {
-      firstConsumeAllProof.Action()
-    }
-
-    ghost function SecondAction(): Action<M, O> {
-      secondConsumeAllProof.Action()
-    }
-
-    ghost predicate ComposedValidInput(composedHistory: seq<(I, O)>, next: I) {
-      true
-    }
-
-    lemma CanInvokeFirst(firstHistory: seq<(I, M)>, composedHistory: seq<(I, O)>, next: I)
-      requires FirstAction().ValidHistory(firstHistory)
-      requires ComposedValidInput(composedHistory, next)
-      requires InputsOf(firstHistory) == InputsOf(composedHistory)
-      ensures FirstAction().ValidInput(firstHistory, next)
-    {
-      assert firstConsumeAllProof.Action().ValidHistory(firstHistory);
-      assume {:axiom} firstConsumeAllProof.Valid();
-      firstConsumeAllProof.AnyInputIsValid(firstHistory, next);
-    }
-
-    lemma CanInvokeSecond(secondHistory: seq<(M, O)>, composedHistory: seq<(I, O)>, nextT: I, nextM: M)
-      requires SecondAction().ValidHistory(secondHistory)
-      requires OutputsOf(secondHistory) == OutputsOf(composedHistory)
-      ensures SecondAction().ValidInput(secondHistory, nextM)
-    {
-      assert secondConsumeAllProof.Action().ValidHistory(secondHistory);
-      assume {:axiom} secondConsumeAllProof.Valid();
-      secondConsumeAllProof.AnyInputIsValid(secondHistory, nextM);
-    }
-
-    lemma CanReturn(firstHistory: seq<(I, M)>, secondHistory: seq<(M, O)>, composedHistory: seq<(I, O)>)
-      requires FirstAction().ValidHistory(firstHistory)
-      requires SecondAction().ValidHistory(secondHistory)
-      ensures ComposedValidHistory(composedHistory)
-    {}
-
-    ghost predicate ComposedValidHistory(composedHistory: seq<(I, O)>): (result: bool)
-      ensures composedHistory == [] ==> result
-    {
-      true
-    }
   }
 
   // Other primitives/examples todo:
