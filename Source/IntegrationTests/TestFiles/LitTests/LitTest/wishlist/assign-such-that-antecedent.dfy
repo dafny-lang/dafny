@@ -5,12 +5,12 @@
 // establish the existential in M.
 
 method M(a: int, b: int) {
-  var s :| b != 0 ==> s == a / b;  // WISH
+  var s :| b != 0 ==> s == a / b;  // PREVIOUS WISH: wish granted in PR 6023, which distributes the "b != 0 ==>" to outside the existential
   assert P(a, b, s);
 }
 
 method M_assert_exists(a: int, b: int) {
-  assert exists s :: (b != 0 ==> s == a / b && Q(s));  // WISH
+  assert exists s :: (b != 0 ==> s == a / b && Q(s));  // WISH (the same distribution is not applied to existentials in general)
 }
 
 method N(a: int, b: int)

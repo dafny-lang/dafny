@@ -28,7 +28,8 @@ public class Name : RangeNode {
     Value = original.Value;
   }
 
-  public Name(IOrigin range, string value) : base(range) {
+  [SyntaxConstructor]
+  public Name(IOrigin origin, string value) : base(origin) {
     this.Value = value;
   }
 

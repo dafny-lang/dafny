@@ -1,9 +1,8 @@
 // NONUNIFORM: Testing robustness of Dafny/Rust backends wrt set comprehension
-// RUN: %baredafny -noVerify -compileTarget:rs -compile:0 -functionSyntax:3 -spillTargetCode:3 "%s" > "%t"
+// RUN: %baredafny build --function-syntax:3 --target:rs --enforce-determinism "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 module Spoo {
-
   newtype uint8 = x: int | 0 <= x < 0x100
   newtype uint16 = x: int | 0 <= x < 0x10000
   function method UInt16ToSeq(x: uint16): (ret: seq<uint8>)

@@ -42,7 +42,7 @@ DirtyLoops.dfy(436,4): Warning: this loop has no body (loop frame: $Heap)
 DirtyLoops.dfy(452,6): Warning: this loop has no body (loop frame: i, $Heap)
 DirtyLoops.dfy(468,6): Warning: this loop has no body (loop frame: i, $Heap)
 DirtyLoops.dfy(485,6): Warning: this loop has no body (loop frame: j, $Heap)
-DirtyLoops.dfy(515,2): Warning: Could not find a trigger for this quantifier. Without a trigger, the quantifier may cause brittle verification. To silence this warning, add an explicit trigger using the {:trigger} attribute. For more information, see the section quantifier instantiation rules in the reference manual.
+DirtyLoops.dfy(515,2): Warning: Could not find a trigger for this quantifier. Without a trigger, the quantifier may cause brittle verification. To silence this warning, add an explicit trigger using the {:trigger} attribute. For more information, see the section on quantifier instantiation rules in the reference manual.
 DirtyLoops.dfy(30,2): Error: assertion might not hold
 DirtyLoops.dfy(39,2): Error: assertion might not hold
 DirtyLoops.dfy(48,2): Error: assertion might not hold
@@ -136,6 +136,6 @@ DirtyLoops.dfy.tmp.dprint.dfy(453,4): Warning: this loop has no body (loop frame
 DirtyLoops.dfy.tmp.dprint.dfy(469,6): Warning: this loop has no body (loop frame: i, $Heap)
 DirtyLoops.dfy.tmp.dprint.dfy(485,6): Warning: this loop has no body (loop frame: i, $Heap)
 DirtyLoops.dfy.tmp.dprint.dfy(502,6): Warning: this loop has no body (loop frame: j, $Heap)
-DirtyLoops.dfy.tmp.dprint.dfy(408,2): Warning: Could not find a trigger for this quantifier. Without a trigger, the quantifier may cause brittle verification. To silence this warning, add an explicit trigger using the {:trigger} attribute. For more information, see the section quantifier instantiation rules in the reference manual.
+DirtyLoops.dfy.tmp.dprint.dfy(408,2): Warning: Could not find a trigger for this quantifier. Without a trigger, the quantifier may cause brittle verification. To silence this warning, add an explicit trigger using the {:trigger} attribute. For more information, see the section on quantifier instantiation rules in the reference manual.
 
 Dafny program verifier did not attempt verification

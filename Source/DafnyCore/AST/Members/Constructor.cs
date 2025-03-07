@@ -34,7 +34,7 @@ public class Constructor : Method {
       }
     }
   }
-  public Constructor(IOrigin origin, Name name,
+  public Constructor(IOrigin origin, Name nameNode,
     bool isGhost,
     List<TypeParameter> typeArgs,
     List<Formal> ins,
@@ -45,9 +45,10 @@ public class Constructor : Method {
     Specification<Expression> decreases,
     DividedBlockStmt body,
     Attributes attributes, IOrigin signatureEllipsis)
-    : base(origin, name, false, isGhost, typeArgs, ins, [], req, reads, mod, ens, decreases, body, attributes, signatureEllipsis) {
+    : base(origin, nameNode, attributes, false, isGhost, typeArgs, ins, req, ens, reads, decreases,
+      [], mod, body, signatureEllipsis) {
     Contract.Requires(origin != null);
-    Contract.Requires(name != null);
+    Contract.Requires(nameNode != null);
     Contract.Requires(cce.NonNullElements(typeArgs));
     Contract.Requires(cce.NonNullElements(ins));
     Contract.Requires(cce.NonNullElements(req));

@@ -270,13 +270,13 @@ module PrintTest {
 
   function Twenty(): int
   {
-    var x: int :| x == 10;
+    var x: int /*{:_delayTriggerWarning}*/ /*{:_noAutoTriggerFound}*/ :| x == 10;
     x + x
   }
 
   function TwentyOne(): int
   {
-    ghost var x: int :| x == 10 && Yes(x);
+    ghost var x: int /*{:_delayTriggerWarning}*/ {:trigger Yes(x)} :| x == 10 && Yes(x);
     assert x + x + 1 == 21;
     21
   }
