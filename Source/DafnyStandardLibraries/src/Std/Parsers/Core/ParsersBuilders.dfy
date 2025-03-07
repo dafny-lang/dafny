@@ -38,7 +38,8 @@ abstract module Std.Parsers.Builders {
     provides B.RepSepMerge
     provides B.Rep1
     provides B.Debug
-    provides End
+    provides B.End
+    provides EOS
     provides Nothing
     provides IntToString
     provides CharTest
@@ -244,6 +245,11 @@ abstract module Std.Parsers.Builders {
     {
       B(P.OneOrMore(apply))
     }
+
+    function End(): (p: B<R>)
+    {
+      this.I_e(EOS)
+    } 
   }
 
   /** `O([a, b, ...])` parses `a` on the input, and if `a` succeeds, returns its result.
@@ -262,7 +268,7 @@ abstract module Std.Parsers.Builders {
   }
 
   /** `End` succeeds only on an empty string (i.e. the end of the input). */
-  const End: B<()> := B(P.EndOfString())
+  const EOS: B<()> := B(P.EndOfString())
 
   /** `CharTest(test, name)` tests if the next char of the input satisfies the test, and if so, succeeds with the character.
       On failure, returns an error message like "expected a {name}" */

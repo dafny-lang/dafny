@@ -2,7 +2,7 @@ module ExampleParsers.AdventOfCode1 {
   import opened Std.Parsers.StringBuilders
 
   const nonDigit :=
-    Except("0123456789\r\n").ZeroOrMore()
+    Except("0123456789\r\n").Rep()
 
   const digit :=
     B(P.DigitNumber())

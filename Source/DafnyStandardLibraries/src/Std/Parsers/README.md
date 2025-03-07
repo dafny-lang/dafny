@@ -121,7 +121,7 @@ module Std.Parsers.String.Builders refines  {
 
 There are several ways parsers can backtrack in the current design.
 
-* A parser not consuming any input when returning a recoverable error can be ignored for combinators with alternatives like `Or`, `Maybe`, `If` or `ZeroOrMore` (respectively `O([...])`, `.?()`, `.If()` and `.ZeroOrMore()` if using builders)
+* A parser not consuming any input when returning a recoverable error can be ignored for combinators with alternatives like `Or`, `Maybe`, `If` or `ZeroOrMore` (respectively `O([...])`, `.?()`, `.If()` and `.Rep()` if using builders)
 * It's possible to transform a parser to not consume any input when it fails (except fatal errors) via the combinator `?(...)` (`.??()` if using builders). This means the failure will have the same input as previously given, making it possible for surrounding combinators to explore alternatives.
 * The combinators `BindResult`, a generalization of the `Bind` combinator when considering parsers as monads, lets the user decides whether to continue on the left parser's remaining input or start from the beginning.
 
@@ -135,10 +135,10 @@ Let's say you develop the following parser to parse a list of space-separated nu
 import opened Std.Parsers.StringBuilders
 
 const pDoc :=
-  WS().e_I(Nat())   // Space then nat
-  .ZeroOrMore()     // Zero or more times
-  .I_e(WS())        // Then space
-  .I_e(End())       // Then end
+  WS.e_I(Nat)   // Space then nat
+  .Rep()        // Zero or more times
+  .I_e(WS)      // Then space
+  .End()        // Then end
 
 method Main() {
   var input := " 1 2 3 4 ";
@@ -154,7 +154,7 @@ method Main() {
 }
 ```
 
-Note that `.ZeroOrMore()` is a parser combinator that repeats the parser to its left until it fails (its loop body), at which point it should emit the sequence of parsed elements.
+Note that `.Rep()` is a parser combinator that repeats the parser to its left until it fails (its loop body), at which point it should emit the sequence of parsed elements.
 You see the unexpected result:
 ```
 Error:
@@ -188,11 +188,11 @@ function de<K>(
 Now you can use the `.Debug("some name", di, de)` suffix on any parser builder to debug its input and parse result. Let's use it on our example just before parsing the end
 ```
 const pDoc := 
-  WS().e_I(Nat())
-  .ZeroOrMore()
-  .I_e(WS())
+  WS.e_I(Nat)
+  .Rep()
+  .I_e(WS)
   .Debug("End", di, de)
-  .I_e(End())
+  .End
 ```
 
 Running this parser on `" 1 2 3 4 "` displays the following trace.
@@ -220,11 +220,11 @@ Let's investigate a bit more and add another debugging parser at the last whites
 
 ```
 const pDoc := 
-  (WS().e_I(Nat()))
-  .ZeroOrMore()
-  .I_e(WS().Debug("LastWS", di, de))
+  (WS.e_I(Nat))
+  .Rep()
+  .I_e(WS.Debug("LastWS", di, de))
   .Debug("End", di, de)
-  .I_e(End())
+  .End
 ```
 Now the trace is:
 ```
@@ -239,16 +239,16 @@ Now the trace is:
 |
 ```
 
-LastWS is not even displayed! Because `.I_e` is only a concatenation operation if the parser to the left of `.I_e` succeeds, it means the parser to the left of `.I_e(WS())` did not succeed.
+LastWS is not even displayed! Because `.I_e` is only a concatenation operation if the parser to the left of `.I_e` succeeds, it means the parser to the left of `.I_e(WS)` did not succeed.
 
 We now place new debugging suffixes to debug the inner loop parser as well as the outer loop parser:
 
 ```
 const pDoc := 
-  WS().e_I(Nat()).Debug("I", di, de)
-  .ZeroOrMore().Debug("Z", di, de)
-  .I_e(WS())
-  .I_e(End())
+  WS.e_I(Nat).Debug("I", di, de)
+  .Rep().Debug("Z", di, de)
+  .I_e(WS)
+  .End
 ```
 The trace is now (abbreviated)
 ```
@@ -267,25 +267,25 @@ The trace is now (abbreviated)
 | expected a digit
 ...
 ```
-Here you can see something interesting: The parser named `I` to parse whitespace + number (`WS().e_I(Nat())`) was called on the last white space, and it complained that it was expecting a digit after the whitespace.
-`.ZeroOrMore()` did not conclude to success because the inner parser was "committed", meaning it did start to parse something from where it was called (1 > 0). If the parse result was a recoverable failure that did not consume any input (had we had `I: 0` or `R: 1`), the parser combinator `.ZeroOrMore()` would have concluded with success.
+Here you can see something interesting: The parser named `I` to parse whitespace + number (`WS.e_I(Nat)`) was called on the last white space, and it complained that it was expecting a digit after the whitespace.
+`.Rep()` did not conclude to success because the inner parser was "committed", meaning it did start to parse something from where it was called (1 > 0). If the parse result was a recoverable failure that did not consume any input (had we had `I: 0` or `R: 1`), the parser combinator `.Rep()` would have concluded with success.
 Now you might understand what's wrong. The last space is parsed by:
 
-`WS().e_I(Nat())`
+`WS.e_I(Nat)`
 
-and since `WS()` succeed, it complains that a nat is missing.
-To solve this issue, you might discover that it would be preferable to start the loop by parsing `Nat()`,
-so that if `Nat()` fails, the loop terminates with success:
+and since `WS` succeed, it complains that a nat is missing.
+To solve this issue, you might discover that it would be preferable to start the loop by parsing `Nat`,
+so that if `Nat` fails, the loop terminates with success:
 
 
 ```
 const pDoc := 
-  WS()              // White space
-  .e_I(             // Then
-    Nat().I_e(WS()) //   Nat then space
-    .ZeroOrMore()   //   Zero or more times
+  WS              // White space
+  .e_I(           // Then
+    Nat.I_e(WS)   //   Nat then space
+    .Rep()        //   Zero or more times
   )
-  .I_e(End())       // Then end
+  .End()          // Then end
 ```
 
 Finally, this works:
@@ -294,20 +294,20 @@ Success
 [1, 2, 3, 4]
 ```
 
-Another way would be to indicate that if `WS().e_I(Nat())` fails, then the input should not be consumed. We can achieve this with the `??()` combinator. In case of failure, it ensures that the failure considers that it consumed nothing.
+Another way would be to indicate that if `WS.e_I(Nat)` fails, then the input should not be consumed. We can achieve this with the `??()` combinator. In case of failure, it ensures that the failure considers that it consumed nothing.
 
 ```
 const pDoc := 
-  WS()
-  .e_I(Nat())
+  WS
+  .e_I(Nat)
   .??()   / If fails, don't consume
-  .ZeroOrMore()
-  .I_e(WS())
-  .I_e(End())
+  .Rep()
+  .I_e(WS)
+  .End()
 ```
 
 This also works. However, you should avoid that solution in general. Indeed:
 - It is likely less efficient since a failure is detected indirectly
-- If you replaced `Nat()` with anything else, you might skip the interesting parse errors.
+- If you replaced `Nat` with anything else, you might skip the interesting parse errors.
 
 So in general, you should prefer the first solution.

@@ -64,8 +64,8 @@ module ExampleParsers.Tutorial {
   }
 }
 
-module Std.Parsers.Tests.Tutorial.ParsersBuilders {
-  import opened StringBuilders
+module ExampleParsers.TestTutorialParsersBuilders {
+  import opened Std.Parsers.StringBuilders
 
   method {:test} TestSplit1() {
     var nonComma: B<string> :=
