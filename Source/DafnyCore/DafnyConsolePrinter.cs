@@ -81,17 +81,36 @@ public class DafnyConsolePrinter : ConsolePrinter {
   }
 
   public override void ReportBplError(Boogie.IToken tok, string message, bool error, TextWriter tw, string category = null) {
+
     if (Options.Verbosity == CoreOptions.VerbosityLevel.Silent) {
       return;
     }
 
-    var consoleReporter = new ConsoleErrorReporter(options);
-    var dafnyToken = BoogieGenerator.ToDafnyToken(options.Get(Snippets.ShowSnippets), tok);
-    if (message.StartsWith("Error: ")) {
-      message = message.Substring("Error: ".Length);
+    if (category != null) {
+      message = $"{category}: {message}";
     }
-    consoleReporter.MessageCore(MessageSource.Verifier, error ? ErrorLevel.Error : ErrorLevel.Warning, null, dafnyToken,
-      message);
+
+    var dafnyToken = BoogieGenerator.ToDafnyToken(options.Get(Snippets.ShowSnippets), tok);
+    message = $"{dafnyToken.TokenToString(Options)}: {message}";
+
+    if (error) {
+      ErrorWriteLine(tw, message);
+    } else {
+      tw.WriteLine(message);
+    }
+
+
+    if (Options.Get(Snippets.ShowSnippets)) {
+      if (tok is IOrigin dafnyTok) {
+        Snippets.WriteSourceCodeSnippet(Options, dafnyTok, tw);
+      } else {
+        ErrorWriteLine(tw, "No Dafny location information, so snippet can't be generated.");
+      }
+    }
+
+    if (tok is NestedOrigin nestedToken) {
+      ReportBplError(nestedToken.Inner, "Related location", false, tw);
+    }
   }
 
   public override void ReportEndVerifyImplementation(Implementation implementation, ImplementationRunResult result) {
