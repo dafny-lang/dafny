@@ -3,39 +3,92 @@ module Std.Parsers.StringBuilders refines Builders {
   export StringBuilders extends Builders
     provides S, Int, Nat, WS, Except, Digit, DigitNumber, DebugSummaryInput, PrintDebugSummaryOutput, FailureToString, Apply
 
+  /** `S(PREFIX)` returns success on its input if its starts with `PREFIX`,  
+      On success, `.value` contains the extracted string. You can ignore it by chaining it like `S(PREFIX).e_I(...)`  
+      On failure, returns a recoverable error that did not consume the input.*/
   function S(s: string): B<string> {
     B(P.String(s))
   }
-  function Int(): B<int> {
-    B(P.Int())
-  }
-  function Nat(): B<nat> {
-    B(P.Nat())
-  }
-  function Digit(): B<char> {
-    B(P.Digit())
-  }
-  function DigitNumber(): B<nat> {
-    B(P.DigitNumber())
-  }
-  function WS(): B<string> {
-    B(P.WS())
-  }
+
+  /** `Int` parses any integer.  
+      On success, `.value` contains the extracted integer. `.remaining` contains the suffix.  
+      On failure, returns a recoverable error that did not consume the input.*/
+  const Int: B<int> := B(P.Int())
+
+  /** `Nat` parses any nonnegative integer.  
+      On success, `.value` contains the extracted natural integer.  
+      On failure, returns a recoverable error that did not consume the input.*/
+  const Nat: B<nat> := B(P.Nat())
+
+  /** `Digit` parses any digit.
+      On success, `.value` contains the extracted digit as a `char`  
+      See `DigitNumber` to obtain a digit as a nat.  
+      On failure, returns a recoverable error that did not consume the input.*/
+  const Digit: B<char> := B(P.Digit())
+
+  /** `DigitNumber` parses any digit.  
+      On success, `.value` contains the digit as a `nat`.  
+      See `Digit` to obtain a digit as a char.  
+      On failure, returns a recoverable error that did not consume the input.*/
+  const DigitNumber: B<nat> := B(P.DigitNumber())
+
+  /** `WS` parses any number of white space characters in "\r\n\t ", and return it as a string.  
+      On success, `.value` contains the extracted whitespace. You can ignore it by chaining it like `WS.e_I(...)`  
+      Never fails since it can also return an empty string.*/
+  const WS: B<string> := B(P.WS())
+
+  /** `Except(CHARACTERS)` parses any number of characters not in the given string.  
+      On success, `.value` contains the parsed characters as a `string`.  
+      Never fails since it can also return an empty string. */
   function Except(s: string): B<string> {
-    B(P.ZeroOrMore(P.CharTest((c: char) => c !in s, s)))
+    CharTest((c: char) => c !in s, "Not '" + s + "'").Rep()
   }
+
+  /** `DebugSummaryInput(name, input)` returns `> {name}: {|input|} "{escape(input[0])}"`
+      suitable for debugging what comes into a parser. */
   function DebugSummaryInput(name: string, input: string): string {
     P.DebugSummaryInput(name, input)
   }
-  method {:print} PrintDebugSummaryOutput<R>(name: string, input: string, result: P.ParseResult<R>) {
+
+  /** PrintDebugSummaryOutput(name, input, result) prints
+
+          < {name}: {|input|} "{escape(input[0])}"
+ 
+      if success, then prints
+
+          | (success)
+
+      if failure, then prints
+
+          | R: {remaining}
+      
+      if failure and the remaining is smaller than the input, prints
+
+          | Was committed
+      
+      if failure, then prints
+
+          | ... nice failure message that would be reported.
+
+      This output is suitable suitable for debugging what comes off a parser. */
+  method {:print} PrintDebugSummaryOutput<R>(name: string, input: string, result: ParseResult<R>) {
     P.PrintDebugSummaryOutput(name, input, result);
   }
-  function FailureToString<R>(input: string, result: P.ParseResult<R>): (s: string)
-    requires result.Failure?
+
+  /** Converts a failure message over the given input into a nice message like:
+
+          .... the line that failed ....
+                  ^
+          Error: the error message on what was expected.
+   */
+  function FailureToString<R>(input: string, result: ParseResult<R>): (s: string)
+    requires result.IsFailure()
   {
     P.FailureToString(input, result)
   }
-  function Apply<T>(parser: B<T>, input: string): P.ParseResult<T> {
+
+  /** Applies a parser to a string and returns the ParseResult */
+  function Apply<T>(parser: B<T>, input: string): ParseResult<T> {
     parser.apply(P.A.Input(input, 0, |input|))
   }
 }

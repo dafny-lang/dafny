@@ -1,6 +1,6 @@
 abstract module Std.Parsers.AbstractInput {
   // Can be either a sequence, a sequence and pointers to this sequence, or an array and pointers to the array
-  type Input
+  type Input(!new)
   type C(!new, ==)
 
   ghost function View(self: Input): (r: seq<C>)
@@ -16,7 +16,8 @@ abstract module Std.Parsers.AbstractInput {
     requires 0 <= start <= end <= Length(self)
     ensures View(self)[start..end] == View(Slice(self, start, end))
   predicate Equals(self: Input, other: Input)
-    ensures Equals(self, other) <==> View(self) == View(other)
+    ensures self == other ==> Equals(self, other)
+    ensures Equals(self, other) ==> View(self) == View(other)
 }
 
 abstract module Std.Parsers.Core
@@ -30,9 +31,9 @@ abstract module Std.Parsers.Core
       C, // The character type
       Input, // The sequence type
       Wrappers, // Imported module
-      Succeed,
+      SucceedWith,
       Epsilon,
-      Fail,
+      FailWith,
       EndOfString,
       Bind,
       BindSucceeds,
@@ -126,24 +127,24 @@ abstract module Std.Parsers.Core
 
   datatype ParseResult<+R> =
       // ParseResult is the type of what a parser taking a seq<C> would return
-    | Failure(level: FailureLevel, data: FailureData)
+    | ParseFailure(level: FailureLevel, data: FailureData)
       // Returned if a parser failed.
-    | Success(result: R, remaining: Input)
+    | ParseSuccess(result: R, remaining: Input)
   // Returned if a parser succeeds, with the increment in the position
   {
     function Remaining(): Input
       // If Remaining() is the same as the input, the parser is "uncommitted",
       // which means combinators like Or and ZeroOrMore can try alternatives
     {
-      if Success? then remaining else data.remaining
+      if ParseSuccess? then remaining else data.remaining
     }
 
     predicate IsFailure() {
-      Failure?
+      ParseFailure?
     }
 
     predicate IsFatalFailure() {
-      Failure? && level == Fatal
+      ParseFailure? && level == Fatal
     }
 
     predicate IsFatal()
@@ -155,7 +156,7 @@ abstract module Std.Parsers.Core
     function PropagateFailure<U>(): ParseResult<U>
       requires IsFailure()
     {
-      Failure(level, data)
+      ParseFailure(level, data)
     }
 
     function Extract(): (R, Input)
@@ -168,10 +169,10 @@ abstract module Std.Parsers.Core
       // Transforms the result of a successful parse result
     {
       match this
-      case Success(result, remaining) =>
-        Success(f(result), remaining)
-      case Failure(level, data) =>
-        Failure(level, data)
+      case ParseSuccess(result, remaining) =>
+        ParseSuccess(f(result), remaining)
+      case ParseFailure(level, data) =>
+        ParseFailure(level, data)
     }
 
     function MapRecoverableError(
@@ -181,8 +182,8 @@ abstract module Std.Parsers.Core
       // let the function process it
     {
       match this
-      case Failure(Recoverable, data) =>
-        Failure(Recoverable, f(data))
+      case ParseFailure(Recoverable, data) =>
+        ParseFailure(Recoverable, f(data))
       case _ => this
     }
 
@@ -192,7 +193,7 @@ abstract module Std.Parsers.Core
       // - Is recoverable
       // - Did not consume any input (not-committed)
     {
-      Failure? && level == Recoverable && A.Equals(input, Remaining())
+      ParseFailure? && level == Recoverable && A.Equals(input, Remaining())
     }
   }
 
@@ -220,22 +221,22 @@ abstract module Std.Parsers.Core
   // All these combinators provide Valid() parsers if their inputs are Valid() too
   // ########################################
 
-  opaque function Succeed<R>(result: R): (p: Parser<R>)
+  opaque function SucceedWith<R>(result: R): (p: Parser<R>)
     // A parser that does not consume any input and returns the given value
   {
-    (input: Input) => Success(result, input)
+    (input: Input) => ParseSuccess(result, input)
   }
 
   opaque function Epsilon(): (p: Parser<()>)
     // A parser that always succeeds, consumes nothing and returns ()
   {
-    Succeed(())
+    SucceedWith(())
   }
 
-  opaque function Fail<R>(message: string, level: FailureLevel := Recoverable): Parser<R>
+  opaque function FailWith<R>(message: string, level: FailureLevel := Recoverable): Parser<R>
     // A parser that does not consume any input and returns the given failure
   {
-    (input: Input) => Failure(level, FailureData(message, input, Option.None))
+    (input: Input) => ParseFailure(level, FailureData(message, input, Option.None))
   }
 
   opaque function Result<R>(result: ParseResult<R>): Parser<R>
@@ -248,8 +249,8 @@ abstract module Std.Parsers.Core
     // A parser that fails if the string has not been entirely consumed
   {
     (input: Input) =>
-      if A.Length(input) == 0 then Success((), input)
-      else Failure(Recoverable, FailureData("expected end of string", input, Option.None))
+      if A.Length(input) == 0 then ParseSuccess((), input)
+      else ParseFailure(Recoverable, FailureData("expected end of string", input, Option.None))
   }
 
   opaque function Bind<L, R>(
@@ -305,7 +306,7 @@ abstract module Std.Parsers.Core
     (input: Input) =>
       var (result, remaining) :- underlying(input);
       var u := mappingFunc(result);
-      Success(u, remaining)
+      ParseSuccess(u, remaining)
   }
 
   opaque function Not<R>(underlying: Parser<R>): Parser<()>
@@ -316,8 +317,8 @@ abstract module Std.Parsers.Core
       var l := underlying(input);
       if l.IsFailure() then
         if l.IsFatal() then l.PropagateFailure()
-        else Success((), input)
-      else Failure(Recoverable, FailureData("not failed", input, Option.None))
+        else ParseSuccess((), input)
+      else ParseFailure(Recoverable, FailureData("not failed", input, Option.None))
   }
 
   opaque function And<L, R>(
@@ -330,7 +331,7 @@ abstract module Std.Parsers.Core
     (input: Input) =>
       var (l, remainingLeft) :- left(input);
       var (r, remainingRight) :- right(input);
-      Success((l, r), remainingRight)
+      ParseSuccess((l, r), remainingRight)
   }
 
   opaque function Or<R>(
@@ -357,7 +358,7 @@ abstract module Std.Parsers.Core
     alternatives: seq<Parser<R>>
   ): Parser<R>
   {
-    if |alternatives| == 0 then Fail("no alternatives") else
+    if |alternatives| == 0 then FailWith("no alternatives") else
     if |alternatives| == 1 then alternatives[0]
     else
       Or(alternatives[0], OrSeq(alternatives[1..]))
@@ -381,12 +382,11 @@ abstract module Std.Parsers.Core
         p.(remaining := input)
   }
 
+  /** `?(a)` evaluates `a` on the input, and then
+      - If `a` succeeds, returns the result unchanged.
+      - If `a` fails, and the failure is not fatal, propagate the same failure but without consuming input.
+      `?(a)` is useful when there are other alternatives to parse and a parsed partially and we are ok with trying something else. */
   opaque function ?<R>(underlying: Parser<R>): (p: Parser<R>)
-    // Like Lookahead, except that if the parser succeeds,
-    //   it keeps the committedness of the input.
-    // Identical to Lookahead, if the underlying parser fails,
-    // - If the failure is fatal, returns it as-it
-    // - If the failure is recoverable, returns it without comitting the input
   {
     (input: Input) =>
       var p := underlying(input);
@@ -409,16 +409,32 @@ abstract module Std.Parsers.Core
     Bind(Lookahead(condition), (l: L) => succeed)
   }
 
+  lemma AboutMaybe(input: Input)
+    requires A.Length(input) > 0
+  {
+    reveal FailWith();
+    var u := FailWith<char>("Error")(input);
+    reveal Maybe();
+    assert Maybe<char>(FailWith("Error"))(input)
+        == ParseSuccess(Wrappers.None, input);
+    var committedFailure := ParseFailure(Recoverable, FailureData("", A.Drop(input, 1), Option.None));
+    reveal Result();
+    assert Maybe<char>(Result(committedFailure))(input)
+        == committedFailure.PropagateFailure();
+  }
+
+  /** `Maybe(a)` evaluates `a` on the input, and then
+  - If `a` succeeds, then wraps its result with `Some(...)`
+  - If `a` fails, and the failure is not fatal and did not consume input, succeeds with `None`.
+    If the error is fatal or did consume input, fails with the same failure.*/
   opaque function Maybe<R>(underlying: Parser<R>): Parser<Option<R>>
-    // Transforms a recoverable failure into None,
-    // and wraps a success into Some(...)
   {
     (input: Input) =>
       var u := underlying(input);
-      if u.IsFatalFailure() then u.PropagateFailure()
+      if u.IsFatalFailure() || (u.IsFailure() && !u.NeedsAlternative(input)) then u.PropagateFailure()        
       else
-      if u.Success? then u.Map(result => Option.Some(result))
-      else Success(Option.None, input)
+      if u.ParseSuccess? then u.Map(result => Option.Some(result))
+      else ParseSuccess(Option.None, input)
   }
 
   opaque function ConcatMap<L, R, T>(
@@ -433,7 +449,7 @@ abstract module Std.Parsers.Core
     =>
       var (l, remaining) :- left(input);
       var (r, remaining2) :- right(remaining);
-      Success(mapper(l, r), remaining2)
+      ParseSuccess(mapper(l, r), remaining2)
   }
 
   opaque function Concat<L, R>(
@@ -446,7 +462,7 @@ abstract module Std.Parsers.Core
     (input: Input) =>
       var (l, remaining) :- left(input);
       var (r, remaining2) :- right(remaining);
-      Success((l, r), remaining2)
+      ParseSuccess((l, r), remaining2)
   }
 
   opaque function ConcatR<L, R>(
@@ -557,7 +573,7 @@ abstract module Std.Parsers.Core
     Bind(
       Maybe(underlying),
       (result: Option<A>) =>
-        if result.None? then Succeed<seq<A>>([]) else
+        if result.None? then SucceedWith<seq<A>>([]) else
         Map(
           Rep(
             ConcatR(separator, underlying),
@@ -574,7 +590,7 @@ abstract module Std.Parsers.Core
     // Returns a sequence of results
   {
     Bind(Maybe(underlying), (result: Option<A>) =>
-           if result.None? then Fail<A>("No first element in RepMerge", Recoverable) else
+           if result.None? then FailWith<A>("No first element in RepMerge", Recoverable) else
            Rep(underlying, (acc: A, a: A) => merger(acc, a), result.value))
   }
 
@@ -587,7 +603,7 @@ abstract module Std.Parsers.Core
     // Returns a sequence of results
   {
     Bind(Maybe(underlying), (result: Option<A>) =>
-           if result.None? then Fail<A>("No first element in RepSepMerge", Recoverable) else
+           if result.None? then FailWith<A>("No first element in RepSepMerge", Recoverable) else
            Rep(ConcatR(separator, underlying), (acc: A, a: A) => merger(acc, a), result.value))
   }
 
@@ -602,12 +618,12 @@ abstract module Std.Parsers.Core
     // and returns the accumulated results
   {
     match underlying(input)
-    case Success(result, remaining) =>
-      if A.Length(remaining) >= A.Length(input) then Success(acc, input) else
+    case ParseSuccess(result, remaining) =>
+      if A.Length(remaining) >= A.Length(input) then ParseSuccess(acc, input) else
       Rep_(underlying, combine, combine(acc, result), remaining)
     case failure =>
       if failure.NeedsAlternative(input) then
-        Success(acc, input)
+        ParseSuccess(acc, input)
       else
         failure.PropagateFailure()
   }
@@ -635,9 +651,9 @@ abstract module Std.Parsers.Core
         if A.Length(remaining) < A.Length(input) then
           Recursive_(underlying, remaining)
         else if A.Length(remaining) == A.Length(input) then
-          Failure(Recoverable, FailureData("no progress", remaining, Option.None))
+          ParseFailure(Recoverable, FailureData("no progress in recursive parser", remaining, Option.None))
         else
-          Failure(Fatal, FailureData("fixpoint called with an increasing remaining sequence", remaining, Option.None));
+          ParseFailure(Fatal, FailureData("fixpoint called with an increasing remaining sequence", remaining, Option.None));
     underlying(callback)(input)
   }
 
@@ -666,24 +682,24 @@ abstract module Std.Parsers.Core
     // Implementation for RecursiveMap()
     decreases A.Length(input), if fun in underlying then underlying[fun].order else 0
   {
-    if fun !in underlying then Failure(Fatal, FailureData("parser '"+fun+"' not found", input, Option.None)) else
+    if fun !in underlying then ParseFailure(Fatal, FailureData("parser '"+fun+"' not found", input, Option.None)) else
     var RecursiveDef(orderFun, definitionFun) := underlying[fun];
     var callback: ParserSelector<R>
       :=
       (fun': string) =>
         (var p : Parser<R> :=
            if fun' !in underlying.Keys then
-             Fail(fun' + " not defined", Fatal)
+             FailWith(fun' + " not defined", Fatal)
            else
              var RecursiveDef(orderFun', definitionFun') := underlying[fun'];
              (remaining: Input) =>
                if A.Length(remaining) < A.Length(input) || (A.Length(remaining) == A.Length(input) && orderFun' < orderFun) then
                  RecursiveMap_(underlying, fun', remaining)
                else if A.Length(remaining) == A.Length(input) then
-                 Failure(Recoverable, FailureData("non-progressing recursive call requires that order of '"
+                 ParseFailure(Recoverable, FailureData("non-progressing recursive call requires that order of '"
                                                   +fun'+"' ("+IntToString(orderFun')+") is lower than the order of '"+fun+"' ("+IntToString(orderFun)+")", remaining, Option.None))
                else
-                 Failure(Fatal, FailureData("parser did not return a suffix of the input", remaining, Option.None))
+                 ParseFailure(Fatal, FailureData("parser did not return a suffix of the input", remaining, Option.None))
            ; p);
     definitionFun(callback)(input)
   }
@@ -693,8 +709,8 @@ abstract module Std.Parsers.Core
     // Returns a recoverable error based on the name otherwise
   {
     (input: Input) =>
-      if 0 < A.Length(input) && test(A.CharAt(input, 0)) then Success(A.CharAt(input, 0), A.Drop(input, 1))
-      else Failure(Recoverable,
+      if 0 < A.Length(input) && test(A.CharAt(input, 0)) then ParseSuccess(A.CharAt(input, 0), A.Drop(input, 1))
+      else ParseFailure(Recoverable,
                    FailureData("expected a "+name, input, Option.None))
   }
 

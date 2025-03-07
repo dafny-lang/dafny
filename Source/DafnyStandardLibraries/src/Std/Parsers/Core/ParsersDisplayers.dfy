@@ -5,14 +5,15 @@ abstract module Std.Parsers.Displayers {
 
   type Parser<R> = Parsers.Parser<R>
   type C = Parsers.C
+  type Input(!new) = Parsers.Input
 
-  type Displayer<-R> = (R, seq<C>) -> seq<C>
+  type Displayer<-R> = (R, Input) -> Input
 
   function Concat<A, B>(
     left: Displayer<A>,
     right: Displayer<B>
   ): Displayer<(A, B)> {
-    (ab: (A, B), remaining: seq<C>) =>
+    (ab: (A, B), remaining: Input) =>
       var remaining2 := right(ab.1, remaining);
       var remaining3 := left(ab.0, remaining2);
       remaining3
@@ -22,8 +23,8 @@ abstract module Std.Parsers.Displayers {
     // The parser and the displayer are dual to each other
     // means that if we parse after printing, we get the same result
   {
-    forall a: A, remaining: seq<C> ::
-      parse(display(a, remaining)) == Parsers.Success(a, remaining)
+    forall a: A, remaining: Input ::
+      parse(display(a, remaining)) == Parsers.ParseSuccess(a, remaining)
   }
 
   lemma {:rlimit 1000} ConcatRoundtrip<A(!new), B(!new)>(
@@ -36,15 +37,15 @@ abstract module Std.Parsers.Displayers {
     reveal Parsers.Concat();
     var p := Parsers.Concat(pA, pB);
     var d := Concat(ppA, ppB);
-    forall ab: (A, B), remaining: seq<C> ensures
-        p(d(ab, remaining)) == Parsers.Success(ab, remaining)
+    forall ab: (A, B), remaining: Input ensures
+        p(d(ab, remaining)) == Parsers.ParseSuccess(ab, remaining)
     {
       var remaining2 := ppB(ab.1, remaining);
       var remaining3 := ppA(ab.0, remaining2);
       calc {
         p(d(ab, remaining));
         p(remaining3);
-        Parsers.Success(ab, remaining);
+        Parsers.ParseSuccess(ab, remaining);
       }
     }
   }

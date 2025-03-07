@@ -3,12 +3,14 @@ module Std.Parsers.InputString refines AbstractInput {
     ghost predicate Valid() {
       0 <= start <= end <= |data|
     }
-    function ToString(): string {
+    function ToString(): string
+      requires Valid()
+    {
       data[start..end]
     }
   }
 
-  type Input = x: Input_ | x.Valid()
+  type Input = x: Input_ | x.Valid() witness *
   type C = char
 
   function View(self: Input): (r: seq<C>)
@@ -20,10 +22,43 @@ module Std.Parsers.InputString refines AbstractInput {
     ensures CharAt(self, i) == View(self)[i]  { self.data[self.start + i] }
   function Drop(self: Input, start: int): Input
     ensures View(self)[start..] == View(Drop(self, start)) { Input(self.data, self.start + start, self.end) }
-  function Slice(self: Input, start: int, end: int): Input
-    ensures View(self)[start..end] == View(Slice(self, start, end)) { Input(self.data, self.start + start, self.start + end) }
+  @IsolateAssertions function Slice(self: Input, start: int, end: int): Input
+  // ...................... self.data.............
+  //         ^ self.start       self.end ^
+  //         -----start^
+  //         ---------------end^
+    ensures 
+      View(Slice(self, start, end)) == View(self)[start..end] 
+  {
+    PrefixRestrict(self.data, self.start, self.end, start, end);
+    Input(self.data, self.start + start, self.start + end)
+  }
+  lemma PrefixRestrict(s: seq<C>, a: int, b: int, start: int, end: int)
+    requires 0 <= a <= b <= |s|
+    requires 0 <= start <= end
+    requires end <= b - a
+    decreases |s| - b
+    ensures s[a..][start..end] == s[a..b][start..end]
+  {
+    if b == |s| {
+      assert s[a..b] == s[a..];
+    } else {
+      var before := s[a .. b][start .. end];
+      var after := s[a .. b + 1][start .. end];
+      calc {
+        s[a .. b][start .. end];
+        {
+          assert |before| == |after|;
+          assert forall i | 0 <= i < |before| :: before[i] == after[i];
+        }
+        s[a .. b + 1][start .. end];        
+      }
+      PrefixRestrict(s, a, b+1, start, end);
+    }
+  }
+    
   predicate Equals(self: Input, other: Input)
-    ensures Equals(self, other) <==> View(self) == View(other)
+    ensures Equals(self, other) ==> View(self) == View(other)
   {
     self == other
   }
@@ -112,8 +147,8 @@ module Std.Parsers.StringParsers refines Core {
   {
     (input: Input) =>
       if |expected| <= A.Length(input) && A.Slice(input, 0, |expected|).ToString() == expected then
-        Success(expected, A.Drop(input, |expected|))
-      else Failure(Recoverable, FailureData("expected '"+expected+"'", input, Option.None))
+        ParseSuccess(expected, A.Drop(input, |expected|))
+      else ParseFailure(Recoverable, FailureData("expected '"+expected+"'", input, Option.None))
   }
 
   // ########################
@@ -131,7 +166,7 @@ module Std.Parsers.StringParsers refines Core {
   datatype CodeLocation = CodeLocation(lineNumber: nat, colNumber: nat, lineStr: string)
   datatype ExtractLineMutableState = ExtractLineMutableState(input: string, pos: nat, startLinePos: nat, i: nat, lineNumber: nat, colNumber: nat)
 
-  ghost function ExtractLineColSpecAux(vars: ExtractLineMutableState): (res: ExtractLineMutableState)
+  opaque ghost function ExtractLineColSpecAux(vars: ExtractLineMutableState): (res: ExtractLineMutableState)
     requires 0 <= vars.startLinePos <= vars.i <= |vars.input|
     decreases |vars.input| - vars.i
     ensures 0 <= res.startLinePos <= res.i <= |res.input|
@@ -171,6 +206,7 @@ module Std.Parsers.StringParsers refines Core {
   // Returns the line number, the extracted line, and the column number
   // corresponding to a given position in the given input
   // If you ask, the method was created first and then lifted up to a function
+  @IsolateAssertions
   opaque function ExtractLineCol(input: string, pos: nat):  (output: CodeLocation)
   {
     var vars := ExtractLineColSpecAux(ExtractLineMutableState(input, pos, 0, 0, 1, 0));
@@ -182,15 +218,24 @@ module Std.Parsers.StringParsers refines Core {
     var startLinePos: nat := 0;
     colNumber := 0;
     var i := 0;
-    reveal ExtractLineCol();
-    assert ExtractLineCol(input, pos) == ToCodeLocation(ExtractLineColSpecAux2(ExtractLineColSpecAux(ExtractLineMutableState(input, pos, startLinePos, i, lineNumber, colNumber))));
+    ghost var initMutableState := ExtractLineMutableState(input, pos, startLinePos, i, lineNumber, colNumber);
+    assert ExtractLineCol(input, pos) ==
+      ToCodeLocation(ExtractLineColSpecAux2(ExtractLineColSpecAux(initMutableState)))
+    by { reveal ExtractLineCol(); }
+    assert !(i < |input| && i != pos) ==>
+        ExtractLineColSpecAux(ExtractLineMutableState(input, pos, startLinePos, i, lineNumber, colNumber))
+        == ExtractLineMutableState(input, pos, startLinePos, i, lineNumber, colNumber) by {
+      reveal ExtractLineColSpecAux();
+    }
     while i < |input| && i != pos
       invariant 0 <= startLinePos <= i <= |input|
-      invariant 
-        ToCodeLocation(ExtractLineColSpecAux2(ExtractLineColSpecAux(
-          ExtractLineMutableState(input, pos, startLinePos, i, lineNumber, colNumber))))
-        == ExtractLineCol(input, pos)
+      invariant ExtractLineColSpecAux(ExtractLineMutableState(input, pos, startLinePos, i, lineNumber, colNumber))
+            == ExtractLineColSpecAux(initMutableState)
+      invariant !(i < |input| && i != pos) ==>
+        ExtractLineColSpecAux(ExtractLineMutableState(input, pos, startLinePos, i, lineNumber, colNumber))
+        == ExtractLineMutableState(input, pos, startLinePos, i, lineNumber, colNumber)
     {
+      reveal ExtractLineColSpecAux();
       colNumber := colNumber + 1;
       if input[i] == '\r' && i + 1 < |input| && input[i+1] == '\n' {
         lineNumber := lineNumber + 1;
@@ -204,21 +249,27 @@ module Std.Parsers.StringParsers refines Core {
       }
       i := i + 1;
     }
-    assert ExtractLineCol(input, pos) == ToCodeLocation(ExtractLineColSpecAux2(ExtractLineMutableState(input, pos, startLinePos, i, lineNumber, colNumber)));
-    reveal ExtractLineColSpecAux2();
+    ghost var tmpMutableState := ExtractLineMutableState(input, pos, startLinePos, i, lineNumber, colNumber);
+    assert ExtractLineCol(input, pos) ==
+      ToCodeLocation(ExtractLineColSpecAux2(tmpMutableState))
+    by { reveal ExtractLineCol(); }
+    assert !(i < |input| && input[i] !in "\r\n") ==>
+        ExtractLineColSpecAux2(ExtractLineMutableState(input, pos, startLinePos, i, lineNumber, colNumber))
+        == ExtractLineMutableState(input, pos, startLinePos, i, lineNumber, colNumber) by {
+      reveal ExtractLineColSpecAux2();
+    }
     while i < |input| && input[i] !in "\r\n"
       invariant 0 <= startLinePos <= i <= |input|
-      invariant 
-        ToCodeLocation(ExtractLineColSpecAux2(
-          ExtractLineMutableState(input, pos, startLinePos, i, lineNumber, colNumber)))
-        == ExtractLineCol(input, pos)
+      invariant ExtractLineColSpecAux2(tmpMutableState)
+             == ExtractLineColSpecAux2(ExtractLineMutableState(input, pos, startLinePos, i, lineNumber, colNumber))
+      invariant !(i < |input| && input[i] !in "\r\n") ==>
+        ExtractLineColSpecAux2(ExtractLineMutableState(input, pos, startLinePos, i, lineNumber, colNumber))
+        == ExtractLineMutableState(input, pos, startLinePos, i, lineNumber, colNumber)
     {
-      assert 
-        ToCodeLocation(ExtractLineColSpecAux2(
-          ExtractLineMutableState(input, pos, startLinePos, i + 1, lineNumber, colNumber)))
-        == ExtractLineCol(input, pos);
+      reveal ExtractLineColSpecAux2();
       i := i + 1;
     }
+    reveal ExtractLineCol();
     assert ExtractLineCol(input, pos) == ToCodeLocation(ExtractLineMutableState(input, pos, startLinePos, i, lineNumber, colNumber));
     lineStr := input[startLinePos..i];
     output := CodeLocation(lineNumber, colNumber, lineStr);
@@ -252,9 +303,30 @@ module Std.Parsers.StringParsers refines Core {
     (if input[0] == '\n' then input[..1] + indent else input[..1]) + NewIndent(input[1..], indent)
   }
 
+  /** PrintDebugSummaryOutput(name, input, result) prints
+
+          < {name}: {|input|} "{escape(input[0])}"
+ 
+      if success, then prints
+
+          | (success)
+
+      if failure, then prints
+
+          | R: {remaining}
+      
+      if failure and the remaining is smaller than the input, prints
+
+          | Was committed
+      
+      if failure, then prints
+
+          | ... nice failure message that would be reported.
+
+      This output is suitable suitable for debugging what comes off a parser. */
   method {:print} PrintDebugSummaryOutput<R>(name: string, input: string, result: ParseResult<R>) {
     print "< ", DebugNameSummary(name, input);
-    if result.Failure? {
+    if result.ParseFailure? {
       print "| R: ", DebugSummary(A.View(result.Remaining()));
       if A.Length(result.Remaining()) < |input| {
         print "| Was committed\n";
@@ -268,7 +340,7 @@ module Std.Parsers.StringParsers refines Core {
   opaque function FailureToString<R>(input: string, result: ParseResult<R>, printPos: int := -1): (failure: string)
     // Util to print the line, the column, and all the error messages
     // associated to a given parse failure
-    requires result.Failure?
+    requires result.ParseFailure?
     decreases result.data
   {
     var failure := "";
@@ -291,7 +363,7 @@ module Std.Parsers.StringParsers refines Core {
     var failure := failure + result.data.message;
     if result.data.next.Some? then
       var failure := failure + ", or\n";
-      var subFailure := FailureToString<R>(input, Failure(result.level, result.data.next.value), pos);
+      var subFailure := FailureToString<R>(input, ParseFailure(result.level, result.data.next.value), pos);
       var failure := failure + subFailure;
       failure
     else
