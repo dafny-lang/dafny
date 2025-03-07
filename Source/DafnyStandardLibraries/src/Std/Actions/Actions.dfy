@@ -133,6 +133,7 @@ module Std.Actions {
       decreases height
 
     twostate predicate ValidOutput(history: seq<(I, O)>, nextInput: I, new nextOutput: O)
+      requires ValidHistory(history)
       decreases height
       ensures ValidOutput(history, nextInput, nextOutput) ==> ValidHistory(history + [(nextInput, nextOutput)])
 

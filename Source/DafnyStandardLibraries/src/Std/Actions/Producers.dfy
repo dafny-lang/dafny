@@ -59,6 +59,7 @@ module Std.Producers {
       true
     }
     twostate predicate ValidOutput(history: seq<((), T)>, nextInput: (), new nextOutput: T)
+      requires ValidHistory(history)
       decreases height
       ensures ValidOutput(history, nextInput, nextOutput) ==> ValidHistory(history + [(nextInput, nextOutput)])
     {
@@ -102,7 +103,7 @@ module Std.Producers {
       decreases height
     {
       var outputs := OutputsOf(history);
-      NoneTerminated(outputs) && ValidProduced(ProducedOf(outputs))
+      Partitioned(outputs, IsSome) && ValidOutputs(outputs)
     }
 
     ghost function Produced(): seq<T> 
@@ -112,7 +113,8 @@ module Std.Producers {
       ProducedOf(OutputsOf(history))
     }
 
-    ghost predicate ValidProduced(produced: seq<T>)
+    ghost predicate ValidOutputs(outputs: seq<Option<T>>)
+      requires Partitioned(outputs, IsSome)
       decreases height
 
     lemma AnyInputIsValid(history: seq<((), Option<T>)>, next: ())
@@ -120,9 +122,9 @@ module Std.Producers {
       ensures Action().ValidInput(history, next)
     {}
 
-    lemma ProducesLessThanLimit(produced: seq<(T)>) 
-      requires ValidProduced(produced)
-      ensures |produced| <= limit
+    lemma ProducesLessThanLimit(history: seq<((), Option<T>)>) 
+      requires ValidHistory(history)
+      ensures |ProducedOf(OutputsOf(history))| <= limit
 
     // For better readability
     method Next() returns (r: Option<T>)
@@ -182,7 +184,7 @@ module Std.Producers {
       requires Valid()
       reads Repr
     {
-      ProducesLessThanLimit(Produced());
+      ProducesLessThanLimit(history);
       limit - |Produced()|
     }
 
@@ -197,8 +199,8 @@ module Std.Producers {
     {
       var before := old(Action().Outputs());
       var after := Action().Outputs();
-      assert NoneTerminated(before);
-      assert NoneTerminated(after);
+      assert Partitioned(before, IsSome);
+      assert Partitioned(after, IsSome);
       ProducedComposition(before, [nextProduced]);
     }
 
@@ -214,8 +216,8 @@ module Std.Producers {
     {
       UpdateHistory((), None);
 
-      NoneTerminatedCompositionRightAllNones(old(Outputs()), [None]);
-      assert NoneTerminated(old(Outputs()));
+      PartitionedCompositionRight(old(Outputs()), [None], IsSome);
+      assert Partitioned(old(Outputs()), IsSome);
       ProducedComposition(old(Outputs()), [None]);
       assert OutputsOf(history) == old(OutputsOf(history)) + [None];
       calc {
@@ -239,14 +241,14 @@ module Std.Producers {
       UpdateHistory((), Some(value));
 
       assert ValidHistory(old(history));
-      assert NoneTerminated(old(Outputs()));
-      NoneTerminatedLastIsSomeImpliesAllIsSome(Outputs());
+      assert Partitioned(old(Outputs()), IsSome);
+      PartitionedLastTrueImpliesAll(Outputs(), IsSome);
       assert All(Outputs(), IsSome);
       assert Outputs() == old(Outputs()) + [Some(value)];
       AllDecomposition(old(Outputs()), [Some(value)], IsSome);
       assert All(old(Outputs()), IsSome);
-      NoneTerminatedCompositionLeftAllNotNones(old(Outputs()), [Some(value)]);
-      assert NoneTerminated(old(Outputs()));
+      PartitionedCompositionLeft(old(Outputs()), [Some(value)], IsSome);
+      assert Partitioned(old(Outputs()), IsSome);
       ProducedComposition(old(Outputs()), [Some(value)]);
       assert OutputsOf(history) == old(OutputsOf(history)) + [Some(value)];
       calc {
@@ -260,10 +262,14 @@ module Std.Producers {
     }
   }
 
-  // TODO: Move some of these predicates as more general versions into Collections.Seq?
+  // TODO: Move some of these predicates into Collections.Seq?
 
   predicate All<T>(s: seq<T>, p: T -> bool) {
     forall i {:trigger s[i]} | 0 <= i < |s| :: p(s[i])
+  }
+
+  predicate AllNot<T>(s: seq<T>, p: T -> bool) {
+    forall i {:trigger s[i]} | 0 <= i < |s| :: !p(s[i])
   }
 
   lemma AllDecomposition<T>(left: seq<T>, right: seq<T>, p: T -> bool)
@@ -279,6 +285,19 @@ module Std.Producers {
     }
   }
 
+  lemma AllNotDecomposition<T>(left: seq<T>, right: seq<T>, p: T -> bool)
+    requires AllNot(left + right, p)
+    ensures AllNot(left, p)
+    ensures AllNot(right, p)
+  {
+    forall i: nat | i < |left| ensures !p(left[i]) {
+      assert (left + right)[i] == left[i];
+    }
+    forall i: nat | i < |right| ensures !p(right[i]) {
+      assert (left + right)[|left| + i] == right[i];
+    }
+  }
+
   predicate IsNone<T>(o: Option<T>) {
     o.None?
   }
@@ -287,32 +306,74 @@ module Std.Producers {
     o.Some?
   }
 
-  // TODO: Rework to be Partitioned?
-  predicate NoneTerminated<T>(s: seq<Option<T>>) {
+  predicate Partitioned<T>(s: seq<T>, p: T -> bool) {
     if s == [] then
       true
-    else if s[0].Some? then
-      NoneTerminated(s[1..])
+    else if p(s[0]) then
+      Partitioned(s[1..], p)
     else 
-      All(s[1..], IsNone)
+      AllNot(s[1..], p)
   }
 
-  lemma NoneTerminatedFirstIsNoneImpliesAllIsNone<T>(s: seq<Option<T>>)
-    requires NoneTerminated(s)
-    requires 0 < |s|
-    requires s[0].None?
-    ensures All(s, IsNone)
+  lemma AllImpliesPartitioned<T>(s: seq<T>, p: T -> bool)
+    requires All(s, p)
+    ensures Partitioned(s, p)
   {}
 
-  lemma NoneTerminatedLastIsSomeImpliesAllIsSome<T>(s: seq<Option<T>>)
-    requires NoneTerminated(s)
-    requires 0 < |s|
-    requires Seq.Last(s).Some?
-    ensures All(s, IsSome)
+  lemma AllNotImpliesPartitioned<T>(s: seq<T>, p: T -> bool)
+    requires AllNot(s, p)
+    ensures Partitioned(s, p)
   {}
+
+  lemma PartitionedFirstFalseImpliesAllNot<T>(s: seq<T>, p: T -> bool)
+    requires Partitioned(s, p)
+    requires 0 < |s|
+    requires !p(s[0])
+    ensures AllNot(s, p)
+  {}
+
+  lemma PartitionedLastTrueImpliesAll<T>(s: seq<T>, p: T -> bool)
+    requires Partitioned(s, p)
+    requires 0 < |s|
+    requires p(Seq.Last(s))
+    ensures All(s, p)
+  {}
+
+  lemma {:axiom} PartitionedCompositionRight<T>(left: seq<T>, right: seq<T>, p: T -> bool)
+    requires Partitioned(left, p)
+    requires AllNot(right, p)
+    ensures Partitioned(left + right, p)
+
+  lemma {:axiom} PartitionedCompositionLeft<T>(left: seq<T>, right: seq<T>, p: T -> bool)
+    requires All(left, p)
+    requires Partitioned(right, p)
+    ensures Partitioned(left + right, p)
+
+  lemma PartitionedDecomposition<T>(left: seq<T>, right: seq<T>, p: T -> bool)
+    requires Partitioned(left + right, p)
+    ensures Partitioned(left, p)
+    ensures Partitioned(right, p)
+  {
+    if left == [] {
+        assert right == left + right;
+    } else {
+      if !p(left[0]) {
+        PartitionedFirstFalseImpliesAllNot(left + right, p);
+        AllNotDecomposition(left, right, p);
+        assert AllNot(left, p);
+        PartitionedDecomposition(left[1..], right, p);
+      } else {
+        var combined := left + right;
+        assert p(combined[0]);
+        assert Partitioned(combined[1..], p);
+        assert combined[1..] == left[1..] + right;
+        PartitionedDecomposition(left[1..], right, p);
+      }
+    }
+  }
 
   function ProducedOf<T>(outputs: seq<Option<T>>): seq<T> 
-    requires NoneTerminated(outputs)
+    requires Partitioned(outputs, IsSome)
   {
     if |outputs| == 0 || outputs[0].None? then
       []
@@ -320,48 +381,60 @@ module Std.Producers {
       [outputs[0].value] + ProducedOf(outputs[1..])
   }
 
+  lemma ProducedOfMapSome<T>(values: seq<T>)
+    ensures Partitioned(Seq.Map(x => Some(x), values), IsSome)
+    ensures ProducedOf(Seq.Map(x => Some(x), values)) == values
+  {
+    reveal Seq.Map();
+    var somes := Seq.Map(x => Some(x), values);
+    assert All(somes, IsSome);
+    AllImpliesPartitioned(somes, IsSome);
+    var produced := ProducedOf(Seq.Map(x => Some(x), values));
+    if values == [] {
+    } else {
+      assert produced[0] == values[0];
+      ProducedOfMapSome(values[1..]);
+    }
+  }
+
+  ghost function OutputsForProduced<T>(values: seq<T>, n: nat): (result: seq<Option<T>>)
+    ensures Partitioned(result, IsSome)
+    ensures ProducedOf(result) <= values
+  {
+    var index := Min(|values|, n);
+    var produced := values[..index];
+    var somes := Seq.Map(x => Some(x), produced);
+    AllImpliesPartitioned(somes, IsSome);
+    var nones := Seq.Repeat(None, n - index);
+    AllNotImpliesPartitioned(nones, IsSome);
+    PartitionedCompositionRight(somes, nones, IsSome);
+    ProducedOfMapSome(produced);
+    assert ProducedOf(somes) == produced;
+    assert ProducedOf(nones) == [];
+    ProducedComposition(somes, nones);
+    somes + nones
+  }
+
+  lemma OutputsForProducedNextIsSome<T>(values: seq<T>, n: nat)
+    requires n < |values|
+    ensures OutputsForProduced(values, n + 1) == OutputsForProduced(values, n) + [Some(values[n])]
+  {}
+
+  lemma OutputsForProducedNextIsNone<T>(values: seq<T>, n: nat)
+    requires |values| <= n
+    ensures OutputsForProduced(values, n + 1) == OutputsForProduced(values, n) + [None]
+  {}
+
   lemma ProducedOfAllNonesEmpty<T>(outputs: seq<Option<T>>)
     requires All(outputs, IsNone)
     ensures ProducedOf(outputs) == []
   {}
-
-  lemma {:axiom} NoneTerminatedCompositionRightAllNones<T>(left: seq<Option<T>>, right: seq<Option<T>>)
-    requires NoneTerminated(left)
-    requires All(right, IsNone)
-    ensures NoneTerminated(left + right)
-
-  lemma {:axiom} NoneTerminatedCompositionLeftAllNotNones<T>(left: seq<Option<T>>, right: seq<Option<T>>)
-    requires All(left, IsSome)
-    requires NoneTerminated(right)
-    ensures NoneTerminated(left + right)
-
-  lemma NoneTerminatedDecomposition<T>(left: seq<Option<T>>, right: seq<Option<T>>)
-    requires NoneTerminated(left + right)
-    ensures NoneTerminated(left)
-    ensures NoneTerminated(right)
-  {
-    if left == [] {
-        assert right == left + right;
-    } else {
-      if left[0].None? {
-        NoneTerminatedFirstIsNoneImpliesAllIsNone(left + right);
-        AllDecomposition(left, right, IsNone);
-        assert All(left, IsNone);
-        NoneTerminatedDecomposition(left[1..], right);
-      } else {
-        var combined := left + right;
-        assert combined[0].Some?;
-        assert NoneTerminated(combined[1..]);
-        assert combined[1..] == left[1..] + right;
-        NoneTerminatedDecomposition(left[1..], right);
-      }
-    }
-  }
-
+  
+  @IsolateAssertions
   lemma ProducedComposition<T>(left: seq<Option<T>>, right: seq<Option<T>>)
-    requires NoneTerminated(left)
-    requires NoneTerminated(right)
-    requires NoneTerminated(left + right)
+    requires Partitioned(left, IsSome)
+    requires Partitioned(right, IsSome)
+    requires Partitioned(left + right, IsSome)
     ensures ProducedOf(left + right) == ProducedOf(left) + ProducedOf(right)
   {
     var combined := left + right;
@@ -370,20 +443,20 @@ module Std.Producers {
     } else {
       if left[0].None? {
         assert combined[0].None?;
-        NoneTerminatedFirstIsNoneImpliesAllIsNone(combined);
+        PartitionedFirstFalseImpliesAllNot(combined, IsSome);
         AllDecomposition(left, right, IsNone);
         assert ProducedOf(left) == ProducedOf(right) == [];
         ProducedOfAllNonesEmpty(left);
         assert ProducedOf(left + right) == ProducedOf(left) + ProducedOf(right);
       } else {
         assert ProducedOf(left) == [left[0].value] + ProducedOf(left[1..]); 
-        assert NoneTerminated(left[1..]);
+        assert Partitioned(left[1..], IsSome);
         assert left + right == [left[0]] + (left[1..] + right);
-        assert NoneTerminated([left[0]] + (left[1..] + right));
-        NoneTerminatedDecomposition([left[0]], left[1..] + right);
-        assert NoneTerminated(left[1..] + right);
+        assert Partitioned([left[0]] + (left[1..] + right), IsSome);
+        PartitionedDecomposition([left[0]], left[1..] + right, IsSome);
+        assert Partitioned(left[1..] + right, IsSome);
         assert ProducedOf(left + right) == [left[0].value] + ProducedOf(left[1..] + right); 
-        assert NoneTerminated(left[1..] + right);
+        assert Partitioned(left[1..] + right, IsSome);
         
         ProducedComposition(left[1..], right);
 
@@ -443,10 +516,11 @@ module Std.Producers {
       ValidHistory(history + [(nextInput, nextOutput)])
     }
 
-    ghost predicate ValidProduced(produced: seq<T>)
+    ghost predicate ValidOutputs(outputs: seq<Option<T>>)
+      requires Partitioned(outputs, IsSome)
       decreases height
     {
-      |produced| <= limit
+      |ProducedOf(outputs)| <= limit
     }
 
     method Invoke(t: ()) returns (value: Option<T>)
@@ -473,9 +547,9 @@ module Std.Producers {
       }
     }
 
-    lemma ProducesLessThanLimit(produced: seq<(T)>) 
-      requires ValidProduced(produced)
-      ensures |produced| <= limit
+    lemma ProducesLessThanLimit(history: seq<((), Option<T>)>) 
+      requires ValidHistory(history)
+      ensures |ProducedOf(OutputsOf(history))| <= limit
     {}
   }
 
@@ -508,6 +582,8 @@ module Std.Producers {
       && this in Repr
       && ValidHistory(history)
       && limit == |elements|
+      && index <= |elements|
+      && index == |Produced()|
     }
 
     twostate predicate ValidOutput(history: seq<((), Option<T>)>, nextInput: (), new nextOutput: Option<T>)
@@ -516,13 +592,12 @@ module Std.Producers {
     {
       ValidHistory(history + [(nextInput, nextOutput)])
     }
-    ghost predicate ValidProduced(produced: seq<T>)
+    ghost predicate ValidOutputs(outputs: seq<Option<T>>)
+      requires Partitioned(outputs, IsSome)
       decreases height
     {
-      var index := |produced|;
-      var values := Min(index, |elements|);
-      var nones := index - values;
-      produced == elements[..values]
+      && limit == |elements|
+      && outputs == OutputsForProduced(elements, |outputs|)
     }
 
     method Invoke(t: ()) returns (value: Option<T>)
@@ -534,23 +609,27 @@ module Std.Producers {
     {
       assert Requires(t);
 
-      if |elements| <= index {
+      assert Outputs() == OutputsForProduced(elements, |history|);
+      if |elements| == index {
         value := None;
+        assert |Produced()| == |elements|;
+        OutputsForProducedNextIsNone(elements, |history|);
+        assert ValidOutputs(Outputs() + [None]);
+        ProduceNone();
       } else {
         value := Some(elements[index]);
+        assert index < |elements|;
+        OutputsForProducedNextIsSome(elements, index);
         index := index + 1;
+        ProduceSome(elements[index]);
       }
-      UpdateHistory((), value);
-      assume {:axiom} ValidHistory(history);
-      assert Valid();
+      
     }
 
-    lemma ProducesLessThanLimit(produced: seq<(T)>) 
-      requires ValidProduced(produced)
-      ensures |produced| <= limit
-    {
-    }
-
+    lemma ProducesLessThanLimit(history: seq<((), Option<T>)>) 
+      requires ValidHistory(history)
+      ensures |ProducedOf(OutputsOf(history))| <= limit
+    {}
   }
 
   class FilteredProducer<T> extends Producer<T> {
@@ -583,6 +662,7 @@ module Std.Producers {
       && ValidComponent(source)
       && ValidHistory(history)
       && |history| <= |source.history|
+      && limit == source.limit
     }
 
     twostate predicate ValidOutput(history: seq<((), Option<T>)>, nextInput: (), new nextOutput: Option<T>)
@@ -591,10 +671,11 @@ module Std.Producers {
     {
       ValidHistory(history + [(nextInput, nextOutput)])
     }
-    ghost predicate ValidProduced(produced: seq<T>)
+    ghost predicate ValidOutputs(outputs: seq<Option<T>>)
+      requires Partitioned(outputs, IsSome)
       decreases height
     {
-      |produced| <= limit
+      |ProducedOf(outputs)| <= limit
     }
 
     @IsolateAssertions
@@ -626,9 +707,9 @@ module Std.Producers {
       UpdateHistory((), result);
     }
 
-    lemma ProducesLessThanLimit(produced: seq<(T)>) 
-      requires ValidProduced(produced)
-      ensures |produced| <= limit
+    lemma ProducesLessThanLimit(history: seq<((), Option<T>)>) 
+      requires ValidHistory(history)
+      ensures |ProducedOf(OutputsOf(history))| <= limit
     {}
   }
 
@@ -673,7 +754,8 @@ module Std.Producers {
     {
       ValidHistory(history + [(nextInput, nextOutput)])
     }
-    ghost predicate ValidProduced(produced: seq<T>)
+    ghost predicate ValidOutputs(outputs: seq<Option<T>>)
+      requires Partitioned(outputs, IsSome)
       decreases height
     {
       true
@@ -700,9 +782,9 @@ module Std.Producers {
       UpdateHistory((), result);
     }
 
-    lemma ProducesLessThanLimit(produced: seq<(T)>) 
-      requires ValidProduced(produced)
-      ensures |produced| <= limit
+    lemma ProducesLessThanLimit(history: seq<((), Option<T>)>) 
+      requires ValidHistory(history)
+      ensures |ProducedOf(OutputsOf(history))| <= limit
     {
     }
   }
@@ -752,6 +834,8 @@ module Std.Producers {
       this.Repr := {this} + original.Repr + process.Repr + processTotalProof.Repr;
       this.height := original.height + process.height + processTotalProof.height + 1;
       this.currentInner := null;
+      // TODO:
+      this.limit := 5;
     }
 
     ghost predicate Valid()
@@ -772,12 +856,14 @@ module Std.Producers {
     }
 
     twostate predicate ValidOutput(history: seq<((), Option<T>)>, nextInput: (), new nextOutput: Option<T>)
+      requires ValidHistory(history)
       decreases height
-      ensures ValidHistory(history + [(nextInput, nextOutput)])
+      ensures ValidOutput(history, nextInput, nextOutput) ==> ValidHistory(history + [(nextInput, nextOutput)])
     {
       ValidHistory(history + [(nextInput, nextOutput)])
     }
-    ghost predicate ValidProduced(produced: seq<T>)
+    ghost predicate ValidOutputs(outputs: seq<Option<T>>)
+      requires Partitioned(outputs, IsSome)
       decreases height
     {
       true
@@ -843,9 +929,9 @@ module Std.Producers {
       UpdateHistory(t, r);
     }
 
-    lemma ProducesLessThanLimit(produced: seq<(T)>) 
-      requires ValidProduced(produced)
-      ensures |produced| <= limit
+    lemma ProducesLessThanLimit(history: seq<((), Option<T>)>) 
+      requires ValidHistory(history)
+      ensures |ProducedOf(OutputsOf(history))| <= limit
     {
     }
   }
