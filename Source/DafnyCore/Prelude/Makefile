@@ -1,4 +1,5 @@
 DAFNY=../../../Scripts/dafny
+DAFNY_OPTIONS=--type-system-refresh --general-traits=datatype --general-newtypes
 OUTPUT=Output
 GENERATED_PRELUDE=$(OUTPUT)/DafnyPrelude.bpl
 TARGET_PRELUDE=../DafnyPrelude.bpl
@@ -22,10 +23,10 @@ $(GENERATED_PRELUDE): $(CORE) $(OUTPUT)/Sequences.bpl $(OUTPUT)/Math.bpl $(OUTPU
 
 $(OUTPUT)/Sequences.bpl $(OUTPUT)/Math.bpl $(OUTPUT)/Sets.bpl $(OUTPUT)/Multisets.bpl: $(OUTPUT) Lists.dfy Boxes.dfy Sequences.dfy Math.dfy Sets.dfy Multisets.dfy
 	# Verify model files and extract Boogie declarations from them
-	$(DAFNY) extract Sequences $(OUTPUT)/Sequences.bpl Boxes.dfy Lists.dfy Sequences.dfy
-	$(DAFNY) extract Sets $(OUTPUT)/Sets.bpl Boxes.dfy Lists.dfy Sets.dfy
-	$(DAFNY) extract Math $(OUTPUT)/Math.bpl Math.dfy
-	$(DAFNY) extract Multisets $(OUTPUT)/Multisets.bpl Boxes.dfy Lists.dfy Math.dfy Sequences.dfy Sets.dfy Multisets.dfy
+	$(DAFNY) extract $(DAFNY_OPTIONS) Sequences $(OUTPUT)/Sequences.bpl Boxes.dfy Lists.dfy Sequences.dfy
+	$(DAFNY) extract $(DAFNY_OPTIONS) Sets $(OUTPUT)/Sets.bpl Boxes.dfy Lists.dfy Sets.dfy
+	$(DAFNY) extract $(DAFNY_OPTIONS) Math $(OUTPUT)/Math.bpl Math.dfy
+	$(DAFNY) extract $(DAFNY_OPTIONS) Multisets $(OUTPUT)/Multisets.bpl Boxes.dfy Lists.dfy Math.dfy Sequences.dfy Sets.dfy Multisets.dfy
 	# Remove trailing spaces that the Boogie pretty printer emits
 	sed -e "s| *$$||" -i "" $(OUTPUT)/Sequences.bpl $(OUTPUT)/Math.bpl $(OUTPUT)/Sets.bpl $(OUTPUT)/Multisets.bpl
 
