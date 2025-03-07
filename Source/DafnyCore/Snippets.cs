@@ -7,6 +7,7 @@ using System.Linq;
 using System.Runtime.CompilerServices;
 using DafnyCore.Options;
 using Microsoft.Dafny;
+using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 
 namespace DafnyCore;
 
@@ -16,6 +17,30 @@ public class Snippets {
 
   static Snippets() {
     OptionRegistry.RegisterOption(ShowSnippets, OptionScope.Cli);
+  }
+
+  public static void WriteSourceCodeSnippet(DafnyOptions options, Location location, TextWriter tw) {
+    var start = location.Range.Start;
+    var end = location.Range.End;
+    string line = GetFileLine(options, location.Uri.ToUri(), location.Range.Start.Line);
+    if (line == null) {
+      return;
+    }
+
+    if (location.Range.End.Line != location.Range.Start.Line) {
+      return;
+    }
+
+    string lineNumber = (location.Range.Start.Line + 1).ToString();
+    string lineNumberSpaces = new string(' ', lineNumber.Length);
+    string columnSpaces = new string(' ', location.Range.Start.Character);
+
+    var underlineLength = Math.Max(1, location.Range.End.Character - location.Range.Start.Character);
+    string underline = new string('^', underlineLength);
+    tw.WriteLine($"{lineNumberSpaces} |");
+    tw.WriteLine($"{lineNumber} | {line}");
+    tw.WriteLine($"{lineNumberSpaces} | {columnSpaces}{underline}");
+    tw.WriteLine("");
   }
 
   public static void WriteSourceCodeSnippet(DafnyOptions options, IOrigin tok, TextWriter tw) {

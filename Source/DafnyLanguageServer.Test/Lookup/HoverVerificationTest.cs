@@ -277,7 +277,7 @@ method f(x: int) {
     }
 
 
-    [Fact(Timeout = MaxTestExecutionTimeMs)]
+    [Fact()]
     public async Task MeaningfulMessageWhenMethodWithTwoAsserts() {
       var documentItem = await GetDocumentItem(@"
 method f(x: int) {

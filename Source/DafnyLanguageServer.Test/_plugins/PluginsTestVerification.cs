@@ -15,7 +15,7 @@ namespace PluginsTestVerification {
     }
 
     public override void PreVerify(ModuleDefinition module) {
-      Reporter.Error(MessageSource.Compiler, Token.NoToken,
+      Reporter.Error(MessageSource.Compiler, module.DefaultClass.Members[0].Origin,
         "Plugin Error that does not prevent verification");
     }
   }

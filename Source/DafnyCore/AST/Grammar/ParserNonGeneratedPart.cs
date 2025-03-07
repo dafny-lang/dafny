@@ -676,7 +676,7 @@ public partial class Parser {
       get {
         Token result = FirstTokenExceptAttributes;
         foreach (var attr in Attributes.AsEnumerable()) {
-          if (result == null || result.pos > attr.Origin.pos) {
+          if (result == null || result.pos > attr.Origin.StartToken.pos) {
             result = attr.StartToken;
           }
         }

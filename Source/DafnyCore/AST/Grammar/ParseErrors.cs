@@ -449,8 +449,8 @@ They are given in a parentheses-enclosed, comma-separated list after the type na
 The currently defined type characteristics are designated by `==` (equality - supporting),
 `0` (auto - initializable), `00` (non - empty), and `!new` (non - reference).
 ".TrimStart(), range =>
-    range.Prev.val == "," ? [
-        OneAction("remove comma", range.Prev, ""),
+    range.StartToken.Prev.val == "," ? [
+        OneAction("remove comma", range.StartToken.Prev, ""),
       OneAction("insert '=='", range, "==" + range.PrintOriginal()),
       OneAction("insert '0'", range, "0" + range.PrintOriginal()),
       OneAction("insert '00'", range, "00" + range.PrintOriginal()),
@@ -769,7 +769,7 @@ in a loop after it is allocated, or to initialize with a function, as in
 `var a:= new int[2,2]((i: int, j: int)=>i+j)`.
 ".TrimStart());
 
-    ActionSignature sharedLambda = delegate (SourceOrigin range) {
+    ActionSignature sharedLambda = delegate (IOrigin range) {
       return [
         OneAction("replace with ':='", range, ":=", false),
         OneAction("replace with ':-", range, ":-", false),

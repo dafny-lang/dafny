@@ -82,7 +82,7 @@ public partial class BoogieGenerator {
       }
       oldExpressions.Add(e1);
       newExpressions.Add(e0direct);
-      toks.Add(new NestedOrigin(tok, e1.Origin));
+      toks.Add(new NestedOrigin(tok, e1.Origin, "this decreases clause was not satisfied"));
       canCalls = BplAnd(canCalls, etranCurrent.CanCallAssumption(e1));
       canCalls = BplAnd(canCalls, etranCurrent.CanCallAssumption(e0direct));
       callee.Add(etranCurrent.TrExpr(e0));
