@@ -177,6 +177,13 @@ module Std.Producers {
       }
     }
 
+    ghost predicate Done() 
+      requires Valid()
+      reads this, Repr
+    {
+      0 < |history| && Seq.Last(Outputs()).None?
+    }
+
     // Note this is only a lower-bound on the actual
     // number of remaining elements,
     // and only used as a ghost measure
@@ -665,7 +672,6 @@ module Std.Producers {
       && this in Repr
       && ValidComponent(source)
       && ValidHistory(history)
-      && |history| <= |source.history|
       && limit == source.limit
       && |Produced()| <= |source.Produced()|
     }
@@ -685,7 +691,8 @@ module Std.Producers {
     }
 
     @IsolateAssertions
-    method {:only} Invoke(t: ()) returns (result: Option<T>)
+    @ResourceLimit("0")
+    method Invoke(t: ()) returns (result: Option<T>)
       requires Requires(t)
       reads Reads(t)
       modifies Modifies(t)
@@ -694,31 +701,55 @@ module Std.Producers {
     {
       assert Requires(t);
 
+      var sourceProduced := 0;
       while true
         invariant fresh(Repr - old(Repr))
-        // invariant Valid()
+        invariant Valid()
         invariant ValidComponent(source)
         invariant history == old(history)
         invariant |Produced()| <= |source.Produced()|
         decreases source.Remaining()
       {
-        label loopStart:
         result := source.Next();
         Repr := {this} + source.Repr;
         height := source.height + 1;
+        if result.Some? {
+          sourceProduced := sourceProduced + 1;
+        }
 
         if result.None? || filter(result.value) {
           break;
         }
       }
+      if result.Some? {
+        assert 0 < sourceProduced;
+        assert |old(source.Produced())| < |source.Produced()|;
+        assert 0 <= |source.Outputs()| && Seq.Last(source.Outputs()).Some?;
+        assert ValidOutputs(Outputs() + [result]);
+        ProduceSome(result.value);
 
-      UpdateHistory((), result);
-      assert this in Repr;
-      assert ValidComponent(source);
+        assert 0 < sourceProduced;
+        assert |old(source.Produced())| < |source.Produced()|;
+        assert |old(Produced())| <= |old(source.Produced())|;
+        assert |Produced()| == |old(Produced())| + 1;
+        assert |Produced()| <= |source.Produced()|;
+      } else {
+        assert AllNot([result], IsSome);
+        AllNotImpliesPartitioned([result], IsSome);
+        PartitionedCompositionRight(Outputs(), [result], IsSome);
+        assert Partitioned(Outputs() + [result], IsSome);
+        ProducedOfAllNonesEmpty([result]);
+        ProducedComposition(Outputs(), [result]);
+        assert ValidOutputs(Outputs() + [result]);
+        var newOutputs := Outputs() + [result];
+        assert Partitioned(newOutputs, IsSome);
+        assert ValidOutputs(newOutputs);
+        ProduceNone();
+      }
+
       assert ValidHistory(history);
-      assert |history| <= |source.history|;
-      assert limit == source.limit;
       assert |Produced()| <= |source.Produced()|;
+      
     }
 
     lemma ProducesLessThanLimit(history: seq<((), Option<T>)>) 
