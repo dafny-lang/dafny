@@ -810,7 +810,7 @@ module Std.Collections.Seq {
      concatenating the two resulting sequences. */
   @IsolateAssertions
   lemma {:induction false}
-    LemmaFilterDistributesOverConcat<T(!new)>(f: T ~> bool, xs: seq<T>, ys: seq<T>)
+    LemmaFilterDistributesOverConcat<T>(f: T ~> bool, xs: seq<T>, ys: seq<T>)
     requires forall i :: 0 <= i < |xs| ==> f.requires(xs[i])
     requires forall j :: 0 <= j < |ys| ==> f.requires(ys[j])
     ensures Filter(f, xs + ys) == Filter(f, xs) + Filter(f, ys)

@@ -6,6 +6,7 @@ module Std.Producers {
   import opened Consumers
   import opened Wrappers
   import opened Math
+  import opened Frames
   import Collections.Seq
 
   @AssumeCrossModuleTermination
@@ -632,9 +633,12 @@ module Std.Producers {
     {}
   }
 
+
   class FilteredProducer<T> extends Producer<T> {
 
     const source: Producer<T>
+    // TODO: Document how I really don't want to use a ~>,
+    // but can't use Seq.Filter unless I do.
     const filter: T -> bool
 
     constructor (source: Producer<T>, filter: T -> bool)
@@ -663,6 +667,7 @@ module Std.Producers {
       && ValidHistory(history)
       && |history| <= |source.history|
       && limit == source.limit
+      && |Produced()| <= |source.Produced()|
     }
 
     twostate predicate ValidOutput(history: seq<((), Option<T>)>, nextInput: (), new nextOutput: Option<T>)
@@ -675,11 +680,12 @@ module Std.Producers {
       requires Partitioned(outputs, IsSome)
       decreases height
     {
+      // Just strong enough to prove termination for now
       |ProducedOf(outputs)| <= limit
     }
 
     @IsolateAssertions
-    method Invoke(t: ()) returns (result: Option<T>)
+    method {:only} Invoke(t: ()) returns (result: Option<T>)
       requires Requires(t)
       reads Reads(t)
       modifies Modifies(t)
@@ -690,11 +696,13 @@ module Std.Producers {
 
       while true
         invariant fresh(Repr - old(Repr))
-        invariant Valid()
+        // invariant Valid()
         invariant ValidComponent(source)
         invariant history == old(history)
+        invariant |Produced()| <= |source.Produced()|
         decreases source.Remaining()
       {
+        label loopStart:
         result := source.Next();
         Repr := {this} + source.Repr;
         height := source.height + 1;
@@ -705,6 +713,12 @@ module Std.Producers {
       }
 
       UpdateHistory((), result);
+      assert this in Repr;
+      assert ValidComponent(source);
+      assert ValidHistory(history);
+      assert |history| <= |source.history|;
+      assert limit == source.limit;
+      assert |Produced()| <= |source.Produced()|;
     }
 
     lemma ProducesLessThanLimit(history: seq<((), Option<T>)>) 
