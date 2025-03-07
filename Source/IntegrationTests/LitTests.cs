@@ -111,7 +111,7 @@ namespace IntegrationTests {
 
       var substitutions = new Dictionary<string, object> {
         { "%diff", "diff" },
-        { "%trargs", "--use-basename-for-filename --show-snippets:false, --standard-libraries:false --cores:2 --verification-time-limit:300 --resource-limit:50e6" },
+        { "%trargs", "--use-basename-for-filename --show-snippets:false, --standard-libraries:false --cores:2 --verification-time-limit:300 --resource-limit:50e6 --type-system-refresh --general-traits=datatype --general-newtypes" },
         { "%binaryDir", "." },
         { "%z3", Path.Join("z3", "bin", $"z3-{DafnyOptions.DefaultZ3Version}") },
         { "%repositoryRoot", RepositoryRoot.Replace(@"\", "/") },

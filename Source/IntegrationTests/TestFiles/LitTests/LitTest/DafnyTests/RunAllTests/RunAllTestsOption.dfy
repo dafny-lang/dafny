@@ -1,5 +1,5 @@
 // RUN: %verify "%s" > "%t"
-// RUN: %translate cs %args %s --include-runtime --include-test-runner --no-verify --output %S/Output/manual/program.cs >> "%t"
+// RUN: %translate cs %trargs %s --include-runtime --include-test-runner --no-verify --output %S/Output/manual/program.cs >> "%t"
 // RUN: ! dotnet run -v q --property WarningLevel=0 --project %S/RunAllTests.csproj >> "%t"
 // RUN: ! %baredafny test %args --no-verify --target:cs "%s" >> "%t"
 // RUN: ! %baredafny test %args --no-verify --target:java "%s" >> "%t"
