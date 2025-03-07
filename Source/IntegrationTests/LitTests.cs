@@ -62,11 +62,17 @@ namespace IntegrationTests {
       // The metatests/StdLibsOffByDefaultInTests.dfy test directly enforces this.
 
       string[] defaultResolveArgs = ["resolve",
+        "--type-system-refresh",
+        "--general-traits=datatype",
+        "--general-newtypes",
         "--use-basename-for-filename",
         "--show-snippets:false",
         "--standard-libraries:false"
       ];
       string[] defaultVerifyArgs = ["verify",
+        "--type-system-refresh",
+        "--general-traits=datatype",
+        "--general-newtypes",
         "--use-basename-for-filename",
         "--show-snippets:false",
         "--standard-libraries:false",
@@ -81,6 +87,9 @@ namespace IntegrationTests {
         "--resource-limit:50e6"
       ];
       string[] defaultBuildArgs = ["build",
+        "--type-system-refresh",
+        "--general-traits=datatype",
+        "--general-newtypes",
         "--use-basename-for-filename",
         "--show-snippets:false",
         "--standard-libraries:false",
@@ -89,6 +98,9 @@ namespace IntegrationTests {
         "--resource-limit:50e6"
       ];
       string[] defaultRunArgs = ["run",
+        "--type-system-refresh",
+        "--general-traits=datatype",
+        "--general-newtypes",
         "--use-basename-for-filename",
         "--show-snippets:false",
         "--standard-libraries:false",
