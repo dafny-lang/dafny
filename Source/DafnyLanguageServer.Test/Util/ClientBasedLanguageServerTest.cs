@@ -253,7 +253,14 @@ public class ClientBasedLanguageServerTest : DafnyLanguageServerTestBase, IAsync
     telemetryReceiver = new(logger);
     verificationStatusReceiver = new(logger);
     ghostnessReceiver = new(logger);
-    (client, Server) = await Initialize(InitialiseClientHandler, modifyOptions);
+    // Use the new resolver, plus any test-specific options
+    var modifyOptionsWithDefault = (DafnyOptions options) => {
+      options.Set(CommonOptionBag.TypeSystemRefresh, true);
+      options.Set(CommonOptionBag.GeneralTraits, CommonOptionBag.GeneralTraitsOptions.Datatype);
+      options.Set(CommonOptionBag.GeneralNewtypes, true);
+      modifyOptions?.Invoke(options);
+    };
+    (client, Server) = await Initialize(InitialiseClientHandler, modifyOptionsWithDefault);
   }
 
   protected virtual void InitialiseClientHandler(LanguageClientOptions options) {
