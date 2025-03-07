@@ -95,6 +95,12 @@ namespace Microsoft.Dafny {
       var otherFiles = new List<string>();
       var outputWriter = options.OutputWriter;
 
+      var consoleErrorReporter = new ConsoleErrorReporter(options);
+      options.DafnyProject.Errors.CopyDiagnostics(consoleErrorReporter);
+      if (options.DafnyProject.Errors.HasErrors) {
+        return (ExitValue.PREPROCESSING_ERROR, [], []);
+      }
+
       if (options.UseStdin) {
         var dafnyFile = DafnyFile.HandleStandardInput(options, Token.NoToken);
         dafnyFiles.Add(dafnyFile);
@@ -129,7 +135,6 @@ namespace Microsoft.Dafny {
         var supportedExtensions = options.Backend.SupportedExtensions;
         bool isDafnyFile = false;
         try {
-          var consoleErrorReporter = new ConsoleErrorReporter(options);
           await foreach (var df in DafnyFile.CreateAndValidate(
                            OnDiskFileSystem.Instance, consoleErrorReporter, options, new Uri(Path.GetFullPath(file)),
                            Token.Cli, options.LibraryFiles.Contains(file))) {
