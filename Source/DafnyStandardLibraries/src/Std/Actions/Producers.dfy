@@ -406,6 +406,10 @@ module Std.Producers {
     }
   }
 
+  /***********************
+   * Producer Combinators
+   */
+
   class LimitedProducer<T> extends Producer<T> {
 
     const original: IProducer<T>
@@ -667,6 +671,7 @@ module Std.Producers {
         label beforeNext:
         // Doesn't help because we need to decrease from old(height)
         // HeightMetricDecreases(source);
+        CheatOnRecursiveNext(this, source);
         result := source.Next();
         if result.Some? {
           assert old@beforeNext(source.remaining).DecreasesTo(source.remaining);
@@ -854,130 +859,140 @@ module Std.Producers {
   // Mainly provided so that external integrations
   // can recognize this pattern and optimize
   // for non-blocking push-based producers.
-  // class Pipeline<U, T> extends Producer<T> {
+  class Pipeline<U, T> extends Producer<T> {
 
-  //   const original: Producer<U>
-  //   var originalDone: bool
-  //   const process: Action<Option<U>, seq<T>>
-  //   var currentInner: Producer?<T>
+    const original: Producer<U>
+    var originalDone: bool
+    const process: Action<Option<U>, seq<T>>
+    var currentInner: Producer?<T>
 
-  //   ghost const processTotalProof: TotalActionProof<Option<U>, seq<T>>
+    ghost const processTotalProof: TotalActionProof<Option<U>, seq<T>>
 
-  //   constructor (original: Producer<U>, process: Action<Option<U>, seq<T>>, ghost processTotalProof: TotalActionProof<Option<U>, seq<T>>)
-  //     requires original.Valid()
-  //     requires process.Valid()
-  //     requires processTotalProof.Valid()
-  //     requires processTotalProof.Action() == process
-  //     requires original.Repr !! process.Repr !! processTotalProof.Repr
-  //     ensures Valid()
-  //     ensures fresh(Repr - original.Repr - process.Repr - processTotalProof.Repr)
-  //   {
-  //     this.original := original;
-  //     this.originalDone := false;
-  //     this.process := process;
+    constructor (original: Producer<U>, process: Action<Option<U>, seq<T>>, ghost processTotalProof: TotalActionProof<Option<U>, seq<T>>)
+      requires original.Valid()
+      requires process.Valid()
+      requires processTotalProof.Valid()
+      requires processTotalProof.Action() == process
+      requires original.Repr !! process.Repr !! processTotalProof.Repr
+      ensures Valid()
+      ensures fresh(Repr - original.Repr - process.Repr - processTotalProof.Repr)
+    {
+      this.original := original;
+      this.originalDone := false;
+      this.process := process;
 
-  //     this.processTotalProof := processTotalProof;
-  //     this.history := [];
-  //     this.Repr := {this} + original.Repr + process.Repr + processTotalProof.Repr;
-  //     this.height := original.height + process.height + processTotalProof.height + 1;
-  //     this.currentInner := null;
-  //     this.remaining := original.remaining;
-  //   }
+      this.processTotalProof := processTotalProof;
+      this.history := [];
+      this.Repr := {this} + original.Repr + process.Repr + processTotalProof.Repr;
+      this.height := original.height + process.height + processTotalProof.height + 1;
+      this.currentInner := null;
+      this.remaining := original.remaining;
+    }
 
-  //   ghost predicate Valid()
-  //     reads this, Repr
-  //     ensures Valid() ==> this in Repr
-  //     ensures Valid() ==> ValidHistory(history)
-  //     decreases height, 0
-  //   {
-  //     && this in Repr
-  //     && ValidComponent(original)
-  //     && ValidComponent(process)
-  //     && ValidComponent(processTotalProof)
-  //     && (currentInner != null ==> ValidComponent(currentInner))
-  //     && original.Repr !! process.Repr !! processTotalProof.Repr !!
-  //         (if currentInner != null then currentInner.Repr else {})
-  //     && ValidHistory(history)
-  //     && processTotalProof.Action() == process
-  //   }
+    ghost predicate Valid()
+      reads this, Repr
+      ensures Valid() ==> this in Repr
+      ensures Valid() ==> ValidHistory(history)
+      decreases height, 0
+    {
+      && this in Repr
+      && ValidComponent(original)
+      && ValidComponent(process)
+      && ValidComponent(processTotalProof)
+      && (currentInner != null ==> ValidComponent(currentInner))
+      && original.Repr !! process.Repr !! processTotalProof.Repr !!
+          (if currentInner != null then currentInner.Repr else {})
+      && ValidHistory(history)
+      && processTotalProof.Action() == process
+    }
 
-  //   twostate predicate ValidOutput(history: seq<((), Option<T>)>, nextInput: (), new nextOutput: Option<T>)
-  //     requires ValidHistory(history)
-  //     decreases height
-  //     ensures ValidOutput(history, nextInput, nextOutput) ==> ValidHistory(history + [(nextInput, nextOutput)])
-  //   {
-  //     ValidHistory(history + [(nextInput, nextOutput)])
-  //   }
-  //   ghost predicate ValidOutputs(outputs: seq<Option<T>>)
-  //     requires Seq.Partitioned(outputs, IsSome)
-  //     decreases height
-  //   {
-  //     true
-  //   }
+    twostate predicate ValidOutput(history: seq<((), Option<T>)>, nextInput: (), new nextOutput: Option<T>)
+      requires ValidHistory(history)
+      decreases height
+      ensures ValidOutput(history, nextInput, nextOutput) ==> ValidHistory(history + [(nextInput, nextOutput)])
+    {
+      ValidHistory(history + [(nextInput, nextOutput)])
+    }
+    ghost predicate ValidOutputs(outputs: seq<Option<T>>)
+      requires Seq.Partitioned(outputs, IsSome)
+      decreases height
+    {
+      true
+    }
 
-  //   @IsolateAssertions
-  //   @ResourceLimit("0")
-  //   method Invoke(t: ()) returns (r: Option<T>)
-  //     requires Requires(t)
-  //     reads this, Repr
-  //     modifies Modifies(t)
-  //     decreases Decreases(t).Ordinal()
-  //     ensures Ensures(t, r)
-  //     ensures value.Some? ==> old(remaining).DecreasesTo(remaining)
-  //   {
-  //     r := None;
+    @IsolateAssertions
+    @ResourceLimit("0")
+    method Invoke(t: ()) returns (result: Option<T>)
+      requires Requires(t)
+      reads this, Repr
+      modifies Modifies(t)
+      decreases Decreases(t).Ordinal(), 0
+      ensures Ensures(t, result)
+      ensures if result.Some? then 
+          old(remaining).DecreasesTo(remaining)
+        else
+          old(remaining) == remaining
+    {
+      result := None;
 
-  //     while true
-  //       invariant fresh(Repr - old(Repr))
-  //       invariant Valid()
-  //       invariant history == old(history)
-  //       invariant processTotalProof.Valid()
-  //       decreases original.remaining.Ordinal(), !originalDone, currentInner,
-  //                 if currentInner != null then currentInner.remaining.Ordinal() else 0
-  //     {
-  //       label LoopEntry:
-  //       assert true decreases to false;
-  //       if currentInner == null {
-  //         if originalDone {
-  //           break;
-  //         }
+      while true
+        invariant fresh(Repr - old(Repr))
+        invariant Valid()
+        invariant history == old(history)
+        invariant processTotalProof.Valid()
+        decreases original.remaining.Ordinal(), !originalDone, currentInner,
+                  if currentInner != null then currentInner.remaining.Ordinal() else 0
+      {
+        label LoopEntry:
+        assert true decreases to false;
+        if currentInner == null {
+          if originalDone {
+            break;
+          }
 
-  //         var nextOuter := original.Next();
-  //         Repr := {this} + original.Repr + process.Repr + processTotalProof.Repr;
-  //         height := original.height + process.height + processTotalProof.height + 1;
-  //         assert Valid();
+          CheatOnRecursiveNext(this, original); 
+          var nextOuter := original.Next();
+          Repr := {this} + original.Repr + process.Repr + processTotalProof.Repr;
+          height := original.height + process.height + processTotalProof.height + 1;
+          assert Valid();
           
-  //         processTotalProof.AnyInputIsValid(process.history, nextOuter);
+          processTotalProof.AnyInputIsValid(process.history, nextOuter);
 
-  //         var nextChunk := process.Invoke(nextOuter);
-  //         Repr := {this} + original.Repr + process.Repr + processTotalProof.Repr;
-  //         height := original.height + process.height + processTotalProof.height + 1;
-  //         assert Valid();
+          var nextChunk := process.Invoke(nextOuter);
+          Repr := {this} + original.Repr + process.Repr + processTotalProof.Repr;
+          height := original.height + process.height + processTotalProof.height + 1;
+          assert Valid();
           
-  //         currentInner := new SeqProducer(nextChunk);
-  //         assert currentInner.Valid();
-  //         this.Repr := {this} + original.Repr + process.Repr + processTotalProof.Repr + currentInner.Repr;
-  //         height := original.height + process.height + processTotalProof.height + currentInner.height + 1;
-  //         assert ValidComponent(currentInner);
+          currentInner := new SeqProducer(nextChunk);
+          assert currentInner.Valid();
+          this.Repr := {this} + original.Repr + process.Repr + processTotalProof.Repr + currentInner.Repr;
+          height := original.height + process.height + processTotalProof.height + currentInner.height + 1;
+          assert ValidComponent(currentInner);
 
-  //         originalDone := nextOuter.None?;
-  //       } else {
-  //         label before:
-  //         r := currentInner.Next();
-  //         if r.Some? {
-  //           assert old@before(currentInner.remaining.Ordinal()) > currentInner.remaining.Ordinal();
-  //         }
-  //         this.Repr := {this} + original.Repr + process.Repr + processTotalProof.Repr + currentInner.Repr;
-  //         height := original.height + process.height + processTotalProof.height + currentInner.height + 1;
-  //         assert Valid();
+          originalDone := nextOuter.None?;
+        } else {
+          label before:
+          CheatOnRecursiveNext(this, currentInner); 
+          result := currentInner.Next();
+          if result.Some? {
+            assert old@before(currentInner.remaining.Ordinal()) > currentInner.remaining.Ordinal();
+          }
+          this.Repr := {this} + original.Repr + process.Repr + processTotalProof.Repr + currentInner.Repr;
+          height := original.height + process.height + processTotalProof.height + currentInner.height + 1;
+          assert Valid();
 
-  //         if r.None? {
-  //           currentInner := null;
-  //         }
-  //       }
-  //     }
+          if result.None? {
+            currentInner := null;
+          }
+        }
+      }
 
-  //     UpdateHistory(t, r);
-  //   }
-  // }
+      UpdateHistory(t, result);
+    }
+  }
+
+
+  twostate lemma {:axiom} CheatOnRecursiveNext<T, U>(thiss: Producer<T>, new other: Producer<U>) 
+    ensures old(thiss.Decreases(())).Ordinal() > other.Decreases(()).Ordinal()
+
 }
