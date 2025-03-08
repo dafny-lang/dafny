@@ -40,6 +40,7 @@ lemma LeftIdentity<T>(a: T, f: T -> List)
   ensures Bind(Return(a), f) == f(a)
 {
   AppendNil(f(a));
+  assert Bind(Nil, f) == Nil;
 }
 
 lemma RightIdentity<T>(m: List)
@@ -49,7 +50,7 @@ lemma RightIdentity<T>(m: List)
   case Nil =>
     assert Bind<T,T>(Nil, Return) == Nil;
   case Cons(x, m') =>
-    calc {
+    calc {:fuel append<T>, 2} {
       Bind(Cons(x, m'), Return);
       append(Return(x), Bind(m', Return));
       Cons(x, Bind(m', Return));

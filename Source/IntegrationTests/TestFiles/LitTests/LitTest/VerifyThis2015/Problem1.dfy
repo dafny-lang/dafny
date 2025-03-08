@@ -56,6 +56,7 @@ method ComputeIsRelaxedPrefix<T(==)>(pat: seq<T>, a: seq<T>) returns (b: bool)
     }
     i := i + 1;
   }
+  assert {:fuel IsRelaxedPrefixAux<T>, 2} IsRelaxedPrefixAux(pat[i..], a[i-shift..], 1-shift) == B;
   return i - shift <= |pat| <= i - shift + 1;
 }
 

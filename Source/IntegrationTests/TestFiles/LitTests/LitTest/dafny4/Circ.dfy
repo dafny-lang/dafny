@@ -13,7 +13,7 @@ ghost function ones(): Stream<int> { Cons(1, ones()) }
 ghost function blink(): Stream<int> { Cons(0, Cons(1, blink())) }
 ghost function zip(a: Stream, b: Stream): Stream { Cons(a.head, zip(b, a.tail)) }
 
-greatest lemma BlinkZipProperty()
+greatest lemma {:fuel zip<int>,2} BlinkZipProperty()
   ensures zip(zeros(), ones()) == blink();
 {
     BlinkZipProperty();
