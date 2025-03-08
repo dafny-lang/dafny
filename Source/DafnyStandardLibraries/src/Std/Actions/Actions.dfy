@@ -160,6 +160,7 @@ module Std.Actions {
       NatTerminationMetric(height)
     }
     twostate predicate Ensures(i: I, new o: O)
+      requires old(Requires(i))
       reads Reads(i)
     {
       && ValidAndDisjoint()
@@ -215,46 +216,6 @@ module Std.Actions {
   ghost predicate OnlyOutputs<I, O>(i: Action<I, O>, history: seq<(I, O)>, c: O) {
     i.ValidHistory(history) <==> forall e <- history :: e.1 == c
   }
-
-  // ghost predicate Terminated<I>(s: seq<I>, stop: I -> bool, n: nat) {
-  //   forall i | 0 <= i < |s| :: n <= i <==> stop(s[i])
-  // }
-
-  // lemma TerminatedComposition<I>(left: seq<I>, right: seq<I>, stop: I -> bool, n: nat)
-  //   requires Terminated(left, stop, |left|)
-  //   requires Terminated(right, stop, n)
-  //   ensures Terminated(left + right, stop, |left| + n)
-  // {}
-
-  // lemma TerminatedDecomposition<I>(left: seq<I>, right: seq<I>, stop: I -> bool, n: nat)
-  //   requires Terminated(left + right, stop, n)
-  //   ensures Terminated(left, stop, n)
-  //   ensures Terminated(right, stop, Max(0, n - |left|))
-  // {
-  //   assert forall i | 0 <= i < |left| :: left[i] == (left + right)[i];
-  //   assert forall i | 0 <= i < |right| :: right[i] == (left + right)[i + |left|];
-  // }
-
-  // function NonTerminals<I>(produced: seq<I>, stop: I -> bool): seq<I> {
-  //   if |produced| == 0 || stop(produced[0]) then
-  //     []
-  //   else
-  //     [produced[0]] + NonTerminals(produced[1..], stop)
-  // }
-
-  // lemma TerminatedDefinesNonTerminalCount<I>(s: seq<I>, stop: I -> bool, n: nat)
-  //   requires Terminated(s, stop, n)
-  //   ensures |NonTerminals(s, stop)| == Min(|s|, n)
-  // {
-  //   if n == 0 || |s| == 0 {
-  //   } else {
-  //     if stop(s[0]) {
-  //     } else {
-  //       assert 1 <= |NonTerminals(s, stop)|;
-  //       TerminatedDefinesNonTerminalCount(s[1..], stop, n - 1);
-  //     }
-  //   }
-  // }
 
   class FunctionAction<I, O> extends Action<I, O> {
 

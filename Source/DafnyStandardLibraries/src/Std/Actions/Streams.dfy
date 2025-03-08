@@ -9,6 +9,7 @@ module Std.Streams {
   import opened Actions
   import opened Producers
   import opened BoundedInts
+  import opened Termination
   import opened Collections.Seq
 
   //
@@ -71,6 +72,7 @@ module Std.Streams {
       ValidHistory(history + [(nextInput, nextOutput)])
     }
     ghost predicate ValidOutputs(outputs: seq<Option<bytes>>)
+      requires Seq.Partitioned(outputs, IsSome)
       decreases height
     {
       Flatten(ProducedOf(outputs)) <= data
@@ -107,6 +109,7 @@ module Std.Streams {
       && this in Repr
       && ValidComponent(wrapped)
       && ValidHistory(history)
+      && remaining == wrapped.remaining
     }
 
     twostate predicate ValidOutput(history: seq<((), Option<bytes>)>, nextInput: (), new nextOutput: Option<bytes>)
@@ -118,13 +121,8 @@ module Std.Streams {
     ghost predicate ValidOutputs(outputs: seq<Option<bytes>>)
       decreases height
     {
-      |ProducedOf(outputs)| <= limit
+      true
     }
-
-    lemma ProducesLessThanLimit(history: seq<((), Option<bytes>)>) 
-      requires ValidHistory(history)
-      ensures |ProducedOf(OutputsOf(history))| <= limit
-    {}
 
     constructor(wrapped: Producer<BoundedInts.bytes>, length: uint64)
       requires wrapped.Valid()
@@ -135,7 +133,7 @@ module Std.Streams {
       this.wrapped := wrapped;
       this.length := length;
 
-      this.limit := wrapped.limit;
+      this.remaining := wrapped.remaining;
       this.history := [];
       this.Repr := {this} + wrapped.Repr;
       this.height := wrapped.height + 1;
@@ -158,15 +156,19 @@ module Std.Streams {
       requires Requires(t)
       reads Reads(t)
       modifies Modifies(t)
-      decreases Decreases(t).Ordinal()
+      decreases Decreases(t).Ordinal(), 0
       ensures Ensures(t, r)
+      ensures if r.Some? then 
+          old(remaining).DecreasesTo(remaining)
+        else
+          old(remaining) == remaining
     {
       assert Requires(t);
 
       assert Valid();
       r := wrapped.Next();
       UpdateHistory(t, r);
-
+      
       assume {:axiom} Ensures(t, r);
     }
   }
@@ -193,12 +195,8 @@ module Std.Streams {
       && position as int <= |s|
       && ConcatenatedOutputsOf(history) == s[..position]
       && 0 < chunkSize
+      && remaining == NatTerminationMetric(|s| - position as int)
     }
-
-    lemma ProducesLessThanLimit(history: seq<((), Option<bytes>)>) 
-      requires ValidHistory(history)
-      ensures |ProducedOf(OutputsOf(history))| <= limit
-    {}
 
     constructor(s: BoundedInts.bytes, chunkSize: uint64)
       requires |s| <= UINT64_MAX as int
@@ -210,7 +208,7 @@ module Std.Streams {
       this.position := 0;
       this.chunkSize := chunkSize;
 
-      this.limit := |s|;
+      this.remaining := NatTerminationMetric(|s|);
       this.history := [];
       this.Repr := {this};
       this.height := 1;
@@ -257,8 +255,12 @@ module Std.Streams {
       requires Requires(t)
       reads Reads(t)
       modifies Modifies(t)
-      decreases Decreases(t).Ordinal()
+      decreases Decreases(t).Ordinal(), 0
       ensures Ensures(t, r)
+      ensures if r.Some? then 
+          old(remaining).DecreasesTo(remaining)
+        else
+          old(remaining) == remaining
     {
       assert Requires(t);
 

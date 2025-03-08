@@ -43,6 +43,7 @@ module Std.GenericActions {
     ghost function Decreases(i: I): TerminationMetric
       reads Reads(i)
     twostate predicate Ensures(i: I, new o: O)
+      requires old(Requires(i))
       reads Reads(i)
 
     // Actual action implementation

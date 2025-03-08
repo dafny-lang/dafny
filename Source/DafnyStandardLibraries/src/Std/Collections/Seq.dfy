@@ -1026,4 +1026,110 @@ module Std.Collections.Seq {
       SortedUnique(xs[1..], ys[1..], R);
     }
   }
+
+  /**********************************************************
+   *
+   *  Partitions
+   *
+   ***********************************************************/
+
+  predicate All<T>(s: seq<T>, p: T -> bool) {
+    forall i {:trigger s[i]} | 0 <= i < |s| :: p(s[i])
+  }
+
+  predicate AllNot<T>(s: seq<T>, p: T -> bool) {
+    forall i {:trigger s[i]} | 0 <= i < |s| :: !p(s[i])
+  }
+
+  lemma AllDecomposition<T>(left: seq<T>, right: seq<T>, p: T -> bool)
+    requires All(left + right, p)
+    ensures All(left, p)
+    ensures All(right, p)
+  {
+    forall i: nat | i < |left| ensures p(left[i]) {
+      assert (left + right)[i] == left[i];
+    }
+    forall i: nat | i < |right| ensures p(right[i]) {
+      assert (left + right)[|left| + i] == right[i];
+    }
+  }
+
+  lemma AllNotDecomposition<T>(left: seq<T>, right: seq<T>, p: T -> bool)
+    requires AllNot(left + right, p)
+    ensures AllNot(left, p)
+    ensures AllNot(right, p)
+  {
+    forall i: nat | i < |left| ensures !p(left[i]) {
+      assert (left + right)[i] == left[i];
+    }
+    forall i: nat | i < |right| ensures !p(right[i]) {
+      assert (left + right)[|left| + i] == right[i];
+    }
+  }
+
+  predicate Partitioned<T>(s: seq<T>, p: T -> bool) {
+    if s == [] then
+      true
+    else if p(s[0]) then
+      Partitioned(s[1..], p)
+    else 
+      AllNot(s[1..], p)
+  }
+
+  lemma AllImpliesPartitioned<T>(s: seq<T>, p: T -> bool)
+    requires All(s, p)
+    ensures Partitioned(s, p)
+  {}
+
+  lemma AllNotImpliesPartitioned<T>(s: seq<T>, p: T -> bool)
+    requires AllNot(s, p)
+    ensures Partitioned(s, p)
+  {}
+
+  lemma PartitionedFirstFalseImpliesAllNot<T>(s: seq<T>, p: T -> bool)
+    requires Partitioned(s, p)
+    requires 0 < |s|
+    requires !p(First(s))
+    ensures AllNot(s, p)
+  {}
+
+  lemma PartitionedLastTrueImpliesAll<T>(s: seq<T>, p: T -> bool)
+    requires Partitioned(s, p)
+    requires 0 < |s|
+    requires p(Last(s))
+    ensures All(s, p)
+  {}
+
+  lemma {:axiom} PartitionedCompositionRight<T>(left: seq<T>, right: seq<T>, p: T -> bool)
+    requires Partitioned(left, p)
+    requires AllNot(right, p)
+    ensures Partitioned(left + right, p)
+
+  lemma {:axiom} PartitionedCompositionLeft<T>(left: seq<T>, right: seq<T>, p: T -> bool)
+    requires All(left, p)
+    requires Partitioned(right, p)
+    ensures Partitioned(left + right, p)
+
+  lemma PartitionedDecomposition<T>(left: seq<T>, right: seq<T>, p: T -> bool)
+    requires Partitioned(left + right, p)
+    ensures Partitioned(left, p)
+    ensures Partitioned(right, p)
+  {
+    if left == [] {
+        assert right == left + right;
+    } else {
+      if !p(left[0]) {
+        PartitionedFirstFalseImpliesAllNot(left + right, p);
+        AllNotDecomposition(left, right, p);
+        assert AllNot(left, p);
+        PartitionedDecomposition(left[1..], right, p);
+      } else {
+        var combined := left + right;
+        assert p(combined[0]);
+        assert Partitioned(combined[1..], p);
+        assert combined[1..] == left[1..] + right;
+        PartitionedDecomposition(left[1..], right, p);
+      }
+    }
+  }
 }

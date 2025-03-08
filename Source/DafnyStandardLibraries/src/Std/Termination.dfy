@@ -37,7 +37,8 @@ module Std.Termination {
     | TMChar(charValue: nat)
     | TMSeq(seqValue: seq<TMValue>)
     | TMDatatype(children: seq<TMValue>)
-  // TODO: All other supported kinds of Dafny values
+    // TODO: All other supported kinds of Dafny values
+    | TMMeta(metric: TerminationMetric)
   {
     predicate DecreasesTo(other: TMValue) {
       match (this, other) {
@@ -60,6 +61,10 @@ module Std.Termination {
           || other in leftChildren
 
         // TODO: other cases
+        case (TMMeta(left), TMMeta(right)) =>
+          left.DecreasesTo(right)
+
+
         case _ => false
       }
     }

@@ -1,5 +1,7 @@
 module Std.Frames {
 
+  import opened Termination
+
   // A trait for objects with a Valid() predicate. Necessary in order to
   // generalize some proofs, but also useful for reducing the boilerplate
   // that most such objects need to include.
@@ -24,6 +26,13 @@ module Std.Frames {
       && this !in component.Repr
       && component.Valid()
       && component.height < height
+    }
+
+    lemma HeightMetricDecreases(component: Validatable)
+      requires component.height < height
+      ensures NatTerminationMetric(height).Ordinal() > NatTerminationMetric(component.height).Ordinal()
+    {
+      OrdinalOrdered(NatTerminationMetric(height), NatTerminationMetric(component.height));
     }
 
     // Convenience predicate, since you often want to assert that
