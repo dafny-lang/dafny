@@ -479,84 +479,81 @@ module Std.Producers {
     }
   }
 
-  // class SeqProducer<T> extends Producer<T> {
+  class SeqProducer<T> extends Producer<T> {
 
-  //   const elements: seq<T>
-  //   var index: nat
+    const elements: seq<T>
+    var index: nat
 
-  //   constructor(elements: seq<T>)
-  //     ensures Valid()
-  //     ensures history == []
-  //     ensures fresh(Repr)
-  //     reads {}
-  //   {
-  //     this.elements := elements;
-  //     this.index := 0;
+    constructor(elements: seq<T>)
+      ensures Valid()
+      ensures history == []
+      ensures fresh(Repr)
+      reads {}
+    {
+      this.elements := elements;
+      this.index := 0;
 
-  //     remaining := TMNat(|elements|);
-  //     Repr := {this};
-  //     history := [];
-  //     height := 0;
-  //   }
+      remaining := TMNat(|elements|);
+      Repr := {this};
+      history := [];
+      height := 0;
+    }
 
-  //   ghost predicate Valid()
-  //     reads this, Repr
-  //     ensures Valid() ==> this in Repr
-  //     ensures Valid() ==> ValidHistory(history)
-  //     decreases height, 0
-  //   {
-  //     && this in Repr
-  //     && ValidHistory(history)
-  //     && index <= |elements|
-  //     && index == |Produced()|
-  //     && remaining == TMNat(|elements| - index)
-  //   }
+    ghost predicate Valid()
+      reads this, Repr
+      ensures Valid() ==> this in Repr
+      ensures Valid() ==> ValidHistory(history)
+      decreases height, 0
+    {
+      && this in Repr
+      && ValidHistory(history)
+      && index <= |elements|
+      && remaining == TMNat(|elements| - index)
+      && (index < |elements| ==> Seq.All(Outputs(), IsSome))
+    }
 
-  //   twostate predicate ValidOutput(history: seq<((), Option<T>)>, nextInput: (), new nextOutput: Option<T>)
-  //     decreases height
-  //     ensures ValidOutput(history, nextInput, nextOutput) ==> ValidHistory(history + [(nextInput, nextOutput)])
-  //   {
-  //     ValidHistory(history + [(nextInput, nextOutput)])
-  //   }
-  //   ghost predicate ValidOutputs(outputs: seq<Option<T>>)
-  //     requires Seq.Partitioned(outputs, IsSome)
-  //     decreases height
-  //   {
-  //     outputs == OutputsForProduced(elements, |outputs|)
-  //   }
+    twostate predicate ValidOutput(history: seq<((), Option<T>)>, nextInput: (), new nextOutput: Option<T>)
+      decreases height
+      ensures ValidOutput(history, nextInput, nextOutput) ==> ValidHistory(history + [(nextInput, nextOutput)])
+    {
+      ValidHistory(history + [(nextInput, nextOutput)])
+    }
+    ghost predicate ValidOutputs(outputs: seq<Option<T>>)
+      requires Seq.Partitioned(outputs, IsSome)
+      decreases height
+    {
+      true
+    }
 
-  //   @IsolateAssertions
-  //   method Invoke(t: ()) returns (value: Option<T>)
-  //     requires Requires(t)
-  //     reads Reads(t)
-  //     modifies Modifies(t)
-  //     decreases Decreases(t).Ordinal()
-  //     ensures Ensures(t, value)
-  //     ensures if value.Some? then 
-  //         old(remaining).DecreasesTo(remaining)
-  //       else
-  //         old(remaining) == remaining
-  //   {
-  //     assert Requires(t);
+    @IsolateAssertions
+    method Invoke(t: ()) returns (value: Option<T>)
+      requires Requires(t)
+      reads Reads(t)
+      modifies Modifies(t)
+      decreases Decreases(t).Ordinal()
+      ensures Ensures(t, value)
+      ensures if value.Some? then 
+          old(remaining).DecreasesTo(remaining)
+        else
+          old(remaining) == remaining
+    {
+      assert Requires(t);
 
-  //     assert Outputs() == OutputsForProduced(elements, |history|);
-  //     if |elements| == index {
-  //       value := None;
-  //       assert |Produced()| == |elements|;
-  //       OutputsForProducedNextIsNone(elements, |elements|);
-  //       assert ValidOutputs(Outputs() + [None]);
-  //       OutputsPartitionedAfterOutputtingNone();
-  //       ProduceNone();
-  //     } else {
-  //       value := Some(elements[index]);
-  //       assert index < |elements|;
-  //       OutputsForProducedNextIsSome(elements, index);
-  //       index := index + 1;
-  //       ProduceSome(value.value);
-  //     }
-      
-  //   }
-  // }
+      if |elements| == index {
+        value := None;
+
+        OutputsPartitionedAfterOutputtingNone();
+        ProduceNone();
+      } else {
+        value := Some(elements[index]);
+        
+        OutputsPartitionedAfterOutputtingSome(elements[index]);
+        ProduceSome(value.value);
+        index := index + 1;
+      }
+      remaining := TMNat(|elements| - index);
+    }
+  }
 
 
   // class FilteredProducer<T> extends Producer<T> {
