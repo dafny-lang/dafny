@@ -1,7 +1,20 @@
 module Std.Parsers.StringBuilders refines Builders {
   import P = StringParsers
   export StringBuilders extends Builders
-    provides S, Int, Nat, WS, Except, Digit, DigitNumber, DebugSummaryInput, PrintDebugSummaryOutput, FailureToString, Apply
+    provides ToInput, ToInputEnd, S, Int, Nat, WS, Except, Digit, DigitNumber, DebugSummaryInput, PrintDebugSummaryOutput, FailureToString, Apply
+
+  function ToInput(other: seq<C>): (i: Input)
+    ensures P.A.View(i) == other
+  {
+    P.A.Input(other, 0, |other|)
+  }
+
+  function ToInputEnd(other: seq<C>, fromEnd: int := 0): (i: Input)
+    requires 0 <= fromEnd <= |other|
+    ensures P.A.View(i) == []
+  {
+    P.A.Input(other, |other| - fromEnd, |other|)
+  }
 
   /** `S(PREFIX)` returns success on its input if its starts with `PREFIX`,  
       On success, `.value` contains the extracted string. You can ignore it by chaining it like `S(PREFIX).e_I(...)`  
@@ -89,6 +102,6 @@ module Std.Parsers.StringBuilders refines Builders {
 
   /** Applies a parser to a string and returns the ParseResult */
   function Apply<T>(parser: B<T>, input: string): ParseResult<T> {
-    parser.apply(P.A.Input(input, 0, |input|))
+    P.Apply(parser.apply, input)
   }
 }

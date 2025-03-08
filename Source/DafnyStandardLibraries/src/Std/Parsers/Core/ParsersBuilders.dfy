@@ -16,12 +16,12 @@
 abstract module Std.Parsers.Builders {
   import P: Core
   export
-    provides Input
     provides P
     provides O
     provides SucceedWith
     provides FailWith
     provides Rec
+    provides B.Apply
     provides B.e_I
     provides B.I_e
     provides B.I_I
@@ -33,6 +33,7 @@ abstract module Std.Parsers.Builders {
     provides B.ThenWithRemaining
     provides B.Bind
     provides B.Rep
+    provides B.RepFold
     provides B.RepSep
     provides B.RepMerge
     provides B.RepSepMerge
@@ -43,6 +44,8 @@ abstract module Std.Parsers.Builders {
     provides Nothing
     provides IntToString
     provides CharTest
+    provides ToInput
+    reveals Input
     reveals C
     reveals ParseResult
     reveals B
@@ -59,6 +62,7 @@ abstract module Std.Parsers.Builders {
   /** `ParseResult` is an alias for `P.ParseResult`. */
   type ParseResult<+T> = P.ParseResult<T>
 
+  function ToInput(other: seq<C>): (i: Input)
 
   /** `SucceedWith(a)` returns success on any input,
       `.value` contains the provided value.*/
@@ -77,6 +81,10 @@ abstract module Std.Parsers.Builders {
   /** Adapter to wrap any underlying parser so that they can be chained together. */
   datatype B<R> = B(apply: P.Parser<R>)
   {
+    function Apply(input: seq<C>): ParseResult<R> {
+      apply(ToInput(input))
+    }
+
     /** `a.?()` evaluates `a` on the input, and then  
         - If `a` succeeds, then wraps its result with `Some(...)`  
         - If `a` fails, and the failure is not fatal and did not consume input, succeeds with `None`.  
@@ -246,6 +254,8 @@ abstract module Std.Parsers.Builders {
       B(P.OneOrMore(apply))
     }
 
+    /** `a.End()` uses the parser `a` with the assertion that there is no input remaining afterwards, otherwise it fails with a recoverable error.
+      * It's like a.I_e(EOS) */
     function End(): (p: B<R>)
     {
       this.I_e(EOS)

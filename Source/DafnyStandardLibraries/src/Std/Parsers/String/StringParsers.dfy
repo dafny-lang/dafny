@@ -56,6 +56,9 @@ module Std.Parsers.InputString refines AbstractInput {
       PrefixRestrict(s, a, b+1, start, end);
     }
   }
+  lemma AboutDrop(self: Input, a: int, b: int)
+    ensures Drop(self, a + b) == Drop(Drop(self, a), b)
+  {}
     
   predicate Equals(self: Input, other: Input)
     ensures Equals(self, other) ==> View(self) == View(other)
@@ -78,7 +81,8 @@ module Std.Parsers.StringParsers refines Core {
       ExtractLineCol,
       Wrappers,
       Space,
-      WS
+      WS,
+      Apply
     reveals C
 
   import A = InputString
@@ -369,5 +373,15 @@ module Std.Parsers.StringParsers refines Core {
     else
       var failure := failure + "\n";
       failure
+  }
+
+  /** Applies a parser to a string and returns the ParseResult */
+  function Apply<T>(parser: Parser<T>, input: string): ParseResult<T> {
+    parser(ToInput(input))
+  }
+
+  /** Converts the given string to an input suitable for parsing and slicing */
+  function ToInput(input: string): Input {
+    A.Input(input, 0, |input|)
   }
 }

@@ -1,6 +1,6 @@
 abstract module Std.Parsers.AbstractInput {
   // Can be either a sequence, a sequence and pointers to this sequence, or an array and pointers to the array
-  type Input(!new)
+  type Input(!new,==)
   type C(!new, ==)
 
   ghost function View(self: Input): (r: seq<C>)
@@ -12,12 +12,14 @@ abstract module Std.Parsers.AbstractInput {
   function Drop(self: Input, start: int): Input
     requires 0 <= start <= Length(self)
     ensures View(self)[start..] == View(Drop(self, start))
+    ensures start == 0 ==> Drop(self, start )== self
   function Slice(self: Input, start: int, end: int): Input
     requires 0 <= start <= end <= Length(self)
     ensures View(self)[start..end] == View(Slice(self, start, end))
-  predicate Equals(self: Input, other: Input)
-    ensures self == other ==> Equals(self, other)
-    ensures Equals(self, other) ==> View(self) == View(other)
+  lemma AboutDrop(self: Input, a: int, b: int)
+    requires 0 <= a <= Length(self)
+    requires 0 <= b <= Length(self) - a
+    ensures Drop(self, a + b) == Drop(Drop(self, a), b)
 }
 
 abstract module Std.Parsers.Core
@@ -193,7 +195,7 @@ abstract module Std.Parsers.Core
       // - Is recoverable
       // - Did not consume any input (not-committed)
     {
-      ParseFailure? && level == Recoverable && A.Equals(input, Remaining())
+      ParseFailure? && level == Recoverable && input == Remaining()
     }
   }
 
@@ -201,7 +203,15 @@ abstract module Std.Parsers.Core
     // True if remaining is a suffix of the input
   {
     && A.Length(remaining) <= A.Length(input)
-    && A.Equals(A.Drop(input, A.Length(input)-A.Length(remaining)), remaining)
+    && A.Drop(input, A.Length(input)-A.Length(remaining)) == remaining
+  }
+
+  lemma IsRemainingTransitive(input: Input, remaining1: Input, remaining2: Input)
+    requires IsRemaining(input, remaining1)
+    requires IsRemaining(remaining1, remaining2)
+    ensures IsRemaining(input, remaining2)
+  {
+    A.AboutDrop(input, A.Length(input)-A.Length(remaining1), A.Length(remaining1)-A.Length(remaining2));
   }
 
   // Cannot express this predicate if Input is allocated. Add once we accept quantification over unallocated objects
