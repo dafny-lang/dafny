@@ -268,7 +268,7 @@ module Std.Actions {
       requires Requires(i)
       reads Reads(i)
       modifies Modifies(i)
-      decreases Decreases(i).Ordinal()
+      decreases Decreases(i).Ordinal(), 0
       ensures Ensures(i, o)
     {
       assert Requires(i);
@@ -398,10 +398,11 @@ module Std.Actions {
       requires Requires(i)
       reads Reads(i)
       modifies Modifies(i)
-      decreases Decreases(i).Ordinal()
+      decreases Decreases(i).Ordinal(), 0
       ensures Ensures(i, o)
     {
       assert Requires(i);
+      reveal TerminationMetric.DecreasesTo();
 
       assert first.Valid();
       assert first.ValidHistory(first.history);

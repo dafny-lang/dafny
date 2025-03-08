@@ -52,7 +52,8 @@ module Std.GenericActions {
       requires Requires(i)
       reads Reads(i)
       modifies Modifies(i)
-      decreases Decreases(i).Ordinal()
+      // TODO: Can the ", 0" part be rolled into the TerminationMetric instead?
+      decreases Decreases(i).Ordinal(), 0
       ensures Ensures(i, o)
   }
 

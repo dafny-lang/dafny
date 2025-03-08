@@ -100,7 +100,7 @@ module Std.Consumers {
       requires Requires(t)
       reads Reads(t)
       modifies Modifies(t)
-      decreases Decreases(t).Ordinal()
+      decreases Decreases(t).Ordinal(), 0
       ensures Ensures(t, r)
     {
       assert Requires(t);
@@ -174,7 +174,7 @@ module Std.Consumers {
       requires Requires(t)
       reads Reads(t)
       modifies Modifies(t)
-      decreases Decreases(t).Ordinal()
+      decreases Decreases(t).Ordinal(), 0
       ensures Ensures(t, r)
     {
       assert Requires(t);
@@ -252,7 +252,7 @@ module Std.Consumers {
       requires Requires(t)
       reads Reads(t)
       modifies Modifies(t)
-      decreases Decreases(t).Ordinal()
+      decreases Decreases(t).Ordinal(), 0
       ensures Ensures(t, r)
     {
       assert Requires(t);
@@ -327,7 +327,7 @@ module Std.Consumers {
       requires Requires(t)
       reads Repr
       modifies Modifies(t)
-      decreases Decreases(t).Ordinal()
+      decreases Decreases(t).Ordinal(), 0
       ensures Ensures(t, r)
     {
       values := values + [t];
