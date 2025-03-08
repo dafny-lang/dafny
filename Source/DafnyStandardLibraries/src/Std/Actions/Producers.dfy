@@ -149,7 +149,7 @@ module Std.Producers {
       decreases Decreases(()).Ordinal()
       ensures Ensures((), r)
       ensures if r.Some? then 
-          old(remaining).Ordinal() > remaining.Ordinal()
+          old(remaining).DecreasesTo(remaining) && old(remaining).Ordinal() > remaining.Ordinal()
         else
           old(remaining) == remaining
     {
@@ -201,6 +201,16 @@ module Std.Producers {
     // Helper methods
 
     lemma OutputsPartitionedAfterOutputtingNone()
+      requires ValidHistory(history)
+      ensures Seq.Partitioned(OutputsOf(history + [((), None)]), IsSome)
+    {
+      assert Seq.Partitioned(Outputs(), IsSome);
+      assert Seq.AllNot<Option<T>>([None], IsSome);
+      Seq.PartitionedCompositionRight(Outputs(), [None], IsSome);
+      assert OutputsOf(history + [((), None)]) == Outputs() + [None];
+    }
+
+    lemma OutputsPartitionedAfterOutputtingSome()
       requires ValidHistory(history)
       ensures Seq.Partitioned(OutputsOf(history + [((), None)]), IsSome)
     {
@@ -507,6 +517,7 @@ module Std.Producers {
       outputs == OutputsForProduced(elements, |outputs|)
     }
 
+    @IsolateAssertions
     method Invoke(t: ()) returns (value: Option<T>)
       requires Requires(t)
       reads Reads(t)
@@ -533,7 +544,7 @@ module Std.Producers {
         assert index < |elements|;
         OutputsForProducedNextIsSome(elements, index);
         index := index + 1;
-        ProduceSome(elements[index]);
+        ProduceSome(value.value);
       }
       
     }
@@ -717,6 +728,8 @@ module Std.Producers {
         HeightMetricDecreases(second);
         result := second.Next();
       }
+      
+      remaining := TMComma(first.remaining, second.remaining);
 
       Repr := {this} + first.Repr + second.Repr;
       height := first.height + second.height + 1;
