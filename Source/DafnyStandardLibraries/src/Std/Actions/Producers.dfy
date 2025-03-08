@@ -380,202 +380,34 @@ module Std.Producers {
     }
   }
 
-  class LimitedProducer<T> extends Producer<T> {
+  // class LimitedProducer<T> extends Producer<T> {
 
-    const original: IProducer<T>
-    var produced: nat
-    const max: nat
+  //   const original: IProducer<T>
+  //   var produced: nat
+  //   const max: nat
 
-    ghost var producedNone: bool;
-    ghost const originalTotalAction: TotalActionProof<(), T>
+  //   ghost var producedNone: bool;
+  //   ghost const originalTotalAction: TotalActionProof<(), T>
 
-    constructor(original: IProducer<T>, max: nat, ghost originalTotalAction: TotalActionProof<(), T>)
-      requires original.Valid()
-      requires originalTotalAction.Valid()
-      requires originalTotalAction.Action() == original
-      requires original.Repr !! originalTotalAction.Repr
-      ensures Valid()
-      ensures history == []
-      ensures fresh(Repr - original.Repr - originalTotalAction.Repr)
-    {
-      this.original := original;
-      this.max := max;
-      this.produced := 0;
-      this.originalTotalAction := originalTotalAction;
-
-      this.remaining := TMNat(max);
-      Repr := {this} + original.Repr + originalTotalAction.Repr;
-      history := [];
-      height := original.height + originalTotalAction.height + 1;
-      producedNone := false;
-    }
-
-    ghost predicate Valid()
-      reads this, Repr
-      ensures Valid() ==> this in Repr
-      ensures Valid() ==> ValidHistory(history)
-      decreases height, 0
-    {
-      && this in Repr
-      && ValidComponent(original)
-      && ValidComponent(originalTotalAction)
-      && original.Repr !! originalTotalAction.Repr
-      && originalTotalAction.Action() == original
-      && ValidHistory(history)
-      && produced == |Produced()|
-      && produced <= max
-      && remaining == TMNat(max - produced)
-      && (produced < max ==> Seq.All(Outputs(), IsSome))
-    }
-
-    twostate predicate ValidOutput(history: seq<((), Option<T>)>, nextInput: (), new nextOutput: Option<T>)
-      decreases height
-      ensures ValidOutput(history, nextInput, nextOutput) ==> ValidHistory(history + [(nextInput, nextOutput)])
-    {
-      ValidHistory(history + [(nextInput, nextOutput)])
-    }
-
-    ghost predicate ValidOutputs(outputs: seq<Option<T>>)
-      requires Seq.Partitioned(outputs, IsSome)
-      decreases height
-    {
-      true
-    }
-
-    @IsolateAssertions
-    @ResourceLimit("0")
-    method Invoke(t: ()) returns (value: Option<T>)
-      requires Requires(t)
-      reads this, Repr
-      modifies Modifies(t)
-      decreases Decreases(t).Ordinal()
-      ensures Ensures(t, value)
-      ensures if value.Some? then 
-          old(remaining).DecreasesTo(remaining)
-        else
-          old(remaining) == remaining
-    {
-      assert Requires(t);
-
-      if produced == max {
-        value := None;
-
-        OutputsPartitionedAfterOutputtingNone();
-        ProduceNone();
-        producedNone := true;
-      } else {
-        originalTotalAction.AnyInputIsValid(original.history, ());
-        var v := original.Invoke(());
-        value := Some(v);
-        produced := produced + 1;
-
-        OutputsPartitionedAfterOutputtingSome(v);
-        ProduceSome(v);
-        remaining := TMNat(max - produced);
-      }
-
-      Repr := {this} + original.Repr + originalTotalAction.Repr;
-      height := original.height + originalTotalAction.height + 1;
-    }
-  }
-
-  class SeqProducer<T> extends Producer<T> {
-
-    const elements: seq<T>
-    var index: nat
-
-    constructor(elements: seq<T>)
-      ensures Valid()
-      ensures history == []
-      ensures fresh(Repr)
-      reads {}
-    {
-      this.elements := elements;
-      this.index := 0;
-
-      remaining := TMNat(|elements|);
-      Repr := {this};
-      history := [];
-      height := 0;
-    }
-
-    ghost predicate Valid()
-      reads this, Repr
-      ensures Valid() ==> this in Repr
-      ensures Valid() ==> ValidHistory(history)
-      decreases height, 0
-    {
-      && this in Repr
-      && ValidHistory(history)
-      && index <= |elements|
-      && remaining == TMNat(|elements| - index)
-      && (index < |elements| ==> Seq.All(Outputs(), IsSome))
-    }
-
-    twostate predicate ValidOutput(history: seq<((), Option<T>)>, nextInput: (), new nextOutput: Option<T>)
-      decreases height
-      ensures ValidOutput(history, nextInput, nextOutput) ==> ValidHistory(history + [(nextInput, nextOutput)])
-    {
-      ValidHistory(history + [(nextInput, nextOutput)])
-    }
-    ghost predicate ValidOutputs(outputs: seq<Option<T>>)
-      requires Seq.Partitioned(outputs, IsSome)
-      decreases height
-    {
-      true
-    }
-
-    @IsolateAssertions
-    method Invoke(t: ()) returns (value: Option<T>)
-      requires Requires(t)
-      reads Reads(t)
-      modifies Modifies(t)
-      decreases Decreases(t).Ordinal()
-      ensures Ensures(t, value)
-      ensures if value.Some? then 
-          old(remaining).DecreasesTo(remaining)
-        else
-          old(remaining) == remaining
-    {
-      assert Requires(t);
-
-      if |elements| == index {
-        value := None;
-
-        OutputsPartitionedAfterOutputtingNone();
-        ProduceNone();
-      } else {
-        value := Some(elements[index]);
-        
-        OutputsPartitionedAfterOutputtingSome(elements[index]);
-        ProduceSome(value.value);
-        index := index + 1;
-      }
-      remaining := TMNat(|elements| - index);
-    }
-  }
-
-
-  // class FilteredProducer<T> extends Producer<T> {
-
-  //   const source: Producer<T>
-  //   // TODO: Document how I really don't want to use a ~>,
-  //   // but can't use Seq.Filter unless I do.
-  //   const filter: T -> bool
-
-  //   constructor (source: Producer<T>, filter: T -> bool)
-  //     requires source.Valid()
+  //   constructor(original: IProducer<T>, max: nat, ghost originalTotalAction: TotalActionProof<(), T>)
+  //     requires original.Valid()
+  //     requires originalTotalAction.Valid()
+  //     requires originalTotalAction.Action() == original
+  //     requires original.Repr !! originalTotalAction.Repr
   //     ensures Valid()
   //     ensures history == []
-  //     ensures fresh(Repr - source.Repr)
+  //     ensures fresh(Repr - original.Repr - originalTotalAction.Repr)
   //   {
-  //     this.source := source;
-  //     this.filter := filter;
+  //     this.original := original;
+  //     this.max := max;
+  //     this.produced := 0;
+  //     this.originalTotalAction := originalTotalAction;
 
-  //     remaining := source.remaining;
-  //     Repr := {this} + source.Repr;
-  //     height := source.height + 1;
+  //     this.remaining := TMNat(max);
+  //     Repr := {this} + original.Repr + originalTotalAction.Repr;
   //     history := [];
+  //     height := original.height + originalTotalAction.height + 1;
+  //     producedNone := false;
   //   }
 
   //   ghost predicate Valid()
@@ -585,9 +417,99 @@ module Std.Producers {
   //     decreases height, 0
   //   {
   //     && this in Repr
-  //     && ValidComponent(source)
+  //     && ValidComponent(original)
+  //     && ValidComponent(originalTotalAction)
+  //     && original.Repr !! originalTotalAction.Repr
+  //     && originalTotalAction.Action() == original
   //     && ValidHistory(history)
-  //     && remaining == source.remaining
+  //     && produced == |Produced()|
+  //     && produced <= max
+  //     && remaining == TMNat(max - produced)
+  //     && (produced < max ==> Seq.All(Outputs(), IsSome))
+  //   }
+
+  //   twostate predicate ValidOutput(history: seq<((), Option<T>)>, nextInput: (), new nextOutput: Option<T>)
+  //     decreases height
+  //     ensures ValidOutput(history, nextInput, nextOutput) ==> ValidHistory(history + [(nextInput, nextOutput)])
+  //   {
+  //     ValidHistory(history + [(nextInput, nextOutput)])
+  //   }
+
+  //   ghost predicate ValidOutputs(outputs: seq<Option<T>>)
+  //     requires Seq.Partitioned(outputs, IsSome)
+  //     decreases height
+  //   {
+  //     true
+  //   }
+
+  //   @IsolateAssertions
+  //   @ResourceLimit("0")
+  //   method Invoke(t: ()) returns (value: Option<T>)
+  //     requires Requires(t)
+  //     reads this, Repr
+  //     modifies Modifies(t)
+  //     decreases Decreases(t).Ordinal()
+  //     ensures Ensures(t, value)
+  //     ensures if value.Some? then 
+  //         old(remaining).DecreasesTo(remaining)
+  //       else
+  //         old(remaining) == remaining
+  //   {
+  //     assert Requires(t);
+
+  //     if produced == max {
+  //       value := None;
+
+  //       OutputsPartitionedAfterOutputtingNone();
+  //       ProduceNone();
+  //       producedNone := true;
+  //     } else {
+  //       originalTotalAction.AnyInputIsValid(original.history, ());
+  //       var v := original.Invoke(());
+  //       value := Some(v);
+  //       produced := produced + 1;
+
+  //       OutputsPartitionedAfterOutputtingSome(v);
+  //       ProduceSome(v);
+  //       remaining := TMNat(max - produced);
+  //     }
+
+  //     Repr := {this} + original.Repr + originalTotalAction.Repr;
+  //     height := original.height + originalTotalAction.height + 1;
+  //   }
+  // }
+
+  // class SeqProducer<T> extends Producer<T> {
+
+  //   const elements: seq<T>
+  //   var index: nat
+
+  //   constructor(elements: seq<T>)
+  //     ensures Valid()
+  //     ensures history == []
+  //     ensures fresh(Repr)
+  //     reads {}
+  //   {
+  //     this.elements := elements;
+  //     this.index := 0;
+
+  //     remaining := TMNat(|elements|);
+  //     Repr := {this};
+  //     history := [];
+  //     height := 0;
+  //   }
+
+  //   ghost predicate Valid()
+  //     reads this, Repr
+  //     ensures Valid() ==> this in Repr
+  //     ensures Valid() ==> ValidHistory(history)
+  //     decreases height, 0
+  //   {
+  //     && this in Repr
+  //     && ValidHistory(history)
+  //     && index <= |elements|
+  //     && remaining == TMNat(|elements| - index)
+  //     && (index < |elements| ==> Seq.All(Outputs(), IsSome))
   //   }
 
   //   twostate predicate ValidOutput(history: seq<((), Option<T>)>, nextInput: (), new nextOutput: Option<T>)
@@ -604,60 +526,150 @@ module Std.Producers {
   //   }
 
   //   @IsolateAssertions
-  //   @ResourceLimit("0")
-  //   method {:only} Invoke(t: ()) returns (result: Option<T>)
+  //   method Invoke(t: ()) returns (value: Option<T>)
   //     requires Requires(t)
   //     reads Reads(t)
   //     modifies Modifies(t)
   //     decreases Decreases(t).Ordinal()
-  //     ensures Ensures(t, result)
-  //     ensures if result.Some? then 
+  //     ensures Ensures(t, value)
+  //     ensures if value.Some? then 
   //         old(remaining).DecreasesTo(remaining)
   //       else
   //         old(remaining) == remaining
   //   {
   //     assert Requires(t);
 
-  //     var sourceProduced := 0;
-  //     while true
-  //       invariant fresh(Repr - old(Repr))
-  //       invariant Valid()
-  //       invariant ValidComponent(source)
-  //       invariant history == old(history)
-  //       invariant if 0 < sourceProduced then
-  //           old(source.remaining).DecreasesTo(source.remaining)
-  //         else
-  //           old(source.remaining) == source.remaining
-  //       decreases source.remaining.Ordinal()
-  //     {
-  //       HeightMetricDecreases(source);
-  //       result := source.Next();
-  //       if result.Some? {
-  //         assert old(source.remaining).DecreasesTo(source.remaining);
-  //         sourceProduced := sourceProduced + 1;
-  //       }
-  //       Repr := {this} + source.Repr;
-        
-  //       remaining := source.remaining;
+  //     if |elements| == index {
+  //       value := None;
 
-  //       if result.None? || filter(result.value) {
-  //         break;
-  //       }
-  //     }
-  //     if result.Some? {
-  //       assert old(source.remaining).DecreasesTo(source.remaining);
-  //       assert 0 <= |source.Outputs()| && Seq.Last(source.Outputs()).Some?;
-  //       assert ValidOutputs(Outputs() + [result]);
-  //       ProduceSome(result.value);
-  //     } else {
   //       OutputsPartitionedAfterOutputtingNone();
   //       ProduceNone();
+  //     } else {
+  //       value := Some(elements[index]);
+        
+  //       OutputsPartitionedAfterOutputtingSome(elements[index]);
+  //       ProduceSome(value.value);
+  //       index := index + 1;
   //     }
-
-  //     height := source.height + 1;
-  //     assert ValidHistory(history);
+  //     remaining := TMNat(|elements| - index);
   //   }
   // }
+
+  class FilteredProducer<T> extends Producer<T> {
+
+    const source: Producer<T>
+    // TODO: Document how I really don't want to use a ~>,
+    // but can't use Seq.Filter unless I do.
+    const filter: T -> bool
+
+    constructor (source: Producer<T>, filter: T -> bool)
+      requires source.Valid()
+      ensures Valid()
+      ensures history == []
+      ensures fresh(Repr - source.Repr)
+    {
+      this.source := source;
+      this.filter := filter;
+
+      remaining := source.remaining;
+      Repr := {this} + source.Repr;
+      height := source.height + 1;
+      history := [];
+    }
+
+    ghost predicate Valid()
+      reads this, Repr
+      ensures Valid() ==> this in Repr
+      ensures Valid() ==> ValidHistory(history)
+      decreases height, 0
+    {
+      && this in Repr
+      && ValidComponent(source)
+      && ValidHistory(history)
+      && remaining == source.remaining
+      && (Seq.All(source.Outputs(), IsSome) ==> Seq.All(Outputs(), IsSome))
+    }
+
+    twostate predicate ValidOutput(history: seq<((), Option<T>)>, nextInput: (), new nextOutput: Option<T>)
+      decreases height
+      ensures ValidOutput(history, nextInput, nextOutput) ==> ValidHistory(history + [(nextInput, nextOutput)])
+    {
+      ValidHistory(history + [(nextInput, nextOutput)])
+    }
+    ghost predicate ValidOutputs(outputs: seq<Option<T>>)
+      requires Seq.Partitioned(outputs, IsSome)
+      decreases height
+    {
+      true
+    }
+
+    @IsolateAssertions
+    @ResourceLimit("0")
+    method {:only} Invoke(t: ()) returns (result: Option<T>)
+      requires Requires(t)
+      reads Reads(t)
+      modifies Modifies(t)
+      decreases Decreases(t).Ordinal()
+      ensures Ensures(t, result)
+      ensures if result.Some? then 
+          old(remaining).DecreasesTo(remaining)
+        else
+          old(remaining) == remaining
+    {
+      assert Requires(t);
+
+      result := None;
+      while true
+        invariant fresh(Repr - old(Repr))
+        invariant Valid()
+        invariant ValidComponent(source)
+        invariant history == old(history)
+        invariant result.Some? ==> 
+          && 0 < |source.Outputs()| && result == Seq.Last(source.Outputs())
+        invariant old(source.Outputs()) <= source.Outputs()
+        decreases source.remaining.Ordinal()
+      {
+        HeightMetricDecreases(source);
+        result := source.Next();
+        Repr := {this} + source.Repr;
+        remaining := source.remaining;
+        height := source.height + 1;
+      
+        if result.None? || filter(result.value) {
+          break;
+        }
+
+        if result.Some? {
+          assert result == Seq.Last(source.Outputs());
+          Seq.PartitionedLastTrueImpliesAll(source.Outputs(), IsSome);
+          assert Seq.All(source.Outputs(), IsSome);
+          assert old(Seq.All(source.Outputs(), IsSome)) ==> old(Seq.All(Outputs(), IsSome));
+          assert Seq.All(Outputs(), IsSome) == old(Seq.All(Outputs(), IsSome));
+          assert Seq.All(source.Outputs(), IsSome);
+          assert old(source.Outputs()) <= source.Outputs();
+          assert old(Seq.All(source.Outputs(), IsSome));
+          assert Seq.All(Outputs(), IsSome);
+        }
+      }
+      if result.Some? {
+        assert Seq.Partitioned(source.Outputs(), IsSome);
+        assert Seq.Last(source.Outputs()) == result;
+        Seq.PartitionedLastTrueImpliesAll(source.Outputs(), IsSome);
+        assert Seq.All(source.Outputs(), IsSome);
+        var sourceNewOutputs := source.Outputs()[|old(source.Outputs())|..];
+        assert source.Outputs() == old(source.Outputs()) + sourceNewOutputs;
+        assert Seq.All(old(source.Outputs()), IsSome);
+        assert Seq.All(Outputs(), IsSome);
+        OutputsPartitionedAfterOutputtingSome(result.value);
+        ProduceSome(result.value);
+      } else {
+        OutputsPartitionedAfterOutputtingNone();
+        ProduceNone();
+      }
+
+      assert ValidHistory(history);
+    }
+  }
 
   // class ConcatenatedProducer<T> extends Producer<T> {
 
