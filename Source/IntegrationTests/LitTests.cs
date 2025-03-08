@@ -80,12 +80,20 @@ namespace IntegrationTests {
         "--verification-time-limit:300",
         "--resource-limit:50e6"
       ];
-      string[] defaultTranslateArgs = ["--use-basename-for-filename",
+      string[] defaultTranslateArgs = [ // these are arguments you get with %translate (additional standard arguments are obtained by %trargs
+      ];
+      string[] trargs = [
+        "--type-system-refresh",
+        "--general-traits=datatype",
+        "--general-newtypes",
+        "--use-basename-for-filename",
         "--cores:2",
+        "--show-snippets:false",
         "--standard-libraries:false",
         "--verification-time-limit:300",
         "--resource-limit:50e6"
       ];
+
       string[] defaultBuildArgs = ["build",
         "--type-system-refresh",
         "--general-traits=datatype",
@@ -111,7 +119,7 @@ namespace IntegrationTests {
 
       var substitutions = new Dictionary<string, object> {
         { "%diff", "diff" },
-        { "%trargs", "--use-basename-for-filename --show-snippets:false --standard-libraries:false --cores:2 --verification-time-limit:300 --resource-limit:50e6 --type-system-refresh --general-traits=datatype --general-newtypes" },
+        { "%trargs", trargs },
         { "%binaryDir", "." },
         { "%z3", Path.Join("z3", "bin", $"z3-{DafnyOptions.DefaultZ3Version}") },
         { "%repositoryRoot", RepositoryRoot.Replace(@"\", "/") },
