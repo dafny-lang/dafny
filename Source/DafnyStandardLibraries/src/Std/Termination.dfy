@@ -17,7 +17,7 @@ module Std.Termination {
     // as TMComma(a, TMComma(b, TMComma(c, d))).
     | TMComma(first: TerminationMetric, rest: TerminationMetric)
   {
-    predicate DecreasesTo(other: TerminationMetric) {
+    opaque predicate DecreasesTo(other: TerminationMetric) {
       match (this, other) {
         // Simple well-ordered types
         case (TMNat(left), TMNat(right)) => left > right
@@ -57,6 +57,10 @@ module Std.Termination {
     // TODO: prove DecreasesTo is a well-founded ordering
     // (useful exercise and helps catch typos inconsistent with Dafny's ordering)
 
+    predicate EqualOrDecreasesTo(other: TerminationMetric) {
+      this == other || DecreasesTo(other)
+    }
+
     // Assume a mapping exists from the DecreasesTo ordering onto the ordinals.
     // This always exists, but is complicated to define concretely
     // and technically has to be defined for a whole program.
@@ -65,5 +69,15 @@ module Std.Termination {
     lemma {:axiom} OrdinalDecreases(other: TerminationMetric)
       requires DecreasesTo(other)
       ensures Ordinal() > other.Ordinal()
+
+    lemma {:axiom} DecreasesToTransitive(middle: TerminationMetric, right: TerminationMetric)
+      requires 
+        || (EqualOrDecreasesTo(middle) && middle.DecreasesTo(right))
+        || (DecreasesTo(middle) && middle.EqualOrDecreasesTo(right))
+      ensures DecreasesTo(right)
+
+    lemma {:axiom} EqualOrDecreasesToTransitive(middle: TerminationMetric, right: TerminationMetric)
+      requires EqualOrDecreasesTo(middle) && middle.EqualOrDecreasesTo(right)
+      ensures EqualOrDecreasesTo(right)
   }
 }

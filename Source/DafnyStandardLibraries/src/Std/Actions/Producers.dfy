@@ -586,7 +586,7 @@ module Std.Producers {
       && this in Repr
       && ValidComponent(source)
       && ValidHistory(history)
-      && remaining == source.remaining
+      && remaining.EqualOrDecreasesTo(source.remaining)
       && (Seq.All(source.Outputs(), IsSome) ==> Seq.All(Outputs(), IsSome))
     }
 
@@ -619,22 +619,36 @@ module Std.Producers {
       assert Requires(t);
 
       result := None;
+      var notFirstLoop := false;
       while true
         invariant fresh(Repr - old(Repr))
         invariant Valid()
         invariant ValidComponent(source)
         invariant history == old(history)
-        invariant result.Some? ==> 
+        invariant notFirstLoop ==> 
           && 0 < |source.Outputs()| && result == Seq.Last(source.Outputs())
+        invariant if result.Some? then 
+            old(source.remaining).DecreasesTo(source.remaining)
+          else
+            old(source.remaining).EqualOrDecreasesTo(source.remaining)
         invariant old(source.Outputs()) <= source.Outputs()
         decreases source.remaining.Ordinal()
       {
-        HeightMetricDecreases(source);
+        notFirstLoop := true;
+
+        label beforeNext:
+        // Doesn't help because we need to decrease from old(height)
+        // HeightMetricDecreases(source);
         result := source.Next();
+        if result.Some? {
+          assert old@beforeNext(source.remaining).DecreasesTo(source.remaining);
+          old(source.remaining).DecreasesToTransitive(old@beforeNext(source.remaining), source.remaining);
+          remaining.DecreasesToTransitive(old@beforeNext(source.remaining), source.remaining);
+        }
+
         Repr := {this} + source.Repr;
-        remaining := source.remaining;
         height := source.height + 1;
-      
+        
         if result.None? || filter(result.value) {
           break;
         }
@@ -651,6 +665,8 @@ module Std.Producers {
           assert Seq.All(Outputs(), IsSome);
         }
       }
+      assert notFirstLoop;
+
       if result.Some? {
         assert Seq.Partitioned(source.Outputs(), IsSome);
         assert Seq.Last(source.Outputs()) == result;
@@ -662,12 +678,23 @@ module Std.Producers {
         assert Seq.All(Outputs(), IsSome);
         OutputsPartitionedAfterOutputtingSome(result.value);
         ProduceSome(result.value);
+        assert (Seq.All(source.Outputs(), IsSome) ==> Seq.All(Outputs(), IsSome));
+
+        remaining := source.remaining;
+        old(remaining).DecreasesToTransitive(old(source.remaining), source.remaining);
+        assert old(remaining).DecreasesTo(remaining);
+        assert (remaining == source.remaining || remaining.DecreasesTo(source.remaining));
       } else {
         OutputsPartitionedAfterOutputtingNone();
         ProduceNone();
-      }
+        assert !IsSome(Seq.Last(source.Outputs()));
+        assert !Seq.All(source.Outputs(), IsSome);
+        assert (Seq.All(source.Outputs(), IsSome) ==> Seq.All(Outputs(), IsSome));
 
-      assert ValidHistory(history);
+        remaining := old(remaining);
+        remaining.EqualOrDecreasesToTransitive(old(source.remaining), source.remaining);
+        assert (remaining == source.remaining || remaining.DecreasesTo(source.remaining));
+      }
     }
   }
 
