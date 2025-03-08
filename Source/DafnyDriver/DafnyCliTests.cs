@@ -64,6 +64,11 @@ public static class DafnyCliTests {
   ];
 
   public static readonly string[] NewDefaultArgumentsForTesting = [
+    // Use the new resolver
+    "--type-system-refresh",
+    "--general-traits=datatype",
+    "--general-newtypes",
+
     // Try to verify 2 verification conditions at once
     "--cores=2",
 

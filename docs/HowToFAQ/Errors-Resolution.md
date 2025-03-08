@@ -260,7 +260,7 @@ context, such as a print statement.
 ## **Error: shared destructors must have the same type, but '_name_' has type '_type_' in constructor '_name_' and type '_type_' in constructor '_name_'** {#r_shared_destructors_have_different_types}
 
 ```dafny
-datatype D = A(x: int) | B (x: bool)
+datatype D = A(x: int) | B(x: bool)
 ```
 
 In defining a datatype, two constructors can both refer to a common destructor, but if they 
@@ -353,6 +353,7 @@ a syntax that explicitly states that the writer means it.
 
 ## **Error: a non-trivial type test is allowed only for reference types (tried to test if '_type_' is a '_type_')** {#r_unsupported_type_test}
 
+<!-- %check-resolve %options --type-system-refresh=false --general-traits=legacy --general-newtypes=false -->
 ```dafny
 type Small = i: nat | i < 10
 const i := 10
@@ -398,7 +399,7 @@ or the test is unnecessary.
 
 ## **Warning: the type of the other operand is a map to a non-null type, so the inclusion test of 'null' will always return '_bool_'** {#r_trivial_map_null_inclusion_test}
 
-<!-- %check-resolve-warn -->
+<!-- %check-resolve-warn %options --type-system-refresh=false --general-traits=legacy --general-newtypes=false -->
 ```dafny
 trait T {}
 const m: map<T,T>

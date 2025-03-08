@@ -2,7 +2,7 @@
 // RUN: %diff "%s.expect" "%t"
 
 predicate prop()
-ensures prop // OOPS! Forgot () after prop
+  ensures prop // OOPS! Forgot () after prop
 {
-true
+  true
 }

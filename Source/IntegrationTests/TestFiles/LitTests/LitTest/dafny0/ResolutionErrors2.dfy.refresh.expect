@@ -22,13 +22,11 @@ ResolutionErrors2.dfy(242,4): Error: LHS of array assignment must denote an arra
 ResolutionErrors2.dfy(242,19): Error: integer literal used as if it had type seq<int>
 ResolutionErrors2.dfy(246,9): Error: cannot assign to a range of array elements (try the 'forall' statement)
 ResolutionErrors2.dfy(246,4): Error: LHS of array assignment must denote an array element (found seq<int>)
-ResolutionErrors2.dfy(246,9): Error: index-range selection used as if it had type int
 ResolutionErrors2.dfy(246,9): Error: resulting sequence (int) type does not agree with source sequence type (seq<int>)
 ResolutionErrors2.dfy(260,10): Error: LHS of assignment must denote a mutable field
 ResolutionErrors2.dfy(261,10): Error: LHS of assignment must denote a mutable field
 ResolutionErrors2.dfy(262,5): Error: cannot assign to a range of array elements (try the 'forall' statement)
 ResolutionErrors2.dfy(263,5): Error: cannot assign to a range of array elements (try the 'forall' statement)
-ResolutionErrors2.dfy(263,5): Error: index-range selection used as if it had type int
 ResolutionErrors2.dfy(262,12): Error: RHS (of type int) not assignable to LHS (of type seq<int>)
 ResolutionErrors2.dfy(272,11): Error: unresolved identifier: s
 ResolutionErrors2.dfy(284,39): Error: RHS (of type (?17, ?18, ?19)) not assignable to LHS (of type (int, real, int, real))
@@ -37,7 +35,6 @@ ResolutionErrors2.dfy(283,34): Error: RHS (of type (int, int, real)) not assigna
 ResolutionErrors2.dfy(291,18): Error: member '3' does not exist in datatype '_tuple#3'
 ResolutionErrors2.dfy(291,28): Error: member 'x' does not exist in datatype '_tuple#2'
 ResolutionErrors2.dfy(290,18): Error: condition is expected to be of type bool, but is int
-ResolutionErrors2.dfy(291,20): Error: arguments must have comparable types (got ?23 and ?24)
 ResolutionErrors2.dfy(314,21): Error: integer literal used as if it had type real
 ResolutionErrors2.dfy(315,9): Error: integer literal used as if it had type real
 ResolutionErrors2.dfy(315,12): Error: type of % must be integer-numeric or bitvector types (got real)
@@ -78,4 +75,4 @@ ResolutionErrors2.dfy(489,27): Error: set comprehensions in non-ghost contexts m
 ResolutionErrors2.dfy(497,15): Error: arguments to / must be numeric or bitvector types (got set<bool>)
 ResolutionErrors2.dfy(504,20): Error: a call to a possibly non-terminating method is allowed only if the calling method is also declared (with 'decreases *') to be possibly non-terminating
 ResolutionErrors2.dfy(519,16): Error: a possibly infinite loop is allowed only if the enclosing method is declared (with 'decreases *') to be possibly non-terminating
-78 resolution/type errors detected in ResolutionErrors2.dfy
+75 resolution/type errors detected in ResolutionErrors2.dfy

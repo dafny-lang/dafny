@@ -48,9 +48,8 @@ abstract class PrettyPrintable {
     }
     var paramsStr = parameters == null ? "" : $"<{String.Join(", ", parameters)}>";
     parts.Add($"{name.AsDecl(forceExtern: true)}{paramsStr}");
-    if (inheritance != null) {
-      parts.Add($"extends {String.Join(", ", inheritance.Select(t => t.ToString()))}");
-    }
+    var parentTypes = inheritance == null ? "" : string.Concat(inheritance.Select(t => ", " + t.ToString()));
+    parts.Add("extends object" + parentTypes);
     wr.WriteLine($"{indent}{String.Join(" ", parts)} {{");
   }
 
@@ -519,7 +518,7 @@ public static class AutoProgram {
 
     var skipInterfaceOption = new Option<List<string>>(
       name: "--skip-interface",
-      description: "An interface to ommit from `extends` lists, e.g. `--skip-interface Microsoft.Dafny.ICloneable`.") {
+      description: "An interface to omit from `extends` lists, e.g. `--skip-interface Microsoft.Dafny.ICloneable`.") {
       ArgumentHelpName = "interfaceName",
       Arity = ArgumentArity.ZeroOrMore,
       AllowMultipleArgumentsPerToken = false

@@ -1,2 +1,2 @@
-text.dfy(4,16): Error: second argument to "in" must be a set, multiset, or sequence with elements of type Path, or a map with domain Path (instead got set<Node>) (expecting element type to be assignable to Node (got Path))
+text.dfy(4,16): Error: expecting element type to be assignable to Node (got Path)
 1 resolution/type errors detected in text.dfy

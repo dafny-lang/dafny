@@ -1,4 +1,4 @@
-// RUN: %translate cs --include-runtime --allow-warnings "%s" > "%t"
+// RUN: %translate cs %trargs --include-runtime --allow-warnings "%s" > "%t"
 // RUN: ! dotnet test -v:q %S/TestAttribute.csproj 2>> %t
 //
 // RUN: %OutputCheck --file-to-check "%t" "%s"

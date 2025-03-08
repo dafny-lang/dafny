@@ -11,4 +11,4 @@ TypeInferenceRefresh.dfy(633,18): Error: value does not satisfy the subset const
 TypeInferenceRefresh.dfy(633,21): Error: value does not satisfy the subset constraints of 'nat'
 TypeInferenceRefresh.dfy(633,24): Error: value does not satisfy the subset constraints of 'nat'
 
-Dafny program verifier finished with 84 verified, 10 errors
+Dafny program verifier finished with 91 verified, 10 errors

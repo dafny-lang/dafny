@@ -308,8 +308,8 @@ function F_bad(d: Tuple<
                             Tuple<bool, int>,
                             Tuple< Tuple<int,int>, Tuple<bool,bool> >>): int
 {
-  var p, Pair(Pair(b0, x), Pair(Pair(y0, y1: nat), Pair(b1, b2))), q: int  // error: int-to-nat failure
-   := d.0, d, d.1.0.1;
+  var p, Pair(Pair(b0, x), Pair(Pair(y0, y1: nat), Pair(b1, b2))), q: int
+   := d.0, d, d.1.0.1;  // error: int-to-nat failure
   assert q < 200;  // error: assertion failure
   p.1 + if b0 then x + y0 else x + y1
 }

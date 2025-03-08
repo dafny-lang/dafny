@@ -148,11 +148,15 @@ module Std.JSON.Deserializer {
   }
 
   function Object(js: Grammar.jobject): DeserializationResult<seq<(string, Values.JSON)>> {
-    Seq.MapWithResult(d requires d in js.data => KeyValue(d.t), js.data)
+    var f := d requires d in js.data => KeyValue(d.t);
+    assert forall i :: 0 <= i < |js.data| ==> f.requires(js.data[i]);
+    Seq.MapWithResult(f, js.data)
   }
 
   function Array(js: Grammar.jarray): DeserializationResult<seq<Values.JSON>> {
-    Seq.MapWithResult(d requires d in js.data => Value(d.t), js.data)
+    var f := d requires d in js.data => Value(d.t);
+    assert forall i :: 0 <= i < |js.data| ==> f.requires(js.data[i]);
+    Seq.MapWithResult(f, js.data)
   }
 
   function Value(js: Grammar.Value): DeserializationResult<Values.JSON> {

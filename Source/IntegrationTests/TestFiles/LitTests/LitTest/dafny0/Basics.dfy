@@ -633,3 +633,82 @@ module DivModBounded {
     var x := a / -1;  // fine
   }
 }
+
+// ------------- scopes of variables involved in "var" statement with initializing assignment
+
+module VarScopes {
+  method TestShadowAssign(p: int)
+  {
+    // The following local variable shadows the in-parameter p, which is of a different type
+    var p := p as real;
+    var u: real := p;
+  }
+
+  method Int2Real(i: int) returns (r: real) {
+    r := i as real;
+  }
+
+  method TestShadowMethodCall(p: int)
+  {
+    // The following local variable shadows the in-parameter p, which is of a different type
+    var p := Int2Real(p);
+    var u: real := p;
+  }
+
+  function FInt2Real(i: int): real {
+    i as real
+  }
+
+  method TestShadowFunctionCall(p: int)
+  {
+    // The following local variable shadows the in-parameter p, which is of a different type
+    var p := FInt2Real(p);
+    var u: real := p;
+  }
+
+  method TestShadowAssignSuchThat(p: int)
+  {
+    // The following local variable shadows the in-parameter p, which is of a different type
+    var p :| p == 2.13;
+    var u: real := p;
+  }
+  
+  method TestShadowElephant(p: int) returns (r: Outcome)
+  {
+    // The following local variable shadows the in-parameter p, which is of a different type
+    var p :- Success(p);
+    r := Success(100);
+    var u: real := p;
+  }
+  
+  datatype Outcome = Success(value: int) | Failure(error: string)
+  {
+    predicate IsFailure() {
+      Failure?
+    }
+    function PropagateFailure(): Outcome
+      requires IsFailure()
+    {
+      this
+    }
+    function Extract(): real
+      requires !IsFailure()
+    {
+      value as real
+    }
+  }
+
+  function ExpectInt(x: int): bv19 {
+    3
+  }
+
+  method TestScopingOfAttribute(p: int, q: int, r: int, s: int) returns (outcome: Outcome)
+  {
+    // In the following, the newly introduced variable is not supposed to be in scope in the attribute
+    var p := Int2Real(p) {:myAttr ExpectInt(p)};
+    var q := Int2Real(q) {:myAttr ExpectInt(q)};
+    var r := r as real {:myAttribute ExpectInt(r)};
+    var s :- Success(s) {:myAttribute ExpectInt(s)};
+    outcome := Success(100);
+  }
+}
