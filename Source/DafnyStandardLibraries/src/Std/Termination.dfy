@@ -2,45 +2,22 @@
 
 module Std.Termination {
 
-  datatype ClauseTail = More(next: TerminationMetric) | Top
-
-  datatype TerminationMetric = TerminationMetric(first: TMValue, rest: ClauseTail) {
-    predicate DecreasesTo(other: TerminationMetric) {
-      if first == other.first then
-        match (rest, other.rest) {
-          case (_, Top) => false
-          case (Top, More(_)) => true
-          case (More(next), More(otherNext)) => next.DecreasesTo(otherNext)
-        }
-      else
-        first.DecreasesTo(other.first)
-    }
-
-    ghost function {:axiom} Ordinal(): ORDINAL
-  }
-
-  // Convenience constructors
-  function TerminationMetric1(value1: TMValue): TerminationMetric {
-    TerminationMetric(value1, Top)
-  }
-  function TerminationMetric2(value1: TMValue, value2: TMValue): TerminationMetric {
-    TerminationMetric(value1, More(TerminationMetric(value2, Top)))
-  }
-  function NatTerminationMetric(m: nat): TerminationMetric {
-    TerminationMetric1(TMNat(m))
-  }
-
   // Heterogeneous encoding of the essential features of individual
   // decreases clause list elements.
-  datatype TMValue =
+  datatype TerminationMetric =
     | TMNat(natValue: nat)
     | TMChar(charValue: nat)
-    | TMSeq(seqValue: seq<TMValue>)
-    | TMDatatype(children: seq<TMValue>)
+    | TMSeq(seqValue: seq<TerminationMetric>)
+    | TMDatatype(children: seq<TerminationMetric>)
+
     // TODO: All other supported kinds of Dafny values
-    | TMMeta(metric: TerminationMetric)
+    
+    // The equivalent of "decreases first, rest".
+    // Can be chained to represent "decreases a, b, c, d"
+    // as TMComma(a, TMComma(b, TMComma(c, d))).
+    | TMComma(first: TerminationMetric, rest: TerminationMetric)
   {
-    predicate DecreasesTo(other: TMValue) {
+    predicate DecreasesTo(other: TerminationMetric) {
       match (this, other) {
         // Simple well-ordered types
         case (TMNat(left), TMNat(right)) => left > right
@@ -61,24 +38,32 @@ module Std.Termination {
           || other in leftChildren
 
         // TODO: other cases
-        case (TMMeta(left), TMMeta(right)) =>
-          left.DecreasesTo(right)
 
+        case (TMComma(leftFirst, leftRest), TMComma(rightFirst, rightRest)) =>
+          if leftFirst == rightFirst then
+            leftRest.DecreasesTo(rightRest)
+          else
+            leftFirst.DecreasesTo(rightFirst)
+        case (_, TMComma(rightFirst, _)) =>
+          // Treat the LHS as TMComma(this, TOP)
+          this == rightFirst || this.DecreasesTo(rightFirst)
 
         case _ => false
       }
     }
+
+    ghost function {:axiom} Ordinal(): ORDINAL
+
+    // TODO: prove DecreasesTo is a well-founded ordering
+    // (useful exercise and helps catch typos inconsistent with Dafny's ordering)
+
+    // Assume a mapping exists from the DecreasesTo ordering onto the ordinals.
+    // This always exists, but is complicated to define concretely
+    // and technically has to be defined for a whole program.
+    // It's sound to just assume it exists to convince Dafny that
+    // `decreases terminationMetric.Ordinal()` is valid.
+    lemma {:axiom} OrdinalDecreases(other: TerminationMetric)
+      requires DecreasesTo(other)
+      ensures Ordinal() > other.Ordinal()
   }
-
-  // TODO: prove DecreasesTo is a well-founded ordering
-  // (useful exercise and helps catch typos inconsistent with Dafny's ordering)
-
-  // Assume a mapping exists from the DecreasesTo ordering onto the ordinals.
-  // This always exists, but is complicated to define concretely
-  // and technically has to be defined for a whole program.
-  // It's sound to just assume it exists to convince Dafny that
-  // `decreases terminationMetric.Ordinal()` is valid.
-  lemma {:axiom} OrdinalOrdered(left: TerminationMetric, right: TerminationMetric)
-    requires left.DecreasesTo(right)
-    ensures left.Ordinal() > right.Ordinal()
 }

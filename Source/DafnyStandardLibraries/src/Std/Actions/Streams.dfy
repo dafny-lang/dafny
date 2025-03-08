@@ -195,7 +195,7 @@ module Std.Streams {
       && position as int <= |s|
       && ConcatenatedOutputsOf(history) == s[..position]
       && 0 < chunkSize
-      && remaining == NatTerminationMetric(|s| - position as int)
+      && remaining == TMNat(|s| - position as int)
     }
 
     constructor(s: BoundedInts.bytes, chunkSize: uint64)
@@ -208,7 +208,7 @@ module Std.Streams {
       this.position := 0;
       this.chunkSize := chunkSize;
 
-      this.remaining := NatTerminationMetric(|s|);
+      this.remaining := TMNat(|s|);
       this.history := [];
       this.Repr := {this};
       this.height := 1;

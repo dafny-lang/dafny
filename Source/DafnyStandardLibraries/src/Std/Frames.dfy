@@ -30,9 +30,9 @@ module Std.Frames {
 
     lemma HeightMetricDecreases(component: Validatable)
       requires component.height < height
-      ensures NatTerminationMetric(height).Ordinal() > NatTerminationMetric(component.height).Ordinal()
+      ensures TMNat(height).Ordinal() > TMNat(component.height).Ordinal()
     {
-      OrdinalOrdered(NatTerminationMetric(height), NatTerminationMetric(component.height));
+      TMNat(height).OrdinalDecreases(TMNat(component.height));
     }
 
     // Convenience predicate, since you often want to assert that

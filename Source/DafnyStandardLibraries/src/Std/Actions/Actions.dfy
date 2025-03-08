@@ -157,7 +157,7 @@ module Std.Actions {
     ghost function Decreases(i: I): TerminationMetric
       reads Reads(i)
     {
-      NatTerminationMetric(height)
+      TMNat(height)
     }
     twostate predicate Ensures(i: I, new o: O)
       requires old(Requires(i))

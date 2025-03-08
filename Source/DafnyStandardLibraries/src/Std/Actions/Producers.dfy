@@ -158,7 +158,7 @@ module Std.Producers {
       AnyInputIsValid(history, ());
       r := Invoke(());
       if r.Some? {
-        OrdinalOrdered(old(remaining), remaining);
+        old(remaining).OrdinalDecreases(remaining);
       }
     }
 
@@ -390,7 +390,7 @@ module Std.Producers {
       this.produced := 0;
       this.originalTotalAction := originalTotalAction;
 
-      this.remaining := NatTerminationMetric(max);
+      this.remaining := TMNat(max);
       Repr := {this} + original.Repr + originalTotalAction.Repr;
       history := [];
       height := original.height + originalTotalAction.height + 1;
@@ -410,7 +410,7 @@ module Std.Producers {
       && ValidHistory(history)
       && produced == |Produced()|
       && produced <= max
-      && remaining == NatTerminationMetric(max - produced)
+      && remaining == TMNat(max - produced)
     }
 
     twostate predicate ValidOutput(history: seq<((), Option<T>)>, nextInput: (), new nextOutput: Option<T>)
@@ -449,13 +449,14 @@ module Std.Producers {
         assert ValidHistory(history);
         OutputsPartitionedAfterOutputtingNone();
         ProduceNone();
+        assert old(remaining) == remaining;
       } else {
         originalTotalAction.AnyInputIsValid(original.history, ());
         var v := original.Invoke(());
         value := Some(v);
         produced := produced + 1;
         ProduceSome(v);
-        remaining := NatTerminationMetric(max - produced);
+        remaining := TMNat(max - produced);
       }
     }
   }
@@ -474,7 +475,7 @@ module Std.Producers {
       this.elements := elements;
       this.index := 0;
 
-      remaining := NatTerminationMetric(|elements|);
+      remaining := TMNat(|elements|);
       Repr := {this};
       history := [];
       height := 0;
@@ -490,7 +491,7 @@ module Std.Producers {
       && ValidHistory(history)
       && index <= |elements|
       && index == |Produced()|
-      && remaining == NatTerminationMetric(|elements| - index)
+      && remaining == TMNat(|elements| - index)
     }
 
     twostate predicate ValidOutput(history: seq<((), Option<T>)>, nextInput: (), new nextOutput: Option<T>)
@@ -660,7 +661,7 @@ module Std.Producers {
       this.first := first;
       this.second := second;
 
-      remaining := TerminationMetric2(TMMeta(first.remaining), TMMeta(second.remaining));
+      remaining := TMComma(first.remaining, second.remaining);
       Repr := {this} + first.Repr + second.Repr;
       height := first.height + second.height + 1;
       history := [];
@@ -677,7 +678,7 @@ module Std.Producers {
       && ValidComponent(second)
       && first.Repr !! second.Repr
       && ValidHistory(history)
-      && remaining == TerminationMetric2(TMMeta(first.remaining), TMMeta(second.remaining))
+      && remaining == TMComma(first.remaining, second.remaining)
       && Produced() == first.Produced() + second.Produced()
     }
 
