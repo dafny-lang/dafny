@@ -116,6 +116,13 @@ namespace IntegrationTests {
         "--verification-time-limit:300",
         "--resource-limit:50e6"
       ];
+      string[] defaultAuditArgs = ["audit",
+        "--type-system-refresh",
+        "--general-traits=datatype",
+        "--general-newtypes",
+        "--use-basename-for-filename",
+        "--standard-libraries:false"
+      ];
 
       var substitutions = new Dictionary<string, object> {
         { "%diff", "diff" },
@@ -161,6 +168,9 @@ namespace IntegrationTests {
         }, {
           "%run", (args, config) =>
             DafnyCommand(AddExtraArgs(defaultRunArgs, args), config, InvokeMainMethodsDirectly)
+        }, {
+          "%audit", (args, config) =>
+            DafnyCommand(AddExtraArgs(defaultResolveArgs, args), config, InvokeMainMethodsDirectly)
         }, {
           "%dafny", (args, config) =>
             DafnyCommand(AddExtraArgs(DafnyCliTests.DefaultArgumentsForTesting, args), config, InvokeMainMethodsDirectly)
