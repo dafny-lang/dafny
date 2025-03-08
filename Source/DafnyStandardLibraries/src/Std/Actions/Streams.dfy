@@ -156,7 +156,7 @@ module Std.Streams {
       requires Requires(t)
       reads Reads(t)
       modifies Modifies(t)
-      decreases Decreases(t).Ordinal(), 0
+      decreases Decreases(t).Ordinal()
       ensures Ensures(t, r)
       ensures if r.Some? then 
           old(remaining).DecreasesTo(remaining)
@@ -255,7 +255,7 @@ module Std.Streams {
       requires Requires(t)
       reads Reads(t)
       modifies Modifies(t)
-      decreases Decreases(t).Ordinal(), 0
+      decreases Decreases(t).Ordinal()
       ensures Ensures(t, r)
       ensures if r.Some? then 
           old(remaining).DecreasesTo(remaining)

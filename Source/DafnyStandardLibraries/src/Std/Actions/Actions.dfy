@@ -414,7 +414,7 @@ module Std.Actions {
 
       UpdateHistory(i, o);
       Repr := {this} + first.Repr + second.Repr;
-      height := first.height + second.height + 1;
+      // height := first.height + second.height + 1;
 
       assert InputsOf(history) == old(InputsOf(first.history)) + [i];
       assert InputsOf(history) == InputsOf(first.history);
