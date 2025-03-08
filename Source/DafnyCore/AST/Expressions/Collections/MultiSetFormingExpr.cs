@@ -5,7 +5,7 @@ namespace Microsoft.Dafny;
 
 public class MultiSetFormingExpr : Expression, ICloneable<MultiSetFormingExpr> {
   [Peer]
-  public readonly Expression E;
+  public Expression E;
   [ContractInvariantMethod]
   void ObjectInvariant() {
     Contract.Invariant(E != null);

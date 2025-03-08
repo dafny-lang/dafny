@@ -8,7 +8,7 @@ using DafnyCore.Options;
 namespace Microsoft.Dafny;
 
 public abstract class MethodOrFunction : MemberDecl, ICodeContainer {
-  public static readonly Option<bool> AllowExternalContracts = new("--allow-external-contracts",
+  public static Option<bool> AllowExternalContracts = new("--allow-external-contracts",
     "Allow exporting callables with preconditions, and importing callables with postconditions");
 
   static MethodOrFunction() {
@@ -17,16 +17,16 @@ public abstract class MethodOrFunction : MemberDecl, ICodeContainer {
 
   [FilledInDuringResolution]
   public bool ContainsHide { get; set; }
-  public readonly List<TypeParameter> TypeArgs;
-  public readonly List<AttributedExpression> Req;
-  public readonly List<AttributedExpression> Ens;
-  public readonly Specification<Expression> Decreases;
-  public readonly List<Formal> Ins;
+  public List<TypeParameter> TypeArgs;
+  public List<AttributedExpression> Req;
+  public List<AttributedExpression> Ens;
+  public Specification<Expression> Decreases;
+  public List<Formal> Ins;
 
   public bool SignatureIsOmitted => // is "false" for all Function objects that survive into resolution
     SignatureEllipsis != null;
 
-  public readonly IOrigin? SignatureEllipsis;
+  public IOrigin? SignatureEllipsis;
   public override bool IsRefining => SignatureIsOmitted;
 
   [SyntaxConstructor]

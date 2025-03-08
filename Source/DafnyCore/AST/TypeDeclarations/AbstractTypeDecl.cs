@@ -6,7 +6,7 @@ namespace Microsoft.Dafny;
 public class AbstractTypeDecl : TopLevelDeclWithMembers, RevealableTypeDecl, ICanFormat, IHasDocstring {
   public override string WhatKind { get { return "abstract type"; } }
   public override bool CanBeRevealed() { return true; }
-  public readonly TypeParameterCharacteristics Characteristics;
+  public TypeParameterCharacteristics Characteristics;
   public bool SupportsEquality {
     get { return Characteristics.EqualitySupport != TypeParameter.EqualitySupportValue.Unspecified; }
   }

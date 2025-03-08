@@ -8,7 +8,7 @@ namespace Microsoft.Dafny;
 /// Common superclass of UpdateStmt, AssignSuchThatStmt and AssignOrReturnStmt
 /// </summary>
 public abstract class ConcreteAssignStatement : Statement, ICanFormat {
-  public readonly List<Expression> Lhss;
+  public List<Expression> Lhss;
 
   protected ConcreteAssignStatement(Cloner cloner, ConcreteAssignStatement original) : base(cloner, original) {
     Lhss = original.Lhss.Select(cloner.CloneExpr).ToList();

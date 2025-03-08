@@ -10,7 +10,7 @@ public class IdentifierExpr : Expression, IHasReferences, ICloneable<IdentifierE
     Contract.Invariant(Name != null);
   }
 
-  public readonly string Name;
+  public string Name;
   [FilledInDuringResolution] public IVariable Var;
 
   public string DafnyName => Origin.line > 0 ? Origin.PrintOriginal() : Name;

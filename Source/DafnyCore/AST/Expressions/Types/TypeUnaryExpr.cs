@@ -5,7 +5,7 @@ using System.Linq;
 namespace Microsoft.Dafny;
 
 public abstract class TypeUnaryExpr : UnaryExpr {
-  public readonly Type ToType;
+  public Type ToType;
 
   protected TypeUnaryExpr(Cloner cloner, TypeUnaryExpr original) : base(cloner, original) {
     ToType = cloner.CloneType(original.ToType);

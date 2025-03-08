@@ -5,7 +5,7 @@ using System.Linq;
 namespace Microsoft.Dafny;
 
 public class FrameExpression : NodeWithComputedRange, IHasReferences {
-  public readonly Expression OriginalExpression; // may be a WildcardExpr
+  public Expression OriginalExpression; // may be a WildcardExpr
   [FilledInDuringResolution] public Expression DesugaredExpression; // may be null for modifies clauses, even after resolution
 
   /// <summary>
@@ -19,7 +19,7 @@ public class FrameExpression : NodeWithComputedRange, IHasReferences {
     Contract.Invariant(!(E is WildcardExpr) || (FieldName == null && Field == null));
   }
 
-  public readonly string FieldName;
+  public string FieldName;
   [FilledInDuringResolution] public Field Field;  // null if FieldName is
 
   /// <summary>

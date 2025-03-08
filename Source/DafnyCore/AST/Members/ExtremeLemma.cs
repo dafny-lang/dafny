@@ -6,7 +6,7 @@ namespace Microsoft.Dafny;
 
 public abstract class ExtremeLemma : Method {
   public override string WhatKindMentionGhost => WhatKind;
-  public readonly ExtremePredicate.KType TypeOfK;
+  public ExtremePredicate.KType TypeOfK;
   public bool KNat => TypeOfK == ExtremePredicate.KType.Nat;
   [FilledInDuringResolution] public PrefixLemma PrefixLemma;  // (name registration)
 

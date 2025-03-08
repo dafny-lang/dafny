@@ -5,8 +5,8 @@ using System.Linq;
 namespace Microsoft.Dafny;
 
 public class AlternativeStmt : Statement, ICloneable<AlternativeStmt>, ICanFormat {
-  public readonly bool UsesOptionalBraces;
-  public readonly List<GuardedAlternative> Alternatives;
+  public bool UsesOptionalBraces;
+  public List<GuardedAlternative> Alternatives;
   [ContractInvariantMethod]
   void ObjectInvariant() {
     Contract.Invariant(Alternatives != null);

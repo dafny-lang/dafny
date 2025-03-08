@@ -10,8 +10,8 @@ public class PrefixLemma : Method {
   public override string WhatKind => "prefix lemma";
   public override string WhatKindMentionGhost => WhatKind;
 
-  public readonly Formal K;
-  public readonly ExtremeLemma ExtremeLemma;
+  public Formal K;
+  public ExtremeLemma ExtremeLemma;
   public PrefixLemma(IOrigin origin, Name nameNode, bool hasStaticKeyword,
     List<TypeParameter> typeArgs, Formal k, List<Formal> ins, List<Formal> outs,
     List<AttributedExpression> req, [Captured] Specification<FrameExpression> reads,

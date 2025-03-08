@@ -6,9 +6,9 @@ using System.Linq;
 namespace Microsoft.Dafny;
 
 public class NameSegment : ConcreteSyntaxExpression, ICloneable<NameSegment>, ICanFormat {
-  public readonly string Name;
+  public string Name;
   public Name NameNode => new Name(Origin, Name);
-  public readonly List<Type>? OptTypeArguments;
+  public List<Type>? OptTypeArguments;
 
   [SyntaxConstructor]
   public NameSegment(IOrigin origin, string name, List<Type>? optTypeArguments)

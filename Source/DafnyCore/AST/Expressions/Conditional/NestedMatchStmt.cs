@@ -12,7 +12,7 @@ public class NestedMatchStmt : Statement, ICloneable<NestedMatchStmt>, ICanForma
 
   IReadOnlyList<NestedMatchCase> INestedMatch.Cases => Cases;
 
-  public readonly bool UsesOptionalBraces;
+  public bool UsesOptionalBraces;
 
   [FilledInDuringResolution] public Statement Flattened { get; set; }
 

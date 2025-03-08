@@ -4,8 +4,8 @@ using System.Diagnostics.Contracts;
 namespace Microsoft.Dafny;
 
 public class ModifyStmt : Statement, ICloneable<ModifyStmt>, ICanFormat {
-  public readonly Specification<FrameExpression> Mod;
-  public readonly BlockStmt Body;
+  public Specification<FrameExpression> Mod;
+  public BlockStmt Body;
 
   public ModifyStmt Clone(Cloner cloner) {
     return new ModifyStmt(cloner, this);

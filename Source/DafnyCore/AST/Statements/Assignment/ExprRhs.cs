@@ -5,7 +5,7 @@ using System.Diagnostics.Contracts;
 namespace Microsoft.Dafny;
 
 public class ExprRhs : AssignmentRhs, ICloneable<ExprRhs> {
-  public readonly Expression Expr;
+  public Expression Expr;
   [ContractInvariantMethod]
   void ObjectInvariant() {
     Contract.Invariant(Expr != null);

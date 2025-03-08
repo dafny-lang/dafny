@@ -7,9 +7,9 @@ namespace Microsoft.Dafny;
 /// An ExprDotName desugars into either an IdentifierExpr (if the Lhs is a static name) or a MemberSelectExpr (if the Lhs is a computed expression).
 /// </summary>
 public class ExprDotName : SuffixExpr, ICloneable<ExprDotName> {
-  public readonly Name SuffixNameNode;
+  public Name SuffixNameNode;
   public string SuffixName => SuffixNameNode.Value;
-  public readonly List<Type> OptTypeArguments;
+  public List<Type> OptTypeArguments;
 
   /// <summary>
   /// Because the resolved expression only points to the final resolved declaration,

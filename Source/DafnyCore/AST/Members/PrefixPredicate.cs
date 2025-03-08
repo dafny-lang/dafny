@@ -9,8 +9,8 @@ namespace Microsoft.Dafny;
 public class PrefixPredicate : Function {
   public override string WhatKind => "prefix predicate";
   public override string WhatKindMentionGhost => WhatKind;
-  public readonly Formal K;
-  public readonly ExtremePredicate ExtremePred;
+  public Formal K;
+  public ExtremePredicate ExtremePred;
   public PrefixPredicate(IOrigin rangeOrigin, Name nameNode, bool hasStaticKeyword,
     List<TypeParameter> typeArgs, Formal k, List<Formal> ins,
     List<AttributedExpression> req, Specification<FrameExpression> reads, List<AttributedExpression> ens, Specification<Expression> decreases,

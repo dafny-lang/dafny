@@ -6,7 +6,7 @@ namespace Microsoft.Dafny;
 
 public class NonNullTypeDecl : SubsetTypeDecl {
   public override string WhatKind => "non-null type";
-  public readonly ClassLikeDecl Class;
+  public ClassLikeDecl Class;
 
   /// <summary>
   /// The public constructor is NonNullTypeDecl(ClassDecl cl). The rest is pretty crazy: There are stages of "this"-constructor calls

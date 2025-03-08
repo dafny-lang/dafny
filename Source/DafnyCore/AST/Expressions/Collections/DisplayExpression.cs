@@ -4,7 +4,7 @@ using System.Diagnostics.Contracts;
 namespace Microsoft.Dafny;
 
 public abstract class DisplayExpression : Expression {
-  public readonly List<Expression> Elements;
+  public List<Expression> Elements;
   [ContractInvariantMethod]
   void ObjectInvariant() {
     Contract.Invariant(cce.NonNullElements(Elements));

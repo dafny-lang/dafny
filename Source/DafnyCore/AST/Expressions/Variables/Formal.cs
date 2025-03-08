@@ -8,13 +8,13 @@ namespace Microsoft.Dafny;
 public class Formal : NonglobalVariable {
   public Attributes? Attributes { get; set; }
 
-  public readonly bool InParam;  // true to in-parameter, false for out-parameter
+  public bool InParam;  // true to in-parameter, false for out-parameter
   public override bool IsMutable => !InParam;
-  public readonly bool IsOld;
+  public bool IsOld;
   public Expression? DefaultValue;
-  public readonly bool IsNameOnly;
-  public readonly bool IsOlder;
-  public readonly string? NameForCompilation;
+  public bool IsNameOnly;
+  public bool IsOlder;
+  public string? NameForCompilation;
 
   public Formal(IOrigin origin, string name, Type type, bool inParam, bool isGhost, Expression? defaultValue,
     Attributes? attributes = null,

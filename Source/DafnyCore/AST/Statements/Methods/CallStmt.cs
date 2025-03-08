@@ -21,9 +21,9 @@ public class CallStmt : Statement, ICloneable<CallStmt> {
     return Lhs.Select(lhs => lhs.Resolved).OfType<IdentifierExpr>();
   }
 
-  public readonly List<Expression> Lhs;
-  public readonly MemberSelectExpr MethodSelect;
-  public readonly ActualBindings Bindings;
+  public List<Expression> Lhs;
+  public MemberSelectExpr MethodSelect;
+  public ActualBindings Bindings;
   public List<Expression> Args => Bindings.Arguments;
   public Expression OriginalInitialLhs = null;
 

@@ -5,10 +5,10 @@ using System.Diagnostics.Contracts;
 namespace Microsoft.Dafny;
 
 public class IfStmt : Statement, ICloneable<IfStmt>, ICanFormat {
-  public readonly bool IsBindingGuard;
-  public readonly Expression? Guard;
-  public readonly BlockStmt Thn;
-  public readonly Statement? Els;
+  public bool IsBindingGuard;
+  public Expression? Guard;
+  public BlockStmt Thn;
+  public Statement? Els;
   [ContractInvariantMethod]
   void ObjectInvariant() {
     Contract.Invariant(!IsBindingGuard || (Guard is ExistsExpr && ((ExistsExpr)Guard).Range == null));

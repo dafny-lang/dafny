@@ -8,7 +8,7 @@ namespace Microsoft.Dafny;
 
 public abstract class DatatypeDecl : TopLevelDeclWithMembers, RevealableTypeDecl, ICallable, ICanFormat, IHasDocstring, ICanAutoRevealDependencies {
   public override bool CanBeRevealed() { return true; }
-  public readonly List<DatatypeCtor> Ctors;
+  public List<DatatypeCtor> Ctors;
 
   [FilledInDuringResolution] public Dictionary<string, DatatypeCtor> ConstructorsByName { get; set; }
   [ContractInvariantMethod]

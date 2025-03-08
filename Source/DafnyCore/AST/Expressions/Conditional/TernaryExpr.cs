@@ -4,10 +4,10 @@ using System.Diagnostics.Contracts;
 namespace Microsoft.Dafny;
 
 public class TernaryExpr : Expression, ICloneable<TernaryExpr> {
-  public readonly Opcode Op;
-  public readonly Expression E0;
-  public readonly Expression E1;
-  public readonly Expression E2;
+  public Opcode Op;
+  public Expression E0;
+  public Expression E1;
+  public Expression E2;
   public enum Opcode { PrefixEqOp, PrefixNeqOp }
 
   public TernaryExpr(Cloner cloner, TernaryExpr original) : base(cloner, original) {

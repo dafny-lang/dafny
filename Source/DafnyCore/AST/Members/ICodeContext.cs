@@ -26,8 +26,8 @@ public interface ICodeContext : IASTVisitorContext {
 /// between these two, the declaration is wrapped inside a CodeContextWrapper.
 /// </summary>
 public class CodeContextWrapper : ICodeContext {
-  protected readonly ICodeContext inner;
-  private readonly bool isGhostContext;
+  protected ICodeContext inner;
+  private bool isGhostContext;
   public CodeContextWrapper(ICodeContext inner, bool isGhostContext) {
     this.inner = inner;
     this.isGhostContext = isGhostContext;
@@ -125,7 +125,7 @@ public interface IMethodCodeContext : ICallable {
 /// Applies when we are not inside an ICallable.  In particular, a NoContext is used to resolve the attributes of declarations with no other context.
 /// </summary>
 public class NoContext : ICodeContext {
-  public readonly ModuleDefinition Module;
+  public ModuleDefinition Module;
   public NoContext(ModuleDefinition module) {
     this.Module = module;
   }

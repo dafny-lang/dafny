@@ -9,20 +9,20 @@ using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 namespace Microsoft.Dafny;
 
 public abstract class TopLevelDeclWithMembers : TopLevelDecl, IHasSymbolChildren {
-  public readonly List<MemberDecl> Members;
+  public List<MemberDecl> Members;
 
   // TODO remove this and instead clone the AST after parsing.
   public ImmutableList<MemberDecl>? MembersBeforeResolution;
 
   // The following fields keep track of parent traits
-  public readonly List<MemberDecl> InheritedMembers = [];  // these are instance members declared in parent traits
-  public readonly List<Type> Traits;  // these are the types that are parsed after the keyword 'extends'; note, for a successfully resolved program, these are UserDefinedType's where .ResolvedClass is NonNullTypeDecl
-  public readonly Dictionary<TypeParameter, Type> ParentFormalTypeParametersToActuals = new Dictionary<TypeParameter, Type>();  // maps parent traits' type parameters to actuals
+  public List<MemberDecl> InheritedMembers = [];  // these are instance members declared in parent traits
+  public List<Type> Traits;  // these are the types that are parsed after the keyword 'extends'; note, for a successfully resolved program, these are UserDefinedType's where .ResolvedClass is NonNullTypeDecl
+  public Dictionary<TypeParameter, Type> ParentFormalTypeParametersToActuals = new Dictionary<TypeParameter, Type>();  // maps parent traits' type parameters to actuals
 
   /// <summary>
   /// TraitParentHeads contains the head of each distinct trait parent. It is initialized during resolution.
   /// </summary>
-  public readonly List<TraitDecl> ParentTraitHeads = [];
+  public List<TraitDecl> ParentTraitHeads = [];
 
   internal bool HeadDerivesFrom(TopLevelDecl b) {
     return this == b || this.ParentTraitHeads.Exists(tr => tr.HeadDerivesFrom(b));
@@ -37,7 +37,7 @@ public abstract class TopLevelDeclWithMembers : TopLevelDecl, IHasSymbolChildren
 
   [FilledInDuringResolution] public InheritanceInformationClass? ParentTypeInformation;
   public class InheritanceInformationClass {
-    private readonly Dictionary<TraitDecl, List<(Type, List<TraitDecl> /*via this parent path*/)>> info = new Dictionary<TraitDecl, List<(Type, List<TraitDecl>)>>();
+    private Dictionary<TraitDecl, List<(Type, List<TraitDecl> /*via this parent path*/)>> info = new Dictionary<TraitDecl, List<(Type, List<TraitDecl>)>>();
 
     /// <summary>
     /// Returns a subset of the trait's ParentTraits, but not repeating any head type.

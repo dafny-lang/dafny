@@ -6,7 +6,7 @@ using Microsoft.Dafny.Auditor;
 namespace Microsoft.Dafny;
 
 public class AssertStmt : PredicateStmt, ICloneable<AssertStmt>, ICanFormat {
-  public readonly AssertLabel? Label;
+  public AssertLabel? Label;
 
   public AssertStmt Clone(Cloner cloner) {
     return new AssertStmt(cloner, this);

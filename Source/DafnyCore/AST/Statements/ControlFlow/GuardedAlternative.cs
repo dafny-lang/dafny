@@ -5,9 +5,9 @@ using System.Linq;
 namespace Microsoft.Dafny;
 
 public class GuardedAlternative : NodeWithComputedRange, IAttributeBearingDeclaration {
-  public readonly bool IsBindingGuard;
-  public readonly Expression Guard;
-  public readonly List<Statement> Body;
+  public bool IsBindingGuard;
+  public Expression Guard;
+  public List<Statement> Body;
   public Attributes Attributes { get; set; }
   string IAttributeBearingDeclaration.WhatKind => "alternative-based case";
   public override IEnumerable<INode> Children => Attributes.AsEnumerable().

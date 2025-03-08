@@ -1,8 +1,8 @@
 namespace Microsoft.Dafny;
 
 public class LList<T> {
-  public readonly T Data;
-  public readonly LList<T> Next;
+  public T Data;
+  public LList<T> Next;
 
   public LList(T d, LList<T> next) {
     Data = d;

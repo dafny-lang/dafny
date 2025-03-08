@@ -10,11 +10,11 @@ public class HideRevealStmt : Statement, ICloneable<HideRevealStmt>, ICanFormat,
 
   public string Kind => Mode == HideRevealCmd.Modes.Hide ? "hide" : "reveal";
   public string KindVerb => Mode == HideRevealCmd.Modes.Hide ? "hidden" : "revealed";
-  public readonly List<Expression> Exprs;
+  public List<Expression> Exprs;
   [FilledInDuringResolution]
-  public readonly List<AssertLabel> LabeledAsserts = [];  // to indicate that "Expr" denotes a labeled assertion
+  public List<AssertLabel> LabeledAsserts = [];  // to indicate that "Expr" denotes a labeled assertion
   [FilledInDuringResolution]
-  public readonly List<Statement> ResolvedStatements = [];
+  public List<Statement> ResolvedStatements = [];
   [FilledInDuringResolution] public List<MemberDecl> OffsetMembers = [];
   public HideRevealCmd.Modes Mode { get; private set; }
   public bool Wildcard { get; private set; }

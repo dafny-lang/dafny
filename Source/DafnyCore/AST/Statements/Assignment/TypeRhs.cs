@@ -46,10 +46,10 @@ public class TypeRhs : AssignmentRhs, ICloneable<TypeRhs> {
   ///   OptionalNameComponent, after which the case above applies.
   /// </summary>
   [FilledInDuringResolution] public Type EType;  // in the case of Arguments != null
-  public readonly List<Expression> ArrayDimensions;
-  public readonly Expression ElementInit;
-  public readonly List<Expression> InitDisplay;
-  public readonly ActualBindings/*?*/ Bindings;
+  public List<Expression> ArrayDimensions;
+  public Expression ElementInit;
+  public List<Expression> InitDisplay;
+  public ActualBindings/*?*/ Bindings;
   public List<Expression> Arguments {
     get {
       Contract.Requires(Bindings != null);

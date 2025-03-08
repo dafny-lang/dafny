@@ -14,9 +14,9 @@ namespace Microsoft.Dafny;
 /// Datatype updates are represented by <c>DatatypeUpdateExpr</c> nodes.
 /// </summary>
 public class SeqUpdateExpr : Expression, ICloneable<SeqUpdateExpr> {
-  public readonly Expression Seq;
-  public readonly Expression Index;
-  public readonly Expression Value;
+  public Expression Seq;
+  public Expression Index;
+  public Expression Value;
   [ContractInvariantMethod]
   void ObjectInvariant() {
     Contract.Invariant(Seq != null);

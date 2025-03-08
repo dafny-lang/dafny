@@ -4,8 +4,8 @@ using System.Linq;
 namespace Microsoft.Dafny;
 
 public class VarDeclPattern : Statement, ICloneable<VarDeclPattern>, ICanFormat {
-  public readonly CasePattern<LocalVariable> LHS;
-  public readonly Expression RHS;
+  public CasePattern<LocalVariable> LHS;
+  public Expression RHS;
   public bool HasGhostModifier;
 
   public VarDeclPattern Clone(Cloner cloner) {

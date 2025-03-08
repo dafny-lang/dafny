@@ -8,7 +8,7 @@ public class LambdaExpr : ComprehensionExpr, ICloneable<LambdaExpr>, IFrameScope
 
   public Expression Body => Term;
 
-  public readonly Specification<FrameExpression> Reads;
+  public Specification<FrameExpression> Reads;
 
   public LambdaExpr(IOrigin origin, List<BoundVar> bvars, Expression requires, Specification<FrameExpression> reads, Expression body)
     : base(origin, bvars, requires, body, null) {

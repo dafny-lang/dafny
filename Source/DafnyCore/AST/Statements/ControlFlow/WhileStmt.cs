@@ -4,11 +4,11 @@ using System.Collections.Generic;
 namespace Microsoft.Dafny;
 
 public class WhileStmt : OneBodyLoopStmt, ICloneable<WhileStmt>, ICanFormat {
-  public readonly Expression/*?*/ Guard;
+  public Expression/*?*/ Guard;
 
   public class LoopBodySurrogate {
-    public readonly List<IVariable> LocalLoopTargets;
-    public readonly bool UsesHeap;
+    public List<IVariable> LocalLoopTargets;
+    public bool UsesHeap;
 
     public LoopBodySurrogate(List<IVariable> localLoopTargets, bool usesHeap) {
       LocalLoopTargets = localLoopTargets;

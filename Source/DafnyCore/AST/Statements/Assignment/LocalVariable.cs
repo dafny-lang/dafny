@@ -7,7 +7,7 @@ using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 namespace Microsoft.Dafny;
 
 public class LocalVariable : RangeNode, IVariable, IAttributeBearingDeclaration {
-  readonly string name;
+  string name;
   public string DafnyName => Name;
   public Attributes? Attributes;
   Attributes? IAttributeBearingDeclaration.Attributes {
@@ -76,7 +76,7 @@ public class LocalVariable : RangeNode, IVariable, IAttributeBearingDeclaration 
     return compileName ??= $"_{generator.FreshNumericId()}_{CompileNameShadowable}";
   }
 
-  public readonly Type? SyntacticType;
+  public Type? SyntacticType;
 
   private Type? safeSyntacticType;
   public Type SafeSyntacticType =>

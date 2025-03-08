@@ -187,12 +187,12 @@ public class NewtypeDecl : TopLevelDeclWithMembers, RevealableTypeDecl, Redirect
 }
 
 public class NativeType {
-  public readonly string Name;
-  public readonly BigInteger LowerBound;
-  public readonly BigInteger UpperBound;
-  public readonly int Bitwidth;  // for unassigned types, this shows the number of bits in the type; else is 0
+  public string Name;
+  public BigInteger LowerBound;
+  public BigInteger UpperBound;
+  public int Bitwidth;  // for unassigned types, this shows the number of bits in the type; else is 0
   public enum Selection { Byte, SByte, UShort, Short, UInt, Int, Number, ULong, Long, UDoubleLong, DoubleLong }
-  public readonly Selection Sel;
+  public Selection Sel;
   public NativeType(string Name, BigInteger LowerBound, BigInteger UpperBound, int bitwidth, Selection sel) {
     Contract.Requires(Name != null);
     Contract.Requires(0 <= bitwidth && (bitwidth == 0 || LowerBound == 0));

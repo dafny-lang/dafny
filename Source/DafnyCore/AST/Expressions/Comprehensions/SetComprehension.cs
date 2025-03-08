@@ -6,8 +6,8 @@ namespace Microsoft.Dafny;
 public class SetComprehension : ComprehensionExpr, ICloneable<SetComprehension> {
   public override string WhatKind => "set comprehension";
 
-  public readonly bool Finite;
-  public readonly bool TermIsImplicit;  // records the given syntactic form
+  public bool Finite;
+  public bool TermIsImplicit;  // records the given syntactic form
   public bool TermIsSimple {
     get {
       var term = Term as IdentifierExpr;

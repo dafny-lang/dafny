@@ -26,7 +26,7 @@ public record Implements(ImplementationKind Kind, ModuleQualifiedId Target);
 
 public class ModuleDefinition : RangeNode, IAttributeBearingDeclaration, ICloneable<ModuleDefinition> {
 
-  public static readonly Option<bool> LegacyModuleNames = new("--legacy-module-names",
+  public static Option<bool> LegacyModuleNames = new("--legacy-module-names",
     @"
 Generate module names in the older A_mB_mC style instead of the current A.B.C scheme".TrimStart()) {
     IsHidden = true
@@ -66,25 +66,25 @@ Generate module names in the older A_mB_mC style instead of the current A.B.C sc
   /// <summary>
   /// The qualified module name, except the last segment when a nested module declaration is outside its enclosing module
   /// </summary>
-  public readonly List<IOrigin> PrefixIds;
+  public List<IOrigin> PrefixIds;
 
   [BackEdge]
   public ModuleDefinition? EnclosingModule;  // readonly, except can be changed by resolver for prefix-named modules when the real parent is discovered
   public Attributes? Attributes { get; set; }
   public string WhatKind => "module definition";
-  public readonly Implements? Implements; // null if no refinement base
+  public Implements? Implements; // null if no refinement base
   public bool SuccessfullyResolved;  // set to true upon successful resolution; modules that import an unsuccessfully resolved module are not themselves resolved
-  public readonly ModuleKindEnum ModuleKind;
-  public readonly bool IsFacade; // True iff this module represents a module facade (that is, an abstract interface)
+  public ModuleKindEnum ModuleKind;
+  public bool IsFacade; // True iff this module represents a module facade (that is, an abstract interface)
   private bool IsBuiltinName => Name is "_System" or "_module"; // true if this is something like _System that shouldn't have it's name mangled.
 
   public DefaultClassDecl? DefaultClass { get; set; }
 
-  public readonly List<TopLevelDecl> SourceDecls = [];
+  public List<TopLevelDecl> SourceDecls = [];
   [FilledInDuringResolution]
-  public readonly List<TopLevelDecl> ResolvedPrefixNamedModules = [];
+  public List<TopLevelDecl> ResolvedPrefixNamedModules = [];
   [FilledInDuringResolution]
-  public readonly List<PrefixNameModule> PrefixNamedModules = [];  // filled in by the parser; emptied by the resolver
+  public List<PrefixNameModule> PrefixNamedModules = [];  // filled in by the parser; emptied by the resolver
 
   [FilledInDuringResolution]
   public CallRedirector? CallRedirector { get; set; }
@@ -104,11 +104,11 @@ Generate module names in the older A_mB_mC style instead of the current A.B.C sc
   }
 
   [FilledInDuringResolution]
-  public readonly Graph<ICallable> CallGraph = new();
+  public Graph<ICallable> CallGraph = new();
 
   // This field is only populated if `defaultFunctionOpacity` is set to something other than transparent
   [FilledInDuringResolution]
-  public readonly Graph<ICallable> InterModuleCallGraph = new();
+  public Graph<ICallable> InterModuleCallGraph = new();
 
   [FilledInDuringResolution]
   public int Height;  // height in the topological sorting of modules;
@@ -709,7 +709,7 @@ Generate module names in the older A_mB_mC style instead of the current A.B.C sc
     return prefixNameModule with { Parts = rest };
   }
 
-  private static readonly List<(string, string)> incompatibleAttributePairs =
+  private static List<(string, string)> incompatibleAttributePairs =
     [("rlimit", "resource_limit")];
 
   private void CheckIncompatibleAttributes(ModuleResolver resolver, Attributes? attrs) {

@@ -3,7 +3,7 @@ using System.Diagnostics.Contracts;
 namespace Microsoft.Dafny;
 
 public class ConversionExpr : TypeUnaryExpr, ICloneable<ConversionExpr> {
-  public readonly string messagePrefix;
+  public string messagePrefix;
 
   public ConversionExpr(Cloner cloner, ConversionExpr original) : base(cloner, original) {
     messagePrefix = original.messagePrefix;
