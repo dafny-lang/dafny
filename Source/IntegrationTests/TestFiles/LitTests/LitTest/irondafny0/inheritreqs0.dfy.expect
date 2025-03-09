@@ -1,5 +1,6 @@
 Warning: this way of using the CLI is deprecated. Use 'dafny --help' to see help for the new Dafny CLI format
 inheritreqs0.dfy(19,13): Error: a precondition for this call could not be proved
-inheritreqs0.dfy[Impl](6,17): Related location: this is the precondition that could not be proved
+inheritreqs0.dfy(6,17): Related location: this is the precondition that could not be proved
+inheritreqs0.dfy(9,7): Related location
 
 Dafny program verifier finished with 0 verified, 1 error

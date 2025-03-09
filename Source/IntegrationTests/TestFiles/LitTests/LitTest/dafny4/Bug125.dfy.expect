@@ -1,4 +1,5 @@
-Bug125.dfy[AbstractModuleC](26,15): Error: The name T ambiguously refers to a type in one of the modules AbstractModuleC.AMA2.Abs, AbstractModuleB.AMA.Abs (try qualifying the type name with the module name)
+Bug125.dfy(26,15): Error: The name T ambiguously refers to a type in one of the modules AbstractModuleC.AMA2.Abs, AbstractModuleB.AMA.Abs (try qualifying the type name with the module name)
+Bug125.dfy(29,16): Related location: refining module
 Bug125.dfy(67,11): Error: The name g ambiguously refers to a static member in one of the modules LibB, LibA (try qualifying the member name with the module name)
 Bug125.dfy(71,10): Error: The name G ambiguously refers to a type in one of the modules LibB, LibA (try qualifying the type name with the module name)
 Bug125.dfy(81,17): Error: a refining function is not allowed to extend/change the body
