@@ -586,7 +586,7 @@ namespace RAST {
       return s;
     }
     public static RAST._IRASTTopDownVisitor<T> Default(T _default_T) {
-      return create(((T x2, RAST._IType x3) => _default_T), ((T x4, RAST._IExpr x5) => _default_T), ((T x6, RAST._IModDecl x7, RAST._IPath x8) => _default_T), false);
+      return create(((T x3, RAST._IType x4) => _default_T), ((T x5, RAST._IExpr x6) => _default_T), ((T x7, RAST._IModDecl x8, RAST._IPath x9) => _default_T), false);
     }
     public static Dafny.TypeDescriptor<RAST._IRASTTopDownVisitor<T>> _TypeDescriptor(Dafny.TypeDescriptor<T> _td_T) {
       return new Dafny.TypeDescriptor<RAST._IRASTTopDownVisitor<T>>(RAST.RASTTopDownVisitor<T>.Default(_td_T.Default()));
@@ -909,7 +909,7 @@ namespace RAST {
       s += ")";
       return s;
     }
-    private static readonly RAST._IRASTBottomUpReplacer theDefault = create(((Func<RAST._IMod, RAST._IPath, RAST._IMod>)null), ((RAST._IType x9) => RAST.Type.Default()), ((RAST._IExpr x10) => RAST.Expr.Default()));
+    private static readonly RAST._IRASTBottomUpReplacer theDefault = create(((Func<RAST._IMod, RAST._IPath, RAST._IMod>)null), ((RAST._IType x10) => RAST.Type.Default()), ((RAST._IExpr x11) => RAST.Expr.Default()));
     public static RAST._IRASTBottomUpReplacer Default() {
       return theDefault;
     }

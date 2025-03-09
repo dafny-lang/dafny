@@ -170,8 +170,6 @@ module Std.Producers {
       requires totalActionProof.Valid()
       requires totalActionProof.Action() == consumer
       modifies Repr, consumer.Repr
-      // TODO: complete post-condition
-      // ensures Produced(e.Outputs()) == a.Inputs()
     {
       var t := Next();
       while t != None
@@ -661,8 +659,6 @@ module Std.Producers {
   class FilteredProducer<T> extends Producer<T> {
 
     const source: Producer<T>
-    // TODO: Document how I really don't want to use a ~>,
-    // but can't use Seq.Filter unless I do.
     const filter: T -> bool
 
     constructor (source: Producer<T>, filter: T -> bool)

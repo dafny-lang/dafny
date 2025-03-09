@@ -10,7 +10,8 @@ module Std.Termination {
     | TMSeq(seqValue: seq<TerminationMetric>)
     | TMDatatype(children: seq<TerminationMetric>)
 
-    // TODO: All other supported kinds of Dafny values
+    // Other kinds of Dafny values are valid here too,
+    // and may be added in the future.
     
     // The equivalent of "decreases first, rest".
     // Can be chained to represent "decreases a, b, c, d"
@@ -22,7 +23,6 @@ module Std.Termination {
         // Simple well-ordered types
         case (TMNat(left), TMNat(right)) => left > right
         case (TMChar(left), TMChar(right)) => left > right
-        // TODO: etc.
         // Other is a strict subsequence of this
         case (TMSeq(left), TMSeq(right)) =>
           || (exists i    | 0 <= i < |left|      :: left[..i] == right)
@@ -33,11 +33,8 @@ module Std.Termination {
         case (TMSeq(leftSeq), TMDatatype(_)) =>
           || other in leftSeq
         // Structural inclusion inside a datatype
-        // TODO: Does other have to be a datatype too?
         case (TMDatatype(leftChildren), _) =>
           || other in leftChildren
-
-        // TODO: other cases
 
         case (TMComma(leftFirst, leftRest), TMComma(rightFirst, rightRest)) =>
           if leftFirst == rightFirst then
@@ -52,11 +49,6 @@ module Std.Termination {
       }
     }
 
-    ghost function {:axiom} Ordinal(): ORDINAL
-
-    // TODO: prove DecreasesTo is a well-founded ordering
-    // (useful exercise and helps catch typos inconsistent with Dafny's ordering)
-
     predicate EqualOrDecreasesTo(other: TerminationMetric) {
       this == other || DecreasesTo(other)
     }
@@ -66,6 +58,7 @@ module Std.Termination {
     // and technically has to be defined for a whole program.
     // It's sound to just assume it exists to convince Dafny that
     // `decreases terminationMetric.Ordinal()` is valid.
+    ghost function {:axiom} Ordinal(): ORDINAL
     lemma {:axiom} OrdinalDecreases(other: TerminationMetric)
       requires DecreasesTo(other)
       ensures Ordinal() > other.Ordinal()
