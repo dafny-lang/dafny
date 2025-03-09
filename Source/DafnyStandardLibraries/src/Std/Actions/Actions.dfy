@@ -264,7 +264,7 @@ module Std.Actions {
       ValidHistory(history + [(nextInput, nextOutput)])
     }
 
-    method {:rlimit 0} Invoke(i: I) returns (o: O)
+    method Invoke(i: I) returns (o: O)
       requires Requires(i)
       reads Reads(i)
       modifies Modifies(i)
@@ -327,17 +327,6 @@ module Std.Actions {
       requires Action().ValidHistory(history)
       ensures Action().ValidInput(history, next)
     {}
-  }
-
-  trait OutputsFreshProof<I> {
-
-    ghost function Action(): Action<I, Validatable>
-
-    twostate lemma ProducedAllNew(input: I, new output: Validatable)
-      requires old(Action().Valid())
-      requires Action().ValidOutput(old(Action().history), input, output)
-      ensures output.Valid()
-      ensures fresh(output.Repr)
   }
 
   class ComposedAction<I, M, O> extends Action<I, O> {

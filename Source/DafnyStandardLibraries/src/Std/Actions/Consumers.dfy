@@ -10,6 +10,7 @@ module Std.Consumers {
   import opened DynamicArray
   import Collections.Seq
 
+  // Actions that consume a T and outputs nothing.
   @AssumeCrossModuleTermination
   trait IConsumer<T> extends Action<T, ()> {
 
@@ -27,6 +28,7 @@ module Std.Consumers {
     }
   }
 
+  // Actions that attempt to consume a T and may fail.
   @AssumeCrossModuleTermination
   trait Consumer<T> extends Action<T, bool> {
 

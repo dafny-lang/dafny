@@ -10,6 +10,7 @@ module Std.Producers {
   import opened Termination
   import Collections.Seq
 
+  // Actions that consume nothing and produce a T.
   @AssumeCrossModuleTermination
   trait IProducer<T> extends Action<(), T> {}
 
@@ -1015,6 +1016,18 @@ module Std.Producers {
       Repr := {this} + original.Repr + mapping.Repr + mappingTotalProof.Repr;
       remaining := original.remaining;
     }
+  }
+
+  trait OutputsNewProducersProof<I, O> {
+
+    ghost function Action(): Action<I, Producer<O>>
+
+    twostate lemma ProducedAllNew(input: I, new output: Producer<O>)
+      requires old(Action().Valid())
+      requires Action().ValidOutput(old(Action().history), input, output)
+      ensures output.Valid()
+      ensures fresh(output.Repr)
+      ensures output.history == []
   }
 
   trait ProducesNewProducersProof<T> {
