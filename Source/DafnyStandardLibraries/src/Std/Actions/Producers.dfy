@@ -191,8 +191,7 @@ module Std.Producers {
     }
 
     ghost predicate Done() 
-      requires Valid()
-      reads this, Repr
+      reads this
       decreases height, 1
     {
       !Seq.All(Outputs(), IsSome)
@@ -965,145 +964,146 @@ module Std.Producers {
       ensures produced.history == []
   }
 
-  // class FlattenedProducer<T> extends Producer<T> {
+  class FlattenedProducer<T> extends Producer<T> {
 
-  //   const original: Producer<Producer<T>>
-  //   var currentInner: Option<Producer<T>>
+    const original: Producer<Producer<T>>
+    var currentInner: Option<Producer<T>>
 
-  //   ghost const producesNewProducersProof: ProducesNewProducersProof<T>
+    ghost const producesNewProducersProof: ProducesNewProducersProof<T>
 
-  //   constructor (original: Producer<Producer<T>>, ghost producesNewProducersProof: ProducesNewProducersProof<T>)
-  //     requires original.Valid()
-  //     requires producesNewProducersProof.Producer() == original
-  //     ensures Valid()
-  //     ensures fresh(Repr - original.Repr)
-  //   {
-  //     this.original := original;
+    constructor (original: Producer<Producer<T>>, ghost producesNewProducersProof: ProducesNewProducersProof<T>)
+      requires original.Valid()
+      requires producesNewProducersProof.Producer() == original
+      ensures Valid()
+      ensures fresh(Repr - original.Repr)
+    {
+      this.original := original;
 
-  //     this.producesNewProducersProof := producesNewProducersProof;
-  //     this.history := [];
-  //     this.Repr := {this} + original.Repr;
-  //     this.height := original.height;
-  //     this.currentInner := None;
-  //     this.remaining := original.remaining;
-  //   }
+      this.producesNewProducersProof := producesNewProducersProof;
+      this.history := [];
+      this.Repr := {this} + original.Repr;
+      this.height := original.height + 1;
+      this.currentInner := None;
+      this.remaining := original.remaining;
+    }
 
-  //   ghost predicate Valid()
-  //     reads this, Repr
-  //     ensures Valid() ==> this in Repr
-  //     ensures Valid() ==> ValidHistory(history)
-  //     decreases height, 0
-  //   {
-  //     && this in Repr
-  //     && ValidComponent(original)
-  //     && (currentInner.Some? ==> ValidComponent(currentInner.value))
-  //     && original.Repr !! (if currentInner.Some? then currentInner.value.Repr else {})
-  //     && ValidHistory(history)
-  //     && (currentInner.Some? ==> 0 < |original.Outputs()| && currentInner == Seq.Last(original.Outputs()))
-  //     && (!original.Done() && currentInner.Some? && !currentInner.value.Done() ==> !Done())
-  //   }
+    ghost predicate Valid()
+      reads this, Repr
+      ensures Valid() ==> this in Repr
+      ensures Valid() ==> ValidHistory(history)
+      decreases height, 0
+    {
+      && this in Repr
+      && ValidComponent(original)
+      && (currentInner.Some? ==> ValidComponent(currentInner.value))
+      && original.Repr !! (if currentInner.Some? then currentInner.value.Repr else {})
+      && ValidHistory(history)
+      && (currentInner.Some? ==> 0 < |original.Outputs()| && currentInner == Seq.Last(original.Outputs()))
+      && (!original.Done() && currentInner.Some? && !currentInner.value.Done() ==> !Done())
+      && (Done() ==> original.Done() && currentInner.None?)
+    }
 
-  //   twostate predicate ValidOutput(history: seq<((), Option<T>)>, nextInput: (), new nextOutput: Option<T>)
-  //     requires ValidHistory(history)
-  //     decreases height
-  //     ensures ValidOutput(history, nextInput, nextOutput) ==> ValidHistory(history + [(nextInput, nextOutput)])
-  //   {
-  //     ValidHistory(history + [(nextInput, nextOutput)])
-  //   }
-  //   ghost predicate ValidOutputs(outputs: seq<Option<T>>)
-  //     requires Seq.Partitioned(outputs, IsSome)
-  //     decreases height
-  //   {
-  //     true
-  //   }
+    twostate predicate ValidOutput(history: seq<((), Option<T>)>, nextInput: (), new nextOutput: Option<T>)
+      requires ValidHistory(history)
+      decreases height
+      ensures ValidOutput(history, nextInput, nextOutput) ==> ValidHistory(history + [(nextInput, nextOutput)])
+    {
+      ValidHistory(history + [(nextInput, nextOutput)])
+    }
+    ghost predicate ValidOutputs(outputs: seq<Option<T>>)
+      requires Seq.Partitioned(outputs, IsSome)
+      decreases height
+    {
+      true
+    }
 
-  //   @IsolateAssertions
-  //   @ResourceLimit("0")
-  //   method Invoke(t: ()) returns (result: Option<T>)
-  //     requires Requires(t)
-  //     reads this, Repr
-  //     modifies Modifies(t)
-  //     decreases Decreases(t).Ordinal(), 0
-  //     ensures Ensures(t, result)
-  //     ensures if result.Some? then 
-  //         old(remaining).DecreasesTo(remaining)
-  //       else
-  //         old(remaining) == remaining
-  //   {
-  //     result := None;
+    @IsolateAssertions
+    @ResourceLimit("0")
+    method Invoke(t: ()) returns (result: Option<T>)
+      requires Requires(t)
+      reads this, Repr
+      modifies Modifies(t)
+      decreases Decreases(t).Ordinal(), 0
+      ensures Ensures(t, result)
+      ensures if result.Some? then 
+          old(remaining).DecreasesTo(remaining)
+        else
+          old(remaining) == remaining
+    {
+      result := None;
 
-  //     while true
-  //       invariant fresh(Repr - old(Repr))
-  //       invariant Valid()
-  //       invariant history == old(history)
-  //       invariant currentInner.Some? ==> (
-  //         && 0 < |original.Outputs()| 
-  //         && currentInner == Seq.Last(original.Outputs())
-  //         && original.Repr !! currentInner.value.Repr
-  //       )
-  //       invariant result.Some? ==> !original.Done() && currentInner.Some? && !currentInner.value.Done()
-  //       invariant remaining == old(remaining)
-  //       decreases original.remaining.Ordinal(), currentInner.Some?,
-  //                 if currentInner.Some? then currentInner.value.remaining.Ordinal() else 0
-  //     {
-  //       if currentInner.None? {
-  //         CheatOnRecursiveNext(this, original); 
-  //         var currentInner := original.Next();
-  //         Repr := {this} + original.Repr;
-  //         height := original.height + 1;
-  //         assert Valid();
+      while true
+        invariant fresh(Repr - old(Repr))
+        invariant Valid()
+        invariant history == old(history)
+        invariant currentInner.Some? ==> (
+          && 0 < |original.Outputs()| 
+          && currentInner == Seq.Last(original.Outputs())
+          && original.Repr !! currentInner.value.Repr
+        )
+        invariant result.Some? ==> !original.Done() && currentInner.Some? && !currentInner.value.Done()
+        invariant remaining == old(remaining)
+        decreases original.remaining.Ordinal(), currentInner.Some?,
+                  if currentInner.Some? then currentInner.value.remaining.Ordinal() else 0
+      {
+        if currentInner.None? {
+          CheatOnRecursiveNext(this, original); 
+          var currentInner := original.Next();
+          Repr := {this} + original.Repr;
+          height := original.height + 1;
+          assert Valid();
 
-  //         if currentInner.None? {
-  //           break;
-  //         }
-  //       } else {
-  //         label before:
-  //         CheatOnRecursiveNext(this, currentInner.value); 
-  //         result := currentInner.value.Next();
-  //         this.Repr := {this} + original.Repr + currentInner.value.Repr;
-  //         height := original.height + currentInner.value.height + 1;
+          if currentInner.None? {
+            break;
+          }
+        } else {
+          label before:
+          CheatOnRecursiveNext(this, currentInner.value); 
+          result := currentInner.value.Next();
+          this.Repr := {this} + original.Repr + currentInner.value.Repr;
+          height := original.height + currentInner.value.height + 1;
 
-  //         if result.None? {
-  //           currentInner := None;
+          if result.None? {
+            currentInner := None;
 
-  //           assert Valid();
-  //         } else {
-  //           assert currentInner == Seq.Last(original.Outputs());
-  //           Seq.PartitionedLastTrueImpliesAll(original.Outputs(), IsSome);
-  //           assert result == Seq.Last(currentInner.value.Outputs());
-  //           Seq.PartitionedLastTrueImpliesAll(currentInner.value.Outputs(), IsSome);
-  //           assert !original.Done() && currentInner.Some? && !currentInner.value.Done();
+            assert Valid();
+          } else {
+            assert currentInner == Seq.Last(original.Outputs());
+            Seq.PartitionedLastTrueImpliesAll(original.Outputs(), IsSome);
+            assert result == Seq.Last(currentInner.value.Outputs());
+            Seq.PartitionedLastTrueImpliesAll(currentInner.value.Outputs(), IsSome);
+            assert !original.Done() && currentInner.Some? && !currentInner.value.Done();
 
-  //           // assert this in Repr;
-  //           // assert ValidComponent(original);
-  //           // assert (currentInner.Some? ==> ValidComponent(currentInner.value));
-  //           // assert original.Repr !! (if currentInner.Some? then currentInner.value.Repr else {});
-  //           // assert ValidHistory(history);
-  //           // assert (currentInner.Some? ==> 0 < |original.Outputs()| && currentInner == Seq.Last(original.Outputs()));
-  //           assert (!original.Done() && currentInner.Some? && !currentInner.value.Done() ==> !Done());
-  //         }
-  //       }
-  //     }
+            // assert this in Repr;
+            // assert ValidComponent(original);
+            // assert (currentInner.Some? ==> ValidComponent(currentInner.value));
+            // assert original.Repr !! (if currentInner.Some? then currentInner.value.Repr else {});
+            // assert ValidHistory(history);
+            // assert (currentInner.Some? ==> 0 < |original.Outputs()| && currentInner == Seq.Last(original.Outputs()));
+            assert (!original.Done() && currentInner.Some? && !currentInner.value.Done() ==> !Done());
+          }
+        }
+      }
 
-  //     if result.Some? {
-  //       assert !original.Done();
-  //       assert currentInner.Some?;
-  //       assert !currentInner.value.Done();
-  //       OutputsPartitionedAfterOutputtingSome(result.value);
-  //       ProduceSome(result.value);
+      if result.Some? {
+        assert !original.Done();
+        assert currentInner.Some?;
+        assert !currentInner.value.Done();
+        OutputsPartitionedAfterOutputtingSome(result.value);
+        ProduceSome(result.value);
 
-  //       remaining := if currentInner.Some? then 
-  //         TMComma(original.remaining, currentInner.value.remaining)
-  //       else 
-  //         original.remaining;
-  //     } else {
-  //       OutputsPartitionedAfterOutputtingNone();
-  //       ProduceNone();
-  //     }
+        remaining := if currentInner.Some? then 
+          TMComma(original.remaining, currentInner.value.remaining)
+        else 
+          original.remaining;
+      } else {
+        OutputsPartitionedAfterOutputtingNone();
+        ProduceNone();
+      }
 
-  //     assert Valid();
-  //   }
-  // }
+      assert Valid();
+    }
+  }
 
 
   twostate lemma {:axiom} CheatOnRecursiveNext<T, U>(thiss: Producer<T>, new other: Producer<U>) 
