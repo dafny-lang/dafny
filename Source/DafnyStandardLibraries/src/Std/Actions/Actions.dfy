@@ -329,6 +329,17 @@ module Std.Actions {
     {}
   }
 
+  trait OutputsFreshProof<I> {
+
+    ghost function Action(): Action<I, Validatable>
+
+    twostate lemma ProducedAllNew(input: I, new output: Validatable)
+      requires old(Action().Valid())
+      requires Action().ValidOutput(old(Action().history), input, output)
+      ensures output.Valid()
+      ensures fresh(output.Repr)
+  }
+
   class ComposedAction<I, M, O> extends Action<I, O> {
 
     const first: Action<I, M>

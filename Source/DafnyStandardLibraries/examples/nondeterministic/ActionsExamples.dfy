@@ -12,8 +12,10 @@ module ActionsExamples {
     current := 0;
     yield;
 
-    var prev: nat := 0;
     current := 1;
+    var prev: nat := 0;
+    yield;
+
     while true {
       var next := prev + current;
       prev := current;
@@ -46,9 +48,9 @@ module ActionsExamples {
       ensures fresh(Repr)
     {
       this.iter := new FibonacciIterator();
+      height := 0;
       new;
       Repr := {this, iter} + NonNullElements(iter._reads) + NonNullElements(iter._modifies) + NonNullElements(iter._new);
-      height := 0;
     }
 
     function NonNullElements(s: set<object?>): set<object> {
@@ -75,10 +77,9 @@ module ActionsExamples {
     method Invoke(i: ()) returns (o: nat)
       requires Requires(i)
       modifies Modifies(i)
-      decreases Decreases(i).Ordinal()
+      decreases Decreases(i).Ordinal(), 0
       ensures Ensures(i, o)
     {
-      assert Valid();
       var more := iter.MoveNext();
       assert history == old(history);
       assert more;
@@ -91,29 +92,30 @@ module ActionsExamples {
 
   }
 
-  method PrintOutFibonnaci() {
+  method {:test} FibonnaciExample() {
     var iproducer := new FibonacciProducer();
     var iproducerTotalProof := new DefaultTotalActionProof(iproducer);
-    var producer := new LimitedProducer(iproducer, 10, iproducerTotalProof);
+    var producer: Producer<nat> := new LimitedProducer(iproducer, 10, iproducerTotalProof);
+    var firstTen: seq<nat> := [];
 
     while true 
       invariant producer.Valid()
       invariant fresh(producer.Repr)
-      decreases producer.Remaining()
+      decreases producer.remaining.Ordinal()
     {
       var next := producer.Next();
       if next.None? {
         break;
       }
 
-      print next.value, "\n";
+      firstTen := firstTen + [next.value];
     }
+
+    print firstTen, "\n";
+    expect firstTen == [0, 1, 1, 2, 3, 5, 8, 13, 21, 34];
   }
 
-  method Main() {
-    PrintOutFibonnaci();
-  }
-
+  @AssumeCrossModuleTermination
   class SetIProducer<T(==)> extends IProducer<T>, ProducesSetProof<T> {
     ghost const original: set<T>
     var remaining: set<T>
@@ -169,6 +171,14 @@ module ActionsExamples {
     {
       |history| < |original|
     }
+    twostate predicate ValidOutput(history: seq<((), T)>, nextInput: (), new nextOutput: T)
+      requires ValidHistory(history)
+      decreases height
+      ensures ValidOutput(history, nextInput, nextOutput) ==> ValidHistory(history + [(nextInput, nextOutput)])
+    {
+      ValidHistory(history + [(nextInput, nextOutput)])
+    }
+
     ghost predicate ValidHistory(history: seq<((), T)>)
       decreases height
     {
@@ -187,13 +197,10 @@ module ActionsExamples {
 
     method Invoke(i: ()) returns (o: T)
       requires Requires(i)
-      reads Reads(i)
       modifies Modifies(i)
-      decreases Decreases(i).Ordinal()
+      decreases Decreases(i).Ordinal(), 0
       ensures Ensures(i, o)
     {
-      assert Requires(i);
-
       EnumeratedCardinality();
       assert 0 < |remaining|;
 
@@ -212,7 +219,7 @@ module ActionsExamples {
 
   }
 
-  method SetIProducerExample() {
+  method {:test} SetIProducerExample() {
     var s: set<nat> := {1, 2, 3, 4, 5};
     var copy: set<nat> := {};
     var e: SetIProducer<nat> := new SetIProducer(s);
@@ -227,10 +234,6 @@ module ActionsExamples {
       copy := copy + {x};
     }
 
-    // TODO: cool enough that we can statically invoke
-    // the enumerator the right number of times!
-    // But now prove that copy == s!
-    // assert |copy| == 5;
-    // assert copy == s;
+    expect copy == s;
   }
 }

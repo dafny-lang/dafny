@@ -3,6 +3,7 @@ module ActionsExamples {
   import opened Std.Producers
   import opened Std.Consumers
   import opened Std.Wrappers
+  import opened Std.Frames
 
   // Demonstrating the simplest idiom
   // for looping over the values produced by a Producer<T>
@@ -11,7 +12,7 @@ module ActionsExamples {
     while true 
       invariant p.Valid()
       invariant fresh(p.Repr)
-      decreases p.Remaining()
+      decreases p.remaining.Ordinal()
     {
       var next := p.Next();
       if next.None? {
@@ -143,40 +144,87 @@ module ActionsExamples {
     assert a.storage.items == [1, 2, 3, 4, 5, 6];
   }
 
-  function Splitter(o: Option<nat>): seq<nat> {
-    match o {
-      case Some(x) => [x / 2, x - (x / 2)]
-      case None => []
+  @AssumeCrossModuleTermination
+  class SplitAction extends Action<nat, Producer<nat>>, OutputsFreshProof<nat> {
+
+    ghost predicate Valid()
+      reads this, Repr
+      ensures Valid() ==> this in Repr
+      ensures Valid() ==> ValidHistory(history)
+      decreases height, 0
+    {
+      && this in Repr
+      && ValidHistory(history)
     }
+
+    constructor ()
+      ensures Valid()
+      ensures fresh(Repr)
+      ensures history == []
+    {
+      history := [];
+      Repr := {this};
+      height := 1;
+    }
+
+    ghost predicate ValidInput(history: seq<(nat, Producer<nat>)>, next: nat)
+      requires ValidHistory(history)
+      decreases height
+    {
+      true
+    }
+    twostate predicate ValidOutput(history: seq<(nat, Producer<nat>)>, nextInput: nat, new nextOutput: Producer<nat>)
+      decreases height
+      ensures ValidOutput(history, nextInput, nextOutput) ==> ValidHistory(history + [(nextInput, nextOutput)])
+    {
+      ValidHistory(history + [(nextInput, nextOutput)]) && fresh(nextOutput)
+    }
+    ghost predicate ValidHistory(history: seq<(nat, Producer<nat>)>)
+      decreases height
+    {
+      true
+    }
+
+    method Invoke(x: nat) returns (result: Producer<nat>)
+      requires Requires(x)
+      reads Repr
+      modifies Modifies(x)
+      decreases Decreases(x).Ordinal()
+      ensures Ensures(x, result)
+    {
+      result := new SeqProducer([x / 2, x - (x / 2)]);
+      UpdateHistory(x, result);
+    }
+
+    ghost function Action(): Action<nat, Validatable> {
+      this
+    }
+
+    twostate lemma ProducedAllNew(input: nat, new output: Validatable)
+      requires old(Action().Valid())
+      requires Action().ValidOutput(old(Action().history), input, output)
+      ensures output.Valid()
+      ensures fresh(output.Repr)
+    {}
   }
 
   @IsolateAssertions
   method ExamplePipeline() {
     var upstream := new SeqProducer([1, 2, 3, 4, 5]);
-    var process := new FunctionAction(Splitter);
-    var processTotalProof := new DefaultTotalActionProof(process);
+    var mapping := new SplitAction();
+    var processTotalProof := new DefaultTotalActionProof(mapping);
     assert fresh(upstream.Repr);
-    assert fresh(process.Repr);
+    assert fresh(mapping.Repr);
     assert fresh(processTotalProof.Repr);
 
-    var pipeline := new Pipeline(upstream, process, processTotalProof);
+    var mapped := new MappedProducer(upstream, mapping, processTotalProof);
+    var flattened := new FlattenedProducer(mapped, processTotalProof);
     
     var collector := new Collector();
 
     var collectorTotalProof := new DefaultTotalActionProof(collector);
-    pipeline.ForEachRemaining(collector, collectorTotalProof);
+    flattened.ForEachRemaining(collector, collectorTotalProof);
     
     expect collector.values == [0, 1, 1, 1, 1, 2, 2, 2, 2, 3];
   }
-
-  // method ComposedActionExample() {
-  //   var addOne: Action<nat, nat> := new FunctionAction(x => x + 1);
-  //   var double: Action<nat, nat> := new FunctionAction(x => x * 2);
-
-  //   ghost var firstConsumesAll := new TotalFunctionTotalActionProof(addOne);
-  //   ghost var secondConsumesAll := new TotalFunctionTotalActionProof(double);
-  //   var composeProof := new TotalActionCompositionProof(firstConsumesAll, secondConsumesAll);
-
-  //   var composed := new ComposedAction(addOne, double, composeProof);
-  // }
 }
