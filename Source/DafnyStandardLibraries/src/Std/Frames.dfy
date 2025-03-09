@@ -9,7 +9,7 @@ module Std.Frames {
     // Ghost state tracking the common set of objects most
     // methods need to read.
     ghost var Repr: set<object>
-    ghost var height: nat
+    ghost const height: nat
 
     ghost predicate Valid()
       reads this, Repr
@@ -32,6 +32,7 @@ module Std.Frames {
       requires component.height < height
       ensures TMNat(height).Ordinal() > TMNat(component.height).Ordinal()
     {
+      reveal TerminationMetric.DecreasesTo();
       TMNat(height).OrdinalDecreases(TMNat(component.height));
     }
 
