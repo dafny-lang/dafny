@@ -32,7 +32,7 @@ update-binary: build-binary
 # with deeper coverage of module functionality.
 
 test-cs:
-	$(DAFNY) test -t:cs examples/dfyconfig.toml --output:build/stdlibexamples --coverage-report:build/testcoverage
+	$(DAFNY) test -t:cs examples/dfyconfig.toml examples/BoundedInts/NonDefault.cs --output:build/stdlibexamples --coverage-report:build/testcoverage
 	$(DAFNY) test -t:cs examples/nondeterministic/dfyconfig.toml --output:build/stdlibexamples_nondeterministic --coverage-report:build/nondeterministic_testcoverage
 
 test-java:
