@@ -170,7 +170,7 @@ namespace IntegrationTests {
             DafnyCommand(AddExtraArgs(defaultRunArgs, args), config, InvokeMainMethodsDirectly)
         }, {
           "%audit", (args, config) =>
-            DafnyCommand(AddExtraArgs(defaultResolveArgs, args), config, InvokeMainMethodsDirectly)
+            DafnyCommand(AddExtraArgs(defaultAuditArgs, args), config, InvokeMainMethodsDirectly)
         }, {
           "%dafny", (args, config) =>
             DafnyCommand(AddExtraArgs(DafnyCliTests.DefaultArgumentsForTesting, args), config, InvokeMainMethodsDirectly)
