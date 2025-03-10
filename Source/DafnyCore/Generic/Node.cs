@@ -40,12 +40,12 @@ public abstract class NodeWithoutOrigin : Node {
 
   public override Token StartToken {
     get {
-      return startToken ??= PreResolveChildren.First().StartToken;
+      return startToken ??= PreResolveChildren.FirstOrDefault()?.StartToken ?? Token.NoToken;
     }
   }
 
   public override Token EndToken {
-    get { return endToken ??= PreResolveChildren.Last().EndToken; }
+    get { return endToken ??= PreResolveChildren.LastOrDefault()?.EndToken ?? Token.NoToken; }
   }
 }
 

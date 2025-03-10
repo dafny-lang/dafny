@@ -27,11 +27,11 @@ public abstract class NodeWithOrigin : Node {
 
   public override Token StartToken {
     get {
-      return startToken ??= Origin.StartToken ?? PreResolveChildren.First().StartToken;
+      return startToken ??= Origin.StartToken ?? PreResolveChildren.FirstOrDefault()?.StartToken ?? Token.NoToken;
     }
   }
 
   public override Token EndToken {
-    get { return endToken ??= Origin.EndToken ?? PreResolveChildren.Last().EndToken; }
+    get { return endToken ??= Origin.EndToken ?? PreResolveChildren.LastOrDefault()?.EndToken ?? Token.NoToken; }
   }
 }
