@@ -344,8 +344,8 @@ namespace Microsoft.Dafny {
                     foreach (var cs in caseProduct) {
                       if (kase != Bpl.Expr.True) {  // if there's no case, don't add anything to the token
                         newCases.Add(Bpl.Expr.Binary(new NestedOrigin(
-                            ToDafnyToken(flags.ReportRanges, cs.tok), 
-                            ToDafnyToken(flags.ReportRanges, kase.tok), "datatype constructor"), 
+                            ToDafnyToken(flags.ReportRanges, cs.tok),
+                            ToDafnyToken(flags.ReportRanges, kase.tok), "datatype constructor"),
                           Bpl.BinaryOperator.Opcode.And, cs, kase));
                       } else {
                         newCases.Add(cs);

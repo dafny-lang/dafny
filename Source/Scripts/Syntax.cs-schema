@@ -1,3 +1,11 @@
+class SimpleLocation
+{
+    Int32 startLine;
+    Int32 startCharacter;
+    Int32 endLine;
+    Int32 endCharacter;
+}
+
 abstract class IOrigin
 {
 }
@@ -6,7 +14,7 @@ class SourceOrigin : IOrigin
 {
     Token startToken;
     Token endToken;
-    Token center;
+    SimpleLocation? center;
 }
 
 class Token

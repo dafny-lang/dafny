@@ -1,14 +1,38 @@
 // Generated file
 using System;
 using System.Collections.Generic;
+using JetBrains.Annotations;
+using OmniSharp.Extensions.LanguageServer.Protocol;
+using OmniSharp.Extensions.LanguageServer.Protocol.Models;
+using Range = System.Range;
 
 namespace Microsoft.Dafny {
   partial class SyntaxDeserializer {
     public SourceOrigin ReadSourceOrigin() {
       var parameter0 = ReadToken();
       var parameter1 = ReadTokenOption();
-      var parameter2 = ReadTokenOption();
+      var parameter2 = ReadLocationOption();
       return new SourceOrigin(parameter0, parameter1, parameter2);
+    }
+
+    [CanBeNull]
+    public Location ReadLocationOption() {
+      if (ReadIsNull()) {
+        return default;
+      }
+
+      return ReadLocation();
+    }
+
+    public Location ReadLocation() {
+      var sl = ReadInt32();
+      var sc = ReadInt32();
+      var el = ReadInt32();
+      var ec = ReadInt32();
+      return new Location {
+        Uri = DocumentUri.From(uri),
+        Range = new OmniSharp.Extensions.LanguageServer.Protocol.Models.Range(sl, sc, el, ec)
+      };
     }
 
     public SourceOrigin ReadSourceOriginOption() {

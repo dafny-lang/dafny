@@ -133,6 +133,15 @@ public class Serializer(IEncoder encoder, IReadOnlyList<INamedTypeSymbol> parsed
     }
 
     switch (value) {
+      case OmniSharp.Extensions.LanguageServer.Protocol.Models.Location l:
+        var range = l.Range;
+        var start = range.Start;
+        var end = range.End;
+        encoder.WriteInt(start.Line);
+        encoder.WriteInt(start.Character);
+        encoder.WriteInt(end.Character);
+        encoder.WriteInt(end.Character);
+        break;
       case string s:
         encoder.WriteString(s);
         break;

@@ -11,7 +11,7 @@ using Xunit.Abstractions;
 
 namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Synchronization {
   public class CloseDocumentTest : ClientBasedLanguageServerTest {
-    
+
     [Fact]
     public async Task DiagnosticsAreClearedUponCloseWhenUsingProject() {
       var source = "method Foo() { var c: int := true; }";
