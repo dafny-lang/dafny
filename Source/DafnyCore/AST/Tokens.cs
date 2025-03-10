@@ -1,12 +1,10 @@
 using System.Diagnostics.Contracts;
 using System.IO;
-using Newtonsoft.Json;
 
 namespace Microsoft.Dafny;
 
 public static class TokenExtensions {
-
-
+  
   public static DafnyRange ToDafnyRange(this IOrigin origin, bool includeTrailingWhitespace = false) {
     var startLine = origin.StartToken.line - 1;
     var startColumn = origin.StartToken.col - 1;

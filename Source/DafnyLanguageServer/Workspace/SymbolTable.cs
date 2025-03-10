@@ -145,7 +145,7 @@ public class SymbolTable {
 
     var character = new Range(position, new Position(position.Line, position.Character + 1));
     var options = forFile.Query(position)
-      .Where(n => n.ToLspRange().Contains(character)).OrderBy(o => o.Center.val.Length);
+      .Where(n => n.ToLspRange().Contains(character)).OrderByDescending(o => o.StartToken.pos);
     return options
       .Select(node => Declarations.TryGetValue(node, out var declaration)
         ? declaration : ReferenceToNode.GetValueOrDefault(node))
