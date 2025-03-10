@@ -81,7 +81,7 @@ public class MatchExpr : Expression, IMatch, ICloneable<MatchExpr> {  // a Match
   }
 }
 
-public abstract class MatchCase : NodeWithComputedRange, IHasReferences {
+public abstract class MatchCase : NodeWithOrigin, IHasReferences {
   public DatatypeCtor Ctor;
   public List<BoundVar> Arguments;
 

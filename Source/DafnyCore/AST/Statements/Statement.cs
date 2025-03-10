@@ -6,7 +6,7 @@ using System.Linq;
 
 namespace Microsoft.Dafny;
 
-public abstract class Statement : RangeNode, IAttributeBearingDeclaration {
+public abstract class Statement : NodeWithOrigin, IAttributeBearingDeclaration {
   public Token? PostLabelToken { get; set; }
 
   public int ScopeDepth { get; set; }

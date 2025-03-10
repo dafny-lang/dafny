@@ -46,7 +46,7 @@ public record BuiltInAtAttributeSyntax(
   }
 }
 
-public class Attributes : NodeWithComputedRange, ICanFormat {
+public class Attributes : NodeWithOrigin, ICanFormat {
   [ContractInvariantMethod]
   void ObjectInvariant() {
     Contract.Invariant(Name != null);

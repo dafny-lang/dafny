@@ -4,7 +4,7 @@ using System.Linq;
 
 namespace Microsoft.Dafny;
 
-public abstract class AssignmentRhs : NodeWithComputedRange, IAttributeBearingDeclaration {
+public abstract class AssignmentRhs : NodeWithOrigin, IAttributeBearingDeclaration {
   public Attributes? Attributes { get; set; }
 
   string IAttributeBearingDeclaration.WhatKind => "assignment right-hand-side";

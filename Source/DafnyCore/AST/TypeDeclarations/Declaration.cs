@@ -6,7 +6,7 @@ using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 
 namespace Microsoft.Dafny;
 
-public abstract class Declaration : RangeNode, IAttributeBearingDeclaration, ISymbol {
+public abstract class Declaration : NodeWithOrigin, IAttributeBearingDeclaration, ISymbol {
   [ContractInvariantMethod]
   void ObjectInvariant() {
     Contract.Invariant(Name != null);

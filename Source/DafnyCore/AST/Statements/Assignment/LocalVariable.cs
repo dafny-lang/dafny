@@ -6,7 +6,7 @@ using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 
 namespace Microsoft.Dafny;
 
-public class LocalVariable : RangeNode, IVariable, IAttributeBearingDeclaration {
+public class LocalVariable : NodeWithOrigin, IVariable, IAttributeBearingDeclaration {
   readonly string name;
   public string DafnyName => Name;
   public Attributes? Attributes;

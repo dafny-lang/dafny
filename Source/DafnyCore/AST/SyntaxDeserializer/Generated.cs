@@ -173,9 +173,8 @@ namespace Microsoft.Dafny {
     }
 
     public ActualBindings ReadActualBindings() {
-      var parameter0 = ReadAbstract<IOrigin>();
-      var parameter1 = ReadList<ActualBinding>(() => ReadActualBinding());
-      return new ActualBindings(parameter0, parameter1);
+      var parameter0 = ReadList<ActualBinding>(() => ReadActualBinding());
+      return new ActualBindings(parameter0);
     }
 
     public ActualBindings ReadActualBindingsOption() {
@@ -187,11 +186,10 @@ namespace Microsoft.Dafny {
     }
 
     public ActualBinding ReadActualBinding() {
-      var parameter0 = ReadAbstract<IOrigin>();
-      var parameter1 = ReadAbstractOption<IOrigin>();
-      var parameter2 = ReadAbstract<Expression>();
-      var parameter3 = ReadBoolean();
-      return new ActualBinding(parameter0, parameter1, parameter2, parameter3);
+      var parameter0 = ReadAbstractOption<IOrigin>();
+      var parameter1 = ReadAbstract<Expression>();
+      var parameter2 = ReadBoolean();
+      return new ActualBinding(parameter0, parameter1, parameter2);
     }
 
     public ActualBinding ReadActualBindingOption() {

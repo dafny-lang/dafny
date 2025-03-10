@@ -35,9 +35,6 @@ public class SeqSelectExpr : Expression, ICloneable<SeqSelectExpr> {
     E0 = e0;
     E1 = e1;
     CloseParen = closeParen;
-    if (closeParen != null) {
-      FormatTokens = [closeParen];
-    }
   }
 
   public override IEnumerable<Expression> SubExpressions {

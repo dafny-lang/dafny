@@ -24,7 +24,7 @@ public enum ImplementationKind {
 
 public record Implements(ImplementationKind Kind, ModuleQualifiedId Target);
 
-public class ModuleDefinition : RangeNode, IAttributeBearingDeclaration, ICloneable<ModuleDefinition> {
+public class ModuleDefinition : NodeWithOrigin, IAttributeBearingDeclaration, ICloneable<ModuleDefinition> {
 
   public static readonly Option<bool> LegacyModuleNames = new("--legacy-module-names",
     @"

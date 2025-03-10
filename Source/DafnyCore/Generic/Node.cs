@@ -1,3 +1,4 @@
+#nullable enable
 using System;
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
@@ -5,6 +6,7 @@ using System.Linq;
 using System.Text.RegularExpressions;
 using Microsoft.Dafny.Auditor;
 using Action = System.Action;
+using Range = OmniSharp.Extensions.LanguageServer.Protocol.Models.Range;
 
 namespace Microsoft.Dafny;
 
@@ -28,16 +30,35 @@ public class SyntaxConstructorAttribute : Attribute { }
 [AttributeUsage(AttributeTargets.Parameter | AttributeTargets.Field)]
 public class BackEdge : Attribute { }
 
+public abstract class NodeWithoutOrigin : Node {
+  private IOrigin? origin;
+
+  public override IOrigin Origin => origin ??= new SourceOrigin(this.StartToken, this.EndToken);
+}
+
 public abstract class Node : INode {
   private static readonly Regex StartDocstringExtractor =
     new Regex($@"/\*\*(?<multilinecontent>{TriviaFormatterHelper.MultilineCommentContent})\*/");
 
-  protected IReadOnlyList<Token> OwnedTokensCache;
+  protected IReadOnlyList<Token>? OwnedTokensCache;
 
   public virtual bool SingleFileToken => true;
-  public Token StartToken => Origin?.StartToken;
 
-  public Token EndToken => Origin?.EndToken;
+  public abstract IOrigin Origin { get; }
+
+  private Token? startToken;
+  private Token? endToken;
+
+  public Token StartToken {
+    get {
+      return startToken ??= Origin.StartToken ?? PreResolveChildren.First().StartToken;
+    }
+  }
+
+  public Token EndToken {
+    get { return endToken ??= Origin.EndToken ?? PreResolveChildren.Last().EndToken; }
+  }
+
   public Token Center => Origin?.Center;
 
   /// <summary>
@@ -129,8 +150,6 @@ public abstract class Node : INode {
     }
   }
 
-  public abstract IOrigin Origin { get; }
-
   // <summary>
   // Returns all assumptions contained in this node or its descendants.
   // For each one, the decl field will be set to the closest containing declaration.
@@ -141,7 +160,9 @@ public abstract class Node : INode {
     return [];
   }
 
-  public ISet<INode> Visit(Func<INode, bool> beforeChildren = null, Action<INode> afterChildren = null, Action<Exception> reportError = null) {
+  public ISet<INode> Visit(Func<INode, bool>? beforeChildren = null,
+    Action<INode>? afterChildren = null,
+    Action<Exception>? reportError = null) {
     reportError ??= _ => { };
     beforeChildren ??= node => true;
 

@@ -1,3 +1,4 @@
+#nullable enable
 using System;
 using System.IO;
 
@@ -29,8 +30,8 @@ public interface IOrigin : Boogie.IToken {
 
   Uri Uri { get; }
 
-  Token StartToken { get; }
-  Token EndToken { get; }
+  Token? StartToken { get; }
+  Token? EndToken { get; }
   Token Center {
     get;
   }

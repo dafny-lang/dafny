@@ -27,15 +27,14 @@ public partial class SyntaxDeserializer(IDecoder decoder) {
   private Uri? uri;
 
   private Specification<T> ReadSpecification<T>() where T : Node {
-    var parameter0 = ReadAbstract<IOrigin>();
     if (typeof(T) == typeof(FrameExpression)) {
       var parameter1 = ReadListOption<T>(() => (T)(object)ReadFrameExpression());
       var parameter2 = ReadAttributesOption();
-      return new Specification<T>(parameter0, parameter1, parameter2);
+      return new Specification<T>(parameter1, parameter2);
     } else {
       var parameter1 = ReadList<T>(() => (T)(object)ReadAbstract<Expression>());
       var parameter2 = ReadAttributesOption();
-      return new Specification<T>(parameter0, parameter1, parameter2);
+      return new Specification<T>(parameter1, parameter2);
     }
   }
 

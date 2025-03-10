@@ -5,7 +5,7 @@ using System.Linq;
 
 namespace Microsoft.Dafny;
 
-public class ModuleQualifiedId : Node, IHasReferences {
+public class ModuleQualifiedId : NodeWithOrigin, IHasReferences {
   public readonly List<Name> Path; // Path != null && Path.Count > 0
 
   // The following are filled in during resolution
@@ -21,12 +21,13 @@ public class ModuleQualifiedId : Node, IHasReferences {
   [FilledInDuringResolution] public ModuleDefinition Def { get; private set; } // the module definition corresponding to the full path
   [FilledInDuringResolution] public ModuleSignature Sig { get; set; } // the module signature corresponding to the full path
 
-  public ModuleQualifiedId(List<Name> path) {
+  public ModuleQualifiedId(List<Name> path) :
+    base(new SourceOrigin(path.First().StartToken, path.Last().EndToken, path.Last().Center)) {
     Contract.Assert(path != null && path.Count > 0);
     Path = path; // note that the list is aliased -- not to be modified after construction
   }
 
-  public ModuleQualifiedId(Cloner cloner, ModuleQualifiedId original) {
+  public ModuleQualifiedId(Cloner cloner, ModuleQualifiedId original) : base(cloner, original) {
     Path = original.Path.Select(n => n.Clone(cloner)).ToList();
     if (cloner.CloneResolvedFields) {
       Root = original.Root;
@@ -64,10 +65,6 @@ public class ModuleQualifiedId : Node, IHasReferences {
 
   public override IEnumerable<INode> Children => Enumerable.Empty<Node>();
   public override IEnumerable<INode> PreResolveChildren => Children;
-
-  public override IOrigin Origin {
-    get => new SourceOrigin(Path.First().StartToken, Path.Last().EndToken, Path.Last().Center);
-  }
 
 
   public IEnumerable<Reference> GetReferences() {
