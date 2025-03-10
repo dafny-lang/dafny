@@ -1489,7 +1489,7 @@ namespace Microsoft.Dafny {
         }
       }
 
-      foreach (var member in ModuleDefinition.AllMembers(declarations)) {
+      foreach (var member in declarations.OfType<TopLevelDeclWithMembers>().SelectMany(d => d.Members)) {
         if (member.HasUserAttribute("only", out var attribute)) {
           reporter.Warning(MessageSource.Verifier, ResolutionErrors.ErrorId.r_member_only_assumes_other.ToString(), attribute.Origin,
             "Members with {:only} temporarily disable the verification of other members in the entire file");
@@ -1522,7 +1522,7 @@ namespace Microsoft.Dafny {
         // and that a class without any constructor only has fields with known initializers.
         // Also check that static fields (which are necessarily const) have initializers.
         var cdci = new CheckDividedConstructorInitVisitor(reporter);
-        foreach (var cl in ModuleDefinition.AllTypesWithMembers(declarations)) {
+        foreach (var cl in declarations.OfType<TopLevelDeclWithMembers>()) {
           // only reference types (classes and reference-type traits) are allowed to declare mutable fields
           if (cl is not ClassLikeDecl { IsReferenceTypeDecl: true }) {
             foreach (var member in cl.Members.Where(member => member is Field and not SpecialField)) {

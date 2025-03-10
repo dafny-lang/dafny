@@ -20,11 +20,7 @@ public class AssignOrReturnStmt : ConcreteAssignStatement, ICloneable<AssignOrRe
   public override IEnumerable<Statement> PreResolveSubStatements => [];
 
   public override IEnumerable<IdentifierExpr> GetAssignedLocals() {
-    foreach (var resolvedStmt in ResolvedStatements) {
-      foreach (var assignedLocal in resolvedStmt.GetAssignedLocals()) {
-        yield return assignedLocal;
-      }
-    }
+    return ResolvedStatements.SelectMany(r => r.GetAssignedLocals());
   }
 
   [ContractInvariantMethod]

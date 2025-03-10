@@ -212,7 +212,7 @@ true - All class instances are raw pointers and need to be manually deallocated"
 
   public static readonly Option<bool> TypeSystemRefresh = new("--type-system-refresh", () => false,
     @"
-false (default) - The type-inference engine and supported types are those of Dafny 4.0.
+false - The type-inference engine and supported types are those of Dafny 4.0.
 true - Use an updated type-inference engine.".TrimStart()) {
     IsHidden = true
   };
@@ -233,7 +233,7 @@ full - (don't use; not yet completely supported) A trait is a reference type onl
 
   public static readonly Option<bool> GeneralNewtypes = new("--general-newtypes", () => false,
     @"
-false (default) - A newtype can only be based on numeric types or another newtype.
+false - A newtype can only be based on numeric types or another newtype.
 true - (requires --type-system-refresh) A newtype case be based on any non-reference, non-trait, non-arrow, non-ORDINAL type.".TrimStart()) {
     IsHidden = true
   };
