@@ -91,8 +91,15 @@ module ExampleParsers.DafnyParser {
       (idecls: (seq<string>, seq<Declaration>)) =>
         Program(idecls.0, idecls.1)).I_e(WS).I_e(O([EOS, parseDeclaration.M(result => ())]))
 
+  method ExpectFailure(program: string, result: ParseResult<Program>, message: string) {
+    expect result.IsFailure();
+    expect FailureToString(program, result)
+        == message;
+  }
+
+  @Test
   @IsolateAssertions
-  method {:test} TestParser() {
+  method TestParser() {
     var program := @"
 include ""file""
 
@@ -123,13 +130,15 @@ class A {
 ";
     result := Apply(parseProgram, program);
     expect result.IsFailure();
-    expect FailureToString(program, result)
-        == @"Error:"      + "\n" +
-           @"2: class A {" + "\n" +
-           @"   ^"         + "\n" +
-           @"expected end of string, or" + "\n" +
-           @"expected 'module', or" + "\n" +
-           @"expected 'import', or" + "\n" +
-           @"expected 'datatype'" + "\n";
+    ExpectFailure(
+      program,
+      result,
+      @"Error:"      + "\n" +
+      @"2: class A {" + "\n" +
+      @"   ^"         + "\n" +
+      @"expected end of string, or" + "\n" +
+      @"expected 'module', or" + "\n" +
+      @"expected 'import', or" + "\n" +
+      @"expected 'datatype'" + "\n");
   }
 }
