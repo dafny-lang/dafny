@@ -60,8 +60,8 @@ public class ProofObligationDependency : ProofDependency {
       $"{ProofObligation.SuccessDescription}";
 
   public ProofObligationDependency(Microsoft.Boogie.IToken tok, ProofObligationDescription proofObligation) {
-    Range = (tok as IOrigin)?.ReportingRange 
-            ?? (proofObligation as AssertStatementDescription)?.AssertStatement.ReportingRange 
+    Range = (tok as IOrigin)?.ReportingRange
+            ?? (proofObligation as AssertStatementDescription)?.AssertStatement.ReportingRange
             ?? BoogieGenerator.ToDafnyToken(true, tok).ReportingRange;
     ProofObligation = proofObligation;
   }

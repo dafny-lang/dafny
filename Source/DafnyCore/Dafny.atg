@@ -941,7 +941,7 @@ LocalIdentTypeOptional<out LocalVariable var, bool isGhost, bool allowWild=true>
   WildIdent<out id, allowWild> (. startToken = t; .)
   [ ":" Type<out ty>
   ]
-  (. var = new LocalVariable(new SourceOrigin(startToken, t), id.val, ty, isGhost);
+  (. var = new LocalVariable(new SourceOrigin(startToken, t, id), id.val, ty, isGhost);
   .)
   .
 
@@ -2731,7 +2731,7 @@ WhileStmt<out Statement stmt>
     | /* go body-less */
     )
     (.
-      var rangeToken = new SourceOrigin(startToken, t);
+      var rangeToken = new SourceOrigin(startToken, t, startToken);
       if (guardEllipsis != null || bodyEllipsis != null) {
         if (mod != null) {
           SemErr(ErrorId.p_no_modifies_on_refining_loops, mod[0].E.Origin, "'modifies' clauses are not allowed on refining loops");

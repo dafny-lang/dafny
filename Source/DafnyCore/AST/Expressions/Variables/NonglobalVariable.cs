@@ -128,7 +128,7 @@ public abstract class NonglobalVariable : NodeWithOrigin, IVariable {
     IsGhost = true;
   }
 
-  public IOrigin NavigationToken => NameNode.Origin;
+  public TokenRange NavigationRange => NameNode.ReportingRange;
   public override IEnumerable<INode> Children => IsTypeExplicit ? new List<Node> { Type } : Enumerable.Empty<Node>();
   public override IEnumerable<INode> PreResolveChildren => IsTypeExplicit ? new List<Node>() { Type } : Enumerable.Empty<Node>();
   public SymbolKind? Kind => SymbolKind.Variable;

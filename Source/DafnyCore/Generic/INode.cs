@@ -7,7 +7,7 @@ public interface INode {
   public TokenRange EntireRange { get; }
 
 
-  
+
   public Token StartToken => EntireRange.StartToken;
   public Token EndToken => EntireRange.EndToken;
 

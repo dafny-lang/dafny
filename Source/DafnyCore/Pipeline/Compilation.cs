@@ -359,7 +359,7 @@ public class Compilation : IDisposable {
       var updated = false;
       var tasks = tasksPerVerifiable.GetOrAdd(canVerify, () => {
         var result =
-          tasksForModule.GetValueOrDefault(canVerify.NavigationToken.GetFilePosition()) ??
+          tasksForModule.GetValueOrDefault(canVerify.NavigationRange.StartToken.GetFilePosition()) ??
           new List<IVerificationTask>(0);
 
         updated = true;
@@ -540,7 +540,7 @@ public class Compilation : IDisposable {
     List<DafnyDiagnostic> diagnostics = [];
     errorReporter.Updates.Subscribe(d => diagnostics.Add(d.Diagnostic));
 
-    ReportDiagnosticsInResult(options, canVerify.NavigationToken.val, BoogieGenerator.ToDafnyToken(true, task.Token),
+    ReportDiagnosticsInResult(options, canVerify.NavigationRange.StartToken.val, BoogieGenerator.ToDafnyToken(true, task.Token),
       task.Split.Implementation.GetTimeLimit(options), result, errorReporter);
 
     return diagnostics.OrderBy(d => d.Token.GetLspPosition()).ToList();

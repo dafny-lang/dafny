@@ -128,7 +128,7 @@ public class LocalVariable : NodeWithOrigin, IVariable, IAttributeBearingDeclara
     this.IsGhost = true;
   }
 
-  public IOrigin NavigationToken => StartToken;
+  public TokenRange NavigationRange => ReportingRange;
 
   public bool IsTypeExplicit => SyntacticType != null;
   public override IEnumerable<INode> Children =>

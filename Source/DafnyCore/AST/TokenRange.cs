@@ -4,16 +4,19 @@ using System.Text;
 
 namespace Microsoft.Dafny;
 
-public class TokenRange(Token startToken, Token? end) : IComparable<TokenRange> {
+public class TokenRange(Token startToken, Token? end) : IComparable<TokenRange>, IEquatable<TokenRange> {
 
   public Token? Prev => StartToken.Prev;
   public Token Next => EndToken.Next;
-  
+
+  public bool InclusiveEnd => end != null;
+
   public Token StartToken { get; } = startToken;
 
   public Token EndToken => end ?? StartToken;
 
   public Uri Uri => StartToken.Uri;
+  public int Length => EndToken.pos - StartToken.pos + (InclusiveEnd ? EndToken.val.Length : 0);
 
   public int CompareTo(TokenRange? other) {
     if (other == null) {
@@ -26,7 +29,7 @@ public class TokenRange(Token startToken, Token? end) : IComparable<TokenRange> 
 
     return EndToken.CompareTo(other.EndToken);
   }
-  
+
   public string PrintOriginal() {
     var token = StartToken;
     var originalString = new StringBuilder();
@@ -40,7 +43,7 @@ public class TokenRange(Token startToken, Token? end) : IComparable<TokenRange> 
 
     return originalString.ToString();
   }
-  
+
   public DafnyRange ToDafnyRange(bool includeTrailingWhitespace = false) {
     var startLine = StartToken.line - 1;
     var startColumn = StartToken.col - 1;
@@ -58,5 +61,40 @@ public class TokenRange(Token startToken, Token? end) : IComparable<TokenRange> 
     return new DafnyRange(
       new DafnyPosition(startLine, startColumn),
       new DafnyPosition(endLine, endColumn));
+  }
+
+  public bool Equals(TokenRange? other)
+  {
+    if (ReferenceEquals(null, other)) {
+      return false;
+    }
+
+    if (ReferenceEquals(this, other)) {
+      return true;
+    }
+
+    return StartToken.Equals(other.StartToken) && EndToken.Equals(other.EndToken);
+  }
+
+  public override bool Equals(object? obj)
+  {
+    if (ReferenceEquals(null, obj)) {
+      return false;
+    }
+
+    if (ReferenceEquals(this, obj)) {
+      return true;
+    }
+
+    if (obj.GetType() != this.GetType()) {
+      return false;
+    }
+
+    return Equals((TokenRange)obj);
+  }
+
+  public override int GetHashCode()
+  {
+    return HashCode.Combine(StartToken.GetHashCode(), EndToken.GetHashCode());
   }
 }

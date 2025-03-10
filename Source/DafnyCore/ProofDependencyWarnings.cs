@@ -209,7 +209,7 @@ public class ProofDependencyWarnings {
       }
 
       if (completeInformation) {
-        reporter.Info(MessageSource.Verifier, range,
+        reporter.Info(MessageSource.Verifier, range.StartToken,
           $"This {factProvider} was only used to prove the {factConsumer}. Consider {recommendation} a by-proof.");
       }
     }

@@ -23,7 +23,11 @@ namespace Microsoft.Dafny {
         range.Start.GetLspPosition(),
         range.ExclusiveEnd.GetLspPosition());
     }
-    
+
+    public static Range ToLspRange(this TokenRange tokenRange) {
+      return tokenRange.ToDafnyRange().ToLspRange();
+    }
+
     /// <summary>
     /// Gets the LSP range of the specified token.
     /// </summary>
@@ -32,16 +36,6 @@ namespace Microsoft.Dafny {
     /// <returns>The LSP range of the token.</returns>
     public static Range ToLspRange(this INode node) {
       return node.ToDafnyRange().ToLspRange();
-    }
-    
-    /// <summary>
-    /// Gets the LSP range of the specified token.
-    /// </summary>
-    /// <param name="startToken">The token to get the range of.</param>
-    /// <param name="endToken">An optional other token to get the end of the range of.</param>
-    /// <returns>The LSP range of the token.</returns>
-    public static Range ToLspRange(this IOrigin origin) {
-      return origin.ToDafnyRange().ToLspRange();
     }
 
     /// <summary>
@@ -71,26 +65,16 @@ namespace Microsoft.Dafny {
       if (token is NestedOrigin nestedToken) {
         return GetLspRange(nestedToken.Outer, nameRange);
       }
-      var dafnyToken = BoogieGenerator.ToDafnyToken(!nameRange, token);
-      return GetLspRangeGeneric(dafnyToken.StartToken, dafnyToken.EndToken);
+      var dafnyToken = BoogieGenerator.ToDafnyToken(!nameRange, token).ReportingRange;
+      var lspRangeGeneric = GetLspRangeGeneric(dafnyToken.StartToken, dafnyToken.EndToken);
+      if (lspRangeGeneric.Start.Line == -1) {
+        var b = 3;
+      }
+      return lspRangeGeneric;
     }
 
     public static Position GetLspPosition(this DafnyPosition position) {
       return new Position(position.Line, position.Column);
-    }
-
-    public static Location GetLocation(this IOrigin token) {
-      return new Location {
-        Uri = DocumentUri.From(token.Uri),
-        Range = token.GetLspRange(true)
-      };
-    }
-
-    public static Location GetLocation(this SourceOrigin origin) {
-      return new Location() {
-        Uri = DocumentUri.From(origin.Uri),
-        Range = origin.GetLspRange()
-      };
     }
 
     public static FilePosition GetFilePosition(this IOrigin token, bool end = false) {

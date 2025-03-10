@@ -65,7 +65,7 @@ public class DatatypeUpdateExpr : ConcreteSyntaxExpression, IHasReferences, IClo
   public IEnumerable<Reference> GetReferences() {
     return LegalSourceConstructors == null ? []
       : Updates.Zip(LegalSourceConstructors).Select(t =>
-        new Reference(new TokenRange(t.First.Item1, t.First.Item1), 
+        new Reference(new TokenRange(t.First.Item1, t.First.Item1),
           t.Second.Formals.Find(f => f.Name == t.First.Item2)));
   }
 

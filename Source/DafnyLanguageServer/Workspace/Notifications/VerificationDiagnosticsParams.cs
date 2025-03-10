@@ -608,7 +608,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
       if (counterExample is ReturnCounterexample returnCounterexample) {
         tok = returnCounterexample.FailingReturn.tok;
         if (tok.filename == assertion.tok.filename) {
-          result.Add(BoogieGenerator.ToDafnyToken(true, returnCounterexample.FailingReturn.tok).StartToken.GetLspRange());
+          result.Add(BoogieGenerator.ToDafnyToken(true, returnCounterexample.FailingReturn.tok).ReportingRange.ToLspRange());
         }
       }
 

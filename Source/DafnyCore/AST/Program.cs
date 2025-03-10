@@ -16,7 +16,7 @@ public class Program : NodeWithoutOrigin {
   }
 
   public override TokenRange EntireRange => new TokenRange(Token.NoToken, Token.NoToken);
-  
+
   public bool HasParseErrors { get; set; }
 
   public string FullName { get; }

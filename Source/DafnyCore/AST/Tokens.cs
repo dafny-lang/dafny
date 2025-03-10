@@ -4,9 +4,9 @@ using System.IO;
 namespace Microsoft.Dafny;
 
 public static class TokenExtensions {
-  
-  
-  
+
+
+
   public static DafnyRange ToDafnyRange(this INode node, bool includeTrailingWhitespace = false) {
     var startLine = node.StartToken.line - 1;
     var startColumn = node.StartToken.col - 1;
@@ -26,7 +26,7 @@ public static class TokenExtensions {
       new DafnyPosition(startLine, startColumn),
       new DafnyPosition(endLine, endColumn));
   }
-  
+
   // public static DafnyRange ToDafnyRange(this Token origin, bool includeTrailingWhitespace = false) {
   //   var startLine = origin.line - 1;
   //   var startColumn = origin.col - 1;

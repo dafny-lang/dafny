@@ -28,6 +28,9 @@ public class BatchErrorReporter : ErrorReporter {
       return false;
     }
 
+    if (tok.Uri == null) {
+      var b = 32;
+    }
     var dafnyDiagnostic = new DafnyDiagnostic(source, errorId, tok, msg, level, new List<DafnyRelatedInformation>());
     AllMessages.Add(dafnyDiagnostic);
     AllMessagesByLevel[level].Add(dafnyDiagnostic);

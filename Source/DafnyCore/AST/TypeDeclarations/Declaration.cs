@@ -15,7 +15,7 @@ public abstract class Declaration : NodeWithOrigin, IAttributeBearingDeclaration
   public IOrigin BodyStartTok = Token.NoToken;
   public Name NameNode;
 
-  public virtual IOrigin NavigationToken => NameNode.Origin;
+  public virtual TokenRange NavigationRange => NameNode.ReportingRange;
 
   public string Name => NameNode.Value;
   public virtual bool IsRefining => false;

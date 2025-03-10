@@ -43,7 +43,7 @@ public abstract class Node : INode {
   public abstract TokenRange EntireRange { get; }
   public TokenRange ReportingRange => Origin.ReportingRange;
   public Token Center => ReportingRange.StartToken;
-  
+
   /// <summary>
   /// These children should be such that they contain information produced by resolution such as inferred types
   /// and resolved references. However, they should not be so transformed that source location from the initial
@@ -74,7 +74,7 @@ public abstract class Node : INode {
 
   public Token StartToken => EntireRange.StartToken;
   public Token EndToken => EntireRange.EndToken;
-  
+
   /// <summary>
   /// A token is owned by a node if it was used to parse this node,
   /// but is not owned by any of this Node's children

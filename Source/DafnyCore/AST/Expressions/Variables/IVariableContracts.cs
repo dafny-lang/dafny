@@ -90,7 +90,7 @@ public abstract class IVariableContracts : NodeWithOrigin, IVariable {
     throw new NotImplementedException();
   }
 
-  public abstract IOrigin NavigationToken { get; }
+  public abstract TokenRange NavigationRange { get; }
   public SymbolKind? Kind => throw new NotImplementedException();
   public string GetDescription(DafnyOptions options) {
     throw new NotImplementedException();

@@ -144,7 +144,7 @@ public class CoverageReporter {
           nextToken.Uri = uri;
           var precedingToken = new Token(line, col);
           precedingToken.Uri = uri;
-          var rangeToken = new SourceOrigin(lastEndToken, precedingToken);
+          var rangeToken = new TokenRange(lastEndToken, precedingToken);
           report.LabelCode(rangeToken, lastLabel);
           lastLabel = FromHtmlClass(span.Groups[1].Value);
           lastEndToken = nextToken;
@@ -153,7 +153,7 @@ public class CoverageReporter {
 
       var lastToken = new Token(source.Count(c => c == '\n') + 2, 0);
       lastToken.Uri = uri;
-      var lastRangeToken = new SourceOrigin(lastEndToken, lastToken);
+      var lastRangeToken = new TokenRange(lastEndToken, lastToken);
       report.LabelCode(lastRangeToken, lastLabel);
     }
     return report;
@@ -263,7 +263,7 @@ public class CoverageReporter {
           module.FullName
         ]);
 
-        var moduleRange = module.Origin.ToDafnyRange();
+        var moduleRange = module.ToDafnyRange();
         body.Last().AddRange(coverageLabels
           .Where(label => label != CoverageLabel.None && label != CoverageLabel.NotApplicable)
           .Select(label => report.CoverageSpansForFile(sourceFile)

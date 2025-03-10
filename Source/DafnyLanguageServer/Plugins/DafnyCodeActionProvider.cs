@@ -34,15 +34,15 @@ public abstract class DafnyCodeActionProvider {
 
   // When building DafnyCodeActionEdit (what DafnyCodeAction return),
   // use this to create ranges suitable for insertion
-  protected static SourceOrigin InsertBefore(Token tok) {
-    return new SourceOrigin(tok, null);
+  protected static TokenRange InsertBefore(Token tok) {
+    return new TokenRange(tok, null);
   }
 
-  protected static SourceOrigin Replace(Token tok) {
-    return new SourceOrigin(tok, tok);
+  protected static TokenRange Replace(Token tok) {
+    return new TokenRange(tok, tok);
   }
-  protected static SourceOrigin InsertAfter(IOrigin tok) {
-    return new SourceOrigin(new Token(tok.line, tok.col + tok.val.Length) {
+  protected static TokenRange InsertAfter(IOrigin tok) {
+    return new TokenRange(new Token(tok.line, tok.col + tok.val.Length) {
       pos = tok.pos + tok.val.Length,
     }, null);
   }
@@ -90,7 +90,7 @@ public abstract class DiagnosticDafnyCodeActionProvider : DafnyCodeActionProvide
   protected abstract IEnumerable<DafnyCodeAction>? GetDafnyCodeActions(IDafnyCodeActionInput input,
     Diagnostic diagnostic, Range selection);
 
-  public SourceOrigin? FindTokenRangeFromLspRange(IDafnyCodeActionInput input, Range range) {
+  public TokenRange? FindTokenRangeFromLspRange(IDafnyCodeActionInput input, Range range) {
     var start = range.Start;
     var startNode = input.Program.FindNode<Node>(input.Uri.ToUri(), start.ToDafnyPosition());
     if (startNode == null) {
@@ -107,6 +107,6 @@ public abstract class DiagnosticDafnyCodeActionProvider : DafnyCodeActionProvide
     var end = range.End;
     var endNode = input.Program.FindNode<Node>(input.Uri.ToUri(), end.ToDafnyPosition());
     var endToken = endNode.CoveredTokens.FirstOrDefault(t => t.line - 1 == end.Line && t.col - 1 + t.val.Length == end.Character);
-    return new SourceOrigin(startToken, endToken);
+    return new TokenRange(startToken, endToken);
   }
 }

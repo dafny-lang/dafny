@@ -105,11 +105,11 @@ Send notifications about the verification status of each line in the program.
                 member.Origin.Filepath,
                 member.Origin.Uri,
                 verificationTreeRange,
-                member.NavigationToken.GetLspPosition(),
+                member.NavigationRange.StartToken.GetLspPosition(),
                 Attributes.Contains(member.Attributes, "only"));
               AddAndPossiblyMigrateVerificationTree(verificationTree);
               if (member is Function { ByMethodBody: { } } function) {
-                var verificationTreeRangeByMethod = function.ByMethodBody.Origin.ToLspRange();
+                var verificationTreeRangeByMethod = function.ByMethodBody.EntireRange.ToLspRange();
                 var verificationTreeByMethod = new TopLevelDeclMemberVerificationTree(
                   "by method part of function",
                   member.Name,

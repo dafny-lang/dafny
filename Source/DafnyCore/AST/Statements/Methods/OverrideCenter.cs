@@ -19,7 +19,7 @@ class OverrideCenter : OriginWrapper {
   public OverrideCenter(IOrigin wrappedOrigin, Token center) : base(wrappedOrigin) {
     this.ReportingRange = new TokenRange(center, center);
   }
-  
+
   public OverrideCenter(IOrigin wrappedOrigin, TokenRange newCenter) : base(wrappedOrigin) {
     this.ReportingRange = newCenter;
   }
