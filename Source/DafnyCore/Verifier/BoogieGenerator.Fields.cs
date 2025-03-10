@@ -205,7 +205,7 @@ namespace Microsoft.Dafny {
       var locals = new Variables();
       var builder = new BoogieStmtListBuilder(this, options, new BodyTranslationContext(false));
       builder.Add(new CommentCmd($"AddWellformednessCheck for {decl.WhatKind} {decl}"));
-      builder.AddCaptureState(decl.Origin, false, "initial state");
+      builder.AddCaptureState(decl.NameNode.StartToken, false, "initial state");
       IsAllocContext = new IsAllocContext(options, true);
 
       DefineFrame(decl.Origin, etran.ReadsFrame(decl.Origin), [], builder, locals, null);

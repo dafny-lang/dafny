@@ -1609,7 +1609,7 @@ public partial class BoogieGenerator {
     var context = new BodyTranslationContext(false);
     var builder = new BoogieStmtListBuilder(this, options, context);
     builder.Add(new CommentCmd(string.Format("AddWellformednessCheck for {0} {1}", decl.WhatKind, decl)));
-    builder.AddCaptureState(decl.Tok, false, "initial state");
+    builder.AddCaptureState(decl.Origin.StartToken, false, "initial state");
     IsAllocContext = new IsAllocContext(options, true);
 
     DefineFrame(decl.Tok, etran.ReadsFrame(decl.Tok), [], builder, locals, null);
@@ -1707,7 +1707,7 @@ public partial class BoogieGenerator {
     } else {
       foreach (var split in ss) {
         if (split.IsChecked) {
-          var tok = witnessExpr.Origin is { } t ? new NestedOrigin(t, split.Tok) : witnessExpr.Origin;
+          var tok = witnessExpr.Origin is { } t ? new NestedOrigin(t, split.Tok, "this proposition could not be proved") : witnessExpr.Origin;
           witnessCheckBuilder.Add(AssertAndForget(witnessCheckBuilder.Context, tok, split.E, desc));
         }
       }

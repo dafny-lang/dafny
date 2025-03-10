@@ -2045,11 +2045,11 @@ namespace Microsoft.Dafny {
       }
       DefineFrame(m.Origin, etran.ModifiesFrame(m.Origin), m.Mod.Expressions, builder, localVariables, null);
       if (wellformednessProc) {
-        builder.AddCaptureState(m.Origin, false, "initial state");
+        builder.AddCaptureState(m.NameNode.StartToken, false, "initial state");
       } else {
         Contract.Assert(m.Body != null);  // follows from precondition and the if guard
         // use the position immediately after the open-curly-brace of the body
-        builder.AddCaptureState(m.Body.Origin, true, "initial state");
+        builder.AddCaptureState(m.Body.StartToken, true, "initial state");
       }
     }
 

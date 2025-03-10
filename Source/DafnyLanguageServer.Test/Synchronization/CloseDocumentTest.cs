@@ -11,7 +11,7 @@ using Xunit.Abstractions;
 
 namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Synchronization {
   public class CloseDocumentTest : ClientBasedLanguageServerTest {
-
+    
     [Fact]
     public async Task DiagnosticsAreClearedUponCloseWhenUsingProject() {
       var source = "method Foo() { var c: int := true; }";
@@ -27,6 +27,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Synchronization {
       Assert.Contains(new[] { afterCloseDiagnostics, afterCloseDiagnostics2 },
         d => d.Uri == document.Uri && !d.Diagnostics.Any());
       Directory.Delete(directory, true);
+      await AssertNoDiagnosticsAreComing(CancellationToken, document);
     }
 
     [Fact]

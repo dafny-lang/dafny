@@ -141,7 +141,7 @@ public partial class BoogieGenerator {
               if (split.Tok.IsInherited(currentModule)) {
                 // this postcondition was inherited into this module, so just ignore it
               } else if (split.IsChecked) {
-                var yieldToken = new NestedOrigin(s.Origin, split.Tok);
+                var yieldToken = new NestedOrigin(s.Origin, split.Tok, "this is the yield ensures that could not be proved");
                 var desc = new YieldEnsures(fieldSub.Substitute(p.E));
                 builder.Add(AssertAndForget(builder.Context, yieldToken, split.E, desc, yieldStmt.Origin, null));
               }

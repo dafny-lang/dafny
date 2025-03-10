@@ -320,7 +320,7 @@ public partial class BoogieGenerator {
     }
 
     var loopBodyBuilder = new BoogieStmtListBuilder(this, options, builder.Context);
-    loopBodyBuilder.AddCaptureState(loop.Origin, true, CaptureStateExtensions.AfterLoopIterationsStateMarker);
+    loopBodyBuilder.AddCaptureState(loop.StartToken, true, CaptureStateExtensions.AfterLoopIterationsStateMarker);
 
     // As the first thing inside the loop, generate:  if (!w) { CheckWellformed(inv); assume false; }
     invDefinednessBuilder.Add(TrAssumeCmd(loop.Origin, Bpl.Expr.False));

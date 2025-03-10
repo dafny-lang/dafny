@@ -206,7 +206,7 @@ public class ProgramResolver {
       if (compileNameMap.TryGetValue(compileName, out var priorModDef)) {
         Reporter.Error(MessageSource.Resolver, m.Origin,
           "modules '{0}' and '{1}' both have CompileName '{2}'",
-          priorModDef.Origin.val, m.Origin.val, compileName);
+          priorModDef.Name, m.Name, compileName);
       } else {
         compileNameMap.Add(compileName, m);
       }

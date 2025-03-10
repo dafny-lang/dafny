@@ -30,7 +30,7 @@ Iterators.dfy(460,21): Error: this invariant could not be proved to be maintaine
 Iterators.dfy(461,21): Error: this invariant could not be proved to be maintained by the loop
  Related message: loop invariant violation
 Iterators.dfy(470,4): Error: possible violation of yield-ensures condition
-Iterators.dfy(451,21): Related location: this proposition could not be proved
+Iterators.dfy(451,21): Related location: this is the yield ensures that could not be proved
 Iterators.dfy(251,9): Error: decreases clause might not decrease
 Iterators.dfy(274,9): Error: decreases clause might not decrease
 Iterators.dfy(284,31): Error: decreases clause might not decrease

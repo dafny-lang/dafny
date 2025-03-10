@@ -674,7 +674,7 @@ namespace Microsoft.Dafny {
       // mark the end of the modifies/out-parameter havocking with a CaptureState; make its location be the first ensures clause, if any (and just
       // omit the CaptureState if there's no ensures clause)
       if (m.Ens.Count != 0) {
-        builder.AddCaptureState(m.Ens[0].E.Origin, false, "post-state");
+        builder.AddCaptureState(m.Ens[0].E.StartToken, false, "post-state");
       }
 
       // check wellformedness of postconditions
