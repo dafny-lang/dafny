@@ -50,27 +50,32 @@ public class ConsoleErrorReporter : BatchErrorReporter {
     }
 
     var innerToken = tok;
-    while (innerToken is NestedOrigin nestedToken) {
-      innerToken = nestedToken.Inner;
-      if (innerToken.Filepath == nestedToken.Filepath &&
-          innerToken.line == nestedToken.line &&
-          innerToken.col == nestedToken.col) {
-        continue;
-      }
+    while (innerToken is OriginWrapper wrapper) {
+      if (wrapper is NestedOrigin nestedToken) {
+        innerToken = nestedToken.Inner;
+        if (innerToken.Filepath == nestedToken.Filepath &&
+            innerToken.line == nestedToken.line &&
+            innerToken.col == nestedToken.col) {
+          continue;
+        }
 
-      var innerMessage = nestedToken.Message;
-      if (innerMessage == null) {
-        innerMessage = "Related location";
+        var innerMessage = nestedToken.Message;
+        if (innerMessage == null) {
+          innerMessage = "Related location";
+        } else {
+          innerMessage = "Related location: " + innerMessage;
+        }
+
+        errorLine += $"{innerToken.TokenToString(Options)}: {innerMessage}\n";
+        if (Options.Get(Snippets.ShowSnippets) && tok.Uri != null) {
+          var tw = new StringWriter();
+          Snippets.WriteSourceCodeSnippet(Options, innerToken, tw);
+          errorLine += tw.ToString();
+        }
       } else {
-        innerMessage = "Related location: " + innerMessage;
+        innerToken = wrapper.WrappedToken;
       }
 
-      errorLine += $"{innerToken.TokenToString(Options)}: {innerMessage}\n";
-      if (Options.Get(Snippets.ShowSnippets) && tok.Uri != null) {
-        var tw = new StringWriter();
-        Snippets.WriteSourceCodeSnippet(Options, innerToken, tw);
-        errorLine += tw.ToString();
-      }
     }
 
     Options.OutputWriter.Write(errorLine);

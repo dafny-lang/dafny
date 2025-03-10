@@ -588,9 +588,11 @@ AutoContracts.dfy(79,21): Error: a postcondition could not be proved on this ret
 AutoContracts.dfy(60,16): Related location: this is the postcondition that could not be proved
 AutoContracts.dfy(79,21): Error: a postcondition could not be proved on this return path
 AutoContracts.dfy(60,16): Related location: this is the postcondition that could not be proved
-AutoContracts.dfy[N1](65,20): Related location: this proposition could not be proved
+AutoContracts.dfy(65,20): Related location: this proposition could not be proved
+AutoContracts.dfy(76,7): Related location: refining module
 AutoContracts.dfy(79,21): Error: a postcondition could not be proved on this return path
 AutoContracts.dfy(60,16): Related location: this is the postcondition that could not be proved
-AutoContracts.dfy[N1](65,20): Related location: this proposition could not be proved
+AutoContracts.dfy(65,20): Related location: this proposition could not be proved
+AutoContracts.dfy(76,7): Related location: refining module
 
 Dafny program verifier finished with 36 verified, 9 errors
