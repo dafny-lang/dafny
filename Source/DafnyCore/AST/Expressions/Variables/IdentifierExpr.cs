@@ -54,7 +54,7 @@ public class IdentifierExpr : Expression, IHasReferences, ICloneable<IdentifierE
   }
 
   public virtual IEnumerable<Reference> GetReferences() {
-    return Enumerable.Repeat(new Reference(Origin, Var), 1);
+    return Enumerable.Repeat(new Reference(ReportingRange, Var), 1);
   }
 
   public override IEnumerable<INode> Children { get; } = Enumerable.Empty<Node>();

@@ -42,6 +42,7 @@ public abstract class Node : INode {
 
   public abstract TokenRange EntireRange { get; }
   public TokenRange ReportingRange => Origin.ReportingRange;
+  public Token Center => ReportingRange.StartToken;
   
   /// <summary>
   /// These children should be such that they contain information produced by resolution such as inferred types
@@ -60,19 +61,19 @@ public abstract class Node : INode {
 
   public IEnumerable<Token> CoveredTokens {
     get {
-      var token = EntireRange.Start;
+      var token = EntireRange.StartToken;
       if (token == Token.NoToken) {
         yield break;
       }
-      while (token.Prev != EntireRange.End) {
+      while (token.Prev != EntireRange.EndToken) {
         yield return token;
         token = token.Next;
       }
     }
   }
 
-  public Token StartToken => EntireRange.Start;
-  public Token EndToken => EntireRange.End;
+  public Token StartToken => EntireRange.StartToken;
+  public Token EndToken => EntireRange.EndToken;
   
   /// <summary>
   /// A token is owned by a node if it was used to parse this node,

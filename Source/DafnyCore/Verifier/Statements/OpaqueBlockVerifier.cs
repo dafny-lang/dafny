@@ -14,7 +14,7 @@ public static class OpaqueBlockVerifier {
 
     var bodyTranslator = GetBodyTranslator(generator, block, locals, etran, blockBuilder);
     var prevDefiniteAssignmentTrackers = generator.DefiniteAssignmentTrackers;
-    generator.TrStmtList(block.Body, blockBuilder, locals, bodyTranslator, block.Origin);
+    generator.TrStmtList(block.Body, blockBuilder, locals, bodyTranslator, block.EntireRange);
     generator.DefiniteAssignmentTrackers = prevDefiniteAssignmentTrackers;
 
     var assignedVariables = block.DescendantsAndSelf.

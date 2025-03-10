@@ -31,7 +31,7 @@ public interface IOrigin : Boogie.IToken {
     get;
   }
 
-  Token Center => ReportingRange.Start;
+  Token Center => ReportingRange.StartToken;
 
   bool IsCopy { get; }
 }

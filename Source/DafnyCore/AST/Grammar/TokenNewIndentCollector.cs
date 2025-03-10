@@ -650,7 +650,7 @@ public class TokenNewIndentCollector : TopDownVisitor<int> {
         return;
       }
 
-      rightIndent = GetNewTokenVisualIndent(rhs.Origin.StartToken, rightIndent);
+      rightIndent = GetNewTokenVisualIndent(rhs.StartToken, rightIndent);
     }
 
     if (!ownedTokens.Any(token => token.val == ":=" || token.val == ":-" || token.val == ":|")) {

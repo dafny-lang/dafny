@@ -13,8 +13,8 @@ public abstract class NodeWithoutOrigin : Node {
   public override TokenRange EntireRange {
     get {
       if (entireRange == null) {
-        var start = PreResolveChildren.FirstOrDefault()?.EntireRange.Start ?? Token.NoToken;
-        var end = PreResolveChildren.LastOrDefault()?.EntireRange.End ?? Token.NoToken;
+        var start = PreResolveChildren.FirstOrDefault()?.EntireRange.StartToken ?? Token.NoToken;
+        var end = PreResolveChildren.LastOrDefault()?.EntireRange.EndToken ?? Token.NoToken;
         entireRange = new TokenRange(start, end);
       }
 

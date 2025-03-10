@@ -93,12 +93,12 @@ public class ProofDependencyWarnings {
     var usedDependencies =
       coveredElements
         .Select(manager.GetFullIdDependency)
-        .OrderBy(dep => dep.Range.Center)
+        .OrderBy(dep => dep.Range.StartToken)
         .ThenBy(dep => dep.Description);
     var unusedDependencies =
       potentialDependencies
         .Except(usedDependencies)
-        .OrderBy(dep => dep.Range.Center)
+        .OrderBy(dep => dep.Range.StartToken)
         .ThenBy(dep => dep.Description).ToList();
 
     foreach (var unusedDependency in unusedDependencies) {
@@ -111,14 +111,14 @@ public class ProofDependencyWarnings {
             }
             reporter.Warning(MessageSource.Verifier, "",
               // OverrideCenter used to prevent changes in reporting
-              new OverrideCenter(obligation.Range, obligation.Range.StartToken), message);
+              obligation.Range.StartToken, message);
           }
         }
 
         if (unusedDependency is EnsuresDependency ensures) {
           if (ShouldWarnVacuous(scopeName, ensures)) {
             // OverrideCenter used to prevent changes in reporting
-            reporter.Warning(MessageSource.Verifier, "", new OverrideCenter(ensures.Range, ensures.Range.StartToken),
+            reporter.Warning(MessageSource.Verifier, "", ensures.Range.StartToken,
               $"ensures clause proved using contradictory assumptions");
           }
         }
@@ -128,7 +128,7 @@ public class ProofDependencyWarnings {
         if (unusedDependency is RequiresDependency requires) {
           reporter.Warning(MessageSource.Verifier, "",
             // OverrideCenter used to prevent changes in reporting
-            new OverrideCenter(requires.Range, requires.Range.StartToken),
+            requires.Range.StartToken,
             $"unnecessary requires clause");
         }
 
@@ -136,7 +136,7 @@ public class ProofDependencyWarnings {
           if (ShouldWarnUnused(assumption)) {
             reporter.Warning(MessageSource.Verifier, "",
               // OverrideCenter used to prevent changes in reporting
-              new OverrideCenter(assumption.Range, assumption.Range.StartToken),
+              assumption.Range.StartToken,
               $"unnecessary (or partly unnecessary) {assumption.Description}");
           }
         }
@@ -173,7 +173,7 @@ public class ProofDependencyWarnings {
         continue;
       }
 
-      IOrigin range = null;
+      TokenRange range = null;
       var factProvider = "";
       var factConsumer = "";
       var recommendation = "";
@@ -198,7 +198,7 @@ public class ProofDependencyWarnings {
 
       switch (assertDepProvenByFact) {
         case CallDependency call: {
-            factConsumer = $"precondition{(call.call.Method.Req.Count > 1 ? "s" : "")} of the method call {call.Range.Center.Next.TokenToString(options)}";
+            factConsumer = $"precondition{(call.call.Method.Req.Count > 1 ? "s" : "")} of the method call {call.Range.Next.TokenToString(options)}";
             break;
           }
         case ProofObligationDependency { ProofObligation: AssertStatementDescription }: {

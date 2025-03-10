@@ -19,8 +19,8 @@ public class Snippets {
   }
 
   public static void WriteSourceCodeSnippet(DafnyOptions options, TokenRange range, TextWriter tw) {
-    var start = range.Start;
-    var end = range.End;
+    var start = range.StartToken;
+    var end = range.EndToken;
     string line = GetFileLine(options, range.Uri, start.line - 1);
     if (line == null) {
       return;

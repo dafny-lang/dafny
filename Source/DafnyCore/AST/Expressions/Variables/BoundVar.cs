@@ -8,7 +8,8 @@ namespace Microsoft.Dafny;
 public class BoundVar : NonglobalVariable {
   public override bool IsMutable => false;
 
-  public BoundVar(IOrigin origin, string name, Type type, bool isGhost = false) : this(origin, new Name(origin.StartToken, name), type, isGhost) { }
+  public BoundVar(IOrigin origin, string name, Type type, bool isGhost = false) 
+    : this(origin, new Name(origin.Center, name), type, isGhost) { }
 
   [SyntaxConstructor]
   public BoundVar(IOrigin origin, Name nameNode, Type type, bool isGhost = false)

@@ -49,6 +49,6 @@ public class FrameExpression : NodeWithOrigin, IHasReferences {
   public override IEnumerable<INode> Children => new[] { E };
   public override IEnumerable<INode> PreResolveChildren => Children;
   public IEnumerable<Reference> GetReferences() {
-    return Field == null ? Enumerable.Empty<Reference>() : new[] { new Reference(Origin, Field) };
+    return Field == null ? Enumerable.Empty<Reference>() : new[] { new Reference(ReportingRange, Field) };
   }
 }

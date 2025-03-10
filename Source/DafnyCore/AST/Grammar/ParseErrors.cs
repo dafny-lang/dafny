@@ -449,8 +449,8 @@ They are given in a parentheses-enclosed, comma-separated list after the type na
 The currently defined type characteristics are designated by `==` (equality - supporting),
 `0` (auto - initializable), `00` (non - empty), and `!new` (non - reference).
 ".TrimStart(), range =>
-    range.Prev.val == "," ? [
-        OneAction("remove comma", range.Prev, ""),
+    range.Prev!.val == "," ? [
+        OneAction("remove comma", new TokenRange(range.Prev, range.Prev), ""),
       OneAction("insert '=='", range, "==" + range.PrintOriginal()),
       OneAction("insert '0'", range, "0" + range.PrintOriginal()),
       OneAction("insert '00'", range, "00" + range.PrintOriginal()),
@@ -719,7 +719,7 @@ Hence `decreases` clauses are inappropriate and not allowed.
 A predicate is a function that returns `bool`. The return type here is something else.
 If you mean to have a non-`bool` return type, use `function` instead of `predicate`.
 ".TrimStart(), range => [
-      OneAction("remove type", new SourceOrigin(range.StartToken.Prev, range.EndToken), "", true),
+      OneAction("remove type", new TokenRange(range.Prev, range.EndToken), "", true),
       OneAction("replace type with 'bool'", range, "bool", true)
     ]
     );
@@ -730,7 +730,7 @@ A `predicate` is simply a `function` that returns a `bool` value.
 Accordingly, the type is (required to be) omitted, unless the result is being named.
 So `predicate p(): (res: bool) { true }` is permitted.
 ".TrimStart(), range => [
-      OneAction("remove type", new SourceOrigin(range.StartToken.Prev, range.EndToken), "", true)
+      OneAction("remove type", new TokenRange(range.Prev!, range.EndToken), "", true)
     ]);
 
     Add(ErrorId.p_no_wild_expression,
@@ -769,13 +769,11 @@ in a loop after it is allocated, or to initialize with a function, as in
 `var a:= new int[2,2]((i: int, j: int)=>i+j)`.
 ".TrimStart());
 
-    ActionSignature sharedLambda = delegate (SourceOrigin range) {
-      return [
-        OneAction("replace with ':='", range, ":=", false),
-        OneAction("replace with ':-", range, ":-", false),
-        OneAction("replace with ':|'", range, ":|", false)
-      ];
-    };
+    ActionSignature sharedLambda = range => [
+      OneAction("replace with ':='", range, ":=", false),
+      OneAction("replace with ':-", range, ":-", false),
+      OneAction("replace with ':|'", range, ":|", false)
+    ];
 
     Add(ErrorId.p_no_equal_for_initializing,
     @"

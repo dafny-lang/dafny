@@ -381,7 +381,7 @@ public class Compilation : IDisposable {
             OfType<Function>()).Distinct().OrderBy(f => f.Origin.Center);
           var hiddenFunctions = string.Join(", ", functions.Select(f => f.FullDafnyName));
           if (!string.IsNullOrEmpty(hiddenFunctions)) {
-            Reporter.Info(MessageSource.Verifier, tokenTasks.Group, $"hidden functions: {hiddenFunctions}");
+            Reporter.Info(MessageSource.Verifier, tokenTasks.Group.StartToken, $"hidden functions: {hiddenFunctions}");
           }
         }
 
@@ -399,24 +399,24 @@ public class Compilation : IDisposable {
   }
 
 
-  public static IEnumerable<(IOrigin Group, List<IVerificationTask> Tasks)> GroupOverlappingRanges(IReadOnlyList<IVerificationTask> ranges) {
+  public static IEnumerable<(TokenRange Group, List<IVerificationTask> Tasks)> GroupOverlappingRanges(IReadOnlyList<IVerificationTask> ranges) {
     if (!ranges.Any()) {
       return [];
     }
     var sortedTasks = ranges.OrderBy(r =>
-      BoogieGenerator.ToDafnyToken(true, r.Token).StartToken).ToList();
-    var groups = new List<(IOrigin Group, List<IVerificationTask> Tasks)>();
+      BoogieGenerator.ToDafnyToken(true, r.Token).ReportingRange.StartToken).ToList();
+    var groups = new List<(TokenRange Group, List<IVerificationTask> Tasks)>();
     var currentGroup = new List<IVerificationTask> { sortedTasks[0] };
-    var currentGroupRange = BoogieGenerator.ToDafnyToken(true, currentGroup[0].Token);
+    var currentGroupRange = BoogieGenerator.ToDafnyToken(true, currentGroup[0].Token).ReportingRange;
 
     for (int i = 1; i < sortedTasks.Count; i++) {
       var currentTask = sortedTasks[i];
-      var currentTaskRange = BoogieGenerator.ToDafnyToken(true, currentTask.Token);
+      var currentTaskRange = BoogieGenerator.ToDafnyToken(true, currentTask.Token).ReportingRange;
       bool overlapsWithGroup = currentGroupRange.Intersects(currentTaskRange);
 
       if (overlapsWithGroup) {
         if (currentTaskRange.EndToken!.pos > currentGroupRange.EndToken!.pos) {
-          currentGroupRange = new SourceOrigin(currentGroupRange.StartToken!, currentTaskRange.EndToken, currentGroupRange.Center);
+          currentGroupRange = new TokenRange(currentGroupRange.StartToken!, currentTaskRange.EndToken);
         }
         currentGroup.Add(currentTask);
       } else {

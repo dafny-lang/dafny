@@ -1225,7 +1225,7 @@ namespace Microsoft.Dafny {
                 doMerge = true;
                 stmtGenerated.Add(nw);
                 var addedAssert = refinementCloner.CloneExpr(s.Expr);
-                var tok = new SourceOrigin(addedAssert.Origin.StartToken, addedAssert.Origin.EndToken);
+                var tok = new SourceOrigin(addedAssert.StartToken, addedAssert.EndToken);
                 stmtGenerated.Add(new AssertStmt(tok, addedAssert, null, null));
               }
             }

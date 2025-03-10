@@ -18,7 +18,7 @@ namespace DafnyCore.Verifier;
 public abstract class ProofDependency {
   public abstract string Description { get; }
 
-  public abstract IOrigin Range { get; }
+  public abstract TokenRange Range { get; }
 
   public string LocationString() {
     if (Range?.StartToken is null) {
@@ -52,7 +52,7 @@ public abstract class ProofDependency {
 // assertion batch can be proved without proving one of the assertions that is
 // a proof obligation within it, that assertion must have been proved vacuously.
 public class ProofObligationDependency : ProofDependency {
-  public override IOrigin Range { get; }
+  public override TokenRange Range { get; }
 
   public ProofObligationDescription ProofObligation { get; }
 
@@ -60,13 +60,15 @@ public class ProofObligationDependency : ProofDependency {
       $"{ProofObligation.SuccessDescription}";
 
   public ProofObligationDependency(Microsoft.Boogie.IToken tok, ProofObligationDescription proofObligation) {
-    Range = tok as SourceOrigin ?? (proofObligation as AssertStatementDescription)?.AssertStatement.Origin ?? BoogieGenerator.ToDafnyToken(true, tok);
+    Range = (tok as IOrigin)?.ReportingRange 
+            ?? (proofObligation as AssertStatementDescription)?.AssertStatement.ReportingRange 
+            ?? BoogieGenerator.ToDafnyToken(true, tok).ReportingRange;
     ProofObligation = proofObligation;
   }
 }
 
 public class AssumedProofObligationDependency : ProofDependency {
-  public override IOrigin Range { get; }
+  public override TokenRange Range { get; }
 
   public ProofObligationDescription ProofObligation { get; }
 
@@ -74,7 +76,7 @@ public class AssumedProofObligationDependency : ProofDependency {
       $"assumption that {ProofObligation.SuccessDescription}";
 
   public AssumedProofObligationDependency(IOrigin tok, ProofObligationDescription proofObligation) {
-    Range = tok;
+    Range = tok.ReportingRange;
     ProofObligation = proofObligation;
   }
 }
@@ -86,8 +88,7 @@ public class RequiresDependency : ProofDependency {
 
   private IOrigin tok;
 
-  public override IOrigin Range =>
-    tok as SourceOrigin ?? requires.Origin;
+  public override TokenRange Range => tok.ReportingRange;
 
   public override string Description =>
     $"requires clause";
@@ -104,8 +105,7 @@ public class EnsuresDependency : ProofDependency {
 
   private readonly IOrigin tok;
 
-  public override IOrigin Range =>
-    tok as SourceOrigin ?? ensures.Origin;
+  public override TokenRange Range => tok.ReportingRange;
 
   public override string Description =>
     "ensures clause";
@@ -122,8 +122,7 @@ public class CallRequiresDependency : ProofDependency {
   public readonly CallDependency call;
   private readonly RequiresDependency requires;
 
-  public override IOrigin Range =>
-    call.Range;
+  public override TokenRange Range => call.Range;
 
   public override string Description =>
     $"requires clause at {requires.RangeString()} from call";
@@ -140,7 +139,7 @@ public class CallEnsuresDependency : ProofDependency {
   public readonly CallDependency call;
   private readonly EnsuresDependency ensures;
 
-  public override IOrigin Range =>
+  public override TokenRange Range =>
     call.Range;
 
   public override string Description =>
@@ -156,8 +155,8 @@ public class CallEnsuresDependency : ProofDependency {
 public class CallDependency : ProofDependency {
   public readonly CallStmt call;
 
-  public override IOrigin Range =>
-    call.Origin;
+  public override TokenRange Range =>
+    call.ReportingRange;
 
   public override string Description =>
     $"call";
@@ -169,8 +168,8 @@ public class CallDependency : ProofDependency {
 
 // Represents the assumption of a predicate in an `assume` statement.
 public class AssumptionDependency : ProofDependency {
-  public override IOrigin Range =>
-    Expr.Origin;
+  public override TokenRange Range =>
+    Expr.ReportingRange;
 
   public override string Description =>
     comment ?? OriginalString();
@@ -192,8 +191,8 @@ public class AssumptionDependency : ProofDependency {
 public class InvariantDependency : ProofDependency {
   private readonly Expression invariant;
 
-  public override IOrigin Range =>
-    invariant.Origin;
+  public override TokenRange Range =>
+    invariant.ReportingRange;
 
   public override string Description =>
     $"loop invariant";
@@ -206,19 +205,19 @@ public class InvariantDependency : ProofDependency {
 // Represents an assignment statement. This includes the assignment to an
 // out parameter implicit in a return statement.
 public class AssignmentDependency : ProofDependency {
-  public override IOrigin Range { get; }
+  public override TokenRange Range { get; }
 
   public override string Description =>
      "assignment (or return)";
 
   public AssignmentDependency(IOrigin rangeOrigin) {
-    this.Range = rangeOrigin;
+    this.Range = rangeOrigin.ReportingRange;
   }
 }
 
 // Represents dependency of a proof on the definition of a specific function.
 public class FunctionDefinitionDependency : ProofDependency {
-  public override IOrigin Range => function.Origin;
+  public override TokenRange Range => function.ReportingRange;
 
   public override string Description =>
     $"function definition for {function.Name}";

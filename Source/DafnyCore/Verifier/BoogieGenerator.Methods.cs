@@ -1681,14 +1681,14 @@ namespace Microsoft.Dafny {
 
     // Return a way to know if an assertion should be converted to an assumption
     private void SetAssertionOnlyFilter(Node m) {
-      List<IOrigin> rangesOnly = [];
+      List<TokenRange> rangesOnly = [];
       m.Visit(node => {
         if (node is AssertStmt assertStmt &&
             assertStmt.HasAssertOnlyAttribute(out var assertOnlyKind)) {
           var ifAfterLastToken = m.EndToken;
           if (rangesOnly.FindIndex(r => r.Contains(node.StartToken)) is var x && x >= 0) {
             if (assertOnlyKind == AssertStmt.AssertOnlyKind.Before) {// Just shorten the previous range
-              rangesOnly[x] = new SourceOrigin(rangesOnly[x].StartToken, node.EndToken);
+              rangesOnly[x] = new TokenRange(rangesOnly[x].StartToken, node.EndToken);
               return true;
             }
 

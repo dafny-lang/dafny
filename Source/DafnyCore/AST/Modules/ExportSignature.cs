@@ -54,6 +54,6 @@ public class ExportSignature : NodeWithOrigin, IHasReferences {
   public override IEnumerable<INode> Children => Enumerable.Empty<Node>();
   public override IEnumerable<INode> PreResolveChildren => Enumerable.Empty<Node>();
   public IEnumerable<Reference> GetReferences() {
-    return new[] { new Reference(Origin, Decl) };
+    return new[] { new Reference(ReportingRange, Decl) };
   }
 }

@@ -296,7 +296,7 @@ public partial class BoogieGenerator {
 
           // The "new;" translates into an allocation of "this"
           AddComment(builder, blockStmt1, "new;");
-          fields.ForEach(f => CheckDefiniteAssignmentSurrogate(s.SeparatorTok ?? s.Origin.EndToken, f, true, builder));
+          fields.ForEach(f => CheckDefiniteAssignmentSurrogate(s.SeparatorTok ?? s.EndToken, f, true, builder));
           DefiniteAssignmentTrackers = beforeTrackers;
           var th = new ThisExpr(cl);
           var bplThis = (Bpl.IdentifierExpr)etran.TrExpr(th);
@@ -324,7 +324,7 @@ public partial class BoogieGenerator {
         break;
       case BlockStmt blockStmt2: {
           var previousTrackers = DefiniteAssignmentTrackers;
-          TrStmtList(blockStmt2.Body, builder, locals, etran, blockStmt2.Origin);
+          TrStmtList(blockStmt2.Body, builder, locals, etran, blockStmt2.EntireRange);
           DefiniteAssignmentTrackers = previousTrackers;
           break;
         }
@@ -720,7 +720,7 @@ public partial class BoogieGenerator {
         b.Add(TrAssumeCmdWithDependencies(etran, alternative.Guard.Origin, alternative.Guard, "alternative guard"));
       }
       var prevDefiniteAssignmentTrackers = DefiniteAssignmentTrackers;
-      TrStmtList(alternative.Body, b, locals, etran, alternative.Origin);
+      TrStmtList(alternative.Body, b, locals, etran, alternative.EntireRange);
       DefiniteAssignmentTrackers = prevDefiniteAssignmentTrackers;
       Bpl.StmtList thn = b.Collect(alternative.Origin);
       elsIf = new Bpl.IfCmd(alternative.Origin, null, thn, elsIf, els);
@@ -850,7 +850,7 @@ public partial class BoogieGenerator {
   }
 
   public void TrStmtList(List<Statement> stmts, BoogieStmtListBuilder builder, Variables locals, ExpressionTranslator etran,
-    IOrigin scopeRange = null, bool processLabels = true) {
+    TokenRange scopeRange = null, bool processLabels = true) {
     Contract.Requires(stmts != null);
     Contract.Requires(builder != null);
     Contract.Requires(locals != null);

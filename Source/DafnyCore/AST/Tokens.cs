@@ -6,24 +6,6 @@ namespace Microsoft.Dafny;
 public static class TokenExtensions {
   
   
-  public static DafnyRange ToDafnyRange(this TokenRange node, bool includeTrailingWhitespace = false) {
-    var startLine = node.Start.line - 1;
-    var startColumn = node.Start.col - 1;
-    int whitespaceOffset = 0;
-    if (includeTrailingWhitespace) {
-      string trivia = (node.End ?? node.Start).TrailingTrivia;
-      // Don't want to remove newlines or comments -- just spaces and tabs
-      while (whitespaceOffset < trivia.Length && (trivia[whitespaceOffset] == ' ' || trivia[whitespaceOffset] == '\t')) {
-        whitespaceOffset++;
-      }
-    }
-
-    var endColumn = (node.End == null ? node.Start.col : node.End.col + node.End.val.Length) + whitespaceOffset - 1;
-    var endLine = node.End == null ? startLine : node.End.line - 1;
-    return new DafnyRange(
-      new DafnyPosition(startLine, startColumn),
-      new DafnyPosition(endLine, endColumn));
-  }
   
   public static DafnyRange ToDafnyRange(this INode node, bool includeTrailingWhitespace = false) {
     var startLine = node.StartToken.line - 1;
@@ -91,15 +73,15 @@ public static class TokenExtensions {
     return new RefinementOrigin(origin, module);
   }
 
-  public static bool Contains(this TokenRange container, IOrigin otherToken) {
-    return container.Start.Uri == otherToken.Uri &&
-           container.Start.pos <= otherToken.pos &&
-           (container.End == null || otherToken.pos <= container.End.pos);
+  public static bool Contains(this TokenRange container, Token otherToken) {
+    return container.StartToken.Uri == otherToken.Uri &&
+           container.StartToken.pos <= otherToken.pos &&
+           (container.EndToken == null || otherToken.pos <= container.EndToken.pos);
   }
 
-  public static bool Intersects(this TokenRange origin, IOrigin other) {
-    return !(other.pos + other.EndToken.val.Length <= origin.Start.pos
-             || origin.End.pos + origin.End.val.Length <= other.StartToken.pos);
+  public static bool Intersects(this TokenRange origin, TokenRange other) {
+    return !(other.EndToken.pos + other.EndToken.val.Length <= origin.StartToken.pos
+             || origin.EndToken.pos + origin.EndToken.val.Length <= other.StartToken.pos);
   }
 
   public static string PrintOriginal(this IOrigin origin) {

@@ -7,15 +7,22 @@ using Microsoft.Boogie;
 namespace Microsoft.Dafny;
 
 public class SourceOrigin : IOrigin, IComparable<SourceOrigin> {
-  public Uri Uri => ReportingRange.Start.Uri;
+  public Uri Uri => ReportingRange.StartToken.Uri;
 
   public TokenRange EntireRange { get; }
+  public Token StartToken => EntireRange.StartToken;
+  public Token EndToken => EntireRange.StartToken;
   public TokenRange ReportingRange { get; }
   public bool IncludesRange => true;
 
   public SourceOrigin(Token start, Token end) {
     this.EntireRange = new TokenRange(start, end);
     this.ReportingRange = EntireRange;
+  }
+  
+  public SourceOrigin(Token start, Token end, TokenRange reportingRange) {
+    this.EntireRange = new TokenRange(start, end);
+    this.ReportingRange = reportingRange;
   }
   
   public SourceOrigin(Token start, Token end, Token center) {
@@ -40,13 +47,13 @@ public class SourceOrigin : IOrigin, IComparable<SourceOrigin> {
   public override bool Equals(object? obj) {
     // TODO remove equality members 
     if (obj is SourceOrigin other) {
-      return ReportingRange.Start.Equals(other.ReportingRange.Start) && ReportingRange.End.Equals(other.ReportingRange.End);
+      return ReportingRange.StartToken.Equals(other.ReportingRange.StartToken) && ReportingRange.EndToken.Equals(other.ReportingRange.EndToken);
     }
     return false;
   }
 
   public override int GetHashCode() {
-    return HashCode.Combine(ReportingRange.Start.GetHashCode(), ReportingRange.End.GetHashCode());
+    return HashCode.Combine(ReportingRange.StartToken.GetHashCode(), ReportingRange.EndToken.GetHashCode());
   }
 
   public bool IsInherited(ModuleDefinition m) {
@@ -69,27 +76,27 @@ public class SourceOrigin : IOrigin, IComparable<SourceOrigin> {
 
   public bool IsSourceToken => !ReferenceEquals(this, NoToken);
   public int kind {
-    get => ReportingRange.Start.kind;
+    get => ReportingRange.StartToken.kind;
     set => throw new NotImplementedException();
   }
 
   public int pos {
-    get => ReportingRange.Start.pos;
+    get => ReportingRange.StartToken.pos;
     set => throw new NotImplementedException();
   }
 
   public int col {
-    get => ReportingRange.Start.col;
+    get => ReportingRange.StartToken.col;
     set => throw new NotImplementedException();
   }
 
   public int line {
-    get => ReportingRange.Start.line;
+    get => ReportingRange.StartToken.line;
     set => throw new NotImplementedException();
   }
 
   public string val {
-    get => ReportingRange.Start.val;
+    get => ReportingRange.StartToken.val;
     set => throw new InvalidOperationException();
   }
 

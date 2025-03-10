@@ -75,7 +75,6 @@ public class ConsoleErrorReporter : BatchErrorReporter {
       } else {
         innerToken = wrapper.WrappedOrigin;
       }
-
     }
 
     Options.OutputWriter.Write(errorLine);

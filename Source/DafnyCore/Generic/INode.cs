@@ -8,8 +8,8 @@ public interface INode {
 
 
   
-  public Token StartToken => EntireRange.Start;
-  public Token EndToken => EntireRange.End;
+  public Token StartToken => EntireRange.StartToken;
+  public Token EndToken => EntireRange.EndToken;
 
   public TokenRange ReportingRange => Origin.ReportingRange;
 

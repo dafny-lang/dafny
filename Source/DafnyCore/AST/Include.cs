@@ -17,7 +17,7 @@ public class Include : NodeWithOrigin, IComparable {
     this.CanonicalPath = DafnyFile.Canonicalize(theFilename.LocalPath).LocalPath;
   }
 
-  public IOrigin PathOrigin => new SourceOrigin(Center, EndToken);
+  public IOrigin PathOrigin => new SourceOrigin(ReportingRange.StartToken, EndToken);
 
   public int CompareTo(object obj) {
     if (obj is Include include) {

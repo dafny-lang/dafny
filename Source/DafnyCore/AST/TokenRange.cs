@@ -4,30 +4,34 @@ using System.Text;
 
 namespace Microsoft.Dafny;
 
-public class TokenRange(Token start, Token? end) : IComparable<TokenRange> {
-  public Token Start { get; } = start;
+public class TokenRange(Token startToken, Token? end) : IComparable<TokenRange> {
 
-  public Token End => end ?? Start;
+  public Token? Prev => StartToken.Prev;
+  public Token Next => EndToken.Next;
+  
+  public Token StartToken { get; } = startToken;
 
-  public Uri Uri => Start.Uri;
+  public Token EndToken => end ?? StartToken;
+
+  public Uri Uri => StartToken.Uri;
 
   public int CompareTo(TokenRange? other) {
     if (other == null) {
       return 1;
     }
-    var startResult = Start.CompareTo(other.Start);
+    var startResult = StartToken.CompareTo(other.StartToken);
     if (startResult != 0) {
       return startResult;
     }
 
-    return End.CompareTo(other.End);
+    return EndToken.CompareTo(other.EndToken);
   }
   
   public string PrintOriginal() {
-    var token = Start;
+    var token = StartToken;
     var originalString = new StringBuilder();
     originalString.Append(token.val);
-    while (token.Next != null && token.pos < End.pos) {
+    while (token.Next != null && token.pos < EndToken.pos) {
       originalString.Append(token.TrailingTrivia);
       token = token.Next;
       originalString.Append(token.LeadingTrivia);
@@ -35,5 +39,24 @@ public class TokenRange(Token start, Token? end) : IComparable<TokenRange> {
     }
 
     return originalString.ToString();
+  }
+  
+  public DafnyRange ToDafnyRange(bool includeTrailingWhitespace = false) {
+    var startLine = StartToken.line - 1;
+    var startColumn = StartToken.col - 1;
+    int whitespaceOffset = 0;
+    if (includeTrailingWhitespace) {
+      string trivia = (EndToken).TrailingTrivia;
+      // Don't want to remove newlines or comments -- just spaces and tabs
+      while (whitespaceOffset < trivia.Length && (trivia[whitespaceOffset] == ' ' || trivia[whitespaceOffset] == '\t')) {
+        whitespaceOffset++;
+      }
+    }
+
+    var endColumn = (end == null ? startToken.col : end.col + end.val.Length) + whitespaceOffset - 1;
+    var endLine = EndToken.line - 1;
+    return new DafnyRange(
+      new DafnyPosition(startLine, startColumn),
+      new DafnyPosition(endLine, endColumn));
   }
 }

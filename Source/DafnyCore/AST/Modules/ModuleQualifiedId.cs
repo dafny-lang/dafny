@@ -71,7 +71,7 @@ public class ModuleQualifiedId : NodeWithOrigin, IHasReferences {
     // Normally the target should already have been resolved, but in certain conditions like an unused alias module decl,
     // Decl might not be set yet so we need to resolve it here.
 
-    var reference = new Reference(Path.Last().StartToken, ResolveTarget(new ErrorReporterSink(DafnyOptions.Default)));
+    var reference = new Reference(Path.Last().ReportingRange, ResolveTarget(new ErrorReporterSink(DafnyOptions.Default)));
     return Enumerable.Repeat(reference, 1);
   }
 

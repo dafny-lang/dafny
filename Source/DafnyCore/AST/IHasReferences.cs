@@ -12,7 +12,7 @@ public interface IHasNavigationToken : INode {
   IOrigin NavigationToken { get; }
 }
 
-public record Reference(IOrigin Referer, IHasNavigationToken Referred);
+public record Reference(TokenRange Referer, IHasNavigationToken Referred);
 public interface IHasReferences {
   public IEnumerable<Reference> GetReferences();
 }

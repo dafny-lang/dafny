@@ -73,7 +73,7 @@ public class Token : IOrigin {
 
   public Token Next { get; set; } // The next token
 
-  public Token Prev { get; set; } // The previous token
+  public Token? Prev { get; set; } // The previous token
 
   public bool IsValid => this.ActualFilename != null;
 
@@ -94,7 +94,7 @@ public class Token : IOrigin {
 
   public bool IsCopy => false;
 
-  public int CompareTo(Boogie.IToken other) {
+  public int CompareTo(Boogie.IToken? other) {
     if (line != other.line) {
       return line.CompareTo(other.line);
     }
