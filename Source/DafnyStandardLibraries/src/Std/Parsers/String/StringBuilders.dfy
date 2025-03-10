@@ -11,7 +11,7 @@ module Std.Parsers.StringBuilders refines Builders {
 
   function ToInputEnd(other: seq<C>, fromEnd: int := 0): (i: Input)
     requires 0 <= fromEnd <= |other|
-    ensures P.A.View(i) == []
+    ensures P.A.View(i) == other[|other|-fromEnd..|other|]
   {
     P.A.Input(other, |other| - fromEnd, |other|)
   }

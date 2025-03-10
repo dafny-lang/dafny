@@ -4,8 +4,7 @@ module ExampleParsers.AdventOfCode1 {
   const nonDigit :=
     Except("0123456789\r\n").Rep()
 
-  const digit :=
-    B(P.DigitNumber())
+  const digit := DigitNumber()
 
   const parseLine :=
     nonDigit.e_I(digit).Bind(
