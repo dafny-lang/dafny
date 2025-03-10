@@ -479,7 +479,7 @@ module Std.Producers {
     }
   }
 
-  class SeqProducer<T> extends Producer<T> {
+  class SeqReader<T> extends Producer<T> {
 
     const elements: seq<T>
     var index: nat

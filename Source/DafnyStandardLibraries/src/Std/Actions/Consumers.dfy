@@ -50,9 +50,8 @@ module Std.Consumers {
     }
   }
 
-  // TODO: Name implies it's consuming arrays
   @AssumeCrossModuleTermination
-  class ArrayConsumer<T> extends Consumer<T> {
+  class ArrayWriter<T> extends Consumer<T> {
 
     const storage: array<T>
     var size: nat
@@ -123,7 +122,7 @@ module Std.Consumers {
   }
 
   @AssumeCrossModuleTermination
-  class DynamicArrayConsumer<T> extends IConsumer<T>, TotalActionProof<T, ()> {
+  class DynamicArrayWriter<T> extends IConsumer<T>, TotalActionProof<T, ()> {
 
     var storage: DynamicArray<T>
 
@@ -281,10 +280,8 @@ module Std.Consumers {
     {}
   }
 
-  // TODO: This is also a FoldingConsumer([], (x, y) => x + [y])
-  // Or a SeqConsumer?
   @AssumeCrossModuleTermination
-  class Collector<T> extends IConsumer<T>, TotalActionProof<T, ()> {
+  class SeqWriter<T> extends IConsumer<T>, TotalActionProof<T, ()> {
 
     var values: seq<T>
 

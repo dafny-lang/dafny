@@ -37,7 +37,7 @@ test-cs:
 
 test-java:
 	$(DAFNY) test -t:java examples/dfyconfig.toml examples/BoundedInts/Externs/NonDefault.java --output:build/stdlibexamples
-	$(DAFNY) test -t:java examples/nondeterministic/dfyconfig.toml --output:build/stdlibexamples_nondeterministic
+# Iterators aren't supported on Java so we can't test the nondeterministic examples
 
 test-go:
 	$(DAFNY) test -t:go examples/dfyconfig.toml examples/BoundedInts/NonDefault.go --output:build/stdlibexamples

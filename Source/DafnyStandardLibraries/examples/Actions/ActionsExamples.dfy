@@ -27,7 +27,7 @@ module ActionsExamples {
     ensures p.Valid()
     ensures fresh(p.Repr)
   {
-    p := new SeqProducer([1, 2, 3, 4, 5]);
+    p := new SeqReader([1, 2, 3, 4, 5]);
   }
 
   // Demonstration that actions can consume/produce reference values as well,
@@ -129,7 +129,7 @@ module ActionsExamples {
   @IsolateAssertions
   @ResourceLimit("10e6")
   method ConsumerExample() {
-    var a: DynamicArrayConsumer<nat> := new DynamicArrayConsumer();
+    var a: DynamicArrayWriter<nat> := new DynamicArrayWriter();
     var _ := a.Invoke(1);
     var _ := a.Invoke(2);
     var _ := a.Invoke(3);

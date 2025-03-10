@@ -28,9 +28,9 @@ module Std.Termination {
           || (exists i    | 0 <= i < |left|      :: left[..i] == right)
           || (exists i    | 0 < i <= |left|      :: left[i..] == right)
           || (exists i, j | 0 <= i < j <= |left| :: left[..i] + left[j..] == right)
-        // This is a sequence and other is a datatype and structurally included
+        // This is a sequence and other is structurally included
         // (treating a sequence as a datatype with N children)
-        case (TMSeq(leftSeq), TMDatatype(_)) =>
+        case (TMSeq(leftSeq), _) =>
           || other in leftSeq
         // Structural inclusion inside a datatype
         case (TMDatatype(leftChildren), _) =>
@@ -43,7 +43,7 @@ module Std.Termination {
             leftFirst.DecreasesTo(rightFirst)
         case (_, TMComma(rightFirst, _)) =>
           // Treat the LHS as TMComma(this, TOP)
-          this == rightFirst || this.DecreasesTo(rightFirst)
+          this == rightFirst || DecreasesTo(rightFirst)
 
         case _ => false
       }
