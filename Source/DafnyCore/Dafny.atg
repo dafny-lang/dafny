@@ -4292,7 +4292,7 @@ NameSegmentForTypeName<out Expression e, bool inExpressionContext>
 = (. Token id;  List<Type> typeArgs; .)
   Ident<out id>
   OptGenericInstantiation<out typeArgs, inExpressionContext>
-  (. e = new NameSegment(new SourceOrigin(id, t), id.val, typeArgs);
+  (. e = new NameSegment(new SourceOrigin(id, t, id), id.val, typeArgs);
   .)
   .
 
