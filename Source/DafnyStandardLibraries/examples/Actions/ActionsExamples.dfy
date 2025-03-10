@@ -9,10 +9,10 @@ module ActionsExamples {
   // for looping over the values produced by a Producer<T>
   method SimpleProducerLoop() {
     var p := MakeProducer();
-    while true 
+    while true
       invariant p.Valid()
       invariant fresh(p.Repr)
-      decreases p.remaining.Ordinal()
+      decreases p.Remaining()
     {
       var next := p.Next();
       if next.None? {

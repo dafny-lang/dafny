@@ -1072,7 +1072,7 @@ module Std.Collections.Seq {
       true
     else if p(s[0]) then
       Partitioned(s[1..], p)
-    else 
+    else
       AllNot(s[1..], p)
   }
 
@@ -1116,7 +1116,7 @@ module Std.Collections.Seq {
     ensures Partitioned(right, p)
   {
     if left == [] {
-        assert right == left + right;
+      assert right == left + right;
     } else {
       if !p(left[0]) {
         PartitionedFirstFalseImpliesAllNot(left + right, p);

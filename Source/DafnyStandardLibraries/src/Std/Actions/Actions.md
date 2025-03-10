@@ -86,6 +86,7 @@ can be expressed, even within the same type signature:
 4. For even better readability, it is often better to declare a more specialized datatype,
     such as
     
+    <!-- %no-check -->
     ```dafny
     datatype DataStreamEvent = 
       | NoData 

@@ -10,12 +10,12 @@ module Std.Termination {
     | TMSeq(seqValue: seq<TerminationMetric>)
     | TMDatatype(children: seq<TerminationMetric>)
 
-    // Other kinds of Dafny values are valid here too,
-    // and may be added in the future.
-    
-    // The equivalent of "decreases first, rest".
-    // Can be chained to represent "decreases a, b, c, d"
-    // as TMComma(a, TMComma(b, TMComma(c, d))).
+      // Other kinds of Dafny values are valid here too,
+      // and may be added in the future.
+
+      // The equivalent of "decreases first, rest".
+      // Can be chained to represent "decreases a, b, c, d"
+      // as TMComma(a, TMComma(b, TMComma(c, d))).
     | TMComma(first: TerminationMetric, rest: TerminationMetric)
   {
     opaque predicate DecreasesTo(other: TerminationMetric) {
@@ -64,7 +64,7 @@ module Std.Termination {
       ensures Ordinal() > other.Ordinal()
 
     lemma {:axiom} DecreasesToTransitive(middle: TerminationMetric, right: TerminationMetric)
-      requires 
+      requires
         || (EqualOrDecreasesTo(middle) && middle.DecreasesTo(right))
         || (DecreasesTo(middle) && middle.EqualOrDecreasesTo(right))
       ensures DecreasesTo(right)

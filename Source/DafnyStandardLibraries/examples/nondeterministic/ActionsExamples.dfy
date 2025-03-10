@@ -43,7 +43,7 @@ module ActionsExamples {
       && iter.Valid()
     }
 
-    constructor () 
+    constructor ()
       ensures Valid()
       ensures fresh(Repr)
     {
@@ -98,7 +98,7 @@ module ActionsExamples {
     var producer: Producer<nat> := new LimitedProducer(iproducer, 10, iproducerTotalProof);
     var firstTen: seq<nat> := [];
 
-    while true 
+    while true
       invariant producer.Valid()
       invariant fresh(producer.Repr)
       decreases producer.remaining.Ordinal()
