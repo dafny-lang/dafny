@@ -10,7 +10,7 @@ public class NestedOrigin : OriginWrapper {
     Inner = inner;
     this.Message = message;
   }
-  public IOrigin Outer { get { return WrappedToken; } }
+  public IOrigin Outer { get { return WrappedOrigin; } }
   public readonly IOrigin Inner;
   public readonly string Message;
 }

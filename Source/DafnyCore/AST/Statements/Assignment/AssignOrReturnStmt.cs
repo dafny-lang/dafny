@@ -286,16 +286,16 @@ public class AssignOrReturnStmt : ConcreteAssignStatement, ICloneable<AssignOrRe
     ResolvedStatements.Add(up);
 
     if (KeywordToken != null) {
-      var keyword = KeywordToken.Token;
+      Token keyword = KeywordToken.Token;
       var notFailureExpr = new UnaryOpExpr(keyword, UnaryOpExpr.Opcode.Not, resolver.VarDotMethod(Origin, temp, "IsFailure"));
       Statement ss = null;
       if (keyword.val == "expect") {
         // "expect !temp.IsFailure(), temp"
-        ss = new ExpectStmt(new SourceOrigin(keyword.StartToken, EndToken), notFailureExpr, new IdentifierExpr(Origin, temp), KeywordToken.Attrs);
+        ss = new ExpectStmt(new SourceOrigin(keyword, EndToken), notFailureExpr, new IdentifierExpr(Origin, temp), KeywordToken.Attrs);
       } else if (keyword.val == "assume") {
-        ss = new AssumeStmt(new SourceOrigin(keyword.StartToken, EndToken), notFailureExpr, SystemModuleManager.AxiomAttribute(KeywordToken.Attrs));
+        ss = new AssumeStmt(new SourceOrigin(keyword, EndToken), notFailureExpr, SystemModuleManager.AxiomAttribute(KeywordToken.Attrs));
       } else if (keyword.val == "assert") {
-        ss = new AssertStmt(new SourceOrigin(keyword.StartToken, EndToken), notFailureExpr, null, KeywordToken.Attrs);
+        ss = new AssertStmt(new SourceOrigin(keyword, EndToken), notFailureExpr, null, KeywordToken.Attrs);
       } else {
         Contract.Assert(false, $"Invalid token in :- statement: {keyword.val}");
       }

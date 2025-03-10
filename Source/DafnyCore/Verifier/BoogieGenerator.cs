@@ -3310,7 +3310,7 @@ namespace Microsoft.Dafny {
         Contract.Requires(tok != null);
         Contract.Ensures(Contract.Result<IOrigin>() != null);
         var ftok = tok as ForceCheckOrigin;
-        return ftok != null ? ftok.WrappedToken : tok;
+        return ftok != null ? ftok.WrappedOrigin : tok;
       }
 
       public override bool IsInherited(ModuleDefinition m) {

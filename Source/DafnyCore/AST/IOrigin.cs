@@ -7,8 +7,6 @@ namespace Microsoft.Dafny;
 public interface IOrigin : Boogie.IToken {
 
   bool IsInherited(ModuleDefinition m);
-
-  bool InclusiveEnd { get; }
   bool IncludesRange { get; }
   /*
   int kind { get; set; }
@@ -28,11 +26,12 @@ public interface IOrigin : Boogie.IToken {
 
   Uri Uri { get; }
 
-  Token? StartToken { get; }
-  Token? EndToken { get; }
-  Token Center {
+  TokenRange? EntireRange { get; }
+  TokenRange ReportingRange {
     get;
   }
+
+  Token Center => ReportingRange.Start;
 
   bool IsCopy { get; }
 }

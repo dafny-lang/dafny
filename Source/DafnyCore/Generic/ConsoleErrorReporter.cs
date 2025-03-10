@@ -73,7 +73,7 @@ public class ConsoleErrorReporter : BatchErrorReporter {
           errorLine += tw.ToString();
         }
       } else {
-        innerToken = wrapper.WrappedToken;
+        innerToken = wrapper.WrappedOrigin;
       }
 
     }

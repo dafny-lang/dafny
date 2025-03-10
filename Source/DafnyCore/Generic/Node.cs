@@ -30,25 +30,6 @@ public class SyntaxConstructorAttribute : Attribute { }
 [AttributeUsage(AttributeTargets.Parameter | AttributeTargets.Field)]
 public class BackEdge : Attribute { }
 
-public abstract class NodeWithoutOrigin : Node {
-  private IOrigin? origin;
-
-  public override IOrigin Origin => origin ??= new SourceOrigin(this.StartToken, this.EndToken);
-
-  private Token? startToken;
-  private Token? endToken;
-
-  public override Token StartToken {
-    get {
-      return startToken ??= PreResolveChildren.FirstOrDefault()?.StartToken ?? Token.NoToken;
-    }
-  }
-
-  public override Token EndToken {
-    get { return endToken ??= PreResolveChildren.LastOrDefault()?.EndToken ?? Token.NoToken; }
-  }
-}
-
 public abstract class Node : INode {
   private static readonly Regex StartDocstringExtractor =
     new Regex($@"/\*\*(?<multilinecontent>{TriviaFormatterHelper.MultilineCommentContent})\*/");
@@ -59,13 +40,9 @@ public abstract class Node : INode {
 
   public abstract IOrigin Origin { get; }
 
-
-  public abstract Token StartToken { get; }
-
-  public abstract Token EndToken { get; }
-
-  public Token Center => Origin.Center;
-
+  public abstract TokenRange EntireRange { get; }
+  public TokenRange ReportingRange => Origin.ReportingRange;
+  
   /// <summary>
   /// These children should be such that they contain information produced by resolution such as inferred types
   /// and resolved references. However, they should not be so transformed that source location from the initial
@@ -83,17 +60,20 @@ public abstract class Node : INode {
 
   public IEnumerable<Token> CoveredTokens {
     get {
-      var token = StartToken;
+      var token = EntireRange.Start;
       if (token == Token.NoToken) {
         yield break;
       }
-      while (token.Prev != EndToken) {
+      while (token.Prev != EntireRange.End) {
         yield return token;
         token = token.Next;
       }
     }
   }
 
+  public Token StartToken => EntireRange.Start;
+  public Token EndToken => EntireRange.End;
+  
   /// <summary>
   /// A token is owned by a node if it was used to parse this node,
   /// but is not owned by any of this Node's children

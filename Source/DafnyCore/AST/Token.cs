@@ -30,16 +30,12 @@ public class Token : IOrigin {
   public bool IsInherited(ModuleDefinition m) {
     return false;
   }
-
-  public bool InclusiveEnd => true;
   public bool IncludesRange => false;
   public string ActualFilename => Filepath;
   public string Filepath => Uri?.LocalPath;
   public Uri Uri { get; set; }
-  public Token? StartToken => null;
-  public Token? EndToken => null;
-
-  public Token Center => this;
+  public TokenRange? EntireRange => null;
+  public TokenRange ReportingRange => new TokenRange(this, this);
 
   public int pos { get; set; } // Used by coco, so we can't rename it to Pos
 

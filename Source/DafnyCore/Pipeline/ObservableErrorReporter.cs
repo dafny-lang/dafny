@@ -36,7 +36,7 @@ namespace Microsoft.Dafny {
       var usingSnippets = Options.Get(Snippets.ShowSnippets);
       var inner = rootTok;
       while (inner is OriginWrapper wrapper and not NestedOrigin) {
-        inner = wrapper.WrappedToken;
+        inner = wrapper.WrappedOrigin;
       }
       if (inner is NestedOrigin nestedToken) {
         relatedInformation.AddRange(

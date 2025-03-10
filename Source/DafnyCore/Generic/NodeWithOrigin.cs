@@ -22,16 +22,21 @@ public abstract class NodeWithOrigin : Node {
   public override IOrigin Origin => origin;
 
 
-  private Token? startToken;
-  private Token? endToken;
+  private TokenRange? entireRange;
 
-  public override Token StartToken {
+  public override TokenRange EntireRange {
     get {
-      return startToken ??= Origin.StartToken ?? PreResolveChildren.FirstOrDefault()?.StartToken ?? Token.NoToken;
-    }
-  }
+      if (entireRange == null) {
+        if (Origin.EntireRange == null) {
+          var start = PreResolveChildren.FirstOrDefault()?.EntireRange.Start ?? Token.NoToken;
+          var end = PreResolveChildren.LastOrDefault()?.EntireRange.End ?? Token.NoToken;
+          entireRange = new TokenRange(start, end);
+        } else {
+          entireRange = origin.EntireRange!;
+        }
+      }
 
-  public override Token EndToken {
-    get { return endToken ??= Origin.EndToken ?? PreResolveChildren.LastOrDefault()?.EndToken ?? Token.NoToken; }
+      return entireRange;
+    }
   }
 }

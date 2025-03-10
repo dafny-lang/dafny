@@ -16,29 +16,29 @@ namespace Microsoft.Dafny;
 /// future  old
 /// </summary>
 class OverrideCenter : OriginWrapper {
-  public OverrideCenter(IOrigin wrappedToken, Token newCenter) : base(wrappedToken) {
-    this.Center = newCenter;
+  public OverrideCenter(IOrigin wrappedOrigin, TokenRange newCenter) : base(wrappedOrigin) {
+    this.ReportingRange = newCenter;
   }
 
-  public override Token Center { get; }
+  public override TokenRange ReportingRange { get; }
 
   public override int col {
-    get => Center.col;
+    get => ReportingRange.Start.col;
     set => throw new System.NotImplementedException();
   }
 
   public override int line {
-    get => Center.line;
+    get => ReportingRange.Start.line;
     set => throw new System.NotImplementedException();
   }
 
   public override int pos {
-    get => Center.pos;
+    get => ReportingRange.Start.pos;
     set => throw new System.NotImplementedException();
   }
 
   public override string val {
-    get => Center.val;
+    get => ReportingRange.Start.val;
     set => throw new System.NotImplementedException();
   }
 }

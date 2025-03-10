@@ -4,10 +4,15 @@ namespace Microsoft.Dafny;
 
 public interface INode {
   bool SingleFileToken { get; }
-  public Token StartToken { get; }
-  public Token EndToken { get; }
+  public TokenRange EntireRange { get; }
 
-  public Token Center => Origin.Center;
+
+  
+  public Token StartToken => EntireRange.Start;
+  public Token EndToken => EntireRange.End;
+
+  public TokenRange ReportingRange => Origin.ReportingRange;
+
   IEnumerable<Token> OwnedTokens { get; }
   IOrigin Origin { get; }
   IEnumerable<INode> Children { get; }

@@ -15,8 +15,7 @@ public class Program : NodeWithoutOrigin {
     Contract.Invariant(DefaultModule != null);
   }
 
-  public override Token StartToken => Token.NoToken;
-  public override Token EndToken => Token.NoToken;
+  public override TokenRange EntireRange => new TokenRange(Token.NoToken, Token.NoToken);
   
   public bool HasParseErrors { get; set; }
 
@@ -123,7 +122,7 @@ public class Program : NodeWithoutOrigin {
   }
 
   public Token GetFirstTokenForUri(Uri uri) {
-    return this.FindNodesInUris(uri).MinBy(n => n.Origin.StartToken.pos)?.StartToken;
+    return this.FindNodesInUris(uri).MinBy(n => n.StartToken.pos)?.StartToken;
   }
 
   public override IEnumerable<INode> Children => new[] { DefaultModule };
