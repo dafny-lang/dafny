@@ -88,7 +88,29 @@ module ExampleParsers.PolynomialParsersBuilder {
     }
   }
 
-  method {:print} Main(args: seq<string>) {
+  method TestSimplify(input: string, expectedSimplified: string) {
+    var x := Apply(parser, input);
+    expect x.ParseSuccess?;
+    var xSimplified := x.result.Simplify();
+    expect xSimplified.Success?;
+    var inputSimplified := xSimplified.value.ToString();
+    expect inputSimplified == expectedSimplified;
+  }
+
+  @Test
+  method TestPolynomial() {
+    TestSimplify("2+3*4", "14");
+    TestSimplify("(2+3)*4", "20");
+    TestSimplify("3*4+2", "14");
+    TestSimplify("3*(4+2)", "18");
+    TestSimplify("(1+2)*x", "3*x");
+    TestSimplify("(1+2)*x", "3*x");
+    TestSimplify("((50 % 40)/2-1)*x^3", "4*x^3");
+  }
+
+  // Use it if you want to parse polynomials from the command-line.
+  @Print
+  method Main(args: seq<string>) {
     if |args| <= 1 {
       print "Please provide a polynomial to parse as argument\n";
       return;

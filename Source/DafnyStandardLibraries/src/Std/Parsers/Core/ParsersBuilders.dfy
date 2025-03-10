@@ -259,7 +259,7 @@ abstract module Std.Parsers.Builders {
     function End(): (p: B<R>)
     {
       this.I_e(EOS)
-    } 
+    }
   }
 
   /** `O([a, b, ...])` parses `a` on the input, and if `a` succeeds, returns its result.

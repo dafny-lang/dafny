@@ -91,6 +91,7 @@ module ExampleParsers.DafnyParser {
       (idecls: (seq<string>, seq<Declaration>)) =>
         Program(idecls.0, idecls.1))
 
+  @IsolateAssertions
   method {:test} TestParser() {
     var program := @"
 include ""file""
@@ -103,6 +104,8 @@ module Test {
   }
 }
 ";
+    assert 0 <= 1 && 1 <= |program|;
+    var inputFinal := ToInputEnd(program, 1); // Inlining this fails
     expect Apply(parseProgram, program)
         == ParseResult.ParseSuccess(
              Program.Program(
@@ -112,6 +115,6 @@ module Test {
                   Type.TypeName("Test"),
                   [
                     Declaration.Module(Type.TypeName("Inner"), [])])]),
-             ToInputEnd(program, 1));
+             inputFinal);
   }
 }

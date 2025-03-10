@@ -441,7 +441,7 @@ abstract module Std.Parsers.Core
   {
     (input: Input) =>
       var u := underlying(input);
-      if u.IsFatalFailure() || (u.IsFailure() && !u.NeedsAlternative(input)) then u.PropagateFailure()        
+      if u.IsFatalFailure() || (u.IsFailure() && !u.NeedsAlternative(input)) then u.PropagateFailure()
       else
       if u.ParseSuccess? then u.Map(result => Option.Some(result))
       else ParseSuccess(Option.None, input)
@@ -503,7 +503,7 @@ abstract module Std.Parsers.Core
   }
 
   // A datatype that avoid a quadratic complexity in concatenating long sequences.
-  
+
   datatype SeqB<A> = SeqBCons(last: A, init: SeqB<A>) | SeqBNil {
     function Append(elem: A): SeqB<A> {
       SeqBCons(elem, this)
@@ -524,7 +524,7 @@ abstract module Std.Parsers.Core
       var elements := new A[l](i => defaultElem);
       var t := this;
       var i := l;
-        assert t.ToSequence() + elements[i..] == ToSequence();
+      assert t.ToSequence() + elements[i..] == ToSequence();
       while !t.SeqBNil?
         decreases i
         invariant 0 <= i <= l
@@ -547,7 +547,7 @@ abstract module Std.Parsers.Core
     // that accepts alternatives, and returns the underlying sequence
   {
     Map(Rep(underlying, (result: SeqB<R>, r: R) => result.Append(r), SeqBNil),
-     (result: SeqB<R>) => result.ToSequence())
+        (result: SeqB<R>) => result.ToSequence())
   }
 
   opaque function OneOrMore<R>(underlying: Parser<R>): (p: Parser<seq<R>>)
@@ -555,10 +555,10 @@ abstract module Std.Parsers.Core
     // Will return a failure if there is not at least one match
   {
     Bind(underlying, (r: R) =>
-      Map(
-        Rep(underlying, (result: SeqB<R>, r: R) => result.Append(r), SeqBCons(r, SeqBNil)),
-        (result: SeqB<R>) => result.ToSequence()
-        ))
+           Map(
+             Rep(underlying, (result: SeqB<R>, r: R) => result.Append(r), SeqBCons(r, SeqBNil)),
+             (result: SeqB<R>) => result.ToSequence()
+           ))
   }
 
   opaque function Rep<A, B>(
@@ -589,7 +589,7 @@ abstract module Std.Parsers.Core
             ConcatR(separator, underlying),
             (acc: SeqB<A>, a: A) => acc.Append(a),
             SeqBCons(result.value, SeqBNil)),
-            (result: SeqB<A>) => result.ToSequence()))
+          (result: SeqB<A>) => result.ToSequence()))
   }
 
   opaque function RepMerge<A>(
@@ -707,7 +707,7 @@ abstract module Std.Parsers.Core
                  RecursiveMap_(underlying, fun', remaining)
                else if A.Length(remaining) == A.Length(input) then
                  ParseFailure(Recoverable, FailureData("non-progressing recursive call requires that order of '"
-                                                  +fun'+"' ("+IntToString(orderFun')+") is lower than the order of '"+fun+"' ("+IntToString(orderFun)+")", remaining, Option.None))
+                                                       +fun'+"' ("+IntToString(orderFun')+") is lower than the order of '"+fun+"' ("+IntToString(orderFun)+")", remaining, Option.None))
                else
                  ParseFailure(Fatal, FailureData("parser did not return a suffix of the input", remaining, Option.None))
            ; p);
@@ -721,7 +721,7 @@ abstract module Std.Parsers.Core
     (input: Input) =>
       if 0 < A.Length(input) && test(A.CharAt(input, 0)) then ParseSuccess(A.CharAt(input, 0), A.Drop(input, 1))
       else ParseFailure(Recoverable,
-                   FailureData("expected a "+name, input, Option.None))
+                        FailureData("expected a "+name, input, Option.None))
   }
 
   opaque function IntToString(n: int): string

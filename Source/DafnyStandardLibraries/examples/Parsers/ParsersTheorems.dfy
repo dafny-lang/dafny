@@ -1,4 +1,4 @@
-abstract module Std.Parsers.ExampleParsersTheorems refines Core {
+abstract module ExampleParsers.Theorems refines Std.Parsers.Core {
 
   ghost predicate Trigger<T>(i: T) { true }
 
@@ -206,16 +206,63 @@ abstract module Std.Parsers.ExampleParsersTheorems refines Core {
     p.ParseSuccess? ==> IsRemaining(input, p.remaining)
   }
 
-  lemma {:vcs_split_on_every_assert} AboutFix<R(!new)>(
+  opaque function CallUnderlyingCallbackInput<R(!new)>(underlying: Parser<R> -> Parser<R>, callback: Parser<R>, input: Input): ParseResult<R> {
+    underlying(callback)(input)
+  }
+
+  opaque predicate IsRemainingFix<R(!new)>(underlying: Parser<R> -> Parser<R>, callback: Parser<R>, input: Input) {
+    IsRemaining(input, CallUnderlyingCallbackInput(underlying, callback, input).Remaining())
+  }
+
+  @IsolateAssertions
+  lemma AboutFix<R(!new)>(
     underlying: Parser<R> -> Parser<R>,
     input: Input)
     requires
       forall callback: Parser<R>, u: Input
-        | underlying(callback)(u).ParseSuccess?
-        :: IsRemaining(input, underlying(callback)(input).Remaining())
+        | CallUnderlyingCallbackInput(underlying, callback, u).ParseSuccess?
+        :: IsRemainingFix(underlying, callback, input)
     ensures AboutFix_Ensures(underlying, input)
   {
     reveal Recursive_();
+    hide IsRemaining();
+    var p := Recursive_(underlying, input);
+    if p.ParseSuccess? {
+      var callback: Parser<R> :=
+        (remaining: Input) =>
+          if A.Length(remaining) < A.Length(input) then
+            Recursive_(underlying, remaining)
+          else if A.Length(remaining) == A.Length(input) then
+            ParseFailure(Recoverable, FailureData("no progress in recursive parser", remaining, Option.None))
+          else
+            ParseFailure(Fatal, FailureData("fixpoint called with an increasing remaining sequence", remaining, Option.None));
+      assert p == underlying(callback)(input);
+
+      assert forall c: Parser<R>, u: Input
+          |    CallUnderlyingCallbackInput(underlying, c,        u).ParseSuccess?
+          :: IsRemainingFix(underlying, c,        input);
+      InstantiateForallManually(underlying, callback, input);
+      assert CallUnderlyingCallbackInput(underlying, callback, input).ParseSuccess? by {
+        reveal CallUnderlyingCallbackInput();
+      }
+      assert IsRemainingFix(underlying, callback, input);
+      assert IsRemaining(input, underlying(callback)(input).Remaining()) by {
+        reveal IsRemainingFix();
+        reveal CallUnderlyingCallbackInput();
+      }
+      assert IsRemaining(input, p.remaining);
+    }
+  }
+  lemma InstantiateForallManually<R(!new)>(
+    underlying: Parser<R> -> Parser<R>,
+    callback: Parser<R>,
+    input: Input)
+    requires forall c: Parser<R>, u: Input
+               |    CallUnderlyingCallbackInput(underlying, c,        u).ParseSuccess?
+               :: IsRemainingFix(underlying, c,        input)
+    ensures CallUnderlyingCallbackInput(underlying, callback, input).ParseSuccess? ==>
+              IsRemainingFix(   underlying, callback, input)
+  {
   }
 
 
@@ -276,8 +323,8 @@ abstract module Std.Parsers.ExampleParsersTheorems refines Core {
     reveal BindSucceeds(), Valid();
     var p := BindSucceeds(left, right);
     forall input: Input | Trigger(input) ensures
-      && (p(input).ParseFailure? ==> p(input).level == Recoverable)
-      && IsRemaining(input, p(input).Remaining())
+        && (p(input).ParseFailure? ==> p(input).level == Recoverable)
+        && IsRemaining(input, p(input).Remaining())
     {
       var pResult := left(input);
       if pResult.ParseSuccess? {
@@ -352,6 +399,7 @@ abstract module Std.Parsers.ExampleParsersTheorems refines Core {
       (forall i | 0 <= i < |s| :: s[i] in "0123456789")
   }
 
+  @IsolateAssertions
   lemma StringToIntNonnegative(s: string)
     requires IsStringInt(s)
     requires s[0] != '-'
@@ -370,20 +418,10 @@ abstract module Std.Parsers.ExampleParsersTheorems refines Core {
       case _ =>
     } else if s[0] == '-' {
     } else {
-      assert !(|s|  == 0 || |s| == 1 || s[0] == '-');
-      reveal StringToInt();
-      assert StringToInt(s) == StringToInt(s[0..|s|-1])*10 + StringToInt(s[|s|-1..|s|]);
-      assert IsStringInt(s[0..|s|-1]) by {
+      if |s| > 1 {
+        reveal StringToInt();
         reveal IsStringInt();
       }
-      StringToIntNonnegative(s[..|s|-1]);
-      var tail := s[|s|-1..|s|];
-      assert IsStringInt(tail) && tail[0] != '-' by {
-        reveal IsStringInt();
-      }
-      StringToIntNonnegative(tail);
-      reveal IsStringInt();
-      assert |s| > 1 ==> 10 <= StringToInt(s);
     }
   }
 
@@ -420,10 +458,7 @@ abstract module Std.Parsers.ExampleParsersTheorems refines Core {
       assert IsStringInt(last) by { reveal IsStringInt(); }
       StringToIntThenIntToStringIdem(init);
       StringToIntThenIntToStringIdem(last);
-      assert StringToInt(s) ==
-             StringToInt(s[0..|s|-1])*10 + StringToInt(s[|s|-1..|s|]) by {
-        reveal StringToInt();
-      }
+      reveal StringToInt();
       assert n == q * 10 + r;
       calc {
         IntToString(n);

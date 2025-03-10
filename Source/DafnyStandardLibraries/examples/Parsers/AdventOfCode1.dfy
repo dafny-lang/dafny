@@ -15,7 +15,7 @@ module ExampleParsers.AdventOfCode1 {
   const parseInput :=
     parseLine.I_e(S("\r").?().e_I(S("\n").?()))
     .RepFold(0, (acc: int, newElem: (nat, nat)) =>
-           acc + newElem.0 * 10 + newElem.1)
+               acc + newElem.0 * 10 + newElem.1)
 
   method {:test} TestParser() {
     var input := @"1abc2
