@@ -172,11 +172,11 @@ public partial class BoogieGenerator {
       Bpl.Expr anteCanCalls, ante;
       Bpl.Expr post = Bpl.Expr.True;
       Bpl.Trigger tr;
-      if (((QuantifierExpr)forallExpressions?[0])?.SplitQuantifierExpression is QuantifierExpr) {
+      if (forallExpressions != null) {
         // translate based on the forallExpressions since the triggers are computed based on it already.
         QuantifierExpr expr = (QuantifierExpr)forallExpressions[0];
-        while (expr.SplitQuantifier != null) {
-          expr = (QuantifierExpr)expr.SplitQuantifierExpression;
+        while (expr.SplitQuantifier != null && expr.SplitQuantifierExpression is QuantifierExpr quantifierExpr) {
+          expr = quantifierExpr;
         }
         boundVars = expr.BoundVars;
         ante = initEtran.TrBoundVariablesRename(boundVars, bvars, out substMap);
