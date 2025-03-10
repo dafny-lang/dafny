@@ -10,27 +10,27 @@ module ExampleParsers.PolynomialParsersBuilder {
           0, (c: RecMapSel<Expr>) =>
             O([
                 S("(").e_I(c("term")).I_e(S(")")),
-                Int().M((result: int) => Number(result)),
-                S("x").e_I(S("^").e_I(Int()).?().M(
+                Int.M((result: int) => Number(result)),
+                S("x").e_I(S("^").e_I(Int).?().M(
                              (result: P.Option<int>) =>
                                if result.Some? then Unknown(result.value) else Unknown(1)))
               ])),
 
         "factor" := RecMapDef(
           1, (c: RecMapSel<Expr>) =>
-            c("atom").Bind(
-              (atom: Expr) => // TODO: Finish this one
+            c("atom").Then(
+              (atom: Expr) =>
                 O([S("*"), S("/"), S("%")])
-                .I_I(c("atom")).Rep(atom, Expr.InfixBuilder()))),
+                .I_I(c("atom")).RepFold(atom, Expr.InfixBuilder()))),
 
         "term" := RecMapDef(
           2, (c: RecMapSel<Expr>) =>
-            c("factor").Bind(
+            c("factor").Then(
               (atom: Expr) =>
                 O([S("+"), S("-")])
-                .I_I(c("factor")).Rep(atom, Expr.InfixBuilder())))
+                .I_I(c("factor")).RepFold(atom, Expr.InfixBuilder())))
       ], "term")
-    .I_e(End())
+    .End()
 
   type Result<A, B> = P.Wrappers.Result<A, B>
 
@@ -77,14 +77,14 @@ module ExampleParsers.PolynomialParsersBuilder {
     }
     function ToString(): string {
       match this
-      case Number(x) => P.intToString(x)
+      case Number(x) => IntToString(x)
       case Binary(op, left, right) =>
         "("
         + left.ToString() + op + right.ToString()
         + ")"
       case Unknown(power) =>
         if power == 1 then "x" else if power == 0 then "1" else
-        "x^" + P.intToString(power)
+        "x^" + IntToString(power)
     }
   }
 
@@ -95,8 +95,8 @@ module ExampleParsers.PolynomialParsersBuilder {
     }
     for i := 1 to |args| {
       var input := args[i];
-      match parser.apply(input) {
-        case Success(result, remaining) =>
+      match parser.Apply(input) {
+        case ParseSuccess(result, remaining) =>
           print "Polynomial:", result.ToString(), "\n";
           match result.Simplify() {
             case Success(x) =>
@@ -105,8 +105,7 @@ module ExampleParsers.PolynomialParsersBuilder {
               print message;
           }
         case failure =>
-          var failureMsg := P.FailureToString(input, failure);
-          print failureMsg;
+          print FailureToString(input, failure);
       }
       print "\n";
     }

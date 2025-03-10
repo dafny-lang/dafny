@@ -4,19 +4,17 @@ module ExampleParsers.AdventOfCode1 {
   const nonDigit :=
     Except("0123456789\r\n").Rep()
 
-  const digit := DigitNumber()
-
   const parseLine :=
-    nonDigit.e_I(digit).Bind(
+    nonDigit.e_I(DigitNumber).Then(
       (first: nat) =>
-        nonDigit.e_I(digit).??().Rep(
+        nonDigit.e_I(DigitNumber).??().RepFold(
           (first, first),
           (pair: (nat, nat), newDigit: nat) => (pair.0, newDigit)
         )).I_e(nonDigit)
 
   const parseInput :=
     parseLine.I_e(S("\r").?().e_I(S("\n").?()))
-    .Rep(0, (acc: int, newElem: (nat, nat)) =>
+    .RepFold(0, (acc: int, newElem: (nat, nat)) =>
            acc + newElem.0 * 10 + newElem.1)
 
   method {:test} TestParser() {
@@ -24,6 +22,6 @@ module ExampleParsers.AdventOfCode1 {
 pqr3stu8vwx
 a1b2c3d4e5f
 treb7uchet";
-    expect parseInput.apply(input) == P.Success(142, []);
+    expect Apply(parseInput, input) == ParseResult.ParseSuccess(142, ToInputEnd(input));
   }
 }

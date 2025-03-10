@@ -1,35 +1,47 @@
-abstract module ExampleParsersTheorems refines Std.Parsers.Core {
-  lemma AboutSucceed<R>(result: R, input: seq<C>)
-    ensures
-      var p := Succeed(result);
-      && p(input).Success?
-      && p(input).remaining == input
-  { reveal Succeed(); }
+abstract module Std.Parsers.ExampleParsersTheorems refines Core {
 
-  lemma AboutFail_<R>(message: string, level: FailureLevel, input: seq<C>)
+  ghost predicate Trigger<T>(i: T) { true }
+
+  opaque ghost predicate Valid<R>(underlying: Parser<R>)
+    // A parser is valid iff for any input, it never returns a fatal error
+    // and always returns a suffix of its input
+  {
+    forall input: Input | Trigger(input) :: // Otherwise the trigger underlying(input) is not working well
+      && (underlying(input).ParseFailure? ==> underlying(input).level == Recoverable)
+      && IsRemaining(input, underlying(input).Remaining())
+  }
+
+  lemma AboutSucceedWith<R>(result: R, input: Input)
     ensures
-      var p := Fail<R>(message, level)(input);
-      && p.Failure?
+      var p := SucceedWith(result);
+      && p(input).ParseSuccess?
+      && p(input).remaining == input
+  { reveal SucceedWith(); }
+
+  lemma AboutFail_<R>(message: string, level: FailureLevel, input: Input)
+    ensures
+      var p := FailWith<R>(message, level)(input);
+      && p.ParseFailure?
       && p.data == FailureData(message, input, Option.None)
       && p.level == level
   {
-    reveal Fail();
+    reveal FailWith();
   }
 
-  lemma AboutFail_2<R>(message: string, input: seq<C>)
+  lemma AboutFail_2<R>(message: string, input: Input)
     ensures
-      var p := Fail<R>(message)(input);
-      && p.Failure?
+      var p := FailWith<R>(message)(input);
+      && p.ParseFailure?
       && p.level == Recoverable
       && p.data == FailureData(message, input, Option.None)
   {
-    reveal Fail();
+    reveal FailWith();
   }
 
   lemma AboutBind_<L, R>(
     left: Parser<L>,
-    right: (L, seq<C>) -> Parser<R>,
-    input: seq<C>
+    right: (L, Input) -> Parser<R>,
+    input: Input
   )
     ensures
       var p := BindSucceeds(left, right)(input);
@@ -45,43 +57,43 @@ abstract module ExampleParsersTheorems refines Std.Parsers.Core {
     reveal BindSucceeds();
   }
 
-  lemma AboutMap_<R, U>(underlying: Parser<R>, mappingFunc: R -> U, input: seq<C>)
+  lemma AboutMap_<R, U>(underlying: Parser<R>, mappingFunc: R -> U, input: Input)
     ensures var p := Map(underlying, mappingFunc);
-            && (underlying(input).Success? <==> p(input).Success?)
-            && (p(input).Success? ==>
+            && (underlying(input).ParseSuccess? <==> p(input).ParseSuccess?)
+            && (p(input).ParseSuccess? ==>
                   && p(input).remaining == underlying(input).remaining
                   && p(input).result == mappingFunc(underlying(input).result))
   {
     reveal Map();
     reveal BindSucceeds();
-    reveal Succeed();
+    reveal SucceedWith();
   }
 
   function BindMapCallback<R, U>(mappingFunc: R -> U):
-    (R, seq<C>) -> Parser<U>
+    (R, Input) -> Parser<U>
   {
-    (result: R, remaining: seq<C>) => Succeed(mappingFunc(result))
+    (result: R, remaining: Input) => SucceedWith(mappingFunc(result))
   }
 
-  lemma AboutMap_Bind_<R, U>(underlying: Parser<R>, mappingFunc: R -> U, input: seq<C>)
+  lemma AboutMap_Bind_<R, U>(underlying: Parser<R>, mappingFunc: R -> U, input: Input)
     ensures Map(underlying, mappingFunc)(input)
          == BindSucceeds<R, U>(underlying, BindMapCallback(mappingFunc))(input)
   {
     reveal Map();
     reveal BindSucceeds();
-    reveal Succeed();
+    reveal SucceedWith();
   }
 
   lemma AboutConcat<L, R>(
     left: Parser<L>,
     right: Parser<R>,
-    input: seq<C>)
+    input: Input)
     ensures var p := Concat(left, right);
-            && (p(input).Success? ==>
-                  && left(input).Success?
+            && (p(input).ParseSuccess? ==>
+                  && left(input).ParseSuccess?
                   && p(input).result.0 == left(input).result
                   && var input2 := left(input).remaining;
-                  && right(input2).Success?
+                  && right(input2).ParseSuccess?
                   && p(input).result.1 == right(input2).result
                   && p(input).remaining == right(input2).remaining)
   {
@@ -89,21 +101,21 @@ abstract module ExampleParsersTheorems refines Std.Parsers.Core {
     reveal ConcatMap();
   }
 
-  function BindConcatCallback<L, R>(right: Parser<R>): (L, seq<C>) -> Parser<(L, R)>
+  function BindConcatCallback<L, R>(right: Parser<R>): (L, Input) -> Parser<(L, R)>
   {
-    (l: L, remaining: seq<C>) =>
+    (l: L, remaining: Input) =>
       Map(right, (r: R) => (l, r))
   }
 
   lemma AboutConcatBindSucceeds<L, R>(
     left: Parser<L>,
     right: Parser<R>,
-    input: seq<C>)
+    input: Input)
     ensures Concat(left, right)(input) == BindSucceeds(left, BindConcatCallback(right))(input)
   {
     reveal Concat();
     reveal BindSucceeds();
-    reveal Succeed();
+    reveal SucceedWith();
     reveal Map();
     reveal ConcatMap();
   }
@@ -111,12 +123,12 @@ abstract module ExampleParsersTheorems refines Std.Parsers.Core {
   lemma AboutConcatR<L, R>(
     left: Parser<L>,
     right: Parser<R>,
-    input: seq<C>)
+    input: Input)
     ensures var p := ConcatR(left, right);
-            && (p(input).Success? ==>
-                  && left(input).Success?
+            && (p(input).ParseSuccess? ==>
+                  && left(input).ParseSuccess?
                   && var input2 := left(input).remaining;
-                  && right(input2).Success?
+                  && right(input2).ParseSuccess?
                   && p(input).result == right(input2).result
                   && p(input).remaining == right(input2).remaining)
   {
@@ -133,11 +145,11 @@ abstract module ExampleParsersTheorems refines Std.Parsers.Core {
   lemma AboutConcatConcatR<L, R>(
     left: Parser<L>,
     right: Parser<R>,
-    input: seq<C>)
+    input: Input)
     ensures Map(Concat(left, right), second())(input) == ConcatR(left, right)(input)
   {
     reveal Concat();
-    reveal Succeed();
+    reveal SucceedWith();
     reveal ConcatR();
     reveal Map();
     reveal ConcatMap();
@@ -147,12 +159,12 @@ abstract module ExampleParsersTheorems refines Std.Parsers.Core {
   lemma AboutConcatL<L, R>(
     left: Parser<L>,
     right: Parser<R>,
-    input: seq<C>)
+    input: Input)
     ensures var p := ConcatL(left, right);
-            && (p(input).Success? ==>
-                  && left(input).Success?
+            && (p(input).ParseSuccess? ==>
+                  && left(input).ParseSuccess?
                   && var input2 := left(input).remaining;
-                  && right(input2).Success?
+                  && right(input2).ParseSuccess?
                   && p(input).result == left(input).result
                   && p(input).remaining == right(input2).remaining)
   {
@@ -162,11 +174,11 @@ abstract module ExampleParsersTheorems refines Std.Parsers.Core {
   lemma AboutConcatConcatL<L, R>(
     left: Parser<L>,
     right: Parser<R>,
-    input: seq<C>)
+    input: Input)
     ensures Map(Concat(left, right), first())(input) == ConcatL(left, right)(input)
   {
     reveal Concat();
-    reveal Succeed();
+    reveal SucceedWith();
     reveal ConcatL();
     reveal Map();
     reveal ConcatMap();
@@ -175,31 +187,31 @@ abstract module ExampleParsersTheorems refines Std.Parsers.Core {
   predicate AboutRepIncreasesPosIfUnderlyingSucceedsAtLeastOnceEnsures<R>(
     underlying: Parser<R>,
     acc: seq<R>,
-    input: seq<C>
+    input: Input
   )
   {
     var result := ZeroOrMore(underlying)(input);
-    && result.Success?
+    && result.ParseSuccess?
     && |acc| <= |result.result|
-    && (underlying(input).Success? && |underlying(input).remaining| < |input|
+    && (underlying(input).ParseSuccess? && A.Length(underlying(input).remaining) < A.Length(input)
         ==>
-          (|acc| < |result.result| && |result.remaining| < |input|))
+          (|acc| < |result.result| && A.Length(result.remaining) < A.Length(input)))
   }
 
   predicate AboutFix_Ensures<R(!new)>(
     underlying: Parser<R> -> Parser<R>,
-    input: seq<C>)
+    input: Input)
   {
     var p := Recursive_(underlying, input);
-    p.Success? ==> IsRemaining(input, p.remaining)
+    p.ParseSuccess? ==> IsRemaining(input, p.remaining)
   }
 
   lemma {:vcs_split_on_every_assert} AboutFix<R(!new)>(
     underlying: Parser<R> -> Parser<R>,
-    input: seq<C>)
+    input: Input)
     requires
-      forall callback: Parser<R>, u: seq<C>
-        | underlying(callback)(u).Success?
+      forall callback: Parser<R>, u: Input
+        | underlying(callback)(u).ParseSuccess?
         :: IsRemaining(input, underlying(callback)(input).Remaining())
     ensures AboutFix_Ensures(underlying, input)
   {
@@ -210,50 +222,52 @@ abstract module ExampleParsersTheorems refines Std.Parsers.Core {
   predicate AboutRecursiveMap_Ensures<R(!new)>(
     underlying: map<string, RecursiveDef<R>>,
     fun: string,
-    input: seq<C>
+    input: Input
   ) {
     var p := RecursiveMap_(underlying, fun, input);
-    && (p.Success? ==> IsRemaining(input, p.remaining))
+    && (p.ParseSuccess? ==> IsRemaining(input, p.remaining))
   }
 
 
-  lemma SucceedValid<R>(result: R)
-    ensures Valid(Succeed(result))
-  { reveal Valid(), Succeed(); }
+  lemma SucceedWithValid<R>(result: R)
+    ensures Valid(SucceedWith(result))
+  { reveal Valid(), SucceedWith();
+  }
 
-  lemma SucceedValidAuto<R>()
-    ensures forall result: R :: Valid(Succeed(result))
-  { reveal Valid(), Succeed();  }
+  lemma SucceedWithValidAuto<R>()
+    ensures forall result: R :: Valid(SucceedWith(result))
+  { reveal Valid(), SucceedWith();  }
 
   lemma EpsilonValid()
     ensures Valid(Epsilon())
-  { reveal Valid(), Epsilon(); SucceedValid(()); }
+  { reveal Valid(), Epsilon(); SucceedWithValid(()); }
 
-  lemma AboutEpsilon(input: seq<C>)
+  lemma AboutEpsilon(input: Input)
     ensures
       var p := Epsilon();
-      && p(input).Success?
+      && p(input).ParseSuccess?
       && p(input).remaining == input
   {
     reveal Epsilon();
-    reveal Succeed();
+    reveal SucceedWith();
   }
 
   lemma FailValid<R>(message: string)
-    ensures Valid<R>(Fail(message, Recoverable))
-  { reveal Fail(); reveal Valid(); }
+    ensures Valid<R>(FailWith(message, Recoverable))
+  { reveal FailWith(); reveal Valid(); }
 
   lemma FailValidAuto<R>()
-    ensures forall message :: Valid<R>(Fail(message, Recoverable))
-  { reveal Fail(); reveal Valid(); }
+    ensures forall message :: Valid<R>(FailWith(message, Recoverable))
+  { reveal FailWith(); reveal Valid(); }
 
-  ghost predicate BindRightValid<L(!new), R>(right: (L, seq<C>) -> Parser<R>) {
-    forall l: L, input: seq<C> :: Valid(right(l, input))
+  ghost predicate BindRightValid<L(!new), R>(right: (L, Input) -> Parser<R>) {
+    forall l: L, input: Input :: Valid(right(l, input))
   }
 
+  @IsolateAssertions @ResourceLimit("5e5")
   lemma BindSucceedsValid<L(!new), R>(
     left: Parser<L>,
-    right: (L, seq<C>) -> Parser<R>
+    right: (L, Input) -> Parser<R>
   )
     requires Valid(left)
     requires BindRightValid(right)
@@ -261,18 +275,34 @@ abstract module ExampleParsersTheorems refines Std.Parsers.Core {
   {
     reveal BindSucceeds(), Valid();
     var p := BindSucceeds(left, right);
-    forall input: seq<C> ensures
-        && (p(input).Failure? ==> p(input).level == Recoverable)
-        && IsRemaining(input, p(input).Remaining())
+    forall input: Input | Trigger(input) ensures
+      && (p(input).ParseFailure? ==> p(input).level == Recoverable)
+      && IsRemaining(input, p(input).Remaining())
     {
-
+      var pResult := left(input);
+      if pResult.ParseSuccess? {
+        var (leftResult, remaining) := pResult.Extract();
+        var _ := Trigger(remaining);
+        var r := right(leftResult, remaining);
+        assert Valid(r);
+        assert IsRemaining(input, remaining);
+        assert IsRemaining(remaining, r(remaining).Remaining());
+        assert p(input).Remaining() == r(remaining).Remaining();
+        IsRemainingTransitive(input, remaining, p(input).Remaining());
+        assert IsRemaining(input, p(input).Remaining());
+      } else {
+        assert IsRemaining(input, p(input).Remaining());
+      }
+      assert IsRemaining(input, p(input).Remaining());
+      //reveal v;
     }
+    assert Valid(p);
   }
 
   ghost predicate BindValidRight<L(!new), R(!new)>(left: Parser<L>)
     requires Valid(left)
   {
-    forall right: (L, seq<C>) -> Parser<R> | BindRightValid(right) ::
+    forall right: (L, Input) -> Parser<R> | BindRightValid(right) ::
       Valid(BindSucceeds(left, right))
   }
 
@@ -281,7 +311,7 @@ abstract module ExampleParsersTheorems refines Std.Parsers.Core {
               BindValidRight<L, R>(left)
   {
     forall left: Parser<L> | Valid(left),
-      right: (L, seq<C>) -> Parser<R> | BindRightValid(right)
+      right: (L, Input) -> Parser<R> | BindRightValid(right)
       ensures
         Valid(BindSucceeds(left, right))
     {
@@ -289,25 +319,25 @@ abstract module ExampleParsersTheorems refines Std.Parsers.Core {
     }
   }
 
-  lemma intToStringThenStringToIntIdem(n: int)
+  lemma IntToStringThenStringToIntIdem(n: int)
     decreases if n < 0 then 1 - n else n
-    ensures 0 <= n ==> 1 <= |intToString(n)| && intToString(n)[0] != '-'
-    ensures stringToInt(intToString(n)) == n
+    ensures 0 <= n ==> 1 <= |IntToString(n)| && IntToString(n)[0] != '-'
+    ensures StringToInt(IntToString(n)) == n
   {
-    reveal intToString(), stringToInt(), digitToInt();
+    reveal IntToString(), StringToInt(), DigitToInt();
     if n < 0 {
       calc {
-        stringToInt(intToString(n));
-        stringToInt("-" + intToString(-n));
-        0 - stringToInt(intToString(-n));
-        { intToStringThenStringToIntIdem(-n); }
+        StringToInt(IntToString(n));
+        StringToInt("-" + IntToString(-n));
+        0 - StringToInt(IntToString(-n));
+        { IntToStringThenStringToIntIdem(-n); }
         n;
       }
     } else if 0 <= n <= 9 {
-      assert stringToInt(intToString(n)) == n;
+      assert StringToInt(IntToString(n)) == n;
     } else {
-      assert intToString(n) == intToString(n / 10) + intToString(n % 10);
-      var s := intToString(n);
+      assert IntToString(n) == IntToString(n / 10) + IntToString(n % 10);
+      var s := IntToString(n);
     }
   }
   opaque predicate IsStringInt(s: string): (b: bool)
@@ -322,18 +352,18 @@ abstract module ExampleParsersTheorems refines Std.Parsers.Core {
       (forall i | 0 <= i < |s| :: s[i] in "0123456789")
   }
 
-  lemma stringToIntNonnegative(s: string)
+  lemma StringToIntNonnegative(s: string)
     requires IsStringInt(s)
     requires s[0] != '-'
     decreases |s|
-    ensures 0 <= stringToInt(s)
-    ensures s != "0" ==> 0 < stringToInt(s)
-    ensures |s| > 1 ==> 10 <= stringToInt(s)
+    ensures 0 <= StringToInt(s)
+    ensures s != "0" ==> 0 < StringToInt(s)
+    ensures |s| > 1 ==> 10 <= StringToInt(s)
   {
     if |s| == 0 {
 
     } else if |s| == 1 {
-      reveal digitToInt(), stringToInt(), IsStringInt();
+      reveal DigitToInt(), StringToInt(), IsStringInt();
       match s[0]
       case '0' => case '1' => case '2' => case '3' => case '4' =>
       case '5' => case '6' => case '7' => case '8' => case '9' =>
@@ -341,66 +371,67 @@ abstract module ExampleParsersTheorems refines Std.Parsers.Core {
     } else if s[0] == '-' {
     } else {
       assert !(|s|  == 0 || |s| == 1 || s[0] == '-');
-      reveal stringToInt();
-      assert stringToInt(s) == stringToInt(s[0..|s|-1])*10 + stringToInt(s[|s|-1..|s|]);
+      reveal StringToInt();
+      assert StringToInt(s) == StringToInt(s[0..|s|-1])*10 + StringToInt(s[|s|-1..|s|]);
       assert IsStringInt(s[0..|s|-1]) by {
         reveal IsStringInt();
       }
-      stringToIntNonnegative(s[..|s|-1]);
+      StringToIntNonnegative(s[..|s|-1]);
       var tail := s[|s|-1..|s|];
       assert IsStringInt(tail) && tail[0] != '-' by {
         reveal IsStringInt();
       }
-      stringToIntNonnegative(tail);
+      StringToIntNonnegative(tail);
       reveal IsStringInt();
-      assert |s| > 1 ==> 10 <= stringToInt(s);
+      assert |s| > 1 ==> 10 <= StringToInt(s);
     }
   }
 
-  lemma stringToIntThenIntToStringIdem(s: string)
+  @IsolateAssertions
+  lemma StringToIntThenIntToStringIdem(s: string)
     requires IsStringInt(s)
     decreases |s|
-    ensures s[0] != '-' ==> 0 <= stringToInt(s)
-    ensures |s| == 1 ==> 0 <= stringToInt(s) <= 9
-    ensures intToString(stringToInt(s)) == s
+    ensures s[0] != '-' ==> 0 <= StringToInt(s)
+    ensures |s| == 1 ==> 0 <= StringToInt(s) <= 9
+    ensures IntToString(StringToInt(s)) == s
   {
     assert |s| > 0;
     if 1 <= |s| && s[0] == '-' {
-      reveal intToString(), stringToInt(), IsStringInt();
+      reveal IntToString(), StringToInt(), IsStringInt();
       assert forall i | 1 <= i < |s| :: s[i] in "0123456789";
       calc {
-        intToString(stringToInt(s));
-        intToString(0 - stringToInt(s[1..]));
+        IntToString(StringToInt(s));
+        IntToString(0 - StringToInt(s[1..]));
       }
     } else if |s| == 1 {
-      reveal intToString(), stringToInt(), IsStringInt(), digitToInt();
+      reveal IntToString(), StringToInt(), IsStringInt(), DigitToInt();
       calc {
-        intToString(stringToInt(s));
+        IntToString(StringToInt(s));
         s;
       }
     } else {
-      var n := stringToInt(s);
-      stringToIntNonnegative(s);
+      var n := StringToInt(s);
+      StringToIntNonnegative(s);
       var init := s[..|s|-1];
       var last := s[|s|-1..|s|];
-      var q := stringToInt(init);
-      var r := stringToInt(last);
+      var q := StringToInt(init);
+      var r := StringToInt(last);
       assert IsStringInt(init) by { reveal IsStringInt(); }
       assert IsStringInt(last) by { reveal IsStringInt(); }
-      stringToIntThenIntToStringIdem(init);
-      stringToIntThenIntToStringIdem(last);
-      assert stringToInt(s) ==
-             stringToInt(s[0..|s|-1])*10 + stringToInt(s[|s|-1..|s|]) by {
-        reveal stringToInt();
+      StringToIntThenIntToStringIdem(init);
+      StringToIntThenIntToStringIdem(last);
+      assert StringToInt(s) ==
+             StringToInt(s[0..|s|-1])*10 + StringToInt(s[|s|-1..|s|]) by {
+        reveal StringToInt();
       }
       assert n == q * 10 + r;
       calc {
-        intToString(n);
-        { reveal intToString();
+        IntToString(n);
+        { reveal IntToString();
           assert !(n < 0);
           assert n != 0;
         }
-        intToString(n / 10) + intToString(n % 10);
+        IntToString(n / 10) + IntToString(n % 10);
         s;
       }
     }

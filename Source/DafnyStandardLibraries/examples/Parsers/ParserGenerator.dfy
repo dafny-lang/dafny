@@ -3,9 +3,8 @@
 // and we parse the string using this parser.
 // Possible next step: Compile this parser and prove it does the same.
 module ExampleParsers.ParserGenerator {
-  import opened Std.Parsers.Tests.StringBuilders
-
-  type Option<A> = StringBuilders.P.Option<A>
+  import opened Std.Parsers.StringBuilders
+  import opened Std.Wrappers
 
   function ToBool<T>(): T -> bool {
     t => true
@@ -29,7 +28,7 @@ module ExampleParsers.ParserGenerator {
       case Const(s) => S(s).M(ToBool())
       case And(left, right) => left.ToParser().e_I(right.ToParser()).M(ToBool())
       case Or(left, right) => O([left.ToParser().??(), right.ToParser()]).M(ToBool())
-      case Repeat(x) => x.ToParser().??().ZeroOrMore().M(ToBool())
+      case Repeat(x) => x.ToParser().??().Rep().M(ToBool())
     }
     function ToString(): string {
       match this
@@ -51,7 +50,7 @@ module ExampleParsers.ParserGenerator {
           RecMapDef(
             0, (c: RecMapSel<ParserSpec>) =>
               O([
-                  S("(").e_I(c("or")).I_e(S(")")).Bind(
+                  S("(").e_I(c("or")).I_e(S(")")).Then(
                     (atom: ParserSpec) =>
                       S("*").?().M((star: Option<string>) =>
                                      if star.None? then atom else Repeat(atom))
@@ -70,11 +69,11 @@ module ExampleParsers.ParserGenerator {
 
   method {:test} TestParser() {
     var program := "abc((de|f((g))*))ml";
-    var parser := parseSpec.apply(program);
-    expect parser.Success?
+    var parser := parseSpec.Apply(program);
+    expect parser.ParseSuccess?
            && parser.result.ToString() == "abc(de|f(g)*)ml";
     var underlying := parser.result.ToParser();
     program := "abcdeml";
-    expect underlying.apply(program) == P.Success(true, "");
+    expect underlying.Apply(program) == ParseResult.ParseSuccess(true, ToInputEnd(program));
   }
 }

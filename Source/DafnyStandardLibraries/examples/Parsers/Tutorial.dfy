@@ -12,11 +12,11 @@ module ExampleParsers.Tutorial {
               [result]
           ));
 
-    expect p("abc,d,efg") == ParseResult.Success(["abc","d","efg"], "");
+    expect p(ToInput("abc,d,efg")) == ParseResult.ParseSuccess(["abc","d","efg"], ToInput(""));
     var source := "abc,d,,";
-    expect p(source)
-        == ParseResult.Failure(Recoverable, FailureData("expected a non-comma", ",", Option.None));
-    var failureMessage := FailureToString(source, p(source));
+    expect p(ToInput(source))
+        == ParseResult.ParseFailure(Recoverable, FailureData("expected a non-comma", A.Input(source, |source| - 1, |source|), Option.None));
+    var failureMessage := FailureToString(source, p(ToInput(source)));
     expect failureMessage
         == "Error:"               + "\n" +
            "1: abc,d,,"           + "\n" +
@@ -42,18 +42,18 @@ module ExampleParsers.Tutorial {
       Concat(row, ConcatR(sep, Concat(row, ConcatR(sep, row)))),
       flatten<(string, string, string)>())
       ;
-    var input := "O|X| \n-+-+-\nX|O| \n-+-+-\nP| |O";
+    var input := ToInput("O|X| \n-+-+-\nX|O| \n-+-+-\nP| |O");
     // 012345 678901 234567 890123 45678
     var r := grid(input);
     expect r.IsFailure();
-    expect |input| - |r.data.remaining| == 24;
+    expect A.Length(input) - A.Length(r.data.remaining) == 24;
     expect r.data.message == "expected 'O'";
     expect r.data.next.Some?;
     expect r.data.next.value.message == "expected 'X'";
     expect r.data.next.value.next.Some?;
     expect r.data.next.value.next.value.message == "expected ' '";
     expect r.data.next.value.next.value.next.None?;
-    var failureMessage := FailureToString(input, r);
+    var failureMessage := FailureToString(input.data, r);
     expect failureMessage
         == "Error:"           + "\n" +
            "5: P| |O"         + "\n" +
@@ -69,15 +69,16 @@ module ExampleParsers.TestTutorialParsersBuilders {
 
   method {:test} TestSplit1() {
     var nonComma: B<string> :=
-      CharTest((c: char) => c != ',', "non-comma").OneOrMore();
+      CharTest((c: char) => c != ',', "non-comma").Rep1();
     var p :=
-      nonComma.Bind(
+      nonComma.Then(
         (result: string) =>
-          S(",").e_I(nonComma).Rep([result],
-                                   (acc: seq<string>, elem: string) => acc + [elem]
+          S(",").e_I(nonComma).RepFold(
+            [result],
+            (acc: seq<string>, elem: string) => acc + [elem]
           ));
-
-    expect p.apply("abc,d,efg") == P.ParseResult.Success(["abc","d","efg"], "");
+    var source := "abc,d,efg";
+    expect p.Apply(source) == ParseResult.ParseSuccess(["abc","d","efg"], ToInputEnd(source));
   }
 
   method {:test} TestTicTacToe() {
@@ -87,7 +88,8 @@ module ExampleParsers.TestTutorialParsersBuilders {
     var sep := S("\n-+-+-\n");
     var grid := row.I_e(sep).I_I(row).I_e(sep).I_I(row);
     var input := "O|X| \n-+-+-\nX|O| \n-+-+-\nP| |O";
-    var r := grid.apply(input);
+    var r := grid.Apply(input);
+    expect r.ParseFailure?;
     var failureMessage := P.FailureToString(input, r);
     expect failureMessage
         == "Error:"           + "\n" +

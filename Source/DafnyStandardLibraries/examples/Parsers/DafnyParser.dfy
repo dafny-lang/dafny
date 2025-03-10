@@ -40,53 +40,54 @@ module ExampleParsers.DafnyParser {
   const stringLit :=
     S("\"").e_I(Except("\"")).I_e(S("\""))
 
-  /*const parserImport := S("import").e_I(WS()).e_I(
-      S("opened").e_I(WS()).Maybe()).I_I(stringLit).M(
+  /*const parserImport := S("import").e_I(WS).e_I(
+      S("opened").e_I(WS).Maybe()).I_I(stringLit).M(
         (s: (Option<string>, string)) => Import(s.0.Some?, s.1));*/
-  const parseInclude := WS().e_I(S("include")).??().e_I(WS()).e_I(stringLit)
+  const parseInclude := WS.e_I(S("include")).??().e_I(WS).e_I(stringLit)
 
-  const parseIdentifier := CharTest((c: char) => c in "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ_?$", "Identifier character")
-                           .OneOrMore()
+  const parseIdentifier :=
+    CharTest((c: char) => c in "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ_?$", "Identifier character")
+    .Rep1()
 
   const parseType: B<Type> :=
     Rec<Type>(
       (rec: B<Type>) =>
-        parseIdentifier.Bind(
+        parseIdentifier.Then(
           (id: string) =>
             var init := TypeName(id);
-            O([WS().e_I(S("<")).??().e_I(
-                 rec.Bind((t: Type) =>
-                            WS().e_I(S(",")).??().e_I(rec).ZeroOrMore()
-                 ).I_e(WS().I_e(S(">"))).M((types: seq<Type>) =>
-                                             ApplyType(TypeName(id), types)
+            O([WS.e_I(S("<")).??().e_I(
+                 rec.Then((t: Type) =>
+                            WS.e_I(S(",")).??().e_I(rec).Rep()
+                 ).I_e(WS.I_e(S(">"))).M((types: seq<Type>) =>
+                                           ApplyType(TypeName(id), types)
                  )),
-               WS().e_I(S(".")).??().e_I(rec).M(
+               WS.e_I(S(".")).??().e_I(rec).M(
                  (tpe: Type) =>
                    tpe.applyPrefix(id)
                ),
-               Ok(init)
+               SucceedWith(init)
               ])
         ))
 
-  const parseConstructor: B<Constructor> := Fail("parseConstructor not implemented yet")
+  const parseConstructor: B<Constructor> := FailWith("parseConstructor not implemented yet")
 
   const parseDeclaration: B<Declaration> :=
     Rec(
       (declParser: B<Declaration>) =>
         O([
-            WS().e_I(S("module")).??().e_I(WS()).e_I(parseType).I_e(WS()).I_e(S("{")).
-            I_I(declParser.ZeroOrMore()).I_e(WS()).I_e(S("}")).M((r: (Type, seq<Declaration>)) =>
-                                                                   Module(r.0, r.1)),
-            WS().e_I(S("import")).??().e_I(WS()).e_I(S("opened").e_I(WS()).?()).I_I(parseType).M(
+            WS.e_I(S("module")).??().e_I(WS).e_I(parseType).I_e(WS).I_e(S("{")).
+            I_I(declParser.Rep()).I_e(WS).I_e(S("}")).M((r: (Type, seq<Declaration>)) =>
+                                                          Module(r.0, r.1)),
+            WS.e_I(S("import")).??().e_I(WS).e_I(S("opened").e_I(WS).?()).I_I(parseType).M(
               (s: (Option<string>, Type)) => Import(s.0.Some?, s.1)),
-            WS().e_I(S("datatype")).??().e_I(WS()).e_I(parseType).I_e(WS().e_I(S("="))).I_I(
-              parseConstructor.OneOrMore()).M((r: (Type, seq<Constructor>)) =>
-                                              Datatype(r.0, r.1)
+            WS.e_I(S("datatype")).??().e_I(WS).e_I(parseType).I_e(WS.e_I(S("="))).I_I(
+              parseConstructor.Rep1()).M((r: (Type, seq<Constructor>)) =>
+                                         Datatype(r.0, r.1)
             )
           ]))
 
   const parseProgram :=
-    parseInclude.ZeroOrMore().I_I(parseDeclaration.ZeroOrMore()).M(
+    parseInclude.Rep().I_I(parseDeclaration.Rep()).M(
       (idecls: (seq<string>, seq<Declaration>)) =>
         Program(idecls.0, idecls.1))
 
@@ -102,10 +103,15 @@ module Test {
   }
 }
 ";
-    expect parseProgram.apply(program)
-        == P.Success(
+    expect Apply(parseProgram, program)
+        == ParseResult.ParseSuccess(
              Program.Program(
                ["file"],
-               [Declaration.Import(true, Type.TypeName("test")), Declaration.Module(Type.TypeName("Test"), [Declaration.Module(Type.TypeName("Inner"), [])])]), "\n");
+               [Declaration.Import(true, Type.TypeName("test")),
+                Declaration.Module(
+                  Type.TypeName("Test"),
+                  [
+                    Declaration.Module(Type.TypeName("Inner"), [])])]),
+             ToInputEnd(program, 1));
   }
 }

@@ -1,5 +1,5 @@
 module ExampleParsers.PolynomialParser {
-  import opened P = Std.Parsers.Tests.StringBuilders.P
+  import opened P = Std.Parsers.StringBuilders.P
   // Parser combinators style
   const parser: Parser<Expr>
     := ConcatL(
@@ -85,14 +85,14 @@ module ExampleParsers.PolynomialParser {
 
     function ToString(): string {
       match this
-      case Number(x) => P.intToString(x)
+      case Number(x) => P.IntToString(x)
       case Binary(op, left, right) =>
         "("
         + left.ToString() + op + right.ToString()
         + ")"
       case Unknown(power) =>
         if power == 1 then "x" else if power == 0 then "1" else
-        "x^" + P.intToString(power)
+        "x^" + P.IntToString(power)
     }
   }
 
@@ -103,8 +103,8 @@ module ExampleParsers.PolynomialParser {
     }
     for i := 1 to |args| {
       var input := args[i];
-      match parser(input) {
-        case Success(result, remaining) =>
+      match Apply(parser, input) {
+        case ParseSuccess(result, remaining) =>
           print "Polynomial:", result.ToString(), "\n";
           match result.Simplify() {
             case Success(x) =>
@@ -113,8 +113,7 @@ module ExampleParsers.PolynomialParser {
               print message;
           }
         case failure =>
-          var failureMsg := FailureToString(input, failure);
-          print failureMsg;
+          print FailureToString(input, failure);
       }
       print "\n";
     }
