@@ -101,7 +101,7 @@ module ActionsExamples {
     while true
       invariant producer.Valid()
       invariant fresh(producer.Repr)
-      decreases producer.remaining.Ordinal()
+      decreases producer.Remaining()
     {
       var next := producer.Next();
       if next.None? {
