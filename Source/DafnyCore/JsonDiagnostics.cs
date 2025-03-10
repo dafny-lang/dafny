@@ -26,7 +26,7 @@ record DiagnosticMessageData(MessageSource source, ErrorLevel level, Boogie.ITok
     };
     var origin = BoogieGenerator.ToDafnyToken(true, tok);
     if (origin.IncludesRange) {
-      range["end"] = SerializePosition(origin.EndToken);
+      range["end"] = SerializePosition(origin.EndToken!);
     }
     return range;
   }
@@ -34,7 +34,7 @@ record DiagnosticMessageData(MessageSource source, ErrorLevel level, Boogie.ITok
   private static JsonObject SerializeToken(Boogie.IToken tok) {
     return new JsonObject {
       ["filename"] = tok.filename,
-      ["uri"] = ((IOrigin)tok).Uri.AbsoluteUri,
+      ["uri"] = ((IOrigin)tok).Uri!.AbsoluteUri,
       ["range"] = SerializeRange(tok)
     };
   }

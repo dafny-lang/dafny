@@ -59,7 +59,7 @@ public abstract class Node : INode {
     get { return endToken ??= Origin.EndToken ?? PreResolveChildren.Last().EndToken; }
   }
 
-  public Token Center => Origin?.Center;
+  public Token Center => Origin.Center;
 
   /// <summary>
   /// These children should be such that they contain information produced by resolution such as inferred types
@@ -107,7 +107,7 @@ public abstract class Node : INode {
         // We need to filter these out to prevent an infinite loop
         Where(c => c.StartToken.pos <= c.EndToken.pos).
         GroupBy(child => child.StartToken.pos).
-        ToDictionary(g => g.Key, g => g.MaxBy(child => child.EndToken.pos).EndToken
+        ToDictionary(g => g.Key, g => g.MaxBy(child => child.EndToken.pos)!.EndToken
       );
 
       var result = new List<Token>();
@@ -209,7 +209,7 @@ public abstract class Node : INode {
   }
 
   // Docstring from start token is extracted only if using "/** ... */" syntax, and only the last one is considered
-  protected bool GetStartTriviaDocstring(out string trivia) {
+  protected bool GetStartTriviaDocstring(out string? trivia) {
     var matches = StartDocstringExtractor.Matches(StartToken.LeadingTrivia);
     trivia = null;
     if (matches.Count > 0) {

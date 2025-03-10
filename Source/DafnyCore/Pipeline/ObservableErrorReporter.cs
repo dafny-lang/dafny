@@ -86,7 +86,7 @@ namespace Microsoft.Dafny {
     }
 
     private Uri GetUriOrDefault(IOrigin token) {
-      return token.Filepath == null
+      return token.Uri == null
         ? entryUri
         : token.Uri;
     }

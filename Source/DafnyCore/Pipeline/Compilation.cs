@@ -415,8 +415,8 @@ public class Compilation : IDisposable {
       bool overlapsWithGroup = currentGroupRange.Intersects(currentTaskRange);
 
       if (overlapsWithGroup) {
-        if (currentTaskRange.EndToken.pos > currentGroupRange.EndToken.pos) {
-          currentGroupRange = new SourceOrigin(currentGroupRange.StartToken, currentTaskRange.EndToken, currentGroupRange.Center);
+        if (currentTaskRange.EndToken!.pos > currentGroupRange.EndToken!.pos) {
+          currentGroupRange = new SourceOrigin(currentGroupRange.StartToken!, currentTaskRange.EndToken, currentGroupRange.Center);
         }
         currentGroup.Add(currentTask);
       } else {

@@ -9,7 +9,7 @@ public abstract class NodeWithOrigin : Node {
   }
 
   [SyntaxConstructor]
-  protected NodeWithOrigin(IOrigin? origin) {
+  protected NodeWithOrigin(IOrigin origin) {
     this.origin = origin;
   }
 

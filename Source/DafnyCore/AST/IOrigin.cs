@@ -8,8 +8,6 @@ public interface IOrigin : Boogie.IToken {
 
   bool IsInherited(ModuleDefinition m);
 
-  int Length => EndToken.pos - StartToken.pos;
-
   bool InclusiveEnd { get; }
   bool IncludesRange { get; }
   /*
@@ -20,13 +18,13 @@ public interface IOrigin : Boogie.IToken {
   string val { get; set; }
   bool IsValid { get; }*/
 
-  string Boogie.IToken.filename {
+  string? Boogie.IToken.filename {
     get => Uri == null ? null : Path.GetFileName(Uri.LocalPath);
     set => throw new NotSupportedException();
   }
 
-  public string ActualFilename => Uri.LocalPath;
-  string Filepath => Uri?.LocalPath;
+  public string? ActualFilename => Uri?.LocalPath;
+  string Filepath => Uri.LocalPath;
 
   Uri Uri { get; }
 
