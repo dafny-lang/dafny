@@ -15,6 +15,9 @@ public class Program : NodeWithoutOrigin {
     Contract.Invariant(DefaultModule != null);
   }
 
+  public override Token StartToken => Token.NoToken;
+  public override Token EndToken => Token.NoToken;
+  
   public bool HasParseErrors { get; set; }
 
   public string FullName { get; }
