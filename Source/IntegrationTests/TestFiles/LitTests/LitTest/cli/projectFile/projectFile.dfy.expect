@@ -41,3 +41,5 @@ Compilation failed because warnings were found and --allow-warnings is false
 15
 The file input.dfy needs to be formatted
 Error: 1 file needs formatting.
+16
+dfyconfig.toml(1,0): Error: Dafny project files do not have the property includdddes
