@@ -34,6 +34,19 @@ public abstract class NodeWithoutOrigin : Node {
   private IOrigin? origin;
 
   public override IOrigin Origin => origin ??= new SourceOrigin(this.StartToken, this.EndToken);
+
+  private Token? startToken;
+  private Token? endToken;
+
+  public override Token StartToken {
+    get {
+      return startToken ??= PreResolveChildren.First().StartToken;
+    }
+  }
+
+  public override Token EndToken {
+    get { return endToken ??= PreResolveChildren.Last().EndToken; }
+  }
 }
 
 public abstract class Node : INode {
@@ -46,18 +59,10 @@ public abstract class Node : INode {
 
   public abstract IOrigin Origin { get; }
 
-  private Token? startToken;
-  private Token? endToken;
 
-  public Token StartToken {
-    get {
-      return startToken ??= Origin.StartToken ?? PreResolveChildren.First().StartToken;
-    }
-  }
+  public abstract Token StartToken { get; }
 
-  public Token EndToken {
-    get { return endToken ??= Origin.EndToken ?? PreResolveChildren.Last().EndToken; }
-  }
+  public abstract Token EndToken { get; }
 
   public Token Center => Origin.Center;
 

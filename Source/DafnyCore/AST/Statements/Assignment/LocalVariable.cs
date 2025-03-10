@@ -129,7 +129,7 @@ public class LocalVariable : NodeWithOrigin, IVariable, IAttributeBearingDeclara
   }
 
   public IOrigin NavigationToken => StartToken;
-  
+
   public bool IsTypeExplicit => SyntacticType != null;
   public override IEnumerable<INode> Children =>
     Attributes.AsEnumerable().
