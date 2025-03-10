@@ -11,8 +11,8 @@ public abstract class NodeWithOrigin : Node {
   }
 
   [SyntaxConstructor]
-  protected NodeWithOrigin(IOrigin origin) {
-    this.origin = origin;
+  protected NodeWithOrigin(IOrigin? origin) {
+    this.origin = origin ?? Token.NoToken;
   }
 
   public void SetOrigin(IOrigin newOrigin) {
