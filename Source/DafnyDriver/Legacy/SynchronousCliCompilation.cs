@@ -96,9 +96,11 @@ namespace Microsoft.Dafny {
       var outputWriter = options.OutputWriter;
 
       var consoleErrorReporter = new ConsoleErrorReporter(options);
-      options.DafnyProject.Errors.CopyDiagnostics(consoleErrorReporter);
-      if (options.DafnyProject.Errors.HasErrors) {
-        return (ExitValue.PREPROCESSING_ERROR, [], []);
+      if (options.DafnyProject != null) {
+        options.DafnyProject.Errors.CopyDiagnostics(consoleErrorReporter);
+        if (options.DafnyProject.Errors.HasErrors) {
+          return (ExitValue.PREPROCESSING_ERROR, [], []);
+        }
       }
 
       if (options.UseStdin) {
