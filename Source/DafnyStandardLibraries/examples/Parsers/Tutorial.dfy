@@ -11,8 +11,10 @@ module ExampleParsers.Tutorial {
               (acc, elem) => acc + [elem],
               [result]
           ));
-
-    expect p(ToInput("abc,d,efg")) == ParseResult.ParseSuccess(["abc","d","efg"], ToInput(""));
+    var input := "abc,d,efg";
+    var result := p(ToInput(input));
+    expect result.ParseSuccess?;
+    expect result.result == ["abc","d","efg"];
     var source := "abc,d,,";
     expect p(ToInput(source))
         == ParseResult.ParseFailure(Recoverable, FailureData("expected a non-comma", A.Input(source, |source| - 1, |source|), Option.None));

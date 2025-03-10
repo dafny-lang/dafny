@@ -47,15 +47,17 @@ module ExampleParsers.JSONParser {
         else Number(ToDecimalFrac(s.0, s.1.value, 0)))
 
   const arrayParser: B<JSON> -> B<JSON> := (rec: B<JSON>) =>
-    WS.e_I(S("[")).??().e_I(
-      WS.e_I(rec).RepSep(WS.e_I(S(","))).M((s: seq<JSON>) => Array(s))
-      .I_e(WS).I_e(S("]")))
+    WS.e_I(S("[")).??().e_I(WS).e_I(
+      rec.I_e(WS).RepSep(S(",").I_e(WS)))
+    .I_e(S("]"))
+    .M((s: seq<JSON>) => Array(s))
 
   const objectParser: B<JSON> -> B<JSON> := (rec: B<JSON>) =>
-    WS.e_I(S("{")).??().e_I(
-      WS.e_I(stringParser).I_I(WS.e_I(S(":").e_I(WS).e_I(rec)))
-      .RepSep(WS.e_I(S(","))).M((s: seq<(string, JSON)>) => Object(s))
-      .I_e(WS).I_e(S("}")))
+    WS.e_I(S("{")).??().e_I(WS).e_I(
+      stringParser.I_I(WS.e_I(S(":").e_I(WS).e_I(rec))).I_e(WS)
+      .RepSep(S(",").I_e(WS)))
+    .I_e(S("}"))
+    .M((s: seq<(string, JSON)>) => Object(s))
 
   const parseProgram: B<JSON> :=
     Rec((rec: B<JSON>) =>
@@ -68,7 +70,7 @@ module ExampleParsers.JSONParser {
               objectParser(rec)
             ])).End()
 
-  method {:test} TestParser() {
+  method {:test} TestParserSuccess() {
     var source := @"{""a"": null, ""b"": [1.42, 25.150]}";
     expect parseProgram.Apply(source)
         == ParseResult.ParseSuccess(
@@ -78,12 +80,35 @@ module ExampleParsers.JSONParser {
                   JSON.Number(Decimal.Decimal(25150, -3))]))]),
              ToInputEnd(source));
     source := "[  ]";
+    var p := parseProgram.Apply(source);
     expect parseProgram.Apply(source)
-        == ParseResult.ParseSuccess(JSON.Array([]),
-                                    ToInputEnd(source));
+        == ParseResult.ParseSuccess(JSON.Array([]), ToInputEnd(source));
     source := @"[true, false, null]";
     expect parseProgram.Apply(source)
-        == ParseResult.ParseSuccess(JSON.Array([JSON.Bool(true), JSON.Bool(false), JSON.Null]),
-                                    ToInputEnd(source));
+        == ParseResult.ParseSuccess(JSON.Array([JSON.Bool(true), JSON.Bool(false), JSON.Null]), ToInputEnd(source));
+  }
+  method {:test} TestParserFailure() {
+    var source := @"[3, [1.42, 25.1[]]}";
+    var result := parseProgram.Apply(source);
+    expect result.ParseFailure?;
+    expect FailureToString(source, result)
+        == @"Error:"                 + "\n" +
+           @"1: [3, [1.42, 25.1[]]}" + "\n" +
+           @"                  ^"    + "\n" +
+           @"expected ']'"           + "\n";
+    source := @"{""a"":"+"\n\n\n\n\n\n\n\n\n\n\n\n"+
+    @"  k12}";
+    result := parseProgram.Apply(source);
+    expect result.ParseFailure?;
+    expect FailureToString(source, result)
+        == @"Error:"               + "\n" +
+           @"13:   k12}"           + "\n" +
+           @"      ^"              + "\n" +
+           @"expected 'null', or"  + "\n" +
+           @"expected 'true', or"  + "\n" +
+           @"expected '""', or"    + "\n" +
+           @"expected a digit, or" + "\n" +
+           @"expected '[', or"     + "\n" +
+           @"expected '{'"         + "\n";
   }
 }

@@ -75,21 +75,21 @@ module ExampleParsers.DafnyParser {
     Rec(
       (declParser: B<Declaration>) =>
         O([
-            WS.e_I(S("module")).??().e_I(WS).e_I(parseType).I_e(WS).I_e(S("{")).
-            I_I(declParser.Rep()).I_e(WS).I_e(S("}")).M((r: (Type, seq<Declaration>)) =>
-                                                          Module(r.0, r.1)),
-            WS.e_I(S("import")).??().e_I(WS).e_I(S("opened").e_I(WS).?()).I_I(parseType).M(
+            S("module").e_I(WS).e_I(parseType).I_e(WS).I_e(S("{")).I_e(WS).
+            I_I(declParser.Rep()).I_e(WS).I_e(S("}")).I_e(WS)
+            .M((r: (Type, seq<Declaration>)) =>  Module(r.0, r.1)),
+            S("import").e_I(WS).e_I(S("opened").e_I(WS).?()).I_I(parseType).M(
               (s: (Option<string>, Type)) => Import(s.0.Some?, s.1)),
-            WS.e_I(S("datatype")).??().e_I(WS).e_I(parseType).I_e(WS.e_I(S("="))).I_I(
+            S("datatype").e_I(WS).e_I(parseType).I_e(WS.e_I(S("="))).I_I(
               parseConstructor.Rep1()).M((r: (Type, seq<Constructor>)) =>
                                          Datatype(r.0, r.1)
             )
           ]))
 
   const parseProgram :=
-    parseInclude.Rep().I_I(parseDeclaration.Rep()).M(
+    parseInclude.Rep().I_e(WS).I_I(parseDeclaration.RepSep(WS)).M(
       (idecls: (seq<string>, seq<Declaration>)) =>
-        Program(idecls.0, idecls.1))
+        Program(idecls.0, idecls.1)).I_e(WS).I_e(O([EOS, parseDeclaration.M(result => ())]))
 
   @IsolateAssertions
   method {:test} TestParser() {
@@ -105,7 +105,8 @@ module Test {
 }
 ";
     assert 0 <= 1 && 1 <= |program|;
-    var inputFinal := ToInputEnd(program, 1); // Inlining this fails
+    var inputFinal := ToInputEnd(program); // Inlining this fails
+    var result := Apply(parseProgram, program);
     expect Apply(parseProgram, program)
         == ParseResult.ParseSuccess(
              Program.Program(
@@ -116,5 +117,19 @@ module Test {
                   [
                     Declaration.Module(Type.TypeName("Inner"), [])])]),
              inputFinal);
+    program := @"
+class A {
+}
+";
+    result := Apply(parseProgram, program);
+    expect result.IsFailure();
+    expect FailureToString(program, result)
+        == @"Error:"      + "\n" +
+           @"2: class A {" + "\n" +
+           @"   ^"         + "\n" +
+           @"expected end of string, or" + "\n" +
+           @"expected 'module', or" + "\n" +
+           @"expected 'import', or" + "\n" +
+           @"expected 'datatype'" + "\n";
   }
 }
