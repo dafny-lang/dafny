@@ -1,3 +1,4 @@
+#nullable enable
 using System;
 using System.IO;
 
@@ -35,8 +36,8 @@ public class Token : IOrigin {
   public string ActualFilename => Filepath;
   public string Filepath => Uri?.LocalPath;
   public Uri Uri { get; set; }
-  public Token StartToken => this;
-  public Token EndToken => this;
+  public Token? StartToken => null;
+  public Token? EndToken => null;
 
   public Token Center => this;
 

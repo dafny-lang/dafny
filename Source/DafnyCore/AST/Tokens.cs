@@ -5,6 +5,45 @@ namespace Microsoft.Dafny;
 
 public static class TokenExtensions {
   
+  public static DafnyRange ToDafnyRange(this INode node, bool includeTrailingWhitespace = false) {
+    var startLine = node.StartToken.line - 1;
+    var startColumn = node.StartToken.col - 1;
+    var endLine = node.EndToken.line - 1;
+    int whitespaceOffset = 0;
+    if (includeTrailingWhitespace) {
+      string trivia = node.EndToken.TrailingTrivia;
+      // Don't want to remove newlines or comments -- just spaces and tabs
+      while (whitespaceOffset < trivia.Length && (trivia[whitespaceOffset] == ' ' || trivia[whitespaceOffset] == '\t')) {
+        whitespaceOffset++;
+      }
+    }
+
+    var inclusiveEnd = true; // node.InclusiveEnd
+    var endColumn = node.EndToken.col + (inclusiveEnd ? node.EndToken.val.Length : 0) + whitespaceOffset - 1;
+    return new DafnyRange(
+      new DafnyPosition(startLine, startColumn),
+      new DafnyPosition(endLine, endColumn));
+  }
+  
+  public static DafnyRange ToDafnyRange(this Token origin, bool includeTrailingWhitespace = false) {
+    var startLine = origin.line - 1;
+    var startColumn = origin.col - 1;
+    var endLine = origin.line - 1;
+    int whitespaceOffset = 0;
+    if (includeTrailingWhitespace) {
+      string trivia = origin.TrailingTrivia;
+      // Don't want to remove newlines or comments -- just spaces and tabs
+      while (whitespaceOffset < trivia.Length && (trivia[whitespaceOffset] == ' ' || trivia[whitespaceOffset] == '\t')) {
+        whitespaceOffset++;
+      }
+    }
+
+    var endColumn = origin.col + (origin.InclusiveEnd ? origin.EndToken.val.Length : 0) + whitespaceOffset - 1;
+    return new DafnyRange(
+      new DafnyPosition(startLine, startColumn),
+      new DafnyPosition(endLine, endColumn));
+  }
+  
   public static DafnyRange ToDafnyRange(this IOrigin origin, bool includeTrailingWhitespace = false) {
     var startLine = origin.StartToken.line - 1;
     var startColumn = origin.StartToken.col - 1;

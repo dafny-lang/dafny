@@ -157,7 +157,7 @@ public static class NodeExtensions {
 
     // Example of a fillerNode is the default class, although we could give it the same origin as the module it is in.
     var fillerNode = !ReferenceEquals(node.Origin, Token.NoToken);
-    if (fillerNode && !node.Origin.ToDafnyRange().Contains(position)) {
+    if (fillerNode && !node.ToDafnyRange().Contains(position)) {
       return null;
     }
 
