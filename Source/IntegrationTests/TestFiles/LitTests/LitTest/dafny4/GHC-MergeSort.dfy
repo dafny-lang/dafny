@@ -13,7 +13,7 @@
 
 datatype List<T> = Nil | Cons(head: T, tail: List)
 
-ghost function length(xs: List): nat
+ghost function {:fuel 2} length(xs: List): nat
 {
   match xs
   case Nil => 0
@@ -329,9 +329,12 @@ lemma sorted_sequences(xs: List<G>)
       match ys {
         case Nil =>
         case Cons(b, zs) =>
+          var xs := Cons(a, Nil);
+          assert {:fuel multiset_of<G>,2} multiset_of(xs) == multiset{a};
           if !Below(a, b) {
-            sorted_descending(b, Cons(a, Nil), zs);
+            sorted_descending(b, xs, zs);
           } else {
+            assert {:fuel reverse<G>,2} sorted(reverse(xs, Nil));
             sorted_ascending(b, Cons(a, Nil), zs);
           }
       }
@@ -487,7 +490,7 @@ lemma stable_sequences(g: G, xs: List<G>)
           }
         case Cons(b, zs) =>
           if !Below(a, b) {
-            calc {
+            calc {:fuel append<G>,2}   {
               filter(g, flatten(sequences(xs)));
               filter(g, flatten(descending(b, Cons(a, Nil), zs)));
               { assert sorted(Cons(a, Nil)); stable_descending(g, b, Cons(a, Nil), zs); }
@@ -499,7 +502,7 @@ lemma stable_sequences(g: G, xs: List<G>)
               filter(g, Cons(a, Cons(b, zs)));
             }
           } else {
-            calc {
+            calc {:fuel append<G>,2}  {
               filter(g, flatten(sequences(xs)));
               filter(g, flatten(ascending(b, Cons(a, Nil), zs)));
               { stable_ascending(g, b, Cons(a, Nil), zs); }
@@ -584,7 +587,7 @@ lemma stable_mergeAll(g: G, x: List<List<G>>)
   decreases length(x)
 {
   if x.tail == Nil {
-    calc {
+    calc {:fuel flatten<G>,2} {
       flatten(x);
       append(x.head, Nil);
       { append_Nil(x.head); }
@@ -667,20 +670,22 @@ lemma filter_append(g: G, xs: List<G>, ys: List<G>)
 {
 }
 
-lemma filter_append_notBelow(g: G, b: G, xs: List<G>, ys: List<G>)
+lemma {:fuel filter,2}  filter_append_notBelow(g: G, b: G, xs: List<G>, ys: List<G>)
   requires sorted(xs)
   requires xs.Cons? ==> !Below(xs.head, b)
   ensures filter(g, Cons(b, append(xs, ys))) == filter(g, append(xs, Cons(b, ys)))
 {
+
 }
 
-lemma filter_Cons_notBelow(g: G, b: G, a: G, ys: List<G>)
+lemma {:fuel filter,2} filter_Cons_notBelow(g: G, b: G, a: G, ys: List<G>)
   requires !Below(a, b)
   ensures filter(g, Cons(b, Cons(a, ys))) == filter(g, Cons(a, Cons(b, ys)))
 {
+
 }
 
-lemma filter_append_reverse(g: G, b: G, xs: List<G>, ys: List<G>)
+lemma {:fuel append<G>,2} filter_append_reverse(g: G, b: G, xs: List<G>, ys: List<G>)
   ensures filter(g, append(reverse(xs, Cons(b, Nil)), ys)) == filter(g, append(reverse(xs, Nil), Cons(b, ys)))
 {
   match xs {
@@ -704,7 +709,7 @@ lemma filter_append_reverse(g: G, b: G, xs: List<G>, ys: List<G>)
   }
 }
 
-lemma append_reverse(xs: List, ys: List)
+lemma {:fuel append<G>,2} append_reverse(xs: List, ys: List)
   ensures reverse(xs, ys) == append(reverse(xs, Nil), ys)
 {
   match xs {
