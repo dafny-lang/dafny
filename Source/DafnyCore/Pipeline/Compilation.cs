@@ -626,8 +626,9 @@ public class Compilation : IDisposable {
           break;
         }
       case VcOutcome.OutOfResource: {
+          var dafnyToken = BoogieGenerator.ToDafnyToken(true, token);
           string msg = "Verification out of resource (" + name + ")";
-          errorInfo = ErrorInformation.Create(token, msg);
+          errorInfo = ErrorInformation.Create(dafnyToken.ReportingRange.StartToken, msg);
         }
         break;
       case VcOutcome.OutOfMemory: {
