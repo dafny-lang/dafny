@@ -3433,7 +3433,7 @@ namespace Microsoft.Dafny {
       Contract.Ensures(Contract.Result<Bpl.StmtList>() != null);
 
       TrStmtList([block], builder, locals, etran, introduceScope ? block.EntireRange : null, processLabels: false);
-      return builder.Collect(block.Origin);  // TODO: would be nice to have an end-curly location for "block"
+      return builder.Collect(block.StartToken);  // TODO: would be nice to have an end-curly location for "block"
     }
 
     /// <summary>

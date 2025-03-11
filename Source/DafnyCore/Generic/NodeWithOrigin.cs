@@ -17,6 +17,7 @@ public abstract class NodeWithOrigin : Node {
 
   public void SetOrigin(IOrigin newOrigin) {
     origin = newOrigin;
+    entireRange = null;
   }
 
   public override IOrigin Origin => origin;
