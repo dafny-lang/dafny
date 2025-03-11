@@ -1,0 +1,1 @@
+Fix a case where a forall statement would cause Dafny to crash
