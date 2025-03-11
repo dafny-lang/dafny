@@ -26,9 +26,9 @@ public interface IOrigin : Boogie.IToken {
   }
 
   public string? ActualFilename => Uri?.LocalPath;
-  string? Filepath => Uri?.LocalPath;
+  string Filepath => Uri?.LocalPath!;
 
-  Uri? Uri { get; }
+  Uri Uri { get; }
 
   TokenRange? EntireRange { get; }
   TokenRange ReportingRange {
