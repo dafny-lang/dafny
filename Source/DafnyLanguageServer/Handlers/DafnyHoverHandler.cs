@@ -299,7 +299,13 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
           // however, nested postconditions should be displayed
 
           if (dafnyToken.IncludesRange && !hoveringPostcondition) {
-            var originalText = dafnyToken.ReportingRange.PrintOriginal();
+            string originalText;
+            if (dafnyToken.EntireRange != null) {
+              originalText = dafnyToken.EntireRange.PrintOriginal();
+            } else {
+              var tokenNode = ideState.Program.FindNode<Node>(dafnyToken.Uri, dafnyToken.ToDafnyPosition());
+              originalText = tokenNode.EntireRange.PrintOriginal();
+            }
             deltaInformation += "  \n" + (token == null ? couldProveOrNotPrefix : "Inside ") + "`" + originalText + "`";
           }
 

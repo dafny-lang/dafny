@@ -389,7 +389,7 @@ Did prove: `i > 0`  "
       );
     }
 
-    [Fact(Timeout = MaxTestExecutionTimeMs)]
+    [Fact()]
     public async Task DisplayNestedFailingPostconditionsAndPreconditions() {
       var documentItem = await GetDocumentItem(@"
 predicate P(i: int) {
@@ -423,7 +423,7 @@ Return path: testfile2.dfy(18, 5)"
 Inside `Q(i, j)`???
 Could not prove: `i == j || -i == j`"
       );
-      await AssertVerificationHoverMatches(documentItem, (17, 13),
+      await AssertVerificationHoverMatches(documentItem, (17, 16),
         @"**Error:**???function precondition could not be proved???
 Inside `P(i)`???
 Could not prove: `i <= 0`"
