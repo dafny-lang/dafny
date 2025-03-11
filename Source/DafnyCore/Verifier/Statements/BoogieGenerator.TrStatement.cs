@@ -222,7 +222,7 @@ public partial class BoogieGenerator {
             foreach (var lhs in s.Lhss) {
               var l = lhs.Resolved;
               if (l is IdentifierExpr x) {
-                CloneVariableAsBoundVar(x.Origin, x.Var, "$as#" + x.Name, out var bv, out var ie);
+                CloneVariableAsBoundVar(x.OriginWithEntireRange(), x.Var, "$as#" + x.Name, out var bv, out var ie);
                 bvars.Add(bv);
                 substMap.Add(x.Var, ie);
               } else {

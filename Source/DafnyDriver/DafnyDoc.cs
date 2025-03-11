@@ -579,7 +579,7 @@ class DafnyDoc {
   }
 
   public string ExpressionAsSource(Expression e) {
-    return e.Origin.PrintOriginal();
+    return e.EntireRange.PrintOriginal();
   }
 
   public Info TypeInfo(bool register, TopLevelDecl t, ModuleDefinition module, Info owner) {

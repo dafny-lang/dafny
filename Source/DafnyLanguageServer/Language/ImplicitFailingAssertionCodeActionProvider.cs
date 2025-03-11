@@ -156,7 +156,7 @@ class ImplicitFailingAssertionCodeActionProvider : DiagnosticDafnyCodeActionProv
     //     assert x != 0;
     //   }
 
-    public static INode? GetFarthestNodeBeforeWhichAssertionCanBeInserted(Node program, Range selection, out List<INode>? nodesSinceFailure, out bool needsIsolation) {
+    private static INode? GetFarthestNodeBeforeWhichAssertionCanBeInserted(Node program, Range selection, out List<INode>? nodesSinceFailure, out bool needsIsolation) {
       nodesSinceFailure = FindInnermostNodeIntersecting(program, selection);
 
       needsIsolation = false;

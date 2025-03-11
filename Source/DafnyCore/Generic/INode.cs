@@ -6,8 +6,6 @@ public interface INode {
   bool SingleFileToken { get; }
   public TokenRange EntireRange { get; }
 
-
-
   public Token StartToken => EntireRange.StartToken;
   public Token EndToken => EntireRange.EndToken;
 

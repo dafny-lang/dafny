@@ -28,14 +28,35 @@ public abstract class NodeWithOrigin : Node {
     get {
       if (entireRange == null) {
         if (Origin.EntireRange == null) {
-          if (PreResolveChildren.Any()) {
-            var start = PreResolveChildren.First().EntireRange.StartToken;
-            var end = PreResolveChildren.Last().EntireRange.EndToken;
-            entireRange = new TokenRange(start, end);
+          var start = ReportingRange.StartToken;
+          var end = ReportingRange.EndToken;
+
+          // Since the children are not ordered, we have to traverse them all
+          foreach (var child in PreResolveChildren) {
+            if (child.Origin.Filepath != origin.Filepath || child is Expression { IsImplicit: true } ||
+                child is DefaultValueExpression) {
+              // Ignore any auto-generated expressions.
+              continue;
+            }
+                
+            UpdateStartEndToken(child.StartToken);
+            UpdateStartEndToken(child.EndToken);
           }
-          else
-          {
-            entireRange = origin.ReportingRange;
+
+          entireRange = new TokenRange(start, end);
+          
+          void UpdateStartEndToken(Token newToken) {
+            if (newToken.Filepath != origin.Filepath) {
+              return;
+            }
+
+            if (newToken.pos < start.pos) {
+              start = newToken;
+            }
+
+            if (newToken.pos + newToken.val.Length > end.pos + end.val.Length) {
+              end = newToken;
+            }
           }
         } else {
           entireRange = origin.EntireRange!;
@@ -43,6 +64,8 @@ public abstract class NodeWithOrigin : Node {
       }
 
       return entireRange;
+      
+  
     }
   }
 }

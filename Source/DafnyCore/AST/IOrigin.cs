@@ -4,6 +4,10 @@ using System.IO;
 
 namespace Microsoft.Dafny;
 
+class WithRange(IOrigin wrappedOrigin, TokenRange entireRange) : OriginWrapper(wrappedOrigin) {
+  public override TokenRange EntireRange { get; } = entireRange;
+}
+
 public interface IOrigin : Boogie.IToken {
 
   bool IsInherited(ModuleDefinition m);
@@ -22,7 +26,7 @@ public interface IOrigin : Boogie.IToken {
   }
 
   public string? ActualFilename => Uri?.LocalPath;
-  string Filepath => Uri.LocalPath;
+  string Filepath => Uri?.LocalPath;
 
   Uri Uri { get; }
 

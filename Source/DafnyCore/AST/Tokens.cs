@@ -84,11 +84,6 @@ public static class TokenExtensions {
              || origin.EndToken.pos + origin.EndToken.val.Length <= other.StartToken.pos);
   }
 
-  public static string PrintOriginal(this IOrigin origin) {
-    // TODO only call on INode
-    return origin.EntireRange.PrintOriginal();
-  }
-
   public static bool IsSet(this IOrigin token) => token.Uri != null;
 
   public static string TokenToString(this IOrigin tok, DafnyOptions options) {

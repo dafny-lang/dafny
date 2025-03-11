@@ -13,7 +13,7 @@ public class IdentifierExpr : Expression, IHasReferences, ICloneable<IdentifierE
   public readonly string Name;
   [FilledInDuringResolution] public IVariable Var;
 
-  public string DafnyName => Origin.line > 0 ? Origin.PrintOriginal() : Name;
+  public string DafnyName => Origin.line > 0 ? EntireRange.PrintOriginal() : Name;
 
   [SyntaxConstructor]
   public IdentifierExpr(IOrigin origin, string name)

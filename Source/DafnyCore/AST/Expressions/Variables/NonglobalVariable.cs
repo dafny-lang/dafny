@@ -29,7 +29,7 @@ public abstract class NonglobalVariable : NodeWithOrigin, IVariable {
       return NameNode.Value;
     }
   }
-  public string DafnyName => Origin == null || Origin.line == 0 ? Name : Origin.PrintOriginal();
+  public string DafnyName => Origin == null || Origin.line == 0 ? Name : EntireRange.PrintOriginal();
   public string DisplayName =>
     LocalVariable.DisplayNameHelper(this);
 

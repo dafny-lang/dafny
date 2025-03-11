@@ -15,6 +15,10 @@ public interface IHasDocstring {
 
 public static class NodeExtensions {
 
+  
+
+  public static IOrigin OriginWithEntireRange(this INode node) => new WithRange(node.Origin, node.EntireRange);
+  
   /// <summary>
   /// // Applies plugin-defined docstring filters
   /// </summary>
