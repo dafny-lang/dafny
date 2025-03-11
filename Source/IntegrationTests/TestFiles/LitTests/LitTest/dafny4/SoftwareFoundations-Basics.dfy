@@ -284,6 +284,8 @@ lemma {:isolate_assertions} mult_lemma(m: Nat, n: Nat)
       ==  { plus_lemma(n, n, mult(plus(m', m'), n)); }
         plus(n, plus(n, mult(plus(m', m'), n)));
       ==
+        plus (n, mult(S(plus(m', m')), n));
+      ==
         mult(S(S(plus(m', m'))), n);
       ==
         mult(S(plus(S(m'), m')), n);
@@ -352,7 +354,9 @@ lemma plus_O_n (n: Nat)
 lemma plus_1_l (n: Nat)
   ensures plus(S(O), n) == S(n)
 {
+  plus_O_n(n);
 }
+
 
 lemma mult_0_l (n: Nat)
   ensures mult(O, n) == O
