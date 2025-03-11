@@ -54,6 +54,7 @@ lemma CompleteNat(n: nat, base: int) returns (digits: seq<int>)
 {
   if n < base {
     digits := [n];
+    assert  eval (digits[1..], base) == 0;
   } else {
     var d, m := n / base, n % base;
     assert base * d + m == n;
@@ -106,8 +107,10 @@ lemma Complete(n: int, lowDigit: int, base: int) returns (digits: seq<int>)
   ensures IsSkewNumber(digits, lowDigit, base) && eval(digits, base) == n
   decreases if 0 <= n then n else -n
 {
-  if lowDigit <= n < lowDigit + base{
+  if lowDigit <= n < lowDigit + base {
+
     digits := [n];
+    assert eval(digits[1..], base) == 0;
   } else if 0 < n {
     digits := Complete(n - 1, lowDigit, base);
     digits := inc(digits, lowDigit, base);
@@ -226,6 +229,8 @@ lemma LeadingZeroInsignificant(digits: seq<int>, base: int)
       eval(([d] + digits[1..]) + [0], base);
       eval(digits + [0], base);
     }
+  } else {
+    assert digits  == (digits + [0])[1..];
   }
 }
 
