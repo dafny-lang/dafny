@@ -95,6 +95,6 @@ public class TokenRange(Token startToken, Token? end) : IComparable<TokenRange>,
 
   public override int GetHashCode()
   {
-    return HashCode.Combine(StartToken.GetHashCode(), EndToken.GetHashCode());
+    return HashCode.Combine(StartToken.GetHashCode(), EndToken?.GetHashCode() ?? 0);
   }
 }

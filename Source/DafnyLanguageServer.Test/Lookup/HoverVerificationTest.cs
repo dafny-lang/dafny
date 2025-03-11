@@ -374,15 +374,15 @@ datatype Test = Test(i: int)
 function Id<T>(t: T): T { t }
 
 ", "testfile2.dfy", true);
-      await AssertVerificationHoverMatches(documentItem, (9, 20),
+      await AssertVerificationHoverMatches(documentItem, (9, 22),
         @"**Error:**???assertion might not hold???
 Could not prove: `i > 0`  "
       );
-      await AssertVerificationHoverMatches(documentItem, (10, 20),
+      await AssertVerificationHoverMatches(documentItem, (10, 22),
       @"**Error:**???assertion might not hold???
 Could not prove: `i > 1`  "
     );
-      await AssertVerificationHoverMatches(documentItem, (10, 20),
+      await AssertVerificationHoverMatches(documentItem, (10, 22),
         @"**Success:**???function precondition satisfied???
 Inside `Valid()`  
 Did prove: `i > 0`  "

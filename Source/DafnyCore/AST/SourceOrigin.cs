@@ -25,9 +25,9 @@ public class SourceOrigin : IOrigin, IComparable<SourceOrigin> {
     this.ReportingRange = reportingRange ?? EntireRange;
   }
 
-  public SourceOrigin(Token start, Token end, Token center) {
+  public SourceOrigin(Token start, Token end, Token? center) {
     this.EntireRange = new TokenRange(start, end);
-    this.ReportingRange = new TokenRange(center, center);
+    this.ReportingRange = center == null ? new TokenRange(start, end) : new TokenRange(center, center);
   }
 
   [SyntaxConstructor]

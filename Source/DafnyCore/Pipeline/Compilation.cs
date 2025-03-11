@@ -381,7 +381,9 @@ public class Compilation : IDisposable {
             OfType<Function>()).Distinct().OrderBy(f => f.Origin.Center);
           var hiddenFunctions = string.Join(", ", functions.Select(f => f.FullDafnyName));
           if (!string.IsNullOrEmpty(hiddenFunctions)) {
-            Reporter.Info(MessageSource.Verifier, tokenTasks.Group.StartToken, $"hidden functions: {hiddenFunctions}");
+            Reporter.Info(MessageSource.Verifier, 
+              new SourceOrigin(tokenTasks.Group.StartToken, tokenTasks.Group.EndToken), 
+              $"hidden functions: {hiddenFunctions}");
           }
         }
 
