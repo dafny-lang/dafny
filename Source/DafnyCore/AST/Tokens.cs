@@ -1,111 +1,8 @@
-
-using System;
 using System.Diagnostics.Contracts;
 using System.IO;
 using Newtonsoft.Json;
 
 namespace Microsoft.Dafny;
-
-/// <summary>
-/// Has one-indexed line and column fields
-/// </summary>
-public class Token : IOrigin {
-
-  public Token peekedTokens; // Used only internally by Coco when the scanner "peeks" tokens. Normally null at the end of parsing
-  public static readonly Token NoToken = new();
-  public static readonly Token Cli = new(1, 1);
-  public static readonly Token Ide = new(1, 1);
-  public string filename => Path.GetFileName(Filepath);
-
-  public Token() : this(0, 0) { }
-
-  [SyntaxConstructor]
-  public Token(int line, int col) {
-    this.line = line;
-    this.col = col;
-    this.val = "";
-  }
-
-  public bool IsSourceToken => this != NoToken;
-  public int kind { get; set; } // Used by coco, so we can't rename it to Kind
-
-  public bool IsInherited(ModuleDefinition m) {
-    return false;
-  }
-
-  public bool InclusiveEnd => true;
-  public bool IncludesRange => false;
-  public string ActualFilename => Filepath;
-  public string Filepath => Uri?.LocalPath;
-  public Uri Uri { get; set; }
-  public Token StartToken => this;
-  public Token EndToken => this;
-
-  public Token Center => this;
-
-  public int pos { get; set; } // Used by coco, so we can't rename it to Pos
-
-  /// <summary>
-  /// One-indexed
-  /// </summary>
-  public int col { get; set; } // Used by coco, so we can't rename it to Col
-
-  /// <summary>
-  /// One-indexed
-  /// </summary>
-  public int line { get; set; } // Used by coco, so we can't rename it to Line
-
-  public string val { get; set; } // Used by coco, so we can't rename it to Val
-
-  public string LeadingTrivia { get; set; } = "";
-
-  public string TrailingTrivia { get; set; } = "";
-
-  public Token Next { get; set; } // The next token
-
-  public Token Prev { get; set; } // The previous token
-
-  public bool IsValid => this.ActualFilename != null;
-
-  public SourceOrigin To(Token end) => new(this, end);
-
-  public IOrigin WithVal(string newVal) {
-    return new Token {
-      pos = pos,
-      col = col,
-      line = line,
-      Prev = Prev,
-      Next = Next,
-      Uri = Uri,
-      kind = kind,
-      val = newVal
-    };
-  }
-
-  public bool IsCopy => false;
-
-  public int CompareTo(Boogie.IToken other) {
-    if (line != other.line) {
-      return line.CompareTo(other.line);
-    }
-    return col.CompareTo(other.col);
-  }
-
-  public override int GetHashCode() {
-    return pos;
-  }
-
-  public override string ToString() {
-    return $"'{val}': {Path.GetFileName(Filepath)}@{pos} - @{line}:{col}";
-  }
-
-  public int CompareTo(IOrigin other) {
-    if (line != other.line) {
-      return line.CompareTo(other.line);
-    }
-    return col.CompareTo(other.col);
-  }
-}
 
 public static class TokenExtensions {
 
@@ -176,23 +73,6 @@ public static class TokenExtensions {
   }
 }
 
-public class NestedOrigin : OriginWrapper {
-  public NestedOrigin(IOrigin outer, IOrigin inner, string message = null)
-    : base(outer) {
-    Contract.Requires(outer != null);
-    Contract.Requires(inner != null);
-    Inner = inner;
-    this.Message = message;
-  }
-  public IOrigin Outer { get { return WrappedToken; } }
-  public readonly IOrigin Inner;
-  public readonly string Message;
-
-  public override IOrigin WithVal(string newVal) {
-    return this;
-  }
-}
-
 /// <summary>
 /// A token wrapper used to produce better type checking errors
 /// for quantified variables. See QuantifierVar.ExtractSingleRange()
@@ -206,10 +86,6 @@ public class QuantifiedVariableDomainOrigin : OriginWrapper {
   public override string val {
     get { return WrappedToken.val; }
     set { WrappedToken.val = value; }
-  }
-
-  public override IOrigin WithVal(string newVal) {
-    return new QuantifiedVariableDomainOrigin((WrappedToken.WithVal(newVal)));
   }
 }
 
@@ -226,9 +102,5 @@ public class QuantifiedVariableRangeOrigin : OriginWrapper {
   public override string val {
     get { return WrappedToken.val; }
     set { WrappedToken.val = value; }
-  }
-
-  public override IOrigin WithVal(string newVal) {
-    return new QuantifiedVariableRangeOrigin(WrappedToken.WithVal(newVal));
   }
 }

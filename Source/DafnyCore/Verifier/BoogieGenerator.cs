@@ -3313,10 +3313,6 @@ namespace Microsoft.Dafny {
         return ftok != null ? ftok.WrappedToken : tok;
       }
 
-      public override IOrigin WithVal(string newVal) {
-        return new ForceCheckOrigin(WrappedToken.WithVal(newVal));
-      }
-
       public override bool IsInherited(ModuleDefinition m) {
         return false;
       }

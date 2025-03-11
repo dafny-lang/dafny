@@ -55,4 +55,8 @@
 // RUN: echo '15' >> %t
 // RUN: ! %baredafny format --use-basename-for-filename --check "%S/dfyconfig.toml" &>> "%t"
 
+// Project files may not contain unknown properties
+// RUN: echo '16' >> %t
+// RUN: ! %build "%S/broken/dfyconfig.toml" &>> %t
+
 // RUN: %diff "%s.expect" "%t"
