@@ -167,13 +167,14 @@ greatest lemma NothingTotal_Nat<S(!new)>[nat]()
 {
 }
 
-greatest lemma OnlyDsTotal_Nat[nat]()
+greatest lemma {:fuel OnlyDs,2} OnlyDsTotal_Nat[nat]()
   ensures TotalLang_Nat(OnlyDs())
 {
   // Unlike the [ORDINAL] version of this greatest lemma above, this version does not
   // need the following call:
-  //    NothingTotal_Nat<char>();
-  // The reason is that, here, two levels of unrolling will get to a .deriv function
+    // NothingTotal_Nat<char>();
+  // The reason is that, here, two levels of unrolling (controlled by the fuel parameter)
+  // will get to a .deriv function
   // that looks just like the one after one unrolling.  One can then infer what is
   // needed about the "Nothing()" branch.  In contrast, after one level of unrolling
   // in the [ORDINAL] version, there may be a limit ordinal.  In that case, one needs
