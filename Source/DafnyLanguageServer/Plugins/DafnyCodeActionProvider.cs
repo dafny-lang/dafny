@@ -90,13 +90,17 @@ public abstract class DiagnosticDafnyCodeActionProvider : DafnyCodeActionProvide
   protected abstract IEnumerable<DafnyCodeAction>? GetDafnyCodeActions(IDafnyCodeActionInput input,
     Diagnostic diagnostic, Range selection);
 
-  public TokenRange? FindTokenRangeFromLspRange(IDafnyCodeActionInput input, Range range) {
+  public TokenRange? FindTokenRangeFromLspRange(IDafnyCodeActionInput input, Range range, bool useNodeRange) {
     var start = range.Start;
     var startNode = input.Program.FindNode<Node>(input.Uri.ToUri(), start.ToDafnyPosition());
     if (startNode == null) {
       // A program should have FileModuleDefinition nodes whose ranges span the entire contents of files,
       // But currently those nodes are missing
       return null;
+    }
+
+    if (useNodeRange) {
+      return startNode.EntireRange;
     }
 
     var startToken = startNode.CoveredTokens.FirstOrDefault(t => t.line - 1 == start.Line && t.col - 1 == start.Character);

@@ -12,16 +12,52 @@ using Range = OmniSharp.Extensions.LanguageServer.Protocol.Models.Range;
 
 namespace Microsoft.Dafny.LanguageServer.Language;
 
-/// <summary>
-/// A verification quick fixers provides quick "fixes" for verification errors.
-/// For now, it offers to inline a failing postcondition if its failure is
-/// indicated on the '{' -- meaning there is no explicit return.
-/// </summary>
 class ImplicitFailingAssertionCodeActionProvider : DiagnosticDafnyCodeActionProvider {
   private readonly DafnyOptions options;
 
   public ImplicitFailingAssertionCodeActionProvider(ILogger<DafnyCodeActionHandler> logger, DafnyOptions options) : base(logger) {
     this.options = options;
+  }
+
+  protected override IEnumerable<DafnyCodeAction>? GetDafnyCodeActions(IDafnyCodeActionInput input,
+    Diagnostic diagnostic, Range selection) {
+    if (input.Program == null || diagnostic.Source != MessageSource.Verifier.ToString()) {
+      return null;
+    }
+
+    var implicitlyFailing = new List<Expression>() { };
+    var explicitlyFailing = new List<Expression>() { };
+    input.VerificationTree?.Visit(tree => {
+      if (tree is AssertionVerificationTree assertTree) {
+        if (assertTree.Finished &&
+            assertTree.Range.IntersectsOrTouches(selection) &&
+            assertTree.StatusVerification is GutterVerificationStatus.Error or GutterVerificationStatus.Inconclusive &&
+            assertTree.GetAssertion()?.Description is ProofObligationDescription description &&
+            description.GetAssertedExpr(options) is { } assertedExpr) {
+          if (description.IsImplicit) {
+            implicitlyFailing.Add(assertedExpr);
+          } else {
+            explicitlyFailing.Add(assertedExpr);
+          }
+        }
+      }
+    });
+    if (implicitlyFailing.Count == 0 && explicitlyFailing.Count == 0) {
+      return null;
+    }
+
+    IEnumerable<DafnyCodeAction> suggestedExplicitAssertions = implicitlyFailing.Select(failingExpression =>
+      new ExplicitAssertionDafnyCodeAction(options, input.Program, failingExpression, selection)
+    );
+    IEnumerable<DafnyCodeAction> suggestedCalcStatements =
+      explicitlyFailing.OfType<BinaryExpr>().Where(b => b.Op is BinaryExpr.Opcode.Eq or BinaryExpr.Opcode.Iff).Select(failingEquality =>
+        new BinaryExprToCalcStatementCodeAction(options, input.Program, failingEquality, selection));
+    IEnumerable<DafnyCodeAction> suggestedForallStatements = explicitlyFailing
+      .OfType<ForallExpr>()
+      .Select(failingForall =>
+        new ForallExprStatementCodeAction(options, input.Program, failingForall, selection));
+
+    return suggestedExplicitAssertions.Concat(suggestedCalcStatements).Concat(suggestedForallStatements);
   }
 
   protected static List<INode>? FindInnermostNodeIntersecting(INode node, Range range) {
@@ -251,45 +287,5 @@ class ImplicitFailingAssertionCodeActionProvider : DiagnosticDafnyCodeActionProv
            $"{i}  assert {S(failingExplicit.Term)};\n" +
            $"{i}}}";
     }
-  }
-
-  protected override IEnumerable<DafnyCodeAction>? GetDafnyCodeActions(IDafnyCodeActionInput input,
-    Diagnostic diagnostic, Range selection) {
-    if (input.Program == null || diagnostic.Source != MessageSource.Verifier.ToString()) {
-      return null;
-    }
-
-    var implicitlyFailing = new List<Expression>() { };
-    var explicitlyFailing = new List<Expression>() { };
-    input.VerificationTree?.Visit(tree => {
-      if (tree is AssertionVerificationTree assertTree &&
-          assertTree.Finished &&
-          assertTree.Range.Intersects(selection) &&
-          assertTree.StatusVerification is GutterVerificationStatus.Error or GutterVerificationStatus.Inconclusive &&
-          assertTree.GetAssertion()?.Description is ProofObligationDescription description &&
-          description.GetAssertedExpr(options) is { } assertedExpr) {
-        if (description.IsImplicit) {
-          implicitlyFailing.Add(assertedExpr);
-        } else {
-          explicitlyFailing.Add(assertedExpr);
-        }
-      }
-    });
-    if (implicitlyFailing.Count == 0 && explicitlyFailing.Count == 0) {
-      return null;
-    }
-
-    IEnumerable<DafnyCodeAction> suggestedExplicitAssertions = implicitlyFailing.Select(failingExpression =>
-      new ExplicitAssertionDafnyCodeAction(options, input.Program, failingExpression, selection)
-    );
-    IEnumerable<DafnyCodeAction> suggestedCalcStatements =
-      explicitlyFailing.OfType<BinaryExpr>().Where(b => b.Op is BinaryExpr.Opcode.Eq or BinaryExpr.Opcode.Iff).Select(failingEquality =>
-      new BinaryExprToCalcStatementCodeAction(options, input.Program, failingEquality, selection));
-    IEnumerable<DafnyCodeAction> suggestedForallStatements = explicitlyFailing
-      .OfType<ForallExpr>()
-      .Select(failingForall =>
-      new ForallExprStatementCodeAction(options, input.Program, failingForall, selection));
-
-    return suggestedExplicitAssertions.Concat(suggestedCalcStatements).Concat(suggestedForallStatements);
   }
 }
