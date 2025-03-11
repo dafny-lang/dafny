@@ -75,7 +75,7 @@ public partial class SyntaxDeserializer(IDecoder decoder) {
     var parameter0 = ReadInt32();
     var parameter1 = ReadInt32();
     return new Token(parameter0, parameter1) {
-      Uri = uri
+      Uri = uri!
     };
   }
 

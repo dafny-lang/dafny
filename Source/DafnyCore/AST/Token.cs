@@ -9,7 +9,7 @@ namespace Microsoft.Dafny;
 /// </summary>
 public class Token : IOrigin {
 
-  public Token peekedTokens; // Used only internally by Coco when the scanner "peeks" tokens. Normally null at the end of parsing
+  public Token? peekedTokens; // Used only internally by Coco when the scanner "peeks" tokens. Normally null at the end of parsing
   public static readonly Token NoToken = new();
   public static readonly Token Cli = new(1, 1);
   public static readonly Token Ide = new(1, 1);
@@ -32,8 +32,8 @@ public class Token : IOrigin {
   }
   public bool IncludesRange => false;
   public string ActualFilename => Filepath;
-  public string Filepath => Uri?.LocalPath;
-  public Uri Uri { get; set; }
+  public string Filepath => Uri?.LocalPath!;
+  public Uri Uri { get; set; } = null!;
   public TokenRange? EntireRange => null;
   public TokenRange ReportingRange => new TokenRange(this, this);
 
@@ -71,10 +71,11 @@ public class Token : IOrigin {
   /// </summary>
   public string TrailingTrivia { get; set; } = "";
 
-  public Token Next { get; set; } // The next token
+  public Token Next { get; set; } = null!; // The next token
 
-  public Token? Prev { get; set; } // The previous token
+  public Token Prev { get; set; } = null!; // The previous token
 
+  // ReSharper disable once ConditionIsAlwaysTrueOrFalseAccordingToNullableAPIContract
   public bool IsValid => this.ActualFilename != null;
 
   public SourceOrigin To(Token end) => new(this, end);
@@ -95,6 +96,9 @@ public class Token : IOrigin {
   public bool IsCopy => false;
 
   public int CompareTo(Boogie.IToken? other) {
+    if (other == null) {
+      return 1;
+    }
     if (line != other.line) {
       return line.CompareTo(other.line);
     }

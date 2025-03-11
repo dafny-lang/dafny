@@ -56,7 +56,7 @@ public class TokenRange(Token startToken, Token? end) : IComparable<TokenRange>,
       }
     }
 
-    var endColumn = (end == null ? startToken.col : end.col + end.val.Length) + whitespaceOffset - 1;
+    var endColumn = (end == null ? StartToken.col : end.col + end.val.Length) + whitespaceOffset - 1;
     var endLine = EndToken.line - 1;
     return new DafnyRange(
       new DafnyPosition(startLine, startColumn),

@@ -32,9 +32,6 @@ namespace Microsoft.Dafny {
         return false;
       }
 
-      if (rootTok.Uri == null) {
-        var b = 32;
-      }
       var relatedInformation = new List<DafnyRelatedInformation>();
 
       var usingSnippets = Options.Get(Snippets.ShowSnippets);
