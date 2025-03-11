@@ -357,7 +357,7 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
           fieldSymbol.Declaration.Origin,
           fieldSymbol.Declaration.NavigationRange.ToLspRange(),
           // BodyEndToken always returns Token.NoToken
-          fieldSymbol.Declaration.Origin.GetLspRange()
+          fieldSymbol.Declaration.EntireRange.ToLspRange()
         );
         VisitChildren(fieldSymbol);
         return Unit.Value;
@@ -388,9 +388,7 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
       }
 
       private static Range GetDeclarationRange(Declaration declaration) {
-        return declaration.Origin == SourceOrigin.NoToken
-          ? declaration.Origin.GetLspRange()
-          : new Range(declaration.StartToken.GetLspPosition(), declaration.Origin.GetLspPosition());
+        return declaration.EntireRange.ToLspRange();
       }
 
       public Unit Visit(VariableSymbol variableSymbol) {
