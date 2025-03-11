@@ -93,11 +93,11 @@ public abstract class DiagnosticDafnyCodeActionProvider : DafnyCodeActionProvide
   public TokenRange? FindTokenRangeFromLspRange(IDafnyCodeActionInput input, Range range, bool useNodeRange) {
     var start = range.Start;
     if (useNodeRange) {
-      var node = input.Program.FindNode(input.Uri.ToUri(), start.ToDafnyPosition(), node => 
+      var node = input.Program.FindNode(input.Uri.ToUri(), start.ToDafnyPosition(), node =>
         node.EntireRange.ToLspRange().Contains(range.End));
       return node.EntireRange;
     }
-    
+
     var startNode = input.Program.FindNode<Node>(input.Uri.ToUri(), start.ToDafnyPosition());
     if (startNode == null) {
       // A program should have FileModuleDefinition nodes whose ranges span the entire contents of files,

@@ -38,13 +38,13 @@ public abstract class NodeWithOrigin : Node {
               // Ignore any auto-generated expressions.
               continue;
             }
-                
+
             UpdateStartEndToken(child.StartToken);
             UpdateStartEndToken(child.EndToken);
           }
 
           entireRange = new TokenRange(start, end);
-          
+
           void UpdateStartEndToken(Token newToken) {
             if (newToken.Filepath != origin.Filepath) {
               return;
@@ -64,8 +64,8 @@ public abstract class NodeWithOrigin : Node {
       }
 
       return entireRange;
-      
-  
+
+
     }
   }
 }

@@ -63,8 +63,7 @@ public class TokenRange(Token startToken, Token? end) : IComparable<TokenRange>,
       new DafnyPosition(endLine, endColumn));
   }
 
-  public bool Equals(TokenRange? other)
-  {
+  public bool Equals(TokenRange? other) {
     if (ReferenceEquals(null, other)) {
       return false;
     }
@@ -76,8 +75,7 @@ public class TokenRange(Token startToken, Token? end) : IComparable<TokenRange>,
     return StartToken.Equals(other.StartToken) && EndToken.Equals(other.EndToken);
   }
 
-  public override bool Equals(object? obj)
-  {
+  public override bool Equals(object? obj) {
     if (ReferenceEquals(null, obj)) {
       return false;
     }
@@ -93,8 +91,7 @@ public class TokenRange(Token startToken, Token? end) : IComparable<TokenRange>,
     return Equals((TokenRange)obj);
   }
 
-  public override int GetHashCode()
-  {
+  public override int GetHashCode() {
     return HashCode.Combine(StartToken.GetHashCode(), EndToken?.GetHashCode() ?? 0);
   }
 }

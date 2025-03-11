@@ -22,7 +22,7 @@ public class Name : Node {
   public Name Update(Func<string, string> update) {
     return new Name(Origin, update(Value));
   }
-  
+
   public string Value { get; set; }
 
   public Name(Cloner cloner, Name original) {
@@ -46,7 +46,7 @@ public class Name : Node {
 
   public override IOrigin Origin { get; }
   public override TokenRange EntireRange => Origin.ReportingRange;
-  
+
   public override IEnumerable<INode> Children => Enumerable.Empty<Node>();
   public override IEnumerable<INode> PreResolveChildren => Children;
 
