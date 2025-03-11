@@ -55,10 +55,16 @@ module SSCinClass {
 
   class Class extends Trait {
     predicate Even(i: nat)
-  { i == 0 || Odd(i-1) }
-    predicate Odd(i: nat)
-      ensures i == 0 || (i % 2 == 1) == Even(i-1)
-    { i != 0 && Even(i-1) }
+    {
+      i == 0 || Odd(i-1)
+    }
+
+    predicate {:fuel Even, 2} Odd(i: nat)
+      ensures i == 0 || ((i % 2 == 1) == Even(i-1))
+    {
+      i != 0 && Even(i-1)
+    }
+
   }
 }
 
