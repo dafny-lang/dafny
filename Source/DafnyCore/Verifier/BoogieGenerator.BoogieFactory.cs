@@ -664,7 +664,7 @@ namespace Microsoft.Dafny {
       return new Bpl.NAryExpr(tok, new Bpl.FunctionCall(new Bpl.IdentifierExpr(tok, name, Bpl.Type.Int)), new List<Bpl.Expr> { arr });
     }
 
-    static Bpl.Expr BplForall(IEnumerable<Bpl.Variable> args_in, Bpl.Expr body) {
+    static Bpl.Expr BplForall(IEnumerable<Bpl.Variable> args_in, Bpl.Expr body, string qid) {
       Contract.Requires(args_in != null);
       Contract.Requires(body != null);
       Contract.Ensures(Contract.Result<Bpl.Expr>() != null);
@@ -672,30 +672,36 @@ namespace Microsoft.Dafny {
       if (args.Count == 0) {
         return body;
       } else {
-        return new Bpl.ForallExpr(body.tok, args, body); // NO_TRIGGER
+        var kv = new Bpl.QKeyValue(body.tok, "qid", new List<object> { qid });
+        return new Bpl.ForallExpr(body.tok, [], args, kv, null, body); // NO_TRIGGER
       }
     }
 
     // Note: if the trigger is null, makes a forall without any triggers
-    static Bpl.Expr BplForall(IEnumerable<Bpl.Variable> args_in, Bpl.Trigger trg, Bpl.Expr body) {
+    static Bpl.Expr BplForall(IEnumerable<Bpl.Variable> args_in, Bpl.Trigger trg, Bpl.Expr body, string qid) {
       if (trg == null) {
-        return BplForall(args_in, body); // NO_TRIGGER
+        return BplForall(args_in, body, qid); // NO_TRIGGER
       } else {
         var args = new List<Bpl.Variable>(args_in);
         if (args.Count == 0) {
           return body;
         } else {
-          return new Bpl.ForallExpr(body.tok, args, trg, body);
+          var kv = new Bpl.QKeyValue(body.tok, "qid", new List<object> { qid });
+          return new Bpl.ForallExpr(body.tok, [], args, kv, trg, body);
         }
       }
     }
 
-    static Bpl.Expr BplForall(Bpl.Variable arg, Bpl.Trigger trg, Bpl.Expr body) {
-      return BplForall(Singleton(arg), trg, body);
+    static Bpl.Expr BplForall(Bpl.Variable arg, Bpl.Trigger trg, Bpl.Expr body, string qid) {
+      return BplForall(Singleton(arg), trg, body, qid);
     }
 
     static Bpl.Expr BplForall(Bpl.IToken tok, List<Bpl.TypeVariable> typeParams,
-      List<Bpl.Variable> formals, Bpl.QKeyValue kv, Bpl.Trigger triggers, Bpl.Expr body, bool immutable = false) {
+      List<Bpl.Variable> formals, Bpl.QKeyValue kv, Bpl.Trigger triggers, Bpl.Expr body, string qid,
+      bool immutable = false) {
+      if (kv == null || Bpl.QKeyValue.FindStringAttribute(kv, "qid") == null) {
+        kv = new Bpl.QKeyValue(body.tok, "qid", new List<object> { qid }, kv);
+      }
       return (typeParams.Count == 0 && formals.Count == 0) ? body
         : new Bpl.ForallExpr(tok, typeParams, formals, kv, triggers, body, immutable);
     }

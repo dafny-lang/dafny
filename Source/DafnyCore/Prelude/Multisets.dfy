@@ -256,7 +256,7 @@ module {:extract_boogie} Multisets {
   //   $IsGoodMultiSet(ms) <==>
   //   (forall bx: Box :: { ms[bx] } 0 <= ms[bx] && ms[bx] <= MultiSet#Card(ms)));
   lemma {:extract_pattern IsGood(ms)} GoodDefinition(ms: Multiset)
-    ensures IsGood(ms) <==> forall bx {:extract_pattern Multiplicity(ms, bx)} :: 0 <= Multiplicity(ms, bx) && Multiplicity(ms, bx) <= Card(ms)
+    ensures IsGood(ms) <==> forall bx {:extract_attribute "qid", "mset_isgood_inner"} {:extract_pattern Multiplicity(ms, bx)} :: 0 <= Multiplicity(ms, bx) && Multiplicity(ms, bx) <= Card(ms)
   {
     forall bx {
       MultiplicityCard(ms, bx);
@@ -1011,7 +1011,7 @@ module {:extract_boogie} Multisets {
   // axiom (forall a: MultiSet, b: MultiSet :: { MultiSet#Subset(a,b) }
   //   MultiSet#Subset(a,b) <==> (forall o: Box :: {a[o]} {b[o]} a[o] <= b[o]));
   lemma {:extract_pattern Subset(a, b)} SubsetDefinition(a: Multiset, b: Multiset)
-    ensures Subset(a, b) <==> forall o {:extract_pattern Multiplicity(a, o)} {:extract_pattern Multiplicity(b, o)} :: Multiplicity(a, o) <= Multiplicity(b, o)
+    ensures Subset(a, b) <==> forall o {:extract_pattern Multiplicity(a, o)} {:extract_pattern Multiplicity(b, o)} {:extract_attribute "qid", "mset_subset_inner"} :: Multiplicity(a, o) <= Multiplicity(b, o)
   {
     if !Subset(a, b) {
       var o := ExhibitSubsetDifference(a, b);
@@ -1098,7 +1098,7 @@ module {:extract_boogie} Multisets {
   //   MultiSet#Equal(a,b) <==> (forall o: Box :: {a[o]} {b[o]} a[o] == b[o]));
   lemma {:extract_pattern Equal(a, b)} EqualDefinition(a: Multiset, b: Multiset)
     ensures Equal(a, b) <==>
-            forall o {:extract_pattern Multiplicity(a, o)} {:extract_pattern Multiplicity(b, o)} ::
+            forall o {:extract_pattern Multiplicity(a, o)} {:extract_pattern Multiplicity(b, o)} {:extract_attribute "qid", "mset_equal_inner"} ::
               Multiplicity(a, o) == Multiplicity(b, o)
   {
     if a != b {
@@ -1171,7 +1171,7 @@ module {:extract_boogie} Multisets {
   //   MultiSet#Disjoint(a,b) <==> (forall o: Box :: {a[o]} {b[o]} a[o] == 0 || b[o] == 0));
   lemma {:extract_pattern Disjoint(a, b)} DisjointDefinition(a: Multiset, b: Multiset)
     ensures Disjoint(a, b) <==>
-            forall o {:extract_pattern Multiplicity(a, o)} {:extract_pattern Multiplicity(b, o)} {:trigger MultiplicityWrapper(a, o)} ::
+            forall o {:extract_pattern Multiplicity(a, o)} {:extract_pattern Multiplicity(b, o)} {:trigger MultiplicityWrapper(a, o)} {:extract_attribute "qid", "mset_disjoint_inner"} ::
               Multiplicity(a, o) == 0 || Multiplicity(b, o) == 0
   {
     if !Disjoint(a, b) {
@@ -1481,7 +1481,7 @@ module {:extract_boogie} Multisets {
   // axiom (forall s: Seq, x: Box :: { MultiSet#FromSeq(s)[x] }
   //   (exists i : int :: { Seq#Index(s,i) } 0 <= i && i < Seq#Length(s) && x == Seq#Index(s,i)) <==> 0 < MultiSet#FromSeq(s)[x] );
   lemma {:extract_pattern Multiplicity(FromSeq(s), x)} MultiplicityFromSeq(s: Sequences.Seq, x: Box)
-    ensures (exists i {:extract_pattern Sequences.Index(s, i)} :: 0 <= i < Sequences.Length(s) && x == Sequences.Index(s, i))
+    ensures (exists i {:extract_attribute "qid", "MultiplicityFromSeq_inner"} {:extract_pattern Sequences.Index(s, i)} :: 0 <= i < Sequences.Length(s) && x == Sequences.Index(s, i))
        <==> 0 < Multiplicity(FromSeq(s), x)
   {
     calc {

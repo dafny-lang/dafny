@@ -119,7 +119,8 @@ namespace Microsoft.Dafny {
           if (cf.Rhs != null && RevealedInScope(cf)) {
             var etran = new ExpressionTranslator(this, Predef, NewOneHeapExpr(f.Origin), null);
             if (!IsOpaque(cf, options)) {
-              var definitionAxiom = ff.CreateDefinitionAxiom(etran.TrExpr(cf.Rhs));
+              var kv = new QKeyValue(f.Origin, "qid", [ $"[field] {f.EnclosingClass.FullSanitizedName}.{f.SanitizedName}" ]);
+              var definitionAxiom = ff.CreateDefinitionAxiom(etran.TrExpr(cf.Rhs), kv);
               definitionAxiom.CanHide = true;
               sink.AddTopLevelDeclaration(definitionAxiom);
             }
@@ -134,7 +135,8 @@ namespace Microsoft.Dafny {
           var rhs = new Bpl.NAryExpr(f.Origin, new Bpl.FunctionCall(ff), new List<Bpl.Expr> { o });
           Bpl.Expr body = Bpl.Expr.Le(Bpl.Expr.Literal(0), rhs);
           var trigger = BplTrigger(rhs);
-          Bpl.Expr qq = new Bpl.ForallExpr(f.Origin, [oVar], trigger, body);
+          var kv = new QKeyValue(f.Origin, "qid", [ $"[field] {f.EnclosingClass.FullSanitizedName}.{f.SanitizedName}" ]);
+          Bpl.Expr qq = new Bpl.ForallExpr(f.Origin, [], [oVar], kv, trigger, body);
           sink.AddTopLevelDeclaration(new Bpl.Axiom(f.Origin, qq));
         }
       }

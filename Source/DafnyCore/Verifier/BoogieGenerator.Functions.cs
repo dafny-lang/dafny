@@ -250,7 +250,7 @@ public partial class BoogieGenerator {
     if (whr != null) { post = BplAnd(post, whr); }
 
     Bpl.Expr axBody = BplImp(ante, post);
-    Bpl.Expr ax = BplForall(f.Origin, [], formals, null, tr, axBody);
+    Bpl.Expr ax = BplForall(f.Origin, [], formals, null, tr, axBody, $"[conseq] {f.FullSanitizedName}");
     if (RemoveLit(axBody) != Bpl.Expr.True) {
       AddOtherDefinition(boogieFunction, new Bpl.Axiom(f.Origin, ax, "consequence axiom for " + f.FullSanitizedName));
     }
@@ -267,7 +267,7 @@ public partial class BoogieGenerator {
         }
 
         axBody = BplImp(anteIsAlloc, whr);
-        ax = BplForall(f.Origin, [], formals, null, BplTrigger(whr), axBody);
+        ax = BplForall(f.Origin, [], formals, null, BplTrigger(whr), axBody, $"[conseq_alloc] {f.FullSanitizedName}");
 
         if (RemoveLit(axBody) != Bpl.Expr.True) {
           var allocConsequenceAxiom = new Bpl.Axiom(f.Origin, ax, "alloc consequence axiom for " + f.FullSanitizedName);
@@ -499,11 +499,11 @@ public partial class BoogieGenerator {
       Bpl.Trigger trig = BplTriggerHeap(this, f.Origin, appl, f.ReadsHeap ? etran.HeapExpr : null);
       // axiom (forall params :: { f#requires(params) }  ante ==> f#requires(params) == pre);
       AddOtherDefinition(precondF, new Axiom(f.Origin,
-        BplForall(forallFormals, trig, BplImp(anteReqAxiom, Bpl.Expr.Eq(appl, preReqAxiom))),
+        BplForall(forallFormals, trig, BplImp(anteReqAxiom, Bpl.Expr.Eq(appl, preReqAxiom)), $"[function_ax_req] {f.FullSanitizedName}"),
         "#requires axiom for " + f.FullSanitizedName));
 
       AddOtherDefinition(precondF, new Bpl.Axiom(f.Origin,
-        BplForall(f.Origin, [], forallFormals, null, trig, Bpl.Expr.Imp(appl, useViaCanCall)),
+        BplForall(f.Origin, [], forallFormals, null, trig, Bpl.Expr.Imp(appl, useViaCanCall), $"[function_ax_req_cancall] {f.FullSanitizedName}"),
         "#requires ==> #canCall for " + f.FullSanitizedName));
     }
 
@@ -568,7 +568,7 @@ public partial class BoogieGenerator {
     }
 
     Bpl.Expr ax = BplForall(f.Origin, [], forallFormals, kv, tr,
-      BplImp(ante, tastyVegetarianOption));
+      BplImp(ante, tastyVegetarianOption), $"[function_def] {f.FullSanitizedName}");
     string comment;
     comment = "definition axiom for " + f.FullSanitizedName;
     if (lits != null) {
@@ -713,7 +713,7 @@ public partial class BoogieGenerator {
         var rhs_boxed = BoxIfNotNormallyBoxed(rhs.tok, rhs, f.ResultType);
 
         AddOtherDefinition(GetOrCreateFunction(f), (new Axiom(f.Origin,
-          BplForall(Concat(vars, bvars), BplTrigger(lhs), Bpl.Expr.Eq(lhs, rhs_boxed)))));
+          BplForall(Concat(vars, bvars), BplTrigger(lhs), Bpl.Expr.Eq(lhs, rhs_boxed), $"[function_handle_apply] {f.FullSanitizedName}"))));
       }
 
       {
@@ -730,17 +730,17 @@ public partial class BoogieGenerator {
         Bpl.Expr rhs;
         if (f.EnclosingClass is ArrowTypeDecl && f.Name == "requires") {
           AddOtherDefinition(GetOrCreateFunction(f), new Axiom(f.Origin,
-              BplForall(Concat(vars, bvars), BplTrigger(lhs), Bpl.Expr.Eq(lhs, Bpl.Expr.True))));
+              BplForall(Concat(vars, bvars), BplTrigger(lhs), Bpl.Expr.Eq(lhs, Bpl.Expr.True), $"[function_handle_requires] {f.FullSanitizedName}")));
         } else if (f.EnclosingClass is ArrowTypeDecl && f.Name == "reads") {
           var args_h = f.ReadsHeap ? Snoc(SnocPrevH(argsRequires), h) : argsRequires;
           var pre = FunctionCall(f.Origin, Requires(arity), Bpl.Type.Bool, Concat(SnocSelf(args_h), lhs_args));
           AddOtherDefinition(GetOrCreateFunction(f), (new Axiom(f.Origin,
-            BplForall(Concat(vars, bvars), BplTrigger(lhs), Bpl.Expr.Eq(lhs, pre)))));
+            BplForall(Concat(vars, bvars), BplTrigger(lhs), Bpl.Expr.Eq(lhs, pre), $"[function_handle_requires] {f.FullSanitizedName}"))));
         } else {
           var args_h = f.ReadsHeap ? Snoc(SnocPrevH(argsRequires), h) : argsRequires;
           rhs = FunctionCall(f.Origin, RequiresName(f), Bpl.Type.Bool, Concat(SnocSelf(args_h), rhs_args));
           AddOtherDefinition(GetOrCreateFunction(f), new Axiom(f.Origin,
-            BplForall(Concat(vars, bvars), BplTrigger(lhs), Bpl.Expr.Eq(lhs, rhs))));
+            BplForall(Concat(vars, bvars), BplTrigger(lhs), Bpl.Expr.Eq(lhs, rhs), $"[function_handle_requires] {f.FullSanitizedName}")));
         }
 
 
@@ -769,10 +769,10 @@ public partial class BoogieGenerator {
           var args_h = f.ReadsHeap ? Snoc(SnocPrevH(argsRequires), h) : argsRequires;
           var precondition = FunctionCall(f.Origin, Requires(arity), Bpl.Type.Bool, Concat(SnocSelf(args_h), lhs_args));
           sink.AddTopLevelDeclaration(new Axiom(f.Origin,
-            BplForall(Cons(bxVar, Concat(vars, bvars)), BplTrigger(lhs), BplImp(precondition, Bpl.Expr.Eq(lhs, rhs)))));
+            BplForall(Cons(bxVar, Concat(vars, bvars)), BplTrigger(lhs), BplImp(precondition, Bpl.Expr.Eq(lhs, rhs)), $"[function_handle_reads] {f.FullSanitizedName}")));
         } else {
           sink.AddTopLevelDeclaration(new Axiom(f.Origin,
-            BplForall(Cons(bxVar, Concat(vars, bvars)), BplTrigger(lhs), Bpl.Expr.Eq(lhs, rhs))));
+            BplForall(Cons(bxVar, Concat(vars, bvars)), BplTrigger(lhs), Bpl.Expr.Eq(lhs, rhs), $"[function_handle_reads] {f.FullSanitizedName}")));
         }
       }
 
@@ -788,7 +788,7 @@ public partial class BoogieGenerator {
         var tr = BplTriggerHeap(this, f.Origin, lhs, f.ReadsHeap ? null : h);
 
         AddOtherDefinition(GetOrCreateFunction(f), (new Axiom(f.Origin,
-          BplForall(Concat(vars, func_vars), tr, Bpl.Expr.Eq(lhs, rhs_unboxed)))));
+          BplForall(Concat(vars, func_vars), tr, Bpl.Expr.Eq(lhs, rhs_unboxed), $"[function_handle] {f.FullSanitizedName}"))));
       }
     }
     return name;
@@ -854,7 +854,8 @@ public partial class BoogieGenerator {
     Bpl.Expr h0IsHeapAnchor = FunctionCall(h0.tok, BuiltinFunction.IsHeapAnchor, null, h0);
     Bpl.Expr heapSucc = HeapSucc(h0, h1);
     Bpl.Expr r0 = InRWClause(f.Origin, o, field, f.Reads.Expressions, etran0, null, null);
-    Bpl.Expr q0 = new Bpl.ForallExpr(f.Origin, [], [oVar, fieldVar],
+    var kv = new QKeyValue(f.Origin, "qid", new List<object>() { $"[frame_ax_inner] {f.FullSanitizedName}" }, null);
+    Bpl.Expr q0 = new Bpl.ForallExpr(f.Origin, [], [oVar, fieldVar], kv, null,
       BplImp(BplAnd(oNotNullAlloced, r0), unchanged));
 
     List<Bpl.Expr> tyexprs;
@@ -933,9 +934,10 @@ public partial class BoogieGenerator {
     var F0 = new Bpl.NAryExpr(f.Origin, fn, f0args);
     var F1 = new Bpl.NAryExpr(f.Origin, fn, f1args);
     var eq = BplAnd(Bpl.Expr.Eq(F0, F1), Bpl.Expr.Eq(f0canCall, f1canCall));
+    kv = new QKeyValue(f.Origin, "qid", new List<object>() { $"[frame_ax] {f.FullSanitizedName}" }, null);
     var tr = new Bpl.Trigger(f.Origin, true, new List<Bpl.Expr> { h0IsHeapAnchor, heapSucc, F1 });
 
-    var ax = new Bpl.ForallExpr(f.Origin, [], bvars, null, tr,
+    var ax = new Bpl.ForallExpr(f.Origin, [], bvars, kv, tr,
       BplImp(BplAnd(wellFormed, BplAnd(h0IsHeapAnchor, heapSucc)),
       BplImp(q0, eq)));
     sink.AddTopLevelDeclaration(new Bpl.Axiom(f.Origin, ax, comment));

@@ -384,7 +384,8 @@ public class SystemModuleManager {
       body = Expression.CreateEq(body, emptySet, member.ResultType);
     }
     if (tps.Count > 1) {
-      body = new ForallExpr(tok, bvs, null, body, null) { Type = Type.Bool, Bounds = bounds };
+      var attrs = new Attributes("qid", [new StringLiteralExpr(tok, $"[arrow_constraint] {tps.Count}", false)], null);
+      body = new ForallExpr(tok, bvs, null, body, attrs) { Type = Type.Bool, Bounds = bounds };
     }
     return body;
   }

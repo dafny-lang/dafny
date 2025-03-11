@@ -555,7 +555,7 @@ module {:extract_boogie} Sequences {
   lemma {:extract_pattern Equal(s0, s1)} AboutEqual(s0: Seq, s1: Seq)
     ensures Equal(s0, s1) <==>
             && Length(s0) == Length(s1)
-            && forall j {:extract_pattern Index(s0, j)} {:extract_pattern Index(s1, j)} ::
+            && forall j {:extract_pattern Index(s0, j)} {:extract_pattern Index(s1, j)} {:extract_attribute "qid", "seq_about_equal_inner"} ::
                  0 <= j < Length(s0) ==> Index(s0, j) == Index(s1, j)
   {
     if Length(s0) == Length(s1) && forall j :: 0 <= j < Length(s0) ==> Index(s0, j) == Index(s1, j) {
@@ -602,7 +602,7 @@ module {:extract_boogie} Sequences {
   //         0 <= j && j < n ==> Seq#Index(s0,j) == Seq#Index(s1,j)));
   lemma {:extract_pattern SameUntil(s0, s1, n)} AboutSameUntil(s0: Seq, s1: Seq, n: int)
     ensures SameUntil(s0, s1, n) <==>
-            forall j {:extract_pattern Index(s0, j)} {:extract_pattern Index(s1, j)} ::
+            forall j {:extract_pattern Index(s0, j)} {:extract_pattern Index(s1, j)} {:extract_attribute "qid", "seq_about_same_until_inner"} ::
               0 <= j < n ==> Index(s0, j) == Index(s1, j)
   {
   }

@@ -152,17 +152,20 @@ public partial class BoogieGenerator {
 
     // forall args :: { P(args) } args-have-appropriate-values && P(args) ==> QQQ k { P#[k](args) } :: 0 ATMOST k HHH P#[k](args)
     var tr = BplTrigger(prefixAppl);
+    var kv = new QKeyValue(tok, "qid", [ $"[prefix_predicate] {System.IO.Path.GetFileName(tok.Uri.LocalPath)}:{tok.line} (inner)" ]);
     var qqqK = pp.ExtremePred is GreatestPredicate
-      ? (Bpl.Expr)new Bpl.ForallExpr(tok, [k], tr,
+      ? (Bpl.Expr)new Bpl.ForallExpr(tok, [], [k], kv, tr,
         kWhere == null ? prefixAppl : BplImp(kWhere, prefixAppl))
       : (Bpl.Expr)new Bpl.ExistsExpr(tok, [k], tr,
         kWhere == null ? prefixAppl : BplAnd(kWhere, prefixAppl));
     tr = BplTriggerHeap(this, tok, coAppl, pp.ReadsHeap ? null : h);
-    var allS = new Bpl.ForallExpr(tok, bvs, tr, BplImp(BplAnd(ante, coAppl), qqqK));
+    kv = new QKeyValue(tok, "qid", [ $"[prefix_predicate] {System.IO.Path.GetFileName(tok.Uri.LocalPath)}:{tok.line} (1)" ]);
+    var allS = new Bpl.ForallExpr(tok, [], bvs, kv, tr, BplImp(BplAnd(ante, coAppl), qqqK));
     sink.AddTopLevelDeclaration(new Bpl.Axiom(tok, allS, "1st prefix predicate axiom for " + pp.FullSanitizedName));
 
     // forall args :: { P(args) } args-have-appropriate-values && (QQQ k :: 0 ATMOST k HHH P#[k](args)) ==> P(args)
-    allS = new Bpl.ForallExpr(tok, bvs, tr, BplImp(BplAnd(ante, qqqK), coAppl));
+    kv = new QKeyValue(tok, "qid", [ $"[prefix_predicate] {System.IO.Path.GetFileName(tok.Uri.LocalPath)}:{tok.line} (2)" ]);
+    allS = new Bpl.ForallExpr(tok, [], bvs, kv, tr, BplImp(BplAnd(ante, qqqK), coAppl));
     sink.AddTopLevelDeclaration(new Bpl.Axiom(tok, allS, "2nd prefix predicate axiom"));
 
     // forall args,k :: args-have-appropriate-values && k == 0 ==> NNN P#0#[k](args)
@@ -178,7 +181,8 @@ public partial class BoogieGenerator {
     Bpl.Expr prefixLimited = pp.ExtremePred is LeastPredicate ? Bpl.Expr.Not(prefixLimitedBody) : prefixLimitedBody;
 
     var trigger = BplTriggerHeap(this, prefixLimitedBody.tok, prefixLimitedBody, pp.ReadsHeap ? null : h);
-    var trueAtZero = new Bpl.ForallExpr(tok, moreBvs, trigger, BplImp(BplAnd(ante, z), prefixLimited));
+    kv = new QKeyValue(tok, "qid", [ $"[prefix_predicate] {System.IO.Path.GetFileName(tok.Uri.LocalPath)}:{tok.line} (3)" ]);
+    var trueAtZero = new Bpl.ForallExpr(tok, [], moreBvs, kv, trigger, BplImp(BplAnd(ante, z), prefixLimited));
     sink.AddTopLevelDeclaration(new Bpl.Axiom(tok, trueAtZero, "3rd prefix predicate axiom"));
 
 #if WILLING_TO_TAKE_THE_PERFORMANCE_HIT
@@ -225,7 +229,8 @@ public partial class BoogieGenerator {
       var direction = BplImp(prefixPred_K, prefixPred_M);
 
       var trigger3 = new Bpl.Trigger(tok, true, new List<Bpl.Expr> { prefixPred_K, kLessLimit, mLessLimit });
-      var monotonicity = new Bpl.ForallExpr(tok, moreBvs, trigger3, BplImp(kLessM, direction));
+      kv = new QKeyValue(tok, "qid", [ $"[prefix_predicate] {System.IO.Path.GetFileName(tok.Uri.LocalPath)}:{tok.line} (monotone)" ]);
+      var monotonicity = new Bpl.ForallExpr(tok, [], moreBvs, kv, trigger3, BplImp(kLessM, direction));
       sink.AddTopLevelDeclaration(new Bpl.Axiom(tok, monotonicity, "targeted prefix predicate monotonicity axiom"));
     }
   }

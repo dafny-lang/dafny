@@ -1008,7 +1008,8 @@ namespace Microsoft.Dafny {
           Bpl.Expr.Le(Bpl.Expr.Literal(0), bv2nat),
           Bpl.Expr.Lt(bv2nat, Bpl.Expr.Literal(BaseTypes.BigNum.FromBigInt(BigInteger.One << w)))),
           Bpl.Expr.Eq(bv2nat, smt_bv2nat));
-        var ax = new Bpl.ForallExpr(tok, [bVar], BplTrigger(bv2nat), body);
+        var kv = new QKeyValue(tok, "qid", [ $"[nat_from_bv] {w}" ]);
+        var ax = new Bpl.ForallExpr(tok, [], [bVar], kv, BplTrigger(bv2nat), body);
         sink.AddTopLevelDeclaration(new Bpl.Axiom(tok, ax));
       }
     }
@@ -1120,7 +1121,8 @@ namespace Microsoft.Dafny {
             var tr = BplTrigger(isC);
             var body = BplImp(isC, isJ);
 
-            sink.AddTopLevelDeclaration(new Bpl.Axiom(c.Origin, new Bpl.ForallExpr(c.Origin, bvs, tr, body),
+            var kv = new QKeyValue(c.Origin, "qid", [ $"[trait_parent] {childType.Name} extends {parentType} (is)" ]);
+            sink.AddTopLevelDeclaration(new Bpl.Axiom(c.Origin, new Bpl.ForallExpr(c.Origin, [], bvs, kv, tr, body),
               $"type axiom for trait parent: {childType.Name} extends {parentType}"));
             sink.AddTopLevelDeclaration(new Bpl.Axiom(c.Origin, isBoxExpr));
 
@@ -1135,7 +1137,8 @@ namespace Microsoft.Dafny {
             bvs.Add(heapVar);
             tr = BplTrigger(isAllocC);
             body = BplImp(isAllocC, isAllocJ);
-            sink.AddTopLevelDeclaration(new Bpl.Axiom(c.Origin, new Bpl.ForallExpr(c.Origin, bvs, tr, body),
+            kv = new QKeyValue(c.Origin, "qid", [ $"[trait_parent] {childType.Name} extends {parentType} (isAlloc)" ]);
+            sink.AddTopLevelDeclaration(new Bpl.Axiom(c.Origin, new Bpl.ForallExpr(c.Origin, [], bvs, kv, tr, body),
               $"allocation axiom for trait parent: {childType.Name} extends {parentType}"));
             sink.AddTopLevelDeclaration(new Bpl.Axiom(c.Origin, isAllocBoxExpr));
           }
@@ -1566,7 +1569,8 @@ namespace Microsoft.Dafny {
 
       var body = BplImp(BplAnd(BplAnd(isGoodHeap, olderTag), BplAnd(funcAppl, newer)), older);
       var tr = new Bpl.Trigger(f.Origin, true, new List<Bpl.Expr> { olderTag });
-      var olderCondition = new Bpl.ForallExpr(f.Origin, [], [heapVar], null, tr, body);
+      var kv = new QKeyValue(f.Origin, "qid", [ $"[older_condition] {f.FullSanitizedName}" ]);
+      var olderCondition = new Bpl.ForallExpr(f.Origin, [], [heapVar], kv, tr, body);
       return (olderParameterCount, olderCondition);
     }
 
@@ -1649,7 +1653,8 @@ namespace Microsoft.Dafny {
       var funcAppl0 = new Bpl.NAryExpr(f.Origin, funcID, args0);
 
       Bpl.Trigger tr = new Bpl.Trigger(f.Origin, true, new List<Bpl.Expr> { funcAppl1 });
-      Bpl.Expr ax = new Bpl.ForallExpr(f.Origin, [], formals, null, tr, Bpl.Expr.Eq(funcAppl1, funcAppl0));
+      var kv = new QKeyValue(f.Origin, "qid", [ $"[layer_synonym] {f.FullSanitizedName}" ]);
+      Bpl.Expr ax = new Bpl.ForallExpr(f.Origin, [], formals, kv, tr, Bpl.Expr.Eq(funcAppl1, funcAppl0));
       AddOtherDefinition(GetOrCreateFunction(f), new Bpl.Axiom(f.Origin, ax, "layer synonym axiom"));
     }
 
@@ -1723,7 +1728,8 @@ namespace Microsoft.Dafny {
       var funcAppl0 = new Bpl.NAryExpr(f.Origin, funcID, args0);
 
       Bpl.Trigger tr = new Bpl.Trigger(f.Origin, true, new List<Bpl.Expr> { funcAppl2 });
-      Bpl.Expr ax = new Bpl.ForallExpr(f.Origin, [], formals, null, tr, Bpl.Expr.Eq(funcAppl1, funcAppl0));
+      var kv = new QKeyValue(f.Origin, "qid", [ $"[fuel_synonym] {f.FullSanitizedName}" ]);
+      Bpl.Expr ax = new Bpl.ForallExpr(f.Origin, [], formals, kv, tr, Bpl.Expr.Eq(funcAppl1, funcAppl0));
       AddOtherDefinition(GetOrCreateFunction(f), (new Bpl.Axiom(f.Origin, ax, "fuel synonym axiom")));
     }
 
@@ -2123,7 +2129,7 @@ namespace Microsoft.Dafny {
       var oInCallee = InRWClause(tok, o, f, calleeFrame, etran, receiverReplacement, substMap);
       var inEnclosingFrame = Bpl.Expr.Select(enclosingFrame, o, f);
 
-      var q = new Bpl.ForallExpr(tok, [], [oVar, fVar],
+      var q = new Bpl.ForallExpr(tok, [], [oVar, fVar], new QKeyValue(tok, "qid", [ $"[FrameSubset] {System.IO.Path.GetFileName(tok.Uri.LocalPath)}:{tok.line}" ]), null,
                                       BplImp(BplAnd(ante, oInCallee), inEnclosingFrame));
       if (IsExprAlways(q, true)) {
         return;
@@ -2149,8 +2155,7 @@ namespace Microsoft.Dafny {
       var ante = BplAnd(Bpl.Expr.Neq(o, Predef.Null), etran.IsAlloced(tok, o));
       var inFrame = Bpl.Expr.Select(frame, o, f);
       var notInFrame = Bpl.Expr.Not(inFrame);
-
-      var q = new Bpl.ForallExpr(tok, [], [oVar, fVar],
+      var q = new Bpl.ForallExpr(tok, [], [oVar, fVar], new QKeyValue(tok, "qid", [ $"[FrameEmpty] {System.IO.Path.GetFileName(tok.Uri.LocalPath)}:{tok.line}" ]), null,
         BplImp(ante, notInFrame));
       if (IsExprAlways(q, true)) {
         return;
@@ -2625,7 +2630,8 @@ namespace Microsoft.Dafny {
               axiom = whereClause;
             } else {
               var tr = new Bpl.Trigger(td.Origin, true, new List<Bpl.Expr> { funcAppl });
-              axiom = new Bpl.ForallExpr(td.Origin, [], argBoundVars, null, tr, whereClause);
+              var kv = new QKeyValue(td.Origin, "qid", [ $"[type_constructor] {name}" ]);
+              axiom = new Bpl.ForallExpr(td.Origin, [], argBoundVars, kv, tr, whereClause);
             }
             AddOtherDefinition(func, BplAxiom(axiom));
           }
@@ -3056,7 +3062,8 @@ namespace Microsoft.Dafny {
       Bpl.Expr consequent = use == FrameExpressionUse.Modifies ? BplOr(eq, ofInFrame) : BplImp(ofInFrame, eq);
 
       var tr = new Bpl.Trigger(tok, true, new List<Bpl.Expr> { heapOF });
-      return new Bpl.ForallExpr(tok, typeVars, quantifiedVars, null, tr, BplImp(ante, consequent));
+      var kv = new QKeyValue(tok, "qid", [ $"[frame_condition] {System.IO.Path.GetFileName(tok.Uri.LocalPath)}:{tok.line}" ]);
+      return new Bpl.ForallExpr(tok, typeVars, quantifiedVars, kv, tr, BplImp(ante, consequent));
     }
 
     Bpl.Expr/*!*/ FrameConditionUsingDefinedFrame(IOrigin/*!*/ tok, ExpressionTranslator/*!*/ etranPre, ExpressionTranslator/*!*/ etran, ExpressionTranslator/*!*/ etranMod, Boogie.IdentifierExpr frameExpr) {
@@ -3084,7 +3091,9 @@ namespace Microsoft.Dafny {
       consequent = BplOr(consequent, Bpl.Expr.SelectTok(tok, frameExpr, o, f));
 
       Bpl.Trigger tr = new Bpl.Trigger(tok, true, new List<Bpl.Expr> { heapOF });
-      return new Bpl.ForallExpr(tok, [], [oVar, fVar], null, tr, BplImp(ante, consequent));
+
+      var kv = new QKeyValue(tok, "qid", [ $"[frame_condition] {System.IO.Path.GetFileName(tok.Uri.LocalPath)}:{tok.line}" ]);
+      return new Bpl.ForallExpr(tok, [], [oVar, fVar], kv, tr, BplImp(ante, consequent));
     }
     // ----- Type ---------------------------------------------------------------------------------
 
@@ -4742,7 +4751,8 @@ namespace Microsoft.Dafny {
     /// but not if "j LESS i".
     /// Caution: if "trg" is null, makes a forall without any triggers.
     /// </summary>
-    static Bpl.Expr BplForallTrim(IEnumerable<Tuple<Bpl.Variable, Bpl.Expr/*?*/>> varsAndAntecedents, Bpl.Trigger trg, Bpl.Expr body) {
+    static Expr BplForallTrim(IOrigin tok, IEnumerable<Tuple<Variable, Expr>> varsAndAntecedents /*?*/, Trigger trg,
+      Expr body) {
       Contract.Requires(varsAndAntecedents != null);
       Contract.Requires(body != null);
 
@@ -4776,7 +4786,8 @@ namespace Microsoft.Dafny {
       if (args.Count == 0) {
         return body;
       } else {
-        return new Bpl.ForallExpr(body.tok, args, trg, BplImp(typeAntecedent, body));
+        var kv = new QKeyValue(body.tok, "qid", [ $"[can_call] {tok.Center}" ]);
+        return new Bpl.ForallExpr(body.tok, [], args, kv, trg, BplImp(typeAntecedent, body));
       }
     }
     class VariableNameVisitor : Boogie.StandardVisitor {

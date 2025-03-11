@@ -138,7 +138,7 @@ namespace Microsoft.Dafny {
           body = BplIff(is_o, rhs);
         }
 
-        var axiom = new Boogie.Axiom(c.Origin, BplForall(vars, BplTrigger(is_o), body), name);
+        var axiom = new Boogie.Axiom(c.Origin, BplForall(vars, BplTrigger(is_o), body, $"[is{(is_alloc ? "" : "_alloc")}_ax] {c.FullSanitizedName}"), name);
         AddOtherDefinition(GetOrCreateTypeConstructor(c), axiom);
       });
     }
@@ -375,7 +375,7 @@ namespace Microsoft.Dafny {
         isalloc_hf = MkIsAlloc(oDotF, f.Type, h); // $IsAlloc(h[o, f], ..)
       }
 
-      Bpl.Expr ax = BplForall(bvsTypeAxiom, tr, BplImp(ante, is_hf));
+      Bpl.Expr ax = BplForall(bvsTypeAxiom, tr, BplImp(ante, is_hf), $"[type_ax] {c.FullSanitizedName}.{f}");
       AddOtherDefinition(fieldDeclaration, new Bpl.Axiom(c.Origin, ax, $"{c}.{f}: Type axiom"));
 
       if (isalloc_hf != null) {
@@ -401,7 +401,7 @@ namespace Microsoft.Dafny {
 
         tr = new Bpl.Trigger(c.Origin, true, t_es);
 
-        ax = BplForall(bvsAllocationAxiom, tr, BplImp(ante, isalloc_hf));
+        ax = BplForall(bvsAllocationAxiom, tr, BplImp(ante, isalloc_hf), $"[alloc_ax] {c.FullSanitizedName}.{f}");
         AddOtherDefinition(fieldDeclaration, new Boogie.Axiom(c.Origin, ax, $"{c}.{f}: Allocation axiom"));
       }
     }
@@ -446,7 +446,7 @@ namespace Microsoft.Dafny {
 
       var oDotF = new Boogie.NAryExpr(c.Origin, new Boogie.FunctionCall(GetReadonlyField(f)), tyexprs);
       var is_hf = MkIs(oDotF, f.Type); // $Is(h[o, f], ..)
-      Boogie.Expr ax = bvsTypeAxiom.Count == 0 ? is_hf : BplForall(bvsTypeAxiom, BplTrigger(oDotF), is_hf);
+      Boogie.Expr ax = bvsTypeAxiom.Count == 0 ? is_hf : BplForall(bvsTypeAxiom, BplTrigger(oDotF), is_hf, $"[type_ax] {c.FullSanitizedName}.{f.FullSanitizedName}");
       var isAxiom = new Boogie.Axiom(c.Origin, ax, $"{c}.{f}: Type axiom");
       AddOtherDefinition(fieldDeclaration, isAxiom);
 
@@ -455,7 +455,7 @@ namespace Microsoft.Dafny {
         bvsAllocationAxiom.Add(hVar);
         var isGoodHeap = FunctionCall(c.Origin, BuiltinFunction.IsGoodHeap, null, h);
         var isalloc_hf = MkIsAlloc(oDotF, f.Type, h); // $IsAlloc(h[o, f], ..)
-        ax = BplForall(bvsAllocationAxiom, BplTrigger(isalloc_hf), BplImp(isGoodHeap, isalloc_hf));
+        ax = BplForall(bvsAllocationAxiom, BplTrigger(isalloc_hf), BplImp(isGoodHeap, isalloc_hf), $"[alloc_ax] {c.FullSanitizedName}.{f.FullSanitizedName}");
         var isAllocAxiom = new Boogie.Axiom(c.Origin, ax, $"{c}.{f}: Allocation axiom");
         sink.AddTopLevelDeclaration(isAllocAxiom);
       }
@@ -474,7 +474,7 @@ namespace Microsoft.Dafny {
           args.Add(TypeToTy(targ));
         }
         var expr = FunctionCall(c.Origin, "implements$" + trait.FullSanitizedName, Bpl.Type.Bool, args);
-        var implements_axiom = new Bpl.Axiom(c.Origin, BplForall(vars, null, expr));
+        var implements_axiom = new Bpl.Axiom(c.Origin, BplForall(vars, null, expr, $"[implements_ax] {c.FullSanitizedName}"));
         AddOtherDefinition(GetOrCreateTypeConstructor(c), implements_axiom);
       }
     }
@@ -1216,7 +1216,7 @@ namespace Microsoft.Dafny {
       // emit: assert (forall o: ref, f: Field :: o != null && $Heap[o,alloc] && (o,f) in subFrame ==> $_ReadsFrame[o,f]);
       Bpl.Expr oInCallee = InRWClause(tok, o, f, func.Reads.Expressions, etran, null, null);
       Bpl.Expr consequent2 = InRWClause(tok, o, f, traitFrameExps, etran, null, null);
-      Bpl.Expr q = new Bpl.ForallExpr(tok, [], [oVar, fVar],
+      Bpl.Expr q = new Bpl.ForallExpr(tok, [], [oVar, fVar], new QKeyValue(tok, "qid", [ $"[FunctionOverrideSubsetChk] {func.FullSanitizedName}" ]), null,
                                       BplImp(BplAnd(ante, oInCallee), consequent2));
       var description = new TraitFrame(func.WhatKind, false, func.Reads.Expressions, traitFrameExps);
       builder.Add(Assert(tok, q, description, builder.Context, kv));
@@ -1441,7 +1441,7 @@ namespace Microsoft.Dafny {
 
       // The axiom
       Boogie.Expr ax = BplForall(f.Origin, [], forallFormals, null, tr,
-        BplImp(ante, BplAnd(canCallImp, synonyms)));
+        BplImp(ante, BplAnd(canCallImp, synonyms)), $"[override_ax] {f.FullSanitizedName} in {overridingFunction.EnclosingClass.FullSanitizedName}");
       var comment = $"override axiom for {f.FullSanitizedName} in {overridingFunction.EnclosingClass.WhatKind} {overridingFunction.EnclosingClass.FullSanitizedName}";
       return new Boogie.Axiom(f.Origin, ax, comment);
     }
@@ -1673,7 +1673,7 @@ namespace Microsoft.Dafny {
       // emit: assert (forall o: ref, f: Field :: o != null && $Heap[o,alloc] && (o,f) in subFrame ==> $_Frame[o,f]);
       var oInCallee = InRWClause(tok, o, f, classFrameExps, etran, null, null);
       var consequent2 = InRWClause(tok, o, f, traitFrameExps, etran, null, null);
-      var q = new Boogie.ForallExpr(tok, [], [oVar, fVar],
+      var q = new Boogie.ForallExpr(tok, [], [oVar, fVar], new QKeyValue(tok, "qid", [ $"[MethodOverrideSubsetChk] {m.FullSanitizedName}" ]), null,
         BplImp(BplAnd(ante, oInCallee), consequent2));
       var description = new TraitFrame(m.WhatKind, isModifies, classFrameExps, traitFrameExps);
       builder.Add(Assert(m.Origin, q, description, builder.Context, kv));
@@ -1957,7 +1957,8 @@ namespace Microsoft.Dafny {
         }
 
         var body = BplImp(isBox, bounds);
-        isBoxExpr = new Bpl.ForallExpr(tok, vars, BplTrigger(isBox), body);
+        var kv = new QKeyValue(tok, "qid", [ $"[type_bound] {System.IO.Path.GetFileName(tok.Uri.LocalPath)}:{tok.line} (box)" ]);
+        isBoxExpr = new Bpl.ForallExpr(tok, [], vars, kv, BplTrigger(isBox), body);
       }
 
       {
@@ -1977,7 +1978,8 @@ namespace Microsoft.Dafny {
         }
 
         var body = BplImp(BplAnd(isAllocBox, isGoodHeap), bounds);
-        isAllocBoxExpr = new Bpl.ForallExpr(tok, vars, BplTrigger(isAllocBox), body);
+        var kv = new QKeyValue(tok, "qid", [ $"[type_bound] {System.IO.Path.GetFileName(tok.Uri.LocalPath)}:{tok.line} (alloc)" ]);
+        isAllocBoxExpr = new Bpl.ForallExpr(tok, [], vars, kv, BplTrigger(isAllocBox), body);
       }
     }
   }

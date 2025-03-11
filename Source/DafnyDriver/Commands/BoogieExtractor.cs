@@ -167,6 +167,7 @@ namespace Microsoft.Dafny.Compilers {
         axiomBody = body;
       } else {
         var kv = GetKeyValues(tok, lemma.Attributes);
+        kv = new QKeyValue(tok, "qid", new List<object>() { lemma.FullSanitizedName }, kv);
         axiomBody = new Boogie.ForallExpr(tok, [], boundVars, kv, triggers, body);
       }
       var axiom = new Boogie.Axiom(tok, axiomBody);
@@ -279,6 +280,8 @@ namespace Microsoft.Dafny.Compilers {
             } else if (literalExpr.Value is BigInteger intValue) {
               var n = BigNum.FromBigInt(intValue);
               return Boogie.Expr.Literal(n);
+            } else if (literalExpr.Value is string s) {
+              return Boogie.Expr.Literal(s);
             }
             break;
           }

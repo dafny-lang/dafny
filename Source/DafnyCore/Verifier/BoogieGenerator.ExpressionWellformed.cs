@@ -454,7 +454,8 @@ namespace Microsoft.Dafny {
                 var fieldName = FunctionCall(e.Origin, BuiltinFunction.IndexField, null, i);
                 var allowedToRead = Bpl.Expr.SelectTok(e.Origin, etran.ReadsFrame(e.Origin), seq, fieldName);
                 var trigger = BplTrigger(allowedToRead); // Note, the assertion we're about to produce only seems useful in the check-only mode (that is, with subsumption 0), but if it were to be assumed, we'll use this entire RHS as the trigger
-                var qq = new Bpl.ForallExpr(e.Origin, [iVar], trigger, BplImp(range, allowedToRead));
+                var kv = new QKeyValue(e.Origin, "qid", [ $"[seq_select] {System.IO.Path.GetFileName(e.Origin.Uri.LocalPath)}:{e.Origin.line}" ]);
+                var qq = new Bpl.ForallExpr(e.Origin, [], [iVar], kv, trigger, BplImp(range, allowedToRead));
                 var requiredFrame = new FrameExpression(Token.NoToken, e.Seq, null);
                 var desc = new ReadFrameSubset("read the indicated range of array elements", requiredFrame, readFrames, e, etran.scope);
                 wfOptions.AssertSink(this, builder)(selectExpr.Origin, qq, desc, wfOptions.AssertKv);
@@ -1700,7 +1701,8 @@ namespace Microsoft.Dafny {
         var ai = ReadHeap(tok, etran.HeapExpr, nw, GetArrayIndexFieldName(tok, indices));
         var ai_prime = UnboxUnlessBoxType(tok, ai, elementType);
         var tr = new Bpl.Trigger(tok, true, new List<Bpl.Expr> { ai });
-        q = new Bpl.ForallExpr(tok, bvs, tr, BplImp(ante, BplAnd(canCall, Bpl.Expr.Eq(ai_prime, apply))));
+        var kv = new QKeyValue(tok, "qid", [ $"[element_init] {System.IO.Path.GetFileName(tok.Uri.LocalPath)}:{tok.line}" ]);
+        q = new Bpl.ForallExpr(tok, [], bvs, kv, tr, BplImp(ante, BplAnd(canCall, Bpl.Expr.Eq(ai_prime, apply))));
         builder.Add(new Bpl.AssumeCmd(tok, q));
       }
     }

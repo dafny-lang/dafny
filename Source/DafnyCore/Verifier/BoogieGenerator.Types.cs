@@ -118,7 +118,7 @@ public partial class BoogieGenerator {
           op = (u, v) => BplImp(v, u);
         }
         AddOtherDefinition(GetOrCreateTypeConstructor(ad), new Axiom(tok,
-          BplForall(bvars, BplTrigger(lhs), op(lhs, rhs))));
+          BplForall(bvars, BplTrigger(lhs), op(lhs, rhs), $"[selector_sem] {selector}")));
       };
       SelectorSemantics(Apply(arity), Predef.BoxType, "h", apply_ty, Requires(arity), requires_ty);
       SelectorSemantics(Requires(arity), Bpl.Type.Bool, "r", requires_ty, null, null);
@@ -204,7 +204,7 @@ public partial class BoogieGenerator {
           var o = BplBoundVar("o", Predef.RefType, ivars);
           var fld = BplBoundVar("fld", Predef.FieldName(tok), ivars);
 
-          var inner_forall = new Bpl.ForallExpr(tok, [], ivars, BplImp(
+          var inner_forall = new Bpl.ForallExpr(tok, [], ivars, new QKeyValue(tok, "qid", new List<object>() { $"[frame_ax_inner] {fname} {hN}" }, null), (Trigger) null , BplImp(
             BplAnd(
               Bpl.Expr.Neq(o, Predef.Null),
               // Note, the MkIsAlloc conjunct of "isness" implies that everything in the reads frame is allocated in "h0", which by HeapSucc(h0,h1) also implies the frame is allocated in "h1"
@@ -222,7 +222,7 @@ public partial class BoogieGenerator {
               new Bpl.Trigger(tok, true, new List<Bpl.Expr> { heapSucc, fn(h1) }),
               BplImp(
                 BplAnd(BplAnd(BplAnd(heapSucc, goodHeaps), isness), inner_forall),
-                Bpl.Expr.Eq(fn(h0), fn(h1)))), "frame axiom for " + fname));
+                Bpl.Expr.Eq(fn(h0), fn(h1))), $"[frame_ax] {fname} {hN}"), "frame axiom for " + fname));
         };
 
         AddFrameForFunction(h0, Reads(ad.Arity));
@@ -262,10 +262,10 @@ public partial class BoogieGenerator {
 
         sink.AddTopLevelDeclaration(new Axiom(tok, BplForall(bvars,
           new Bpl.Trigger(tok, true, new List<Bpl.Expr> { readsOne, goodHeap },
-          new Bpl.Trigger(tok, true, new List<Bpl.Expr> { readsH })),
+            new Bpl.Trigger(tok, true, new List<Bpl.Expr> { readsH })),
           BplImp(
             BplAnd(goodHeap, isness),
-            BplIff(readsNothingOne, readsNothingH))),
+            BplIff(readsNothingOne, readsNothingH)), $"[empty_reads] {Reads(arity)}"),
           string.Format("empty-reads property for {0} ", Reads(arity))));
       }
 
@@ -301,10 +301,10 @@ public partial class BoogieGenerator {
 
         sink.AddTopLevelDeclaration(new Axiom(tok, BplForall(bvars,
           new Bpl.Trigger(tok, true, new List<Bpl.Expr> { requiresOne, goodHeap },
-          new Bpl.Trigger(tok, true, new List<Bpl.Expr> { requiresH })),
+            new Bpl.Trigger(tok, true, new List<Bpl.Expr> { requiresH })),
           BplImp(
             BplAnd(BplAnd(goodHeap, isness), readsNothingOne),
-            Bpl.Expr.Eq(requiresOne, requiresH))),
+            Bpl.Expr.Eq(requiresOne, requiresH)), $"[empty_reads] {Requires(arity)}"),
           string.Format("empty-reads property for {0}", Requires(arity))));
       }
 
@@ -338,7 +338,7 @@ public partial class BoogieGenerator {
           BplForall(bvarsOuter, BplTrigger(Is),
             BplIff(Is,
               BplForall(bvarsInner, BplTrigger(applied),
-                BplImp(BplAnd(BplAnd(goodHeap, isBoxes), pre), applied_is))))));
+                BplImp(BplAnd(BplAnd(goodHeap, isBoxes), pre), applied_is), $"[is_func_inner] {ad.FullSanitizedName}")), $"[is_func_outer] {ad.FullSanitizedName}")));
       }
       /*
          axiom (forall f: HandleType, t0: Ty, t1: Ty, u0: Ty, u1: Ty ::
@@ -366,7 +366,7 @@ public partial class BoogieGenerator {
           var isBoxB = MkIs(bx, b, true);
           var tr = new Bpl.Trigger(tok, true, new[] { isBoxA }, new Bpl.Trigger(tok, true, new[] { isBoxB }));
           var imp = BplImp(isBoxA, isBoxB);
-          return BplForall(bvarsInner, tr, imp);
+          return BplForall(bvarsInner, tr, imp, $"[is_lift_inner] {ad.FullSanitizedName}");
         };
 
         var body = IsT;
@@ -376,7 +376,7 @@ public partial class BoogieGenerator {
         body = BplAnd(body, Inner(typesT[arity], typesU[arity]));
         body = BplImp(body, IsU);
         sink.AddTopLevelDeclaration(new Axiom(tok,
-          BplForall(bvarsOuter, new Bpl.Trigger(tok, true, new[] { IsT, IsU }), body)));
+          BplForall(bvarsOuter, new Bpl.Trigger(tok, true, new[] { IsT, IsU }), body, $"[is_lift_outer] {ad.FullSanitizedName}")));
       }
       /*  This is the definition of $IsAlloc function the arrow type:
         axiom (forall f: HandleType, t0: Ty, t1: Ty, h: Heap ::
@@ -418,7 +418,7 @@ public partial class BoogieGenerator {
         var reads = FunctionCall(tok, Reads(ad.Arity), Predef.BoxType, Concat(types, Cons(h, Cons<Bpl.Expr>(f, boxes))));
         var rInReads = IsSetMember(tok, reads, FunctionCall(tok, BuiltinFunction.Box, null, r), true);
         var rAlloc = IsAlloced(tok, h, r);
-        var isAllocReads = BplForall(bvarsR, BplTrigger(rInReads), BplImp(BplAnd(rNonNull, rInReads), rAlloc));
+        var isAllocReads = BplForall(bvarsR, BplTrigger(rInReads), BplImp(BplAnd(rNonNull, rInReads), rAlloc), $"[is_alloc_inner_reads] {ad.FullSanitizedName}");
 
         sink.AddTopLevelDeclaration(new Axiom(tok,
           BplForall(bvarsOuter, BplTrigger(isAlloc),
@@ -426,7 +426,7 @@ public partial class BoogieGenerator {
               BplIff(isAlloc,
                 BplForall(bvarsInner,
                   new Bpl.Trigger(tok, true, new List<Bpl.Expr> { applied }, BplTrigger(reads)),
-                  BplImp(BplAnd(isAllocBoxes, pre), isAllocReads)))))));
+                  BplImp(BplAnd(isAllocBoxes, pre), isAllocReads), $"[is_alloc_inner] {ad.FullSanitizedName}"))), $"[is_alloc_outer] {ad.FullSanitizedName}")));
       }
       /*  This is the allocatedness consequence axiom of arrow types:
         axiom (forall f: HandleType, t0: Ty, t1: Ty, h: Heap ::
@@ -461,7 +461,7 @@ public partial class BoogieGenerator {
           BplForall(bvarsOuter, BplTrigger(isAlloc),
             BplImp(BplAnd(goodHeap, isAlloc),
               BplForall(bvarsInner, BplTrigger(applied),
-                BplImp(BplAnd(isAllocBoxes, pre), applied_isAlloc))))));
+                BplImp(BplAnd(isAllocBoxes, pre), applied_isAlloc), $"[is_alloc_conseq_inner] {ad.FullSanitizedName}")), $"[is_alloc_conseq] {ad.FullSanitizedName}")));
       }
     }
   }
@@ -498,7 +498,7 @@ public partial class BoogieGenerator {
         var injfunc = new Bpl.Function(tok, injname, Singleton(tyVarIn), tyVarOut);
         sink.AddTopLevelDeclaration(injfunc);
         var outer = FunctionCall(tok, injname, args[i].TypedIdent.Type, inner);
-        Bpl.Expr qq = BplForall(args, BplTrigger(inner), Bpl.Expr.Eq(outer, argExprs[i]));
+        Bpl.Expr qq = BplForall(args, BplTrigger(inner), Bpl.Expr.Eq(outer, argExprs[i]), $"[injectivity] {name} ({i})");
         var injectivityAxiom = new Axiom(tok, qq, name + " injectivity " + i);
         AddOtherDefinition(injfunc, injectivityAxiom);
       }
@@ -557,7 +557,7 @@ public partial class BoogieGenerator {
     body = BplAnd(body,
       Bpl.Expr.Eq(FunctionCall(tok, "TagFamily", Predef.TyTagFamily, inner), new Bpl.IdentifierExpr(tok, tagFamily)));
 
-    var qq = BplForall(args, BplTrigger(inner), body);
+    var qq = BplForall(args, BplTrigger(inner), body, $"[tag] {name}");
     var tagAxiom = new Axiom(tok, qq, name + " Tag");
     return tagAxiom;
   }
@@ -583,7 +583,8 @@ public partial class BoogieGenerator {
     var bvs = new List<Variable>() { vVar };
     var isBv = MkIs(v, typeTerm);
     var tr = BplTrigger(isBv);
-    sink.AddTopLevelDeclaration(new Bpl.Axiom(tok, new Bpl.ForallExpr(tok, bvs, tr, isBv)));
+    var kv = new QKeyValue(tok, "qid", [ $"[bv] {w} (is)" ]);
+    sink.AddTopLevelDeclaration(new Bpl.Axiom(tok, new Bpl.ForallExpr(tok, [], bvs, kv, tr, isBv)));
 
     // axiom (forall v: bv3, heap: Heap :: { $IsAlloc(v, TBitvector(3), h) } $IsAlloc(v, TBitvector(3), heap));
     vVar = BplBoundVar("v", boogieType, out v);
@@ -591,7 +592,8 @@ public partial class BoogieGenerator {
     bvs = [vVar, heapVar];
     var isAllocBv = MkIsAlloc(v, typeTerm, heap);
     tr = BplTrigger(isAllocBv);
-    sink.AddTopLevelDeclaration(new Bpl.Axiom(tok, new Bpl.ForallExpr(tok, bvs, tr, isAllocBv)));
+    kv = new QKeyValue(tok, "qid", [ $"[bv] {w} (isAlloc)" ]);
+    sink.AddTopLevelDeclaration(new Bpl.Axiom(tok, new Bpl.ForallExpr(tok, [], bvs, kv, tr, isAllocBv)));
   }
 
   /// <summary>
@@ -617,7 +619,7 @@ public partial class BoogieGenerator {
     sink.AddTopLevelDeclaration(
       new Axiom(tok,
         BplForall(Snoc(args, bxVar), BplTrigger(box_is),
-          BplImp(box_is, BplAnd(Bpl.Expr.Eq(box_unbox, bx), unbox_is))),
+          BplImp(box_is, BplAnd(Bpl.Expr.Eq(box_unbox, bx), unbox_is)), $"[box_unbox] {printableName}"),
         "Box/unbox axiom for " + printableName));
   }
 
@@ -1011,7 +1013,7 @@ public partial class BoogieGenerator {
       }
 
       var comment = $"$IsAlloc axiom for {dd.WhatKind} {fullName}";
-      var axiom = new Bpl.Axiom(dd.Tok, BplForall(vars, BplTrigger(isAlloc), body), comment);
+      var axiom = new Bpl.Axiom(dd.Tok, BplForall(vars, BplTrigger(isAlloc), body, $"[is_alloc] {dd.WhatKind} {fullName}"), comment);
       AddOtherDefinition(GetOrCreateTypeConstructor(dd), axiom);
 
     } else {
@@ -1048,12 +1050,12 @@ public partial class BoogieGenerator {
 
       var rhs = BplAnd(parentConstraint, BplAnd(constraintCanCall, constraint));
       var body = canCallIsJustTrue ? BplIff(isPredicate, rhs) : BplImp(isPredicate, rhs);
-      var axiom = new Bpl.Axiom(dd.Origin, BplForall(vars, trigger, body), comment);
+      var axiom = new Bpl.Axiom(dd.Origin, BplForall(vars, trigger, body, $"[is] {dd.WhatKind} {fullName}"), comment);
       AddOtherDefinition(GetOrCreateTypeConstructor(dd), axiom);
 
       if (!canCallIsJustTrue) {
         body = BplImp(BplAnd(parentConstraint, BplImp(constraintCanCall, constraint)), isPredicate);
-        axiom = new Bpl.Axiom(dd.Origin, BplForall(vars, BplTrigger(isPredicate), body), null);
+        axiom = new Bpl.Axiom(dd.Origin, BplForall(vars, BplTrigger(isPredicate), body, $"[is_snd] {dd.WhatKind} {fullName}"), null);
         AddOtherDefinition(GetOrCreateTypeConstructor(dd), axiom);
       }
     }

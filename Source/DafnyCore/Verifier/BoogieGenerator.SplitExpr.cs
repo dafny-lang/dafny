@@ -327,16 +327,17 @@ namespace Microsoft.Dafny {
                 Bpl.Expr typeAntecedent = etran.TrBoundVariables(kvars, bvars);  // no need to use allocation antecedent here, because the well-founded less-than ordering assures kk are allocated
                 Bpl.Expr ih;
                 var tr = TrTrigger(etran, e.Attributes, expr.Origin, substMap);
-                ih = new Bpl.ForallExpr(expr.Origin, bvars, tr, BplImp(typeAntecedent, ihBody));
+                var kv = new QKeyValue(expr.Origin, "qid", [ $"[split_expression] {System.IO.Path.GetFileName(expr.Origin.Uri.LocalPath)}:{expr.Origin.line} (IH)" ]);
+                ih = new Bpl.ForallExpr(expr.Origin, [], bvars, kv, tr, BplImp(typeAntecedent, ihBody));
 
                 // More precisely now:
                 //   (forall n :: n-has-expected-type && (forall k :: k < n ==> P(k)) && case0(n)   ==> P(n))
                 //   (forall n :: n-has-expected-type && (forall k :: k < n ==> P(k)) && case...(n) ==> P(n))
                 // or similar for existentials.
                 var caseProduct = new List<Bpl.Expr>() {
-                // make sure to include the correct token information (so, don't just use Bpl.Expr.True here)
-                new Bpl.LiteralExpr(TrSplitNeedsTokenAdjustment(expr) ? new ForceCheckOrigin(expr.Origin) : expr.Origin, true)
-              };
+                  // make sure to include the correct token information (so, don't just use Bpl.Expr.True here)
+                  new Bpl.LiteralExpr(TrSplitNeedsTokenAdjustment(expr) ? new ForceCheckOrigin(expr.Origin) : expr.Origin, true)
+                };
                 var i = 0;
                 foreach (var n in inductionVariables) {
                   var newCases = new List<Bpl.Expr>();
@@ -362,7 +363,8 @@ namespace Microsoft.Dafny {
                   Bpl.Expr q;
                   var trig = TrTrigger(etranBody, e.Attributes, expr.Origin);
                   if (position) {
-                    q = new Bpl.ForallExpr(kase.tok, bvars, trig, BplImp(ante, bdy));
+                    kv = new QKeyValue(expr.Origin, "qid", [ $"[split_expression] {System.IO.Path.GetFileName(expr.Origin.Uri.LocalPath)}:{expr.Origin.line} (IH)" ]);
+                    q = new Bpl.ForallExpr(kase.tok, [], bvars, kv, trig, BplImp(ante, bdy));
                   } else {
                     q = new Bpl.ExistsExpr(kase.tok, bvars, trig, BplAnd(ante, bdy));
                   }

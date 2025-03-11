@@ -235,7 +235,8 @@ public partial class BoogieGenerator {
       if (includeCanCalls) {
         body = BplAnd(anteCanCalls, body);
       }
-      var qq = new Bpl.ForallExpr(tok, bvars, tr, body);
+      var kv = new QKeyValue(tok, "qid", [ $"[forall_stmt_heap] {System.IO.Path.GetFileName(tok.Uri.LocalPath)}:{tok.line}" ]);
+      var qq = new Bpl.ForallExpr(tok, [], bvars, kv, tr, body);
       exporter.Add(TrAssumeCmd(tok, qq));
     }
   }
@@ -416,7 +417,8 @@ public partial class BoogieGenerator {
     Bpl.Expr xObjField = new Bpl.ExistsExpr(s.Origin, xBvars, xBody);  // LL_TRIGGER
     Bpl.Expr body = BplOr(Bpl.Expr.Eq(heapOF, oldHeapOF), xObjField);
     var tr = new Trigger(s.Origin, true, new List<Expr>() { heapOF });
-    Bpl.Expr qq = new Bpl.ForallExpr(s.Origin, [], [oVar, fVar], null, tr, body);
+    var kv = new QKeyValue(s.Origin, "qid", [$"[ForallAssign] {System.IO.Path.GetFileName(s.Origin.Uri.LocalPath)}:{s.Origin.line}"]);
+    Bpl.Expr qq = new Bpl.ForallExpr(s.Origin, [], [oVar, fVar], kv, tr, body);
     updater.Add(TrAssumeCmd(s.Origin, qq));
 
     if (s.EffectiveEnsuresClauses != null) {
@@ -483,7 +485,8 @@ public partial class BoogieGenerator {
     var body = BplAnd(canCalls, Bpl.Expr.Eq(xHeapOF, g));
     body = BplImp(xAnte, body);
     body = BplAnd(canCallRange, body);
-    return new Bpl.ForallExpr(tok, xBvars, tr, body);
+    var kv = new QKeyValue(tok, "qid", [$"[ForallAssignNewValue] {System.IO.Path.GetFileName(tok.Uri.LocalPath)}:{tok.line}"]);
+    return new Bpl.ForallExpr(tok, [], xBvars, kv, tr, body);
   }
 
   IEnumerable<Statement> TransitiveSubstatements(Statement s) {

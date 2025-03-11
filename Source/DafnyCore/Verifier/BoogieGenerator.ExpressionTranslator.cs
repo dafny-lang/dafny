@@ -802,9 +802,11 @@ namespace Microsoft.Dafny {
                     Boogie.Expr notNullBody = BplImp(oInSet, oNotNull);
                     Boogie.Expr freshBody = BplImp(oInSet, oIsFresh);
                     var notNullTrigger = BplTrigger(oNotNull);
-                    var notNullPred = new Boogie.ForallExpr(GetToken(opExpr), [oVar], notNullTrigger, notNullBody);
+                    var kv = new QKeyValue(GetToken(opExpr), "qid", [ $"[fresh] {System.IO.Path.GetFileName(GetToken(opExpr).Uri.LocalPath)}:{GetToken(opExpr).line} (not null)" ]);
+                    var notNullPred = new Boogie.ForallExpr(GetToken(opExpr), [], [oVar], kv, notNullTrigger, notNullBody);
                     var freshTrigger = BplTrigger(performedInSetRewrite ? oNotFresh : oInSet);
-                    var freshPred = new Boogie.ForallExpr(GetToken(opExpr), [oVar], freshTrigger, freshBody);
+                    kv = new QKeyValue(GetToken(opExpr), "qid", [ $"[fresh] {System.IO.Path.GetFileName(GetToken(opExpr).Uri.LocalPath)}:{GetToken(opExpr).line} (pred)" ]);
+                    var freshPred = new Boogie.ForallExpr(GetToken(opExpr), [], [oVar], kv ,freshTrigger, freshBody);
                     return BplAnd(notNullPred, freshPred);
                   } else if (eeType is SeqType) {
                     // generate:  (forall $i: int :: 0 <= $i && $i < Seq#Length(X) ==> Unbox(Seq#Index(X,$i)) != null && !old($Heap)[Unbox(Seq#Index(X,$i)),alloc])
@@ -817,10 +819,11 @@ namespace Microsoft.Dafny {
                     Boogie.Expr oIsFresh = Boogie.Expr.Not(oNotFresh);
                     Boogie.Expr xsubiNotNull = Boogie.Expr.Neq(XsubI, Predef.Null);
                     Boogie.Expr body = BplImp(iBounds, BplAnd(xsubiNotNull, oIsFresh));
+                    var kv = new QKeyValue(GetToken(opExpr), "qid", [ $"[fresh] {System.IO.Path.GetFileName(GetToken(opExpr).Uri.LocalPath)}:{GetToken(opExpr).line}" ]);
                     //TRIGGERS: Does this make sense? dafny0\SmallTests
                     // BROKEN // NEW_TRIGGER
                     //TRIG (forall $i: int :: 0 <= $i && $i < Seq#Length(Q#0) && $Unbox(Seq#Index(Q#0, $i)): ref != null ==> !read(old($Heap), $Unbox(Seq#Index(Q#0, $i)): ref, alloc))
-                    return new Boogie.ForallExpr(GetToken(opExpr), [iVar], body);
+                    return new Boogie.ForallExpr(GetToken(opExpr), [], [iVar], kv, null, body);
                   } else {
                     // generate:  x != null && !old($Heap)[x]
                     Boogie.Expr oNull = Boogie.Expr.Neq(TrExpr(e.E), Predef.Null);
@@ -1322,12 +1325,18 @@ namespace Microsoft.Dafny {
                 antecedent = BplAnd(antecedent, bodyEtran.TrBoundVariables(e.BoundVars, bvars, false, freeOfAlloc)); // initHeapForAllStmt
 
                 Boogie.QKeyValue kv = TrAttributes(e.Attributes, "trigger");
+                // kv = new QKeyValue(GetToken(quantifierExpr), "qid", new List<object>() { GetToken(e).ToString() }, kv);
                 Boogie.Trigger tr = BoogieGenerator.TrTrigger(bodyEtran, e.Attributes, GetToken(e), bvars, null, null);
 
                 if (e.Range != null) {
                   antecedent = BplAnd(antecedent, bodyEtran.TrExpr(e.Range));
                 }
                 Boogie.Expr body = bodyEtran.TrExpr(e.Term);
+
+                if (kv == null || Bpl.QKeyValue.FindStringAttribute(kv, "qid") == null) {
+                  kv = new Bpl.QKeyValue(body.tok, "qid", [ $"[user_defined_quant] {e.Origin.Center}" ], kv);
+
+                }
 
                 if (e is ForallExpr) {
                   return new Boogie.ForallExpr(GetToken(quantifierExpr), [], bvars, kv, tr, BplImp(antecedent, body));
@@ -1373,6 +1382,9 @@ namespace Microsoft.Dafny {
                 lbody = new Boogie.ExistsExpr(GetToken(comprehension), bvars, triggers, ebody);
               }
               Boogie.QKeyValue kv = TrAttributes(e.Attributes, "trigger");
+              if (kv == null || QKeyValue.FindStringAttribute(kv, "qid") == null) {
+                kv = new QKeyValue(GetToken(e), "qid", [ $"[lambda] { GetToken(e).Center }" ], kv);
+              }
               var lambda = new Boogie.LambdaExpr(GetToken(comprehension), [], [yVar], kv, lbody);
               return comprehension.Type.NormalizeToAncestorType().AsSetType.Finite
                 ? FunctionCall(GetToken(comprehension), "Set#FromBoogieMap", Predef.SetType, lambda)
@@ -1398,6 +1410,9 @@ namespace Microsoft.Dafny {
               List<bool> freeOfAlloc = BoundedPool.HasBounds(e.Bounds, BoundedPool.PoolVirtues.IndependentOfAlloc_or_ExplicitAlloc);
 
               Boogie.QKeyValue kv = TrAttributes(e.Attributes, "trigger");
+              if (kv == null || QKeyValue.FindStringAttribute(kv, "qid") == null) {
+                kv = new QKeyValue(GetToken(e), "qid", [ $"[lambda] { GetToken(e).Center }" ], kv);
+              }
 
               var wVar = new Boogie.BoundVariable(GetToken(comprehension), new Boogie.TypedIdent(GetToken(comprehension), BoogieGenerator.CurrentIdGenerator.FreshId("$w#"), Predef.BoxType));
 
@@ -1591,9 +1606,11 @@ BplBoundVar(varNameGen.FreshId(string.Format("#{0}#", bv.Name)), Predef.BoxType,
           BoogieGenerator.InRWClause(GetToken(e), o, null, e.Reads.Expressions.ConvertAll(su.SubstFrameExpr), et, null, null));
         rdbody = FunctionCall(GetToken(e), "SetRef_to_SetBox", Predef.SetType, rdbody);
 
+        var kv = new QKeyValue(GetToken(e), "qid", [ $"[lambda] { GetToken(e).Center }" ]);
+
         return MaybeLit(
           BoogieGenerator.FunctionCall(GetToken(e), BuiltinFunction.AtLayer, Predef.HandleType,
-            new Boogie.LambdaExpr(GetToken(e), [], lvars, null,
+            new Boogie.LambdaExpr(GetToken(e), [], lvars, kv,
               FunctionCall(GetToken(e), BoogieGenerator.Handle(e.BoundVars.Count), Predef.BoxType,
                 new Boogie.LambdaExpr(GetToken(e), [], bvars, null, ebody),
                 new Boogie.LambdaExpr(GetToken(e), [], bvars, null, reqbody),
@@ -2065,6 +2082,8 @@ BplBoundVar(varNameGen.FreshId(string.Format("#{0}#", bv.Name)), Predef.BoxType,
             kv = TrIntegerAttribute("rlimit", attr.Args[0], kv);
           } else if (name is "synthesize" or "extern") {
             kv = new QKeyValue(attr.Origin, "extern", new List<object>(), kv);
+          } else if (name is "qid" && attr.Args.Count == 1) {
+            kv = new QKeyValue(attr.Origin, "qid", new List<object> { ((StringLiteralExpr) attr.Args[0]).Value }, kv);
           } else if (name is "rlimit" && attr.Args.Count == 1) {
             // Values for _rlimit are already in terms of Boogie units (1000 x user-provided value) because they're
             // derived from command-line rlimit settings. Values for rlimit still need to be multiplied.
@@ -2261,7 +2280,8 @@ BplBoundVar(varNameGen.FreshId(string.Format("#{0}#", bv.Name)), Predef.BoxType,
           var apply = TrExpr(dafnyInitApplication);
 
           var tr = new Bpl.Trigger(e.Origin, true, new List<Bpl.Expr> { apply });
-          var ccaInit = new Bpl.ForallExpr(e.Origin, [indexVar], tr, BplImp(indexRange, canCall));
+          var kv = new QKeyValue(e.Origin, "qid", [ $"[seq_compr_cancall] {System.IO.Path.GetFileName(e.Origin.Uri.LocalPath)}:{e.Origin.line}" ]);
+          var ccaInit = new Bpl.ForallExpr(e.Origin, [], [indexVar], kv, tr, BplImp(indexRange, canCall));
           var rhsAppliedToIndex = new Bpl.LetExpr(e.Origin, [initFVar],
             [TrExpr(e.Initializer)], null, ccaInit);
 
@@ -2388,7 +2408,7 @@ BplBoundVar(varNameGen.FreshId(string.Format("#{0}#", bv.Name)), Predef.BoxType,
           //TRIG (forall $l#0#heap#0: Heap, $l#0#x#0: int :: true)
           //TRIG (forall $l#0#heap#0: Heap, $l#0#t#0: DatatypeType :: _module.__default.TMap#canCall(_module._default.TMap$A, _module._default.TMap$B, $l#0#heap#0, $l#0#t#0, f#0))
           //TRIG (forall $l#4#heap#0: Heap, $l#4#x#0: Box :: _0_Monad.__default.Bind#canCall(Monad._default.Associativity$B, Monad._default.Associativity$C, $l#4#heap#0, Apply1(Monad._default.Associativity$A, #$M$B, f#0, $l#4#heap#0, $l#4#x#0), g#0))
-          return BplForallTrim(bvarsAndAntecedents, null, canCall); // L_TRIGGER
+          return BplForallTrim(e.Origin, bvarsAndAntecedents, null, canCall); // L_TRIGGER
 
         } else if (expr is ComprehensionExpr) {
           var e = (ComprehensionExpr)expr;
@@ -2431,14 +2451,14 @@ BplBoundVar(varNameGen.FreshId(string.Format("#{0}#", bv.Name)), Predef.BoxType,
             }
             var Rprime = TrExpr(Substitute(mc.Range, null, substMap));
             var Fprime = TrExpr(Substitute(mc.TermLeft, null, substMap));
-            var defn = BplForall(bvs, trig, BplImp(R, BplAnd(Rprime, Boogie.Expr.Eq(F, Fprime))));
+            var defn = BplForall(bvs, trig, BplImp(R, BplAnd(Rprime, Boogie.Expr.Eq(F, Fprime))), $"[map_comprehension] {mc.Center}");
             canCall = BplAnd(canCall, defn);
           }
           // Create a list of all possible bound variables
           var bvarsAndAntecedents = TrBoundVariables_SeparateWhereClauses(e.BoundVars);
           // Produce the quantified CanCall expression, with a suitably reduced set of bound variables
           var tr = BoogieGenerator.TrTrigger(this, e.Attributes, expr.Origin);
-          return BplForallTrim(bvarsAndAntecedents, tr, canCall);
+          return BplForallTrim(expr.Origin, bvarsAndAntecedents, tr, canCall);
 
         } else if (expr is StmtExpr) {
           var e = (StmtExpr)expr;

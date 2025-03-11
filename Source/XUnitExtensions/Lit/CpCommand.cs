@@ -1,11 +1,6 @@
 using System;
 using System.IO;
-using System.Linq;
-using System.Text.RegularExpressions;
 using System.Threading.Tasks;
-using Xunit;
-using Xunit.Abstractions;
-using Xunit.Sdk;
 
 namespace XUnitExtensions.Lit {
   public class CpCommand : ILitCommand {
@@ -45,8 +40,9 @@ namespace XUnitExtensions.Lit {
       var dir = new DirectoryInfo(sourceDir);
 
       // Check if the source directory exists
-      if (!dir.Exists)
+      if (!dir.Exists) {
         throw new DirectoryNotFoundException($"Source directory not found: {dir.FullName}");
+      }
 
       // Cache directories before we start copying
       DirectoryInfo[] dirs = dir.GetDirectories();

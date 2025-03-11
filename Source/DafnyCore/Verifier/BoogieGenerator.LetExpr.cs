@@ -276,7 +276,7 @@ namespace Microsoft.Dafny {
         var p = Substitute(e.RHSs[0], receiverReplacement, substMap);
         var canCallBody = etranCC.CanCallAssumption(p);
         Bpl.Expr ax = BplImp(canCall, BplAnd(antecedent, BplAnd(canCallBody, etranCC.TrExpr(p))));
-        ax = BplForall(gg, tr, ax);
+        ax = BplForall(gg, tr, ax, $"[let_such_that_cancall] {e.Center}");
         BoogieGenerator.AddOtherDefinition(canCallFunction, new Bpl.Axiom(e.Origin, ax));
       }
     }
