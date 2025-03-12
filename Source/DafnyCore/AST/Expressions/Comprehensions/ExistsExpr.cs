@@ -1,3 +1,5 @@
+#nullable enable
+
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 
@@ -7,11 +9,9 @@ public class ExistsExpr : QuantifierExpr, ICloneable<ExistsExpr> {
   public override string WhatKind => "exists expression";
   protected override BinaryExpr.ResolvedOpcode SplitResolvedOp => BinaryExpr.ResolvedOpcode.Or;
 
-  public ExistsExpr(IOrigin origin, List<BoundVar> bvars, Expression range, Expression term, Attributes attrs)
-    : base(origin, bvars, range, term, attrs) {
-    Contract.Requires(cce.NonNullElements(bvars));
-    Contract.Requires(origin != null);
-    Contract.Requires(term != null);
+  [SyntaxConstructor]
+  public ExistsExpr(IOrigin origin, List<BoundVar> boundVars, Expression? range, Expression term, Attributes? attributes = null)
+    : base(origin, boundVars, range, term, attributes) {
   }
 
   public ExistsExpr Clone(Cloner cloner) {

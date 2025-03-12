@@ -1,9 +1,8 @@
-using System;
+#nullable enable
+
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
-using System.Numerics;
 using System.Linq;
-using JetBrains.Annotations;
 
 namespace Microsoft.Dafny;
 
@@ -26,12 +25,13 @@ namespace Microsoft.Dafny;
 public abstract partial class ComprehensionExpr : Expression, IAttributeBearingDeclaration, IBoundVarsBearingExpression, ICanFormat {
   public virtual string WhatKind => "comprehension";
   public readonly List<BoundVar> BoundVars;
-  public readonly Expression Range;
+  public readonly Expression? Range;
   public Expression Term;
 
   public IEnumerable<BoundVar> AllBoundVars => BoundVars;
 
-  public IOrigin BodyStartOrigin = Token.NoToken;
+  // TODO delete if unused
+  // public IOrigin BodyStartOrigin = Token.NoToken;
 
   [ContractInvariantMethod]
   void ObjectInvariant() {
@@ -39,13 +39,9 @@ public abstract partial class ComprehensionExpr : Expression, IAttributeBearingD
     Contract.Invariant(Term != null);
   }
 
-  public Attributes Attributes;
-  Attributes IAttributeBearingDeclaration.Attributes {
-    get => Attributes;
-    set => Attributes = value;
-  }
+  public Attributes? Attributes { get; set; }
 
-  [FilledInDuringResolution] public List<BoundedPool> Bounds;
+  [FilledInDuringResolution] public List<BoundedPool>? Bounds;
   // invariant Bounds == null || Bounds.Count == BoundVars.Count;
 
   public List<BoundVar> UncompilableBoundVars() {
@@ -54,24 +50,21 @@ public abstract partial class ComprehensionExpr : Expression, IAttributeBearingD
     return BoundedPool.MissingBounds(BoundVars, Bounds, v);
   }
 
-  protected ComprehensionExpr(IOrigin origin, List<BoundVar> bvars, Expression range, Expression term, Attributes attrs)
+  [SyntaxConstructor]
+  protected ComprehensionExpr(IOrigin origin, List<BoundVar> boundVars, Expression? range, Expression term, Attributes? attributes = null)
     : base(origin) {
-    Contract.Requires(origin != null);
-    Contract.Requires(cce.NonNullElements(bvars));
-    Contract.Requires(term != null);
-
-    BoundVars = bvars;
+    BoundVars = boundVars;
     Range = range;
     Term = term;
-    Attributes = attrs;
-    BodyStartOrigin = origin;
+    Attributes = attributes;
+    // BodyStartOrigin = origin;
   }
 
   protected ComprehensionExpr(Cloner cloner, ComprehensionExpr original) : base(cloner, original) {
     BoundVars = original.BoundVars.Select(bv => cloner.CloneBoundVar(bv, false)).ToList();
     Range = cloner.CloneExpr(original.Range);
     Attributes = cloner.CloneAttributes(original.Attributes);
-    BodyStartOrigin = cloner.Origin(original.BodyStartOrigin);
+    // BodyStartOrigin = cloner.Origin(original.BodyStartOrigin);
     Term = cloner.CloneExpr(original.Term);
 
     if (cloner.CloneResolvedFields) {

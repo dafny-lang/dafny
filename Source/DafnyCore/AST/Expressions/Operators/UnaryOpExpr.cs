@@ -59,6 +59,7 @@ public class UnaryOpExpr : UnaryExpr, ICloneable<UnaryOpExpr> {
     _ResolvedOp = resolvedOpcode;
   }
 
+  [SyntaxConstructor]
   public UnaryOpExpr(IOrigin origin, Opcode op, Expression e)
     : base(origin, e) {
     Contract.Requires(origin != null);

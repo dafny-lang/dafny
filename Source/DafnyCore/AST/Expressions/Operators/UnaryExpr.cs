@@ -10,6 +10,7 @@ public abstract class UnaryExpr : Expression, ICanFormat {
     Contract.Invariant(E != null);
   }
 
+  [SyntaxConstructor]
   public UnaryExpr(IOrigin origin, Expression e)
     : base(origin) {
     Contract.Requires(origin != null);

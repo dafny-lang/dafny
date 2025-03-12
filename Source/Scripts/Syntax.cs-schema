@@ -77,6 +77,26 @@ class AutoGhostIdentifierExpr : IdentifierExpr
 {
 }
 
+abstract class UnaryExpr : Expression
+{
+    Expression e;
+}
+
+class UnaryOpExpr : UnaryExpr
+{
+    UnaryOpExprOpcode op;
+}
+
+enum UnaryOpExprOpcode
+{
+    Not,
+    Cardinality,
+    Fresh,
+    Allocated,
+    Lit,
+    Assigned
+}
+
 class BinaryExpr : Expression
 {
     BinaryExprOpcode op;
@@ -169,9 +189,73 @@ class NameSegment : ConcreteSyntaxExpression
     List<Type>? optTypeArguments;
 }
 
+abstract class ComprehensionExpr : Expression
+{
+    List<BoundVar> boundVars;
+    Expression? range;
+    Expression term;
+    Attributes? attributes;
+}
+
+class Attributes : NodeWithComputedRange
+{
+    String name;
+    List<Expression> args;
+    Attributes? prev;
+}
+
+abstract class NonglobalVariable : NodeWithComputedRange
+{
+    Name nameNode;
+    Type type;
+    Boolean isGhost;
+}
+
+class Formal : NonglobalVariable
+{
+    Boolean inParam;
+    Expression? defaultValue;
+    Attributes? attributes;
+    Boolean isOld;
+    Boolean isNameOnly;
+    Boolean isOlder;
+    String? nameForCompilation;
+}
+
+class BoundVar : NonglobalVariable
+{
+}
+
+abstract class QuantifierExpr : ComprehensionExpr
+{
+}
+
+class ForallExpr : QuantifierExpr
+{
+}
+
+class ExistsExpr : QuantifierExpr
+{
+}
+
 abstract class DisplayExpression : Expression
 {
     List<Expression> elements;
+}
+
+class SeqSelectExpr : Expression
+{
+    Boolean selectOne;
+    Expression seq;
+    Expression? e0;
+    Expression? e1;
+    Token? closeParen;
+}
+
+class MemberSelectExpr : Expression
+{
+    Expression obj;
+    Name memberName;
 }
 
 abstract class BasicType : NonProxyType
@@ -182,16 +266,13 @@ class IntType : BasicType
 {
 }
 
+class BoolType : BasicType
+{
+}
+
 abstract class AssignmentRhs : NodeWithComputedRange
 {
     Attributes? attributes;
-}
-
-class Attributes : NodeWithComputedRange
-{
-    String name;
-    List<Expression> args;
-    Attributes? prev;
 }
 
 class ExprRhs : AssignmentRhs
@@ -203,6 +284,12 @@ class Specification<T> : NodeWithComputedRange where T : Node
 {
     List<T>? expressions;
     Attributes? attributes;
+}
+
+class FrameExpression : NodeWithComputedRange
+{
+    Expression e;
+    String? fieldName;
 }
 
 class AttributedExpression
@@ -290,28 +377,6 @@ enum SubsetTypeDeclWKind
     Special
 }
 
-abstract class NonglobalVariable : NodeWithComputedRange
-{
-    Name nameNode;
-    Type type;
-    Boolean isGhost;
-}
-
-class Formal : NonglobalVariable
-{
-    Boolean inParam;
-    Expression? defaultValue;
-    Attributes? attributes;
-    Boolean isOld;
-    Boolean isNameOnly;
-    Boolean isOlder;
-    String? nameForCompilation;
-}
-
-class BoundVar : NonglobalVariable
-{
-}
-
 abstract class TopLevelDeclWithMembers : TopLevelDecl
 {
     List<MemberDecl> members;
@@ -333,12 +398,6 @@ abstract class MethodOrFunction : MemberDecl
     List<AttributedExpression> ens;
     Specification<FrameExpression> reads;
     Specification<Expression> decreases;
-}
-
-class FrameExpression : NodeWithComputedRange
-{
-    Expression e;
-    String fieldName;
 }
 
 class Method : MethodOrFunction
