@@ -10,5 +10,6 @@ predicate TestXOn(obtained: char) {
 
 method Main() {
   var c := TestXOn('x');
-  print c;
+  var d := TestXOn('y');
+  print c, d;
 }
