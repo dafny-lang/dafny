@@ -211,9 +211,6 @@ public class Serializer(IEncoder encoder, IReadOnlyList<INamedTypeSymbol> parsed
       throw new Exception($"Could not find schema type for {instanceType}");
     }
 
-    if (obj.ToString() == "Microsoft.Dafny.TokenRange") {
-      var c = 3;
-    }
     var fieldNames = fieldsPerType[SyntaxAstVisitor.CutOffGenericSuffixPartOfName(foundType.Name)];
     var fieldsPerName = GetSerializableFields(foundType).ToDictionary(f => {
 

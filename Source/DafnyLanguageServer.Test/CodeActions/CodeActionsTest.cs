@@ -101,7 +101,7 @@ method Dec(c: L)
   decreases c, 1, 1
 {(>Insert explicit failing assertion->
   assert (old(c), old(1) decreases to c, 1);<)
-  Dac><(c);
+  Da><c(c);
 }
 method Dac(c: L) 
   decreases c, 1 {
@@ -351,7 +351,7 @@ function Test(e: D, inputs: map<int, int>): bool {
 function Foo(i: int): int
 {
   (>Insert explicit failing assertion->assert i + 1 != 0;
-  <)var x := 2 ></ (i + 1); 
+  <)var x := 2>< / (i + 1); 
   x
 }");
     }
@@ -361,7 +361,7 @@ function Foo(i: int): int
       await TestCodeAction(@"
 method Foo(i: int)
 {
-  var x := 2 ></ (i + 1)(>Insert explicit failing assertion-> by {
+  var x := 2>< / (i + 1)(>Insert explicit failing assertion-> by {
     assert i + 1 != 0;
   }:::;<)
 }");
@@ -373,7 +373,7 @@ method Foo(i: int)
 function Foo(b: bool, i: int, j: int): bool
 {
   var x := b ==> (>Insert explicit failing assertion->assert i + 1 != 0;
-                 <)2 ></ (i + 1) == j;
+                 <)2>< / (i + 1) == j;
   x
 }");
     }
@@ -384,7 +384,7 @@ function Foo(b: bool, i: int, j: int): bool
 method Foo(b: bool, i: int, j: int)
 {
   var x := b ==> b ==> (>Insert explicit failing assertion->assert i + 1 != 0;
-                       <)2 ></ (i + 1) == j;
+                       <)2>< / (i + 1) == j;
 }");
     }
 
