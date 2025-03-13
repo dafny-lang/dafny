@@ -296,7 +296,7 @@ abstract module Std.Parsers.Builders {
               S("(").e_I(rec).I_e(S(")")).M(r => ()),
               Nothing
             ]))
-      
+
       If on recursion, it detect that no input was consumed, it will raise a fatal error. Therefore, the following parser
       will return a fatal error on any input
 

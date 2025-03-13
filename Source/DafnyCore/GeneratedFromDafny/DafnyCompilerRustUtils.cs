@@ -258,7 +258,7 @@ namespace DafnyCompilerRustUtils {
           var arr14 = new RAST._IModDecl[Dafny.Helpers.ToIntChecked(dim14, "array size exceeds memory limit")];
           for (int i14 = 0; i14 < dim14; i14++) {
             var _4_i = (BigInteger) i14;
-            arr14[(int)(_4_i)] = Dafny.Helpers.Let<Dafny.ISequence<Dafny.Rune>, RAST._IModDecl>((_0_keysWithContent).Select(_4_i), _pat_let23_0 => Dafny.Helpers.Let<Dafny.ISequence<Dafny.Rune>, RAST._IModDecl>(_pat_let23_0, _5_moduleName => Dafny.Helpers.Let<RAST._IMod, RAST._IModDecl>((Dafny.Map<Dafny.ISequence<Dafny.Rune>, DafnyCompilerRustUtils._IGatheringModule>.Select(((this).dtor_submodules).dtor_values,_5_moduleName)).ToRust(), _pat_let24_0 => Dafny.Helpers.Let<RAST._IMod, RAST._IModDecl>(_pat_let24_0, _6_submodule => RAST.ModDecl.create_ModDecl(_6_submodule)))));
+            arr14[(int)(_4_i)] = Dafny.Helpers.Let<Dafny.ISequence<Dafny.Rune>, RAST._IModDecl>((_0_keysWithContent).Select(_4_i), _pat_let64_0 => Dafny.Helpers.Let<Dafny.ISequence<Dafny.Rune>, RAST._IModDecl>(_pat_let64_0, _5_moduleName => Dafny.Helpers.Let<RAST._IMod, RAST._IModDecl>((Dafny.Map<Dafny.ISequence<Dafny.Rune>, DafnyCompilerRustUtils._IGatheringModule>.Select(((this).dtor_submodules).dtor_values,_5_moduleName)).ToRust(), _pat_let65_0 => Dafny.Helpers.Let<RAST._IMod, RAST._IModDecl>(_pat_let65_0, _6_submodule => RAST.ModDecl.create_ModDecl(_6_submodule)))));
           }
           return Dafny.Sequence<RAST._IModDecl>.FromArray(arr14);
         }))());
