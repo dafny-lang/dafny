@@ -4,9 +4,14 @@ abstract class IOrigin
 
 class SourceOrigin : IOrigin
 {
+    TokenRange entireRange;
+    TokenRange reportingRange;
+}
+
+class TokenRange
+{
     Token startToken;
     Token endToken;
-    Token center;
 }
 
 class Token
@@ -30,28 +35,12 @@ abstract class Node
 {
 }
 
-abstract class RangeNode : Node
+abstract class NodeWithOrigin : Node
 {
     IOrigin origin;
 }
 
-class Name : RangeNode
-{
-    String value;
-}
-
-abstract class Declaration : RangeNode
-{
-    Name nameNode;
-    Attributes? attributes;
-}
-
-abstract class NodeWithComputedRange : Node
-{
-    IOrigin origin;
-}
-
-abstract class Type : NodeWithComputedRange
+abstract class Type : NodeWithOrigin
 {
 }
 
@@ -64,7 +53,7 @@ class UserDefinedType : NonProxyType
     Expression namePath;
 }
 
-abstract class Expression : NodeWithComputedRange
+abstract class Expression : NodeWithOrigin
 {
 }
 
@@ -151,16 +140,44 @@ class ApplySuffix : SuffixExpr
     Token? closeParen;
 }
 
-class ActualBindings : NodeWithComputedRange
+abstract class NodeWithoutOrigin : Node
 {
-    List<ActualBinding> argumentBindings;
 }
 
-class ActualBinding : NodeWithComputedRange
+class ModuleQualifiedId : NodeWithoutOrigin
+{
+    List<Name> path;
+}
+
+class Name : Node
+{
+    IOrigin origin;
+    String value;
+}
+
+class Specification<T> : NodeWithoutOrigin where T : Node
+{
+    List<T>? expressions;
+    Attributes? attributes;
+}
+
+class Attributes : NodeWithOrigin
+{
+    String name;
+    List<Expression> args;
+    Attributes? prev;
+}
+
+class ActualBinding : NodeWithoutOrigin
 {
     IOrigin? formalParameterName;
     Expression actual;
     Boolean isGhost;
+}
+
+class ActualBindings : NodeWithoutOrigin
+{
+    List<ActualBinding> argumentBindings;
 }
 
 class NameSegment : ConcreteSyntaxExpression
@@ -182,44 +199,10 @@ class IntType : BasicType
 {
 }
 
-abstract class AssignmentRhs : NodeWithComputedRange
+abstract class Declaration : NodeWithOrigin
 {
+    Name nameNode;
     Attributes? attributes;
-}
-
-class Attributes : NodeWithComputedRange
-{
-    String name;
-    List<Expression> args;
-    Attributes? prev;
-}
-
-class ExprRhs : AssignmentRhs
-{
-    Expression expr;
-}
-
-class Specification<T> : NodeWithComputedRange where T : Node
-{
-    List<T>? expressions;
-    Attributes? attributes;
-}
-
-class AttributedExpression
-{
-    Expression e;
-    AssertLabel? label;
-    Attributes? attributes;
-}
-
-class Label
-{
-    IOrigin tok;
-    String name;
-}
-
-class AssertLabel : Label
-{
 }
 
 abstract class TopLevelDecl : Declaration
@@ -290,7 +273,7 @@ enum SubsetTypeDeclWKind
     Special
 }
 
-abstract class NonglobalVariable : NodeWithComputedRange
+abstract class NonglobalVariable : NodeWithOrigin
 {
     Name nameNode;
     Type type;
@@ -335,10 +318,27 @@ abstract class MethodOrFunction : MemberDecl
     Specification<Expression> decreases;
 }
 
-class FrameExpression : NodeWithComputedRange
+class FrameExpression : NodeWithOrigin
 {
     Expression e;
     String fieldName;
+}
+
+class AttributedExpression
+{
+    Expression e;
+    AssertLabel? label;
+    Attributes? attributes;
+}
+
+class Label
+{
+    IOrigin tok;
+    String name;
+}
+
+class AssertLabel : Label
+{
 }
 
 class Method : MethodOrFunction
@@ -349,7 +349,7 @@ class Method : MethodOrFunction
     Boolean isByMethod;
 }
 
-abstract class Statement : RangeNode
+abstract class Statement : NodeWithOrigin
 {
     Attributes? attributes;
 }
@@ -367,6 +367,16 @@ class AssertStmt : PredicateStmt
 abstract class ProduceStmt : Statement
 {
     List<AssignmentRhs> rhss;
+}
+
+abstract class AssignmentRhs : NodeWithOrigin
+{
+    Attributes? attributes;
+}
+
+class ExprRhs : AssignmentRhs
+{
+    Expression expr;
 }
 
 class ReturnStmt : ProduceStmt
@@ -420,7 +430,7 @@ class AssignStatement : ConcreteAssignStatement
     Boolean canMutateKnownState;
 }
 
-class LocalVariable : RangeNode
+class LocalVariable : NodeWithOrigin
 {
     String name;
     Type? syntacticType;
@@ -460,7 +470,7 @@ class LiteralModuleDecl : ModuleDecl
     ModuleDefinition moduleDef;
 }
 
-class ModuleDefinition : RangeNode
+class ModuleDefinition : NodeWithOrigin
 {
     Name nameNode;
     List<IOrigin> prefixIds;
@@ -474,11 +484,6 @@ class Implements
 {
     ImplementationKind Kind;
     ModuleQualifiedId Target;
-}
-
-class ModuleQualifiedId : Node
-{
-    List<Name> path;
 }
 
 enum ImplementationKind

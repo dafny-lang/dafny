@@ -5,7 +5,7 @@ using System.Linq;
 
 namespace Microsoft.Dafny;
 
-public class ModuleQualifiedId : NodeWithOrigin, IHasReferences {
+public class ModuleQualifiedId : NodeWithoutOrigin, IHasReferences {
   public readonly List<Name> Path; // Path != null && Path.Count > 0
 
   // The following are filled in during resolution
@@ -21,14 +21,19 @@ public class ModuleQualifiedId : NodeWithOrigin, IHasReferences {
   [FilledInDuringResolution] public ModuleDefinition Def { get; private set; } // the module definition corresponding to the full path
   [FilledInDuringResolution] public ModuleSignature Sig { get; set; } // the module signature corresponding to the full path
 
-  public ModuleQualifiedId(List<Name> path) :
-    base(new SourceOrigin(path.First().StartToken, path.Last().EndToken, path.Last().Center)) {
+  [SyntaxConstructor]
+  public ModuleQualifiedId(List<Name> path) {
+    Origin = new SourceOrigin(path.First().StartToken, path.Last().EndToken, path.Last().Center);
     Contract.Assert(path != null && path.Count > 0);
     Path = path; // note that the list is aliased -- not to be modified after construction
   }
 
-  public ModuleQualifiedId(Cloner cloner, ModuleQualifiedId original) : base(cloner, original) {
+  public override TokenRange EntireRange => Origin.EntireRange!;
+  public override IOrigin Origin { get; }
+
+  public ModuleQualifiedId(Cloner cloner, ModuleQualifiedId original) {
     Path = original.Path.Select(n => n.Clone(cloner)).ToList();
+    Origin = cloner.Origin(original.Origin);
     if (cloner.CloneResolvedFields) {
       Root = original.Root;
     }

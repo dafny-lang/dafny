@@ -4,16 +4,16 @@ using System.Text;
 
 namespace Microsoft.Dafny;
 
-public class TokenRange(Token startToken, Token? end) : IComparable<TokenRange>, IEquatable<TokenRange> {
+public class TokenRange(Token startToken, Token? endToken) : IComparable<TokenRange>, IEquatable<TokenRange> {
 
   public Token? Prev => StartToken.Prev;
   public Token Next => EndToken.Next;
 
-  public bool InclusiveEnd => end != null;
+  public bool InclusiveEnd => endToken != null;
 
   public Token StartToken { get; } = startToken;
 
-  public Token EndToken => end ?? StartToken;
+  public Token EndToken => endToken ?? StartToken;
 
   public Uri Uri => StartToken.Uri;
   public int Length => EndToken.pos - StartToken.pos + (InclusiveEnd ? EndToken.val.Length : 0);
@@ -56,7 +56,7 @@ public class TokenRange(Token startToken, Token? end) : IComparable<TokenRange>,
       }
     }
 
-    var endColumn = (end == null ? StartToken.col : end.col + end.val.Length) + whitespaceOffset - 1;
+    var endColumn = (endToken == null ? StartToken.col : endToken.col + endToken.val.Length) + whitespaceOffset - 1;
     var endLine = EndToken.line - 1;
     return new DafnyRange(
       new DafnyPosition(startLine, startColumn),
