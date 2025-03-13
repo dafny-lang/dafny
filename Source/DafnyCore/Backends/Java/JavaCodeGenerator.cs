@@ -3792,10 +3792,25 @@ namespace Microsoft.Dafny.Compilers {
       List<Type> boundTypes, Type resultType, IOrigin resultTok, bool inLetExprBody, ConcreteSyntaxTree wr,
       ref ConcreteSyntaxTree wStmts) {
       wr.Write("(({0}<{1}{2}>)", DafnyFunctionIface(boundTypes.Count), Util.Comma("", boundTypes, t => BoxedTypeName(t, wr, resultTok) + ", "), BoxedTypeName(resultType, wr, resultTok));
-      wr.Write($"({Util.Comma(boundVars)}) -> ");
+      var unboxStatements = new ConcreteSyntaxTree();
+      var realBoundVars = boundVars.Zip(boundTypes,
+        (boundVar, type) => {
+          if (BoxedTypeName(type, wr, resultTok) == TypeName(type, wr, resultTok)) {
+            return boundVar;
+          }
+
+          var newName = ProtectedFreshId("_" + boundVar);
+          var rhsWriter = DeclareLocalVar(boundVar, type, resultTok, unboxStatements);
+          rhsWriter = EmitCoercionIfNecessary(NativeObjectType, type, resultTok, rhsWriter);
+          rhsWriter.Write(newName);
+          return newName;
+        }).ToList();
+      wr.Write($"({Util.Comma(realBoundVars)}) -> {{");
+      wr.Append(unboxStatements);
+      wr.Write("return ");
       var w = wr.Fork();
-      wr.Write(").apply");
-      TrExprList(arguments, wr, inLetExprBody, wStmts);
+      wr.Write(";}).apply");
+      TrExprList(arguments, wr, inLetExprBody, wStmts, i => NativeObjectType);
       return w;
     }
 
