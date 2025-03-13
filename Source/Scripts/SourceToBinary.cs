@@ -211,12 +211,19 @@ public class Serializer(IEncoder encoder, IReadOnlyList<INamedTypeSymbol> parsed
       throw new Exception($"Could not find schema type for {instanceType}");
     }
 
+    if (obj.ToString() == "Microsoft.Dafny.TokenRange") {
+      var c = 3;
+    }
     var fieldNames = fieldsPerType[SyntaxAstVisitor.CutOffGenericSuffixPartOfName(foundType.Name)];
     var fieldsPerName = GetSerializableFields(foundType).ToDictionary(f => {
 
       var fieldName = f.Name;
       if (fieldName.StartsWith("<") && fieldName.EndsWith("k__BackingField")) {
+        // Support auto properties
         fieldName = fieldName.Substring(1, fieldName.IndexOf(">", StringComparison.Ordinal) - 1);
+      } else if (fieldName.StartsWith("<") && fieldName.EndsWith(">P")) {
+        // Support fields from a primary constructor
+        fieldName = fieldName.Substring(1, fieldName.Length - 3);
       }
 
       return fieldName.ToLower();

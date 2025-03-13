@@ -33,7 +33,7 @@ public interface IOrigin : Boogie.IToken {
 
   TokenRange? EntireRange { get; }
   TokenRange EntireRangeWithFallback => EntireRange ?? ReportingRange;
-  
+
   TokenRange ReportingRange {
     get;
   }
