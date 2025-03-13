@@ -1,6 +1,7 @@
 #nullable enable
 using System;
 using System.IO;
+using Microsoft.Boogie;
 
 namespace Microsoft.Dafny;
 
@@ -31,6 +32,8 @@ public interface IOrigin : Boogie.IToken {
   Uri Uri { get; }
 
   TokenRange? EntireRange { get; }
+  TokenRange EntireRangeWithFallback => EntireRange ?? ReportingRange;
+  
   TokenRange ReportingRange {
     get;
   }

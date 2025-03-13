@@ -60,9 +60,9 @@ public class ProofObligationDependency : ProofDependency {
       $"{ProofObligation.SuccessDescription}";
 
   public ProofObligationDependency(Microsoft.Boogie.IToken tok, ProofObligationDescription proofObligation) {
-    Range = (tok as IOrigin)?.ReportingRange
-            ?? (proofObligation as AssertStatementDescription)?.AssertStatement.ReportingRange
-            ?? BoogieGenerator.ToDafnyToken(true, tok).ReportingRange;
+    Range = (tok as IOrigin)?.EntireRangeWithFallback
+            ?? (proofObligation as AssertStatementDescription)?.AssertStatement.EntireRange
+            ?? BoogieGenerator.ToDafnyToken(true, tok).EntireRangeWithFallback;
     ProofObligation = proofObligation;
   }
 }
@@ -76,7 +76,7 @@ public class AssumedProofObligationDependency : ProofDependency {
       $"assumption that {ProofObligation.SuccessDescription}";
 
   public AssumedProofObligationDependency(IOrigin tok, ProofObligationDescription proofObligation) {
-    Range = tok.ReportingRange;
+    Range = tok.EntireRangeWithFallback;
     ProofObligation = proofObligation;
   }
 }
@@ -88,7 +88,7 @@ public class RequiresDependency : ProofDependency {
 
   private IOrigin tok;
 
-  public override TokenRange Range => tok.ReportingRange;
+  public override TokenRange Range => tok.EntireRangeWithFallback;
 
   public override string Description =>
     $"requires clause";
@@ -105,7 +105,7 @@ public class EnsuresDependency : ProofDependency {
 
   private readonly IOrigin tok;
 
-  public override TokenRange Range => tok.ReportingRange;
+  public override TokenRange Range => tok.EntireRangeWithFallback;
 
   public override string Description =>
     "ensures clause";
@@ -139,8 +139,7 @@ public class CallEnsuresDependency : ProofDependency {
   public readonly CallDependency call;
   private readonly EnsuresDependency ensures;
 
-  public override TokenRange Range =>
-    call.Range;
+  public override TokenRange Range => call.Range;
 
   public override string Description =>
     $"ensures clause at {ensures.RangeString()} from call";
@@ -155,8 +154,7 @@ public class CallEnsuresDependency : ProofDependency {
 public class CallDependency : ProofDependency {
   public readonly CallStmt call;
 
-  public override TokenRange Range =>
-    call.ReportingRange;
+  public override TokenRange Range => call.EntireRange;
 
   public override string Description =>
     $"call";
@@ -168,8 +166,7 @@ public class CallDependency : ProofDependency {
 
 // Represents the assumption of a predicate in an `assume` statement.
 public class AssumptionDependency : ProofDependency {
-  public override TokenRange Range =>
-    Expr.ReportingRange;
+  public override TokenRange Range => Expr.EntireRange;
 
   public override string Description =>
     comment ?? OriginalString();
@@ -191,8 +188,7 @@ public class AssumptionDependency : ProofDependency {
 public class InvariantDependency : ProofDependency {
   private readonly Expression invariant;
 
-  public override TokenRange Range =>
-    invariant.ReportingRange;
+  public override TokenRange Range => invariant.EntireRange;
 
   public override string Description =>
     $"loop invariant";
@@ -217,7 +213,7 @@ public class AssignmentDependency : ProofDependency {
 
 // Represents dependency of a proof on the definition of a specific function.
 public class FunctionDefinitionDependency : ProofDependency {
-  public override TokenRange Range => function.ReportingRange;
+  public override TokenRange Range => function.EntireRange;
 
   public override string Description =>
     $"function definition for {function.Name}";

@@ -45,7 +45,7 @@ public class ConsoleErrorReporter : BatchErrorReporter {
 
     if (Options.Get(Snippets.ShowSnippets) && tok.Uri != null) {
       var tw = new StringWriter();
-      Snippets.WriteSourceCodeSnippet(Options, tok.ReportingRange, tw);
+      Snippets.WriteSourceCodeSnippet(Options, tok.EntireRange ?? tok.ReportingRange, tw);
       errorLine += tw.ToString();
     }
 
@@ -69,7 +69,7 @@ public class ConsoleErrorReporter : BatchErrorReporter {
         errorLine += $"{innerToken.TokenToString(Options)}: {innerMessage}\n";
         if (Options.Get(Snippets.ShowSnippets) && tok.Uri != null) {
           var tw = new StringWriter();
-          Snippets.WriteSourceCodeSnippet(Options, innerToken.ReportingRange, tw);
+          Snippets.WriteSourceCodeSnippet(Options, innerToken.EntireRange ?? innerToken.ReportingRange, tw);
           errorLine += tw.ToString();
         }
       } else {

@@ -1,6 +1,7 @@
 FunctionHidingRefactoring.dfy(35,12): Info: hidden functions: Id
 FunctionHidingRefactoring.dfy(46,12): Info: hidden functions: Square
 FunctionHidingRefactoring.dfy(51,2): Info: hidden functions: Square
+FunctionHidingRefactoring.dfy(52,14): Info: hidden functions: Square
 FunctionHidingRefactoring.dfy(52,16): Info: hidden functions: Square
 FunctionHidingRefactoring.dfy(53,14): Info: hidden functions: Square
 FunctionHidingRefactoring.dfy(55,9): Info: hidden functions: Square
