@@ -117,8 +117,8 @@ public class ProofDependencyWarnings {
 
         if (unusedDependency is EnsuresDependency ensures) {
           if (ShouldWarnVacuous(scopeName, ensures)) {
-            // OverrideCenter used to prevent changes in reporting
-            reporter.Warning(MessageSource.Verifier, "", ensures.Range.StartToken,
+            reporter.Warning(MessageSource.Verifier, "",
+              new SourceOrigin(ensures.Range.StartToken, ensures.Range.EndToken),
               $"ensures clause proved using contradictory assumptions");
           }
         }
@@ -127,8 +127,7 @@ public class ProofDependencyWarnings {
       if (options.Get(CommonOptionBag.WarnRedundantAssumptions) || options.Get(CommonOptionBag.AnalyzeProofs)) {
         if (unusedDependency is RequiresDependency requires) {
           reporter.Warning(MessageSource.Verifier, "",
-            // OverrideCenter used to prevent changes in reporting
-            requires.Range.StartToken,
+            new SourceOrigin(requires.Range.StartToken, requires.Range.EndToken),
             $"unnecessary requires clause");
         }
 

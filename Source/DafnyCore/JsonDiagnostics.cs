@@ -12,20 +12,21 @@ using static Microsoft.Dafny.ErrorRegistry;
 namespace Microsoft.Dafny;
 
 record DiagnosticMessageData(MessageSource source, ErrorLevel level, Boogie.IToken tok, string? category, string message, List<ErrorInformation.AuxErrorInfo>? related) {
-  private static JsonObject SerializePosition(Boogie.IToken tok) {
+  private static JsonObject SerializePosition(Boogie.IToken tok, bool includeLength) {
+    var addition = includeLength ? tok.val.Length : 0;
     return new JsonObject {
-      ["pos"] = tok.pos,
+      ["pos"] = tok.pos + addition,
       ["line"] = tok.line,
-      ["character"] = tok.col - 1
+      ["character"] = tok.col - 1 + addition
     };
   }
 
   private static JsonObject SerializeRange(Boogie.IToken tok) {
-    var range = new JsonObject {
-      ["start"] = SerializePosition(tok),
-    };
     var origin = BoogieGenerator.ToDafnyToken(true, tok).ReportingRange;
-    range["end"] = SerializePosition(origin.EndToken!);
+    var range = new JsonObject {
+      ["start"] = SerializePosition(origin.StartToken, false),
+      ["end"] = SerializePosition(origin.EndToken, origin.InclusiveEnd)
+    };
     return range;
   }
 
