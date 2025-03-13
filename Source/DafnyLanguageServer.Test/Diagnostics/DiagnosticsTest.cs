@@ -133,7 +133,7 @@ method ContradictoryAssumeMethod(n: int)
       Assert.Equal(8, diagnostics.Length);
       Assert.Contains(diagnostics, diagnostic =>
         diagnostic.Severity == DiagnosticSeverity.Warning &&
-        diagnostic.Range == new Range(3, 13, 3, 14) &&
+        diagnostic.Range == new Range(3, 11, 3, 12) &&
         diagnostic.Message == "unnecessary (or partly unnecessary) assume statement"
         );
       Assert.Contains(diagnostics, diagnostic =>
@@ -143,7 +143,7 @@ method ContradictoryAssumeMethod(n: int)
       );
       Assert.Contains(diagnostics, diagnostic =>
         diagnostic.Severity == DiagnosticSeverity.Warning &&
-        diagnostic.Range == new Range(12, 13, 12, 15) &&
+        diagnostic.Range == new Range(12, 11, 12, 12) &&
         diagnostic.Message == "unnecessary (or partly unnecessary) assume statement"
       );
       Directory.Delete(directory, true);

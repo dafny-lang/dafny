@@ -585,7 +585,7 @@ public class Compilation : IDisposable {
           }
 
           string msg = string.Format("Verification of '{1}' timed out after {0} seconds. (the limit can be increased using --verification-time-limit)", timeLimit, name);
-          errorInfo = ErrorInformation.Create(token, msg);
+          errorInfo = ErrorInformation.Create(new SourceOrigin(BoogieGenerator.ToDafnyToken(true, token).ReportingRange), msg);
 
           //  Report timed out assertions as auxiliary info.
           var comparer = new CounterexampleComparer();
