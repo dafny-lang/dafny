@@ -5167,7 +5167,9 @@ namespace Microsoft.Dafny.Compilers {
       return wr;
     }
 
-    void CreateFreeVarSubstitution(Expression expr, out List<BoundVar> bvars, out List<Expression> fexprs, out Substituter su) {
+    protected void CreateFreeVarSubstitution(
+      Expression expr,
+      out List<BoundVar> bvars, out List<Expression> fexprs, out Substituter su) {
       Contract.Requires(expr != null);
 
       var fvs = FreeVariablesUtil.ComputeFreeVariables(Options, expr);
