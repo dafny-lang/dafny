@@ -11,7 +11,7 @@ public class Token : IOrigin {
 
   public Token? peekedTokens; // Used only internally by Coco when the scanner "peeks" tokens. Normally null at the end of parsing
   public static readonly Token NoToken = new();
-  public static readonly Token Cli = new(1, 1);
+  public static readonly Token Cli = new(-1, -1);
   public static readonly Token Ide = new(1, 1);
   public string filename => Path.GetFileName(Filepath);
 
