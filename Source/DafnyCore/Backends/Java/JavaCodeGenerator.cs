@@ -3595,7 +3595,7 @@ namespace Microsoft.Dafny.Compilers {
       var wStmts = wr.Fork();
       wr.Write("throw new dafny.DafnyHaltException(");
       if (tok != null) {
-        EmitStringLiteral(tok.TokenToString(Options) + ": ", true, wr);
+        EmitStringLiteral(tok.OriginToString(Options) + ": ", true, wr);
         wr.Write(" + ");
       }
 

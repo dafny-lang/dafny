@@ -6,7 +6,7 @@ using System.Numerics;
 
 namespace Microsoft.Dafny;
 
-public abstract class Expression : NodeWithComputedRange {
+public abstract class Expression : NodeWithOrigin {
   [ContractInvariantMethod]
   void ObjectInvariant() {
     Contract.Invariant(Origin != null);
