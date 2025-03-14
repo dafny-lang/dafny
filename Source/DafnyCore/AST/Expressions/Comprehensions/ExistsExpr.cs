@@ -37,9 +37,6 @@ public class ExistsExpr : QuantifierExpr, ICloneable<ExistsExpr> {
   /// Assumes the expression has been resolved.
   /// </summary>
   public Expression AlphaRename(string prefix) {
-    Contract.Requires(this != null);
-    Contract.Requires(prefix != null);
-
     if (SplitQuantifierExpression is ExistsExpr splitQuantifierExpression) {
       return splitQuantifierExpression.AlphaRename(prefix);
     }

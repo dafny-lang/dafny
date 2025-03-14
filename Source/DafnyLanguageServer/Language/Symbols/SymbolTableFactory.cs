@@ -203,7 +203,9 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
 
       public override void Visit(FrameExpression frameExpression) {
         cancellationToken.ThrowIfCancellationRequested();
-        RegisterDesignator(currentScope, frameExpression, frameExpression.Origin, frameExpression.FieldName);
+        if (frameExpression.FieldName != null) {
+          RegisterDesignator(currentScope, frameExpression, frameExpression.Origin, frameExpression.FieldName);
+        }
       }
 
       public override void Visit(IdentifierExpr identifierExpression) {
