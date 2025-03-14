@@ -1818,10 +1818,10 @@ public abstract class BasicType : NonProxyType {
 
 public class BoolType : BasicType {
   [SyntaxConstructor]
-  public BoolType(IOrigin origin) : base(origin) {}
-  
-  public BoolType() {}
-  
+  public BoolType(IOrigin origin) : base(origin) { }
+
+  public BoolType() { }
+
   [Pure]
   public override string TypeName(DafnyOptions options, ModuleDefinition context, bool parseAble) {
     return "bool";
