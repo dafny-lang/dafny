@@ -11,23 +11,20 @@ public class SourceOrigin : IOrigin, IComparable<SourceOrigin> {
 
   public TokenRange EntireRange { get; }
   public Token StartToken => EntireRange.StartToken;
-  public Token EndToken => EntireRange.StartToken;
+  public Token EndToken => EntireRange.EndToken;
   public TokenRange ReportingRange { get; }
   public bool IncludesRange => true;
 
-  public SourceOrigin(Token start, Token end) {
-    this.EntireRange = new TokenRange(start, end);
-    this.ReportingRange = EntireRange;
+  public SourceOrigin(Token start, Token end) : this(new TokenRange(start, end)) {
   }
 
-  public SourceOrigin(Token start, Token end, TokenRange? reportingRange) {
-    this.EntireRange = new TokenRange(start, end);
-    this.ReportingRange = reportingRange ?? EntireRange;
+  public SourceOrigin(Token start, Token end, TokenRange? reportingRange) : this(
+    new TokenRange(start, end), reportingRange) {
   }
 
-  public SourceOrigin(Token start, Token end, Token? center) {
-    this.EntireRange = new TokenRange(start, end);
-    this.ReportingRange = center == null ? new TokenRange(start, end) : new TokenRange(center, center);
+  public SourceOrigin(Token start, Token end, Token? center) : this(
+    new TokenRange(start, end),
+    center == null ? null : new TokenRange(center, center)) {
   }
 
   [SyntaxConstructor]
