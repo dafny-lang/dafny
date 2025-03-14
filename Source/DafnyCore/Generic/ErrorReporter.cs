@@ -1,5 +1,7 @@
 using System;
+using System.Collections.Generic;
 using System.Diagnostics.Contracts;
+using DafnyCore;
 
 namespace Microsoft.Dafny;
 
@@ -38,7 +40,22 @@ public abstract class ErrorReporter {
     return MessageCore(source, level, errorId, tok, msg);
   }
 
-  protected abstract bool MessageCore(MessageSource source, ErrorLevel level, string errorId, IOrigin tok, string msg);
+  public bool MessageCore(MessageSource source, ErrorLevel level, string errorId, IOrigin rootTok, string msg) {
+    if (ErrorsOnly && level != ErrorLevel.Error) {
+      return false;
+    }
+    var relatedInformation = new List<DafnyRelatedInformation>();
+
+    var usingSnippets = Options.Get(Snippets.ShowSnippets);
+    relatedInformation.AddRange(
+      ErrorReporterExtensions.CreateDiagnosticRelatedInformationFor(rootTok, usingSnippets));
+
+    var range = rootTok.ToSourceOrigin();
+    var dafnyDiagnostic = new DafnyDiagnostic(source, errorId!, range, msg, level, relatedInformation);
+    return MessageCore(dafnyDiagnostic);
+  }
+
+  public abstract bool MessageCore(DafnyDiagnostic dafnyDiagnostic);
 
   public void Error(MessageSource source, IOrigin tok, string msg) {
     Error(source, ParseErrors.ErrorId.none, tok, msg);
@@ -196,7 +213,7 @@ public abstract class ErrorReporter {
     Info(source, tok, String.Format(msg, args));
   }
 
-  public string ErrorToString(ErrorLevel header, IOrigin tok, string msg) {
+  public string ErrorToString(ErrorLevel header, SourceOrigin tok, string msg) {
     return $"{tok.TokenToString(Options)}: {header.ToString()}: {msg}";
   }
 }

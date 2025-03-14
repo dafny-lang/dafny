@@ -10,16 +10,16 @@ public class SubsetConstraintGhostChecker : ProgramTraverser {
   private class FirstErrorCollector : ErrorReporter {
     public string FirstCollectedMessage = "";
     public IOrigin FirstCollectedToken = Token.NoToken;
-    public bool Collected = false;
+    public bool Collected;
 
     public bool Message(MessageSource source, ErrorLevel level, IOrigin tok, string msg) {
       return Message(source, level, ErrorRegistry.NoneId, tok, msg);
     }
 
-    protected override bool MessageCore(MessageSource source, ErrorLevel level, string errorId, IOrigin tok, string msg) {
-      if (!Collected && level == ErrorLevel.Error) {
-        FirstCollectedMessage = msg;
-        FirstCollectedToken = tok;
+    public override bool MessageCore(DafnyDiagnostic dafnyDiagnostic) {
+      if (!Collected && dafnyDiagnostic.Level == ErrorLevel.Error) {
+        FirstCollectedMessage = dafnyDiagnostic.Message;
+        FirstCollectedToken = dafnyDiagnostic.Range;
         Collected = true;
       }
       return true;
