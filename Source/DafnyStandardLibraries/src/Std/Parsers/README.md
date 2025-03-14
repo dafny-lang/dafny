@@ -18,26 +18,33 @@ please refer to the files [`PolynomialParser.dfy`](../../../examples/Parsers/Pol
 
 As a quick walkthrough, here is a test to parse a Tic-tac-toe grid using parser combinators.
 
-```
-method {:test} TestTicTacToe() {
-  var x := OrSeq([
+<!-- %check-run-output -->
+```dafny
+module M {
+  import opened Std.Parsers.StringParsers
+
+  /** Tic tac toe using string parsers */
+  method Main() {
+    var x := OrSeq([
     String("O"), String("X"), String(" ")
-  ]);
-  var v := String("|");
-  var row := Concat(x, ConcatR(v, Concat(x, ConcatR(v, x))));
-  var sep := String("\n-+-+-\n");
-  var grid := 
+    ]);
+    var v := String("|");
+    var row := Concat(x, ConcatR(v, Concat(x, ConcatR(v, x))));
+    var sep := String("\n-+-+-\n");
+    var grid := 
     Concat(row, ConcatR(sep, Concat(row, ConcatR(sep, row))));
-  var input := "O|X| \n-+-+-\nX|O| \n-+-+-\nP| |O";
-  var r := grid(input);
-  expect r.IsFailure();
-  PrintFailure(input, r);
+    var input := "O|X| \n-+-+-\nX|O| \n-+-+-\nP| |O";
+    var r := Apply(grid, input);
+    expect r.IsFailure();
+    print FailureToString(input, r);
+  }
 }
 ```
 
 it displays the following:
 
-```
+<!-- %check-expect -->
+```expect
 Error:
 5: P| |O
    ^
@@ -48,19 +55,27 @@ expected ' '
 
 Here is the equivalent using parser builders:
 
-```
-method {:test} TestTicTacToe() {
-  var x := O([ S("O"), S("X"), S(" ") ]);
-  var v := S("|");
-  var row := x.I_e(v).I_I(x).I_e(v).I_I(x);   // I stands for included, e for excluded
-  var sep := S("\n-+-+-\n");
-  var grid := row.I_e(sep).I_I(row).I_e(sep).I_I(row);
-  var input := "O|X| \n-+-+-\nX|O| \n-+-+-\nP| |O";
-  var r := grid(input);
-  expect r.IsFailure();
-  PrintFailure(input, r);
+<!-- %check-verify -->
+```dafny
+module M {
+  import opened Std.Parsers.StringBuilders
+
+  /** Tic tac toe using string parser builders */
+  method Main() {
+    var x := O([ S("O"), S("X"), S(" ") ]);
+    var v := S("|");
+    var row := x.I_e(v).I_I(x).I_e(v).I_I(x);   // I stands for included, e for excluded
+    var sep := S("\n-+-+-\n");
+    var grid := row.I_e(sep).I_I(row).I_e(sep).I_I(row);
+    var input := "O|X| \n-+-+-\nX|O| \n-+-+-\nP| |O";
+    var r := grid.Apply(input);
+    expect r.IsFailure();
+    print FailureToString(input, r);
+  }
 }
 ```
+
+The output is the same as before.
 
 ## What is verified?
 
@@ -91,7 +106,8 @@ That said, it is possible to create an adapter around a JSON parser to make it a
 
 The module hierarchy is as follow:
 
-```
+<!-- %no-check -->
+```dafny
 abstract module Std.Parsers.Core {
   type C
 }
@@ -131,7 +147,8 @@ Developing parsers can be pretty challenging sometimes. Fortunately, this librar
 
 Let's say you develop the following parser to parse a list of space-separated numbers on the command line:
 
-```
+<!-- %check-run-output -->
+```dafny
 import opened Std.Parsers.StringBuilders
 
 const pDoc :=
@@ -142,30 +159,28 @@ const pDoc :=
 
 method Main() {
   var input := " 1 2 3 4 ";
-  var result := pDoc.apply(input);
-  match result {
-    case Success(value, remaining) =>
-      print value, "\n";
-    case Failure(error, sub_data) =>
-      var failureMessage :=
-        FailureToString(input, result);
-      print failureMessage;
-  }
+  var result := pDoc.Apply(input);
+  expect result.ParseFailure?;
+  print FailureToString(input, result);
 }
 ```
 
 Note that `.Rep()` is a parser combinator that repeats the parser to its left until it fails (its loop body), at which point it should emit the sequence of parsed elements.
 You see the unexpected result:
-```
+
+<!-- %check-expect -->
+```expect
 Error:
-1:  1 2 3 4
+1:  1 2 3 4 
             ^
 expected a digit
 ```
 
 It's expecting a digit where it should have just accepted the end of the string. To figure out what went wrong,
 let's first define two debug functions like below - they can't be defined in the library because they have print effects. You could change the type of the output of string if you were to customize them.
-```
+
+<!-- %no-check -->
+```dafny
 function di(
   name: string, input: string): string {
   input
@@ -186,7 +201,8 @@ function de<K>(
 ```
 
 Now you can use the `.Debug("some name", di, de)` suffix on any parser builder to debug its input and parse result. Let's use it on our example just before parsing the end
-```
+<!-- %no-check -->
+```dafny
 const pDoc := 
   WS.e_I(Nat)
   .Rep()
@@ -197,7 +213,8 @@ const pDoc :=
 
 Running this parser on `" 1 2 3 4 "` displays the following trace.
 
-```
+<!-- %no-check -->
+```dafny
 > End: 9 " "
 < End: 9 " "
 | R: 0 "EOS"
@@ -218,7 +235,8 @@ Now you wonder, if the last whitespace was parsed correctly, why is it not follo
 
 Let's investigate a bit more and add another debugging parser at the last whitespace.
 
-```
+<!-- %no-check -->
+```dafny
 const pDoc := 
   (WS.e_I(Nat))
   .Rep()
@@ -227,7 +245,8 @@ const pDoc :=
   .End
 ```
 Now the trace is:
-```
+<!-- %no-check -->
+```dafny
 > End: 9 " "
 < End: 9 " "
 | R: 0 "EOS"
@@ -243,7 +262,8 @@ LastWS is not even displayed! Because `.I_e` is only a concatenation operation i
 
 We now place new debugging suffixes to debug the inner loop parser as well as the outer loop parser:
 
-```
+<!-- %no-check -->
+```dafny
 const pDoc := 
   WS.e_I(Nat).Debug("I", di, de)
   .Rep().Debug("Z", di, de)
@@ -251,7 +271,8 @@ const pDoc :=
   .End
 ```
 The trace is now (abbreviated)
-```
+<!-- %no-check -->
+```dafny
 > Z: 9 " "
 ...
 > I: 3 " "
@@ -277,8 +298,8 @@ and since `WS` succeed, it complains that a nat is missing.
 To solve this issue, you might discover that it would be preferable to start the loop by parsing `Nat`,
 so that if `Nat` fails, the loop terminates with success:
 
-
-```
+<!-- %no-check -->
+```dafny
 const pDoc := 
   WS              // White space
   .e_I(           // Then
@@ -289,14 +310,16 @@ const pDoc :=
 ```
 
 Finally, this works:
-```
+<!-- %no-check -->
+```dafny
 Success
 [1, 2, 3, 4]
 ```
 
 Another way would be to indicate that if `WS.e_I(Nat)` fails, then the input should not be consumed. We can achieve this with the `??()` combinator. In case of failure, it ensures that the failure considers that it consumed nothing.
 
-```
+<!-- %no-check -->
+```dafny
 const pDoc := 
   WS
   .e_I(Nat)
