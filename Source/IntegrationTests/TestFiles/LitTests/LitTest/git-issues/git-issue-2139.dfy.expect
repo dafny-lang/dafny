@@ -1,5 +1,5 @@
-git-issue-2139.dfy(16,11): Error: pattern doesn't correspond to a tuple
-git-issue-2139.dfy(9,13): Error: Constant pattern used in place of datatype
-git-issue-2139.dfy(9,16): Error: Constant pattern used in place of datatype
+git-issue-2139.dfy(16,11): Error: string literal "B" used as if it had type (int, int)
+git-issue-2139.dfy(9,13): Error: integer literal used as if it had type T
+git-issue-2139.dfy(9,16): Error: integer literal used as if it had type T
 git-issue-2139.dfy(23,11): Warning: because of cyclic dependencies among constructor argument types, no instances of datatype 'T' can be constructed
 3 resolution/type errors detected in git-issue-2139.dfy

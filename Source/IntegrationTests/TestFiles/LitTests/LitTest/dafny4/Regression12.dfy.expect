@@ -6,4 +6,4 @@ Regression12.dfy(65,7): Error: value of expression (of type 'set<Node?>') is not
 Regression12.dfy(14,25): Error: value does not satisfy the subset constraints of 'int -> char' (possible cause: it may be partial or have read effects)
 Regression12.dfy(16,25): Error: value does not satisfy the subset constraints of 'int -> char' (possible cause: it may be partial or have read effects)
 
-Dafny program verifier finished with 5 verified, 3 errors
+Dafny program verifier finished with 3 verified, 3 errors

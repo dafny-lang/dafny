@@ -1,4 +1,4 @@
-// RUN: %exits-with 2 %verify --allow-axioms "%s" > "%t"
+// RUN: %exits-with 2 %verify --allow-axioms --type-system-refresh=false --general-newtypes=false "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 module TestModule {

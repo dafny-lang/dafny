@@ -1,5 +1,5 @@
 Types.dfy(9,20): Error: arguments must have comparable types (got A -> A -> A and (A -> A) -> A)
-Types.dfy(14,20): Error: arguments must have comparable types (got (A -> A) -> A and A -> A -> A)
-Types.dfy(18,20): Error: arguments must have comparable types (got A -> A -> A and (A -> A) -> A)
+Types.dfy(14,20): Error: arguments must have comparable types (got (A -> A) -> A and A ~> A ~> A)
+Types.dfy(18,20): Error: arguments must have comparable types (got A -> A -> A and (A ~> A) ~> A)
 Types.dfy(26,8): Error: a reads-clause expression must denote an object, a set/iset/multiset/seq of objects, or a function to a set/iset/multiset/seq of objects (instead got () -> object)
 4 resolution/type errors detected in Types.dfy

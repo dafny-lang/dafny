@@ -1,7 +1,7 @@
 // RUN: %exits-with 4 %verify "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
-trait Tr<X> { }
+trait Tr<X> extends object { }
 
 class A extends Tr<int> { }
 class B extends Tr<real> { }

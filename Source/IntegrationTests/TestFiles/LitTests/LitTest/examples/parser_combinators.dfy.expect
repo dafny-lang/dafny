@@ -1,6 +1,6 @@
 parser_combinators.dfy(39,35): Error: cannot prove termination; try supplying a decreases clause
 
-Dafny program verifier finished with 8 verified, 1 error
+Dafny program verifier finished with 9 verified, 1 error
 
 Dafny program verifier did not attempt verification
 "((()))": 3 nested parentheses

@@ -1,4 +1,4 @@
-// RUN: %exits-with 2 %verify --type-system-refresh --general-traits=datatype --general-newtypes "%s" > "%t"
+// RUN: %exits-with 2 %verify "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 method IsBasicTypes(a0: bool, a1: char, a2: int, a3: bv7, a4: bv13, a5: ORDINAL, a6: real)

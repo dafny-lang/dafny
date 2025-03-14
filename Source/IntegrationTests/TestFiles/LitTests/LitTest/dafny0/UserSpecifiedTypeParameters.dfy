@@ -1,4 +1,4 @@
-// RUN: %exits-with 2 %verify "%s" > "%t"
+// RUN: %exits-with 2 %verify --type-system-refresh=false --general-newtypes=false "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 module M0 {

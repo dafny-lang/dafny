@@ -10,11 +10,13 @@ Dafny supports the following kinds of types,
 all described in later sections of this manual:
 * [builtin scalar types](#sec-basic-type), 
 * [builtin collection types](#sec-collection-types), 
-* [reference types](#sec-class-types) (classes, traits, iterators),
+* reference types ([classes](#sec-class-types), [arrays](#sec-array-type), [iterators](#sec-iterator-types)),
+* [abstract supertypes](#sec-trait-types) (traits)
 * [tuple types](#sec-tuple-types) (including as a special case a parenthesized type),
 * [inductive](#sec-datatype) and [coinductive](#sec-coinductive-datatypes) datatypes, 
 * [function (arrow) types](#sec-arrow-subset-types), and
 * [types, such as subset types, derived from other types](#sec-subset-types).
+
 
 ## 5.1. Kinds of types
 ### 5.1.1. Value Types
@@ -2241,7 +2243,7 @@ they cannot both be extendees of the same class or trait.
 As an example, the following trait represents movable geometric shapes:
 <!-- %check-verify %save Shape.tmp -->
 ```dafny
-trait Shape
+trait Shape extends object
 {
   function Width(): real
     reads this

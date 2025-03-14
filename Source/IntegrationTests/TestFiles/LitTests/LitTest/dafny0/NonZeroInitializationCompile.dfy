@@ -16,7 +16,7 @@ type WithTypeParameters<A(==),B> = ignoreTypeParams: (int, bool) | true
 
 datatype Dt = Atom(short') | More(Dt)
 
-trait Tr {
+trait Tr extends object {
   var u: MyNewInt
 }
 

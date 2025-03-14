@@ -27,6 +27,10 @@ public class AssignSuchThatStmt : ConcreteAssignStatement, ICloneable<AssignSuch
     }
   }
 
+  public override IEnumerable<IdentifierExpr> GetAssignedLocals() {
+    return Lhss.Select(lhs => lhs.Resolved).OfType<IdentifierExpr>();
+  }
+
   public override IEnumerable<INode> Children => Lhss.Concat<Node>(new[] { Expr });
 
   public AssignSuchThatStmt Clone(Cloner cloner) {

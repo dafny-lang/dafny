@@ -1,5 +1,5 @@
 // NONUNIFORM: Rust-specific tests
-// RUN: %baredafny translate rs --enforce-determinism --rust-module-name=tokiouser --include-runtime=true --rust-sync "%s" > "%t"
+// RUN: %baredafny translate rs --enforce-determinism --rust-module-name=tokiouser --include-runtime=true --rust-sync --type-system-refresh=false --general-newtypes=false --general-traits=legacy "%s" > "%t"
 // RUN: "%S/tokiouser-rust/cargo" run >> "%t"
 // RUN: %diff "%s.expect" "%t"
 
