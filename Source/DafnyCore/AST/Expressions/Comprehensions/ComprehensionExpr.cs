@@ -30,15 +30,6 @@ public abstract partial class ComprehensionExpr : Expression, IAttributeBearingD
 
   public IEnumerable<BoundVar> AllBoundVars => BoundVars;
 
-  // TODO delete if unused
-  // public IOrigin BodyStartOrigin = Token.NoToken;
-
-  [ContractInvariantMethod]
-  void ObjectInvariant() {
-    Contract.Invariant(BoundVars != null);
-    Contract.Invariant(Term != null);
-  }
-
   public Attributes? Attributes { get; set; }
 
   [FilledInDuringResolution] public List<BoundedPool>? Bounds;
@@ -57,18 +48,16 @@ public abstract partial class ComprehensionExpr : Expression, IAttributeBearingD
     Range = range;
     Term = term;
     Attributes = attributes;
-    // BodyStartOrigin = origin;
   }
 
   protected ComprehensionExpr(Cloner cloner, ComprehensionExpr original) : base(cloner, original) {
     BoundVars = original.BoundVars.Select(bv => cloner.CloneBoundVar(bv, false)).ToList();
     Range = cloner.CloneExpr(original.Range);
     Attributes = cloner.CloneAttributes(original.Attributes);
-    // BodyStartOrigin = cloner.Origin(original.BodyStartOrigin);
     Term = cloner.CloneExpr(original.Term);
 
     if (cloner.CloneResolvedFields) {
-      Bounds = original.Bounds?.Select(b => b?.Clone(cloner)).ToList();
+      Bounds = original.Bounds?.Select(b => b.Clone(cloner)).ToList();
     }
   }
   public override IEnumerable<INode> Children =>
@@ -78,7 +67,7 @@ public abstract partial class ComprehensionExpr : Expression, IAttributeBearingD
   public override IEnumerable<INode> PreResolveChildren =>
     Attributes.AsEnumerable()
       .Concat<Node>(Range != null && Range.Origin.line > 0 ? [Range] : new List<Node>())
-    .Concat(Term != null && Term.Origin.line > 0 ? [Term] : new List<Node>());
+      .Concat(Term.Origin.line > 0 ? [Term] : new List<Node>());
 
   public override IEnumerable<Expression> SubExpressions {
     get {
