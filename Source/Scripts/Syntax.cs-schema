@@ -82,6 +82,16 @@ abstract class UnaryExpr : Expression
     Expression e;
 }
 
+abstract class TypeUnaryExpr : UnaryExpr
+{
+    Type toType;
+}
+
+class ConversionExpr : TypeUnaryExpr
+{
+    String messagePrefix;
+}
+
 class UnaryOpExpr : UnaryExpr
 {
     UnaryOpExprOpcode op;
@@ -162,6 +172,12 @@ class NegationExpression : ConcreteSyntaxExpression
 abstract class SuffixExpr : ConcreteSyntaxExpression
 {
     Expression lhs;
+}
+
+class ExprDotName : SuffixExpr
+{
+    Name suffixNameNode;
+    List<Type>? optTypeArguments;
 }
 
 class ApplySuffix : SuffixExpr
@@ -288,7 +304,7 @@ class Specification<T> : NodeWithComputedRange where T : Node
 
 class FrameExpression : NodeWithComputedRange
 {
-    Expression e;
+    Expression originalExpression;
     String? fieldName;
 }
 

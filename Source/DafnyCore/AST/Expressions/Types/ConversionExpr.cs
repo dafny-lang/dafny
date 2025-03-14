@@ -1,4 +1,4 @@
-using System.Diagnostics.Contracts;
+#nullable enable
 
 namespace Microsoft.Dafny;
 
@@ -9,11 +9,9 @@ public class ConversionExpr : TypeUnaryExpr, ICloneable<ConversionExpr> {
     messagePrefix = original.messagePrefix;
   }
 
-  public ConversionExpr(IOrigin origin, Expression expr, Type toType, string messagePrefix = "")
-    : base(origin, expr, toType) {
-    Contract.Requires(origin != null);
-    Contract.Requires(expr != null);
-    Contract.Requires(toType != null);
+  [SyntaxConstructor]
+  public ConversionExpr(IOrigin origin, Expression e, Type toType, string messagePrefix = "")
+    : base(origin, e, toType) {
     this.messagePrefix = messagePrefix;
   }
 

@@ -7,7 +7,7 @@ using System.Linq;
 namespace Microsoft.Dafny;
 
 public class FrameExpression : NodeWithComputedRange, IHasReferences {
-  public readonly Expression OriginalExpression; // may be a WildcardExpr
+  public Expression OriginalExpression { get; } // may be a WildcardExpr
   [FilledInDuringResolution] public Expression? DesugaredExpression; // may be null for modifies clauses, even after resolution
 
   /// <summary>
@@ -17,7 +17,6 @@ public class FrameExpression : NodeWithComputedRange, IHasReferences {
 
   [ContractInvariantMethod]
   void ObjectInvariant() {
-    Contract.Invariant(E != null);
     Contract.Invariant(!(E is WildcardExpr) || (FieldName == null && Field == null));
   }
 
@@ -29,9 +28,9 @@ public class FrameExpression : NodeWithComputedRange, IHasReferences {
   /// denotes the source location of "e".
   /// </summary>
   [SyntaxConstructor]
-  public FrameExpression(IOrigin origin, Expression e, string? fieldName) : base(origin) {
-    Contract.Requires(!(e is WildcardExpr) || fieldName == null);
-    OriginalExpression = e;
+  public FrameExpression(IOrigin origin, Expression originalExpression, string? fieldName) : base(origin) {
+    Contract.Requires(!(originalExpression is WildcardExpr) || fieldName == null);
+    OriginalExpression = originalExpression;
     FieldName = fieldName;
   }
 

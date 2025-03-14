@@ -92,6 +92,25 @@ namespace Microsoft.Dafny
             return ReadAutoGhostIdentifierExpr();
         }
 
+        public ConversionExpr ReadConversionExpr()
+        {
+            var parameter0 = ReadAbstract<IOrigin>();
+            var parameter1 = ReadAbstract<Expression>();
+            var parameter2 = ReadAbstract<Type>();
+            var parameter3 = ReadString();
+            return new ConversionExpr(parameter0, parameter1, parameter2, parameter3);
+        }
+
+        public ConversionExpr ReadConversionExprOption()
+        {
+            if (ReadIsNull())
+            {
+                return default;
+            }
+
+            return ReadConversionExpr();
+        }
+
         public UnaryOpExpr ReadUnaryOpExpr()
         {
             var parameter0 = ReadAbstract<IOrigin>();
@@ -210,6 +229,25 @@ namespace Microsoft.Dafny
             }
 
             return ReadNegationExpression();
+        }
+
+        public ExprDotName ReadExprDotName()
+        {
+            var parameter0 = ReadAbstract<IOrigin>();
+            var parameter1 = ReadAbstract<Expression>();
+            var parameter2 = ReadName();
+            var parameter3 = ReadListOption<Type>(() => ReadAbstract<Type>());
+            return new ExprDotName(parameter0, parameter1, parameter2, parameter3);
+        }
+
+        public ExprDotName ReadExprDotNameOption()
+        {
+            if (ReadIsNull())
+            {
+                return default;
+            }
+
+            return ReadExprDotName();
         }
 
         public ApplySuffix ReadApplySuffix()
@@ -1019,6 +1057,11 @@ namespace Microsoft.Dafny
                 return ReadAutoGhostIdentifierExpr();
             }
 
+            if (actualType == typeof(ConversionExpr))
+            {
+                return ReadConversionExpr();
+            }
+
             if (actualType == typeof(UnaryOpExpr))
             {
                 return ReadUnaryOpExpr();
@@ -1047,6 +1090,11 @@ namespace Microsoft.Dafny
             if (actualType == typeof(NegationExpression))
             {
                 return ReadNegationExpression();
+            }
+
+            if (actualType == typeof(ExprDotName))
+            {
+                return ReadExprDotName();
             }
 
             if (actualType == typeof(ApplySuffix))
