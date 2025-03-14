@@ -343,7 +343,7 @@ namespace Microsoft.Dafny {
                   foreach (var kase in InductionCases(n.Type, nn[i], etran)) {
                     foreach (var cs in caseProduct) {
                       if (kase != Bpl.Expr.True) {  // if there's no case, don't add anything to the token
-                        newCases.Add(Bpl.Expr.Binary(new NestedOrigin(ToDafnyToken(flags.ReportRanges, cs.tok), ToDafnyToken(flags.ReportRanges, kase.tok)), Bpl.BinaryOperator.Opcode.And, cs, kase));
+                        newCases.Add(Bpl.Expr.Binary(new NestedOrigin(ToDafnyToken(cs.tok), ToDafnyToken(kase.tok)), Bpl.BinaryOperator.Opcode.And, cs, kase));
                       } else {
                         newCases.Add(cs);
                       }
@@ -657,7 +657,7 @@ namespace Microsoft.Dafny {
         // TODO:  Contract.Requires(kind == K.Free || e.Tok.IsValid);
         Kind = kind;
         E = e;
-        Tok = ToDafnyToken(reportRanges, e.tok);
+        Tok = ToDafnyToken(e.tok);
       }
     }
   }

@@ -3509,9 +3509,9 @@ namespace Microsoft.Dafny {
       }
 
       if (options.Get(CommonOptionBag.ShowAssertions) > CommonOptionBag.AssertionShowMode.None && description.IsImplicit) {
-        reporter.Info(MessageSource.Translator, ToDafnyToken(false, tok), "Implicit assertion: " + description.ShortDescription, "isAssertion");
+        reporter.Info(MessageSource.Translator, ToDafnyToken(tok), "Implicit assertion: " + description.ShortDescription, "isAssertion");
       } else if (options.Get(CommonOptionBag.ShowAssertions) == CommonOptionBag.AssertionShowMode.All) {
-        reporter.Info(MessageSource.Translator, ToDafnyToken(false, tok), "Explicit assertion: " + description.ShortDescription, "isAssertion");
+        reporter.Info(MessageSource.Translator, ToDafnyToken(tok), "Explicit assertion: " + description.ShortDescription, "isAssertion");
       }
     }
 
@@ -4072,7 +4072,7 @@ namespace Microsoft.Dafny {
       public readonly Bpl.Expr Expr;
 
       public BoogieWrapper(Bpl.Expr expr, Type type)
-        : base(ToDafnyToken(false, expr.tok)) {
+        : base(ToDafnyToken(expr.tok)) {
         Contract.Requires(expr != null);
         Contract.Requires(type != null);
         Expr = expr;

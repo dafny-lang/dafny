@@ -15,7 +15,7 @@ public static class ErrorReporterExtensions {
       if (auxiliaryInformation.Category == RelatedMessageCategory || auxiliaryInformation.Category == AssertedExprCategory) {
         error.Msg += "\n" + auxiliaryInformation.FullMsg;
       } else if (auxiliaryInformation.Category == RelatedLocationCategory) {
-        var auxiliaryToken = BoogieGenerator.ToDafnyToken(true, auxiliaryInformation.Tok);
+        var auxiliaryToken = BoogieGenerator.ToDafnyToken(auxiliaryInformation.Tok);
         relatedInformation.Add(new DafnyRelatedInformation(auxiliaryToken.ReportingRange, auxiliaryInformation.Msg));
         relatedInformation.AddRange(CreateDiagnosticRelatedInformationFor(auxiliaryToken, usingSnippets));
       } else {
@@ -23,7 +23,7 @@ public static class ErrorReporterExtensions {
         // line=0 and character=0. These positions cause errors when exposing them, Furthermore,
         // the execution trace message appears to not have any interesting information.
         if (auxiliaryInformation.Tok.line > 0) {
-          reporter.Info(MessageSource.Verifier, BoogieGenerator.ToDafnyToken(true, auxiliaryInformation.Tok), auxiliaryInformation.Msg);
+          reporter.Info(MessageSource.Verifier, BoogieGenerator.ToDafnyToken(auxiliaryInformation.Tok), auxiliaryInformation.Msg);
         }
       }
     }
@@ -32,9 +32,9 @@ public static class ErrorReporterExtensions {
       error.Msg += "\n" + $"Related counterexample:\n{counterexampleModel}";
     }
 
-    relatedInformation.AddRange(CreateDiagnosticRelatedInformationFor(BoogieGenerator.ToDafnyToken(true, error.Tok), usingSnippets));
+    relatedInformation.AddRange(CreateDiagnosticRelatedInformationFor(BoogieGenerator.ToDafnyToken(error.Tok), usingSnippets));
 
-    var dafnyToken = BoogieGenerator.ToDafnyToken(useRange, error.Tok);
+    var dafnyToken = BoogieGenerator.ToDafnyToken(error.Tok);
 
     var diagnostic = new DafnyDiagnostic(MessageSource.Verifier, null!, dafnyToken.ReportingRange, error.Msg,
       ErrorLevel.Error, relatedInformation);

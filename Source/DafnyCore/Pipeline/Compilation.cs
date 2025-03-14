@@ -406,14 +406,14 @@ public class Compilation : IDisposable {
       return [];
     }
     var sortedTasks = ranges.OrderBy(r =>
-      BoogieGenerator.ToDafnyToken(true, r.Token).ReportingRange.StartToken).ToList();
+      BoogieGenerator.ToDafnyToken(r.Token).ReportingRange.StartToken).ToList();
     var groups = new List<(TokenRange Group, List<IVerificationTask> Tasks)>();
     var currentGroup = new List<IVerificationTask> { sortedTasks[0] };
-    var currentGroupRange = BoogieGenerator.ToDafnyToken(true, currentGroup[0].Token).ReportingRange;
+    var currentGroupRange = BoogieGenerator.ToDafnyToken(currentGroup[0].Token).ReportingRange;
 
     for (int i = 1; i < sortedTasks.Count; i++) {
       var currentTask = sortedTasks[i];
-      var currentTaskRange = BoogieGenerator.ToDafnyToken(true, currentTask.Token).ReportingRange;
+      var currentTaskRange = BoogieGenerator.ToDafnyToken(currentTask.Token).ReportingRange;
       bool overlapsWithGroup = currentGroupRange.Intersects(currentTaskRange);
 
       if (overlapsWithGroup) {
@@ -477,7 +477,7 @@ public class Compilation : IDisposable {
   }
 
   private void HandleStatusUpdate(ICanVerify canVerify, IVerificationTask verificationTask, IVerificationStatus boogieStatus) {
-    var tokenString = BoogieGenerator.ToDafnyToken(true, verificationTask.Split.Token).OriginToString(Options);
+    var tokenString = BoogieGenerator.ToDafnyToken(verificationTask.Split.Token).OriginToString(Options);
     logger.LogDebug($"Received Boogie status {boogieStatus} for {tokenString}, version {Input.Version}");
 
     updates.OnNext(new BoogieUpdate(transformedProgram!.ProofDependencyManager, canVerify,
@@ -542,7 +542,7 @@ public class Compilation : IDisposable {
     List<DafnyDiagnostic> diagnostics = [];
     errorReporter.Updates.Subscribe(d => diagnostics.Add(d.Diagnostic));
 
-    ReportDiagnosticsInResult(options, canVerify.NavigationRange.StartToken.val, BoogieGenerator.ToDafnyToken(true, task.Token),
+    ReportDiagnosticsInResult(options, canVerify.NavigationRange.StartToken.val, BoogieGenerator.ToDafnyToken(task.Token),
       task.Split.Implementation.GetTimeLimit(options), result, errorReporter);
 
     return diagnostics.OrderBy(d => d.Range.StartToken.GetLspPosition()).ToList();
@@ -585,7 +585,7 @@ public class Compilation : IDisposable {
           }
 
           string msg = string.Format("Verification of '{1}' timed out after {0} seconds. (the limit can be increased using --verification-time-limit)", timeLimit, name);
-          errorInfo = ErrorInformation.Create(new SourceOrigin(BoogieGenerator.ToDafnyToken(true, token).ReportingRange), msg);
+          errorInfo = ErrorInformation.Create(new SourceOrigin(BoogieGenerator.ToDafnyToken(token).ReportingRange), msg);
 
           //  Report timed out assertions as auxiliary info.
           var comparer = new CounterexampleComparer();
@@ -626,7 +626,7 @@ public class Compilation : IDisposable {
           break;
         }
       case VcOutcome.OutOfResource: {
-          var dafnyToken = BoogieGenerator.ToDafnyToken(true, token);
+          var dafnyToken = BoogieGenerator.ToDafnyToken(token);
           string msg = "Verification out of resource (" + name + ")";
           errorInfo = ErrorInformation.Create(dafnyToken.ReportingRange.StartToken, msg);
         }

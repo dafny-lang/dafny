@@ -62,7 +62,7 @@ public class ProofObligationDependency : ProofDependency {
   public ProofObligationDependency(Microsoft.Boogie.IToken tok, ProofObligationDescription proofObligation) {
     Range = (tok as IOrigin)?.EntireRangeWithFallback
             ?? (proofObligation as AssertStatementDescription)?.AssertStatement.EntireRange
-            ?? BoogieGenerator.ToDafnyToken(true, tok).EntireRangeWithFallback;
+            ?? BoogieGenerator.ToDafnyToken(tok).EntireRangeWithFallback;
     ProofObligation = proofObligation;
   }
 }

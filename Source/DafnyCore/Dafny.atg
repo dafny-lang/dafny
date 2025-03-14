@@ -2984,10 +2984,10 @@ AssertStmt<out Statement/*!*/ s>
     ";"
   )
   (. if (dotdotdot != null) {
-       s = new AssertStmt(new SourceOrigin(startToken, t), new LiteralExpr(x, true), null, attrs);
+       s = new AssertStmt(new SourceOrigin(startToken, t, startToken), new LiteralExpr(x, true), null, attrs);
        s = new SkeletonStatement(s, dotdotdot, null);
      } else {
-       s = new AssertStmt(new SourceOrigin(startToken, t), e, lbl == null ? null : new AssertLabel(lbl, lbl.val), attrs);
+       s = new AssertStmt(new SourceOrigin(startToken, t, startToken), e, lbl == null ? null : new AssertLabel(lbl, lbl.val), attrs);
        if (proof != null) {
          s = new BlockByProofStmt(s.Origin, proof, s);
        }
@@ -3012,7 +3012,7 @@ ExpectStmt<out Statement/*!*/ s>
   [ "," Expression<out m, false, true> ]
   ";"
   (. if (dotdotdot != null) {
-       s = new ExpectStmt(new SourceOrigin(startToken, t), new LiteralExpr(x, true), m, attrs);
+       s = new ExpectStmt(new SourceOrigin(startToken, t, startToken), new LiteralExpr(x, true), m, attrs);
        s = new SkeletonStatement(s, dotdotdot, null);
      } else {
        s = new ExpectStmt(new SourceOrigin(startToken, t, startToken), e, m, attrs);
@@ -3036,10 +3036,10 @@ AssumeStmt<out Statement/*!*/ s>
   )
   ";"
   (. if (dotdotdot != null) {
-       s = new AssumeStmt(new SourceOrigin(startToken, t), new LiteralExpr(x, true), attrs);
+       s = new AssumeStmt(new SourceOrigin(startToken, t, startToken), new LiteralExpr(x, true), attrs);
        s = new SkeletonStatement(s, dotdotdot, null);
      } else {
-       s = new AssumeStmt(new SourceOrigin(startToken, t), e, attrs);
+       s = new AssumeStmt(new SourceOrigin(startToken, t, startToken), e, attrs);
      }
   .)
   .
