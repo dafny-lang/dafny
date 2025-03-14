@@ -32,7 +32,7 @@ public abstract partial class ComprehensionExpr : Expression, IAttributeBearingD
 
   public Attributes? Attributes { get; set; }
 
-  [FilledInDuringResolution] public List<BoundedPool>? Bounds;
+  [FilledInDuringResolution] public List<BoundedPool?>? Bounds;
   // invariant Bounds == null || Bounds.Count == BoundVars.Count;
 
   public List<BoundVar> UncompilableBoundVars() {
@@ -57,7 +57,7 @@ public abstract partial class ComprehensionExpr : Expression, IAttributeBearingD
     Term = cloner.CloneExpr(original.Term);
 
     if (cloner.CloneResolvedFields) {
-      Bounds = original.Bounds?.Select(b => b.Clone(cloner)).ToList();
+      Bounds = original.Bounds?.Select(b => b?.Clone(cloner)).ToList();
     }
   }
   public override IEnumerable<INode> Children =>
