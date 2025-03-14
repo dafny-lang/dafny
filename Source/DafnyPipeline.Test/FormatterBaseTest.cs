@@ -67,7 +67,7 @@ namespace DafnyPipeline.Test {
 
         if (reporter.HasErrors) {
           var error = reporter.AllMessagesByLevel[ErrorLevel.Error][0];
-          Assert.False(true, $"{error.Message}: line {error.Range.line} col {error.Range.col}");
+          Assert.False(true, $"{error.Message}: line {error.Range.StartToken.line} col {error.Range.StartToken.col}");
         }
 
         var firstToken = dafnyProgram.GetFirstTokenForUri(uri);

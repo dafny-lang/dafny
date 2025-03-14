@@ -7,11 +7,6 @@ using VCGeneration;
 namespace Microsoft.Dafny;
 
 public static class ErrorReporterExtensions {
-
-  public static SourceOrigin ToSourceOrigin(this IOrigin origin) {
-    return new SourceOrigin(origin.EntireRange ?? origin.ReportingRange, origin.ReportingRange);
-  }
-
   public static void ReportBoogieError(this ErrorReporter reporter, ErrorInformation error,
     DafnyModel? counterexampleModel = null, bool useRange = true) {
     var usingSnippets = reporter.Options.Get(Snippets.ShowSnippets);
@@ -21,7 +16,7 @@ public static class ErrorReporterExtensions {
         error.Msg += "\n" + auxiliaryInformation.FullMsg;
       } else if (auxiliaryInformation.Category == RelatedLocationCategory) {
         var auxiliaryToken = BoogieGenerator.ToDafnyToken(true, auxiliaryInformation.Tok);
-        relatedInformation.Add(new DafnyRelatedInformation(auxiliaryToken.ToSourceOrigin(), auxiliaryInformation.Msg));
+        relatedInformation.Add(new DafnyRelatedInformation(auxiliaryToken.ReportingRange, auxiliaryInformation.Msg));
         relatedInformation.AddRange(CreateDiagnosticRelatedInformationFor(auxiliaryToken, usingSnippets));
       } else {
         // The execution trace is an additional auxiliary which identifies itself with
@@ -41,7 +36,7 @@ public static class ErrorReporterExtensions {
 
     var dafnyToken = BoogieGenerator.ToDafnyToken(useRange, error.Tok);
 
-    var diagnostic = new DafnyDiagnostic(MessageSource.Verifier, null!, dafnyToken.ToSourceOrigin(), error.Msg,
+    var diagnostic = new DafnyDiagnostic(MessageSource.Verifier, null!, dafnyToken.ReportingRange, error.Msg,
       ErrorLevel.Error, relatedInformation);
     reporter.MessageCore(diagnostic);
   }
@@ -67,7 +62,7 @@ public static class ErrorReporterExtensions {
         //     message = $"Could not prove: {dafnyToken.PrintOriginal()}";
         //   }
         // }
-        yield return new DafnyRelatedInformation(nestedOrigin.Inner.ToSourceOrigin(), nestedOrigin.Message);
+        yield return new DafnyRelatedInformation(nestedOrigin.Inner.ReportingRange, nestedOrigin.Message);
         innerToken = nestedOrigin.Inner;
       } else {
         innerToken = wrapper.WrappedOrigin;

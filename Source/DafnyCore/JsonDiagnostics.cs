@@ -11,7 +11,7 @@ using VCGeneration;
 
 namespace Microsoft.Dafny;
 
-record DiagnosticMessageData(MessageSource source, ErrorLevel level, SourceOrigin tok, string? category, string message,
+record DiagnosticMessageData(MessageSource source, ErrorLevel level, TokenRange Range, string? category, string message,
   IReadOnlyList<DafnyRelatedInformation> related) {
   private static JsonObject SerializePosition(Boogie.IToken tok, bool includeLength) {
     var addition = includeLength ? tok.val.Length : 0;
@@ -22,19 +22,18 @@ record DiagnosticMessageData(MessageSource source, ErrorLevel level, SourceOrigi
     };
   }
 
-  private static JsonObject SerializeRange(SourceOrigin sourceOrigin) {
-    var range = new JsonObject {
-      ["start"] = SerializePosition(sourceOrigin.StartToken, false),
-      ["end"] = SerializePosition(sourceOrigin.EndToken, sourceOrigin.EntireRange.InclusiveEnd)
+  private static JsonObject SerializeRange(TokenRange range) {
+    return new JsonObject {
+      ["start"] = SerializePosition(range.StartToken, false),
+      ["end"] = SerializePosition(range.EndToken, range.InclusiveEnd)
     };
-    return range;
   }
 
-  private static JsonObject SerializeToken(SourceOrigin tok) {
+  private static JsonObject SerializeToken(TokenRange range) {
     return new JsonObject {
-      ["filename"] = tok.StartToken.filename,
-      ["uri"] = ((IOrigin)tok).Uri!.AbsoluteUri,
-      ["range"] = SerializeRange(tok)
+      ["filename"] = range.StartToken.filename,
+      ["uri"] = range.Uri!.AbsoluteUri,
+      ["range"] = SerializeRange(range)
     };
   }
 
@@ -51,7 +50,7 @@ record DiagnosticMessageData(MessageSource source, ErrorLevel level, SourceOrigi
     return category == null ? message : $"{category}: {message}";
   }
 
-  private static JsonObject SerializeRelated(SourceOrigin range, string message) {
+  private static JsonObject SerializeRelated(TokenRange range, string message) {
     return new JsonObject {
       ["location"] = SerializeToken(range),
       ["message"] = message,
@@ -60,9 +59,9 @@ record DiagnosticMessageData(MessageSource source, ErrorLevel level, SourceOrigi
 
   public JsonNode ToJson() {
     var auxRelated = related.Select<DafnyRelatedInformation, JsonNode>(aux =>
-      SerializeRelated(aux.Token, aux.Message));
+      SerializeRelated(aux.Range, aux.Message));
     return new JsonObject {
-      ["location"] = SerializeToken(tok),
+      ["location"] = SerializeToken(Range),
       ["severity"] = SerializeErrorLevel(level),
       ["message"] = SerializeMessage(category, message),
       ["source"] = source.ToString(),
@@ -82,16 +81,16 @@ public class DafnyJsonConsolePrinter(DafnyOptions options) : DafnyConsolePrinter
     var relatedInformation = new List<DafnyRelatedInformation>();
     relatedInformation.AddRange(
       ErrorReporterExtensions.CreateDiagnosticRelatedInformationFor(dafnyToken, Options.Get(Snippets.ShowSnippets)));
-    new DiagnosticMessageData(MessageSource.Verifier, level, dafnyToken.ToSourceOrigin(), category, message, relatedInformation).WriteJsonTo(tw);
+    new DiagnosticMessageData(MessageSource.Verifier, level, dafnyToken.ReportingRange, category, message, relatedInformation).WriteJsonTo(tw);
   }
 
   public override void WriteErrorInformation(ErrorInformation errorInfo, TextWriter tw, bool skipExecutionTrace = true) {
     var related = errorInfo.Aux.Where(e =>
       !(skipExecutionTrace && (e.Category ?? "").Contains("Execution trace"))).Select(aei => new DafnyRelatedInformation(
-      BoogieGenerator.ToDafnyToken(false, aei.Tok).ToSourceOrigin(), aei.FullMsg)).ToList();
+      BoogieGenerator.ToDafnyToken(false, aei.Tok).ReportingRange, aei.FullMsg)).ToList();
     var dafnyToken = BoogieGenerator.ToDafnyToken(true, errorInfo.Tok);
     new DiagnosticMessageData(MessageSource.Verifier, ErrorLevel.Error,
-      dafnyToken.ToSourceOrigin(), errorInfo.Category, errorInfo.Msg, related).WriteJsonTo(tw);
+      dafnyToken.ReportingRange, errorInfo.Category, errorInfo.Msg, related).WriteJsonTo(tw);
     tw.Flush();
   }
 }

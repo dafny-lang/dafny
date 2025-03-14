@@ -1,3 +1,4 @@
+#nullable enable
 using System.Diagnostics.Contracts;
 using System.IO;
 
@@ -87,20 +88,13 @@ public static class TokenExtensions {
   public static bool IsSet(this IOrigin token) => token.Uri != null;
 
   public static string OriginToString(this IOrigin origin, DafnyOptions options) {
-    if (ReferenceEquals(origin, Token.Cli)) {
+    return (origin.ReportingRange.StartToken == Token.Cli ? null : origin.ReportingRange).RangeToString(options);
+  }
+
+  public static string RangeToString(this TokenRange? range, DafnyOptions options) {
+    if (range == null) {
       return "CLI";
     }
-
-    return origin.ReportingRange.RangeToString(options);
-  }
-
-  public static string RangeToFileString(this TokenRange range) {
-    var start = range.StartToken;
-    var end = range.EndToken;
-    return $"({start.line}:{start.col - 1}-{end.line}:{end.col - 1 + range.EndLength})";
-  }
-
-  public static string RangeToString(this TokenRange range, DafnyOptions options) {
 
     var start = range.StartToken;
     if (start.Uri == null) {
@@ -123,6 +117,12 @@ public static class TokenExtensions {
       return $"{filename}{range.RangeToFileString()}";
     }
     return $"{filename}({start.line},{start.col - 1})";
+  }
+
+  public static string RangeToFileString(this TokenRange range) {
+    var start = range.StartToken;
+    var end = range.EndToken;
+    return $"({start.line}:{start.col - 1}-{end.line}:{end.col - 1 + range.EndLength})";
   }
 }
 
