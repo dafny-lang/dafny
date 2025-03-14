@@ -426,7 +426,7 @@ namespace Microsoft.Dafny {
         case BinaryExpr.Opcode.Disjoint:
           return operandFamilyName == PreType.TypeNameMultiset ? BinaryExpr.ResolvedOpcode.MultiSetDisjoint : BinaryExpr.ResolvedOpcode.Disjoint;
         case BinaryExpr.Opcode.Lt: {
-            if (operandPreType is DPreType dp && PreTypeResolver.AncestorPreType(dp)?.Decl is IndDatatypeDecl) {
+            if (OperatesOnIndDatatype(leftOperandPreType, operandPreType)) {
               return BinaryExpr.ResolvedOpcode.RankLt;
             }
             return operandFamilyName switch {
@@ -475,7 +475,7 @@ namespace Microsoft.Dafny {
             _ => BinaryExpr.ResolvedOpcode.Mul
           };
         case BinaryExpr.Opcode.Gt: {
-            if (operandPreType is DPreType dp && PreTypeResolver.AncestorPreType(dp)?.Decl is IndDatatypeDecl) {
+            if (OperatesOnIndDatatype(leftOperandPreType, operandPreType)) {
               return BinaryExpr.ResolvedOpcode.RankGt;
             }
             return operandFamilyName switch {
@@ -520,6 +520,11 @@ namespace Microsoft.Dafny {
           Contract.Assert(false);
           throw new cce.UnreachableException();  // unexpected operator
       }
+    }
+
+    static bool OperatesOnIndDatatype(PreType left, PreType right) {
+      return (left is DPreType dpLeft && PreTypeResolver.AncestorPreType(dpLeft)?.Decl is IndDatatypeDecl) ||
+             (right is DPreType dpRight && PreTypeResolver.AncestorPreType(dpRight)?.Decl is IndDatatypeDecl);
     }
 
     void CheckVariable(IVariable v, string whatIsBeingChecked) {
