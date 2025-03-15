@@ -24,6 +24,16 @@ public static class DiagnosticUtil {
     };
   }
 
+  public static Location CreateLocation(TokenRange range) {
+    var uri = DocumentUri.Parse(range.Uri.AbsoluteUri);
+    return new Location {
+      Range = range.ToLspRange(),
+      // During parsing, we store absolute paths to make reconstructing the Uri easier
+      // https://github.com/dafny-lang/dafny/blob/06b498ee73c74660c61042bb752207df13930376/Source/DafnyLanguageServer/Language/DafnyLangParser.cs#L59 
+      Uri = uri
+    };
+  }
+
   public static Location CreateLocation(IOrigin token) {
     var uri = DocumentUri.Parse(token.Uri.AbsoluteUri);
     return new Location {

@@ -607,7 +607,7 @@ namespace Microsoft.Dafny {
         return null;
       }
 
-      return new AttributedToken(Origin(tok.Token), CloneAttributes(tok.Attrs));
+      return tok with { Attrs = CloneAttributes(tok.Attrs) };
     }
   }
 

@@ -108,7 +108,7 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
 
       private bool IsDotExpression() {
         var node = state.Program.FindNode<INode>(request.TextDocument.Uri.ToUri(), request.Position.ToDafnyPosition());
-        return node?.Origin.EndToken.val == ".";
+        return node?.EndToken.val == ".";
       }
 
       private bool IsAtAttribute() {

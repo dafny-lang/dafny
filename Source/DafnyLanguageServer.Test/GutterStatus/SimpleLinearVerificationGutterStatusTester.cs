@@ -226,9 +226,9 @@ method Foo() ensures false { } ";
  .  S [=][-][~][=]:  x > 3 { y := x;
  .  S [ ][I][S][ ]:  //Replace1:\n
  .  S [=][-][~][ ]:  while(y <= 1) invariant y >= 2 {
- .  S [ ][-][~][=]:    y := y + 1;
- .  S [ ][I][S][ ]:  }
- .  S [ ][I][S][ ]:}
+ .  S [O][-][~][=]:    y := y + 1;
+ .  S [O][o][Q][O]:  }
+ .  S [ ][o][Q][O]:}
 #########[I][S][ ]:", false);
   }
 

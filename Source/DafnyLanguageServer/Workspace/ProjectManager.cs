@@ -329,9 +329,9 @@ Determine when to automatically verify the program. Choose from: Never, OnChange
       .OrderByDescending(GetPriorityAttribute)
       .ThenBy(t => implementationOrder.GetOrDefault(t.Origin.GetFilePosition(), () => int.MaxValue))
       .ThenBy(TopToBottomPriority).ToList();
-    logger.LogDebug($"Ordered verifiables: {string.Join(", ", orderedVerifiables.Select(v => v.NavigationToken.val))}");
+    logger.LogDebug($"Ordered verifiables: {string.Join(", ", orderedVerifiables.Select(v => v.NavigationRange.StartToken.val))}");
 
-    var orderedVerifiableLocations = orderedVerifiables.Select(v => v.NavigationToken.GetFilePosition()).ToList();
+    var orderedVerifiableLocations = orderedVerifiables.Select(v => v.NavigationRange.StartToken.GetFilePosition()).ToList();
     if (GutterIconTesting) {
       foreach (var canVerify in orderedVerifiableLocations) {
         await compilation.VerifyLocation(canVerify, onlyPrepareVerificationForGutterTests: true);
@@ -352,9 +352,9 @@ Determine when to automatically verify the program. Choose from: Never, OnChange
       foreach (var canVerify in verifiables) {
         if (canVerify.Origin.Uri == uri) {
           intervalTree.Add(
-            canVerify.Origin.StartToken.GetLspPosition(),
-            canVerify.Origin.EndToken.GetLspPosition(true),
-            canVerify.NavigationToken.GetLspPosition());
+            canVerify.StartToken.GetLspPosition(),
+            canVerify.EndToken.GetLspPosition(true),
+            canVerify.NavigationRange.StartToken.GetLspPosition());
         }
       }
       return intervalTree;

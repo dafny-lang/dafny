@@ -327,8 +327,7 @@ public class BinaryExpr : Expression, ICloneable<BinaryExpr>, ICanFormat {
 
   [SyntaxConstructor]
   public BinaryExpr(IOrigin origin, Opcode op, Expression e0, Expression e1)
-    :
-    base(origin) {
+    : base(origin) {
     Contract.Requires(origin != null);
     Contract.Requires(e0 != null);
     Contract.Requires(e1 != null);

@@ -1,11 +1,12 @@
 using System;
 using System.Diagnostics.Contracts;
+using JetBrains.Annotations;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 
 namespace Microsoft.Dafny;
 
 [ContractClassFor(typeof(IVariable))]
-public abstract class IVariableContracts : NodeWithComputedRange, IVariable {
+public abstract class IVariableContracts : NodeWithOrigin, IVariable {
   public string Name {
     get {
       Contract.Ensures(Contract.Result<string>() != null);
@@ -89,9 +90,12 @@ public abstract class IVariableContracts : NodeWithComputedRange, IVariable {
     throw new NotImplementedException();
   }
 
-  public abstract IOrigin NavigationToken { get; }
+  public abstract TokenRange NavigationRange { get; }
   public SymbolKind? Kind => throw new NotImplementedException();
   public string GetDescription(DafnyOptions options) {
     throw new NotImplementedException();
+  }
+
+  protected IVariableContracts(IOrigin origin) : base(origin) {
   }
 }

@@ -1,15 +1,17 @@
+#nullable enable
 using System;
 using System.IO;
+using Microsoft.Boogie;
 
 namespace Microsoft.Dafny;
+
+class WithRange(IOrigin wrappedOrigin, TokenRange entireRange) : OriginWrapper(wrappedOrigin) {
+  public override TokenRange EntireRange { get; } = entireRange;
+}
 
 public interface IOrigin : Boogie.IToken {
 
   bool IsInherited(ModuleDefinition m);
-
-  int Length => EndToken.pos - StartToken.pos;
-
-  bool InclusiveEnd { get; }
   bool IncludesRange { get; }
   /*
   int kind { get; set; }
@@ -19,21 +21,24 @@ public interface IOrigin : Boogie.IToken {
   string val { get; set; }
   bool IsValid { get; }*/
 
-  string Boogie.IToken.filename {
+  string? Boogie.IToken.filename {
     get => Uri == null ? null : Path.GetFileName(Uri.LocalPath);
     set => throw new NotSupportedException();
   }
 
-  public string ActualFilename => Uri.LocalPath;
-  string Filepath => Uri?.LocalPath;
+  public string? ActualFilename => Uri?.LocalPath;
+  string Filepath => Uri?.LocalPath!;
 
   Uri Uri { get; }
 
-  Token StartToken { get; }
-  Token EndToken { get; }
-  Token Center {
+  TokenRange? EntireRange { get; }
+  TokenRange EntireRangeWithFallback => EntireRange ?? ReportingRange;
+
+  TokenRange ReportingRange {
     get;
   }
+
+  Token Center => ReportingRange.StartToken;
 
   bool IsCopy { get; }
 }
