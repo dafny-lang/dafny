@@ -105,10 +105,6 @@ public abstract class DiagnosticDafnyCodeActionProvider : DafnyCodeActionProvide
       return null;
     }
 
-    if (useNodeRange) {
-      return startNode.EntireRange;
-    }
-
     var startToken = startNode.CoveredTokens.FirstOrDefault(t => t.line - 1 == start.Line && t.col - 1 == start.Character);
     if (startToken == null) {
       logger.LogError($"Could not find starting token for position {start} in node {startNode}");

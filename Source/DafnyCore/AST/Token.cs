@@ -71,9 +71,9 @@ public class Token : IOrigin {
   /// </summary>
   public string TrailingTrivia { get; set; } = "";
 
-  public Token Next { get; set; } = null!; // The next token
+  public Token Next { get; set; } = NoToken; // The next token
 
-  public Token Prev { get; set; } = null!; // The previous token
+  public Token Prev { get; set; } = NoToken; // The previous token
 
   // ReSharper disable once ConditionIsAlwaysTrueOrFalseAccordingToNullableAPIContract
   public bool IsValid => this.ActualFilename != null;
