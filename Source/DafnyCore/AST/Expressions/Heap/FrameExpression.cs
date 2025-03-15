@@ -1,3 +1,5 @@
+#nullable enable
+
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 using System.Linq;
@@ -5,8 +7,8 @@ using System.Linq;
 namespace Microsoft.Dafny;
 
 public class FrameExpression : NodeWithComputedRange, IHasReferences {
-  public readonly Expression OriginalExpression; // may be a WildcardExpr
-  [FilledInDuringResolution] public Expression DesugaredExpression; // may be null for modifies clauses, even after resolution
+  public Expression OriginalExpression { get; } // may be a WildcardExpr
+  [FilledInDuringResolution] public Expression? DesugaredExpression; // may be null for modifies clauses, even after resolution
 
   /// <summary>
   /// .E starts off as OriginalExpression; destructively updated to its desugared version during resolution
@@ -15,22 +17,20 @@ public class FrameExpression : NodeWithComputedRange, IHasReferences {
 
   [ContractInvariantMethod]
   void ObjectInvariant() {
-    Contract.Invariant(E != null);
     Contract.Invariant(!(E is WildcardExpr) || (FieldName == null && Field == null));
   }
 
-  public readonly string FieldName;
-  [FilledInDuringResolution] public Field Field;  // null if FieldName is
+  public readonly string? FieldName;
+  [FilledInDuringResolution] public Field? Field;  // null if FieldName is
 
   /// <summary>
   /// If a "fieldName" is given, then "tok" denotes its source location.  Otherwise, "tok"
   /// denotes the source location of "e".
   /// </summary>
-  public FrameExpression(IOrigin origin, Expression e, string fieldName) : base(origin) {
-    Contract.Requires(origin != null);
-    Contract.Requires(e != null);
-    Contract.Requires(!(e is WildcardExpr) || fieldName == null);
-    OriginalExpression = e;
+  [SyntaxConstructor]
+  public FrameExpression(IOrigin origin, Expression originalExpression, string? fieldName) : base(origin) {
+    Contract.Requires(!(originalExpression is WildcardExpr) || fieldName == null);
+    OriginalExpression = originalExpression;
     FieldName = fieldName;
   }
 
