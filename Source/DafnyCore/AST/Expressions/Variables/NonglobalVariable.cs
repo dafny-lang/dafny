@@ -5,7 +5,7 @@ using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 
 namespace Microsoft.Dafny;
 
-public abstract class NonglobalVariable : NodeWithComputedRange, IVariable {
+public abstract class NonglobalVariable : NodeWithOrigin, IVariable {
   public Name NameNode { get; }
 
   protected NonglobalVariable(IOrigin origin, Name nameNode, Type type, bool isGhost) : base(origin) {
@@ -29,7 +29,7 @@ public abstract class NonglobalVariable : NodeWithComputedRange, IVariable {
       return NameNode.Value;
     }
   }
-  public string DafnyName => Origin == null || Origin.line == 0 ? Name : Origin.PrintOriginal();
+  public string DafnyName => Origin == null || Origin.line == 0 ? Name : EntireRange.PrintOriginal();
   public string DisplayName =>
     LocalVariable.DisplayNameHelper(this);
 
@@ -128,7 +128,7 @@ public abstract class NonglobalVariable : NodeWithComputedRange, IVariable {
     IsGhost = true;
   }
 
-  public IOrigin NavigationToken => NameNode.Origin;
+  public TokenRange NavigationRange => NameNode.ReportingRange;
   public override IEnumerable<INode> Children => IsTypeExplicit ? new List<Node> { Type } : Enumerable.Empty<Node>();
   public override IEnumerable<INode> PreResolveChildren => IsTypeExplicit ? new List<Node>() { Type } : Enumerable.Empty<Node>();
   public SymbolKind? Kind => SymbolKind.Variable;

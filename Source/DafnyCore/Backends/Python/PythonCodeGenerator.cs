@@ -1022,7 +1022,7 @@ namespace Microsoft.Dafny.Compilers {
       Contract.Requires(tok != null);
       var wStmts = wr.Fork();
       wr.Write($"raise {DafnyRuntimeModule}.HaltException(");
-      wr.Write($"\"{tok.TokenToString(Options)}: \" + ");
+      wr.Write($"\"{tok.OriginToString(Options)}: \" + ");
       EmitToString(wr, messageExpr, wStmts);
       wr.WriteLine(")");
     }

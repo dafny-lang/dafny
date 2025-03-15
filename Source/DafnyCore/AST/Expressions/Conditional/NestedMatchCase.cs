@@ -2,7 +2,7 @@ using System.Diagnostics.Contracts;
 
 namespace Microsoft.Dafny;
 
-public abstract class NestedMatchCase : NodeWithComputedRange {
+public abstract class NestedMatchCase : NodeWithOrigin {
   public readonly ExtendedPattern Pat;
 
   protected NestedMatchCase(IOrigin origin, ExtendedPattern pat) : base(origin) {

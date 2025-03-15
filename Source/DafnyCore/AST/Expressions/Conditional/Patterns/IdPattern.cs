@@ -131,7 +131,7 @@ public class IdPattern : ExtendedPattern, IHasReferences {
   }
 
   public IEnumerable<Reference> GetReferences() {
-    return Ctor == null ? Enumerable.Empty<Reference>() : new[] { new Reference(StartToken, Ctor) };
+    return Ctor == null ? Enumerable.Empty<Reference>() : new[] { new Reference(ReportingRange, Ctor) };
   }
 
   public void CheckLinearVarPattern(Type type, ResolutionContext resolutionContext, ModuleResolver resolver) {

@@ -1319,7 +1319,7 @@ namespace Microsoft.Dafny.Compilers {
       var wStmts = wr.Fork();
       wr.Write("throw DafnyHaltException(");
       if (tok != null) {
-        wr.Write("\"" + tok.TokenToString(Options) + ": \" + ");
+        wr.Write("\"" + tok.OriginToString(Options) + ": \" + ");
       }
 
       if (messageExpr.Type.IsStringType) {

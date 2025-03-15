@@ -228,7 +228,7 @@ public partial class BoogieGenerator {
       directSubstMap.Add(formal, dActual);
       Bpl.Cmd cmd = Bpl.Cmd.SimpleAssign(formal.Origin, param, bActual);
       builder.Add(cmd);
-      ins.Add(AdaptBoxing(ToDafnyToken(flags.ReportRanges, param.tok), param, formal.Type.Subst(tySubst), formal.Type));
+      ins.Add(AdaptBoxing(ToDafnyToken(param.tok), param, formal.Type.Subst(tySubst), formal.Type));
     }
 
     // Check that every parameter is available in the state in which the method is invoked; this means checking that it has
@@ -352,7 +352,7 @@ public partial class BoogieGenerator {
     var call = Call(builder.Context, tok, calleeName, ins, outs);
     proofDependencies?.AddProofDependencyId(call, tok, new CallDependency(cs));
     if (
-      (assertionOnlyFilter != null && !assertionOnlyFilter(tok)) ||
+      (assertionOnlyFilter != null && !assertionOnlyFilter(tok.ReportingRange.StartToken)) ||
       (module != currentModule && tok.IsInherited(currentModule) && (codeContext == null || !codeContext.MustReverify))) {
       // The call statement is inherited, so the refined module already checked that the precondition holds.  Note,
       // preconditions are not allowed to be strengthened, except if they use a predicate whose body has been strengthened.

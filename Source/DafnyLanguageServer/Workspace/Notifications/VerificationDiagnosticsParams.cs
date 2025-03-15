@@ -70,7 +70,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
       }
 
       // Fill in the missing "Unknown" based on the surrounding content
-      // The filling only takes Verified an Error
+      // The filling only takes Verified and Error
       var previousNotUnknown = LineVerificationStatus.Nothing;
       var lineDelta = 1;
       // Two passes so that we can fill gaps based on what happened before AND after
@@ -608,7 +608,7 @@ namespace Microsoft.Dafny.LanguageServer.Workspace.Notifications {
       if (counterExample is ReturnCounterexample returnCounterexample) {
         tok = returnCounterexample.FailingReturn.tok;
         if (tok.filename == assertion.tok.filename) {
-          result.Add(BoogieGenerator.ToDafnyToken(true, returnCounterexample.FailingReturn.tok).StartToken.GetLspRange());
+          result.Add(BoogieGenerator.ToDafnyToken(returnCounterexample.FailingReturn.tok).ReportingRange.ToLspRange());
         }
       }
 

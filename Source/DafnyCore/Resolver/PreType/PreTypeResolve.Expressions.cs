@@ -1851,7 +1851,7 @@ namespace Microsoft.Dafny {
     /// is called--this is easier than constructing an already-resolved expression.
     /// </summary>
     (Expression, Expression) ResolveDatatypeUpdate(IOrigin tok, DPreType rootPreType, Expression root, DatatypeDecl dt,
-      List<Tuple<IOrigin, string, Expression>> memberUpdates,
+      List<Tuple<Token, string, Expression>> memberUpdates,
       ResolutionContext resolutionContext, out List<MemberDecl> members, out List<DatatypeCtor> legalSourceConstructors) {
       Contract.Requires(tok != null);
       Contract.Requires(root != null);

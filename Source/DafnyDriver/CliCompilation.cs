@@ -122,9 +122,8 @@ public class CliCompilation {
         if (newDiagnostic.Diagnostic.Level == ErrorLevel.Warning) {
           Interlocked.Increment(ref warningCount);
         }
-        var dafnyDiagnostic = newDiagnostic.Diagnostic;
-        consoleReporter.Message(dafnyDiagnostic.Source, dafnyDiagnostic.Level,
-          dafnyDiagnostic.ErrorId, dafnyDiagnostic.Token, dafnyDiagnostic.Message);
+
+        consoleReporter.MessageCore(newDiagnostic.Diagnostic);
       } else if (ev is FinishedParsing finishedParsing) {
         if (errorCount > 0) {
           var programName = finishedParsing.ParseResult.Program.Name;
@@ -370,7 +369,7 @@ public class CliCompilation {
 
     range = new LineRange(start, end);
     return fileFiltered.Where(c =>
-        c.Origin.StartToken.line <= end && start <= c.Origin.EndToken.line).ToList();
+        c.StartToken.line <= end && start <= c.EndToken.line).ToList();
   }
 
   private bool KeepVerificationTask(IVerificationTask task, LineRange range) {

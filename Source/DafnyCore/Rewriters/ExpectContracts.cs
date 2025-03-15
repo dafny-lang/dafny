@@ -38,7 +38,7 @@ public class ExpectContracts : IRewriter {
   /// <returns>The newly-created expect statement.</returns>
   private Statement CreateContractExpectStatement(AttributedExpression expr, string exprType) {
     var tok = expr.E.Origin;
-    var msg = $"Runtime failure of {exprType} clause from {tok.TokenToString(Reporter.Options)}";
+    var msg = $"Runtime failure of {exprType} clause from {tok.OriginToString(Reporter.Options)}";
     var exprToCheck = expr.E;
     if (ExpressionTester.UsesSpecFeatures(exprToCheck)) {
       ReportWarning(ErrorId.rw_clause_cannot_be_compiled, tok,
