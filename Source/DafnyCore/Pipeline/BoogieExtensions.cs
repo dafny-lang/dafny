@@ -1,4 +1,6 @@
-﻿using Microsoft.Dafny.LanguageServer.Workspace;
+﻿using System;
+using JetBrains.Annotations;
+using Microsoft.Dafny.LanguageServer.Workspace;
 using OmniSharp.Extensions.LanguageServer.Protocol;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using Range = OmniSharp.Extensions.LanguageServer.Protocol.Models.Range;
@@ -30,8 +32,19 @@ namespace Microsoft.Dafny {
     /// <param name="startToken">The token to get the range of.</param>
     /// <param name="endToken">An optional other token to get the end of the range of.</param>
     /// <returns>The LSP range of the token.</returns>
-    public static Range ToLspRange(this IOrigin range) {
+    public static Range ToLspRange2(this IOrigin range) {
       return range.ToDafnyRange().ToLspRange();
+    }
+
+    [CanBeNull]
+    public static Location ToLspLocation(this Token range) {
+      if (range.Uri == null) {
+        return null;
+      }
+      return new Location() {
+        Uri = DocumentUri.From(range.Uri),
+        Range = range.ToLspRange2()
+      };
     }
 
     /// <summary>
@@ -81,6 +94,10 @@ namespace Microsoft.Dafny {
         Uri = DocumentUri.From(origin.Uri),
         Range = origin.GetLspRange()
       };
+    }
+
+    public static FilePosition ToFilePosition(this Location location) {
+      return new FilePosition(location.Uri.ToUri(), location.Range.Start);
     }
 
     public static FilePosition GetFilePosition(this IOrigin token, bool end = false) {

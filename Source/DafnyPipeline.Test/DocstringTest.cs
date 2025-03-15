@@ -778,11 +778,12 @@ iterator Iter2(x: int) yields (y: int)
         var dafnyProgram = await Utils.Parse(reporter, programString, false);
         if (reporter.HasErrors) {
           var error = reporter.AllMessagesByLevel[ErrorLevel.Error][0];
-          Assert.False(true, $"{error.Message}: line {error.Token.line} col {error.Token.col}");
+          Assert.False(true, $"{error.Message}: line {error.Location.Range.Start.Line} col {error.Location.Range.Start.Character}");
         }
 
         foreach (var (nodeTokenValue, expectedDocstring) in tests) {
-          var targetNode = FindNode(dafnyProgram, node => node.Origin.val == nodeTokenValue);
+          var targetNode = FindNode(dafnyProgram,
+            node => (node is Declaration declaration) && declaration.Name == nodeTokenValue);
           if (targetNode == null) {
             Assert.NotNull(targetNode);
           }

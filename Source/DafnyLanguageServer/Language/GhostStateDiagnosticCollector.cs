@@ -90,27 +90,27 @@ Send notifications that indicate which lines are ghost.".TrimStart());
       }
 
       private static Range GetRange(AssignStatement updateStatement) {
-        IOrigin startToken;
+        Token startToken;
         if (updateStatement.Lhss.Count > 0) {
-          startToken = updateStatement.Lhss[0].Origin;
+          startToken = updateStatement.Lhss[0].Origin.StartToken;
         } else if (updateStatement.ResolvedStatements!.Count > 0) {
           // This branch handles the case where the UpdateStmt consists of an CallStmt without of left hand side.
           // otherwise, we'd only mark parentheses and the semi-colon of the CallStmt. 
           startToken = GetStartTokenFromResolvedStatement(updateStatement.ResolvedStatements[0]);
         } else {
-          startToken = updateStatement.Origin;
+          startToken = updateStatement.Origin.StartToken;
         }
         return CreateRange(startToken, updateStatement.Origin.EndToken);
       }
 
-      private static IOrigin GetStartTokenFromResolvedStatement(Statement resolvedStatement) {
+      private static Token GetStartTokenFromResolvedStatement(Statement resolvedStatement) {
         return resolvedStatement switch {
-          CallStmt callStatement => callStatement.MethodSelect.Origin,
-          _ => resolvedStatement.Origin
+          CallStmt callStatement => callStatement.MethodSelect.Origin.StartToken,
+          _ => resolvedStatement.Origin.StartToken
         };
       }
 
-      private static Range CreateRange(IOrigin startToken, IOrigin endToken) {
+      private static Range CreateRange(Token startToken, Token endToken) {
         var endPosition = endToken.GetLspPosition();
         return new Range(
           startToken.GetLspPosition(),

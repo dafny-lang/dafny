@@ -1,12 +1,10 @@
 using System.Diagnostics.Contracts;
 using System.IO;
-using Newtonsoft.Json;
+using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 
 namespace Microsoft.Dafny;
 
 public static class TokenExtensions {
-
-
   public static DafnyRange ToDafnyRange(this IOrigin origin, bool includeTrailingWhitespace = false) {
     var startLine = origin.StartToken.line - 1;
     var startColumn = origin.StartToken.col - 1;
@@ -51,25 +49,46 @@ public static class TokenExtensions {
 
   public static bool IsSet(this IOrigin token) => token.Uri != null;
 
-  public static string TokenToString(this IOrigin tok, DafnyOptions options) {
-    if (ReferenceEquals(tok, Token.Cli)) {
+
+
+  public static string LocationToString(this Location location, DafnyOptions options) {
+    if (location == null) {
       return "CLI";
     }
 
-    if (tok.Uri == null) {
-      return $"({tok.line},{tok.col - 1})";
-    }
-
     var currentDirectory = Directory.GetCurrentDirectory();
-    string filename = tok.Uri.Scheme switch {
+    var path = location.Uri.Path;
+    string filename = location.Uri.Scheme switch {
       "stdin" => "<stdin>",
-      "transcript" => Path.GetFileName(tok.Filepath),
+      "transcript" => Path.GetFileName(path),
       _ => options.UseBaseNameForFileName
-        ? Path.GetFileName(tok.Filepath)
-        : (tok.Filepath.StartsWith(currentDirectory) ? Path.GetRelativePath(currentDirectory, tok.Filepath) : tok.Filepath)
+        ? Path.GetFileName(path)
+        : (path.StartsWith(currentDirectory) ? Path.GetRelativePath(currentDirectory, path) : path)
     };
 
-    return $"{filename}({tok.line},{tok.col - 1})";
+    return $"{filename}({location.Range.Start.Line + 1},{location.Range.Start.Character})";
+  }
+
+  public static string TokenToString(this IOrigin tok, DafnyOptions options) {
+    return tok.Center.LocationToString(options);
+    // if (ReferenceEquals(tok, Token.Cli)) {
+    //   return "CLI";
+    // }
+    //
+    // if (tok.Uri == null) {
+    //   return $"({tok.line},{tok.col - 1})";
+    // }
+    //
+    // var currentDirectory = Directory.GetCurrentDirectory();
+    // string filename = tok.Uri.Scheme switch {
+    //   "stdin" => "<stdin>",
+    //   "transcript" => Path.GetFileName(tok.Filepath),
+    //   _ => options.UseBaseNameForFileName
+    //     ? Path.GetFileName(tok.Filepath)
+    //     : (tok.Filepath.StartsWith(currentDirectory) ? Path.GetRelativePath(currentDirectory, tok.Filepath) : tok.Filepath)
+    // };
+    //
+    // return $"{filename}({tok.line},{tok.col - 1})";
   }
 }
 

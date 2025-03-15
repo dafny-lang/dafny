@@ -19,13 +19,13 @@ namespace Microsoft.Dafny {
       return CaptureState(options, stmt.Origin.EndToken, true, null);
     }
 
-    internal static void AddCaptureState(this BoogieStmtListBuilder builder, IOrigin tok, bool isEndToken, string /*?*/ additionalInfo) {
+    internal static void AddCaptureState(this BoogieStmtListBuilder builder, Token tok, bool isEndToken, string /*?*/ additionalInfo) {
       if (builder.Options.ExpectingModel || builder.Options.TestGenOptions.Mode != TestGenerationOptions.Modes.None) {
         builder.Add(CaptureState(builder.Options, tok, isEndToken, additionalInfo));
       }
     }
 
-    private static Bpl.Cmd CaptureState(DafnyOptions options, IOrigin tok, bool isEndToken, string/*?*/ additionalInfo) {
+    private static Bpl.Cmd CaptureState(DafnyOptions options, Token tok, bool isEndToken, string/*?*/ additionalInfo) {
       Contract.Requires(tok != null);
       Contract.Ensures(Contract.Result<Bpl.Cmd>() != null);
       string description;

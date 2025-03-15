@@ -52,7 +52,7 @@ namespace Microsoft.Dafny {
       // Check if the statement has the three tokens "assert", "!", and "(" next to each other. If so, that may
       // be a mistake, especially if the programmer is coming from Rust.
       if (stmt is AssertStmt { Expr: UnaryOpExpr { Op: UnaryOpExpr.Opcode.Not, E: ParensExpression } negationExpression }) {
-        if (stmt.Origin.pos + 6/*="assert".Length*/ == negationExpression.Origin.pos) {
+        if (stmt.Origin.StartToken.pos + 6/*="assert".Length*/ == negationExpression.Origin.StartToken.pos) {
           reporter.Warning(MessageSource.Rewriter, ErrorId.rw_warn_negated_assertion, stmt.Origin,
             "You have written an assert statement with a negated condition, but the lack of whitespace between 'assert' and '!' " +
             "suggests you may be used to Rust and have accidentally negated the asserted condition. If you did not intend the negation, " +

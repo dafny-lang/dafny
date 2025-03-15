@@ -35,7 +35,7 @@ public record DafnyCodeActionEdit(DafnyRange Range, string Replacement = "") {
 }
 
 
-public delegate List<DafnyAction> ActionSignature(SourceOrigin range);
+public delegate List<DafnyAction> ActionSignature(IOrigin range);
 public delegate bool TokenPredicate(IOrigin token);
 
 public record DafnyAction(string Title, IReadOnlyList<DafnyCodeActionEdit> Edits);
@@ -74,7 +74,7 @@ public static class ErrorRegistry {
     return new(title, new[] { new DafnyCodeActionEdit(range, newContent, includeTrailingWhitespace) });
   }
 
-  public static SourceOrigin IncludeComma(SourceOrigin range) {
+  public static IOrigin IncludeComma(IOrigin range) {
     if (range.EndToken.Next.val == ",") {
       return new SourceOrigin(range.StartToken, range.EndToken.Next);
     }
@@ -148,7 +148,7 @@ public static class ErrorRegistry {
     }
   }
 
-  private static List<DafnyAction> ReplacementAction(string title, SourceOrigin range, string newText) {
+  private static List<DafnyAction> ReplacementAction(string title, IOrigin range, string newText) {
     var edit = new[] { new DafnyCodeActionEdit(range, newText) };
     var action = new DafnyAction(title, edit);
     return [action];
@@ -160,19 +160,19 @@ public static class ErrorRegistry {
     return ReplacementAction(title, range, newText);
   }
 
-  private static List<DafnyAction> InsertAction(string title, SourceOrigin range, string newText) {
+  private static List<DafnyAction> InsertAction(string title, IOrigin range, string newText) {
     var edits = new[] { new DafnyCodeActionEdit(range, range.PrintOriginal() + newText) };
     var action = new DafnyAction(title, edits);
     return [action];
   }
 
-  private static List<DafnyAction> RemoveAction(string title, SourceOrigin range, bool includeTrailingSpaces) {
+  private static List<DafnyAction> RemoveAction(string title, IOrigin range, bool includeTrailingSpaces) {
     var edit = new[] { new DafnyCodeActionEdit(range, "", includeTrailingSpaces) };
     var action = new DafnyAction(title, edit);
     return [action];
   }
 
-  private static List<DafnyAction> RemoveAction(SourceOrigin range, bool includeTrailingSpaces) {
+  private static List<DafnyAction> RemoveAction(IOrigin range, bool includeTrailingSpaces) {
     string toBeRemoved = range.PrintOriginal();
     string title = "remove '" + toBeRemoved + "'";
     return RemoveAction(title, range, includeTrailingSpaces);

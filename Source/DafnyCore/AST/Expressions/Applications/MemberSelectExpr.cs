@@ -295,6 +295,6 @@ public class MemberSelectExpr : Expression, IHasReferences, ICloneable<MemberSel
   [FilledInDuringResolution] public List<Type> ResolvedOutparameterTypes;
 
   public IEnumerable<Reference> GetReferences() {
-    return new[] { new Reference(Center, Member) };
+    return new[] { new Reference(Origin, Member) };
   }
 }

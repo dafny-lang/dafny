@@ -90,7 +90,7 @@ public partial class BoogieGenerator {
         etran = ordinaryEtran; // we no longer need the special heap names
       }
 
-      builder.AddCaptureState(f.Origin, false, "initial state");
+      builder.AddCaptureState(f.NameNode.StartToken, false, "initial state");
 
       generator.DefineFrame(f.Origin, etran.ReadsFrame(f.Origin), f.Reads.Expressions, builder, locals, null);
       generator.InitializeFuelConstant(f.Origin, builder, etran);

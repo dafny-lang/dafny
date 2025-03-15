@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using Microsoft.Dafny;
 using Microsoft.Dafny.Plugins;
 
@@ -15,7 +16,7 @@ namespace PluginsTestTranslationError {
     }
 
     public override void PreVerify(ModuleDefinition module) {
-      Reporter.Error(MessageSource.Translator, module.Origin,
+      Reporter.Error(MessageSource.Translator, module.DefaultClass.Members[0].Origin,
         "Translation error that should appear in the code");
     }
   }

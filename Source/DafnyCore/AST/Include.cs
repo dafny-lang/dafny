@@ -17,7 +17,7 @@ public class Include : NodeWithComputedRange, IComparable {
     this.CanonicalPath = DafnyFile.Canonicalize(theFilename.LocalPath).LocalPath;
   }
 
-  public IOrigin PathOrigin => new SourceOrigin(Center, EndToken);
+  public IOrigin PathOrigin => new SourceOrigin(StartToken, EndToken); // TODO StartToken used to be Center
 
   public int CompareTo(object obj) {
     if (obj is Include include) {

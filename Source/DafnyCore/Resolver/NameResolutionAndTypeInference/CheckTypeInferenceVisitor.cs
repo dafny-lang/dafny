@@ -121,8 +121,8 @@ class CheckTypeInferenceVisitor : ASTVisitor<TypeInferenceCheckingContext> {
         }
         // For bitvectors and ORDINALs, check for a unary minus that, earlier, was mistaken for a negative literal
         // This can happen only in `match` patterns (see comment by LitPattern.OptimisticallyDesugaredLit).
-        if (n < 0 || e.Origin.val == "-0") {
-          Contract.Assert(e.Origin.val == "-0");  // this and the "if" above tests that "n < 0" happens only when the token is "-0"
+        if (n < 0 || e.Origin.StartToken.val == "-0") {
+          Contract.Assert(e.Origin.StartToken.val == "-0");  // this and the "if" above tests that "n < 0" happens only when the token is "-0"
           resolver.ReportError(ResolutionErrors.ErrorId.r_no_unary_minus_in_case_patterns, e.Origin, "unary minus (-{0}, type {1}) not allowed in case pattern", absN, e.Type);
         }
       }

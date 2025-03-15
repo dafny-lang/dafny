@@ -54,9 +54,9 @@ module B refines A {
       Assert.Equal(new Range(6, 4, 6, 5), startOrdered[0].Range);
       Assert.Equal("a postcondition could not be proved on this return path", startOrdered[0].Message);
       Assert.Equal("this is the postcondition that could not be proved", startOrdered[0].RelatedInformation!.ElementAt(0).Message);
-      Assert.Equal(new Range(12, 6, 12, 11), startOrdered[1].Range);
+      Assert.Equal(new Range(12, 7, 12, 8), startOrdered[1].Range);
       Assert.Equal("decreases clause might not decrease", startOrdered[1].Message);
-      Assert.Equal(new Range(17, 0, 27, 1), startOrdered[1].RelatedInformation!.ElementAt(0).Location.Range);
+      Assert.Equal(new Range(17, 7, 17, 8), startOrdered[1].RelatedInformation!.ElementAt(0).Location.Range);
       Assert.Equal("refining module", startOrdered[1].RelatedInformation.ElementAt(0).Message);
     }
 
@@ -77,7 +77,7 @@ method Main() {
       var diagnostics1 = await GetLastDiagnostics(documentItem);
       var startOrdered = diagnostics1.OrderBy(r => r.Range.Start).ToList();
       Assert.Equal(new Range(0, 7, 0, 8), startOrdered[0].Range);
-      Assert.Equal(new Range(1, 2, 3, 3), startOrdered[1].Range);
+      Assert.Equal(new Range(1, 11, 1, 12), startOrdered[1].Range);
     }
 
     [Fact]
@@ -133,17 +133,17 @@ method ContradictoryAssumeMethod(n: int)
       Assert.Equal(8, diagnostics.Length);
       Assert.Contains(diagnostics, diagnostic =>
         diagnostic.Severity == DiagnosticSeverity.Warning &&
-        diagnostic.Range == new Range(3, 11, 3, 16) &&
+        diagnostic.Range == new Range(3, 11, 3, 12) &&
         diagnostic.Message == "unnecessary (or partly unnecessary) assume statement"
         );
       Assert.Contains(diagnostics, diagnostic =>
         diagnostic.Severity == DiagnosticSeverity.Warning &&
-        diagnostic.Range == new Range(13, 4, 13, 18) &&
+        diagnostic.Range == new Range(13, 4, 13, 10) &&
         diagnostic.Message == "proved using contradictory assumptions: assertion always holds. (Use the `{:contradiction}` attribute on the `assert` statement to silence.)"
       );
       Assert.Contains(diagnostics, diagnostic =>
         diagnostic.Severity == DiagnosticSeverity.Warning &&
-        diagnostic.Range == new Range(12, 11, 12, 17) &&
+        diagnostic.Range == new Range(12, 11, 12, 12) &&
         diagnostic.Message == "unnecessary (or partly unnecessary) assume statement"
       );
       Directory.Delete(directory, true);
@@ -622,7 +622,7 @@ method Multiply(x: int, y: int) returns (product: int)
       Assert.Single(diagnostics[0].RelatedInformation);
       var relatedInformation = diagnostics[0].RelatedInformation.First();
       Assert.Equal("this is the postcondition that could not be proved", relatedInformation.Message);
-      Assert.Equal(new Range(new Position(2, 30), new Position(2, 42)), relatedInformation.Location.Range);
+      Assert.Equal(new Range(new Position(2, 38), new Position(2, 40)), relatedInformation.Location.Range);
       await AssertNoDiagnosticsAreComing(CancellationToken);
     }
 
@@ -813,7 +813,7 @@ method Multiply(x: int, y: int) returns (product: int
       Assert.Single(diagnostics);
       Assert.Equal("Project", diagnostics[0].Source);
       Assert.Equal(DiagnosticSeverity.Error, diagnostics[0].Severity);
-      Assert.Equal(new Range((0, 8), (0, 26)), diagnostics[0].Range);
+      Assert.Equal(new Range((0, 0), (0, 26)), diagnostics[0].Range);
       await AssertNoDiagnosticsAreComing(CancellationToken);
     }
 
@@ -944,9 +944,8 @@ class Test {
       var relatedInformation = diagnostics[0].RelatedInformation.ToArray();
       Assert.Equal(2, relatedInformation.Length);
       Assert.Equal("this is the postcondition that could not be proved", relatedInformation[0].Message);
-      Assert.Equal(new Range((14, 16), (14, 23)), relatedInformation[0].Location.Range);
-      Assert.Equal("this proposition could not be proved", relatedInformation[1].Message);
-      Assert.Equal(new Range((9, 11), (9, 16)), relatedInformation[1].Location.Range);
+      Assert.Equal(new Range((14, 21), (14, 22)), relatedInformation[0].Location.Range);
+      Assert.Equal(new Range(9, 13, 9, 14), relatedInformation[1].Location.Range);
       await AssertNoDiagnosticsAreComing(CancellationToken);
     }
 
@@ -1079,7 +1078,7 @@ method test(i: int, j: int) {
     }
 
     [Fact]
-    public async Task OpeningDocumentWithFailedCallUnderlinesAllOfIt() {
+    public async Task OpeningDocumentWithFailedCallUnderlinesOnlyOpeningParens() {
       var source = @"
 method test() {
   other(2, 1);
@@ -1096,12 +1095,12 @@ method other(i: int, j: int)
       Assert.Single(diagnostics);
       Assert.Equal(MessageSource.Verifier.ToString(), diagnostics[0].Source);
       Assert.Equal(DiagnosticSeverity.Error, diagnostics[0].Severity);
-      Assert.Equal(new Range((1, 2), (1, 14)), diagnostics[0].Range);
+      Assert.Equal(new Range((1, 7), (1, 8)), diagnostics[0].Range);
       await AssertNoDiagnosticsAreComing(CancellationToken);
     }
 
     [Fact]
-    public async Task OpeningDocumentWithFailedCallExpressionUnderlinesAllOfIt() {
+    public async Task OpeningDocumentWithFailedCallExpressionUnderlinesOnlyOpeningParens() {
       var source = @"
 method test() {
   var x := 1 + other(2, 1);
@@ -1119,7 +1118,7 @@ function other(i: int, j: int): int
       Assert.Single(diagnostics);
       Assert.Equal(MessageSource.Verifier.ToString(), diagnostics[0].Source);
       Assert.Equal(DiagnosticSeverity.Error, diagnostics[0].Severity);
-      Assert.Equal(new Range((1, 15), (1, 26)), diagnostics[0].Range);
+      Assert.Equal(new Range((1, 20), (1, 21)), diagnostics[0].Range);
       await AssertNoDiagnosticsAreComing(CancellationToken);
     }
 

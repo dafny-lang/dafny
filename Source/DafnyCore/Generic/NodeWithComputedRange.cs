@@ -67,7 +67,7 @@ public abstract class NodeWithComputedRange : Node {
           }
         }
 
-        origin = new SourceOrigin(startTok, endTok, tokenOrigin);
+        origin = new SourceOrigin(startTok, endTok, tokenOrigin.ToLspLocation());
       }
 
       return origin;

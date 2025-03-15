@@ -837,7 +837,7 @@ namespace Microsoft.Dafny {
       var locals = new Variables();
       var builder = new BoogieStmtListBuilder(this, options, new BodyTranslationContext(false));
       builder.Add(new CommentCmd($"AddWellformednessCheck for datatype constructor {ctor}"));
-      builder.AddCaptureState(ctor.Origin, false, "initial state");
+      builder.AddCaptureState(ctor.NameNode.StartToken, false, "initial state");
       IsAllocContext = new IsAllocContext(options, true);
 
       DefineFrame(ctor.Origin, etran.ReadsFrame(ctor.Origin), [], builder, locals, null);

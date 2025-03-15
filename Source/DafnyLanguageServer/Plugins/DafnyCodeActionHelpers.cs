@@ -148,11 +148,14 @@ public static class DafnyCodeActionHelpers {
         return false; // Outside of the current scope
       }
 
-      if (n is Method method && method.Origin.Uri == documentUri && method.Body != null &&
-          method.StartToken.line <= line && line <= method.EndToken.line &&
-          GetMatchingEndToken(line, col, method.Body) is { } token) {
-        tokenFound = token;
-      } else if (n is Function { ByMethodBody: { } } function &&
+      if (n is Method method) {
+        if (method.Origin.Uri == documentUri && method.Body != null &&
+            method.StartToken.line <= line && line <= method.EndToken.line &&
+            GetMatchingEndToken(line, col, method.Body) is { } token) {
+          tokenFound = token;
+        }
+      }
+      if (tokenFound == null && n is Function { ByMethodBody: { } } function &&
                  function.StartToken.line <= line && line <= function.EndToken.line &&
                  GetMatchingEndToken(line, col, function.ByMethodBody) is { } token2) {
         tokenFound = token2;
@@ -170,8 +173,10 @@ public static class DafnyCodeActionHelpers {
   private static Token? GetMatchingEndToken(int line, int col, Statement stmt) {
     // Look in methods for BlockStmt with the IToken as opening brace
     // Return the EndTok of them.
-    if (stmt is BlockStmt blockStmt && blockStmt.Origin.line == line && blockStmt.Origin.col == col) {
-      return blockStmt.Origin.EndToken;
+    if (stmt is BlockStmt blockStmt) {
+      if (blockStmt.Origin.line == line && blockStmt.Origin.col == col) {
+        return blockStmt.Origin.EndToken;
+      }
     }
 
     foreach (var subStmt in stmt.SubStatements) {

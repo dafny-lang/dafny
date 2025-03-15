@@ -123,8 +123,7 @@ public class CliCompilation {
           Interlocked.Increment(ref warningCount);
         }
         var dafnyDiagnostic = newDiagnostic.Diagnostic;
-        consoleReporter.Message(dafnyDiagnostic.Source, dafnyDiagnostic.Level,
-          dafnyDiagnostic.ErrorId, dafnyDiagnostic.Token, dafnyDiagnostic.Message);
+        consoleReporter.MessageCore(dafnyDiagnostic);
       } else if (ev is FinishedParsing finishedParsing) {
         if (errorCount > 0) {
           var programName = finishedParsing.ParseResult.Program.Name;
@@ -249,16 +248,16 @@ public class CliCompilation {
 
     var canVerifiesPerModule = canVerifies.GroupBy(c => c.ContainingModule);
     foreach (var canVerifiesForModule in canVerifiesPerModule.
-               OrderBy(v => v.Key.Origin.pos)) {
+               OrderBy(v => v.Key.Origin.StartToken.pos)) {
       var toAwait = new List<ICanVerify>();
-      foreach (var canVerify in canVerifiesForModule.OrderBy(v => v.Origin.pos)) {
+      foreach (var canVerify in canVerifiesForModule.OrderBy(v => v.Origin.StartToken.pos)) {
         var results = new CliCanVerifyState();
         canVerifyResults[canVerify] = results;
         if (VerifiedAssertions) {
           results.TaskFilter = t => KeepVerificationTask(t, filterRange);
         }
 
-        var shouldVerify = await Compilation.VerifyLocation(canVerify.Origin.GetFilePosition(), results.TaskFilter, randomSeed);
+        var shouldVerify = await Compilation.VerifyLocation(canVerify.Center.ToFilePosition(), results.TaskFilter, randomSeed);
         if (shouldVerify) {
           toAwait.Add(canVerify);
         }

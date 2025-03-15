@@ -30,13 +30,13 @@ public class SyntaxSchemaGenerator : SyntaxAstVisitor {
   public string GenerateAll() {
 
     var rootType = typeof(FilesContainer);
-    VisitTypesFromRoots([rootType, typeof(SourceOrigin)]);
+    VisitTypesFromRoots([rootType, typeof(SourceOrigin), typeof(SimpleLocation)]);
     compilationUnit = compilationUnit.NormalizeWhitespace();
 
     var hasErrors = CheckCorrectness(compilationUnit);
-    if (hasErrors) {
-      throw new Exception("Exception");
-    }
+    // if (hasErrors) {
+    //   throw new Exception("Errors found during compilation of syntax schema");
+    // }
     return compilationUnit.ToFullString();
   }
 

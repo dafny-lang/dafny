@@ -5,6 +5,7 @@ using System.IO;
 using System.Linq;
 using DafnyCore;
 using Microsoft.Boogie;
+using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 using VC;
 
 namespace Microsoft.Dafny;
@@ -97,6 +98,7 @@ public class DafnyConsolePrinter : ConsolePrinter {
     } else {
       tw.WriteLine(message);
     }
+
 
     if (Options.Get(Snippets.ShowSnippets)) {
       if (tok is IOrigin dafnyTok) {

@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 
 namespace Microsoft.Dafny;
 
@@ -38,7 +39,7 @@ public class Token : IOrigin {
   public Token StartToken => this;
   public Token EndToken => this;
 
-  public Token Center => this;
+  public Location Center => this.ToLspLocation();
 
   public int pos { get; set; } // Used by coco, so we can't rename it to Pos
 

@@ -367,7 +367,7 @@ namespace Microsoft.Dafny {
       // Look for the references to the YieldHavoc, IterHavoc0 and IterHavoc1 DafnyPrelude.bpl functions for details.
       Contract.Assert(etran.readsFrame == null);
       DefineFrame(iter.Origin, etran.ModifiesFrame(iter.Origin), iteratorFrame, builder, localVariables, null);
-      builder.AddCaptureState(iter.Origin, false, "initial state");
+      builder.AddCaptureState(iter.NameNode.StartToken, false, "initial state");
     }
 
     /// <summary>

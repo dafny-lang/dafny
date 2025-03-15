@@ -31,7 +31,8 @@ public abstract class SyntaxAstVisitor {
   /// </summary>
   protected static Dictionary<Type, Type> MappedTypes = new() {
     { typeof(Guid), typeof(string) },
-    { typeof(Uri), typeof(string) }
+    { typeof(Uri), typeof(string) },
+    { typeof(OmniSharp.Extensions.LanguageServer.Protocol.Models.Location), typeof(SimpleLocation) }
   };
 
   public void VisitTypesFromRoots(IReadOnlyList<Type> roots) {
