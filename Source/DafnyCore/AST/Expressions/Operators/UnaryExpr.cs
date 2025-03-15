@@ -4,7 +4,7 @@ using System.Diagnostics.Contracts;
 namespace Microsoft.Dafny;
 
 public abstract class UnaryExpr : Expression, ICanFormat {
-  public readonly Expression E;
+  public Expression E;
   [ContractInvariantMethod]
   void ObjectInvariant() {
     Contract.Invariant(E != null);

@@ -9,8 +9,8 @@ namespace Microsoft.Dafny;
 /// Parsed from ":|"
 /// </summary>
 public class AssignSuchThatStmt : ConcreteAssignStatement, ICloneable<AssignSuchThatStmt>, ICanResolveNewAndOld {
-  public readonly Expression Expr;
-  public readonly AttributedToken AssumeToken;
+  public Expression Expr;
+  public AttributedToken AssumeToken;
 
   public override IEnumerable<INode> PreResolveChildren =>
     Lhss.Concat<Node>(new List<Node>() { Expr });

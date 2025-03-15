@@ -16,7 +16,7 @@ namespace Microsoft.Dafny;
 /// </summary>
 public class CasePattern<VT> : NodeWithComputedRange
   where VT : IVariable {
-  public readonly string Id;
+  public string Id;
   // After successful resolution, exactly one of the following two fields is non-null.
 
   [FilledInDuringResolution]

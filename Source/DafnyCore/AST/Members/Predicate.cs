@@ -10,7 +10,7 @@ public class Predicate : Function {
     DelayedDefinition,  // this predicate declaration provides, for the first time, a body--the declaration refines a previously declared predicate, but the previous one had no body
     Extension  // this predicate extends the definition of a predicate with a body in a module being refined
   }
-  public readonly BodyOriginKind BodyOrigin;
+  public BodyOriginKind BodyOrigin;
   public Predicate(IOrigin rangeOrigin, Name nameNode, bool hasStaticKeyword, bool isGhost, bool isOpaque,
     List<TypeParameter> typeArgs, List<Formal> ins,
     Formal result,

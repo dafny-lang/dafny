@@ -3,7 +3,7 @@ using System.Collections.Generic;
 namespace Microsoft.Dafny;
 
 public class ParensExpression : ConcreteSyntaxExpression, ICanFormat, ICloneable<ParensExpression> {
-  public readonly Expression E;
+  public Expression E;
 
   [SyntaxConstructor]
   public ParensExpression(IOrigin origin, Expression e)

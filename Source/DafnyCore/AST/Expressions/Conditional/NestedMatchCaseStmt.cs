@@ -6,7 +6,7 @@ using System.Linq;
 namespace Microsoft.Dafny;
 
 public class NestedMatchCaseStmt : NestedMatchCase, IAttributeBearingDeclaration, ICloneable<NestedMatchCaseStmt> {
-  public readonly List<Statement> Body;
+  public List<Statement> Body;
   public Attributes Attributes { get; set; }
   string IAttributeBearingDeclaration.WhatKind => "match statement case";
   public NestedMatchCaseStmt(IOrigin rangeOrigin, ExtendedPattern pat, List<Statement> body) : base(rangeOrigin, pat) {

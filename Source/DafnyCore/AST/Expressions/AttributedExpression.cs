@@ -6,8 +6,8 @@ using System.Linq;
 namespace Microsoft.Dafny;
 
 public class AttributedExpression : NodeWithComputedRange, IAttributeBearingDeclaration {
-  public readonly Expression E;
-  public readonly AssertLabel? Label;
+  public Expression E;
+  public AssertLabel? Label;
 
   [ContractInvariantMethod]
   void ObjectInvariant() {

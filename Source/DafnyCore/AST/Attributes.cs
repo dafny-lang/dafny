@@ -62,9 +62,9 @@ public class Attributes : NodeWithComputedRange, ICanFormat {
 
   public string Name;
   /*Frozen*/
-  public readonly List<Expression> Args;
+  public List<Expression> Args;
 
-  public readonly Attributes? Prev;
+  public Attributes? Prev;
 
   [SyntaxConstructor]
   public Attributes(IOrigin origin, string name, List<Expression> args, Attributes? prev) : base(origin) {
@@ -482,7 +482,7 @@ public class Attributes : NodeWithComputedRange, ICanFormat {
   // List of built-in @-attributes with their definitions.
   // This list could be obtained from parsing and resolving a .Dfy file
   // but for now it's good enough.
-  public static readonly List<BuiltInAtAttributeSyntax> BuiltinAtAttributes = [
+  public static List<BuiltInAtAttributeSyntax> BuiltinAtAttributes = [
     BuiltIn("AssumeCrossModuleTermination")
       .Filter(attributeHost => attributeHost is ClassDecl or TraitDecl),
 
@@ -730,8 +730,8 @@ public static class AttributesExtensions {
 
 // {:..} Attributes parsed are built using this class
 public class UserSuppliedAttributes : Attributes {
-  public readonly IOrigin OpenBrace;
-  public readonly IOrigin CloseBrace;
+  public IOrigin OpenBrace;
+  public IOrigin CloseBrace;
   public bool Recognized;  // set to true to indicate an attribute that is processed by some part of Dafny; this allows it to be colored in the IDE
   public UserSuppliedAttributes(IOrigin origin, IOrigin openBrace, IOrigin closeBrace, List<Expression> args, Attributes? prev)
     : base(origin.val, args, prev) {
@@ -743,8 +743,8 @@ public class UserSuppliedAttributes : Attributes {
 
 // @-Attributes parsed are built using this class
 public class UserSuppliedAtAttribute : Attributes {
-  public static readonly string AtName = "@";
-  public readonly IOrigin AtSign;
+  public static string AtName = "@";
+  public IOrigin AtSign;
   public bool Builtin;  // set to true to indicate it was recognized as a builtin attribute
   // Otherwise it's a user-defined one and Arg needs to be fully resolved
   public UserSuppliedAtAttribute(IOrigin origin, Expression arg, Attributes? prev)

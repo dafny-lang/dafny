@@ -6,11 +6,11 @@ using System.Linq;
 namespace Microsoft.Dafny;
 
 public class ChainingExpression : ConcreteSyntaxExpression, ICloneable<ChainingExpression>, ICanFormat {
-  public readonly List<Expression> Operands;
-  public readonly List<BinaryExpr.Opcode> Operators;
-  public readonly List<IOrigin> OperatorLocs;
-  public readonly List<Expression/*?*/> PrefixLimits;
-  public readonly Expression E;
+  public List<Expression> Operands;
+  public List<BinaryExpr.Opcode> Operators;
+  public List<IOrigin> OperatorLocs;
+  public List<Expression/*?*/> PrefixLimits;
+  public Expression E;
 
   public ChainingExpression Clone(Cloner cloner) {
     return new ChainingExpression(cloner, this);

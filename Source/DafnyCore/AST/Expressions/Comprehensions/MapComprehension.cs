@@ -6,8 +6,8 @@ namespace Microsoft.Dafny;
 public class MapComprehension : ComprehensionExpr, ICloneable<MapComprehension> {
   public override string WhatKind => "map comprehension";
 
-  public readonly bool Finite;
-  public readonly Expression TermLeft;
+  public bool Finite;
+  public Expression TermLeft;
 
   public List<Boogie.Function> ProjectionFunctions;  // filled in during translation (and only for general map comprehensions where "TermLeft != null")
 

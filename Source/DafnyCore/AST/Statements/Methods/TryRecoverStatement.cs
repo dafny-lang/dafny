@@ -14,9 +14,9 @@ namespace Microsoft.Dafny;
 ///
 /// </summary>
 public class TryRecoverStatement : Statement, ICloneable<TryRecoverStatement> {
-  public readonly Statement TryBody;
-  public readonly IVariable HaltMessageVar;
-  public readonly Statement RecoverBody;
+  public Statement TryBody;
+  public IVariable HaltMessageVar;
+  public Statement RecoverBody;
 
   public TryRecoverStatement Clone(Cloner cloner) {
     return new TryRecoverStatement(cloner, this);

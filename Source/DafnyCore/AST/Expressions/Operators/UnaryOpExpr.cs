@@ -11,7 +11,7 @@ public class UnaryOpExpr : UnaryExpr, ICloneable<UnaryOpExpr> {
     Lit,  // there is no syntax for this operator, but it is sometimes introduced during translation
     Assigned,
   }
-  public readonly Opcode Op;
+  public Opcode Op;
 
   public enum ResolvedOpcode {
     YetUndetermined,

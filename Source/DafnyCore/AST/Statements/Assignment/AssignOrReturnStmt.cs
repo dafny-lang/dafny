@@ -9,10 +9,10 @@ namespace Microsoft.Dafny;
 /// Parsed from ":-"
 /// </summary>
 public class AssignOrReturnStmt : ConcreteAssignStatement, ICloneable<AssignOrReturnStmt>, ICanResolve {
-  public readonly ExprRhs Rhs; // this is the unresolved RHS, and thus can also be a method call
-  public readonly List<AssignmentRhs> Rhss;
-  public readonly AttributedToken KeywordToken;
-  [FilledInDuringResolution] public readonly List<Statement> ResolvedStatements = [];
+  public ExprRhs Rhs; // this is the unresolved RHS, and thus can also be a method call
+  public List<AssignmentRhs> Rhss;
+  public AttributedToken KeywordToken;
+  [FilledInDuringResolution] public List<Statement> ResolvedStatements = [];
   public override IEnumerable<Statement> SubStatements => ResolvedStatements;
 
   public override IEnumerable<INode> Children => ResolvedStatements;

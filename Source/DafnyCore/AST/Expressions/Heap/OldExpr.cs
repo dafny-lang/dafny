@@ -5,8 +5,8 @@ namespace Microsoft.Dafny;
 
 public class OldExpr : Expression, ICloneable<OldExpr>, ICanFormat {
   [Peer]
-  public readonly Expression E;
-  public readonly string/*?*/ At;
+  public Expression E;
+  public string/*?*/ At;
   [FilledInDuringResolution] public Label/*?*/ AtLabel;  // after that, At==null iff AtLabel==null
   [FilledInDuringResolution] public bool Useless = false;
   [ContractInvariantMethod]

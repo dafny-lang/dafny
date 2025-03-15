@@ -6,7 +6,7 @@ using JetBrains.Annotations;
 namespace Microsoft.Dafny;
 
 public class TupleTypeDecl : IndDatatypeDecl {
-  public readonly List<bool> ArgumentGhostness;
+  public List<bool> ArgumentGhostness;
 
   public int Dims => ArgumentGhostness.Count;
 

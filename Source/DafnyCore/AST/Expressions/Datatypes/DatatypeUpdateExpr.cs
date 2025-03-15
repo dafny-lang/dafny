@@ -6,8 +6,8 @@ using System.Linq;
 namespace Microsoft.Dafny;
 
 public class DatatypeUpdateExpr : ConcreteSyntaxExpression, IHasReferences, ICloneable<DatatypeUpdateExpr> {
-  public readonly Expression Root;
-  public readonly List<Tuple<IOrigin, string, Expression>> Updates;
+  public Expression Root;
+  public List<Tuple<IOrigin, string, Expression>> Updates;
   [FilledInDuringResolution] public List<MemberDecl> Members;
   [FilledInDuringResolution] public List<DatatypeCtor> LegalSourceConstructors;
   [FilledInDuringResolution] public bool InCompiledContext;

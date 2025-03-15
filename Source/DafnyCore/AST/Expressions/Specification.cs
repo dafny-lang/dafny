@@ -6,7 +6,7 @@ namespace Microsoft.Dafny;
 
 public class Specification<T> : NodeWithComputedRange, IAttributeBearingDeclaration
   where T : Node {
-  public readonly List<T>? Expressions;
+  public List<T>? Expressions;
 
   public Specification() {
     Expressions = [];

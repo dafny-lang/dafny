@@ -10,7 +10,7 @@ namespace Microsoft.Dafny;
 /// Represents module X { ... }
 /// </summary>
 public class LiteralModuleDecl : ModuleDecl, ICanFormat, IHasSymbolChildren {
-  public readonly ModuleDefinition ModuleDef;
+  public ModuleDefinition ModuleDef;
 
   [FilledInDuringResolution] public ModuleSignature? DefaultExport;  // the default export set of the module.
 

@@ -6,7 +6,7 @@ using Microsoft.Dafny.Auditor;
 namespace Microsoft.Dafny;
 
 public abstract class OneBodyLoopStmt : LoopStmt {
-  public readonly BlockStmt/*?*/ Body;
+  public BlockStmt/*?*/ Body;
   [FilledInDuringResolution]
   public WhileStmt.LoopBodySurrogate/*?*/ BodySurrogate;  // set by Resolver; remains null unless Body==null
 

@@ -9,7 +9,7 @@ namespace Microsoft.Dafny;
 /// been invoked without specifying a receiver (that is, by just giving the name of the enclosing class).
 /// </summary>
 public class StaticReceiverExpr : LiteralExpr, ICloneable<StaticReceiverExpr> {
-  public readonly Type UnresolvedType;
+  public Type UnresolvedType;
   /// <summary>
   /// A static member can be invoked through an object, in which case the object is not used for the call.
   /// However, the object expression must be verified and is thus stored here, in addition to its type.

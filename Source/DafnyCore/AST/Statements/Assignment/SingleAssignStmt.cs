@@ -5,8 +5,8 @@ using System.Linq;
 namespace Microsoft.Dafny;
 
 public class SingleAssignStmt : Statement, ICloneable<SingleAssignStmt> {
-  public readonly Expression Lhs;
-  public readonly AssignmentRhs Rhs;
+  public Expression Lhs;
+  public AssignmentRhs Rhs;
   public override IEnumerable<INode> Children => new List<Node> { Lhs, Rhs }.Where(x => x != null);
   public override IEnumerable<INode> PreResolveChildren => Children;
 

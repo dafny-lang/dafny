@@ -26,7 +26,7 @@ public class LiteralExpr : Expression, ICloneable<LiteralExpr> {
   ///     compiled into C# code.  The parser checks the validity of the escape sequences and the verifier deals
   ///     with turning them into single characters.
   /// </summary>
-  public readonly object Value;
+  public object Value;
 
   [System.Diagnostics.Contracts.Pure]
   public static bool IsTrue(Expression e) {
@@ -129,7 +129,7 @@ public class CharLiteralExpr : LiteralExpr, ICloneable<CharLiteralExpr> {
 }
 
 public class StringLiteralExpr : LiteralExpr, ICloneable<StringLiteralExpr> {
-  public readonly bool IsVerbatim;
+  public bool IsVerbatim;
   public StringLiteralExpr(IOrigin origin, string value, bool isVerbatim)
     : base(origin, value) {
     Contract.Requires(value != null);
@@ -150,7 +150,7 @@ public class StringLiteralExpr : LiteralExpr, ICloneable<StringLiteralExpr> {
 /// for 0-e (for integers) or 0.0-e (for reals).
 /// </summary>
 public class NegationExpression : ConcreteSyntaxExpression, ICloneable<NegationExpression> {
-  public readonly Expression E;
+  public Expression E;
 
   public NegationExpression Clone(Cloner cloner) {
     return new NegationExpression(cloner, this);

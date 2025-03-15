@@ -6,7 +6,7 @@ using System.Linq;
 namespace Microsoft.Dafny;
 
 public class BlockStmt : Statement, ICloneable<BlockStmt>, ICanFormat {
-  public readonly List<Statement> Body;
+  public List<Statement> Body;
 
   public BlockStmt Clone(Cloner cloner) {
     return new BlockStmt(cloner, this);

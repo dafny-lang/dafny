@@ -9,10 +9,10 @@ using System.Threading;
 namespace Microsoft.Dafny;
 
 public abstract class Type : NodeWithComputedRange {
-  public static readonly BoolType Bool = new BoolType();
-  public static readonly CharType Char = new CharType();
-  public static readonly IntType Int = new IntType();
-  public static readonly RealType Real = new RealType();
+  public static BoolType Bool = new BoolType();
+  public static CharType Char = new CharType();
+  public static IntType Int = new IntType();
+  public static RealType Real = new RealType();
 
   [SyntaxConstructor]
   protected Type(IOrigin origin = null) : base(origin) {
@@ -30,7 +30,7 @@ public abstract class Type : NodeWithComputedRange {
     return new SeqType(new CharType());
   }
 
-  public static readonly BigOrdinalType BigOrdinal = new BigOrdinalType();
+  public static BigOrdinalType BigOrdinal = new BigOrdinalType();
 
   private static ThreadLocal<List<VisibilityScope>> _scopes = new();
   private static List<VisibilityScope> Scopes => _scopes.Value ??= [];
@@ -1895,8 +1895,8 @@ public class BigOrdinalType : BasicType {
 }
 
 public class BitvectorType : BasicType {
-  public readonly int Width;
-  public readonly NativeType NativeType;
+  public int Width;
+  public NativeType NativeType;
   public BitvectorType(DafnyOptions options, int width)
     : base() {
     Contract.Requires(0 <= width);
@@ -2170,8 +2170,8 @@ public class SeqType : CollectionType {
 public abstract class TypeProxy : Type {
   public override IEnumerable<INode> Children => Enumerable.Empty<Node>();
   [FilledInDuringResolution] public Type T;
-  public readonly List<TypeConstraint> SupertypeConstraints = [];
-  public readonly List<TypeConstraint> SubtypeConstraints = [];
+  public List<TypeConstraint> SupertypeConstraints = [];
+  public List<TypeConstraint> SubtypeConstraints = [];
 
   public override Type Subst(IDictionary<TypeParameter, Type> subst) {
     if (T == null) {

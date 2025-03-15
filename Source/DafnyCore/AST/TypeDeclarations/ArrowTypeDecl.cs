@@ -5,9 +5,9 @@ namespace Microsoft.Dafny;
 
 public class ArrowTypeDecl : ValuetypeDecl {
   public override string WhatKind => "function type";
-  public readonly int Arity;
-  public readonly Function Requires;
-  public readonly Function Reads;
+  public int Arity;
+  public Function Requires;
+  public Function Reads;
 
   public ArrowTypeDecl(List<TypeParameter> tps, Function req, Function reads, ModuleDefinition enclosingModule, Attributes attributes)
     : base(ArrowType.ArrowTypeName(tps.Count - 1), enclosingModule, tps,

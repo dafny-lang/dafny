@@ -4,10 +4,10 @@ using System.Diagnostics.Contracts;
 namespace Microsoft.Dafny;
 
 public class ForLoopStmt : OneBodyLoopStmt, ICloneable<ForLoopStmt>, ICanFormat {
-  public readonly BoundVar LoopIndex;
-  public readonly Expression Start;
-  public readonly Expression/*?*/ End;
-  public readonly bool GoingUp;
+  public BoundVar LoopIndex;
+  public Expression Start;
+  public Expression/*?*/ End;
+  public bool GoingUp;
 
   public ForLoopStmt Clone(Cloner cloner) {
     return new ForLoopStmt(cloner, this);

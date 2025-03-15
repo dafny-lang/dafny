@@ -8,10 +8,10 @@ namespace Microsoft.Dafny;
 /// Class "BreakStmt" represents both "break" and "continue" statements.
 /// </summary>
 public class BreakOrContinueStmt : Statement, IHasReferences, ICloneable<BreakOrContinueStmt> {
-  public readonly IOrigin TargetLabel;
-  public readonly bool IsContinue;
+  public IOrigin TargetLabel;
+  public bool IsContinue;
   public string Kind => IsContinue ? "continue" : "break";
-  public readonly int BreakAndContinueCount;
+  public int BreakAndContinueCount;
   [FilledInDuringResolution] public Statement TargetStmt;
   [ContractInvariantMethod]
   void ObjectInvariant() {

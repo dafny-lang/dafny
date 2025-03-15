@@ -36,7 +36,7 @@ namespace Microsoft.Dafny;
 ///     seem more natural to refactor these into 3: IndexSuffixExpr and 4: RangeSuffixExpr.
 /// </summary>
 public abstract class SuffixExpr : ConcreteSyntaxExpression {
-  public readonly Expression Lhs;
+  public Expression Lhs;
 
   protected SuffixExpr(Cloner cloner, SuffixExpr original) : base(cloner, original) {
     Lhs = cloner.CloneExpr(original.Lhs);

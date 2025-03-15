@@ -4,8 +4,8 @@ using System.Linq;
 namespace Microsoft.Dafny;
 
 public class OpaqueBlock : BlockStmt, ICanResolveNewAndOld {
-  public readonly List<AttributedExpression> Ensures;
-  public readonly Specification<FrameExpression> Modifies;
+  public List<AttributedExpression> Ensures;
+  public Specification<FrameExpression> Modifies;
 
   protected OpaqueBlock(Cloner cloner, OpaqueBlock original) : base(cloner, original) {
     Ensures = original.Ensures.Select(cloner.CloneAttributedExpr).ToList();
