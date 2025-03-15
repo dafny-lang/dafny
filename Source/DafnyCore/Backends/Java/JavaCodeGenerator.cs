@@ -508,7 +508,9 @@ namespace Microsoft.Dafny.Compilers {
         }
       }
       if (nonGhostOuts == 1) {
-        targetReturnTypeReplacement = TypeName(m.Outs[nonGhostIndex].Type, wr, m.Outs[nonGhostIndex].Origin);
+        // If a primitive type is used for a type parameter, it has to be boxed
+        var boxed = OutFormalOverridesTypeParameter(m, nonGhostIndex);
+        targetReturnTypeReplacement = TypeName(m.Outs[nonGhostIndex].Type, wr, m.Outs[nonGhostIndex].Origin, boxed);
       } else if (nonGhostOuts > 1) {
         targetReturnTypeReplacement = DafnyTupleClass(nonGhostOuts);
       }
@@ -535,6 +537,17 @@ namespace Microsoft.Dafny.Compilers {
       } else {
         return wr.NewBlock(")", null, BlockStyle.NewlineBrace, BlockStyle.NewlineBrace);
       }
+    }
+
+    private bool OutFormalOverridesTypeParameter(Method m, int outIndex) {
+      if (m.Outs[outIndex].Type.IsTypeParameter) {
+        return true;
+      }
+      if (m.OverriddenMethod == null) {
+        return false;
+      }
+
+      return OutFormalOverridesTypeParameter(m.OverriddenMethod, outIndex);
     }
 
     protected override ConcreteSyntaxTree EmitMethodReturns(Method m, ConcreteSyntaxTree wr) {

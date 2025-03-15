@@ -1,16 +1,11 @@
-excludes = [
-  "**/nondeterministic/*.dfy"
-]
-
 [options]
 standard-libraries = true
 # This needs to be set because the examples themselves
 # use {:concurrent} and reads clauses on methods,
 # but consumers don't have to have this option set
 # to use the standard libraries in general.
-reads-clauses-on-methods = true
-enforce-determinism = true
+reads-clauses-on-methods = false
+enforce-determinism = false
 resource-limit = 1000000
-# TODO: change this back. Necessary because I have to say `assert Requires(t)` in examples
-warn-redundant-assumptions = false
+warn-redundant-assumptions = true
 warn-contradictory-assumptions = true

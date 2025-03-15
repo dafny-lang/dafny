@@ -33,18 +33,23 @@ update-binary: build-binary
 
 test-cs:
 	$(DAFNY) test -t:cs examples/dfyconfig.toml examples/BoundedInts/NonDefault.cs --output:build/stdlibexamples --coverage-report:build/testcoverage
+	$(DAFNY) test -t:cs examples/nondeterministic/dfyconfig.toml --output:build/stdlibexamples_nondeterministic --coverage-report:build/nondeterministic_testcoverage
 
 test-java:
 	$(DAFNY) test -t:java examples/dfyconfig.toml examples/BoundedInts/Externs/NonDefault.java --output:build/stdlibexamples
+# Iterators aren't supported on Java so we can't test the nondeterministic examples
 
 test-go:
 	$(DAFNY) test -t:go examples/dfyconfig.toml examples/BoundedInts/NonDefault.go --output:build/stdlibexamples
+	$(DAFNY) test -t:go examples/nondeterministic/dfyconfig.toml --output:build/stdlibexamples_nondeterministic
 
 test-py:
 	$(DAFNY) test -t:py examples/dfyconfig.toml examples/BoundedInts/NonDefault.py --output:build/stdlibexamples
+	$(DAFNY) test -t:py examples/nondeterministic/dfyconfig.toml --output:build/stdlibexamples_nondeterministic
 
 test-js:
 	$(DAFNY) test -t:js examples/dfyconfig.toml examples/BoundedInts/NonDefault.js --output:build/stdlibexamples
+	$(DAFNY) test -t:js examples/nondeterministic/dfyconfig.toml --output:build/stdlibexamples_nondeterministic
 
 test: test-cs test-java test-go test-py test-js
 
