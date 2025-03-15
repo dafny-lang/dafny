@@ -19,7 +19,7 @@ necessary.
 
 codatatype Stream<T> = Cons(hd: T, tl: Stream)
 
-ghost function zip(xs: Stream, ys: Stream): Stream
+ghost function {:fuel 2} zip(xs: Stream, ys: Stream): Stream
   { Cons(xs.hd, Cons(ys.hd, zip(xs.tl, ys.tl))) }
 ghost function even(xs: Stream): Stream
   { Cons(xs.hd, even(xs.tl.tl)) }
@@ -34,13 +34,15 @@ greatest lemma EvenZipLemma(xs:Stream, ys:Stream)
   ensures even(zip(xs, ys)) == xs;
 { /* Automatic. */ }
 
-ghost function bzip(xs: Stream, ys: Stream, f:bool) : Stream
+ghost function {:fuel 2} bzip(xs: Stream, ys: Stream, f:bool) : Stream
   { if f then Cons(xs.hd, bzip(xs.tl, ys, !f))
     else      Cons(ys.hd, bzip(xs, ys.tl, !f)) }
 
 greatest lemma BzipZipLemma(xs:Stream, ys:Stream)
   ensures zip(xs, ys) == bzip(xs, ys, true);
-{ BzipZipLemma(xs.tl, ys.tl); }
+{
+  BzipZipLemma(xs.tl, ys.tl);
+}
 
 
 /*
@@ -71,17 +73,18 @@ ghost function zip2(xs: Stream, ys: Stream): Stream
 
 greatest lemma Zip201Lemma()
   ensures zip2(constr(0), constr(1)) == blink();
+  ensures zip2(constr(1), constr(0)) == Cons(1, blink());
 {
   Zip201Lemma();
 }
 
-greatest lemma ZipZip2Lemma(xs:Stream, ys:Stream)
+greatest lemma {:fuel zip2<T>,2} ZipZip2Lemma<T>(xs:Stream, ys:Stream)
   ensures zip(xs, ys) == zip2(xs, ys);
 {
   ZipZip2Lemma(xs.tl, ys.tl);
 }
 
-ghost function bswitch(xs: Stream, f:bool) : Stream
+ghost function {:fuel 2} bswitch(xs: Stream, f:bool) : Stream
 {
   if f then Cons(xs.tl.hd, bswitch(Cons(xs.hd, xs.tl.tl), !f))
   else      Cons(xs.hd,      bswitch(xs.tl, !f))
