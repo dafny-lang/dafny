@@ -254,7 +254,7 @@ method f(b: bool) returns (i: int)
     i := 0;
   (>Assert postcondition at return location where it fails->  assert i > 10;
   <)} else {
-    i := 10;
+    i := 11;
   }
 }");
     }
@@ -373,7 +373,7 @@ method Foo(i: int)
 function Foo(b: bool, i: int, j: int): bool
 {
   var x := b ==> (>Insert explicit failing assertion->assert i + 1 != 0;
-                 <)2 ></ (i + 1) == j;
+                 <)2>< / (i + 1) == j;
   x
 }");
     }
@@ -384,7 +384,7 @@ function Foo(b: bool, i: int, j: int): bool
 method Foo(b: bool, i: int, j: int)
 {
   var x := b ==> b ==> (>Insert explicit failing assertion->assert i + 1 != 0;
-                       <)2 ></ (i + 1) == j;
+                       <)2>< / (i + 1) == j;
 }");
     }
 
@@ -547,7 +547,7 @@ function Foo(i: int): int
 {
   if i < 0 then
     (>Insert explicit failing assertion->assert i + 1 != 0;
-    <)2>< / (i + 1)
+    <)2 ></ (i + 1)
   else
     2
 }");
@@ -563,7 +563,7 @@ function Foo(i: int): int
   match i {
     case _ =>
       (>Insert explicit failing assertion->assert i + 1 != 0;
-      <)2>< / (i + 1)
+      <)2 ></ (i + 1)
   }
 }");
     }

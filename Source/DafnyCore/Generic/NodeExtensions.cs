@@ -15,6 +15,10 @@ public interface IHasDocstring {
 
 public static class NodeExtensions {
 
+
+
+  public static IOrigin OriginWithEntireRange(this INode node) => new WithRange(node.Origin, node.EntireRange);
+
   /// <summary>
   /// // Applies plugin-defined docstring filters
   /// </summary>
@@ -157,7 +161,7 @@ public static class NodeExtensions {
 
     // Example of a fillerNode is the default class, although we could give it the same origin as the module it is in.
     var fillerNode = !ReferenceEquals(node.Origin, Token.NoToken);
-    if (fillerNode && !node.Origin.ToDafnyRange().Contains(position)) {
+    if (fillerNode && !node.ToDafnyRange().Contains(position)) {
       return null;
     }
 

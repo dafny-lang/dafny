@@ -6,14 +6,10 @@ using JetBrains.Annotations;
 
 namespace Microsoft.Dafny;
 
-public class ActualBindings : NodeWithComputedRange {
+public class ActualBindings : NodeWithoutOrigin {
   public readonly List<ActualBinding> ArgumentBindings;
 
   [SyntaxConstructor]
-  public ActualBindings(IOrigin origin, List<ActualBinding> argumentBindings) : base(origin) {
-    ArgumentBindings = argumentBindings;
-  }
-
   public ActualBindings(List<ActualBinding> argumentBindings) {
     ArgumentBindings = argumentBindings;
   }
@@ -48,7 +44,7 @@ public class ActualBindings : NodeWithComputedRange {
   public override IEnumerable<INode> PreResolveChildren => Children;
 }
 
-public class ActualBinding : NodeWithComputedRange {
+public class ActualBinding : NodeWithoutOrigin {
   public readonly IOrigin? FormalParameterName;
   public readonly Expression Actual;
   public readonly bool IsGhost;
@@ -58,12 +54,6 @@ public class ActualBinding : NodeWithComputedRange {
   public override IEnumerable<INode> PreResolveChildren => Children;
 
   [SyntaxConstructor]
-  public ActualBinding(IOrigin origin, IOrigin? formalParameterName, Expression actual, bool isGhost = false) : base(origin) {
-    FormalParameterName = formalParameterName;
-    Actual = actual;
-    IsGhost = isGhost;
-  }
-
   public ActualBinding(IOrigin? formalParameterName, Expression actual, bool isGhost = false) {
     FormalParameterName = formalParameterName;
     Actual = actual;

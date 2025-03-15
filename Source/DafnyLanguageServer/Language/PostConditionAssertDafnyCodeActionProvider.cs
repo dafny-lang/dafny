@@ -15,7 +15,7 @@ namespace Microsoft.Dafny.LanguageServer.Language;
 /// For now, it offers to inline a failing postcondition if its failure is
 /// indicated on the '{' -- meaning there is no explicit return.
 /// </summary>
-class VerificationDafnyCodeActionProvider : DiagnosticDafnyCodeActionProvider {
+class PostConditionAssertDafnyCodeActionProvider : DiagnosticDafnyCodeActionProvider {
   protected override IEnumerable<DafnyCodeAction>? GetDafnyCodeActions(IDafnyCodeActionInput input,
     Diagnostic diagnostic, Range selection) {
     var uri = input.Uri;
@@ -31,7 +31,7 @@ class VerificationDafnyCodeActionProvider : DiagnosticDafnyCodeActionProvider {
       return null;
     }
 
-    var range = FindTokenRangeFromLspRange(input, relatedInformation.Location.Range);
+    var range = FindTokenRangeFromLspRange(input, relatedInformation.Location.Range, true);
     if (range == null) {
       return null;
     }
@@ -52,6 +52,6 @@ class VerificationDafnyCodeActionProvider : DiagnosticDafnyCodeActionProvider {
 
   }
 
-  public VerificationDafnyCodeActionProvider(ILogger<DafnyCodeActionHandler> logger) : base(logger) {
+  public PostConditionAssertDafnyCodeActionProvider(ILogger<DafnyCodeActionHandler> logger) : base(logger) {
   }
 }
