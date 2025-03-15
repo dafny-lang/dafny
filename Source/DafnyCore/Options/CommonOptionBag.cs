@@ -210,7 +210,7 @@ true - All class instances are raw pointers and need to be manually deallocated"
     "Prevents a warning from being generated for axioms, such as assume statements and functions or methods without a body, that don't have an {:axiom} attribute.") {
   };
 
-  public static readonly Option<bool> TypeSystemRefresh = new("--type-system-refresh", () => false,
+  public static readonly Option<bool> TypeSystemRefresh = new("--type-system-refresh", () => true,
     @"
 false - The type-inference engine and supported types are those of Dafny 4.0.
 true - Use an updated type-inference engine.".TrimStart()) {
@@ -223,7 +223,7 @@ true - Use an updated type-inference engine.".TrimStart()) {
     Full
   }
 
-  public static readonly Option<GeneralTraitsOptions> GeneralTraits = new("--general-traits", () => GeneralTraitsOptions.Legacy,
+  public static readonly Option<GeneralTraitsOptions> GeneralTraits = new("--general-traits", () => GeneralTraitsOptions.Datatype,
     @"
 legacy - Every trait implicitly extends 'object', and thus is a reference type. Only traits and reference types can extend traits.
 datatype - A trait is a reference type only if it or one of its ancestor traits is 'object'. Any non-'newtype' type with members can extend traits.
@@ -231,7 +231,7 @@ full - (don't use; not yet completely supported) A trait is a reference type onl
     IsHidden = true
   };
 
-  public static readonly Option<bool> GeneralNewtypes = new("--general-newtypes", () => false,
+  public static readonly Option<bool> GeneralNewtypes = new("--general-newtypes", () => true,
     @"
 false - A newtype can only be based on numeric types or another newtype.
 true - (requires --type-system-refresh) A newtype case be based on any non-reference, non-trait, non-arrow, non-ORDINAL type.".TrimStart()) {
