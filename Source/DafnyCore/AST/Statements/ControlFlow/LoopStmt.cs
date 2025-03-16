@@ -87,5 +87,5 @@ public abstract class LoopStmt : Statement, IHasNavigationToken {
     }
   }
 
-  public IOrigin NavigationToken => StartToken;
+  public TokenRange NavigationRange => ReportingRange;
 }

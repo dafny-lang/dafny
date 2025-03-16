@@ -12,29 +12,28 @@ using static Microsoft.Dafny.ErrorRegistry;
 namespace Microsoft.Dafny;
 
 record DiagnosticMessageData(MessageSource source, ErrorLevel level, Boogie.IToken tok, string? category, string message, List<ErrorInformation.AuxErrorInfo>? related) {
-  private static JsonObject SerializePosition(Boogie.IToken tok) {
+  private static JsonObject SerializePosition(Boogie.IToken tok, bool includeLength) {
+    var addition = includeLength ? tok.val.Length : 0;
     return new JsonObject {
-      ["pos"] = tok.pos,
+      ["pos"] = tok.pos + addition,
       ["line"] = tok.line,
-      ["character"] = tok.col - 1
+      ["character"] = tok.col - 1 + addition
     };
   }
 
   private static JsonObject SerializeRange(Boogie.IToken tok) {
+    var origin = BoogieGenerator.ToDafnyToken(true, tok).ReportingRange;
     var range = new JsonObject {
-      ["start"] = SerializePosition(tok),
+      ["start"] = SerializePosition(origin.StartToken, false),
+      ["end"] = SerializePosition(origin.EndToken, origin.InclusiveEnd)
     };
-    var origin = BoogieGenerator.ToDafnyToken(true, tok);
-    if (origin.IncludesRange) {
-      range["end"] = SerializePosition(origin.EndToken);
-    }
     return range;
   }
 
   private static JsonObject SerializeToken(Boogie.IToken tok) {
     return new JsonObject {
       ["filename"] = tok.filename,
-      ["uri"] = ((IOrigin)tok).Uri.AbsoluteUri,
+      ["uri"] = ((IOrigin)tok).Uri!.AbsoluteUri,
       ["range"] = SerializeRange(tok)
     };
   }

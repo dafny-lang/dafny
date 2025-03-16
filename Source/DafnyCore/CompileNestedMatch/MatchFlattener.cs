@@ -713,7 +713,7 @@ public class MatchFlattener : IRewriter {
       var caseLocal = new LocalVariable(var.Origin, name, type, isGhost) {
         type = type
       };
-      var casePattern = new CasePattern<LocalVariable>(caseLocal.Origin.EndToken, caseLocal);
+      var casePattern = new CasePattern<LocalVariable>(caseLocal.EndToken, caseLocal);
       casePattern.AssembleExpr([]);
       var caseLet = new VarDeclPattern(caseLocal.Origin, casePattern, expr, false) {
         IsGhost = isGhost

@@ -528,7 +528,7 @@ public class UserDefinedType : NonProxyType, IHasReferences {
   }
 
   public IEnumerable<Reference> GetReferences() {
-    return new[] { new Reference(Center, ResolvedClass) };
+    return new[] { new Reference(ReportingRange, ResolvedClass) };
   }
 
   public override IEnumerable<INode> Children => base.Children.Concat(new[] { NamePath });

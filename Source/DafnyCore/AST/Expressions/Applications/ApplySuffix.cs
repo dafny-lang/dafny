@@ -32,7 +32,6 @@ public class ApplySuffix : SuffixExpr, ICloneable<ApplySuffix>, ICanFormat {
     base(cloner, original) {
     AtTok = original.AtTok == null ? null : cloner.Origin(original.AtTok);
     CloseParen = original.CloseParen;
-    FormatTokens = original.FormatTokens;
     Bindings = new ActualBindings(cloner, original.Bindings);
   }
 
@@ -43,9 +42,6 @@ public class ApplySuffix : SuffixExpr, ICloneable<ApplySuffix>, ICanFormat {
     AtTok = atTok;
     CloseParen = closeParen;
     Bindings = bindings;
-    if (closeParen != null) {
-      FormatTokens = [closeParen];
-    }
   }
 
   public ApplySuffix(IOrigin origin, IOrigin? atTok, Expression lhs, List<ActualBinding> args, Token? closeParen)

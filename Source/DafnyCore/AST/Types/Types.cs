@@ -8,7 +8,7 @@ using System.Threading;
 
 namespace Microsoft.Dafny;
 
-public abstract class Type : NodeWithComputedRange {
+public abstract class Type : NodeWithOrigin {
   public static readonly BoolType Bool = new BoolType();
   public static readonly CharType Char = new CharType();
   public static readonly IntType Int = new IntType();

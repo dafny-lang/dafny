@@ -31,12 +31,13 @@ namespace Microsoft.Dafny {
       if (ErrorsOnly && level != ErrorLevel.Error) {
         return false;
       }
+
       var relatedInformation = new List<DafnyRelatedInformation>();
 
       var usingSnippets = Options.Get(Snippets.ShowSnippets);
       var inner = rootTok;
       while (inner is OriginWrapper wrapper and not NestedOrigin) {
-        inner = wrapper.WrappedToken;
+        inner = wrapper.WrappedOrigin;
       }
       if (inner is NestedOrigin nestedToken) {
         relatedInformation.AddRange(
@@ -86,7 +87,7 @@ namespace Microsoft.Dafny {
     }
 
     private Uri GetUriOrDefault(IOrigin token) {
-      return token.Filepath == null
+      return token.Uri == null
         ? entryUri
         : token.Uri;
     }

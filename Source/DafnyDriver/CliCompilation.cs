@@ -370,7 +370,7 @@ public class CliCompilation {
 
     range = new LineRange(start, end);
     return fileFiltered.Where(c =>
-        c.Origin.StartToken.line <= end && start <= c.Origin.EndToken.line).ToList();
+        c.StartToken.line <= end && start <= c.EndToken.line).ToList();
   }
 
   private bool KeepVerificationTask(IVerificationTask task, LineRange range) {

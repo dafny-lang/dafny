@@ -359,7 +359,7 @@ public class Compilation : IDisposable {
       var updated = false;
       var tasks = tasksPerVerifiable.GetOrAdd(canVerify, () => {
         var result =
-          tasksForModule.GetValueOrDefault(canVerify.NavigationToken.GetFilePosition()) ??
+          tasksForModule.GetValueOrDefault(canVerify.NavigationRange.StartToken.GetFilePosition()) ??
           new List<IVerificationTask>(0);
 
         updated = true;
@@ -381,7 +381,9 @@ public class Compilation : IDisposable {
             OfType<Function>()).Distinct().OrderBy(f => f.Origin.Center);
           var hiddenFunctions = string.Join(", ", functions.Select(f => f.FullDafnyName));
           if (!string.IsNullOrEmpty(hiddenFunctions)) {
-            Reporter.Info(MessageSource.Verifier, tokenTasks.Group, $"hidden functions: {hiddenFunctions}");
+            Reporter.Info(MessageSource.Verifier,
+              new SourceOrigin(tokenTasks.Group.StartToken, tokenTasks.Group.EndToken),
+              $"hidden functions: {hiddenFunctions}");
           }
         }
 
@@ -399,24 +401,24 @@ public class Compilation : IDisposable {
   }
 
 
-  public static IEnumerable<(IOrigin Group, List<IVerificationTask> Tasks)> GroupOverlappingRanges(IReadOnlyList<IVerificationTask> ranges) {
+  public static IEnumerable<(TokenRange Group, List<IVerificationTask> Tasks)> GroupOverlappingRanges(IReadOnlyList<IVerificationTask> ranges) {
     if (!ranges.Any()) {
       return [];
     }
     var sortedTasks = ranges.OrderBy(r =>
-      BoogieGenerator.ToDafnyToken(true, r.Token).StartToken).ToList();
-    var groups = new List<(IOrigin Group, List<IVerificationTask> Tasks)>();
+      BoogieGenerator.ToDafnyToken(true, r.Token).ReportingRange.StartToken).ToList();
+    var groups = new List<(TokenRange Group, List<IVerificationTask> Tasks)>();
     var currentGroup = new List<IVerificationTask> { sortedTasks[0] };
-    var currentGroupRange = BoogieGenerator.ToDafnyToken(true, currentGroup[0].Token);
+    var currentGroupRange = BoogieGenerator.ToDafnyToken(true, currentGroup[0].Token).ReportingRange;
 
     for (int i = 1; i < sortedTasks.Count; i++) {
       var currentTask = sortedTasks[i];
-      var currentTaskRange = BoogieGenerator.ToDafnyToken(true, currentTask.Token);
+      var currentTaskRange = BoogieGenerator.ToDafnyToken(true, currentTask.Token).ReportingRange;
       bool overlapsWithGroup = currentGroupRange.Intersects(currentTaskRange);
 
       if (overlapsWithGroup) {
-        if (currentTaskRange.EndToken.pos > currentGroupRange.EndToken.pos) {
-          currentGroupRange = new SourceOrigin(currentGroupRange.StartToken, currentTaskRange.EndToken, currentGroupRange.Center);
+        if (currentTaskRange.EndToken!.pos > currentGroupRange.EndToken!.pos) {
+          currentGroupRange = new TokenRange(currentGroupRange.StartToken!, currentTaskRange.EndToken);
         }
         currentGroup.Add(currentTask);
       } else {
@@ -540,7 +542,7 @@ public class Compilation : IDisposable {
     List<DafnyDiagnostic> diagnostics = [];
     errorReporter.Updates.Subscribe(d => diagnostics.Add(d.Diagnostic));
 
-    ReportDiagnosticsInResult(options, canVerify.NavigationToken.val, BoogieGenerator.ToDafnyToken(true, task.Token),
+    ReportDiagnosticsInResult(options, canVerify.NavigationRange.StartToken.val, BoogieGenerator.ToDafnyToken(true, task.Token),
       task.Split.Implementation.GetTimeLimit(options), result, errorReporter);
 
     return diagnostics.OrderBy(d => d.Token.GetLspPosition()).ToList();
@@ -583,7 +585,7 @@ public class Compilation : IDisposable {
           }
 
           string msg = string.Format("Verification of '{1}' timed out after {0} seconds. (the limit can be increased using --verification-time-limit)", timeLimit, name);
-          errorInfo = ErrorInformation.Create(token, msg);
+          errorInfo = ErrorInformation.Create(new SourceOrigin(BoogieGenerator.ToDafnyToken(true, token).ReportingRange), msg);
 
           //  Report timed out assertions as auxiliary info.
           var comparer = new CounterexampleComparer();
@@ -624,8 +626,9 @@ public class Compilation : IDisposable {
           break;
         }
       case VcOutcome.OutOfResource: {
+          var dafnyToken = BoogieGenerator.ToDafnyToken(true, token);
           string msg = "Verification out of resource (" + name + ")";
-          errorInfo = ErrorInformation.Create(token, msg);
+          errorInfo = ErrorInformation.Create(dafnyToken.ReportingRange.StartToken, msg);
         }
         break;
       case VcOutcome.OutOfMemory: {

@@ -100,7 +100,7 @@ public class DafnyConsolePrinter : ConsolePrinter {
 
     if (Options.Get(Snippets.ShowSnippets)) {
       if (tok is IOrigin dafnyTok) {
-        Snippets.WriteSourceCodeSnippet(Options, dafnyTok, tw);
+        Snippets.WriteSourceCodeSnippet(Options, dafnyTok.ReportingRange, tw);
       } else {
         ErrorWriteLine(tw, "No Dafny location information, so snippet can't be generated.");
       }

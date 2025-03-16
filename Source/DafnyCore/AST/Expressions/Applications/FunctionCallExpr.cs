@@ -106,7 +106,6 @@ public class FunctionCallExpr : Expression, IHasReferences, ICloneable<FunctionC
     this.CloseParen = closeParen;
     this.AtLabel = atLabel;
     this.Bindings = bindings;
-    this.FormatTokens = closeParen != null ? [closeParen] : null;
   }
 
   /// <summary>
@@ -152,6 +151,6 @@ public class FunctionCallExpr : Expression, IHasReferences, ICloneable<FunctionC
 
   public override IEnumerable<Type> ComponentTypes => Util.Concat(TypeApplication_AtEnclosingClass, TypeApplication_JustFunction);
   public IEnumerable<Reference> GetReferences() {
-    return Enumerable.Repeat(new Reference(NameNode.Origin, Function), 1);
+    return Enumerable.Repeat(new Reference(NameNode.ReportingRange, Function), 1);
   }
 }

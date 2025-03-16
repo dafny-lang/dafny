@@ -1,26 +1,27 @@
 using System.Diagnostics.Contracts;
 using System.IO;
-using Newtonsoft.Json;
 
 namespace Microsoft.Dafny;
 
 public static class TokenExtensions {
 
 
-  public static DafnyRange ToDafnyRange(this IOrigin origin, bool includeTrailingWhitespace = false) {
-    var startLine = origin.StartToken.line - 1;
-    var startColumn = origin.StartToken.col - 1;
-    var endLine = origin.EndToken.line - 1;
+
+  public static DafnyRange ToDafnyRange(this INode node, bool includeTrailingWhitespace = false) {
+    var startLine = node.StartToken.line - 1;
+    var startColumn = node.StartToken.col - 1;
+    var endLine = node.EndToken.line - 1;
     int whitespaceOffset = 0;
     if (includeTrailingWhitespace) {
-      string trivia = origin.EndToken.TrailingTrivia;
+      string trivia = node.EndToken.TrailingTrivia;
       // Don't want to remove newlines or comments -- just spaces and tabs
       while (whitespaceOffset < trivia.Length && (trivia[whitespaceOffset] == ' ' || trivia[whitespaceOffset] == '\t')) {
         whitespaceOffset++;
       }
     }
 
-    var endColumn = origin.EndToken.col + (origin.InclusiveEnd ? origin.EndToken.val.Length : 0) + whitespaceOffset - 1;
+    var inclusiveEnd = true; // node.InclusiveEnd
+    var endColumn = node.EndToken.col + (inclusiveEnd ? node.EndToken.val.Length : 0) + whitespaceOffset - 1;
     return new DafnyRange(
       new DafnyPosition(startLine, startColumn),
       new DafnyPosition(endLine, endColumn));
@@ -34,19 +35,15 @@ public static class TokenExtensions {
     return new RefinementOrigin(origin, module);
   }
 
-  public static bool Contains(this IOrigin container, IOrigin otherToken) {
+  public static bool Contains(this TokenRange container, Token otherToken) {
     return container.StartToken.Uri == otherToken.Uri &&
            container.StartToken.pos <= otherToken.pos &&
            (container.EndToken == null || otherToken.pos <= container.EndToken.pos);
   }
 
-  public static bool Intersects(this IOrigin origin, IOrigin other) {
+  public static bool Intersects(this TokenRange origin, TokenRange other) {
     return !(other.EndToken.pos + other.EndToken.val.Length <= origin.StartToken.pos
              || origin.EndToken.pos + origin.EndToken.val.Length <= other.StartToken.pos);
-  }
-
-  public static string PrintOriginal(this IOrigin origin) {
-    return new SourceOrigin(origin.StartToken, origin.EndToken).PrintOriginal();
   }
 
   public static bool IsSet(this IOrigin token) => token.Uri != null;
@@ -78,14 +75,14 @@ public static class TokenExtensions {
 /// for quantified variables. See QuantifierVar.ExtractSingleRange()
 /// </summary>
 public class QuantifiedVariableDomainOrigin : OriginWrapper {
-  public QuantifiedVariableDomainOrigin(IOrigin wrappedToken)
-    : base(wrappedToken) {
-    Contract.Requires(wrappedToken != null);
+  public QuantifiedVariableDomainOrigin(IOrigin wrappedOrigin)
+    : base(wrappedOrigin) {
+    Contract.Requires(wrappedOrigin != null);
   }
 
   public override string val {
-    get { return WrappedToken.val; }
-    set { WrappedToken.val = value; }
+    get { return WrappedOrigin.val; }
+    set { WrappedOrigin.val = value; }
   }
 }
 
@@ -94,13 +91,13 @@ public class QuantifiedVariableDomainOrigin : OriginWrapper {
 /// for quantified variables. See QuantifierVar.ExtractSingleRange()
 /// </summary>
 public class QuantifiedVariableRangeOrigin : OriginWrapper {
-  public QuantifiedVariableRangeOrigin(IOrigin wrappedToken)
-    : base(wrappedToken) {
-    Contract.Requires(wrappedToken != null);
+  public QuantifiedVariableRangeOrigin(IOrigin wrappedOrigin)
+    : base(wrappedOrigin) {
+    Contract.Requires(wrappedOrigin != null);
   }
 
   public override string val {
-    get { return WrappedToken.val; }
-    set { WrappedToken.val = value; }
+    get { return WrappedOrigin.val; }
+    set { WrappedOrigin.val = value; }
   }
 }

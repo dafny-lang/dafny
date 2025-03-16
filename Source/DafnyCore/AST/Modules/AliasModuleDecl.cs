@@ -64,7 +64,7 @@ public class AliasModuleDecl : ModuleDecl, ICanFormat {
   /// Code wise, it might be better not to let AliasModuleDecl inherit from Declaration,
   /// since it is not always a declaration. 
   /// </summary>
-  public override IOrigin NavigationToken => HasAlias ? base.NavigationToken : (TargetQId.Decl?.NavigationToken ?? base.NavigationToken);
+  public override TokenRange NavigationRange => HasAlias ? base.NavigationRange : (TargetQId.Decl?.NavigationRange ?? base.NavigationRange);
 
   public bool HasAlias => NameNode.Origin.IsSet();
 
