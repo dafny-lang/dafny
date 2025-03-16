@@ -36,14 +36,15 @@ module Std.Termination {
         case (TMDatatype(leftChildren), _) =>
           || other in leftChildren
 
-        case (TMComma(leftFirst, leftRest), TMComma(rightFirst, rightRest)) =>
-          if leftFirst == rightFirst then
-            leftRest.DecreasesTo(rightRest)
-          else
-            leftFirst.DecreasesTo(rightFirst)
-        case (_, TMComma(rightFirst, _)) =>
+        case (_, TMComma(rightFirst, rightRest)) =>
+          || (TMComma? &&
+            if first == rightFirst then
+              rest.DecreasesTo(rightRest)
+            else
+              first.DecreasesTo(rightFirst)
+          )
           // Treat the LHS as TMComma(this, TOP)
-          this == rightFirst || DecreasesTo(rightFirst)
+          || this == rightFirst || DecreasesTo(rightFirst)
 
         case _ => false
       }

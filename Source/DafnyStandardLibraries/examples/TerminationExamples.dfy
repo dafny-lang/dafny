@@ -1,6 +1,33 @@
 
 module TerminationExample {
 
+  import opened Std.Termination
+
+  method Test() {
+    var tm := TMNat(7);
+    var tm2 := TMNat(8);
+    reveal TerminationMetric.DecreasesTo();
+    assert tm2.DecreasesTo(tm);
+
+    var comma := TMComma(tm2, tm);
+    assert tm2.DecreasesTo(comma);
+  }
+
+  // SOUNDNESS ISSUE
+
+  method Oops() {
+    var tm := TMComma(TMNat(0), TMNat(0));
+    while true 
+      invariant tm.TMComma?
+      decreases tm.Ordinal()
+    {
+      reveal TerminationMetric.DecreasesTo();
+      var tmBefore := tm;
+      tm := TMComma(tmBefore, TMNat(0));
+      tmBefore.OrdinalDecreases(tm);
+    }
+  }
+
   // This isn't an example of using the Std.Termination module,
   // it's an illustration of why the `decreases to` relation
   // is defined the way it is on sequences,

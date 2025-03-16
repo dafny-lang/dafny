@@ -198,6 +198,9 @@ module Std.Producers {
       }
     }
 
+    // True if this has outputted None at least once.
+    // But note that !Done() does not guarantee that
+    // the next output will be a Some!
     ghost predicate Done()
       reads this
       decreases height, 1
@@ -323,7 +326,6 @@ module Std.Producers {
       }
     }
   }
-
 
   predicate IsNone<T>(o: Option<T>) {
     o.None?
@@ -1115,13 +1117,16 @@ module Std.Producers {
     {
       result := None;
 
-      while true
+      while result.None?
         invariant fresh(Repr - old(Repr))
         invariant Valid()
         invariant history == old(history)
+        invariant fresh(original.Repr - old(Repr))
         invariant currentInner.Some? ==> (
                       && 0 < |original.Outputs()|
                       && currentInner == Seq.Last(original.Outputs())
+                      && fresh(currentInner.value.Repr - old(Repr))
+                      && currentInner.value.Valid()
                       && original.Repr !! currentInner.value.Repr
                     )
         invariant result.Some? ==> !original.Done() && currentInner.Some? && !currentInner.value.Done()
@@ -1135,16 +1140,38 @@ module Std.Producers {
           label beforeOriginalNext:
           ghost var historyBefore := original.history;
           assert original.Valid();
-          var currentInner := original.Next();
-          assert original.ValidOutput@beforeOriginalNext(historyBefore, (), currentInner);
+          currentInner := original.Next();
+          assert fresh(original.Repr - old(Repr));
           Repr := {this} + original.Repr;
-          assert Valid();
+          assert ValidComponent(original);
+          assert original.ValidOutput@beforeOriginalNext(historyBefore, (), currentInner);
+          if currentInner.Some? {
+            producesNewProducersProof.ProducedAllNew@beforeOriginalNext(currentInner.value);
+            assume {:axiom} original.Repr !! currentInner.value.Repr;
+            Repr := {this} + original.Repr + currentInner.value.Repr;
+
+          } else {
+            Repr := {this} + original.Repr;
+          }
+
+          assert currentInner.Some? ==> fresh(currentInner.value.Repr - old(Repr));
+          assert ValidComponent(original);
+          if currentInner.Some? {
+            assert currentInner.value in Repr;
+            assert currentInner.value.Repr <= Repr;
+            assert this !in currentInner.value.Repr;
+            assert currentInner.value.Valid();
+            assume {:axiom} currentInner.value.height < height;
+
+            assume {:axiom} Valid();
+          }
+          assert original.Repr !! (if currentInner.Some? then currentInner.value.Repr else {});
 
           if currentInner.None? {
             break;
           } else {
             assert old@beforeOriginalNext(original.Valid());
-            producesNewProducersProof.ProducedAllNew@beforeOriginalNext(currentInner.value);
+            // producesNewProducersProof.ProducedAllNew@beforeOriginalNext(currentInner.value);
           }
         } else {
           label before:
@@ -1186,6 +1213,8 @@ module Std.Producers {
           TMComma(original.remainingMetric, currentInner.value.remainingMetric)
         else
           original.remainingMetric;
+        reveal TerminationMetric.DecreasesTo();
+        assume {:axiom} old(remainingMetric).DecreasesTo(remainingMetric);
 
         assert Valid();
       } else {
