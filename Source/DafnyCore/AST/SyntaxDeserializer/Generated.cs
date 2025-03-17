@@ -687,6 +687,37 @@ namespace Microsoft.Dafny
             return ReadAssertLabel();
         }
 
+        public Method ReadMethod()
+        {
+            var parameter0 = ReadAbstract<IOrigin>();
+            var parameter1 = ReadName();
+            var parameter2 = ReadAttributesOption();
+            var parameter4 = ReadBoolean();
+            var parameter14 = ReadAbstractOption<IOrigin>();
+            var parameter5 = ReadList<TypeParameter>(() => ReadTypeParameter());
+            var parameter6 = ReadList<Formal>(() => ReadFormal());
+            var parameter7 = ReadList<AttributedExpression>(() => ReadAttributedExpression());
+            var parameter8 = ReadList<AttributedExpression>(() => ReadAttributedExpression());
+            var parameter9 = ReadSpecification<FrameExpression>();
+            var parameter10 = ReadSpecification<Expression>();
+            var parameter12 = ReadSpecification<FrameExpression>();
+            var parameter3 = ReadBoolean();
+            var parameter11 = ReadList<Formal>(() => ReadFormal());
+            var parameter13 = ReadBlockStmt();
+            var parameter15 = ReadBoolean();
+            return new Method(parameter0, parameter1, parameter2, parameter3, parameter4, parameter5, parameter6, parameter7, parameter8, parameter9, parameter10, parameter11, parameter12, parameter13, parameter14, parameter15);
+        }
+
+        public Method ReadMethodOption()
+        {
+            if (ReadIsNull())
+            {
+                return default;
+            }
+
+            return ReadMethod();
+        }
+
         public AssertStmt ReadAssertStmt()
         {
             var parameter0 = ReadAbstract<IOrigin>();
@@ -742,12 +773,32 @@ namespace Microsoft.Dafny
             return ReadReturnStmt();
         }
 
+        public DividedBlockStmt ReadDividedBlockStmt()
+        {
+            var parameter0 = ReadAbstract<IOrigin>();
+            var parameter4 = ReadAttributesOption();
+            var parameter1 = ReadList<Statement>(() => ReadAbstract<Statement>());
+            var parameter2 = ReadAbstractOption<IOrigin>();
+            var parameter3 = ReadList<Statement>(() => ReadAbstract<Statement>());
+            return new DividedBlockStmt(parameter0, parameter1, parameter2, parameter3, parameter4);
+        }
+
+        public DividedBlockStmt ReadDividedBlockStmtOption()
+        {
+            if (ReadIsNull())
+            {
+                return default;
+            }
+
+            return ReadDividedBlockStmt();
+        }
+
         public BlockStmt ReadBlockStmt()
         {
             var parameter0 = ReadAbstract<IOrigin>();
-            var parameter1 = ReadAttributesOption();
-            var parameter2 = ReadList<Statement>(() => ReadAbstract<Statement>());
-            return new BlockStmt(parameter0, parameter2, parameter1);
+            var parameter2 = ReadAttributesOption();
+            var parameter1 = ReadList<Statement>(() => ReadAbstract<Statement>());
+            return new BlockStmt(parameter0, parameter1, parameter2);
         }
 
         public BlockStmt ReadBlockStmtOption()
@@ -875,7 +926,7 @@ namespace Microsoft.Dafny
             var parameter6 = ReadSpecification<FrameExpression>();
             var parameter9 = ReadSpecification<Expression>();
             var parameter7 = ReadSpecification<FrameExpression>();
-            DividedBlockStmt parameter10 = null; //ReadDividedBlockStmt();
+            var parameter10 = ReadDividedBlockStmt();
             return new Constructor(parameter0, parameter1, parameter2, parameter3, parameter4, parameter5, parameter6, parameter7, parameter8, parameter9, parameter10, parameter11, parameter12);
         }
 
@@ -1305,6 +1356,11 @@ namespace Microsoft.Dafny
                 return ReadAssertLabel();
             }
 
+            if (actualType == typeof(Method))
+            {
+                return ReadMethod();
+            }
+
             if (actualType == typeof(AssertStmt))
             {
                 return ReadAssertStmt();
@@ -1318,6 +1374,11 @@ namespace Microsoft.Dafny
             if (actualType == typeof(ReturnStmt))
             {
                 return ReadReturnStmt();
+            }
+
+            if (actualType == typeof(DividedBlockStmt))
+            {
+                return ReadDividedBlockStmt();
             }
 
             if (actualType == typeof(BlockStmt))
@@ -1405,7 +1466,7 @@ namespace Microsoft.Dafny
                 return ReadImplements();
             }
 
-            throw new Exception();
+            throw new Exception($"found unknown type {actualType.Name}");
         }
     }
 }

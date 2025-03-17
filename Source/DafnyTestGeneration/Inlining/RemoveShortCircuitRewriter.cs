@@ -72,7 +72,7 @@ public class RemoveShortCircuitingRewriter : Cloner {
   private void Visit(Method method) {
     ResetVariableIds();
     if (method.Body != null) {
-      method.Body = CloneBlockStmt(method.Body);
+      method.SetBody(CloneBlockStmt(method.Body));
     }
   }
 

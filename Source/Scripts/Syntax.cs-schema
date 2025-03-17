@@ -418,7 +418,14 @@ class AssertLabel : Label
 abstract class MethodOrConstructor : MethodOrFunction
 {
     Specification<FrameExpression> mod;
+}
+
+class Method : MethodOrConstructor
+{
+    Boolean hasStaticKeyword;
+    List<Formal> outs;
     BlockStmt? body;
+    Boolean isByMethod;
 }
 
 abstract class Statement : NodeWithOrigin
@@ -467,7 +474,18 @@ abstract class OneBodyLoopStmt : LoopStmt
     BlockStmt body;
 }
 
-class BlockStmt : Statement
+abstract class BlockLikeStmt : Statement
+{
+}
+
+class DividedBlockStmt : BlockLikeStmt
+{
+    List<Statement> bodyInit;
+    IOrigin? separatorTok;
+    List<Statement> bodyProper;
+}
+
+class BlockStmt : BlockLikeStmt
 {
     List<Statement> body;
 }
@@ -511,6 +529,7 @@ class LocalVariable : NodeWithOrigin
 
 class Constructor : MethodOrConstructor
 {
+    DividedBlockStmt? body;
 }
 
 class Function : MethodOrFunction

@@ -930,7 +930,6 @@ namespace Microsoft.Dafny {
     BlockStmt MergeBlockStmt(BlockStmt skeleton, BlockStmt oldStmt) {
       Contract.Requires(skeleton != null);
       Contract.Requires(oldStmt != null);
-      Contract.Requires(skeleton is DividedBlockStmt == oldStmt is DividedBlockStmt);
 
       var body = MergeStmtList(skeleton.Body, oldStmt.Body, out var hoverText);
       if (hoverText.Length != 0) {

@@ -41,14 +41,14 @@ public class FunctionCallToMethodCallRewriter : Cloner {
   private void Visit(Function function) {
     if (function.ByMethodBody != null) {
       function.ByMethodBody = CloneBlockStmt(function.ByMethodBody);
-      function.ByMethodDecl.Body = function.ByMethodBody;
+      function.ByMethodDecl.SetBody(function.ByMethodBody);
     }
   }
 
   
   private void Visit(Method method) {
     if (method.Body != null) {
-      method.Body = CloneBlockStmt(method.Body);
+      method.SetBody(CloneBlockStmt(method.Body));
     }
   }
 

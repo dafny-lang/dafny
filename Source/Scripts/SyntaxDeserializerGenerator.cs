@@ -41,7 +41,7 @@ using System.Collections.Generic;
     var ns = SyntaxFactory.NamespaceDeclaration(SyntaxFactory.ParseName("Microsoft.Dafny"));
     var deserializeObjectSyntax = (MethodDeclarationSyntax)SyntaxFactory.ParseMemberDeclaration($@"
 private object ReadObject(System.Type actualType) {{
-  throw new Exception();
+  throw new Exception($""found unknown type {{actualType.name}}"");
 }}")!;
     generator.deserializeObjectCases.Add(SyntaxFactory.ParseStatement("throw new Exception();"));
     deserializeObjectSyntax = deserializeObjectSyntax.WithBody(

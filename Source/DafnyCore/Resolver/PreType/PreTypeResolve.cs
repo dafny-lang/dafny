@@ -1191,7 +1191,7 @@ namespace Microsoft.Dafny {
           resolver.allTypeParameters.PopMarker();
         }
 
-      } else if (member is Method m) {
+      } else if (member is MethodOrConstructor m) {
         var ec = ErrorCount;
         resolver.allTypeParameters.PushMarker();
         ResolveTypeParameters(m.TypeArgs, false, m);
@@ -1403,7 +1403,7 @@ namespace Microsoft.Dafny {
     /// Assumes type parameters have already been pushed.
     /// Also assumes that "currentClass" has been set to the parent of "m".
     /// </summary>
-    void ResolveMethod(Method m) {
+    void ResolveMethod(MethodOrConstructor m) {
       Contract.Requires(m != null);
 
       m.ResolveNewOrOldPart(this);

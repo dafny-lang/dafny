@@ -4,7 +4,7 @@ using System.Linq;
 
 namespace Microsoft.Dafny;
 
-public class BlockStmt : BlockLikeStmt {
+public class BlockStmt : BlockLikeStmt, ICloneable<BlockStmt> {
 
   public override List<Statement> Body { get; }
 
@@ -25,5 +25,9 @@ public class BlockStmt : BlockLikeStmt {
 
   public override void Prepend(Statement s) {
     Body.Insert(0, s);
+  }
+
+  public BlockStmt Clone(Cloner cloner) {
+    return new BlockStmt(cloner, this);
   }
 }
