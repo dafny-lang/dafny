@@ -522,6 +522,22 @@ class Function : MethodOrFunction
     BlockStmt? byMethodBody;
 }
 
+abstract class DatatypeDecl : TopLevelDeclWithMembers
+{
+    List<DatatypeCtor> ctors;
+    Boolean isRefining;
+}
+
+class DatatypeCtor : Declaration
+{
+    Boolean isGhost;
+    List<Formal> formals;
+}
+
+class IndDatatypeDecl : DatatypeDecl
+{
+}
+
 abstract class ClassLikeDecl : TopLevelDeclWithMembers
 {
 }
