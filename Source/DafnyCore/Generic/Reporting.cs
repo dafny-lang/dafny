@@ -49,7 +49,9 @@ namespace Microsoft.Dafny {
       }
 
       base.MessageCore(dafnyDiagnostic);
-      return WrappedReporter.MessageCore(dafnyDiagnostic);
+      return WrappedReporter.MessageCore(dafnyDiagnostic with {
+        Message = msgPrefix + dafnyDiagnostic.Message
+      });
     }
   }
 }

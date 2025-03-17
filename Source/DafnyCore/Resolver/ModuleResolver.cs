@@ -3850,7 +3850,7 @@ namespace Microsoft.Dafny {
             return BinaryExpr.ResolvedOpcode.Disjoint;
           }
         case BinaryExpr.Opcode.Lt:
-          if (operandType.IsIndDatatype) {
+          if (operandType.IsIndDatatype || leftOperandType.IsIndDatatype) {
             return BinaryExpr.ResolvedOpcode.RankLt;
           } else if (operandType is SetType) {
             return BinaryExpr.ResolvedOpcode.ProperSubset;
@@ -3910,7 +3910,7 @@ namespace Microsoft.Dafny {
             return BinaryExpr.ResolvedOpcode.Mul;
           }
         case BinaryExpr.Opcode.Gt:
-          if (operandType.IsDatatype) {
+          if (operandType.IsIndDatatype || leftOperandType.IsIndDatatype) {
             return BinaryExpr.ResolvedOpcode.RankGt;
           } else if (operandType is SetType) {
             return BinaryExpr.ResolvedOpcode.ProperSuperset;

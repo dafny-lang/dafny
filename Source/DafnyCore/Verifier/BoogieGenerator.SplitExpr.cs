@@ -343,7 +343,10 @@ namespace Microsoft.Dafny {
                   foreach (var kase in InductionCases(n.Type, nn[i], etran)) {
                     foreach (var cs in caseProduct) {
                       if (kase != Bpl.Expr.True) {  // if there's no case, don't add anything to the token
-                        newCases.Add(Bpl.Expr.Binary(new NestedOrigin(ToDafnyToken(cs.tok), ToDafnyToken(kase.tok)), Bpl.BinaryOperator.Opcode.And, cs, kase));
+                        newCases.Add(Bpl.Expr.Binary(new NestedOrigin(
+                            ToDafnyToken(cs.tok), 
+                            ToDafnyToken(kase.tok), "datatype constructor"), 
+                          Bpl.BinaryOperator.Opcode.And, cs, kase));
                       } else {
                         newCases.Add(cs);
                       }
@@ -542,7 +545,7 @@ namespace Microsoft.Dafny {
                 var bodyOrConjunct = BplOr(fargs, unboxedConjunct);
                 var tok = needsTokenAdjust
                   ? (IOrigin)new ForceCheckOrigin(typeSpecializedBody.Origin)
-                  : (IOrigin)new NestedOrigin(GetToken(fexp), s.Tok);
+                  : new NestedOrigin(GetToken(fexp), s.Tok, "this proposition could not be proved");
                 var p = Bpl.Expr.Binary(tok, BinaryOperator.Opcode.Imp, canCall, bodyOrConjunct);
                 splits.Add(ToSplitExprInfo(SplitExprInfo.K.Checked, p));
               }

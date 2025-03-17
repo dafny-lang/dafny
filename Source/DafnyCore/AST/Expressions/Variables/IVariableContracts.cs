@@ -96,6 +96,6 @@ public abstract class IVariableContracts : NodeWithOrigin, IVariable {
     throw new NotImplementedException();
   }
 
-  protected IVariableContracts([CanBeNull] IOrigin origin) : base(origin) {
+  protected IVariableContracts(IOrigin origin) : base(origin) {
   }
 }
