@@ -378,12 +378,12 @@ abstract class TopLevelDeclWithMembers : TopLevelDecl
 
 abstract class MemberDecl : Declaration
 {
-    Boolean hasStaticKeyword;
     Boolean isGhost;
 }
 
 abstract class MethodOrFunction : MemberDecl
 {
+    Boolean hasStaticKeyword;
     IOrigin? signatureEllipsis;
     List<TypeParameter> typeArgs;
     List<Formal> ins;
@@ -520,6 +520,18 @@ class Function : MethodOrFunction
     Expression? body;
     IOrigin? byMethodTok;
     BlockStmt? byMethodBody;
+}
+
+class Field : MemberDecl
+{
+    Type type;
+}
+
+class ConstantField : Field
+{
+    Expression rhs;
+    Boolean hasStaticKeyword;
+    Boolean isOpaque;
 }
 
 abstract class DatatypeDecl : TopLevelDeclWithMembers

@@ -6,28 +6,33 @@ using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 
 namespace Microsoft.Dafny;
 
-public class ConstantField : SpecialField, ICallable, ICanAutoRevealDependencies, ICanVerify {
+public class ConstantField : Field, ICallable, ICanAutoRevealDependencies, ICanVerify {
   public override string WhatKind => "const field";
   public Expression Rhs;
 
   public override bool IsOpaque { get; }
 
-  public ConstantField(IOrigin origin, Name nameNode, Expression/*?*/ rhs, bool hasStaticKeyword, bool isGhost, bool isOpaque, Type type, Attributes attributes)
-    : base(origin, nameNode, ID.UseIdParam, NonglobalVariable.SanitizeName(nameNode.Value), hasStaticKeyword, isGhost, false, false, type, attributes) {
-    Contract.Requires(Origin != null);
+  public override bool IsMutable => false;
+  public override bool IsUserMutable => false;
+
+  [SyntaxConstructor]
+  public ConstantField(IOrigin origin, Name nameNode, Expression/*?*/ rhs, bool hasStaticKeyword, 
+    bool isGhost, bool isOpaque, Type type, Attributes attributes)
+    : base(origin, nameNode, isGhost, type, attributes) {
     Contract.Requires(nameNode != null);
     Contract.Requires(type != null);
     this.Rhs = rhs;
     this.IsOpaque = isOpaque;
+    HasStaticKeyword = hasStaticKeyword;
   }
+
+  public override bool HasStaticKeyword { get; }
 
   public override bool CanBeRevealed() {
     return true;
   }
 
   public bool ContainsHide { get; set; }
-
-  public new bool IsGhost { get { return this.isGhost; } }
   public List<TypeParameter> TypeArgs { get { return []; } }
   public List<Formal> Ins { get { return []; } }
   public ModuleDefinition EnclosingModule { get { return this.EnclosingClass.EnclosingModuleDefinition; } }

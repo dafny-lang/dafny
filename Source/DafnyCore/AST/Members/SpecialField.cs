@@ -25,20 +25,25 @@ public class SpecialField : Field {
 
   public SpecialField(IOrigin origin, string name, ID specialId, object idParam,
     bool isGhost, bool isMutable, bool isUserMutable, Type type, Attributes attributes)
-    : this(origin, new Name(origin, name), specialId, idParam, false, isGhost, isMutable, isUserMutable, type, attributes) {
+    : this(origin, new Name(origin, name), specialId, idParam, isGhost, isMutable, isUserMutable, type, attributes) {
   }
 
   public SpecialField(IOrigin origin, Name nameNode, ID specialId, object idParam,
-    bool hasStaticKeyword, bool isGhost, bool isMutable, bool isUserMutable, Type type, Attributes attributes)
-    : base(origin, nameNode, hasStaticKeyword, isGhost, isMutable, isUserMutable, type, attributes) {
+    bool isGhost, bool isMutable, bool isUserMutable, Type type, Attributes attributes)
+    : base(origin, nameNode, isGhost, type, attributes) {
     Contract.Requires(origin != null);
     Contract.Requires(nameNode != null);
     Contract.Requires(!isUserMutable || isMutable);
     Contract.Requires(type != null);
 
+    IsMutable = isMutable;
+    IsUserMutable = isUserMutable;
     SpecialId = specialId;
     IdParam = idParam;
   }
+
+  public override bool IsMutable { get; }
+  public override bool IsUserMutable { get; }
 
   public override string FullName {
     get {
@@ -66,7 +71,7 @@ public class DatatypeDiscriminator : SpecialField {
   }
 
   public DatatypeDiscriminator(IOrigin origin, Name nameNode, ID specialId, object idParam, bool isGhost, Type type, Attributes attributes)
-    : base(origin, nameNode, specialId, idParam, false, isGhost, false, false, type, attributes) {
+    : base(origin, nameNode, specialId, idParam, isGhost, false, false, type, attributes) {
   }
 }
 
@@ -82,7 +87,7 @@ public class DatatypeDestructor : SpecialField {
   }
 
   public DatatypeDestructor(IOrigin origin, DatatypeCtor enclosingCtor, Formal correspondingFormal, Name nameNode, string compiledName, bool isGhost, Type type, Attributes attributes)
-    : base(origin, nameNode, SpecialField.ID.UseIdParam, compiledName, false, isGhost, false, false, type, attributes) {
+    : base(origin, nameNode, SpecialField.ID.UseIdParam, compiledName, isGhost, false, false, type, attributes) {
     Contract.Requires(origin != null);
     Contract.Requires(enclosingCtor != null);
     Contract.Requires(correspondingFormal != null);

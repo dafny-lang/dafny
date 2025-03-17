@@ -9,13 +9,8 @@ public abstract class MemberDecl : Declaration, ISymbol {
   public abstract string WhatKind { get; }
   public string WhatKindAndName => $"{WhatKind} '{Name}'";
   public virtual string WhatKindMentionGhost => (IsGhost ? "ghost " : "") + WhatKind;
-  protected bool hasStaticKeyword;
-  public bool HasStaticKeyword => hasStaticKeyword;
-  public virtual bool IsStatic {
-    get {
-      return HasStaticKeyword || EnclosingClass is DefaultClassDecl;
-    }
-  }
+  public abstract bool HasStaticKeyword { get; }
+  public virtual bool IsStatic => HasStaticKeyword || EnclosingClass is DefaultClassDecl;
 
   public virtual bool IsOpaque => false;
 
@@ -61,17 +56,15 @@ public abstract class MemberDecl : Declaration, ISymbol {
   }
 
   protected MemberDecl(Cloner cloner, MemberDecl original) : base(cloner, original) {
-    this.hasStaticKeyword = original.hasStaticKeyword;
     this.EnclosingClass = original.EnclosingClass;
     this.isGhost = original.isGhost;
   }
 
   [SyntaxConstructor]
-  protected MemberDecl(IOrigin origin, Name nameNode, bool hasStaticKeyword, bool isGhost, Attributes attributes)
+  protected MemberDecl(IOrigin origin, Name nameNode, bool isGhost, Attributes attributes)
     : base(origin, nameNode, attributes) {
     Contract.Requires(origin != null);
     Contract.Requires(nameNode != null);
-    this.hasStaticKeyword = hasStaticKeyword;
     this.isGhost = isGhost;
   }
 

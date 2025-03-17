@@ -692,8 +692,8 @@ namespace Microsoft.Dafny
             var parameter0 = ReadAbstract<IOrigin>();
             var parameter1 = ReadName();
             var parameter2 = ReadAttributesOption();
-            var parameter3 = ReadBoolean();
             var parameter4 = ReadBoolean();
+            var parameter3 = ReadBoolean();
             var parameter14 = ReadAbstractOption<IOrigin>();
             var parameter5 = ReadList<TypeParameter>(() => ReadTypeParameter());
             var parameter6 = ReadList<Formal>(() => ReadFormal());
@@ -897,8 +897,8 @@ namespace Microsoft.Dafny
             var parameter0 = ReadAbstract<IOrigin>();
             var parameter1 = ReadName();
             var parameter16 = ReadAttributesOption();
-            var parameter2 = ReadBoolean();
             var parameter3 = ReadBoolean();
+            var parameter2 = ReadBoolean();
             var parameter17 = ReadAbstractOption<IOrigin>();
             var parameter5 = ReadList<TypeParameter>(() => ReadTypeParameter());
             var parameter6 = ReadList<Formal>(() => ReadFormal());
@@ -923,6 +923,49 @@ namespace Microsoft.Dafny
             }
 
             return ReadFunction();
+        }
+
+        public Field ReadField()
+        {
+            var parameter0 = ReadAbstract<IOrigin>();
+            var parameter1 = ReadName();
+            var parameter4 = ReadAttributes();
+            var parameter2 = ReadBoolean();
+            var parameter3 = ReadAbstract<Type>();
+            return new Field(parameter0, parameter1, parameter2, parameter3, parameter4);
+        }
+
+        public Field ReadFieldOption()
+        {
+            if (ReadIsNull())
+            {
+                return default;
+            }
+
+            return ReadField();
+        }
+
+        public ConstantField ReadConstantField()
+        {
+            var parameter0 = ReadAbstract<IOrigin>();
+            var parameter1 = ReadName();
+            var parameter7 = ReadAttributes();
+            var parameter4 = ReadBoolean();
+            var parameter6 = ReadAbstract<Type>();
+            var parameter2 = ReadAbstract<Expression>();
+            var parameter3 = ReadBoolean();
+            var parameter5 = ReadBoolean();
+            return new ConstantField(parameter0, parameter1, parameter2, parameter3, parameter4, parameter5, parameter6, parameter7);
+        }
+
+        public ConstantField ReadConstantFieldOption()
+        {
+            if (ReadIsNull())
+            {
+                return default;
+            }
+
+            return ReadConstantField();
         }
 
         public DatatypeCtor ReadDatatypeCtor()
@@ -1318,6 +1361,16 @@ namespace Microsoft.Dafny
             if (actualType == typeof(Function))
             {
                 return ReadFunction();
+            }
+
+            if (actualType == typeof(Field))
+            {
+                return ReadField();
+            }
+
+            if (actualType == typeof(ConstantField))
+            {
+                return ReadConstantField();
             }
 
             if (actualType == typeof(DatatypeCtor))

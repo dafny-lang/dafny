@@ -7,8 +7,9 @@ namespace Microsoft.Dafny;
 
 public class Field : MemberDecl, ICanFormat, IHasDocstring {
   public override string WhatKind => "field";
-  public readonly bool IsMutable;  // says whether or not the field can ever change values
-  public readonly bool IsUserMutable;  // says whether or not code is allowed to assign to the field (IsUserMutable implies IsMutable)
+  public override bool HasStaticKeyword => false;
+  public virtual bool IsMutable => true;  // says whether or not the field can ever change values
+  public virtual bool IsUserMutable => true;  // says whether or not code is allowed to assign to the field (IsUserMutable implies IsMutable)
   public PreType PreType;
 
   public readonly Type Type; // Might be null after parsing and set during resolution
@@ -21,21 +22,13 @@ public class Field : MemberDecl, ICanFormat, IHasDocstring {
   public override IEnumerable<INode> Children =>
     (Type?.Nodes ?? Enumerable.Empty<INode>()).Concat(this.Attributes.AsEnumerable());
 
-  public Field(IOrigin origin, Name nameNode, bool isGhost, Type type, Attributes attributes)
-    : this(origin, nameNode, false, isGhost, true, true, type, attributes) {
-    Contract.Requires(origin != null);
-    Contract.Requires(nameNode != null);
-    Contract.Requires(type != null);
-  }
 
-  public Field(IOrigin origin, Name nameNode, bool hasStaticKeyword, bool isGhost, bool isMutable, bool isUserMutable, Type type, Attributes attributes)
-    : base(origin, nameNode, hasStaticKeyword, isGhost, attributes) {
+  [SyntaxConstructor]
+  public Field(IOrigin origin, Name nameNode, bool isGhost, Type type, Attributes attributes)
+    : base(origin, nameNode, isGhost, attributes) {
     Contract.Requires(origin != null);
     Contract.Requires(nameNode != null);
     Contract.Requires(type != null);
-    Contract.Requires(!isUserMutable || isMutable);
-    IsMutable = isMutable;
-    IsUserMutable = isUserMutable;
     Type = type;
   }
 

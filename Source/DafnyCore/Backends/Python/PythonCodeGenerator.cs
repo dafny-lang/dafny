@@ -1393,30 +1393,14 @@ namespace Microsoft.Dafny.Compilers {
             };
             return SuffixLvalue(obj, dest);
           }
+        case ConstantField cf:
+          var protectedName = IdProtect(NonglobalVariable.SanitizeName(cf.Name));
+          var compiledNameConstantField = (protectedName.Length > 0 && internalAccess ? InternalFieldPrefix : "") + protectedName;
+          return SpecialOrConstantField(obj, objType, member, typeArgs, cf, compiledNameConstantField);
         case SpecialField sf: {
-            GetSpecialFieldInfo(sf.SpecialId, sf.IdParam, objType, out var compiledName, out _, out _);
-            return SimpleLvalue(w => {
-              var customReceiver = NeedsCustomReceiverNotTrait(sf);
-              if (sf.IsStatic || customReceiver) {
-                w.Write(TypeName_Companion(objType, w, member.Origin, member));
-              } else {
-                obj(w);
-              }
-              if (compiledName.Length > 0) {
-                w.Write($".{(sf is ConstantField && internalAccess ? InternalFieldPrefix : "")}{compiledName}");
-              }
-              var sep = "(";
-              EmitTypeDescriptorsActuals(ForTypeDescriptors(typeArgs, member.EnclosingClass, member, false), member.Origin, w, ref sep);
-              if (customReceiver) {
-                w.Write(sep);
-                obj(w);
-                sep = ", ";
-              }
-              if (sep != "(") {
-                w.Write(")");
-              }
-            });
-          }
+          GetSpecialFieldInfo(sf.SpecialId, sf.IdParam, objType, out var compiledName, out _, out _);
+          return SpecialOrConstantField(obj, objType, member, typeArgs, sf, compiledName);
+        }
         case Field: {
             return SimpleLvalue(w => {
               if (member.IsStatic) { w.Write(TypeName_Companion(objType, w, member.Origin, member)); } else { obj(w); }
@@ -1452,6 +1436,33 @@ namespace Microsoft.Dafny.Compilers {
             w.Write($"{TypeName_Companion(objType, w, member.Origin, member)}.{IdName(member)}({additionalCustomParameter ?? ""})");
           });
       }
+    }
+
+    private ILvalue SpecialOrConstantField(Action<ConcreteSyntaxTree> obj, Type objType, MemberDecl member, 
+      List<TypeArgumentInstantiation> typeArgs,
+      Field field, string compiledName)
+    {
+      return SimpleLvalue(w => {
+        var customReceiver = NeedsCustomReceiverNotTrait(field);
+        if (field.IsStatic || customReceiver) {
+          w.Write(TypeName_Companion(objType, w, member.Origin, member));
+        } else {
+          obj(w);
+        }
+        if (compiledName.Length > 0) {
+          w.Write($".{compiledName}");
+        }
+        var sep = "(";
+        EmitTypeDescriptorsActuals(ForTypeDescriptors(typeArgs, member.EnclosingClass, member, false), member.Origin, w, ref sep);
+        if (customReceiver) {
+          w.Write(sep);
+          obj(w);
+          sep = ", ";
+        }
+        if (sep != "(") {
+          w.Write(")");
+        }
+      });
     }
 
     protected override ConcreteSyntaxTree EmitArraySelect(List<Action<ConcreteSyntaxTree>> indices, Type elmtType, ConcreteSyntaxTree wr) {

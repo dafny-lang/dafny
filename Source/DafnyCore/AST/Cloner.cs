@@ -521,8 +521,7 @@ namespace Microsoft.Dafny {
         // an iterator in a refined module is replaced by a class in the refining module.
         SpecialField s => new SpecialField(Origin(s.Origin), s.Name, s.SpecialId, s.IdParam, s.IsGhost, s.IsMutable,
           s.IsUserMutable, CloneType(s.Type), CloneAttributes(s.Attributes)),
-        _ => new Field(Origin(f.Origin), f.NameNode.Clone(this), f.HasStaticKeyword, f.IsGhost, f.IsMutable,
-          f.IsUserMutable, CloneType(f.Type), CloneAttributes(f.Attributes))
+        _ => new Field(Origin(f.Origin), f.NameNode.Clone(this), f.IsGhost, CloneType(f.Type), CloneAttributes(f.Attributes))
       };
     }
 

@@ -89,11 +89,19 @@ private object ReadObject(System.Type actualType) {{
         return;
 
       }
+      
 
       var schemaPosition2 = ownedFieldPosition++;
       parameterToSchemaPosition[memberInfo.Name] = schemaPosition2;
       schemaToConstructorPosition[schemaPosition2] = index;
     });
+    if (baseType != null && baseType != typeof(ValueType) && baseType != typeof(object)) {
+      foreach (var (name, index) in ParameterToSchemaPositions[baseType]) {
+        if (!schemaToConstructorPosition.ContainsKey(index)) {
+          throw new Exception($"Did not find base parameter '{name}' in argument list of '{type.Name}'.");
+        }
+      }
+    }
     GenerateReadMethod(type, schemaToConstructorPosition, statements);
   }
 
