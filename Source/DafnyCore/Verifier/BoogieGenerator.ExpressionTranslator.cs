@@ -248,6 +248,23 @@ namespace Microsoft.Dafny {
         return et;
       }
 
+      public Boogie.Expr GetLayerArgument(Function function) {
+        if (!function.IsFuelAware()) {
+          return null;
+        }
+
+        Statistics_CustomLayerFunctionCount++;
+        ModuleDefinition module = function.EnclosingClass.EnclosingModuleDefinition;
+
+        if (this.applyLimited_CurrentFunction != null &&
+            this.layerIntraCluster != null &&
+            ModuleDefinition.InSameSCC(function, applyLimited_CurrentFunction)) {
+            return this.layerIntraCluster.GetFunctionFuel(function);
+        } else {
+            return this.layerInterCluster.GetFunctionFuel(function);
+        }
+      }
+
       public Boogie.IdentifierExpr ReadsFrame(IOrigin tok) {
         Contract.Requires(tok != null);
         Contract.Ensures(Contract.Result<Boogie.IdentifierExpr>() != null);
@@ -671,19 +688,8 @@ namespace Microsoft.Dafny {
                   etran = etran.LayerOffset(1);
                   BoogieGenerator.adjustFuelForExists = false;
                 }
-                if (e.Function.IsFuelAware()) {
-                  Statistics_CustomLayerFunctionCount++;
-                  ModuleDefinition module = e.Function.EnclosingClass.EnclosingModuleDefinition;
-                  if (etran.applyLimited_CurrentFunction != null &&
-                      etran.layerIntraCluster != null &&
-                      ModuleDefinition.InSameSCC(e.Function, applyLimited_CurrentFunction)) {
-                    layerArgument = etran.layerIntraCluster.GetFunctionFuel(e.Function);
-                  } else {
-                    layerArgument = etran.layerInterCluster.GetFunctionFuel(e.Function);
-                  }
-                } else {
-                  layerArgument = null;
-                }
+
+                layerArgument = etran.GetLayerArgument(e.Function);
 
                 if (e.Function.IsOpaque || e.Function.IsMadeImplicitlyOpaque(options)) {
                   revealArgument = BoogieGenerator.GetRevealConstant(e.Function);
@@ -2218,7 +2224,7 @@ BplBoundVar(varNameGen.FreshId(string.Format("#{0}#", bv.Name)), Predef.BoxType,
           r = BplAnd(r, CanCallAssumption(e.Args, cco));
           if (!(e.Function is SpecialFunction)) {
             Boogie.IdentifierExpr canCallFuncID = new Boogie.IdentifierExpr(expr.Origin, e.Function.FullSanitizedName + "#canCall", Boogie.Type.Bool);
-            List<Boogie.Expr> args = FunctionInvocationArguments(e, null, null);
+            List<Boogie.Expr> args = FunctionInvocationArguments(e, this.GetLayerArgument(e.Function), null);
             Boogie.Expr canCallFuncAppl = new Boogie.NAryExpr(BoogieGenerator.GetToken(expr), new Boogie.FunctionCall(canCallFuncID), args);
             var add = cco != null && cco.MakeAllowance(e.Function) ? Boogie.Expr.Or(TrExpr(MakeAllowance(e, cco)), canCallFuncAppl) : canCallFuncAppl;
             r = BplAnd(r, add);

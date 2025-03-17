@@ -1653,7 +1653,75 @@ namespace Microsoft.Dafny {
       Bpl.Trigger tr = new Bpl.Trigger(f.Origin, true, new List<Bpl.Expr> { funcAppl1 });
       Bpl.Expr ax = new Bpl.ForallExpr(f.Origin, [], formals, null, tr, Bpl.Expr.Eq(funcAppl1, funcAppl0));
       AddOtherDefinition(GetOrCreateFunction(f), new Bpl.Axiom(f.Origin, ax, "layer synonym axiom"));
+      BoostFuelAxiom(f, forHandle);
     }
+
+
+    void BoostFuelAxiom(Function f, bool forHandle = false) {
+      Contract.Requires(f != null);
+      Contract.Requires(f.IsFuelAware());
+      Contract.Requires(sink != null && Predef != null);
+      // axiom  // layer synonym axiom
+      //   (forall $Heap, formals ::
+      //       { f#canCall($LS(LZ), $Heap, formals) }
+      //       f#canCall($LS(LZ), $Heap, formals) ==> f#canCall($LS($LS(LZ)), $Heap, formals);
+
+      List<Bpl.Expr> tyargs;
+      var formals = MkTyParamBinders(GetTypeParams(f), out tyargs);
+      var args1 = new List<Bpl.Expr>(tyargs);
+      var args0 = new List<Bpl.Expr>(tyargs);
+      var s0 = new Bpl.IdentifierExpr(f.Origin, "$LZ", Predef.LayerType);
+      Bpl.Expr s1 = FunctionCall(f.Origin, BuiltinFunction.LayerSucc, null, s0);
+      args1.Add(FunctionCall(f.Origin, BuiltinFunction.LayerSucc, null, s1));
+      args0.Add(s1);
+
+
+      Bpl.BoundVariable bv;
+      Bpl.IdentifierExpr s;
+      if (f is TwoStateFunction) {
+        bv = new Bpl.BoundVariable(f.Origin, new Bpl.TypedIdent(f.Origin, "$prevHeap", Predef.HeapType));
+        formals.Add(bv);
+        s = new Bpl.IdentifierExpr(f.Origin, bv);
+        args1.Add(s);
+        args0.Add(s);
+      }
+      if (!forHandle && f.ReadsHeap) {
+        bv = new Bpl.BoundVariable(f.Origin, new Bpl.TypedIdent(f.Origin, Predef.HeapVarName, Predef.HeapType));
+        formals.Add(bv);
+        s = new Bpl.IdentifierExpr(f.Origin, bv);
+        args1.Add(s);
+        args0.Add(s);
+      }
+
+      if (!f.IsStatic) {
+        bv = new Bpl.BoundVariable(f.Origin, new Bpl.TypedIdent(f.Origin, "this", TrReceiverType(f)));
+        formals.Add(bv);
+        s = new Bpl.IdentifierExpr(f.Origin, bv);
+        args1.Add(s);
+        args0.Add(s);
+      }
+      if (!forHandle) {
+        foreach (var p in f.Ins) {
+          bv = new Bpl.BoundVariable(p.Origin, new Bpl.TypedIdent(p.Origin, p.AssignUniqueName(f.IdGenerator), TrType(p.Type)));
+          formals.Add(bv);
+          s = new Bpl.IdentifierExpr(f.Origin, bv);
+          args1.Add(s);
+          args0.Add(s);
+        }
+      } else {
+        return;
+      }
+
+      var name = f.FullSanitizedName + "#canCall";
+      var funcID = new Bpl.FunctionCall(new Bpl.IdentifierExpr(f.Origin, name, TrType(f.ResultType)));
+      var funcAppl1 = new Bpl.NAryExpr(f.Origin, funcID, args1);
+      var funcAppl0 = new Bpl.NAryExpr(f.Origin, funcID, args0);
+
+      Bpl.Trigger tr = new Bpl.Trigger(f.Origin, true, new List<Bpl.Expr> { funcAppl0 });
+      Bpl.Expr ax = new Bpl.ForallExpr(f.Origin, [], formals, null, tr, Bpl.Expr.Imp(funcAppl0, funcAppl1));
+      AddOtherDefinition(GetOrCreateFunction(f), new Bpl.Axiom(f.Origin, ax, "axiom for boosting fuel from 1 to 2"));
+    }
+
 
     void AddFuelZeroSynonymAxiom(Function f) {
       // axiom  // fuel axiom
@@ -2730,6 +2798,11 @@ namespace Microsoft.Dafny {
       {
         var formals = new List<Variable>();
         formals.AddRange(MkTyParamFormals(GetTypeParams(f), false));
+
+        if (f.IsFuelAware()) {
+          formals.Add(new Bpl.Formal(f.Origin, new Bpl.TypedIdent(f.Origin, "$ly", Predef.LayerType), true));
+        }
+
         if (f is TwoStateFunction) {
           formals.Add(new Bpl.Formal(f.Origin, new Bpl.TypedIdent(f.Origin, "$prevHeap", Predef.HeapType), true));
         }
