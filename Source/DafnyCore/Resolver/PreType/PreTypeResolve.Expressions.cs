@@ -1641,8 +1641,13 @@ namespace Microsoft.Dafny {
         if (optTypeArguments != null) {
           ReportError(tok, "a field ({0}) does not take any type arguments (got {1})", field.Name, optTypeArguments.Count);
         }
-        subst = BuildPreTypeArgumentSubstitute(subst, receiverPreTypeBound);
-        rr.PreType = field.PreType.Substitute(subst);
+        if (field.PreType != null) {
+          subst = BuildPreTypeArgumentSubstitute(subst, receiverPreTypeBound);
+          rr.PreType = field.PreType.Substitute(subst);
+        } else {
+          ReportError(tok, "the PreType of the field ({0}) is undetermined", field.Name);
+        }
+        
       } else if (member is Function function) {
         if (function is TwoStateFunction && !resolutionContext.IsTwoState) {
           ReportError(tok, "two-state function ('{0}') can only be called in a two-state context", member.Name);
