@@ -66,6 +66,36 @@ class AutoGhostIdentifierExpr : IdentifierExpr
 {
 }
 
+abstract class UnaryExpr : Expression
+{
+    Expression e;
+}
+
+abstract class TypeUnaryExpr : UnaryExpr
+{
+    Type toType;
+}
+
+class ConversionExpr : TypeUnaryExpr
+{
+    String messagePrefix;
+}
+
+class UnaryOpExpr : UnaryExpr
+{
+    UnaryOpExprOpcode op;
+}
+
+enum UnaryOpExprOpcode
+{
+    Not,
+    Cardinality,
+    Fresh,
+    Allocated,
+    Lit,
+    Assigned
+}
+
 class BinaryExpr : Expression
 {
     BinaryExprOpcode op;
@@ -133,6 +163,18 @@ abstract class SuffixExpr : ConcreteSyntaxExpression
     Expression lhs;
 }
 
+class ExprDotName : SuffixExpr
+{
+    Name suffixNameNode;
+    List<Type>? optTypeArguments;
+}
+
+class Name : Node
+{
+    IOrigin origin;
+    String value;
+}
+
 class ApplySuffix : SuffixExpr
 {
     IOrigin? atTok;
@@ -147,12 +189,6 @@ abstract class NodeWithoutOrigin : Node
 class ModuleQualifiedId : NodeWithoutOrigin
 {
     List<Name> path;
-}
-
-class Name : Node
-{
-    IOrigin origin;
-    String value;
 }
 
 class Specification<T> : NodeWithoutOrigin where T : Node
@@ -186,9 +222,66 @@ class NameSegment : ConcreteSyntaxExpression
     List<Type>? optTypeArguments;
 }
 
+abstract class ComprehensionExpr : Expression
+{
+    List<BoundVar> boundVars;
+    Expression? range;
+    Expression term;
+    Attributes? attributes;
+}
+
+abstract class NonglobalVariable : NodeWithOrigin
+{
+    Name nameNode;
+    Type type;
+    Boolean isGhost;
+}
+
+class Formal : NonglobalVariable
+{
+    Boolean inParam;
+    Expression? defaultValue;
+    Attributes? attributes;
+    Boolean isOld;
+    Boolean isNameOnly;
+    Boolean isOlder;
+    String? nameForCompilation;
+}
+
+class BoundVar : NonglobalVariable
+{
+}
+
+abstract class QuantifierExpr : ComprehensionExpr
+{
+}
+
+class ForallExpr : QuantifierExpr
+{
+}
+
+class ExistsExpr : QuantifierExpr
+{
+}
+
 abstract class DisplayExpression : Expression
 {
     List<Expression> elements;
+}
+
+class SeqSelectExpr : Expression
+{
+    Boolean selectOne;
+    Expression seq;
+    Expression? e0;
+    Expression? e1;
+    Token? closeParen;
+}
+
+class MemberSelectExpr : Expression
+{
+    Expression obj;
+    Name memberName;
 }
 
 abstract class BasicType : NonProxyType
@@ -196,6 +289,10 @@ abstract class BasicType : NonProxyType
 }
 
 class IntType : BasicType
+{
+}
+
+class BoolType : BasicType
 {
 }
 
@@ -273,28 +370,6 @@ enum SubsetTypeDeclWKind
     Special
 }
 
-abstract class NonglobalVariable : NodeWithOrigin
-{
-    Name nameNode;
-    Type type;
-    Boolean isGhost;
-}
-
-class Formal : NonglobalVariable
-{
-    Boolean inParam;
-    Expression? defaultValue;
-    Attributes? attributes;
-    Boolean isOld;
-    Boolean isNameOnly;
-    Boolean isOlder;
-    String? nameForCompilation;
-}
-
-class BoundVar : NonglobalVariable
-{
-}
-
 abstract class TopLevelDeclWithMembers : TopLevelDecl
 {
     List<MemberDecl> members;
@@ -320,8 +395,8 @@ abstract class MethodOrFunction : MemberDecl
 
 class FrameExpression : NodeWithOrigin
 {
-    Expression e;
-    String fieldName;
+    Expression originalExpression;
+    String? fieldName;
 }
 
 class AttributedExpression

@@ -215,6 +215,7 @@ public class MemberSelectExpr : Expression, IHasReferences, ICloneable<MemberSel
     }
   }
 
+  [SyntaxConstructor]
   public MemberSelectExpr(IOrigin origin, Expression obj, Name memberName)
     : base(origin) {
     Contract.Requires(origin != null);

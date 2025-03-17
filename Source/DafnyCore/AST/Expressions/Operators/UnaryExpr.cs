@@ -1,3 +1,5 @@
+#nullable enable
+
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 
@@ -10,11 +12,10 @@ public abstract class UnaryExpr : Expression, ICanFormat {
     Contract.Invariant(E != null);
   }
 
+  [SyntaxConstructor]
   public UnaryExpr(IOrigin origin, Expression e)
     : base(origin) {
-    Contract.Requires(origin != null);
-    Contract.Requires(e != null);
-    this.E = e;
+    E = e;
   }
 
   public UnaryExpr(Cloner cloner, UnaryExpr original) : base(cloner, original) {
