@@ -687,37 +687,6 @@ namespace Microsoft.Dafny
             return ReadAssertLabel();
         }
 
-        public Method ReadMethod()
-        {
-            var parameter0 = ReadAbstract<IOrigin>();
-            var parameter1 = ReadName();
-            var parameter2 = ReadAttributesOption();
-            var parameter4 = ReadBoolean();
-            var parameter3 = ReadBoolean();
-            var parameter14 = ReadAbstractOption<IOrigin>();
-            var parameter5 = ReadList<TypeParameter>(() => ReadTypeParameter());
-            var parameter6 = ReadList<Formal>(() => ReadFormal());
-            var parameter7 = ReadList<AttributedExpression>(() => ReadAttributedExpression());
-            var parameter8 = ReadList<AttributedExpression>(() => ReadAttributedExpression());
-            var parameter9 = ReadSpecification<FrameExpression>();
-            var parameter10 = ReadSpecification<Expression>();
-            var parameter11 = ReadList<Formal>(() => ReadFormal());
-            var parameter12 = ReadSpecification<FrameExpression>();
-            var parameter13 = ReadBlockStmt();
-            var parameter15 = ReadBoolean();
-            return new Method(parameter0, parameter1, parameter2, parameter3, parameter4, parameter5, parameter6, parameter7, parameter8, parameter9, parameter10, parameter11, parameter12, parameter13, parameter14, parameter15);
-        }
-
-        public Method ReadMethodOption()
-        {
-            if (ReadIsNull())
-            {
-                return default;
-            }
-
-            return ReadMethod();
-        }
-
         public AssertStmt ReadAssertStmt()
         {
             var parameter0 = ReadAbstract<IOrigin>();
@@ -892,13 +861,40 @@ namespace Microsoft.Dafny
             return ReadLocalVariable();
         }
 
+        public Constructor ReadConstructor()
+        {
+            var parameter0 = ReadAbstract<IOrigin>();
+            var parameter1 = ReadName();
+            var parameter11 = ReadAttributesOption();
+            var parameter2 = ReadBoolean();
+            var parameter12 = ReadAbstractOption<IOrigin>();
+            var parameter3 = ReadList<TypeParameter>(() => ReadTypeParameter());
+            var parameter4 = ReadList<Formal>(() => ReadFormal());
+            var parameter5 = ReadList<AttributedExpression>(() => ReadAttributedExpression());
+            var parameter8 = ReadList<AttributedExpression>(() => ReadAttributedExpression());
+            var parameter6 = ReadSpecification<FrameExpression>();
+            var parameter9 = ReadSpecification<Expression>();
+            var parameter7 = ReadSpecification<FrameExpression>();
+            var parameter10 = ReadDividedBlockStmt();
+            return new Constructor(parameter0, parameter1, parameter2, parameter3, parameter4, parameter5, parameter6, parameter7, parameter8, parameter9, parameter10, parameter11, parameter12);
+        }
+
+        public Constructor ReadConstructorOption()
+        {
+            if (ReadIsNull())
+            {
+                return default;
+            }
+
+            return ReadConstructor();
+        }
+
         public Function ReadFunction()
         {
             var parameter0 = ReadAbstract<IOrigin>();
             var parameter1 = ReadName();
             var parameter16 = ReadAttributesOption();
             var parameter3 = ReadBoolean();
-            var parameter2 = ReadBoolean();
             var parameter17 = ReadAbstractOption<IOrigin>();
             var parameter5 = ReadList<TypeParameter>(() => ReadTypeParameter());
             var parameter6 = ReadList<Formal>(() => ReadFormal());
@@ -906,6 +902,7 @@ namespace Microsoft.Dafny
             var parameter11 = ReadList<AttributedExpression>(() => ReadAttributedExpression());
             var parameter10 = ReadSpecification<FrameExpression>();
             var parameter12 = ReadSpecification<Expression>();
+            var parameter2 = ReadBoolean();
             var parameter4 = ReadBoolean();
             var parameter7 = ReadFormalOption();
             var parameter8 = ReadAbstract<Type>();
@@ -1308,11 +1305,6 @@ namespace Microsoft.Dafny
                 return ReadAssertLabel();
             }
 
-            if (actualType == typeof(Method))
-            {
-                return ReadMethod();
-            }
-
             if (actualType == typeof(AssertStmt))
             {
                 return ReadAssertStmt();
@@ -1356,6 +1348,11 @@ namespace Microsoft.Dafny
             if (actualType == typeof(LocalVariable))
             {
                 return ReadLocalVariable();
+            }
+
+            if (actualType == typeof(Constructor))
+            {
+                return ReadConstructor();
             }
 
             if (actualType == typeof(Function))

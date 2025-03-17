@@ -31,7 +31,6 @@ public abstract class MethodOrConstructor : MethodOrFunction, TypeParameter.Pare
 
   public override IEnumerable<INode> PreResolveChildren => Children;
   public override string WhatKind => "method";
-  public readonly bool IsByMethod;
   public bool MustReverify;
   public bool IsEntryPoint = false;
   public readonly Specification<FrameExpression> Mod;
@@ -123,7 +122,6 @@ public abstract class MethodOrConstructor : MethodOrFunction, TypeParameter.Pare
   protected MethodOrConstructor(Cloner cloner, MethodOrConstructor original) : base(cloner, original) {
     this.Mod = cloner.CloneSpecFrameExpr(original.Mod);
     this.Body = cloner.CloneMethodBody(original);
-    this.IsByMethod = original.IsByMethod;
   }
 
   [SyntaxConstructor]
@@ -138,8 +136,7 @@ public abstract class MethodOrConstructor : MethodOrFunction, TypeParameter.Pare
     [Captured] Specification<Expression> decreases,
     [Captured] Specification<FrameExpression> mod,
     [Captured] BlockStmt body,
-    IOrigin? signatureEllipsis,
-    bool isByMethod = false)
+    IOrigin? signatureEllipsis)
     : base(origin, nameNode, isGhost, attributes, signatureEllipsis, typeArgs, ins, req, ens, reads, decreases) {
     Contract.Requires(origin != null);
     Contract.Requires(nameNode != null);
@@ -151,7 +148,6 @@ public abstract class MethodOrConstructor : MethodOrFunction, TypeParameter.Pare
     Contract.Requires(decreases != null);
     this.Mod = mod;
     Body = body;
-    this.IsByMethod = isByMethod;
     MustReverify = false;
   }
 

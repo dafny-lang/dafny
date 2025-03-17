@@ -383,7 +383,6 @@ abstract class MemberDecl : Declaration
 
 abstract class MethodOrFunction : MemberDecl
 {
-    Boolean hasStaticKeyword;
     IOrigin? signatureEllipsis;
     List<TypeParameter> typeArgs;
     List<Formal> ins;
@@ -416,12 +415,10 @@ class AssertLabel : Label
 {
 }
 
-class Method : MethodOrFunction
+abstract class MethodOrConstructor : MethodOrFunction
 {
-    List<Formal> outs;
     Specification<FrameExpression> mod;
     BlockStmt? body;
-    Boolean isByMethod;
 }
 
 abstract class Statement : NodeWithOrigin
@@ -512,8 +509,13 @@ class LocalVariable : NodeWithOrigin
     Boolean isGhost;
 }
 
+class Constructor : MethodOrConstructor
+{
+}
+
 class Function : MethodOrFunction
 {
+    Boolean hasStaticKeyword;
     Boolean isOpaque;
     Formal? result;
     Type resultType;
