@@ -49,7 +49,7 @@ public static class TokenExtensions {
   public static bool IsSet(this IOrigin token) => token.Uri != null;
 
   public static string TokenToString(this IOrigin tok, DafnyOptions options) {
-    if (ReferenceEquals(tok, Token.Cli)) {
+    if (tok.line == Token.Cli.line) {
       return "CLI";
     }
 
