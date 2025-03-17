@@ -58,7 +58,6 @@ private object ReadObject(System.Type actualType) {{
     var ownedFieldPosition = 0;
     var baseType = OverrideBaseType.GetOrDefault(type, () => type.BaseType);
     if (baseType != null && baseType != typeof(ValueType) && baseType != typeof(object)) {
-
       ownedFieldPosition = ParameterToSchemaPositions[baseType].Count;
     }
     var parameterToSchemaPosition = new Dictionary<string, int>();
@@ -79,11 +78,16 @@ private object ReadObject(System.Type actualType) {{
       }
 
       if (memberInfo.DeclaringType != type) {
-        if (ParameterToSchemaPositions[memberInfo.DeclaringType!].TryGetValue(memberInfo.Name, out var schemaPosition)) {
-          schemaToConstructorPosition[schemaPosition] = index;
-          parameterToSchemaPosition[memberInfo.Name] = schemaPosition;
+        if (!ParameterToSchemaPositions[memberInfo.DeclaringType!]
+              .TryGetValue(memberInfo.Name, out var schemaPosition)) {
+          throw new Exception(
+            $"parameter '{parameter.Name}' should have been in parent type '{memberInfo.DeclaringType}' constructor, but was not found");
         }
+
+        schemaToConstructorPosition[schemaPosition] = index;
+        parameterToSchemaPosition[memberInfo.Name] = schemaPosition;
         return;
+
       }
 
       var schemaPosition2 = ownedFieldPosition++;
