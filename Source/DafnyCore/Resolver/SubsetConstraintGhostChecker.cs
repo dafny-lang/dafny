@@ -12,10 +12,6 @@ public class SubsetConstraintGhostChecker : ProgramTraverser {
     public IOrigin FirstCollectedToken = Token.NoToken;
     public bool Collected;
 
-    public bool Message(MessageSource source, ErrorLevel level, IOrigin tok, string msg) {
-      return Message(source, level, ErrorRegistry.NoneId, tok, msg);
-    }
-
     public override bool MessageCore(DafnyDiagnostic dafnyDiagnostic) {
       if (!Collected && dafnyDiagnostic.Level == ErrorLevel.Error) {
         FirstCollectedMessage = dafnyDiagnostic.Message;

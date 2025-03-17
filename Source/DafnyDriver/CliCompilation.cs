@@ -122,9 +122,8 @@ public class CliCompilation {
         if (newDiagnostic.Diagnostic.Level == ErrorLevel.Warning) {
           Interlocked.Increment(ref warningCount);
         }
-        var dafnyDiagnostic = newDiagnostic.Diagnostic;
-        consoleReporter.Message(dafnyDiagnostic.Source, dafnyDiagnostic.Level,
-          dafnyDiagnostic.ErrorId, dafnyDiagnostic.Range, dafnyDiagnostic.Message);
+
+        consoleReporter.MessageCore(newDiagnostic.Diagnostic);
       } else if (ev is FinishedParsing finishedParsing) {
         if (errorCount > 0) {
           var programName = finishedParsing.ParseResult.Program.Name;
