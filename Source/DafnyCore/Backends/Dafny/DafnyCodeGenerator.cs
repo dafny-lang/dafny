@@ -70,7 +70,7 @@ namespace Microsoft.Dafny.Compilers {
       if (emitUncompilableCode && currentBuilder is Container container) {
         container.AddUnsupported($"{TokenToString(tok)}: {why}");
       } else {
-        throw new UnsupportedInvalidOperationException($"{TokenToString(tok)}: {why}");
+        throw new UnsupportedInvalidOperationException(tok, why);
       }
     }
 
@@ -193,7 +193,7 @@ namespace Microsoft.Dafny.Compilers {
       if (wr is BuilderSyntaxTree<ExprContainer> builder) {
         return new BuilderSyntaxTree<ExprContainer>(builder.Builder.Convert(GenType(from), GenType(to)), this);
       } else {
-        throw new UnsupportedInvalidOperationException("coercion not in the presence of an ExprContainer");
+        throw new UnsupportedInvalidOperationException(tok, "coercion not in the presence of an ExprContainer");
       }
     }
 
@@ -2097,7 +2097,7 @@ namespace Microsoft.Dafny.Compilers {
       bool hasExternVal = Attributes.ContainsMatchingValue(formal.Attributes, "extern",
         ref externVal, new HashSet<Attributes.MatchingValueOption> {
           Attributes.MatchingValueOption.String
-        }, s => throw new UnsupportedInvalidOperationException("Non-string externs for destructors"));
+        }, s => throw new UnsupportedInvalidOperationException(formal.Origin, "Non-string externs for destructors"));
       var destructorName = externVal as string ?? defaultName;
       return destructorName;
     }
