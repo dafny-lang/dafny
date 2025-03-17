@@ -1,3 +1,4 @@
+#nullable enable
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 using System.Linq;
@@ -24,7 +25,7 @@ public class Field : MemberDecl, ICanFormat, IHasDocstring {
 
 
   [SyntaxConstructor]
-  public Field(IOrigin origin, Name nameNode, bool isGhost, Type type, Attributes attributes)
+  public Field(IOrigin origin, Name nameNode, bool isGhost, Type type, Attributes? attributes)
     : base(origin, nameNode, isGhost, attributes) {
     Contract.Requires(origin != null);
     Contract.Requires(nameNode != null);

@@ -1,3 +1,4 @@
+#nullable enable
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 using System.Linq;
@@ -24,9 +25,9 @@ public class DatatypeCtor : Declaration, TypeParameter.ParentType, IHasDocstring
   [FilledInDuringResolution] public SpecialField QueryField;
   [FilledInDuringResolution] public List<DatatypeDestructor> Destructors = [];  // includes both implicit (not mentionable in source) and explicit destructors
 
-  public DatatypeCtor(IOrigin origin, Name nameNode, bool isGhost, [Captured] List<Formal> formals, Attributes attributes)
+  public DatatypeCtor(IOrigin origin, Name nameNode, bool isGhost, [Captured] List<Formal> formals, Attributes? attributes)
     : base(origin, nameNode, attributes) {
-    Contract.Requires(origin != null);
+    Contract.Requires(origin != null); 
     Contract.Requires(nameNode != null);
     Contract.Requires(cce.NonNullElements(formals));
     this.Formals = formals;

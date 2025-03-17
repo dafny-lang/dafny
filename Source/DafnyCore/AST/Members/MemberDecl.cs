@@ -1,3 +1,4 @@
+#nullable enable
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 using System.Linq;
@@ -61,7 +62,7 @@ public abstract class MemberDecl : Declaration, ISymbol {
   }
 
   [SyntaxConstructor]
-  protected MemberDecl(IOrigin origin, Name nameNode, bool isGhost, Attributes attributes)
+  protected MemberDecl(IOrigin origin, Name nameNode, bool isGhost, Attributes? attributes)
     : base(origin, nameNode, attributes) {
     Contract.Requires(origin != null);
     Contract.Requires(nameNode != null);

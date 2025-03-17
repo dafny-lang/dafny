@@ -162,7 +162,7 @@ namespace Microsoft.Dafny
         public LiteralExpr ReadLiteralExpr()
         {
             var parameter0 = ReadAbstract<IOrigin>();
-            var parameter1 = ReadAbstract<Object>();
+            var parameter1 = ReadAbstractOption<Object>();
             return new LiteralExpr(parameter0, parameter1);
         }
 
@@ -929,7 +929,7 @@ namespace Microsoft.Dafny
         {
             var parameter0 = ReadAbstract<IOrigin>();
             var parameter1 = ReadName();
-            var parameter4 = ReadAttributes();
+            var parameter4 = ReadAttributesOption();
             var parameter2 = ReadBoolean();
             var parameter3 = ReadAbstract<Type>();
             return new Field(parameter0, parameter1, parameter2, parameter3, parameter4);
@@ -972,7 +972,7 @@ namespace Microsoft.Dafny
         {
             var parameter0 = ReadAbstract<IOrigin>();
             var parameter1 = ReadName();
-            var parameter4 = ReadAttributes();
+            var parameter4 = ReadAttributesOption();
             var parameter2 = ReadBoolean();
             var parameter3 = ReadList<Formal>(() => ReadFormal());
             return new DatatypeCtor(parameter0, parameter1, parameter2, parameter3, parameter4);
@@ -993,7 +993,7 @@ namespace Microsoft.Dafny
             Microsoft.Dafny.ModuleDefinition parameter2 = null;
             var parameter0 = ReadAbstract<IOrigin>();
             var parameter1 = ReadName();
-            var parameter7 = ReadAttributes();
+            var parameter7 = ReadAttributesOption();
             var parameter3 = ReadList<TypeParameter>(() => ReadTypeParameter());
             var parameter6 = ReadList<MemberDecl>(() => ReadAbstract<MemberDecl>());
             var parameter5 = ReadList<Type>(() => ReadAbstract<Type>());

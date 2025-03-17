@@ -32,7 +32,7 @@ public abstract class Declaration : NodeWithOrigin, IAttributeBearingDeclaration
   }
 
   [SyntaxConstructor]
-  protected Declaration(IOrigin origin, Name nameNode, Attributes attributes) : base(origin) {
+  protected Declaration(IOrigin origin, Name nameNode, Attributes? attributes) : base(origin) {
     this.NameNode = nameNode;
     this.Attributes = attributes;
   }

@@ -133,7 +133,7 @@ enum BinaryExprOpcode
 
 class LiteralExpr : Expression
 {
-    Object value;
+    Object? value;
 }
 
 class ITEExpr : Expression

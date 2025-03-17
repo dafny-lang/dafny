@@ -1,3 +1,4 @@
+#nullable enable
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 using System.Linq;
@@ -34,7 +35,7 @@ public class IndDatatypeDecl : DatatypeDecl {
 
   [SyntaxConstructor]
   public IndDatatypeDecl(IOrigin origin, Name nameNode, ModuleDefinition enclosingModuleDefinition, List<TypeParameter> typeArgs,
-    [Captured] List<DatatypeCtor> ctors, List<Type> traits, List<MemberDecl> members, Attributes attributes, bool isRefining)
+    [Captured] List<DatatypeCtor> ctors, List<Type> traits, List<MemberDecl> members, Attributes? attributes, bool isRefining)
     : base(origin, nameNode, enclosingModuleDefinition, typeArgs, ctors, traits, members, attributes, isRefining) {
     Contract.Requires(origin != null);
     Contract.Requires(nameNode != null);

@@ -6,13 +6,15 @@ using Microsoft.Boogie;
 
 namespace Microsoft.Dafny;
 
-public class SourceOrigin : IOrigin, IComparable<SourceOrigin> {
+[method: SyntaxConstructor]
+public class SourceOrigin(TokenRange entireRange, TokenRange? reportingRange = null)
+  : IOrigin, IComparable<SourceOrigin> {
   public Uri Uri => ReportingRange.StartToken.Uri;
 
-  public TokenRange EntireRange { get; }
+  public TokenRange EntireRange { get; } = entireRange;
   public Token StartToken => EntireRange.StartToken;
   public Token EndToken => EntireRange.EndToken;
-  public TokenRange ReportingRange { get; }
+  public TokenRange ReportingRange { get; } = reportingRange ?? entireRange;
   public bool IncludesRange => true;
 
   public SourceOrigin(Token start, Token end) : this(new TokenRange(start, end)) {
@@ -25,12 +27,6 @@ public class SourceOrigin : IOrigin, IComparable<SourceOrigin> {
   public SourceOrigin(Token start, Token end, Token? center) : this(
     new TokenRange(start, end),
     center == null ? null : new TokenRange(center, center)) {
-  }
-
-  [SyntaxConstructor]
-  public SourceOrigin(TokenRange entireRange, TokenRange? reportingRange = null) {
-    this.EntireRange = entireRange;
-    this.ReportingRange = reportingRange ?? entireRange;
   }
 
   public int CompareTo(IToken? other) {
