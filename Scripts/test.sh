@@ -54,6 +54,7 @@ fi
 # Run dotnet test
 echo "Running integration tests..."
 DAFNY_INTEGRATION_TESTS_UPDATE_EXPECT_FILE="$update_flag" \
+DAFNY_INTEGRATION_TESTS_ROOT_DIR=$(pwd) \
 dotnet test "$integration_tests_dir" \
   $( [ "$build_flag" = "false" ] && echo "--no-build" ) \
   --filter "DisplayName~$name"
