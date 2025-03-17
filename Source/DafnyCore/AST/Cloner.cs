@@ -572,7 +572,7 @@ namespace Microsoft.Dafny {
       }
     }
 
-    public virtual Method CloneMethod(Method m) {
+    public virtual MethodOrConstructor CloneMethod(MethodOrConstructor m) {
       Contract.Requires(m != null);
       return m switch {
         Constructor constructor => new Constructor(this, constructor),
@@ -580,11 +580,11 @@ namespace Microsoft.Dafny {
         GreatestLemma greatestLemma => new GreatestLemma(this, greatestLemma),
         Lemma lemma => new Lemma(this, lemma),
         TwoStateLemma lemma => new TwoStateLemma(this, lemma),
-        _ => new Method(this, m)
+        Method method => new Method(this, method)
       };
     }
 
-    public virtual BlockStmt CloneMethodBody(Method m) {
+    public virtual BlockStmt CloneMethodBody(MethodOrConstructor m) {
       if (m.Body is DividedBlockStmt) {
         return CloneDividedBlockStmt((DividedBlockStmt)m.Body);
       } else {

@@ -28,7 +28,7 @@ public class CallStmt : Statement, ICloneable<CallStmt> {
   public Expression OriginalInitialLhs = null;
 
   public Expression Receiver => MethodSelect.Obj;
-  public Method Method => (Method)MethodSelect.Member;
+  public MethodOrConstructor Method => (MethodOrConstructor)MethodSelect.Member;
 
   public CallStmt(IOrigin rangeOrigin, List<Expression> lhs, MemberSelectExpr memSel, List<ActualBinding> args, Token overrideToken = null)
     : base(

@@ -599,7 +599,7 @@ TraitDecl<DeclModifierData dmodIn, ModuleDefinition/*!*/ module, out TraitDecl/*
 /*------------------------------------------------------------------------*/
 ClassMemberDecl<. DeclModifierData dmod, List<MemberDecl> mm, bool allowConstructors, bool moduleLevelDecl.>
 = (. Contract.Requires(cce.NonNullElements(mm));
-     Method/*!*/ m;
+     MethodOrConstructor/*!*/ m;
      Function/*!*/ f;
   .)
   ( (. if (moduleLevelDecl) {
@@ -1144,7 +1144,7 @@ TPCharOption<ref TypeParameterCharacteristics characteristics>
   .
 
 /*------------------------------------------------------------------------*/
-MethodDecl<DeclModifierData dmod, bool allowConstructor, out Method/*!*/ m>
+MethodDecl<DeclModifierData dmod, bool allowConstructor, out MethodOrConstructor/*!*/ m>
 = (. Contract.Ensures(Contract.ValueAtReturn(out m) !=null);
      bool hasName = false;
      Name name = new Name("<noNameGiven>");  

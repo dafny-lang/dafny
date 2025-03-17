@@ -1415,7 +1415,7 @@ namespace Microsoft.Dafny.Compilers {
         return InstanceMemberWriter;
       }
 
-      public ConcreteSyntaxTree /*?*/ CreateMethod(Method m, List<TypeArgumentInstantiation> typeArgs, bool createBody, bool forBodyInheritance, bool lookasideBody) {
+      public ConcreteSyntaxTree /*?*/ CreateMethod(MethodOrConstructor m, List<TypeArgumentInstantiation> typeArgs, bool createBody, bool forBodyInheritance, bool lookasideBody) {
         return CodeGenerator.CreateMethod(m, typeArgs, createBody, Writer(m.IsStatic, createBody, m), forBodyInheritance, lookasideBody);
       }
 
@@ -1450,7 +1450,7 @@ namespace Microsoft.Dafny.Compilers {
       public void Finish() { }
     }
 
-    protected ConcreteSyntaxTree/*?*/ CreateMethod(Method m, List<TypeArgumentInstantiation> typeArgs, bool createBody, ConcreteSyntaxTree wr, bool forBodyInheritance, bool lookasideBody) {
+    protected ConcreteSyntaxTree/*?*/ CreateMethod(MethodOrConstructor m, List<TypeArgumentInstantiation> typeArgs, bool createBody, ConcreteSyntaxTree wr, bool forBodyInheritance, bool lookasideBody) {
       var customReceiver = createBody && !forBodyInheritance && NeedsCustomReceiver(m);
       var keywords = Keywords(createBody, m.IsStatic || customReceiver, false);
       var returnType = GetTargetReturnTypeReplacement(m, wr);
@@ -1481,7 +1481,7 @@ namespace Microsoft.Dafny.Compilers {
       return (isPublic ? "public " : "") + (isStatic ? "static " : "") + (isExtern ? "extern " : "") + (Synthesize && !isStatic && isPublic ? "virtual " : "");
     }
 
-    internal ConcreteSyntaxTree GetMethodParameters(Method m, List<TypeArgumentInstantiation> typeArgs, bool lookasideBody, bool customReceiver, string returnType) {
+    internal ConcreteSyntaxTree GetMethodParameters(MethodOrConstructor m, List<TypeArgumentInstantiation> typeArgs, bool lookasideBody, bool customReceiver, string returnType) {
       var parameters = GetFunctionParameters(m.Ins, m, typeArgs, lookasideBody, customReceiver);
       if (returnType == "void") {
         WriteFormals(parameters.Nodes.Any() ? ", " : "", m.Outs, parameters);
@@ -1505,7 +1505,7 @@ namespace Microsoft.Dafny.Compilers {
       return parameters;
     }
 
-    internal string GetTargetReturnTypeReplacement(Method m, ConcreteSyntaxTree wr) {
+    internal string GetTargetReturnTypeReplacement(MethodOrConstructor m, ConcreteSyntaxTree wr) {
       string/*?*/ targetReturnTypeReplacement = null;
       foreach (var p in m.Outs) {
         if (!p.IsGhost) {
@@ -1986,7 +1986,7 @@ namespace Microsoft.Dafny.Compilers {
       wr.Write($"out {actualOutParamName}");
     }
 
-    protected override bool UseReturnStyleOuts(Method m, int nonGhostOutCount) {
+    protected override bool UseReturnStyleOuts(MethodOrConstructor m, int nonGhostOutCount) {
       return nonGhostOutCount == 1;
     }
 

@@ -1036,7 +1036,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
              && tok.Uri != null && !project.ContainsSourceFile(tok.Uri);
     }
 
-    public void PrintMethod(Method method, int indent, bool printSignatureOnly) {
+    public void PrintMethod(MethodOrConstructor method, int indent, bool printSignatureOnly) {
       Contract.Requires(method != null);
 
       if (PrintModeSkipFunctionOrMethod(method.IsGhost, method.Attributes, method.Name)) { return; }

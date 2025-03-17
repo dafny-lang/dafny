@@ -30,7 +30,7 @@ public abstract class MethodOrFunction : MemberDecl, ICodeContainer {
   public override bool IsRefining => SignatureIsOmitted;
 
   [SyntaxConstructor]
-  protected MethodOrFunction(IOrigin origin, Name nameNode, bool hasStaticKeyword, bool isGhost,
+  protected MethodOrFunction(IOrigin origin, Name nameNode, bool isGhost,
     Attributes? attributes, IOrigin? signatureEllipsis, List<TypeParameter> typeArgs, List<Formal> ins,
     List<AttributedExpression> req,
     List<AttributedExpression> ens,
@@ -44,11 +44,8 @@ public abstract class MethodOrFunction : MemberDecl, ICodeContainer {
     Decreases = decreases;
     Ens = ens;
     Ins = ins;
-    HasStaticKeyword = hasStaticKeyword;
   }
-
-  public override bool HasStaticKeyword { get; }
-
+  
   protected MethodOrFunction(Cloner cloner, MethodOrFunction original) : base(cloner, original) {
     this.TypeArgs = cloner.CloneResolvedFields ? original.TypeArgs : original.TypeArgs.ConvertAll(cloner.CloneTypeParam);
     this.Req = original.Req.ConvertAll(cloner.CloneAttributedExpr);
@@ -57,7 +54,6 @@ public abstract class MethodOrFunction : MemberDecl, ICodeContainer {
     this.Reads = cloner.CloneSpecFrameExpr(original.Reads);
     this.Ins = original.Ins.ConvertAll(p => cloner.CloneFormal(p, false));
     this.SignatureEllipsis = original.SignatureEllipsis;
-    HasStaticKeyword = original.HasStaticKeyword;
     if (cloner.CloneResolvedFields) {
       this.ContainsHide = original.ContainsHide;
     }

@@ -486,7 +486,7 @@ namespace Microsoft.Dafny {
       }
     }
 
-    Method CloneMethod(Method previousMethod, List<AttributedExpression> moreEnsures, Specification<Expression> decreases, BlockStmt newBody, bool checkPreviousPostconditions, Attributes moreAttributes) {
+    MethodOrConstructor CloneMethod(Method previousMethod, List<AttributedExpression> moreEnsures, Specification<Expression> decreases, BlockStmt newBody, bool checkPreviousPostconditions, Attributes moreAttributes) {
       Contract.Requires(previousMethod != null);
       Contract.Requires(!(previousMethod is Constructor) || newBody == null || newBody is DividedBlockStmt);
       Contract.Requires(decreases != null);
@@ -1569,7 +1569,7 @@ namespace Microsoft.Dafny {
       moduleUnderConstruction = m;
     }
 
-    public override BlockStmt CloneMethodBody(Method m) {
+    public override BlockStmt CloneMethodBody(MethodOrConstructor m) {
       if (m.Body is DividedBlockStmt) {
         return CloneDividedBlockStmt((DividedBlockStmt)m.Body);
       } else {

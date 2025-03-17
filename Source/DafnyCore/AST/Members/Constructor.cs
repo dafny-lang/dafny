@@ -1,11 +1,16 @@
+#nullable enable
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 
 namespace Microsoft.Dafny;
 
-public class Constructor : Method {
+public class Constructor : MethodOrConstructor {
+  public override List<Formal> Outs => [];
+  
   public override string WhatKind => "constructor";
+  public override bool HasStaticKeyword => false;
+
   [ContractInvariantMethod]
   void ObjectInvariant() {
     Contract.Invariant(Body == null || Body is DividedBlockStmt);
@@ -34,6 +39,8 @@ public class Constructor : Method {
       }
     }
   }
+  
+  [SyntaxConstructor]
   public Constructor(IOrigin origin, Name nameNode,
     bool isGhost,
     List<TypeParameter> typeArgs,
@@ -44,9 +51,10 @@ public class Constructor : Method {
     List<AttributedExpression> ens,
     Specification<Expression> decreases,
     DividedBlockStmt body,
-    Attributes attributes, IOrigin signatureEllipsis)
-    : base(origin, nameNode, attributes, false, isGhost, typeArgs, ins, req, ens, reads, decreases,
-      [], mod, body, signatureEllipsis) {
+    Attributes? attributes, IOrigin? signatureEllipsis
+    )
+    : base(origin, nameNode, attributes, isGhost, typeArgs, ins, req, ens, reads, decreases, mod,
+       body, signatureEllipsis) {
     Contract.Requires(origin != null);
     Contract.Requires(nameNode != null);
     Contract.Requires(cce.NonNullElements(typeArgs));

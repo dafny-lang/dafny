@@ -34,7 +34,7 @@ namespace Microsoft.Dafny {
     }
 
     public Scope<Statement>/*!*/ enclosingStatementLabels;
-    public Method currentMethod;
+    public MethodOrConstructor currentMethod;
 
     Label/*?*/ ResolveDominatingLabelInExpr(IOrigin tok, string/*?*/ labelName, string expressionDescription, ResolutionContext resolutionContext) {
       Contract.Requires(tok != null);

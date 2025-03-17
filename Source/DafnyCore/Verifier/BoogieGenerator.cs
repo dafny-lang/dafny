@@ -1397,7 +1397,7 @@ namespace Microsoft.Dafny {
         return Attributes.Contains(f.Attributes, "opaque") || f.IsOpaque;
       }
     }
-    static bool IsOpaqueRevealLemma(Method m) {
+    static bool IsOpaqueRevealLemma(MethodOrConstructor m) {
       Contract.Requires(m != null);
       return Attributes.Contains(m.Attributes, "opaque_reveal");
     }

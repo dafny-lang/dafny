@@ -13,7 +13,7 @@ class AbstractSignatureCloner : ScopeCloner {
     return basem;
   }
 
-  public override BlockStmt CloneMethodBody(Method m) {
+  public override BlockStmt CloneMethodBody(MethodOrConstructor m) {
     return null;
   }
 }
