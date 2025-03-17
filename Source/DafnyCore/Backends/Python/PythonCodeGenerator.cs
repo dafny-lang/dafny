@@ -1791,7 +1791,7 @@ namespace Microsoft.Dafny.Compilers {
       }
     }
 
-    protected override void TrStmtList(List<Statement> stmts, ConcreteSyntaxTree writer) {
+    protected override void TrStmtList(IReadOnlyList<Statement> stmts, ConcreteSyntaxTree writer) {
       Contract.Requires(cce.NonNullElements(stmts));
       Contract.Requires(writer != null);
       var listWriter = new ConcreteSyntaxTree();

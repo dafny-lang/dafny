@@ -1161,6 +1161,7 @@ MethodDecl<DeclModifierData dmod, bool allowConstructor, out MethodOrConstructor
      Attributes modAttrs = null;
      Attributes readsAttrs = null;
      BlockStmt body = null;
+     DividedBlockStmt dividedBody = null;
      bool isPlainOlMethod = false;
      bool isLemma = false;
      bool isTwoStateLemma = false;
@@ -1243,9 +1244,7 @@ MethodDecl<DeclModifierData dmod, bool allowConstructor, out MethodOrConstructor
   MethodSpec<dmod.IsGhost || isLemma || isTwoStateLemma || isLeastLemma || isGreatestLemma,
              req, reads, mod, ens, dec, ref decAttrs, ref modAttrs, ref readsAttrs, caption, isConstructor>
   [ IF(isConstructor)
-    (. DividedBlockStmt dividedBody; .)
     DividedBlockStmt<out dividedBody, out bodyStart, out bodyEnd>
-    (. body = dividedBody; .)
   | BlockStmt<out body, out bodyStart, out bodyEnd>
   ]
   (. var range = new SourceOrigin(dmod.FirstToken, t, hasName ? name.ReportingRange : null);
@@ -1254,7 +1253,7 @@ MethodDecl<DeclModifierData dmod, bool allowConstructor, out MethodOrConstructor
                            req, new Specification<FrameExpression>(reads, readsAttrs), 
                            new Specification<FrameExpression>(mod, modAttrs), ens, 
                            new Specification<Expression>(dec, decAttrs), 
-                           (DividedBlockStmt)body, dmod.Attributes, signatureEllipsis);
+                           dividedBody, dmod.Attributes, signatureEllipsis);
      } else if (isLeastLemma) {
        m = new LeastLemma(range, name, dmod.IsStatic, kType, typeArgs, ins, outs,
                           req, new Specification<FrameExpression>(reads, readsAttrs), new Specification<FrameExpression>(mod, modAttrs), ens, new Specification<Expression>(dec, decAttrs), body, dmod.Attributes, signatureEllipsis);

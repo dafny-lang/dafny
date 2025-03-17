@@ -238,7 +238,7 @@ public class RunAllTestsMainMethod : IRewriter {
     // than the Method we added in PreResolve).
     var hasMain = Compilers.SinglePassCodeGenerator.HasMain(program, out var mainMethod);
     Contract.Assert(hasMain);
-    mainMethod.Body = new BlockStmt(tok, mainMethodStatements);
+    mainMethod.SetBody(new BlockStmt(tok, mainMethodStatements));
   }
 
   private BlockStmt PrintTestFailureStatement(IOrigin tok, Expression successVarExpr, Expression failureValueExpr) {

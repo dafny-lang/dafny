@@ -259,7 +259,7 @@ namespace Microsoft.Dafny.LanguageServer.Language {
       }
     }
 
-    private void VisitNullableBlock(BlockStmt? blockStatement) {
+    private void VisitNullableBlock(BlockLikeStmt? blockStatement) {
       if (blockStatement != null) {
         Visit(blockStatement);
       }

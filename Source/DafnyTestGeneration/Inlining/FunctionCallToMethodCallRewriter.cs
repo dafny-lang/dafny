@@ -45,13 +45,10 @@ public class FunctionCallToMethodCallRewriter : Cloner {
     }
   }
 
+  
   private void Visit(Method method) {
     if (method.Body != null) {
-      if (method.Body is DividedBlockStmt dividedBlockStmt) {
-        method.Body = CloneDividedBlockStmt(dividedBlockStmt);
-      } else {
-        method.Body = CloneBlockStmt(method.Body);
-      }
+      method.Body = CloneBlockStmt(method.Body);
     }
   }
 

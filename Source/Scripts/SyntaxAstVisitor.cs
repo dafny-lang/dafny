@@ -128,7 +128,9 @@ public abstract class SyntaxAstVisitor {
   protected void VisitParameters(Type type, Action<int, ParameterInfo, MemberInfo> handle) {
     var constructor = GetParseConstructor(type);
     var fields = type.GetFields().ToDictionary(f => f.Name.ToLower(), f => f);
-    var properties = type.GetProperties().ToDictionary(p => p.Name.ToLower(), p => p);
+    var properties = type.GetProperties().
+      DistinctBy(p => p.Name).
+      ToDictionary(p => p.Name.ToLower(), p => p);
 
     if (constructor == null) {
       return;

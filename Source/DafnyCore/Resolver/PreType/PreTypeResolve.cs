@@ -72,7 +72,7 @@ namespace Microsoft.Dafny {
     public Scope<IVariable> Scope => scope;
 
     TopLevelDeclWithMembers currentClass;
-    Method currentMethod;
+    MethodOrConstructor currentMethod;
 
     private readonly Dictionary<string, TopLevelDecl> preTypeBuiltins = new();
     public readonly PreTypeConstraints Constraints;

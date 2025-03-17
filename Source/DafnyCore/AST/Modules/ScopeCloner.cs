@@ -141,7 +141,7 @@ class ScopeCloner : DeepModuleSignatureCloner {
 
   public override MethodOrConstructor CloneMethod(MethodOrConstructor m) {
     var basem = base.CloneMethod(m);
-    basem.Body = null; //exports never reveal method bodies
+    basem.SetBody(null); //exports never reveal method bodies
     return basem;
   }
 

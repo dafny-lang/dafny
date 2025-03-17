@@ -747,7 +747,7 @@ namespace Microsoft.Dafny
             var parameter0 = ReadAbstract<IOrigin>();
             var parameter1 = ReadAttributesOption();
             var parameter2 = ReadList<Statement>(() => ReadAbstract<Statement>());
-            return new BlockStmt(parameter0, parameter1, parameter2);
+            return new BlockStmt(parameter0, parameter2, parameter1);
         }
 
         public BlockStmt ReadBlockStmtOption()
@@ -875,7 +875,7 @@ namespace Microsoft.Dafny
             var parameter6 = ReadSpecification<FrameExpression>();
             var parameter9 = ReadSpecification<Expression>();
             var parameter7 = ReadSpecification<FrameExpression>();
-            var parameter10 = ReadDividedBlockStmt();
+            DividedBlockStmt parameter10 = null; //ReadDividedBlockStmt();
             return new Constructor(parameter0, parameter1, parameter2, parameter3, parameter4, parameter5, parameter6, parameter7, parameter8, parameter9, parameter10, parameter11, parameter12);
         }
 

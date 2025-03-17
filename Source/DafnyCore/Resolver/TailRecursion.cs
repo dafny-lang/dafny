@@ -63,7 +63,7 @@ class TailRecursion {
   /// If the return value is NoTailRecursive, "tailCall" could be anything.  In this case, an error
   /// message has been reported (provided "reportsErrors" is true).
   /// </summary>
-  TailRecursionStatus CheckTailRecursive(List<Statement> stmts, Method enclosingMethod, ref Statement tailCall, bool reportErrors) {
+  TailRecursionStatus CheckTailRecursive(IReadOnlyList<Statement> stmts, Method enclosingMethod, ref Statement tailCall, bool reportErrors) {
     Contract.Requires(stmts != null);
     var status = TailRecursionStatus.CanBeFollowedByAnything;
     foreach (var s in stmts) {

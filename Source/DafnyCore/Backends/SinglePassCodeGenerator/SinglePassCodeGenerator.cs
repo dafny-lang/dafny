@@ -4690,7 +4690,7 @@ namespace Microsoft.Dafny.Compilers {
       TrStmtList(dividedBlockStmt.Body, writer);
     }
 
-    protected virtual void TrStmtList(List<Statement> stmts, ConcreteSyntaxTree writer) {
+    protected virtual void TrStmtList(IReadOnlyList<Statement> stmts, ConcreteSyntaxTree writer) {
       Contract.Requires(cce.NonNullElements(stmts));
       Contract.Requires(writer != null);
       foreach (Statement ss in stmts) {

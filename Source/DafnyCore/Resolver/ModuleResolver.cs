@@ -1829,7 +1829,7 @@ namespace Microsoft.Dafny {
 
           var kPositive = new BinaryExpr(com.Origin, BinaryExpr.Opcode.Lt, new LiteralExpr(com.Origin, 0), kk);
           var condBody = new IfStmt(mainBody.Origin, false, kPositive, mainBody, els);
-          prefixLemma.Body = new BlockStmt(mainBody.Origin, [condBody]);
+          prefixLemma.SetBody(new BlockStmt(mainBody.Origin, [condBody]));
         }
 
         // The prefix lemma now has all its components, so it's finally time we resolve it

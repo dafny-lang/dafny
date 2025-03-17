@@ -1,6 +1,7 @@
 using System.Diagnostics.Contracts;
 using System.Linq;
 using JetBrains.Annotations;
+using Microsoft.Boogie;
 using static Microsoft.Dafny.ResolutionErrors;
 
 namespace Microsoft.Dafny;
@@ -276,7 +277,7 @@ class GhostInterestVisitor {
 
           break;
         }
-      case BlockStmt blockStmt: {
+      case BlockLikeStmt blockStmt: {
           var s = blockStmt;
           s.IsGhost = mustBeErasable;  // set .IsGhost before descending into substatements (since substatements may do a 'break' out of this block)
           if (s is DividedBlockStmt ds) {

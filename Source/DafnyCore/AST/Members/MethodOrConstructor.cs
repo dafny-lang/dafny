@@ -121,11 +121,10 @@ public abstract class MethodOrConstructor : MethodOrFunction, TypeParameter.Pare
 
   protected MethodOrConstructor(Cloner cloner, MethodOrConstructor original) : base(cloner, original) {
     this.Mod = cloner.CloneSpecFrameExpr(original.Mod);
-    this.Body = cloner.CloneMethodBody(original);
   }
 
   [SyntaxConstructor]
-  public MethodOrConstructor(IOrigin origin, Name nameNode,
+  protected MethodOrConstructor(IOrigin origin, Name nameNode,
     Attributes? attributes,
     bool isGhost,
     [Captured] List<TypeParameter> typeArgs,
@@ -135,7 +134,6 @@ public abstract class MethodOrConstructor : MethodOrFunction, TypeParameter.Pare
     [Captured] Specification<FrameExpression> reads,
     [Captured] Specification<Expression> decreases,
     [Captured] Specification<FrameExpression> mod,
-    [Captured] BlockStmt body,
     IOrigin? signatureEllipsis)
     : base(origin, nameNode, isGhost, attributes, signatureEllipsis, typeArgs, ins, req, ens, reads, decreases) {
     Contract.Requires(origin != null);
@@ -147,7 +145,6 @@ public abstract class MethodOrConstructor : MethodOrFunction, TypeParameter.Pare
     Contract.Requires(cce.NonNullElements(ens));
     Contract.Requires(decreases != null);
     this.Mod = mod;
-    Body = body;
     MustReverify = false;
   }
 
@@ -202,8 +199,6 @@ public abstract class MethodOrConstructor : MethodOrFunction, TypeParameter.Pare
     return nm;
   }
 
-  public BlockStmt? Body { get; set; }
-
   public bool IsLemmaLike => this is Lemma || this is TwoStateLemma || this is ExtremeLemma || this is PrefixLemma;
 
   public bool SetIndent(int indentBefore, TokenNewIndentCollector formatter) {
@@ -243,6 +238,10 @@ public abstract class MethodOrConstructor : MethodOrFunction, TypeParameter.Pare
 
     return true;
   }
+
+  public abstract BlockLikeStmt? Body { get; }
+
+  public abstract void SetBody(BlockLikeStmt newBody);
 
   protected override bool Bodyless => Body == null;
   protected override string TypeName => "method";
@@ -475,7 +474,7 @@ public abstract class MethodOrConstructor : MethodOrFunction, TypeParameter.Pare
           if (this is Constructor c) {
             c.BodyInit.Insert(0, revealStmt.RevealStmt);
           } else {
-            Body.Body.Insert(0, revealStmt.RevealStmt);
+            Body.Prepend(revealStmt.RevealStmt);
           }
 
           reqExpr = new StmtExpr(reqExpr.Origin, revealStmt.RevealStmt, reqExpr) {

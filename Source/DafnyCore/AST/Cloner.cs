@@ -4,10 +4,7 @@
 
 using System;
 using System.Collections.Generic;
-using System.Numerics;
 using System.Diagnostics.Contracts;
-using System.Linq;
-using System.Xml;
 
 namespace Microsoft.Dafny {
   interface ICloneable<out T> {
@@ -415,7 +412,7 @@ namespace Microsoft.Dafny {
       if (stmt == null) {
         return null;
       } else {
-        return new BlockStmt(Origin(stmt.Origin), stmt.Body.ConvertAll(stmt1 => CloneStmt(stmt1, false)));
+        return new BlockStmt(this, stmt);
       }
     }
 
@@ -423,8 +420,7 @@ namespace Microsoft.Dafny {
       if (stmt == null) {
         return null;
       } else {
-        return new DividedBlockStmt(Origin(stmt.Origin), stmt.BodyInit.ConvertAll(stmt1 => CloneStmt(stmt1, false)),
-          stmt.SeparatorTok == null ? null : Origin(stmt.SeparatorTok), stmt.BodyProper.ConvertAll(stmt1 => CloneStmt(stmt1, false)));
+        return new DividedBlockStmt(this, stmt);
       }
     }
 
@@ -584,11 +580,11 @@ namespace Microsoft.Dafny {
       };
     }
 
-    public virtual BlockStmt CloneMethodBody(MethodOrConstructor m) {
-      if (m.Body is DividedBlockStmt) {
-        return CloneDividedBlockStmt((DividedBlockStmt)m.Body);
+    public virtual BlockLikeStmt CloneMethodBody(MethodOrConstructor m) {
+      if (m.Body is DividedBlockStmt dividedBlockStmt) {
+        return CloneDividedBlockStmt(dividedBlockStmt);
       } else {
-        return CloneBlockStmt(m.Body);
+        return CloneBlockStmt((BlockStmt)m.Body);
       }
     }
 

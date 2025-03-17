@@ -341,7 +341,7 @@ public class AutoContractsRewriter : IRewriter {
     }
   }
 
-  void AddSubobjectReprs(IOrigin tok, IOrigin endCurlyTok, List<Tuple<Field, Field, Function>> subobjects, BlockStmt block, int hoverTextFromHere,
+  void AddSubobjectReprs(IOrigin tok, IOrigin endCurlyTok, List<Tuple<Field, Field, Function>> subobjects, BlockLikeStmt block, int hoverTextFromHere,
     Expression implicitSelf, Expression Repr) {
     Contract.Requires(tok != null);
     Contract.Requires(endCurlyTok != null);

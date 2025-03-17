@@ -80,9 +80,6 @@ public class RemoveShortCircuitingRewriter : Cloner {
     if (blockStatement == null) {
       return null;
     }
-    if (blockStatement is DividedBlockStmt dividedBlockStmt) {
-      return CloneDividedBlockStmt(dividedBlockStmt);
-    }
     List<Statement> newBody = [];
     foreach (var statement in blockStatement.Body) {
       newBody.AddRange(ProcessStmt(statement));

@@ -151,7 +151,7 @@ public class ExpectContracts : IRewriter {
     var callStmt = new CallStmt(decl.Origin, outs, memberSelectExpr, args);
 
     var body = MakeContractCheckingBody(origMethod.Req, origMethod.Ens, callStmt);
-    newMethod.Body = body;
+    newMethod.SetBody(body);
     return newMethod;
   }
 

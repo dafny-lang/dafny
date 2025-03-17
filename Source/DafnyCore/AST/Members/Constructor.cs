@@ -6,6 +6,7 @@ using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 namespace Microsoft.Dafny;
 
 public class Constructor : MethodOrConstructor {
+  private DividedBlockStmt? body;
   public override List<Formal> Outs => [];
   
   public override string WhatKind => "constructor";
@@ -54,7 +55,8 @@ public class Constructor : MethodOrConstructor {
     Attributes? attributes, IOrigin? signatureEllipsis
     )
     : base(origin, nameNode, attributes, isGhost, typeArgs, ins, req, ens, reads, decreases, mod,
-       body, signatureEllipsis) {
+       signatureEllipsis) {
+    this.body = body;
     Contract.Requires(origin != null);
     Contract.Requires(nameNode != null);
     Contract.Requires(cce.NonNullElements(typeArgs));
@@ -66,11 +68,17 @@ public class Constructor : MethodOrConstructor {
   }
 
   public Constructor(Cloner cloner, Constructor original) : base(cloner, original) {
+    body = cloner.CloneDividedBlockStmt(original.Body);
   }
 
   public bool HasName {
     get {
       return Name != "_ctor";
     }
+  }
+
+  public override DividedBlockStmt? Body => body;
+  public override void SetBody(BlockLikeStmt newBody) {
+    body = (DividedBlockStmt?)newBody;
   }
 }
