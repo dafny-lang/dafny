@@ -130,7 +130,7 @@ namespace Microsoft.Dafny {
         base.VisitFunction(f);
       }
 
-      public override void VisitMethod(Method method) {
+      public override void VisitMethod(MethodOrConstructor method) {
         if (method.OverriddenMethod != null) {
           // add an edge from the trait method to that of the class/type
           AddCallGraphEdgeRaw(method.OverriddenMethod, method);
@@ -170,7 +170,7 @@ namespace Microsoft.Dafny {
           } else {
             // Apparently, we're called on the CallStmt.MemberSelect expression. The call-graph edge is added by the
             // handling of the CallStmt. Below, we will continue visiting the MemberSelectExpr.Obj subexpression.
-            Contract.Assert(memberSelectExpr.Member is Method);
+            Contract.Assert(memberSelectExpr.Member is MethodOrConstructor);
           }
 
         } else if (expr is FunctionCallExpr functionCallExpr) {

@@ -105,7 +105,7 @@ namespace Microsoft.Dafny {
           VisitMethod(function.ByMethodDecl);
         }
 
-      } else if (member is Method method) {
+      } else if (member is MethodOrConstructor method) {
         VisitMethod(method);
 
         var prefixLemma = (method as ExtremeLemma)?.PrefixLemma;
@@ -158,7 +158,7 @@ namespace Microsoft.Dafny {
       }
     }
 
-    public virtual void VisitMethod(Method method) {
+    public virtual void VisitMethod(MethodOrConstructor method) {
       var context = GetContext(method, false);
 
       VisitAttributes(method, method.EnclosingClass.EnclosingModuleDefinition);

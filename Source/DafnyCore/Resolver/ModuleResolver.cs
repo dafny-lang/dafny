@@ -162,7 +162,7 @@ namespace Microsoft.Dafny {
             }
           }
         } else {
-          var m = (Method)clbl;
+          var m = (MethodOrConstructor)clbl;
           if (!m.IsRecursive) {
             // note, self-recursion has already been determined
             int n = module.CallGraph.GetSCCSize(m);
@@ -2379,14 +2379,13 @@ namespace Microsoft.Dafny {
             f.ByMethodDecl.EnclosingClass = cl;
           }
 
-        } else if (member is Method) {
-          var m = (Method)member;
+        } else if (member is MethodOrConstructor methodOrConstructor) {
           var ec = reporter.Count(ErrorLevel.Error);
           allTypeParameters.PushMarker();
-          ResolveTypeParameters(m.TypeArgs, true, m);
-          ResolveMethodSignature(m);
+          ResolveTypeParameters(methodOrConstructor.TypeArgs, true, methodOrConstructor);
+          ResolveMethodSignature(methodOrConstructor);
           allTypeParameters.PopMarker();
-          if (m is ExtremeLemma com && com.PrefixLemma != null && ec == reporter.Count(ErrorLevel.Error)) {
+          if (methodOrConstructor is ExtremeLemma com && com.PrefixLemma != null && ec == reporter.Count(ErrorLevel.Error)) {
             var mm = com.PrefixLemma;
             // resolve signature of the prefix lemma
             mm.EnclosingClass = cl;
@@ -3106,7 +3105,7 @@ namespace Microsoft.Dafny {
     /// <summary>
     /// Assumes type parameters have already been pushed
     /// </summary>
-    public void ResolveMethodSignature(Method m) {
+    public void ResolveMethodSignature(MethodOrConstructor m) {
       Contract.Requires(m != null);
 
       scope.PushMarker();

@@ -38,7 +38,7 @@ public class InferDecreasesClause {
           // always show the decrease clause, since at the very least it will start with "_k", which the programmer did not write explicitly
           showIt = true;
         } else {
-          showIt = ((Method)m).IsRecursive;
+          showIt = ((MethodOrConstructor)m).IsRecursive;
         }
 
         if (showIt) {

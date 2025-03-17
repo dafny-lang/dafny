@@ -737,6 +737,25 @@ namespace Microsoft.Dafny
             return ReadAssertStmt();
         }
 
+        public TypeRhs ReadTypeRhs()
+        {
+            var parameter0 = ReadAbstract<IOrigin>();
+            var parameter3 = ReadAttributesOption();
+            var parameter1 = ReadAbstract<Type>();
+            var parameter2 = ReadActualBindings();
+            return new TypeRhs(parameter0, parameter1, parameter2, parameter3);
+        }
+
+        public TypeRhs ReadTypeRhsOption()
+        {
+            if (ReadIsNull())
+            {
+                return default;
+            }
+
+            return ReadTypeRhs();
+        }
+
         public ExprRhs ReadExprRhs()
         {
             var parameter0 = ReadAbstract<IOrigin>();
@@ -1366,6 +1385,11 @@ namespace Microsoft.Dafny
                 return ReadAssertStmt();
             }
 
+            if (actualType == typeof(TypeRhs))
+            {
+                return ReadTypeRhs();
+            }
+
             if (actualType == typeof(ExprRhs))
             {
                 return ReadExprRhs();
@@ -1466,7 +1490,7 @@ namespace Microsoft.Dafny
                 return ReadImplements();
             }
 
-            throw new Exception($"found unknown type {actualType.Name}");
+            throw new Exception();
         }
     }
 }

@@ -2808,7 +2808,7 @@ namespace Microsoft.Dafny {
             allTypeParameters.PopMarker();
           }
 
-        } else if (member is Method method) {
+        } else if (member is MethodOrConstructor method) {
           var ec = reporter.Count(ErrorLevel.Error);
           allTypeParameters.PushMarker();
           ResolveTypeParameters(method.TypeArgs, false, method);
@@ -3217,7 +3217,7 @@ namespace Microsoft.Dafny {
 
       string whatKind;
       string name;
-      if (context is Method cMethod) {
+      if (context is MethodOrConstructor cMethod) {
         whatKind = cMethod.WhatKind;
         name = $"{whatKind} '{cMethod.Name}'";
       } else if (context is Function cFunction) {
@@ -3545,7 +3545,7 @@ namespace Microsoft.Dafny {
         var kind = stmt is YieldStmt ? "yield" : "return";
         if (stmt is YieldStmt && !(resolutionContext.CodeContext is IteratorDecl)) {
           reporter.Error(MessageSource.Resolver, stmt, "yield statement is allowed only in iterators");
-        } else if (stmt is ReturnStmt && !(resolutionContext.CodeContext is Method)) {
+        } else if (stmt is ReturnStmt && !(resolutionContext.CodeContext is MethodOrConstructor)) {
           reporter.Error(MessageSource.Resolver, stmt, "return statement is allowed only in method");
         } else if (resolutionContext.InFirstPhaseConstructor) {
           reporter.Error(MessageSource.Resolver, stmt, "return statement is not allowed before 'new;' in a constructor");
@@ -4418,7 +4418,7 @@ namespace Microsoft.Dafny {
               if (prevErrorCount == reporter.Count(ErrorLevel.Error)) {
                 Contract.Assert(callLhs.ResolvedExpression is MemberSelectExpr);  // since ResolveApplySuffix succeeded and call.Lhs denotes an expression (not a module or a type)
                 var methodSel = (MemberSelectExpr)callLhs.ResolvedExpression;
-                if (methodSel.Member is Method) {
+                if (methodSel.Member is MethodOrConstructor) {
                   rr.InitCall = new CallStmt(stmt.Origin, [], methodSel, rr.Bindings.ArgumentBindings, initCallTok.Center);
                   ResolveCallStmt(rr.InitCall, resolutionContext, rr.EType);
                 } else {
@@ -5825,7 +5825,7 @@ namespace Microsoft.Dafny {
         rr.Type = SelectAppropriateArrowTypeForFunction(fn, subst, SystemModuleManager);
       } else {
         // the member is a method
-        var m = (Method)member;
+        var m = (MethodOrConstructor)member;
         if (!allowMethodCall) {
           // it's a method and method calls are not allowed in the given context
           reporter.Error(MessageSource.Resolver, tok, "expression is not allowed to invoke a {0} ({1})", member.WhatKind, member.Name);
@@ -5883,7 +5883,7 @@ namespace Microsoft.Dafny {
             var ri = (ResolverIdentifierExpr)lhs;
             reporter.Error(MessageSource.Resolver, e.Origin, "name of {0} ({1}) is used as a function", ri.Decl.WhatKind, ri.Decl.Name);
           } else {
-            if (lhs is MemberSelectExpr mse && mse.Member is Method) {
+            if (lhs is MemberSelectExpr mse && mse.Member is MethodOrConstructor) {
               if (atLabel != null) {
                 Contract.Assert(mse != null); // assured by the parser
                 if (mse.Member is TwoStateLemma) {
@@ -6014,7 +6014,7 @@ namespace Microsoft.Dafny {
 #endif
       if (member == null) {
         // error has already been reported by ResolveMember
-      } else if (member is Method) {
+      } else if (member is MethodOrConstructor) {
         reporter.Error(MessageSource.Resolver, e, "member {0} in type {1} refers to a method, but only functions can be used in this context", e.Name, cce.NonNull(ctype).Name);
       } else if (!(member is Function)) {
         reporter.Error(MessageSource.Resolver, e, "member {0} in type {1} does not refer to a function", e.Name, cce.NonNull(ctype).Name);

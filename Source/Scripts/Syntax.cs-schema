@@ -453,6 +453,12 @@ abstract class AssignmentRhs : NodeWithOrigin
     Attributes? attributes;
 }
 
+class TypeRhs : AssignmentRhs
+{
+    Type path;
+    ActualBindings arguments;
+}
+
 class ExprRhs : AssignmentRhs
 {
     Expression expr;

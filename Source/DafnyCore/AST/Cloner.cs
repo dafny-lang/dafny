@@ -202,14 +202,12 @@ namespace Microsoft.Dafny {
           return member;
         }
 
-        if (member is Field) {
-          var f = (Field)member;
-          return CloneField(f);
-        } else if (member is Function) {
-          var f = (Function)member;
-          return CloneFunction(f);
+        if (member is Field field) {
+          return CloneField(field);
+        } else if (member is Function function) {
+          return CloneFunction(function);
         } else {
-          var m = (Method)member;
+          var m = (MethodOrConstructor)member;
           return CloneMethod(m);
         }
       });

@@ -726,11 +726,10 @@ NoGhost - disable printing of functions, ghost methods, and proof
         if (PrintModeSkipGeneral(project, m.Origin)) { continue; }
         if (printMode == PrintModes.Serialization && Attributes.Contains(m.Attributes, "auto_generated")) {
           // omit this declaration
-        } else if (m is Method) {
+        } else if (m is MethodOrConstructor methodOrConstructor) {
           if (state != 0) { wr.WriteLine(); }
-          PrintMethod((Method)m, indent, false);
-          var com = m as ExtremeLemma;
-          if (com != null && com.PrefixLemma != null) {
+          PrintMethod(methodOrConstructor, indent, false);
+          if (m is ExtremeLemma { PrefixLemma: not null } com) {
             Indent(indent); wr.WriteLine("/***");
             PrintMethod(com.PrefixLemma, indent, false);
             Indent(indent); wr.WriteLine("***/");

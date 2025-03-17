@@ -2021,7 +2021,7 @@ namespace Microsoft.Dafny {
       }
     }
 
-    void GenerateImplPrelude(Method m, bool wellformednessProc, List<Variable> inParams, List<Variable> outParams,
+    void GenerateImplPrelude(MethodOrConstructor m, bool wellformednessProc, List<Variable> inParams, List<Variable> outParams,
                              BoogieStmtListBuilder builder, Variables localVariables, ExpressionTranslator etran) {
       Contract.Requires(m != null);
       Contract.Requires(inParams != null);
@@ -2831,7 +2831,7 @@ namespace Microsoft.Dafny {
       return call;
     }
 
-    private void GenerateMethodParameters(IOrigin tok, Method m, MethodTranslationKind kind, ExpressionTranslator etran,
+    private void GenerateMethodParameters(IOrigin tok, MethodOrConstructor m, MethodTranslationKind kind, ExpressionTranslator etran,
       List<Variable> inParams, out Variables outParams) {
       GenerateMethodParametersChoose(tok, m, kind, !m.IsStatic, true, true, etran, inParams, out outParams);
     }
@@ -3723,9 +3723,8 @@ namespace Microsoft.Dafny {
     }
 
     public List<TypeParameter> GetTypeParams(IMethodCodeContext cc) {
-      if (cc is Method) {
-        Method m = (Method)cc;
-        return Concat(GetTypeParams(m.EnclosingClass), m.TypeArgs);
+      if (cc is MethodOrConstructor methodOrConstructor) {
+        return Concat(GetTypeParams(methodOrConstructor.EnclosingClass), methodOrConstructor.TypeArgs);
       } else if (cc is IteratorDecl) {
         return cc.TypeArgs; // This one cannot be enclosed in a class
       } else {

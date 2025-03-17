@@ -1,3 +1,4 @@
+#nullable enable
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 using System.Linq;
@@ -124,14 +125,18 @@ public class TypeRhs : AssignmentRhs, ICloneable<TypeRhs> {
     Contract.Requires(type != null);
     EType = type;
   }
-  public TypeRhs(IOrigin origin, Type path, List<ActualBinding> arguments)
-    : base(origin) {
-    Contract.Requires(origin != null);
-    Contract.Requires(path != null);
-    Contract.Requires(arguments != null);
+
+  [SyntaxConstructor]
+  public TypeRhs(IOrigin origin, Type path, ActualBindings arguments, Attributes? attributes = null)
+    : base(origin, attributes) {
     Path = path;
-    Bindings = new ActualBindings(arguments);
+    Bindings = arguments;
   }
+
+  public TypeRhs(IOrigin origin, Type path, List<ActualBinding> arguments)
+    : this(origin, path, new ActualBindings(arguments)) {
+  }
+  
   public override bool CanAffectPreviouslyKnownExpressions {
     get {
       if (InitCall != null) {

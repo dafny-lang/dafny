@@ -1799,7 +1799,7 @@ namespace Microsoft.Dafny {
             var ri = (ResolverIdentifierExpr)lhs;
             ReportError(e.Origin, "name of {0} ({1}) is used as a function", ri.Decl.WhatKind, ri.Decl.Name);
           } else {
-            if (lhs is MemberSelectExpr mse && mse.Member is Method) {
+            if (lhs is MemberSelectExpr mse && mse.Member is MethodOrConstructor) {
               if (atLabel != null) {
                 Contract.Assert(mse != null); // assured by the parser
                 if (mse.Member is TwoStateLemma) {

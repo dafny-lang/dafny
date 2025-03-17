@@ -78,7 +78,7 @@ namespace Microsoft.Dafny {
           AddAllocationAxiom(fieldDeclaration, f, c);
         } else if (member is Function function) {
           AddFunction_Top(function, includeAllMethods);
-        } else if (member is Method method) {
+        } else if (member is MethodOrConstructor method) {
           AddMethod_Top(method, false, includeAllMethods);
         } else {
           Contract.Assert(false); throw new cce.UnreachableException();  // unexpected member
@@ -167,7 +167,7 @@ namespace Microsoft.Dafny {
       IsAllocContext = null;
     }
 
-    void AddMethod_Top(Method m, bool isByMethod, bool includeAllMethods) {
+    void AddMethod_Top(MethodOrConstructor m, bool isByMethod, bool includeAllMethods) {
       if (!includeAllMethods && !InVerificationScope(m) && !referencedMembers.Contains(m)) {
         // do nothing
         return;
@@ -520,7 +520,7 @@ namespace Microsoft.Dafny {
       Reset();
     }
 
-    private void AddMethodImpl(Method m, Bpl.Procedure proc, bool wellformednessProc) {
+    private void AddMethodImpl(MethodOrConstructor m, Bpl.Procedure proc, bool wellformednessProc) {
       Contract.Requires(m != null);
       Contract.Requires(proc != null);
       Contract.Requires(sink != null && Predef != null);
@@ -539,13 +539,13 @@ namespace Microsoft.Dafny {
       var builder = new BoogieStmtListBuilder(this, options, new BodyTranslationContext(m.ContainsHide));
       builder.Add(new CommentCmd("AddMethodImpl: " + m + ", " + proc));
       var etran = new ExpressionTranslator(this, Predef, m.Origin,
-        m.IsByMethod ? m.FunctionFromWhichThisIsByMethodDecl : m);
+        m is Method method && method.IsByMethod ? m.FunctionFromWhichThisIsByMethodDecl : m);
       // Only do reads checks for methods, not lemmas
       // (which aren't allowed to declare frames and don't check reads and writes against them).
       // Also don't do any reads checks if the reads clause is *,
       // since all the checks will be trivially true
       // and we don't need to cause additional verification cost for existing code.
-      if (!options.Get(Method.ReadsClausesOnMethods) || m.IsLemmaLike || m.Reads.Expressions.Exists(e => e.E is WildcardExpr)) {
+      if (!options.Get(MethodOrConstructor.ReadsClausesOnMethods) || m.IsLemmaLike || m.Reads.Expressions.Exists(e => e.E is WildcardExpr)) {
         etran = etran.WithReadsFrame(null);
       }
       InitializeFuelConstant(m.Origin, builder, etran);
@@ -580,7 +580,7 @@ namespace Microsoft.Dafny {
       Reset();
     }
 
-    private StmtList TrMethodContractWellformednessCheck(Method m, ExpressionTranslator etran, Variables localVariables,
+    private StmtList TrMethodContractWellformednessCheck(MethodOrConstructor m, ExpressionTranslator etran, Variables localVariables,
       BoogieStmtListBuilder builder, List<Variable> outParams) {
       var builderInitializationArea = new BoogieStmtListBuilder(this, options, builder.Context);
       StmtList stmts;
@@ -700,7 +700,7 @@ namespace Microsoft.Dafny {
       }
     }
 
-    private StmtList TrMethodBody(Method m, BoogieStmtListBuilder builder, Variables localVariables,
+    private StmtList TrMethodBody(MethodOrConstructor m, BoogieStmtListBuilder builder, Variables localVariables,
       ExpressionTranslator etran) {
       var inductionVars = ApplyInduction(m.Ins, m.Attributes);
       if (inductionVars.Count != 0) {
@@ -826,7 +826,7 @@ namespace Microsoft.Dafny {
       return stmts;
     }
 
-    private void AddMethodOverrideCheckImpl(Method m, Boogie.Procedure proc) {
+    private void AddMethodOverrideCheckImpl(MethodOrConstructor m, Boogie.Procedure proc) {
       Contract.Requires(m != null);
       Contract.Requires(proc != null);
       Contract.Requires(sink != null && Predef != null);
@@ -912,7 +912,7 @@ namespace Microsoft.Dafny {
       Reset();
     }
 
-    private void HavocMethodFrameLocations(Method m, BoogieStmtListBuilder builder, ExpressionTranslator etran, Variables localVariables) {
+    private void HavocMethodFrameLocations(MethodOrConstructor m, BoogieStmtListBuilder builder, ExpressionTranslator etran, Variables localVariables) {
       Contract.Requires(m != null);
       Contract.Requires(m.EnclosingClass != null && m.EnclosingClass is ClassLikeDecl);
 
@@ -1487,7 +1487,7 @@ namespace Microsoft.Dafny {
       return typeMap;
     }
 
-    private void AddMethodOverrideEnsChk(Method m, BoogieStmtListBuilder builder, ExpressionTranslator etran,
+    private void AddMethodOverrideEnsChk(MethodOrConstructor m, BoogieStmtListBuilder builder, ExpressionTranslator etran,
       Dictionary<IVariable, Expression> substMap,
       Dictionary<TypeParameter, Type> typeMap) {
       Contract.Requires(m != null);
@@ -1518,7 +1518,7 @@ namespace Microsoft.Dafny {
       }
     }
 
-    private void AddMethodOverrideReqsChk(Method m, BoogieStmtListBuilder builder, ExpressionTranslator etran,
+    private void AddMethodOverrideReqsChk(MethodOrConstructor m, BoogieStmtListBuilder builder, ExpressionTranslator etran,
       Dictionary<IVariable, Expression> substMap,
       Dictionary<TypeParameter, Type> typeMap) {
       Contract.Requires(m != null);
@@ -1629,7 +1629,7 @@ namespace Microsoft.Dafny {
       builder.Add(Assert(original.Origin, decrChk, desc, builder.Context));
     }
 
-    private void AddMethodOverrideFrameSubsetChk(Method m, bool isModifies, BoogieStmtListBuilder builder, ExpressionTranslator etran, Variables localVariables,
+    private void AddMethodOverrideFrameSubsetChk(MethodOrConstructor m, bool isModifies, BoogieStmtListBuilder builder, ExpressionTranslator etran, Variables localVariables,
       Dictionary<IVariable, Expression> substMap,
       Dictionary<TypeParameter, Type> typeMap) {
 
@@ -1724,7 +1724,7 @@ namespace Microsoft.Dafny {
     /// This method is expected to be called at most once for each parameter combination, and in particular
     /// at most once for each value of "kind".
     /// </summary>
-    private Boogie.Procedure AddMethod(Method m, MethodTranslationKind kind) {
+    private Boogie.Procedure AddMethod(MethodOrConstructor m, MethodTranslationKind kind) {
       Contract.Requires(m != null);
       Contract.Requires(m.EnclosingClass != null);
       Contract.Requires(Predef != null);
@@ -1906,7 +1906,7 @@ namespace Microsoft.Dafny {
       return modifiesClause.Expressions.All(e => e.E is SetDisplayExpr setDisplayExpr && !setDisplayExpr.Elements.Any());
     }
 
-    private void InsertChecksum(Method m, Boogie.Declaration decl, bool specificationOnly = false) {
+    private void InsertChecksum(MethodOrConstructor m, Boogie.Declaration decl, bool specificationOnly = false) {
       Contract.Requires(VisibleInScope(m));
       byte[] data;
       using (var writer = new System.IO.StringWriter()) {

@@ -147,7 +147,7 @@ namespace Microsoft.Dafny {
         var kind = stmt is YieldStmt ? "yield" : "return";
         if (stmt is YieldStmt && !(resolutionContext.CodeContext is IteratorDecl)) {
           ReportError(stmt, "yield statement is allowed only in iterators");
-        } else if (stmt is ReturnStmt && !(resolutionContext.CodeContext is Method)) {
+        } else if (stmt is ReturnStmt && !(resolutionContext.CodeContext is MethodOrConstructor)) {
           ReportError(stmt, "return statement is allowed only in method");
         } else if (inBodyInitContext) {
           ReportError(stmt, "return statement is not allowed before 'new;' in a constructor");
@@ -1080,7 +1080,7 @@ namespace Microsoft.Dafny {
       void CheckIsFunction([CanBeNull] MemberDecl memberDecl, bool allowMethod) {
         if (memberDecl is null or Function) {
           // fine
-        } else if (allowMethod && memberDecl is Method) {
+        } else if (allowMethod && memberDecl is MethodOrConstructor) {
           // give a deprecation warning, so we will remove this language feature around the Dafny 4 time frame
           resolver.reporter.Deprecated(MessageSource.Resolver, ResolutionErrors.ErrorId.r_failure_methods_deprecated, tok,
             $"Support for member '{memberDecl.Name}' in type '{failureSupportingType}' (used indirectly via a :- statement) being a method is deprecated;" +
@@ -1200,7 +1200,7 @@ namespace Microsoft.Dafny {
             if (prevErrorCount == ErrorCount) {
               Contract.Assert(callLhs.ResolvedExpression is MemberSelectExpr);  // since ResolveApplySuffix succeeded and call.Lhs denotes an expression (not a module or a type)
               var methodSel = (MemberSelectExpr)callLhs.ResolvedExpression;
-              if (methodSel.Member is Method) {
+              if (methodSel.Member is MethodOrConstructor) {
                 rr.InitCall = new CallStmt(stmt.Origin, [], methodSel, rr.Bindings.ArgumentBindings, initCallTok.Center);
                 ResolveCallStmt(rr.InitCall, resolutionContext, rr.EType);
               } else {
