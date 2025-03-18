@@ -4,7 +4,7 @@ using System.Linq;
 
 namespace Microsoft.Dafny;
 
-public class GuardedAlternative : NodeWithComputedRange, IAttributeBearingDeclaration {
+public class GuardedAlternative : NodeWithOrigin, IAttributeBearingDeclaration {
   public bool IsBindingGuard;
   public Expression Guard;
   public List<Statement> Body;

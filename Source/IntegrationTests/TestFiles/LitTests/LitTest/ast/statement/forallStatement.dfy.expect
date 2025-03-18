@@ -1,0 +1,9 @@
+forallStatement.dfy(10,0): Error: a postcondition could not be proved on this return path
+forallStatement.dfy(8,11): Related location: this is the postcondition that could not be proved
+forallStatement.dfy(10,0): Error: a postcondition could not be proved on this return path
+forallStatement.dfy(9,11): Related location: this is the postcondition that could not be proved
+forallStatement.dfy(13,30): Error: cannot prove termination; try supplying a decreases clause
+forallStatement.dfy(13,30): Error: decreases expression must be bounded below by 0
+forallStatement.dfy(7,33): Related location: this decreases clause was not satisfied
+
+Dafny program verifier finished with 0 verified, 4 errors

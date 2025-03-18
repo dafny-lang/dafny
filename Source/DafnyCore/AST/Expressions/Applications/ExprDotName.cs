@@ -1,3 +1,5 @@
+#nullable enable
+
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 
@@ -9,7 +11,7 @@ namespace Microsoft.Dafny;
 public class ExprDotName : SuffixExpr, ICloneable<ExprDotName> {
   public Name SuffixNameNode;
   public string SuffixName => SuffixNameNode.Value;
-  public List<Type> OptTypeArguments;
+  public List<Type>? OptTypeArguments;
 
   /// <summary>
   /// Because the resolved expression only points to the final resolved declaration,
@@ -33,12 +35,10 @@ public class ExprDotName : SuffixExpr, ICloneable<ExprDotName> {
     OptTypeArguments = original.OptTypeArguments?.ConvertAll(cloner.CloneType);
   }
 
-  public ExprDotName(IOrigin origin, Expression obj, Name suffixName, List<Type> optTypeArguments)
-    : base(origin, obj) {
-    Contract.Requires(origin != null);
-    Contract.Requires(obj != null);
-    Contract.Requires(suffixName != null);
-    this.SuffixNameNode = suffixName;
+  [SyntaxConstructor]
+  public ExprDotName(IOrigin origin, Expression lhs, Name suffixNameNode, List<Type>? optTypeArguments)
+    : base(origin, lhs) {
+    SuffixNameNode = suffixNameNode;
     OptTypeArguments = optTypeArguments;
   }
 }

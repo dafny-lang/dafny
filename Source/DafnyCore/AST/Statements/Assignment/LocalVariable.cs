@@ -6,7 +6,7 @@ using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 
 namespace Microsoft.Dafny;
 
-public class LocalVariable : RangeNode, IVariable, IAttributeBearingDeclaration {
+public class LocalVariable : NodeWithOrigin, IVariable, IAttributeBearingDeclaration {
   string name;
   public string DafnyName => Name;
   public Attributes? Attributes;
@@ -128,7 +128,8 @@ public class LocalVariable : RangeNode, IVariable, IAttributeBearingDeclaration 
     this.IsGhost = true;
   }
 
-  public IOrigin NavigationToken => Origin.StartToken;
+  public TokenRange NavigationRange => ReportingRange;
+
   public bool IsTypeExplicit => SyntacticType != null;
   public override IEnumerable<INode> Children =>
     Attributes.AsEnumerable().

@@ -1003,11 +1003,11 @@ namespace Microsoft.Dafny {
         Statement ss = null;
         if (keyword.val == "expect") {
           // "expect !temp.IsFailure(), temp"
-          ss = new ExpectStmt(new SourceOrigin(keyword.StartToken, s.EndToken), notFailureExpr, new IdentifierExpr(s.Origin, temp), s.KeywordToken.Attrs);
+          ss = new ExpectStmt(new SourceOrigin(keyword, s.EndToken), notFailureExpr, new IdentifierExpr(s.Origin, temp), s.KeywordToken.Attrs);
         } else if (s.KeywordToken.Token.val == "assume") {
-          ss = new AssumeStmt(new SourceOrigin(keyword.StartToken, s.EndToken), notFailureExpr, SystemModuleManager.AxiomAttribute(s.KeywordToken.Attrs));
+          ss = new AssumeStmt(new SourceOrigin(keyword, s.EndToken), notFailureExpr, SystemModuleManager.AxiomAttribute(s.KeywordToken.Attrs));
         } else if (s.KeywordToken.Token.val == "assert") {
-          ss = new AssertStmt(new SourceOrigin(keyword.StartToken, s.EndToken), notFailureExpr, null, s.KeywordToken.Attrs);
+          ss = new AssertStmt(new SourceOrigin(keyword, s.EndToken), notFailureExpr, null, s.KeywordToken.Attrs);
         } else {
           Contract.Assert(false, $"Invalid token in :- statement: {keyword.val}");
         }

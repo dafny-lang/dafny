@@ -8,7 +8,7 @@ using System.Threading;
 
 namespace Microsoft.Dafny;
 
-public abstract class Type : NodeWithComputedRange {
+public abstract class Type : NodeWithOrigin {
   public static BoolType Bool = new BoolType();
   public static CharType Char = new CharType();
   public static IntType Int = new IntType();
@@ -1817,6 +1817,11 @@ public abstract class BasicType : NonProxyType {
 }
 
 public class BoolType : BasicType {
+  [SyntaxConstructor]
+  public BoolType(IOrigin origin) : base(origin) { }
+
+  public BoolType() { }
+
   [Pure]
   public override string TypeName(DafnyOptions options, ModuleDefinition context, bool parseAble) {
     return "bool";

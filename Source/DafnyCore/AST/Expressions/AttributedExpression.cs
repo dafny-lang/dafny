@@ -5,7 +5,7 @@ using System.Linq;
 
 namespace Microsoft.Dafny;
 
-public class AttributedExpression : NodeWithComputedRange, IAttributeBearingDeclaration {
+public class AttributedExpression : NodeWithOrigin, IAttributeBearingDeclaration {
   public Expression E;
   public AssertLabel? Label;
 

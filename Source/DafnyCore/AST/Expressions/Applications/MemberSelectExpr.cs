@@ -215,6 +215,7 @@ public class MemberSelectExpr : Expression, IHasReferences, ICloneable<MemberSel
     }
   }
 
+  [SyntaxConstructor]
   public MemberSelectExpr(IOrigin origin, Expression obj, Name memberName)
     : base(origin) {
     Contract.Requires(origin != null);
@@ -295,6 +296,6 @@ public class MemberSelectExpr : Expression, IHasReferences, ICloneable<MemberSel
   [FilledInDuringResolution] public List<Type> ResolvedOutparameterTypes;
 
   public IEnumerable<Reference> GetReferences() {
-    return new[] { new Reference(Center, Member) };
+    return new[] { new Reference(ReportingRange, Member) };
   }
 }

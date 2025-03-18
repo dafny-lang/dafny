@@ -55,19 +55,19 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
         }
       }
 
-      if (!symbol.Kind.HasValue || string.IsNullOrEmpty(symbol.NavigationToken.val)) {
+      if (!symbol.Kind.HasValue || string.IsNullOrEmpty(symbol.NavigationRange.StartToken.val)) {
         return children;
       }
 
-      var range = symbol.Origin.ToLspRange();
+      var range = symbol.ToLspRange();
       return new DocumentSymbol[] {
         new() {
           Children = children,
-          Name = symbol.NavigationToken.val,
+          Name = symbol.NavigationRange.StartToken.val,
           Detail = documentation,
           Range = range,
           Kind = symbol.Kind.Value,
-          SelectionRange = symbol.NavigationToken == Token.NoToken ? range : symbol.NavigationToken.ToLspRange()
+          SelectionRange = symbol.NavigationRange.StartToken == Token.NoToken ? range : symbol.NavigationRange.ToLspRange()
         }
       };
     }

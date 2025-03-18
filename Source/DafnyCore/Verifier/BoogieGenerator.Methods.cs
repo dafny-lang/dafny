@@ -817,11 +817,11 @@ namespace Microsoft.Dafny {
       m.Outs.ForEach(p => AddExistingDefiniteAssignmentTracker(p, m.IsGhost));
       // translate the body
       TrStmt(m.Body, builder, localVariables, etran);
-      m.Outs.ForEach(p => CheckDefiniteAssignmentReturn(m.Body.Origin.EndToken, p, builder));
+      m.Outs.ForEach(p => CheckDefiniteAssignmentReturn(m.Body.EndToken, p, builder));
       if (m is { FunctionFromWhichThisIsByMethodDecl: { ByMethodTok: { } } fun }) {
         AssumeCanCallForByMethodDecl(m, builder);
       }
-      var stmts = builder.Collect(m.Body.Origin.StartToken); // EndToken might make more sense, but it requires updating most of the regression tests.
+      var stmts = builder.Collect(m.Body.StartToken); // EndToken might make more sense, but it requires updating most of the regression tests.
       DefiniteAssignmentTrackers = beforeOutTrackers;
       return stmts;
     }
@@ -1584,7 +1584,7 @@ namespace Microsoft.Dafny {
           N = i;
           break;
         }
-        toks.Add(new NestedOrigin(original.Origin.StartToken, e1.Origin));
+        toks.Add(new NestedOrigin(original.StartToken, e1.Origin));
         calleeDafny.Add(e0);
         callerDafny.Add(e1);
         callee.Add(etran.TrExpr(e0));
@@ -1681,14 +1681,14 @@ namespace Microsoft.Dafny {
 
     // Return a way to know if an assertion should be converted to an assumption
     private void SetAssertionOnlyFilter(Node m) {
-      List<IOrigin> rangesOnly = [];
+      List<TokenRange> rangesOnly = [];
       m.Visit(node => {
         if (node is AssertStmt assertStmt &&
             assertStmt.HasAssertOnlyAttribute(out var assertOnlyKind)) {
           var ifAfterLastToken = m.EndToken;
           if (rangesOnly.FindIndex(r => r.Contains(node.StartToken)) is var x && x >= 0) {
             if (assertOnlyKind == AssertStmt.AssertOnlyKind.Before) {// Just shorten the previous range
-              rangesOnly[x] = new SourceOrigin(rangesOnly[x].StartToken, node.EndToken);
+              rangesOnly[x] = new TokenRange(rangesOnly[x].StartToken, node.EndToken);
               return true;
             }
 
@@ -1698,10 +1698,10 @@ namespace Microsoft.Dafny {
 
           var rangeToAdd =
             assertOnlyKind == AssertStmt.AssertOnlyKind.Before ?
-              new SourceOrigin(m.StartToken, assertStmt.EndToken) :
+              new TokenRange(m.StartToken, assertStmt.EndToken) :
               assertOnlyKind == AssertStmt.AssertOnlyKind.After ?
-              new SourceOrigin(assertStmt.StartToken, ifAfterLastToken)
-              : assertStmt.Origin;
+              new TokenRange(assertStmt.StartToken, ifAfterLastToken)
+              : assertStmt.EntireRange;
           if (assertOnlyKind == AssertStmt.AssertOnlyKind.Before && rangesOnly.Any(other => rangeToAdd.Intersects(other))) {
             // There are more precise ranges so we don't add this one
             return true;

@@ -8,7 +8,7 @@ namespace Microsoft.Dafny;
 /// Class "BreakStmt" represents both "break" and "continue" statements.
 /// </summary>
 public class BreakOrContinueStmt : Statement, IHasReferences, ICloneable<BreakOrContinueStmt> {
-  public IOrigin TargetLabel;
+  public Token TargetLabel;
   public bool IsContinue;
   public string Kind => IsContinue ? "continue" : "break";
   public int BreakAndContinueCount;
@@ -31,7 +31,7 @@ public class BreakOrContinueStmt : Statement, IHasReferences, ICloneable<BreakOr
     }
   }
 
-  public BreakOrContinueStmt(IOrigin origin, IOrigin targetLabel, bool isContinue, Attributes attributes = null)
+  public BreakOrContinueStmt(IOrigin origin, Token targetLabel, bool isContinue, Attributes attributes = null)
     : base(origin, attributes) {
     Contract.Requires(origin != null);
     Contract.Requires(targetLabel != null);
@@ -52,7 +52,9 @@ public class BreakOrContinueStmt : Statement, IHasReferences, ICloneable<BreakOr
   }
 
   public IEnumerable<Reference> GetReferences() {
-    return TargetStmt is IHasNavigationToken target ? new[] { new Reference(TargetLabel ?? Origin, target) } : Enumerable.Empty<Reference>();
+    return TargetStmt is IHasNavigationToken target ? new[] {
+      new Reference(TargetLabel != null ? new TokenRange(TargetLabel, TargetLabel) : ReportingRange, target)
+    } : Enumerable.Empty<Reference>();
   }
 
   public override void ResolveGhostness(ModuleResolver resolver, ErrorReporter reporter, bool mustBeErasable,

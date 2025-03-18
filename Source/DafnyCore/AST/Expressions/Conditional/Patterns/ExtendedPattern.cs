@@ -11,7 +11,7 @@ ExtendedPattern is either:
 2 - An IdPattern of a string and a list of ExtendedPattern, representing either
     a bound variable or a constructor applied to n arguments or a symbolic constant
 */
-public abstract class ExtendedPattern : NodeWithComputedRange {
+public abstract class ExtendedPattern : NodeWithOrigin {
   public bool IsGhost;
 
   public ExtendedPattern(IOrigin origin, bool isGhost = false) : base(origin) {

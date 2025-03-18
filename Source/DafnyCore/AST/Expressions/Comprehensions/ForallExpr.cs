@@ -1,3 +1,5 @@
+#nullable enable
+
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 
@@ -7,11 +9,9 @@ public class ForallExpr : QuantifierExpr, ICloneable<ForallExpr> {
   public override string WhatKind => "forall expression";
   protected override BinaryExpr.ResolvedOpcode SplitResolvedOp => BinaryExpr.ResolvedOpcode.And;
 
-  public ForallExpr(IOrigin origin, List<BoundVar> bvars, Expression range, Expression term, Attributes attrs)
-    : base(origin, bvars, range, term, attrs) {
-    Contract.Requires(cce.NonNullElements(bvars));
-    Contract.Requires(origin != null);
-    Contract.Requires(term != null);
+  [SyntaxConstructor]
+  public ForallExpr(IOrigin origin, List<BoundVar> boundVars, Expression? range, Expression term, Attributes? attributes = null)
+    : base(origin, boundVars, range, term, attributes) {
   }
 
   public ForallExpr Clone(Cloner cloner) {

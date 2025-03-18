@@ -5,7 +5,7 @@ using System.Linq;
 
 namespace Microsoft.Dafny;
 
-public class ModuleQualifiedId : Node, IHasReferences {
+public class ModuleQualifiedId : NodeWithoutOrigin, IHasReferences {
   public List<Name> Path; // Path != null && Path.Count > 0
 
   // The following are filled in during resolution
@@ -21,13 +21,19 @@ public class ModuleQualifiedId : Node, IHasReferences {
   [FilledInDuringResolution] public ModuleDefinition Def { get; private set; } // the module definition corresponding to the full path
   [FilledInDuringResolution] public ModuleSignature Sig { get; set; } // the module signature corresponding to the full path
 
+  [SyntaxConstructor]
   public ModuleQualifiedId(List<Name> path) {
+    Origin = new SourceOrigin(path.First().StartToken, path.Last().EndToken, path.Last().Center);
     Contract.Assert(path != null && path.Count > 0);
     Path = path; // note that the list is aliased -- not to be modified after construction
   }
 
+  public override TokenRange EntireRange => Origin.EntireRange!;
+  public override IOrigin Origin { get; }
+
   public ModuleQualifiedId(Cloner cloner, ModuleQualifiedId original) {
     Path = original.Path.Select(n => n.Clone(cloner)).ToList();
+    Origin = cloner.Origin(original.Origin);
     if (cloner.CloneResolvedFields) {
       Root = original.Root;
     }
@@ -65,16 +71,12 @@ public class ModuleQualifiedId : Node, IHasReferences {
   public override IEnumerable<INode> Children => Enumerable.Empty<Node>();
   public override IEnumerable<INode> PreResolveChildren => Children;
 
-  public override IOrigin Origin {
-    get => new SourceOrigin(Path.First().StartToken, Path.Last().EndToken, Path.Last().Center);
-  }
-
 
   public IEnumerable<Reference> GetReferences() {
     // Normally the target should already have been resolved, but in certain conditions like an unused alias module decl,
     // Decl might not be set yet so we need to resolve it here.
 
-    var reference = new Reference(Path.Last().StartToken, ResolveTarget(new ErrorReporterSink(DafnyOptions.Default)));
+    var reference = new Reference(Path.Last().ReportingRange, ResolveTarget(new ErrorReporterSink(DafnyOptions.Default)));
     return Enumerable.Repeat(reference, 1);
   }
 

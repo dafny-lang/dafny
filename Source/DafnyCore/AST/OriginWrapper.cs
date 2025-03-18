@@ -5,64 +5,61 @@ namespace Microsoft.Dafny;
 
 public abstract class OriginWrapper : IOrigin {
 
-  public readonly IOrigin WrappedToken;
-  protected OriginWrapper(IOrigin wrappedToken) {
-    Contract.Requires(wrappedToken != null);
-    WrappedToken = wrappedToken;
+  public readonly IOrigin WrappedOrigin;
+  protected OriginWrapper(IOrigin wrappedOrigin) {
+    Contract.Requires(wrappedOrigin != null);
+    WrappedOrigin = wrappedOrigin;
   }
 
-  public virtual bool IsCopy => WrappedToken.IsCopy;
+  public virtual TokenRange ReportingRange => WrappedOrigin.ReportingRange;
+  public virtual bool IsCopy => WrappedOrigin.IsCopy;
 
   public virtual int col {
-    get { return WrappedToken.col; }
-    set { WrappedToken.col = value; }
+    get { return WrappedOrigin.col; }
+    set { WrappedOrigin.col = value; }
   }
 
   public virtual bool IsInherited(ModuleDefinition m) {
-    return WrappedToken.IsInherited(m);
+    return WrappedOrigin.IsInherited(m);
   }
+  public virtual bool IncludesRange => WrappedOrigin.IncludesRange;
+  public string ActualFilename => WrappedOrigin.ActualFilename;
 
-  public virtual bool InclusiveEnd => WrappedToken.InclusiveEnd;
-  public virtual bool IncludesRange => WrappedToken.IncludesRange;
-  public string ActualFilename => WrappedToken.ActualFilename;
+  public virtual string Filepath => WrappedOrigin.Filepath;
 
-  public virtual string Filepath => WrappedToken.Filepath;
+  public Uri Uri => WrappedOrigin.Uri;
 
-  public Uri Uri => WrappedToken.Uri;
-
-  public virtual Token StartToken => WrappedToken.StartToken;
-  public virtual Token EndToken => WrappedToken.EndToken;
-  public virtual Token Center => WrappedToken.Center;
+  public virtual TokenRange EntireRange => WrappedOrigin.EntireRange;
 
   public bool IsValid {
-    get { return WrappedToken.IsValid; }
+    get { return WrappedOrigin.IsValid; }
   }
 
   public virtual bool IsSourceToken => false;
 
   public int kind {
-    get { return WrappedToken.kind; }
-    set { WrappedToken.kind = value; }
+    get { return WrappedOrigin.kind; }
+    set { WrappedOrigin.kind = value; }
   }
   public virtual int line {
-    get { return WrappedToken.line; }
-    set { WrappedToken.line = value; }
+    get { return WrappedOrigin.line; }
+    set { WrappedOrigin.line = value; }
   }
   public virtual int pos {
-    get { return WrappedToken.pos; }
-    set { WrappedToken.pos = value; }
+    get { return WrappedOrigin.pos; }
+    set { WrappedOrigin.pos = value; }
   }
 
   public virtual string val {
-    get { return WrappedToken.val; }
-    set { WrappedToken.val = value; }
+    get { return WrappedOrigin.val; }
+    set { WrappedOrigin.val = value; }
   }
 
   public int CompareTo(IOrigin other) {
-    return WrappedToken.CompareTo(other);
+    return WrappedOrigin.CompareTo(other);
   }
 
   public int CompareTo(Boogie.IToken other) {
-    return WrappedToken.CompareTo(other);
+    return WrappedOrigin.CompareTo(other);
   }
 }
