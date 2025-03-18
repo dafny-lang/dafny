@@ -36,7 +36,7 @@ module Std.Producers {
       reads this, Repr
       ensures Valid() ==> this in Repr
       ensures Valid() ==> ValidHistory(history)
-      decreases height, 0
+      decreases Repr, 0
     {
       this in Repr
     }
@@ -47,26 +47,31 @@ module Std.Producers {
       this.state := state;
       this.stepFn := stepFn;
       this.Repr := {this};
-      this.height := 0;
       this.history := [];
     }
 
     ghost predicate ValidHistory(history: seq<((), T)>)
-      decreases height
+      decreases Repr
     {
       true
     }
     ghost predicate ValidInput(history: seq<((), T)>, next: ())
-      decreases height
+      decreases Repr
     {
       true
     }
     twostate predicate ValidOutput(history: seq<((), T)>, nextInput: (), new nextOutput: T)
       requires ValidHistory(history)
-      decreases height
+      decreases Repr
       ensures ValidOutput(history, nextInput, nextOutput) ==> ValidHistory(history + [(nextInput, nextOutput)])
     {
       ValidHistory(history + [(nextInput, nextOutput)])
+    }
+
+    ghost function Decreases(t: ()): TerminationMetric
+      reads Reads(t)
+    {
+      TMTop
     }
 
     method Invoke(i: ()) returns (o: T)
@@ -95,7 +100,7 @@ module Std.Producers {
       reads this, Repr
       ensures Valid() ==> this in Repr
       ensures Valid() ==> ValidHistory(history)
-      decreases height, 0
+      decreases Repr, 0
 
     ghost function Action(): Action<(), Option<T>> {
       this
@@ -103,13 +108,13 @@ module Std.Producers {
 
     ghost predicate ValidInput(history: seq<((), Option<T>)>, next: ())
       requires ValidHistory(history)
-      decreases height
+      decreases Repr
     {
       true
     }
 
     ghost predicate ValidHistory(history: seq<((), Option<T>)>)
-      decreases height
+      decreases Repr
     {
       var outputs := OutputsOf(history);
       Seq.Partitioned(outputs, IsSome) && ValidOutputs(outputs)
@@ -124,7 +129,7 @@ module Std.Producers {
 
     ghost predicate ValidOutputs(outputs: seq<Option<T>>)
       requires Seq.Partitioned(outputs, IsSome)
-      decreases height
+      decreases Repr
 
     lemma AnyInputIsValid(history: seq<((), Option<T>)>, next: ())
       requires Action().ValidHistory(history)
@@ -138,6 +143,12 @@ module Std.Producers {
       reads this
     {
       remainingMetric.Ordinal()
+    }
+
+    ghost function Decreases(t: ()): TerminationMetric
+      reads Reads(t)
+    {
+      remainingMetric
     }
 
     method Invoke(i: ()) returns (r: Option<T>)
@@ -203,7 +214,7 @@ module Std.Producers {
     // the next output will be a Some!
     ghost predicate Done()
       reads this
-      decreases height, 1
+      decreases Repr, 1
     {
       !Seq.All(Outputs(), IsSome)
     }
@@ -443,28 +454,27 @@ module Std.Producers {
       remainingMetric := TMNat(0);
       Repr := {this};
       history := [];
-      height := 0;
     }
 
     ghost predicate Valid()
       reads this, Repr
       ensures Valid() ==> this in Repr
       ensures Valid() ==> ValidHistory(history)
-      decreases height, 0
+      decreases Repr, 0
     {
       && this in Repr
       && ValidHistory(history)
     }
 
     twostate predicate ValidOutput(history: seq<((), Option<T>)>, nextInput: (), new nextOutput: Option<T>)
-      decreases height
+      decreases Repr
       ensures ValidOutput(history, nextInput, nextOutput) ==> ValidHistory(history + [(nextInput, nextOutput)])
     {
       ValidHistory(history + [(nextInput, nextOutput)])
     }
     ghost predicate ValidOutputs(outputs: seq<Option<T>>)
       requires Seq.Partitioned(outputs, IsSome)
-      decreases height
+      decreases Repr
     {
       Seq.All(outputs, IsNone)
     }
@@ -507,14 +517,13 @@ module Std.Producers {
       remainingMetric := TMNat(|elements|);
       Repr := {this};
       history := [];
-      height := 0;
     }
 
     ghost predicate Valid()
       reads this, Repr
       ensures Valid() ==> this in Repr
       ensures Valid() ==> ValidHistory(history)
-      decreases height, 0
+      decreases Repr, 0
     {
       && this in Repr
       && ValidHistory(history)
@@ -524,14 +533,14 @@ module Std.Producers {
     }
 
     twostate predicate ValidOutput(history: seq<((), Option<T>)>, nextInput: (), new nextOutput: Option<T>)
-      decreases height
+      decreases Repr
       ensures ValidOutput(history, nextInput, nextOutput) ==> ValidHistory(history + [(nextInput, nextOutput)])
     {
       ValidHistory(history + [(nextInput, nextOutput)])
     }
     ghost predicate ValidOutputs(outputs: seq<Option<T>>)
       requires Seq.Partitioned(outputs, IsSome)
-      decreases height
+      decreases Repr
     {
       true
     }
@@ -596,14 +605,13 @@ module Std.Producers {
       this.remainingMetric := TMNat(max);
       Repr := {this} + original.Repr + originalTotalAction.Repr;
       history := [];
-      height := original.height + originalTotalAction.height + 1;
     }
 
     ghost predicate Valid()
       reads this, Repr
       ensures Valid() ==> this in Repr
       ensures Valid() ==> ValidHistory(history)
-      decreases height, 0
+      decreases Repr, 0
     {
       && this in Repr
       && ValidComponent(original)
@@ -618,7 +626,7 @@ module Std.Producers {
     }
 
     twostate predicate ValidOutput(history: seq<((), Option<T>)>, nextInput: (), new nextOutput: Option<T>)
-      decreases height
+      decreases Repr
       ensures ValidOutput(history, nextInput, nextOutput) ==> ValidHistory(history + [(nextInput, nextOutput)])
     {
       ValidHistory(history + [(nextInput, nextOutput)])
@@ -626,7 +634,7 @@ module Std.Producers {
 
     ghost predicate ValidOutputs(outputs: seq<Option<T>>)
       requires Seq.Partitioned(outputs, IsSome)
-      decreases height
+      decreases Repr
     {
       true
     }
@@ -681,9 +689,8 @@ module Std.Producers {
       this.source := source;
       this.filter := filter;
 
-      remainingMetric := source.remainingMetric;
+      remainingMetric := TMComma(TMNat(0), source.remainingMetric);
       Repr := {this} + source.Repr;
-      height := source.height + 1;
       history := [];
     }
 
@@ -691,24 +698,24 @@ module Std.Producers {
       reads this, Repr
       ensures Valid() ==> this in Repr
       ensures Valid() ==> ValidHistory(history)
-      decreases height, 0
+      decreases Repr, 0
     {
       && this in Repr
       && ValidComponent(source)
       && ValidHistory(history)
-      && remainingMetric.NonIncreasesTo(source.remainingMetric)
+      && remainingMetric == TMComma(TMNat(0), source.remainingMetric)
       && (Seq.All(source.Outputs(), IsSome) ==> Seq.All(Outputs(), IsSome))
     }
 
     twostate predicate ValidOutput(history: seq<((), Option<T>)>, nextInput: (), new nextOutput: Option<T>)
-      decreases height
+      decreases Repr
       ensures ValidOutput(history, nextInput, nextOutput) ==> ValidHistory(history + [(nextInput, nextOutput)])
     {
       ValidHistory(history + [(nextInput, nextOutput)])
     }
     ghost predicate ValidOutputs(outputs: seq<Option<T>>)
       requires Seq.Partitioned(outputs, IsSome)
-      decreases height
+      decreases Repr
     {
       true
     }
@@ -733,7 +740,6 @@ module Std.Producers {
       while true
         invariant fresh(Repr - old(Repr))
         invariant Valid()
-        invariant ValidComponent(source)
         invariant history == old(history)
         invariant notFirstLoop ==>
                     && 0 < |source.Outputs()| && result == Seq.Last(source.Outputs())
@@ -742,24 +748,27 @@ module Std.Producers {
                   else
                     old(source.remainingMetric).NonIncreasesTo(source.remainingMetric)
         invariant old(source.Outputs()) <= source.Outputs()
+        invariant old(remainingMetric).NonIncreasesTo(remainingMetric)
         decreases source.remainingMetric.Ordinal()
       {
         notFirstLoop := true;
+        reveal TerminationMetric.DecreasesTo();
 
         label beforeNext:
-        HeightMetricDecreases(source);
+        old(remainingMetric).DecreasesToTransitive(remainingMetric, source.remainingMetric);
+        old(remainingMetric).OrdinalDecreases(source.remainingMetric);
+        
         result := source.Next();
         if result.Some? {
           assert old@beforeNext(source.remainingMetric).DecreasesTo(source.remainingMetric);
           old(source.remainingMetric).DecreasesToTransitive(old@beforeNext(source.remainingMetric), source.remainingMetric);
-          remainingMetric.DecreasesToTransitive(old@beforeNext(source.remainingMetric), source.remainingMetric);
         } else {
           assert old@beforeNext(source.remainingMetric).NonIncreasesTo(source.remainingMetric);
           old(source.remainingMetric).NonIncreasesToTransitive(old@beforeNext(source.remainingMetric), source.remainingMetric);
-          remainingMetric.NonIncreasesToTransitive(old@beforeNext(source.remainingMetric), source.remainingMetric);
         }
 
         Repr := {this} + source.Repr;
+        remainingMetric := TMComma(TMNat(0), source.remainingMetric);
 
         if result.None? || filter(result.value) {
           break;
@@ -792,10 +801,8 @@ module Std.Producers {
         ProduceSome(result.value);
         assert (Seq.All(source.Outputs(), IsSome) ==> Seq.All(Outputs(), IsSome));
 
-        remainingMetric := source.remainingMetric;
+        reveal TerminationMetric.DecreasesTo();
         old(remainingMetric).DecreasesToTransitive(old(source.remainingMetric), source.remainingMetric);
-        assert old(remainingMetric).DecreasesTo(remainingMetric);
-        assert (remainingMetric == source.remainingMetric || remainingMetric.DecreasesTo(source.remainingMetric));
       } else {
         OutputsPartitionedAfterOutputtingNone();
         ProduceNone();
@@ -803,10 +810,8 @@ module Std.Producers {
         assert !Seq.All(source.Outputs(), IsSome);
         assert (Seq.All(source.Outputs(), IsSome) ==> Seq.All(Outputs(), IsSome));
 
-        remainingMetric := old(remainingMetric);
+        reveal TerminationMetric.DecreasesTo();
         assert old(source.remainingMetric).NonIncreasesTo(source.remainingMetric);
-        remainingMetric.NonIncreasesToTransitive(old(source.remainingMetric), source.remainingMetric);
-        assert (remainingMetric == source.remainingMetric || remainingMetric.DecreasesTo(source.remainingMetric));
       }
     }
   }
@@ -831,7 +836,6 @@ module Std.Producers {
 
       remainingMetric := TMComma(first.remainingMetric, second.remainingMetric);
       Repr := {this} + first.Repr + second.Repr;
-      height := first.height + second.height + 1;
       history := [];
     }
 
@@ -839,7 +843,7 @@ module Std.Producers {
       reads this, Repr
       ensures Valid() ==> this in Repr
       ensures Valid() ==> ValidHistory(history)
-      decreases height, 0
+      decreases Repr, 0
     {
       && this in Repr
       && ValidComponent(first)
@@ -851,14 +855,14 @@ module Std.Producers {
     }
 
     twostate predicate ValidOutput(history: seq<((), Option<T>)>, nextInput: (), new nextOutput: Option<T>)
-      decreases height
+      decreases Repr
       ensures ValidOutput(history, nextInput, nextOutput) ==> ValidHistory(history + [(nextInput, nextOutput)])
     {
       ValidHistory(history + [(nextInput, nextOutput)])
     }
     ghost predicate ValidOutputs(outputs: seq<Option<T>>)
       requires Seq.Partitioned(outputs, IsSome)
-      decreases height
+      decreases Repr
     {
       true
     }
@@ -877,8 +881,9 @@ module Std.Producers {
                 old(remainingMetric).NonIncreasesTo(remainingMetric)
     {
       assert Requires(t);
+      reveal TerminationMetric.DecreasesTo();
+      old(remainingMetric).OrdinalDecreases(first.remainingMetric);
 
-      HeightMetricDecreases(first);
       result := first.Next();
 
       if result.Some? {
@@ -887,7 +892,7 @@ module Std.Producers {
         first.OutputtingNoneMeansNotAllSome();
         assert !Seq.All(first.Outputs(), IsSome);
 
-        HeightMetricDecreases(second);
+        old(remainingMetric).OrdinalDecreases(second.remainingMetric);
         result := second.Next();
 
         if result.Some? {
@@ -943,9 +948,8 @@ module Std.Producers {
       this.mapping := mapping;
       this.mappingTotalProof := mappingTotalProof;
 
-      remainingMetric := original.remainingMetric;
+      remainingMetric := TMComma(TMNat(0), original.remainingMetric);
       Repr := {this} + original.Repr + mapping.Repr + mappingTotalProof.Repr;
-      height := original.height + mapping.height + mappingTotalProof.height + 1;
       history := [];
     }
 
@@ -953,7 +957,7 @@ module Std.Producers {
       reads this, Repr
       ensures Valid() ==> this in Repr
       ensures Valid() ==> ValidHistory(history)
-      decreases height, 0
+      decreases Repr, 0
     {
       && this in Repr
       && ValidComponent(original)
@@ -962,19 +966,19 @@ module Std.Producers {
       && mappingTotalProof.Action() == mapping
       && original.Repr !! mapping.Repr !! mappingTotalProof.Repr
       && ValidHistory(history)
-      && remainingMetric == original.remainingMetric
+      && remainingMetric == TMComma(TMNat(0), original.remainingMetric)
       && (Seq.All(original.Outputs(), IsSome) <==> Seq.All(Outputs(), IsSome))
     }
 
     twostate predicate ValidOutput(history: seq<((), Option<O>)>, nextInput: (), new nextOutput: Option<O>)
-      decreases height
+      decreases Repr
       ensures ValidOutput(history, nextInput, nextOutput) ==> ValidHistory(history + [(nextInput, nextOutput)])
     {
       ValidHistory(history + [(nextInput, nextOutput)])
     }
     ghost predicate ValidOutputs(outputs: seq<Option<O>>)
       requires Seq.Partitioned(outputs, IsSome)
-      decreases height
+      decreases Repr
     {
       true
     }
@@ -995,11 +999,10 @@ module Std.Producers {
       assert Requires(t);
       assert Valid();
       reveal TerminationMetric.DecreasesTo();
-      HeightMetricDecreases(original);
+      old(remainingMetric).OrdinalDecreases(original.remainingMetric);
       var next := original.Next();
 
       if next.Some? {
-        HeightMetricDecreases(mapping);
         assert mapping.Valid();
         mappingTotalProof.AnyInputIsValid(mapping.history, next.value);
         var nextValue := mapping.Invoke(next.value);
@@ -1026,7 +1029,7 @@ module Std.Producers {
       }
 
       Repr := {this} + original.Repr + mapping.Repr + mappingTotalProof.Repr;
-      remainingMetric := original.remainingMetric;
+      remainingMetric := TMComma(TMNat(0), original.remainingMetric);
     }
   }
 
@@ -1073,7 +1076,6 @@ module Std.Producers {
       this.producesNewProducersProof := producesNewProducersProof;
       this.history := [];
       this.Repr := {this} + original.Repr;
-      this.height := original.height + 1;
       this.currentInner := None;
       this.remainingMetric := RemainingMetric(original, None);
     }
@@ -1090,7 +1092,7 @@ module Std.Producers {
       reads this, Repr
       ensures Valid() ==> this in Repr
       ensures Valid() ==> ValidHistory(history)
-      decreases height, 0
+      decreases Repr, 0
     {
       && this in Repr
       && ValidComponent(original)
@@ -1106,21 +1108,21 @@ module Std.Producers {
 
     twostate predicate ValidOutput(history: seq<((), Option<T>)>, nextInput: (), new nextOutput: Option<T>)
       requires ValidHistory(history)
-      decreases height
+      decreases Repr
       ensures ValidOutput(history, nextInput, nextOutput) ==> ValidHistory(history + [(nextInput, nextOutput)])
     {
       ValidHistory(history + [(nextInput, nextOutput)])
     }
     ghost predicate ValidOutputs(outputs: seq<Option<T>>)
       requires Seq.Partitioned(outputs, IsSome)
-      decreases height
+      decreases Repr
     {
       true
     }
 
     // @IsolateAssertions
     @ResourceLimit("0")
-    method {:only} Invoke(t: ()) returns (result: Option<T>)
+    method Invoke(t: ()) returns (result: Option<T>)
       requires Requires(t)
       reads this, Repr
       modifies Modifies(t)
@@ -1150,7 +1152,6 @@ module Std.Producers {
                   if currentInner.Some? then currentInner.value.remainingMetric.Ordinal() else 0
       {
         if currentInner.None? {
-          HeightMetricDecreases(original);
           label beforeOriginalNext:
           ghost var historyBefore := original.history;
           assert original.Valid();
@@ -1172,8 +1173,6 @@ module Std.Producers {
           assert currentInner.Some? ==> fresh(currentInner.value.Repr - old(Repr));
           assert ValidComponent(original);
           if currentInner.Some? {
-            // TODO:
-            assume {:axiom} currentInner.value.height < height;
             assert ValidComponent(currentInner.value);
             
             reveal TerminationMetric.DecreasesTo();
@@ -1223,8 +1222,6 @@ module Std.Producers {
                     old(remainingMetric).NonIncreasesTo(remainingMetric);
           }
         } else {
-          label before:
-          HeightMetricDecreases(currentInner.value);
           label beforeCurrentInnerNext:
           ghost var remainingMetricBefore := remainingMetric;
           result := currentInner.value.Next();

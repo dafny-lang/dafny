@@ -28,18 +28,18 @@ module Std.Actions {
       reads this, Repr
       ensures Valid() ==> this in Repr
       ensures Valid() ==> ValidHistory(history)
-      decreases height, 0
+      decreases Repr, 0
 
     ghost predicate ValidHistory(history: seq<(I, O)>)
-      decreases height
+      decreases Repr
 
     ghost predicate ValidInput(history: seq<(I, O)>, next: I)
       requires ValidHistory(history)
-      decreases height
+      decreases Repr
 
     twostate predicate ValidOutput(history: seq<(I, O)>, nextInput: I, new nextOutput: O)
       requires ValidHistory(history)
-      decreases height
+      decreases Repr
       ensures ValidOutput(history, nextInput, nextOutput) ==> ValidHistory(history + [(nextInput, nextOutput)])
 
     ghost predicate Requires(i: I)
@@ -58,11 +58,6 @@ module Std.Actions {
       reads Reads(i)
     {
       Repr
-    }
-    ghost function Decreases(i: I): TerminationMetric
-      reads Reads(i)
-    {
-      TMNat(height)
     }
     twostate predicate Ensures(i: I, new o: O)
       requires old(Requires(i))
@@ -131,7 +126,7 @@ module Std.Actions {
       ensures Valid() ==> this in Repr
       ensures Valid() ==>
                 && ValidHistory(history)
-      decreases height, 0
+      decreases Repr, 0
     {
       && this in Repr
       && ValidHistory(history)
@@ -148,25 +143,30 @@ module Std.Actions {
 
       history := [];
       Repr := {this};
-      height := 0;
     }
 
     ghost predicate ValidHistory(history: seq<(I, O)>)
-      decreases height
+      decreases Repr
     {
       forall e <- history :: f.requires(e.0) && e.1 == f(e.0)
     }
     ghost predicate ValidInput(history: seq<(I, O)>, next: I)
       requires ValidHistory(history)
-      decreases height
+      decreases Repr
     {
       f.requires(next)
     }
     twostate predicate ValidOutput(history: seq<(I, O)>, nextInput: I, new nextOutput: O)
-      decreases height
+      decreases Repr
       ensures ValidOutput(history, nextInput, nextOutput) ==> ValidHistory(history + [(nextInput, nextOutput)])
     {
       ValidHistory(history + [(nextInput, nextOutput)])
+    }
+
+    ghost function Decreases(i: I): TerminationMetric
+      reads Reads(i)
+    {
+      TMTop
     }
 
     method Invoke(i: I) returns (o: O)
@@ -211,13 +211,12 @@ module Std.Actions {
     {
       this.action := action;
       Repr := {this};
-      height := 0;
     }
 
     ghost predicate Valid()
       reads this, Repr
       ensures Valid() ==> this in Repr
-      decreases height, 0
+      decreases Repr, 0
     {
       && Repr == {this}
       && forall history: seq<(I, O)>, input: I | action.ValidHistory(history) :: action.ValidInput(history, input)
@@ -259,14 +258,13 @@ module Std.Actions {
 
       history := [];
       Repr := {this} + first.Repr + second.Repr;
-      height := first.height + second.height + 1;
     }
 
     ghost predicate Valid()
       reads this, Repr
       ensures Valid() ==> this in Repr
       ensures Valid() ==> ValidHistory(history)
-      decreases height, 0
+      decreases Repr, 0
     {
       && this in Repr
       && ValidComponent(first)
@@ -281,20 +279,26 @@ module Std.Actions {
     }
 
     ghost predicate ValidHistory(history: seq<(I, O)>)
-      decreases height
+      decreases Repr
     {
       compositionProof.ComposedValidHistory(history)
     }
     ghost predicate ValidInput(history: seq<(I, O)>, next: I)
-      decreases height
+      decreases Repr
     {
       compositionProof.ComposedValidInput(history, next)
     }
     twostate predicate ValidOutput(history: seq<(I, O)>, nextInput: I, new nextOutput: O)
-      decreases height
+      decreases Repr
       ensures ValidOutput(history, nextInput, nextOutput) ==> ValidHistory(history + [(nextInput, nextOutput)])
     {
       ValidHistory(history + [(nextInput, nextOutput)])
+    }
+
+    ghost function Decreases(i: I): TerminationMetric
+      reads Reads(i)
+    {
+      ReprTerminationMetric()
     }
 
     @IsolateAssertions

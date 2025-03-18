@@ -8,6 +8,7 @@ module Std.Consumers {
   import opened Actions
   import opened Wrappers
   import opened DynamicArray
+  import opened Termination
   import Collections.Seq
 
   // Actions that consume a T and outputs nothing.
@@ -61,7 +62,7 @@ module Std.Consumers {
       ensures Valid() ==> this in Repr
       ensures Valid() ==>
                 && ValidHistory(history)
-      decreases height, 0
+      decreases Repr, 0
     {
       && this in Repr
       && storage in Repr
@@ -74,27 +75,32 @@ module Std.Consumers {
       ensures history == []
     {
       history := [];
-      height := 1;
       Repr := {this} + {storage};
       this.storage := storage;
       this.size := 0;
     }
 
     ghost predicate ValidHistory(history: seq<(T, bool)>)
-      decreases height
+      decreases Repr
     {
       |history| <= storage.Length
     }
     ghost predicate ValidInput(history: seq<(T, bool)>, next: T)
-      decreases height
+      decreases Repr
     {
       |history| < storage.Length
     }
     twostate predicate ValidOutput(history: seq<(T, bool)>, nextInput: T, new nextOutput: bool)
-      decreases height
+      decreases Repr
       ensures ValidOutput(history, nextInput, nextOutput) ==> ValidHistory(history + [(nextInput, nextOutput)])
     {
       ValidHistory(history + [(nextInput, nextOutput)])
+    }
+
+    ghost function Decreases(t: T): TerminationMetric
+      reads Reads(t)
+    {
+      TMTop
     }
 
     method Invoke(t: T) returns (r: bool)
@@ -131,7 +137,7 @@ module Std.Consumers {
       ensures Valid() ==> this in Repr
       ensures Valid() ==>
                 && ValidHistory(history)
-      decreases height, 0
+      decreases Repr, 0
     {
       && this in Repr
       && storage in Repr
@@ -149,28 +155,33 @@ module Std.Consumers {
       var a := new DynamicArray();
 
       history := [];
-      height := 1;
       Repr := {this} + {a} + a.Repr;
       this.storage := a;
     }
 
     ghost predicate ValidHistory(history: seq<(T, ())>)
-      decreases height
+      decreases Repr
     {
       true
     }
     ghost predicate ValidInput(history: seq<(T, ())>, next: T)
-      decreases height
+      decreases Repr
     {
       true
     }
     twostate predicate ValidOutput(history: seq<(T, ())>, nextInput: T, new nextOutput: ())
-      decreases height
+      decreases Repr
       ensures ValidOutput(history, nextInput, nextOutput) ==> ValidHistory(history + [(nextInput, nextOutput)])
     {
       ValidHistory(history + [(nextInput, nextOutput)])
     }
-
+    
+    ghost function Decreases(t: T): TerminationMetric
+      reads Reads(t)
+    {
+      TMTop
+    }
+    
     method Invoke(t: T) returns (r: ())
       requires Requires(t)
       reads Reads(t)
@@ -215,7 +226,6 @@ module Std.Consumers {
       this.value := init;
       this.Repr := {this};
       this.history := [];
-      this.height := 0;
       new;
       reveal Seq.FoldLeft();
       assert value == Seq.FoldLeft(f, init, Inputs());
@@ -226,27 +236,33 @@ module Std.Consumers {
       ensures Valid() ==> this in Repr
       ensures Valid() ==>
                 && ValidHistory(history)
-      decreases height, 0
+      decreases Repr, 0
     {
       && this in Repr
       && value == Seq.FoldLeft(f, init, Inputs())
     }
 
     ghost predicate ValidHistory(history: seq<(T, ())>)
-      decreases height
+      decreases Repr
     {
       true
     }
     ghost predicate ValidInput(history: seq<(T, ())>, next: T)
-      decreases height
+      decreases Repr
     {
       true
     }
     twostate predicate ValidOutput(history: seq<(T, ())>, nextInput: T, new nextOutput: ())
-      decreases height
+      decreases Repr
       ensures ValidOutput(history, nextInput, nextOutput) ==> ValidHistory(history + [(nextInput, nextOutput)])
     {
       ValidHistory(history + [(nextInput, nextOutput)])
+    }
+
+    ghost function Decreases(t: T): TerminationMetric
+      reads Reads(t)
+    {
+      TMTop
     }
 
     method Invoke(t: T) returns (r: ())
@@ -292,34 +308,39 @@ module Std.Consumers {
       values := [];
       history := [];
       Repr := {this};
-      height := 0;
     }
 
     ghost predicate Valid()
       reads this, Repr
       ensures Valid() ==> this in Repr
       ensures Valid() ==> ValidHistory(history)
-      decreases height, 0
+      decreases Repr, 0
     {
       this in Repr
     }
 
     ghost predicate ValidHistory(history: seq<(T, ())>)
-      decreases height
+      decreases Repr
     {
       true
     }
     ghost predicate ValidInput(history: seq<(T, ())>, next: T)
       requires ValidHistory(history)
-      decreases height
+      decreases Repr
     {
       true
     }
     twostate predicate ValidOutput(history: seq<(T, ())>, nextInput: T, new nextOutput: ())
-      decreases height
+      decreases Repr
       ensures ValidOutput(history, nextInput, nextOutput) ==> ValidHistory(history + [(nextInput, nextOutput)])
     {
       ValidHistory(history + [(nextInput, nextOutput)])
+    }
+
+    ghost function Decreases(t: T): TerminationMetric
+      reads Reads(t)
+    {
+      TMTop
     }
 
     method Invoke(t: T) returns (r: ())

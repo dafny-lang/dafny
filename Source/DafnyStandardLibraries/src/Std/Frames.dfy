@@ -9,12 +9,11 @@ module Std.Frames {
     // Ghost state tracking the common set of objects most
     // methods need to read.
     ghost var Repr: set<object>
-    ghost const height: nat
-
+    
     ghost predicate Valid()
       reads this, Repr
       ensures Valid() ==> this in Repr
-      decreases height, 0
+      decreases Repr, 0
 
     // Convenience predicate for when your object's validity depends on one
     // or more other objects.
@@ -25,15 +24,20 @@ module Std.Frames {
       && component.Repr <= Repr
       && this !in component.Repr
       && component.Valid()
-      && component.height < height
     }
 
-    lemma HeightMetricDecreases(component: Validatable)
-      requires component.height < height
-      ensures TMNat(height).Ordinal() > TMNat(component.height).Ordinal()
+    ghost function ReprTerminationMetric(): TerminationMetric
+      reads this
+    {
+      TMSet(set o <- Repr :: TMObject(o))
+    }
+
+    lemma ReprMetricDecreases(component: Validatable)
+      requires component.Repr < Repr
+      ensures ReprTerminationMetric().Ordinal() > component.ReprTerminationMetric().Ordinal()
     {
       reveal TerminationMetric.DecreasesTo();
-      TMNat(height).OrdinalDecreases(TMNat(component.height));
+      ReprTerminationMetric().OrdinalDecreases(component.ReprTerminationMetric());
     }
 
     // Convenience predicate, since you often want to assert that

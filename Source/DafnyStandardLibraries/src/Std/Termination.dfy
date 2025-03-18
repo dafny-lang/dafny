@@ -9,7 +9,10 @@ module Std.Termination {
     | TMBool(boolValue: bool)
     | TMNat(natValue: nat)
     | TMChar(charValue: nat)
+    // No ordering on objects themselves, but commonly used in Repr set<object> values
+    | TMObject(objectValue: object)
     | TMSeq(seqValue: seq<TerminationMetric>)
+    | TMSet(setValue: set<TerminationMetric>)
     | TMDatatype(children: seq<TerminationMetric>)
 
       // Other kinds of Dafny values are valid here too,
@@ -23,12 +26,12 @@ module Std.Termination {
     opaque predicate DecreasesTo(other: TerminationMetric) {
       match (this, other) {
         case (TMTop, _) => !other.TMTop?
-        case (_, TMTop) => false
 
         // Simple well-ordered types
         case (TMBool(left), TMBool(right)) => left && !right
         case (TMNat(left), TMNat(right)) => left > right
         case (TMChar(left), TMChar(right)) => left > right
+        case (TMSet(left), TMSet(right)) => left > right
         // Other is a strict subsequence of this
         case (TMSeq(left), TMSeq(right)) =>
           || (exists i    | 0 <= i < |left|      :: left[..i] == right)
@@ -42,9 +45,13 @@ module Std.Termination {
         case (TMDatatype(leftChildren), _) =>
           || other in leftChildren
 
-        case (TMComma(leftFirst, leftRest), TMComma(rightFirst, rightRest)) =>
-          || leftFirst.DecreasesTo(rightFirst)
-          || (leftFirst == rightFirst && leftRest.DecreasesTo(rightRest))
+        case (TMComma(leftFirst, leftRest), _) =>
+          || (other.TMComma? && (
+            || leftFirst.DecreasesTo(other.first)
+            || (leftFirst == other.first && leftRest.DecreasesTo(other.rest))))
+          // TODO: Not a rule Dafny itself applies, but seems safe?
+          || leftFirst == other
+          || leftRest == other
 
         case _ => false
       }
