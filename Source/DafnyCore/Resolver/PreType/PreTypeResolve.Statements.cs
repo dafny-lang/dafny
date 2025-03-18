@@ -626,15 +626,16 @@ namespace Microsoft.Dafny {
           isEffectful = tr.InitCall != null;
         } else if (rhs is HavocRhs) {
           isEffectful = false;
-        } else {
-          var er = (ExprRhs)rhs;
+        } else if (rhs is ExprRhs er) {
           if (er.Expr is ApplySuffix applySuffix) {
             var cRhs = applySuffix.MethodCallInfo;
             isEffectful = cRhs != null;
-            methodCallInfo = methodCallInfo ?? cRhs;
+            methodCallInfo ??= cRhs;
           } else {
             isEffectful = false;
           }
+        } else {
+          isEffectful = false;
         }
 
         if (isEffectful && firstEffectfulRhs == null) {
@@ -863,11 +864,11 @@ namespace Microsoft.Dafny {
 
       bool expectExtract = s.Lhss.Count != 0; // default value if we cannot determine and inspect the type
       PreType firstPreType = null;
-      Method callee = null;
+      MethodOrConstructor callee = null;
       Contract.Assert(s.Rhss != null);
       if (s.Rhss.Count == 0 && s.Rhs.Expr is ApplySuffix asx) {
         var methodCallInfo = ResolveApplySuffix(asx, resolutionContext, true);
-        callee = methodCallInfo?.Callee.Member as Method;
+        callee = methodCallInfo?.Callee.Member as MethodOrConstructor;
         if (callee != null) {
           // We're looking at a method call
           if (callee.Outs.Count != 0) {
@@ -885,7 +886,7 @@ namespace Microsoft.Dafny {
         firstPreType = s.Rhs.Expr.PreType;
       }
 
-      var enclosingMethod = (Method)resolutionContext.CodeContext;
+      var enclosingMethod = (MethodOrConstructor)resolutionContext.CodeContext;
       if (enclosingMethod.Outs.Count == 0 && s.KeywordToken == null) {
         ReportError(s.Origin, $"A method containing a :- statement must have an out-parameter ({enclosingMethod.Name})");
         return;
@@ -1013,7 +1014,7 @@ namespace Microsoft.Dafny {
         }
         s.ResolvedStatements.Add(ss);
       } else {
-        var enclosingOutParameter = ((Method)resolutionContext.CodeContext).Outs[0];
+        var enclosingOutParameter = ((MethodOrConstructor)resolutionContext.CodeContext).Outs[0];
         var ident = new IdentifierExpr(s.Origin, enclosingOutParameter.Name) {
           // resolve it here to avoid capture into more closely declared local variables
           Var = enclosingOutParameter,

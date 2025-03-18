@@ -78,13 +78,13 @@ public class InferDecreasesClause {
         }
       }
 
-      if (clbl is Function || clbl is Method) {
+      if (clbl is Function or MethodOrConstructor) {
         TopLevelDeclWithMembers enclosingType;
         MemberDecl originalMember;
         if (clbl is Function fc && !fc.IsStatic) {
           enclosingType = (TopLevelDeclWithMembers)fc.EnclosingClass;
           originalMember = fc.Original;
-        } else if (clbl is Method mc && !mc.IsStatic) {
+        } else if (clbl is MethodOrConstructor mc && !mc.IsStatic) {
           enclosingType = (TopLevelDeclWithMembers)mc.EnclosingClass;
           originalMember = mc.Original;
         } else {

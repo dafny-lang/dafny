@@ -132,7 +132,7 @@ namespace Microsoft.Dafny.Compilers {
 
     private bool NeedsExternalImport(MemberDecl memberDecl) {
       return !memberDecl.IsGhost && memberDecl.HasExternAttribute &&
-             memberDecl is Function { Body: null } or Method { Body: null };
+             memberDecl is Function { Body: null } or MethodOrConstructor { Body: null };
     }
 
     protected override ConcreteSyntaxTree CreateModule(ModuleDefinition module, string moduleName, bool isDefault,

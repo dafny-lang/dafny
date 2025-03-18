@@ -539,7 +539,7 @@ namespace Microsoft.Dafny {
       var builder = new BoogieStmtListBuilder(this, options, new BodyTranslationContext(m.ContainsHide));
       builder.Add(new CommentCmd("AddMethodImpl: " + m + ", " + proc));
       var etran = new ExpressionTranslator(this, Predef, m.Origin,
-        m is Method method && method.IsByMethod ? m.FunctionFromWhichThisIsByMethodDecl : m);
+        m is Method { IsByMethod: true } ? m.FunctionFromWhichThisIsByMethodDecl : m);
       // Only do reads checks for methods, not lemmas
       // (which aren't allowed to declare frames and don't check reads and writes against them).
       // Also don't do any reads checks if the reads clause is *,
@@ -1154,7 +1154,7 @@ namespace Microsoft.Dafny {
     }
 
     private void AddOverrideCheckTypeArgumentInstantiations(MemberDecl member, BoogieStmtListBuilder builder, Variables localVariables) {
-      Contract.Requires(member is Function || member is Method);
+      Contract.Requires(member is Function || member is MethodOrConstructor);
       Contract.Requires(member.EnclosingClass is TopLevelDeclWithMembers);
       Contract.Requires(builder != null);
       Contract.Requires(localVariables != null);
@@ -1166,7 +1166,7 @@ namespace Microsoft.Dafny {
         overriddenMember = o;
         overriddenTypeParameters = o.TypeArgs;
       } else {
-        var o = ((Method)member).OverriddenMethod;
+        var o = ((MethodOrConstructor)member).OverriddenMethod;
         overriddenMember = o;
         overriddenTypeParameters = o.TypeArgs;
       }
@@ -1466,8 +1466,8 @@ namespace Microsoft.Dafny {
     /// See also GetTypeArguments.
     /// </summary>
     private static Dictionary<TypeParameter, Type> GetTypeArgumentSubstitutionMap(MemberDecl member, MemberDecl overridingMember) {
-      Contract.Requires(member is Function || member is Method);
-      Contract.Requires(overridingMember is Function || overridingMember is Method);
+      Contract.Requires(member is Function || member is MethodOrConstructor);
+      Contract.Requires(overridingMember is Function || overridingMember is MethodOrConstructor);
       Contract.Requires(overridingMember.EnclosingClass is TopLevelDeclWithMembers);
       Contract.Requires(((ICallable)member).TypeArgs.Count == ((ICallable)overridingMember).TypeArgs.Count);
 

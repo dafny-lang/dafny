@@ -56,11 +56,12 @@ public class ProofDependencyWarnings {
 
   private static IEnumerable<Function> GetUnusedFunctions(string implementationName, IEnumerable<TrackedNodeComponent> coveredElements,
     IEnumerable<Axiom> axioms) {
-    if (!((options.Get(CommonOptionBag.SuggestProofRefactoring) || options.Get(CommonOptionBag.AnalyzeProofs)) && manager.idsByMemberName[implementationName].Decl is Method)) {
+    if (!((options.Get(CommonOptionBag.SuggestProofRefactoring) ||
+           options.Get(CommonOptionBag.AnalyzeProofs)) && manager.idsByMemberName[implementationName].Decl is MethodOrConstructor)) {
       return new List<Function>();
     }
 
-    if (manager.idsByMemberName[implementationName].Decl is not Method) {
+    if (manager.idsByMemberName[implementationName].Decl is not MethodOrConstructor) {
       return new List<Function>();
     }
 
@@ -142,13 +143,14 @@ public class ProofDependencyWarnings {
       }
     }
 
-    if ((options.Get(CommonOptionBag.SuggestProofRefactoring) || options.Get(CommonOptionBag.AnalyzeProofs)) && manager.idsByMemberName[scopeName].Decl is Method method) {
+    if ((options.Get(CommonOptionBag.SuggestProofRefactoring) ||
+         options.Get(CommonOptionBag.AnalyzeProofs)) && manager.idsByMemberName[scopeName].Decl is MethodOrConstructor method) {
       SuggestFunctionHiding(unusedFunctions, method);
       SuggestByProofRefactoring(scopeName, assertCoverage.ToList());
     }
   }
 
-  private static void SuggestFunctionHiding(IEnumerable<Function> unusedFunctions, Method method) {
+  private static void SuggestFunctionHiding(IEnumerable<Function> unusedFunctions, MethodOrConstructor method) {
     if (unusedFunctions.Any()) {
       reporter.Info(MessageSource.Verifier, method.Body.StartToken,
         $"Consider hiding {(unusedFunctions.Count() > 1 ? "these functions, which are" : "this function, which is")} unused by the proof: {unusedFunctions.Comma()}");

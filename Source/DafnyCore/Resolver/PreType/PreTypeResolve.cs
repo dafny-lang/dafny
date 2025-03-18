@@ -1644,7 +1644,7 @@ namespace Microsoft.Dafny {
               if (f is ExtremePredicate extremePredicate) {
                 visitor.Visit(extremePredicate.PrefixPredicate);
               }
-            } else if (member is Method m) {
+            } else if (member is MethodOrConstructor m) {
               visitor.Visit(m);
               if (m is ExtremeLemma extremeLemma) {
                 visitor.Visit(extremeLemma.PrefixLemma);

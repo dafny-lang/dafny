@@ -137,8 +137,8 @@ namespace Microsoft.Dafny {
 
     private ModuleDefinition moduleUnderConstruction;  // non-null for the duration of Construct calls
     private Queue<Action> postTasks = new Queue<Action>();  // empty whenever moduleUnderConstruction==null, these tasks are for the post-resolve phase of module moduleUnderConstruction
-    public Queue<Tuple<Method, Method>> translationMethodChecks = new Queue<Tuple<Method, Method>>();  // contains all the methods that need to be checked for structural refinement.
-    private Method currentMethod;
+    public Queue<Tuple<MethodOrConstructor, MethodOrConstructor>> translationMethodChecks = new();  // contains all the methods that need to be checked for structural refinement.
+    private MethodOrConstructor currentMethod;
     private ModuleSignature RefinedSig;  // the intention is to use this field only after a successful PreResolve
     private ModuleSignature refinedSigOpened;
 
@@ -721,11 +721,10 @@ namespace Microsoft.Dafny {
             }
 
           } else {
-            var m = (Method)nwMember;
-            if (!(member is Method)) {
+            var m = (MethodOrConstructor)nwMember;
+            if (!(member is MethodOrConstructor prevMethod)) {
               Error(ErrorId.ref_method_refines_method, nwMember, "a method declaration ({0}) can only refine a method", nwMember.Name);
             } else {
-              var prevMethod = (Method)member;
               if (m.Req.Count != 0) {
                 Error(ErrorId.ref_no_new_method_precondition, m.Req[0].E.Origin, "a refining method is not allowed to add preconditions");
               }
@@ -774,11 +773,11 @@ namespace Microsoft.Dafny {
                 if (prevMethod.Body == null) {
                   // cool
                 } else {
-                  replacementBody = MergeBlockStmt(replacementBody, prevMethod.Body);
+                  replacementBody = MergeBlockLikeStmt(replacementBody, prevMethod.Body);
                 }
               }
               var newM = CloneMethod(prevMethod, m.Ens, decreases, replacementBody, prevMethod.Body == null, m.Attributes);
-              newM.RefinementBase = member;
+              newM.RefinementBase = prevMethod;
               nw.Members[index] = newM;
             }
           }
@@ -905,7 +904,18 @@ namespace Microsoft.Dafny {
     /// <summary>
     /// This method merges the statement "oldStmt" into the template "skeleton".
     /// </summary>
-    DividedBlockStmt MergeBlockStmt(DividedBlockStmt skeleton, DividedBlockStmt oldStmt) {
+    BlockLikeStmt MergeBlockLikeStmt(BlockLikeStmt skeleton, BlockLikeStmt oldStmt) {
+      if (skeleton is BlockStmt blockStmt) {
+        return MergeBlockStmt(blockStmt, (BlockStmt)oldStmt);
+      } else {
+        return MergeDividedBlockStmt((DividedBlockStmt)skeleton, (DividedBlockStmt)oldStmt);
+      }
+    }
+
+    /// <summary>
+    /// This method merges the statement "oldStmt" into the template "skeleton".
+    /// </summary>
+    DividedBlockStmt MergeDividedBlockStmt(DividedBlockStmt skeleton, DividedBlockStmt oldStmt) {
       Contract.Requires(skeleton != null);
       Contract.Requires(oldStmt != null);
 

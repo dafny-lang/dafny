@@ -7,7 +7,7 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
     /// <summary>
     /// Gets the method node representing the declaration of this symbol.
     /// </summary>
-    public Method Declaration { get; }
+    public MethodOrConstructor Declaration { get; }
     public INode Node => Declaration;
 
     /// <summary>
@@ -40,7 +40,7 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
         .Concat(Modifies)
         .Concat(Decreases);
 
-    public MethodSymbol(ILegacySymbol? scope, Method method) : base(scope, method) {
+    public MethodSymbol(ILegacySymbol? scope, MethodOrConstructor method) : base(scope, method) {
       Declaration = method;
     }
 

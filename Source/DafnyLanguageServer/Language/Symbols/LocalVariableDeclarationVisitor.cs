@@ -14,7 +14,7 @@ internal class LocalVariableDeclarationVisitor : SyntaxTreeVisitor {
     block = rootBlock;
   }
 
-  public void Resolve(BlockStmt blockStatement) {
+  public void Resolve(BlockLikeStmt blockStatement) {
     // The base is directly visited to avoid doubly nesting the root block of the method.
     base.Visit(blockStatement);
   }

@@ -1147,12 +1147,12 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected internal List<TypeArgumentInstantiation> ForTypeParameters(List<TypeArgumentInstantiation> typeArgs, MemberDecl member, bool lookasideBody) {
-      Contract.Requires(member is ConstantField || member is Function || member is Method);
+      Contract.Requires(member is ConstantField || member is Function || member is MethodOrConstructor);
       Contract.Requires(typeArgs != null);
       var memberHasBody =
         (member is ConstantField cf && cf.Rhs != null) ||
         (member is Function f && f.Body != null) ||
-        (member is Method m && m.Body != null);
+        (member is MethodOrConstructor m && m.Body != null);
       var r = new List<TypeArgumentInstantiation>();
       foreach (var ta in typeArgs) {
         var tp = ta.Formal;
@@ -1168,12 +1168,12 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected List<TypeArgumentInstantiation> ForTypeDescriptors(List<TypeArgumentInstantiation> typeArgs, TopLevelDecl enclosingClass, MemberDecl member, bool lookasideBody) {
-      Contract.Requires(member is ConstantField || member is Function || member is Method);
+      Contract.Requires(member is ConstantField || member is Function || member is MethodOrConstructor);
       Contract.Requires(typeArgs != null);
       var memberHasBody =
         (member is ConstantField cf && cf.Rhs != null) ||
         (member is Function f && f.Body != null) ||
-        (member is Method m && m.Body != null);
+        (member is MethodOrConstructor m && m.Body != null);
       var r = new List<TypeArgumentInstantiation>();
       foreach (var ta in typeArgs) {
         var tp = ta.Formal;
@@ -1543,7 +1543,7 @@ namespace Microsoft.Dafny.Compilers {
         return IsExternallyImported(function);
       }
 
-      if (me is Method method) {
+      if (me is MethodOrConstructor method) {
         return IsExternallyImported(method);
       }
 
@@ -1927,8 +1927,7 @@ namespace Microsoft.Dafny.Compilers {
           var c = decl as TopLevelDeclWithMembers;
           if (c != null) {
             foreach (var member in c.Members) {
-              var m = member as Method;
-              if (m != null && Attributes.Contains(m.Attributes, "main")) {
+              if (member is Method m && Attributes.Contains(m.Attributes, "main")) {
                 if (mainMethod == null) {
                   mainMethod = m;
                   hasMain = true;
@@ -1964,11 +1963,9 @@ namespace Microsoft.Dafny.Compilers {
           continue;
         }
         foreach (var decl in module.TopLevelDecls) {
-          var c = decl as TopLevelDeclWithMembers;
-          if (c != null) {
+          if (decl is TopLevelDeclWithMembers c) {
             foreach (var member in c.Members) {
-              var m = member as Method;
-              if (m != null && m.Name == DefaultNameMain) {
+              if (member is Method m && m.Name == DefaultNameMain) {
                 if (mainMethod == null) {
                   mainMethod = m;
                   hasMain = true;
@@ -2105,9 +2102,9 @@ namespace Microsoft.Dafny.Compilers {
         return false;
       }
       return member.EnclosingClass is TraitDecl
-             && (member is ConstantField { Rhs: { } }
-               or Function { Body: { } }
-               or Method { Body: { } });
+             && (member is ConstantField { Rhs: not null }
+               or Function { Body: not null }
+               or Method { Body: not null });
     }
 
     public virtual bool NeedsCustomReceiverInDatatype(MemberDecl member) {
@@ -2437,8 +2434,8 @@ namespace Microsoft.Dafny.Compilers {
         var fn = ((Function)member).Original;
         var wBody = classWriter.CreateFunction(IdName(fn), CombineAllTypeArguments(fn), fn.Ins, fn.ResultType, fn.Origin, fn.IsStatic, false, fn, false, false);
         Contract.Assert(wBody == null); // since the previous line said not to create a body
-      } else if (member is Method) {
-        var method = ((Method)member).Original;
+      } else if (member is MethodOrConstructor) {
+        var method = ((MethodOrConstructor)member).Original;
         var wBody = classWriter.CreateMethod(method, CombineAllTypeArguments(method), false, false, false);
         Contract.Assert(wBody == null); // since the previous line said not to create a body
       } else {
@@ -2908,7 +2905,7 @@ namespace Microsoft.Dafny.Compilers {
       return f.Body == null && f.IsExtern(Options, out _, out _);
     }
 
-    protected bool IsExternallyImported(Method m) {
+    protected bool IsExternallyImported(MethodOrConstructor m) {
       return m.Body == null && m.IsExtern(Options, out _, out _);
     }
 

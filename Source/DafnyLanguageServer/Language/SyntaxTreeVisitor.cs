@@ -88,7 +88,7 @@ namespace Microsoft.Dafny.LanguageServer.Language {
       }
     }
 
-    public virtual void Visit(Method method) {
+    public virtual void Visit(MethodOrConstructor method) {
       foreach (var typeArgument in method.TypeArgs) {
         Visit(typeArgument);
       }

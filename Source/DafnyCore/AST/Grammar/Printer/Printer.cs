@@ -164,13 +164,12 @@ NoGhost - disable printing of functions, ghost methods, and proof
       return ToStringWithoutNewline(wr);
     }
 
-    public static string MethodSignatureToString(DafnyOptions options, Method m) {
+    public static string MethodSignatureToString(DafnyOptions options, MethodOrConstructor m) {
       Contract.Requires(m != null);
-      using (var wr = new System.IO.StringWriter()) {
-        var pr = new Printer(wr, options);
-        pr.PrintMethod(m, 0, true);
-        return ToStringWithoutNewline(wr);
-      }
+      using var wr = new StringWriter();
+      var pr = new Printer(wr, options);
+      pr.PrintMethod(m, 0, true);
+      return ToStringWithoutNewline(wr);
     }
 
     /// <summary>
@@ -274,7 +273,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
           var r = module.CallGraph.GetSCC(callable);
           foreach (var m in r) {
             Indent(indent);
-            var maybeByMethod = m is Method method && method.IsByMethod ? " (by method)" : "";
+            var maybeByMethod = m is Method { IsByMethod: true } ? " (by method)" : "";
             wr.WriteLine($" *   {m.NameRelativeToModule}{maybeByMethod}");
           }
         }

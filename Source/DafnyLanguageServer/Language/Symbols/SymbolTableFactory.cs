@@ -118,7 +118,7 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
         ProcessNestedScope(declaration, declaration.Origin, visit);
       }
 
-      public override void Visit(Method method) {
+      public override void Visit(MethodOrConstructor method) {
         cancellationToken.ThrowIfCancellationRequested();
         ProcessNestedScope(method, method.Origin, () => base.Visit(method));
       }

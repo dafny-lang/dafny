@@ -113,7 +113,7 @@ namespace Microsoft.Dafny.Compilers {
       foreach (var module in p.Modules()) {
         foreach (ICallable callable in ModuleDefinition.AllCallables(
                    module.TopLevelDecls)) {
-          if ((callable is Method method) &&
+          if ((callable is MethodOrConstructor method) &&
               Attributes.Contains(method.Attributes, attr)) {
             return true;
           }
@@ -942,7 +942,7 @@ namespace Microsoft.Dafny.Compilers {
         if (member is Function fn && !NeedsCustomReceiver(member)) {
           CreateFunction(IdName(fn), CombineAllTypeArguments(fn), fn.Ins, fn.ResultType, fn.Origin, fn.IsStatic,
             false, fn, interfaceTree, false, false);
-        } else if (member is Method m && !NeedsCustomReceiver(member)) {
+        } else if (member is MethodOrConstructor m && !NeedsCustomReceiver(member)) {
           CreateMethod(m, CombineAllTypeArguments(m), false, interfaceTree, false, false);
         } else if (member is ConstantField c && !NeedsCustomReceiver(member)) {
           CreateFunctionOrGetter(c, IdName(c), dt, false, false, false, new ClassWriter(this, interfaceTree, null));
@@ -971,7 +971,7 @@ namespace Microsoft.Dafny.Compilers {
             //Can only be in output
             case TypeParameter.TPVariance.Co:
               if ((member is Function f && f.Ins.Exists(InvalidFormal))
-                  || (member is Method m && m.Ins.Exists(InvalidFormal))
+                  || (member is MethodOrConstructor m && m.Ins.Exists(InvalidFormal))
                   || NeedsTypeDescriptor(tp)) {
                 return true;
               }

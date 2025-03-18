@@ -51,7 +51,7 @@ namespace Microsoft.Dafny {
       astVisitor.VisitFunction(function);
     }
 
-    public static void VisitMethod(Method method, ErrorReporter reporter) {
+    public static void VisitMethod(MethodOrConstructor method, ErrorReporter reporter) {
       var astVisitor = new CallGraphASTVisitor(reporter);
       astVisitor.VisitMethod(method);
     }
@@ -215,7 +215,7 @@ namespace Microsoft.Dafny {
       protected override bool VisitOneStatement(Statement stmt, CallGraphBuilderContext context) {
         if (stmt is SingleAssignStmt assignStmt) {
           // check on assumption variables
-          if (context.CodeContext is Method currentMethod &&
+          if (context.CodeContext is MethodOrConstructor currentMethod &&
               (assignStmt.Lhs.Resolved as IdentifierExpr)?.Var is LocalVariable localVar &&
               Attributes.Contains(localVar.Attributes, "assumption")) {
             if ((assignStmt.Rhs as ExprRhs)?.Expr is BinaryExpr binaryExpr &&

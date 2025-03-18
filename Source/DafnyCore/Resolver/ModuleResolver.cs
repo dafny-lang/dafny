@@ -108,8 +108,8 @@ namespace Microsoft.Dafny {
         Statement body = null;
         if (clbl is ExtremeLemma) {
           body = ((ExtremeLemma)clbl).PrefixLemma.Body;
-        } else if (clbl is Method) {
-          body = ((Method)clbl).Body;
+        } else if (clbl is MethodOrConstructor) {
+          body = ((MethodOrConstructor)clbl).Body;
         } else if (clbl is IteratorDecl) {
           body = ((IteratorDecl)clbl).Body;
         }
@@ -127,8 +127,8 @@ namespace Microsoft.Dafny {
 
       foreach (var clbl in ModuleDefinition.AllItersAndCallables(module.TopLevelDecls)) {
         Statement body = null;
-        if (clbl is Method) {
-          body = ((Method)clbl).Body;
+        if (clbl is MethodOrConstructor methodOrConstructor) {
+          body = methodOrConstructor.Body;
         } else if (clbl is IteratorDecl) {
           body = ((IteratorDecl)clbl).Body;
         }
@@ -1063,7 +1063,7 @@ namespace Microsoft.Dafny {
                 ResolveTypeParameterBounds(prefixPredicate.Origin, prefixPredicate.TypeArgs, prefixPredicate);
                 allTypeParameters.PopMarker();
               }
-            } else if (member is Method m) {
+            } else if (member is MethodOrConstructor m) {
               var ec = reporter.Count(ErrorLevel.Error);
               allTypeParameters.PushMarker();
               ResolveTypeParameterBounds(m.Origin, m.TypeArgs, m);
@@ -1223,7 +1223,7 @@ namespace Microsoft.Dafny {
         // Note that `reads *` is the right default for backwards-compatibility,
         // but we may want to infer a sensible default like decreases clauses instead in the future.
         foreach (var declaration in ModuleDefinition.AllCallables(declarations)) {
-          if (declaration is Method { IsLemmaLike: false, Reads: { Expressions: var readsExpressions } } method &&
+          if (declaration is MethodOrConstructor { IsLemmaLike: false, Reads: { Expressions: var readsExpressions } } method &&
               !readsExpressions.Any()) {
             var star = new FrameExpression(method.Origin, new WildcardExpr(method.Origin) { Type = SystemModuleManager.ObjectSetType() }, null);
             readsExpressions.Add(star);
@@ -1509,7 +1509,7 @@ namespace Microsoft.Dafny {
         foreach (var cl in ModuleDefinition.AllTypesWithMembers(declarations)) {
           // only reference types (classes and reference-type traits) are allowed to declare mutable fields
           if (cl is not ClassLikeDecl { IsReferenceTypeDecl: true }) {
-            foreach (var member in cl.Members.Where(member => member is Field and not SpecialField)) {
+            foreach (var member in cl.Members.Where(member => member is Field { IsMutable: true })) {
               var traitHint = cl is TraitDecl ? " or declaring the trait with 'extends object'" : "";
               reporter.Error(MessageSource.Resolver, member,
                 $"mutable fields are allowed only in reference types (consider declaring the field as a 'const'{traitHint})");
@@ -1865,7 +1865,7 @@ namespace Microsoft.Dafny {
       foreach (var member in cl.Members) {
         var prevErrCnt = reporter.Count(ErrorLevel.Error);
         if (prevErrCnt == reporter.Count(ErrorLevel.Error)) {
-          if (member is Method method) {
+          if (member is MethodOrConstructor method) {
             CheckForUnnecessaryEqualitySupportDeclarations(method, method.TypeArgs);
             CheckParameterDefaultValuesAreCompilable(method.Ins, method);
             if (method.Body != null) {
@@ -2428,7 +2428,7 @@ namespace Microsoft.Dafny {
             // nothing to do
           } else {
             cl.InheritedMembers.Add(member);
-            if (member is Field || (member as Function)?.Body != null || (member as Method)?.Body != null) {
+            if (member is Field || (member as Function)?.Body != null || (member as MethodOrConstructor)?.Body != null) {
               // member is a field or a fully defined function or method
             } else if (cl is TraitDecl) {
               // there are no expectations that a field needs to repeat the signature of inherited body-less members
@@ -2463,7 +2463,7 @@ namespace Microsoft.Dafny {
           // The class is not allowed to do anything with the field other than silently inherit it.
           reporter.Error(MessageSource.Resolver, member.Origin,
             $"{traitMember.WhatKindAndName} is inherited from trait '{trait.Name}' and is not allowed to be re-declared");
-        } else if ((traitMember as Function)?.Body != null || (traitMember as Method)?.Body != null) {
+        } else if ((traitMember as Function)?.Body != null || (traitMember as MethodOrConstructor)?.Body != null) {
           // the overridden member is a fully defined function or method, so the class is not allowed to do anything with it other than silently inherit it
           reporter.Error(MessageSource.Resolver, member.Origin,
             $"fully defined {traitMember.WhatKindAndName} is inherited from trait '{trait.Name}' and is not allowed to be re-declared");
@@ -3255,7 +3255,7 @@ namespace Microsoft.Dafny {
       void CheckIsFunction([CanBeNull] MemberDecl memberDecl, bool allowMethod) {
         if (memberDecl == null || memberDecl is Function) {
           // fine
-        } else if (allowMethod && memberDecl is Method) {
+        } else if (allowMethod && memberDecl is MethodOrConstructor) {
           // give a deprecation warning, so we will remove this language feature around the Dafny 4 time frame
           origReporter.Deprecated(MessageSource.Resolver, ErrorId.r_failure_methods_deprecated, tok,
             $"Support for member '{memberDecl.Name}' in type '{tp}' (used indirectly via a :- statement) being a method is deprecated;" +

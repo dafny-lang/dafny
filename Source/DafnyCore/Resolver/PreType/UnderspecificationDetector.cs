@@ -132,7 +132,7 @@ namespace Microsoft.Dafny {
         }
         CheckPreType(field.PreType, context, field.Origin, "const");
 
-      } else if (member is Method method) {
+      } else if (member is MethodOrConstructor method) {
         CheckParameterDefaultValues(method.Ins, context);
         method.Req.ForEach(mfe => CheckAttributedExpression(mfe, context));
         CheckSpecFrameExpression(method.Reads, context);
@@ -314,7 +314,7 @@ namespace Microsoft.Dafny {
 
       } else if (expr is MemberSelectExpr) {
         var e = (MemberSelectExpr)expr;
-        if (e.Member is Function || e.Member is Method) {
+        if (e.Member is Function || e.Member is MethodOrConstructor) {
           var i = 0;
           foreach (var p in Util.Concat(e.PreTypeApplicationAtEnclosingClass, e.PreTypeApplicationJustMember)) {
             var tp =

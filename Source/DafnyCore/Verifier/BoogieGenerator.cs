@@ -134,7 +134,7 @@ namespace Microsoft.Dafny {
     readonly ISet<MemberDecl> referencedMembers = new HashSet<MemberDecl>();
 
     public void AddReferencedMember(MemberDecl m) {
-      if (m is Method && !InVerificationScope(m)) {
+      if (m is MethodOrConstructor && !InVerificationScope(m)) {
         referencedMembers.Add(m);
       }
     }

@@ -17,7 +17,7 @@ class TailRecursion {
   // ----- CheckTailRecursive -----------------------------------------------------------------------------
   // ------------------------------------------------------------------------------------------------------
   #region CheckTailRecursive
-  public void DetermineTailRecursion(Method m) {
+  public void DetermineTailRecursion(MethodOrConstructor m) {
     Contract.Requires(m != null);
     Contract.Requires(m.Body != null);
     bool tail = true;
@@ -63,7 +63,7 @@ class TailRecursion {
   /// If the return value is NoTailRecursive, "tailCall" could be anything.  In this case, an error
   /// message has been reported (provided "reportsErrors" is true).
   /// </summary>
-  TailRecursionStatus CheckTailRecursive(IReadOnlyList<Statement> stmts, Method enclosingMethod, ref Statement tailCall, bool reportErrors) {
+  TailRecursionStatus CheckTailRecursive(IReadOnlyList<Statement> stmts, MethodOrConstructor enclosingMethod, ref Statement tailCall, bool reportErrors) {
     Contract.Requires(stmts != null);
     var status = TailRecursionStatus.CanBeFollowedByAnything;
     foreach (var s in stmts) {
@@ -91,7 +91,7 @@ class TailRecursion {
   /// See CheckTailRecursive(List Statement, ...), including its description of "tailCall".
   /// In the current implementation, "enclosingMethod" is not allowed to be a mutually recursive method.
   /// </summary>
-  TailRecursionStatus CheckTailRecursive(Statement stmt, Method enclosingMethod, ref Statement tailCall, bool reportErrors) {
+  TailRecursionStatus CheckTailRecursive(Statement stmt, MethodOrConstructor enclosingMethod, ref Statement tailCall, bool reportErrors) {
     Contract.Requires(stmt != null);
     if (stmt.IsGhost) {
       return TailRecursionStatus.CanBeFollowedByAnything;
@@ -281,16 +281,16 @@ class TailRecursion {
   /// calls the function corresponding to the by-method. Report an error if such a call is
   /// found.
   /// </summary>
-  void DisallowRecursiveCallsInExpressions(Statement stmt, Method enclosingMethod, bool reportErrors) {
+  void DisallowRecursiveCallsInExpressions(Statement stmt, MethodOrConstructor enclosingMethod, bool reportErrors) {
     Contract.Requires(stmt != null);
     Contract.Requires(enclosingMethod != null);
 
-    if (enclosingMethod.IsByMethod && reportErrors) {
+    if (enclosingMethod is Method { IsByMethod: true } && reportErrors) {
       stmt.SubExpressions.ForEach(e => DisallowRecursiveCallsInExpressions(e, enclosingMethod));
     }
   }
 
-  void DisallowRecursiveCallsInExpressions(Expression/*?*/ expr, Method enclosingMethod, bool reportErrors) {
+  void DisallowRecursiveCallsInExpressions(Expression/*?*/ expr, MethodOrConstructor enclosingMethod, bool reportErrors) {
     Contract.Requires(enclosingMethod != null);
 
     if (expr != null && reportErrors) {
@@ -298,7 +298,7 @@ class TailRecursion {
     }
   }
 
-  void DisallowRecursiveCallsInExpressions(Expression expr, Method enclosingMethod) {
+  void DisallowRecursiveCallsInExpressions(Expression expr, MethodOrConstructor enclosingMethod) {
     Contract.Requires(expr != null);
     Contract.Requires(enclosingMethod != null);
 

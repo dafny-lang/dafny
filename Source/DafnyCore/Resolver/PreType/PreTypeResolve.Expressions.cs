@@ -1670,7 +1670,7 @@ namespace Microsoft.Dafny {
         rr.PreType = BuiltInArrowType(inParamTypes, resultType);
       } else {
         // the member is a method
-        var method = (Method)member;
+        var method = (MethodOrConstructor)member;
         if (!allowMethodCall) {
           // it's a method and method calls are not allowed in the given resolutionContext
           ReportError(tok, "expression is not allowed to invoke a {0} ({1})", member.WhatKind, member.Name);
