@@ -50,10 +50,16 @@ public static class TokenExtensions {
   public static bool IsSet(this IOrigin token) => token.Uri != null;
 
   public static string OriginToString(this IOrigin origin, DafnyOptions options) {
-    return (origin.ReportingRange.StartToken == Token.Cli ? null : origin.ReportingRange).RangeToString(options);
+    return (origin.ReportingRange.StartToken == Token.Cli ? null : origin.ReportingRange).ToFileRangeString(options);
   }
 
-  public static string RangeToString(this TokenRange? range, DafnyOptions options) {
+  public static string ToRangeString(this TokenRange range) {
+    var start = range.StartToken;
+    var end = range.EndToken;
+    return $"({start.line}:{start.col - 1}-{end.line}:{end.col - 1 + range.EndLength})";
+  }
+
+  public static string ToFileRangeString(this TokenRange? range, DafnyOptions options) {
     if (range == null) {
       return "CLI";
     }
@@ -61,7 +67,7 @@ public static class TokenExtensions {
     var start = range.StartToken;
     if (start.Uri == null) {
       if (options.Get(CommonOptionBag.PrintDiagnosticsRanges)) {
-        return range.RangeToFileString();
+        return range.ToRangeString();
       }
       return $"({start.line},{start.col - 1})";
     }
@@ -76,7 +82,7 @@ public static class TokenExtensions {
     };
 
     if (options.Get(CommonOptionBag.PrintDiagnosticsRanges)) {
-      return $"{filename}{range.RangeToFileString()}";
+      return $"{filename}{range.ToRangeString()}";
     }
     return $"{filename}({start.line},{start.col - 1})";
   }
