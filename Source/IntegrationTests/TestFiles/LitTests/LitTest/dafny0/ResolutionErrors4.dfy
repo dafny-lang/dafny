@@ -1,4 +1,4 @@
-// RUN: %testDafnyForEachResolver --expect-exit-code=2 "%s"
+// RUN: %testDafnyForEachResolver --expect-exit-code=2 "%s" -- --print-ranges
 
 
 // ------------------- infer array types for Indexable and MultiIndexable XConstraints ----------

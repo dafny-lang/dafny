@@ -56,7 +56,7 @@ module B refines A {
       Assert.Equal("this is the postcondition that could not be proved", startOrdered[0].RelatedInformation!.ElementAt(0).Message);
       Assert.Equal(new Range(12, 7, 12, 8), startOrdered[1].Range);
       Assert.Equal("decreases clause might not decrease", startOrdered[1].Message);
-      Assert.Equal(new Range(17, 0, 27, 1), startOrdered[1].RelatedInformation!.ElementAt(0).Location.Range);
+      Assert.Equal(new Range(17, 7, 17, 8), startOrdered[1].RelatedInformation!.ElementAt(0).Location.Range);
       Assert.Equal("refining module", startOrdered[1].RelatedInformation.ElementAt(0).Message);
     }
 
@@ -944,9 +944,9 @@ class Test {
       var relatedInformation = diagnostics[0].RelatedInformation.ToArray();
       Assert.Equal(2, relatedInformation.Length);
       Assert.Equal("this is the postcondition that could not be proved", relatedInformation[0].Message);
-      Assert.Equal(new Range((14, 21), (14, 2)), relatedInformation[0].Location.Range);
+      Assert.Equal(new Range((14, 21), (14, 22)), relatedInformation[0].Location.Range);
       Assert.Equal("this proposition could not be proved", relatedInformation[1].Message);
-      Assert.Equal(new Range((9, 11), (9, 16)), relatedInformation[1].Location.Range);
+      Assert.Equal(new Range((9, 13), (9, 14)), relatedInformation[1].Location.Range);
       await AssertNoDiagnosticsAreComing(CancellationToken);
     }
 
