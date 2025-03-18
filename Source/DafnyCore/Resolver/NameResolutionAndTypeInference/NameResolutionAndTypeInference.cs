@@ -4391,7 +4391,7 @@ namespace Microsoft.Dafny {
             var ret = ResolveTypeLenient(allocateClass.Origin, allocateClass.Path, resolutionContext, new ResolveTypeOption(ResolveTypeOptionEnum.InferTypeProxies), null, true);
             if (ret != null) {
               // The all-but-last components of rr.Path denote a type (namely, ret.ReplacementType).
-              allocateClass.Path = ret.ReplacementType;
+              ((UserDefinedType)allocateClass.Path).ResolvedClass = ((UserDefinedType)ret.ReplacementType).ResolvedClass;
               initCallName = ret.LastComponent.SuffixName;
               initCallTok = ret.LastComponent.Origin;
             } else {
