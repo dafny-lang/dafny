@@ -53,21 +53,21 @@ public static class TokenExtensions {
       return "CLI";
     }
 
-    return origin.ReportingRange.RangeToString(options);
+    return origin.ReportingRange.ToFileRangeString(options);
   }
 
-  public static string RangeToFileString(this TokenRange range) {
+  public static string ToRangeString(this TokenRange range) {
     var start = range.StartToken;
     var end = range.EndToken;
     return $"({start.line}:{start.col - 1}-{end.line}:{end.col - 1 + range.EndLength})";
   }
 
-  public static string RangeToString(this TokenRange range, DafnyOptions options) {
+  public static string ToFileRangeString(this TokenRange range, DafnyOptions options) {
 
     var start = range.StartToken;
     if (start.Uri == null) {
       if (options.Get(CommonOptionBag.PrintDiagnosticsRanges)) {
-        return range.RangeToFileString();
+        return range.ToRangeString();
       }
       return $"({start.line},{start.col - 1})";
     }
@@ -82,7 +82,7 @@ public static class TokenExtensions {
     };
 
     if (options.Get(CommonOptionBag.PrintDiagnosticsRanges)) {
-      return $"{filename}{range.RangeToFileString()}";
+      return $"{filename}{range.ToRangeString()}";
     }
     return $"{filename}({start.line},{start.col - 1})";
   }
