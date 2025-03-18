@@ -4,9 +4,14 @@ abstract class IOrigin
 
 class SourceOrigin : IOrigin
 {
+    TokenRange entireRange;
+    TokenRange reportingRange;
+}
+
+class TokenRange
+{
     Token startToken;
     Token endToken;
-    Token center;
 }
 
 class Token
@@ -30,28 +35,12 @@ abstract class Node
 {
 }
 
-abstract class RangeNode : Node
+abstract class NodeWithOrigin : Node
 {
     IOrigin origin;
 }
 
-class Name : RangeNode
-{
-    String value;
-}
-
-abstract class Declaration : RangeNode
-{
-    Name nameNode;
-    Attributes? attributes;
-}
-
-abstract class NodeWithComputedRange : Node
-{
-    IOrigin origin;
-}
-
-abstract class Type : NodeWithComputedRange
+abstract class Type : NodeWithOrigin
 {
 }
 
@@ -64,7 +53,7 @@ class UserDefinedType : NonProxyType
     Expression namePath;
 }
 
-abstract class Expression : NodeWithComputedRange
+abstract class Expression : NodeWithOrigin
 {
 }
 
@@ -75,6 +64,36 @@ class IdentifierExpr : Expression
 
 class AutoGhostIdentifierExpr : IdentifierExpr
 {
+}
+
+abstract class UnaryExpr : Expression
+{
+    Expression e;
+}
+
+abstract class TypeUnaryExpr : UnaryExpr
+{
+    Type toType;
+}
+
+class ConversionExpr : TypeUnaryExpr
+{
+    String messagePrefix;
+}
+
+class UnaryOpExpr : UnaryExpr
+{
+    UnaryOpExprOpcode op;
+}
+
+enum UnaryOpExprOpcode
+{
+    Not,
+    Cardinality,
+    Fresh,
+    Allocated,
+    Lit,
+    Assigned
 }
 
 class BinaryExpr : Expression
@@ -144,6 +163,18 @@ abstract class SuffixExpr : ConcreteSyntaxExpression
     Expression lhs;
 }
 
+class ExprDotName : SuffixExpr
+{
+    Name suffixNameNode;
+    List<Type>? optTypeArguments;
+}
+
+class Name : Node
+{
+    IOrigin origin;
+    String value;
+}
+
 class ApplySuffix : SuffixExpr
 {
     IOrigin? atTok;
@@ -151,16 +182,38 @@ class ApplySuffix : SuffixExpr
     Token? closeParen;
 }
 
-class ActualBindings : NodeWithComputedRange
+abstract class NodeWithoutOrigin : Node
 {
-    List<ActualBinding> argumentBindings;
 }
 
-class ActualBinding : NodeWithComputedRange
+class ModuleQualifiedId : NodeWithoutOrigin
+{
+    List<Name> path;
+}
+
+class Specification<T> : NodeWithoutOrigin where T : Node
+{
+    List<T>? expressions;
+    Attributes? attributes;
+}
+
+class Attributes : NodeWithOrigin
+{
+    String name;
+    List<Expression> args;
+    Attributes? prev;
+}
+
+class ActualBinding : NodeWithoutOrigin
 {
     IOrigin? formalParameterName;
     Expression actual;
     Boolean isGhost;
+}
+
+class ActualBindings : NodeWithoutOrigin
+{
+    List<ActualBinding> argumentBindings;
 }
 
 class NameSegment : ConcreteSyntaxExpression
@@ -169,9 +222,66 @@ class NameSegment : ConcreteSyntaxExpression
     List<Type>? optTypeArguments;
 }
 
+abstract class ComprehensionExpr : Expression
+{
+    List<BoundVar> boundVars;
+    Expression? range;
+    Expression term;
+    Attributes? attributes;
+}
+
+abstract class NonglobalVariable : NodeWithOrigin
+{
+    Name nameNode;
+    Type type;
+    Boolean isGhost;
+}
+
+class Formal : NonglobalVariable
+{
+    Boolean inParam;
+    Expression? defaultValue;
+    Attributes? attributes;
+    Boolean isOld;
+    Boolean isNameOnly;
+    Boolean isOlder;
+    String? nameForCompilation;
+}
+
+class BoundVar : NonglobalVariable
+{
+}
+
+abstract class QuantifierExpr : ComprehensionExpr
+{
+}
+
+class ForallExpr : QuantifierExpr
+{
+}
+
+class ExistsExpr : QuantifierExpr
+{
+}
+
 abstract class DisplayExpression : Expression
 {
     List<Expression> elements;
+}
+
+class SeqSelectExpr : Expression
+{
+    Boolean selectOne;
+    Expression seq;
+    Expression? e0;
+    Expression? e1;
+    Token? closeParen;
+}
+
+class MemberSelectExpr : Expression
+{
+    Expression obj;
+    Name memberName;
 }
 
 abstract class BasicType : NonProxyType
@@ -182,44 +292,14 @@ class IntType : BasicType
 {
 }
 
-abstract class AssignmentRhs : NodeWithComputedRange
+class BoolType : BasicType
 {
+}
+
+abstract class Declaration : NodeWithOrigin
+{
+    Name nameNode;
     Attributes? attributes;
-}
-
-class Attributes : NodeWithComputedRange
-{
-    String name;
-    List<Expression> args;
-    Attributes? prev;
-}
-
-class ExprRhs : AssignmentRhs
-{
-    Expression expr;
-}
-
-class Specification<T> : NodeWithComputedRange where T : Node
-{
-    List<T>? expressions;
-    Attributes? attributes;
-}
-
-class AttributedExpression
-{
-    Expression e;
-    AssertLabel? label;
-    Attributes? attributes;
-}
-
-class Label
-{
-    IOrigin tok;
-    String name;
-}
-
-class AssertLabel : Label
-{
 }
 
 abstract class TopLevelDecl : Declaration
@@ -290,28 +370,6 @@ enum SubsetTypeDeclWKind
     Special
 }
 
-abstract class NonglobalVariable : NodeWithComputedRange
-{
-    Name nameNode;
-    Type type;
-    Boolean isGhost;
-}
-
-class Formal : NonglobalVariable
-{
-    Boolean inParam;
-    Expression? defaultValue;
-    Attributes? attributes;
-    Boolean isOld;
-    Boolean isNameOnly;
-    Boolean isOlder;
-    String? nameForCompilation;
-}
-
-class BoundVar : NonglobalVariable
-{
-}
-
 abstract class TopLevelDeclWithMembers : TopLevelDecl
 {
     List<MemberDecl> members;
@@ -335,10 +393,27 @@ abstract class MethodOrFunction : MemberDecl
     Specification<Expression> decreases;
 }
 
-class FrameExpression : NodeWithComputedRange
+class FrameExpression : NodeWithOrigin
+{
+    Expression originalExpression;
+    String? fieldName;
+}
+
+class AttributedExpression
 {
     Expression e;
-    String fieldName;
+    AssertLabel? label;
+    Attributes? attributes;
+}
+
+class Label
+{
+    IOrigin tok;
+    String name;
+}
+
+class AssertLabel : Label
+{
 }
 
 class Method : MethodOrFunction
@@ -349,7 +424,7 @@ class Method : MethodOrFunction
     Boolean isByMethod;
 }
 
-abstract class Statement : RangeNode
+abstract class Statement : NodeWithOrigin
 {
     Attributes? attributes;
 }
@@ -367,6 +442,16 @@ class AssertStmt : PredicateStmt
 abstract class ProduceStmt : Statement
 {
     List<AssignmentRhs> rhss;
+}
+
+abstract class AssignmentRhs : NodeWithOrigin
+{
+    Attributes? attributes;
+}
+
+class ExprRhs : AssignmentRhs
+{
+    Expression expr;
 }
 
 class ReturnStmt : ProduceStmt
@@ -420,7 +505,7 @@ class AssignStatement : ConcreteAssignStatement
     Boolean canMutateKnownState;
 }
 
-class LocalVariable : RangeNode
+class LocalVariable : NodeWithOrigin
 {
     String name;
     Type? syntacticType;
@@ -460,7 +545,7 @@ class LiteralModuleDecl : ModuleDecl
     ModuleDefinition moduleDef;
 }
 
-class ModuleDefinition : RangeNode
+class ModuleDefinition : NodeWithOrigin
 {
     Name nameNode;
     List<IOrigin> prefixIds;
@@ -474,11 +559,6 @@ class Implements
 {
     ImplementationKind Kind;
     ModuleQualifiedId Target;
-}
-
-class ModuleQualifiedId : Node
-{
-    List<Name> path;
 }
 
 enum ImplementationKind

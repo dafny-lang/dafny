@@ -33,7 +33,7 @@ public class BinaryExpr : Expression, ICloneable<BinaryExpr>, ICanFormat {
     BitwiseOr,
     BitwiseXor
   }
-  public readonly Opcode Op;
+  public Opcode Op;
   public enum ResolvedOpcode {
     YetUndetermined,  // the value before resolution has determined the value; .ResolvedOp should never be read in this state
 
@@ -327,8 +327,7 @@ public class BinaryExpr : Expression, ICloneable<BinaryExpr>, ICanFormat {
 
   [SyntaxConstructor]
   public BinaryExpr(IOrigin origin, Opcode op, Expression e0, Expression e1)
-    :
-    base(origin) {
+    : base(origin) {
     Contract.Requires(origin != null);
     Contract.Requires(e0 != null);
     Contract.Requires(e1 != null);

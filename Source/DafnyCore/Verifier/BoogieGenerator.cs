@@ -1230,7 +1230,9 @@ namespace Microsoft.Dafny {
           chunk = BplAnd(chunk, q);
         }
         if (conjuncts) {
-          yield return Bpl.Expr.Binary(new NestedOrigin(tok, ctor.Origin), BinaryOperator.Opcode.Imp, aq, BplAnd(bq, chunk));
+          yield return Bpl.Expr.Binary(
+            new NestedOrigin(tok, ctor.Origin, "this proposition could not be proved"),
+            BinaryOperator.Opcode.Imp, aq, BplAnd(bq, chunk));
         } else {
           yield return BplAnd(BplAnd(aq, bq), BplImp(BplAnd(aq, bq), chunk));
         }
@@ -1763,7 +1765,7 @@ namespace Microsoft.Dafny {
 
     public ImmutableDictionary<string, Bpl.IdentifierExpr> DefiniteAssignmentTrackers { get; set; } = ImmutableDictionary<string, Bpl.IdentifierExpr>.Empty;
 
-    Func<IOrigin, bool> assertionOnlyFilter = null; // generate assume statements instead of assert statements if not targeted by {:only}
+    Func<Token, bool> assertionOnlyFilter = null; // generate assume statements instead of assert statements if not targeted by {:only}
     public enum StmtType { NONE, ASSERT, ASSUME };
     public StmtType stmtContext = StmtType.NONE;  // the Statement that is currently being translated
     public bool adjustFuelForExists = true;  // fuel need to be adjusted for exists based on whether exists is in assert or assume stmt.
@@ -3310,7 +3312,7 @@ namespace Microsoft.Dafny {
         Contract.Requires(tok != null);
         Contract.Ensures(Contract.Result<IOrigin>() != null);
         var ftok = tok as ForceCheckOrigin;
-        return ftok != null ? ftok.WrappedToken : tok;
+        return ftok != null ? ftok.WrappedOrigin : tok;
       }
 
       public override bool IsInherited(ModuleDefinition m) {
@@ -3331,7 +3333,7 @@ namespace Microsoft.Dafny {
 
       Bpl.PredicateCmd cmd;
       if (context.AssertMode == AssertMode.Assume
-          || (assertionOnlyFilter != null && !assertionOnlyFilter(tok))
+          || (assertionOnlyFilter != null && !assertionOnlyFilter(tok.ReportingRange.StartToken))
           || (refinesToken.IsInherited(currentModule) && codeContext is not { MustReverify: true })) {
         // produce an assume instead
         cmd = TrAssumeCmd(tok, condition, kv);
@@ -3355,7 +3357,7 @@ namespace Microsoft.Dafny {
 
       PredicateCmd cmd;
       if (context.AssertMode == AssertMode.Assume ||
-          (assertionOnlyFilter != null && !assertionOnlyFilter(tok)) ||
+          (assertionOnlyFilter != null && !assertionOnlyFilter(tok.ReportingRange.StartToken)) ||
           (refinesTok.IsInherited(currentModule) && (codeContext == null || !codeContext.MustReverify))) {
         // produce a "skip" instead
         cmd = TrAssumeCmd(tok, Bpl.Expr.True, kv);
@@ -3432,8 +3434,8 @@ namespace Microsoft.Dafny {
       Contract.Requires(codeContext != null && Predef != null);
       Contract.Ensures(Contract.Result<Bpl.StmtList>() != null);
 
-      TrStmtList([block], builder, locals, etran, introduceScope ? block.Origin : null, processLabels: false);
-      return builder.Collect(block.Origin);  // TODO: would be nice to have an end-curly location for "block"
+      TrStmtList([block], builder, locals, etran, introduceScope ? block.EntireRange : null, processLabels: false);
+      return builder.Collect(block.StartToken);  // TODO: would be nice to have an end-curly location for "block"
     }
 
     /// <summary>

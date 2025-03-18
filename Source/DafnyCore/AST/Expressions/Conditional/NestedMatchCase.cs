@@ -2,8 +2,8 @@ using System.Diagnostics.Contracts;
 
 namespace Microsoft.Dafny;
 
-public abstract class NestedMatchCase : NodeWithComputedRange {
-  public readonly ExtendedPattern Pat;
+public abstract class NestedMatchCase : NodeWithOrigin {
+  public ExtendedPattern Pat;
 
   protected NestedMatchCase(IOrigin origin, ExtendedPattern pat) : base(origin) {
     Contract.Requires(origin != null);

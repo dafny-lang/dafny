@@ -21,6 +21,11 @@ public class CommonOptionBag {
                       $"Verification of a symbol may be split across several assertion batches. " +
                       $"Use {ProgressLevel.Batch} to additionally show progress across batches.");
 
+  public static readonly Option<bool> PrintDiagnosticsRanges =
+    new("--print-ranges", "Prints not just the center, but also the start and end of diagnostics") {
+      IsHidden = true
+    };
+
   public static readonly Option<string> LogLocation =
     new("--log-location", "Sets the directory where to store log files") {
       IsHidden = true
@@ -671,6 +676,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
     OptionRegistry.RegisterOption(ExtractCounterexample, OptionScope.Cli);
     OptionRegistry.RegisterOption(ShowProofObligationExpressions, OptionScope.Cli);
     OptionRegistry.RegisterOption(InputType, OptionScope.Cli);
+    OptionRegistry.RegisterOption(PrintDiagnosticsRanges, OptionScope.Cli);
   }
 }
 

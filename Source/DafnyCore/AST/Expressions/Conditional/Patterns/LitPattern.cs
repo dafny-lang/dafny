@@ -6,7 +6,7 @@ using System.Numerics;
 namespace Microsoft.Dafny;
 
 public class LitPattern : ExtendedPattern {
-  public readonly Expression OrigLit;  // the expression as parsed; typically a LiteralExpr, but could be a NegationExpression
+  public Expression OrigLit;  // the expression as parsed; typically a LiteralExpr, but could be a NegationExpression
   private LiteralExpr optimisticallyDesugaredLit;
 
   /// <summary>

@@ -6,7 +6,7 @@ using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 
 namespace Microsoft.Dafny;
 
-public abstract class Declaration : RangeNode, IAttributeBearingDeclaration, ISymbol {
+public abstract class Declaration : NodeWithOrigin, IAttributeBearingDeclaration, ISymbol {
   [ContractInvariantMethod]
   void ObjectInvariant() {
     Contract.Invariant(Name != null);
@@ -19,7 +19,7 @@ public abstract class Declaration : RangeNode, IAttributeBearingDeclaration, ISy
     return this is ICallable iCallable ? iCallable.NameRelativeToModule : ToString();
   }
 
-  public virtual IOrigin NavigationToken => NameNode.Origin;
+  public virtual TokenRange NavigationRange => NameNode.ReportingRange;
 
   public string Name => NameNode.Value;
   public virtual bool IsRefining => false;

@@ -7,13 +7,13 @@ namespace Microsoft.Dafny;
 public abstract class ExtremePredicate : Function {
   public override string WhatKindMentionGhost => WhatKind;
   public enum KType { Unspecified, Nat, ORDINAL }
-  public readonly KType TypeOfK;
+  public KType TypeOfK;
   public bool KNat {
     get {
       return TypeOfK == KType.Nat;
     }
   }
-  [FilledInDuringResolution] public readonly List<FunctionCallExpr> Uses = [];  // used by verifier
+  [FilledInDuringResolution] public List<FunctionCallExpr> Uses = [];  // used by verifier
   [FilledInDuringResolution] public PrefixPredicate PrefixPredicate;  // (name registration)
 
   public override IEnumerable<INode> Children => base.Children.Concat(new[] { PrefixPredicate });

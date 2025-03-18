@@ -1704,7 +1704,9 @@ public partial class BoogieGenerator {
     } else {
       foreach (var split in ss) {
         if (split.IsChecked) {
-          var tok = witnessExpr.Origin is { } t ? new NestedOrigin(t, split.Tok) : witnessExpr.Origin;
+          var tok = witnessExpr.Origin is { } t
+            ? new NestedOrigin(t, split.Tok, "this proposition could not be proved")
+            : witnessExpr.Origin;
           witnessCheckBuilder.Add(AssertAndForget(witnessCheckBuilder.Context, tok, split.E, desc));
         }
       }

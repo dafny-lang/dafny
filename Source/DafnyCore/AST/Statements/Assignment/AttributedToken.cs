@@ -11,7 +11,7 @@ namespace Microsoft.Dafny;
 /// `{:axiom}` attribute is directly attached to the statement-level
 /// attributes).
 /// </summary>
-public record AttributedToken(IOrigin Token, Attributes Attrs) : IAttributeBearingDeclaration {
+public record AttributedToken(Token Token, Attributes Attrs) : IAttributeBearingDeclaration {
   Attributes IAttributeBearingDeclaration.Attributes {
     get => Attrs;
     set => throw new System.NotImplementedException();

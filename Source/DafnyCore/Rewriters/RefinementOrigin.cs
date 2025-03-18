@@ -14,7 +14,7 @@ public class RefinementOrigin : NestedOrigin {
   }
 
   public override string ToString() {
-    return $"refinement of {WrappedToken} by {InheritingModule.Name}";
+    return $"refinement of {WrappedOrigin} by {InheritingModule.Name}";
   }
 
   public override bool IsCopy => true;
