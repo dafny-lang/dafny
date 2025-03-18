@@ -458,6 +458,22 @@ namespace Microsoft.Dafny
             return ReadExistsExpr();
         }
 
+        public ThisExpr ReadThisExpr()
+        {
+            var parameter0 = ReadAbstract<IOrigin>();
+            return new ThisExpr(parameter0);
+        }
+
+        public ThisExpr ReadThisExprOption()
+        {
+            if (ReadIsNull())
+            {
+                return default;
+            }
+
+            return ReadThisExpr();
+        }
+
         public SeqSelectExpr ReadSeqSelectExpr()
         {
             var parameter0 = ReadAbstract<IOrigin>();
@@ -1318,6 +1334,11 @@ namespace Microsoft.Dafny
             if (actualType == typeof(ExistsExpr))
             {
                 return ReadExistsExpr();
+            }
+
+            if (actualType == typeof(ThisExpr))
+            {
+                return ReadThisExpr();
             }
 
             if (actualType == typeof(SeqSelectExpr))

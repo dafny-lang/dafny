@@ -269,6 +269,10 @@ abstract class DisplayExpression : Expression
     List<Expression> elements;
 }
 
+class ThisExpr : Expression
+{
+}
+
 class SeqSelectExpr : Expression
 {
     Boolean selectOne;
