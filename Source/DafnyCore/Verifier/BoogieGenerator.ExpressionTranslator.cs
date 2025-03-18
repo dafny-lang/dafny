@@ -1332,7 +1332,7 @@ namespace Microsoft.Dafny {
                 if (e.Range != null) {
                   antecedent = BplAnd(antecedent, bodyEtran.TrExpr(e.Range));
                 }
-                Boogie.Expr body = bodyEtran.TrExpr(e.Term);
+                Boogie.Expr body = (e is ForallExpr) ?  bodyEtran.WithZeroFuel().TrExpr(e.Term) : bodyEtran.TrExpr(e.Term);
 
                 if (e is ForallExpr) {
                   return new Boogie.ForallExpr(GetToken(quantifierExpr), [], bvars, kv, tr, BplImp(antecedent, body));

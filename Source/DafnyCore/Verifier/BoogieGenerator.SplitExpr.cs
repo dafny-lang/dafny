@@ -317,7 +317,7 @@ namespace Microsoft.Dafny {
                 Bpl.Expr less = DecreasesCheck(toks, null, kkDafny, nnDafny, kk, nn,
                   null, null, false, true);
 
-                Bpl.Expr ihBody = etran.TrExpr(bodyK);
+                Bpl.Expr ihBody = etran.WithZeroFuel().TrExpr(bodyK);
                 if (!position) {
                   ihBody = Bpl.Expr.Not(ihBody);
                 }
