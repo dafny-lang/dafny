@@ -5,6 +5,7 @@
 //
 //-----------------------------------------------------------------------------
 
+using System;
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 using System.Linq;
@@ -224,7 +225,17 @@ class PreTypeToTypeVisitor : ASTVisitor<IASTVisitorContext> {
       // convert the type of the RHS, which we expect to be a reference type, and then create the non-null version of it
       var udtConvertedFromPretype = (UserDefinedType)PreType2TypeUtil.PreType2FixedType(tRhs.PreType);
       Contract.Assert(udtConvertedFromPretype.IsRefType);
-      if (tRhs.ArrayDimensions != null) {
+      if (tRhs is AllocateClass allocateClass) {
+        // Fill in any missing type arguments in the user-supplied tRhs.EType.
+        PreType2TypeUtil.Combine(allocateClass.Path, tRhs.PreType, false);
+        rhsType = (UserDefinedType)allocateClass.Path;
+        if (allocateClass.InitCall != null) {
+          // We want the type of tRhs.InitCall.MethodSelect.Obj to be the same as what the "new" gives, but the previous
+          // visitation of this MemberSelectExpr would have set it to the type obtained from the pre-type. Since the MemberSelectExpr
+          // won't be visited again during type refinement, we set it here once and for all.
+          allocateClass.InitCall.MethodSelect.Obj.UnnormalizedType = rhsType;
+        }
+      } else if (tRhs is AllocateArray allocateArray) {
         // In this case, we expect tRhs.PreType (and udtConvertedFromPretype) to be an array type
         var arrayPreType = (DPreType)tRhs.PreType.Normalize();
         Contract.Assert(arrayPreType.Decl is ArrayClassDecl);
@@ -236,20 +247,12 @@ class PreTypeToTypeVisitor : ASTVisitor<IASTVisitorContext> {
         // tRhs.EType may contain user-supplied subset types. But tRhs.EType may also be missing some type arguments altogether, because
         // they may have been omitted in the source text. The following has the effect of filling in any such missing components with
         // whatever was inferred during pre-type inference.
-        PreType2TypeUtil.Combine(tRhs.EType, arrayPreType.Arguments[0], false);
-        var arrayTypeDecl = systemModuleManager.arrayTypeDecls[tRhs.ArrayDimensions.Count];
-        var rhsMaybeNullType = new UserDefinedType(stmt.Origin, arrayTypeDecl.Name, arrayTypeDecl, [tRhs.EType]);
+        PreType2TypeUtil.Combine(allocateArray.EType, arrayPreType.Arguments[0], false);
+        var arrayTypeDecl = systemModuleManager.arrayTypeDecls[allocateArray.ArrayDimensions.Count];
+        var rhsMaybeNullType = new UserDefinedType(stmt.Origin, arrayTypeDecl.Name, arrayTypeDecl, [allocateArray.EType]);
         rhsType = UserDefinedType.CreateNonNullType(rhsMaybeNullType);
       } else {
-        // Fill in any missing type arguments in the user-supplied tRhs.EType.
-        PreType2TypeUtil.Combine(tRhs.EType, tRhs.PreType, false);
-        rhsType = (UserDefinedType)tRhs.EType;
-        if (tRhs.InitCall != null) {
-          // We want the type of tRhs.InitCall.MethodSelect.Obj to be the same as what the "new" gives, but the previous
-          // visitation of this MemberSelectExpr would have set it to the type obtained from the pre-type. Since the MemberSelectExpr
-          // won't be visited again during type refinement, we set it here once and for all.
-          tRhs.InitCall.MethodSelect.Obj.UnnormalizedType = rhsType;
-        }
+        throw new cce.UnreachableException();
       }
       tRhs.Type = rhsType;
 

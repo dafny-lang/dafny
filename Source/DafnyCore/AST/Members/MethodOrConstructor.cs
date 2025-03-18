@@ -13,7 +13,7 @@ namespace Microsoft.Dafny;
 public abstract class MethodOrConstructor : MethodOrFunction, TypeParameter.ParentType,
   IMethodCodeContext, ICanFormat, IHasDocstring, IHasSymbolChildren, ICanAutoRevealDependencies, ICanVerify {
   public abstract List<Formal> Outs { get; }
-  
+
   public static readonly Option<bool> ReadsClausesOnMethods = new("--reads-clauses-on-methods",
     "Allows reads clauses on methods (with a default of 'reads *') as well as functions."
   );
@@ -38,7 +38,7 @@ public abstract class MethodOrConstructor : MethodOrFunction, TypeParameter.Pare
   [FilledInDuringResolution] public bool IsTailRecursive;
   [FilledInDuringResolution] public Function? FunctionFromWhichThisIsByMethodDecl;
   public readonly ISet<IVariable> AssignedAssumptionVariables = new HashSet<IVariable>();
-  
+
   // Move to Method?
   public Method? OverriddenMethod;
   public MethodOrConstructor Original => OverriddenMethod == null ? this : OverriddenMethod.Original;

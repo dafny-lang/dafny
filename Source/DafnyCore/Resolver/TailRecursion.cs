@@ -106,7 +106,7 @@ class TailRecursion {
       }
     } else if (stmt is SingleAssignStmt) {
       var s = (SingleAssignStmt)stmt;
-      if (s.Rhs is TypeRhs tRhs && tRhs.InitCall != null && tRhs.InitCall.Method == enclosingMethod) {
+      if (s.Rhs is AllocateClass { InitCall: not null } tRhs && tRhs.InitCall.Method == enclosingMethod) {
         // It's a recursive call.  However, it is not a tail call, because after the "new" allocation
         // and init call have taken place, the newly allocated object has yet to be assigned to
         // the LHS of the assignment statement.

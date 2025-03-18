@@ -1661,11 +1661,11 @@ public class ArrayInitSizeValid : ProofObligationDescription {
 
   public override string ShortDescription => "array initializer size";
 
-  private readonly TypeRhs rhs;
+  private readonly AllocateArray rhs;
   private readonly Expression dim;
   private int size => rhs.InitDisplay.Count;
 
-  public ArrayInitSizeValid(TypeRhs rhs, Expression dim) {
+  public ArrayInitSizeValid(AllocateArray rhs, Expression dim) {
     this.rhs = rhs;
     this.dim = dim;
   }

@@ -530,9 +530,9 @@ namespace Microsoft.Dafny {
           previousMethod.Outs.ConvertAll(o => refinementCloner.CloneFormal(o, false)),
           req, reads, mod, ens, decreases, body, refinementCloner.MergeAttributes(previousMethod.Attributes, moreAttributes), null);
       } else if (previousMethod is Method previousMethodMethod) {
-        return new Method(origin, newName, refinementCloner.MergeAttributes(previousMethod.Attributes, moreAttributes), 
-          previousMethod.HasStaticKeyword, previousMethod.IsGhost, tps, ins, req, ens, reads, decreases, 
-          previousMethod.Outs.ConvertAll(o => refinementCloner.CloneFormal(o, false)), 
+        return new Method(origin, newName, refinementCloner.MergeAttributes(previousMethod.Attributes, moreAttributes),
+          previousMethod.HasStaticKeyword, previousMethod.IsGhost, tps, ins, req, ens, reads, decreases,
+          previousMethod.Outs.ConvertAll(o => refinementCloner.CloneFormal(o, false)),
           mod, body, null, previousMethodMethod.IsByMethod);
       } else {
         throw new Exception();

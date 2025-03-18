@@ -45,7 +45,7 @@ public class FunctionCallToMethodCallRewriter : Cloner {
     }
   }
 
-  
+
   private void Visit(Method method) {
     if (method.Body != null) {
       method.SetBody(CloneBlockStmt(method.Body));

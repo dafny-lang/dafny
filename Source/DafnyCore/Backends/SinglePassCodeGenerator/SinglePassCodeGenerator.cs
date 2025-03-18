@@ -4109,27 +4109,27 @@ namespace Microsoft.Dafny.Compilers {
         var eRhs = (ExprRhs)rhs; // it's not HavocRhs (by the precondition) or TypeRhs (by the "if" test), so it's gotta be ExprRhs
         EmitExpr(eRhs.Expr, false, wr, wStmts);
 
-      } else if (typeRhs.ArrayDimensions != null) {
+      } else if (typeRhs is AllocateArray allocateArray) {
         var nw = ProtectedFreshId("_nw");
-        TrRhsArray(typeRhs, nw, wr, wStmts);
-        EmitArrayFinalize(wr, out var wrFinalize, typeRhs.Type);
+        TrRhsArray(allocateArray, nw, wr, wStmts);
+        EmitArrayFinalize(wr, out var wrFinalize, allocateArray.Type);
         EmitIdentifier(nw, wrFinalize);
 
-      } else {
+      } else if (typeRhs is AllocateClass allocateClass) {
         // Allocate and initialize a new object
         var nw = ProtectedFreshId("_nw");
         var wRhs = DeclareLocalVar(nw, typeRhs.Type, rhs.Origin, wStmts);
-        var constructor = typeRhs.InitCall?.Method as Constructor;
-        EmitNew(typeRhs.EType, typeRhs.Origin, constructor != null ? typeRhs.InitCall : null, wRhs, wStmts);
+        var constructor = allocateClass.InitCall?.Method as Constructor;
+        EmitNew(allocateClass.Path, typeRhs.Origin, constructor != null ? allocateClass.InitCall : null, wRhs, wStmts);
         // Proceed with initialization
-        if (typeRhs.InitCall != null) {
+        if (allocateClass.InitCall != null) {
           if (constructor != null && IsExternallyImported(constructor)) {
             // initialization was done at the time of allocation
           } else {
             var wrBefore = wStmts.Fork();
             var wrCall = wStmts.Fork();
             var wrAfter = wStmts;
-            TrCallStmt(typeRhs.InitCall, nw, wrCall, wrBefore, wrAfter);
+            TrCallStmt(allocateClass.InitCall, nw, wrCall, wrBefore, wrAfter);
           }
         }
         // Assign to the final LHS
@@ -4144,41 +4144,41 @@ namespace Microsoft.Dafny.Compilers {
     /// <param name="nw">Name of the variable to hold the array to be allocated</param>
     /// <param name="wr">The writer at the position for the translated RHS</param>
     /// <param name="wStmts">A writer at an earlier position where extra statements may be written</param>
-    void TrRhsArray(TypeRhs typeRhs, string nw, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
-      Contract.Requires(typeRhs.ArrayDimensions != null);
+    void TrRhsArray(AllocateArray allocateArray, string nw, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
+      Contract.Requires(allocateArray.ArrayDimensions != null);
 
-      if (typeRhs.ElementInit == null &&
-          (typeRhs.InitDisplay == null || typeRhs.InitDisplay.Count == 0)) {
+      if (allocateArray.ElementInit == null &&
+          (allocateArray.InitDisplay == null || allocateArray.InitDisplay.Count == 0)) {
         // This is either
         //   * an array with an auto-init element type, where no other initialization is given, or
         //   * a 0-length array (as evidenced by the given 0-length .InitDisplay or as confirmed by the verifier for a non-auto-init element type).
         var pwStmts = wStmts.Fork();
-        var wRhs = DeclareLocalVar(nw, typeRhs.Type, typeRhs.Origin, wStmts);
-        EmitNewArray(typeRhs.EType, typeRhs.Origin, typeRhs.ArrayDimensions,
-          typeRhs.EType.HasCompilableValue && !DatatypeWrapperEraser.CanBeLeftUninitialized(Options, typeRhs.EType),
+        var wRhs = DeclareLocalVar(nw, allocateArray.Type, allocateArray.Origin, wStmts);
+        EmitNewArray(allocateArray.EType, allocateArray.Origin, allocateArray.ArrayDimensions,
+          allocateArray.EType.HasCompilableValue && !DatatypeWrapperEraser.CanBeLeftUninitialized(Options, allocateArray.EType),
           null, wRhs, pwStmts);
         return;
       }
 
-      if (typeRhs.ElementInit == null) {
-        Contract.Assert((typeRhs.InitDisplay != null && typeRhs.InitDisplay.Count != 0) || DatatypeWrapperEraser.CanBeLeftUninitialized(Options, typeRhs.EType));
+      if (allocateArray.ElementInit == null) {
+        Contract.Assert((allocateArray.InitDisplay != null && allocateArray.InitDisplay.Count != 0) || DatatypeWrapperEraser.CanBeLeftUninitialized(Options, allocateArray.EType));
 
         string nwElement0;
         if (DeterminesArrayTypeFromExampleElement) {
           // We use the first element of the array as an "example" for the array to be allocated
           nwElement0 = ProtectedFreshId("_nwElement0_");
-          var wrElement0 = DeclareLocalVar(nwElement0, typeRhs.EType, typeRhs.InitDisplay[0].Origin, wStmts);
-          EmitExpr(typeRhs.InitDisplay[0], false, wrElement0, wStmts);
+          var wrElement0 = DeclareLocalVar(nwElement0, allocateArray.EType, allocateArray.InitDisplay[0].Origin, wStmts);
+          EmitExpr(allocateArray.InitDisplay[0], false, wrElement0, wStmts);
         } else {
           nwElement0 = null;
         }
 
         var pwStmts = wStmts.Fork();
-        var wRhs = DeclareLocalVar(nw, typeRhs.Type, typeRhs.Origin, wStmts);
-        EmitNewArray(typeRhs.EType, typeRhs.Origin, typeRhs.ArrayDimensions, false, nwElement0, wRhs, pwStmts);
+        var wRhs = DeclareLocalVar(nw, allocateArray.Type, allocateArray.Origin, wStmts);
+        EmitNewArray(allocateArray.EType, allocateArray.Origin, allocateArray.ArrayDimensions, false, nwElement0, wRhs, pwStmts);
 
         var ii = 0;
-        foreach (var v in typeRhs.InitDisplay) {
+        foreach (var v in allocateArray.InitDisplay) {
           pwStmts = wStmts.Fork();
           var (wArray, wElement) = EmitArrayUpdate([
             wIndex => EmitExprAsNativeInt(new LiteralExpr(null, ii) {
@@ -4225,8 +4225,8 @@ namespace Microsoft.Dafny.Compilers {
         //     }
         // Put the array dimensions into local variables
         var dimNames = new List<string>();
-        for (var d = 0; d < typeRhs.ArrayDimensions.Count; d++) {
-          var dim = typeRhs.ArrayDimensions[d];
+        for (var d = 0; d < allocateArray.ArrayDimensions.Count; d++) {
+          var dim = allocateArray.ArrayDimensions[d];
           var dimName = ProtectedFreshId($"_len{d}_");
           dimNames.Add(dimName);
           var wrDim = DeclareLocalVar(dimName, Type.Int, dim.Origin, wStmts);
@@ -4235,52 +4235,52 @@ namespace Microsoft.Dafny.Compilers {
         }
 
         // Declare the _nw variable
-        DeclareLocalVar(nw, typeRhs.Type, typeRhs.Origin, false, null, wStmts);
+        DeclareLocalVar(nw, allocateArray.Type, allocateArray.Origin, false, null, wStmts);
 
         // Generate if statement
         var wThen = EmitIf(out var guardWriter, true, wStmts);
-        for (var d = 0; d < typeRhs.ArrayDimensions.Count; d++) {
+        for (var d = 0; d < allocateArray.ArrayDimensions.Count; d++) {
           if (d != 0) {
             guardWriter.Write(" || ");
           }
           EmitIsZero(dimNames[d], guardWriter);
         }
         var wRhs = new ConcreteSyntaxTree();
-        EmitNewArray(typeRhs.EType, typeRhs.Origin, dimNames, false, null, wRhs, wThen);
-        EmitAssignment(nw, typeRhs.Type, wRhs.ToString(), typeRhs.Type, wThen);
+        EmitNewArray(allocateArray.EType, allocateArray.Origin, dimNames, false, null, wRhs, wThen);
+        EmitAssignment(nw, allocateArray.Type, wRhs.ToString(), allocateArray.Type, wThen);
 
         var wElse = EmitBlock(wStmts);
 
         // Put the array-initializing function into a local variable
         string init = ProtectedFreshId("_init");
-        DeclareLocalVar(init, typeRhs.ElementInit.Type, typeRhs.ElementInit.Origin, typeRhs.ElementInit, false, wElse);
+        DeclareLocalVar(init, allocateArray.ElementInit.Type, allocateArray.ElementInit.Origin, allocateArray.ElementInit, false, wElse);
 
         // var _element0 := _init(0, 0, 0);
-        var initFunctionType = typeRhs.ElementInit.Type.AsArrowType;
-        Contract.Assert(initFunctionType != null && initFunctionType.Arity == typeRhs.ArrayDimensions.Count);
+        var initFunctionType = allocateArray.ElementInit.Type.AsArrowType;
+        Contract.Assert(initFunctionType != null && initFunctionType.Arity == allocateArray.ArrayDimensions.Count);
         var element0 = ProtectedFreshId($"_element0_");
-        wRhs = DeclareLocalVar(element0, null, typeRhs.Origin, wElse);
+        wRhs = DeclareLocalVar(element0, null, allocateArray.Origin, wElse);
         wRhs.Write("{0}{1}({2})", init, LambdaExecute, initFunctionType.Args.Comma(argumentType => {
-          var zero = Expression.CreateIntLiteral(typeRhs.Origin, 0, argumentType);
+          var zero = Expression.CreateIntLiteral(allocateArray.Origin, 0, argumentType);
           return Expr(zero, false, wElse).ToString();
         }));
 
         // _nw := NewArrayFromExample(X, _element0, _len0, _len1, _len2);
         wRhs = new ConcreteSyntaxTree();
-        EmitNewArray(typeRhs.EType, typeRhs.Origin, dimNames, false, element0, wRhs, wElse);
-        EmitAssignment(nw, typeRhs.Type, wRhs.ToString(), typeRhs.Type, wElse);
+        EmitNewArray(allocateArray.EType, allocateArray.Origin, dimNames, false, element0, wRhs, wElse);
+        EmitAssignment(nw, allocateArray.Type, wRhs.ToString(), allocateArray.Type, wElse);
 
         // _nw[0, 0, 0] := _element0;
-        var indices = Util.Map(Enumerable.Range(0, typeRhs.ArrayDimensions.Count), _ => ArrayIndexLiteral(0));
-        var (wArray, wrRhs) = EmitArrayUpdate(Util.Map<string, Action<ConcreteSyntaxTree>>(indices, i => wIndex => wIndex.Write(i)), typeRhs.EType, wElse);
+        var indices = Util.Map(Enumerable.Range(0, allocateArray.ArrayDimensions.Count), _ => ArrayIndexLiteral(0));
+        var (wArray, wrRhs) = EmitArrayUpdate(Util.Map<string, Action<ConcreteSyntaxTree>>(indices, i => wIndex => wIndex.Write(i)), allocateArray.EType, wElse);
         EmitIdentifier(element0, wrRhs);
         EmitIdentifier(nw, wArray);
         EndStmt(wElse);
 
         // Compute native array dimensions
         var nativeDimNames = new List<string>();
-        for (var d = 0; d < typeRhs.ArrayDimensions.Count; d++) {
-          var dim = typeRhs.ArrayDimensions[d];
+        for (var d = 0; d < allocateArray.ArrayDimensions.Count; d++) {
+          var dim = allocateArray.ArrayDimensions[d];
           var nativeDimName = ProtectedFreshId($"_nativeLen{d}_");
           nativeDimNames.Add(nativeDimName);
           var wrDim = DeclareLocalVar(nativeDimName, null, dim.Origin, wElse);
@@ -4289,25 +4289,25 @@ namespace Microsoft.Dafny.Compilers {
 
         // var _start := 1;
         string startName;
-        if (typeRhs.ArrayDimensions.Count == 1) {
+        if (allocateArray.ArrayDimensions.Count == 1) {
           startName = ArrayIndexLiteral(1);
         } else {
           startName = ProtectedFreshId($"_start");
-          DeclareLocalVar(startName, null, typeRhs.Origin, false, ArrayIndexLiteral(1), wElse);
+          DeclareLocalVar(startName, null, allocateArray.Origin, false, ArrayIndexLiteral(1), wElse);
         }
 
         // Build a nested loop that will call the initializer for all indices
-        indices = Util.Map(Enumerable.Range(0, typeRhs.ArrayDimensions.Count), ii => ProtectedFreshId($"_i{ii}_"));
+        indices = Util.Map(Enumerable.Range(0, allocateArray.ArrayDimensions.Count), ii => ProtectedFreshId($"_i{ii}_"));
         var w = wElse;
-        for (var d = 0; d < typeRhs.ArrayDimensions.Count; d++) {
-          var innerMostLoop = d == typeRhs.ArrayDimensions.Count - 1;
+        for (var d = 0; d < allocateArray.ArrayDimensions.Count; d++) {
+          var innerMostLoop = d == allocateArray.ArrayDimensions.Count - 1;
           var wLoopBody = CreateForLoop(indices[d], w => EmitIdentifier(nativeDimNames[d], w), w, innerMostLoop ? startName : null);
-          if (typeRhs.ArrayDimensions.Count != 1 && innerMostLoop) {
+          if (allocateArray.ArrayDimensions.Count != 1 && innerMostLoop) {
             EmitAssignment(startName, Type.Int, ArrayIndexLiteral(0), Type.Int, w);
           }
           w = wLoopBody;
         }
-        (wArray, wrRhs) = EmitArrayUpdate(Util.Map<string, Action<ConcreteSyntaxTree>>(indices, i => wIndex => wIndex.Write(i)), typeRhs.EType, w);
+        (wArray, wrRhs) = EmitArrayUpdate(Util.Map<string, Action<ConcreteSyntaxTree>>(indices, i => wIndex => wIndex.Write(i)), allocateArray.EType, w);
         wrRhs.Write("{0}{1}({2})", init, LambdaExecute, Enumerable.Range(0, indices.Count).Comma(
           idx => {
             var w = new ConcreteSyntaxTree();
@@ -4334,22 +4334,22 @@ namespace Microsoft.Dafny.Compilers {
 
         // Put the array-initializing function into a local variable
         string init = ProtectedFreshId("_init");
-        DeclareLocalVar(init, typeRhs.ElementInit.Type, typeRhs.ElementInit.Origin, typeRhs.ElementInit, false, wStmts);
+        DeclareLocalVar(init, allocateArray.ElementInit.Type, allocateArray.ElementInit.Origin, allocateArray.ElementInit, false, wStmts);
 
         var pwStmts = wStmts.Fork();
-        var wRhs = DeclareLocalVar(nw, typeRhs.Type, typeRhs.Origin, wStmts);
-        EmitNewArray(typeRhs.EType, typeRhs.Origin, typeRhs.ArrayDimensions, false, null, wRhs, pwStmts);
+        var wRhs = DeclareLocalVar(nw, allocateArray.Type, allocateArray.Origin, wStmts);
+        EmitNewArray(allocateArray.EType, allocateArray.Origin, allocateArray.ArrayDimensions, false, null, wRhs, pwStmts);
 
         // Build a nested loop that will call the initializer for all indices
-        var indices = Util.Map(Enumerable.Range(0, typeRhs.ArrayDimensions.Count), ii => ProtectedFreshId($"_i{ii}_"));
+        var indices = Util.Map(Enumerable.Range(0, allocateArray.ArrayDimensions.Count), ii => ProtectedFreshId($"_i{ii}_"));
         var w = wStmts;
-        for (var d = 0; d < typeRhs.ArrayDimensions.Count; d++) {
+        for (var d = 0; d < allocateArray.ArrayDimensions.Count; d++) {
           w = CreateForLoop(indices[d], w => {
-            EmitArrayLength(w => EmitIdentifier(nw, w), typeRhs, d, true, w);
+            EmitArrayLength(w => EmitIdentifier(nw, w), allocateArray, d, true, w);
           }, w);
         }
-        var (wArray, wrRhs) = EmitArrayUpdate(Util.Map<string, Action<ConcreteSyntaxTree>>(indices, i => wIndex => EmitIdentifier(i, wIndex)), typeRhs.EType, w);
-        wrRhs = EmitCoercionIfNecessary(TypeForCoercion(typeRhs.EType), typeRhs.EType, typeRhs.Origin, wrRhs);
+        var (wArray, wrRhs) = EmitArrayUpdate(Util.Map<string, Action<ConcreteSyntaxTree>>(indices, i => wIndex => EmitIdentifier(i, wIndex)), allocateArray.EType, w);
+        wrRhs = EmitCoercionIfNecessary(TypeForCoercion(allocateArray.EType), allocateArray.EType, allocateArray.Origin, wrRhs);
         EmitLambdaApply(wrRhs, out var wLambda, out var wArg);
         EmitIdentifier(init, wLambda);
         for (var i = 0; i < indices.Count; i++) {
@@ -4365,7 +4365,7 @@ namespace Microsoft.Dafny.Compilers {
       }
     }
 
-    protected virtual void EmitArrayLength(Action<ConcreteSyntaxTree> arr, TypeRhs typeRhs, int d, bool native,
+    protected virtual void EmitArrayLength(Action<ConcreteSyntaxTree> arr, AllocateArray typeRhs, int d, bool native,
       ConcreteSyntaxTree w) {
       GetSpecialFieldInfo(SpecialField.ID.ArrayLength, typeRhs.ArrayDimensions.Count == 1 ? null : d, typeRhs.Type,
                   out var len, out var pre, out var post);

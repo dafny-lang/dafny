@@ -405,8 +405,6 @@ namespace Microsoft.Dafny {
     }
 
     public virtual BlockStmt CloneBlockStmt(BlockStmt stmt) {
-      Contract.Requires(
-        !(stmt is DividedBlockStmt)); // for blocks that may be DividedBlockStmt's, call CloneDividedBlockStmt instead
       if (stmt == null) {
         return null;
       } else {
@@ -574,7 +572,8 @@ namespace Microsoft.Dafny {
         GreatestLemma greatestLemma => new GreatestLemma(this, greatestLemma),
         Lemma lemma => new Lemma(this, lemma),
         TwoStateLemma lemma => new TwoStateLemma(this, lemma),
-        Method method => new Method(this, method)
+        Method method => new Method(this, method),
+        _ => throw new ArgumentOutOfRangeException(nameof(m), m, null)
       };
     }
 

@@ -20,7 +20,7 @@ public class DividedBlockStmt : BlockLikeStmt, ICloneable<DividedBlockStmt> {
   }
 
   [SyntaxConstructor]
-  public DividedBlockStmt(IOrigin origin, List<Statement> bodyInit, 
+  public DividedBlockStmt(IOrigin origin, List<Statement> bodyInit,
     IOrigin? separatorTok, List<Statement> bodyProper, Attributes? attributes = null)
     : base(origin, attributes) {
     Contract.Requires(origin != null);

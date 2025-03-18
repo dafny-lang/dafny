@@ -45,7 +45,7 @@ public abstract class MethodOrFunction : MemberDecl, ICodeContainer {
     Ens = ens;
     Ins = ins;
   }
-  
+
   protected MethodOrFunction(Cloner cloner, MethodOrFunction original) : base(cloner, original) {
     this.TypeArgs = cloner.CloneResolvedFields ? original.TypeArgs : original.TypeArgs.ConvertAll(cloner.CloneTypeParam);
     this.Req = original.Req.ConvertAll(cloner.CloneAttributedExpr);

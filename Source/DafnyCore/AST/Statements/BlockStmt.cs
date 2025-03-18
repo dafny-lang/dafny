@@ -8,14 +8,12 @@ public class BlockStmt : BlockLikeStmt, ICloneable<BlockStmt> {
 
   public override List<Statement> Body { get; }
 
-  public BlockStmt(Cloner cloner, BlockLikeStmt original) : base(cloner, original)
-  {
+  public BlockStmt(Cloner cloner, BlockLikeStmt original) : base(cloner, original) {
     Body = original.Body.Select(stmt => cloner.CloneStmt(stmt, false)).ToList();
   }
 
   [SyntaxConstructor]
-  public BlockStmt(IOrigin origin, List<Statement> body, Attributes? attributes = null) : base(origin, attributes)
-  {
+  public BlockStmt(IOrigin origin, List<Statement> body, Attributes? attributes = null) : base(origin, attributes) {
     Body = body;
   }
 

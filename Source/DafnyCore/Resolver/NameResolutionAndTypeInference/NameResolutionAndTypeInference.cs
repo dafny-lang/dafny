@@ -4325,62 +4325,61 @@ namespace Microsoft.Dafny {
       return false;
     }
 
-    public void ResolveTypeRhs(TypeRhs rr, Statement stmt, ResolutionContext resolutionContext) {
-      Contract.Requires(rr != null);
+    public void ResolveTypeRhs(TypeRhs rr2, Statement stmt, ResolutionContext resolutionContext) {
+      Contract.Requires(rr2 != null);
       Contract.Requires(stmt != null);
       Contract.Requires(resolutionContext != null);
       Contract.Ensures(Contract.Result<Type>() != null);
 
-      if (rr.Type == null) {
-        if (rr.ArrayDimensions != null) {
+      if (rr2.Type == null) {
+        if (rr2 is AllocateArray allocateArray) {
           // ---------- new T[EE]    OR    new T[EE] (elementInit)
-          Contract.Assert(rr.Bindings == null && rr.Path == null && rr.InitCall == null);
-          ResolveType(stmt.Origin, rr.EType, resolutionContext, ResolveTypeOptionEnum.InferTypeProxies, null);
+          ResolveType(stmt.Origin, allocateArray.EType, resolutionContext, ResolveTypeOptionEnum.InferTypeProxies, null);
           int i = 0;
-          foreach (Expression dim in rr.ArrayDimensions) {
+          foreach (Expression dim in allocateArray.ArrayDimensions) {
             Contract.Assert(dim != null);
             ResolveExpression(dim, resolutionContext);
-            ConstrainToIntegerType(dim, false, string.Format("new must use an integer-based expression for the array size (got {{0}}{0})", rr.ArrayDimensions.Count == 1 ? "" : " for index " + i));
+            ConstrainToIntegerType(dim, false, string.Format("new must use an integer-based expression for the array size (got {{0}}{0})", allocateArray.ArrayDimensions.Count == 1 ? "" : " for index " + i));
             i++;
           }
-          rr.Type = ResolvedArrayType(stmt.Origin, rr.ArrayDimensions.Count, rr.EType, resolutionContext, false);
-          if (rr.ElementInit != null) {
-            ResolveExpression(rr.ElementInit, resolutionContext);
+          allocateArray.Type = ResolvedArrayType(stmt.Origin, allocateArray.ArrayDimensions.Count, allocateArray.EType, resolutionContext, false);
+          if (allocateArray.ElementInit != null) {
+            ResolveExpression(allocateArray.ElementInit, resolutionContext);
             // Check
             //     int^N -> rr.EType  :>  rr.ElementInit.Type
-            SystemModuleManager.CreateArrowTypeDecl(rr.ArrayDimensions.Count);  // TODO: should this be done already in the parser?
+            SystemModuleManager.CreateArrowTypeDecl(allocateArray.ArrayDimensions.Count);  // TODO: should this be done already in the parser?
             var args = new List<Type>();
-            for (int ii = 0; ii < rr.ArrayDimensions.Count; ii++) {
+            for (int ii = 0; ii < allocateArray.ArrayDimensions.Count; ii++) {
               args.Add(SystemModuleManager.Nat());
             }
-            var arrowType = new ArrowType(rr.ElementInit.Origin, SystemModuleManager.ArrowTypeDecls[rr.ArrayDimensions.Count], args, rr.EType);
-            var lambdaType = rr.ElementInit.Type.AsArrowType;
+            var arrowType = new ArrowType(allocateArray.ElementInit.Origin, SystemModuleManager.ArrowTypeDecls[allocateArray.ArrayDimensions.Count], args, allocateArray.EType);
+            var lambdaType = allocateArray.ElementInit.Type.AsArrowType;
             if (lambdaType != null && lambdaType.TypeArgs[0] is InferredTypeProxy) {
               (lambdaType.TypeArgs[0] as InferredTypeProxy).KeepConstraints = true;
             }
             string underscores;
-            if (rr.ArrayDimensions.Count == 1) {
+            if (allocateArray.ArrayDimensions.Count == 1) {
               underscores = "_";
             } else {
-              underscores = "(" + Util.Comma(rr.ArrayDimensions.Count, x => "_") + ")";
+              underscores = "(" + Util.Comma(allocateArray.ArrayDimensions.Count, x => "_") + ")";
             }
             var hintString = string.Format(" (perhaps write '{0} =>' in front of the expression you gave in order to make it an arrow type)", underscores);
-            ConstrainSubtypeRelation(arrowType, rr.ElementInit.Type, rr.ElementInit, "array-allocation initialization expression expected to have type '{0}' (instead got '{1}'){2}",
-              arrowType, rr.ElementInit.Type, new LazyStringOnTypeEquals(rr.EType, rr.ElementInit.Type, hintString));
-          } else if (rr.InitDisplay != null) {
-            foreach (var v in rr.InitDisplay) {
+            ConstrainSubtypeRelation(arrowType, allocateArray.ElementInit.Type, allocateArray.ElementInit, "array-allocation initialization expression expected to have type '{0}' (instead got '{1}'){2}",
+              arrowType, allocateArray.ElementInit.Type, new LazyStringOnTypeEquals(allocateArray.EType, allocateArray.ElementInit.Type, hintString));
+          } else if (allocateArray.InitDisplay != null) {
+            foreach (var v in allocateArray.InitDisplay) {
               ResolveExpression(v, resolutionContext);
-              AddAssignableConstraint(v.Origin, rr.EType, v.Type, "initial value must be assignable to array's elements (expected '{0}', got '{1}')");
+              AddAssignableConstraint(v.Origin, allocateArray.EType, v.Type, "initial value must be assignable to array's elements (expected '{0}', got '{1}')");
             }
           }
-        } else {
-          if (rr.Bindings == null) {
-            ResolveType(stmt.Origin, rr.EType, resolutionContext, ResolveTypeOptionEnum.InferTypeProxies, null);
-            var cl = (rr.EType as UserDefinedType)?.ResolvedClass as NonNullTypeDecl;
-            if (cl != null && !(rr.EType.IsTraitType && !rr.EType.NormalizeExpand().IsObjectQ)) {
+        } else if (rr2 is AllocateClass allocateClass) {
+          if (allocateClass.Bindings == null) {
+            ResolveType(stmt.Origin, allocateClass.Path, resolutionContext, ResolveTypeOptionEnum.InferTypeProxies, null);
+            var cl = (allocateClass.Path as UserDefinedType)?.ResolvedClass as NonNullTypeDecl;
+            if (cl != null && !(allocateClass.Path.IsTraitType && !allocateClass.Path.NormalizeExpand().IsObjectQ)) {
               // life is good
             } else {
-              reporter.Error(MessageSource.Resolver, rr.Origin, "new can be applied only to class types (got {0})", rr.EType);
+              reporter.Error(MessageSource.Resolver, allocateClass.Origin, "new can be applied only to class types (got {0})", allocateClass.Path);
             }
           } else {
             string initCallName = null;
@@ -4389,22 +4388,21 @@ namespace Microsoft.Dafny {
             // * If rr.Path denotes a type, then set EType,initCallName to rr.Path,"_ctor", which sets up a call to the anonymous constructor.
             // * If the all-but-last components of rr.Path denote a type, then do EType,initCallName := allButLast(EType),last(EType)
             // * Otherwise, report an error
-            var ret = ResolveTypeLenient(rr.Origin, rr.Path, resolutionContext, new ResolveTypeOption(ResolveTypeOptionEnum.InferTypeProxies), null, true);
+            var ret = ResolveTypeLenient(allocateClass.Origin, allocateClass.Path, resolutionContext, new ResolveTypeOption(ResolveTypeOptionEnum.InferTypeProxies), null, true);
             if (ret != null) {
               // The all-but-last components of rr.Path denote a type (namely, ret.ReplacementType).
-              rr.EType = ret.ReplacementType;
+              allocateClass.Path = ret.ReplacementType;
               initCallName = ret.LastComponent.SuffixName;
               initCallTok = ret.LastComponent.Origin;
             } else {
               // Either rr.Path resolved correctly as a type or there was no way to drop a last component to make it into something that looked
               // like a type.  In either case, set EType,initCallName to Path,"_ctor" and continue.
-              rr.EType = rr.Path;
               initCallName = "_ctor";
-              initCallTok = rr.Origin;
+              initCallTok = allocateClass.Origin;
             }
-            var cl = (rr.EType as UserDefinedType)?.ResolvedClass as NonNullTypeDecl;
-            if (cl == null || rr.EType.IsTraitType) {
-              reporter.Error(MessageSource.Resolver, rr.Origin, "new can be applied only to class types (got {0})", rr.EType);
+            var cl = (allocateClass.Path as UserDefinedType)?.ResolvedClass as NonNullTypeDecl;
+            if (cl == null || allocateClass.Path.IsTraitType) {
+              reporter.Error(MessageSource.Resolver, allocateClass.Origin, "new can be applied only to class types (got {0})", allocateClass.Path);
             } else {
               // ---------- new C.Init(EE)
               Contract.Assert(initCallName != null);
@@ -4412,22 +4410,22 @@ namespace Microsoft.Dafny {
 
               // We want to create a MemberSelectExpr for the initializing method.  To do that, we create a throw-away receiver of the appropriate
               // type, create a dot-suffix expression around this receiver, and then resolve it in the usual way for dot-suffix expressions.
-              var lhs = new ImplicitThisExprConstructorCall(initCallTok) { Type = rr.EType };
-              var callLhs = new ExprDotName(((UserDefinedType)rr.EType).Origin, lhs, new Name(initCallName), ret == null ? null : ret.LastComponent.OptTypeArguments);
-              ResolveDotSuffix(callLhs, false, true, rr.Bindings.ArgumentBindings, resolutionContext, true);
+              var lhs = new ImplicitThisExprConstructorCall(initCallTok) { Type = allocateClass.Path };
+              var callLhs = new ExprDotName(((UserDefinedType)allocateClass.Path).Origin, lhs, new Name(initCallName), ret == null ? null : ret.LastComponent.OptTypeArguments);
+              ResolveDotSuffix(callLhs, false, true, allocateClass.Bindings.ArgumentBindings, resolutionContext, true);
               if (prevErrorCount == reporter.Count(ErrorLevel.Error)) {
                 Contract.Assert(callLhs.ResolvedExpression is MemberSelectExpr);  // since ResolveApplySuffix succeeded and call.Lhs denotes an expression (not a module or a type)
                 var methodSel = (MemberSelectExpr)callLhs.ResolvedExpression;
                 if (methodSel.Member is MethodOrConstructor) {
-                  rr.InitCall = new CallStmt(stmt.Origin, [], methodSel, rr.Bindings.ArgumentBindings, initCallTok.Center);
-                  ResolveCallStmt(rr.InitCall, resolutionContext, rr.EType);
+                  allocateClass.InitCall = new CallStmt(stmt.Origin, [], methodSel, allocateClass.Bindings.ArgumentBindings, initCallTok.Center);
+                  ResolveCallStmt(allocateClass.InitCall, resolutionContext, allocateClass.Path);
                 } else {
                   reporter.Error(MessageSource.Resolver, initCallTok, "object initialization must denote an initializing method or constructor ({0})", initCallName);
                 }
               }
             }
           }
-          rr.Type = rr.EType;
+          allocateClass.Type = allocateClass.Path;
         }
       }
     }

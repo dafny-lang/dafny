@@ -1398,9 +1398,9 @@ namespace Microsoft.Dafny.Compilers {
           var compiledNameConstantField = (protectedName.Length > 0 && internalAccess ? InternalFieldPrefix : "") + protectedName;
           return SpecialOrConstantField(obj, objType, member, typeArgs, cf, compiledNameConstantField);
         case SpecialField sf: {
-          GetSpecialFieldInfo(sf.SpecialId, sf.IdParam, objType, out var compiledName, out _, out _);
-          return SpecialOrConstantField(obj, objType, member, typeArgs, sf, compiledName);
-        }
+            GetSpecialFieldInfo(sf.SpecialId, sf.IdParam, objType, out var compiledName, out _, out _);
+            return SpecialOrConstantField(obj, objType, member, typeArgs, sf, compiledName);
+          }
         case Field: {
             return SimpleLvalue(w => {
               if (member.IsStatic) { w.Write(TypeName_Companion(objType, w, member.Origin, member)); } else { obj(w); }
@@ -1438,10 +1438,9 @@ namespace Microsoft.Dafny.Compilers {
       }
     }
 
-    private ILvalue SpecialOrConstantField(Action<ConcreteSyntaxTree> obj, Type objType, MemberDecl member, 
+    private ILvalue SpecialOrConstantField(Action<ConcreteSyntaxTree> obj, Type objType, MemberDecl member,
       List<TypeArgumentInstantiation> typeArgs,
-      Field field, string compiledName)
-    {
+      Field field, string compiledName) {
       return SimpleLvalue(w => {
         var customReceiver = NeedsCustomReceiverNotTrait(field);
         if (field.IsStatic || customReceiver) {

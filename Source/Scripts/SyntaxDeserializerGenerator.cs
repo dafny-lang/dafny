@@ -89,7 +89,7 @@ private object ReadObject(System.Type actualType) {{
         return;
 
       }
-      
+
 
       var schemaPosition2 = ownedFieldPosition++;
       parameterToSchemaPosition[memberInfo.Name] = schemaPosition2;

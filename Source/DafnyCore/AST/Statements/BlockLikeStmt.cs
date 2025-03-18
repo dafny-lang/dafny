@@ -29,26 +29,26 @@ public abstract class BlockLikeStmt : Statement, ICanFormat {
       }
       switch (token.val) {
         case "{": {
-          if (!formatter.TryGetIndentInline(token, out var indentLineBefore)) {
-            formatter.SetDelimiterIndentedRegions(token, braceIndent);
-          } else {
-            braceIndent = indentLineBefore;
-            if (!formatter.TryGetIndentAbove(token, out _)) {
+            if (!formatter.TryGetIndentInline(token, out var indentLineBefore)) {
               formatter.SetDelimiterIndentedRegions(token, braceIndent);
+            } else {
+              braceIndent = indentLineBefore;
+              if (!formatter.TryGetIndentAbove(token, out _)) {
+                formatter.SetDelimiterIndentedRegions(token, braceIndent);
+              }
+
+              if (!TokenNewIndentCollector.IsFollowedByNewline(token)) {
+                // Align statements
+                formatter.SetAlign(indentBefore, token, out innerBlockIndent, out braceIndent);
+              }
             }
 
-            if (!TokenNewIndentCollector.IsFollowedByNewline(token)) {
-              // Align statements
-              formatter.SetAlign(indentBefore, token, out innerBlockIndent, out braceIndent);
-            }
+            break;
           }
-
-          break;
-        }
         case "}": {
-          formatter.SetIndentations(token, braceIndent + formatter.SpaceTab, braceIndent, indentBefore);
-          break;
-        }
+            formatter.SetIndentations(token, braceIndent + formatter.SpaceTab, braceIndent, indentBefore);
+            break;
+          }
       }
     }
 

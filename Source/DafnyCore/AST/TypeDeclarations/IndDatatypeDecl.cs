@@ -7,13 +7,13 @@ namespace Microsoft.Dafny;
 
 public class IndDatatypeDecl : DatatypeDecl {
   public override string WhatKind { get { return "datatype"; } }
-  [FilledInDuringResolution] public DatatypeCtor GroundingCtor; // set during resolution (possibly to null)
+  [FilledInDuringResolution] public DatatypeCtor? GroundingCtor; // set during resolution (possibly to null)
 
   public override DatatypeCtor GetGroundingCtor() {
     return GroundingCtor ?? Ctors.FirstOrDefault(ctor => ctor.IsGhost, Ctors[0]);
   }
 
-  private bool[] typeParametersUsedInConstructionByGroundingCtor;
+  private bool[]? typeParametersUsedInConstructionByGroundingCtor;
 
   public bool[] TypeParametersUsedInConstructionByGroundingCtor {
     get {

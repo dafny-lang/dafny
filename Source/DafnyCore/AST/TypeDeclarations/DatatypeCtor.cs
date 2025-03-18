@@ -12,7 +12,6 @@ public class DatatypeCtor : Declaration, TypeParameter.ParentType, IHasDocstring
   [ContractInvariantMethod]
   void ObjectInvariant() {
     Contract.Invariant(cce.NonNullElements(Formals));
-    Contract.Invariant(Destructors != null);
     Contract.Invariant(
       Destructors.Count == 0 || // this is until resolution
       Destructors.Count == Formals.Count);  // after resolution
@@ -21,13 +20,13 @@ public class DatatypeCtor : Declaration, TypeParameter.ParentType, IHasDocstring
   public override IEnumerable<INode> Children => base.Children.Concat(Formals);
 
   // TODO: One could imagine having a precondition on datatype constructors
-  [FilledInDuringResolution] public DatatypeDecl EnclosingDatatype;
-  [FilledInDuringResolution] public SpecialField QueryField;
+  [FilledInDuringResolution] public DatatypeDecl? EnclosingDatatype;
+  [FilledInDuringResolution] public SpecialField? QueryField;
   [FilledInDuringResolution] public List<DatatypeDestructor> Destructors = [];  // includes both implicit (not mentionable in source) and explicit destructors
 
   public DatatypeCtor(IOrigin origin, Name nameNode, bool isGhost, [Captured] List<Formal> formals, Attributes? attributes)
     : base(origin, nameNode, attributes) {
-    Contract.Requires(origin != null); 
+    Contract.Requires(origin != null);
     Contract.Requires(nameNode != null);
     Contract.Requires(cce.NonNullElements(formals));
     this.Formals = formals;
@@ -43,7 +42,7 @@ public class DatatypeCtor : Declaration, TypeParameter.ParentType, IHasDocstring
     }
   }
 
-  public string GetTriviaContainingDocstring() {
+  public string? GetTriviaContainingDocstring() {
     if (GetStartTriviaDocstring(out var triviaFound)) {
       return triviaFound;
     }
@@ -59,10 +58,10 @@ public class DatatypeCtor : Declaration, TypeParameter.ParentType, IHasDocstring
   public override SymbolKind? Kind => SymbolKind.EnumMember;
   public override string GetDescription(DafnyOptions options) {
     var formals = string.Join(", ", Formals.Select(f => f.AsText()));
-    return $"{EnclosingDatatype.Name}.{Name}({formals})";
+    return $"{EnclosingDatatype!.Name}.{Name}({formals})";
   }
 
-  public ModuleDefinition ContainingModule => EnclosingDatatype.EnclosingModuleDefinition;
+  public ModuleDefinition ContainingModule => EnclosingDatatype!.EnclosingModuleDefinition;
   public bool ShouldVerify => Formals.Any(f => f.DefaultValue != null);
   public string FullDafnyName => FullName;
 }

@@ -16,7 +16,7 @@ public class Function : MethodOrFunction, TypeParameter.ParentType, ICallable, I
 
   public override bool HasStaticKeyword { get; }
 
-  
+
   public string GetFunctionDeclarationKeywords(DafnyOptions options) {
     string k;
     if (this is TwoStateFunction || this is ExtremePredicate || this.ByMethodBody != null) {

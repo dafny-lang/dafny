@@ -1422,7 +1422,7 @@ namespace Microsoft.Dafny.Compilers {
       }
     }
 
-    protected override void EmitArrayLength(Action<ConcreteSyntaxTree> arr, TypeRhs typeRhs, int d, bool native,
+    protected override void EmitArrayLength(Action<ConcreteSyntaxTree> arr, AllocateArray typeRhs, int d, bool native,
       ConcreteSyntaxTree w) {
       var arrayLengthBuilder = new ArrayLengthBuilder(GenType(typeRhs.Type), d, native);
       arr(new BuilderSyntaxTree<ExprContainer>(arrayLengthBuilder, this));

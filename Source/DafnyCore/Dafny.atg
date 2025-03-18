@@ -2429,14 +2429,14 @@ Rhs<out AssignmentRhs r>
     )
     (. if (ee != null) {
          if (display != null) {
-           r = new TypeRhs(newToken, ty, ee[0], display);
+           r = new AllocateArray(newToken, ty, ee[0], display);
          } else {
-           r = new TypeRhs(newToken, ty, ee, arrayElementInit);
+           r = new AllocateArray(newToken, ty, ee, arrayElementInit);
          }
        } else if (args != null) {
-         r = new TypeRhs(newToken, ty, args);
+         r = new AllocateClass(newToken, ty, args);
        } else {
-         r = new TypeRhs(newToken, ty);
+         r = new AllocateClass(newToken, ty);
        }
     .)
   | "*"                                (. r = new HavocRhs(t); startToken = t; .)

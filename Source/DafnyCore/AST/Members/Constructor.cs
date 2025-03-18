@@ -8,7 +8,7 @@ namespace Microsoft.Dafny;
 public class Constructor : MethodOrConstructor {
   private DividedBlockStmt? body;
   public override List<Formal> Outs => [];
-  
+
   public override string WhatKind => "constructor";
   public override bool HasStaticKeyword => false;
 
@@ -22,25 +22,10 @@ public class Constructor : MethodOrConstructor {
     return EnclosingClass.Name;
   }
 
-  public List<Statement> BodyInit {  // first part of Body's statements
-    get {
-      if (Body == null) {
-        return null;
-      } else {
-        return ((DividedBlockStmt)Body).BodyInit;
-      }
-    }
-  }
-  public List<Statement> BodyProper {  // second part of Body's statements
-    get {
-      if (Body == null) {
-        return null;
-      } else {
-        return ((DividedBlockStmt)Body).BodyProper;
-      }
-    }
-  }
-  
+  public List<Statement>? BodyInit => Body?.BodyInit;
+
+  public List<Statement>? BodyProper => Body?.BodyProper;
+
   [SyntaxConstructor]
   public Constructor(IOrigin origin, Name nameNode,
     bool isGhost,

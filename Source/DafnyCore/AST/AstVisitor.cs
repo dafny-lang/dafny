@@ -337,10 +337,8 @@ namespace Microsoft.Dafny {
           }
 
         } else if (stmt is SingleAssignStmt assignStmt) {
-          if (assignStmt.Rhs is TypeRhs typeRhs) {
-            if (typeRhs.EType != null) {
-              VisitUserProvidedType(typeRhs.EType, context);
-            }
+          if (assignStmt.Rhs is AllocateArray typeRhs) {
+            VisitUserProvidedType(typeRhs.EType, context);
           }
 
         } else if (stmt is OneBodyLoopStmt oneBodyLoopStmt) {

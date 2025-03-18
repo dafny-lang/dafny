@@ -545,14 +545,16 @@ class GhostInterestVisitor {
     if (lhs.Resolved is AutoGhostIdentifierExpr autoGhostIdExpr) {
       if (s.Rhs is ExprRhs eRhs && ExpressionTester.UsesSpecFeatures(eRhs.Expr)) {
         autoGhostIdExpr.Var.MakeGhost();
-      } else if (s.Rhs is TypeRhs tRhs) {
-        if (tRhs.InitCall != null && tRhs.InitCall.Method.IsGhost) {
+      } else if (s.Rhs is AllocateClass allocateClass) {
+        if (allocateClass.InitCall != null && allocateClass.InitCall.Method.IsGhost) {
           autoGhostIdExpr.Var.MakeGhost();
-        } else if (tRhs.ArrayDimensions != null && tRhs.ArrayDimensions.Exists(ExpressionTester.UsesSpecFeatures)) {
+        }
+      } else if (s.Rhs is AllocateArray allocateArray) {
+        if (allocateArray.ArrayDimensions.Exists(ExpressionTester.UsesSpecFeatures)) {
           autoGhostIdExpr.Var.MakeGhost();
-        } else if (tRhs.ElementInit != null && ExpressionTester.UsesSpecFeatures(tRhs.ElementInit)) {
+        } else if (allocateArray.ElementInit != null && ExpressionTester.UsesSpecFeatures(allocateArray.ElementInit)) {
           autoGhostIdExpr.Var.MakeGhost();
-        } else if (tRhs.InitDisplay != null && tRhs.InitDisplay.Any(ExpressionTester.UsesSpecFeatures)) {
+        } else if (allocateArray.InitDisplay != null && allocateArray.InitDisplay.Any(ExpressionTester.UsesSpecFeatures)) {
           autoGhostIdExpr.Var.MakeGhost();
         }
       }
@@ -568,7 +570,7 @@ class GhostInterestVisitor {
       if (proofContext != null && !(lhs is IdentifierExpr)) {
         Error(ErrorId.r_no_heap_update_in_proof, lhs.Origin, $"{proofContext} is not allowed to make heap updates");
       }
-      if (s.Rhs is TypeRhs tRhs && tRhs.InitCall != null) {
+      if (s.Rhs is AllocateClass { InitCall: not null } tRhs) {
         Visit(tRhs.InitCall, true, proofContext);
       }
     } else if (gk == SingleAssignStmt.NonGhostKind.Variable && codeContext.IsGhost) {
@@ -601,25 +603,27 @@ class GhostInterestVisitor {
         }
       } else if (s.Rhs is HavocRhs) {
         // cool
-      } else {
+      } else if (s.Rhs is AllocateArray allocateArray) {
         var rhs = (TypeRhs)s.Rhs;
-        if (rhs.ArrayDimensions != null) {
-          rhs.ArrayDimensions.ForEach(ee => ExpressionTester.CheckIsCompilable(resolver, reporter, ee, codeContext));
-          if (rhs.ElementInit != null) {
-            ExpressionTester.CheckIsCompilable(resolver, reporter, rhs.ElementInit, codeContext);
-          }
-          if (rhs.InitDisplay != null) {
-            rhs.InitDisplay.ForEach(ee => ExpressionTester.CheckIsCompilable(resolver, reporter, ee, codeContext));
-          }
+        allocateArray.ArrayDimensions.ForEach(ee =>
+          ExpressionTester.CheckIsCompilable(resolver, reporter, ee, codeContext));
+        if (allocateArray.ElementInit != null) {
+          ExpressionTester.CheckIsCompilable(resolver, reporter, allocateArray.ElementInit, codeContext);
         }
-        if (rhs.InitCall != null) {
-          var callee = rhs.InitCall.Method;
+
+        if (allocateArray.InitDisplay != null) {
+          allocateArray.InitDisplay.ForEach(ee =>
+            ExpressionTester.CheckIsCompilable(resolver, reporter, ee, codeContext));
+        }
+      } else if (s.Rhs is AllocateClass allocateClass) {
+        if (allocateClass.InitCall != null) {
+          var callee = allocateClass.InitCall.Method;
           if (callee.IsGhost) {
-            Error(ErrorId.r_assignment_to_ghost_constructor_only_in_ghost, rhs.InitCall, "the result of a ghost constructor can only be assigned to a ghost variable");
+            Error(ErrorId.r_assignment_to_ghost_constructor_only_in_ghost, allocateClass.InitCall, "the result of a ghost constructor can only be assigned to a ghost variable");
           }
-          for (var i = 0; i < rhs.InitCall.Args.Count; i++) {
+          for (var i = 0; i < allocateClass.InitCall.Args.Count; i++) {
             if (!callee.Ins[i].IsGhost) {
-              ExpressionTester.CheckIsCompilable(resolver, reporter, rhs.InitCall.Args[i], codeContext);
+              ExpressionTester.CheckIsCompilable(resolver, reporter, allocateClass.InitCall.Args[i], codeContext);
             }
           }
         }

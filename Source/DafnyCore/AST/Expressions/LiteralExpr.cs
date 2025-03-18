@@ -165,9 +165,9 @@ public class NegationExpression : ConcreteSyntaxExpression, ICloneable<NegationE
   public NegationExpression(IOrigin origin, Expression e)
     : base(origin) {
     Contract.Requires(origin != null);
-    Contract.Requires(e != null);
     E = e;
   }
+
   public override IEnumerable<Expression> SubExpressions {
     get {
       if (ResolvedExpression == null) {
