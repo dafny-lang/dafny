@@ -66,7 +66,7 @@ function iter(e: nat, f: int -> int, n: int): int
 // Iterative version of McCarthy's 91 function, following in lockstep
 // what the recursive version would do
 
-method Mc91(n0: int) returns (r: int)
+method {:fuel iter,2} Mc91  (n0: int) returns (r: int)
   ensures r == mc91(n0)
 {
   var e, n := 1, n0;
