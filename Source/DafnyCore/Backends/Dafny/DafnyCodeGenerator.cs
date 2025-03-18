@@ -1095,7 +1095,7 @@ namespace Microsoft.Dafny.Compilers {
       }
     }
 
-    protected override void EmitCallToInheritedMethod(Method method, [CanBeNull] TopLevelDeclWithMembers heir, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts, ConcreteSyntaxTree wStmtsAfterCall) {
+    protected override void EmitCallToInheritedMethod(MethodOrConstructor method, [CanBeNull] TopLevelDeclWithMembers heir, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts, ConcreteSyntaxTree wStmtsAfterCall) {
       if (wr is BuilderSyntaxTree<StatementContainer> stmtContainer) {
         var signature = GetCallSignature(method);
         var callBuilder = stmtContainer.Builder.Call(signature);

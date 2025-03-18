@@ -2364,10 +2364,10 @@ namespace Microsoft.Dafny.Compilers {
             CompileFunction(f, classWriter, false);
           }
           v.Visit(f);
-        } else if (member is Method m) {
+        } else if (member is MethodOrConstructor m) {
           if (Attributes.Contains(m.Attributes, "synthesize")) {
-            if (m.IsStatic && m.Outs.Count > 0 && m.Body == null) {
-              classWriter.SynthesizeMethod(m, CombineAllTypeArguments(m), true, true, false);
+            if (m is Method method && m.IsStatic && m.Outs.Count > 0 && m.Body == null) {
+              classWriter.SynthesizeMethod(method, CombineAllTypeArguments(m), true, true, false);
             } else {
               Error(ErrorId.c_invalid_synthesize_method, m.Origin,
                 "Method {0} is annotated with :synthesize but is not static, has a body, or does not return anything",
@@ -2556,7 +2556,7 @@ namespace Microsoft.Dafny.Compilers {
     /// "heir" is the type declaration that inherits the method. Or, it can be "null" to indicate that the method is declared in
     /// the type itself, in which case the "call to inherited" is actually a call from the dynamically dispatched method to its implementation.
     /// </summary>
-    protected virtual void EmitCallToInheritedMethod(Method method, [CanBeNull] TopLevelDeclWithMembers heir, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts, ConcreteSyntaxTree wStmtsAfterCall) {
+    protected virtual void EmitCallToInheritedMethod(MethodOrConstructor method, [CanBeNull] TopLevelDeclWithMembers heir, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts, ConcreteSyntaxTree wStmtsAfterCall) {
       Contract.Requires(method != null);
       Contract.Requires(!method.IsStatic);
       Contract.Requires(method.EnclosingClass is TraitDecl);
