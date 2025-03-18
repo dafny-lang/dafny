@@ -213,6 +213,6 @@ public abstract class ErrorReporter {
   }
 
   public string ErrorToString(ErrorLevel header, TokenRange range, string msg) {
-    return $"{range.ToFileRangeString(Options)}: {header.ToString()}: {msg}";
+    return $"{(range.StartToken == Token.Cli ? null : range).ToFileRangeString(Options)}: {header.ToString()}: {msg}";
   }
 }
