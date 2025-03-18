@@ -90,7 +90,7 @@ public class DafnyConsolePrinter : ConsolePrinter {
     }
 
     var dafnyToken = BoogieGenerator.ToDafnyToken(options.Get(Snippets.ShowSnippets), tok);
-    message = $"{dafnyToken.TokenToString(Options)}: {message}";
+    message = $"{dafnyToken.OriginToString(Options)}: {message}";
 
     if (error) {
       ErrorWriteLine(tw, message);

@@ -477,7 +477,7 @@ public class Compilation : IDisposable {
   }
 
   private void HandleStatusUpdate(ICanVerify canVerify, IVerificationTask verificationTask, IVerificationStatus boogieStatus) {
-    var tokenString = BoogieGenerator.ToDafnyToken(true, verificationTask.Split.Token).TokenToString(Options);
+    var tokenString = BoogieGenerator.ToDafnyToken(true, verificationTask.Split.Token).OriginToString(Options);
     logger.LogDebug($"Received Boogie status {boogieStatus} for {tokenString}, version {Input.Version}");
 
     updates.OnNext(new BoogieUpdate(transformedProgram!.ProofDependencyManager, canVerify,
@@ -545,7 +545,7 @@ public class Compilation : IDisposable {
     ReportDiagnosticsInResult(options, canVerify.NavigationRange.StartToken.val, BoogieGenerator.ToDafnyToken(true, task.Token),
       task.Split.Implementation.GetTimeLimit(options), result, errorReporter);
 
-    return diagnostics.OrderBy(d => d.Token.GetLspPosition()).ToList();
+    return diagnostics.OrderBy(d => d.Range.GetLspPosition()).ToList();
   }
 
   public static void ReportDiagnosticsInResult(DafnyOptions options, string name, IOrigin token,

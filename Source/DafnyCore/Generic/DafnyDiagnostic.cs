@@ -4,20 +4,20 @@ using System.Collections.Generic;
 
 namespace Microsoft.Dafny;
 
-public record DafnyDiagnostic(MessageSource Source, string ErrorId, IOrigin Token, string Message, ErrorLevel Level,
+public record DafnyDiagnostic(MessageSource Source, string ErrorId, SourceOrigin Range, string Message, ErrorLevel Level,
   IReadOnlyList<DafnyRelatedInformation> RelatedInformation) : IComparable<DafnyDiagnostic> {
   public int CompareTo(DafnyDiagnostic? other) {
     if (other == null) {
       return 1;
     }
-    var r0 = OriginCenterComparer.Instance.Compare(Token, other.Token);
+    var r0 = OriginCenterComparer.Instance.Compare(Range, other.Range);
     if (r0 != 0) {
       return r0;
     }
 
     for (var index = 0; index < RelatedInformation.Count; index++) {
       if (other.RelatedInformation.Count > index) {
-        var r1 = RelatedInformation[index].Token.Center.CompareTo(other.RelatedInformation[index].Token.Center);
+        var r1 = OriginCenterComparer.Instance.Compare(RelatedInformation[index].Token, other.RelatedInformation[index].Token);
         if (r1 != 0) {
           return r1;
         }

@@ -2050,7 +2050,7 @@ namespace Microsoft.Dafny.Compilers {
     protected override void EmitHalt(IOrigin tok, Expression/*?*/ messageExpr, ConcreteSyntaxTree wr) {
       var exceptionMessage = Expr(messageExpr, false, wr.Fork());
       if (tok != null) {
-        exceptionMessage.Prepend(new LineSegment($"\"{tok.TokenToString(Options).Replace(@"\", @"\\")}: \" + "));
+        exceptionMessage.Prepend(new LineSegment($"\"{tok.OriginToString(Options).Replace(@"\", @"\\")}: \" + "));
       }
       if (UnicodeCharEnabled && messageExpr.Type.IsStringType) {
         exceptionMessage.Write(".ToVerbatimString(false)");

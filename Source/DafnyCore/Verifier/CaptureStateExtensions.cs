@@ -30,9 +30,9 @@ namespace Microsoft.Dafny {
       Contract.Ensures(Contract.Result<Bpl.Cmd>() != null);
       string description;
       if (options.TestGenOptions.Mode != TestGenerationOptions.Modes.None && tok.val != null && tok.val.StartsWith("#")) {
-        description = $"{tok.TokenToString(options)}{(additionalInfo == null ? tok.val : (": " + additionalInfo))}";
+        description = $"{tok.OriginToString(options)}{(additionalInfo == null ? tok.val : (": " + additionalInfo))}";
       } else {
-        description = $"{tok.TokenToString(options)}{(additionalInfo == null ? "" : (": " + additionalInfo))}";
+        description = $"{tok.OriginToString(options)}{(additionalInfo == null ? "" : (": " + additionalInfo))}";
       }
       Bpl.QKeyValue kv = new Bpl.QKeyValue(tok, "captureState", new List<object>() { description }, null);
       return BoogieGenerator.TrAssumeCmd(tok, Bpl.Expr.True, kv);
