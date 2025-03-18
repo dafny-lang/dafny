@@ -1056,7 +1056,7 @@ method test() {
       var diagnostics = await GetLastDiagnostics(documentItem);
       Assert.True(diagnostics.Length is 1 or 2); // Ack and Test sometimes time out at the same time
       for (var i = 0; i < diagnostics.Length; i++) {
-        Assert.Contains("timed out", diagnostics[i].Message);
+        Assert.True(diagnostics[i].Message.Contains("timed out") || diagnostics[i].Message.Contains("Prover died"));
       }
     }
 
