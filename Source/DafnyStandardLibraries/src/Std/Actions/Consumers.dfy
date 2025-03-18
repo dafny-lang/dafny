@@ -175,13 +175,13 @@ module Std.Consumers {
     {
       ValidHistory(history + [(nextInput, nextOutput)])
     }
-    
+
     ghost function Decreases(t: T): TerminationMetric
       reads Reads(t)
     {
       TMTop
     }
-    
+
     method Invoke(t: T) returns (r: ())
       requires Requires(t)
       reads Reads(t)

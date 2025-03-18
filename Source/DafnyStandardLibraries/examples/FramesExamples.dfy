@@ -21,7 +21,7 @@ module FramesExamples {
 
   class Leaf<T> extends Tree<T> {
 
-    constructor () 
+    constructor ()
       ensures Valid()
     {
       Repr := {this};
@@ -51,7 +51,7 @@ module FramesExamples {
     var left: Tree<T>
     var right: Tree<T>
 
-    constructor (left: Tree<T>, value: T, right: Tree<T>) 
+    constructor (left: Tree<T>, value: T, right: Tree<T>)
       requires left.Valid()
       requires right.Valid()
       requires left.Repr !! right.Repr
@@ -100,7 +100,7 @@ module FramesExamples {
     // termination measure based on what work is being done
     // (in this case a count of the number of nodes in subtrees)
     @IsolateAssertions
-    method RotateRight() 
+    method RotateRight()
       requires Valid()
       modifies Repr
       decreases nodeCount
@@ -108,7 +108,7 @@ module FramesExamples {
     {
       if left is Node<T> {
         var leftAsNode := left as Node<T>;
-        
+
         var leftValue := leftAsNode.value;
         var oldRight := right;
         right := new Node(leftAsNode.right, value, oldRight);

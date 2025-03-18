@@ -200,10 +200,10 @@ module ActionsExamples {
       modifies Modifies(t)
       decreases Decreases(t).Ordinal(), 0
       ensures Ensures(t, result)
-      ensures if result.Some? then 
-          old(remainingMetric).DecreasesTo(remainingMetric)
-        else
-          old(remainingMetric) == remainingMetric
+      ensures if result.Some? then
+                old(remainingMetric).DecreasesTo(remainingMetric)
+              else
+                old(remainingMetric) == remainingMetric
     {
       if inputs == [] {
         result := None;
@@ -214,7 +214,7 @@ module ActionsExamples {
         var x := inputs[0];
         inputs := Seq.DropFirst(inputs);
         var p := new SeqReader([x / 2, x - (x / 2)]);
-        
+
         result := Some(p);
 
         OutputsPartitionedAfterOutputtingSome(result.value);
@@ -244,12 +244,12 @@ module ActionsExamples {
     var producerProducer := new SplitProducer([1, 2, 3, 4, 5]);
 
     var flattened := new FlattenedProducer(producerProducer, producerProducer);
-    
+
     var collector := new SeqWriter();
 
     var collectorTotalProof := new DefaultTotalActionProof(collector);
     flattened.ForEachRemaining(collector, collectorTotalProof);
-    
+
     expect collector.values == [0, 1, 1, 1, 1, 2, 2, 2, 2, 3], collector.values;
   }
 }

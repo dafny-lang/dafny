@@ -5,7 +5,7 @@ module TerminationExample {
 
   method Test() {
     reveal TerminationMetric.DecreasesTo();
-    
+
     var tm := TMNat(7);
     var tm2 := TMNat(8);
     assert tm2.DecreasesTo(tm);

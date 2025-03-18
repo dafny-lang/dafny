@@ -4,7 +4,7 @@ module ActionsExamples {
   import opened Std.Producers
   import opened Std.Termination
   import opened Std.Wrappers
-  
+
 
   // Adapting an iterator to a producer
 
