@@ -48,25 +48,43 @@ public static class TokenExtensions {
 
   public static bool IsSet(this IOrigin token) => token.Uri != null;
 
-  public static string TokenToString(this IOrigin tok, DafnyOptions options) {
-    if (tok.line == Token.Cli.line) {
+  public static string OriginToString(this IOrigin origin, DafnyOptions options) {
+    if (origin.line == Token.Cli.line) {
       return "CLI";
     }
 
-    if (tok.Uri == null) {
-      return $"({tok.line},{tok.col - 1})";
+    return origin.ReportingRange.ToFileRangeString(options);
+  }
+
+  public static string ToRangeString(this TokenRange range) {
+    var start = range.StartToken;
+    var end = range.EndToken;
+    return $"({start.line}:{start.col - 1}-{end.line}:{end.col - 1 + range.EndLength})";
+  }
+
+  public static string ToFileRangeString(this TokenRange range, DafnyOptions options) {
+
+    var start = range.StartToken;
+    if (start.Uri == null) {
+      if (options.Get(CommonOptionBag.PrintDiagnosticsRanges)) {
+        return range.ToRangeString();
+      }
+      return $"({start.line},{start.col - 1})";
     }
 
     var currentDirectory = Directory.GetCurrentDirectory();
-    string filename = tok.Uri.Scheme switch {
+    string filename = range.Uri.Scheme switch {
       "stdin" => "<stdin>",
-      "transcript" => Path.GetFileName(tok.Filepath),
+      "transcript" => Path.GetFileName(start.Filepath),
       _ => options.UseBaseNameForFileName
-        ? Path.GetFileName(tok.Filepath)
-        : (tok.Filepath.StartsWith(currentDirectory) ? Path.GetRelativePath(currentDirectory, tok.Filepath) : tok.Filepath)
+        ? Path.GetFileName(start.Filepath)
+        : (start.Filepath.StartsWith(currentDirectory) ? Path.GetRelativePath(currentDirectory, start.Filepath) : start.Filepath)
     };
 
-    return $"{filename}({tok.line},{tok.col - 1})";
+    if (options.Get(CommonOptionBag.PrintDiagnosticsRanges)) {
+      return $"{filename}{range.ToRangeString()}";
+    }
+    return $"{filename}({start.line},{start.col - 1})";
   }
 }
 

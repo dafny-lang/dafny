@@ -87,7 +87,7 @@ public class CoverageInstrumenter {
       {
         for (var i = 0; i < legend.Count; i++) {
           var e = legend[i];
-          wr.WriteLine($"{i}: {e.Item1.TokenToString(codeGenerator.Options)}: {e.Item2}");
+          wr.WriteLine($"{i}: {e.Item1.OriginToString(codeGenerator.Options)}: {e.Item2}");
         }
       }
       legend = null;
