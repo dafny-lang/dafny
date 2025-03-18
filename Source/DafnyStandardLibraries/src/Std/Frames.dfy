@@ -8,6 +8,16 @@ module Std.Frames {
   trait Validatable {
     // Ghost state tracking the common set of objects most
     // methods need to read.
+    //
+    // TODO: (clean up the following)
+    // Note this is used as the decreases clause for Valid(),
+    // but it is not necessarily the best choice for a decreases clause
+    // for other methods on implementing types.
+    // In particular, methods with loops that allocate new objects
+    // probably can't use Repr, because even if constructors
+    // ensure that the new object's Repr is fresh,
+    // it is not possible to prove the actual decreases to proof obligation,
+    // which is old(Repr) decreases to (new object).Repr.
     ghost var Repr: set<object>
     
     ghost predicate Valid()

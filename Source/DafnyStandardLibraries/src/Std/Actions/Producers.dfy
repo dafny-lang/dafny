@@ -1083,9 +1083,14 @@ module Std.Producers {
     ghost static function RemainingMetric(original: Producer<Producer<T>>, currentInner: Option<Producer<T>>): TerminationMetric 
       reads original, if currentInner.Some? then {currentInner.value} else {}
     {
-      TMComma(original.remainingMetric, 
-              TMComma(TMBool(currentInner.Some?), 
-                      if currentInner.Some? then currentInner.value.remainingMetric else TMTop))
+      TMComma(original.remainingMetric, InnerRemainingMetric(currentInner))
+    }
+
+    ghost static function InnerRemainingMetric(currentInner: Option<Producer<T>>): TerminationMetric 
+      reads if currentInner.Some? then {currentInner.value} else {}
+    {
+      TMComma(TMBool(currentInner.Some?), 
+              if currentInner.Some? then currentInner.value.remainingMetric else TMTop)
     }
 
     ghost predicate Valid()
@@ -1122,7 +1127,7 @@ module Std.Producers {
 
     // @IsolateAssertions
     @ResourceLimit("0")
-    method Invoke(t: ()) returns (result: Option<T>)
+    method {:only} Invoke(t: ()) returns (result: Option<T>)
       requires Requires(t)
       reads this, Repr
       modifies Modifies(t)
@@ -1133,6 +1138,7 @@ module Std.Producers {
               else
                 old(remainingMetric).NonIncreasesTo(remainingMetric)
     {
+      reveal TerminationMetric.DecreasesTo();
       result := None;
       
       while result.None?
@@ -1148,6 +1154,7 @@ module Std.Producers {
                     old(remainingMetric).DecreasesTo(remainingMetric)
                   else
                     old(remainingMetric).NonIncreasesTo(remainingMetric)
+        invariant old(remainingMetric).NonIncreasesTo(remainingMetric)
         decreases original.remainingMetric.Ordinal(), currentInner.Some?,
                   if currentInner.Some? then currentInner.value.remainingMetric.Ordinal() else 0
       {
@@ -1155,6 +1162,8 @@ module Std.Producers {
           label beforeOriginalNext:
           ghost var historyBefore := original.history;
           assert original.Valid();
+          old(remainingMetric).DecreasesToTransitive(remainingMetric, original.remainingMetric);
+          old(remainingMetric).OrdinalDecreases(original.remainingMetric);
           currentInner := original.Next();
           
           assert fresh(original.Repr - old@beforeOriginalNext(Repr));
@@ -1224,16 +1233,21 @@ module Std.Producers {
         } else {
           label beforeCurrentInnerNext:
           ghost var remainingMetricBefore := remainingMetric;
+          assert remainingMetric.DecreasesTo(currentInner.value.remainingMetric);
+          old(remainingMetric).DecreasesToTransitive(remainingMetric, currentInner.value.remainingMetric);
+          old(remainingMetric).OrdinalDecreases(currentInner.value.remainingMetric);
+
           result := currentInner.value.Next();
           this.Repr := {this} + original.Repr + currentInner.value.Repr;
           remainingMetric := RemainingMetric(original, currentInner);
+          
           label afterCurrentInnerNext:
           ghost var remainingMetricBefore2 := remainingMetric;
           reveal TerminationMetric.DecreasesTo();
             assert remainingMetricBefore.NonIncreasesTo(remainingMetricBefore2);
             
           if result.None? {
-            assert currentInner.Some?;
+            var oldCurrentInner := currentInner;
             currentInner := None;
             remainingMetric := RemainingMetric(original, currentInner);
           
@@ -1244,7 +1258,12 @@ module Std.Producers {
             assert remainingMetricBefore2.rest.DecreasesTo(remainingMetric.rest);
             assert remainingMetricBefore2.DecreasesTo(remainingMetric);
             assert old(remainingMetric).NonIncreasesTo(remainingMetricBefore);
-            old(remainingMetric).NonIncreasesToTransitive(remainingMetricBefore, remainingMetric);
+            assert InnerRemainingMetric(oldCurrentInner).DecreasesTo(InnerRemainingMetric(currentInner));
+            assert RemainingMetric(original, oldCurrentInner).DecreasesTo(RemainingMetric(original, currentInner));
+            assert remainingMetric == RemainingMetric(original, currentInner);
+            assert remainingMetricBefore2 == RemainingMetric(original, oldCurrentInner);
+            old(remainingMetric).NonIncreasesToTransitive(remainingMetricBefore, remainingMetricBefore2);
+            old(remainingMetric).NonIncreasesToTransitive(remainingMetricBefore2, remainingMetric);
             
             assert old(remainingMetric).NonIncreasesTo(remainingMetric);
 

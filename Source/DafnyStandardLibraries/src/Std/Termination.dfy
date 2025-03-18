@@ -50,8 +50,8 @@ module Std.Termination {
             || leftFirst.DecreasesTo(other.first)
             || (leftFirst == other.first && leftRest.DecreasesTo(other.rest))))
           // TODO: Not a rule Dafny itself applies, but seems safe?
-          || leftFirst == other
-          || leftRest == other
+          || leftFirst == other || leftFirst.DecreasesTo(other)
+          || leftRest == other || leftRest.DecreasesTo(other)
 
         case _ => false
       }
