@@ -1,8 +1,10 @@
 module ActionsExamples {
   import opened Std.Actions
-  import opened Std.Producers
   import opened Std.Consumers
+  import opened Std.Producers
+  import opened Std.Termination
   import opened Std.Wrappers
+  
 
   // Adapting an iterator to a producer
 
@@ -33,7 +35,7 @@ module ActionsExamples {
       reads this, Repr
       ensures Valid() ==> this in Repr
       ensures Valid() ==> ValidHistory(history)
-      decreases height, 0
+      decreases Repr, 0
     {
       && this in Repr
       && iter in Repr
@@ -48,7 +50,6 @@ module ActionsExamples {
       ensures fresh(Repr)
     {
       this.iter := new FibonacciIterator();
-      height := 0;
       new;
       Repr := {this, iter} + NonNullElements(iter._reads) + NonNullElements(iter._modifies) + NonNullElements(iter._new);
     }
@@ -58,20 +59,26 @@ module ActionsExamples {
     }
 
     ghost predicate ValidHistory(history: seq<((), nat)>)
-      decreases height
+      decreases Repr
     {
       true
     }
     ghost predicate ValidInput(history: seq<((), nat)>, next: ())
-      decreases height
+      decreases Repr
     {
       true
     }
     twostate predicate ValidOutput(history: seq<((), nat)>, nextInput: (), new nextOutput: nat)
-      decreases height
+      decreases Repr
       ensures ValidOutput(history, nextInput, nextOutput) ==> ValidHistory(history + [(nextInput, nextOutput)])
     {
       ValidHistory(history + [(nextInput, nextOutput)])
+    }
+
+    ghost function Decreases(i: ()): TerminationMetric
+      reads Reads(i)
+    {
+      ReprTerminationMetric()
     }
 
     method Invoke(i: ()) returns (o: nat)
@@ -124,7 +131,7 @@ module ActionsExamples {
       reads this, Repr
       ensures Valid() ==> this in Repr
       ensures Valid() ==> ValidHistory(history)
-      decreases height, 0
+      decreases Repr, 0
     {
       && this in Repr
       && ValidHistory(history)
@@ -142,7 +149,6 @@ module ActionsExamples {
 
       history := [];
       Repr := {this};
-      height := 1;
 
       reveal Seq.HasNoDuplicates();
       reveal Seq.ToSet();
@@ -167,24 +173,30 @@ module ActionsExamples {
     }
 
     ghost predicate ValidInput(history: seq<((), T)>, next: ())
-      decreases height
+      decreases Repr
     {
       |history| < |original|
     }
     twostate predicate ValidOutput(history: seq<((), T)>, nextInput: (), new nextOutput: T)
       requires ValidHistory(history)
-      decreases height
+      decreases Repr
       ensures ValidOutput(history, nextInput, nextOutput) ==> ValidHistory(history + [(nextInput, nextOutput)])
     {
       ValidHistory(history + [(nextInput, nextOutput)])
     }
 
     ghost predicate ValidHistory(history: seq<((), T)>)
-      decreases height
+      decreases Repr
     {
       && |history| <= |original|
       && Seq.HasNoDuplicates(OutputsOf(history))
       && Enumerated(history) <= original
+    }
+
+    ghost function Decreases(i: ()): TerminationMetric
+      reads Reads(i)
+    {
+      ReprTerminationMetric()
     }
 
     lemma EnumeratedCardinality()

@@ -1127,7 +1127,7 @@ module Std.Producers {
 
     // @IsolateAssertions
     @ResourceLimit("0")
-    method {:only} Invoke(t: ()) returns (result: Option<T>)
+    method Invoke(t: ()) returns (result: Option<T>)
       requires Requires(t)
       reads this, Repr
       modifies Modifies(t)

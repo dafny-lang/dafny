@@ -27,7 +27,6 @@ module Std.Termination {
       match (this, other) {
         case (TMTop, _) => !other.TMTop?
 
-        // Simple well-ordered types
         case (TMBool(left), TMBool(right)) => left && !right
         case (TMNat(left), TMNat(right)) => left > right
         case (TMChar(left), TMChar(right)) => left > right

@@ -18,6 +18,8 @@ module Std.Frames {
     // ensure that the new object's Repr is fresh,
     // it is not possible to prove the actual decreases to proof obligation,
     // which is old(Repr) decreases to (new object).Repr.
+    //
+    // TODO: Okay it's now or never - Repr or repr?? :)
     ghost var Repr: set<object>
     
     ghost predicate Valid()
@@ -40,14 +42,6 @@ module Std.Frames {
       reads this
     {
       TMSet(set o <- Repr :: TMObject(o))
-    }
-
-    lemma ReprMetricDecreases(component: Validatable)
-      requires component.Repr < Repr
-      ensures ReprTerminationMetric().Ordinal() > component.ReprTerminationMetric().Ordinal()
-    {
-      reveal TerminationMetric.DecreasesTo();
-      ReprTerminationMetric().OrdinalDecreases(component.ReprTerminationMetric());
     }
 
     // Convenience predicate, since you often want to assert that

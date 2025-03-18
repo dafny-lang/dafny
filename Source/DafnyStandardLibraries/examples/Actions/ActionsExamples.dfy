@@ -20,7 +20,6 @@ module ActionsExamples {
         break;
       }
 
-      print "Got: ", next.value, "\n";
       expect 0 < next.value <= 5;
     }
   }
@@ -64,7 +63,7 @@ module ActionsExamples {
       reads this, Repr
       ensures Valid() ==> this in Repr
       ensures Valid() ==> ValidHistory(history)
-      decreases height, 0
+      decreases Repr, 0
     {
       && this in Repr
       && ValidHistory(history)
@@ -79,25 +78,30 @@ module ActionsExamples {
       nextValue := 0;
       history := [];
       Repr := {this};
-      height := 1;
     }
 
     ghost predicate ValidInput(history: seq<((), Box)>, next: ())
       requires ValidHistory(history)
-      decreases height
+      decreases Repr
     {
       true
     }
     twostate predicate ValidOutput(history: seq<((), Box)>, nextInput: (), new nextOutput: Box)
-      decreases height
+      decreases Repr
       ensures ValidOutput(history, nextInput, nextOutput) ==> ValidHistory(history + [(nextInput, nextOutput)])
     {
       ValidHistory(history + [(nextInput, nextOutput)]) && fresh(nextOutput)
     }
     ghost predicate ValidHistory(history: seq<((), Box)>)
-      decreases height
+      decreases Repr
     {
       Seq.Map((b: Box) => b.i, OutputsOf(history)) == SeqRange(|history|)
+    }
+
+    ghost function Decreases(t: ()): TerminationMetric
+      reads Reads(t)
+    {
+      TMTop
     }
 
     method Invoke(t: ()) returns (r: Box)
@@ -141,24 +145,6 @@ module ActionsExamples {
     assert a.storage.items == [1, 2, 3, 4, 5];
   }
 
-  twostate predicate FooTest(b: Box) reads {} {
-    && fresh(b)
-    && Foo(b)
-    && Foo2(b)
-  }
-
-  predicate Foo(b: Box)
-    reads b
-  {
-    b.i == 42
-  }
-
-  twostate predicate Foo2(new b: Box)
-    reads b
-  {
-    b.i == 42
-  }
-
   @AssumeCrossModuleTermination
   // TODO: This should be expressible as Mapped(Seq(inputs), Split)
   class SplitProducer extends Producer<Producer<nat>>, ProducesNewProducersProof<nat> {
@@ -174,7 +160,6 @@ module ActionsExamples {
 
       history := [];
       Repr := {this};
-      height := 1;
       remainingMetric := TMNat(|inputs|);
     }
 
@@ -182,7 +167,7 @@ module ActionsExamples {
       reads this, Repr
       ensures Valid() ==> this in Repr
       ensures Valid() ==> ValidHistory(history)
-      decreases height, 0
+      decreases Repr, 0
     {
       && this in Repr
       && ValidHistory(history)
@@ -197,14 +182,14 @@ module ActionsExamples {
     }
 
     twostate predicate ValidOutput(history: seq<((), Option<Producer<nat>>)>, nextInput: (), new nextOutput: Option<Producer<nat>>)
-      decreases height
+      decreases Repr
       ensures ValidOutput(history, nextInput, nextOutput) ==> ValidHistory(history + [(nextInput, nextOutput)])
     {
       ValidHistory(history + [(nextInput, nextOutput)])
     }
     ghost predicate ValidOutputs(outputs: seq<Option<Producer<nat>>>)
       requires Seq.Partitioned(outputs, IsSome)
-      decreases height
+      decreases Repr
     {
       true
     }
@@ -250,6 +235,7 @@ module ActionsExamples {
       requires Action().ValidOutput(old(Action().history), (), Some(produced))
       ensures produced.Valid()
       ensures fresh(produced.Repr)
+      ensures Producer().Repr !! produced.Repr
       ensures produced.history == []
   }
 
