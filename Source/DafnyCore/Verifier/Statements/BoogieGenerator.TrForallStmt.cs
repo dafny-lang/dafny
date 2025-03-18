@@ -190,7 +190,7 @@ public partial class BoogieGenerator {
         }
         p = Substitute(expr.Term, null, substMap);
         post = BplAnd(post, callEtran.CanCallAssumption(p));
-        post = BplAnd(post, callEtran.TrExpr(p));
+        post = BplAnd(post, callEtran.WithZeroFuel().TrExpr(p));
       } else {
         ante = initEtran.TrBoundVariablesRename(boundVars, bvars, out substMap);
 
