@@ -21,7 +21,7 @@ module ActionsExamples {
       }
 
       print "Got: ", next.value, "\n";
-      expect 0 <= next.value < 5;
+      expect 0 < next.value <= 5;
     }
   }
 

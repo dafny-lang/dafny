@@ -4,28 +4,15 @@ module TerminationExample {
   import opened Std.Termination
 
   method Test() {
+    reveal TerminationMetric.DecreasesTo();
+    
     var tm := TMNat(7);
     var tm2 := TMNat(8);
-    reveal TerminationMetric.DecreasesTo();
     assert tm2.DecreasesTo(tm);
 
-    var comma := TMComma(tm2, tm);
-    assert tm2.DecreasesTo(comma);
-  }
-
-  // SOUNDNESS ISSUE
-
-  method Oops() {
-    var tm := TMComma(TMNat(0), TMNat(0));
-    while true 
-      invariant tm.TMComma?
-      decreases tm.Ordinal()
-    {
-      reveal TerminationMetric.DecreasesTo();
-      var tmBefore := tm;
-      tm := TMComma(tmBefore, TMNat(0));
-      tmBefore.OrdinalDecreases(tm);
-    }
+    assert TMComma(tm2, tm2).DecreasesTo(TMComma(tm, tm2));
+    assert TMComma(tm2, tm2).DecreasesTo(TMComma(tm2, tm));
+    assert !TMComma(tm, tm2).DecreasesTo(TMComma(tm2, tm));
   }
 
   // This isn't an example of using the Std.Termination module,

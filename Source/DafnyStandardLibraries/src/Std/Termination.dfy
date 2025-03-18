@@ -5,6 +5,8 @@ module Std.Termination {
   // Heterogeneous encoding of the essential features of individual
   // decreases clause list elements.
   datatype TerminationMetric =
+    | TMTop
+    | TMBool(boolValue: bool)
     | TMNat(natValue: nat)
     | TMChar(charValue: nat)
     | TMSeq(seqValue: seq<TerminationMetric>)
@@ -20,7 +22,11 @@ module Std.Termination {
   {
     opaque predicate DecreasesTo(other: TerminationMetric) {
       match (this, other) {
+        case (TMTop, _) => !other.TMTop?
+        case (_, TMTop) => false
+
         // Simple well-ordered types
+        case (TMBool(left), TMBool(right)) => left && !right
         case (TMNat(left), TMNat(right)) => left > right
         case (TMChar(left), TMChar(right)) => left > right
         // Other is a strict subsequence of this
@@ -36,21 +42,15 @@ module Std.Termination {
         case (TMDatatype(leftChildren), _) =>
           || other in leftChildren
 
-        case (_, TMComma(rightFirst, rightRest)) =>
-          || (TMComma? &&
-            if first == rightFirst then
-              rest.DecreasesTo(rightRest)
-            else
-              first.DecreasesTo(rightFirst)
-          )
-          // Treat the LHS as TMComma(this, TOP)
-          || this == rightFirst || DecreasesTo(rightFirst)
+        case (TMComma(leftFirst, leftRest), TMComma(rightFirst, rightRest)) =>
+          || leftFirst.DecreasesTo(rightFirst)
+          || (leftFirst == rightFirst && leftRest.DecreasesTo(rightRest))
 
         case _ => false
       }
     }
 
-    predicate EqualOrDecreasesTo(other: TerminationMetric) {
+    predicate NonIncreasesTo(other: TerminationMetric) {
       this == other || DecreasesTo(other)
     }
 
@@ -66,12 +66,12 @@ module Std.Termination {
 
     lemma {:axiom} DecreasesToTransitive(middle: TerminationMetric, right: TerminationMetric)
       requires
-        || (EqualOrDecreasesTo(middle) && middle.DecreasesTo(right))
-        || (DecreasesTo(middle) && middle.EqualOrDecreasesTo(right))
+        || (NonIncreasesTo(middle) && middle.DecreasesTo(right))
+        || (DecreasesTo(middle) && middle.NonIncreasesTo(right))
       ensures DecreasesTo(right)
 
-    lemma {:axiom} EqualOrDecreasesToTransitive(middle: TerminationMetric, right: TerminationMetric)
-      requires EqualOrDecreasesTo(middle) && middle.EqualOrDecreasesTo(right)
-      ensures EqualOrDecreasesTo(right)
+    lemma {:axiom} NonIncreasesToTransitive(middle: TerminationMetric, right: TerminationMetric)
+      requires NonIncreasesTo(middle) && middle.NonIncreasesTo(right)
+      ensures NonIncreasesTo(right)
   }
 }
