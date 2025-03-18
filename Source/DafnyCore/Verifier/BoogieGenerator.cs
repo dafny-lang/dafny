@@ -4528,7 +4528,7 @@ namespace Microsoft.Dafny {
       List<BoundVar> keepOnlyThoseTermsThatMentionTheseVariables = null) {
       Contract.Requires(etran != null);
       Contract.Requires(tok != null);
-      var argsEtran = etran.WithNoLits();
+      var argsEtran = etran.WithNoLits().WithZeroFuel();
       Bpl.Trigger tr = null;
       foreach (var trigger in attribs.AsEnumerable().Where(aa => aa.Name == "trigger").Select(aa => aa.Args)) {
         List<Bpl.Expr> tt = [];
@@ -4551,7 +4551,7 @@ namespace Microsoft.Dafny {
     Bpl.Trigger TrTrigger(ExpressionTranslator etran, Attributes attribs, IOrigin tok, List<Variable> bvars, Dictionary<IVariable, Expression> substMap, Dictionary<TypeParameter, Type> typeMap) {
       Contract.Requires(etran != null);
       Contract.Requires(tok != null);
-      var argsEtran = etran.WithNoLits();
+      var argsEtran = etran.WithNoLits().WithZeroFuel();
       Bpl.Trigger tr = null;
       var fueledTrigger = new Dictionary<List<Expression>, bool>();
       // translate the triggers once to see if fuel or the heap is used as quantifier boundvar

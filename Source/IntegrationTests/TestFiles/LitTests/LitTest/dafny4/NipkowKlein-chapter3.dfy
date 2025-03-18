@@ -230,7 +230,7 @@ ghost function comp(a: aexp): List<instr>
   case Plus(a0, a1) => append(append(comp(a0), comp(a1)), Cons(ADD, Nil))
 }
 
-lemma CorrectCompilation(a: aexp, s: state, stk: stack)
+lemma {:fuel exec, 2} CorrectCompilation(a: aexp, s: state, stk: stack)
   ensures exec(comp(a), s, stk) == Cons(aval(a, s), stk)
 {
   match a

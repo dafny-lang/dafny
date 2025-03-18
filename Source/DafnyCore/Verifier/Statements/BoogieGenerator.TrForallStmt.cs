@@ -190,7 +190,7 @@ public partial class BoogieGenerator {
         }
         p = Substitute(expr.Term, null, substMap);
         post = BplAnd(post, callEtran.CanCallAssumption(p));
-        post = BplAnd(post, callEtran.TrExpr(p));
+        post = BplAnd(post, callEtran.WithZeroFuel().TrExpr(p));
       } else {
         ante = initEtran.TrBoundVariablesRename(boundVars, bvars, out substMap);
 
@@ -212,7 +212,7 @@ public partial class BoogieGenerator {
           if (includeCanCalls) {
             post = BplAnd(post, callEtran.CanCallAssumption(p));
           }
-          post = BplAnd(post, callEtran.TrExpr(p));
+          post = BplAnd(post, callEtran.WithZeroFuel().TrExpr(p));
         }
 
         tr = null;
@@ -221,7 +221,7 @@ public partial class BoogieGenerator {
             Contract.Assert(trigger.Count != 0);
             var terms = trigger.ConvertAll(expr => {
               expr = Substitute(expr, receiver, argsSubstMap, s0.MethodSelect.TypeArgumentSubstitutionsWithParents());
-              return callEtran.TrExpr(expr);
+              return callEtran.WithZeroFuel().TrExpr(expr);
             });
             tr = new Trigger(trigger[0].Origin, true, terms, tr);
           }
@@ -561,11 +561,11 @@ public partial class BoogieGenerator {
     // Now for the other branch, where the ensures clauses are exported.
     // If the forall body has side effect such as call to a reveal function,
     // it needs to be exported too.
-    var se = forallStmt.Body == null ? Bpl.Expr.True : TrFunctionSideEffect(forallStmt.Body, etran);
+    var se = forallStmt.Body == null ? Bpl.Expr.True : TrFunctionSideEffect(forallStmt.Body, etran.WithZeroFuel());
     var substMap = new Dictionary<IVariable, Expression>();
     var p = Substitute(forallStmt.EffectiveEnsuresClauses[0], null, substMap);
     exporter.Add(TrAssumeCmd(forallStmt.Origin, etran.CanCallAssumption(p)));
-    var qq = etran.TrExpr(p);
+    var qq = etran.WithZeroFuel().TrExpr(p);
     if (forallStmt.BoundVars.Count != 0) {
       exporter.Add(TrAssumeCmd(forallStmt.Origin, BplAnd(se, qq)));
     } else {

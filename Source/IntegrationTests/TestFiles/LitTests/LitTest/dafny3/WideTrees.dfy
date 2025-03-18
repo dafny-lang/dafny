@@ -44,7 +44,10 @@ lemma Theorem(n: nat)
 {
   Lemma(n);
 }
-greatest lemma Lemma(n: nat)
+
+// give fuel 2 to SmallTrees because its mutually recursive with
+// SmallTree and the proof requires both their definitions.
+greatest lemma {:fuel SmallTrees,2} Lemma(n: nat)
   ensures LowerThan(SmallTrees(n), n);
 {
   if 0 < n {

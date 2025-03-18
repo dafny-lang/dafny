@@ -214,6 +214,11 @@ namespace Microsoft.Dafny {
         return CloneExpressionTranslator(this, BoogieGenerator, Predef, HeapExpr, This, applyLimited_CurrentFunction, layerInterCluster, layerIntraCluster, readsFrame, modifiesFrame, true);
       }
 
+      public ExpressionTranslator WithZeroFuel() {
+        Contract.Ensures(Contract.Result<ExpressionTranslator>() != null);
+        return CloneExpressionTranslator(this, BoogieGenerator, Predef, HeapExpr, This, applyLimited_CurrentFunction, new FuelSetting(BoogieGenerator, 0), layerIntraCluster, readsFrame, modifiesFrame, true);
+      }
+
       public ExpressionTranslator LimitedFunctions(Function applyLimited_CurrentFunction, Boogie.Expr layerArgument) {
         Contract.Requires(applyLimited_CurrentFunction != null);
         Contract.Requires(layerArgument != null);
@@ -226,7 +231,7 @@ namespace Microsoft.Dafny {
         Contract.Requires(0 <= offset);
         Contract.Ensures(Contract.Result<ExpressionTranslator>() != null);
 
-        return CloneExpressionTranslator(this, BoogieGenerator, Predef, HeapExpr, This, applyLimited_CurrentFunction, layerInterCluster.Offset(offset), layerIntraCluster, readsFrame, modifiesFrame, stripLits);
+        return CloneExpressionTranslator(this, BoogieGenerator, Predef, HeapExpr, This, applyLimited_CurrentFunction, layerInterCluster.Offset(0), layerIntraCluster, readsFrame, modifiesFrame, stripLits);
       }
 
       public ExpressionTranslator DecreaseFuel(int offset) {
@@ -1327,7 +1332,7 @@ namespace Microsoft.Dafny {
                 if (e.Range != null) {
                   antecedent = BplAnd(antecedent, bodyEtran.TrExpr(e.Range));
                 }
-                Boogie.Expr body = bodyEtran.TrExpr(e.Term);
+                Boogie.Expr body = (e is ForallExpr) ?  bodyEtran.WithZeroFuel().TrExpr(e.Term) : bodyEtran.TrExpr(e.Term);
 
                 if (e is ForallExpr) {
                   return new Boogie.ForallExpr(GetToken(quantifierExpr), [], bvars, kv, tr, BplImp(antecedent, body));
