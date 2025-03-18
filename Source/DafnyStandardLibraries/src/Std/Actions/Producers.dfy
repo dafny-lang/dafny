@@ -1101,6 +1101,7 @@ module Std.Producers {
       && remainingMetric == RemainingMetric(original, currentInner)
       && (currentInner.Some? ==> 0 < |original.Outputs()| && currentInner == Seq.Last(original.Outputs()))
       && (!original.Done() && currentInner.Some? && !currentInner.value.Done() ==> !Done())
+      && (Done() ==> original.Done() && currentInner.None?)
     }
 
     twostate predicate ValidOutput(history: seq<((), Option<T>)>, nextInput: (), new nextOutput: Option<T>)
@@ -1137,13 +1138,7 @@ module Std.Producers {
         invariant Valid()
         invariant history == old(history)
         invariant fresh(original.Repr - old(Repr))
-        invariant currentInner.Some? ==> (
-                      && 0 < |original.Outputs()|
-                      && currentInner == Seq.Last(original.Outputs())
-                      && fresh(currentInner.value.Repr - old(Repr))
-                      && currentInner.value.Valid()
-                      && original.Repr !! currentInner.value.Repr
-                    )
+        invariant currentInner.Some? ==> fresh(currentInner.value.Repr - old(Repr))
         invariant result.Some? ==> !original.Done() && currentInner.Some? && !currentInner.value.Done()
         invariant old(original.history) <= original.history
         invariant old(Done()) == Done()
@@ -1162,8 +1157,6 @@ module Std.Producers {
           currentInner := original.Next();
           
           assert fresh(original.Repr - old@beforeOriginalNext(Repr));
-          // Repr := {this} + original.Repr;
-          // assert ValidComponent(original);
           assert original.ValidOutput@beforeOriginalNext(historyBefore, (), currentInner);
           if currentInner.Some? {
             producesNewProducersProof.ProducedAllNew@beforeOriginalNext(currentInner.value);
@@ -1179,6 +1172,7 @@ module Std.Producers {
           assert currentInner.Some? ==> fresh(currentInner.value.Repr - old(Repr));
           assert ValidComponent(original);
           if currentInner.Some? {
+            // TODO:
             assume {:axiom} currentInner.value.height < height;
             assert ValidComponent(currentInner.value);
             
@@ -1197,11 +1191,20 @@ module Std.Producers {
             assert old(remainingMetric).NonIncreasesTo(old@beforeOriginalNext(remainingMetric));
             old(remainingMetric).NonIncreasesToTransitive(old@beforeOriginalNext(remainingMetric), remainingMetric);
             assert old(remainingMetric).NonIncreasesTo(remainingMetric);
+
+            assert currentInner == Seq.Last(original.Outputs());
+            assert original.Done() && currentInner.None?;
             break;
           } else {
             assert old@beforeOriginalNext(original.Valid());
-            // producesNewProducersProof.ProducedAllNew@beforeOriginalNext(currentInner.value);
             assert currentInner.value.history == [];
+            
+
+            assert currentInner == Seq.Last(original.Outputs());
+            Seq.PartitionedLastTrueImpliesAll(original.Outputs(), IsSome);
+            assert !original.Done() && currentInner.Some? && !currentInner.value.Done();
+            original.DoneIsOneWay();
+            assert !old(original.Done());
             if Done() {
               assert old(Done());
               assert old(Valid());
@@ -1209,6 +1212,7 @@ module Std.Producers {
               original.DoneIsOneWay();
               assert original.Done();
             }
+
             assert (!original.Done() && currentInner.Some? && !currentInner.value.Done() ==> !Done());
 
             assert Valid();
@@ -1240,16 +1244,14 @@ module Std.Producers {
 
             assert remainingMetricBefore.NonIncreasesTo(remainingMetricBefore2);
             assert old@afterCurrentInnerNext(original.remainingMetric) == original.remainingMetric;
-            // assert {:only} remainingMetricBefore2.TMComma? && remainingMetricBefore2.first == original.remainingMetric;
-            // assert {:only} remainingMetric.TMComma? && remainingMetric.first == original.remainingMetric;
-            // assert {:only} remainingMetricBefore2.rest.TMComma? && remainingMetricBefore2.rest.first == TMBool(true);
-            // assert {:only} remainingMetric.rest.TMComma? && remainingMetric.rest.first == TMBool(false);
             assert remainingMetricBefore2.rest.DecreasesTo(remainingMetric.rest);
             assert remainingMetricBefore2.DecreasesTo(remainingMetric);
             assert old(remainingMetric).NonIncreasesTo(remainingMetricBefore);
             old(remainingMetric).NonIncreasesToTransitive(remainingMetricBefore, remainingMetric);
             
             assert old(remainingMetric).NonIncreasesTo(remainingMetric);
+
+            assert (Done() ==> original.Done() && currentInner.None?);
           } else {
             remainingMetric := RemainingMetric(original, currentInner);
           
@@ -1263,6 +1265,7 @@ module Std.Producers {
             assert !old(original.Done());
             currentInner.value.DoneIsOneWay@beforeCurrentInnerNext();
             assert !old@beforeCurrentInnerNext(currentInner.value.Done());
+            assert !Done();
             assert (!original.Done() && currentInner.Some? && !currentInner.value.Done() ==> !Done());
             assert Valid();
 
@@ -1271,6 +1274,8 @@ module Std.Producers {
             assert old(remainingMetric).NonIncreasesTo(old@beforeCurrentInnerNext(remainingMetric));
             old(remainingMetric).DecreasesToTransitive(old@beforeCurrentInnerNext(remainingMetric), remainingMetric);
             assert old(remainingMetric).DecreasesTo(remainingMetric);
+
+            assert (Done() ==> original.Done() && currentInner.None?);
           }
         }
       }
