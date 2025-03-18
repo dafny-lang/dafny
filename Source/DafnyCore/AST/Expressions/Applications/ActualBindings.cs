@@ -7,7 +7,7 @@ using JetBrains.Annotations;
 namespace Microsoft.Dafny;
 
 public class ActualBindings : NodeWithoutOrigin {
-  public readonly List<ActualBinding> ArgumentBindings;
+  public List<ActualBinding> ArgumentBindings;
 
   [SyntaxConstructor]
   public ActualBindings(List<ActualBinding> argumentBindings) {
@@ -45,9 +45,9 @@ public class ActualBindings : NodeWithoutOrigin {
 }
 
 public class ActualBinding : NodeWithoutOrigin {
-  public readonly IOrigin? FormalParameterName;
-  public readonly Expression Actual;
-  public readonly bool IsGhost;
+  public IOrigin? FormalParameterName;
+  public Expression Actual;
+  public bool IsGhost;
 
   public override IEnumerable<INode> Children => new List<Node> { Actual }.Where(x => x != null);
 

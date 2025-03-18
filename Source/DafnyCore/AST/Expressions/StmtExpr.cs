@@ -9,8 +9,8 @@ namespace Microsoft.Dafny;
 /// executing S (which itself must be well-formed) and then checking the well-formedness of E.
 /// </summary>
 public class StmtExpr : Expression, ICanFormat, ICloneable<StmtExpr> {
-  public readonly Statement S;
-  public readonly Expression E;
+  public Statement S;
+  public Expression E;
   [ContractInvariantMethod]
   void ObjectInvariant() {
     Contract.Invariant(S != null);

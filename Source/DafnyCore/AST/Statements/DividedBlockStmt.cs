@@ -8,9 +8,9 @@ namespace Microsoft.Dafny;
    * Used by two phase constructors: https://dafny-lang.github.io/dafny/DafnyRef/DafnyRef#13323-two-phase-constructors
    */
 public class DividedBlockStmt : BlockStmt, ICloneable<DividedBlockStmt> {
-  public readonly List<Statement> BodyInit;  // first part of Body's statements
-  public readonly IOrigin SeparatorTok;  // token that separates the two parts, if any
-  public readonly List<Statement> BodyProper;  // second part of Body's statements
+  public List<Statement> BodyInit;  // first part of Body's statements
+  public IOrigin SeparatorTok;  // token that separates the two parts, if any
+  public List<Statement> BodyProper;  // second part of Body's statements
 
   public new DividedBlockStmt Clone(Cloner cloner) {
     return new DividedBlockStmt(cloner, this);

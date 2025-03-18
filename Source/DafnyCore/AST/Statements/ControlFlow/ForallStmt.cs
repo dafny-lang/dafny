@@ -6,10 +6,10 @@ using Microsoft.Dafny.Auditor;
 namespace Microsoft.Dafny;
 
 public class ForallStmt : Statement, ICloneable<ForallStmt>, ICanFormat {
-  public readonly List<BoundVar> BoundVars;  // note, can be the empty list, in which case Range denotes "true"
+  public List<BoundVar> BoundVars;  // note, can be the empty list, in which case Range denotes "true"
   public Expression Range;  // mostly readonly, except that it may in some cases be updated during resolution to conjoin the precondition of the call in the body
-  public readonly List<AttributedExpression> Ens;
-  public readonly Statement Body;
+  public List<AttributedExpression> Ens;
+  public Statement Body;
   [FilledInDuringResolution]
   public List<Expression> EffectiveEnsuresClauses;   // fill in by rewriter.
   public bool CanConvert = true; //  can convert to ForallExpressions
