@@ -1166,7 +1166,10 @@ namespace Microsoft.Dafny {
             new ModuleResolver.ResolveTypeOption(ResolveTypeOptionEnum.InferTypeProxies), null, true);
           if (ret != null) {
             // The all-but-last components of rr.Path denote a type (namely, ret.ReplacementType).
-            ((UserDefinedType)allocateClass.Path).ResolvedClass = ((UserDefinedType)ret.ReplacementType).ResolvedClass;
+            var udt = (UserDefinedType)allocateClass.Path;
+            var resolvedUdt = (UserDefinedType)ret.ReplacementType;
+            udt.ResolvedClass = resolvedUdt.ResolvedClass;
+            udt.TypeArgs = resolvedUdt.TypeArgs;
             initCallName = ret.LastComponent.SuffixName;
             initCallTok = ret.LastComponent.Origin;
           } else {
