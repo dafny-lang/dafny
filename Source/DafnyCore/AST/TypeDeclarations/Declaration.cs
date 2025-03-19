@@ -15,6 +15,10 @@ public abstract class Declaration : NodeWithOrigin, IAttributeBearingDeclaration
   public IOrigin BodyStartTok = Token.NoToken;
   public Name NameNode;
 
+  public string GetNameRelativeToModule() {
+    return this is ICallable iCallable ? iCallable.NameRelativeToModule : ToString();
+  }
+
   public virtual TokenRange NavigationRange => NameNode.ReportingRange;
 
   public string Name => NameNode.Value;

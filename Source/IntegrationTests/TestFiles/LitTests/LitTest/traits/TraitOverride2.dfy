@@ -1,7 +1,7 @@
 // RUN: %verify --relax-definite-assignment --allow-axioms "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
-trait Spec<U> {
+trait Spec<U> extends object {
   var done: bool
   var hasFailed: bool
   ghost const Repr: set<object>

@@ -2,7 +2,7 @@
 
 predicate SuppressNoTriggerWarning<X>(x: X) { true }
 
-trait Tr {
+trait Tr extends object {
   var x: int
 }
 

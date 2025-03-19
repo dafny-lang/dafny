@@ -1,4 +1,4 @@
-// RUN: %testDafnyForEachCompiler --refresh-exit-code=0 "%s" -- --relax-definite-assignment --allow-deprecation --unicode-char false
+// RUN: %testDafnyForEachCompiler --refresh-exit-code=0 "%s" -- --type-system-refresh=false --general-newtypes=false --relax-definite-assignment --allow-deprecation --unicode-char false
 
 module M {
   type Tx = i: int | 0 <= i <= 100

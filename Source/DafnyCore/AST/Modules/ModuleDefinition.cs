@@ -321,14 +321,6 @@ Generate module names in the older A_mB_mC style instead of the current A.B.C sc
     }
   }
 
-  public static IEnumerable<TopLevelDeclWithMembers> AllTypesWithMembers(List<TopLevelDecl> declarations) {
-    foreach (var d in declarations) {
-      if (d is TopLevelDeclWithMembers cl) {
-        yield return cl;
-      }
-    }
-  }
-
   /// <summary>
   /// Yields all functions and methods that are members of some type in the given list of
   /// declarations.
@@ -905,7 +897,9 @@ Generate module names in the older A_mB_mC style instead of the current A.B.C sc
               }
             }
 
-            ctor.Destructors.Add(dtor);
+            if (!localDuplicate) {
+              ctor.Destructors.Add(dtor);
+            }
           }
 
           foreach (var duplicate in duplicates) {
