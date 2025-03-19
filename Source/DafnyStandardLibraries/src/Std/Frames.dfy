@@ -22,6 +22,7 @@ module Std.Frames {
     // TODO: Okay it's now or never - Repr or repr?? :)
     ghost var Repr: set<object>
 
+    // TODO: Similarly, would Invariant() be better?
     ghost predicate Valid()
       reads this, Repr
       ensures Valid() ==> this in Repr
