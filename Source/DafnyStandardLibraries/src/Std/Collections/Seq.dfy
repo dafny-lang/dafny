@@ -1100,15 +1100,36 @@ module Std.Collections.Seq {
     ensures All(s, p)
   {}
 
-  lemma {:axiom} PartitionedCompositionRight<T>(left: seq<T>, right: seq<T>, p: T -> bool)
+  lemma PartitionedCompositionRight<T>(left: seq<T>, right: seq<T>, p: T -> bool)
     requires Partitioned(left, p)
     requires AllNot(right, p)
     ensures Partitioned(left + right, p)
+  {
+    if left == [] {
+    } else {
+      if p(left[0]) {
+        PartitionedCompositionRight(left[1..], right, p);
+        assert left == [left[0]] + left[1..];
+        PartitionedCompositionLeft([left[0]], left[1..] + right, p);
+        assert Partitioned([left[0]] + (left[1..] + right), p);
+        assert left + right == [left[0]] + (left[1..] + right);
+      } else {
+      }
+    }
+  }
 
-  lemma {:axiom} PartitionedCompositionLeft<T>(left: seq<T>, right: seq<T>, p: T -> bool)
+  lemma PartitionedCompositionLeft<T>(left: seq<T>, right: seq<T>, p: T -> bool)
     requires All(left, p)
     requires Partitioned(right, p)
     ensures Partitioned(left + right, p)
+  {
+    if left == [] {
+      assert left + right == right;
+    } else {
+      PartitionedCompositionLeft(left[1..], right, p);
+      assert left + right == [left[0]] + (left[1..] + right);
+    }
+  }
 
   lemma PartitionedDecomposition<T>(left: seq<T>, right: seq<T>, p: T -> bool)
     requires Partitioned(left + right, p)
