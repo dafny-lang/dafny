@@ -177,7 +177,7 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
         base.Visit(variable);
       }
 
-      public override void Visit(BlockStmt blockStatement) {
+      public override void Visit(BlockLikeStmt blockStatement) {
         cancellationToken.ThrowIfCancellationRequested();
         ProcessNestedScope(blockStatement, blockStatement.Origin, () => base.Visit(blockStatement));
       }

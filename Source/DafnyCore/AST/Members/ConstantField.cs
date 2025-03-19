@@ -11,7 +11,7 @@ public class ConstantField : Field, ICallable, ICanAutoRevealDependencies, ICanV
   public Expression Rhs;
 
   public virtual string IdParam => NonglobalVariable.SanitizeName(Name);
-  
+
   public override bool IsOpaque { get; }
 
   public override bool IsMutable => false;

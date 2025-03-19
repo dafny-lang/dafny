@@ -256,7 +256,7 @@ namespace Microsoft.Dafny.LanguageServer.Language {
       }
     }
 
-    public virtual void Visit(BlockStmt blockStatement) {
+    public virtual void Visit(BlockLikeStmt blockStatement) {
       VisitNullableAttributes(blockStatement.Attributes);
       foreach (var statement in blockStatement.Body) {
         Visit(statement);

@@ -29,7 +29,7 @@ internal class LocalVariableDeclarationVisitor : SyntaxTreeVisitor {
       node.GetType(), token.GetDocumentFileName(), token.line, token.col);
   }
 
-  public override void Visit(BlockStmt blockStatement) {
+  public override void Visit(BlockLikeStmt blockStatement) {
     var oldBlock = block;
     block = new ScopeSymbol(block, blockStatement);
     oldBlock.Symbols.Add(block);
