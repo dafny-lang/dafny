@@ -113,7 +113,7 @@ public class DatatypeDestructor : SpecialField {
     return PrintableCtorNameList(EnclosingCtors, grammaticalConjunction);
   }
 
-  static internal string PrintableCtorNameList(List<DatatypeCtor> ctors, string grammaticalConjunction) {
+  internal static string PrintableCtorNameList(List<DatatypeCtor> ctors, string grammaticalConjunction) {
     Contract.Requires(ctors != null);
     Contract.Requires(grammaticalConjunction != null);
     return Util.PrintableNameList(ctors.ConvertAll(ctor => ctor.Name), grammaticalConjunction);
