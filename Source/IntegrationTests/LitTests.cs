@@ -62,11 +62,17 @@ namespace IntegrationTests {
       // The metatests/StdLibsOffByDefaultInTests.dfy test directly enforces this.
 
       string[] defaultResolveArgs = ["resolve",
+        "--type-system-refresh",
+        "--general-traits=datatype",
+        "--general-newtypes",
         "--use-basename-for-filename",
         "--show-snippets:false",
         "--standard-libraries:false"
       ];
       string[] defaultVerifyArgs = ["verify",
+        "--type-system-refresh",
+        "--general-traits=datatype",
+        "--general-newtypes",
         "--use-basename-for-filename",
         "--show-snippets:false",
         "--standard-libraries:false",
@@ -74,13 +80,24 @@ namespace IntegrationTests {
         "--verification-time-limit:300",
         "--resource-limit:50e6"
       ];
-      string[] defaultTranslateArgs = ["--use-basename-for-filename",
+      string[] defaultTranslateArgs = [ // these are arguments you get with %translate (additional standard arguments are obtained by %trargs
+      ];
+      string[] trargs = [
+        "--type-system-refresh",
+        "--general-traits=datatype",
+        "--general-newtypes",
+        "--use-basename-for-filename",
         "--cores:2",
+        "--show-snippets:false",
         "--standard-libraries:false",
         "--verification-time-limit:300",
         "--resource-limit:50e6"
       ];
+
       string[] defaultBuildArgs = ["build",
+        "--type-system-refresh",
+        "--general-traits=datatype",
+        "--general-newtypes",
         "--use-basename-for-filename",
         "--show-snippets:false",
         "--standard-libraries:false",
@@ -89,6 +106,9 @@ namespace IntegrationTests {
         "--resource-limit:50e6"
       ];
       string[] defaultRunArgs = ["run",
+        "--type-system-refresh",
+        "--general-traits=datatype",
+        "--general-newtypes",
         "--use-basename-for-filename",
         "--show-snippets:false",
         "--standard-libraries:false",
@@ -96,10 +116,17 @@ namespace IntegrationTests {
         "--verification-time-limit:300",
         "--resource-limit:50e6"
       ];
+      string[] defaultAuditArgs = ["audit",
+        "--type-system-refresh",
+        "--general-traits=datatype",
+        "--general-newtypes",
+        "--use-basename-for-filename",
+        "--standard-libraries:false"
+      ];
 
       var substitutions = new Dictionary<string, object> {
         { "%diff", "diff" },
-        { "%trargs", "--use-basename-for-filename --show-snippets:false, --standard-libraries:false --cores:2 --verification-time-limit:300 --resource-limit:50e6" },
+        { "%trargs", trargs },
         { "%binaryDir", "." },
         { "%z3", Path.Join("z3", "bin", $"z3-{DafnyOptions.DefaultZ3Version}") },
         { "%repositoryRoot", RepositoryRoot.Replace(@"\", "/") },
@@ -141,6 +168,9 @@ namespace IntegrationTests {
         }, {
           "%run", (args, config) =>
             DafnyCommand(AddExtraArgs(defaultRunArgs, args), config, InvokeMainMethodsDirectly)
+        }, {
+          "%audit", (args, config) =>
+            DafnyCommand(AddExtraArgs(defaultAuditArgs, args), config, InvokeMainMethodsDirectly)
         }, {
           "%dafny", (args, config) =>
             DafnyCommand(AddExtraArgs(DafnyCliTests.DefaultArgumentsForTesting, args), config, InvokeMainMethodsDirectly)

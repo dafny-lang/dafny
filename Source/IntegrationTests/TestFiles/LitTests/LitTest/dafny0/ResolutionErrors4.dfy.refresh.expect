@@ -1,53 +1,53 @@
-ResolutionErrors4.dfy(153,15): Warning: constructors no longer need 'this' to be listed in modifies clauses
-ResolutionErrors4.dfy(18,30): Error: type of the receiver is not fully determined at this program point
-ResolutionErrors4.dfy(43,19): Error: Type or type parameter is not declared in this scope: realint (did you forget to qualify a name or declare a module import 'opened'?) (note that names in outer modules are not visible in contained modules)
-ResolutionErrors4.dfy(38,6): Error: RHS (of type object) not assignable to LHS (of type J)
-ResolutionErrors4.dfy(41,6): Error: RHS (of type J) not assignable to LHS (of type C)
-ResolutionErrors4.dfy(51,44): Error: range of comprehension must be of type bool (instead got C)
-ResolutionErrors4.dfy(58,21): Error: Duplicate member name: P
-ResolutionErrors4.dfy(60,17): Error: Duplicate member name: L
-ResolutionErrors4.dfy(68,4): Error: boolean literal used as if it had type int
-ResolutionErrors4.dfy(68,4): Error: type of && must be a boolean (got int)
-ResolutionErrors4.dfy(73,4): Error: type of right argument to && (int) must agree with the result type (bool)
-ResolutionErrors4.dfy(78,4): Error: boolean literal used as if it had type int
-ResolutionErrors4.dfy(78,4): Error: type of || must be a boolean (got int)
-ResolutionErrors4.dfy(83,4): Error: type of right argument to || (int) must agree with the result type (bool)
-ResolutionErrors4.dfy(88,4): Error: boolean literal used as if it had type int
-ResolutionErrors4.dfy(88,8): Error: boolean literal used as if it had type int
-ResolutionErrors4.dfy(88,8): Error: type of || must be a boolean (got int)
-ResolutionErrors4.dfy(88,4): Error: type of && must be a boolean (got int)
-ResolutionErrors4.dfy(108,6): Error: in the first division of the constructor body (before 'new;'), 'this' can only be used to assign to its fields
-ResolutionErrors4.dfy(109,11): Error: in the first division of the constructor body (before 'new;'), 'this' can only be used to assign to its fields
-ResolutionErrors4.dfy(109,15): Error: in the first division of the constructor body (before 'new;'), 'this' can only be used to assign to its fields
-ResolutionErrors4.dfy(110,16): Error: in the first division of the constructor body (before 'new;'), 'this' can only be used to assign to its fields
-ResolutionErrors4.dfy(111,6): Error: in the first division of the constructor body (before 'new;'), 'this' can only be used to assign to its fields
-ResolutionErrors4.dfy(114,6): Error: in the first division of the constructor body (before 'new;'), 'this' can only be used to assign to its fields
-ResolutionErrors4.dfy(115,19): Error: in the first division of the constructor body (before 'new;'), 'this' can only be used to assign to its fields
-ResolutionErrors4.dfy(116,8): Error: in the first division of the constructor body (before 'new;'), 'this' can only be used to assign to its fields
-ResolutionErrors4.dfy(118,8): Error: in the first division of the constructor body (before 'new;'), 'this' can only be used to assign to its fields
-ResolutionErrors4.dfy(119,13): Error: in the first division of the constructor body (before 'new;'), 'this' can only be used to assign to its fields
-ResolutionErrors4.dfy(120,13): Error: in the first division of the constructor body (before 'new;'), 'this' can only be used to assign to its fields
-ResolutionErrors4.dfy(121,14): Error: in the first division of the constructor body (before 'new;'), 'this' can only be used to assign to its fields
-ResolutionErrors4.dfy(152,15): Error: 'this' is not allowed in a 'static' context
-ResolutionErrors4.dfy(154,16): Error: 'this' is not allowed in a 'static' context
-ResolutionErrors4.dfy(171,8): Error: return statement is not allowed before 'new;' in a constructor
-ResolutionErrors4.dfy(198,5): Error: type parameter (G) passed to method P must support auto-initialization (got F) (perhaps try declaring type parameter 'F' on line 191 as 'F(0)', which says it can only be instantiated with a type that supports auto-initialization)
-ResolutionErrors4.dfy(200,5): Error: type parameter (G) passed to method P must support auto-initialization (got Y) (perhaps try declaring abstract type 'Y' on line 187 as 'Y(0)', which says it can only be instantiated with a type that supports auto-initialization)
-ResolutionErrors4.dfy(238,5): Error: type parameter (G) passed to method P must support auto-initialization (got SixOrMore)
-ResolutionErrors4.dfy(239,5): Error: type parameter (G) passed to method P must support auto-initialization (got AnotherSixOrMore)
-ResolutionErrors4.dfy(240,5): Error: type parameter (G) passed to method P must support auto-initialization (got MySixOrMore)
-ResolutionErrors4.dfy(241,5): Error: type parameter (G) passed to method P must support auto-initialization (got UnclearA)
-ResolutionErrors4.dfy(257,17): Error: type parameter (G) passed to method P must support auto-initialization (got SSixOrMore)
-ResolutionErrors4.dfy(258,24): Error: type parameter (G) passed to method P must support auto-initialization (got SAnotherSixOrMore)
-ResolutionErrors4.dfy(259,19): Error: type parameter (G) passed to method P must support auto-initialization (got SMySixOrMore)
-ResolutionErrors4.dfy(260,16): Error: type parameter (G) passed to method P must support auto-initialization (got SUnclearA)
-ResolutionErrors4.dfy(292,7): Error: to be a refinement of abstract type 'ZI_RefinementAbstract.B2' declared with (0), type synonym 'ZI_RefinementConcrete0.B2' must support auto-initialization
-ResolutionErrors4.dfy(293,7): Error: to be a refinement of abstract type 'ZI_RefinementAbstract.B3' declared with (0), type synonym 'ZI_RefinementConcrete0.B3' must support auto-initialization
-ResolutionErrors4.dfy(297,7): Error: to be a refinement of abstract type 'ZI_RefinementAbstract.C3' declared with (00), type synonym 'ZI_RefinementConcrete0.C3' must be nonempty
-ResolutionErrors4.dfy(318,4): Error: type parameter 'Q' is not allowed to change the requirement of supporting auto-initialization
-ResolutionErrors4.dfy(321,4): Error: type parameter 'R' is not allowed to change the requirement of supporting auto-initialization
-ResolutionErrors4.dfy(314,5): Error: type parameter (G) passed to method P must support auto-initialization (got XYZ)
-ResolutionErrors4.dfy(328,7): Error: to be a refinement of abstract type 'ZI_RefinementAbstract.B0' declared with (0), abstract type 'ZI_RefinementConcrete2.B0' must support auto-initialization (perhaps try declaring abstract type 'B0' on line 328 as 'B0(0)', which says it can only be instantiated with a type that supports auto-initialization)
-ResolutionErrors4.dfy(330,7): Error: to be a refinement of abstract type 'ZI_RefinementAbstract.B2' declared with (0), abstract type 'ZI_RefinementConcrete2.B2' must support auto-initialization (perhaps try declaring abstract type 'B2' on line 330 as 'B2(0)', which says it can only be instantiated with a type that supports auto-initialization)
-ResolutionErrors4.dfy(331,7): Error: to be a refinement of abstract type 'ZI_RefinementAbstract.C0' declared with (00), abstract type 'ZI_RefinementConcrete2.C0' must be nonempty (perhaps try declaring abstract type 'C0' on line 331 as 'C0(00)', which says it can only be instantiated with a nonempty type)
+ResolutionErrors4.dfy(153:15-153:19): Warning: constructors no longer need 'this' to be listed in modifies clauses
+ResolutionErrors4.dfy(18:30-18:31): Error: type of the receiver is not fully determined at this program point
+ResolutionErrors4.dfy(43:19-43:26): Error: Type or type parameter is not declared in this scope: realint (did you forget to qualify a name or declare a module import 'opened'?) (note that names in outer modules are not visible in contained modules)
+ResolutionErrors4.dfy(38:6-38:8): Error: RHS (of type object) not assignable to LHS (of type J)
+ResolutionErrors4.dfy(41:6-41:8): Error: RHS (of type J) not assignable to LHS (of type C)
+ResolutionErrors4.dfy(51:44-51:45): Error: range of comprehension must be of type bool (instead got C)
+ResolutionErrors4.dfy(58:21-58:22): Error: Duplicate member name: P
+ResolutionErrors4.dfy(60:17-60:18): Error: Duplicate member name: L
+ResolutionErrors4.dfy(68:4-68:6): Error: boolean literal used as if it had type int
+ResolutionErrors4.dfy(68:4-68:6): Error: type of && must be a boolean (got int)
+ResolutionErrors4.dfy(73:4-73:6): Error: type of right argument to && (int) must agree with the result type (bool)
+ResolutionErrors4.dfy(78:4-78:6): Error: boolean literal used as if it had type int
+ResolutionErrors4.dfy(78:4-78:6): Error: type of || must be a boolean (got int)
+ResolutionErrors4.dfy(83:4-83:6): Error: type of right argument to || (int) must agree with the result type (bool)
+ResolutionErrors4.dfy(88:4-88:6): Error: boolean literal used as if it had type int
+ResolutionErrors4.dfy(88:8-88:10): Error: boolean literal used as if it had type int
+ResolutionErrors4.dfy(88:8-88:10): Error: type of || must be a boolean (got int)
+ResolutionErrors4.dfy(88:4-88:6): Error: type of && must be a boolean (got int)
+ResolutionErrors4.dfy(108:6-108:7): Error: in the first division of the constructor body (before 'new;'), 'this' can only be used to assign to its fields
+ResolutionErrors4.dfy(109:11-109:12): Error: in the first division of the constructor body (before 'new;'), 'this' can only be used to assign to its fields
+ResolutionErrors4.dfy(109:15-109:16): Error: in the first division of the constructor body (before 'new;'), 'this' can only be used to assign to its fields
+ResolutionErrors4.dfy(110:16-110:20): Error: in the first division of the constructor body (before 'new;'), 'this' can only be used to assign to its fields
+ResolutionErrors4.dfy(111:6-111:12): Error: in the first division of the constructor body (before 'new;'), 'this' can only be used to assign to its fields
+ResolutionErrors4.dfy(114:6-114:10): Error: in the first division of the constructor body (before 'new;'), 'this' can only be used to assign to its fields
+ResolutionErrors4.dfy(115:19-115:23): Error: in the first division of the constructor body (before 'new;'), 'this' can only be used to assign to its fields
+ResolutionErrors4.dfy(116:8-116:9): Error: in the first division of the constructor body (before 'new;'), 'this' can only be used to assign to its fields
+ResolutionErrors4.dfy(118:8-118:12): Error: in the first division of the constructor body (before 'new;'), 'this' can only be used to assign to its fields
+ResolutionErrors4.dfy(119:13-119:17): Error: in the first division of the constructor body (before 'new;'), 'this' can only be used to assign to its fields
+ResolutionErrors4.dfy(120:13-120:17): Error: in the first division of the constructor body (before 'new;'), 'this' can only be used to assign to its fields
+ResolutionErrors4.dfy(121:14-121:15): Error: in the first division of the constructor body (before 'new;'), 'this' can only be used to assign to its fields
+ResolutionErrors4.dfy(152:15-152:19): Error: 'this' is not allowed in a 'static' context
+ResolutionErrors4.dfy(154:16-154:20): Error: 'this' is not allowed in a 'static' context
+ResolutionErrors4.dfy(171:8-171:15): Error: return statement is not allowed before 'new;' in a constructor
+ResolutionErrors4.dfy(198:5-198:6): Error: type parameter (G) passed to method P must support auto-initialization (got F) (perhaps try declaring type parameter 'F' on line 191 as 'F(0)', which says it can only be instantiated with a type that supports auto-initialization)
+ResolutionErrors4.dfy(200:5-200:6): Error: type parameter (G) passed to method P must support auto-initialization (got Y) (perhaps try declaring abstract type 'Y' on line 187 as 'Y(0)', which says it can only be instantiated with a type that supports auto-initialization)
+ResolutionErrors4.dfy(238:5-238:6): Error: type parameter (G) passed to method P must support auto-initialization (got SixOrMore)
+ResolutionErrors4.dfy(239:5-239:6): Error: type parameter (G) passed to method P must support auto-initialization (got AnotherSixOrMore)
+ResolutionErrors4.dfy(240:5-240:6): Error: type parameter (G) passed to method P must support auto-initialization (got MySixOrMore)
+ResolutionErrors4.dfy(241:5-241:6): Error: type parameter (G) passed to method P must support auto-initialization (got UnclearA)
+ResolutionErrors4.dfy(257:17-257:18): Error: type parameter (G) passed to method P must support auto-initialization (got SSixOrMore)
+ResolutionErrors4.dfy(258:24-258:25): Error: type parameter (G) passed to method P must support auto-initialization (got SAnotherSixOrMore)
+ResolutionErrors4.dfy(259:19-259:20): Error: type parameter (G) passed to method P must support auto-initialization (got SMySixOrMore)
+ResolutionErrors4.dfy(260:16-260:17): Error: type parameter (G) passed to method P must support auto-initialization (got SUnclearA)
+ResolutionErrors4.dfy(292:7-292:9): Error: to be a refinement of abstract type 'ZI_RefinementAbstract.B2' declared with (0), type synonym 'ZI_RefinementConcrete0.B2' must support auto-initialization
+ResolutionErrors4.dfy(293:7-293:9): Error: to be a refinement of abstract type 'ZI_RefinementAbstract.B3' declared with (0), type synonym 'ZI_RefinementConcrete0.B3' must support auto-initialization
+ResolutionErrors4.dfy(297:7-297:9): Error: to be a refinement of abstract type 'ZI_RefinementAbstract.C3' declared with (00), type synonym 'ZI_RefinementConcrete0.C3' must be nonempty
+ResolutionErrors4.dfy(318:4-318:5): Error: type parameter 'Q' is not allowed to change the requirement of supporting auto-initialization
+ResolutionErrors4.dfy(321:4-321:5): Error: type parameter 'R' is not allowed to change the requirement of supporting auto-initialization
+ResolutionErrors4.dfy(314:5-314:6): Error: type parameter (G) passed to method P must support auto-initialization (got XYZ)
+ResolutionErrors4.dfy(328:7-328:9): Error: to be a refinement of abstract type 'ZI_RefinementAbstract.B0' declared with (0), abstract type 'ZI_RefinementConcrete2.B0' must support auto-initialization (perhaps try declaring abstract type 'B0' on line 328 as 'B0(0)', which says it can only be instantiated with a type that supports auto-initialization)
+ResolutionErrors4.dfy(330:7-330:9): Error: to be a refinement of abstract type 'ZI_RefinementAbstract.B2' declared with (0), abstract type 'ZI_RefinementConcrete2.B2' must support auto-initialization (perhaps try declaring abstract type 'B2' on line 330 as 'B2(0)', which says it can only be instantiated with a type that supports auto-initialization)
+ResolutionErrors4.dfy(331:7-331:9): Error: to be a refinement of abstract type 'ZI_RefinementAbstract.C0' declared with (00), abstract type 'ZI_RefinementConcrete2.C0' must be nonempty (perhaps try declaring abstract type 'C0' on line 331 as 'C0(00)', which says it can only be instantiated with a nonempty type)
 51 resolution/type errors detected in ResolutionErrors4.dfy

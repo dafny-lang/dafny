@@ -18,7 +18,7 @@ public class NestedMatchExpr : Expression, ICloneable<NestedMatchExpr>, ICanForm
 
   IReadOnlyList<NestedMatchCase> INestedMatch.Cases => Cases;
 
-  public readonly bool UsesOptionalBraces;
+  public bool UsesOptionalBraces;
   public Attributes Attributes;
 
   [FilledInDuringResolution]

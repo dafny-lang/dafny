@@ -80,7 +80,6 @@ public class DafnyConsolePrinter : ConsolePrinter {
   }
 
   public override void ReportBplError(Boogie.IToken tok, string message, bool error, TextWriter tw, string category = null) {
-
     if (Options.Verbosity == CoreOptions.VerbosityLevel.Silent) {
       return;
     }
@@ -89,7 +88,7 @@ public class DafnyConsolePrinter : ConsolePrinter {
       message = $"{category}: {message}";
     }
 
-    var dafnyToken = BoogieGenerator.ToDafnyToken(options.Get(Snippets.ShowSnippets), tok);
+    var dafnyToken = BoogieGenerator.ToDafnyToken(tok);
     message = $"{dafnyToken.OriginToString(Options)}: {message}";
 
     if (error) {

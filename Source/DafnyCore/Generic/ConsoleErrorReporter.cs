@@ -45,7 +45,7 @@ public class ConsoleErrorReporter : BatchErrorReporter {
 
     if (Options.Get(Snippets.ShowSnippets) && diagnostic.Range.Uri != null) {
       var tw = new StringWriter();
-      Snippets.WriteSourceCodeSnippet(Options, diagnostic.Range.EntireRange, tw);
+      Snippets.WriteSourceCodeSnippet(Options, diagnostic.Range, tw);
       errorLine += tw.ToString();
     }
 
@@ -57,10 +57,10 @@ public class ConsoleErrorReporter : BatchErrorReporter {
         innerMessage = "Related location: " + innerMessage;
       }
 
-      errorLine += $"{related.Token.OriginToString(Options)}: {innerMessage}\n";
+      errorLine += $"{related.Range.ToFileRangeString(Options)}: {innerMessage}\n";
       if (Options.Get(Snippets.ShowSnippets)) {
         var tw = new StringWriter();
-        Snippets.WriteSourceCodeSnippet(Options, related.Token.EntireRange, tw);
+        Snippets.WriteSourceCodeSnippet(Options, related.Range, tw);
         errorLine += tw.ToString();
       }
     }

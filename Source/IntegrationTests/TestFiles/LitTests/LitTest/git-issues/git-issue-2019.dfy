@@ -1,5 +1,5 @@
-// RUN: %exits-with 2 %verify "%s" > "%t"
-// RUN: %diff "%s.expect" "%t"
+// RUN: %testDafnyForEachResolver --expect-exit-code=2 "%s"
+
 
 method f(x: seq<int>) returns (res: seq<int>)
   ensures x == res

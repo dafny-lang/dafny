@@ -35,7 +35,7 @@ module AAA {
     method Q(h: set<HH>)
   }
 
-  trait Trait {
+  trait Trait extends object {
   }
 
   // The following types all take (==) arguments

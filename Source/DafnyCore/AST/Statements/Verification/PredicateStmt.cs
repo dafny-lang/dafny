@@ -3,7 +3,7 @@ using System.Diagnostics.Contracts;
 namespace Microsoft.Dafny;
 
 public abstract class PredicateStmt : Statement, ICanResolveNewAndOld {
-  public readonly Expression Expr;
+  public Expression Expr;
   [ContractInvariantMethod]
   void ObjectInvariant() {
     Contract.Invariant(Expr != null);

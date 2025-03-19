@@ -7,11 +7,6 @@ using VCGeneration;
 namespace Microsoft.Dafny;
 
 public static class ErrorReporterExtensions {
-
-  public static SourceOrigin ToSourceOrigin(this IOrigin origin) {
-    return new SourceOrigin(origin.EntireRange ?? origin.ReportingRange, origin.ReportingRange);
-  }
-
   public static void ReportBoogieError(this ErrorReporter reporter, ErrorInformation error,
     DafnyModel? counterexampleModel = null, bool useRange = true) {
     var usingSnippets = reporter.Options.Get(Snippets.ShowSnippets);
@@ -20,15 +15,15 @@ public static class ErrorReporterExtensions {
       if (auxiliaryInformation.Category == RelatedMessageCategory || auxiliaryInformation.Category == AssertedExprCategory) {
         error.Msg += "\n" + auxiliaryInformation.FullMsg;
       } else if (auxiliaryInformation.Category == RelatedLocationCategory) {
-        var auxiliaryToken = BoogieGenerator.ToDafnyToken(true, auxiliaryInformation.Tok);
-        relatedInformation.Add(new DafnyRelatedInformation(auxiliaryToken.ToSourceOrigin(), auxiliaryInformation.Msg));
+        var auxiliaryToken = BoogieGenerator.ToDafnyToken(auxiliaryInformation.Tok);
+        relatedInformation.Add(new DafnyRelatedInformation(auxiliaryToken.ReportingRange, auxiliaryInformation.Msg));
         relatedInformation.AddRange(CreateDiagnosticRelatedInformationFor(auxiliaryToken, usingSnippets));
       } else {
         // The execution trace is an additional auxiliary which identifies itself with
         // line=0 and character=0. These positions cause errors when exposing them, Furthermore,
         // the execution trace message appears to not have any interesting information.
         if (auxiliaryInformation.Tok.line > 0) {
-          reporter.Info(MessageSource.Verifier, BoogieGenerator.ToDafnyToken(true, auxiliaryInformation.Tok), auxiliaryInformation.Msg);
+          reporter.Info(MessageSource.Verifier, BoogieGenerator.ToDafnyToken(auxiliaryInformation.Tok), auxiliaryInformation.Msg);
         }
       }
     }
@@ -37,11 +32,11 @@ public static class ErrorReporterExtensions {
       error.Msg += "\n" + $"Related counterexample:\n{counterexampleModel}";
     }
 
-    relatedInformation.AddRange(CreateDiagnosticRelatedInformationFor(BoogieGenerator.ToDafnyToken(true, error.Tok), usingSnippets));
+    relatedInformation.AddRange(CreateDiagnosticRelatedInformationFor(BoogieGenerator.ToDafnyToken(error.Tok), usingSnippets));
 
-    var dafnyToken = BoogieGenerator.ToDafnyToken(useRange, error.Tok);
+    var dafnyToken = BoogieGenerator.ToDafnyToken(error.Tok);
 
-    var diagnostic = new DafnyDiagnostic(MessageSource.Verifier, null!, dafnyToken.ToSourceOrigin(), error.Msg,
+    var diagnostic = new DafnyDiagnostic(MessageSource.Verifier, null!, dafnyToken.ReportingRange, error.Msg,
       ErrorLevel.Error, relatedInformation);
     reporter.MessageCore(diagnostic);
   }
@@ -67,7 +62,7 @@ public static class ErrorReporterExtensions {
         //     message = $"Could not prove: {dafnyToken.PrintOriginal()}";
         //   }
         // }
-        yield return new DafnyRelatedInformation(nestedOrigin.Inner.ToSourceOrigin(), nestedOrigin.Message);
+        yield return new DafnyRelatedInformation(nestedOrigin.Inner.ReportingRange, nestedOrigin.Message);
         innerToken = nestedOrigin.Inner;
       } else {
         innerToken = wrapper.WrappedOrigin;

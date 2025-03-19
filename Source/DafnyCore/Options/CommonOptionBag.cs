@@ -230,7 +230,7 @@ true - Use an updated type-inference engine.".TrimStart()) {
 
   public static readonly Option<GeneralTraitsOptions> GeneralTraits = new("--general-traits", () => GeneralTraitsOptions.Legacy,
     @"
-legacy - Every trait implicitly extends 'object', and thus is a reference type. Only traits and reference types can extend traits.
+legacy (default) - Every trait implicitly extends 'object', and thus is a reference type. Only traits and reference types can extend traits.
 datatype - A trait is a reference type only if it or one of its ancestor traits is 'object'. Any non-'newtype' type with members can extend traits.
 full - (don't use; not yet completely supported) A trait is a reference type only if it or one of its ancestor traits is 'object'. Any type with members can extend traits.".TrimStart()) {
     IsHidden = true
@@ -449,11 +449,12 @@ features like traits or co-inductive types.".TrimStart(), "cs");
 1 (default) - The char type represents any Unicode scalar value.".TrimStart(), defaultValue: true);
     DafnyOptions.RegisterLegacyUi(TypeSystemRefresh, DafnyOptions.ParseBoolean, "Language feature selection", "typeSystemRefresh", @"
 0 (default) - The type-inference engine and supported types are those of Dafny 4.0.
-1 - Use an updated type-inference engine. Warning: This mode is under construction and probably won't work at this time.".TrimStart(), defaultValue: false);
+1 - Use an updated type-inference engine.".TrimStart(), defaultValue: false);
     DafnyOptions.RegisterLegacyUi(GeneralTraits, DafnyOptions.ParseGeneralTraitsOption, "Language feature selection", "generalTraits", @"
 legacy (default) - Every trait implicitly extends 'object', and thus is a reference type. Only traits and reference types can extend traits.
 datatype - A trait is a reference type only if it or one of its ancestor traits is 'object'. Any non-'newtype' type with members can extend traits.
-full - (don't use; not yet completely supported) A trait is a reference type only if it or one of its ancestor traits is 'object'. Any type with members can extend traits.".TrimStart());
+full - (don't use; not yet completely supported) A trait is a reference type only if it or one of its ancestor traits is 'object'. Any type with members can extend traits.".TrimStart(),
+      defaultValue: GeneralTraitsOptions.Legacy);
     DafnyOptions.RegisterLegacyUi(GeneralNewtypes, DafnyOptions.ParseBoolean, "Language feature selection", "generalNewtypes", @"
 0 (default) - A newtype can only be based on numeric types or another newtype.
 1 - (requires /typeSystemRefresh:1) A newtype case be based on any non-reference, non-trait, non-arrow, non-ORDINAL type.".TrimStart(), false);

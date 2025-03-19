@@ -50,8 +50,7 @@ public abstract class ErrorReporter {
     relatedInformation.AddRange(
       ErrorReporterExtensions.CreateDiagnosticRelatedInformationFor(rootTok, usingSnippets));
 
-    var range = rootTok.ToSourceOrigin();
-    var dafnyDiagnostic = new DafnyDiagnostic(source, errorId!, range, msg, level, relatedInformation);
+    var dafnyDiagnostic = new DafnyDiagnostic(source, errorId!, rootTok.ReportingRange, msg, level, relatedInformation);
     return MessageCore(dafnyDiagnostic);
   }
 
@@ -87,7 +86,7 @@ public abstract class ErrorReporter {
     Contract.Requires(tok != null);
     Contract.Requires(format != null);
     Contract.Requires(args != null);
-    Error(source, errorId.ToString(), tok, string.Format(format, args));
+    Error(source, errorId.ToString(), tok, Format(format, args));
   }
 
   public void Error(MessageSource source, Enum errorId, IOrigin tok, string msg) {
@@ -156,7 +155,7 @@ public abstract class ErrorReporter {
     Contract.Requires(tok != null);
     Contract.Requires(format != null);
     Contract.Requires(args != null);
-    Warning(source, errorId, tok, String.Format(format, args));
+    Warning(source, errorId, tok, Format(format, args));
   }
 
   public void Warning(MessageSource source, Enum errorId, IOrigin tok, string msg) {
@@ -196,7 +195,7 @@ public abstract class ErrorReporter {
     Contract.Requires(format != null);
     Contract.Requires(args != null);
     if (Options.DeprecationNoise != 0) {
-      Warning(source, errorId, tok, String.Format(format, args));
+      Warning(source, errorId, tok, Format(format, args));
     }
   }
 
@@ -206,14 +205,22 @@ public abstract class ErrorReporter {
     Message(source, ErrorLevel.Info, errorId?.ToString(), tok, msg);
   }
 
-  public void Info(MessageSource source, IOrigin tok, string msg, params object[] args) {
+  public void Info(MessageSource source, IOrigin tok, string format, params object[] args) {
     Contract.Requires(tok != null);
-    Contract.Requires(msg != null);
+    Contract.Requires(format != null);
     Contract.Requires(args != null);
-    Info(source, tok, String.Format(msg, args));
+    Info(source, tok, Format(format, args));
   }
 
-  public string ErrorToString(ErrorLevel header, SourceOrigin tok, string msg) {
-    return $"{tok.OriginToString(Options)}: {header.ToString()}: {msg}";
+  private string Format(string format, object[] args) {
+    // In some cases, the "format" isn't actually a (Dafny-generated) format string, but a (user-defined) literal string.
+    // Such a user-defined literal may contain format information, like the "{0}" in the "ensures x in {0} <==> x in {1}".
+    // To prevent such string from going to string.Format, we first check if "args" has any arguments at all.
+    // This solves all known issues.
+    return args.Length == 0 ? format : string.Format(format, args);
+  }
+
+  public string ErrorToString(ErrorLevel header, TokenRange range, string msg) {
+    return $"{(range.StartToken == Token.Cli ? null : range).ToFileRangeString(Options)}: {header.ToString()}: {msg}";
   }
 }

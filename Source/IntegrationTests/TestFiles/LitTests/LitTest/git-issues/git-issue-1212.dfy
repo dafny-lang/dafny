@@ -1,7 +1,7 @@
 // RUN: %exits-with 4 %run "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
-trait H<Y> { var data: Y }
+trait H<Y> extends object { var data: Y }
 class K extends H<int> { }
 
 type Singleton = ()
@@ -10,7 +10,7 @@ method Main() {
   var k := new K;
   var a: H<int> := k;
   var b: H<Singleton> := BadCast(k);
-  assert a == k == b;
+  assert a == k == b as object;
   label L:
   var x := a.data;
   Change(a);
@@ -21,10 +21,10 @@ method Main() {
 }
 
 ghost method BadCast(k: K) returns (b: H<Singleton>)
-  ensures b == k
+  ensures b == k as object
 {
   var oo: object := k;
-  b := oo; // error: this was once not caught by the verifier
+  b := oo as H<Singleton>; // error: this was once not caught by the verifier
 }
 
 method Change(a: H<int>)

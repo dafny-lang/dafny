@@ -9,8 +9,8 @@ namespace Microsoft.Dafny;
 /// Parsed from ":="
 /// </summary>
 public class AssignStatement : ConcreteAssignStatement, ICloneable<AssignStatement>, ICanResolve {
-  public readonly List<AssignmentRhs> Rhss;
-  public readonly bool CanMutateKnownState;
+  public List<AssignmentRhs> Rhss;
+  public bool CanMutateKnownState;
   public Expression? OriginalInitialLhs = null;
 
   [FilledInDuringResolution] public List<Statement>? ResolvedStatements;
@@ -23,6 +23,10 @@ public class AssignStatement : ConcreteAssignStatement, ICloneable<AssignStateme
   public override IEnumerable<INode> PreResolveChildren => Lhss.Concat<Node>(Rhss);
 
   public override IEnumerable<Statement> PreResolveSubStatements => [];
+
+  public override IEnumerable<IdentifierExpr> GetAssignedLocals() {
+    return ResolvedStatements.SelectMany(r => r.GetAssignedLocals());
+  }
 
   [ContractInvariantMethod]
   void ObjectInvariant() {

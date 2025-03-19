@@ -95,7 +95,7 @@ class Cl<X(==,0),Y(0),Z> {
   }
 }
 
-trait HTrait {
+trait HTrait extends object {
   const h0: Stream<int>
   var h1: Stream<int>
 

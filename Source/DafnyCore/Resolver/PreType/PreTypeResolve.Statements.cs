@@ -103,7 +103,7 @@ namespace Microsoft.Dafny {
         return;
       }
 
-      if (!(stmt is ForallStmt || stmt is ForLoopStmt)) {  // "forall" and "for" statements do their own attribute resolution below
+      if (!(stmt is ForallStmt or ForLoopStmt)) {  // "forall" and "for" statements do their own attribute resolution below
         ResolveAttributes(stmt, resolutionContext, false);
       }
       if (stmt is PrintStmt) {
@@ -526,7 +526,7 @@ namespace Microsoft.Dafny {
     private void ResolveConcreteUpdateStmt(ConcreteAssignStatement assign, List<LocalVariable> locals, ResolutionContext resolutionContext) {
       Contract.Requires(assign != null || locals != null);
       // We have four cases.
-      Contract.Assert(assign == null || assign is AssignSuchThatStmt || assign is AssignStatement || assign is AssignOrReturnStmt);
+      Contract.Assert(assign is null or AssignSuchThatStmt or AssignStatement or AssignOrReturnStmt);
       // 0.  There is no update.  This is easy, we will just resolve the locals.
       // 1.  The update is an AssignSuchThatStmt.  This is also straightforward:  first
       //     resolve the locals, which adds them to the scope, and then resolve the update.
@@ -605,6 +605,8 @@ namespace Microsoft.Dafny {
       } else {
         Contract.Assert(rhs is HavocRhs);
       }
+
+      ResolveAttributes(rhs, resolutionContext, false);
     }
 
     /// <summary>
@@ -641,8 +643,6 @@ namespace Microsoft.Dafny {
         if (isEffectful && firstEffectfulRhs == null) {
           firstEffectfulRhs = rhs.Origin;
         }
-
-        ResolveAttributes(rhs, resolutionContext, false);
       }
 
       // figure out what kind of UpdateStmt this is
@@ -1134,7 +1134,7 @@ namespace Microsoft.Dafny {
           //     nat^N -> rr.EType  :>  rr.ElementInit.Type
           resolver.SystemModuleManager.CreateArrowTypeDecl(dims);  // TODO: should this be done already in the parser?
           var indexPreTypes = Enumerable.Repeat(Type2PreType(resolver.SystemModuleManager.Nat()), dims).ToList();
-          var arrowPreType = BuiltInArrowType(indexPreTypes, elementPreType);
+          var arrowPreType = BuiltInArrowType(indexPreTypes, elementPreType, true, true);
           Constraints.AddSubtypeConstraint(arrowPreType, allocateArray.ElementInit.PreType, allocateArray.ElementInit.Origin, () => {
             var hintString = !PreType.Same(arrowPreType, allocateArray.ElementInit.PreType) ? "" :
               string.Format(" (perhaps write '{0} =>' in front of the expression you gave in order to make it an arrow type)",

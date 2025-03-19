@@ -1,4 +1,4 @@
-// RUN: %testDafnyForEachCompiler "%s" -- --relax-definite-assignment
+// RUN: %testDafnyForEachCompiler "%s" -- --type-system-refresh=false --general-newtypes=false --relax-definite-assignment
 
 datatype S = S(G: array<int>)
 datatype T = T(F: array<S>, ghost Repr: set<object>)

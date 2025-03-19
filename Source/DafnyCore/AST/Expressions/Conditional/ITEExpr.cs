@@ -4,10 +4,10 @@ using System.Diagnostics.Contracts;
 namespace Microsoft.Dafny;
 
 public class ITEExpr : Expression, ICanFormat, ICloneable<ITEExpr> {
-  public readonly bool IsBindingGuard;
-  public readonly Expression Test;
-  public readonly Expression Thn;
-  public readonly Expression Els;
+  public bool IsBindingGuard;
+  public Expression Test;
+  public Expression Thn;
+  public Expression Els;
 
   public ITEExpr(Cloner cloner, ITEExpr original) : base(cloner, original) {
     IsBindingGuard = original.IsBindingGuard;

@@ -1134,6 +1134,11 @@ namespace Microsoft.Dafny {
 
       int prevErrorCount = reporter.Count(ErrorLevel.Error);
 
+      if (Options.Get(CommonOptionBag.GeneralNewtypes) && !Options.Get(CommonOptionBag.TypeSystemRefresh)) {
+        reporter.Error(MessageSource.Resolver, Token.NoToken, "use of --general-newtypes requires --type-system-refresh");
+        return;
+      }
+
       // ---------------------------------- Pass 0 ----------------------------------
       // This pass:
       // * resolves names, introduces (and may solve) type constraints
@@ -1484,6 +1489,17 @@ namespace Microsoft.Dafny {
         }
       }
 
+      foreach (var member in declarations.OfType<TopLevelDeclWithMembers>().SelectMany(d => d.Members)) {
+        if (member.HasUserAttribute("only", out var attribute)) {
+          reporter.Warning(MessageSource.Verifier, ResolutionErrors.ErrorId.r_member_only_assumes_other.ToString(), attribute.Origin,
+            "Members with {:only} temporarily disable the verification of other members in the entire file");
+          if (attribute.Args.Count >= 1) {
+            reporter.Warning(MessageSource.Verifier, ResolutionErrors.ErrorId.r_member_only_has_no_before_after.ToString(), attribute.Args[0].Origin,
+              "{:only} on members does not support arguments");
+          }
+        }
+      }
+
       if (reporter.Count(ErrorLevel.Error) == prevErrorCount) {
         // Check that class constructors are called when required.
         new ObjectConstructorChecker(reporter).VisitDeclarations(declarations);
@@ -1506,7 +1522,7 @@ namespace Microsoft.Dafny {
         // and that a class without any constructor only has fields with known initializers.
         // Also check that static fields (which are necessarily const) have initializers.
         var cdci = new CheckDividedConstructorInitVisitor(reporter);
-        foreach (var cl in ModuleDefinition.AllTypesWithMembers(declarations)) {
+        foreach (var cl in declarations.OfType<TopLevelDeclWithMembers>()) {
           // only reference types (classes and reference-type traits) are allowed to declare mutable fields
           if (cl is not ClassLikeDecl { IsReferenceTypeDecl: true }) {
             foreach (var member in cl.Members.Where(member => member is Field { IsMutable: true })) {
@@ -2172,7 +2188,7 @@ namespace Microsoft.Dafny {
       if (cl is NewtypeDecl newtypeDecl) {
         if (Options.Get(CommonOptionBag.TypeSystemRefresh)) {
           baseTypeDecl = basePreType?.Decl as TopLevelDeclWithMembers;
-          baseTypeArguments = basePreType?.Arguments.ConvertAll(preType => PreType2TypeUtil.PreType2Type(preType, false, TypeParameter.TPVariance.Co));
+          baseTypeArguments = basePreType?.Arguments.ConvertAll(preType => PreType2TypeUtil.PreType2Type(preType, false));
         } else {
           // ignore any subset types, since they have no members and thus we don't need their type-parameter mappings
           var baseType = newtypeDecl.BaseType.NormalizeExpand();
