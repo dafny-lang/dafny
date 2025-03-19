@@ -5,9 +5,9 @@ using System.Linq;
 
 namespace Microsoft.Dafny;
 
-public class AttributedExpression : NodeWithComputedRange, IAttributeBearingDeclaration {
-  public readonly Expression E;
-  public readonly AssertLabel? Label;
+public class AttributedExpression : NodeWithOrigin, IAttributeBearingDeclaration {
+  public Expression E;
+  public AssertLabel? Label;
 
   [ContractInvariantMethod]
   void ObjectInvariant() {

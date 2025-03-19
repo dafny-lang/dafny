@@ -1,3 +1,4 @@
+#nullable enable
 using System;
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
@@ -5,6 +6,7 @@ using System.Linq;
 using System.Text.RegularExpressions;
 using Microsoft.Dafny.Auditor;
 using Action = System.Action;
+using Range = OmniSharp.Extensions.LanguageServer.Protocol.Models.Range;
 
 namespace Microsoft.Dafny;
 
@@ -32,13 +34,15 @@ public abstract class Node : INode {
   private static readonly Regex StartDocstringExtractor =
     new Regex($@"/\*\*(?<multilinecontent>{TriviaFormatterHelper.MultilineCommentContent})\*/");
 
-  protected IReadOnlyList<Token> OwnedTokensCache;
+  protected IReadOnlyList<Token>? OwnedTokensCache;
 
   public virtual bool SingleFileToken => true;
-  public Token StartToken => Origin?.StartToken;
 
-  public Token EndToken => Origin?.EndToken;
-  public Token Center => Origin?.Center;
+  public abstract IOrigin Origin { get; }
+
+  public abstract TokenRange EntireRange { get; }
+  public TokenRange ReportingRange => Origin.ReportingRange;
+  public Token Center => ReportingRange.StartToken;
 
   /// <summary>
   /// These children should be such that they contain information produced by resolution such as inferred types
@@ -57,16 +61,19 @@ public abstract class Node : INode {
 
   public IEnumerable<Token> CoveredTokens {
     get {
-      var token = StartToken;
+      var token = EntireRange.StartToken;
       if (token == Token.NoToken) {
         yield break;
       }
-      while (token.Prev != EndToken) {
+      while (token.Prev != EntireRange.EndToken) {
         yield return token;
         token = token.Next;
       }
     }
   }
+
+  public Token StartToken => EntireRange.StartToken;
+  public Token EndToken => EntireRange.EndToken;
 
   /// <summary>
   /// A token is owned by a node if it was used to parse this node,
@@ -86,7 +93,7 @@ public abstract class Node : INode {
         // We need to filter these out to prevent an infinite loop
         Where(c => c.StartToken.pos <= c.EndToken.pos).
         GroupBy(child => child.StartToken.pos).
-        ToDictionary(g => g.Key, g => g.MaxBy(child => child.EndToken.pos).EndToken
+        ToDictionary(g => g.Key, g => g.MaxBy(child => child.EndToken.pos)!.EndToken
       );
 
       var result = new List<Token>();
@@ -129,8 +136,6 @@ public abstract class Node : INode {
     }
   }
 
-  public abstract IOrigin Origin { get; }
-
   // <summary>
   // Returns all assumptions contained in this node or its descendants.
   // For each one, the decl field will be set to the closest containing declaration.
@@ -141,7 +146,9 @@ public abstract class Node : INode {
     return [];
   }
 
-  public ISet<INode> Visit(Func<INode, bool> beforeChildren = null, Action<INode> afterChildren = null, Action<Exception> reportError = null) {
+  public ISet<INode> Visit(Func<INode, bool>? beforeChildren = null,
+    Action<INode>? afterChildren = null,
+    Action<Exception>? reportError = null) {
     reportError ??= _ => { };
     beforeChildren ??= node => true;
 
@@ -188,7 +195,7 @@ public abstract class Node : INode {
   }
 
   // Docstring from start token is extracted only if using "/** ... */" syntax, and only the last one is considered
-  protected bool GetStartTriviaDocstring(out string trivia) {
+  protected bool GetStartTriviaDocstring(out string? trivia) {
     var matches = StartDocstringExtractor.Matches(StartToken.LeadingTrivia);
     trivia = null;
     if (matches.Count > 0) {

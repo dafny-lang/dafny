@@ -16,7 +16,7 @@ namespace Microsoft.Dafny {
     private static Bpl.Cmd CaptureState(DafnyOptions options, Statement stmt) {
       Contract.Requires(stmt != null);
       Contract.Ensures(Contract.Result<Bpl.Cmd>() != null);
-      return CaptureState(options, stmt.Origin.EndToken, true, null);
+      return CaptureState(options, stmt.EndToken, true, null);
     }
 
     internal static void AddCaptureState(this BoogieStmtListBuilder builder, IOrigin tok, bool isEndToken, string /*?*/ additionalInfo) {
@@ -30,9 +30,9 @@ namespace Microsoft.Dafny {
       Contract.Ensures(Contract.Result<Bpl.Cmd>() != null);
       string description;
       if (options.TestGenOptions.Mode != TestGenerationOptions.Modes.None && tok.val != null && tok.val.StartsWith("#")) {
-        description = $"{tok.TokenToString(options)}{(additionalInfo == null ? tok.val : (": " + additionalInfo))}";
+        description = $"{tok.OriginToString(options)}{(additionalInfo == null ? tok.val : (": " + additionalInfo))}";
       } else {
-        description = $"{tok.TokenToString(options)}{(additionalInfo == null ? "" : (": " + additionalInfo))}";
+        description = $"{tok.OriginToString(options)}{(additionalInfo == null ? "" : (": " + additionalInfo))}";
       }
       Bpl.QKeyValue kv = new Bpl.QKeyValue(tok, "captureState", new List<object>() { description }, null);
       return BoogieGenerator.TrAssumeCmd(tok, Bpl.Expr.True, kv);
