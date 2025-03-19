@@ -31,7 +31,7 @@ partial class SyntaxDeserializer {}")!;
   public static async Task Handle(string outputFile) {
     var program = typeof(TopLevelDecl);
     var generator = new SyntaxDeserializerGenerator();
-    generator.VisitTypesFromRoots([program, typeof(SourceOrigin)]);
+    generator.VisitTypesFromRoots([program, typeof(SourceOrigin), typeof(TokenRangeOrigin)]);
 
     var deserializerUnit = SyntaxFactory.ParseCompilationUnit(@"
 // Generated file

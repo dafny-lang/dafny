@@ -3,6 +3,7 @@ using System;
 using System.Collections;
 using System.Text;
 using Microsoft.Boogie;
+using VCGeneration;
 
 namespace Microsoft.Dafny;
 
