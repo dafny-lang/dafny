@@ -14,7 +14,7 @@ namespace Microsoft.Dafny;
 public class Method : MethodOrFunction, TypeParameter.ParentType,
   IMethodCodeContext, ICanFormat, IHasDocstring, IHasSymbolChildren, ICanAutoRevealDependencies, ICanVerify {
 
-  public static readonly Option<bool> ReadsClausesOnMethods = new("--reads-clauses-on-methods",
+  public static Option<bool> ReadsClausesOnMethods = new("--reads-clauses-on-methods",
     "Allows reads clauses on methods (with a default of 'reads *') as well as functions."
   );
 
@@ -31,15 +31,15 @@ public class Method : MethodOrFunction, TypeParameter.ParentType,
 
   public override IEnumerable<INode> PreResolveChildren => Children;
   public override string WhatKind => "method";
-  public readonly bool IsByMethod;
+  public bool IsByMethod;
   public bool MustReverify;
   public bool IsEntryPoint = false;
-  public readonly List<Formal> Outs;
-  public readonly Specification<FrameExpression> Mod;
+  public List<Formal> Outs;
+  public Specification<FrameExpression> Mod;
   [FilledInDuringResolution] public bool IsRecursive;
   [FilledInDuringResolution] public bool IsTailRecursive;
   [FilledInDuringResolution] public Function? FunctionFromWhichThisIsByMethodDecl;
-  public readonly ISet<IVariable> AssignedAssumptionVariables = new HashSet<IVariable>();
+  public ISet<IVariable> AssignedAssumptionVariables = new HashSet<IVariable>();
   public Method? OverriddenMethod;
   public Method Original => OverriddenMethod == null ? this : OverriddenMethod.Original;
   public override bool IsOverrideThatAddsBody => base.IsOverrideThatAddsBody && Body != null;

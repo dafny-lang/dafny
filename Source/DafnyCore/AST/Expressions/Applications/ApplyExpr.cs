@@ -6,8 +6,8 @@ public class ApplyExpr : Expression, ICloneable<ApplyExpr> {
   // The idea is that this apply expression does not need a type argument substitution,
   // since lambda functions and anonymous functions are never polymorphic.
   // Make a FunctionCallExpr otherwise, to call a resolvable anonymous function.
-  public readonly Expression Function;
-  public readonly List<Expression> Args;
+  public Expression Function;
+  public List<Expression> Args;
 
   public override IEnumerable<Expression> SubExpressions {
     get {

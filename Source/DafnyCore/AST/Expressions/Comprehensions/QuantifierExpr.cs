@@ -11,7 +11,7 @@ namespace Microsoft.Dafny;
 public abstract class QuantifierExpr : ComprehensionExpr, TypeParameter.ParentType {
   public override string WhatKind => "quantifier";
 
-  private readonly int UniqueId;
+  private int UniqueId;
   private static int currentQuantId = -1;
 
   protected virtual BinaryExpr.ResolvedOpcode SplitResolvedOp => BinaryExpr.ResolvedOpcode.Or;

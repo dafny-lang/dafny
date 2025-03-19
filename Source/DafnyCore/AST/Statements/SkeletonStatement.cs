@@ -26,11 +26,11 @@ namespace Microsoft.Dafny;
 ///   ConditionOmitted == true && BodyOmitted == false
 /// </summary>
 public class SkeletonStatement : Statement, ICloneable<SkeletonStatement>, ICanFormat {
-  public readonly Statement? S;
+  public Statement? S;
   public bool ConditionOmitted => ConditionEllipsis != null;
-  public readonly IOrigin? ConditionEllipsis;
+  public IOrigin? ConditionEllipsis;
   public bool BodyOmitted => BodyEllipsis != null;
-  public readonly IOrigin? BodyEllipsis;
+  public IOrigin? BodyEllipsis;
 
   public SkeletonStatement Clone(Cloner cloner) {
     return new SkeletonStatement(cloner, this);

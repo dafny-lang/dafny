@@ -16,8 +16,8 @@ public class UserDefinedType : NonProxyType, IHasReferences {
     Contract.Invariant(!ArrowType.IsArrowTypeName(Name) || this is ArrowType);
   }
 
-  public readonly Expression NamePath;  // either NameSegment or ExprDotName (with the inner expression satisfying this same constraint)
-  public readonly string Name;
+  public Expression NamePath;  // either NameSegment or ExprDotName (with the inner expression satisfying this same constraint)
+  public string Name;
   [Rep]
 
   public string FullName {

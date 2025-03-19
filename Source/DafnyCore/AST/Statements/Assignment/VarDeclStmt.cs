@@ -6,8 +6,8 @@ using System.Linq;
 namespace Microsoft.Dafny;
 
 public class VarDeclStmt : Statement, ICloneable<VarDeclStmt>, ICanFormat {
-  public readonly List<LocalVariable> Locals;
-  public readonly ConcreteAssignStatement? Assign;
+  public List<LocalVariable> Locals;
+  public ConcreteAssignStatement? Assign;
   [ContractInvariantMethod]
   void ObjectInvariant() {
     Contract.Invariant(cce.NonNullElements(Locals));

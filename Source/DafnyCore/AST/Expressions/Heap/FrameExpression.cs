@@ -20,7 +20,7 @@ public class FrameExpression : NodeWithOrigin, IHasReferences {
     Contract.Invariant(!(E is WildcardExpr) || (FieldName == null && Field == null));
   }
 
-  public readonly string? FieldName;
+  public string? FieldName;
   [FilledInDuringResolution] public Field? Field;  // null if FieldName is
 
   /// <summary>
