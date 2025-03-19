@@ -29,7 +29,7 @@ module AdvancedIndexableInference {
 // --------------------------
 
 module TypeConversions {
-  trait J { }
+  trait J extends object { }
   class C extends J { }
 
   method M() returns (x: int, n: nat, o: object, j: J, c: C) {

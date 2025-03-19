@@ -117,7 +117,7 @@ abstract module Induction {
     requires e.Op? && e.op == op && e.oe1 == e1 && e.oe2 == e2
     requires !P_Fail(st, e)
     ensures !P_Fail(st, e1)
-    ensures forall st1, v1 | P_Succ(st, e1, st1, v1) :: !P_Fail(st1, e2)
+    ensures forall st1: S, v1 | P_Succ(st, e1, st1, v1) :: !P_Fail(st1, e2)
 
   lemma InductOp_Succ(st: S, e: Expr, op: BinOp, e1: Expr, e2: Expr, st1: S, v1: V)
     requires e.Op? && e.op == op && e.oe1 == e1 && e.oe2 == e2
@@ -142,7 +142,7 @@ abstract module Induction {
     requires !P_Fail(st, e)
     requires Pes(st, avals)
     ensures !Pes_Fail(st, avals)
-    ensures forall st1, vs | Pes_Succ(st, avals, st1, vs) :: UpdateState_Pre(st1, avars, vs)
+    ensures forall st1: S, vs: VS | Pes_Succ(st, avals, st1, vs) :: UpdateState_Pre(st1, avars, vs)
 
   lemma InductAssign_Succ(
     st: S, e: Expr, avars: seq<string>, avals: seq<Expr>, st1: S, vs: VS, st2: S)
@@ -162,7 +162,7 @@ abstract module Induction {
     requires Pes(st, bvals)
     ensures !Pes_Fail(st, bvals)
     ensures
-      forall st1, vs | Pes_Succ(st, bvals, st1, vs) ::
+      forall st1: S, vs: VS | Pes_Succ(st, bvals, st1, vs) ::
       && UpdateState_Pre(st1, bvars, vs)
       && !P_Fail(BindStartScope(st1, bvars, vs), body)
 
@@ -183,8 +183,8 @@ abstract module Induction {
 
   lemma InductExprs_Cons(st: S, e: Expr, es: seq<Expr>)
     ensures P_Fail(st, e) ==> Pes_Fail(st, [e] + es)
-    ensures !P_Fail(st, e) ==> forall st1, v :: P_Succ(st, e, st1, v) && Pes_Fail(st1, es) ==> Pes_Fail(st, [e] + es)
-    ensures forall st1, v, st2, vs :: P_Succ(st, e, st1, v) && Pes_Succ(st1, es, st2, vs) ==> Pes_Succ(st, [e] + es, st2, AppendValue(v, vs))
+    ensures !P_Fail(st, e) ==> forall st1: S, v :: P_Succ(st, e, st1, v) && Pes_Fail(st1, es) ==> Pes_Fail(st, [e] + es)
+    ensures forall st1: S, v, st2: S, vs: VS :: P_Succ(st, e, st1, v) && Pes_Succ(st1, es, st2, vs) ==> Pes_Succ(st, [e] + es, st2, AppendValue(v, vs))
 
   //
   // Lemmas

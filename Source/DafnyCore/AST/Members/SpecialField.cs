@@ -20,8 +20,8 @@ public class SpecialField : Field {
     Modifies,
     New,
   }
-  public readonly ID SpecialId;
-  public readonly object IdParam;
+  public ID SpecialId;
+  public object IdParam;
 
   public SpecialField(IOrigin origin, string name, ID specialId, object idParam,
     bool isGhost, bool isMutable, bool isUserMutable, Type type, Attributes attributes)
@@ -71,8 +71,8 @@ public class DatatypeDiscriminator : SpecialField {
 }
 
 public class DatatypeDestructor : SpecialField {
-  public readonly List<DatatypeCtor> EnclosingCtors = [];  // is always a nonempty list
-  public readonly List<Formal> CorrespondingFormals = [];  // is always a nonempty list
+  public List<DatatypeCtor> EnclosingCtors = [];  // is always a nonempty list
+  public List<Formal> CorrespondingFormals = [];  // is always a nonempty list
   [ContractInvariantMethod]
   void ObjectInvariant() {
     Contract.Invariant(EnclosingCtors != null);

@@ -131,7 +131,7 @@ module More {
     ghost predicate P(x: int) reads this  // error: rank is not lower
   }
 
-  trait A3 {
+  trait A3 extends object {
     ghost predicate P() reads this
   }
   class B3 extends A3 {

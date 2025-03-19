@@ -55,7 +55,7 @@ module Std.JSON.ZeroCopy.Serializer {
     Seq.LemmaConcatIsAssociative2(writer.Bytes(),js.before.Bytes(), Spec.Value(js.t), js.after.Bytes());
     writer
     .Append(js.before)
-    .Then(wr => Value(js.t, wr))
+    .Then((wr: Writer) => Value(js.t, wr))
     .Append(js.after)
   }
 
@@ -408,7 +408,7 @@ module Std.JSON.ZeroCopy.Serializer {
   ghost predicate SequenceSpecRequires<T>(v: Value, items: seq<T>,
                                           spec: T -> bytes, impl: (Value, T, Writer) --> Writer,
                                           writer: Writer) {
-    forall item, wr | item in items :: SequenceSpecRequiresHelper(v, items, spec, impl, writer, item, wr)
+    forall item, wr: Writer | item in items :: SequenceSpecRequiresHelper(v, items, spec, impl, writer, item, wr)
   }
 
 
@@ -425,8 +425,8 @@ module Std.JSON.ZeroCopy.Serializer {
     if items == [] then writer
     else
       assert SequenceSpecRequires(v, items[..|items|-1], spec, impl, writer) by {
-        assert forall item, wr {:trigger SequenceSpecRequiresHelper(v, items[..|items|-1], spec, impl, writer, item, wr)} | item in items[..|items|-1] :: SequenceSpecRequiresHelper(v, items[..|items|-1], spec, impl, writer, item, wr) by {
-          forall item, wr {:trigger SequenceSpecRequiresHelper(v, items[..|items|-1], spec, impl, writer, item, wr)} | item in items[..|items|-1] ensures SequenceSpecRequiresHelper(v, items[..|items|-1], spec, impl, writer, item, wr) {
+        assert forall item, wr: Writer {:trigger SequenceSpecRequiresHelper(v, items[..|items|-1], spec, impl, writer, item, wr)} | item in items[..|items|-1] :: SequenceSpecRequiresHelper(v, items[..|items|-1], spec, impl, writer, item, wr) by {
+          forall item, wr: Writer {:trigger SequenceSpecRequiresHelper(v, items[..|items|-1], spec, impl, writer, item, wr)} | item in items[..|items|-1] ensures SequenceSpecRequiresHelper(v, items[..|items|-1], spec, impl, writer, item, wr) {
             assert item in items;
             assert SequenceSpecRequiresHelper(v, items, spec, impl, writer, item, wr);
           }
