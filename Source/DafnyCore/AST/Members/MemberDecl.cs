@@ -38,9 +38,9 @@ public abstract class MemberDecl : Declaration, ISymbol {
   /// </summary>
   public bool IsInstanceIndependentConstant => this is ConstantField cf && cf.Rhs != null;
 
-  public TopLevelDecl EnclosingClass;  // filled in during resolution
-  [FilledInDuringResolution] public MemberDecl RefinementBase;  // filled in during the pre-resolution refinement transformation; null if the member is new here
-  [FilledInDuringResolution] public MemberDecl OverriddenMember;  // non-null if the member overrides a member in a parent trait
+  [FilledInDuringResolution] public TopLevelDecl EnclosingClass = null!;
+  [FilledInDuringResolution] public MemberDecl RefinementBase = null!;  // filled in during the pre-resolution refinement transformation; null if the member is new here
+  [FilledInDuringResolution] public MemberDecl? OverriddenMember;  // non-null if the member overrides a member in a parent trait
   public virtual bool IsOverrideThatAddsBody => OverriddenMember != null;
 
   /// <summary>
@@ -76,7 +76,7 @@ public abstract class MemberDecl : Declaration, ISymbol {
     get {
       Contract.Requires(EnclosingClass != null);
       Contract.Ensures(Contract.Result<string>() != null);
-      string n = EnclosingClass.FullDafnyName;
+      string n = EnclosingClass!.FullDafnyName;
       return (n.Length == 0 ? n : (n + ".")) + Name;
     }
   }
@@ -85,7 +85,7 @@ public abstract class MemberDecl : Declaration, ISymbol {
       Contract.Requires(EnclosingClass != null);
       Contract.Ensures(Contract.Result<string>() != null);
 
-      return EnclosingClass.FullName + "." + Name;
+      return EnclosingClass!.FullName + "." + Name;
     }
   }
 
@@ -97,15 +97,14 @@ public abstract class MemberDecl : Declaration, ISymbol {
 
   public virtual string FullSanitizedName {
     get {
-      Contract.Requires(EnclosingClass != null);
       Contract.Ensures(Contract.Result<string>() != null);
 
       if (Name == "requires") {
-        return BoogieGenerator.Requires(((ArrowTypeDecl)EnclosingClass).Arity);
+        return BoogieGenerator.Requires(((ArrowTypeDecl)EnclosingClass!).Arity);
       } else if (Name == "reads") {
-        return BoogieGenerator.Reads(((ArrowTypeDecl)EnclosingClass).Arity);
+        return BoogieGenerator.Reads(((ArrowTypeDecl)EnclosingClass!).Arity);
       } else {
-        return EnclosingClass.FullSanitizedName + "." + SanitizedName;
+        return EnclosingClass!.FullSanitizedName + "." + SanitizedName;
       }
     }
   }
@@ -128,9 +127,7 @@ public abstract class MemberDecl : Declaration, ISymbol {
     Contract.Requires(this != null);
     Contract.Requires(EnclosingClass is TopLevelDeclWithMembers);
     Contract.Requires(typeParams != null);
-    Contract.Requires(ins != null);
     // receiverSubst is allowed to be null
-    Contract.Requires(substMap != null);
     Contract.Ensures(Contract.ValueAtReturn(out receiver) != null);
     Contract.Ensures(Contract.ValueAtReturn(out arguments) != null);
 
@@ -145,8 +142,7 @@ public abstract class MemberDecl : Declaration, ISymbol {
 
     arguments = [];
     foreach (var inFormal in ins) {
-      Expression inE;
-      if (substMap.TryGetValue(inFormal, out inE)) {
+      if (substMap.TryGetValue(inFormal, out var inE)) {
         arguments.Add(inE);
       } else {
         var ie = new IdentifierExpr(inFormal.Origin, inFormal.Name);

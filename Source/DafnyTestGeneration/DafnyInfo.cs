@@ -438,7 +438,7 @@ namespace DafnyTestGeneration {
         }
       }
 
-      private new void Visit(Method m) {
+      private void Visit(Method m) {
         info.methods[m.FullDafnyName] = m;
       }
 

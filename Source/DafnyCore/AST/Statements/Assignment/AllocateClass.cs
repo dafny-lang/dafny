@@ -41,12 +41,7 @@ public class AllocateClass : TypeRhs, ICloneable<AllocateClass> {
     }
   }
 
-  public List<Expression> Arguments {
-    get {
-      Contract.Requires(Bindings != null);
-      return Bindings.Arguments;
-    }
-  }
+  public List<Expression>? Arguments => Bindings?.Arguments;
 
   public AllocateClass Clone(Cloner cloner) {
     return new AllocateClass(cloner, this);
@@ -56,7 +51,7 @@ public class AllocateClass : TypeRhs, ICloneable<AllocateClass> {
   public override bool CanAffectPreviouslyKnownExpressions {
     get {
       if (InitCall != null) {
-        foreach (var mod in InitCall.Method.Mod.Expressions) {
+        foreach (var mod in InitCall.Method.Mod.Expressions!) {
           if (!(mod.E is ThisExpr)) {
             return true;
           }

@@ -25,7 +25,7 @@ public class AssignStatement : ConcreteAssignStatement, ICloneable<AssignStateme
   public override IEnumerable<Statement> PreResolveSubStatements => [];
 
   public override IEnumerable<IdentifierExpr> GetAssignedLocals() {
-    return ResolvedStatements.SelectMany(r => r.GetAssignedLocals());
+    return ResolvedStatements!.SelectMany(r => r.GetAssignedLocals());
   }
 
   [ContractInvariantMethod]

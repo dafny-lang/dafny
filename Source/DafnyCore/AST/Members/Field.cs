@@ -13,7 +13,7 @@ public class Field : MemberDecl, ICanFormat, IHasDocstring {
   public virtual bool IsMutable => true;  // says whether or not the field can ever change values
   public virtual bool IsUserMutable => true;  // says whether or not code is allowed to assign to the field (IsUserMutable implies IsMutable)
 
-  public PreType PreType;
+  public PreType? PreType;
 
   public Type Type; // Might be null after parsing and set during resolution
   [ContractInvariantMethod]
@@ -31,7 +31,6 @@ public class Field : MemberDecl, ICanFormat, IHasDocstring {
     : base(origin, nameNode, isGhost, attributes) {
     Contract.Requires(origin != null);
     Contract.Requires(nameNode != null);
-    Contract.Requires(type != null);
     Type = type;
   }
 
@@ -86,7 +85,7 @@ public class Field : MemberDecl, ICanFormat, IHasDocstring {
     return true;
   }
 
-  public string GetTriviaContainingDocstring() {
+  public string? GetTriviaContainingDocstring() {
     if (GetStartTriviaDocstring(out var triviaFound)) {
       return triviaFound;
     }

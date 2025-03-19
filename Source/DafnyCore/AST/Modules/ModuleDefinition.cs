@@ -234,7 +234,7 @@ Generate module names in the older A_mB_mC style instead of the current A.B.C sc
     var externArgs = options.DisallowExterns ? null : Attributes.FindExpressions(this.Attributes, "extern");
     var nonExternSuffix = (options.Get(CommonOptionBag.AddCompileSuffix) && Name != "_module" && Name != "_System" ? "_Compile" : "");
     if (externArgs != null && 1 <= externArgs.Count && externArgs[0] is StringLiteralExpr) {
-      compileName = (string)((StringLiteralExpr)externArgs[0]).Value;
+      compileName = (string)((StringLiteralExpr)externArgs[0]).Value!;
     } else if (externArgs != null) {
       compileName = Name + nonExternSuffix;
     } else {

@@ -472,7 +472,7 @@ public abstract class MethodOrConstructor : MethodOrFunction, TypeParameter.Pare
       foreach (var revealStmt in addedReveals) {
         if (revealStmt.Depth <= autoRevealDepth) {
           if (this is Constructor c) {
-            c.BodyInit.Insert(0, revealStmt.RevealStmt);
+            c.BodyInit!.Insert(0, revealStmt.RevealStmt);
           } else {
             Body.Prepend(revealStmt.RevealStmt);
           }
