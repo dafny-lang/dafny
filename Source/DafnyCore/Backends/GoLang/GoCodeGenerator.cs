@@ -2878,7 +2878,7 @@ namespace Microsoft.Dafny.Compilers {
             // this member selection is handled by some kind of enclosing function call, so nothing to do here
           }
         });
-      } else if (member is SpecialField sf2 && sf2.SpecialId == SpecialField.ID.UseIdParam && sf2.IdParam is string fieldName && fieldName.StartsWith("is_")) {
+      } else if (member is DatatypeDiscriminator sf2 && sf2.IdParam is string fieldName && fieldName.StartsWith("is_")) {
         // sf2 is needed here only because the scope rules for these pattern matches are asinine: sf is *still in scope* but it's useless because it may not have been assigned to!
         return SimpleLvalue(wr => {
           wr = EmitCoercionIfNecessary(sf2.Type, expectedType, Token.NoToken, wr);
