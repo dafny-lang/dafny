@@ -704,7 +704,7 @@ module Std.Producers {
       && ValidComponent(source)
       && ValidHistory(history)
       && remainingMetric == TMComma(TMNat(0), source.remainingMetric)
-      && (Seq.All(source.Outputs(), IsSome) ==> Seq.All(Outputs(), IsSome))
+      && (!source.Done() ==> !Done())
     }
 
     twostate predicate ValidOutput(history: seq<((), Option<T>)>, nextInput: (), new nextOutput: Option<T>)
@@ -747,7 +747,7 @@ module Std.Producers {
                     old(source.remainingMetric).DecreasesTo(source.remainingMetric)
                   else
                     old(source.remainingMetric).NonIncreasesTo(source.remainingMetric)
-        invariant old(source.Outputs()) <= source.Outputs()
+        invariant old(source.history) <= source.history
         invariant old(remainingMetric).NonIncreasesTo(remainingMetric)
         decreases source.remainingMetric.Ordinal()
       {
@@ -775,28 +775,16 @@ module Std.Producers {
         }
 
         if result.Some? {
-          assert result == Seq.Last(source.Outputs());
-          Seq.PartitionedLastTrueImpliesAll(source.Outputs(), IsSome);
-          assert Seq.All(source.Outputs(), IsSome);
-          assert old(Seq.All(source.Outputs(), IsSome)) ==> old(Seq.All(Outputs(), IsSome));
-          assert Seq.All(Outputs(), IsSome) == old(Seq.All(Outputs(), IsSome));
-          assert Seq.All(source.Outputs(), IsSome);
-          assert old(source.Outputs()) <= source.Outputs();
-          assert old(Seq.All(source.Outputs(), IsSome));
-          assert Seq.All(Outputs(), IsSome);
+          source.DoneIsOneWay();
         }
       }
-      assert notFirstLoop;
 
       if result.Some? {
-        assert Seq.Partitioned(source.Outputs(), IsSome);
         assert Seq.Last(source.Outputs()) == result;
         Seq.PartitionedLastTrueImpliesAll(source.Outputs(), IsSome);
-        assert Seq.All(source.Outputs(), IsSome);
         var sourceNewOutputs := source.Outputs()[|old(source.Outputs())|..];
         assert source.Outputs() == old(source.Outputs()) + sourceNewOutputs;
-        assert Seq.All(old(source.Outputs()), IsSome);
-        assert Seq.All(Outputs(), IsSome);
+        
         OutputsPartitionedAfterOutputtingSome(result.value);
         ProduceSome(result.value);
         assert (Seq.All(source.Outputs(), IsSome) ==> Seq.All(Outputs(), IsSome));
@@ -967,7 +955,7 @@ module Std.Producers {
       && original.Repr !! mapping.Repr !! mappingTotalProof.Repr
       && ValidHistory(history)
       && remainingMetric == TMComma(TMNat(0), original.remainingMetric)
-      && (Seq.All(original.Outputs(), IsSome) <==> Seq.All(Outputs(), IsSome))
+      && (!original.Done() <==> !Done())
     }
 
     twostate predicate ValidOutput(history: seq<((), Option<O>)>, nextInput: (), new nextOutput: Option<O>)
@@ -983,7 +971,6 @@ module Std.Producers {
       true
     }
 
-    @IsolateAssertions
     @ResourceLimit("0")
     method Invoke(t: ()) returns (result: Option<O>)
       requires Requires(t)
@@ -1003,29 +990,21 @@ module Std.Producers {
       var next := original.Next();
 
       if next.Some? {
-        assert mapping.Valid();
         mappingTotalProof.AnyInputIsValid(mapping.history, next.value);
         var nextValue := mapping.Invoke(next.value);
         result := Some(nextValue);
 
         original.OutputtingSomeMeansAllSome(next.value);
-        assert Seq.All(original.Outputs(), IsSome);
-        assert Seq.All(Outputs(), IsSome);
         OutputsPartitionedAfterOutputtingSome(result.value);
         ProduceSome(result.value);
-
-        assert (Seq.All(original.Outputs(), IsSome) <==> Seq.All(Outputs(), IsSome));
       } else {
         result := None;
 
         original.OutputtingNoneMeansNotAllSome();
-        assert !Seq.All(original.Outputs(), IsSome);
         OutputsPartitionedAfterOutputtingNone();
         ProduceNone();
 
-        assert !Seq.All(original.Outputs(), IsSome);
         assert !IsSome(Seq.Last(Outputs()));
-        assert !Seq.All(Outputs(), IsSome);
       }
 
       Repr := {this} + original.Repr + mapping.Repr + mappingTotalProof.Repr;
@@ -1125,7 +1104,6 @@ module Std.Producers {
       true
     }
 
-    // @IsolateAssertions
     @ResourceLimit("0")
     method Invoke(t: ()) returns (result: Option<T>)
       requires Requires(t)
@@ -1154,26 +1132,20 @@ module Std.Producers {
                     old(remainingMetric).DecreasesTo(remainingMetric)
                   else
                     old(remainingMetric).NonIncreasesTo(remainingMetric)
-        invariant old(remainingMetric).NonIncreasesTo(remainingMetric)
         decreases original.remainingMetric.Ordinal(), currentInner.Some?,
                   if currentInner.Some? then currentInner.value.remainingMetric.Ordinal() else 0
       {
         if currentInner.None? {
           label beforeOriginalNext:
           ghost var historyBefore := original.history;
-          assert original.Valid();
           old(remainingMetric).DecreasesToTransitive(remainingMetric, original.remainingMetric);
           old(remainingMetric).OrdinalDecreases(original.remainingMetric);
           currentInner := original.Next();
 
           assert fresh(original.Repr - old@beforeOriginalNext(Repr));
-          assert original.ValidOutput@beforeOriginalNext(historyBefore, (), currentInner);
           if currentInner.Some? {
             producesNewProducersProof.ProducedAllNew@beforeOriginalNext(currentInner.value);
-            assert fresh@beforeOriginalNext(currentInner.value.Repr);
-            assert original.Repr !! currentInner.value.Repr;
             Repr := {this} + original.Repr + currentInner.value.Repr;
-
           } else {
             Repr := {this} + original.Repr;
           }
@@ -1184,7 +1156,6 @@ module Std.Producers {
           if currentInner.Some? {
             assert ValidComponent(currentInner.value);
 
-            reveal TerminationMetric.DecreasesTo();
             assert old@beforeOriginalNext(remainingMetric).DecreasesTo(remainingMetric);
             assert old(remainingMetric).NonIncreasesTo(old@beforeOriginalNext(remainingMetric));
             old(remainingMetric).DecreasesToTransitive(old@beforeOriginalNext(remainingMetric), remainingMetric);
@@ -1193,8 +1164,6 @@ module Std.Producers {
           assert original.Repr !! (if currentInner.Some? then currentInner.value.Repr else {});
 
           if currentInner.None? {
-            assert result.None?;
-            reveal TerminationMetric.DecreasesTo();
             assert old@beforeOriginalNext(remainingMetric).NonIncreasesTo(remainingMetric);
             assert old(remainingMetric).NonIncreasesTo(old@beforeOriginalNext(remainingMetric));
             old(remainingMetric).NonIncreasesToTransitive(old@beforeOriginalNext(remainingMetric), remainingMetric);
@@ -1207,28 +1176,10 @@ module Std.Producers {
             assert old@beforeOriginalNext(original.Valid());
             assert currentInner.value.history == [];
 
-
             assert currentInner == Seq.Last(original.Outputs());
             Seq.PartitionedLastTrueImpliesAll(original.Outputs(), IsSome);
             assert !original.Done() && currentInner.Some? && !currentInner.value.Done();
             original.DoneIsOneWay();
-            assert !old(original.Done());
-            if Done() {
-              assert old(Done());
-              assert old(Valid());
-              assert old(original.Done());
-              original.DoneIsOneWay();
-              assert original.Done();
-            }
-
-            assert (!original.Done() && currentInner.Some? && !currentInner.value.Done() ==> !Done());
-
-            assert Valid();
-
-            assert if result.Some? then
-                old(remainingMetric).DecreasesTo(remainingMetric)
-              else
-                old(remainingMetric).NonIncreasesTo(remainingMetric);
           }
         } else {
           label beforeCurrentInnerNext:
@@ -1243,15 +1194,11 @@ module Std.Producers {
 
           label afterCurrentInnerNext:
           ghost var remainingMetricBefore2 := remainingMetric;
-          reveal TerminationMetric.DecreasesTo();
-          assert remainingMetricBefore.NonIncreasesTo(remainingMetricBefore2);
 
           if result.None? {
             var oldCurrentInner := currentInner;
             currentInner := None;
             remainingMetric := RemainingMetric(original, currentInner);
-
-            assert Valid();
 
             assert remainingMetricBefore.NonIncreasesTo(remainingMetricBefore2);
             assert old@afterCurrentInnerNext(original.remainingMetric) == original.remainingMetric;
@@ -1264,10 +1211,6 @@ module Std.Producers {
             assert remainingMetricBefore2 == RemainingMetric(original, oldCurrentInner);
             old(remainingMetric).NonIncreasesToTransitive(remainingMetricBefore, remainingMetricBefore2);
             old(remainingMetric).NonIncreasesToTransitive(remainingMetricBefore2, remainingMetric);
-
-            assert old(remainingMetric).NonIncreasesTo(remainingMetric);
-
-            assert (Done() ==> original.Done() && currentInner.None?);
           } else {
             remainingMetric := RemainingMetric(original, currentInner);
 
@@ -1280,44 +1223,22 @@ module Std.Producers {
             original.DoneIsOneWay();
             assert !old(original.Done());
             currentInner.value.DoneIsOneWay@beforeCurrentInnerNext();
-            assert !old@beforeCurrentInnerNext(currentInner.value.Done());
-            assert !Done();
-            assert (!original.Done() && currentInner.Some? && !currentInner.value.Done() ==> !Done());
-            assert Valid();
 
             reveal TerminationMetric.DecreasesTo();
             assert old@beforeCurrentInnerNext(remainingMetric).DecreasesTo(remainingMetric);
             assert old(remainingMetric).NonIncreasesTo(old@beforeCurrentInnerNext(remainingMetric));
             old(remainingMetric).DecreasesToTransitive(old@beforeCurrentInnerNext(remainingMetric), remainingMetric);
-            assert old(remainingMetric).DecreasesTo(remainingMetric);
-
-            assert (Done() ==> original.Done() && currentInner.None?);
           }
         }
       }
-      assert Valid();
 
       if result.Some? {
-        assert !original.Done();
-        assert currentInner.Some?;
-        assert !currentInner.value.Done();
         OutputsPartitionedAfterOutputtingSome(result.value);
         ProduceSome(result.value);
-
-        reveal TerminationMetric.DecreasesTo();
-        assert old(remainingMetric).DecreasesTo(remainingMetric);
-
-        assert Valid();
       } else {
         OutputsPartitionedAfterOutputtingNone();
         ProduceNone();
-
-        assert Valid();
-        reveal TerminationMetric.DecreasesTo();
-        assert old(remainingMetric).NonIncreasesTo(remainingMetric);
       }
-
-      assert Valid();
     }
   }
 }

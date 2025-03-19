@@ -53,7 +53,7 @@ to talk about all possible states of an action.
 The solution is the trait proof pattern,
 where a trait is passed around with an abstract lemma
 that can be invoked on the otherwise quantified state as needed.
-TODO: see (somewhere I can talk about that pattern more generally)
+See [`TotalActionProof`](Actions.dfy) as an example for details.
 
 This trait is intended to be applicable for any imperative action
 regardless of how many input or output values it consumes and produces,
