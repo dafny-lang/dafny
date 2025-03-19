@@ -8,11 +8,11 @@ namespace Microsoft.Dafny;
 
 public class Field : MemberDecl, ICanFormat, IHasDocstring {
   public override string WhatKind => "field";
-  
+
   public override bool HasStaticKeyword => false;
   public virtual bool IsMutable => true;  // says whether or not the field can ever change values
   public virtual bool IsUserMutable => true;  // says whether or not code is allowed to assign to the field (IsUserMutable implies IsMutable)
-  
+
   public PreType PreType;
 
   public Type Type; // Might be null after parsing and set during resolution
