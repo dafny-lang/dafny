@@ -1,4 +1,4 @@
-// RUN: %exits-with 4 %verify --relax-definite-assignment --allow-axioms --manual-triggers "%s" > "%t"
+// RUN: %exits-with 4 %verify --print-ranges --relax-definite-assignment --allow-axioms --manual-triggers "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 class A {
