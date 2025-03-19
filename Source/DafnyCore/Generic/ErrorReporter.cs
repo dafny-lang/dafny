@@ -50,8 +50,7 @@ public abstract class ErrorReporter {
     relatedInformation.AddRange(
       ErrorReporterExtensions.CreateDiagnosticRelatedInformationFor(rootTok, usingSnippets));
 
-    var range = rootTok.ToSourceOrigin();
-    var dafnyDiagnostic = new DafnyDiagnostic(source, errorId!, range, msg, level, relatedInformation);
+    var dafnyDiagnostic = new DafnyDiagnostic(source, errorId!, rootTok.ReportingRange, msg, level, relatedInformation);
     return MessageCore(dafnyDiagnostic);
   }
 
@@ -221,7 +220,7 @@ public abstract class ErrorReporter {
     return args.Length == 0 ? format : string.Format(format, args);
   }
 
-  public string ErrorToString(ErrorLevel header, SourceOrigin tok, string msg) {
-    return $"{tok.OriginToString(Options)}: {header.ToString()}: {msg}";
+  public string ErrorToString(ErrorLevel header, TokenRange range, string msg) {
+    return $"{(range.StartToken == Token.Cli ? null : range).ToFileRangeString(Options)}: {header.ToString()}: {msg}";
   }
 }

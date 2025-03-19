@@ -778,7 +778,7 @@ iterator Iter2(x: int) yields (y: int)
         var dafnyProgram = await Utils.Parse(reporter, programString, false);
         if (reporter.HasErrors) {
           var error = reporter.AllMessagesByLevel[ErrorLevel.Error][0];
-          Assert.False(true, $"{error.Message}: line {error.Range.line} col {error.Range.col}");
+          Assert.False(true, $"{error.Message}: line {error.Range.StartToken.line} col {error.Range.StartToken.col}");
         }
 
         foreach (var (nodeTokenValue, expectedDocstring) in tests) {

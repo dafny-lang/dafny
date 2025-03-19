@@ -54,9 +54,9 @@ module B refines A {
       Assert.Equal(new Range(6, 4, 6, 5), startOrdered[0].Range);
       Assert.Equal("a postcondition could not be proved on this return path", startOrdered[0].Message);
       Assert.Equal("this is the postcondition that could not be proved", startOrdered[0].RelatedInformation!.ElementAt(0).Message);
-      Assert.Equal(new Range(12, 6, 12, 11), startOrdered[1].Range);
+      Assert.Equal(new Range(12, 7, 12, 8), startOrdered[1].Range);
       Assert.Equal("decreases clause might not decrease", startOrdered[1].Message);
-      Assert.Equal(new Range(17, 0, 27, 1), startOrdered[1].RelatedInformation!.ElementAt(0).Location.Range);
+      Assert.Equal(new Range(17, 7, 17, 8), startOrdered[1].RelatedInformation!.ElementAt(0).Location.Range);
       Assert.Equal("refining module", startOrdered[1].RelatedInformation.ElementAt(0).Message);
     }
 
@@ -622,7 +622,7 @@ method Multiply(x: int, y: int) returns (product: int)
       Assert.Single(diagnostics[0].RelatedInformation);
       var relatedInformation = diagnostics[0].RelatedInformation.First();
       Assert.Equal("this is the postcondition that could not be proved", relatedInformation.Message);
-      Assert.Equal(new Range(new Position(2, 30), new Position(2, 42)), relatedInformation.Location.Range);
+      Assert.Equal(new Range(new Position(2, 38), new Position(2, 40)), relatedInformation.Location.Range);
       await AssertNoDiagnosticsAreComing(CancellationToken);
     }
 
@@ -944,9 +944,9 @@ class Test {
       var relatedInformation = diagnostics[0].RelatedInformation.ToArray();
       Assert.Equal(2, relatedInformation.Length);
       Assert.Equal("this is the postcondition that could not be proved", relatedInformation[0].Message);
-      Assert.Equal(new Range((14, 16), (14, 23)), relatedInformation[0].Location.Range);
+      Assert.Equal(new Range((14, 21), (14, 22)), relatedInformation[0].Location.Range);
       Assert.Equal("this proposition could not be proved", relatedInformation[1].Message);
-      Assert.Equal(new Range((9, 11), (9, 16)), relatedInformation[1].Location.Range);
+      Assert.Equal(new Range((9, 13), (9, 14)), relatedInformation[1].Location.Range);
       await AssertNoDiagnosticsAreComing(CancellationToken);
     }
 
@@ -1065,7 +1065,7 @@ method test() {
       var source = @"
 method test(i: int, j: int) {
   assert i > j || i < j; 
-//^^^^^^^^^^^^^^^^^^^^^^
+//^^^^^^
 }
 ".TrimStart();
       var documentItem = CreateTestDocument(source, "OpeningDocumentWithComplexExpressionUnderlinesAllOfIt.dfy");
@@ -1074,7 +1074,7 @@ method test(i: int, j: int) {
       Assert.Single(diagnostics);
       Assert.Equal(MessageSource.Verifier.ToString(), diagnostics[0].Source);
       Assert.Equal(DiagnosticSeverity.Error, diagnostics[0].Severity);
-      Assert.Equal(new Range((1, 2), (1, 24)), diagnostics[0].Range);
+      Assert.Equal(new Range((1, 2), (1, 8)), diagnostics[0].Range);
       await AssertNoDiagnosticsAreComing(CancellationToken);
     }
 
@@ -1083,7 +1083,7 @@ method test(i: int, j: int) {
       var source = @"
 method test() {
   other(2, 1);
-//^^^^^^^^^^^^
+//     ^
 }
 
 method other(i: int, j: int)
@@ -1096,7 +1096,7 @@ method other(i: int, j: int)
       Assert.Single(diagnostics);
       Assert.Equal(MessageSource.Verifier.ToString(), diagnostics[0].Source);
       Assert.Equal(DiagnosticSeverity.Error, diagnostics[0].Severity);
-      Assert.Equal(new Range((1, 2), (1, 14)), diagnostics[0].Range);
+      Assert.Equal(new Range((1, 7), (1, 8)), diagnostics[0].Range);
       await AssertNoDiagnosticsAreComing(CancellationToken);
     }
 
@@ -1119,7 +1119,7 @@ function other(i: int, j: int): int
       Assert.Single(diagnostics);
       Assert.Equal(MessageSource.Verifier.ToString(), diagnostics[0].Source);
       Assert.Equal(DiagnosticSeverity.Error, diagnostics[0].Severity);
-      Assert.Equal(new Range((1, 15), (1, 26)), diagnostics[0].Range);
+      Assert.Equal(new Range((1, 20), (1, 21)), diagnostics[0].Range);
       await AssertNoDiagnosticsAreComing(CancellationToken);
     }
 
@@ -1187,8 +1187,6 @@ method test2() {
 
       ApplyChange(ref documentItem, new Range((1, 9), (1, 14)), "true"); ;
 
-      // Next line should not be needed after resolving https://github.com/dafny-lang/dafny/issues/4377
-      var parseDiagnostics2 = await GetNextDiagnostics(documentItem);
       var resolutionDiagnostics2 = await GetNextDiagnostics(documentItem);
       AssertDiagnosticListsAreEqualBesidesMigration(secondVerificationDiagnostics, resolutionDiagnostics2);
       var firstVerificationDiagnostics2 = await GetLastDiagnostics(documentItem);
@@ -1196,8 +1194,6 @@ method test2() {
 
       ApplyChange(ref documentItem, new Range((4, 9), (4, 14)), "true");
 
-      // Next line should not be needed after resolving https://github.com/dafny-lang/dafny/issues/4377
-      var parseDiagnostics3 = await GetNextDiagnostics(documentItem);
       var resolutionDiagnostics3 = await GetNextDiagnostics(documentItem);
       AssertDiagnosticListsAreEqualBesidesMigration(firstVerificationDiagnostics2, resolutionDiagnostics3);
       var secondVerificationDiagnostics3 = await GetLastDiagnostics(documentItem);
@@ -1205,7 +1201,6 @@ method test2() {
 
       await AssertNoDiagnosticsAreComing(CancellationToken);
     }
-
 
     [Fact]
     public async Task ApplyChangeBeforeVerificationFinishes() {
@@ -1224,8 +1219,6 @@ method test() {
       // Second verification diagnostics get cancelled.
       ApplyChange(ref documentItem, new Range((1, 9), (1, 14)), "true");
 
-      // Next line should not be needed after resolving https://github.com/dafny-lang/dafny/issues/4377
-      var parseDiagnostics2 = await GetNextDiagnostics(documentItem);
       // https://github.com/dafny-lang/dafny/issues/4377
       var resolutionDiagnostics2 = await GetNextDiagnostics(documentItem);
       AssertDiagnosticListsAreEqualBesidesMigration(firstVerificationDiagnostics, resolutionDiagnostics2);
