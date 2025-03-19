@@ -572,10 +572,10 @@ module Datatypes {
 
 module TraitStuff {
   /* CALL GRAPH for module TraitStuff:
-   * SCC at height 1:
-   *   Aggregate._ctor
    * SCC at height 0:
    *   Aggregate
+   * SCC at height 0:
+   *   Aggregate._ctor
    * SCC at height 0:
    *   Motorized
    * SCC at height 0:

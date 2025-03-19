@@ -4395,6 +4395,7 @@ namespace Microsoft.Dafny {
               var resolvedUdt = (UserDefinedType)ret.ReplacementType;
               udt.ResolvedClass = resolvedUdt.ResolvedClass;
               udt.TypeArgs = resolvedUdt.TypeArgs;
+              udt.SetOrigin(resolvedUdt.Origin);
               initCallName = ret.LastComponent.SuffixName;
               initCallTok = ret.LastComponent.Origin;
             } else {
