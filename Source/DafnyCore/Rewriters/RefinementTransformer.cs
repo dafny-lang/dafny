@@ -535,7 +535,7 @@ namespace Microsoft.Dafny {
           previousMethod.Outs.ConvertAll(o => refinementCloner.CloneFormal(o, false)),
           mod, body, null, previousMethodMethod.IsByMethod);
       } else {
-        throw new Exception();
+        throw new Exception($"Cannot clone method type: {previousMethod.GetType().Name}");
       }
     }
 
