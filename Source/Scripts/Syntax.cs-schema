@@ -455,7 +455,7 @@ class AssertStmt : PredicateStmt
 
 abstract class ProduceStmt : Statement
 {
-    List<AssignmentRhs> rhss;
+    List<AssignmentRhs>? rhss;
 }
 
 abstract class AssignmentRhs : NodeWithOrigin

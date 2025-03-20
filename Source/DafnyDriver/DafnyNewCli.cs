@@ -10,6 +10,7 @@ using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Reflection;
+using System.Threading;
 using System.Threading.Tasks;
 using DafnyCore;
 using DafnyDriver.Commands;
@@ -133,6 +134,14 @@ public static class DafnyNewCli {
 
       dafnyOptions.ApplyDefaultOptionsWithoutSettingsDefault();
       dafnyOptions.UsingNewCli = true;
+
+      if (dafnyOptions.Get(CommonOptionBag.WaitForDebugger)) {
+        while (!Debugger.IsAttached)
+        {
+          Thread.Sleep(100);
+        }
+      }
+      
       context.ExitCode = await continuation(dafnyOptions, context);
     }
 

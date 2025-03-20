@@ -117,6 +117,7 @@ public static class DafnyCommands {
     CommonOptionBag.EnforceDeterminism,
     MethodOrFunction.AllowExternalContracts,
     DafnyProject.FindProjectOption,
-    CommonOptionBag.PrintDiagnosticsRanges
+    CommonOptionBag.PrintDiagnosticsRanges,
+    CommonOptionBag.WaitForDebugger
   }).Concat(ParserOptions).ToList();
 }
