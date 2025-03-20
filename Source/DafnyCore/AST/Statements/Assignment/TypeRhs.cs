@@ -5,8 +5,8 @@ namespace Microsoft.Dafny;
 
 public abstract class TypeRhs : AssignmentRhs {
 
-  [FilledInDuringResolution] public PreType? PreType;
-  [FilledInDuringResolution] public Type? Type;
+  [FilledInDuringResolution] public PreType PreType = null!;
+  [FilledInDuringResolution] public Type Type = null!;
 
   [SyntaxConstructor]
   protected TypeRhs(IOrigin origin, Attributes? attributes = null) : base(origin, attributes) {

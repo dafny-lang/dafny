@@ -18,6 +18,7 @@ public abstract class SyntaxAstVisitor {
     { typeof(TypeParameter), typeof(Declaration) },
     { typeof(ModuleDecl), typeof(Declaration) },
     { typeof(SourceOrigin), typeof(IOrigin) },
+    { typeof(TokenRangeOrigin), typeof(IOrigin) },
     { typeof(AttributedExpression), null }
   };
 

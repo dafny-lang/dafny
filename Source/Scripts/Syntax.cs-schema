@@ -1,4 +1,8 @@
-class TokenRangeOrigin
+abstract class IOrigin
+{
+}
+
+class TokenRangeOrigin : IOrigin
 {
     Token startToken;
     Token endToken;
@@ -8,10 +12,6 @@ class Token
 {
     Int32 line;
     Int32 col;
-}
-
-abstract class IOrigin
-{
 }
 
 class SourceOrigin : IOrigin
