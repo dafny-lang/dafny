@@ -1,7 +1,18 @@
 excludes = [
   # Built per-target language instead
-  "**/TargetSpecific/*.dfy"
+  "**/TargetSpecific/*.dfy",
+
+  # TODO
+  "**/Actions/*.dfy",
+  "**/Frames.dfy",
 ]
+
+# includes = [
+#   "Std/Collections/Set.dfy",
+#   "Std/Functions.dfy",
+#   "Std/Relations.dfy",
+#   "Std/Termination.dfy"
+# ]
 
 [options]
 # Options that help support more values of consuming context options

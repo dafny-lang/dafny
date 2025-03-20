@@ -146,7 +146,6 @@ module ActionsExamples {
   }
 
   @AssumeCrossModuleTermination
-  // TODO: This should be expressible as Mapped(Seq(inputs), Split)
   class SplitProducer extends Producer<Producer<nat>>, ProducesNewProducersProof<nat> {
 
     var inputs: seq<nat>

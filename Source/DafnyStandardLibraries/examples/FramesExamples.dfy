@@ -1,6 +1,7 @@
 module FramesExamples {
 
   import opened Std.Frames
+  import opened Std.Wrappers
 
   // A non-trivial example of a recursive data strucutre
   // using the Validatable trait.
@@ -13,8 +14,9 @@ module FramesExamples {
 
     ghost var nodeCount: nat
 
-    method Elements() returns (result: seq<T>)
+    function Elements(): seq<T>
       requires Valid()
+      reads this, Repr
       decreases Repr
       ensures Valid()
   }
@@ -22,7 +24,9 @@ module FramesExamples {
   class Leaf<T> extends Tree<T> {
 
     constructor ()
+      reads {}
       ensures Valid()
+      ensures fresh(Repr)
     {
       Repr := {this};
       nodeCount := 0;
@@ -36,12 +40,13 @@ module FramesExamples {
       && this in Repr
     }
 
-    method Elements() returns (result: seq<T>)
+    function Elements(): seq<T>
       requires Valid()
+      reads this, Repr
       decreases Repr
       ensures Valid()
     {
-      return [];
+      []
     }
   }
 
@@ -55,6 +60,7 @@ module FramesExamples {
       requires left.Valid()
       requires right.Valid()
       requires left.Repr !! right.Repr
+      reads left, left.Repr, right, right.Repr
       ensures Valid()
       ensures this.left == left
       ensures this.value == value
@@ -81,16 +87,13 @@ module FramesExamples {
       && nodeCount == left.nodeCount + right.nodeCount + 1
     }
 
-    method Elements() returns (result: seq<T>)
+    function Elements(): seq<T>
       requires Valid()
+      reads this, Repr
       decreases Repr
       ensures Valid()
     {
-      result := [value];
-      var leftElements := left.Elements();
-      result := result + leftElements;
-      var rightElements := right.Elements();
-      result := result + rightElements;
+      [value] + left.Elements() + right.Elements()
     }
 
     // Note that Repr CANNOT used as the decreases clause for this method
