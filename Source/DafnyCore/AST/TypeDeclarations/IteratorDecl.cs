@@ -6,7 +6,8 @@ using Microsoft.Dafny.Compilers;
 namespace Microsoft.Dafny;
 
 public class IteratorDecl : ClassDecl, IMethodCodeContext, ICanVerify, ICodeContainer {
-  public override string WhatKind { get { return "iterator"; } }
+  public override string WhatKind => "iterator";
+
   public List<Formal> Ins;
   public List<Formal> Outs;
   public Specification<FrameExpression> Reads;

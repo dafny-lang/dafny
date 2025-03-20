@@ -4117,7 +4117,7 @@ namespace Microsoft.Dafny.Compilers {
         var nw = ProtectedFreshId("_nw");
         var wRhs = DeclareLocalVar(nw, typeRhs.Type, rhs.Origin, wStmts);
         var constructor = allocateClass.InitCall?.Method as Constructor;
-        EmitNew(allocateClass.Path, typeRhs.Origin, constructor != null ? allocateClass.InitCall : null, wRhs, wStmts);
+        EmitNew(allocateClass.Type, typeRhs.Origin, constructor != null ? allocateClass.InitCall : null, wRhs, wStmts);
         // Proceed with initialization
         if (allocateClass.InitCall != null) {
           if (constructor != null && IsExternallyImported(constructor)) {

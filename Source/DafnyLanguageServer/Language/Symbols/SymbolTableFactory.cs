@@ -201,7 +201,7 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
           RegisterTypeDesignator(currentScope, allocateArray.ExplicitType);
         }
         if (typeRhs is AllocateClass allocateClass) {
-          RegisterTypeDesignator(currentScope, allocateClass.Path);
+          RegisterTypeDesignator(currentScope, allocateClass.Type);
         }
         base.Visit(typeRhs);
       }

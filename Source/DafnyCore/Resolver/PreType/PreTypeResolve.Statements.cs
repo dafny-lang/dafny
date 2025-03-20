@@ -1153,8 +1153,10 @@ namespace Microsoft.Dafny {
           if ((allocateClass.Path as UserDefinedType)?.ResolvedClass is NonNullTypeDecl cl && !(allocateClass.Path.IsTraitType && !allocateClass.Path.NormalizeExpand().IsObjectQ)) {
             // life is good
           } else {
-            ReportError(rr.Origin, "new can be applied only to class types (got {0})", allocateClass.Path);
+            ReportError(rr.Origin, "new can be applied only to class types (got {0})", allocateClass.PreType);
           }
+
+          rr.PreType = Type2PreType(allocateClass.Path);
         } else {
           string initCallName = null;
           IOrigin initCallTok = null;
@@ -1166,22 +1168,19 @@ namespace Microsoft.Dafny {
             new ModuleResolver.ResolveTypeOption(ResolveTypeOptionEnum.InferTypeProxies), null, true);
           if (ret != null) {
             // The all-but-last components of rr.Path denote a type (namely, ret.ReplacementType).
-            var udt = (UserDefinedType)allocateClass.Path;
-            var resolvedUdt = (UserDefinedType)ret.ReplacementType;
-            udt.ResolvedClass = resolvedUdt.ResolvedClass;
-            udt.TypeArgs = resolvedUdt.TypeArgs;
-            udt.SetOrigin(resolvedUdt.Origin);
+            rr.PreType = Type2PreType(ret.ReplacementType);
             initCallName = ret.LastComponent.SuffixName;
             initCallTok = ret.LastComponent.Origin;
           } else {
             // Either rr.Path resolved correctly as a type or there was no way to drop a last component to make it into something that looked
             // like a type.  In either case, set EType,initCallName to Path,"_ctor" and continue.
+            rr.PreType = Type2PreType(allocateClass.Path);
             initCallName = "_ctor";
             initCallTok = rr.Origin;
           }
-          var cl = (allocateClass.Path as UserDefinedType)?.ResolvedClass as NonNullTypeDecl;
-          if (cl == null || allocateClass.Path.IsTraitType) {
-            ReportError(rr.Origin, "new can be applied only to class types (got {0})", allocateClass.Path);
+          var cl = (allocateClass.Type as UserDefinedType)?.ResolvedClass as NonNullTypeDecl;
+          if (cl == null || allocateClass.Type.IsTraitType) {
+            ReportError(rr.Origin, "new can be applied only to class types (got {0})", allocateClass.PreType);
           } else {
             // ---------- new C.Init(EE)
             Contract.Assert(initCallName != null);
@@ -1192,28 +1191,23 @@ namespace Microsoft.Dafny {
             // It is important that this throw-away receiver have its .PreType filled in, because the call to ResolveDotSuffix will recursive
             // down to resolve this "lhs"; that's a no-op if the .PreType is already filled in, whereas it could cause a "'this' not allowed in
             // static context" error if the code tried to resolve this "this" against the enclosing environment.
-            rr.PreType = Type2PreType(allocateClass.Path);
             var lhs = new ImplicitThisExprConstructorCall(initCallTok) {
-              Type = allocateClass.Path,
+              Type = allocateClass.Type,
               PreType = rr.PreType
             };
-            var callLhs = new ExprDotName(((UserDefinedType)allocateClass.Path).Origin, lhs, new Name(initCallName), ret?.LastComponent.OptTypeArguments);
+            var callLhs = new ExprDotName(((UserDefinedType)allocateClass.Type).Origin, lhs, new Name(initCallName), ret?.LastComponent.OptTypeArguments);
             ResolveDotSuffix(callLhs, false, true, allocateClass.Bindings.ArgumentBindings, resolutionContext, true);
             if (prevErrorCount == ErrorCount) {
               Contract.Assert(callLhs.ResolvedExpression is MemberSelectExpr);  // since ResolveApplySuffix succeeded and call.Lhs denotes an expression (not a module or a type)
               var methodSel = (MemberSelectExpr)callLhs.ResolvedExpression;
               if (methodSel.Member is MethodOrConstructor) {
                 allocateClass.InitCall = new CallStmt(stmt.Origin, [], methodSel, allocateClass.Bindings.ArgumentBindings, initCallTok.Center);
-                ResolveCallStmt(allocateClass.InitCall, resolutionContext, allocateClass.Path);
+                ResolveCallStmt(allocateClass.InitCall, resolutionContext, allocateClass.Type);
               } else {
                 ReportError(initCallTok, "object initialization must denote an initializing method or constructor ({0})", initCallName);
               }
             }
           }
-        }
-        // set rr.PreType, unless it was already set above
-        if (rr.PreType == null) {
-          rr.PreType = Type2PreType(allocateClass.Path);
         }
       }
     }

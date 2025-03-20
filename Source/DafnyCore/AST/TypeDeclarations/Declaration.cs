@@ -21,6 +21,7 @@ public abstract class Declaration : NodeWithOrigin, IAttributeBearingDeclaration
 
   public virtual TokenRange NavigationRange => NameNode.ReportingRange;
 
+  public virtual string ReferenceName => Name;
   public string Name => NameNode.Value;
   public virtual bool IsRefining => false;
 

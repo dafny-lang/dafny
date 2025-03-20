@@ -93,7 +93,7 @@ public class AllocateClass : TypeRhs, ICloneable<AllocateClass> {
     }
   }
   public override IEnumerable<INode> PreResolveChildren =>
-    new[] { Type, Path }.OfType<Node>()
+    new[] { Path }.OfType<Node>()
       .Concat((Bindings is { ArgumentBindings: not null } ?
                       Bindings.ArgumentBindings.Select(a => a.Actual) : null) ??
                     (Bindings != null ? Arguments : null) ??

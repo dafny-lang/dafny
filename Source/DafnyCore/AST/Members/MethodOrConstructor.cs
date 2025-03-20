@@ -39,7 +39,6 @@ public abstract class MethodOrConstructor : MethodOrFunction, TypeParameter.Pare
   [FilledInDuringResolution] public Function? FunctionFromWhichThisIsByMethodDecl;
   public readonly ISet<IVariable> AssignedAssumptionVariables = new HashSet<IVariable>();
 
-  // TODO Move to Method?
   public Method? OverriddenMethod;
   public MethodOrConstructor Original => OverriddenMethod == null ? this : OverriddenMethod.Original;
   public override bool IsOverrideThatAddsBody => base.IsOverrideThatAddsBody && Body != null;

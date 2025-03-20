@@ -39,7 +39,7 @@ public abstract class MemberDecl : Declaration, ISymbol {
   public bool IsInstanceIndependentConstant => this is ConstantField cf && cf.Rhs != null;
 
   [FilledInDuringResolution] public TopLevelDecl EnclosingClass = null!;
-  [FilledInDuringResolution] public MemberDecl RefinementBase = null!;  // filled in during the pre-resolution refinement transformation; null if the member is new here
+  [FilledInDuringResolution] public MemberDecl? RefinementBase;  // filled in during the pre-resolution refinement transformation; null if the member is new here
   [FilledInDuringResolution] public MemberDecl? OverriddenMember;  // non-null if the member overrides a member in a parent trait
   public virtual bool IsOverrideThatAddsBody => OverriddenMember != null;
 

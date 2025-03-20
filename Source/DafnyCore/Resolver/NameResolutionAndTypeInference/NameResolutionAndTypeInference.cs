@@ -3444,7 +3444,7 @@ namespace Microsoft.Dafny {
       } else if (lhs != null && lhs.Type is ResolverIdentifierExpr.ResolverTypeType) {
         var ri = (ResolverIdentifierExpr)lhs;
         // ----- 2. Look up name in type
-        var ty = new UserDefinedType(ri.Origin, ri.Decl.Name, ri.Decl, ri.TypeArgs);
+        var ty = new UserDefinedType(ri.Origin, ri.Decl.ReferenceName, ri.Decl, ri.TypeArgs);
         if (allowDanglingDotName && ty.IsRefType) {
           return new ResolveTypeReturn(ty, expr);
         }
@@ -4381,6 +4381,8 @@ namespace Microsoft.Dafny {
             } else {
               reporter.Error(MessageSource.Resolver, allocateClass.Origin, "new can be applied only to class types (got {0})", allocateClass.Path);
             }
+
+            rr2.Type = allocateClass.Path;
           } else {
             string initCallName = null;
             IOrigin initCallTok = null;
@@ -4391,22 +4393,19 @@ namespace Microsoft.Dafny {
             var ret = ResolveTypeLenient(allocateClass.Origin, allocateClass.Path, resolutionContext, new ResolveTypeOption(ResolveTypeOptionEnum.InferTypeProxies), null, true);
             if (ret != null) {
               // The all-but-last components of rr.Path denote a type (namely, ret.ReplacementType).
-              var udt = (UserDefinedType)allocateClass.Path;
-              var resolvedUdt = (UserDefinedType)ret.ReplacementType;
-              udt.ResolvedClass = resolvedUdt.ResolvedClass;
-              udt.TypeArgs = resolvedUdt.TypeArgs;
-              udt.SetOrigin(resolvedUdt.Origin);
+              allocateClass.Type = ret.ReplacementType;
               initCallName = ret.LastComponent.SuffixName;
               initCallTok = ret.LastComponent.Origin;
             } else {
               // Either rr.Path resolved correctly as a type or there was no way to drop a last component to make it into something that looked
               // like a type.  In either case, set EType,initCallName to Path,"_ctor" and continue.
+              allocateClass.Type = allocateClass.Path;
               initCallName = "_ctor";
               initCallTok = allocateClass.Origin;
             }
-            var cl = (allocateClass.Path as UserDefinedType)?.ResolvedClass as NonNullTypeDecl;
-            if (cl == null || allocateClass.Path.IsTraitType) {
-              reporter.Error(MessageSource.Resolver, allocateClass.Origin, "new can be applied only to class types (got {0})", allocateClass.Path);
+            var cl = (allocateClass.Type as UserDefinedType)?.ResolvedClass as NonNullTypeDecl;
+            if (cl == null || allocateClass.Type.IsTraitType) {
+              reporter.Error(MessageSource.Resolver, allocateClass.Origin, "new can be applied only to class types (got {0})", allocateClass.Type);
             } else {
               // ---------- new C.Init(EE)
               Contract.Assert(initCallName != null);
@@ -4414,22 +4413,21 @@ namespace Microsoft.Dafny {
 
               // We want to create a MemberSelectExpr for the initializing method.  To do that, we create a throw-away receiver of the appropriate
               // type, create a dot-suffix expression around this receiver, and then resolve it in the usual way for dot-suffix expressions.
-              var lhs = new ImplicitThisExprConstructorCall(initCallTok) { Type = allocateClass.Path };
-              var callLhs = new ExprDotName(((UserDefinedType)allocateClass.Path).Origin, lhs, new Name(initCallName), ret == null ? null : ret.LastComponent.OptTypeArguments);
+              var lhs = new ImplicitThisExprConstructorCall(initCallTok) { Type = allocateClass.Type };
+              var callLhs = new ExprDotName(((UserDefinedType)allocateClass.Type).Origin, lhs, new Name(initCallName), ret == null ? null : ret.LastComponent.OptTypeArguments);
               ResolveDotSuffix(callLhs, false, true, allocateClass.Bindings.ArgumentBindings, resolutionContext, true);
               if (prevErrorCount == reporter.Count(ErrorLevel.Error)) {
                 Contract.Assert(callLhs.ResolvedExpression is MemberSelectExpr);  // since ResolveApplySuffix succeeded and call.Lhs denotes an expression (not a module or a type)
                 var methodSel = (MemberSelectExpr)callLhs.ResolvedExpression;
                 if (methodSel.Member is MethodOrConstructor) {
                   allocateClass.InitCall = new CallStmt(stmt.Origin, [], methodSel, allocateClass.Bindings.ArgumentBindings, initCallTok.Center);
-                  ResolveCallStmt(allocateClass.InitCall, resolutionContext, allocateClass.Path);
+                  ResolveCallStmt(allocateClass.InitCall, resolutionContext, allocateClass.Type);
                 } else {
                   reporter.Error(MessageSource.Resolver, initCallTok, "object initialization must denote an initializing method or constructor ({0})", initCallName);
                 }
               }
             }
           }
-          allocateClass.Type = allocateClass.Path;
         }
       }
     }

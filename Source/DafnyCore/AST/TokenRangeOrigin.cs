@@ -34,7 +34,7 @@ public class TokenRangeOrigin(Token startToken, Token endToken) : IOrigin {
     get => StartToken.col;
     set => StartToken.col = value;
   }
-  
+
   public virtual int pos {
     get => StartToken.pos;
     set => StartToken.pos = value;
