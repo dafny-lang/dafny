@@ -1154,7 +1154,7 @@ namespace Microsoft.Dafny {
           if ((allocateClass.Path as UserDefinedType)?.ResolvedClass is NonNullTypeDecl cl && !(allocateClass.Path.IsTraitType && !allocateClass.Path.NormalizeExpand().IsObjectQ)) {
             // life is good
           } else {
-            ReportError(rr.Origin, "new can be applied only to class types (got {0})", allocateClass.PreType);
+            ReportError(rr.Origin, "new can be applied only to class types (got {0})", allocateClass.Path);
           }
 
           rr.Type = allocateClass.Path;
@@ -1185,7 +1185,7 @@ namespace Microsoft.Dafny {
 
           var cl = (rr.Type as UserDefinedType).ResolvedClass as NonNullTypeDecl;
           if (cl == null || allocateClass.Type.IsTraitType) {
-            ReportError(rr.Origin, "new can be applied only to class types (got {0})", allocateClass.PreType);
+            ReportError(rr.Origin, "new can be applied only to class types (got {0})", rr.Type);
           } else {
             // ---------- new C.Init(EE)
             Contract.Assert(initCallName != null);
