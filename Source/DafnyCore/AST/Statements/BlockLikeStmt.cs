@@ -5,6 +5,9 @@ using Microsoft.Boogie;
 
 namespace Microsoft.Dafny;
 
+/// <summary>
+/// Used to capture some shared behavior between DividedBlockStmt and BlockStmt
+/// </summary>
 public abstract class BlockLikeStmt : Statement, ICanFormat {
   public abstract IReadOnlyList<Statement> Body { get; }
 
