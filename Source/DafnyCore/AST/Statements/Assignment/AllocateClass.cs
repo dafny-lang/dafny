@@ -9,6 +9,12 @@ namespace Microsoft.Dafny;
 /// When calling a named constructor, the name is stored in the UserDefinedType of the field Path
 /// </summary>
 public class AllocateClass : TypeRhs, ICloneable<AllocateClass> {
+  /// <summary>
+  /// Contains both the type being constructed, and if specified, the constructor name.
+  /// It's surprising that the constructor name is specified through a Type
+  /// An alternative would be to let this field be an Expression
+  /// And have a field "string? constructorName" that is set during resolution.
+  /// </summary>
   public Type Path;
   public readonly ActualBindings? Bindings;
 
