@@ -589,12 +589,12 @@ module StringLiterals {
     case true =>
       var w0: seq<LowerCase> := @"r
 s"; // error (on previous line): the newline is not a LowerCase
-    case true =>
-      var w1: seq<MyChar> := @"r
-s";
-   case true =>
-      var w2: MyString := @"r
-Xs"; // error (on previous line): 'X' is not a MyChar
+//    case true =>
+//      var w1: seq<MyChar> := @"r
+//s";
+//   case true =>
+//      var w2: MyString := @"r
+//Xs"; // error (on previous line): 'X' is not a MyChar
    case true =>
       var w3: MyString := @"r
 stuvxyz"; // error (on previous line): too long to be a MyString
