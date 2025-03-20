@@ -8,6 +8,7 @@ public abstract class TypeRhs : AssignmentRhs {
   [FilledInDuringResolution] public PreType? PreType;
   [FilledInDuringResolution] public Type? Type;
 
+  [SyntaxConstructor]
   protected TypeRhs(IOrigin origin, Attributes? attributes = null) : base(origin, attributes) {
   }
 

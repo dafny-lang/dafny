@@ -463,6 +463,23 @@ abstract class AssignmentRhs : NodeWithOrigin
     Attributes? attributes;
 }
 
+abstract class TypeRhs : AssignmentRhs
+{
+}
+
+class AllocateClass : TypeRhs
+{
+    Type path;
+    ActualBindings? bindings;
+}
+
+class AllocateArray : TypeRhs
+{
+    Type explicitType;
+    List<Expression> arrayDimensions;
+    Expression? elementInit;
+}
+
 class ExprRhs : AssignmentRhs
 {
     Expression expr;

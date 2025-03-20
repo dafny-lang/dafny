@@ -9,33 +9,35 @@ namespace Microsoft.Dafny;
 /// Either ElementInit or InitDisplay will be set
 /// </summary>
 public class AllocateArray : TypeRhs, ICloneable<AllocateArray> {
-  public Type EType;
+  public Type ExplicitType;
   public readonly List<Expression> ArrayDimensions;
   public readonly Expression? ElementInit;
   public readonly List<Expression>? InitDisplay;
 
   [SyntaxConstructor]
-  public AllocateArray(IOrigin origin, Type type, List<Expression> arrayDimensions, Expression elementInit)
-    : base(origin) {
+  public AllocateArray(IOrigin origin, Type explicitType, List<Expression> arrayDimensions, Expression elementInit, 
+    Attributes? attributes = null)
+    : base(origin, attributes) {
     Contract.Requires(origin != null);
     Contract.Requires(1 <= arrayDimensions.Count);
-    EType = type;
+    ExplicitType = explicitType;
     ArrayDimensions = arrayDimensions;
     ElementInit = elementInit;
   }
 
-  public AllocateArray(IOrigin origin, Type type, Expression dim, List<Expression> initDisplay)
-    : base(origin) {
+  public AllocateArray(IOrigin origin, Type type, Expression dim, List<Expression> initDisplay, 
+    Attributes? attributes = null)
+    : base(origin, attributes) {
     Contract.Requires(origin != null);
     Contract.Requires(initDisplay != null);
-    EType = type;
+    ExplicitType = type;
     ArrayDimensions = [dim];
     InitDisplay = initDisplay;
   }
 
   public AllocateArray(Cloner cloner, AllocateArray original)
     : base(cloner, original) {
-    EType = cloner.CloneType(original.EType);
+    ExplicitType = cloner.CloneType(original.ExplicitType);
     if (original.InitDisplay != null) {
       Contract.Assert(original.ArrayDimensions.Count == 1);
       ArrayDimensions = [cloner.CloneExpr(original.ArrayDimensions[0])];
@@ -80,12 +82,12 @@ public class AllocateArray : TypeRhs, ICloneable<AllocateArray> {
         return PreResolveChildren;
       }
 
-      return EType.Nodes.Concat(SubExpressions).Concat<Node>(SubStatements);
+      return ExplicitType.Nodes.Concat(SubExpressions).Concat<Node>(SubStatements);
     }
   }
 
   public override IEnumerable<INode> PreResolveChildren =>
-    new[] { EType, Type }.OfType<Node>()
+    new[] { ExplicitType, Type }.OfType<Node>()
       .Concat(ArrayDimensions)
       .Concat(ElementInit != null ? new[] { ElementInit } : Enumerable.Empty<Node>())
       .Concat(InitDisplay ?? Enumerable.Empty<Node>());

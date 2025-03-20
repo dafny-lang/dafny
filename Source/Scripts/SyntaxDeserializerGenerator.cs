@@ -81,7 +81,7 @@ private object ReadObject(System.Type actualType) {{
         if (!ParameterToSchemaPositions[memberInfo.DeclaringType!]
               .TryGetValue(memberInfo.Name, out var schemaPosition)) {
           throw new Exception(
-            $"parameter '{parameter.Name}' should have been in parent type '{memberInfo.DeclaringType}' constructor, but was not found");
+            $"parameter '{parameter.Name}' of '{type.Name}' should have been in parent type '{memberInfo.DeclaringType}' constructor, but was not found");
         }
 
         schemaToConstructorPosition[schemaPosition] = index;

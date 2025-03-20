@@ -12,13 +12,13 @@ public class AllocateClass : TypeRhs, ICloneable<AllocateClass> {
   public Type Path;
   public readonly ActualBindings? Bindings;
 
-  [FilledInDuringResolution] public CallStmt? InitCall;  // may be null (and is definitely null for arrays),
+  [FilledInDuringResolution] public CallStmt? InitCall;  // may be null
 
   [SyntaxConstructor]
-  public AllocateClass(IOrigin origin, Type path, ActualBindings? arguments, Attributes? attributes = null)
+  public AllocateClass(IOrigin origin, Type path, ActualBindings? bindings, Attributes? attributes = null)
     : base(origin, attributes) {
     Path = path;
-    Bindings = arguments;
+    Bindings = bindings;
   }
 
   public AllocateClass(IOrigin origin, Type path)

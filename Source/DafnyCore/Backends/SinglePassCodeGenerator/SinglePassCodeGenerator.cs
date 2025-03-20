@@ -4151,20 +4151,20 @@ namespace Microsoft.Dafny.Compilers {
         //   * a 0-length array (as evidenced by the given 0-length .InitDisplay or as confirmed by the verifier for a non-auto-init element type).
         var pwStmts = wStmts.Fork();
         var wRhs = DeclareLocalVar(nw, allocateArray.Type, allocateArray.Origin, wStmts);
-        EmitNewArray(allocateArray.EType, allocateArray.Origin, allocateArray.ArrayDimensions,
-          allocateArray.EType.HasCompilableValue && !DatatypeWrapperEraser.CanBeLeftUninitialized(Options, allocateArray.EType),
+        EmitNewArray(allocateArray.ExplicitType, allocateArray.Origin, allocateArray.ArrayDimensions,
+          allocateArray.ExplicitType.HasCompilableValue && !DatatypeWrapperEraser.CanBeLeftUninitialized(Options, allocateArray.ExplicitType),
           null, wRhs, pwStmts);
         return;
       }
 
       if (allocateArray.ElementInit == null) {
-        Contract.Assert((allocateArray.InitDisplay != null && allocateArray.InitDisplay.Count != 0) || DatatypeWrapperEraser.CanBeLeftUninitialized(Options, allocateArray.EType));
+        Contract.Assert((allocateArray.InitDisplay != null && allocateArray.InitDisplay.Count != 0) || DatatypeWrapperEraser.CanBeLeftUninitialized(Options, allocateArray.ExplicitType));
 
         string nwElement0;
         if (DeterminesArrayTypeFromExampleElement) {
           // We use the first element of the array as an "example" for the array to be allocated
           nwElement0 = ProtectedFreshId("_nwElement0_");
-          var wrElement0 = DeclareLocalVar(nwElement0, allocateArray.EType, allocateArray.InitDisplay[0].Origin, wStmts);
+          var wrElement0 = DeclareLocalVar(nwElement0, allocateArray.ExplicitType, allocateArray.InitDisplay[0].Origin, wStmts);
           EmitExpr(allocateArray.InitDisplay[0], false, wrElement0, wStmts);
         } else {
           nwElement0 = null;
@@ -4172,7 +4172,7 @@ namespace Microsoft.Dafny.Compilers {
 
         var pwStmts = wStmts.Fork();
         var wRhs = DeclareLocalVar(nw, allocateArray.Type, allocateArray.Origin, wStmts);
-        EmitNewArray(allocateArray.EType, allocateArray.Origin, allocateArray.ArrayDimensions, false, nwElement0, wRhs, pwStmts);
+        EmitNewArray(allocateArray.ExplicitType, allocateArray.Origin, allocateArray.ArrayDimensions, false, nwElement0, wRhs, pwStmts);
 
         var ii = 0;
         foreach (var v in allocateArray.InitDisplay) {
@@ -4243,7 +4243,7 @@ namespace Microsoft.Dafny.Compilers {
           EmitIsZero(dimNames[d], guardWriter);
         }
         var wRhs = new ConcreteSyntaxTree();
-        EmitNewArray(allocateArray.EType, allocateArray.Origin, dimNames, false, null, wRhs, wThen);
+        EmitNewArray(allocateArray.ExplicitType, allocateArray.Origin, dimNames, false, null, wRhs, wThen);
         EmitAssignment(nw, allocateArray.Type, wRhs.ToString(), allocateArray.Type, wThen);
 
         var wElse = EmitBlock(wStmts);
@@ -4264,12 +4264,12 @@ namespace Microsoft.Dafny.Compilers {
 
         // _nw := NewArrayFromExample(X, _element0, _len0, _len1, _len2);
         wRhs = new ConcreteSyntaxTree();
-        EmitNewArray(allocateArray.EType, allocateArray.Origin, dimNames, false, element0, wRhs, wElse);
+        EmitNewArray(allocateArray.ExplicitType, allocateArray.Origin, dimNames, false, element0, wRhs, wElse);
         EmitAssignment(nw, allocateArray.Type, wRhs.ToString(), allocateArray.Type, wElse);
 
         // _nw[0, 0, 0] := _element0;
         var indices = Util.Map(Enumerable.Range(0, allocateArray.ArrayDimensions.Count), _ => ArrayIndexLiteral(0));
-        var (wArray, wrRhs) = EmitArrayUpdate(Util.Map<string, Action<ConcreteSyntaxTree>>(indices, i => wIndex => wIndex.Write(i)), allocateArray.EType, wElse);
+        var (wArray, wrRhs) = EmitArrayUpdate(Util.Map<string, Action<ConcreteSyntaxTree>>(indices, i => wIndex => wIndex.Write(i)), allocateArray.ExplicitType, wElse);
         EmitIdentifier(element0, wrRhs);
         EmitIdentifier(nw, wArray);
         EndStmt(wElse);
@@ -4304,7 +4304,7 @@ namespace Microsoft.Dafny.Compilers {
           }
           w = wLoopBody;
         }
-        (wArray, wrRhs) = EmitArrayUpdate(Util.Map<string, Action<ConcreteSyntaxTree>>(indices, i => wIndex => wIndex.Write(i)), allocateArray.EType, w);
+        (wArray, wrRhs) = EmitArrayUpdate(Util.Map<string, Action<ConcreteSyntaxTree>>(indices, i => wIndex => wIndex.Write(i)), allocateArray.ExplicitType, w);
         wrRhs.Write("{0}{1}({2})", init, LambdaExecute, Enumerable.Range(0, indices.Count).Comma(
           idx => {
             var w = new ConcreteSyntaxTree();
@@ -4335,7 +4335,7 @@ namespace Microsoft.Dafny.Compilers {
 
         var pwStmts = wStmts.Fork();
         var wRhs = DeclareLocalVar(nw, allocateArray.Type, allocateArray.Origin, wStmts);
-        EmitNewArray(allocateArray.EType, allocateArray.Origin, allocateArray.ArrayDimensions, false, null, wRhs, pwStmts);
+        EmitNewArray(allocateArray.ExplicitType, allocateArray.Origin, allocateArray.ArrayDimensions, false, null, wRhs, pwStmts);
 
         // Build a nested loop that will call the initializer for all indices
         var indices = Util.Map(Enumerable.Range(0, allocateArray.ArrayDimensions.Count), ii => ProtectedFreshId($"_i{ii}_"));
@@ -4345,8 +4345,8 @@ namespace Microsoft.Dafny.Compilers {
             EmitArrayLength(w => EmitIdentifier(nw, w), allocateArray, d, true, w);
           }, w);
         }
-        var (wArray, wrRhs) = EmitArrayUpdate(Util.Map<string, Action<ConcreteSyntaxTree>>(indices, i => wIndex => EmitIdentifier(i, wIndex)), allocateArray.EType, w);
-        wrRhs = EmitCoercionIfNecessary(TypeForCoercion(allocateArray.EType), allocateArray.EType, allocateArray.Origin, wrRhs);
+        var (wArray, wrRhs) = EmitArrayUpdate(Util.Map<string, Action<ConcreteSyntaxTree>>(indices, i => wIndex => EmitIdentifier(i, wIndex)), allocateArray.ExplicitType, w);
+        wrRhs = EmitCoercionIfNecessary(TypeForCoercion(allocateArray.ExplicitType), allocateArray.ExplicitType, allocateArray.Origin, wrRhs);
         EmitLambdaApply(wrRhs, out var wLambda, out var wArg);
         EmitIdentifier(init, wLambda);
         for (var i = 0; i < indices.Count; i++) {

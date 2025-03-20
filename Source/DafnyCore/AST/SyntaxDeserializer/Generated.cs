@@ -770,6 +770,45 @@ namespace Microsoft.Dafny
             return ReadAssertStmt();
         }
 
+        public AllocateClass ReadAllocateClass()
+        {
+            var parameter0 = ReadAbstract<IOrigin>();
+            var parameter3 = ReadAttributesOption();
+            var parameter1 = ReadAbstract<Type>();
+            var parameter2 = ReadActualBindingsOption();
+            return new AllocateClass(parameter0, parameter1, parameter2, parameter3);
+        }
+
+        public AllocateClass ReadAllocateClassOption()
+        {
+            if (ReadIsNull())
+            {
+                return default;
+            }
+
+            return ReadAllocateClass();
+        }
+
+        public AllocateArray ReadAllocateArray()
+        {
+            var parameter0 = ReadAbstract<IOrigin>();
+            var parameter4 = ReadAttributesOption();
+            var parameter1 = ReadAbstract<Type>();
+            var parameter2 = ReadList<Expression>(() => ReadAbstract<Expression>());
+            var parameter3 = ReadAbstract<Expression>();
+            return new AllocateArray(parameter0, parameter1, parameter2, parameter3, parameter4);
+        }
+
+        public AllocateArray ReadAllocateArrayOption()
+        {
+            if (ReadIsNull())
+            {
+                return default;
+            }
+
+            return ReadAllocateArray();
+        }
+
         public ExprRhs ReadExprRhs()
         {
             var parameter0 = ReadAbstract<IOrigin>();
@@ -1407,6 +1446,16 @@ namespace Microsoft.Dafny
             if (actualType == typeof(AssertStmt))
             {
                 return ReadAssertStmt();
+            }
+
+            if (actualType == typeof(AllocateClass))
+            {
+                return ReadAllocateClass();
+            }
+
+            if (actualType == typeof(AllocateArray))
+            {
+                return ReadAllocateArray();
             }
 
             if (actualType == typeof(ExprRhs))
