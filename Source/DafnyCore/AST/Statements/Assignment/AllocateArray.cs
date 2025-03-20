@@ -15,7 +15,7 @@ public class AllocateArray : TypeRhs, ICloneable<AllocateArray> {
   public readonly List<Expression>? InitDisplay;
 
   [SyntaxConstructor]
-  public AllocateArray(IOrigin origin, Type explicitType, List<Expression> arrayDimensions, Expression elementInit,
+  public AllocateArray(IOrigin origin, Type explicitType, List<Expression> arrayDimensions, Expression? elementInit,
     Attributes? attributes = null)
     : base(origin, attributes) {
     Contract.Requires(origin != null);
