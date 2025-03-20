@@ -136,12 +136,11 @@ public static class DafnyNewCli {
       dafnyOptions.UsingNewCli = true;
 
       if (dafnyOptions.Get(CommonOptionBag.WaitForDebugger)) {
-        while (!Debugger.IsAttached)
-        {
+        while (!Debugger.IsAttached) {
           Thread.Sleep(100);
         }
       }
-      
+
       context.ExitCode = await continuation(dafnyOptions, context);
     }
 

@@ -10,6 +10,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Diagnostics.Contracts;
 using JetBrains.Annotations;
+using RAST;
 
 namespace Microsoft.Dafny {
   public partial class PreTypeResolver : INewOrOldResolver {
@@ -1156,6 +1157,7 @@ namespace Microsoft.Dafny {
             ReportError(rr.Origin, "new can be applied only to class types (got {0})", allocateClass.PreType);
           }
 
+          rr.Type = allocateClass.Path;
           rr.PreType = Type2PreType(allocateClass.Path);
         } else {
           string initCallName = null;
@@ -1169,16 +1171,19 @@ namespace Microsoft.Dafny {
           if (ret != null) {
             // The all-but-last components of rr.Path denote a type (namely, ret.ReplacementType).
             rr.PreType = Type2PreType(ret.ReplacementType);
+            rr.Type = ret.ReplacementType;
             initCallName = ret.LastComponent.SuffixName;
             initCallTok = ret.LastComponent.Origin;
           } else {
             // Either rr.Path resolved correctly as a type or there was no way to drop a last component to make it into something that looked
             // like a type.  In either case, set EType,initCallName to Path,"_ctor" and continue.
             rr.PreType = Type2PreType(allocateClass.Path);
+            rr.Type = allocateClass.Path;
             initCallName = "_ctor";
             initCallTok = rr.Origin;
           }
-          var cl = (allocateClass.Type as UserDefinedType)?.ResolvedClass as NonNullTypeDecl;
+
+          var cl = (rr.Type as UserDefinedType).ResolvedClass as NonNullTypeDecl;
           if (cl == null || allocateClass.Type.IsTraitType) {
             ReportError(rr.Origin, "new can be applied only to class types (got {0})", allocateClass.PreType);
           } else {

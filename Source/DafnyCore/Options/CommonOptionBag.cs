@@ -25,7 +25,7 @@ public class CommonOptionBag {
     new("--wait-for-debugger", "Lets the C# compiler block until a .NET debugger is attached") {
       IsHidden = true
     };
-  
+
   public static readonly Option<bool> PrintDiagnosticsRanges =
     new("--print-ranges", "Prints not just the center, but also the start and end of diagnostics") {
       IsHidden = true
