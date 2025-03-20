@@ -6,7 +6,7 @@ using System.Linq;
 namespace Microsoft.Dafny;
 
 /// <summary>
-/// Either ElementInit or InitDisplay will be set
+/// At most one of ElementInit and InitDisplay may be non-null
 /// </summary>
 public class AllocateArray : TypeRhs, ICloneable<AllocateArray> {
   public Type ExplicitType;
