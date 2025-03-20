@@ -238,8 +238,8 @@ class PreTypeToTypeVisitor : ASTVisitor<IASTVisitorContext> {
       Contract.Assert(udtConvertedFromPretype.IsRefType);
       if (tRhs is AllocateClass allocateClass) {
         // Fill in any missing type arguments in the user-supplied tRhs.EType.
-        PreType2TypeUtil.Combine(allocateClass.Type, tRhs.PreType, false);
-        rhsType = (UserDefinedType)allocateClass.Type;
+        PreType2TypeUtil.Combine(allocateClass.Path, tRhs.PreType, false);
+        rhsType = (UserDefinedType)allocateClass.Path;
         if (allocateClass.InitCall != null) {
           // We want the type of tRhs.InitCall.MethodSelect.Obj to be the same as what the "new" gives, but the previous
           // visitation of this MemberSelectExpr would have set it to the type obtained from the pre-type. Since the MemberSelectExpr
