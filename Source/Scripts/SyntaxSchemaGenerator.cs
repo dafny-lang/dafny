@@ -31,7 +31,7 @@ public class SyntaxSchemaGenerator : SyntaxAstVisitor {
 
     var rootType = typeof(FilesContainer);
     VisitTypesFromRoots([rootType, typeof(SourceOrigin), typeof(TokenRangeOrigin)]);
-    compilationUnit = compilationUnit.NormalizeWhitespace();
+    compilationUnit = compilationUnit.NormalizeWhitespace(eol: "\n");
 
     var hasErrors = CheckCorrectness(compilationUnit);
     if (hasErrors) {
