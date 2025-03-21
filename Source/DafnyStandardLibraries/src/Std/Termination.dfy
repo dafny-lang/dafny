@@ -161,6 +161,35 @@ module Std.Ordinal {
       ensures Omega().IsLimit
       ensures forall other: ORDINAL | other.IsLimit && other != 0 :: Omega() <= other
 
+  // Additional axioms about addition
+
+  // TODO: Surprised this one was necessary
+  lemma {:axiom} Succ(a: ORDINAL, b: ORDINAL) 
+    requires a > b
+    ensures a >= b + 1
+
+  lemma {:axiom} AddStrictlyIncreasingOnRight(left: ORDINAL, right: ORDINAL, right': ORDINAL)
+    requires right > right'
+    ensures left + right > left + right'
+
+  // Multiplication and axioms about multiplication
+
+  ghost function {:axiom} Times(left: ORDINAL, right: ORDINAL): (result: ORDINAL) 
+
+  lemma {:axiom} TimesIdentity(o: ORDINAL)
+    ensures Times(1, o) == o
+    ensures Times(o, 1) == o
+
+  lemma {:axiom} TimesStrictlyIncreasingOnRight(left: ORDINAL, right: ORDINAL, right': ORDINAL)
+    requires left > 0
+    requires right > right'
+    ensures Times(left, right) > Times(left, right')
+
+  lemma {:axiom} TimesDistributesOnLeft(left: ORDINAL, right: ORDINAL, right': ORDINAL)
+    ensures Times(left, right + right') == Times(left, right) + Times(left, right')
+
+  // Helpful lemmas
+
   lemma RadixDecreases(base: ORDINAL, a: ORDINAL, a': ORDINAL, b: ORDINAL) 
     requires base > b
     requires a > a'
@@ -193,31 +222,4 @@ module Std.Ordinal {
       }
     }
   }
-
-  // Additional axioms about addition
-
-  // TODO: Surprised this one was necessary
-  lemma {:axiom} Succ(a: ORDINAL, b: ORDINAL) 
-    requires a > b
-    ensures a >= b + 1
-
-  lemma {:axiom} AddStrictlyIncreasingOnRight(left: ORDINAL, right: ORDINAL, right': ORDINAL)
-    requires right > right'
-    ensures left + right > left + right'
-
-  // Multiplication
-
-  ghost function {:axiom} Times(left: ORDINAL, right: ORDINAL): (result: ORDINAL) 
-
-  lemma {:axiom} TimesIdentity(o: ORDINAL)
-    ensures Times(1, o) == o
-    ensures Times(o, 1) == o
-
-  lemma {:axiom} TimesStrictlyIncreasingOnRight(left: ORDINAL, right: ORDINAL, right': ORDINAL)
-    requires left > 0
-    requires right > right'
-    ensures Times(left, right) > Times(left, right')
-
-  lemma {:axiom} TimesDistributesOnLeft(left: ORDINAL, right: ORDINAL, right': ORDINAL)
-    ensures Times(left, right + right') == Times(left, right) + Times(left, right')
 }
