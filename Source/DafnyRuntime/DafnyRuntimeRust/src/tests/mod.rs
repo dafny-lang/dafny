@@ -71,7 +71,51 @@ mod tests {
         }
     }
 
+    // This one is still the bad kind of recursive
     #[test]
+    fn test_sequence_right() {
+        let a: Sequence<i32> = Sequence::<i32>::from_array_owned(vec![1, 2]);
+        let b = Sequence::<i32>::from_array_owned(vec![3, 4]);
+        let c = Sequence::<i32>::from_array_owned(vec![5, 6]);
+        let d = Sequence::<i32>::from_array_owned(vec![7, 8]);
+        let e = Sequence::<i32>::from_array_owned(vec![9, 10]);
+        let f = Sequence::<i32>::from_array_owned(vec![11, 12]);
+        let g = Sequence::<i32>::from_array_owned(vec![13, 14]);
+        let h = Sequence::<i32>::from_array_owned(vec![15, 16]);
+        let c1 = Sequence::<i32>::new_concat_sequence(&a, &b);
+        let c2 = Sequence::<i32>::new_concat_sequence(&c1, &c);
+        let c3 = Sequence::<i32>::new_concat_sequence(&c2, &d);
+        let c4 = Sequence::<i32>::new_concat_sequence(&c3, &e);
+        let c5 = Sequence::<i32>::new_concat_sequence(&c4, &f);
+        let c6 = Sequence::<i32>::new_concat_sequence(&c5, &g);
+        let c7 = Sequence::<i32>::new_concat_sequence(&c6, &h);
+        let arr = c7.to_array();
+        assert_eq!(*arr, vec![1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16]);
+    }
+
+    // This one is successfully tail recursive
+    #[test]
+    fn test_sequence_left() {
+        let a: Sequence<i32> = Sequence::<i32>::from_array_owned(vec![1, 2]);
+        let b = Sequence::<i32>::from_array_owned(vec![3, 4]);
+        let c = Sequence::<i32>::from_array_owned(vec![5, 6]);
+        let d = Sequence::<i32>::from_array_owned(vec![7, 8]);
+        let e = Sequence::<i32>::from_array_owned(vec![9, 10]);
+        let f = Sequence::<i32>::from_array_owned(vec![11, 12]);
+        let g = Sequence::<i32>::from_array_owned(vec![13, 14]);
+        let h = Sequence::<i32>::from_array_owned(vec![15, 16]);
+        let c1 = Sequence::<i32>::new_concat_sequence(&g, &h);
+        let c2 = Sequence::<i32>::new_concat_sequence(&f, &c1);
+        let c3 = Sequence::<i32>::new_concat_sequence(&e, &c2);
+        let c4 = Sequence::<i32>::new_concat_sequence(&d, &c3);
+        let c5 = Sequence::<i32>::new_concat_sequence(&c, &c4);
+        let c6 = Sequence::<i32>::new_concat_sequence(&b, &c5);
+        let c7 = Sequence::<i32>::new_concat_sequence(&a, &c6);
+        let arr = c7.to_array();
+        assert_eq!(*arr, vec![1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16]);
+    }
+
+   #[test]
     fn test_sequence() {
         let values = vec![1, 2, 3];
         let seq = Sequence::<i32>::from_array_owned(values.clone());
@@ -80,7 +124,7 @@ mod tests {
 
         // Create a concat array, wrap it into a lazy one, get the i-th element,
         // and verify that this operation flattened the array
-        let left = Sequence::<i32>::from_array_owned(vec![1, 2, 3]);
+        let left: Sequence<i32> = Sequence::<i32>::from_array_owned(vec![1, 2, 3]);
         let right = Sequence::<i32>::from_array_owned(vec![4, 5, 6]);
         let concat = Sequence::<i32>::new_concat_sequence(&left, &right);
 
@@ -327,7 +371,6 @@ mod tests {
         assert_eq!(map![].merge(&m_4), m_4);
         let m_5 = m_4.merge(&map![3 => 9, 6 => 12]);
         assert_eq!(m_5.cardinality_usize(), 5);
-        println!("m_4 is {:?}", m_4);
         assert_eq!(m_4.get(&3), 6);
         assert_eq!(m_5.get(&3), 9);
         assert_eq!(m_5.subtract(&set! {}), m_5);
@@ -571,7 +614,6 @@ mod tests {
                 7 as i32 + if test1 { *MaybePlacebo::read(&t) } else { 0 },
             ));
         }
-        println!("{}", MaybePlacebo::read(&t));
         MaybePlacebo::read(&t)
     }
 
@@ -748,11 +790,6 @@ mod tests {
             .iter()
             .cloned()
             .any(Rc::new(|i: u32| i % 2 == 0).as_ref()));
-
-        for i in set! {1, 3, 5, 7}.iter() {
-            println!("{}", i);
-        }
-
         assert!(multiset! {1, 1, 5, 7}
             .iter()
             .all(Rc::new(|i: u32| i % 2 == 1).as_ref()));
