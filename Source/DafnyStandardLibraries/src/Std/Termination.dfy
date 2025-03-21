@@ -104,6 +104,8 @@ module Std.Termination {
         s[0].Ordinal() + 1 + SeqOrdinal(height, s[1..])
     }
 
+    // height is a SeqOrdinal() parameter just to prove termination,
+    // but doesn't affect the actual result.
     lemma SeqOrdinalAnyHeight(height: nat, height': nat, s: seq<TerminationMetric>)
       requires forall o <- s :: o.Valid() && height > o.height && height' > o.height
       ensures SeqOrdinal(height, s) == SeqOrdinal(height', s)
@@ -136,8 +138,7 @@ module Std.Termination {
         case (TMSeq(left, _), TMSeq(right, _)) =>
           || (exists i    | 0 <= i < |left|      :: left[..i] == right)
           || (exists i    | 0 < i <= |left|      :: left[i..] == right)
-          // TODO:
-          // || (exists i, j | 0 <= i < j <= |left| :: left[..i] + left[j..] == right)
+          || (exists i, j | 0 <= i < j <= |left| :: left[..i] + left[j..] == right)
         // This is a sequence and other is structurally included
         // (treating a sequence as a datatype with N children)
         case (TMSeq(leftSeq, _), _) =>
@@ -192,14 +193,13 @@ module Std.Termination {
             assert left == left[..i] + left[i..];
             SeqOrdinalConcat(height, left[..i], left[i..]);
             SeqOrdinalAnyHeight(height, other.height, right);
-            // TODO:
-          // } else if i, j: nat :| 0 <= i < j <= |left| && left[..i] + left[j..] == right {
-          //   assert left == left[..i] + left[i..];
-          //   SeqOrdinalConcat(height, left[..i], left[i..]);
-          //   SeqOrdinalAnyHeight(height, other.height, right);
-          //   assert left[i..] == left[i..j] + left[j..];
-          //   SeqOrdinalConcat(height, left[i..j], left[j..]);
-          //   SeqOrdinalAnyHeight(height, other.height, left[j..]);
+          } else if i, j: nat :| 0 <= i < j <= |left| && left[..i] + left[j..] == right {
+            assert left == left[..i] + left[i..];
+            SeqOrdinalConcat(height, left[..i], left[i..]);
+            SeqOrdinalAnyHeight(height, other.height, right);
+            assert left[i..] == left[i..j] + left[j..];
+            SeqOrdinalConcat(height, left[i..j], left[j..]);
+            SeqOrdinalConcat(height, left[..i], left[j..]);
           }
         }
         case _ => {}
