@@ -1,6 +1,6 @@
 // RUN: %resolve "%s" --allow-warnings > "%t"
+// RUN: %resolve "%s" --allow-warnings --ignore-indentation >> "%t"
 // RUN: %diff "%s.expect" "%t"
-
 ghost predicate P0(A: bool, B: bool, C: bool) {
   A &&
   B ==> C // warning: suspicious lack of parentheses (lhs of ==>)

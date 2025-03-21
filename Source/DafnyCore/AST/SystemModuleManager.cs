@@ -496,7 +496,7 @@ public class SystemModuleManager {
         if (member is Function function) {
           moduleResolver.ResolveFunctionSignature(function);
           CallGraphBuilder.VisitFunction(function, programResolver.Reporter);
-        } else if (member is Method method) {
+        } else if (member is MethodOrConstructor method) {
           moduleResolver.ResolveMethodSignature(method);
           CallGraphBuilder.VisitMethod(method, programResolver.Reporter);
         }

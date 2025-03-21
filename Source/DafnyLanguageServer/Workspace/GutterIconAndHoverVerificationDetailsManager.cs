@@ -96,10 +96,10 @@ Send notifications about the verification status of each line in the program.
                 member.Origin.GetLspPosition(),
                 Attributes.Contains(member.Attributes, "only"));
               AddAndPossiblyMigrateVerificationTree(verificationTree);
-            } else if (member is Method or Function) {
+            } else if (member is MethodOrConstructor or Function) {
               var verificationTreeRange = member.StartToken.GetLspRange(member.EndToken);
               var verificationTree = new TopLevelDeclMemberVerificationTree(
-                (member is Method ? "method" : "function"),
+                (member is MethodOrConstructor ? "method" : "function"),
                 member.Name,
                 member.GetCompileName(options),
                 member.Origin.Filepath,

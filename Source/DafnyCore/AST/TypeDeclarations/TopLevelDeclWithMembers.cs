@@ -185,82 +185,88 @@ public abstract class TopLevelDeclWithMembers : TopLevelDecl, IHasSymbolChildren
   }
 
   public void RegisterMembers(ModuleResolver resolver, Dictionary<string, MemberDecl> members) {
-
     foreach (MemberDecl m in Members) {
       if (members.TryAdd(m.Name, m)) {
-        if (m is Constructor) {
-          Contract.Assert(this is ClassLikeDecl); // the parser ensures this condition
-          if (this is TraitDecl) {
-            resolver.reporter.Error(MessageSource.Resolver, m.Origin, "a trait is not allowed to declare a constructor");
-          } else {
-            ((ClassDecl)this).HasConstructor = true;
-          }
-        } else if (m is ExtremePredicate || m is ExtremeLemma) {
-          var extraName = m.NameNode.Append("#");
-          MemberDecl extraMember;
-          var cloner = new Cloner();
-          var formals = new List<Formal>();
-          Type typeOfK;
-          if ((m is ExtremePredicate && ((ExtremePredicate)m).KNat) ||
-              (m is ExtremeLemma && ((ExtremeLemma)m).KNat)) {
-            typeOfK = new UserDefinedType(m.Origin, "nat", null);
-          } else {
-            typeOfK = new BigOrdinalType();
-          }
+        switch (m) {
+          case Constructor: {
+              Contract.Assert(this is ClassLikeDecl); // the parser ensures this condition
+              if (this is TraitDecl) {
+                resolver.reporter.Error(MessageSource.Resolver, m.Origin, "a trait is not allowed to declare a constructor");
+              } else {
+                ((ClassDecl)this).HasConstructor = true;
+              }
 
-          var k = new ImplicitFormal(m.Origin, "_k", typeOfK, true, false);
-          resolver.reporter.Info(MessageSource.Resolver, m.Origin, string.Format("_k: {0}", k.Type));
-          formals.Add(k);
-          if (m is ExtremePredicate extremePredicate) {
-            formals.AddRange(extremePredicate.Ins.ConvertAll(f => cloner.CloneFormal(f, false)));
+              break;
+            }
+          case ExtremePredicate or ExtremeLemma: {
+              var extraName = m.NameNode.Append("#");
+              MemberDecl extraMember;
+              var cloner = new Cloner();
+              var formals = new List<Formal>();
+              Type typeOfK;
+              if ((m is ExtremePredicate && ((ExtremePredicate)m).KNat) ||
+                  (m is ExtremeLemma && ((ExtremeLemma)m).KNat)) {
+                typeOfK = new UserDefinedType(m.Origin, "nat", null);
+              } else {
+                typeOfK = new BigOrdinalType();
+              }
 
-            List<TypeParameter> tyvars = extremePredicate.TypeArgs.ConvertAll(cloner.CloneTypeParam);
+              var k = new ImplicitFormal(m.Origin, "_k", typeOfK, true, false);
+              resolver.reporter.Info(MessageSource.Resolver, m.Origin, string.Format("_k: {0}", k.Type));
+              formals.Add(k);
+              if (m is ExtremePredicate extremePredicate) {
+                formals.AddRange(extremePredicate.Ins.ConvertAll(f => cloner.CloneFormal(f, false)));
 
-            // create prefix predicate
-            extremePredicate.PrefixPredicate = new PrefixPredicate(extremePredicate.Origin, extraName, extremePredicate.HasStaticKeyword,
-              tyvars, k, formals,
-              extremePredicate.Req.ConvertAll(cloner.CloneAttributedExpr),
-              cloner.CloneSpecFrameExpr(extremePredicate.Reads),
-              extremePredicate.Ens.ConvertAll(cloner.CloneAttributedExpr),
-              new Specification<Expression>([new IdentifierExpr(extremePredicate.Origin, k.Name)], null),
-              cloner.CloneExpr(extremePredicate.Body),
-              SystemModuleManager.AxiomAttribute(),
-              extremePredicate);
-            extraMember = extremePredicate.PrefixPredicate;
-          } else {
-            var extremeLemma = (ExtremeLemma)m;
-            // _k has already been added to 'formals', so append the original formals
-            formals.AddRange(extremeLemma.Ins.ConvertAll(f => cloner.CloneFormal(f, false)));
-            // prepend _k to the given decreases clause
-            var decr = new List<Expression>();
-            decr.Add(new IdentifierExpr(extremeLemma.Origin, k.Name));
-            decr.AddRange(extremeLemma.Decreases.Expressions!.ConvertAll(cloner.CloneExpr));
-            // Create prefix lemma.  Note that the body is not cloned, but simply shared.
-            // For a greatest lemma, the postconditions are filled in after the greatest lemma's postconditions have been resolved.
-            // For a least lemma, the preconditions are filled in after the least lemma's preconditions have been resolved.
-            var req = extremeLemma is GreatestLemma
-              ? extremeLemma.Req.ConvertAll(cloner.CloneAttributedExpr)
-              : new List<AttributedExpression>();
-            var ens = extremeLemma is GreatestLemma
-              ? new List<AttributedExpression>()
-              : extremeLemma.Ens.ConvertAll(cloner.CloneAttributedExpr);
-            extremeLemma.PrefixLemma = new PrefixLemma(extremeLemma.Origin, extraName, extremeLemma.HasStaticKeyword,
-              extremeLemma.TypeArgs.ConvertAll(cloner.CloneTypeParam), k, formals, extremeLemma.Outs.ConvertAll(f => cloner.CloneFormal(f, false)),
-              req, cloner.CloneSpecFrameExpr(extremeLemma.Reads),
-              cloner.CloneSpecFrameExpr(extremeLemma.Mod), ens,
-              new Specification<Expression>(decr, null),
-              null, // Note, the body for the prefix method will be created once the call graph has been computed and the SCC for the greatest lemma is known
-              SystemModuleManager.AxiomAttribute(cloner.CloneAttributes(extremeLemma.Attributes)), extremeLemma);
-            extraMember = extremeLemma.PrefixLemma;
-          }
+                List<TypeParameter> tyvars = extremePredicate.TypeArgs.ConvertAll(cloner.CloneTypeParam);
 
-          extraMember.InheritVisibility(m, false);
-          members.Add(extraName.Value, extraMember);
-        } else if (m is Function f && f.ByMethodBody != null) {
-          resolver.RegisterByMethod(f, this);
+                // create prefix predicate
+                extremePredicate.PrefixPredicate = new PrefixPredicate(extremePredicate.Origin, extraName, extremePredicate.HasStaticKeyword,
+                  tyvars, k, formals,
+                  extremePredicate.Req.ConvertAll(cloner.CloneAttributedExpr),
+                  cloner.CloneSpecFrameExpr(extremePredicate.Reads),
+                  extremePredicate.Ens.ConvertAll(cloner.CloneAttributedExpr),
+                  new Specification<Expression>([new IdentifierExpr(extremePredicate.Origin, k.Name)], null),
+                  cloner.CloneExpr(extremePredicate.Body),
+                  SystemModuleManager.AxiomAttribute(),
+                  extremePredicate);
+                extraMember = extremePredicate.PrefixPredicate;
+              } else {
+                var extremeLemma = (ExtremeLemma)m;
+                // _k has already been added to 'formals', so append the original formals
+                formals.AddRange(extremeLemma.Ins.ConvertAll(f => cloner.CloneFormal(f, false)));
+                // prepend _k to the given decreases clause
+                var decr = new List<Expression>();
+                decr.Add(new IdentifierExpr(extremeLemma.Origin, k.Name));
+                decr.AddRange(extremeLemma.Decreases.Expressions!.ConvertAll(cloner.CloneExpr));
+                // Create prefix lemma.  Note that the body is not cloned, but simply shared.
+                // For a greatest lemma, the postconditions are filled in after the greatest lemma's postconditions have been resolved.
+                // For a least lemma, the preconditions are filled in after the least lemma's preconditions have been resolved.
+                var req = extremeLemma is GreatestLemma
+                  ? extremeLemma.Req.ConvertAll(cloner.CloneAttributedExpr)
+                  : new List<AttributedExpression>();
+                var ens = extremeLemma is GreatestLemma
+                  ? new List<AttributedExpression>()
+                  : extremeLemma.Ens.ConvertAll(cloner.CloneAttributedExpr);
+                extremeLemma.PrefixLemma = new PrefixLemma(extremeLemma.Origin, extraName, extremeLemma.HasStaticKeyword,
+                  extremeLemma.TypeArgs.ConvertAll(cloner.CloneTypeParam), k, formals, extremeLemma.Outs.ConvertAll(f => cloner.CloneFormal(f, false)),
+                  req, cloner.CloneSpecFrameExpr(extremeLemma.Reads),
+                  cloner.CloneSpecFrameExpr(extremeLemma.Mod), ens,
+                  new Specification<Expression>(decr, null),
+                  null, // Note, the body for the prefix method will be created once the call graph has been computed and the SCC for the greatest lemma is known
+                  SystemModuleManager.AxiomAttribute(cloner.CloneAttributes(extremeLemma.Attributes)), extremeLemma);
+                extraMember = extremeLemma.PrefixLemma;
+              }
+
+              extraMember.InheritVisibility(m, false);
+              members.Add(extraName.Value, extraMember);
+              break;
+            }
+          case Function { ByMethodBody: not null } f:
+            resolver.RegisterByMethod(f, this);
+            break;
         }
-      } else if (m is Constructor && !((Constructor)m).HasName) {
-        resolver.reporter.Error(MessageSource.Resolver, m, "More than one anonymous constructor");
+      } else if (m is Constructor { HasName: false } constructor) {
+        resolver.reporter.Error(MessageSource.Resolver, constructor, "More than one anonymous constructor");
       } else {
         resolver.reporter.Error(MessageSource.Resolver, m, "Duplicate member name: {0}", m.Name);
       }

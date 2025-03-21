@@ -2,6 +2,18 @@ abstract class IOrigin
 {
 }
 
+class TokenRangeOrigin : IOrigin
+{
+    Token startToken;
+    Token endToken;
+}
+
+class Token
+{
+    Int32 line;
+    Int32 col;
+}
+
 class SourceOrigin : IOrigin
 {
     TokenRange entireRange;
@@ -12,12 +24,6 @@ class TokenRange
 {
     Token startToken;
     Token endToken;
-}
-
-class Token
-{
-    Int32 line;
-    Int32 col;
 }
 
 class FilesContainer
@@ -133,7 +139,7 @@ enum BinaryExprOpcode
 
 class LiteralExpr : Expression
 {
-    Object value;
+    Object? value;
 }
 
 class ITEExpr : Expression
@@ -269,6 +275,10 @@ abstract class DisplayExpression : Expression
     List<Expression> elements;
 }
 
+class ThisExpr : Expression
+{
+}
+
 class SeqSelectExpr : Expression
 {
     Boolean selectOne;
@@ -378,7 +388,6 @@ abstract class TopLevelDeclWithMembers : TopLevelDecl
 
 abstract class MemberDecl : Declaration
 {
-    Boolean hasStaticKeyword;
     Boolean isGhost;
 }
 
@@ -416,10 +425,15 @@ class AssertLabel : Label
 {
 }
 
-class Method : MethodOrFunction
+abstract class MethodOrConstructor : MethodOrFunction
 {
-    List<Formal> outs;
     Specification<FrameExpression> mod;
+}
+
+class Method : MethodOrConstructor
+{
+    Boolean hasStaticKeyword;
+    List<Formal> outs;
     BlockStmt? body;
     Boolean isByMethod;
 }
@@ -441,12 +455,29 @@ class AssertStmt : PredicateStmt
 
 abstract class ProduceStmt : Statement
 {
-    List<AssignmentRhs> rhss;
+    List<AssignmentRhs>? rhss;
 }
 
 abstract class AssignmentRhs : NodeWithOrigin
 {
     Attributes? attributes;
+}
+
+abstract class TypeRhs : AssignmentRhs
+{
+}
+
+class AllocateClass : TypeRhs
+{
+    Type path;
+    ActualBindings? bindings;
+}
+
+class AllocateArray : TypeRhs
+{
+    Type explicitType;
+    List<Expression> arrayDimensions;
+    Expression? elementInit;
 }
 
 class ExprRhs : AssignmentRhs
@@ -470,7 +501,18 @@ abstract class OneBodyLoopStmt : LoopStmt
     BlockStmt body;
 }
 
-class BlockStmt : Statement
+abstract class BlockLikeStmt : Statement
+{
+}
+
+class DividedBlockStmt : BlockLikeStmt
+{
+    List<Statement> bodyInit;
+    IOrigin? separatorTok;
+    List<Statement> bodyProper;
+}
+
+class BlockStmt : BlockLikeStmt
 {
     List<Statement> body;
 }
@@ -512,14 +554,48 @@ class LocalVariable : NodeWithOrigin
     Boolean isGhost;
 }
 
+class Constructor : MethodOrConstructor
+{
+    DividedBlockStmt? body;
+}
+
 class Function : MethodOrFunction
 {
+    Boolean hasStaticKeyword;
     Boolean isOpaque;
     Formal? result;
     Type resultType;
     Expression? body;
     IOrigin? byMethodTok;
     BlockStmt? byMethodBody;
+}
+
+class Field : MemberDecl
+{
+    Type type;
+}
+
+class ConstantField : Field
+{
+    Expression rhs;
+    Boolean hasStaticKeyword;
+    Boolean isOpaque;
+}
+
+abstract class DatatypeDecl : TopLevelDeclWithMembers
+{
+    List<DatatypeCtor> ctors;
+    Boolean isRefining;
+}
+
+class DatatypeCtor : Declaration
+{
+    Boolean isGhost;
+    List<Formal> formals;
+}
+
+class IndDatatypeDecl : DatatypeDecl
+{
 }
 
 abstract class ClassLikeDecl : TopLevelDeclWithMembers

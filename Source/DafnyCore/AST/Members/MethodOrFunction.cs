@@ -30,13 +30,13 @@ public abstract class MethodOrFunction : MemberDecl, ICodeContainer {
   public override bool IsRefining => SignatureIsOmitted;
 
   [SyntaxConstructor]
-  protected MethodOrFunction(IOrigin origin, Name nameNode, bool hasStaticKeyword, bool isGhost,
+  protected MethodOrFunction(IOrigin origin, Name nameNode, bool isGhost,
     Attributes? attributes, IOrigin? signatureEllipsis, List<TypeParameter> typeArgs, List<Formal> ins,
     List<AttributedExpression> req,
     List<AttributedExpression> ens,
     [Captured] Specification<FrameExpression> reads,
     Specification<Expression> decreases)
-    : base(origin, nameNode, hasStaticKeyword, isGhost, attributes) {
+    : base(origin, nameNode, isGhost, attributes) {
     TypeArgs = typeArgs;
     Req = req;
     this.SignatureEllipsis = signatureEllipsis;

@@ -21,6 +21,16 @@ public class CommonOptionBag {
                       $"Verification of a symbol may be split across several assertion batches. " +
                       $"Use {ProgressLevel.Batch} to additionally show progress across batches.");
 
+  public static readonly Option<bool> IgnoreIndentation =
+    new("--ignore-indentation", "Do not report warnings for suspicious indentation") {
+      IsHidden = true
+    };
+
+  public static readonly Option<bool> WaitForDebugger =
+    new("--wait-for-debugger", "Lets the C# compiler block until a .NET debugger is attached") {
+      IsHidden = true
+    };
+
   public static readonly Option<bool> PrintDiagnosticsRanges =
     new("--print-ranges", "Prints not just the center, but also the start and end of diagnostics") {
       IsHidden = true
@@ -677,6 +687,8 @@ NoGhost - disable printing of functions, ghost methods, and proof
     OptionRegistry.RegisterOption(ShowProofObligationExpressions, OptionScope.Cli);
     OptionRegistry.RegisterOption(InputType, OptionScope.Cli);
     OptionRegistry.RegisterOption(PrintDiagnosticsRanges, OptionScope.Cli);
+    OptionRegistry.RegisterOption(WaitForDebugger, OptionScope.Cli);
+    OptionRegistry.RegisterOption(IgnoreIndentation, OptionScope.Cli);
   }
 }
 

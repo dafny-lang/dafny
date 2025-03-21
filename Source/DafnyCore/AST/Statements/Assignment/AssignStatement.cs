@@ -25,7 +25,7 @@ public class AssignStatement : ConcreteAssignStatement, ICloneable<AssignStateme
   public override IEnumerable<Statement> PreResolveSubStatements => [];
 
   public override IEnumerable<IdentifierExpr> GetAssignedLocals() {
-    return ResolvedStatements.SelectMany(r => r.GetAssignedLocals());
+    return ResolvedStatements!.SelectMany(r => r.GetAssignedLocals());
   }
 
   [ContractInvariantMethod]
@@ -100,7 +100,7 @@ public class AssignStatement : ConcreteAssignStatement, ICloneable<AssignStateme
       if (rhs is TypeRhs) {
         var tr = (TypeRhs)rhs;
         resolver.ResolveTypeRhs(tr, this, resolutionContext);
-        isEffectful = tr.InitCall != null;
+        isEffectful = (tr is AllocateClass { InitCall: not null });
       } else if (rhs is HavocRhs) {
         isEffectful = false;
       } else {
@@ -149,7 +149,6 @@ public class AssignStatement : ConcreteAssignStatement, ICloneable<AssignStateme
           // we have a TypeRhs
           Contract.Assert(Rhss[0] is TypeRhs);
           var tr = (TypeRhs)Rhss[0];
-          Contract.Assert(tr.InitCall != null); // there were effects, so this must have been a call.
           if (tr.CanAffectPreviouslyKnownExpressions) {
             resolver.Reporter.Error(MessageSource.Resolver, tr.Origin, "can only have initialization methods which modify at most 'this'.");
           } else if (resolver.Reporter.Count(ErrorLevel.Error) == errorCountBeforeCheckingLhs) {

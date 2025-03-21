@@ -31,7 +31,7 @@ partial class SyntaxDeserializer {}")!;
   public static async Task Handle(string outputFile) {
     var program = typeof(TopLevelDecl);
     var generator = new SyntaxDeserializerGenerator();
-    generator.VisitTypesFromRoots([program, typeof(SourceOrigin)]);
+    generator.VisitTypesFromRoots([program, typeof(SourceOrigin), typeof(TokenRangeOrigin)]);
 
     var deserializerUnit = SyntaxFactory.ParseCompilationUnit(@"
 // Generated file
@@ -41,7 +41,7 @@ using System.Collections.Generic;
     var ns = SyntaxFactory.NamespaceDeclaration(SyntaxFactory.ParseName("Microsoft.Dafny"));
     var deserializeObjectSyntax = (MethodDeclarationSyntax)SyntaxFactory.ParseMemberDeclaration($@"
 private object ReadObject(System.Type actualType) {{
-  throw new Exception();
+  throw new Exception($""found unknown type {{actualType.name}}"");
 }}")!;
     generator.deserializeObjectCases.Add(SyntaxFactory.ParseStatement("throw new Exception();"));
     deserializeObjectSyntax = deserializeObjectSyntax.WithBody(
@@ -58,7 +58,6 @@ private object ReadObject(System.Type actualType) {{
     var ownedFieldPosition = 0;
     var baseType = OverrideBaseType.GetOrDefault(type, () => type.BaseType);
     if (baseType != null && baseType != typeof(ValueType) && baseType != typeof(object)) {
-
       ownedFieldPosition = ParameterToSchemaPositions[baseType].Count;
     }
     var parameterToSchemaPosition = new Dictionary<string, int>();
@@ -79,17 +78,30 @@ private object ReadObject(System.Type actualType) {{
       }
 
       if (memberInfo.DeclaringType != type) {
-        if (ParameterToSchemaPositions[memberInfo.DeclaringType!].TryGetValue(memberInfo.Name, out var schemaPosition)) {
-          schemaToConstructorPosition[schemaPosition] = index;
-          parameterToSchemaPosition[memberInfo.Name] = schemaPosition;
+        if (!ParameterToSchemaPositions[memberInfo.DeclaringType!]
+              .TryGetValue(memberInfo.Name, out var schemaPosition)) {
+          throw new Exception(
+            $"parameter '{parameter.Name}' of '{type.Name}' should have been in parent type '{memberInfo.DeclaringType}' constructor, but was not found");
         }
+
+        schemaToConstructorPosition[schemaPosition] = index;
+        parameterToSchemaPosition[memberInfo.Name] = schemaPosition;
         return;
+
       }
+
 
       var schemaPosition2 = ownedFieldPosition++;
       parameterToSchemaPosition[memberInfo.Name] = schemaPosition2;
       schemaToConstructorPosition[schemaPosition2] = index;
     });
+    if (baseType != null && baseType != typeof(ValueType) && baseType != typeof(object)) {
+      foreach (var (name, index) in ParameterToSchemaPositions[baseType]) {
+        if (!schemaToConstructorPosition.ContainsKey(index)) {
+          throw new Exception($"Did not find base parameter '{name}' in argument list of '{type.Name}'.");
+        }
+      }
+    }
     GenerateReadMethod(type, schemaToConstructorPosition, statements);
   }
 

@@ -4,6 +4,20 @@ using System.Collections.Generic;
 
 namespace Microsoft.Dafny {
   partial class SyntaxDeserializer {
+    public TokenRangeOrigin ReadTokenRangeOrigin() {
+      var parameter0 = ReadToken();
+      var parameter1 = ReadToken();
+      return new TokenRangeOrigin(parameter0, parameter1);
+    }
+
+    public TokenRangeOrigin ReadTokenRangeOriginOption() {
+      if (ReadIsNull()) {
+        return default;
+      }
+
+      return ReadTokenRangeOrigin();
+    }
+
     public SourceOrigin ReadSourceOrigin() {
       var parameter0 = ReadTokenRange();
       var parameter1 = ReadTokenRangeOption();
@@ -133,7 +147,7 @@ namespace Microsoft.Dafny {
 
     public LiteralExpr ReadLiteralExpr() {
       var parameter0 = ReadAbstract<IOrigin>();
-      var parameter1 = ReadAbstract<Object>();
+      var parameter1 = ReadAbstractOption<Object>();
       return new LiteralExpr(parameter0, parameter1);
     }
 
@@ -382,6 +396,19 @@ namespace Microsoft.Dafny {
       return ReadExistsExpr();
     }
 
+    public ThisExpr ReadThisExpr() {
+      var parameter0 = ReadAbstract<IOrigin>();
+      return new ThisExpr(parameter0);
+    }
+
+    public ThisExpr ReadThisExprOption() {
+      if (ReadIsNull()) {
+        return default;
+      }
+
+      return ReadThisExpr();
+    }
+
     public SeqSelectExpr ReadSeqSelectExpr() {
       var parameter0 = ReadAbstract<IOrigin>();
       var parameter1 = ReadBoolean();
@@ -578,7 +605,6 @@ namespace Microsoft.Dafny {
       var parameter0 = ReadAbstract<IOrigin>();
       var parameter1 = ReadName();
       var parameter2 = ReadAttributesOption();
-      var parameter3 = ReadBoolean();
       var parameter4 = ReadBoolean();
       var parameter14 = ReadAbstractOption<IOrigin>();
       var parameter5 = ReadList<TypeParameter>(() => ReadTypeParameter());
@@ -587,8 +613,9 @@ namespace Microsoft.Dafny {
       var parameter8 = ReadList<AttributedExpression>(() => ReadAttributedExpression());
       var parameter9 = ReadSpecification<FrameExpression>();
       var parameter10 = ReadSpecification<Expression>();
-      var parameter11 = ReadList<Formal>(() => ReadFormal());
       var parameter12 = ReadSpecification<FrameExpression>();
+      var parameter3 = ReadBoolean();
+      var parameter11 = ReadList<Formal>(() => ReadFormal());
       var parameter13 = ReadBlockStmt();
       var parameter15 = ReadBoolean();
       return new Method(parameter0, parameter1, parameter2, parameter3, parameter4, parameter5, parameter6, parameter7, parameter8, parameter9, parameter10, parameter11, parameter12, parameter13, parameter14, parameter15);
@@ -618,6 +645,39 @@ namespace Microsoft.Dafny {
       return ReadAssertStmt();
     }
 
+    public AllocateClass ReadAllocateClass() {
+      var parameter0 = ReadAbstract<IOrigin>();
+      var parameter3 = ReadAttributesOption();
+      var parameter1 = ReadAbstract<Type>();
+      var parameter2 = ReadActualBindingsOption();
+      return new AllocateClass(parameter0, parameter1, parameter2, parameter3);
+    }
+
+    public AllocateClass ReadAllocateClassOption() {
+      if (ReadIsNull()) {
+        return default;
+      }
+
+      return ReadAllocateClass();
+    }
+
+    public AllocateArray ReadAllocateArray() {
+      var parameter0 = ReadAbstract<IOrigin>();
+      var parameter4 = ReadAttributesOption();
+      var parameter1 = ReadAbstract<Type>();
+      var parameter2 = ReadList<Expression>(() => ReadAbstract<Expression>());
+      var parameter3 = ReadAbstract<Expression>();
+      return new AllocateArray(parameter0, parameter1, parameter2, parameter3, parameter4);
+    }
+
+    public AllocateArray ReadAllocateArrayOption() {
+      if (ReadIsNull()) {
+        return default;
+      }
+
+      return ReadAllocateArray();
+    }
+
     public ExprRhs ReadExprRhs() {
       var parameter0 = ReadAbstract<IOrigin>();
       var parameter2 = ReadAttributesOption();
@@ -636,7 +696,7 @@ namespace Microsoft.Dafny {
     public ReturnStmt ReadReturnStmt() {
       var parameter0 = ReadAbstract<IOrigin>();
       var parameter2 = ReadAttributesOption();
-      var parameter1 = ReadList<AssignmentRhs>(() => ReadAbstract<AssignmentRhs>());
+      var parameter1 = ReadListOption<AssignmentRhs>(() => ReadAbstract<AssignmentRhs>());
       return new ReturnStmt(parameter0, parameter1, parameter2);
     }
 
@@ -648,10 +708,27 @@ namespace Microsoft.Dafny {
       return ReadReturnStmt();
     }
 
+    public DividedBlockStmt ReadDividedBlockStmt() {
+      var parameter0 = ReadAbstract<IOrigin>();
+      var parameter4 = ReadAttributesOption();
+      var parameter1 = ReadList<Statement>(() => ReadAbstract<Statement>());
+      var parameter2 = ReadAbstractOption<IOrigin>();
+      var parameter3 = ReadList<Statement>(() => ReadAbstract<Statement>());
+      return new DividedBlockStmt(parameter0, parameter1, parameter2, parameter3, parameter4);
+    }
+
+    public DividedBlockStmt ReadDividedBlockStmtOption() {
+      if (ReadIsNull()) {
+        return default;
+      }
+
+      return ReadDividedBlockStmt();
+    }
+
     public BlockStmt ReadBlockStmt() {
       var parameter0 = ReadAbstract<IOrigin>();
-      var parameter1 = ReadAttributesOption();
-      var parameter2 = ReadList<Statement>(() => ReadAbstract<Statement>());
+      var parameter2 = ReadAttributesOption();
+      var parameter1 = ReadList<Statement>(() => ReadAbstract<Statement>());
       return new BlockStmt(parameter0, parameter1, parameter2);
     }
 
@@ -749,11 +826,35 @@ namespace Microsoft.Dafny {
       return ReadLocalVariable();
     }
 
+    public Constructor ReadConstructor() {
+      var parameter0 = ReadAbstract<IOrigin>();
+      var parameter1 = ReadName();
+      var parameter11 = ReadAttributesOption();
+      var parameter2 = ReadBoolean();
+      var parameter12 = ReadAbstractOption<IOrigin>();
+      var parameter3 = ReadList<TypeParameter>(() => ReadTypeParameter());
+      var parameter4 = ReadList<Formal>(() => ReadFormal());
+      var parameter5 = ReadList<AttributedExpression>(() => ReadAttributedExpression());
+      var parameter8 = ReadList<AttributedExpression>(() => ReadAttributedExpression());
+      var parameter6 = ReadSpecification<FrameExpression>();
+      var parameter9 = ReadSpecification<Expression>();
+      var parameter7 = ReadSpecification<FrameExpression>();
+      var parameter10 = ReadDividedBlockStmt();
+      return new Constructor(parameter0, parameter1, parameter2, parameter3, parameter4, parameter5, parameter6, parameter7, parameter8, parameter9, parameter10, parameter11, parameter12);
+    }
+
+    public Constructor ReadConstructorOption() {
+      if (ReadIsNull()) {
+        return default;
+      }
+
+      return ReadConstructor();
+    }
+
     public Function ReadFunction() {
       var parameter0 = ReadAbstract<IOrigin>();
       var parameter1 = ReadName();
       var parameter16 = ReadAttributesOption();
-      var parameter2 = ReadBoolean();
       var parameter3 = ReadBoolean();
       var parameter17 = ReadAbstractOption<IOrigin>();
       var parameter5 = ReadList<TypeParameter>(() => ReadTypeParameter());
@@ -762,6 +863,7 @@ namespace Microsoft.Dafny {
       var parameter11 = ReadList<AttributedExpression>(() => ReadAttributedExpression());
       var parameter10 = ReadSpecification<FrameExpression>();
       var parameter12 = ReadSpecification<Expression>();
+      var parameter2 = ReadBoolean();
       var parameter4 = ReadBoolean();
       var parameter7 = ReadFormalOption();
       var parameter8 = ReadAbstract<Type>();
@@ -777,6 +879,81 @@ namespace Microsoft.Dafny {
       }
 
       return ReadFunction();
+    }
+
+    public Field ReadField() {
+      var parameter0 = ReadAbstract<IOrigin>();
+      var parameter1 = ReadName();
+      var parameter4 = ReadAttributesOption();
+      var parameter2 = ReadBoolean();
+      var parameter3 = ReadAbstract<Type>();
+      return new Field(parameter0, parameter1, parameter2, parameter3, parameter4);
+    }
+
+    public Field ReadFieldOption() {
+      if (ReadIsNull()) {
+        return default;
+      }
+
+      return ReadField();
+    }
+
+    public ConstantField ReadConstantField() {
+      var parameter0 = ReadAbstract<IOrigin>();
+      var parameter1 = ReadName();
+      var parameter7 = ReadAttributes();
+      var parameter4 = ReadBoolean();
+      var parameter6 = ReadAbstract<Type>();
+      var parameter2 = ReadAbstract<Expression>();
+      var parameter3 = ReadBoolean();
+      var parameter5 = ReadBoolean();
+      return new ConstantField(parameter0, parameter1, parameter2, parameter3, parameter4, parameter5, parameter6, parameter7);
+    }
+
+    public ConstantField ReadConstantFieldOption() {
+      if (ReadIsNull()) {
+        return default;
+      }
+
+      return ReadConstantField();
+    }
+
+    public DatatypeCtor ReadDatatypeCtor() {
+      var parameter0 = ReadAbstract<IOrigin>();
+      var parameter1 = ReadName();
+      var parameter4 = ReadAttributesOption();
+      var parameter2 = ReadBoolean();
+      var parameter3 = ReadList<Formal>(() => ReadFormal());
+      return new DatatypeCtor(parameter0, parameter1, parameter2, parameter3, parameter4);
+    }
+
+    public DatatypeCtor ReadDatatypeCtorOption() {
+      if (ReadIsNull()) {
+        return default;
+      }
+
+      return ReadDatatypeCtor();
+    }
+
+    public IndDatatypeDecl ReadIndDatatypeDecl() {
+      Microsoft.Dafny.ModuleDefinition parameter2 = null;
+      var parameter0 = ReadAbstract<IOrigin>();
+      var parameter1 = ReadName();
+      var parameter7 = ReadAttributesOption();
+      var parameter3 = ReadList<TypeParameter>(() => ReadTypeParameter());
+      var parameter6 = ReadList<MemberDecl>(() => ReadAbstract<MemberDecl>());
+      var parameter5 = ReadList<Type>(() => ReadAbstract<Type>());
+      var parameter4 = ReadList<DatatypeCtor>(() => ReadDatatypeCtor());
+      var parameter8 = ReadBoolean();
+      return new IndDatatypeDecl(parameter0, parameter1, parameter2, parameter3, parameter4, parameter5, parameter6, parameter7, parameter8);
+    }
+
+    public IndDatatypeDecl ReadIndDatatypeDeclOption() {
+      if (ReadIsNull()) {
+        return default;
+      }
+
+      return ReadIndDatatypeDecl();
     }
 
     public ClassDecl ReadClassDecl() {
@@ -882,6 +1059,10 @@ namespace Microsoft.Dafny {
     }
 
     private object ReadObject(System.Type actualType) {
+      if (actualType == typeof(TokenRangeOrigin)) {
+        return ReadTokenRangeOrigin();
+      }
+
       if (actualType == typeof(SourceOrigin)) {
         return ReadSourceOrigin();
       }
@@ -978,6 +1159,10 @@ namespace Microsoft.Dafny {
         return ReadExistsExpr();
       }
 
+      if (actualType == typeof(ThisExpr)) {
+        return ReadThisExpr();
+      }
+
       if (actualType == typeof(SeqSelectExpr)) {
         return ReadSeqSelectExpr();
       }
@@ -1030,12 +1215,24 @@ namespace Microsoft.Dafny {
         return ReadAssertStmt();
       }
 
+      if (actualType == typeof(AllocateClass)) {
+        return ReadAllocateClass();
+      }
+
+      if (actualType == typeof(AllocateArray)) {
+        return ReadAllocateArray();
+      }
+
       if (actualType == typeof(ExprRhs)) {
         return ReadExprRhs();
       }
 
       if (actualType == typeof(ReturnStmt)) {
         return ReadReturnStmt();
+      }
+
+      if (actualType == typeof(DividedBlockStmt)) {
+        return ReadDividedBlockStmt();
       }
 
       if (actualType == typeof(BlockStmt)) {
@@ -1062,8 +1259,28 @@ namespace Microsoft.Dafny {
         return ReadLocalVariable();
       }
 
+      if (actualType == typeof(Constructor)) {
+        return ReadConstructor();
+      }
+
       if (actualType == typeof(Function)) {
         return ReadFunction();
+      }
+
+      if (actualType == typeof(Field)) {
+        return ReadField();
+      }
+
+      if (actualType == typeof(ConstantField)) {
+        return ReadConstantField();
+      }
+
+      if (actualType == typeof(DatatypeCtor)) {
+        return ReadDatatypeCtor();
+      }
+
+      if (actualType == typeof(IndDatatypeDecl)) {
+        return ReadIndDatatypeDecl();
       }
 
       if (actualType == typeof(ClassDecl)) {

@@ -33,7 +33,7 @@ namespace Microsoft.Dafny {
               if (f.ByMethodDecl != null && Reporter.Options.EnforcePrintEffects) {
                 f.ByMethodDecl.Body.Body.ForEach(stmt => CheckNoPrintEffects(stmt, f.ByMethodDecl));
               }
-            } else if (member is Method method) {
+            } else if (member is MethodOrConstructor method) {
               if (hasPrintAttribute) {
                 if (member.IsGhost) {
                   ReportError(ErrorId.rw_print_attribute_forbidden_on_ghost_methods, member.Origin, ":print attribute is not allowed on ghost methods");
@@ -62,8 +62,8 @@ namespace Microsoft.Dafny {
 
     private void CheckNoPrintEffects(Statement stmt, IMethodCodeContext codeContext) {
       if (stmt is PrintStmt) {
-        var method = codeContext as Method;
-        if (method != null && method.IsByMethod) {
+        var method = codeContext as MethodOrConstructor;
+        if (method is Method method2 && method2.IsByMethod) {
           ReportError(ErrorId.rw_no_print_in_function_by_method, stmt.Origin, "a function-by-method is not allowed to use print statements");
         } else {
           ReportError(ErrorId.rw_print_attribute_required_to_print, stmt.Origin,
@@ -71,8 +71,8 @@ namespace Microsoft.Dafny {
         }
       } else if (stmt is CallStmt call) {
         if (HasPrintAttribute(call.Method.Attributes, false)) {
-          var method = codeContext as Method;
-          if (method != null && method.IsByMethod) {
+          var method = codeContext as MethodOrConstructor;
+          if (method is Method method2 && method2.IsByMethod) {
             ReportError(ErrorId.rw_function_by_method_may_not_call_printing_method, stmt.Origin, "a function-by-method is not allowed to call a method with print effects");
           } else {
             ReportError(ErrorId.rw_must_be_print_to_call_printing_method, stmt.Origin,

@@ -30,6 +30,5 @@ public class ClassDecl : ClassLikeDecl {
     IsRefining = isRefining;
     this.NewSelfSynonym();
   }
-
   public override bool IsRefining { get; }
 }

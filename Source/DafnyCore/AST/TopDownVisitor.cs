@@ -69,12 +69,12 @@ public class TopDownVisitor<State> {
   public void Visit(ICallable decl, State st) {
     if (decl is Function) {
       Visit((Function)decl, st);
-    } else if (decl is Method) {
-      Visit((Method)decl, st);
+    } else if (decl is MethodOrConstructor methodOrConstructor) {
+      Visit(methodOrConstructor, st);
     }
     //TODO More?
   }
-  public virtual void Visit(Method method, State st) {
+  public virtual void Visit(MethodOrConstructor method, State st) {
     Visit(method.Ens, st);
     Visit(method.Req, st);
     Visit(method.Reads.Expressions, st);

@@ -4,10 +4,7 @@
 
 using System;
 using System.Collections.Generic;
-using System.Numerics;
 using System.Diagnostics.Contracts;
-using System.Linq;
-using System.Xml;
 
 namespace Microsoft.Dafny {
   interface ICloneable<out T> {
@@ -205,14 +202,12 @@ namespace Microsoft.Dafny {
           return member;
         }
 
-        if (member is Field) {
-          var f = (Field)member;
-          return CloneField(f);
-        } else if (member is Function) {
-          var f = (Function)member;
-          return CloneFunction(f);
+        if (member is Field field) {
+          return CloneField(field);
+        } else if (member is Function function) {
+          return CloneFunction(function);
         } else {
-          var m = (Method)member;
+          var m = (MethodOrConstructor)member;
           return CloneMethod(m);
         }
       });
@@ -413,12 +408,10 @@ namespace Microsoft.Dafny {
     }
 
     public virtual BlockStmt CloneBlockStmt(BlockStmt stmt) {
-      Contract.Requires(
-        !(stmt is DividedBlockStmt)); // for blocks that may be DividedBlockStmt's, call CloneDividedBlockStmt instead
       if (stmt == null) {
         return null;
       } else {
-        return new BlockStmt(Origin(stmt.Origin), stmt.Body.ConvertAll(stmt1 => CloneStmt(stmt1, false)));
+        return new BlockStmt(this, stmt);
       }
     }
 
@@ -426,8 +419,7 @@ namespace Microsoft.Dafny {
       if (stmt == null) {
         return null;
       } else {
-        return new DividedBlockStmt(Origin(stmt.Origin), stmt.BodyInit.ConvertAll(stmt1 => CloneStmt(stmt1, false)),
-          stmt.SeparatorTok == null ? null : Origin(stmt.SeparatorTok), stmt.BodyProper.ConvertAll(stmt1 => CloneStmt(stmt1, false)));
+        return new DividedBlockStmt(this, stmt);
       }
     }
 
@@ -524,8 +516,7 @@ namespace Microsoft.Dafny {
         // an iterator in a refined module is replaced by a class in the refining module.
         SpecialField s => new SpecialField(Origin(s.Origin), s.Name, s.SpecialId, s.IdParam, s.IsGhost, s.IsMutable,
           s.IsUserMutable, CloneType(s.Type), CloneAttributes(s.Attributes)),
-        _ => new Field(Origin(f.Origin), f.NameNode.Clone(this), f.HasStaticKeyword, f.IsGhost, f.IsMutable,
-          f.IsUserMutable, CloneType(f.Type), CloneAttributes(f.Attributes))
+        _ => new Field(Origin(f.Origin), f.NameNode.Clone(this), f.IsGhost, CloneType(f.Type), CloneAttributes(f.Attributes))
       };
     }
 
@@ -576,7 +567,7 @@ namespace Microsoft.Dafny {
       }
     }
 
-    public virtual Method CloneMethod(Method m) {
+    public virtual MethodOrConstructor CloneMethod(MethodOrConstructor m) {
       Contract.Requires(m != null);
       return m switch {
         Constructor constructor => new Constructor(this, constructor),
@@ -584,15 +575,16 @@ namespace Microsoft.Dafny {
         GreatestLemma greatestLemma => new GreatestLemma(this, greatestLemma),
         Lemma lemma => new Lemma(this, lemma),
         TwoStateLemma lemma => new TwoStateLemma(this, lemma),
-        _ => new Method(this, m)
+        Method method => new Method(this, method),
+        _ => throw new ArgumentOutOfRangeException(nameof(m), m, null)
       };
     }
 
-    public virtual BlockStmt CloneMethodBody(Method m) {
-      if (m.Body is DividedBlockStmt) {
-        return CloneDividedBlockStmt((DividedBlockStmt)m.Body);
+    public virtual BlockLikeStmt CloneMethodBody(MethodOrConstructor m) {
+      if (m.Body is DividedBlockStmt dividedBlockStmt) {
+        return CloneDividedBlockStmt(dividedBlockStmt);
       } else {
-        return CloneBlockStmt(m.Body);
+        return CloneBlockStmt((BlockStmt)m.Body);
       }
     }
 

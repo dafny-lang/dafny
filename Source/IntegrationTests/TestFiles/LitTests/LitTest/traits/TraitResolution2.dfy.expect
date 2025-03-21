@@ -6,8 +6,8 @@ TraitResolution2.dfy(101,14): Error: new can be applied only to class types (got
 TraitResolution2.dfy(103,14): Error: new can be applied only to class types (got C?<A?>)
 TraitResolution2.dfy(106,14): Error: new can be applied only to class types (got D?<A>)
 TraitResolution2.dfy(108,14): Error: new can be applied only to class types (got D?<A?>)
-TraitResolution2.dfy(110,14): Error: new can be applied only to class types (got D<A>)
-TraitResolution2.dfy(112,14): Error: new can be applied only to class types (got D<A?>)
+TraitResolution2.dfy(110,14): Error: new can be applied only to class types (got D?<A>)
+TraitResolution2.dfy(112,14): Error: new can be applied only to class types (got D?<A?>)
 TraitResolution2.dfy(113,14): Error: new can be applied only to class types (got DSynonym<A?>)
 TraitResolution2.dfy(114,14): Error: new can be applied only to class types (got DSynonym<A?>)
 TraitResolution2.dfy(117,14): Error: new can be applied only to class types (got object?)
@@ -18,7 +18,7 @@ TraitResolution2.dfy(124,14): Error: new can be applied only to class types (got
 TraitResolution2.dfy(126,14): Error: new can be applied only to class types (got Tr<int>)
 TraitResolution2.dfy(127,14): Error: new can be applied only to class types (got Tr?<int>)
 TraitResolution2.dfy(128,14): Error: new can be applied only to class types (got Tr<int>)
-TraitResolution2.dfy(129,14): Error: new can be applied only to class types (got Tr<int>)
+TraitResolution2.dfy(129,14): Error: new can be applied only to class types (got Tr?<int>)
 TraitResolution2.dfy(181,8): Error: field 'civ' is inherited from trait 'Tr' and is not allowed to be re-declared
 TraitResolution2.dfy(182,14): Error: field 'giv' is inherited from trait 'Tr' and is not allowed to be re-declared
 TraitResolution2.dfy(183,10): Error: const field 'cic' is inherited from trait 'Tr' and is not allowed to be re-declared

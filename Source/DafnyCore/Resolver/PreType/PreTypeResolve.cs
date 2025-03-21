@@ -76,7 +76,7 @@ namespace Microsoft.Dafny {
     public Scope<IVariable> Scope => scope;
 
     TopLevelDeclWithMembers currentClass;
-    Method currentMethod;
+    MethodOrConstructor currentMethod;
 
     private readonly Dictionary<string, TopLevelDecl> preTypeBuiltins = new();
     public readonly PreTypeConstraints Constraints;
@@ -775,7 +775,7 @@ namespace Microsoft.Dafny {
       } else {
         var memberDecl = (MemberDecl)d;
         preTypeResolver.ResolveTypeParameters(memberDecl.EnclosingClass.TypeArgs, false, memberDecl.EnclosingClass);
-        if (memberDecl is Method method) {
+        if (memberDecl is MethodOrConstructor method) {
           preTypeResolver.ResolveTypeParameters(method.TypeArgs, false, method);
         } else if (memberDecl is Function function) {
           preTypeResolver.ResolveTypeParameters(function.TypeArgs, false, function);
@@ -879,7 +879,7 @@ namespace Microsoft.Dafny {
         function.ResultPreType = Type2PreType(function.ResultType);
       }
 
-      void ComputePreTypeMethod(Method method) {
+      void ComputePreTypeMethod(MethodOrConstructor method) {
         method.Ins.ForEach(ComputePreTypeFormal);
         method.Outs.ForEach(ComputePreTypeFormal);
       }
@@ -944,7 +944,7 @@ namespace Microsoft.Dafny {
             ComputePreTypeFunction(prefixPredicate);
           }
         }
-      } else if (declaration is Method method) {
+      } else if (declaration is MethodOrConstructor method) {
         ComputePreTypeMethod(method);
         if (method is ExtremeLemma { PrefixLemma: { } prefixLemma }) {
           ComputePreTypeMethod(prefixLemma);
@@ -1211,7 +1211,7 @@ namespace Microsoft.Dafny {
           resolver.allTypeParameters.PopMarker();
         }
 
-      } else if (member is Method m) {
+      } else if (member is MethodOrConstructor m) {
         var ec = ErrorCount;
         resolver.allTypeParameters.PushMarker();
         ResolveTypeParameters(m.TypeArgs, false, m);
@@ -1430,7 +1430,7 @@ namespace Microsoft.Dafny {
     /// Assumes type parameters have already been pushed.
     /// Also assumes that "currentClass" has been set to the parent of "m".
     /// </summary>
-    void ResolveMethod(Method m) {
+    void ResolveMethod(MethodOrConstructor m) {
       Contract.Requires(m != null);
 
       m.ResolveNewOrOldPart(this);
@@ -1671,7 +1671,7 @@ namespace Microsoft.Dafny {
               if (f is ExtremePredicate extremePredicate) {
                 visitor.Visit(extremePredicate.PrefixPredicate);
               }
-            } else if (member is Method m) {
+            } else if (member is MethodOrConstructor m) {
               visitor.Visit(m);
               if (m is ExtremeLemma extremeLemma) {
                 visitor.Visit(extremeLemma.PrefixLemma);

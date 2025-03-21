@@ -1703,7 +1703,7 @@ namespace Microsoft.Dafny {
         rr.PreType = BuiltInArrowType(inParamTypes, resultType, function.Reads.Expressions.Count != 0, function.Req.Count != 0);
       } else {
         // the member is a method
-        var method = (Method)member;
+        var method = (MethodOrConstructor)member;
         if (!allowMethodCall) {
           // it's a method and method calls are not allowed in the given resolutionContext
           ReportError(tok, "expression is not allowed to invoke a {0} ({1})", member.WhatKind, member.Name);
@@ -1834,7 +1834,7 @@ namespace Microsoft.Dafny {
             var ri = (ResolverIdentifierExpr)lhs;
             ReportError(e.Origin, "name of {0} ({1}) is used as a function", ri.Decl.WhatKind, ri.Decl.Name);
           } else {
-            if (lhs is MemberSelectExpr { Member: Method } mse) {
+            if (lhs is MemberSelectExpr { Member: MethodOrConstructor } mse) {
               if (atLabel != null) {
                 Contract.Assert(mse != null); // assured by the parser
                 if (mse.Member is TwoStateLemma) {

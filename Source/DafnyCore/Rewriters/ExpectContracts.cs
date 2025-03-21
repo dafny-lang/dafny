@@ -88,7 +88,7 @@ public class ExpectContracts : IRewriter {
     var newName = decl.Name + "__dafny_checked";
     MemberDecl newDecl = null;
 
-    if (decl is Method origMethod) {
+    if (decl is MethodOrConstructor origMethod) {
       newDecl = GenerateMethodWrapper(parent, decl, origMethod, newName);
     } else if (decl is Function origFunc) {
       newDecl = GenerateFunctionWrapper(parent, decl, origFunc, newName, tok);
@@ -134,7 +134,7 @@ public class ExpectContracts : IRewriter {
     return newFunc;
   }
 
-  private MemberDecl GenerateMethodWrapper(TopLevelDeclWithMembers parent, MemberDecl decl, Method origMethod,
+  private MemberDecl GenerateMethodWrapper(TopLevelDeclWithMembers parent, MemberDecl decl, MethodOrConstructor origMethod,
     string newName) {
     var newMethod = cloner.CloneMethod(origMethod);
     newMethod.NameNode.Value = newName;
@@ -151,7 +151,7 @@ public class ExpectContracts : IRewriter {
     var callStmt = new CallStmt(decl.Origin, outs, memberSelectExpr, args);
 
     var body = MakeContractCheckingBody(origMethod.Req, origMethod.Ens, callStmt);
-    newMethod.Body = body;
+    newMethod.SetBody(body);
     return newMethod;
   }
 

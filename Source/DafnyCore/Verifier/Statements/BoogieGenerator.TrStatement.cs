@@ -68,7 +68,7 @@ public partial class BoogieGenerator {
             method.Outs.ForEach(p => CheckDefiniteAssignmentReturn(stmt.Origin, p, builder));
           }
 
-          if (codeContext is Method { FunctionFromWhichThisIsByMethodDecl: { ByMethodTok: { } } fun } method2) {
+          if (codeContext is MethodOrConstructor { FunctionFromWhichThisIsByMethodDecl: { ByMethodTok: { } } fun } method2) {
             AssumeCanCallForByMethodDecl(method2, builder);
           }
 
