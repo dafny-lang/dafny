@@ -19,7 +19,6 @@ module Std.Termination {
       requires Valid()
       decreases this, 0
     {
-      // Using omega + 1 as the base since we use omega for TMTop
       Times(Omega(), first.Ordinal() as ORDINAL) + second.Ordinal() as ORDINAL
     }
 
@@ -53,7 +52,7 @@ module Std.Termination {
     | TMChar(charValue: nat, height: nat)
     // No ordering on objects themselves, but commonly used in Repr set<object> values
     | TMObject(objectValue: object, height: nat)
-    // | TMSeq(seqValue: seq<TerminationMetric>)
+    | TMSeq(seqValue: seq<TerminationMetric>, height: nat)
     | TMSet(setValue: set<TerminationMetric>, height: nat)
     | TMDatatype(children: seq<TerminationMetric>, height: nat)
 
@@ -65,6 +64,9 @@ module Std.Termination {
         case TMSet(setValue, height) =>
           && (forall tm <- setValue :: tm.Valid())
           && height > SetHeightSum(setValue)
+        case TMSeq(children, height) =>
+          && (forall tm <- children :: tm.Valid())
+          && height > SeqHeightSum(children)
         case TMDatatype(children, height) =>
           && (forall tm <- children :: tm.Valid())
           && height > SeqHeightSum(children)
@@ -91,16 +93,35 @@ module Std.Termination {
         s[0].height + 1 + SeqHeightSum(s[1..])
     }
 
-    ghost function SeqOrdinal(s: seq<TerminationMetric>): nat
-      requires Valid()
+    static ghost function SeqOrdinal(height: nat, s: seq<TerminationMetric>): nat
       requires forall o <- s :: o.Valid() && height > o.height
       decreases height, |s|
-      ensures forall o <- s :: SeqOrdinal(s) > o.Ordinal()
+      ensures forall o <- s :: SeqOrdinal(height, s) > o.Ordinal()
     {
       if s == [] then
         0
       else
-        s[0].Ordinal() + 1 + SeqOrdinal(s[1..])
+        s[0].Ordinal() + 1 + SeqOrdinal(height, s[1..])
+    }
+
+    lemma SeqOrdinalAnyHeight(height: nat, height': nat, s: seq<TerminationMetric>)
+      requires forall o <- s :: o.Valid() && height > o.height && height' > o.height
+      ensures SeqOrdinal(height, s) == SeqOrdinal(height', s)
+    {}
+
+    @IsolateAssertions
+    lemma SeqOrdinalConcat(height: nat, left: seq<TerminationMetric>, right: seq<TerminationMetric>)
+      requires Valid()
+      requires forall o <- left :: o.Valid() && height > o.height
+      requires forall o <- right :: o.Valid() && height > o.height
+      ensures SeqOrdinal(height, left + right) == SeqOrdinal(height, left) + SeqOrdinal(height, right)
+    {
+      if left == [] {
+        assert left + right == right;
+      } else {
+        SeqOrdinalConcat(height, left[1..], right);
+        assert left + right == [left[0]] + (left[1..] + right);
+      }
     }
 
     opaque predicate DecreasesTo(other: TerminationMetric) 
@@ -112,14 +133,15 @@ module Std.Termination {
         case (TMChar(left, _), TMChar(right, _)) => left > right
         case (TMSet(left, _), TMSet(right, _)) => left > right
         // Other is a strict subsequence of this
-        // case (TMSeq(left), TMSeq(right)) =>
-        //   || (exists i    | 0 <= i < |left|      :: left[..i] == right)
-        //   || (exists i    | 0 < i <= |left|      :: left[i..] == right)
-        //   || (exists i, j | 0 <= i < j <= |left| :: left[..i] + left[j..] == right)
-        // // This is a sequence and other is structurally included
-        // // (treating a sequence as a datatype with N children)
-        // case (TMSeq(leftSeq), _) =>
-        //   || other in leftSeq
+        case (TMSeq(left, _), TMSeq(right, _)) =>
+          || (exists i    | 0 <= i < |left|      :: left[..i] == right)
+          || (exists i    | 0 < i <= |left|      :: left[i..] == right)
+          // TODO:
+          // || (exists i, j | 0 <= i < j <= |left| :: left[..i] + left[j..] == right)
+        // This is a sequence and other is structurally included
+        // (treating a sequence as a datatype with N children)
+        case (TMSeq(leftSeq, _), _) =>
+          || other in leftSeq
         // Structural inclusion inside a datatype
         case (TMDatatype(leftChildren, _), _) =>
           || other in leftChildren
@@ -143,8 +165,9 @@ module Std.Termination {
         case TMNat(natValue, _) => natValue + 1
         case TMChar(charValue, _) => charValue + 1
         case TMSet(setValue, _) => |setValue| + 1
+        case TMSeq(seqValue, _) => SeqOrdinal(height, seqValue) + 1
         case TMObject(objectValue, _) => 1
-        case TMDatatype(children, _) => SeqOrdinal(children) + 1
+        case TMDatatype(children, _) => SeqOrdinal(height, children) + 1
       }
     }
 
@@ -159,6 +182,25 @@ module Std.Termination {
       match (this, other) {
         case (TMSet(left, _), TMSet(right, _)) => {
           LemmaSubsetSize(right, left);
+        }
+        case (TMSeq(left, _), TMSeq(right, _)) => {
+          if i: nat :| 0 <= i < |left| && left[..i] == right {
+            assert left == left[..i] + left[i..];
+            SeqOrdinalConcat(height, left[..i], left[i..]);
+            SeqOrdinalAnyHeight(height, other.height, right);
+          } else if i: nat :| 0 < i <= |left| && left[i..] == right {
+            assert left == left[..i] + left[i..];
+            SeqOrdinalConcat(height, left[..i], left[i..]);
+            SeqOrdinalAnyHeight(height, other.height, right);
+            // TODO:
+          // } else if i, j: nat :| 0 <= i < j <= |left| && left[..i] + left[j..] == right {
+          //   assert left == left[..i] + left[i..];
+          //   SeqOrdinalConcat(height, left[..i], left[i..]);
+          //   SeqOrdinalAnyHeight(height, other.height, right);
+          //   assert left[i..] == left[i..j] + left[j..];
+          //   SeqOrdinalConcat(height, left[i..j], left[j..]);
+          //   SeqOrdinalAnyHeight(height, other.height, left[j..]);
+          }
         }
         case _ => {}
       }
