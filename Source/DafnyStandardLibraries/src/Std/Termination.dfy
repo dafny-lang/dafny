@@ -17,9 +17,10 @@ module Std.Termination {
 
     ghost function Ordinal(): ORDINAL 
       requires Valid()
+      decreases this, 0
     {
       // Using omega + 1 as the base since we use omega for TMTop
-      Times(Omega() + 1, first.Ordinal()) + second.Ordinal()
+      Times(Omega(), first.Ordinal() as ORDINAL) + second.Ordinal() as ORDINAL
     }
 
     @ResourceLimit("0")
@@ -32,14 +33,14 @@ module Std.Termination {
       reveal DecreasesTo();
       reveal TerminationMetric.DecreasesTo();
       if first == other.first {
-        var term := Times(Omega() + 1, first.Ordinal());
-        TimesStrictlyIncreasingOnRight(Omega(), first.Ordinal(), 0);
+        var term := Times(Omega(), first.Ordinal() as ORDINAL);
+        TimesStrictlyIncreasingOnRight(Omega(), first.Ordinal() as ORDINAL, 0);
         second.OrdinalDecreases(other.second);
-        AddStrictlyIncreasingOnRight(term, second.Ordinal(), other.second.Ordinal());
+        AddStrictlyIncreasingOnRight(term, second.Ordinal() as ORDINAL, other.second.Ordinal() as ORDINAL);
       } else {
         first.OrdinalDecreases(other.first);
-        TimesStrictlyIncreasingOnRight(Omega(), first.Ordinal(), other.first.Ordinal());
-        RadixDecreases(Omega() + 1, first.Ordinal(), other.first.Ordinal(), other.second.Ordinal());
+        TimesStrictlyIncreasingOnRight(Omega(), first.Ordinal() as ORDINAL, other.first.Ordinal() as ORDINAL);
+        RadixDecreases(Omega(), first.Ordinal() as ORDINAL, other.first.Ordinal() as ORDINAL, other.second.Ordinal() as ORDINAL);
       }
     }
   }
@@ -47,7 +48,6 @@ module Std.Termination {
   // Heterogeneous encoding of the essential features of individual
   // decreases clause list elements.
   datatype TerminationMetric =
-    | TMTop(height: nat)
     | TMBool(boolValue: bool, height: nat)
     | TMNat(natValue: nat, height: nat)
     | TMChar(charValue: nat, height: nat)
@@ -55,7 +55,7 @@ module Std.Termination {
     | TMObject(objectValue: object, height: nat)
     // | TMSeq(seqValue: seq<TerminationMetric>)
     | TMSet(setValue: set<TerminationMetric>, height: nat)
-    // | TMDatatype(children: seq<TerminationMetric>, height: nat)
+    | TMDatatype(children: seq<TerminationMetric>, height: nat)
 
     // Other kinds of Dafny values are valid here too,
     // and may be added in the future.
@@ -65,6 +65,9 @@ module Std.Termination {
         case TMSet(setValue, height) =>
           && (forall tm <- setValue :: tm.Valid())
           && height > SetHeightSum(setValue)
+        case TMDatatype(children, height) =>
+          && (forall tm <- children :: tm.Valid())
+          && height > SeqHeightSum(children)
         case _ => true
       }
     }
@@ -79,11 +82,31 @@ module Std.Termination {
         o.height + 1 + SetHeightSum(s - {o})
     }
 
+    static ghost function SeqHeightSum(s: seq<TerminationMetric>): nat
+      ensures forall o <- s :: SeqHeightSum(s) > o.height
+    {
+      if s == [] then
+        0
+      else
+        s[0].height + 1 + SeqHeightSum(s[1..])
+    }
+
+    ghost function SeqOrdinal(s: seq<TerminationMetric>): nat
+      requires Valid()
+      requires forall o <- s :: o.Valid() && height > o.height
+      decreases height, |s|
+      ensures forall o <- s :: SeqOrdinal(s) > o.Ordinal()
+    {
+      if s == [] then
+        0
+      else
+        s[0].Ordinal() + 1 + SeqOrdinal(s[1..])
+    }
+
     opaque predicate DecreasesTo(other: TerminationMetric) 
       ensures DecreasesTo(other) ==> this != other
     {
       match (this, other) {
-        case (TMTop(_), _) => !other.TMTop?
         case (TMBool(left, _), TMBool(right, _)) => left && !right
         case (TMNat(left, _), TMNat(right, _)) => left > right
         case (TMChar(left, _), TMChar(right, _)) => left > right
@@ -98,8 +121,8 @@ module Std.Termination {
         // case (TMSeq(leftSeq), _) =>
         //   || other in leftSeq
         // Structural inclusion inside a datatype
-        // case (TMDatatype(leftChildren, _), _) =>
-        //   || other in leftChildren
+        case (TMDatatype(leftChildren, _), _) =>
+          || other in leftChildren
 
         case _ => false
       }
@@ -109,21 +132,19 @@ module Std.Termination {
       this == other || DecreasesTo(other)
     }
 
-    ghost function Ordinal(): ORDINAL 
+    ghost function Ordinal(): nat 
       requires Valid()
       decreases height
       // This makes the math much easier
       ensures Ordinal() > 0
-      ensures Ordinal() < Omega() + 1
-      ensures TMTop? <==> Ordinal() == Omega()
     {
       match this {
-        case TMTop(_) => Omega()
-        case TMBool(boolValue, _) => if boolValue then 2 as ORDINAL else 1 as ORDINAL
-        case TMNat(natValue, _) => natValue as ORDINAL + 1
-        case TMChar(charValue, _) => charValue as ORDINAL + 1
-        case TMSet(setValue, _) => |setValue| as ORDINAL + 1
+        case TMBool(boolValue, _) => if boolValue then 2 else 1
+        case TMNat(natValue, _) => natValue + 1
+        case TMChar(charValue, _) => charValue + 1
+        case TMSet(setValue, _) => |setValue| + 1
         case TMObject(objectValue, _) => 1
+        case TMDatatype(children, _) => SeqOrdinal(children) + 1
       }
     }
 
