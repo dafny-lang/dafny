@@ -5,39 +5,60 @@ module Std.Termination {
   import opened Collections.Set
   import opened Ordinal
 
+  ghost function Nat(n: nat): (result: TerminationMetric)
+    ensures result.Valid()
+  {
+    TMNat(n, 0)
+  }
+
+  ghost function Seq(children: seq<TerminationMetric>): (result: TerminationMetric)
+    requires forall tm <- children :: tm.Valid()
+    ensures result.Valid()
+  {
+    TMSeq(children, TerminationMetric.SeqHeightSum(children) + 1)
+  }
+
+  ghost function Datatype(children: seq<TerminationMetric>): (result: TerminationMetric)
+    requires forall tm <- children :: tm.Valid()
+    ensures result.Valid()
+  {
+    TMDatatype(children, TerminationMetric.SeqHeightSum(children) + 1)
+  }
+
+  ghost function Tuple(first: TerminationMetric, second: TerminationMetric): (result: LexicographicTuple)
+    requires first.Valid()
+    requires second.Valid()
+    ensures result.Valid()
+  {
+    LexicographicTuple(first, second)
+  }
+
   datatype LexicographicTuple = LexicographicTuple(first: TerminationMetric, second: TerminationMetric) {
     ghost predicate Valid() {
       first.Valid() && second.Valid()
     }
 
-    opaque predicate DecreasesTo(other: LexicographicTuple) {
-      || first.DecreasesTo(other.first)
-      || (first == other.first && second.DecreasesTo(other.second))
-    }
-
-    ghost function Ordinal(): ORDINAL 
+    ghost function Ordinal(): ORDINAL
       requires Valid()
-      decreases this, 0
+      decreases this
     {
       Times(Omega(), first.Ordinal() as ORDINAL) + second.Ordinal() as ORDINAL
     }
 
     @ResourceLimit("0")
-    lemma OrdinalDecreases(other: LexicographicTuple)
+    lemma DecreasesTo(other: LexicographicTuple)
       requires Valid()
       requires other.Valid()
-      requires DecreasesTo(other)
+      requires 
+        || first.Ordinal() > other.first.Ordinal()
+        || (first == other.first && second.Ordinal() > other.second.Ordinal())
       ensures Ordinal() > other.Ordinal()
     {
-      reveal DecreasesTo();
-      reveal TerminationMetric.DecreasesTo();
       if first == other.first {
-        var term := Times(Omega(), first.Ordinal() as ORDINAL);
         TimesStrictlyIncreasingOnRight(Omega(), first.Ordinal() as ORDINAL, 0);
-        second.OrdinalDecreases(other.second);
+        var term := Times(Omega(), first.Ordinal() as ORDINAL);
         AddStrictlyIncreasingOnRight(term, second.Ordinal() as ORDINAL, other.second.Ordinal() as ORDINAL);
       } else {
-        first.OrdinalDecreases(other.first);
         TimesStrictlyIncreasingOnRight(Omega(), first.Ordinal() as ORDINAL, other.first.Ordinal() as ORDINAL);
         RadixDecreases(Omega(), first.Ordinal() as ORDINAL, other.first.Ordinal() as ORDINAL, other.second.Ordinal() as ORDINAL);
       }
@@ -73,6 +94,8 @@ module Std.Termination {
         case _ => true
       }
     }
+
+    // TODO: Reuse Seq.FoldLeft?
 
     static ghost function SetHeightSum(s: set<TerminationMetric>): nat
       ensures forall o <- s :: SetHeightSum(s) > o.height
@@ -126,39 +149,76 @@ module Std.Termination {
       }
     }
 
-    opaque predicate DecreasesTo(other: TerminationMetric) 
-      ensures DecreasesTo(other) ==> this != other
+    lemma SetDecreasesTo(other: TerminationMetric)
+      requires Valid()
+      requires TMSet?
+      requires other.Valid()
+      requires other.TMSet?
+      requires setValue > other.setValue
+      ensures Ordinal() > other.Ordinal()
     {
-      match (this, other) {
-        case (TMBool(left, _), TMBool(right, _)) => left && !right
-        case (TMNat(left, _), TMNat(right, _)) => left > right
-        case (TMChar(left, _), TMChar(right, _)) => left > right
-        case (TMSet(left, _), TMSet(right, _)) => left > right
-        // Other is a strict subsequence of this
-        case (TMSeq(left, _), TMSeq(right, _)) =>
-          || (exists i    | 0 <= i < |left|      :: left[..i] == right)
-          || (exists i    | 0 < i <= |left|      :: left[i..] == right)
-          || (exists i, j | 0 <= i < j <= |left| :: left[..i] + left[j..] == right)
-        // This is a sequence and other is structurally included
-        // (treating a sequence as a datatype with N children)
-        case (TMSeq(leftSeq, _), _) =>
-          || other in leftSeq
-        // Structural inclusion inside a datatype
-        case (TMDatatype(leftChildren, _), _) =>
-          || other in leftChildren
-
-        case _ => false
-      }
+      reveal Ordinal();
+      LemmaSubsetSize(other.setValue, setValue);
     }
 
-    predicate NonIncreasesTo(other: TerminationMetric) {
-      this == other || DecreasesTo(other)
+    lemma SeqDecreasesToProperPrefix(other: TerminationMetric, hi: nat)
+      requires Valid()
+      requires TMSeq?
+      requires other.Valid()
+      requires other.TMSeq?
+      requires hi < |seqValue|
+      requires seqValue[..hi] == other.seqValue
+      ensures Ordinal() > other.Ordinal()
+    {
+      reveal Ordinal();
+      var left := seqValue;
+      var right := other.seqValue;
+      assert left == left[..hi] + left[hi..];
+      SeqOrdinalConcat(height, left[..hi], left[hi..]);
+      SeqOrdinalAnyHeight(height, other.height, right);
     }
 
-    ghost function Ordinal(): nat 
+    lemma SeqDecreasesToProperSuffix(other: TerminationMetric, lo: nat)
+      requires Valid()
+      requires TMSeq?
+      requires other.Valid()
+      requires other.TMSeq?
+      requires 0 < lo <= |seqValue| 
+      requires seqValue[lo..] == other.seqValue
+      ensures Ordinal() > other.Ordinal()
+    {
+      reveal Ordinal();
+      var left := seqValue;
+      var right := other.seqValue;
+      assert left == left[..lo] + left[lo..];
+      SeqOrdinalConcat(height, left[..lo], left[lo..]);
+      SeqOrdinalAnyHeight(height, other.height, right);
+    }
+
+    lemma SeqDecreasesToProperDeletion(other: TerminationMetric, lo: nat, hi: nat)
+      requires Valid()
+      requires TMSeq?
+      requires other.Valid()
+      requires other.TMSeq?
+      requires 0 <= lo < hi <= |seqValue|
+      requires seqValue[..lo] + seqValue[hi..] == other.seqValue
+      ensures Ordinal() > other.Ordinal()
+    {
+      reveal Ordinal();
+      var left := seqValue;
+      var right := other.seqValue;
+      assert left == left[..lo] + left[lo..];
+      SeqOrdinalConcat(height, left[..lo], left[lo..]);
+      SeqOrdinalAnyHeight(height, other.height, right);
+      assert left[lo..] == left[lo..hi] + left[hi..];
+      SeqOrdinalConcat(height, left[lo..hi], left[hi..]);
+      SeqOrdinalConcat(height, left[..lo], left[hi..]);
+    }
+
+    ghost opaque function Ordinal(): nat 
       requires Valid()
       decreases height
-      // This makes the math much easier
+      // Ensuring all ordinals are at least one makes the math much easier
       ensures Ordinal() > 0
     {
       match this {
@@ -171,53 +231,42 @@ module Std.Termination {
         case TMDatatype(children, _) => SeqOrdinal(height, children) + 1
       }
     }
-
-    @ResourceLimit("0")
-    lemma OrdinalDecreases(other: TerminationMetric)
-      requires Valid()
-      requires other.Valid()
-      requires DecreasesTo(other)
-      ensures Ordinal() > other.Ordinal()
-    {
-      reveal DecreasesTo();
-      match (this, other) {
-        case (TMSet(left, _), TMSet(right, _)) => {
-          LemmaSubsetSize(right, left);
-        }
-        case (TMSeq(left, _), TMSeq(right, _)) => {
-          if i: nat :| 0 <= i < |left| && left[..i] == right {
-            assert left == left[..i] + left[i..];
-            SeqOrdinalConcat(height, left[..i], left[i..]);
-            SeqOrdinalAnyHeight(height, other.height, right);
-          } else if i: nat :| 0 < i <= |left| && left[i..] == right {
-            assert left == left[..i] + left[i..];
-            SeqOrdinalConcat(height, left[..i], left[i..]);
-            SeqOrdinalAnyHeight(height, other.height, right);
-          } else if i, j: nat :| 0 <= i < j <= |left| && left[..i] + left[j..] == right {
-            assert left == left[..i] + left[i..];
-            SeqOrdinalConcat(height, left[..i], left[i..]);
-            SeqOrdinalAnyHeight(height, other.height, right);
-            assert left[i..] == left[i..j] + left[j..];
-            SeqOrdinalConcat(height, left[i..j], left[j..]);
-            SeqOrdinalConcat(height, left[..i], left[j..]);
-          }
-        }
-        case _ => {}
-      }
-    }
-
-    lemma {:axiom} DecreasesToTransitive(middle: TerminationMetric, right: TerminationMetric)
-      requires
-        || (NonIncreasesTo(middle) && middle.DecreasesTo(right))
-        || (DecreasesTo(middle) && middle.NonIncreasesTo(right))
-      ensures DecreasesTo(right)
-
-    lemma {:axiom} NonIncreasesToTransitive(middle: TerminationMetric, right: TerminationMetric)
-      requires NonIncreasesTo(middle) && middle.NonIncreasesTo(right)
-      ensures NonIncreasesTo(right)
   }
 }
-  
+
+module TerminationExample {
+
+  import opened Std.Termination
+
+  @IsolateAssertions
+  method Test() {
+    var tm := Nat(7);
+    var tm2 := Nat(8);
+    assert tm2.Ordinal() > tm.Ordinal() by {
+      reveal TerminationMetric.Ordinal();
+    }
+
+    var s1 := Seq([Nat(1), Nat(2), Nat(3)]);
+    var s2 := Seq([Nat(2), Nat(3)]);
+    var s3 := Seq([Nat(1), Nat(2)]);
+    var s4 := Seq([Nat(1), Nat(3)]);
+    assert s1.seqValue[1..] == s2.seqValue;
+    s1.SeqDecreasesToProperSuffix(s2, 1);
+    assert s1.seqValue[..2] == s3.seqValue;
+    s1.SeqDecreasesToProperPrefix(s3, 2);
+    assert s1.seqValue[..1] + s1.seqValue[2..] == s4.seqValue;
+    s1.SeqDecreasesToProperDeletion(s4, 1, 2);
+
+    Tuple(tm2, tm2).DecreasesTo(Tuple(tm, tm2));
+    assert Tuple(tm2, tm2).Ordinal() > Tuple(tm, tm2).Ordinal();
+    Tuple(tm2, tm2).DecreasesTo(Tuple(tm2, tm));
+    assert Tuple(tm2, tm2).Ordinal() > Tuple(tm2, tm).Ordinal();
+
+    // Can't be verified
+    // assert (Tuple(tm, tm2).Ordinal() > Tuple(tm2, tm).Ordinal());
+  }
+}
+
 module Std.Ordinal {
   ghost function {:axiom} Omega(): ORDINAL 
       ensures !Omega().IsNat
@@ -226,7 +275,6 @@ module Std.Ordinal {
 
   // Additional axioms about addition
 
-  // TODO: Surprised this one was necessary
   lemma {:axiom} Succ(a: ORDINAL, b: ORDINAL) 
     requires a > b
     ensures a >= b + 1
