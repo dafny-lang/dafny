@@ -118,6 +118,7 @@ public static class DafnyCommands {
     MethodOrFunction.AllowExternalContracts,
     DafnyProject.FindProjectOption,
     CommonOptionBag.PrintDiagnosticsRanges,
-    CommonOptionBag.WaitForDebugger
+    CommonOptionBag.WaitForDebugger,
+    CommonOptionBag.IgnoreIndentation
   }).Concat(ParserOptions).ToList();
 }
