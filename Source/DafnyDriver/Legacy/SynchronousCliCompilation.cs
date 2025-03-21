@@ -340,7 +340,7 @@ namespace Microsoft.Dafny {
         } catch (UnsupportedInvalidOperationException e) {
           // Not having this catch makes all tests running for all compilers take 10-15x longer on Windows,
           // just because of the Dafny compiler.
-          dafnyProgram.Reporter.Error(MessageSource.Compiler, GeneratorErrors.ErrorId.f_unsupported_feature, Token.NoToken, e.Message);
+          dafnyProgram.Reporter.Error(MessageSource.Compiler, GeneratorErrors.ErrorId.f_unsupported_feature, e.Token, e.Message);
           compiled = false;
         }
 

@@ -220,7 +220,11 @@ public class RecoverableUnsupportedFeatureException : UnsupportedFeatureExceptio
   }
 }
 
-public class UnsupportedInvalidOperationException : InvalidOperationException {
-  public UnsupportedInvalidOperationException(string why) : base(typeof(UnsupportedInvalidOperationException).FullName! + ": " + why) {
+public class UnsupportedInvalidOperationException : Exception {
+
+  public readonly IOrigin Token;
+
+  public UnsupportedInvalidOperationException(IOrigin token, string why) : base("Unsupported Invalid Operation: " + why) {
+    Token = token;
   }
 }
