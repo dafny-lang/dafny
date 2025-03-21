@@ -59,4 +59,4 @@ GeneralNewtypeVerify.dfy(611,26): Error: result of operation might violate newty
 GeneralNewtypeVerify.dfy(623,28): Error: result of operation might violate newtype constraint for 'LowerCase'
 GeneralNewtypeVerify.dfy(625,25): Error: result of operation might violate newtype constraint for 'MyChar'
 
-Dafny program verifier finished with 43 verified, 59 errors
+Dafny program verifier finished with 43 verified, 58 errors
