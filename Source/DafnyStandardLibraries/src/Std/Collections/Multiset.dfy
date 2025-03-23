@@ -16,6 +16,16 @@
  */
 module Std.Collections.Multiset {
 
+
+  /* Non-deterministically extracts an element from a multiset that contains at least one element. */
+  ghost function ExtractFromNonEmptyMultiset<T>(s: multiset<T>): (x: T)
+    requires |s| != 0
+    ensures x in s
+  {
+    var x :| x in s;
+    x
+  }
+
   /* If x is a subset of y, then the size of x is less than or equal to the
   size of y. */
   lemma LemmaSubmultisetSize<T>(x: multiset<T>, y: multiset<T>)

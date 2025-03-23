@@ -4,7 +4,6 @@ excludes = [
 
   # TODO
   "**/Actions/*.dfy",
-  "**/Frames.dfy",
 ]
 
 # includes = [
