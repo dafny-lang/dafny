@@ -97,17 +97,17 @@ module Std.Consumers {
       ValidHistory(history + [(nextInput, nextOutput)])
     }
 
-    ghost function Decreases(t: T): TerminationMetric
+    ghost function Decreases(t: T): ORDINAL
       reads Reads(t)
     {
-      TMNat(0)
+      0
     }
 
     method Invoke(t: T) returns (r: bool)
       requires Requires(t)
       reads Reads(t)
       modifies Modifies(t)
-      decreases Decreases(t).Ordinal(), 0
+      decreases Decreases(t), 0
       ensures Ensures(t, r)
     {
       assert Requires(t);
@@ -176,17 +176,17 @@ module Std.Consumers {
       ValidHistory(history + [(nextInput, nextOutput)])
     }
 
-    ghost function Decreases(t: T): TerminationMetric
+    ghost function Decreases(t: T): ORDINAL
       reads Reads(t)
     {
-      TMNat(0)
+      0
     }
 
     method Invoke(t: T) returns (r: ())
       requires Requires(t)
       reads Reads(t)
       modifies Modifies(t)
-      decreases Decreases(t).Ordinal(), 0
+      decreases Decreases(t), 0
       ensures Ensures(t, r)
     {
       assert Requires(t);
@@ -259,17 +259,17 @@ module Std.Consumers {
       ValidHistory(history + [(nextInput, nextOutput)])
     }
 
-    ghost function Decreases(t: T): TerminationMetric
+    ghost function Decreases(t: T): ORDINAL
       reads Reads(t)
     {
-      TMNat(0)
+      0
     }
 
     method Invoke(t: T) returns (r: ())
       requires Requires(t)
       reads Reads(t)
       modifies Modifies(t)
-      decreases Decreases(t).Ordinal(), 0
+      decreases Decreases(t), 0
       ensures Ensures(t, r)
     {
       assert Requires(t);
@@ -337,17 +337,17 @@ module Std.Consumers {
       ValidHistory(history + [(nextInput, nextOutput)])
     }
 
-    ghost function Decreases(t: T): TerminationMetric
+    ghost function Decreases(t: T): ORDINAL
       reads Reads(t)
     {
-      TMNat(0)
+      0
     }
 
     method Invoke(t: T) returns (r: ())
       requires Requires(t)
       reads Repr
       modifies Modifies(t)
-      decreases Decreases(t).Ordinal(), 0
+      decreases Decreases(t), 0
       ensures Ensures(t, r)
     {
       values := values + [t];

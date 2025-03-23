@@ -24,7 +24,8 @@ module Std.GenericActions {
       ensures this in Reads(i)
     ghost function Modifies(i: I): set<object>
       reads Reads(i)
-    ghost function Decreases(i: I): TerminationMetric
+    ghost function Decreases(i: I): ORDINAL
+      requires Requires(i)
       reads Reads(i)
     twostate predicate Ensures(i: I, new o: O)
       requires old(Requires(i))
@@ -36,7 +37,7 @@ module Std.GenericActions {
       requires Requires(i)
       reads Reads(i)
       modifies Modifies(i)
-      decreases Decreases(i).Ordinal(), 0
+      decreases Decreases(i), 0
       ensures Ensures(i, o)
   }
 

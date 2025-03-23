@@ -69,17 +69,17 @@ module Std.Producers {
       ValidHistory(history + [(nextInput, nextOutput)])
     }
 
-    ghost function Decreases(t: ()): TerminationMetric
+    ghost function Decreases(t: ()): ORDINAL
       reads Reads(t)
     {
-      TMNat(0)
+      0
     }
 
     method Invoke(i: ()) returns (o: T)
       requires Requires(i)
       reads Repr
       modifies Modifies(i)
-      decreases Decreases(i).Ordinal(), 0
+      decreases Decreases(i), 0
       ensures Ensures(i, o)
     {
       var (newState, result') := stepFn(state);
@@ -95,13 +95,10 @@ module Std.Producers {
   @AssumeCrossModuleTermination
   trait Producer<T> extends Action<(), Option<T>>, TotalActionProof<(), Option<T>> {
 
-    ghost var remainingMetric: TerminationMetric
-
     ghost predicate Valid()
       reads this, Repr
       ensures Valid() ==> this in Repr
       ensures Valid() ==> ValidHistory(history)
-      ensures Valid() ==> remainingMetric.Valid()
       decreases Repr, 0
 
     ghost function Action(): Action<(), Option<T>> {
@@ -141,24 +138,30 @@ module Std.Producers {
     // Termination metric ensuring Next() eventually returns None.
     // Not necessarily an exact measurement of the number of elements remaining,
     // only a conservative bound.
+    ghost function RemainingMetric(): TerminationMetric
+      requires Valid()
+      reads this, Repr
+      ensures RemainingMetric().Valid()
+
     ghost function Remaining(): ORDINAL
-      requires remainingMetric.Valid()
-      reads this
+      requires Valid()
+      reads this, Repr
     {
-      remainingMetric.Ordinal()
+      RemainingMetric().Ordinal()
     }
 
-    ghost function Decreases(t: ()): TerminationMetric
+    ghost function Decreases(t: ()): ORDINAL
+      requires Requires(t)
       reads Reads(t)
     {
-      remainingMetric
+      Remaining()
     }
 
     method Invoke(i: ()) returns (r: Option<T>)
       requires Requires(i)
       reads Reads(i)
       modifies Modifies(i)
-      decreases Decreases(i).Ordinal(), 0
+      decreases Decreases(i), 0
       ensures Ensures(i, r)
       ensures if r.Some? then
                 old(Remaining()) > Remaining()
@@ -169,7 +172,7 @@ module Std.Producers {
       requires Requires(())
       reads Reads(())
       modifies Modifies(())
-      decreases Decreases(()).Ordinal()
+      decreases Decreases(())
       ensures Ensures((), r)
       ensures if r.Some? then
                 old(Remaining()) > Remaining()
@@ -197,7 +200,7 @@ module Std.Producers {
         invariant consumer.ValidAndDisjoint()
         invariant Repr !! consumer.Repr
         invariant totalActionProof.Valid()
-        decreases remainingMetric.Ordinal()
+        decreases Remaining()
       {
         totalActionProof.AnyInputIsValid(consumer.history, t.value);
         consumer.Accept(t.value);
@@ -451,7 +454,6 @@ module Std.Producers {
       ensures fresh(Repr)
       reads {}
     {
-      remainingMetric := TMNat(0);
       Repr := {this};
       history := [];
     }
@@ -460,12 +462,10 @@ module Std.Producers {
       reads this, Repr
       ensures Valid() ==> this in Repr
       ensures Valid() ==> ValidHistory(history)
-      ensures Valid() ==> remainingMetric.Valid()
       decreases Repr, 0
     {
       && this in Repr
       && ValidHistory(history)
-      && remainingMetric.Valid()
     }
 
     twostate predicate ValidOutput(history: seq<((), Option<T>)>, nextInput: (), new nextOutput: Option<T>)
@@ -481,17 +481,25 @@ module Std.Producers {
       Seq.All(outputs, IsNone)
     }
 
+    ghost function RemainingMetric(): TerminationMetric
+      requires Valid()
+      reads this, Repr
+      ensures RemainingMetric().Valid()
+    {
+      TMNat(0)
+    }
+
     @IsolateAssertions
     method Invoke(t: ()) returns (value: Option<T>)
       requires Requires(t)
       reads Reads(t)
       modifies Modifies(t)
-      decreases Decreases(t).Ordinal(), 0
+      decreases Decreases(t), 0
       ensures Ensures(t, value)
       ensures if value.Some? then
                 old(Remaining()) > Remaining()
               else
-                old(remainingMetric) == remainingMetric
+                old(Remaining()) >= Remaining()
     {
       assert Requires(t);
 
@@ -516,7 +524,6 @@ module Std.Producers {
       this.elements := elements;
       this.index := 0;
 
-      remainingMetric := TMNat(|elements|);
       Repr := {this};
       history := [];
     }
@@ -525,13 +532,11 @@ module Std.Producers {
       reads this, Repr
       ensures Valid() ==> this in Repr
       ensures Valid() ==> ValidHistory(history)
-      ensures Valid() ==> remainingMetric.Valid()
       decreases Repr, 0
     {
       && this in Repr
       && ValidHistory(history)
       && index <= |elements|
-      && remainingMetric == TMNat(|elements| - index)
       && (index < |elements| ==> Seq.All(Outputs(), IsSome))
     }
 
@@ -548,17 +553,25 @@ module Std.Producers {
       true
     }
 
+    ghost function RemainingMetric(): TerminationMetric
+      requires Valid()
+      reads this, Repr
+      ensures RemainingMetric().Valid()
+    {
+      TMNat(|elements| - index)
+    }
+
     @IsolateAssertions
     method Invoke(t: ()) returns (value: Option<T>)
       requires Requires(t)
       reads Reads(t)
       modifies Modifies(t)
-      decreases Decreases(t).Ordinal(), 0
+      decreases Decreases(t), 0
       ensures Ensures(t, value)
       ensures if value.Some? then
                 old(Remaining()) > Remaining()
               else
-                old(remainingMetric) == remainingMetric
+                old(Remaining()) == Remaining()
     {
       assert Requires(t);
 
@@ -574,7 +587,6 @@ module Std.Producers {
         ProduceSome(value.value);
         index := index + 1;
       }
-      remainingMetric := TMNat(|elements| - index);
     }
   }
 
@@ -604,7 +616,6 @@ module Std.Producers {
       this.produced := 0;
       this.originalTotalAction := originalTotalAction;
 
-      this.remainingMetric := TMNat(max);
       Repr := {this} + original.Repr + originalTotalAction.Repr;
       history := [];
     }
@@ -613,7 +624,6 @@ module Std.Producers {
       reads this, Repr
       ensures Valid() ==> this in Repr
       ensures Valid() ==> ValidHistory(history)
-      ensures Valid() ==> remainingMetric.Valid()
       decreases Repr, 0
     {
       && this in Repr
@@ -624,7 +634,6 @@ module Std.Producers {
       && ValidHistory(history)
       && produced == |Produced()|
       && produced <= max
-      && remainingMetric == TMNat(max - produced)
       && (produced < max ==> Seq.All(Outputs(), IsSome))
     }
 
@@ -642,18 +651,26 @@ module Std.Producers {
       true
     }
 
+    ghost function RemainingMetric(): TerminationMetric
+      requires Valid()
+      reads this, Repr
+      ensures RemainingMetric().Valid()
+    {
+      TMNat(max - produced)
+    }
+
     @IsolateAssertions
     @ResourceLimit("0")
     method Invoke(t: ()) returns (value: Option<T>)
       requires Requires(t)
       reads this, Repr
       modifies Modifies(t)
-      decreases Decreases(t).Ordinal(), 0
+      decreases Decreases(t), 0
       ensures Ensures(t, value)
       ensures if value.Some? then
                 old(Remaining()) > Remaining()
               else
-                old(remainingMetric) == remainingMetric
+                old(Remaining()) >= Remaining()
     {
       assert Requires(t);
 
@@ -670,14 +687,13 @@ module Std.Producers {
 
         OutputsPartitionedAfterOutputtingSome(v);
         ProduceSome(v);
-        remainingMetric := TMNat(max - produced);
       }
 
       Repr := {this} + original.Repr + originalTotalAction.Repr;
     }
   }
 
-  class {:only} FilteredProducer<T> extends Producer<T> {
+  class FilteredProducer<T> extends Producer<T> {
 
     const source: Producer<T>
     const filter: T -> bool
@@ -691,7 +707,6 @@ module Std.Producers {
       this.source := source;
       this.filter := filter;
 
-      remainingMetric := TMDatatype([source.remainingMetric]);
       Repr := {this} + source.Repr;
       history := [];
     }
@@ -700,13 +715,11 @@ module Std.Producers {
       reads this, Repr
       ensures Valid() ==> this in Repr
       ensures Valid() ==> ValidHistory(history)
-      ensures Valid() ==> remainingMetric.Valid()
       decreases Repr, 0
     {
       && this in Repr
       && ValidComponent(source)
       && ValidHistory(history)
-      && remainingMetric == TMDatatype([source.remainingMetric])
       && (!source.Done() ==> !Done())
     }
 
@@ -723,13 +736,20 @@ module Std.Producers {
       true
     }
 
-    @IsolateAssertions
+    ghost function RemainingMetric(): TerminationMetric
+      requires Valid()
+      reads this, Repr
+      ensures RemainingMetric().Valid()
+    {
+      TMDatatype([source.RemainingMetric()])
+    }
+
     @ResourceLimit("0")
-    method {:only} Invoke(t: ()) returns (result: Option<T>)
+    method Invoke(t: ()) returns (result: Option<T>)
       requires Requires(t)
       reads Reads(t)
       modifies Modifies(t)
-      decreases Decreases(t).Ordinal(), 0
+      decreases Decreases(t), 0
       ensures Ensures(t, result)
       ensures if result.Some? then
                 old(Remaining()) > Remaining()
@@ -752,27 +772,12 @@ module Std.Producers {
                     old(source.Remaining()) >= source.Remaining()
         invariant old(source.history) <= source.history
         invariant old(Remaining()) >= Remaining()
-        decreases source.remainingMetric.Ordinal()
+        decreases source.Remaining()
       {
         notFirstLoop := true;
 
-        label beforeNext:
-        // old(remainingMetric).DecreasesToTransitive(remainingMetric, source.remainingMetric);
-        // old(remainingMetric).OrdinalDecreases(source.remainingMetric);
-
         result := source.Next();
-        if result.Some? {
-          // assert old@beforeNext(source.remainingMetric).DecreasesTo(source.remainingMetric);
-          // old(source.remainingMetric).DecreasesToTransitive(old@beforeNext(source.remainingMetric), source.remainingMetric);
-          assert {:only} old(source.remainingMetric.Ordinal()) > source.remainingMetric.Ordinal();
-        } else {
-          // assert old@beforeNext(source.remainingMetric).NonIncreasesTo(source.remainingMetric);
-          // old(source.remainingMetric).NonIncreasesToTransitive(old@beforeNext(source.remainingMetric), source.remainingMetric);
-          assert {:only} old(source.remainingMetric.Ordinal()) >= source.remainingMetric.Ordinal();
-        }
-
         Repr := {this} + source.Repr;
-        remainingMetric := TMDatatype([source.remainingMetric]);
 
         if result.None? || filter(result.value) {
           break;
@@ -781,6 +786,8 @@ module Std.Producers {
         if result.Some? {
           source.DoneIsOneWay();
         }
+
+        // PlusIncreasingOnLeft(old(source.Remaining()), source.Remaining(), 1);
       }
 
       if result.Some? {
@@ -793,8 +800,7 @@ module Std.Producers {
         ProduceSome(result.value);
         assert (Seq.All(source.Outputs(), IsSome) ==> Seq.All(Outputs(), IsSome));
 
-        // reveal TerminationMetric.DecreasesTo();
-        // old(remainingMetric).DecreasesToTransitive(old(source.remainingMetric), source.remainingMetric);
+        // SuccStrictlyIncreasing(old(source.Remaining()), source.Remaining());
       } else {
         OutputsPartitionedAfterOutputtingNone();
         ProduceNone();
@@ -802,8 +808,7 @@ module Std.Producers {
         assert !Seq.All(source.Outputs(), IsSome);
         assert (Seq.All(source.Outputs(), IsSome) ==> Seq.All(Outputs(), IsSome));
 
-        // reveal TerminationMetric.DecreasesTo();
-        // assert old(source.remainingMetric).NonIncreasesTo(source.remainingMetric);
+        // PlusIncreasingOnLeft(old(source.Remaining()), source.Remaining(), 1);
       }
     }
   }
@@ -812,6 +817,8 @@ module Std.Producers {
 
     const first: Producer<T>
     const second: Producer<T>
+
+    ghost const base: ORDINAL
 
     constructor (first: Producer<T>, second: Producer<T>)
       requires first.Valid()
@@ -826,7 +833,6 @@ module Std.Producers {
       this.first := first;
       this.second := second;
 
-      remainingMetric := TMTuple(Omega(), first.remainingMetric, second.remainingMetric);
       Repr := {this} + first.Repr + second.Repr;
       history := [];
     }
@@ -835,15 +841,14 @@ module Std.Producers {
       reads this, Repr
       ensures Valid() ==> this in Repr
       ensures Valid() ==> ValidHistory(history)
-      ensures Valid() ==> remainingMetric.Valid()
       decreases Repr, 0
     {
       && this in Repr
       && ValidComponent(first)
       && ValidComponent(second)
       && first.Repr !! second.Repr
+      && base > second.RemainingMetric().Ordinal()
       && ValidHistory(history)
-      && remainingMetric == TMTuple(Omega(), first.remainingMetric, second.remainingMetric)
       && (Seq.All(first.Outputs(), IsSome) || Seq.All(second.Outputs(), IsSome) ==> Seq.All(Outputs(), IsSome))
     }
 
@@ -860,13 +865,21 @@ module Std.Producers {
       true
     }
 
-    @IsolateAssertions
+    ghost function RemainingMetric(): TerminationMetric
+      requires Valid()
+      reads this, Repr
+      ensures RemainingMetric().Valid()
+    {
+      TMTuple(base, first.RemainingMetric(), second.RemainingMetric())
+    }
+
+    // @IsolateAssertions
     @ResourceLimit("0")
-    method Invoke(t: ()) returns (result: Option<T>)
+    method {:only} Invoke(t: ()) returns (result: Option<T>)
       requires Requires(t)
       reads Reads(t)
       modifies Modifies(t)
-      decreases Decreases(t).Ordinal(), 0
+      decreases Decreases(t), 0
       ensures Ensures(t, result)
       ensures if result.Some? then
                 old(Remaining()) > Remaining()
@@ -874,10 +887,10 @@ module Std.Producers {
                 old(Remaining()) >= Remaining()
     {
       assert Requires(t);
-      // reveal TerminationMetric.DecreasesTo();
-      // old(remainingMetric).OrdinalDecreases(first.remainingMetric);
 
+      RemainingMetric().TupleDecreasesToFirst();
       result := first.Next();
+      Repr := {this} + first.Repr + second.Repr;
 
       if result.Some? {
         first.OutputtingSomeMeansAllSome(result.value);
@@ -885,8 +898,9 @@ module Std.Producers {
         first.OutputtingNoneMeansNotAllSome();
         assert !Seq.All(first.Outputs(), IsSome);
 
-        // old(remainingMetric).OrdinalDecreases(second.remainingMetric);
+        RemainingMetric().TupleDecreasesToSecond();
         result := second.Next();
+        Repr := {this} + first.Repr + second.Repr;
 
         if result.Some? {
           second.OutputtingSomeMeansAllSome(result.value);
@@ -896,24 +910,25 @@ module Std.Producers {
         }
       }
 
-      remainingMetric := TMTuple(Omega(), first.remainingMetric, second.remainingMetric);
-
-      Repr := {this} + first.Repr + second.Repr;
-
       if result.Some? {
         assert Seq.All(first.Outputs(), IsSome) || Seq.All(second.Outputs(), IsSome);
         assert Seq.All(Outputs(), IsSome);
         OutputsPartitionedAfterOutputtingSome(result.value);
         ProduceSome(result.value);
+
+        old(RemainingMetric()).TupleDecreasesToTuple(RemainingMetric());
       } else {
         assert !Seq.All(first.Outputs(), IsSome);
         assert !Seq.All(second.Outputs(), IsSome);
         OutputsPartitionedAfterOutputtingNone();
         ProduceNone();
+
+        old(RemainingMetric()).TupleNonIncreasesToTuple(RemainingMetric());
       }
 
-
       assert (Seq.All(first.Outputs(), IsSome) || Seq.All(second.Outputs(), IsSome) ==> Seq.All(Outputs(), IsSome));
+
+      assert Valid();
     }
   }
 
@@ -940,7 +955,6 @@ module Std.Producers {
       this.mapping := mapping;
       this.mappingTotalProof := mappingTotalProof;
 
-      remainingMetric := TMTuple(Omega(), TMNat(0), original.remainingMetric);
       Repr := {this} + original.Repr + mapping.Repr + mappingTotalProof.Repr;
       history := [];
     }
@@ -958,7 +972,6 @@ module Std.Producers {
       && mappingTotalProof.Action() == mapping
       && original.Repr !! mapping.Repr !! mappingTotalProof.Repr
       && ValidHistory(history)
-      && remainingMetric == TMTuple(Omega(), TMNat(0), original.remainingMetric)
       && (!original.Done() <==> !Done())
     }
 
@@ -975,12 +988,20 @@ module Std.Producers {
       true
     }
 
+    ghost function RemainingMetric(): TerminationMetric
+      requires Valid()
+      reads this, Repr
+      ensures RemainingMetric().Valid()
+    {
+      TMDatatype([original.RemainingMetric()])
+    }
+
     @ResourceLimit("0")
     method Invoke(t: ()) returns (result: Option<O>)
       requires Requires(t)
       reads Reads(t)
       modifies Modifies(t)
-      decreases Decreases(t).Ordinal(), 0
+      decreases Decreases(t), 0
       ensures Ensures(t, result)
       ensures if result.Some? then
                 old(Remaining()) > Remaining()
@@ -1011,7 +1032,6 @@ module Std.Producers {
       }
 
       Repr := {this} + original.Repr + mapping.Repr + mappingTotalProof.Repr;
-      remainingMetric := TMTuple(Omega(), TMNat(0), original.remainingMetric);
     }
   }
 
@@ -1059,20 +1079,21 @@ module Std.Producers {
       this.history := [];
       this.Repr := {this} + original.Repr;
       this.currentInner := None;
-      this.remainingMetric := RemainingMetric(original, None);
-    }
-
-    ghost static function RemainingMetric(original: Producer<Producer<T>>, currentInner: Option<Producer<T>>): TerminationMetric
-      reads original, if currentInner.Some? then {currentInner.value} else {}
-    {
-      TMTuple(Omega(), original.remainingMetric, InnerRemainingMetric(currentInner))
     }
 
     ghost static function InnerRemainingMetric(currentInner: Option<Producer<T>>): TerminationMetric
       reads if currentInner.Some? then {currentInner.value} else {}
     {
       TMTuple(Omega(), TMBool(currentInner.Some?),
-              if currentInner.Some? then currentInner.value.remainingMetric else TMNat(0))
+              TMOrdinal(if currentInner.Some? then currentInner.value.Remaining() else 0))
+    }
+
+    ghost function RemainingMetric(): TerminationMetric
+      requires Valid()
+      reads this, Repr
+      ensures RemainingMetric().Valid()
+    {
+      TMTuple(Omega(), TMOrdinal(original.Remaining()), TMOrdinal(InnerRemainingMetric(currentInner).Ordinal()))
     }
 
     ghost predicate Valid()
@@ -1087,7 +1108,6 @@ module Std.Producers {
       && original.Repr !! (if currentInner.Some? then currentInner.value.Repr else {})
       && producesNewProducersProof.Producer() == original
       && ValidHistory(history)
-      && remainingMetric == RemainingMetric(original, currentInner)
       && (currentInner.Some? ==> 0 < |original.Outputs()| && currentInner == Seq.Last(original.Outputs()))
       && (!original.Done() && currentInner.Some? && !currentInner.value.Done() ==> !Done())
       && (Done() ==> original.Done() && currentInner.None?)
@@ -1112,7 +1132,7 @@ module Std.Producers {
       requires Requires(t)
       reads this, Repr
       modifies Modifies(t)
-      decreases Decreases(t).Ordinal(), 0
+      decreases Decreases(t), 0
       ensures Ensures(t, result)
       ensures if result.Some? then
                 old(Remaining()) > Remaining()
@@ -1134,8 +1154,8 @@ module Std.Producers {
                     old(Remaining()) > Remaining()
                   else
                     old(Remaining()) >= Remaining()
-        decreases original.remainingMetric.Ordinal(), currentInner.Some?,
-                  if currentInner.Some? then currentInner.value.remainingMetric.Ordinal() else 0
+        decreases original.Remaining(), currentInner.Some?,
+                  if currentInner.Some? then currentInner.value.Remaining() else 0
       {
         if currentInner.None? {
           label beforeOriginalNext:
@@ -1151,7 +1171,7 @@ module Std.Producers {
           } else {
             Repr := {this} + original.Repr;
           }
-          remainingMetric := RemainingMetric(original, currentInner);
+          // remainingMetric := RemainingMetric(original, currentInner);
 
           assert currentInner.Some? ==> fresh(currentInner.value.Repr - old(Repr));
           assert ValidComponent(original);
@@ -1185,36 +1205,36 @@ module Std.Producers {
           }
         } else {
           label beforeCurrentInnerNext:
-          ghost var remainingMetricBefore := remainingMetric;
+          // ghost var remainingMetricBefore := remainingMetric;
           // assert remainingMetric.DecreasesTo(currentInner.value.remainingMetric);
           // old(remainingMetric).DecreasesToTransitive(remainingMetric, currentInner.value.remainingMetric);
           // old(remainingMetric).OrdinalDecreases(currentInner.value.remainingMetric);
 
           result := currentInner.value.Next();
           this.Repr := {this} + original.Repr + currentInner.value.Repr;
-          remainingMetric := RemainingMetric(original, currentInner);
+          // remainingMetric := RemainingMetric(original, currentInner);
 
           label afterCurrentInnerNext:
-          ghost var remainingMetricBefore2 := remainingMetric;
+          // ghost var remainingMetricBefore2 := remainingMetric;
 
           if result.None? {
             var oldCurrentInner := currentInner;
             currentInner := None;
-            remainingMetric := RemainingMetric(original, currentInner);
+            // remainingMetric := RemainingMetric(original, currentInner);
 
             // assert remainingMetricBefore.NonIncreasesTo(remainingMetricBefore2);
-            assert old@afterCurrentInnerNext(original.remainingMetric) == original.remainingMetric;
+            // assert old@afterCurrentInnerNext(original.remainingMetric) == original.remainingMetric;
             // assert remainingMetricBefore2.rest.DecreasesTo(remainingMetric.rest);
             // assert remainingMetricBefore2.DecreasesTo(remainingMetric);
             // assert old(remainingMetric).NonIncreasesTo(remainingMetricBefore);
             // assert InnerRemainingMetric(oldCurrentInner).DecreasesTo(InnerRemainingMetric(currentInner));
             // assert RemainingMetric(original, oldCurrentInner).DecreasesTo(RemainingMetric(original, currentInner));
-            assert remainingMetric == RemainingMetric(original, currentInner);
-            assert remainingMetricBefore2 == RemainingMetric(original, oldCurrentInner);
+            // assert remainingMetric == RemainingMetric(original, currentInner);
+            // assert remainingMetricBefore2 == RemainingMetric(original, oldCurrentInner);
             // old(remainingMetric).NonIncreasesToTransitive(remainingMetricBefore, remainingMetricBefore2);
             // old(remainingMetric).NonIncreasesToTransitive(remainingMetricBefore2, remainingMetric);
           } else {
-            remainingMetric := RemainingMetric(original, currentInner);
+            // remainingMetric := RemainingMetric(original, currentInner);
 
             assert currentInner == Seq.Last(original.Outputs());
             Seq.PartitionedLastTrueImpliesAll(original.Outputs(), IsSome);

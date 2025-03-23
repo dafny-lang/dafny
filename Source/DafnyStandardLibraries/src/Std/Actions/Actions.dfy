@@ -223,17 +223,17 @@ module Std.Actions {
       ValidHistory(history + [(nextInput, nextOutput)])
     }
 
-    ghost function Decreases(i: I): TerminationMetric
+    ghost function Decreases(i: I): ORDINAL
       reads Reads(i)
     {
-      TMNat(0)
+      0
     }
 
     method Invoke(i: I) returns (o: O)
       requires Requires(i)
       reads Reads(i)
       modifies Modifies(i)
-      decreases Decreases(i).Ordinal(), 0
+      decreases Decreases(i), 0
       ensures Ensures(i, o)
     {
       assert Requires(i);
@@ -317,10 +317,10 @@ module Std.Actions {
       ValidHistory(history + [(nextInput, nextOutput)])
     }
 
-    ghost function Decreases(i: I): TerminationMetric
+    ghost function Decreases(i: I): ORDINAL
       reads Reads(i)
     {
-      ReprTerminationMetric()
+      ReprTerminationMetric().Ordinal()
     }
 
     @IsolateAssertions
@@ -329,7 +329,7 @@ module Std.Actions {
       requires Requires(i)
       reads Reads(i)
       modifies Modifies(i)
-      decreases Decreases(i).Ordinal(), 0
+      decreases Decreases(i), 0
       ensures Ensures(i, o)
     {
       assert Requires(i);
