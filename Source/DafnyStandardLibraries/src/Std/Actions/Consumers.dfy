@@ -100,7 +100,7 @@ module Std.Consumers {
     ghost function Decreases(t: T): TerminationMetric
       reads Reads(t)
     {
-      TMTop
+      TMNat(0)
     }
 
     method Invoke(t: T) returns (r: bool)
@@ -179,7 +179,7 @@ module Std.Consumers {
     ghost function Decreases(t: T): TerminationMetric
       reads Reads(t)
     {
-      TMTop
+      TMNat(0)
     }
 
     method Invoke(t: T) returns (r: ())
@@ -262,7 +262,7 @@ module Std.Consumers {
     ghost function Decreases(t: T): TerminationMetric
       reads Reads(t)
     {
-      TMTop
+      TMNat(0)
     }
 
     method Invoke(t: T) returns (r: ())
@@ -340,7 +340,7 @@ module Std.Consumers {
     ghost function Decreases(t: T): TerminationMetric
       reads Reads(t)
     {
-      TMTop
+      TMNat(0)
     }
 
     method Invoke(t: T) returns (r: ())

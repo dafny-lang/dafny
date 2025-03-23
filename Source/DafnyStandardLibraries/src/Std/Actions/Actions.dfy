@@ -226,7 +226,7 @@ module Std.Actions {
     ghost function Decreases(i: I): TerminationMetric
       reads Reads(i)
     {
-      TMTop
+      TMNat(0)
     }
 
     method Invoke(i: I) returns (o: O)
@@ -333,7 +333,6 @@ module Std.Actions {
       ensures Ensures(i, o)
     {
       assert Requires(i);
-      reveal TerminationMetric.DecreasesTo();
 
       assert first.Valid();
       assert first.ValidHistory(first.history);

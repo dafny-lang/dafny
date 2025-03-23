@@ -238,6 +238,12 @@ module Std.Termination {
     }
   }
 
+  ghost function TMBool(b: bool): (result: TerminationMetric)
+    ensures result.Valid()
+  {
+    Bool(b, 0)
+  }
+
   ghost function TMNat(n: nat): (result: TerminationMetric)
     ensures result.Valid()
   {

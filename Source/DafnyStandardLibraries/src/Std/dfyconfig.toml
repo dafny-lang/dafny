@@ -1,9 +1,6 @@
 excludes = [
   # Built per-target language instead
   "**/TargetSpecific/*.dfy",
-
-  # TODO
-  "**/Actions/*.dfy",
 ]
 
 # includes = [
