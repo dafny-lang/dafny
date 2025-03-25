@@ -14,7 +14,7 @@ module Std.Termination {
     | Bool(boolValue: bool, height: nat)
     | Nat(natValue: nat, height: nat)
     | Char(charValue: nat, height: nat)
-    | Ordinal(ordinalValue: ORDINAL, height: nat)
+    | Ord(ordinalValue: ORDINAL, height: nat)
     // No ordering on objects themselves, but commonly used in Repr set<object> values
     | Object(objectValue: object, height: nat)
     // Also used to encode datatype structural inclusion
@@ -27,15 +27,13 @@ module Std.Termination {
     // Lexicographic tuple.
     | Tuple(base: TerminationMetric, first: TerminationMetric, second: TerminationMetric, height: nat)
 
-    // Never used by direct Dafny syntax,
-    // but very useful for simple dependencies.
+    // Never used by direct Dafny syntax, but very useful for simple dependencies.
     | Succ(original: TerminationMetric, height: nat)
   {
     ghost predicate Valid()
       decreases height, 0
     {
       match this {
-        case Ordinal(ordinalValue, _) => ordinalValue > 0
         case Succ(original, height) =>
           && height > original.height
           && original.Valid()
@@ -57,19 +55,17 @@ module Std.Termination {
       }
     }
 
-    ghost function Ordinal(): ORDINAL 
+    ghost opaque function Ordinal(): ORDINAL 
       requires Valid()
       decreases height
-      // Ensuring all ordinals are at least one makes the math much easier
-      ensures Ordinal() > 0
     {
       match this {
-        case Bool(boolValue, _) => (if boolValue then 2 else 1) as ORDINAL
-        case Nat(natValue, _) => natValue as ORDINAL + 1 
-        case Char(charValue, _) => charValue as ORDINAL + 1
-        case Ordinal(ordinalValue, _) => ordinalValue
-        case Object(objectValue, _) => 1
-        case Set(setValue, _) => |setValue| as ORDINAL + 1
+        case Bool(boolValue, _) => (if boolValue then 1 else 0) as ORDINAL
+        case Nat(natValue, _) => natValue as ORDINAL
+        case Char(charValue, _) => charValue as ORDINAL
+        case Ord(ordinalValue, _) => ordinalValue
+        case Object(objectValue, _) => 0
+        case Set(setValue, _) => |setValue| as ORDINAL
         case Seq(seqValue, _) => MultisetOrdinal(height, multiset(seqValue))
         case Tuple(base, first, second, _) => Times(base.Ordinal(), first.Ordinal()) + second.Ordinal() + 1
         case Succ(original, _) => original.Ordinal() + 1
@@ -194,6 +190,7 @@ module Std.Termination {
       requires setValue > other.setValue
       ensures Ordinal() > other.Ordinal()
     {
+      reveal Ordinal();
       LemmaSubsetSize(other.setValue, setValue);
     }
 
@@ -205,6 +202,7 @@ module Std.Termination {
       requires multiset(seqValue) > multiset(other.seqValue)
       ensures Ordinal() > other.Ordinal()
     {
+      reveal Ordinal();
       MultisetOrdinalDecreasesToSubMultiset(height, multiset(seqValue), multiset(other.seqValue));
       MultisetOrdinalAnyHeight(height, other.height, multiset(other.seqValue));
     }
@@ -254,7 +252,9 @@ module Std.Termination {
       requires other.Valid()
       requires other in seqValue
       ensures Ordinal() > other.Ordinal()
-    {}
+    {
+      reveal Ordinal();
+    }
 
     lemma TupleDecreasesToTuple(other: TerminationMetric)
       requires Valid()
@@ -267,6 +267,7 @@ module Std.Termination {
         || (first.Ordinal() >= other.first.Ordinal() && second.Ordinal() > other.second.Ordinal())
       ensures Ordinal() > other.Ordinal()
     {
+      reveal Ordinal();
       if first.Ordinal() > other.first.Ordinal() {
         TimesStrictlyIncreasingOnRight(base.Ordinal(), first.Ordinal(), other.first.Ordinal());
         RadixDecreases(base.Ordinal(), first.Ordinal(), other.first.Ordinal(), other.second.Ordinal());
@@ -287,6 +288,7 @@ module Std.Termination {
       requires second.Ordinal() >= other.second.Ordinal()
       ensures Ordinal() >= other.Ordinal()
     {
+      reveal Ordinal();
       if first.Ordinal() > other.first.Ordinal() || second.Ordinal() > other.second.Ordinal() {
         TupleDecreasesToTuple(other);
       }
@@ -297,17 +299,12 @@ module Std.Termination {
       requires Tuple?
       ensures Ordinal() > first.Ordinal()
     {
-      PlusStrictlyIncreasingOnRight(Times(base.Ordinal(), first.Ordinal()), second.Ordinal(), 0);
-      assert Times(base.Ordinal(), first.Ordinal()) + second.Ordinal() > Times(base.Ordinal(), first.Ordinal());
-      if first.Ordinal() == 1 {
-        TimesIdentity(base.Ordinal());
-      } else {
-        assert first.Ordinal() >= 1;
-        TimesStrictlyIncreasingOnRight(base.Ordinal(), first.Ordinal(), 1);
-        TimesIncreasingOnLeft(base.Ordinal(), 1, first.Ordinal());
-        TimesIdentity(first.Ordinal());
-        assert Times(base.Ordinal(), first.Ordinal()) >= first.Ordinal();
-      }
+      reveal Ordinal();
+      var term := Times(base.Ordinal(), first.Ordinal());
+      PlusStrictlyIncreasingOnRight(term, second.Ordinal() + 1, 0);
+      PlusIsAssociative(term, second.Ordinal(), 1);
+      TimesIncreasingOnLeft(base.Ordinal(), 1, first.Ordinal());
+      TimesIdentity(first.Ordinal());
     }
 
     lemma TupleDecreasesToSecond()
@@ -315,7 +312,34 @@ module Std.Termination {
       requires Tuple?
       ensures Ordinal() > second.Ordinal()
     {
+      reveal Ordinal();
       PlusIncreasingOnLeft(Times(base.Ordinal(), first.Ordinal()), 0, second.Ordinal());
+    }
+
+    lemma SuccDecreasesTo(other: TerminationMetric)
+      requires Valid()
+      requires Succ?
+      requires other.Valid()
+      requires other.Succ?
+      requires original.DecreasesTo(other.original)
+      ensures DecreasesTo(other)
+    {
+      reveal Ordinal();
+      SuccStrictlyIncreasing(original.Ordinal(), other.original.Ordinal());
+    }
+
+    lemma SuccNonIncreasesTo(other: TerminationMetric)
+      requires Valid()
+      requires Succ?
+      requires other.Valid()
+      requires other.Succ?
+      requires original.NonIncreasesTo(other.original)
+      ensures NonIncreasesTo(other)
+    {
+      reveal Ordinal();
+      if original.Ordinal() > other.original.Ordinal() {
+        SuccStrictlyIncreasing(original.Ordinal(), other.original.Ordinal());
+      }
     }
   }
 
@@ -332,10 +356,9 @@ module Std.Termination {
   }
 
   ghost function TMOrdinal(o: ORDINAL): (result: TerminationMetric)
-    requires o > 1
     ensures result.Valid()
   {
-    Ordinal(o, 0)
+    Ord(o, 0)
   }
 
   ghost function TMObject(o: object): (result: TerminationMetric)
@@ -424,10 +447,18 @@ module TerminationExample {
     var x: nat := 10;
     var child := TMNat(x);
     var parent := TMSeq([child]);
-    assert parent.Ordinal() > child.Ordinal();
+    assert parent.Ordinal() > child.Ordinal() by {
+      reveal TerminationMetric.Ordinal();
+    }
+  }
+
+  method {:test} Succ() {
+    reveal TerminationMetric.Ordinal();
+    assert forall x: TerminationMetric | x.Valid() :: TMSucc(x).DecreasesTo(TMNat(0));
   }
 
   method {:test} NestedLoop() {
+    reveal TerminationMetric.Ordinal();
     var x: nat := 10;
     var y: nat := 10;
     var tm := TMTuple(TMOrdinal(Omega()), TMNat(x), TMNat(y));
