@@ -1259,7 +1259,7 @@ module Std.Producers {
         invariant fresh(Repr - old(Repr))
         invariant Valid()
         invariant history == old(history)
-        invariant fresh(original.Repr - old(Repr))
+        invariant {:only} fresh(original.Repr - old(original.Repr))
         invariant currentInner.Some? ==> fresh(currentInner.value.Repr - old(Repr))
         invariant result.Some? ==> !original.Done() && currentInner.Some? && !currentInner.value.Done()
         invariant old(original.history) <= original.history
@@ -1295,15 +1295,22 @@ module Std.Producers {
 
             old(RemainingMetric()).TupleDecreasesToTuple(RemainingMetric());
             assert old(Remaining()) >= Remaining();
-
           } else {
             Repr := {this} + original.Repr;
 
             assert currentInner == Seq.Last(original.Outputs());
             assert original.Done() && currentInner.None?;
             
-            old@beforeOriginalNext(RemainingMetric()).TupleNonIncreasesToTuple(RemainingMetric());
+            old@beforeOriginalNext(RemainingMetric()).TupleNonIncreasesToTuple(RemainingMetric()) by {
+              assert old@beforeOriginalNext(InnerRemainingMetric()) == InnerRemainingMetric();
+            }
+            assert result.None?;
             assert old(Remaining()) >= Remaining();
+
+            assert {:only} if result.Some? then
+                    old(Remaining()) > Remaining()
+                  else
+                    old(Remaining()) >= Remaining();
 
             break;
           }
@@ -1324,11 +1331,10 @@ module Std.Producers {
           this.Repr := {this} + original.Repr + currentInner.value.Repr;
 
           assert old@beforeCurrentInnerNext(currentInner.value.RemainingMetric()).NonIncreasesTo(currentInner.value.RemainingMetric());
-          old@beforeCurrentInnerNext(RemainingMetric()).second.SuccNonIncreasesTo(RemainingMetric().second);
+          InnerRemainingMetricNonIncreases@beforeCurrentInnerNext();
           old@beforeCurrentInnerNext(RemainingMetric()).TupleNonIncreasesToTuple(RemainingMetric());
 
           label afterCurrentInnerNext:
-          // ghost var remainingMetricBefore2 := remainingMetric;
 
           if result.None? {
             
@@ -1339,8 +1345,6 @@ module Std.Producers {
             old@afterCurrentInnerNext(RemainingMetric()).TupleDecreasesToTuple(RemainingMetric());
             assert old(Remaining()) >= Remaining();
           } else {
-            // remainingMetric := RemainingMetric(original, currentInner);
-
             assert currentInner == Seq.Last(original.Outputs());
             Seq.PartitionedLastTrueImpliesAll(original.Outputs(), IsSome);
             assert result == Seq.Last(currentInner.value.Outputs());
@@ -1351,18 +1355,10 @@ module Std.Producers {
             assert !old(original.Done());
             currentInner.value.DoneIsOneWay@beforeCurrentInnerNext();
 
-            // assert {:only} old@beforeCurrentInnerNext(currentInner.value.RemainingMetric()).DecreasesTo(currentInner.value.RemainingMetric());
-            // assert {:only} old@beforeCurrentInnerNext(RemainingMetric()).second.Succ?;
-            // assert {:only} old@beforeCurrentInnerNext(RemainingMetric()).second.original == old@beforeCurrentInnerNext(currentInner.value.RemainingMetric());
-            // assert {:only} RemainingMetric().second.original == currentInner.value.RemainingMetric();
-            // assert {:only} true by {
-            //   old@beforeCurrentInnerNext(RemainingMetric()).second.SuccDecreasesTo(RemainingMetric().second);
-            // }
             assert result.Some?;
             assert old@beforeCurrentInnerNext(currentInner.value.Valid());
             assert old@beforeCurrentInnerNext(currentInner.value).Valid();
             assert old@beforeCurrentInnerNext(currentInner.value) == currentInner.value;
-            // assert {:only} currentInner.value.RemainingMetricDecreased@beforeCurrentInnerNext();
             assert old@beforeCurrentInnerNext(currentInner.value.RemainingMetric()).DecreasesTo(currentInner.value.RemainingMetric());
             InnerRemainingMetricDecreases@beforeCurrentInnerNext();
             old@beforeCurrentInnerNext(RemainingMetric()).TupleDecreasesToTuple(RemainingMetric());
@@ -1371,12 +1367,18 @@ module Std.Producers {
         }
       }
 
+      // TODO: figure out how to prove that Remaining()
+      // doesn't depend on history
       if result.Some? {
         OutputsPartitionedAfterOutputtingSome(result.value);
         ProduceSome(result.value);
+
+        assert {:only} old(Remaining()) > Remaining();
       } else {
         OutputsPartitionedAfterOutputtingNone();
         ProduceNone();
+
+        assert {:only} old(Remaining()) >= Remaining();
       }
       assert Valid();
     }
