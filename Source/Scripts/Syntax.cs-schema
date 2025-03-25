@@ -294,11 +294,44 @@ class MemberSelectExpr : Expression
     Name memberName;
 }
 
+abstract class CollectionType : NonProxyType
+{
+}
+
+class SeqType : CollectionType
+{
+}
+
+class MultiSetType : CollectionType
+{
+}
+
+class SetType : CollectionType
+{
+}
+
 abstract class BasicType : NonProxyType
 {
 }
 
+class BitvectorType : BasicType
+{
+    Int32 width;
+}
+
+class BigOrdinalType : BasicType
+{
+}
+
+class RealType : BasicType
+{
+}
+
 class IntType : BasicType
+{
+}
+
+class CharType : BasicType
 {
 }
 

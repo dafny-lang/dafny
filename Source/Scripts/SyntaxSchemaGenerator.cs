@@ -1,6 +1,8 @@
+using System.Collections.Frozen;
 using System.CommandLine;
 using System.Numerics;
 using System.Reflection;
+using System.Text.RegularExpressions;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -13,6 +15,9 @@ namespace IntegrationTests;
 
 public class SyntaxSchemaGenerator : SyntaxAstVisitor {
   private CompilationUnitSyntax compilationUnit = CompilationUnit();
+
+  // Track the successfully generated types, so we can check that they include all those used by the Parser
+  private ISet<Type> generatedTypes = new HashSet<Type>();
 
   public static Command GetCommand() {
     var result = new Command("generate-syntax-schema", "");
@@ -28,7 +33,6 @@ public class SyntaxSchemaGenerator : SyntaxAstVisitor {
   }
 
   public string GenerateAll() {
-
     var rootType = typeof(FilesContainer);
     VisitTypesFromRoots([rootType, typeof(SourceOrigin), typeof(TokenRangeOrigin)]);
     compilationUnit = compilationUnit.NormalizeWhitespace(eol: "\n");
@@ -37,7 +41,53 @@ public class SyntaxSchemaGenerator : SyntaxAstVisitor {
     if (hasErrors) {
       throw new Exception("Exception");
     }
+    CheckExpectedTypesGenerated();
     return compilationUnit.ToFullString();
+  }
+
+  /// <summary>
+  /// Print all syntax class types that are constructed by the <see cref="Parser"/> but were not generated.
+  /// Note that this excludes enum values that the parser assigns by identifier.
+  /// </summary>
+  private void CheckExpectedTypesGenerated() {
+    var parserCode = ResourceLoader.GetResourceAsString("Parser.cs");
+
+    // these patterns aren't complete, but they're good enough
+    var newPattern = new Regex(@"new (?<type>\w[^(\n]*)\(");
+    var commentPattern = new Regex(@"\/\*[^*]*\*\/");
+
+    var ignoredTypes = new HashSet<string> { "", "string", "List", "Uri" };
+    var expectedTypeNames = newPattern.Matches(parserCode)
+      .SelectMany(match => {
+        var typeSyntax = match.Groups["type"].Value;
+        typeSyntax = commentPattern.Replace(typeSyntax, "");
+        typeSyntax = typeSyntax.Replace(">", " ").Replace("<", " ").Replace(",", " ");
+        return typeSyntax.Split(" ").Select(typeStr => typeStr.Trim());
+      })
+      .Except(ignoredTypes)
+      .Select(typeStr => {
+        const string prefix = "Microsoft.Dafny.";
+        return typeStr.StartsWith(prefix) ? typeStr : prefix + typeStr;
+      })
+      .ToHashSet();
+
+    var generatedTypeNames = generatedTypes
+      .Select(type => CutOffGenericSuffixPartOfName(type.FullName!))
+      .ToFrozenSet();
+    // NOTE: these include types not "expected" from scanning Parser
+    Console.WriteLine($"{generatedTypeNames.Count} types generated:");
+    foreach (var name in generatedTypeNames.Order()) {
+      Console.WriteLine($"\t{name}");
+    }
+
+    var ungeneratedTypeNames = expectedTypeNames.Except(generatedTypeNames).ToFrozenSet();
+    if (ungeneratedTypeNames.Count != 0) {
+      Console.WriteLine($"{ungeneratedTypeNames.Count} expected syntax types not generated:");
+      foreach (var name in ungeneratedTypeNames.Order()) {
+        Console.WriteLine($"\t{name}");
+      }
+    }
+    Console.WriteLine($"{generatedTypeNames.Count} of {expectedTypeNames.Count} expected syntax types generated");
   }
 
   protected override void HandleEnum(Type type) {
@@ -47,6 +97,7 @@ public class SyntaxSchemaGenerator : SyntaxAstVisitor {
       enumm = enumm.AddMembers(EnumMemberDeclaration(name));
     }
     compilationUnit = compilationUnit.AddMembers(enumm);
+    generatedTypes.Add(type);
   }
 
   protected override void HandleClass(Type type) {
@@ -88,6 +139,7 @@ public class SyntaxSchemaGenerator : SyntaxAstVisitor {
 
     classDeclaration = classDeclaration.AddMembers(newFields.ToArray());
     compilationUnit = compilationUnit.AddMembers(classDeclaration);
+    generatedTypes.Add(type);
   }
 
   public static ClassDeclarationSyntax GenerateClassHeader(Type type) {

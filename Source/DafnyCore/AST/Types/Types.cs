@@ -1834,6 +1834,12 @@ public class BoolType : BasicType {
 public class CharType : BasicType {
   public const char DefaultValue = 'D';
   public const string DefaultValueAsString = "'D'";
+
+  [SyntaxConstructor]
+  public CharType(IOrigin origin) : base(origin) { }
+
+  public CharType() { }
+
   [System.Diagnostics.Contracts.Pure]
   public override string TypeName(DafnyOptions options, ModuleDefinition context, bool parseAble) {
     return "char";
@@ -1868,6 +1874,12 @@ public class IntType : BasicType {
 }
 
 public class RealType : BasicType {
+  [SyntaxConstructor]
+  public RealType(IOrigin origin) : base(origin) {
+  }
+
+  public RealType() {
+  }
   [System.Diagnostics.Contracts.Pure]
   public override string TypeName(DafnyOptions options, ModuleDefinition context, bool parseAble) {
     return "real";
@@ -1884,6 +1896,13 @@ public class RealType : BasicType {
 }
 
 public class BigOrdinalType : BasicType {
+  [SyntaxConstructor]
+  public BigOrdinalType(IOrigin origin) : base(origin) {
+  }
+
+  public BigOrdinalType() {
+  }
+
   [System.Diagnostics.Contracts.Pure]
   public override string TypeName(DafnyOptions options, ModuleDefinition context, bool parseAble) {
     return "ORDINAL";
@@ -1902,6 +1921,16 @@ public class BigOrdinalType : BasicType {
 public class BitvectorType : BasicType {
   public int Width;
   public NativeType NativeType;
+
+  [SyntaxConstructor]
+  public BitvectorType(IOrigin origin, int width) : base(origin) {
+    Contract.Requires(0 <= width);
+    Width = width;
+  }
+
+  public BitvectorType() {
+  }
+
   public BitvectorType(DafnyOptions options, int width)
     : base() {
     Contract.Requires(0 <= width);
@@ -2017,6 +2046,12 @@ public abstract class CollectionType : NonProxyType {
     // After resolution, the following is invariant:  Contract.Invariant(Arg != null);
     // However, it may not be true until then.
   }
+
+  [SyntaxConstructor]
+  protected CollectionType(IOrigin origin = null, List<Type> typeArgs = null) : base(origin) {
+    TypeArgs = typeArgs ?? [];
+  }
+
   /// <summary>
   /// This constructor is a collection types with 1 type argument
   /// </summary>
@@ -2072,6 +2107,10 @@ public class SetType : CollectionType {
   public SetType(bool finite, Type arg) : base(arg) {
     this.finite = finite;
   }
+
+  [SyntaxConstructor]
+  public SetType(IOrigin origin, List<Type> typeArgs = null) : base(origin, typeArgs) { }
+
   public override string CollectionTypeName { get { return finite ? "set" : "iset"; } }
   [System.Diagnostics.Contracts.Pure]
   public override bool Equals(Type that, bool keepConstraints = false) {
@@ -2107,6 +2146,10 @@ public class SetType : CollectionType {
 public class MultiSetType : CollectionType {
   public MultiSetType(Type arg) : base(arg) {
   }
+
+  [SyntaxConstructor]
+  public MultiSetType(IOrigin origin, List<Type> typeArgs = null) : base(origin, typeArgs) { }
+
   public override string CollectionTypeName { get { return "multiset"; } }
   public override bool Equals(Type that, bool keepConstraints = false) {
     var t = that.NormalizeExpand(keepConstraints) as MultiSetType;
@@ -2141,6 +2184,10 @@ public class MultiSetType : CollectionType {
 public class SeqType : CollectionType {
   public SeqType(Type arg) : base(arg) {
   }
+
+  [SyntaxConstructor]
+  public SeqType(IOrigin origin, List<Type> typeArgs = null) : base(origin, typeArgs) { }
+
   public override string CollectionTypeName { get { return "seq"; } }
   public override bool Equals(Type that, bool keepConstraints = false) {
     var t = that.NormalizeExpand(keepConstraints) as SeqType;
