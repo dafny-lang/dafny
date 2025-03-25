@@ -234,7 +234,7 @@ Generate module names in the older A_mB_mC style instead of the current A.B.C sc
     var externArgs = options.DisallowExterns ? null : Attributes.FindExpressions(this.Attributes, "extern");
     var nonExternSuffix = (options.Get(CommonOptionBag.AddCompileSuffix) && Name != "_module" && Name != "_System" ? "_Compile" : "");
     if (externArgs != null && 1 <= externArgs.Count && externArgs[0] is StringLiteralExpr) {
-      compileName = (string)((StringLiteralExpr)externArgs[0]).Value;
+      compileName = (string)((StringLiteralExpr)externArgs[0]).Value!;
     } else if (externArgs != null) {
       compileName = Name + nonExternSuffix;
     } else {
@@ -317,14 +317,6 @@ Generate module names in the older A_mB_mC style instead of the current A.B.C sc
             yield return fn;
           }
         }
-      }
-    }
-  }
-
-  public static IEnumerable<TopLevelDeclWithMembers> AllTypesWithMembers(List<TopLevelDecl> declarations) {
-    foreach (var d in declarations) {
-      if (d is TopLevelDeclWithMembers cl) {
-        yield return cl;
       }
     }
   }
@@ -802,14 +794,12 @@ Generate module names in the older A_mB_mC style instead of the current A.B.C sc
 
           CheckIncompatibleAttributes(resolver, m.Attributes);
 
-          if (m is Function or Method or ConstantField) {
+          if (m is Function or MethodOrConstructor or ConstantField) {
             sig.StaticMembers[m.Name] = m;
           }
 
-          if (toplevels.ContainsKey(m.Name)) {
+          if (!toplevels.TryAdd(m.Name, m)) {
             resolver.reporter.Error(MessageSource.Resolver, m.Origin, $"duplicate declaration for name {m.Name}");
-          } else {
-            toplevels.Add(m.Name, m);
           }
         }
 
@@ -905,7 +895,9 @@ Generate module names in the older A_mB_mC style instead of the current A.B.C sc
               }
             }
 
-            ctor.Destructors.Add(dtor);
+            if (!localDuplicate) {
+              ctor.Destructors.Add(dtor);
+            }
           }
 
           foreach (var duplicate in duplicates) {

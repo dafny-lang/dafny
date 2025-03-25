@@ -12,42 +12,35 @@ using JetBrains.Annotations;
 namespace Microsoft.Dafny;
 
 public static class PreType2TypeUtil {
-  public static Type PreType2Type(PreType preType, bool allowFutureRefinements, TypeParameter.TPVariance futureRefinements) {
+  public static Type PreType2Type(PreType preType, bool allowFutureRefinements) {
     if (allowFutureRefinements) {
-      return PreType2RefinableType(preType, futureRefinements);
+      return PreType2RefinableType(preType);
     } else {
       return PreType2FixedType(preType);
     }
   }
 
   public static Type PreType2FixedType(PreType preType) {
-    return PreType2TypeCore(preType, false, TypeParameter.TPVariance.Co);
+    return PreType2TypeCore(preType, false);
   }
 
-  public static Type PreType2RefinableType(PreType preType, TypeParameter.TPVariance futureRefinements) {
-    var ty = PreType2TypeCore(preType, true, futureRefinements);
-    switch (futureRefinements) {
-      case TypeParameter.TPVariance.Co:
-        ty = new BottomTypePlaceholder(ty);
-        break;
-      default:
-        break;
-    }
-
+  public static Type PreType2RefinableType(PreType preType) {
+    var ty = PreType2TypeCore(preType, true);
+    ty = new BottomTypePlaceholder(ty);
     return new TypeRefinementWrapper(ty);
   }
 
   /// <summary>
   /// The "futureRefinements" parameter is relevant only if "allowFutureRefinements" is "true".
   /// </summary>
-  private static Type PreType2TypeCore(PreType preType, bool allowFutureRefinements, TypeParameter.TPVariance futureRefinements) {
+  private static Type PreType2TypeCore(PreType preType, bool allowFutureRefinements) {
     var pt = (DPreType)preType.Normalize(); // all pre-types should have been filled in and resolved to a non-proxy
     if (pt.PrintablePreType != null) {
       pt = pt.PrintablePreType;
     }
 
     Type ArgumentAsCo(int i) {
-      return PreType2Type(pt.Arguments[i], true, futureRefinements);
+      return PreType2Type(pt.Arguments[i], true);
     }
 
     switch (pt.Decl.Name) {
@@ -77,7 +70,7 @@ public static class PreType2TypeUtil {
         break;
     }
 
-    var arguments = pt.Arguments.ConvertAll(preType => PreType2RefinableType(preType, futureRefinements));
+    var arguments = pt.Arguments.ConvertAll(preType => PreType2RefinableType(preType));
     if (pt.Decl is ArrowTypeDecl arrowTypeDecl) {
       return new ArrowType(pt.Decl.Origin, arrowTypeDecl, arguments);
     } else if (pt.Decl is ValuetypeDecl valuetypeDecl) {
@@ -90,7 +83,7 @@ public static class PreType2TypeUtil {
   }
 
   public static void Combine(Type userSuppliedType, PreType preType, bool allowFutureRefinements) {
-    var preTypeConverted = PreType2Type(preType, allowFutureRefinements, TypeParameter.TPVariance.Co);
+    var preTypeConverted = PreType2Type(preType, allowFutureRefinements);
     Combine(userSuppliedType, preTypeConverted);
   }
 
@@ -106,7 +99,7 @@ public static class PreType2TypeUtil {
     Contract.Requires(types == null || types.Count == preTypes.Count);
     if (types == null) {
       if (allowFutureRefinements) {
-        return preTypes.ConvertAll(preType => PreType2RefinableType(preType, TypeParameter.TPVariance.Co));
+        return preTypes.ConvertAll(preType => PreType2RefinableType(preType));
       } else {
         return preTypes.ConvertAll(PreType2FixedType);
       }

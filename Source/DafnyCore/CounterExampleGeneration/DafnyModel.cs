@@ -363,7 +363,7 @@ namespace Microsoft.Dafny {
         switch (datatypeValue.ConstructorName) {
           case "-":
             return new NegationExpression(Token.NoToken,
-              GetLiteralExpression(datatypeValue.Arguments.First(), type));
+              GetLiteralExpression(datatypeValue.Arguments.First(), type)!);
           case "/":
             return new BinaryExpr(Token.NoToken, BinaryExpr.Opcode.Div,
               GetLiteralExpression(datatypeValue.Arguments[0], type),

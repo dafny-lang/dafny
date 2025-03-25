@@ -134,7 +134,7 @@ namespace Microsoft.Dafny {
     readonly ISet<MemberDecl> referencedMembers = new HashSet<MemberDecl>();
 
     public void AddReferencedMember(MemberDecl m) {
-      if (m is Method && !InVerificationScope(m)) {
+      if (m is MethodOrConstructor && !InVerificationScope(m)) {
         referencedMembers.Add(m);
       }
     }
@@ -1399,7 +1399,7 @@ namespace Microsoft.Dafny {
         return Attributes.Contains(f.Attributes, "opaque") || f.IsOpaque;
       }
     }
-    static bool IsOpaqueRevealLemma(Method m) {
+    static bool IsOpaqueRevealLemma(MethodOrConstructor m) {
       Contract.Requires(m != null);
       return Attributes.Contains(m.Attributes, "opaque_reveal");
     }
@@ -2023,7 +2023,7 @@ namespace Microsoft.Dafny {
       }
     }
 
-    void GenerateImplPrelude(Method m, bool wellformednessProc, List<Variable> inParams, List<Variable> outParams,
+    void GenerateImplPrelude(MethodOrConstructor m, bool wellformednessProc, List<Variable> inParams, List<Variable> outParams,
                              BoogieStmtListBuilder builder, Variables localVariables, ExpressionTranslator etran) {
       Contract.Requires(m != null);
       Contract.Requires(inParams != null);
@@ -2833,7 +2833,7 @@ namespace Microsoft.Dafny {
       return call;
     }
 
-    private void GenerateMethodParameters(IOrigin tok, Method m, MethodTranslationKind kind, ExpressionTranslator etran,
+    private void GenerateMethodParameters(IOrigin tok, MethodOrConstructor m, MethodTranslationKind kind, ExpressionTranslator etran,
       List<Variable> inParams, out Variables outParams) {
       GenerateMethodParametersChoose(tok, m, kind, !m.IsStatic, true, true, etran, inParams, out outParams);
     }
@@ -3511,9 +3511,9 @@ namespace Microsoft.Dafny {
       }
 
       if (options.Get(CommonOptionBag.ShowAssertions) > CommonOptionBag.AssertionShowMode.None && description.IsImplicit) {
-        reporter.Info(MessageSource.Translator, ToDafnyToken(false, tok), "Implicit assertion: " + description.ShortDescription, "isAssertion");
+        reporter.Info(MessageSource.Translator, ToDafnyToken(tok), "Implicit assertion: " + description.ShortDescription, "isAssertion");
       } else if (options.Get(CommonOptionBag.ShowAssertions) == CommonOptionBag.AssertionShowMode.All) {
-        reporter.Info(MessageSource.Translator, ToDafnyToken(false, tok), "Explicit assertion: " + description.ShortDescription, "isAssertion");
+        reporter.Info(MessageSource.Translator, ToDafnyToken(tok), "Explicit assertion: " + description.ShortDescription, "isAssertion");
       }
     }
 
@@ -3725,9 +3725,8 @@ namespace Microsoft.Dafny {
     }
 
     public List<TypeParameter> GetTypeParams(IMethodCodeContext cc) {
-      if (cc is Method) {
-        Method m = (Method)cc;
-        return Concat(GetTypeParams(m.EnclosingClass), m.TypeArgs);
+      if (cc is MethodOrConstructor methodOrConstructor) {
+        return Concat(GetTypeParams(methodOrConstructor.EnclosingClass), methodOrConstructor.TypeArgs);
       } else if (cc is IteratorDecl) {
         return cc.TypeArgs; // This one cannot be enclosed in a class
       } else {
@@ -4074,7 +4073,7 @@ namespace Microsoft.Dafny {
       public readonly Bpl.Expr Expr;
 
       public BoogieWrapper(Bpl.Expr expr, Type type)
-        : base(ToDafnyToken(false, expr.tok)) {
+        : base(ToDafnyToken(expr.tok)) {
         Contract.Requires(expr != null);
         Contract.Requires(type != null);
         Expr = expr;

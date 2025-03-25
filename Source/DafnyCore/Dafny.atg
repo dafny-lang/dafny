@@ -599,7 +599,7 @@ TraitDecl<DeclModifierData dmodIn, ModuleDefinition/*!*/ module, out TraitDecl/*
 /*------------------------------------------------------------------------*/
 ClassMemberDecl<. DeclModifierData dmod, List<MemberDecl> mm, bool allowConstructors, bool moduleLevelDecl.>
 = (. Contract.Requires(cce.NonNullElements(mm));
-     Method/*!*/ m;
+     MethodOrConstructor/*!*/ m;
      Function/*!*/ f;
   .)
   ( (. if (moduleLevelDecl) {
@@ -1144,7 +1144,7 @@ TPCharOption<ref TypeParameterCharacteristics characteristics>
   .
 
 /*------------------------------------------------------------------------*/
-MethodDecl<DeclModifierData dmod, bool allowConstructor, out Method/*!*/ m>
+MethodDecl<DeclModifierData dmod, bool allowConstructor, out MethodOrConstructor/*!*/ m>
 = (. Contract.Ensures(Contract.ValueAtReturn(out m) !=null);
      bool hasName = false;
      Name name = new Name("<noNameGiven>");  
@@ -1161,6 +1161,7 @@ MethodDecl<DeclModifierData dmod, bool allowConstructor, out Method/*!*/ m>
      Attributes modAttrs = null;
      Attributes readsAttrs = null;
      BlockStmt body = null;
+     DividedBlockStmt dividedBody = null;
      bool isPlainOlMethod = false;
      bool isLemma = false;
      bool isTwoStateLemma = false;
@@ -1243,9 +1244,7 @@ MethodDecl<DeclModifierData dmod, bool allowConstructor, out Method/*!*/ m>
   MethodSpec<dmod.IsGhost || isLemma || isTwoStateLemma || isLeastLemma || isGreatestLemma,
              req, reads, mod, ens, dec, ref decAttrs, ref modAttrs, ref readsAttrs, caption, isConstructor>
   [ IF(isConstructor)
-    (. DividedBlockStmt dividedBody; .)
     DividedBlockStmt<out dividedBody, out bodyStart, out bodyEnd>
-    (. body = dividedBody; .)
   | BlockStmt<out body, out bodyStart, out bodyEnd>
   ]
   (. var range = new SourceOrigin(dmod.FirstToken, t, hasName ? name.ReportingRange : null);
@@ -1254,7 +1253,7 @@ MethodDecl<DeclModifierData dmod, bool allowConstructor, out Method/*!*/ m>
                            req, new Specification<FrameExpression>(reads, readsAttrs), 
                            new Specification<FrameExpression>(mod, modAttrs), ens, 
                            new Specification<Expression>(dec, decAttrs), 
-                           (DividedBlockStmt)body, dmod.Attributes, signatureEllipsis);
+                           dividedBody, dmod.Attributes, signatureEllipsis);
      } else if (isLeastLemma) {
        m = new LeastLemma(range, name, dmod.IsStatic, kType, typeArgs, ins, outs,
                           req, new Specification<FrameExpression>(reads, readsAttrs), new Specification<FrameExpression>(mod, modAttrs), ens, new Specification<Expression>(dec, decAttrs), body, dmod.Attributes, signatureEllipsis);
@@ -2430,14 +2429,14 @@ Rhs<out AssignmentRhs r>
     )
     (. if (ee != null) {
          if (display != null) {
-           r = new TypeRhs(newToken, ty, ee[0], display);
+           r = new AllocateArray(newToken, ty, ee[0], display);
          } else {
-           r = new TypeRhs(newToken, ty, ee, arrayElementInit);
+           r = new AllocateArray(newToken, ty, ee, arrayElementInit);
          }
        } else if (args != null) {
-         r = new TypeRhs(newToken, ty, args);
+         r = new AllocateClass(newToken, ty, args);
        } else {
-         r = new TypeRhs(newToken, ty);
+         r = new AllocateClass(newToken, ty);
        }
     .)
   | "*"                                (. r = new HavocRhs(t); startToken = t; .)
@@ -2984,10 +2983,10 @@ AssertStmt<out Statement/*!*/ s>
     ";"
   )
   (. if (dotdotdot != null) {
-       s = new AssertStmt(new SourceOrigin(startToken, t), new LiteralExpr(x, true), null, attrs);
+       s = new AssertStmt(new SourceOrigin(startToken, t, startToken), new LiteralExpr(x, true), null, attrs);
        s = new SkeletonStatement(s, dotdotdot, null);
      } else {
-       s = new AssertStmt(new SourceOrigin(startToken, t), e, lbl == null ? null : new AssertLabel(lbl, lbl.val), attrs);
+       s = new AssertStmt(new SourceOrigin(startToken, t, startToken), e, lbl == null ? null : new AssertLabel(lbl, lbl.val), attrs);
        if (proof != null) {
          s = new BlockByProofStmt(s.Origin, proof, s);
        }
@@ -3012,7 +3011,7 @@ ExpectStmt<out Statement/*!*/ s>
   [ "," Expression<out m, false, true> ]
   ";"
   (. if (dotdotdot != null) {
-       s = new ExpectStmt(new SourceOrigin(startToken, t), new LiteralExpr(x, true), m, attrs);
+       s = new ExpectStmt(new SourceOrigin(startToken, t, startToken), new LiteralExpr(x, true), m, attrs);
        s = new SkeletonStatement(s, dotdotdot, null);
      } else {
        s = new ExpectStmt(new SourceOrigin(startToken, t, startToken), e, m, attrs);
@@ -3036,10 +3035,10 @@ AssumeStmt<out Statement/*!*/ s>
   )
   ";"
   (. if (dotdotdot != null) {
-       s = new AssumeStmt(new SourceOrigin(startToken, t), new LiteralExpr(x, true), attrs);
+       s = new AssumeStmt(new SourceOrigin(startToken, t, startToken), new LiteralExpr(x, true), attrs);
        s = new SkeletonStatement(s, dotdotdot, null);
      } else {
-       s = new AssumeStmt(new SourceOrigin(startToken, t), e, attrs);
+       s = new AssumeStmt(new SourceOrigin(startToken, t, startToken), e, attrs);
      }
   .)
   .

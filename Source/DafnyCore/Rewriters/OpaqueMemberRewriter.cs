@@ -11,13 +11,13 @@ namespace Microsoft.Dafny;
 /// specifically asks to see it via the reveal_foo() lemma
 /// </summary>
 public class OpaqueMemberRewriter : IRewriter {
-  protected Dictionary<Method, Function> revealOriginal; // Map reveal_* lemmas (or two-state lemmas) back to their original functions
+  protected Dictionary<MethodOrConstructor, Function> revealOriginal; // Map reveal_* lemmas (or two-state lemmas) back to their original functions
 
   public OpaqueMemberRewriter(ErrorReporter reporter)
     : base(reporter) {
     Contract.Requires(reporter != null);
 
-    revealOriginal = new Dictionary<Method, Function>();
+    revealOriginal = new Dictionary<MethodOrConstructor, Function>();
   }
 
   internal override void PreResolve(ModuleDefinition m) {
@@ -32,8 +32,7 @@ public class OpaqueMemberRewriter : IRewriter {
     foreach (var decl in ModuleDefinition.AllCallables(m.TopLevelDecls)) {
       if (decl is Lemma or TwoStateLemma) {
         var lem = (Method)decl;
-        if (revealOriginal.ContainsKey(lem)) {
-          var fn = revealOriginal[lem];
+        if (revealOriginal.TryGetValue(lem, out var fn)) {
           AnnotateRevealFunction(lem, fn);
         }
       }

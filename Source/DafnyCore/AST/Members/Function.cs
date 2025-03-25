@@ -14,6 +14,9 @@ public class Function : MethodOrFunction, TypeParameter.ParentType, ICallable, I
   ICanAutoRevealDependencies, ICanVerify {
   public override string WhatKind => "function";
 
+  public override bool HasStaticKeyword { get; }
+
+
   public string GetFunctionDeclarationKeywords(DafnyOptions options) {
     string k;
     if (this is TwoStateFunction || this is ExtremePredicate || this.ByMethodBody != null) {
@@ -231,7 +234,7 @@ public class Function : MethodOrFunction, TypeParameter.ParentType, ICallable, I
     List<AttributedExpression> req, Specification<FrameExpression> reads, List<AttributedExpression> ens, Specification<Expression> decreases,
     Expression? body, IOrigin? byMethodTok, BlockStmt? byMethodBody,
     Attributes? attributes, IOrigin? signatureEllipsis)
-    : base(origin, nameNode, hasStaticKeyword, isGhost, attributes, signatureEllipsis, typeArgs, ins, req, ens, reads, decreases) {
+    : base(origin, nameNode, isGhost, attributes, signatureEllipsis, typeArgs, ins, req, ens, reads, decreases) {
 
     Contract.Requires(byMethodBody == null || (!isGhost && body != null)); // function-by-method has a ghost expr and non-ghost stmt, but to callers appears like a functiion-method
     this.IsFueled = false;  // Defaults to false.  Only set to true if someone mentions this function in a fuel annotation
@@ -241,6 +244,7 @@ public class Function : MethodOrFunction, TypeParameter.ParentType, ICallable, I
     this.ByMethodTok = byMethodTok;
     this.ByMethodBody = byMethodBody;
     this.IsOpaque = isOpaque || Attributes.Contains(attributes, "opaque");
+    HasStaticKeyword = hasStaticKeyword;
 
     if (attributes == null) {
       return;

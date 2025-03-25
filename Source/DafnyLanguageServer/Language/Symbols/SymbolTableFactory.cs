@@ -118,7 +118,7 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
         ProcessNestedScope(declaration, declaration.Origin, visit);
       }
 
-      public override void Visit(Method method) {
+      public override void Visit(MethodOrConstructor method) {
         cancellationToken.ThrowIfCancellationRequested();
         ProcessNestedScope(method, method.Origin, () => base.Visit(method));
       }
@@ -177,7 +177,7 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
         base.Visit(variable);
       }
 
-      public override void Visit(BlockStmt blockStatement) {
+      public override void Visit(BlockLikeStmt blockStatement) {
         cancellationToken.ThrowIfCancellationRequested();
         ProcessNestedScope(blockStatement, blockStatement.Origin, () => base.Visit(blockStatement));
       }
@@ -197,7 +197,12 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
 
       public override void Visit(TypeRhs typeRhs) {
         cancellationToken.ThrowIfCancellationRequested();
-        RegisterTypeDesignator(currentScope, typeRhs.EType);
+        if (typeRhs is AllocateArray allocateArray) {
+          RegisterTypeDesignator(currentScope, allocateArray.ExplicitType);
+        }
+        if (typeRhs is AllocateClass allocateClass) {
+          RegisterTypeDesignator(currentScope, allocateClass.Type);
+        }
         base.Visit(typeRhs);
       }
 

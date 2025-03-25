@@ -23,10 +23,7 @@ public class ProgramResolver {
   }
 
   public Dictionary<string, MemberDecl> GetClassMembers(TopLevelDeclWithMembers key) {
-    if (classMembers.TryGetValue(key, out var result)) {
-      return result;
-    }
-    return null;
+    return classMembers.GetValueOrDefault(key);
   }
 
   public virtual Task Resolve(CancellationToken cancellationToken) {

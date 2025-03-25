@@ -11,11 +11,11 @@ public static class DiagnosticUtil {
       Code = dafnyDiagnostic.ErrorId,
       Severity = ToSeverity(dafnyDiagnostic.Level),
       Message = dafnyDiagnostic.Message,
-      Range = dafnyDiagnostic.Range.GetLspRange(),
+      Range = dafnyDiagnostic.Range.ToLspRange(),
       Source = dafnyDiagnostic.Source.ToString(),
       RelatedInformation = dafnyDiagnostic.RelatedInformation.Select(r =>
         new DiagnosticRelatedInformation {
-          Location = CreateLocation(r.Token),
+          Location = CreateLocation(r.Range),
           Message = r.Message
         }).ToList(),
       CodeDescription = dafnyDiagnostic.ErrorId == null

@@ -30,13 +30,13 @@ public abstract class Type : NodeWithOrigin {
     return new SeqType(new CharType());
   }
 
-  public static BigOrdinalType BigOrdinal = new BigOrdinalType();
+  public static BigOrdinalType BigOrdinal = new();
 
   private static ThreadLocal<List<VisibilityScope>> _scopes = new();
   private static List<VisibilityScope> Scopes => _scopes.Value ??= [];
 
   [ThreadStatic]
-  private static bool scopesEnabled = false;
+  private static bool scopesEnabled;
 
   public virtual IEnumerable<Node> Nodes => [];
 

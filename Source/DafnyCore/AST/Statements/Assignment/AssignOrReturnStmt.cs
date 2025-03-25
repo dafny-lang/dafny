@@ -19,6 +19,10 @@ public class AssignOrReturnStmt : ConcreteAssignStatement, ICloneable<AssignOrRe
 
   public override IEnumerable<Statement> PreResolveSubStatements => [];
 
+  public override IEnumerable<IdentifierExpr> GetAssignedLocals() {
+    return ResolvedStatements.SelectMany(r => r.GetAssignedLocals());
+  }
+
   [ContractInvariantMethod]
   void ObjectInvariant() {
     Contract.Invariant(Lhss != null);
@@ -117,10 +121,10 @@ public class AssignOrReturnStmt : ConcreteAssignStatement, ICloneable<AssignOrRe
 
     bool expectExtract = Lhss.Count != 0; // default value if we cannot determine and inspect the type
     Type firstType = null;
-    Method call = null;
+    MethodOrConstructor call = null;
     if ((Rhss == null || Rhss.Count == 0) && Rhs.Expr is ApplySuffix asx) {
       resolver.ResolveApplySuffix(asx, resolutionContext, true);
-      call = (asx.Lhs.Resolved as MemberSelectExpr)?.Member as Method;
+      call = (asx.Lhs.Resolved as MemberSelectExpr)?.Member as MethodOrConstructor;
       if (call != null) {
         // We're looking at a method call
         var typeMap = (asx.Lhs.Resolved as MemberSelectExpr)?.TypeArgumentSubstitutionsWithParents();
@@ -138,7 +142,7 @@ public class AssignOrReturnStmt : ConcreteAssignStatement, ICloneable<AssignOrRe
       firstType = Rhs.Expr.Type;
     }
 
-    var method = (Method)resolutionContext.CodeContext;
+    var method = (MethodOrConstructor)resolutionContext.CodeContext;
     if (method.Outs.Count == 0 && KeywordToken == null) {
       resolver.Reporter.Error(MessageSource.Resolver, Origin, "A method containing a :- statement must have an out-parameter ({0})", method.Name);
       return;
@@ -186,7 +190,7 @@ public class AssignOrReturnStmt : ConcreteAssignStatement, ICloneable<AssignOrRe
 
     Expression lhsExtract = null;
     if (expectExtract) {
-      if (resolutionContext.CodeContext is Method caller && caller.Outs.Count == 0 && KeywordToken == null) {
+      if (resolutionContext.CodeContext is MethodOrConstructor caller && caller.Outs.Count == 0 && KeywordToken == null) {
         resolver.Reporter.Error(MessageSource.Resolver, Rhs.Origin, "Expected {0} to have a Success/Failure output value", caller.Name);
         return;
       }
@@ -227,7 +231,7 @@ public class AssignOrReturnStmt : ConcreteAssignStatement, ICloneable<AssignOrRe
       }
     }
 
-    DesugarElephantStatement(expectExtract, lhsExtract, firstType, resolver, (Method)resolutionContext.CodeContext);
+    DesugarElephantStatement(expectExtract, lhsExtract, firstType, resolver, (MethodOrConstructor)resolutionContext.CodeContext);
     ResolvedStatements.ForEach(a => resolver.ResolveStatement(a, resolutionContext));
     resolver.EnsureSupportsErrorHandling(Origin, firstType, expectExtract, KeywordToken?.Token.val);
   }
@@ -253,10 +257,10 @@ public class AssignOrReturnStmt : ConcreteAssignStatement, ICloneable<AssignOrRe
   /// <param name="resolver"></param>
   /// <param name="enclosingMethod"></param>
   private void DesugarElephantStatement(bool expectExtract, Expression lhsExtract, Type firstType,
-    ModuleResolver resolver, Method enclosingMethod) {
+    ModuleResolver resolver, MethodOrConstructor enclosingMethod) {
 
     var temp = resolver.FreshTempVarName("valueOrError", enclosingMethod);
-    var lhss = new List<LocalVariable>() { new LocalVariable(Origin, temp, new InferredTypeProxy(), false) };
+    var lhss = new List<LocalVariable>() { new(Origin, temp, new InferredTypeProxy(), false) };
     // "var temp ;"
     ResolvedStatements.Add(new VarDeclStmt(Origin, lhss, null));
     var lhss2 = new List<Expression>() { new IdentifierExpr(Origin, temp) };

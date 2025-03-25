@@ -1,3 +1,4 @@
+#nullable enable
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 using System.Numerics;
@@ -26,7 +27,7 @@ public class LiteralExpr : Expression, ICloneable<LiteralExpr> {
   ///     compiled into C# code.  The parser checks the validity of the escape sequences and the verifier deals
   ///     with turning them into single characters.
   /// </summary>
-  public object Value;
+  public object? Value;
 
   [System.Diagnostics.Contracts.Pure]
   public static bool IsTrue(Expression e) {
@@ -55,7 +56,7 @@ public class LiteralExpr : Expression, ICloneable<LiteralExpr> {
   }
 
   [SyntaxConstructor]
-  public LiteralExpr(IOrigin origin, object value)
+  public LiteralExpr(IOrigin origin, object? value)
     : base(origin) {
     this.Value = value is int n ? new BigInteger(n) : value;
   }
@@ -164,9 +165,9 @@ public class NegationExpression : ConcreteSyntaxExpression, ICloneable<NegationE
   public NegationExpression(IOrigin origin, Expression e)
     : base(origin) {
     Contract.Requires(origin != null);
-    Contract.Requires(e != null);
     E = e;
   }
+
   public override IEnumerable<Expression> SubExpressions {
     get {
       if (ResolvedExpression == null) {

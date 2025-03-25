@@ -1,9 +1,9 @@
-// RUN: %exits-with 2 %verify "%s" > "%t"
-// RUN: %diff "%s.expect" "%t"
+// RUN: %testDafnyForEachResolver --expect-exit-code=2 "%s"
+
 
 module Types {
-  trait A<X> { }
-  trait B<X> { }
+  trait A<X> extends object { }
+  trait B<X> extends object { }
   trait C<Y> extends A<seq<Y>> { }
   trait D<Z> extends B<int>, C<Z> { }
   class K<X> { }

@@ -291,8 +291,8 @@ public class AutoContractsRewriter : IRewriter {
           AddSubobjectReprs(tok, ctor.EndToken, subobjects, sbs, n, implicitSelf, Repr);
         }
 
-      } else if (member is Method && !member.IsStatic && Valid != null) {
-        var m = (Method)member;
+      } else if (member is MethodOrConstructor && !member.IsStatic && Valid != null) {
+        var m = (MethodOrConstructor)member;
         var addStatementsToUpdateRepr = false;
         if (member.IsGhost || IsSimpleQueryMethod(m)) {
           if (m.RefinementBase == null) {
@@ -341,7 +341,7 @@ public class AutoContractsRewriter : IRewriter {
     }
   }
 
-  void AddSubobjectReprs(IOrigin tok, IOrigin endCurlyTok, List<Tuple<Field, Field, Function>> subobjects, BlockStmt block, int hoverTextFromHere,
+  void AddSubobjectReprs(IOrigin tok, IOrigin endCurlyTok, List<Tuple<Field, Field, Function>> subobjects, BlockLikeStmt block, int hoverTextFromHere,
     Expression implicitSelf, Expression Repr) {
     Contract.Requires(tok != null);
     Contract.Requires(endCurlyTok != null);
@@ -414,7 +414,7 @@ public class AutoContractsRewriter : IRewriter {
     }
   }
 
-  bool IsSimpleQueryMethod(Method m) {
+  bool IsSimpleQueryMethod(MethodOrConstructor m) {
     // A simple query method has out parameters, its body has no effect other than to assign to them,
     // and the postcondition does not explicitly mention the pre-state.
     return m.Outs.Count != 0 && m.Body != null && LocalAssignsOnly(m.Body) &&
