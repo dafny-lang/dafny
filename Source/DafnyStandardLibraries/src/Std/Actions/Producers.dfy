@@ -1105,7 +1105,7 @@ module Std.Producers {
                 old(Remaining()) >= Remaining()
       ensures r.Some? ==> JustProduced(r.value)
 
-    twostate predicate {:only} JustProduced(new produced: Producer<T>)
+    twostate predicate JustProduced(new produced: Producer<T>)
       reads this, produced, produced.Repr
     {
       && produced.Valid()
@@ -1201,6 +1201,17 @@ module Std.Producers {
       TMTuple(BaseMetric(), original.RemainingMetric(), InnerRemainingMetric())
     }
 
+    // Makes it much easier to prove RemainingMetric()
+    // behaves correctly before updating the history at the end of Invoke()
+    twostate lemma RemainingMetricDoesntReadHistory()
+      requires old(Valid())
+      requires Valid()
+      requires old(BaseMetric()) == BaseMetric()
+      requires old(original.RemainingMetric()) == original.RemainingMetric()
+      requires old(InnerRemainingMetric()) == InnerRemainingMetric()
+      ensures old(RemainingMetric()) == RemainingMetric()
+    {}
+
     ghost predicate Valid()
       reads this, Repr
       ensures Valid() ==> this in Repr
@@ -1234,9 +1245,9 @@ module Std.Producers {
       true
     }
 
-    // @ResourceLimit("1e9")
+    @ResourceLimit("1e9")
     @IsolateAssertions
-    method {:only} Invoke(t: ()) returns (result: Option<T>)
+    method Invoke(t: ()) returns (result: Option<T>)
       requires Requires(t)
       reads this, Repr
       modifies Modifies(t)
@@ -1360,18 +1371,17 @@ module Std.Producers {
         }
       }
 
-      // TODO: figure out how to prove that Remaining()
-      // doesn't depend on history
+      label beforeUpdatingHistory:
       if result.Some? {
         OutputsPartitionedAfterOutputtingSome(result.value);
         ProduceSome(result.value);
 
-        assume {:axiom} old(Remaining()) > Remaining();
+        RemainingMetricDoesntReadHistory@beforeUpdatingHistory();
       } else {
         OutputsPartitionedAfterOutputtingNone();
         ProduceNone();
 
-        assume {:axiom} old(Remaining()) >= Remaining();
+        RemainingMetricDoesntReadHistory@beforeUpdatingHistory();
       }
       assert Valid();
     }
