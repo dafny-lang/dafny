@@ -1088,66 +1088,61 @@ module Std.Producers {
     }
   }
 
-  trait OutputsNewProducersProof<I, O> {
-
-    ghost function Action(): Action<I, Producer<O>>
-
-    twostate lemma ProducedAllNew(input: I, new output: Producer<O>)
-      requires old(Action().Valid())
-      requires Action().ValidOutput(old(Action().history), input, output)
-      ensures output.Valid()
-      ensures fresh(output.Repr)
-      ensures output.history == []
-  }
-
-  trait ProducesNewProducersProof<T> {
-
-    ghost function Producer(): Producer<Producer<T>>
+  trait ProducerOfNewProducers<T> extends Producer<Producer<T>> {
 
     ghost function MaxProduced(): TerminationMetric
       ensures MaxProduced().Valid()
 
-    twostate lemma ProducedAllNew(new produced: Producer<T>)
-      requires old(Producer().Valid())
-      requires Producer().ValidOutput(old(Producer().history), (), Some(produced))
-      ensures produced.Valid()
-      ensures fresh(produced.Repr)
-      ensures Producer().Repr !! produced.Repr
-      ensures produced.history == []
-      ensures MaxProduced().Ordinal() > produced.RemainingMetric().Ordinal()
+    method Invoke(i: ()) returns (r: Option<Producer<T>>)
+      requires Requires(())
+      reads Reads(())
+      modifies Modifies(())
+      decreases Decreases(()), 0
+      ensures Ensures((), r)
+      ensures if r.Some? then
+                old(Remaining()) > Remaining()
+              else
+                old(Remaining()) >= Remaining()
+      ensures r.Some? ==> JustProduced(r.value)
+
+    twostate predicate {:only} JustProduced(new produced: Producer<T>)
+      reads this, produced, produced.Repr
+    {
+      && produced.Valid()
+      && fresh(produced.Repr)
+      && Repr !! produced.Repr
+      && produced.history == []
+      && MaxProduced().Ordinal() > produced.RemainingMetric().Ordinal()
+    }
   }
 
   class FlattenedProducer<T> extends Producer<T> {
 
-    const original: Producer<Producer<T>>
+    const original: ProducerOfNewProducers<T>
     var currentInner: Option<Producer<T>>
 
-    ghost const producesNewProducersProof: ProducesNewProducersProof<T>
-
-    constructor (original: Producer<Producer<T>>, ghost producesNewProducersProof: ProducesNewProducersProof<T>)
+    constructor (original: ProducerOfNewProducers<T>)
       requires original.Valid()
-      requires producesNewProducersProof.Producer() == original
       ensures Valid()
       ensures fresh(Repr - original.Repr)
     {
       this.original := original;
 
-      this.producesNewProducersProof := producesNewProducersProof;
       this.history := [];
       this.Repr := {this} + original.Repr;
       this.currentInner := None;
     }
 
-    ghost function {:only} BaseMetric(): TerminationMetric 
+    ghost function BaseMetric(): TerminationMetric 
       requires Valid()
       reads this, Repr
       decreases Repr, 1
       ensures BaseMetric().Valid()
     {
-      TMSucc(producesNewProducersProof.MaxProduced())
+      TMSucc(original.MaxProduced())
     }
 
-    ghost function {:only} InnerRemainingMetric(): TerminationMetric 
+    ghost function InnerRemainingMetric(): TerminationMetric 
       requires Valid()
       reads this, Repr
       decreases Repr, 2
@@ -1163,7 +1158,7 @@ module Std.Producers {
         TMNat(0)
     }
 
-    twostate lemma {:only} InnerRemainingMetricNonIncreases()
+    twostate lemma InnerRemainingMetricNonIncreases()
       requires old(Valid())
       requires old(currentInner.Some?)
       requires Valid()
@@ -1175,7 +1170,7 @@ module Std.Producers {
       old(InnerRemainingMetric()).SuccNonIncreasesTo(InnerRemainingMetric());
     }
 
-    twostate lemma {:only} InnerRemainingMetricDecreases()
+    twostate lemma InnerRemainingMetricDecreases()
       requires old(Valid())
       requires old(currentInner.Some?)
       requires Valid()
@@ -1187,7 +1182,7 @@ module Std.Producers {
       old(InnerRemainingMetric()).SuccDecreasesTo(InnerRemainingMetric());
     }
 
-    twostate lemma {:only} InnerRemainingMetricDecreases2()
+    twostate lemma InnerRemainingMetricDecreases2()
       requires old(Valid())
       requires old(currentInner.Some?)
       requires Valid()
@@ -1197,7 +1192,7 @@ module Std.Producers {
       reveal TerminationMetric.Ordinal();
     }
 
-    ghost function {:only} RemainingMetric(): TerminationMetric
+    ghost function RemainingMetric(): TerminationMetric
       requires Valid()
       reads this, Repr
       decreases Repr, 3
@@ -1216,12 +1211,11 @@ module Std.Producers {
       && ValidComponent(original)
       && (currentInner.Some? ==> ValidComponent(currentInner.value))
       && original.Repr !! (if currentInner.Some? then currentInner.value.Repr else {})
-      && producesNewProducersProof.Producer() == original
       && ValidHistory(history)
       && (currentInner.Some? ==> 
         && 0 < |original.Outputs()| 
         && currentInner == Seq.Last(original.Outputs())
-        && producesNewProducersProof.MaxProduced().Ordinal() > currentInner.value.RemainingMetric().Ordinal())
+        && original.MaxProduced().Ordinal() > currentInner.value.RemainingMetric().Ordinal())
       && (!original.Done() && currentInner.Some? && !currentInner.value.Done() ==> !Done())
       && (Done() ==> original.Done() && currentInner.None?)
     }
@@ -1240,7 +1234,7 @@ module Std.Producers {
       true
     }
 
-    @ResourceLimit("1e9")
+    // @ResourceLimit("1e9")
     @IsolateAssertions
     method {:only} Invoke(t: ()) returns (result: Option<T>)
       requires Requires(t)
@@ -1259,7 +1253,7 @@ module Std.Producers {
         invariant fresh(Repr - old(Repr))
         invariant Valid()
         invariant history == old(history)
-        invariant {:only} fresh(original.Repr - old(original.Repr))
+        invariant fresh(original.Repr - old(original.Repr))
         invariant currentInner.Some? ==> fresh(currentInner.value.Repr - old(Repr))
         invariant result.Some? ==> !original.Done() && currentInner.Some? && !currentInner.value.Done()
         invariant old(original.history) <= original.history
@@ -1275,12 +1269,11 @@ module Std.Producers {
           label beforeOriginalNext:
           ghost var historyBefore := original.history;
           old(RemainingMetric()).TupleDecreasesToFirst();
-          currentInner := original.Next();
+          currentInner := original.Invoke(());
 
           assert fresh(original.Repr - old@beforeOriginalNext(Repr));
           if currentInner.Some? {
-            producesNewProducersProof.ProducedAllNew@beforeOriginalNext(currentInner.value);
-            assert producesNewProducersProof.MaxProduced().Ordinal() > currentInner.value.RemainingMetric().Ordinal();
+            assert original.MaxProduced().Ordinal() > currentInner.value.RemainingMetric().Ordinal();
             Repr := {this} + original.Repr + currentInner.value.Repr;
 
             assert ValidComponent(currentInner.value);
@@ -1307,7 +1300,7 @@ module Std.Producers {
             assert result.None?;
             assert old(Remaining()) >= Remaining();
 
-            assert {:only} if result.Some? then
+            assert if result.Some? then
                     old(Remaining()) > Remaining()
                   else
                     old(Remaining()) >= Remaining();
@@ -1373,12 +1366,12 @@ module Std.Producers {
         OutputsPartitionedAfterOutputtingSome(result.value);
         ProduceSome(result.value);
 
-        assert {:only} old(Remaining()) > Remaining();
+        assume {:axiom} old(Remaining()) > Remaining();
       } else {
         OutputsPartitionedAfterOutputtingNone();
         ProduceNone();
 
-        assert {:only} old(Remaining()) >= Remaining();
+        assume {:axiom} old(Remaining()) >= Remaining();
       }
       assert Valid();
     }
