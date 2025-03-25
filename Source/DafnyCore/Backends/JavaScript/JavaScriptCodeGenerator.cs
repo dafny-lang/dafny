@@ -907,7 +907,7 @@ namespace Microsoft.Dafny.Compilers {
       return UnicodeCharEnabled ? "new _dafny.CodePoint" : "String.fromCharCode";
     }
 
-    internal override string TypeName(Type type, ConcreteSyntaxTree wr, IOrigin tok, MemberDecl /*?*/ member = null) {
+    public override string TypeName(Type type, ConcreteSyntaxTree wr, IOrigin tok, MemberDecl /*?*/ member = null) {
       Contract.Ensures(Contract.Result<string>() != null);
       Contract.Assume(type != null);  // precondition; this ought to be declared as a Requires in the superclass
 
@@ -1065,7 +1065,7 @@ namespace Microsoft.Dafny.Compilers {
       return s;
     }
 
-    internal override string TypeName_Companion(Type type, ConcreteSyntaxTree wr, IOrigin tok, MemberDecl/*?*/ member) {
+    public override string TypeName_Companion(Type type, ConcreteSyntaxTree wr, IOrigin tok, MemberDecl/*?*/ member) {
       // Many (that is, more so than in C# or Java) companion classes in JavaScript are just the same as the type
       type = UserDefinedType.UpcastToMemberEnclosingType(type, member);
       if (type.NormalizeExpandKeepConstraints() is UserDefinedType udt) {
