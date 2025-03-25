@@ -35,11 +35,12 @@ module Std.Producers {
 
     ghost predicate Valid()
       reads this, Repr
-      ensures Valid() ==> this in Repr
-      ensures Valid() ==> ValidHistory(history)
+      ensures Valid() ==> this in Repr && history in Repr
+      ensures Valid() ==> ValidHistory(history.value)
       decreases Repr, 0
     {
-      this in Repr
+      && this in Repr
+      && history in Repr
     }
 
     constructor(state: S, stepFn: S -> (S, T))
@@ -47,8 +48,8 @@ module Std.Producers {
     {
       this.state := state;
       this.stepFn := stepFn;
-      this.Repr := {this};
-      this.history := [];
+      this.history := new GhostBox([]);
+      this.Repr := {this, history};
     }
 
     ghost predicate ValidHistory(history: seq<((), T)>)
@@ -97,8 +98,8 @@ module Std.Producers {
 
     ghost predicate Valid()
       reads this, Repr
-      ensures Valid() ==> this in Repr
-      ensures Valid() ==> ValidHistory(history)
+      ensures Valid() ==> this in Repr && history in Repr
+      ensures Valid() ==> ValidHistory(history.value)
       decreases Repr, 0
 
     ghost function Action(): Action<(), Option<T>> {
@@ -120,10 +121,10 @@ module Std.Producers {
     }
 
     ghost function Produced(): seq<T>
-      requires ValidHistory(history)
-      reads this, Repr
+      requires ValidHistory(history.value)
+      reads this`history, history
     {
-      ProducedOf(OutputsOf(history))
+      ProducedOf(Outputs())
     }
 
     ghost predicate ValidOutputs(outputs: seq<Option<T>>)
@@ -198,7 +199,7 @@ module Std.Producers {
     {
       assert Requires(());
 
-      AnyInputIsValid(history, ());
+      AnyInputIsValid(history.value, ());
       r := Invoke(());
     }
 
@@ -219,7 +220,7 @@ module Std.Producers {
         invariant totalActionProof.Valid()
         decreases Remaining()
       {
-        totalActionProof.AnyInputIsValid(consumer.history, t.value);
+        totalActionProof.AnyInputIsValid(consumer.history.value, t.value);
         consumer.Accept(t.value);
 
         t := Next();
@@ -233,7 +234,7 @@ module Std.Producers {
     // But note that !Done() does not guarantee that
     // the next output will be a Some!
     ghost predicate Done()
-      reads this
+      reads this`history, history
       decreases Repr, 2
     {
       !Seq.All(Outputs(), IsSome)
@@ -242,30 +243,30 @@ module Std.Producers {
     // Helper methods
 
     lemma OutputsPartitionedAfterOutputtingNone()
-      requires ValidHistory(history)
-      ensures Seq.Partitioned(OutputsOf(history + [((), None)]), IsSome)
+      requires ValidHistory(history.value)
+      ensures Seq.Partitioned(OutputsOf(history.value + [((), None)]), IsSome)
     {
       assert Seq.Partitioned(Outputs(), IsSome);
       assert Seq.AllNot<Option<T>>([None], IsSome);
       Seq.PartitionedCompositionRight(Outputs(), [None], IsSome);
-      assert OutputsOf(history + [((), None)]) == Outputs() + [None];
+      assert OutputsOf(history.value + [((), None)]) == Outputs() + [None];
     }
 
     lemma OutputsPartitionedAfterOutputtingSome(value: T)
-      requires ValidHistory(history)
-      requires Seq.All<Option<T>>(OutputsOf(history), IsSome)
-      ensures Seq.Partitioned(OutputsOf(history + [((), Some(value))]), IsSome)
+      requires ValidHistory(history.value)
+      requires Seq.All<Option<T>>(OutputsOf(history.value), IsSome)
+      ensures Seq.Partitioned(OutputsOf(history.value + [((), Some(value))]), IsSome)
     {
       assert Seq.Partitioned(Outputs(), IsSome);
       assert Seq.All<Option<T>>([Some(value)], IsSome);
       Seq.PartitionedCompositionLeft(Outputs(), [Some(value)], IsSome);
-      assert OutputsOf(history + [((), Some(value))]) == Outputs() + [Some(value)];
+      assert OutputsOf(history.value + [((), Some(value))]) == Outputs() + [Some(value)];
     }
 
     twostate lemma DoneIsOneWay()
       requires old(Valid())
       requires Valid()
-      requires old(history) <= history
+      requires old(history.value) <= history.value
       ensures !Done() ==> old(!Done())
     {
       if !Done() {
@@ -275,8 +276,8 @@ module Std.Producers {
     }
 
     twostate lemma OutputtingSomeMeansAllSome(new value: T)
-      requires history == old(history) + [((), Some(value))]
-      requires ValidHistory(history)
+      requires history.value == old(history.value) + [((), Some(value))]
+      requires ValidHistory(history.value)
       ensures Seq.All(old(Outputs()), IsSome)
       ensures Seq.All(Outputs(), IsSome)
     {
@@ -294,19 +295,19 @@ module Std.Producers {
 
 
     twostate lemma OutputtingNoneMeansNotAllSome()
-      requires history == old(history) + [((), None)]
-      requires ValidHistory(history)
+      requires history.value == old(history.value) + [((), None)]
+      requires ValidHistory(history.value)
       ensures !Seq.All(Outputs(), IsSome)
     {
       assert !IsSome(Seq.Last(Outputs()));
     }
 
     method ProduceNone()
-      requires ValidHistory(history)
-      requires ValidHistory(history + [((), None)])
-      reads this, Repr
-      modifies this`history
-      ensures history == old(history) + [((), None)]
+      requires ValidHistory(history.value)
+      requires ValidHistory(history.value + [((), None)])
+      reads this`history, history
+      modifies history
+      ensures history.value == old(history.value) + [((), None)]
       ensures Produced() == old(Produced())
     {
       UpdateHistory((), None);
@@ -314,29 +315,29 @@ module Std.Producers {
       Seq.PartitionedCompositionRight(old(Outputs()), [None], IsSome);
       assert Seq.Partitioned(old(Outputs()), IsSome);
       ProducedComposition(old(Outputs()), [None]);
-      assert OutputsOf(history) == old(OutputsOf(history)) + [None];
+      assert OutputsOf(history.value) == old(OutputsOf(history.value)) + [None];
       calc {
         Produced();
-        ProducedOf(OutputsOf(history));
-        ProducedOf(old(OutputsOf(history)) + [None]);
-        ProducedOf(old(OutputsOf(history))) + ProducedOf(OutputsOf([((), None)]));
+        ProducedOf(Outputs());
+        ProducedOf(old(Outputs()) + [None]);
+        ProducedOf(old(Outputs())) + ProducedOf(OutputsOf([((), None)]));
         old(Produced()) + ProducedOf([None]);
         old(Produced());
       }
     }
 
     method ProduceSome(value: T)
-      requires ValidHistory(history)
-      requires ValidHistory(history + [((), Some(value))])
-      reads this, Repr
-      modifies this`history
-      ensures history == old(history) + [((), Some(value))]
+      requires ValidHistory(history.value)
+      requires ValidHistory(history.value + [((), Some(value))])
+      reads this`history, history
+      modifies history
+      ensures history.value == old(history.value) + [((), Some(value))]
       ensures Produced() == old(Produced()) + [value]
       ensures Seq.All(Outputs(), IsSome)
     {
       UpdateHistory((), Some(value));
 
-      assert ValidHistory(old(history));
+      assert ValidHistory(old(history.value));
       assert Seq.Partitioned(old(Outputs()), IsSome);
       Seq.PartitionedLastTrueImpliesAll(Outputs(), IsSome);
       assert Seq.All(Outputs(), IsSome);
@@ -346,12 +347,12 @@ module Std.Producers {
       Seq.PartitionedCompositionLeft(old(Outputs()), [Some(value)], IsSome);
       assert Seq.Partitioned(old(Outputs()), IsSome);
       ProducedComposition(old(Outputs()), [Some(value)]);
-      assert OutputsOf(history) == old(OutputsOf(history)) + [Some(value)];
+      assert Outputs() == old(Outputs()) + [Some(value)];
       calc {
         Produced();
-        ProducedOf(OutputsOf(history));
-        ProducedOf(old(OutputsOf(history)) + [Some(value)]);
-        ProducedOf(old(OutputsOf(history))) + ProducedOf(OutputsOf([((), Some(value))]));
+        ProducedOf(Outputs());
+        ProducedOf(old(Outputs()) + [Some(value)]);
+        ProducedOf(old(Outputs())) + ProducedOf(OutputsOf([((), Some(value))]));
         old(Produced()) + ProducedOf([Some(value)]);
         old(Produced()) + [value];
       }
@@ -467,22 +468,24 @@ module Std.Producers {
 
     constructor()
       ensures Valid()
-      ensures history == []
+      ensures history.value == []
       ensures fresh(Repr)
       reads {}
     {
-      Repr := {this};
-      history := [];
+      var history' := new GhostBox([]);
+      Repr := {this, history'};
+      this.history := history';
     }
 
     ghost predicate Valid()
       reads this, Repr
-      ensures Valid() ==> this in Repr
-      ensures Valid() ==> ValidHistory(history)
+      ensures Valid() ==> this in Repr && history in Repr
+      ensures Valid() ==> ValidHistory(history.value)
       decreases Repr, 0
     {
       && this in Repr
-      && ValidHistory(history)
+      && history in Repr
+      && ValidHistory(history.value)
     }
 
     twostate predicate ValidOutput(history: seq<((), Option<T>)>, nextInput: (), new nextOutput: Option<T>)
@@ -536,25 +539,27 @@ module Std.Producers {
 
     constructor(elements: seq<T>)
       ensures Valid()
-      ensures history == []
+      ensures history.value == []
       ensures fresh(Repr)
       reads {}
     {
       this.elements := elements;
       this.index := 0;
 
-      Repr := {this};
-      history := [];
+      var history' := new GhostBox([]);
+      Repr := {this, history'};
+      history := history';
     }
 
     ghost predicate Valid()
       reads this, Repr
-      ensures Valid() ==> this in Repr
-      ensures Valid() ==> ValidHistory(history)
+      ensures Valid() ==> this in Repr && history in Repr
+      ensures Valid() ==> ValidHistory(history.value)
       decreases Repr, 0
     {
       && this in Repr
-      && ValidHistory(history)
+      && history in Repr
+      && ValidHistory(history.value)
       && index <= |elements|
       && (index < |elements| ==> Seq.All(Outputs(), IsSome))
     }
@@ -632,7 +637,7 @@ module Std.Producers {
       requires originalTotalAction.Action() == original
       requires original.Repr !! originalTotalAction.Repr
       ensures Valid()
-      ensures history == []
+      ensures history.value == []
       ensures fresh(Repr - original.Repr - originalTotalAction.Repr)
     {
       this.original := original;
@@ -640,22 +645,24 @@ module Std.Producers {
       this.produced := 0;
       this.originalTotalAction := originalTotalAction;
 
-      Repr := {this} + original.Repr + originalTotalAction.Repr;
-      history := [];
+      var history' := new GhostBox([]);
+      Repr := {this, history'} + original.Repr + originalTotalAction.Repr;
+      this.history := history';
     }
 
     ghost predicate Valid()
       reads this, Repr
-      ensures Valid() ==> this in Repr
-      ensures Valid() ==> ValidHistory(history)
+      ensures Valid() ==> this in Repr && history in Repr
+      ensures Valid() ==> ValidHistory(history.value)
       decreases Repr, 0
     {
       && this in Repr
+      && history in Repr
       && ValidComponent(original)
       && ValidComponent(originalTotalAction)
       && original.Repr !! originalTotalAction.Repr
       && originalTotalAction.Action() == original
-      && ValidHistory(history)
+      && ValidHistory(history.value)
       && produced == |Produced()|
       && produced <= max
       && (produced < max ==> Seq.All(Outputs(), IsSome))
@@ -707,7 +714,7 @@ module Std.Producers {
         OutputsPartitionedAfterOutputtingNone();
         ProduceNone();
       } else {
-        originalTotalAction.AnyInputIsValid(original.history, ());
+        originalTotalAction.AnyInputIsValid(original.history.value, ());
         var v := original.Invoke(());
         value := Some(v);
         produced := produced + 1;
@@ -716,7 +723,7 @@ module Std.Producers {
         ProduceSome(v);
       }
 
-      Repr := {this} + original.Repr + originalTotalAction.Repr;
+      Repr := {this, history} + original.Repr + originalTotalAction.Repr;
       assert Valid();
     }
   }
@@ -729,25 +736,26 @@ module Std.Producers {
     constructor (source: Producer<T>, filter: T -> bool)
       requires source.Valid()
       ensures Valid()
-      ensures history == []
+      ensures history.value == []
       ensures fresh(Repr - source.Repr)
     {
       this.source := source;
       this.filter := filter;
 
       Repr := {this} + source.Repr;
-      history := [];
+      history := new GhostBox([]);
     }
 
     ghost predicate Valid()
       reads this, Repr
-      ensures Valid() ==> this in Repr
-      ensures Valid() ==> ValidHistory(history)
+      ensures Valid() ==> this in Repr && history in Repr
+      ensures Valid() ==> ValidHistory(history.value)
       decreases Repr, 0
     {
       && this in Repr
+      && history in Repr
       && ValidComponent(source)
-      && ValidHistory(history)
+      && ValidHistory(history.value)
       && (!source.Done() ==> !Done())
     }
 
@@ -801,14 +809,14 @@ module Std.Producers {
                     old(source.Remaining()) > source.Remaining()
                   else
                     old(source.Remaining()) >= source.Remaining()
-        invariant old(source.history) <= source.history
+        invariant old(source.history.value) <= source.history.value
         invariant old(Remaining()) >= Remaining()
         decreases source.Remaining()
       {
         notFirstLoop := true;
 
         result := source.Next();
-        Repr := {this} + source.Repr;
+        Repr := {this, history} + source.Repr;
 
         if result.None? || filter(result.value) {
           break;
@@ -855,12 +863,12 @@ module Std.Producers {
 
     constructor (first: Producer<T>, second: Producer<T>)
       requires first.Valid()
-      requires first.history == []
+      requires first.history.value == []
       requires second.Valid()
-      requires second.history == []
+      requires second.history.value == []
       requires first.Repr !! second.Repr
       ensures Valid()
-      ensures history == []
+      ensures history.value == []
       ensures fresh(Repr - first.Repr - second.Repr)
     {
       this.first := first;
@@ -868,23 +876,25 @@ module Std.Producers {
       this.base := TMSucc(second.RemainingMetric());
       reveal TerminationMetric.Ordinal();
 
-      Repr := {this} + first.Repr + second.Repr;
-      history := [];
+      var history' := new GhostBox([]);
+      Repr := {this, history'} + first.Repr + second.Repr;
+      history := history';
     }
 
     ghost predicate Valid()
       reads this, Repr
-      ensures Valid() ==> this in Repr
-      ensures Valid() ==> ValidHistory(history)
+      ensures Valid() ==> this in Repr && history in Repr
+      ensures Valid() ==> ValidHistory(history.value)
       decreases Repr, 0
     {
       && this in Repr
+      && history in Repr
       && ValidComponent(first)
       && ValidComponent(second)
       && first.Repr !! second.Repr
       && base.Valid()
       && base.Ordinal() > second.RemainingMetric().Ordinal()
-      && ValidHistory(history)
+      && ValidHistory(history.value)
       && (Seq.All(first.Outputs(), IsSome) || Seq.All(second.Outputs(), IsSome) ==> Seq.All(Outputs(), IsSome))
     }
 
@@ -928,7 +938,7 @@ module Std.Producers {
       RemainingMetric().TupleDecreasesToFirst();
       assert (Decreases(t), 0 decreases to first.Decreases(t), 0);
       result := first.Next();
-      Repr := {this} + first.Repr + second.Repr;
+      Repr := {this, history} + first.Repr + second.Repr;
 
       if result.Some? {
         first.OutputtingSomeMeansAllSome(result.value);
@@ -938,7 +948,7 @@ module Std.Producers {
 
         old(RemainingMetric()).TupleDecreasesToSecond();
         result := second.Next();
-        Repr := {this} + first.Repr + second.Repr;
+        Repr := {this, history} + first.Repr + second.Repr;
 
         if result.Some? {
           second.OutputtingSomeMeansAllSome(result.value);
@@ -980,14 +990,14 @@ module Std.Producers {
 
     constructor (original: Producer<I>, mapping: Action<I, O>, ghost mappingTotalProof: TotalActionProof<I, O>)
       requires original.Valid()
-      requires original.history == []
+      requires original.history.value == []
       requires mapping.Valid()
-      requires mapping.history == []
+      requires mapping.history.value == []
       requires mappingTotalProof.Valid()
       requires mappingTotalProof.Action() == mapping
       requires original.Repr !! mapping.Repr !! mappingTotalProof.Repr
       ensures Valid()
-      ensures history == []
+      ensures history.value == []
       ensures fresh(Repr - original.Repr - mapping.Repr - mappingTotalProof.Repr)
     {
       this.original := original;
@@ -996,23 +1006,25 @@ module Std.Producers {
       this.base := TMSucc(original.RemainingMetric());
       reveal TerminationMetric.Ordinal();
 
-      Repr := {this} + original.Repr + mapping.Repr + mappingTotalProof.Repr;
-      history := [];
+      var history' := new GhostBox([]);
+      Repr := {this, history'} + original.Repr + mapping.Repr + mappingTotalProof.Repr;
+      history := history';
     }
 
     ghost predicate Valid()
       reads this, Repr
-      ensures Valid() ==> this in Repr
-      ensures Valid() ==> ValidHistory(history)
+      ensures Valid() ==> this in Repr && history in Repr
+      ensures Valid() ==> ValidHistory(history.value)
       decreases Repr, 0
     {
       && this in Repr
+      && history in Repr
       && ValidComponent(original)
       && ValidComponent(mapping)
       && ValidComponent(mappingTotalProof)
       && mappingTotalProof.Action() == mapping
       && original.Repr !! mapping.Repr !! mappingTotalProof.Repr
-      && ValidHistory(history)
+      && ValidHistory(history.value)
       && base.Valid()
       && base.DecreasesTo(original.RemainingMetric())
       && (!original.Done() <==> !Done())
@@ -1059,7 +1071,7 @@ module Std.Producers {
       var next := original.Next();
 
       if next.Some? {
-        mappingTotalProof.AnyInputIsValid(mapping.history, next.value);
+        mappingTotalProof.AnyInputIsValid(mapping.history.value, next.value);
         var nextValue := mapping.Invoke(next.value);
         result := Some(nextValue);
 
@@ -1076,7 +1088,7 @@ module Std.Producers {
         assert !IsSome(Seq.Last(Outputs()));
       }
 
-      Repr := {this} + original.Repr + mapping.Repr + mappingTotalProof.Repr;
+      Repr := {this, history} + original.Repr + mapping.Repr + mappingTotalProof.Repr;
       assert Valid();
       if next.Some? {
         assert original.RemainingMetricDecreased();
@@ -1094,10 +1106,10 @@ module Std.Producers {
 
     twostate lemma ProducedAllNew(input: I, new output: Producer<O>)
       requires old(Action().Valid())
-      requires Action().ValidOutput(old(Action().history), input, output)
+      requires Action().ValidOutput(old(Action().history.value), input, output)
       ensures output.Valid()
       ensures fresh(output.Repr)
-      ensures output.history == []
+      ensures output.history.value == []
   }
 
   trait ProducesNewProducersProof<T> {
@@ -1109,11 +1121,11 @@ module Std.Producers {
 
     twostate lemma ProducedAllNew(new produced: Producer<T>)
       requires old(Producer().Valid())
-      requires Producer().ValidOutput(old(Producer().history), (), Some(produced))
+      requires Producer().ValidOutput(old(Producer().history.value), (), Some(produced))
       ensures produced.Valid()
       ensures fresh(produced.Repr)
       ensures Producer().Repr !! produced.Repr
-      ensures produced.history == []
+      ensures produced.history.value == []
       ensures MaxProduced().Ordinal() > produced.RemainingMetric().Ordinal()
   }
 
@@ -1133,12 +1145,12 @@ module Std.Producers {
       this.original := original;
 
       this.producesNewProducersProof := producesNewProducersProof;
-      this.history := [];
-      this.Repr := {this} + original.Repr;
+      this.history := new GhostBox([]);
+      this.Repr := {this, history} + original.Repr;
       this.currentInner := None;
     }
 
-    ghost function {:only} BaseMetric(): TerminationMetric 
+    ghost function BaseMetric(): TerminationMetric 
       requires Valid()
       reads this, Repr
       decreases Repr, 1
@@ -1147,7 +1159,7 @@ module Std.Producers {
       TMSucc(producesNewProducersProof.MaxProduced())
     }
 
-    ghost function {:only} InnerRemainingMetric(): TerminationMetric 
+    ghost function InnerRemainingMetric(): TerminationMetric 
       requires Valid()
       reads this, Repr
       decreases Repr, 2
@@ -1163,7 +1175,7 @@ module Std.Producers {
         TMNat(0)
     }
 
-    twostate lemma {:only} InnerRemainingMetricNonIncreases()
+    twostate lemma InnerRemainingMetricNonIncreases()
       requires old(Valid())
       requires old(currentInner.Some?)
       requires Valid()
@@ -1175,7 +1187,7 @@ module Std.Producers {
       old(InnerRemainingMetric()).SuccNonIncreasesTo(InnerRemainingMetric());
     }
 
-    twostate lemma {:only} InnerRemainingMetricDecreases()
+    twostate lemma InnerRemainingMetricDecreases()
       requires old(Valid())
       requires old(currentInner.Some?)
       requires Valid()
@@ -1187,7 +1199,7 @@ module Std.Producers {
       old(InnerRemainingMetric()).SuccDecreasesTo(InnerRemainingMetric());
     }
 
-    twostate lemma {:only} InnerRemainingMetricDecreases2()
+    twostate lemma InnerRemainingMetricDecreases2()
       requires old(Valid())
       requires old(currentInner.Some?)
       requires Valid()
@@ -1197,7 +1209,7 @@ module Std.Producers {
       reveal TerminationMetric.Ordinal();
     }
 
-    ghost function {:only} RemainingMetric(): TerminationMetric
+    ghost function RemainingMetric(): TerminationMetric
       requires Valid()
       reads this, Repr
       decreases Repr, 3
@@ -1208,16 +1220,17 @@ module Std.Producers {
 
     ghost predicate Valid()
       reads this, Repr
-      ensures Valid() ==> this in Repr
-      ensures Valid() ==> ValidHistory(history)
+      ensures Valid() ==> this in Repr && history in Repr
+      ensures Valid() ==> ValidHistory(history.value)
       decreases Repr, 0
     {
       && this in Repr
+      && history in Repr
       && ValidComponent(original)
       && (currentInner.Some? ==> ValidComponent(currentInner.value))
       && original.Repr !! (if currentInner.Some? then currentInner.value.Repr else {})
       && producesNewProducersProof.Producer() == original
-      && ValidHistory(history)
+      && ValidHistory(history.value)
       && (currentInner.Some? ==> 
         && 0 < |original.Outputs()| 
         && currentInner == Seq.Last(original.Outputs())
@@ -1242,7 +1255,7 @@ module Std.Producers {
 
     @ResourceLimit("1e9")
     @IsolateAssertions
-    method {:only} Invoke(t: ()) returns (result: Option<T>)
+    method Invoke(t: ()) returns (result: Option<T>)
       requires Requires(t)
       reads this, Repr
       modifies Modifies(t)
@@ -1259,10 +1272,10 @@ module Std.Producers {
         invariant fresh(Repr - old(Repr))
         invariant Valid()
         invariant history == old(history)
-        invariant {:only} fresh(original.Repr - old(original.Repr))
+        invariant fresh(original.Repr - old(original.Repr))
         invariant currentInner.Some? ==> fresh(currentInner.value.Repr - old(Repr))
         invariant result.Some? ==> !original.Done() && currentInner.Some? && !currentInner.value.Done()
-        invariant old(original.history) <= original.history
+        invariant old(original.history.value) <= original.history.value
         invariant old(Done()) == Done()
         invariant if result.Some? then
                     old(Remaining()) > Remaining()
@@ -1281,12 +1294,12 @@ module Std.Producers {
           if currentInner.Some? {
             producesNewProducersProof.ProducedAllNew@beforeOriginalNext(currentInner.value);
             assert producesNewProducersProof.MaxProduced().Ordinal() > currentInner.value.RemainingMetric().Ordinal();
-            Repr := {this} + original.Repr + currentInner.value.Repr;
+            Repr := {this, history} + original.Repr + currentInner.value.Repr;
 
             assert ValidComponent(currentInner.value);
 
             assert old@beforeOriginalNext(original.Valid());
-            assert currentInner.value.history == [];
+            assert currentInner.value.history.value == [];
 
             assert currentInner == Seq.Last(original.Outputs());
             Seq.PartitionedLastTrueImpliesAll(original.Outputs(), IsSome);
@@ -1296,7 +1309,7 @@ module Std.Producers {
             old(RemainingMetric()).TupleDecreasesToTuple(RemainingMetric());
             assert old(Remaining()) >= Remaining();
           } else {
-            Repr := {this} + original.Repr;
+            Repr := {this, history} + original.Repr;
 
             assert currentInner == Seq.Last(original.Outputs());
             assert original.Done() && currentInner.None?;
@@ -1307,7 +1320,7 @@ module Std.Producers {
             assert result.None?;
             assert old(Remaining()) >= Remaining();
 
-            assert {:only} if result.Some? then
+            assert if result.Some? then
                     old(Remaining()) > Remaining()
                   else
                     old(Remaining()) >= Remaining();
@@ -1328,7 +1341,7 @@ module Std.Producers {
             reveal TerminationMetric.Ordinal();
           }
           result := currentInner.value.Next();
-          this.Repr := {this} + original.Repr + currentInner.value.Repr;
+          this.Repr := {this, history} + original.Repr + currentInner.value.Repr;
 
           assert old@beforeCurrentInnerNext(currentInner.value.RemainingMetric()).NonIncreasesTo(currentInner.value.RemainingMetric());
           InnerRemainingMetricNonIncreases@beforeCurrentInnerNext();
@@ -1373,12 +1386,12 @@ module Std.Producers {
         OutputsPartitionedAfterOutputtingSome(result.value);
         ProduceSome(result.value);
 
-        assert {:only} old(Remaining()) > Remaining();
+        assert old(Remaining()) > Remaining();
       } else {
         OutputsPartitionedAfterOutputtingNone();
         ProduceNone();
 
-        assert {:only} old(Remaining()) >= Remaining();
+        assert old(Remaining()) >= Remaining();
       }
       assert Valid();
     }

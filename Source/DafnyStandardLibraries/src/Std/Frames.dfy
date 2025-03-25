@@ -53,4 +53,23 @@ module Std.Frames {
       Valid() && fresh(Repr - old(Repr))
     }
   }
+
+  // Simple class holding onto an arbitrary mutable value.
+  // Useful for working around the fact that mutable fields
+  // are not first-class values as objects are:
+  // You can't express something like
+  //    `modifies Repr - {this`specialField}`
+  // But you can say
+  //    `modifies Repr - {this.specialFieldBox}`
+  class GhostBox<T> {
+
+    ghost var value: T
+
+    ghost constructor (value: T)
+      reads {}
+      ensures this.value == value
+    {
+      this.value := value;
+    }
+  }
 }

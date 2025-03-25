@@ -9,6 +9,7 @@ module Std.Consumers {
   import opened Wrappers
   import opened DynamicArray
   import opened Termination
+  import opened Frames
   import Collections.Seq
 
   // Actions that consume a T and outputs nothing.
@@ -59,12 +60,13 @@ module Std.Consumers {
 
     ghost predicate Valid()
       reads this, Repr
-      ensures Valid() ==> this in Repr
+      ensures Valid() ==> this in Repr && history in Repr
       ensures Valid() ==>
-                && ValidHistory(history)
+                && ValidHistory(history.value)
       decreases Repr, 0
     {
       && this in Repr
+      && history in Repr
       && storage in Repr
       && size <= storage.Length
       && Inputs() == storage[..size]
@@ -72,10 +74,10 @@ module Std.Consumers {
 
     constructor (storage: array<T>)
       ensures Valid()
-      ensures history == []
+      ensures history.value == []
     {
-      history := [];
-      Repr := {this} + {storage};
+      history := new GhostBox([]);
+      Repr := {this, history} + {storage};
       this.storage := storage;
       this.size := 0;
     }
@@ -121,7 +123,7 @@ module Std.Consumers {
       }
 
       UpdateHistory(t, r);
-      Repr := {this} + {storage};
+      Repr := {this, history} + {storage};
       assert Inputs() == old(Inputs()) + [t];
       assert Valid();
     }
@@ -134,14 +136,16 @@ module Std.Consumers {
 
     ghost predicate Valid()
       reads this, Repr
-      ensures Valid() ==> this in Repr
+      ensures Valid() ==> this in Repr && history in Repr
       ensures Valid() ==>
-                && ValidHistory(history)
+                && ValidHistory(history.value)
       decreases Repr, 0
     {
       && this in Repr
+      && history in Repr
       && storage in Repr
       && this !in storage.Repr
+      && history !in storage.Repr
       && storage.Repr <= Repr
       && storage.Valid?()
       && Inputs() == storage.items
@@ -150,12 +154,12 @@ module Std.Consumers {
     constructor ()
       ensures Valid()
       ensures fresh(Repr - {this})
-      ensures history == []
+      ensures history.value == []
     {
       var a := new DynamicArray();
 
-      history := [];
-      Repr := {this} + {a} + a.Repr;
+      history := new GhostBox([]);
+      Repr := {this, history} + {a} + a.Repr;
       this.storage := a;
     }
 
@@ -196,7 +200,7 @@ module Std.Consumers {
 
       r := ();
       UpdateHistory(t, r);
-      Repr := {this} + {storage} + storage.Repr;
+      Repr := {this, history} + {storage} + storage.Repr;
       assert Inputs() == old(Inputs()) + [t];
       assert Valid();
     }
@@ -224,8 +228,8 @@ module Std.Consumers {
       this.init := init;
       this.f := f;
       this.value := init;
-      this.Repr := {this};
-      this.history := [];
+      this.history := new GhostBox([]);
+      this.Repr := {this, history};
       new;
       reveal Seq.FoldLeft();
       assert value == Seq.FoldLeft(f, init, Inputs());
@@ -233,12 +237,13 @@ module Std.Consumers {
 
     ghost predicate Valid()
       reads this, Repr
-      ensures Valid() ==> this in Repr
+      ensures Valid() ==> this in Repr && history in Repr
       ensures Valid() ==>
-                && ValidHistory(history)
+                && ValidHistory(history.value)
       decreases Repr, 0
     {
       && this in Repr
+      && history in Repr
       && value == Seq.FoldLeft(f, init, Inputs())
     }
 
@@ -306,17 +311,18 @@ module Std.Consumers {
       ensures fresh(Repr)
     {
       values := [];
-      history := [];
-      Repr := {this};
+      history := new GhostBox([]);
+      Repr := {this, history};
     }
 
     ghost predicate Valid()
       reads this, Repr
-      ensures Valid() ==> this in Repr
-      ensures Valid() ==> ValidHistory(history)
+      ensures Valid() ==> this in Repr && history in Repr
+      ensures Valid() ==> ValidHistory(history.value)
       decreases Repr, 0
     {
-      this in Repr
+      && this in Repr
+      && history in Repr
     }
 
     ghost predicate ValidHistory(history: seq<(T, ())>)

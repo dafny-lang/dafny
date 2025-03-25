@@ -22,12 +22,12 @@ module Std.Actions {
   @AssumeCrossModuleTermination
   trait Action<I, O> extends GenericAction<I, O>, Validatable {
 
-    ghost var history: seq<(I, O)>
+    ghost var history: GhostBox<seq<(I, O)>>
 
     ghost predicate Valid()
       reads this, Repr
-      ensures Valid() ==> this in Repr
-      ensures Valid() ==> ValidHistory(history)
+      ensures Valid() ==> this in Repr && history in Repr
+      ensures Valid() ==> ValidHistory(history.value)
       decreases Repr, 0
 
     ghost predicate ValidHistory(history: seq<(I, O)>)
@@ -46,13 +46,13 @@ module Std.Actions {
       reads Reads(i)
     {
       && Valid()
-      && ValidInput(history, i)
+      && ValidInput(history.value, i)
     }
     ghost function Reads(i: I): set<object>
       reads this
       ensures this in Reads(i)
     {
-      {this} + Repr
+      {this} + Repr + {history}
     }
     ghost function Modifies(i: I): set<object>
       reads Reads(i)
@@ -64,30 +64,31 @@ module Std.Actions {
       reads Reads(i)
     {
       && ValidAndDisjoint()
-      && ValidOutput(old(history), i, o)
-      && history == old(history) + [(i, o)]
+      && ValidOutput(old(history.value), i, o)
+      && history.value == old(history.value) + [(i, o)]
     }
 
     // Convenience methods for specifications
 
     ghost method UpdateHistory(i: I, o: O)
-      reads `history
-      modifies `history
-      ensures history == old(history) + [(i, o)]
+      reads this`history, history
+      modifies history
+      ensures history.value == old(history.value) + [(i, o)]
+      ensures old(history) == history
     {
-      history := history + [(i, o)];
+      history.value := history.value + [(i, o)];
     }
 
     ghost function Inputs(): seq<I>
-      reads this
+      reads this`history, history
     {
-      InputsOf(history)
+      InputsOf(history.value)
     }
 
     ghost function Outputs(): seq<O>
-      reads this
+      reads this`history, history
     {
-      OutputsOf(history)
+      OutputsOf(history.value)
     }
   }
 
@@ -183,13 +184,14 @@ module Std.Actions {
 
     ghost predicate Valid()
       reads this, Repr
-      ensures Valid() ==> this in Repr
+      ensures Valid() ==> this in Repr && history in Repr
       ensures Valid() ==>
-                && ValidHistory(history)
+                && ValidHistory(history.value)
       decreases Repr, 0
     {
       && this in Repr
-      && ValidHistory(history)
+      && history in Repr
+      && ValidHistory(history.value)
       && Outputs() == Seq.MapPartialFunction(f, Inputs())
     }
 
@@ -197,12 +199,12 @@ module Std.Actions {
       ensures Valid()
       ensures this.f == f
       ensures fresh(Repr)
-      ensures history == []
+      ensures history.value == []
     {
       this.f := f;
 
-      history := [];
-      Repr := {this};
+      history := new GhostBox([]);
+      Repr := {this, history};
     }
 
     ghost predicate ValidHistory(history: seq<(I, O)>)
@@ -264,38 +266,41 @@ module Std.Actions {
 
     constructor(first: Action<I, M>, second: Action<M, O>, ghost compositionProof: ActionCompositionProof<I, M, O>)
       requires first.Valid()
-      requires first.history == []
+      requires first.history.value == []
       requires second.Valid()
-      requires second.history == []
+      requires second.history.value == []
       requires first.Repr !! second.Repr
       requires compositionProof.FirstAction() == first
       requires compositionProof.SecondAction() == second
       ensures Valid()
-      ensures history == []
+      ensures history.value == []
       ensures this.compositionProof == compositionProof
     {
       this.first := first;
       this.second := second;
       this.compositionProof := compositionProof;
 
-      history := [];
-      Repr := {this} + first.Repr + second.Repr;
+      history := new GhostBox([]);
+      Repr := {this, history} + first.Repr + second.Repr;
     }
 
     ghost predicate Valid()
       reads this, Repr
-      ensures Valid() ==> this in Repr
-      ensures Valid() ==> ValidHistory(history)
+      ensures Valid() ==> this in Repr && history in Repr
+      ensures Valid() ==> ValidHistory(history.value)
       decreases Repr, 0
     {
       && this in Repr
+      && history in Repr
       && ValidComponent(first)
       && ValidComponent(second)
       && first.Repr !! second.Repr
-      && ValidHistory(history)
-      && InputsOf(history) == InputsOf(first.history)
-      && OutputsOf(first.history) == InputsOf(second.history)
-      && OutputsOf(second.history) == OutputsOf(history)
+      && ValidHistory(history.value)
+      && history !in first.Repr
+      && history !in second.Repr
+      && Inputs() == first.Inputs()
+      && first.Outputs() == second.Inputs()
+      && second.Outputs() == Outputs()
       && compositionProof.FirstAction() == first
       && compositionProof.SecondAction() == second
     }
@@ -335,32 +340,33 @@ module Std.Actions {
       assert Requires(i);
 
       assert first.Valid();
-      assert first.ValidHistory(first.history);
-      compositionProof.CanInvokeFirst(first.history, history, i);
+      assert first.ValidHistory(first.history.value);
+      compositionProof.CanInvokeFirst(first.history.value, history.value, i);
       var m := first.Invoke(i);
 
       assert second.Valid();
-      compositionProof.CanInvokeSecond(second.history, history, i, m);
+      assert second.Outputs() == Outputs();
+      compositionProof.CanInvokeSecond(second.history.value, history.value, i, m);
       o := second.Invoke(m);
 
       UpdateHistory(i, o);
-      Repr := {this} + first.Repr + second.Repr;
+      Repr := {this, history} + first.Repr + second.Repr;
 
-      assert InputsOf(history) == old(InputsOf(first.history)) + [i];
-      assert InputsOf(history) == InputsOf(first.history);
+      assert Inputs() == old(Inputs()) + [i];
+      assert Inputs() == first.Inputs();
 
-      assert OutputsOf(first.history) == old(OutputsOf(first.history)) + [m];
-      assert InputsOf(second.history) == old(InputsOf(second.history)) + [m];
-      assert OutputsOf(first.history) == InputsOf(second.history);
+      assert first.Outputs() == old(first.Outputs()) + [m];
+      assert second.Inputs() == old(second.Inputs()) + [m];
+      assert first.Outputs() == second.Inputs();
 
-      assert OutputsOf(history) == old(OutputsOf(second.history)) + [o];
-      assert OutputsOf(second.history) == OutputsOf(history);
+      assert Outputs() == old(second.Outputs()) + [o];
+      assert second.Outputs() == Outputs();
 
-      compositionProof.CanReturn(first.history, second.history, history);
+      compositionProof.CanReturn(first.history.value, second.history.value, history.value);
 
-      assert history == old(history) + [(i, o)];
-      assert compositionProof.ComposedValidHistory(history);
-      assert ValidHistory(history);
+      assert history.value == old(history.value) + [(i, o)];
+      assert compositionProof.ComposedValidHistory(history.value);
+      assert ValidHistory(history.value);
     }
   }
 
