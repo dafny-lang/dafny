@@ -74,14 +74,14 @@ mod tests {
     // This one is still the bad kind of recursive
     #[test]
     fn test_sequence_right() {
-        let a: Sequence<i32> = Sequence::<i32>::from_array_owned(vec![1, 2]);
-        let b = Sequence::<i32>::from_array_owned(vec![3, 4]);
-        let c = Sequence::<i32>::from_array_owned(vec![5, 6]);
-        let d = Sequence::<i32>::from_array_owned(vec![7, 8]);
-        let e = Sequence::<i32>::from_array_owned(vec![9, 10]);
-        let f = Sequence::<i32>::from_array_owned(vec![11, 12]);
-        let g = Sequence::<i32>::from_array_owned(vec![13, 14]);
-        let h = Sequence::<i32>::from_array_owned(vec![15, 16]);
+        let a: Sequence<i32> = seq![1, 2];
+        let b = seq![3, 4];
+        let c = seq![5, 6];
+        let d = seq![7, 8];
+        let e = seq![9, 10];
+        let f = seq![11, 12];
+        let g = seq![13, 14];
+        let h = seq![15, 16];
         let c1 = Sequence::<i32>::new_concat_sequence(&a, &b);
         let c2 = Sequence::<i32>::new_concat_sequence(&c1, &c);
         let c3 = Sequence::<i32>::new_concat_sequence(&c2, &d);
@@ -96,14 +96,14 @@ mod tests {
     // This one is successfully tail recursive
     #[test]
     fn test_sequence_left() {
-        let a: Sequence<i32> = Sequence::<i32>::from_array_owned(vec![1, 2]);
-        let b = Sequence::<i32>::from_array_owned(vec![3, 4]);
-        let c = Sequence::<i32>::from_array_owned(vec![5, 6]);
-        let d = Sequence::<i32>::from_array_owned(vec![7, 8]);
-        let e = Sequence::<i32>::from_array_owned(vec![9, 10]);
-        let f = Sequence::<i32>::from_array_owned(vec![11, 12]);
-        let g = Sequence::<i32>::from_array_owned(vec![13, 14]);
-        let h = Sequence::<i32>::from_array_owned(vec![15, 16]);
+        let a = seq![1, 2];
+        let b = seq![3, 4];
+        let c = seq![5, 6];
+        let d = seq![7, 8];
+        let e = seq![9, 10];
+        let f = seq![11, 12];
+        let g = seq![13, 14];
+        let h = seq![15, 16];
         let c1 = Sequence::<i32>::new_concat_sequence(&g, &h);
         let c2 = Sequence::<i32>::new_concat_sequence(&f, &c1);
         let c3 = Sequence::<i32>::new_concat_sequence(&e, &c2);
@@ -124,8 +124,8 @@ mod tests {
 
         // Create a concat array, wrap it into a lazy one, get the i-th element,
         // and verify that this operation flattened the array
-        let left: Sequence<i32> = Sequence::<i32>::from_array_owned(vec![1, 2, 3]);
-        let right = Sequence::<i32>::from_array_owned(vec![4, 5, 6]);
+        let left = seq![1, 2, 3];
+        let right = seq![4, 5, 6];
         let concat = Sequence::<i32>::new_concat_sequence(&left, &right);
 
         assert_eq!(concat.cardinality_usize(), 6);
