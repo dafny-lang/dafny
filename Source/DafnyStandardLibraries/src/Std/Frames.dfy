@@ -9,15 +9,15 @@ module Std.Frames {
     // Ghost state tracking the common set of objects most
     // methods need to read.
     //
-    // TODO: (clean up the following)
     // Note this is used as the decreases clause for Valid(),
     // but it is not necessarily the best choice for a decreases clause
     // for other methods on implementing types.
     // In particular, methods with loops that allocate new objects
     // probably can't use Repr, because even if constructors
     // ensure that the new object's Repr is fresh,
-    // it is not possible to prove the actual decreases to proof obligation,
-    // which is old(Repr) decreases to (new object).Repr.
+    // it is not possible to prove the actual proof obligation,
+    // which is `old(Repr) decreases to (new object).Repr`.
+    // See FramesExamples.dfy for a detailed example.
     //
     // TODO: Okay it's now or never - Repr or repr?? :)
     ghost var Repr: set<object>
@@ -51,6 +51,38 @@ module Std.Frames {
       reads this, Repr
     {
       Valid() && fresh(Repr - old(Repr))
+    }
+  }
+
+  // Simple classes holding onto an arbitrary mutable value.
+  // Useful for working around the fact that mutable fields
+  // are not first-class values as objects are:
+  // You can't express something like
+  //    `modifies Repr - {this`specialField}`
+  // But you can say
+  //    `modifies Repr - {this.specialFieldBox}`
+
+  class GhostBox<T> {
+
+    ghost var value: T
+
+    ghost constructor (value: T)
+      reads {}
+      ensures this.value == value
+    {
+      this.value := value;
+    }
+  }
+
+  class Box<T> {
+
+    var value: T
+
+    constructor (value: T)
+      reads {}
+      ensures this.value == value
+    {
+      this.value := value;
     }
   }
 }

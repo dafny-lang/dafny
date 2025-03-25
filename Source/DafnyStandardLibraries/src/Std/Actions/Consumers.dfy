@@ -90,12 +90,6 @@ module Std.Consumers {
     {
       |history| < storage.Length
     }
-    twostate predicate ValidOutput(history: seq<(T, bool)>, nextInput: T, new nextOutput: bool)
-      decreases Repr
-      ensures ValidOutput(history, nextInput, nextOutput) ==> ValidHistory(history + [(nextInput, nextOutput)])
-    {
-      ValidHistory(history + [(nextInput, nextOutput)])
-    }
 
     ghost function Decreases(t: T): ORDINAL
       reads Reads(t)
@@ -168,12 +162,6 @@ module Std.Consumers {
       decreases Repr
     {
       true
-    }
-    twostate predicate ValidOutput(history: seq<(T, ())>, nextInput: T, new nextOutput: ())
-      decreases Repr
-      ensures ValidOutput(history, nextInput, nextOutput) ==> ValidHistory(history + [(nextInput, nextOutput)])
-    {
-      ValidHistory(history + [(nextInput, nextOutput)])
     }
 
     ghost function Decreases(t: T): ORDINAL
@@ -252,12 +240,6 @@ module Std.Consumers {
     {
       true
     }
-    twostate predicate ValidOutput(history: seq<(T, ())>, nextInput: T, new nextOutput: ())
-      decreases Repr
-      ensures ValidOutput(history, nextInput, nextOutput) ==> ValidHistory(history + [(nextInput, nextOutput)])
-    {
-      ValidHistory(history + [(nextInput, nextOutput)])
-    }
 
     ghost function Decreases(t: T): ORDINAL
       reads Reads(t)
@@ -329,12 +311,6 @@ module Std.Consumers {
       decreases Repr
     {
       true
-    }
-    twostate predicate ValidOutput(history: seq<(T, ())>, nextInput: T, new nextOutput: ())
-      decreases Repr
-      ensures ValidOutput(history, nextInput, nextOutput) ==> ValidHistory(history + [(nextInput, nextOutput)])
-    {
-      ValidHistory(history + [(nextInput, nextOutput)])
     }
 
     ghost function Decreases(t: T): ORDINAL

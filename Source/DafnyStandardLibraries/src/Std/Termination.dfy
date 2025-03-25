@@ -6,7 +6,7 @@ module Std.Termination {
   import opened Collections.Multiset
   import opened Ordinal
   import Collections.Seq
-  
+
 
   // Heterogeneous encoding of the essential features of individual
   // decreases clause list elements.
@@ -15,19 +15,23 @@ module Std.Termination {
     | Nat(natValue: nat, height: nat)
     | Char(charValue: nat, height: nat)
     | Ord(ordinalValue: ORDINAL, height: nat)
-    // No ordering on objects themselves, but commonly used in Repr set<object> values
+      // No ordering on objects themselves, but commonly used in Repr set<object> values
     | Object(objectValue: object, height: nat)
-    // Also used to encode datatype structural inclusion
+      // Also used to encode datatype structural inclusion
     | Seq(seqValue: seq<TerminationMetric>, height: nat)
     | Set(setValue: set<TerminationMetric>, height: nat)
 
-    // Other kinds of Dafny values are valid here too,
-    // and may be added in the future.
+      // Other kinds of Dafny values are valid here too,
+      // and may be added in the future.
 
-    // Lexicographic tuple.
+      // Lexicographic tuple.
     | Tuple(base: TerminationMetric, first: TerminationMetric, second: TerminationMetric, height: nat)
 
-    // Never used by direct Dafny syntax, but very useful for simple dependencies.
+      // The "top" value used in the definition of Dafny decreases clauses.
+      // Only guaranteed to be above any value expressible in Dafny syntax.
+    | Top(height: nat)
+
+      // Never used by direct Dafny syntax, but very useful for simple dependencies.
     | Succ(original: TerminationMetric, height: nat)
   {
     ghost predicate Valid()
@@ -55,7 +59,7 @@ module Std.Termination {
       }
     }
 
-    ghost opaque function Ordinal(): ORDINAL 
+    ghost opaque function Ordinal(): ORDINAL
       requires Valid()
       decreases height
     {
@@ -69,6 +73,7 @@ module Std.Termination {
         case Seq(seqValue, _) => MultisetOrdinal(height, multiset(seqValue))
         case Tuple(base, first, second, _) => Times(base.Ordinal(), first.Ordinal()) + second.Ordinal() + 1
         case Succ(original, _) => original.Ordinal() + 1
+        case Top(_) => Omega()
       }
     }
 
@@ -159,7 +164,7 @@ module Std.Termination {
       LemmaSubmultisetSize(right, left);
       assert |left| > |right|;
       assert |left| as ORDINAL + 1 > |right| as ORDINAL + 1 ;
-      
+
       PlusIncreasingOnLeft(maxLeft, maxRight, |right| as ORDINAL + 1);
       PlusStrictlyIncreasingOnRight(maxLeft, |left| as ORDINAL + 1, |right| as ORDINAL + 1);
     }
@@ -225,7 +230,7 @@ module Std.Termination {
       requires Seq?
       requires other.Valid()
       requires other.Seq?
-      requires 0 < lo <= |seqValue| 
+      requires 0 < lo <= |seqValue|
       requires seqValue[lo..] == other.seqValue
       ensures Ordinal() > other.Ordinal()
     {
@@ -262,7 +267,7 @@ module Std.Termination {
       requires other.Valid()
       requires other.Tuple?
       requires base == other.base
-      requires 
+      requires
         || (first.Ordinal() > other.first.Ordinal())
         || (first.Ordinal() >= other.first.Ordinal() && second.Ordinal() > other.second.Ordinal())
       ensures Ordinal() > other.Ordinal()
@@ -404,6 +409,8 @@ module Std.Termination {
       TMTuple(base, TMTupleOf(base, Seq.DropLast(children)), Seq.Last(children))
   }
 
+  const TMTop := Top(0)
+
   ghost function TMSucc(tm: TerminationMetric): (result: TerminationMetric)
     requires tm.Valid()
     ensures result.Valid()
@@ -461,10 +468,10 @@ module TerminationExample {
     reveal TerminationMetric.Ordinal();
     var x: nat := 10;
     var y: nat := 10;
-    var tm := TMTuple(TMOrdinal(Omega()), TMNat(x), TMNat(y));
+    var tm := TMTuple(TMTop, TMNat(x), TMNat(y));
     while 0 < x && 0 < y
       invariant tm.Valid()
-      invariant tm == TMTuple(TMOrdinal(Omega()), TMNat(x), TMNat(y));
+      invariant tm == TMTuple(TMTop, TMNat(x), TMNat(y))
       decreases tm.Ordinal()
     {
       ghost var tmBefore := tm;
@@ -476,13 +483,13 @@ module TerminationExample {
           x := x - 1;
           y := 10;
 
-          tm := TMTuple(TMOrdinal(Omega()), TMNat(x), TMNat(y));
+          tm := TMTuple(TMTop, TMNat(x), TMNat(y));
           tmBefore.TupleDecreasesToTuple(tm);
         }
       } else {
         y := y - 1;
 
-        tm := TMTuple(TMOrdinal(Omega()), TMNat(x), TMNat(y));
+        tm := TMTuple(TMTop, TMNat(x), TMNat(y));
         tmBefore.TupleDecreasesToTuple(tm);
       }
     }
@@ -490,20 +497,20 @@ module TerminationExample {
 }
 
 module Std.Ordinal {
-  ghost function {:axiom} Omega(): ORDINAL 
-      ensures !Omega().IsNat
-      ensures Omega().IsLimit
-      ensures forall other: ORDINAL | other.IsLimit && other != 0 :: Omega() <= other
+  ghost function {:axiom} Omega(): ORDINAL
+    ensures !Omega().IsNat
+    ensures Omega().IsLimit
+    ensures forall other: ORDINAL | other.IsLimit && other != 0 :: Omega() <= other
 
   // TODO: Prove some of these via transfinite induction?
 
   // Additional axioms about addition
 
-  lemma {:axiom} Succ(a: ORDINAL, b: ORDINAL) 
+  lemma {:axiom} Succ(a: ORDINAL, b: ORDINAL)
     requires a > b
     ensures a >= b + 1
 
-  lemma {:axiom} SuccStrictlyIncreasing(a: ORDINAL, b: ORDINAL) 
+  lemma {:axiom} SuccStrictlyIncreasing(a: ORDINAL, b: ORDINAL)
     requires a > b
     ensures a + 1 > b + 1
 
@@ -552,7 +559,7 @@ module Std.Ordinal {
     ensures Max(Max(a, b), c) == Max(a, Max(b, c))
   {}
 
-  lemma RadixDecreases(base: ORDINAL, a: ORDINAL, a': ORDINAL, b: ORDINAL) 
+  lemma RadixDecreases(base: ORDINAL, a: ORDINAL, a': ORDINAL, b: ORDINAL)
     requires base > b
     requires a > a'
     ensures Times(base, a) > Times(base, a') + b
@@ -560,26 +567,26 @@ module Std.Ordinal {
     Succ(a, a');
     assert a >= a' + 1;
 
-    TimesDistributesOnLeft(base, a', 1); 
+    TimesDistributesOnLeft(base, a', 1);
     assert Times(base, a' + 1) == Times(base, a') + Times(base, 1);
     TimesIdentity(base);
     assert Times(base, a' + 1) == Times(base, a') + base;
-    
+
     if a == a' + 1 {
       calc {
         Times(base, a);
         Times(base, a' + 1);
         Times(base, a') + base;
-        > { PlusStrictlyIncreasingOnRight(Times(base, a'), base, b); }
+      > { PlusStrictlyIncreasingOnRight(Times(base, a'), base, b); }
         Times(base, a') + b;
       }
     } else {
       calc {
         Times(base, a);
-        >= { TimesStrictlyIncreasingOnRight(base, a, a' + 1); }
+      >= { TimesStrictlyIncreasingOnRight(base, a, a' + 1); }
         Times(base, a' + 1);
         Times(base, a') + base;
-        > { PlusStrictlyIncreasingOnRight(Times(base, a'), base, b); }
+      > { PlusStrictlyIncreasingOnRight(Times(base, a'), base, b); }
         Times(base, a') + b;
       }
     }

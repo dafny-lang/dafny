@@ -61,13 +61,6 @@ module Std.Producers {
     {
       true
     }
-    twostate predicate ValidOutput(history: seq<((), T)>, nextInput: (), new nextOutput: T)
-      requires ValidHistory(history)
-      decreases Repr
-      ensures ValidOutput(history, nextInput, nextOutput) ==> ValidHistory(history + [(nextInput, nextOutput)])
-    {
-      ValidHistory(history + [(nextInput, nextOutput)])
-    }
 
     ghost function Decreases(t: ()): ORDINAL
       reads Reads(t)
@@ -485,12 +478,6 @@ module Std.Producers {
       && ValidHistory(history)
     }
 
-    twostate predicate ValidOutput(history: seq<((), Option<T>)>, nextInput: (), new nextOutput: Option<T>)
-      decreases Repr
-      ensures ValidOutput(history, nextInput, nextOutput) ==> ValidHistory(history + [(nextInput, nextOutput)])
-    {
-      ValidHistory(history + [(nextInput, nextOutput)])
-    }
     ghost predicate ValidOutputs(outputs: seq<Option<T>>)
       requires Seq.Partitioned(outputs, IsSome)
       decreases Repr
@@ -559,12 +546,6 @@ module Std.Producers {
       && (index < |elements| ==> Seq.All(Outputs(), IsSome))
     }
 
-    twostate predicate ValidOutput(history: seq<((), Option<T>)>, nextInput: (), new nextOutput: Option<T>)
-      decreases Repr
-      ensures ValidOutput(history, nextInput, nextOutput) ==> ValidHistory(history + [(nextInput, nextOutput)])
-    {
-      ValidHistory(history + [(nextInput, nextOutput)])
-    }
     ghost predicate ValidOutputs(outputs: seq<Option<T>>)
       requires Seq.Partitioned(outputs, IsSome)
       decreases Repr
@@ -661,13 +642,6 @@ module Std.Producers {
       && (produced < max ==> Seq.All(Outputs(), IsSome))
     }
 
-    twostate predicate ValidOutput(history: seq<((), Option<T>)>, nextInput: (), new nextOutput: Option<T>)
-      decreases Repr
-      ensures ValidOutput(history, nextInput, nextOutput) ==> ValidHistory(history + [(nextInput, nextOutput)])
-    {
-      ValidHistory(history + [(nextInput, nextOutput)])
-    }
-
     ghost predicate ValidOutputs(outputs: seq<Option<T>>)
       requires Seq.Partitioned(outputs, IsSome)
       decreases Repr
@@ -751,12 +725,6 @@ module Std.Producers {
       && (!source.Done() ==> !Done())
     }
 
-    twostate predicate ValidOutput(history: seq<((), Option<T>)>, nextInput: (), new nextOutput: Option<T>)
-      decreases Repr
-      ensures ValidOutput(history, nextInput, nextOutput) ==> ValidHistory(history + [(nextInput, nextOutput)])
-    {
-      ValidHistory(history + [(nextInput, nextOutput)])
-    }
     ghost predicate ValidOutputs(outputs: seq<Option<T>>)
       requires Seq.Partitioned(outputs, IsSome)
       decreases Repr
@@ -888,12 +856,6 @@ module Std.Producers {
       && (Seq.All(first.Outputs(), IsSome) || Seq.All(second.Outputs(), IsSome) ==> Seq.All(Outputs(), IsSome))
     }
 
-    twostate predicate ValidOutput(history: seq<((), Option<T>)>, nextInput: (), new nextOutput: Option<T>)
-      decreases Repr
-      ensures ValidOutput(history, nextInput, nextOutput) ==> ValidHistory(history + [(nextInput, nextOutput)])
-    {
-      ValidHistory(history + [(nextInput, nextOutput)])
-    }
     ghost predicate ValidOutputs(outputs: seq<Option<T>>)
       requires Seq.Partitioned(outputs, IsSome)
       decreases Repr
@@ -1018,12 +980,6 @@ module Std.Producers {
       && (!original.Done() <==> !Done())
     }
 
-    twostate predicate ValidOutput(history: seq<((), Option<O>)>, nextInput: (), new nextOutput: Option<O>)
-      decreases Repr
-      ensures ValidOutput(history, nextInput, nextOutput) ==> ValidHistory(history + [(nextInput, nextOutput)])
-    {
-      ValidHistory(history + [(nextInput, nextOutput)])
-    }
     ghost predicate ValidOutputs(outputs: seq<Option<O>>)
       requires Seq.Partitioned(outputs, IsSome)
       decreases Repr
@@ -1133,7 +1089,7 @@ module Std.Producers {
       this.currentInner := None;
     }
 
-    ghost function BaseMetric(): TerminationMetric 
+    ghost function BaseMetric(): TerminationMetric
       requires Valid()
       reads this, Repr
       decreases Repr, 1
@@ -1142,7 +1098,7 @@ module Std.Producers {
       TMSucc(original.MaxProduced())
     }
 
-    ghost function InnerRemainingMetric(): TerminationMetric 
+    ghost function InnerRemainingMetric(): TerminationMetric
       requires Valid()
       reads this, Repr
       decreases Repr, 2
@@ -1223,21 +1179,14 @@ module Std.Producers {
       && (currentInner.Some? ==> ValidComponent(currentInner.value))
       && original.Repr !! (if currentInner.Some? then currentInner.value.Repr else {})
       && ValidHistory(history)
-      && (currentInner.Some? ==> 
-        && 0 < |original.Outputs()| 
-        && currentInner == Seq.Last(original.Outputs())
-        && original.MaxProduced().Ordinal() > currentInner.value.RemainingMetric().Ordinal())
+      && (currentInner.Some? ==>
+            && 0 < |original.Outputs()|
+            && currentInner == Seq.Last(original.Outputs())
+            && original.MaxProduced().Ordinal() > currentInner.value.RemainingMetric().Ordinal())
       && (!original.Done() && currentInner.Some? && !currentInner.value.Done() ==> !Done())
       && (Done() ==> original.Done() && currentInner.None?)
     }
 
-    twostate predicate ValidOutput(history: seq<((), Option<T>)>, nextInput: (), new nextOutput: Option<T>)
-      requires ValidHistory(history)
-      decreases Repr
-      ensures ValidOutput(history, nextInput, nextOutput) ==> ValidHistory(history + [(nextInput, nextOutput)])
-    {
-      ValidHistory(history + [(nextInput, nextOutput)])
-    }
     ghost predicate ValidOutputs(outputs: seq<Option<T>>)
       requires Seq.Partitioned(outputs, IsSome)
       decreases Repr
@@ -1280,6 +1229,7 @@ module Std.Producers {
           label beforeOriginalNext:
           ghost var historyBefore := original.history;
           old(RemainingMetric()).TupleDecreasesToFirst();
+          // Need to use Invoke() here for the extra postcondition from ProducerOfNewProducers
           currentInner := original.Invoke(());
 
           assert fresh(original.Repr - old@beforeOriginalNext(Repr));
@@ -1304,7 +1254,7 @@ module Std.Producers {
 
             assert currentInner == Seq.Last(original.Outputs());
             assert original.Done() && currentInner.None?;
-            
+
             old@beforeOriginalNext(RemainingMetric()).TupleNonIncreasesToTuple(RemainingMetric()) by {
               assert old@beforeOriginalNext(InnerRemainingMetric()) == InnerRemainingMetric();
             }
@@ -1312,9 +1262,9 @@ module Std.Producers {
             assert old(Remaining()) >= Remaining();
 
             assert if result.Some? then
-                    old(Remaining()) > Remaining()
-                  else
-                    old(Remaining()) >= Remaining();
+                old(Remaining()) > Remaining()
+              else
+                old(Remaining()) >= Remaining();
 
             break;
           }
@@ -1341,7 +1291,7 @@ module Std.Producers {
           label afterCurrentInnerNext:
 
           if result.None? {
-            
+
             var oldCurrentInner := currentInner;
             currentInner := None;
 

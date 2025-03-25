@@ -86,29 +86,23 @@ module ActionsExamples {
     {
       true
     }
-    twostate predicate ValidOutput(history: seq<((), Box)>, nextInput: (), new nextOutput: Box)
-      decreases Repr
-      ensures ValidOutput(history, nextInput, nextOutput) ==> ValidHistory(history + [(nextInput, nextOutput)])
-    {
-      ValidHistory(history + [(nextInput, nextOutput)]) && fresh(nextOutput)
-    }
     ghost predicate ValidHistory(history: seq<((), Box)>)
       decreases Repr
     {
       Seq.Map((b: Box) => b.i, OutputsOf(history)) == SeqRange(|history|)
     }
 
-    ghost function Decreases(t: ()): TerminationMetric
+    ghost function Decreases(t: ()): ORDINAL
       reads Reads(t)
     {
-      TMTop
+      ReprTerminationMetric().Ordinal()
     }
 
     method Invoke(t: ()) returns (r: Box)
       requires Requires(t)
       reads Repr
       modifies Modifies(t)
-      decreases Decreases(t).Ordinal(), 0
+      decreases Decreases(t), 0
       ensures Ensures(t, r)
     {
       assert Requires(t);
@@ -146,7 +140,7 @@ module ActionsExamples {
   }
 
   @AssumeCrossModuleTermination
-  class SplitProducer extends Producer<Producer<nat>>, ProducesNewProducersProof<nat> {
+  class SplitProducer extends ProducerOfNewProducers<nat> {
 
     var inputs: seq<nat>
 
@@ -159,7 +153,6 @@ module ActionsExamples {
 
       history := [];
       Repr := {this};
-      remainingMetric := TMNat(|inputs|);
     }
 
     ghost predicate Valid()
@@ -170,22 +163,9 @@ module ActionsExamples {
     {
       && this in Repr
       && ValidHistory(history)
-      && remainingMetric == TMNat(|inputs|)
       && (0 < |inputs| ==> Seq.All(Outputs(), IsSome))
     }
 
-    twostate function DumbRepr(new o: Producer<nat>): set<object>
-      reads o
-    {
-      o.Repr
-    }
-
-    twostate predicate ValidOutput(history: seq<((), Option<Producer<nat>>)>, nextInput: (), new nextOutput: Option<Producer<nat>>)
-      decreases Repr
-      ensures ValidOutput(history, nextInput, nextOutput) ==> ValidHistory(history + [(nextInput, nextOutput)])
-    {
-      ValidHistory(history + [(nextInput, nextOutput)])
-    }
     ghost predicate ValidOutputs(outputs: seq<Option<Producer<nat>>>)
       requires Seq.Partitioned(outputs, IsSome)
       decreases Repr
@@ -193,18 +173,36 @@ module ActionsExamples {
       true
     }
 
+    ghost function MaxProduced(): TerminationMetric
+      ensures MaxProduced().Valid()
+    {
+      TMTop
+    }
+
+    ghost function RemainingMetric(): TerminationMetric
+      requires Valid()
+      reads this, Repr
+      decreases Repr, 3
+      ensures RemainingMetric().Valid()
+    {
+      TMNat(|inputs|)
+    }
+
     method Invoke(t: ()) returns (result: Option<Producer<nat>>)
       requires Requires(t)
       reads Repr
       modifies Modifies(t)
-      decreases Decreases(t).Ordinal(), 0
+      decreases Decreases(t), 0
       ensures Ensures(t, result)
       ensures if result.Some? then
-                old(remainingMetric).DecreasesTo(remainingMetric)
+                old(Remaining()) > Remaining()
               else
-                old(remainingMetric) == remainingMetric
+                old(Remaining()) >= Remaining()
+      ensures result.Some? ==> JustProduced(result.value)
     {
-      if inputs == [] {
+      assert Valid();
+
+      if |inputs| == 0 {
         result := None;
 
         OutputsPartitionedAfterOutputtingNone();
@@ -220,29 +218,16 @@ module ActionsExamples {
         ProduceSome(result.value);
       }
 
-      remainingMetric := TMNat(|inputs|);
-      reveal TerminationMetric.DecreasesTo();
+      reveal TerminationMetric.Ordinal();
+      assert Valid();
     }
-
-    ghost function Producer(): Producer<Producer<nat>> {
-      this
-    }
-
-    // TODO: Depends on figuring out the reads clause issues with ValidOutput
-    twostate lemma {:axiom} ProducedAllNew(new produced: Producer<nat>)
-      requires old(Action().Valid())
-      requires Action().ValidOutput(old(Action().history), (), Some(produced))
-      ensures produced.Valid()
-      ensures fresh(produced.Repr)
-      ensures Producer().Repr !! produced.Repr
-      ensures produced.history == []
   }
 
   @IsolateAssertions
   method {:test} ExamplePipeline() {
     var producerProducer := new SplitProducer([1, 2, 3, 4, 5]);
 
-    var flattened := new FlattenedProducer(producerProducer, producerProducer);
+    var flattened := new FlattenedProducer(producerProducer);
 
     var collector := new SeqWriter();
 

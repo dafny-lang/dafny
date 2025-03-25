@@ -37,11 +37,6 @@ module Std.Actions {
       requires ValidHistory(history)
       decreases Repr
 
-    twostate predicate ValidOutput(history: seq<(I, O)>, nextInput: I, new nextOutput: O)
-      requires ValidHistory(history)
-      decreases Repr
-      ensures ValidOutput(history, nextInput, nextOutput) ==> ValidHistory(history + [(nextInput, nextOutput)])
-
     ghost predicate Requires(i: I)
       reads Reads(i)
     {
@@ -64,7 +59,6 @@ module Std.Actions {
       reads Reads(i)
     {
       && ValidAndDisjoint()
-      && ValidOutput(old(history), i, o)
       && history == old(history) + [(i, o)]
     }
 
@@ -216,12 +210,6 @@ module Std.Actions {
     {
       f.requires(next)
     }
-    twostate predicate ValidOutput(history: seq<(I, O)>, nextInput: I, new nextOutput: O)
-      decreases Repr
-      ensures ValidOutput(history, nextInput, nextOutput) ==> ValidHistory(history + [(nextInput, nextOutput)])
-    {
-      ValidHistory(history + [(nextInput, nextOutput)])
-    }
 
     ghost function Decreases(i: I): ORDINAL
       reads Reads(i)
@@ -309,12 +297,6 @@ module Std.Actions {
       decreases Repr
     {
       compositionProof.ComposedValidInput(history, next)
-    }
-    twostate predicate ValidOutput(history: seq<(I, O)>, nextInput: I, new nextOutput: O)
-      decreases Repr
-      ensures ValidOutput(history, nextInput, nextOutput) ==> ValidHistory(history + [(nextInput, nextOutput)])
-    {
-      ValidHistory(history + [(nextInput, nextOutput)])
     }
 
     ghost function Decreases(i: I): ORDINAL

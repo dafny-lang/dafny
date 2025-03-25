@@ -68,23 +68,17 @@ module ActionsExamples {
     {
       true
     }
-    twostate predicate ValidOutput(history: seq<((), nat)>, nextInput: (), new nextOutput: nat)
-      decreases Repr
-      ensures ValidOutput(history, nextInput, nextOutput) ==> ValidHistory(history + [(nextInput, nextOutput)])
-    {
-      ValidHistory(history + [(nextInput, nextOutput)])
-    }
 
-    ghost function Decreases(i: ()): TerminationMetric
+    ghost function Decreases(i: ()): ORDINAL
       reads Reads(i)
     {
-      ReprTerminationMetric()
+      ReprTerminationMetric().Ordinal()
     }
 
     method Invoke(i: ()) returns (o: nat)
       requires Requires(i)
       modifies Modifies(i)
-      decreases Decreases(i).Ordinal(), 0
+      decreases Decreases(i), 0
       ensures Ensures(i, o)
     {
       var more := iter.MoveNext();
@@ -118,7 +112,6 @@ module ActionsExamples {
       firstTen := firstTen + [next.value];
     }
 
-    print firstTen, "\n";
     expect firstTen == [0, 1, 1, 2, 3, 5, 8, 13, 21, 34];
   }
 
@@ -177,13 +170,6 @@ module ActionsExamples {
     {
       |history| < |original|
     }
-    twostate predicate ValidOutput(history: seq<((), T)>, nextInput: (), new nextOutput: T)
-      requires ValidHistory(history)
-      decreases Repr
-      ensures ValidOutput(history, nextInput, nextOutput) ==> ValidHistory(history + [(nextInput, nextOutput)])
-    {
-      ValidHistory(history + [(nextInput, nextOutput)])
-    }
 
     ghost predicate ValidHistory(history: seq<((), T)>)
       decreases Repr
@@ -193,10 +179,10 @@ module ActionsExamples {
       && Enumerated(history) <= original
     }
 
-    ghost function Decreases(i: ()): TerminationMetric
+    ghost function Decreases(i: ()): ORDINAL
       reads Reads(i)
     {
-      ReprTerminationMetric()
+      ReprTerminationMetric().Ordinal()
     }
 
     lemma EnumeratedCardinality()
@@ -210,7 +196,7 @@ module ActionsExamples {
     method Invoke(i: ()) returns (o: T)
       requires Requires(i)
       modifies Modifies(i)
-      decreases Decreases(i).Ordinal(), 0
+      decreases Decreases(i), 0
       ensures Ensures(i, o)
     {
       EnumeratedCardinality();
