@@ -886,6 +886,7 @@ where
     pub fn append_recursive(array: &mut Vec<T>, this: &Sequence<T>) {
             let mut this_ptr : * const Sequence<T> = this;
         loop {
+            // SAFETY: The invariant is that this_ptr is always a pointer to a sub-sequence of the original `this`parameter when following the field name 'right', which are allocated in this scope
             match unsafe { &*this_ptr  } {
                 Sequence::ArraySequence { values, .. } =>
                 {
