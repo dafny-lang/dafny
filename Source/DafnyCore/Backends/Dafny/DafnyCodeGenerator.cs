@@ -1271,15 +1271,18 @@ namespace Microsoft.Dafny.Compilers {
         throw new InvalidOperationException();
       }
 
-      EmitExpr(
-        ll.Array, false,
-        EmitCoercionIfNecessary(
-          ll.Array.Type,
-          ll.Array.Type.IsNonNullRefType || !ll.Array.Type.IsRefType ? null : UserDefinedType.CreateNonNullType((UserDefinedType)ll.Array.Type.NormalizeExpand()),
-          ll.Origin, WrBuffer(out var arrayBuf)
-        ),
-        wStmts
+      var targetType = ll.Array.Type.IsNonNullRefType || !ll.Array.Type.IsRefType
+        ? null
+        : UserDefinedType.CreateNonNullType((UserDefinedType)ll.Array.Type.NormalizeExpand());
+
+      var coercion = EmitCoercionIfNecessary(
+        ll.Array.Type,
+        targetType,
+        ll.Origin,
+        WrBuffer(out var arrayBuf)
       );
+
+      EmitExpr(ll.Array, false, coercion, wStmts);
 
       var array = arrayBuf.Finish();
 
