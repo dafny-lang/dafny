@@ -1,28 +1,41 @@
+#nullable enable
+
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
-using System.Linq;
 
 namespace Microsoft.Dafny;
 
 public class MapType : CollectionType {
-  public bool Finite {
-    get { return finite; }
-    set { finite = value; }
-  }
-  private bool finite;
+  public bool Finite { get; }
+
+  public Type Domain => Arg!;
+
+  /// <summary>
+  /// Must not be called unless <see cref="range"/> is set.
+  /// </summary>
   public Type Range {
-    get { return range; }
+    get {
+      Contract.Assume(range != null);
+      return range!;
+    }
   }
-  private Type range;
-  public override void SetTypeArgs(Type domain, Type range) {
+  private Type? range;
+
+  public override void SetTypeArgs(Type? domain, Type? range) {
     base.SetTypeArgs(domain, range);
     Contract.Assume(this.range == null);  // Can only set once.  This is really a precondition.
     this.range = range;
   }
-  public MapType(bool finite, Type domain, Type range) : base(domain, range) {
-    Contract.Requires((domain == null && range == null) || (domain != null && range != null));
-    this.finite = finite;
-    this.range = range;
+
+  [SyntaxConstructor]
+  public MapType(IOrigin? origin, bool finite, List<Type?> collectionTypeArgs) : base(origin, collectionTypeArgs) {
+    Contract.Requires(collectionTypeArgs is [null, null] or [not null, not null]);
+    Finite = finite;
+    range = collectionTypeArgs[1];
+  }
+
+  public MapType(bool finite, Type? domain, Type? range) : base(domain, range) {
+    Finite = finite;
   }
 
   public MapType(Cloner cloner, MapType original) : base(cloner, original) {
@@ -32,19 +45,16 @@ public class MapType : CollectionType {
     TypeArgs = [arg, range];
   }
 
-  public Type Domain {
-    get { return Arg; }
-  }
-  public override string CollectionTypeName { get { return finite ? "map" : "imap"; } }
+  public override string CollectionTypeName => Finite ? "map" : "imap";
+
   [System.Diagnostics.Contracts.Pure]
   public override string TypeName(DafnyOptions options, ModuleDefinition context, bool parseAble) {
-    Contract.Ensures(Contract.Result<string>() != null);
-    var targs = HasTypeArg() ? this.TypeArgsToString(options, context, parseAble) : "";
+    var targs = HasTypeArg() ? this.TypeArgsToString(options, context, parseAble)! : "";
     return CollectionTypeName + targs;
   }
   public override bool Equals(Type that, bool keepConstraints = false) {
     var t = that.NormalizeExpand(keepConstraints) as MapType;
-    return t != null && Finite == t.Finite && Arg.Equals(t.Arg, keepConstraints) && Range.Equals(t.Range, keepConstraints);
+    return t != null && Finite == t.Finite && Arg!.Equals(t.Arg, keepConstraints) && Range.Equals(t.Range, keepConstraints);
   }
 
   public override Type Subst(IDictionary<TypeParameter, Type> subst) {
@@ -67,13 +77,10 @@ public class MapType : CollectionType {
     return new MapType(Finite, arguments[0], arguments[1]);
   }
 
-  public override bool SupportsEquality {
-    get {
-      // A map type supports equality if both its Keys type and Values type does.  It is checked
-      // that the Keys type always supports equality, so we only need to check the Values type here.
-      return range.SupportsEquality;
-    }
-  }
+  // A map type supports equality if both its Keys type and Values type does.  It is checked
+  // that the Keys type always supports equality, so we only need to check the Values type here.
+  public override bool SupportsEquality => range!.SupportsEquality;
+
   public override bool ComputeMayInvolveReferences(ISet<DatatypeDecl> visitedDatatypes) {
     return Domain.ComputeMayInvolveReferences(visitedDatatypes) || Range.ComputeMayInvolveReferences(visitedDatatypes);
   }

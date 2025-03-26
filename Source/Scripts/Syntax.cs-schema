@@ -142,6 +142,20 @@ class LiteralExpr : Expression
     Object? value;
 }
 
+class TernaryExpr : Expression
+{
+    TernaryExprOpcode op;
+    Expression e0;
+    Expression e1;
+    Expression e2;
+}
+
+enum TernaryExprOpcode
+{
+    PrefixEqOp,
+    PrefixNeqOp
+}
+
 class ITEExpr : Expression
 {
     Boolean isBindingGuard;
@@ -294,22 +308,6 @@ class MemberSelectExpr : Expression
     Name memberName;
 }
 
-abstract class CollectionType : NonProxyType
-{
-}
-
-class SeqType : CollectionType
-{
-}
-
-class MultiSetType : CollectionType
-{
-}
-
-class SetType : CollectionType
-{
-}
-
 abstract class BasicType : NonProxyType
 {
 }
@@ -337,6 +335,29 @@ class CharType : BasicType
 
 class BoolType : BasicType
 {
+}
+
+abstract class CollectionType : NonProxyType
+{
+    List<Type> collectionTypeArgs;
+}
+
+class MapType : CollectionType
+{
+    Boolean finite;
+}
+
+class SeqType : CollectionType
+{
+}
+
+class MultiSetType : CollectionType
+{
+}
+
+class SetType : CollectionType
+{
+    Boolean finite;
 }
 
 abstract class Declaration : NodeWithOrigin

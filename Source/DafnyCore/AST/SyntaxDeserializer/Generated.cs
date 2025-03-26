@@ -193,6 +193,32 @@ namespace Microsoft.Dafny
             return ReadLiteralExpr();
         }
 
+        public TernaryExpr ReadTernaryExpr()
+        {
+            var parameter0 = ReadAbstract<IOrigin>();
+            var parameter1 = ReadTernaryExprOpcode();
+            var parameter2 = ReadAbstract<Expression>();
+            var parameter3 = ReadAbstract<Expression>();
+            var parameter4 = ReadAbstract<Expression>();
+            return new TernaryExpr(parameter0, parameter1, parameter2, parameter3, parameter4);
+        }
+
+        public TernaryExpr ReadTernaryExprOption()
+        {
+            if (ReadIsNull())
+            {
+                return default;
+            }
+
+            return ReadTernaryExpr();
+        }
+
+        private TernaryExpr.Opcode ReadTernaryExprOpcode()
+        {
+            int ordinal = ReadInt32();
+            return (TernaryExpr.Opcode)ordinal;
+        }
+
         public ITEExpr ReadITEExpr()
         {
             var parameter0 = ReadAbstract<IOrigin>();
@@ -530,6 +556,55 @@ namespace Microsoft.Dafny
             return ReadMemberSelectExpr();
         }
 
+        public BitvectorType ReadBitvectorType()
+        {
+            var parameter0 = ReadAbstract<IOrigin>();
+            var parameter1 = ReadInt32();
+            return new BitvectorType(parameter0, parameter1);
+        }
+
+        public BitvectorType ReadBitvectorTypeOption()
+        {
+            if (ReadIsNull())
+            {
+                return default;
+            }
+
+            return ReadBitvectorType();
+        }
+
+        public BigOrdinalType ReadBigOrdinalType()
+        {
+            var parameter0 = ReadAbstract<IOrigin>();
+            return new BigOrdinalType(parameter0);
+        }
+
+        public BigOrdinalType ReadBigOrdinalTypeOption()
+        {
+            if (ReadIsNull())
+            {
+                return default;
+            }
+
+            return ReadBigOrdinalType();
+        }
+
+        public RealType ReadRealType()
+        {
+            var parameter0 = ReadAbstract<IOrigin>();
+            return new RealType(parameter0);
+        }
+
+        public RealType ReadRealTypeOption()
+        {
+            if (ReadIsNull())
+            {
+                return default;
+            }
+
+            return ReadRealType();
+        }
+
         public IntType ReadIntType()
         {
             var parameter0 = ReadAbstract<IOrigin>();
@@ -546,6 +621,22 @@ namespace Microsoft.Dafny
             return ReadIntType();
         }
 
+        public CharType ReadCharType()
+        {
+            var parameter0 = ReadAbstract<IOrigin>();
+            return new CharType(parameter0);
+        }
+
+        public CharType ReadCharTypeOption()
+        {
+            if (ReadIsNull())
+            {
+                return default;
+            }
+
+            return ReadCharType();
+        }
+
         public BoolType ReadBoolType()
         {
             var parameter0 = ReadAbstract<IOrigin>();
@@ -560,6 +651,76 @@ namespace Microsoft.Dafny
             }
 
             return ReadBoolType();
+        }
+
+        public MapType ReadMapType()
+        {
+            var parameter0 = ReadAbstractOption<IOrigin>();
+            var parameter2 = ReadList<Type>(() => ReadAbstract<Type>());
+            var parameter1 = ReadBoolean();
+            return new MapType(parameter0, parameter1, parameter2);
+        }
+
+        public MapType ReadMapTypeOption()
+        {
+            if (ReadIsNull())
+            {
+                return default;
+            }
+
+            return ReadMapType();
+        }
+
+        public SeqType ReadSeqType()
+        {
+            var parameter0 = ReadAbstractOption<IOrigin>();
+            var parameter1 = ReadList<Type>(() => ReadAbstract<Type>());
+            return new SeqType(parameter0, parameter1);
+        }
+
+        public SeqType ReadSeqTypeOption()
+        {
+            if (ReadIsNull())
+            {
+                return default;
+            }
+
+            return ReadSeqType();
+        }
+
+        public MultiSetType ReadMultiSetType()
+        {
+            var parameter0 = ReadAbstractOption<IOrigin>();
+            var parameter1 = ReadList<Type>(() => ReadAbstract<Type>());
+            return new MultiSetType(parameter0, parameter1);
+        }
+
+        public MultiSetType ReadMultiSetTypeOption()
+        {
+            if (ReadIsNull())
+            {
+                return default;
+            }
+
+            return ReadMultiSetType();
+        }
+
+        public SetType ReadSetType()
+        {
+            var parameter0 = ReadAbstractOption<IOrigin>();
+            var parameter2 = ReadList<Type>(() => ReadAbstract<Type>());
+            var parameter1 = ReadBoolean();
+            return new SetType(parameter0, parameter1, parameter2);
+        }
+
+        public SetType ReadSetTypeOption()
+        {
+            if (ReadIsNull())
+            {
+                return default;
+            }
+
+            return ReadSetType();
         }
 
         public TypeParameter ReadTypeParameter()
@@ -1303,6 +1464,11 @@ namespace Microsoft.Dafny
                 return ReadLiteralExpr();
             }
 
+            if (actualType == typeof(TernaryExpr))
+            {
+                return ReadTernaryExpr();
+            }
+
             if (actualType == typeof(ITEExpr))
             {
                 return ReadITEExpr();
@@ -1393,14 +1559,54 @@ namespace Microsoft.Dafny
                 return ReadMemberSelectExpr();
             }
 
+            if (actualType == typeof(BitvectorType))
+            {
+                return ReadBitvectorType();
+            }
+
+            if (actualType == typeof(BigOrdinalType))
+            {
+                return ReadBigOrdinalType();
+            }
+
+            if (actualType == typeof(RealType))
+            {
+                return ReadRealType();
+            }
+
             if (actualType == typeof(IntType))
             {
                 return ReadIntType();
             }
 
+            if (actualType == typeof(CharType))
+            {
+                return ReadCharType();
+            }
+
             if (actualType == typeof(BoolType))
             {
                 return ReadBoolType();
+            }
+
+            if (actualType == typeof(MapType))
+            {
+                return ReadMapType();
+            }
+
+            if (actualType == typeof(SeqType))
+            {
+                return ReadSeqType();
+            }
+
+            if (actualType == typeof(MultiSetType))
+            {
+                return ReadMultiSetType();
+            }
+
+            if (actualType == typeof(SetType))
+            {
+                return ReadSetType();
             }
 
             if (actualType == typeof(TypeParameter))
