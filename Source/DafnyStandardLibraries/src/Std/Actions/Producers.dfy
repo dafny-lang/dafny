@@ -1243,7 +1243,7 @@ module Std.Producers {
             assert currentInner.value.history == [];
 
             assert currentInner == Seq.Last(original.Outputs());
-            Seq.PartitionedLastTrueImpliesAll(original.Outputs(), IsSome);
+            Seq.PartitionedLastTrueImpliesAll(original.Outputs(), IsSome<Producer<T>>);
             assert !original.Done() && currentInner.Some? && !currentInner.value.Done();
             original.DoneIsOneWay();
 
@@ -1301,13 +1301,10 @@ module Std.Producers {
           } else {
             assert currentInner == Seq.Last(original.Outputs());
             assert original.ValidHistory(original.history);
-            // TODO-HELP: With --type-system-refresh on
-            // this does not verify, even though it is a direct consequence of the previous line!
-            // I cannot find any possible workaround.
-            assert Seq.Partitioned(original.Outputs(), IsSome);
-            Seq.PartitionedLastTrueImpliesAll(original.Outputs(), IsSome);
+            assert Seq.Partitioned(original.Outputs(), IsSome<Producer<T>>);
+            Seq.PartitionedLastTrueImpliesAll(original.Outputs(), IsSome<Producer<T>>);
             assert result == Seq.Last(currentInner.value.Outputs());
-            Seq.PartitionedLastTrueImpliesAll(currentInner.value.Outputs(), IsSome);
+            Seq.PartitionedLastTrueImpliesAll(currentInner.value.Outputs(), IsSome<T>);
             assert !original.Done() && currentInner.Some? && !currentInner.value.Done();
 
             original.DoneIsOneWay();

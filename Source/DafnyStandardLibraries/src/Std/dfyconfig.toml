@@ -16,10 +16,9 @@ excludes = [
 track-print-effects = true
 enforce-determinism = true
 reads-clauses-on-methods = true
-# TODO: Enable once we fix FlattenedProducer
-# type-system-refresh = true
-# general-traits = "datatype"
-# general-newtypes = true
+type-system-refresh = true
+general-traits = "datatype"
+general-newtypes = true
 
 # Options important for sustainable development
 # of the libraries themselves.

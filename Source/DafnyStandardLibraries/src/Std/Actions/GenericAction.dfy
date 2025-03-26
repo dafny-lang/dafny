@@ -13,7 +13,7 @@ module Std.GenericActions {
   // See https://github.com/dafny-lang/dafny/blob/master/Source/DafnyStandardLibraries/src/Std/Actions/Actions.md
   // for further details.
   //
-  trait GenericAction<I, O> {
+  trait GenericAction<I, O> extends object {
 
     // Specification predicates
 
