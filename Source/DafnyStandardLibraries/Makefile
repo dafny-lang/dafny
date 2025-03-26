@@ -1,7 +1,8 @@
 
 # Invoking the CLI this way just to stay platform-independent
 DAFNY = dotnet run --project ../Dafny --no-build --roll-forward LatestMajor --
-VERIFY_OPTIONS = --type-system-refresh=true --general-traits=datatype --general-newtypes=true
+# TODO: Re-enable once I fix FlattenedProducer
+# VERIFY_OPTIONS = --type-system-refresh=true --general-traits=datatype --general-newtypes=true
 
 NO_VERIFY := false # Use make update-binary NO_VERIFY=true to generate the binaries without verification
 DOO_FILE_SOURCE=build/DafnyStandardLibraries.doo

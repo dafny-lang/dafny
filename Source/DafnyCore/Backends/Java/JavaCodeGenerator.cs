@@ -539,7 +539,7 @@ namespace Microsoft.Dafny.Compilers {
       }
     }
 
-    private bool OutFormalOverridesTypeParameter(Method m, int outIndex) {
+    private bool OutFormalOverridesTypeParameter(MethodOrConstructor m, int outIndex) {
       if (m.Outs[outIndex].Type.IsTypeParameter) {
         return true;
       }

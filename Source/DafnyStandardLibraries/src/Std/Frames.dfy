@@ -5,7 +5,7 @@ module Std.Frames {
   // A trait for objects with a Valid() predicate. Necessary in order to
   // generalize some proofs, but also useful for reducing the boilerplate
   // that most such objects need to include.
-  trait Validatable {
+  trait Validatable extends object {
     // Ghost state tracking the common set of objects most
     // methods need to read.
     //

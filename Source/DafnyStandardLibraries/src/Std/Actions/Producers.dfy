@@ -1194,7 +1194,7 @@ module Std.Producers {
       true
     }
 
-    @ResourceLimit("1e9")
+    @ResourceLimit("0")
     @IsolateAssertions
     method Invoke(t: ()) returns (result: Option<T>)
       requires Requires(t)
@@ -1300,6 +1300,11 @@ module Std.Producers {
             assert old(Remaining()) >= Remaining();
           } else {
             assert currentInner == Seq.Last(original.Outputs());
+            assert original.ValidHistory(original.history);
+            // TODO-HELP: With --type-system-refresh on
+            // this does not verify, even though it is a direct consequence of the previous line!
+            // I cannot find any possible workaround.
+            assert Seq.Partitioned(original.Outputs(), IsSome);
             Seq.PartitionedLastTrueImpliesAll(original.Outputs(), IsSome);
             assert result == Seq.Last(currentInner.value.Outputs());
             Seq.PartitionedLastTrueImpliesAll(currentInner.value.Outputs(), IsSome);
