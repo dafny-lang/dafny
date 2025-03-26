@@ -36,13 +36,15 @@ public class MapType : CollectionType {
 
   public MapType(bool finite, Type? domain, Type? range) : base(domain, range) {
     Finite = finite;
+    this.range = range;
   }
 
   public MapType(Cloner cloner, MapType original) : base(cloner, original) {
     Finite = original.Finite;
-    range = cloner.CloneType(original.Range);
-    var arg = HasTypeArg() ? Arg : null;
-    TypeArgs = [arg, range];
+    range = cloner.CloneType(original.range);
+    if (HasTypeArg() && range != null) {
+      TypeArgs = [Arg, range];
+    }
   }
 
   public override string CollectionTypeName => Finite ? "map" : "imap";
