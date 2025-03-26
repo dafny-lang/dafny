@@ -97,7 +97,7 @@ module ActualTerminationExample {
   function Count<T>(t: Tree<T>): nat {
     match t
     case Node(children) =>
-      // assert t decreases to children;
+      assert t decreases to children;
       CountSum(children)
     case Nil =>
       0
