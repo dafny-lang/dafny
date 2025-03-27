@@ -272,6 +272,11 @@ class BoundVar : NonglobalVariable
 {
 }
 
+class SetComprehension : ComprehensionExpr
+{
+    Boolean finite;
+}
+
 abstract class QuantifierExpr : ComprehensionExpr
 {
 }
@@ -284,9 +289,59 @@ class ExistsExpr : QuantifierExpr
 {
 }
 
+class MapComprehension : ComprehensionExpr
+{
+    Boolean finite;
+    Expression? termLeft;
+}
+
+class SeqUpdateExpr : Expression
+{
+    Expression seq;
+    Expression index;
+    Expression value;
+}
+
+class SeqConstructionExpr : Expression
+{
+    Type? explicitElementType;
+    Expression n;
+    Expression initializer;
+}
+
+class MultiSetFormingExpr : Expression
+{
+    Expression e;
+}
+
+class MapDisplayExpr : Expression
+{
+    Boolean finite;
+    List<ExpressionPair> elements;
+}
+
+class ExpressionPair
+{
+    Expression a;
+    Expression b;
+}
+
 abstract class DisplayExpression : Expression
 {
     List<Expression> elements;
+}
+
+class SetDisplayExpr : DisplayExpression
+{
+    Boolean finite;
+}
+
+class SeqDisplayExpr : DisplayExpression
+{
+}
+
+class MultiSetDisplayExpr : DisplayExpression
+{
 }
 
 class ThisExpr : Expression
@@ -300,6 +355,12 @@ class SeqSelectExpr : Expression
     Expression? e0;
     Expression? e1;
     Token? closeParen;
+}
+
+class MultiSelectExpr : Expression
+{
+    Expression array;
+    List<Expression> indices;
 }
 
 class MemberSelectExpr : Expression

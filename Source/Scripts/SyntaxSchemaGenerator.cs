@@ -72,7 +72,7 @@ public class SyntaxSchemaGenerator : SyntaxAstVisitor {
       .ToHashSet();
 
     var generatedTypeNames = generatedTypes
-      .Select(type => CutOffGenericSuffixPartOfName(type.FullName!))
+      .Select(type => CutOffGenericSuffixPartOfName(type.FullName!).Replace('+', '.'))
       .ToFrozenSet();
     // NOTE: these include types not "expected" from scanning Parser
     Console.WriteLine($"{generatedTypeNames.Count} types generated:");

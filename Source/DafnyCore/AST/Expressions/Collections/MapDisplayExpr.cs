@@ -1,5 +1,6 @@
+#nullable enable
+
 using System.Collections.Generic;
-using System.Diagnostics.Contracts;
 using System.Linq;
 
 namespace Microsoft.Dafny;
@@ -13,10 +14,9 @@ public class MapDisplayExpr : Expression, ICanFormat, ICloneable<MapDisplayExpr>
     Elements = original.Elements.Select(p => new ExpressionPair(cloner.CloneExpr(p.A), cloner.CloneExpr(p.B))).ToList();
   }
 
+  [SyntaxConstructor]
   public MapDisplayExpr(IOrigin origin, bool finite, List<ExpressionPair> elements)
     : base(origin) {
-    Contract.Requires(origin != null);
-    Contract.Requires(cce.NonNullElements(elements));
     Finite = finite;
     Elements = elements;
   }
@@ -40,9 +40,9 @@ public class MapDisplayExpr : Expression, ICanFormat, ICloneable<MapDisplayExpr>
 
 public class ExpressionPair {
   public Expression A, B;
+
+  [SyntaxConstructor]
   public ExpressionPair(Expression a, Expression b) {
-    Contract.Requires(a != null);
-    Contract.Requires(b != null);
     A = a;
     B = b;
   }

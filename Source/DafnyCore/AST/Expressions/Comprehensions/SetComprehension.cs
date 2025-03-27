@@ -1,3 +1,5 @@
+#nullable enable
+
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 
@@ -27,13 +29,11 @@ public class SetComprehension : ComprehensionExpr, ICloneable<SetComprehension> 
     Finite = original.Finite;
   }
 
-  public SetComprehension(IOrigin origin, bool finite, List<BoundVar> bvars, Expression range, Expression/*?*/ term, Attributes attrs)
-    : base(origin, bvars, range, term ?? new IdentifierExpr(origin, bvars[0].Name), attrs) {
-    Contract.Requires(origin != null);
-    Contract.Requires(cce.NonNullElements(bvars));
-    Contract.Requires(1 <= bvars.Count);
-    Contract.Requires(range != null);
-    Contract.Requires(term != null || bvars.Count == 1);
+  [SyntaxConstructor]
+  public SetComprehension(IOrigin origin, bool finite, List<BoundVar> boundVars, Expression range, Expression? term, Attributes? attributes = null)
+    : base(origin, boundVars, range, term ?? new IdentifierExpr(origin, boundVars[0].Name), attributes) {
+    Contract.Requires(1 <= boundVars.Count);
+    Contract.Requires(term != null || boundVars.Count == 1);
 
     TermIsImplicit = term == null;
     Finite = finite;

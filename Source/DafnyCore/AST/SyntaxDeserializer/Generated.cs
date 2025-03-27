@@ -461,6 +461,27 @@ namespace Microsoft.Dafny
             return ReadBoundVar();
         }
 
+        public SetComprehension ReadSetComprehension()
+        {
+            var parameter0 = ReadAbstract<IOrigin>();
+            var parameter2 = ReadList<BoundVar>(() => ReadBoundVar());
+            var parameter3 = ReadAbstract<Expression>();
+            var parameter4 = ReadAbstractOption<Expression>();
+            var parameter5 = ReadAttributesOption();
+            var parameter1 = ReadBoolean();
+            return new SetComprehension(parameter0, parameter1, parameter2, parameter3, parameter4, parameter5);
+        }
+
+        public SetComprehension ReadSetComprehensionOption()
+        {
+            if (ReadIsNull())
+            {
+                return default;
+            }
+
+            return ReadSetComprehension();
+        }
+
         public ForallExpr ReadForallExpr()
         {
             var parameter0 = ReadAbstract<IOrigin>();
@@ -501,6 +522,170 @@ namespace Microsoft.Dafny
             return ReadExistsExpr();
         }
 
+        public MapComprehension ReadMapComprehension()
+        {
+            var parameter0 = ReadAbstract<IOrigin>();
+            var parameter2 = ReadList<BoundVar>(() => ReadBoundVar());
+            var parameter3 = ReadAbstract<Expression>();
+            var parameter5 = ReadAbstract<Expression>();
+            var parameter6 = ReadAttributesOption();
+            var parameter1 = ReadBoolean();
+            var parameter4 = ReadAbstractOption<Expression>();
+            return new MapComprehension(parameter0, parameter1, parameter2, parameter3, parameter4, parameter5, parameter6);
+        }
+
+        public MapComprehension ReadMapComprehensionOption()
+        {
+            if (ReadIsNull())
+            {
+                return default;
+            }
+
+            return ReadMapComprehension();
+        }
+
+        public SeqUpdateExpr ReadSeqUpdateExpr()
+        {
+            var parameter0 = ReadAbstract<IOrigin>();
+            var parameter1 = ReadAbstract<Expression>();
+            var parameter2 = ReadAbstract<Expression>();
+            var parameter3 = ReadAbstract<Expression>();
+            return new SeqUpdateExpr(parameter0, parameter1, parameter2, parameter3);
+        }
+
+        public SeqUpdateExpr ReadSeqUpdateExprOption()
+        {
+            if (ReadIsNull())
+            {
+                return default;
+            }
+
+            return ReadSeqUpdateExpr();
+        }
+
+        public SeqConstructionExpr ReadSeqConstructionExpr()
+        {
+            var parameter0 = ReadAbstract<IOrigin>();
+            var parameter1 = ReadAbstractOption<Type>();
+            var parameter2 = ReadAbstract<Expression>();
+            var parameter3 = ReadAbstract<Expression>();
+            return new SeqConstructionExpr(parameter0, parameter1, parameter2, parameter3);
+        }
+
+        public SeqConstructionExpr ReadSeqConstructionExprOption()
+        {
+            if (ReadIsNull())
+            {
+                return default;
+            }
+
+            return ReadSeqConstructionExpr();
+        }
+
+        public MultiSetFormingExpr ReadMultiSetFormingExpr()
+        {
+            var parameter0 = ReadAbstract<IOrigin>();
+            var parameter1 = ReadAbstract<Expression>();
+            return new MultiSetFormingExpr(parameter0, parameter1);
+        }
+
+        public MultiSetFormingExpr ReadMultiSetFormingExprOption()
+        {
+            if (ReadIsNull())
+            {
+                return default;
+            }
+
+            return ReadMultiSetFormingExpr();
+        }
+
+        public MapDisplayExpr ReadMapDisplayExpr()
+        {
+            var parameter0 = ReadAbstract<IOrigin>();
+            var parameter1 = ReadBoolean();
+            var parameter2 = ReadList<ExpressionPair>(() => ReadExpressionPair());
+            return new MapDisplayExpr(parameter0, parameter1, parameter2);
+        }
+
+        public MapDisplayExpr ReadMapDisplayExprOption()
+        {
+            if (ReadIsNull())
+            {
+                return default;
+            }
+
+            return ReadMapDisplayExpr();
+        }
+
+        public ExpressionPair ReadExpressionPair()
+        {
+            var parameter0 = ReadAbstract<Expression>();
+            var parameter1 = ReadAbstract<Expression>();
+            return new ExpressionPair(parameter0, parameter1);
+        }
+
+        public ExpressionPair ReadExpressionPairOption()
+        {
+            if (ReadIsNull())
+            {
+                return default;
+            }
+
+            return ReadExpressionPair();
+        }
+
+        public SetDisplayExpr ReadSetDisplayExpr()
+        {
+            var parameter0 = ReadAbstract<IOrigin>();
+            var parameter2 = ReadList<Expression>(() => ReadAbstract<Expression>());
+            var parameter1 = ReadBoolean();
+            return new SetDisplayExpr(parameter0, parameter1, parameter2);
+        }
+
+        public SetDisplayExpr ReadSetDisplayExprOption()
+        {
+            if (ReadIsNull())
+            {
+                return default;
+            }
+
+            return ReadSetDisplayExpr();
+        }
+
+        public SeqDisplayExpr ReadSeqDisplayExpr()
+        {
+            var parameter0 = ReadAbstract<IOrigin>();
+            var parameter1 = ReadList<Expression>(() => ReadAbstract<Expression>());
+            return new SeqDisplayExpr(parameter0, parameter1);
+        }
+
+        public SeqDisplayExpr ReadSeqDisplayExprOption()
+        {
+            if (ReadIsNull())
+            {
+                return default;
+            }
+
+            return ReadSeqDisplayExpr();
+        }
+
+        public MultiSetDisplayExpr ReadMultiSetDisplayExpr()
+        {
+            var parameter0 = ReadAbstract<IOrigin>();
+            var parameter1 = ReadList<Expression>(() => ReadAbstract<Expression>());
+            return new MultiSetDisplayExpr(parameter0, parameter1);
+        }
+
+        public MultiSetDisplayExpr ReadMultiSetDisplayExprOption()
+        {
+            if (ReadIsNull())
+            {
+                return default;
+            }
+
+            return ReadMultiSetDisplayExpr();
+        }
+
         public ThisExpr ReadThisExpr()
         {
             var parameter0 = ReadAbstract<IOrigin>();
@@ -536,6 +721,24 @@ namespace Microsoft.Dafny
             }
 
             return ReadSeqSelectExpr();
+        }
+
+        public MultiSelectExpr ReadMultiSelectExpr()
+        {
+            var parameter0 = ReadAbstract<IOrigin>();
+            var parameter1 = ReadAbstract<Expression>();
+            var parameter2 = ReadList<Expression>(() => ReadAbstract<Expression>());
+            return new MultiSelectExpr(parameter0, parameter1, parameter2);
+        }
+
+        public MultiSelectExpr ReadMultiSelectExprOption()
+        {
+            if (ReadIsNull())
+            {
+                return default;
+            }
+
+            return ReadMultiSelectExpr();
         }
 
         public MemberSelectExpr ReadMemberSelectExpr()
@@ -1534,6 +1737,11 @@ namespace Microsoft.Dafny
                 return ReadBoundVar();
             }
 
+            if (actualType == typeof(SetComprehension))
+            {
+                return ReadSetComprehension();
+            }
+
             if (actualType == typeof(ForallExpr))
             {
                 return ReadForallExpr();
@@ -1544,6 +1752,51 @@ namespace Microsoft.Dafny
                 return ReadExistsExpr();
             }
 
+            if (actualType == typeof(MapComprehension))
+            {
+                return ReadMapComprehension();
+            }
+
+            if (actualType == typeof(SeqUpdateExpr))
+            {
+                return ReadSeqUpdateExpr();
+            }
+
+            if (actualType == typeof(SeqConstructionExpr))
+            {
+                return ReadSeqConstructionExpr();
+            }
+
+            if (actualType == typeof(MultiSetFormingExpr))
+            {
+                return ReadMultiSetFormingExpr();
+            }
+
+            if (actualType == typeof(MapDisplayExpr))
+            {
+                return ReadMapDisplayExpr();
+            }
+
+            if (actualType == typeof(ExpressionPair))
+            {
+                return ReadExpressionPair();
+            }
+
+            if (actualType == typeof(SetDisplayExpr))
+            {
+                return ReadSetDisplayExpr();
+            }
+
+            if (actualType == typeof(SeqDisplayExpr))
+            {
+                return ReadSeqDisplayExpr();
+            }
+
+            if (actualType == typeof(MultiSetDisplayExpr))
+            {
+                return ReadMultiSetDisplayExpr();
+            }
+
             if (actualType == typeof(ThisExpr))
             {
                 return ReadThisExpr();
@@ -1552,6 +1805,11 @@ namespace Microsoft.Dafny
             if (actualType == typeof(SeqSelectExpr))
             {
                 return ReadSeqSelectExpr();
+            }
+
+            if (actualType == typeof(MultiSelectExpr))
+            {
+                return ReadMultiSelectExpr();
             }
 
             if (actualType == typeof(MemberSelectExpr))
