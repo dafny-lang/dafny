@@ -169,7 +169,7 @@ namespace DafnyTestGeneration {
 
       foreach (var uri in lineCoverageLabels.Keys) {
         foreach (var lineNumber in lineCoverageLabels[uri].Keys) {
-          var rangeToken = new SourceOrigin(
+          var rangeToken = new TokenRange(
               new Token(lineNumber, 1) { Uri = uri },
               new Token(lineNumber + 1, 1));
           coverageReport.LabelCode(rangeToken,

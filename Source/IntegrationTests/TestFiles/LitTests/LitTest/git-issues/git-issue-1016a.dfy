@@ -31,6 +31,6 @@ method Test5(s: State)
     var n :- Gimmie();
     Some(100.0);
 
-  var c := x == z;  // ERROR: this should give a type error
+  var c := x == z;  // ERROR: this (or the literal 100.0 above) should give a type error
 }
 

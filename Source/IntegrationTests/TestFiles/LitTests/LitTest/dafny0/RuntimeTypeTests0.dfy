@@ -23,7 +23,7 @@ method G()
   print s, " and ", t, "\n";
 }
 
-trait Tr { var u: char }
+trait Tr extends object { var u: char }
 
 class Class0 extends Tr { var x: int }
 

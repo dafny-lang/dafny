@@ -63,7 +63,7 @@ method XM() returns (x: int) {
   print "after: ", f(), " ", "before: ", f(), "\n";
 }
 
-trait NothingInParticular { }
+trait NothingInParticular extends object { }
 class ClassA { }
 class ClassB extends NothingInParticular { }
 
@@ -151,7 +151,7 @@ method SetComprehension3() {
   print |d|, " ", |e|, "\n"; // 3 3
 }
 
-trait ICell { var data: int }
+trait ICell extends object { var data: int }
 class CellA extends ICell { }
 class CellB extends ICell { }
 
@@ -224,7 +224,7 @@ method EnumerationsMaybeNull() {
 }
 
 module TestImplicitTypeTests {
-  trait A {}
+  trait A extends object {}
   trait B extends A {}
   class C extends B {}
   class A' extends A {}

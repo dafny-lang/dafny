@@ -11,7 +11,7 @@ public class CallStmt : Statement, ICloneable<CallStmt> {
 
   [ContractInvariantMethod]
   void ObjectInvariant() {
-    Contract.Invariant(MethodSelect.Member is Method);
+    Contract.Invariant(MethodSelect.Member is MethodOrConstructor);
     Contract.Invariant(cce.NonNullElements(Lhs));
     Contract.Invariant(cce.NonNullElements(Args));
   }
@@ -21,14 +21,14 @@ public class CallStmt : Statement, ICloneable<CallStmt> {
     return Lhs.Select(lhs => lhs.Resolved).OfType<IdentifierExpr>();
   }
 
-  public readonly List<Expression> Lhs;
-  public readonly MemberSelectExpr MethodSelect;
-  public readonly ActualBindings Bindings;
+  public List<Expression> Lhs;
+  public MemberSelectExpr MethodSelect;
+  public ActualBindings Bindings;
   public List<Expression> Args => Bindings.Arguments;
   public Expression OriginalInitialLhs = null;
 
   public Expression Receiver => MethodSelect.Obj;
-  public Method Method => (Method)MethodSelect.Member;
+  public MethodOrConstructor Method => (MethodOrConstructor)MethodSelect.Member;
 
   public CallStmt(IOrigin rangeOrigin, List<Expression> lhs, MemberSelectExpr memSel, List<ActualBinding> args, Token overrideToken = null)
     : base(
@@ -38,7 +38,7 @@ public class CallStmt : Statement, ICloneable<CallStmt> {
     Contract.Requires(rangeOrigin != null);
     Contract.Requires(cce.NonNullElements(lhs));
     Contract.Requires(memSel != null);
-    Contract.Requires(memSel.Member is Method);
+    Contract.Requires(memSel.Member is MethodOrConstructor);
     Contract.Requires(cce.NonNullElements(args));
 
     this.Lhs = lhs;

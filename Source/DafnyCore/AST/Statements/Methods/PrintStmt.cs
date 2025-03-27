@@ -8,9 +8,9 @@ using DafnyCore.Options;
 namespace Microsoft.Dafny;
 
 public class PrintStmt : Statement, ICloneable<PrintStmt>, ICanFormat {
-  public readonly List<Expression> Args;
+  public List<Expression> Args;
 
-  public static readonly Option<bool> TrackPrintEffectsOption = new("--track-print-effects",
+  public static Option<bool> TrackPrintEffectsOption = new("--track-print-effects",
     "A compiled method, constructor, or iterator is allowed to have print effects only if it is marked with {{:print}}.");
   static PrintStmt() {
     DafnyOptions.RegisterLegacyBinding(TrackPrintEffectsOption, (options, value) => {

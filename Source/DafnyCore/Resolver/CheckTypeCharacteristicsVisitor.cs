@@ -242,7 +242,7 @@ class CheckTypeCharacteristicsVisitor : ResolverTopDownVisitor<bool> {
       return false;
     } else if (expr is MemberSelectExpr) {
       var e = (MemberSelectExpr)expr;
-      if (e.Member is Function || e.Member is Method) {
+      if (e.Member is Function || e.Member is MethodOrConstructor) {
         CheckTypeInstantiation(e.Origin, e.Member.WhatKind, e.Member.Name, ((ICallable)e.Member).TypeArgs, e.TypeApplicationJustMember, inGhostContext);
       }
     } else if (expr is FunctionCallExpr) {

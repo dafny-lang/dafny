@@ -8,7 +8,7 @@ namespace Microsoft.Dafny;
 
 public abstract class DatatypeDecl : TopLevelDeclWithMembers, RevealableTypeDecl, ICallable, ICanFormat, IHasDocstring, ICanAutoRevealDependencies {
   public override bool CanBeRevealed() { return true; }
-  public readonly List<DatatypeCtor> Ctors;
+  public List<DatatypeCtor> Ctors;
 
   [FilledInDuringResolution] public Dictionary<string, DatatypeCtor> ConstructorsByName { get; set; }
   [ContractInvariantMethod]
@@ -21,12 +21,13 @@ public abstract class DatatypeDecl : TopLevelDeclWithMembers, RevealableTypeDecl
 
   public override IEnumerable<INode> PreResolveChildren => Ctors.Concat(base.PreResolveChildren);
 
-  public DatatypeDecl(IOrigin origin, Name nameNode, ModuleDefinition enclosingModule, List<TypeParameter> typeArgs,
-    [Captured] List<DatatypeCtor> ctors, List<Type> parentTraits, List<MemberDecl> members, Attributes attributes, bool isRefining)
-    : base(origin, nameNode, enclosingModule, typeArgs, members, attributes, parentTraits) {
+  [SyntaxConstructor]
+  protected DatatypeDecl(IOrigin origin, Name nameNode, ModuleDefinition enclosingModuleDefinition, List<TypeParameter> typeArgs,
+    [Captured] List<DatatypeCtor> ctors, List<Type> traits, List<MemberDecl> members, Attributes attributes, bool isRefining)
+    : base(origin, nameNode, enclosingModuleDefinition, typeArgs, members, attributes, traits) {
     Contract.Requires(origin != null);
     Contract.Requires(nameNode != null);
-    Contract.Requires(enclosingModule != null);
+    Contract.Requires(enclosingModuleDefinition != null);
     Contract.Requires(cce.NonNullElements(typeArgs));
     Contract.Requires(cce.NonNullElements(ctors));
     Contract.Requires(cce.NonNullElements(members));

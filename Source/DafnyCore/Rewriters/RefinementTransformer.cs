@@ -23,30 +23,6 @@ using Microsoft.Dafny.Plugins;
 using static Microsoft.Dafny.RefinementErrors;
 
 namespace Microsoft.Dafny {
-  public class RefinementOrigin : OriginWrapper {
-    public readonly ModuleDefinition InheritingModule;
-
-
-    public RefinementOrigin(IOrigin tok, ModuleDefinition m)
-      : base(tok) {
-      Contract.Requires(tok != null);
-      Contract.Requires(m != null);
-      this.InheritingModule = m;
-    }
-
-    public override string ToString() {
-      return $"refinement of {WrappedToken} by {InheritingModule.Name}";
-    }
-
-    public override bool IsCopy => true;
-
-    public override bool IsInherited(ModuleDefinition m) {
-      return InheritingModule == m;
-    }
-
-    public override string Filepath => WrappedToken.Filepath + "[" + InheritingModule.Name + "]";
-  }
-
   /// <summary>
   /// The "RefinementTransformer" is responsible for transforming a refining module (that is,
   /// a module defined as "module Y refines X") according to the body of this module and
@@ -161,8 +137,8 @@ namespace Microsoft.Dafny {
 
     private ModuleDefinition moduleUnderConstruction;  // non-null for the duration of Construct calls
     private Queue<Action> postTasks = new Queue<Action>();  // empty whenever moduleUnderConstruction==null, these tasks are for the post-resolve phase of module moduleUnderConstruction
-    public Queue<Tuple<Method, Method>> translationMethodChecks = new Queue<Tuple<Method, Method>>();  // contains all the methods that need to be checked for structural refinement.
-    private Method currentMethod;
+    public Queue<Tuple<MethodOrConstructor, MethodOrConstructor>> translationMethodChecks = new();  // contains all the methods that need to be checked for structural refinement.
+    private MethodOrConstructor currentMethod;
     private ModuleSignature RefinedSig;  // the intention is to use this field only after a successful PreResolve
     private ModuleSignature refinedSigOpened;
 
@@ -510,7 +486,7 @@ namespace Microsoft.Dafny {
       }
     }
 
-    Method CloneMethod(Method previousMethod, List<AttributedExpression> moreEnsures, Specification<Expression> decreases, BlockStmt newBody, bool checkPreviousPostconditions, Attributes moreAttributes) {
+    MethodOrConstructor CloneMethod(MethodOrConstructor previousMethod, List<AttributedExpression> moreEnsures, Specification<Expression> decreases, BlockLikeStmt newBody, bool checkPreviousPostconditions, Attributes moreAttributes) {
       Contract.Requires(previousMethod != null);
       Contract.Requires(!(previousMethod is Constructor) || newBody == null || newBody is DividedBlockStmt);
       Contract.Requires(decreases != null);
@@ -535,7 +511,7 @@ namespace Microsoft.Dafny {
         return new Constructor(origin, newName, previousMethod.IsGhost, tps, ins,
           req, reads, mod, ens, decreases, dividedBody, refinementCloner.MergeAttributes(previousMethod.Attributes, moreAttributes), null);
       }
-      var body = newBody ?? refinementCloner.CloneBlockStmt(previousMethod.Body);
+      BlockStmt body = (BlockStmt)newBody ?? refinementCloner.CloneBlockStmt((BlockStmt)previousMethod.Body);
       if (previousMethod is LeastLemma) {
         return new LeastLemma(origin, newName, previousMethod.HasStaticKeyword, ((LeastLemma)previousMethod).TypeOfK, tps, ins,
           previousMethod.Outs.ConvertAll(o => refinementCloner.CloneFormal(o, false)),
@@ -553,8 +529,13 @@ namespace Microsoft.Dafny {
         return new TwoStateLemma(origin, newName, previousMethod.HasStaticKeyword, tps, ins,
           previousMethod.Outs.ConvertAll(o => refinementCloner.CloneFormal(o, false)),
           req, reads, mod, ens, decreases, body, refinementCloner.MergeAttributes(previousMethod.Attributes, moreAttributes), null);
+      } else if (previousMethod is Method previousMethodMethod) {
+        return new Method(origin, newName, refinementCloner.MergeAttributes(previousMethod.Attributes, moreAttributes),
+          previousMethod.HasStaticKeyword, previousMethod.IsGhost, tps, ins, req, ens, reads, decreases,
+          previousMethod.Outs.ConvertAll(o => refinementCloner.CloneFormal(o, false)),
+          mod, body, null, previousMethodMethod.IsByMethod);
       } else {
-        return new Method(origin, newName, refinementCloner.MergeAttributes(previousMethod.Attributes, moreAttributes), previousMethod.HasStaticKeyword, previousMethod.IsGhost, tps, ins, req, ens, reads, decreases, previousMethod.Outs.ConvertAll(o => refinementCloner.CloneFormal(o, false)), mod, body, null, previousMethod.IsByMethod);
+        throw new Exception($"Cannot clone method type: {previousMethod.GetType().Name}");
       }
     }
 
@@ -740,11 +721,10 @@ namespace Microsoft.Dafny {
             }
 
           } else {
-            var m = (Method)nwMember;
-            if (!(member is Method)) {
+            var m = (MethodOrConstructor)nwMember;
+            if (!(member is MethodOrConstructor prevMethod)) {
               Error(ErrorId.ref_method_refines_method, nwMember, "a method declaration ({0}) can only refine a method", nwMember.Name);
             } else {
-              var prevMethod = (Method)member;
               if (m.Req.Count != 0) {
                 Error(ErrorId.ref_no_new_method_precondition, m.Req[0].E.Origin, "a refining method is not allowed to add preconditions");
               }
@@ -793,11 +773,11 @@ namespace Microsoft.Dafny {
                 if (prevMethod.Body == null) {
                   // cool
                 } else {
-                  replacementBody = MergeBlockStmt(replacementBody, prevMethod.Body);
+                  replacementBody = MergeBlockLikeStmt(replacementBody, prevMethod.Body);
                 }
               }
               var newM = CloneMethod(prevMethod, m.Ens, decreases, replacementBody, prevMethod.Body == null, m.Attributes);
-              newM.RefinementBase = member;
+              newM.RefinementBase = prevMethod;
               nw.Members[index] = newM;
             }
           }
@@ -924,33 +904,51 @@ namespace Microsoft.Dafny {
     /// <summary>
     /// This method merges the statement "oldStmt" into the template "skeleton".
     /// </summary>
-    BlockStmt MergeBlockStmt(BlockStmt skeleton, BlockStmt oldStmt) {
-      Contract.Requires(skeleton != null);
-      Contract.Requires(oldStmt != null);
-      Contract.Requires(skeleton is DividedBlockStmt == oldStmt is DividedBlockStmt);
-
-      if (skeleton is DividedBlockStmt) {
-        var sbsSkeleton = (DividedBlockStmt)skeleton;
-        var sbsOldStmt = (DividedBlockStmt)oldStmt;
-        var bodyInit = MergeStmtList(sbsSkeleton.BodyInit, sbsOldStmt.BodyInit, out var hoverText);
-        if (hoverText.Length != 0) {
-          Reporter.Info(MessageSource.RefinementTransformer, sbsSkeleton.SeparatorTok ?? sbsSkeleton.Origin, hoverText);
-        }
-        var bodyProper = MergeStmtList(sbsSkeleton.BodyProper, sbsOldStmt.BodyProper, out hoverText);
-        if (hoverText.Length != 0) {
-          Reporter.Info(MessageSource.RefinementTransformer, sbsSkeleton.Origin, hoverText);
-        }
-        return new DividedBlockStmt(sbsSkeleton.Origin, bodyInit, sbsSkeleton.SeparatorTok, bodyProper);
+    BlockLikeStmt MergeBlockLikeStmt(BlockLikeStmt skeleton, BlockLikeStmt oldStmt) {
+      if (skeleton is BlockStmt blockStmt) {
+        return MergeBlockStmt(blockStmt, (BlockStmt)oldStmt);
       } else {
-        var body = MergeStmtList(skeleton.Body, oldStmt.Body, out var hoverText);
-        if (hoverText.Length != 0) {
-          Reporter.Info(MessageSource.RefinementTransformer, skeleton.Origin, hoverText);
-        }
-        return new BlockStmt(skeleton.Origin, body);
+        return MergeDividedBlockStmt((DividedBlockStmt)skeleton, (DividedBlockStmt)oldStmt);
       }
     }
 
-    List<Statement> MergeStmtList(List<Statement> skeleton, List<Statement> oldStmt, out string hoverText) {
+    /// <summary>
+    /// This method merges the statement "oldStmt" into the template "skeleton".
+    /// </summary>
+    DividedBlockStmt MergeDividedBlockStmt(DividedBlockStmt skeleton, DividedBlockStmt oldStmt) {
+      Contract.Requires(skeleton != null);
+      Contract.Requires(oldStmt != null);
+
+      var sbsSkeleton = skeleton;
+      var sbsOldStmt = oldStmt;
+      var bodyInit = MergeStmtList(sbsSkeleton.BodyInit, sbsOldStmt.BodyInit, out var hoverText);
+      if (hoverText.Length != 0) {
+        Reporter.Info(MessageSource.RefinementTransformer, sbsSkeleton.SeparatorTok ?? sbsSkeleton.Origin, hoverText);
+      }
+
+      var bodyProper = MergeStmtList(sbsSkeleton.BodyProper, sbsOldStmt.BodyProper, out hoverText);
+      if (hoverText.Length != 0) {
+        Reporter.Info(MessageSource.RefinementTransformer, sbsSkeleton.Origin, hoverText);
+      }
+
+      return new DividedBlockStmt(sbsSkeleton.Origin, bodyInit, sbsSkeleton.SeparatorTok, bodyProper);
+    }
+
+    /// <summary>
+    /// This method merges the statement "oldStmt" into the template "skeleton".
+    /// </summary>
+    BlockStmt MergeBlockStmt(BlockStmt skeleton, BlockStmt oldStmt) {
+      Contract.Requires(skeleton != null);
+      Contract.Requires(oldStmt != null);
+
+      var body = MergeStmtList(skeleton.Body, oldStmt.Body, out var hoverText);
+      if (hoverText.Length != 0) {
+        Reporter.Info(MessageSource.RefinementTransformer, skeleton.Origin, hoverText);
+      }
+      return new BlockStmt(skeleton.Origin, body);
+    }
+
+    List<Statement> MergeStmtList(IReadOnlyList<Statement> skeleton, IReadOnlyList<Statement> oldStmt, out string hoverText) {
       Contract.Requires(skeleton != null);
       Contract.Requires(oldStmt != null);
       Contract.Ensures(Contract.ValueAtReturn(out hoverText) != null);
@@ -1009,8 +1007,8 @@ namespace Microsoft.Dafny {
            */
           if (cur is SkeletonStatement) {
             var c = (SkeletonStatement)cur;
-            var S = c.S;
-            if (S == null) {
+            var skeletonStatementType = c.S;
+            if (skeletonStatementType == null) {
               var nxt = i + 1 == skeleton.Count ? null : skeleton[i + 1];
               if (nxt != null && nxt is SkeletonStatement && ((SkeletonStatement)nxt).S == null) {
                 // "...; ...;" is the same as just "...;", so skip this one
@@ -1034,11 +1032,10 @@ namespace Microsoft.Dafny {
               }
               i++;
 
-            } else if (S is AssertStmt) {
-              var skel = (AssertStmt)S;
+            } else if (skeletonStatementType is AssertStmt skeletonAssert) {
               Contract.Assert(c.ConditionOmitted);
-              var oldAssume = oldS as PredicateStmt;
-              if (oldAssume == null) {
+              var oldPredicateStmt = oldS as PredicateStmt;
+              if (oldPredicateStmt == null) {
                 Error(ErrorId.ref_mismatched_assert, cur.Origin, "assert template does not match inherited statement");
                 i++;
               } else {
@@ -1046,15 +1043,15 @@ namespace Microsoft.Dafny {
                 // that this assertion is supposed to be translated into a check.  That is,
                 // it is not allowed to be just assumed in the translation, despite the fact
                 // that the condition is inherited.
-                var e = refinementCloner.CloneExpr(oldAssume.Expr);
-                var attrs = refinementCloner.MergeAttributes(oldAssume.Attributes, skel.Attributes);
-                body.Add(new AssertStmt(new NestedOrigin(skel.Origin, e.Origin), e, skel.Label, attrs));
+                var e = refinementCloner.CloneExpr(oldPredicateStmt.Expr);
+                var attrs = refinementCloner.MergeAttributes(oldPredicateStmt.Attributes, skeletonAssert.Attributes);
+                body.Add(new AssertStmt(new NestedOrigin(skeletonAssert.Origin, oldPredicateStmt.Expr.Origin, "refined proposition"), e, skeletonAssert.Label, attrs));
                 Reporter.Info(MessageSource.RefinementTransformer, c.ConditionEllipsis, "assume->assert: " + Printer.ExprToString(Reporter.Options, e));
                 i++; j++;
               }
 
-            } else if (S is ExpectStmt) {
-              var skel = (ExpectStmt)S;
+            } else if (skeletonStatementType is ExpectStmt) {
+              var skel = (ExpectStmt)skeletonStatementType;
               Contract.Assert(c.ConditionOmitted);
               var oldExpect = oldS as ExpectStmt;
               if (oldExpect == null) {
@@ -1069,8 +1066,8 @@ namespace Microsoft.Dafny {
                 i++; j++;
               }
 
-            } else if (S is AssumeStmt) {
-              var skel = (AssumeStmt)S;
+            } else if (skeletonStatementType is AssumeStmt) {
+              var skel = (AssumeStmt)skeletonStatementType;
               Contract.Assert(c.ConditionOmitted);
               var oldAssume = oldS as AssumeStmt;
               if (oldAssume == null) {
@@ -1084,8 +1081,8 @@ namespace Microsoft.Dafny {
                 i++; j++;
               }
 
-            } else if (S is IfStmt) {
-              var skel = (IfStmt)S;
+            } else if (skeletonStatementType is IfStmt) {
+              var skel = (IfStmt)skeletonStatementType;
               Contract.Assert(c.ConditionOmitted);
               var oldIf = oldS as IfStmt;
               if (oldIf == null) {
@@ -1095,14 +1092,14 @@ namespace Microsoft.Dafny {
                 var resultingThen = MergeBlockStmt(skel.Thn, oldIf.Thn);
                 var resultingElse = MergeElse(skel.Els, oldIf.Els);
                 var e = refinementCloner.CloneExpr(oldIf.Guard);
-                var r = new IfStmt(skel.Origin, oldIf.IsBindingGuard, e, resultingThen, resultingElse);
+                var r = new IfStmt(skel.Origin, oldIf.IsBindingGuard, e, (BlockStmt)resultingThen, resultingElse);
                 body.Add(r);
                 Reporter.Info(MessageSource.RefinementTransformer, c.ConditionEllipsis, Printer.GuardToString(Reporter.Options, oldIf.IsBindingGuard, e));
                 i++; j++;
               }
 
-            } else if (S is WhileStmt) {
-              var skel = (WhileStmt)S;
+            } else if (skeletonStatementType is WhileStmt) {
+              var skel = (WhileStmt)skeletonStatementType;
               var oldWhile = oldS as WhileStmt;
               if (oldWhile == null) {
                 Error(ErrorId.ref_mismatched_while_statement, cur.Origin, "while-statement template does not match inherited statement");
@@ -1125,8 +1122,8 @@ namespace Microsoft.Dafny {
                 i++; j++;
               }
 
-            } else if (S is ModifyStmt) {
-              var skel = (ModifyStmt)S;
+            } else if (skeletonStatementType is ModifyStmt) {
+              var skel = (ModifyStmt)skeletonStatementType;
               Contract.Assert(c.ConditionOmitted);
               var oldModifyStmt = oldS as ModifyStmt;
               if (oldModifyStmt == null) {
@@ -1250,7 +1247,7 @@ namespace Microsoft.Dafny {
                 doMerge = true;
                 stmtGenerated.Add(nw);
                 var addedAssert = refinementCloner.CloneExpr(s.Expr);
-                var tok = new SourceOrigin(addedAssert.Origin.StartToken, addedAssert.Origin.EndToken);
+                var tok = new SourceOrigin(addedAssert.StartToken, addedAssert.EndToken);
                 stmtGenerated.Add(new AssertStmt(tok, addedAssert, null, null));
               }
             }
@@ -1594,11 +1591,11 @@ namespace Microsoft.Dafny {
       moduleUnderConstruction = m;
     }
 
-    public override BlockStmt CloneMethodBody(Method m) {
+    public override BlockLikeStmt CloneMethodBody(MethodOrConstructor m) {
       if (m.Body is DividedBlockStmt) {
         return CloneDividedBlockStmt((DividedBlockStmt)m.Body);
       } else {
-        return CloneBlockStmt(m.Body);
+        return CloneBlockStmt((BlockStmt)m.Body);
       }
     }
 

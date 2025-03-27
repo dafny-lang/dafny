@@ -5,11 +5,11 @@ namespace Microsoft.Dafny;
 
 public class ModuleSignature {
   public VisibilityScope VisibilityScope = null;
-  public readonly Dictionary<string, ModuleDecl> ShadowedImportedModules = new();
-  public readonly Dictionary<string, TopLevelDecl> TopLevels = new();
-  public readonly Dictionary<string, ModuleExportDecl> ExportSets = new();
-  public readonly Dictionary<string, Tuple<DatatypeCtor, bool>> Ctors = new();
-  public readonly Dictionary<string, MemberDecl> StaticMembers = new();
+  public Dictionary<string, ModuleDecl> ShadowedImportedModules = new();
+  public Dictionary<string, TopLevelDecl> TopLevels = new();
+  public Dictionary<string, ModuleExportDecl> ExportSets = new();
+  public Dictionary<string, Tuple<DatatypeCtor, bool>> Ctors = new();
+  public Dictionary<string, MemberDecl> StaticMembers = new();
   public ModuleDefinition ModuleDef = null; // Note: this is null if this signature does not correspond to a specific definition (i.e.
   // it is abstract). Otherwise, it points to that definition.
   public ModuleSignature Refines = null;

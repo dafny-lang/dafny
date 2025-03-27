@@ -9,8 +9,8 @@ namespace Microsoft.Dafny;
 /// Parsed from ":="
 /// </summary>
 public class AssignStatement : ConcreteAssignStatement, ICloneable<AssignStatement>, ICanResolve {
-  public readonly List<AssignmentRhs> Rhss;
-  public readonly bool CanMutateKnownState;
+  public List<AssignmentRhs> Rhss;
+  public bool CanMutateKnownState;
   public Expression? OriginalInitialLhs = null;
 
   [FilledInDuringResolution] public List<Statement>? ResolvedStatements;
@@ -23,6 +23,10 @@ public class AssignStatement : ConcreteAssignStatement, ICloneable<AssignStateme
   public override IEnumerable<INode> PreResolveChildren => Lhss.Concat<Node>(Rhss);
 
   public override IEnumerable<Statement> PreResolveSubStatements => [];
+
+  public override IEnumerable<IdentifierExpr> GetAssignedLocals() {
+    return ResolvedStatements!.SelectMany(r => r.GetAssignedLocals());
+  }
 
   [ContractInvariantMethod]
   void ObjectInvariant() {
@@ -96,7 +100,7 @@ public class AssignStatement : ConcreteAssignStatement, ICloneable<AssignStateme
       if (rhs is TypeRhs) {
         var tr = (TypeRhs)rhs;
         resolver.ResolveTypeRhs(tr, this, resolutionContext);
-        isEffectful = tr.InitCall != null;
+        isEffectful = (tr is AllocateClass { InitCall: not null });
       } else if (rhs is HavocRhs) {
         isEffectful = false;
       } else {
@@ -128,7 +132,7 @@ public class AssignStatement : ConcreteAssignStatement, ICloneable<AssignStateme
       } else if (resolver.Reporter.Count(ErrorLevel.Error) == errorCountBeforeCheckingLhs) {
         // add the statements here in a sequence, but don't use that sequence later for translation (instead, should translate properly as multi-assignment)
         for (int i = 0; i < Lhss.Count; i++) {
-          var origin = Lhss.Count > 1 ? new OverrideCenter(Origin, Rhss[i].Center) : Origin;
+          var origin = Lhss.Count > 1 ? new OverrideCenter(Origin, Rhss[i].ReportingRange) : Origin;
           var a = new SingleAssignStmt(origin, Lhss[i].Resolved, Rhss[i]);
           ResolvedStatements.Add(a);
         }
@@ -145,7 +149,6 @@ public class AssignStatement : ConcreteAssignStatement, ICloneable<AssignStateme
           // we have a TypeRhs
           Contract.Assert(Rhss[0] is TypeRhs);
           var tr = (TypeRhs)Rhss[0];
-          Contract.Assert(tr.InitCall != null); // there were effects, so this must have been a call.
           if (tr.CanAffectPreviouslyKnownExpressions) {
             resolver.Reporter.Error(MessageSource.Resolver, tr.Origin, "can only have initialization methods which modify at most 'this'.");
           } else if (resolver.Reporter.Count(ErrorLevel.Error) == errorCountBeforeCheckingLhs) {

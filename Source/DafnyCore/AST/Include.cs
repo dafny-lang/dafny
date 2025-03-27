@@ -4,7 +4,7 @@ using System.Linq;
 
 namespace Microsoft.Dafny;
 
-public class Include : NodeWithComputedRange, IComparable {
+public class Include : NodeWithOrigin, IComparable {
   public DafnyOptions ParseOptions { get; }
   public Uri IncluderFilename { get; }
   public Uri IncludedFilename { get; }
@@ -17,7 +17,7 @@ public class Include : NodeWithComputedRange, IComparable {
     this.CanonicalPath = DafnyFile.Canonicalize(theFilename.LocalPath).LocalPath;
   }
 
-  public IOrigin PathOrigin => new SourceOrigin(Center, EndToken);
+  public IOrigin PathOrigin => new SourceOrigin(ReportingRange.StartToken, EndToken);
 
   public int CompareTo(object obj) {
     if (obj is Include include) {

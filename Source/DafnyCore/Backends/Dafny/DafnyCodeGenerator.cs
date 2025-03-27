@@ -131,7 +131,7 @@ namespace Microsoft.Dafny.Compilers {
 
     private bool NeedsExternalImport(MemberDecl memberDecl) {
       return !memberDecl.IsGhost && memberDecl.HasExternAttribute &&
-             memberDecl is Function { Body: null } or Method { Body: null };
+             memberDecl is Function { Body: null } or MethodOrConstructor { Body: null };
     }
 
     protected override ConcreteSyntaxTree CreateModule(ModuleDefinition module, string moduleName, bool isDefault,
@@ -610,7 +610,7 @@ namespace Microsoft.Dafny.Compilers {
         this.builder = builder;
       }
 
-      public ConcreteSyntaxTree CreateMethod(Method m, List<TypeArgumentInstantiation> typeArgs, bool createBody,
+      public ConcreteSyntaxTree CreateMethod(MethodOrConstructor m, List<TypeArgumentInstantiation> typeArgs, bool createBody,
         bool forBodyInheritance, bool lookasideBody) {
         var astTypeArgs = m.TypeArgs.Select(typeArg => compiler.GenTypeArgDecl(typeArg)).ToList();
 
@@ -808,7 +808,7 @@ namespace Microsoft.Dafny.Compilers {
       return type.ToString();
     }
 
-    protected override ConcreteSyntaxTree EmitMethodReturns(Method m, ConcreteSyntaxTree wr) {
+    protected override ConcreteSyntaxTree EmitMethodReturns(MethodOrConstructor m, ConcreteSyntaxTree wr) {
       var beforeReturnBlock = wr.Fork();
       EmitReturn(m.Outs, wr);
       return beforeReturnBlock;
@@ -1045,7 +1045,7 @@ namespace Microsoft.Dafny.Compilers {
       }
     }
 
-    protected override bool UseReturnStyleOuts(Method m, int nonGhostOutCount) => true;
+    protected override bool UseReturnStyleOuts(MethodOrConstructor m, int nonGhostOutCount) => true;
     protected override bool SupportsMultipleReturns => true;
 
     protected override void DeclareLocalOutVar(string name, Type type, IOrigin tok, string rhs, bool useReturnStyleOuts,
@@ -1094,7 +1094,7 @@ namespace Microsoft.Dafny.Compilers {
       }
     }
 
-    protected override void EmitCallToInheritedMethod(Method method, [CanBeNull] TopLevelDeclWithMembers heir, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts, ConcreteSyntaxTree wStmtsAfterCall) {
+    protected override void EmitCallToInheritedMethod(MethodOrConstructor method, [CanBeNull] TopLevelDeclWithMembers heir, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts, ConcreteSyntaxTree wStmtsAfterCall) {
       if (wr is BuilderSyntaxTree<StatementContainer> stmtContainer) {
         var signature = GetCallSignature(method);
         var callBuilder = stmtContainer.Builder.Call(signature);
@@ -1453,7 +1453,7 @@ namespace Microsoft.Dafny.Compilers {
       }
     }
 
-    protected override void EmitArrayLength(Action<ConcreteSyntaxTree> arr, TypeRhs typeRhs, int d, bool native,
+    protected override void EmitArrayLength(Action<ConcreteSyntaxTree> arr, AllocateArray typeRhs, int d, bool native,
       ConcreteSyntaxTree w) {
       var arrayLengthBuilder = new ArrayLengthBuilder(GenType(typeRhs.Type), d, native);
       arr(new BuilderSyntaxTree<ExprContainer>(arrayLengthBuilder, this));
@@ -2216,7 +2216,7 @@ namespace Microsoft.Dafny.Compilers {
           Sequence<Rune>.UnicodeFromString(compiledName),
           member is ConstantField
         ), this);
-      } else if (member is SpecialField sf2 && sf2.SpecialId == SpecialField.ID.UseIdParam && sf2.IdParam is string fieldName && fieldName.StartsWith("is_")) {
+      } else if (member is DatatypeDiscriminator discriminator && discriminator.IdParam is string fieldName && fieldName.StartsWith("is_")) {
         obj(new BuilderSyntaxTree<ExprContainer>(objReceiver, this));
         var objExpr = objReceiver.Finish();
 

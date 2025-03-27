@@ -20,6 +20,7 @@ Termination.dfy(730,2): Error: decreases expression might not decrease
 Termination.dfy(806,2): Error: cannot prove termination; try supplying a decreases clause for the loop
 Termination.dfy(1182,2): Error: cannot prove termination; try supplying a decreases clause for the loop
 Termination.dfy(1198,2): Error: cannot prove termination; try supplying a decreases clause for the loop
-Termination.dfy[TerminationRefinement1](441,5): Error: decreases clause might not decrease
+Termination.dfy(441,5): Error: decreases clause might not decrease
+Termination.dfy(446,7): Related location: refining module
 
 Dafny program verifier finished with 108 verified, 23 errors

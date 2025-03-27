@@ -24,14 +24,18 @@ namespace Microsoft.Dafny {
         range.ExclusiveEnd.GetLspPosition());
     }
 
+    public static Range ToLspRange(this TokenRange tokenRange) {
+      return tokenRange.ToDafnyRange().ToLspRange();
+    }
+
     /// <summary>
     /// Gets the LSP range of the specified token.
     /// </summary>
     /// <param name="startToken">The token to get the range of.</param>
     /// <param name="endToken">An optional other token to get the end of the range of.</param>
     /// <returns>The LSP range of the token.</returns>
-    public static Range ToLspRange(this IOrigin range) {
-      return range.ToDafnyRange().ToLspRange();
+    public static Range ToLspRange(this INode node) {
+      return node.ToDafnyRange().ToLspRange();
     }
 
     /// <summary>
@@ -61,26 +65,15 @@ namespace Microsoft.Dafny {
       if (token is NestedOrigin nestedToken) {
         return GetLspRange(nestedToken.Outer, nameRange);
       }
-      var dafnyToken = BoogieGenerator.ToDafnyToken(!nameRange, token);
-      return GetLspRangeGeneric(dafnyToken.StartToken, dafnyToken.EndToken);
+
+      var dafnyToken = BoogieGenerator.ToDafnyToken(token);
+      var tokenRange = nameRange ? dafnyToken.ReportingRange : dafnyToken.EntireRange ?? dafnyToken.ReportingRange;
+      var lspRangeGeneric = GetLspRangeGeneric(tokenRange.StartToken, tokenRange.EndToken);
+      return lspRangeGeneric;
     }
 
     public static Position GetLspPosition(this DafnyPosition position) {
       return new Position(position.Line, position.Column);
-    }
-
-    public static Location GetLocation(this IOrigin token) {
-      return new Location {
-        Uri = DocumentUri.From(token.Uri),
-        Range = token.GetLspRange(true)
-      };
-    }
-
-    public static Location GetLocation(this SourceOrigin origin) {
-      return new Location() {
-        Uri = DocumentUri.From(origin.Uri),
-        Range = origin.GetLspRange()
-      };
     }
 
     public static FilePosition GetFilePosition(this IOrigin token, bool end = false) {

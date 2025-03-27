@@ -565,7 +565,7 @@ class DafnyDoc {
         if (f.IsOpaque) {
           details.Append(br).Append(space4).Append("Function body is opaque").Append(br).Append(eol);
         }
-        var brackets = new SourceOrigin(body.StartToken.Prev, body.EndToken.Next);
+        var brackets = new TokenRange(body.StartToken.Prev!, body.EndToken.Next);
         int column = brackets.StartToken.line != brackets.EndToken.line ? brackets.EndToken.col : 0;
         var offset = column <= 1 ? "" : new StringBuilder().Insert(0, " ", column - 1).ToString();
         details.Append(Pre(offset + brackets.PrintOriginal()));
@@ -579,7 +579,7 @@ class DafnyDoc {
   }
 
   public string ExpressionAsSource(Expression e) {
-    return e.Origin.PrintOriginal();
+    return e.EntireRange.PrintOriginal();
   }
 
   public Info TypeInfo(bool register, TopLevelDecl t, ModuleDefinition module, Info owner) {
@@ -727,13 +727,13 @@ class DafnyDoc {
   }
 
   public void AddMethodSummaries(TopLevelDeclWithMembers decl, StringBuilder summaries, List<Info> ownerInfoList, bool register) {
-    var methods = decl.Members.Where(m => m is Method && !(m as Method).IsLemmaLike && !(m is Constructor) && !IsGeneratedName(m.Name)).Select(m => m as MemberDecl).ToList();
+    var methods = decl.Members.Where(m => m is Method method && !method.IsLemmaLike && !IsGeneratedName(method.Name)).ToList();
     methods.Sort((f, ff) => f.Name.CompareTo(ff.Name));
     AddExecutableSummaries("Methods", methods, decl, summaries, ownerInfoList, register);
   }
 
   public void AddLemmaSummaries(TopLevelDeclWithMembers decl, StringBuilder summaries, List<Info> ownerInfoList, bool register) {
-    var methods = decl.Members.Where(m => m is Method && (m as Method).IsLemmaLike && !IsGeneratedName(m.Name)).Select(m => m as MemberDecl).ToList();
+    var methods = decl.Members.Where(m => m is Method && (m as Method).IsLemmaLike && !IsGeneratedName(m.Name)).ToList();
     methods.Sort((f, ff) => f.Name.CompareTo(ff.Name));
     AddExecutableSummaries("Lemmas", methods, decl, summaries, ownerInfoList, register);
   }
@@ -745,13 +745,12 @@ class DafnyDoc {
   }
 
   string MethodSig(MemberDecl m) {
-    if (m is Method) {
-      var mth = m as Method;
-      var typeparams = TypeFormals(mth.TypeArgs);
-      var formals = String.Join(", ", mth.Ins.Select(f => (FormalAsString(f, false))));
-      var outformals = mth.Outs.Count == 0 ? "" :
-        " " + Keyword("returns") + " (" + String.Join(", ", mth.Outs.Select(f => (FormalAsString(f, false)))) + ")";
-      return (Bold(m.Name) + typeparams) + "(" + formals + ")" + outformals;
+    if (m is MethodOrConstructor methodOrConstructor) {
+      var typeparams = TypeFormals(methodOrConstructor.TypeArgs);
+      var formals = String.Join(", ", methodOrConstructor.Ins.Select(f => (FormalAsString(f, false))));
+      var outformals = methodOrConstructor.Outs.Count == 0 ? "" :
+        " " + Keyword("returns") + " (" + String.Join(", ", methodOrConstructor.Outs.Select(f => (FormalAsString(f, false)))) + ")";
+      return (Bold(methodOrConstructor.Name) + typeparams) + "(" + formals + ")" + outformals;
     } else if (m is Function) {
       var f = m as Function;
       var typeparams = TypeFormals(f.TypeArgs);
@@ -822,28 +821,27 @@ class DafnyDoc {
   // returns true iff some specs were appended to the StringBuilder
   public bool AppendSpecs(StringBuilder details, MemberDecl d) {
     bool some = false;
-    if (d is Method) {
-      var m = d as Method;
-      foreach (var req in m.Req) {
+    if (d is MethodOrConstructor method) {
+      foreach (var req in method.Req) {
         details.Append(space4).Append(Keyword("requires")).Append(" ").Append(Code(req.E.ToString())).Append(br).Append(eol);
         some = true;
       }
-      if (m.Reads.Expressions.Count > 0) {
-        var list = String.Join(", ", m.Reads.Expressions.Select(e => Code(e.OriginalExpression.ToString() + (e.FieldName != null ? "`" + e.FieldName : ""))));
+      if (method.Reads.Expressions.Count > 0) {
+        var list = String.Join(", ", method.Reads.Expressions.Select(e => Code(e.OriginalExpression.ToString() + (e.FieldName != null ? "`" + e.FieldName : ""))));
         details.Append(space4).Append(Keyword("reads")).Append(" ").Append(list).Append(br).Append(eol);
         some = true;
       }
-      if (m.Mod != null && m.Mod.Expressions.Count > 0) {
-        var list = String.Join(", ", m.Mod.Expressions.Select(e => Code(e.OriginalExpression.ToString() + (e.FieldName != null ? "`" + e.FieldName : ""))));
+      if (method.Mod != null && method.Mod.Expressions.Count > 0) {
+        var list = String.Join(", ", method.Mod.Expressions.Select(e => Code(e.OriginalExpression.ToString() + (e.FieldName != null ? "`" + e.FieldName : ""))));
         details.Append(space4).Append(Keyword("modifies")).Append(" ").Append(list).Append(br).Append(eol);
         some = true;
       }
-      foreach (var en in m.Ens) {
+      foreach (var en in method.Ens) {
         details.Append(space4).Append(Keyword("ensures")).Append(" ").Append(Code(en.E.ToString())).Append(br).Append(eol);
         some = true;
       }
-      if (m.Decreases != null && m.Decreases.Expressions.Count > 0) {
-        var dec = String.Join(", ", m.Decreases.Expressions.Select(e => Code(e.ToString())));
+      if (method.Decreases != null && method.Decreases.Expressions.Count > 0) {
+        var dec = String.Join(", ", method.Decreases.Expressions.Select(e => Code(e.ToString())));
         details.Append(space4).Append(Keyword("decreases")).Append(" ").Append(dec).Append(br).Append(eol);
         some = true;
       }

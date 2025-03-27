@@ -20,6 +20,6 @@ Inc.dfy(247,2): Error: a postcondition could not be proved on this return path
 Inc.dfy(244,12): Related location: this is the postcondition that could not be proved
 Inc.dfy(318,17): Error: cannot prove termination; try supplying a decreases clause
 Inc.dfy(318,17): Error: decreases expression at index 1 must be bounded below by 0
-Inc.dfy(303,26): Related location: this proposition could not be proved
+Inc.dfy(303,26): Related location: this decreases clause was not satisfied
 
 Dafny program verifier finished with 8 verified, 12 errors

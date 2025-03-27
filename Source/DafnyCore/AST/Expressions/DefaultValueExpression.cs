@@ -24,9 +24,9 @@ namespace Microsoft.Dafny;
 /// attention to DefaultValueExpression's in some places.
 /// </summary>
 public abstract class DefaultValueExpression : ConcreteSyntaxExpression {
-  private readonly Formal formal;
-  private readonly Expression receiver;
-  private readonly Dictionary<IVariable, Expression> substMap;
+  private Formal formal;
+  private Expression receiver;
+  private Dictionary<IVariable, Expression> substMap;
 
   protected abstract Dictionary<TypeParameter, Type> GetTypeMap();
 
@@ -75,8 +75,8 @@ public abstract class DefaultValueExpression : ConcreteSyntaxExpression {
   }
 
   class DefaultValueSubstituter : Substituter {
-    private readonly ModuleResolver resolver;
-    private readonly Dictionary<DefaultValueExpression, DefaultValueExpression.WorkProgress> visited;
+    private ModuleResolver resolver;
+    private Dictionary<DefaultValueExpression, DefaultValueExpression.WorkProgress> visited;
     public DefaultValueSubstituter(ModuleResolver resolver, Dictionary<DefaultValueExpression, DefaultValueExpression.WorkProgress> visited,
       Expression /*?*/ receiverReplacement, Dictionary<IVariable, Expression> substMap, Dictionary<TypeParameter, Type> typeMap)
       : base(receiverReplacement, substMap, typeMap) {
@@ -97,7 +97,7 @@ public abstract class DefaultValueExpression : ConcreteSyntaxExpression {
 }
 
 public class DefaultValueExpressionType : DefaultValueExpression, ICloneable<DefaultValueExpressionType> {
-  private readonly Dictionary<TypeParameter, Type> typeMap;
+  private Dictionary<TypeParameter, Type> typeMap;
 
   public DefaultValueExpressionType(IOrigin origin, Formal formal,
     Expression/*?*/ receiver, Dictionary<IVariable, Expression> substMap, Dictionary<TypeParameter, Type> typeMap)
@@ -119,7 +119,7 @@ public class DefaultValueExpressionType : DefaultValueExpression, ICloneable<Def
 }
 
 public class DefaultValueExpressionPreType : DefaultValueExpression, ICloneable<DefaultValueExpressionPreType> {
-  private readonly Dictionary<TypeParameter, PreType> preTypeMap;
+  private Dictionary<TypeParameter, PreType> preTypeMap;
 
   public DefaultValueExpressionPreType(IOrigin origin, Formal formal,
     Expression/*?*/ receiver, Dictionary<IVariable, Expression> substMap, Dictionary<TypeParameter, PreType> preTypeMap)

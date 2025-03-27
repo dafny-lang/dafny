@@ -9,9 +9,9 @@ namespace Microsoft.Dafny;
 /// An ApplySuffix desugars into either an ApplyExpr or a FunctionCallExpr
 /// </summary>
 public class ApplySuffix : SuffixExpr, ICloneable<ApplySuffix>, ICanFormat {
-  public readonly IOrigin? AtTok;
-  public readonly Token? CloseParen;
-  public readonly ActualBindings Bindings;
+  public IOrigin? AtTok;
+  public Token? CloseParen;
+  public ActualBindings Bindings;
   public List<Expression>? Args => Bindings.Arguments;
   [FilledInDuringResolution] public MethodCallInformation? MethodCallInfo = null; // resolution will set to a non-null value if ApplySuffix makes a method call
 
@@ -32,7 +32,6 @@ public class ApplySuffix : SuffixExpr, ICloneable<ApplySuffix>, ICanFormat {
     base(cloner, original) {
     AtTok = original.AtTok == null ? null : cloner.Origin(original.AtTok);
     CloseParen = original.CloseParen;
-    FormatTokens = original.FormatTokens;
     Bindings = new ActualBindings(cloner, original.Bindings);
   }
 
@@ -43,9 +42,6 @@ public class ApplySuffix : SuffixExpr, ICloneable<ApplySuffix>, ICanFormat {
     AtTok = atTok;
     CloseParen = closeParen;
     Bindings = bindings;
-    if (closeParen != null) {
-      FormatTokens = [closeParen];
-    }
   }
 
   public ApplySuffix(IOrigin origin, IOrigin? atTok, Expression lhs, List<ActualBinding> args, Token? closeParen)

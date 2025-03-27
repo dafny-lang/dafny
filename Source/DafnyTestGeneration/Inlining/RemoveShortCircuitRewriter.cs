@@ -58,7 +58,7 @@ public class RemoveShortCircuitingRewriter : Cloner {
       moduleDecl.ModuleDef.Children.OfType<TopLevelDecl>().ForEach(Visit);
     } else if (d is TopLevelDeclWithMembers withMembers) {
       withMembers.Members.Where(shouldProcessPredicate).OfType<Function>().ForEach(Visit);
-      withMembers.Members.Where(shouldProcessPredicate).OfType<Method>().ForEach(Visit);
+      withMembers.Members.Where(shouldProcessPredicate).OfType<MethodOrConstructor>().ForEach(Visit);
     }
   }
 
@@ -69,19 +69,20 @@ public class RemoveShortCircuitingRewriter : Cloner {
     }
   }
 
-  private void Visit(Method method) {
+  private void Visit(MethodOrConstructor method) {
     ResetVariableIds();
     if (method.Body != null) {
-      method.Body = CloneBlockStmt(method.Body);
+      if (method is Constructor constructor) {
+        method.SetBody(CloneDividedBlockStmt(constructor.Body));
+      } else {
+        method.SetBody(CloneBlockStmt(((Method)method).Body));
+      }
     }
   }
 
   public override BlockStmt CloneBlockStmt(BlockStmt blockStatement) {
     if (blockStatement == null) {
       return null;
-    }
-    if (blockStatement is DividedBlockStmt dividedBlockStmt) {
-      return CloneDividedBlockStmt(dividedBlockStmt);
     }
     List<Statement> newBody = [];
     foreach (var statement in blockStatement.Body) {
@@ -442,6 +443,4 @@ public class RemoveShortCircuitingRewriter : Cloner {
     }
     return base.CloneExpr(expr);
   }
-
-
 }
