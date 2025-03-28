@@ -1,7 +1,7 @@
+#nullable enable
+
 using System.Collections.Generic;
 using System.Diagnostics;
-using System.Diagnostics.Contracts;
-using JetBrains.Annotations;
 
 namespace Microsoft.Dafny;
 
@@ -13,10 +13,7 @@ public class BoundVar : NonglobalVariable {
 
   [SyntaxConstructor]
   public BoundVar(IOrigin origin, Name nameNode, Type type, bool isGhost = false)
-    : base(origin, nameNode, type, isGhost) {
-    Contract.Requires(origin != null);
-    Contract.Requires(type != null);
-  }
+    : base(origin, nameNode, type, isGhost) { }
 }
 
 /// <summary>
@@ -26,15 +23,20 @@ public class BoundVar : NonglobalVariable {
 /// (x <- C) and an optional range boolean expressions (x | E).
 /// </summary>
 [DebuggerDisplay("Quantified<{name}>")]
+[NonSerializedField(nameof(IsGhost))]
 public class QuantifiedVar : BoundVar {
-  public Expression Domain;
-  public Expression Range;
+  public Expression? Domain;
+  public Expression? Range;
 
-  public QuantifiedVar(IOrigin tok, string name, Type type, Expression domain, Expression range)
-    : base(tok, name, type) {
-    Contract.Requires(tok != null);
-    Contract.Requires(name != null);
-    Contract.Requires(type != null);
+  public QuantifiedVar(IOrigin origin, string name, Type type, Expression domain, Expression range)
+    : base(origin, name, type) {
+    Domain = domain;
+    Range = range;
+  }
+
+  [SyntaxConstructor]
+  public QuantifiedVar(IOrigin origin, Name nameNode, Type type, Expression domain, Expression range)
+    : base(origin, nameNode, type) {
     Domain = domain;
     Range = range;
   }
@@ -52,7 +54,7 @@ public class QuantifiedVar : BoundVar {
   /// Note the result will be null rather than "true" if there are no such domains or ranges.
   /// Some quantification contexts (such as comprehensions) will replace this with "true".
   /// </summary>
-  public static void ExtractSingleRange(List<QuantifiedVar> qvars, out List<BoundVar> bvars, [CanBeNull] out Expression range) {
+  public static void ExtractSingleRange(List<QuantifiedVar> qvars, out List<BoundVar> bvars, out Expression? range) {
     bvars = [];
     range = null;
 
@@ -88,7 +90,7 @@ public interface IBoundVarsBearingExpression {
 class QuantifiedVariableDomainCloner : Cloner {
   public static QuantifiedVariableDomainCloner Instance = new QuantifiedVariableDomainCloner();
   private QuantifiedVariableDomainCloner() { }
-  public override IOrigin Origin(IOrigin tok) {
+  public override IOrigin? Origin(IOrigin? tok) {
     if (tok == null) {
       return null;
     }
@@ -100,7 +102,7 @@ class QuantifiedVariableDomainCloner : Cloner {
 class QuantifiedVariableRangeCloner : Cloner {
   public static QuantifiedVariableRangeCloner Instance = new QuantifiedVariableRangeCloner();
   private QuantifiedVariableRangeCloner() { }
-  public override IOrigin Origin(IOrigin tok) {
+  public override IOrigin? Origin(IOrigin? tok) {
     if (tok == null) {
       return null;
     }

@@ -99,7 +99,7 @@ public abstract class Type : NodeWithOrigin {
   }
 
   // Type arguments to the type
-  public List<Type> TypeArgs { get; set; } = [];
+  public virtual List<Type> TypeArgs { get; set; } = [];
 
   /// <summary>
   /// Add to "tps" the free type parameters in "this".
@@ -2112,6 +2112,10 @@ public abstract class TypeProxy : Type {
   internal TypeProxy() {
   }
 
+  [SyntaxConstructor]
+  protected TypeProxy(IOrigin origin = null) : base(origin) {
+  }
+
 #if TI_DEBUG_PRINT
   static int _id = 0;
   int id = _id++;
@@ -2198,9 +2202,14 @@ public abstract class TypeProxy : Type {
 /// This proxy stands for any type.
 /// </summary>
 public class InferredTypeProxy : TypeProxy {
-  public bool KeepConstraints;
-  public InferredTypeProxy() : base() {
-    KeepConstraints = false; // whether the typeProxy should be inferred to base type or as subset type
+  /// Whether the typeProxy should be inferred to base type or as subset type
+  public bool KeepConstraints = false;
+
+  public InferredTypeProxy() {
+  }
+
+  [SyntaxConstructor]
+  public InferredTypeProxy(IOrigin origin = null) : base(origin) {
   }
 }
 

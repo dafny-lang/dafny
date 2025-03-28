@@ -6,6 +6,38 @@ namespace Microsoft.Dafny
 {
     partial class SyntaxDeserializer
     {
+        public QuantifiedVariableRangeOrigin ReadQuantifiedVariableRangeOrigin()
+        {
+            var parameter0 = ReadAbstract<IOrigin>();
+            return new QuantifiedVariableRangeOrigin(parameter0);
+        }
+
+        public QuantifiedVariableRangeOrigin ReadQuantifiedVariableRangeOriginOption()
+        {
+            if (ReadIsNull())
+            {
+                return default;
+            }
+
+            return ReadQuantifiedVariableRangeOrigin();
+        }
+
+        public QuantifiedVariableDomainOrigin ReadQuantifiedVariableDomainOrigin()
+        {
+            var parameter0 = ReadAbstract<IOrigin>();
+            return new QuantifiedVariableDomainOrigin(parameter0);
+        }
+
+        public QuantifiedVariableDomainOrigin ReadQuantifiedVariableDomainOriginOption()
+        {
+            if (ReadIsNull())
+            {
+                return default;
+            }
+
+            return ReadQuantifiedVariableDomainOrigin();
+        }
+
         public TokenRangeOrigin ReadTokenRangeOrigin()
         {
             var parameter0 = ReadToken();
@@ -55,6 +87,22 @@ namespace Microsoft.Dafny
             }
 
             return ReadTokenRange();
+        }
+
+        public InferredTypeProxy ReadInferredTypeProxy()
+        {
+            var parameter0 = ReadAbstract<IOrigin>();
+            return new InferredTypeProxy(parameter0);
+        }
+
+        public InferredTypeProxy ReadInferredTypeProxyOption()
+        {
+            if (ReadIsNull())
+            {
+                return default;
+            }
+
+            return ReadInferredTypeProxy();
         }
 
         public UserDefinedType ReadUserDefinedType()
@@ -459,6 +507,26 @@ namespace Microsoft.Dafny
             }
 
             return ReadBoundVar();
+        }
+
+        public QuantifiedVar ReadQuantifiedVar()
+        {
+            var parameter0 = ReadAbstract<IOrigin>();
+            var parameter1 = ReadName();
+            var parameter2 = ReadAbstract<Type>();
+            var parameter3 = ReadAbstract<Expression>();
+            var parameter4 = ReadAbstract<Expression>();
+            return new QuantifiedVar(parameter0, parameter1, parameter2, parameter3, parameter4);
+        }
+
+        public QuantifiedVar ReadQuantifiedVarOption()
+        {
+            if (ReadIsNull())
+            {
+                return default;
+            }
+
+            return ReadQuantifiedVar();
         }
 
         public SetComprehension ReadSetComprehension()
@@ -1115,6 +1183,25 @@ namespace Microsoft.Dafny
             return ReadMethod();
         }
 
+        public ExpectStmt ReadExpectStmt()
+        {
+            var parameter0 = ReadAbstract<IOrigin>();
+            var parameter3 = ReadAttributesOption();
+            var parameter1 = ReadAbstract<Expression>();
+            var parameter2 = ReadAbstractOption<Expression>();
+            return new ExpectStmt(parameter0, parameter1, parameter2, parameter3);
+        }
+
+        public ExpectStmt ReadExpectStmtOption()
+        {
+            if (ReadIsNull())
+            {
+                return default;
+            }
+
+            return ReadExpectStmt();
+        }
+
         public AssertStmt ReadAssertStmt()
         {
             var parameter0 = ReadAbstract<IOrigin>();
@@ -1617,6 +1704,16 @@ namespace Microsoft.Dafny
 
         private object ReadObject(System.Type actualType)
         {
+            if (actualType == typeof(QuantifiedVariableRangeOrigin))
+            {
+                return ReadQuantifiedVariableRangeOrigin();
+            }
+
+            if (actualType == typeof(QuantifiedVariableDomainOrigin))
+            {
+                return ReadQuantifiedVariableDomainOrigin();
+            }
+
             if (actualType == typeof(TokenRangeOrigin))
             {
                 return ReadTokenRangeOrigin();
@@ -1630,6 +1727,11 @@ namespace Microsoft.Dafny
             if (actualType == typeof(TokenRange))
             {
                 return ReadTokenRange();
+            }
+
+            if (actualType == typeof(InferredTypeProxy))
+            {
+                return ReadInferredTypeProxy();
             }
 
             if (actualType == typeof(UserDefinedType))
@@ -1735,6 +1837,11 @@ namespace Microsoft.Dafny
             if (actualType == typeof(BoundVar))
             {
                 return ReadBoundVar();
+            }
+
+            if (actualType == typeof(QuantifiedVar))
+            {
+                return ReadQuantifiedVar();
             }
 
             if (actualType == typeof(SetComprehension))
@@ -1905,6 +2012,11 @@ namespace Microsoft.Dafny
             if (actualType == typeof(Method))
             {
                 return ReadMethod();
+            }
+
+            if (actualType == typeof(ExpectStmt))
+            {
+                return ReadExpectStmt();
             }
 
             if (actualType == typeof(AssertStmt))

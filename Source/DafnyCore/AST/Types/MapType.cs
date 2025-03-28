@@ -28,10 +28,10 @@ public class MapType : CollectionType {
   }
 
   [SyntaxConstructor]
-  public MapType(IOrigin? origin, bool finite, List<Type?> collectionTypeArgs) : base(origin, collectionTypeArgs) {
-    Contract.Requires(collectionTypeArgs is [null, null] or [not null, not null]);
+  public MapType(IOrigin? origin, bool finite, List<Type?> typeArgs) : base(origin, typeArgs) {
+    Contract.Requires(typeArgs is [null, null] or [not null, not null]);
     Finite = finite;
-    range = collectionTypeArgs[1];
+    range = typeArgs[1];
   }
 
   public MapType(bool finite, Type? domain, Type? range) : base(domain, range) {

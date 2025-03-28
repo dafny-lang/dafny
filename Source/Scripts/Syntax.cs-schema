@@ -1,4 +1,17 @@
+abstract class OriginWrapper
+{
+    IOrigin wrappedOrigin;
+}
+
 abstract class IOrigin
+{
+}
+
+class QuantifiedVariableRangeOrigin : OriginWrapper
+{
+}
+
+class QuantifiedVariableDomainOrigin : OriginWrapper
 {
 }
 
@@ -47,6 +60,14 @@ abstract class NodeWithOrigin : Node
 }
 
 abstract class Type : NodeWithOrigin
+{
+}
+
+abstract class TypeProxy : Type
+{
+}
+
+class InferredTypeProxy : TypeProxy
 {
 }
 
@@ -272,6 +293,12 @@ class BoundVar : NonglobalVariable
 {
 }
 
+class QuantifiedVar : BoundVar
+{
+    Expression? domain;
+    Expression? range;
+}
+
 class SetComprehension : ComprehensionExpr
 {
     Boolean finite;
@@ -400,7 +427,7 @@ class BoolType : BasicType
 
 abstract class CollectionType : NonProxyType
 {
-    List<Type> collectionTypeArgs;
+    List<Type> typeArgs;
 }
 
 class MapType : CollectionType
@@ -561,6 +588,11 @@ abstract class Statement : NodeWithOrigin
 abstract class PredicateStmt : Statement
 {
     Expression expr;
+}
+
+class ExpectStmt : PredicateStmt
+{
+    Expression? message;
 }
 
 class AssertStmt : PredicateStmt

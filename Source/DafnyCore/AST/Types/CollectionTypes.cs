@@ -16,8 +16,9 @@ public abstract class CollectionType : NonProxyType {
     return CollectionTypeName + targs;
   }
 
-  // Only used for SyntaxConstructor
-  public List<Type> CollectionTypeArgs => TypeArgs;
+  // This override enables CollectionType's SyntaxConstructor to accept typeArgs,
+  // without needing to refactor NonProxyType's SyntaxConstructor to do so too.
+  public sealed override List<Type?> TypeArgs { get; set; } = [];
 
   [FilledInDuringResolution]
   public Type? Arg { get; private set; }  // denotes the Domain type for a Map
@@ -57,11 +58,11 @@ public abstract class CollectionType : NonProxyType {
   /// Construct a collection type with either 1 or 2 type arguments.
   /// </summary>
   [SyntaxConstructor]
-  protected CollectionType(IOrigin? origin, List<Type?> collectionTypeArgs) : base(origin) {
-    Contract.Requires(collectionTypeArgs is [_] or [null, null] or [not null, not null]);
-    Arg = collectionTypeArgs.FirstOrDefault();
-    if (collectionTypeArgs is [not null] or [not null, not null]) {
-      TypeArgs = collectionTypeArgs;
+  protected CollectionType(IOrigin? origin, List<Type?> typeArgs) : base(origin) {
+    Contract.Requires(typeArgs is [_] or [null, null] or [not null, not null]);
+    Arg = typeArgs.FirstOrDefault();
+    if (typeArgs is [not null] or [not null, not null]) {
+      TypeArgs = typeArgs;
     }
   }
 
@@ -70,7 +71,7 @@ public abstract class CollectionType : NonProxyType {
   /// </summary>
   protected CollectionType(Type? arg) {
     Arg = arg;
-    TypeArgs = new List<Type>(1);
+    TypeArgs = new List<Type?>(1);
     if (arg != null) {
       TypeArgs.Add(arg);
     }
@@ -81,7 +82,7 @@ public abstract class CollectionType : NonProxyType {
   /// </summary>
   protected CollectionType(Type? arg, Type? other) {
     Arg = arg;
-    TypeArgs = new List<Type>(2);
+    TypeArgs = new List<Type?>(2);
     if (arg != null && other != null) {
       TypeArgs.Add(arg);
       TypeArgs.Add(other);
@@ -113,7 +114,7 @@ public class SetType : CollectionType {
   public bool Finite { get; }
 
   [SyntaxConstructor]
-  public SetType(IOrigin? origin, bool finite, List<Type?> collectionTypeArgs) : base(origin, collectionTypeArgs) {
+  public SetType(IOrigin? origin, bool finite, List<Type?> typeArgs) : base(origin, typeArgs) {
     Finite = finite;
   }
 
@@ -152,7 +153,7 @@ public class SetType : CollectionType {
 
 public class MultiSetType : CollectionType {
   [SyntaxConstructor]
-  public MultiSetType(IOrigin? origin, List<Type?> collectionTypeArgs) : base(origin, collectionTypeArgs) { }
+  public MultiSetType(IOrigin? origin, List<Type?> typeArgs) : base(origin, typeArgs) { }
 
   public MultiSetType(Type? arg) : base(arg) { }
 
@@ -186,7 +187,7 @@ public class MultiSetType : CollectionType {
 
 public class SeqType : CollectionType {
   [SyntaxConstructor]
-  public SeqType(IOrigin? origin, List<Type?> collectionTypeArgs) : base(origin, collectionTypeArgs) { }
+  public SeqType(IOrigin? origin, List<Type?> typeArgs) : base(origin, typeArgs) { }
 
   public SeqType(Type? arg) : base(arg) { }
 
