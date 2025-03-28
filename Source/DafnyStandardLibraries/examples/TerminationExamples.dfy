@@ -1,5 +1,5 @@
 
-module ActualTerminationExample {
+module TerminationExample {
 
   import opened Std.Termination
   import opened Std.Ordinal

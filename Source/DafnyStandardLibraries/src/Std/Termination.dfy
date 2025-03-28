@@ -11,48 +11,42 @@ module Std.Termination {
   // Heterogeneous encoding of the essential features of individual
   // decreases clause list elements.
   datatype TerminationMetric =
-    | Bool(boolValue: bool, height: nat)
-    | Nat(natValue: nat, height: nat)
-    | Char(charValue: nat, height: nat)
-    | Ord(ordinalValue: ORDINAL, height: nat)
+    | Bool(boolValue: bool)
+    | Nat(natValue: nat)
+    | Char(charValue: nat)
+    | Ord(ordinalValue: ORDINAL)
       // No ordering on objects themselves, but commonly used in Repr set<object> values
-    | Object(objectValue: object, height: nat)
+    | Object(objectValue: object)
       // Also used to encode datatype structural inclusion
-    | Seq(seqValue: seq<TerminationMetric>, height: nat)
-    | Set(setValue: set<TerminationMetric>, height: nat)
+    | Seq(seqValue: seq<TerminationMetric>)
+    | Set(setValue: set<TerminationMetric>)
 
       // Other kinds of Dafny values are valid here too,
       // and may be added in the future.
 
       // Lexicographic tuple.
-    | Tuple(base: TerminationMetric, first: TerminationMetric, second: TerminationMetric, height: nat)
+    | Tuple(base: TerminationMetric, first: TerminationMetric, second: TerminationMetric)
 
       // The "top" value used in the definition of Dafny decreases clauses.
       // Only guaranteed to be above any value expressible in Dafny syntax.
-    | Top(height: nat)
+    | Top
 
       // Never used by direct Dafny syntax, but very useful for simple dependencies.
-    | Succ(original: TerminationMetric, height: nat)
+    | Succ(original: TerminationMetric)
   {
     ghost predicate Valid()
-      decreases height, 0
+      decreases this, 0
     {
       match this {
-        case Succ(original, height) =>
-          && height > original.height
+        case Succ(original) =>
           && original.Valid()
-        case Set(setValue, height) =>
-          && height > SetHeightSum(setValue)
+        case Set(setValue) =>
           && (forall tm <- setValue :: tm.Valid())
-        case Seq(children, height) =>
-          && height > SeqHeightSum(children)
+        case Seq(children) =>
           && (forall tm <- children :: tm.Valid())
-        case Tuple(_, left, right, height) =>
-          && height > left.height
+        case Tuple(_, left, right) =>
           && left.Valid()
-          && height > right.height
           && right.Valid()
-          && height > base.height
           && base.Valid()
           && base.Ordinal() > right.Ordinal()
         case _ => true
@@ -61,19 +55,19 @@ module Std.Termination {
 
     ghost opaque function Ordinal(): ORDINAL
       requires Valid()
-      decreases height
+      decreases this
     {
       match this {
-        case Bool(boolValue, _) => (if boolValue then 1 else 0) as ORDINAL
-        case Nat(natValue, _) => natValue as ORDINAL
-        case Char(charValue, _) => charValue as ORDINAL
-        case Ord(ordinalValue, _) => ordinalValue
-        case Object(objectValue, _) => 0
-        case Set(setValue, _) => |setValue| as ORDINAL
-        case Seq(seqValue, _) => MultisetOrdinal(height, multiset(seqValue))
-        case Tuple(base, first, second, _) => Times(base.Ordinal(), first.Ordinal()) + second.Ordinal() + 1
-        case Succ(original, _) => original.Ordinal() + 1
-        case Top(_) => Omega()
+        case Bool(boolValue) => if boolValue then 1 else 0
+        case Nat(natValue) => natValue as ORDINAL
+        case Char(charValue) => charValue as ORDINAL
+        case Ord(ordinalValue) => ordinalValue
+        case Object(objectValue) => 0
+        case Set(setValue) => |setValue| as ORDINAL
+        case Seq(seqValue) => MultisetOrdinal(this, multiset(seqValue))
+        case Tuple(base, first, second) => Times(base.Ordinal(), first.Ordinal()) + second.Ordinal() + 1
+        case Succ(original) => original.Ordinal() + 1
+        case Top => Omega()
       }
     }
 
@@ -91,74 +85,53 @@ module Std.Termination {
       Ordinal() >= other.Ordinal()
     }
 
-    // TODO: Reuse Seq.FoldLeft?
-
-    static ghost function SetHeightSum(s: set<TerminationMetric>): nat
-      ensures forall o <- s :: SetHeightSum(s) > o.height
-    {
-      if s == {} then
-        0
-      else
-        var o := ExtractFromNonEmptySet(s);
-        o.height + 1 + SetHeightSum(s - {o})
-    }
-
-    static ghost function SeqHeightSum(s: seq<TerminationMetric>): nat
-      ensures forall o <- s :: SeqHeightSum(s) > o.height
-    {
-      if s == [] then
-        0
-      else
-        s[0].height + 1 + SeqHeightSum(s[1..])
-    }
-
     @IsolateAssertions
-    static opaque ghost function MaxOrdinal(height: nat, s: multiset<TerminationMetric>): ORDINAL
-      requires forall o <- s :: height > o.height && o.Valid()
-      decreases height, |s|, 0
-      ensures forall o <- s :: MaxOrdinal(height, s) >= o.Ordinal()
+    static opaque ghost function MaxOrdinal(parent: TerminationMetric, s: multiset<TerminationMetric>): ORDINAL
+      requires forall o <- s :: (parent decreases to o) && o.Valid()
+      decreases parent, |s|, 0
+      ensures forall o <- s :: MaxOrdinal(parent, s) >= o.Ordinal()
     {
       if s == multiset{} then
         0
       else
         var x := ExtractFromNonEmptyMultiset(s);
-        Max(x.Ordinal(), MaxOrdinal(height, s - multiset{x}))
+        Max(x.Ordinal(), MaxOrdinal(parent, s - multiset{x}))
     }
 
-    // height is a MaxOrdinal() parameter just to prove termination,
+    // parent is a MaxOrdinal() parameter just to prove termination,
     // but doesn't affect the actual result.
-    static lemma MaxOrdinalAnyHeight(height: nat, height': nat, s: multiset<TerminationMetric>)
-      requires forall o <- s :: o.Valid() && height > o.height && height' > o.height
-      ensures MaxOrdinal(height, s) == MaxOrdinal(height', s)
+    static lemma MaxOrdinalAnyParent(parent: TerminationMetric, parent': TerminationMetric, s: multiset<TerminationMetric>)
+      requires forall o <- s :: o.Valid() && (parent decreases to o) && (parent' decreases to o)
+      ensures MaxOrdinal(parent, s) == MaxOrdinal(parent', s)
     {
       reveal MaxOrdinal();
     }
 
-    static ghost function MultisetOrdinal(height: nat, s: multiset<TerminationMetric>): ORDINAL
-      requires forall o <- s :: height > o.height && o.Valid()
-      decreases height, |s|
+    static ghost function MultisetOrdinal(parent: TerminationMetric, s: multiset<TerminationMetric>): ORDINAL
+      requires forall o <- s :: (parent decreases to o) && o.Valid()
+      decreases parent, |s|
     {
-      MaxOrdinal(height, s) + |s| as ORDINAL + 1
+      MaxOrdinal(parent, s) + |s| as ORDINAL + 1
     }
 
-    // height is a MultisetOrdinal() parameter just to prove termination,
+    // parent is a MultisetOrdinal() parameter just to prove termination,
     // but doesn't affect the actual result.
-    static lemma MultisetOrdinalAnyHeight(height: nat, height': nat, s: multiset<TerminationMetric>)
-      requires forall o <- s :: o.Valid() && height > o.height && height' > o.height
-      ensures MultisetOrdinal(height, s) == MultisetOrdinal(height', s)
+    static lemma MultisetOrdinalAnyParent(parent: TerminationMetric, parent': TerminationMetric, s: multiset<TerminationMetric>)
+      requires forall o <- s :: o.Valid() && (parent decreases to o) && (parent' decreases to o)
+      ensures MultisetOrdinal(parent, s) == MultisetOrdinal(parent', s)
     {
-      MaxOrdinalAnyHeight(height, height', s);
+      MaxOrdinalAnyParent(parent, parent', s);
     }
 
-    static lemma MultisetOrdinalDecreasesToSubMultiset(height: nat, left: multiset<TerminationMetric>, right: multiset<TerminationMetric>)
-      requires forall o <- left :: o.Valid() && height > o.height
-      requires forall o <- right :: o.Valid() && height > o.height
+    static lemma MultisetOrdinalDecreasesToSubMultiset(parent: TerminationMetric, left: multiset<TerminationMetric>, right: multiset<TerminationMetric>)
+      requires forall o <- left :: (parent decreases to o) && o.Valid()
+      requires forall o <- right :: (parent decreases to o) && o.Valid()
       requires left > right
-      ensures MultisetOrdinal(height, left) > MultisetOrdinal(height, right)
+      ensures MultisetOrdinal(parent, left) > MultisetOrdinal(parent, right)
     {
-      var maxLeft := MaxOrdinal(height, left);
-      var maxRight := MaxOrdinal(height, right);
-      MaxOrdinalNonIncreases(height, left, right);
+      var maxLeft := MaxOrdinal(parent, left);
+      var maxRight := MaxOrdinal(parent, right);
+      MaxOrdinalNonIncreases(parent, left, right);
 
       assert maxLeft >= maxRight;
       LemmaSubmultisetSize(right, left);
@@ -169,20 +142,20 @@ module Std.Termination {
       PlusStrictlyIncreasingOnRight(maxLeft, |left| as ORDINAL + 1, |right| as ORDINAL + 1);
     }
 
-    static lemma MaxOrdinalNonIncreases(height: nat, left: multiset<TerminationMetric>, right: multiset<TerminationMetric>)
-      requires forall o <- left :: o.Valid() && height > o.height
-      requires forall o <- right :: o.Valid() && height > o.height
+    static lemma MaxOrdinalNonIncreases(parent: TerminationMetric, left: multiset<TerminationMetric>, right: multiset<TerminationMetric>)
+      requires forall o <- left :: (parent decreases to o) && o.Valid()
+      requires forall o <- right :: (parent decreases to o) && o.Valid()
       requires left > right
-      ensures MaxOrdinal(height, left) >= MaxOrdinal(height, right)
+      ensures MaxOrdinal(parent, left) >= MaxOrdinal(parent, right)
     {
       reveal MaxOrdinal();
     }
 
-    static lemma MaxOrdinalDecreasesIfAllDecrease(height: nat, left: multiset<TerminationMetric>, right: multiset<TerminationMetric>)
-      requires forall o <- left :: o.Valid() && height > o.height
-      requires forall o <- right :: o.Valid() && height > o.height
+    static lemma MaxOrdinalDecreasesIfAllDecrease(parent: TerminationMetric, left: multiset<TerminationMetric>, right: multiset<TerminationMetric>)
+      requires forall o <- left :: (parent decreases to o) && o.Valid()
+      requires forall o <- right :: (parent decreases to o) && o.Valid()
       requires left > right
-      ensures MaxOrdinal(height, left) >= MaxOrdinal(height, right)
+      ensures MaxOrdinal(parent, left) >= MaxOrdinal(parent, right)
     {
       reveal MaxOrdinal();
     }
@@ -208,8 +181,8 @@ module Std.Termination {
       ensures Ordinal() > other.Ordinal()
     {
       reveal Ordinal();
-      MultisetOrdinalDecreasesToSubMultiset(height, multiset(seqValue), multiset(other.seqValue));
-      MultisetOrdinalAnyHeight(height, other.height, multiset(other.seqValue));
+      MultisetOrdinalAnyParent(this, other, multiset(other.seqValue));
+      MultisetOrdinalDecreasesToSubMultiset(this, multiset(seqValue), multiset(other.seqValue));
     }
 
     lemma SeqDecreasesToProperPrefix(other: TerminationMetric, hi: nat)
@@ -309,7 +282,7 @@ module Std.Termination {
       PlusStrictlyIncreasingOnRight(term, second.Ordinal() + 1, 0);
       PlusIsAssociative(term, second.Ordinal(), 1);
       TimesIncreasingOnLeft(base.Ordinal(), 1, first.Ordinal());
-      TimesIdentity(first.Ordinal());
+      TimesLeftIdentity(first.Ordinal());
     }
 
     lemma TupleDecreasesToSecond()
@@ -351,42 +324,42 @@ module Std.Termination {
   ghost function TMBool(b: bool): (result: TerminationMetric)
     ensures result.Valid()
   {
-    Bool(b, 0)
+    Bool(b)
   }
 
   ghost function TMNat(n: nat): (result: TerminationMetric)
     ensures result.Valid()
   {
-    Nat(n, 0)
+    Nat(n)
   }
 
   ghost function TMOrdinal(o: ORDINAL): (result: TerminationMetric)
     ensures result.Valid()
   {
-    Ord(o, 0)
+    Ord(o)
   }
 
   ghost function TMObject(o: object): (result: TerminationMetric)
     ensures result.Valid()
   {
-    Object(o, 0)
+    Object(o)
   }
 
   ghost function TMSet(children: set<TerminationMetric>): (result: TerminationMetric)
     requires forall tm <- children :: tm.Valid()
     ensures result.Valid()
   {
-    Set(children, TerminationMetric.SetHeightSum(children) + 1)
+    Set(children)
   }
 
   ghost function TMSeq(children: seq<TerminationMetric>): (result: TerminationMetric)
     requires forall tm <- children :: tm.Valid()
     ensures result.Valid()
   {
-    Seq(children, TerminationMetric.SeqHeightSum(children) + 1)
+    Seq(children)
   }
 
-  @ResourceLimit("10e6")
+  @ResourceLimit("1e7")
   ghost function TMTuple(base: TerminationMetric, first: TerminationMetric, second: TerminationMetric): (result: TerminationMetric)
     requires first.Valid()
     requires second.Valid()
@@ -394,7 +367,7 @@ module Std.Termination {
     requires base.Ordinal() > second.Ordinal()
     ensures result.Valid()
   {
-    Tuple(base, first, second, first.height + second.height + base.height + 1)
+    Tuple(base, first, second)
   }
 
   ghost function TMTupleOf(base: TerminationMetric, children: seq<TerminationMetric>): (result: TerminationMetric)
@@ -409,109 +382,12 @@ module Std.Termination {
       TMTuple(base, TMTupleOf(base, Seq.DropLast(children)), Seq.Last(children))
   }
 
-  const TMTop := Top(0)
+  const TMTop := Top
 
   ghost function TMSucc(tm: TerminationMetric): (result: TerminationMetric)
     requires tm.Valid()
     ensures result.Valid()
   {
-    Succ(tm, tm.height + 1)
-  }
-}
-
-module Std.Ordinal {
-  ghost function {:axiom} Omega(): ORDINAL
-    ensures !Omega().IsNat
-    ensures Omega().IsLimit
-    ensures forall other: ORDINAL | other.IsLimit && other != 0 :: Omega() <= other
-
-  // TODO: Prove some of these via transfinite induction?
-
-  // Additional axioms about addition
-
-  lemma {:axiom} Succ(a: ORDINAL, b: ORDINAL)
-    requires a > b
-    ensures a >= b + 1
-
-  lemma {:axiom} SuccStrictlyIncreasing(a: ORDINAL, b: ORDINAL)
-    requires a > b
-    ensures a + 1 > b + 1
-
-  lemma {:axiom} PlusStrictlyIncreasingOnRight(left: ORDINAL, right: ORDINAL, right': ORDINAL)
-    requires right > right'
-    ensures left + right > left + right'
-
-  lemma {:axiom} PlusIncreasingOnLeft(left: ORDINAL, left': ORDINAL, right: ORDINAL)
-    requires left >= left'
-    ensures left + right >= left' + right
-
-  lemma {:axiom} PlusIsAssociative(x: ORDINAL, y: ORDINAL, z: ORDINAL)
-    ensures (x + y) + z == x + (y + z)
-
-  // Multiplication and axioms about multiplication
-
-  ghost function {:axiom} Times(left: ORDINAL, right: ORDINAL): (result: ORDINAL)
-
-  lemma {:axiom} TimesIdentity(o: ORDINAL)
-    ensures Times(1, o) == o
-    ensures Times(o, 1) == o
-
-  lemma {:axiom} TimesStrictlyIncreasingOnRight(left: ORDINAL, right: ORDINAL, right': ORDINAL)
-    requires left > 0
-    requires right > right'
-    ensures Times(left, right) > Times(left, right')
-
-  lemma {:axiom} TimesIncreasingOnLeft(left: ORDINAL, left': ORDINAL, right: ORDINAL)
-    requires left >= left'
-    ensures Times(left, right) > Times(left', right)
-
-  lemma {:axiom} TimesDistributesOnLeft(left: ORDINAL, right: ORDINAL, right': ORDINAL)
-    ensures Times(left, right + right') == Times(left, right) + Times(left, right')
-
-  // Helpful lemmas and utilities
-
-  /** Maximum of two ordinals  */
-  function Max(a: ORDINAL, b: ORDINAL): ORDINAL
-  {
-    if a < b
-    then b
-    else a
-  }
-
-  lemma MaxIsAssociative(a: ORDINAL, b: ORDINAL, c: ORDINAL)
-    ensures Max(Max(a, b), c) == Max(a, Max(b, c))
-  {}
-
-  lemma RadixDecreases(base: ORDINAL, a: ORDINAL, a': ORDINAL, b: ORDINAL)
-    requires base > b
-    requires a > a'
-    ensures Times(base, a) > Times(base, a') + b
-  {
-    Succ(a, a');
-    assert a >= a' + 1;
-
-    TimesDistributesOnLeft(base, a', 1);
-    assert Times(base, a' + 1) == Times(base, a') + Times(base, 1);
-    TimesIdentity(base);
-    assert Times(base, a' + 1) == Times(base, a') + base;
-
-    if a == a' + 1 {
-      calc {
-        Times(base, a);
-        Times(base, a' + 1);
-        Times(base, a') + base;
-      > { PlusStrictlyIncreasingOnRight(Times(base, a'), base, b); }
-        Times(base, a') + b;
-      }
-    } else {
-      calc {
-        Times(base, a);
-      >= { TimesStrictlyIncreasingOnRight(base, a, a' + 1); }
-        Times(base, a' + 1);
-        Times(base, a') + base;
-      > { PlusStrictlyIncreasingOnRight(Times(base, a'), base, b); }
-        Times(base, a') + b;
-      }
-    }
+    Succ(tm)
   }
 }

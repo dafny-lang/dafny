@@ -103,6 +103,7 @@ module FramesExamples {
     // termination measure based on what work is being done
     // (in this case a count of the number of nodes in subtrees)
     @IsolateAssertions
+    @ResourceLimit("1e7")
     method RotateRight()
       requires Valid()
       modifies Repr
