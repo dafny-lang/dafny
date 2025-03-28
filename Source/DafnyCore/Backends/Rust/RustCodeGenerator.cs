@@ -37,7 +37,7 @@ namespace Microsoft.Dafny.Compilers {
       var c = CreateCompiler();
       var s = c.Compile(program, otherFiles);
       if (!Options.Get(CommonOptionBag.EmitUncompilableCode) && c.error.is_Some) {
-        throw new UnsupportedInvalidOperationException(c.error.dtor_value.ToVerbatimString(false));
+        throw new UnsupportedInvalidOperationException(Token.NoToken, c.error.dtor_value.ToVerbatimString(false));
       }
       // We do this check afterwards for better code coverage
       if (!Options.Get(CommonOptionBag.EnforceDeterminism)) {
@@ -50,7 +50,7 @@ namespace Microsoft.Dafny.Compilers {
         // Meaning that the default behavior for fields and array initialization is the same as for local variables:
         // Auto-init is not supported, fields have to be initialized.
 
-        throw new UnsupportedInvalidOperationException(
+        throw new UnsupportedInvalidOperationException(Token.NoToken,
           "The Rust compiler requires `--enforce-determinism`");
       }
       w.Write(s.ToVerbatimString(false));
@@ -63,7 +63,7 @@ namespace Microsoft.Dafny.Compilers {
       var c = CreateCompiler();
       var result = c.EmitCallToMain(companion, mainMethodName, hasArguments);
       if (!Options.Get(CommonOptionBag.EmitUncompilableCode) && c.error.is_Some) {
-        throw new UnsupportedInvalidOperationException(c.error.dtor_value.ToVerbatimString(false));
+        throw new UnsupportedInvalidOperationException(Token.NoToken, c.error.dtor_value.ToVerbatimString(false));
       }
 
       return result;

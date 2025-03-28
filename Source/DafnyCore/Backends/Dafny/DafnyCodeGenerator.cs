@@ -70,7 +70,7 @@ namespace Microsoft.Dafny.Compilers {
       if (emitUncompilableCode && currentBuilder is Container container) {
         container.AddUnsupported($"{TokenToString(tok)}: {why}");
       } else {
-        throw new UnsupportedInvalidOperationException(why);
+        throw new UnsupportedInvalidOperationException(tok, why);
       }
     }
 
@@ -107,7 +107,6 @@ namespace Microsoft.Dafny.Compilers {
       Feature.ForLoops,
       Feature.Traits,
       Feature.RuntimeCoverageReport,
-      Feature.MultiDimensionalArrays,
       Feature.NonNativeNewtypes
     };
 
@@ -194,7 +193,7 @@ namespace Microsoft.Dafny.Compilers {
       if (wr is BuilderSyntaxTree<ExprContainer> builder) {
         return new BuilderSyntaxTree<ExprContainer>(builder.Builder.Convert(GenType(from), GenType(to)), this);
       } else {
-        throw new UnsupportedInvalidOperationException("coercion not in the presence of an ExprContainer");
+        throw new UnsupportedInvalidOperationException(tok, "coercion not in the presence of an ExprContainer");
       }
     }
 
@@ -1264,7 +1263,39 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected override ILvalue MultiSelectLvalue(MultiSelectExpr ll, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
-      throw new UnsupportedFeatureException(ll.Origin, Feature.MultiDimensionalArrays);
+      if (ll.Indices.Count > 16) {
+        throw new UnsupportedFeatureException(ll.Origin, Feature.ArraysWithMoreThan16Dims);
+      }
+
+      if (!ll.Array.Type.IsArrayType) {
+        throw new InvalidOperationException();
+      }
+
+      var targetType = ll.Array.Type.IsNonNullRefType || !ll.Array.Type.IsRefType
+        ? null
+        : UserDefinedType.CreateNonNullType((UserDefinedType)ll.Array.Type.NormalizeExpand());
+
+      var coercion = EmitCoercionIfNecessary(
+        ll.Array.Type,
+        targetType,
+        ll.Origin,
+        WrBuffer(out var arrayBuf)
+      );
+
+      EmitExpr(ll.Array, false, coercion, wStmts);
+
+      var array = arrayBuf.Finish();
+
+      var indices = ll.Indices.Select(idx => {
+        EmitExpr(idx, false, WrBuffer(out var indexBuf), wStmts);
+        return indexBuf.Finish();
+      }).ToArray();
+
+      return new ExprLvalue(
+        (DAST.Expression)DAST.Expression.create_Index(array, DAST.CollKind.create_Array(), Sequence<DAST.Expression>.FromElements(indices)),
+        (DAST.AssignLhs)DAST.AssignLhs.create_Index(array, Sequence<DAST.Expression>.FromElements(indices)),
+        this
+      );
     }
 
     protected override void EmitPrintStmt(ConcreteSyntaxTree wr, Expression arg) {
@@ -2069,7 +2100,7 @@ namespace Microsoft.Dafny.Compilers {
       bool hasExternVal = Attributes.ContainsMatchingValue(formal.Attributes, "extern",
         ref externVal, new HashSet<Attributes.MatchingValueOption> {
           Attributes.MatchingValueOption.String
-        }, s => throw new UnsupportedInvalidOperationException("Non-string externs for destructors"));
+        }, s => throw new UnsupportedInvalidOperationException(formal.Origin, "Non-string externs for destructors"));
       var destructorName = externVal as string ?? defaultName;
       return destructorName;
     }
