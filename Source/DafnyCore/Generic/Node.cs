@@ -30,6 +30,16 @@ public class SyntaxConstructorAttribute : Attribute { }
 [AttributeUsage(AttributeTargets.Parameter | AttributeTargets.Field)]
 public class BackEdge : Attribute { }
 
+/// <summary>
+/// Indicates that the target field or property need not be serialized.
+/// This is useful when a base type defines a field or property,
+/// and all instances of a subtype use the same particular value for that inherited field or property.
+/// </summary>
+[AttributeUsage(AttributeTargets.Class, AllowMultiple = true)]
+public class NonSerializedField(string name) : Attribute {
+  public readonly string Name = name;
+}
+
 public abstract class Node : INode {
   private static readonly Regex StartDocstringExtractor =
     new Regex($@"/\*\*(?<multilinecontent>{TriviaFormatterHelper.MultilineCommentContent})\*/");

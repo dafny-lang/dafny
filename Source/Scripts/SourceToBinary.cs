@@ -2,14 +2,12 @@ using System.Collections;
 using System.CommandLine;
 using System.Numerics;
 using System.Reflection;
-using System.Runtime.CompilerServices;
 using System.Text;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.Dafny;
 using ISymbol = Microsoft.CodeAnalysis.ISymbol;
-using NullabilityInfo = System.Reflection.NullabilityInfo;
 using Type = System.Type;
 
 namespace Scripts;
@@ -212,9 +210,9 @@ public class Serializer(IEncoder encoder, IReadOnlyList<INamedTypeSymbol> parsed
     }
 
     var fieldNames = fieldsPerType[SyntaxAstVisitor.CutOffGenericSuffixPartOfName(foundType.Name)];
-    var fieldsPerName = GetSerializableFields(foundType).ToDictionary(f => {
-
-      var fieldName = f.Name;
+    var fieldsPerName = new Dictionary<string, FieldInfo>();
+    foreach (var fieldInfo in GetSerializableFields(foundType)) {
+      var fieldName = fieldInfo.Name;
       if (fieldName.StartsWith("<") && fieldName.EndsWith("k__BackingField")) {
         // Support auto properties
         fieldName = fieldName.Substring(1, fieldName.IndexOf(">", StringComparison.Ordinal) - 1);
@@ -222,9 +220,9 @@ public class Serializer(IEncoder encoder, IReadOnlyList<INamedTypeSymbol> parsed
         // Support fields from a primary constructor
         fieldName = fieldName.Substring(1, fieldName.Length - 3);
       }
-
-      return fieldName.ToLower();
-    }, f => f);
+      // If this is an overridden field, overwrite the entry
+      fieldsPerName[fieldName.ToLower()] = fieldInfo;
+    }
 
     foreach (var fieldName in fieldNames) {
       var field = fieldsPerName[fieldName];
