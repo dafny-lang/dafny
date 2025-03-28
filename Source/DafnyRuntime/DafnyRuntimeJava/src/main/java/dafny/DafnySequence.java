@@ -240,6 +240,8 @@ public abstract class DafnySequence<T> implements Iterable<T> {
     interface Copier<T> {
         public void copyFrom(DafnySequence<T> source);
 
+        public void copyFromRange(DafnySequence<T> source, int from, int to);
+
         public NonLazyDafnySequence<T> result();
     }
 
@@ -458,14 +460,18 @@ public abstract class DafnySequence<T> implements Iterable<T> {
      * That's usually just the sequence itself, but not if the
      * sequence is lazily computed.
      *
+     * This is mostly invoked internally, but is also triggered directly
+     * by s[..] in Dafny source code.
+     *
      * @see ConcatDafnySequence
+     * @see SlicedDafnySequence
      */
-    protected abstract NonLazyDafnySequence<T> force();
+    public abstract NonLazyDafnySequence<T> force();
 }
 
 abstract class NonLazyDafnySequence<T> extends DafnySequence<T> {
     @Override
-    protected final NonLazyDafnySequence<T> force() {
+    public final NonLazyDafnySequence<T> force() {
         return this;
     }
 }
@@ -522,10 +528,10 @@ final class ArrayDafnySequence<T> extends NonLazyDafnySequence<T> {
         return new ArrayDafnySequence<>(newArray);
     }
 
-    public ArrayDafnySequence<T> subsequence(int lo, int hi) {
+    public DafnySequence<T> subsequence(int lo, int hi) {
         assert lo >= 0 && hi >= 0 && hi >= lo : "Precondition Violation";
 
-        return new ArrayDafnySequence<>(seq.copyOfRange(lo, hi));
+        return new SlicedDafnySequence<>(this, lo, hi);
     }
 
     @Override
@@ -544,6 +550,21 @@ final class ArrayDafnySequence<T> extends NonLazyDafnySequence<T> {
                 } else {
                     for (T t : source) {
                         newArray.set(nextIndex++, t);
+                    }
+                }
+            }
+
+            @Override
+            public void copyFromRange(DafnySequence<T> source, int from, int to) {
+                source = source.force();
+                if (source instanceof ArrayDafnySequence<?>) {
+                    Array<T> sourceArray = ((ArrayDafnySequence<T>) source).seq;
+                    int rangeLength = to - from;
+                    sourceArray.copy(from, newArray, nextIndex, rangeLength);
+                    nextIndex += rangeLength;
+                } else {
+                    for (int i = from; i < to; i++) {
+                        newArray.set(nextIndex++, source.select(i));
                     }
                 }
             }
@@ -661,6 +682,8 @@ final class StringDafnySequence extends NonLazyDafnySequence<Character> {
 
     @Override
     public DafnySequence<Character> subsequence(int lo, int hi) {
+        // No point in using SlicedDafnySequence here,
+        // because java.lang.String.substring already implements the same behavior.
         return new StringDafnySequence(string.substring(lo, hi));
     }
 
@@ -677,6 +700,18 @@ final class StringDafnySequence extends NonLazyDafnySequence<Character> {
                 } else {
                     for (char c : source) {
                         sb.append(c);
+                    }
+                }
+            }
+
+            @Override
+            public void copyFromRange(DafnySequence<Character> source, int from, int to) {
+                source = source.force();
+                if (source instanceof StringDafnySequence) {
+                    sb.append(((StringDafnySequence) source).string.substring(from, to));
+                } else {
+                    for (int i = from; i < to; i++) {
+                        sb.append(source.select(i));
                     }
                 }
             }
@@ -819,7 +854,7 @@ final class ConcatDafnySequence<T> extends LazyDafnySequence<T> {
     }
 
     @Override
-    protected NonLazyDafnySequence<T> force() {
+    public NonLazyDafnySequence<T> force() {
         if (ans == null) {
             ans = computeElements();
             // Allow left and right to be garbage-collected
@@ -895,3 +930,73 @@ final class ConcatDafnySequence<T> extends LazyDafnySequence<T> {
         return copier.result();
     }
 }
+
+final class SlicedDafnySequence<T> extends LazyDafnySequence<T> {
+
+    // Invariants:
+    //   original != null <==> ans == null
+    //   original != null ==> 0 <= lower <= upper <= original.length()
+    private volatile DafnySequence<T> original;
+    private final int lower;
+    private final int upper;
+    private NonLazyDafnySequence<T> ans = null;
+
+    SlicedDafnySequence(DafnySequence<T> original, int lower, int upper) {
+        assert original != null : "Precondition Violation";
+        assert 0 <= lower && lower <= upper && upper <= original.length() : "Precondition Violation";
+
+        this.original = original;
+        this.lower = lower;
+        this.upper = upper;
+    }
+
+    @Override
+    public NonLazyDafnySequence<T> force() {
+        if (ans == null) {
+            ans = computeElements();
+            // Allow original to be garbage-collected
+            original = null;
+        }
+
+        return ans;
+    }
+
+    private NonLazyDafnySequence<T> computeElements() {
+        // Another thread may have already completed force() at this point.
+        DafnySequence<T> originalBuffer = original;
+        if (originalBuffer == null) {
+            return ans;
+        }
+
+        Copier<T> copier = originalBuffer.newCopier(upper - lower);
+        copier.copyFromRange(originalBuffer, lower, upper);
+        return copier.result();
+    }
+
+    public T select(int i) {
+        assert 0 <= i && i < upper - lower: "Precondition Violation";
+        DafnySequence<T> originalBuffer = original;
+        if (originalBuffer == null) {
+            return ans.select(i);
+        }
+
+        return originalBuffer.select(lower + i);
+    }
+
+    @Override
+    public int length() {
+        return upper - lower;
+    }
+
+    public DafnySequence<T> subsequence(int lo, int hi) {
+        assert lo >= 0 && hi >= 0 && hi >= lo : "Precondition Violation";
+
+        DafnySequence<T> originalBuffer = original;
+        if (originalBuffer == null) {
+            return ans.subsequence(lo, hi);
+        }
+
+        return new SlicedDafnySequence<>(originalBuffer, lower + lo, lower + hi);
+    }
+}
+
