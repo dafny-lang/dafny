@@ -9,7 +9,7 @@ namespace Microsoft.Dafny;
 
 public abstract class CollectionType : NonProxyType {
   public abstract string CollectionTypeName { get; }
-  public override IEnumerable<Node> Nodes => TypeArgs.SelectMany(ta => ta.Nodes);
+  public override IEnumerable<Node> Nodes => TypeArgs.SelectMany(ta => ta?.Nodes ?? []);
 
   public override string TypeName(DafnyOptions options, ModuleDefinition context, bool parseAble) {
     var targs = HasTypeArg() ? this.TypeArgsToString(options, context, parseAble) : "";
@@ -20,31 +20,34 @@ public abstract class CollectionType : NonProxyType {
   // without needing to refactor NonProxyType's SyntaxConstructor to do so too.
   public sealed override List<Type?> TypeArgs { get; set; } = [];
 
-  [FilledInDuringResolution]
-  public Type? Arg { get; private set; }  // denotes the Domain type for a Map
+  /// <summary>
+  /// Denotes the primary element type. (For a map, this is the domain.)
+  /// </summary>
+  [FilledInDuringResolution] public Type Arg => arg!;
+  private Type? arg;
 
   public Type? ValueArg => TypeArgs.Last();
 
   // The following methods, HasTypeArg and SetTypeArg/SetTypeArgs, are to be called during resolution to make sure that "arg" becomes set.
   public bool HasTypeArg() {
-    return Arg != null;
+    return arg != null;
   }
 
-  public void SetTypeArg(Type? arg) {
-    Contract.Assume(Arg == null);  // Can only set it once.  This is really a precondition.
-    Arg = arg;
+  public void SetTypeArg(Type typeArg) {
+    Contract.Assume(arg == null);  // Can only set it once.  This is really a precondition.
+    arg = typeArg;
 
     Debug.Assert(TypeArgs.Count == 0);
-    TypeArgs.Add(arg);
+    TypeArgs.Add(typeArg);
   }
 
-  public virtual void SetTypeArgs(Type? arg, Type? other) {
-    Contract.Assume(Arg == null);  // Can only set it once.  This is really a precondition.
-    Arg = arg;
+  public virtual void SetTypeArgs(Type typeArg, Type otherTypeArg) {
+    Contract.Assume(arg == null);  // Can only set it once.  This is really a precondition.
+    arg = typeArg;
 
     Debug.Assert(TypeArgs.Count == 0);
-    TypeArgs.Add(arg);
-    TypeArgs.Add(other);
+    TypeArgs.Add(typeArg);
+    TypeArgs.Add(otherTypeArg);
   }
 
   [ContractInvariantMethod]
@@ -60,7 +63,7 @@ public abstract class CollectionType : NonProxyType {
   [SyntaxConstructor]
   protected CollectionType(IOrigin? origin, List<Type?> typeArgs) : base(origin) {
     Contract.Requires(typeArgs is [_] or [null, null] or [not null, not null]);
-    Arg = typeArgs.FirstOrDefault();
+    arg = typeArgs.FirstOrDefault();
     if (typeArgs is [not null] or [not null, not null]) {
       TypeArgs = typeArgs;
     }
@@ -70,7 +73,7 @@ public abstract class CollectionType : NonProxyType {
   /// This constructor is a collection types with 1 type argument
   /// </summary>
   protected CollectionType(Type? arg) {
-    Arg = arg;
+    this.arg = arg;
     TypeArgs = new List<Type?>(1);
     if (arg != null) {
       TypeArgs.Add(arg);
@@ -81,7 +84,7 @@ public abstract class CollectionType : NonProxyType {
   /// This constructor is a collection types with 2 type arguments
   /// </summary>
   protected CollectionType(Type? arg, Type? other) {
-    Arg = arg;
+    this.arg = arg;
     TypeArgs = new List<Type?>(2);
     if (arg != null && other != null) {
       TypeArgs.Add(arg);
@@ -91,11 +94,11 @@ public abstract class CollectionType : NonProxyType {
   }
 
   protected CollectionType(Cloner cloner, CollectionType original) {
-    Arg = cloner.CloneType(original.Arg);
+    arg = cloner.CloneType(original.arg);
   }
 
   public override bool ComputeMayInvolveReferences(ISet<DatatypeDecl> visitedDatatypes) {
-    return Arg!.ComputeMayInvolveReferences(visitedDatatypes);
+    return Arg.ComputeMayInvolveReferences(visitedDatatypes);
   }
 
   /// <summary>

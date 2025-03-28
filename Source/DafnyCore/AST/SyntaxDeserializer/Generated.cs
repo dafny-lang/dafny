@@ -984,22 +984,22 @@ namespace Microsoft.Dafny
             return ReadBoolType();
         }
 
-        public MapType ReadMapType()
+        public SetType ReadSetType()
         {
             var parameter0 = ReadAbstractOption<IOrigin>();
             var parameter2 = ReadList<Type>(() => ReadAbstractOption<Type>());
             var parameter1 = ReadBoolean();
-            return new MapType(parameter0, parameter1, parameter2);
+            return new SetType(parameter0, parameter1, parameter2);
         }
 
-        public MapType ReadMapTypeOption()
+        public SetType ReadSetTypeOption()
         {
             if (ReadIsNull())
             {
                 return default;
             }
 
-            return ReadMapType();
+            return ReadSetType();
         }
 
         public SeqType ReadSeqType()
@@ -1036,22 +1036,22 @@ namespace Microsoft.Dafny
             return ReadMultiSetType();
         }
 
-        public SetType ReadSetType()
+        public MapType ReadMapType()
         {
             var parameter0 = ReadAbstractOption<IOrigin>();
             var parameter2 = ReadList<Type>(() => ReadAbstractOption<Type>());
             var parameter1 = ReadBoolean();
-            return new SetType(parameter0, parameter1, parameter2);
+            return new MapType(parameter0, parameter1, parameter2);
         }
 
-        public SetType ReadSetTypeOption()
+        public MapType ReadMapTypeOption()
         {
             if (ReadIsNull())
             {
                 return default;
             }
 
-            return ReadSetType();
+            return ReadMapType();
         }
 
         public TypeParameter ReadTypeParameter()
@@ -2011,9 +2011,9 @@ namespace Microsoft.Dafny
                 return ReadBoolType();
             }
 
-            if (actualType == typeof(MapType))
+            if (actualType == typeof(SetType))
             {
-                return ReadMapType();
+                return ReadSetType();
             }
 
             if (actualType == typeof(SeqType))
@@ -2026,9 +2026,9 @@ namespace Microsoft.Dafny
                 return ReadMultiSetType();
             }
 
-            if (actualType == typeof(SetType))
+            if (actualType == typeof(MapType))
             {
-                return ReadSetType();
+                return ReadMapType();
             }
 
             if (actualType == typeof(TypeParameter))

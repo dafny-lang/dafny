@@ -15,7 +15,7 @@ public class SetComprehension : ComprehensionExpr, ICloneable<SetComprehension> 
       var term = Term as IdentifierExpr;
       var r = term != null && BoundVars.Count == 1 && BoundVars[0].Name == term.Name;
       Contract.Assert(!TermIsImplicit || r);  // TermIsImplicit ==> r
-      Contract.Assert(!r || term.Var == null || term.Var == BoundVars[0]);  // if the term is simple and it has been resolved, then it should have resolved to BoundVars[0]
+      Contract.Assert(!r || term!.Var == null || term.Var == BoundVars[0]);  // if the term is simple and it has been resolved, then it should have resolved to BoundVars[0]
       return r;
     }
   }

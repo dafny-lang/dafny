@@ -449,7 +449,7 @@ abstract class CollectionType : NonProxyType
     List<Type> typeArgs;
 }
 
-class MapType : CollectionType
+class SetType : CollectionType
 {
     Boolean finite;
 }
@@ -462,7 +462,7 @@ class MultiSetType : CollectionType
 {
 }
 
-class SetType : CollectionType
+class MapType : CollectionType
 {
     Boolean finite;
 }

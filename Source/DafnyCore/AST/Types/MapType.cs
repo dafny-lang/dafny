@@ -21,10 +21,10 @@ public class MapType : CollectionType {
   }
   private Type? range;
 
-  public override void SetTypeArgs(Type? domain, Type? range) {
-    base.SetTypeArgs(domain, range);
-    Contract.Assume(this.range == null);  // Can only set once.  This is really a precondition.
-    this.range = range;
+  public override void SetTypeArgs(Type domain, Type rangeType) {
+    base.SetTypeArgs(domain, rangeType);
+    Contract.Assume(range == null);  // Can only set once.  This is really a precondition.
+    range = rangeType;
   }
 
   [SyntaxConstructor]
