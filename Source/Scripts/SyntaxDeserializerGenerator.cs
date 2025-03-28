@@ -62,7 +62,7 @@ using BinaryExprOpcode = Microsoft.Dafny.BinaryExpr.Opcode;
       ownedFieldPosition = ParameterToSchemaPositions[baseType].Count;
     }
     var parameterToSchemaPosition = new Dictionary<string, int>();
-    var schemaToConstructorPosition = new SortedDictionary<int, int>();
+    var schemaToConstructorPosition = new Dictionary<int, int>();
     ParameterToSchemaPositions[type] = parameterToSchemaPosition;
     var statements = new StringBuilder();
 
@@ -140,7 +140,9 @@ private {typeString} Read{typeString2}() {{
       return;
     }
 
-    foreach (var (_, constructorIndex) in schemaToConstructorPosition) {
+    // If some fields should not be serialized, the keys of schemaToConstructorPosition may not be contiguous,
+    // so we iterate in ascending order rather than by indexing from 0 to its size.
+    foreach (var (_, constructorIndex) in schemaToConstructorPosition.OrderBy(p => p.Key)) {
       var parameter = parameters[constructorIndex];
       var nullabilityContext = new NullabilityInfoContext();
       var nullabilityInfo = nullabilityContext.Create(parameter);
