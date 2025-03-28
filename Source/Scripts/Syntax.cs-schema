@@ -194,6 +194,14 @@ class ParensExpression : ConcreteSyntaxExpression
     Expression e;
 }
 
+class ChainingExpression : ConcreteSyntaxExpression
+{
+    List<Expression> operands;
+    List<BinaryExprOpcode> operators;
+    List<IOrigin> operatorLocs;
+    List<Expression> prefixLimits;
+}
+
 class NegationExpression : ConcreteSyntaxExpression
 {
     Expression e;
@@ -320,6 +328,17 @@ class MapComprehension : ComprehensionExpr
 {
     Boolean finite;
     Expression? termLeft;
+}
+
+class LambdaExpr : ComprehensionExpr
+{
+    Specification<FrameExpression> reads;
+}
+
+class FrameExpression : NodeWithOrigin
+{
+    Expression originalExpression;
+    String? fieldName;
 }
 
 class SeqUpdateExpr : Expression
@@ -542,12 +561,6 @@ abstract class MethodOrFunction : MemberDecl
     List<AttributedExpression> ens;
     Specification<FrameExpression> reads;
     Specification<Expression> decreases;
-}
-
-class FrameExpression : NodeWithOrigin
-{
-    Expression originalExpression;
-    String? fieldName;
 }
 
 class AttributedExpression
