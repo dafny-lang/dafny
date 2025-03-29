@@ -250,8 +250,8 @@ public partial class BoogieGenerator {
     if (whr != null) { post = BplAnd(post, whr); }
 
     Bpl.Expr axBody = BplImp(ante, post);
-    Bpl.Expr ax = BplForall(f.Origin, [], formals, null, tr, axBody);
     if (RemoveLit(axBody) != Bpl.Expr.True) {
+      var ax = BplForall(f.Origin, [], formals, null, tr, axBody);
       AddOtherDefinition(boogieFunction, new Bpl.Axiom(f.Origin, ax, "consequence axiom for " + f.FullSanitizedName));
     }
 
@@ -267,9 +267,8 @@ public partial class BoogieGenerator {
         }
 
         axBody = BplImp(anteIsAlloc, whr);
-        ax = BplForall(f.Origin, [], formals, null, BplTrigger(whr), axBody);
-
         if (RemoveLit(axBody) != Bpl.Expr.True) {
+          var ax = BplForall(f.Origin, [], formals, null, BplTrigger(whr), axBody);
           var allocConsequenceAxiom = new Bpl.Axiom(f.Origin, ax, "alloc consequence axiom for " + f.FullSanitizedName);
           AddOtherDefinition(boogieFunction, allocConsequenceAxiom);
         }
