@@ -31,6 +31,12 @@ public class SourceToBinary {
     var errorReporter = new BatchErrorReporter(options);
     var input = await File.ReadAllTextAsync(inputFile);
     var parseResult = await ProgramParser.Parse(input, new Uri(Path.GetFullPath(inputFile)), errorReporter);
+    if (errorReporter.HasErrors) {
+      var errors = errorReporter.AllMessagesByLevel[ErrorLevel.Error];
+      var exceptions = errors.Select(diagnostic =>
+        new Exception($"Parsing error: {errorReporter.FormatDiagnostic(diagnostic)}"));
+      throw new AggregateException($"{errors.Count} errors occurred during parsing", exceptions);
+    }
 
     var syntaxSchema = ResourceLoader.GetResourceAsString("Syntax.cs-schema");
     var output = new StringBuilder();
