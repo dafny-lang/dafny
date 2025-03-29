@@ -105,9 +105,11 @@ public partial class SyntaxDeserializer(IDecoder decoder) {
   public T ReadAbstract<T>() {
     var typeName = decoder.ReadQualifiedName();
     var actualType = System.Type.GetType("Microsoft.Dafny." + typeName) ??
-                 System.Type.GetType("System." + typeName) ??
-                 (typeName == "BigInteger" ? typeof(BigInteger) : null) ??
-                 throw new Exception($"Type not found: {typeName}, expected type {typeof(T).Name}, position {decoder.Position}");
+                     System.Type.GetType("System." + typeName) ??
+                     (typeName == "BigInteger" ? typeof(BigInteger) : null);
+    if (actualType == null) {
+      throw new Exception($"Type not found: {typeName}, expected type {typeof(T).Name}, position {decoder.Position}");
+    }
     return DeserializeGeneric<T>(actualType);
   }
 

@@ -1,3 +1,5 @@
+#nullable enable
+
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 
@@ -17,12 +19,9 @@ public class TernaryExpr : Expression, ICloneable<TernaryExpr> {
     E2 = cloner.CloneExpr(original.E2);
   }
 
+  [SyntaxConstructor]
   public TernaryExpr(IOrigin origin, Opcode op, Expression e0, Expression e1, Expression e2)
     : base(origin) {
-    Contract.Requires(origin != null);
-    Contract.Requires(e0 != null);
-    Contract.Requires(e1 != null);
-    Contract.Requires(e2 != null);
     Op = op;
     E0 = e0;
     E1 = e1;

@@ -1,3 +1,5 @@
+#nullable enable
+
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 
@@ -13,7 +15,7 @@ public class SetComprehension : ComprehensionExpr, ICloneable<SetComprehension> 
       var term = Term as IdentifierExpr;
       var r = term != null && BoundVars.Count == 1 && BoundVars[0].Name == term.Name;
       Contract.Assert(!TermIsImplicit || r);  // TermIsImplicit ==> r
-      Contract.Assert(!r || term.Var == null || term.Var == BoundVars[0]);  // if the term is simple and it has been resolved, then it should have resolved to BoundVars[0]
+      Contract.Assert(!r || term!.Var == null || term.Var == BoundVars[0]);  // if the term is simple and it has been resolved, then it should have resolved to BoundVars[0]
       return r;
     }
   }
@@ -27,13 +29,11 @@ public class SetComprehension : ComprehensionExpr, ICloneable<SetComprehension> 
     Finite = original.Finite;
   }
 
-  public SetComprehension(IOrigin origin, bool finite, List<BoundVar> bvars, Expression range, Expression/*?*/ term, Attributes attrs)
-    : base(origin, bvars, range, term ?? new IdentifierExpr(origin, bvars[0].Name), attrs) {
-    Contract.Requires(origin != null);
-    Contract.Requires(cce.NonNullElements(bvars));
-    Contract.Requires(1 <= bvars.Count);
-    Contract.Requires(range != null);
-    Contract.Requires(term != null || bvars.Count == 1);
+  [SyntaxConstructor]
+  public SetComprehension(IOrigin origin, bool finite, List<BoundVar> boundVars, Expression range, Expression? term, Attributes? attributes = null)
+    : base(origin, boundVars, range, term ?? new IdentifierExpr(origin, boundVars[0].Name), attributes) {
+    Contract.Requires(1 <= boundVars.Count);
+    Contract.Requires(term != null || boundVars.Count == 1);
 
     TermIsImplicit = term == null;
     Finite = finite;

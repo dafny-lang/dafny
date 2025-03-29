@@ -1,3 +1,5 @@
+#nullable enable
+
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 
@@ -17,12 +19,6 @@ public class SeqUpdateExpr : Expression, ICloneable<SeqUpdateExpr> {
   public Expression Seq;
   public Expression Index;
   public Expression Value;
-  [ContractInvariantMethod]
-  void ObjectInvariant() {
-    Contract.Invariant(Seq != null);
-    Contract.Invariant(Index != null);
-    Contract.Invariant(Value != null);
-  }
 
   public SeqUpdateExpr(Cloner cloner, SeqUpdateExpr original) : base(cloner, original) {
     Seq = cloner.CloneExpr(original.Seq);
@@ -30,15 +26,12 @@ public class SeqUpdateExpr : Expression, ICloneable<SeqUpdateExpr> {
     Value = cloner.CloneExpr(original.Value);
   }
 
-  public SeqUpdateExpr(IOrigin origin, Expression seq, Expression index, Expression val)
+  [SyntaxConstructor]
+  public SeqUpdateExpr(IOrigin origin, Expression seq, Expression index, Expression value)
     : base(origin) {
-    Contract.Requires(origin != null);
-    Contract.Requires(seq != null);
-    Contract.Requires(index != null);
-    Contract.Requires(val != null);
     Seq = seq;
     Index = index;
-    Value = val;
+    Value = value;
   }
 
   public override IEnumerable<Expression> SubExpressions {

@@ -57,7 +57,7 @@ public class TextDecoder(string input) : IDecoder {
   }
 
   private bool CheckAndAdvance(string keyword) {
-    if (input.Substring(position, keyword.Length) == keyword) {
+    if (position + keyword.Length <= input.Length && input.Substring(position, keyword.Length) == keyword) {
       position += keyword.Length;
       ReadSeparator();
       return true;

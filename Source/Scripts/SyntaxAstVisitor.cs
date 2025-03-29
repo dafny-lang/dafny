@@ -1,3 +1,4 @@
+using System.Collections.Frozen;
 using System.Reflection;
 using Microsoft.Dafny;
 using Type = System.Type;
@@ -90,7 +91,9 @@ public abstract class SyntaxAstVisitor {
       var baseParseConstructor = GetParseConstructor(baseType);
       var missingParameters = baseParseConstructor == null ? [] :
         baseParseConstructor.GetParameters().Select(p => p.Name)
-          .Except(myParseConstructor.GetParameters().Select(p => p.Name)).ToList();
+          .Except(myParseConstructor.GetParameters().Select(p => p.Name))
+          .ExceptBy(GetNonSerializedNames(type).Select(name => name.ToLower()), str => str?.ToLower())
+          .ToList();
       if (missingParameters.Any()) {
         throw new Exception($"in type {type}, missing parameters: {string.Join(",", missingParameters)}");
       }
@@ -128,14 +131,14 @@ public abstract class SyntaxAstVisitor {
 
   protected void VisitParameters(Type type, Action<int, ParameterInfo, MemberInfo> handle) {
     var constructor = GetParseConstructor(type);
+    if (constructor == null) {
+      return;
+    }
+
     var fields = type.GetFields().ToDictionary(f => f.Name.ToLower(), f => f);
     var properties = type.GetProperties().
       DistinctBy(p => p.Name).
       ToDictionary(p => p.Name.ToLower(), p => p);
-
-    if (constructor == null) {
-      return;
-    }
 
     var parameters = constructor.GetParameters();
     for (var index = 0; index < parameters.Length; index++) {
@@ -145,7 +148,7 @@ public abstract class SyntaxAstVisitor {
                        (MemberInfo)properties.GetValueOrDefault(parameter.Name.ToLower())!;
 
       if (memberInfo == null) {
-        throw new Exception($"Could not find parameter {parameter.Name} in {type.Name}");
+        throw new Exception($"Could not find field or property corresponding to parameter {parameter.Name} in constructor of {type.Name}");
       }
       handle(index, parameter, memberInfo);
     }
@@ -165,6 +168,16 @@ public abstract class SyntaxAstVisitor {
     return constructors.Where(c => !c.IsPrivate &&
                                    !c.GetParameters().Any(p => p.ParameterType.IsAssignableTo(typeof(Cloner)))).MaxBy(c =>
       c.GetCustomAttribute<SyntaxConstructorAttribute>() == null ? c.GetParameters().Length : int.MaxValue)!;
+  }
+
+  /// <summary>
+  /// Return all field/property names appearing in <see cref="NonSerializedField"/>
+  /// attributes of the specified type (or its base types).
+  /// </summary>
+  protected static IEnumerable<string> GetNonSerializedNames(Type type) {
+    return type.GetCustomAttributes<NonSerializedField>()
+      .Select(attr => attr.Name)
+      .ToFrozenSet();
   }
 
   public static string ToGenericTypeString(Type t, bool useTypeMapping = true, bool mapNestedTypes = true,

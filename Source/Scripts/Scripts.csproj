@@ -20,6 +20,9 @@
       <EmbeddedResource Include="Syntax.cs-schema">
         <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       </EmbeddedResource>
+      <EmbeddedResource Include="../DafnyCore/Parser.cs">
+          <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      </EmbeddedResource>
     </ItemGroup>
 
 </Project>
