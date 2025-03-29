@@ -255,17 +255,10 @@ public partial class BoogieGenerator {
       AddOtherDefinition(boogieFunction, new Bpl.Axiom(f.Origin, ax, "consequence axiom for " + f.FullSanitizedName));
     }
 
-    if (f.ResultType.MayInvolveReferences) {
+    if (f.ResultType.MayInvolveReferences && readsHeap) {
+      Contract.Assert(formals.Contains(bvHeap));
       whr = GetWhereClause(f.Origin, funcAppl, f.ResultType, etranHeap, ISALLOC, true);
       if (whr != null) {
-        if (readsHeap) {
-          Contract.Assert(formals.Contains(bvHeap));
-        } else {
-          formals = Util.Cons(bvHeap, formals);
-          var goodHeap = FunctionCall(f.Origin, BuiltinFunction.IsGoodHeap, null, etranHeap.HeapExpr);
-          anteIsAlloc = BplAnd(anteIsAlloc, goodHeap);
-        }
-
         axBody = BplImp(anteIsAlloc, whr);
         if (RemoveLit(axBody) != Bpl.Expr.True) {
           var ax = BplForall(f.Origin, [], formals, null, BplTrigger(whr), axBody);
