@@ -18,49 +18,15 @@ module Std.Ordinal {
 
   // Additional axioms about addition
 
-  @ResourceLimit("0")
-  lemma Succ(a: ORDINAL, b: ORDINAL)
-    requires a > b
-    ensures a >= b + 1
-  {
-    var aBase := a - a.Offset as ORDINAL;
-    assert aBase.IsLimit;
-    var bBase := b - b.Offset as ORDINAL;
-    assert bBase.IsLimit;
-    assert a == aBase + a.Offset as ORDINAL;
-    if aBase == bBase {
-      assert a.Offset > b.Offset;
-      assert a.Offset >= b.Offset + 1;
-      if a.Offset == b.Offset + 1 {
-      } else {
-        PlusStrictlyIncreasingOnRight(aBase, a.Offset as ORDINAL, b.Offset as ORDINAL + 1);
-      }
-    } else {
-      assert a != b + 1;
-      assert a > b + 1;
-    }
-  }
+  lemma {:axiom} Succ(a: ORDINAL, b: ORDINAL)
+    ensures a > b <==> a >= b + 1
 
   lemma SuccStrictlyIncreasing(a: ORDINAL, b: ORDINAL)
     requires a > b
     ensures a + 1 > b + 1
   {
-    var aBase := a - a.Offset as ORDINAL;
-    assert aBase.IsLimit;
-    var bBase := b - b.Offset as ORDINAL;
-    assert bBase.IsLimit;
-    assert a == aBase + a.Offset as ORDINAL;
-    if aBase == bBase {
-      assert a.Offset > b.Offset;
-      assert a.Offset >= b.Offset + 1;
-      if a.Offset == b.Offset + 1 {
-      } else {
-        PlusStrictlyIncreasingOnRight(aBase, a.Offset as ORDINAL, b.Offset as ORDINAL + 1);
-      }
-    } else {
-      assert a != b + 1;
-      assert a > b + 1;
-    }
+    PlusDefinition(a, 1);
+    PlusDefinition(b, 1);
   }
 
   ghost function {:axiom} PlusLimit(left: ORDINAL, right: ORDINAL): (result: ORDINAL)
@@ -83,23 +49,73 @@ module Std.Ordinal {
   lemma {:axiom} PlusDefinition(left: ORDINAL, right: ORDINAL)
     ensures Plus(left, right) == left + right
 
-  lemma {:only} PlusStrictlyIncreasingOnRight(left: ORDINAL, right: ORDINAL, right': ORDINAL)
+  lemma PlusAndIsLimit(left: ORDINAL, right: ORDINAL)
+    requires right.IsLimit
+    ensures (left + right).IsLimit
+  {
+    PlusDefinition(left, right);
+  }
+
+  @ResourceLimit("0")
+  @IsolateAssertions
+  lemma PlusStrictlyIncreasingOnRight(left: ORDINAL, right: ORDINAL, right': ORDINAL)
     requires right > right'
+    decreases right
     ensures left + right > left + right'
   {
     PlusDefinition(left, right);
     PlusDefinition(left, right');
+    if right == 0 {
+    } else if right.IsLimit {
+      var x :| right > x > right';
+      PlusDefinition(left, x);
+      PlusStrictlyIncreasingOnRight(left, x, right');
+    } else {
+      if right' == right - 1 {
+      } else {
+        if right' > right - 1 {
+          Succ(right', right - 1);
+          assert false;
+        }
+        assert right - 1 > right';
+        PlusStrictlyIncreasingOnRight(left, right - 1, right');
+        assert left + (right - 1) > left + right';
+        assert (left + (right - 1)) + 1 > left + right';
+        SuccAndPlus(left, right - 1);
+        assert (left + ((right - 1) + 1)) > left + right';
+        assert left + right > left + right';
+      }
+    }
+    
   }
 
-  lemma {:only} PlusIncreasingOnLeft(left: ORDINAL, left': ORDINAL, right: ORDINAL)
+  lemma PlusIncreasingOnLeft(left: ORDINAL, left': ORDINAL, right: ORDINAL)
     requires left >= left'
+    decreases right
     ensures left + right >= left' + right
   {
     PlusDefinition(left, right);
     PlusDefinition(left', right);
+    if right == 0 {
+    } else if right.IsLimit {
+    } else {
+      PlusIncreasingOnLeft(left, left', right - 1);
+      if left + (right - 1) == left' + (right - 1) {
+        assert left + (right - 1) == left' + (right - 1);
+        assert (left + (right - 1)) + 1 == (left' + (right - 1)) + 1;
+        SuccAndPlus(left, right - 1);
+        SuccAndPlus(left', right - 1);
+      } else {
+        assert left + (right - 1) > left' + (right - 1);
+        SuccStrictlyIncreasing(left + (right - 1), left' + (right - 1));
+        assert (left + (right - 1)) + 1 > (left' + (right - 1)) + 1;
+        SuccAndPlus(left, right - 1);
+        SuccAndPlus(left', right - 1);
+      }
+    }
   }
 
-  lemma {:only} SuccAndPlus(left: ORDINAL, right: ORDINAL)
+  lemma SuccAndPlus(left: ORDINAL, right: ORDINAL)
     decreases right
     ensures (left + right) + 1 == left + (right + 1)
   {
@@ -109,33 +125,30 @@ module Std.Ordinal {
 
   @ResourceLimit("0")
   @IsolateAssertions
-  lemma {:only} PlusIsAssociative(x: ORDINAL, y: ORDINAL, z: ORDINAL)
+  lemma PlusIsAssociative(x: ORDINAL, y: ORDINAL, z: ORDINAL)
     decreases z
     ensures (x + y) + z == x + (y + z)
   {
-    PlusDefinition(x, y);
-    PlusDefinition(x + y, z);
-    PlusDefinition(y, z);
-    PlusDefinition(x, y + z);
-    // if z == 0 {
-    // } else if z.IsLimit {
-    //   assert (y + z).IsLimit;
-    //   assume false;
-    // } else {
-    //   calc {
-    //     (x + y) + z;
-    //     (x + y) + ((z - 1) + 1);
-    //     { SuccAndPlus(x + y, z - 1); }
-    //     ((x + y) + (z - 1)) + 1;
-    //     { PlusIsAssociative(x, y, z - 1); }
-    //     (x + (y + (z - 1))) + 1;
-    //     { SuccAndPlus(x, y + (z - 1)); }
-    //     x + ((y + (z - 1)) + 1);
-    //     { SuccAndPlus(y, z - 1); }
-    //     x + (y + ((z - 1) + 1));
-    //     x + (y + z);
-    //   }
-    // }
+    if z == 0 {
+    } else if z.IsLimit {
+      PlusAndIsLimit(y, z);
+      assert (y + z).IsLimit;
+      // assume false;
+    } else {
+      calc {
+        (x + y) + z;
+        (x + y) + ((z - 1) + 1);
+        { SuccAndPlus(x + y, z - 1); }
+        ((x + y) + (z - 1)) + 1;
+        { PlusIsAssociative(x, y, z - 1); }
+        (x + (y + (z - 1))) + 1;
+        { SuccAndPlus(x, y + (z - 1)); }
+        x + ((y + (z - 1)) + 1);
+        { SuccAndPlus(y, z - 1); }
+        x + (y + ((z - 1) + 1));
+        x + (y + z);
+      }
+    }
   }
 
   // Multiplication and axioms about multiplication
@@ -189,8 +202,34 @@ module Std.Ordinal {
     }
   }
 
-  lemma {:axiom} TimesDistributesOnLeft(left: ORDINAL, right: ORDINAL, right': ORDINAL)
+  @ResourceLimit("1e9")
+  lemma TimesDistributesOnLeft(left: ORDINAL, right: ORDINAL, right': ORDINAL)
+    decreases right'
     ensures Times(left, right + right') == Times(left, right) + Times(left, right')
+  {
+    if right' == 0 {
+    } else if right'.IsLimit {
+      PlusDefinition(right, right');
+      assert (right + right').IsLimit;
+      calc {
+        Times(left, right + right');
+        TimesLimit(left, right + right');
+      }
+    } else {
+      calc {
+        Times(left, right + right');
+        Times(left, right + ((right' - 1) + 1));
+        { PlusIsAssociative(right, right' - 1, 1); }
+        Times(left, (right + (right' - 1)) + 1);
+        Times(left, right + (right' - 1)) + left;
+        { TimesDistributesOnLeft(left, right, right' - 1); }
+        Times(left, right) + Times(left, right' - 1) + left;
+        { PlusIsAssociative(Times(left, right), Times(left, right' - 1), left); }
+        Times(left, right) + (Times(left, right' - 1) + left);
+        Times(left, right) + Times(left, right');
+      }
+    }
+  }
 
   // Helpful lemmas and utilities
 

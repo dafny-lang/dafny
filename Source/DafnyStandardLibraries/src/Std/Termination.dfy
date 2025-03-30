@@ -272,6 +272,7 @@ module Std.Termination {
       }
     }
 
+    @IsolateAssertions
     lemma TupleDecreasesToFirst()
       requires Valid()
       requires Tuple?
