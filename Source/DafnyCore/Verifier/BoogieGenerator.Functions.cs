@@ -83,7 +83,7 @@ public partial class BoogieGenerator {
       etran = readsHeap ? etranHeap : new ExpressionTranslator(this, Predef, (Bpl.Expr)null, f);
     }
 
-    // This method generatew the Consequence Axiom, which has information about the function's
+    // This method generates the Consequence Axiom, which has information about the function's
     // return type and postconditions.
     //
     // axiom  // consequence axiom
