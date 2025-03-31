@@ -1301,7 +1301,7 @@ namespace Microsoft.Dafny {
             }
 
             builder.Add(new Bpl.CommentCmd("End Comprehension WF check"));
-            builder.Add(TrAssumeCmd(expr.Origin, etran.CanCallAssumption(expr)));
+            builder.Add(TrAssumeCmd(expr.Origin, etran.WithoutFuelInQuantifiers().CanCallAssumption(expr)));
             break;
           }
         case StmtExpr stmtExpr:
