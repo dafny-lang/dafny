@@ -1158,7 +1158,7 @@ module Std.Producers {
       ensures RemainingDecreasedBy(result)
     {
       assert Valid();
-      
+
       result := None;
       while result.None?
         invariant fresh(Repr - old(Repr))

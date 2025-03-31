@@ -1,4 +1,7 @@
-
+/*******************************************************************************
+ *  Copyright by the contributors to the Dafny Project
+ *  SPDX-License-Identifier: MIT
+ *******************************************************************************/
 
 module Std.Termination {
 
@@ -31,6 +34,7 @@ module Std.Termination {
     | TMTop
 
       // Never used by direct Dafny syntax, but very useful for simple dependencies.
+      // Represents a metric value immediately above another one.
     | TMSucc(original: TerminationMetric)
   {
     ghost opaque function Ordinal(): ORDINAL
@@ -203,8 +207,8 @@ module Std.Termination {
       requires
         && other.base.DecreasesTo(other.second)
         && (
-          || first.DecreasesTo(other.first)
-          || (first.NonIncreasesTo(other.first) && second.DecreasesTo(other.second)))
+             || first.DecreasesTo(other.first)
+             || (first.NonIncreasesTo(other.first) && second.DecreasesTo(other.second)))
       ensures DecreasesTo(other)
     {
       reveal Ordinal();

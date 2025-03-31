@@ -1,3 +1,7 @@
+/*******************************************************************************
+ *  Copyright by the contributors to the Dafny Project
+ *  SPDX-License-Identifier: MIT
+ *******************************************************************************/
 
 module Std.Ordinal {
 
@@ -14,8 +18,8 @@ module Std.Ordinal {
   ghost function {:axiom} PlusLimit(left: ORDINAL, right: ORDINAL): (result: ORDINAL)
     decreases right, 0
     ensures forall right' | right' < right :: Plus(left, right') < result
-    ensures forall result' | 
-      forall right' | right' < right :: Plus(left, right') < result' :: result <= result'
+    ensures forall result' {:trigger} |
+              forall right' | right' < right :: Plus(left, right') < result' :: result <= result'
 
   ghost function Plus(left: ORDINAL, right: ORDINAL): ORDINAL
     decreases right
@@ -39,7 +43,7 @@ module Std.Ordinal {
   lemma {:axiom} PlusIncreasingOnLeft(left: ORDINAL, left': ORDINAL, right: ORDINAL)
     requires left <= left'
     ensures left + right <= left' + right
-  
+
   lemma SuccStrictlyIncreasing(a: ORDINAL, b: ORDINAL)
     requires a < b
     ensures a + 1 < b + 1
@@ -65,7 +69,7 @@ module Std.Ordinal {
   ghost function {:axiom} TimesLimit(left: ORDINAL, right: ORDINAL): (result: ORDINAL)
     decreases right, 0
     ensures forall right' | right' < right :: Times(left, right') < result
-    ensures forall result' | (forall right' | right' < right :: Times(left, right') < result') :: result <= result'
+    ensures forall result' {:trigger} | (forall right' | right' < right :: Times(left, right') < result') :: result <= result'
 
   ghost function Times(left: ORDINAL, right: ORDINAL): (result: ORDINAL)
     decreases right
