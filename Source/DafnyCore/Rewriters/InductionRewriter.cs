@@ -24,8 +24,8 @@ public class InductionRewriter : IRewriter {
               ProcessMethodExpressions(method);
               ComputeLemmaInduction(method.PrefixLemma);
               ProcessMethodExpressions(method.PrefixLemma);
-            } else if (member is Method) {
-              var method = (Method)member;
+            } else if (member is MethodOrConstructor) {
+              var method = (MethodOrConstructor)member;
               ComputeLemmaInduction(method);
               ProcessMethodExpressions(method);
             } else if (member is ExtremePredicate) {
@@ -50,7 +50,7 @@ public class InductionRewriter : IRewriter {
     }
   }
 
-  void ProcessMethodExpressions(Method method) {
+  void ProcessMethodExpressions(MethodOrConstructor method) {
     Contract.Requires(method != null);
     var visitor = new InductionVisitor(this);
     method.Req.ForEach(mfe => visitor.Visit(mfe.E));
@@ -70,7 +70,7 @@ public class InductionRewriter : IRewriter {
     }
   }
 
-  void ComputeLemmaInduction(Method method) {
+  void ComputeLemmaInduction(MethodOrConstructor method) {
     Contract.Requires(method != null);
     if (method is { IsGhost: true, AllowsAllocation: false, Outs: { Count: 0 }, Body: not null } and not ExtremeLemma) {
       Expression pre = Expression.CreateBoolLiteral(method.Origin, true);
@@ -93,7 +93,7 @@ public class InductionRewriter : IRewriter {
   /// "body" is the condition that the induction would support.
   /// </summary>
   void ComputeInductionVariables<TVarType>(IOrigin tok, List<TVarType> boundVars, Expression body,
-    [CanBeNull] Method lemma, ref Attributes attributes) where TVarType : class, IVariable {
+    [CanBeNull] MethodOrConstructor lemma, ref Attributes attributes) where TVarType : class, IVariable {
     Contract.Requires(tok != null);
     Contract.Requires(boundVars != null);
     Contract.Requires(body != null);
@@ -223,7 +223,7 @@ public class InductionRewriter : IRewriter {
   /// <summary>
   /// Report as tooltips the matching patterns selected for the induction hypothesis.
   /// </summary>
-  private void ReportInductionTriggers(IOrigin tok, [CanBeNull] Method lemma, Attributes attributes) {
+  private void ReportInductionTriggers(IOrigin tok, [CanBeNull] MethodOrConstructor lemma, Attributes attributes) {
     foreach (var trigger in attributes.AsEnumerable().Where(attr => attr.Name == "_inductionTrigger")) {
       var ss = Printer.OneAttributeToString(Reporter.Options, trigger, "inductionTrigger");
       if (lemma is PrefixLemma) {
@@ -318,7 +318,9 @@ public class InductionRewriter : IRewriter {
 
     protected override void VisitOneExpr(Expression expr) {
       if (expr is QuantifierExpr { SplitQuantifier: null } q) {
-        IndRewriter.ComputeInductionVariables(q.Origin, q.BoundVars, q.LogicalBody(), null, ref q.Attributes);
+        var attributes = q.Attributes;
+        IndRewriter.ComputeInductionVariables(q.Origin, q.BoundVars, q.LogicalBody(), null, ref attributes);
+        q.Attributes = attributes;
       }
     }
   }

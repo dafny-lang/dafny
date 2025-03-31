@@ -6,7 +6,7 @@ TypeConstraintsRefresh.dfy(80,6): Error: RHS (of type MyInt) not assignable to L
 TypeConstraintsRefresh.dfy(81,6): Error: RHS (of type int) not assignable to LHS (of type MyInt)
 TypeConstraintsRefresh.dfy(78,6): Error: RHS (of type MyInt) not assignable to LHS (of type int)
 TypeConstraintsRefresh.dfy(79,6): Error: RHS (of type int) not assignable to LHS (of type MyInt)
-TypeConstraintsRefresh.dfy(95,11): Error: type of + must be of a numeric type, a bitvector type, ORDINAL, char, a sequence type, or a set-like or map-like type (instead got ?3)
+TypeConstraintsRefresh.dfy(95,11): Error: type of + must be of a numeric type, a bitvector type, ORDINAL, char, a sequence type, or a set-like or map-like type (instead got ?2)
 TypeConstraintsRefresh.dfy(102,11): Error: type of + must be of a numeric type, a bitvector type, ORDINAL, char, a sequence type, or a set-like or map-like type (instead got bool)
 TypeConstraintsRefresh.dfy(136,16): Error: type of + must be of a numeric type, a bitvector type, ORDINAL, char, a sequence type, or a set-like or map-like type (instead got bool)
 TypeConstraintsRefresh.dfy(147,16): Error: type of + must be of a numeric type, a bitvector type, ORDINAL, char, a sequence type, or a set-like or map-like type (instead got C?)

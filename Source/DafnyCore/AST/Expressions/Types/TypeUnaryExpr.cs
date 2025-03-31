@@ -1,21 +1,20 @@
+#nullable enable
+
 using System.Collections.Generic;
-using System.Diagnostics.Contracts;
 using System.Linq;
 
 namespace Microsoft.Dafny;
 
 public abstract class TypeUnaryExpr : UnaryExpr {
-  public readonly Type ToType;
+  public Type ToType;
 
   protected TypeUnaryExpr(Cloner cloner, TypeUnaryExpr original) : base(cloner, original) {
     ToType = cloner.CloneType(original.ToType);
   }
 
-  protected TypeUnaryExpr(IOrigin origin, Expression expr, Type toType)
-    : base(origin, expr) {
-    Contract.Requires(origin != null);
-    Contract.Requires(expr != null);
-    Contract.Requires(toType != null);
+  [SyntaxConstructor]
+  protected TypeUnaryExpr(IOrigin origin, Expression e, Type toType)
+    : base(origin, e) {
     ToType = toType;
   }
 

@@ -34,7 +34,7 @@ namespace Microsoft.Dafny {
     }
 
     public Scope<Statement>/*!*/ enclosingStatementLabels;
-    public Method currentMethod;
+    public MethodOrConstructor currentMethod;
 
     Label/*?*/ ResolveDominatingLabelInExpr(IOrigin tok, string/*?*/ labelName, string expressionDescription, ResolutionContext resolutionContext) {
       Contract.Requires(tok != null);
@@ -2808,7 +2808,7 @@ namespace Microsoft.Dafny {
             allTypeParameters.PopMarker();
           }
 
-        } else if (member is Method method) {
+        } else if (member is MethodOrConstructor method) {
           var ec = reporter.Count(ErrorLevel.Error);
           allTypeParameters.PushMarker();
           ResolveTypeParameters(method.TypeArgs, false, method);
@@ -3069,7 +3069,7 @@ namespace Microsoft.Dafny {
       }
     }
 
-    public void ResolveBlockStatement(BlockStmt blockStmt, ResolutionContext resolutionContext) {
+    public void ResolveBlockStatement(BlockLikeStmt blockStmt, ResolutionContext resolutionContext) {
       Contract.Requires(blockStmt != null);
       Contract.Requires(resolutionContext != null);
 
@@ -3211,13 +3211,13 @@ namespace Microsoft.Dafny {
       Contract.Requires(bindings != null);
       Contract.Requires(formals != null);
       Contract.Requires(callTok != null);
-      Contract.Requires(context is Method || context is Function || context is DatatypeCtor || context is ArrowType || context is UserSuppliedAtAttribute);
+      Contract.Requires(context is MethodOrConstructor || context is Function || context is DatatypeCtor || context is ArrowType || context is UserSuppliedAtAttribute);
       Contract.Requires(typeMap != null);
       Contract.Requires(!bindings.WasResolved);
 
       string whatKind;
       string name;
-      if (context is Method cMethod) {
+      if (context is MethodOrConstructor cMethod) {
         whatKind = cMethod.WhatKind;
         name = $"{whatKind} '{cMethod.Name}'";
       } else if (context is Function cFunction) {
@@ -3444,7 +3444,7 @@ namespace Microsoft.Dafny {
       } else if (lhs != null && lhs.Type is ResolverIdentifierExpr.ResolverTypeType) {
         var ri = (ResolverIdentifierExpr)lhs;
         // ----- 2. Look up name in type
-        var ty = new UserDefinedType(ri.Origin, ri.Decl.Name, ri.Decl, ri.TypeArgs);
+        var ty = new UserDefinedType(ri.Origin, ri.Decl.ReferenceName, ri.Decl, ri.TypeArgs);
         if (allowDanglingDotName && ty.IsRefType) {
           return new ResolveTypeReturn(ty, expr);
         }
@@ -3545,7 +3545,7 @@ namespace Microsoft.Dafny {
         var kind = stmt is YieldStmt ? "yield" : "return";
         if (stmt is YieldStmt && !(resolutionContext.CodeContext is IteratorDecl)) {
           reporter.Error(MessageSource.Resolver, stmt, "yield statement is allowed only in iterators");
-        } else if (stmt is ReturnStmt && !(resolutionContext.CodeContext is Method)) {
+        } else if (stmt is ReturnStmt && !(resolutionContext.CodeContext is MethodOrConstructor)) {
           reporter.Error(MessageSource.Resolver, stmt, "return statement is allowed only in method");
         } else if (resolutionContext.InFirstPhaseConstructor) {
           reporter.Error(MessageSource.Resolver, stmt, "return statement is not allowed before 'new;' in a constructor");
@@ -4325,63 +4325,64 @@ namespace Microsoft.Dafny {
       return false;
     }
 
-    public void ResolveTypeRhs(TypeRhs rr, Statement stmt, ResolutionContext resolutionContext) {
-      Contract.Requires(rr != null);
+    public void ResolveTypeRhs(TypeRhs rr2, Statement stmt, ResolutionContext resolutionContext) {
+      Contract.Requires(rr2 != null);
       Contract.Requires(stmt != null);
       Contract.Requires(resolutionContext != null);
       Contract.Ensures(Contract.Result<Type>() != null);
 
-      if (rr.Type == null) {
-        if (rr.ArrayDimensions != null) {
+      if (rr2.Type == null) {
+        if (rr2 is AllocateArray allocateArray) {
           // ---------- new T[EE]    OR    new T[EE] (elementInit)
-          Contract.Assert(rr.Bindings == null && rr.Path == null && rr.InitCall == null);
-          ResolveType(stmt.Origin, rr.EType, resolutionContext, ResolveTypeOptionEnum.InferTypeProxies, null);
+          ResolveType(stmt.Origin, allocateArray.ExplicitType, resolutionContext, ResolveTypeOptionEnum.InferTypeProxies, null);
           int i = 0;
-          foreach (Expression dim in rr.ArrayDimensions) {
+          foreach (Expression dim in allocateArray.ArrayDimensions) {
             Contract.Assert(dim != null);
             ResolveExpression(dim, resolutionContext);
-            ConstrainToIntegerType(dim, false, string.Format("new must use an integer-based expression for the array size (got {{0}}{0})", rr.ArrayDimensions.Count == 1 ? "" : " for index " + i));
+            ConstrainToIntegerType(dim, false, string.Format("new must use an integer-based expression for the array size (got {{0}}{0})", allocateArray.ArrayDimensions.Count == 1 ? "" : " for index " + i));
             i++;
           }
-          rr.Type = ResolvedArrayType(stmt.Origin, rr.ArrayDimensions.Count, rr.EType, resolutionContext, false);
-          if (rr.ElementInit != null) {
-            ResolveExpression(rr.ElementInit, resolutionContext);
+          allocateArray.Type = ResolvedArrayType(stmt.Origin, allocateArray.ArrayDimensions.Count, allocateArray.ExplicitType, resolutionContext, false);
+          if (allocateArray.ElementInit != null) {
+            ResolveExpression(allocateArray.ElementInit, resolutionContext);
             // Check
             //     int^N -> rr.EType  :>  rr.ElementInit.Type
-            SystemModuleManager.CreateArrowTypeDecl(rr.ArrayDimensions.Count);  // TODO: should this be done already in the parser?
+            SystemModuleManager.CreateArrowTypeDecl(allocateArray.ArrayDimensions.Count);  // TODO: should this be done already in the parser?
             var args = new List<Type>();
-            for (int ii = 0; ii < rr.ArrayDimensions.Count; ii++) {
+            for (int ii = 0; ii < allocateArray.ArrayDimensions.Count; ii++) {
               args.Add(SystemModuleManager.Nat());
             }
-            var arrowType = new ArrowType(rr.ElementInit.Origin, SystemModuleManager.ArrowTypeDecls[rr.ArrayDimensions.Count], args, rr.EType);
-            var lambdaType = rr.ElementInit.Type.AsArrowType;
+            var arrowType = new ArrowType(allocateArray.ElementInit.Origin, SystemModuleManager.ArrowTypeDecls[allocateArray.ArrayDimensions.Count], args, allocateArray.ExplicitType);
+            var lambdaType = allocateArray.ElementInit.Type.AsArrowType;
             if (lambdaType != null && lambdaType.TypeArgs[0] is InferredTypeProxy) {
               (lambdaType.TypeArgs[0] as InferredTypeProxy).KeepConstraints = true;
             }
             string underscores;
-            if (rr.ArrayDimensions.Count == 1) {
+            if (allocateArray.ArrayDimensions.Count == 1) {
               underscores = "_";
             } else {
-              underscores = "(" + Util.Comma(rr.ArrayDimensions.Count, x => "_") + ")";
+              underscores = "(" + Util.Comma(allocateArray.ArrayDimensions.Count, x => "_") + ")";
             }
             var hintString = string.Format(" (perhaps write '{0} =>' in front of the expression you gave in order to make it an arrow type)", underscores);
-            ConstrainSubtypeRelation(arrowType, rr.ElementInit.Type, rr.ElementInit, "array-allocation initialization expression expected to have type '{0}' (instead got '{1}'){2}",
-              arrowType, rr.ElementInit.Type, new LazyStringOnTypeEquals(rr.EType, rr.ElementInit.Type, hintString));
-          } else if (rr.InitDisplay != null) {
-            foreach (var v in rr.InitDisplay) {
+            ConstrainSubtypeRelation(arrowType, allocateArray.ElementInit.Type, allocateArray.ElementInit, "array-allocation initialization expression expected to have type '{0}' (instead got '{1}'){2}",
+              arrowType, allocateArray.ElementInit.Type, new LazyStringOnTypeEquals(allocateArray.ExplicitType, allocateArray.ElementInit.Type, hintString));
+          } else if (allocateArray.InitDisplay != null) {
+            foreach (var v in allocateArray.InitDisplay) {
               ResolveExpression(v, resolutionContext);
-              AddAssignableConstraint(v.Origin, rr.EType, v.Type, "initial value must be assignable to array's elements (expected '{0}', got '{1}')");
+              AddAssignableConstraint(v.Origin, allocateArray.ExplicitType, v.Type, "initial value must be assignable to array's elements (expected '{0}', got '{1}')");
             }
           }
-        } else {
-          if (rr.Bindings == null) {
-            ResolveType(stmt.Origin, rr.EType, resolutionContext, ResolveTypeOptionEnum.InferTypeProxies, null);
-            var cl = (rr.EType as UserDefinedType)?.ResolvedClass as NonNullTypeDecl;
-            if (cl != null && !(rr.EType.IsTraitType && !rr.EType.NormalizeExpand().IsObjectQ)) {
+        } else if (rr2 is AllocateClass allocateClass) {
+          if (allocateClass.Bindings == null) {
+            ResolveType(stmt.Origin, allocateClass.Path, resolutionContext, ResolveTypeOptionEnum.InferTypeProxies, null);
+            var cl = (allocateClass.Path as UserDefinedType)?.ResolvedClass as NonNullTypeDecl;
+            if (cl != null && !(allocateClass.Path.IsTraitType && !allocateClass.Path.NormalizeExpand().IsObjectQ)) {
               // life is good
             } else {
-              reporter.Error(MessageSource.Resolver, rr.Origin, "new can be applied only to class types (got {0})", rr.EType);
+              reporter.Error(MessageSource.Resolver, allocateClass.Origin, "new can be applied only to class types (got {0})", allocateClass.Path);
             }
+
+            rr2.Type = allocateClass.Path;
           } else {
             string initCallName = null;
             IOrigin initCallTok = null;
@@ -4389,22 +4390,22 @@ namespace Microsoft.Dafny {
             // * If rr.Path denotes a type, then set EType,initCallName to rr.Path,"_ctor", which sets up a call to the anonymous constructor.
             // * If the all-but-last components of rr.Path denote a type, then do EType,initCallName := allButLast(EType),last(EType)
             // * Otherwise, report an error
-            var ret = ResolveTypeLenient(rr.Origin, rr.Path, resolutionContext, new ResolveTypeOption(ResolveTypeOptionEnum.InferTypeProxies), null, true);
+            var ret = ResolveTypeLenient(allocateClass.Origin, allocateClass.Path, resolutionContext, new ResolveTypeOption(ResolveTypeOptionEnum.InferTypeProxies), null, true);
             if (ret != null) {
               // The all-but-last components of rr.Path denote a type (namely, ret.ReplacementType).
-              rr.EType = ret.ReplacementType;
+              allocateClass.Type = ret.ReplacementType;
               initCallName = ret.LastComponent.SuffixName;
               initCallTok = ret.LastComponent.Origin;
             } else {
               // Either rr.Path resolved correctly as a type or there was no way to drop a last component to make it into something that looked
               // like a type.  In either case, set EType,initCallName to Path,"_ctor" and continue.
-              rr.EType = rr.Path;
+              allocateClass.Type = allocateClass.Path;
               initCallName = "_ctor";
-              initCallTok = rr.Origin;
+              initCallTok = allocateClass.Origin;
             }
-            var cl = (rr.EType as UserDefinedType)?.ResolvedClass as NonNullTypeDecl;
-            if (cl == null || rr.EType.IsTraitType) {
-              reporter.Error(MessageSource.Resolver, rr.Origin, "new can be applied only to class types (got {0})", rr.EType);
+            var cl = (allocateClass.Type as UserDefinedType)?.ResolvedClass as NonNullTypeDecl;
+            if (cl == null || allocateClass.Type.IsTraitType) {
+              reporter.Error(MessageSource.Resolver, allocateClass.Origin, "new can be applied only to class types (got {0})", allocateClass.Type);
             } else {
               // ---------- new C.Init(EE)
               Contract.Assert(initCallName != null);
@@ -4412,22 +4413,21 @@ namespace Microsoft.Dafny {
 
               // We want to create a MemberSelectExpr for the initializing method.  To do that, we create a throw-away receiver of the appropriate
               // type, create a dot-suffix expression around this receiver, and then resolve it in the usual way for dot-suffix expressions.
-              var lhs = new ImplicitThisExprConstructorCall(initCallTok) { Type = rr.EType };
-              var callLhs = new ExprDotName(((UserDefinedType)rr.EType).Origin, lhs, new Name(initCallName), ret == null ? null : ret.LastComponent.OptTypeArguments);
-              ResolveDotSuffix(callLhs, false, true, rr.Bindings.ArgumentBindings, resolutionContext, true);
+              var lhs = new ImplicitThisExprConstructorCall(initCallTok) { Type = allocateClass.Type };
+              var callLhs = new ExprDotName(((UserDefinedType)allocateClass.Type).Origin, lhs, new Name(initCallName), ret == null ? null : ret.LastComponent.OptTypeArguments);
+              ResolveDotSuffix(callLhs, false, true, allocateClass.Bindings.ArgumentBindings, resolutionContext, true);
               if (prevErrorCount == reporter.Count(ErrorLevel.Error)) {
                 Contract.Assert(callLhs.ResolvedExpression is MemberSelectExpr);  // since ResolveApplySuffix succeeded and call.Lhs denotes an expression (not a module or a type)
                 var methodSel = (MemberSelectExpr)callLhs.ResolvedExpression;
-                if (methodSel.Member is Method) {
-                  rr.InitCall = new CallStmt(stmt.Origin, [], methodSel, rr.Bindings.ArgumentBindings, initCallTok.Center);
-                  ResolveCallStmt(rr.InitCall, resolutionContext, rr.EType);
+                if (methodSel.Member is MethodOrConstructor) {
+                  allocateClass.InitCall = new CallStmt(stmt.Origin, [], methodSel, allocateClass.Bindings.ArgumentBindings, initCallTok.Center);
+                  ResolveCallStmt(allocateClass.InitCall, resolutionContext, allocateClass.Type);
                 } else {
                   reporter.Error(MessageSource.Resolver, initCallTok, "object initialization must denote an initializing method or constructor ({0})", initCallName);
                 }
               }
             }
           }
-          rr.Type = rr.EType;
         }
       }
     }
@@ -5050,7 +5050,7 @@ namespace Microsoft.Dafny {
     /// desugaring during resolution, because then the desugaring can be constructed as a non-resolved expression on which ResolveExpression
     /// is called--this is easier than constructing an already-resolved expression.
     /// </summary>
-    (Expression, Expression) ResolveDatatypeUpdate(IOrigin tok, Expression root, DatatypeDecl dt, List<Tuple<IOrigin, string, Expression>> memberUpdates,
+    (Expression, Expression) ResolveDatatypeUpdate(IOrigin tok, Expression root, DatatypeDecl dt, List<Tuple<Token, string, Expression>> memberUpdates,
       ResolutionContext resolutionContext, out List<MemberDecl> members, out List<DatatypeCtor> legalSourceConstructors) {
       Contract.Requires(tok != null);
       Contract.Requires(root != null);
@@ -5151,7 +5151,7 @@ namespace Microsoft.Dafny {
       if (candidateResultCtors.Count == 0) {
         return root;
       }
-      Expression rewrite = null;
+
       // Create a unique name for d', the variable we introduce in the let expression
       var dName = FreshTempVarName("dt_update_tmp#", resolutionContext.CodeContext);
       var dVar = new BoundVar(new AutoGeneratedOrigin(tok), dName, root.Type);
@@ -5160,7 +5160,6 @@ namespace Microsoft.Dafny {
       candidateResultCtors.Reverse();
       foreach (var crc in candidateResultCtors) {
         // Build the arguments to the datatype constructor, using the updated value in the appropriate slot
-        var ctorArguments = new List<Expression>();
         var actualBindings = new List<ActualBinding>();
         foreach (var f in crc.Formals) {
           Expression ctorArg;
@@ -5169,7 +5168,6 @@ namespace Microsoft.Dafny {
           } else {
             ctorArg = new ExprDotName(tok, d, f.NameNode, null);
           }
-          ctorArguments.Add(ctorArg);
           var bindingName = new Token(tok.line, tok.col) {
             Uri = tok.Uri,
             val = f.Name
@@ -5191,7 +5189,7 @@ namespace Microsoft.Dafny {
       Contract.Assert(body != null); // because there was at least one element in candidateResultCtors
 
       // Wrap the let's around body
-      rewrite = body;
+      var rewrite = body;
       foreach (var entry in rhsBindings) {
         if (entry.Value.Item1 != null) {
           var lhs = new CasePattern<BoundVar>(tok, entry.Value.Item1);
@@ -5655,8 +5653,9 @@ namespace Microsoft.Dafny {
             var ambiguousMember = (AmbiguousMemberDecl)member;
             reporter.Error(MessageSource.Resolver, expr.Origin, "The name {0} ambiguously refers to a static member in one of the modules {1} (try qualifying the member name with the module name)", expr.SuffixName, ambiguousMember.ModuleNames());
           } else {
-            var receiver = new StaticReceiverExpr(expr.Lhs.Origin, (TopLevelDeclWithMembers)member.EnclosingClass, false);
-            receiver.ContainerExpression = expr.Lhs;
+            var receiver = new StaticReceiverExpr(expr.Lhs.Origin, (TopLevelDeclWithMembers)member.EnclosingClass, false) {
+              ContainerExpression = expr.Lhs
+            };
             r = ResolveExprDotCall(expr.Origin, expr.SuffixNameNode, receiver, null, member, args, expr.OptTypeArguments, resolutionContext, allowMethodCall);
           }
         } else {
@@ -5696,8 +5695,9 @@ namespace Microsoft.Dafny {
               reporter.Error(MessageSource.Resolver, expr.Origin, "accessing member '{0}' requires an instance expression", name); //TODO Unify with similar error messages
               // nevertheless, continue creating an expression that approximates a correct one
             }
-            var receiver = new StaticReceiverExpr(expr.Lhs.Origin, (UserDefinedType)ty.NormalizeExpand(), (TopLevelDeclWithMembers)member.EnclosingClass, false);
-            receiver.ContainerExpression = expr.Lhs;
+            var receiver = new StaticReceiverExpr(expr.Lhs.Origin, (UserDefinedType)ty.NormalizeExpand(), (TopLevelDeclWithMembers)member.EnclosingClass, false) {
+              ContainerExpression = expr.Lhs
+            };
             r = ResolveExprDotCall(expr.Origin, expr.SuffixNameNode, receiver, null, member, args, expr.OptTypeArguments, resolutionContext, allowMethodCall);
           }
         }
@@ -5740,7 +5740,7 @@ namespace Microsoft.Dafny {
     /// Note the extra care for the constructor case, which is needed because the constructors of datatype `M.M` are
     /// exposed through both `M` and `M.M`, without ambiguity.
     /// </summary>
-    private void CheckForAmbiguityInShadowedImportedModule(ModuleDecl moduleDecl, string name,
+    public void CheckForAmbiguityInShadowedImportedModule(ModuleDecl moduleDecl, string name,
       IOrigin tok, bool useCompileSignatures, bool isLastNameSegment) {
       if (moduleDecl != null && NameConflictsWithModuleContents(moduleDecl, name, useCompileSignatures, isLastNameSegment)) {
         reporter.Error(MessageSource.Resolver, tok,
@@ -5825,7 +5825,7 @@ namespace Microsoft.Dafny {
         rr.Type = SelectAppropriateArrowTypeForFunction(fn, subst, SystemModuleManager);
       } else {
         // the member is a method
-        var m = (Method)member;
+        var m = (MethodOrConstructor)member;
         if (!allowMethodCall) {
           // it's a method and method calls are not allowed in the given context
           reporter.Error(MessageSource.Resolver, tok, "expression is not allowed to invoke a {0} ({1})", member.WhatKind, member.Name);
@@ -5883,7 +5883,7 @@ namespace Microsoft.Dafny {
             var ri = (ResolverIdentifierExpr)lhs;
             reporter.Error(MessageSource.Resolver, e.Origin, "name of {0} ({1}) is used as a function", ri.Decl.WhatKind, ri.Decl.Name);
           } else {
-            if (lhs is MemberSelectExpr mse && mse.Member is Method) {
+            if (lhs is MemberSelectExpr mse && mse.Member is MethodOrConstructor) {
               if (atLabel != null) {
                 Contract.Assert(mse != null); // assured by the parser
                 if (mse.Member is TwoStateLemma) {
@@ -6014,7 +6014,7 @@ namespace Microsoft.Dafny {
 #endif
       if (member == null) {
         // error has already been reported by ResolveMember
-      } else if (member is Method) {
+      } else if (member is MethodOrConstructor) {
         reporter.Error(MessageSource.Resolver, e, "member {0} in type {1} refers to a method, but only functions can be used in this context", e.Name, cce.NonNull(ctype).Name);
       } else if (!(member is Function)) {
         reporter.Error(MessageSource.Resolver, e, "member {0} in type {1} does not refer to a function", e.Name, cce.NonNull(ctype).Name);

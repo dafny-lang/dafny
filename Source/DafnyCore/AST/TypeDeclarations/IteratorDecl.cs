@@ -6,29 +6,30 @@ using Microsoft.Dafny.Compilers;
 namespace Microsoft.Dafny;
 
 public class IteratorDecl : ClassDecl, IMethodCodeContext, ICanVerify, ICodeContainer {
-  public override string WhatKind { get { return "iterator"; } }
-  public readonly List<Formal> Ins;
-  public readonly List<Formal> Outs;
-  public readonly Specification<FrameExpression> Reads;
-  public readonly Specification<FrameExpression> Modifies;
-  public readonly Specification<Expression> Decreases;
-  public readonly List<AttributedExpression> Requires;
-  public readonly List<AttributedExpression> Ensures;
-  public readonly List<AttributedExpression> YieldRequires;
-  public readonly List<AttributedExpression> YieldEnsures;
-  public readonly BlockStmt Body;
+  public override string WhatKind => "iterator";
+
+  public List<Formal> Ins;
+  public List<Formal> Outs;
+  public Specification<FrameExpression> Reads;
+  public Specification<FrameExpression> Modifies;
+  public Specification<Expression> Decreases;
+  public List<AttributedExpression> Requires;
+  public List<AttributedExpression> Ensures;
+  public List<AttributedExpression> YieldRequires;
+  public List<AttributedExpression> YieldEnsures;
+  public BlockStmt Body;
   public bool SignatureIsOmitted { get { return SignatureEllipsis != null; } }
-  public readonly IOrigin SignatureEllipsis;
-  public readonly List<Field> OutsFields;
-  public readonly List<Field> OutsHistoryFields;  // these are the 'xs' variables
-  [FilledInDuringResolution] public readonly List<Field> DecreasesFields;
+  public IOrigin SignatureEllipsis;
+  public List<Field> OutsFields;
+  public List<Field> OutsHistoryFields;  // these are the 'xs' variables
+  [FilledInDuringResolution] public List<Field> DecreasesFields;
   [FilledInDuringResolution] public SpecialField Member_Modifies;
   [FilledInDuringResolution] public SpecialField Member_Reads;
   [FilledInDuringResolution] public SpecialField Member_New;
   [FilledInDuringResolution] public Constructor Member_Init;  // created during registration phase of resolution;
   [FilledInDuringResolution] public Predicate Member_Valid;  // created during registration phase of resolution;
   [FilledInDuringResolution] public Method Member_MoveNext;  // created during registration phase of resolution;
-  public readonly LocalVariable YieldCountVariable;
+  public LocalVariable YieldCountVariable;
 
   public IteratorDecl(IOrigin origin, Name nameNode, ModuleDefinition enclosingModule, List<TypeParameter> typeArgs,
     List<Formal> ins, List<Formal> outs,
@@ -343,13 +344,13 @@ public class IteratorDecl : ClassDecl, IMethodCodeContext, ICanVerify, ICodeCont
     var members = new Dictionary<string, MemberDecl>();
     resolver.AddClassMembers(this, members);
 
-    // First, register the iterator's in- and out-parameters as readonly fields
+    // First, register the iterator's in- and out-parameters as fields
     foreach (var p in Ins) {
       if (members.ContainsKey(p.Name)) {
         resolver.reporter.Error(MessageSource.Resolver, p,
           "Name of in-parameter is used by another member of the iterator: {0}", p.Name);
       } else {
-        var field = new SpecialField(p.Origin, p.NameNode, SpecialField.ID.UseIdParam, p.CompileName, false, p.IsGhost, false,
+        var field = new SpecialField(p.Origin, p.NameNode, SpecialField.ID.UseIdParam, p.CompileName, p.IsGhost, false,
           false, p.Type, null);
         field.EnclosingClass = this; // resolve here
         field.InheritVisibility(this);
@@ -365,7 +366,7 @@ public class IteratorDecl : ClassDecl, IMethodCodeContext, ICanVerify, ICodeCont
           "Name of yield-parameter is used by another member of the iterator: {0}", p.Name);
       } else {
         nonDuplicateOuts.Add(p);
-        var field = new SpecialField(p.Origin, p.NameNode, SpecialField.ID.UseIdParam, p.CompileName, false, p.IsGhost, true,
+        var field = new SpecialField(p.Origin, p.NameNode, SpecialField.ID.UseIdParam, p.CompileName, p.IsGhost, true,
           true, p.Type, null);
         field.EnclosingClass = this; // resolve here
         field.InheritVisibility(this);
@@ -386,7 +387,7 @@ public class IteratorDecl : ClassDecl, IMethodCodeContext, ICanVerify, ICodeCont
 
       // we add some field to OutsHistoryFields, even if there was an error; the name of the field, in case of error, is not so important
       var tp = new SeqType(p.Type.NormalizeExpand());
-      var field = new SpecialField(p.Origin, nm, SpecialField.ID.UseIdParam, nm, false, true, true, false, tp, null);
+      var field = new SpecialField(p.Origin, nm, SpecialField.ID.UseIdParam, nm, true, true, false, tp, null);
       field.EnclosingClass = this; // resolve here
       field.InheritVisibility(this);
       OutsHistoryFields

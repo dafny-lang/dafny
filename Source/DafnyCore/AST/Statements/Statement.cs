@@ -6,7 +6,7 @@ using System.Linq;
 
 namespace Microsoft.Dafny;
 
-public abstract class Statement : RangeNode, IAttributeBearingDeclaration {
+public abstract class Statement : NodeWithOrigin, IAttributeBearingDeclaration {
   public Token? PostLabelToken { get; set; }
 
   public int ScopeDepth { get; set; }
@@ -142,7 +142,7 @@ public abstract class Statement : RangeNode, IAttributeBearingDeclaration {
   /// </summary>
   public static Statement StripByBlocks(Statement stmt) {
     while (stmt is BlockByProofStmt blockByProofStmt) {
-      stmt = blockByProofStmt;
+      stmt = blockByProofStmt.Body;
     }
     return stmt;
   }
@@ -192,6 +192,9 @@ public abstract class Statement : RangeNode, IAttributeBearingDeclaration {
       Concat<Node>(
       PreResolveSubStatements).Concat(PreResolveSubExpressions);
 
+  /// <summary>
+  /// GetAssignedLocals should only be called after successful resolution
+  /// </summary>
   public virtual IEnumerable<IdentifierExpr> GetAssignedLocals() => [];
 
 

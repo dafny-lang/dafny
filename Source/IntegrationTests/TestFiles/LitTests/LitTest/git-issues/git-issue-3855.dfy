@@ -1,4 +1,4 @@
-// RUN: %exits-with 4 %baredafny verify --show-snippets:false --allow-axioms --allow-deprecation --use-basename-for-filename "%s" > "%t".raw
+// RUN: %exits-with 4 %baredafny verify --show-snippets:false --allow-axioms --allow-deprecation --use-basename-for-filename --type-system-refresh=false --general-newtypes=false "%s" > "%t".raw
 // RUN: %sed 's/after [0-9]+ seconds/after <redacted> seconds/' %t.raw > "%t"
 // RUN: %diff "%s.expect" "%t"
 // Nearly verbatim copy of the text case given in the issue

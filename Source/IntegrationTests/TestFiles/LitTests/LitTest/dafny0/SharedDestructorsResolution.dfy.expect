@@ -13,6 +13,8 @@ SharedDestructorsResolution.dfy(46,31): Error: updated datatype members must bel
 SharedDestructorsResolution.dfy(97,6): Error: Duplicate use of deconstructor name in the same constructor: x
 SharedDestructorsResolution.dfy(98,6): Error: Duplicate use of deconstructor name in the same constructor: y
 SharedDestructorsResolution.dfy(99,6): Error: Duplicate use of deconstructor name in the same constructor: z
+SharedDestructorsResolution.dfy(55,14): Error: shared destructors must agree on whether or not they are ghost, but 'x' is non-ghost in constructor 'Kt0' and ghost in constructor 'Kt1'
+SharedDestructorsResolution.dfy(57,8): Error: shared destructors must agree on whether or not they are ghost, but 'g' is ghost in constructor 'Kt2' and non-ghost in constructor 'Kt3'
 SharedDestructorsResolution.dfy(64,8): Error: shared destructors must have the same type, but 'x' has type 'int' in constructor 'Lt0' and type 'real' in constructor 'Lt1'
 SharedDestructorsResolution.dfy(69,8): Error: shared destructors must have the same type, but 'y' has type 'A' in constructor 'Mt0' and type 'B' in constructor 'Mt2'
 SharedDestructorsResolution.dfy(71,8): Error: shared destructors must have the same type, but 'arr' has type 'array<A>' in constructor 'Mt3' and type 'array<B>' in constructor 'Mt4'
@@ -22,4 +24,4 @@ SharedDestructorsResolution.dfy(78,9): Error: shared destructors must have the s
 SharedDestructorsResolution.dfy(94,26): Error: shared destructors must have the same type, but 'u' has type 'int' in constructor 'Co2' and type 'real' in constructor 'Co3'
 SharedDestructorsResolution.dfy(105,14): Error: shared destructors must agree on whether or not they are ghost, but 'x' is non-ghost in constructor 'Kt0' and ghost in constructor 'Kt1'
 SharedDestructorsResolution.dfy(107,8): Error: shared destructors must agree on whether or not they are ghost, but 'g' is ghost in constructor 'Kt2' and non-ghost in constructor 'Kt3'
-24 resolution/type errors detected in SharedDestructorsResolution.dfy
+26 resolution/type errors detected in SharedDestructorsResolution.dfy

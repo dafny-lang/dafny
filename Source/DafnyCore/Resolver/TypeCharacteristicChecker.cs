@@ -121,7 +121,7 @@ namespace Microsoft.Dafny {
                   }
                 }
               }
-            } else if (member is Method method) {
+            } else if (member is MethodOrConstructor method) {
               memberTypeArguments = method.TypeArgs;
               bool done = false;
               foreach (var tp in method.TypeArgs) {
@@ -282,7 +282,7 @@ namespace Microsoft.Dafny {
               if (function.Body != null) {
                 visitor.Visit(function.Body, function.IsGhost);
               }
-            } else if (member is Method method) {
+            } else if (member is MethodOrConstructor method) {
               CheckFormals(method.Ins, method.IsGhost, visitor);
               CheckFormals(method.Outs, method.IsGhost, visitor);
               CheckSpecification(method.Req, method.Mod, method.Ens, method.Decreases, visitor);

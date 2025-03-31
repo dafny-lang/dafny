@@ -168,6 +168,18 @@ module _System {
   }
 
   datatype /*_tuple#0*/ () = _#Make0
+
+  type bv0 {
+    function RotateLeft(w: nat): bv0
+
+    function RotateRight(w: nat): bv0
+  }
+
+  type bv19 {
+    function RotateLeft(w: nat): bv19
+
+    function RotateRight(w: nat): bv19
+  }
 }
 // bitvector types in use: bv0 bv19
 */

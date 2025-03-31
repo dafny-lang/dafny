@@ -1,4 +1,4 @@
-// RUN: %exits-with 4 %verify "%s" --performance-stats=100 --relax-definite-assignment --allow-axioms > "%t"
+// RUN: %exits-with 4 %verify --type-system-refresh=false --general-newtypes=false "%s" --performance-stats=100 --relax-definite-assignment --allow-axioms > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 module AssignmentToNat {
@@ -46,9 +46,9 @@ module AssignmentToNat {
   method Q(x: int) {
     var f := Pf;
     var g := Pg;
-    var a := f(x);  // error
+    var a := f(x);  // error: x may be negative
     var id := (u: int) => u;
-    g := id;  // error
+    g := id;
   }
 
   ghost function Id(x: int): nat

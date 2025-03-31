@@ -88,7 +88,7 @@ namespace Microsoft.Dafny.LanguageServer.Language {
       }
     }
 
-    public virtual void Visit(Method method) {
+    public virtual void Visit(MethodOrConstructor method) {
       foreach (var typeArgument in method.TypeArgs) {
         Visit(typeArgument);
       }
@@ -242,24 +242,28 @@ namespace Microsoft.Dafny.LanguageServer.Language {
 
     public virtual void Visit(TypeRhs typeRhs) {
       VisitNullableAttributes(typeRhs.Attributes);
-      if (typeRhs.Bindings != null) {
-        Visit(typeRhs.Bindings);
-      }
-      if (typeRhs.ArrayDimensions != null) {
-        foreach (var dimension in typeRhs.ArrayDimensions) {
+      if (typeRhs is AllocateArray allocateArray) {
+        foreach (var dimension in allocateArray.ArrayDimensions) {
           Visit(dimension);
         }
       }
+
+      if (typeRhs is AllocateClass allocateClass) {
+        if (allocateClass.Bindings != null) {
+          Visit(allocateClass.Bindings);
+        }
+
+      }
     }
 
-    public virtual void Visit(BlockStmt blockStatement) {
+    public virtual void Visit(BlockLikeStmt blockStatement) {
       VisitNullableAttributes(blockStatement.Attributes);
       foreach (var statement in blockStatement.Body) {
         Visit(statement);
       }
     }
 
-    private void VisitNullableBlock(BlockStmt? blockStatement) {
+    private void VisitNullableBlock(BlockLikeStmt? blockStatement) {
       if (blockStatement != null) {
         Visit(blockStatement);
       }

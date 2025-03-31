@@ -109,7 +109,7 @@ public class RunAllTestsMainMethod : IRewriter {
 
     foreach (var moduleDefinition in program.CompileModules) {
       foreach (var callable in ModuleDefinition.AllCallables(moduleDefinition.TopLevelDecls)) {
-        if ((callable is Method method) && Attributes.Contains(method.Attributes, "test")) {
+        if ((callable is MethodOrConstructor method) && Attributes.Contains(method.Attributes, "test")) {
           var regex = program.Options.MethodsToTest;
           if (!System.String.IsNullOrEmpty(regex)) {
             string name = method.FullDafnyName;
@@ -238,7 +238,7 @@ public class RunAllTestsMainMethod : IRewriter {
     // than the Method we added in PreResolve).
     var hasMain = Compilers.SinglePassCodeGenerator.HasMain(program, out var mainMethod);
     Contract.Assert(hasMain);
-    mainMethod.Body = new BlockStmt(tok, mainMethodStatements);
+    mainMethod.SetBody(new BlockStmt(tok, mainMethodStatements));
   }
 
   private BlockStmt PrintTestFailureStatement(IOrigin tok, Expression successVarExpr, Expression failureValueExpr) {

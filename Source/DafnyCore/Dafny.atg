@@ -348,7 +348,7 @@ ModuleDefinition<DeclModifierData dmod, ModuleDefinition parent, out ModuleDecl 
    "}"
    (. CheckNoAttributes(ref attrs); .)
     (.
-      module.SetOrigin(new SourceOrigin(dmod.FirstToken, t, name.Center));
+      module.SetOrigin(new SourceOrigin(dmod.FirstToken, t, name.ReportingRange));
       submodule = new LiteralModuleDecl(theOptions, module, parent, Guid.NewGuid());
       submodule.SetOrigin(module.Origin);
       theOptions = dafnyOptionsBackup;
@@ -368,13 +368,13 @@ ModuleImport<ModuleDefinition parent, out ModuleDecl submodule>
       ModuleName<out var name>
       ":"
       QualifiedModuleExport<out var namePath, out idExports>
-          (. submodule = new AbstractModuleDecl(theOptions, new SourceOrigin(startToken, t, name.Center), new ModuleQualifiedId(namePath),
+          (. submodule = new AbstractModuleDecl(theOptions, new SourceOrigin(startToken, t, name.ReportingRange), new ModuleQualifiedId(namePath),
                                                name, null, parent, opened, idExports, Guid.NewGuid()); .)
     | IF(lookAhead == _singleeq)
       ModuleName<out var name>
       "="
       QualifiedModuleExport<out var namePath, out idExports>
-          (. submodule = new AliasModuleDecl(theOptions, new SourceOrigin(startToken, t, name.Center), new ModuleQualifiedId(namePath),
+          (. submodule = new AliasModuleDecl(theOptions, new SourceOrigin(startToken, t, name.ReportingRange), new ModuleQualifiedId(namePath),
                                                name, null, parent, opened, idExports, Guid.NewGuid()); .)
     |
       QualifiedModuleExport<out var namePath, out idExports>
@@ -454,7 +454,7 @@ ModuleExport<ModuleDefinition parent, out ModuleDecl submodule>
      } else {
        name = new Name(exportId);
      }
-     submodule = new ModuleExportDecl(theOptions, new SourceOrigin(startToken, t, name.Center), name, null, parent, exports, extends, provideAll, revealAll, isDefault, isRefining, Guid.NewGuid());
+     submodule = new ModuleExportDecl(theOptions, new SourceOrigin(startToken, t, name.ReportingRange), name, null, parent, exports, extends, provideAll, revealAll, isDefault, isRefining, Guid.NewGuid());
   .)
   // LL Warning: 'least' and 'greatest' are not keywords. They can be the identifier that is the last ExportId of the ModuleExport.
   // Those words can also be the first word of a declaration (e.g. least predicate) that follows the MOduleExport.
@@ -542,7 +542,7 @@ ClassDecl<DeclModifierData dmodClass, ModuleDefinition/*!*/ module, out TopLevel
       ClassMemberDecl<dmod, members, true, false>
     }
   "}"
-  (. c = new ClassDecl(new SourceOrigin(dmodClass.FirstToken, t, name.Center), name, dmodClass.Attributes, typeArgs, module, members, parentTraits, isRefining);
+  (. c = new ClassDecl(new SourceOrigin(dmodClass.FirstToken, t, name.ReportingRange), name, dmodClass.Attributes, typeArgs, module, members, parentTraits, isRefining);
      c.BodyStartTok = bodyStart;
   .)
   .
@@ -591,7 +591,7 @@ TraitDecl<DeclModifierData dmodIn, ModuleDefinition/*!*/ module, out TraitDecl/*
       ClassMemberDecl<dmod, members, true, false>
     }
   "}"
-  (. trait = new TraitDecl(new SourceOrigin(dmodIn.FirstToken, t, name.Center), name, module, typeArgs, members, dmodIn.Attributes, isRefining, parentTraits);
+  (. trait = new TraitDecl(new SourceOrigin(dmodIn.FirstToken, t, name.ReportingRange), name, module, typeArgs, members, dmodIn.Attributes, isRefining, parentTraits);
      trait.BodyStartTok = bodyStart;
     .)
   .
@@ -599,7 +599,7 @@ TraitDecl<DeclModifierData dmodIn, ModuleDefinition/*!*/ module, out TraitDecl/*
 /*------------------------------------------------------------------------*/
 ClassMemberDecl<. DeclModifierData dmod, List<MemberDecl> mm, bool allowConstructors, bool moduleLevelDecl.>
 = (. Contract.Requires(cce.NonNullElements(mm));
-     Method/*!*/ m;
+     MethodOrConstructor/*!*/ m;
      Function/*!*/ f;
   .)
   ( (. if (moduleLevelDecl) {
@@ -660,9 +660,9 @@ DatatypeDecl<DeclModifierData dmod, ModuleDefinition/*!*/ module, out DatatypeDe
   )
   [ TypeMembers<module, members> ]
   (. if (co) {
-       dt = new CoDatatypeDecl(new SourceOrigin(dmod.FirstToken, t, name.Center), name, module, typeArgs, ctors, parentTraits, members, dmod.Attributes, isRefining);
+       dt = new CoDatatypeDecl(new SourceOrigin(dmod.FirstToken, t, name.ReportingRange), name, module, typeArgs, ctors, parentTraits, members, dmod.Attributes, isRefining);
      } else {
-       dt = new IndDatatypeDecl(new SourceOrigin(dmod.FirstToken, t, name.Center), name, module, typeArgs, ctors, parentTraits, members, dmod.Attributes, isRefining);
+       dt = new IndDatatypeDecl(new SourceOrigin(dmod.FirstToken, t, name.ReportingRange), name, module, typeArgs, ctors, parentTraits, members, dmod.Attributes, isRefining);
      }
      dt.BodyStartTok = bodyStart;
   .)
@@ -715,11 +715,11 @@ FieldDecl<.DeclModifierData dmod, List<MemberDecl> mm.>
   SYNC
   "var"                                (. startToken = startToken ?? t; .)
   { Attribute<ref attrs> }
-  FIdentType<out name, out ty>         (. var f = new Field(new SourceOrigin(startToken, t, name.Center), name, dmod.IsGhost, ty, attrs);
+  FIdentType<out name, out ty>         (. var f = new Field(new SourceOrigin(startToken, t, name.ReportingRange), name, dmod.IsGhost, ty, attrs);
                                           mm.Add(f);
                                        .)
   { ","                                (. startToken = t; .)
-    FIdentType<out name, out ty>       (. f = new Field(new SourceOrigin(startToken, t, name.Center), name, dmod.IsGhost, ty, attrs);
+    FIdentType<out name, out ty>       (. f = new Field(new SourceOrigin(startToken, t, name.ReportingRange), name, dmod.IsGhost, ty, attrs);
                                           mm.Add(f);
                                        .)
   }
@@ -750,7 +750,7 @@ ConstantFieldDecl<.DeclModifierData dmod, List<MemberDecl/*!*/>/*!*/ mm, bool mo
                                              (. if (e == null && ty is InferredTypeProxy) {
                                                   SemErr(ErrorId.p_const_is_missing_type_or_init, name.StartToken, "a const declaration must have a type or a RHS value");
                                                 }
-                                                var c = new ConstantField(new SourceOrigin(dmod.FirstToken, t, name.Center), name, e, dmod.IsStatic, dmod.IsGhost, dmod.IsOpaque, ty, dmod.Attributes);
+                                                var c = new ConstantField(new SourceOrigin(dmod.FirstToken, t, name.ReportingRange), name, e, dmod.IsStatic, dmod.IsGhost, dmod.IsOpaque, ty, dmod.Attributes);
                                                 mm.Add(c);
                                              .)
     OldSemi
@@ -790,21 +790,21 @@ NewtypeDecl<DeclModifierData dmod, ModuleDefinition module, out TopLevelDecl td>
     Expression<out constraint, false, true>
     WitnessClause<out var witnessKind, out witness>
     [ TypeMembers<module, members> ]
-    (. td = new NewtypeDecl(new SourceOrigin(dmod.FirstToken, t, name.Center), name, typeParameters, module,
+    (. td = new NewtypeDecl(new SourceOrigin(dmod.FirstToken, t, name.ReportingRange), name, typeParameters, module,
          new BoundVar(bvId, bvId.val, baseType),
          constraint, witnessKind, witness, parentTraits, members, dmod.Attributes, isRefining: false);
     .)
   | Type<out baseType>
     WitnessClause<out var witnessKind, out witness>
     [ TypeMembers<module, members> ]
-    (. td = new NewtypeDecl(new SourceOrigin(dmod.FirstToken, t, name.Center), name, typeParameters, module,
+    (. td = new NewtypeDecl(new SourceOrigin(dmod.FirstToken, t, name.ReportingRange), name, typeParameters, module,
          baseType, witnessKind, witness, parentTraits, members, dmod.Attributes, isRefining: false);
     .)
   )
   | ellipsis
     [ TypeMembers<module, members> ]
     (. baseType = null; // Base type is not known yet
-       td = new NewtypeDecl(new SourceOrigin(dmod.FirstToken, t, name.Center), name, typeParameters, module, baseType,
+       td = new NewtypeDecl(new SourceOrigin(dmod.FirstToken, t, name.ReportingRange), name, typeParameters, module, baseType,
          SubsetTypeDecl.WKind.CompiledZero, null,
          parentTraits, members, dmod.Attributes, isRefining: true);
     .)
@@ -840,13 +840,13 @@ SynonymTypeDecl<DeclModifierData dmod, ModuleDefinition module, out TopLevelDecl
       "|"
       Expression<out constraint, false, true>
       WitnessClause<out var witnessKind, out witness>
-      (. td = new SubsetTypeDecl(new SourceOrigin(dmod.FirstToken, t, name.Center), name, characteristics, typeArgs, module, 
+      (. td = new SubsetTypeDecl(new SourceOrigin(dmod.FirstToken, t, name.ReportingRange), name, characteristics, typeArgs, module, 
             new BoundVar(bvId, bvId.val, ty), constraint, witnessKind, witness, dmod.Attributes);
          kind = "subset type";
       .)
     |
       Type<out ty>
-      (. td = new ConcreteTypeSynonymDecl(new SourceOrigin(dmod.FirstToken, t, name.Center), name, characteristics, typeArgs, module, ty, dmod.Attributes);
+      (. td = new ConcreteTypeSynonymDecl(new SourceOrigin(dmod.FirstToken, t, name.ReportingRange), name, characteristics, typeArgs, module, ty, dmod.Attributes);
          kind = "type synonym";
       .)
     )
@@ -861,7 +861,7 @@ SynonymTypeDecl<DeclModifierData dmod, ModuleDefinition module, out TopLevelDecl
          // abstract type declarations at the very outermost program scope get an automatic (!new)
          characteristics.ContainsNoReferenceTypes = true;
        }
-       td = new AbstractTypeDecl(new SourceOrigin(dmod.FirstToken, t, name.Center), name, module, characteristics, typeArgs, parentTraits, members, dmod.Attributes, isRefining);
+       td = new AbstractTypeDecl(new SourceOrigin(dmod.FirstToken, t, name.ReportingRange), name, module, characteristics, typeArgs, parentTraits, members, dmod.Attributes, isRefining);
      }
   .)
   (. CheckDeclModifiers(ref dmod, kind, AllowedDeclModifiers.None); .)
@@ -941,7 +941,7 @@ LocalIdentTypeOptional<out LocalVariable var, bool isGhost, bool allowWild=true>
   WildIdent<out id, allowWild> (. startToken = t; .)
   [ ":" Type<out ty>
   ]
-  (. var = new LocalVariable(new SourceOrigin(startToken, t), id.val, ty, isGhost);
+  (. var = new LocalVariable(new SourceOrigin(startToken, t, id), id.val, ty, isGhost);
   .)
   .
 
@@ -958,7 +958,7 @@ IdentTypeOptional<out BoundVar var>
      // disambiguate, it makes sense to force the colon to consider the ': type' here. Hence the semantic predicate.
      // Also a SetComprehension would be the wrong type in a slices-by-length construct.
   ]
-  (. var = new BoundVar(new SourceOrigin(name.StartToken, t, name.Center), name.Value, ty); .)
+  (. var = new BoundVar(new SourceOrigin(name.StartToken, t, name.ReportingRange), name.Value, ty); .)
   .
 
 TypeIdentOptional<out SourceOrigin/*!*/ range, out Name/*!*/ identName, out Type/*!*/ ty, 
@@ -1052,7 +1052,7 @@ IteratorDecl<DeclModifierData dmod, ModuleDefinition module, out IteratorDecl/*!
   IteratorSpec<reads, mod, decreases, req, ens, yieldReq, yieldEns, ref readsAttrs, ref modAttrs, ref decrAttrs>
   [ BlockStmt<out body, out bodyStart, out bodyEnd>
   ]
-  (. iter = new IteratorDecl(new SourceOrigin(dmod.FirstToken, t, name.Center), name, module, typeArgs, ins, outs,
+  (. iter = new IteratorDecl(new SourceOrigin(dmod.FirstToken, t, name.ReportingRange), name, module, typeArgs, ins, outs,
                              new Specification<FrameExpression>(reads, readsAttrs),
                              new Specification<FrameExpression>(mod, modAttrs),
                              new Specification<Expression>(decreases, decrAttrs),
@@ -1099,7 +1099,7 @@ OneTypeParameter<.List<TypeParameter> typeParameters, bool allowVariance.>
     Type<out typeBound>
     (. typeBounds.Add(typeBound); .)
   }
-  (. typeParameters.Add(new TypeParameter(new SourceOrigin(startToken, t, name.Center), name, variance, characteristics, typeBounds, null)); .)
+  (. typeParameters.Add(new TypeParameter(new SourceOrigin(startToken, t, name.ReportingRange), name, variance, characteristics, typeBounds, null)); .)
   .
 
 /*------------------------------------------------------------------------*/
@@ -1144,7 +1144,7 @@ TPCharOption<ref TypeParameterCharacteristics characteristics>
   .
 
 /*------------------------------------------------------------------------*/
-MethodDecl<DeclModifierData dmod, bool allowConstructor, out Method/*!*/ m>
+MethodDecl<DeclModifierData dmod, bool allowConstructor, out MethodOrConstructor/*!*/ m>
 = (. Contract.Ensures(Contract.ValueAtReturn(out m) !=null);
      bool hasName = false;
      Name name = new Name("<noNameGiven>");  
@@ -1161,6 +1161,7 @@ MethodDecl<DeclModifierData dmod, bool allowConstructor, out Method/*!*/ m>
      Attributes modAttrs = null;
      Attributes readsAttrs = null;
      BlockStmt body = null;
+     DividedBlockStmt dividedBody = null;
      bool isPlainOlMethod = false;
      bool isLemma = false;
      bool isTwoStateLemma = false;
@@ -1243,18 +1244,16 @@ MethodDecl<DeclModifierData dmod, bool allowConstructor, out Method/*!*/ m>
   MethodSpec<dmod.IsGhost || isLemma || isTwoStateLemma || isLeastLemma || isGreatestLemma,
              req, reads, mod, ens, dec, ref decAttrs, ref modAttrs, ref readsAttrs, caption, isConstructor>
   [ IF(isConstructor)
-    (. DividedBlockStmt dividedBody; .)
     DividedBlockStmt<out dividedBody, out bodyStart, out bodyEnd>
-    (. body = dividedBody; .)
   | BlockStmt<out body, out bodyStart, out bodyEnd>
   ]
-  (. var range = new SourceOrigin(dmod.FirstToken, t, hasName ? name.Center : null);
+  (. var range = new SourceOrigin(dmod.FirstToken, t, hasName ? name.ReportingRange : null);
      if (isConstructor) {
        m = new Constructor(range, hasName ? name : new Name(dmod.FirstToken, "_ctor"), dmod.IsGhost, typeArgs, ins,
                            req, new Specification<FrameExpression>(reads, readsAttrs), 
                            new Specification<FrameExpression>(mod, modAttrs), ens, 
                            new Specification<Expression>(dec, decAttrs), 
-                           (DividedBlockStmt)body, dmod.Attributes, signatureEllipsis);
+                           dividedBody, dmod.Attributes, signatureEllipsis);
      } else if (isLeastLemma) {
        m = new LeastLemma(range, name, dmod.IsStatic, kType, typeArgs, ins, outs,
                           req, new Specification<FrameExpression>(reads, readsAttrs), new Specification<FrameExpression>(mod, modAttrs), ens, new Specification<Expression>(dec, decAttrs), body, dmod.Attributes, signatureEllipsis);
@@ -1416,7 +1415,7 @@ Formals<.bool incoming, bool allowGhostKeyword, bool allowNewKeyword, bool allow
     GIdentType<allowGhostKeyword, allowNewKeyword, incoming, allowOlderKeyword, out range, out name, out ty, out isGhost, out isOld, out isNameOnly, out isOlder>
     ParameterDefaultValue<incoming, out defaultValue>
                  (. var origin = defaultValue == null ? range 
-                      : new SourceOrigin(range.StartToken, defaultValue.EndToken, name.Center);
+                      : new SourceOrigin(range.StartToken, defaultValue.EndToken, name.ReportingRange);
                     formals.Add(new Formal(origin, name, ty, incoming, isGhost, defaultValue, attrs, isOld, isNameOnly, isOlder));
                  .)
     { ","
@@ -1425,7 +1424,7 @@ Formals<.bool incoming, bool allowGhostKeyword, bool allowNewKeyword, bool allow
       ParameterDefaultValue<incoming, out defaultValue>
       
                  (. var origin2 = defaultValue == null ? range 
-                      : new SourceOrigin(range.StartToken, defaultValue.EndToken, name.Center);
+                      : new SourceOrigin(range.StartToken, defaultValue.EndToken, name.ReportingRange);
                     formals.Add(new Formal(origin2, name, ty, incoming, isGhost, defaultValue, attrs, isOld, isNameOnly, isOlder)); 
                  .)
     }
@@ -1976,7 +1975,7 @@ FunctionDecl<DeclModifierData dmod, out Function/*!*/ f>
      /* =========================================
       * Finally, we create the AST node for the function declaration we parsed.
       */
-     var range = new SourceOrigin(dmod.FirstToken, t, name.Center);
+     var range = new SourceOrigin(dmod.FirstToken, t, name.ReportingRange);
      if (isTwoState && isPredicate) {
        Contract.Assert(functionMethodToken == null && !dmod.IsGhost);
        f = new TwoStatePredicate(range, name, dmod.IsStatic, dmod.IsOpaque, typeArgs, formals, result,
@@ -2430,14 +2429,14 @@ Rhs<out AssignmentRhs r>
     )
     (. if (ee != null) {
          if (display != null) {
-           r = new TypeRhs(newToken, ty, ee[0], display);
+           r = new AllocateArray(newToken, ty, ee[0], display);
          } else {
-           r = new TypeRhs(newToken, ty, ee, arrayElementInit);
+           r = new AllocateArray(newToken, ty, ee, arrayElementInit);
          }
        } else if (args != null) {
-         r = new TypeRhs(newToken, ty, args);
+         r = new AllocateClass(newToken, ty, args);
        } else {
-         r = new TypeRhs(newToken, ty);
+         r = new AllocateClass(newToken, ty);
        }
     .)
   | "*"                                (. r = new HavocRhs(t); startToken = t; .)
@@ -2731,7 +2730,7 @@ WhileStmt<out Statement stmt>
     | /* go body-less */
     )
     (.
-      var rangeToken = new SourceOrigin(startToken, t);
+      var rangeToken = new SourceOrigin(startToken, t, startToken);
       if (guardEllipsis != null || bodyEllipsis != null) {
         if (mod != null) {
           SemErr(ErrorId.p_no_modifies_on_refining_loops, mod[0].E.Origin, "'modifies' clauses are not allowed on refining loops");
@@ -2984,10 +2983,10 @@ AssertStmt<out Statement/*!*/ s>
     ";"
   )
   (. if (dotdotdot != null) {
-       s = new AssertStmt(new SourceOrigin(startToken, t), new LiteralExpr(x, true), null, attrs);
+       s = new AssertStmt(new SourceOrigin(startToken, t, startToken), new LiteralExpr(x, true), null, attrs);
        s = new SkeletonStatement(s, dotdotdot, null);
      } else {
-       s = new AssertStmt(new SourceOrigin(startToken, t), e, lbl == null ? null : new AssertLabel(lbl, lbl.val), attrs);
+       s = new AssertStmt(new SourceOrigin(startToken, t, startToken), e, lbl == null ? null : new AssertLabel(lbl, lbl.val), attrs);
        if (proof != null) {
          s = new BlockByProofStmt(s.Origin, proof, s);
        }
@@ -3012,7 +3011,7 @@ ExpectStmt<out Statement/*!*/ s>
   [ "," Expression<out m, false, true> ]
   ";"
   (. if (dotdotdot != null) {
-       s = new ExpectStmt(new SourceOrigin(startToken, t), new LiteralExpr(x, true), m, attrs);
+       s = new ExpectStmt(new SourceOrigin(startToken, t, startToken), new LiteralExpr(x, true), m, attrs);
        s = new SkeletonStatement(s, dotdotdot, null);
      } else {
        s = new ExpectStmt(new SourceOrigin(startToken, t, startToken), e, m, attrs);
@@ -3036,10 +3035,10 @@ AssumeStmt<out Statement/*!*/ s>
   )
   ";"
   (. if (dotdotdot != null) {
-       s = new AssumeStmt(new SourceOrigin(startToken, t), new LiteralExpr(x, true), attrs);
+       s = new AssumeStmt(new SourceOrigin(startToken, t, startToken), new LiteralExpr(x, true), attrs);
        s = new SkeletonStatement(s, dotdotdot, null);
      } else {
-       s = new AssumeStmt(new SourceOrigin(startToken, t), e, attrs);
+       s = new AssumeStmt(new SourceOrigin(startToken, t, startToken), e, attrs);
      }
   .)
   .
@@ -3404,7 +3403,6 @@ LogicalExpression<out Expression e0, bool allowLemma, bool allowLambda, bool all
          // be a boolean, we conjoin "true" of "false" to its left.
          if (firstOp.val == "&&") e0 = new BinaryExpr(x, BinaryExpr.Opcode.And, new LiteralExpr(new AutoGeneratedOrigin(x), true), e0);
          else e0 = new BinaryExpr(new SourceOrigin(firstOp, t, x), BinaryExpr.Opcode.Or, new LiteralExpr(new AutoGeneratedOrigin(x), false), e0);
-         e0.FormatTokens = new[] { firstOp };
        } else if(prefixOp != null) {
          e0.SetOrigin(new SourceOrigin(prefixOp, e0.EndToken, e0.Center));
        }
@@ -4293,7 +4291,7 @@ NameSegmentForTypeName<out Expression e, bool inExpressionContext>
 = (. Token id;  List<Type> typeArgs; .)
   Ident<out id>
   OptGenericInstantiation<out typeArgs, inExpressionContext>
-  (. e = new NameSegment(new SourceOrigin(id, t), id.val, typeArgs);
+  (. e = new NameSegment(new SourceOrigin(id, t, id), id.val, typeArgs);
   .)
   .
 
@@ -4338,14 +4336,14 @@ Suffix<ref Expression e>
      Expression e0 = null;  Expression e1 = null;  Expression ee;  bool anyDots = false;
      List<Expression> multipleLengths = null; bool takeRest = false; // takeRest is relevant only if multipleLengths is non-null
      List<Expression> multipleIndices = null;
-     List<Tuple<IOrigin, string, Expression>> updates;
+     List<Tuple<Token, string, Expression>> updates;
      var startToken = e.StartToken;
      Expression v;
   .)
   ( "."
-    ( "("                                             (. x = t; updates = new List<Tuple<IOrigin, string, Expression>>(); .)
-        MemberBindingUpdate<out id, out v>            (. updates.Add(Tuple.Create((IOrigin)id, id.val, v)); .)
-        { "," MemberBindingUpdate<out id, out v>      (. updates.Add(Tuple.Create((IOrigin)id, id.val, v)); .)
+    ( "("                                             (. x = t; updates = new List<Tuple<Token, string, Expression>>(); .)
+        MemberBindingUpdate<out id, out v>            (. updates.Add(Tuple.Create(id, id.val, v)); .)
+        { "," MemberBindingUpdate<out id, out v>      (. updates.Add(Tuple.Create(id, id.val, v)); .)
         }
       ")"
       (. e = new DatatypeUpdateExpr(new SourceOrigin(startToken, t, x), e, updates); .)

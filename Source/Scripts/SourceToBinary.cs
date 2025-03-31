@@ -216,7 +216,11 @@ public class Serializer(IEncoder encoder, IReadOnlyList<INamedTypeSymbol> parsed
 
       var fieldName = f.Name;
       if (fieldName.StartsWith("<") && fieldName.EndsWith("k__BackingField")) {
+        // Support auto properties
         fieldName = fieldName.Substring(1, fieldName.IndexOf(">", StringComparison.Ordinal) - 1);
+      } else if (fieldName.StartsWith("<") && fieldName.EndsWith(">P")) {
+        // Support fields from a primary constructor
+        fieldName = fieldName.Substring(1, fieldName.Length - 3);
       }
 
       return fieldName.ToLower();

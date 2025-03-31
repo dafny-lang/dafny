@@ -9,8 +9,8 @@ public class CoDatatypeDecl : DatatypeDecl {
   [FilledInDuringResolution] public CoDatatypeDecl SscRepr;
 
   public CoDatatypeDecl(IOrigin origin, Name nameNode, ModuleDefinition enclosingModule, List<TypeParameter> typeArgs,
-    [Captured] List<DatatypeCtor> ctors, List<Type> parentTraits, List<MemberDecl> members, Attributes attributes, bool isRefining)
-    : base(origin, nameNode, enclosingModule, typeArgs, ctors, parentTraits, members, attributes, isRefining) {
+    [Captured] List<DatatypeCtor> ctors, List<Type> traits, List<MemberDecl> members, Attributes attributes, bool isRefining)
+    : base(origin, nameNode, enclosingModule, typeArgs, ctors, traits, members, attributes, isRefining) {
     Contract.Requires(origin != null);
     Contract.Requires(nameNode != null);
     Contract.Requires(enclosingModule != null);

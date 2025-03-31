@@ -6,14 +6,12 @@ git-issue-2134.dfy(22,12): Error: Cyclic dependency among declarations: P -> B -
 git-issue-2134.dfy(20,10): Error: base type of newtype 'B' is not fully determined; add an explicit type for bound variable 'b'
 git-issue-2134.dfy(27,8): Error: Cyclic dependency among declarations: X -> B -> X
 git-issue-2134.dfy(26,10): Error: base type of newtype 'B' is not fully determined; add an explicit type for bound variable 'b'
-git-issue-2134.dfy(26,20): Error: arguments must have comparable types (got ?1 and ?0)
 git-issue-2134.dfy(32,11): Error: Cyclic dependency among declarations: X -> B -> X
 git-issue-2134.dfy(31,10): Error: Cyclic dependency among declarations: B -> B -> X
 git-issue-2134.dfy(41,12): Error: Cyclic dependency among declarations: P -> A -> B -> P
 git-issue-2134.dfy(48,12): Error: Cyclic dependency among declarations: P -> A -> Q -> B -> P
 git-issue-2134.dfy(55,12): Error: Cyclic dependency among declarations: P -> B -> P
 git-issue-2134.dfy(60,8): Error: Cyclic dependency among declarations: X -> B -> X
-git-issue-2134.dfy(59,17): Error: arguments must have comparable types (got ?1 and ?0)
 git-issue-2134.dfy(65,11): Error: Cyclic dependency among declarations: X -> B -> X
 git-issue-2134.dfy(64,7): Error: Cyclic dependency among declarations: B -> B -> X
-18 resolution/type errors detected in git-issue-2134.dfy
+16 resolution/type errors detected in git-issue-2134.dfy

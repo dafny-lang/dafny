@@ -3,7 +3,7 @@ using System.Collections.Generic;
 namespace Microsoft.Dafny;
 
 public class TypeDeclSynonymInfo {
-  public readonly InternalTypeSynonymDecl SelfSynonymDecl;
+  public InternalTypeSynonymDecl SelfSynonymDecl;
 
   public TypeDeclSynonymInfo(TopLevelDecl d) {
     var thisType = UserDefinedType.FromTopLevelDecl(d.Origin, d);

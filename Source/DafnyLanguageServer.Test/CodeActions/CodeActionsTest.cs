@@ -254,7 +254,7 @@ method f(b: bool) returns (i: int)
     i := 0;
   (>Assert postcondition at return location where it fails->  assert i > 10;
   <)} else {
-    i := 10;
+    i := 11;
   }
 }");
     }

@@ -3,7 +3,7 @@
 
 class Foo {}
 
-trait InputStream {
+trait InputStream extends object {
   var x: int
   ghost predicate Valid() reads this
   method read(b: Foo)

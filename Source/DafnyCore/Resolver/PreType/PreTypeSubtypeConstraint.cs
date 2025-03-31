@@ -9,6 +9,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Diagnostics.Contracts;
+using JetBrains.Annotations;
 
 namespace Microsoft.Dafny {
   class SubtypeConstraint : OptionalErrorPreTypeConstraint {
@@ -78,7 +79,7 @@ namespace Microsoft.Dafny {
         // else do nothing for now
         if (ptSuper.Decl is not TraitDecl) {
           var arguments = CreateProxiesForTypesAccordingToVariance(tok, ptSuper.Decl.TypeArgs, ptSuper.Arguments, false, ReportErrors, constraints);
-          var pt = new DPreType(ptSuper.Decl, arguments);
+          var pt = new DPreType(ptSuper.Decl, arguments, KeepIfTypeSynonym(ptSuper.PrintablePreType));
           constraints.AddEqualityConstraint(pt, sub, tok, ErrorFormatString, null, ReportErrors);
           return true;
         }
@@ -94,7 +95,7 @@ namespace Microsoft.Dafny {
           // there are parent traits
         } else {
           var arguments = CreateProxiesForTypesAccordingToVariance(tok, ptSub.Decl.TypeArgs, ptSub.Arguments, true, ReportErrors, constraints);
-          var pt = new DPreType(ptSub.Decl, arguments);
+          var pt = new DPreType(ptSub.Decl, arguments, KeepIfTypeSynonym(ptSub.PrintablePreType));
           constraints.AddEqualityConstraint(super, pt, tok, ErrorFormatString, null, ReportErrors);
           return true;
         }
@@ -102,6 +103,15 @@ namespace Microsoft.Dafny {
         // do nothing for now
       }
       return false;
+    }
+
+    [CanBeNull]
+    DPreType KeepIfTypeSynonym([CanBeNull] DPreType dPreType) {
+      if (dPreType is { Decl: TypeSynonymDecl and not SubsetTypeDecl }) {
+        return dPreType;
+      }
+
+      return null;
     }
 
     /// <summary>

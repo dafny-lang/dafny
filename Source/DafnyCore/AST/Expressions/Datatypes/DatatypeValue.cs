@@ -5,9 +5,9 @@ using System.Linq;
 namespace Microsoft.Dafny;
 
 public class DatatypeValue : Expression, IHasReferences, ICloneable<DatatypeValue>, ICanFormat {
-  public readonly string DatatypeName;
-  public readonly string MemberName;
-  public readonly ActualBindings Bindings;
+  public string DatatypeName;
+  public string MemberName;
+  public ActualBindings Bindings;
   public List<Expression> Arguments => Bindings.Arguments;
 
   public override IEnumerable<INode> Children => new Node[] { Bindings };
@@ -65,7 +65,7 @@ public class DatatypeValue : Expression, IHasReferences, ICloneable<DatatypeValu
     Arguments ?? Enumerable.Empty<Expression>();
 
   public IEnumerable<Reference> GetReferences() {
-    return Enumerable.Repeat(new Reference(Origin, Ctor), 1);
+    return Enumerable.Repeat(new Reference(ReportingRange, Ctor), 1);
   }
 
   public bool SetIndent(int indentBefore, TokenNewIndentCollector formatter) {

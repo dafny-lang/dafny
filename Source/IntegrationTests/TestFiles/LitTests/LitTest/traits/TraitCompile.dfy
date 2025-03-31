@@ -1,4 +1,4 @@
-// RUN: %testDafnyForEachCompiler --refresh-exit-code=0 "%s" -- --relax-definite-assignment
+// RUN: %testDafnyForEachCompiler --refresh-exit-code=0 "%s" -- --relax-definite-assignment --type-system-refresh=true
 
 trait TT
 {
@@ -107,7 +107,7 @@ module OtherModule {
 
 
 module TestFields {
-  trait J {
+  trait J extends object {
     var f: int
   }
 
@@ -130,7 +130,7 @@ module TestFields {
 module GenericBasics {
   // To compile these correctly requires that certain type-parameter renamings be done.
 
-  trait Tr<A, B(0)> {
+  trait Tr<A, B(0)> extends object {
     var xyz: B
     const abc: B
     static const def: B
@@ -395,7 +395,7 @@ module TraitsExtendingTraits {
    In addition, for further testing, M, C, and G list "object" in the "extends" clause.
    */
 
-  trait A<Y0, Y1> {
+  trait A<Y0, Y1> extends object {
     var y0: Y0
     const y1: Y1
     method SetY(y: Y0)
@@ -411,7 +411,7 @@ module TraitsExtendingTraits {
     function GetY'(): Y0
       reads this
   }
-  trait B {
+  trait B extends object {
     var b: bool
     method Quantity() returns (x: int)
     method Twice() returns (x: int)
@@ -517,7 +517,7 @@ module TypeDescriptorTests {
   }
 
   // Go requires coercions to supertypes. Coersions involving functions require more work.
-  trait XT<U, W> {
+  trait XT<U, W> extends object {
     const c: U
     var u: U
     function F(u: U): U { u }
@@ -584,7 +584,7 @@ module TypeDescriptorTests {
     print f(7), "\n";
   }
 
-  trait TraitDependency<X> {
+  trait TraitDependency<X> extends object {
     const a: X
     const b: (X, X) := (a, c)
     const c: X
@@ -612,7 +612,7 @@ module DiamondInitialization {
          M   +
   */
 
-  trait A<XA> {
+  trait A<XA> extends object {
     var x: XA
   }
   trait B<XB> extends A<XB> { }
@@ -692,7 +692,7 @@ module NonCapturingFunctionCoercions {
 }
 
 module TailRecursion {
-  trait Trait<G> {
+  trait Trait<G> extends object {
     var h: G
     var K: G
     function Id(g: G): G { g }
@@ -747,7 +747,7 @@ module ObjectEquality {
     TestSequences();
   }
 
-  trait A { }
+  trait A extends object { }
 
   trait B extends A { }
 
@@ -802,7 +802,7 @@ module RedeclaringMembers {
   // in an extending trait (for target languages that require it, such as Go).
   // The code below would lead to a target-compiler
   // error because B would include Valid() even though it was ghost.
-  trait A {
+  trait A extends object {
     ghost var Foo: int
     predicate Valid()
   }

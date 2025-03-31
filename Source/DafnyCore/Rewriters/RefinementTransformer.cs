@@ -137,8 +137,8 @@ namespace Microsoft.Dafny {
 
     private ModuleDefinition moduleUnderConstruction;  // non-null for the duration of Construct calls
     private Queue<Action> postTasks = new Queue<Action>();  // empty whenever moduleUnderConstruction==null, these tasks are for the post-resolve phase of module moduleUnderConstruction
-    public Queue<Tuple<Method, Method>> translationMethodChecks = new Queue<Tuple<Method, Method>>();  // contains all the methods that need to be checked for structural refinement.
-    private Method currentMethod;
+    public Queue<Tuple<MethodOrConstructor, MethodOrConstructor>> translationMethodChecks = new();  // contains all the methods that need to be checked for structural refinement.
+    private MethodOrConstructor currentMethod;
     private ModuleSignature RefinedSig;  // the intention is to use this field only after a successful PreResolve
     private ModuleSignature refinedSigOpened;
 
@@ -486,7 +486,7 @@ namespace Microsoft.Dafny {
       }
     }
 
-    Method CloneMethod(Method previousMethod, List<AttributedExpression> moreEnsures, Specification<Expression> decreases, BlockStmt newBody, bool checkPreviousPostconditions, Attributes moreAttributes) {
+    MethodOrConstructor CloneMethod(MethodOrConstructor previousMethod, List<AttributedExpression> moreEnsures, Specification<Expression> decreases, BlockLikeStmt newBody, bool checkPreviousPostconditions, Attributes moreAttributes) {
       Contract.Requires(previousMethod != null);
       Contract.Requires(!(previousMethod is Constructor) || newBody == null || newBody is DividedBlockStmt);
       Contract.Requires(decreases != null);
@@ -511,7 +511,7 @@ namespace Microsoft.Dafny {
         return new Constructor(origin, newName, previousMethod.IsGhost, tps, ins,
           req, reads, mod, ens, decreases, dividedBody, refinementCloner.MergeAttributes(previousMethod.Attributes, moreAttributes), null);
       }
-      var body = newBody ?? refinementCloner.CloneBlockStmt(previousMethod.Body);
+      BlockStmt body = (BlockStmt)newBody ?? refinementCloner.CloneBlockStmt((BlockStmt)previousMethod.Body);
       if (previousMethod is LeastLemma) {
         return new LeastLemma(origin, newName, previousMethod.HasStaticKeyword, ((LeastLemma)previousMethod).TypeOfK, tps, ins,
           previousMethod.Outs.ConvertAll(o => refinementCloner.CloneFormal(o, false)),
@@ -529,8 +529,13 @@ namespace Microsoft.Dafny {
         return new TwoStateLemma(origin, newName, previousMethod.HasStaticKeyword, tps, ins,
           previousMethod.Outs.ConvertAll(o => refinementCloner.CloneFormal(o, false)),
           req, reads, mod, ens, decreases, body, refinementCloner.MergeAttributes(previousMethod.Attributes, moreAttributes), null);
+      } else if (previousMethod is Method previousMethodMethod) {
+        return new Method(origin, newName, refinementCloner.MergeAttributes(previousMethod.Attributes, moreAttributes),
+          previousMethod.HasStaticKeyword, previousMethod.IsGhost, tps, ins, req, ens, reads, decreases,
+          previousMethod.Outs.ConvertAll(o => refinementCloner.CloneFormal(o, false)),
+          mod, body, null, previousMethodMethod.IsByMethod);
       } else {
-        return new Method(origin, newName, refinementCloner.MergeAttributes(previousMethod.Attributes, moreAttributes), previousMethod.HasStaticKeyword, previousMethod.IsGhost, tps, ins, req, ens, reads, decreases, previousMethod.Outs.ConvertAll(o => refinementCloner.CloneFormal(o, false)), mod, body, null, previousMethod.IsByMethod);
+        throw new Exception($"Cannot clone method type: {previousMethod.GetType().Name}");
       }
     }
 
@@ -716,11 +721,10 @@ namespace Microsoft.Dafny {
             }
 
           } else {
-            var m = (Method)nwMember;
-            if (!(member is Method)) {
+            var m = (MethodOrConstructor)nwMember;
+            if (!(member is MethodOrConstructor prevMethod)) {
               Error(ErrorId.ref_method_refines_method, nwMember, "a method declaration ({0}) can only refine a method", nwMember.Name);
             } else {
-              var prevMethod = (Method)member;
               if (m.Req.Count != 0) {
                 Error(ErrorId.ref_no_new_method_precondition, m.Req[0].E.Origin, "a refining method is not allowed to add preconditions");
               }
@@ -769,11 +773,11 @@ namespace Microsoft.Dafny {
                 if (prevMethod.Body == null) {
                   // cool
                 } else {
-                  replacementBody = MergeBlockStmt(replacementBody, prevMethod.Body);
+                  replacementBody = MergeBlockLikeStmt(replacementBody, prevMethod.Body);
                 }
               }
               var newM = CloneMethod(prevMethod, m.Ens, decreases, replacementBody, prevMethod.Body == null, m.Attributes);
-              newM.RefinementBase = member;
+              newM.RefinementBase = prevMethod;
               nw.Members[index] = newM;
             }
           }
@@ -900,33 +904,51 @@ namespace Microsoft.Dafny {
     /// <summary>
     /// This method merges the statement "oldStmt" into the template "skeleton".
     /// </summary>
-    BlockStmt MergeBlockStmt(BlockStmt skeleton, BlockStmt oldStmt) {
-      Contract.Requires(skeleton != null);
-      Contract.Requires(oldStmt != null);
-      Contract.Requires(skeleton is DividedBlockStmt == oldStmt is DividedBlockStmt);
-
-      if (skeleton is DividedBlockStmt) {
-        var sbsSkeleton = (DividedBlockStmt)skeleton;
-        var sbsOldStmt = (DividedBlockStmt)oldStmt;
-        var bodyInit = MergeStmtList(sbsSkeleton.BodyInit, sbsOldStmt.BodyInit, out var hoverText);
-        if (hoverText.Length != 0) {
-          Reporter.Info(MessageSource.RefinementTransformer, sbsSkeleton.SeparatorTok ?? sbsSkeleton.Origin, hoverText);
-        }
-        var bodyProper = MergeStmtList(sbsSkeleton.BodyProper, sbsOldStmt.BodyProper, out hoverText);
-        if (hoverText.Length != 0) {
-          Reporter.Info(MessageSource.RefinementTransformer, sbsSkeleton.Origin, hoverText);
-        }
-        return new DividedBlockStmt(sbsSkeleton.Origin, bodyInit, sbsSkeleton.SeparatorTok, bodyProper);
+    BlockLikeStmt MergeBlockLikeStmt(BlockLikeStmt skeleton, BlockLikeStmt oldStmt) {
+      if (skeleton is BlockStmt blockStmt) {
+        return MergeBlockStmt(blockStmt, (BlockStmt)oldStmt);
       } else {
-        var body = MergeStmtList(skeleton.Body, oldStmt.Body, out var hoverText);
-        if (hoverText.Length != 0) {
-          Reporter.Info(MessageSource.RefinementTransformer, skeleton.Origin, hoverText);
-        }
-        return new BlockStmt(skeleton.Origin, body);
+        return MergeDividedBlockStmt((DividedBlockStmt)skeleton, (DividedBlockStmt)oldStmt);
       }
     }
 
-    List<Statement> MergeStmtList(List<Statement> skeleton, List<Statement> oldStmt, out string hoverText) {
+    /// <summary>
+    /// This method merges the statement "oldStmt" into the template "skeleton".
+    /// </summary>
+    DividedBlockStmt MergeDividedBlockStmt(DividedBlockStmt skeleton, DividedBlockStmt oldStmt) {
+      Contract.Requires(skeleton != null);
+      Contract.Requires(oldStmt != null);
+
+      var sbsSkeleton = skeleton;
+      var sbsOldStmt = oldStmt;
+      var bodyInit = MergeStmtList(sbsSkeleton.BodyInit, sbsOldStmt.BodyInit, out var hoverText);
+      if (hoverText.Length != 0) {
+        Reporter.Info(MessageSource.RefinementTransformer, sbsSkeleton.SeparatorTok ?? sbsSkeleton.Origin, hoverText);
+      }
+
+      var bodyProper = MergeStmtList(sbsSkeleton.BodyProper, sbsOldStmt.BodyProper, out hoverText);
+      if (hoverText.Length != 0) {
+        Reporter.Info(MessageSource.RefinementTransformer, sbsSkeleton.Origin, hoverText);
+      }
+
+      return new DividedBlockStmt(sbsSkeleton.Origin, bodyInit, sbsSkeleton.SeparatorTok, bodyProper);
+    }
+
+    /// <summary>
+    /// This method merges the statement "oldStmt" into the template "skeleton".
+    /// </summary>
+    BlockStmt MergeBlockStmt(BlockStmt skeleton, BlockStmt oldStmt) {
+      Contract.Requires(skeleton != null);
+      Contract.Requires(oldStmt != null);
+
+      var body = MergeStmtList(skeleton.Body, oldStmt.Body, out var hoverText);
+      if (hoverText.Length != 0) {
+        Reporter.Info(MessageSource.RefinementTransformer, skeleton.Origin, hoverText);
+      }
+      return new BlockStmt(skeleton.Origin, body);
+    }
+
+    List<Statement> MergeStmtList(IReadOnlyList<Statement> skeleton, IReadOnlyList<Statement> oldStmt, out string hoverText) {
       Contract.Requires(skeleton != null);
       Contract.Requires(oldStmt != null);
       Contract.Ensures(Contract.ValueAtReturn(out hoverText) != null);
@@ -1070,7 +1092,7 @@ namespace Microsoft.Dafny {
                 var resultingThen = MergeBlockStmt(skel.Thn, oldIf.Thn);
                 var resultingElse = MergeElse(skel.Els, oldIf.Els);
                 var e = refinementCloner.CloneExpr(oldIf.Guard);
-                var r = new IfStmt(skel.Origin, oldIf.IsBindingGuard, e, resultingThen, resultingElse);
+                var r = new IfStmt(skel.Origin, oldIf.IsBindingGuard, e, (BlockStmt)resultingThen, resultingElse);
                 body.Add(r);
                 Reporter.Info(MessageSource.RefinementTransformer, c.ConditionEllipsis, Printer.GuardToString(Reporter.Options, oldIf.IsBindingGuard, e));
                 i++; j++;
@@ -1225,7 +1247,7 @@ namespace Microsoft.Dafny {
                 doMerge = true;
                 stmtGenerated.Add(nw);
                 var addedAssert = refinementCloner.CloneExpr(s.Expr);
-                var tok = new SourceOrigin(addedAssert.Origin.StartToken, addedAssert.Origin.EndToken);
+                var tok = new SourceOrigin(addedAssert.StartToken, addedAssert.EndToken);
                 stmtGenerated.Add(new AssertStmt(tok, addedAssert, null, null));
               }
             }
@@ -1569,11 +1591,11 @@ namespace Microsoft.Dafny {
       moduleUnderConstruction = m;
     }
 
-    public override BlockStmt CloneMethodBody(Method m) {
+    public override BlockLikeStmt CloneMethodBody(MethodOrConstructor m) {
       if (m.Body is DividedBlockStmt) {
         return CloneDividedBlockStmt((DividedBlockStmt)m.Body);
       } else {
-        return CloneBlockStmt(m.Body);
+        return CloneBlockStmt((BlockStmt)m.Body);
       }
     }
 

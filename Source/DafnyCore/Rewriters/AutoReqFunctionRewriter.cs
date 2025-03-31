@@ -50,21 +50,20 @@ public class AutoReqFunctionRewriter : IRewriter {
             addAutoReqToolTipInfoToFunction("post", fn, auto_reqs);
           }
         }
-      } else if (scComponent is Method) {
-        Method method = (Method)scComponent;
+      } else if (scComponent is MethodOrConstructor method) {
         if (Attributes.ContainsBoolAtAnyLevel(method, "autoReq")) {
           parentFunction = null;
           containsMatch = false; // Assume no match statements are involved
 
-          List<AttributedExpression> auto_reqs = [];
+          List<AttributedExpression> autoReqs = [];
           foreach (AttributedExpression req in method.Req) {
-            List<Expression> local_auto_reqs = GenerateAutoReqs(req.E);
-            foreach (Expression local_auto_req in local_auto_reqs) {
-              auto_reqs.Add(CreateAutoAttributedExpression(local_auto_req));
+            List<Expression> localAutoReqs = GenerateAutoReqs(req.E);
+            foreach (Expression localAutoReq in localAutoReqs) {
+              autoReqs.Add(CreateAutoAttributedExpression(localAutoReq));
             }
           }
-          method.Req.InsertRange(0, auto_reqs); // Need to come before the actual requires
-          addAutoReqToolTipInfoToMethod("pre", method, auto_reqs);
+          method.Req.InsertRange(0, autoReqs); // Need to come before the actual requires
+          AddAutoReqToolTipInfoToMethod("pre", method, autoReqs);
         }
       }
     }
@@ -95,7 +94,7 @@ public class AutoReqFunctionRewriter : IRewriter {
     }
   }
 
-  public void addAutoReqToolTipInfoToMethod(string label, Method method, List<AttributedExpression> reqs) {
+  public void AddAutoReqToolTipInfoToMethod(string label, MethodOrConstructor method, List<AttributedExpression> reqs) {
     string tip = "";
 
     foreach (var req in reqs) {

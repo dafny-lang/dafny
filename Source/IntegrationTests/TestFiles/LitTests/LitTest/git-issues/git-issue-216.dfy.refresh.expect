@@ -1,0 +1,2 @@
+git-issue-216.dfy(23,31): Error: RHS (of type Comparator) not assignable to LHS (of type Comparator)
+1 resolution/type errors detected in git-issue-216.dfy

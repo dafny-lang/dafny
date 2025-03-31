@@ -9,15 +9,19 @@ namespace Microsoft.Dafny;
 /// Parsed from ":-"
 /// </summary>
 public class AssignOrReturnStmt : ConcreteAssignStatement, ICloneable<AssignOrReturnStmt>, ICanResolve {
-  public readonly ExprRhs Rhs; // this is the unresolved RHS, and thus can also be a method call
-  public readonly List<AssignmentRhs> Rhss;
-  public readonly AttributedToken KeywordToken;
-  [FilledInDuringResolution] public readonly List<Statement> ResolvedStatements = [];
+  public ExprRhs Rhs; // this is the unresolved RHS, and thus can also be a method call
+  public List<AssignmentRhs> Rhss;
+  public AttributedToken KeywordToken;
+  [FilledInDuringResolution] public List<Statement> ResolvedStatements = [];
   public override IEnumerable<Statement> SubStatements => ResolvedStatements;
 
   public override IEnumerable<INode> Children => ResolvedStatements;
 
   public override IEnumerable<Statement> PreResolveSubStatements => [];
+
+  public override IEnumerable<IdentifierExpr> GetAssignedLocals() {
+    return ResolvedStatements.SelectMany(r => r.GetAssignedLocals());
+  }
 
   [ContractInvariantMethod]
   void ObjectInvariant() {
@@ -117,10 +121,10 @@ public class AssignOrReturnStmt : ConcreteAssignStatement, ICloneable<AssignOrRe
 
     bool expectExtract = Lhss.Count != 0; // default value if we cannot determine and inspect the type
     Type firstType = null;
-    Method call = null;
+    MethodOrConstructor call = null;
     if ((Rhss == null || Rhss.Count == 0) && Rhs.Expr is ApplySuffix asx) {
       resolver.ResolveApplySuffix(asx, resolutionContext, true);
-      call = (asx.Lhs.Resolved as MemberSelectExpr)?.Member as Method;
+      call = (asx.Lhs.Resolved as MemberSelectExpr)?.Member as MethodOrConstructor;
       if (call != null) {
         // We're looking at a method call
         var typeMap = (asx.Lhs.Resolved as MemberSelectExpr)?.TypeArgumentSubstitutionsWithParents();
@@ -138,7 +142,7 @@ public class AssignOrReturnStmt : ConcreteAssignStatement, ICloneable<AssignOrRe
       firstType = Rhs.Expr.Type;
     }
 
-    var method = (Method)resolutionContext.CodeContext;
+    var method = (MethodOrConstructor)resolutionContext.CodeContext;
     if (method.Outs.Count == 0 && KeywordToken == null) {
       resolver.Reporter.Error(MessageSource.Resolver, Origin, "A method containing a :- statement must have an out-parameter ({0})", method.Name);
       return;
@@ -186,7 +190,7 @@ public class AssignOrReturnStmt : ConcreteAssignStatement, ICloneable<AssignOrRe
 
     Expression lhsExtract = null;
     if (expectExtract) {
-      if (resolutionContext.CodeContext is Method caller && caller.Outs.Count == 0 && KeywordToken == null) {
+      if (resolutionContext.CodeContext is MethodOrConstructor caller && caller.Outs.Count == 0 && KeywordToken == null) {
         resolver.Reporter.Error(MessageSource.Resolver, Rhs.Origin, "Expected {0} to have a Success/Failure output value", caller.Name);
         return;
       }
@@ -227,7 +231,7 @@ public class AssignOrReturnStmt : ConcreteAssignStatement, ICloneable<AssignOrRe
       }
     }
 
-    DesugarElephantStatement(expectExtract, lhsExtract, firstType, resolver, (Method)resolutionContext.CodeContext);
+    DesugarElephantStatement(expectExtract, lhsExtract, firstType, resolver, (MethodOrConstructor)resolutionContext.CodeContext);
     ResolvedStatements.ForEach(a => resolver.ResolveStatement(a, resolutionContext));
     resolver.EnsureSupportsErrorHandling(Origin, firstType, expectExtract, KeywordToken?.Token.val);
   }
@@ -253,10 +257,10 @@ public class AssignOrReturnStmt : ConcreteAssignStatement, ICloneable<AssignOrRe
   /// <param name="resolver"></param>
   /// <param name="enclosingMethod"></param>
   private void DesugarElephantStatement(bool expectExtract, Expression lhsExtract, Type firstType,
-    ModuleResolver resolver, Method enclosingMethod) {
+    ModuleResolver resolver, MethodOrConstructor enclosingMethod) {
 
     var temp = resolver.FreshTempVarName("valueOrError", enclosingMethod);
-    var lhss = new List<LocalVariable>() { new LocalVariable(Origin, temp, new InferredTypeProxy(), false) };
+    var lhss = new List<LocalVariable>() { new(Origin, temp, new InferredTypeProxy(), false) };
     // "var temp ;"
     ResolvedStatements.Add(new VarDeclStmt(Origin, lhss, null));
     var lhss2 = new List<Expression>() { new IdentifierExpr(Origin, temp) };
@@ -286,16 +290,16 @@ public class AssignOrReturnStmt : ConcreteAssignStatement, ICloneable<AssignOrRe
     ResolvedStatements.Add(up);
 
     if (KeywordToken != null) {
-      var keyword = KeywordToken.Token;
+      Token keyword = KeywordToken.Token;
       var notFailureExpr = new UnaryOpExpr(keyword, UnaryOpExpr.Opcode.Not, resolver.VarDotMethod(Origin, temp, "IsFailure"));
       Statement ss = null;
       if (keyword.val == "expect") {
         // "expect !temp.IsFailure(), temp"
-        ss = new ExpectStmt(new SourceOrigin(keyword.StartToken, EndToken), notFailureExpr, new IdentifierExpr(Origin, temp), KeywordToken.Attrs);
+        ss = new ExpectStmt(new SourceOrigin(keyword, EndToken), notFailureExpr, new IdentifierExpr(Origin, temp), KeywordToken.Attrs);
       } else if (keyword.val == "assume") {
-        ss = new AssumeStmt(new SourceOrigin(keyword.StartToken, EndToken), notFailureExpr, SystemModuleManager.AxiomAttribute(KeywordToken.Attrs));
+        ss = new AssumeStmt(new SourceOrigin(keyword, EndToken), notFailureExpr, SystemModuleManager.AxiomAttribute(KeywordToken.Attrs));
       } else if (keyword.val == "assert") {
-        ss = new AssertStmt(new SourceOrigin(keyword.StartToken, EndToken), notFailureExpr, null, KeywordToken.Attrs);
+        ss = new AssertStmt(new SourceOrigin(keyword, EndToken), notFailureExpr, null, KeywordToken.Attrs);
       } else {
         Contract.Assert(false, $"Invalid token in :- statement: {keyword.val}");
       }

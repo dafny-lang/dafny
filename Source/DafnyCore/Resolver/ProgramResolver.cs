@@ -23,10 +23,7 @@ public class ProgramResolver {
   }
 
   public Dictionary<string, MemberDecl> GetClassMembers(TopLevelDeclWithMembers key) {
-    if (classMembers.TryGetValue(key, out var result)) {
-      return result;
-    }
-    return null;
+    return classMembers.GetValueOrDefault(key);
   }
 
   public virtual Task Resolve(CancellationToken cancellationToken) {
@@ -104,8 +101,7 @@ public class ProgramResolver {
     }
 
     foreach (var diagnostic in moduleResolutionResult.ErrorReporter.AllMessages) {
-      Reporter.Message(diagnostic.Source, diagnostic.Level, diagnostic.ErrorId, diagnostic.Token,
-        diagnostic.Message);
+      Reporter.MessageCore(diagnostic);
     }
   }
 

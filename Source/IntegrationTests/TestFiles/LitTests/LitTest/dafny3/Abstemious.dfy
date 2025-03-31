@@ -1,4 +1,4 @@
-// RUN: %testDafnyForEachCompiler --refresh-exit-code=0 "%s" -- --relax-definite-assignment
+// RUN: %testDafnyForEachCompiler --refresh-exit-code=0 "%s" -- --relax-definite-assignment --type-system-refresh=false --general-newtypes=false
 
 // Examples from https://www.haskell.org/tutorial/functions.html
 

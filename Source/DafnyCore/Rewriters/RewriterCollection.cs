@@ -43,7 +43,9 @@ public static class RewriterCollection {
     }
 
     result.Add(new LocalLinter(reporter));
-    result.Add(new PrecedenceLinter(reporter, program.Compilation));
+    if (!reporter.Options.Get(CommonOptionBag.IgnoreIndentation)) {
+      result.Add(new PrecedenceLinter(reporter, program.Compilation));
+    }
 
     if (reporter.Options.Get(CommonOptionBag.DefaultFunctionOpacity) == CommonOptionBag.DefaultFunctionOpacityOptions.AutoRevealDependencies) {
       result.Add(new AutoRevealFunctionDependencies(reporter));

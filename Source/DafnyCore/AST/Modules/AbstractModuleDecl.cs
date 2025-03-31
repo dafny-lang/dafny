@@ -9,8 +9,8 @@ namespace Microsoft.Dafny;
 /// Used to be called ModuleFacadeDecl -- renamed to be like LiteralModuleDecl, AliasModuleDecl
 /// </summary>
 public class AbstractModuleDecl : ModuleDecl, ICanFormat {
-  public readonly ModuleQualifiedId QId;
-  public readonly List<IOrigin> Exports; // list of exports sets
+  public ModuleQualifiedId QId;
+  public List<IOrigin> Exports; // list of exports sets
   public ModuleDecl CompileRoot;
   public ModuleSignature OriginalSignature;
 

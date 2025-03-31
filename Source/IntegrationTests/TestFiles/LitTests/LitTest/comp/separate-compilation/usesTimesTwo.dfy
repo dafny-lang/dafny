@@ -66,7 +66,7 @@ module ConsumerModule {
   }
 
   method PickANat() returns (n: nat) {
-    n := PickSomething();
+    n := PickSomething<nat>();
   }
 
   method PickSomething<T(0)>() returns (t: T) {

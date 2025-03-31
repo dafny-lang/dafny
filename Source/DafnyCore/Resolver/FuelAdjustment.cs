@@ -10,7 +10,7 @@ public static class FuelAdjustment {
     CheckForFuelAdjustments(reporter, module.Origin, module.Attributes, module);
     foreach (var clbl in ModuleDefinition.AllItersAndCallables(module.TopLevelDecls)) {
       Statement body = null;
-      if (clbl is Method method) {
+      if (clbl is MethodOrConstructor method) {
         body = method.Body;
         CheckForFuelAdjustments(reporter, clbl.Origin, method.Attributes, module);
       } else if (clbl is IteratorDecl iteratorDecl) {
