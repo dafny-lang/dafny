@@ -135,7 +135,6 @@ module Std.Producers {
       requires Valid()
       reads this, Repr
       decreases Repr, 3
-      ensures RemainingMetric().Valid()
 
     ghost function Remaining(): ORDINAL
       requires Valid()
@@ -489,7 +488,6 @@ module Std.Producers {
       requires Valid()
       reads this, Repr
       decreases Repr, 3
-      ensures RemainingMetric().Valid()
     {
       TMNat(0)
     }
@@ -557,7 +555,6 @@ module Std.Producers {
       requires Valid()
       reads this, Repr
       decreases Repr, 3
-      ensures RemainingMetric().Valid()
     {
       TMNat(|elements| - index)
     }
@@ -653,13 +650,11 @@ module Std.Producers {
       requires Valid()
       reads this, Repr
       decreases Repr, 3
-      ensures RemainingMetric().Valid()
     {
       TMNat(max - produced)
     }
 
-    @IsolateAssertions
-    @ResourceLimit("0")
+    @ResourceLimit("1e7")
     method Invoke(t: ()) returns (value: Option<T>)
       requires Requires(t)
       reads this, Repr
@@ -736,12 +731,11 @@ module Std.Producers {
       requires Valid()
       reads this, Repr
       decreases Repr, 3
-      ensures RemainingMetric().Valid()
     {
       TMOrdinal(source.Remaining() + 1)
     }
 
-    @ResourceLimit("0")
+    @ResourceLimit("1e7")
     method Invoke(t: ()) returns (result: Option<T>)
       requires Requires(t)
       reads Reads(t)
@@ -850,7 +844,6 @@ module Std.Producers {
       && ValidComponent(first)
       && ValidComponent(second)
       && first.Repr !! second.Repr
-      && base.Valid()
       && base.Ordinal() > second.RemainingMetric().Ordinal()
       && ValidHistory(history)
       && (Seq.All(first.Outputs(), IsSome) || Seq.All(second.Outputs(), IsSome) ==> Seq.All(Outputs(), IsSome))
@@ -867,13 +860,11 @@ module Std.Producers {
       requires Valid()
       reads this, Repr
       decreases Repr, 3
-      ensures RemainingMetric().Valid()
     {
       TMTuple(base, first.RemainingMetric(), second.RemainingMetric())
     }
 
-    @IsolateAssertions
-    @ResourceLimit("0")
+    @ResourceLimit("1e7")
     method Invoke(t: ()) returns (result: Option<T>)
       requires Requires(t)
       reads Reads(t)
@@ -975,7 +966,6 @@ module Std.Producers {
       && mappingTotalProof.Action() == mapping
       && original.Repr !! mapping.Repr !! mappingTotalProof.Repr
       && ValidHistory(history)
-      && base.Valid()
       && base.DecreasesTo(original.RemainingMetric())
       && (!original.Done() <==> !Done())
     }
@@ -991,12 +981,11 @@ module Std.Producers {
       requires Valid()
       reads this, Repr
       decreases Repr, 3
-      ensures RemainingMetric().Valid()
     {
       TMTuple(base, TMNat(0), original.RemainingMetric())
     }
 
-    @ResourceLimit("0")
+    @ResourceLimit("1e7")
     method Invoke(t: ()) returns (result: Option<O>)
       requires Requires(t)
       reads Reads(t)
@@ -1047,7 +1036,6 @@ module Std.Producers {
   trait ProducerOfNewProducers<T> extends Producer<Producer<T>> {
 
     ghost function MaxProduced(): TerminationMetric
-      ensures MaxProduced().Valid()
 
     method Invoke(i: ()) returns (r: Option<Producer<T>>)
       requires Requires(())
@@ -1093,7 +1081,6 @@ module Std.Producers {
       requires Valid()
       reads this, Repr
       decreases Repr, 1
-      ensures BaseMetric().Valid()
     {
       TMSucc(original.MaxProduced())
     }
@@ -1102,7 +1089,6 @@ module Std.Producers {
       requires Valid()
       reads this, Repr
       decreases Repr, 2
-      ensures InnerRemainingMetric().Valid()
       ensures BaseMetric().DecreasesTo(InnerRemainingMetric())
     {
       reveal TerminationMetric.Ordinal();
@@ -1152,7 +1138,6 @@ module Std.Producers {
       requires Valid()
       reads this, Repr
       decreases Repr, 3
-      ensures RemainingMetric().Valid()
     {
       TMTuple(BaseMetric(), original.RemainingMetric(), InnerRemainingMetric())
     }
@@ -1194,8 +1179,7 @@ module Std.Producers {
       true
     }
 
-    @ResourceLimit("0")
-    @IsolateAssertions
+    @ResourceLimit("1e8")
     method Invoke(t: ()) returns (result: Option<T>)
       requires Requires(t)
       reads this, Repr
@@ -1207,8 +1191,9 @@ module Std.Producers {
               else
                 old(Remaining()) >= Remaining()
     {
+      assert Valid();
+      
       result := None;
-
       while result.None?
         invariant fresh(Repr - old(Repr))
         invariant Valid()

@@ -10,83 +10,58 @@ module Std.Termination {
   // Heterogeneous encoding of the essential features of individual
   // decreases clause list elements.
   datatype TerminationMetric =
-    | Bool(boolValue: bool)
-    | Nat(natValue: nat)
-    | Char(charValue: nat)
-    | Ord(ordinalValue: ORDINAL)
+    | TMBool(boolValue: bool)
+    | TMNat(natValue: nat)
+    | TMChar(charValue: nat)
+    | TMOrdinal(ordinalValue: ORDINAL)
       // No ordering on objects themselves, but commonly used in Repr set<object> values
-    | Object(objectValue: object)
+    | TMObject(objectValue: object)
       // Also used to encode datatype structural inclusion
-    | Seq(seqValue: seq<TerminationMetric>)
-    | Set(setValue: set<TerminationMetric>)
+    | TMSeq(seqValue: seq<TerminationMetric>)
+    | TMSet(setValue: set<TerminationMetric>)
 
       // Other kinds of Dafny values are valid here too,
       // and may be added in the future.
 
       // Lexicographic tuple.
-    | Tuple(base: TerminationMetric, first: TerminationMetric, second: TerminationMetric)
+    | TMTuple(base: TerminationMetric, first: TerminationMetric, second: TerminationMetric)
 
       // The "top" value used in the definition of Dafny decreases clauses.
       // Only guaranteed to be above any value expressible in Dafny syntax.
-    | Top
+    | TMTop
 
       // Never used by direct Dafny syntax, but very useful for simple dependencies.
-    | Succ(original: TerminationMetric)
+    | TMSucc(original: TerminationMetric)
   {
-    ghost predicate Valid()
-      decreases this, 0
-    {
-      match this {
-        case Succ(original) =>
-          && original.Valid()
-        case Set(setValue) =>
-          && (forall tm <- setValue :: tm.Valid())
-        case Seq(children) =>
-          && (forall tm <- children :: tm.Valid())
-        case Tuple(_, left, right) =>
-          && left.Valid()
-          && right.Valid()
-          && base.Valid()
-          && base.Ordinal() > right.Ordinal()
-        case _ => true
-      }
-    }
-
     ghost opaque function Ordinal(): ORDINAL
-      requires Valid()
       decreases this
     {
       match this {
-        case Bool(boolValue) => if boolValue then 1 else 0
-        case Nat(natValue) => natValue as ORDINAL
-        case Char(charValue) => charValue as ORDINAL
-        case Ord(ordinalValue) => ordinalValue
-        case Object(objectValue) => 0
-        case Set(setValue) => |setValue| as ORDINAL
-        case Seq(seqValue) => MultisetOrdinal(this, multiset(seqValue))
-        case Tuple(base, first, second) => Times(base.Ordinal(), first.Ordinal()) + second.Ordinal() + 1
-        case Succ(original) => original.Ordinal() + 1
-        case Top => Omega()
+        case TMBool(boolValue) => if boolValue then 1 else 0
+        case TMNat(natValue) => natValue as ORDINAL
+        case TMChar(charValue) => charValue as ORDINAL
+        case TMOrdinal(ordinalValue) => ordinalValue
+        case TMObject(objectValue) => 0
+        case TMSet(setValue) => |setValue| as ORDINAL
+        case TMSeq(seqValue) => MultisetOrdinal(this, multiset(seqValue))
+        case TMTuple(base, first, second) => Times(base.Ordinal(), first.Ordinal()) + second.Ordinal() + 1
+        case TMSucc(original) => original.Ordinal() + 1
+        case TMTop => Omega()
       }
     }
 
     ghost predicate DecreasesTo(other: TerminationMetric)
-      requires Valid()
-      requires other.Valid()
     {
       Ordinal() > other.Ordinal()
     }
 
     ghost predicate NonIncreasesTo(other: TerminationMetric)
-      requires Valid()
-      requires other.Valid()
     {
       Ordinal() >= other.Ordinal()
     }
 
-    @IsolateAssertions
     static opaque ghost function MaxOrdinal(parent: TerminationMetric, s: multiset<TerminationMetric>): ORDINAL
-      requires forall o <- s :: (parent decreases to o) && o.Valid()
+      requires forall o <- s :: parent decreases to o
       decreases parent, |s|, 0
       ensures forall o <- s :: MaxOrdinal(parent, s) >= o.Ordinal()
     {
@@ -100,14 +75,14 @@ module Std.Termination {
     // parent is a MaxOrdinal() parameter just to prove termination,
     // but doesn't affect the actual result.
     static lemma MaxOrdinalAnyParent(parent: TerminationMetric, parent': TerminationMetric, s: multiset<TerminationMetric>)
-      requires forall o <- s :: o.Valid() && (parent decreases to o) && (parent' decreases to o)
+      requires forall o <- s :: (parent decreases to o) && (parent' decreases to o)
       ensures MaxOrdinal(parent, s) == MaxOrdinal(parent', s)
     {
       reveal MaxOrdinal();
     }
 
     static ghost function MultisetOrdinal(parent: TerminationMetric, s: multiset<TerminationMetric>): ORDINAL
-      requires forall o <- s :: (parent decreases to o) && o.Valid()
+      requires forall o <- s :: parent decreases to o
       decreases parent, |s|
     {
       MaxOrdinal(parent, s) + |s| as ORDINAL + 1
@@ -116,15 +91,15 @@ module Std.Termination {
     // parent is a MultisetOrdinal() parameter just to prove termination,
     // but doesn't affect the actual result.
     static lemma MultisetOrdinalAnyParent(parent: TerminationMetric, parent': TerminationMetric, s: multiset<TerminationMetric>)
-      requires forall o <- s :: o.Valid() && (parent decreases to o) && (parent' decreases to o)
+      requires forall o <- s :: (parent decreases to o) && (parent' decreases to o)
       ensures MultisetOrdinal(parent, s) == MultisetOrdinal(parent', s)
     {
       MaxOrdinalAnyParent(parent, parent', s);
     }
 
     static lemma MultisetOrdinalDecreasesToSubMultiset(parent: TerminationMetric, left: multiset<TerminationMetric>, right: multiset<TerminationMetric>)
-      requires forall o <- left :: (parent decreases to o) && o.Valid()
-      requires forall o <- right :: (parent decreases to o) && o.Valid()
+      requires forall o <- left :: parent decreases to o
+      requires forall o <- right :: parent decreases to o
       requires left > right
       ensures MultisetOrdinal(parent, left) > MultisetOrdinal(parent, right)
     {
@@ -142,8 +117,8 @@ module Std.Termination {
     }
 
     static lemma MaxOrdinalNonIncreases(parent: TerminationMetric, left: multiset<TerminationMetric>, right: multiset<TerminationMetric>)
-      requires forall o <- left :: (parent decreases to o) && o.Valid()
-      requires forall o <- right :: (parent decreases to o) && o.Valid()
+      requires forall o <- left :: parent decreases to o
+      requires forall o <- right :: parent decreases to o
       requires left > right
       ensures MaxOrdinal(parent, left) >= MaxOrdinal(parent, right)
     {
@@ -151,8 +126,8 @@ module Std.Termination {
     }
 
     static lemma MaxOrdinalDecreasesIfAllDecrease(parent: TerminationMetric, left: multiset<TerminationMetric>, right: multiset<TerminationMetric>)
-      requires forall o <- left :: (parent decreases to o) && o.Valid()
-      requires forall o <- right :: (parent decreases to o) && o.Valid()
+      requires forall o <- left :: parent decreases to o
+      requires forall o <- right :: parent decreases to o
       requires left > right
       ensures MaxOrdinal(parent, left) >= MaxOrdinal(parent, right)
     {
@@ -160,24 +135,20 @@ module Std.Termination {
     }
 
     lemma SetDecreasesTo(other: TerminationMetric)
-      requires Valid()
-      requires Set?
-      requires other.Valid()
-      requires other.Set?
+      requires TMSet?
+      requires other.TMSet?
       requires setValue > other.setValue
-      ensures Ordinal() > other.Ordinal()
+      ensures DecreasesTo(other)
     {
       reveal Ordinal();
       LemmaSubsetSize(other.setValue, setValue);
     }
 
     lemma SeqDecreasesToSubSequence(other: TerminationMetric)
-      requires Valid()
-      requires Seq?
-      requires other.Valid()
-      requires other.Seq?
+      requires TMSeq?
+      requires other.TMSeq?
       requires multiset(seqValue) > multiset(other.seqValue)
-      ensures Ordinal() > other.Ordinal()
+      ensures DecreasesTo(other)
     {
       reveal Ordinal();
       MultisetOrdinalAnyParent(this, other, multiset(other.seqValue));
@@ -185,67 +156,59 @@ module Std.Termination {
     }
 
     lemma SeqDecreasesToProperPrefix(other: TerminationMetric, hi: nat)
-      requires Valid()
-      requires Seq?
-      requires other.Valid()
-      requires other.Seq?
+      requires TMSeq?
+      requires other.TMSeq?
       requires hi < |seqValue|
       requires seqValue[..hi] == other.seqValue
-      ensures Ordinal() > other.Ordinal()
+      ensures DecreasesTo(other)
     {
       assert seqValue == seqValue[..hi] + seqValue[hi..];
       SeqDecreasesToSubSequence(other);
     }
 
     lemma SeqDecreasesToProperSuffix(other: TerminationMetric, lo: nat)
-      requires Valid()
-      requires Seq?
-      requires other.Valid()
-      requires other.Seq?
+      requires TMSeq?
+      requires other.TMSeq?
       requires 0 < lo <= |seqValue|
       requires seqValue[lo..] == other.seqValue
-      ensures Ordinal() > other.Ordinal()
+      ensures DecreasesTo(other)
     {
       assert seqValue == seqValue[..lo] + seqValue[lo..];
       SeqDecreasesToSubSequence(other);
     }
 
     lemma SeqDecreasesToProperDeletion(other: TerminationMetric, lo: nat, hi: nat)
-      requires Valid()
-      requires Seq?
-      requires other.Valid()
-      requires other.Seq?
+      requires TMSeq?
+      requires other.TMSeq?
       requires 0 <= lo < hi <= |seqValue|
       requires seqValue[..lo] + seqValue[hi..] == other.seqValue
-      ensures Ordinal() > other.Ordinal()
+      ensures DecreasesTo(other)
     {
       assert seqValue == seqValue[..lo] + seqValue[lo..hi] + seqValue[hi..];
       SeqDecreasesToSubSequence(other);
     }
 
     lemma SeqDecreasesToElement(other: TerminationMetric)
-      requires Valid()
-      requires Seq?
-      requires other.Valid()
+      requires TMSeq?
       requires other in seqValue
-      ensures Ordinal() > other.Ordinal()
+      ensures DecreasesTo(other)
     {
       reveal Ordinal();
     }
 
     lemma TupleDecreasesToTuple(other: TerminationMetric)
-      requires Valid()
-      requires Tuple?
-      requires other.Valid()
-      requires other.Tuple?
+      requires TMTuple?
+      requires other.TMTuple?
       requires base == other.base
       requires
-        || (first.Ordinal() > other.first.Ordinal())
-        || (first.Ordinal() >= other.first.Ordinal() && second.Ordinal() > other.second.Ordinal())
-      ensures Ordinal() > other.Ordinal()
+        && other.base.DecreasesTo(other.second)
+        && (
+          || first.DecreasesTo(other.first)
+          || (first.NonIncreasesTo(other.first) && second.DecreasesTo(other.second)))
+      ensures DecreasesTo(other)
     {
       reveal Ordinal();
-      if first.Ordinal() > other.first.Ordinal() {
+      if first.DecreasesTo(other.first) {
         TimesStrictlyIncreasingOnRight(base.Ordinal(), other.first.Ordinal(), first.Ordinal());
         RadixStrictlyIncreasing(base.Ordinal(), other.first.Ordinal(), first.Ordinal(), other.second.Ordinal());
       } else {
@@ -256,26 +219,24 @@ module Std.Termination {
     }
 
     lemma TupleNonIncreasesToTuple(other: TerminationMetric)
-      requires Valid()
-      requires Tuple?
-      requires other.Valid()
-      requires other.Tuple?
+      requires TMTuple?
+      requires other.TMTuple?
       requires base == other.base
-      requires first.Ordinal() >= other.first.Ordinal()
-      requires second.Ordinal() >= other.second.Ordinal()
-      ensures Ordinal() >= other.Ordinal()
+      requires other.base.DecreasesTo(other.second)
+      requires first.NonIncreasesTo(other.first)
+      requires second.NonIncreasesTo(other.second)
+      ensures NonIncreasesTo(other)
     {
       reveal Ordinal();
-      if first.Ordinal() > other.first.Ordinal() || second.Ordinal() > other.second.Ordinal() {
+      if first.DecreasesTo(other.first) || second.DecreasesTo(other.second) {
         TupleDecreasesToTuple(other);
       }
     }
 
-    @IsolateAssertions
     lemma TupleDecreasesToFirst()
-      requires Valid()
-      requires Tuple?
-      ensures Ordinal() > first.Ordinal()
+      requires TMTuple?
+      requires base.DecreasesTo(second)
+      ensures DecreasesTo(first)
     {
       reveal Ordinal();
       var term := Times(base.Ordinal(), first.Ordinal());
@@ -286,19 +247,17 @@ module Std.Termination {
     }
 
     lemma TupleDecreasesToSecond()
-      requires Valid()
-      requires Tuple?
-      ensures Ordinal() > second.Ordinal()
+      requires TMTuple?
+      requires base.DecreasesTo(second)
+      ensures DecreasesTo(second)
     {
       reveal Ordinal();
       PlusIncreasingOnLeft(0, Times(base.Ordinal(), first.Ordinal()), second.Ordinal());
     }
 
     lemma SuccDecreasesTo(other: TerminationMetric)
-      requires Valid()
-      requires Succ?
-      requires other.Valid()
-      requires other.Succ?
+      requires TMSucc?
+      requires other.TMSucc?
       requires original.DecreasesTo(other.original)
       ensures DecreasesTo(other)
     {
@@ -307,10 +266,8 @@ module Std.Termination {
     }
 
     lemma SuccNonIncreasesTo(other: TerminationMetric)
-      requires Valid()
-      requires Succ?
-      requires other.Valid()
-      requires other.Succ?
+      requires TMSucc?
+      requires other.TMSucc?
       requires original.NonIncreasesTo(other.original)
       ensures NonIncreasesTo(other)
     {
@@ -319,75 +276,5 @@ module Std.Termination {
         SuccStrictlyIncreasing(other.original.Ordinal(), original.Ordinal());
       }
     }
-  }
-
-  ghost function TMBool(b: bool): (result: TerminationMetric)
-    ensures result.Valid()
-  {
-    Bool(b)
-  }
-
-  ghost function TMNat(n: nat): (result: TerminationMetric)
-    ensures result.Valid()
-  {
-    Nat(n)
-  }
-
-  ghost function TMOrdinal(o: ORDINAL): (result: TerminationMetric)
-    ensures result.Valid()
-  {
-    Ord(o)
-  }
-
-  ghost function TMObject(o: object): (result: TerminationMetric)
-    ensures result.Valid()
-  {
-    Object(o)
-  }
-
-  ghost function TMSet(children: set<TerminationMetric>): (result: TerminationMetric)
-    requires forall tm <- children :: tm.Valid()
-    ensures result.Valid()
-  {
-    Set(children)
-  }
-
-  ghost function TMSeq(children: seq<TerminationMetric>): (result: TerminationMetric)
-    requires forall tm <- children :: tm.Valid()
-    ensures result.Valid()
-  {
-    Seq(children)
-  }
-
-  @ResourceLimit("1e7")
-  ghost function TMTuple(base: TerminationMetric, first: TerminationMetric, second: TerminationMetric): (result: TerminationMetric)
-    requires first.Valid()
-    requires second.Valid()
-    requires base.Valid()
-    requires base.Ordinal() > second.Ordinal()
-    ensures result.Valid()
-  {
-    Tuple(base, first, second)
-  }
-
-  ghost function TMTupleOf(base: TerminationMetric, children: seq<TerminationMetric>): (result: TerminationMetric)
-    requires base.Valid()
-    requires children != []
-    requires forall tm <- children :: tm.Valid() && base.Ordinal() > tm.Ordinal()
-    ensures result.Valid()
-  {
-    if |children| == 1 then
-      Seq.First(children)
-    else
-      TMTuple(base, TMTupleOf(base, Seq.DropLast(children)), Seq.Last(children))
-  }
-
-  const TMTop := Top
-
-  ghost function TMSucc(tm: TerminationMetric): (result: TerminationMetric)
-    requires tm.Valid()
-    ensures result.Valid()
-  {
-    Succ(tm)
   }
 }
