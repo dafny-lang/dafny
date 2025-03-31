@@ -54,8 +54,7 @@ module Example1 {
 
     ghost var owned: set<Node>
 
-    constructor()
-    {
+    constructor() {
       head := null;
       owned := {};
     }
