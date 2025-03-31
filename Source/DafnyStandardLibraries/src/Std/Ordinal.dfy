@@ -1,14 +1,6 @@
 
 module Std.Ordinal {
 
-  // ghost predicate IsMinimal<T>(lessOrEqual: (T, T) -> bool, minimal: T, s: iset<T>) {
-  //   minimal in s && forall x | x in s && lessOrEqual(x, minimal) :: lessOrEqual(minimal, x)
-  // }
-
-  // ghost predicate IsMaximal<T>(lessOrEqual: (T, T) -> bool, maximal: T, s: iset<T>) {
-  //   maximal in s && forall x | x in s && lessOrEqual(maximal, x) :: lessOrEqual(x, maximal)
-  // }
-
   ghost function {:axiom} Omega(): ORDINAL
     ensures !Omega().IsNat
     ensures Omega().IsLimit
@@ -21,19 +13,25 @@ module Std.Ordinal {
   lemma {:axiom} Succ(a: ORDINAL, b: ORDINAL)
     ensures a > b <==> a >= b + 1
 
-  lemma SuccStrictlyIncreasing(a: ORDINAL, b: ORDINAL)
-    requires a > b
-    ensures a + 1 > b + 1
+
+  ghost function {:axiom} Limit(x: ORDINAL): (result: ORDINAL)
+    requires x.IsLimit
+    ensures forall x' | x' < x :: x' < result
+    ensures forall result' | (forall x' | x' < x :: x' < result') :: result <= result'
+
+  lemma LimitDefinition(x: ORDINAL)
+    requires x.IsLimit
+    ensures Limit(x) == x
   {
-    PlusDefinition(a, 1);
-    PlusDefinition(b, 1);
+    assert x <= Limit(x);
+    assert x >= Limit(x);
   }
 
   ghost function {:axiom} PlusLimit(left: ORDINAL, right: ORDINAL): (result: ORDINAL)
     decreases right, 0
     ensures forall right' | right' < right :: Plus(left, right') < result
     ensures forall result' | 
-      forall right' | right' < right :: Plus(left, right') < result :: result <= result'
+      forall right' | right' < right :: Plus(left, right') < result' :: result <= result'
 
   ghost function Plus(left: ORDINAL, right: ORDINAL): ORDINAL
     decreases right
@@ -58,7 +56,7 @@ module Std.Ordinal {
 
   @ResourceLimit("0")
   @IsolateAssertions
-  lemma PlusStrictlyIncreasingOnRight(left: ORDINAL, right: ORDINAL, right': ORDINAL)
+  lemma {:only} PlusStrictlyIncreasingOnRight(left: ORDINAL, right: ORDINAL, right': ORDINAL)
     requires right > right'
     decreases right
     ensures left + right > left + right'
@@ -86,7 +84,6 @@ module Std.Ordinal {
         assert left + right > left + right';
       }
     }
-    
   }
 
   lemma PlusIncreasingOnLeft(left: ORDINAL, left': ORDINAL, right: ORDINAL)
@@ -115,6 +112,14 @@ module Std.Ordinal {
     }
   }
 
+  lemma SuccStrictlyIncreasing(a: ORDINAL, b: ORDINAL)
+    requires a > b
+    ensures a + 1 > b + 1
+  {
+    PlusDefinition(a, 1);
+    PlusDefinition(b, 1);
+  }
+
   lemma SuccAndPlus(left: ORDINAL, right: ORDINAL)
     decreases right
     ensures (left + right) + 1 == left + (right + 1)
@@ -123,7 +128,7 @@ module Std.Ordinal {
     PlusDefinition(left, right);
   }
 
-  @ResourceLimit("0")
+  // @ResourceLimit("0")
   @IsolateAssertions
   lemma PlusIsAssociative(x: ORDINAL, y: ORDINAL, z: ORDINAL)
     decreases z
@@ -131,9 +136,26 @@ module Std.Ordinal {
   {
     if z == 0 {
     } else if z.IsLimit {
-      PlusAndIsLimit(y, z);
-      assert (y + z).IsLimit;
-      // assume false;
+      // PlusAndIsLimit(y, z);
+      // assert (y + z).IsLimit;
+      // forall z' | z' < z ensures Plus(x + y, z') == Plus(x, y + z') {
+      //   PlusIsAssociative(x, y, z');
+      //   PlusDefinition(x + y, z');
+      //   PlusDefinition(x, y + z');
+      // }
+      // assert forall z' | z' < z :: Plus(x + y, z') == Plus(x, y + z');
+      // assert forall z' | z' < z :: Plus(x + y, z') == Plus(x, y + z');
+      // // Plus(x, y + z) == forall 
+      // PlusDefinition(x + y, z);
+      // PlusDefinition(x, y + z);
+      calc {
+        (x + y) + z;
+        { PlusDefinition(x + y, z); }
+        PlusLimit(x + y, z);
+        // PlusLimit(x, PlusLimit(y, z));
+        // x + PlusLimit(y, z);
+        // x + (y + z);
+      }
     } else {
       calc {
         (x + y) + z;
@@ -156,7 +178,7 @@ module Std.Ordinal {
   ghost function {:axiom} TimesLimit(left: ORDINAL, right: ORDINAL): (result: ORDINAL)
     decreases right, 0
     ensures forall right' | right' < right :: Times(left, right') < result
-    ensures forall result' | forall right' | right' < right :: Times(left, right') < result :: result <= result'
+    ensures forall result' | (forall right' | right' < right :: Times(left, right') < result') :: result <= result'
 
   ghost function Times(left: ORDINAL, right: ORDINAL): (result: ORDINAL)
     decreases right
@@ -169,7 +191,7 @@ module Std.Ordinal {
       Times(left, right - 1) + left
   }
 
-  @ResourceLimit("0")
+  // @ResourceLimit("0")
   lemma TimesLeftIdentity(o: ORDINAL)
     ensures Times(1, o) == o
   {
@@ -202,7 +224,7 @@ module Std.Ordinal {
     }
   }
 
-  @ResourceLimit("1e9")
+  // @ResourceLimit("1e9")
   lemma TimesDistributesOnLeft(left: ORDINAL, right: ORDINAL, right': ORDINAL)
     decreases right'
     ensures Times(left, right + right') == Times(left, right) + Times(left, right')
