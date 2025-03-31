@@ -52,7 +52,7 @@ module TerminationExample {
 
   method {:test} Succ() {
     reveal TerminationMetric.Ordinal();
-    assert forall x: TerminationMetric | x.Valid() :: TMSucc(x).DecreasesTo(TMNat(0));
+    assert forall x: TerminationMetric :: TMSucc(x).DecreasesTo(TMNat(0));
   }
 
   method {:test} NestedLoop() {
@@ -61,7 +61,6 @@ module TerminationExample {
     var y: nat := 10;
     var tm := TMTuple(TMTop, TMNat(x), TMNat(y));
     while 0 < x || 0 < y
-      invariant tm.Valid()
       invariant tm == TMTuple(TMTop, TMNat(x), TMNat(y))
       decreases tm.Ordinal()
     {

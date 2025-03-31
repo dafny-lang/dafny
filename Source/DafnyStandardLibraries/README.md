@@ -57,8 +57,10 @@ The sections below describe how to use each library:
 - [Std.Functions](src/Std/Functions.md) -- properties of functions
 - [Std.JSON](src/Std/JSON/JSON.md) -- JSON serialization and deserialization
 - [Std.Math](src/Std/Math.md) -- common mathematical functions, such as Min and Abs
+- [Std.Ordinal](src/Std/Ordinal.md) -- operations and properties of the ORDINAL type
 - [Std.Relations](src/Std/Relations.md) -- properties of relations
 - [Std.Strings](src/Std/Strings.md) -- utilities for strings, especially converting to and from string representations of common types
+- [Std.Termination](src/Std/Termination.md) -- a datatype for representing Dafny decreases clauses and extensions
 - [Std.Unicode](src/Std/Unicode/Unicode.md) -- implementations of basic algorithms from Unicode 15.0
 - [Std.Wrappers](src/Std/Wrappers.md) -- simple datatypes to support common patterns, such as optional values or the result of operations that can fail
 

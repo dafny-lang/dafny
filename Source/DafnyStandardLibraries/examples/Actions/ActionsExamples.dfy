@@ -174,7 +174,6 @@ module ActionsExamples {
     }
 
     ghost function MaxProduced(): TerminationMetric
-      ensures MaxProduced().Valid()
     {
       TMTop
     }
@@ -183,7 +182,6 @@ module ActionsExamples {
       requires Valid()
       reads this, Repr
       decreases Repr, 3
-      ensures RemainingMetric().Valid()
     {
       TMNat(|inputs|)
     }
