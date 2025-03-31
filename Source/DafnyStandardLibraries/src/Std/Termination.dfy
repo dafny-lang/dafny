@@ -255,7 +255,7 @@ module Std.Termination {
       PlusIncreasingOnLeft(0, Times(base.Ordinal(), first.Ordinal()), second.Ordinal());
     }
 
-    lemma SuccDecreasesTo(other: TerminationMetric)
+    lemma SuccDecreasesToSucc(other: TerminationMetric)
       requires TMSucc?
       requires other.TMSucc?
       requires original.DecreasesTo(other.original)
@@ -265,7 +265,7 @@ module Std.Termination {
       SuccStrictlyIncreasing(other.original.Ordinal(), original.Ordinal());
     }
 
-    lemma SuccNonIncreasesTo(other: TerminationMetric)
+    lemma SuccNonIncreasesToSucc(other: TerminationMetric)
       requires TMSucc?
       requires other.TMSucc?
       requires original.NonIncreasesTo(other.original)
@@ -275,6 +275,13 @@ module Std.Termination {
       if original.Ordinal() > other.original.Ordinal() {
         SuccStrictlyIncreasing(other.original.Ordinal(), original.Ordinal());
       }
+    }
+
+    lemma SuccDecreasesToOriginal()
+      requires TMSucc?
+      ensures DecreasesTo(original)
+    {
+      reveal Ordinal();
     }
   }
 }

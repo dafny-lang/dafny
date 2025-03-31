@@ -48,6 +48,14 @@ module Std.Ordinal {
     PlusDefinition(b, 1);
   }
 
+  lemma SuccIncreasing(a: ORDINAL, b: ORDINAL)
+    requires a <= b
+    ensures a + 1 <= b + 1
+  {
+    PlusDefinition(a, 1);
+    PlusDefinition(b, 1);
+  }
+
   lemma {:axiom} PlusIsAssociative(x: ORDINAL, y: ORDINAL, z: ORDINAL)
     decreases z
     ensures (x + y) + z == x + (y + z)
