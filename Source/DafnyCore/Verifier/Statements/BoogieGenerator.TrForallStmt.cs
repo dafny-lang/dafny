@@ -168,7 +168,7 @@ public partial class BoogieGenerator {
       Dictionary<IVariable, Expression> substMap;
       var argsSubstMap = new Dictionary<IVariable, Expression>();  // maps formal arguments to actuals
       Contract.Assert(s0.Method.Ins.Count == s0.Args.Count);
-      var callEtran = new ExpressionTranslator(this, Predef, etran.HeapExpr, initHeap, etran.scope);
+      var callEtran = new ExpressionTranslator(this, Predef, etran.HeapExpr, initHeap, etran.scope).WithZeroFuel();
       Bpl.Expr anteCanCalls, ante;
       Bpl.Expr post = Bpl.Expr.True;
       Bpl.Trigger tr;
@@ -190,7 +190,7 @@ public partial class BoogieGenerator {
         }
         p = Substitute(expr.Term, null, substMap);
         post = BplAnd(post, callEtran.CanCallAssumption(p));
-        post = BplAnd(post, callEtran.WithZeroFuel().TrExpr(p));
+        post = BplAnd(post, callEtran.TrExpr(p));
       } else {
         ante = initEtran.TrBoundVariablesRename(boundVars, bvars, out substMap);
 
