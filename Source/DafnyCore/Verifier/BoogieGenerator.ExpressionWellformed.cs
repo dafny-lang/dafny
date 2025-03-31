@@ -218,7 +218,7 @@ namespace Microsoft.Dafny {
         if (e is ForallExpr) {
           // Although we do the WF check on the original quantifier, we assume the split one.
           // This ensures that cases like forall x :: x != null && f(x.a) do not fail to verify.
-          builder.Add(TrAssumeCmdWithDependencies(etran, expr.Origin, e.SplitQuantifierExpression ?? e, comment));
+          builder.Add(TrAssumeCmdWithDependencies(etran.WithoutFuelInQuantifiers(), expr.Origin, e.SplitQuantifierExpression ?? e, comment));
         }
         return;
       }
@@ -230,7 +230,7 @@ namespace Microsoft.Dafny {
       //       the splitting and proceeded to decompose the full quantifier as
       //       normal. This call to TrExpr, on the other hand, will indeed use the
       //       split quantifier.
-      builder.Add(TrAssumeCmdWithDependencies(etran, expr.Origin, expr, comment));
+      builder.Add(TrAssumeCmdWithDependencies(etran.WithoutFuelInQuantifiers(), expr.Origin, expr, comment));
     }
 
     // Helper object for ensuring delayed reads checks are always processed.
