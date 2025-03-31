@@ -786,7 +786,7 @@ module Std.Producers {
           source.DoneIsOneWay();
         }
 
-        PlusIncreasingOnLeft(old(source.Remaining()), source.Remaining(), 1);
+        PlusIncreasingOnLeft(source.Remaining(), old(source.Remaining()), 1);
       }
 
       if result.Some? {
@@ -799,7 +799,7 @@ module Std.Producers {
         ProduceSome(result.value);
         assert (Seq.All(source.Outputs(), IsSome) ==> Seq.All(Outputs(), IsSome));
 
-        SuccStrictlyIncreasing(old(source.Remaining()), source.Remaining());
+        SuccStrictlyIncreasing(source.Remaining(), old(source.Remaining()));
       } else {
         OutputsPartitionedAfterOutputtingNone();
         ProduceNone();
@@ -807,7 +807,7 @@ module Std.Producers {
         assert !Seq.All(source.Outputs(), IsSome);
         assert (Seq.All(source.Outputs(), IsSome) ==> Seq.All(Outputs(), IsSome));
 
-        PlusIncreasingOnLeft(old(source.Remaining()), source.Remaining(), 1);
+        PlusIncreasingOnLeft(source.Remaining(), old(source.Remaining()), 1);
       }
 
       assert Valid();

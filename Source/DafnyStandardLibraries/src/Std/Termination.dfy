@@ -7,7 +7,6 @@ module Std.Termination {
   import opened Ordinal
   import Collections.Seq
 
-
   // Heterogeneous encoding of the essential features of individual
   // decreases clause list elements.
   datatype TerminationMetric =
@@ -138,8 +137,8 @@ module Std.Termination {
       assert |left| > |right|;
       assert |left| as ORDINAL + 1 > |right| as ORDINAL + 1 ;
 
-      PlusIncreasingOnLeft(maxLeft, maxRight, |right| as ORDINAL + 1);
-      PlusStrictlyIncreasingOnRight(maxLeft, |left| as ORDINAL + 1, |right| as ORDINAL + 1);
+      PlusIncreasingOnLeft(maxRight, maxLeft, |right| as ORDINAL + 1);
+      PlusStrictlyIncreasingOnRight(maxLeft, |right| as ORDINAL + 1, |left| as ORDINAL + 1);
     }
 
     static lemma MaxOrdinalNonIncreases(parent: TerminationMetric, left: multiset<TerminationMetric>, right: multiset<TerminationMetric>)
@@ -247,13 +246,13 @@ module Std.Termination {
     {
       reveal Ordinal();
       if first.Ordinal() > other.first.Ordinal() {
-        TimesStrictlyIncreasingOnRight(base.Ordinal(), first.Ordinal(), other.first.Ordinal());
-        RadixDecreases(base.Ordinal(), first.Ordinal(), other.first.Ordinal(), other.second.Ordinal());
+        TimesStrictlyIncreasingOnRight(base.Ordinal(), other.first.Ordinal(), first.Ordinal());
+        RadixStrictlyIncreasing(base.Ordinal(), other.first.Ordinal(), first.Ordinal(), other.second.Ordinal());
       } else {
-        PlusStrictlyIncreasingOnRight(Times(base.Ordinal(), first.Ordinal()), second.Ordinal(), other.second.Ordinal());
+        PlusStrictlyIncreasingOnRight(Times(base.Ordinal(), first.Ordinal()), other.second.Ordinal(), second.Ordinal());
       }
-      SuccStrictlyIncreasing(Times(base.Ordinal(), first.Ordinal()) + second.Ordinal(),
-                             Times(base.Ordinal(), other.first.Ordinal()) + other.second.Ordinal());
+      SuccStrictlyIncreasing(Times(base.Ordinal(), other.first.Ordinal()) + other.second.Ordinal(),
+                             Times(base.Ordinal(), first.Ordinal()) + second.Ordinal());
     }
 
     lemma TupleNonIncreasesToTuple(other: TerminationMetric)
@@ -280,9 +279,9 @@ module Std.Termination {
     {
       reveal Ordinal();
       var term := Times(base.Ordinal(), first.Ordinal());
-      PlusStrictlyIncreasingOnRight(term, second.Ordinal() + 1, 0);
+      PlusStrictlyIncreasingOnRight(term, 0, second.Ordinal() + 1);
       PlusIsAssociative(term, second.Ordinal(), 1);
-      TimesIncreasingOnLeft(base.Ordinal(), 1, first.Ordinal());
+      TimesIncreasingOnLeft(1, base.Ordinal(), first.Ordinal());
       TimesLeftIdentity(first.Ordinal());
     }
 
@@ -292,7 +291,7 @@ module Std.Termination {
       ensures Ordinal() > second.Ordinal()
     {
       reveal Ordinal();
-      PlusIncreasingOnLeft(Times(base.Ordinal(), first.Ordinal()), 0, second.Ordinal());
+      PlusIncreasingOnLeft(0, Times(base.Ordinal(), first.Ordinal()), second.Ordinal());
     }
 
     lemma SuccDecreasesTo(other: TerminationMetric)
@@ -304,7 +303,7 @@ module Std.Termination {
       ensures DecreasesTo(other)
     {
       reveal Ordinal();
-      SuccStrictlyIncreasing(original.Ordinal(), other.original.Ordinal());
+      SuccStrictlyIncreasing(other.original.Ordinal(), original.Ordinal());
     }
 
     lemma SuccNonIncreasesTo(other: TerminationMetric)
@@ -317,7 +316,7 @@ module Std.Termination {
     {
       reveal Ordinal();
       if original.Ordinal() > other.original.Ordinal() {
-        SuccStrictlyIncreasing(original.Ordinal(), other.original.Ordinal());
+        SuccStrictlyIncreasing(other.original.Ordinal(), original.Ordinal());
       }
     }
   }

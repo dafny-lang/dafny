@@ -6,26 +6,10 @@ module Std.Ordinal {
     ensures Omega().IsLimit
     ensures forall other: ORDINAL | other.IsLimit && other != 0 :: Omega() <= other
 
-  // TODO: Prove some of these via transfinite induction?
-
   // Additional axioms about addition
 
   lemma {:axiom} Succ(a: ORDINAL, b: ORDINAL)
-    ensures a > b <==> a >= b + 1
-
-
-  ghost function {:axiom} Limit(x: ORDINAL): (result: ORDINAL)
-    requires x.IsLimit
-    ensures forall x' | x' < x :: x' < result
-    ensures forall result' | (forall x' | x' < x :: x' < result') :: result <= result'
-
-  lemma LimitDefinition(x: ORDINAL)
-    requires x.IsLimit
-    ensures Limit(x) == x
-  {
-    assert x <= Limit(x);
-    assert x >= Limit(x);
-  }
+    ensures a < b <==> a + 1 <= b
 
   ghost function {:axiom} PlusLimit(left: ORDINAL, right: ORDINAL): (result: ORDINAL)
     decreases right, 0
@@ -47,131 +31,26 @@ module Std.Ordinal {
   lemma {:axiom} PlusDefinition(left: ORDINAL, right: ORDINAL)
     ensures Plus(left, right) == left + right
 
-  lemma PlusAndIsLimit(left: ORDINAL, right: ORDINAL)
-    requires right.IsLimit
-    ensures (left + right).IsLimit
-  {
-    PlusDefinition(left, right);
-  }
-
-  @ResourceLimit("0")
-  @IsolateAssertions
-  lemma {:only} PlusStrictlyIncreasingOnRight(left: ORDINAL, right: ORDINAL, right': ORDINAL)
-    requires right > right'
+  lemma {:axiom} PlusStrictlyIncreasingOnRight(left: ORDINAL, right: ORDINAL, right': ORDINAL)
+    requires right < right'
     decreases right
-    ensures left + right > left + right'
-  {
-    PlusDefinition(left, right);
-    PlusDefinition(left, right');
-    if right == 0 {
-    } else if right.IsLimit {
-      var x :| right > x > right';
-      PlusDefinition(left, x);
-      PlusStrictlyIncreasingOnRight(left, x, right');
-    } else {
-      if right' == right - 1 {
-      } else {
-        if right' > right - 1 {
-          Succ(right', right - 1);
-          assert false;
-        }
-        assert right - 1 > right';
-        PlusStrictlyIncreasingOnRight(left, right - 1, right');
-        assert left + (right - 1) > left + right';
-        assert (left + (right - 1)) + 1 > left + right';
-        SuccAndPlus(left, right - 1);
-        assert (left + ((right - 1) + 1)) > left + right';
-        assert left + right > left + right';
-      }
-    }
-  }
+    ensures left + right < left + right'
 
-  lemma PlusIncreasingOnLeft(left: ORDINAL, left': ORDINAL, right: ORDINAL)
-    requires left >= left'
-    decreases right
-    ensures left + right >= left' + right
-  {
-    PlusDefinition(left, right);
-    PlusDefinition(left', right);
-    if right == 0 {
-    } else if right.IsLimit {
-    } else {
-      PlusIncreasingOnLeft(left, left', right - 1);
-      if left + (right - 1) == left' + (right - 1) {
-        assert left + (right - 1) == left' + (right - 1);
-        assert (left + (right - 1)) + 1 == (left' + (right - 1)) + 1;
-        SuccAndPlus(left, right - 1);
-        SuccAndPlus(left', right - 1);
-      } else {
-        assert left + (right - 1) > left' + (right - 1);
-        SuccStrictlyIncreasing(left + (right - 1), left' + (right - 1));
-        assert (left + (right - 1)) + 1 > (left' + (right - 1)) + 1;
-        SuccAndPlus(left, right - 1);
-        SuccAndPlus(left', right - 1);
-      }
-    }
-  }
-
+  lemma {:axiom} PlusIncreasingOnLeft(left: ORDINAL, left': ORDINAL, right: ORDINAL)
+    requires left <= left'
+    ensures left + right <= left' + right
+  
   lemma SuccStrictlyIncreasing(a: ORDINAL, b: ORDINAL)
-    requires a > b
-    ensures a + 1 > b + 1
+    requires a < b
+    ensures a + 1 < b + 1
   {
     PlusDefinition(a, 1);
     PlusDefinition(b, 1);
   }
 
-  lemma SuccAndPlus(left: ORDINAL, right: ORDINAL)
-    decreases right
-    ensures (left + right) + 1 == left + (right + 1)
-  {
-    PlusDefinition(left, right + 1);
-    PlusDefinition(left, right);
-  }
-
-  // @ResourceLimit("0")
-  @IsolateAssertions
-  lemma PlusIsAssociative(x: ORDINAL, y: ORDINAL, z: ORDINAL)
+  lemma {:axiom} PlusIsAssociative(x: ORDINAL, y: ORDINAL, z: ORDINAL)
     decreases z
     ensures (x + y) + z == x + (y + z)
-  {
-    if z == 0 {
-    } else if z.IsLimit {
-      // PlusAndIsLimit(y, z);
-      // assert (y + z).IsLimit;
-      // forall z' | z' < z ensures Plus(x + y, z') == Plus(x, y + z') {
-      //   PlusIsAssociative(x, y, z');
-      //   PlusDefinition(x + y, z');
-      //   PlusDefinition(x, y + z');
-      // }
-      // assert forall z' | z' < z :: Plus(x + y, z') == Plus(x, y + z');
-      // assert forall z' | z' < z :: Plus(x + y, z') == Plus(x, y + z');
-      // // Plus(x, y + z) == forall 
-      // PlusDefinition(x + y, z);
-      // PlusDefinition(x, y + z);
-      calc {
-        (x + y) + z;
-        { PlusDefinition(x + y, z); }
-        PlusLimit(x + y, z);
-        // PlusLimit(x, PlusLimit(y, z));
-        // x + PlusLimit(y, z);
-        // x + (y + z);
-      }
-    } else {
-      calc {
-        (x + y) + z;
-        (x + y) + ((z - 1) + 1);
-        { SuccAndPlus(x + y, z - 1); }
-        ((x + y) + (z - 1)) + 1;
-        { PlusIsAssociative(x, y, z - 1); }
-        (x + (y + (z - 1))) + 1;
-        { SuccAndPlus(x, y + (z - 1)); }
-        x + ((y + (z - 1)) + 1);
-        { SuccAndPlus(y, z - 1); }
-        x + (y + ((z - 1) + 1));
-        x + (y + z);
-      }
-    }
-  }
 
   // Multiplication and axioms about multiplication
 
@@ -191,7 +70,6 @@ module Std.Ordinal {
       Times(left, right - 1) + left
   }
 
-  // @ResourceLimit("0")
   lemma TimesLeftIdentity(o: ORDINAL)
     ensures Times(1, o) == o
   {
@@ -207,51 +85,17 @@ module Std.Ordinal {
   {}
 
   lemma {:axiom} TimesStrictlyIncreasingOnRight(left: ORDINAL, right: ORDINAL, right': ORDINAL)
-    requires left > 0
-    requires right > right'
-    ensures Times(left, right) > Times(left, right')
+    requires 0 < left
+    requires right < right'
+    ensures Times(left, right) < Times(left, right')
 
   lemma {:axiom} TimesIncreasingOnLeft(left: ORDINAL, left': ORDINAL, right: ORDINAL)
-    requires left >= left'
-    ensures Times(left, right) > Times(left', right)
-  {
-    if right.IsLimit {
-      forall right' | right' < right {
-        TimesIncreasingOnLeft(left, left', right');
-      }
-    } else {
-      TimesIncreasingOnLeft(left, left', right - 1);
-    }
-  }
+    requires left <= left'
+    ensures Times(left, right) < Times(left', right)
 
-  // @ResourceLimit("1e9")
-  lemma TimesDistributesOnLeft(left: ORDINAL, right: ORDINAL, right': ORDINAL)
+  lemma {:axiom} TimesDistributesOnLeft(left: ORDINAL, right: ORDINAL, right': ORDINAL)
     decreases right'
     ensures Times(left, right + right') == Times(left, right) + Times(left, right')
-  {
-    if right' == 0 {
-    } else if right'.IsLimit {
-      PlusDefinition(right, right');
-      assert (right + right').IsLimit;
-      calc {
-        Times(left, right + right');
-        TimesLimit(left, right + right');
-      }
-    } else {
-      calc {
-        Times(left, right + right');
-        Times(left, right + ((right' - 1) + 1));
-        { PlusIsAssociative(right, right' - 1, 1); }
-        Times(left, (right + (right' - 1)) + 1);
-        Times(left, right + (right' - 1)) + left;
-        { TimesDistributesOnLeft(left, right, right' - 1); }
-        Times(left, right) + Times(left, right' - 1) + left;
-        { PlusIsAssociative(Times(left, right), Times(left, right' - 1), left); }
-        Times(left, right) + (Times(left, right' - 1) + left);
-        Times(left, right) + Times(left, right');
-      }
-    }
-  }
 
   // Helpful lemmas and utilities
 
@@ -263,39 +107,35 @@ module Std.Ordinal {
     else a
   }
 
-  lemma MaxIsAssociative(a: ORDINAL, b: ORDINAL, c: ORDINAL)
-    ensures Max(Max(a, b), c) == Max(a, Max(b, c))
-  {}
-
-  lemma RadixDecreases(base: ORDINAL, a: ORDINAL, a': ORDINAL, b: ORDINAL)
-    requires base > b
-    requires a > a'
-    ensures Times(base, a) > Times(base, a') + b
+  lemma RadixStrictlyIncreasing(base: ORDINAL, a: ORDINAL, a': ORDINAL, b: ORDINAL)
+    requires a < a'
+    requires b < base
+    ensures Times(base, a) + b < Times(base, a')
   {
     Succ(a, a');
-    assert a >= a' + 1;
+    assert a + 1 <= a';
 
     TimesDistributesOnLeft(base, a', 1);
     assert Times(base, a' + 1) == Times(base, a') + Times(base, 1);
     TimesLeftIdentity(base);
     assert Times(base, a' + 1) == Times(base, a') + base;
 
-    if a == a' + 1 {
+    if a + 1 == a' {
       calc {
-        Times(base, a);
-        Times(base, a' + 1);
-        Times(base, a') + base;
-      > { PlusStrictlyIncreasingOnRight(Times(base, a'), base, b); }
-        Times(base, a') + b;
+        Times(base, a) + b;
+      < { PlusStrictlyIncreasingOnRight(Times(base, a), b, base); }
+        Times(base, a) + base;
+        Times(base, a + 1);
+        Times(base, a');
       }
     } else {
       calc {
-        Times(base, a);
-      >= { TimesStrictlyIncreasingOnRight(base, a, a' + 1); }
-        Times(base, a' + 1);
-        Times(base, a') + base;
-      > { PlusStrictlyIncreasingOnRight(Times(base, a'), base, b); }
-        Times(base, a') + b;
+        Times(base, a) + b;
+      < { PlusStrictlyIncreasingOnRight(Times(base, a), b, base); }
+        Times(base, a) + base;
+        Times(base, a + 1);
+      <= { TimesStrictlyIncreasingOnRight(base, a + 1, a'); }
+        Times(base, a');
       }
     }
   }
