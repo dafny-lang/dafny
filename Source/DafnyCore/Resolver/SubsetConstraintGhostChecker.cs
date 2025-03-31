@@ -1,4 +1,4 @@
-using JetBrains.Annotations;
+using System.Collections.Generic;
 
 namespace Microsoft.Dafny;
 
@@ -9,17 +9,13 @@ namespace Microsoft.Dafny;
 public class SubsetConstraintGhostChecker : ProgramTraverser {
   private class FirstErrorCollector : ErrorReporter {
     public string FirstCollectedMessage = "";
-    public IOrigin FirstCollectedToken = Token.NoToken;
-    public bool Collected = false;
+    public TokenRange FirstCollectedToken;
+    public bool Collected;
 
-    public bool Message(MessageSource source, ErrorLevel level, IOrigin tok, string msg) {
-      return Message(source, level, ErrorRegistry.NoneId, tok, msg);
-    }
-
-    protected override bool MessageCore(MessageSource source, ErrorLevel level, string errorId, IOrigin tok, string msg) {
-      if (!Collected && level == ErrorLevel.Error) {
-        FirstCollectedMessage = msg;
-        FirstCollectedToken = tok;
+    public override bool MessageCore(DafnyDiagnostic dafnyDiagnostic) {
+      if (!Collected && dafnyDiagnostic.Level == ErrorLevel.Error) {
+        FirstCollectedMessage = dafnyDiagnostic.Message;
+        FirstCollectedToken = dafnyDiagnostic.Range;
         Collected = true;
       }
       return true;
@@ -69,7 +65,7 @@ public class SubsetConstraintGhostChecker : ProgramTraverser {
     );
   }
 
-  public override bool Traverse(Expression expr, [CanBeNull] string field, [CanBeNull] object parent) {
+  public override bool Traverse(Expression expr, string field, object parent) {
     if (expr == null) {
       return false;
     }
@@ -81,28 +77,34 @@ public class SubsetConstraintGhostChecker : ProgramTraverser {
       return base.Traverse(expr, field, parent);
     }
 
-    if (e is QuantifierExpr or SetComprehension or MapComprehension) {
-      foreach (var boundVar in e.BoundVars) {
-        if (boundVar.Type.NormalizeExpandKeepConstraints().AsRedirectingType is (SubsetTypeDecl or NewtypeDecl) and var declWithConstraints) {
-          if (!declWithConstraints.ConstraintIsCompilable) {
+    if (e is not (QuantifierExpr or SetComprehension or MapComprehension)) {
+      return base.Traverse(e, field, parent);
+    }
 
-            IOrigin finalToken = boundVar.Origin;
-            if (declWithConstraints.Constraint != null && declWithConstraints.Constraint.Origin.line != 0) {
-              var errorCollector = new FirstErrorCollector(reporter.Options);
-              ExpressionTester.CheckIsCompilable(null, errorCollector, declWithConstraints.Constraint,
-                new CodeContextWrapper(declWithConstraints, true));
-              if (errorCollector.Collected) {
-                finalToken = new NestedOrigin(finalToken, errorCollector.FirstCollectedToken,
-                  "The constraint is not compilable because " + errorCollector.FirstCollectedMessage
-                );
-              }
-            }
-            this.reporter.Error(MessageSource.Resolver, finalToken,
-              $"{boundVar.Type} is a {declWithConstraints.WhatKind} and its constraint is not compilable, " +
-              $"hence it cannot yet be used as the type of a bound variable in {e.WhatKind}.");
-          }
+    foreach (var boundVar in e.BoundVars) {
+      if (boundVar.Type.NormalizeExpandKeepConstraints().AsRedirectingType is not ((SubsetTypeDecl or NewtypeDecl)
+          and var declWithConstraints)) {
+        continue;
+      }
+
+      if (declWithConstraints.ConstraintIsCompilable) {
+        continue;
+      }
+
+      var relatedInformation = new List<DafnyRelatedInformation>();
+      if (declWithConstraints.Constraint != null && declWithConstraints.Constraint.Origin.line != 0) {
+        var errorCollector = new FirstErrorCollector(reporter.Options);
+        ExpressionTester.CheckIsCompilable(null, errorCollector, declWithConstraints.Constraint,
+          new CodeContextWrapper(declWithConstraints, true));
+        if (errorCollector.Collected) {
+          relatedInformation.Add(new DafnyRelatedInformation(errorCollector.FirstCollectedToken,
+              "The constraint is not compilable because " + errorCollector.FirstCollectedMessage));
         }
       }
+      var message = $"{boundVar.Type} is a {declWithConstraints.WhatKind} and its constraint is not compilable, " +
+                    $"hence it cannot yet be used as the type of a bound variable in {e.WhatKind}.";
+      reporter.MessageCore(new DafnyDiagnostic(MessageSource.Resolver, null,
+        boundVar.ReportingRange, message, ErrorLevel.Error, relatedInformation));
     }
     return base.Traverse(e, field, parent);
   }

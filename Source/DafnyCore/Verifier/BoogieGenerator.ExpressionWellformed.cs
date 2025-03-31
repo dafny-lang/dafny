@@ -289,6 +289,14 @@ namespace Microsoft.Dafny {
           }
         case LiteralExpr:
           CheckResultToBeInType(expr.Origin, expr, expr.Type, locals, builder, etran);
+          if (expr is StringLiteralExpr stringLiteralExpr) {
+            var ancestorSeqType = (SeqType)expr.Type.NormalizeToAncestorType();
+            var elementType = ancestorSeqType.Arg;
+            foreach (var ch in Util.UnescapedCharacters(options, (string)stringLiteralExpr.Value, stringLiteralExpr.IsVerbatim)) {
+              var rawElement = FunctionCall(GetToken(stringLiteralExpr), BuiltinFunction.CharFromInt, null, Boogie.Expr.Literal(ch));
+              CheckSubrange(expr.Origin, rawElement, Type.Char, elementType, expr, builder);
+            }
+          }
           break;
         case ThisExpr:
         case WildcardExpr:
@@ -825,7 +833,7 @@ namespace Microsoft.Dafny {
                   var (errorMessage, successMessage) = CustomErrorMessage(p.Attributes);
                   foreach (var ss in TrSplitExpr(builder.Context, precond, etran, true, out _)) {
                     if (ss.IsChecked) {
-                      var tok = new NestedOrigin(GetToken(expr), ss.Tok);
+                      var tok = new NestedOrigin(GetToken(expr), ss.Tok, "this proposition could not be proved");
                       var desc = new PreconditionSatisfied(directPrecond, errorMessage, successMessage);
                       if (wfOptions.AssertKv != null) {
                         // use the given assert attribute only

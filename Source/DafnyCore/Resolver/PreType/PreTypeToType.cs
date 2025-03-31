@@ -5,6 +5,7 @@
 //
 //-----------------------------------------------------------------------------
 
+using System;
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 using System.Linq;
@@ -124,6 +125,14 @@ class PreTypeToTypeVisitor : ASTVisitor<IASTVisitorContext> {
         VisitPattern(lhs, context);
       }
     } else if (expr is DatatypeValue datatypeValue) {
+      // If the datatype has no type parameters, then .InferredTypeArgs.Count == .InferredPreTypeArgs.Count == 0.
+      // If it has type parameters, say n of them, then:
+      //     with Ctor(args),                 .InferredTypeArgs.Count == 0 and .InferredPreTypeArgs.Count == n
+      //     with Dt<TArgs>.Ctor(args),       .InferredTypeArgs.Count == .InferredPreTypeArgs.Count == n
+      //     with Dt.Ctor(args),              .InferredTypeArgs.Count == .InferredPreTypeArgs.Count == n where the .InferredTypeArgs are
+      //                                      all InferredTypeProxy's.
+      // Note that "TArgs" may contain types whose type arguments are InferredTypeProxy's; this happens if a type argument
+      // in "TArgs" is given without its arguments
       Contract.Assert(datatypeValue.InferredTypeArgs.Count == 0 || datatypeValue.InferredTypeArgs.Count == datatypeValue.InferredPreTypeArgs.Count);
       if (datatypeValue.InferredTypeArgs.Any(typeArg => typeArg is InferredTypeProxy)) {
         Contract.Assert(datatypeValue.InferredTypeArgs.All(typeArg => typeArg is InferredTypeProxy));
@@ -132,15 +141,15 @@ class PreTypeToTypeVisitor : ASTVisitor<IASTVisitorContext> {
       Contract.Assert(datatypeValue.InferredPreTypeArgs.Count == datatypeDecl.TypeArgs.Count);
 
       for (var i = 0; i < datatypeDecl.TypeArgs.Count; i++) {
-        var formal = datatypeDecl.TypeArgs[i];
         var actualPreType = datatypeValue.InferredPreTypeArgs[i];
         if (i < datatypeValue.InferredTypeArgs.Count) {
           var givenTypeOrProxy = datatypeValue.InferredTypeArgs[i];
           PreType2TypeUtil.Combine(givenTypeOrProxy, actualPreType, givenTypeOrProxy is TypeProxy);
         } else {
-          datatypeValue.InferredTypeArgs.Add(PreType2TypeUtil.PreType2RefinableType(actualPreType, formal.Variance));
+          datatypeValue.InferredTypeArgs.Add(PreType2TypeUtil.PreType2RefinableType(actualPreType));
         }
       }
+
     } else if (expr is ConversionExpr conversionExpr) {
       PreType2TypeUtil.Combine(conversionExpr.ToType, conversionExpr.PreType, false);
       expr.Type = conversionExpr.ToType;
@@ -178,6 +187,9 @@ class PreTypeToTypeVisitor : ASTVisitor<IASTVisitorContext> {
     if (expr is SeqSelectExpr { Seq: { Type: { AsMultiSetType: { } } } }) {
       expr.UnnormalizedType = systemModuleManager.Nat();
       return;
+    } else if (expr is SeqSelectExpr { SelectOne: false }) {
+      expr.Type = PreType2TypeUtil.PreType2FixedType(expr.PreType);
+      return;
     }
 
     // Case: fixed pre-type type
@@ -190,7 +202,7 @@ class PreTypeToTypeVisitor : ASTVisitor<IASTVisitorContext> {
     }
 
     // Case: refinement-wrapper pre-type type
-    expr.UnnormalizedType = PreType2TypeUtil.PreType2RefinableType(expr.PreType, TypeParameter.TPVariance.Co);
+    expr.UnnormalizedType = PreType2TypeUtil.PreType2RefinableType(expr.PreType);
   }
 
   private void VisitPattern<VT>(CasePattern<VT> casePattern, IASTVisitorContext context) where VT : class, IVariable {
@@ -224,7 +236,17 @@ class PreTypeToTypeVisitor : ASTVisitor<IASTVisitorContext> {
       // convert the type of the RHS, which we expect to be a reference type, and then create the non-null version of it
       var udtConvertedFromPretype = (UserDefinedType)PreType2TypeUtil.PreType2FixedType(tRhs.PreType);
       Contract.Assert(udtConvertedFromPretype.IsRefType);
-      if (tRhs.ArrayDimensions != null) {
+      if (tRhs is AllocateClass allocateClass) {
+        // Fill in any missing type arguments in the user-supplied tRhs.EType.
+        PreType2TypeUtil.Combine(allocateClass.Type, tRhs.PreType, false);
+        rhsType = (UserDefinedType)allocateClass.Type;
+        if (allocateClass.InitCall != null) {
+          // We want the type of tRhs.InitCall.MethodSelect.Obj to be the same as what the "new" gives, but the previous
+          // visitation of this MemberSelectExpr would have set it to the type obtained from the pre-type. Since the MemberSelectExpr
+          // won't be visited again during type refinement, we set it here once and for all.
+          allocateClass.InitCall.MethodSelect.Obj.UnnormalizedType = rhsType;
+        }
+      } else if (tRhs is AllocateArray allocateArray) {
         // In this case, we expect tRhs.PreType (and udtConvertedFromPretype) to be an array type
         var arrayPreType = (DPreType)tRhs.PreType.Normalize();
         Contract.Assert(arrayPreType.Decl is ArrayClassDecl);
@@ -236,20 +258,12 @@ class PreTypeToTypeVisitor : ASTVisitor<IASTVisitorContext> {
         // tRhs.EType may contain user-supplied subset types. But tRhs.EType may also be missing some type arguments altogether, because
         // they may have been omitted in the source text. The following has the effect of filling in any such missing components with
         // whatever was inferred during pre-type inference.
-        PreType2TypeUtil.Combine(tRhs.EType, arrayPreType.Arguments[0], false);
-        var arrayTypeDecl = systemModuleManager.arrayTypeDecls[tRhs.ArrayDimensions.Count];
-        var rhsMaybeNullType = new UserDefinedType(stmt.Origin, arrayTypeDecl.Name, arrayTypeDecl, [tRhs.EType]);
+        PreType2TypeUtil.Combine(allocateArray.ExplicitType, arrayPreType.Arguments[0], false);
+        var arrayTypeDecl = systemModuleManager.arrayTypeDecls[allocateArray.ArrayDimensions.Count];
+        var rhsMaybeNullType = new UserDefinedType(stmt.Origin, arrayTypeDecl.Name, arrayTypeDecl, [allocateArray.ExplicitType]);
         rhsType = UserDefinedType.CreateNonNullType(rhsMaybeNullType);
       } else {
-        // Fill in any missing type arguments in the user-supplied tRhs.EType.
-        PreType2TypeUtil.Combine(tRhs.EType, tRhs.PreType, false);
-        rhsType = (UserDefinedType)tRhs.EType;
-        if (tRhs.InitCall != null) {
-          // We want the type of tRhs.InitCall.MethodSelect.Obj to be the same as what the "new" gives, but the previous
-          // visitation of this MemberSelectExpr would have set it to the type obtained from the pre-type. Since the MemberSelectExpr
-          // won't be visited again during type refinement, we set it here once and for all.
-          tRhs.InitCall.MethodSelect.Obj.UnnormalizedType = rhsType;
-        }
+        throw new cce.UnreachableException();
       }
       tRhs.Type = rhsType;
 

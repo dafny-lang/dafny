@@ -293,13 +293,19 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
           } else {
             token = null;
           }
-          var dafnyToken = BoogieGenerator.ToDafnyToken(true, errorToken);
+          var dafnyToken = BoogieGenerator.ToDafnyToken(errorToken);
 
           // It's not necessary to restate the postcondition itself if the user is already hovering it
           // however, nested postconditions should be displayed
 
           if (dafnyToken.IncludesRange && !hoveringPostcondition) {
-            var originalText = dafnyToken.PrintOriginal();
+            string originalText;
+            if (dafnyToken.EntireRange != null) {
+              originalText = dafnyToken.EntireRange.PrintOriginal();
+            } else {
+              var tokenNode = ideState.Program.FindNode<Node>(dafnyToken.Uri, dafnyToken.ToDafnyPosition());
+              originalText = tokenNode.EntireRange.PrintOriginal();
+            }
             deltaInformation += "  \n" + (token == null ? couldProveOrNotPrefix : "Inside ") + "`" + originalText + "`";
           }
 

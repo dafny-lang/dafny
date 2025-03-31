@@ -17,7 +17,7 @@ public interface INewOrOldResolver {
   void ConstrainTypeExprBool(Expression expression, string message);
   void ResolveStatement(Statement statement, ResolutionContext resolutionContext);
   void ResolveTypeRhs(TypeRhs typeRhs, Statement statement, ResolutionContext resolutionContext);
-  void ResolveBlockStatement(BlockStmt blockS, ResolutionContext resolutionContext);
+  void ResolveBlockStatement(BlockLikeStmt blockS, ResolutionContext resolutionContext);
 
   Scope<Thing>.PushResult ScopePushAndReport<Thing>(Scope<Thing> scope, string name, Thing thing, IOrigin tok,
     string kind) where Thing : class;

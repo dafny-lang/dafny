@@ -1,8 +1,8 @@
-Underspecified.dfy(6,6): Error: the type of this variable is underspecified
+Underspecified.dfy(6,6): Error: the type ('?9 ~> int') of this variable is underspecified
 Underspecified.dfy(6,11): Error: type of bound variable '_v0' could not be determined; please specify the type explicitly
-Underspecified.dfy(7,6): Error: the type of this variable is underspecified
+Underspecified.dfy(7,6): Error: the type ('(?11, ?12) ~> int') of this variable is underspecified
 Underspecified.dfy(7,12): Error: type of bound variable '_v1' could not be determined; please specify the type explicitly
 Underspecified.dfy(7,15): Error: type of bound variable '_v2' could not be determined; please specify the type explicitly
-Underspecified.dfy(8,6): Error: the type of this variable is underspecified
+Underspecified.dfy(8,6): Error: the type ('?14 ~> ?14') of this variable is underspecified
 Underspecified.dfy(8,11): Error: type of bound variable 'a' could not be determined; please specify the type explicitly
 7 resolution/type errors detected in Underspecified.dfy

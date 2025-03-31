@@ -9,16 +9,16 @@ namespace Microsoft.Dafny;
 /// Represents the exports of a module.
 /// </summary>
 public class ModuleExportDecl : ModuleDecl, ICanFormat {
-  public readonly bool IsDefault;
+  public bool IsDefault;
   public List<ExportSignature> Exports; // list of TopLevelDecl that are included in the export
   public List<IOrigin> Extends; // list of exports that are extended
-  [FilledInDuringResolution] public readonly List<ModuleExportDecl> ExtendDecls = [];
+  [FilledInDuringResolution] public List<ModuleExportDecl> ExtendDecls = [];
   public bool RevealAll; // only kept for initial rewriting, then discarded
   public bool ProvideAll;
   public override IEnumerable<INode> Children => Exports;
   public override IEnumerable<INode> PreResolveChildren => Exports;
 
-  public readonly VisibilityScope ThisScope;
+  public VisibilityScope ThisScope;
 
   public ModuleDefinition EffectiveModule = null;
 
@@ -105,10 +105,10 @@ public class ModuleExportDecl : ModuleDecl, ICanFormat {
     }
 
     var tentativeTrivia = "";
-    if (Center.pos < EndToken.pos) {
-      tentativeTrivia = (Center.TrailingTrivia + Center.Next?.LeadingTrivia).Trim();
+    if (NameNode.EndToken.pos < EndToken.pos) {
+      tentativeTrivia = (NameNode.EndToken.TrailingTrivia + NameNode.EndToken.Next?.LeadingTrivia).Trim();
     } else {
-      tentativeTrivia = Center.TrailingTrivia.Trim();
+      tentativeTrivia = NameNode.EndToken.TrailingTrivia.Trim();
     }
     if (tentativeTrivia != "") {
       return tentativeTrivia;

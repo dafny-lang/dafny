@@ -9,8 +9,8 @@ namespace Microsoft.Dafny;
 /// This class is used only inside the resolver itself. It gets hung in the AST in uncompleted name segments.
 /// </summary>
 class ResolverIdentifierExpr : Expression, IHasReferences, ICloneable<ResolverIdentifierExpr> {
-  public readonly TopLevelDecl Decl;
-  public readonly List<Type> TypeArgs;
+  public TopLevelDecl Decl;
+  public List<Type> TypeArgs;
   [ContractInvariantMethod]
   void ObjectInvariant() {
     Contract.Invariant(Decl != null);
@@ -76,7 +76,7 @@ class ResolverIdentifierExpr : Expression, IHasReferences, ICloneable<ResolverId
   }
 
   public IEnumerable<Reference> GetReferences() {
-    return new[] { new Reference(Center, Decl) };
+    return new[] { new Reference(ReportingRange, Decl) };
   }
 
   public ResolverIdentifierExpr Clone(Cloner cloner) {

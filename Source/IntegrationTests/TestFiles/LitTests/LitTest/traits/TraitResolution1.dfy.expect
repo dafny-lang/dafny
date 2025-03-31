@@ -6,8 +6,8 @@ TraitResolution1.dfy(96,14): Error: new can be applied only to class types (got 
 TraitResolution1.dfy(98,14): Error: new can be applied only to class types (got C?<A?>)
 TraitResolution1.dfy(101,14): Error: new can be applied only to class types (got D?<A>)
 TraitResolution1.dfy(103,14): Error: new can be applied only to class types (got D?<A?>)
-TraitResolution1.dfy(105,14): Error: new can be applied only to class types (got D<A>)
-TraitResolution1.dfy(107,14): Error: new can be applied only to class types (got D<A?>)
+TraitResolution1.dfy(105,14): Error: new can be applied only to class types (got D?<A>)
+TraitResolution1.dfy(107,14): Error: new can be applied only to class types (got D?<A?>)
 TraitResolution1.dfy(108,14): Error: new can be applied only to class types (got DSynonym<A?>)
 TraitResolution1.dfy(109,14): Error: new can be applied only to class types (got DSynonym<A?>)
 TraitResolution1.dfy(112,14): Error: new can be applied only to class types (got object?)
@@ -18,7 +18,7 @@ TraitResolution1.dfy(119,14): Error: new can be applied only to class types (got
 TraitResolution1.dfy(121,14): Error: new can be applied only to class types (got Tr<int>)
 TraitResolution1.dfy(122,14): Error: new can be applied only to class types (got Tr?<int>)
 TraitResolution1.dfy(123,14): Error: new can be applied only to class types (got Tr<int>)
-TraitResolution1.dfy(124,14): Error: new can be applied only to class types (got Tr<int>)
+TraitResolution1.dfy(124,14): Error: new can be applied only to class types (got Tr?<int>)
 TraitResolution1.dfy(136,8): Error: class 'P' inherits a member named 'data' from both trait 'A' and trait 'B'
 TraitResolution1.dfy(139,8): Error: duplicate trait parents with the same head type must also have the same type arguments; got C<Even> and C<int>
 TraitResolution1.dfy(140,8): Error: duplicate trait parents with the same head type must also have the same type arguments; got C<int> and C<real>

@@ -56,11 +56,12 @@ public class ProofDependencyWarnings {
 
   private static IEnumerable<Function> GetUnusedFunctions(string implementationName, IEnumerable<TrackedNodeComponent> coveredElements,
     IEnumerable<Axiom> axioms) {
-    if (!((options.Get(CommonOptionBag.SuggestProofRefactoring) || options.Get(CommonOptionBag.AnalyzeProofs)) && manager.idsByMemberName[implementationName].Decl is Method)) {
+    if (!((options.Get(CommonOptionBag.SuggestProofRefactoring) ||
+           options.Get(CommonOptionBag.AnalyzeProofs)) && manager.idsByMemberName[implementationName].Decl is MethodOrConstructor)) {
       return new List<Function>();
     }
 
-    if (manager.idsByMemberName[implementationName].Decl is not Method) {
+    if (manager.idsByMemberName[implementationName].Decl is not MethodOrConstructor) {
       return new List<Function>();
     }
 
@@ -93,12 +94,12 @@ public class ProofDependencyWarnings {
     var usedDependencies =
       coveredElements
         .Select(manager.GetFullIdDependency)
-        .OrderBy(dep => dep.Range.Center)
+        .OrderBy(dep => dep.Range.StartToken)
         .ThenBy(dep => dep.Description);
     var unusedDependencies =
       potentialDependencies
         .Except(usedDependencies)
-        .OrderBy(dep => dep.Range.Center)
+        .OrderBy(dep => dep.Range.StartToken)
         .ThenBy(dep => dep.Description).ToList();
 
     foreach (var unusedDependency in unusedDependencies) {
@@ -111,14 +112,14 @@ public class ProofDependencyWarnings {
             }
             reporter.Warning(MessageSource.Verifier, "",
               // OverrideCenter used to prevent changes in reporting
-              new OverrideCenter(obligation.Range, obligation.Range.StartToken), message);
+              obligation.Range.StartToken, message);
           }
         }
 
         if (unusedDependency is EnsuresDependency ensures) {
           if (ShouldWarnVacuous(scopeName, ensures)) {
-            // OverrideCenter used to prevent changes in reporting
-            reporter.Warning(MessageSource.Verifier, "", new OverrideCenter(ensures.Range, ensures.Range.StartToken),
+            reporter.Warning(MessageSource.Verifier, "",
+              new SourceOrigin(ensures.Range.StartToken, ensures.Range.EndToken),
               $"ensures clause proved using contradictory assumptions");
           }
         }
@@ -127,8 +128,7 @@ public class ProofDependencyWarnings {
       if (options.Get(CommonOptionBag.WarnRedundantAssumptions) || options.Get(CommonOptionBag.AnalyzeProofs)) {
         if (unusedDependency is RequiresDependency requires) {
           reporter.Warning(MessageSource.Verifier, "",
-            // OverrideCenter used to prevent changes in reporting
-            new OverrideCenter(requires.Range, requires.Range.StartToken),
+            new SourceOrigin(requires.Range.StartToken, requires.Range.EndToken),
             $"unnecessary requires clause");
         }
 
@@ -136,20 +136,21 @@ public class ProofDependencyWarnings {
           if (ShouldWarnUnused(assumption)) {
             reporter.Warning(MessageSource.Verifier, "",
               // OverrideCenter used to prevent changes in reporting
-              new OverrideCenter(assumption.Range, assumption.Range.StartToken),
+              assumption.Range.StartToken,
               $"unnecessary (or partly unnecessary) {assumption.Description}");
           }
         }
       }
     }
 
-    if ((options.Get(CommonOptionBag.SuggestProofRefactoring) || options.Get(CommonOptionBag.AnalyzeProofs)) && manager.idsByMemberName[scopeName].Decl is Method method) {
+    if ((options.Get(CommonOptionBag.SuggestProofRefactoring) ||
+         options.Get(CommonOptionBag.AnalyzeProofs)) && manager.idsByMemberName[scopeName].Decl is MethodOrConstructor method) {
       SuggestFunctionHiding(unusedFunctions, method);
       SuggestByProofRefactoring(scopeName, assertCoverage.ToList());
     }
   }
 
-  private static void SuggestFunctionHiding(IEnumerable<Function> unusedFunctions, Method method) {
+  private static void SuggestFunctionHiding(IEnumerable<Function> unusedFunctions, MethodOrConstructor method) {
     if (unusedFunctions.Any()) {
       reporter.Info(MessageSource.Verifier, method.Body.StartToken,
         $"Consider hiding {(unusedFunctions.Count() > 1 ? "these functions, which are" : "this function, which is")} unused by the proof: {unusedFunctions.Comma()}");
@@ -173,7 +174,7 @@ public class ProofDependencyWarnings {
         continue;
       }
 
-      IOrigin range = null;
+      TokenRange range = null;
       var factProvider = "";
       var factConsumer = "";
       var recommendation = "";
@@ -198,7 +199,8 @@ public class ProofDependencyWarnings {
 
       switch (assertDepProvenByFact) {
         case CallDependency call: {
-            factConsumer = $"precondition{(call.call.Method.Req.Count > 1 ? "s" : "")} of the method call {call.Range.Center.Next.TokenToString(options)}";
+            factConsumer = $"precondition{(call.call.Method.Req.Count > 1 ? "s" : "")} of the method call " +
+                           $"{call.Range.StartToken.Next.OriginToString(options)}";
             break;
           }
         case ProofObligationDependency { ProofObligation: AssertStatementDescription }: {
@@ -209,7 +211,7 @@ public class ProofDependencyWarnings {
       }
 
       if (completeInformation) {
-        reporter.Info(MessageSource.Verifier, range,
+        reporter.Info(MessageSource.Verifier, range.StartToken,
           $"This {factProvider} was only used to prove the {factConsumer}. Consider {recommendation} a by-proof.");
       }
     }

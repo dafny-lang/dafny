@@ -1,1 +1,2 @@
-// CHECK-L: Arrays.dfy(493,5): Error: Feature not supported for this compilation target: Multi-dimensional arrays
+// CHECK-L: Arrays.dfy(540,22): Error: Unsupported Invalid Operation: Creation of object of type MyClass requires a constructor
+

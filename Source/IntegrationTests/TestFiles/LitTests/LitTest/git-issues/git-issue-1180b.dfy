@@ -58,7 +58,7 @@ module StartingFromOpaqueType {
     }
   }
   module Trait refines A {
-    trait Ty {
+    trait Ty extends object {
       var q: int
       function F(x: nat): nat { x } // error: postcondition violation
       method M(x: nat) returns (r: nat) { r := c; } // error: postcondition violation

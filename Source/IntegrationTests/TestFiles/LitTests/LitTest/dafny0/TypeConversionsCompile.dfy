@@ -1,4 +1,4 @@
-// RUN: %testDafnyForEachCompiler --refresh-exit-code=0 "%s" -- --relax-definite-assignment
+// RUN: %testDafnyForEachCompiler --refresh-exit-code=0 "%s" -- --relax-definite-assignment --general-newtypes=false
 
 // Note the difference in output in Java's case is due to
 // https://github.com/dafny-lang/dafny/issues/4152

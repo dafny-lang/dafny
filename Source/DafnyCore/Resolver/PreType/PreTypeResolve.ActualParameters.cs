@@ -23,12 +23,12 @@ namespace Microsoft.Dafny {
       Contract.Requires(bindings != null);
       Contract.Requires(formals != null);
       Contract.Requires(callTok != null);
-      Contract.Requires(context is Method || context is Function || context is DatatypeCtor || context is ArrowType);
+      Contract.Requires(context is MethodOrConstructor || context is Function || context is DatatypeCtor || context is ArrowType);
       Contract.Requires(typeMap != null);
 
       string whatKind;
       string name;
-      if (context is Method cMethod) {
+      if (context is MethodOrConstructor cMethod) {
         whatKind = cMethod.WhatKind;
         name = $"{whatKind} '{cMethod.Name}'";
       } else if (context is Function cFunction) {

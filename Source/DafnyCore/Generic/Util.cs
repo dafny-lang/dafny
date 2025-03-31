@@ -630,9 +630,9 @@ namespace Microsoft.Dafny {
                 if (f.IsRecursive) {
                   IncrementStat(stats, "Functions recursive");
                 }
-              } else if (member is Method) {
+              } else if (member is MethodOrConstructor) {
                 IncrementStat(stats, "Methods (total)");
-                var method = (Method)member;
+                var method = (MethodOrConstructor)member;
                 if (method.IsRecursive) {
                   IncrementStat(stats, "Methods recursive");
                 }

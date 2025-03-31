@@ -88,7 +88,7 @@ public class DafnyCodeActionHandler : CodeActionHandlerBase {
 
   private DafnyCodeActionProvider[] GetDafnyCodeActionProviders() {
     return new List<DafnyCodeActionProvider>() {
-      new VerificationDafnyCodeActionProvider(logger)
+      new PostConditionAssertDafnyCodeActionProvider(logger)
     , new ErrorMessageDafnyCodeActionProvider(logger)
     , new ImplicitFailingAssertionCodeActionProvider(logger, options)
     }

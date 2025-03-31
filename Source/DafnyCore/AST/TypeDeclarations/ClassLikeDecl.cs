@@ -98,4 +98,6 @@ public abstract class ClassLikeDecl : TopLevelDeclWithMembers, RevealableTypeDec
 
     return null;
   }
+
+  public override string ReferenceName => base.ReferenceName + (IsReferenceTypeDecl ? "?" : "");
 }

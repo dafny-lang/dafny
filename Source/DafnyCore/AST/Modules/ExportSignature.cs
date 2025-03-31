@@ -4,11 +4,11 @@ using System.Linq;
 
 namespace Microsoft.Dafny;
 
-public class ExportSignature : NodeWithComputedRange, IHasReferences {
-  public readonly IOrigin ClassIdTok;
-  public readonly bool Opaque;
-  public readonly string ClassId;
-  public readonly string Id;
+public class ExportSignature : NodeWithOrigin, IHasReferences {
+  public IOrigin ClassIdTok;
+  public bool Opaque;
+  public string ClassId;
+  public string Id;
 
   [FilledInDuringResolution] public Declaration Decl;
 
@@ -54,6 +54,6 @@ public class ExportSignature : NodeWithComputedRange, IHasReferences {
   public override IEnumerable<INode> Children => Enumerable.Empty<Node>();
   public override IEnumerable<INode> PreResolveChildren => Enumerable.Empty<Node>();
   public IEnumerable<Reference> GetReferences() {
-    return new[] { new Reference(Origin, Decl) };
+    return new[] { new Reference(ReportingRange, Decl) };
   }
 }

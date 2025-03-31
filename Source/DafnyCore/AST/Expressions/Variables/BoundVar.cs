@@ -8,7 +8,8 @@ namespace Microsoft.Dafny;
 public class BoundVar : NonglobalVariable {
   public override bool IsMutable => false;
 
-  public BoundVar(IOrigin origin, string name, Type type, bool isGhost = false) : this(origin, new Name(origin.StartToken, name), type, isGhost) { }
+  public BoundVar(IOrigin origin, string name, Type type, bool isGhost = false)
+    : this(origin, new Name(origin.Center, name), type, isGhost) { }
 
   [SyntaxConstructor]
   public BoundVar(IOrigin origin, Name nameNode, Type type, bool isGhost = false)
@@ -26,8 +27,8 @@ public class BoundVar : NonglobalVariable {
 /// </summary>
 [DebuggerDisplay("Quantified<{name}>")]
 public class QuantifiedVar : BoundVar {
-  public readonly Expression Domain;
-  public readonly Expression Range;
+  public Expression Domain;
+  public Expression Range;
 
   public QuantifiedVar(IOrigin tok, string name, Type type, Expression domain, Expression range)
     : base(tok, name, type) {
@@ -85,7 +86,7 @@ public interface IBoundVarsBearingExpression {
 }
 
 class QuantifiedVariableDomainCloner : Cloner {
-  public static readonly QuantifiedVariableDomainCloner Instance = new QuantifiedVariableDomainCloner();
+  public static QuantifiedVariableDomainCloner Instance = new QuantifiedVariableDomainCloner();
   private QuantifiedVariableDomainCloner() { }
   public override IOrigin Origin(IOrigin tok) {
     if (tok == null) {
@@ -97,7 +98,7 @@ class QuantifiedVariableDomainCloner : Cloner {
 }
 
 class QuantifiedVariableRangeCloner : Cloner {
-  public static readonly QuantifiedVariableRangeCloner Instance = new QuantifiedVariableRangeCloner();
+  public static QuantifiedVariableRangeCloner Instance = new QuantifiedVariableRangeCloner();
   private QuantifiedVariableRangeCloner() { }
   public override IOrigin Origin(IOrigin tok) {
     if (tok == null) {

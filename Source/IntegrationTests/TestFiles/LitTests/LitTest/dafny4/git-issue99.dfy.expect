@@ -1,3 +1,3 @@
 git-issue99.dfy(6,22): Error: Type or type parameter is not declared in this scope: BOGUS_TYPE (did you forget to qualify a name or declare a module import 'opened'?) (note that names in outer modules are not visible in contained modules)
-git-issue99.dfy(6,44): Error: second argument to "in" must be a set, multiset, or sequence with elements of type (BOGUS_TYPE, T2), or a map with domain (BOGUS_TYPE, T2) (instead got iset<(T1, T2)>) (expecting element type to be assignable to (T1, T2) (got (BOGUS_TYPE, T2)))
+git-issue99.dfy(6,44): Error: expecting element type to be assignable to (T1, T2) (got ((), T2))
 2 resolution/type errors detected in git-issue99.dfy

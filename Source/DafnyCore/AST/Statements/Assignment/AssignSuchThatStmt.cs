@@ -9,8 +9,8 @@ namespace Microsoft.Dafny;
 /// Parsed from ":|"
 /// </summary>
 public class AssignSuchThatStmt : ConcreteAssignStatement, ICloneable<AssignSuchThatStmt>, ICanResolveNewAndOld {
-  public readonly Expression Expr;
-  public readonly AttributedToken AssumeToken;
+  public Expression Expr;
+  public AttributedToken AssumeToken;
 
   public override IEnumerable<INode> PreResolveChildren =>
     Lhss.Concat<Node>(new List<Node>() { Expr });
@@ -25,6 +25,10 @@ public class AssignSuchThatStmt : ConcreteAssignStatement, ICloneable<AssignSuch
     public override BoundedPool Clone(Cloner cloner) {
       return this;
     }
+  }
+
+  public override IEnumerable<IdentifierExpr> GetAssignedLocals() {
+    return Lhss.Select(lhs => lhs.Resolved).OfType<IdentifierExpr>();
   }
 
   public override IEnumerable<INode> Children => Lhss.Concat<Node>(new[] { Expr });

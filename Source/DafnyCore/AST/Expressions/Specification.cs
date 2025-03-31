@@ -4,21 +4,17 @@ using System.Diagnostics.Contracts;
 
 namespace Microsoft.Dafny;
 
-public class Specification<T> : NodeWithComputedRange, IAttributeBearingDeclaration
+public class Specification<T> : NodeWithoutOrigin, IAttributeBearingDeclaration
   where T : Node {
-  public readonly List<T>? Expressions;
+  public List<T>? Expressions;
 
   public Specification() {
     Expressions = [];
     Attributes = null;
   }
 
-  [SyntaxConstructor]
-  public Specification(IOrigin origin, List<T>? expressions, Attributes attributes) : base(origin) {
-    Expressions = expressions;
-    Attributes = attributes;
-  }
 
+  [SyntaxConstructor]
   public Specification(List<T>? expressions, Attributes? attributes) {
     Expressions = expressions;
     Attributes = attributes;

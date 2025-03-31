@@ -3,7 +3,7 @@ using System.Diagnostics.Contracts;
 namespace Microsoft.Dafny;
 
 public class FreshExpr : UnaryOpExpr, ICloneable<FreshExpr> {
-  public readonly string/*?*/ At;
+  public string/*?*/ At;
   [FilledInDuringResolution] public Label/*?*/ AtLabel;  // after that, At==null iff AtLabel==null
 
   public FreshExpr(IOrigin origin, Expression e, string at = null)

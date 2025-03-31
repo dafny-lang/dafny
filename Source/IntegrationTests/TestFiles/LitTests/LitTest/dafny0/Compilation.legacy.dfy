@@ -1,5 +1,5 @@
 // NONUNIFORM: /autoTriggers:0 not supported by new CLI
-// RUN: %dafny /compile:3 /deprecation:0 /autoTriggers:0 "%s" > "%t"
+// RUN: %dafny /compile:3 /deprecation:0 /autoTriggers:0 /typeSystemRefresh:0 /generalNewtypes:0 "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 // The tests in this file are designed to run through the compiler.  They contain

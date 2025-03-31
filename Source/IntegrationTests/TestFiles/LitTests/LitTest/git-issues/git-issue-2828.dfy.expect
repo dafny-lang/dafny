@@ -1,4 +1,2 @@
 git-issue-2828.dfy(6,9): Error: unresolved identifier: arr
-git-issue-2828.dfy(6,13): Error: incorrect type for selection into ? (got int)
-git-issue-2828.dfy(6,12): Error: sequence has type ? which is incompatible with expected type bool
-3 resolution/type errors detected in git-issue-2828.dfy
+1 resolution/type errors detected in git-issue-2828.dfy

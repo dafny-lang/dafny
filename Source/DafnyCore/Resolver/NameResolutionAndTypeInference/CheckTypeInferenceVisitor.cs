@@ -158,7 +158,7 @@ class CheckTypeInferenceVisitor : ASTVisitor<TypeInferenceCheckingContext> {
 
     } else if (expr is MemberSelectExpr) {
       var e = (MemberSelectExpr)expr;
-      if (e.Member is Function || e.Member is Method) {
+      if (e.Member is Function or MethodOrConstructor) {
         var i = 0;
         foreach (var p in Util.Concat(e.TypeApplicationAtEnclosingClass, e.TypeApplicationJustMember)) {
           var tp = i < e.TypeApplicationAtEnclosingClass.Count ?

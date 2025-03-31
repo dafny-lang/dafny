@@ -17,7 +17,7 @@ public class JavaBenchmarkCompilationInstrumenter : GenericCompilationInstrument
     }
   }
 
-  public override void BeforeMethod(Method m, ConcreteSyntaxTree wr) {
+  public override void BeforeMethod(MethodOrConstructor m, ConcreteSyntaxTree wr) {
     if (Attributes.Contains(m.EnclosingClass.Attributes, "benchmarks")) {
       if (m is Constructor) {
         if (m.Ins.Any()) {

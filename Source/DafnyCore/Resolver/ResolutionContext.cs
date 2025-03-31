@@ -30,7 +30,7 @@ public record ResolutionContext(ICodeContext CodeContext, bool IsTwoState, bool 
 
   public IMethodCodeContext AsMethodCodeContext => CodeContext as IMethodCodeContext;
 
-  public Method AsMethod => CodeContext as Method;
+  public MethodOrConstructor AsMethod => CodeContext as MethodOrConstructor;
 
   public ResolutionContext WithGhost(bool isGhost) {
     if (CodeContext.IsGhost == isGhost) {

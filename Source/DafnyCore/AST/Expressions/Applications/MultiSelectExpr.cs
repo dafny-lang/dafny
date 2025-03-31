@@ -5,8 +5,8 @@ using System.Linq;
 namespace Microsoft.Dafny;
 
 public class MultiSelectExpr : Expression, ICloneable<MultiSelectExpr> {
-  public readonly Expression Array;
-  public readonly List<Expression> Indices;
+  public Expression Array;
+  public List<Expression> Indices;
   [ContractInvariantMethod]
   void ObjectInvariant() {
     Contract.Invariant(Array != null);

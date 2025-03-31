@@ -81,7 +81,7 @@ public class MatchExpr : Expression, IMatch, ICloneable<MatchExpr> {  // a Match
   }
 }
 
-public abstract class MatchCase : NodeWithComputedRange, IHasReferences {
+public abstract class MatchCase : NodeWithOrigin, IHasReferences {
   public DatatypeCtor Ctor;
   public List<BoundVar> Arguments;
 
@@ -101,7 +101,7 @@ public abstract class MatchCase : NodeWithComputedRange, IHasReferences {
   }
 
   public IEnumerable<Reference> GetReferences() {
-    return new[] { new Reference(Origin, Ctor) };
+    return new[] { new Reference(ReportingRange, Ctor) };
   }
 }
 

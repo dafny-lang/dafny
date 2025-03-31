@@ -1,3 +1,3 @@
-Regression0.dfy(7,12): Error: All elements of display must have some common supertype (got int, but needed type or type of previous elements is seq<char>)
-Regression0.dfy(11,25): Error: second argument to "in" must be a set, multiset, or sequence with elements of type int, or a map with domain int (instead got seq<seq<char>>) (expecting element type to be assignable to seq<char> (got int))
+Regression0.dfy(7,15): Error: All elements of display must have some common supertype (got string, but needed type or type of previous elements is int)
+Regression0.dfy(9,15): Error: expecting element type to be assignable to int (got string)
 2 resolution/type errors detected in Regression0.dfy

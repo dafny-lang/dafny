@@ -1,16 +1,16 @@
-// RUN: %exits-with 2 %verify "%s" > "%t"
-// RUN: %diff "%s.expect" "%t"
+// RUN: %testDafnyForEachResolver --expect-exit-code=2 "%s"
+
 
 module Comparator {
   datatype Comparator = Comparator(int)
 }
 
 abstract module ADT {
-  import C : Comparator
+  import C: Comparator
 }
 
 abstract module CC {
-  import C : Comparator
+  import C: Comparator
 }
 
 abstract module IntADT {
@@ -19,8 +19,8 @@ abstract module IntADT {
 
   method m()
   {
-    var cmp : CC.C.Comparator := CC.C.Comparator(0);
-    var cmp2 : ADT.C.Comparator := cmp;
+    var cmp: CC.C.Comparator := CC.C.Comparator(0);
+    var cmp2: ADT.C.Comparator := cmp;
   }
 }
 
