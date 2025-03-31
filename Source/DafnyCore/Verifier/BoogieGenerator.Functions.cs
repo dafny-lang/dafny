@@ -223,7 +223,7 @@ public partial class BoogieGenerator {
           // all parameters are included in the CanCall, so that's the only antecedent we need
           Contract.Assert(formals.Contains(bvHeap));
         } else {
-          // CanCall does not include the heap parameter, but, since we will quantify over a heap, we need to
+          // CanCall does not include the heap parameter but, since we will quantify over a heap, we need to
           // make sure the other parameters are connected to that heap
           Contract.Assert(f is not TwoStateFunction);
           ante = BplAnd(ante, parametersIsAlloc);
