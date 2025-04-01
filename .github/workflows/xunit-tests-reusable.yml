@@ -49,7 +49,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-20.04, windows-2019, macos-13]
+        os: [ubuntu-22.04, windows-2019, macos-13]
         iteration: ${{ fromJson(needs.populate-matrix-dimensions.outputs.iterations) }}
         include:
           - os: macos-13
@@ -58,8 +58,8 @@ jobs:
           - os: windows-2019
             suffix: win
             chmod: false
-          - os: ubuntu-20.04
-            suffix: ubuntu-20.04
+          - os: ubuntu-22.04
+            suffix: ubuntu-22.04
             chmod: true
     env:
       solutionPath: Source/Dafny.sln
