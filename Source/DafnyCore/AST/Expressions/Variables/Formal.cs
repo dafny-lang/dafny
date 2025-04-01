@@ -14,7 +14,7 @@ public class Formal : NonglobalVariable {
   public Expression? DefaultValue;
   public bool IsNameOnly;
   public bool IsOlder;
-  public string? NameForCompilation;
+  public string NameForCompilation;
 
   public Formal(IOrigin origin, string name, Type? type, bool inParam, bool isGhost, Expression? defaultValue,
     Attributes? attributes = null,
