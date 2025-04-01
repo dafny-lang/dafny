@@ -16,7 +16,7 @@ public class Formal : NonglobalVariable {
   public bool IsOlder;
   public string? NameForCompilation;
 
-  public Formal(IOrigin origin, string name, Type type, bool inParam, bool isGhost, Expression? defaultValue,
+  public Formal(IOrigin origin, string name, Type? type, bool inParam, bool isGhost, Expression? defaultValue,
     Attributes? attributes = null,
     bool isOld = false, bool isNameOnly = false, bool isOlder = false, string? nameForCompilation = null)
     : this(origin, new Name(origin.ReportingRange.StartToken, name), type, inParam, isGhost, defaultValue, attributes,
