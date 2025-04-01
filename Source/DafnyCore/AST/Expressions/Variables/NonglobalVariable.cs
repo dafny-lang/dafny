@@ -1,3 +1,5 @@
+#nullable enable
+
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 using System.Linq;
@@ -8,33 +10,21 @@ namespace Microsoft.Dafny;
 public abstract class NonglobalVariable : NodeWithOrigin, IVariable {
   public Name NameNode { get; }
 
-  protected NonglobalVariable(IOrigin origin, Name nameNode, Type type, bool isGhost) : base(origin) {
-    Contract.Requires(origin != null);
-    Contract.Requires(nameNode != null);
-    Contract.Requires(type != null);
-    this.NameNode = nameNode;
-    IsTypeExplicit = type != null;
-    this.type = type ?? new InferredTypeProxy();
-    this.IsGhost = isGhost;
+  [SyntaxConstructor]
+  protected NonglobalVariable(IOrigin? origin, Name nameNode, Type? syntacticType, bool isGhost) : base(origin) {
+    NameNode = nameNode;
+    SyntacticType = syntacticType;
+    IsGhost = isGhost;
   }
 
-  [ContractInvariantMethod]
-  void ObjectInvariant() {
-    Contract.Invariant(type != null);
-  }
+  public string Name => NameNode.Value;
 
-  public string Name {
-    get {
-      Contract.Ensures(Contract.Result<string>() != null);
-      return NameNode.Value;
-    }
-  }
-  public string DafnyName => Origin == null || Origin.line == 0 ? Name : EntireRange.PrintOriginal();
+  public string DafnyName => Origin.line == 0 ? Name : EntireRange.PrintOriginal();
   public string DisplayName =>
     LocalVariable.DisplayNameHelper(this);
 
-  private string uniqueName;
-  public string UniqueName => uniqueName;
+  private string? uniqueName;
+  public string? UniqueName => uniqueName;
   public bool HasBeenAssignedUniqueName => uniqueName != null;
   public string AssignUniqueName(VerificationIdGenerator generator) {
     return uniqueName ??= generator.FreshId(Name + "#");
@@ -52,7 +42,7 @@ public abstract class NonglobalVariable : NodeWithOrigin, IVariable {
       // the identifier is one that consists of just digits
       return "_" + nm;
     }
-    string name = null;
+    string? name = null;
     int i = 0;
     while (true) {
       int j = nm.IndexOfAny(specialChars, i);
@@ -83,38 +73,36 @@ public abstract class NonglobalVariable : NodeWithOrigin, IVariable {
     }
   }
 
-  private string sanitizedNameShadowable;
+  private string? sanitizedNameShadowable;
 
   public virtual string CompileNameShadowable =>
     sanitizedNameShadowable ??= SanitizeName(Name);
 
-  protected string compileName;
+  protected string? compileName;
 
   public virtual string GetOrCreateCompileName(CodeGenIdGenerator generator) {
     return compileName ??= $"_{generator.FreshNumericId()}_{CompileNameShadowable}";
   }
 
-  Type type;
-  public bool IsTypeExplicit { get; set; }
-  public Type SyntacticType { get { return type; } }  // returns the non-normalized type
-  public PreType PreType { get; set; }
+  public Type? SyntacticType;
 
-  public Type Type {
-    get {
-      Contract.Ensures(Contract.Result<Type>() != null);
-      return type.Normalize();
-    }
-  }
+  private Type? safeSyntacticType;
+  public Type SafeSyntacticType =>
+    safeSyntacticType ??= SyntacticType ?? new InferredTypeProxy {
+      KeepConstraints = true
+    };
+
+  public bool IsTypeExplicit => SyntacticType != null;
+
+  public Type Type => SafeSyntacticType.Normalize();
 
   /// <summary>
   /// For a description of the difference between .Type and .UnnormalizedType, see Expression.UnnormalizedType.
   /// </summary>
-  public Type UnnormalizedType {
-    get {
-      Contract.Ensures(Contract.Result<Type>() != null);
-      return type;
-    }
-  }
+  public Type UnnormalizedType => SafeSyntacticType;
+
+  public PreType? PreType { get; set; }
+
   Type IVariable.OptionalType {
     get { return Type; }  // same as Type for NonglobalVariable
   }

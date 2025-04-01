@@ -82,7 +82,7 @@ public class LambdaExpr : ComprehensionExpr, ICloneable<LambdaExpr>, IFrameScope
     }
 
     foreach (var bv in BoundVars) {
-      if (bv.SyntacticType != null) {
+      if (bv.IsTypeExplicit) {
         formatter.SetTypeIndentation(bv.SyntacticType);
       }
     }

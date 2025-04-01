@@ -334,7 +334,7 @@ experimentalPredicateAlwaysGhost - Compiled functions are written `function`. Gh
     Attributes.SetIndents(Attributes, indentBefore, formatter);
     formatter.SetFormalsIndentation(Ins);
     if (Result is { } outFormal) {
-      formatter.SetTypeIndentation(outFormal.SyntacticType);
+      formatter.SetTypeIndentation(outFormal.SafeSyntacticType);
     }
 
     foreach (var req in Req) {

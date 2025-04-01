@@ -3766,7 +3766,7 @@ LambdaExpression<out Expression e, bool allowLemma, bool allowBitwiseOps>
      Expression req = null;
      Expression body = null;
   .)
-  ( WildIdent<out id, true>                  (. x = t; bvs.Add(new BoundVar(new SourceOrigin(x, x, id), id.val, new InferredTypeProxy())); .)
+  ( WildIdent<out id, true>                  (. x = t; bvs.Add(new BoundVar(new SourceOrigin(x, x, id), id.val)); .)
   | "("                                      (. x = t; .)
       [
         IdentTypeOptional<out bv>            (. bvs.Add(bv); .)

@@ -268,11 +268,9 @@ namespace Microsoft.Dafny {
     public virtual Formal CloneFormal(Formal formal, bool isReference) {
       return (Formal)clones.GetOrCreate(formal, () => isReference
        ? formal
-       : new Formal(Origin(formal.Origin), new Name(this, formal.NameNode), CloneType(formal.Type), formal.InParam, formal.IsGhost,
+       : new Formal(Origin(formal.Origin), new Name(this, formal.NameNode), CloneType(formal.SyntacticType), formal.InParam, formal.IsGhost,
          CloneExpr(formal.DefaultValue), CloneAttributes(formal.Attributes),
-         formal.IsOld, formal.IsNameOnly, formal.IsOlder, formal.NameForCompilation) {
-         IsTypeExplicit = formal.IsTypeExplicit
-       });
+         formal.IsOld, formal.IsNameOnly, formal.IsOlder, formal.NameForCompilation));
     }
 
     public virtual BoundVar CloneBoundVar(BoundVar bv, bool isReference) {

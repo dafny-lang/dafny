@@ -63,14 +63,6 @@ abstract class Type : NodeWithOrigin
 {
 }
 
-abstract class TypeProxy : Type
-{
-}
-
-class InferredTypeProxy : TypeProxy
-{
-}
-
 abstract class NonProxyType : Type
 {
 }
@@ -282,7 +274,7 @@ abstract class ComprehensionExpr : Expression
 abstract class NonglobalVariable : NodeWithOrigin
 {
     Name nameNode;
-    Type type;
+    Type? syntacticType;
     Boolean isGhost;
 }
 

@@ -8,12 +8,12 @@ namespace Microsoft.Dafny;
 public class BoundVar : NonglobalVariable {
   public override bool IsMutable => false;
 
-  public BoundVar(IOrigin origin, string name, Type type, bool isGhost = false)
-    : this(origin, new Name(origin.Center, name), type, isGhost) { }
+  public BoundVar(IOrigin origin, string name, Type? syntacticType = null, bool isGhost = false)
+    : this(origin, new Name(origin.Center, name), syntacticType, isGhost) { }
 
   [SyntaxConstructor]
-  public BoundVar(IOrigin origin, Name nameNode, Type type, bool isGhost = false)
-    : base(origin, nameNode, type, isGhost) { }
+  public BoundVar(IOrigin origin, Name nameNode, Type? syntacticType = null, bool isGhost = false)
+    : base(origin, nameNode, syntacticType, isGhost) { }
 }
 
 /// <summary>
@@ -28,15 +28,15 @@ public class QuantifiedVar : BoundVar {
   public Expression? Domain;
   public Expression? Range;
 
-  public QuantifiedVar(IOrigin origin, string name, Type type, Expression domain, Expression range)
-    : base(origin, name, type) {
+  public QuantifiedVar(IOrigin origin, string name, Type? syntacticType, Expression domain, Expression range)
+    : base(origin, name, syntacticType) {
     Domain = domain;
     Range = range;
   }
 
   [SyntaxConstructor]
-  public QuantifiedVar(IOrigin origin, Name nameNode, Type type, Expression domain, Expression range)
-    : base(origin, nameNode, type) {
+  public QuantifiedVar(IOrigin origin, Name nameNode, Type? syntacticType, Expression domain, Expression range)
+    : base(origin, nameNode, syntacticType) {
     Domain = domain;
     Range = range;
   }

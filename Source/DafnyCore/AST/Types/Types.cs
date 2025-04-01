@@ -2112,10 +2112,6 @@ public abstract class TypeProxy : Type {
   internal TypeProxy() {
   }
 
-  [SyntaxConstructor]
-  protected TypeProxy(IOrigin origin = null) : base(origin) {
-  }
-
 #if TI_DEBUG_PRINT
   static int _id = 0;
   int id = _id++;
@@ -2206,10 +2202,6 @@ public class InferredTypeProxy : TypeProxy {
   public bool KeepConstraints = false;
 
   public InferredTypeProxy() {
-  }
-
-  [SyntaxConstructor]
-  public InferredTypeProxy(IOrigin origin = null) : base(origin) {
   }
 }
 
