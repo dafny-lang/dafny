@@ -87,10 +87,7 @@ public abstract class NonglobalVariable : NodeWithOrigin, IVariable {
   public Type? SyntacticType;
 
   private Type? safeSyntacticType;
-  public Type SafeSyntacticType =>
-    safeSyntacticType ??= SyntacticType ?? new InferredTypeProxy {
-      KeepConstraints = true
-    };
+  public Type SafeSyntacticType => safeSyntacticType ??= SyntacticType ?? new InferredTypeProxy();
 
   public bool IsTypeExplicit => SyntacticType != null;
 
