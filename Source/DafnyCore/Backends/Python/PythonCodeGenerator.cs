@@ -1913,7 +1913,7 @@ namespace Microsoft.Dafny.Compilers {
       };
     }
 
-    protected override void EmitMapDisplay(MapType mt, IOrigin tok, List<ExpressionPair> elements, bool inLetExprBody,
+    protected override void EmitMapDisplay(MapType mt, IOrigin tok, List<MapDisplayEntry> elements, bool inLetExprBody,
       ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
       wr.Write($"{DafnyMapClass}({{");
       var sep = "";

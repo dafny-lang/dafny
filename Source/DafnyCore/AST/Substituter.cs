@@ -100,12 +100,12 @@ namespace Microsoft.Dafny {
         }
       } else if (expr is MapDisplayExpr) {
         var e = (MapDisplayExpr)expr;
-        var elmts = new List<ExpressionPair>();
+        var elmts = new List<MapDisplayEntry>();
         var anyChanges = false;
         foreach (var ep in e.Elements) {
           var a = Substitute(ep.A);
           var b = Substitute(ep.B);
-          elmts.Add(new ExpressionPair(a, b));
+          elmts.Add(new MapDisplayEntry(a, b));
           if (a != ep.A || b != ep.B) {
             anyChanges = true;
           }

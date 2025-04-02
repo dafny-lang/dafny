@@ -286,7 +286,7 @@ class Formal : NonglobalVariable
     Boolean isOld;
     Boolean isNameOnly;
     Boolean isOlder;
-    String? nameForCompilation;
+    String nameForCompilation;
 }
 
 class BoundVar : NonglobalVariable
@@ -355,10 +355,10 @@ class MultiSetFormingExpr : Expression
 class MapDisplayExpr : Expression
 {
     Boolean finite;
-    List<ExpressionPair> elements;
+    List<MapDisplayEntry> elements;
 }
 
-class ExpressionPair
+class MapDisplayEntry
 {
     Expression a;
     Expression b;

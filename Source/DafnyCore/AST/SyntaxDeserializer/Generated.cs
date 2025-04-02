@@ -715,7 +715,7 @@ namespace Microsoft.Dafny
         {
             var parameter0 = ReadAbstract<IOrigin>();
             var parameter1 = ReadBoolean();
-            var parameter2 = ReadList<ExpressionPair>(() => ReadExpressionPair());
+            var parameter2 = ReadList<MapDisplayEntry>(() => ReadMapDisplayEntry());
             return new MapDisplayExpr(parameter0, parameter1, parameter2);
         }
 
@@ -729,21 +729,21 @@ namespace Microsoft.Dafny
             return ReadMapDisplayExpr();
         }
 
-        public ExpressionPair ReadExpressionPair()
+        public MapDisplayEntry ReadMapDisplayEntry()
         {
             var parameter0 = ReadAbstract<Expression>();
             var parameter1 = ReadAbstract<Expression>();
-            return new ExpressionPair(parameter0, parameter1);
+            return new MapDisplayEntry(parameter0, parameter1);
         }
 
-        public ExpressionPair ReadExpressionPairOption()
+        public MapDisplayEntry ReadMapDisplayEntryOption()
         {
             if (ReadIsNull())
             {
                 return default;
             }
 
-            return ReadExpressionPair();
+            return ReadMapDisplayEntry();
         }
 
         public SetDisplayExpr ReadSetDisplayExpr()
@@ -1920,9 +1920,9 @@ namespace Microsoft.Dafny
                 return ReadMapDisplayExpr();
             }
 
-            if (actualType == typeof(ExpressionPair))
+            if (actualType == typeof(MapDisplayEntry))
             {
-                return ReadExpressionPair();
+                return ReadMapDisplayEntry();
             }
 
             if (actualType == typeof(SetDisplayExpr))

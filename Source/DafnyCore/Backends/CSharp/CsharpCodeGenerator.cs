@@ -3413,7 +3413,7 @@ namespace Microsoft.Dafny.Compilers {
       TrExprList(elements, wr, inLetExprBody, wStmts, typeAt: _ => ct.Arg);
     }
 
-    protected override void EmitMapDisplay(MapType mt, IOrigin tok, List<ExpressionPair> elements,
+    protected override void EmitMapDisplay(MapType mt, IOrigin tok, List<MapDisplayEntry> elements,
         bool inLetExprBody, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
       var arguments = elements.Select(p => {
         var result = new ConcreteSyntaxTree();
