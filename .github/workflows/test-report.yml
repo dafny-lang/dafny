@@ -19,7 +19,7 @@ jobs:
           submodules: recursive
 
       - name: Publish Test Results
-        uses: dorny/test-reporter@v1
+        uses: dorny/test-reporter@v2
         with:
           artifact: integration-test-results-ubuntu-20.04
           name: Build and Test Results
