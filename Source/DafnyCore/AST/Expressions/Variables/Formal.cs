@@ -39,6 +39,16 @@ public class Formal : NonglobalVariable {
     NameForCompilation = nameForCompilation ?? nameNode.Value;
   }
 
+  public Formal(Cloner cloner, Formal original) : base(cloner, original) {
+    InParam = original.InParam;
+    IsOld = original.IsOld;
+    DefaultValue = cloner.CloneExpr(original.DefaultValue);
+    Attributes = cloner.CloneAttributes(original.Attributes);
+    IsNameOnly = original.IsNameOnly;
+    IsOlder = original.IsOlder;
+    NameForCompilation = original.NameForCompilation;
+  }
+
   public bool HasName => !Name.StartsWith("#");
 
   public override string GetOrCreateCompileName(CodeGenIdGenerator generator) {

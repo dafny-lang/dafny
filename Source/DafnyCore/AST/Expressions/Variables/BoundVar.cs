@@ -14,6 +14,9 @@ public class BoundVar : NonglobalVariable {
   [SyntaxConstructor]
   public BoundVar(IOrigin origin, Name nameNode, Type? syntacticType = null, bool isGhost = false)
     : base(origin, nameNode, syntacticType, isGhost) { }
+
+  public BoundVar(Cloner cloner, BoundVar original) : base(cloner, original) {
+  }
 }
 
 /// <summary>

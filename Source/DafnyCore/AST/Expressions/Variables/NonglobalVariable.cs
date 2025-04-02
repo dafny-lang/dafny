@@ -17,6 +17,15 @@ public abstract class NonglobalVariable : NodeWithOrigin, IVariable {
     IsGhost = isGhost;
   }
 
+  public NonglobalVariable(Cloner cloner, NonglobalVariable original) : base(cloner, original) {
+    NameNode = new Name(cloner, original.NameNode);
+    SyntacticType = cloner.CloneType(original.SyntacticType);
+    IsGhost = original.IsGhost;
+    if (cloner.CloneResolvedFields) {
+      safeSyntacticType = cloner.CloneType(original.safeSyntacticType);
+    }
+  }
+
   public string Name => NameNode.Value;
 
   public string DafnyName => Origin.line == 0 ? Name : EntireRange.PrintOriginal();
