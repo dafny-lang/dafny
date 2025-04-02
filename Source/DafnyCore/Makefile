@@ -7,7 +7,7 @@ DAFNY = dotnet run --project ../Dafny --no-build --roll-forward LatestMajor --
 
 all: Parser.cs
 
-Parser.cs: Coco/Scanner.frame Coco/Parser.frame Dafny.atg
+Parser.cs: Coco/Scanner.frame Coco/Parser.frame Coco/Copyright.frame Dafny.atg
 	dotnet tool run coco Dafny.atg -namespace Microsoft.Dafny -frames Coco
 
 clean:
