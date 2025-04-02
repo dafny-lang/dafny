@@ -31,12 +31,13 @@ public class SyntaxConstructorAttribute : Attribute { }
 public class BackEdge : Attribute { }
 
 /// <summary>
-/// Indicates that the target field or property need not be serialized.
-/// This is useful when a base type defines a field or property,
-/// and all instances of a subtype use the same particular value for that inherited field or property.
+/// Indicates that the target field or property is redundant,
+/// such as if it's effectively constant or fully determined by the values of other fields.
+/// A common case is when a base type defines a field that takes the same value in all instances of a subtype.
+/// Serialization and pretty-printing logic may safely ignore such a field for efficiency.
 /// </summary>
 [AttributeUsage(AttributeTargets.Class, AllowMultiple = true)]
-public class NonSerializedField(string name) : Attribute {
+public class RedundantField(string name) : Attribute {
   public readonly string Name = name;
 }
 

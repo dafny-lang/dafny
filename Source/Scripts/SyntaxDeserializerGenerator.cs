@@ -100,11 +100,11 @@ using BinaryExprOpcode = Microsoft.Dafny.BinaryExpr.Opcode;
         var thisHasParam = schemaToConstructorPosition.ContainsKey(baseSchemaIndex);
         var fieldIgnored = GetNonSerializedNames(type).Contains(baseParamName);
         if (thisHasParam && fieldIgnored) {
-          throw new Exception($"Constructor for type {type.Name} has a redundant parameter for field/property {baseParamName} which is a {nameof(NonSerializedField)}");
+          throw new Exception($"Constructor for type {type.Name} has an unneeded parameter for field/property {baseParamName} which is a {nameof(RedundantField)}");
         }
 
         if (!thisHasParam && !fieldIgnored) {
-          throw new Exception($"Constructor for type {type.Name} is missing a parameter for field/property {baseParamName} inherited from {baseType.Name} - add one or use {nameof(NonSerializedField)}");
+          throw new Exception($"Constructor for type {type.Name} is missing a parameter for field/property {baseParamName} inherited from {baseType.Name} - add one or use {nameof(RedundantField)}");
         }
       }
     }

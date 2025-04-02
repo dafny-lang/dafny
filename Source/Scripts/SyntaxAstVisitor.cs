@@ -171,11 +171,11 @@ public abstract class SyntaxAstVisitor {
   }
 
   /// <summary>
-  /// Return all field/property names appearing in <see cref="NonSerializedField"/>
+  /// Return all field/property names appearing in <see cref="RedundantField"/>
   /// attributes of the specified type (or its base types).
   /// </summary>
   protected static IEnumerable<string> GetNonSerializedNames(Type type) {
-    return type.GetCustomAttributes<NonSerializedField>()
+    return type.GetCustomAttributes<RedundantField>()
       .Select(attr => attr.Name)
       .ToFrozenSet();
   }
