@@ -128,7 +128,11 @@ public class Serializer(IEncoder encoder, IReadOnlyList<INamedTypeSymbol> parsed
                       expectedType is { IsClass: true, IsAbstract: true } || expectedType.IsInterface;
 
     if (isAbstract) {
+      if (value is OriginWrapper originWrapper) {
+        value = originWrapper.WrappedOrigin;
+      }
       var actualType = value.GetType();
+
       string simpleName = actualType.Name;
       if (SimpleTypeNameMapping.TryGetValue(simpleName, out var mappedName)) {
         simpleName = mappedName;

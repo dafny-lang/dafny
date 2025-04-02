@@ -47,12 +47,20 @@ public class QuantifiedVar : BoundVar {
   /// <summary>
   /// Map a list of quantified variables to an equivalent list of bound variables plus a single range expression.
   /// The transformation looks like this in general:
-  ///
+  /// 
+  /// <code><![CDATA[
+  /// 
   /// x1 <- C1 | E1, ..., xN <- CN | EN
+  /// 
+  /// ]]></code>
   ///
   /// becomes:
   ///
+  /// <code><![CDATA[
+  /// 
   /// x1, ... xN | x1 in C1 && E1 && ... && xN in CN && EN
+  /// 
+  /// ]]></code>
   ///
   /// Note the result will be null rather than "true" if there are no such domains or ranges.
   /// Some quantification contexts (such as comprehensions) will replace this with "true".

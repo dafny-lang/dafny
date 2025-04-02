@@ -96,10 +96,9 @@ public static class TokenExtensions {
 
 /// <summary>
 /// A token wrapper used to produce better type checking errors
-/// for quantified variables. See QuantifierVar.ExtractSingleRange()
+/// for quantified variables. See <see cref="QuantifiedVar.ExtractSingleRange"/>.
 /// </summary>
 public class QuantifiedVariableDomainOrigin : OriginWrapper {
-  [SyntaxConstructor]
   public QuantifiedVariableDomainOrigin(IOrigin wrappedOrigin)
     : base(wrappedOrigin) {
     Contract.Requires(wrappedOrigin != null);
@@ -113,10 +112,9 @@ public class QuantifiedVariableDomainOrigin : OriginWrapper {
 
 /// <summary>
 /// A token wrapper used to produce better type checking errors
-/// for quantified variables. See QuantifierVar.ExtractSingleRange()
+/// for quantified variables. See <see cref="QuantifiedVar.ExtractSingleRange"/>.
 /// </summary>
 public class QuantifiedVariableRangeOrigin : OriginWrapper {
-  [SyntaxConstructor]
   public QuantifiedVariableRangeOrigin(IOrigin wrappedOrigin)
     : base(wrappedOrigin) {
     Contract.Requires(wrappedOrigin != null);

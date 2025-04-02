@@ -1,17 +1,4 @@
-abstract class OriginWrapper
-{
-    IOrigin wrappedOrigin;
-}
-
 abstract class IOrigin
-{
-}
-
-class QuantifiedVariableRangeOrigin : OriginWrapper
-{
-}
-
-class QuantifiedVariableDomainOrigin : OriginWrapper
 {
 }
 

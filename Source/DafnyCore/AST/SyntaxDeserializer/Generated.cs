@@ -7,38 +7,6 @@ namespace Microsoft.Dafny
 {
     partial class SyntaxDeserializer
     {
-        public QuantifiedVariableRangeOrigin ReadQuantifiedVariableRangeOrigin()
-        {
-            var parameter0 = ReadAbstract<IOrigin>();
-            return new QuantifiedVariableRangeOrigin(parameter0);
-        }
-
-        public QuantifiedVariableRangeOrigin ReadQuantifiedVariableRangeOriginOption()
-        {
-            if (ReadIsNull())
-            {
-                return default;
-            }
-
-            return ReadQuantifiedVariableRangeOrigin();
-        }
-
-        public QuantifiedVariableDomainOrigin ReadQuantifiedVariableDomainOrigin()
-        {
-            var parameter0 = ReadAbstract<IOrigin>();
-            return new QuantifiedVariableDomainOrigin(parameter0);
-        }
-
-        public QuantifiedVariableDomainOrigin ReadQuantifiedVariableDomainOriginOption()
-        {
-            if (ReadIsNull())
-            {
-                return default;
-            }
-
-            return ReadQuantifiedVariableDomainOrigin();
-        }
-
         public TokenRangeOrigin ReadTokenRangeOrigin()
         {
             var parameter0 = ReadToken();
@@ -1730,16 +1698,6 @@ namespace Microsoft.Dafny
 
         private object ReadObject(System.Type actualType)
         {
-            if (actualType == typeof(QuantifiedVariableRangeOrigin))
-            {
-                return ReadQuantifiedVariableRangeOrigin();
-            }
-
-            if (actualType == typeof(QuantifiedVariableDomainOrigin))
-            {
-                return ReadQuantifiedVariableDomainOrigin();
-            }
-
             if (actualType == typeof(TokenRangeOrigin))
             {
                 return ReadTokenRangeOrigin();
