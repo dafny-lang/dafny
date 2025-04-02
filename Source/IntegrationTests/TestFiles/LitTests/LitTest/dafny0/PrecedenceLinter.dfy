@@ -482,7 +482,7 @@ method Parentheses4(w: bool, s: Stream, t: Stream)
   ghost var d := if w then true else s
     !=#[12]                          t;
 }
-/**** revisit the following when the original match'es are being resolved (https://github.com/dafny-lang/dafny/pull/2734)
+
 datatype Color = Red | Blue
 
 method Parentheses5(w: bool, color: Color) {
@@ -521,7 +521,7 @@ method Parentheses5(w: bool, color: Color) {
       + 10 }
       + 20;
 }
-***/
+
 
 module MyModule {
   ghost function MyFunction(x: int): int
