@@ -220,7 +220,8 @@ public abstract class ErrorReporter {
     return args.Length == 0 ? format : string.Format(format, args);
   }
 
-  public string ErrorToString(ErrorLevel header, TokenRange range, string msg) {
-    return $"{(range.StartToken == Token.Cli ? null : range).ToFileRangeString(Options)}: {header.ToString()}: {msg}";
+  public string FormatDiagnostic(DafnyDiagnostic diagnostic) {
+    var range = diagnostic.Range.StartToken == Token.Cli ? null : diagnostic.Range;
+    return $"{range.ToFileRangeString(Options)}: {diagnostic.Level.ToString()}: {diagnostic.Message}";
   }
 }

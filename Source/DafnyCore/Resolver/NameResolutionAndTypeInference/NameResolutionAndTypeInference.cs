@@ -527,7 +527,7 @@ namespace Microsoft.Dafny {
         MapDisplayExpr e = (MapDisplayExpr)expr;
         Type domainType = new InferredTypeProxy();
         Type rangeType = new InferredTypeProxy();
-        foreach (ExpressionPair p in e.Elements) {
+        foreach (MapDisplayEntry p in e.Elements) {
           ResolveExpression(p.A, resolutionContext);
           Contract.Assert(p.A.Type != null);  // follows from postcondition of ResolveExpression
           ConstrainSubtypeRelation(domainType, p.A.Type, p.A.Origin, "All domain elements of map display must have some common supertype (got {0}, but needed type or type of previous elements is {1})", p.A.Type, domainType);

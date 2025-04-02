@@ -431,10 +431,10 @@ namespace Microsoft.Dafny {
         PrintExpression(e, isFollowedBySemicolon);
       }
     }
-    void PrintExpressionPairList(List<ExpressionPair> exprs) {
+    void PrintExpressionPairList(List<MapDisplayEntry> exprs) {
       Contract.Requires(exprs != null);
       string sep = "";
-      foreach (ExpressionPair p in exprs) {
+      foreach (MapDisplayEntry p in exprs) {
         Contract.Assert(p != null);
         wr.Write(sep);
         sep = ", ";

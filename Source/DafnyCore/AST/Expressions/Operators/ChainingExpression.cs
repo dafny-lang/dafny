@@ -1,3 +1,5 @@
+#nullable enable
+
 using System;
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
@@ -9,7 +11,7 @@ public class ChainingExpression : ConcreteSyntaxExpression, ICloneable<ChainingE
   public List<Expression> Operands;
   public List<BinaryExpr.Opcode> Operators;
   public List<IOrigin> OperatorLocs;
-  public List<Expression/*?*/> PrefixLimits;
+  public List<Expression?> PrefixLimits;
   public Expression E;
 
   public ChainingExpression Clone(Cloner cloner) {
@@ -24,13 +26,9 @@ public class ChainingExpression : ConcreteSyntaxExpression, ICloneable<ChainingE
     E = ComputeDesugaring(Operands, Operators, OperatorLocs, PrefixLimits);
   }
 
-  public ChainingExpression(IOrigin origin, List<Expression> operands, List<BinaryExpr.Opcode> operators, List<IOrigin> operatorLocs, List<Expression/*?*/> prefixLimits)
+  [SyntaxConstructor]
+  public ChainingExpression(IOrigin origin, List<Expression> operands, List<BinaryExpr.Opcode> operators, List<IOrigin> operatorLocs, List<Expression?> prefixLimits)
     : base(origin) {
-    Contract.Requires(origin != null);
-    Contract.Requires(operands != null);
-    Contract.Requires(operators != null);
-    Contract.Requires(operatorLocs != null);
-    Contract.Requires(prefixLimits != null);
     Contract.Requires(1 <= operators.Count);
     Contract.Requires(operands.Count == operators.Count + 1);
     Contract.Requires(operatorLocs.Count == operators.Count);
@@ -44,8 +42,8 @@ public class ChainingExpression : ConcreteSyntaxExpression, ICloneable<ChainingE
     E = ComputeDesugaring(operands, operators, operatorLocs, prefixLimits);
   }
 
-  private static Expression ComputeDesugaring(List<Expression> operands, List<BinaryExpr.Opcode> operators, List<IOrigin> operatorLocs, List<Expression> prefixLimits) {
-    Expression desugaring;
+  private static Expression ComputeDesugaring(List<Expression> operands, List<BinaryExpr.Opcode> operators, List<IOrigin> operatorLocs, List<Expression?> prefixLimits) {
+    Expression? desugaring;
     // Compute the desugaring
     if (operators[0] == BinaryExpr.Opcode.Disjoint) {
       Expression acc = operands[0]; // invariant:  "acc" is the union of all operands[j] where j <= i
@@ -80,7 +78,7 @@ public class ChainingExpression : ConcreteSyntaxExpression, ICloneable<ChainingE
       }
     }
 
-    return desugaring;
+    return desugaring!;
   }
 
   public override IEnumerable<Expression> SubExpressions {

@@ -24,14 +24,13 @@ public class ConsoleErrorReporter : BatchErrorReporter {
       return false;
     }
 
-    // Extra indent added to make it easier to distinguish multiline error messages for clients that rely on the CLI
-    var msg = diagnostic.Message.Replace("\n", "\n ");
-
     ConsoleColor previousColor = Console.ForegroundColor;
     if (Options.OutputWriter == Console.Out) {
       Console.ForegroundColor = ColorForLevel(diagnostic.Level);
     }
-    var errorLine = ErrorToString(diagnostic.Level, diagnostic.Range, msg);
+
+    // Extra indent added to make it easier to distinguish multiline error messages for clients that rely on the CLI
+    var errorLine = FormatDiagnostic(diagnostic).Replace("\n", "\n ");
 
     if (Options.Verbose && !String.IsNullOrEmpty(diagnostic.ErrorId) && diagnostic.ErrorId != "none") {
       errorLine += " (ID: " + diagnostic.ErrorId + ")\n";

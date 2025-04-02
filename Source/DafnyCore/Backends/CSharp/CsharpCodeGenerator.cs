@@ -730,7 +730,7 @@ namespace Microsoft.Dafny.Compilers {
         (ty.AsTypeParameter != null && refTy && datatype.TypeArgs.Contains(ty.AsTypeParameter))
         || ty.TypeArgs.Exists(arg => InvalidType(arg, refTy || ty.IsRefType));
 
-      if (datatype.Ctors.Any(ctor => ctor.Formals.Any(f => !f.IsGhost && InvalidType(f.SyntacticType, false)))) {
+      if (datatype.Ctors.Any(ctor => ctor.Formals.Any(f => !f.IsGhost && InvalidType(f.SafeSyntacticType, false)))) {
         return;
       }
 
@@ -966,7 +966,7 @@ namespace Microsoft.Dafny.Compilers {
         foreach (var tp in d.TypeArgs) {
           bool InvalidType(Type ty) => (ty.AsTypeParameter != null && ty.AsTypeParameter.Equals(tp))
                                        || ty.TypeArgs.Exists(InvalidType);
-          bool InvalidFormal(Formal f) => !f.IsGhost && InvalidType(f.SyntacticType);
+          bool InvalidFormal(Formal f) => !f.IsGhost && InvalidType(f.SafeSyntacticType);
           switch (tp.Variance) {
             //Can only be in output
             case TypeParameter.TPVariance.Co:
@@ -3413,7 +3413,7 @@ namespace Microsoft.Dafny.Compilers {
       TrExprList(elements, wr, inLetExprBody, wStmts, typeAt: _ => ct.Arg);
     }
 
-    protected override void EmitMapDisplay(MapType mt, IOrigin tok, List<ExpressionPair> elements,
+    protected override void EmitMapDisplay(MapType mt, IOrigin tok, List<MapDisplayEntry> elements,
         bool inLetExprBody, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
       var arguments = elements.Select(p => {
         var result = new ConcreteSyntaxTree();

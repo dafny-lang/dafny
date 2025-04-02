@@ -142,6 +142,20 @@ class LiteralExpr : Expression
     Object? value;
 }
 
+class TernaryExpr : Expression
+{
+    TernaryExprOpcode op;
+    Expression e0;
+    Expression e1;
+    Expression e2;
+}
+
+enum TernaryExprOpcode
+{
+    PrefixEqOp,
+    PrefixNeqOp
+}
+
 class ITEExpr : Expression
 {
     Boolean isBindingGuard;
@@ -157,6 +171,14 @@ abstract class ConcreteSyntaxExpression : Expression
 class ParensExpression : ConcreteSyntaxExpression
 {
     Expression e;
+}
+
+class ChainingExpression : ConcreteSyntaxExpression
+{
+    List<Expression> operands;
+    List<BinaryExprOpcode> operators;
+    List<IOrigin> operatorLocs;
+    List<Expression> prefixLimits;
 }
 
 class NegationExpression : ConcreteSyntaxExpression
@@ -239,7 +261,7 @@ abstract class ComprehensionExpr : Expression
 abstract class NonglobalVariable : NodeWithOrigin
 {
     Name nameNode;
-    Type type;
+    Type? syntacticType;
     Boolean isGhost;
 }
 
@@ -251,11 +273,22 @@ class Formal : NonglobalVariable
     Boolean isOld;
     Boolean isNameOnly;
     Boolean isOlder;
-    String? nameForCompilation;
+    String nameForCompilation;
 }
 
 class BoundVar : NonglobalVariable
 {
+}
+
+class QuantifiedVar : BoundVar
+{
+    Expression? domain;
+    Expression? range;
+}
+
+class SetComprehension : ComprehensionExpr
+{
+    Boolean finite;
 }
 
 abstract class QuantifierExpr : ComprehensionExpr
@@ -270,9 +303,70 @@ class ExistsExpr : QuantifierExpr
 {
 }
 
+class MapComprehension : ComprehensionExpr
+{
+    Boolean finite;
+    Expression? termLeft;
+}
+
+class LambdaExpr : ComprehensionExpr
+{
+    Specification<FrameExpression> reads;
+}
+
+class FrameExpression : NodeWithOrigin
+{
+    Expression originalExpression;
+    String? fieldName;
+}
+
+class SeqUpdateExpr : Expression
+{
+    Expression seq;
+    Expression index;
+    Expression value;
+}
+
+class SeqConstructionExpr : Expression
+{
+    Type? explicitElementType;
+    Expression n;
+    Expression initializer;
+}
+
+class MultiSetFormingExpr : Expression
+{
+    Expression e;
+}
+
+class MapDisplayExpr : Expression
+{
+    Boolean finite;
+    List<MapDisplayEntry> elements;
+}
+
+class MapDisplayEntry
+{
+    Expression a;
+    Expression b;
+}
+
 abstract class DisplayExpression : Expression
 {
     List<Expression> elements;
+}
+
+class SetDisplayExpr : DisplayExpression
+{
+    Boolean finite;
+}
+
+class SeqDisplayExpr : DisplayExpression
+{
+}
+
+class MultiSetDisplayExpr : DisplayExpression
+{
 }
 
 class ThisExpr : Expression
@@ -288,6 +382,12 @@ class SeqSelectExpr : Expression
     Token? closeParen;
 }
 
+class MultiSelectExpr : Expression
+{
+    Expression array;
+    List<Expression> indices;
+}
+
 class MemberSelectExpr : Expression
 {
     Expression obj;
@@ -298,12 +398,52 @@ abstract class BasicType : NonProxyType
 {
 }
 
+class BitvectorType : BasicType
+{
+    Int32 width;
+}
+
+class BigOrdinalType : BasicType
+{
+}
+
+class RealType : BasicType
+{
+}
+
 class IntType : BasicType
+{
+}
+
+class CharType : BasicType
 {
 }
 
 class BoolType : BasicType
 {
+}
+
+abstract class CollectionType : NonProxyType
+{
+    List<Type> typeArgs;
+}
+
+class SetType : CollectionType
+{
+    Boolean finite;
+}
+
+class SeqType : CollectionType
+{
+}
+
+class MultiSetType : CollectionType
+{
+}
+
+class MapType : CollectionType
+{
+    Boolean finite;
 }
 
 abstract class Declaration : NodeWithOrigin
@@ -402,12 +542,6 @@ abstract class MethodOrFunction : MemberDecl
     Specification<Expression> decreases;
 }
 
-class FrameExpression : NodeWithOrigin
-{
-    Expression originalExpression;
-    String? fieldName;
-}
-
 class AttributedExpression
 {
     Expression e;
@@ -446,6 +580,11 @@ abstract class Statement : NodeWithOrigin
 abstract class PredicateStmt : Statement
 {
     Expression expr;
+}
+
+class ExpectStmt : PredicateStmt
+{
+    Expression? message;
 }
 
 class AssertStmt : PredicateStmt

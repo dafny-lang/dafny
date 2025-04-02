@@ -1,30 +1,24 @@
+#nullable enable
+
 using System.Diagnostics.Contracts;
 
 namespace Microsoft.Dafny;
 
 public abstract class PredicateStmt : Statement, ICanResolveNewAndOld {
   public Expression Expr;
-  [ContractInvariantMethod]
-  void ObjectInvariant() {
-    Contract.Invariant(Expr != null);
-  }
 
   protected PredicateStmt(Cloner cloner, PredicateStmt original) : base(cloner, original) {
     Expr = cloner.CloneExpr(original.Expr);
   }
 
   [SyntaxConstructor]
-  protected PredicateStmt(IOrigin origin, Expression expr, Attributes attributes)
+  protected PredicateStmt(IOrigin origin, Expression expr, Attributes? attributes = null)
     : base(origin, attributes) {
-    Contract.Requires(origin != null);
-    Contract.Requires(expr != null);
     this.Expr = expr;
   }
 
   protected PredicateStmt(IOrigin origin, Expression expr)
     : this(origin, expr, null) {
-    Contract.Requires(origin != null);
-    Contract.Requires(expr != null);
     this.Expr = expr;
   }
 
