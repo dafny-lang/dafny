@@ -39,7 +39,7 @@ Its specified behavior is allowed to depend on only
 what inputs it consumed and outputs it produced in the past.
 
 A key design point for making this possible in Dafny:
-the `ValidInput`, `ValidOutput`, and `ValidHistory` predicates,
+the `ValidInput` and `ValidHistory` predicates,
 which the action's specification of behavior are drawn from,
 specifically avoid reading the current state of the action.
 That is so extrinsic properties of an action do NOT depend on their current state.

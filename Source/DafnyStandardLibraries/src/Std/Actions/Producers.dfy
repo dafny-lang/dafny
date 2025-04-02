@@ -1,4 +1,7 @@
-
+/*******************************************************************************
+ *  Copyright by the contributors to the Dafny Project
+ *  SPDX-License-Identifier: MIT
+ *******************************************************************************/
 
 module Std.Producers {
 
@@ -1205,29 +1208,15 @@ module Std.Producers {
             old@beforeOriginalNext(RemainingMetric()).TupleNonIncreasesToTuple(RemainingMetric()) by {
               assert old@beforeOriginalNext(InnerRemainingMetric()) == InnerRemainingMetric();
             }
-            assert result.None?;
-            assert old(Remaining()) >= Remaining();
-
-            assert if result.Some? then
-                old(Remaining()) > Remaining()
-              else
-                old(Remaining()) >= Remaining();
 
             break;
           }
-
-          assert currentInner.Some? ==> fresh(currentInner.value.Repr - old(Repr));
-          assert ValidComponent(original);
-          assert original.Repr !! (if currentInner.Some? then currentInner.value.Repr else {});
         } else {
           label beforeCurrentInnerNext:
 
-          assert old(Remaining()) >= Remaining();
           RemainingMetric().TupleDecreasesToSecond();
           assert RemainingMetric().second == TMSucc(currentInner.value.RemainingMetric());
-          assert RemainingMetric().second.DecreasesTo(currentInner.value.RemainingMetric()) by {
-            reveal TerminationMetric.Ordinal();
-          }
+          RemainingMetric().second.SuccDecreasesToOriginal();
           result := currentInner.value.Next();
           this.Repr := {this} + original.Repr + currentInner.value.Repr;
 
@@ -1258,11 +1247,6 @@ module Std.Producers {
             assert !old(original.Done());
             currentInner.value.DoneIsOneWay@beforeCurrentInnerNext();
 
-            assert result.Some?;
-            assert old@beforeCurrentInnerNext(currentInner.value.Valid());
-            assert old@beforeCurrentInnerNext(currentInner.value).Valid();
-            assert old@beforeCurrentInnerNext(currentInner.value) == currentInner.value;
-            assert old@beforeCurrentInnerNext(currentInner.value.RemainingMetric()).DecreasesTo(currentInner.value.RemainingMetric());
             InnerRemainingMetricDecreases@beforeCurrentInnerNext();
             old@beforeCurrentInnerNext(RemainingMetric()).TupleDecreasesToTuple(RemainingMetric());
             assert old(Remaining()) > Remaining();
