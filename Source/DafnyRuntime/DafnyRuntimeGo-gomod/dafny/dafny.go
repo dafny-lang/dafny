@@ -9,6 +9,7 @@ import (
 	"os"
 	refl "reflect"
 	"runtime"
+  "slices"
 	"unicode/utf8"
 )
 
@@ -65,21 +66,27 @@ func AreEqual(x, y interface{}) bool {
 	}
 }
 
+// Checking for `Comparable` doesn't work, because it matches things for which == fails.
+func IsComparable(i interface{}) bool {
+	switch i.(type) {
+	case uint8, string, Char, CodePoint:
+		return true
+	default:
+		return false
+	}
+}
+
 func (_static *CompanionStruct_Sequence_) EqualUpTo(left Sequence, right Sequence, index uint32) bool {
 	if index == 0 {
-		return true;
+		return true
 	}
 
 	l := left.ToArray().(GoNativeArray).contents
 	r := right.ToArray().(GoNativeArray).contents
-	if refl.TypeOf(l[0]).Comparable() {
-		for i := uint32(0); i<index; i++ {
-			if l[i] != r[i] {
-				return false
-			}
-		}
+	if IsComparable(l[0]) {
+		return slices.Equal(l, r)
 	} else {
-		for i := uint32(0); i<index; i++ {
+		for i := uint32(0); i < index; i++ {
 			if !AreEqual(l[i], r[i]) {
 				return false
 			}
@@ -326,6 +333,11 @@ func (cp CodePoint) Escape() string {
 
 func (cp CodePoint) String() string {
 	return fmt.Sprintf("'%s'", cp.Escape())
+}
+
+func IsCodePoint(i Int) bool {
+	return ((i.Sign() != -1 && i.Cmp(IntOfInt32(0xD800)) < 0) ||
+		(IntOfInt32(0xE000).Cmp(i) <= 0 && i.Cmp(IntOfInt32(0x11_0000)) < 0))
 }
 
 // AllUnicodeChars returns an iterator that returns all Unicode scalar values.
@@ -2762,6 +2774,10 @@ func (x Real) Int() Int {
 		a.Add(a, One.impl)
 		return intOf(a.Quo(a, x.impl.Denom())) // note: *truncated* division
 	}
+}
+
+func (x Real) IsInteger() bool {
+	return RealOfFrac(x.Int(), One).Cmp(x) == 0
 }
 
 // Num returns the given Real's numerator as an Int
