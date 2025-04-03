@@ -65,6 +65,30 @@ func AreEqual(x, y interface{}) bool {
 	}
 }
 
+func (_static *CompanionStruct_Sequence_) EqualUpTo(left Sequence, right Sequence, index uint32) bool {
+	if index == 0 {
+		return true;
+	}
+
+	l := left.ToArray().(GoNativeArray).Contents()
+	r := right.ToArray().(GoNativeArray).Contents()
+	// if reflect.TypeOf(l[0]).Name() != "Tuple" {
+	if reflect.TypeOf(l[0]).Comparable() {
+		for i := uint32(0); i<index; i++ {
+			if l[i] != r[i] {
+				return false
+			}
+		}
+	} else {
+		for i := uint32(0); i<index; i++ {
+			if !AreEqual(l[i], r[i]) {
+				return false
+			}
+		}
+	}
+	return true
+}
+
 func IsDafnyNull(x interface{}) bool {
 	if x == nil {
 		return true
