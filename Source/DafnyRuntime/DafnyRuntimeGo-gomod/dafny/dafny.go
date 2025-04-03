@@ -70,10 +70,9 @@ func (_static *CompanionStruct_Sequence_) EqualUpTo(left Sequence, right Sequenc
 		return true;
 	}
 
-	l := left.ToArray().(GoNativeArray).Contents()
-	r := right.ToArray().(GoNativeArray).Contents()
-	// if reflect.TypeOf(l[0]).Name() != "Tuple" {
-	if reflect.TypeOf(l[0]).Comparable() {
+	l := left.ToArray().(GoNativeArray).contents
+	r := right.ToArray().(GoNativeArray).contents
+	if refl.TypeOf(l[0]).Comparable() {
 		for i := uint32(0); i<index; i++ {
 			if l[i] != r[i] {
 				return false
