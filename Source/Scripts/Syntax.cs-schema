@@ -273,7 +273,7 @@ class Formal : NonglobalVariable
     Boolean isOld;
     Boolean isNameOnly;
     Boolean isOlder;
-    String nameForCompilation;
+    String? nameForCompilation;
 }
 
 class BoundVar : NonglobalVariable

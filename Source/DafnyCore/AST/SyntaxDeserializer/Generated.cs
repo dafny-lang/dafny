@@ -1514,7 +1514,7 @@ namespace Microsoft.Dafny
         {
             var parameter0 = ReadAbstract<IOrigin>();
             var parameter1 = ReadName();
-            var parameter7 = ReadAttributes();
+            var parameter7 = ReadAttributesOption();
             var parameter4 = ReadBoolean();
             var parameter6 = ReadAbstract<Type>();
             var parameter2 = ReadAbstract<Expression>();
