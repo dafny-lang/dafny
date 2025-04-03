@@ -17,13 +17,13 @@ class Token
 class SourceOrigin : IOrigin
 {
     TokenRange entireRange;
-    TokenRange reportingRange;
+    TokenRange? reportingRange;
 }
 
 class TokenRange
 {
     Token startToken;
-    Token endToken;
+    Token? endToken;
 }
 
 class FilesContainer
@@ -43,7 +43,7 @@ abstract class Node
 
 abstract class NodeWithOrigin : Node
 {
-    IOrigin origin;
+    IOrigin? origin;
 }
 
 abstract class Type : NodeWithOrigin
@@ -523,7 +523,7 @@ enum SubsetTypeDeclWKind
 abstract class TopLevelDeclWithMembers : TopLevelDecl
 {
     List<MemberDecl> members;
-    List<Type> traits;
+    List<Type>? traits;
 }
 
 abstract class MemberDecl : Declaration
@@ -664,7 +664,7 @@ class WhileStmt : OneBodyLoopStmt
 class IfStmt : Statement
 {
     Boolean isBindingGuard;
-    Expression? guard;
+    Expression guard;
     BlockStmt thn;
     Statement? els;
 }

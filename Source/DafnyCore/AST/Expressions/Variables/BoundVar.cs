@@ -31,14 +31,14 @@ public class QuantifiedVar : BoundVar {
   public Expression? Domain;
   public Expression? Range;
 
-  public QuantifiedVar(IOrigin origin, string name, Type? syntacticType, Expression domain, Expression range)
+  public QuantifiedVar(IOrigin origin, string name, Type? syntacticType, Expression? domain, Expression? range)
     : base(origin, name, syntacticType) {
     Domain = domain;
     Range = range;
   }
 
   [SyntaxConstructor]
-  public QuantifiedVar(IOrigin origin, Name nameNode, Type? syntacticType, Expression domain, Expression range)
+  public QuantifiedVar(IOrigin origin, Name nameNode, Type? syntacticType, Expression? domain, Expression? range)
     : base(origin, nameNode, syntacticType) {
     Domain = domain;
     Range = range;

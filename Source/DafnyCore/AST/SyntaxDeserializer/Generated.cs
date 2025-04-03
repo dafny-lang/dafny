@@ -487,8 +487,8 @@ namespace Microsoft.Dafny
             var parameter0 = ReadAbstract<IOrigin>();
             var parameter1 = ReadName();
             var parameter2 = ReadAbstractOption<Type>();
-            var parameter3 = ReadAbstract<Expression>();
-            var parameter4 = ReadAbstract<Expression>();
+            var parameter3 = ReadAbstractOption<Expression>();
+            var parameter4 = ReadAbstractOption<Expression>();
             return new QuantifiedVar(parameter0, parameter1, parameter2, parameter3, parameter4);
         }
 
@@ -1162,7 +1162,7 @@ namespace Microsoft.Dafny
             var parameter12 = ReadSpecification<FrameExpression>();
             var parameter3 = ReadBoolean();
             var parameter11 = ReadList<Formal>(() => ReadFormal());
-            var parameter13 = ReadBlockStmt();
+            var parameter13 = ReadBlockStmtOption();
             var parameter15 = ReadBoolean();
             return new Method(parameter0, parameter1, parameter2, parameter3, parameter4, parameter5, parameter6, parameter7, parameter8, parameter9, parameter10, parameter11, parameter12, parameter13, parameter14, parameter15);
         }
@@ -1443,7 +1443,7 @@ namespace Microsoft.Dafny
             var parameter6 = ReadSpecification<FrameExpression>();
             var parameter9 = ReadSpecification<Expression>();
             var parameter7 = ReadSpecification<FrameExpression>();
-            var parameter10 = ReadDividedBlockStmt();
+            var parameter10 = ReadDividedBlockStmtOption();
             return new Constructor(parameter0, parameter1, parameter2, parameter3, parameter4, parameter5, parameter6, parameter7, parameter8, parameter9, parameter10, parameter11, parameter12);
         }
 
