@@ -67,6 +67,7 @@ func AreEqual(x, y interface{}) bool {
 }
 
 // Checking for `Comparable` doesn't work, because it matches things for which == fails.
+// This is a non-exhaustive list of types, but should include the things that are most performance critical
 func IsEqualityComparable(i interface{}) bool {
 	switch i.(type) {
 	case uint8, Char, CodePoint:
