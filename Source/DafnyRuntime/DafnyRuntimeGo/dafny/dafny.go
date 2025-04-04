@@ -69,7 +69,7 @@ func AreEqual(x, y interface{}) bool {
 // Checking for `Comparable` doesn't work, because it matches things for which == fails.
 func IsComparable(i interface{}) bool {
 	switch i.(type) {
-	case uint8, Char, CodePoint:
+	case uint8:
 		return true
 	default:
 		return false
