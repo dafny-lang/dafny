@@ -27,7 +27,7 @@ public class IfStmt : Statement, ICloneable<IfStmt>, ICanFormat {
     Els = cloner.CloneStmt(original.Els, false);
   }
 
-  public IfStmt(IOrigin origin, bool isBindingGuard, Expression guard, BlockStmt thn, Statement els)
+  public IfStmt(IOrigin origin, bool isBindingGuard, Expression? guard, BlockStmt thn, Statement els)
     : base(origin) {
     Contract.Requires(origin != null);
     Contract.Requires(!isBindingGuard || (guard is ExistsExpr && ((ExistsExpr)guard).Range == null));

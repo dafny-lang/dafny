@@ -118,7 +118,7 @@ public class SyntaxSchemaGenerator : SyntaxAstVisitor {
       }
 
       var nullabilityContext = new NullabilityInfoContext();
-      var nullabilityInfo = memberInfo is PropertyInfo propertyInfo ? nullabilityContext.Create(propertyInfo) : nullabilityContext.Create((FieldInfo)memberInfo);
+      var nullabilityInfo = nullabilityContext.Create(parameter);
       bool isNullable = nullabilityInfo.ReadState == NullabilityState.Nullable;
       var nullableSuffix = isNullable ? "?" : "";
 

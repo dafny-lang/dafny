@@ -1,3 +1,5 @@
+#nullable enable
+
 using System;
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
@@ -19,7 +21,7 @@ public class ConstantField : Field, ICallable, ICanAutoRevealDependencies, ICanV
 
   [SyntaxConstructor]
   public ConstantField(IOrigin origin, Name nameNode, Expression/*?*/ rhs, bool hasStaticKeyword,
-    bool isGhost, bool isOpaque, Type type, Attributes attributes)
+    bool isGhost, bool isOpaque, Type type, Attributes? attributes)
     : base(origin, nameNode, isGhost, type, attributes) {
     Contract.Requires(nameNode != null);
     Contract.Requires(type != null);

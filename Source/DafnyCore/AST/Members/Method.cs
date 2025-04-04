@@ -21,7 +21,7 @@ public class Method : MethodOrConstructor {
   public Method(IOrigin origin, Name nameNode, Attributes? attributes, bool hasStaticKeyword,
     bool isGhost, List<TypeParameter> typeArgs, List<Formal> ins, List<AttributedExpression> req,
     List<AttributedExpression> ens, Specification<FrameExpression> reads, Specification<Expression> decreases,
-    List<Formal> outs, Specification<FrameExpression> mod, BlockStmt body, IOrigin? signatureEllipsis, bool isByMethod = false)
+    List<Formal> outs, Specification<FrameExpression> mod, BlockStmt? body, IOrigin? signatureEllipsis, bool isByMethod = false)
     : base(origin, nameNode, attributes, isGhost, typeArgs, ins, req, ens, reads, decreases, mod, signatureEllipsis) {
     this.body = body;
     IsByMethod = isByMethod;
