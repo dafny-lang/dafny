@@ -389,34 +389,34 @@ abstract module {:options "/functionSyntax:4"} Dafny {
 
     // Total class instances in the tree.
     // Used in decreases clauses.
-    ghost const NodeCount: nat
+    ghost var Repr: set<object>
 
     ghost predicate Valid()
-      decreases NodeCount, 0
-      ensures Valid() ==> 0 < NodeCount
+      reads this, Repr
+      decreases |Repr|, 0
+      ensures Valid() ==> 0 < |Repr|
 
     function Cardinality(): size_t
       requires Valid()
-      decreases NodeCount, 1
+      reads this, Repr
+      decreases |Repr|, 1
 
     ghost function Value(): seq<T>
+      reads this, Repr
       requires Valid()
-      decreases NodeCount, 2
+      decreases |Repr|, 2
       ensures |Value()| < SIZE_T_LIMIT && |Value()| as size_t == Cardinality()
 
     method Select(index: size_t) returns (ret: T)
+      decreases |Repr|
       requires Valid()
       requires index < Cardinality()
       ensures ret == Value()[index]
-    {
-      var a := ToArray();
-      return a.Select(index);
-    }
 
     method Drop(lo: size_t) returns (ret: Sequence<T>)
       requires Valid()
       requires lo <= Cardinality()
-      decreases NodeCount, 2
+      decreases |Repr|, 2
       ensures ret.Valid()
       ensures ret.Value() == Value()[lo..]
     {
@@ -426,7 +426,7 @@ abstract module {:options "/functionSyntax:4"} Dafny {
     method Take(hi: size_t) returns (ret: Sequence<T>)
       requires Valid()
       requires hi <= Cardinality()
-      decreases NodeCount, 2
+      decreases |Repr|, 2
       ensures ret.Valid()
       ensures ret.Value() == Value()[..hi]
     {
@@ -436,25 +436,34 @@ abstract module {:options "/functionSyntax:4"} Dafny {
     method Subsequence(lo: size_t, hi: size_t) returns (ret: Sequence<T>)
       requires Valid()
       requires lo <= hi <= Cardinality()
-      decreases NodeCount, 2
+      decreases |Repr|, 2
       ensures ret.Valid()
       ensures ret.Value() == Value()[lo..hi]
     {
-      // Probably not worth pushing this into a ToArray(lo, hi) overload
-      // to optimize further, because one x[lo..hi] call is very likely
-      // to be followed by several others anyway.
-      var a := ToArray();
-      var subarray := a.Subarray(lo, hi);
-      ret := new ArraySequence(subarray);
+      ret := new SubsequenceView(this, lo, hi);
     }
 
     method ToArray() returns (ret: ImmutableArray<T>)
       requires Valid()
-      decreases NodeCount, 2
+      decreases |Repr|, 2
       ensures Valid()
       ensures ret.Valid()
       ensures ret.Length() == Cardinality()
       ensures ret.values == Value()
+
+    method ToArrayDefault() returns (ret: ImmutableArray<T>)
+      requires Valid()
+      decreases |Repr|, 2
+      ensures Valid()
+      ensures ret.Valid()
+      ensures ret.Length() == Cardinality()
+      ensures ret.values == Value()
+    {
+      var builder := new Vector<T>(Cardinality());
+      var stack := new Vector<Sequence<T>>(TEN_SIZE);
+      AppendOptimized(builder, this, stack);
+      ret := builder.Freeze();
+    }
 
     // We specifically DON'T yet implement a ToString() method because that
     // doesn't help much in practice. Most runtimes implement the conversion between
@@ -578,7 +587,7 @@ abstract module {:options "/functionSyntax:4"} Dafny {
       ensures ret.Valid()
       ensures ret.Value() == s.Value()[..i] + [t] + s.Value()[(i + 1)..]
     {
-      var a := s.ToArray();
+      var a := s.ToArray(); // TODO Should remove
       var newValue := NativeArray<T>.Copy(a);
       newValue.Update(i, t);
       var newValueFrozen := newValue.Freeze(newValue.Length());
@@ -597,19 +606,85 @@ abstract module {:options "/functionSyntax:4"} Dafny {
       // Optimize away redundant lazy wrappers
       // (which will happen a lot with chained concatenations)
       var left' := left;
-      if (left is LazySequence<T>) {
-        var lazyLeft := left as LazySequence<T>;
+      if (left is LazySequenceCopy<T>) {
+        var lazyLeft := left as LazySequenceCopy<T>;
         left' := lazyLeft.box.Get();
       }
 
       var right' := right;
-      if (right is LazySequence<T>) {
-        var lazyRight := right as LazySequence<T>;
+      if (right is LazySequenceCopy<T>) {
+        var lazyRight := right as LazySequenceCopy<T>;
         right' := lazyRight.box.Get();
       }
 
       var c := new ConcatSequence(left', right');
-      ret := new LazySequence(c);
+      ret := new LazySequenceCopy(c);
+    }
+  }
+
+  class SubsequenceView<T> extends Sequence<T> {
+    var origin: Sequence<T>
+    var lo: size_t
+    var hi: size_t
+
+    constructor(origin: Sequence<T>, lo: size_t, hi: size_t)
+    {
+      this.origin := origin;
+      this.lo := lo;
+      this.hi := hi;
+    }
+
+    ghost function Value(): seq<T>
+      reads this, Repr
+      requires Valid()
+      decreases |Repr|, 2
+      ensures |Value()| < SIZE_T_LIMIT && |Value()| as size_t == Cardinality()
+    {
+      var r := origin.Value()[lo..hi];
+      assert |r| == hi - lo;
+      assert |r| as size_t == hi - lo;
+      assert |r| as size_t == Cardinality(); // Why do I need these steps? Seems too simple
+      r
+    }
+
+    ghost predicate Valid()
+      reads this, Repr
+      decreases |Repr|, 0
+      ensures Valid() ==> 0 < |Repr|
+    {
+      origin in Repr &&
+      origin.Repr < Repr &&
+      |origin.Repr| < |Repr| && // why is this not implied by the previous line?
+      hi >= lo &&
+      origin.Valid() && hi <= origin.Cardinality() 
+    }
+
+    method Select(index: size_t) returns (ret: T)
+      decreases |Repr|
+      requires Valid()
+      requires index < Cardinality()
+      ensures ret == Value()[index]
+    {
+      ret := origin.Select(index + lo);
+    }
+
+    function Cardinality(): size_t
+      requires Valid()
+      reads this, Repr
+      decreases |Repr|, 1
+    {
+      hi - lo
+    }
+
+    method ToArray() returns (ret: ImmutableArray<T>)
+      requires Valid()
+      decreases |Repr|, 2
+      ensures Valid()
+      ensures ret.Valid()
+      ensures ret.Length() == Cardinality()
+      ensures ret.values == Value()
+    {
+      ret := ToArrayDefault();
     }
   }
 
@@ -617,11 +692,12 @@ abstract module {:options "/functionSyntax:4"} Dafny {
     const values: ImmutableArray<T>
 
     ghost predicate Valid()
-      decreases NodeCount, 0
-      ensures Valid() ==> 0 < NodeCount
+      reads this, Repr
+      decreases |Repr|, 0
+      ensures Valid() ==> 0 < |Repr|
     {
       && values.Valid()
-      && NodeCount == 1
+      && |Repr| == 1
     }
 
     constructor(value: ImmutableArray<T>, isString: bool := false)
@@ -631,19 +707,30 @@ abstract module {:options "/functionSyntax:4"} Dafny {
     {
       this.values := value;
       this.isString := isString;
-      this.NodeCount := 1;
+      this.Repr := {this};
+    }
+
+    method Select(index: size_t) returns (ret: T)
+      decreases |Repr|
+      requires Valid()
+      requires index < Cardinality()
+      ensures ret == Value()[index]
+    {
+      ret := values.Select(index);
     }
 
     function Cardinality(): size_t
+      reads this, Repr
       requires Valid()
-      decreases NodeCount, 1
+      decreases |Repr|, 1
     {
       values.Length()
     }
 
     ghost function Value(): seq<T>
+      reads this, Repr
       requires Valid()
-      decreases NodeCount, 2
+      decreases |Repr|, 2
       ensures |Value()| < SIZE_T_LIMIT && |Value()| as size_t == Cardinality()
     {
       values.values
@@ -651,7 +738,7 @@ abstract module {:options "/functionSyntax:4"} Dafny {
 
     method ToArray() returns (ret: ImmutableArray<T>)
       requires Valid()
-      decreases NodeCount, 2
+      decreases |Repr|, 2
       ensures ret.Valid()
       ensures ret.Length() == Cardinality()
       ensures ret.values == Value()
@@ -662,16 +749,24 @@ abstract module {:options "/functionSyntax:4"} Dafny {
 
   class ConcatSequence<T> extends Sequence<T> {
     const left: Sequence<T>
+    const leftSize: size_t
     const right: Sequence<T>
     const length: size_t
 
     ghost predicate Valid()
-      decreases NodeCount, 0
-      ensures Valid() ==> 0 < NodeCount
+      reads this, Repr
+      decreases |Repr|, 0
+      ensures Valid() ==> 0 < |Repr|
     {
-      && NodeCount == 1 + left.NodeCount + right.NodeCount
+      && {this, left, right} <= Repr
+      && left.Repr !! right.Repr
+      && this !in left.Repr
+      && this !in right.Repr
+      && left.Repr < Repr && |left.Repr| < |Repr| // Do not undertand why second part is needed
+      && right.Repr < Repr && |right.Repr| < |Repr| // Do not undertand why second part is needed
       && left.Valid()
       && right.Valid()
+      && leftSize == left.Cardinality()
       && left.Cardinality() as int + right.Cardinality() as int < SIZE_T_LIMIT as int
       && length == left.Cardinality() + right.Cardinality()
     }
@@ -679,27 +774,48 @@ abstract module {:options "/functionSyntax:4"} Dafny {
     constructor(left: Sequence<T>, right: Sequence<T>)
       requires left.Valid()
       requires right.Valid()
+      requires left in left.Repr
+      requires right in right.Repr
+      requires left.Repr !! right.Repr
       requires left.Cardinality() as int + right.Cardinality() as int < SIZE_T_LIMIT as int
       ensures Valid()
       ensures Value() == left.Value() + right.Value()
     {
       this.left := left;
       this.right := right;
+      this.leftSize := left.Cardinality();
       this.length := left.Cardinality() + right.Cardinality();
       this.isString := left.isString || right.isString;
-      this.NodeCount := 1 + left.NodeCount + right.NodeCount;
+      this.Repr := {this} + left.Repr + right.Repr;
+      new;
+      assert |this.Repr| == |left.Repr| + |right.Repr| + 1;
     }
 
-    function Cardinality(): size_t
+    method Select(index: size_t) returns (ret: T)
+      decreases |Repr|
       requires Valid()
-      decreases NodeCount, 1
+      requires index < Cardinality()
+      ensures ret == Value()[index]
+    {
+      if (index < left.Cardinality()) {
+        ret := left.Select(index);
+      } else {
+        ret := right.Select(index - leftSize);
+      }
+    }
+    
+    function Cardinality(): size_t
+      reads this, Repr
+      requires Valid()
+      decreases |Repr|, 1
     {
       length
     }
 
     ghost function Value(): seq<T>
+      reads this, Repr
       requires Valid()
-      decreases NodeCount, 2
+      decreases |Repr|, 2
       ensures |Value()| < SIZE_T_LIMIT && |Value()| as size_t == Cardinality()
     {
       var ret := left.Value() + right.Value();
@@ -709,15 +825,13 @@ abstract module {:options "/functionSyntax:4"} Dafny {
 
     method ToArray() returns (ret: ImmutableArray<T>)
       requires Valid()
-      decreases NodeCount, 2
+      decreases |Repr|, 2
+      ensures Valid()
       ensures ret.Valid()
       ensures ret.Length() == Cardinality()
       ensures ret.values == Value()
     {
-      var builder := new Vector<T>(length);
-      var stack := new Vector<Sequence<T>>(TEN_SIZE);
-      AppendOptimized(builder, this, stack);
-      ret := builder.Freeze();
+      ret := ToArrayDefault();
     }
   }
 
@@ -727,7 +841,7 @@ abstract module {:options "/functionSyntax:4"} Dafny {
     requires builder.Valid()
     requires SizeAdditionInRange(builder.size, e.Cardinality())
     modifies builder.Repr
-    decreases e.NodeCount
+    decreases |e.Repr|
     ensures builder.ValidAndDisjoint()
     ensures e.Valid()
     ensures builder.Value() == old(builder.Value()) + e.Value()
@@ -736,8 +850,8 @@ abstract module {:options "/functionSyntax:4"} Dafny {
       var concat := e as ConcatSequence<T>;
       AppendRecursive(builder, concat.left);
       AppendRecursive(builder, concat.right);
-    } else if e is LazySequence<T> {
-      var lazy := e as LazySequence<T>;
+    } else if e is LazySequenceCopy<T> {
+      var lazy := e as LazySequenceCopy<T>;
       var boxed := lazy.box.Get();
       AppendRecursive(builder, boxed);
     } else {
@@ -754,7 +868,7 @@ abstract module {:options "/functionSyntax:4"} Dafny {
     requires forall expr <- stack.Value() :: expr.Valid()
     requires builder.size as int + e.Cardinality() as int + CardinalitySum(stack.Value()) < SIZE_T_LIMIT
     modifies builder.Repr, stack.Repr
-    decreases e.NodeCount + NodeCountSum(stack.Value())
+    decreases |e.Repr| + NodeCountSum(stack.Value())
     ensures builder.Valid()
     ensures stack.Valid()
     ensures builder.Value() == old(builder.Value()) + e.Value() + ConcatValueOnStack(old(stack.Value()))
@@ -768,8 +882,9 @@ abstract module {:options "/functionSyntax:4"} Dafny {
       label L1:
       AppendOptimized(builder, concat.left, stack);
       assert builder.Value() == old@L1(builder.Value()) + concat.left.Value() + ConcatValueOnStack(old@L1(stack.Value()));
-    } else if e is LazySequence<T> {
-      var lazy := e as LazySequence<T>;
+    } else if e is LazySequenceCopy<T> {
+      // TODO should this trigger materializing the lazy sequence? After all it's reading all its elements
+      var lazy := e as LazySequenceCopy<T>;
       var boxed := lazy.box.Get();
       AppendOptimized(builder, boxed, stack);
       assert builder.Value() == old(builder.Value()) + boxed.Value() + ConcatValueOnStack(old(stack.Value()));
@@ -808,7 +923,7 @@ abstract module {:options "/functionSyntax:4"} Dafny {
       0
     else
       var last := |s| - 1;
-      NodeCountSum(s[..last]) + s[last].NodeCount
+      NodeCountSum(s[..last]) + |s[last].Repr|
   }
 
   ghost function CardinalitySum<T>(s: seq<Sequence<T>>): nat
@@ -821,56 +936,77 @@ abstract module {:options "/functionSyntax:4"} Dafny {
       CardinalitySum(s[..last]) + s[last].Cardinality() as nat
   }
 
-  class LazySequence<T> extends Sequence<T> {
+  class LazySequenceCopy<T> extends Sequence<T> {
     ghost const value: seq<T>
     const box: AtomicBox<Sequence<T>>
     const length: size_t
 
     ghost predicate Valid()
-      decreases NodeCount, 0
-      ensures Valid() ==> 0 < NodeCount
+      reads this, Repr
+      decreases |Repr|, 0
+      ensures Valid() ==> 0 < |Repr|
     {
-      && 0 < NodeCount
+      && 0 < |Repr|
       && |value| < SIZE_T_LIMIT
       && length == |value| as size_t
       && box.Valid()
       && box.inv == (s: Sequence<T>) =>
-                      && s.NodeCount < NodeCount
+                      && |s.Repr| < |Repr|
                       && s.Valid()
                       && s.Value() == value
     }
 
     constructor(wrapped: Sequence<T>)
       requires wrapped.Valid()
-      requires 1 <= wrapped.NodeCount
+      requires 1 <= |wrapped.Repr|
       ensures Valid()
       ensures Value() == wrapped.Value()
     {
+      this.box := box;
+      this.length := wrapped.Cardinality();
+      this.value := value;
+
       var value := wrapped.Value();
-      var nodeCount := 1 + wrapped.NodeCount;
-      var inv := (s: Sequence<T>) =>
-          && s.NodeCount < nodeCount
+      new;
+      var tRepr := {this} + wrapped.Repr;
+      var inv := (s: Sequence<T>) reads s, s.Repr, this, Repr =>
+          // && |s.Repr| < |Repr|
           && s.Valid()
           && s.Value() == value;
       var box := AtomicBox.Make(inv, wrapped);
 
-      this.box := box;
-      this.length := wrapped.Cardinality();
       this.isString := wrapped.isString;
-      this.value := value;
-      this.NodeCount := nodeCount;
+      this.Repr := tRepr;
+    }
+
+    method Select(index: size_t) returns (ret: T)
+      decreases |Repr|
+      requires Valid()
+      requires index < Cardinality()
+      ensures ret == Value()[index]
+    {
+      // TODO we could count how often Select is called, and only copy the array of .Select is called 1/10th of the total size.
+      var expr := box.Get();
+      if (expr is ArraySequence<T>) {
+        ret := (expr as ArraySequence<T>).Select(index);
+      } else {
+        var valuesArray := expr.ToArray();
+        var arraySeq := new ArraySequence(valuesArray);
+        box.Put(arraySeq);
+        ret := arraySeq.Select(index);
+      }
     }
 
     function Cardinality(): size_t
       requires Valid()
-      decreases NodeCount, 1
+      decreases |Repr|, 1
     {
       length
     }
 
     ghost function Value(): seq<T>
       requires Valid()
-      decreases NodeCount, 2
+      decreases |Repr|, 2
       ensures |Value()| < SIZE_T_LIMIT && |Value()| as size_t == Cardinality()
     {
       assert |value| as size_t == Cardinality();
@@ -879,16 +1015,20 @@ abstract module {:options "/functionSyntax:4"} Dafny {
 
     method ToArray() returns (ret: ImmutableArray<T>)
       requires Valid()
-      decreases NodeCount, 2
+      decreases |Repr|, 2
       ensures ret.Valid()
       ensures ret.Length() == Cardinality()
       ensures ret.values == Value()
     {
       var expr := box.Get();
-      ret := expr.ToArray();
-
-      var arraySeq := new ArraySequence(ret);
-      box.Put(arraySeq);
+      if (expr is ArraySequence<T>) {
+        ret := (expr as ArraySequence<T>).values;
+      } else {
+        var valuesArray := expr.ToArray();
+        var arraySeq := new ArraySequence(valuesArray);
+        box.Put(arraySeq);
+        ret := valuesArray;
+      }
     }
   }
 
