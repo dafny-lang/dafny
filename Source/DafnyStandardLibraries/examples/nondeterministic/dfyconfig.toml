@@ -1,0 +1,7 @@
+[options]
+standard-libraries = true
+reads-clauses-on-methods = false
+enforce-determinism = false
+resource-limit = 1000000
+warn-redundant-assumptions = true
+warn-contradictory-assumptions = true

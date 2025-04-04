@@ -30,8 +30,6 @@ When using this option with commands like `dafny translate`, `dafny build`, or `
 the contents of the standard libraries will be automatically included in the translated source code as well. 
 This causes conflicts when multiple such translated projects are combined. When combining such projects, please ensure that only one of them has `--translate-standard-library` set to true. 
 
-To combine multiple Dafny projects that were separately built, and were  
-
 Some libraries are dependent on target language utilities, such as `FileIO`.
 When `--standard-libraries` is on,
 the translation process will also include some additional supporting target language source files,
@@ -47,6 +45,7 @@ In particular, `--standard-libraries` currently cannot be used together with `--
 
 The sections below describe how to use each library:
 
+- [Std.Actions](src/Std/Actions/README.md) -- utilities for abstract imperative actions, including enumerating and streaming values
 - [Std.Arithmetic](src/Std/Arithmetic/README.md) -- utilities and lemmas related to basic operations, such as multiplication and exponentiation
 - [Std.Base64](src/Std/Base64.md) -- base-64 encoding and decoding
 - [Std.BoundedInts](src/Std/BoundedInts.md) -- definitions of types and constants for fixed-bit-width integers
@@ -54,11 +53,14 @@ The sections below describe how to use each library:
 - [Std.Concurrent](src/Std/TargetSpecific) -- types for using Dafny in concurrent environments
 - [Std.DynamicArray](src/Std/DynamicArray.dfy) -- an array that can grow and shrink
 - [Std.FileIO](src/Std/TargetSpecific) -- basic file I/O operations
+- [Std.Frames](src/Std/Frames.md) -- utilities related to working with dynamic framing, often related to reads and modifies clauses
 - [Std.Functions](src/Std/Functions.md) -- properties of functions
 - [Std.JSON](src/Std/JSON/JSON.md) -- JSON serialization and deserialization
 - [Std.Math](src/Std/Math.md) -- common mathematical functions, such as Min and Abs
+- [Std.Ordinal](src/Std/Ordinal.md) -- operations and properties of the ORDINAL type
 - [Std.Relations](src/Std/Relations.md) -- properties of relations
 - [Std.Strings](src/Std/Strings.md) -- utilities for strings, especially converting to and from string representations of common types
+- [Std.Termination](src/Std/Termination.md) -- a datatype for representing Dafny decreases clauses and extensions
 - [Std.Unicode](src/Std/Unicode/Unicode.md) -- implementations of basic algorithms from Unicode 15.0
 - [Std.Wrappers](src/Std/Wrappers.md) -- simple datatypes to support common patterns, such as optional values or the result of operations that can fail
 

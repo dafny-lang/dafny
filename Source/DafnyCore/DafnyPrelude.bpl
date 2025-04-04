@@ -462,7 +462,7 @@ axiom (forall o: ORDINAL, m,n: int ::
   { ORD#Plus(ORD#Plus(o, ORD#FromNat(m)), ORD#FromNat(n)) }
   0 <= m && 0 <= n ==>
   ORD#Plus(ORD#Plus(o, ORD#FromNat(m)), ORD#FromNat(n)) == ORD#Plus(o, ORD#FromNat(m+n)));
-// o-m-n == o+(m+n)
+// o-m-n == o-(m+n)
 axiom (forall o: ORDINAL, m,n: int ::
   { ORD#Minus(ORD#Minus(o, ORD#FromNat(m)), ORD#FromNat(n)) }
   0 <= m && 0 <= n && m+n <= ORD#Offset(o) ==>
