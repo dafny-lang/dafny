@@ -84,7 +84,7 @@ func (_static *CompanionStruct_Sequence_) EqualUpTo(left Sequence, right Sequenc
 	l := left.ToArray().(GoNativeArray).contents
 	r := right.ToArray().(GoNativeArray).contents
 	if IsComparable(l[0]) {
-		return slices.Equal(l, r)
+		return slices.Equal(l[:index], r[:index])
 	} else {
 		for i := uint32(0); i < index; i++ {
 			if !AreEqual(l[i], r[i]) {
