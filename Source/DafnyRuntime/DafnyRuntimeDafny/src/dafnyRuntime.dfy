@@ -501,24 +501,12 @@ abstract module {:options "/functionSyntax:4"} Dafny {
 
     // Sequence methods that must be static because they require T to be equality-supporting
 
-    static method EqualUpTo<T(==)>(left: Sequence<T>, right: Sequence<T>, index: size_t) returns (ret: bool)
+    static method {:axiom} {:extern} EqualUpTo<T(==)>(left: Sequence<T>, right: Sequence<T>, index: size_t) returns (ret: bool)
       requires left.Valid()
       requires right.Valid()
       requires index <= left.Cardinality()
       requires index <= right.Cardinality()
       ensures ret == (left.Value()[..index] == right.Value()[..index])
-    {
-      for i := 0 to index
-        invariant left.Value()[..i] == right.Value()[..i]
-      {
-        var leftElement := left.Select(i);
-        var rightElement := right.Select(i);
-        if leftElement != rightElement {
-          return false;
-        }
-      }
-      return true;
-    }
 
     static method Equal<T(==)>(left: Sequence<T>, right: Sequence<T>) returns (ret: bool)
       requires left.Valid()
@@ -884,7 +872,10 @@ abstract module {:options "/functionSyntax:4"} Dafny {
       ensures ret.Length() == Cardinality()
       ensures ret.values == Value()
     {
-      var expr := box.Get();
+      var expr : Sequence<T> := box.Get();
+      if expr is ArraySequence<T> {
+        return (expr as ArraySequence<T>).values;
+      }
       ret := expr.ToArray();
 
       var arraySeq := new ArraySequence(ret);
