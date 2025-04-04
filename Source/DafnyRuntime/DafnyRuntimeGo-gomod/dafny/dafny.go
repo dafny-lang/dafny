@@ -9,7 +9,7 @@ import (
 	"os"
 	refl "reflect"
 	"runtime"
-  "slices"
+	"slices"
 	"unicode/utf8"
 )
 
@@ -67,9 +67,9 @@ func AreEqual(x, y interface{}) bool {
 }
 
 // Checking for `Comparable` doesn't work, because it matches things for which == fails.
-func IsComparable(i interface{}) bool {
+func IsEqualityComparable(i interface{}) bool {
 	switch i.(type) {
-	case uint8:
+	case uint8, Char, CodePoint:
 		return true
 	default:
 		return false
@@ -83,7 +83,7 @@ func (_static *CompanionStruct_Sequence_) EqualUpTo(left Sequence, right Sequenc
 
 	l := left.ToArray().(GoNativeArray).contents
 	r := right.ToArray().(GoNativeArray).contents
-	if IsComparable(l[0]) {
+	if IsEqualityComparable(l[0]) {
 		return slices.Equal(l[:index], r[:index])
 	} else {
 		for i := uint32(0); i < index; i++ {
