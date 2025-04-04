@@ -180,14 +180,14 @@ public abstract class SyntaxAstVisitor {
       .ToFrozenSet();
   }
 
-  public static string ToGenericTypeString(Type t, bool useTypeMapping = true, bool mapNestedTypes = true,
-    bool nestedDot = false) {
+  private static (string typeName, string typeArgs) MakeGenericTypeStringParts(
+    Type t, bool useTypeMapping, bool mapNestedTypes, bool nestedDot) {
     if (useTypeMapping && MappedTypes.TryGetValue(t, out var newType)) {
       t = newType;
     }
 
     if (t.IsGenericTypeParameter) {
-      return t.Name;
+      return (t.Name, "");
     }
 
     if (!t.IsGenericType) {
@@ -195,18 +195,23 @@ public abstract class SyntaxAstVisitor {
       if (t.IsNested) {
         name = t.DeclaringType!.Name + (nestedDot ? "." : "") + name;
       }
-      return name;
+      return (name, "");
     }
 
-    string genericTypeName = t.GetGenericTypeDefinition().Name;
+    var genericTypeName = t.GetGenericTypeDefinition().Name;
     if (t.IsNested) {
       genericTypeName = t.DeclaringType!.Name + genericTypeName;
     }
     genericTypeName = CutOffGenericSuffixPartOfName(genericTypeName);
-    string genericArgs = string.Join(",",
-      t.GetGenericArguments()
-        .Select(argumentType => ToGenericTypeString(argumentType, mapNestedTypes, mapNestedTypes)).ToArray());
-    return genericTypeName + "<" + genericArgs + ">";
+    var genericArgs = string.Join(",", t.GetGenericArguments()
+      .Select(argumentType => ToGenericTypeString(argumentType, mapNestedTypes, mapNestedTypes)).ToArray());
+    return (genericTypeName, $"<{genericArgs}>");
+  }
+
+  public static string ToGenericTypeString(Type t, bool useTypeMapping = true, bool mapNestedTypes = true,
+    bool nestedDot = false, string suffix = "") {
+    var (typeName, typeArgs) = MakeGenericTypeStringParts(t, useTypeMapping, mapNestedTypes, nestedDot);
+    return $"{typeName}{suffix}{typeArgs}";
   }
 
   public static string CutOffGenericSuffixPartOfName(string genericTypeName) {

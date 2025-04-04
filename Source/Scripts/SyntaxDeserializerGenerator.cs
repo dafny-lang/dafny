@@ -14,7 +14,11 @@ namespace IntegrationTests;
 
 public class SyntaxDeserializerGenerator : SyntaxAstVisitor {
 
-  private readonly HashSet<Type> typesWithHardcodedDeserializer = [typeof(Token), typeof(Specification<>)];
+  private readonly HashSet<Type> typesWithHardcodedDeserializer = [
+    typeof(Token),
+    typeof(Specification<>),
+    typeof(CasePattern<>),
+  ];
 
   private ClassDeclarationSyntax deserializeClass = (ClassDeclarationSyntax)SyntaxFactory.ParseMemberDeclaration(@"
 partial class SyntaxDeserializer {}")!;
@@ -128,14 +132,16 @@ private {typeString} Read{typeString2}() {{
       return;
     }
 
-    var typeString = ToGenericTypeString(type);
     var constructor = GetParseConstructor(type);
     if (constructor == null) {
       return;
     }
     var parameters = constructor.GetParameters();
 
-    var deserializeMethodName = $"Read{typeString}";
+    var typeString = ToGenericTypeString(type);
+    var readMethodName = $"Read{typeString}";
+    var readOptionMethodName = $"Read{ToGenericTypeString(type, suffix: "Option")}";
+
     if (typesWithHardcodedDeserializer.Contains(type.WithoutGenericArguments())) {
       return;
     }
@@ -150,12 +156,11 @@ private {typeString} Read{typeString2}() {{
       statements.AppendLine(
         $"var parameter{constructorIndex} = {parameterTypeReadCall};");
     }
-
-    AddReadMethodForType(parameters, statements, typeString, deserializeMethodName);
-    AddReadOptionMethodForType(typeString, deserializeMethodName);
+    AddReadMethodForType(parameters, statements, typeString, readMethodName);
+    AddReadOptionMethodForType(typeString, readMethodName, readOptionMethodName);
     deserializeObjectCases.Add(SyntaxFactory.ParseStatement($@"
 if (actualType == typeof({typeString})) {{
-  return {deserializeMethodName}();
+  return {readMethodName}();
 }}
 "));
 
@@ -179,33 +184,34 @@ if (actualType == typeof({typeString})) {{
       return $"ReadList{optionString}<{elementTypeString}>(() => {elementRead})";
     }
 
-    var genericTypeString = ToGenericTypeString(parameterType, true, false);
     if (newType.IsAbstract || newType == typeof(object)) {
-      parameterTypeReadCall = $"ReadAbstract{optionString}<{genericTypeString}>()";
+      var abstractTypeString = ToGenericTypeString(parameterType, true, false);
+      parameterTypeReadCall = $"ReadAbstract{optionString}<{abstractTypeString}>()";
     } else {
-      parameterTypeReadCall = $"Read{genericTypeString}{optionString}()";
+      var objectTypeString = ToGenericTypeString(parameterType, true, false, suffix: optionString);
+      parameterTypeReadCall = $"Read{objectTypeString}()";
     }
 
     return parameterTypeReadCall;
   }
 
-  private void AddReadOptionMethodForType(string typeString, string deserializeMethodName) {
+  private void AddReadOptionMethodForType(string typeString, string readMethodName, string readOptionMethodName) {
     var typedDeserialize = SyntaxFactory.ParseMemberDeclaration(@$"
- public {typeString} {deserializeMethodName}Option() {{
+ public {typeString} {readOptionMethodName}() {{
   if (ReadIsNull()) {{
      return default;
   }}
-  return {deserializeMethodName}();
+  return {readMethodName}();
 }}")!;
     deserializeClass = deserializeClass.WithMembers(deserializeClass.Members.Add(typedDeserialize));
   }
 
   private void AddReadMethodForType(ParameterInfo[] parameters, StringBuilder statements, string typeString,
-    string deserializeMethodName) {
+    string methodName) {
     var parametersString = string.Join(", ", Enumerable.Range(0, parameters.Length).Select(index =>
       $"parameter{index}"));
     var typedDeserialize = SyntaxFactory.ParseMemberDeclaration(@$"
- public {typeString} {deserializeMethodName}() {{
+ public {typeString} {methodName}() {{
   {statements}
   return new {typeString}({parametersString});
 }}")!;

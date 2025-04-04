@@ -1,7 +1,8 @@
+#nullable enable
+
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 using System.Linq;
-using JetBrains.Annotations;
 
 namespace Microsoft.Dafny;
 
@@ -20,14 +21,14 @@ public class CasePattern<VT> : NodeWithOrigin
   // After successful resolution, exactly one of the following two fields is non-null.
 
   [FilledInDuringResolution]
-  public DatatypeCtor Ctor;  // finalized by resolution (null if the pattern is a bound variable)
-  public VT Var;  // finalized by resolution (null if the pattern is a constructor)  Invariant:  Var != null ==> Arguments == null
-  public List<CasePattern<VT>> Arguments;
+  public DatatypeCtor? Ctor;  // finalized by resolution (null if the pattern is a bound variable)
+  public VT? Var;  // finalized by resolution (null if the pattern is a constructor)  Invariant:  Var != null ==> Arguments == null
+  public List<CasePattern<VT>>? Arguments;
 
-  [FilledInDuringResolution] public Expression Expr;  // an r-value version of the CasePattern;
+  [FilledInDuringResolution] public Expression? Expr;  // an r-value version of the CasePattern;
 
   public void MakeAConstructor() {
-    this.Arguments = [];
+    Arguments = [];
   }
 
   public CasePattern(Cloner cloner, CasePattern<VT> original) : base(cloner, original) {
@@ -51,34 +52,38 @@ public class CasePattern<VT> : NodeWithOrigin
     }
   }
 
-  public CasePattern(IOrigin origin, string id, [Captured] List<CasePattern<VT>> arguments) : base(origin) {
-    Contract.Requires(origin != null);
-    Contract.Requires(id != null);
+  public CasePattern(IOrigin origin, string id, [Captured] List<CasePattern<VT>>? arguments) : base(origin) {
     Id = id;
     Arguments = arguments;
   }
 
   public CasePattern(IOrigin origin, VT bv) : base(origin) {
-    Contract.Requires(origin != null);
-    Contract.Requires(bv != null);
     Id = bv.Name;
     Var = bv;
+  }
+
+  [SyntaxConstructor]
+  public CasePattern(IOrigin origin, string id, VT? var, List<CasePattern<VT>>? arguments) : base(origin) {
+    Contract.Requires((var == null) != (arguments == null));
+    Id = id;
+    Var = var;
+    Arguments = arguments;
   }
 
   /// <summary>
   /// Sets the Expr field.  Assumes the CasePattern and its arguments to have been successfully resolved, except for assigning
   /// to Expr.
   /// </summary>
-  public void AssembleExpr(List<Type> dtvTypeArgs) {
+  public void AssembleExpr(List<Type>? dtvTypeArgs) {
     Contract.Requires(Var != null || dtvTypeArgs != null);
     if (Var != null) {
       Contract.Assert(this.Id == this.Var.Name);
       this.Expr = new IdentifierExpr(this.Origin, this.Var);
     } else {
-      var dtValue = new DatatypeValue(this.Origin, this.Ctor.EnclosingDatatype.Name, this.Id,
+      var dtValue = new DatatypeValue(this.Origin, this.Ctor!.EnclosingDatatype!.Name, this.Id,
         this.Arguments == null ? [] : this.Arguments.ConvertAll(arg => arg.Expr));
       dtValue.Ctor = this.Ctor;  // resolve here
-      dtValue.InferredTypeArgs.AddRange(dtvTypeArgs);  // resolve here
+      dtValue.InferredTypeArgs.AddRange(dtvTypeArgs!);  // resolve here
       dtValue.Type = new UserDefinedType(this.Origin, this.Ctor.EnclosingDatatype.Name, this.Ctor.EnclosingDatatype, dtvTypeArgs);
       this.Expr = dtValue;
     }
@@ -88,7 +93,7 @@ public class CasePattern<VT> : NodeWithOrigin
   /// Sets the Expr field.  Assumes the CasePattern and its arguments to have been successfully resolved, except for assigning
   /// to Expr.
   /// </summary>
-  public void AssembleExprPreType(List<PreType> dtvPreTypeArgs) {
+  public void AssembleExprPreType(List<PreType>? dtvPreTypeArgs) {
     Contract.Requires(Var != null || dtvPreTypeArgs != null);
     if (Var != null) {
       Contract.Assert(this.Id == this.Var.Name);
@@ -96,12 +101,12 @@ public class CasePattern<VT> : NodeWithOrigin
         PreType = this.Var.PreType
       };
     } else {
-      var dtValue = new DatatypeValue(this.Origin, this.Ctor.EnclosingDatatype.Name, this.Id,
+      var dtValue = new DatatypeValue(this.Origin, this.Ctor!.EnclosingDatatype!.Name, this.Id,
         this.Arguments == null ? [] : this.Arguments.ConvertAll(arg => arg.Expr)) {
         Ctor = this.Ctor,
         PreType = new DPreType(this.Ctor.EnclosingDatatype, dtvPreTypeArgs)
       };
-      dtValue.InferredPreTypeArgs.AddRange(dtvPreTypeArgs); // resolve here
+      dtValue.InferredPreTypeArgs.AddRange(dtvPreTypeArgs!); // resolve here
       this.Expr = dtValue;
     }
   }
