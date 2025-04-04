@@ -62,7 +62,7 @@
 // At the end of this file, Nadia Polikarpova has written two versions of FindWinner that does
 // that, using Dafny's support for calculational proofs.
 
-function Count<T(==)>(a: seq<T>, s: int, t: int, x: T): int
+function {:fuel 2} Count<T(==)>(a: seq<T>, s: int, t: int, x: T): int
   requires 0 <= s <= t <= |a|
 {
   if s == t then 0 else

@@ -172,7 +172,7 @@ lemma Lemma_Concat_Length(xs: List, ys: List)
   ensures length(concat(xs, ys)) == length(xs) + length(ys);
 {}
 
-lemma Lemma_Reverse_Length(xs: List)
+lemma Lemma_Reverse_Length<T>(xs: List)
   ensures length(xs) == length(reverse(xs));
 {
   match (xs) {
@@ -189,7 +189,7 @@ lemma Lemma_Reverse_Length(xs: List)
         calc {
           length(Cons(x, Nil));
           // def. length
-          // 1 + length(Nil);  // ambigious type parameter
+          1 + length<T>(Nil);
           // def. length
           1 + 0;
           1;
