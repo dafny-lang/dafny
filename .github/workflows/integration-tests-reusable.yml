@@ -135,10 +135,10 @@ jobs:
 #        rm dafny/Test/libraries/lit.site.cfg # we remove the lit configuration file in the library repo (a git submodule) to prevent override
     - name: Use the default Rust linker (Non-Windows)
       if: runner.os != 'Windows'
-      run: rustup default stable
+      run: rustup default 1.85.1
     - name: Use specific Toolchain (Windows)
       if: runner.os == 'Windows'
-      run: rustup default stable-x86_64-pc-windows-gnu
+      run: rustup default 1.85.1-x86_64-pc-windows-gnu
     - name: Rust-related System information
       run: |
         echo "What is the Rust version?"
