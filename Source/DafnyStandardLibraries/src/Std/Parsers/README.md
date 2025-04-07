@@ -6,11 +6,11 @@ This library offers two styles of functional parser combinators.
 
 - The first parsers style is a synonym for `seq<character> -> ParseResult<Result>` that supports monadic styles, is straightforward to use, but results in lots of closing parentheses.
 
-- The second parsers style is a datatype wrapper around the first style, which enable to define functions as infix or suffixes, which makes parsers sometimes easier to read and helps decreasing nesting.
+- The second parsers style is a datatype wrapper around the first style, which enable to define functions as infix or suffix operations, which makes parsers sometimes easier to read and helps decreasing nesting.
 
 ## Library usage
 
-The tutorial in [`Tutorial.dfy`](../../../examples/Parsers/Tutorial.dfy) shows how to import the library call the two parsers style API, apply the parser to a string, and also use the PrintFailure to pretty print the failure along with the line/col where it occurred.
+The tutorial in [`Tutorial.dfy`](../../../examples/Parsers/Tutorial.dfy) shows how to import the library, call the two styles of parser API, apply the parser to a string, and also use `PrintFailure` to pretty print the failure along with the line and column where it occurred.
 
 To view a full example of how to use the parser combinator library,
 especially how to define a recursive parser that is guaranteed to terminate,
