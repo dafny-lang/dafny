@@ -1355,7 +1355,7 @@ namespace Microsoft.Dafny
             var parameter0 = ReadAbstract<IOrigin>();
             var parameter5 = ReadAttributesOption();
             var parameter1 = ReadBoolean();
-            var parameter2 = ReadAbstract<Expression>();
+            var parameter2 = ReadAbstractOption<Expression>();
             var parameter3 = ReadBlockStmt();
             var parameter4 = ReadAbstractOption<Statement>();
             return new IfStmt(parameter0, parameter1, parameter2, parameter3, parameter4, parameter5);
@@ -1517,7 +1517,7 @@ namespace Microsoft.Dafny
             var parameter7 = ReadAttributesOption();
             var parameter4 = ReadBoolean();
             var parameter6 = ReadAbstract<Type>();
-            var parameter2 = ReadAbstract<Expression>();
+            var parameter2 = ReadAbstractOption<Expression>();
             var parameter3 = ReadBoolean();
             var parameter5 = ReadBoolean();
             return new ConstantField(parameter0, parameter1, parameter2, parameter3, parameter4, parameter5, parameter6, parameter7);

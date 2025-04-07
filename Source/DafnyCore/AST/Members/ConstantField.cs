@@ -10,9 +10,7 @@ namespace Microsoft.Dafny;
 
 public class ConstantField : Field, ICallable, ICanAutoRevealDependencies, ICanVerify {
   public override string WhatKind => "const field";
-  public Expression Rhs;
-
-  public virtual string IdParam => NonglobalVariable.SanitizeName(Name);
+  public Expression? Rhs;
 
   public override bool IsOpaque { get; }
 
@@ -20,7 +18,7 @@ public class ConstantField : Field, ICallable, ICanAutoRevealDependencies, ICanV
   public override bool IsUserMutable => false;
 
   [SyntaxConstructor]
-  public ConstantField(IOrigin origin, Name nameNode, Expression/*?*/ rhs, bool hasStaticKeyword,
+  public ConstantField(IOrigin origin, Name nameNode, Expression? rhs, bool hasStaticKeyword,
     bool isGhost, bool isOpaque, Type type, Attributes? attributes)
     : base(origin, nameNode, isGhost, type, attributes) {
     Contract.Requires(nameNode != null);

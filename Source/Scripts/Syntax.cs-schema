@@ -664,7 +664,7 @@ class WhileStmt : OneBodyLoopStmt
 class IfStmt : Statement
 {
     Boolean isBindingGuard;
-    Expression guard;
+    Expression? guard;
     BlockStmt thn;
     Statement? els;
 }
@@ -716,7 +716,7 @@ class Field : MemberDecl
 
 class ConstantField : Field
 {
-    Expression rhs;
+    Expression? rhs;
     Boolean hasStaticKeyword;
     Boolean isOpaque;
 }
