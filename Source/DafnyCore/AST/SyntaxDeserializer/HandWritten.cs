@@ -162,7 +162,7 @@ public partial class SyntaxDeserializer(IDecoder decoder) {
     if (actualType == typeof(char)) {
       return (T)(object)decoder.ReadString();
     }
-    
+
     if (actualType == typeof(long)) {
       return (T)(object)decoder.ReadInt64();
     }

@@ -59,8 +59,7 @@ public class LiteralExpr : Expression, ICloneable<LiteralExpr> {
   [SyntaxConstructor]
   public LiteralExpr(IOrigin origin, object? value)
     : base(origin) {
-    this.Value = value switch
-    {
+    this.Value = value switch {
       int n => new BigInteger(n),
       short n => new BigInteger(n),
       long n => new BigInteger(n),
@@ -123,7 +122,7 @@ public class LiteralExpr : Expression, ICloneable<LiteralExpr> {
 }
 
 public class CharLiteralExpr : LiteralExpr, ICloneable<CharLiteralExpr> {
-  
+
   /// <summary>
   /// Because the base field type is object, we need an object constructor here as well
   /// </summary>
@@ -132,7 +131,7 @@ public class CharLiteralExpr : LiteralExpr, ICloneable<CharLiteralExpr> {
     : base(origin, value) {
     Contract.Requires(value != null);
   }
-  
+
   public CharLiteralExpr(IOrigin origin, string value)
     : base(origin, value) {
     Contract.Requires(value != null);

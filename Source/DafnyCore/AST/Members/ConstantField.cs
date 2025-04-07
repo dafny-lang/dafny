@@ -59,7 +59,7 @@ public class ConstantField : Field, ICallable, ICanAutoRevealDependencies, ICanV
   public bool AllowsAllocation => true;
 
   public override IEnumerable<INode> Children => base.Children.Concat(Rhs == null ? [] : [Rhs]);
-  
+
   public override SymbolKind? Kind => SymbolKind.Constant;
 
   public override IEnumerable<INode> PreResolveChildren => Children;
