@@ -17,13 +17,13 @@ class Token
 class SourceOrigin : IOrigin
 {
     TokenRange entireRange;
-    TokenRange reportingRange;
+    TokenRange? reportingRange;
 }
 
 class TokenRange
 {
     Token startToken;
-    Token endToken;
+    Token? endToken;
 }
 
 class FilesContainer
@@ -43,7 +43,7 @@ abstract class Node
 
 abstract class NodeWithOrigin : Node
 {
-    IOrigin origin;
+    IOrigin? origin;
 }
 
 abstract class Type : NodeWithOrigin
@@ -140,6 +140,10 @@ enum BinaryExprOpcode
 class LiteralExpr : Expression
 {
     Object? value;
+}
+
+class CharLiteralExpr : LiteralExpr
+{
 }
 
 class TernaryExpr : Expression
@@ -273,7 +277,7 @@ class Formal : NonglobalVariable
     Boolean isOld;
     Boolean isNameOnly;
     Boolean isOlder;
-    String nameForCompilation;
+    String? nameForCompilation;
 }
 
 class BoundVar : NonglobalVariable
@@ -523,7 +527,7 @@ enum SubsetTypeDeclWKind
 abstract class TopLevelDeclWithMembers : TopLevelDecl
 {
     List<MemberDecl> members;
-    List<Type> traits;
+    List<Type>? traits;
 }
 
 abstract class MemberDecl : Declaration
@@ -716,7 +720,7 @@ class Field : MemberDecl
 
 class ConstantField : Field
 {
-    Expression rhs;
+    Expression? rhs;
     Boolean hasStaticKeyword;
     Boolean isOpaque;
 }
