@@ -226,7 +226,7 @@ namespace Microsoft.Dafny {
         } else if (expr is LetExpr letExpr) {
           foreach (var lhs in letExpr.LHSs) {
             foreach (var v in lhs.Vars) {
-              VisitUserProvidedType(v.SyntacticType, context);
+              VisitUserProvidedType(v.SafeSyntacticType, context);
             }
           }
 

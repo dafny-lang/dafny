@@ -3766,7 +3766,7 @@ LambdaExpression<out Expression e, bool allowLemma, bool allowBitwiseOps>
      Expression req = null;
      Expression body = null;
   .)
-  ( WildIdent<out id, true>                  (. x = t; bvs.Add(new BoundVar(new SourceOrigin(x, x, id), id.val, new InferredTypeProxy())); .)
+  ( WildIdent<out id, true>                  (. x = t; bvs.Add(new BoundVar(new SourceOrigin(x, x, id), id.val)); .)
   | "("                                      (. x = t; .)
       [
         IdentTypeOptional<out bv>            (. bvs.Add(bv); .)
@@ -3957,7 +3957,7 @@ SeqDisplayExpr<out Expression e>
 /*------------------------------------------------------------------------*/
 MapDisplayExpr<out Expression e>
 = (. Contract.Ensures(Contract.ValueAtReturn(out e) != null);
-     List<ExpressionPair/*!*/>/*!*/ elements= new List<ExpressionPair/*!*/>() ;
+     List<MapDisplayEntry/*!*/>/*!*/ elements= new List<MapDisplayEntry/*!*/>() ;
      e = dummyExpr;
   .)
   ( "map" | "imap" ) (. Token mapToken = t; .)
@@ -3967,12 +3967,12 @@ MapDisplayExpr<out Expression e>
   .
 
 /*------------------------------------------------------------------------*/
-MapLiteralExpressions<.out List<ExpressionPair> elements.>
+MapLiteralExpressions<.out List<MapDisplayEntry> elements.>
 = (. Expression/*!*/ d, r;
-     elements = new List<ExpressionPair/*!*/>();
+     elements = new List<MapDisplayEntry/*!*/>();
   .)
-  Expression<out d, true, true> ":=" Expression<out r, true, true>       (. elements.Add(new ExpressionPair(d,r)); .)
-  { "," Expression<out d, true, true> ":=" Expression<out r, true, true> (. elements.Add(new ExpressionPair(d,r)); .)
+  Expression<out d, true, true> ":=" Expression<out r, true, true>       (. elements.Add(new MapDisplayEntry(d,r)); .)
+  { "," Expression<out d, true, true> ":=" Expression<out r, true, true> (. elements.Add(new MapDisplayEntry(d,r)); .)
   }
   .
 

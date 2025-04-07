@@ -1305,13 +1305,13 @@ namespace Microsoft.Dafny.Compilers {
       wr.Write(")");
     }
 
-    protected override void EmitMapDisplay(MapType mt, IOrigin tok, List<ExpressionPair> elements, bool inLetExprBody,
+    protected override void EmitMapDisplay(MapType mt, IOrigin tok, List<MapDisplayEntry> elements, bool inLetExprBody,
         ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
       wr.Write($"{DafnyMapClass}.fromElements(");
       var tuple2 = DafnyTupleClass(2);
       wr.Write($"({tuple2}<{BoxedTypeName(mt.Domain, wr, tok)}, {BoxedTypeName(mt.Range, wr, tok)}>[])new {tuple2}[]{{");
       string sep = " ";
-      foreach (ExpressionPair p in elements) {
+      foreach (MapDisplayEntry p in elements) {
         wr.Write(sep);
         wr.Write($"new {tuple2}(");
         var coercedW = EmitCoercionIfNecessary(from: p.A.Type, to: NativeObjectType, tok: p.A.Origin, wr: wr);

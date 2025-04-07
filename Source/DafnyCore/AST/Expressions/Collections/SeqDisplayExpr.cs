@@ -1,14 +1,12 @@
+#nullable enable
+
 using System.Collections.Generic;
-using System.Diagnostics.Contracts;
 
 namespace Microsoft.Dafny;
 
 public class SeqDisplayExpr : DisplayExpression, ICanFormat, ICloneable<SeqDisplayExpr> {
-  public SeqDisplayExpr(IOrigin origin, List<Expression> elements)
-    : base(origin, elements) {
-    Contract.Requires(cce.NonNullElements(elements));
-    Contract.Requires(origin != null);
-  }
+  [SyntaxConstructor]
+  public SeqDisplayExpr(IOrigin origin, List<Expression> elements) : base(origin, elements) { }
 
   public bool SetIndent(int indentBefore, TokenNewIndentCollector formatter) {
     return formatter.SetIndentParensExpression(indentBefore, OwnedTokens);

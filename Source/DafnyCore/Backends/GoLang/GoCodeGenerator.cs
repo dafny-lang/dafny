@@ -4010,10 +4010,10 @@ namespace Microsoft.Dafny.Compilers {
       TrExprList(elements, wr, inLetExprBody, wStmts, typeAt: _ => ct.Arg);
     }
 
-    protected override void EmitMapDisplay(MapType mt, IOrigin tok, List<ExpressionPair> elements,
+    protected override void EmitMapDisplay(MapType mt, IOrigin tok, List<MapDisplayEntry> elements,
         bool inLetExprBody, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
       wr.Write("_dafny.NewMapBuilder().ToMap()");
-      foreach (ExpressionPair p in elements) {
+      foreach (MapDisplayEntry p in elements) {
         wr.Write(".UpdateUnsafe(");
         wr.Append(Expr(p.A, inLetExprBody, wStmts));
         wr.Write(", ");

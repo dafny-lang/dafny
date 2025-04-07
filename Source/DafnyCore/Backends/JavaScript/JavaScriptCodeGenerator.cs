@@ -2538,10 +2538,10 @@ namespace Microsoft.Dafny.Compilers {
       }
     }
 
-    protected override void EmitMapDisplay(MapType mt, IOrigin tok, List<ExpressionPair> elements,
+    protected override void EmitMapDisplay(MapType mt, IOrigin tok, List<MapDisplayEntry> elements,
         bool inLetExprBody, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
       wr.Write($"{DafnyMapClass}.Empty.slice()");
-      foreach (ExpressionPair p in elements) {
+      foreach (MapDisplayEntry p in elements) {
         wr.Write(".updateUnsafe(");
         wr.Append(Expr(p.A, inLetExprBody, wStmts));
         wr.Write(",");

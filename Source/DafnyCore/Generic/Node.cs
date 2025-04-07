@@ -30,6 +30,17 @@ public class SyntaxConstructorAttribute : Attribute { }
 [AttributeUsage(AttributeTargets.Parameter | AttributeTargets.Field)]
 public class BackEdge : Attribute { }
 
+/// <summary>
+/// Indicates that the target field or property is redundant,
+/// such as if it's effectively constant or fully determined by the values of other fields.
+/// A common case is when a base type defines a field that takes the same value in all instances of a subtype.
+/// Serialization and pretty-printing logic may safely ignore such a field for efficiency.
+/// </summary>
+[AttributeUsage(AttributeTargets.Class, AllowMultiple = true)]
+public class RedundantField(string name) : Attribute {
+  public readonly string Name = name;
+}
+
 public abstract class Node : INode {
   private static readonly Regex StartDocstringExtractor =
     new Regex($@"/\*\*(?<multilinecontent>{TriviaFormatterHelper.MultilineCommentContent})\*/");

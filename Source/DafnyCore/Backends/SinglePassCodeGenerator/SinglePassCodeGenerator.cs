@@ -1470,7 +1470,7 @@ namespace Microsoft.Dafny.Compilers {
 
     protected abstract void EmitCollectionDisplay(CollectionType ct, IOrigin tok, List<Expression> elements,
       bool inLetExprBody, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts);  // used for sets, multisets, and sequences
-    protected abstract void EmitMapDisplay(MapType mt, IOrigin tok, List<ExpressionPair> elements,
+    protected abstract void EmitMapDisplay(MapType mt, IOrigin tok, List<MapDisplayEntry> elements,
       bool inLetExprBody, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts);
 
     protected abstract void EmitSetBuilder_New(ConcreteSyntaxTree wr, SetComprehension e, string collectionName);

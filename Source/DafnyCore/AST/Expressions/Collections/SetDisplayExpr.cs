@@ -1,3 +1,5 @@
+#nullable enable
+
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 
@@ -5,10 +7,10 @@ namespace Microsoft.Dafny;
 
 public class SetDisplayExpr : DisplayExpression, ICanFormat, ICloneable<SetDisplayExpr> {
   public bool Finite;
+
+  [SyntaxConstructor]
   public SetDisplayExpr(IOrigin origin, bool finite, List<Expression> elements)
     : base(origin, elements) {
-    Contract.Requires(origin != null);
-    Contract.Requires(cce.NonNullElements(elements));
     Finite = finite;
   }
 

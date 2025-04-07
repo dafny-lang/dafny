@@ -20,7 +20,7 @@ jobs:
   singletons:
     needs: check-deep-tests
     if: always() && (( github.event_name == 'pull_request' && (needs.check-deep-tests.result == 'success' || contains(github.event.pull_request.labels.*.name, 'run-deep-tests'))) || ( github.event_name == 'push' && ( github.ref_name == 'master' || vars.TEST_ON_FORK == 'true' )))
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     steps:
     - name: Setup dotnet
       uses: actions/setup-dotnet@v4
@@ -36,7 +36,7 @@ jobs:
       run: dotnet tool restore
     - name: Check whitespace and style
       working-directory: dafny
-      run: dotnet format whitespace Source/Dafny.sln --verify-no-changes --exclude Source/DafnyCore/Generic/Deserializer/Generated.cs --exclude Source/DafnyCore/Scanner.cs --exclude Source/DafnyCore/Parser.cs --exclude Source/DafnyCore/GeneratedFromDafny/* --exclude Source/DafnyCore.Test/GeneratedFromDafny/* --exclude Source/DafnyRuntime/DafnyRuntimeSystemModule.cs
+      run: dotnet format whitespace Source/Dafny.sln --verify-no-changes --exclude Source/DafnyCore/GeneratedFromDafny/* --exclude Source/DafnyCore.Test/GeneratedFromDafny/* --exclude Source/DafnyRuntime/DafnyRuntimeSystemModule.cs
     - name: Check that it's possible to bump the version
       working-directory: dafny
       run: make bumpversion-test
@@ -82,7 +82,7 @@ jobs:
       compilers: ${{ (contains(github.event.pull_request.labels.*.name, 'run-deep-tests') || contains(github.event.push.labels.*.name, 'run-deep-tests')) && 'cs,java,go,js,cpp,dfy,py' || '' }}
 
   test-coverage-analysis:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     # Don't include in run-deep-tests, because those tests run on
     # release builds instead of source packages.
     if: ${{ !contains(github.event.pull_request.labels.*.name, 'run-deep-tests') && !contains(github.event.push.labels.*.name, 'run-deep-tests')}}))
@@ -115,13 +115,13 @@ jobs:
       - name: Download integration test artifacts
         uses: actions/download-artifact@v4
         with:
-          pattern: integration-test-results-ubuntu-20.04-*
+          pattern: integration-test-results-ubuntu-22.04-*
           merge-multiple: true
 
       - name: Download unit test artifacts
         uses: actions/download-artifact@v4
         with:
-          name: unit-test-results-ubuntu-20.04
+          name: unit-test-results-ubuntu-22.04
 
       - name: Merge reports
         run: |

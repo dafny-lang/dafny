@@ -51,7 +51,7 @@ public class SubsetTypeDecl : TypeSynonymDecl, RedirectingTypeDecl, ICanAutoReve
       );
 
   BoundVar RedirectingTypeDecl.Var => Var;
-  PreType RedirectingTypeDecl.BasePreType => Var.PreType;
+  PreType? RedirectingTypeDecl.BasePreType => Var.PreType;
   Type RedirectingTypeDecl.BaseType => Var.Type;
   Expression RedirectingTypeDecl.Constraint => Constraint;
   WKind RedirectingTypeDecl.WitnessKind => WitnessKind;
