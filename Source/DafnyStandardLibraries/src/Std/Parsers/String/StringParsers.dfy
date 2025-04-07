@@ -1,3 +1,10 @@
+/*******************************************************************************
+ *  Copyright by the contributors to the Dafny Project
+ *  SPDX-License-Identifier: MIT 
+ *******************************************************************************/
+
+/** Until string slicing is implemented in O(1), a string input consists of the original string,
+  * a start and an end marker. */
 module Std.Parsers.InputString refines AbstractInput {
   datatype Input_ = Input(data: seq<char>, start: int, end: int) {
     ghost predicate Valid() {
@@ -282,20 +289,22 @@ module Std.Parsers.StringParsers refines Core {
   }
 
   function DebugSummary(input: string): string {
-    IntToString(|input|) + " \"" +
     (if |input| > 0 then
+       "'" +
        match input[0] {
          case '\n' => "\\n"
          case '\r' => "\\r"
          case '\t' => "\\t"
          case c => [c]
-       }
+       } +
+       if |input| == 1 then "' and end of string" else
+       "'" + " and " + Strings.OfInt(|input| - 1) + " char" + (if |input| == 2 then "" else "") +" remaining"
      else
-       "EOS") + "\"\n"
+       "'' (end of string)") + "\n"
   }
 
   function DebugNameSummary(name: string, input: string): string {
-    name + ": " + DebugSummary(input)
+    "[" + name + "] " + DebugSummary(input)
   }
 
   function DebugSummaryInput(name: string, input: string): string {
@@ -331,7 +340,7 @@ module Std.Parsers.StringParsers refines Core {
   method {:print} PrintDebugSummaryOutput<R>(name: string, input: string, result: ParseResult<R>) {
     print "< ", DebugNameSummary(name, input);
     if result.ParseFailure? {
-      print "| R: ", DebugSummary(A.View(result.Remaining()));
+      print "| Unparsed: ", DebugSummary(A.View(result.Remaining()));
       if A.Length(result.Remaining()) < |input| {
         print "| Was committed\n";
       }
@@ -362,8 +371,8 @@ module Std.Parsers.StringParsers refines Core {
       if printPos == pos then failure else
       var output := ExtractLineCol(input, pos);
       var CodeLocation(line, col, lineStr) := output;
-      failure + IntToString(line) + ": " + lineStr + "\n" +
-      repeat_(" ", col + 2 + |IntToString(line)|) + "^" + "\n";
+      failure + Strings.OfInt(line) + ": " + lineStr + "\n" +
+      repeat_(" ", col + 2 + |Strings.OfInt(line)|) + "^" + "\n";
     var failure := failure + result.data.message;
     if result.data.next.Some? then
       var failure := failure + ", or\n";

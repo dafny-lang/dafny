@@ -1,7 +1,12 @@
-// A small regex-like language that can be turned into a straightforward parser
-// So first we parse the parser to ParserSpec, we convert it to a parser
-// and we parse the string using this parser.
-// Possible next step: Compile this parser and prove it does the same.
+/*******************************************************************************
+ *  Copyright by the contributors to the Dafny Project
+ *  SPDX-License-Identifier: MIT 
+ *******************************************************************************/
+
+/** A small regex-like language that can be turned into a straightforward parser
+  * So first we parse the parser to ParserSpec, we convert it to a parser
+  * and we parse the string using this parser.
+  * Possible next step: Compile this parser and prove it does the same.*/
 module ExampleParsers.ParserGenerator {
   import opened Std.Parsers.StringBuilders
   import opened Std.Wrappers

@@ -1,3 +1,9 @@
+/*******************************************************************************
+ *  Copyright by the contributors to the Dafny Project
+ *  SPDX-License-Identifier: MIT 
+ *******************************************************************************/
+
+/** The parsers builder DSL but specialized for strings */
 module Std.Parsers.StringBuilders refines Builders {
   import P = StringParsers
   export StringBuilders extends Builders

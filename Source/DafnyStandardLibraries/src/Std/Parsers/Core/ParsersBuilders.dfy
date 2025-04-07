@@ -1,17 +1,19 @@
-// Nice wDSL to build parsers to avoid too much parenthesis nesting
+/*******************************************************************************
+ *  Copyright by the contributors to the Dafny Project
+ *  SPDX-License-Identifier: MIT 
+ *******************************************************************************/
+
+// Simple DSL to build parsers to avoid too much parenthesis nesting
 // B(p)       returns a parser builder from a normal parser.
-// B1.o_I(B2) will parse both but return the result of B2
-// B1.I_o(B2) will parse both but return the result of B1
+// B1.e_I(B2) will parse both but return the result of B2
+// B1.I_e(B2) will parse both but return the result of B1
 // B.M(f)     will map the result of the parser builder by f if succeeded
 // B1.O(B2)   will either parse B1, or B2 if B1 fails with Recoverable
-// FirstOf([B1, B2, B3])
+// O([B1, B2, B3])
 //            will parse with B1, but if B1 fails with Recoverable,
 //            it will parse with B2, but if B2 fails with Recoverable,
 //            it will parse with B3
 // R(v)       returns a parser builder that returns immediately v
-// 
-// There are more parser builders in the trait Engine, when their spec depends on
-// a predetermined input, e.g. to tests for constant strings
 
 abstract module Std.Parsers.Builders {
   import P: Core
@@ -21,11 +23,12 @@ abstract module Std.Parsers.Builders {
     provides SucceedWith
     provides FailWith
     provides Rec
+    provides MId
     provides B.Apply
     provides B.e_I
     provides B.I_e
     provides B.I_I
-    provides B.M
+    provides B.M, B.M2, B.M3
     provides B.If
     provides B.?
     provides B.??
@@ -42,7 +45,6 @@ abstract module Std.Parsers.Builders {
     provides B.End
     provides EOS
     provides Nothing
-    provides IntToString
     provides CharTest
     provides ToInput
     reveals Input
@@ -77,6 +79,9 @@ abstract module Std.Parsers.Builders {
 
   /** Parses nothing, always returns a success with nothing consumed. Can be useful in alternatives. */
   const Nothing: B<()> := B(P.Epsilon())
+
+  /** An identity function useful for B.M2 and B.M3 */
+  function MId<R>(r: R): R { r }
 
   /** Adapter to wrap any underlying parser so that they can be chained together. */
   datatype B<R> = B(apply: P.Parser<R>)
@@ -158,9 +163,16 @@ abstract module Std.Parsers.Builders {
 
     /** `a.M(f)` evaluates `a` on the input, and then if it returns a success,  
         transforms the value using the function `f`. */
-    function M<U>(mappingFunc: R -> U): (p: B<U>)
-    {
+    function M<U>(mappingFunc: R -> U): (p: B<U>) {
       B(P.Map(apply, mappingFunc))
+    }
+
+    function M2<R1, R2, U>(unfolder: R -> (R1, R2), mappingFunc: (R1, R2) -> U): (p: B<U>) {
+      B(P.Map(apply, (x: R) => var x := unfolder(x); mappingFunc(x.0, x.1)))
+    }
+
+    function M3<R1, R2, R3, U>(unfolder: R -> (R1, R2, R3), mappingFunc: (R1, R2, R3) -> U): (p: B<U>) {
+      B(P.Map(apply, (x: R) => var x := unfolder(x); mappingFunc(x.0, x.1, x.2)))
     }
 
     /** `a.Then(f)` evaluates `a` on the input, and if it is a success,  
@@ -365,10 +377,5 @@ abstract module Std.Parsers.Builders {
               ).apply),
         fun
       ))
-  }
-
-  /** Provides a tool for converting an integer to a string */
-  function IntToString(input: int): string {
-    P.IntToString(input)
   }
 }

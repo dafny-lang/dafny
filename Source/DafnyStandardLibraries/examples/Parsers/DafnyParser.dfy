@@ -1,4 +1,9 @@
-// A parser that can self-parse
+/*******************************************************************************
+ *  Copyright by the contributors to the Dafny Project
+ *  SPDX-License-Identifier: MIT 
+ *******************************************************************************/
+
+// A parser that aims at self-parsing its code. One day.
 module ExampleParsers.DafnyParser {
   import opened Std.Parsers.StringBuilders
 

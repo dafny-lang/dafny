@@ -1,5 +1,10 @@
-// A parser that can parse a JSON-like structure
-// Strings however are parsed without unicode escape.
+/*******************************************************************************
+ *  Copyright by the contributors to the Dafny Project
+ *  SPDX-License-Identifier: MIT 
+ *******************************************************************************/
+
+/** A parser that can parse a JSON-like structure
+  * Strings however are parsed without unicode escape. */
 module ExampleParsers.JSONParser {
   import opened Std.Parsers.StringBuilders
   datatype Decimal =

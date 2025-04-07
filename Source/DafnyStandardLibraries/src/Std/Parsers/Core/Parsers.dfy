@@ -1,5 +1,11 @@
+/*******************************************************************************
+ *  Copyright by the contributors to the Dafny Project
+ *  SPDX-License-Identifier: MIT 
+ *******************************************************************************/
+
+/** Definition of an parser's abstract input.
+    It enforces a mapping from an input to a sequence of characters */
 abstract module Std.Parsers.AbstractInput {
-  // Can be either a sequence, a sequence and pointers to this sequence, or an array and pointers to the array
   type Input(!new,==)
   type C(!new, ==)
 
@@ -27,6 +33,7 @@ abstract module Std.Parsers.Core
 // For parsers over strings, please refer to the StringParsers module
 {
   import Wrappers
+  import Strings
 
   export
     provides
@@ -63,7 +70,6 @@ abstract module Std.Parsers.Core
       OneOrMore,
       Recursive,
       RecursiveMap,
-      IntToString,
       DigitToInt,
       StringToInt,
       ParseResult.IsFailure,
@@ -707,7 +713,7 @@ abstract module Std.Parsers.Core
                  RecursiveMap_(underlying, fun', remaining)
                else if A.Length(remaining) == A.Length(input) then
                  ParseFailure(Recoverable, FailureData("non-progressing recursive call requires that order of '"
-                                                       +fun'+"' ("+IntToString(orderFun')+") is lower than the order of '"+fun+"' ("+IntToString(orderFun)+")", remaining, Option.None))
+                                                       +fun'+"' ("+Strings.OfInt(orderFun')+") is lower than the order of '"+fun+"' ("+Strings.OfInt(orderFun)+")", remaining, Option.None))
                else
                  ParseFailure(Fatal, FailureData("parser did not return a suffix of the input", remaining, Option.None))
            ; p);
@@ -722,17 +728,6 @@ abstract module Std.Parsers.Core
       if 0 < A.Length(input) && test(A.CharAt(input, 0)) then ParseSuccess(A.CharAt(input, 0), A.Drop(input, 1))
       else ParseFailure(Recoverable,
                         FailureData("expected a "+name, input, Option.None))
-  }
-
-  opaque function IntToString(n: int): string
-    // Converts an integer to a string
-    decreases if n < 0 then 1 - n else n
-  {
-    if n < 0 then "-" + IntToString(-n) else
-    match n
-    case 0 => "0" case 1 => "1" case 2 => "2" case 3 => "3" case 4 => "4"
-    case 5 => "5" case 6 => "6" case 7 => "7" case 8 => "8" case 9 => "9"
-    case _ => IntToString(n / 10) + IntToString(n % 10)
   }
 
   opaque function DigitToInt(c: char): int {

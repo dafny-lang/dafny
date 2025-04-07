@@ -1,3 +1,8 @@
+/*******************************************************************************
+ *  Copyright by the contributors to the Dafny Project
+ *  SPDX-License-Identifier: MIT 
+ *******************************************************************************/
+
 module ExampleParsers.PolynomialParser {
   import opened P = Std.Parsers.StringBuilders.P
   // Parser combinators style
@@ -85,7 +90,7 @@ module ExampleParsers.PolynomialParser {
 
     function ToString(): string {
       match this
-      case Number(x) => P.IntToString(x)
+      case Number(x) => Std.String.OfInt(x)
       case Binary(op, left, right) =>
         "("
         + left.ToString() + op + right.ToString()

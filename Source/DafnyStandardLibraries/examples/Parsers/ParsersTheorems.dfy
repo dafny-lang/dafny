@@ -1,3 +1,8 @@
+/*******************************************************************************
+ *  Copyright by the contributors to the Dafny Project
+ *  SPDX-License-Identifier: MIT 
+ *******************************************************************************/
+
 abstract module ExampleParsers.Theorems refines Std.Parsers.Core {
 
   ghost predicate Trigger<T>(i: T) { true }
@@ -363,112 +368,6 @@ abstract module ExampleParsers.Theorems refines Std.Parsers.Core {
         Valid(BindSucceeds(left, right))
     {
       BindSucceedsValid(left, right);
-    }
-  }
-
-  lemma IntToStringThenStringToIntIdem(n: int)
-    decreases if n < 0 then 1 - n else n
-    ensures 0 <= n ==> 1 <= |IntToString(n)| && IntToString(n)[0] != '-'
-    ensures StringToInt(IntToString(n)) == n
-  {
-    reveal IntToString(), StringToInt(), DigitToInt();
-    if n < 0 {
-      calc {
-        StringToInt(IntToString(n));
-        StringToInt("-" + IntToString(-n));
-        0 - StringToInt(IntToString(-n));
-        { IntToStringThenStringToIntIdem(-n); }
-        n;
-      }
-    } else if 0 <= n <= 9 {
-      assert StringToInt(IntToString(n)) == n;
-    } else {
-      assert IntToString(n) == IntToString(n / 10) + IntToString(n % 10);
-      var s := IntToString(n);
-    }
-  }
-  opaque predicate IsStringInt(s: string): (b: bool)
-    ensures b ==> |s| > 0
-  {
-    |s| > 0 &&
-    if s[0] == '-' then
-      |s| > 1 && s[1] != '0' &&
-      (forall i | 1 <= i < |s| :: s[i] in "0123456789")
-    else
-      (|s| > 1 ==> s[0] != '0') &&
-      (forall i | 0 <= i < |s| :: s[i] in "0123456789")
-  }
-
-  @IsolateAssertions
-  lemma StringToIntNonnegative(s: string)
-    requires IsStringInt(s)
-    requires s[0] != '-'
-    decreases |s|
-    ensures 0 <= StringToInt(s)
-    ensures s != "0" ==> 0 < StringToInt(s)
-    ensures |s| > 1 ==> 10 <= StringToInt(s)
-  {
-    if |s| == 0 {
-
-    } else if |s| == 1 {
-      reveal DigitToInt(), StringToInt(), IsStringInt();
-      match s[0]
-      case '0' => case '1' => case '2' => case '3' => case '4' =>
-      case '5' => case '6' => case '7' => case '8' => case '9' =>
-      case _ =>
-    } else if s[0] == '-' {
-    } else {
-      if |s| > 1 {
-        reveal StringToInt();
-        reveal IsStringInt();
-      }
-    }
-  }
-
-  @IsolateAssertions
-  lemma StringToIntThenIntToStringIdem(s: string)
-    requires IsStringInt(s)
-    decreases |s|
-    ensures s[0] != '-' ==> 0 <= StringToInt(s)
-    ensures |s| == 1 ==> 0 <= StringToInt(s) <= 9
-    ensures IntToString(StringToInt(s)) == s
-  {
-    assert |s| > 0;
-    if 1 <= |s| && s[0] == '-' {
-      reveal IntToString(), StringToInt(), IsStringInt();
-      assert forall i | 1 <= i < |s| :: s[i] in "0123456789";
-      calc {
-        IntToString(StringToInt(s));
-        IntToString(0 - StringToInt(s[1..]));
-      }
-    } else if |s| == 1 {
-      reveal IntToString(), StringToInt(), IsStringInt(), DigitToInt();
-      calc {
-        IntToString(StringToInt(s));
-        s;
-      }
-    } else {
-      var n := StringToInt(s);
-      StringToIntNonnegative(s);
-      var init := s[..|s|-1];
-      var last := s[|s|-1..|s|];
-      var q := StringToInt(init);
-      var r := StringToInt(last);
-      assert IsStringInt(init) by { reveal IsStringInt(); }
-      assert IsStringInt(last) by { reveal IsStringInt(); }
-      StringToIntThenIntToStringIdem(init);
-      StringToIntThenIntToStringIdem(last);
-      reveal StringToInt();
-      assert n == q * 10 + r;
-      calc {
-        IntToString(n);
-        { reveal IntToString();
-          assert !(n < 0);
-          assert n != 0;
-        }
-        IntToString(n / 10) + IntToString(n % 10);
-        s;
-      }
     }
   }
 }

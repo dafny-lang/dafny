@@ -215,9 +215,9 @@ Running this parser on `" 1 2 3 4 "` displays the following trace.
 
 <!-- %no-check -->
 ```dafny
-> End: 9 " "
-< End: 9 " "
-| R: 0 "EOS"
+> [End] ' ' and 8 chars left
+< [End] ' ' and 8 chars left
+| Unparsed: '' (end of string)
 | Was committed
 | Error:
 | 1:  1 2 3 4
@@ -247,9 +247,9 @@ const pDoc :=
 Now the trace is:
 <!-- %no-check -->
 ```dafny
-> End: 9 " "
-< End: 9 " "
-| R: 0 "EOS"
+> [End] ' ' and 8 chars left
+< [End] ' ' and 8 chars left
+| Unparsed: 0 "EOS"
 | Was committed
 | Error:
 | 1:  1 2 3 4
@@ -273,14 +273,14 @@ const pDoc :=
 The trace is now (abbreviated)
 <!-- %no-check -->
 ```dafny
-> Z: 9 " "
+> [Z] ' ' and 8 chars left
 ...
-> I: 3 " "
-< I: 3 " "
+> [I] ' ' and 2 chars left
+< [I] ' ' and 2 chars left
  (Success)
-> I: 1 " "
-< I: 1 " "
-| R: 0 "EOS"
+> [I] ' ' and end of string
+< [I] ' ' and end of string
+| Unparsed: '' (end of string)
 | Was committed
 | Error:
 | 1:
@@ -323,7 +323,7 @@ Another way would be to indicate that if `WS.e_I(Nat)` fails, then the input sho
 const pDoc := 
   WS
   .e_I(Nat)
-  .??()   / If fails, don't consume
+  .??()   // If fails, don't consume
   .Rep()
   .I_e(WS)
   .End()

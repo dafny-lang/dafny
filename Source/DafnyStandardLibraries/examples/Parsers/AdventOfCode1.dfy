@@ -1,3 +1,8 @@
+/*******************************************************************************
+ *  Copyright by the contributors to the Dafny Project
+ *  SPDX-License-Identifier: MIT 
+ *******************************************************************************/
+
 module ExampleParsers.AdventOfCode1 {
   import opened Std.Parsers.StringBuilders
 
