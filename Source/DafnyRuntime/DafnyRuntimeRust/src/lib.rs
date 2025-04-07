@@ -50,15 +50,15 @@ use std::{
     vec::Vec,
 };
 
-#[cfg(not(feature = "bigint"))]
-mod small_int;
-#[cfg(not(feature = "bigint"))]
-pub use small_int::*;
-
-#[cfg(feature = "bigint")]
+#[cfg(not(feature = "small-int"))]
 mod big_int;
-#[cfg(feature = "bigint")]
+#[cfg(not(feature = "small-int"))]
 pub use big_int::*;
+
+#[cfg(feature = "small-int")]
+mod small_int;
+#[cfg(feature = "small-int")]
+pub use small_int::*;
 
 #[cfg(not(feature = "sync"))]
 pub use ::std::{

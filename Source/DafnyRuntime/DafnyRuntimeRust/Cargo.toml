@@ -13,8 +13,6 @@ itertools = "0.14.0"
 # to compile to code where values can be sent safely through threads
 # This will include the runtime with the sync feature
 
-# Use --no-default-features or default-features = false
-# to make DafnyInt use i128 instead of num::BigInt
+# Use --features small-int to make DafnyInt use i128 instead of num::BigInt
 sync = []
-bigint = []
-default = ["bigint"]
+small-int = []

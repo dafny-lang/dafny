@@ -20,9 +20,9 @@ update-system-module: build-system-module
 test:
 	cargo test
 	cargo test --features sync
-	cargo test --no-default-features
-	cargo test --no-default-features --features sync
+	cargo test --features small-int
+	cargo test --features sync,small-int
 	(cd ../../DafnyRuntime.Tests/DafnyRuntimeRustTest; cargo test)
 	(cd ../../DafnyRuntime.Tests/DafnyRuntimeRustTest; cargo test --features sync)
-	(cd ../../DafnyRuntime.Tests/DafnyRuntimeRustTest; cargo test --no-default-features)
-	(cd ../../DafnyRuntime.Tests/DafnyRuntimeRustTest; cargo test --no-default-features --features sync)
+	(cd ../../DafnyRuntime.Tests/DafnyRuntimeRustTest; cargo test --features small-int)
+	(cd ../../DafnyRuntime.Tests/DafnyRuntimeRustTest; cargo test --features sync,small-int)

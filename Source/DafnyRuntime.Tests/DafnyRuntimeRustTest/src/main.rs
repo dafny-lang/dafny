@@ -1,6 +1,4 @@
-use dafny_runtime::{Upcast, UpcastObject, DynAny};
-
-
+use dafny_runtime::{DynAny, Upcast, UpcastObject};
 
 struct SmokeStruct {
     pub i: i32,
@@ -16,7 +14,9 @@ impl Upcast<DynAny> for SmokeStruct {
 
 #[test]
 fn smoke_test() {
-    let mut x = ::dafny_runtime::dafny_runtime_conversions::object::boxed_struct_to_dafny_class(Box::new(SmokeStruct{i: 3}));
+    let mut x = ::dafny_runtime::dafny_runtime_conversions::object::boxed_struct_to_dafny_class(
+        Box::new(SmokeStruct { i: 3 }),
+    );
     assert_eq!(::dafny_runtime::refcount!(x), 1);
     let y = ::dafny_runtime::cast_any_object!(x);
     assert_eq!(::dafny_runtime::refcount!(x), 2);
@@ -25,7 +25,9 @@ fn smoke_test() {
     assert_eq!(::dafny_runtime::rd!(x).i, 3);
     x = ::dafny_runtime::cast_object!(y, SmokeStruct);
     assert_eq!(::dafny_runtime::rd!(x).i, 3);
-    let mut x = ::dafny_runtime::dafny_runtime_conversions::ptr::boxed_struct_to_dafny_class(Box::new(SmokeStruct{i: 3}));
+    let mut x = ::dafny_runtime::dafny_runtime_conversions::ptr::boxed_struct_to_dafny_class(
+        Box::new(SmokeStruct { i: 3 }),
+    );
     let y = ::dafny_runtime::cast_any!(x);
     assert!(::dafny_runtime::is!(y, SmokeStruct));
     assert!(!::dafny_runtime::is!(y, OtherSmokeStruct));
