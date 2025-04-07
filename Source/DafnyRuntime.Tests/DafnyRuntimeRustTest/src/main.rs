@@ -1,4 +1,4 @@
-use dafny_runtime::{Upcast, UpcastObject};
+use dafny_runtime::{Upcast, UpcastObject, DynAny};
 
 
 
@@ -7,11 +7,11 @@ struct SmokeStruct {
 }
 pub struct OtherSmokeStruct(pub i32);
 
-impl UpcastObject<dyn ::std::any::Any> for SmokeStruct {
-    dafny_runtime::UpcastObjectFn!(dyn ::std::any::Any);
+impl UpcastObject<DynAny> for SmokeStruct {
+    dafny_runtime::UpcastObjectFn!(DynAny);
 }
-impl Upcast<dyn ::std::any::Any> for SmokeStruct {
-    dafny_runtime::UpcastFn!(dyn ::std::any::Any);
+impl Upcast<DynAny> for SmokeStruct {
+    dafny_runtime::UpcastFn!(DynAny);
 }
 
 #[test]

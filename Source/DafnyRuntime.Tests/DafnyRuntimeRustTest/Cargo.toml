@@ -4,4 +4,9 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-dafny_runtime = {path= "../../DafnyRuntime/DafnyRuntimeRust"}
+dafny_runtime = {path= "../../DafnyRuntime/DafnyRuntimeRust", default-features = false}
+
+[features]
+sync = ["dafny_runtime/sync"]
+bigint = ["dafny_runtime/bigint"]
+default = ["bigint"]
