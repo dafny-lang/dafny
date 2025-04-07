@@ -16,7 +16,21 @@ module Std.Producers {
 
   // Actions that consume nothing and produce a T.
   @AssumeCrossModuleTermination
-  trait IProducer<T> extends Action<(), T> {}
+  trait IProducer<T> extends Action<(), T> {
+
+    // For better readability
+    method Next() returns (r: T)
+      requires Requires(())
+      reads Reads(())
+      modifies Modifies(())
+      decreases Decreases(())
+      ensures Ensures((), r)
+    {
+      assert Requires(());
+
+      r := Invoke(());
+    }
+  }
 
   // A proof that a given action only produces
   // elements from a given set.
@@ -27,11 +41,13 @@ module Std.Producers {
     lemma ProducesSet(history: seq<((), I)>)
       requires Action().ValidHistory(history)
       ensures |history| <= |Set()|
+      ensures |history| < |Set()| ==> Action().ValidInput(history, ())
       ensures Seq.HasNoDuplicates(OutputsOf(history))
       ensures Seq.ToSet(OutputsOf(history)) <= Set()
   }
 
-  class FunctionalIProducer<S, T> extends IProducer<T> {
+  @AssumeCrossModuleTermination
+  class FunctionalIProducer<S, T> extends IProducer<T>, TotalActionProof<(), T> {
 
     const stepFn: S -> (S, T)
     var state: S
@@ -52,6 +68,10 @@ module Std.Producers {
       this.stepFn := stepFn;
       this.Repr := {this};
       this.history := [];
+    }
+
+    ghost function Action(): Action<(), T> {
+      this
     }
 
     ghost predicate ValidHistory(history: seq<((), T)>)
@@ -84,6 +104,11 @@ module Std.Producers {
 
       UpdateHistory(i, o);
     }
+
+    lemma AnyInputIsValid(history: seq<((), T)>, next: ())
+      requires Action().ValidHistory(history)
+      ensures Action().ValidInput(history, next)
+    {}
   }
 
   // Actions that consume nothing and produce an Option<T>,
@@ -172,6 +197,7 @@ module Std.Producers {
       ensures Ensures(i, r)
       ensures RemainingDecreasedBy(r)
 
+    // For better readability
     method Next() returns (r: Option<T>)
       requires Requires(())
       reads Reads(())
@@ -195,21 +221,20 @@ module Std.Producers {
       requires totalActionProof.Action() == consumer
       modifies Repr, consumer.Repr
     {
-      var t := Next();
-      while t != None
+      while true
         invariant ValidAndDisjoint()
         invariant consumer.ValidAndDisjoint()
         invariant Repr !! consumer.Repr
         invariant totalActionProof.Valid()
         decreases Remaining()
       {
-        totalActionProof.AnyInputIsValid(consumer.history, t.value);
-        consumer.Accept(t.value);
-
-        t := Next();
+        var t := Next();
         if t == None {
           break;
         }
+
+        totalActionProof.AnyInputIsValid(consumer.history, t.value);
+        consumer.Accept(t.value);
       }
     }
 

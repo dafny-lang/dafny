@@ -139,6 +139,51 @@ module ActionsExamples {
     assert a.storage.items == [1, 2, 3, 4, 5];
   }
 
+  // The dual of Producer.ForEachRemaining(IConsumer),
+  // which terminates when the consumer runs out of capacity
+  // instead of when the producer runs out of elements.
+  // Not defined on Consumer because that would create
+  // a cycle between the modules.
+  // 
+  // It is interesting to note that this version will
+  // "waste" one of the produced elements,
+  // since there is no way to query the consumer
+  // to see if it will accept the next element.
+  // One could imagine a different setup
+  // where the consumer provides a predicate for
+  // whether it will accept the next element,
+  // which would be related therefore to ValidInput().
+  @IsolateAssertions
+  method ForEachRemaining<T>(producer: IProducer<T>, ghost producerTotalProof: TotalActionProof<(), T>,
+                             consumer: Consumer<T>, ghost consumerTotalProof: TotalActionProof<T, bool>)
+    requires producer.Valid()
+    requires consumer.Valid()
+    requires producerTotalProof.Valid()
+    requires producerTotalProof.Action() == producer
+    requires consumerTotalProof.Valid()
+    requires consumerTotalProof.Action() == consumer
+    requires producer.Repr !! consumer.Repr !! producerTotalProof.Repr !! consumerTotalProof.Repr
+    modifies producer.Repr, consumer.Repr
+  {
+    while true
+      invariant producer.ValidAndDisjoint()
+      invariant consumer.ValidAndDisjoint()
+      invariant producerTotalProof.Valid()
+      invariant consumerTotalProof.Valid()
+      invariant producer.Repr !! consumer.Repr
+      decreases consumer.Remaining()
+    {
+      producerTotalProof.AnyInputIsValid(producer.history, ());
+      var t := producer.Next();
+
+      consumerTotalProof.AnyInputIsValid(consumer.history, t);
+      var more := consumer.Accept(t);
+      if !more {
+        break;
+      }
+    }
+  }
+
   @AssumeCrossModuleTermination
   class SplitProducer extends ProducerOfNewProducers<nat> {
 

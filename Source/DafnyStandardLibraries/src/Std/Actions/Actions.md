@@ -116,12 +116,12 @@ See the other sibling files for some useful specializations:
 
 | Type           | Supertype               | Behavior                                                        |
 | -------------- | ----------------------- | --------------------------------------------------------------- |
-| `IProducer<T>` | `Action<(), T>`         | consumes nothing, may produce infinite values                   |
-| `Producer<T>`  | `Action<(), Option<T>>` | consumes nothing, must produce finite values                    |
-| `IConsumer<T>` | `Action<T, ()>`         | produces nothing, may consume infinite values                   |
-| `Consumer<T>`  | `Action<T, boolean>`    | produces nothing, may be eventually exhausted and output false  |
+| `IProducer<T>` | `Action<(), T>`         | consumes nothing, may produce an infinite number of values      |
+| `Producer<T>`  | `Action<(), Option<T>>` | consumes nothing, must produce a finite number of values        |
+| `IConsumer<T>` | `Action<T, ()>`         | produces nothing, may consume an infinite number of values      |
+| `Consumer<T>`  | `Action<T, boolean>`    | produces nothing, must consume a finite number of values        |
 
-These concepts are duals to each other (`IProducer`/`IConsumer`, and `Producer`/`Consumer`).
+These concepts are roughly duals to each other (`IProducer`/`IConsumer`, and `Producer`/`Consumer`).
 The generic signatures of `Producer` and `Consumer` are not exact mirror-images
 because in both cases they must produce an additional piece of boolean information
 about whether they are "exhausted".

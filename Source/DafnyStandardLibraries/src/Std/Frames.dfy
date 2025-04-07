@@ -19,10 +19,8 @@ module Std.Frames {
     // which is `old(Repr) decreases to (new object).Repr`.
     // See FramesExamples.dfy for a detailed example.
     //
-    // TODO: Okay it's now or never - Repr or repr?? :)
     ghost var Repr: set<object>
 
-    // TODO: Similarly, would Invariant() be better?
     ghost predicate Valid()
       reads this, Repr
       ensures Valid() ==> this in Repr

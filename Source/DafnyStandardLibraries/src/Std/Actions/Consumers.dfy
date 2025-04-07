@@ -20,6 +20,7 @@ module Std.Consumers {
       requires Requires(t)
       reads Reads(t)
       modifies Modifies(t)
+      decreases Decreases(t)
       ensures Ensures(t, ())
     {
       assert Requires(t);
@@ -29,21 +30,59 @@ module Std.Consumers {
     }
   }
 
-  // Actions that attempt to consume a T and may fail.
+  // Actions that attempt to consume a T and eventually reach capacity and fail.
   @AssumeCrossModuleTermination
   trait Consumer<T> extends Action<T, bool> {
 
-    ghost function Action(): Action<T, bool> {
-      this
+    // Termination metric ensuring Accept() eventually returns false.
+    // Not necessarily an exact measurement of the capacity remaining,
+    // only a conservative bound.
+    ghost function RemainingMetric(): TerminationMetric
+      requires Valid()
+      reads this, Repr
+      decreases Repr, 3
+
+    ghost function Remaining(): ORDINAL
+      requires Valid()
+      reads this, Repr
+    {
+      RemainingMetric().Ordinal()
     }
 
-    // For better readability
-    method Accept(t: T)
-      returns (o: bool)
+    twostate predicate RemainingDecreasedBy(new result: bool)
+      requires old(Valid())
+      requires Valid()
+      reads this, Repr
+    {
+      if result then
+        old(RemainingMetric()).DecreasesTo(RemainingMetric())
+      else
+        old(RemainingMetric()).NonIncreasesTo(RemainingMetric())
+    }
+
+    ghost function Decreases(t: T): ORDINAL
+      requires Requires(t)
+      reads Reads(t)
+    {
+      Remaining()
+    }
+
+    method Invoke(t: T) returns (r: bool)
       requires Requires(t)
       reads Reads(t)
       modifies Modifies(t)
+      decreases Decreases(t), 0
+      ensures Ensures(t, r)
+      ensures RemainingDecreasedBy(r)
+
+    // For better readability
+    method Accept(t: T) returns (o: bool)
+      requires Requires(t)
+      reads Reads(t)
+      modifies Modifies(t)
+      decreases Decreases(t), 0
       ensures Ensures(t, o)
+      ensures RemainingDecreasedBy(o)
     {
       assert Requires(t);
 
@@ -91,10 +130,12 @@ module Std.Consumers {
       |history| < storage.Length
     }
 
-    ghost function Decreases(t: T): ORDINAL
-      reads Reads(t)
+    ghost function RemainingMetric(): TerminationMetric
+      requires Valid()
+      reads this, Repr
+      decreases Repr, 3
     {
-      0
+      TMNat(storage.Length - size)
     }
 
     method Invoke(t: T) returns (r: bool)
@@ -103,6 +144,7 @@ module Std.Consumers {
       modifies Modifies(t)
       decreases Decreases(t), 0
       ensures Ensures(t, r)
+      ensures RemainingDecreasedBy(r)
     {
       assert Requires(t);
 
@@ -118,6 +160,7 @@ module Std.Consumers {
       Repr := {this} + {storage};
       assert Inputs() == old(Inputs()) + [t];
       assert Valid();
+      reveal TerminationMetric.Ordinal();
     }
   }
 

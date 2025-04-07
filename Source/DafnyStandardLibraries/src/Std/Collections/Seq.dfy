@@ -211,6 +211,39 @@ module Std.Collections.Seq {
     }
   }
 
+  /* The inverse of LemmaNoDuplicatesInConcat:
+     If the concatenated sequence xs + ys doesn't have duplicates,
+     then xs and ys don't either and are disjoint. */
+  lemma LemmaNoDuplicatesDecomposition<T>(xs: seq<T>, ys: seq<T>)
+    requires HasNoDuplicates(xs+ys)
+    ensures HasNoDuplicates(xs)
+    ensures HasNoDuplicates(ys)
+    ensures multiset(xs) !! multiset(ys)
+  {
+    var zs := xs + ys;
+    if !HasNoDuplicates(xs) {
+      assert false by {
+        var i, j :| 0 <= i < j < |xs| && xs[i] == xs[j];
+        assert zs[i] == zs[j];
+        assert !HasNoDuplicates(zs);
+      }
+    }
+    if !HasNoDuplicates(ys) {
+      assert false by {
+        var i, j :| 0 <= i < j < |ys| && ys[i] == ys[j];
+        assert zs[|xs| + i] == zs[|xs| + j];
+        assert !HasNoDuplicates(zs);
+      }
+    }
+    if !(multiset(xs) !! multiset(ys)) {
+      assert false by {
+        var i, j :| 0 <= i < |xs| && 0 <= j < |ys| && xs[i] == ys[j];
+        assert zs[i] == zs[|xs| + j];
+        assert !HasNoDuplicates(zs);
+      }
+    }
+  }
+
   /* A sequence with no duplicates converts to a set of the same
      cardinality. */
   lemma LemmaCardinalityOfSetNoDuplicates<T>(xs: seq<T>)
@@ -774,7 +807,7 @@ module Std.Collections.Seq {
     }
   }
 
-  lemma {:induction false} LemmaMapPartialFunctionDistributesOverConcat<T,R>(f: (T --> R), xs: seq<T>, ys: seq<T>)
+  lemma {:induction false} LemmaMapPartialFunctionDistributesOverConcat<T, R>(f: T --> R, xs: seq<T>, ys: seq<T>)
     requires X: forall i :: 0 <= i < |xs| ==> f.requires(xs[i])
     requires Y: forall j :: 0 <= j < |ys| ==> f.requires(ys[j])
     ensures MapPartialFunction(f, xs + ys) == MapPartialFunction(f, xs) + MapPartialFunction(f, ys)
@@ -787,7 +820,7 @@ module Std.Collections.Seq {
         { assert (xs + ys)[0] == xs[0]; assert (xs + ys)[1..] == xs[1..] + ys; }
         MapPartialFunction(f, [xs[0]]) + MapPartialFunction(f, xs[1..] + ys);
         MapPartialFunction(f, [xs[0]]) + MapPartialFunction(f, reveal X; xs[1..]) + MapPartialFunction(f, reveal Y; ys);
-        {assert [(xs + ys)[0]] + xs[1..] + ys == xs + ys;}
+        { assert [(xs + ys)[0]] + xs[1..] + ys == xs + ys; }
         MapPartialFunction(f, xs) + MapPartialFunction(f, ys);
       }
     }

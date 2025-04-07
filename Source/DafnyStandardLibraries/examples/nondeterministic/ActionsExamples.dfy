@@ -90,10 +90,9 @@ module ActionsExamples {
       UpdateHistory(i, o);
       Repr := {this, iter} + NonNullElements(iter._reads) + NonNullElements(iter._modifies) + NonNullElements(iter._new);
     }
-
   }
 
-  method {:test} FibonnaciExample() {
+  method {:test} FibonacciExample() {
     var iproducer := new FibonacciProducer();
     var iproducerTotalProof := new DefaultTotalActionProof(iproducer);
     var producer: Producer<nat> := new LimitedProducer(iproducer, 10, iproducerTotalProof);
@@ -115,8 +114,9 @@ module ActionsExamples {
     expect firstTen == [0, 1, 1, 2, 3, 5, 8, 13, 21, 34];
   }
 
+  // This could also easily be a Producer<T> instead.
   @AssumeCrossModuleTermination
-  class SetIProducer<T(==)> extends IProducer<T>, ProducesSetProof<T> {
+  class SetReader<T(==)> extends IProducer<T> {
     ghost const original: set<T>
     var remaining: set<T>
 
@@ -128,7 +128,7 @@ module ActionsExamples {
     {
       && this in Repr
       && ValidHistory(history)
-      && remaining == original - Enumerated(history)
+      && remaining == original - OutputSet(history)
     }
 
     constructor(s: set<T>)
@@ -161,7 +161,7 @@ module ActionsExamples {
       ensures Seq.ToSet(OutputsOf(history)) <= Set()
     {}
 
-    ghost function Enumerated(history: seq<((), T)>): set<T> {
+    ghost function OutputSet(history: seq<((), T)>): set<T> {
       Seq.ToSet(OutputsOf(history))
     }
 
@@ -176,7 +176,7 @@ module ActionsExamples {
     {
       && |history| <= |original|
       && Seq.HasNoDuplicates(OutputsOf(history))
-      && Enumerated(history) <= original
+      && OutputSet(history) <= original
     }
 
     ghost function Decreases(i: ()): ORDINAL
@@ -185,9 +185,9 @@ module ActionsExamples {
       ReprTerminationMetric().Ordinal()
     }
 
-    lemma EnumeratedCardinality()
+    lemma OutputSetCardinality()
       requires Valid()
-      ensures |Enumerated(history)| == |history|
+      ensures |OutputSet(history)| == |history|
     {
       reveal Seq.ToSet();
       Seq.LemmaCardinalityOfSetNoDuplicates(OutputsOf(history));
@@ -199,7 +199,7 @@ module ActionsExamples {
       decreases Decreases(i), 0
       ensures Ensures(i, o)
     {
-      EnumeratedCardinality();
+      OutputSetCardinality();
       assert 0 < |remaining|;
 
       o :| o in remaining;
@@ -214,24 +214,34 @@ module ActionsExamples {
       reveal Seq.HasNoDuplicates();
       Seq.LemmaNoDuplicatesInConcat(OutputsOf(old(history)), [o]);
     }
-
   }
 
   method {:test} SetIProducerExample() {
     var s: set<nat> := {1, 2, 3, 4, 5};
     var copy: set<nat> := {};
-    var e: SetIProducer<nat> := new SetIProducer(s);
+    var e: SetReader<nat> := new SetReader(s);
 
-    label before:
-    for enumerated := 0 to 5
+    for i := 0 to |s|
       invariant e.Valid()
-      invariant enumerated == |e.history|
+      invariant i == |e.history| == |copy|
       invariant fresh(e.Repr)
+      invariant copy == Seq.ToSet(e.Outputs())
     {
-      var x := e.Invoke(());
+      ghost var oldOutputs := e.Outputs();
+
+      var x := e.Next();
+
+      e.ProducesSet(e.history);
+
+      assert e.Outputs() == oldOutputs + [x];
+      Seq.LemmaNoDuplicatesDecomposition(oldOutputs, [x]);
+      assert x !in oldOutputs;
+
       copy := copy + {x};
     }
 
-    expect copy == s;
+    // Needed to prove copy <= s && |copy| == |s| ==> copy == s
+    Set.LemmaSubsetSize(copy, s);
+    assert copy == s;
   }
 }

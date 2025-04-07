@@ -129,7 +129,7 @@ module FramesExamples {
         nodeCount := left.nodeCount + right.nodeCount + 1;
       }
 
-      if (right is Node<T>) {
+      if right is Node<T> {
         (right as Node<T>).RotateRight();
 
         Repr := {this} + left.Repr + right.Repr;

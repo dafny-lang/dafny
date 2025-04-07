@@ -16,10 +16,10 @@ module Std.Ordinal {
     ensures a < b <==> a + 1 <= b
 
   ghost function {:axiom} PlusLimit(left: ORDINAL, right: ORDINAL): (result: ORDINAL)
-    decreases right, 0
     ensures forall right' | right' < right :: Plus(left, right') < result
     ensures forall result' {:trigger} |
               forall right' | right' < right :: Plus(left, right') < result' :: result <= result'
+    decreases right, 0
 
   ghost function Plus(left: ORDINAL, right: ORDINAL): ORDINAL
     decreases right
@@ -37,8 +37,8 @@ module Std.Ordinal {
 
   lemma {:axiom} PlusStrictlyIncreasingOnRight(left: ORDINAL, right: ORDINAL, right': ORDINAL)
     requires right < right'
-    decreases right
     ensures left + right < left + right'
+    decreases right
 
   lemma {:axiom} PlusIncreasingOnLeft(left: ORDINAL, left': ORDINAL, right: ORDINAL)
     requires left <= left'
@@ -67,9 +67,9 @@ module Std.Ordinal {
   // Multiplication and axioms about multiplication
 
   ghost function {:axiom} TimesLimit(left: ORDINAL, right: ORDINAL): (result: ORDINAL)
-    decreases right, 0
     ensures forall right' | right' < right :: Times(left, right') < result
     ensures forall result' {:trigger} | (forall right' | right' < right :: Times(left, right') < result') :: result <= result'
+    decreases right, 0
 
   ghost function Times(left: ORDINAL, right: ORDINAL): (result: ORDINAL)
     decreases right
@@ -106,8 +106,8 @@ module Std.Ordinal {
     ensures Times(left, right) < Times(left', right)
 
   lemma {:axiom} TimesDistributesOnLeft(left: ORDINAL, right: ORDINAL, right': ORDINAL)
-    decreases right'
     ensures Times(left, right + right') == Times(left, right) + Times(left, right')
+    decreases right'
 
   // Helpful lemmas and utilities
 

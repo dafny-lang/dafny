@@ -64,6 +64,8 @@ module Std.Termination {
       Ordinal() >= other.Ordinal()
     }
 
+    // parent is a MaxOrdinal() parameter just to prove termination,
+    // but doesn't affect the actual result.
     static opaque ghost function MaxOrdinal(parent: TerminationMetric, s: multiset<TerminationMetric>): ORDINAL
       requires forall o <- s :: parent decreases to o
       decreases parent, |s|, 0
@@ -76,7 +78,7 @@ module Std.Termination {
         Max(x.Ordinal(), MaxOrdinal(parent, s - multiset{x}))
     }
 
-    // parent is a MaxOrdinal() parameter just to prove termination,
+    // Proof that parent is a MaxOrdinal() parameter just to prove termination,
     // but doesn't affect the actual result.
     static lemma MaxOrdinalAnyParent(parent: TerminationMetric, parent': TerminationMetric, s: multiset<TerminationMetric>)
       requires forall o <- s :: (parent decreases to o) && (parent' decreases to o)
