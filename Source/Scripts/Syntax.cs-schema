@@ -142,6 +142,10 @@ class LiteralExpr : Expression
     Object? value;
 }
 
+class CharLiteralExpr : LiteralExpr
+{
+}
+
 class TernaryExpr : Expression
 {
     TernaryExprOpcode op;

@@ -194,6 +194,23 @@ namespace Microsoft.Dafny
             return ReadLiteralExpr();
         }
 
+        public CharLiteralExpr ReadCharLiteralExpr()
+        {
+            var parameter0 = ReadAbstract<IOrigin>();
+            var parameter1 = ReadAbstract<Object>();
+            return new CharLiteralExpr(parameter0, parameter1);
+        }
+
+        public CharLiteralExpr ReadCharLiteralExprOption()
+        {
+            if (ReadIsNull())
+            {
+                return default;
+            }
+
+            return ReadCharLiteralExpr();
+        }
+
         public TernaryExpr ReadTernaryExpr()
         {
             var parameter0 = ReadAbstract<IOrigin>();
@@ -1746,6 +1763,11 @@ namespace Microsoft.Dafny
             if (actualType == typeof(LiteralExpr))
             {
                 return ReadLiteralExpr();
+            }
+
+            if (actualType == typeof(CharLiteralExpr))
+            {
+                return ReadCharLiteralExpr();
             }
 
             if (actualType == typeof(TernaryExpr))
