@@ -264,6 +264,7 @@ class BoundVar : NonglobalVariable
 {
 }
 
+// [RedundantField("isGhost")]
 class QuantifiedVar : BoundVar
 {
     Expression? domain;

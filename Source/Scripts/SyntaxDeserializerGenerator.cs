@@ -102,7 +102,7 @@ using BinaryExprOpcode = Microsoft.Dafny.BinaryExpr.Opcode;
     if (baseType != null && baseType != typeof(ValueType) && baseType != typeof(object)) {
       foreach (var (baseParamName, baseSchemaIndex) in ParameterToSchemaPositions[baseType]) {
         var thisHasParam = schemaToConstructorPosition.ContainsKey(baseSchemaIndex);
-        var fieldIgnored = GetNonSerializedNames(type).Contains(baseParamName);
+        var fieldIgnored = GetRedundantFieldNames(type).Contains(baseParamName);
         if (thisHasParam && fieldIgnored) {
           throw new Exception($"Constructor for type {type.Name} has an unneeded parameter for field/property {baseParamName} which is a {nameof(RedundantField)}");
         }

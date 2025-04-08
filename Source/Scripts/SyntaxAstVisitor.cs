@@ -1,5 +1,6 @@
 using System.Collections.Frozen;
 using System.Reflection;
+using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.Dafny;
 using Type = System.Type;
 
@@ -92,7 +93,7 @@ public abstract class SyntaxAstVisitor {
       var missingParameters = baseParseConstructor == null ? [] :
         baseParseConstructor.GetParameters().Select(p => p.Name)
           .Except(myParseConstructor.GetParameters().Select(p => p.Name))
-          .ExceptBy(GetNonSerializedNames(type).Select(name => name.ToLower()), str => str?.ToLower())
+          .ExceptBy(GetRedundantFieldNames(type).Select(name => name.ToLower()), str => str?.ToLower())
           .ToList();
       if (missingParameters.Any()) {
         throw new Exception($"in type {type}, missing parameters: {string.Join(",", missingParameters)}");
@@ -174,10 +175,9 @@ public abstract class SyntaxAstVisitor {
   /// Return all field/property names appearing in <see cref="RedundantField"/>
   /// attributes of the specified type (or its base types).
   /// </summary>
-  protected static IEnumerable<string> GetNonSerializedNames(Type type) {
+  protected static IEnumerable<string> GetRedundantFieldNames(Type type) {
     return type.GetCustomAttributes<RedundantField>()
-      .Select(attr => attr.Name)
-      .ToFrozenSet();
+      .Select(attr => attr.Name);
   }
 
   private static (string typeName, string typeArgs) MakeGenericTypeStringParts(
