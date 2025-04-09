@@ -2269,7 +2269,7 @@ BreakOrContinueStmt<out Statement/*!*/ s>
   ";"
   (. Contract.Assert(label == null || breakAndContinueCount == 1);
      s = label != null ?
-       new BreakOrContinueStmt(new SourceOrigin(start, t), label, isContinue) :
+       new BreakOrContinueStmt(new SourceOrigin(start, t), new Name(label), 0, isContinue) :
        new BreakOrContinueStmt(new SourceOrigin(start, t), breakAndContinueCount, isContinue, attributes);
   .)
   .

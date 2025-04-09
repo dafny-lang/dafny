@@ -681,6 +681,13 @@ class IfStmt : Statement
     Statement? els;
 }
 
+class BreakOrContinueStmt : Statement
+{
+    Name? targetLabel;
+    Int32 breakAndContinueCount;
+    Boolean isContinue;
+}
+
 class VarDeclStmt : Statement
 {
     List<LocalVariable> locals;

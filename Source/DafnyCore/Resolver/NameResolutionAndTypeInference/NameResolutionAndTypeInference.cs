@@ -3513,11 +3513,11 @@ namespace Microsoft.Dafny {
       } else if (stmt is BreakOrContinueStmt) {
         var s = (BreakOrContinueStmt)stmt;
         if (s.TargetLabel != null) {
-          Statement target = EnclosingStatementLabels.Find(s.TargetLabel.val);
+          Statement target = EnclosingStatementLabels.Find(s.TargetLabel.Value);
           if (target == null) {
-            reporter.Error(MessageSource.Resolver, s.TargetLabel, $"{s.Kind} label is undefined or not in scope: {s.TargetLabel.val}");
+            reporter.Error(MessageSource.Resolver, s.TargetLabel, $"{s.Kind} label is undefined or not in scope: {s.TargetLabel.Value}");
           } else if (s.IsContinue && !(target is LoopStmt)) {
-            reporter.Error(MessageSource.Resolver, s.TargetLabel, $"continue label must designate a loop: {s.TargetLabel.val}");
+            reporter.Error(MessageSource.Resolver, s.TargetLabel, $"continue label must designate a loop: {s.TargetLabel.Value}");
           } else {
             s.TargetStmt = target;
           }

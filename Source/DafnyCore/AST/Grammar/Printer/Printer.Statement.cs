@@ -62,7 +62,7 @@ namespace Microsoft.Dafny {
       } else if (stmt is BreakOrContinueStmt) {
         var s = (BreakOrContinueStmt)stmt;
         if (s.TargetLabel != null) {
-          wr.Write($"{s.Kind} {s.TargetLabel.val};");
+          wr.Write($"{s.Kind} {s.TargetLabel.Value};");
         } else {
           for (int i = 0; i < s.BreakAndContinueCount - 1; i++) {
             wr.Write("break ");

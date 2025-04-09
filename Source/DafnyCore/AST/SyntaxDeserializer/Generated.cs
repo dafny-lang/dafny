@@ -1404,6 +1404,26 @@ namespace Microsoft.Dafny
             return ReadIfStmt();
         }
 
+        public BreakOrContinueStmt ReadBreakOrContinueStmt()
+        {
+            var parameter0 = ReadAbstract<IOrigin>();
+            var parameter4 = ReadAttributesOption();
+            var parameter1 = ReadNameOption();
+            var parameter2 = ReadInt32();
+            var parameter3 = ReadBoolean();
+            return new BreakOrContinueStmt(parameter0, parameter1, parameter2, parameter3, parameter4);
+        }
+
+        public BreakOrContinueStmt ReadBreakOrContinueStmtOption()
+        {
+            if (ReadIsNull())
+            {
+                return default;
+            }
+
+            return ReadBreakOrContinueStmt();
+        }
+
         public VarDeclStmt ReadVarDeclStmt()
         {
             var parameter0 = ReadAbstract<IOrigin>();
@@ -2094,6 +2114,11 @@ namespace Microsoft.Dafny
             if (actualType == typeof(IfStmt))
             {
                 return ReadIfStmt();
+            }
+
+            if (actualType == typeof(BreakOrContinueStmt))
+            {
+                return ReadBreakOrContinueStmt();
             }
 
             if (actualType == typeof(VarDeclStmt))
