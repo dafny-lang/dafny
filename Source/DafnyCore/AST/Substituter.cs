@@ -888,8 +888,7 @@ namespace Microsoft.Dafny {
         Contract.Assert(false); throw new cce.UnreachableException();  // unexpected statement
       }
 
-      // add labels to the cloned statement
-      AddStmtLabels(r, stmt.Labels);
+      r.Labels = stmt.Labels.ToList();
       r.Attributes = SubstAttributes(stmt.Attributes);
       r.IsGhost = stmt.IsGhost;
       if (stmt.Labels != null || stmt is WhileStmt) {
@@ -905,13 +904,6 @@ namespace Microsoft.Dafny {
     }
 
     Dictionary<Statement, List<BreakOrContinueStmt>> BreaksToBeResolved = new Dictionary<Statement, List<BreakOrContinueStmt>>();  // old-target -> new-breaks
-
-    protected void AddStmtLabels(Statement s, LList<Label> node) {
-      if (node != null) {
-        AddStmtLabels(s, node.Next);
-        s.Labels = new LList<Label>(node.Data, s.Labels);
-      }
-    }
 
     protected virtual DividedBlockStmt SubstDividedBlockStmt(DividedBlockStmt stmt) {
       return stmt == null ? null : new DividedBlockStmt(stmt.Origin, stmt.BodyInit.ConvertAll(SubstStmt), stmt.SeparatorTok, stmt.BodyProper.ConvertAll(SubstStmt));

@@ -3835,8 +3835,9 @@ namespace Microsoft.Dafny.Compilers {
       return wr.NewNamedBlock($"for (java.math.BigInteger {indexVar} = {start}; {indexVar}.compareTo({bound}) < 0; {indexVar} = {indexVar}.add(java.math.BigInteger.ONE))");
     }
 
-    protected override ConcreteSyntaxTree EmitForStmt(IOrigin tok, IVariable loopIndex, bool goingUp, string /*?*/ endVarName,
-      List<Statement> body, LList<Label> labels, ConcreteSyntaxTree wr) {
+    protected override ConcreteSyntaxTree EmitForStmt(IOrigin tok, IVariable loopIndex, bool goingUp,
+      string endVarName, /*?*/
+      List<Statement> body, List<Label> labels, ConcreteSyntaxTree wr) {
 
       var nativeType = AsNativeType(loopIndex.Type);
 

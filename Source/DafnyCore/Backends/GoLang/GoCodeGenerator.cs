@@ -2101,8 +2101,9 @@ namespace Microsoft.Dafny.Compilers {
       return wBody;
     }
 
-    protected override ConcreteSyntaxTree EmitForStmt(IOrigin tok, IVariable loopIndex, bool goingUp, string /*?*/ endVarName,
-      List<Statement> body, LList<Label> labels, ConcreteSyntaxTree wr) {
+    protected override ConcreteSyntaxTree EmitForStmt(IOrigin tok, IVariable loopIndex, bool goingUp,
+      string endVarName, /*?*/
+      List<Statement> body, List<Label> labels, ConcreteSyntaxTree wr) {
 
       wr.Write($"for {loopIndex.GetOrCreateCompileName(currentIdGenerator)} := ");
       var startWr = wr.Fork();

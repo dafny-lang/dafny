@@ -5,6 +5,7 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
+using System.Linq;
 
 namespace Microsoft.Dafny {
   interface ICloneable<out T> {
@@ -426,7 +427,7 @@ namespace Microsoft.Dafny {
       if (stmt is ICloneable<Statement> cloneable) {
         var r = cloneable.Clone(this);
         // add labels to the cloned statement
-        AddStmtLabels(r, stmt.Labels);
+        r.Labels = stmt.Labels.Select(l => new Label(Origin(l.Tok), l.Name)).ToList();
         r.Attributes = CloneAttributes(stmt.Attributes);
 
         return r;
@@ -474,17 +475,6 @@ namespace Microsoft.Dafny {
       } else {
         Contract.Assert(false);
         throw new cce.UnreachableException();
-      }
-    }
-
-    public void AddStmtLabels(Statement s, LList<Label> node) {
-      if (node != null) {
-        AddStmtLabels(s, node.Next);
-        if (node.Data.Name == null) {
-          // this indicates an implicit-target break statement that has been resolved; don't add it
-        } else {
-          s.Labels = new LList<Label>(new Label(Origin(node.Data.Tok), node.Data.Name), s.Labels);
-        }
       }
     }
 

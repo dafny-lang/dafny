@@ -1346,11 +1346,10 @@ namespace Microsoft.Dafny {
       Contract.Requires(!(nxt is SkeletonStatement) || ((SkeletonStatement)nxt).S != null);  // nxt is not "...;"
       Contract.Requires(other != null);
 
-      if (nxt.Labels != null) {
-        for (var olbl = other.Labels; olbl != null; olbl = olbl.Next) {
-          var odata = olbl.Data;
-          for (var l = nxt.Labels; l != null; l = l.Next) {
-            if (odata.Name == l.Data.Name) {
+      if (nxt.Labels.Any()) {
+        foreach(var olbl in other.Labels) {
+          foreach (var l in nxt.Labels) {
+            if (olbl.Name == l.Name) {
               return true;
             }
           }
@@ -1385,12 +1384,11 @@ namespace Microsoft.Dafny {
         return oth != null && LocalVarsAgree(((VarDeclStmt)nxt).Locals, oth.Locals);
       } else if (nxt is BlockStmt) {
         var b = (BlockStmt)nxt;
-        if (b.Labels != null) {
-          var oth = other as BlockStmt;
-          if (oth != null && oth.Labels != null) {
-            return b.Labels.Data.Name == oth.Labels.Data.Name; // both have the same label
+        if (b.Labels.Any()) {
+          if (other is BlockStmt oth && oth.Labels.Any()) {
+            return b.Labels.First().Name == oth.Labels.First().Name; // both have the same label
           }
-        } else if (other is BlockStmt && ((BlockStmt)other).Labels == null) {
+        } else if (other is BlockStmt stmt && !stmt.Labels.Any()) {
           return true; // both are unlabeled
         }
       } else if (nxt is AssignStatement) {
@@ -1487,8 +1485,8 @@ namespace Microsoft.Dafny {
       Contract.Requires(labels != null);
       Contract.Requires(0 <= loopLevels);
 
-      for (LList<Label> n = s.Labels; n != null; n = n.Next) {
-        labels.Push(n.Data.Name);
+      foreach (var n in s.Labels) {
+        labels.Push(n.Name);
       }
       if (s is SkeletonStatement) {
         Error(ErrorId.ref_misplaced_skeleton, s, "skeleton statement may not be used here; it does not have a matching statement in what is being replaced");
@@ -1523,7 +1521,7 @@ namespace Microsoft.Dafny {
         }
       }
 
-      for (LList<Label> n = s.Labels; n != null; n = n.Next) {
+      foreach(var n in s.Labels) {
         labels.Pop();
       }
     }

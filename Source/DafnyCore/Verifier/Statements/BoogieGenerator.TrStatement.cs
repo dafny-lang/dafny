@@ -462,7 +462,7 @@ public partial class BoogieGenerator {
     foreach (var _ in Enumerable.Range(0, builder.Context.ScopeDepth - breakOrContinueStmt.TargetStmt.ScopeDepth)) {
       builder.Add(new ChangeScope(breakOrContinueStmt.Origin, ChangeScope.Modes.Pop));
     }
-    var lbl = (breakOrContinueStmt.IsContinue ? "continue_" : "after_") + breakOrContinueStmt.TargetStmt.Labels.Data.AssignUniqueId(CurrentIdGenerator);
+    var lbl = (breakOrContinueStmt.IsContinue ? "continue_" : "after_") + breakOrContinueStmt.TargetStmt.Labels.First().AssignUniqueId(CurrentIdGenerator);
     builder.Add(new GotoCmd(breakOrContinueStmt.Origin, [lbl]) {
       Attributes = etran.TrAttributes(breakOrContinueStmt.Attributes)
     });
@@ -886,16 +886,16 @@ public partial class BoogieGenerator {
       };
       var indexBuilder = innerBuilder.WithContext(indexContext);
       if (processLabels) {
-        for (var l = ss.Labels; l != null; l = l.Next) {
+        foreach(var label in ss.Labels) {
           var heapAt = locals.GetOrAdd(new Bpl.LocalVariable(ss.Origin,
-            new Bpl.TypedIdent(ss.Origin, "$Heap_at_" + l.Data.AssignUniqueId(CurrentIdGenerator), Predef.HeapType)));
+            new Bpl.TypedIdent(ss.Origin, "$Heap_at_" + label.AssignUniqueId(CurrentIdGenerator), Predef.HeapType)));
           builder.Add(Bpl.Cmd.SimpleAssign(ss.Origin, new Bpl.IdentifierExpr(ss.Origin, heapAt), etran.HeapExpr));
         }
       }
 
       TrStmt(ss, indexBuilder, locals, etran);
-      if (processLabels && ss.Labels != null) {
-        builder.AddLabelCmd(ss.Origin, "after_" + ss.Labels.Data.AssignUniqueId(CurrentIdGenerator));
+      if (processLabels && ss.Labels.Any()) {
+        builder.AddLabelCmd(ss.Origin, "after_" + ss.Labels.First().AssignUniqueId(CurrentIdGenerator));
       }
     }
 

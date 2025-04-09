@@ -56,7 +56,7 @@ namespace Microsoft.Dafny.Compilers {
           }
         case BreakOrContinueStmt breakStmt: {
             var s = breakStmt;
-            var label = s.TargetStmt.Labels.Data.AssignUniqueId(idGenerator);
+            var label = s.TargetStmt.Labels.First().AssignUniqueId(idGenerator);
             if (s.IsContinue) {
               EmitContinue(label, wr);
             } else {

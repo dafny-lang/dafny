@@ -639,7 +639,7 @@ namespace Microsoft.Dafny.Compilers {
       return wr.NewBlock("", open: BlockStyle.Brace);
     }
 
-    protected virtual ConcreteSyntaxTree EmitWhile(IOrigin tok, List<Statement> body, LList<Label> labels, ConcreteSyntaxTree wr) {  // returns the guard writer
+    protected virtual ConcreteSyntaxTree EmitWhile(IOrigin tok, List<Statement> body, List<Label> labels, ConcreteSyntaxTree wr) {  // returns the guard writer
       var wBody = CreateWhileLoop(out var guardWriter, wr);
       wBody = EmitContinueLabel(labels, wBody);
       Coverage.Instrument(tok, "while body", wBody);
@@ -647,8 +647,9 @@ namespace Microsoft.Dafny.Compilers {
       return guardWriter;
     }
 
-    protected abstract ConcreteSyntaxTree EmitForStmt(IOrigin tok, IVariable loopIndex, bool goingUp, string /*?*/ endVarName,
-      List<Statement> body, LList<Label> labels, ConcreteSyntaxTree wr);
+    protected abstract ConcreteSyntaxTree EmitForStmt(IOrigin tok, IVariable loopIndex, bool goingUp,
+      string endVarName, /*?*/
+      List<Statement> body, List<Label> labels, ConcreteSyntaxTree wr);
 
     protected virtual ConcreteSyntaxTree CreateWhileLoop(out ConcreteSyntaxTree guardWriter, ConcreteSyntaxTree wr) {
       wr.Write("while (");
@@ -4695,10 +4696,10 @@ namespace Microsoft.Dafny.Compilers {
         //   <prelude>   // filled via copyInstrWriters -- copies out-parameters used in letexpr to local variables
         //   ss          // translation of ss has side effect of filling the top copyInstrWriters
         var w = writer;
-        if (ss.Labels != null && !(ss is VarDeclPattern or VarDeclStmt)) {
+        if (ss.Labels.Any() && !(ss is VarDeclPattern or VarDeclStmt)) {
           // We are not breaking out of VarDeclPattern or VarDeclStmt, so the labels there are useless
           // They were useful for verification
-          w = CreateLabeledCode(ss.Labels.Data.AssignUniqueId(idGenerator), false, w);
+          w = CreateLabeledCode(ss.Labels.First().AssignUniqueId(idGenerator), false, w);
         }
         var prelude = w.Fork();
         copyInstrWriters.Push(prelude);
@@ -4707,10 +4708,10 @@ namespace Microsoft.Dafny.Compilers {
       }
     }
 
-    protected ConcreteSyntaxTree EmitContinueLabel(LList<Label> loopLabels, ConcreteSyntaxTree writer) {
+    protected ConcreteSyntaxTree EmitContinueLabel(List<Label> loopLabels, ConcreteSyntaxTree writer) {
       Contract.Requires(writer != null);
       if (loopLabels != null) {
-        writer = CreateLabeledCode(loopLabels.Data.AssignUniqueId(idGenerator), true, writer);
+        writer = CreateLabeledCode(loopLabels.First().AssignUniqueId(idGenerator), true, writer);
       }
       return writer;
     }

@@ -10,7 +10,7 @@ public abstract class Statement : NodeWithOrigin, IAttributeBearingDeclaration {
   public Token? PostLabelToken { get; set; }
 
   public int ScopeDepth { get; set; }
-  public LList<Label>? Labels;  // mutable during resolution
+  public List<Label> Labels = [];  // mutable during resolution
 
   public Attributes? Attributes { get; set; }
   string IAttributeBearingDeclaration.WhatKind => "statement";

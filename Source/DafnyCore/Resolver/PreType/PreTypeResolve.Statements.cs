@@ -55,8 +55,8 @@ namespace Microsoft.Dafny {
 
       EnclosingStatementLabels.PushMarker();
       // push labels
-      for (var l = stmt.Labels; l != null; l = l.Next) {
-        var lnode = l.Data;
+      foreach(var l in stmt.Labels) {
+        var lnode = l;
         Contract.Assert(lnode.Name != null);  // LabelNode's with .Label==null are added only during resolution of the break statements with 'stmt' as their target, which hasn't happened yet
         var prev = EnclosingStatementLabels.Find(lnode.Name);
         if (prev == stmt) {
@@ -135,10 +135,10 @@ namespace Microsoft.Dafny {
             ReportError(s,
               $"{jumpStmt} is allowed only in contexts with {s.BreakAndContinueCount} enclosing loops, but the current context only has {loopStack.Count}");
           } else {
-            Statement target = loopStack[loopStack.Count - s.BreakAndContinueCount];
-            if (target.Labels == null) {
+            Statement target = loopStack[^s.BreakAndContinueCount];
+            if (!target.Labels.Any()) {
               // make sure there is a label, because the compiler and translator will want to see a unique ID
-              target.Labels = new LList<Label>(new Label(target.Origin, null), null);
+              target.Labels = [new Label(target.Origin, null)];
             }
             s.TargetStmt = target;
           }

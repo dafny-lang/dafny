@@ -1403,7 +1403,7 @@ namespace Microsoft.Dafny.Compilers {
 
     // Return a writer to write the start expression, which is lo if going up, and hi if going down
     protected override ConcreteSyntaxTree EmitForStmt(IOrigin tok, IVariable loopIndex, bool goingUp, string endVarName,
-      List<Statement> body, LList<Label> labels, ConcreteSyntaxTree wr) {
+      List<Statement> body, List<Label> labels, ConcreteSyntaxTree wr) {
       if (GetStatementBuilder(wr, out var statementContainer)) {
         var indexName = loopIndex.CompileNameShadowable;
         ForeachBuilder foreachBuilder = statementContainer.Builder.Foreach(
