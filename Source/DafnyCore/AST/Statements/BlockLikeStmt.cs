@@ -8,14 +8,14 @@ namespace Microsoft.Dafny;
 /// <summary>
 /// Used to capture some shared behavior between DividedBlockStmt and BlockStmt
 /// </summary>
-public abstract class BlockLikeStmt : Statement, ICanFormat {
+public abstract class BlockLikeStmt : LabeledStatement, ICanFormat {
   public abstract IReadOnlyList<Statement> Body { get; }
 
   protected BlockLikeStmt(Cloner cloner, BlockLikeStmt original) : base(cloner, original) {
   }
 
   [SyntaxConstructor]
-  protected BlockLikeStmt(IOrigin origin, Attributes? attributes) : base(origin, attributes) {
+  protected BlockLikeStmt(IOrigin origin, List<Label> labels, Attributes? attributes) : base(origin, labels, attributes) {
   }
 
   public override IEnumerable<Statement> SubStatements => Body;

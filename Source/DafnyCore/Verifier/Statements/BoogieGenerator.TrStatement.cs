@@ -886,16 +886,18 @@ public partial class BoogieGenerator {
       };
       var indexBuilder = innerBuilder.WithContext(indexContext);
       if (processLabels) {
-        foreach(var label in ss.Labels) {
-          var heapAt = locals.GetOrAdd(new Bpl.LocalVariable(ss.Origin,
-            new Bpl.TypedIdent(ss.Origin, "$Heap_at_" + label.AssignUniqueId(CurrentIdGenerator), Predef.HeapType)));
-          builder.Add(Bpl.Cmd.SimpleAssign(ss.Origin, new Bpl.IdentifierExpr(ss.Origin, heapAt), etran.HeapExpr));
+        if (ss is LabeledStatement labelledStatement) {
+          foreach(var label in labelledStatement.Labels) {
+            var heapAt = locals.GetOrAdd(new Bpl.LocalVariable(ss.Origin,
+              new Bpl.TypedIdent(ss.Origin, "$Heap_at_" + label.AssignUniqueId(CurrentIdGenerator), Predef.HeapType)));
+            builder.Add(Bpl.Cmd.SimpleAssign(ss.Origin, new Bpl.IdentifierExpr(ss.Origin, heapAt), etran.HeapExpr));
+          }
         }
       }
 
       TrStmt(ss, indexBuilder, locals, etran);
-      if (processLabels && ss.Labels.Any()) {
-        builder.AddLabelCmd(ss.Origin, "after_" + ss.Labels.First().AssignUniqueId(CurrentIdGenerator));
+      if (processLabels && ss is LabeledStatement labelledStatement2 && labelledStatement2.Labels.Any()) {
+        builder.AddLabelCmd(ss.Origin, "after_" + labelledStatement2.Labels.First().AssignUniqueId(CurrentIdGenerator));
       }
     }
 

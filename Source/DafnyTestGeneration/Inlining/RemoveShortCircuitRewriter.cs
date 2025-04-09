@@ -102,7 +102,7 @@ public class RemoveShortCircuitingRewriter : Cloner {
       var processed = ProcessStmt(statement);
       newBodyProper.AddRange(processed);
     }
-    return new DividedBlockStmt(blockStatement.Origin, newBodyInit, blockStatement.SeparatorTok, newBodyProper);
+    return new DividedBlockStmt(blockStatement.Origin, newBodyInit, blockStatement.SeparatorTok, newBodyProper, blockStatement.Labels);
   }
 
   private List<Statement> ProcessStmt(Statement statement) {
@@ -257,7 +257,7 @@ public class RemoveShortCircuitingRewriter : Cloner {
     newStmtStack.Last().AddRange(end.stmts);
     var newBody = CloneBlockStmt(forLoopStmt.Body);
     return new ForLoopStmt(forLoopStmt.Origin, forLoopStmt.LoopIndex, start.expr, end.expr, forLoopStmt.GoingUp,
-      forLoopStmt.Invariants, forLoopStmt.Decreases, forLoopStmt.Mod, newBody, forLoopStmt.Attributes);
+      forLoopStmt.Invariants, forLoopStmt.Decreases, forLoopStmt.Mod, newBody, forLoopStmt.Labels, forLoopStmt.Attributes);
   }
 
   private Statement ProcessStmtToStmt(Statement statement) {

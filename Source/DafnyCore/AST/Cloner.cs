@@ -427,7 +427,6 @@ namespace Microsoft.Dafny {
       if (stmt is ICloneable<Statement> cloneable) {
         var r = cloneable.Clone(this);
         // add labels to the cloned statement
-        r.Labels = stmt.Labels.Select(l => new Label(Origin(l.Tok), l.Name)).ToList();
         r.Attributes = CloneAttributes(stmt.Attributes);
 
         return r;

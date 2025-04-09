@@ -4696,10 +4696,11 @@ namespace Microsoft.Dafny.Compilers {
         //   <prelude>   // filled via copyInstrWriters -- copies out-parameters used in letexpr to local variables
         //   ss          // translation of ss has side effect of filling the top copyInstrWriters
         var w = writer;
-        if (ss.Labels.Any() && !(ss is VarDeclPattern or VarDeclStmt)) {
-          // We are not breaking out of VarDeclPattern or VarDeclStmt, so the labels there are useless
-          // They were useful for verification
-          w = CreateLabeledCode(ss.Labels.First().AssignUniqueId(idGenerator), false, w);
+        if (ss is LabeledStatement labelledStatement and (BlockLikeStmt or LoopStmt)) {
+          // Labels outside of block or loops are only useful for verification
+          if (labelledStatement.Labels.Any()) {
+            w = CreateLabeledCode(labelledStatement.Labels.First().AssignUniqueId(idGenerator), false, w);
+          }
         }
         var prelude = w.Fork();
         copyInstrWriters.Push(prelude);

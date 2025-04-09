@@ -931,7 +931,7 @@ namespace Microsoft.Dafny {
         Reporter.Info(MessageSource.RefinementTransformer, sbsSkeleton.Origin, hoverText);
       }
 
-      return new DividedBlockStmt(sbsSkeleton.Origin, bodyInit, sbsSkeleton.SeparatorTok, bodyProper);
+      return new DividedBlockStmt(sbsSkeleton.Origin, bodyInit, sbsSkeleton.SeparatorTok, bodyProper, sbsSkeleton.Labels);
     }
 
     /// <summary>
@@ -1346,17 +1346,17 @@ namespace Microsoft.Dafny {
       Contract.Requires(!(nxt is SkeletonStatement) || ((SkeletonStatement)nxt).S != null);  // nxt is not "...;"
       Contract.Requires(other != null);
 
-      if (nxt.Labels.Any()) {
-        foreach(var olbl in other.Labels) {
-          foreach (var l in nxt.Labels) {
+      if (nxt is LabeledStatement nextLabelled && other is LabeledStatement otherLabelled && nextLabelled.Labels.Any()) {
+        foreach(var olbl in otherLabelled.Labels) {
+          foreach (var l in nextLabelled.Labels) {
             if (olbl.Name == l.Name) {
               return true;
             }
           }
         }
         return false;  // labels of 'nxt' don't match any label of 'other'
-      } else if (nxt is SkeletonStatement) {
-        var S = ((SkeletonStatement)nxt).S;
+      } else if (nxt is SkeletonStatement statement) {
+        var S = statement.S;
         if (S is AssertStmt) {
           return other is PredicateStmt;
         } else if (S is ExpectStmt) {
@@ -1393,9 +1393,8 @@ namespace Microsoft.Dafny {
         }
       } else if (nxt is AssignStatement) {
         var up = (AssignStatement)nxt;
-        if (other is AssignSuchThatStmt) {
-          var oth = other as AssignSuchThatStmt;
-          return oth != null && LeftHandSidesAgree(oth.Lhss, up.Lhss);
+        if (other is AssignSuchThatStmt oth) {
+          return LeftHandSidesAgree(oth.Lhss, up.Lhss);
         }
       }
 
@@ -1485,8 +1484,10 @@ namespace Microsoft.Dafny {
       Contract.Requires(labels != null);
       Contract.Requires(0 <= loopLevels);
 
-      foreach (var n in s.Labels) {
-        labels.Push(n.Name);
+      if (s is LabeledStatement labelledStatement) {
+        foreach (var n in labelledStatement.Labels) {
+          labels.Push(n.Name);
+        }
       }
       if (s is SkeletonStatement) {
         Error(ErrorId.ref_misplaced_skeleton, s, "skeleton statement may not be used here; it does not have a matching statement in what is being replaced");
@@ -1521,8 +1522,10 @@ namespace Microsoft.Dafny {
         }
       }
 
-      foreach(var n in s.Labels) {
-        labels.Pop();
+      if (s is LabeledStatement labelledStatement2) {
+        foreach(var n in labelledStatement2.Labels) {
+          labels.Pop();
+        }
       }
     }
 

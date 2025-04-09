@@ -20,20 +20,20 @@ using Microsoft.Dafny.Plugins;
 
 namespace Microsoft.Dafny {
   public partial class ModuleResolver {
-    public List<Statement> loopStack = [];  // the enclosing loops (from which it is possible to break out)
+    public List<LabeledStatement> loopStack = [];  // the enclosing loops (from which it is possible to break out)
     public Scope<Label>/*!*/ DominatingStatementLabels { get; private set; }
 
-    public Scope<Statement> EnclosingStatementLabels {
+    public Scope<LabeledStatement> EnclosingStatementLabels {
       get => enclosingStatementLabels;
       set => enclosingStatementLabels = value;
     }
 
-    public List<Statement> LoopStack {
+    public List<LabeledStatement> LoopStack {
       get => loopStack;
       set => loopStack = value;
     }
 
-    public Scope<Statement>/*!*/ enclosingStatementLabels;
+    public Scope<LabeledStatement>/*!*/ enclosingStatementLabels;
     public MethodOrConstructor currentMethod;
 
     Label/*?*/ ResolveDominatingLabelInExpr(IOrigin tok, string/*?*/ labelName, string expressionDescription, ResolutionContext resolutionContext) {
@@ -3096,7 +3096,11 @@ namespace Microsoft.Dafny {
 
       EnclosingStatementLabels.PushMarker();
       // push labels
-      foreach(var l in stmt.Labels) {
+      if (stmt is not LabeledStatement labelledStatement) {
+        return;
+      }
+      
+      foreach(var l in labelledStatement.Labels) {
         var lnode = l;
         Contract.Assert(lnode.Name != null);  // LabelNode's with .Label==null are added only during resolution of the break statements with 'stmt' as their target, which hasn't happened yet
         var prev = EnclosingStatementLabels.Find(lnode.Name);
@@ -3105,8 +3109,8 @@ namespace Microsoft.Dafny {
         } else if (prev != null) {
           reporter.Error(MessageSource.Resolver, lnode.Tok, "label shadows an enclosing label");
         } else {
-          var r = EnclosingStatementLabels.Push(lnode.Name, stmt);
-          Contract.Assert(r == Scope<Statement>.PushResult.Success);  // since we just checked for duplicates, we expect the Push to succeed
+          var r = EnclosingStatementLabels.Push(lnode.Name, labelledStatement);
+          Contract.Assert(r == Scope<LabeledStatement>.PushResult.Success);  // since we just checked for duplicates, we expect the Push to succeed
           if (DominatingStatementLabels.Find(lnode.Name) != null) {
             reporter.Error(MessageSource.Resolver, lnode.Tok, "label shadows a dominating label");
           } else {
@@ -3513,7 +3517,7 @@ namespace Microsoft.Dafny {
       } else if (stmt is BreakOrContinueStmt) {
         var s = (BreakOrContinueStmt)stmt;
         if (s.TargetLabel != null) {
-          Statement target = EnclosingStatementLabels.Find(s.TargetLabel.Value);
+          var target = EnclosingStatementLabels.Find(s.TargetLabel.Value);
           if (target == null) {
             reporter.Error(MessageSource.Resolver, s.TargetLabel, $"{s.Kind} label is undefined or not in scope: {s.TargetLabel.Value}");
           } else if (s.IsContinue && !(target is LoopStmt)) {
@@ -3532,7 +3536,7 @@ namespace Microsoft.Dafny {
             reporter.Error(MessageSource.Resolver, s,
               $"{jumpStmt} is allowed only in contexts with {s.BreakAndContinueCount} enclosing loops, but the current context only has {LoopStack.Count}");
           } else {
-            Statement target = LoopStack[LoopStack.Count - s.BreakAndContinueCount];
+            var target = LoopStack[LoopStack.Count - s.BreakAndContinueCount];
             if (!target.Labels.Any()) {
               // make sure there is a label, because the compiler and translator will want to see a unique ID
               target.Labels = [new Label(target.Origin, null)];
@@ -3821,7 +3825,7 @@ namespace Microsoft.Dafny {
           // clear the labels for the duration of checking the body, because break statements are not allowed to leave a forall statement
           var prevLblStmts = EnclosingStatementLabels;
           var prevLoopStack = LoopStack;
-          EnclosingStatementLabels = new Scope<Statement>(Options);
+          EnclosingStatementLabels = new Scope<LabeledStatement>(Options);
           LoopStack = [];
           ResolveStatement(s.Body, resolutionContext);
           EnclosingStatementLabels = prevLblStmts;
@@ -3938,7 +3942,7 @@ namespace Microsoft.Dafny {
           // clear the labels for the duration of checking the hints, because break statements are not allowed to leave a forall statement
           var prevLblStmts = EnclosingStatementLabels;
           var prevLoopStack = LoopStack;
-          EnclosingStatementLabels = new Scope<Statement>(Options);
+          EnclosingStatementLabels = new Scope<LabeledStatement>(Options);
           LoopStack = [];
           foreach (var h in s.Hints) {
             foreach (var oneHint in h.Body) {

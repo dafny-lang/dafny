@@ -1330,7 +1330,7 @@ namespace Microsoft.Dafny
             var parameter1 = ReadList<Statement>(() => ReadAbstract<Statement>());
             var parameter2 = ReadAbstractOption<IOrigin>();
             var parameter3 = ReadList<Statement>(() => ReadAbstract<Statement>());
-            return new DividedBlockStmt(parameter0, parameter1, parameter2, parameter3, parameter4);
+            return new DividedBlockStmt(parameter0, parameter1, parameter2, parameter3, [], parameter4);
         }
 
         public DividedBlockStmt ReadDividedBlockStmtOption()
@@ -1348,7 +1348,7 @@ namespace Microsoft.Dafny
             var parameter0 = ReadAbstract<IOrigin>();
             var parameter2 = ReadAttributesOption();
             var parameter1 = ReadList<Statement>(() => ReadAbstract<Statement>());
-            return new BlockStmt(parameter0, parameter1, parameter2);
+            return new BlockStmt(parameter0, parameter1, [], parameter2);
         }
 
         public BlockStmt ReadBlockStmtOption()
@@ -1370,7 +1370,7 @@ namespace Microsoft.Dafny
             var parameter4 = ReadSpecification<FrameExpression>();
             var parameter5 = ReadBlockStmt();
             var parameter1 = ReadAbstract<Expression>();
-            return new WhileStmt(parameter0, parameter1, parameter2, parameter3, parameter4, parameter5, parameter6);
+            return new WhileStmt(parameter0, parameter1, parameter2, parameter3, parameter4, parameter5, [], parameter6);
         }
 
         public WhileStmt ReadWhileStmtOption()
