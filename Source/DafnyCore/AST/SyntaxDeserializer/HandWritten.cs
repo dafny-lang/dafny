@@ -38,6 +38,28 @@ public partial class SyntaxDeserializer(IDecoder decoder) {
     }
   }
 
+  private CasePattern<VT> ReadCasePattern<VT>() where VT : IVariable {
+    if (typeof(VT) == typeof(BoundVar)) {
+      var parameter0 = ReadAbstract<IOrigin>();
+      var parameter1 = ReadString();
+      var parameter2 = (VT)(object)ReadBoundVarOption();
+      var parameter3 = ReadListOption(() => ReadCasePattern<VT>());
+      return new CasePattern<VT>(parameter0, parameter1, parameter2, parameter3);
+    } else if (typeof(VT) == typeof(LocalVariable)) {
+      var parameter0 = ReadAbstract<IOrigin>();
+      var parameter1 = ReadString();
+      var parameter2 = (VT)(object)ReadLocalVariableOption();
+      var parameter3 = ReadListOption(() => ReadCasePattern<VT>());
+      return new CasePattern<VT>(parameter0, parameter1, parameter2, parameter3);
+    } else {
+      throw new Exception($"Unhandled CasePattern type: {typeof(VT)}");
+    }
+  }
+
+  private CasePattern<VT>? ReadCasePatternOption<VT>() where VT : IVariable {
+    return ReadIsNull() ? null : ReadCasePattern<VT>();
+  }
+
   private List<T>? ReadListOption<T>(Func<T> readElement) {
     var isNull = decoder.ReadIsNull();
     if (isNull) {
