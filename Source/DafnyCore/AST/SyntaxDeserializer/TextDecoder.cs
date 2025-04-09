@@ -1,6 +1,6 @@
 using System;
-using System.Linq;
 using System.Text;
+using Microsoft.BaseTypes;
 
 namespace Microsoft.Dafny;
 
@@ -128,11 +128,7 @@ public class TextDecoder(string input) : IDecoder {
     return short.Parse(GetNumberChars());
   }
 
-  public float ReadSingle() {
-    return float.Parse(GetNumberChars());
-  }
-
-  public double ReadDouble() {
-    return double.Parse(GetNumberChars());
+  public BigDec ReadBigDec() {
+    return BigDec.FromString(GetNumberChars());
   }
 }

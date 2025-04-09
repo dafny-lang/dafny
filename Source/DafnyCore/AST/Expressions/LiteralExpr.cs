@@ -64,8 +64,6 @@ public class LiteralExpr : Expression, ICloneable<LiteralExpr> {
       int n => new BigInteger(n),
       short n => new BigInteger(n),
       long n => new BigInteger(n),
-      float n => BigDec.FromString(n.ToString()),
-      double n => BigDec.FromString(n.ToString()),
       _ => value
     };
   }
