@@ -2201,6 +2201,7 @@ public class InferredTypeProxy : TypeProxy {
   /// Whether the typeProxy should be inferred to base type or as subset type
   public bool KeepConstraints = false;
 
+  [SyntaxConstructor]
   public InferredTypeProxy() {
   }
 }
