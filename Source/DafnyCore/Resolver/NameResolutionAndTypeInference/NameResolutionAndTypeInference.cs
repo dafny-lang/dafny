@@ -20,15 +20,15 @@ using Microsoft.Dafny.Plugins;
 
 namespace Microsoft.Dafny {
   public partial class ModuleResolver {
-    public List<LabelledStatement> loopStack = [];  // the enclosing loops (from which it is possible to break out)
+    public List<Statement> loopStack = [];  // the enclosing loops (from which it is possible to break out)
     public Scope<Label>/*!*/ DominatingStatementLabels { get; private set; }
 
-    public Scope<LabelledStatement> EnclosingStatementLabels {
+    public Scope<Statement> EnclosingStatementLabels {
       get => enclosingStatementLabels;
       set => enclosingStatementLabels = value;
     }
 
-    public List<LabelledStatement> LoopStack {
+    public List<Statement> LoopStack {
       get => loopStack;
       set => loopStack = value;
     }
@@ -3096,11 +3096,7 @@ namespace Microsoft.Dafny {
 
       EnclosingStatementLabels.PushMarker();
       // push labels
-      if (stmt is not LabelledStatement labelledStatement) {
-        return;
-      }
-      
-      for (var l = labelledStatement.Labels; l != null; l = l.Next) {
+      for (var l = stmt.Labels; l != null; l = l.Next) {
         var lnode = l.Data;
         Contract.Assert(lnode.Name != null);  // LabelNode's with .Label==null are added only during resolution of the break statements with 'stmt' as their target, which hasn't happened yet
         var prev = EnclosingStatementLabels.Find(lnode.Name);
@@ -3536,7 +3532,7 @@ namespace Microsoft.Dafny {
             reporter.Error(MessageSource.Resolver, s,
               $"{jumpStmt} is allowed only in contexts with {s.BreakAndContinueCount} enclosing loops, but the current context only has {LoopStack.Count}");
           } else {
-            var target = LoopStack[LoopStack.Count - s.BreakAndContinueCount];
+            Statement target = LoopStack[LoopStack.Count - s.BreakAndContinueCount];
             if (target.Labels == null) {
               // make sure there is a label, because the compiler and translator will want to see a unique ID
               target.Labels = new LList<Label>(new Label(target.Origin, null), null);

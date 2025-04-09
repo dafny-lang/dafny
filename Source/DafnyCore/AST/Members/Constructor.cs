@@ -65,6 +65,6 @@ public class Constructor : MethodOrConstructor {
   public override DividedBlockStmt? Body => body;
   public override void SetBody(BlockLikeStmt newBody) {
     body = newBody is BlockStmt blockStmt
-      ? new DividedBlockStmt(blockStmt.Origin, blockStmt.Body, null, [], null) : (DividedBlockStmt)newBody;
+      ? new DividedBlockStmt(blockStmt.Origin, blockStmt.Body, null, []) : (DividedBlockStmt)newBody;
   }
 }

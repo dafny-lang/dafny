@@ -16,14 +16,14 @@ namespace Microsoft.Dafny {
   public partial class PreTypeResolver : INewOrOldResolver {
     public Scope<Label> DominatingStatementLabels { get; }
 
-    public Scope<LabelledStatement> EnclosingStatementLabels { get; set; }
+    public Scope<Statement> EnclosingStatementLabels { get; set; }
 
-    public List<LabelledStatement> LoopStack {
+    public List<Statement> LoopStack {
       get => loopStack;
       set => loopStack = value;
     }
 
-    private List<LabelledStatement> loopStack = [];  // the enclosing loops (from which it is possible to break out)
+    private List<Statement> loopStack = [];  // the enclosing loops (from which it is possible to break out)
     bool inBodyInitContext;  // "true" only if "currentMethod is Constructor"
 
     public void ResolveBlockStatement(BlockLikeStmt blockStmt, ResolutionContext resolutionContext) {
@@ -55,11 +55,7 @@ namespace Microsoft.Dafny {
 
       EnclosingStatementLabels.PushMarker();
       // push labels
-      if (stmt is not LabelledStatement labelledStatement) {
-        return;
-      }
-      
-      for (var l = labelledStatement.Labels; l != null; l = l.Next) {
+      for (var l = stmt.Labels; l != null; l = l.Next) {
         var lnode = l.Data;
         Contract.Assert(lnode.Name != null);  // LabelNode's with .Label==null are added only during resolution of the break statements with 'stmt' as their target, which hasn't happened yet
         var prev = EnclosingStatementLabels.Find(lnode.Name);
@@ -120,7 +116,7 @@ namespace Microsoft.Dafny {
       } else if (stmt is BreakOrContinueStmt) {
         var s = (BreakOrContinueStmt)stmt;
         if (s.TargetLabel != null) {
-          var target = EnclosingStatementLabels.Find(s.TargetLabel.Value);
+          Statement target = EnclosingStatementLabels.Find(s.TargetLabel.Value);
           if (target == null) {
             ReportError(s.TargetLabel.Origin, $"{s.Kind} label is undefined or not in scope: {s.TargetLabel.Value}");
           } else if (s.IsContinue && !(target is LoopStmt)) {
@@ -139,7 +135,7 @@ namespace Microsoft.Dafny {
             ReportError(s,
               $"{jumpStmt} is allowed only in contexts with {s.BreakAndContinueCount} enclosing loops, but the current context only has {loopStack.Count}");
           } else {
-            var target = loopStack[^s.BreakAndContinueCount];
+            Statement target = loopStack[loopStack.Count - s.BreakAndContinueCount];
             if (target.Labels == null) {
               // make sure there is a label, because the compiler and translator will want to see a unique ID
               target.Labels = new LList<Label>(new Label(target.Origin, null), null);

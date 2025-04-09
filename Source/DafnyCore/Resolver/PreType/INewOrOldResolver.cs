@@ -8,8 +8,8 @@ public interface INewOrOldResolver {
   ErrorReporter Reporter { get; }
   Scope<IVariable> Scope { get; }
   Scope<Label> DominatingStatementLabels { get; }
-  Scope<LabelledStatement> EnclosingStatementLabels { get; set; }
-  List<LabelledStatement> LoopStack { get; set; }
+  Scope<Statement> EnclosingStatementLabels { get; set; }
+  List<Statement> LoopStack { get; set; }
   void ResolveAttributes(IAttributeBearingDeclaration attributedToken, ResolutionContext resolutionContext, bool solveConstraints = false);
   MethodCallInformation ResolveApplySuffix(ApplySuffix applySuffix, ResolutionContext resolutionContext, bool allowMethodCall);
   void ResolveExpression(Expression expression, ResolutionContext resolutionContext);

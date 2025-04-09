@@ -23,11 +23,9 @@ public class OpaqueBlock : BlockStmt, ICanResolveNewAndOld {
     }
   }
 
-  [SyntaxConstructor]
   public OpaqueBlock(IOrigin origin, List<Statement> body,
     List<AttributedExpression> ensures,
-    Specification<FrameExpression> modifies, List<Name> labels, Attributes? attributes = null) 
-    : base(origin, body, labels, attributes) {
+    Specification<FrameExpression> modifies) : base(origin, body) {
     Ensures = ensures;
     Modifies = modifies;
   }

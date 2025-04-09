@@ -1,4 +1,3 @@
-#nullable enable
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 
@@ -7,10 +6,10 @@ namespace Microsoft.Dafny;
 public class ForLoopStmt : OneBodyLoopStmt, ICloneable<ForLoopStmt>, ICanFormat {
   public BoundVar LoopIndex;
   public Expression Start;
-  public Expression? End;
+  public Expression/*?*/ End;
   public bool GoingUp;
 
-  public new ForLoopStmt Clone(Cloner cloner) {
+  public ForLoopStmt Clone(Cloner cloner) {
     return new ForLoopStmt(cloner, this);
   }
 
@@ -21,10 +20,16 @@ public class ForLoopStmt : OneBodyLoopStmt, ICloneable<ForLoopStmt>, ICanFormat 
     GoingUp = original.GoingUp;
   }
 
-  public ForLoopStmt(IOrigin origin, BoundVar loopIndexVariable, Expression start, Expression? end, bool goingUp,
+  public ForLoopStmt(IOrigin origin, BoundVar loopIndexVariable, Expression start, Expression/*?*/ end, bool goingUp,
     List<AttributedExpression> invariants, Specification<Expression> decreases, Specification<FrameExpression> mod,
-    BlockStmt? body, List<Name> labels, Attributes? attributes)
-    : base(origin, invariants, decreases, mod, body, labels, attributes) {
+    BlockStmt /*?*/ body, Attributes attributes)
+    : base(origin, invariants, decreases, mod, body, attributes) {
+    Contract.Requires(origin != null);
+    Contract.Requires(loopIndexVariable != null);
+    Contract.Requires(start != null);
+    Contract.Requires(invariants != null);
+    Contract.Requires(decreases != null);
+    Contract.Requires(mod != null);
     LoopIndex = loopIndexVariable;
     Start = start;
     End = end;

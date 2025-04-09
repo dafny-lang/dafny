@@ -1,4 +1,3 @@
-#nullable enable
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 using System.Linq;
@@ -7,10 +6,9 @@ using Microsoft.Dafny.Auditor;
 namespace Microsoft.Dafny;
 
 public abstract class OneBodyLoopStmt : LoopStmt {
-  public BlockStmt? Body;
-  
+  public BlockStmt/*?*/ Body;
   [FilledInDuringResolution]
-  public WhileStmt.LoopBodySurrogate? BodySurrogate;  // set by Resolver; remains null unless Body==null
+  public WhileStmt.LoopBodySurrogate/*?*/ BodySurrogate;  // set by Resolver; remains null unless Body==null
 
   protected OneBodyLoopStmt(Cloner cloner, OneBodyLoopStmt original) : base(cloner, original) {
     Body = (BlockStmt)cloner.CloneStmt(original.Body, false);
@@ -26,8 +24,8 @@ public abstract class OneBodyLoopStmt : LoopStmt {
   [SyntaxConstructor]
   protected OneBodyLoopStmt(IOrigin origin,
     List<AttributedExpression> invariants, Specification<Expression> decreases, Specification<FrameExpression> mod,
-    BlockStmt? body, List<Name>? labels, Attributes? attributes)
-    : base(origin, invariants, decreases, mod, labels, attributes) {
+    BlockStmt /*?*/ body, Attributes/*?*/ attributes)
+    : base(origin, invariants, decreases, mod, attributes) {
     Body = body;
   }
 
