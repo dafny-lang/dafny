@@ -10,7 +10,7 @@ public class DatatypeValue : Expression, IHasReferences, ICloneable<DatatypeValu
   public string DatatypeName;
   public string MemberName;
   public ActualBindings Bindings;
-  public List<Expression>? Arguments => Bindings.Arguments;
+  public List<Expression> Arguments => Bindings.Arguments;
 
   public override IEnumerable<INode> Children => new Node[] { Bindings };
 

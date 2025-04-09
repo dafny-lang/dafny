@@ -25,7 +25,7 @@ public class CasePattern<VT> : NodeWithOrigin
   public VT? Var;  // finalized by resolution (null if the pattern is a constructor)  Invariant:  Var != null ==> Arguments == null
   public List<CasePattern<VT>>? Arguments;
 
-  [FilledInDuringResolution] public Expression? Expr;  // an r-value version of the CasePattern;
+  [FilledInDuringResolution] public Expression Expr = null!;  // an r-value version of the CasePattern;
 
   public void MakeAConstructor() {
     Arguments = [];

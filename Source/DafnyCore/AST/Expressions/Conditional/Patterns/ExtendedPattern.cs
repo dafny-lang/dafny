@@ -81,12 +81,12 @@ public abstract class ExtendedPattern : NodeWithOrigin {
         Contract.Assert(false); throw new cce.UnreachableException();
       }
     } else if (type.AsDatatype is TupleTypeDecl tupleTypeDecl) {
-      var udt = type.NormalizeExpand() as UserDefinedType;
       if (!(this is IdPattern)) {
         resolver.reporter.Error(MessageSource.Resolver, this.Origin, "pattern doesn't correspond to a tuple");
         return;
       }
 
+      var udt = (UserDefinedType)type.NormalizeExpand();
       IdPattern idpat = (IdPattern)this;
       if (idpat.Arguments == null) {
         // simple variable
