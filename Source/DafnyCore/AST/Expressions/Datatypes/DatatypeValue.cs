@@ -1,3 +1,5 @@
+#nullable enable
+
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 using System.Linq;
@@ -12,17 +14,14 @@ public class DatatypeValue : Expression, IHasReferences, ICloneable<DatatypeValu
 
   public override IEnumerable<INode> Children => new Node[] { Bindings };
 
-  [FilledInDuringResolution] public DatatypeCtor Ctor;
+  [FilledInDuringResolution] public DatatypeCtor? Ctor;
   [FilledInDuringResolution] public List<Type> InferredTypeArgs = [];
   [FilledInDuringResolution] public List<PreType> InferredPreTypeArgs = [];
   [FilledInDuringResolution] public bool IsCoCall;
+
   [ContractInvariantMethod]
   void ObjectInvariant() {
-    Contract.Invariant(DatatypeName != null);
-    Contract.Invariant(MemberName != null);
-    Contract.Invariant(cce.NonNullElements(Arguments));
-    Contract.Invariant(cce.NonNullElements(InferredTypeArgs));
-    Contract.Invariant(Ctor == null || InferredTypeArgs.Count == Ctor.EnclosingDatatype.TypeArgs.Count);
+    Contract.Invariant(Ctor == null || InferredTypeArgs.Count == Ctor?.EnclosingDatatype?.TypeArgs.Count);
   }
 
   public DatatypeValue Clone(Cloner cloner) {
@@ -42,14 +41,15 @@ public class DatatypeValue : Expression, IHasReferences, ICloneable<DatatypeValu
   }
 
   public DatatypeValue(IOrigin origin, string datatypeName, string memberName, [Captured] List<ActualBinding> arguments)
+    : this(origin, datatypeName, memberName, new ActualBindings(arguments)) {
+  }
+
+  [SyntaxConstructor]
+  public DatatypeValue(IOrigin origin, string datatypeName, string memberName, ActualBindings bindings)
     : base(origin) {
-    Contract.Requires(cce.NonNullElements(arguments));
-    Contract.Requires(origin != null);
-    Contract.Requires(datatypeName != null);
-    Contract.Requires(memberName != null);
-    this.DatatypeName = datatypeName;
-    this.MemberName = memberName;
-    this.Bindings = new ActualBindings(arguments);
+    DatatypeName = datatypeName;
+    MemberName = memberName;
+    Bindings = bindings;
   }
 
   /// <summary>

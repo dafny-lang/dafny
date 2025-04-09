@@ -1,5 +1,6 @@
 using System.Collections.Frozen;
 using System.Reflection;
+using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.Dafny;
 using Type = System.Type;
 
@@ -92,7 +93,7 @@ public abstract class SyntaxAstVisitor {
       var missingParameters = baseParseConstructor == null ? [] :
         baseParseConstructor.GetParameters().Select(p => p.Name)
           .Except(myParseConstructor.GetParameters().Select(p => p.Name))
-          .ExceptBy(GetNonSerializedNames(type).Select(name => name.ToLower()), str => str?.ToLower())
+          .ExceptBy(GetRedundantFieldNames(type).Select(name => name.ToLower()), str => str?.ToLower())
           .ToList();
       if (missingParameters.Any()) {
         throw new Exception($"in type {type}, missing parameters: {string.Join(",", missingParameters)}");
@@ -174,20 +175,19 @@ public abstract class SyntaxAstVisitor {
   /// Return all field/property names appearing in <see cref="RedundantField"/>
   /// attributes of the specified type (or its base types).
   /// </summary>
-  protected static IEnumerable<string> GetNonSerializedNames(Type type) {
+  protected static IEnumerable<string> GetRedundantFieldNames(Type type) {
     return type.GetCustomAttributes<RedundantField>()
-      .Select(attr => attr.Name)
-      .ToFrozenSet();
+      .Select(attr => attr.Name);
   }
 
-  public static string ToGenericTypeString(Type t, bool useTypeMapping = true, bool mapNestedTypes = true,
-    bool nestedDot = false) {
+  private static (string typeName, string typeArgs) MakeGenericTypeStringParts(
+    Type t, bool useTypeMapping, bool mapNestedTypes, bool nestedDot) {
     if (useTypeMapping && MappedTypes.TryGetValue(t, out var newType)) {
       t = newType;
     }
 
     if (t.IsGenericTypeParameter) {
-      return t.Name;
+      return (t.Name, "");
     }
 
     if (!t.IsGenericType) {
@@ -195,18 +195,23 @@ public abstract class SyntaxAstVisitor {
       if (t.IsNested) {
         name = t.DeclaringType!.Name + (nestedDot ? "." : "") + name;
       }
-      return name;
+      return (name, "");
     }
 
-    string genericTypeName = t.GetGenericTypeDefinition().Name;
+    var genericTypeName = t.GetGenericTypeDefinition().Name;
     if (t.IsNested) {
       genericTypeName = t.DeclaringType!.Name + genericTypeName;
     }
     genericTypeName = CutOffGenericSuffixPartOfName(genericTypeName);
-    string genericArgs = string.Join(",",
-      t.GetGenericArguments()
-        .Select(argumentType => ToGenericTypeString(argumentType, mapNestedTypes, mapNestedTypes)).ToArray());
-    return genericTypeName + "<" + genericArgs + ">";
+    var genericArgs = string.Join(",", t.GetGenericArguments()
+      .Select(argumentType => ToGenericTypeString(argumentType, mapNestedTypes, mapNestedTypes)).ToArray());
+    return (genericTypeName, $"<{genericArgs}>");
+  }
+
+  public static string ToGenericTypeString(Type t, bool useTypeMapping = true, bool mapNestedTypes = true,
+    bool nestedDot = false, string suffix = "") {
+    var (typeName, typeArgs) = MakeGenericTypeStringParts(t, useTypeMapping, mapNestedTypes, nestedDot);
+    return $"{typeName}{suffix}{typeArgs}";
   }
 
   public static string CutOffGenericSuffixPartOfName(string genericTypeName) {
