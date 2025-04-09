@@ -107,7 +107,8 @@ public partial class SyntaxDeserializer(IDecoder decoder) {
     var typeName = decoder.ReadQualifiedName();
     var actualType = System.Type.GetType("Microsoft.Dafny." + typeName) ??
                      System.Type.GetType("System." + typeName) ??
-                     (typeName == "BigInteger" ? typeof(BigInteger) : null);
+                     (typeName == "BigInteger" ? typeof(BigInteger) : null) ??
+                     (typeName == "BigDec" ? typeof(BigDec) : null);
     if (actualType == null) {
       throw new Exception($"Type not found: {typeName}, expected type {typeof(T).Name}, position {decoder.Position}");
     }
