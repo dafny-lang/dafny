@@ -127,4 +127,12 @@ public class TextDecoder(string input) : IDecoder {
   public short ReadInt16() {
     return short.Parse(GetNumberChars());
   }
+
+  public float ReadSingle() {
+    return float.Parse(GetNumberChars());
+  }
+
+  public double ReadDouble() {
+    return double.Parse(GetNumberChars());
+  }
 }

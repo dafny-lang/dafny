@@ -167,6 +167,14 @@ public partial class SyntaxDeserializer(IDecoder decoder) {
       return (T)(object)decoder.ReadInt64();
     }
 
+    if (actualType == typeof(float)) {
+      return (T)(object)decoder.ReadSingle();
+    }
+
+    if (actualType == typeof(double)) {
+      return (T)(object)decoder.ReadDouble();
+    }
+
     if (actualType == typeof(BigInteger)) {
       return (T)(object)new BigInteger(decoder.ReadInt32());
     }

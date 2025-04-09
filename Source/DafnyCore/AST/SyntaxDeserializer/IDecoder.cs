@@ -11,4 +11,6 @@ public interface IDecoder {
   string ReadQualifiedName();
   long ReadInt64();
   short ReadInt16();
+  float ReadSingle();
+  double ReadDouble();
 }
