@@ -780,9 +780,9 @@ namespace Microsoft.Dafny {
           rr = new BreakOrContinueStmt(s.Origin, s.BreakAndContinueCount, s.IsContinue);
         }
         // r.TargetStmt will be filled in as later
-        if (!BreaksToBeResolved.TryGetValue(s, out var breaks)) {
+        if (!breaksToBeResolved.TryGetValue(s, out var breaks)) {
           breaks = [];
-          BreaksToBeResolved.Add(s, breaks);
+          breaksToBeResolved.Add(s, breaks);
         }
         breaks.Add(rr);
         r = rr;
@@ -884,37 +884,33 @@ namespace Microsoft.Dafny {
           (BlockStmt)SubstStmt(blockByProofStmt.Proof),
           SubstStmt(blockByProofStmt.Body));
         r = rr;
+      } else if (stmt is LabelledStatement labelledStatement) {
+        var rr = new LabelledStatement(labelledStatement.Origin,
+          labelledStatement.Labels, null);
+        r = rr;
       } else {
         Contract.Assert(false); throw new cce.UnreachableException();  // unexpected statement
       }
 
-      // add labels to the cloned statement
-      AddStmtLabels(r, stmt.Labels);
       r.Attributes = SubstAttributes(stmt.Attributes);
       r.IsGhost = stmt.IsGhost;
-      if (stmt.Labels != null || stmt is WhileStmt) {
-        if (BreaksToBeResolved.TryGetValue(stmt, out var breaks)) {
+      if (stmt is LabelledStatement) {
+        if (breaksToBeResolved.TryGetValue(stmt, out var breaks)) {
           foreach (var b in breaks) {
-            b.TargetStmt = r;
+            b.TargetStmt = (LabelledStatement)r;
           }
-          BreaksToBeResolved.Remove(stmt);
+          breaksToBeResolved.Remove(stmt);
         }
       }
 
       return r;
     }
 
-    Dictionary<Statement, List<BreakOrContinueStmt>> BreaksToBeResolved = new Dictionary<Statement, List<BreakOrContinueStmt>>();  // old-target -> new-breaks
-
-    protected void AddStmtLabels(Statement s, LList<Label> node) {
-      if (node != null) {
-        AddStmtLabels(s, node.Next);
-        s.Labels = new LList<Label>(node.Data, s.Labels);
-      }
-    }
+    Dictionary<Statement, List<BreakOrContinueStmt>> breaksToBeResolved = new();  // old-target -> new-breaks
 
     protected virtual DividedBlockStmt SubstDividedBlockStmt(DividedBlockStmt stmt) {
-      return stmt == null ? null : new DividedBlockStmt(stmt.Origin, stmt.BodyInit.ConvertAll(SubstStmt), stmt.SeparatorTok, stmt.BodyProper.ConvertAll(SubstStmt));
+      return stmt == null ? null : new DividedBlockStmt(stmt.Origin, stmt.BodyInit.ConvertAll(SubstStmt), 
+        stmt.SeparatorTok, stmt.BodyProper.ConvertAll(SubstStmt), stmt.Labels);
     }
 
     protected virtual BlockStmt SubstBlockStmt(BlockStmt stmt) {

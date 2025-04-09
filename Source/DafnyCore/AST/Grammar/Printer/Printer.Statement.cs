@@ -37,10 +37,12 @@ namespace Microsoft.Dafny {
         return;
       }
 
-      for (LList<Label> label = stmt.Labels; label != null; label = label.Next) {
-        if (label.Data.Name != null) {
-          wr.WriteLine("label {0}:", label.Data.Name);
-          Indent(indent);
+      if (stmt is LabelledStatement labelledStatement) {
+        for (LList<Label> label = labelledStatement.Labels; label != null; label = label.Next) {
+          if (label.Data.Name != null) {
+            wr.WriteLine("label {0}:", label.Data.Name);
+            Indent(indent);
+          }
         }
       }
 

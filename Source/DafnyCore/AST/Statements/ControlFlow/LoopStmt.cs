@@ -3,7 +3,7 @@ using System.Diagnostics.Contracts;
 
 namespace Microsoft.Dafny;
 
-public abstract class LoopStmt : Statement, IHasNavigationToken {
+public abstract class LoopStmt : LabelledStatement, IHasNavigationToken {
   public List<AttributedExpression> Invariants;
   public Specification<Expression> Decreases;
 
@@ -26,8 +26,8 @@ public abstract class LoopStmt : Statement, IHasNavigationToken {
     }
   }
 
-  public LoopStmt(IOrigin origin, List<AttributedExpression> invariants, Specification<Expression> decreases, Specification<FrameExpression> mod)
-    : base(origin) {
+  protected LoopStmt(IOrigin origin, List<AttributedExpression> invariants, Specification<Expression> decreases, Specification<FrameExpression> mod)
+    : base(origin, [], null) {
     Contract.Requires(origin != null);
     Contract.Requires(cce.NonNullElements(invariants));
     Contract.Requires(decreases != null);
@@ -39,8 +39,9 @@ public abstract class LoopStmt : Statement, IHasNavigationToken {
   }
 
   [SyntaxConstructor]
-  protected LoopStmt(IOrigin origin, List<AttributedExpression> invariants, Specification<Expression> decreases, Specification<FrameExpression> mod, Attributes attributes)
-    : base(origin, attributes) {
+  protected LoopStmt(IOrigin origin, List<AttributedExpression> invariants, Specification<Expression> decreases, 
+    Specification<FrameExpression> mod, List<Name> labels, Attributes attributes)
+    : base(origin, labels, attributes) {
     Contract.Requires(origin != null);
     Contract.Requires(cce.NonNullElements(invariants));
     Contract.Requires(decreases != null);

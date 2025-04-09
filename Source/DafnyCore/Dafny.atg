@@ -2226,13 +2226,14 @@ OneStmt<out Statement/*!*/ s>
 LabeledStmt<out Statement s>
 = (. Token colonToken;
      Token labelToken;
+     Statement body;
   .)
   "label"  (. Token id; labelToken = t; .)
   LabelName<out id> ":" (. colonToken = t; .)
-  OneStmt<out s>
-  (. s.Labels = new LList<Label>(new Label(id, id.val), s.Labels);
-     s.PostLabelToken = s.StartToken;
-     s.SetOrigin(new SourceOrigin(labelToken, t, s.PostLabelToken));
+  OneStmt<out body>
+  (. 
+     var origin = new SourceOrigin(labelToken, t); 
+     s = new LabelledStatement(origin, new Name(id), body);
   .)
   .
 

@@ -1346,18 +1346,19 @@ namespace Microsoft.Dafny {
       Contract.Requires(!(nxt is SkeletonStatement) || ((SkeletonStatement)nxt).S != null);  // nxt is not "...;"
       Contract.Requires(other != null);
 
-      if (nxt.Labels != null) {
-        for (var olbl = other.Labels; olbl != null; olbl = olbl.Next) {
+      if (nxt is LabelledStatement { Labels: not null } labelledNext
+          && other is LabelledStatement labelledOther) {
+        for (var olbl = labelledOther.Labels; olbl != null; olbl = olbl.Next) {
           var odata = olbl.Data;
-          for (var l = nxt.Labels; l != null; l = l.Next) {
+          for (var l = labelledNext.Labels; l != null; l = l.Next) {
             if (odata.Name == l.Data.Name) {
               return true;
             }
           }
         }
         return false;  // labels of 'nxt' don't match any label of 'other'
-      } else if (nxt is SkeletonStatement) {
-        var S = ((SkeletonStatement)nxt).S;
+      } else if (nxt is SkeletonStatement statement) {
+        var S = statement.S;
         if (S is AssertStmt) {
           return other is PredicateStmt;
         } else if (S is ExpectStmt) {
@@ -1395,9 +1396,8 @@ namespace Microsoft.Dafny {
         }
       } else if (nxt is AssignStatement) {
         var up = (AssignStatement)nxt;
-        if (other is AssignSuchThatStmt) {
-          var oth = other as AssignSuchThatStmt;
-          return oth != null && LeftHandSidesAgree(oth.Lhss, up.Lhss);
+        if (other is AssignSuchThatStmt oth) {
+          return LeftHandSidesAgree(oth.Lhss, up.Lhss);
         }
       }
 
@@ -1487,8 +1487,10 @@ namespace Microsoft.Dafny {
       Contract.Requires(labels != null);
       Contract.Requires(0 <= loopLevels);
 
-      for (LList<Label> n = s.Labels; n != null; n = n.Next) {
-        labels.Push(n.Data.Name);
+      if (s is LabelledStatement labelledStatement) {
+        for (LList<Label> n = labelledStatement.Labels; n != null; n = n.Next) {
+          labels.Push(n.Data.Name);
+        }
       }
       if (s is SkeletonStatement) {
         Error(ErrorId.ref_misplaced_skeleton, s, "skeleton statement may not be used here; it does not have a matching statement in what is being replaced");
@@ -1523,8 +1525,10 @@ namespace Microsoft.Dafny {
         }
       }
 
-      for (LList<Label> n = s.Labels; n != null; n = n.Next) {
-        labels.Pop();
+      if (s is LabelledStatement labelledStatement2) {
+        for (LList<Label> n = labelledStatement2.Labels; n != null; n = n.Next) {
+          labels.Pop();
+        }
       }
     }
 

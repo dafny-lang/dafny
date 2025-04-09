@@ -13,7 +13,8 @@ public class BlockStmt : BlockLikeStmt, ICloneable<BlockStmt> {
   }
 
   [SyntaxConstructor]
-  public BlockStmt(IOrigin origin, List<Statement> body, Attributes? attributes = null) : base(origin, attributes) {
+  public BlockStmt(IOrigin origin, List<Statement> body, List<Name> labels = [], Attributes? attributes = null) 
+    : base(origin, labels, attributes) {
     Body = body;
   }
 
@@ -25,7 +26,7 @@ public class BlockStmt : BlockLikeStmt, ICloneable<BlockStmt> {
     Body.Insert(0, s);
   }
 
-  public BlockStmt Clone(Cloner cloner) {
+  public new BlockStmt Clone(Cloner cloner) {
     return new BlockStmt(cloner, this);
   }
 }

@@ -91,7 +91,7 @@ namespace Microsoft.Dafny {
 
       allTypeParameters = new Scope<TypeParameter>(Options);
       scope = new Scope<IVariable>(Options);
-      EnclosingStatementLabels = new Scope<Statement>(Options);
+      EnclosingStatementLabels = new Scope<LabelledStatement>(Options);
       DominatingStatementLabels = new Scope<Label>(Options);
 
       SystemModuleManager = programResolver.SystemModuleManager;
