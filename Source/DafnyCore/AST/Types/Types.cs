@@ -2108,7 +2108,7 @@ public abstract class TypeProxy : Type {
       return Family.Unknown;
     }
   }
-  
+
   [SyntaxConstructor]
   internal TypeProxy(IOrigin origin = null) : base() {
   }
