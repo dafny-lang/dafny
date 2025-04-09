@@ -2108,8 +2108,9 @@ public abstract class TypeProxy : Type {
       return Family.Unknown;
     }
   }
-
-  internal TypeProxy() {
+  
+  [SyntaxConstructor]
+  internal TypeProxy(IOrigin origin = null) : base() {
   }
 
 #if TI_DEBUG_PRINT
@@ -2202,7 +2203,7 @@ public class InferredTypeProxy : TypeProxy {
   public bool KeepConstraints = false;
 
   [SyntaxConstructor]
-  public InferredTypeProxy() {
+  public InferredTypeProxy(IOrigin origin = null) : base(origin) {
   }
 }
 

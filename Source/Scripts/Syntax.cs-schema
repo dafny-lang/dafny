@@ -50,6 +50,14 @@ abstract class Type : NodeWithOrigin
 {
 }
 
+abstract class TypeProxy : Type
+{
+}
+
+class InferredTypeProxy : TypeProxy
+{
+}
+
 abstract class NonProxyType : Type
 {
 }
