@@ -582,10 +582,14 @@ mod tests {
         assert_eq!(read!(c).constant_plus_x(), int!(82));
         modify_field!(read!(c).t, 54);
         assert_eq!(read_field!(read!(c).t), 54);
-        // let x_copy = read_field!(read!(c).x);
-        // assert_eq!(Rc::strong_count(&x_copy.data), 2);
-        // deallocate(c);
-        // assert_eq!(Rc::strong_count(&x_copy.data), 1);
+        #[cfg(not(feature = "small-int"))]
+        let x_copy = read_field!(read!(c).x);
+        #[cfg(not(feature = "small-int"))]
+        assert_eq!(x_copy.strong_count(), 2);
+        #[cfg(not(feature = "small-int"))]
+        deallocate(c);
+        #[cfg(not(feature = "small-int"))]
+        assert_eq!(x_copy.strong_count(), 1);
     }
 
     #[test]
@@ -640,8 +644,6 @@ mod tests {
 
     #[test]
     fn test_placebo() {
-        // override_placebo::<Rc<BigInt>>(Rc::new(BigInt::from(1)), false);
-        // override_placebo::<Rc<BigInt>>(Rc::new(BigInt::from(1)), true);
         override_placebo::<DafnyInt>(int!(1), false);
         override_placebo::<DafnyInt>(int!(1), true);
         let _x: MaybePlacebo<Ptr<ClassWrapper<DafnyInt>>> =

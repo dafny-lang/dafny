@@ -25,6 +25,9 @@ impl DafnyInt {
     pub fn new(data: Rc<BigInt>) -> DafnyInt {
         DafnyInt { data }
     }
+    pub fn strong_count(&self) -> usize {
+        Rc::strong_count(&self.data)
+    }
 }
 
 impl AsRef<BigInt> for DafnyInt {
