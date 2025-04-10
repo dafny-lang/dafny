@@ -9,4 +9,6 @@ public interface IDecoder {
   bool ReadIsNull();
   string ReadString();
   string ReadQualifiedName();
+  long ReadInt64();
+  short ReadInt16();
 }
