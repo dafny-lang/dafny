@@ -152,7 +152,7 @@ namespace Microsoft.Dafny {
           ReportError(stmt, "yield statement is allowed only in iterators");
         } else if (stmt is ReturnStmt && !(resolutionContext.CodeContext is MethodOrConstructor)) {
           ReportError(stmt, "return statement is allowed only in method");
-        } else if (inBodyInitContext) {
+        } else if (resolutionContext.InFirstPhaseConstructor) {
           ReportError(stmt, "return statement is not allowed before 'new;' in a constructor");
         }
         var s = (ProduceStmt)stmt;
@@ -1236,8 +1236,7 @@ namespace Microsoft.Dafny {
         var ll = (MemberSelectExpr)lhs;
         var field = ll.Member as Field;
         if (field == null || !field.IsUserMutable) {
-          var cf = field as ConstantField;
-          if (inBodyInitContext && cf != null && !cf.IsStatic && cf.Rhs == null) {
+          if (resolutionContext.InFirstPhaseConstructor && field is ConstantField cf && !cf.IsStatic && cf.Rhs == null) {
             if (Expression.AsThis(ll.Obj) != null) {
               // it's cool; this field can be assigned to here
             } else {

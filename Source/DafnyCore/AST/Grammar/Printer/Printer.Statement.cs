@@ -431,6 +431,8 @@ namespace Microsoft.Dafny {
         wr.WriteLine($"[[ }} recover ({haltRecoveryStatement.HaltMessageVar.Name}) {{ ]]");
         PrintStatement(haltRecoveryStatement.RecoverBody, ind);
         wr.Write("[[ } ]]");
+      } else if (stmt is LabeledStatement labeledStatement) {
+        // already handled earlier
       } else {
         Contract.Assert(false); throw new cce.UnreachableException();  // unexpected statement
       }

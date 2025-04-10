@@ -2194,13 +2194,19 @@ Stmt<.List<Statement/*!*/>/*!*/ ss.>
 OneStmt<out Statement/*!*/ s>
 = (. Contract.Ensures(Contract.ValueAtReturn(out s) != null);
      s = dummyStmt;  /* to please the compiler */
+     BlockStmt bs;
+     Token bodyStart, bodyEnd;
   .)
   SYNC
-  ( IF(IsReveal(scanner.Peek())) RevealStmt<out s>
+  ( BlockStmt<out bs, out bodyStart, out bodyEnd>  (. s = bs; .)
+  | OpaqueBlock<out s>
+  | IF(IsReveal(scanner.Peek())) RevealStmt<out s>
   | AssignStatement<out s>     // includes UpdateFailure
   | VarDeclStatement<out s>
   | ReturnStmt<out s>
   | IfStmt<out s>
+  | WhileStmt<out s>
+  | ForLoopStmt<out s>
   | AssertStmt<out s>
   | AssumeStmt<out s>
   | BreakOrContinueStmt<out s>
@@ -2226,29 +2232,27 @@ LabeledStmt<out Statement s>
      Token bodyStart, bodyEnd;
   .)
   (
-    {
-      Label<out l> (. labels.Add(l); .)
-    }
-    ( WhileStmt<out s>
-    | ForLoopStmt<out s>
-    | BlockStmt<out bs, out bodyStart, out bodyEnd>  (. s = bs; .)
-    | OpaqueBlock<out s>
-    )
-    (.
-       ((LabeledStatement)s).Labels.AddRange(labels);
-       s.SetOrigin(new SourceOrigin(beforeToken.Next, t, s.Origin.ReportingRange));
-    .)
-  | 
     Label<out l> (. labels.Add(l); .)
     {
       Label<out l> (. labels.Add(l); .)
     }
-    (. 
-      var first = labels.First();
-      var last = labels.Last(); 
-      var origin = new SourceOrigin(first.Tok.ReportingRange.StartToken, last.Tok.ReportingRange.EndToken);
-      s = new LabeledStatement(origin, labels);
-    .)
+    (
+      ( WhileStmt<out s>
+      | ForLoopStmt<out s>
+      | BlockStmt<out bs, out bodyStart, out bodyEnd>  (. s = bs; .)
+      | OpaqueBlock<out s>
+      )
+      (.
+         ((LabeledStatement)s).Labels.AddRange(labels);
+         s.SetOrigin(new SourceOrigin(beforeToken.Next, t, s.Origin.ReportingRange));
+      .)
+    | (. 
+        var first = labels.First();
+        var last = labels.Last(); 
+        var origin = new SourceOrigin(first.Tok.ReportingRange.StartToken, last.Tok.ReportingRange.EndToken);
+        s = new LabeledStatement(origin, []);
+      .)
+    )
   )
   .
 
