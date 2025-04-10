@@ -725,8 +725,8 @@ namespace Microsoft.Dafny {
         TypeRhs t = (TypeRhs)rhs;
         wr.Write("new ");
         if (t is AllocateArray allocateArray) {
-          if (ShowType(allocateArray.ExplicitType)) {
-            PrintType(allocateArray.ExplicitType);
+          if (ShowType(allocateArray.ElementType)) {
+            PrintType(allocateArray.ElementType);
           }
           if (options.DafnyPrintResolvedFile == null &&
               allocateArray.InitDisplay != null && allocateArray.ArrayDimensions.Count == 1 &&

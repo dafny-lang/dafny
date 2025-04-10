@@ -1117,7 +1117,7 @@ namespace Microsoft.Dafny {
       if (rr is AllocateArray allocateArray) {
         // ---------- new T[EE]    OR    new T[EE] (elementInit)    OR    new T[EE] [elements...]
         var dims = allocateArray.ArrayDimensions.Count;
-        resolver.ResolveType(stmt.Origin, allocateArray.ExplicitType, resolutionContext, ResolveTypeOptionEnum.InferTypeProxies, null);
+        resolver.ResolveType(stmt.Origin, allocateArray.ElementType, resolutionContext, ResolveTypeOptionEnum.InferTypeProxies, null);
         int i = 0;
         foreach (var dim in allocateArray.ArrayDimensions) {
           ResolveExpression(dim, resolutionContext);
@@ -1127,7 +1127,7 @@ namespace Microsoft.Dafny {
           i++;
         }
 
-        var elementPreType = Type2PreType(allocateArray.ExplicitType);
+        var elementPreType = Type2PreType(allocateArray.ElementType);
         rr.PreType = BuiltInArrayType(dims, elementPreType);
         if (allocateArray.ElementInit != null) {
           ResolveExpression(allocateArray.ElementInit, resolutionContext);
