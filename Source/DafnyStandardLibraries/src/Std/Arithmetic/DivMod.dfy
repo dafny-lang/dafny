@@ -1333,7 +1333,8 @@ module Std.Arithmetic.DivMod {
   }
 
   /* proves the validity of the quotient and remainder */
-  @TimeLimitMultiplier(5)
+  @ResourceLimit("2200000")
+  @TimeLimitMultiplier(10)
   lemma LemmaFundamentalDivModConverse(x: int, d: int, q: int, r: int)
     requires d != 0
     requires 0 <= r < d

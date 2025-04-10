@@ -496,13 +496,11 @@ namespace Microsoft.Dafny {
     public virtual Field CloneField(Field f) {
       Contract.Requires(f != null);
       return f switch {
-        ConstantField c => new ConstantField(Origin(c.Origin), c.NameNode.Clone(this), CloneExpr(c.Rhs),
-          c.HasStaticKeyword, c.IsGhost, c.IsOpaque, CloneType(c.Type), CloneAttributes(c.Attributes)),
+        ConstantField c => new ConstantField(this, c),
         // We don't expect a SpecialField to ever be cloned. However, it can happen for malformed programs, for example if
         // an iterator in a refined module is replaced by a class in the refining module.
-        SpecialField s => new SpecialField(Origin(s.Origin), s.Name, s.SpecialId, s.IdParam, s.IsGhost, s.IsMutable,
-          s.IsUserMutable, CloneType(s.Type), CloneAttributes(s.Attributes)),
-        _ => new Field(Origin(f.Origin), f.NameNode.Clone(this), f.IsGhost, CloneType(f.Type), CloneAttributes(f.Attributes))
+        SpecialField s => new SpecialField(this, s),
+        _ => new Field(this, f)
       };
     }
 
