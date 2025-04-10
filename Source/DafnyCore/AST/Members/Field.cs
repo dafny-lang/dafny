@@ -13,7 +13,7 @@ public class Field : MemberDecl, ICanFormat, IHasDocstring {
   public virtual bool IsMutable => true;  // says whether or not the field can ever change values
   public virtual bool IsUserMutable => true;  // says whether or not code is allowed to assign to the field (IsUserMutable implies IsMutable)
 
-  public PreType PreType = null!;
+  public PreType? PreType;
 
   public Type Type;
 

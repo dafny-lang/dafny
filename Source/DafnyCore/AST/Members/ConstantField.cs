@@ -20,7 +20,7 @@ public class ConstantField : Field, ICallable, ICanAutoRevealDependencies, ICanV
   public override bool HasStaticKeyword { get; }
 
   public ConstantField(Cloner cloner, ConstantField original) : base(cloner, original) {
-    Rhs = cloner.CloneExpr(Rhs);
+    Rhs = cloner.CloneExpr(original.Rhs);
     HasStaticKeyword = original.HasStaticKeyword;
     IsOpaque = original.IsOpaque;
   }
