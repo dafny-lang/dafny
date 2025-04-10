@@ -1319,20 +1319,24 @@ namespace Microsoft.Dafny {
               } else {
                 List<Variable> bvars = [];
                 var bodyEtran = this;
-                if (e is ForallExpr && !this.AllowFuelInQuantifiers) {
+                if (!this.AllowFuelInQuantifiers) {
                   bodyEtran = bodyEtran.WithZeroFuel();
-                } else if (e is ExistsExpr && BoogieGenerator.stmtContext == StmtType.ASSERT && BoogieGenerator.adjustFuelForExists) {
-                  // assert exists need decrease fuel by 1
-                  bodyEtran = bodyEtran.DecreaseFuel(1);
-                  // set adjustFuelForExists to false so that we don't keep decrease the fuel in cases like the expr below.
-                  // assert exists p:int :: exists t:T :: ToInt(t) > 0;
-                  BoogieGenerator.adjustFuelForExists = false;
-                } else if (e is ExistsExpr && BoogieGenerator.stmtContext == StmtType.ASSUME &&
-                           BoogieGenerator.adjustFuelForExists) {
-                  // assume exists need increase fuel by 1
-                  bodyEtran = bodyEtran.LayerOffset(1);
-                  BoogieGenerator.adjustFuelForExists = false;
-                }
+                } 
+                
+                // else if (e is ExistsExpr && BoogieGenerator.stmtContext == StmtType.ASSERT && BoogieGenerator.adjustFuelForExists) {
+                //   // assert exists need decrease fuel by 1
+                //   bodyEtran = bodyEtran.DecreaseFuel(1);
+                //   // set adjustFuelForExists to false so that we don't keep decrease the fuel in cases like the expr below.
+                //   // assert exists p:int :: exists t:T :: ToInt(t) > 0;
+                //   BoogieGenerator.adjustFuelForExists = false;
+                // } else if (e is ExistsExpr && BoogieGenerator.stmtContext == StmtType.ASSUME &&
+                //            BoogieGenerator.adjustFuelForExists) {
+                //   // assume exists need increase fuel by 1
+                //   bodyEtran = bodyEtran.LayerOffset(1);
+                //   BoogieGenerator.adjustFuelForExists = false;
+                // }
+                //
+                //
 
                 Boogie.Expr antecedent = Boogie.Expr.True;
 
