@@ -2415,17 +2415,21 @@ BplBoundVar(varNameGen.FreshId(string.Format("#{0}#", bv.Name)), Predef.BoxType,
 
         } else if (expr is ComprehensionExpr) {
           var e = (ComprehensionExpr)expr;
+          var etran = this;
           if (e is QuantifierExpr q && q.SplitQuantifier != null) {
             return CanCallAssumption(q.SplitQuantifierExpression, cco);
+          } else if (e is ForallExpr) {
+            etran = this.WithZeroFuel();
           }
 
+
           // Determine the CanCall's for the range and term
-          var canCall = CanCallAssumption(e.Term, cco);
+          var canCall = etran.CanCallAssumption(e.Term, cco);
           if (e.Range != null) {
-            canCall = BplAnd(CanCallAssumption(e.Range, cco), BplImp(TrExpr(e.Range), canCall));
+            canCall = BplAnd(etran.CanCallAssumption(e.Range, cco), BplImp(etran.TrExpr(e.Range), canCall));
           }
           if (expr is MapComprehension mc && mc.IsGeneralMapComprehension) {
-            canCall = BplAnd(canCall, CanCallAssumption(mc.TermLeft, cco));
+            canCall = BplAnd(canCall, etran.CanCallAssumption(mc.TermLeft, cco));
 
             // The translation of "map x,y | R(x,y) :: F(x,y) := G(x,y)" makes use of projection
             // functions project_x,project_y.  These are functions defined here by the following axiom:
@@ -2444,23 +2448,23 @@ BplBoundVar(varNameGen.FreshId(string.Format("#{0}#", bv.Name)), Predef.BoxType,
             for (var i = 0; i < mc.BoundVars.Count; i++) {
               substMap.Add(mc.BoundVars[i], new BoogieWrapper(args[i], mc.BoundVars[i].Type));
             }
-            var R = TrExpr(Substitute(mc.Range, null, substMap));
-            var F = TrExpr(Substitute(mc.TermLeft, null, substMap));
-            var trig = BoogieGenerator.TrTrigger(this, e.Attributes, expr.Origin, substMap);
+            var R = etran.TrExpr(Substitute(mc.Range, null, substMap));
+            var F = etran.TrExpr(Substitute(mc.TermLeft, null, substMap));
+            var trig = BoogieGenerator.TrTrigger(etran, e.Attributes, expr.Origin, substMap);
             substMap = new Dictionary<IVariable, Expression>();
             for (var i = 0; i < mc.BoundVars.Count; i++) {
               var p = new Boogie.NAryExpr(BoogieGenerator.GetToken(mc), new Boogie.FunctionCall(mc.ProjectionFunctions[i]), new List<Boogie.Expr> { F });
               substMap.Add(e.BoundVars[i], new BoogieWrapper(p, e.BoundVars[i].Type));
             }
-            var Rprime = TrExpr(Substitute(mc.Range, null, substMap));
-            var Fprime = TrExpr(Substitute(mc.TermLeft, null, substMap));
+            var Rprime = etran.TrExpr(Substitute(mc.Range, null, substMap));
+            var Fprime = etran.TrExpr(Substitute(mc.TermLeft, null, substMap));
             var defn = BplForall(bvs, trig, BplImp(R, BplAnd(Rprime, Boogie.Expr.Eq(F, Fprime))));
             canCall = BplAnd(canCall, defn);
           }
           // Create a list of all possible bound variables
           var bvarsAndAntecedents = TrBoundVariables_SeparateWhereClauses(e.BoundVars);
           // Produce the quantified CanCall expression, with a suitably reduced set of bound variables
-          var tr = BoogieGenerator.TrTrigger(this.WithZeroFuel(), e.Attributes, expr.Origin);
+          var tr = BoogieGenerator.TrTrigger(etran, e.Attributes, expr.Origin);
           return BplForallTrim(bvarsAndAntecedents, tr, canCall);
 
         } else if (expr is StmtExpr) {
