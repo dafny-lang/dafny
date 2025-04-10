@@ -1347,7 +1347,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(other != null);
 
       if (nxt is LabeledStatement nextLabelled && other is LabeledStatement otherLabelled && nextLabelled.Labels.Any()) {
-        foreach(var olbl in otherLabelled.Labels) {
+        foreach (var olbl in otherLabelled.Labels) {
           foreach (var l in nextLabelled.Labels) {
             if (olbl.Name == l.Name) {
               return true;
@@ -1523,7 +1523,7 @@ namespace Microsoft.Dafny {
       }
 
       if (s is LabeledStatement labelledStatement2) {
-        foreach(var n in labelledStatement2.Labels) {
+        foreach (var n in labelledStatement2.Labels) {
           labels.Pop();
         }
       }

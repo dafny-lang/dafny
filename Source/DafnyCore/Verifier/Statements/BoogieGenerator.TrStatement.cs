@@ -887,7 +887,7 @@ public partial class BoogieGenerator {
       var indexBuilder = innerBuilder.WithContext(indexContext);
       if (processLabels) {
         if (ss is LabeledStatement labelledStatement) {
-          foreach(var label in labelledStatement.Labels) {
+          foreach (var label in labelledStatement.Labels) {
             var heapAt = locals.GetOrAdd(new Bpl.LocalVariable(ss.Origin,
               new Bpl.TypedIdent(ss.Origin, "$Heap_at_" + label.AssignUniqueId(CurrentIdGenerator), Predef.HeapType)));
             builder.Add(Bpl.Cmd.SimpleAssign(ss.Origin, new Bpl.IdentifierExpr(ss.Origin, heapAt), etran.HeapExpr));

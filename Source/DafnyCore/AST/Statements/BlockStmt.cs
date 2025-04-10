@@ -12,12 +12,12 @@ public class BlockStmt : BlockLikeStmt, ICloneable<BlockStmt> {
     Body = original.Body.Select(stmt => cloner.CloneStmt(stmt, false)).ToList();
   }
 
-  public BlockStmt(IOrigin origin, List<Statement> body, Attributes? attributes = null) 
+  public BlockStmt(IOrigin origin, List<Statement> body, Attributes? attributes = null)
     : this(origin, body, [], attributes) {
   }
-  
+
   [SyntaxConstructor]
-  public BlockStmt(IOrigin origin, List<Statement> body, List<Label> labels, Attributes? attributes = null) 
+  public BlockStmt(IOrigin origin, List<Statement> body, List<Label> labels, Attributes? attributes = null)
     : base(origin, labels, attributes) {
     Body = body;
   }

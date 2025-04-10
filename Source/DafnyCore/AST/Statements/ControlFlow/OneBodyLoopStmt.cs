@@ -8,7 +8,7 @@ namespace Microsoft.Dafny;
 
 public abstract class OneBodyLoopStmt : LoopStmt {
   public BlockStmt? Body;
-  
+
   [FilledInDuringResolution]
   public WhileStmt.LoopBodySurrogate? BodySurrogate;  // set by Resolver; remains null unless Body==null
 

@@ -24,7 +24,6 @@ namespace Microsoft.Dafny {
     }
 
     private List<LabeledStatement> loopStack = [];  // the enclosing loops (from which it is possible to break out)
-    bool inBodyInitContext;  // "true" only if "currentMethod is Constructor"
 
     public void ResolveBlockStatement(BlockLikeStmt blockStmt, ResolutionContext resolutionContext) {
       Contract.Requires(blockStmt != null);
@@ -32,13 +31,9 @@ namespace Microsoft.Dafny {
 
       if (blockStmt is DividedBlockStmt div) {
         Contract.Assert(currentMethod is Constructor);  // divided bodies occur only in class constructors
-        Contract.Assert(!inBodyInitContext);  // divided bodies are never nested
-        inBodyInitContext = true;
         foreach (Statement ss in div.BodyInit) {
-          ResolveStatementWithLabels(ss, resolutionContext);
+          ResolveStatementWithLabels(ss, resolutionContext with { InFirstPhaseConstructor = true });
         }
-        Contract.Assert(inBodyInitContext);
-        inBodyInitContext = false;
         foreach (Statement ss in div.BodyProper) {
           ResolveStatementWithLabels(ss, resolutionContext);
         }
@@ -56,7 +51,7 @@ namespace Microsoft.Dafny {
       EnclosingStatementLabels.PushMarker();
       // push labels
       if (stmt is LabeledStatement labelledStatement) {
-        foreach(var l in labelledStatement.Labels) {
+        foreach (var l in labelledStatement.Labels) {
           var lnode = l;
           Contract.Assert(lnode.Name != null);  // LabelNode's with .Label==null are added only during resolution of the break statements with 'stmt' as their target, which hasn't happened yet
           var prev = EnclosingStatementLabels.Find(lnode.Name);
@@ -403,6 +398,8 @@ namespace Microsoft.Dafny {
           ResolveStatement(skeletonStatement.S, resolutionContext);
         }
 
+      } else if (stmt is LabeledStatement) {
+        // already handled 
       } else {
         Contract.Assert(false); throw new cce.UnreachableException();
       }

@@ -910,7 +910,7 @@ namespace Microsoft.Dafny {
     private readonly Dictionary<Statement, List<BreakOrContinueStmt>> breaksToBeResolved = new();  // old-target -> new-breaks
 
     protected virtual DividedBlockStmt SubstDividedBlockStmt(DividedBlockStmt stmt) {
-      return stmt == null ? null : new DividedBlockStmt(stmt.Origin, stmt.BodyInit.ConvertAll(SubstStmt), 
+      return stmt == null ? null : new DividedBlockStmt(stmt.Origin, stmt.BodyInit.ConvertAll(SubstStmt),
         stmt.SeparatorTok, stmt.BodyProper.ConvertAll(SubstStmt), stmt.Labels);
     }
 

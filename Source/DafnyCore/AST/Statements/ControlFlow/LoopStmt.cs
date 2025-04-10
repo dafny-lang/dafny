@@ -39,7 +39,7 @@ public abstract class LoopStmt : LabeledStatement, IHasNavigationToken {
   }
 
   [SyntaxConstructor]
-  protected LoopStmt(IOrigin origin, List<AttributedExpression> invariants, Specification<Expression> decreases, 
+  protected LoopStmt(IOrigin origin, List<AttributedExpression> invariants, Specification<Expression> decreases,
     Specification<FrameExpression> mod, List<Label> labels, Attributes attributes)
     : base(origin, labels, attributes) {
     Contract.Requires(origin != null);
