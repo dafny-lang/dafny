@@ -55,26 +55,24 @@ namespace Microsoft.Dafny {
 
       EnclosingStatementLabels.PushMarker();
       // push labels
-      if (stmt is not LabeledStatement labelledStatement) {
-        return;
-      }
-      
-      foreach(var l in labelledStatement.Labels) {
-        var lnode = l;
-        Contract.Assert(lnode.Name != null);  // LabelNode's with .Label==null are added only during resolution of the break statements with 'stmt' as their target, which hasn't happened yet
-        var prev = EnclosingStatementLabels.Find(lnode.Name);
-        if (prev == stmt) {
-          ReportError(lnode.Tok, "duplicate label");
-        } else if (prev != null) {
-          ReportError(lnode.Tok, "label shadows an enclosing label");
-        } else {
-          var r = EnclosingStatementLabels.Push(lnode.Name, labelledStatement);
-          Contract.Assert(r == Scope<LabeledStatement>.PushResult.Success);  // since we just checked for duplicates, we expect the Push to succeed
-          if (DominatingStatementLabels.Find(lnode.Name) != null) {
-            ReportError(lnode.Tok, "label shadows a dominating label");
+      if (stmt is LabeledStatement labelledStatement) {
+        foreach(var l in labelledStatement.Labels) {
+          var lnode = l;
+          Contract.Assert(lnode.Name != null);  // LabelNode's with .Label==null are added only during resolution of the break statements with 'stmt' as their target, which hasn't happened yet
+          var prev = EnclosingStatementLabels.Find(lnode.Name);
+          if (prev == stmt) {
+            ReportError(lnode.Tok, "duplicate label");
+          } else if (prev != null) {
+            ReportError(lnode.Tok, "label shadows an enclosing label");
           } else {
-            var rr = DominatingStatementLabels.Push(lnode.Name, lnode);
-            Contract.Assert(rr == Scope<Label>.PushResult.Success);  // since we just checked for duplicates, we expect the Push to succeed
+            var r = EnclosingStatementLabels.Push(lnode.Name, labelledStatement);
+            Contract.Assert(r == Scope<LabeledStatement>.PushResult.Success);  // since we just checked for duplicates, we expect the Push to succeed
+            if (DominatingStatementLabels.Find(lnode.Name) != null) {
+              ReportError(lnode.Tok, "label shadows a dominating label");
+            } else {
+              var rr = DominatingStatementLabels.Push(lnode.Name, lnode);
+              Contract.Assert(rr == Scope<Label>.PushResult.Success);  // since we just checked for duplicates, we expect the Push to succeed
+            }
           }
         }
       }
