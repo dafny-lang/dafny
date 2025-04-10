@@ -2229,8 +2229,7 @@ LabeledStmt<out Statement s>
     {
       Label<out l> (. labels.Add(l); .)
     }
-    ( 
-    | WhileStmt<out s>
+    ( WhileStmt<out s>
     | ForLoopStmt<out s>
     | BlockStmt<out bs, out bodyStart, out bodyEnd>  (. s = bs; .)
     | OpaqueBlock<out s>
