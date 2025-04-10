@@ -7,6 +7,7 @@ public abstract class TypeRhs : AssignmentRhs {
 
   [FilledInDuringResolution] public PreType PreType = null!;
   [FilledInDuringResolution] public Type Type = null!;
+  public bool WasResolved => Type != null;
 
   [SyntaxConstructor]
   protected TypeRhs(IOrigin origin, Attributes? attributes = null) : base(origin, attributes) {

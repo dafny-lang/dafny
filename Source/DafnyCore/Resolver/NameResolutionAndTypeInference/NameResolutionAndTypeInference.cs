@@ -4338,7 +4338,7 @@ namespace Microsoft.Dafny {
       if (rr2.Type == null) {
         if (rr2 is AllocateArray allocateArray) {
           // ---------- new T[EE]    OR    new T[EE] (elementInit)
-          ResolveType(stmt.Origin, allocateArray.ExplicitType, resolutionContext, ResolveTypeOptionEnum.InferTypeProxies, null);
+          ResolveType(stmt.Origin, allocateArray.ElementType, resolutionContext, ResolveTypeOptionEnum.InferTypeProxies, null);
           int i = 0;
           foreach (Expression dim in allocateArray.ArrayDimensions) {
             Contract.Assert(dim != null);
@@ -4346,7 +4346,7 @@ namespace Microsoft.Dafny {
             ConstrainToIntegerType(dim, false, string.Format("new must use an integer-based expression for the array size (got {{0}}{0})", allocateArray.ArrayDimensions.Count == 1 ? "" : " for index " + i));
             i++;
           }
-          allocateArray.Type = ResolvedArrayType(stmt.Origin, allocateArray.ArrayDimensions.Count, allocateArray.ExplicitType, resolutionContext, false);
+          allocateArray.Type = ResolvedArrayType(stmt.Origin, allocateArray.ArrayDimensions.Count, allocateArray.ElementType, resolutionContext, false);
           if (allocateArray.ElementInit != null) {
             ResolveExpression(allocateArray.ElementInit, resolutionContext);
             // Check
@@ -4356,7 +4356,7 @@ namespace Microsoft.Dafny {
             for (int ii = 0; ii < allocateArray.ArrayDimensions.Count; ii++) {
               args.Add(SystemModuleManager.Nat());
             }
-            var arrowType = new ArrowType(allocateArray.ElementInit.Origin, SystemModuleManager.ArrowTypeDecls[allocateArray.ArrayDimensions.Count], args, allocateArray.ExplicitType);
+            var arrowType = new ArrowType(allocateArray.ElementInit.Origin, SystemModuleManager.ArrowTypeDecls[allocateArray.ArrayDimensions.Count], args, allocateArray.ElementType);
             var lambdaType = allocateArray.ElementInit.Type.AsArrowType;
             if (lambdaType != null && lambdaType.TypeArgs[0] is InferredTypeProxy) {
               (lambdaType.TypeArgs[0] as InferredTypeProxy).KeepConstraints = true;
@@ -4369,11 +4369,11 @@ namespace Microsoft.Dafny {
             }
             var hintString = string.Format(" (perhaps write '{0} =>' in front of the expression you gave in order to make it an arrow type)", underscores);
             ConstrainSubtypeRelation(arrowType, allocateArray.ElementInit.Type, allocateArray.ElementInit, "array-allocation initialization expression expected to have type '{0}' (instead got '{1}'){2}",
-              arrowType, allocateArray.ElementInit.Type, new LazyStringOnTypeEquals(allocateArray.ExplicitType, allocateArray.ElementInit.Type, hintString));
+              arrowType, allocateArray.ElementInit.Type, new LazyStringOnTypeEquals(allocateArray.ElementType, allocateArray.ElementInit.Type, hintString));
           } else if (allocateArray.InitDisplay != null) {
             foreach (var v in allocateArray.InitDisplay) {
               ResolveExpression(v, resolutionContext);
-              AddAssignableConstraint(v.Origin, allocateArray.ExplicitType, v.Type, "initial value must be assignable to array's elements (expected '{0}', got '{1}')");
+              AddAssignableConstraint(v.Origin, allocateArray.ElementType, v.Type, "initial value must be assignable to array's elements (expected '{0}', got '{1}')");
             }
           }
         } else if (rr2 is AllocateClass allocateClass) {
