@@ -3,6 +3,7 @@ using System.CommandLine;
 using System.Numerics;
 using System.Reflection;
 using System.Text;
+using Microsoft.BaseTypes;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -149,6 +150,9 @@ public class Serializer(IEncoder encoder, IReadOnlyList<INamedTypeSymbol> parsed
         break;
       case BigInteger i:
         encoder.WriteInt(i);
+        break;
+      case BigDec i:
+        encoder.WriteBigDec(i);
         break;
       case int i:
         encoder.WriteInt(i);

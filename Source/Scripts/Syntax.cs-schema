@@ -649,7 +649,7 @@ class AllocateClass : TypeRhs
 
 class AllocateArray : TypeRhs
 {
-    Type explicitType;
+    Type? explicitType;
     List<Expression> arrayDimensions;
     Expression? elementInit;
 }
@@ -704,6 +704,13 @@ class IfStmt : Statement
     Statement? els;
 }
 
+class BreakOrContinueStmt : Statement
+{
+    Name? targetLabel;
+    Int32 breakAndContinueCount;
+    Boolean isContinue;
+}
+
 class VarDeclStmt : Statement
 {
     List<LocalVariable> locals;
@@ -746,7 +753,7 @@ class Function : MethodOrFunction
 
 class Field : MemberDecl
 {
-    Type type;
+    Type? explicitType;
 }
 
 class ConstantField : Field

@@ -496,13 +496,13 @@ public partial class BoogieGenerator {
         // cool
       } else if ((2 <= options.DefiniteAssignmentLevel && options.DefiniteAssignmentLevel != 4) ||
                  options.Get(CommonOptionBag.EnforceDeterminism) ||
-                 !allocateArray.ExplicitType.HasCompilableValue) {
+                 !allocateArray.ElementType.HasCompilableValue) {
         // this is allowed only if the array size is such that it has no elements
         Bpl.Expr zeroSize = Bpl.Expr.False;
         foreach (Expression dim in allocateArray.ArrayDimensions) {
           zeroSize = BplOr(zeroSize, Bpl.Expr.Eq(Bpl.Expr.Literal(0), etran.TrExpr(dim)));
         }
-        var desc = new ArrayInitEmpty(allocateArray.ExplicitType.ToString(), allocateArray.ArrayDimensions);
+        var desc = new ArrayInitEmpty(allocateArray.ElementType.ToString(), allocateArray.ArrayDimensions);
         builder.Add(Assert(allocateArray.Origin, zeroSize, desc, builder.Context));
       }
 
@@ -517,16 +517,16 @@ public partial class BoogieGenerator {
         i++;
       }
       if (allocateArray.ElementInit != null) {
-        CheckElementInit(tok, true, allocateArray.ArrayDimensions, allocateArray.ExplicitType, allocateArray.ElementInit, nw, builder, etran, new WFOptions());
+        CheckElementInit(tok, true, allocateArray.ArrayDimensions, allocateArray.ElementType, allocateArray.ElementInit, nw, builder, etran, new WFOptions());
       } else if (allocateArray.InitDisplay != null) {
         int ii = 0;
         foreach (var v in allocateArray.InitDisplay) {
           var EE_ii = etran.TrExpr(v);
           // assert EE_ii satisfies any subset-type constraints;
-          CheckSubrange(v.Origin, EE_ii, v.Type, allocateArray.ExplicitType, v, builder);
+          CheckSubrange(v.Origin, EE_ii, v.Type, allocateArray.ElementType, v, builder);
           // assume nw[ii] == EE_ii;
           var ai = ReadHeap(tok, etran.HeapExpr, nw, GetArrayIndexFieldName(tok, [Bpl.Expr.Literal(ii)]));
-          builder.Add(new Bpl.AssumeCmd(tok, Bpl.Expr.Eq(UnboxUnlessInherentlyBoxed(ai, allocateArray.ExplicitType), AdaptBoxing(tok, EE_ii, v.Type, allocateArray.ExplicitType))));
+          builder.Add(new Bpl.AssumeCmd(tok, Bpl.Expr.Eq(UnboxUnlessInherentlyBoxed(ai, allocateArray.ElementType), AdaptBoxing(tok, EE_ii, v.Type, allocateArray.ElementType))));
           ii++;
         }
       }

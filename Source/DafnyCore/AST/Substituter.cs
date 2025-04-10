@@ -775,7 +775,7 @@ namespace Microsoft.Dafny {
         var s = (BreakOrContinueStmt)stmt;
         BreakOrContinueStmt rr;
         if (s.TargetLabel != null) {
-          rr = new BreakOrContinueStmt(s.Origin, s.TargetLabel, s.IsContinue);
+          rr = new BreakOrContinueStmt(s.Origin, s.TargetLabel, 0, s.IsContinue);
         } else {
           rr = new BreakOrContinueStmt(s.Origin, s.BreakAndContinueCount, s.IsContinue);
         }

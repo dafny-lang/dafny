@@ -258,9 +258,9 @@ class PreTypeToTypeVisitor : ASTVisitor<IASTVisitorContext> {
         // tRhs.EType may contain user-supplied subset types. But tRhs.EType may also be missing some type arguments altogether, because
         // they may have been omitted in the source text. The following has the effect of filling in any such missing components with
         // whatever was inferred during pre-type inference.
-        PreType2TypeUtil.Combine(allocateArray.ExplicitType, arrayPreType.Arguments[0], false);
+        PreType2TypeUtil.Combine(allocateArray.ElementType, arrayPreType.Arguments[0], false);
         var arrayTypeDecl = systemModuleManager.arrayTypeDecls[allocateArray.ArrayDimensions.Count];
-        var rhsMaybeNullType = new UserDefinedType(stmt.Origin, arrayTypeDecl.Name, arrayTypeDecl, [allocateArray.ExplicitType]);
+        var rhsMaybeNullType = new UserDefinedType(stmt.Origin, arrayTypeDecl.Name, arrayTypeDecl, [allocateArray.ElementType]);
         rhsType = UserDefinedType.CreateNonNullType(rhsMaybeNullType);
       } else {
         throw new cce.UnreachableException();
