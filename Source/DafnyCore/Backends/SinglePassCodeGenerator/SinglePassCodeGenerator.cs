@@ -4711,7 +4711,7 @@ namespace Microsoft.Dafny.Compilers {
 
     protected ConcreteSyntaxTree EmitContinueLabel(List<Label> loopLabels, ConcreteSyntaxTree writer) {
       Contract.Requires(writer != null);
-      if (loopLabels != null) {
+      if (loopLabels.Any()) {
         writer = CreateLabeledCode(loopLabels.First().AssignUniqueId(idGenerator), true, writer);
       }
       return writer;
