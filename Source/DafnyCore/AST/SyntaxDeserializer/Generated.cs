@@ -1592,7 +1592,7 @@ namespace Microsoft.Dafny
             var parameter1 = ReadName();
             var parameter4 = ReadAttributesOption();
             var parameter2 = ReadBoolean();
-            var parameter3 = ReadAbstract<Type>();
+            var parameter3 = ReadAbstractOption<Type>();
             return new Field(parameter0, parameter1, parameter2, parameter3, parameter4);
         }
 
@@ -1612,7 +1612,7 @@ namespace Microsoft.Dafny
             var parameter1 = ReadName();
             var parameter7 = ReadAttributesOption();
             var parameter4 = ReadBoolean();
-            var parameter6 = ReadAbstract<Type>();
+            var parameter6 = ReadAbstractOption<Type>();
             var parameter2 = ReadAbstractOption<Expression>();
             var parameter3 = ReadBoolean();
             var parameter5 = ReadBoolean();

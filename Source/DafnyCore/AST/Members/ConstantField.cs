@@ -30,7 +30,7 @@ public class ConstantField : Field, ICallable, ICanAutoRevealDependencies, ICanV
   
   [SyntaxConstructor]
   public ConstantField(IOrigin origin, Name nameNode, Expression? rhs, bool hasStaticKeyword,
-    bool isGhost, bool isOpaque, Type explicitType, Attributes? attributes)
+    bool isGhost, bool isOpaque, Type? explicitType, Attributes? attributes)
     : base(origin, nameNode, isGhost, explicitType, attributes) {
     Contract.Requires(nameNode != null);
     this.Rhs = rhs;

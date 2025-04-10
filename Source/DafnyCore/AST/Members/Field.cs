@@ -35,7 +35,7 @@ public class Field : MemberDecl, ICanFormat, IHasDocstring {
   }
   
   [SyntaxConstructor]
-  public Field(IOrigin origin, Name nameNode, bool isGhost, Type explicitType, Attributes? attributes)
+  public Field(IOrigin origin, Name nameNode, bool isGhost, Type? explicitType, Attributes? attributes)
     : base(origin, nameNode, isGhost, attributes) {
     Contract.Requires(origin != null);
     Contract.Requires(nameNode != null);
