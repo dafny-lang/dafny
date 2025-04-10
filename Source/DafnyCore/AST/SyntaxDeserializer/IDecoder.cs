@@ -1,4 +1,5 @@
 using System.IO;
+using Microsoft.BaseTypes;
 
 namespace Microsoft.Dafny;
 
@@ -11,4 +12,5 @@ public interface IDecoder {
   string ReadQualifiedName();
   long ReadInt64();
   short ReadInt16();
+  BigDec ReadBigDec();
 }

@@ -2109,7 +2109,7 @@ public abstract class TypeProxy : Type {
     }
   }
 
-  internal TypeProxy() {
+  internal TypeProxy(IOrigin origin = null) : base() {
   }
 
 #if TI_DEBUG_PRINT
@@ -2201,7 +2201,7 @@ public class InferredTypeProxy : TypeProxy {
   /// Whether the typeProxy should be inferred to base type or as subset type
   public bool KeepConstraints = false;
 
-  public InferredTypeProxy() {
+  public InferredTypeProxy(IOrigin origin = null) : base(origin) {
   }
 }
 
