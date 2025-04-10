@@ -27,7 +27,7 @@ public class ConstantField : Field, ICallable, ICanAutoRevealDependencies, ICanV
 
   [FilledInDuringResolution]
   public bool ContainsHide { get; set; }
-  
+
   [SyntaxConstructor]
   public ConstantField(IOrigin origin, Name nameNode, Expression? rhs, bool hasStaticKeyword,
     bool isGhost, bool isOpaque, Type? explicitType, Attributes? attributes)

@@ -16,9 +16,9 @@ public class Field : MemberDecl, ICanFormat, IHasDocstring {
   public PreType PreType = null!;
 
   public Type Type;
-  
+
   public Type? ExplicitType;
-  
+
   [ContractInvariantMethod]
   void ObjectInvariant() {
     Contract.Invariant(!IsUserMutable || IsMutable);  // IsUserMutable ==> IsMutable
@@ -27,13 +27,13 @@ public class Field : MemberDecl, ICanFormat, IHasDocstring {
   public override IEnumerable<INode> Children =>
     (Type?.Nodes ?? Enumerable.Empty<INode>()).Concat(this.Attributes.AsEnumerable());
 
-  
+
   public Field(Cloner cloner, Field original) : base(cloner, original) {
     ExplicitType = cloner.CloneType(original.ExplicitType);
     // This is set even before resolution
     Type = cloner.CloneType(original.Type);
   }
-  
+
   [SyntaxConstructor]
   public Field(IOrigin origin, Name nameNode, bool isGhost, Type? explicitType, Attributes? attributes)
     : base(origin, nameNode, isGhost, attributes) {

@@ -29,7 +29,7 @@ public class SpecialField : Field {
     SpecialId = original.SpecialId;
     IdParam = original.IdParam;
   }
-  
+
   public SpecialField(IOrigin origin, string name, ID specialId, object idParam,
     bool isGhost, bool isMutable, bool isUserMutable, Type explicitType, Attributes attributes)
     : this(origin, new Name(origin, name), specialId, idParam, isGhost, isMutable, isUserMutable, explicitType, attributes) {
