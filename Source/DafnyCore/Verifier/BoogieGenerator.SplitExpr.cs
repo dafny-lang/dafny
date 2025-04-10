@@ -317,16 +317,17 @@ namespace Microsoft.Dafny {
                 Bpl.Expr less = DecreasesCheck(toks, null, kkDafny, nnDafny, kk, nn,
                   null, null, false, true);
 
-                Bpl.Expr ihBody = etran.TrExpr(bodyK);
+                var etranIh = etran.WithZeroFuel();
+                Bpl.Expr ihBody = etranIh.TrExpr(bodyK);
                 if (!position) {
                   ihBody = Bpl.Expr.Not(ihBody);
                 }
-                ihBody = BplAnd(etran.CanCallAssumption(bodyK), ihBody);
+                ihBody = BplAnd(etranIh.CanCallAssumption(bodyK), ihBody);
                 ihBody = BplImp(less, ihBody);
                 List<Variable> bvars = [];
                 Bpl.Expr typeAntecedent = etran.TrBoundVariables(kvars, bvars);  // no need to use allocation antecedent here, because the well-founded less-than ordering assures kk are allocated
                 Bpl.Expr ih;
-                var tr = TrTrigger(etran, e.Attributes, expr.Origin, substMap);
+                var tr = TrTrigger(etranIh, e.Attributes, expr.Origin, substMap);
                 ih = new Bpl.ForallExpr(expr.Origin, bvars, tr, BplImp(typeAntecedent, ihBody));
 
                 // More precisely now:
@@ -395,7 +396,8 @@ namespace Microsoft.Dafny {
                   return true;
                 }
               }
-            } else if (((position && expr is ExistsExpr) || (!position && expr is ForallExpr))) {
+            }
+            else if (((position && expr is ExistsExpr) || (!position && expr is ForallExpr))) {
               // produce two translated versions of the quantifier, one that uses #1 functions (that is, layerOffset 0)
               // for checking and one that uses #2 functions (that is, layerOffset 1) for assuming.
               adjustFuelForExists = false; // based on the above comment, we use the etran with correct fuel amount already. No need to adjust anymore.
