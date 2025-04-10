@@ -1366,14 +1366,33 @@ namespace Microsoft.Dafny
             return ReadReturnStmt();
         }
 
+        public LabeledStatement ReadLabeledStatement()
+        {
+            var parameter0 = ReadAbstract<IOrigin>();
+            var parameter2 = ReadAttributesOption();
+            var parameter1 = ReadList<Label>(() => ReadLabel());
+            return new LabeledStatement(parameter0, parameter1, parameter2);
+        }
+
+        public LabeledStatement ReadLabeledStatementOption()
+        {
+            if (ReadIsNull())
+            {
+                return default;
+            }
+
+            return ReadLabeledStatement();
+        }
+
         public DividedBlockStmt ReadDividedBlockStmt()
         {
             var parameter0 = ReadAbstract<IOrigin>();
-            var parameter4 = ReadAttributesOption();
+            var parameter5 = ReadAttributesOption();
+            var parameter4 = ReadList<Label>(() => ReadLabel());
             var parameter1 = ReadList<Statement>(() => ReadAbstract<Statement>());
             var parameter2 = ReadAbstractOption<IOrigin>();
             var parameter3 = ReadList<Statement>(() => ReadAbstract<Statement>());
-            return new DividedBlockStmt(parameter0, parameter1, parameter2, parameter3, [], parameter4);
+            return new DividedBlockStmt(parameter0, parameter1, parameter2, parameter3, parameter4, parameter5);
         }
 
         public DividedBlockStmt ReadDividedBlockStmtOption()
@@ -1389,9 +1408,10 @@ namespace Microsoft.Dafny
         public BlockStmt ReadBlockStmt()
         {
             var parameter0 = ReadAbstract<IOrigin>();
-            var parameter2 = ReadAttributesOption();
+            var parameter3 = ReadAttributesOption();
+            var parameter2 = ReadList<Label>(() => ReadLabel());
             var parameter1 = ReadList<Statement>(() => ReadAbstract<Statement>());
-            return new BlockStmt(parameter0, parameter1, [], parameter2);
+            return new BlockStmt(parameter0, parameter1, parameter2, parameter3);
         }
 
         public BlockStmt ReadBlockStmtOption()
@@ -1404,16 +1424,38 @@ namespace Microsoft.Dafny
             return ReadBlockStmt();
         }
 
+        public OpaqueBlock ReadOpaqueBlock()
+        {
+            var parameter0 = ReadAbstract<IOrigin>();
+            var parameter5 = ReadAttributesOption();
+            var parameter4 = ReadList<Label>(() => ReadLabel());
+            var parameter1 = ReadList<Statement>(() => ReadAbstract<Statement>());
+            var parameter2 = ReadList<AttributedExpression>(() => ReadAttributedExpression());
+            var parameter3 = ReadSpecification<FrameExpression>();
+            return new OpaqueBlock(parameter0, parameter1, parameter2, parameter3, parameter4, parameter5);
+        }
+
+        public OpaqueBlock ReadOpaqueBlockOption()
+        {
+            if (ReadIsNull())
+            {
+                return default;
+            }
+
+            return ReadOpaqueBlock();
+        }
+
         public WhileStmt ReadWhileStmt()
         {
             var parameter0 = ReadAbstract<IOrigin>();
-            var parameter6 = ReadAttributesOption();
+            var parameter7 = ReadAttributesOption();
+            var parameter6 = ReadList<Label>(() => ReadLabel());
             var parameter2 = ReadList<AttributedExpression>(() => ReadAttributedExpression());
             var parameter3 = ReadSpecification<Expression>();
             var parameter4 = ReadSpecification<FrameExpression>();
             var parameter5 = ReadBlockStmt();
             var parameter1 = ReadAbstract<Expression>();
-            return new WhileStmt(parameter0, parameter1, parameter2, parameter3, parameter4, parameter5, [], parameter6);
+            return new WhileStmt(parameter0, parameter1, parameter2, parameter3, parameter4, parameter5, parameter6, parameter7);
         }
 
         public WhileStmt ReadWhileStmtOption()
@@ -2149,6 +2191,11 @@ namespace Microsoft.Dafny
                 return ReadReturnStmt();
             }
 
+            if (actualType == typeof(LabeledStatement))
+            {
+                return ReadLabeledStatement();
+            }
+
             if (actualType == typeof(DividedBlockStmt))
             {
                 return ReadDividedBlockStmt();
@@ -2157,6 +2204,11 @@ namespace Microsoft.Dafny
             if (actualType == typeof(BlockStmt))
             {
                 return ReadBlockStmt();
+            }
+
+            if (actualType == typeof(OpaqueBlock))
+            {
+                return ReadOpaqueBlock();
             }
 
             if (actualType == typeof(WhileStmt))

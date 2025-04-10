@@ -663,7 +663,12 @@ class ReturnStmt : ProduceStmt
 {
 }
 
-abstract class LoopStmt : Statement
+class LabeledStatement : Statement
+{
+    List<Label> labels;
+}
+
+abstract class LoopStmt : LabeledStatement
 {
     List<AttributedExpression> invariants;
     Specification<Expression> decreases;
@@ -672,10 +677,10 @@ abstract class LoopStmt : Statement
 
 abstract class OneBodyLoopStmt : LoopStmt
 {
-    BlockStmt body;
+    BlockStmt? body;
 }
 
-abstract class BlockLikeStmt : Statement
+abstract class BlockLikeStmt : LabeledStatement
 {
 }
 
@@ -689,6 +694,12 @@ class DividedBlockStmt : BlockLikeStmt
 class BlockStmt : BlockLikeStmt
 {
     List<Statement> body;
+}
+
+class OpaqueBlock : BlockStmt
+{
+    List<AttributedExpression> ensures;
+    Specification<FrameExpression> modifies;
 }
 
 class WhileStmt : OneBodyLoopStmt
