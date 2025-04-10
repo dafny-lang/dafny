@@ -1,3 +1,5 @@
+#nullable enable
+
 using System;
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
@@ -8,9 +10,7 @@ namespace Microsoft.Dafny;
 
 public class ConstantField : Field, ICallable, ICanAutoRevealDependencies, ICanVerify {
   public override string WhatKind => "const field";
-  public Expression Rhs;
-
-  public virtual string IdParam => NonglobalVariable.SanitizeName(Name);
+  public Expression? Rhs;
 
   public override bool IsOpaque { get; }
 
@@ -18,8 +18,8 @@ public class ConstantField : Field, ICallable, ICanAutoRevealDependencies, ICanV
   public override bool IsUserMutable => false;
 
   [SyntaxConstructor]
-  public ConstantField(IOrigin origin, Name nameNode, Expression/*?*/ rhs, bool hasStaticKeyword,
-    bool isGhost, bool isOpaque, Type type, Attributes attributes)
+  public ConstantField(IOrigin origin, Name nameNode, Expression? rhs, bool hasStaticKeyword,
+    bool isGhost, bool isOpaque, Type type, Attributes? attributes)
     : base(origin, nameNode, isGhost, type, attributes) {
     Contract.Requires(nameNode != null);
     Contract.Requires(type != null);
@@ -58,8 +58,8 @@ public class ConstantField : Field, ICallable, ICanAutoRevealDependencies, ICanV
   }
   public bool AllowsAllocation => true;
 
-  public override IEnumerable<INode> Children =>
-    base.Children.Concat(new[] { Rhs }.Where(x => x != null));
+  public override IEnumerable<INode> Children => base.Children.Concat(Rhs == null ? [] : [Rhs]);
+
   public override SymbolKind? Kind => SymbolKind.Constant;
 
   public override IEnumerable<INode> PreResolveChildren => Children;

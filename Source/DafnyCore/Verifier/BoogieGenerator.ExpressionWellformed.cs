@@ -329,7 +329,7 @@ namespace Microsoft.Dafny {
             Contract.Assert(type is MapType);
             var keyType = ((MapType)type).Domain;
             var valType = ((MapType)type).Range;
-            foreach (ExpressionPair p in e.Elements) {
+            foreach (MapDisplayEntry p in e.Elements) {
               CheckWellformed(p.A, wfOptions, locals, builder, etran);
               CheckSubrange(p.A.Origin, etran.TrExpr(p.A), p.A.Type, keyType, p.A, builder);
               CheckWellformed(p.B, wfOptions, locals, builder, etran);

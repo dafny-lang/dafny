@@ -512,13 +512,13 @@ public class TokenNewIndentCollector : TopDownVisitor<int> {
     if (redirectingTypeDecl is SubsetTypeDecl subsetTypeDecl) {
       SetExpressionIndentation(subsetTypeDecl.Constraint);
       SetExpressionIndentation(subsetTypeDecl.Witness);
-      SetTypeIndentation(subsetTypeDecl.Var.SyntacticType);
+      SetTypeIndentation(subsetTypeDecl.Var.SafeSyntacticType);
       SetIndentations(subsetTypeDecl.EndToken, below: indent);
     } else if (redirectingTypeDecl is NewtypeDecl newtypeDecl) {
       SetExpressionIndentation(newtypeDecl.Constraint);
       SetExpressionIndentation(newtypeDecl.Witness);
       if (newtypeDecl.Var != null) {
-        SetTypeIndentation(newtypeDecl.Var.SyntacticType);
+        SetTypeIndentation(newtypeDecl.Var.SafeSyntacticType);
       }
 
       SetIndentations(newtypeDecl.EndToken, below: indent);
@@ -529,7 +529,7 @@ public class TokenNewIndentCollector : TopDownVisitor<int> {
 
   public void SetFormalsIndentation(List<Formal> ctorFormals) {
     foreach (var formal in ctorFormals) {
-      SetTypeIndentation(formal.SyntacticType);
+      SetTypeIndentation(formal.SafeSyntacticType);
     }
   }
 

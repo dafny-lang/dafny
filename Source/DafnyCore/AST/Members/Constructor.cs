@@ -36,7 +36,7 @@ public class Constructor : MethodOrConstructor {
     [Captured] Specification<FrameExpression> mod,
     List<AttributedExpression> ens,
     Specification<Expression> decreases,
-    DividedBlockStmt body,
+    DividedBlockStmt? body,
     Attributes? attributes, IOrigin? signatureEllipsis
     )
     : base(origin, nameNode, attributes, isGhost, typeArgs, ins, req, ens, reads, decreases, mod,

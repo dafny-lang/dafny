@@ -15,6 +15,10 @@ public class TextDecoder(string input) : IDecoder {
   public string Input => input;
 
   public int ReadInt32() {
+    return int.Parse(GetNumberChars());
+  }
+
+  private string GetNumberChars() {
     var start = position;
     while (position < input.Length && input[position] != IntStopCharacter) {
       position++;
@@ -25,7 +29,7 @@ public class TextDecoder(string input) : IDecoder {
 
     ReadSeparator();
     string chars = input.Substring(start, end - start);
-    return int.Parse(chars);
+    return chars;
   }
 
   private void ReadSeparator() {
@@ -57,7 +61,7 @@ public class TextDecoder(string input) : IDecoder {
   }
 
   private bool CheckAndAdvance(string keyword) {
-    if (input.Substring(position, keyword.Length) == keyword) {
+    if (position + keyword.Length <= input.Length && input.Substring(position, keyword.Length) == keyword) {
       position += keyword.Length;
       ReadSeparator();
       return true;
@@ -114,5 +118,13 @@ public class TextDecoder(string input) : IDecoder {
     var end = position;
     ReadSeparator();
     return input.Substring(start, end - start);
+  }
+
+  public long ReadInt64() {
+    return long.Parse(GetNumberChars());
+  }
+
+  public short ReadInt16() {
+    return short.Parse(GetNumberChars());
   }
 }

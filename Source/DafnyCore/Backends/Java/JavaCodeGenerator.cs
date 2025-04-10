@@ -508,7 +508,9 @@ namespace Microsoft.Dafny.Compilers {
         }
       }
       if (nonGhostOuts == 1) {
-        targetReturnTypeReplacement = TypeName(m.Outs[nonGhostIndex].Type, wr, m.Outs[nonGhostIndex].Origin);
+        // If a primitive type is used for a type parameter, it has to be boxed
+        var boxed = OutFormalOverridesTypeParameter(m, nonGhostIndex);
+        targetReturnTypeReplacement = TypeName(m.Outs[nonGhostIndex].Type, wr, m.Outs[nonGhostIndex].Origin, boxed);
       } else if (nonGhostOuts > 1) {
         targetReturnTypeReplacement = DafnyTupleClass(nonGhostOuts);
       }
@@ -535,6 +537,17 @@ namespace Microsoft.Dafny.Compilers {
       } else {
         return wr.NewBlock(")", null, BlockStyle.NewlineBrace, BlockStyle.NewlineBrace);
       }
+    }
+
+    private bool OutFormalOverridesTypeParameter(MethodOrConstructor m, int outIndex) {
+      if (m.Outs[outIndex].Type.IsTypeParameter) {
+        return true;
+      }
+      if (m.OverriddenMethod == null) {
+        return false;
+      }
+
+      return OutFormalOverridesTypeParameter(m.OverriddenMethod, outIndex);
     }
 
     protected override ConcreteSyntaxTree EmitMethodReturns(MethodOrConstructor m, ConcreteSyntaxTree wr) {
@@ -1292,13 +1305,13 @@ namespace Microsoft.Dafny.Compilers {
       wr.Write(")");
     }
 
-    protected override void EmitMapDisplay(MapType mt, IOrigin tok, List<ExpressionPair> elements, bool inLetExprBody,
+    protected override void EmitMapDisplay(MapType mt, IOrigin tok, List<MapDisplayEntry> elements, bool inLetExprBody,
         ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
       wr.Write($"{DafnyMapClass}.fromElements(");
       var tuple2 = DafnyTupleClass(2);
       wr.Write($"({tuple2}<{BoxedTypeName(mt.Domain, wr, tok)}, {BoxedTypeName(mt.Range, wr, tok)}>[])new {tuple2}[]{{");
       string sep = " ";
-      foreach (ExpressionPair p in elements) {
+      foreach (MapDisplayEntry p in elements) {
         wr.Write(sep);
         wr.Write($"new {tuple2}(");
         var coercedW = EmitCoercionIfNecessary(from: p.A.Type, to: NativeObjectType, tok: p.A.Origin, wr: wr);

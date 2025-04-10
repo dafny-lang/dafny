@@ -461,7 +461,7 @@ namespace Microsoft.Dafny {
               Boogie.Type maptype = e.Finite ? Predef.MapType : Predef.IMapType;
               Boogie.Expr s = BoogieGenerator.FunctionCall(GetToken(displayExpr), e.Finite ? BuiltinFunction.MapEmpty : BuiltinFunction.IMapEmpty, Predef.BoxType);
               var isLit = true;
-              foreach (ExpressionPair p in e.Elements) {
+              foreach (MapDisplayEntry p in e.Elements) {
                 var rawA = TrExpr(p.A);
                 var rawB = TrExpr(p.B);
                 isLit = isLit && BoogieGenerator.IsLit(rawA) && BoogieGenerator.IsLit(rawB);
@@ -2167,7 +2167,7 @@ BplBoundVar(varNameGen.FreshId(string.Format("#{0}#", bv.Name)), Predef.BoxType,
         } else if (expr is MapDisplayExpr) {
           MapDisplayExpr e = (MapDisplayExpr)expr;
           List<Expression> l = [];
-          foreach (ExpressionPair p in e.Elements) {
+          foreach (MapDisplayEntry p in e.Elements) {
             l.Add(p.A); l.Add(p.B);
           }
           return CanCallAssumption(l, cco);

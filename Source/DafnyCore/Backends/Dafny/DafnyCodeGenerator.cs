@@ -3179,7 +3179,7 @@ namespace Microsoft.Dafny.Compilers {
       }
     }
 
-    protected override void EmitMapDisplay(MapType mt, IOrigin tok, List<ExpressionPair> elements, bool inLetExprBody,
+    protected override void EmitMapDisplay(MapType mt, IOrigin tok, List<MapDisplayEntry> elements, bool inLetExprBody,
       ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
       if (GetExprConverter(wr, wStmts, out var builder, out var converter)) {
         var elementsAST = new List<_System.Tuple2<DAST.Expression, DAST.Expression>>();

@@ -162,7 +162,7 @@ namespace Microsoft.Dafny {
             var e = displayExpr;
             var domainPreType = CreatePreTypeProxy("map display expression domain type");
             var rangePreType = CreatePreTypeProxy("map display expression range type");
-            foreach (ExpressionPair p in e.Elements) {
+            foreach (MapDisplayEntry p in e.Elements) {
               ResolveExpression(p.A, resolutionContext);
               AddSubtypeConstraint(domainPreType, p.A.PreType, p.A.Origin,
                 "All elements of display must have some common supertype (got {1}, but needed type or type of previous elements is {0})");

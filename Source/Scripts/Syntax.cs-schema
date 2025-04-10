@@ -17,13 +17,13 @@ class Token
 class SourceOrigin : IOrigin
 {
     TokenRange entireRange;
-    TokenRange reportingRange;
+    TokenRange? reportingRange;
 }
 
 class TokenRange
 {
     Token startToken;
-    Token endToken;
+    Token? endToken;
 }
 
 class FilesContainer
@@ -43,7 +43,7 @@ abstract class Node
 
 abstract class NodeWithOrigin : Node
 {
-    IOrigin origin;
+    IOrigin? origin;
 }
 
 abstract class Type : NodeWithOrigin
@@ -61,6 +61,29 @@ class UserDefinedType : NonProxyType
 
 abstract class Expression : NodeWithOrigin
 {
+}
+
+class LetExpr : Expression
+{
+    List<CasePattern<BoundVar>> lhss;
+    List<Expression> rhss;
+    Expression body;
+    Boolean exact;
+    Attributes? attributes;
+}
+
+class Attributes : NodeWithOrigin
+{
+    String name;
+    List<Expression> args;
+    Attributes? prev;
+}
+
+class CasePattern<VT> : NodeWithOrigin
+{
+    String id;
+    VT? var;
+    List<CasePattern<VT>>? arguments;
 }
 
 class IdentifierExpr : Expression
@@ -142,50 +165,15 @@ class LiteralExpr : Expression
     Object? value;
 }
 
-class ITEExpr : Expression
-{
-    Boolean isBindingGuard;
-    Expression test;
-    Expression thn;
-    Expression els;
-}
-
-abstract class ConcreteSyntaxExpression : Expression
+class CharLiteralExpr : LiteralExpr
 {
 }
 
-class ParensExpression : ConcreteSyntaxExpression
+class DatatypeValue : Expression
 {
-    Expression e;
-}
-
-class NegationExpression : ConcreteSyntaxExpression
-{
-    Expression e;
-}
-
-abstract class SuffixExpr : ConcreteSyntaxExpression
-{
-    Expression lhs;
-}
-
-class ExprDotName : SuffixExpr
-{
-    Name suffixNameNode;
-    List<Type>? optTypeArguments;
-}
-
-class Name : Node
-{
-    IOrigin origin;
-    String value;
-}
-
-class ApplySuffix : SuffixExpr
-{
-    IOrigin? atTok;
+    String datatypeName;
+    String memberName;
     ActualBindings bindings;
-    Token? closeParen;
 }
 
 abstract class NodeWithoutOrigin : Node
@@ -197,17 +185,16 @@ class ModuleQualifiedId : NodeWithoutOrigin
     List<Name> path;
 }
 
+class Name : Node
+{
+    IOrigin origin;
+    String value;
+}
+
 class Specification<T> : NodeWithoutOrigin where T : Node
 {
     List<T>? expressions;
     Attributes? attributes;
-}
-
-class Attributes : NodeWithOrigin
-{
-    String name;
-    List<Expression> args;
-    Attributes? prev;
 }
 
 class ActualBinding : NodeWithoutOrigin
@@ -222,24 +209,43 @@ class ActualBindings : NodeWithoutOrigin
     List<ActualBinding> argumentBindings;
 }
 
-class NameSegment : ConcreteSyntaxExpression
+class TernaryExpr : Expression
 {
-    String name;
-    List<Type>? optTypeArguments;
+    TernaryExprOpcode op;
+    Expression e0;
+    Expression e1;
+    Expression e2;
 }
 
-abstract class ComprehensionExpr : Expression
+enum TernaryExprOpcode
 {
-    List<BoundVar> boundVars;
-    Expression? range;
-    Expression term;
-    Attributes? attributes;
+    PrefixEqOp,
+    PrefixNeqOp
+}
+
+class ITEExpr : Expression
+{
+    Boolean isBindingGuard;
+    Expression test;
+    Expression thn;
+    Expression els;
+}
+
+abstract class ConcreteSyntaxExpression : Expression
+{
+}
+
+class LetOrFailExpr : ConcreteSyntaxExpression
+{
+    CasePattern<BoundVar>? lhs;
+    Expression rhs;
+    Expression body;
 }
 
 abstract class NonglobalVariable : NodeWithOrigin
 {
     Name nameNode;
-    Type type;
+    Type? syntacticType;
     Boolean isGhost;
 }
 
@@ -258,6 +264,68 @@ class BoundVar : NonglobalVariable
 {
 }
 
+// [RedundantField("isGhost")]
+class QuantifiedVar : BoundVar
+{
+    Expression? domain;
+    Expression? range;
+}
+
+class ParensExpression : ConcreteSyntaxExpression
+{
+    Expression e;
+}
+
+class ChainingExpression : ConcreteSyntaxExpression
+{
+    List<Expression> operands;
+    List<BinaryExprOpcode> operators;
+    List<IOrigin> operatorLocs;
+    List<Expression> prefixLimits;
+}
+
+class NegationExpression : ConcreteSyntaxExpression
+{
+    Expression e;
+}
+
+abstract class SuffixExpr : ConcreteSyntaxExpression
+{
+    Expression lhs;
+}
+
+class ExprDotName : SuffixExpr
+{
+    Name suffixNameNode;
+    List<Type>? optTypeArguments;
+}
+
+class ApplySuffix : SuffixExpr
+{
+    IOrigin? atTok;
+    ActualBindings bindings;
+    Token? closeParen;
+}
+
+class NameSegment : ConcreteSyntaxExpression
+{
+    String name;
+    List<Type>? optTypeArguments;
+}
+
+abstract class ComprehensionExpr : Expression
+{
+    List<BoundVar> boundVars;
+    Expression? range;
+    Expression term;
+    Attributes? attributes;
+}
+
+class SetComprehension : ComprehensionExpr
+{
+    Boolean finite;
+}
+
 abstract class QuantifierExpr : ComprehensionExpr
 {
 }
@@ -270,9 +338,70 @@ class ExistsExpr : QuantifierExpr
 {
 }
 
+class MapComprehension : ComprehensionExpr
+{
+    Boolean finite;
+    Expression? termLeft;
+}
+
+class LambdaExpr : ComprehensionExpr
+{
+    Specification<FrameExpression> reads;
+}
+
+class FrameExpression : NodeWithOrigin
+{
+    Expression originalExpression;
+    String? fieldName;
+}
+
+class SeqUpdateExpr : Expression
+{
+    Expression seq;
+    Expression index;
+    Expression value;
+}
+
+class SeqConstructionExpr : Expression
+{
+    Type? explicitElementType;
+    Expression n;
+    Expression initializer;
+}
+
+class MultiSetFormingExpr : Expression
+{
+    Expression e;
+}
+
+class MapDisplayExpr : Expression
+{
+    Boolean finite;
+    List<MapDisplayEntry> elements;
+}
+
+class MapDisplayEntry
+{
+    Expression a;
+    Expression b;
+}
+
 abstract class DisplayExpression : Expression
 {
     List<Expression> elements;
+}
+
+class SetDisplayExpr : DisplayExpression
+{
+    Boolean finite;
+}
+
+class SeqDisplayExpr : DisplayExpression
+{
+}
+
+class MultiSetDisplayExpr : DisplayExpression
+{
 }
 
 class ThisExpr : Expression
@@ -288,6 +417,12 @@ class SeqSelectExpr : Expression
     Token? closeParen;
 }
 
+class MultiSelectExpr : Expression
+{
+    Expression array;
+    List<Expression> indices;
+}
+
 class MemberSelectExpr : Expression
 {
     Expression obj;
@@ -298,12 +433,52 @@ abstract class BasicType : NonProxyType
 {
 }
 
+class BitvectorType : BasicType
+{
+    Int32 width;
+}
+
+class BigOrdinalType : BasicType
+{
+}
+
+class RealType : BasicType
+{
+}
+
 class IntType : BasicType
+{
+}
+
+class CharType : BasicType
 {
 }
 
 class BoolType : BasicType
 {
+}
+
+abstract class CollectionType : NonProxyType
+{
+    List<Type> typeArgs;
+}
+
+class SetType : CollectionType
+{
+    Boolean finite;
+}
+
+class SeqType : CollectionType
+{
+}
+
+class MultiSetType : CollectionType
+{
+}
+
+class MapType : CollectionType
+{
+    Boolean finite;
 }
 
 abstract class Declaration : NodeWithOrigin
@@ -383,7 +558,7 @@ enum SubsetTypeDeclWKind
 abstract class TopLevelDeclWithMembers : TopLevelDecl
 {
     List<MemberDecl> members;
-    List<Type> traits;
+    List<Type>? traits;
 }
 
 abstract class MemberDecl : Declaration
@@ -400,12 +575,6 @@ abstract class MethodOrFunction : MemberDecl
     List<AttributedExpression> ens;
     Specification<FrameExpression> reads;
     Specification<Expression> decreases;
-}
-
-class FrameExpression : NodeWithOrigin
-{
-    Expression originalExpression;
-    String? fieldName;
 }
 
 class AttributedExpression
@@ -446,6 +615,11 @@ abstract class Statement : NodeWithOrigin
 abstract class PredicateStmt : Statement
 {
     Expression expr;
+}
+
+class ExpectStmt : PredicateStmt
+{
+    Expression? message;
 }
 
 class AssertStmt : PredicateStmt
@@ -577,7 +751,7 @@ class Field : MemberDecl
 
 class ConstantField : Field
 {
-    Expression rhs;
+    Expression? rhs;
     Boolean hasStaticKeyword;
     Boolean isOpaque;
 }
@@ -648,4 +822,9 @@ enum ModuleKindEnum
     Concrete,
     Abstract,
     Replaceable
+}
+
+abstract class ExtendedPattern : NodeWithOrigin
+{
+    Boolean isGhost;
 }

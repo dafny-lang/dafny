@@ -105,8 +105,8 @@ namespace Microsoft.Dafny.LanguageServer {
 
     private static Task StartedAsync(ILanguageServer server, CancellationToken cancellationToken) {
       // TODO this currently only sent to get rid of the "Server answer pending" of the VSCode plugin.
-      server.SendNotification("serverStarted", DafnyVersion);
-      server.SendNotification("dafnyLanguageServerVersionReceived", DafnyVersion);
+      server.SendNotification("serverStarted", new[] { DafnyVersion });
+      server.SendNotification("dafnyLanguageServerVersionReceived", new[] { DafnyVersion });
       return Task.CompletedTask;
     }
   }

@@ -2422,13 +2422,13 @@ namespace Microsoft.Dafny.Compilers {
       }
     }
 
-    protected override void EmitMapDisplay(MapType mt, IOrigin tok, List<ExpressionPair> elements,
+    protected override void EmitMapDisplay(MapType mt, IOrigin tok, List<MapDisplayEntry> elements,
       bool inLetExprBody, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
       wr.Write("DafnyMap<{0},{1}>::Create({{",
                TypeName(mt.TypeArgs[0], wr, tok, null, false),
                TypeName(mt.TypeArgs[1], wr, tok, null, false));
       string sep = "";
-      foreach (ExpressionPair p in elements) {
+      foreach (MapDisplayEntry p in elements) {
         wr.Write(sep);
         wr.Write("{");
         wr.Append(Expr(p.A, inLetExprBody, wStmts));

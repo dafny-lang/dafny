@@ -194,7 +194,7 @@ public class AutoReqFunctionRewriter : IRewriter {
     } else if (expr is MapDisplayExpr) {
       MapDisplayExpr e = (MapDisplayExpr)expr;
 
-      foreach (ExpressionPair p in e.Elements) {
+      foreach (MapDisplayEntry p in e.Elements) {
         reqs.AddRange(GenerateAutoReqs(p.A));
         reqs.AddRange(GenerateAutoReqs(p.B));
       }

@@ -1,6 +1,9 @@
+using System.Collections.Frozen;
 using System.CommandLine;
+using System.Diagnostics;
 using System.Numerics;
 using System.Reflection;
+using System.Text.RegularExpressions;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -13,6 +16,9 @@ namespace IntegrationTests;
 
 public class SyntaxSchemaGenerator : SyntaxAstVisitor {
   private CompilationUnitSyntax compilationUnit = CompilationUnit();
+
+  // Track the successfully generated types, so we can check that they include all those used by the Parser
+  private ISet<Type> generatedTypes = new HashSet<Type>();
 
   public static Command GetCommand() {
     var result = new Command("generate-syntax-schema", "");
@@ -28,16 +34,61 @@ public class SyntaxSchemaGenerator : SyntaxAstVisitor {
   }
 
   public string GenerateAll() {
-
     var rootType = typeof(FilesContainer);
     VisitTypesFromRoots([rootType, typeof(SourceOrigin), typeof(TokenRangeOrigin)]);
-    compilationUnit = compilationUnit.NormalizeWhitespace();
+    compilationUnit = compilationUnit.NormalizeWhitespace(eol: "\n");
 
     var hasErrors = CheckCorrectness(compilationUnit);
     if (hasErrors) {
       throw new Exception("Exception");
     }
+    CheckExpectedTypesGenerated();
     return compilationUnit.ToFullString();
+  }
+
+  /// <summary>
+  /// Print all syntax class types that are constructed by the <see cref="Parser"/> but were not generated.
+  /// Note that this excludes enum values that the parser assigns by identifier.
+  /// </summary>
+  private void CheckExpectedTypesGenerated() {
+    var parserCode = ResourceLoader.GetResourceAsString("Parser.cs");
+
+    // these patterns aren't complete, but they're good enough
+    var newPattern = new Regex(@"new (?<type>\w[^(\n]*)\(");
+    var commentPattern = new Regex(@"\/\*[^*]*\*\/");
+
+    var ignoredTypes = new HashSet<string> { "", "string", "List", "Uri" };
+    var expectedTypeNames = newPattern.Matches(parserCode)
+      .SelectMany(match => {
+        var typeSyntax = match.Groups["type"].Value;
+        typeSyntax = commentPattern.Replace(typeSyntax, "");
+        typeSyntax = typeSyntax.Replace(">", " ").Replace("<", " ").Replace(",", " ");
+        return typeSyntax.Split(" ").Select(typeStr => typeStr.Trim());
+      })
+      .Except(ignoredTypes)
+      .Select(typeStr => {
+        const string prefix = "Microsoft.Dafny.";
+        return typeStr.StartsWith(prefix) ? typeStr : prefix + typeStr;
+      })
+      .ToHashSet();
+
+    var generatedTypeNames = generatedTypes
+      .Select(type => CutOffGenericSuffixPartOfName(type.FullName!).Replace('+', '.'))
+      .ToFrozenSet();
+    // NOTE: these include types not "expected" from scanning Parser
+    Console.WriteLine($"{generatedTypeNames.Count} types generated:");
+    foreach (var name in generatedTypeNames.Order()) {
+      Console.WriteLine($"\t{name}");
+    }
+
+    var ungeneratedTypeNames = expectedTypeNames.Except(generatedTypeNames).ToFrozenSet();
+    if (ungeneratedTypeNames.Count != 0) {
+      Console.WriteLine($"{ungeneratedTypeNames.Count} expected syntax types not generated:");
+      foreach (var name in ungeneratedTypeNames.Order()) {
+        Console.WriteLine($"\t{name}");
+      }
+    }
+    Console.WriteLine($"{generatedTypeNames.Count} of {expectedTypeNames.Count} expected syntax types generated");
   }
 
   protected override void HandleEnum(Type type) {
@@ -47,6 +98,7 @@ public class SyntaxSchemaGenerator : SyntaxAstVisitor {
       enumm = enumm.AddMembers(EnumMemberDeclaration(name));
     }
     compilationUnit = compilationUnit.AddMembers(enumm);
+    generatedTypes.Add(type);
   }
 
   protected override void HandleClass(Type type) {
@@ -67,7 +119,7 @@ public class SyntaxSchemaGenerator : SyntaxAstVisitor {
       }
 
       var nullabilityContext = new NullabilityInfoContext();
-      var nullabilityInfo = memberInfo is PropertyInfo propertyInfo ? nullabilityContext.Create(propertyInfo) : nullabilityContext.Create((FieldInfo)memberInfo);
+      var nullabilityInfo = nullabilityContext.Create(parameter);
       bool isNullable = nullabilityInfo.ReadState == NullabilityState.Nullable;
       var nullableSuffix = isNullable ? "?" : "";
 
@@ -86,8 +138,28 @@ public class SyntaxSchemaGenerator : SyntaxAstVisitor {
       classDeclaration = classDeclaration.WithBaseList(BaseList(SeparatedList(baseList)));
     }
 
+    // note: It would be nice to use proper attributes instead of comments,
+    // but then in order to test-compile the generated schema file,
+    // we'd have to either include or reference the attribute definition, and that gets messy
+    var redundantFieldComments = GetRedundantFieldNames(type).Select(originalMemberName => {
+      // Each schema class field is named according to the corresponding syntax constructor parameter,
+      // but a RedundantField stores the name of the field/property, and these typically differ in case.
+      // Instead of copying each RedundantField attribute verbatim from the original class to the schema class,
+      // we replace each argument with the field name it will have in the generated schema type,
+      // so that schema consumers don't need to consider case mismatches.
+      var originalMember = type.GetMember(originalMemberName).Single(member => member is FieldInfo or PropertyInfo);
+      var declaringTypeCtor = GetParseConstructor(originalMember.DeclaringType!);
+      Debug.Assert(declaringTypeCtor != null);
+      var schemaFieldName = declaringTypeCtor.GetParameters()
+        .Select(param => param.Name)
+        .Single(paramName => originalMemberName.Equals(paramName, StringComparison.InvariantCultureIgnoreCase))!;
+      return Comment($"""// [RedundantField("{schemaFieldName}")]""");
+    });
+    classDeclaration = classDeclaration.WithLeadingTrivia(redundantFieldComments);
+
     classDeclaration = classDeclaration.AddMembers(newFields.ToArray());
     compilationUnit = compilationUnit.AddMembers(classDeclaration);
+    generatedTypes.Add(type);
   }
 
   public static ClassDeclarationSyntax GenerateClassHeader(Type type) {
@@ -165,9 +237,10 @@ public class SyntaxSchemaGenerator : SyntaxAstVisitor {
     namespaceDeclaration = namespaceDeclaration.WithMembers(compilationUnit.Members);
     compilationUnit = CompilationUnit().AddMembers(namespaceDeclaration);
     compilationUnit = compilationUnit.AddUsings(
-      UsingDirective(ParseName("System"))).AddUsings(
-      UsingDirective(ParseName("System.Collections.Generic"))).AddUsings(
-      UsingDirective(ParseName("System.Numerics")));
+      UsingDirective(ParseName("System")),
+      UsingDirective(ParseName("System.Collections.Generic")),
+      UsingDirective(ParseName("System.Numerics"))
+    );
 
     // Create a list of basic references that most code will need
     var references = new List<string>
@@ -177,7 +250,6 @@ public class SyntaxSchemaGenerator : SyntaxAstVisitor {
       typeof(System.Runtime.AssemblyTargetedPatchBandAttribute).Assembly.Location,
       typeof(List<>).Assembly.Location,
       typeof(BigInteger).Assembly.Location,
-      typeof(ValueType).Assembly.Location
     }.Distinct().ToList();
     var syntaxTree = CSharpSyntaxTree.Create(compilationUnit);
     var compilation = CSharpCompilation.Create(

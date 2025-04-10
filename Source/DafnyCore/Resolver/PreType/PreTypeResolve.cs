@@ -1087,6 +1087,7 @@ namespace Microsoft.Dafny {
         scope.AllowInstance = false;
         ResolveExpression(dd.Witness, new ResolutionContext(codeContext, false));
         scope.PopMarker();
+        Contract.Assert(dd.BasePreType != null);
         AddSubtypeConstraint(dd.BasePreType, dd.Witness.PreType, dd.Witness.Origin, "witness expression must have type '{0}' (got '{1}')");
         Constraints.SolveAllTypeConstraints($"{dd.WhatKind} '{dd.Name}' witness");
       }
