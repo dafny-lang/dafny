@@ -50,14 +50,6 @@ abstract class Type : NodeWithOrigin
 {
 }
 
-abstract class TypeProxy : Type
-{
-}
-
-class InferredTypeProxy : TypeProxy
-{
-}
-
 abstract class NonProxyType : Type
 {
 }
@@ -657,7 +649,7 @@ class AllocateClass : TypeRhs
 
 class AllocateArray : TypeRhs
 {
-    Type explicitType;
+    Type? explicitType;
     List<Expression> arrayDimensions;
     Expression? elementInit;
 }
@@ -761,7 +753,7 @@ class Function : MethodOrFunction
 
 class Field : MemberDecl
 {
-    Type type;
+    Type explicitType;
 }
 
 class ConstantField : Field

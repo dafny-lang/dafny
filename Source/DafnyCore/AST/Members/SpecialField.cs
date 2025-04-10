@@ -23,18 +23,24 @@ public class SpecialField : Field {
   public ID SpecialId;
   public object IdParam;
 
+  public SpecialField(Cloner cloner, SpecialField original) : base(cloner, original) {
+    IsMutable = original.IsMutable;
+    IsUserMutable = original.IsUserMutable;
+    SpecialId = original.SpecialId;
+    IdParam = original.IdParam;
+  }
+  
   public SpecialField(IOrigin origin, string name, ID specialId, object idParam,
-    bool isGhost, bool isMutable, bool isUserMutable, Type type, Attributes attributes)
-    : this(origin, new Name(origin, name), specialId, idParam, isGhost, isMutable, isUserMutable, type, attributes) {
+    bool isGhost, bool isMutable, bool isUserMutable, Type explicitType, Attributes attributes)
+    : this(origin, new Name(origin, name), specialId, idParam, isGhost, isMutable, isUserMutable, explicitType, attributes) {
   }
 
   public SpecialField(IOrigin origin, Name nameNode, ID specialId, object idParam,
-    bool isGhost, bool isMutable, bool isUserMutable, Type type, Attributes attributes)
-    : base(origin, nameNode, isGhost, type, attributes) {
+    bool isGhost, bool isMutable, bool isUserMutable, Type explicitType, Attributes attributes)
+    : base(origin, nameNode, isGhost, explicitType, attributes) {
     Contract.Requires(origin != null);
     Contract.Requires(nameNode != null);
     Contract.Requires(!isUserMutable || isMutable);
-    Contract.Requires(type != null);
 
     IsMutable = isMutable;
     IsUserMutable = isUserMutable;

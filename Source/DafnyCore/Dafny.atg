@@ -743,7 +743,7 @@ ConstantFieldDecl<.DeclModifierData dmod, List<MemberDecl/*!*/>/*!*/ mm, bool mo
   ( IF(!IsIdentifier(la.kind) && la.kind != _digits)
     (. SemErr(ErrorId.p_const_decl_missing_identifier, la, "expected an identifier after 'const' and any attributes"); .)
   |
-    CIdentType<out var name, out ty>         (. if (ty == null) { ty = new InferredTypeProxy(); } .)
+    CIdentType<out var name, out ty>
     [ ellipsis ]
     [ ( ":=" | "=" (. SemErr(ErrorId.p_bad_const_initialize_op, t, "a const field should be initialized using ':=', not '='"); .) )
     Expression<out e, false, true> ]
@@ -2407,7 +2407,7 @@ AssignStatement<out Statement/*!*/ s>
 Rhs<out AssignmentRhs r>
 = (. Contract.Ensures(Contract.ValueAtReturn<AssignmentRhs>(out r) != null);
      Token/*!*/ x, newToken;  Expression/*!*/ e;
-     Type ty = new InferredTypeProxy();
+     Type ty = null;
      List<Expression> ee = null;
      List<ActualBinding> args = null;
      Expression arrayElementInit = null;
@@ -2434,9 +2434,9 @@ Rhs<out AssignmentRhs r>
            r = new AllocateArray(newToken, ty, ee, arrayElementInit);
          }
        } else if (args != null) {
-         r = new AllocateClass(newToken, ty, args);
+         r = new AllocateClass(newToken, ty!, args);
        } else {
-         r = new AllocateClass(newToken, ty);
+         r = new AllocateClass(newToken, ty!);
        }
     .)
   | "*"                                (. r = new HavocRhs(t); startToken = t; .)

@@ -9,13 +9,13 @@ namespace Microsoft.Dafny;
 /// At most one of ElementInit and InitDisplay may be non-null
 /// </summary>
 public class AllocateArray : TypeRhs, ICloneable<AllocateArray> {
-  public Type ExplicitType;
+  public Type? ExplicitType;
   public readonly List<Expression> ArrayDimensions;
   public readonly Expression? ElementInit;
   public readonly List<Expression>? InitDisplay;
 
   [SyntaxConstructor]
-  public AllocateArray(IOrigin origin, Type explicitType, List<Expression> arrayDimensions, Expression? elementInit,
+  public AllocateArray(IOrigin origin, Type? explicitType, List<Expression> arrayDimensions, Expression? elementInit,
     Attributes? attributes = null)
     : base(origin, attributes) {
     Contract.Requires(origin != null);
@@ -78,11 +78,11 @@ public class AllocateArray : TypeRhs, ICloneable<AllocateArray> {
 
   public override IEnumerable<INode> Children {
     get {
-      if (Type == null) {
+      if (!WasResolved) {
         return PreResolveChildren;
       }
 
-      return ExplicitType.Nodes.Concat(SubExpressions).Concat<Node>(SubStatements);
+      return (ExplicitType?.Nodes ?? []).Concat(SubExpressions).Concat<Node>(SubStatements);
     }
   }
 

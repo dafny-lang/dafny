@@ -58,22 +58,6 @@ namespace Microsoft.Dafny
             return ReadTokenRange();
         }
 
-        public InferredTypeProxy ReadInferredTypeProxy()
-        {
-            var parameter0 = ReadAbstract<IOrigin>();
-            return new InferredTypeProxy(parameter0);
-        }
-
-        public InferredTypeProxy ReadInferredTypeProxyOption()
-        {
-            if (ReadIsNull())
-            {
-                return default;
-            }
-
-            return ReadInferredTypeProxy();
-        }
-
         public UserDefinedType ReadUserDefinedType()
         {
             var parameter0 = ReadAbstract<IOrigin>();
@@ -1330,7 +1314,7 @@ namespace Microsoft.Dafny
         {
             var parameter0 = ReadAbstract<IOrigin>();
             var parameter4 = ReadAttributesOption();
-            var parameter1 = ReadAbstract<Type>();
+            var parameter1 = ReadAbstractOption<Type>();
             var parameter2 = ReadList<Expression>(() => ReadAbstract<Expression>());
             var parameter3 = ReadAbstractOption<Expression>();
             return new AllocateArray(parameter0, parameter1, parameter2, parameter3, parameter4);
@@ -1823,11 +1807,6 @@ namespace Microsoft.Dafny
             if (actualType == typeof(TokenRange))
             {
                 return ReadTokenRange();
-            }
-
-            if (actualType == typeof(InferredTypeProxy))
-            {
-                return ReadInferredTypeProxy();
             }
 
             if (actualType == typeof(UserDefinedType))
