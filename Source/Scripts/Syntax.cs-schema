@@ -707,7 +707,7 @@ class WhileStmt : OneBodyLoopStmt
     Expression guard;
 }
 
-class IfStmt : Statement
+class IfStmt : LabeledStatement
 {
     Boolean isBindingGuard;
     Expression? guard;
