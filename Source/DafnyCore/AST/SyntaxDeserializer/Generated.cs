@@ -1476,7 +1476,7 @@ namespace Microsoft.Dafny
             var parameter2 = ReadAbstractOption<Expression>();
             var parameter3 = ReadBlockStmt();
             var parameter4 = ReadAbstractOption<Statement>();
-            return new IfStmt(parameter0, parameter1, parameter2, parameter3, parameter4, parameter5);
+            return new IfStmt(parameter0, parameter1, parameter2, parameter3, parameter4, [], parameter5);
         }
 
         public IfStmt ReadIfStmtOption()

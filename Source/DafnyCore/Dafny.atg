@@ -2239,6 +2239,7 @@ LabeledStmt<out Statement s>
     (
       ( WhileStmt<out s>
       | ForLoopStmt<out s>
+      | IfStmt<out s>
       | BlockStmt<out bs, out bodyStart, out bodyEnd>  (. s = bs; .)
       | OpaqueBlock<out s>
       )
@@ -2656,7 +2657,7 @@ IfStmt<out Statement/*!*/ ifStmt>
          ifStmt = new IfStmt(rangeToken, isBindingGuard, guard, thn, els);
          ifStmt = new SkeletonStatement(ifStmt, guardEllipsis, null);
        } else {
-         ifStmt = new IfStmt(rangeToken, isBindingGuard, guard, thn, els, attrs);
+         ifStmt = new IfStmt(rangeToken, isBindingGuard, guard, thn, els, [], attrs);
        }
     .)
   )

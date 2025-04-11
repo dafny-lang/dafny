@@ -200,7 +200,7 @@ public class RemoveShortCircuitingRewriter : Cloner {
     if (ifStatement.Els != null) {
       els = ProcessStmtToStmt(ifStatement.Els);
     }
-    return new IfStmt(ifStatement.Origin, ifStatement.IsBindingGuard, guard, thn, els, ifStatement.Attributes);
+    return new IfStmt(ifStatement.Origin, ifStatement.IsBindingGuard, guard, thn, els, [], ifStatement.Attributes);
   }
 
   private Statement CloneUpdateStmt(AssignStatement updateStatement) {
