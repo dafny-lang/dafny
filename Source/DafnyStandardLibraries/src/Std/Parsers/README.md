@@ -1,10 +1,10 @@
 # Verified Parser Combinators
 
-Parser combinators in Dafny, inspired from the model (Meijer&Hutton 1996).
+Parser combinators in Dafny, inspired from the model of [Meijer&Hutton 1996](https://cspages.ucalgary.ca/~robin/class/521/class-handout.pdf#page=282).
 
 This library offers two styles of functional parser combinators.
 
-- The first parsers style is a synonym for `seq<character> -> ParseResult<Result>` that supports monadic styles, is straightforward to use, but results in lots of closing parentheses.
+- The first parsers style is a synonym for `seq<char> -> ParseResult<Result>` that supports monadic styles, is straightforward to use, but results in lots of closing parentheses.
 
 - The second parsers style is a datatype wrapper around the first style, which enable to define functions as infix or suffix operations, which makes parsers sometimes easier to read and helps decreasing nesting.
 
@@ -14,7 +14,7 @@ The tutorial in [`Tutorial.dfy`](../../../examples/Parsers/Tutorial.dfy) shows h
 
 To view a full example of how to use the parser combinator library,
 especially how to define a recursive parser that is guaranteed to terminate,
-please refer to the files [`PolynomialParser.dfy`](../../../examples/Parsers/PolynomialParser.dfy) and [`PolynomialParserBuilder.dfy`](../../../examples/Parsers/PolynomialParserBuilder.dfy), which both parse polynomial expressions.
+please refer to the file [`PolynomialParser.dfy`](../../../examples/Parsers/PolynomialParser.dfy).
 
 As a quick walkthrough, here is a test to parse a Tic-tac-toe grid using parser combinators.
 
@@ -25,11 +25,11 @@ module M {
 
   /** Tic tac toe using string parsers */
   method Main() {
-    var x := OrSeq([
-    String("O"), String("X"), String(" ")
+    var cell := OrSeq([
+      String("O"), String("X"), String(" ")
     ]);
     var v := String("|");
-    var row := Concat(x, ConcatR(v, Concat(x, ConcatR(v, x))));
+    var row := Concat(cell, ConcatR(v, Concat(cell, ConcatR(v, cell))));
     var sep := String("\n-+-+-\n");
     var grid := 
     Concat(row, ConcatR(sep, Concat(row, ConcatR(sep, row))));
@@ -62,9 +62,9 @@ module M {
 
   /** Tic tac toe using string parser builders */
   method Main() {
-    var x := O([ S("O"), S("X"), S(" ") ]);
+    var cell := O([ S("O"), S("X"), S(" ") ]);
     var v := S("|");
-    var row := x.I_e(v).I_I(x).I_e(v).I_I(x);   // I stands for included, e for excluded
+    var row := cell.I_e(v).I_I(cell).I_e(v).I_I(cell);   // I stands for included, e for excluded
     var sep := S("\n-+-+-\n");
     var grid := row.I_e(sep).I_I(row).I_e(sep).I_I(row);
     var input := "O|X| \n-+-+-\nX|O| \n-+-+-\nP| |O";
@@ -87,13 +87,9 @@ string that is suffix of the string they are given as input. Many combinators ha
 a proof that, if their inputs are Valid(), then their result is Valid().
 Checking validity statically could help design parsers that do even less checks at run-time, but it has not been developed in this library.
 
-This library also offers a dual type to parser, named Displayer, which is `(Result, seq<character>) -> seq<character>`. It only defines the dual of the Concat parser combinator and proves the roundtrip to be the identity. Because Dafny does not offer
-compilable predicate to check that a datatype constructor is included in another one,
-writing combinators for this kind of parser dual is difficult.
-
 ## Relationship to JSON parsers
 
-The JSON parser is very specialized and the type of the parsers combinators it is using is actually a subset type.
+The JSON parser of the standard library is very specialized and the type of the parsers combinators it is using is actually a subset type.
 Subset types are known to be a source of proof brittleness,
 so this library design is not using subset types.
 That said, it is possible to create an adapter around a JSON parser to make it a parser of this library.
@@ -260,7 +256,7 @@ Now the trace is:
 
 LastWS is not even displayed! Because `.I_e` is only a concatenation operation if the parser to the left of `.I_e` succeeds, it means the parser to the left of `.I_e(WS)` did not succeed.
 
-We now place new debugging suffixes to debug the inner loop parser as well as the outer loop parser:
+We now place new debugging suffix operations to debug the inner loop parser as well as the outer loop parser:
 
 <!-- %no-check -->
 ```dafny

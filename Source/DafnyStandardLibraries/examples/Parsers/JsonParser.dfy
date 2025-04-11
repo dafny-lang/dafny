@@ -7,8 +7,7 @@
   * Strings however are parsed without unicode escape. */
 module ExampleParsers.JSONParser {
   import opened Std.Parsers.StringBuilders
-  datatype Decimal =
-    Decimal(n: int, e10: int) // (n) * 10^(e10)
+  import opened Std.JSON.Values
 
   function ToDecimal(n: int): Decimal {
     Decimal(n, 0)
@@ -21,61 +20,54 @@ module ExampleParsers.JSONParser {
     else ToDecimalFrac(n * 10 + digits[0], digits[1..], e10 - 1)
   }
 
-  datatype JSON =
-    | Null
-    | Bool(b: bool)
-    | String(str: string)
-    | Number(num: Decimal)
-    | Object(obj: seq<(string, JSON)>) // Not a map to preserve order
-    | Array(arr: seq<JSON>)
-
-  const nullParser: B<JSON> := WS.e_I(S("null")).??().M((s) => Null)
-  const boolParser: B<JSON> := WS.e_I(O([S("true"), S("false")])).??().M(
+  const nullParser: B<JSON> := S("null").M((s) => Null)
+  const boolParser: B<JSON> := O([S("true"), S("false")]).M(
                                  (s: string) =>
                                    Bool(s == "true"))
   const stringCharParser: B<string> :=
     O([
-        S("\\\"").??().M((s: string) => '"'),
-        S("\\\\").??().M((s: string) => '\\'),
-        CharTest((c: char) => c != '\\' && c != '"', "no escape no quote"
-        ).??()
+        S("\\\"").M((s: string) => '"'),
+        S("\\\\").M((s: string) => '\\'),
+        CharTest((c: char) => c != '\\' && c != '"', "a character other than a backslash or a double quote")
       ]).Rep()
 
-  const stringParser: B<string> := WS.e_I(S("\"")).??().e_I(stringCharParser).I_e(S("\""))
+  const stringParser: B<string> := S("\"").e_I(stringCharParser).I_e(S("\""))
 
   const stringJSONParser: B<JSON> := stringParser.M((s: string) => String(s))
 
   const numberJSONParser: B<JSON> :=
-    Int.I_I(S(".").e_I(DigitNumber.Rep()).?()).M(
+    StringBuilders.Int.I_I(S(".").e_I(DigitNumber.Rep()).?()).M(
       (s: (int, P.Option<seq<nat>>)) =>
         if s.1.None? then Number(ToDecimal(s.0))
         else Number(ToDecimalFrac(s.0, s.1.value, 0)))
 
   const arrayParser: B<JSON> -> B<JSON> := (rec: B<JSON>) =>
-    WS.e_I(S("[")).??().e_I(WS).e_I(
+    S("[").e_I(WS).e_I(
       rec.I_e(WS).RepSep(S(",").I_e(WS)))
     .I_e(S("]"))
     .M((s: seq<JSON>) => Array(s))
 
   const objectParser: B<JSON> -> B<JSON> := (rec: B<JSON>) =>
-    WS.e_I(S("{")).??().e_I(WS).e_I(
+    S("{").e_I(WS).e_I(
       stringParser.I_I(WS.e_I(S(":").e_I(WS).e_I(rec))).I_e(WS)
       .RepSep(S(",").I_e(WS)))
     .I_e(S("}"))
     .M((s: seq<(string, JSON)>) => Object(s))
 
   const parseProgram: B<JSON> :=
-    Rec((rec: B<JSON>) =>
-          O([
-              nullParser,
-              boolParser,
-              stringJSONParser,
-              numberJSONParser,
-              arrayParser(rec),
-              objectParser(rec)
-            ])).End()
+    WS.e_I(
+      Rec((rec: B<JSON>) =>
+            O([
+                nullParser,
+                boolParser,
+                stringJSONParser,
+                numberJSONParser,
+                arrayParser(rec),
+                objectParser(rec)
+              ]).I_e(WS)).End())
 
-  method {:test} TestParserSuccess() {
+  @Test
+  method TestParserSuccess() {
     var source := @"{""a"": null, ""b"": [1.42, 25.150]}";
     expect parseProgram.Apply(source)
         == ParseResult.ParseSuccess(
@@ -92,7 +84,9 @@ module ExampleParsers.JSONParser {
     expect parseProgram.Apply(source)
         == ParseResult.ParseSuccess(JSON.Array([JSON.Bool(true), JSON.Bool(false), JSON.Null]), ToInputEnd(source));
   }
-  method {:test} TestParserFailure() {
+
+  @Test
+  method TestParserFailure() {
     var source := @"[3, [1.42, 25.1[]]}";
     var result := parseProgram.Apply(source);
     expect result.ParseFailure?;

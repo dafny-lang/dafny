@@ -1,9 +1,9 @@
 /*******************************************************************************
  *  Copyright by the contributors to the Dafny Project
- *  SPDX-License-Identifier: MIT 
+ *  SPDX-License-Identifier: MIT
  *******************************************************************************/
 
-abstract module ExampleParsers.Theorems refines Std.Parsers.Core {
+abstract module Std.Parsers.Theorems refines Core {
 
   ghost predicate Trigger<T>(i: T) { true }
 
@@ -125,11 +125,11 @@ abstract module ExampleParsers.Theorems refines Std.Parsers.Core {
     reveal ConcatMap();
   }
 
-  lemma AboutConcatR<L, R>(
+  lemma AboutConcatKeepRight<L, R>(
     left: Parser<L>,
     right: Parser<R>,
     input: Input)
-    ensures var p := ConcatR(left, right);
+    ensures var p := ConcatKeepRight(left, right);
             && (p(input).ParseSuccess? ==>
                   && left(input).ParseSuccess?
                   && var input2 := left(input).remaining;
@@ -137,7 +137,7 @@ abstract module ExampleParsers.Theorems refines Std.Parsers.Core {
                   && p(input).result == right(input2).result
                   && p(input).remaining == right(input2).remaining)
   {
-    reveal ConcatR();
+    reveal ConcatKeepRight();
     reveal ConcatMap();
   }
 
@@ -147,25 +147,25 @@ abstract module ExampleParsers.Theorems refines Std.Parsers.Core {
   function second<L, R>(): ((L, R)) -> R {
     (lr: (L, R)) => lr.1
   }
-  lemma AboutConcatConcatR<L, R>(
+  lemma AboutConcatConcatKeepRight<L, R>(
     left: Parser<L>,
     right: Parser<R>,
     input: Input)
-    ensures Map(Concat(left, right), second())(input) == ConcatR(left, right)(input)
+    ensures Map(Concat(left, right), second())(input) == ConcatKeepRight(left, right)(input)
   {
     reveal Concat();
     reveal SucceedWith();
-    reveal ConcatR();
+    reveal ConcatKeepRight();
     reveal Map();
     reveal ConcatMap();
   }
 
 
-  lemma AboutConcatL<L, R>(
+  lemma AboutConcatKeepLeft<L, R>(
     left: Parser<L>,
     right: Parser<R>,
     input: Input)
-    ensures var p := ConcatL(left, right);
+    ensures var p := ConcatKeepLeft(left, right);
             && (p(input).ParseSuccess? ==>
                   && left(input).ParseSuccess?
                   && var input2 := left(input).remaining;
@@ -173,18 +173,18 @@ abstract module ExampleParsers.Theorems refines Std.Parsers.Core {
                   && p(input).result == left(input).result
                   && p(input).remaining == right(input2).remaining)
   {
-    reveal ConcatL();
+    reveal ConcatKeepLeft();
     reveal ConcatMap();
   }
-  lemma AboutConcatConcatL<L, R>(
+  lemma AboutConcatConcatKeepLeft<L, R>(
     left: Parser<L>,
     right: Parser<R>,
     input: Input)
-    ensures Map(Concat(left, right), first())(input) == ConcatL(left, right)(input)
+    ensures Map(Concat(left, right), first())(input) == ConcatKeepLeft(left, right)(input)
   {
     reveal Concat();
     reveal SucceedWith();
-    reveal ConcatL();
+    reveal ConcatKeepLeft();
     reveal Map();
     reveal ConcatMap();
   }

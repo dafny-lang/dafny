@@ -19,6 +19,12 @@ module Std.Parsers.InputString refines AbstractInput {
 
   type Input = x: Input_ | x.Valid() witness *
   type C = char
+  
+  function ToInput(r: seq<C>): (i: Input)
+    ensures View(i) == r
+  {
+    Input(r, 0, |r|)
+  }
 
   function View(self: Input): (r: seq<C>)
     ensures |View(self)| == Length(self) {

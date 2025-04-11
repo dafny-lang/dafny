@@ -11,8 +11,8 @@ module ExampleParsers.ParserGenerator {
   import opened Std.Parsers.StringBuilders
   import opened Std.Wrappers
 
-  function ToBool<T>(): T -> bool {
-    t => true
+  function ToUnit<T>(): T -> () {
+    t => ()
   }
 
   datatype ParserSpec =
@@ -21,19 +21,12 @@ module ExampleParsers.ParserGenerator {
     | Or(left: ParserSpec, right: ParserSpec)
     | Repeat(p: ParserSpec)
   {
-    predicate OnlyAndRepeat() {
+    function ToParser(): B<()> {
       match this
-      case Const(s) => true
-      case And(left, right) => left.OnlyAndRepeat() && right.OnlyAndRepeat()
-      case Or(left, right) => false
-      case Repeat(p) => p.OnlyAndRepeat()
-    }
-    function ToParser(): B<bool> {
-      match this
-      case Const(s) => S(s).M(ToBool())
-      case And(left, right) => left.ToParser().e_I(right.ToParser()).M(ToBool())
-      case Or(left, right) => O([left.ToParser().??(), right.ToParser()]).M(ToBool())
-      case Repeat(x) => x.ToParser().??().Rep().M(ToBool())
+      case Const(s) => S(s).M(ToUnit())
+      case And(left, right) => left.ToParser().e_I(right.ToParser()).M(ToUnit())
+      case Or(left, right) => O([left.ToParser().??(), right.ToParser()]).M(ToUnit())
+      case Repeat(x) => x.ToParser().??().Rep().M(ToUnit())
     }
     function ToString(): string {
       match this
@@ -72,13 +65,14 @@ module ExampleParsers.ParserGenerator {
               c("and").RepSepMerge(S("|"), (and1: ParserSpec, and2: ParserSpec) => Or(and1, and2)))
       ], "or")
 
-  method {:test} TestParser() {
+  @Test
+  method TestParser() {
     var program := "abc((de|f((g))*))ml";
     var parser := parseSpec.Apply(program);
     expect parser.ParseSuccess?
            && parser.result.ToString() == "abc(de|f(g)*)ml";
     var underlying := parser.result.ToParser();
     program := "abcdeml";
-    expect underlying.Apply(program) == ParseResult.ParseSuccess(true, ToInputEnd(program));
+    expect underlying.Apply(program) == ParseResult.ParseSuccess((), ToInputEnd(program));
   }
 }

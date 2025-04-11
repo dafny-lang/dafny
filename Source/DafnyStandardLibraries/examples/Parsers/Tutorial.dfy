@@ -12,7 +12,7 @@ module ExampleParsers.Tutorial {
     var p :=
       Bind(
         nonComma, (result: string) =>
-          Rep(ConcatR(String(","), nonComma),
+          Rep(ConcatKeepRight(String(","), nonComma),
               (acc, elem) => acc + [elem],
               [result]
           ));
@@ -42,11 +42,11 @@ module ExampleParsers.Tutorial {
         String("O"), String("X"), String(" ")
       ]);
     var v := String("|");
-    var row := Map(Concat(x, ConcatR(v, Concat(x, ConcatR(v, x)))),
+    var row := Map(Concat(x, ConcatKeepRight(v, Concat(x, ConcatKeepRight(v, x)))),
                    flatten<string>());
     var sep := String("\n-+-+-\n");
     var grid := Map(
-      Concat(row, ConcatR(sep, Concat(row, ConcatR(sep, row)))),
+      Concat(row, ConcatKeepRight(sep, Concat(row, ConcatKeepRight(sep, row)))),
       flatten<(string, string, string)>())
       ;
     var input := ToInput("O|X| \n-+-+-\nX|O| \n-+-+-\nP| |O");

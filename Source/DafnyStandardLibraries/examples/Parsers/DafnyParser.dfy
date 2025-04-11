@@ -3,8 +3,13 @@
  *  SPDX-License-Identifier: MIT 
  *******************************************************************************/
 
-// A parser that aims at self-parsing its code. One day.
-module ExampleParsers.DafnyParser {
+/** A parser that can be used to parse Dafny programs. For now, it supports a few things:
+    - Includes
+    - Imports (possibly opened)
+    - (Recursive)module declarations
+*/
+
+module ExampleParsers.DafnyModuleParser {
   import opened Std.Parsers.StringBuilders
 
   type Option<A> = StringBuilders.P.Option<A>
@@ -13,82 +18,30 @@ module ExampleParsers.DafnyParser {
     Program(includes: seq<string>, declarations: seq<Declaration>)
 
   datatype Declaration =
-    | Module(moduleName: Type, declarations: seq<Declaration>)
-    | Import(opend: bool, imported: Type)
-    | Datatype(datatypeName: Type, constructors: seq<Constructor>)
-    | Const(name: string, tpe: Option<Type>, constDef: Expr)
-    | TypeSynonymDecl(typeName: Type, typeArgs: seq<string>, typeDef: Type)
-
-  datatype Constructor =
-    Constructor(name: string, formals: seq<Formal>)
-
-  datatype Formal =
-    Formal(name: Option<string>, tpe: Type)
-
-  datatype Type =
-    | TypeName(name: string)
-    | ApplyType(underlying: Type, args: seq<Type>)
-    | SelectType(prefix: Type, field: Type)
-  {
-    function applyPrefix(name: string): Type {
-      match this {
-        case ApplyType(underlying, args) => ApplyType(underlying.applyPrefix(name), args)
-        case SelectType(enclosing, field) => SelectType(enclosing.applyPrefix(name), field)
-        case _ => SelectType(TypeName(name), this)
-      }
-    }
-  }
-
-  datatype Expr =
-    | TODO
+    | Module(moduleName: string, declarations: seq<Declaration>)
+    | Import(opend: bool, imported: string)
 
   const stringLit :=
     S("\"").e_I(Except("\"")).I_e(S("\""))
 
-  /*const parserImport := S("import").e_I(WS).e_I(
-      S("opened").e_I(WS).Maybe()).I_I(stringLit).M(
-        (s: (Option<string>, string)) => Import(s.0.Some?, s.1));*/
   const parseInclude := WS.e_I(S("include")).??().e_I(WS).e_I(stringLit)
 
-  const parseIdentifier :=
-    CharTest((c: char) => c in "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ_?$", "Identifier character")
-    .Rep1()
+  const canStartIdentifierChar := "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
 
-  const parseType: B<Type> :=
-    Rec<Type>(
-      (rec: B<Type>) =>
-        parseIdentifier.Then(
-          (id: string) =>
-            var init := TypeName(id);
-            O([WS.e_I(S("<")).??().e_I(
-                 rec.Then((t: Type) =>
-                            WS.e_I(S(",")).??().e_I(rec).Rep()
-                 ).I_e(WS.I_e(S(">"))).M((types: seq<Type>) =>
-                                           ApplyType(TypeName(id), types)
-                 )),
-               WS.e_I(S(".")).??().e_I(rec).M(
-                 (tpe: Type) =>
-                   tpe.applyPrefix(id)
-               ),
-               SucceedWith(init)
-              ])
-        ))
-
-  const parseConstructor: B<Constructor> := FailWith("parseConstructor not implemented yet")
+  const parseIdentifier: B<string> :=
+    CharTest((c: char) => c in canStartIdentifierChar, "[" + canStartIdentifierChar + "]").Then((c: char) =>
+    CharTest((c: char) => c in canStartIdentifierChar || c in "_?$", "Identifier character")
+    .Rep().M((s: string) => [c] + s))
 
   const parseDeclaration: B<Declaration> :=
     Rec(
       (declParser: B<Declaration>) =>
         O([
-            S("module").e_I(WS).e_I(parseType).I_e(WS).I_e(S("{")).I_e(WS).
+            S("module").e_I(WS).e_I(parseIdentifier).I_e(WS).I_e(S("{")).I_e(WS).
             I_I(declParser.Rep()).I_e(WS).I_e(S("}")).I_e(WS)
-            .M((r: (Type, seq<Declaration>)) =>  Module(r.0, r.1)),
-            S("import").e_I(WS).e_I(S("opened").e_I(WS).?()).I_I(parseType).M(
-              (s: (Option<string>, Type)) => Import(s.0.Some?, s.1)),
-            S("datatype").e_I(WS).e_I(parseType).I_e(WS.e_I(S("="))).I_I(
-              parseConstructor.Rep1()).M((r: (Type, seq<Constructor>)) =>
-                                         Datatype(r.0, r.1)
-            )
+            .M((r: (string, seq<Declaration>)) =>  Module(r.0, r.1)),
+            S("import").e_I(WS).e_I(S("opened").e_I(WS).?()).I_I(parseIdentifier).M(
+              (s: (Option<string>, string)) => Import(s.0.Some?, s.1))
           ]))
 
   const parseProgram :=
@@ -123,27 +76,23 @@ module Test {
         == ParseResult.ParseSuccess(
              Program.Program(
                ["file"],
-               [Declaration.Import(true, Type.TypeName("test")),
+               [Declaration.Import(true, "test"),
                 Declaration.Module(
-                  Type.TypeName("Test"),
+                  "test",
                   [
-                    Declaration.Module(Type.TypeName("Inner"), [])])]),
+                    Declaration.Module("Inner", [])])]),
              inputFinal);
-    program := @"
-class A {
-}
-";
+    program := "\nclass A {\n}\n";
     result := Apply(parseProgram, program);
     expect result.IsFailure();
     ExpectFailure(
       program,
       result,
-      @"Error:"      + "\n" +
-      @"2: class A {" + "\n" +
-      @"   ^"         + "\n" +
-      @"expected end of string, or" + "\n" +
-      @"expected 'module', or" + "\n" +
-      @"expected 'import', or" + "\n" +
-      @"expected 'datatype'" + "\n");
+      "Error:"      + "\n" +
+      "2: class A {" + "\n" +
+      "   ^"         + "\n" +
+      "expected end of string, or" + "\n" +
+      "expected 'module', or" + "\n" +
+      "expected 'import'" + "\n");
   }
 }

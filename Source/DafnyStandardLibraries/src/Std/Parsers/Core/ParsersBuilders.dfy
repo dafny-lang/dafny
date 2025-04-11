@@ -118,7 +118,7 @@ abstract module Std.Parsers.Builders {
         will parse a, b, c but only return the result of `c`. */
     function e_I<U>(other: B<U>): (p: B<U>)
     {
-      B(P.ConcatR(apply, other.apply))
+      B(P.ConcatKeepRight(apply, other.apply))
     }
 
     /** `a.I_e(b)` (include exclude) evaluates `a` on the input, and then  
@@ -133,7 +133,7 @@ abstract module Std.Parsers.Builders {
         will parse a, b, c but only return the result of `a`. */
     function I_e<U>(other: B<U>): (p: B<R>)
     {
-      B(P.ConcatL(apply, other.apply))
+      B(P.ConcatKeepLeft(apply, other.apply))
     }
 
     /** `a.I_I(b)` (include include) evaluates `a` on the input, and then  
