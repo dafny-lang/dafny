@@ -19,6 +19,7 @@ public class LabeledStatement : Statement, ICloneable<LabeledStatement> {
 
   public override void ResolveGhostness(ModuleResolver resolver, ErrorReporter reporter, bool mustBeErasable, ICodeContext codeContext,
     string? proofContext, bool allowAssumptionVariables, bool inConstructorInitializationPhase) {
+    IsGhost = true;
   }
 
   public LabeledStatement Clone(Cloner cloner) {
