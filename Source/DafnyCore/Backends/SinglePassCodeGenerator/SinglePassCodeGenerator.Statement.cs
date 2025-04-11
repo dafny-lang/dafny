@@ -563,6 +563,9 @@ namespace Microsoft.Dafny.Compilers {
         case BlockByProofStmt blockByProofStmt:
           TrStmt(blockByProofStmt.Body, wr, wStmts);
           break;
+        case LabeledStatement:
+          // already handled
+          break;
         default:
           Contract.Assert(false); throw new cce.UnreachableException();  // unexpected statement
       }
