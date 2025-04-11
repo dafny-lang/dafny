@@ -14,6 +14,9 @@ public class Function : MethodOrFunction, TypeParameter.ParentType, ICallable, I
   ICanAutoRevealDependencies, ICanVerify {
   public override string WhatKind => "function";
 
+  public override bool HasStaticKeyword { get; }
+
+
   public string GetFunctionDeclarationKeywords(DafnyOptions options) {
     string k;
     if (this is TwoStateFunction || this is ExtremePredicate || this.ByMethodBody != null) {
@@ -94,9 +97,9 @@ public class Function : MethodOrFunction, TypeParameter.ParentType, ICallable, I
   public bool IsTailRecursive => TailRecursion != TailStatus.NotTailRecursive;
   public bool IsAccumulatorTailRecursive => IsTailRecursive && TailRecursion != TailStatus.TailRecursive;
   [FilledInDuringResolution] public bool IsFueled; // if anyone tries to adjust this function's fuel
-  public readonly Formal? Result;
+  public Formal? Result;
   public PreType? ResultPreType;
-  public readonly Type ResultType;
+  public Type ResultType;
   public Type OriginalResultTypeWithRenamings() {
     if (OverriddenFunction == null) {
       return ResultType;
@@ -110,7 +113,7 @@ public class Function : MethodOrFunction, TypeParameter.ParentType, ICallable, I
     return OverriddenFunction.ResultType.Subst(renamings);
 
   }
-  public Expression? Body; // an extended expression; Body is readonly after construction, except for any kind of rewrite that may take place around the time of resolution
+  public Expression? Body; // an extended expression; Body is after construction, except for any kind of rewrite that may take place around the time of resolution
   public IOrigin? ByMethodTok; // null iff ByMethodBody is null
   public BlockStmt? ByMethodBody;
   [FilledInDuringResolution] public Method? ByMethodDecl; // if ByMethodBody is non-null
@@ -206,7 +209,7 @@ public class Function : MethodOrFunction, TypeParameter.ParentType, ICallable, I
   /// The field is filled in during resolution (and used toward the end of resolution, to attach a helpful "decreases" prefix to functions in clusters
   /// with co-recursive calls.
   /// </summary>
-  public readonly List<FunctionCallExpr> AllCalls = [];
+  public List<FunctionCallExpr> AllCalls = [];
   public enum CoCallClusterInvolvement {
     None,  // the SCC containing the function does not involve any co-recursive calls
     IsMutuallyRecursiveTarget,  // the SCC contains co-recursive calls, and this function is the target of some non-self recursive call
@@ -231,7 +234,7 @@ public class Function : MethodOrFunction, TypeParameter.ParentType, ICallable, I
     List<AttributedExpression> req, Specification<FrameExpression> reads, List<AttributedExpression> ens, Specification<Expression> decreases,
     Expression? body, IOrigin? byMethodTok, BlockStmt? byMethodBody,
     Attributes? attributes, IOrigin? signatureEllipsis)
-    : base(origin, nameNode, hasStaticKeyword, isGhost, attributes, signatureEllipsis, typeArgs, ins, req, ens, reads, decreases) {
+    : base(origin, nameNode, isGhost, attributes, signatureEllipsis, typeArgs, ins, req, ens, reads, decreases) {
 
     Contract.Requires(byMethodBody == null || (!isGhost && body != null)); // function-by-method has a ghost expr and non-ghost stmt, but to callers appears like a functiion-method
     this.IsFueled = false;  // Defaults to false.  Only set to true if someone mentions this function in a fuel annotation
@@ -241,6 +244,7 @@ public class Function : MethodOrFunction, TypeParameter.ParentType, ICallable, I
     this.ByMethodTok = byMethodTok;
     this.ByMethodBody = byMethodBody;
     this.IsOpaque = isOpaque || Attributes.Contains(attributes, "opaque");
+    HasStaticKeyword = hasStaticKeyword;
 
     if (attributes == null) {
       return;
@@ -289,7 +293,7 @@ public class Function : MethodOrFunction, TypeParameter.ParentType, ICallable, I
   public bool IsFuelAware() { return IsRecursive || IsFueled || (OverriddenFunction != null && OverriddenFunction.IsFuelAware()); }
   public virtual bool ReadsHeap { get { return Reads.Expressions!.Count != 0; } }
 
-  public static readonly Option<string> FunctionSyntaxOption = new("--function-syntax",
+  public static Option<string> FunctionSyntaxOption = new("--function-syntax",
     () => "4",
     @"
 The syntax for functions changed from Dafny version 3 to version 4. This switch controls access to the new syntax, and also provides a mode to help with migration.
@@ -330,7 +334,7 @@ experimentalPredicateAlwaysGhost - Compiled functions are written `function`. Gh
     Attributes.SetIndents(Attributes, indentBefore, formatter);
     formatter.SetFormalsIndentation(Ins);
     if (Result is { } outFormal) {
-      formatter.SetTypeIndentation(outFormal.SyntacticType);
+      formatter.SetTypeIndentation(outFormal.SafeSyntacticType);
     }
 
     foreach (var req in Req) {

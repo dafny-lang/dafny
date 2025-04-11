@@ -2,4 +2,7 @@ includes = ["Backends/**/*.dfy","AST/Formatting.dfy"]
 excludes = []
 
 [options]
-standard-libraries=true
+standard-libraries = true
+type-system-refresh = true
+general-traits = "datatype"
+general-newtypes = true

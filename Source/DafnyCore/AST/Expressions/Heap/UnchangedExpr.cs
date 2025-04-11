@@ -4,8 +4,8 @@ using System.Diagnostics.Contracts;
 namespace Microsoft.Dafny;
 
 public class UnchangedExpr : Expression, ICloneable<UnchangedExpr>, ICanFormat {
-  public readonly List<FrameExpression> Frame;
-  public readonly string/*?*/ At;
+  public List<FrameExpression> Frame;
+  public string/*?*/ At;
   [FilledInDuringResolution] public Label/*?*/ AtLabel;  // after that, At==null iff AtLabel==null
   [ContractInvariantMethod]
   void ObjectInvariant() {

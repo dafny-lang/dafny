@@ -1,6 +1,6 @@
-// RUN: %exits-with 4 %verify "%s" > "%t"
+// RUN: %exits-with 4 %verify --type-system-refresh=false --general-newtypes=false --general-traits=legacy "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
-
+// Note, this file is testing the old resolver. The new resolver requires explicit casts to go from a trait to a class.
 trait Trait { }
 class Class extends Trait { }
 

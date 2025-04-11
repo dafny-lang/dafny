@@ -1,3 +1,5 @@
+#nullable enable
+
 using System;
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
@@ -11,12 +13,12 @@ ExtendedPattern is either:
 2 - An IdPattern of a string and a list of ExtendedPattern, representing either
     a bound variable or a constructor applied to n arguments or a symbolic constant
 */
-public abstract class ExtendedPattern : NodeWithComputedRange {
+public abstract class ExtendedPattern : NodeWithOrigin {
   public bool IsGhost;
 
+  [SyntaxConstructor]
   public ExtendedPattern(IOrigin origin, bool isGhost = false) : base(origin) {
-    Contract.Requires(origin != null);
-    this.IsGhost = isGhost;
+    IsGhost = isGhost;
   }
 
   public IEnumerable<Node> DescendantsAndSelf =>
@@ -43,7 +45,7 @@ public abstract class ExtendedPattern : NodeWithComputedRange {
   *  3 - An IdPattern at datatype type representing a constructor of type
   *  4 - An IdPattern at datatype type with no arguments representing a bound variable
   */
-  public void CheckLinearExtendedPattern(Type type, ResolutionContext resolutionContext, ModuleResolver resolver) {
+  public void CheckLinearExtendedPattern(Type? type, ResolutionContext resolutionContext, ModuleResolver resolver) {
     if (type == null) {
       return;
     }
@@ -79,12 +81,12 @@ public abstract class ExtendedPattern : NodeWithComputedRange {
         Contract.Assert(false); throw new cce.UnreachableException();
       }
     } else if (type.AsDatatype is TupleTypeDecl tupleTypeDecl) {
-      var udt = type.NormalizeExpand() as UserDefinedType;
       if (!(this is IdPattern)) {
         resolver.reporter.Error(MessageSource.Resolver, this.Origin, "pattern doesn't correspond to a tuple");
         return;
       }
 
+      var udt = (UserDefinedType)type.NormalizeExpand();
       IdPattern idpat = (IdPattern)this;
       if (idpat.Arguments == null) {
         // simple variable
@@ -126,19 +128,19 @@ public abstract class ExtendedPattern : NodeWithComputedRange {
       if (ctors == null) {
         Contract.Assert(false); throw new cce.UnreachableException();  // Datatype not found
       }
-      DatatypeCtor ctor = null;
       // Check if the head of the pattern is a constructor or a variable
-      if (ctors.TryGetValue(idpat.Id, out ctor)) {
+      if (ctors.TryGetValue(idpat.Id, out var ctor)) {
+        Contract.Assert(ctor != null);
         /* =[3]= */
         idpat.Ctor = ctor;
-        if (ctor != null && idpat.Arguments == null && ctor.Formals.Count == 0) {
+        if (idpat.Arguments == null && ctor.Formals.Count == 0) {
           // nullary constructor without () -- so convert it to a constructor
           idpat.MakeAConstructor();
         }
         if (idpat.Arguments == null) {
           // pat is a variable
           return;
-        } else if (ctor.Formals != null && ctor.Formals.Count == idpat.Arguments.Count) {
+        } else if (ctor.Formals.Count == idpat.Arguments.Count) {
           if (ctor.Formals.Count == 0) {
             // if nullary constructor
             return;

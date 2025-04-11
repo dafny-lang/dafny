@@ -121,7 +121,7 @@ public class TypeParameter : TopLevelDecl {
   }
   public int PositionalIndex; // which type parameter this is (ie. in C<S, T, U>, S is 0, T is 1 and U is 2).
 
-  public readonly List<Type> TypeBounds;
+  public List<Type> TypeBounds;
 
   public IEnumerable<TopLevelDecl> TypeBoundHeads {
     get {

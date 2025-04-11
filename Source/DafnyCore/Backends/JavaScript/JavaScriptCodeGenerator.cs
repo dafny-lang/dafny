@@ -684,7 +684,7 @@ namespace Microsoft.Dafny.Compilers {
         this.FieldWriter = fieldWriter;
       }
 
-      public ConcreteSyntaxTree/*?*/ CreateMethod(Method m, List<TypeArgumentInstantiation> typeArgs, bool createBody, bool forBodyInheritance, bool lookasideBody) {
+      public ConcreteSyntaxTree/*?*/ CreateMethod(MethodOrConstructor m, List<TypeArgumentInstantiation> typeArgs, bool createBody, bool forBodyInheritance, bool lookasideBody) {
         return CodeGenerator.CreateMethod(m, typeArgs, createBody, MethodWriter, forBodyInheritance, lookasideBody);
       }
 
@@ -713,7 +713,7 @@ namespace Microsoft.Dafny.Compilers {
 
     protected override bool SupportsStaticsInGenericClasses => false;
 
-    protected ConcreteSyntaxTree/*?*/ CreateMethod(Method m, List<TypeArgumentInstantiation> typeArgs, bool createBody, ConcreteSyntaxTree wr, bool forBodyInheritance, bool lookasideBody) {
+    protected ConcreteSyntaxTree/*?*/ CreateMethod(MethodOrConstructor m, List<TypeArgumentInstantiation> typeArgs, bool createBody, ConcreteSyntaxTree wr, bool forBodyInheritance, bool lookasideBody) {
       if (!createBody) {
         return null;
       }
@@ -737,7 +737,7 @@ namespace Microsoft.Dafny.Compilers {
       return w;
     }
 
-    protected override ConcreteSyntaxTree EmitMethodReturns(Method m, ConcreteSyntaxTree wr) {
+    protected override ConcreteSyntaxTree EmitMethodReturns(MethodOrConstructor m, ConcreteSyntaxTree wr) {
       var beforeReturnBlock = wr.Fork(0);
       EmitReturn(m.Outs, wr);
       return beforeReturnBlock;
@@ -1117,7 +1117,7 @@ namespace Microsoft.Dafny.Compilers {
       return w;
     }
 
-    protected override bool UseReturnStyleOuts(Method m, int nonGhostOutCount) => true;
+    protected override bool UseReturnStyleOuts(MethodOrConstructor m, int nonGhostOutCount) => true;
 
     protected override void DeclareOutCollector(string collectorVarName, ConcreteSyntaxTree wr) {
       wr.Write("let {0} = ", collectorVarName);
@@ -1233,7 +1233,7 @@ namespace Microsoft.Dafny.Compilers {
       var wStmts = wr.Fork();
       wr.Write("throw new _dafny.HaltException(");
       if (tok != null) {
-        wr.Write("\"" + tok.TokenToString(Options) + ": \" + ");
+        wr.Write("\"" + tok.OriginToString(Options) + ": \" + ");
       }
 
       TrParenExpr(messageExpr, wr, false, wStmts);
@@ -2464,7 +2464,7 @@ namespace Microsoft.Dafny.Compilers {
       } else if (fromType.Equals(toType) || fromType.AsNewtype != null || toType.AsNewtype != null) {
         wr.Append(Expr(fromExpr, inLetExprBody, wStmts));
       } else {
-        Contract.Assert(false, $"not implemented for javascript: {fromType} -> {toType}");
+        EmitExpr(fromExpr, inLetExprBody, wr, wStmts);
       }
     }
 
@@ -2538,10 +2538,10 @@ namespace Microsoft.Dafny.Compilers {
       }
     }
 
-    protected override void EmitMapDisplay(MapType mt, IOrigin tok, List<ExpressionPair> elements,
+    protected override void EmitMapDisplay(MapType mt, IOrigin tok, List<MapDisplayEntry> elements,
         bool inLetExprBody, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
       wr.Write($"{DafnyMapClass}.Empty.slice()");
-      foreach (ExpressionPair p in elements) {
+      foreach (MapDisplayEntry p in elements) {
         wr.Write(".updateUnsafe(");
         wr.Append(Expr(p.A, inLetExprBody, wStmts));
         wr.Write(",");

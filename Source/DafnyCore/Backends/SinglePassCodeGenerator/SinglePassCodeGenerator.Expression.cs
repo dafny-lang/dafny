@@ -83,21 +83,27 @@ namespace Microsoft.Dafny.Compilers {
           }
         case MemberSelectExpr selectExpr: {
             MemberSelectExpr e = selectExpr;
-            SpecialField sf = e.Member as SpecialField;
-            if (sf != null) {
-              GetSpecialFieldInfo(sf.SpecialId, sf.IdParam, e.Obj.Type, out var compiledName, out var preStr,
-                out var postStr);
+            if (e.Member is Field field and (ConstantField or SpecialField)) {
+              string preStr;
+              string postStr;
+              if (field is SpecialField specialField) {
+                GetSpecialFieldInfo(specialField.SpecialId, specialField.IdParam, e.Obj.Type, out var compiledName, out preStr,
+                  out postStr);
+              } else {
+                preStr = "";
+                postStr = "";
+              }
               wr.Write(preStr);
 
-              if (sf.IsStatic && !SupportsStaticsInGenericClasses && sf.EnclosingClass.TypeArgs.Count != 0) {
+              if (field.IsStatic && !SupportsStaticsInGenericClasses && field.EnclosingClass.TypeArgs.Count != 0) {
                 var typeArgs = e.TypeApplicationAtEnclosingClass;
-                Contract.Assert(typeArgs.Count == sf.EnclosingClass.TypeArgs.Count);
-                wr.Write("{0}.", TypeName_Companion(e.Obj.Type, wr, e.Origin, sf));
+                Contract.Assert(typeArgs.Count == field.EnclosingClass.TypeArgs.Count);
+                wr.Write("{0}.", TypeName_Companion(e.Obj.Type, wr, e.Origin, field));
                 EmitNameAndActualTypeArgs(IdName(e.Member), typeArgs, e.Origin, null, false, wr);
-                var tas = TypeArgumentInstantiation.ListFromClass(sf.EnclosingClass, typeArgs);
+                var tas = TypeArgumentInstantiation.ListFromClass(field.EnclosingClass, typeArgs);
                 EmitTypeDescriptorsActuals(tas, e.Origin, wr.ForkInParens());
               } else {
-                void writeObj(ConcreteSyntaxTree w) {
+                void WriteObj(ConcreteSyntaxTree w) {
                   //Contract.Assert(!sf.IsStatic);
                   w = EmitCoercionIfNecessary(e.Obj.Type, UserDefinedType.UpcastToMemberEnclosingType(e.Obj.Type, e.Member),
                     e.Origin, w);
@@ -106,7 +112,7 @@ namespace Microsoft.Dafny.Compilers {
 
                 var typeArgs = CombineAllTypeArguments(e.Member, e.TypeApplicationAtEnclosingClass,
                   e.TypeApplicationJustMember);
-                EmitMemberSelect(writeObj, e.Obj.Type, e.Member, typeArgs, e.TypeArgumentSubstitutionsWithParents(),
+                EmitMemberSelect(WriteObj, e.Obj.Type, e.Member, typeArgs, e.TypeArgumentSubstitutionsWithParents(),
                   selectExpr.Type).EmitRead(wr);
               }
 

@@ -13,7 +13,7 @@ public abstract class TopLevelDecl : Declaration, TypeParameter.ParentType {
   public string WhatKindAndName => $"{WhatKind} '{Name}'";
   [BackEdge]
   public ModuleDefinition EnclosingModuleDefinition;
-  public readonly List<TypeParameter> TypeArgs;
+  public List<TypeParameter> TypeArgs;
   [ContractInvariantMethod]
   void ObjectInvariant() {
     Contract.Invariant(cce.NonNullElements(TypeArgs));

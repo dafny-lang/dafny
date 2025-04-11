@@ -18,24 +18,23 @@ public class ConsoleErrorReporter : BatchErrorReporter {
     }
   }
 
-  protected override bool MessageCore(MessageSource source, ErrorLevel level, string errorId, IOrigin tok, string msg) {
-    var printMessage = base.MessageCore(source, level, errorId, tok, msg) && (Options is { PrintTooltips: true } || level != ErrorLevel.Info);
+  public override bool MessageCore(DafnyDiagnostic diagnostic) {
+    var printMessage = base.MessageCore(diagnostic) && (Options is { PrintTooltips: true } || diagnostic.Level != ErrorLevel.Info);
     if (!printMessage) {
       return false;
     }
 
-    // Extra indent added to make it easier to distinguish multiline error messages for clients that rely on the CLI
-    msg = msg.Replace("\n", "\n ");
-
     ConsoleColor previousColor = Console.ForegroundColor;
     if (Options.OutputWriter == Console.Out) {
-      Console.ForegroundColor = ColorForLevel(level);
+      Console.ForegroundColor = ColorForLevel(diagnostic.Level);
     }
-    var errorLine = ErrorToString(level, tok, msg);
 
-    if (Options.Verbose && !String.IsNullOrEmpty(errorId) && errorId != "none") {
-      errorLine += " (ID: " + errorId + ")\n";
-      var info = ErrorRegistry.GetDetail(errorId);
+    // Extra indent added to make it easier to distinguish multiline error messages for clients that rely on the CLI
+    var errorLine = FormatDiagnostic(diagnostic).Replace("\n", "\n ");
+
+    if (Options.Verbose && !String.IsNullOrEmpty(diagnostic.ErrorId) && diagnostic.ErrorId != "none") {
+      errorLine += " (ID: " + diagnostic.ErrorId + ")\n";
+      var info = ErrorRegistry.GetDetail(diagnostic.ErrorId);
       if (info != null) {
         errorLine += info; // already ends with eol character
       }
@@ -43,39 +42,26 @@ public class ConsoleErrorReporter : BatchErrorReporter {
       errorLine += "\n";
     }
 
-    if (Options.Get(Snippets.ShowSnippets) && tok.Uri != null) {
+    if (Options.Get(Snippets.ShowSnippets) && diagnostic.Range.Uri != null) {
       var tw = new StringWriter();
-      Snippets.WriteSourceCodeSnippet(Options, tok, tw);
+      Snippets.WriteSourceCodeSnippet(Options, diagnostic.Range, tw);
       errorLine += tw.ToString();
     }
 
-    var innerToken = tok;
-    while (innerToken is OriginWrapper wrapper) {
-      if (wrapper is NestedOrigin nestedToken) {
-        innerToken = nestedToken.Inner;
-        if (innerToken.Filepath == nestedToken.Filepath &&
-            innerToken.line == nestedToken.line &&
-            innerToken.col == nestedToken.col) {
-          continue;
-        }
-
-        var innerMessage = nestedToken.Message;
-        if (innerMessage == null) {
-          innerMessage = "Related location";
-        } else {
-          innerMessage = "Related location: " + innerMessage;
-        }
-
-        errorLine += $"{innerToken.TokenToString(Options)}: {innerMessage}\n";
-        if (Options.Get(Snippets.ShowSnippets) && tok.Uri != null) {
-          var tw = new StringWriter();
-          Snippets.WriteSourceCodeSnippet(Options, innerToken, tw);
-          errorLine += tw.ToString();
-        }
+    foreach (var related in diagnostic.RelatedInformation) {
+      var innerMessage = related.Message;
+      if (string.IsNullOrEmpty(innerMessage)) {
+        innerMessage = "Related location";
       } else {
-        innerToken = wrapper.WrappedToken;
+        innerMessage = "Related location: " + innerMessage;
       }
 
+      errorLine += $"{related.Range.ToFileRangeString(Options)}: {innerMessage}\n";
+      if (Options.Get(Snippets.ShowSnippets)) {
+        var tw = new StringWriter();
+        Snippets.WriteSourceCodeSnippet(Options, related.Range, tw);
+        errorLine += tw.ToString();
+      }
     }
 
     Options.OutputWriter.Write(errorLine);

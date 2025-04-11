@@ -100,12 +100,12 @@ namespace Microsoft.Dafny {
         }
       } else if (expr is MapDisplayExpr) {
         var e = (MapDisplayExpr)expr;
-        var elmts = new List<ExpressionPair>();
+        var elmts = new List<MapDisplayEntry>();
         var anyChanges = false;
         foreach (var ep in e.Elements) {
           var a = Substitute(ep.A);
           var b = Substitute(ep.B);
-          elmts.Add(new ExpressionPair(a, b));
+          elmts.Add(new MapDisplayEntry(a, b));
           if (a != ep.A || b != ep.B) {
             anyChanges = true;
           }
@@ -775,7 +775,7 @@ namespace Microsoft.Dafny {
         var s = (BreakOrContinueStmt)stmt;
         BreakOrContinueStmt rr;
         if (s.TargetLabel != null) {
-          rr = new BreakOrContinueStmt(s.Origin, s.TargetLabel, s.IsContinue);
+          rr = new BreakOrContinueStmt(s.Origin, s.TargetLabel, 0, s.IsContinue);
         } else {
           rr = new BreakOrContinueStmt(s.Origin, s.BreakAndContinueCount, s.IsContinue);
         }

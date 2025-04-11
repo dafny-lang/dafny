@@ -4,9 +4,9 @@ using System.Diagnostics.Contracts;
 namespace Microsoft.Dafny;
 
 public class UnboxingCastExpr : Expression {  // an UnboxingCastExpr is used only as a temporary placeholding during translation
-  public readonly Expression E;
-  public readonly Type FromType;
-  public readonly Type ToType;
+  public Expression E;
+  public Type FromType;
+  public Type ToType;
   [ContractInvariantMethod]
   void ObjectInvariant() {
     Contract.Invariant(E != null);

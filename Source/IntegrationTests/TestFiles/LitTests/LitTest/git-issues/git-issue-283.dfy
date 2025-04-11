@@ -51,7 +51,7 @@ trait Foo
     var x: int := 0;
     match r {
       case Success(C1()) => x := 1;
-      case Success(C2(x)) => x := 2;  // x is local variable
+      case Success(C2(xx)) => var y := xx;
       case Failure(e) => x := 3;
     }
     assert x == 0 || x == 1 || x == 3;
@@ -68,7 +68,7 @@ trait Foo
     var x: real := 0.0;
     match r {
       case Success(C1()) => x := 1.0;
-      case Success(C2(x)) => x := 2;  // x is local variable
+      case Success(C2(xx)) =>  var y := xx;
       case Failure(e) => x := 3.0;
     }
     assert x == 0.0 || x == 1.0 || x == 3.0;
@@ -94,13 +94,13 @@ trait Foo
   method FooMethod4(r: Result<C>)
     ensures
       match r {
-        case Success(C2) => true // OK -- C2 is a variable
+        case Success(C2x) => true
         case Failure(e) => true
       }
   {
     var x: int := 0;
     match r {
-      case Success(C2) => x := 1;
+      case Success(C2x) => x := 1;
       case Failure(e) => x := 2;
     }
     assert x > 0;

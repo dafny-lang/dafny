@@ -1,7 +1,7 @@
 // NONUNIFORM: https://github.com/dafny-lang/dafny/issues/4174
 // RUN: %testDafnyForEachCompiler "%s" -- --relax-definite-assignment --spill-translation
 
-trait Shape {
+trait Shape extends object {
   function Center(): (real, real) reads this
   method PrintCenter() {
     print "Center: ", this.Center(), "\n";
@@ -76,7 +76,7 @@ method PrintSet(shapes: set<Shape>) {
   var ordered := [];
   while |s| != 0 {
     ghost var _ := ThereIsASmallest(s);
-    var shape :| shape in s && forall shape' :: shape' in s ==> shape.Center().0 <= shape'.Center().0;
+    var shape: Shape :| shape in s && forall shape': Shape :: shape' in s ==> shape.Center().0 <= shape'.Center().0;
     ordered := ordered + [shape];
     s := s - {shape};
   }
@@ -100,7 +100,7 @@ method PrintMultiSet(shapes: multiset<Shape>) {
   var ordered := [];
   while |s| != 0 {
     ghost var _ := ThereIsASmallestInMultiset(s);
-    var shape :| shape in s && forall shape' :: shape' in s ==> shape.Center().0 <= shape'.Center().0;
+    var shape: Shape :| shape in s && forall shape': Shape :: shape' in s ==> shape.Center().0 <= shape'.Center().0;
     ordered := ordered + [shape];
     s := s - multiset{shape};
   }

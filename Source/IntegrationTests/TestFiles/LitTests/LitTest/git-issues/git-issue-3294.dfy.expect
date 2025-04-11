@@ -1,3 +1,3 @@
 CLI: Warning: The file 'git-issue-3294.dfy' was passed to --library. Verification for that file might have used options incompatible with the current ones, or might have been skipped entirely. Use a .doo file to enable Dafny to check that compatible options were used
-git-issue-3294.dfy(7,4): Error: member IsFailure does not exist in FailureRestrictedType<?, ?>, in :- statement
+git-issue-3294.dfy(7,4): Error: member IsFailure does not exist in FailureRestrictedType<?0, ?1>, in :- statement
 1 resolution/type errors detected in git-issue-3294.dfy

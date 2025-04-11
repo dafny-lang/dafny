@@ -447,7 +447,7 @@ namespace Microsoft.Dafny {
               Boogie.Type maptype = e.Finite ? Predef.MapType : Predef.IMapType;
               Boogie.Expr s = BoogieGenerator.FunctionCall(GetToken(displayExpr), e.Finite ? BuiltinFunction.MapEmpty : BuiltinFunction.IMapEmpty, Predef.BoxType);
               var isLit = true;
-              foreach (ExpressionPair p in e.Elements) {
+              foreach (MapDisplayEntry p in e.Elements) {
                 var rawA = TrExpr(p.A);
                 var rawB = TrExpr(p.B);
                 isLit = isLit && BoogieGenerator.IsLit(rawA) && BoogieGenerator.IsLit(rawB);
@@ -514,7 +514,8 @@ namespace Microsoft.Dafny {
                     args.Add(Old.HeapExpr);
                   }
                   if (!fn.IsStatic) {
-                    args.Add(/* translator.BoxIfUnboxed */(TrExpr(e.Obj)/*, e.Type */));
+                    Boogie.Expr obj = BoogieGenerator.BoxifyForTraitParent(e.Origin, TrExpr(e.Obj), e.Member, e.Obj.Type);
+                    args.Add(obj);
                   }
                   return FunctionCall(GetToken(e), BoogieGenerator.FunctionHandle(fn), Predef.HandleType, args);
                 });
@@ -2119,7 +2120,8 @@ BplBoundVar(varNameGen.FreshId(string.Format("#{0}#", bv.Name)), Predef.BoxType,
       public Expression MakeAllowance(FunctionCallExpr e, CanCallOptions cco = null) {
         Expression allowance = Expression.CreateBoolLiteral(e.Origin, true);
         if (!e.Function.IsStatic) {
-          allowance = Expression.CreateAnd(allowance, Expression.CreateEq(e.Receiver, new ThisExpr(e.Function), e.Receiver.Type));
+          var formalThis = new ThisExpr(cco == null ? e.Function : cco.EnclosingFunction);
+          allowance = Expression.CreateAnd(allowance, Expression.CreateEq(e.Receiver, formalThis, e.Receiver.Type));
         }
         var formals = cco == null ? e.Function.Ins : cco.EnclosingFunction.Ins;
         for (int i = 0; i < e.Args.Count; i++) {
@@ -2144,7 +2146,7 @@ BplBoundVar(varNameGen.FreshId(string.Format("#{0}#", bv.Name)), Predef.BoxType,
         } else if (expr is MapDisplayExpr) {
           MapDisplayExpr e = (MapDisplayExpr)expr;
           List<Expression> l = [];
-          foreach (ExpressionPair p in e.Elements) {
+          foreach (MapDisplayEntry p in e.Elements) {
             l.Add(p.A); l.Add(p.B);
           }
           return CanCallAssumption(l, cco);

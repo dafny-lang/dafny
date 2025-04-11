@@ -108,8 +108,8 @@ namespace Microsoft.Dafny {
         Statement body = null;
         if (clbl is ExtremeLemma) {
           body = ((ExtremeLemma)clbl).PrefixLemma.Body;
-        } else if (clbl is Method) {
-          body = ((Method)clbl).Body;
+        } else if (clbl is MethodOrConstructor) {
+          body = ((MethodOrConstructor)clbl).Body;
         } else if (clbl is IteratorDecl) {
           body = ((IteratorDecl)clbl).Body;
         }
@@ -127,8 +127,8 @@ namespace Microsoft.Dafny {
 
       foreach (var clbl in ModuleDefinition.AllItersAndCallables(module.TopLevelDecls)) {
         Statement body = null;
-        if (clbl is Method) {
-          body = ((Method)clbl).Body;
+        if (clbl is MethodOrConstructor methodOrConstructor) {
+          body = methodOrConstructor.Body;
         } else if (clbl is IteratorDecl) {
           body = ((IteratorDecl)clbl).Body;
         }
@@ -162,7 +162,7 @@ namespace Microsoft.Dafny {
             }
           }
         } else {
-          var m = (Method)clbl;
+          var m = (MethodOrConstructor)clbl;
           if (!m.IsRecursive) {
             // note, self-recursion has already been determined
             int n = module.CallGraph.GetSCCSize(m);
@@ -1063,7 +1063,7 @@ namespace Microsoft.Dafny {
                 ResolveTypeParameterBounds(prefixPredicate.Origin, prefixPredicate.TypeArgs, prefixPredicate);
                 allTypeParameters.PopMarker();
               }
-            } else if (member is Method m) {
+            } else if (member is MethodOrConstructor m) {
               var ec = reporter.Count(ErrorLevel.Error);
               allTypeParameters.PushMarker();
               ResolveTypeParameterBounds(m.Origin, m.TypeArgs, m);
@@ -1133,6 +1133,11 @@ namespace Microsoft.Dafny {
       Contract.Ensures(AllTypeConstraints.Count == 0);
 
       int prevErrorCount = reporter.Count(ErrorLevel.Error);
+
+      if (Options.Get(CommonOptionBag.GeneralNewtypes) && !Options.Get(CommonOptionBag.TypeSystemRefresh)) {
+        reporter.Error(MessageSource.Resolver, Token.NoToken, "use of --general-newtypes requires --type-system-refresh");
+        return;
+      }
 
       // ---------------------------------- Pass 0 ----------------------------------
       // This pass:
@@ -1223,7 +1228,7 @@ namespace Microsoft.Dafny {
         // Note that `reads *` is the right default for backwards-compatibility,
         // but we may want to infer a sensible default like decreases clauses instead in the future.
         foreach (var declaration in ModuleDefinition.AllCallables(declarations)) {
-          if (declaration is Method { IsLemmaLike: false, Reads: { Expressions: var readsExpressions } } method &&
+          if (declaration is MethodOrConstructor { IsLemmaLike: false, Reads: { Expressions: var readsExpressions } } method &&
               !readsExpressions.Any()) {
             var star = new FrameExpression(method.Origin, new WildcardExpr(method.Origin) { Type = SystemModuleManager.ObjectSetType() }, null);
             readsExpressions.Add(star);
@@ -1484,6 +1489,17 @@ namespace Microsoft.Dafny {
         }
       }
 
+      foreach (var member in declarations.OfType<TopLevelDeclWithMembers>().SelectMany(d => d.Members)) {
+        if (member.HasUserAttribute("only", out var attribute)) {
+          reporter.Warning(MessageSource.Verifier, ResolutionErrors.ErrorId.r_member_only_assumes_other.ToString(), attribute.Origin,
+            "Members with {:only} temporarily disable the verification of other members in the entire file");
+          if (attribute.Args.Count >= 1) {
+            reporter.Warning(MessageSource.Verifier, ResolutionErrors.ErrorId.r_member_only_has_no_before_after.ToString(), attribute.Args[0].Origin,
+              "{:only} on members does not support arguments");
+          }
+        }
+      }
+
       if (reporter.Count(ErrorLevel.Error) == prevErrorCount) {
         // Check that class constructors are called when required.
         new ObjectConstructorChecker(reporter).VisitDeclarations(declarations);
@@ -1506,10 +1522,10 @@ namespace Microsoft.Dafny {
         // and that a class without any constructor only has fields with known initializers.
         // Also check that static fields (which are necessarily const) have initializers.
         var cdci = new CheckDividedConstructorInitVisitor(reporter);
-        foreach (var cl in ModuleDefinition.AllTypesWithMembers(declarations)) {
+        foreach (var cl in declarations.OfType<TopLevelDeclWithMembers>()) {
           // only reference types (classes and reference-type traits) are allowed to declare mutable fields
           if (cl is not ClassLikeDecl { IsReferenceTypeDecl: true }) {
-            foreach (var member in cl.Members.Where(member => member is Field and not SpecialField)) {
+            foreach (var member in cl.Members.Where(member => member is Field { IsMutable: true })) {
               var traitHint = cl is TraitDecl ? " or declaring the trait with 'extends object'" : "";
               reporter.Error(MessageSource.Resolver, member,
                 $"mutable fields are allowed only in reference types (consider declaring the field as a 'const'{traitHint})");
@@ -1829,7 +1845,7 @@ namespace Microsoft.Dafny {
 
           var kPositive = new BinaryExpr(com.Origin, BinaryExpr.Opcode.Lt, new LiteralExpr(com.Origin, 0), kk);
           var condBody = new IfStmt(mainBody.Origin, false, kPositive, mainBody, els);
-          prefixLemma.Body = new BlockStmt(mainBody.Origin, [condBody]);
+          prefixLemma.SetBody(new BlockStmt(mainBody.Origin, [condBody]));
         }
 
         // The prefix lemma now has all its components, so it's finally time we resolve it
@@ -1865,7 +1881,7 @@ namespace Microsoft.Dafny {
       foreach (var member in cl.Members) {
         var prevErrCnt = reporter.Count(ErrorLevel.Error);
         if (prevErrCnt == reporter.Count(ErrorLevel.Error)) {
-          if (member is Method method) {
+          if (member is MethodOrConstructor method) {
             CheckForUnnecessaryEqualitySupportDeclarations(method, method.TypeArgs);
             CheckParameterDefaultValuesAreCompilable(method.Ins, method);
             if (method.Body != null) {
@@ -2172,7 +2188,7 @@ namespace Microsoft.Dafny {
       if (cl is NewtypeDecl newtypeDecl) {
         if (Options.Get(CommonOptionBag.TypeSystemRefresh)) {
           baseTypeDecl = basePreType?.Decl as TopLevelDeclWithMembers;
-          baseTypeArguments = basePreType?.Arguments.ConvertAll(preType => PreType2TypeUtil.PreType2Type(preType, false, TypeParameter.TPVariance.Co));
+          baseTypeArguments = basePreType?.Arguments.ConvertAll(preType => PreType2TypeUtil.PreType2Type(preType, false));
         } else {
           // ignore any subset types, since they have no members and thus we don't need their type-parameter mappings
           var baseType = newtypeDecl.BaseType.NormalizeExpand();
@@ -2351,7 +2367,7 @@ namespace Microsoft.Dafny {
         if (member is Field) {
           if (member is ConstantField) {
             var m = (ConstantField)member;
-            ResolveType(member.Origin, ((Field)member).Type, m, ResolveTypeOptionEnum.DontInfer, null);
+            ResolveType(member.Origin, m.Type, m, ResolveTypeOptionEnum.DontInfer, null);
           } else {
             // In the following, we pass in a NoContext, because any cycle formed by a redirecting-type constraints would have to
             // dereference the heap, and such constraints are not allowed to dereference the heap so an error will be produced
@@ -2379,14 +2395,13 @@ namespace Microsoft.Dafny {
             f.ByMethodDecl.EnclosingClass = cl;
           }
 
-        } else if (member is Method) {
-          var m = (Method)member;
+        } else if (member is MethodOrConstructor methodOrConstructor) {
           var ec = reporter.Count(ErrorLevel.Error);
           allTypeParameters.PushMarker();
-          ResolveTypeParameters(m.TypeArgs, true, m);
-          ResolveMethodSignature(m);
+          ResolveTypeParameters(methodOrConstructor.TypeArgs, true, methodOrConstructor);
+          ResolveMethodSignature(methodOrConstructor);
           allTypeParameters.PopMarker();
-          if (m is ExtremeLemma com && com.PrefixLemma != null && ec == reporter.Count(ErrorLevel.Error)) {
+          if (methodOrConstructor is ExtremeLemma com && com.PrefixLemma != null && ec == reporter.Count(ErrorLevel.Error)) {
             var mm = com.PrefixLemma;
             // resolve signature of the prefix lemma
             mm.EnclosingClass = cl;
@@ -2429,7 +2444,7 @@ namespace Microsoft.Dafny {
             // nothing to do
           } else {
             cl.InheritedMembers.Add(member);
-            if (member is Field || (member as Function)?.Body != null || (member as Method)?.Body != null) {
+            if (member is Field || (member as Function)?.Body != null || (member as MethodOrConstructor)?.Body != null) {
               // member is a field or a fully defined function or method
             } else if (cl is TraitDecl) {
               // there are no expectations that a field needs to repeat the signature of inherited body-less members
@@ -2464,7 +2479,7 @@ namespace Microsoft.Dafny {
           // The class is not allowed to do anything with the field other than silently inherit it.
           reporter.Error(MessageSource.Resolver, member.Origin,
             $"{traitMember.WhatKindAndName} is inherited from trait '{trait.Name}' and is not allowed to be re-declared");
-        } else if ((traitMember as Function)?.Body != null || (traitMember as Method)?.Body != null) {
+        } else if ((traitMember as Function)?.Body != null || (traitMember as MethodOrConstructor)?.Body != null) {
           // the overridden member is a fully defined function or method, so the class is not allowed to do anything with it other than silently inherit it
           reporter.Error(MessageSource.Resolver, member.Origin,
             $"fully defined {traitMember.WhatKindAndName} is inherited from trait '{trait.Name}' and is not allowed to be re-declared");
@@ -3106,7 +3121,7 @@ namespace Microsoft.Dafny {
     /// <summary>
     /// Assumes type parameters have already been pushed
     /// </summary>
-    public void ResolveMethodSignature(Method m) {
+    public void ResolveMethodSignature(MethodOrConstructor m) {
       Contract.Requires(m != null);
 
       scope.PushMarker();
@@ -3256,7 +3271,7 @@ namespace Microsoft.Dafny {
       void CheckIsFunction([CanBeNull] MemberDecl memberDecl, bool allowMethod) {
         if (memberDecl == null || memberDecl is Function) {
           // fine
-        } else if (allowMethod && memberDecl is Method) {
+        } else if (allowMethod && memberDecl is MethodOrConstructor) {
           // give a deprecation warning, so we will remove this language feature around the Dafny 4 time frame
           origReporter.Deprecated(MessageSource.Resolver, ErrorId.r_failure_methods_deprecated, tok,
             $"Support for member '{memberDecl.Name}' in type '{tp}' (used indirectly via a :- statement) being a method is deprecated;" +
@@ -3850,7 +3865,7 @@ namespace Microsoft.Dafny {
             return BinaryExpr.ResolvedOpcode.Disjoint;
           }
         case BinaryExpr.Opcode.Lt:
-          if (operandType.IsIndDatatype) {
+          if (operandType.IsIndDatatype || leftOperandType.IsIndDatatype) {
             return BinaryExpr.ResolvedOpcode.RankLt;
           } else if (operandType is SetType) {
             return BinaryExpr.ResolvedOpcode.ProperSubset;
@@ -3910,7 +3925,7 @@ namespace Microsoft.Dafny {
             return BinaryExpr.ResolvedOpcode.Mul;
           }
         case BinaryExpr.Opcode.Gt:
-          if (operandType.IsDatatype) {
+          if (operandType.IsIndDatatype || leftOperandType.IsIndDatatype) {
             return BinaryExpr.ResolvedOpcode.RankGt;
           } else if (operandType is SetType) {
             return BinaryExpr.ResolvedOpcode.ProperSuperset;

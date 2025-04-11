@@ -1,2 +1,2 @@
-text.dfy(9,11): Error: Function body type mismatch (expected A.T, got int)
+text.dfy(9,22): Error: integer literal used as if it had type T
 1 resolution/type errors detected in text.dfy

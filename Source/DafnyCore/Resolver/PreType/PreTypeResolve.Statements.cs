@@ -10,6 +10,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Diagnostics.Contracts;
 using JetBrains.Annotations;
+using RAST;
 
 namespace Microsoft.Dafny {
   public partial class PreTypeResolver : INewOrOldResolver {
@@ -25,7 +26,7 @@ namespace Microsoft.Dafny {
     private List<Statement> loopStack = [];  // the enclosing loops (from which it is possible to break out)
     bool inBodyInitContext;  // "true" only if "currentMethod is Constructor"
 
-    public void ResolveBlockStatement(BlockStmt blockStmt, ResolutionContext resolutionContext) {
+    public void ResolveBlockStatement(BlockLikeStmt blockStmt, ResolutionContext resolutionContext) {
       Contract.Requires(blockStmt != null);
       Contract.Requires(resolutionContext != null);
 
@@ -103,7 +104,7 @@ namespace Microsoft.Dafny {
         return;
       }
 
-      if (!(stmt is ForallStmt || stmt is ForLoopStmt)) {  // "forall" and "for" statements do their own attribute resolution below
+      if (!(stmt is ForallStmt or ForLoopStmt)) {  // "forall" and "for" statements do their own attribute resolution below
         ResolveAttributes(stmt, resolutionContext, false);
       }
       if (stmt is PrintStmt) {
@@ -115,11 +116,11 @@ namespace Microsoft.Dafny {
       } else if (stmt is BreakOrContinueStmt) {
         var s = (BreakOrContinueStmt)stmt;
         if (s.TargetLabel != null) {
-          Statement target = EnclosingStatementLabels.Find(s.TargetLabel.val);
+          Statement target = EnclosingStatementLabels.Find(s.TargetLabel.Value);
           if (target == null) {
-            ReportError(s.TargetLabel, $"{s.Kind} label is undefined or not in scope: {s.TargetLabel.val}");
+            ReportError(s.TargetLabel.Origin, $"{s.Kind} label is undefined or not in scope: {s.TargetLabel.Value}");
           } else if (s.IsContinue && !(target is LoopStmt)) {
-            ReportError(s.TargetLabel, $"continue label must designate a loop: {s.TargetLabel.val}");
+            ReportError(s.TargetLabel.Origin, $"continue label must designate a loop: {s.TargetLabel.Value}");
           } else {
             s.TargetStmt = target;
           }
@@ -147,7 +148,7 @@ namespace Microsoft.Dafny {
         var kind = stmt is YieldStmt ? "yield" : "return";
         if (stmt is YieldStmt && !(resolutionContext.CodeContext is IteratorDecl)) {
           ReportError(stmt, "yield statement is allowed only in iterators");
-        } else if (stmt is ReturnStmt && !(resolutionContext.CodeContext is Method)) {
+        } else if (stmt is ReturnStmt && !(resolutionContext.CodeContext is MethodOrConstructor)) {
           ReportError(stmt, "return statement is allowed only in method");
         } else if (inBodyInitContext) {
           ReportError(stmt, "return statement is not allowed before 'new;' in a constructor");
@@ -526,7 +527,7 @@ namespace Microsoft.Dafny {
     private void ResolveConcreteUpdateStmt(ConcreteAssignStatement assign, List<LocalVariable> locals, ResolutionContext resolutionContext) {
       Contract.Requires(assign != null || locals != null);
       // We have four cases.
-      Contract.Assert(assign == null || assign is AssignSuchThatStmt || assign is AssignStatement || assign is AssignOrReturnStmt);
+      Contract.Assert(assign is null or AssignSuchThatStmt or AssignStatement or AssignOrReturnStmt);
       // 0.  There is no update.  This is easy, we will just resolve the locals.
       // 1.  The update is an AssignSuchThatStmt.  This is also straightforward:  first
       //     resolve the locals, which adds them to the scope, and then resolve the update.
@@ -605,6 +606,8 @@ namespace Microsoft.Dafny {
       } else {
         Contract.Assert(rhs is HavocRhs);
       }
+
+      ResolveAttributes(rhs, resolutionContext, false);
     }
 
     /// <summary>
@@ -622,26 +625,25 @@ namespace Microsoft.Dafny {
       update.ResolvedStatements = [];
       foreach (var rhs in update.Rhss) {
         bool isEffectful;
-        if (rhs is TypeRhs tr) {
+        if (rhs is AllocateClass tr) {
           isEffectful = tr.InitCall != null;
         } else if (rhs is HavocRhs) {
           isEffectful = false;
-        } else {
-          var er = (ExprRhs)rhs;
+        } else if (rhs is ExprRhs er) {
           if (er.Expr is ApplySuffix applySuffix) {
             var cRhs = applySuffix.MethodCallInfo;
             isEffectful = cRhs != null;
-            methodCallInfo = methodCallInfo ?? cRhs;
+            methodCallInfo ??= cRhs;
           } else {
             isEffectful = false;
           }
+        } else {
+          isEffectful = false;
         }
 
         if (isEffectful && firstEffectfulRhs == null) {
           firstEffectfulRhs = rhs.Origin;
         }
-
-        ResolveAttributes(rhs, resolutionContext, false);
       }
 
       // figure out what kind of UpdateStmt this is
@@ -671,7 +673,7 @@ namespace Microsoft.Dafny {
             ReportError(methodCallInfo.Tok, "cannot have method call in return statement.");
           } else {
             // we have a TypeRhs
-            var tr = (TypeRhs)update.Rhss[0];
+            var tr = (AllocateClass)update.Rhss[0];
             Contract.Assert(tr.InitCall != null); // there were effects, so this must have been a call.
             if (tr.CanAffectPreviouslyKnownExpressions) {
               ReportError(tr.Origin, "can only have initialization methods which modify at most 'this'.");
@@ -863,11 +865,11 @@ namespace Microsoft.Dafny {
 
       bool expectExtract = s.Lhss.Count != 0; // default value if we cannot determine and inspect the type
       PreType firstPreType = null;
-      Method callee = null;
+      MethodOrConstructor callee = null;
       Contract.Assert(s.Rhss != null);
       if (s.Rhss.Count == 0 && s.Rhs.Expr is ApplySuffix asx) {
         var methodCallInfo = ResolveApplySuffix(asx, resolutionContext, true);
-        callee = methodCallInfo?.Callee.Member as Method;
+        callee = methodCallInfo?.Callee.Member as MethodOrConstructor;
         if (callee != null) {
           // We're looking at a method call
           if (callee.Outs.Count != 0) {
@@ -885,7 +887,7 @@ namespace Microsoft.Dafny {
         firstPreType = s.Rhs.Expr.PreType;
       }
 
-      var enclosingMethod = (Method)resolutionContext.CodeContext;
+      var enclosingMethod = (MethodOrConstructor)resolutionContext.CodeContext;
       if (enclosingMethod.Outs.Count == 0 && s.KeywordToken == null) {
         ReportError(s.Origin, $"A method containing a :- statement must have an out-parameter ({enclosingMethod.Name})");
         return;
@@ -1003,17 +1005,17 @@ namespace Microsoft.Dafny {
         Statement ss = null;
         if (keyword.val == "expect") {
           // "expect !temp.IsFailure(), temp"
-          ss = new ExpectStmt(new SourceOrigin(keyword.StartToken, s.EndToken), notFailureExpr, new IdentifierExpr(s.Origin, temp), s.KeywordToken.Attrs);
+          ss = new ExpectStmt(new SourceOrigin(keyword, s.EndToken), notFailureExpr, new IdentifierExpr(s.Origin, temp), s.KeywordToken.Attrs);
         } else if (s.KeywordToken.Token.val == "assume") {
-          ss = new AssumeStmt(new SourceOrigin(keyword.StartToken, s.EndToken), notFailureExpr, SystemModuleManager.AxiomAttribute(s.KeywordToken.Attrs));
+          ss = new AssumeStmt(new SourceOrigin(keyword, s.EndToken), notFailureExpr, SystemModuleManager.AxiomAttribute(s.KeywordToken.Attrs));
         } else if (s.KeywordToken.Token.val == "assert") {
-          ss = new AssertStmt(new SourceOrigin(keyword.StartToken, s.EndToken), notFailureExpr, null, s.KeywordToken.Attrs);
+          ss = new AssertStmt(new SourceOrigin(keyword, s.EndToken), notFailureExpr, null, s.KeywordToken.Attrs);
         } else {
           Contract.Assert(false, $"Invalid token in :- statement: {keyword.val}");
         }
         s.ResolvedStatements.Add(ss);
       } else {
-        var enclosingOutParameter = ((Method)resolutionContext.CodeContext).Outs[0];
+        var enclosingOutParameter = ((MethodOrConstructor)resolutionContext.CodeContext).Outs[0];
         var ident = new IdentifierExpr(s.Origin, enclosingOutParameter.Name) {
           // resolve it here to avoid capture into more closely declared local variables
           Var = enclosingOutParameter,
@@ -1080,7 +1082,7 @@ namespace Microsoft.Dafny {
       void CheckIsFunction([CanBeNull] MemberDecl memberDecl, bool allowMethod) {
         if (memberDecl is null or Function) {
           // fine
-        } else if (allowMethod && memberDecl is Method) {
+        } else if (allowMethod && memberDecl is MethodOrConstructor) {
           // give a deprecation warning, so we will remove this language feature around the Dafny 4 time frame
           resolver.reporter.Deprecated(MessageSource.Resolver, ResolutionErrors.ErrorId.r_failure_methods_deprecated, tok,
             $"Support for member '{memberDecl.Name}' in type '{failureSupportingType}' (used indirectly via a :- statement) being a method is deprecated;" +
@@ -1112,13 +1114,12 @@ namespace Microsoft.Dafny {
         return;
       }
 
-      if (rr.ArrayDimensions != null) {
+      if (rr is AllocateArray allocateArray) {
         // ---------- new T[EE]    OR    new T[EE] (elementInit)    OR    new T[EE] [elements...]
-        var dims = rr.ArrayDimensions.Count;
-        Contract.Assert(rr.Bindings == null && rr.Path == null && rr.InitCall == null);
-        resolver.ResolveType(stmt.Origin, rr.EType, resolutionContext, ResolveTypeOptionEnum.InferTypeProxies, null);
+        var dims = allocateArray.ArrayDimensions.Count;
+        resolver.ResolveType(stmt.Origin, allocateArray.ElementType, resolutionContext, ResolveTypeOptionEnum.InferTypeProxies, null);
         int i = 0;
-        foreach (var dim in rr.ArrayDimensions) {
+        foreach (var dim in allocateArray.ArrayDimensions) {
           ResolveExpression(dim, resolutionContext);
           var indexHint = dims == 1 ? "" : " for index " + i;
           AddConfirmation(PreTypeConstraints.CommonConfirmationBag.InIntFamily, dim.PreType, dim.Origin,
@@ -1126,36 +1127,38 @@ namespace Microsoft.Dafny {
           i++;
         }
 
-        var elementPreType = Type2PreType(rr.EType);
+        var elementPreType = Type2PreType(allocateArray.ElementType);
         rr.PreType = BuiltInArrayType(dims, elementPreType);
-        if (rr.ElementInit != null) {
-          ResolveExpression(rr.ElementInit, resolutionContext);
+        if (allocateArray.ElementInit != null) {
+          ResolveExpression(allocateArray.ElementInit, resolutionContext);
           // Check (the pre-type version of)
           //     nat^N -> rr.EType  :>  rr.ElementInit.Type
           resolver.SystemModuleManager.CreateArrowTypeDecl(dims);  // TODO: should this be done already in the parser?
           var indexPreTypes = Enumerable.Repeat(Type2PreType(resolver.SystemModuleManager.Nat()), dims).ToList();
-          var arrowPreType = BuiltInArrowType(indexPreTypes, elementPreType);
-          Constraints.AddSubtypeConstraint(arrowPreType, rr.ElementInit.PreType, rr.ElementInit.Origin, () => {
-            var hintString = !PreType.Same(arrowPreType, rr.ElementInit.PreType) ? "" :
+          var arrowPreType = BuiltInArrowType(indexPreTypes, elementPreType, true, true);
+          Constraints.AddSubtypeConstraint(arrowPreType, allocateArray.ElementInit.PreType, allocateArray.ElementInit.Origin, () => {
+            var hintString = !PreType.Same(arrowPreType, allocateArray.ElementInit.PreType) ? "" :
               string.Format(" (perhaps write '{0} =>' in front of the expression you gave in order to make it an arrow type)",
               dims == 1 ? "_" : "(" + Util.Comma(dims, x => "_") + ")");
             return $"array-allocation initialization expression expected to have type '{{0}}' (instead got '{{1}}'){hintString}";
           });
-        } else if (rr.InitDisplay != null) {
-          foreach (var v in rr.InitDisplay) {
+        } else if (allocateArray.InitDisplay != null) {
+          foreach (var v in allocateArray.InitDisplay) {
             ResolveExpression(v, resolutionContext);
             AddSubtypeConstraint(elementPreType, v.PreType, v.Origin, "initial value must be assignable to array's elements (expected '{0}', got '{1}')");
           }
         }
-      } else {
-        if (rr.Bindings == null) {
-          resolver.ResolveType(stmt.Origin, rr.EType, resolutionContext, ResolveTypeOptionEnum.InferTypeProxies, null);
-          var cl = (rr.EType as UserDefinedType)?.ResolvedClass as NonNullTypeDecl;
-          if (cl != null && !(rr.EType.IsTraitType && !rr.EType.NormalizeExpand().IsObjectQ)) {
+      } else if (rr is AllocateClass allocateClass) {
+        if (allocateClass.Bindings == null) {
+          resolver.ResolveType(stmt.Origin, allocateClass.Path, resolutionContext, ResolveTypeOptionEnum.InferTypeProxies, null);
+          if ((allocateClass.Path as UserDefinedType)?.ResolvedClass is NonNullTypeDecl cl && !(allocateClass.Path.IsTraitType && !allocateClass.Path.NormalizeExpand().IsObjectQ)) {
             // life is good
           } else {
-            ReportError(rr.Origin, "new can be applied only to class types (got {0})", rr.EType);
+            ReportError(rr.Origin, "new can be applied only to class types (got {0})", allocateClass.Path);
           }
+
+          rr.Type = allocateClass.Path;
+          rr.PreType = Type2PreType(allocateClass.Path);
         } else {
           string initCallName = null;
           IOrigin initCallTok = null;
@@ -1163,23 +1166,26 @@ namespace Microsoft.Dafny {
           // * If rr.Path denotes a type, then set EType,initCallName to rr.Path,"_ctor", which sets up a call to the anonymous constructor.
           // * If the all-but-last components of rr.Path denote a type, then do EType,initCallName := allButLast(EType),last(EType)
           // * Otherwise, report an error
-          var ret = resolver.ResolveTypeLenient(rr.Origin, rr.Path, resolutionContext,
+          var ret = resolver.ResolveTypeLenient(rr.Origin, allocateClass.Path, resolutionContext,
             new ModuleResolver.ResolveTypeOption(ResolveTypeOptionEnum.InferTypeProxies), null, true);
           if (ret != null) {
             // The all-but-last components of rr.Path denote a type (namely, ret.ReplacementType).
-            rr.EType = ret.ReplacementType;
+            rr.PreType = Type2PreType(ret.ReplacementType);
+            rr.Type = ret.ReplacementType;
             initCallName = ret.LastComponent.SuffixName;
             initCallTok = ret.LastComponent.Origin;
           } else {
             // Either rr.Path resolved correctly as a type or there was no way to drop a last component to make it into something that looked
             // like a type.  In either case, set EType,initCallName to Path,"_ctor" and continue.
-            rr.EType = rr.Path;
+            rr.PreType = Type2PreType(allocateClass.Path);
+            rr.Type = allocateClass.Path;
             initCallName = "_ctor";
             initCallTok = rr.Origin;
           }
-          var cl = (rr.EType as UserDefinedType)?.ResolvedClass as NonNullTypeDecl;
-          if (cl == null || rr.EType.IsTraitType) {
-            ReportError(rr.Origin, "new can be applied only to class types (got {0})", rr.EType);
+
+          var cl = (rr.Type as UserDefinedType).ResolvedClass as NonNullTypeDecl;
+          if (cl == null || allocateClass.Type.IsTraitType) {
+            ReportError(rr.Origin, "new can be applied only to class types (got {0})", rr.Type);
           } else {
             // ---------- new C.Init(EE)
             Contract.Assert(initCallName != null);
@@ -1190,28 +1196,23 @@ namespace Microsoft.Dafny {
             // It is important that this throw-away receiver have its .PreType filled in, because the call to ResolveDotSuffix will recursive
             // down to resolve this "lhs"; that's a no-op if the .PreType is already filled in, whereas it could cause a "'this' not allowed in
             // static context" error if the code tried to resolve this "this" against the enclosing environment.
-            rr.PreType = Type2PreType(rr.EType);
             var lhs = new ImplicitThisExprConstructorCall(initCallTok) {
-              Type = rr.EType,
+              Type = allocateClass.Type,
               PreType = rr.PreType
             };
-            var callLhs = new ExprDotName(((UserDefinedType)rr.EType).Origin, lhs, new Name(initCallName), ret?.LastComponent.OptTypeArguments);
-            ResolveDotSuffix(callLhs, false, true, rr.Bindings.ArgumentBindings, resolutionContext, true);
+            var callLhs = new ExprDotName(((UserDefinedType)allocateClass.Type).Origin, lhs, new Name(initCallName), ret?.LastComponent.OptTypeArguments);
+            ResolveDotSuffix(callLhs, false, true, allocateClass.Bindings.ArgumentBindings, resolutionContext, true);
             if (prevErrorCount == ErrorCount) {
               Contract.Assert(callLhs.ResolvedExpression is MemberSelectExpr);  // since ResolveApplySuffix succeeded and call.Lhs denotes an expression (not a module or a type)
               var methodSel = (MemberSelectExpr)callLhs.ResolvedExpression;
-              if (methodSel.Member is Method) {
-                rr.InitCall = new CallStmt(stmt.Origin, [], methodSel, rr.Bindings.ArgumentBindings, initCallTok.Center);
-                ResolveCallStmt(rr.InitCall, resolutionContext, rr.EType);
+              if (methodSel.Member is MethodOrConstructor) {
+                allocateClass.InitCall = new CallStmt(stmt.Origin, [], methodSel, allocateClass.Bindings.ArgumentBindings, initCallTok.Center);
+                ResolveCallStmt(allocateClass.InitCall, resolutionContext, allocateClass.Type);
               } else {
                 ReportError(initCallTok, "object initialization must denote an initializing method or constructor ({0})", initCallName);
               }
             }
           }
-        }
-        // set rr.PreType, unless it was already set above
-        if (rr.PreType == null) {
-          rr.PreType = Type2PreType(rr.EType);
         }
       }
     }

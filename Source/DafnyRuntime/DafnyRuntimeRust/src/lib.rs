@@ -1,9 +1,39 @@
+#![allow(clippy::collapsible_else_if)]
+#![allow(clippy::multiple_bound_locations)]
+#![allow(clippy::missing_safety_doc)]
+#![allow(clippy::too_many_arguments)]
+#![allow(clippy::clone_on_copy)]
+#![warn(
+    absolute_paths_not_starting_with_crate,
+    explicit_outlives_requirements,
+    deprecated_in_future,
+    keyword_idents,
+    let_underscore_drop,
+    macro_use_extern_crate,
+    // missing_debug_implementations,
+    non_ascii_idents,
+    noop_method_call,
+    rust_2021_incompatible_closure_captures,
+    rust_2021_incompatible_or_patterns,
+    rust_2021_prefixes_incompatible_syntax,
+    rust_2021_prelude_collisions,
+    rust_2018_idioms,
+    single_use_lifetimes,
+    trivial_numeric_casts,
+    unit_bindings,
+    unreachable_pub,
+    unsafe_op_in_unsafe_fn,
+    unused_extern_crates,
+    unused_lifetimes,
+    unused_qualifications,
+)]
+
 #[cfg(test)]
 mod tests;
 
 mod system;
 pub use mem::MaybeUninit;
-use num::{bigint::ParseBigIntError, Integer, Num, One, Signed};
+use num::{One, Signed};
 pub use once_cell::unsync::Lazy;
 use std::{
     borrow::Borrow,
@@ -15,10 +45,20 @@ use std::{
     fmt::{Debug, Display, Formatter},
     hash::{Hash, Hasher},
     mem,
-    ops::{Add, Deref, Div, Fn, Mul, Neg, Rem, Sub},
+    ops::{Add, Deref, Fn, Sub},
     ptr::NonNull,
     vec::Vec,
 };
+
+#[cfg(not(feature = "small-int"))]
+mod big_int;
+#[cfg(not(feature = "small-int"))]
+pub use big_int::*;
+
+#[cfg(feature = "small-int")]
+mod small_int;
+#[cfg(feature = "small-int")]
+pub use small_int::*;
 
 #[cfg(not(feature = "sync"))]
 pub use ::std::{
@@ -32,8 +72,6 @@ pub use ::std::sync::{Arc as Rc, Mutex as RefCell, Weak};
 pub use system::*;
 
 pub use itertools;
-pub use num::bigint::BigInt;
-pub use num::rational::BigRational;
 pub use num::FromPrimitive;
 pub use num::NumCast;
 pub use num::ToPrimitive;
@@ -113,9 +151,6 @@ pub mod dafny_runtime_conversions {
     pub type DafnyChar = crate::DafnyChar;
     pub type DafnyCharUTF16 = crate::DafnyCharUTF16;
 
-    use num::BigInt;
-    use num::ToPrimitive;
-
     use ::std::collections::HashMap;
     use ::std::collections::HashSet;
     use ::std::hash::Hash;
@@ -136,8 +171,8 @@ pub mod dafny_runtime_conversions {
         pub fn dafny_class_to_boxed_struct<T: Clone>(ptr: DafnyClass<T>) -> Box<T> {
             Box::new(dafny_class_to_struct(ptr))
         }
-        pub unsafe fn dafny_class_to_rc_struct<T: Clone + ?Sized>(ptr: DafnyClass<T>) -> Rc<T> {
-            crate::rcmut::to_rc(ptr.0.unwrap())
+        pub unsafe fn dafny_class_to_rc_struct<T: Clone>(ptr: DafnyClass<T>) -> Rc<T> {
+            unsafe { crate::rcmut::to_rc(ptr.0.unwrap()) }
         }
         pub fn struct_to_dafny_class<T>(t: T) -> DafnyClass<T> {
             crate::Object::new(t)
@@ -146,7 +181,7 @@ pub mod dafny_runtime_conversions {
             struct_to_dafny_class(*t)
         }
         pub unsafe fn rc_struct_to_dafny_class<T: ?Sized>(t: Rc<T>) -> DafnyClass<T> {
-            crate::Object::from_rc(t)
+            unsafe { crate::Object::from_rc(t) }
         }
         // Conversions to and from Dafny arrays. They all take ownership
         pub unsafe fn dafny_array_to_vec<T: Clone>(ptr: DafnyArray<T>) -> Vec<T> {
@@ -169,10 +204,10 @@ pub mod dafny_runtime_conversions {
         pub type DafnyArray3<T> = crate::Ptr<crate::Array3<T>>;
         // Conversion to and from Dafny reference-counted classes. All these methods take ownership of the class.
         pub unsafe fn dafny_class_to_struct<T: Clone>(ptr: DafnyClass<T>) -> T {
-            *dafny_class_to_boxed_struct(ptr)
+            unsafe { *dafny_class_to_boxed_struct(ptr) }
         }
         pub unsafe fn dafny_class_to_boxed_struct<T: Clone>(ptr: DafnyClass<T>) -> Box<T> {
-            Box::from_raw(crate::Ptr::into_raw(ptr))
+            unsafe { Box::from_raw(crate::Ptr::into_raw(ptr)) }
         }
         pub fn struct_to_dafny_class<T>(t: T) -> DafnyClass<T> {
             boxed_struct_to_dafny_class(Box::new(t))
@@ -188,16 +223,7 @@ pub mod dafny_runtime_conversions {
             crate::Ptr::from_box(array.into_boxed_slice())
         }
         pub unsafe fn dafny_array2_to_vec<T: Clone>(ptr: DafnyArray2<T>) -> Vec<Vec<T>> {
-            Box::from_raw(crate::Ptr::into_raw(ptr)).to_vec()
-        }
-    }
-
-    pub fn dafny_int_to_bigint(i: &DafnyInt) -> BigInt {
-        i.data.as_ref().clone()
-    }
-    pub fn bigint_to_dafny_int(i: &BigInt) -> DafnyInt {
-        DafnyInt {
-            data: Rc::new(i.clone()),
+            unsafe { Box::from_raw(crate::Ptr::into_raw(ptr)).to_vec() }
         }
     }
 
@@ -207,7 +233,7 @@ pub mod dafny_runtime_conversions {
     {
         let mut array: Vec<T> = Vec::with_capacity(s.cardinality_usize());
         DafnySequence::<T>::append_recursive(&mut array, s);
-        array.iter().map(|x| elem_converter(x)).collect()
+        array.iter().map(elem_converter).collect()
     }
 
     // Used for external conversions
@@ -261,7 +287,7 @@ pub mod dafny_runtime_conversions {
         type DafnyString = Sequence<DafnyChar>;
 
         pub fn string_to_dafny_string(s: &str) -> DafnyString {
-            Sequence::from_array_owned(s.chars().map(|v| crate::DafnyChar(v)).collect())
+            Sequence::from_array_owned(s.chars().map(crate::DafnyChar).collect())
         }
         pub fn dafny_string_to_string(s: &DafnyString) -> String {
             let characters = s.to_array();
@@ -277,7 +303,7 @@ pub mod dafny_runtime_conversions {
         type DafnyString = Sequence<DafnyCharUTF16>;
 
         pub fn string_to_dafny_string(s: &str) -> DafnyString {
-            Sequence::from_array_owned(s.encode_utf16().map(|v| crate::DafnyCharUTF16(v)).collect())
+            Sequence::from_array_owned(s.encode_utf16().map(crate::DafnyCharUTF16).collect())
         }
         pub fn dafny_string_to_string(s: &DafnyString) -> String {
             let characters = s
@@ -319,8 +345,8 @@ pub mod dafny_runtime_conversions {
         let mut result: Vec<U> = Vec::new();
         for s in ms.data.iter() {
             // Push T as many times as its size
-            for _ in 0..s.1.data.to_usize().unwrap() {
-                result.push(converter(&s.0));
+            for _ in 0..s.1.as_usize() {
+                result.push(converter(s.0));
             }
         }
         result
@@ -331,7 +357,7 @@ pub mod dafny_runtime_conversions {
         T: DafnyTypeEq,
         U: Clone + Eq + Hash,
     {
-        DafnyMultiset::from_iterator(vec.into_iter().map(|u: &U| converter(u)))
+        DafnyMultiset::from_iterator(vec.iter().map(|u: &U| converter(u)))
     }
 }
 
@@ -343,16 +369,7 @@ pub trait DafnyUsize {
 // Dafny integers
 // **************
 
-// Zero-cost abstraction over a Rc<BigInt>
-#[derive(Clone)]
-pub struct DafnyInt {
-    data: Rc<BigInt>,
-}
-
 impl DafnyInt {
-    pub fn new(data: Rc<BigInt>) -> DafnyInt {
-        DafnyInt { data }
-    }
     pub fn as_usize(&self) -> usize {
         self.to_usize().unwrap()
     }
@@ -361,12 +378,6 @@ impl DafnyInt {
 impl DafnyUsize for DafnyInt {
     fn into_usize(self) -> usize {
         self.as_usize()
-    }
-}
-
-impl AsRef<BigInt> for DafnyInt {
-    fn as_ref(&self) -> &BigInt {
-        &self.data
     }
 }
 
@@ -379,309 +390,20 @@ macro_rules! truncate {
     };
 }
 
-impl Into<u8> for DafnyInt {
-    fn into(self) -> u8 {
-        self.data.to_u8().unwrap()
-    }
-}
-impl Into<u16> for DafnyInt {
-    fn into(self) -> u16 {
-        self.data.to_u16().unwrap()
-    }
-}
-impl Into<u32> for DafnyInt {
-    fn into(self) -> u32 {
-        self.data.to_u32().unwrap()
-    }
-}
-impl Into<u64> for DafnyInt {
-    fn into(self) -> u64 {
-        self.data.to_u64().unwrap()
-    }
-}
-impl Into<u128> for DafnyInt {
-    fn into(self) -> u128 {
-        self.data.to_u128().unwrap()
-    }
-}
-impl Into<i8> for DafnyInt {
-    fn into(self) -> i8 {
-        self.data.to_i8().unwrap()
-    }
-}
-impl Into<i16> for DafnyInt {
-    fn into(self) -> i16 {
-        self.data.to_i16().unwrap()
-    }
-}
-impl Into<i32> for DafnyInt {
-    fn into(self) -> i32 {
-        self.data.to_i32().unwrap()
-    }
-}
-impl Into<i64> for DafnyInt {
-    fn into(self) -> i64 {
-        self.data.to_i64().unwrap()
-    }
-}
-impl Into<i128> for DafnyInt {
-    fn into(self) -> i128 {
-        self.data.to_i128().unwrap()
-    }
-}
-impl Into<usize> for DafnyInt {
-    fn into(self) -> usize {
-        self.data.to_usize().unwrap()
-    }
-}
-
-impl ToPrimitive for DafnyInt {
-    fn to_i64(&self) -> Option<i64> {
-        self.data.to_i64()
-    }
-
-    fn to_u64(&self) -> Option<u64> {
-        self.data.to_u64()
-    }
-
-    // Override of functions
-    fn to_u128(&self) -> Option<u128> {
-        self.data.to_u128()
-    }
-
-    fn to_i128(&self) -> Option<i128> {
-        self.data.to_i128()
-    }
-}
-
-impl Default for DafnyInt {
-    fn default() -> Self {
-        DafnyInt::new(Rc::new(BigInt::zero()))
-    }
-}
-
 impl NontrivialDefault for DafnyInt {
     fn nontrivial_default() -> Self {
         Self::default()
     }
 }
 
-impl PartialEq<DafnyInt> for DafnyInt {
-    fn eq(&self, other: &DafnyInt) -> bool {
-        self.data.eq(&other.data)
-    }
-}
-impl Eq for DafnyInt {}
-impl Hash for DafnyInt {
-    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
-        self.data.hash(state);
-    }
-}
-
-impl DafnyPrint for DafnyInt {
-    fn fmt_print(&self, f: &mut Formatter<'_>, _in_seq: bool) -> std::fmt::Result {
-        write!(f, "{}", self.data)
-    }
-}
-
-impl ::std::fmt::Debug for DafnyInt {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.data)
-    }
-}
-
-impl Add<DafnyInt> for DafnyInt {
-    type Output = DafnyInt;
-
-    fn add(self, rhs: DafnyInt) -> Self::Output {
-        DafnyInt {
-            data: Rc::new(self.data.as_ref() + rhs.data.as_ref()),
-        }
-    }
-}
-
-impl Mul<DafnyInt> for DafnyInt {
-    type Output = DafnyInt;
-
-    fn mul(self, rhs: DafnyInt) -> Self::Output {
-        DafnyInt {
-            data: Rc::new(self.data.as_ref() * rhs.data.as_ref()),
-        }
-    }
-}
-
-impl Div<DafnyInt> for DafnyInt {
-    type Output = DafnyInt;
-
-    fn div(self, rhs: DafnyInt) -> Self::Output {
-        DafnyInt {
-            data: Rc::new(self.data.as_ref() / rhs.data.as_ref()),
-        }
-    }
-}
-
-impl Sub<DafnyInt> for DafnyInt {
-    type Output = DafnyInt;
-
-    fn sub(self, rhs: DafnyInt) -> Self::Output {
-        DafnyInt {
-            data: Rc::new(self.data.as_ref() - rhs.data.as_ref()),
-        }
-    }
-}
-impl Rem<DafnyInt> for DafnyInt {
-    type Output = DafnyInt;
-
-    fn rem(self, rhs: DafnyInt) -> Self::Output {
-        DafnyInt {
-            data: Rc::new(self.data.as_ref() % rhs.data.as_ref()),
-        }
-    }
-}
-impl Neg for DafnyInt {
-    type Output = DafnyInt;
-
-    #[inline]
-    fn neg(self) -> Self::Output {
-        DafnyInt {
-            data: Rc::new(-self.data.as_ref()),
-        }
-    }
-}
-impl Zero for DafnyInt {
-    #[inline]
-    fn zero() -> Self {
-        DafnyInt {
-            data: Rc::new(BigInt::zero()),
-        }
-    }
-    #[inline]
-    fn is_zero(&self) -> bool {
-        self.data.is_zero()
-    }
-}
-impl One for DafnyInt {
-    #[inline]
-    fn one() -> Self {
-        DafnyInt {
-            data: Rc::new(BigInt::one()),
-        }
-    }
-}
-impl Num for DafnyInt {
-    type FromStrRadixErr = ParseBigIntError;
-
-    #[inline]
-    fn from_str_radix(s: &str, radix: u32) -> Result<Self, Self::FromStrRadixErr> {
-        Ok(DafnyInt {
-            data: Rc::new(BigInt::from_str_radix(s, radix)?),
-        })
-    }
-}
-impl Ord for DafnyInt {
-    #[inline]
-    fn cmp(&self, other: &Self) -> Ordering {
-        self.data.cmp(&other.data)
-    }
-}
-impl Signed for DafnyInt {
-    #[inline]
-    fn abs(&self) -> Self {
-        DafnyInt {
-            data: Rc::new(self.data.as_ref().abs()),
-        }
-    }
-
-    #[inline]
-    fn abs_sub(&self, other: &Self) -> Self {
-        DafnyInt {
-            data: Rc::new(self.data.as_ref().abs_sub(other.data.as_ref())),
-        }
-    }
-
-    #[inline]
-    fn signum(&self) -> Self {
-        DafnyInt {
-            data: Rc::new(self.data.as_ref().signum()),
-        }
-    }
-
-    #[inline]
-    fn is_positive(&self) -> bool {
-        self.data.as_ref().is_positive()
-    }
-
-    #[inline]
-    fn is_negative(&self) -> bool {
-        self.data.as_ref().is_negative()
-    }
-}
-
-// Comparison
-impl PartialOrd<DafnyInt> for DafnyInt {
-    #[inline]
-    fn partial_cmp(&self, other: &DafnyInt) -> Option<Ordering> {
-        self.data.partial_cmp(&other.data)
-    }
-}
-
-impl DafnyInt {
-    #[inline]
-    pub fn parse_bytes(number: &[u8], radix: u32) -> DafnyInt {
-        DafnyInt {
-            data: Rc::new(BigInt::parse_bytes(number, radix).unwrap()),
-        }
-    }
-    pub fn from_usize(usize: usize) -> DafnyInt {
-        DafnyInt {
-            data: Rc::new(BigInt::from(usize)),
-        }
-    }
-    pub fn from_i32(i: i32) -> DafnyInt {
-        DafnyInt {
-            data: Rc::new(BigInt::from(i)),
-        }
-    }
-}
-
-macro_rules! impl_dafnyint_from {
-    () => {};
-    ($type:ident) => {
-        impl ::std::convert::From<$type> for $crate::DafnyInt {
-            fn from(n: $type) -> Self {
-                $crate::DafnyInt {
-                    data: $crate::Rc::new(n.into()),
-                }
-            }
-        }
-        impl $crate::DafnyUsize for $type {
-            fn into_usize(self) -> usize {
-                self as usize
-            }
-        }
-    };
-}
-
-impl_dafnyint_from! { u8 }
-impl_dafnyint_from! { u16 }
-impl_dafnyint_from! { u32 }
-impl_dafnyint_from! { u64 }
-impl_dafnyint_from! { u128 }
-impl_dafnyint_from! { i8 }
-impl_dafnyint_from! { i16 }
-impl_dafnyint_from! { i32 }
-impl_dafnyint_from! { i64 }
-impl_dafnyint_from! { i128 }
-impl_dafnyint_from! { usize }
-
-impl<'a> From<&'a [u8]> for DafnyInt {
+impl From<&[u8]> for DafnyInt {
     fn from(number: &[u8]) -> Self {
         DafnyInt::parse_bytes(number, 10)
     }
 }
 
 // Now the same but for &[u8, N] for any kind of such references
-impl<'a, const N: usize> From<&'a [u8; N]> for DafnyInt {
+impl<const N: usize> From<&[u8; N]> for DafnyInt {
     fn from(number: &[u8; N]) -> Self {
         DafnyInt::parse_bytes(number, 10)
     }
@@ -721,7 +443,7 @@ impl<T: DafnyType> Add<&Sequence<T>> for &Sequence<T> {
 }
 
 impl<T: DafnyType + Hash> Hash for Sequence<T> {
-    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+    fn hash<H: Hasher>(&self, state: &mut H) {
         self.cardinality_usize().hash(state);
         let array = self.to_array();
         // Iterate over the elements
@@ -846,7 +568,7 @@ where
                 // Let's create an array of size length and fill it up recursively
                 // We don't materialize nested arrays because most of the time they are forgotten
                 let mut array: Vec<T> = Vec::with_capacity(*length);
-                Sequence::<T>::append_recursive_safe(&mut array, &None, left, right);
+                Sequence::<T>::append_recursive(&mut array, self);
                 let result = Rc::new(array);
                 #[cfg(not(feature = "sync"))]
                 {
@@ -870,62 +592,95 @@ where
         }
     }
 
-    pub fn append_recursive_safe(
-        array: &mut Vec<T>,
-        cache_borrow: &Option<&Rc<Vec<T>>>,
-        left: &Rc<RefCell<Sequence<T>>>,
-        right: &Rc<RefCell<Sequence<T>>>,
-    ) {
-        if let Some(values) = cache_borrow.as_ref() {
-            for value in values.iter() {
-                array.push(value.clone());
+    pub fn append_simple(array: &mut Vec<T>, this: &Sequence<T>) -> bool {
+        match this {
+            Sequence::ArraySequence { values, .. } => {
+                for value in values.iter() {
+                    array.push(value.clone());
+                }
+                true
             }
-            return;
-        }
-        #[cfg(not(feature = "sync"))]
-        {
-            Sequence::<T>::append_recursive(array, &left.as_ref().borrow());
-            Sequence::<T>::append_recursive(array, &right.as_ref().borrow());
-        }
-        #[cfg(feature = "sync")]
-        {
-            let left_guard = left.as_ref().lock().unwrap();
-            let right_guard = right.as_ref().lock().unwrap();
-            Sequence::<T>::append_recursive(array, &left_guard);
-            Sequence::<T>::append_recursive(array, &right_guard);
+            _ => false,
         }
     }
 
     pub fn append_recursive(array: &mut Vec<T>, this: &Sequence<T>) {
-        match this {
-            Sequence::ArraySequence { values, .. } =>
-            // The length of the elements
-            {
-                for value in values.iter() {
-                    array.push(value.clone());
+        let mut this_ptr: *const Sequence<T> = this;
+        loop {
+            // SAFETY: The invariant is that this_ptr is always a pointer to a sub-sequence of the original `this`parameter when following the field name 'right', which are allocated in this scope
+            match unsafe { &*this_ptr } {
+                Sequence::ArraySequence { values, .. } => {
+                    for value in values.iter() {
+                        array.push(value.clone());
+                    }
+                    return;
                 }
-            }
-            Sequence::ConcatSequence {
-                cache: boxed, left, right, ..
-            } =>
-            // Let's create an array of size length and fill it up recursively
-            {
-                #[cfg(feature = "sync")]
-                let into_boxed = boxed.as_ref();
-                #[cfg(feature = "sync")]
-                let into_boxed_borrowed = into_boxed;
-                #[cfg(feature = "sync")]
-                let guard = into_boxed_borrowed.lock().unwrap();
-                #[cfg(feature = "sync")]
-                let borrowed: Option<&Rc<Vec<T>>> = guard.as_ref();
+                Sequence::ConcatSequence {
+                    cache: boxed,
+                    left,
+                    right,
+                    ..
+                } =>
+                // Let's create an array of size length and fill it up recursively
+                {
+                    #[cfg(feature = "sync")]
+                    let into_boxed = boxed.as_ref();
+                    #[cfg(feature = "sync")]
+                    let into_boxed_borrowed = into_boxed;
+                    #[cfg(feature = "sync")]
+                    let guard = into_boxed_borrowed.lock().unwrap();
+                    #[cfg(feature = "sync")]
+                    let borrowed: Option<&Rc<Vec<T>>> = guard.as_ref();
 
-                #[cfg(not(feature = "sync"))]
-                let into_boxed = boxed.as_ref().clone();
-                #[cfg(not(feature = "sync"))]
-                let into_boxed_borrowed = into_boxed.borrow();
-                #[cfg(not(feature = "sync"))]
-                let borrowed: Option<&Rc<Vec<T>>> = into_boxed_borrowed.as_ref();
-                Self::append_recursive_safe(array, &borrowed, left, right);
+                    #[cfg(not(feature = "sync"))]
+                    let into_boxed = boxed.as_ref().clone();
+                    #[cfg(not(feature = "sync"))]
+                    let into_boxed_borrowed = into_boxed.borrow();
+                    #[cfg(not(feature = "sync"))]
+                    let borrowed: Option<&Rc<Vec<T>>> = into_boxed_borrowed.as_ref();
+                    if let Some(values) = borrowed.as_ref() {
+                        for value in values.iter() {
+                            array.push(value.clone());
+                        }
+                        return;
+                    }
+                    #[cfg(not(feature = "sync"))]
+                    {
+                        let left_empty = left.as_ref().borrow().cardinality_usize() == 0;
+                        let right_empty = right.as_ref().borrow().cardinality_usize() == 0;
+                        if left_empty && right_empty {
+                            return;
+                        } else if left_empty {
+                            this_ptr = right.as_ref().as_ptr();
+                        } else if right_empty {
+                            this_ptr = left.as_ref().as_ptr();
+                        } else {
+                            if !Sequence::<T>::append_simple(array, &left.as_ref().borrow()) {
+                                Sequence::<T>::append_recursive(array, &left.as_ref().borrow());
+                            }
+                            this_ptr = right.as_ref().as_ptr();
+                        }
+                    }
+                    #[cfg(feature = "sync")]
+                    {
+                        let left_guard = left.as_ref().lock().unwrap();
+                        let right_guard = right.as_ref().lock().unwrap();
+                        let left_empty: bool = left_guard.cardinality_usize() == 0;
+                        let right_empty: bool = right_guard.cardinality_usize() == 0;
+                        if left_empty && right_empty {
+                            return;
+                        } else if left_empty {
+                            this_ptr = right_guard.deref();
+                        } else if right_empty {
+                            this_ptr = left_guard.deref();
+                        } else {
+                            if !Sequence::<T>::append_simple(array, &left_guard) {
+                                Sequence::<T>::append_recursive(array, &left_guard);
+                            }
+                            this_ptr = right_guard.deref();
+                        }
+                    }
+                }
             }
         }
     }
@@ -949,25 +704,22 @@ where
     }
 
     pub fn slice(&self, start: &DafnyInt, end: &DafnyInt) -> Sequence<T> {
-        let start_index = start.data.as_ref().to_usize().unwrap();
-        let end_index = end.data.as_ref().to_usize().unwrap();
-        let new_data = Sequence::from_array_owned(self.to_array()[start_index..end_index].to_vec());
-        new_data
+        let start_index = start.as_usize();
+        let end_index = end.as_usize();
+        Sequence::from_array_owned(self.to_array()[start_index..end_index].to_vec())
     }
     pub fn take(&self, end: &DafnyInt) -> Sequence<T> {
-        let end_index = end.data.as_ref().to_usize().unwrap();
-        let new_data = Sequence::from_array_owned(self.to_array()[..end_index].to_vec());
-        new_data
+        let end_index = end.as_usize();
+        Sequence::from_array_owned(self.to_array()[..end_index].to_vec())
     }
     pub fn drop(&self, start: &DafnyInt) -> Sequence<T> {
-        let start_index = start.data.as_ref().to_usize().unwrap();
-        let new_data = Sequence::from_array_owned(self.to_array()[start_index..].to_vec());
-        new_data
+        let start_index = start.as_usize();
+        Sequence::from_array_owned(self.to_array()[start_index..].to_vec())
     }
 
     pub fn update_index(&self, index: &DafnyInt, value: &T) -> Self {
         let mut result = self.to_array().as_ref().clone();
-        result[index.data.to_usize().unwrap()] = value.clone();
+        result[index.as_usize()] = value.clone();
         Sequence::from_array_owned(result)
     }
 
@@ -976,7 +728,7 @@ where
     }
 
     pub fn get(&self, index: &DafnyInt) -> T {
-        self.get_usize(index.data.to_usize().unwrap())
+        self.get_usize(index.as_usize())
     }
     pub fn iter(&self) -> SequenceIter<T> {
         SequenceIter {
@@ -1042,12 +794,10 @@ where
         if other.cardinality_usize() != values.len() {
             return false;
         }
-        let mut i: usize = 0;
-        for value in values.iter() {
+        for (i, value) in values.iter().enumerate() {
             if value != &other.get_usize(i) {
                 return false;
             }
-            i += 1;
         }
         true
     }
@@ -1158,7 +908,7 @@ where
                 return false;
             }
         }
-        return true;
+        true
     }
 }
 
@@ -1194,7 +944,7 @@ impl<K: DafnyTypeEq, V: DafnyType> Map<K, V> {
         converter_v: fn(&V) -> V2,
     ) -> HashMap<K2, V2>
     where
-        K2: Eq + std::hash::Hash,
+        K2: Eq + Hash,
         V2: Clone,
     {
         let mut result: HashMap<K2, V2> = HashMap::new();
@@ -1321,10 +1071,20 @@ impl<K: DafnyTypeEq> Map<K, DafnyInt> {
 
 pub struct MapBuilder<K, V>
 where
-    K: Clone + Eq + std::hash::Hash,
+    K: Clone + Eq + Hash,
     V: Clone,
 {
     data: HashMap<K, V>,
+}
+
+impl<K, V> Default for MapBuilder<K, V>
+where
+    K: DafnyTypeEq,
+    V: DafnyType,
+{
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl<K, V> MapBuilder<K, V>
@@ -1464,7 +1224,7 @@ impl<V: DafnyTypeEq> Set<V> {
         Self::from_hashset_owned(HashSet::new())
     }
     pub fn from_array(array: &Vec<V>) -> Set<V> {
-        Self::from_iterator(array.iter().map(|v| v.clone()))
+        Self::from_iterator(array.iter().cloned())
     }
     pub fn from_iterator<I>(data: I) -> Set<V>
     where
@@ -1493,7 +1253,7 @@ impl<V: DafnyTypeEq> Set<V> {
     pub fn contains(&self, value: &V) -> bool {
         self.data.contains(value)
     }
-    pub fn merge(self: &Self, other: &Set<V>) -> Set<V> {
+    pub fn merge(&self, other: &Set<V>) -> Set<V> {
         if self.cardinality_usize() == 0 {
             return other.clone();
         }
@@ -1510,7 +1270,7 @@ impl<V: DafnyTypeEq> Set<V> {
         Set::from_hashset_owned(result)
     }
 
-    pub fn intersect(self: &Self, other: &Set<V>) -> Set<V> {
+    pub fn intersect(&self, other: &Set<V>) -> Set<V> {
         if self.cardinality_usize() == 0 {
             return self.clone();
         }
@@ -1586,7 +1346,7 @@ impl<V: DafnyTypeEq> Set<V> {
         true
     }
 
-    pub fn elements(self: &Self) -> Set<V> {
+    pub fn elements(&self) -> Set<V> {
         self.clone()
     }
 
@@ -1605,9 +1365,15 @@ impl<V: DafnyTypeEq> Set<V> {
 
 pub struct SetBuilder<T>
 where
-    T: Clone + Eq + std::hash::Hash,
+    T: Clone + Eq + Hash,
 {
     data: HashMap<T, bool>,
+}
+
+impl<T: DafnyTypeEq> Default for SetBuilder<T> {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl<T: DafnyTypeEq> SetBuilder<T> {
@@ -1686,7 +1452,7 @@ impl<V: DafnyTypeEq> Multiset<V> {
         Self::from_hashmap_owned(map.clone())
     }
     pub fn from_array(data: &Vec<V>) -> Multiset<V> {
-        Self::from_iterator(data.iter().map(|x| x.clone()))
+        Self::from_iterator(data.iter().cloned())
     }
     pub fn from_iterator<I>(data: I) -> Multiset<V>
     where
@@ -1705,11 +1471,11 @@ impl<V: DafnyTypeEq> Multiset<V> {
         }
     }
     pub fn from_set(set: &Set<V>) -> Multiset<V> {
-        Self::from_iterator(set.data.iter().map(|v| v.clone()))
+        Self::from_iterator(set.data.iter().cloned())
     }
 
     pub fn cardinality_usize(&self) -> SizeT {
-        self.size.data.to_usize().unwrap()
+        self.size.as_usize()
     }
     pub fn cardinality(&self) -> DafnyInt {
         self.size.clone()
@@ -1828,7 +1594,7 @@ impl<V: DafnyTypeEq> Multiset<V> {
     pub fn iter(&self) -> impl Iterator<Item = V> + '_ {
         self.data
             .iter()
-            .flat_map(|(k, &ref v)| ::std::iter::repeat(k).take(v.clone().as_usize()))
+            .flat_map(|(k, v)| ::std::iter::repeat(k).take(v.clone().as_usize()))
             .cloned()
     }
 }
@@ -1883,7 +1649,7 @@ impl<V: DafnyTypeEq> DafnyPrint for Multiset<V> {
         f.write_str("multiset{")?;
         let mut first = true;
         for value in self.data.iter() {
-            for _count in 0..value.1.data.to_usize().unwrap() {
+            for _count in 0..value.1.as_usize() {
                 if !first {
                     f.write_str(", ")?;
                 }
@@ -1923,10 +1689,6 @@ impl<V: DafnyTypeEq> Hash for Multiset<V> {
     fn hash<H: Hasher>(&self, state: &mut H) {
         self.cardinality().hash(state);
     }
-}
-
-pub fn dafny_rational_to_int(r: &BigRational) -> BigInt {
-    euclidian_division(r.numer().clone(), r.denom().clone())
 }
 
 pub fn euclidian_division<A: Signed + Zero + One + Clone + PartialEq>(a: A, b: A) -> A {
@@ -2210,7 +1972,7 @@ impl Default for DafnyCharUTF16 {
 impl DafnyPrint for DafnyCharUTF16 {
     #[inline]
     fn fmt_print(&self, f: &mut Formatter<'_>, in_seq: bool) -> std::fmt::Result {
-        let real_char = char::decode_utf16(vec![self.clone()].iter().map(|v| v.0))
+        let real_char = char::decode_utf16([*self].iter().map(|v| v.0))
             .map(|r| r.map_err(|e| e.unpaired_surrogate()))
             .collect::<Vec<_>>()[0];
         let rendered_char = match real_char {
@@ -2348,85 +2110,6 @@ impl<T: DafnyPrint> DafnyPrint for Option<T> {
     }
 }
 
-impl DafnyPrint for BigInt {
-    fn fmt_print(&self, f: &mut Formatter<'_>, _in_seq: bool) -> std::fmt::Result {
-        write!(f, "{}", self)
-    }
-}
-
-fn divides_a_power_of_10(mut i: BigInt) -> (bool, BigInt, usize) {
-    let one: BigInt = One::one();
-
-    let mut factor = one.clone();
-    let mut log10 = 0;
-
-    let zero = Zero::zero();
-    let ten = BigInt::from_i32(10).unwrap();
-
-    if i <= zero {
-        return (false, factor, log10);
-    }
-
-    while i.is_multiple_of(&ten) {
-        i /= BigInt::from_i32(10).unwrap();
-        log10 += 1;
-    }
-
-    let two = BigInt::from_i32(2).unwrap();
-    let five = BigInt::from_i32(5).unwrap();
-
-    while i.is_multiple_of(&five) {
-        i /= &five;
-        factor *= &two;
-        log10 += 1;
-    }
-
-    while i.is_multiple_of(&two) {
-        i /= &two;
-        factor *= &two;
-        log10 += 1;
-    }
-
-    (i == one, factor, log10)
-}
-
-impl DafnyPrint for BigRational {
-    fn fmt_print(&self, f: &mut Formatter<'_>, _in_seq: bool) -> std::fmt::Result {
-        if self.denom() == &One::one() || self.numer() == &Zero::zero() {
-            write!(f, "{}.0", self.numer())
-        } else {
-            let (divides, factor, log10) = divides_a_power_of_10(self.denom().clone());
-            if divides {
-                let mut num = self.numer().clone();
-                num *= factor;
-
-                if num.is_negative() {
-                    write!(f, "-")?;
-                    num = -num;
-                }
-
-                let digits = num.to_string();
-
-                if log10 < digits.len() {
-                    let digit_count = digits.len() - log10;
-                    write!(f, "{}", &digits[..digit_count])?;
-                    write!(f, ".")?;
-                    write!(f, "{}", &digits[digit_count..])
-                } else {
-                    let z = log10 - digits.len();
-                    write!(f, "0.")?;
-                    for _ in 0..z {
-                        write!(f, "0")?;
-                    }
-                    write!(f, "{}", digits)
-                }
-            } else {
-                write!(f, "({}.0 / {}.0)", self.numer(), self.denom())
-            }
-        }
-    }
-}
-
 impl<T: ?Sized + DafnyPrint> DafnyPrint for Rc<T> {
     fn fmt_print(&self, f: &mut Formatter<'_>, in_seq: bool) -> std::fmt::Result {
         self.as_ref().fmt_print(f, in_seq)
@@ -2483,16 +2166,11 @@ impl<T: DafnyPrint> DafnyPrint for HashSet<T> {
     fn fmt_print(&self, f: &mut Formatter<'_>, _in_seq: bool) -> std::fmt::Result {
         write!(f, "{{")?;
 
-        let mut i = 0;
-
-        for item in self.iter() {
+        for (i, item) in self.iter().enumerate() {
             if i > 0 {
                 write!(f, ", ")?;
             }
-
             item.fmt_print(f, false)?;
-
-            i += 1;
         }
 
         write!(f, "}}")
@@ -2507,13 +2185,11 @@ pub fn char_lt(left: char, right: char) -> bool {
 }
 
 pub fn string_of(s: &str) -> DafnyString {
-    s.chars()
-        .map(|v| DafnyChar(v))
-        .collect::<Sequence<DafnyChar>>()
+    s.chars().map(DafnyChar).collect::<Sequence<DafnyChar>>()
 }
 
 pub fn string_utf16_of(s: &str) -> DafnyStringUTF16 {
-    Sequence::from_array_owned(s.encode_utf16().map(|v| DafnyCharUTF16(v)).collect())
+    Sequence::from_array_owned(s.encode_utf16().map(DafnyCharUTF16).collect())
 }
 
 macro_rules! impl_tuple_print {
@@ -3104,7 +2780,7 @@ pub mod array {
     }
 
     pub fn initialize<T>(n: &DafnyInt, initializer: Rc<dyn Fn(&DafnyInt) -> T>) -> Ptr<[T]> {
-        super::Ptr::from_box(initialize_box(n, initializer))
+        Ptr::from_box(initialize_box(n, initializer))
     }
 
     pub fn initialize_box<T>(n: &DafnyInt, initializer: Rc<dyn Fn(&DafnyInt) -> T>) -> Box<[T]> {
@@ -3164,7 +2840,7 @@ pub fn deallocate<T: ?Sized>(pointer: Ptr<T>) {
     unsafe {
         // Takes ownership of the reference,
         // so that it's deallocated at the end of the method
-        let _ = Box::from_raw(pointer.into_raw());
+        drop(Box::from_raw(pointer.into_raw()));
     }
 }
 
@@ -3421,7 +3097,7 @@ impl<T: ?Sized> Default for Ptr<T> {
 }
 
 impl<T: ?Sized> Debug for Ptr<T> {
-    fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         self.fmt_print(f, false)
     }
 }
@@ -3452,7 +3128,7 @@ impl<T: ?Sized, U: ?Sized> PartialEq<Ptr<U>> for Ptr<T> {
     }
 }
 
-impl<T: ?Sized> std::hash::Hash for Ptr<T> {
+impl<T: ?Sized> Hash for Ptr<T> {
     fn hash<H: Hasher>(&self, state: &mut H) {
         if !self.is_null() {
             (read!(self.clone()) as *const T as *const ()).hash(state);
@@ -3506,7 +3182,7 @@ pub struct Object<T: ?Sized>(pub Option<rcmut::RcMut<T>>);
 impl<T: ?Sized> Object<T> {
     // For safety, it requires the Rc to have been created with Rc::new()
     pub unsafe fn from_rc(rc: Rc<T>) -> Object<T> {
-        Object(Some(rcmut::from_rc(rc)))
+        unsafe { Object(Some(rcmut::from_rc(rc))) }
     }
     pub fn null() -> Object<T> {
         Object(None)
@@ -3543,7 +3219,7 @@ impl<T: ?Sized> Default for Object<T> {
 }
 
 impl<T: ?Sized + UpcastObject<DynAny>> Debug for Object<T> {
-    fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         self.fmt_print(f, false)
     }
 }
@@ -3588,7 +3264,7 @@ impl<T: ?Sized, U: ?Sized> PartialEq<Object<U>> for Object<T> {
     }
 }
 
-impl<T: ?Sized> std::hash::Hash for Object<T> {
+impl<T: ?Sized> Hash for Object<T> {
     fn hash<H: Hasher>(&self, state: &mut H) {
         if let Some(p) = &self.0 {
             (p.as_ref().get() as *const ()).hash(state);
@@ -3600,12 +3276,12 @@ impl<T: ?Sized> std::hash::Hash for Object<T> {
 
 impl<T: ?Sized> AsMut<T> for Object<T> {
     fn as_mut(&mut self) -> &mut T {
-        unsafe { &mut *(&self.0).as_ref().unwrap_unchecked().as_ref().get() }
+        unsafe { &mut *(self.0).as_ref().unwrap_unchecked().as_ref().get() }
     }
 }
 impl<T: ?Sized> AsRef<T> for Object<T> {
     fn as_ref(&self) -> &T {
-        unsafe { &*(&self.0).as_ref().unwrap_unchecked().as_ref().get() }
+        unsafe { &*(self.0).as_ref().unwrap_unchecked().as_ref().get() }
     }
 }
 
@@ -3629,7 +3305,7 @@ impl<T: ?Sized> Object<T> {
         // it will will correctly rebuilt the Rc
         let rebuilt = ::std::hint::black_box(unsafe { Rc::from_raw(pt) });
         let previous_strong_count = ::std::hint::black_box(Rc::strong_count(&rebuilt));
-        ::std::hint::black_box(crate::increment_strong_count(pt));
+        ::std::hint::black_box(increment_strong_count(pt));
         let new_strong_count = ::std::hint::black_box(Rc::strong_count(&rebuilt));
         assert_eq!(new_strong_count, previous_strong_count + 1); // Will panic if not
         Object(Some(rebuilt))
@@ -3835,23 +3511,23 @@ pub mod rcmut {
     use ::std::mem::{self, MaybeUninit};
 
     pub fn array_object_from_rc<T>(data: Rc<[T]>) -> crate::Object<[T]> {
-        crate::Object(Some(unsafe { crate::rcmut::from_rc(data) }))
+        crate::Object(Some(unsafe { from_rc(data) }))
     }
     pub fn array_object_from_box<T>(data: Box<[T]>) -> crate::Object<[T]> {
         let data: Rc<[T]> = data.into();
-        crate::Object(Some(unsafe { crate::rcmut::from_rc(data) }))
+        crate::Object(Some(unsafe { from_rc(data) }))
     }
     pub struct Array<T> {
         pub data: Box<[T]>,
     }
     impl<T> Array<T> {
         pub fn new(data: Box<[T]>) -> crate::Object<Array<T>> {
-            crate::Object(Some(crate::rcmut::new(Array { data })))
+            crate::Object(Some(new(Array { data })))
         }
 
         pub fn placebos_usize_object(length: usize) -> crate::Object<Array<MaybeUninit<T>>> {
             let x = crate::array::placebos_box_usize::<T>(length);
-            crate::rcmut::Array::<MaybeUninit<T>>::new(x)
+            Array::<MaybeUninit<T>>::new(x)
         }
     }
     /// A reference counted smart pointer with unrestricted mutability.
@@ -3863,51 +3539,51 @@ pub mod rcmut {
     }
     /// Retrieve the inner Rc as a reference.
     pub unsafe fn from<T>(value: Box<T>) -> RcMut<T> {
-        mem::transmute(Rc::new(*value))
+        unsafe { mem::transmute(Rc::new(*value)) }
     }
 
     pub unsafe fn from_rc<T: ?Sized>(value: Rc<T>) -> RcMut<T> {
-        mem::transmute(value)
+        unsafe { mem::transmute(value) }
     }
 
     pub unsafe fn as_rc<T: ?Sized>(this: &RcMut<T>) -> &Rc<T> {
-        mem::transmute(this)
+        unsafe { mem::transmute(this) }
     }
     pub unsafe fn to_rc<T: ?Sized>(this: RcMut<T>) -> Rc<T> {
-        mem::transmute(this)
+        unsafe { mem::transmute(this) }
     }
 
     /// Retrieve the inner Rc as a mutable reference.
     pub unsafe fn as_rc_mut<T: ?Sized>(this: &mut RcMut<T>) -> &mut Rc<T> {
-        mem::transmute(this)
+        unsafe { mem::transmute(this) }
     }
 
     /// Get a reference to the value.
     #[inline]
     pub unsafe fn borrow<T: ?Sized>(this: &RcMut<T>) -> &T {
-        mem::transmute(this.get())
+        unsafe { &*this.get() }
     }
 
     /// Get a mutable reference to the value.
     #[inline]
     pub unsafe fn borrow_mut<T: ?Sized>(this: &mut RcMut<T>) -> &mut T {
-        mem::transmute(this.get())
+        unsafe { &mut *this.get() }
     }
 
     #[cfg(feature = "sync")]
     pub unsafe fn downcast<T: 'static + Send + Sync>(
         this: RcMut<crate::DynAny>,
     ) -> Option<RcMut<T>> {
-        let t: Rc<crate::DynAny> = to_rc(this);
+        let t: Rc<crate::DynAny> = unsafe { to_rc(this) };
         let t: Rc<T> = Rc::downcast::<T>(t).ok()?;
-        mem::transmute(t)
+        unsafe { mem::transmute(t) }
     }
 
     #[cfg(not(feature = "sync"))]
     pub unsafe fn downcast<T: 'static>(this: RcMut<crate::DynAny>) -> Option<RcMut<T>> {
-        let t: Rc<crate::DynAny> = to_rc(this);
+        let t: Rc<crate::DynAny> = unsafe { to_rc(this) };
         let t: Rc<T> = Rc::downcast::<T>(t).ok()?;
-        mem::transmute(t)
+        unsafe { mem::transmute(t) }
     }
 }
 
@@ -3988,7 +3664,8 @@ where
     Rc::new(|x: A| UpcastBox::upcast(&x))
 }
 pub fn upcast_box_box<A: ?Sized, B: ?Sized>() -> Rc<impl Fn(Box<A>) -> Box<B>>
-    where A: UpcastBox<B>,
+where
+    A: UpcastBox<B>,
 {
     Rc::new(|x: Box<A>| UpcastBox::upcast(x.as_ref()))
 }
@@ -4038,8 +3715,9 @@ pub trait UpcastBox<T: ?Sized> {
     fn upcast(&self) -> Box<T>;
 }
 
-impl <T: ?Sized, U> UpcastBox<T> for Rc<U>
-  where U: UpcastBox<T>
+impl<T: ?Sized, U> UpcastBox<T> for Rc<U>
+where
+    U: UpcastBox<T>,
 {
     fn upcast(&self) -> Box<T> {
         UpcastBox::upcast(AsRef::as_ref(self))
@@ -4050,7 +3728,7 @@ pub trait AnyRef {
     fn as_any_ref(&self) -> &dyn Any;
 }
 
-impl <T: 'static> AnyRef for T {
+impl<T: 'static> AnyRef for T {
     fn as_any_ref(&self) -> &dyn Any {
         self
     }

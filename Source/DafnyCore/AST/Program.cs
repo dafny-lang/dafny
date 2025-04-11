@@ -6,7 +6,7 @@ using Microsoft.Dafny.Auditor;
 
 namespace Microsoft.Dafny;
 
-public class Program : NodeWithComputedRange {
+public class Program : NodeWithoutOrigin {
   public CompilationData Compilation { get; }
 
   [ContractInvariantMethod]
@@ -14,6 +14,8 @@ public class Program : NodeWithComputedRange {
     Contract.Invariant(FullName != null);
     Contract.Invariant(DefaultModule != null);
   }
+
+  public override TokenRange EntireRange => new TokenRange(Token.NoToken, Token.NoToken);
 
   public bool HasParseErrors { get; set; }
 
@@ -120,7 +122,7 @@ public class Program : NodeWithComputedRange {
   }
 
   public Token GetFirstTokenForUri(Uri uri) {
-    return this.FindNodesInUris(uri).MinBy(n => n.Origin.StartToken.pos)?.StartToken;
+    return this.FindNodesInUris(uri).MinBy(n => n.StartToken.pos)?.StartToken;
   }
 
   public override IEnumerable<INode> Children => new[] { DefaultModule };

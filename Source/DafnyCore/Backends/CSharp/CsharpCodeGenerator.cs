@@ -113,7 +113,7 @@ namespace Microsoft.Dafny.Compilers {
       foreach (var module in p.Modules()) {
         foreach (ICallable callable in ModuleDefinition.AllCallables(
                    module.TopLevelDecls)) {
-          if ((callable is Method method) &&
+          if ((callable is MethodOrConstructor method) &&
               Attributes.Contains(method.Attributes, attr)) {
             return true;
           }
@@ -730,7 +730,7 @@ namespace Microsoft.Dafny.Compilers {
         (ty.AsTypeParameter != null && refTy && datatype.TypeArgs.Contains(ty.AsTypeParameter))
         || ty.TypeArgs.Exists(arg => InvalidType(arg, refTy || ty.IsRefType));
 
-      if (datatype.Ctors.Any(ctor => ctor.Formals.Any(f => !f.IsGhost && InvalidType(f.SyntacticType, false)))) {
+      if (datatype.Ctors.Any(ctor => ctor.Formals.Any(f => !f.IsGhost && InvalidType(f.SafeSyntacticType, false)))) {
         return;
       }
 
@@ -942,7 +942,7 @@ namespace Microsoft.Dafny.Compilers {
         if (member is Function fn && !NeedsCustomReceiver(member)) {
           CreateFunction(IdName(fn), CombineAllTypeArguments(fn), fn.Ins, fn.ResultType, fn.Origin, fn.IsStatic,
             false, fn, interfaceTree, false, false);
-        } else if (member is Method m && !NeedsCustomReceiver(member)) {
+        } else if (member is MethodOrConstructor m && !NeedsCustomReceiver(member)) {
           CreateMethod(m, CombineAllTypeArguments(m), false, interfaceTree, false, false);
         } else if (member is ConstantField c && !NeedsCustomReceiver(member)) {
           CreateFunctionOrGetter(c, IdName(c), dt, false, false, false, new ClassWriter(this, interfaceTree, null));
@@ -966,12 +966,12 @@ namespace Microsoft.Dafny.Compilers {
         foreach (var tp in d.TypeArgs) {
           bool InvalidType(Type ty) => (ty.AsTypeParameter != null && ty.AsTypeParameter.Equals(tp))
                                        || ty.TypeArgs.Exists(InvalidType);
-          bool InvalidFormal(Formal f) => !f.IsGhost && InvalidType(f.SyntacticType);
+          bool InvalidFormal(Formal f) => !f.IsGhost && InvalidType(f.SafeSyntacticType);
           switch (tp.Variance) {
             //Can only be in output
             case TypeParameter.TPVariance.Co:
               if ((member is Function f && f.Ins.Exists(InvalidFormal))
-                  || (member is Method m && m.Ins.Exists(InvalidFormal))
+                  || (member is MethodOrConstructor m && m.Ins.Exists(InvalidFormal))
                   || NeedsTypeDescriptor(tp)) {
                 return true;
               }
@@ -1415,7 +1415,7 @@ namespace Microsoft.Dafny.Compilers {
         return InstanceMemberWriter;
       }
 
-      public ConcreteSyntaxTree /*?*/ CreateMethod(Method m, List<TypeArgumentInstantiation> typeArgs, bool createBody, bool forBodyInheritance, bool lookasideBody) {
+      public ConcreteSyntaxTree /*?*/ CreateMethod(MethodOrConstructor m, List<TypeArgumentInstantiation> typeArgs, bool createBody, bool forBodyInheritance, bool lookasideBody) {
         return CodeGenerator.CreateMethod(m, typeArgs, createBody, Writer(m.IsStatic, createBody, m), forBodyInheritance, lookasideBody);
       }
 
@@ -1450,7 +1450,7 @@ namespace Microsoft.Dafny.Compilers {
       public void Finish() { }
     }
 
-    protected ConcreteSyntaxTree/*?*/ CreateMethod(Method m, List<TypeArgumentInstantiation> typeArgs, bool createBody, ConcreteSyntaxTree wr, bool forBodyInheritance, bool lookasideBody) {
+    protected ConcreteSyntaxTree/*?*/ CreateMethod(MethodOrConstructor m, List<TypeArgumentInstantiation> typeArgs, bool createBody, ConcreteSyntaxTree wr, bool forBodyInheritance, bool lookasideBody) {
       var customReceiver = createBody && !forBodyInheritance && NeedsCustomReceiver(m);
       var keywords = Keywords(createBody, m.IsStatic || customReceiver, false);
       var returnType = GetTargetReturnTypeReplacement(m, wr);
@@ -1481,7 +1481,7 @@ namespace Microsoft.Dafny.Compilers {
       return (isPublic ? "public " : "") + (isStatic ? "static " : "") + (isExtern ? "extern " : "") + (Synthesize && !isStatic && isPublic ? "virtual " : "");
     }
 
-    internal ConcreteSyntaxTree GetMethodParameters(Method m, List<TypeArgumentInstantiation> typeArgs, bool lookasideBody, bool customReceiver, string returnType) {
+    internal ConcreteSyntaxTree GetMethodParameters(MethodOrConstructor m, List<TypeArgumentInstantiation> typeArgs, bool lookasideBody, bool customReceiver, string returnType) {
       var parameters = GetFunctionParameters(m.Ins, m, typeArgs, lookasideBody, customReceiver);
       if (returnType == "void") {
         WriteFormals(parameters.Nodes.Any() ? ", " : "", m.Outs, parameters);
@@ -1505,7 +1505,7 @@ namespace Microsoft.Dafny.Compilers {
       return parameters;
     }
 
-    internal string GetTargetReturnTypeReplacement(Method m, ConcreteSyntaxTree wr) {
+    internal string GetTargetReturnTypeReplacement(MethodOrConstructor m, ConcreteSyntaxTree wr) {
       string/*?*/ targetReturnTypeReplacement = null;
       foreach (var p in m.Outs) {
         if (!p.IsGhost) {
@@ -1986,7 +1986,7 @@ namespace Microsoft.Dafny.Compilers {
       wr.Write($"out {actualOutParamName}");
     }
 
-    protected override bool UseReturnStyleOuts(Method m, int nonGhostOutCount) {
+    protected override bool UseReturnStyleOuts(MethodOrConstructor m, int nonGhostOutCount) {
       return nonGhostOutCount == 1;
     }
 
@@ -2050,7 +2050,7 @@ namespace Microsoft.Dafny.Compilers {
     protected override void EmitHalt(IOrigin tok, Expression/*?*/ messageExpr, ConcreteSyntaxTree wr) {
       var exceptionMessage = Expr(messageExpr, false, wr.Fork());
       if (tok != null) {
-        exceptionMessage.Prepend(new LineSegment($"\"{tok.TokenToString(Options).Replace(@"\", @"\\")}: \" + "));
+        exceptionMessage.Prepend(new LineSegment($"\"{tok.OriginToString(Options).Replace(@"\", @"\\")}: \" + "));
       }
       if (UnicodeCharEnabled && messageExpr.Type.IsStringType) {
         exceptionMessage.Write(".ToVerbatimString(false)");
@@ -2646,7 +2646,7 @@ namespace Microsoft.Dafny.Compilers {
         return SimpleLvalue(obj);
       } else if (memberStatus == DatatypeWrapperEraser.MemberCompileStatus.AlwaysTrue) {
         return SimpleLvalue(w => w.Write("true"));
-      } else if (member is SpecialField sf && !(member is ConstantField)) {
+      } else if (member is SpecialField sf) {
         GetSpecialFieldInfo(sf.SpecialId, sf.IdParam, objType, out string compiledName, out string _, out string _);
         if (compiledName.Length != 0) {
           return SuffixLvalue(obj, ".{0}", compiledName);
@@ -3366,7 +3366,8 @@ namespace Microsoft.Dafny.Compilers {
       } else if (fromType.Equals(toType) || fromType.AsNewtype != null || toType.AsNewtype != null) {
         wr.Append(Expr(fromExpr, inLetExprBody, wStmts));
       } else {
-        Contract.Assert(false, $"not implemented for C#: {fromType} -> {toType}");
+        wr = EmitDowncast(fromType, toType, fromExpr.Origin, wr);
+        EmitExpr(fromExpr, inLetExprBody, wr, wStmts);
       }
     }
 
@@ -3412,7 +3413,7 @@ namespace Microsoft.Dafny.Compilers {
       TrExprList(elements, wr, inLetExprBody, wStmts, typeAt: _ => ct.Arg);
     }
 
-    protected override void EmitMapDisplay(MapType mt, IOrigin tok, List<ExpressionPair> elements,
+    protected override void EmitMapDisplay(MapType mt, IOrigin tok, List<MapDisplayEntry> elements,
         bool inLetExprBody, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
       var arguments = elements.Select(p => {
         var result = new ConcreteSyntaxTree();

@@ -164,13 +164,12 @@ NoGhost - disable printing of functions, ghost methods, and proof
       return ToStringWithoutNewline(wr);
     }
 
-    public static string MethodSignatureToString(DafnyOptions options, Method m) {
+    public static string MethodSignatureToString(DafnyOptions options, MethodOrConstructor m) {
       Contract.Requires(m != null);
-      using (var wr = new System.IO.StringWriter()) {
-        var pr = new Printer(wr, options);
-        pr.PrintMethod(m, 0, true);
-        return ToStringWithoutNewline(wr);
-      }
+      using var wr = new StringWriter();
+      var pr = new Printer(wr, options);
+      pr.PrintMethod(m, 0, true);
+      return ToStringWithoutNewline(wr);
     }
 
     /// <summary>
@@ -274,7 +273,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
           var r = module.CallGraph.GetSCC(callable);
           foreach (var m in r) {
             Indent(indent);
-            var maybeByMethod = m is Method method && method.IsByMethod ? " (by method)" : "";
+            var maybeByMethod = m is Method { IsByMethod: true } ? " (by method)" : "";
             wr.WriteLine($" *   {m.NameRelativeToModule}{maybeByMethod}");
           }
         }
@@ -726,11 +725,10 @@ NoGhost - disable printing of functions, ghost methods, and proof
         if (PrintModeSkipGeneral(project, m.Origin)) { continue; }
         if (printMode == PrintModes.Serialization && Attributes.Contains(m.Attributes, "auto_generated")) {
           // omit this declaration
-        } else if (m is Method) {
+        } else if (m is MethodOrConstructor methodOrConstructor) {
           if (state != 0) { wr.WriteLine(); }
-          PrintMethod((Method)m, indent, false);
-          var com = m as ExtremeLemma;
-          if (com != null && com.PrefixLemma != null) {
+          PrintMethod(methodOrConstructor, indent, false);
+          if (m is ExtremeLemma { PrefixLemma: not null } com) {
             Indent(indent); wr.WriteLine("/***");
             PrintMethod(com.PrefixLemma, indent, false);
             Indent(indent); wr.WriteLine("***/");
@@ -1036,7 +1034,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
              && tok.Uri != null && !project.ContainsSourceFile(tok.Uri);
     }
 
-    public void PrintMethod(Method method, int indent, bool printSignatureOnly) {
+    public void PrintMethod(MethodOrConstructor method, int indent, bool printSignatureOnly) {
       Contract.Requires(method != null);
 
       if (PrintModeSkipFunctionOrMethod(method.IsGhost, method.Attributes, method.Name)) { return; }

@@ -72,7 +72,7 @@ ghost function Pred(x: int, y: int): bool
 method M0(S: set<C>)
   modifies S
   ensures forall o :: o in S ==> o.data == 85
-  ensures forall o :: o !in S && !fresh(o) ==> o.data == old(o.data)
+  ensures forall o :: o !in S && o != null && !fresh(o) ==> o.data == old(o.data)
 {
   forall s | s in S {
     s.data := 85;

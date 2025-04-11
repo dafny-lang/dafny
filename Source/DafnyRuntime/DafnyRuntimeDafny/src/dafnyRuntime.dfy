@@ -13,7 +13,7 @@ abstract module {:options "/functionSyntax:4"} Dafny {
   // A trait for objects with a Valid() predicate. Necessary in order to
   // generalize some proofs, but also useful for reducing the boilerplate
   // that most such objects need to include.
-  trait Validatable {
+  trait Validatable extends object {
     // Ghost state tracking the common set of objects most
     // methods need to read.
     ghost var Repr: set<object>
@@ -148,7 +148,7 @@ abstract module {:options "/functionSyntax:4"} Dafny {
       requires forall i | 0 <= i < size :: values[i].Set?
       // Explicitly doesn't ensure Valid()!
       ensures ret.Valid()
-      // This is imporant, because it's tempting to just return this when possible
+      // This is important, because it's tempting to just return this when possible
       // to save allocations, but that leads to inconsistencies.
       ensures ret as object != this as object
       ensures |ret.values| as size_t == size
@@ -177,7 +177,7 @@ abstract module {:options "/functionSyntax:4"} Dafny {
   // This could easily be implemented by the same native type as NativeArray.
   // TODO: Need to make sure NativeArray.Freeze() never returns the same object,
   // as a.Freeze() == a will lead to unsoundness. Write a Dafny test first!
-  trait {:extern} ImmutableArray<T> {
+  trait {:extern} ImmutableArray<T> extends object {
 
     ghost const values: seq<T>
 
@@ -376,7 +376,7 @@ abstract module {:options "/functionSyntax:4"} Dafny {
       requires inv(t)
   }
 
-  trait {:extern} Sequence<T> {
+  trait {:extern} Sequence<T> extends object {
 
     // This is only here to support the attempts some runtimes make to
     // track what sequence values are actually sequences of characters.
@@ -501,24 +501,12 @@ abstract module {:options "/functionSyntax:4"} Dafny {
 
     // Sequence methods that must be static because they require T to be equality-supporting
 
-    static method EqualUpTo<T(==)>(left: Sequence<T>, right: Sequence<T>, index: size_t) returns (ret: bool)
+    static method {:axiom} {:extern} EqualUpTo<T(==)>(left: Sequence<T>, right: Sequence<T>, index: size_t) returns (ret: bool)
       requires left.Valid()
       requires right.Valid()
       requires index <= left.Cardinality()
       requires index <= right.Cardinality()
       ensures ret == (left.Value()[..index] == right.Value()[..index])
-    {
-      for i := 0 to index
-        invariant left.Value()[..i] == right.Value()[..i]
-      {
-        var leftElement := left.Select(i);
-        var rightElement := right.Select(i);
-        if leftElement != rightElement {
-          return false;
-        }
-      }
-      return true;
-    }
 
     static method Equal<T(==)>(left: Sequence<T>, right: Sequence<T>) returns (ret: bool)
       requires left.Valid()
@@ -884,7 +872,10 @@ abstract module {:options "/functionSyntax:4"} Dafny {
       ensures ret.Length() == Cardinality()
       ensures ret.values == Value()
     {
-      var expr := box.Get();
+      var expr : Sequence<T> := box.Get();
+      if expr is ArraySequence<T> {
+        return (expr as ArraySequence<T>).values;
+      }
       ret := expr.ToArray();
 
       var arraySeq := new ArraySequence(ret);

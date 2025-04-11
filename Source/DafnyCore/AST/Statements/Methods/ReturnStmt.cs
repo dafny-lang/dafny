@@ -16,7 +16,7 @@ public class ReturnStmt : ProduceStmt, ICloneable<ReturnStmt> {
   }
 
   [SyntaxConstructor]
-  public ReturnStmt(IOrigin origin, List<AssignmentRhs> rhss, Attributes? attributes = null)
+  public ReturnStmt(IOrigin origin, List<AssignmentRhs>? rhss, Attributes? attributes = null)
     : base(origin, rhss, attributes) {
     Contract.Requires(origin != null);
   }

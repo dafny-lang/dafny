@@ -1,6 +1,7 @@
 DatatypeExport.dfy(41,30): Error: unresolved identifier: CT1
-DatatypeExport.dfy(46,11): Error: member CT2 does not exist in type A.T
+DatatypeExport.dfy(46,11): Error: type 'T' does not contain a datatype constructor 'CT2'
+DatatypeExport.dfy(46,21): Error: unresolved identifier: n
 DatatypeExport.dfy(48,40): Error: member 'CT1?' has not been imported in this scope and cannot be accessed here
 DatatypeExport.dfy(48,59): Error: member 'X' has not been imported in this scope and cannot be accessed here
 DatatypeExport.dfy(56,30): Error: unresolved identifier: CT1
-5 resolution/type errors detected in DatatypeExport.dfy
+6 resolution/type errors detected in DatatypeExport.dfy

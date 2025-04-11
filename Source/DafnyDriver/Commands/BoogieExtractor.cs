@@ -129,7 +129,7 @@ namespace Microsoft.Dafny.Compilers {
       base.VisitOneDeclaration(decl); // this will visit the declaration's members
     }
 
-    public override void VisitMethod(Method method) {
+    public override void VisitMethod(MethodOrConstructor method) {
       if (method is not Lemma lemma) {
         return;
       }

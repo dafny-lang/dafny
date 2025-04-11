@@ -10,8 +10,8 @@ namespace Microsoft.Dafny;
 /// </summary>
 public class ValuetypeDecl : TopLevelDeclWithMembers {
   public override string WhatKind { get { return "type"; } }
-  readonly Func<Type, bool> typeTester;
-  readonly Func<List<Type>, Type>/*?*/ typeCreator;
+  Func<Type, bool> typeTester;
+  Func<List<Type>, Type>/*?*/ typeCreator;
 
   public override bool AcceptThis => true;
 

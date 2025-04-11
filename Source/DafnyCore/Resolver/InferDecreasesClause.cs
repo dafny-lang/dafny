@@ -38,7 +38,7 @@ public class InferDecreasesClause {
           // always show the decrease clause, since at the very least it will start with "_k", which the programmer did not write explicitly
           showIt = true;
         } else {
-          showIt = ((Method)m).IsRecursive;
+          showIt = ((MethodOrConstructor)m).IsRecursive;
         }
 
         if (showIt) {
@@ -78,13 +78,13 @@ public class InferDecreasesClause {
         }
       }
 
-      if (clbl is Function || clbl is Method) {
+      if (clbl is Function or MethodOrConstructor) {
         TopLevelDeclWithMembers enclosingType;
         MemberDecl originalMember;
         if (clbl is Function fc && !fc.IsStatic) {
           enclosingType = (TopLevelDeclWithMembers)fc.EnclosingClass;
           originalMember = fc.Original;
-        } else if (clbl is Method mc && !mc.IsStatic) {
+        } else if (clbl is MethodOrConstructor mc && !mc.IsStatic) {
           enclosingType = (TopLevelDeclWithMembers)mc.EnclosingClass;
           originalMember = mc.Original;
         } else {

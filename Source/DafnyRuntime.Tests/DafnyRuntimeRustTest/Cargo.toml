@@ -5,3 +5,7 @@ edition = "2021"
 
 [dependencies]
 dafny_runtime = {path= "../../DafnyRuntime/DafnyRuntimeRust"}
+
+[features]
+sync = ["dafny_runtime/sync"]
+small-int = ["dafny_runtime/small-int"]

@@ -8,26 +8,26 @@ namespace Microsoft.Dafny;
 public class Formal : NonglobalVariable {
   public Attributes? Attributes { get; set; }
 
-  public readonly bool InParam;  // true to in-parameter, false for out-parameter
+  public bool InParam;  // true to in-parameter, false for out-parameter
   public override bool IsMutable => !InParam;
-  public readonly bool IsOld;
+  public bool IsOld;
   public Expression? DefaultValue;
-  public readonly bool IsNameOnly;
-  public readonly bool IsOlder;
-  public readonly string? NameForCompilation;
+  public bool IsNameOnly;
+  public bool IsOlder;
+  public string NameForCompilation;
 
-  public Formal(IOrigin origin, string name, Type type, bool inParam, bool isGhost, Expression? defaultValue,
+  public Formal(IOrigin origin, string name, Type? type, bool inParam, bool isGhost, Expression? defaultValue,
     Attributes? attributes = null,
     bool isOld = false, bool isNameOnly = false, bool isOlder = false, string? nameForCompilation = null)
-    : this(origin, new Name(origin.StartToken, name), type, inParam, isGhost, defaultValue, attributes,
+    : this(origin, new Name(origin.ReportingRange.StartToken, name), type, inParam, isGhost, defaultValue, attributes,
       isOld, isNameOnly, isOlder, nameForCompilation) {
   }
 
   [SyntaxConstructor]
-  public Formal(IOrigin origin, Name nameNode, Type type, bool inParam, bool isGhost, Expression? defaultValue,
+  public Formal(IOrigin origin, Name nameNode, Type? syntacticType, bool inParam, bool isGhost, Expression? defaultValue,
     Attributes? attributes = null,
     bool isOld = false, bool isNameOnly = false, bool isOlder = false, string? nameForCompilation = null)
-    : base(origin, nameNode, type, isGhost) {
+    : base(origin, nameNode, syntacticType, isGhost) {
     Contract.Requires(inParam || defaultValue == null);
     Contract.Requires(!isNameOnly || (inParam && !nameNode.Value.StartsWith("#")));
     InParam = inParam;
@@ -37,6 +37,16 @@ public class Formal : NonglobalVariable {
     IsNameOnly = isNameOnly;
     IsOlder = isOlder;
     NameForCompilation = nameForCompilation ?? nameNode.Value;
+  }
+
+  public Formal(Cloner cloner, Formal original) : base(cloner, original) {
+    InParam = original.InParam;
+    IsOld = original.IsOld;
+    DefaultValue = cloner.CloneExpr(original.DefaultValue);
+    Attributes = cloner.CloneAttributes(original.Attributes);
+    IsNameOnly = original.IsNameOnly;
+    IsOlder = original.IsOlder;
+    NameForCompilation = original.NameForCompilation;
   }
 
   public bool HasName => !Name.StartsWith("#");
@@ -60,9 +70,6 @@ public class Formal : NonglobalVariable {
 public class ImplicitFormal : Formal {
   public ImplicitFormal(IOrigin origin, string name, Type type, bool inParam, bool isGhost)
     : base(origin, name, type, inParam, isGhost, null, null) {
-    Contract.Requires(origin != null);
-    Contract.Requires(name != null);
-    Contract.Requires(type != null);
   }
 }
 
@@ -75,7 +82,5 @@ public class ImplicitFormal : Formal {
 public class ThisSurrogate : ImplicitFormal {
   public ThisSurrogate(IOrigin origin, Type type)
     : base(origin, "this", type, true, false) {
-    Contract.Requires(origin != null);
-    Contract.Requires(type != null);
   }
 }

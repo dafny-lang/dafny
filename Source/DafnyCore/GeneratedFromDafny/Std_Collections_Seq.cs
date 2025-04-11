@@ -395,5 +395,34 @@ namespace Std.Collections.Seq {
         goto TAIL_CALL_START;
       }
     }
+    public static bool All<__T>(Dafny.ISequence<__T> s, Func<__T, bool> p)
+    {
+      return Dafny.Helpers.Id<Func<Dafny.ISequence<__T>, Func<__T, bool>, bool>>((_0_s, _1_p) => Dafny.Helpers.Quantifier<BigInteger>(Dafny.Helpers.IntegerRange(BigInteger.Zero, new BigInteger((_0_s).Count)), true, (((_forall_var_0) => {
+        BigInteger _2_i = (BigInteger)_forall_var_0;
+        return !(((_2_i).Sign != -1) && ((_2_i) < (new BigInteger((_0_s).Count)))) || (Dafny.Helpers.Id<Func<__T, bool>>(_1_p)((_0_s).Select(_2_i)));
+      }))))(s, p);
+    }
+    public static bool AllNot<__T>(Dafny.ISequence<__T> s, Func<__T, bool> p)
+    {
+      return Dafny.Helpers.Id<Func<Dafny.ISequence<__T>, Func<__T, bool>, bool>>((_0_s, _1_p) => Dafny.Helpers.Quantifier<BigInteger>(Dafny.Helpers.IntegerRange(BigInteger.Zero, new BigInteger((_0_s).Count)), true, (((_forall_var_0) => {
+        BigInteger _2_i = (BigInteger)_forall_var_0;
+        return !(((_2_i).Sign != -1) && ((_2_i) < (new BigInteger((_0_s).Count)))) || (!(Dafny.Helpers.Id<Func<__T, bool>>(_1_p)((_0_s).Select(_2_i))));
+      }))))(s, p);
+    }
+    public static bool Partitioned<__T>(Dafny.ISequence<__T> s, Func<__T, bool> p)
+    {
+    TAIL_CALL_START: ;
+      if ((s).Equals(Dafny.Sequence<__T>.FromElements())) {
+        return true;
+      } else if (Dafny.Helpers.Id<Func<__T, bool>>(p)((s).Select(BigInteger.Zero))) {
+        Dafny.ISequence<__T> _in0 = (s).Drop(BigInteger.One);
+        Func<__T, bool> _in1 = p;
+        s = _in0;
+        p = _in1;
+        goto TAIL_CALL_START;
+      } else {
+        return Std.Collections.Seq.__default.AllNot<__T>((s).Drop(BigInteger.One), p);
+      }
+    }
   }
 } // end of namespace Std.Collections.Seq

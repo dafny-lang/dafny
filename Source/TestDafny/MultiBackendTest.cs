@@ -151,7 +151,7 @@ public class MultiBackendTest {
       resolutionOptions.Add(
         new ResolutionSetting(
           "refresh",
-          ["--type-system-refresh"],
+          ["--type-system-refresh", "--general-traits=datatype", "--general-newtypes"],
           [".refresh.expect", ".verifier.expect"],
           (int)options.RefreshExitCode)
       );
@@ -205,7 +205,7 @@ public class MultiBackendTest {
     var success = true;
     foreach (var plugin in plugins) {
       foreach (var compiler in plugin.GetCompilers(DafnyOptions.Default)) {
-        if (!compiler.IsStable || compilerFilter.Any() && !compilerFilter.Contains(compiler.TargetId)) {
+        if (!compiler.IsStable || (compilerFilter.Any() && !compilerFilter.Contains(compiler.TargetId))) {
           continue;
         }
 
@@ -290,7 +290,7 @@ public class MultiBackendTest {
       new("legacy", ["--type-system-refresh=false", "--general-traits=legacy", "--general-newtypes=false"],
         [".expect"],
         options.ExpectExitCode ?? 0),
-      new("refresh", ["--type-system-refresh"],
+      new("refresh", ["--type-system-refresh", "--general-traits=datatype", "--general-newtypes"],
         [".refresh.expect", ".expect"],
         options.RefreshExitCode ?? options.ExpectExitCode ?? 0)
     };

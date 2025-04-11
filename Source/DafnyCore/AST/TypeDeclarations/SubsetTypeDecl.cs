@@ -8,10 +8,10 @@ namespace Microsoft.Dafny;
 
 public class SubsetTypeDecl : TypeSynonymDecl, RedirectingTypeDecl, ICanAutoRevealDependencies, ICanVerify {
   public override string WhatKind => "subset type";
-  public readonly BoundVar Var;
-  public readonly Expression Constraint;
+  public BoundVar Var;
+  public Expression Constraint;
   public enum WKind { CompiledZero, Compiled, Ghost, OptOut, Special }
-  public readonly WKind WitnessKind;
+  public WKind WitnessKind;
   public Expression? Witness;  // non-null iff WitnessKind is Compiled or Ghost
 
   private bool? constraintIsCompilable = null;
@@ -51,7 +51,7 @@ public class SubsetTypeDecl : TypeSynonymDecl, RedirectingTypeDecl, ICanAutoReve
       );
 
   BoundVar RedirectingTypeDecl.Var => Var;
-  PreType RedirectingTypeDecl.BasePreType => Var.PreType;
+  PreType? RedirectingTypeDecl.BasePreType => Var.PreType;
   Type RedirectingTypeDecl.BaseType => Var.Type;
   Expression RedirectingTypeDecl.Constraint => Constraint;
   WKind RedirectingTypeDecl.WitnessKind => WitnessKind;

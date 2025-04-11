@@ -5,10 +5,10 @@ using System.Diagnostics.Contracts;
 namespace Microsoft.Dafny;
 
 public class IfStmt : Statement, ICloneable<IfStmt>, ICanFormat {
-  public readonly bool IsBindingGuard;
-  public readonly Expression? Guard;
-  public readonly BlockStmt Thn;
-  public readonly Statement? Els;
+  public bool IsBindingGuard;
+  public Expression? Guard;
+  public BlockStmt Thn;
+  public Statement? Els;
   [ContractInvariantMethod]
   void ObjectInvariant() {
     Contract.Invariant(!IsBindingGuard || (Guard is ExistsExpr && ((ExistsExpr)Guard).Range == null));
@@ -27,7 +27,7 @@ public class IfStmt : Statement, ICloneable<IfStmt>, ICanFormat {
     Els = cloner.CloneStmt(original.Els, false);
   }
 
-  public IfStmt(IOrigin origin, bool isBindingGuard, Expression guard, BlockStmt thn, Statement els)
+  public IfStmt(IOrigin origin, bool isBindingGuard, Expression? guard, BlockStmt thn, Statement? els)
     : base(origin) {
     Contract.Requires(origin != null);
     Contract.Requires(!isBindingGuard || (guard is ExistsExpr && ((ExistsExpr)guard).Range == null));
@@ -39,7 +39,7 @@ public class IfStmt : Statement, ICloneable<IfStmt>, ICanFormat {
   }
 
   [SyntaxConstructor]
-  public IfStmt(IOrigin origin, bool isBindingGuard, Expression guard, BlockStmt thn, Statement? els, Attributes? attributes)
+  public IfStmt(IOrigin origin, bool isBindingGuard, Expression? guard, BlockStmt thn, Statement? els, Attributes? attributes)
     : base(origin, attributes) {
     Contract.Requires(origin != null);
     Contract.Requires(!isBindingGuard || (guard is ExistsExpr && ((ExistsExpr)guard).Range == null));

@@ -89,7 +89,7 @@ internal class SymbolDeclarationResolver {
     switch (memberDeclaration) {
       case Function function:
         return ProcessFunction(scope, function);
-      case Method method:
+      case MethodOrConstructor method:
         // TODO handle the constructors explicitly? The constructor is a sub-class of Method.
         return ProcessMethod(scope, method);
       case Field field:
@@ -151,7 +151,7 @@ internal class SymbolDeclarationResolver {
       .Cast<ScopeSymbol>();
   }
 
-  private MethodSymbol ProcessMethod(Symbol scope, Method method) {
+  private MethodSymbol ProcessMethod(Symbol scope, MethodOrConstructor method) {
     var methodSymbol = new MethodSymbol(scope, method);
     foreach (var parameter in method.Ins) {
       cancellationToken.ThrowIfCancellationRequested();
@@ -177,7 +177,7 @@ internal class SymbolDeclarationResolver {
     return methodSymbol;
   }
 
-  private ScopeSymbol ProcessBlockStmt(ScopeSymbol rootBlock, BlockStmt blockStatement) {
+  private ScopeSymbol ProcessBlockStmt(ScopeSymbol rootBlock, BlockLikeStmt blockStatement) {
     var localVisitor = new LocalVariableDeclarationVisitor(logger, rootBlock);
     localVisitor.Resolve(blockStatement);
     return rootBlock;
@@ -189,7 +189,7 @@ internal class SymbolDeclarationResolver {
     return ProcessBlockStmt(new ScopeSymbol(functionSymbol, blockStatement), blockStatement);
   }
 
-  private ScopeSymbol ProcessMethodBody(MethodSymbol methodSymbol, BlockStmt blockStatement) {
+  private ScopeSymbol ProcessMethodBody(MethodSymbol methodSymbol, BlockLikeStmt blockStatement) {
     return ProcessBlockStmt(new ScopeSymbol(methodSymbol, blockStatement), blockStatement);
   }
 

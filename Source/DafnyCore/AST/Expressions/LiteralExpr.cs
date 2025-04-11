@@ -1,6 +1,9 @@
+#nullable enable
+using System;
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 using System.Numerics;
+using Microsoft.BaseTypes;
 
 
 namespace Microsoft.Dafny;
@@ -26,7 +29,7 @@ public class LiteralExpr : Expression, ICloneable<LiteralExpr> {
   ///     compiled into C# code.  The parser checks the validity of the escape sequences and the verifier deals
   ///     with turning them into single characters.
   /// </summary>
-  public readonly object Value;
+  public object? Value;
 
   [System.Diagnostics.Contracts.Pure]
   public static bool IsTrue(Expression e) {
@@ -55,9 +58,14 @@ public class LiteralExpr : Expression, ICloneable<LiteralExpr> {
   }
 
   [SyntaxConstructor]
-  public LiteralExpr(IOrigin origin, object value)
+  public LiteralExpr(IOrigin origin, object? value)
     : base(origin) {
-    this.Value = value is int n ? new BigInteger(n) : value;
+    this.Value = value switch {
+      int n => new BigInteger(n),
+      short n => new BigInteger(n),
+      long n => new BigInteger(n),
+      _ => value
+    };
   }
 
   public LiteralExpr(IOrigin origin)
@@ -115,6 +123,16 @@ public class LiteralExpr : Expression, ICloneable<LiteralExpr> {
 }
 
 public class CharLiteralExpr : LiteralExpr, ICloneable<CharLiteralExpr> {
+
+  /// <summary>
+  /// Because the base field type is object, we need an object constructor here as well
+  /// </summary>
+  [SyntaxConstructor]
+  public CharLiteralExpr(IOrigin origin, object value)
+    : base(origin, value) {
+    Contract.Requires(value != null);
+  }
+
   public CharLiteralExpr(IOrigin origin, string value)
     : base(origin, value) {
     Contract.Requires(value != null);
@@ -129,7 +147,7 @@ public class CharLiteralExpr : LiteralExpr, ICloneable<CharLiteralExpr> {
 }
 
 public class StringLiteralExpr : LiteralExpr, ICloneable<StringLiteralExpr> {
-  public readonly bool IsVerbatim;
+  public bool IsVerbatim;
   public StringLiteralExpr(IOrigin origin, string value, bool isVerbatim)
     : base(origin, value) {
     Contract.Requires(value != null);
@@ -150,7 +168,7 @@ public class StringLiteralExpr : LiteralExpr, ICloneable<StringLiteralExpr> {
 /// for 0-e (for integers) or 0.0-e (for reals).
 /// </summary>
 public class NegationExpression : ConcreteSyntaxExpression, ICloneable<NegationExpression> {
-  public readonly Expression E;
+  public Expression E;
 
   public NegationExpression Clone(Cloner cloner) {
     return new NegationExpression(cloner, this);
@@ -164,9 +182,9 @@ public class NegationExpression : ConcreteSyntaxExpression, ICloneable<NegationE
   public NegationExpression(IOrigin origin, Expression e)
     : base(origin) {
     Contract.Requires(origin != null);
-    Contract.Requires(e != null);
     E = e;
   }
+
   public override IEnumerable<Expression> SubExpressions {
     get {
       if (ResolvedExpression == null) {

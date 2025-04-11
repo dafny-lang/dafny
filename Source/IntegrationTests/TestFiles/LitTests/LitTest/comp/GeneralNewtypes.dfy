@@ -186,7 +186,7 @@ module Char {
     var c, u, r := Comparisons();
     print c, " ", u, " ", r, "\n"; // 'e' 'E' true
     MyString([u, u, u]);
-    MyString("hello");
+    MyString("HELLO");
     Mix();
     GoodOl'Char('B');
   }

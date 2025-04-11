@@ -8,11 +8,11 @@ using System.Threading;
 
 namespace Microsoft.Dafny;
 
-public abstract class Type : NodeWithComputedRange {
-  public static readonly BoolType Bool = new BoolType();
-  public static readonly CharType Char = new CharType();
-  public static readonly IntType Int = new IntType();
-  public static readonly RealType Real = new RealType();
+public abstract class Type : NodeWithOrigin {
+  public static BoolType Bool = new BoolType();
+  public static CharType Char = new CharType();
+  public static IntType Int = new IntType();
+  public static RealType Real = new RealType();
 
   [SyntaxConstructor]
   protected Type(IOrigin origin = null) : base(origin) {
@@ -30,13 +30,13 @@ public abstract class Type : NodeWithComputedRange {
     return new SeqType(new CharType());
   }
 
-  public static readonly BigOrdinalType BigOrdinal = new BigOrdinalType();
+  public static BigOrdinalType BigOrdinal = new();
 
   private static ThreadLocal<List<VisibilityScope>> _scopes = new();
   private static List<VisibilityScope> Scopes => _scopes.Value ??= [];
 
   [ThreadStatic]
-  private static bool scopesEnabled = false;
+  private static bool scopesEnabled;
 
   public virtual IEnumerable<Node> Nodes => [];
 
@@ -99,7 +99,7 @@ public abstract class Type : NodeWithComputedRange {
   }
 
   // Type arguments to the type
-  public List<Type> TypeArgs = [];
+  public virtual List<Type> TypeArgs { get; set; } = [];
 
   /// <summary>
   /// Add to "tps" the free type parameters in "this".
@@ -1817,6 +1817,11 @@ public abstract class BasicType : NonProxyType {
 }
 
 public class BoolType : BasicType {
+  [SyntaxConstructor]
+  public BoolType(IOrigin origin) : base(origin) { }
+
+  public BoolType() { }
+
   [Pure]
   public override string TypeName(DafnyOptions options, ModuleDefinition context, bool parseAble) {
     return "bool";
@@ -1829,6 +1834,12 @@ public class BoolType : BasicType {
 public class CharType : BasicType {
   public const char DefaultValue = 'D';
   public const string DefaultValueAsString = "'D'";
+
+  [SyntaxConstructor]
+  public CharType(IOrigin origin) : base(origin) { }
+
+  public CharType() { }
+
   [System.Diagnostics.Contracts.Pure]
   public override string TypeName(DafnyOptions options, ModuleDefinition context, bool parseAble) {
     return "char";
@@ -1863,6 +1874,12 @@ public class IntType : BasicType {
 }
 
 public class RealType : BasicType {
+  [SyntaxConstructor]
+  public RealType(IOrigin origin) : base(origin) {
+  }
+
+  public RealType() {
+  }
   [System.Diagnostics.Contracts.Pure]
   public override string TypeName(DafnyOptions options, ModuleDefinition context, bool parseAble) {
     return "real";
@@ -1879,6 +1896,13 @@ public class RealType : BasicType {
 }
 
 public class BigOrdinalType : BasicType {
+  [SyntaxConstructor]
+  public BigOrdinalType(IOrigin origin) : base(origin) {
+  }
+
+  public BigOrdinalType() {
+  }
+
   [System.Diagnostics.Contracts.Pure]
   public override string TypeName(DafnyOptions options, ModuleDefinition context, bool parseAble) {
     return "ORDINAL";
@@ -1895,8 +1919,18 @@ public class BigOrdinalType : BasicType {
 }
 
 public class BitvectorType : BasicType {
-  public readonly int Width;
-  public readonly NativeType NativeType;
+  public int Width;
+  public NativeType NativeType;
+
+  [SyntaxConstructor]
+  public BitvectorType(IOrigin origin, int width) : base(origin) {
+    Contract.Requires(0 <= width);
+    Width = width;
+  }
+
+  public BitvectorType() {
+  }
+
   public BitvectorType(DafnyOptions options, int width)
     : base() {
     Contract.Requires(0 <= width);
@@ -1963,215 +1997,11 @@ public class SelfType : NonProxyType {
   }
 }
 
-public abstract class CollectionType : NonProxyType {
-  public abstract string CollectionTypeName { get; }
-  public override IEnumerable<Node> Nodes => TypeArgs.SelectMany(ta => ta.Nodes);
-
-  public override string TypeName(DafnyOptions options, ModuleDefinition context, bool parseAble) {
-    Contract.Ensures(Contract.Result<string>() != null);
-    var targs = HasTypeArg() ? this.TypeArgsToString(options, context, parseAble) : "";
-    return CollectionTypeName + targs;
-  }
-  public Type Arg {
-    get {
-      Contract.Ensures(Contract.Result<Type>() != null);  // this is true only after "arg" has really been set (i.e., it follows from the precondition)
-      Contract.Assume(arg != null);  // This is really a precondition.  Don't call Arg until "arg" has been set.
-      return arg;
-    }
-  }  // denotes the Domain type for a Map
-
-  [FilledInDuringResolution]
-  private Type arg;
-  public Type ValueArg => TypeArgs.Last();
-
-  // The following methods, HasTypeArg and SetTypeArg/SetTypeArgs, are to be called during resolution to make sure that "arg" becomes set.
-  public bool HasTypeArg() {
-    return arg != null;
-  }
-  public void SetTypeArg(Type arg) {
-    Contract.Requires(arg != null);
-    Contract.Assume(this.arg == null);  // Can only set it once.  This is really a precondition.
-    this.arg = arg;
-
-    Debug.Assert(TypeArgs.Count == 0);
-    TypeArgs.Add(arg);
-  }
-  public virtual void SetTypeArgs(Type arg, Type other) {
-    Contract.Requires(arg != null);
-    Contract.Requires(other != null);
-    Contract.Assume(this.arg == null);  // Can only set it once.  This is really a precondition.
-    this.arg = arg;
-
-    Debug.Assert(TypeArgs.Count == 0);
-    TypeArgs.Add(arg);
-    TypeArgs.Add(other);
-  }
-  [ContractInvariantMethod]
-  void ObjectInvariant() {
-    // Contract.Invariant(Contract.ForAll(TypeArgs, tp => tp != null));
-    // After resolution, the following is invariant:  Contract.Invariant(Arg != null);
-    // However, it may not be true until then.
-  }
-  /// <summary>
-  /// This constructor is a collection types with 1 type argument
-  /// </summary>
-  protected CollectionType(Type arg) {
-    this.arg = arg;
-    TypeArgs = new List<Type>(1);
-    if (arg != null) {
-      TypeArgs.Add(arg);
-    }
-  }
-
-  /// <summary>
-  /// This constructor is a collection types with 2 type arguments
-  /// </summary>
-  protected CollectionType(Type arg, Type other) {
-    this.arg = arg;
-    TypeArgs = new List<Type>(2);
-    if (arg != null && other != null) {
-      TypeArgs.Add(arg);
-      TypeArgs.Add(other);
-    }
-    Debug.Assert(arg == null && other == null || arg != null && other != null);
-  }
-
-  protected CollectionType(Cloner cloner, CollectionType original) {
-    this.arg = cloner.CloneType(original.arg);
-  }
-
-  public override bool ComputeMayInvolveReferences(ISet<DatatypeDecl> visitedDatatypes) {
-    return Arg.ComputeMayInvolveReferences(visitedDatatypes);
-  }
-
-  /// <summary>
-  /// This property returns the ResolvedOpcode for the "in" operator when used with this collection type.
-  /// </summary>
-  public abstract BinaryExpr.ResolvedOpcode ResolvedOpcodeForIn { get; }
-
-  /// <summary>
-  /// For a given "source", denoting an expression of this CollectionType, return the BoundedPool corresponding
-  /// to an expression "x in source".
-  /// </summary>
-  public abstract CollectionBoundedPool GetBoundedPool(Expression source);
-}
-
-public class SetType : CollectionType {
-  private bool finite;
-
-  public bool Finite {
-    get { return finite; }
-    set { finite = value; }
-  }
-
-  public SetType(bool finite, Type arg) : base(arg) {
-    this.finite = finite;
-  }
-  public override string CollectionTypeName { get { return finite ? "set" : "iset"; } }
-  [System.Diagnostics.Contracts.Pure]
-  public override bool Equals(Type that, bool keepConstraints = false) {
-    var t = that.NormalizeExpand(keepConstraints) as SetType;
-    return t != null && Finite == t.Finite && Arg.Equals(t.Arg, keepConstraints);
-  }
-
-  public override Type Subst(IDictionary<TypeParameter, Type> subst) {
-    var arg = Arg.Subst(subst);
-    if (arg is InferredTypeProxy) {
-      ((InferredTypeProxy)arg).KeepConstraints = true;
-    }
-    return arg == Arg ? this : new SetType(Finite, arg);
-  }
-
-  public override Type ReplaceTypeArguments(List<Type> arguments) {
-    return new SetType(Finite, arguments[0]);
-  }
-
-  public override bool SupportsEquality {
-    get {
-      // Sets always support equality, because there is a check that the set element type always does.
-      return true;
-    }
-  }
-
-  public override BinaryExpr.ResolvedOpcode ResolvedOpcodeForIn => BinaryExpr.ResolvedOpcode.InSet;
-  public override CollectionBoundedPool GetBoundedPool(Expression source) {
-    return new SetBoundedPool(source, Arg, Arg, Finite);
-  }
-}
-
-public class MultiSetType : CollectionType {
-  public MultiSetType(Type arg) : base(arg) {
-  }
-  public override string CollectionTypeName { get { return "multiset"; } }
-  public override bool Equals(Type that, bool keepConstraints = false) {
-    var t = that.NormalizeExpand(keepConstraints) as MultiSetType;
-    return t != null && Arg.Equals(t.Arg, keepConstraints);
-  }
-
-  public override Type Subst(IDictionary<TypeParameter, Type> subst) {
-    var arg = Arg.Subst(subst);
-    if (arg is InferredTypeProxy) {
-      ((InferredTypeProxy)arg).KeepConstraints = true;
-    }
-    return arg == Arg ? this : new MultiSetType(arg);
-  }
-
-  public override Type ReplaceTypeArguments(List<Type> arguments) {
-    return new MultiSetType(arguments[0]);
-  }
-
-  public override bool SupportsEquality {
-    get {
-      // Multisets always support equality, because there is a check that the set element type always does.
-      return true;
-    }
-  }
-
-  public override BinaryExpr.ResolvedOpcode ResolvedOpcodeForIn => BinaryExpr.ResolvedOpcode.InMultiSet;
-  public override CollectionBoundedPool GetBoundedPool(Expression source) {
-    return new MultiSetBoundedPool(source, Arg, Arg);
-  }
-}
-
-public class SeqType : CollectionType {
-  public SeqType(Type arg) : base(arg) {
-  }
-  public override string CollectionTypeName { get { return "seq"; } }
-  public override bool Equals(Type that, bool keepConstraints = false) {
-    var t = that.NormalizeExpand(keepConstraints) as SeqType;
-    return t != null && Arg.Equals(t.Arg, keepConstraints);
-  }
-
-  public override Type Subst(IDictionary<TypeParameter, Type> subst) {
-    var arg = Arg.Subst(subst);
-    if (arg is InferredTypeProxy) {
-      ((InferredTypeProxy)arg).KeepConstraints = true;
-    }
-    return arg == Arg ? this : new SeqType(arg);
-  }
-
-  public override Type ReplaceTypeArguments(List<Type> arguments) {
-    return new SeqType(arguments[0]);
-  }
-
-  public override bool SupportsEquality {
-    get {
-      // The sequence type supports equality if its element type does
-      return Arg.SupportsEquality;
-    }
-  }
-
-  public override BinaryExpr.ResolvedOpcode ResolvedOpcodeForIn => BinaryExpr.ResolvedOpcode.InSeq;
-  public override CollectionBoundedPool GetBoundedPool(Expression source) {
-    return new SeqBoundedPool(source, Arg, Arg);
-  }
-}
-
 public abstract class TypeProxy : Type {
   public override IEnumerable<INode> Children => Enumerable.Empty<Node>();
   [FilledInDuringResolution] public Type T;
-  public readonly List<TypeConstraint> SupertypeConstraints = [];
-  public readonly List<TypeConstraint> SubtypeConstraints = [];
+  public List<TypeConstraint> SupertypeConstraints = [];
+  public List<TypeConstraint> SubtypeConstraints = [];
 
   public override Type Subst(IDictionary<TypeParameter, Type> subst) {
     if (T == null) {
@@ -2279,7 +2109,7 @@ public abstract class TypeProxy : Type {
     }
   }
 
-  internal TypeProxy() {
+  internal TypeProxy(IOrigin origin = null) : base() {
   }
 
 #if TI_DEBUG_PRINT
@@ -2368,9 +2198,10 @@ public abstract class TypeProxy : Type {
 /// This proxy stands for any type.
 /// </summary>
 public class InferredTypeProxy : TypeProxy {
-  public bool KeepConstraints;
-  public InferredTypeProxy() : base() {
-    KeepConstraints = false; // whether the typeProxy should be inferred to base type or as subset type
+  /// Whether the typeProxy should be inferred to base type or as subset type
+  public bool KeepConstraints = false;
+
+  public InferredTypeProxy(IOrigin origin = null) : base(origin) {
   }
 }
 

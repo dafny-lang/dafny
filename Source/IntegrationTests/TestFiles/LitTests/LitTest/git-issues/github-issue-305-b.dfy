@@ -1,4 +1,4 @@
-// RUN: %exits-with 3 %translate cs --show-snippets=false "%s" > "%t"
+// RUN: %exits-with 3 %translate cs %trargs --show-snippets=false "%s" > "%t"
 // RUN: %diff "%s".expect "%t"
 
 method hasNoBody()
