@@ -1,6 +1,6 @@
-using System;
+#nullable enable
+
 using System.Collections.Generic;
-using System.Diagnostics.Contracts;
 using System.IO;
 using System.Linq;
 
@@ -8,19 +8,20 @@ namespace Microsoft.Dafny;
 
 public class NestedMatchCaseExpr : NestedMatchCase, IAttributeBearingDeclaration {
   public Expression Body;
-  public Attributes Attributes { get; set; }
+  public Attributes? Attributes { get; set; }
 
   string IAttributeBearingDeclaration.WhatKind => "match expression case";
 
-  public NestedMatchCaseExpr(IOrigin origin, ExtendedPattern pat, Expression body, Attributes attrs) : base(origin, pat) {
-    Contract.Requires(body != null);
-    this.Body = body;
-    this.Attributes = attrs;
+  [SyntaxConstructor]
+  public NestedMatchCaseExpr(IOrigin origin, ExtendedPattern pat, Expression body, Attributes? attributes = null)
+    : base(origin, pat) {
+    Body = body;
+    Attributes = attributes;
   }
 
   public override IEnumerable<INode> Children =>
     Attributes.AsEnumerable().
-      Concat<Node>(new Node[] { Body, Pat });
+      Concat(new Node[] { Body, Pat });
 
   public override IEnumerable<INode> PreResolveChildren => Children;
 
