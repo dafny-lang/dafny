@@ -1295,6 +1295,10 @@ namespace Microsoft.Dafny {
               MergeAddStatement(cur, body);
               i++;
             }
+          } else if (cur is LabeledStatement) {
+            MergeAddStatement(cur, body);
+            i++;
+            j++;
           } else {
             MergeAddStatement(cur, body);
             i++;
