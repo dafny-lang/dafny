@@ -165,6 +165,11 @@ class LiteralExpr : Expression
     Object? value;
 }
 
+class StringLiteralExpr : LiteralExpr
+{
+    Boolean isVerbatim;
+}
+
 class CharLiteralExpr : LiteralExpr
 {
 }
@@ -221,6 +226,217 @@ enum TernaryExprOpcode
 {
     PrefixEqOp,
     PrefixNeqOp
+}
+
+class NestedMatchExpr : Expression
+{
+    Expression source;
+    List<NestedMatchCaseExpr> cases;
+    Boolean usesOptionalBraces;
+    Attributes? attributes;
+}
+
+abstract class NestedMatchCase : NodeWithOrigin
+{
+    ExtendedPattern pat;
+}
+
+abstract class ExtendedPattern : NodeWithOrigin
+{
+    Boolean isGhost;
+}
+
+class LitPattern : ExtendedPattern
+{
+    Expression origLit;
+}
+
+class IdPattern : ExtendedPattern
+{
+    String id;
+    Type? syntacticType;
+    List<ExtendedPattern>? arguments;
+    Boolean hasParenthesis;
+}
+
+class DisjunctivePattern : ExtendedPattern
+{
+    List<ExtendedPattern> alternatives;
+}
+
+class NestedMatchCaseStmt : NestedMatchCase
+{
+    List<Statement> body;
+    Attributes? attributes;
+}
+
+abstract class Statement : NodeWithOrigin
+{
+    Attributes? attributes;
+}
+
+abstract class PredicateStmt : Statement
+{
+    Expression expr;
+}
+
+class ExpectStmt : PredicateStmt
+{
+    Expression? message;
+}
+
+class AssertStmt : PredicateStmt
+{
+    AssertLabel? label;
+}
+
+class Label
+{
+    IOrigin tok;
+    String name;
+}
+
+class AssertLabel : Label
+{
+}
+
+abstract class ProduceStmt : Statement
+{
+    List<AssignmentRhs>? rhss;
+}
+
+abstract class AssignmentRhs : NodeWithOrigin
+{
+    Attributes? attributes;
+}
+
+abstract class TypeRhs : AssignmentRhs
+{
+}
+
+class AllocateClass : TypeRhs
+{
+    Type path;
+    ActualBindings? bindings;
+}
+
+class AllocateArray : TypeRhs
+{
+    Type? explicitType;
+    List<Expression> arrayDimensions;
+    Expression? elementInit;
+}
+
+class ExprRhs : AssignmentRhs
+{
+    Expression expr;
+}
+
+class ReturnStmt : ProduceStmt
+{
+}
+
+class PrintStmt : Statement
+{
+    List<Expression> args;
+}
+
+abstract class LoopStmt : Statement
+{
+    List<AttributedExpression> invariants;
+    Specification<Expression> decreases;
+    Specification<FrameExpression> mod;
+}
+
+class FrameExpression : NodeWithOrigin
+{
+    Expression originalExpression;
+    String? fieldName;
+}
+
+class AttributedExpression
+{
+    Expression e;
+    AssertLabel? label;
+    Attributes? attributes;
+}
+
+abstract class OneBodyLoopStmt : LoopStmt
+{
+    BlockStmt body;
+}
+
+abstract class BlockLikeStmt : Statement
+{
+}
+
+class DividedBlockStmt : BlockLikeStmt
+{
+    List<Statement> bodyInit;
+    IOrigin? separatorTok;
+    List<Statement> bodyProper;
+}
+
+class BlockStmt : BlockLikeStmt
+{
+    List<Statement> body;
+}
+
+class WhileStmt : OneBodyLoopStmt
+{
+    Expression guard;
+}
+
+class IfStmt : Statement
+{
+    Boolean isBindingGuard;
+    Expression? guard;
+    BlockStmt thn;
+    Statement? els;
+}
+
+class BreakOrContinueStmt : Statement
+{
+    Name? targetLabel;
+    Int32 breakAndContinueCount;
+    Boolean isContinue;
+}
+
+class VarDeclStmt : Statement
+{
+    List<LocalVariable> locals;
+    ConcreteAssignStatement? assign;
+}
+
+abstract class ConcreteAssignStatement : Statement
+{
+    List<Expression> lhss;
+}
+
+class AssignStatement : ConcreteAssignStatement
+{
+    List<AssignmentRhs> rhss;
+    Boolean canMutateKnownState;
+}
+
+class LocalVariable : NodeWithOrigin
+{
+    String name;
+    Type? syntacticType;
+    Boolean isGhost;
+}
+
+class NestedMatchStmt : Statement
+{
+    Expression source;
+    List<NestedMatchCaseStmt> cases;
+    Boolean usesOptionalBraces;
+}
+
+class NestedMatchCaseExpr : NestedMatchCase
+{
+    Expression body;
+    Attributes? attributes;
 }
 
 class ITEExpr : Expression
@@ -347,12 +563,6 @@ class MapComprehension : ComprehensionExpr
 class LambdaExpr : ComprehensionExpr
 {
     Specification<FrameExpression> reads;
-}
-
-class FrameExpression : NodeWithOrigin
-{
-    Expression originalExpression;
-    String? fieldName;
 }
 
 class SeqUpdateExpr : Expression
@@ -577,23 +787,6 @@ abstract class MethodOrFunction : MemberDecl
     Specification<Expression> decreases;
 }
 
-class AttributedExpression
-{
-    Expression e;
-    AssertLabel? label;
-    Attributes? attributes;
-}
-
-class Label
-{
-    IOrigin tok;
-    String name;
-}
-
-class AssertLabel : Label
-{
-}
-
 abstract class MethodOrConstructor : MethodOrFunction
 {
     Specification<FrameExpression> mod;
@@ -605,134 +798,6 @@ class Method : MethodOrConstructor
     List<Formal> outs;
     BlockStmt? body;
     Boolean isByMethod;
-}
-
-abstract class Statement : NodeWithOrigin
-{
-    Attributes? attributes;
-}
-
-abstract class PredicateStmt : Statement
-{
-    Expression expr;
-}
-
-class ExpectStmt : PredicateStmt
-{
-    Expression? message;
-}
-
-class AssertStmt : PredicateStmt
-{
-    AssertLabel? label;
-}
-
-abstract class ProduceStmt : Statement
-{
-    List<AssignmentRhs>? rhss;
-}
-
-abstract class AssignmentRhs : NodeWithOrigin
-{
-    Attributes? attributes;
-}
-
-abstract class TypeRhs : AssignmentRhs
-{
-}
-
-class AllocateClass : TypeRhs
-{
-    Type path;
-    ActualBindings? bindings;
-}
-
-class AllocateArray : TypeRhs
-{
-    Type? explicitType;
-    List<Expression> arrayDimensions;
-    Expression? elementInit;
-}
-
-class ExprRhs : AssignmentRhs
-{
-    Expression expr;
-}
-
-class ReturnStmt : ProduceStmt
-{
-}
-
-abstract class LoopStmt : Statement
-{
-    List<AttributedExpression> invariants;
-    Specification<Expression> decreases;
-    Specification<FrameExpression> mod;
-}
-
-abstract class OneBodyLoopStmt : LoopStmt
-{
-    BlockStmt body;
-}
-
-abstract class BlockLikeStmt : Statement
-{
-}
-
-class DividedBlockStmt : BlockLikeStmt
-{
-    List<Statement> bodyInit;
-    IOrigin? separatorTok;
-    List<Statement> bodyProper;
-}
-
-class BlockStmt : BlockLikeStmt
-{
-    List<Statement> body;
-}
-
-class WhileStmt : OneBodyLoopStmt
-{
-    Expression guard;
-}
-
-class IfStmt : Statement
-{
-    Boolean isBindingGuard;
-    Expression? guard;
-    BlockStmt thn;
-    Statement? els;
-}
-
-class BreakOrContinueStmt : Statement
-{
-    Name? targetLabel;
-    Int32 breakAndContinueCount;
-    Boolean isContinue;
-}
-
-class VarDeclStmt : Statement
-{
-    List<LocalVariable> locals;
-    ConcreteAssignStatement? assign;
-}
-
-abstract class ConcreteAssignStatement : Statement
-{
-    List<Expression> lhss;
-}
-
-class AssignStatement : ConcreteAssignStatement
-{
-    List<AssignmentRhs> rhss;
-    Boolean canMutateKnownState;
-}
-
-class LocalVariable : NodeWithOrigin
-{
-    String name;
-    Type? syntacticType;
-    Boolean isGhost;
 }
 
 class Constructor : MethodOrConstructor
@@ -829,9 +894,4 @@ enum ModuleKindEnum
     Concrete,
     Abstract,
     Replaceable
-}
-
-abstract class ExtendedPattern : NodeWithOrigin
-{
-    Boolean isGhost;
 }
