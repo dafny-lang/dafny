@@ -192,6 +192,24 @@ namespace Microsoft.Dafny
             return (UnaryOpExpr.Opcode)ordinal;
         }
 
+        public FreshExpr ReadFreshExpr()
+        {
+            var parameter0 = ReadAbstract<IOrigin>();
+            var parameter1 = ReadAbstract<Expression>();
+            var parameter2 = ReadStringOption();
+            return new FreshExpr(parameter0, parameter1, parameter2);
+        }
+
+        public FreshExpr ReadFreshExprOption()
+        {
+            if (ReadIsNull())
+            {
+                return default;
+            }
+
+            return ReadFreshExpr();
+        }
+
         public BinaryExpr ReadBinaryExpr()
         {
             var parameter0 = ReadAbstract<IOrigin>();
@@ -249,6 +267,60 @@ namespace Microsoft.Dafny
             }
 
             return ReadCharLiteralExpr();
+        }
+
+        public UnchangedExpr ReadUnchangedExpr()
+        {
+            var parameter0 = ReadAbstract<IOrigin>();
+            var parameter1 = ReadList<FrameExpression>(() => ReadFrameExpression());
+            var parameter2 = ReadStringOption();
+            return new UnchangedExpr(parameter0, parameter1, parameter2);
+        }
+
+        public UnchangedExpr ReadUnchangedExprOption()
+        {
+            if (ReadIsNull())
+            {
+                return default;
+            }
+
+            return ReadUnchangedExpr();
+        }
+
+        public FrameExpression ReadFrameExpression()
+        {
+            var parameter0 = ReadAbstract<IOrigin>();
+            var parameter1 = ReadAbstract<Expression>();
+            var parameter2 = ReadStringOption();
+            return new FrameExpression(parameter0, parameter1, parameter2);
+        }
+
+        public FrameExpression ReadFrameExpressionOption()
+        {
+            if (ReadIsNull())
+            {
+                return default;
+            }
+
+            return ReadFrameExpression();
+        }
+
+        public OldExpr ReadOldExpr()
+        {
+            var parameter0 = ReadAbstract<IOrigin>();
+            var parameter1 = ReadAbstract<Expression>();
+            var parameter2 = ReadStringOption();
+            return new OldExpr(parameter0, parameter1, parameter2);
+        }
+
+        public OldExpr ReadOldExprOption()
+        {
+            if (ReadIsNull())
+            {
+                return default;
+            }
+
+            return ReadOldExpr();
         }
 
         public DatatypeValue ReadDatatypeValue()
@@ -680,24 +752,6 @@ namespace Microsoft.Dafny
             }
 
             return ReadLambdaExpr();
-        }
-
-        public FrameExpression ReadFrameExpression()
-        {
-            var parameter0 = ReadAbstract<IOrigin>();
-            var parameter1 = ReadAbstract<Expression>();
-            var parameter2 = ReadStringOption();
-            return new FrameExpression(parameter0, parameter1, parameter2);
-        }
-
-        public FrameExpression ReadFrameExpressionOption()
-        {
-            if (ReadIsNull())
-            {
-                return default;
-            }
-
-            return ReadFrameExpression();
         }
 
         public SeqUpdateExpr ReadSeqUpdateExpr()
@@ -1887,6 +1941,11 @@ namespace Microsoft.Dafny
                 return ReadUnaryOpExpr();
             }
 
+            if (actualType == typeof(FreshExpr))
+            {
+                return ReadFreshExpr();
+            }
+
             if (actualType == typeof(BinaryExpr))
             {
                 return ReadBinaryExpr();
@@ -1900,6 +1959,21 @@ namespace Microsoft.Dafny
             if (actualType == typeof(CharLiteralExpr))
             {
                 return ReadCharLiteralExpr();
+            }
+
+            if (actualType == typeof(UnchangedExpr))
+            {
+                return ReadUnchangedExpr();
+            }
+
+            if (actualType == typeof(FrameExpression))
+            {
+                return ReadFrameExpression();
+            }
+
+            if (actualType == typeof(OldExpr))
+            {
+                return ReadOldExpr();
             }
 
             if (actualType == typeof(DatatypeValue))
@@ -2010,11 +2084,6 @@ namespace Microsoft.Dafny
             if (actualType == typeof(LambdaExpr))
             {
                 return ReadLambdaExpr();
-            }
-
-            if (actualType == typeof(FrameExpression))
-            {
-                return ReadFrameExpression();
             }
 
             if (actualType == typeof(SeqUpdateExpr))

@@ -204,8 +204,8 @@ namespace Microsoft.Dafny {
         // problem, since variables have unique declarations.  However, it is an issue if the substitution
         // takes place inside an OldExpr.  In those cases (see LetExpr), the caller can use a
         // BoogieWrapper before calling Substitute.
-        Expression se = Substitute(e.E);
-        if (se != e.E) {
+        Expression se = Substitute(e.Expr);
+        if (se != e.Expr) {
           newExpr = new OldExpr(expr.Origin, se, e.At) {
             AtLabel = e.AtLabel ?? oldHeapLabel,
             Useless = e.Useless

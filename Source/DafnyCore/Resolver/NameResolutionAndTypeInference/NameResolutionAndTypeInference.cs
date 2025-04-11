@@ -722,8 +722,8 @@ namespace Microsoft.Dafny {
       } else if (expr is OldExpr) {
         var e = (OldExpr)expr;
         e.AtLabel = ResolveDominatingLabelInExpr(expr.Origin, e.At, "old", resolutionContext);
-        ResolveExpression(e.E, new ResolutionContext(resolutionContext.CodeContext, false) with { InOld = true });
-        expr.Type = e.E.Type;
+        ResolveExpression(e.Expr, new ResolutionContext(resolutionContext.CodeContext, false) with { InOld = true });
+        expr.Type = e.Expr.Type;
 
       } else if (expr is UnchangedExpr) {
         var e = (UnchangedExpr)expr;

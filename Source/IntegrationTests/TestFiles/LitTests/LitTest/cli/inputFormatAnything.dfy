@@ -9,5 +9,8 @@ class Anything {
     while(true) {
       continue;
     }
+    assert(old(this) == this);
+    assert(fresh(this));
+    assert(unchanged(this));
   }
 }

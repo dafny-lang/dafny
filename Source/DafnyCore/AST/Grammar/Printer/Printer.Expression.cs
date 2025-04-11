@@ -770,7 +770,7 @@ namespace Microsoft.Dafny {
           wr.Write("@{0}", e.At);
         }
         wr.Write("(");
-        PrintExpression(e.E, false);
+        PrintExpression(e.Expr, false);
         wr.Write(")");
 
       } else if (expr is UnchangedExpr) {

@@ -407,8 +407,8 @@ namespace Microsoft.Dafny {
         case OldExpr oldExpr: {
             var e = oldExpr;
             e.AtLabel = ResolveDominatingLabelInExpr(oldExpr.Origin, e.At, "old", resolutionContext);
-            ResolveExpression(e.E, new ResolutionContext(resolutionContext.CodeContext, false) with { InOld = true });
-            oldExpr.PreType = e.E.PreType;
+            ResolveExpression(e.Expr, new ResolutionContext(resolutionContext.CodeContext, false) with { InOld = true });
+            oldExpr.PreType = e.Expr.PreType;
             break;
           }
         case UnchangedExpr unchangedExpr: {
