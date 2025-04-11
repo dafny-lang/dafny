@@ -12,7 +12,7 @@ public class AlternativeLoopStmt : LoopStmt, ICloneable<AlternativeLoopStmt>, IC
     Contract.Invariant(Alternatives != null);
   }
 
-  public AlternativeLoopStmt Clone(Cloner cloner) {
+  public new AlternativeLoopStmt Clone(Cloner cloner) {
     return new AlternativeLoopStmt(cloner, this);
   }
 
@@ -31,8 +31,8 @@ public class AlternativeLoopStmt : LoopStmt, ICloneable<AlternativeLoopStmt>, IC
   }
   public AlternativeLoopStmt(IOrigin origin,
     List<AttributedExpression> invariants, Specification<Expression> decreases, Specification<FrameExpression> mod,
-    List<GuardedAlternative> alternatives, bool usesOptionalBraces, Attributes attributes)
-    : base(origin, invariants, decreases, mod, attributes) {
+    List<GuardedAlternative> alternatives, bool usesOptionalBraces, List<Label> labels, Attributes attributes)
+    : base(origin, invariants, decreases, mod, labels, attributes) {
     Contract.Requires(origin != null);
     Contract.Requires(alternatives != null);
     this.Alternatives = alternatives;

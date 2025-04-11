@@ -21,8 +21,8 @@ public class DividedBlockStmt : BlockLikeStmt, ICloneable<DividedBlockStmt> {
 
   [SyntaxConstructor]
   public DividedBlockStmt(IOrigin origin, List<Statement> bodyInit,
-    IOrigin? separatorTok, List<Statement> bodyProper, Attributes? attributes = null)
-    : base(origin, attributes) {
+    IOrigin? separatorTok, List<Statement> bodyProper, List<Label> labels, Attributes? attributes = null)
+    : base(origin, labels, attributes) {
     Contract.Requires(origin != null);
     Contract.Requires(cce.NonNullElements(bodyInit));
     Contract.Requires(cce.NonNullElements(bodyProper));
@@ -41,7 +41,7 @@ public class DividedBlockStmt : BlockLikeStmt, ICloneable<DividedBlockStmt> {
     BodyProper.Insert(0, s);
   }
 
-  public DividedBlockStmt Clone(Cloner cloner) {
+  public new DividedBlockStmt Clone(Cloner cloner) {
     return new DividedBlockStmt(cloner, this);
   }
 }

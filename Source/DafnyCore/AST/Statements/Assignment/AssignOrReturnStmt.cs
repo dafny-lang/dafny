@@ -324,7 +324,7 @@ public class AssignOrReturnStmt : ConcreteAssignStatement, ICloneable<AssignOrRe
 
             new ReturnStmt(Origin, null)
 
-          ]),
+          ], []),
           // ELSE: no else block
           null
         ));

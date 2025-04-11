@@ -439,8 +439,8 @@ public partial class BoogieGenerator {
   void InsertContinueTarget(LoopStmt loop, BoogieStmtListBuilder builder) {
     Contract.Requires(loop != null);
     Contract.Requires(builder != null);
-    if (loop.Labels != null) {
-      builder.AddLabelCmd(loop.Origin, "continue_" + loop.Labels.Data.AssignUniqueId(CurrentIdGenerator));
+    if (loop.Labels.Any()) {
+      builder.AddLabelCmd(loop.Origin, "continue_" + loop.Labels.First().AssignUniqueId(CurrentIdGenerator));
     }
   }
 }
