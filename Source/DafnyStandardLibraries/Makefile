@@ -1,9 +1,8 @@
 
 # Invoking the CLI this way just to stay platform-independent
 DAFNY = dotnet run --project ../Dafny --no-build --roll-forward LatestMajor --
-# TODO: Re-enable once I fix FlattenedProducer
-# VERIFY_OPTIONS = --type-system-refresh=true --general-traits=datatype --general-newtypes=true
 
+# TODO: Check that this option isn't ever on the doo files we check in!
 NO_VERIFY := false # Use make update-binary NO_VERIFY=true to generate the binaries without verification
 DOO_FILE_SOURCE=build/DafnyStandardLibraries.doo
 DOO_FILE_TARGET=binaries/DafnyStandardLibraries.doo
@@ -11,11 +10,11 @@ DOO_FILE_TARGET=binaries/DafnyStandardLibraries.doo
 all: check-binary test check-format check-examples
 
 verify:
-	$(DAFNY) verify $(VERIFY_OPTIONS) src/Std/dfyconfig.toml
+	$(DAFNY) verify src/Std/dfyconfig.toml
 	make -C src/Std/TargetSpecific verify-all
 
 build-binary:
-	$(DAFNY) build $(VERIFY_OPTIONS) -t:lib --hidden-no-verify=$(NO_VERIFY) src/Std/dfyconfig.toml --output:${DOO_FILE_SOURCE}
+	$(DAFNY) build -t:lib --hidden-no-verify=$(NO_VERIFY) src/Std/dfyconfig.toml --output:${DOO_FILE_SOURCE}
 
 check-binary: build-binary
 	unzip -o ${DOO_FILE_SOURCE} -d build/current

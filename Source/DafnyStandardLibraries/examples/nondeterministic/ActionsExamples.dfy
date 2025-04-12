@@ -114,9 +114,10 @@ module ActionsExamples {
     expect firstTen == [0, 1, 1, 2, 3, 5, 8, 13, 21, 34];
   }
 
-  // This could also easily be a Producer<T> instead.
+  // Reading the elements of a set via an IProducer
+
   @AssumeCrossModuleTermination
-  class SetReader<T(==)> extends IProducer<T> {
+  class SetIReader<T(==)> extends IProducer<T> {
     ghost const original: set<T>
     var remaining: set<T>
 
@@ -219,7 +220,7 @@ module ActionsExamples {
   method {:test} SetIProducerExample() {
     var s: set<nat> := {1, 2, 3, 4, 5};
     var copy: set<nat> := {};
-    var e: SetReader<nat> := new SetReader(s);
+    var e: SetIReader<nat> := new SetIReader(s);
 
     for i := 0 to |s|
       invariant e.Valid()
@@ -243,5 +244,163 @@ module ActionsExamples {
     // Needed to prove copy <= s && |copy| == |s| ==> copy == s
     Set.LemmaSubsetSize(copy, s);
     assert copy == s;
+  }
+
+  // Reading the elements of a set via a Producer.
+  // This version takes quadratic time to traverse the elements of a set,
+  // but the Std.ActionExterns.MakeSetReader() implementation
+  // is linear.
+  // This version is also a valuable feasibility proof
+  // of the same ProducerOfSetProof<T> proof trait, however.
+
+  @AssumeCrossModuleTermination
+  class SetReader<T(==)> extends Producer<T>, ProducerOfSetProof<T> {
+    ghost const original: set<T>
+    var remaining: set<T>
+
+    ghost predicate Valid()
+      reads this, Repr
+      ensures Valid() ==> this in Repr
+      ensures Valid() ==> ValidHistory(history)
+      decreases Repr, 0
+    {
+      && this in Repr
+      && ValidHistory(history)
+      && remaining == original - OutputSet(history)
+      && (0 < |remaining| ==> !Done())
+    }
+
+    constructor(s: set<T>)
+      ensures Valid()
+      ensures fresh(Repr)
+      ensures history == []
+      ensures s == original
+    {
+      original := s;
+      remaining := s;
+
+      history := [];
+      Repr := {this};
+
+      reveal Seq.HasNoDuplicates();
+      reveal Seq.ToSet();
+    }
+
+    ghost function Producer(): Producer<T> {
+      this
+    }
+
+    ghost function Set(): set<T> {
+      original
+    }
+
+    lemma ProducesSet(history: seq<((), Option<T>)>)
+      requires Producer().ValidHistory(history)
+      ensures 
+        var produced := ProducedOf(OutputsOf(history));
+        && Seq.HasNoDuplicates(produced)
+        && Seq.ToSet(produced) <= Set()
+        && (!Seq.All(OutputsOf(history), IsSome) ==> Seq.ToSet(produced) == Set())
+    {}
+
+    ghost function OutputSet(history: seq<((), Option<T>)>): set<T>
+      requires Seq.Partitioned(OutputsOf(history), IsSome)
+    {
+      Seq.ToSet(ProducedOf(OutputsOf(history)))
+    }
+
+    ghost predicate ValidOutputs(outputs: seq<Option<T>>)
+      requires Seq.Partitioned(outputs, IsSome)
+      decreases Repr
+    {
+      var produced := ProducedOf(outputs);
+      && Seq.HasNoDuplicates(produced)
+      && Seq.ToSet(produced) <= Set()
+      && (!Seq.All(outputs, IsSome) ==> Seq.ToSet(produced) == Set())
+    }
+
+    ghost function RemainingMetric(): TerminationMetric
+      requires Valid()
+      reads this, Repr
+      decreases Repr, 3
+    {
+      TMNat(|remaining|)
+    }
+
+    @IsolateAssertions
+    method Invoke(i: ()) returns (r: Option<T>)
+      requires Requires(i)
+      modifies Modifies(i)
+      decreases Decreases(i), 0
+      ensures Ensures(i, r)
+      ensures RemainingDecreasedBy(r)
+    {
+      assert Valid();
+      if 0 < |remaining| {
+
+        var o: T :| o in remaining;
+        r := Some(o);
+        remaining := remaining - {o};
+        
+        reveal Seq.ToSet();
+        reveal Seq.HasNoDuplicates();
+
+        OutputsPartitionedAfterOutputtingSome(o);
+        assert OutputsOf(history + [((), r)]) == OutputsOf(history) + [r];
+        ProducedComposition(OutputsOf(history), [r]);
+        ProduceSome(o);
+      } else {
+        r := None;
+
+        OutputsPartitionedAfterOutputtingNone();
+        assert OutputsOf(history + [((), r)]) == OutputsOf(history) + [r];
+        ProducedComposition(OutputsOf(history), [r]);
+        ProduceNone();
+      }
+      reveal TerminationMetric.Ordinal();
+
+      assert Valid();
+    }
+  }
+
+  @ResourceLimit("1e7")
+  @IsolateAssertions
+  method {:test} SetProducerExample() {
+    var s: set<nat> := {1, 2, 3, 4, 5};
+    var copy: set<nat> := {};
+    var e: SetReader<nat> := new SetReader(s);
+
+    while true
+      invariant e.Valid()
+      invariant fresh(e.Repr)
+      invariant copy == Seq.ToSet(e.Produced())
+      decreases e.Remaining()
+    {
+      ghost var oldOutputs := e.Outputs();
+      ghost var oldProduced := e.Produced();
+      label before:
+      var next := e.Next();
+      assert e.Outputs() == oldOutputs + [next];
+      ProducedComposition(oldOutputs, [next]);
+
+      if next.None? {
+        assert Seq.Last(e.Outputs()) == None;
+        assert e.Done();
+        assert Seq.ToSet(e.Produced()) == s;
+        break;
+      }
+      var x := next.value;
+
+      e.ProducesSet(e.history);
+
+      assert e.Produced() == oldProduced + [x];
+      Seq.LemmaNoDuplicatesDecomposition(oldProduced, [x]);
+      assert x !in oldProduced;
+
+      copy := copy + {x};
+    }
+
+    assert copy == s;
+    expect copy == s;
   }
 }

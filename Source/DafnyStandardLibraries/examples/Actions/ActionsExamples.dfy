@@ -1,5 +1,6 @@
 module ActionsExamples {
   import opened Std.Actions
+  import opened Std.ActionsExterns
   import opened Std.Producers
   import opened Std.Consumers
   import opened Std.Wrappers
@@ -278,5 +279,90 @@ module ActionsExamples {
     flattened.ForEachRemaining(collector, collectorTotalProof);
 
     expect collector.values == [0, 1, 1, 1, 1, 2, 2, 2, 2, 3], collector.values;
+  }
+
+  @IsolateAssertions
+  method {:test} SetIteration() {
+
+    var s := { 1, 2, 3, 4, 5 };
+    var e: Producer<nat>, proof := MakeSetReader(s);
+    var copy := {};
+    while true
+      invariant e.Valid()
+      invariant fresh(e.Repr)
+      invariant copy == Seq.ToSet(e.Produced())
+      decreases e.Remaining()
+    {
+      ghost var oldOutputs := e.Outputs();
+      ghost var oldProduced := e.Produced();
+      label before:
+      var next := e.Next();
+      assert e.Outputs() == oldOutputs + [next];
+      ProducedComposition(oldOutputs, [next]);
+
+      proof.ProducesSet(e.history);
+
+      if next.None? {
+        assert Seq.Last(e.Outputs()) == None;
+        assert e.Done();
+        assert Seq.ToSet(e.Produced()) == proof.Set();
+        break;
+      }
+      var x := next.value;
+      
+      assert e.Produced() == oldProduced + [x];
+      Seq.LemmaNoDuplicatesDecomposition(oldProduced, [x]);
+      assert x !in oldProduced;
+
+      copy := copy + {x};
+    }
+
+    assert copy == s;
+    expect copy == s;
+  }
+
+  // TODO: 
+  @IsolateAssertions
+  method {:test} SetToSeq() {
+
+    var s := { 1, 2, 3, 4, 5 };
+    var e: Producer<nat>, proof := MakeSetReader(s);
+    var seqWriter := new SeqWriter<nat>();
+    assert seqWriter.Valid();
+    e.ForEachRemaining(seqWriter, seqWriter);
+
+    var copy := {};
+    while true
+      invariant e.Valid()
+      invariant fresh(e.Repr)
+      invariant copy == Seq.ToSet(e.Produced())
+      decreases e.Remaining()
+    {
+      ghost var oldOutputs := e.Outputs();
+      ghost var oldProduced := e.Produced();
+      label before:
+      var next := e.Next();
+      assert e.Outputs() == oldOutputs + [next];
+      ProducedComposition(oldOutputs, [next]);
+
+      proof.ProducesSet(e.history);
+
+      if next.None? {
+        assert Seq.Last(e.Outputs()) == None;
+        assert e.Done();
+        assert Seq.ToSet(e.Produced()) == proof.Set();
+        break;
+      }
+      var x := next.value;
+      
+      assert e.Produced() == oldProduced + [x];
+      Seq.LemmaNoDuplicatesDecomposition(oldProduced, [x]);
+      assert x !in oldProduced;
+
+      copy := copy + {x};
+    }
+
+    assert copy == s;
+    expect copy == s;
   }
 }

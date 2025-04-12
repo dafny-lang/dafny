@@ -341,7 +341,8 @@ module Std.Consumers {
       ensures Valid() ==> ValidHistory(history)
       decreases Repr, 0
     {
-      this in Repr
+      && this in Repr
+      && values == Inputs()
     }
 
     ghost predicate ValidHistory(history: seq<(T, ())>)
@@ -374,17 +375,6 @@ module Std.Consumers {
 
       UpdateHistory(t, r);
       assert Valid();
-    }
-
-    method Pop() returns (t: T)
-      requires Valid()
-      requires 0 < |values|
-      reads Repr
-      modifies Repr
-      ensures Valid()
-    {
-      t := values[0];
-      values := values[1..];
     }
 
     ghost function Action(): Action<T, ()> {

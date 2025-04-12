@@ -220,21 +220,44 @@ module Std.Producers {
       requires totalActionProof.Valid()
       requires totalActionProof.Action() == consumer
       modifies Repr, consumer.Repr
+      ensures Valid()
+      ensures consumer.Valid()
+      ensures Done()
+      ensures old(Produced()) <= Produced()
+      ensures old(consumer.Inputs()) <= consumer.Inputs()
+      ensures Produced()[|old(Produced())|..] == consumer.Inputs()[|old(consumer.Inputs())|..]
     {
       while true
         invariant ValidAndDisjoint()
         invariant consumer.ValidAndDisjoint()
         invariant Repr !! consumer.Repr
         invariant totalActionProof.Valid()
+        invariant old(Produced()) <= Produced()
+        invariant old(consumer.Inputs()) <= consumer.Inputs()
+        invariant Produced()[|old(Produced())|..] == consumer.Inputs()[|old(consumer.Inputs())|..]
         decreases Remaining()
       {
+        label before:
         var t := Next();
+        assert Seq.Partitioned(Outputs(), IsSome);
+        assert Outputs() == old@before(Outputs()) + [t];
+        Seq.PartitionedDecomposition(old@before(Outputs()), [t], IsSome);
+        ProducedComposition(old@before(Outputs()), [t]);
+         
         if t == None {
+          assert Seq.Last(Outputs()).None?;
+          assert Done();
+          assert ProducedOf([t]) == [];
+          assert Produced() == old@before(Produced());
+          assert consumer.Inputs()[|old(consumer.Inputs())|..] == Produced()[|old(Produced())|..];
           break;
         }
 
         totalActionProof.AnyInputIsValid(consumer.history, t.value);
         consumer.Accept(t.value);
+
+        assert Seq.Last(consumer.Inputs()) == t.value;
+        assert consumer.Inputs()[|old(consumer.Inputs())|..] == Produced()[|old(Produced())|..];
       }
     }
 
@@ -310,7 +333,7 @@ module Std.Producers {
       assert !IsSome(Seq.Last(Outputs()));
     }
 
-    method ProduceNone()
+    ghost method ProduceNone()
       requires ValidHistory(history)
       requires ValidHistory(history + [((), None)])
       reads this, Repr
@@ -334,7 +357,7 @@ module Std.Producers {
       }
     }
 
-    method ProduceSome(value: T)
+    ghost method ProduceSome(value: T)
       requires ValidHistory(history)
       requires ValidHistory(history + [((), Some(value))])
       reads this, Repr
@@ -601,6 +624,20 @@ module Std.Producers {
 
       assert Valid();
     }
+  }
+
+  // A proof that a given producer produces the elements from a given set.
+  trait ProducerOfSetProof<T> {
+    ghost function Producer(): Producer<T>
+    ghost function Set(): set<T>
+
+    lemma ProducesSet(history: seq<((), Option<T>)>)
+      requires Producer().ValidHistory(history)
+      ensures 
+        var produced := ProducedOf(OutputsOf(history));
+        && Seq.HasNoDuplicates(produced)
+        && Seq.ToSet(produced) <= Set()
+        && (!Seq.All(OutputsOf(history), IsSome) ==> Seq.ToSet(produced) == Set())
   }
 
   /***********************
