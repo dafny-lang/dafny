@@ -322,13 +322,14 @@ module Std.Consumers {
   }
 
   @AssumeCrossModuleTermination
-  class SeqWriter<T> extends IConsumer<T>, TotalActionProof<T, ()> {
+  class SeqWriter<T> extends IConsumer<T> {
 
     var values: seq<T>
 
     constructor ()
       ensures Valid()
       ensures fresh(Repr)
+      ensures history == []
     {
       values := [];
       history := [];
@@ -377,8 +378,39 @@ module Std.Consumers {
       assert Valid();
     }
 
+    method totalActionProof() returns (p: TotalActionProof<T, ()>)
+      ensures p.Valid()
+      ensures fresh(p.Repr)
+      ensures p.Action() == this
+    {
+      p := new SeqWriterTotalActionProof(this);
+    }
+  }
+
+  @AssumeCrossModuleTermination
+  class SeqWriterTotalActionProof<T> extends TotalActionProof<T, ()> {
+
+    ghost const action: SeqWriter<T>
+
+    constructor (action: SeqWriter<T>)
+      ensures Valid()
+      ensures fresh(Repr)
+      ensures Action() == action
+    {
+      this.action := action;
+      this.Repr := {this};
+    }
+
+    ghost predicate Valid()
+      reads this, Repr
+      ensures Valid() ==> this in Repr
+      decreases Repr, 0
+    {
+      this in Repr
+    }
+
     ghost function Action(): Action<T, ()> {
-      this
+      action
     }
 
     lemma AnyInputIsValid(history: seq<(T, ())>, next: T)

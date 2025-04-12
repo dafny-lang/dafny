@@ -321,48 +321,16 @@ module ActionsExamples {
     expect copy == s;
   }
 
-  // TODO: 
-  @IsolateAssertions
   method {:test} SetToSeq() {
 
     var s := { 1, 2, 3, 4, 5 };
-    var e: Producer<nat>, proof := MakeSetReader(s);
+    var p: Producer<nat>, producerOfSetProof := MakeSetReader(s);
     var seqWriter := new SeqWriter<nat>();
-    assert seqWriter.Valid();
-    e.ForEachRemaining(seqWriter, seqWriter);
+    var writerTotalProof := seqWriter.totalActionProof();
+    p.ForEachRemaining(seqWriter, writerTotalProof);
+    var asSeq := seqWriter.values;
 
-    var copy := {};
-    while true
-      invariant e.Valid()
-      invariant fresh(e.Repr)
-      invariant copy == Seq.ToSet(e.Produced())
-      decreases e.Remaining()
-    {
-      ghost var oldOutputs := e.Outputs();
-      ghost var oldProduced := e.Produced();
-      label before:
-      var next := e.Next();
-      assert e.Outputs() == oldOutputs + [next];
-      ProducedComposition(oldOutputs, [next]);
-
-      proof.ProducesSet(e.history);
-
-      if next.None? {
-        assert Seq.Last(e.Outputs()) == None;
-        assert e.Done();
-        assert Seq.ToSet(e.Produced()) == proof.Set();
-        break;
-      }
-      var x := next.value;
-      
-      assert e.Produced() == oldProduced + [x];
-      Seq.LemmaNoDuplicatesDecomposition(oldProduced, [x]);
-      assert x !in oldProduced;
-
-      copy := copy + {x};
-    }
-
-    assert copy == s;
-    expect copy == s;
+    producerOfSetProof.ProducesSet(p.history);
+    assert Seq.ToSet(asSeq) == s;
   }
 }
