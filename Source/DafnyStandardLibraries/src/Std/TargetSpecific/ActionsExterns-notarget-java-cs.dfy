@@ -3,7 +3,7 @@
  *  SPDX-License-Identifier: MIT
  *******************************************************************************/
 
-module {:extern} Std.JavaActionsExterns replaces ActionsExterns {
+module {:extern} Std.JavaCsActionsExterns replaces ActionsExterns {
 
   method {:extern} {:axiom} MakeSetReader<T>(s: set<T>) returns (p: Producer<T>, ghost proof: ProducerOfSetProof<T>)
 }

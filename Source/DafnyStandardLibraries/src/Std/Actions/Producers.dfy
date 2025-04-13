@@ -491,6 +491,20 @@ module Std.Producers {
     }
   }
 
+  method CollectToSeq<T>(p: Producer<T>) returns (s: seq<T>)
+    requires p.Valid()
+    requires p.history == []
+    modifies p.Repr
+    ensures p.Valid()
+    ensures p.Done()
+    ensures p.Produced() == s
+  {
+    var seqWriter := new SeqWriter<T>();
+    var writerTotalProof := seqWriter.totalActionProof();
+    p.ForEachRemaining(seqWriter, writerTotalProof);
+    return seqWriter.values;
+  }
+
   /***********************
    * Simple Producers
    ***********************/

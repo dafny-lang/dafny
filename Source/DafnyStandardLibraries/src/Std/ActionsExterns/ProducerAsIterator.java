@@ -28,6 +28,9 @@ class ProducerAsIterator<T> implements Iterator<T> {
 
     @Override
     public T next() {
+        if (!hasNext()) {
+            throw new java.util.NoSuchElementException();
+        }
         T result = next.dtor_value();
         fetchNext();
         return result;

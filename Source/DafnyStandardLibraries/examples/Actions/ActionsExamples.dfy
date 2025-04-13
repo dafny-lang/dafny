@@ -324,13 +324,14 @@ module ActionsExamples {
   method {:test} SetToSeq() {
 
     var s := { 1, 2, 3, 4, 5 };
-    var p: Producer<nat>, producerOfSetProof := MakeSetReader(s);
+    var setReader: Producer<nat>, producerOfSetProof := MakeSetReader(s);
     var seqWriter := new SeqWriter<nat>();
     var writerTotalProof := seqWriter.totalActionProof();
-    p.ForEachRemaining(seqWriter, writerTotalProof);
+    setReader.ForEachRemaining(seqWriter, writerTotalProof);
     var asSeq := seqWriter.values;
 
-    producerOfSetProof.ProducesSet(p.history);
+    producerOfSetProof.ProducesSet(setReader.history);
     assert Seq.ToSet(asSeq) == s;
+    assert Seq.HasNoDuplicates(asSeq);
   }
 }
