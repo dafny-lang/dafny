@@ -4,6 +4,7 @@ using System;
 namespace Microsoft.Dafny;
 
 [method: SyntaxConstructor]
+[SyntaxBaseType(typeof(IOrigin))]
 public class TokenRangeOrigin(Token startToken, Token endToken) : IOrigin {
   public Token EndToken { get; } = endToken;
   public Token StartToken { get; } = startToken;

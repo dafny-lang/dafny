@@ -12,16 +12,6 @@ namespace Scripts;
 public abstract class SyntaxAstVisitor {
 
   /// <summary>
-  /// Sometimes a type has an incorrect base-type in the sense that it does not
-  /// use all the fields of the base-type. In those cases, we can override the bas type,
-  /// so we do not need to refactor the Dafny AST
-  /// </summary>
-  protected static Dictionary<Type, Type?> OverrideBaseType = new() {
-    { typeof(SourceOrigin), typeof(IOrigin) },
-    { typeof(TokenRangeOrigin), typeof(IOrigin) }
-  };
-
-  /// <summary>
   /// Sometimes the parser sets fields that do not relate to the parsed source file
   /// </summary>
   protected static HashSet<Type> ExcludedTypes = [typeof(DafnyOptions)];
@@ -172,8 +162,8 @@ public abstract class SyntaxAstVisitor {
   /// attributes of the specified type (or its base types).
   /// </summary>
   public static Type? GetBaseType(Type type) {
-    return OverrideBaseType.GetOrCreate(type, () => type.GetCustomAttributes<SyntaxBaseType>()
-      .Select(attr => attr.NewBase).FirstOrDefault(type.BaseType));
+    return type.GetCustomAttributes<SyntaxBaseType>()
+      .Select(attr => attr.NewBase).FirstOrDefault(type.BaseType);
   }
 
   private static (string typeName, string typeArgs) MakeGenericTypeStringParts(
