@@ -175,7 +175,7 @@ public abstract class SyntaxAstVisitor {
   /// Return all field/property names appearing in <see cref="RedundantField"/>
   /// attributes of the specified type (or its base types).
   /// </summary>
-  protected static IEnumerable<string> GetRedundantFieldNames(Type type) {
+  public static IEnumerable<string> GetRedundantFieldNames(Type type) {
     return type.GetCustomAttributes<RedundantField>()
       .Select(attr => attr.Name);
   }

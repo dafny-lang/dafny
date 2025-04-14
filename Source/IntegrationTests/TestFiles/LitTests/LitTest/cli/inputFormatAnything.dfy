@@ -1,5 +1,5 @@
 // RUN: %tobinary %s > %t.assertFalse.dbin
-// RUN: %resolve --input-format Binary %S/Inputs/additional.dfy --stdin < %t.assertFalse.dbin > %t
+// RUN: %resolve --input-format Binary %S/Inputs/additional.dfy --allow-warnings --stdin < %t.assertFalse.dbin > %t
 // RUN: %diff "%s.expect" "%t"
 
 class Anything {
@@ -10,7 +10,7 @@ class Anything {
       continue;
     }
     assert(old(this) == this);
-    assert(fresh(this));
     assert(unchanged(this));
+    assert(fresh(this));
   }
 }
