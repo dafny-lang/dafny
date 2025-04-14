@@ -322,6 +322,38 @@ module Std.Consumers {
   }
 
   @AssumeCrossModuleTermination
+  class FoldingConsumerTotalActionProof<I, O> extends TotalActionProof<I, ()> {
+
+    ghost const action: FoldingConsumer<I, O>
+
+    constructor (action: FoldingConsumer<I, O>)
+      ensures Valid()
+      ensures fresh(Repr)
+      ensures Action() == action
+    {
+      this.action := action;
+      this.Repr := {this};
+    }
+
+    ghost predicate Valid()
+      reads this, Repr
+      ensures Valid() ==> this in Repr
+      decreases Repr, 0
+    {
+      this in Repr
+    }
+
+    ghost function Action(): Action<I, ()> {
+      action
+    }
+
+    lemma AnyInputIsValid(history: seq<(I, ())>, next: I)
+      requires Action().ValidHistory(history)
+      ensures Action().ValidInput(history, next)
+    {}
+  }
+
+  @AssumeCrossModuleTermination
   class SeqWriter<T> extends IConsumer<T> {
 
     var values: seq<T>
