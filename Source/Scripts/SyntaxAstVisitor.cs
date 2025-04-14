@@ -17,11 +17,8 @@ public abstract class SyntaxAstVisitor {
   /// so we do not need to refactor the Dafny AST
   /// </summary>
   protected static Dictionary<Type, Type?> OverrideBaseType = new() {
-    { typeof(TypeParameter), typeof(Declaration) },
-    { typeof(ModuleDecl), typeof(Declaration) },
     { typeof(SourceOrigin), typeof(IOrigin) },
-    { typeof(TokenRangeOrigin), typeof(IOrigin) },
-    { typeof(AttributedExpression), null }
+    { typeof(TokenRangeOrigin), typeof(IOrigin) }
   };
 
   /// <summary>

@@ -33,9 +33,9 @@ public class BackEdge : Attribute { }
 /// <summary>
 /// Indicates that in the syntax schema, this type has a different base type than in the C# types
 /// </summary>
-[AttributeUsage(AttributeTargets.Class)]
-public class SyntaxBaseType(System.Type newBase) : Attribute {
-  public readonly System.Type NewBase = newBase;
+[AttributeUsage(AttributeTargets.Class, Inherited = false)]
+public class SyntaxBaseType(System.Type? newBase) : Attribute {
+  public readonly System.Type? NewBase = newBase;
 }
 
 public abstract class Node : INode {
