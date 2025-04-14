@@ -2250,7 +2250,7 @@ LabeledStmt<out Statement s>
     | (. 
         var first = labels.First();
         var last = labels.Last(); 
-        var origin = new SourceOrigin(first.Tok.ReportingRange.StartToken, last.Tok.ReportingRange.EndToken);
+        var origin = new SourceOrigin(beforeToken.Next, last.Tok.ReportingRange.EndToken);
         s = new LabeledStatement(origin, labels);
       .)
     )
