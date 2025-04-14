@@ -492,8 +492,8 @@ namespace Microsoft.Dafny {
         if (dt is IndDatatypeDecl) {
           var argType = arg.Type.NormalizeExpand();
           if (argType.IsDatatype || argType.IsTypeParameter) {
-            // for datatype:             axiom (forall params :: {#dt.ctor(params)} DtRank(params_i) < DtRank(#dt.ctor(params)));
-            // for type-parameter type:  axiom (forall params :: {#dt.ctor(params)} BoxRank(params_i) < DtRank(#dt.ctor(params)));
+            // for datatype:             axiom (forall params :: {DtRank(#dt.ctor(params))} DtRank(params_i) < DtRank(#dt.ctor(params)));
+            // for type-parameter type:  axiom (forall params :: {DtRank(#dt.ctor(params))} BoxRank(params_i) < DtRank(#dt.ctor(params)));
             CreateBoundVariables(ctor.Formals, out bvs, out args);
             Bpl.Expr lhs = FunctionCall(ctor.Origin, arg.Type.IsDatatype ? BuiltinFunction.DtRank : BuiltinFunction.BoxRank,
               null, args[i]);
