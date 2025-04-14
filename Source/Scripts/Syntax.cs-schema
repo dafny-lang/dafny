@@ -125,8 +125,7 @@ enum UnaryOpExprOpcode
     Assigned
 }
 
-// [RedundantField("op")]
-class FreshExpr : UnaryOpExpr
+class FreshExpr : UnaryExpr
 {
     String? at;
 }
@@ -509,8 +508,7 @@ class BoundVar : NonglobalVariable
 {
 }
 
-// [RedundantField("isGhost")]
-class QuantifiedVar : BoundVar
+class QuantifiedVar : NodeWithOrigin
 {
     Expression? domain;
     Expression? range;

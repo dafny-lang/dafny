@@ -82,7 +82,11 @@ using BinaryExprOpcode = Microsoft.Dafny.BinaryExpr.Opcode;
         return;
       }
 
-      if (memberInfo.DeclaringType != type) {
+      if (baseType != null && 
+          baseType.GetMember(
+            memberInfo.Name, 
+            MemberTypes.Field | MemberTypes.Property, 
+            BindingFlags.Instance).Any()) {
         if (!ParameterToSchemaPositions[memberInfo.DeclaringType!]
               .TryGetValue(memberInfo.Name, out var schemaPosition)) {
           throw new Exception(
