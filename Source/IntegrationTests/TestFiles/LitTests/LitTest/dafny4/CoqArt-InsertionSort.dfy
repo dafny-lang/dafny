@@ -87,8 +87,10 @@ lemma equiv_perm(a: int, b: int, l: List<int>, l': List<int>)
   forall z {
     calc {
       nb_occ(z, L);
+      (if z == a then 1 else 0) + nb_occ (z, Cons(b, l));
       (if z == a && z == b then 2 else if z == a || z == b then 1 else 0) + nb_occ(z, l);
       (if z == a && z == b then 2 else if z == a || z == b then 1 else 0) + nb_occ(z, l');
+      (if z == b then 1 else 0) + nb_occ (z, Cons(a, l'));
       nb_occ(z, L');
     }
   }
@@ -120,13 +122,20 @@ lemma aux_equiv(l: List<int>, x: int)
 {
   match l {
     case Nil =>
-    case Cons(_, _) =>
+    case Cons(y, l') =>
+      forall z : int {
+        calc {:fuel nb_occ, 3} {
+          nb_occ (z, aux (x, l));
+          nb_occ (z, Cons (y, Cons(x, l')));
+          nb_occ(z, Cons(x, Cons(y, l')));
+        }
+    }
   }
 }
 
-lemma aux_sorted(l: List<int>, x: int)
-  requires sorted(l);
-  ensures sorted(aux(x, l));
+lemma {:fuel aux, 2} aux_sorted(l: List<int>, x: int)
+  requires sorted(l)
+  ensures sorted(aux(x, l))
 {
   match l {
     case Nil =>

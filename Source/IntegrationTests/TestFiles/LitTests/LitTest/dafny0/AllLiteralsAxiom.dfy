@@ -1,4 +1,4 @@
-// RUN: %verify --solver-option="O:smt.qi.eager_threshold=30" "%s" > "%t"
+// RUN: %verify --solver-option="O:smt.qi.eager_threshold=40" "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 module NeedsAllLiteralsAxiom {

@@ -300,7 +300,7 @@ module PriorityQueue_direct {
     AboutMin(t);
     t.val
   }
-  lemma AboutMin(t: T)
+  lemma {:fuel Elements, 2} AboutMin(t: T)
     requires t != Leaf
     ensures t.val in Elements(t) &&
             forall x :: x in Elements(t) ==> t.val <= x

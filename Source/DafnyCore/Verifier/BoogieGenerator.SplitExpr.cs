@@ -317,16 +317,17 @@ namespace Microsoft.Dafny {
                 Bpl.Expr less = DecreasesCheck(toks, null, kkDafny, nnDafny, kk, nn,
                   null, null, false, true);
 
-                Bpl.Expr ihBody = etran.TrExpr(bodyK);
+                var etranIh = etran.WithZeroFuel();
+                Bpl.Expr ihBody = etranIh.TrExpr(bodyK);
                 if (!position) {
                   ihBody = Bpl.Expr.Not(ihBody);
                 }
-                ihBody = BplAnd(etran.CanCallAssumption(bodyK), ihBody);
+                ihBody = BplAnd(etranIh.CanCallAssumption(bodyK), ihBody);
                 ihBody = BplImp(less, ihBody);
                 List<Variable> bvars = [];
                 Bpl.Expr typeAntecedent = etran.TrBoundVariables(kvars, bvars);  // no need to use allocation antecedent here, because the well-founded less-than ordering assures kk are allocated
                 Bpl.Expr ih;
-                var tr = TrTrigger(etran, e.Attributes, expr.Origin, substMap);
+                var tr = TrTrigger(etranIh, e.Attributes, expr.Origin, substMap);
                 ih = new Bpl.ForallExpr(expr.Origin, bvars, tr, BplImp(typeAntecedent, ihBody));
 
                 // More precisely now:
@@ -373,45 +374,46 @@ namespace Microsoft.Dafny {
                 }
 
                 // Finally, assume the original quantifier (forall/exists n :: P(n))
-                splits.Add(ToSplitExprInfo(SplitExprInfo.K.Free, etran.TrExpr(expr)));
+                splits.Add(ToSplitExprInfo(SplitExprInfo.K.Free, etran.WithoutFuelInQuantifiers().TrExpr(expr)));
                 return true;
               } else {
                 // Don't use induction on these quantifiers.
                 // Nevertheless, produce two translated versions of the quantifier, one that uses #2 functions (that is, layerOffset 1)
                 // for checking and one that uses #1 functions (that is, layerOffset 0) for assuming.
-                var etranBoost = etran.LayerOffset(1);
-                var r = etranBoost.TrExpr(expr);
+                // var etranBoost = etran.LayerOffset(1);
+                var r = etran.TrExpr(expr);
                 var needsTokenAdjustment = TrSplitNeedsTokenAdjustment(expr);
                 if (needsTokenAdjustment) {
                   r.tok = new ForceCheckOrigin(expr.Origin);
                 }
-                if (etranBoost.Statistics_CustomLayerFunctionCount == 0) {
+                if (false && etran.Statistics_CustomLayerFunctionCount == 0) {
                   // apparently, the LayerOffset(1) we did had no effect
                   splits.Add(ToSplitExprInfo(SplitExprInfo.K.Both, r));
                   return needsTokenAdjustment;
                 } else {
                   splits.Add(ToSplitExprInfo(SplitExprInfo.K.Checked, r));  // check the boosted expression
-                  splits.Add(ToSplitExprInfo(SplitExprInfo.K.Free, etran.TrExpr(expr)));  // assume the ordinary expression
+                  splits.Add(ToSplitExprInfo(SplitExprInfo.K.Free, etran.WithoutFuelInQuantifiers().TrExpr(expr)));  // assume the ordinary expression
                   return true;
                 }
               }
-            } else if (((position && expr is ExistsExpr) || (!position && expr is ForallExpr))) {
+            }
+            else if (((position && expr is ExistsExpr) || (!position && expr is ForallExpr))) {
               // produce two translated versions of the quantifier, one that uses #1 functions (that is, layerOffset 0)
               // for checking and one that uses #2 functions (that is, layerOffset 1) for assuming.
               adjustFuelForExists = false; // based on the above comment, we use the etran with correct fuel amount already. No need to adjust anymore.
-              var etranBoost = etran.LayerOffset(1);
+              // var etranBoost = etran.LayerOffset(1);
               var r = etran.TrExpr(expr);
               var needsTokenAdjustment = TrSplitNeedsTokenAdjustment(expr);
               if (needsTokenAdjustment) {
                 r.tok = new ForceCheckOrigin(expr.Origin);
               }
-              if (etran.Statistics_CustomLayerFunctionCount == 0) {
+              if (false && etran.Statistics_CustomLayerFunctionCount == 0) {
                 // apparently, doesn't use layer
                 splits.Add(ToSplitExprInfo(SplitExprInfo.K.Both, r));
                 return needsTokenAdjustment;
               } else {
                 splits.Add(ToSplitExprInfo(SplitExprInfo.K.Checked, r));  // check the ordinary expression
-                splits.Add(ToSplitExprInfo(SplitExprInfo.K.Free, etranBoost.TrExpr(expr)));  // assume the boosted expression
+                splits.Add(ToSplitExprInfo(SplitExprInfo.K.Free, etran.WithoutFuelInQuantifiers().TrExpr(expr)));  // assume the boosted expression
                 return true;
               }
             }

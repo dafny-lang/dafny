@@ -48,7 +48,7 @@ ghost function CurriedAckermann(m: int, n: int): int
   A(m)(n)
 }
 
-ghost function A(m: int): int -> int
+ghost function {:fuel 2} A(m: int): int -> int
 {
   if m <= 0 then
     n => n + 1
