@@ -2418,7 +2418,7 @@ BplBoundVar(varNameGen.FreshId(string.Format("#{0}#", bv.Name)), Predef.BoxType,
           var etran = this;
           if (e is QuantifierExpr q && q.SplitQuantifier != null) {
             return CanCallAssumption(q.SplitQuantifierExpression, cco);
-          } else if (e is ForallExpr) {
+          } else if (e is QuantifierExpr) {
             etran = this.WithZeroFuel();
           }
 
