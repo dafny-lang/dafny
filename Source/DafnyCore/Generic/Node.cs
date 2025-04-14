@@ -36,9 +36,9 @@ public class BackEdge : Attribute { }
 /// A common case is when a base type defines a field that takes the same value in all instances of a subtype.
 /// Serialization and pretty-printing logic may safely ignore such a field for efficiency.
 /// </summary>
-[AttributeUsage(AttributeTargets.Class, AllowMultiple = true)]
-public class RedundantField(string name) : Attribute {
-  public readonly string Name = name;
+[AttributeUsage(AttributeTargets.Class)]
+public class FieldsBaseType(System.Type newBase) : Attribute {
+  public readonly System.Type NewBase = newBase;
 }
 
 public abstract class Node : INode {

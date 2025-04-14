@@ -225,7 +225,6 @@ public class Serializer(IEncoder encoder, IReadOnlyList<INamedTypeSymbol> parsed
 
     var fieldNames = fieldsPerType[SyntaxAstVisitor.CutOffGenericSuffixPartOfName(foundType.Name)];
     var fieldsPerName = new Dictionary<string, FieldInfo>();
-    var redundantFields = SyntaxAstVisitor.GetRedundantFieldNames(foundType).ToHashSet();
     foreach (var fieldInfo in GetSerializableFields(foundType)) {
       var fieldName = fieldInfo.Name;
       if (fieldName.StartsWith("<") && fieldName.EndsWith("k__BackingField")) {
@@ -234,9 +233,6 @@ public class Serializer(IEncoder encoder, IReadOnlyList<INamedTypeSymbol> parsed
       } else if (fieldName.StartsWith("<") && fieldName.EndsWith(">P")) {
         // Support fields from a primary constructor
         fieldName = fieldName.Substring(1, fieldName.Length - 3);
-      }
-      if (redundantFields.Contains(fieldName)) {
-        continue;
       }
 
       // If this is an overridden field, overwrite the entry

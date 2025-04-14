@@ -54,7 +54,7 @@ public abstract class SyntaxAstVisitor {
       if (current.IsGenericType) {
         current = current.GetGenericTypeDefinition();
       }
-      var baseType = OverrideBaseType.GetOrDefault(current, () => current.BaseType);
+      var baseType = GetBaseType(current);
       if (baseType != null && baseType != typeof(ValueType) && baseType != typeof(object)) {
         if (!visited.Contains(baseType)) {
           toVisit.Push(current);
@@ -86,14 +86,13 @@ public abstract class SyntaxAstVisitor {
 
   private void VisitClass(Type type, Stack<Type> toVisit, IDictionary<Type, ISet<Type>> inheritors) {
     HandleClass(type);
-    var baseType = OverrideBaseType.GetOrDefault(type, () => type.BaseType);
+    var baseType = GetBaseType(type);
     if (baseType != null && baseType != typeof(ValueType) && baseType != typeof(object)) {
       var myParseConstructor = GetParseConstructor(type)!;
       var baseParseConstructor = GetParseConstructor(baseType);
       var missingParameters = baseParseConstructor == null ? [] :
         baseParseConstructor.GetParameters().Select(p => p.Name)
           .Except(myParseConstructor.GetParameters().Select(p => p.Name))
-          .ExceptBy(GetRedundantFieldNames(type).Select(name => name.ToLower()), str => str?.ToLower())
           .ToList();
       if (missingParameters.Any()) {
         throw new Exception($"in type {type}, missing parameters: {string.Join(",", missingParameters)}");
@@ -172,12 +171,12 @@ public abstract class SyntaxAstVisitor {
   }
 
   /// <summary>
-  /// Return all field/property names appearing in <see cref="RedundantField"/>
+  /// Return all field/property names appearing in <see cref="FieldsBaseType"/>
   /// attributes of the specified type (or its base types).
   /// </summary>
-  public static IEnumerable<string> GetRedundantFieldNames(Type type) {
-    return type.GetCustomAttributes<RedundantField>()
-      .Select(attr => attr.Name);
+  public static Type? GetBaseType(Type type) {
+    return OverrideBaseType.GetOrCreate(type, () => type.GetCustomAttributes<FieldsBaseType>()
+      .Select(attr => attr.NewBase).FirstOrDefault(type.BaseType));
   }
 
   private static (string typeName, string typeArgs) MakeGenericTypeStringParts(

@@ -3,7 +3,7 @@ using System.Diagnostics.Contracts;
 
 namespace Microsoft.Dafny;
 
-[RedundantField(nameof(Op))]
+[FieldsBaseType(typeof(UnaryExpr))]
 public class FreshExpr : UnaryOpExpr, ICloneable<FreshExpr> {
   public string? At;
   [FilledInDuringResolution] public Label? AtLabel;  // after that, At==null iff AtLabel==null
