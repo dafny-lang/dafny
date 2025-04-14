@@ -12,7 +12,7 @@ public class AlternativeStmt : LabeledStatement, ICloneable<AlternativeStmt>, IC
     Contract.Invariant(Alternatives != null);
   }
 
-  public AlternativeStmt Clone(Cloner cloner) {
+  public new AlternativeStmt Clone(Cloner cloner) {
     return new AlternativeStmt(cloner, this);
   }
 

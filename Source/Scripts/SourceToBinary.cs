@@ -236,14 +236,14 @@ public class Serializer(IEncoder encoder, IReadOnlyList<INamedTypeSymbol> parsed
         fieldName = fieldName.Substring(1, fieldName.Length - 3);
       }
 
-      if (redundantFields.Contains(fieldName)) {
-        continue;
-      }
       // If this is an overridden field, overwrite the entry
       fieldsPerName[fieldName.ToLower()] = fieldInfo;
     }
 
     foreach (var fieldName in fieldNames) {
+      if (redundantFields.Contains(fieldName)) {
+        continue;
+      }
       var field = fieldsPerName[fieldName];
 
       try {
