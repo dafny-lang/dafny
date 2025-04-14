@@ -503,7 +503,7 @@ namespace Microsoft.Dafny {
               */
             Bpl.Expr ct = FunctionCall(ctor.Origin, ctor.FullName, Predef.DatatypeType, args);
             var rhs = FunctionCall(ctor.Origin, BuiltinFunction.DtRank, null, ct);
-            var trigger = BplTrigger(ct);
+            var trigger = BplTrigger(rhs);
             q = new Bpl.ForallExpr(ctor.Origin, bvs, trigger, Bpl.Expr.Lt(lhs, rhs));
             AddOtherDefinition(fn, new Bpl.Axiom(ctor.Origin, q, "Inductive rank"));
           } else if (argType is SeqType) {
