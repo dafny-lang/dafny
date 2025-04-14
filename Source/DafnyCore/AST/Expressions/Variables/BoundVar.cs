@@ -26,7 +26,7 @@ public class BoundVar : NonglobalVariable {
 /// (x <- C) and an optional range boolean expressions (x | E).
 /// </summary>
 [DebuggerDisplay("Quantified<{name}>")]
-[FieldsBaseType(typeof(NodeWithOrigin))]
+[SyntaxBaseType(typeof(NodeWithOrigin))]
 public class QuantifiedVar : BoundVar {
   public Expression? Domain;
   public Expression? Range;

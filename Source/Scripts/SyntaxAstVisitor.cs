@@ -171,11 +171,11 @@ public abstract class SyntaxAstVisitor {
   }
 
   /// <summary>
-  /// Return all field/property names appearing in <see cref="FieldsBaseType"/>
+  /// Return all field/property names appearing in <see cref="SyntaxBaseType"/>
   /// attributes of the specified type (or its base types).
   /// </summary>
   public static Type? GetBaseType(Type type) {
-    return OverrideBaseType.GetOrCreate(type, () => type.GetCustomAttributes<FieldsBaseType>()
+    return OverrideBaseType.GetOrCreate(type, () => type.GetCustomAttributes<SyntaxBaseType>()
       .Select(attr => attr.NewBase).FirstOrDefault(type.BaseType));
   }
 

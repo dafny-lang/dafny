@@ -82,20 +82,22 @@ using BinaryExprOpcode = Microsoft.Dafny.BinaryExpr.Opcode;
         return;
       }
 
-      if (baseType != null && 
-          baseType.GetMember(
-            memberInfo.Name, 
-            MemberTypes.Field | MemberTypes.Property, 
-            BindingFlags.Instance).Any()) {
-        if (!ParameterToSchemaPositions[memberInfo.DeclaringType!]
-              .TryGetValue(memberInfo.Name, out var schemaPosition)) {
-          throw new Exception(
-            $"parameter '{parameter.Name}' of '{type.Name}' should have been in parent type '{memberInfo.DeclaringType}' constructor, but was not found");
-        }
+      if (memberInfo.DeclaringType != type && baseType != null) {
+        var baseMembers = baseType.GetMember(
+          memberInfo.Name,
+          MemberTypes.Field | MemberTypes.Property,
+          BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
+        if (baseMembers.Any()) {
+          if (!ParameterToSchemaPositions[memberInfo.DeclaringType!]
+                .TryGetValue(memberInfo.Name, out var schemaPosition)) {
+            throw new Exception(
+              $"parameter '{parameter.Name}' of '{type.Name}' should have been in parent type '{memberInfo.DeclaringType}' constructor, but was not found");
+          }
 
-        schemaToConstructorPosition[schemaPosition] = index;
-        parameterToSchemaPosition[memberInfo.Name] = schemaPosition;
-        return;
+          schemaToConstructorPosition[schemaPosition] = index;
+          parameterToSchemaPosition[memberInfo.Name] = schemaPosition;
+          return;
+        }
       }
 
       var schemaPosition2 = ownedFieldPosition++;
@@ -106,7 +108,7 @@ using BinaryExprOpcode = Microsoft.Dafny.BinaryExpr.Opcode;
     if (baseType != null && baseType != typeof(ValueType) && baseType != typeof(object)) {
       foreach (var (baseParamName, baseSchemaIndex) in ParameterToSchemaPositions[baseType]) {
         if (!schemaToConstructorPosition.ContainsKey(baseSchemaIndex)) {
-          throw new Exception($"Constructor for type {type.Name} is missing a parameter for field/property {baseParamName} inherited from {baseType.Name} - add one or use {nameof(FieldsBaseType)}");
+          throw new Exception($"Constructor for type {type.Name} is missing a parameter for field/property {baseParamName} inherited from {baseType.Name} - add one or use {nameof(SyntaxBaseType)}");
         }
       }
     }

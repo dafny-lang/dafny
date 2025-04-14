@@ -31,13 +31,10 @@ public class SyntaxConstructorAttribute : Attribute { }
 public class BackEdge : Attribute { }
 
 /// <summary>
-/// Indicates that the target field or property is redundant,
-/// such as if it's effectively constant or fully determined by the values of other fields.
-/// A common case is when a base type defines a field that takes the same value in all instances of a subtype.
-/// Serialization and pretty-printing logic may safely ignore such a field for efficiency.
+/// Indicates that in the syntax schema, this type has a different base type than in the C# types
 /// </summary>
 [AttributeUsage(AttributeTargets.Class)]
-public class FieldsBaseType(System.Type newBase) : Attribute {
+public class SyntaxBaseType(System.Type newBase) : Attribute {
   public readonly System.Type NewBase = newBase;
 }
 
