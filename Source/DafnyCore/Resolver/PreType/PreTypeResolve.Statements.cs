@@ -116,11 +116,11 @@ namespace Microsoft.Dafny {
       } else if (stmt is BreakOrContinueStmt) {
         var s = (BreakOrContinueStmt)stmt;
         if (s.TargetLabel != null) {
-          Statement target = EnclosingStatementLabels.Find(s.TargetLabel.val);
+          Statement target = EnclosingStatementLabels.Find(s.TargetLabel.Value);
           if (target == null) {
-            ReportError(s.TargetLabel, $"{s.Kind} label is undefined or not in scope: {s.TargetLabel.val}");
+            ReportError(s.TargetLabel.Origin, $"{s.Kind} label is undefined or not in scope: {s.TargetLabel.Value}");
           } else if (s.IsContinue && !(target is LoopStmt)) {
-            ReportError(s.TargetLabel, $"continue label must designate a loop: {s.TargetLabel.val}");
+            ReportError(s.TargetLabel.Origin, $"continue label must designate a loop: {s.TargetLabel.Value}");
           } else {
             s.TargetStmt = target;
           }
@@ -1117,7 +1117,7 @@ namespace Microsoft.Dafny {
       if (rr is AllocateArray allocateArray) {
         // ---------- new T[EE]    OR    new T[EE] (elementInit)    OR    new T[EE] [elements...]
         var dims = allocateArray.ArrayDimensions.Count;
-        resolver.ResolveType(stmt.Origin, allocateArray.ExplicitType, resolutionContext, ResolveTypeOptionEnum.InferTypeProxies, null);
+        resolver.ResolveType(stmt.Origin, allocateArray.ElementType, resolutionContext, ResolveTypeOptionEnum.InferTypeProxies, null);
         int i = 0;
         foreach (var dim in allocateArray.ArrayDimensions) {
           ResolveExpression(dim, resolutionContext);
@@ -1127,7 +1127,7 @@ namespace Microsoft.Dafny {
           i++;
         }
 
-        var elementPreType = Type2PreType(allocateArray.ExplicitType);
+        var elementPreType = Type2PreType(allocateArray.ElementType);
         rr.PreType = BuiltInArrayType(dims, elementPreType);
         if (allocateArray.ElementInit != null) {
           ResolveExpression(allocateArray.ElementInit, resolutionContext);

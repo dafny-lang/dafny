@@ -4,6 +4,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
+using Microsoft.BaseTypes;
 
 namespace Microsoft.Dafny;
 
@@ -128,7 +129,8 @@ public partial class SyntaxDeserializer(IDecoder decoder) {
     var typeName = decoder.ReadQualifiedName();
     var actualType = System.Type.GetType("Microsoft.Dafny." + typeName) ??
                      System.Type.GetType("System." + typeName) ??
-                     (typeName == "BigInteger" ? typeof(BigInteger) : null);
+                     (typeName == "BigInteger" ? typeof(BigInteger) : null) ??
+                     (typeName == "BigDec" ? typeof(BigDec) : null);
     if (actualType == null) {
       throw new Exception($"Type not found: {typeName}, expected type {typeof(T).Name}, position {decoder.Position}");
     }
@@ -187,6 +189,10 @@ public partial class SyntaxDeserializer(IDecoder decoder) {
 
     if (actualType == typeof(long)) {
       return (T)(object)decoder.ReadInt64();
+    }
+
+    if (actualType == typeof(BigDec)) {
+      return (T)(object)decoder.ReadBigDec();
     }
 
     if (actualType == typeof(BigInteger)) {
