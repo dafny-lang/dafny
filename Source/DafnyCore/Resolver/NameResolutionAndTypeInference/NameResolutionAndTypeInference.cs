@@ -3097,9 +3097,8 @@ namespace Microsoft.Dafny {
       EnclosingStatementLabels.PushMarker();
       // push labels
       if (stmt is LabeledStatement labelledStatement) {
-        foreach (var l in labelledStatement.Labels) {
-          var lnode = l;
-          Contract.Assert(lnode.Name != null);  // LabelNode's with .Label==null are added only during resolution of the break statements with 'stmt' as their target, which hasn't happened yet
+        foreach (var lnode in labelledStatement.Labels) {
+          Contract.Assert(lnode.Name != null);  // Label's with .Name==null are added only during resolution of the break statements with 'stmt' as their target, which hasn't happened yet
           var prev = EnclosingStatementLabels.Find(lnode.Name);
           if (prev == stmt) {
             reporter.Error(MessageSource.Resolver, lnode.Tok, "duplicate label");
@@ -3972,7 +3971,7 @@ namespace Microsoft.Dafny {
           ResolveStatement(s.S, resolutionContext);
         }
       } else if (stmt is LabeledStatement) {
-        // already handled
+        // content already handled
       } else {
         Contract.Assert(false); throw new cce.UnreachableException();
       }

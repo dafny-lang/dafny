@@ -2632,7 +2632,7 @@ IfStmt<out Statement/*!*/ ifStmt>
   (
     IF(IsAlternative())
     AlternativeBlock<true, out alternatives, out usesOptionalBraces, out endTok>
-    (. ifStmt = new AlternativeStmt(new SourceOrigin(startToken, t), alternatives, usesOptionalBraces, attrs);
+    (. ifStmt = new AlternativeStmt(new SourceOrigin(startToken, t), [], alternatives, usesOptionalBraces, attrs);
     .)
   |
     ( IF(IsBindingGuard())

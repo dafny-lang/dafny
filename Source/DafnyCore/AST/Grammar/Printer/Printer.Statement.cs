@@ -476,7 +476,7 @@ namespace Microsoft.Dafny {
             break;
           }
         case LabeledStatement labeledStatement:
-          // already handled earlier
+          // content already handled earlier
           break;
         default:
           Contract.Assert(false); throw new cce.UnreachableException();  // unexpected statement

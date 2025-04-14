@@ -452,7 +452,7 @@ public partial class BoogieGenerator {
         // their use is low value.
         throw new NotSupportedException("Verification of try/recover statements is not supported");
       case LabeledStatement:
-        // already handled
+        // content already handled
         break;
       default:
         Contract.Assert(false);
