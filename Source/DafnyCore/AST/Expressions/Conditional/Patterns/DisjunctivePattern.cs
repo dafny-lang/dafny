@@ -1,3 +1,5 @@
+#nullable enable
+
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 using System.Linq;
@@ -6,9 +8,11 @@ namespace Microsoft.Dafny;
 
 public class DisjunctivePattern : ExtendedPattern {
   public List<ExtendedPattern> Alternatives;
+
+  [SyntaxConstructor]
   public DisjunctivePattern(IOrigin origin, List<ExtendedPattern> alternatives, bool isGhost = false) : base(origin, isGhost) {
-    Contract.Requires(alternatives != null && alternatives.Count > 0);
-    this.Alternatives = alternatives;
+    Contract.Requires(alternatives.Count > 0);
+    Alternatives = alternatives;
   }
 
   public override IEnumerable<INode> Children => Alternatives;

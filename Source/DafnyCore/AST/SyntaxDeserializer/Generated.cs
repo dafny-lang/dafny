@@ -252,6 +252,24 @@ namespace Microsoft.Dafny
             return ReadLiteralExpr();
         }
 
+        public StringLiteralExpr ReadStringLiteralExpr()
+        {
+            var parameter0 = ReadAbstract<IOrigin>();
+            var parameter1 = ReadAbstract<Object>();
+            var parameter2 = ReadBoolean();
+            return new StringLiteralExpr(parameter0, parameter1, parameter2);
+        }
+
+        public StringLiteralExpr ReadStringLiteralExprOption()
+        {
+            if (ReadIsNull())
+            {
+                return default;
+            }
+
+            return ReadStringLiteralExpr();
+        }
+
         public CharLiteralExpr ReadCharLiteralExpr()
         {
             var parameter0 = ReadAbstract<IOrigin>();
@@ -433,6 +451,526 @@ namespace Microsoft.Dafny
         {
             int ordinal = ReadInt32();
             return (TernaryExpr.Opcode)ordinal;
+        }
+
+        public NestedMatchExpr ReadNestedMatchExpr()
+        {
+            var parameter0 = ReadAbstract<IOrigin>();
+            var parameter1 = ReadAbstract<Expression>();
+            var parameter2 = ReadList<NestedMatchCaseExpr>(() => ReadNestedMatchCaseExpr());
+            var parameter3 = ReadBoolean();
+            var parameter4 = ReadAttributesOption();
+            return new NestedMatchExpr(parameter0, parameter1, parameter2, parameter3, parameter4);
+        }
+
+        public NestedMatchExpr ReadNestedMatchExprOption()
+        {
+            if (ReadIsNull())
+            {
+                return default;
+            }
+
+            return ReadNestedMatchExpr();
+        }
+
+        public LitPattern ReadLitPattern()
+        {
+            var parameter0 = ReadAbstract<IOrigin>();
+            var parameter2 = ReadBoolean();
+            var parameter1 = ReadAbstract<Expression>();
+            return new LitPattern(parameter0, parameter1, parameter2);
+        }
+
+        public LitPattern ReadLitPatternOption()
+        {
+            if (ReadIsNull())
+            {
+                return default;
+            }
+
+            return ReadLitPattern();
+        }
+
+        public IdPattern ReadIdPattern()
+        {
+            var parameter0 = ReadAbstract<IOrigin>();
+            var parameter4 = ReadBoolean();
+            var parameter1 = ReadString();
+            var parameter2 = ReadAbstractOption<Type>();
+            var parameter3 = ReadListOption<ExtendedPattern>(() => ReadAbstract<ExtendedPattern>());
+            var parameter5 = ReadBoolean();
+            return new IdPattern(parameter0, parameter1, parameter2, parameter3, parameter4, parameter5);
+        }
+
+        public IdPattern ReadIdPatternOption()
+        {
+            if (ReadIsNull())
+            {
+                return default;
+            }
+
+            return ReadIdPattern();
+        }
+
+        public DisjunctivePattern ReadDisjunctivePattern()
+        {
+            var parameter0 = ReadAbstract<IOrigin>();
+            var parameter2 = ReadBoolean();
+            var parameter1 = ReadList<ExtendedPattern>(() => ReadAbstract<ExtendedPattern>());
+            return new DisjunctivePattern(parameter0, parameter1, parameter2);
+        }
+
+        public DisjunctivePattern ReadDisjunctivePatternOption()
+        {
+            if (ReadIsNull())
+            {
+                return default;
+            }
+
+            return ReadDisjunctivePattern();
+        }
+
+        public NestedMatchCaseStmt ReadNestedMatchCaseStmt()
+        {
+            var parameter0 = ReadAbstract<IOrigin>();
+            var parameter1 = ReadAbstract<ExtendedPattern>();
+            var parameter2 = ReadList<Statement>(() => ReadAbstract<Statement>());
+            var parameter3 = ReadAttributesOption();
+            return new NestedMatchCaseStmt(parameter0, parameter1, parameter2, parameter3);
+        }
+
+        public NestedMatchCaseStmt ReadNestedMatchCaseStmtOption()
+        {
+            if (ReadIsNull())
+            {
+                return default;
+            }
+
+            return ReadNestedMatchCaseStmt();
+        }
+
+        public ExpectStmt ReadExpectStmt()
+        {
+            var parameter0 = ReadAbstract<IOrigin>();
+            var parameter3 = ReadAttributesOption();
+            var parameter1 = ReadAbstract<Expression>();
+            var parameter2 = ReadAbstractOption<Expression>();
+            return new ExpectStmt(parameter0, parameter1, parameter2, parameter3);
+        }
+
+        public ExpectStmt ReadExpectStmtOption()
+        {
+            if (ReadIsNull())
+            {
+                return default;
+            }
+
+            return ReadExpectStmt();
+        }
+
+        public AssertStmt ReadAssertStmt()
+        {
+            var parameter0 = ReadAbstract<IOrigin>();
+            var parameter3 = ReadAttributesOption();
+            var parameter1 = ReadAbstract<Expression>();
+            var parameter2 = ReadAssertLabelOption();
+            return new AssertStmt(parameter0, parameter1, parameter2, parameter3);
+        }
+
+        public AssertStmt ReadAssertStmtOption()
+        {
+            if (ReadIsNull())
+            {
+                return default;
+            }
+
+            return ReadAssertStmt();
+        }
+
+        public Label ReadLabel()
+        {
+            var parameter0 = ReadAbstract<IOrigin>();
+            var parameter1 = ReadString();
+            return new Label(parameter0, parameter1);
+        }
+
+        public Label ReadLabelOption()
+        {
+            if (ReadIsNull())
+            {
+                return default;
+            }
+
+            return ReadLabel();
+        }
+
+        public AssertLabel ReadAssertLabel()
+        {
+            var parameter0 = ReadAbstract<IOrigin>();
+            var parameter1 = ReadString();
+            return new AssertLabel(parameter0, parameter1);
+        }
+
+        public AssertLabel ReadAssertLabelOption()
+        {
+            if (ReadIsNull())
+            {
+                return default;
+            }
+
+            return ReadAssertLabel();
+        }
+
+        public AllocateClass ReadAllocateClass()
+        {
+            var parameter0 = ReadAbstract<IOrigin>();
+            var parameter3 = ReadAttributesOption();
+            var parameter1 = ReadAbstract<Type>();
+            var parameter2 = ReadActualBindingsOption();
+            return new AllocateClass(parameter0, parameter1, parameter2, parameter3);
+        }
+
+        public AllocateClass ReadAllocateClassOption()
+        {
+            if (ReadIsNull())
+            {
+                return default;
+            }
+
+            return ReadAllocateClass();
+        }
+
+        public AllocateArray ReadAllocateArray()
+        {
+            var parameter0 = ReadAbstract<IOrigin>();
+            var parameter4 = ReadAttributesOption();
+            var parameter1 = ReadAbstractOption<Type>();
+            var parameter2 = ReadList<Expression>(() => ReadAbstract<Expression>());
+            var parameter3 = ReadAbstractOption<Expression>();
+            return new AllocateArray(parameter0, parameter1, parameter2, parameter3, parameter4);
+        }
+
+        public AllocateArray ReadAllocateArrayOption()
+        {
+            if (ReadIsNull())
+            {
+                return default;
+            }
+
+            return ReadAllocateArray();
+        }
+
+        public ExprRhs ReadExprRhs()
+        {
+            var parameter0 = ReadAbstract<IOrigin>();
+            var parameter2 = ReadAttributesOption();
+            var parameter1 = ReadAbstract<Expression>();
+            return new ExprRhs(parameter0, parameter1, parameter2);
+        }
+
+        public ExprRhs ReadExprRhsOption()
+        {
+            if (ReadIsNull())
+            {
+                return default;
+            }
+
+            return ReadExprRhs();
+        }
+
+        public ReturnStmt ReadReturnStmt()
+        {
+            var parameter0 = ReadAbstract<IOrigin>();
+            var parameter2 = ReadAttributesOption();
+            var parameter1 = ReadListOption<AssignmentRhs>(() => ReadAbstract<AssignmentRhs>());
+            return new ReturnStmt(parameter0, parameter1, parameter2);
+        }
+
+        public ReturnStmt ReadReturnStmtOption()
+        {
+            if (ReadIsNull())
+            {
+                return default;
+            }
+
+            return ReadReturnStmt();
+        }
+
+        public PrintStmt ReadPrintStmt()
+        {
+            var parameter0 = ReadAbstract<IOrigin>();
+            var parameter2 = ReadAttributesOption();
+            var parameter1 = ReadList<Expression>(() => ReadAbstract<Expression>());
+            return new PrintStmt(parameter0, parameter1, parameter2);
+        }
+
+        public PrintStmt ReadPrintStmtOption()
+        {
+            if (ReadIsNull())
+            {
+                return default;
+            }
+
+            return ReadPrintStmt();
+        }
+
+        public LabeledStatement ReadLabeledStatement()
+        {
+            var parameter0 = ReadAbstract<IOrigin>();
+            var parameter2 = ReadAttributesOption();
+            var parameter1 = ReadList<Label>(() => ReadLabel());
+            return new LabeledStatement(parameter0, parameter1, parameter2);
+        }
+
+        public LabeledStatement ReadLabeledStatementOption()
+        {
+            if (ReadIsNull())
+            {
+                return default;
+            }
+
+            return ReadLabeledStatement();
+        }
+
+        public AttributedExpression ReadAttributedExpression()
+        {
+            var parameter0 = ReadAbstract<Expression>();
+            var parameter1 = ReadAssertLabelOption();
+            var parameter2 = ReadAttributesOption();
+            return new AttributedExpression(parameter0, parameter1, parameter2);
+        }
+
+        public AttributedExpression ReadAttributedExpressionOption()
+        {
+            if (ReadIsNull())
+            {
+                return default;
+            }
+
+            return ReadAttributedExpression();
+        }
+
+        public DividedBlockStmt ReadDividedBlockStmt()
+        {
+            var parameter0 = ReadAbstract<IOrigin>();
+            var parameter5 = ReadAttributesOption();
+            var parameter4 = ReadList<Label>(() => ReadLabel());
+            var parameter1 = ReadList<Statement>(() => ReadAbstract<Statement>());
+            var parameter2 = ReadAbstractOption<IOrigin>();
+            var parameter3 = ReadList<Statement>(() => ReadAbstract<Statement>());
+            return new DividedBlockStmt(parameter0, parameter1, parameter2, parameter3, parameter4, parameter5);
+        }
+
+        public DividedBlockStmt ReadDividedBlockStmtOption()
+        {
+            if (ReadIsNull())
+            {
+                return default;
+            }
+
+            return ReadDividedBlockStmt();
+        }
+
+        public BlockStmt ReadBlockStmt()
+        {
+            var parameter0 = ReadAbstract<IOrigin>();
+            var parameter3 = ReadAttributesOption();
+            var parameter2 = ReadList<Label>(() => ReadLabel());
+            var parameter1 = ReadList<Statement>(() => ReadAbstract<Statement>());
+            return new BlockStmt(parameter0, parameter1, parameter2, parameter3);
+        }
+
+        public BlockStmt ReadBlockStmtOption()
+        {
+            if (ReadIsNull())
+            {
+                return default;
+            }
+
+            return ReadBlockStmt();
+        }
+
+        public OpaqueBlock ReadOpaqueBlock()
+        {
+            var parameter0 = ReadAbstract<IOrigin>();
+            var parameter5 = ReadAttributesOption();
+            var parameter4 = ReadList<Label>(() => ReadLabel());
+            var parameter1 = ReadList<Statement>(() => ReadAbstract<Statement>());
+            var parameter2 = ReadList<AttributedExpression>(() => ReadAttributedExpression());
+            var parameter3 = ReadSpecification<FrameExpression>();
+            return new OpaqueBlock(parameter0, parameter1, parameter2, parameter3, parameter4, parameter5);
+        }
+
+        public OpaqueBlock ReadOpaqueBlockOption()
+        {
+            if (ReadIsNull())
+            {
+                return default;
+            }
+
+            return ReadOpaqueBlock();
+        }
+
+        public WhileStmt ReadWhileStmt()
+        {
+            var parameter0 = ReadAbstract<IOrigin>();
+            var parameter7 = ReadAttributesOption();
+            var parameter6 = ReadList<Label>(() => ReadLabel());
+            var parameter2 = ReadList<AttributedExpression>(() => ReadAttributedExpression());
+            var parameter3 = ReadSpecification<Expression>();
+            var parameter4 = ReadSpecification<FrameExpression>();
+            var parameter5 = ReadBlockStmt();
+            var parameter1 = ReadAbstract<Expression>();
+            return new WhileStmt(parameter0, parameter1, parameter2, parameter3, parameter4, parameter5, parameter6, parameter7);
+        }
+
+        public WhileStmt ReadWhileStmtOption()
+        {
+            if (ReadIsNull())
+            {
+                return default;
+            }
+
+            return ReadWhileStmt();
+        }
+
+        public IfStmt ReadIfStmt()
+        {
+            var parameter0 = ReadAbstract<IOrigin>();
+            var parameter6 = ReadAttributesOption();
+            var parameter5 = ReadList<Label>(() => ReadLabel());
+            var parameter1 = ReadBoolean();
+            var parameter2 = ReadAbstractOption<Expression>();
+            var parameter3 = ReadBlockStmt();
+            var parameter4 = ReadAbstractOption<Statement>();
+            return new IfStmt(parameter0, parameter1, parameter2, parameter3, parameter4, parameter5, parameter6);
+        }
+
+        public IfStmt ReadIfStmtOption()
+        {
+            if (ReadIsNull())
+            {
+                return default;
+            }
+
+            return ReadIfStmt();
+        }
+
+        public BreakOrContinueStmt ReadBreakOrContinueStmt()
+        {
+            var parameter0 = ReadAbstract<IOrigin>();
+            var parameter4 = ReadAttributesOption();
+            var parameter1 = ReadNameOption();
+            var parameter2 = ReadInt32();
+            var parameter3 = ReadBoolean();
+            return new BreakOrContinueStmt(parameter0, parameter1, parameter2, parameter3, parameter4);
+        }
+
+        public BreakOrContinueStmt ReadBreakOrContinueStmtOption()
+        {
+            if (ReadIsNull())
+            {
+                return default;
+            }
+
+            return ReadBreakOrContinueStmt();
+        }
+
+        public VarDeclStmt ReadVarDeclStmt()
+        {
+            var parameter0 = ReadAbstract<IOrigin>();
+            var parameter3 = ReadAttributesOption();
+            var parameter1 = ReadList<LocalVariable>(() => ReadLocalVariable());
+            var parameter2 = ReadAbstractOption<ConcreteAssignStatement>();
+            return new VarDeclStmt(parameter0, parameter1, parameter2, parameter3);
+        }
+
+        public VarDeclStmt ReadVarDeclStmtOption()
+        {
+            if (ReadIsNull())
+            {
+                return default;
+            }
+
+            return ReadVarDeclStmt();
+        }
+
+        public AssignStatement ReadAssignStatement()
+        {
+            var parameter0 = ReadAbstract<IOrigin>();
+            var parameter4 = ReadAttributesOption();
+            var parameter1 = ReadList<Expression>(() => ReadAbstract<Expression>());
+            var parameter2 = ReadList<AssignmentRhs>(() => ReadAbstract<AssignmentRhs>());
+            var parameter3 = ReadBoolean();
+            return new AssignStatement(parameter0, parameter1, parameter2, parameter3, parameter4);
+        }
+
+        public AssignStatement ReadAssignStatementOption()
+        {
+            if (ReadIsNull())
+            {
+                return default;
+            }
+
+            return ReadAssignStatement();
+        }
+
+        public LocalVariable ReadLocalVariable()
+        {
+            var parameter0 = ReadAbstract<IOrigin>();
+            var parameter1 = ReadString();
+            var parameter2 = ReadAbstractOption<Type>();
+            var parameter3 = ReadBoolean();
+            return new LocalVariable(parameter0, parameter1, parameter2, parameter3);
+        }
+
+        public LocalVariable ReadLocalVariableOption()
+        {
+            if (ReadIsNull())
+            {
+                return default;
+            }
+
+            return ReadLocalVariable();
+        }
+
+        public NestedMatchStmt ReadNestedMatchStmt()
+        {
+            var parameter0 = ReadAbstract<IOrigin>();
+            var parameter4 = ReadAttributesOption();
+            var parameter1 = ReadAbstract<Expression>();
+            var parameter2 = ReadList<NestedMatchCaseStmt>(() => ReadNestedMatchCaseStmt());
+            var parameter3 = ReadBoolean();
+            return new NestedMatchStmt(parameter0, parameter1, parameter2, parameter3, parameter4);
+        }
+
+        public NestedMatchStmt ReadNestedMatchStmtOption()
+        {
+            if (ReadIsNull())
+            {
+                return default;
+            }
+
+            return ReadNestedMatchStmt();
+        }
+
+        public NestedMatchCaseExpr ReadNestedMatchCaseExpr()
+        {
+            var parameter0 = ReadAbstract<IOrigin>();
+            var parameter1 = ReadAbstract<ExtendedPattern>();
+            var parameter2 = ReadAbstract<Expression>();
+            var parameter3 = ReadAttributesOption();
+            return new NestedMatchCaseExpr(parameter0, parameter1, parameter2, parameter3);
+        }
+
+        public NestedMatchCaseExpr ReadNestedMatchCaseExprOption()
+        {
+            if (ReadIsNull())
+            {
+                return default;
+            }
+
+            return ReadNestedMatchCaseExpr();
         }
 
         public ITEExpr ReadITEExpr()
@@ -1224,58 +1762,6 @@ namespace Microsoft.Dafny
             return (SubsetTypeDecl.WKind)ordinal;
         }
 
-        public AttributedExpression ReadAttributedExpression()
-        {
-            var parameter0 = ReadAbstract<Expression>();
-            var parameter1 = ReadAssertLabelOption();
-            var parameter2 = ReadAttributesOption();
-            return new AttributedExpression(parameter0, parameter1, parameter2);
-        }
-
-        public AttributedExpression ReadAttributedExpressionOption()
-        {
-            if (ReadIsNull())
-            {
-                return default;
-            }
-
-            return ReadAttributedExpression();
-        }
-
-        public Label ReadLabel()
-        {
-            var parameter0 = ReadAbstract<IOrigin>();
-            var parameter1 = ReadString();
-            return new Label(parameter0, parameter1);
-        }
-
-        public Label ReadLabelOption()
-        {
-            if (ReadIsNull())
-            {
-                return default;
-            }
-
-            return ReadLabel();
-        }
-
-        public AssertLabel ReadAssertLabel()
-        {
-            var parameter0 = ReadAbstract<IOrigin>();
-            var parameter1 = ReadString();
-            return new AssertLabel(parameter0, parameter1);
-        }
-
-        public AssertLabel ReadAssertLabelOption()
-        {
-            if (ReadIsNull())
-            {
-                return default;
-            }
-
-            return ReadAssertLabel();
-        }
-
         public Method ReadMethod()
         {
             var parameter0 = ReadAbstract<IOrigin>();
@@ -1305,321 +1791,6 @@ namespace Microsoft.Dafny
             }
 
             return ReadMethod();
-        }
-
-        public ExpectStmt ReadExpectStmt()
-        {
-            var parameter0 = ReadAbstract<IOrigin>();
-            var parameter3 = ReadAttributesOption();
-            var parameter1 = ReadAbstract<Expression>();
-            var parameter2 = ReadAbstractOption<Expression>();
-            return new ExpectStmt(parameter0, parameter1, parameter2, parameter3);
-        }
-
-        public ExpectStmt ReadExpectStmtOption()
-        {
-            if (ReadIsNull())
-            {
-                return default;
-            }
-
-            return ReadExpectStmt();
-        }
-
-        public AssertStmt ReadAssertStmt()
-        {
-            var parameter0 = ReadAbstract<IOrigin>();
-            var parameter3 = ReadAttributesOption();
-            var parameter1 = ReadAbstract<Expression>();
-            var parameter2 = ReadAssertLabelOption();
-            return new AssertStmt(parameter0, parameter1, parameter2, parameter3);
-        }
-
-        public AssertStmt ReadAssertStmtOption()
-        {
-            if (ReadIsNull())
-            {
-                return default;
-            }
-
-            return ReadAssertStmt();
-        }
-
-        public AllocateClass ReadAllocateClass()
-        {
-            var parameter0 = ReadAbstract<IOrigin>();
-            var parameter3 = ReadAttributesOption();
-            var parameter1 = ReadAbstract<Type>();
-            var parameter2 = ReadActualBindingsOption();
-            return new AllocateClass(parameter0, parameter1, parameter2, parameter3);
-        }
-
-        public AllocateClass ReadAllocateClassOption()
-        {
-            if (ReadIsNull())
-            {
-                return default;
-            }
-
-            return ReadAllocateClass();
-        }
-
-        public AllocateArray ReadAllocateArray()
-        {
-            var parameter0 = ReadAbstract<IOrigin>();
-            var parameter4 = ReadAttributesOption();
-            var parameter1 = ReadAbstractOption<Type>();
-            var parameter2 = ReadList<Expression>(() => ReadAbstract<Expression>());
-            var parameter3 = ReadAbstractOption<Expression>();
-            return new AllocateArray(parameter0, parameter1, parameter2, parameter3, parameter4);
-        }
-
-        public AllocateArray ReadAllocateArrayOption()
-        {
-            if (ReadIsNull())
-            {
-                return default;
-            }
-
-            return ReadAllocateArray();
-        }
-
-        public ExprRhs ReadExprRhs()
-        {
-            var parameter0 = ReadAbstract<IOrigin>();
-            var parameter2 = ReadAttributesOption();
-            var parameter1 = ReadAbstract<Expression>();
-            return new ExprRhs(parameter0, parameter1, parameter2);
-        }
-
-        public ExprRhs ReadExprRhsOption()
-        {
-            if (ReadIsNull())
-            {
-                return default;
-            }
-
-            return ReadExprRhs();
-        }
-
-        public ReturnStmt ReadReturnStmt()
-        {
-            var parameter0 = ReadAbstract<IOrigin>();
-            var parameter2 = ReadAttributesOption();
-            var parameter1 = ReadListOption<AssignmentRhs>(() => ReadAbstract<AssignmentRhs>());
-            return new ReturnStmt(parameter0, parameter1, parameter2);
-        }
-
-        public ReturnStmt ReadReturnStmtOption()
-        {
-            if (ReadIsNull())
-            {
-                return default;
-            }
-
-            return ReadReturnStmt();
-        }
-
-        public LabeledStatement ReadLabeledStatement()
-        {
-            var parameter0 = ReadAbstract<IOrigin>();
-            var parameter2 = ReadAttributesOption();
-            var parameter1 = ReadList<Label>(() => ReadLabel());
-            return new LabeledStatement(parameter0, parameter1, parameter2);
-        }
-
-        public LabeledStatement ReadLabeledStatementOption()
-        {
-            if (ReadIsNull())
-            {
-                return default;
-            }
-
-            return ReadLabeledStatement();
-        }
-
-        public DividedBlockStmt ReadDividedBlockStmt()
-        {
-            var parameter0 = ReadAbstract<IOrigin>();
-            var parameter5 = ReadAttributesOption();
-            var parameter4 = ReadList<Label>(() => ReadLabel());
-            var parameter1 = ReadList<Statement>(() => ReadAbstract<Statement>());
-            var parameter2 = ReadAbstractOption<IOrigin>();
-            var parameter3 = ReadList<Statement>(() => ReadAbstract<Statement>());
-            return new DividedBlockStmt(parameter0, parameter1, parameter2, parameter3, parameter4, parameter5);
-        }
-
-        public DividedBlockStmt ReadDividedBlockStmtOption()
-        {
-            if (ReadIsNull())
-            {
-                return default;
-            }
-
-            return ReadDividedBlockStmt();
-        }
-
-        public BlockStmt ReadBlockStmt()
-        {
-            var parameter0 = ReadAbstract<IOrigin>();
-            var parameter3 = ReadAttributesOption();
-            var parameter2 = ReadList<Label>(() => ReadLabel());
-            var parameter1 = ReadList<Statement>(() => ReadAbstract<Statement>());
-            return new BlockStmt(parameter0, parameter1, parameter2, parameter3);
-        }
-
-        public BlockStmt ReadBlockStmtOption()
-        {
-            if (ReadIsNull())
-            {
-                return default;
-            }
-
-            return ReadBlockStmt();
-        }
-
-        public OpaqueBlock ReadOpaqueBlock()
-        {
-            var parameter0 = ReadAbstract<IOrigin>();
-            var parameter5 = ReadAttributesOption();
-            var parameter4 = ReadList<Label>(() => ReadLabel());
-            var parameter1 = ReadList<Statement>(() => ReadAbstract<Statement>());
-            var parameter2 = ReadList<AttributedExpression>(() => ReadAttributedExpression());
-            var parameter3 = ReadSpecification<FrameExpression>();
-            return new OpaqueBlock(parameter0, parameter1, parameter2, parameter3, parameter4, parameter5);
-        }
-
-        public OpaqueBlock ReadOpaqueBlockOption()
-        {
-            if (ReadIsNull())
-            {
-                return default;
-            }
-
-            return ReadOpaqueBlock();
-        }
-
-        public WhileStmt ReadWhileStmt()
-        {
-            var parameter0 = ReadAbstract<IOrigin>();
-            var parameter7 = ReadAttributesOption();
-            var parameter6 = ReadList<Label>(() => ReadLabel());
-            var parameter2 = ReadList<AttributedExpression>(() => ReadAttributedExpression());
-            var parameter3 = ReadSpecification<Expression>();
-            var parameter4 = ReadSpecification<FrameExpression>();
-            var parameter5 = ReadBlockStmt();
-            var parameter1 = ReadAbstract<Expression>();
-            return new WhileStmt(parameter0, parameter1, parameter2, parameter3, parameter4, parameter5, parameter6, parameter7);
-        }
-
-        public WhileStmt ReadWhileStmtOption()
-        {
-            if (ReadIsNull())
-            {
-                return default;
-            }
-
-            return ReadWhileStmt();
-        }
-
-        public IfStmt ReadIfStmt()
-        {
-            var parameter0 = ReadAbstract<IOrigin>();
-            var parameter6 = ReadAttributesOption();
-            var parameter5 = ReadList<Label>(() => ReadLabel());
-            var parameter1 = ReadBoolean();
-            var parameter2 = ReadAbstractOption<Expression>();
-            var parameter3 = ReadBlockStmt();
-            var parameter4 = ReadAbstractOption<Statement>();
-            return new IfStmt(parameter0, parameter1, parameter2, parameter3, parameter4, parameter5, parameter6);
-        }
-
-        public IfStmt ReadIfStmtOption()
-        {
-            if (ReadIsNull())
-            {
-                return default;
-            }
-
-            return ReadIfStmt();
-        }
-
-        public BreakOrContinueStmt ReadBreakOrContinueStmt()
-        {
-            var parameter0 = ReadAbstract<IOrigin>();
-            var parameter4 = ReadAttributesOption();
-            var parameter1 = ReadNameOption();
-            var parameter2 = ReadInt32();
-            var parameter3 = ReadBoolean();
-            return new BreakOrContinueStmt(parameter0, parameter1, parameter2, parameter3, parameter4);
-        }
-
-        public BreakOrContinueStmt ReadBreakOrContinueStmtOption()
-        {
-            if (ReadIsNull())
-            {
-                return default;
-            }
-
-            return ReadBreakOrContinueStmt();
-        }
-
-        public VarDeclStmt ReadVarDeclStmt()
-        {
-            var parameter0 = ReadAbstract<IOrigin>();
-            var parameter3 = ReadAttributesOption();
-            var parameter1 = ReadList<LocalVariable>(() => ReadLocalVariable());
-            var parameter2 = ReadAbstractOption<ConcreteAssignStatement>();
-            return new VarDeclStmt(parameter0, parameter1, parameter2, parameter3);
-        }
-
-        public VarDeclStmt ReadVarDeclStmtOption()
-        {
-            if (ReadIsNull())
-            {
-                return default;
-            }
-
-            return ReadVarDeclStmt();
-        }
-
-        public AssignStatement ReadAssignStatement()
-        {
-            var parameter0 = ReadAbstract<IOrigin>();
-            var parameter4 = ReadAttributesOption();
-            var parameter1 = ReadList<Expression>(() => ReadAbstract<Expression>());
-            var parameter2 = ReadList<AssignmentRhs>(() => ReadAbstract<AssignmentRhs>());
-            var parameter3 = ReadBoolean();
-            return new AssignStatement(parameter0, parameter1, parameter2, parameter3, parameter4);
-        }
-
-        public AssignStatement ReadAssignStatementOption()
-        {
-            if (ReadIsNull())
-            {
-                return default;
-            }
-
-            return ReadAssignStatement();
-        }
-
-        public LocalVariable ReadLocalVariable()
-        {
-            var parameter0 = ReadAbstract<IOrigin>();
-            var parameter1 = ReadString();
-            var parameter2 = ReadAbstractOption<Type>();
-            var parameter3 = ReadBoolean();
-            return new LocalVariable(parameter0, parameter1, parameter2, parameter3);
-        }
-
-        public LocalVariable ReadLocalVariableOption()
-        {
-            if (ReadIsNull())
-            {
-                return default;
-            }
-
-            return ReadLocalVariable();
         }
 
         public Constructor ReadConstructor()
@@ -1956,6 +2127,11 @@ namespace Microsoft.Dafny
                 return ReadLiteralExpr();
             }
 
+            if (actualType == typeof(StringLiteralExpr))
+            {
+                return ReadStringLiteralExpr();
+            }
+
             if (actualType == typeof(CharLiteralExpr))
             {
                 return ReadCharLiteralExpr();
@@ -2004,6 +2180,141 @@ namespace Microsoft.Dafny
             if (actualType == typeof(TernaryExpr))
             {
                 return ReadTernaryExpr();
+            }
+
+            if (actualType == typeof(NestedMatchExpr))
+            {
+                return ReadNestedMatchExpr();
+            }
+
+            if (actualType == typeof(LitPattern))
+            {
+                return ReadLitPattern();
+            }
+
+            if (actualType == typeof(IdPattern))
+            {
+                return ReadIdPattern();
+            }
+
+            if (actualType == typeof(DisjunctivePattern))
+            {
+                return ReadDisjunctivePattern();
+            }
+
+            if (actualType == typeof(NestedMatchCaseStmt))
+            {
+                return ReadNestedMatchCaseStmt();
+            }
+
+            if (actualType == typeof(ExpectStmt))
+            {
+                return ReadExpectStmt();
+            }
+
+            if (actualType == typeof(AssertStmt))
+            {
+                return ReadAssertStmt();
+            }
+
+            if (actualType == typeof(Label))
+            {
+                return ReadLabel();
+            }
+
+            if (actualType == typeof(AssertLabel))
+            {
+                return ReadAssertLabel();
+            }
+
+            if (actualType == typeof(AllocateClass))
+            {
+                return ReadAllocateClass();
+            }
+
+            if (actualType == typeof(AllocateArray))
+            {
+                return ReadAllocateArray();
+            }
+
+            if (actualType == typeof(ExprRhs))
+            {
+                return ReadExprRhs();
+            }
+
+            if (actualType == typeof(ReturnStmt))
+            {
+                return ReadReturnStmt();
+            }
+
+            if (actualType == typeof(PrintStmt))
+            {
+                return ReadPrintStmt();
+            }
+
+            if (actualType == typeof(LabeledStatement))
+            {
+                return ReadLabeledStatement();
+            }
+
+            if (actualType == typeof(AttributedExpression))
+            {
+                return ReadAttributedExpression();
+            }
+
+            if (actualType == typeof(DividedBlockStmt))
+            {
+                return ReadDividedBlockStmt();
+            }
+
+            if (actualType == typeof(BlockStmt))
+            {
+                return ReadBlockStmt();
+            }
+
+            if (actualType == typeof(OpaqueBlock))
+            {
+                return ReadOpaqueBlock();
+            }
+
+            if (actualType == typeof(WhileStmt))
+            {
+                return ReadWhileStmt();
+            }
+
+            if (actualType == typeof(IfStmt))
+            {
+                return ReadIfStmt();
+            }
+
+            if (actualType == typeof(BreakOrContinueStmt))
+            {
+                return ReadBreakOrContinueStmt();
+            }
+
+            if (actualType == typeof(VarDeclStmt))
+            {
+                return ReadVarDeclStmt();
+            }
+
+            if (actualType == typeof(AssignStatement))
+            {
+                return ReadAssignStatement();
+            }
+
+            if (actualType == typeof(LocalVariable))
+            {
+                return ReadLocalVariable();
+            }
+
+            if (actualType == typeof(NestedMatchStmt))
+            {
+                return ReadNestedMatchStmt();
+            }
+
+            if (actualType == typeof(NestedMatchCaseExpr))
+            {
+                return ReadNestedMatchCaseExpr();
             }
 
             if (actualType == typeof(ITEExpr))
@@ -2211,104 +2522,9 @@ namespace Microsoft.Dafny
                 return ReadSubsetTypeDecl();
             }
 
-            if (actualType == typeof(AttributedExpression))
-            {
-                return ReadAttributedExpression();
-            }
-
-            if (actualType == typeof(Label))
-            {
-                return ReadLabel();
-            }
-
-            if (actualType == typeof(AssertLabel))
-            {
-                return ReadAssertLabel();
-            }
-
             if (actualType == typeof(Method))
             {
                 return ReadMethod();
-            }
-
-            if (actualType == typeof(ExpectStmt))
-            {
-                return ReadExpectStmt();
-            }
-
-            if (actualType == typeof(AssertStmt))
-            {
-                return ReadAssertStmt();
-            }
-
-            if (actualType == typeof(AllocateClass))
-            {
-                return ReadAllocateClass();
-            }
-
-            if (actualType == typeof(AllocateArray))
-            {
-                return ReadAllocateArray();
-            }
-
-            if (actualType == typeof(ExprRhs))
-            {
-                return ReadExprRhs();
-            }
-
-            if (actualType == typeof(ReturnStmt))
-            {
-                return ReadReturnStmt();
-            }
-
-            if (actualType == typeof(LabeledStatement))
-            {
-                return ReadLabeledStatement();
-            }
-
-            if (actualType == typeof(DividedBlockStmt))
-            {
-                return ReadDividedBlockStmt();
-            }
-
-            if (actualType == typeof(BlockStmt))
-            {
-                return ReadBlockStmt();
-            }
-
-            if (actualType == typeof(OpaqueBlock))
-            {
-                return ReadOpaqueBlock();
-            }
-
-            if (actualType == typeof(WhileStmt))
-            {
-                return ReadWhileStmt();
-            }
-
-            if (actualType == typeof(IfStmt))
-            {
-                return ReadIfStmt();
-            }
-
-            if (actualType == typeof(BreakOrContinueStmt))
-            {
-                return ReadBreakOrContinueStmt();
-            }
-
-            if (actualType == typeof(VarDeclStmt))
-            {
-                return ReadVarDeclStmt();
-            }
-
-            if (actualType == typeof(AssignStatement))
-            {
-                return ReadAssignStatement();
-            }
-
-            if (actualType == typeof(LocalVariable))
-            {
-                return ReadLocalVariable();
             }
 
             if (actualType == typeof(Constructor))
