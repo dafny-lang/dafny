@@ -3971,7 +3971,7 @@ namespace Microsoft.Dafny {
           ResolveStatement(s.S, resolutionContext);
         }
       } else if (stmt is LabeledStatement) {
-        // already handled
+        // content already handled
       } else {
         Contract.Assert(false); throw new cce.UnreachableException();
       }
