@@ -625,9 +625,9 @@ module ShortCircuit {
     // but that stopped working for unknown reason
   }
   function {:testInline} OnlyFalse(a:bool):bool
-    //requires !a
+    requires !a
   {
-    !a
+    false
   }
 }
 ".TrimStart();
