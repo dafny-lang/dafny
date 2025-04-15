@@ -104,6 +104,12 @@ module {:disableNonlinearArithmetic} Std.Arithmetic.Power2 {
     ensures Pow2(32) == 0x100000000
     ensures Pow2(64) == 0x10000000000000000
   {
+    assert Pow2(0) == 0x1;
+    assert Pow2(8) == 0x100;
+    assert Pow2(16) == 0x10000;
+    assert Pow2(24) == 0x1000000;
+    assert Pow2(32) == 0x100000000;
+    assert Pow(2, 32 + 32) == Pow(2, 32) * Pow(2, 32) by { LemmaPowAuto(); }
   }
 
 }
