@@ -510,6 +510,8 @@ class BoundVar : NonglobalVariable
 
 class QuantifiedVar : NodeWithOrigin
 {
+    Name nameNode;
+    Type? syntacticType;
     Expression? domain;
     Expression? range;
 }

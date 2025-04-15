@@ -105,6 +105,7 @@ public class SyntaxSchemaGenerator : SyntaxAstVisitor {
     var classDeclaration = GenerateClassHeader(type);
     List<MemberDeclarationSyntax> newFields = [];
 
+    var baseType = GetBaseType(type);
     VisitParameters(type, (_, parameter, memberInfo) => {
       if (ExcludedTypes.Contains(parameter.ParameterType)) {
         return;
@@ -114,8 +115,14 @@ public class SyntaxSchemaGenerator : SyntaxAstVisitor {
         return;
       }
 
-      if (memberInfo.DeclaringType != type) {
-        return;
+      if (memberInfo.DeclaringType != type && baseType != null) {
+        var baseMembers = baseType.GetMember(
+          memberInfo.Name,
+          MemberTypes.Field | MemberTypes.Property,
+          BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
+        if (baseMembers.Length != 0) {
+          return;
+        }
       }
 
       var nullabilityContext = new NullabilityInfoContext();
@@ -129,7 +136,6 @@ public class SyntaxSchemaGenerator : SyntaxAstVisitor {
     });
 
     var baseList = new List<BaseTypeSyntax>();
-    var baseType = GetBaseType(type);
     if (baseType != null && baseType != typeof(ValueType) && baseType != typeof(object)) {
       baseList.Add(SimpleBaseType(ParseTypeName(ToGenericTypeString(baseType))));
     }
