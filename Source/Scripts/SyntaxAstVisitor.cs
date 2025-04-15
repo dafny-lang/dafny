@@ -158,8 +158,8 @@ public abstract class SyntaxAstVisitor {
   }
 
   /// <summary>
-  /// Return all field/property names appearing in <see cref="SyntaxBaseType"/>
-  /// attributes of the specified type (or its base types).
+  /// Return the argument of the <see cref="SyntaxBaseType"/> attribute on the specified type if present,
+  /// or its normal base type otherwise.
   /// </summary>
   public static Type? GetBaseType(Type type) {
     return type.GetCustomAttributes<SyntaxBaseType>()
