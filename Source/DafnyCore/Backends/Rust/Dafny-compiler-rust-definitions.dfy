@@ -269,7 +269,8 @@ module {:extern "Defs"} DafnyToRustCompilerDefinitions {
     if |rs| == 0 then None
     else
       var res := match rs[0] {
-        case UserDefined(resolvedType) => assert resolvedType < rs[0];
+        case UserDefined(resolvedType) =>
+          assert resolvedType < rs[0];
           TraitTypeContainingMethod(resolvedType, dafnyName)
         case _ =>
           None
