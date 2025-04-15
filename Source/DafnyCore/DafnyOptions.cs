@@ -1230,7 +1230,7 @@ namespace Microsoft.Dafny {
       // Boogie also used to set the following options, but does not anymore.
       SetZ3Option("auto_config", "false");
       SetZ3Option("type_check", "true");
-      SetZ3Option("smt.qi.eager_threshold", "100"); // TODO: try lowering
+      SetZ3Option("smt.qi.eager_threshold", "44");
       SetZ3Option("smt.delay_units", "true");
       SetZ3Option("model_evaluator.completion", "true");
       SetZ3Option("model.completion", "true");
