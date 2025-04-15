@@ -2162,7 +2162,7 @@ OpaqueBlock<out Statement s>
   "}"
   (. 
     s = new OpaqueBlock(new SourceOrigin(start, t), body, ensures, 
-      new Specification<FrameExpression>(modifies, modifiesAttributes));
+      new Specification<FrameExpression>(modifies, modifiesAttributes), []);
   .)
   .
 
@@ -2180,7 +2180,7 @@ DividedBlockStmt<out DividedBlockStmt body, out Token bodyStart, out Token bodyE
     { Stmt<bodyProper> }
   ]
   "}"                                  (. bodyEnd = t; .)
-  (. body = new DividedBlockStmt(new SourceOrigin(bodyStart, t), bodyInit, separatorTok, bodyProper); .)
+  (. body = new DividedBlockStmt(new SourceOrigin(bodyStart, t), bodyInit, separatorTok, bodyProper, []); .)
   .
 
 /*------------------------------------------------------------------------*/
@@ -2224,17 +2224,43 @@ OneStmt<out Statement/*!*/ s>
 
 /*------------------------------------------------------------------------*/
 LabeledStmt<out Statement s>
-= (. Token colonToken;
-     Token labelToken;
+= (. var labels = new List<Label>();
+     Label l;
+     s = null;
+     Token beforeToken = t;
+     BlockStmt bs;
+     Token bodyStart, bodyEnd;
   .)
-  "label"  (. Token id; labelToken = t; .)
-  LabelName<out id> ":" (. colonToken = t; .)
-  OneStmt<out s>
-  (. s.Labels = new LList<Label>(new Label(id, id.val), s.Labels);
-     s.PostLabelToken = s.StartToken;
-     s.SetOrigin(new SourceOrigin(labelToken, t, s.PostLabelToken));
-  .)
+  (
+    Label<out l> (. labels.Add(l); .)
+    {
+      Label<out l> (. labels.Add(l); .)
+    }
+    (
+      ( WhileStmt<out s>
+      | ForLoopStmt<out s>
+      | IfStmt<out s>
+      | BlockStmt<out bs, out bodyStart, out bodyEnd>  (. s = bs; .)
+      | OpaqueBlock<out s>
+      )
+      (.
+         ((LabeledStatement)s).Labels.AddRange(labels);
+         s.SetOrigin(new SourceOrigin(beforeToken.Next, t, s.Origin.ReportingRange));
+      .)
+    | (. 
+        var first = labels.First();
+        var last = labels.Last(); 
+        var origin = new SourceOrigin(beforeToken.Next, last.Tok.ReportingRange.EndToken);
+        s = new LabeledStatement(origin, labels);
+      .)
+    )
+  )
   .
+
+Label<out Label l>
+= "label"  (. Token id; .)
+  LabelName<out id> ":" (. l = new Label(id, id.val); .)
+.
 
 /*------------------------------------------------------------------------*/
 SkeletonStmt<out Statement s>
@@ -2606,7 +2632,7 @@ IfStmt<out Statement/*!*/ ifStmt>
   (
     IF(IsAlternative())
     AlternativeBlock<true, out alternatives, out usesOptionalBraces, out endTok>
-    (. ifStmt = new AlternativeStmt(new SourceOrigin(startToken, t), alternatives, usesOptionalBraces, attrs);
+    (. ifStmt = new AlternativeStmt(new SourceOrigin(startToken, t), [], alternatives, usesOptionalBraces, attrs);
     .)
   |
     ( IF(IsBindingGuard())
@@ -2631,7 +2657,7 @@ IfStmt<out Statement/*!*/ ifStmt>
          ifStmt = new IfStmt(rangeToken, isBindingGuard, guard, thn, els);
          ifStmt = new SkeletonStatement(ifStmt, guardEllipsis, null);
        } else {
-         ifStmt = new IfStmt(rangeToken, isBindingGuard, guard, thn, els, attrs);
+         ifStmt = new IfStmt(rangeToken, isBindingGuard, guard, thn, els, [], attrs);
        }
     .)
   )
@@ -2712,7 +2738,10 @@ WhileStmt<out Statement stmt>
     IF(IsLoopSpec() || IsAlternative())
     LoopSpec<invariants, decreases, ref mod, ref decAttrs, ref modAttrs>
     AlternativeBlock<false, out alternatives, out usesOptionalBraces, out endTok>
-    (. stmt = new AlternativeLoopStmt(new SourceOrigin(startToken, t), invariants, new Specification<Expression>(decreases, decAttrs), new Specification<FrameExpression>(mod, modAttrs), alternatives, usesOptionalBraces, attrs);
+    (. stmt = new AlternativeLoopStmt(new SourceOrigin(startToken, t), invariants, 
+                                      new Specification<Expression>(decreases, decAttrs), 
+                                      new Specification<FrameExpression>(mod, modAttrs), 
+                                      alternatives, usesOptionalBraces, [], attrs);
        .)
   |
     ( Guard<out guard>           (. Contract.Assume(guard == null || cce.Owner.None(guard)); .)
@@ -2738,14 +2767,14 @@ WhileStmt<out Statement stmt>
         if (body == null && !isDirtyLoop) {
           body = new BlockStmt(rangeToken, new List<Statement>());
         }
-        stmt = new WhileStmt(rangeToken, guard, invariants, new Specification<Expression>(decreases, decAttrs), new Specification<FrameExpression>(null, null), body, attrs);
+        stmt = new WhileStmt(rangeToken, guard, invariants, new Specification<Expression>(decreases, decAttrs), new Specification<FrameExpression>(null, null), body, [], attrs);
         stmt = new SkeletonStatement(stmt, guardEllipsis, bodyEllipsis);
       } else {
         // The following statement protects against crashes in case of parsing errors
         if (body == null && !isDirtyLoop) {
           body = new BlockStmt(rangeToken, new List<Statement>());
         }
-        stmt = new WhileStmt(rangeToken, guard, invariants, new Specification<Expression>(decreases, decAttrs), new Specification<FrameExpression>(mod, modAttrs), body, attrs);
+        stmt = new WhileStmt(rangeToken, guard, invariants, new Specification<Expression>(decreases, decAttrs), new Specification<FrameExpression>(mod, modAttrs), body, [], attrs);
       }
     .)
   )
@@ -2794,7 +2823,7 @@ ForLoopStmt<out Statement stmt>
       body = new BlockStmt(rangeToken, new List<Statement>());
     }
     stmt = new ForLoopStmt(rangeToken, loopIndex, start, end, goingUp,
-      invariants, new Specification<Expression>(decreases, decAttrs), new Specification<FrameExpression>(mod, modAttrs), body, attrs);
+      invariants, new Specification<Expression>(decreases, decAttrs), new Specification<FrameExpression>(mod, modAttrs), body, [], attrs);
   .)
   .
 

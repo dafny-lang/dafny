@@ -234,12 +234,16 @@ public class Serializer(IEncoder encoder, IReadOnlyList<INamedTypeSymbol> parsed
         // Support fields from a primary constructor
         fieldName = fieldName.Substring(1, fieldName.Length - 3);
       }
+
       // If this is an overridden field, overwrite the entry
       fieldsPerName[fieldName.ToLower()] = fieldInfo;
     }
 
     foreach (var fieldName in fieldNames) {
-      var field = fieldsPerName[fieldName];
+      var field = fieldsPerName.GetValueOrDefault(fieldName);
+      if (field == null) {
+        continue;
+      }
 
       try {
         object? value = field.GetValue(obj);

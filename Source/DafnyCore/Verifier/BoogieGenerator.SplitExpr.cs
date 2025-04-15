@@ -267,7 +267,7 @@ namespace Microsoft.Dafny {
           }
         case OldExpr oldExpr: {
             var e = oldExpr;
-            return TrSplitExpr(context, e.E, splits, position, heightLimit, applyInduction, etran.OldAt(e.AtLabel));
+            return TrSplitExpr(context, e.Expr, splits, position, heightLimit, applyInduction, etran.OldAt(e.AtLabel));
           }
         case FunctionCallExpr callExpr when position: {
             var fexp = callExpr;

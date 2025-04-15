@@ -2998,7 +2998,7 @@ namespace DCOMP {
               Dafny.ISequence<Dafny.Rune> _80_param;
               _80_param = ((_74_oldEnv).dtor_names).Select(_79_paramI);
               if ((_80_param).Equals(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("_accumulator"))) {
-                goto continue_4_0;
+                goto continue_3;
               }
               RAST._IExpr _81_paramInit;
               Defs._IOwnership _82___v43;
@@ -3020,9 +3020,9 @@ namespace DCOMP {
                 newEnv = (newEnv).AddAssigned(_84_recVar, _85_declaredType);
               }
               _78_loopBegin = (_78_loopBegin).Then(RAST.Expr.create_DeclareVar(RAST.DeclareType.create_CONST(), _80_param, Std.Wrappers.Option<RAST._IType>.create_None(), Std.Wrappers.Option<RAST._IExpr>.create_Some(RAST.Expr.create_Identifier(_84_recVar))));
-            continue_4_0: ;
+            continue_3: ;
             }
-          after_4_0: ;
+          after_3: ;
             RAST._IExpr _86_bodyExpr;
             Dafny.ISet<Dafny.ISequence<Dafny.Rune>> _87_bodyIdents;
             Defs._IEnvironment _88_bodyEnv;

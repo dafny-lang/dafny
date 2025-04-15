@@ -1,3 +1,4 @@
+#nullable enable
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 
@@ -6,10 +7,10 @@ namespace Microsoft.Dafny;
 public class ForLoopStmt : OneBodyLoopStmt, ICloneable<ForLoopStmt>, ICanFormat {
   public BoundVar LoopIndex;
   public Expression Start;
-  public Expression/*?*/ End;
+  public Expression? End;
   public bool GoingUp;
 
-  public ForLoopStmt Clone(Cloner cloner) {
+  public new ForLoopStmt Clone(Cloner cloner) {
     return new ForLoopStmt(cloner, this);
   }
 
@@ -20,16 +21,10 @@ public class ForLoopStmt : OneBodyLoopStmt, ICloneable<ForLoopStmt>, ICanFormat 
     GoingUp = original.GoingUp;
   }
 
-  public ForLoopStmt(IOrigin origin, BoundVar loopIndexVariable, Expression start, Expression/*?*/ end, bool goingUp,
+  public ForLoopStmt(IOrigin origin, BoundVar loopIndexVariable, Expression start, Expression? end, bool goingUp,
     List<AttributedExpression> invariants, Specification<Expression> decreases, Specification<FrameExpression> mod,
-    BlockStmt /*?*/ body, Attributes attributes)
-    : base(origin, invariants, decreases, mod, body, attributes) {
-    Contract.Requires(origin != null);
-    Contract.Requires(loopIndexVariable != null);
-    Contract.Requires(start != null);
-    Contract.Requires(invariants != null);
-    Contract.Requires(decreases != null);
-    Contract.Requires(mod != null);
+    BlockStmt? body, List<Label> labels, Attributes? attributes)
+    : base(origin, invariants, decreases, mod, body, labels, attributes) {
     LoopIndex = loopIndexVariable;
     Start = start;
     End = end;
@@ -82,7 +77,7 @@ public class ForLoopStmt : OneBodyLoopStmt, ICloneable<ForLoopStmt>, ICanFormat 
   }
 
   public override void ResolveGhostness(ModuleResolver resolver, ErrorReporter reporter, bool mustBeErasable,
-    ICodeContext codeContext, string proofContext,
+    ICodeContext codeContext, string? proofContext,
     bool allowAssumptionVariables, bool inConstructorInitializationPhase) {
 
     var s = this;
@@ -95,7 +90,7 @@ public class ForLoopStmt : OneBodyLoopStmt, ICloneable<ForLoopStmt>, ICanFormat 
       reporter.Info(MessageSource.Resolver, s.Origin, "ghost for-loop");
     }
     if (s.IsGhost) {
-      if (s.Decreases.Expressions.Exists(e => e is WildcardExpr)) {
+      if (s.Decreases.Expressions!.Exists(e => e is WildcardExpr)) {
         reporter.Error(MessageSource.Resolver, ResolutionErrors.ErrorId.r_decreases_forbidden_on_ghost_loops, s, "'decreases *' is not allowed on ghost loops");
       } else if (s.End == null && s.Decreases.Expressions.Count == 0) {
         reporter.Error(MessageSource.Resolver, ResolutionErrors.ErrorId.r_ghost_loop_must_terminate, s, "a ghost loop must be terminating; make the end-expression specific or add a 'decreases' clause");
