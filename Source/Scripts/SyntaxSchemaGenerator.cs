@@ -105,6 +105,7 @@ public class SyntaxSchemaGenerator : SyntaxAstVisitor {
     var classDeclaration = GenerateClassHeader(type);
     List<MemberDeclarationSyntax> newFields = [];
 
+    var baseType = GetBaseType(type);
     VisitParameters(type, (_, parameter, memberInfo) => {
       if (ExcludedTypes.Contains(parameter.ParameterType)) {
         return;
@@ -114,7 +115,7 @@ public class SyntaxSchemaGenerator : SyntaxAstVisitor {
         return;
       }
 
-      if (memberInfo.DeclaringType != type) {
+      if (DoesMemberBelongToBase(type, memberInfo, baseType)) {
         return;
       }
 
@@ -129,7 +130,6 @@ public class SyntaxSchemaGenerator : SyntaxAstVisitor {
     });
 
     var baseList = new List<BaseTypeSyntax>();
-    var baseType = GetBaseType(type);
     if (baseType != null && baseType != typeof(ValueType) && baseType != typeof(object)) {
       baseList.Add(SimpleBaseType(ParseTypeName(ToGenericTypeString(baseType))));
     }

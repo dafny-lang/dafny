@@ -1334,7 +1334,7 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected override ConcreteSyntaxTree EmitForStmt(IOrigin tok, IVariable loopIndex, bool goingUp,
-      string endVarName, /*?*/
+      string/*?*/ endVarName,
       List<Statement> body, List<Label> labels, ConcreteSyntaxTree wr) {
       throw new UnsupportedFeatureException(tok, Feature.ForLoops, "for loops have not yet been implemented");
     }
