@@ -102,7 +102,7 @@ can be expressed, even within the same type signature:
     don't even let you invoke the action again)
 
 The key point in distinguishing these semantics 
-is how `ValidInput`, `ValidOutput`, and `ValidHistory` are constrained, 
+is how `ValidInput` and `ValidHistory` are constrained, 
 defining the protocol for using the action across time,
 depending on what inputs and outputs occur.
 All of the above cases are useful for precisely modeling behavior over time,
