@@ -648,7 +648,7 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected abstract ConcreteSyntaxTree EmitForStmt(IOrigin tok, IVariable loopIndex, bool goingUp,
-      string endVarName, /*?*/
+      string/*?*/ endVarName, 
       List<Statement> body, List<Label> labels, ConcreteSyntaxTree wr);
 
     protected virtual ConcreteSyntaxTree CreateWhileLoop(out ConcreteSyntaxTree guardWriter, ConcreteSyntaxTree wr) {
