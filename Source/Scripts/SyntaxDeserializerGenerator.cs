@@ -82,22 +82,17 @@ using BinaryExprOpcode = Microsoft.Dafny.BinaryExpr.Opcode;
         return;
       }
 
-      if (memberInfo.DeclaringType != type && baseType != null) {
-        var baseMembers = baseType.GetMember(
-          memberInfo.Name,
-          MemberTypes.Field | MemberTypes.Property,
-          BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
-        if (baseMembers.Any()) {
-          if (!ParameterToSchemaPositions[memberInfo.DeclaringType!]
-                .TryGetValue(memberInfo.Name, out var schemaPosition)) {
-            throw new Exception(
-              $"parameter '{parameter.Name}' of '{type.Name}' should have been in parent type '{memberInfo.DeclaringType}' constructor, but was not found");
-          }
-
-          schemaToConstructorPosition[schemaPosition] = index;
-          parameterToSchemaPosition[memberInfo.Name] = schemaPosition;
-          return;
+      var memberBelongsToBase = DoesMemberBelongToBase(type, memberInfo, baseType);
+      if (memberBelongsToBase) {
+        if (!ParameterToSchemaPositions[memberInfo.DeclaringType!]
+              .TryGetValue(memberInfo.Name, out var schemaPosition)) {
+          throw new Exception(
+            $"parameter '{parameter.Name}' of '{type.Name}' should have been in parent type '{memberInfo.DeclaringType}' constructor, but was not found");
         }
+
+        schemaToConstructorPosition[schemaPosition] = index;
+        parameterToSchemaPosition[memberInfo.Name] = schemaPosition;
+        return;
       }
 
       var schemaPosition2 = ownedFieldPosition++;

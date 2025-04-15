@@ -115,14 +115,8 @@ public class SyntaxSchemaGenerator : SyntaxAstVisitor {
         return;
       }
 
-      if (memberInfo.DeclaringType != type && baseType != null) {
-        var baseMembers = baseType.GetMember(
-          memberInfo.Name,
-          MemberTypes.Field | MemberTypes.Property,
-          BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
-        if (baseMembers.Length != 0) {
-          return;
-        }
+      if (DoesMemberBelongToBase(type, memberInfo, baseType)) {
+        return;
       }
 
       var nullabilityContext = new NullabilityInfoContext();

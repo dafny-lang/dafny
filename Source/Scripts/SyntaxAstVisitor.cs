@@ -204,6 +204,21 @@ public abstract class SyntaxAstVisitor {
     var tildeLocation = genericTypeName.IndexOf('`');
     return tildeLocation >= 0 ? genericTypeName.Substring(0, tildeLocation) : genericTypeName;
   }
+
+  protected static bool DoesMemberBelongToBase(Type type, MemberInfo memberInfo, Type? baseType) {
+    var memberBelongsToBase = false;
+    if (memberInfo.DeclaringType != type && baseType != null) {
+      var baseMembers = baseType.GetMember(
+        memberInfo.Name,
+        MemberTypes.Field | MemberTypes.Property,
+        BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
+      if (baseMembers.Length != 0) {
+        memberBelongsToBase = true;
+      }
+    }
+
+    return memberBelongsToBase;
+  }
 }
 
 static class TypeExtensions {
