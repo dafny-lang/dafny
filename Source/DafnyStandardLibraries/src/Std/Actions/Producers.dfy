@@ -478,6 +478,7 @@ module Std.Producers {
   ghost function OutputsForProduced<T>(values: seq<T>, n: nat): (result: seq<Option<T>>)
     ensures Seq.Partitioned(result, IsSome)
     ensures ProducedOf(result) <= values
+    ensures |values| <= n ==> ProducedOf(result) == values
   {
     var index := Min(|values|, n);
     var produced := values[..index];
@@ -634,6 +635,8 @@ module Std.Producers {
       ensures history == []
       ensures fresh(Repr)
       reads {}
+      ensures this.elements == elements
+      ensures index == 0
     {
       this.elements := elements;
       this.index := 0;
@@ -650,7 +653,9 @@ module Std.Producers {
     {
       && this in Repr
       && ValidHistory(history)
+      && (Done() ==> index == |elements|)
       && index <= |elements|
+      && Produced() == elements[..index]
       && (index < |elements| ==> Seq.All(Outputs(), IsSome))
     }
 
@@ -1051,7 +1056,7 @@ module Std.Producers {
       requires mappingTotalProof.Valid()
       requires mappingTotalProof.Action() == mapping
       requires original.Repr !! mapping.Repr !! mappingTotalProof.Repr
-      reads {}
+      reads original, original.Repr, mapping, mapping.Repr, mappingTotalProof, mappingTotalProof.Repr
       ensures Valid()
       ensures history == []
       ensures fresh(Repr - original.Repr - mapping.Repr - mappingTotalProof.Repr)
