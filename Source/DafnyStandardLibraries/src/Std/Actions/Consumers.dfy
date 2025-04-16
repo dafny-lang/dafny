@@ -359,6 +359,7 @@ module Std.Consumers {
     var values: seq<T>
 
     constructor ()
+      reads {}
       ensures Valid()
       ensures fresh(Repr)
       ensures history == []
@@ -425,6 +426,7 @@ module Std.Consumers {
     ghost const action: SeqWriter<T>
 
     constructor (action: SeqWriter<T>)
+      reads {}
       ensures Valid()
       ensures fresh(Repr)
       ensures Action() == action

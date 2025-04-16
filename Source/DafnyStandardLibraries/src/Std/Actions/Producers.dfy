@@ -111,8 +111,8 @@ module Std.Producers {
     {}
   }
 
-  // Actions that consume nothing and produce an Option<T>,
-  // where None indicates there are no more values to produce.
+  /* Actions that consume nothing and produce an Option<T>,
+   * where None indicates there are no more values to produce. */
   @AssumeCrossModuleTermination
   trait Producer<T> extends Action<(), Option<T>>, TotalActionProof<(), Option<T>> {
 
@@ -551,6 +551,13 @@ module Std.Producers {
     ensures p.Done()
     ensures p.Produced() == s
   {
+    // Optimization
+    if p is SeqReader<T> {
+      var sr := p as SeqReader;
+      s := sr.elements[sr.index..];
+      return;
+    }
+
     var seqWriter := new SeqWriter<T>();
     var writerTotalProof := seqWriter.totalActionProof();
     p.ForEachRemaining(seqWriter, writerTotalProof);
@@ -1044,6 +1051,7 @@ module Std.Producers {
       requires mappingTotalProof.Valid()
       requires mappingTotalProof.Action() == mapping
       requires original.Repr !! mapping.Repr !! mappingTotalProof.Repr
+      reads {}
       ensures Valid()
       ensures history == []
       ensures fresh(Repr - original.Repr - mapping.Repr - mappingTotalProof.Repr)

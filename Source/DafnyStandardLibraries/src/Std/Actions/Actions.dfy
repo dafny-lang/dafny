@@ -188,6 +188,7 @@ module Std.Actions {
     }
 
     constructor(f: I -> O)
+      reads {}
       ensures Valid()
       ensures this.f == f
       ensures fresh(Repr)
@@ -241,6 +242,41 @@ module Std.Actions {
       }
       assert Valid();
     }
+  }
+
+  class TotalFunctionActionProof<I, O> extends TotalActionProof<I, O> {
+
+    ghost const action: FunctionAction<I, O>
+
+    ghost constructor (action: FunctionAction<I, O>)
+      reads {}
+      requires action.f is I -> O
+      ensures Valid()
+      ensures fresh(Repr)
+      ensures Action() == action
+    {
+      this.action := action;
+      this.Repr := {this};
+    }
+
+    ghost predicate Valid()
+      reads this, Repr
+      ensures Valid() ==> this in Repr
+      decreases Repr, 0
+    {
+      && this in Repr
+      && action.f is I -> O
+    }
+
+    ghost function Action(): Action<I, O> {
+      action
+    }
+
+    lemma AnyInputIsValid(history: seq<(I, O)>, next: I)
+      requires Valid()
+      requires Action().ValidHistory(history)
+      ensures Action().ValidInput(history, next)
+    {}
   }
 
   class ComposedAction<I, M, O> extends Action<I, O> {
