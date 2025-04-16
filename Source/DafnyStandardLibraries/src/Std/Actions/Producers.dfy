@@ -261,6 +261,58 @@ module Std.Producers {
       }
     }
 
+    // @IsolateAssertions
+    // method ForEachRemaining'(consumer: Consumer<T>, ghost totalActionProof: TotalActionProof<T, bool>)
+    //   requires Valid()
+    //   requires consumer.Valid()
+    //   requires Repr !! consumer.Repr !! totalActionProof.Repr
+    //   requires totalActionProof.Valid()
+    //   requires totalActionProof.Action() == consumer
+    //   modifies Repr, consumer.Repr
+    //   ensures Valid()
+    //   ensures consumer.Valid()
+    //   ensures Done() || consumer.Done()
+    //   ensures old(Produced()) <= Produced()
+    //   ensures old(consumer.Inputs()) <= consumer.Inputs()
+    //   ensures Produced()[|old(Produced())|..] == consumer.Inputs()[|old(consumer.Inputs())|..]
+    // {
+    //   while true
+    //     invariant ValidAndDisjoint()
+    //     invariant consumer.ValidAndDisjoint()
+    //     invariant Repr !! consumer.Repr
+    //     invariant totalActionProof.Valid()
+    //     invariant old(Produced()) <= Produced()
+    //     invariant old(consumer.Inputs()) <= consumer.Inputs()
+    //     invariant Produced()[|old(Produced())|..] == consumer.Inputs()[|old(consumer.Inputs())|..]
+    //     decreases Remaining()
+    //   {
+    //     label before:
+    //     var t := Next();
+    //     assert Seq.Partitioned(Outputs(), IsSome);
+    //     assert Outputs() == old@before(Outputs()) + [t];
+    //     Seq.PartitionedDecomposition(old@before(Outputs()), [t], IsSome);
+    //     ProducedComposition(old@before(Outputs()), [t]);
+         
+    //     if t == None {
+    //       assert Seq.Last(Outputs()).None?;
+    //       assert Done();
+    //       assert ProducedOf([t]) == [];
+    //       assert Produced() == old@before(Produced());
+    //       assert consumer.Inputs()[|old(consumer.Inputs())|..] == Produced()[|old(Produced())|..];
+    //       break;
+    //     }
+
+    //     totalActionProof.AnyInputIsValid(consumer.history, t.value);
+    //     var done := consumer.Accept(t.value);
+    //     if done {
+    //       break;
+    //     }
+
+    //     assert Seq.Last(consumer.Inputs()) == t.value;
+    //     assert consumer.Inputs()[|old(consumer.Inputs())|..] == Produced()[|old(Produced())|..];
+    //   }
+    // }
+
     // True if this has outputted None at least once.
     // But note that !Done() does not guarantee that
     // the next output will be a Some!
