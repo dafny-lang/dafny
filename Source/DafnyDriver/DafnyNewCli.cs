@@ -32,6 +32,7 @@ public static class DafnyNewCli {
     DafnyFile.RegisterExtensionHandler(DafnyProject.Extension, (options, fileSystem, reporter, uri, uriOrigin, asLibrary) => HandleDafnyProject(fileSystem, options, reporter, uri, uriOrigin, asLibrary));
     AddCommand(ResolveCommand.Create());
     AddCommand(VerifyCommand.Create());
+    AddCommand(AssertionInferer.Create());
     AddCommand(AssertTreeCommand.Create());
     AddCommand(BuildCommand.Create());
     AddCommand(RunCommand.Create());
