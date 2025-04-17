@@ -212,54 +212,20 @@ module Std.Producers {
       r := Invoke(());
     }
 
-    @IsolateAssertions
     method ForEachRemaining(consumer: IConsumer<T>, ghost totalActionProof: TotalActionProof<T, ()>)
       requires Valid()
       requires consumer.Valid()
       requires Repr !! consumer.Repr !! totalActionProof.Repr
       requires totalActionProof.Valid()
       requires totalActionProof.Action() == consumer
+      reads this, Repr, consumer, consumer.Repr, totalActionProof, totalActionProof.Repr
       modifies Repr, consumer.Repr
-      ensures Valid()
-      ensures consumer.Valid()
+      ensures ValidAndDisjoint()
+      ensures consumer.ValidAndDisjoint()
       ensures Done()
       ensures old(Produced()) <= Produced()
       ensures old(consumer.Inputs()) <= consumer.Inputs()
       ensures Produced()[|old(Produced())|..] == consumer.Inputs()[|old(consumer.Inputs())|..]
-    {
-      while true
-        invariant ValidAndDisjoint()
-        invariant consumer.ValidAndDisjoint()
-        invariant Repr !! consumer.Repr
-        invariant totalActionProof.Valid()
-        invariant old(Produced()) <= Produced()
-        invariant old(consumer.Inputs()) <= consumer.Inputs()
-        invariant Produced()[|old(Produced())|..] == consumer.Inputs()[|old(consumer.Inputs())|..]
-        decreases Remaining()
-      {
-        label before:
-        var t := Next();
-        assert Seq.Partitioned(Outputs(), IsSome);
-        assert Outputs() == old@before(Outputs()) + [t];
-        Seq.PartitionedDecomposition(old@before(Outputs()), [t], IsSome);
-        ProducedComposition(old@before(Outputs()), [t]);
-         
-        if t == None {
-          assert Seq.Last(Outputs()).None?;
-          assert Done();
-          assert ProducedOf([t]) == [];
-          assert Produced() == old@before(Produced());
-          assert consumer.Inputs()[|old(consumer.Inputs())|..] == Produced()[|old(Produced())|..];
-          break;
-        }
-
-        totalActionProof.AnyInputIsValid(consumer.history, t.value);
-        consumer.Accept(t.value);
-
-        assert Seq.Last(consumer.Inputs()) == t.value;
-        assert consumer.Inputs()[|old(consumer.Inputs())|..] == Produced()[|old(Produced())|..];
-      }
-    }
 
     // @IsolateAssertions
     // method ForEachRemaining'(consumer: Consumer<T>, ghost totalActionProof: TotalActionProof<T, bool>)
@@ -439,6 +405,58 @@ module Std.Producers {
         old(Produced()) + ProducedOf([Some(value)]);
         old(Produced()) + [value];
       }
+    }
+  }
+
+  @IsolateAssertions
+  method DefaultForEachRemaining<T>(producer: Producer<T>, consumer: IConsumer<T>, ghost totalActionProof: TotalActionProof<T, ()>)
+    requires producer.Valid()
+    requires consumer.Valid()
+    requires producer.Repr !! consumer.Repr !! totalActionProof.Repr
+    requires totalActionProof.Valid()
+    requires totalActionProof.Action() == consumer
+    reads producer, producer.Repr, consumer, consumer.Repr, totalActionProof, totalActionProof.Repr
+    modifies producer.Repr, consumer.Repr
+    ensures producer.ValidAndDisjoint()
+    ensures consumer.ValidAndDisjoint()
+    ensures producer.Done()
+    ensures old(producer.Produced()) <= producer.Produced()
+    ensures old(consumer.Inputs()) <= consumer.Inputs()
+    ensures producer.Produced()[|old(producer.Produced())|..] == consumer.Inputs()[|old(consumer.Inputs())|..]
+  {
+    while true
+      invariant fresh(producer.Repr - old(producer.Repr))
+      invariant producer.Valid()
+      invariant fresh(consumer.Repr - old(consumer.Repr))
+      invariant consumer.Valid()
+      invariant producer.Repr !! consumer.Repr
+      invariant totalActionProof.Valid()
+      invariant old(producer.Produced()) <= producer.Produced()
+      invariant old(consumer.Inputs()) <= consumer.Inputs()
+      invariant producer.Produced()[|old(producer.Produced())|..] == consumer.Inputs()[|old(consumer.Inputs())|..]
+      decreases producer.Remaining()
+    {
+      label before:
+      var t := producer.Next();
+      assert Seq.Partitioned(producer.Outputs(), IsSome);
+      assert producer.Outputs() == old@before(producer.Outputs()) + [t];
+      Seq.PartitionedDecomposition(old@before(producer.Outputs()), [t], IsSome);
+      ProducedComposition(old@before(producer.Outputs()), [t]);
+        
+      if t == None {
+        assert Seq.Last(producer.Outputs()).None?;
+        assert producer.Done();
+        assert ProducedOf([t]) == [];
+        assert producer.Produced() == old@before(producer.Produced());
+        assert consumer.Inputs()[|old(consumer.Inputs())|..] == producer.Produced()[|old(producer.Produced())|..];
+        break;
+      }
+
+      totalActionProof.AnyInputIsValid(consumer.history, t.value);
+      consumer.Accept(t.value);
+
+      assert Seq.Last(consumer.Inputs()) == t.value;
+      assert consumer.Inputs()[|old(consumer.Inputs())|..] == producer.Produced()[|old(producer.Produced())|..];
     }
   }
 
@@ -623,6 +641,24 @@ module Std.Producers {
       ProduceNone();
       assert Valid();
     }
+
+    method ForEachRemaining(consumer: IConsumer<T>, ghost totalActionProof: TotalActionProof<T, ()>)
+      requires Valid()
+      requires consumer.Valid()
+      requires Repr !! consumer.Repr !! totalActionProof.Repr
+      requires totalActionProof.Valid()
+      requires totalActionProof.Action() == consumer
+      reads this, Repr, consumer, consumer.Repr, totalActionProof, totalActionProof.Repr
+      modifies Repr, consumer.Repr
+      ensures ValidAndDisjoint()
+      ensures consumer.ValidAndDisjoint()
+      ensures Done()
+      ensures old(Produced()) <= Produced()
+      ensures old(consumer.Inputs()) <= consumer.Inputs()
+      ensures Produced()[|old(Produced())|..] == consumer.Inputs()[|old(consumer.Inputs())|..]
+    {
+      DefaultForEachRemaining(this, consumer, totalActionProof);
+    }
   }
 
   class SeqReader<T> extends Producer<T> {
@@ -701,6 +737,24 @@ module Std.Producers {
       }
 
       assert Valid();
+    }
+
+    method ForEachRemaining(consumer: IConsumer<T>, ghost totalActionProof: TotalActionProof<T, ()>)
+      requires Valid()
+      requires consumer.Valid()
+      requires Repr !! consumer.Repr !! totalActionProof.Repr
+      requires totalActionProof.Valid()
+      requires totalActionProof.Action() == consumer
+      reads this, Repr, consumer, consumer.Repr, totalActionProof, totalActionProof.Repr
+      modifies Repr, consumer.Repr
+      ensures ValidAndDisjoint()
+      ensures consumer.ValidAndDisjoint()
+      ensures Done()
+      ensures old(Produced()) <= Produced()
+      ensures old(consumer.Inputs()) <= consumer.Inputs()
+      ensures Produced()[|old(Produced())|..] == consumer.Inputs()[|old(consumer.Inputs())|..]
+    {
+      DefaultForEachRemaining(this, consumer, totalActionProof);
     }
   }
 
@@ -810,6 +864,24 @@ module Std.Producers {
 
       Repr := {this} + original.Repr + originalTotalAction.Repr;
       assert Valid();
+    }
+
+    method ForEachRemaining(consumer: IConsumer<T>, ghost totalActionProof: TotalActionProof<T, ()>)
+      requires Valid()
+      requires consumer.Valid()
+      requires Repr !! consumer.Repr !! totalActionProof.Repr
+      requires totalActionProof.Valid()
+      requires totalActionProof.Action() == consumer
+      reads this, Repr, consumer, consumer.Repr, totalActionProof, totalActionProof.Repr
+      modifies Repr, consumer.Repr
+      ensures ValidAndDisjoint()
+      ensures consumer.ValidAndDisjoint()
+      ensures Done()
+      ensures old(Produced()) <= Produced()
+      ensures old(consumer.Inputs()) <= consumer.Inputs()
+      ensures Produced()[|old(Produced())|..] == consumer.Inputs()[|old(consumer.Inputs())|..]
+    {
+      DefaultForEachRemaining(this, consumer, totalActionProof);
     }
   }
 
@@ -922,6 +994,24 @@ module Std.Producers {
       }
 
       assert Valid();
+    }
+
+    method ForEachRemaining(consumer: IConsumer<T>, ghost totalActionProof: TotalActionProof<T, ()>)
+      requires Valid()
+      requires consumer.Valid()
+      requires Repr !! consumer.Repr !! totalActionProof.Repr
+      requires totalActionProof.Valid()
+      requires totalActionProof.Action() == consumer
+      reads this, Repr, consumer, consumer.Repr, totalActionProof, totalActionProof.Repr
+      modifies Repr, consumer.Repr
+      ensures ValidAndDisjoint()
+      ensures consumer.ValidAndDisjoint()
+      ensures Done()
+      ensures old(Produced()) <= Produced()
+      ensures old(consumer.Inputs()) <= consumer.Inputs()
+      ensures Produced()[|old(Produced())|..] == consumer.Inputs()[|old(consumer.Inputs())|..]
+    {
+      DefaultForEachRemaining(this, consumer, totalActionProof);
     }
   }
 
@@ -1038,6 +1128,24 @@ module Std.Producers {
 
       assert Valid();
     }
+
+    method ForEachRemaining(consumer: IConsumer<T>, ghost totalActionProof: TotalActionProof<T, ()>)
+      requires Valid()
+      requires consumer.Valid()
+      requires Repr !! consumer.Repr !! totalActionProof.Repr
+      requires totalActionProof.Valid()
+      requires totalActionProof.Action() == consumer
+      reads this, Repr, consumer, consumer.Repr, totalActionProof, totalActionProof.Repr
+      modifies Repr, consumer.Repr
+      ensures ValidAndDisjoint()
+      ensures consumer.ValidAndDisjoint()
+      ensures Done()
+      ensures old(Produced()) <= Produced()
+      ensures old(consumer.Inputs()) <= consumer.Inputs()
+      ensures Produced()[|old(Produced())|..] == consumer.Inputs()[|old(consumer.Inputs())|..]
+    {
+      DefaultForEachRemaining(this, consumer, totalActionProof);
+    }
   }
 
   class MappedProducer<I, O> extends Producer<O> {
@@ -1146,6 +1254,24 @@ module Std.Producers {
       } else {
         old(RemainingMetric()).TupleNonIncreasesToTuple(RemainingMetric());
       }
+    }
+
+    method ForEachRemaining(consumer: IConsumer<O>, ghost totalActionProof: TotalActionProof<O, ()>)
+      requires Valid()
+      requires consumer.Valid()
+      requires Repr !! consumer.Repr !! totalActionProof.Repr
+      requires totalActionProof.Valid()
+      requires totalActionProof.Action() == consumer
+      reads this, Repr, consumer, consumer.Repr, totalActionProof, totalActionProof.Repr
+      modifies Repr, consumer.Repr
+      ensures ValidAndDisjoint()
+      ensures consumer.ValidAndDisjoint()
+      ensures Done()
+      ensures old(Produced()) <= Produced()
+      ensures old(consumer.Inputs()) <= consumer.Inputs()
+      ensures Produced()[|old(Produced())|..] == consumer.Inputs()[|old(consumer.Inputs())|..]
+    {
+      DefaultForEachRemaining(this, consumer, totalActionProof);
     }
   }
 
@@ -1408,6 +1534,24 @@ module Std.Producers {
         RemainingMetricDoesntReadHistory@beforeUpdatingHistory();
       }
       assert Valid();
+    }
+
+
+    method ForEachRemaining(consumer: IConsumer<T>, ghost totalActionProof: TotalActionProof<T, ()>)
+      requires Valid()
+      requires consumer.Valid()
+      requires Repr !! consumer.Repr !! totalActionProof.Repr
+      requires totalActionProof.Valid()
+      requires totalActionProof.Action() == consumer
+      modifies Repr, consumer.Repr
+      ensures Valid()
+      ensures consumer.Valid()
+      ensures Done()
+      ensures old(Produced()) <= Produced()
+      ensures old(consumer.Inputs()) <= consumer.Inputs()
+      ensures Produced()[|old(Produced())|..] == consumer.Inputs()[|old(consumer.Inputs())|..]
+    {
+      DefaultForEachRemaining(this, consumer, totalActionProof);
     }
   }
 }
