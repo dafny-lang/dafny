@@ -148,6 +148,17 @@ module Std.Producers {
       ProducedOf(OutputsOf(history))
     }
 
+    twostate function{:only} NewProduced(): seq<T>
+      requires old(Valid())
+      requires Valid()
+      requires old(history) <= history
+      reads this, Repr
+    {
+      assert Seq.Partitioned(NewOutputs(), IsSome);
+      ProducedComposition(old(Outputs()), NewOutputs());
+      Produced()[|old(Produced())|..]
+    }
+
     ghost predicate ValidOutputs(outputs: seq<Option<T>>)
       requires Seq.Partitioned(outputs, IsSome)
       decreases Repr
@@ -224,9 +235,9 @@ module Std.Producers {
       ensures ValidAndDisjoint()
       ensures consumer.ValidAndDisjoint()
       ensures Done()
-      ensures old(Produced()) <= Produced()
-      ensures old(consumer.Inputs()) <= consumer.Inputs()
-      ensures Produced()[|old(Produced())|..] == consumer.Inputs()[|old(consumer.Inputs())|..]
+      ensures ValidChange()
+      ensures consumer.ValidChange()
+      ensures NewProduced() == consumer.NewInputs()
 
     // @IsolateAssertions
     // method ForEachRemaining'(consumer: Consumer<T>, ghost totalActionProof: TotalActionProof<T, bool>)
@@ -239,9 +250,9 @@ module Std.Producers {
     //   ensures Valid()
     //   ensures consumer.Valid()
     //   ensures Done() || consumer.Done()
-    //   ensures old(Produced()) <= Produced()
-    //   ensures old(consumer.Inputs()) <= consumer.Inputs()
-    //   ensures Produced()[|old(Produced())|..] == consumer.Inputs()[|old(consumer.Inputs())|..]
+    //   ensures ValidChange()
+    //   ensures consumer.ValidChange()
+    //   ensures NewProduced() == consumer.NewInputs()
     // {
     //   while true
     //     invariant ValidAndDisjoint()
@@ -422,7 +433,7 @@ module Std.Producers {
     ensures consumer.ValidAndDisjoint()
     ensures producer.Done()
     ensures old(producer.Produced()) <= producer.Produced()
-    ensures old(consumer.Inputs()) <= consumer.Inputs()
+    ensures consumer.ValidChange()
     ensures producer.Produced()[|old(producer.Produced())|..] == consumer.Inputs()[|old(consumer.Inputs())|..]
   {
     while true
@@ -647,9 +658,9 @@ module Std.Producers {
       ensures ValidAndDisjoint()
       ensures consumer.ValidAndDisjoint()
       ensures Done()
-      ensures old(Produced()) <= Produced()
-      ensures old(consumer.Inputs()) <= consumer.Inputs()
-      ensures Produced()[|old(Produced())|..] == consumer.Inputs()[|old(consumer.Inputs())|..]
+      ensures ValidChange()
+      ensures consumer.ValidChange()
+      ensures NewProduced() == consumer.NewInputs()
     {
       DefaultForEachRemaining(this, consumer, totalActionProof);
     }
@@ -755,9 +766,9 @@ module Std.Producers {
       ensures ValidAndDisjoint()
       ensures consumer.ValidAndDisjoint()
       ensures Done()
-      ensures old(Produced()) <= Produced()
-      ensures old(consumer.Inputs()) <= consumer.Inputs()
-      ensures Produced()[|old(Produced())|..] == consumer.Inputs()[|old(consumer.Inputs())|..]
+      ensures ValidChange()
+      ensures consumer.ValidChange()
+      ensures NewProduced() == consumer.NewInputs()
     {
       DefaultForEachRemaining(this, consumer, totalActionProof);
     }
@@ -852,9 +863,9 @@ module Std.Producers {
       ensures ValidAndDisjoint()
       ensures consumer.ValidAndDisjoint()
       ensures Done()
-      ensures old(Produced()) <= Produced()
-      ensures old(consumer.Inputs()) <= consumer.Inputs()
-      ensures Produced()[|old(Produced())|..] == consumer.Inputs()[|old(consumer.Inputs())|..]
+      ensures ValidChange()
+      ensures consumer.ValidChange()
+      ensures NewProduced() == consumer.NewInputs()
     {
       DefaultForEachRemaining(this, consumer, totalActionProof);
     }
@@ -979,9 +990,9 @@ module Std.Producers {
       ensures ValidAndDisjoint()
       ensures consumer.ValidAndDisjoint()
       ensures Done()
-      ensures old(Produced()) <= Produced()
-      ensures old(consumer.Inputs()) <= consumer.Inputs()
-      ensures Produced()[|old(Produced())|..] == consumer.Inputs()[|old(consumer.Inputs())|..]
+      ensures ValidChange()
+      ensures consumer.ValidChange()
+      ensures NewProduced() == consumer.NewInputs()
     {
       DefaultForEachRemaining(this, consumer, totalActionProof);
     }
@@ -1109,9 +1120,9 @@ module Std.Producers {
       ensures ValidAndDisjoint()
       ensures consumer.ValidAndDisjoint()
       ensures Done()
-      ensures old(Produced()) <= Produced()
-      ensures old(consumer.Inputs()) <= consumer.Inputs()
-      ensures Produced()[|old(Produced())|..] == consumer.Inputs()[|old(consumer.Inputs())|..]
+      ensures ValidChange()
+      ensures consumer.ValidChange()
+      ensures NewProduced() == consumer.NewInputs()
     {
       DefaultForEachRemaining(this, consumer, totalActionProof);
     }
@@ -1243,9 +1254,9 @@ module Std.Producers {
       ensures ValidAndDisjoint()
       ensures consumer.ValidAndDisjoint()
       ensures Done()
-      ensures old(Produced()) <= Produced()
-      ensures old(consumer.Inputs()) <= consumer.Inputs()
-      ensures Produced()[|old(Produced())|..] == consumer.Inputs()[|old(consumer.Inputs())|..]
+      ensures ValidChange()
+      ensures consumer.ValidChange()
+      ensures NewProduced() == consumer.NewInputs()
     {
       DefaultForEachRemaining(this, consumer, totalActionProof);
     }
@@ -1370,9 +1381,9 @@ module Std.Producers {
       ensures ValidAndDisjoint()
       ensures consumer.ValidAndDisjoint()
       ensures Done()
-      ensures old(Produced()) <= Produced()
-      ensures old(consumer.Inputs()) <= consumer.Inputs()
-      ensures Produced()[|old(Produced())|..] == consumer.Inputs()[|old(consumer.Inputs())|..]
+      ensures ValidChange()
+      ensures consumer.ValidChange()
+      ensures NewProduced() == consumer.NewInputs()
     {
       DefaultForEachRemaining(this, consumer, totalActionProof);
     }
@@ -1651,9 +1662,9 @@ module Std.Producers {
       ensures ValidAndDisjoint()
       ensures consumer.ValidAndDisjoint()
       ensures Done()
-      ensures old(Produced()) <= Produced()
-      ensures old(consumer.Inputs()) <= consumer.Inputs()
-      ensures Produced()[|old(Produced())|..] == consumer.Inputs()[|old(consumer.Inputs())|..]
+      ensures ValidChange()
+      ensures consumer.ValidChange()
+      ensures NewProduced() == consumer.NewInputs()
     {
       DefaultForEachRemaining(this, consumer, totalActionProof);
     }

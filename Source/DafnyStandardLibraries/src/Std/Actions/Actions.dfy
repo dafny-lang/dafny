@@ -30,6 +30,13 @@ module Std.Actions {
       ensures Valid() ==> ValidHistory(history)
       decreases Repr, 0
 
+    twostate predicate ValidChange()
+      reads this
+    {
+      && ValidAndDisjoint()
+      && old(history) <= history
+    }
+
     ghost predicate ValidHistory(history: seq<(I, O)>)
       decreases Repr
 
@@ -78,10 +85,28 @@ module Std.Actions {
       InputsOf(history)
     }
 
+    twostate function NewInputs(): seq<I>
+      requires old(Valid())
+      requires Valid()
+      requires old(Inputs()) <= Inputs()
+      reads this, Repr
+    {
+      Inputs()[|old(Inputs())|..]
+    }
+
     ghost function Outputs(): seq<O>
       reads this
     {
       OutputsOf(history)
+    }
+
+    twostate function NewOutputs(): seq<O>
+      requires old(Valid())
+      requires Valid()
+      requires old(Outputs()) <= Outputs()
+      reads this, Repr
+    {
+      Outputs()[|old(Outputs())|..]
     }
   }
 

@@ -22,12 +22,12 @@ module Std.BulkActions {
       requires Repr !! input.Repr !! output.Repr !! outputTotalProof.Repr
       reads this, Repr, input, input.Repr, output, output.Repr, outputTotalProof, outputTotalProof.Repr
       modifies Repr, input.Repr, output.Repr, outputTotalProof.Repr
-      ensures ValidAndDisjoint()
-      ensures input.ValidAndDisjoint()
-      ensures output.ValidAndDisjoint()
+      ensures ValidChange()
+      ensures input.ValidChange()
+      ensures output.ValidChange()
       ensures input.Done()
-      ensures |input.Produced()| == |output.Inputs()|
-      ensures history == old(history) + Seq.Zip(input.Produced(), output.Inputs())
+      ensures |input.NewProduced()| == |output.NewInputs()|
+      ensures history == old(history) + Seq.Zip(input.NewProduced(), output.NewInputs())
   }
   
   /**
@@ -124,9 +124,9 @@ module Std.BulkActions {
       ensures ValidAndDisjoint()
       ensures consumer.ValidAndDisjoint()
       ensures Done()
-      ensures old(Produced()) <= Produced()
-      ensures old(consumer.Inputs()) <= consumer.Inputs()
-      ensures Produced()[|old(Produced())|..] == consumer.Inputs()[|old(consumer.Inputs())|..]
+      ensures ValidChange()
+      ensures consumer.ValidChange()
+      ensures NewProduced() == consumer.NewInputs()
     {
       if consumer is BatchSeqWriter<T, E> {
         var writer := consumer as BatchSeqWriter<T, E>;
@@ -151,7 +151,7 @@ module Std.BulkActions {
       modifies Repr
       ensures ValidAndDisjoint()
       ensures Done()
-      ensures old(Produced()) <= Produced()
+      ensures ValidChange()
       ensures |Produced()| == |old(Produced())| + |s|
     {
       // Avoid the slice if possible
@@ -186,7 +186,7 @@ module Std.BulkActions {
 
     var elements: seq<T>
     var state: Result<bool, E>
-    var events: int
+    var events: nat
 
     constructor()
       ensures Valid()
@@ -307,7 +307,7 @@ module Std.BulkActions {
     var mappingTotalProof := new TotalFunctionActionProof(mapping);
     result := new MappedProducer(chunkProducer, mapping, mappingTotalProof);
   }
-  class Chunker<E> extends BulkAction<StreamedByte<E>, Producer<StreamedByte<E>>> {
+  class Chunker<E> extends BulkAction<StreamedByte<E>, seq<StreamedByte<E>>> {
 
     const chunkSize: uint64
     var chunkBuffer: BoundedInts.bytes
@@ -334,13 +334,13 @@ module Std.BulkActions {
       && 0 < chunkSize
     }
 
-    ghost predicate ValidHistory(history: seq<(StreamedByte<E>, Producer<StreamedByte<E>>)>)
+    ghost predicate ValidHistory(history: seq<(StreamedByte<E>, seq<StreamedByte<E>>)>)
       decreases Repr
     {
       true
     }
 
-    ghost predicate ValidInput(history: seq<(StreamedByte<E>, Producer<StreamedByte<E>>)>, next: StreamedByte<E>)
+    ghost predicate ValidInput(history: seq<(StreamedByte<E>, seq<StreamedByte<E>>)>, next: StreamedByte<E>)
       requires ValidHistory(history)
       decreases Repr
     {
@@ -354,7 +354,7 @@ module Std.BulkActions {
       0
     }
 
-    method Invoke(i: StreamedByte<E>) returns (o: Producer<StreamedByte<E>>)
+    method Invoke(i: StreamedByte<E>) returns (o: seq<StreamedByte<E>>)
       requires Requires(i)
       reads this, Repr
       modifies Modifies(i)
@@ -372,9 +372,10 @@ module Std.BulkActions {
     }
 
     @ResourceLimit("0")
-    method BulkInvoke(input: Producer<StreamedByte<E>>, 
-                      output: IConsumer<Producer<StreamedByte<E>>>,
-                      outputTotalProof: TotalActionProof<Producer<StreamedByte<E>>, ()>)
+    @IsolateAssertions
+    method {:only} BulkInvoke(input: Producer<StreamedByte<E>>, 
+                      output: IConsumer<seq<StreamedByte<E>>>,
+                      outputTotalProof: TotalActionProof<seq<StreamedByte<E>>, ()>)
       requires Valid()
       requires input.Valid()
       requires output.Valid()
@@ -383,21 +384,31 @@ module Std.BulkActions {
       requires Repr !! input.Repr !! output.Repr !! outputTotalProof.Repr
       reads this, Repr, input, input.Repr, output, output.Repr, outputTotalProof, outputTotalProof.Repr
       modifies Repr, input.Repr, output.Repr, outputTotalProof.Repr
-      ensures ValidAndDisjoint()
-      ensures input.ValidAndDisjoint()
-      ensures output.ValidAndDisjoint()
+      ensures ValidChange()
+      ensures input.ValidChange()
+      ensures output.ValidChange()
       ensures input.Done()
-      ensures |input.Produced()| == |output.Inputs()|
-      ensures history == old(history) + Seq.Zip(input.Produced(), output.Inputs())
+      ensures input.NewProduced() == NewInputs()
+      ensures |input.NewProduced()| == |output.NewInputs()|
+      ensures output.NewInputs() == NewOutputs()
     {
       assert Valid();
 
       var batchWriter := new BatchSeqWriter();
       var batchWriterTotalProof := new BatchSeqWriterTotalProof(batchWriter);
       input.ForEachRemaining(batchWriter, batchWriterTotalProof);
+
+      if batchWriter.events == 0 {
+        // No-op
+        assert |batchWriter.Inputs()| == 0;
+        assert input.NewProduced() == batchWriter.Inputs();
+        assert |input.NewProduced()| == 0;
+        return;
+      }
+
       chunkBuffer := chunkBuffer + batchWriter.elements;
         
-      var chunkProducers: seq<Producer<StreamedByte<E>>> := [];
+      var chunks: seq<uint8> := [];
       while chunkSize as int <= |chunkBuffer|
         invariant fresh(Repr - old(Repr))
         invariant Valid()
@@ -412,32 +423,28 @@ module Std.BulkActions {
         invariant history == old(history)
         decreases |chunkBuffer|
       {
-        var nextChunk := Seq.Reverse(chunkBuffer[..chunkSize]);
+        chunks := chunks + Seq.Reverse(chunkBuffer[..chunkSize]);
         chunkBuffer := chunkBuffer[chunkSize..];
-
-        var chunkProducer := ToOptionResultProducer(nextChunk);
-        chunkProducers := chunkProducers + [chunkProducer];
       }
 
+      var outputProducer: Producer<StreamedByte<E>>;
       match batchWriter.state {
       case Failure(error) =>
-        var errorProducer := new SeqReader([Some(Failure(error))]);
-        chunkProducers := chunkProducers + [errorProducer];
-      case Success(false) =>
-        if 0 < |chunkBuffer| {
+        outputProducer := new SeqReader([Some(Failure(error))]);
+      case Success(more) =>
+        if !more && 0 < |chunkBuffer| {
           // To make it more interesting, produce an error if outputChunks is non empty?
-          var nextChunk := Seq.Reverse(chunkBuffer);
-          var chunkProducer := ToOptionResultProducer(nextChunk);
-          outputTotalProof.AnyInputIsValid(output.history, chunkProducer);
-          output.Accept(chunkProducer);
+          chunks := chunks + Seq.Reverse(chunkBuffer);
         }
-      case Success(true) => {}
+        outputProducer := new BatchReader(chunks);
       }
 
-      var producerProducer := new SeqReader(chunkProducers);
-      var empty: Producer<StreamedByte<E>> := new EmptyProducer();
-      var padding := new RepeatProducer(batchWriter.events as int - 1, empty);
-      var concatenated: Producer<Producer<StreamedByte<E>>> := new ConcatenatedProducer(padding, producerProducer);
+      // TODO: Find the right way to keep this as a batch,
+      // this is just to get it resolving again
+      var data := CollectToSeq(outputProducer);
+      var dataReader := new SeqReader([data]);
+      var padding := new RepeatProducer(batchWriter.events as int - 1, []);
+      var concatenated: Producer<seq<StreamedByte<E>>> := new ConcatenatedProducer(padding, dataReader);
       concatenated.ForEachRemaining(output, outputTotalProof);
 
       assert |input.Produced()| == |output.Inputs()|;
