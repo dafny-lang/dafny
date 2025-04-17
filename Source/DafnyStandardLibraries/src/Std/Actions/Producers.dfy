@@ -6,6 +6,7 @@
 module Std.Producers {
 
   import opened Actions
+  import opened BoundedInts
   import opened Consumers
   import opened Wrappers
   import opened Math
@@ -570,13 +571,6 @@ module Std.Producers {
     ensures p.Done()
     ensures p.Produced() == s
   {
-    // Optimization
-    if p is SeqReader<T> {
-      var sr := p as SeqReader;
-      s := sr.elements[sr.index..];
-      return;
-    }
-
     var seqWriter := new SeqWriter<T>();
     var writerTotalProof := seqWriter.totalActionProof();
     p.ForEachRemaining(seqWriter, writerTotalProof);
@@ -639,6 +633,114 @@ module Std.Producers {
 
       OutputsPartitionedAfterOutputtingNone();
       ProduceNone();
+      assert Valid();
+    }
+
+    method ForEachRemaining(consumer: IConsumer<T>, ghost totalActionProof: TotalActionProof<T, ()>)
+      requires Valid()
+      requires consumer.Valid()
+      requires Repr !! consumer.Repr !! totalActionProof.Repr
+      requires totalActionProof.Valid()
+      requires totalActionProof.Action() == consumer
+      reads this, Repr, consumer, consumer.Repr, totalActionProof, totalActionProof.Repr
+      modifies Repr, consumer.Repr
+      ensures ValidAndDisjoint()
+      ensures consumer.ValidAndDisjoint()
+      ensures Done()
+      ensures old(Produced()) <= Produced()
+      ensures old(consumer.Inputs()) <= consumer.Inputs()
+      ensures Produced()[|old(Produced())|..] == consumer.Inputs()[|old(consumer.Inputs())|..]
+    {
+      DefaultForEachRemaining(this, consumer, totalActionProof);
+    }
+  }
+
+  /** 
+   * The equivalent of SeqReader(Seq.Repeat(n, t)),
+   * But avoids actually creating the sequence of values.
+   */
+  class RepeatProducer<T> extends Producer<T> {
+
+    // Note: it isn't great forcing a big integer in compiled code here,
+    // but on the other hand this kind of producer is mostly useful
+    // as a placeholder for bulk operations,
+    // so it should rarely actually be invoked directly
+    // for any large values of n anyway.
+    const n: nat
+    const t: T
+    var remaining: nat
+
+    constructor(n: nat, t: T)
+      reads {}
+      ensures Valid()
+      ensures history == []
+      ensures fresh(Repr)
+      ensures this.n == n
+      ensures this.t == t
+      ensures history == []
+    {
+      this.n := n;
+      this.t := t;
+      this.remaining := n;
+      Repr := {this};
+      history := [];
+    }
+
+    ghost predicate Valid()
+      reads this, Repr
+      ensures Valid() ==> this in Repr
+      ensures Valid() ==> ValidHistory(history)
+      decreases Repr, 0
+    {
+      && this in Repr
+      && ValidHistory(history)
+      && (0 < remaining ==> Seq.All(Outputs(), IsSome))
+    }
+
+    ghost predicate ValidOutputs(outputs: seq<Option<T>>)
+      requires Seq.Partitioned(outputs, IsSome)
+      decreases Repr
+    {
+      true
+    }
+
+    ghost function RemainingMetric(): TerminationMetric
+      requires Valid()
+      reads this, Repr
+      decreases Repr, 3
+    {
+      TMNat(remaining)
+    }
+
+    @IsolateAssertions
+    method Invoke(i: ()) returns (value: Option<T>)
+      requires Requires(i)
+      reads Reads(i)
+      modifies Modifies(i)
+      decreases Decreases(i), 0
+      ensures Ensures(i, value)
+      ensures RemainingDecreasedBy(value)
+    {
+      assert Requires(i);
+      assert Valid();
+
+      if remaining == 0 {
+        value := None;
+
+        OutputsPartitionedAfterOutputtingNone();
+        ProduceNone();
+
+        old(RemainingMetric()).NatNonIncreasesToNat(RemainingMetric());
+      } else {
+        value := Some(t);
+
+        OutputsPartitionedAfterOutputtingSome(t);
+        ProduceSome(value.value);
+        remaining := remaining - 1;
+
+        old(RemainingMetric()).NatDecreasesToNat(RemainingMetric());
+      }
+
       assert Valid();
     }
 
@@ -1028,6 +1130,7 @@ module Std.Producers {
       requires second.Valid()
       requires second.history == []
       requires first.Repr !! second.Repr
+      reads first, first.Repr, second, second.Repr
       ensures Valid()
       ensures history == []
       ensures fresh(Repr - first.Repr - second.Repr)
@@ -1543,9 +1646,10 @@ module Std.Producers {
       requires Repr !! consumer.Repr !! totalActionProof.Repr
       requires totalActionProof.Valid()
       requires totalActionProof.Action() == consumer
+      reads this, Repr, consumer, consumer.Repr, totalActionProof, totalActionProof.Repr
       modifies Repr, consumer.Repr
-      ensures Valid()
-      ensures consumer.Valid()
+      ensures ValidAndDisjoint()
+      ensures consumer.ValidAndDisjoint()
       ensures Done()
       ensures old(Produced()) <= Produced()
       ensures old(consumer.Inputs()) <= consumer.Inputs()

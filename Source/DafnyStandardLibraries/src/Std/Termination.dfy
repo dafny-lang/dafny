@@ -289,5 +289,23 @@ module Std.Termination {
     {
       reveal Ordinal();
     }
+
+    lemma NatDecreasesToNat(other: TerminationMetric)
+      requires TMNat?
+      requires other.TMNat?
+      requires natValue > other.natValue
+      ensures DecreasesTo(other)
+    {
+      reveal Ordinal();
+    }
+
+    lemma NatNonIncreasesToNat(other: TerminationMetric)
+      requires TMNat?
+      requires other.TMNat?
+      requires natValue >= other.natValue
+      ensures NonIncreasesTo(other)
+    {
+      reveal Ordinal();
+    }
   }
 }
