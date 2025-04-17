@@ -4,12 +4,14 @@
  *******************************************************************************/
 
 abstract module Std.Parsers.Theorems refines Core {
+  import opened Collections.Tuple
 
   ghost predicate Trigger<T>(i: T) { true }
 
-  opaque ghost predicate Valid<R>(underlying: Parser<R>)
-    // A parser is valid iff for any input, it never returns a fatal error
-    // and always returns a suffix of its input
+  opaque ghost predicate NeverFatal<R>(underlying: Parser<R>)
+    // A parser is NeverFatal iff for any input, it never returns a fatal error
+    // Since fatal errors occur only when a parser returns more characters than it was given,
+    // NeverFatal means the remaining unparsed must be smaller or equal to the input
   {
     forall input: Input | Trigger(input) :: // Otherwise the trigger underlying(input) is not working well
       && (underlying(input).ParseFailure? ==> underlying(input).level == Recoverable)
@@ -141,17 +143,11 @@ abstract module Std.Parsers.Theorems refines Core {
     reveal ConcatMap();
   }
 
-  function first<L, R>(): ((L, R)) -> L {
-    (lr: (L, R)) => lr.0
-  }
-  function second<L, R>(): ((L, R)) -> R {
-    (lr: (L, R)) => lr.1
-  }
   lemma AboutConcatConcatKeepRight<L, R>(
     left: Parser<L>,
     right: Parser<R>,
     input: Input)
-    ensures Map(Concat(left, right), second())(input) == ConcatKeepRight(left, right)(input)
+    ensures Map(Concat(left, right), T2_1())(input) == ConcatKeepRight(left, right)(input)
   {
     reveal Concat();
     reveal SucceedWith();
@@ -180,7 +176,7 @@ abstract module Std.Parsers.Theorems refines Core {
     left: Parser<L>,
     right: Parser<R>,
     input: Input)
-    ensures Map(Concat(left, right), first())(input) == ConcatKeepLeft(left, right)(input)
+    ensures Map(Concat(left, right), T2_0())(input) == ConcatKeepLeft(left, right)(input)
   {
     reveal Concat();
     reveal SucceedWith();
@@ -237,7 +233,7 @@ abstract module Std.Parsers.Theorems refines Core {
         (remaining: Input) =>
           if A.Length(remaining) < A.Length(input) then
             Recursive_(underlying, remaining)
-          else 
+          else
             RecursiveProgressError<R>("Parsers.Recursive", input, remaining);
       assert p == underlying(callback)(input);
 
@@ -280,17 +276,17 @@ abstract module Std.Parsers.Theorems refines Core {
 
 
   lemma SucceedWithValid<R>(result: R)
-    ensures Valid(SucceedWith(result))
-  { reveal Valid(), SucceedWith();
+    ensures NeverFatal(SucceedWith(result))
+  { reveal NeverFatal(), SucceedWith();
   }
 
   lemma SucceedWithValidAuto<R>()
-    ensures forall result: R :: Valid(SucceedWith(result))
-  { reveal Valid(), SucceedWith();  }
+    ensures forall result: R :: NeverFatal(SucceedWith(result))
+  { reveal NeverFatal(), SucceedWith();  }
 
   lemma EpsilonValid()
-    ensures Valid(Epsilon())
-  { reveal Valid(), Epsilon(); SucceedWithValid(()); }
+    ensures NeverFatal(Epsilon())
+  { reveal NeverFatal(), Epsilon(); SucceedWithValid(()); }
 
   lemma AboutEpsilon(input: Input)
     ensures
@@ -303,15 +299,15 @@ abstract module Std.Parsers.Theorems refines Core {
   }
 
   lemma FailValid<R>(message: string)
-    ensures Valid<R>(FailWith(message, Recoverable))
-  { reveal FailWith(); reveal Valid(); }
+    ensures NeverFatal<R>(FailWith(message, Recoverable))
+  { reveal FailWith(); reveal NeverFatal(); }
 
   lemma FailValidAuto<R>()
-    ensures forall message :: Valid<R>(FailWith(message, Recoverable))
-  { reveal FailWith(); reveal Valid(); }
+    ensures forall message :: NeverFatal<R>(FailWith(message, Recoverable))
+  { reveal FailWith(); reveal NeverFatal(); }
 
   ghost predicate BindRightValid<L(!new), R>(right: (L, Input) -> Parser<R>) {
-    forall l: L, input: Input :: Valid(right(l, input))
+    forall l: L, input: Input :: NeverFatal(right(l, input))
   }
 
   @IsolateAssertions @ResourceLimit("5e5")
@@ -319,11 +315,11 @@ abstract module Std.Parsers.Theorems refines Core {
     left: Parser<L>,
     right: (L, Input) -> Parser<R>
   )
-    requires Valid(left)
+    requires NeverFatal(left)
     requires BindRightValid(right)
-    ensures Valid(BindSucceeds(left, right))
+    ensures NeverFatal(BindSucceeds(left, right))
   {
-    reveal BindSucceeds(), Valid();
+    reveal BindSucceeds(), NeverFatal();
     var p := BindSucceeds(left, right);
     forall input: Input | Trigger(input) ensures
         && (p(input).ParseFailure? ==> p(input).level == Recoverable)
@@ -334,7 +330,7 @@ abstract module Std.Parsers.Theorems refines Core {
         var (leftResult, remaining) := pResult.Extract();
         var _ := Trigger(remaining);
         var r := right(leftResult, remaining);
-        assert Valid(r);
+        assert NeverFatal(r);
         assert IsRemaining(input, remaining);
         assert IsRemaining(remaining, r(remaining).Remaining());
         assert p(input).Remaining() == r(remaining).Remaining();
@@ -346,24 +342,24 @@ abstract module Std.Parsers.Theorems refines Core {
       assert IsRemaining(input, p(input).Remaining());
       //reveal v;
     }
-    assert Valid(p);
+    assert NeverFatal(p);
   }
 
   ghost predicate BindValidRight<L(!new), R(!new)>(left: Parser<L>)
-    requires Valid(left)
+    requires NeverFatal(left)
   {
     forall right: (L, Input) -> Parser<R> | BindRightValid(right) ::
-      Valid(BindSucceeds(left, right))
+      NeverFatal(BindSucceeds(left, right))
   }
 
   lemma BindValidAuto<L(!new), R(!new)>()
-    ensures forall left: Parser<L> | Valid(left) ::
+    ensures forall left: Parser<L> | NeverFatal(left) ::
               BindValidRight<L, R>(left)
   {
-    forall left: Parser<L> | Valid(left),
+    forall left: Parser<L> | NeverFatal(left),
       right: (L, Input) -> Parser<R> | BindRightValid(right)
       ensures
-        Valid(BindSucceeds(left, right))
+        NeverFatal(BindSucceeds(left, right))
     {
       BindSucceedsValid(left, right);
     }

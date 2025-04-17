@@ -96,7 +96,7 @@ That said, it is possible to create an adapter around a JSON parser to make it a
 
 # Caveats
 
-- Recursive parsers will consume stack and, in programming languages that have a finite amount of stack, programs can get out of memory. Prefer `Rep` and `RepSeq` as much as possible as they are tail-recursive.
+- The `Rec()` parser combinator (`Recursive()` if not using builders) will consume stack and, in programming languages that have a finite amount of stack, programs can get out of memory. Prefer `Rep` and `RepSeq` as much as possible as they are tail-recursive by default. There is also another version `RecNoStack()` that does exactly what `Rec()` does but requires the parser combinator to be provided by continuations. SEee the example [`SmtParser.dfy`](../../../examples/Parsers/SmtParser.dfy) on how to use `RecNoStack()`.
 
 # Implementation notes
 
@@ -124,209 +124,29 @@ module Std.Parsers.String.Builders refines  {
 
 ### What properties can we use it to prove?
 
-* You get for free that parsers terminate, at worst with a run-time "fatal" parser result "no progress and got back to the same function"
-* You can actually prove the absence of fatal errors. There are several lemmas that propagate this property through parsers combinators. Proving this on the recursive cases is also possible but not obvious.
-* You can prove the equivalence between various combinations of parser combinators (e.g. Bind/Succed == Map)
+* You get for free that parsers terminate, at worst with a run-time parser failure result "no progress and got back to the same function".
+* You can actually prove the absence of certain kinds of errors. There are several lemmas that propagate this property through parsers combinators. Proving this on the recursive cases is also possible but not obvious.
+* You can prove the equivalence between various combinations of parser combinators (e.g. Bind/Succeed == Map)
 * You can use these parser combinators as a specification for optimized methods that perform the same task but perhaps with a different representation, e.g. array and position instead of sequences of characters.
 
-### How does it backtrack? Like Parsec (fails if tokens are consumed)?
+### What are fatal errors?
+
+`ParseResult.Failure` has a `.level` field which is almost always `FailureLevel.Recoverable`. It is however `FailureLevel.Fatal` in the two following cases:
+- A parser returned more input than it had at the beginning
+- A `RecMap` construct used a parser that was not defined.
+
+Fatal errors are not to be recovered from and automatically bubble up the parser combinator stack. For example, for the parser combinator `a.?()`, if `a` fails with a recoverable failure, normally it returns a `None`, but in the presence of a fatal error it will return the same fatal error.
+
+Like other kinds of parse result failures, it's also possible to prove the absence of fatal errors.
+
+### How does it backtrack?
 
 There are several ways parsers can backtrack in the current design.
 
 * A parser not consuming any input when returning a recoverable error can be ignored for combinators with alternatives like `Or`, `Maybe`, `If` or `ZeroOrMore` (respectively `O([...])`, `.?()`, `.If()` and `.Rep()` if using builders)
-* It's possible to transform a parser to not consume any input when it fails (except fatal errors) via the combinator `?(...)` (`.??()` if using builders). This means the failure will have the same input as previously given, making it possible for surrounding combinators to explore alternatives.
+* It's possible to transform a parser to not commit any input when it fails (except fatal errors) via the combinator `?(...)` (`.??()` if using builders). This means the failure will have the same input as previously given, nothing is consumed, making it possible for surrounding combinators to explore alternatives.
 * The combinators `BindResult`, a generalization of the `Bind` combinator when considering parsers as monads, lets the user decides whether to continue on the left parser's remaining input or start from the beginning.
 
 ### My parser is not parsing my input string but should. How to figure out what's wrong?
 
-Developing parsers can be pretty challenging sometimes. Fortunately, this library provides tools to debug parsers.
-
-Let's say you develop the following parser to parse a list of space-separated numbers on the command line:
-
-<!-- %check-run-output -->
-```dafny
-import opened Std.Parsers.StringBuilders
-
-const pDoc :=
-  WS.e_I(Nat)   // Space then nat
-  .Rep()        // Zero or more times
-  .I_e(WS)      // Then space
-  .End()        // Then end
-
-method Main() {
-  var input := " 1 2 3 4 ";
-  var result := pDoc.Apply(input);
-  expect result.ParseFailure?;
-  print FailureToString(input, result);
-}
-```
-
-Note that `.Rep()` is a parser combinator that repeats the parser to its left until it fails (its loop body), at which point it should emit the sequence of parsed elements.
-You see the unexpected result:
-
-<!-- %check-expect -->
-```expect
-Error:
-1:  1 2 3 4 
-            ^
-expected a digit
-```
-
-It's expecting a digit where it should have just accepted the end of the string. To figure out what went wrong,
-let's first define two debug functions like below - they can't be defined in the library because they have print effects. You could change the type of the output of string if you were to customize them.
-
-<!-- %no-check -->
-```dafny
-function di(
-  name: string, input: string): string {
-  input
-} by method {
-  print DebugSummaryInput(name, input);
-  return input;
-}
-
-function de<K>(
-  name: string,
-  di_result: string,
-  result: P.ParseResult<K>): () {
-  ()
-} by method {
-  PrintDebugSummaryOutput(name, di_result, result);
-  return ();
-}
-```
-
-Now you can use the `.Debug("some name", di, de)` suffix on any parser builder to debug its input and parse result. Let's use it on our example just before parsing the end
-<!-- %no-check -->
-```dafny
-const pDoc := 
-  WS.e_I(Nat)
-  .Rep()
-  .I_e(WS)
-  .Debug("End", di, de)
-  .End
-```
-
-Running this parser on `" 1 2 3 4 "` displays the following trace.
-
-<!-- %no-check -->
-```dafny
-> [End] ' ' and 8 chars left
-< [End] ' ' and 8 chars left
-| Unparsed: '' (end of string)
-| Was committed
-| Error:
-| 1:  1 2 3 4
-|             ^
-| expected a digit
-|
-```
-
-This trace indicates that the parser to the left of `.Debug` started to parse when there were 9 characters left (the entire string) and the first character was a space.
-When it finished (displaying the same length of 9 and first space character)
-it says that the remaining to parse has length 0 and "starts" with the end of string.
-The "was committed" message simply indicates that the parser considers anything between 0 and 9 as having been correctly parsed and 9 > 0;
-
-Now you wonder, if the last whitespace was parsed correctly, why is it not followed by the end of string parser?
-
-Let's investigate a bit more and add another debugging parser at the last whitespace.
-
-<!-- %no-check -->
-```dafny
-const pDoc := 
-  (WS.e_I(Nat))
-  .Rep()
-  .I_e(WS.Debug("LastWS", di, de))
-  .Debug("End", di, de)
-  .End
-```
-Now the trace is:
-<!-- %no-check -->
-```dafny
-> [End] ' ' and 8 chars left
-< [End] ' ' and 8 chars left
-| Unparsed: 0 "EOS"
-| Was committed
-| Error:
-| 1:  1 2 3 4
-|             ^
-| expected a digit
-|
-```
-
-LastWS is not even displayed! Because `.I_e` is only a concatenation operation if the parser to the left of `.I_e` succeeds, it means the parser to the left of `.I_e(WS)` did not succeed.
-
-We now place new debugging suffix operations to debug the inner loop parser as well as the outer loop parser:
-
-<!-- %no-check -->
-```dafny
-const pDoc := 
-  WS.e_I(Nat).Debug("I", di, de)
-  .Rep().Debug("Z", di, de)
-  .I_e(WS)
-  .End
-```
-The trace is now (abbreviated)
-<!-- %no-check -->
-```dafny
-> [Z] ' ' and 8 chars left
-...
-> [I] ' ' and 2 chars left
-< [I] ' ' and 2 chars left
- (Success)
-> [I] ' ' and end of string
-< [I] ' ' and end of string
-| Unparsed: '' (end of string)
-| Was committed
-| Error:
-| 1:
-|     ^
-| expected a digit
-...
-```
-Here you can see something interesting: The parser named `I` to parse whitespace + number (`WS.e_I(Nat)`) was called on the last white space, and it complained that it was expecting a digit after the whitespace.
-`.Rep()` did not conclude to success because the inner parser was "committed", meaning it did start to parse something from where it was called (1 > 0). If the parse result was a recoverable failure that did not consume any input (had we had `I: 0` or `R: 1`), the parser combinator `.Rep()` would have concluded with success.
-Now you might understand what's wrong. The last space is parsed by:
-
-`WS.e_I(Nat)`
-
-and since `WS` succeed, it complains that a nat is missing.
-To solve this issue, you might discover that it would be preferable to start the loop by parsing `Nat`,
-so that if `Nat` fails, the loop terminates with success:
-
-<!-- %no-check -->
-```dafny
-const pDoc := 
-  WS              // White space
-  .e_I(           // Then
-    Nat.I_e(WS)   //   Nat then space
-    .Rep()        //   Zero or more times
-  )
-  .End()          // Then end
-```
-
-Finally, this works:
-<!-- %no-check -->
-```dafny
-Success
-[1, 2, 3, 4]
-```
-
-Another way would be to indicate that if `WS.e_I(Nat)` fails, then the input should not be consumed. We can achieve this with the `??()` combinator. In case of failure, it ensures that the failure considers that it consumed nothing.
-
-<!-- %no-check -->
-```dafny
-const pDoc := 
-  WS
-  .e_I(Nat)
-  .??()   // If fails, don't consume
-  .Rep()
-  .I_e(WS)
-  .End()
-```
-
-This also works. However, you should avoid that solution in general. Indeed:
-- It is likely less efficient since a failure is detected indirectly
-- If you replaced `Nat` with anything else, you might skip the interesting parse errors.
-
-So in general, you should prefer the first solution.
+See [DEBUGGING.md](DEBUGGING.md) for a step-by-step walkthrough on how to debug your parsers effectively.

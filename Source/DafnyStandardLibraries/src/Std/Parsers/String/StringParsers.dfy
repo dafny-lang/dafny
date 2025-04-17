@@ -317,6 +317,11 @@ module Std.Parsers.StringParsers refines Core {
     "> " + DebugNameSummary(name, input)
   }
 
+  @Print
+  method PrintDebugSummaryInput(name: string, input: string) {
+    print DebugSummaryInput(name, input);
+  }
+
   function NewIndent(input: string, indent: string): string {
     if |input| == 0 then "" else
     (if input[0] == '\n' then input[..1] + indent else input[..1]) + NewIndent(input[1..], indent)
@@ -343,7 +348,8 @@ module Std.Parsers.StringParsers refines Core {
           | ... nice failure message that would be reported.
 
       This output is suitable suitable for debugging what comes off a parser. */
-  method {:print} PrintDebugSummaryOutput<R>(name: string, input: string, result: ParseResult<R>) {
+  @Print
+  method PrintDebugSummaryOutput<R>(name: string, input: string, result: ParseResult<R>) {
     print "< ", DebugNameSummary(name, input);
     if result.ParseFailure? {
       print "| Unparsed: ", DebugSummary(A.View(result.Remaining()));
