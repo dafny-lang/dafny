@@ -304,7 +304,7 @@ module Std.Parsers.StringParsers refines Core {
          case c => [c]
        } +
        if |input| == 1 then "' and end of string" else
-       "'" + " and " + Strings.OfInt(|input| - 1) + " char" + (if |input| == 2 then "" else "") +" remaining"
+       "'" + " and " + Strings.OfInt(|input| - 1) + " char" + (if |input| == 2 then "" else "s") +" remaining"
      else
        "'' (end of string)") + "\n"
   }
@@ -352,7 +352,7 @@ module Std.Parsers.StringParsers refines Core {
       }
       print "| " + NewIndent(FailureToString(input, result), "| "), "\n";
     } else {
-      print " (Success)\n";
+      print "| Success: ",result.result, ", ", DebugSummary(A.View(result.Remaining())),"\n";
     }
   }
 

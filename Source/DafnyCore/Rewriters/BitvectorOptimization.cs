@@ -44,7 +44,7 @@ public class BitvectorOptimizationVisitor : BottomUpVisitor {
   }
 
   protected override void VisitOneExpr(Expression expr) {
-    if (expr.Type is BitvectorType bvType) {
+    if (expr is { Type.AsBitVectorType: { } bvType }) {
 
       if (expr is BinaryExpr binExpr && IsShiftOp(binExpr.Op)) {
         binExpr.E1 = ShrinkBitVectorShiftAmount(binExpr.E1, bvType);

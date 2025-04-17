@@ -237,10 +237,8 @@ abstract module Std.Parsers.Theorems refines Core {
         (remaining: Input) =>
           if A.Length(remaining) < A.Length(input) then
             Recursive_(underlying, remaining)
-          else if A.Length(remaining) == A.Length(input) then
-            ParseFailure(Recoverable, FailureData("no progress in recursive parser", remaining, Option.None))
-          else
-            ParseFailure(Fatal, FailureData("fixpoint called with an increasing remaining sequence", remaining, Option.None));
+          else 
+            RecursiveProgressError<R>("Parsers.Recursive", input, remaining);
       assert p == underlying(callback)(input);
 
       assert forall c: Parser<R>, u: Input

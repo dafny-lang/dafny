@@ -22,6 +22,7 @@ abstract module Std.Parsers.Builders {
     provides O
     provides SucceedWith
     provides FailWith
+    provides ResultWith
     provides Rec
     provides MId
     provides B.Apply
@@ -47,12 +48,17 @@ abstract module Std.Parsers.Builders {
     provides Nothing
     provides CharTest
     provides ToInput
+    provides RecNoStack
+    provides RecursiveProgressError
+    reveals NonProgressing
     reveals Input
+    reveals InputLength
     reveals C
     reveals ParseResult
     reveals B
     reveals Rec, RecMap
     reveals RecMapDef, FailureLevel, RecMapSel
+    reveals RecNoStackResult
 
   type Input = P.Input
   type C = P.C
@@ -75,6 +81,12 @@ abstract module Std.Parsers.Builders {
   /** `FailWith(message)` returns a failure on any input, and does not consume input. */
   function FailWith<T>(message: string, level: FailureLevel := P.Recoverable): B<T> {
     B(P.FailWith(message,  level))
+  }
+
+  /** A parser that always returns the given result  */
+  function ResultWith<R>(result: ParseResult<R>): B<R>
+  {
+    B(P.ResultWith(result))
   }
 
   /** Parses nothing, always returns a success with nothing consumed. Can be useful in alternatives. */
@@ -322,8 +334,116 @@ abstract module Std.Parsers.Builders {
     underlying: B<R> -> B<R>
   ): B<R>
   {
-    B(P.Recursive((p: P.Parser<R>) =>
-                    underlying(B(p)).apply))
+    B(P.Recursive(
+        (p: P.Parser<R>) =>
+          underlying(B(p)).apply))
+  }
+
+  function InputLength(input: Input): nat {
+    P.A.Length(input)
+  }
+
+  /** Returns true if there was no progress from input1 to input2 */
+  predicate NonProgressing(input1: Input, input2: Input) {
+    InputLength(input1) <= InputLength(input2)
+  }
+
+  /** Returns a meaningful error if there was no progress from input1 to input2 */
+  function RecursiveProgressError<R>(name: string, input1: Input, input2: Input): P.ParseResult<R>
+    requires NonProgressing(input1, input2)
+  {
+    P.RecursiveProgressError(name, input1, input2)
+  }
+
+  // Conversion to/from RecursiveNoStackResult requires proving an impossible termination
+  datatype RecNoStackResult<!R> =
+    | RecReturn(toReturn: R)
+      // Immediatley return an R
+    | RecContinue(toContinue: (R, Input) -> B<RecNoStackResult<R>>)
+      // Ask to parse an R recursively, and then continue with the given parser.
+      // It is possible to chain RecContinue.
+
+  // Private implementation detail to make it tail-recursive
+  type RecCallback<!R> = B<RecNoStackResult<R>>
+
+  /**
+    * RecNoStack is a specialized recursive parser builder that avoids stack overflow
+    * by using an explicit continuation-passing style approach.
+    *
+    * Parameters:
+    * - underlying: B<RecNoStackResult<R>> - A parser builder that returns a RecNoStackResult,
+    *   which consists of either
+    *    | RecReturn(R)
+    *    | RecContinue(R -> Parser<RecNoStackResult<R>>)
+    *
+    * Returns:
+    * - B<R> - A parser builder that will eventually produce a result of type R
+    */
+  opaque function RecNoStack<R(!new)>(
+    underlying: B<RecNoStackResult<R>>
+  ): B<R>
+  {
+    B((input: Input) => RecNoStack_(underlying, underlying, input, input, []))
+  }
+
+  /** Tail-recursive auxiliary function for RecursiveNoStack() */
+  function RecNoStack_<R>(
+    continuation: B<RecNoStackResult<R>>,
+    underlying: B<RecNoStackResult<R>>,
+    input: P.Input,
+    previousInput: P.Input,
+    callbacks: seq<ParseResult<R> -> RecCallback<R>>
+  )
+    : (result: ParseResult<R>)
+    decreases P.A.Length(input), P.A.Length(previousInput), |callbacks|
+  {
+    var continuationResult := continuation.apply(input);
+    var remaining := continuationResult.Remaining();
+    if continuationResult.IsFailure() || continuationResult.Extract().0.RecReturn? then
+      var parseResult :=
+        if continuationResult.IsFailure() then
+          continuationResult.PropagateFailure()
+        else
+          P.ParseSuccess(continuationResult.Extract().0.toReturn, remaining);
+      if |callbacks| == 0 then
+        parseResult
+      else
+        var toCompute := callbacks[0](parseResult);
+        if P.A.Length(input) < P.A.Length(remaining) then
+          // This is a validity error: parsers should never consume less than zero
+          RecursiveProgressError<R>("Parsers.RecNoStack[internal]", input, remaining)
+        else if P.A.Length(previousInput) < P.A.Length(input) then
+          RecursiveProgressError<R>("Parsers.RecNoStack[internal]", previousInput, input)
+        else
+          // Because callbacks decreases, it's ok to not consume input there
+          RecNoStack_<R>(toCompute, underlying, remaining, input, callbacks[1..])
+    else
+      var recursor := continuationResult.Extract().0;
+      assert recursor.RecContinue?;
+      var rToNewParserOfRecursiveNoStackResultOfR := recursor.toContinue;
+      if P.A.Length(remaining) < P.A.Length(input)  then
+        RecNoStack_<R>(
+          underlying, underlying, remaining, remaining,
+          [ (p: ParseResult<R>) =>
+              if p.IsFailure() then
+                B(P.ResultWith(p.PropagateFailure()))
+              else
+                var (r, remaining2) := p.Extract();
+                rToNewParserOfRecursiveNoStackResultOfR(r, remaining2)]
+          + callbacks)
+      else if P.A.Length(remaining) == P.A.Length(input) &&
+              P.A.Length(remaining) < P.A.Length(previousInput) then
+        RecNoStack_<R>(
+          underlying, underlying, remaining, remaining,
+          [ (p: ParseResult<R>) =>
+              if p.IsFailure() then
+                B(P.ResultWith(p.PropagateFailure()))
+              else
+                var (r, remaining2) := p.Extract();
+                rToNewParserOfRecursiveNoStackResultOfR(r, remaining2)]
+          + callbacks)
+      else
+        RecursiveProgressError<R>("ParserBuilders.RecNoStack", input, remaining)
   }
 
   /** Datatype used for the values of underlying in `RecMap(underlying, fun)`, see below */

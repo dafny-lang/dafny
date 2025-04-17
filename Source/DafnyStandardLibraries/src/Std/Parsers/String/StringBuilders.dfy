@@ -4,10 +4,11 @@
  *******************************************************************************/
 
 /** The parsers builder DSL but specialized for strings */
+
 module Std.Parsers.StringBuilders refines Builders {
   import P = StringParsers
   export StringBuilders extends Builders
-    provides ToInput, ToInputEnd, S, Int, Nat, WS, Except, Digit, DigitNumber, DebugSummaryInput, PrintDebugSummaryOutput, FailureToString, Apply
+    provides ToInput, ToInputEnd, S, Int, Nat, WS, Except, Digit, DigitNumber, DebugSummaryInput, PrintDebugSummaryOutput, FailureToString, Apply, InputToString
 
   function ToInput(other: seq<C>): (i: Input)
     ensures P.A.View(i) == other
@@ -109,5 +110,9 @@ module Std.Parsers.StringBuilders refines Builders {
   /** Applies a parser to a string and returns the ParseResult */
   function Apply<T>(parser: B<T>, input: string): ParseResult<T> {
     P.Apply(parser.apply, input)
+  }
+
+  function InputToString(input: Input): string {
+    P.A.View(input)
   }
 }

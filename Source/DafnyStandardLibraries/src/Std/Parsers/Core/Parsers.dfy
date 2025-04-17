@@ -39,8 +39,6 @@ abstract module Std.Parsers.Core
 
   export
     provides
-      C, // The character type
-      Input, // The sequence type
       Wrappers, // Imported module
       SucceedWith,
       Epsilon,
@@ -67,10 +65,12 @@ abstract module Std.Parsers.Core
       RepSep,
       RepMerge,
       RepSepMerge,
+      ResultWith,
       CharTest,
       ZeroOrMore,
       OneOrMore,
       Recursive,
+      RecursiveNoStack,
       RecursiveMap,
       DigitToInt,
       StringToInt,
@@ -79,13 +79,17 @@ abstract module Std.Parsers.Core
       ParseResult.Extract,
       A // The abstract input
     reveals
+      C, // The character type
+      Input, // The sequence type
       Parser,
       ParserSelector,
       Option, // From Wrappers
       FailureLevel,
       ParseResult,
       FailureData,
-      RecursiveDef
+      RecursiveDef,
+      RecursiveNoStackResult,
+      RecursiveProgressError
 
   export All reveals *
 
@@ -257,7 +261,7 @@ abstract module Std.Parsers.Core
     (input: Input) => ParseFailure(level, FailureData(message, input, Option.None))
   }
 
-  opaque function Result<R>(result: ParseResult<R>): Parser<R>
+  opaque function ResultWith<R>(result: ParseResult<R>): Parser<R>
     // A parser that always returns the given result
   {
     (input: Input) => result
@@ -436,8 +440,8 @@ abstract module Std.Parsers.Core
     assert Maybe<char>(FailWith("Error"))(input)
         == ParseSuccess(Wrappers.None, input);
     var committedFailure := ParseFailure(Recoverable, FailureData("", A.Drop(input, 1), Option.None));
-    reveal Result();
-    assert Maybe<char>(Result(committedFailure))(input)
+    reveal ResultWith();
+    assert Maybe<char>(ResultWith(committedFailure))(input)
         == committedFailure.PropagateFailure();
   }
 
@@ -657,13 +661,14 @@ abstract module Std.Parsers.Core
     (input: Input) => Recursive_(underlying, input)
   }
 
-  function RecursiveProgressError<R>(input: Input, remaining: Input): ParseResult<R>
+  function RecursiveProgressError<R>(name: string, input: A.Input, remaining: Input): (r: ParseResult<R>)
     requires A.Length(input) <= A.Length(remaining)
+    ensures r.IsFailure()
   {
     if A.Length(remaining) == A.Length(input) then
-      ParseFailure(Recoverable, FailureData("no progress in recursive parser", remaining, Option.None))
+      ParseFailure(Recoverable, FailureData(name + " no progress in recursive parser", remaining, Option.None))
     else
-      ParseFailure(Fatal, FailureData("fixpoint called with an increasing remaining sequence", remaining, Option.None))
+      ParseFailure(Fatal, FailureData(name + "fixpoint called with an increasing remaining sequence", remaining, Option.None))
   }
 
   opaque function Recursive_<R(!new)>(
@@ -678,133 +683,64 @@ abstract module Std.Parsers.Core
         if A.Length(remaining) < A.Length(input) then
           Recursive_(underlying, remaining)
         else 
-          RecursiveProgressError<R>(input, remaining);
+          RecursiveProgressError<R>("Parsers.Recursive", input, remaining);
     underlying(callback)(input)
   }
-/*
-  /** Datatype to store continuation for stack-free recursive parser */
-  datatype RecursiveResult<!R> =
-    | RecursiveReturn(ParseResult<R>)
-    | RecursiveContinue(R -> Parser<RecursiveResult<R>>)
 
   /** Same as Recursive() but will not consume stack */
-  function RecursiveNoStack<R>(underlying: Parser<RecursiveResult<R>>, input: Input): ParseResult<R> {
-    RecursiveNoStack_(underlying, underlying, input)
+  function RecursiveNoStack<R>(underlying: Parser<RecursiveNoStackResult<R>>): Parser<R> {
+    (input: Input) =>
+      RecursiveNoStack_(underlying, underlying, input, [])
   }
+  
 
-  datatype RecCallback<!R> =
-    | RecReturn(ParseResult<R>)
-    | RecCompute(Parser<RecursiveResult<R>>)
+  /** Datatype to store continuation for stack-free recursive parser */
+  datatype RecursiveNoStackResult<!R> =
+    | RecursiveReturn(R)
+    | RecursiveContinue(R -> Parser<RecursiveNoStackResult<R>>)
 
-  /** Auxiliary function for RecursiveNoStack() */
+  // Private implementation detail to make it tail-recursive
+  type RecursiveCallback<!R> = Parser<RecursiveNoStackResult<R>>
+
+  /** Tail-recursive auxiliary function for RecursiveNoStack() */
   @IsolateAssertions
   function RecursiveNoStack_<R>(
-    continuation: Parser<RecursiveResult<R>>,
-    underlying: Parser<RecursiveResult<R>>,
+    continuation: Parser<RecursiveNoStackResult<R>>,
+    underlying: Parser<RecursiveNoStackResult<R>>,
     input: Input,
-    callbacks: seq<ParseResult<R> -> RecCallback<R>>
+    callbacks: seq<ParseResult<R> -> RecursiveCallback<R>>
     )
   : (result: ParseResult<R>) 
     decreases A.Length(input), |callbacks|
   {
     var (recursor, remaining) :- continuation(input);
     match recursor
-      case RecursiveReturn(p) =>
+      case RecursiveReturn(result) =>
         if |callbacks| == 0 then
-          p
+          ParseSuccess(result, remaining)
         else
-          var callback := callbacks[0](p);
-          match callback {
-            case RecReturn(toReturn) =>
-              RecursiveNoStack_(SucceedWith(RecursiveReturn(toReturn)), underlying, remaining, callbacks[1..])
-            case RecCompute(toCompute) =>
-              RecursiveNoStack_(toCompute, underlying, remaining, callbacks[1..])
-          }
-      case RecursiveContinue(cont) =>
-        if A.Length(input) <= A.Length(remaining)  then
-          RecursiveProgressError<R>(input, remaining)
-        else
-          
-          var (contInput, remaining2) :- RecursiveNoStack_(underlying, underlying, remaining);
-          // At this point, we should have that |remaining2| <= |remaining| < |input| so this test should always fail 
-          // But this could be optimized only if we keep track of the Validity of each parser.
-          if A.Length(input) <= A.Length(remaining2) then
-            RecursiveProgressError<R>(input, remaining2)
+          var toCompute := callbacks[0](ParseSuccess(result, remaining));
+          if A.Length(input) < A.Length(remaining) then
+            // This is a validity error: parsers should never consume less than zero
+            RecursiveProgressError<R>("Parsers.RecursiveNoStack[internal]", input, remaining)
           else
-            RecursiveNoStack_(cont(contInput), underlying, remaining2)
-  } /*by method {
-    // Storing the original value of the variables
-    var originalContinuation := continuation;
-    var originalInput := input;
+            RecursiveNoStack_<R>(toCompute, underlying, remaining, callbacks[1..])
+      case RecursiveContinue(rToNewParserOfRecursiveNoStackResultOfR) =>
+        if A.Length(input) <= A.Length(remaining)  then
+          RecursiveProgressError<R>("Parsers.RecursiveNoStack", input, remaining)
+        else
+          RecursiveNoStack_<R>(underlying, underlying, remaining, 
+           [
+             (p: ParseResult<R>) =>
+               if p.IsFailure() then
+                 ResultWith(p.PropagateFailure())
+               else
+                 var (r, remaining2) := p.Extract();
+                 rToNewParserOfRecursiveNoStackResultOfR(r)
+           ]
+           + callbacks)
+  }
 
-    // Conversion of inputs to mutable variables
-    var continuation := originalContinuation;
-    // var underlying := underlying; No need because is constant
-    var input := originalInput;
-
-    // Creation of a stack for the part between the two RecursiveNoStack_
-    var callbacks: seq<ParseResult<R> -> RecCallback<R>> := [];
- 
-    while true
-      decreases A.Length(input)
-    {
-      ghost var initInput := input;
-      var recursorRemaining := continuation(input);
-      if recursorRemaining.IsFailure() {
-        result := recursorRemaining.PropagateFailure();
-      } else {
-        var (recursor, remaining) := recursorRemaining.Extract();
-
-        match recursor {
-          case RecursiveReturn(p) =>
-            result := p;
-          case RecursiveContinue(cont) =>
-            if A.Length(input) <= A.Length(remaining) {
-              result := RecursiveProgressError<R>(input, remaining);
-              input := remaining;
-            } else {
-              continuation := underlying;
-              input := remaining;
-              // We done computing it, we continue with this:
-              callbacks := [
-                (r: ParseResult<R>) => 
-                  if r.IsFailure() then
-                    RecReturn(r.PropagateFailure())
-                  else
-                  var (contInput, remaining2) := r.Extract();
-                  if A.Length(remaining) <= A.Length(remaining2) then
-                    RecReturn(RecursiveProgressError<R>(remaining, remaining2))
-                  else
-                    RecCompute(cont(contInput), remaining2)
-              ] + callbacks;
-              assert A.Length(input) < A.Length(initInput);
-              continue;
-            }
-        }
-      }
-      if |callbacks| == 0 {
-        break;
-      }
-      while |callbacks| != 0
-        decreases |callbacks|
-        invariant assigned(result)
-      {
-        var newContinuation := callbacks[0](result);
-        callbacks := callbacks[1..];
-        match newContinuation {
-          case RecReturn(p) =>
-            result := p;
-          case RecCompute(c, i) =>
-            continuation := c;
-            input := i;
-            break;
-        }
-      }
-      assert A.Length(input) < A.Length(initInput);
-    }
-    assert result == RecursiveNoStack_(originalContinuation, underlying, originalInput);
-  }*/
-*/
   opaque function RecursiveMap<R(!new)>(
     underlying: map<string, RecursiveDef<R>>,
     fun: string): (p: Parser<R>)
