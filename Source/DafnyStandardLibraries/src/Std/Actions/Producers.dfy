@@ -145,6 +145,18 @@ module Std.Producers {
       this
     }
 
+    twostate predicate ValidChange()
+      reads this, Repr
+      ensures ValidChange() ==> old(Valid()) && Valid()
+      ensures ValidChange() ==> fresh(Repr - old(Repr))
+      ensures ValidChange() ==> old(history) <= history
+    {
+      && fresh(Repr - old(Repr))
+      && old(Valid())
+      && Valid()
+      && old(history) <= history
+    }
+
     ghost predicate ValidInput(history: seq<((), Option<T>)>, next: ())
       requires ValidHistory(history)
       decreases Repr
@@ -167,7 +179,7 @@ module Std.Producers {
     }
 
     twostate function NewProduced(): seq<T>
-      requires ValidChange()
+      requires old(history) <= history
       reads this, Repr
     {
       assert Outputs() == old(Outputs()) + NewOutputs();
@@ -452,16 +464,17 @@ module Std.Producers {
   {
     producer.ValidImpliesValidChange();
     consumer.ValidImpliesValidChange();
-    
+    ghost var existingInputs := |producer.Inputs()|;
+    ghost var n := 0;
+
     while true
       invariant fresh(producer.Repr - old(producer.Repr))
-      // invariant producer.Valid()
       invariant fresh(consumer.Repr - old(consumer.Repr))
-      // invariant consumer.Valid()
       invariant producer.Repr !! consumer.Repr
       invariant totalActionProof.Valid()
       invariant producer.ValidChange()
       invariant consumer.ValidChange()
+      invariant |producer.NewProduced()| == n
       invariant producer.NewProduced() == consumer.NewInputs()
       decreases producer.Remaining()
     {
@@ -481,12 +494,19 @@ module Std.Producers {
         assert consumer.NewInputs() == producer.NewProduced();
         break;
       }
-
+      
       totalActionProof.AnyInputIsValid(consumer.history, t.value);
       consumer.Accept(t.value);
 
       assert Seq.Last(consumer.Inputs()) == t.value;
-      // assert consumer.NewInputs@before() == producer.NewProduced@before();
+
+      assert consumer.Inputs() == old@before(consumer.Inputs()) + [t.value];
+      // ghost var newInputsNum := 
+      // assert {:only} consumer.Inputs() == old(consumer.Inputs()) + consumer.Inputs()[existingInputs..existingInputs + n]  + [t.value];
+      assert consumer.NewInputs() == consumer.NewInputs@before() + [t.value];
+      assert producer.Produced() == old@before(producer.Produced()) + [t.value];
+
+      n := n + 1;
     }
   }
 
@@ -633,18 +653,6 @@ module Std.Producers {
       && ValidHistory(history)
     }
     
-    twostate predicate ValidChange()
-      reads this, Repr
-      ensures ValidChange() ==> old(Valid()) && Valid()
-      ensures ValidChange() ==> fresh(Repr - old(Repr))
-      ensures ValidChange() ==> old(history) <= history
-    {
-      && fresh(Repr - old(Repr))
-      && old(Valid())
-      && Valid()
-      && old(history) <= history
-    }
-     
     twostate lemma ValidImpliesValidChange()
       requires old(Valid())
       requires unchanged(old(Repr))
@@ -743,18 +751,6 @@ module Std.Producers {
       && (0 < remaining ==> Seq.All(Outputs(), IsSome))
     }
 
-    twostate predicate ValidChange()
-      reads this, Repr
-      ensures ValidChange() ==> old(Valid()) && Valid()
-      ensures ValidChange() ==> fresh(Repr - old(Repr))
-      ensures ValidChange() ==> old(history) <= history
-    {
-      && fresh(Repr - old(Repr))
-      && old(Valid())
-      && Valid()
-      && old(history) <= history
-    }
-   
     twostate lemma ValidImpliesValidChange()
       requires old(Valid())
       requires unchanged(old(Repr))
@@ -859,18 +855,6 @@ module Std.Producers {
       && (index < |elements| ==> Seq.All(Outputs(), IsSome))
     }
 
-    twostate predicate ValidChange()
-      reads this, Repr
-      ensures ValidChange() ==> old(Valid()) && Valid()
-      ensures ValidChange() ==> fresh(Repr - old(Repr))
-      ensures ValidChange() ==> old(history) <= history
-    {
-      && fresh(Repr - old(Repr))
-      && old(Valid())
-      && Valid()
-      && old(history) <= history
-    }
-    
     twostate lemma ValidImpliesValidChange()
       requires old(Valid())
       requires unchanged(old(Repr))
@@ -999,18 +983,6 @@ module Std.Producers {
       && (produced < max ==> Seq.All(Outputs(), IsSome))
     }
 
-    twostate predicate ValidChange()
-      reads this, Repr
-      ensures ValidChange() ==> old(Valid()) && Valid()
-      ensures ValidChange() ==> fresh(Repr - old(Repr))
-      ensures ValidChange() ==> old(history) <= history
-    {
-      && fresh(Repr - old(Repr))
-      && old(Valid())
-      && Valid()
-      && old(history) <= history
-    }
-   
     twostate lemma ValidImpliesValidChange()
       requires old(Valid())
       requires unchanged(old(Repr))
@@ -1111,18 +1083,6 @@ module Std.Producers {
       && (!source.Done() ==> !Done())
     }
 
-    twostate predicate ValidChange()
-      reads this, Repr
-      ensures ValidChange() ==> old(Valid()) && Valid()
-      ensures ValidChange() ==> fresh(Repr - old(Repr))
-      ensures ValidChange() ==> old(history) <= history
-    {
-      && fresh(Repr - old(Repr))
-      && old(Valid())
-      && Valid()
-      && old(history) <= history
-    }
-   
     twostate lemma ValidImpliesValidChange()
       requires old(Valid())
       requires unchanged(old(Repr))
@@ -1271,18 +1231,6 @@ module Std.Producers {
       && (Seq.All(first.Outputs(), IsSome) || Seq.All(second.Outputs(), IsSome) ==> Seq.All(Outputs(), IsSome))
     }
 
-    twostate predicate ValidChange()
-      reads this, Repr
-      ensures ValidChange() ==> old(Valid()) && Valid()
-      ensures ValidChange() ==> fresh(Repr - old(Repr))
-      ensures ValidChange() ==> old(history) <= history
-    {
-      && fresh(Repr - old(Repr))
-      && old(Valid())
-      && Valid()
-      && old(history) <= history
-    }
-   
     twostate lemma ValidImpliesValidChange()
       requires old(Valid())
       requires unchanged(old(Repr))
@@ -1427,18 +1375,6 @@ module Std.Producers {
       && (!original.Done() <==> !Done())
     }
 
-    twostate predicate ValidChange()
-      reads this, Repr
-      ensures ValidChange() ==> old(Valid()) && Valid()
-      ensures ValidChange() ==> fresh(Repr - old(Repr))
-      ensures ValidChange() ==> old(history) <= history
-    {
-      && fresh(Repr - old(Repr))
-      && old(Valid())
-      && Valid()
-      && old(history) <= history
-    }
-   
     twostate lemma ValidImpliesValidChange()
       requires old(Valid())
       requires unchanged(old(Repr))
@@ -1656,18 +1592,6 @@ module Std.Producers {
       && (Done() ==> original.Done() && currentInner.None?)
     }
 
-    twostate predicate ValidChange()
-      reads this, Repr
-      ensures ValidChange() ==> old(Valid()) && Valid()
-      ensures ValidChange() ==> fresh(Repr - old(Repr))
-      ensures ValidChange() ==> old(history) <= history
-    {
-      && fresh(Repr - old(Repr))
-      && old(Valid())
-      && Valid()
-      && old(history) <= history
-    }
-    
     twostate lemma ValidImpliesValidChange()
       requires old(Valid())
       requires unchanged(old(Repr))

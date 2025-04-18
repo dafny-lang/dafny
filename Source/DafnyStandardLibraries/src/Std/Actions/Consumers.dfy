@@ -15,6 +15,18 @@ module Std.Consumers {
   @AssumeCrossModuleTermination
   trait IConsumer<T> extends Action<T, ()> {
 
+    twostate predicate ValidChange()
+      reads this, Repr
+      ensures ValidChange() ==> old(Valid()) && Valid()
+      ensures ValidChange() ==> fresh(Repr - old(Repr))
+      ensures ValidChange() ==> old(history) <= history
+    {
+      && fresh(Repr - old(Repr))
+      && old(Valid())
+      && Valid()
+      && old(history) <= history
+    }
+
     // For better readability
     method Accept(t: T)
       requires Requires(t)
@@ -33,6 +45,18 @@ module Std.Consumers {
   // Actions that attempt to consume a T and eventually reach capacity and fail.
   @AssumeCrossModuleTermination
   trait Consumer<T> extends Action<T, bool> {
+
+    twostate predicate ValidChange()
+      reads this, Repr
+      ensures ValidChange() ==> old(Valid()) && Valid()
+      ensures ValidChange() ==> fresh(Repr - old(Repr))
+      ensures ValidChange() ==> old(history) <= history
+    {
+      && fresh(Repr - old(Repr))
+      && old(Valid())
+      && Valid()
+      && old(history) <= history
+    }
 
     // Termination metric ensuring Accept() eventually returns false.
     // Not necessarily an exact measurement of the capacity remaining,
@@ -107,18 +131,6 @@ module Std.Consumers {
       && storage in Repr
       && size <= storage.Length
       && Inputs() == storage[..size]
-    }
-
-    twostate predicate ValidChange()
-      reads this, Repr
-      ensures ValidChange() ==> old(Valid()) && Valid()
-      ensures ValidChange() ==> fresh(Repr - old(Repr))
-      ensures ValidChange() ==> old(history) <= history
-    {
-      && fresh(Repr - old(Repr))
-      && old(Valid())
-      && Valid()
-      && old(history) <= history
     }
 
     twostate lemma ValidImpliesValidChange()
@@ -200,18 +212,6 @@ module Std.Consumers {
       && storage.Repr <= Repr
       && storage.Valid?()
       && Inputs() == storage.items
-    }
-
-    twostate predicate ValidChange()
-      reads this, Repr
-      ensures ValidChange() ==> old(Valid()) && Valid()
-      ensures ValidChange() ==> fresh(Repr - old(Repr))
-      ensures ValidChange() ==> old(history) <= history
-    {
-      && fresh(Repr - old(Repr))
-      && old(Valid())
-      && Valid()
-      && old(history) <= history
     }
 
     twostate lemma ValidImpliesValidChange()
@@ -309,18 +309,6 @@ module Std.Consumers {
       && value == Seq.FoldLeft(f, init, Inputs())
     }
 
-    twostate predicate ValidChange()
-      reads this, Repr
-      ensures ValidChange() ==> old(Valid()) && Valid()
-      ensures ValidChange() ==> fresh(Repr - old(Repr))
-      ensures ValidChange() ==> old(history) <= history
-    {
-      && fresh(Repr - old(Repr))
-      && old(Valid())
-      && Valid()
-      && old(history) <= history
-    }
-    
     twostate lemma ValidImpliesValidChange()
       requires old(Valid())
       requires unchanged(old(Repr))
@@ -445,18 +433,6 @@ module Std.Consumers {
     {
       && this in Repr
       && values == Inputs()
-    }
-
-    twostate predicate ValidChange()
-      reads this, Repr
-      ensures ValidChange() ==> old(Valid()) && Valid()
-      ensures ValidChange() ==> fresh(Repr - old(Repr))
-      ensures ValidChange() ==> old(history) <= history
-    {
-      && fresh(Repr - old(Repr))
-      && old(Valid())
-      && Valid()
-      && old(history) <= history
     }
 
     twostate lemma ValidImpliesValidChange()

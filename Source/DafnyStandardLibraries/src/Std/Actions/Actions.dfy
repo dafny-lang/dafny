@@ -141,6 +141,7 @@ module Std.Actions {
   // See DefaultTotalActionProof below for example.
   @AssumeCrossModuleTermination
   trait TotalActionProof<I, O> extends Validatable {
+
     ghost function Action(): Action<I, O>
 
     lemma AnyInputIsValid(history: seq<(I, O)>, next: I)
