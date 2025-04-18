@@ -125,6 +125,11 @@ enum UnaryOpExprOpcode
     Assigned
 }
 
+class FreshExpr : UnaryExpr
+{
+    String? at;
+}
+
 class BinaryExpr : Expression
 {
     BinaryExprOpcode op;
@@ -172,6 +177,24 @@ class StringLiteralExpr : LiteralExpr
 
 class CharLiteralExpr : LiteralExpr
 {
+}
+
+class UnchangedExpr : Expression
+{
+    List<FrameExpression> frame;
+    String? at;
+}
+
+class FrameExpression : NodeWithOrigin
+{
+    Expression originalExpression;
+    String? fieldName;
+}
+
+class OldExpr : Expression
+{
+    Expression expr;
+    String? at;
 }
 
 class DatatypeValue : Expression
@@ -341,17 +364,16 @@ class PrintStmt : Statement
     List<Expression> args;
 }
 
-abstract class LoopStmt : Statement
+class LabeledStatement : Statement
+{
+    List<Label> labels;
+}
+
+abstract class LoopStmt : LabeledStatement
 {
     List<AttributedExpression> invariants;
     Specification<Expression> decreases;
     Specification<FrameExpression> mod;
-}
-
-class FrameExpression : NodeWithOrigin
-{
-    Expression originalExpression;
-    String? fieldName;
 }
 
 class AttributedExpression
@@ -363,10 +385,10 @@ class AttributedExpression
 
 abstract class OneBodyLoopStmt : LoopStmt
 {
-    BlockStmt body;
+    BlockStmt? body;
 }
 
-abstract class BlockLikeStmt : Statement
+abstract class BlockLikeStmt : LabeledStatement
 {
 }
 
@@ -382,12 +404,18 @@ class BlockStmt : BlockLikeStmt
     List<Statement> body;
 }
 
+class OpaqueBlock : BlockStmt
+{
+    List<AttributedExpression> ensures;
+    Specification<FrameExpression> modifies;
+}
+
 class WhileStmt : OneBodyLoopStmt
 {
     Expression guard;
 }
 
-class IfStmt : Statement
+class IfStmt : LabeledStatement
 {
     Boolean isBindingGuard;
     Expression? guard;
@@ -480,9 +508,10 @@ class BoundVar : NonglobalVariable
 {
 }
 
-// [RedundantField("isGhost")]
-class QuantifiedVar : BoundVar
+class QuantifiedVar : NodeWithOrigin
 {
+    Name nameNode;
+    Type? syntacticType;
     Expression? domain;
     Expression? range;
 }

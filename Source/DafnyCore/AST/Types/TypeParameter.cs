@@ -5,6 +5,7 @@ using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 
 namespace Microsoft.Dafny;
 
+[SyntaxBaseType(typeof(Declaration))]
 public class TypeParameter : TopLevelDecl {
   public interface ParentType {
     string FullName { get; }

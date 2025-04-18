@@ -203,7 +203,7 @@ class CoCallResolution {
     } else if (expr is OldExpr) {
       var e = (OldExpr)expr;
       // here, "coContext" is passed along (the use of "old" says this must be ghost code, so the compiler does not need to handle this case)
-      CheckCoCalls(e.E, destructionLevel, coContext, coCandidates);
+      CheckCoCalls(e.Expr, destructionLevel, coContext, coCandidates);
       return;
     } else if (expr is LetExpr) {
       var e = (LetExpr)expr;

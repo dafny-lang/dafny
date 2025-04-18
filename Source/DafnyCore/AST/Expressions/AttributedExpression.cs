@@ -5,6 +5,7 @@ using System.Linq;
 
 namespace Microsoft.Dafny;
 
+[SyntaxBaseType(null)]
 public class AttributedExpression : NodeWithOrigin, IAttributeBearingDeclaration {
   public Expression E;
   public AssertLabel? Label;

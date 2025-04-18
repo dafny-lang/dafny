@@ -18,7 +18,7 @@ public partial class Parser {
     dummyRhs = new ExprRhs(dummyExpr);
     dummyFrameExpr = new FrameExpression(dummyExpr.Origin, dummyExpr, null);
     dummyStmt = new ReturnStmt(Token.NoToken, null);
-    var dummyBlockStmt = new BlockStmt(Token.NoToken, []);
+    var dummyBlockStmt = new BlockStmt(Token.NoToken, [], []);
     dummyIfStmt = new IfStmt(Token.NoToken, false, null, dummyBlockStmt, null);
 
     theOptions = new DafnyOptions(options);

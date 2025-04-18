@@ -105,6 +105,7 @@ public class SyntaxSchemaGenerator : SyntaxAstVisitor {
     var classDeclaration = GenerateClassHeader(type);
     List<MemberDeclarationSyntax> newFields = [];
 
+    var baseType = GetBaseType(type);
     VisitParameters(type, (_, parameter, memberInfo) => {
       if (ExcludedTypes.Contains(parameter.ParameterType)) {
         return;
@@ -114,7 +115,7 @@ public class SyntaxSchemaGenerator : SyntaxAstVisitor {
         return;
       }
 
-      if (memberInfo.DeclaringType != type) {
+      if (DoesMemberBelongToBase(type, memberInfo, baseType)) {
         return;
       }
 
@@ -129,7 +130,6 @@ public class SyntaxSchemaGenerator : SyntaxAstVisitor {
     });
 
     var baseList = new List<BaseTypeSyntax>();
-    var baseType = OverrideBaseType.GetOrDefault(type, () => type.BaseType);
     if (baseType != null && baseType != typeof(ValueType) && baseType != typeof(object)) {
       baseList.Add(SimpleBaseType(ParseTypeName(ToGenericTypeString(baseType))));
     }
@@ -137,25 +137,6 @@ public class SyntaxSchemaGenerator : SyntaxAstVisitor {
     if (baseList.Any()) {
       classDeclaration = classDeclaration.WithBaseList(BaseList(SeparatedList(baseList)));
     }
-
-    // note: It would be nice to use proper attributes instead of comments,
-    // but then in order to test-compile the generated schema file,
-    // we'd have to either include or reference the attribute definition, and that gets messy
-    var redundantFieldComments = GetRedundantFieldNames(type).Select(originalMemberName => {
-      // Each schema class field is named according to the corresponding syntax constructor parameter,
-      // but a RedundantField stores the name of the field/property, and these typically differ in case.
-      // Instead of copying each RedundantField attribute verbatim from the original class to the schema class,
-      // we replace each argument with the field name it will have in the generated schema type,
-      // so that schema consumers don't need to consider case mismatches.
-      var originalMember = type.GetMember(originalMemberName).Single(member => member is FieldInfo or PropertyInfo);
-      var declaringTypeCtor = GetParseConstructor(originalMember.DeclaringType!);
-      Debug.Assert(declaringTypeCtor != null);
-      var schemaFieldName = declaringTypeCtor.GetParameters()
-        .Select(param => param.Name)
-        .Single(paramName => originalMemberName.Equals(paramName, StringComparison.InvariantCultureIgnoreCase))!;
-      return Comment($"""// [RedundantField("{schemaFieldName}")]""");
-    });
-    classDeclaration = classDeclaration.WithLeadingTrivia(redundantFieldComments);
 
     classDeclaration = classDeclaration.AddMembers(newFields.ToArray());
     compilationUnit = compilationUnit.AddMembers(classDeclaration);

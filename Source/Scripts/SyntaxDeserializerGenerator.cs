@@ -61,7 +61,7 @@ using BinaryExprOpcode = Microsoft.Dafny.BinaryExpr.Opcode;
 
   protected override void HandleClass(Type type) {
     var ownedFieldPosition = 0;
-    var baseType = OverrideBaseType.GetOrDefault(type, () => type.BaseType);
+    var baseType = GetBaseType(type);
     if (baseType != null && baseType != typeof(ValueType) && baseType != typeof(object)) {
       ownedFieldPosition = ParameterToSchemaPositions[baseType].Count;
     }
@@ -82,7 +82,8 @@ using BinaryExprOpcode = Microsoft.Dafny.BinaryExpr.Opcode;
         return;
       }
 
-      if (memberInfo.DeclaringType != type) {
+      var memberBelongsToBase = DoesMemberBelongToBase(type, memberInfo, baseType);
+      if (memberBelongsToBase) {
         if (!ParameterToSchemaPositions[memberInfo.DeclaringType!]
               .TryGetValue(memberInfo.Name, out var schemaPosition)) {
           throw new Exception(
@@ -101,14 +102,8 @@ using BinaryExprOpcode = Microsoft.Dafny.BinaryExpr.Opcode;
 
     if (baseType != null && baseType != typeof(ValueType) && baseType != typeof(object)) {
       foreach (var (baseParamName, baseSchemaIndex) in ParameterToSchemaPositions[baseType]) {
-        var thisHasParam = schemaToConstructorPosition.ContainsKey(baseSchemaIndex);
-        var fieldIgnored = GetRedundantFieldNames(type).Contains(baseParamName);
-        if (thisHasParam && fieldIgnored) {
-          throw new Exception($"Constructor for type {type.Name} has an unneeded parameter for field/property {baseParamName} which is a {nameof(RedundantField)}");
-        }
-
-        if (!thisHasParam && !fieldIgnored) {
-          throw new Exception($"Constructor for type {type.Name} is missing a parameter for field/property {baseParamName} inherited from {baseType.Name} - add one or use {nameof(RedundantField)}");
+        if (!schemaToConstructorPosition.ContainsKey(baseSchemaIndex)) {
+          throw new Exception($"Constructor for type {type.Name} is missing a parameter for field/property {baseParamName} inherited from {baseType.Name} - add one or use {nameof(SyntaxBaseType)}");
         }
       }
     }
