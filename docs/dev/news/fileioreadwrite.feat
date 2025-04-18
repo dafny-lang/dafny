@@ -1,0 +1,2 @@
+With `--standard-libraries` you can now read an UTF-8 text files from the disk using `Std.FileIO.ReadFile(path: string): Result<string, string>`.
+To write some content to the disk, use `Std.FileIO.WriteFile(path: string, content: string): Outcome<string>`.
