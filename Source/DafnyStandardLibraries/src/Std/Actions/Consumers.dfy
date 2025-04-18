@@ -109,6 +109,24 @@ module Std.Consumers {
       && Inputs() == storage[..size]
     }
 
+    twostate predicate ValidChange()
+      reads this, Repr
+      ensures ValidChange() ==> old(Valid()) && Valid()
+      ensures ValidChange() ==> fresh(Repr - old(Repr))
+      ensures ValidChange() ==> old(history) <= history
+    {
+      && fresh(Repr - old(Repr))
+      && old(Valid())
+      && Valid()
+      && old(history) <= history
+    }
+
+    twostate lemma ValidImpliesValidChange()
+      requires old(Valid())
+      requires unchanged(old(Repr))
+      ensures ValidChange()
+    {}
+    
     constructor (storage: array<T>)
       ensures Valid()
       ensures history == []
@@ -184,6 +202,24 @@ module Std.Consumers {
       && Inputs() == storage.items
     }
 
+    twostate predicate ValidChange()
+      reads this, Repr
+      ensures ValidChange() ==> old(Valid()) && Valid()
+      ensures ValidChange() ==> fresh(Repr - old(Repr))
+      ensures ValidChange() ==> old(history) <= history
+    {
+      && fresh(Repr - old(Repr))
+      && old(Valid())
+      && Valid()
+      && old(history) <= history
+    }
+
+    twostate lemma ValidImpliesValidChange()
+      requires old(Valid())
+      requires unchanged(old(Repr))
+      ensures ValidChange()
+    {}
+    
     constructor ()
       ensures Valid()
       ensures fresh(Repr - {this})
@@ -273,6 +309,24 @@ module Std.Consumers {
       && value == Seq.FoldLeft(f, init, Inputs())
     }
 
+    twostate predicate ValidChange()
+      reads this, Repr
+      ensures ValidChange() ==> old(Valid()) && Valid()
+      ensures ValidChange() ==> fresh(Repr - old(Repr))
+      ensures ValidChange() ==> old(history) <= history
+    {
+      && fresh(Repr - old(Repr))
+      && old(Valid())
+      && Valid()
+      && old(history) <= history
+    }
+    
+    twostate lemma ValidImpliesValidChange()
+      requires old(Valid())
+      requires unchanged(old(Repr))
+      ensures ValidChange()
+    {}
+    
     ghost predicate ValidHistory(history: seq<(T, ())>)
       decreases Repr
     {
@@ -343,6 +397,20 @@ module Std.Consumers {
       this in Repr
     }
 
+    twostate predicate ValidChange()
+      reads this, Repr
+      ensures ValidChange() ==> old(Valid()) && Valid()
+      decreases Repr, 0
+    {
+      old(Valid()) && Valid()
+    }
+
+    twostate lemma ValidImpliesValidChange()
+      requires old(Valid())
+      requires unchanged(old(Repr))
+      ensures ValidChange()
+    {}
+    
     ghost function Action(): Action<I, ()> {
       action
     }
@@ -379,6 +447,24 @@ module Std.Consumers {
       && values == Inputs()
     }
 
+    twostate predicate ValidChange()
+      reads this, Repr
+      ensures ValidChange() ==> old(Valid()) && Valid()
+      ensures ValidChange() ==> fresh(Repr - old(Repr))
+      ensures ValidChange() ==> old(history) <= history
+    {
+      && fresh(Repr - old(Repr))
+      && old(Valid())
+      && Valid()
+      && old(history) <= history
+    }
+
+    twostate lemma ValidImpliesValidChange()
+      requires old(Valid())
+      requires unchanged(old(Repr))
+      ensures ValidChange()
+    {}
+    
     ghost predicate ValidHistory(history: seq<(T, ())>)
       decreases Repr
     {
@@ -412,6 +498,7 @@ module Std.Consumers {
     }
 
     method totalActionProof() returns (p: TotalActionProof<T, ()>)
+      reads {}
       ensures p.Valid()
       ensures fresh(p.Repr)
       ensures p.Action() == this
@@ -443,6 +530,20 @@ module Std.Consumers {
       this in Repr
     }
 
+    twostate predicate ValidChange()
+      reads this, Repr
+      ensures ValidChange() ==> old(Valid()) && Valid()
+      decreases Repr, 0
+    {
+      old(Valid()) && Valid()
+    }
+
+    twostate lemma ValidImpliesValidChange()
+      requires old(Valid())
+      requires unchanged(old(Repr))
+      ensures ValidChange()
+    {}
+    
     ghost function Action(): Action<T, ()> {
       action
     }

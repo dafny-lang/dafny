@@ -69,6 +69,24 @@ module Std.BulkActions {
       && (index < |elements| ==> Seq.All(Outputs(), IsSome))
     }
 
+    twostate predicate ValidChange()
+      reads this, Repr
+      ensures ValidChange() ==> old(Valid()) && Valid()
+      ensures ValidChange() ==> fresh(Repr - old(Repr))
+      ensures ValidChange() ==> old(history) <= history
+    {
+      && fresh(Repr - old(Repr))
+      && old(Valid())
+      && Valid()
+      && old(history) <= history
+    }
+   
+    twostate lemma ValidImpliesValidChange()
+      requires old(Valid())
+      requires unchanged(old(Repr))
+      ensures ValidChange()
+    {}
+
     ghost predicate ValidOutputs(outputs: seq<Option<StreamedValue<T, E>>>)
       requires Seq.Partitioned(outputs, IsSome)
       decreases Repr
@@ -121,11 +139,9 @@ module Std.BulkActions {
       requires totalActionProof.Action() == consumer
       reads this, Repr, consumer, consumer.Repr, totalActionProof, totalActionProof.Repr
       modifies Repr, consumer.Repr
-      ensures ValidAndDisjoint()
-      ensures consumer.ValidAndDisjoint()
-      ensures Done()
       ensures ValidChange()
       ensures consumer.ValidChange()
+      ensures Done()
       ensures NewProduced() == consumer.NewInputs()
     {
       if consumer is BatchSeqWriter<T, E> {
@@ -215,6 +231,24 @@ module Std.BulkActions {
       && events == |history|
     }
 
+    twostate predicate ValidChange()
+      reads this, Repr
+      ensures ValidChange() ==> old(Valid()) && Valid()
+      ensures ValidChange() ==> fresh(Repr - old(Repr))
+      ensures ValidChange() ==> old(history) <= history
+    {
+      && fresh(Repr - old(Repr))
+      && old(Valid())
+      && Valid()
+      && old(history) <= history
+    }
+   
+    twostate lemma ValidImpliesValidChange()
+      requires old(Valid())
+      requires unchanged(old(Repr))
+      ensures ValidChange()
+    {}
+
     ghost predicate ValidHistory(history: seq<(StreamedValue<T, E>, ())>)
       decreases Repr
     {
@@ -281,6 +315,20 @@ module Std.BulkActions {
       && this in Repr
     }
 
+    twostate predicate ValidChange()
+      reads this, Repr
+      ensures ValidChange() ==> old(Valid()) && Valid()
+      decreases Repr, 0
+    {
+      old(Valid()) && Valid()
+    }
+   
+    twostate lemma ValidImpliesValidChange()
+      requires old(Valid())
+      requires unchanged(old(Repr))
+      ensures ValidChange()
+    {}
+
     ghost function Action(): Action<StreamedValue<T, E>, ()> {
       action
     }
@@ -334,6 +382,24 @@ module Std.BulkActions {
       && 0 < chunkSize
     }
 
+    twostate predicate ValidChange()
+      reads this, Repr
+      ensures ValidChange() ==> old(Valid()) && Valid()
+      ensures ValidChange() ==> fresh(Repr - old(Repr))
+      ensures ValidChange() ==> old(history) <= history
+    {
+      && fresh(Repr - old(Repr))
+      && old(Valid())
+      && Valid()
+      && old(history) <= history
+    }
+   
+    twostate lemma ValidImpliesValidChange()
+      requires old(Valid())
+      requires unchanged(old(Repr))
+      ensures ValidChange()
+    {}
+
     ghost predicate ValidHistory(history: seq<(StreamedByte<E>, seq<StreamedByte<E>>)>)
       decreases Repr
     {
@@ -354,7 +420,9 @@ module Std.BulkActions {
       0
     }
 
-    method Invoke(i: StreamedByte<E>) returns (o: seq<StreamedByte<E>>)
+    @ResourceLimit("0")
+    @IsolateAssertions
+    method {:only} Invoke(i: StreamedByte<E>) returns (o: seq<StreamedByte<E>>)
       requires Requires(i)
       reads this, Repr
       modifies Modifies(i)
@@ -365,15 +433,20 @@ module Std.BulkActions {
       var input := new SeqReader([i]);
       var output := new SeqWriter();
       var outputTotalProof := new SeqWriterTotalActionProof(output);
+      label before:
       BulkInvoke(input, output, outputTotalProof);
+      assert output.ValidChange@before();
+      assert old@before(output.history) <= output.history;
+      assert output.values == output.NewInputs@before();
       assert input.Valid();
       assert |output.values| == 1;
       o := output.values[0];
+      assert output.NewInputs@before() == [o];
     }
 
     @ResourceLimit("0")
     @IsolateAssertions
-    method {:only} BulkInvoke(input: Producer<StreamedByte<E>>, 
+    method BulkInvoke(input: Producer<StreamedByte<E>>, 
                       output: IConsumer<seq<StreamedByte<E>>>,
                       outputTotalProof: TotalActionProof<seq<StreamedByte<E>>, ()>)
       requires Valid()
@@ -396,10 +469,14 @@ module Std.BulkActions {
 
       var batchWriter := new BatchSeqWriter();
       var batchWriterTotalProof := new BatchSeqWriterTotalProof(batchWriter);
+      label before:
       input.ForEachRemaining(batchWriter, batchWriterTotalProof);
+      assert input.ValidChange@before();
+      assert input.ValidChange();
 
       if batchWriter.events == 0 {
         // No-op
+        assert input.ValidChange();
         assert |batchWriter.Inputs()| == 0;
         assert input.NewProduced() == batchWriter.Inputs();
         assert |input.NewProduced()| == 0;

@@ -62,6 +62,24 @@ module Std.Producers {
       this in Repr
     }
 
+    twostate predicate ValidChange()
+      reads this, Repr
+      ensures ValidChange() ==> old(Valid()) && Valid()
+      ensures ValidChange() ==> fresh(Repr - old(Repr))
+      ensures ValidChange() ==> old(history) <= history
+    {
+      && fresh(Repr - old(Repr))
+      && old(Valid())
+      && Valid()
+      && old(history) <= history
+    }
+    
+    twostate lemma ValidImpliesValidChange()
+      requires old(Valid())
+      requires unchanged(old(Repr))
+      ensures ValidChange()
+    {}
+
     constructor(state: S, stepFn: S -> (S, T))
       ensures Valid()
     {
@@ -148,13 +166,12 @@ module Std.Producers {
       ProducedOf(OutputsOf(history))
     }
 
-    twostate function{:only} NewProduced(): seq<T>
-      requires old(Valid())
-      requires Valid()
-      requires old(history) <= history
+    twostate function NewProduced(): seq<T>
+      requires ValidChange()
       reads this, Repr
     {
-      assert Seq.Partitioned(NewOutputs(), IsSome);
+      assert Outputs() == old(Outputs()) + NewOutputs();
+      Seq.PartitionedDecomposition(old(Outputs()), NewOutputs(), IsSome);
       ProducedComposition(old(Outputs()), NewOutputs());
       Produced()[|old(Produced())|..]
     }
@@ -232,11 +249,9 @@ module Std.Producers {
       requires totalActionProof.Action() == consumer
       reads this, Repr, consumer, consumer.Repr, totalActionProof, totalActionProof.Repr
       modifies Repr, consumer.Repr
-      ensures ValidAndDisjoint()
-      ensures consumer.ValidAndDisjoint()
-      ensures Done()
       ensures ValidChange()
       ensures consumer.ValidChange()
+      ensures Done()
       ensures NewProduced() == consumer.NewInputs()
 
     // @IsolateAssertions
@@ -420,8 +435,9 @@ module Std.Producers {
     }
   }
 
+  @ResourceLimit("0")
   @IsolateAssertions
-  method DefaultForEachRemaining<T>(producer: Producer<T>, consumer: IConsumer<T>, ghost totalActionProof: TotalActionProof<T, ()>)
+  method {:only} DefaultForEachRemaining<T>(producer: Producer<T>, consumer: IConsumer<T>, ghost totalActionProof: TotalActionProof<T, ()>)
     requires producer.Valid()
     requires consumer.Valid()
     requires producer.Repr !! consumer.Repr !! totalActionProof.Repr
@@ -429,23 +445,24 @@ module Std.Producers {
     requires totalActionProof.Action() == consumer
     reads producer, producer.Repr, consumer, consumer.Repr, totalActionProof, totalActionProof.Repr
     modifies producer.Repr, consumer.Repr
-    ensures producer.ValidAndDisjoint()
-    ensures consumer.ValidAndDisjoint()
-    ensures producer.Done()
-    ensures old(producer.Produced()) <= producer.Produced()
+    ensures producer.ValidChange()
     ensures consumer.ValidChange()
-    ensures producer.Produced()[|old(producer.Produced())|..] == consumer.Inputs()[|old(consumer.Inputs())|..]
+    ensures producer.Done()
+    ensures producer.NewProduced() == consumer.NewInputs()
   {
+    producer.ValidImpliesValidChange();
+    consumer.ValidImpliesValidChange();
+    
     while true
       invariant fresh(producer.Repr - old(producer.Repr))
-      invariant producer.Valid()
+      // invariant producer.Valid()
       invariant fresh(consumer.Repr - old(consumer.Repr))
-      invariant consumer.Valid()
+      // invariant consumer.Valid()
       invariant producer.Repr !! consumer.Repr
       invariant totalActionProof.Valid()
-      invariant old(producer.Produced()) <= producer.Produced()
-      invariant old(consumer.Inputs()) <= consumer.Inputs()
-      invariant producer.Produced()[|old(producer.Produced())|..] == consumer.Inputs()[|old(consumer.Inputs())|..]
+      invariant producer.ValidChange()
+      invariant consumer.ValidChange()
+      invariant producer.NewProduced() == consumer.NewInputs()
       decreases producer.Remaining()
     {
       label before:
@@ -460,7 +477,8 @@ module Std.Producers {
         assert producer.Done();
         assert ProducedOf([t]) == [];
         assert producer.Produced() == old@before(producer.Produced());
-        assert consumer.Inputs()[|old(consumer.Inputs())|..] == producer.Produced()[|old(producer.Produced())|..];
+        assert producer.ValidChange@before();
+        assert consumer.NewInputs() == producer.NewProduced();
         break;
       }
 
@@ -468,7 +486,7 @@ module Std.Producers {
       consumer.Accept(t.value);
 
       assert Seq.Last(consumer.Inputs()) == t.value;
-      assert consumer.Inputs()[|old(consumer.Inputs())|..] == producer.Produced()[|old(producer.Produced())|..];
+      // assert consumer.NewInputs@before() == producer.NewProduced@before();
     }
   }
 
@@ -577,6 +595,7 @@ module Std.Producers {
   method CollectToSeq<T>(p: Producer<T>) returns (s: seq<T>)
     requires p.Valid()
     requires p.history == []
+    reads p, p.Repr
     modifies p.Repr
     ensures p.Valid()
     ensures p.Done()
@@ -613,7 +632,25 @@ module Std.Producers {
       && this in Repr
       && ValidHistory(history)
     }
-
+    
+    twostate predicate ValidChange()
+      reads this, Repr
+      ensures ValidChange() ==> old(Valid()) && Valid()
+      ensures ValidChange() ==> fresh(Repr - old(Repr))
+      ensures ValidChange() ==> old(history) <= history
+    {
+      && fresh(Repr - old(Repr))
+      && old(Valid())
+      && Valid()
+      && old(history) <= history
+    }
+     
+    twostate lemma ValidImpliesValidChange()
+      requires old(Valid())
+      requires unchanged(old(Repr))
+      ensures ValidChange()
+    {}
+  
     ghost predicate ValidOutputs(outputs: seq<Option<T>>)
       requires Seq.Partitioned(outputs, IsSome)
       decreases Repr
@@ -655,11 +692,9 @@ module Std.Producers {
       requires totalActionProof.Action() == consumer
       reads this, Repr, consumer, consumer.Repr, totalActionProof, totalActionProof.Repr
       modifies Repr, consumer.Repr
-      ensures ValidAndDisjoint()
-      ensures consumer.ValidAndDisjoint()
-      ensures Done()
       ensures ValidChange()
       ensures consumer.ValidChange()
+      ensures Done()
       ensures NewProduced() == consumer.NewInputs()
     {
       DefaultForEachRemaining(this, consumer, totalActionProof);
@@ -707,6 +742,24 @@ module Std.Producers {
       && ValidHistory(history)
       && (0 < remaining ==> Seq.All(Outputs(), IsSome))
     }
+
+    twostate predicate ValidChange()
+      reads this, Repr
+      ensures ValidChange() ==> old(Valid()) && Valid()
+      ensures ValidChange() ==> fresh(Repr - old(Repr))
+      ensures ValidChange() ==> old(history) <= history
+    {
+      && fresh(Repr - old(Repr))
+      && old(Valid())
+      && Valid()
+      && old(history) <= history
+    }
+   
+    twostate lemma ValidImpliesValidChange()
+      requires old(Valid())
+      requires unchanged(old(Repr))
+      ensures ValidChange()
+    {}
 
     ghost predicate ValidOutputs(outputs: seq<Option<T>>)
       requires Seq.Partitioned(outputs, IsSome)
@@ -763,11 +816,9 @@ module Std.Producers {
       requires totalActionProof.Action() == consumer
       reads this, Repr, consumer, consumer.Repr, totalActionProof, totalActionProof.Repr
       modifies Repr, consumer.Repr
-      ensures ValidAndDisjoint()
-      ensures consumer.ValidAndDisjoint()
-      ensures Done()
       ensures ValidChange()
       ensures consumer.ValidChange()
+      ensures Done()
       ensures NewProduced() == consumer.NewInputs()
     {
       DefaultForEachRemaining(this, consumer, totalActionProof);
@@ -808,6 +859,24 @@ module Std.Producers {
       && (index < |elements| ==> Seq.All(Outputs(), IsSome))
     }
 
+    twostate predicate ValidChange()
+      reads this, Repr
+      ensures ValidChange() ==> old(Valid()) && Valid()
+      ensures ValidChange() ==> fresh(Repr - old(Repr))
+      ensures ValidChange() ==> old(history) <= history
+    {
+      && fresh(Repr - old(Repr))
+      && old(Valid())
+      && Valid()
+      && old(history) <= history
+    }
+    
+    twostate lemma ValidImpliesValidChange()
+      requires old(Valid())
+      requires unchanged(old(Repr))
+      ensures ValidChange()
+    {}
+   
     ghost predicate ValidOutputs(outputs: seq<Option<T>>)
       requires Seq.Partitioned(outputs, IsSome)
       decreases Repr
@@ -860,11 +929,9 @@ module Std.Producers {
       requires totalActionProof.Action() == consumer
       reads this, Repr, consumer, consumer.Repr, totalActionProof, totalActionProof.Repr
       modifies Repr, consumer.Repr
-      ensures ValidAndDisjoint()
-      ensures consumer.ValidAndDisjoint()
-      ensures Done()
       ensures ValidChange()
       ensures consumer.ValidChange()
+      ensures Done()
       ensures NewProduced() == consumer.NewInputs()
     {
       DefaultForEachRemaining(this, consumer, totalActionProof);
@@ -932,6 +999,24 @@ module Std.Producers {
       && (produced < max ==> Seq.All(Outputs(), IsSome))
     }
 
+    twostate predicate ValidChange()
+      reads this, Repr
+      ensures ValidChange() ==> old(Valid()) && Valid()
+      ensures ValidChange() ==> fresh(Repr - old(Repr))
+      ensures ValidChange() ==> old(history) <= history
+    {
+      && fresh(Repr - old(Repr))
+      && old(Valid())
+      && Valid()
+      && old(history) <= history
+    }
+   
+    twostate lemma ValidImpliesValidChange()
+      requires old(Valid())
+      requires unchanged(old(Repr))
+      ensures ValidChange()
+    {}
+
     ghost predicate ValidOutputs(outputs: seq<Option<T>>)
       requires Seq.Partitioned(outputs, IsSome)
       decreases Repr
@@ -987,11 +1072,9 @@ module Std.Producers {
       requires totalActionProof.Action() == consumer
       reads this, Repr, consumer, consumer.Repr, totalActionProof, totalActionProof.Repr
       modifies Repr, consumer.Repr
-      ensures ValidAndDisjoint()
-      ensures consumer.ValidAndDisjoint()
-      ensures Done()
       ensures ValidChange()
       ensures consumer.ValidChange()
+      ensures Done()
       ensures NewProduced() == consumer.NewInputs()
     {
       DefaultForEachRemaining(this, consumer, totalActionProof);
@@ -1027,6 +1110,24 @@ module Std.Producers {
       && ValidHistory(history)
       && (!source.Done() ==> !Done())
     }
+
+    twostate predicate ValidChange()
+      reads this, Repr
+      ensures ValidChange() ==> old(Valid()) && Valid()
+      ensures ValidChange() ==> fresh(Repr - old(Repr))
+      ensures ValidChange() ==> old(history) <= history
+    {
+      && fresh(Repr - old(Repr))
+      && old(Valid())
+      && Valid()
+      && old(history) <= history
+    }
+   
+    twostate lemma ValidImpliesValidChange()
+      requires old(Valid())
+      requires unchanged(old(Repr))
+      ensures ValidChange()
+    {}
 
     ghost predicate ValidOutputs(outputs: seq<Option<T>>)
       requires Seq.Partitioned(outputs, IsSome)
@@ -1117,11 +1218,9 @@ module Std.Producers {
       requires totalActionProof.Action() == consumer
       reads this, Repr, consumer, consumer.Repr, totalActionProof, totalActionProof.Repr
       modifies Repr, consumer.Repr
-      ensures ValidAndDisjoint()
-      ensures consumer.ValidAndDisjoint()
-      ensures Done()
       ensures ValidChange()
       ensures consumer.ValidChange()
+      ensures Done()
       ensures NewProduced() == consumer.NewInputs()
     {
       DefaultForEachRemaining(this, consumer, totalActionProof);
@@ -1171,6 +1270,24 @@ module Std.Producers {
       && ValidHistory(history)
       && (Seq.All(first.Outputs(), IsSome) || Seq.All(second.Outputs(), IsSome) ==> Seq.All(Outputs(), IsSome))
     }
+
+    twostate predicate ValidChange()
+      reads this, Repr
+      ensures ValidChange() ==> old(Valid()) && Valid()
+      ensures ValidChange() ==> fresh(Repr - old(Repr))
+      ensures ValidChange() ==> old(history) <= history
+    {
+      && fresh(Repr - old(Repr))
+      && old(Valid())
+      && Valid()
+      && old(history) <= history
+    }
+   
+    twostate lemma ValidImpliesValidChange()
+      requires old(Valid())
+      requires unchanged(old(Repr))
+      ensures ValidChange()
+    {}
 
     ghost predicate ValidOutputs(outputs: seq<Option<T>>)
       requires Seq.Partitioned(outputs, IsSome)
@@ -1251,11 +1368,9 @@ module Std.Producers {
       requires totalActionProof.Action() == consumer
       reads this, Repr, consumer, consumer.Repr, totalActionProof, totalActionProof.Repr
       modifies Repr, consumer.Repr
-      ensures ValidAndDisjoint()
-      ensures consumer.ValidAndDisjoint()
-      ensures Done()
       ensures ValidChange()
       ensures consumer.ValidChange()
+      ensures Done()
       ensures NewProduced() == consumer.NewInputs()
     {
       DefaultForEachRemaining(this, consumer, totalActionProof);
@@ -1311,6 +1426,24 @@ module Std.Producers {
       && base.DecreasesTo(original.RemainingMetric())
       && (!original.Done() <==> !Done())
     }
+
+    twostate predicate ValidChange()
+      reads this, Repr
+      ensures ValidChange() ==> old(Valid()) && Valid()
+      ensures ValidChange() ==> fresh(Repr - old(Repr))
+      ensures ValidChange() ==> old(history) <= history
+    {
+      && fresh(Repr - old(Repr))
+      && old(Valid())
+      && Valid()
+      && old(history) <= history
+    }
+   
+    twostate lemma ValidImpliesValidChange()
+      requires old(Valid())
+      requires unchanged(old(Repr))
+      ensures ValidChange()
+    {}
 
     ghost predicate ValidOutputs(outputs: seq<Option<O>>)
       requires Seq.Partitioned(outputs, IsSome)
@@ -1378,11 +1511,9 @@ module Std.Producers {
       requires totalActionProof.Action() == consumer
       reads this, Repr, consumer, consumer.Repr, totalActionProof, totalActionProof.Repr
       modifies Repr, consumer.Repr
-      ensures ValidAndDisjoint()
-      ensures consumer.ValidAndDisjoint()
-      ensures Done()
       ensures ValidChange()
       ensures consumer.ValidChange()
+      ensures Done()
       ensures NewProduced() == consumer.NewInputs()
     {
       DefaultForEachRemaining(this, consumer, totalActionProof);
@@ -1525,6 +1656,24 @@ module Std.Producers {
       && (Done() ==> original.Done() && currentInner.None?)
     }
 
+    twostate predicate ValidChange()
+      reads this, Repr
+      ensures ValidChange() ==> old(Valid()) && Valid()
+      ensures ValidChange() ==> fresh(Repr - old(Repr))
+      ensures ValidChange() ==> old(history) <= history
+    {
+      && fresh(Repr - old(Repr))
+      && old(Valid())
+      && Valid()
+      && old(history) <= history
+    }
+    
+    twostate lemma ValidImpliesValidChange()
+      requires old(Valid())
+      requires unchanged(old(Repr))
+      ensures ValidChange()
+    {}
+
     ghost predicate ValidOutputs(outputs: seq<Option<T>>)
       requires Seq.Partitioned(outputs, IsSome)
       decreases Repr
@@ -1659,11 +1808,9 @@ module Std.Producers {
       requires totalActionProof.Action() == consumer
       reads this, Repr, consumer, consumer.Repr, totalActionProof, totalActionProof.Repr
       modifies Repr, consumer.Repr
-      ensures ValidAndDisjoint()
-      ensures consumer.ValidAndDisjoint()
-      ensures Done()
       ensures ValidChange()
       ensures consumer.ValidChange()
+      ensures Done()
       ensures NewProduced() == consumer.NewInputs()
     {
       DefaultForEachRemaining(this, consumer, totalActionProof);

@@ -31,11 +31,10 @@ module Std.Actions {
       decreases Repr, 0
 
     twostate predicate ValidChange()
-      reads this
-    {
-      && ValidAndDisjoint()
-      && old(history) <= history
-    }
+      reads this, Repr
+      ensures ValidChange() ==> old(Valid()) && Valid()
+      ensures ValidChange() ==> fresh(Repr - old(Repr))
+      ensures ValidChange() ==> old(history) <= history
 
     ghost predicate ValidHistory(history: seq<(I, O)>)
       decreases Repr
@@ -65,7 +64,7 @@ module Std.Actions {
       requires old(Requires(i))
       reads Reads(i)
     {
-      && ValidAndDisjoint()
+      && ValidChange()
       && history == old(history) + [(i, o)]
     }
 
@@ -86,9 +85,7 @@ module Std.Actions {
     }
 
     twostate function NewInputs(): seq<I>
-      requires old(Valid())
-      requires Valid()
-      requires old(Inputs()) <= Inputs()
+      requires old(history) <= history
       reads this, Repr
     {
       Inputs()[|old(Inputs())|..]
@@ -101,9 +98,7 @@ module Std.Actions {
     }
 
     twostate function NewOutputs(): seq<O>
-      requires old(Valid())
-      requires Valid()
-      requires old(Outputs()) <= Outputs()
+      requires old(history) <= history
       reads this, Repr
     {
       Outputs()[|old(Outputs())|..]
@@ -181,6 +176,21 @@ module Std.Actions {
       && forall history: seq<(I, O)>, input: I | action.ValidHistory(history) :: action.ValidInput(history, input)
     }
 
+    twostate predicate ValidChange()
+      reads this, Repr
+      ensures ValidChange() ==> old(Valid()) && Valid()
+      decreases Repr, 0
+    {
+      && old(Valid())
+      && Valid()
+    }
+
+    twostate lemma ValidImpliesValidChange()
+      requires old(Valid())
+      requires unchanged(old(Repr))
+      ensures ValidChange()
+    {}
+
     ghost function Action(): Action<I, O> {
       action
     }
@@ -211,6 +221,24 @@ module Std.Actions {
       && ValidHistory(history)
       && Outputs() == Seq.MapPartialFunction(f, Inputs())
     }
+
+    twostate predicate ValidChange()
+      reads this, Repr
+      ensures ValidChange() ==> old(Valid()) && Valid()
+      ensures ValidChange() ==> fresh(Repr - old(Repr))
+      ensures ValidChange() ==> old(history) <= history
+    {
+      && fresh(Repr - old(Repr))
+      && old(Valid())
+      && Valid()
+      && old(history) <= history
+    }
+      
+    twostate lemma ValidImpliesValidChange()
+      requires old(Valid())
+      requires unchanged(old(Repr))
+      ensures ValidChange()
+    {}
 
     constructor(f: I -> O)
       reads {}
@@ -293,6 +321,20 @@ module Std.Actions {
       && action.f is I -> O
     }
 
+    twostate predicate ValidChange()
+      reads this, Repr
+      ensures ValidChange() ==> old(Valid()) && Valid()
+      decreases Repr, 0
+    {
+      old(Valid()) && Valid()
+    }
+
+    twostate lemma ValidImpliesValidChange()
+      requires old(Valid())
+      requires unchanged(old(Repr))
+      ensures ValidChange()
+    {}
+    
     ghost function Action(): Action<I, O> {
       action
     }
@@ -349,6 +391,24 @@ module Std.Actions {
       && compositionProof.SecondAction() == second
     }
 
+    twostate predicate ValidChange()
+      reads this, Repr
+      ensures ValidChange() ==> old(Valid()) && Valid()
+      ensures ValidChange() ==> fresh(Repr - old(Repr))
+      ensures ValidChange() ==> old(history) <= history
+    {
+      && fresh(Repr - old(Repr))
+      && old(Valid())
+      && Valid()
+      && old(history) <= history
+    }
+
+    twostate lemma ValidImpliesValidChange()
+      requires old(Valid())
+      requires unchanged(old(Repr))
+      ensures ValidChange()
+    {}
+
     ghost predicate ValidHistory(history: seq<(I, O)>)
       decreases Repr
     {
@@ -370,7 +430,7 @@ module Std.Actions {
     @ResourceLimit("0")
     method Invoke(i: I) returns (o: O)
       requires Requires(i)
-      reads Reads(i)
+      reads this, Repr
       modifies Modifies(i)
       decreases Decreases(i), 0
       ensures Ensures(i, o)
