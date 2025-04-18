@@ -458,19 +458,21 @@ module Std.BulkActions {
 
       chunkBuffer := chunkBuffer + batchWriter.elements;
         
+      // TODO: Move loop to its own method to isolate the specification better
       var chunks: seq<uint8> := [];
       while chunkSize as int <= |chunkBuffer|
         invariant fresh(Repr - old(Repr))
         invariant Valid()
         invariant fresh(input.Repr - old(input.Repr))
-        invariant input.Valid()
+        invariant input.ValidChange()
         invariant input.Done()
         invariant fresh(output.Repr - old(output.Repr))
-        invariant output.Valid()
+        invariant output.ValidChange()
         invariant fresh(outputTotalProof.Repr - old(outputTotalProof.Repr))
         invariant outputTotalProof.Valid()
         invariant Repr !! input.Repr !! output.Repr !! outputTotalProof.Repr
         invariant history == old(history)
+        invariant 0 < batchWriter.events
         decreases |chunkBuffer|
       {
         chunks := chunks + Seq.Reverse(chunkBuffer[..chunkSize]);
@@ -493,12 +495,12 @@ module Std.BulkActions {
       // this is just to get it resolving again
       var data := CollectToSeq(outputProducer);
       var dataReader := new SeqReader([data]);
-      var padding := new RepeatProducer(batchWriter.events as int - 1, []);
+      var padding := new RepeatProducer(batchWriter.events - 1, []);
       var concatenated: Producer<seq<StreamedByte<E>>> := new ConcatenatedProducer(padding, dataReader);
       concatenated.ForEachRemaining(output, outputTotalProof);
 
       // TODO:
-      assume {:axiom} |input.NewProduced()| == |output.NewInputs()|;
+      assert {:only} |input.NewProduced()| == |output.NewInputs()|;
       history := history + Seq.Zip(input.NewProduced(), output.NewInputs());
     }
   }
