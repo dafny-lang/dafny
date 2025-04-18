@@ -30,11 +30,9 @@ public class CallStmt : Statement, ICloneable<CallStmt> {
   public Expression Receiver => MethodSelect.Obj;
   public MethodOrConstructor Method => (MethodOrConstructor)MethodSelect.Member;
 
-  public CallStmt(IOrigin rangeOrigin, List<Expression> lhs, MemberSelectExpr memSel, List<ActualBinding> args, Token overrideToken = null)
-    : base(
-      /* it would be better if the correct rangeOrigin was passed in,
-       then the parameter overrideToken would become obsolete */
-      new OverrideCenter(rangeOrigin, overrideToken ?? memSel.EndToken.Next)) {
+  public CallStmt(IOrigin rangeOrigin, List<Expression> lhs, MemberSelectExpr memSel, List<ActualBinding> args,
+      TokenRange overrideToken = null)
+    : base(overrideToken == null ? rangeOrigin : new OverrideCenter(rangeOrigin, overrideToken)) {
     Contract.Requires(rangeOrigin != null);
     Contract.Requires(cce.NonNullElements(lhs));
     Contract.Requires(memSel != null);

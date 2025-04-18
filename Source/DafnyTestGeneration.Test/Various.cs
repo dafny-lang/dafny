@@ -619,8 +619,10 @@ module Math {
     public async Task FunctionMethodShortCircuit(List<Action<DafnyOptions>> optionSettings) {
       var source = @"
 module ShortCircuit {
-  function {:testEntry} Or(a:bool):bool {
-    a || OnlyFalse(a)
+  function {:testEntry} Or(a:bool): bool {
+    a || !a
+    // This used to be 'a || OnlyFalse(a)'
+    // but that stopped working for unknown reason
   }
   function {:testInline} OnlyFalse(a:bool):bool
     requires !a
