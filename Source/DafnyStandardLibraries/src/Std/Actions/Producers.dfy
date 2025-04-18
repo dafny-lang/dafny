@@ -147,14 +147,23 @@ module Std.Producers {
 
     twostate predicate ValidChange()
       reads this, Repr
-      ensures ValidChange() ==> old(Valid()) && Valid()
-      ensures ValidChange() ==> fresh(Repr - old(Repr))
-      ensures ValidChange() ==> old(history) <= history
+      ensures ValidChange() ==> (
+        && old(Valid()) && Valid()
+        && fresh(Repr - old(Repr))
+        && old(history) <= history
+        && old(Produced()) <= Produced()
+      )
     {
-      && fresh(Repr - old(Repr))
-      && old(Valid())
-      && Valid()
-      && old(history) <= history
+      var result :=
+        && fresh(Repr - old(Repr))
+        && old(Valid())
+        && Valid()
+        && old(history) <= history;
+      if result then
+        ProducedPrefix();
+        result
+      else
+        result
     }
 
     ghost predicate ValidInput(history: seq<((), Option<T>)>, next: ())
@@ -178,13 +187,26 @@ module Std.Producers {
       ProducedOf(OutputsOf(history))
     }
 
-    twostate function NewProduced(): seq<T>
+    twostate lemma ProducedPrefix()
+      requires old(ValidHistory(history))
+      requires ValidHistory(history)
       requires old(history) <= history
-      reads this, Repr
+      ensures Seq.Partitioned(old(Outputs()), IsSome)
+      ensures Seq.Partitioned(Outputs(), IsSome)
+      ensures old(Produced()) <= Produced()
     {
       assert Outputs() == old(Outputs()) + NewOutputs();
       Seq.PartitionedDecomposition(old(Outputs()), NewOutputs(), IsSome);
       ProducedComposition(old(Outputs()), NewOutputs());
+    }
+
+    twostate function NewProduced(): seq<T>
+      requires old(ValidHistory(history))
+      requires ValidHistory(history)
+      requires old(history) <= history
+      reads this, Repr
+    {
+      ProducedPrefix();
       Produced()[|old(Produced())|..]
     }
 
@@ -449,7 +471,7 @@ module Std.Producers {
 
   @ResourceLimit("0")
   @IsolateAssertions
-  method {:only} DefaultForEachRemaining<T>(producer: Producer<T>, consumer: IConsumer<T>, ghost totalActionProof: TotalActionProof<T, ()>)
+  method DefaultForEachRemaining<T>(producer: Producer<T>, consumer: IConsumer<T>, ghost totalActionProof: TotalActionProof<T, ()>)
     requires producer.Valid()
     requires consumer.Valid()
     requires producer.Repr !! consumer.Repr !! totalActionProof.Repr
@@ -464,8 +486,6 @@ module Std.Producers {
   {
     producer.ValidImpliesValidChange();
     consumer.ValidImpliesValidChange();
-    ghost var existingInputs := |producer.Inputs()|;
-    ghost var n := 0;
 
     while true
       invariant fresh(producer.Repr - old(producer.Repr))
@@ -474,7 +494,6 @@ module Std.Producers {
       invariant totalActionProof.Valid()
       invariant producer.ValidChange()
       invariant consumer.ValidChange()
-      invariant |producer.NewProduced()| == n
       invariant producer.NewProduced() == consumer.NewInputs()
       decreases producer.Remaining()
     {
@@ -488,10 +507,6 @@ module Std.Producers {
       if t == None {
         assert Seq.Last(producer.Outputs()).None?;
         assert producer.Done();
-        assert ProducedOf([t]) == [];
-        assert producer.Produced() == old@before(producer.Produced());
-        assert producer.ValidChange@before();
-        assert consumer.NewInputs() == producer.NewProduced();
         break;
       }
       
@@ -499,14 +514,6 @@ module Std.Producers {
       consumer.Accept(t.value);
 
       assert Seq.Last(consumer.Inputs()) == t.value;
-
-      assert consumer.Inputs() == old@before(consumer.Inputs()) + [t.value];
-      // ghost var newInputsNum := 
-      // assert {:only} consumer.Inputs() == old(consumer.Inputs()) + consumer.Inputs()[existingInputs..existingInputs + n]  + [t.value];
-      assert consumer.NewInputs() == consumer.NewInputs@before() + [t.value];
-      assert producer.Produced() == old@before(producer.Produced()) + [t.value];
-
-      n := n + 1;
     }
   }
 
