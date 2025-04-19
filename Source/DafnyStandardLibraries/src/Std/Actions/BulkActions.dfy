@@ -82,7 +82,7 @@ module Std.BulkActions {
       true
     }
 
-    ghost function RemainingMetric(): TerminationMetric
+    ghost function DecreasesMetric(): TerminationMetric
       requires Valid()
       reads this, Repr
       decreases Repr, 3
@@ -97,7 +97,7 @@ module Std.BulkActions {
       modifies Modifies(t)
       decreases Decreases(t), 0
       ensures Ensures(t, value)
-      ensures RemainingDecreasedBy(value)
+      ensures DecreasedBy(value)
     {
       assert Requires(t);
       assert Valid();

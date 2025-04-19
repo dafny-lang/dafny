@@ -101,7 +101,7 @@ module ActionsExamples {
     while true
       invariant producer.Valid()
       invariant fresh(producer.Repr)
-      decreases producer.Remaining()
+      decreases producer.Decreasing()
     {
       var next := producer.Next();
       if next.None? {
@@ -319,7 +319,7 @@ module ActionsExamples {
       && (!Seq.All(outputs, IsSome) ==> Seq.ToSet(produced) == Set())
     }
 
-    ghost function RemainingMetric(): TerminationMetric
+    ghost function DecreasesMetric(): TerminationMetric
       requires Valid()
       reads this, Repr
       decreases Repr, 3
@@ -333,7 +333,7 @@ module ActionsExamples {
       modifies Modifies(i)
       decreases Decreases(i), 0
       ensures Ensures(i, r)
-      ensures RemainingDecreasedBy(r)
+      ensures DecreasedBy(r)
     {
       assert Valid();
       if 0 < |remaining| {
@@ -374,7 +374,7 @@ module ActionsExamples {
       invariant e.Valid()
       invariant fresh(e.Repr)
       invariant copy == Seq.ToSet(e.Produced())
-      decreases e.Remaining()
+      decreases e.Decreasing()
     {
       ghost var oldOutputs := e.Outputs();
       ghost var oldProduced := e.Produced();

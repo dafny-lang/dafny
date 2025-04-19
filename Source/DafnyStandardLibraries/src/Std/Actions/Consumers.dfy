@@ -61,34 +61,27 @@ module Std.Consumers {
     // Termination metric ensuring Accept() eventually returns false.
     // Not necessarily an exact measurement of the capacity remaining,
     // only a conservative bound.
-    ghost function RemainingMetric(): TerminationMetric
+    ghost function DecreasesMetric(): TerminationMetric
       requires Valid()
       reads this, Repr
       decreases Repr, 3
-
-    ghost function Remaining(): ORDINAL
-      requires Valid()
-      reads this, Repr
-    {
-      RemainingMetric().Ordinal()
-    }
-
-    twostate predicate RemainingDecreasedBy(new result: bool)
-      requires old(Valid())
-      requires Valid()
-      reads this, Repr
-    {
-      if result then
-        old(RemainingMetric()).DecreasesTo(RemainingMetric())
-      else
-        old(RemainingMetric()).NonIncreasesTo(RemainingMetric())
-    }
 
     ghost function Decreases(t: T): ORDINAL
       requires Requires(t)
       reads Reads(t)
     {
-      Remaining()
+      DecreasesMetric().Ordinal()
+    }
+
+    twostate predicate DecreasedBy(new result: bool)
+      requires old(Valid())
+      requires Valid()
+      reads this, Repr
+    {
+      if result then
+        old(DecreasesMetric()).DecreasesTo(DecreasesMetric())
+      else
+        old(DecreasesMetric()).NonIncreasesTo(DecreasesMetric())
     }
 
     method Invoke(t: T) returns (r: bool)
@@ -97,7 +90,7 @@ module Std.Consumers {
       modifies Modifies(t)
       decreases Decreases(t), 0
       ensures Ensures(t, r)
-      ensures RemainingDecreasedBy(r)
+      ensures DecreasedBy(r)
 
     // For better readability
     method Accept(t: T) returns (o: bool)
@@ -106,7 +99,7 @@ module Std.Consumers {
       modifies Modifies(t)
       decreases Decreases(t), 0
       ensures Ensures(t, o)
-      ensures RemainingDecreasedBy(o)
+      ensures DecreasedBy(o)
     {
       assert Requires(t);
 
@@ -160,7 +153,7 @@ module Std.Consumers {
       |history| < storage.Length
     }
 
-    ghost function RemainingMetric(): TerminationMetric
+    ghost function DecreasesMetric(): TerminationMetric
       requires Valid()
       reads this, Repr
       decreases Repr, 3
@@ -174,7 +167,7 @@ module Std.Consumers {
       modifies Modifies(t)
       decreases Decreases(t), 0
       ensures Ensures(t, r)
-      ensures RemainingDecreasedBy(r)
+      ensures DecreasedBy(r)
     {
       assert Requires(t);
 
