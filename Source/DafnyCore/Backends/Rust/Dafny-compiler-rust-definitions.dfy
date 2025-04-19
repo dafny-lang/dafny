@@ -15,14 +15,18 @@ module {:extern "Defs"} DafnyToRustCompilerDefinitions {
   type Formal = DAST.Formal
 
   // List taken from https://doc.rust-lang.org/book/appendix-01-keywords.html
-  const reserved_rust := {
+  const reserved_rust_1 := {
     "as","async","await","break","const","continue",
     "crate","dyn","else","enum","extern","false","fn","for","if","impl",
-    "in","let","loop","match","mod","move","mut","pub","ref","return",
+    "in","let","loop","match","mod","move","mut","pub","ref","return"}
+
+  const reserved_rust_2 := {
     "static","struct","super","trait","true","type","union",
     "unsafe","use","where","while","Keywords","The","abstract","become",
     "box","do","final","macro","override","priv","try","typeof","unsized",
     "virtual","yield"}
+
+  const reserved_rust := reserved_rust_1 + reserved_rust_2
 
   // Method names that would automatically resolve to trait methods instead of inherent methods
   // Hence, full name is always required for these methods
@@ -266,6 +270,7 @@ module {:extern "Defs"} DafnyToRustCompilerDefinitions {
     else
       var res := match rs[0] {
         case UserDefined(resolvedType) =>
+          assert resolvedType < rs[0];
           TraitTypeContainingMethod(resolvedType, dafnyName)
         case _ =>
           None

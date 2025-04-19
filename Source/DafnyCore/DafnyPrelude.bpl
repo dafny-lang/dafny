@@ -164,8 +164,8 @@ const $ArbitraryBoxValue: Box;
 
 function $Box<T>(T): Box;
 function $Unbox<T>(Box): T;
-axiom (forall<T> x : T   :: { $Box(x) } $Unbox($Box(x)) == x);
-axiom (forall<T> x : Box :: { $Unbox(x): T} $Box($Unbox(x): T) == x);
+axiom (forall<T> x : T   :: { $Box(x) } {:weight 3} $Unbox($Box(x)) == x);
+axiom (forall<T> x : Box :: { $Unbox(x): T}      $Box($Unbox(x): T) == x);
 
 
 // Corresponding entries for boxes...
@@ -1232,7 +1232,7 @@ axiom (forall s: Seq, n: int ::
   0 <= n && n <= Seq#Length(s) ==> Seq#Length(Seq#Take(s, n)) == n);
 
 axiom (forall s: Seq, n: int, j: int ::
-  {:weight 25} { Seq#Index(Seq#Take(s, n), j) } { Seq#Index(s, j), Seq#Take(s, n) }
+  {:weight 11} { Seq#Index(Seq#Take(s, n), j) } { Seq#Index(s, j), Seq#Take(s, n) }
   0 <= j && j < n && j < Seq#Length(s)
      ==> Seq#Index(Seq#Take(s, n), j) == Seq#Index(s, j));
 
@@ -1243,12 +1243,12 @@ axiom (forall s: Seq, n: int ::
   0 <= n && n <= Seq#Length(s) ==> Seq#Length(Seq#Drop(s, n)) == Seq#Length(s) - n);
 
 axiom (forall s: Seq, n: int, j: int ::
-  {:weight 25} { Seq#Index(Seq#Drop(s, n), j) }
+  {:weight 11} { Seq#Index(Seq#Drop(s, n), j) }
   0 <= n && 0 <= j && j < Seq#Length(s) - n
      ==> Seq#Index(Seq#Drop(s, n), j) == Seq#Index(s, j + n));
 
 axiom (forall s: Seq, n: int, k: int ::
-  {:weight 25} { Seq#Index(s, k), Seq#Drop(s, n) }
+  {:weight 11} { Seq#Index(s, k), Seq#Drop(s, n) }
   0 <= n && n <= k && k < Seq#Length(s)
      ==> Seq#Index(Seq#Drop(s, n), k - n) == Seq#Index(s, k));
 
