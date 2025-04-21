@@ -140,7 +140,7 @@ module ActionsExamples {
     assert a.storage.items == [1, 2, 3, 4, 5];
   }
 
-  // The dual of Producer.ForEachRemaining(IConsumer),
+  // The dual of Producer.ForEach(IConsumer),
   // which terminates when the consumer runs out of capacity
   // instead of when the producer runs out of elements.
   // Not defined on Consumer because that would create
@@ -155,7 +155,7 @@ module ActionsExamples {
   // whether it will accept the next element,
   // which would be related therefore to ValidInput().
   @IsolateAssertions
-  method ForEachRemaining<T>(producer: IProducer<T>, ghost producerTotalProof: TotalActionProof<(), T>,
+  method ForEach<T>(producer: IProducer<T>, ghost producerTotalProof: TotalActionProof<(), T>,
                              consumer: Consumer<T>, ghost consumerTotalProof: TotalActionProof<T, bool>)
     requires producer.Valid()
     requires consumer.Valid()
@@ -276,7 +276,7 @@ module ActionsExamples {
     var collector := new SeqWriter();
 
     var collectorTotalProof := new DefaultTotalActionProof(collector);
-    flattened.ForEachRemaining(collector, collectorTotalProof);
+    flattened.ForEach(collector, collectorTotalProof);
 
     expect collector.values == [0, 1, 1, 1, 1, 2, 2, 2, 2, 3], collector.values;
   }
@@ -327,7 +327,7 @@ module ActionsExamples {
     var setReader: Producer<nat>, producerOfSetProof := MakeSetReader(s);
     var seqWriter := new SeqWriter<nat>();
     var writerTotalProof := seqWriter.totalActionProof();
-    setReader.ForEachRemaining(seqWriter, writerTotalProof);
+    setReader.ForEach(seqWriter, writerTotalProof);
     var asSeq := seqWriter.values;
 
     producerOfSetProof.ProducesSet(setReader.history);

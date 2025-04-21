@@ -84,6 +84,34 @@ module Std.Consumers {
         old(DecreasesMetric()).NonIncreasesTo(DecreasesMetric())
     }
 
+    // True if this has outputted false at least once.
+    // But note that !Done() does not guarantee that
+    // the next output will be a true!
+    ghost predicate Done()
+      reads this
+      decreases Repr, 2
+    {
+      !Seq.All(Outputs(), IsFalse)
+    }
+
+    function Capacity(): Option<nat>
+      reads this, Repr
+      requires Valid()
+
+    // ghost function Consumed(): seq<T> {
+    //   Seq.Count(IsTrue, Outputs())
+    // }
+
+    // twostate function NewConsumed(): seq<T> {
+    //   Consumed() - old(Consumed())
+    // }
+
+    // twostate lemma CapacityCorrect()
+    //   requires ValidChange()
+    //   requires old(Capacity()).Some?
+    //   ensures |NewConsumed()| < old(Capacity()).value
+    //   ensures Done() ==> |NewConsumed()| == old(Capacity()).value
+
     method Invoke(t: T) returns (r: bool)
       requires Requires(t)
       reads Reads(t)
@@ -105,6 +133,14 @@ module Std.Consumers {
 
       o := Invoke(t);
     }
+  }
+
+  predicate IsTrue(b: bool) {
+    b == true
+  }
+
+  predicate IsFalse(b: bool) {
+    b == false
   }
 
   @AssumeCrossModuleTermination
@@ -145,12 +181,12 @@ module Std.Consumers {
     ghost predicate ValidHistory(history: seq<(T, bool)>)
       decreases Repr
     {
-      |history| <= storage.Length
+      true
     }
     ghost predicate ValidInput(history: seq<(T, bool)>, next: T)
       decreases Repr
     {
-      |history| < storage.Length
+      true
     }
 
     ghost function DecreasesMetric(): TerminationMetric
@@ -159,6 +195,13 @@ module Std.Consumers {
       decreases Repr, 3
     {
       TMNat(storage.Length - size)
+    }
+
+    function Capacity(): Option<nat> 
+      reads this, Repr
+      requires Valid()
+    {
+      Some(storage.Length - size)
     }
 
     method Invoke(t: T) returns (r: bool)
