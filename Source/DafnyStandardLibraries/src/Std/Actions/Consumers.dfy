@@ -91,7 +91,7 @@ module Std.Consumers {
       reads this
       decreases Repr, 2
     {
-      !Seq.All(Outputs(), IsFalse)
+      !Seq.All(Outputs(), IsTrue)
     }
 
     function Capacity(): Option<nat>
