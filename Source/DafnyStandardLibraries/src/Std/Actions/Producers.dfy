@@ -1495,6 +1495,8 @@ module Std.Producers {
       ensures Valid()
       ensures history == []
       ensures fresh(Repr - first.Repr - second.Repr)
+      ensures this.first == first
+      ensures this.second == second
     {
       this.first := first;
       this.second := second;

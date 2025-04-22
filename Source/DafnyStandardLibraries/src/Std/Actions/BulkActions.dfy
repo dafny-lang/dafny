@@ -483,6 +483,7 @@ module Std.BulkActions {
       chunkBuffer := chunkBuffer + batchWriter.elements;
         
       // TODO: Move loop to its own method to isolate the specification better
+      // This could be a FunctionalProducer?
       var chunks: seq<uint8> := [];
       while chunkSize as int <= |chunkBuffer|
         invariant fresh(Repr - old(Repr))
@@ -496,7 +497,9 @@ module Std.BulkActions {
         invariant outputTotalProof.Valid()
         invariant Repr !! input.Repr !! output.Repr !! outputTotalProof.Repr
         invariant history == old(history)
+        invariant output.history == old(output.history)
         invariant 0 < count
+        invariant count == |input.NewProduced()|
         decreases |chunkBuffer|
       {
         chunks := chunks + Seq.Reverse(chunkBuffer[..chunkSize]);
@@ -521,10 +524,12 @@ module Std.BulkActions {
       var dataReader := new SeqReader([data]);
       var padding := new RepeatProducer(count - 1, []);
       var concatenated: Producer<seq<StreamedByte<E>>> := new ConcatenatedProducer(padding, dataReader);
-      var _ := concatenated.ForEach(output, outputTotalProof);
-
-      // TODO:
-      assert {:only} |input.NewProduced()| == |output.NewInputs()|;
+      assert dataReader.Remaining() == Some(1);
+      assert padding.Remaining() == Some(count - 1);
+      assert concatenated.Remaining() == Some(count);
+      var outputted := concatenated.ForEach(output, outputTotalProof);
+      
+      assert |input.NewProduced()| == |output.NewInputs()|;
       history := history + Seq.Zip(input.NewProduced(), output.NewInputs());
     }
   }
