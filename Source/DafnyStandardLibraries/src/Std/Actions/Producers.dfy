@@ -159,6 +159,7 @@ module Std.Producers {
       ensures ValidChange(now)
       ensures NewProduced(now) == NewProduced(newer) + newer.NewProduced(now)
     {
+      // TODO: clean up using NewProduced etc
       assert outputs <= now.outputs;
       var newerOutputs := newer.outputs[|outputs|..];
       var nowOutputs := now.outputs[|newer.outputs|..];
