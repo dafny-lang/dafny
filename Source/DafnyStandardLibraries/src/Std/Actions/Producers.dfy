@@ -132,7 +132,8 @@ module Std.Producers {
 
   datatype ProducerState<T> = ProducerState(producer: Producer<T>, remaining: Option<nat>, outputs: seq<Option<T>>) {
     ghost predicate Valid() {
-      Seq.Partitioned(outputs, IsSome)
+      && Seq.Partitioned(outputs, IsSome)
+      && (!Seq.All(outputs, IsSome) && remaining.Some? ==> remaining.value == 0)
     }
     ghost predicate ValidChange(newer: ProducerState<T>) 
     {
@@ -147,7 +148,7 @@ module Std.Producers {
       && var newProduced := ProducedOf(newOutputs);
       && remaining.Some? ==>
         && |newProduced| <= remaining.value
-        && (!Seq.All(outputs, IsSome) ==> |newProduced| == remaining.value)
+        && (!Seq.All(newer.outputs, IsSome) ==> |newProduced| == remaining.value)
         && newer.remaining == Some(remaining.value - |newProduced|)
     }
 
@@ -295,7 +296,6 @@ module Std.Producers {
       Seq.PartitionedDecomposition(old(Outputs()), NewOutputs(), IsSome);
       ProducedComposition(old(Outputs()), NewOutputs());
     }
-
 
     function Remaining(): Option<nat>
       reads this, Repr
@@ -1523,6 +1523,9 @@ module Std.Producers {
       // Enforcing that we exhaust first before starting on second
       && (!first.Done() ==> second.history == [])
       && (!first.Done() || !second.Done() ==> !Done())
+      && (Done() ==> (
+          && (first.Remaining() == None || first.Remaining() == Some(0))
+          && (second.Remaining() == None || second.Remaining() == Some(0))))
     }
 
     twostate lemma ValidImpliesValidChange()
@@ -1560,7 +1563,7 @@ module Std.Producers {
 
     @ResourceLimit("1e8")
     @IsolateAssertions
-    method {:only} Invoke(t: ()) returns (result: Option<T>)
+    method Invoke(t: ()) returns (result: Option<T>)
       requires Requires(t)
       reads Reads(t)
       modifies Modifies(t)
