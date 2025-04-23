@@ -869,15 +869,6 @@ module Std.Collections.Seq {
     }
   }
 
-  opaque function Count<T>(f: (T ~> bool), xs: seq<T>): (result: nat)
-    requires forall i :: 0 <= i < |xs| ==> f.requires(xs[i])
-    ensures result == |Filter(f, xs)|
-    reads set i, o | 0 <= i < |xs| && o in f.reads(xs[i]) :: o
-  {
-    if |xs| == 0 then 0
-    else (if f(xs[0]) then 1 else 0) + Count(f, xs[1..])
-  }
-
   /* Folds a sequence xs from the left (the beginning), by repeatedly acting on the accumulator
      init via the function f. */
   function FoldLeft<A, T>(f: (A, T) -> A, init: A, xs: seq<T>): A

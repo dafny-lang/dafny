@@ -64,6 +64,45 @@ module Std.Consumers {
         && newer.capacity == Some(capacity.value - |newConsumed|)
     }
 
+    @ResourceLimit("0")
+    @IsolateAssertions
+    lemma ValidChangeTransitive(newer: ConsumerState<T>, now: ConsumerState<T>)
+      requires ValidChange(newer) && newer.ValidChange(now)
+      ensures ValidChange(now)
+      ensures NewConsumed(now) == NewConsumed(newer) + newer.NewConsumed(now)
+    {
+      // TODO: clean up using NewConsumed etc
+      assert history <= now.history;
+      var newerHistory := newer.history[|history|..];
+      var nowHistory := now.history[|newer.history|..];
+      var newHistory := now.history[|history|..];
+      assert now.history == (history + newerHistory) + nowHistory;
+      assert now.history == history + (newerHistory + nowHistory);
+      assert newHistory == newerHistory + nowHistory;
+      assert now.history == history + newHistory;
+      Seq.PartitionedDecomposition(history, newHistory, WasConsumed);
+      assert Seq.Partitioned(history + newerHistory + nowHistory, WasConsumed);
+      Seq.PartitionedDecomposition(history + newerHistory, nowHistory, WasConsumed);
+      Seq.PartitionedDecomposition(history, newerHistory, WasConsumed);
+      Seq.PartitionedDecomposition(history, newerHistory + nowHistory, WasConsumed);
+      assert Seq.Partitioned(newHistory, WasConsumed);
+      var newerConsumed := ConsumedOf(newerHistory);
+      var nowConsumed := ConsumedOf(nowHistory);
+      var newConsumed := ConsumedOf(newHistory);
+      ConsumedComposition(history, newHistory);
+      ConsumedComposition(newerHistory, nowHistory);
+      ConsumedComposition(history + newerHistory, nowHistory);
+      assert newConsumed == newerConsumed + nowConsumed;
+      Seq.PartitionedDecomposition(history, newHistory, WasConsumed);
+      ConsumedComposition(history, newHistory);
+      
+      if capacity.Some? {
+        assert |newConsumed| <= capacity.value;
+        assert (!Seq.All(history, WasConsumed) ==> |newConsumed| == capacity.value);
+        assert now.capacity == Some(capacity.value - |newConsumed|);
+      }
+    }
+
     ghost function NewConsumed(newer: ConsumerState<T>): seq<T>
       requires ValidChange(newer)
     {

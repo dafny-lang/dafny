@@ -648,6 +648,8 @@ module Std.Producers {
 
       totalActionProof.AnyInputIsValid(consumer.history, t.value);
       var accepted := consumer.Accept(t.value);
+      old(consumer.State()).ValidChangeTransitive(old@before(consumer.State()), consumer.State());
+      
       if !accepted {
         assert Seq.Last(consumer.Outputs()) == false;
         assert consumer.Done();
