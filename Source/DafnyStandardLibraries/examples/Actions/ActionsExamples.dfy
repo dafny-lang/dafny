@@ -29,7 +29,8 @@ module ActionsExamples {
     ensures p.Valid()
     ensures fresh(p.Repr)
   {
-    p := new SeqReader([1, 2, 3, 4, 5]);
+    var s: seq<nat> := [1, 2, 3, 4, 5];
+    p := new SeqReader(s);
   }
 
   // Demonstration that actions can consume/produce reference values as well,
@@ -70,6 +71,23 @@ module ActionsExamples {
       && ValidHistory(history)
       && nextValue == |history|
     }
+
+    twostate predicate ValidChange()
+      reads this, Repr
+      ensures ValidChange() ==>
+        old(Valid()) && Valid() && fresh(Repr - old(Repr))
+      ensures ValidChange() ==> old(history) <= history
+    {
+      && old(Valid()) && Valid()
+      && fresh(Repr - old(Repr))
+      && old(history) <= history
+    }
+
+    twostate lemma ValidImpliesValidChange()
+      requires old(Valid())
+      requires unchanged(old(Repr))
+      ensures ValidChange()
+    {}
 
     constructor ()
       ensures Valid()
@@ -155,8 +173,8 @@ module ActionsExamples {
   // whether it will accept the next element,
   // which would be related therefore to ValidInput().
   @IsolateAssertions
-  method ForEach<T>(producer: IProducer<T>, ghost producerTotalProof: TotalActionProof<(), T>,
-                             consumer: Consumer<T>, ghost consumerTotalProof: TotalActionProof<T, bool>)
+  method ForEachToCapacity<T>(producer: IProducer<T>, ghost producerTotalProof: TotalActionProof<(), T>,
+                              consumer: Consumer<T>, ghost consumerTotalProof: TotalActionProof<T, bool>)
     requires producer.Valid()
     requires consumer.Valid()
     requires producerTotalProof.Valid()
@@ -212,6 +230,12 @@ module ActionsExamples {
       && (0 < |inputs| ==> Seq.All(Outputs(), IsSome))
     }
 
+    twostate lemma ValidImpliesValidChange()
+      requires old(Valid())
+      requires unchanged(old(Repr))
+      ensures ValidChange()
+    {}
+
     ghost predicate ValidOutputs(outputs: seq<Option<Producer<nat>>>)
       requires Seq.Partitioned(outputs, IsSome)
       decreases Repr
@@ -222,6 +246,13 @@ module ActionsExamples {
     ghost function MaxProduced(): TerminationMetric
     {
       TMTop
+    }
+
+    function Remaining(): Option<nat>
+      requires Valid()
+      reads this, Repr
+    {
+      None
     }
 
     ghost function DecreasesMetric(): TerminationMetric
@@ -254,7 +285,7 @@ module ActionsExamples {
       } else {
         var x := inputs[0];
         inputs := Seq.DropFirst(inputs);
-        var p := new SeqReader([x / 2, x - (x / 2)]);
+        var p := new SeqReader<nat>([x / 2, x - (x / 2)]);
 
         result := Some(p);
 
@@ -264,6 +295,42 @@ module ActionsExamples {
 
       reveal TerminationMetric.Ordinal();
       assert Valid();
+    }
+
+
+    method ForEach(consumer: IConsumer<Producer<nat>>, ghost totalActionProof: TotalActionProof<Producer<nat>, ()>) returns (count: nat)
+      requires Valid()
+      requires consumer.Valid()
+      requires Repr !! consumer.Repr !! totalActionProof.Repr
+      requires totalActionProof.Valid()
+      requires totalActionProof.Action() == consumer
+      reads this, Repr, consumer, consumer.Repr, totalActionProof, totalActionProof.Repr
+      modifies Repr, consumer.Repr
+      ensures ValidChange()
+      ensures consumer.ValidChange()
+      ensures Done()
+      ensures count == |NewProduced()|
+      ensures NewProduced() == consumer.NewInputs()
+    {
+      count := DefaultForEach(this, consumer, totalActionProof);
+    }
+
+    method ForEachToCapacity(consumer: Consumer<Producer<nat>>, ghost totalActionProof: TotalActionProof<Producer<nat>, bool>)
+      returns (count: int, leftover: Option<Producer<nat>>)
+      requires Valid()
+      requires consumer.Valid()
+      requires Repr !! consumer.Repr !! totalActionProof.Repr
+      requires totalActionProof.Valid()
+      requires totalActionProof.Action() == consumer
+      modifies Repr, consumer.Repr
+      ensures Valid()
+      ensures consumer.Valid()
+      ensures Done() || consumer.Done()
+      ensures ValidChange()
+      ensures consumer.ValidChange()
+      ensures NewProduced() == consumer.NewInputs()
+    {
+      count, leftover := DefaultForEachToCapacity(this, consumer, totalActionProof);
     }
   }
 
@@ -276,15 +343,16 @@ module ActionsExamples {
     var collector := new SeqWriter();
 
     var collectorTotalProof := new DefaultTotalActionProof(collector);
-    flattened.ForEach(collector, collectorTotalProof);
+    var count := flattened.ForEach(collector, collectorTotalProof);
 
     expect collector.values == [0, 1, 1, 1, 1, 2, 2, 2, 2, 3], collector.values;
+    expect count == 10;
   }
 
   @IsolateAssertions
   method {:test} SetIteration() {
 
-    var s := { 1, 2, 3, 4, 5 };
+    var s: set<nat> := { 1, 2, 3, 4, 5 };
     var e: Producer<nat>, proof := MakeSetReader(s);
     var copy := {};
     while true
@@ -309,7 +377,7 @@ module ActionsExamples {
         break;
       }
       var x := next.value;
-      
+
       assert e.Produced() == oldProduced + [x];
       Seq.LemmaNoDuplicatesDecomposition(oldProduced, [x]);
       assert x !in oldProduced;
@@ -327,7 +395,7 @@ module ActionsExamples {
     var setReader: Producer<nat>, producerOfSetProof := MakeSetReader(s);
     var seqWriter := new SeqWriter<nat>();
     var writerTotalProof := seqWriter.totalActionProof();
-    setReader.ForEach(seqWriter, writerTotalProof);
+    var _ := setReader.ForEach(seqWriter, writerTotalProof);
     var asSeq := seqWriter.values;
 
     producerOfSetProof.ProducesSet(setReader.history);

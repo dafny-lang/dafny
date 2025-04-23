@@ -47,21 +47,21 @@ module Std.Consumers {
       && Seq.Partitioned(history, WasConsumed)
       && (!Seq.All(history, WasConsumed) && capacity.Some? ==> capacity.value == 0)
     }
-    ghost predicate ValidChange(newer: ConsumerState<T>) 
+    ghost predicate ValidChange(newer: ConsumerState<T>)
     {
       && newer.consumer == consumer
       && Valid()
       && newer.Valid()
       && history <= newer.history
-      && var newHistory := newer.history[|history|..];
-        assert newer.history == history + newHistory;
-        Seq.PartitionedDecomposition(history, newHistory, WasConsumed);
-        ConsumedComposition(history, newHistory);
-      && var newConsumed := ConsumedOf(newHistory);
-      && capacity.Some? ==>
-        && |newConsumed| <= capacity.value
-        && (!Seq.All(newer.history, WasConsumed) ==> |newConsumed| == capacity.value)
-        && newer.capacity == Some(capacity.value - |newConsumed|)
+      && (var newHistory := newer.history[|history|..];
+          assert newer.history == history + newHistory;
+          Seq.PartitionedDecomposition(history, newHistory, WasConsumed);
+          ConsumedComposition(history, newHistory);
+          && var newConsumed := ConsumedOf(newHistory);
+          && capacity.Some? ==>
+            && |newConsumed| <= capacity.value
+            && (!Seq.All(newer.history, WasConsumed) ==> |newConsumed| == capacity.value)
+            && newer.capacity == Some(capacity.value - |newConsumed|))
     }
 
     @ResourceLimit("0")
@@ -95,7 +95,7 @@ module Std.Consumers {
       assert newConsumed == newerConsumed + nowConsumed;
       Seq.PartitionedDecomposition(history, newHistory, WasConsumed);
       ConsumedComposition(history, newHistory);
-      
+
       if capacity.Some? {
         assert |newConsumed| <= capacity.value;
         assert (!Seq.All(history, WasConsumed) ==> |newConsumed| == capacity.value);
@@ -147,6 +147,13 @@ module Std.Consumers {
     ghost function Decreases(t: T): ORDINAL
       requires Requires(t)
       reads Reads(t)
+    {
+      Decreasing()
+    }
+
+    ghost function Decreasing(): ORDINAL
+      requires Valid()
+      reads this, Repr
     {
       DecreasesMetric().Ordinal()
     }
@@ -345,7 +352,7 @@ module Std.Consumers {
       TMNat(storage.Length - size)
     }
 
-    function Capacity(): Option<nat> 
+    function Capacity(): Option<nat>
       reads this, Repr
       requires Valid()
     {
@@ -407,7 +414,7 @@ module Std.Consumers {
       requires unchanged(old(Repr))
       ensures ValidChange()
     {}
-    
+
     constructor ()
       ensures Valid()
       ensures fresh(Repr - {this})
@@ -502,7 +509,7 @@ module Std.Consumers {
       requires unchanged(old(Repr))
       ensures ValidChange()
     {}
-    
+
     ghost predicate ValidHistory(history: seq<(T, ())>)
       decreases Repr
     {
@@ -575,10 +582,11 @@ module Std.Consumers {
 
     twostate predicate ValidChange()
       reads this, Repr
-      ensures ValidChange() ==> old(Valid()) && Valid()
+      ensures ValidChange() ==>
+        old(Valid()) && Valid() && fresh(Repr - old(Repr))
       decreases Repr, 0
     {
-      old(Valid()) && Valid()
+      old(Valid()) && Valid() && fresh(Repr - old(Repr))
     }
 
     twostate lemma ValidImpliesValidChange()
@@ -586,7 +594,7 @@ module Std.Consumers {
       requires unchanged(old(Repr))
       ensures ValidChange()
     {}
-    
+
     ghost function Action(): Action<I, ()> {
       action
     }
@@ -628,7 +636,7 @@ module Std.Consumers {
       requires unchanged(old(Repr))
       ensures ValidChange()
     {}
-    
+
     ghost predicate ValidHistory(history: seq<(T, ())>)
       decreases Repr
     {
@@ -696,10 +704,11 @@ module Std.Consumers {
 
     twostate predicate ValidChange()
       reads this, Repr
-      ensures ValidChange() ==> old(Valid()) && Valid()
+      ensures ValidChange() ==>
+        old(Valid()) && Valid() && fresh(Repr - old(Repr))
       decreases Repr, 0
     {
-      old(Valid()) && Valid()
+      old(Valid()) && Valid() && fresh(Repr - old(Repr))
     }
 
     twostate lemma ValidImpliesValidChange()
@@ -707,7 +716,7 @@ module Std.Consumers {
       requires unchanged(old(Repr))
       ensures ValidChange()
     {}
-    
+
     ghost function Action(): Action<T, ()> {
       action
     }

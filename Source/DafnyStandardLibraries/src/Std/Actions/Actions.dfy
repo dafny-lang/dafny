@@ -234,7 +234,7 @@ module Std.Actions {
       && Valid()
       && old(history) <= history
     }
-      
+
     twostate lemma ValidImpliesValidChange()
       requires old(Valid())
       requires unchanged(old(Repr))
@@ -324,10 +324,11 @@ module Std.Actions {
 
     twostate predicate ValidChange()
       reads this, Repr
-      ensures ValidChange() ==> old(Valid()) && Valid()
+      ensures ValidChange() ==>
+        old(Valid()) && Valid() && fresh(Repr - old(Repr))
       decreases Repr, 0
     {
-      old(Valid()) && Valid()
+      old(Valid()) && Valid() && fresh(Repr - old(Repr))
     }
 
     twostate lemma ValidImpliesValidChange()
@@ -335,7 +336,7 @@ module Std.Actions {
       requires unchanged(old(Repr))
       ensures ValidChange()
     {}
-    
+
     ghost function Action(): Action<I, O> {
       action
     }

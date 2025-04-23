@@ -11,6 +11,9 @@ standard-libraries = true
 reads-clauses-on-methods = true
 enforce-determinism = true
 resource-limit = 1000000
-# TODO: change this back. Necessary because I have to say `assert Requires(t)` in examples
+type-system-refresh = true
+general-traits = "datatype"
+general-newtypes = true
+
 warn-redundant-assumptions = false
 warn-contradictory-assumptions = true

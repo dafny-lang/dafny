@@ -296,7 +296,7 @@ module ActionsExamples {
 
     lemma ProducesSet(history: seq<((), Option<T>)>)
       requires Producer().ValidHistory(history)
-      ensures 
+      ensures
         var produced := ProducedOf(OutputsOf(history));
         && Seq.HasNoDuplicates(produced)
         && Seq.ToSet(produced) <= Set()
@@ -341,7 +341,7 @@ module ActionsExamples {
         var o: T :| o in remaining;
         r := Some(o);
         remaining := remaining - {o};
-        
+
         reveal Seq.ToSet();
         reveal Seq.HasNoDuplicates();
 

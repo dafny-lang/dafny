@@ -29,11 +29,11 @@ module Std.BulkActions {
       ensures |input.NewProduced()| == |output.NewInputs()|
       ensures history == old(history) + Seq.Zip(input.NewProduced(), output.NewInputs())
   }
-  
+
   /**
-   * The equivalent of MappedProducer(ToOptionResult, original),
-   * but a separate class so it's possible to optimize via "is" testing.
-   */
+    * The equivalent of MappedProducer(ToOptionResult, original),
+    * but a separate class so it's possible to optimize via "is" testing.
+    */
   @AssumeCrossModuleTermination
   class BatchReader<T, E> extends Producer<StreamedValue<T, E>> {
 
@@ -147,7 +147,7 @@ module Std.BulkActions {
         var writer := consumer as BatchSeqWriter<T, E>;
         var s := Read();
         assert NewProduced() == Seq.Map(ToOptionResult, s);
-        
+
         writer.elements := writer.elements + s;
         writer.history := writer.history + Seq.Zip(NewProduced(), Seq.Repeat((), |s|));
         count := |s|;
@@ -159,7 +159,7 @@ module Std.BulkActions {
     }
 
     // TODO: Optimize this too
-    method ForEachToCapacity(consumer: Consumer<StreamedValue<T, E>>, ghost totalActionProof: TotalActionProof<StreamedValue<T, E>, bool>) 
+    method ForEachToCapacity(consumer: Consumer<StreamedValue<T, E>>, ghost totalActionProof: TotalActionProof<StreamedValue<T, E>, bool>)
       returns (count: int, leftover: Option<StreamedValue<T, E>>)
       requires Valid()
       requires consumer.Valid()
@@ -208,7 +208,7 @@ module Std.BulkActions {
         Seq.PartitionedCompositionLeft(old(Outputs()), outputs, IsSome);
       }
       ProducedComposition(old(Outputs()), outputs);
-      
+
       assert Valid();
     }
 
@@ -318,12 +318,13 @@ module Std.BulkActions {
 
     twostate predicate ValidChange()
       reads this, Repr
-      ensures ValidChange() ==> old(Valid()) && Valid()
+      ensures ValidChange() ==>
+        old(Valid()) && Valid() && fresh(Repr - old(Repr))
       decreases Repr, 0
     {
-      old(Valid()) && Valid()
+      old(Valid()) && Valid() && fresh(Repr - old(Repr))
     }
-   
+
     twostate lemma ValidImpliesValidChange()
       requires old(Valid())
       requires unchanged(old(Repr))
@@ -394,7 +395,7 @@ module Std.BulkActions {
       && Valid()
       && old(history) <= history
     }
-   
+
     twostate lemma ValidImpliesValidChange()
       requires old(Valid())
       requires unchanged(old(Repr))
@@ -443,7 +444,7 @@ module Std.BulkActions {
 
     @ResourceLimit("0")
     @IsolateAssertions
-    method BulkInvoke(input: Producer<StreamedByte<E>>, 
+    method BulkInvoke(input: Producer<StreamedByte<E>>,
                       output: IConsumer<seq<StreamedByte<E>>>,
                       outputTotalProof: TotalActionProof<seq<StreamedByte<E>>, ()>)
       requires Valid()
@@ -482,7 +483,7 @@ module Std.BulkActions {
       }
 
       chunkBuffer := chunkBuffer + batchWriter.elements;
-        
+
       // TODO: Move loop to its own method to isolate the specification better
       // This could be a FunctionalProducer?
       var chunks: seq<uint8> := [];
@@ -509,14 +510,14 @@ module Std.BulkActions {
 
       var outputProducer: Producer<StreamedByte<E>>;
       match batchWriter.state {
-      case Failure(error) =>
-        outputProducer := new SeqReader([Some(Failure(error))]);
-      case Success(more) =>
-        if !more && 0 < |chunkBuffer| {
-          // To make it more interesting, produce an error if outputChunks is non empty?
-          chunks := chunks + Seq.Reverse(chunkBuffer);
-        }
-        outputProducer := new BatchReader(chunks);
+        case Failure(error) =>
+          outputProducer := new SeqReader([Some(Failure(error))]);
+        case Success(more) =>
+          if !more && 0 < |chunkBuffer| {
+            // To make it more interesting, produce an error if outputChunks is non empty?
+            chunks := chunks + Seq.Reverse(chunkBuffer);
+          }
+          outputProducer := new BatchReader(chunks);
       }
 
       // TODO: Find the right way to keep this as a batch,
@@ -529,7 +530,7 @@ module Std.BulkActions {
       assert padding.Remaining() == Some(count - 1);
       assert concatenated.Remaining() == Some(count);
       var outputted := concatenated.ForEach(output, outputTotalProof);
-      
+
       assert |input.NewProduced()| == |output.NewInputs()|;
       history := history + Seq.Zip(input.NewProduced(), output.NewInputs());
     }
