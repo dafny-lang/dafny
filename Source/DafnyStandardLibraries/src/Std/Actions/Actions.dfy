@@ -301,15 +301,18 @@ module Std.Actions {
   class TotalFunctionActionProof<I, O> extends TotalActionProof<I, O> {
 
     ghost const action: FunctionAction<I, O>
+    ghost const f: I -> O
 
-    ghost constructor (action: FunctionAction<I, O>)
+    ghost constructor (action: FunctionAction<I, O>, f: I -> O)
       reads {}
-      requires action.f is I -> O
+      requires action.f == f
       ensures Valid()
       ensures fresh(Repr)
       ensures Action() == action
+      ensures this.f == f
     {
       this.action := action;
+      this.f := f;
       this.Repr := {this};
     }
 
@@ -319,7 +322,7 @@ module Std.Actions {
       decreases Repr, 0
     {
       && this in Repr
-      && action.f is I -> O
+      && action.f == f
     }
 
     twostate predicate ValidChange()

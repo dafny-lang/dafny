@@ -354,7 +354,7 @@ module Std.BulkActions {
   {
     var chunkProducer := new SeqReader(values);
     var mapping := new FunctionAction(ToOptionResult);
-    var mappingTotalProof := new TotalFunctionActionProof(mapping);
+    var mappingTotalProof := new TotalFunctionActionProof(mapping, ToOptionResult);
     result := new MappedProducer(chunkProducer, mapping, mappingTotalProof);
   }
   class Chunker<E> extends BulkAction<StreamedByte<E>, seq<StreamedByte<E>>> {
@@ -533,6 +533,7 @@ module Std.BulkActions {
 
       assert |input.NewProduced()| == |output.NewInputs()|;
       history := history + Seq.Zip(input.NewProduced(), output.NewInputs());
+      assert input.NewProduced() == NewInputs();
     }
   }
 
