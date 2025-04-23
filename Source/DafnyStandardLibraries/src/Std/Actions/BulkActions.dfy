@@ -127,6 +127,7 @@ module Std.BulkActions {
       assert Valid();
     }
 
+    @IsolateAssertions
     method ForEach(consumer: IConsumer<StreamedValue<T, E>>, ghost totalActionProof: TotalActionProof<StreamedValue<T, E>, ()>)
       returns (count: nat)
       requires Valid()
@@ -139,15 +140,16 @@ module Std.BulkActions {
       ensures ValidChange()
       ensures consumer.ValidChange()
       ensures Done()
+      ensures count == |NewProduced()|
       ensures NewProduced() == consumer.NewInputs()
     {
       if consumer is BatchSeqWriter<T, E> {
         var writer := consumer as BatchSeqWriter<T, E>;
         var s := Read();
+        assert NewProduced() == Seq.Map(ToOptionResult, s);
         
         writer.elements := writer.elements + s;
-        var produced := Produced()[|old(Produced())|..];
-        writer.history := writer.history + Seq.Zip(produced, Seq.Repeat((), |produced|));
+        writer.history := writer.history + Seq.Zip(NewProduced(), Seq.Repeat((), |s|));
         count := |s|;
 
         return;
@@ -175,7 +177,6 @@ module Std.BulkActions {
       count, leftover := DefaultForEachToCapacity(this, consumer, totalActionProof);
     }
 
-    // TODO: Use this in an override of ForEach(seq consumer)
     @IsolateAssertions
     method Read() returns (s: seq<T>)
       requires Valid()
@@ -184,7 +185,7 @@ module Std.BulkActions {
       ensures ValidAndDisjoint()
       ensures Done()
       ensures ValidChange()
-      ensures |Produced()| == |old(Produced())| + |s|
+      ensures NewProduced() == Seq.Map(ToOptionResult, s)
     {
       // Avoid the slice if possible
       if index == 0 {
@@ -442,7 +443,7 @@ module Std.BulkActions {
 
     @ResourceLimit("0")
     @IsolateAssertions
-    method {:only} BulkInvoke(input: Producer<StreamedByte<E>>, 
+    method BulkInvoke(input: Producer<StreamedByte<E>>, 
                       output: IConsumer<seq<StreamedByte<E>>>,
                       outputTotalProof: TotalActionProof<seq<StreamedByte<E>>, ()>)
       requires Valid()
