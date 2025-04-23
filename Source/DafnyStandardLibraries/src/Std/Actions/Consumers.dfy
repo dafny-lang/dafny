@@ -313,6 +313,7 @@ module Std.Consumers {
       Some(storage.Length - size)
     }
 
+    @IsolateAssertions
     method Invoke(t: T) returns (r: bool)
       requires Requires(t)
       reads Reads(t)
@@ -325,16 +326,19 @@ module Std.Consumers {
 
       if size == storage.Length {
         r := false;
+
+        UpdateHistory(t, r);
+        Seq.PartitionedCompositionRight(old(history), [(t, false)], WasConsumed);
       } else {
         storage[size] := t;
         size := size + 1;
         r := true;
+
+        UpdateHistory(t, r);
+        Seq.PartitionedCompositionLeft(old(history), [(t, true)], WasConsumed);
       }
 
-      UpdateHistory(t, r);
-      Repr := {this} + {storage};
-      assert Inputs() == old(Inputs()) + [t];
-      assert Valid();
+      ConsumedComposition(old(history), [(t, r)]);
       reveal TerminationMetric.Ordinal();
     }
   }
