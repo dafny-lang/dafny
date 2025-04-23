@@ -1841,10 +1841,6 @@ module Std.Producers {
       && produced.history == []
       && MaxProduced().DecreasesTo(produced.DecreasesMetric())
     }
-
-    ghost predicate ValidOutputs(outputs: seq<Option<Producer<T>>>)
-      requires Seq.Partitioned(outputs, IsSome)
-      decreases Repr
   }
 
   class FlattenedProducer<T> extends Producer<T> {
