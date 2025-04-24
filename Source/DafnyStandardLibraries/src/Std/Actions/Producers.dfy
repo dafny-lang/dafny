@@ -303,12 +303,15 @@ module Std.Producers {
       requires Valid()
       ensures ProducedCount() == |Produced()|
 
-    twostate function {:only} NewProducedCount(): nat
+    twostate function NewProducedCount(): nat
       reads this, Repr
       requires ValidChange()
       ensures NewProducedCount() == |NewProduced()|
     {
-      assert old(|Produced()|) <= |Produced()|;
+      var newOutputs := Outputs()[|old(Outputs())|..];
+      assert Outputs() == old(Outputs()) + newOutputs;
+      Seq.PartitionedDecomposition(old(Outputs()), newOutputs, IsSome);
+      ProducedComposition(old(Outputs()), newOutputs);
       ProducedCount() - old(ProducedCount())
     }
 
@@ -1817,6 +1820,8 @@ module Std.Producers {
       var next := original.Next();
 
       if next.Some? {
+        original.NewProducedAfterInvoke(next);
+        assert original.NewProducedCount() == 1;
         mappingTotalProof.AnyInputIsValid(mapping.history, next.value);
         var nextValue := mapping.Invoke(next.value);
         result := Some(nextValue);
@@ -1831,6 +1836,7 @@ module Std.Producers {
         OutputsPartitionedAfterOutputtingNone();
         ProduceNone();
 
+        assert original.NewProducedCount() == 0;
         assert !IsSome(Seq.Last(Outputs()));
       }
 
@@ -2155,9 +2161,9 @@ module Std.Producers {
         OutputsPartitionedAfterOutputtingSome(result.value);
         ProduceSome(result.value);
 
-        DecreasesMetricDoesntReadHistory@beforeUpdatingHistory();
-
         producedCount := producedCount + 1;
+
+        DecreasesMetricDoesntReadHistory@beforeUpdatingHistory();
       } else {
         OutputsPartitionedAfterOutputtingNone();
         ProduceNone();
