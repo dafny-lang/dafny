@@ -70,7 +70,8 @@ public class FunctionCallToMethodCallRewriter : Cloner {
         memberSelectExpr.TypeApplicationJustMember = funcCallExpr.TypeApplication_JustFunction;
         newResolvedStmts.Add(new CallStmt(stmt.Origin,
           updateStmt.Lhss.Select(lhs => CloneExpr(lhs.Resolved)).ToList(), memberSelectExpr,
-          funcCallExpr.Args.ConvertAll(e => CloneExpr(e.Resolved))));
+          funcCallExpr.Args.ConvertAll(e => CloneExpr(e.Resolved)),
+          memberSelectExpr.EndToken.Next.ReportingRange));
       } else {
         newResolvedStmts.Add(resolvedStmt);
       }
