@@ -47,7 +47,7 @@ class Test
       var startOrdered = diagnostics1.OrderBy(r => r.Range.Start).ToList();
       Assert.Equal(new Range(5, 19, 5, 24), startOrdered[0].Range);
       Assert.Equal("ensures might not hold", startOrdered[0].Message);
-      
+
     }
     [Fact]
     public async Task Refinement() {
