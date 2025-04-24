@@ -19,6 +19,37 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Synchronization {
     private readonly string testFilesDirectory = Path.Combine(Directory.GetCurrentDirectory(), "Synchronization/TestFiles");
 
     [Fact]
+    public async Task OpaqueBlocks() {
+      var source = @"
+class Test
+{
+  method foo()
+    ensures true
+  {
+    opaque ensures false
+    {
+      assert true;
+    }
+  }
+
+  method bar() returns (x : int)
+    ensures x == 1
+  {
+    x := 0;
+    opaque ensures x == 2
+    {
+      x := 1;
+    }
+  }
+}".TrimStart();
+      var documentItem = CreateAndOpenTestDocument(source);
+      var diagnostics1 = await GetLastDiagnostics(documentItem, DiagnosticSeverity.Error);
+      var startOrdered = diagnostics1.OrderBy(r => r.Range.Start).ToList();
+      Assert.Equal(new Range(5, 19, 5, 24), startOrdered[0].Range);
+      Assert.Equal("ensures might not hold", startOrdered[0].Message);
+      
+    }
+    [Fact]
     public async Task Refinement() {
       var source = @"
 module A {
