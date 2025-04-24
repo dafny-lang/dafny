@@ -620,9 +620,7 @@ module Math {
       var source = @"
 module ShortCircuit {
   function {:testEntry} Or(a:bool): bool {
-    a || !a
-    // This used to be 'a || OnlyFalse(a)'
-    // but that stopped working for unknown reason
+    a || OnlyFalse(a)
   }
   function {:testInline} OnlyFalse(a:bool):bool
     requires !a
