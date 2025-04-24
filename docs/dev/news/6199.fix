@@ -1,0 +1,1 @@
+Fixed a crash that could occur when using generics inside a match statement
