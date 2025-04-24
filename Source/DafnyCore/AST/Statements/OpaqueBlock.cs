@@ -4,7 +4,7 @@ using System.Linq;
 
 namespace Microsoft.Dafny;
 
-public class OpaqueBlock : BlockStmt, ICanResolveNewAndOld {
+public class OpaqueBlock : BlockStmt, ICanResolveNewAndOld, ICloneable<OpaqueBlock> {
   public List<AttributedExpression> Ensures;
   public Specification<FrameExpression> Modifies;
 
@@ -52,5 +52,9 @@ public class OpaqueBlock : BlockStmt, ICanResolveNewAndOld {
       resolver.ConstrainTypeExprBool(ensure.E, "Postcondition must be a boolean (got {0})");
     }
     base.GenResolve(resolver, resolutionContext);
+  }
+
+  public new OpaqueBlock Clone(Cloner cloner) {
+    return new OpaqueBlock(cloner, this);
   }
 }
