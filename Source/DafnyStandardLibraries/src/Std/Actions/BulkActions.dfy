@@ -478,10 +478,11 @@ module Std.BulkActions {
       label after:
       assert input.ValidChange@before();
       assert input.ValidChange();
+      input.ProducedAndNewProduced@before();
 
       var newProducedCount := input.ProducedCount() - oldProducedCount;
-      assert {:only} newProducedCount == |input.NewProduced()|;
-      if input.ProducedCount() == 0 {
+      assert newProducedCount == input.NewProducedCount();
+      if newProducedCount == 0 {
         // No-op
         assert input.ValidChange();
         assert |batchWriter.Inputs()| == 0;
@@ -493,28 +494,8 @@ module Std.BulkActions {
 
       chunkBuffer := chunkBuffer + batchWriter.elements;
 
-      // TODO: Move loop to its own method to isolate the specification better
-      // This could be a FunctionalProducer?
-      var chunks: seq<uint8> := [];
-      while chunkSize as int <= |chunkBuffer|
-        invariant fresh(Repr - old(Repr))
-        invariant Valid()
-        invariant fresh(input.Repr - old(input.Repr))
-        invariant input.ValidChange()
-        invariant input.Done()
-        invariant fresh(output.Repr - old(output.Repr))
-        invariant output.ValidChange()
-        invariant fresh(outputTotalProof.Repr - old(outputTotalProof.Repr))
-        invariant outputTotalProof.Valid()
-        invariant Repr !! input.Repr !! output.Repr !! outputTotalProof.Repr
-        invariant history == old(history)
-        invariant input.ProducedCount() == old@after(input.ProducedCount())
-        invariant output.history == old(output.history)
-        decreases |chunkBuffer|
-      {
-        chunks := chunks + Seq.Reverse(chunkBuffer[..chunkSize]);
-        chunkBuffer := chunkBuffer[chunkSize..];
-      }
+      var chunks, leftover := Chunkify(chunkBuffer);
+      var chunkBuffer := leftover;
 
       var outputProducer: Producer<StreamedByte<E>>;
       match batchWriter.state {
@@ -532,17 +513,38 @@ module Std.BulkActions {
       // this is just to get it resolving again
       var data := CollectToSeq(outputProducer);
       var dataReader := new SeqReader([data]);
-      var padding := new RepeatProducer(input.ProducedCount() - 1, []);
+      var padding := new RepeatProducer(newProducedCount - 1, []);
       var concatenated: Producer<seq<StreamedByte<E>>> := new ConcatenatedProducer(padding, dataReader);
       assert dataReader.Remaining() == Some(1);
-      assert padding.Remaining() == Some(input.ProducedCount() - 1);
-      assert concatenated.Remaining() == Some(input.ProducedCount());
+      assert padding.Remaining() == Some(newProducedCount - 1);
+      assert concatenated.Remaining() == Some(newProducedCount);
+      label beforeOutput:
       concatenated.ForEach(output, outputTotalProof);
+      assert concatenated.ValidChange@beforeOutput();
+      concatenated.ProducedAndNewProduced@beforeOutput();
 
+      assert |input.NewProduced()| == newProducedCount;
+      assert |concatenated.NewProduced@beforeOutput()| == newProducedCount;
       assert |input.NewProduced()| == |output.NewInputs()|;
       history := history + Seq.Zip(input.NewProduced(), output.NewInputs());
       assert input.NewProduced() == NewInputs();
     }
+
+    method Chunkify(data: seq<uint8>) returns (chunks: seq<uint8>, leftover: seq<uint8>)
+      requires Valid()
+      reads this, Repr
+    {
+      leftover := data;
+      chunks := [];
+      while chunkSize as int <= |leftover|
+        decreases |leftover|
+      {
+        chunks := chunks + Seq.Reverse(leftover[..chunkSize]);
+        leftover := leftover[chunkSize..];
+      }
+    }
   }
+
+
 
 }
