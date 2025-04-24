@@ -298,6 +298,20 @@ module Std.Producers {
       ProducedComposition(old(Outputs()), NewOutputs());
     }
 
+    function ProducedCount(): nat
+      reads this, Repr
+      requires Valid()
+      ensures ProducedCount() == |Produced()|
+
+    twostate function {:only} NewProducedCount(): nat
+      reads this, Repr
+      requires ValidChange()
+      ensures NewProducedCount() == |NewProduced()|
+    {
+      assert old(|Produced()|) <= |Produced()|;
+      ProducedCount() - old(ProducedCount())
+    }
+
     function Remaining(): Option<nat>
       reads this, Repr
       requires Valid()
@@ -370,7 +384,7 @@ module Std.Producers {
     // Feeds every element from a producer into a consumer in sequence
     // until the producer is done.
     // May be optimized to process values in batches for efficiency.
-    method ForEach(consumer: IConsumer<T>, ghost totalActionProof: TotalActionProof<T, ()>) returns (count: nat)
+    method ForEach(consumer: IConsumer<T>, ghost totalActionProof: TotalActionProof<T, ()>)
       requires Valid()
       requires consumer.Valid()
       requires Repr !! consumer.Repr !! totalActionProof.Repr
@@ -381,7 +395,6 @@ module Std.Producers {
       ensures ValidChange()
       ensures consumer.ValidChange()
       ensures Done()
-      ensures count == |NewProduced()|
       ensures NewProduced() == consumer.NewInputs()
 
     // Feeds every element from a producer into a consumer in sequence
@@ -392,8 +405,10 @@ module Std.Producers {
     // there is no way to know if the consumer will accept a value ahead of time.
     // Therefore the producer may end up producing an extra value
     // that the consumer cannot accept, hence the extra leftover return value.
+    //
+    // TODO: Better name - Fill?
     method ForEachToCapacity(consumer: Consumer<T>, ghost totalActionProof: TotalActionProof<T, bool>)
-      returns (count: int, leftover: Option<T>)
+      returns (leftover: Option<T>)
       requires Valid()
       requires consumer.Valid()
       requires Repr !! consumer.Repr !! totalActionProof.Repr
@@ -540,7 +555,6 @@ module Std.Producers {
   @ResourceLimit("1e7")
   @IsolateAssertions
   method DefaultForEach<T>(producer: Producer<T>, consumer: IConsumer<T>, ghost totalActionProof: TotalActionProof<T, ()>)
-    returns (count: nat)
     requires producer.Valid()
     requires consumer.Valid()
     requires producer.Repr !! consumer.Repr !! totalActionProof.Repr
@@ -551,13 +565,11 @@ module Std.Producers {
     ensures producer.ValidChange()
     ensures consumer.ValidChange()
     ensures producer.Done()
-    ensures count == |producer.NewProduced()|
     ensures producer.NewProduced() == consumer.NewInputs()
   {
     producer.ValidImpliesValidChange();
     consumer.ValidImpliesValidChange();
 
-    count := 0;
     while true
       invariant fresh(producer.Repr - old(producer.Repr))
       invariant fresh(consumer.Repr - old(consumer.Repr))
@@ -565,11 +577,9 @@ module Std.Producers {
       invariant totalActionProof.Valid()
       invariant producer.ValidChange()
       invariant consumer.ValidChange()
-      invariant count == |producer.NewProduced()|
       invariant producer.NewProduced() == consumer.NewInputs()
       decreases producer.Decreasing()
     {
-      assert count == |producer.NewProduced()|;
       label before:
       var t := producer.Next();
 
@@ -589,8 +599,6 @@ module Std.Producers {
       totalActionProof.AnyInputIsValid(consumer.history, t.value);
       consumer.Accept(t.value);
 
-      count := count + 1;
-
       assert Seq.Last(consumer.Inputs()) == t.value;
     }
   }
@@ -598,7 +606,7 @@ module Std.Producers {
   @ResourceLimit("1e7")
   @IsolateAssertions
   method DefaultForEachToCapacity<T>(producer: Producer<T>, consumer: Consumer<T>, ghost totalActionProof: TotalActionProof<T, bool>)
-    returns (count: int, leftover: Option<T>)
+    returns (leftover: Option<T>)
     requires producer.Valid()
     requires consumer.Valid()
     requires producer.Repr !! consumer.Repr !! totalActionProof.Repr
@@ -613,7 +621,6 @@ module Std.Producers {
     producer.ValidImpliesValidChange();
     consumer.ValidImpliesValidChange();
 
-    count := 0;
     while true
       invariant fresh(producer.Repr - old(producer.Repr))
       invariant fresh(consumer.Repr - old(consumer.Repr))
@@ -656,8 +663,6 @@ module Std.Producers {
         leftover := t;
         break;
       }
-
-      count := count + 1;
 
       assert Seq.Last(consumer.Inputs()) == t.value;
       assert producer.NewProduced() == consumer.NewInputs();
@@ -777,7 +782,7 @@ module Std.Producers {
   {
     var seqWriter := new SeqWriter<T>();
     var writerTotalProof := seqWriter.totalActionProof();
-    var _ := p.ForEach(seqWriter, writerTotalProof);
+    p.ForEach(seqWriter, writerTotalProof);
     return seqWriter.values;
   }
 
@@ -821,6 +826,14 @@ module Std.Producers {
       Seq.All(outputs, IsNone)
     }
 
+    function ProducedCount(): nat
+      reads this, Repr
+      requires Valid()
+      ensures ProducedCount() == |Produced()|
+    {
+      0
+    }
+
     function Remaining(): Option<nat>
       reads this, Repr
       requires Valid()
@@ -855,7 +868,7 @@ module Std.Producers {
       assert Valid();
     }
 
-    method ForEach(consumer: IConsumer<T>, ghost totalActionProof: TotalActionProof<T, ()>) returns (count: nat)
+    method ForEach(consumer: IConsumer<T>, ghost totalActionProof: TotalActionProof<T, ()>)
       requires Valid()
       requires consumer.Valid()
       requires Repr !! consumer.Repr !! totalActionProof.Repr
@@ -866,14 +879,13 @@ module Std.Producers {
       ensures ValidChange()
       ensures consumer.ValidChange()
       ensures Done()
-      ensures count == |NewProduced()|
       ensures NewProduced() == consumer.NewInputs()
     {
-      count := DefaultForEach(this, consumer, totalActionProof);
+      DefaultForEach(this, consumer, totalActionProof);
     }
 
     method ForEachToCapacity(consumer: Consumer<T>, ghost totalActionProof: TotalActionProof<T, bool>)
-      returns (count: int, leftover: Option<T>)
+      returns (leftover: Option<T>)
       requires Valid()
       requires consumer.Valid()
       requires Repr !! consumer.Repr !! totalActionProof.Repr
@@ -887,7 +899,7 @@ module Std.Producers {
       ensures consumer.ValidChange()
       ensures NewProduced() == consumer.NewInputs()
     {
-      count, leftover := DefaultForEachToCapacity(this, consumer, totalActionProof);
+      leftover := DefaultForEachToCapacity(this, consumer, totalActionProof);
     }
   }
 
@@ -904,7 +916,7 @@ module Std.Producers {
     // for any large values of n anyway.
     const n: nat
     const t: T
-    var remaining: nat
+    var producedCount: nat
 
     constructor(n: nat, t: T)
       reads {}
@@ -917,7 +929,7 @@ module Std.Producers {
     {
       this.n := n;
       this.t := t;
-      this.remaining := n;
+      this.producedCount := 0;
       Repr := {this};
       history := [];
     }
@@ -930,8 +942,9 @@ module Std.Producers {
     {
       && this in Repr
       && ValidHistory(history)
-      && |Produced()| == n - remaining
-      && (0 < remaining ==> Seq.All(Outputs(), IsSome))
+      && |Produced()| == producedCount
+      && producedCount <= n
+      && (producedCount < n ==> Seq.All(Outputs(), IsSome))
     }
 
     twostate lemma ValidImpliesValidChange()
@@ -947,11 +960,19 @@ module Std.Producers {
       true
     }
 
+    function ProducedCount(): nat
+      reads this, Repr
+      requires Valid()
+      ensures ProducedCount() == |Produced()|
+    {
+      producedCount
+    }
+
     function Remaining(): Option<nat>
       reads this, Repr
       requires Valid()
     {
-      Some(remaining)
+      Some(n - producedCount)
     }
 
 
@@ -960,7 +981,7 @@ module Std.Producers {
       reads this, Repr
       decreases Repr, 3
     {
-      TMNat(remaining)
+      TMNat(n - producedCount)
     }
 
     @IsolateAssertions
@@ -975,7 +996,7 @@ module Std.Producers {
       assert Requires(i);
       assert Valid();
 
-      if remaining == 0 {
+      if producedCount == n {
         value := None;
 
         OutputsPartitionedAfterOutputtingNone();
@@ -987,7 +1008,7 @@ module Std.Producers {
 
         OutputsPartitionedAfterOutputtingSome(t);
         ProduceSome(value.value);
-        remaining := remaining - 1;
+        producedCount := producedCount + 1;
 
         old(DecreasesMetric()).NatDecreasesToNat(DecreasesMetric());
       }
@@ -996,7 +1017,7 @@ module Std.Producers {
       assert old(State()).ValidChange(State());
     }
 
-    method ForEach(consumer: IConsumer<T>, ghost totalActionProof: TotalActionProof<T, ()>) returns (count: nat)
+    method ForEach(consumer: IConsumer<T>, ghost totalActionProof: TotalActionProof<T, ()>)
       requires Valid()
       requires consumer.Valid()
       requires Repr !! consumer.Repr !! totalActionProof.Repr
@@ -1007,14 +1028,13 @@ module Std.Producers {
       ensures ValidChange()
       ensures consumer.ValidChange()
       ensures Done()
-      ensures count == |NewProduced()|
       ensures NewProduced() == consumer.NewInputs()
     {
-      count := DefaultForEach(this, consumer, totalActionProof);
+      DefaultForEach(this, consumer, totalActionProof);
     }
 
     method ForEachToCapacity(consumer: Consumer<T>, ghost totalActionProof: TotalActionProof<T, bool>)
-      returns (count: int, leftover: Option<T>)
+      returns (leftover: Option<T>)
       requires Valid()
       requires consumer.Valid()
       requires Repr !! consumer.Repr !! totalActionProof.Repr
@@ -1028,7 +1048,7 @@ module Std.Producers {
       ensures consumer.ValidChange()
       ensures NewProduced() == consumer.NewInputs()
     {
-      count, leftover := DefaultForEachToCapacity(this, consumer, totalActionProof);
+      leftover := DefaultForEachToCapacity(this, consumer, totalActionProof);
     }
   }
 
@@ -1079,6 +1099,14 @@ module Std.Producers {
       true
     }
 
+    function ProducedCount(): nat
+      reads this, Repr
+      requires Valid()
+      ensures ProducedCount() == |Produced()|
+    {
+      index
+    }
+
     function Remaining(): Option<nat>
       reads this, Repr
       requires Valid()
@@ -1125,7 +1153,7 @@ module Std.Producers {
       assert old(State()).ValidChange(State());
     }
 
-    method ForEach(consumer: IConsumer<T>, ghost totalActionProof: TotalActionProof<T, ()>) returns (count: nat)
+    method ForEach(consumer: IConsumer<T>, ghost totalActionProof: TotalActionProof<T, ()>)
       requires Valid()
       requires consumer.Valid()
       requires Repr !! consumer.Repr !! totalActionProof.Repr
@@ -1136,14 +1164,13 @@ module Std.Producers {
       ensures ValidChange()
       ensures consumer.ValidChange()
       ensures Done()
-      ensures count == |NewProduced()|
       ensures NewProduced() == consumer.NewInputs()
     {
-      count := DefaultForEach(this, consumer, totalActionProof);
+      DefaultForEach(this, consumer, totalActionProof);
     }
 
     method ForEachToCapacity(consumer: Consumer<T>, ghost totalActionProof: TotalActionProof<T, bool>)
-      returns (count: int, leftover: Option<T>)
+      returns (leftover: Option<T>)
       requires Valid()
       requires consumer.Valid()
       requires Repr !! consumer.Repr !! totalActionProof.Repr
@@ -1157,7 +1184,7 @@ module Std.Producers {
       ensures consumer.ValidChange()
       ensures NewProduced() == consumer.NewInputs()
     {
-      count, leftover := DefaultForEachToCapacity(this, consumer, totalActionProof);
+      leftover := DefaultForEachToCapacity(this, consumer, totalActionProof);
     }
   }
 
@@ -1235,6 +1262,14 @@ module Std.Producers {
       true
     }
 
+    function ProducedCount(): nat
+      reads this, Repr
+      requires Valid()
+      ensures ProducedCount() == |Produced()|
+    {
+      produced
+    }
+
     function Remaining(): Option<nat>
       reads this, Repr
       requires Valid()
@@ -1284,7 +1319,7 @@ module Std.Producers {
       assert old(State()).ValidChange(State());
     }
 
-    method ForEach(consumer: IConsumer<T>, ghost totalActionProof: TotalActionProof<T, ()>) returns (count: nat)
+    method ForEach(consumer: IConsumer<T>, ghost totalActionProof: TotalActionProof<T, ()>)
       requires Valid()
       requires consumer.Valid()
       requires Repr !! consumer.Repr !! totalActionProof.Repr
@@ -1295,14 +1330,13 @@ module Std.Producers {
       ensures ValidChange()
       ensures consumer.ValidChange()
       ensures Done()
-      ensures count == |NewProduced()|
       ensures NewProduced() == consumer.NewInputs()
     {
-      count := DefaultForEach(this, consumer, totalActionProof);
+      DefaultForEach(this, consumer, totalActionProof);
     }
 
     method ForEachToCapacity(consumer: Consumer<T>, ghost totalActionProof: TotalActionProof<T, bool>)
-      returns (count: int, leftover: Option<T>)
+      returns (leftover: Option<T>)
       requires Valid()
       requires consumer.Valid()
       requires Repr !! consumer.Repr !! totalActionProof.Repr
@@ -1316,7 +1350,7 @@ module Std.Producers {
       ensures consumer.ValidChange()
       ensures NewProduced() == consumer.NewInputs()
     {
-      count, leftover := DefaultForEachToCapacity(this, consumer, totalActionProof);
+      leftover := DefaultForEachToCapacity(this, consumer, totalActionProof);
     }
   }
 
@@ -1324,6 +1358,7 @@ module Std.Producers {
 
     const source: Producer<T>
     const filter: T -> bool
+    var producedCount: nat
 
     constructor (source: Producer<T>, filter: T -> bool)
       requires source.Valid()
@@ -1333,6 +1368,7 @@ module Std.Producers {
     {
       this.source := source;
       this.filter := filter;
+      this.producedCount := 0;
 
       Repr := {this} + source.Repr;
       history := [];
@@ -1348,6 +1384,7 @@ module Std.Producers {
       && ValidComponent(source)
       && ValidHistory(history)
       && (!source.Done() ==> !Done())
+      && producedCount == |Produced()|
     }
 
     twostate lemma ValidImpliesValidChange()
@@ -1363,13 +1400,20 @@ module Std.Producers {
       true
     }
 
+    function ProducedCount(): nat
+      reads this, Repr
+      requires Valid()
+      ensures ProducedCount() == |Produced()|
+    {
+      producedCount
+    }
+
     function Remaining(): Option<nat>
       reads this, Repr
       requires Valid()
     {
       None
     }
-
 
     ghost function DecreasesMetric(): TerminationMetric
       requires Valid()
@@ -1428,8 +1472,10 @@ module Std.Producers {
 
         OutputsPartitionedAfterOutputtingSome(result.value);
         ProduceSome(result.value);
+
         assert (Seq.All(source.Outputs(), IsSome) ==> Seq.All(Outputs(), IsSome));
 
+        producedCount := producedCount + 1;
         old(DecreasesMetric()).SuccDecreasesToSucc(DecreasesMetric());
       } else {
         OutputsPartitionedAfterOutputtingNone();
@@ -1444,7 +1490,7 @@ module Std.Producers {
       assert Valid();
     }
 
-    method ForEach(consumer: IConsumer<T>, ghost totalActionProof: TotalActionProof<T, ()>) returns (count: nat)
+    method ForEach(consumer: IConsumer<T>, ghost totalActionProof: TotalActionProof<T, ()>)
       requires Valid()
       requires consumer.Valid()
       requires Repr !! consumer.Repr !! totalActionProof.Repr
@@ -1455,14 +1501,13 @@ module Std.Producers {
       ensures ValidChange()
       ensures consumer.ValidChange()
       ensures Done()
-      ensures count == |NewProduced()|
       ensures NewProduced() == consumer.NewInputs()
     {
-      count := DefaultForEach(this, consumer, totalActionProof);
+      DefaultForEach(this, consumer, totalActionProof);
     }
 
     method ForEachToCapacity(consumer: Consumer<T>, ghost totalActionProof: TotalActionProof<T, bool>)
-      returns (count: int, leftover: Option<T>)
+      returns (leftover: Option<T>)
       requires Valid()
       requires consumer.Valid()
       requires Repr !! consumer.Repr !! totalActionProof.Repr
@@ -1476,7 +1521,7 @@ module Std.Producers {
       ensures consumer.ValidChange()
       ensures NewProduced() == consumer.NewInputs()
     {
-      count, leftover := DefaultForEachToCapacity(this, consumer, totalActionProof);
+      leftover := DefaultForEachToCapacity(this, consumer, totalActionProof);
     }
   }
 
@@ -1543,6 +1588,14 @@ module Std.Producers {
       decreases Repr
     {
       true
+    }
+
+    function ProducedCount(): nat
+      reads this, Repr
+      requires Valid()
+      ensures ProducedCount() == |Produced()|
+    {
+      first.ProducedCount() + second.ProducedCount()
     }
 
     function Remaining(): Option<nat>
@@ -1625,7 +1678,7 @@ module Std.Producers {
       assert Ensures(t, result);
     }
 
-    method ForEach(consumer: IConsumer<T>, ghost totalActionProof: TotalActionProof<T, ()>) returns (count: nat)
+    method ForEach(consumer: IConsumer<T>, ghost totalActionProof: TotalActionProof<T, ()>)
       requires Valid()
       requires consumer.Valid()
       requires Repr !! consumer.Repr !! totalActionProof.Repr
@@ -1636,14 +1689,13 @@ module Std.Producers {
       ensures ValidChange()
       ensures consumer.ValidChange()
       ensures Done()
-      ensures count == |NewProduced()|
       ensures NewProduced() == consumer.NewInputs()
     {
-      count := DefaultForEach(this, consumer, totalActionProof);
+      DefaultForEach(this, consumer, totalActionProof);
     }
 
     method ForEachToCapacity(consumer: Consumer<T>, ghost totalActionProof: TotalActionProof<T, bool>)
-      returns (count: int, leftover: Option<T>)
+      returns (leftover: Option<T>)
       requires Valid()
       requires consumer.Valid()
       requires Repr !! consumer.Repr !! totalActionProof.Repr
@@ -1657,7 +1709,7 @@ module Std.Producers {
       ensures consumer.ValidChange()
       ensures NewProduced() == consumer.NewInputs()
     {
-      count, leftover := DefaultForEachToCapacity(this, consumer, totalActionProof);
+      leftover := DefaultForEachToCapacity(this, consumer, totalActionProof);
     }
   }
 
@@ -1709,6 +1761,7 @@ module Std.Producers {
       && ValidHistory(history)
       && base.DecreasesTo(original.DecreasesMetric())
       && (!original.Done() <==> !Done())
+      && |Produced()| == |original.Produced()|
     }
 
     twostate lemma ValidImpliesValidChange()
@@ -1722,6 +1775,14 @@ module Std.Producers {
       decreases Repr
     {
       true
+    }
+
+    function ProducedCount(): nat
+      reads this, Repr
+      requires Valid()
+      ensures ProducedCount() == |Produced()|
+    {
+      original.ProducedCount()
     }
 
     function Remaining(): Option<nat>
@@ -1783,7 +1844,7 @@ module Std.Producers {
       }
     }
 
-    method ForEach(consumer: IConsumer<O>, ghost totalActionProof: TotalActionProof<O, ()>) returns (count: nat)
+    method ForEach(consumer: IConsumer<O>, ghost totalActionProof: TotalActionProof<O, ()>)
       requires Valid()
       requires consumer.Valid()
       requires Repr !! consumer.Repr !! totalActionProof.Repr
@@ -1794,14 +1855,13 @@ module Std.Producers {
       ensures ValidChange()
       ensures consumer.ValidChange()
       ensures Done()
-      ensures count == |NewProduced()|
       ensures NewProduced() == consumer.NewInputs()
     {
-      count := DefaultForEach(this, consumer, totalActionProof);
+      DefaultForEach(this, consumer, totalActionProof);
     }
 
     method ForEachToCapacity(consumer: Consumer<O>, ghost totalActionProof: TotalActionProof<O, bool>)
-      returns (count: int, leftover: Option<O>)
+      returns (leftover: Option<O>)
       requires Valid()
       requires consumer.Valid()
       requires Repr !! consumer.Repr !! totalActionProof.Repr
@@ -1815,7 +1875,7 @@ module Std.Producers {
       ensures consumer.ValidChange()
       ensures NewProduced() == consumer.NewInputs()
     {
-      count, leftover := DefaultForEachToCapacity(this, consumer, totalActionProof);
+      leftover := DefaultForEachToCapacity(this, consumer, totalActionProof);
     }
   }
 
@@ -1847,6 +1907,7 @@ module Std.Producers {
 
     const original: ProducerOfNewProducers<T>
     var currentInner: Option<Producer<T>>
+    var producedCount: nat
 
     constructor (original: ProducerOfNewProducers<T>)
       requires original.Valid()
@@ -1854,10 +1915,11 @@ module Std.Producers {
       ensures fresh(Repr - original.Repr)
     {
       this.original := original;
+      this.currentInner := None;
+      this.producedCount := 0;
 
       this.history := [];
       this.Repr := {this} + original.Repr;
-      this.currentInner := None;
     }
 
     ghost function BaseMetric(): TerminationMetric
@@ -1953,6 +2015,7 @@ module Std.Producers {
             && original.MaxProduced().DecreasesTo(currentInner.value.DecreasesMetric()))
       && (!original.Done() && currentInner.Some? && !currentInner.value.Done() ==> !Done())
       && (Done() ==> original.Done() && currentInner.None?)
+      && producedCount == |Produced()|
     }
 
     twostate lemma ValidImpliesValidChange()
@@ -1966,6 +2029,14 @@ module Std.Producers {
       decreases Repr
     {
       true
+    }
+
+    function ProducedCount(): nat
+      reads this, Repr
+      requires Valid()
+      ensures ProducedCount() == |Produced()|
+    {
+      producedCount
     }
 
     function Remaining(): Option<nat>
@@ -2085,6 +2156,8 @@ module Std.Producers {
         ProduceSome(result.value);
 
         DecreasesMetricDoesntReadHistory@beforeUpdatingHistory();
+
+        producedCount := producedCount + 1;
       } else {
         OutputsPartitionedAfterOutputtingNone();
         ProduceNone();
@@ -2095,7 +2168,7 @@ module Std.Producers {
     }
 
 
-    method ForEach(consumer: IConsumer<T>, ghost totalActionProof: TotalActionProof<T, ()>) returns (count: nat)
+    method ForEach(consumer: IConsumer<T>, ghost totalActionProof: TotalActionProof<T, ()>)
       requires Valid()
       requires consumer.Valid()
       requires Repr !! consumer.Repr !! totalActionProof.Repr
@@ -2106,14 +2179,13 @@ module Std.Producers {
       ensures ValidChange()
       ensures consumer.ValidChange()
       ensures Done()
-      ensures count == |NewProduced()|
       ensures NewProduced() == consumer.NewInputs()
     {
-      count := DefaultForEach(this, consumer, totalActionProof);
+      DefaultForEach(this, consumer, totalActionProof);
     }
 
     method ForEachToCapacity(consumer: Consumer<T>, ghost totalActionProof: TotalActionProof<T, bool>)
-      returns (count: int, leftover: Option<T>)
+      returns (leftover: Option<T>)
       requires Valid()
       requires consumer.Valid()
       requires Repr !! consumer.Repr !! totalActionProof.Repr
@@ -2127,7 +2199,7 @@ module Std.Producers {
       ensures consumer.ValidChange()
       ensures NewProduced() == consumer.NewInputs()
     {
-      count, leftover := DefaultForEachToCapacity(this, consumer, totalActionProof);
+      leftover := DefaultForEachToCapacity(this, consumer, totalActionProof);
     }
   }
 }

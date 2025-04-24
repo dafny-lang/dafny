@@ -82,6 +82,14 @@ module Std.BulkActions {
       true
     }
 
+    function ProducedCount(): nat
+      requires Valid()
+      reads this, Repr
+      ensures ProducedCount() == |Produced()|
+    {
+      index
+    }
+
     function Remaining(): Option<nat>
       reads this, Repr
       requires Valid()
@@ -129,7 +137,6 @@ module Std.BulkActions {
 
     @IsolateAssertions
     method ForEach(consumer: IConsumer<StreamedValue<T, E>>, ghost totalActionProof: TotalActionProof<StreamedValue<T, E>, ()>)
-      returns (count: nat)
       requires Valid()
       requires consumer.Valid()
       requires Repr !! consumer.Repr !! totalActionProof.Repr
@@ -140,7 +147,6 @@ module Std.BulkActions {
       ensures ValidChange()
       ensures consumer.ValidChange()
       ensures Done()
-      ensures count == |NewProduced()|
       ensures NewProduced() == consumer.NewInputs()
     {
       if consumer is BatchSeqWriter<T, E> {
@@ -150,17 +156,16 @@ module Std.BulkActions {
 
         writer.elements := writer.elements + s;
         writer.history := writer.history + Seq.Zip(NewProduced(), Seq.Repeat((), |s|));
-        count := |s|;
 
         return;
       }
 
-      count := DefaultForEach(this, consumer, totalActionProof);
+      DefaultForEach(this, consumer, totalActionProof);
     }
 
     // TODO: Optimize this too
     method ForEachToCapacity(consumer: Consumer<StreamedValue<T, E>>, ghost totalActionProof: TotalActionProof<StreamedValue<T, E>, bool>)
-      returns (count: int, leftover: Option<StreamedValue<T, E>>)
+      returns (leftover: Option<StreamedValue<T, E>>)
       requires Valid()
       requires consumer.Valid()
       requires Repr !! consumer.Repr !! totalActionProof.Repr
@@ -174,7 +179,7 @@ module Std.BulkActions {
       ensures consumer.ValidChange()
       ensures NewProduced() == consumer.NewInputs()
     {
-      count, leftover := DefaultForEachToCapacity(this, consumer, totalActionProof);
+      leftover := DefaultForEachToCapacity(this, consumer, totalActionProof);
     }
 
     @IsolateAssertions
@@ -444,7 +449,7 @@ module Std.BulkActions {
 
     @ResourceLimit("0")
     @IsolateAssertions
-    method BulkInvoke(input: Producer<StreamedByte<E>>,
+    method {:only} BulkInvoke(input: Producer<StreamedByte<E>>,
                       output: IConsumer<seq<StreamedByte<E>>>,
                       outputTotalProof: TotalActionProof<seq<StreamedByte<E>>, ()>)
       requires Valid()
@@ -465,14 +470,18 @@ module Std.BulkActions {
     {
       assert Valid();
 
+      var oldProducedCount := input.ProducedCount();
       var batchWriter := new BatchSeqWriter();
       var batchWriterTotalProof := new BatchSeqWriterTotalProof(batchWriter);
       label before:
-      var count := input.ForEach(batchWriter, batchWriterTotalProof);
+      input.ForEach(batchWriter, batchWriterTotalProof);
+      label after:
       assert input.ValidChange@before();
       assert input.ValidChange();
 
-      if count == 0 {
+      var newProducedCount := input.ProducedCount() - oldProducedCount;
+      assert {:only} newProducedCount == |input.NewProduced()|;
+      if input.ProducedCount() == 0 {
         // No-op
         assert input.ValidChange();
         assert |batchWriter.Inputs()| == 0;
@@ -499,9 +508,8 @@ module Std.BulkActions {
         invariant outputTotalProof.Valid()
         invariant Repr !! input.Repr !! output.Repr !! outputTotalProof.Repr
         invariant history == old(history)
+        invariant input.ProducedCount() == old@after(input.ProducedCount())
         invariant output.history == old(output.history)
-        invariant 0 < count
-        invariant count == |input.NewProduced()|
         decreases |chunkBuffer|
       {
         chunks := chunks + Seq.Reverse(chunkBuffer[..chunkSize]);
@@ -524,12 +532,12 @@ module Std.BulkActions {
       // this is just to get it resolving again
       var data := CollectToSeq(outputProducer);
       var dataReader := new SeqReader([data]);
-      var padding := new RepeatProducer(count - 1, []);
+      var padding := new RepeatProducer(input.ProducedCount() - 1, []);
       var concatenated: Producer<seq<StreamedByte<E>>> := new ConcatenatedProducer(padding, dataReader);
       assert dataReader.Remaining() == Some(1);
-      assert padding.Remaining() == Some(count - 1);
-      assert concatenated.Remaining() == Some(count);
-      var outputted := concatenated.ForEach(output, outputTotalProof);
+      assert padding.Remaining() == Some(input.ProducedCount() - 1);
+      assert concatenated.Remaining() == Some(input.ProducedCount());
+      concatenated.ForEach(output, outputTotalProof);
 
       assert |input.NewProduced()| == |output.NewInputs()|;
       history := history + Seq.Zip(input.NewProduced(), output.NewInputs());
