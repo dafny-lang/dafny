@@ -636,6 +636,10 @@ module Std.Producers {
       invariant producer.NewProduced() == consumer.NewInputs()
       decreases producer.Decreasing()
     {
+      if consumer.Capacity().Some? && consumer.Capacity().value == 0 {
+        break;
+      }
+
       label before:
       var t := producer.Next();
       assert Seq.Partitioned(producer.Outputs(), IsSome);
