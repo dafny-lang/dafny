@@ -94,7 +94,7 @@ module Std.BulkActions {
       reads this, Repr
       requires Valid()
     {
-      None
+      Some(index)
     }
 
 
