@@ -7,8 +7,8 @@ module Std.BulkActions {
   import opened BoundedInts
   import opened Termination
 
-  type StreamedValue<T, E> = Option<Result<T, E>>
-  type StreamedByte<E> = StreamedValue<uint8, E>
+  datatype Batched<T, E> = BatchValue(value: T) | BatchError(error: E) | EndOfInput
+  type BatchedByte<E> = Batched<uint8, E>
 
   @AssumeCrossModuleTermination
   trait BulkAction<I, O> extends Action<I, O> {
@@ -31,11 +31,11 @@ module Std.BulkActions {
   }
 
   /**
-    * The equivalent of MappedProducer(ToOptionResult, original),
+    * The equivalent of MappedProducer(ToBatched, SeqReader(elements)),
     * but a separate class so it's possible to optimize via "is" testing.
     */
   @AssumeCrossModuleTermination
-  class BatchReader<T, E> extends Producer<StreamedValue<T, E>> {
+  class BatchReader<T, E> extends Producer<Batched<T, E>> {
 
     const elements: seq<T>
     var index: nat
@@ -65,7 +65,7 @@ module Std.BulkActions {
       && ValidHistory(history)
       && (Done() ==> index == |elements|)
       && index <= |elements|
-      && Produced() == Seq.Map(ToOptionResult, elements[..index])
+      && Produced() == Seq.Map(ToBatched, elements[..index])
       && (index < |elements| ==> Seq.All(Outputs(), IsSome))
     }
 
@@ -75,7 +75,7 @@ module Std.BulkActions {
       ensures ValidChange()
     {}
 
-    ghost predicate ValidOutputs(outputs: seq<Option<StreamedValue<T, E>>>)
+    ghost predicate ValidOutputs(outputs: seq<Option<Batched<T, E>>>)
       requires Seq.Partitioned(outputs, IsSome)
       decreases Repr
     {
@@ -107,7 +107,7 @@ module Std.BulkActions {
     }
 
     @IsolateAssertions
-    method Invoke(t: ()) returns (value: Option<StreamedValue<T, E>>)
+    method Invoke(t: ()) returns (value: Option<Batched<T, E>>)
       requires Requires(t)
       reads Reads(t)
       modifies Modifies(t)
@@ -125,7 +125,7 @@ module Std.BulkActions {
         OutputsPartitionedAfterOutputtingNone();
         ProduceNone();
       } else {
-        value := Some(Some(Success(elements[index])));
+        value := Some(BatchValue(elements[index]));
 
         OutputsPartitionedAfterOutputtingSome(value.value);
         ProduceSome(value.value);
@@ -136,7 +136,7 @@ module Std.BulkActions {
     }
 
     @IsolateAssertions
-    method ForEach(consumer: IConsumer<StreamedValue<T, E>>, ghost totalActionProof: TotalActionProof<StreamedValue<T, E>, ()>)
+    method ForEach(consumer: IConsumer<Batched<T, E>>, ghost totalActionProof: TotalActionProof<Batched<T, E>, ()>)
       requires Valid()
       requires consumer.Valid()
       requires Repr !! consumer.Repr !! totalActionProof.Repr
@@ -152,7 +152,7 @@ module Std.BulkActions {
       if consumer is BatchSeqWriter<T, E> {
         var writer := consumer as BatchSeqWriter<T, E>;
         var s := Read();
-        assert NewProduced() == Seq.Map(ToOptionResult, s);
+        assert NewProduced() == Seq.Map(ToBatched, s);
 
         writer.elements := writer.elements + s;
         writer.history := writer.history + Seq.Zip(NewProduced(), Seq.Repeat((), |s|));
@@ -164,8 +164,8 @@ module Std.BulkActions {
     }
 
     // TODO: Optimize this too
-    method ForEachToCapacity(consumer: Consumer<StreamedValue<T, E>>, ghost totalActionProof: TotalActionProof<StreamedValue<T, E>, bool>)
-      returns (leftover: Option<StreamedValue<T, E>>)
+    method ForEachToCapacity(consumer: Consumer<Batched<T, E>>, ghost totalActionProof: TotalActionProof<Batched<T, E>, bool>)
+      returns (leftover: Option<Batched<T, E>>)
       requires Valid()
       requires consumer.Valid()
       requires Repr !! consumer.Repr !! totalActionProof.Repr
@@ -190,7 +190,7 @@ module Std.BulkActions {
       ensures ValidAndDisjoint()
       ensures Done()
       ensures ValidChange()
-      ensures NewProduced() == Seq.Map(ToOptionResult, s)
+      ensures NewProduced() == Seq.Map(ToBatched, s)
     {
       // Avoid the slice if possible
       if index == 0 {
@@ -200,7 +200,7 @@ module Std.BulkActions {
       }
       index := |elements|;
 
-      var produced := Seq.Map(ToOptionResult, s);
+      var produced := Seq.Map(ToBatched, s);
       var outputs := OutputsForProduced(produced, |s| + 1);
       history := history + Seq.Zip(Seq.Repeat((), |s| + 1), outputs);
       assert Seq.Last(Outputs()) == None;
@@ -221,7 +221,7 @@ module Std.BulkActions {
 
   // TODO: Would be more efficient to use a DynamicArray instead
   @AssumeCrossModuleTermination
-  class BatchSeqWriter<T, E> extends IConsumer<StreamedValue<T, E>> {
+  class BatchSeqWriter<T, E> extends IConsumer<Batched<T, E>> {
 
     var elements: seq<T>
     var state: Result<bool, E>
@@ -257,26 +257,26 @@ module Std.BulkActions {
       ensures ValidChange()
     {}
 
-    ghost predicate ValidHistory(history: seq<(StreamedValue<T, E>, ())>)
+    ghost predicate ValidHistory(history: seq<(Batched<T, E>, ())>)
       decreases Repr
     {
       true
     }
-    ghost predicate ValidInput(history: seq<(StreamedValue<T, E>, ())>, next: StreamedValue<T, E>)
+    ghost predicate ValidInput(history: seq<(Batched<T, E>, ())>, next: Batched<T, E>)
       requires ValidHistory(history)
       decreases Repr
     {
       true
     }
 
-    ghost function Decreases(t: StreamedValue<T, E>): ORDINAL
+    ghost function Decreases(t: Batched<T, E>): ORDINAL
       reads Reads(t)
     {
       0
     }
 
     @IsolateAssertions
-    method Invoke(t: StreamedValue<T, E>) returns (r: ())
+    method Invoke(t: Batched<T, E>) returns (r: ())
       requires Requires(t)
       reads Reads(t)
       modifies Modifies(t)
@@ -288,9 +288,9 @@ module Std.BulkActions {
       reveal TerminationMetric.Ordinal();
 
       match t {
-        case Some(Success(t)) => elements := elements + [t];
-        case Some(Failure(e)) => state := Failure(e);
-        case None => state := Success(false);
+        case BatchValue(t) => elements := elements + [t];
+        case BatchError(e) => state := Failure(e);
+        case EndOfInput => state := Success(false);
       }
       r := ();
 
@@ -308,7 +308,7 @@ module Std.BulkActions {
   }
 
   @AssumeCrossModuleTermination
-  class BatchSeqWriterTotalProof<T, E> extends TotalActionProof<StreamedValue<T, E>, ()> {
+  class BatchSeqWriterTotalProof<T, E> extends TotalActionProof<Batched<T, E>, ()> {
     ghost const action: BatchSeqWriter<T, E>
 
     ghost constructor (action: BatchSeqWriter<T, E>)
@@ -344,11 +344,11 @@ module Std.BulkActions {
       ensures ValidChange()
     {}
 
-    ghost function Action(): Action<StreamedValue<T, E>, ()> {
+    ghost function Action(): Action<Batched<T, E>, ()> {
       action
     }
 
-    lemma AnyInputIsValid(history: seq<(StreamedValue<T, E>, ())>, next: StreamedValue<T, E>)
+    lemma AnyInputIsValid(history: seq<(Batched<T, E>, ())>, next: Batched<T, E>)
       requires Valid()
       requires Action().ValidHistory(history)
       ensures Action().ValidInput(history, next)
@@ -356,7 +356,7 @@ module Std.BulkActions {
   }
 
   @AssumeCrossModuleTermination
-  class BatchArrayWriter<T, E> extends Consumer<StreamedValue<T, E>> {
+  class BatchArrayWriter<T, E> extends Consumer<Batched<T, E>> {
 
     var storage: array<T>
     var size: nat
@@ -399,7 +399,7 @@ module Std.BulkActions {
       ensures ValidChange()
     {}
 
-    ghost predicate ValidInput(history: seq<(StreamedValue<T, E>, bool)>, next: StreamedValue<T, E>)
+    ghost predicate ValidInput(history: seq<(Batched<T, E>, bool)>, next: Batched<T, E>)
       requires ValidHistory(history)
       decreases Repr
     {
@@ -422,7 +422,7 @@ module Std.BulkActions {
     }
 
     @IsolateAssertions
-    method Invoke(t: StreamedValue<T, E>) returns (r: bool)
+    method Invoke(t: Batched<T, E>) returns (r: bool)
       requires Requires(t)
       reads Reads(t)
       modifies Modifies(t)
@@ -441,11 +441,11 @@ module Std.BulkActions {
         Seq.PartitionedCompositionRight(old(history), [(t, false)], WasConsumed);
       } else {
         match t {
-          case Some(Success(value)) => 
+          case BatchValue(value) => 
             storage[size] := value;
             size := size + 1;
-          case Some(Failure(e)) => state := Failure(e);
-          case None => state := Success(false);
+          case BatchError(e) => state := Failure(e);
+          case EndOfInput => state := Success(false);
         }
         r := true;
 
@@ -466,7 +466,7 @@ module Std.BulkActions {
   }
 
   @AssumeCrossModuleTermination
-  class BatchArrayWriterTotalProof<T, E> extends TotalActionProof<StreamedValue<T, E>, bool> {
+  class BatchArrayWriterTotalProof<T, E> extends TotalActionProof<Batched<T, E>, bool> {
     ghost const action: BatchArrayWriter<T, E>
 
     ghost constructor (action: BatchArrayWriter<T, E>)
@@ -502,36 +502,36 @@ module Std.BulkActions {
       ensures ValidChange()
     {}
 
-    ghost function Action(): Action<StreamedValue<T, E>, bool> {
+    ghost function Action(): Action<Batched<T, E>, bool> {
       action
     }
 
-    lemma AnyInputIsValid(history: seq<(StreamedValue<T, E>, bool)>, next: StreamedValue<T, E>)
+    lemma AnyInputIsValid(history: seq<(Batched<T, E>, bool)>, next: Batched<T, E>)
       requires Valid()
       requires Action().ValidHistory(history)
       ensures Action().ValidInput(history, next)
     {}
   }
 
-
-  function ToOptionResult<T, E>(t: T): Option<Result<T, E>> {
-    Some(Success(t))
+  function ToBatched<T, E>(t: T): Batched<T, E> {
+    BatchValue(t)
   }
 
-  method ToOptionResultProducer<T, E>(values: seq<T>) returns (result: Producer<Option<Result<T, E>>>)
+
+  method ToBatchedProducer<T, E>(values: seq<T>) returns (result: Producer<Batched<T, E>>)
     reads {}
     ensures result.Valid()
     ensures fresh(result.Repr)
     ensures result.history == []
   {
     var chunkProducer := new SeqReader(values);
-    var mapping := new FunctionAction(ToOptionResult);
-    var mappingTotalProof := new TotalFunctionActionProof(mapping, ToOptionResult);
+    var mapping := new FunctionAction(ToBatched);
+    var mappingTotalProof := new TotalFunctionActionProof(mapping, ToBatched);
     result := new MappedProducer(chunkProducer, mapping, mappingTotalProof);
   }
 
   // TODO: Move to smithy-dafny test models
-  // class Chunker<E> extends BulkAction<StreamedByte<E>, seq<StreamedByte<E>>> {
+  // class Chunker<E> extends BulkAction<BatchedByte<E>, seq<BatchedByte<E>>> {
 
   //   const chunkSize: uint64
   //   var chunkBuffer: BoundedInts.bytes
@@ -576,13 +576,13 @@ module Std.BulkActions {
   //     ensures ValidChange()
   //   {}
 
-  //   ghost predicate ValidHistory(history: seq<(StreamedByte<E>, seq<StreamedByte<E>>)>)
+  //   ghost predicate ValidHistory(history: seq<(BatchedByte<E>, seq<BatchedByte<E>>)>)
   //     decreases Repr
   //   {
   //     true
   //   }
 
-  //   ghost predicate ValidInput(history: seq<(StreamedByte<E>, seq<StreamedByte<E>>)>, next: StreamedByte<E>)
+  //   ghost predicate ValidInput(history: seq<(BatchedByte<E>, seq<BatchedByte<E>>)>, next: BatchedByte<E>)
   //     requires ValidHistory(history)
   //     decreases Repr
   //   {
@@ -597,7 +597,7 @@ module Std.BulkActions {
   //   }
 
   //   @IsolateAssertions
-  //   method Invoke(i: StreamedByte<E>) returns (o: seq<StreamedByte<E>>)
+  //   method Invoke(i: BatchedByte<E>) returns (o: seq<BatchedByte<E>>)
   //     requires Requires(i)
   //     reads this, Repr
   //     modifies Modifies(i)
@@ -618,9 +618,9 @@ module Std.BulkActions {
 
   //   @ResourceLimit("0")
   //   @IsolateAssertions
-  //   method BulkInvoke(input: Producer<StreamedByte<E>>,
-  //                     output: IConsumer<seq<StreamedByte<E>>>,
-  //                     outputTotalProof: TotalActionProof<seq<StreamedByte<E>>, ()>)
+  //   method BulkInvoke(input: Producer<BatchedByte<E>>,
+  //                     output: IConsumer<seq<BatchedByte<E>>>,
+  //                     outputTotalProof: TotalActionProof<seq<BatchedByte<E>>, ()>)
   //     requires Valid()
   //     requires input.Valid()
   //     requires output.Valid()
@@ -666,7 +666,7 @@ module Std.BulkActions {
   //     var chunks, leftover := Chunkify(chunkBuffer);
   //     var chunkBuffer := leftover;
 
-  //     var outputProducer: Producer<StreamedByte<E>>;
+  //     var outputProducer: Producer<BatchedByte<E>>;
   //     match batchWriter.state {
   //       case Failure(error) =>
   //         outputProducer := new SeqReader([Some(Failure(error))]);
@@ -683,7 +683,7 @@ module Std.BulkActions {
   //     var data := CollectToSeq(outputProducer);
   //     var dataReader := new SeqReader([data]);
   //     var padding := new RepeatProducer(newProducedCount - 1, []);
-  //     var concatenated: Producer<seq<StreamedByte<E>>> := new ConcatenatedProducer(padding, dataReader);
+  //     var concatenated: Producer<seq<BatchedByte<E>>> := new ConcatenatedProducer(padding, dataReader);
   //     assert dataReader.Remaining() == Some(1);
   //     assert padding.Remaining() == Some(newProducedCount - 1);
   //     assert concatenated.Remaining() == Some(newProducedCount);
