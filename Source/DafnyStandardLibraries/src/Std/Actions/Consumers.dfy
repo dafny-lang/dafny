@@ -185,6 +185,7 @@ module Std.Consumers {
       Seq.Partitioned(history, WasConsumed)
     }
 
+    // TODO: Name is wrong, should be more like RemainingCapacity()?
     function Capacity(): Option<nat>
       reads this, Repr
       requires Valid()
