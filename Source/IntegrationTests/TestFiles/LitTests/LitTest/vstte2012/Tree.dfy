@@ -92,6 +92,7 @@ lemma lemma0(t: Tree, d: int, s: seq<int>)
   case Leaf =>
     assert toList(d, t) == [d];
   case Node(l, r) =>
+    assert t > l;
     assert toList(d, t) + s == toList(d+1, l) + (toList(d+1, r) + s);
     // the rest follows from (two invocations of) the (automatically applied) induction hypothesis
   }
