@@ -1,7 +1,7 @@
 // RUN: %exits-with 4 %verify --relax-definite-assignment "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
-module {:options "/functionSyntax:4"} CompilableExpressions {
+module {:options "--function-syntax=4"} CompilableExpressions {
   predicate P(x: int)
 
   method M0(ghost y: int) returns (r: int)

@@ -10,13 +10,13 @@ module {:options "/functionSyntax:3"} FunctionMethodSyntax {
 }
 
 // Use new syntax
-module {:options "/functionSyntax:4"} GhostFunctionSyntax {
+module {:options "--function-syntax=4"} GhostFunctionSyntax {
   function CompiledFunction() : int { 1 }
   ghost function GhostFunction() : int { 1 }
 }
 
 // Check that later :options take precedence
-module {:options "/functionSyntax:3"} {:options "/functionSyntax:4"}
+module {:options "/functionSyntax:3"} {:options "--function-syntax=4"}
   StillGhostFunctionSyntax
 {
   function CompiledFunction() : int { 1 }

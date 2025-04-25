@@ -47,7 +47,6 @@ namespace Microsoft.Dafny {
     public static async Task<(Program Program, string Error)> ParseCheck(TextReader stdIn,
         IReadOnlyList<DafnyFile /*!*/> /*!*/ files, string /*!*/ programName,
         DafnyOptions options)
-    //modifies Bpl.options.XmlSink.*;
     {
       var (program, err) = await Parse(files, programName, options);
       if (err != null) {

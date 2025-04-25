@@ -1,5 +1,5 @@
-// RUN: %dafny -compile:4 -compileTarget:cs "%s" > "%t"
-// RUN: %dafny -noVerify -compile:4 -compileTarget:js "%s" >> "%t"
+// RUN: %dafny run --target cs "%s" > "%t"
+// RUN: %dafny run --no-verify --target js "%s" >> "%t"
 // RUN: %diff "%s.expect" "%t"
 
 method InSeq<T>(ts: seq<T>) returns (f: T --> bool)

@@ -68,8 +68,6 @@ namespace Microsoft.Dafny {
         }
       }
 
-      options.XmlSink?.Close();
-
       if (options.Wait) {
         Console.WriteLine("Press Enter to exit.");
         Console.ReadLine();
@@ -110,13 +108,6 @@ namespace Microsoft.Dafny {
       } else if (options.CliRootSourceUris.Count == 0) {
         await options.ErrorWriter.WriteLineAsync("*** Error: No input files were specified in command-line. " + options.Environment);
         return (ExitValue.PREPROCESSING_ERROR, dafnyFiles, otherFiles);
-      }
-      if (options.XmlSink != null) {
-        string errMsg = options.XmlSink.Open();
-        if (errMsg != null) {
-          await options.ErrorWriter.WriteLineAsync("*** Error: " + errMsg);
-          return (ExitValue.PREPROCESSING_ERROR, dafnyFiles, otherFiles);
-        }
       }
       if (options.ShowEnv == ExecutionEngineOptions.ShowEnvironment.Always) {
         await outputWriter.WriteLineAsync(options.Environment);

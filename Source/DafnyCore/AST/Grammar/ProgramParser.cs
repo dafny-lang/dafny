@@ -59,10 +59,6 @@ public class ProgramParser {
         await options.OutputWriter.WriteLineAsync("Parsing " + dafnyFile.FilePath);
       }
 
-      if (options.XmlSink is { IsOpen: true } && dafnyFile.Uri.IsFile) {
-        options.XmlSink.WriteFileFragment(dafnyFile.Uri.LocalPath);
-      }
-
       var parseResult = ParseFileWithErrorHandling(
         dafnyFile.FileOptions,
         dafnyFile.GetContent,

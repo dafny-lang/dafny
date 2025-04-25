@@ -159,7 +159,7 @@ module Members {
   }
 }
 
-module {:options "/functionSyntax:4"} EqualitySupport {
+module {:options "--function-syntax=4"} EqualitySupport {
   import opened Types
 
   method M(xy: XY, selector: int) returns (a: int)

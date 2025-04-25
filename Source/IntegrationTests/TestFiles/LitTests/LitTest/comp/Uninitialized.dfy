@@ -102,7 +102,7 @@ method Main() {
   Arrays.Test();
 }
 
-module {:options "/functionSyntax:4"} EnumerationTests {
+module {:options "--function-syntax=4"} EnumerationTests {
   datatype Enum = ghost EnumA | EnumB
   {
     const N := 13
@@ -154,7 +154,7 @@ module {:options "/functionSyntax:4"} EnumerationTests {
   }
 }
 
-module {:options "/functionSyntax:4"} DestructorTests {
+module {:options "--function-syntax=4"} DestructorTests {
   datatype WithCommonDestructors<A, B> =
     | CtorA(a: A, x: int)
     | ghost CtorAB(a: A, b: B)
@@ -180,7 +180,7 @@ module {:options "/functionSyntax:4"} DestructorTests {
   }
 }
 
-module {:options "/functionSyntax:4"} WhiteBoxTests {
+module {:options "--function-syntax=4"} WhiteBoxTests {
   // The following code tests two conditions in the implementation.
 
   // The following List does not support equality (because of the ghost parameter)

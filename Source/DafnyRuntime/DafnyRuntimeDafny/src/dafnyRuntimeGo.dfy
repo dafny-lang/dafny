@@ -1,7 +1,7 @@
 
 include "dafnyRuntime.dfy"
 
-module {:extern "dafny"} {:options "/functionSyntax:4"} DafnyGo refines Dafny {
+module {:extern "dafny"} {:options "--function-syntax=4"} DafnyGo refines Dafny {
 
   const SIZE_T_LIMIT: nat := 0x8000_0000
 
