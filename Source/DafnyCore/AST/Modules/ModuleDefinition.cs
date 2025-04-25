@@ -33,7 +33,6 @@ Generate module names in the older A_mB_mC style instead of the current A.B.C sc
   };
 
   static ModuleDefinition() {
-    DafnyOptions.RegisterLegacyUi(LegacyModuleNames, DafnyOptions.ParseBoolean, "Compilation options", legacyName: "legacyModuleNames", defaultValue: false);
     OptionRegistry.RegisterOption(LegacyModuleNames, OptionScope.Translation);
   }
 

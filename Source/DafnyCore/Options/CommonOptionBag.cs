@@ -421,7 +421,6 @@ If verification fails, report a detailed counterexample for the first failing as
       }
     });
 
-    DafnyOptions.RegisterLegacyUi(AllowAxioms, DafnyOptions.ParseBoolean, "Verification options", legacyName: "allowAxioms", defaultValue: true);
     DafnyOptions.RegisterLegacyBinding(ShowHints, (options, value) => {
       options.PrintTooltips = value;
     });
@@ -429,104 +428,6 @@ If verification fails, report a detailed counterexample for the first failing as
     DafnyOptions.RegisterLegacyBinding(ManualTriggerOption, (options, value) => {
       options.AutoTriggers = !value;
     });
-
-    DafnyOptions.RegisterLegacyUi(Target, DafnyOptions.ParseString, "Compilation options", "compileTarget", @"
-cs (default) - Compile to .NET via C#.
-go - Compile to Go.
-js - Compile to JavaScript.
-java - Compile to Java.
-py - Compile to Python.
-cpp - Compile to C++.
-dfy - Compile to Dafny.
-
-Note that the C++ backend has various limitations (see
-Docs/Compilation/Cpp.md). This includes lack of support for
-BigIntegers (aka int), most higher order functions, and advanced
-features like traits or co-inductive types.".TrimStart(), "cs");
-
-    DafnyOptions.RegisterLegacyUi(OptimizeErasableDatatypeWrapper, DafnyOptions.ParseBoolean, "Compilation options", "optimizeErasableDatatypeWrapper", @"
-0 - Include all non-ghost datatype constructors in the compiled code
-1 (default) - In the compiled target code, transform any non-extern
-    datatype with a single non-ghost constructor that has a single
-    non-ghost parameter into just that parameter. For example, the type
-        datatype Record = Record(x: int)
-    is transformed into just 'int' in the target code.".TrimStart(), defaultValue: true);
-
-    DafnyOptions.RegisterLegacyUi(VerificationLogFormat, DafnyOptions.ParseStringElement, "Verification options", "verificationLogger");
-    DafnyOptions.RegisterLegacyUi(Output, DafnyOptions.ParseFileInfo, "Compilation options", "out");
-    DafnyOptions.RegisterLegacyUi(UnicodeCharacters, DafnyOptions.ParseBoolean, "Language feature selection", "unicodeChar", @"
-0 - The char type represents any UTF-16 code unit.
-1 (default) - The char type represents any Unicode scalar value.".TrimStart(), defaultValue: true);
-    DafnyOptions.RegisterLegacyUi(TypeSystemRefresh, DafnyOptions.ParseBoolean, "Language feature selection", "typeSystemRefresh", @"
-0 (default) - The type-inference engine and supported types are those of Dafny 4.0.
-1 - Use an updated type-inference engine.".TrimStart(), defaultValue: false);
-    DafnyOptions.RegisterLegacyUi(GeneralTraits, DafnyOptions.ParseGeneralTraitsOption, "Language feature selection", "generalTraits", @"
-legacy (default) - Every trait implicitly extends 'object', and thus is a reference type. Only traits and reference types can extend traits.
-datatype - A trait is a reference type only if it or one of its ancestor traits is 'object'. Any non-'newtype' type with members can extend traits.
-full - (don't use; not yet completely supported) A trait is a reference type only if it or one of its ancestor traits is 'object'. Any type with members can extend traits.".TrimStart(),
-      defaultValue: GeneralTraitsOptions.Legacy);
-    DafnyOptions.RegisterLegacyUi(GeneralNewtypes, DafnyOptions.ParseBoolean, "Language feature selection", "generalNewtypes", @"
-0 (default) - A newtype can only be based on numeric types or another newtype.
-1 - (requires /typeSystemRefresh:1) A newtype case be based on any non-reference, non-trait, non-arrow, non-ORDINAL type.".TrimStart(), false);
-    DafnyOptions.RegisterLegacyUi(TypeInferenceDebug, DafnyOptions.ParseBoolean, "Language feature selection", "titrace", @"
-0 (default) - Don't print type-inference debug information.
-1 - Print type-inference debug information.".TrimStart(), defaultValue: false);
-    DafnyOptions.RegisterLegacyUi(NewTypeInferenceDebug, DafnyOptions.ParseBoolean, "Language feature selection", "ntitrace", @"
-0 (default) - Don't print debug information for the new type system.
-1 - Print debug information for the new type system.".TrimStart(), defaultValue: false);
-    DafnyOptions.RegisterLegacyUi(UseStandardLibraries, DafnyOptions.ParseBoolean, "Language feature selection", "standardLibraries", @"
-0 (default) - Do not allow Dafny code to depend on the standard libraries included with the Dafny distribution.
-1 - Allow Dafny code to depend on the standard libraries included with the Dafny distribution.
-See https://github.com/dafny-lang/dafny/blob/master/Source/DafnyStandardLibraries/README.md for more information.
-Not compatible with the /unicodeChar:0 option.".TrimStart(), defaultValue: false);
-    DafnyOptions.RegisterLegacyUi(PluginOption, DafnyOptions.ParseStringElement, "Plugins", defaultValue: new List<string>());
-    DafnyOptions.RegisterLegacyUi(Prelude, DafnyOptions.ParseFileInfo, "Input configuration", "dprelude");
-
-    DafnyOptions.RegisterLegacyUi(Libraries, DafnyOptions.ParseFileInfoElement, "Compilation options", defaultValue: new List<FileInfo>());
-    DafnyOptions.RegisterLegacyUi(DeveloperOptionBag.ResolvedPrint, DafnyOptions.ParseString, "Overall reporting and printing", "rprint");
-    DafnyOptions.RegisterLegacyUi(DeveloperOptionBag.PrintOption, DafnyOptions.ParseString, "Overall reporting and printing", "dprint");
-
-    DafnyOptions.RegisterLegacyUi(Snippets.ShowSnippets, DafnyOptions.ParseBoolean, "Overall reporting and printing", "showSnippets", @"
-0 (default) - Don't show source code snippets for Dafny messages.
-1 - Show a source code snippet for each Dafny message.".TrimStart());
-
-    DafnyOptions.RegisterLegacyUi(Printer.PrintMode, ParsePrintMode, "Overall reporting and printing", "printMode", legacyDescription: @"
-Everything (default) - Print everything listed below.
-DllEmbed - print the source that will be included in a compiled dll.
-NoIncludes - disable printing of {:verify false} methods
-    incorporated via the include mechanism, as well as datatypes and
-    fields included from other files.
-NoGhost - disable printing of functions, ghost methods, and proof
-    statements in implementation methods. It also disables anything
-    NoIncludes disables.".TrimStart(),
-      argumentName: "Everything|DllEmbed|NoIncludes|NoGhost",
-      defaultValue: PrintModes.Everything);
-
-    DafnyOptions.RegisterLegacyUi(DefaultFunctionOpacity, DafnyOptions.ParseDefaultFunctionOpacity, "Language feature selection", "defaultFunctionOpacity", null);
-
-    DafnyOptions.RegisterLegacyUi(WarnContradictoryAssumptions, DafnyOptions.ParseImplicitEnable, "Verification options", "warnContradictoryAssumptions");
-    DafnyOptions.RegisterLegacyUi(WarnRedundantAssumptions, DafnyOptions.ParseImplicitEnable, "Verification options", "warnRedundantAssumptions");
-    DafnyOptions.RegisterLegacyUi(SuggestProofRefactoring, DafnyOptions.ParseImplicitEnable, "Verification options", "suggestProofRefactoring");
-
-    void ParsePrintMode(Option<PrintModes> option, Boogie.CommandLineParseState ps, DafnyOptions options) {
-      if (ps.ConfirmArgumentCount(1)) {
-        if (ps.args[ps.i].Equals("Everything")) {
-          options.Set(option, PrintModes.Everything);
-        } else if (ps.args[ps.i].Equals("NoIncludes")) {
-          options.Set(option, PrintModes.NoIncludes);
-        } else if (ps.args[ps.i].Equals("NoGhost")) {
-          options.Set(option, PrintModes.NoGhostOrIncludes);
-        } else if (ps.args[ps.i].Equals("DllEmbed")) {
-          // This is called DllEmbed because it was previously only used inside Dafny-compiled .dll files for C#,
-          // but it is now used by the LibraryBackend when building .doo files as well. 
-          options.Set(option, PrintModes.Serialization);
-        } else {
-          DafnyOptions.InvalidArgumentError(option.Name, ps);
-        }
-      }
-    }
-
-    DafnyOptions.RegisterLegacyUi(AddCompileSuffix, DafnyOptions.ParseBoolean, "Compilation options", "compileSuffix");
 
     QuantifierSyntax = QuantifierSyntax.FromAmong("3", "4");
     DafnyOptions.RegisterLegacyBinding(JsonDiagnostics, (options, value) => {

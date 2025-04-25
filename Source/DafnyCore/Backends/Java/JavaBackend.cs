@@ -36,7 +36,6 @@ for backwards compatibility with Java code generated with Dafny versions earlier
     IsHidden = true
   };
   static JavaBackend() {
-    DafnyOptions.RegisterLegacyUi(LegacyDataConstructors, DafnyOptions.ParseBoolean, "Compilation options", legacyName: "legacyDataConstructors", defaultValue: false);
     OptionRegistry.RegisterOption(LegacyDataConstructors, OptionScope.Cli);
   }
 

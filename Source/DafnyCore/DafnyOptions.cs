@@ -607,7 +607,7 @@ namespace Microsoft.Dafny {
         SetZ3Option("smt.arith.nl", "false");
       }
     }
-}
+  }
 
   class ErrorReportingCommandLineParseState : Bpl.CommandLineParseState {
     private readonly Errors errors;
