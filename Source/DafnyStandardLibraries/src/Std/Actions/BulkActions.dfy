@@ -94,7 +94,7 @@ module Std.BulkActions {
       reads this, Repr
       requires Valid()
     {
-      Some(index)
+      Some(|elements| - index)
     }
 
 
@@ -449,7 +449,7 @@ module Std.BulkActions {
 
     @ResourceLimit("0")
     @IsolateAssertions
-    method {:only} BulkInvoke(input: Producer<StreamedByte<E>>,
+    method BulkInvoke(input: Producer<StreamedByte<E>>,
                       output: IConsumer<seq<StreamedByte<E>>>,
                       outputTotalProof: TotalActionProof<seq<StreamedByte<E>>, ()>)
       requires Valid()
