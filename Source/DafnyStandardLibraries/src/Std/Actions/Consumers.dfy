@@ -298,6 +298,92 @@ module Std.Consumers {
     }
   }
 
+  class IgnoreNConsumer<T> extends Consumer<T> {
+
+    const n: nat
+    var consumedCount: nat
+
+    ghost predicate Valid()
+      reads this, Repr
+      ensures Valid() ==> this in Repr
+      ensures Valid() ==>
+                && ValidHistory(history)
+      decreases Repr, 0
+    {
+      && this in Repr
+      && ValidHistory(history)
+      && consumedCount <= n
+      && (consumedCount < n ==> Seq.All(history, WasConsumed))
+    }
+
+    twostate lemma ValidImpliesValidChange()
+      requires old(Valid())
+      requires unchanged(old(Repr))
+      ensures ValidChange()
+    {}
+
+    constructor (n: nat)
+      ensures Valid()
+      ensures history == []
+    {
+      history := [];
+      Repr := {this};
+      this.n := n;
+      this.consumedCount := 0;
+      new;
+      assert ConsumedOf(history) == [];
+    }
+
+    ghost predicate ValidInput(history: seq<(T, bool)>, next: T)
+      decreases Repr
+    {
+      true
+    }
+
+    ghost function DecreasesMetric(): TerminationMetric
+      requires Valid()
+      reads this, Repr
+      decreases Repr, 3
+    {
+      TMNat(n - consumedCount)
+    }
+
+    function Capacity(): Option<nat>
+      reads this, Repr
+      requires Valid()
+    {
+      Some(n - consumedCount)
+    }
+
+    @IsolateAssertions
+    method Invoke(t: T) returns (r: bool)
+      requires Requires(t)
+      reads Reads(t)
+      modifies Modifies(t)
+      decreases Decreases(t), 0
+      ensures Ensures(t, r)
+      ensures DecreasedBy(r)
+    {
+      assert Requires(t);
+
+      if consumedCount == n {
+        r := false;
+
+        UpdateHistory(t, r);
+        Seq.PartitionedCompositionRight(old(history), [(t, false)], WasConsumed);
+      } else {
+        r := true;
+        consumedCount := consumedCount + 1;
+
+        UpdateHistory(t, r);
+        Seq.PartitionedCompositionLeft(old(history), [(t, true)], WasConsumed);
+      }
+
+      ConsumedComposition(old(history), [(t, r)]);
+      reveal TerminationMetric.Ordinal();
+    }
+  }
+
   @AssumeCrossModuleTermination
   class ArrayWriter<T> extends Consumer<T> {
 
