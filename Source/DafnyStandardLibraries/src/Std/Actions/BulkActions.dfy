@@ -298,6 +298,13 @@ module Std.BulkActions {
 
       assert Valid();
     }
+
+    function Values(): seq<T>
+      requires Valid()
+      reads this, Repr 
+    {
+      elements
+    }
   }
 
   @AssumeCrossModuleTermination
@@ -448,6 +455,13 @@ module Std.BulkActions {
 
       ConsumedComposition(old(history), [(t, r)]);
       assert Valid();
+    }
+
+    function Values(): seq<T>
+      requires Valid()
+      reads this, Repr 
+    {
+      storage[..size]
     }
   }
 
