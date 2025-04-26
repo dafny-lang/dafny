@@ -410,7 +410,7 @@ module Std.Producers {
     // that the consumer cannot accept, hence the extra leftover return value.
     //
     // TODO: Better name - Fill?
-    method ForEachToCapacity(consumer: Consumer<T>, ghost totalActionProof: TotalActionProof<T, bool>)
+    method Fill(consumer: Consumer<T>, ghost totalActionProof: TotalActionProof<T, bool>)
       returns (leftover: Option<T>)
       requires Valid()
       requires consumer.Valid()
@@ -608,7 +608,7 @@ module Std.Producers {
 
   @ResourceLimit("1e7")
   @IsolateAssertions
-  method DefaultForEachToCapacity<T>(producer: Producer<T>, consumer: Consumer<T>, ghost totalActionProof: TotalActionProof<T, bool>)
+  method DefaultFill<T>(producer: Producer<T>, consumer: Consumer<T>, ghost totalActionProof: TotalActionProof<T, bool>)
     returns (leftover: Option<T>)
     requires producer.Valid()
     requires consumer.Valid()
@@ -891,7 +891,7 @@ module Std.Producers {
       DefaultForEach(this, consumer, totalActionProof);
     }
 
-    method ForEachToCapacity(consumer: Consumer<T>, ghost totalActionProof: TotalActionProof<T, bool>)
+    method Fill(consumer: Consumer<T>, ghost totalActionProof: TotalActionProof<T, bool>)
       returns (leftover: Option<T>)
       requires Valid()
       requires consumer.Valid()
@@ -906,7 +906,7 @@ module Std.Producers {
       ensures consumer.ValidChange()
       ensures NewProduced() == consumer.NewInputs()
     {
-      leftover := DefaultForEachToCapacity(this, consumer, totalActionProof);
+      leftover := DefaultFill(this, consumer, totalActionProof);
     }
   }
 
@@ -1040,7 +1040,7 @@ module Std.Producers {
       DefaultForEach(this, consumer, totalActionProof);
     }
 
-    method ForEachToCapacity(consumer: Consumer<T>, ghost totalActionProof: TotalActionProof<T, bool>)
+    method Fill(consumer: Consumer<T>, ghost totalActionProof: TotalActionProof<T, bool>)
       returns (leftover: Option<T>)
       requires Valid()
       requires consumer.Valid()
@@ -1055,7 +1055,7 @@ module Std.Producers {
       ensures consumer.ValidChange()
       ensures NewProduced() == consumer.NewInputs()
     {
-      leftover := DefaultForEachToCapacity(this, consumer, totalActionProof);
+      leftover := DefaultFill(this, consumer, totalActionProof);
     }
   }
 
@@ -1176,7 +1176,7 @@ module Std.Producers {
       DefaultForEach(this, consumer, totalActionProof);
     }
 
-    method ForEachToCapacity(consumer: Consumer<T>, ghost totalActionProof: TotalActionProof<T, bool>)
+    method Fill(consumer: Consumer<T>, ghost totalActionProof: TotalActionProof<T, bool>)
       returns (leftover: Option<T>)
       requires Valid()
       requires consumer.Valid()
@@ -1191,7 +1191,7 @@ module Std.Producers {
       ensures consumer.ValidChange()
       ensures NewProduced() == consumer.NewInputs()
     {
-      leftover := DefaultForEachToCapacity(this, consumer, totalActionProof);
+      leftover := DefaultFill(this, consumer, totalActionProof);
     }
   }
 
@@ -1342,7 +1342,7 @@ module Std.Producers {
       DefaultForEach(this, consumer, totalActionProof);
     }
 
-    method ForEachToCapacity(consumer: Consumer<T>, ghost totalActionProof: TotalActionProof<T, bool>)
+    method Fill(consumer: Consumer<T>, ghost totalActionProof: TotalActionProof<T, bool>)
       returns (leftover: Option<T>)
       requires Valid()
       requires consumer.Valid()
@@ -1357,7 +1357,7 @@ module Std.Producers {
       ensures consumer.ValidChange()
       ensures NewProduced() == consumer.NewInputs()
     {
-      leftover := DefaultForEachToCapacity(this, consumer, totalActionProof);
+      leftover := DefaultFill(this, consumer, totalActionProof);
     }
   }
 
@@ -1513,7 +1513,7 @@ module Std.Producers {
       DefaultForEach(this, consumer, totalActionProof);
     }
 
-    method ForEachToCapacity(consumer: Consumer<T>, ghost totalActionProof: TotalActionProof<T, bool>)
+    method Fill(consumer: Consumer<T>, ghost totalActionProof: TotalActionProof<T, bool>)
       returns (leftover: Option<T>)
       requires Valid()
       requires consumer.Valid()
@@ -1528,7 +1528,7 @@ module Std.Producers {
       ensures consumer.ValidChange()
       ensures NewProduced() == consumer.NewInputs()
     {
-      leftover := DefaultForEachToCapacity(this, consumer, totalActionProof);
+      leftover := DefaultFill(this, consumer, totalActionProof);
     }
   }
 
@@ -1701,7 +1701,7 @@ module Std.Producers {
       DefaultForEach(this, consumer, totalActionProof);
     }
 
-    method ForEachToCapacity(consumer: Consumer<T>, ghost totalActionProof: TotalActionProof<T, bool>)
+    method Fill(consumer: Consumer<T>, ghost totalActionProof: TotalActionProof<T, bool>)
       returns (leftover: Option<T>)
       requires Valid()
       requires consumer.Valid()
@@ -1716,7 +1716,7 @@ module Std.Producers {
       ensures consumer.ValidChange()
       ensures NewProduced() == consumer.NewInputs()
     {
-      leftover := DefaultForEachToCapacity(this, consumer, totalActionProof);
+      leftover := DefaultFill(this, consumer, totalActionProof);
     }
   }
 
@@ -1870,7 +1870,7 @@ module Std.Producers {
       DefaultForEach(this, consumer, totalActionProof);
     }
 
-    method ForEachToCapacity(consumer: Consumer<O>, ghost totalActionProof: TotalActionProof<O, bool>)
+    method Fill(consumer: Consumer<O>, ghost totalActionProof: TotalActionProof<O, bool>)
       returns (leftover: Option<O>)
       requires Valid()
       requires consumer.Valid()
@@ -1885,7 +1885,7 @@ module Std.Producers {
       ensures consumer.ValidChange()
       ensures NewProduced() == consumer.NewInputs()
     {
-      leftover := DefaultForEachToCapacity(this, consumer, totalActionProof);
+      leftover := DefaultFill(this, consumer, totalActionProof);
     }
   }
 
@@ -2194,7 +2194,7 @@ module Std.Producers {
       DefaultForEach(this, consumer, totalActionProof);
     }
 
-    method ForEachToCapacity(consumer: Consumer<T>, ghost totalActionProof: TotalActionProof<T, bool>)
+    method Fill(consumer: Consumer<T>, ghost totalActionProof: TotalActionProof<T, bool>)
       returns (leftover: Option<T>)
       requires Valid()
       requires consumer.Valid()
@@ -2209,7 +2209,7 @@ module Std.Producers {
       ensures consumer.ValidChange()
       ensures NewProduced() == consumer.NewInputs()
     {
-      leftover := DefaultForEachToCapacity(this, consumer, totalActionProof);
+      leftover := DefaultFill(this, consumer, totalActionProof);
     }
   }
 }

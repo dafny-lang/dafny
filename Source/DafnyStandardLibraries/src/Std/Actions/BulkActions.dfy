@@ -164,7 +164,7 @@ module Std.BulkActions {
     }
 
     // TODO: Optimize this too
-    method ForEachToCapacity(consumer: Consumer<Batched<T, E>>, ghost totalActionProof: TotalActionProof<Batched<T, E>, bool>)
+    method Fill(consumer: Consumer<Batched<T, E>>, ghost totalActionProof: TotalActionProof<Batched<T, E>, bool>)
       returns (leftover: Option<Batched<T, E>>)
       requires Valid()
       requires consumer.Valid()
@@ -179,7 +179,7 @@ module Std.BulkActions {
       ensures consumer.ValidChange()
       ensures NewProduced() == consumer.NewInputs()
     {
-      leftover := DefaultForEachToCapacity(this, consumer, totalActionProof);
+      leftover := DefaultFill(this, consumer, totalActionProof);
     }
 
     @IsolateAssertions

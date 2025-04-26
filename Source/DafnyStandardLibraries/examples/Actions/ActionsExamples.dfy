@@ -173,7 +173,7 @@ module ActionsExamples {
   // whether it will accept the next element,
   // which would be related therefore to ValidInput().
   @IsolateAssertions
-  method ForEachToCapacity<T>(producer: IProducer<T>, ghost producerTotalProof: TotalActionProof<(), T>,
+  method Fill<T>(producer: IProducer<T>, ghost producerTotalProof: TotalActionProof<(), T>,
                               consumer: Consumer<T>, ghost consumerTotalProof: TotalActionProof<T, bool>)
     requires producer.Valid()
     requires consumer.Valid()
@@ -315,7 +315,7 @@ module ActionsExamples {
       count := DefaultForEach(this, consumer, totalActionProof);
     }
 
-    method ForEachToCapacity(consumer: Consumer<Producer<nat>>, ghost totalActionProof: TotalActionProof<Producer<nat>, bool>)
+    method Fill(consumer: Consumer<Producer<nat>>, ghost totalActionProof: TotalActionProof<Producer<nat>, bool>)
       returns (count: int, leftover: Option<Producer<nat>>)
       requires Valid()
       requires consumer.Valid()
@@ -330,7 +330,7 @@ module ActionsExamples {
       ensures consumer.ValidChange()
       ensures NewProduced() == consumer.NewInputs()
     {
-      count, leftover := DefaultForEachToCapacity(this, consumer, totalActionProof);
+      count, leftover := DefaultFill(this, consumer, totalActionProof);
     }
   }
 
