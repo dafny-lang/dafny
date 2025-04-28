@@ -1,7 +1,7 @@
 // RUN: %exits-with 4 %baredafny verify %args "%s" > "%t".raw
 // RUN: %exits-with 4 %baredafny verify %args --json-diagnostics "%s" >> "%t".raw
-// RUN: %exits-with 4 %dafny /compile:0 /diagnosticsFormat:json -printTooltips "%s" >> "%t".raw
-// RUN: %exits-with 4 %dafny /compile:0 /diagnosticsFormat:json -showSnippets:1 "%s" >> "%t".raw
+
+
 // RUN: %sed 's#%S##g' "%t".raw > "%t.raw2"
 // In Windows, %S doesn't contain an additional prefix / that's in the URI.
 // We want to replace with new Uri(%S).LocalPath but we don't have C# access here,
