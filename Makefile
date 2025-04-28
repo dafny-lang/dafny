@@ -109,12 +109,10 @@ update-rs-module:
 	(cd "${DIR}"; cd Source/DafnyRuntime/DafnyRuntimeRust; make update-system-module)
 
 update-go-module:
-	(cd "${DIR}"; cd Source/DafnyRuntime/DafnyRuntimeGo; make update-system-module)
-	(cd "${DIR}"; cd Source/DafnyRuntime/DafnyRuntimeDafny; make update-go)
-  
+	(cd "${DIR}"; cd Source/DafnyRuntime/DafnyRuntimeGo; make update-system-module update-from-dafny)
 
 update-runtime-dafny:
-	(cd "${DIR}"; cd Source/DafnyRuntime/DafnyRuntimeDafny; make update-go)
+	(cd "${DIR}"; cd Source/DafnyRuntime/DafnyRuntimeGo; make update-from-dafny)
 
 pr-nogeneration: format-dfy format update-runtime-dafny update-cs-module update-rs-module update-go-module
 

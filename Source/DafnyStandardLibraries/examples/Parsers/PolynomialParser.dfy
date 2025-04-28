@@ -7,7 +7,7 @@
 module ExampleParsers.Polynomial {
   import opened Std.Wrappers
   import Std.Strings
-  
+
   datatype Expr =
     | Binary(op: string, left: Expr, right: Expr) // left op right
     | Number(value: int)                          // a constant
@@ -65,7 +65,7 @@ module ExampleParsers.Polynomial {
 /** An abstract module to parse polynomials */
 abstract module ExampleParsers.TestPolynomialParser {
   import opened Polynomial
-  type UnderlyingParser<T> 
+  type UnderlyingParser<T>
   type ParseResult<T>
   function PolynomialParser(): UnderlyingParser<Expr>
 
@@ -75,7 +75,7 @@ abstract module ExampleParsers.TestPolynomialParser {
     requires IsSuccess(p)
   function FailureToString<T>(input: string, p: ParseResult<T>): string
     requires !IsSuccess(p)
-  
+
   method TestSimplify(input: string, expectedSimplified: string) {
     var x := Parse(PolynomialParser(), input);
     if !IsSuccess(x) {

@@ -30,8 +30,8 @@ module ExampleParsers.DafnyModuleParser {
 
   const parseIdentifier: B<string> :=
     CharTest((c: char) => c in canStartIdentifierChar, "[" + canStartIdentifierChar + "]").Then((c: char) =>
-    CharTest((c: char) => c in canStartIdentifierChar || c in "_?$", "Identifier character")
-    .Rep().M((s: string) => [c] + s))
+                                                                                                  CharTest((c: char) => c in canStartIdentifierChar || c in "_?$", "Identifier character")
+                                                                                                  .Rep().M((s: string) => [c] + s))
 
   const parseDeclaration: B<Declaration> :=
     Rec(

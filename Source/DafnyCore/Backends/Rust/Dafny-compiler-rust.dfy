@@ -3727,8 +3727,8 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
           );
           range := range.Sel("collect").ApplyType(
             [
-                                                    R.dafny_runtime.MSel("Sequence").AsType().Apply([R.TIdentifier("_")])
-                                                  ]).Apply0();
+              R.dafny_runtime.MSel("Sequence").AsType().Apply([R.TIdentifier("_")])
+            ]).Apply0();
           r := R.Block(r.Then(range));
 
           readIdents := recIdents + lengthIdents;

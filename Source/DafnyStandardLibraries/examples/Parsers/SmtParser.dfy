@@ -4,7 +4,7 @@
 */
 module ExampleParsers.SmtParser {
   import opened Std.Parsers.StringBuilders
-  
+
   function SeqToString<T>(s: seq<T>, f: T --> string, separator: string := ""): string
     requires forall t <- s :: f.requires(t)
   {
@@ -22,7 +22,7 @@ module ExampleParsers.SmtParser {
   datatype SmtNode =
     | Identifier(name: string)
     | Parentheses(s: seq<SmtNode>) {
-      
+
     function ToString(indent: string := ""): string {
       match this {
         case Identifier(name) => if name == "" then "()" else name
@@ -46,15 +46,15 @@ module ExampleParsers.SmtParser {
     //Debug("noParensNoSpace",
     charNotParenNotSpace.I_I(charNotParenNotSpace.Rep()).M((r: (char, string)) => [r.0] + r.1)
 
-  const notNewline := 
+  const notNewline :=
     CharTest((c: char) => c !in "\n", "anything except newline")
-  
+
   function Add(s: string, t: string): string { s + t }
 
   const WSOrComment: B<string> :=
     WS.I_I(
       S(";").I_I(notNewline.Rep()).M2(MId, Add)
-        .I_I(O([S("\n"), EOS.M(x => "")])).M2(MId, Add)
+      .I_I(O([S("\n"), EOS.M(x => "")])).M2(MId, Add)
       .I_I(WS).M2(MId, Add).Rep()
     ).M((wsMore: (string, seq<string>)) => wsMore.0 + SeqToString(wsMore.1, MId))
 
@@ -68,9 +68,9 @@ module ExampleParsers.SmtParser {
           RecContinue(
             (r: SmtNode, input2: Input) =>
               (if InputLength(input) <= InputLength(input2) then
-                ResultWith(RecursiveProgressError<RecNoStackResult<SmtNode>>("RecContinueAcc", input, input2))
-              else
-                RecContinueAcc(input2, acc + [r]))
+                 ResultWith(RecursiveProgressError<RecNoStackResult<SmtNode>>("RecContinueAcc", input, input2))
+               else
+                 RecContinueAcc(input2, acc + [r]))
           ))])
   }
 
