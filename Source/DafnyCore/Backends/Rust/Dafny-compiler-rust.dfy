@@ -1974,6 +1974,7 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
            stmts[i + 1].lhs.ident == stmt.name {
           var name := stmt.name;
           var typ := stmt.typ;
+          assert stmts[i + 1].value < stmts[i + 1];
           var stmtExpr, recIdents, newEnv2 := GenDeclareVarAssign(name, typ, stmts[i + 1].value, selfIdent, newEnv);
           newEnv := newEnv2;
           readIdents := readIdents + (recIdents - declarations);

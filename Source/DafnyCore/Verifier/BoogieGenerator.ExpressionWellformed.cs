@@ -958,7 +958,7 @@ namespace Microsoft.Dafny {
             // Anything read inside the 'old' expressions depends only on the old heap, which isn't included in the
             // frame axiom.  In other words, 'old' expressions have no dependencies on the current heap.  Therefore,
             // we turn off any reads checks for "e.E".
-            CheckWellformed(e.E, wfOptions.WithReadsChecks(false), locals, builder, etran.OldAt(e.AtLabel));
+            CheckWellformed(e.Expr, wfOptions.WithReadsChecks(false), locals, builder, etran.OldAt(e.AtLabel));
             break;
           }
         case UnchangedExpr unchangedExpr: {

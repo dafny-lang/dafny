@@ -16,15 +16,14 @@ namespace Microsoft.Dafny {
   public partial class PreTypeResolver : INewOrOldResolver {
     public Scope<Label> DominatingStatementLabels { get; }
 
-    public Scope<Statement> EnclosingStatementLabels { get; set; }
+    public Scope<LabeledStatement> EnclosingStatementLabels { get; set; }
 
-    public List<Statement> LoopStack {
+    public List<LabeledStatement> LoopStack {
       get => loopStack;
       set => loopStack = value;
     }
 
-    private List<Statement> loopStack = [];  // the enclosing loops (from which it is possible to break out)
-    bool inBodyInitContext;  // "true" only if "currentMethod is Constructor"
+    private List<LabeledStatement> loopStack = [];  // the enclosing loops (from which it is possible to break out)
 
     public void ResolveBlockStatement(BlockLikeStmt blockStmt, ResolutionContext resolutionContext) {
       Contract.Requires(blockStmt != null);
@@ -32,13 +31,9 @@ namespace Microsoft.Dafny {
 
       if (blockStmt is DividedBlockStmt div) {
         Contract.Assert(currentMethod is Constructor);  // divided bodies occur only in class constructors
-        Contract.Assert(!inBodyInitContext);  // divided bodies are never nested
-        inBodyInitContext = true;
         foreach (Statement ss in div.BodyInit) {
-          ResolveStatementWithLabels(ss, resolutionContext);
+          ResolveStatementWithLabels(ss, resolutionContext with { InFirstPhaseConstructor = true });
         }
-        Contract.Assert(inBodyInitContext);
-        inBodyInitContext = false;
         foreach (Statement ss in div.BodyProper) {
           ResolveStatementWithLabels(ss, resolutionContext);
         }
@@ -55,22 +50,23 @@ namespace Microsoft.Dafny {
 
       EnclosingStatementLabels.PushMarker();
       // push labels
-      for (var l = stmt.Labels; l != null; l = l.Next) {
-        var lnode = l.Data;
-        Contract.Assert(lnode.Name != null);  // LabelNode's with .Label==null are added only during resolution of the break statements with 'stmt' as their target, which hasn't happened yet
-        var prev = EnclosingStatementLabels.Find(lnode.Name);
-        if (prev == stmt) {
-          ReportError(lnode.Tok, "duplicate label");
-        } else if (prev != null) {
-          ReportError(lnode.Tok, "label shadows an enclosing label");
-        } else {
-          var r = EnclosingStatementLabels.Push(lnode.Name, stmt);
-          Contract.Assert(r == Scope<Statement>.PushResult.Success);  // since we just checked for duplicates, we expect the Push to succeed
-          if (DominatingStatementLabels.Find(lnode.Name) != null) {
-            ReportError(lnode.Tok, "label shadows a dominating label");
+      if (stmt is LabeledStatement labelledStatement) {
+        foreach (var lnode in labelledStatement.Labels) {
+          Contract.Assert(lnode.Name != null);  // Label's with .Name==null are added only during resolution of the break statements with 'stmt' as their target, which hasn't happened yet
+          var prev = EnclosingStatementLabels.Find(lnode.Name);
+          if (prev == stmt) {
+            ReportError(lnode.Tok, "duplicate label");
+          } else if (prev != null) {
+            ReportError(lnode.Tok, "label shadows an enclosing label");
           } else {
-            var rr = DominatingStatementLabels.Push(lnode.Name, lnode);
-            Contract.Assert(rr == Scope<Label>.PushResult.Success);  // since we just checked for duplicates, we expect the Push to succeed
+            var r = EnclosingStatementLabels.Push(lnode.Name, labelledStatement);
+            Contract.Assert(r == Scope<LabeledStatement>.PushResult.Success);  // since we just checked for duplicates, we expect the Push to succeed
+            if (DominatingStatementLabels.Find(lnode.Name) != null) {
+              ReportError(lnode.Tok, "label shadows a dominating label");
+            } else {
+              var rr = DominatingStatementLabels.Push(lnode.Name, lnode);
+              Contract.Assert(rr == Scope<Label>.PushResult.Success);  // since we just checked for duplicates, we expect the Push to succeed
+            }
           }
         }
       }
@@ -116,7 +112,7 @@ namespace Microsoft.Dafny {
       } else if (stmt is BreakOrContinueStmt) {
         var s = (BreakOrContinueStmt)stmt;
         if (s.TargetLabel != null) {
-          Statement target = EnclosingStatementLabels.Find(s.TargetLabel.Value);
+          var target = EnclosingStatementLabels.Find(s.TargetLabel.Value);
           if (target == null) {
             ReportError(s.TargetLabel.Origin, $"{s.Kind} label is undefined or not in scope: {s.TargetLabel.Value}");
           } else if (s.IsContinue && !(target is LoopStmt)) {
@@ -135,10 +131,10 @@ namespace Microsoft.Dafny {
             ReportError(s,
               $"{jumpStmt} is allowed only in contexts with {s.BreakAndContinueCount} enclosing loops, but the current context only has {loopStack.Count}");
           } else {
-            Statement target = loopStack[loopStack.Count - s.BreakAndContinueCount];
-            if (target.Labels == null) {
+            var target = loopStack[^s.BreakAndContinueCount];
+            if (!target.Labels.Any()) {
               // make sure there is a label, because the compiler and translator will want to see a unique ID
-              target.Labels = new LList<Label>(new Label(target.Origin, null), null);
+              target.Labels = [new Label(target.Origin, null)];
             }
             s.TargetStmt = target;
           }
@@ -150,7 +146,7 @@ namespace Microsoft.Dafny {
           ReportError(stmt, "yield statement is allowed only in iterators");
         } else if (stmt is ReturnStmt && !(resolutionContext.CodeContext is MethodOrConstructor)) {
           ReportError(stmt, "return statement is allowed only in method");
-        } else if (inBodyInitContext) {
+        } else if (resolutionContext.InFirstPhaseConstructor) {
           ReportError(stmt, "return statement is not allowed before 'new;' in a constructor");
         }
         var s = (ProduceStmt)stmt;
@@ -306,7 +302,7 @@ namespace Microsoft.Dafny {
           // clear the labels for the duration of checking the body, because break statements are not allowed to leave a forall statement
           var prevLblStmts = EnclosingStatementLabels;
           var prevLoopStack = loopStack;
-          EnclosingStatementLabels = new Scope<Statement>(resolver.Options);
+          EnclosingStatementLabels = new Scope<LabeledStatement>(resolver.Options);
           loopStack = [];
           ResolveStatement(s.Body, resolutionContext);
           EnclosingStatementLabels = prevLblStmts;
@@ -401,6 +397,8 @@ namespace Microsoft.Dafny {
           ResolveStatement(skeletonStatement.S, resolutionContext);
         }
 
+      } else if (stmt is LabeledStatement) {
+        // content already handled 
       } else {
         Contract.Assert(false); throw new cce.UnreachableException();
       }
@@ -500,7 +498,7 @@ namespace Microsoft.Dafny {
         // clear the labels for the duration of checking the hints, because break statements are not allowed to leave a forall statement
         var prevLblStmts = EnclosingStatementLabels;
         var prevLoopStack = loopStack;
-        EnclosingStatementLabels = new Scope<Statement>(resolver.Options);
+        EnclosingStatementLabels = new Scope<LabeledStatement>(resolver.Options);
         loopStack = [];
         foreach (var h in s.Hints) {
           foreach (var oneHint in h.Body) {
@@ -705,7 +703,7 @@ namespace Microsoft.Dafny {
         } else if (ErrorCount == errorCountBeforeCheckingStmt) {
           // a call statement
           var resolvedLhss = update.Lhss.ConvertAll(ll => ll.Resolved);
-          var a = new CallStmt(update.Origin, resolvedLhss, methodCallInfo.Callee, methodCallInfo.ActualParameters, methodCallInfo.Tok.Center);
+          var a = new CallStmt(update.Origin, resolvedLhss, methodCallInfo.Callee, methodCallInfo.ActualParameters, methodCallInfo.Tok.ReportingRange);
           a.OriginalInitialLhs = update.OriginalInitialLhs;
           update.ResolvedStatements.Add(a);
         }
@@ -1206,7 +1204,7 @@ namespace Microsoft.Dafny {
               Contract.Assert(callLhs.ResolvedExpression is MemberSelectExpr);  // since ResolveApplySuffix succeeded and call.Lhs denotes an expression (not a module or a type)
               var methodSel = (MemberSelectExpr)callLhs.ResolvedExpression;
               if (methodSel.Member is MethodOrConstructor) {
-                allocateClass.InitCall = new CallStmt(stmt.Origin, [], methodSel, allocateClass.Bindings.ArgumentBindings, initCallTok.Center);
+                allocateClass.InitCall = new CallStmt(stmt.Origin, [], methodSel, allocateClass.Bindings.ArgumentBindings, initCallTok.ReportingRange);
                 ResolveCallStmt(allocateClass.InitCall, resolutionContext, allocateClass.Type);
               } else {
                 ReportError(initCallTok, "object initialization must denote an initializing method or constructor ({0})", initCallName);
@@ -1234,8 +1232,7 @@ namespace Microsoft.Dafny {
         var ll = (MemberSelectExpr)lhs;
         var field = ll.Member as Field;
         if (field == null || !field.IsUserMutable) {
-          var cf = field as ConstantField;
-          if (inBodyInitContext && cf != null && !cf.IsStatic && cf.Rhs == null) {
+          if (resolutionContext.InFirstPhaseConstructor && field is ConstantField cf && !cf.IsStatic && cf.Rhs == null) {
             if (Expression.AsThis(ll.Obj) != null) {
               // it's cool; this field can be assigned to here
             } else {

@@ -102,7 +102,7 @@ public class RemoveShortCircuitingRewriter : Cloner {
       var processed = ProcessStmt(statement);
       newBodyProper.AddRange(processed);
     }
-    return new DividedBlockStmt(blockStatement.Origin, newBodyInit, blockStatement.SeparatorTok, newBodyProper);
+    return new DividedBlockStmt(blockStatement.Origin, newBodyInit, blockStatement.SeparatorTok, newBodyProper, blockStatement.Labels);
   }
 
   private List<Statement> ProcessStmt(Statement statement) {
@@ -200,7 +200,7 @@ public class RemoveShortCircuitingRewriter : Cloner {
     if (ifStatement.Els != null) {
       els = ProcessStmtToStmt(ifStatement.Els);
     }
-    return new IfStmt(ifStatement.Origin, ifStatement.IsBindingGuard, guard, thn, els, ifStatement.Attributes);
+    return new IfStmt(ifStatement.Origin, ifStatement.IsBindingGuard, guard, thn, els, [], ifStatement.Attributes);
   }
 
   private Statement CloneUpdateStmt(AssignStatement updateStatement) {
@@ -225,7 +225,7 @@ public class RemoveShortCircuitingRewriter : Cloner {
   }
 
   private Statement CloneCallStmt(CallStmt callStmt) {
-    return new CallStmt(callStmt.Origin, CloneExpressionList(callStmt.Lhs), callStmt.MethodSelect, CloneExpressionList(callStmt.Args));
+    return new CallStmt(callStmt.Origin, CloneExpressionList(callStmt.Lhs), callStmt.MethodSelect, CloneExpressionList(callStmt.Args), callStmt.MethodSelect.EndToken.Next.ReportingRange);
   }
 
   private Statement CloneNestedMatchStmt(NestedMatchStmt nestedMatchStatement) {
@@ -257,7 +257,7 @@ public class RemoveShortCircuitingRewriter : Cloner {
     newStmtStack.Last().AddRange(end.stmts);
     var newBody = CloneBlockStmt(forLoopStmt.Body);
     return new ForLoopStmt(forLoopStmt.Origin, forLoopStmt.LoopIndex, start.expr, end.expr, forLoopStmt.GoingUp,
-      forLoopStmt.Invariants, forLoopStmt.Decreases, forLoopStmt.Mod, newBody, forLoopStmt.Attributes);
+      forLoopStmt.Invariants, forLoopStmt.Decreases, forLoopStmt.Mod, newBody, forLoopStmt.Labels, forLoopStmt.Attributes);
   }
 
   private Statement ProcessStmtToStmt(Statement statement) {

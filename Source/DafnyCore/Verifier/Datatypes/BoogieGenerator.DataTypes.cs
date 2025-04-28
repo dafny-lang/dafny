@@ -492,8 +492,8 @@ namespace Microsoft.Dafny {
         if (dt is IndDatatypeDecl) {
           var argType = arg.Type.NormalizeExpand();
           if (argType.IsDatatype || argType.IsTypeParameter) {
-            // for datatype:             axiom (forall params :: {#dt.ctor(params)} DtRank(params_i) < DtRank(#dt.ctor(params)));
-            // for type-parameter type:  axiom (forall params :: {#dt.ctor(params)} BoxRank(params_i) < DtRank(#dt.ctor(params)));
+            // for datatype:             axiom (forall params :: {DtRank(#dt.ctor(params))} DtRank(params_i) < DtRank(#dt.ctor(params)));
+            // for type-parameter type:  axiom (forall params :: {DtRank(#dt.ctor(params))} BoxRank(params_i) < DtRank(#dt.ctor(params)));
             CreateBoundVariables(ctor.Formals, out bvs, out args);
             Bpl.Expr lhs = FunctionCall(ctor.Origin, arg.Type.IsDatatype ? BuiltinFunction.DtRank : BuiltinFunction.BoxRank,
               null, args[i]);
@@ -503,7 +503,7 @@ namespace Microsoft.Dafny {
               */
             Bpl.Expr ct = FunctionCall(ctor.Origin, ctor.FullName, Predef.DatatypeType, args);
             var rhs = FunctionCall(ctor.Origin, BuiltinFunction.DtRank, null, ct);
-            var trigger = BplTrigger(ct);
+            var trigger = BplTrigger(rhs);
             q = new Bpl.ForallExpr(ctor.Origin, bvs, trigger, Bpl.Expr.Lt(lhs, rhs));
             AddOtherDefinition(fn, new Bpl.Axiom(ctor.Origin, q, "Inductive rank"));
           } else if (argType is SeqType) {

@@ -632,7 +632,7 @@ namespace Microsoft.Dafny.LanguageServer.Language {
     }
 
     public virtual void Visit(OldExpr oldExpression) {
-      Visit(oldExpression.E);
+      Visit(oldExpression.Expr);
     }
 
     public virtual void Visit(ITEExpr ifThenElseExpression) {

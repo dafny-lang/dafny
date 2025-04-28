@@ -1,9 +1,10 @@
+#nullable enable
 using System.Collections.Generic;
 using System.Linq;
 
 namespace Microsoft.Dafny;
 
-public class OpaqueBlock : BlockStmt, ICanResolveNewAndOld {
+public class OpaqueBlock : BlockStmt, ICanResolveNewAndOld, ICloneable<OpaqueBlock> {
   public List<AttributedExpression> Ensures;
   public Specification<FrameExpression> Modifies;
 
@@ -17,15 +18,17 @@ public class OpaqueBlock : BlockStmt, ICanResolveNewAndOld {
       foreach (var e in Ensures) {
         yield return e.E;
       }
-      foreach (var e in Modifies.Expressions) {
+      foreach (var e in Modifies.Expressions!) {
         yield return e.E;
       }
     }
   }
 
+  [SyntaxConstructor]
   public OpaqueBlock(IOrigin origin, List<Statement> body,
     List<AttributedExpression> ensures,
-    Specification<FrameExpression> modifies) : base(origin, body) {
+    Specification<FrameExpression> modifies, List<Label> labels, Attributes? attributes = null)
+    : base(origin, body, labels, attributes) {
     Ensures = ensures;
     Modifies = modifies;
   }
@@ -39,7 +42,7 @@ public class OpaqueBlock : BlockStmt, ICanResolveNewAndOld {
     resolver.Scope.PopMarker();
 
     resolver.ResolveAttributes(Modifies, resolutionContext);
-    foreach (var fe in Modifies.Expressions) {
+    foreach (var fe in Modifies.Expressions!) {
       resolver.ResolveFrameExpression(fe, FrameExpressionUse.Modifies, resolutionContext);
     }
 
@@ -49,5 +52,9 @@ public class OpaqueBlock : BlockStmt, ICanResolveNewAndOld {
       resolver.ConstrainTypeExprBool(ensure.E, "Postcondition must be a boolean (got {0})");
     }
     base.GenResolve(resolver, resolutionContext);
+  }
+
+  public new OpaqueBlock Clone(Cloner cloner) {
+    return new OpaqueBlock(cloner, this);
   }
 }

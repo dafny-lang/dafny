@@ -9,6 +9,7 @@ namespace Microsoft.Dafny;
 /// <summary>
 /// Represents a submodule declaration at module level scope
 /// </summary>
+[SyntaxBaseType(typeof(Declaration))]
 public abstract class ModuleDecl : TopLevelDecl, IHasDocstring, ISymbol {
 
   public DafnyOptions Options { get; }

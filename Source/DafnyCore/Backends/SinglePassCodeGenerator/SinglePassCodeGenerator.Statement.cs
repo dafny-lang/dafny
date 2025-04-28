@@ -56,7 +56,7 @@ namespace Microsoft.Dafny.Compilers {
           }
         case BreakOrContinueStmt breakStmt: {
             var s = breakStmt;
-            var label = s.TargetStmt.Labels.Data.AssignUniqueId(idGenerator);
+            var label = s.TargetStmt.Labels.First().AssignUniqueId(idGenerator);
             if (s.IsContinue) {
               EmitContinue(label, wr);
             } else {
@@ -562,6 +562,9 @@ namespace Microsoft.Dafny.Compilers {
           break;
         case BlockByProofStmt blockByProofStmt:
           TrStmt(blockByProofStmt.Body, wr, wStmts);
+          break;
+        case LabeledStatement:
+          // content already handled
           break;
         default:
           Contract.Assert(false); throw new cce.UnreachableException();  // unexpected statement

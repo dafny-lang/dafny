@@ -14,7 +14,7 @@ public class BreakOrContinueStmt : Statement, IHasReferences, ICloneable<BreakOr
   public bool IsContinue;
   public string Kind => IsContinue ? "continue" : "break";
   public int BreakAndContinueCount;
-  [FilledInDuringResolution] public Statement TargetStmt = null!;
+  [FilledInDuringResolution] public LabeledStatement TargetStmt = null!;
   [ContractInvariantMethod]
   void ObjectInvariant() {
     Contract.Invariant(TargetLabel != null || 1 <= BreakAndContinueCount);
@@ -29,7 +29,7 @@ public class BreakOrContinueStmt : Statement, IHasReferences, ICloneable<BreakOr
     IsContinue = original.IsContinue;
     BreakAndContinueCount = original.BreakAndContinueCount;
     if (cloner.CloneResolvedFields) {
-      TargetStmt = cloner.CloneStmt(original.TargetStmt, true);
+      TargetStmt = (LabeledStatement)cloner.CloneStmt(original.TargetStmt, true);
     }
   }
 

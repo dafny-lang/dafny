@@ -753,7 +753,7 @@ namespace Microsoft.Dafny {
             }
           case OldExpr oldExpr: {
               var e = oldExpr;
-              return OldAt(e.AtLabel).TrExpr(e.E);
+              return OldAt(e.AtLabel).TrExpr(e.Expr);
             }
           case UnchangedExpr unchangedExpr: {
               var e = unchangedExpr;
@@ -2274,7 +2274,7 @@ BplBoundVar(varNameGen.FreshId(string.Format("#{0}#", bv.Name)), Predef.BoxType,
           return CanCallAssumption(e.E, cco);
         } else if (expr is OldExpr) {
           var e = (OldExpr)expr;
-          return OldAt(e.AtLabel).CanCallAssumption(e.E, cco);
+          return OldAt(e.AtLabel).CanCallAssumption(e.Expr, cco);
         } else if (expr is UnchangedExpr) {
           var e = (UnchangedExpr)expr;
           Boogie.Expr be = Boogie.Expr.True;
