@@ -332,8 +332,8 @@ public class AutoRevealFunctionDependencies : IRewriter {
     rr.TypeApplicationJustMember = [];
     rr.TypeApplicationAtEnclosingClass = args;
 
-    var call = new CallStmt(func.Origin, [], rr, [],
-      func.Center);
+    var call = new CallStmt(func.Origin, [], rr, (List<Expression>)[],
+      func.ReportingRange);
     call.IsGhost = true;
     call.Bindings.AcceptArgumentExpressionsAsExactParameterList([]);
 
