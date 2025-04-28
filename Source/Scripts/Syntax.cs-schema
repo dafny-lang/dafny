@@ -877,6 +877,11 @@ abstract class ClassLikeDecl : TopLevelDeclWithMembers
 {
 }
 
+class TraitDecl : ClassLikeDecl
+{
+    Boolean isRefining;
+}
+
 class ClassDecl : ClassLikeDecl
 {
     Boolean isRefining;

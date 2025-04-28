@@ -1941,6 +1941,29 @@ namespace Microsoft.Dafny
             return ReadIndDatatypeDecl();
         }
 
+        public TraitDecl ReadTraitDecl()
+        {
+            Microsoft.Dafny.ModuleDefinition parameter2 = null;
+            var parameter0 = ReadAbstract<IOrigin>();
+            var parameter1 = ReadName();
+            var parameter5 = ReadAttributesOption();
+            var parameter3 = ReadList<TypeParameter>(() => ReadTypeParameter());
+            var parameter4 = ReadList<MemberDecl>(() => ReadAbstract<MemberDecl>());
+            var parameter7 = ReadList<Type>(() => ReadAbstract<Type>());
+            var parameter6 = ReadBoolean();
+            return new TraitDecl(parameter0, parameter1, parameter2, parameter3, parameter4, parameter5, parameter6, parameter7);
+        }
+
+        public TraitDecl ReadTraitDeclOption()
+        {
+            if (ReadIsNull())
+            {
+                return default;
+            }
+
+            return ReadTraitDecl();
+        }
+
         public ClassDecl ReadClassDecl()
         {
             Microsoft.Dafny.ModuleDefinition parameter4 = null;
@@ -2555,6 +2578,11 @@ namespace Microsoft.Dafny
             if (actualType == typeof(IndDatatypeDecl))
             {
                 return ReadIndDatatypeDecl();
+            }
+
+            if (actualType == typeof(TraitDecl))
+            {
+                return ReadTraitDecl();
             }
 
             if (actualType == typeof(ClassDecl))
