@@ -30,10 +30,10 @@ public class CommonOptionBag {
    * Experimental feature
    */
   public static readonly Option<string> Coverage =
-    new("--coverage",     @"The compiler emits branch-coverage calls and outputs into <file> a legend that gives a description of each source-location identifier used in the branch-coverage calls. (Use - as <file> to print to the console.") {
+    new("--coverage", @"The compiler emits branch-coverage calls and outputs into <file> a legend that gives a description of each source-location identifier used in the branch-coverage calls. (Use - as <file> to print to the console.") {
       IsHidden = true
     };
-  
+
   public static readonly Option<bool> WaitForDebugger =
     new("--wait-for-debugger", "Lets the C# compiler block until a .NET debugger is attached") {
       IsHidden = true
@@ -425,7 +425,7 @@ If verification fails, report a detailed counterexample for the first failing as
     DafnyOptions.RegisterLegacyBinding(Coverage, (options, s) => {
       options.CoverageLegendFile = s;
     });
-    
+
     DafnyOptions.RegisterLegacyBinding(WarnAsErrors, (options, value) => {
       if (!options.Get(AllowWarnings) && !options.Get(WarnAsErrors)) {
         // If allow warnings is at the default value, and warn-as-errors is not, use the warn-as-errors value
