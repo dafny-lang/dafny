@@ -7,7 +7,7 @@ namespace Microsoft.Dafny;
 /// The right-hand-side of an expression of the type arrayRef`[index1, index2...]
 /// Denotes the memory location at this index
 /// </summary>
-public class IndexFieldReferrer: Expression {
+public class IndexFieldReferrer: Expression, ICloneable<IndexFieldReferrer> {
 
   public Token CloseParen { get; set; }
 
@@ -29,5 +29,9 @@ public class IndexFieldReferrer: Expression {
     this.Indices = original.Indices;
     this.OpenParen = original.OpenParen;
     this.CloseParen = original.CloseParen;
+  }
+
+  public IndexFieldReferrer Clone(Cloner cloner) {
+    return new IndexFieldReferrer(cloner, this);
   }
 }
