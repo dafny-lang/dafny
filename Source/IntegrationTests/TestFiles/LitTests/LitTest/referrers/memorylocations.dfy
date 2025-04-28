@@ -56,3 +56,5 @@ method TestArray2(a: array2<int, int>, c: bool)
 {
   ghost var m := a`[0, 0];
 }
+
+

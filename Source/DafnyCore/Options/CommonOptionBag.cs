@@ -277,6 +277,11 @@ true - Print debug information for the new type system.".TrimStart()) {
     "not compilable instead of regular code. Useful when developing compilers or to document for each test what " +
     "compiler feature is missing") {
   };
+  public static readonly Option<bool> Referrers = new("--referrers", () => false,
+    "Enables the modeling of backreferences in Dafny, so that one can reason about memory locations at " +
+    "which objects are being stored.") {
+    IsHidden = true
+  };
   public static readonly Option<bool> SpillTranslation = new("--spill-translation",
     @"In case the Dafny source code is translated to another language, emit that translation.") {
   };
@@ -639,6 +644,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
     OptionRegistry.RegisterGlobalOption(AllowDeprecation, OptionCompatibility.OptionLibraryImpliesLocalWarning);
     OptionRegistry.RegisterGlobalOption(WarnShadowing, OptionCompatibility.OptionLibraryImpliesLocalWarning);
     OptionRegistry.RegisterGlobalOption(UseStandardLibraries, OptionCompatibility.OptionLibraryImpliesLocalError);
+    OptionRegistry.RegisterGlobalOption(Referrers, OptionCompatibility.CheckOptionMatches);
     OptionRegistry.RegisterOption(TranslateStandardLibrary, OptionScope.Cli);
     OptionRegistry.RegisterOption(WarnAsErrors, OptionScope.Cli);
     OptionRegistry.RegisterOption(ProgressOption, OptionScope.Cli);

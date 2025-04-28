@@ -4476,6 +4476,21 @@ Suffix<ref Expression e>
     [ ActualBindings<args> ]
     ")"                                    (. e = new ApplySuffix(new SourceOrigin(startToken, t, openParen), null, e, args, t);
                                            .)
+  | "`"                                    (. Token backtick = t; .)
+    ( IF(IsIdentifier(la.kind))            (. Name name = null; .)
+      NoDigitName<out name>
+      (.
+        var field = new FieldReferrer(name);
+        e = ProcessTupleArgs([new ActualBinding(null, e, true), new ActualBinding(null, field, true)], backtick);
+      .)
+    | "["               (. Token openParen = t; var args = new List<ActualBinding>(); .)
+      TupleArgs<args>
+      "]"               (. Token closeParen = t; .)
+      (.
+        var field = new IndexFieldReferrer(openParen, args, closeParen);
+        e = ProcessTupleArgs([new ActualBinding(null, e, true), new ActualBinding(null, field, true)], closeParen);
+      .)
+    )
   )
   .
 

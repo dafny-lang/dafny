@@ -305,7 +305,8 @@ public partial class Parser {
   }
 
   bool IsSuffix() {
-    return la.kind == _dot || la.kind == _lbracket || la.kind == _openparen;
+    return la.kind is _dot or _lbracket or _openparen ||
+           (theOptions.Get(CommonOptionBag.Referrers) && la.kind is _backtick);
   }
 
   string UnwildIdent(IOrigin x, bool allowWildcardId) {
