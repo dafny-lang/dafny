@@ -1,3 +1,6 @@
+// RUN: %verify --referrers --type-system-refresh "%s" > "%t"
+// RUN: %diff "%s.expect" "%t"
+
 class Test {
   var x: int
   const c: int
