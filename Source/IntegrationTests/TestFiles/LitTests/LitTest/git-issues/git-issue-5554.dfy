@@ -1,4 +1,4 @@
-// RUN:  %dafny -compile:4 -compileTarget:cs "%s"
+// RUN: %run "%s"
 
 datatype MultisetContainer = EmptySet | BooleanMultiset(containerSet: multiset<bool>)
 
