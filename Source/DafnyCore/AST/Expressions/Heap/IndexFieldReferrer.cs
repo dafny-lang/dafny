@@ -1,5 +1,6 @@
 ﻿using System.Collections.Generic;
 using System.Diagnostics.Contracts;
+using System.Linq;
 
 namespace Microsoft.Dafny;
 
@@ -8,15 +9,19 @@ namespace Microsoft.Dafny;
 /// Denotes the memory location at this index
 /// </summary>
 public class IndexFieldReferrer: Expression, ICloneable<IndexFieldReferrer> {
+  // Because memory locations are tuples, this is just a copy of the expression so that we can determine if
+  // it's legit to 
+  public Expression ObjectCopy { get; }
 
-  public Token CloseParen { get; set; }
+  public Token CloseParen { get; }
 
-  public Token OpenParen { get; set; }
+  public Token OpenParen { get; }
 
-  public List<ActualBinding> Indices { get; set; }
+  public List<ActualBinding> Indices { get; }
   
-  public IndexFieldReferrer(Token openParen, List<ActualBinding> indices, Token closeParen) : base(openParen) {
+  public IndexFieldReferrer(Expression objectCopy, Token openParen, List<ActualBinding> indices, Token closeParen) : base(new SourceOrigin(openParen, closeParen)) {
     Contract.Requires(indices.Count != 0);
+    this.ObjectCopy = objectCopy;
     this.Indices = indices;
     this.OpenParen = openParen;
     this.CloseParen = closeParen;
@@ -26,6 +31,7 @@ public class IndexFieldReferrer: Expression, ICloneable<IndexFieldReferrer> {
   {
     Contract.Requires(original != null);
     Contract.Ensures(type == null);
+    this.ObjectCopy = original.ObjectCopy;
     this.Indices = original.Indices;
     this.OpenParen = original.OpenParen;
     this.CloseParen = original.CloseParen;
@@ -34,4 +40,7 @@ public class IndexFieldReferrer: Expression, ICloneable<IndexFieldReferrer> {
   public IndexFieldReferrer Clone(Cloner cloner) {
     return new IndexFieldReferrer(cloner, this);
   }
+
+  // objectCopy is not part of it because it's only used for resolution
+  public override IEnumerable<Expression> SubExpressions => Indices.Select(index => index.Actual);
 }

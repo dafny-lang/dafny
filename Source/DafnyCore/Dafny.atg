@@ -82,6 +82,7 @@ TOKENS
   arrayToken = "array" [('1' digit | posDigitFrom2 ) {digit}] ['?'].
   bvToken = "bv" ( '0' | posDigit {digit} ).
   bool = "bool".
+  field = "field".
   char = "char".
   int = "int".
   nat = "nat".
@@ -1488,6 +1489,7 @@ TypeAndToken<out Token tok, out Type ty, bool inExpressionContext>
   | "int"                           (. tok = t; startToken = t; ty = new IntType(); ty.SetOrigin(t); .)
   | "nat"                           (. tok = t; startToken = t; ty = new UserDefinedType(tok, tok.val, null); .)
   | "real"                          (. tok = t; startToken = t; ty = new RealType(); ty.SetOrigin(t); .)
+  | "field"                         (. tok = t; startToken = t; ty = new FieldType(); ty.SetOrigin(t); .)
   | "ORDINAL"                       (. tok = t; startToken = t; ty = new BigOrdinalType(); ty.SetOrigin(t); .)
   | bvToken                         (. tok = t; startToken = t;
                                        int w = StringToInt(tok.val.Substring(2), 0, "bitvectors that wide", startToken);
@@ -4480,15 +4482,15 @@ Suffix<ref Expression e>
     ( IF(IsIdentifier(la.kind))            (. Name name = null; .)
       NoDigitName<out name>
       (.
-        var field = new FieldReferrer(name);
-        e = ProcessTupleArgs([new ActualBinding(null, e, true), new ActualBinding(null, field, true)], backtick);
+        var field = new FieldReferrer(e, name);
+        e = ProcessTupleArgs([new ActualBinding(null, e, false), new ActualBinding(null, field, false)], backtick);
       .)
     | "["               (. Token openParen = t; var args = new List<ActualBinding>(); .)
       TupleArgs<args>
       "]"               (. Token closeParen = t; .)
       (.
-        var field = new IndexFieldReferrer(openParen, args, closeParen);
-        e = ProcessTupleArgs([new ActualBinding(null, e, true), new ActualBinding(null, field, true)], closeParen);
+        var field = new IndexFieldReferrer(e, openParen, args, closeParen);
+        e = ProcessTupleArgs([new ActualBinding(null, e, false), new ActualBinding(null, field, false)], closeParen);
       .)
     )
   )

@@ -1180,6 +1180,34 @@ namespace Microsoft.Dafny {
         }
 
         decreasesToExpr.Type = Type.Bool;
+      } else if (expr is FieldReferrer fieldReferrer) {
+        fieldReferrer.Type = Type.Field;
+        ResolveExpression(fieldReferrer.ObjectCopy, resolutionContext);
+        // Determine what field it is.
+        if (PartiallyResolveTypeForMemberSelection(
+              fieldReferrer.Origin, fieldReferrer.ObjectCopy.Type, fieldReferrer.Name.Value) == null)
+        {
+          reporter.Error(MessageSource.Resolver, fieldReferrer, 
+            $"{fieldReferrer.Name.Value} is not a member of {fieldReferrer.ObjectCopy.Type}");
+        }
+        
+      } else if (expr is IndexFieldReferrer indexFieldReferrer) {
+        ResolveExpression(indexFieldReferrer.ObjectCopy, resolutionContext);
+        if (indexFieldReferrer.ObjectCopy.Type.AsArrayType is not ArrayClassDecl arrayType) {
+          reporter.Error(MessageSource.Resolver, indexFieldReferrer, 
+            $"Expected array memory location to be applied to an array, but got {indexFieldReferrer.ObjectCopy.Type}");
+        } else {
+          if (arrayType.Dims != indexFieldReferrer.Indices.Count) {
+            reporter.Error(MessageSource.Resolver, indexFieldReferrer, 
+              $"Expected {arrayType.Dims} {(arrayType.Dims > 1 ? "indices" : "index")}, but got {indexFieldReferrer.Indices.Count}");
+          }
+          foreach (var subexpr in indexFieldReferrer.SubExpressions) {
+            ResolveExpression(subexpr, resolutionContext);
+            ConstrainToIntegerType(subexpr, false, "Expected array location index to be int, got {0}");
+          }
+
+          indexFieldReferrer.Type = Type.Field;
+        }
       } else {
         Contract.Assert(false); throw new cce.UnreachableException();  // unexpected expression
       }

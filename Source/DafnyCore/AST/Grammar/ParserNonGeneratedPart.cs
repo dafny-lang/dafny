@@ -562,6 +562,7 @@ public partial class Parser {
       case _ORDINAL:
       case _string:
       case _object_q:
+      case _field:
       case _object:
         pt = scanner.Peek();
         return true;

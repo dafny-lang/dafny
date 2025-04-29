@@ -5,15 +5,18 @@
 /// Denotes the memory location at this index
 /// </summary>
 public class FieldReferrer: Expression, ICloneable<FieldReferrer> {
-  public Name Name { get; set; }
+  // Because memory locations are tuples, this is just a copy of the expression so that we can determine if
+  // it's legit to 
+  public Expression ObjectCopy { get; }
+  public Name Name { get; }
   
-  public FieldReferrer(Name name) : base(name.Origin)
-  {
+  public FieldReferrer(Expression objectCopy, Name name) : base(name.Origin) {
+    this.ObjectCopy = objectCopy;
     this.Name = name;
   }
 
-  public FieldReferrer(Cloner cloner, FieldReferrer original) : base(cloner, original)
-  {
+  public FieldReferrer(Cloner cloner, FieldReferrer original) : base(cloner, original) {
+    this.ObjectCopy = cloner.CloneExpr(original.ObjectCopy);
     this.Name = original.Name;
   }
 

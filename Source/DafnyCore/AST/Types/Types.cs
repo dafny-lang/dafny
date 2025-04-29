@@ -13,6 +13,7 @@ public abstract class Type : NodeWithOrigin {
   public static CharType Char = new CharType();
   public static IntType Int = new IntType();
   public static RealType Real = new RealType();
+  public static FieldType Field = new FieldType();
 
   [SyntaxConstructor]
   protected Type(IOrigin origin = null) : base(origin) {
@@ -1106,6 +1107,8 @@ public abstract class Type : NodeWithOrigin {
       return b is IntType;
     } else if (a is RealType) {
       return b is RealType;
+    } else if (a is FieldType) {
+      return b is FieldType;
     } else if (a is BitvectorType) {
       var bitvectorSuper = (BitvectorType)a;
       var bitvectorSub = b as BitvectorType;
@@ -1994,6 +1997,28 @@ public class SelfType : NonProxyType {
   public override bool ComputeMayInvolveReferences(ISet<DatatypeDecl>/*?*/ visitedDatatypes) {
     // SelfType is used only with bitvector types
     return false;
+  }
+}
+
+public class FieldType : BasicType {
+  [SyntaxConstructor]
+  public FieldType(IOrigin origin) : base(origin) {
+  }
+
+  public FieldType() {
+  }
+  [System.Diagnostics.Contracts.Pure]
+  public override string TypeName(DafnyOptions options, ModuleDefinition context, bool parseAble) {
+    return "field";
+  }
+  public override bool Equals(Type that, bool keepConstraints = false) {
+    return that.NormalizeExpand(keepConstraints) is FieldType;
+  }
+  public override bool IsSubtypeOf(Type super, bool ignoreTypeArguments, bool ignoreNullity) {
+    if (super is FieldType) {
+      return true;
+    }
+    return base.IsSubtypeOf(super, ignoreTypeArguments, ignoreNullity);
   }
 }
 

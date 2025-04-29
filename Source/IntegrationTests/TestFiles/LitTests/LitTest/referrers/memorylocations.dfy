@@ -14,8 +14,8 @@ method TestClass(t1: Test, t2: Test, t3: Test, b: bool, c: bool) {
   ghost var setMems: set<(object, field)> := {t1`x,t2`x};
   assert setMems == set t <- allTs :: t`x;
   ghost var seqMems: seq<(object, field)> := [t1`x,t2`x];
-  assert set r <- setMems :: r.0 == {t1, t2};
-  assert (set r <- seqMems) == setMems;
+  assert {t1, t2} == set r <- setMems :: r.0;
+  assert setMems == set r <- seqMems;
   
   ghost var m: (object, field) := if c then (if b then t1`x else t2`x) else t3`x;
   ghost var m2: (object, field) := if c then (if b then t1 else t2)`x else t3`x;
