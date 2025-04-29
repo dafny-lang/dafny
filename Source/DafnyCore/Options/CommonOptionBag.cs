@@ -75,6 +75,11 @@ public class CommonOptionBag {
 
   public static readonly Option<bool> ManualLemmaInduction =
     new("--manual-lemma-induction", "Turn off automatic induction for lemmas.");
+  
+  public static readonly Option<bool> AutomaticQuantifierInduction =
+    new("--automatic-quantifier-induction", "Turn on automatic induction for quantifiers.") {
+      IsHidden = true
+    };
 
   public static readonly Option<bool> StdIn = new("--stdin", () => false,
     @"Read standard input and treat it as an input .dfy file.");
@@ -454,8 +459,13 @@ If verification fails, report a detailed counterexample for the first failing as
       options.TestContracts = value == TestAssumptionsMode.Externs ? DafnyOptions.ContractTestingMode.Externs : DafnyOptions.ContractTestingMode.None;
     });
     DafnyOptions.RegisterLegacyBinding(ManualLemmaInduction, (options, value) => {
-      if (value) {
+      if (value && options.Induction == 4) {
         options.Induction = 1;
+      }
+    });
+    DafnyOptions.RegisterLegacyBinding(AutomaticQuantifierInduction, (options, value) => {
+      if (value) {
+        options.Induction = 3;
       }
     });
     DafnyOptions.RegisterLegacyBinding(IncludeRuntimeOption, (options, value) => { options.IncludeRuntime = value; });
@@ -572,6 +582,7 @@ If verification fails, report a detailed counterexample for the first failing as
     OptionRegistry.RegisterOption(StdIn, OptionScope.Cli);
     OptionRegistry.RegisterOption(TestAssumptions, OptionScope.Cli);
     OptionRegistry.RegisterOption(ManualLemmaInduction, OptionScope.Module);
+    OptionRegistry.RegisterOption(AutomaticQuantifierInduction, OptionScope.Module);
     OptionRegistry.RegisterOption(TypeInferenceDebug, OptionScope.Cli);
     OptionRegistry.RegisterOption(GeneralTraits, OptionScope.Cli);
     OptionRegistry.RegisterOption(GeneralNewtypes, OptionScope.Cli);

@@ -1,6 +1,5 @@
 // NONUNIFORM: Multiple testing scenarios (could be split)
-// RUN: %dafny /compile:3 "%s" > "%t"
-// RUN: %dafny /compile:3 /optimize "%s" >> "%t"
+// RUN: %dafny run "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 // See https://github.com/dafny-lang/dafny/issues/508
 

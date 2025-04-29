@@ -1,4 +1,4 @@
-// RUN: %verify --allow-deprecation "%s" > "%t"
+// RUN: %verify --automatic-quantifier-induction --allow-deprecation "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 // Datatypes

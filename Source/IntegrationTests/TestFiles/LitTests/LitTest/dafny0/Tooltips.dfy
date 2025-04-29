@@ -1,4 +1,4 @@
-// RUN: %dafny /compile:0 /typeSystemRefresh:1 /generalNewtypes:1 /printTooltips "%s" > "%t"
+// RUN: %verify --show-hints "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 type D<X> = set
