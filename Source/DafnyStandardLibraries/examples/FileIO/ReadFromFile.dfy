@@ -17,14 +17,14 @@ module ReadFromFile {
       // Happy path: read from the data file, and check that we see the expected content.
     {
       var expectedStr := "Hello world\nGoodbye\n";
-      var res := FileIO.ReadFile(dataPath);
+      var res := FileIO.ReadUTF8FromFile(dataPath);
       expect res.Success?, "unexpected failure: " + res.error;
       expect res.value == expectedStr;
     }
 
       // Failure path: attempting to read from a blank file path should never work.
     {
-      var res := FileIO.ReadFile("");
+      var res := FileIO.ReadUTF8FromFile("");
       expect res.Failure?, "unexpected success";
       expect expectedErrorPrefix <= res.error, "unexpected error message: " + res.error;
     }

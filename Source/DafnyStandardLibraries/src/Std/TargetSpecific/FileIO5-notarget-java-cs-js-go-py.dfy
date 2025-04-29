@@ -20,7 +20,7 @@ module Std.FileIO {
   import Strings
   import FileIOInternalExterns
 
-  export provides ReadBytesFromFile, WriteBytesToFile, ReadFile, WriteFile, Wrappers
+  export provides ReadBytesFromFile, WriteBytesToFile, ReadUTF8FromFile, WriteUTF8ToFile, Wrappers
 
   /*
    * Public API
@@ -69,7 +69,7 @@ module Std.FileIO {
     *
     * Example:
     * ```dafny
-    * var result := FileIO.ReadFile("example.txt");
+    * var result := FileIO.ReadUTF8FromFile("example.txt");
     * if result.IsFailure() {
     *   print "Error reading file: ", result.error;
     * } else {
@@ -77,7 +77,7 @@ module Std.FileIO {
     * }
     * ```
     */
-  method ReadFile(fileName: string) returns (r: Result<string, string>) {
+  method ReadUTF8FromFile(fileName: string) returns (r: Result<string, string>) {
     var bytes :- ReadBytesFromFile(fileName);
     if !Utf8EncodingForm.IsWellFormedCodeUnitSequence(bytes) {
       return Failure("Byte sequence of file '" + fileName + "' is not well formed UTF8");
@@ -94,33 +94,6 @@ module Std.FileIO {
     return Success(s);
   }
 
-  /**
-    * Attempts to write a string to a file using UTF-8 encoding.
-    * Creates the file if it doesn't exist, or overwrites it if it does.
-    * Creates any necessary parent directories.
-    *
-    * Parameters:
-    * - fileName: string - The path where the file should be written
-    * - content: string - The string content to write to the file
-    *
-    * Returns:
-    * - Outcome<string> - On success, returns Pass.
-    *   On failure, returns an error message describing what went wrong.
-    *
-    * Error cases:
-    * - Cannot create or write to the file (permissions, disk space, etc.)
-    * - The content contains characters that cannot be encoded as valid UTF-8 scalar values
-    *
-    * Example:
-    * ```dafny
-    * var result := WriteFile("example.txt", "Hello, World!");
-    * if result.IsFailure() {
-    *   print "Error writing file: ", result.error;
-    * } else {
-    *   print "File written successfully";
-    * }
-    * ```
-    */
   opaque predicate WriteFileInvariantFor(c: char)
   {
     && IsCodePoint(c as bv24)
@@ -158,9 +131,36 @@ module Std.FileIO {
     ToScalarValue(ToCodePoint(c as bv24))
   }
 
+  /**
+    * Attempts to write a string to a file using UTF-8 encoding.
+    * Creates the file if it doesn't exist, or overwrites it if it does.
+    * Creates any necessary parent directories.
+    *
+    * Parameters:
+    * - fileName: string - The path where the file should be written
+    * - content: string - The string content to write to the file
+    *
+    * Returns:
+    * - Outcome<string> - On success, returns Pass.
+    *   On failure, returns an error message describing what went wrong.
+    *
+    * Error cases:
+    * - Cannot create or write to the file (permissions, disk space, etc.)
+    * - The content contains characters that cannot be encoded as valid UTF-8 scalar values
+    *
+    * Example:
+    * ```dafny
+    * var result := WriteFile("example.txt", "Hello, World!");
+    * if result.IsFailure() {
+    *   print "Error writing file: ", result.error;
+    * } else {
+    *   print "File written successfully";
+    * }
+    * ```
+    */
   @IsolateAssertions
   @ResourceLimit("2e6")
-  method WriteFile(fileName: string, content: string) returns (r: Outcome<string>)
+  method WriteUTF8ToFile(fileName: string, content: string) returns (r: Outcome<string>)
   {
     for i := 0 to |content|
       invariant forall k | 0 <= k < i :: WriteFileInvariantFor(content[k])

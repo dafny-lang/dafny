@@ -23,7 +23,7 @@ module WriteToFile {
       {
         var res := FileIO.WriteFile(outputDir + "/output_plain", str);
         expect res.Pass?, "unexpected failure writing to output_plain: " + res.error;
-        var readAgain := FileIO.ReadFile(outputDir + "/output_plain");
+        var readAgain := FileIO.ReadUTF8FromFile(outputDir + "/output_plain");
         expect readAgain.Success?;
         expect readAgain.value == str;
       }
