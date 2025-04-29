@@ -123,6 +123,11 @@ public abstract class Expression : NodeWithOrigin {
     get { yield break; }
   }
 
+  /// <summary>
+  /// Like "SubExpressions", except does not return expressions from .Attributes.
+  /// </summary>
+  public virtual IEnumerable<Expression> SubExpressionsWithoutAttributes => SubExpressions;
+
   public IEnumerable<Expression> DescendantsAndSelf {
     get {
       Stack<Expression> todo = new();
