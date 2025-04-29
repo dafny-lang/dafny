@@ -1019,7 +1019,7 @@ method t10() { assert false; }".TrimStart();
     [Fact]
     public async Task OpeningDocumentWithElephantOperatorDoesNotThrowException() {
       var source = @"
-module {:options ""/functionSyntax:4""} Library {
+module {:options ""--function-syntax:4""} Library {
   // Library
   datatype Option<T> = Some(value: T) | None
   datatype Result<T> = Success(value: T) | Failure(s: string, pos: int) {

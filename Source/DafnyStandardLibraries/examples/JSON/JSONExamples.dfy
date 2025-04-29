@@ -5,7 +5,7 @@
  */
 
 /** High-level API (JSON values) */
-@Options("-functionSyntax:4")
+@Options("--function-syntax:4")
 module AbstractSyntax {
   import Std.JSON.API
   import opened Std.JSON.Values
@@ -129,7 +129,7 @@ module AbstractSyntax {
  If you care about low-level performance, or about preserving existing
  formatting as much as possible, you may prefer to use the lower-level API:
  */
-@Options("-functionSyntax:4")
+@Options("--function-syntax:4")
 module ConcreteSyntax {
   import Std.JSON.ZeroCopy.API
   import opened Std.Unicode.UnicodeStringsWithUnicodeChar

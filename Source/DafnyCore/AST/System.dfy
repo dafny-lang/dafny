@@ -1,6 +1,6 @@
 
 // Interface with the System namespace
-@Options("-functionSyntax:4")
+@Options("--function-syntax:4")
 @Compile(false)
 module {:extern "System"} System {
   @Compile(false)

@@ -40,7 +40,7 @@ include ""git-issue48-include.dfyi""
   false
 )
 @Options(
-  ""-functionSyntax:4""
+  ""--function-syntax:4""
 )
 module Outer.A {
   import B

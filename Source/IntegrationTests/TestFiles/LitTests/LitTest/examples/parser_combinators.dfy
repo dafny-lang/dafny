@@ -52,7 +52,7 @@ function F1(): int { Apply(() => F1()) }
 
 module {:options "--function-syntax:4"} Parsers {
 
-/// (The `-functionSyntax:4` enables Dafny's new function syntax, where
+/// (The `--function-syntax:4` enables Dafny's new function syntax, where
 /// `function` replaces `function method`)
 ///
 /// ## Utility types
