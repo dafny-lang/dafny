@@ -2394,7 +2394,7 @@ BplBoundVar(varNameGen.FreshId(string.Format("#{0}#", bv.Name)), Predef.BoxType,
 
         } else if (expr is ComprehensionExpr) {
           var e = (ComprehensionExpr)expr;
-          if (e is QuantifierExpr q && q.SplitQuantifier != null) {
+          if (e is QuantifierExpr { SplitQuantifier: not null } q) {
             return CanCallAssumption(q.SplitQuantifierExpression, cco);
           }
 
