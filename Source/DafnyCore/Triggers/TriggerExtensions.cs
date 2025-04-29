@@ -67,6 +67,7 @@ namespace Microsoft.Dafny.Triggers {
       }
     }
 
+#if IM_NOT_SO_SURE
     internal static IEnumerable<Expression> AllSubExpressions(this Statement stmt, bool wrapOld, bool strict, bool inlineLets = false) {
       foreach (var subexpr in stmt.SubExpressions) {
         foreach (var r_subexpr in AllSubExpressions(subexpr, wrapOld, false, inlineLets)) {
@@ -80,6 +81,7 @@ namespace Microsoft.Dafny.Triggers {
         }
       }
     }
+#endif
 
     internal static bool ExpressionEq(this Expression expr1, Expression expr2) {
       expr1 = expr1.Resolved;
