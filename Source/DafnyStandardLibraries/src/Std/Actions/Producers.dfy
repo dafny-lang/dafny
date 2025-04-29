@@ -1890,38 +1890,35 @@ module Std.Producers {
     }
   }
 
-  trait ProducerOfNewProducers<T> extends Producer<Producer<T>> {
+  trait ProducerOfNewProducersProof<T> {
+
+    ghost function Producer(): Producer<Producer<T>>
 
     ghost function MaxProduced(): TerminationMetric
 
-    method Invoke(i: ()) returns (r: Option<Producer<T>>)
-      requires Requires(())
-      reads Reads(())
-      modifies Modifies(())
-      decreases Decreases(()), 0
-      ensures Ensures((), r)
-      ensures DecreasedBy(r)
-      ensures r.Some? ==> JustProduced(r.value)
-
-    twostate predicate JustProduced(new produced: Producer<T>)
-      reads this, produced, produced.Repr
-    {
-      && produced.Valid()
-      && fresh(produced.Repr)
-      && Repr !! produced.Repr
-      && produced.history == []
-      && MaxProduced().DecreasesTo(produced.DecreasesMetric())
-    }
+    twostate lemma JustProduced(new produced: Producer<T>)
+      requires old(Producer().Requires(()))
+      requires Producer().ValidChange()
+      requires Producer().Ensures((), Some(produced))
+      ensures 
+        && produced.Valid()
+        && fresh(produced.Repr)
+        && Producer().Repr !! produced.Repr
+        && produced.history == []
+        && MaxProduced().DecreasesTo(produced.DecreasesMetric())
   }
 
   class FlattenedProducer<T> extends Producer<T> {
 
-    const original: ProducerOfNewProducers<T>
+    const original: Producer<Producer<T>>
     var currentInner: Option<Producer<T>>
     var producedCount: nat
 
-    constructor (original: ProducerOfNewProducers<T>)
+    ghost const originalProducesFreshProducers: ProducerOfNewProducersProof<T>
+
+    constructor (original: Producer<Producer<T>>, ghost originalProducesFreshProducers: ProducerOfNewProducersProof<T>)
       requires original.Valid()
+      requires originalProducesFreshProducers.Producer() == original
       ensures Valid()
       ensures fresh(Repr - original.Repr)
     {
@@ -1929,6 +1926,7 @@ module Std.Producers {
       this.currentInner := None;
       this.producedCount := 0;
 
+      this.originalProducesFreshProducers := originalProducesFreshProducers;
       this.history := [];
       this.Repr := {this} + original.Repr;
     }
@@ -1938,7 +1936,7 @@ module Std.Producers {
       reads this, Repr
       decreases Repr, 1
     {
-      TMSucc(original.MaxProduced())
+      TMSucc(originalProducesFreshProducers.MaxProduced())
     }
 
     ghost function InnerDecreasesMetric(): TerminationMetric
@@ -2019,11 +2017,12 @@ module Std.Producers {
       && ValidComponent(original)
       && (currentInner.Some? ==> ValidComponent(currentInner.value))
       && original.Repr !! (if currentInner.Some? then currentInner.value.Repr else {})
+      && originalProducesFreshProducers.Producer() == original
       && ValidHistory(history)
       && (currentInner.Some? ==>
             && 0 < |original.Outputs()|
             && currentInner == Seq.Last(original.Outputs())
-            && original.MaxProduced().DecreasesTo(currentInner.value.DecreasesMetric()))
+            && originalProducesFreshProducers.MaxProduced().DecreasesTo(currentInner.value.DecreasesMetric()))
       && (!original.Done() && currentInner.Some? && !currentInner.value.Done() ==> !Done())
       && (Done() ==> original.Done() && currentInner.None?)
       && producedCount == |Produced()|
@@ -2087,11 +2086,12 @@ module Std.Producers {
           label beforeOriginalNext:
           ghost var historyBefore := original.history;
           old(DecreasesMetric()).TupleDecreasesToFirst();
-          // Need to use Invoke() here for the extra postcondition from ProducerOfNewProducers
-          currentInner := original.Invoke(());
+          currentInner := original.Next();
 
           assert fresh(original.Repr - old@beforeOriginalNext(Repr));
           if currentInner.Some? {
+            assert original.ValidChange@beforeOriginalNext();
+            originalProducesFreshProducers.JustProduced@beforeOriginalNext(currentInner.value);
             Repr := {this} + original.Repr + currentInner.value.Repr;
 
             assert ValidComponent(currentInner.value);
