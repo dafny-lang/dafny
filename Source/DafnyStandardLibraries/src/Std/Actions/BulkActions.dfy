@@ -67,6 +67,7 @@ module Std.BulkActions {
       && (Done() ==> index == |elements|)
       && index <= |elements|
       && Produced() == Seq.Map(ToBatched, elements[..index])
+      && |Produced()| == index
       && (index < |elements| ==> Seq.All(Outputs(), IsSome))
     }
 
@@ -134,6 +135,7 @@ module Std.BulkActions {
       }
 
       assert Valid();
+      assert ValidChange();
     }
 
     @IsolateAssertions
@@ -361,6 +363,7 @@ module Std.BulkActions {
 
     var storage: array<T>
     var size: nat
+    var otherInputs: nat
     var state: Result<bool, E>
 
     constructor(storage: array<T>)
@@ -373,6 +376,7 @@ module Std.BulkActions {
     {
       this.storage := storage;
       this.size := 0;
+      this.otherInputs := 0;
       this.state := Success(true);
 
       Repr := {this, storage};
@@ -390,7 +394,7 @@ module Std.BulkActions {
       && storage in Repr
       && size <= storage.Length
       && (Done() ==> size == storage.Length)
-      && |Consumed()| == size
+      && |Consumed()| == size + otherInputs
       && (size < storage.Length ==> Seq.All(history, WasConsumed))
     }
 
@@ -412,14 +416,14 @@ module Std.BulkActions {
       reads this, Repr
       decreases Repr, 3
     {
-      TMNat(storage.Length - size)
+      TMNat(storage.Length - size - otherInputs)
     }
 
     function Capacity(): Option<nat>
       reads this, Repr
       requires Valid()
     {
-      Some(storage.Length - size)
+      Some(storage.Length - size - otherInputs)
     }
 
     @IsolateAssertions
@@ -440,22 +444,34 @@ module Std.BulkActions {
 
         UpdateHistory(t, r);
         Seq.PartitionedCompositionRight(old(history), [(t, false)], WasConsumed);
+        ConsumedComposition(old(history), [(t, r)]);
       } else {
         match t {
           case BatchValue(value) => 
             storage[size] := value;
             size := size + 1;
-          case BatchError(e) => state := Failure(e);
-          case EndOfInput => state := Success(false);
+          case BatchError(e) => 
+            state := Failure(e);
+            otherInputs := otherInputs + 1;
+          case EndOfInput =>
+            state := Success(false);
+            otherInputs := otherInputs + 1;
         }
         r := true;
 
         UpdateHistory(t, r);
         Seq.PartitionedCompositionLeft(old(history), [(t, true)], WasConsumed);
+        ConsumedComposition(old(history), [(t, r)]);
+        calc {
+          |Consumed()|;
+          old(|Consumed()|) + |ConsumedOf([(t, r)])|;
+          old(size + otherInputs) + 1;
+          size + otherInputs;
+        } 
       }
 
-      ConsumedComposition(old(history), [(t, r)]);
       assert Valid();
+      assert ValidChange();
     }
 
     function Values(): seq<T>
