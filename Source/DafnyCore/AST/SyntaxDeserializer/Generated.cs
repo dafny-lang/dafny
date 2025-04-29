@@ -1489,24 +1489,6 @@ namespace Microsoft.Dafny
             return ReadMultiSelectExpr();
         }
 
-        public MemberSelectExpr ReadMemberSelectExpr()
-        {
-            var parameter0 = ReadAbstract<IOrigin>();
-            var parameter1 = ReadAbstract<Expression>();
-            var parameter2 = ReadName();
-            return new MemberSelectExpr(parameter0, parameter1, parameter2);
-        }
-
-        public MemberSelectExpr ReadMemberSelectExprOption()
-        {
-            if (ReadIsNull())
-            {
-                return default;
-            }
-
-            return ReadMemberSelectExpr();
-        }
-
         public BitvectorType ReadBitvectorType()
         {
             var parameter0 = ReadAbstract<IOrigin>();
@@ -2473,11 +2455,6 @@ namespace Microsoft.Dafny
             if (actualType == typeof(MultiSelectExpr))
             {
                 return ReadMultiSelectExpr();
-            }
-
-            if (actualType == typeof(MemberSelectExpr))
-            {
-                return ReadMemberSelectExpr();
             }
 
             if (actualType == typeof(BitvectorType))
