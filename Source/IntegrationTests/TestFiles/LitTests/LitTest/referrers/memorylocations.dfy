@@ -1,5 +1,7 @@
 // RUN: %verify --referrers --type-system-refresh "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
+// RUN: %verify --referrers "%s" > "%t"
+// RUN: %diff "%s.expect" "%t"
 
 class Test {
   var x: int
@@ -43,7 +45,7 @@ method TestArray(a: array<int>, c: bool)
   modifies a
 {
   ghost var m: (object, field) := a`[0];
-  ghost var m: (object, field) := a`[1];
+  ghost var m2: (object, field) := a`[1];
   var c := ReadFirstElement(a);
   a[1] := 2;
   ModifyArray(a, 1);
@@ -51,8 +53,8 @@ method TestArray(a: array<int>, c: bool)
 }
 
 method TestArray2(a: array2<int>, c: bool)
+  requires a.Length0 >= 1
   requires a.Length1 >= 1
-  requires a.Length2 >= 1
 {
   ghost var m := a`[0, 0];
 }

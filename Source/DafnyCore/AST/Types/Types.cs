@@ -553,6 +553,16 @@ public abstract class Type : NodeWithOrigin {
     }
   }
 
+  public bool IsMemoryLocationType {
+    get {
+      return NormalizeExpand() is UserDefinedType {
+               ResolvedClass: TupleTypeDecl { Dims: 2 },
+               TypeArgs: var typeArgs,
+             }
+             && typeArgs.Count == 2 && typeArgs[0].IsRefType && typeArgs[1] is FieldType;
+    }
+  }
+
   public bool IsTopLevelTypeWithMembers {
     get {
       return AsTopLevelTypeWithMembers != null;

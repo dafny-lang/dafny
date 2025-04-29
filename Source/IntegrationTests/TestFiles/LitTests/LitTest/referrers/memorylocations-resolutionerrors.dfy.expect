@@ -1,9 +1,9 @@
-Line 10: y not a member of Test
-Line 11: 3 is not a valid object
-Line 12: Only references, sets of objects and sequences of objects accepted before a backtick, got map.
-Line 14: Expected array memory location to be applied to an array, but got Test
-Line 20: Expected array location index to be int, got bool
-Line 21: Error: expected array index like `[c], got field index
+Line 12: y not a member of Test
+Line 13: 3 is not a valid object
+Line 14: Only references, sets of objects and sequences of objects accepted before a backtick, got map.
+Line 16: Expected array memory location to be applied to an array, but got Test
+Line 22: Expected array location index to be int, got bool
+Line 23: Error: expected array index like `[c], got field index
 // Error: expected 1 index, got 2
 
 Resolution Errors

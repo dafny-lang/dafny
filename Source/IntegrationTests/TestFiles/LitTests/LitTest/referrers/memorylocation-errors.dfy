@@ -1,5 +1,7 @@
 // RUN: %verify --referrers --type-system-refresh "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
+// RUN: %verify --referrers "%s" > "%t"
+// RUN: %diff "%s.expect" "%t"
 
 class Test {
   var x: int

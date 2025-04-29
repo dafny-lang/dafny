@@ -2931,11 +2931,11 @@ namespace Microsoft.Dafny {
       var eventualRefType = new InferredTypeProxy();
       if (use == FrameExpressionUse.Reads) {
         AddXConstraint(fe.E.Origin, "ReadsFrame", t, eventualRefType,
-          "a reads-clause expression must denote an object, a set/iset/multiset/seq of objects, or a function to a set/iset/multiset/seq of objects (instead got {0})");
+          "a reads-clause expression must denote an object, a single memory location oneObject`oneField or oneArray`[index] of type (object, field), a set/iset/multiset/seq of objects or single memory locations, or a function to a set/iset/multiset/seq of objects or single memory locations (instead got {0})");
       } else {
         AddXConstraint(fe.E.Origin, "ModifiesFrame", t, eventualRefType,
           use == FrameExpressionUse.Modifies ?
-          "a modifies-clause expression must denote an object or a set/iset/multiset/seq of objects (instead got {0})" :
+          "a modifies-clause expression must denote an object, a single memory location oneObject`oneField or oneArray`[index] of type (object, field), a set/iset/multiset/seq of objects or single memory locations (instead got {0})" :
           "an unchanged expression must denote an object or a set/iset/multiset/seq of objects (instead got {0})");
       }
       if (fe.FieldName != null) {

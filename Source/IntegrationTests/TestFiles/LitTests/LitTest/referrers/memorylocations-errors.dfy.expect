@@ -1,8 +1,8 @@
-Line 18: Index might be out of range
-Line 25: Not part of reads clause
-Line 32: Not part of the modifies clause
-Line 37: Could not prove a.Length >= 1
-Line 38: Could not prove a.Length >= 2
-Line 43: Could not prove a.Length1 and a.Length2 >= 1
+Line 20: Index might be out of range
+Line 27: Not part of reads clause
+Line 34: Not part of the modifies clause
+Line 39: Could not prove a.Length >= 1
+Line 40: Could not prove a.Length >= 2
+Line 25: Could not prove a.Length1 and a.Length2 >= 1
 
 Dafny finished with nothing verified correctly
