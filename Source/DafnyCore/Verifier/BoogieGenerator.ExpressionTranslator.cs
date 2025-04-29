@@ -2430,40 +2430,38 @@ BplBoundVar(varNameGen.FreshId(string.Format("#{0}#", bv.Name)), Predef.BoxType,
             if (e.Range != null) {
               canCall = BplAnd(CanCallAssumption(e.Range, cco), BplImp(TrExpr(e.Range), canCall));
             }
-          }
 
-          if (expr is MapComprehension { IsGeneralMapComprehension: true } mc) {
-            canCall = BplAnd(canCall, CanCallAssumption(mc.TermLeft, cco));
+            if (expr is MapComprehension { IsGeneralMapComprehension: true } mc) {
+              canCall = BplAnd(canCall, CanCallAssumption(mc.TermLeft, cco));
 
-            // The translation of "map x,y | R(x,y) :: F(x,y) := G(x,y)" makes use of projection
-            // functions project_x,project_y.  These are functions defined here by the following axiom:
-            //     forall x,y :: R(x,y) ==> var x',y' := project_x(F(x,y)),project_y(F(x,y)); R(x',y') && F(x',y') == F(x,y)
-            // that is (without the let expression):
-            //     forall x,y :: R(x,y) ==> R(project_x(F(x,y)), project_y(F(x,y))) && F(project_x(F(x,y)), project_y(F(x,y))) == F(x,y)
-            // The triggers for the quantification are those detected for the given map comprehension, if any.
-            List<Boogie.Variable> bvs;
-            List<Boogie.Expr> args;
-            BoogieGenerator.CreateBoundVariables(mc.BoundVars, out bvs, out args);
-            Contract.Assert(mc.BoundVars.Count == bvs.Count);
-            BoogieGenerator.CreateMapComprehensionProjectionFunctions(mc);
-            Contract.Assert(mc.ProjectionFunctions != null);
-            Contract.Assert(mc.ProjectionFunctions.Count == mc.BoundVars.Count);
-            var substMap = new Dictionary<IVariable, Expression>();
-            for (var i = 0; i < mc.BoundVars.Count; i++) {
-              substMap.Add(mc.BoundVars[i], new BoogieWrapper(args[i], mc.BoundVars[i].Type));
+              // The translation of "map x,y | R(x,y) :: F(x,y) := G(x,y)" makes use of projection
+              // functions project_x,project_y.  These are functions defined here by the following axiom:
+              //     forall x,y :: R(x,y) ==> var x',y' := project_x(F(x,y)),project_y(F(x,y)); R(x',y') && F(x',y') == F(x,y)
+              // that is (without the let expression):
+              //     forall x,y :: R(x,y) ==> R(project_x(F(x,y)), project_y(F(x,y))) && F(project_x(F(x,y)), project_y(F(x,y))) == F(x,y)
+              // The triggers for the quantification are those detected for the given map comprehension, if any.
+              BoogieGenerator.CreateBoundVariables(mc.BoundVars, out var bvs, out var args);
+              Contract.Assert(mc.BoundVars.Count == bvs.Count);
+              BoogieGenerator.CreateMapComprehensionProjectionFunctions(mc);
+              Contract.Assert(mc.ProjectionFunctions != null);
+              Contract.Assert(mc.ProjectionFunctions.Count == mc.BoundVars.Count);
+              var substMap = new Dictionary<IVariable, Expression>();
+              for (var i = 0; i < mc.BoundVars.Count; i++) {
+                substMap.Add(mc.BoundVars[i], new BoogieWrapper(args[i], mc.BoundVars[i].Type));
+              }
+              var R = TrExpr(Substitute(mc.Range, null, substMap));
+              var F = TrExpr(Substitute(mc.TermLeft, null, substMap));
+              var trig = BoogieGenerator.TrTrigger(this, e.Attributes, expr.Origin, substMap);
+              substMap = new Dictionary<IVariable, Expression>();
+              for (var i = 0; i < mc.BoundVars.Count; i++) {
+                var p = new Boogie.NAryExpr(BoogieGenerator.GetToken(mc), new Boogie.FunctionCall(mc.ProjectionFunctions[i]), new List<Boogie.Expr> { F });
+                substMap.Add(e.BoundVars[i], new BoogieWrapper(p, e.BoundVars[i].Type));
+              }
+              var Rprime = TrExpr(Substitute(mc.Range, null, substMap));
+              var Fprime = TrExpr(Substitute(mc.TermLeft, null, substMap));
+              var defn = BplForall(bvs, trig, BplImp(R, BplAnd(Rprime, Boogie.Expr.Eq(F, Fprime))));
+              canCall = BplAnd(canCall, defn);
             }
-            var R = TrExpr(Substitute(mc.Range, null, substMap));
-            var F = TrExpr(Substitute(mc.TermLeft, null, substMap));
-            var trig = BoogieGenerator.TrTrigger(this, e.Attributes, expr.Origin, substMap);
-            substMap = new Dictionary<IVariable, Expression>();
-            for (var i = 0; i < mc.BoundVars.Count; i++) {
-              var p = new Boogie.NAryExpr(BoogieGenerator.GetToken(mc), new Boogie.FunctionCall(mc.ProjectionFunctions[i]), new List<Boogie.Expr> { F });
-              substMap.Add(e.BoundVars[i], new BoogieWrapper(p, e.BoundVars[i].Type));
-            }
-            var Rprime = TrExpr(Substitute(mc.Range, null, substMap));
-            var Fprime = TrExpr(Substitute(mc.TermLeft, null, substMap));
-            var defn = BplForall(bvs, trig, BplImp(R, BplAnd(Rprime, Boogie.Expr.Eq(F, Fprime))));
-            canCall = BplAnd(canCall, defn);
           }
 
           // Create a list of all possible bound variables
