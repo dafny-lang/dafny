@@ -27,7 +27,9 @@ if os.path.exists(output + '-cs.dtr'):
 with open(output + '.cs', 'r' ) as f:
   content = f.read()
   content_trimmed = re.sub(r'\[assembly[\s\S]*?(?=namespace Formatting)|namespace\s+\w+\s*\{\s*\}\s*//.*', '', content, flags = re.M)
-  content_new = re.sub(r'\r?\nnamespace\s+(Std\.(?!Wrappers)(?!Strings)(?!Collections.Seq)(?!Arithmetic)(?!Math)\S+)\s*\{[\s\S]*?\}\s*// end of namespace \\1', '', content_trimmed, flags = re.M)
+  content_new = re.sub(r'\r?\nnamespace\s+(Std\.(?!Wrappers)(?!Strings)(?!Collections.Seq)(?!Arithmetic)(?!Math)\S+)\s*\{[\s\S]*?\}\s*// end of namespace \1', '', content_trimmed, flags = re.M)
+  if content_trimmed == content_new:
+        raise Exception("Error: Nothing trimmed from the file. Please check the regular expression")
   content_new = re.sub(r'Backends\\\\Rust\\\\', 'Backends/Rust/', content_new, flags = re.M)
 
   # Any test looking like "  if()"
