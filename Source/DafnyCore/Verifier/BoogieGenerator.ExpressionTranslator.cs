@@ -2399,10 +2399,39 @@ BplBoundVar(varNameGen.FreshId(string.Format("#{0}#", bv.Name)), Predef.BoxType,
           }
 
           // Determine the CanCall's for the range and term
-          var canCall = CanCallAssumption(e.Term, cco);
-          if (e.Range != null) {
-            canCall = BplAnd(CanCallAssumption(e.Range, cco), BplImp(TrExpr(e.Range), canCall));
+          Bpl.Expr canCall;
+          if (Attributes.Find(e.Attributes, "_triggerRewrites") is { } triggerRewrites) {
+            Contract.Assert(e is QuantifierExpr);
+            Contract.Assert(triggerRewrites.Args.Count == 2); // see DafnyCore/Triggers/ExprSubstituter.cs
+            // Trigger generation has rewritten the expression to include additional bound variables, say _t0 and _t1,
+            // and has changed the original quantifier body "Body" to something of the form
+            //     _t1 == e1 && _t0 == e0 ==> Body'                   (*)
+            // (or with an "&&" instead of "==>", if the quantifier is an ExistsExpr), where "Body'" is
+            //     Body[e0 := _t0][e1 := _t1]
+            // (yes, where the _expressions_ e0 and e1 have been replaced by the _variables_ _t0 and _t1).
+            // What we do next is explained as follows:
+            //
+            //   * The rewrite can have placed e0,e1 before the necessary antecedents in Body. For this reason,
+            //     we don't just want to compute CanCallAssumption for (*). Instead, we want to use the original
+            //     Body for our recursive call to CanCallAssumption.
+            //   * There was a reason for the rewrite, namely to avoid matching loops. To make sure we use what
+            //     trigger generation worked out, we want to use the bound variables and triggers of "e" and use
+            //     the antecedent of (*).
+            //
+            // TODO QUESTION: How is this resolved during well-formedness checks? It should be using the original Body
+            // there, too. But where does it obtain that Body from? (Perhaps well-formedness never dips into
+            // a .SplitExpression?
+            var equalities = TrExpr(triggerRewrites.Args[0]);
+            canCall = CanCallAssumption(triggerRewrites.Args[1]);
+            canCall = BplImp(equalities, canCall);
+
+          } else {
+            canCall = CanCallAssumption(e.Term, cco);
+            if (e.Range != null) {
+              canCall = BplAnd(CanCallAssumption(e.Range, cco), BplImp(TrExpr(e.Range), canCall));
+            }
           }
+
           if (expr is MapComprehension mc && mc.IsGeneralMapComprehension) {
             canCall = BplAnd(canCall, CanCallAssumption(mc.TermLeft, cco));
 
