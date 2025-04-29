@@ -3,7 +3,7 @@
 
 include "BoundedInts.dfy"
 
-module {:options "-functionSyntax:4"} DafnyNaCl
+module {:options "--function-syntax=4"} DafnyNaCl
 {
   import opened BoundedInts
 

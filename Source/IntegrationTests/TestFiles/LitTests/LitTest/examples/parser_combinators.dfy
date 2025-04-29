@@ -50,7 +50,7 @@ function F1(): int { Apply(() => F1()) }
 /// We do it by using stronger specifications to enforce progress, as
 /// shown in the solution below:
 
-module {:options "-functionSyntax:4"} Parsers {
+module {:options "--function-syntax:4"} Parsers {
 
 /// (The `-functionSyntax:4` enables Dafny's new function syntax, where
 /// `function` replaces `function method`)

@@ -109,59 +109,9 @@ namespace Microsoft.Dafny {
       legacyBindings[option] = (options, o) => bind(options, (T)o);
     }
 
-    public static void ParseFileInfo(Option<FileInfo> option, Bpl.CommandLineParseState ps, DafnyOptions options) {
-      if (ps.ConfirmArgumentCount(1)) {
-        options.Set(option, new FileInfo(ps.args[ps.i]));
-      }
-    }
-
-    public static void ParseFileInfoElement(Option<IList<FileInfo>> option, Bpl.CommandLineParseState ps, DafnyOptions options) {
-      var value = (IList<FileInfo>)options.Options.OptionArguments.GetOrCreate(option, () => new List<FileInfo>());
-      if (ps.ConfirmArgumentCount(1)) {
-        value.Add(new FileInfo(ps.args[ps.i]));
-      }
-    }
-
     public static void ParseString(Option<string> option, Bpl.CommandLineParseState ps, DafnyOptions options) {
       if (ps.ConfirmArgumentCount(1)) {
         options.Set(option, ps.args[ps.i]);
-      }
-    }
-
-    public static void ParseStringElement(Option<IList<string>> option, Bpl.CommandLineParseState ps, DafnyOptions options) {
-      var value = (IList<string>)options.Options.OptionArguments.GetOrCreate(option, () => new List<string>());
-      if (ps.ConfirmArgumentCount(1)) {
-        value.Add(ps.args[ps.i]);
-      }
-    }
-
-    public static void ParseImplicitEnable(Option<bool> option, Bpl.CommandLineParseState ps, DafnyOptions options) {
-      options.Set(option, true);
-    }
-
-    public static void ParseBoolean(Option<bool> option, Bpl.CommandLineParseState ps, DafnyOptions options) {
-      int result = 0;
-      if (ps.GetIntArgument(ref result, 2)) {
-        options.Set(option, result == 1);
-      }
-    }
-
-    public static void ParseGeneralTraitsOption(Option<CommonOptionBag.GeneralTraitsOptions> option, Bpl.CommandLineParseState ps, DafnyOptions options) {
-      if (ps.ConfirmArgumentCount(1)) {
-        switch (ps.args[ps.i]) {
-          case "legacy":
-            options.Set(option, CommonOptionBag.GeneralTraitsOptions.Legacy);
-            break;
-          case "datatype":
-            options.Set(option, CommonOptionBag.GeneralTraitsOptions.Datatype);
-            break;
-          case "full":
-            options.Set(option, CommonOptionBag.GeneralTraitsOptions.Full);
-            break;
-          default:
-            InvalidArgumentError(option.Name, ps);
-            break;
-        }
       }
     }
 

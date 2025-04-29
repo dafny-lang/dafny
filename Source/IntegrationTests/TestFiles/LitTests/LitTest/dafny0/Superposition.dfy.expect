@@ -1,7 +1,7 @@
-Superposition.legacy.dfy(38,9): Warning: the ... refinement feature in statements is deprecated
-Superposition.legacy.dfy(23,6): Error: a postcondition could not be proved on this return path
-Superposition.legacy.dfy(21,25): Related location: this is the postcondition that could not be proved
-Superposition.legacy.dfy(29,6): Error: a postcondition could not be proved on this return path
-Superposition.legacy.dfy(27,25): Related location: this is the postcondition that could not be proved
+Superposition.dfy(38,9): Warning: the ... refinement feature in statements is deprecated
+Superposition.dfy(23,6): Error: a postcondition could not be proved on this return path
+Superposition.dfy(21,25): Related location: this is the postcondition that could not be proved
+Superposition.dfy(29,6): Error: a postcondition could not be proved on this return path
+Superposition.dfy(27,25): Related location: this is the postcondition that could not be proved
 
 Dafny program verifier finished with 2 verified, 2 errors
