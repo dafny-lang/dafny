@@ -2432,7 +2432,7 @@ BplBoundVar(varNameGen.FreshId(string.Format("#{0}#", bv.Name)), Predef.BoxType,
             }
           }
 
-          if (expr is MapComprehension mc && mc.IsGeneralMapComprehension) {
+          if (expr is MapComprehension { IsGeneralMapComprehension: true } mc) {
             canCall = BplAnd(canCall, CanCallAssumption(mc.TermLeft, cco));
 
             // The translation of "map x,y | R(x,y) :: F(x,y) := G(x,y)" makes use of projection
@@ -2465,6 +2465,7 @@ BplBoundVar(varNameGen.FreshId(string.Format("#{0}#", bv.Name)), Predef.BoxType,
             var defn = BplForall(bvs, trig, BplImp(R, BplAnd(Rprime, Boogie.Expr.Eq(F, Fprime))));
             canCall = BplAnd(canCall, defn);
           }
+
           // Create a list of all possible bound variables
           var bvarsAndAntecedents = TrBoundVariables_SeparateWhereClauses(e.BoundVars);
           // Produce the quantified CanCall expression, with a suitably reduced set of bound variables
