@@ -1971,7 +1971,7 @@ namespace DCOMP {
         {
           if (_source0.is_UserDefined) {
             DAST._IResolvedType _11_r = _source0.dtor_resolved;
-            _10_instanceType = DAST.Type.create_UserDefined(Dafny.Helpers.Let<DAST._IResolvedType, DAST._IResolvedType>(_11_r, _pat_let71_0 => Dafny.Helpers.Let<DAST._IResolvedType, DAST._IResolvedType>(_pat_let71_0, _12_dt__update__tmp_h0 => Dafny.Helpers.Let<Dafny.ISequence<DAST._IType>, DAST._IResolvedType>(_pat_let_tv0, _pat_let72_0 => Dafny.Helpers.Let<Dafny.ISequence<DAST._IType>, DAST._IResolvedType>(_pat_let72_0, _13_dt__update_htypeArgs_h0 => DAST.ResolvedType.create((_12_dt__update__tmp_h0).dtor_path, _13_dt__update_htypeArgs_h0, (_12_dt__update__tmp_h0).dtor_kind, (_12_dt__update__tmp_h0).dtor_attributes, (_12_dt__update__tmp_h0).dtor_properMethods, (_12_dt__update__tmp_h0).dtor_extendedTypes))))));
+            _10_instanceType = DAST.Type.create_UserDefined(Dafny.Helpers.Let<DAST._IResolvedType, DAST._IResolvedType>(_11_r, _pat_let25_0 => Dafny.Helpers.Let<DAST._IResolvedType, DAST._IResolvedType>(_pat_let25_0, _12_dt__update__tmp_h0 => Dafny.Helpers.Let<Dafny.ISequence<DAST._IType>, DAST._IResolvedType>(_pat_let_tv0, _pat_let26_0 => Dafny.Helpers.Let<Dafny.ISequence<DAST._IType>, DAST._IResolvedType>(_pat_let26_0, _13_dt__update_htypeArgs_h0 => DAST.ResolvedType.create((_12_dt__update__tmp_h0).dtor_path, _13_dt__update_htypeArgs_h0, (_12_dt__update__tmp_h0).dtor_kind, (_12_dt__update__tmp_h0).dtor_attributes, (_12_dt__update__tmp_h0).dtor_properMethods, (_12_dt__update__tmp_h0).dtor_extendedTypes))))));
             goto after_match0;
           }
         }
@@ -4258,43 +4258,43 @@ namespace DCOMP {
         Dafny.ISequence<BigInteger> _6_indices = ((((fromType).is_UserDefined) && ((((fromType).dtor_resolved).dtor_kind).is_Datatype)) ? (Std.Collections.Seq.__default.Filter<BigInteger>(Dafny.Helpers.Id<Func<RAST._IType, DAST._IType, Func<BigInteger, bool>>>((_7_fromTpe, _8_fromType) => ((System.Func<BigInteger, bool>)((_9_i) => {
           return ((((_9_i).Sign != -1) && ((_9_i) < (new BigInteger(((_7_fromTpe).dtor_arguments).Count)))) ? (!(((_9_i).Sign != -1) && ((_9_i) < (new BigInteger(((((_8_fromType).dtor_resolved).dtor_kind).dtor_info).Count)))) || (!(((((((_8_fromType).dtor_resolved).dtor_kind).dtor_info).Select(_9_i)).dtor_variance).is_Nonvariant))) : (false));
         })))(fromTpe, fromType), ((System.Func<Dafny.ISequence<BigInteger>>) (() => {
-          BigInteger dim15 = new BigInteger(((fromTpe).dtor_arguments).Count);
-          var arr15 = new BigInteger[Dafny.Helpers.ToIntChecked(dim15, "array size exceeds memory limit")];
-          for (int i15 = 0; i15 < dim15; i15++) {
-            var _10_i = (BigInteger) i15;
-            arr15[(int)(_10_i)] = _10_i;
+          BigInteger dim17 = new BigInteger(((fromTpe).dtor_arguments).Count);
+          var arr17 = new BigInteger[Dafny.Helpers.ToIntChecked(dim17, "array size exceeds memory limit")];
+          for (int i17 = 0; i17 < dim17; i17++) {
+            var _10_i = (BigInteger) i17;
+            arr17[(int)(_10_i)] = _10_i;
           }
-          return Dafny.Sequence<BigInteger>.FromArray(arr15);
+          return Dafny.Sequence<BigInteger>.FromArray(arr17);
         }))())) : (((System.Func<Dafny.ISequence<BigInteger>>) (() => {
-          BigInteger dim16 = new BigInteger(((fromTpe).dtor_arguments).Count);
-          var arr16 = new BigInteger[Dafny.Helpers.ToIntChecked(dim16, "array size exceeds memory limit")];
-          for (int i16 = 0; i16 < dim16; i16++) {
-            var _11_i = (BigInteger) i16;
-            arr16[(int)(_11_i)] = _11_i;
+          BigInteger dim18 = new BigInteger(((fromTpe).dtor_arguments).Count);
+          var arr18 = new BigInteger[Dafny.Helpers.ToIntChecked(dim18, "array size exceeds memory limit")];
+          for (int i18 = 0; i18 < dim18; i18++) {
+            var _11_i = (BigInteger) i18;
+            arr18[(int)(_11_i)] = _11_i;
           }
-          return Dafny.Sequence<BigInteger>.FromArray(arr16);
+          return Dafny.Sequence<BigInteger>.FromArray(arr18);
         }))()));
         Std.Wrappers._IResult<Dafny.ISequence<RAST._IExpr>, _System._ITuple5<DAST._IType, RAST._IType, DAST._IType, RAST._IType, Dafny.IMap<_System._ITuple2<RAST._IType, RAST._IType>,RAST._IExpr>>> _12_valueOrError1 = (this).SeqResultToResultSeq<RAST._IExpr, _System._ITuple5<DAST._IType, RAST._IType, DAST._IType, RAST._IType, Dafny.IMap<_System._ITuple2<RAST._IType, RAST._IType>,RAST._IExpr>>>(((System.Func<Dafny.ISequence<Std.Wrappers._IResult<RAST._IExpr, _System._ITuple5<DAST._IType, RAST._IType, DAST._IType, RAST._IType, Dafny.IMap<_System._ITuple2<RAST._IType, RAST._IType>,RAST._IExpr>>>>>) (() => {
-          BigInteger dim17 = new BigInteger((_6_indices).Count);
-          var arr17 = new Std.Wrappers._IResult<RAST._IExpr, _System._ITuple5<DAST._IType, RAST._IType, DAST._IType, RAST._IType, Dafny.IMap<_System._ITuple2<RAST._IType, RAST._IType>,RAST._IExpr>>>[Dafny.Helpers.ToIntChecked(dim17, "array size exceeds memory limit")];
-          for (int i17 = 0; i17 < dim17; i17++) {
-            var _13_j = (BigInteger) i17;
-            arr17[(int)(_13_j)] = Dafny.Helpers.Let<BigInteger, Std.Wrappers._IResult<RAST._IExpr, _System._ITuple5<DAST._IType, RAST._IType, DAST._IType, RAST._IType, Dafny.IMap<_System._ITuple2<RAST._IType, RAST._IType>,RAST._IExpr>>>>((_6_indices).Select(_13_j), _pat_let73_0 => Dafny.Helpers.Let<BigInteger, Std.Wrappers._IResult<RAST._IExpr, _System._ITuple5<DAST._IType, RAST._IType, DAST._IType, RAST._IType, Dafny.IMap<_System._ITuple2<RAST._IType, RAST._IType>,RAST._IExpr>>>>(_pat_let73_0, _14_i => (this).UpcastConversionLambda((((_pat_let_tv0).dtor_resolved).dtor_typeArgs).Select(_14_i), ((_pat_let_tv1).dtor_arguments).Select(_14_i), (((_pat_let_tv2).dtor_resolved).dtor_typeArgs).Select(_14_i), ((_pat_let_tv3).dtor_arguments).Select(_14_i), _pat_let_tv4)));
+          BigInteger dim19 = new BigInteger((_6_indices).Count);
+          var arr19 = new Std.Wrappers._IResult<RAST._IExpr, _System._ITuple5<DAST._IType, RAST._IType, DAST._IType, RAST._IType, Dafny.IMap<_System._ITuple2<RAST._IType, RAST._IType>,RAST._IExpr>>>[Dafny.Helpers.ToIntChecked(dim19, "array size exceeds memory limit")];
+          for (int i19 = 0; i19 < dim19; i19++) {
+            var _13_j = (BigInteger) i19;
+            arr19[(int)(_13_j)] = Dafny.Helpers.Let<BigInteger, Std.Wrappers._IResult<RAST._IExpr, _System._ITuple5<DAST._IType, RAST._IType, DAST._IType, RAST._IType, Dafny.IMap<_System._ITuple2<RAST._IType, RAST._IType>,RAST._IExpr>>>>((_6_indices).Select(_13_j), _pat_let27_0 => Dafny.Helpers.Let<BigInteger, Std.Wrappers._IResult<RAST._IExpr, _System._ITuple5<DAST._IType, RAST._IType, DAST._IType, RAST._IType, Dafny.IMap<_System._ITuple2<RAST._IType, RAST._IType>,RAST._IExpr>>>>(_pat_let27_0, _14_i => (this).UpcastConversionLambda((((_pat_let_tv0).dtor_resolved).dtor_typeArgs).Select(_14_i), ((_pat_let_tv1).dtor_arguments).Select(_14_i), (((_pat_let_tv2).dtor_resolved).dtor_typeArgs).Select(_14_i), ((_pat_let_tv3).dtor_arguments).Select(_14_i), _pat_let_tv4)));
           }
-          return Dafny.Sequence<Std.Wrappers._IResult<RAST._IExpr, _System._ITuple5<DAST._IType, RAST._IType, DAST._IType, RAST._IType, Dafny.IMap<_System._ITuple2<RAST._IType, RAST._IType>,RAST._IExpr>>>>.FromArray(arr17);
+          return Dafny.Sequence<Std.Wrappers._IResult<RAST._IExpr, _System._ITuple5<DAST._IType, RAST._IType, DAST._IType, RAST._IType, Dafny.IMap<_System._ITuple2<RAST._IType, RAST._IType>,RAST._IExpr>>>>.FromArray(arr19);
         }))());
         if ((_12_valueOrError1).IsFailure()) {
           return (_12_valueOrError1).PropagateFailure<RAST._IExpr>();
         } else {
           Dafny.ISequence<RAST._IExpr> _15_lambdas = (_12_valueOrError1).Extract();
           return Std.Wrappers.Result<RAST._IExpr, _System._ITuple5<DAST._IType, RAST._IType, DAST._IType, RAST._IType, Dafny.IMap<_System._ITuple2<RAST._IType, RAST._IType>,RAST._IExpr>>>.create_Success((((RAST.Expr.create_ExprFromType((fromTpe).dtor_baseName)).ApplyType(((System.Func<Dafny.ISequence<RAST._IType>>) (() => {
-  BigInteger dim18 = new BigInteger(((fromTpe).dtor_arguments).Count);
-  var arr18 = new RAST._IType[Dafny.Helpers.ToIntChecked(dim18, "array size exceeds memory limit")];
-  for (int i18 = 0; i18 < dim18; i18++) {
-    var _16_i = (BigInteger) i18;
-    arr18[(int)(_16_i)] = ((fromTpe).dtor_arguments).Select(_16_i);
+  BigInteger dim20 = new BigInteger(((fromTpe).dtor_arguments).Count);
+  var arr20 = new RAST._IType[Dafny.Helpers.ToIntChecked(dim20, "array size exceeds memory limit")];
+  for (int i20 = 0; i20 < dim20; i20++) {
+    var _16_i = (BigInteger) i20;
+    arr20[(int)(_16_i)] = ((fromTpe).dtor_arguments).Select(_16_i);
   }
-  return Dafny.Sequence<RAST._IType>.FromArray(arr18);
+  return Dafny.Sequence<RAST._IType>.FromArray(arr20);
 }))())).FSel(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("coerce"))).Apply(_15_lambdas));
         }
       } else if (((((fromTpe).IsBuiltinCollection()) && ((toTpe).IsBuiltinCollection())) && ((this).IsBuiltinCollection(fromType))) && ((this).IsBuiltinCollection(toType))) {
@@ -7120,7 +7120,7 @@ namespace DCOMP {
             for (BigInteger _428_i = BigInteger.Zero; _428_i < _hi16; _428_i++) {
               var _pat_let_tv0 = _425_extraAttributes;
               var _pat_let_tv1 = _426_formals;
-              _427_newFormals = Dafny.Sequence<DAST._IFormal>.Concat(_427_newFormals, Dafny.Sequence<DAST._IFormal>.FromElements(Dafny.Helpers.Let<DAST._IFormal, DAST._IFormal>((_426_formals).Select(_428_i), _pat_let74_0 => Dafny.Helpers.Let<DAST._IFormal, DAST._IFormal>(_pat_let74_0, _429_dt__update__tmp_h0 => Dafny.Helpers.Let<Dafny.ISequence<DAST._IAttribute>, DAST._IFormal>(Dafny.Sequence<DAST._IAttribute>.Concat(_pat_let_tv0, ((_pat_let_tv1).Select(_428_i)).dtor_attributes), _pat_let75_0 => Dafny.Helpers.Let<Dafny.ISequence<DAST._IAttribute>, DAST._IFormal>(_pat_let75_0, _430_dt__update_hattributes_h0 => DAST.Formal.create((_429_dt__update__tmp_h0).dtor_name, (_429_dt__update__tmp_h0).dtor_typ, _430_dt__update_hattributes_h0)))))));
+              _427_newFormals = Dafny.Sequence<DAST._IFormal>.Concat(_427_newFormals, Dafny.Sequence<DAST._IFormal>.FromElements(Dafny.Helpers.Let<DAST._IFormal, DAST._IFormal>((_426_formals).Select(_428_i), _pat_let28_0 => Dafny.Helpers.Let<DAST._IFormal, DAST._IFormal>(_pat_let28_0, _429_dt__update__tmp_h0 => Dafny.Helpers.Let<Dafny.ISequence<DAST._IAttribute>, DAST._IFormal>(Dafny.Sequence<DAST._IAttribute>.Concat(_pat_let_tv0, ((_pat_let_tv1).Select(_428_i)).dtor_attributes), _pat_let29_0 => Dafny.Helpers.Let<Dafny.ISequence<DAST._IAttribute>, DAST._IFormal>(_pat_let29_0, _430_dt__update_hattributes_h0 => DAST.Formal.create((_429_dt__update__tmp_h0).dtor_name, (_429_dt__update__tmp_h0).dtor_typ, _430_dt__update_hattributes_h0)))))));
             }
             DAST._IExpression _431_newLambda;
             DAST._IExpression _432_dt__update__tmp_h1 = _420_lambda;
