@@ -18,9 +18,9 @@ build-binary:
 	$(DAFNY) build $(VERIFY_OPTIONS) -t:lib --hidden-no-verify=$(NO_VERIFY) src/Std/dfyconfig.toml --output:${DOO_FILE_SOURCE}
 
 check-binary: build-binary
-	unzip -o ${DOO_FILE_SOURCE} -d build/current
-	unzip -o ${DOO_FILE_TARGET} -d build/previous
-	diff build/previous build/current 
+	unzip -o ${DOO_FILE_SOURCE} -d build/actual
+	unzip -o ${DOO_FILE_TARGET} -d build/expected
+	diff build/expected build/actual
 	make -C src/Std/TargetSpecific check-binary-all
 
 update-binary: build-binary
