@@ -1,4 +1,4 @@
-// RUN: %run "%s"
+// RUN: %testDafnyForEachCompiler "%s"
 
 datatype MultisetContainer = EmptySet | BooleanMultiset(containerSet: multiset<bool>)
 
