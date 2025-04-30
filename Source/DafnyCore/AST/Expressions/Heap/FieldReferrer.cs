@@ -10,6 +10,9 @@ public class FieldReferrer: Expression, ICloneable<FieldReferrer> {
   public Expression ObjectCopy { get; }
   public Name Name { get; }
   
+  [FilledInDuringResolution]
+  public Field ResolvedField { get; set; }
+  
   public FieldReferrer(Expression objectCopy, Name name) : base(name.Origin) {
     this.ObjectCopy = objectCopy;
     this.Name = name;

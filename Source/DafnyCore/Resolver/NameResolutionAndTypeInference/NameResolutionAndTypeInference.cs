@@ -1184,16 +1184,20 @@ namespace Microsoft.Dafny {
         fieldReferrer.Type = Type.Field;
         ResolveExpression(fieldReferrer.ObjectCopy, resolutionContext);
         // Determine what field it is.
-        if (PartiallyResolveTypeForMemberSelection(
-              fieldReferrer.Origin, fieldReferrer.ObjectCopy.Type, fieldReferrer.Name.Value) == null)
-        {
-          reporter.Error(MessageSource.Resolver, fieldReferrer, 
-            $"{fieldReferrer.Name.Value} is not a member of {fieldReferrer.ObjectCopy.Type}");
+        var dotSuffix = ResolveDotSuffix(new ExprDotName(fieldReferrer.Origin, fieldReferrer.ObjectCopy, fieldReferrer.Name, null),
+          false, true, [], resolutionContext, false);
+        if (dotSuffix is MemberSelectExpr memberSelect) {
+          if (memberSelect.Member is Field field) {
+            fieldReferrer.ResolvedField = field;
+          } else {
+            reporter.Error(MessageSource.Resolver, fieldReferrer, 
+              $"Expected constant or mutable field reference, but got {memberSelect.Member.WhatKind}");
+          }
         }
         
       } else if (expr is IndexFieldReferrer indexFieldReferrer) {
         ResolveExpression(indexFieldReferrer.ObjectCopy, resolutionContext);
-        if (indexFieldReferrer.ObjectCopy.Type.AsArrayType is not ArrayClassDecl arrayType) {
+        if (indexFieldReferrer.ObjectCopy.Type.AsArrayType is not {} arrayType) {
           reporter.Error(MessageSource.Resolver, indexFieldReferrer, 
             $"Expected array memory location to be applied to an array, but got {indexFieldReferrer.ObjectCopy.Type}");
         } else {

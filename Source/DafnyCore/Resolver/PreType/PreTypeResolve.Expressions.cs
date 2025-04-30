@@ -747,6 +747,46 @@ namespace Microsoft.Dafny {
             break;
           }
 
+        case FieldReferrer fieldReferrer: {
+          fieldReferrer.Type = Type.Field;
+          ResolveExpression(fieldReferrer.ObjectCopy, resolutionContext);
+          var dotSuffix = ResolveDotSuffix(
+            new ExprDotName(fieldReferrer.Origin, fieldReferrer.ObjectCopy, fieldReferrer.Name, null),
+            false, true, [], resolutionContext, false);
+          if (dotSuffix is MemberSelectExpr memberSelect) {
+            if (memberSelect.Member is Field field) {
+              fieldReferrer.ResolvedField = field;
+            } else {
+              resolver.reporter.Error(MessageSource.Resolver, fieldReferrer, 
+                $"Expected constant or mutable field reference, but got {memberSelect.Member.WhatKind}");
+            }
+          }
+          fieldReferrer.PreType = Type2PreType(Type.Field);
+          fieldReferrer.Type = Type.Field;
+
+          break;
+        }
+        case IndexFieldReferrer indexFieldReferrer: {
+          ResolveExpression(indexFieldReferrer.ObjectCopy, resolutionContext);
+          if (indexFieldReferrer.ObjectCopy.Type.AsArrayType is not { } arrayType) {
+            resolver.reporter.Error(MessageSource.Resolver, indexFieldReferrer,
+              $"Expected array memory location to be applied to an array, but got {indexFieldReferrer.ObjectCopy.Type}");
+          } else {
+            if (arrayType.Dims != indexFieldReferrer.Indices.Count) {
+              resolver.reporter.Error(MessageSource.Resolver, indexFieldReferrer,
+                $"Expected {arrayType.Dims} {(arrayType.Dims > 1 ? "indices" : "index")}, but got {indexFieldReferrer.Indices.Count}");
+            }
+
+            foreach (var subexpr in indexFieldReferrer.SubExpressions) {
+              ResolveExpression(subexpr, resolutionContext);
+              ConstrainToIntFamily(subexpr.PreType, subexpr.Origin, "Expected int, but got {0}");
+            }
+
+            indexFieldReferrer.PreType = Type2PreType(Type.Field);
+            indexFieldReferrer.Type = Type.Field;
+          }
+          break;
+        }
         case NestedMatchExpr matchExpr: {
             var e = matchExpr;
             ResolveNestedMatchExpr(e, resolutionContext);

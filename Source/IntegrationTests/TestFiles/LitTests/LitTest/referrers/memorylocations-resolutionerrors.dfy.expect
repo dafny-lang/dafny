@@ -1,9 +1,10 @@
-Line 12: y not a member of Test
-Line 13: 3 is not a valid object
-Line 14: Only references, sets of objects and sequences of objects accepted before a backtick, got map.
-Line 16: Expected array memory location to be applied to an array, but got Test
-Line 22: Expected array location index to be int, got bool
-Line 23: Error: expected array index like `[c], got field index
-// Error: expected 1 index, got 2
+Line 13: y not a member of Test
+Line 14: 3 is not a valid object
+Line 15: Only references, sets of objects and sequences of objects accepted before a backtick, got map.
+Line 17: Expected array memory location to be applied to an array, but got Test
+Line 18: Expected constant or mutable field reference, but got function f
+Line 23: Expected array location index to be int, got bool
+Line 24: Error: expected array index like `[c], got field index
+Line 25: Error: expected 1 index, got 2
 
 Resolution Errors
