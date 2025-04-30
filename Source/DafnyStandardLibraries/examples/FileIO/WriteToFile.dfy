@@ -21,7 +21,7 @@ module WriteToFile {
 
         // Write directly into the output directory
       {
-        var res := FileIO.WriteFile(outputDir + "/output_plain", str);
+        var res := FileIO.WriteUTF8ToFile(outputDir + "/output_plain", str);
         expect res.Pass?, "unexpected failure writing to output_plain: " + res.error;
         var readAgain := FileIO.ReadUTF8FromFile(outputDir + "/output_plain");
         expect readAgain.Success?;
@@ -29,19 +29,19 @@ module WriteToFile {
       }
         // Ensure that nonexistent parent directories are created as necessary
       {
-        var res := FileIO.WriteFile(outputDir + "/foo/bar/output_nested", str);
+        var res := FileIO.WriteUTF8ToFile(outputDir + "/foo/bar/output_nested", str);
         expect res.Pass?, "unexpected failure writing to output_nested: " + res.error;
       }
         // Ensure that file paths with .. are handled correctly
       {
-        var res := FileIO.WriteFile(outputDir + "/foo/bar/../output_up", str);
+        var res := FileIO.WriteUTF8ToFile(outputDir + "/foo/bar/../output_up", str);
         expect res.Pass?, "unexpected failure writing to output_up: " + res.error;
       }
     }
 
       // Failure path: attempting to write to a blank file path should never work.
     {
-      var res := FileIO.WriteFile("", []);
+      var res := FileIO.WriteUTF8ToFile("", []);
       expect res.Fail?, "unexpected success";
       expect expectedErrorPrefix <= res.error, "unexpected error message: " + res.error;
     }
