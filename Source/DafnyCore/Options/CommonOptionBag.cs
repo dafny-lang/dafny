@@ -75,7 +75,7 @@ public class CommonOptionBag {
 
   public static readonly Option<bool> ManualLemmaInduction =
     new("--manual-lemma-induction", "Turn off automatic induction for lemmas.");
-  
+
   public static readonly Option<bool> AutomaticQuantifierInduction =
     new("--automatic-quantifier-induction", "Turn on automatic induction for quantifiers.") {
       IsHidden = true
