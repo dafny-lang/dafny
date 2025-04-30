@@ -14,3 +14,6 @@ class Anything {
     assert(fresh(this));
   }
 }
+
+trait ATrait {
+}
