@@ -1,5 +1,6 @@
 module ActionsExamples {
   import opened Std.Actions
+  import opened Std.ActionsExterns
   import opened Std.Producers
   import opened Std.Consumers
   import opened Std.Wrappers
@@ -205,8 +206,7 @@ module ActionsExamples {
   @AssumeCrossModuleTermination
   class SplitProducer extends ProducerOfNewProducers<nat> {
 
-    const inputs: seq<nat>
-    var index: nat
+    var inputs: seq<nat>
 
     constructor (inputs: seq<nat>)
       ensures Valid()
@@ -214,7 +214,6 @@ module ActionsExamples {
       ensures history == []
     {
       this.inputs := inputs;
-      this.index := 0;
 
       history := [];
       Repr := {this};
@@ -228,7 +227,7 @@ module ActionsExamples {
     {
       && this in Repr
       && ValidHistory(history)
-      && (index < |inputs| ==> Seq.All(Outputs(), IsSome))
+      && (0 < |inputs| ==> Seq.All(Outputs(), IsSome))
     }
 
     twostate lemma ValidImpliesValidChange()
@@ -242,14 +241,6 @@ module ActionsExamples {
       decreases Repr
     {
       true
-    }
-
-    function ProducedCount(): nat
-      reads this, Repr
-      requires Valid()
-      ensures ProducedCount() == |Produced()|
-    {
-      index
     }
 
     ghost function MaxProduced(): TerminationMetric
@@ -286,14 +277,14 @@ module ActionsExamples {
     {
       assert Valid();
 
-      if index == |inputs| {
+      if |inputs| == 0 {
         result := None;
 
         OutputsPartitionedAfterOutputtingNone();
         ProduceNone();
       } else {
-        var x := inputs[index];
-        index := index + 1;
+        var x := inputs[0];
+        inputs := Seq.DropFirst(inputs);
         var p := new SeqReader<nat>([x / 2, x - (x / 2)]);
 
         result := Some(p);
@@ -307,7 +298,7 @@ module ActionsExamples {
     }
 
 
-    method ForEach(consumer: IConsumer<Producer<nat>>, ghost totalActionProof: TotalActionProof<Producer<nat>, ()>)
+    method ForEach(consumer: IConsumer<Producer<nat>>, ghost totalActionProof: TotalActionProof<Producer<nat>, ()>) returns (count: nat)
       requires Valid()
       requires consumer.Valid()
       requires Repr !! consumer.Repr !! totalActionProof.Repr
@@ -318,13 +309,14 @@ module ActionsExamples {
       ensures ValidChange()
       ensures consumer.ValidChange()
       ensures Done()
+      ensures count == |NewProduced()|
       ensures NewProduced() == consumer.NewInputs()
     {
-      DefaultForEach(this, consumer, totalActionProof);
+      count := DefaultForEach(this, consumer, totalActionProof);
     }
 
     method Fill(consumer: Consumer<Producer<nat>>, ghost totalActionProof: TotalActionProof<Producer<nat>, bool>)
-      returns (leftover: Option<Producer<nat>>)
+      returns (count: int, leftover: Option<Producer<nat>>)
       requires Valid()
       requires consumer.Valid()
       requires Repr !! consumer.Repr !! totalActionProof.Repr
@@ -338,7 +330,7 @@ module ActionsExamples {
       ensures consumer.ValidChange()
       ensures NewProduced() == consumer.NewInputs()
     {
-      leftover := DefaultFill(this, consumer, totalActionProof);
+      count, leftover := DefaultFill(this, consumer, totalActionProof);
     }
   }
 
@@ -351,62 +343,63 @@ module ActionsExamples {
     var collector := new SeqWriter();
 
     var collectorTotalProof := new DefaultTotalActionProof(collector);
-    flattened.ForEach(collector, collectorTotalProof);
+    var count := flattened.ForEach(collector, collectorTotalProof);
 
     expect collector.values == [0, 1, 1, 1, 1, 2, 2, 2, 2, 3], collector.values;
+    expect count == 10;
   }
 
-  // @IsolateAssertions
-  // method {:test} SetIteration() {
+  @IsolateAssertions
+  method {:test} SetIteration() {
 
-  //   var s: set<nat> := { 1, 2, 3, 4, 5 };
-  //   var e: Producer<nat>, proof := MakeSetReader(s);
-  //   var copy := {};
-  //   while true
-  //     invariant e.Valid()
-  //     invariant fresh(e.Repr)
-  //     invariant copy == Seq.ToSet(e.Produced())
-  //     decreases e.Decreasing()
-  //   {
-  //     ghost var oldOutputs := e.Outputs();
-  //     ghost var oldProduced := e.Produced();
-  //     label before:
-  //     var next := e.Next();
-  //     assert e.Outputs() == oldOutputs + [next];
-  //     ProducedComposition(oldOutputs, [next]);
+    var s: set<nat> := { 1, 2, 3, 4, 5 };
+    var e: Producer<nat>, proof := MakeSetReader(s);
+    var copy := {};
+    while true
+      invariant e.Valid()
+      invariant fresh(e.Repr)
+      invariant copy == Seq.ToSet(e.Produced())
+      decreases e.Decreasing()
+    {
+      ghost var oldOutputs := e.Outputs();
+      ghost var oldProduced := e.Produced();
+      label before:
+      var next := e.Next();
+      assert e.Outputs() == oldOutputs + [next];
+      ProducedComposition(oldOutputs, [next]);
 
-  //     proof.ProducesSet(e.history);
+      proof.ProducesSet(e.history);
 
-  //     if next.None? {
-  //       assert Seq.Last(e.Outputs()) == None;
-  //       assert e.Done();
-  //       assert Seq.ToSet(e.Produced()) == proof.Set();
-  //       break;
-  //     }
-  //     var x := next.value;
+      if next.None? {
+        assert Seq.Last(e.Outputs()) == None;
+        assert e.Done();
+        assert Seq.ToSet(e.Produced()) == proof.Set();
+        break;
+      }
+      var x := next.value;
 
-  //     assert e.Produced() == oldProduced + [x];
-  //     Seq.LemmaNoDuplicatesDecomposition(oldProduced, [x]);
-  //     assert x !in oldProduced;
+      assert e.Produced() == oldProduced + [x];
+      Seq.LemmaNoDuplicatesDecomposition(oldProduced, [x]);
+      assert x !in oldProduced;
 
-  //     copy := copy + {x};
-  //   }
+      copy := copy + {x};
+    }
 
-  //   assert copy == s;
-  //   expect copy == s;
-  // }
+    assert copy == s;
+    expect copy == s;
+  }
 
-  // method {:test} SetToSeq() {
+  method {:test} SetToSeq() {
 
-  //   var s := { 1, 2, 3, 4, 5 };
-  //   var setReader: Producer<nat>, producerOfSetProof := MakeSetReader(s);
-  //   var seqWriter := new SeqWriter<nat>();
-  //   var writerTotalProof := seqWriter.totalActionProof();
-  //   var _ := setReader.ForEach(seqWriter, writerTotalProof);
-  //   var asSeq := seqWriter.values;
+    var s := { 1, 2, 3, 4, 5 };
+    var setReader: Producer<nat>, producerOfSetProof := MakeSetReader(s);
+    var seqWriter := new SeqWriter<nat>();
+    var writerTotalProof := seqWriter.totalActionProof();
+    var _ := setReader.ForEach(seqWriter, writerTotalProof);
+    var asSeq := seqWriter.values;
 
-  //   producerOfSetProof.ProducesSet(setReader.history);
-  //   assert Seq.ToSet(asSeq) == s;
-  //   assert Seq.HasNoDuplicates(asSeq);
-  // }
+    producerOfSetProof.ProducesSet(setReader.history);
+    assert Seq.ToSet(asSeq) == s;
+    assert Seq.HasNoDuplicates(asSeq);
+  }
 }

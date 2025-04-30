@@ -392,10 +392,10 @@ module Std.BulkActions {
       && this in Repr
       && ValidHistory(history)
       && storage in Repr
-      && size + otherInputs <= storage.Length
-      && (Done() ==> size + otherInputs == storage.Length)
+      && size <= storage.Length
+      && (Done() ==> size == storage.Length)
       && |Consumed()| == size + otherInputs
-      && (size + otherInputs < storage.Length ==> Seq.All(history, WasConsumed))
+      && (size < storage.Length ==> Seq.All(history, WasConsumed))
     }
 
     twostate lemma ValidImpliesValidChange()
@@ -439,7 +439,7 @@ module Std.BulkActions {
       assert Valid();
       reveal TerminationMetric.Ordinal();
 
-      if size + otherInputs == storage.Length {
+      if size == storage.Length {
         r := false;
 
         UpdateHistory(t, r);
