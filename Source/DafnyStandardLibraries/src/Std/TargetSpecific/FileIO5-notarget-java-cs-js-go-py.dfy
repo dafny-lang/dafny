@@ -19,6 +19,8 @@ module Std.FileIO {
   import Unicode.Utf8EncodingForm
   import Strings
   import FileIOInternalExterns
+  import Unicode.UnicodeStringsWithUnicodeChar
+  import opened BoundedInts
 
   export provides ReadBytesFromFile, WriteBytesToFile, ReadUTF8FromFile, WriteUTF8ToFile, Wrappers
 
@@ -79,19 +81,7 @@ module Std.FileIO {
     */
   method ReadUTF8FromFile(fileName: string) returns (r: Result<string, string>) {
     var bytes :- ReadBytesFromFile(fileName);
-    if !Utf8EncodingForm.IsWellFormedCodeUnitSequence(bytes) {
-      return Failure("Byte sequence of file '" + fileName + "' is not well formed UTF8");
-    }
-    var x: seq<bv24> := Utf8EncodingForm.DecodeCodeUnitSequence(bytes);
-    for i := 0 to |x|
-      invariant forall k | 0 <= k < i :: x[k] < 1 << 16 {
-      if !(x[i] < 1 << 16) {
-        return Failure("index " + Strings.OfInt(i) + " is not a valid char");
-      }
-    }
-
-    var s := seq(|x|, i requires 0 <= i < |x| => x[i] as char);
-    return Success(s);
+    return UnicodeStringsWithUnicodeChar.FromUTF8Checked(seq(|bytes|, i requires 0 <= i < |bytes| => bytes[i] as uint8));
   }
 
   opaque predicate WriteFileInvariantFor(c: char)
@@ -162,22 +152,9 @@ module Std.FileIO {
   @ResourceLimit("2e6")
   method WriteUTF8ToFile(fileName: string, content: string) returns (r: Outcome<string>)
   {
-    for i := 0 to |content|
-      invariant forall k | 0 <= k < i :: WriteFileInvariantFor(content[k])
-    {
-      if !WriteFileInvariantFor(content[i]) {
-        return Fail("At index " + Strings.OfInt(i) + ", the character cannot be encoded as a scalar value");
-      }
-    }
-    assert forall i | 0 <= i < |content| :: WriteFileInvariantFor(content[i]);
+    var bytes := UnicodeStringsWithUnicodeChar.ToUTF8Checked(content).value;
 
-    reveal WriteFileInvariantFor();
-    var scalarValues: seq<Utf8EncodingForm.Base.ScalarValue> :=
-      seq(|content|, i requires 0 <= i < |content| =>
-        EncodeWriteChar(content[i]));
-    var bytes := Utf8EncodingForm.EncodeScalarSequence(scalarValues);
-
-    var writeResult := WriteBytesToFile(fileName, bytes);
+    var writeResult := WriteBytesToFile(fileName, seq(|bytes|, i requires 0 <= i < |bytes| => bytes[i] as bv8));
     if writeResult.IsFailure() {
       return Fail("Failed to write to file '" + fileName + "': " + writeResult.error);
     }
