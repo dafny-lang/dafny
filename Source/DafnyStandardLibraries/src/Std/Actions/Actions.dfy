@@ -43,6 +43,13 @@ module Std.Actions {
       requires ValidHistory(history)
       decreases Repr
 
+    twostate predicate ValidOutput(new o: O)
+      requires Valid()
+      decreases Repr
+    {
+      true
+    }
+
     ghost predicate Requires(i: I)
       reads Reads(i)
     {
@@ -65,6 +72,7 @@ module Std.Actions {
       reads Reads(i)
     {
       && ValidChange()
+      && ValidOutput(o)
       && history == old(history) + [(i, o)]
     }
 

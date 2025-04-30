@@ -408,8 +408,6 @@ module Std.Producers {
     // there is no way to know if the consumer will accept a value ahead of time.
     // Therefore the producer may end up producing an extra value
     // that the consumer cannot accept, hence the extra leftover return value.
-    //
-    // TODO: Better name - Fill?
     method Fill(consumer: Consumer<T>, ghost totalActionProof: TotalActionProof<T, bool>)
       returns (leftover: Option<T>)
       requires Valid()
@@ -1721,7 +1719,7 @@ module Std.Producers {
     }
   }
 
-  class MappedProducer<I, O> extends Producer<O> {
+class MappedProducer<I, O> extends Producer<O> {
 
     const original: Producer<I>
     const mapping: Action<I, O>
@@ -1810,7 +1808,7 @@ module Std.Producers {
     }
 
     @ResourceLimit("1e7")
-    method Invoke(t: ()) returns (result: Option<O>)
+    method {:only} Invoke(t: ()) returns (result: Option<O>)
       requires Requires(t)
       reads Reads(t)
       modifies Modifies(t)
@@ -1828,7 +1826,12 @@ module Std.Producers {
         original.NewProducedAfterInvoke(next);
         assert original.NewProducedCount() == 1;
         mappingTotalProof.AnyInputIsValid(mapping.history, next.value);
+        label before:
+        assert {:only} unchanged(mapping.Repr);
         var nextValue := mapping.Invoke(next.value);
+        assert {:only} mapping.Ensures@before(next.value, nextValue);
+        assert {:only} mapping.ValidOutput@before(nextValue);
+        assert {:only} mapping.ValidOutput(nextValue);
         result := Some(nextValue);
 
         original.OutputtingSomeMeansAllSome(next.value);
@@ -1890,22 +1893,105 @@ module Std.Producers {
     }
   }
 
-  trait ProducerOfNewProducersProof<T> {
+  trait OutputsNewProducersProof<I, O> {
+
+    ghost function Action(): Action<I, Producer<O>>
+
+    ghost function MaxProduced(): TerminationMetric
+
+    twostate lemma OutputFresh(new p: Producer<O>)
+      // requires Action().ValidChange()
+      requires Action().ValidOutput(p)
+      ensures 
+        && p.Valid()
+        && fresh(p.Repr)
+        && Action().Repr !! p.Repr
+        && p.history == []
+        && MaxProduced().DecreasesTo(p.DecreasesMetric())
+  }
+
+  @AssumeCrossModuleTermination
+  trait ProducerOfNewProducersProof<T> extends Validatable {
 
     ghost function Producer(): Producer<Producer<T>>
 
     ghost function MaxProduced(): TerminationMetric
 
-    twostate lemma JustProduced(new produced: Producer<T>)
+    twostate lemma ProducedFresh(new p: Producer<T>)
+      requires Valid()
       requires old(Producer().Requires(()))
       requires Producer().ValidChange()
-      requires Producer().Ensures((), Some(produced))
+      requires Producer().Ensures((), Some(p))
       ensures 
-        && produced.Valid()
-        && fresh(produced.Repr)
-        && Producer().Repr !! produced.Repr
-        && produced.history == []
-        && MaxProduced().DecreasesTo(produced.DecreasesMetric())
+        && p.Valid()
+        && fresh(p.Repr)
+        && Producer().Repr !! p.Repr
+        && p.history == []
+        && MaxProduced().DecreasesTo(p.DecreasesMetric())
+  }
+
+  class MappedProducerOfNewProducersProof<I, O> extends ProducerOfNewProducersProof<O> {
+
+    ghost const producer: MappedProducer<I, Producer<O>>
+    ghost const mappingProof: OutputsNewProducersProof<I, O>
+
+    constructor (ghost producer: MappedProducer<I, Producer<O>>,
+                  ghost mappingProof: OutputsNewProducersProof<I, O>)
+    {
+      this.producer := producer;
+      this.mappingProof := mappingProof;
+    }
+
+    ghost predicate Valid()
+      reads this, Repr
+      ensures Valid() ==> this in Repr
+      decreases Repr, 0
+    {
+      && this in Repr
+      && mappingProof.Action() == producer.mapping
+    }
+
+    twostate predicate ValidChange()
+      reads this, Repr
+      ensures ValidChange() ==>
+        old(Valid()) && Valid() && fresh(Repr - old(Repr))
+    {
+      old(Valid()) && Valid() && fresh(Repr - old(Repr))
+    }
+
+    twostate lemma ValidImpliesValidChange()
+      requires old(Valid())
+      requires unchanged(old(Repr))
+      ensures ValidChange()
+    {}
+
+    ghost function Producer(): Producer<Producer<O>>
+    {
+      producer
+    }
+
+    ghost function MaxProduced(): TerminationMetric {
+      mappingProof.MaxProduced()
+    }
+
+    twostate lemma {:only} ProducedFresh(new p: Producer<O>)
+      requires Valid()
+      requires old(Producer().Requires(()))
+      requires Producer().ValidChange()
+      requires Producer().Ensures((), Some(p))
+      ensures 
+        && p.Valid()
+        && fresh(p.Repr)
+        && Producer().Repr !! p.Repr
+        && p.history == []
+        && MaxProduced().DecreasesTo(p.DecreasesMetric())
+    {
+      assert producer.mapping.Valid();
+      assert producer.ValidOutput(Some(p));
+      assert producer.mapping.ValidOutput(p);
+      mappingProof.OutputFresh(p);
+    }
+
   }
 
   class FlattenedProducer<T> extends Producer<T> {
@@ -1928,7 +2014,7 @@ module Std.Producers {
 
       this.originalProducesFreshProducers := originalProducesFreshProducers;
       this.history := [];
-      this.Repr := {this} + original.Repr;
+      this.Repr := {this} + original.Repr + originalProducesFreshProducers.Repr;
     }
 
     ghost function BaseMetric(): TerminationMetric
@@ -2016,7 +2102,8 @@ module Std.Producers {
       && this in Repr
       && ValidComponent(original)
       && (currentInner.Some? ==> ValidComponent(currentInner.value))
-      && original.Repr !! (if currentInner.Some? then currentInner.value.Repr else {})
+      && original.Repr !! (if currentInner.Some? then currentInner.value.Repr else {}) !! originalProducesFreshProducers.Repr
+      && ValidComponent(originalProducesFreshProducers)
       && originalProducesFreshProducers.Producer() == original
       && ValidHistory(history)
       && (currentInner.Some? ==>
@@ -2077,6 +2164,9 @@ module Std.Producers {
         invariant fresh(original.Repr - old(original.Repr))
         invariant currentInner.Some? ==> fresh(currentInner.value.Repr - old(Repr))
         invariant result.Some? ==> !original.Done() && currentInner.Some? && !currentInner.value.Done()
+        invariant originalProducesFreshProducers.Valid()
+        invariant originalProducesFreshProducers.Producer() == original
+        invariant original.Repr !!  (if currentInner.Some? then currentInner.value.Repr else {}) !! originalProducesFreshProducers.Repr
         invariant old(original.history) <= original.history
         invariant old(Done()) == Done()
         invariant DecreasedBy(result)
@@ -2092,8 +2182,8 @@ module Std.Producers {
           assert fresh(original.Repr - old@beforeOriginalNext(Repr));
           if currentInner.Some? {
             assert original.ValidChange@beforeOriginalNext();
-            originalProducesFreshProducers.JustProduced@beforeOriginalNext(currentInner.value);
-            Repr := {this} + original.Repr + currentInner.value.Repr;
+            originalProducesFreshProducers.ProducedFresh@beforeOriginalNext(currentInner.value);
+            Repr := {this} + original.Repr + currentInner.value.Repr + originalProducesFreshProducers.Repr;
 
             assert ValidComponent(currentInner.value);
 
@@ -2108,7 +2198,7 @@ module Std.Producers {
             old(DecreasesMetric()).TupleDecreasesToTuple(DecreasesMetric());
             assert old(Decreasing()) >= Decreasing();
           } else {
-            Repr := {this} + original.Repr;
+            Repr := {this} + original.Repr + originalProducesFreshProducers.Repr;
 
             assert currentInner == Seq.Last(original.Outputs());
             assert original.Done() && currentInner.None?;
@@ -2126,7 +2216,7 @@ module Std.Producers {
           assert DecreasesMetric().second == TMSucc(currentInner.value.DecreasesMetric());
           DecreasesMetric().second.SuccDecreasesToOriginal();
           result := currentInner.value.Next();
-          this.Repr := {this} + original.Repr + currentInner.value.Repr;
+          this.Repr := {this} + original.Repr + currentInner.value.Repr + originalProducesFreshProducers.Repr;
 
           assert old@beforeCurrentInnerNext(currentInner.value.DecreasesMetric()).NonIncreasesTo(currentInner.value.DecreasesMetric());
           InnerDecreasesMetricNonIncreases@beforeCurrentInnerNext();
