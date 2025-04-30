@@ -8,7 +8,7 @@ namespace Microsoft.Dafny;
 /// The right-hand-side of an expression of the type arrayRef`[index1, index2...]
 /// Denotes the memory location at this index
 /// </summary>
-public class IndexFieldReferrer: Expression, ICloneable<IndexFieldReferrer> {
+public class IndexFieldLocation: Expression, ICloneable<IndexFieldLocation> {
   // Because memory locations are tuples, this is just a copy of the expression so that we can determine if
   // it's legit to 
   public Expression ObjectCopy { get; }
@@ -19,7 +19,7 @@ public class IndexFieldReferrer: Expression, ICloneable<IndexFieldReferrer> {
 
   public List<ActualBinding> Indices { get; }
   
-  public IndexFieldReferrer(Expression objectCopy, Token openParen, List<ActualBinding> indices, Token closeParen) : base(new SourceOrigin(openParen, closeParen)) {
+  public IndexFieldLocation(Expression objectCopy, Token openParen, List<ActualBinding> indices, Token closeParen) : base(new SourceOrigin(openParen, closeParen)) {
     Contract.Requires(indices.Count != 0);
     this.ObjectCopy = objectCopy;
     this.Indices = indices;
@@ -27,7 +27,7 @@ public class IndexFieldReferrer: Expression, ICloneable<IndexFieldReferrer> {
     this.CloseParen = closeParen;
   }
 
-  public IndexFieldReferrer(Cloner cloner, IndexFieldReferrer original) : base(cloner, original)
+  public IndexFieldLocation(Cloner cloner, IndexFieldLocation original) : base(cloner, original)
   {
     Contract.Requires(original != null);
     Contract.Ensures(type == null);
@@ -37,8 +37,8 @@ public class IndexFieldReferrer: Expression, ICloneable<IndexFieldReferrer> {
     this.CloseParen = original.CloseParen;
   }
 
-  public IndexFieldReferrer Clone(Cloner cloner) {
-    return new IndexFieldReferrer(cloner, this);
+  public IndexFieldLocation Clone(Cloner cloner) {
+    return new IndexFieldLocation(cloner, this);
   }
 
   // objectCopy is not part of it because it's only used for resolution

@@ -131,6 +131,9 @@ namespace Microsoft.Dafny {
 
     public bool IsRefType => Normalize() is DPreType { Decl: ClassLikeDecl { IsReferenceTypeDecl: true } };
 
+    public bool IsFieldType =>
+      Normalize() is DPreType { Decl:  Declaration { Name: TypeNameField } };
+
     /// <summary>
     /// Returns "true" if "proxy" is among the free variables of "this".
     /// "proxy" is expected to be normalized.
@@ -333,6 +336,12 @@ namespace Microsoft.Dafny {
     public static bool IsReferenceTypeDecl(TopLevelDecl decl) {
       Contract.Requires(decl != null);
       return decl is ClassLikeDecl { IsReferenceTypeDecl: true };
+    }
+
+    public static bool IsFieldLocationType(DPreType dp) {
+      return dp.Decl is TupleTypeDecl { Dims: 2 }
+             && dp.Arguments[0].Normalize().IsRefType
+             && dp.Arguments[1].Normalize().IsFieldType;
     }
 
     public static bool IsArrowType(TopLevelDecl decl) {

@@ -303,10 +303,17 @@ public partial class Parser {
 
     return false;
   }
+  
+  bool AcceptReferrers() {
+    return theOptions.Get(CommonOptionBag.Referrers);
+  }
+
+  bool AcceptReferrersAndBacktick() {
+    return AcceptReferrers() && la.kind is _backtick;
+  }
 
   bool IsSuffix() {
-    return la.kind is _dot or _lbracket or _openparen ||
-           (theOptions.Get(CommonOptionBag.Referrers) && la.kind is _backtick);
+    return la.kind is _dot or _lbracket or _openparen || AcceptReferrersAndBacktick();
   }
 
   string UnwildIdent(IOrigin x, bool allowWildcardId) {

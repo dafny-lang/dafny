@@ -747,43 +747,42 @@ namespace Microsoft.Dafny {
             break;
           }
 
-        case FieldReferrer fieldReferrer: {
-          fieldReferrer.Type = Type.Field;
-          ResolveExpression(fieldReferrer.ObjectCopy, resolutionContext);
+        case FieldLocation fieldLocation: {
+          fieldLocation.Type = Type.Field;
+          ResolveExpression(fieldLocation.ObjectCopy, resolutionContext);
           var dotSuffix = ResolveDotSuffix(
-            new ExprDotName(fieldReferrer.Origin, fieldReferrer.ObjectCopy, fieldReferrer.Name, null),
+            new ExprDotName(fieldLocation.Origin, fieldLocation.ObjectCopy, fieldLocation.Name, null),
             false, true, [], resolutionContext, false);
           if (dotSuffix is MemberSelectExpr memberSelect) {
             if (memberSelect.Member is Field field) {
-              fieldReferrer.ResolvedField = field;
+              fieldLocation.ResolvedField = field;
             } else {
-              resolver.reporter.Error(MessageSource.Resolver, fieldReferrer, 
+              resolver.reporter.Error(MessageSource.Resolver, fieldLocation, 
                 $"Expected constant or mutable field reference, but got {memberSelect.Member.WhatKind}");
             }
           }
-          fieldReferrer.PreType = Type2PreType(Type.Field);
-          fieldReferrer.Type = Type.Field;
+          fieldLocation.PreType = Type2PreType(Type.Field);
 
           break;
         }
-        case IndexFieldReferrer indexFieldReferrer: {
-          ResolveExpression(indexFieldReferrer.ObjectCopy, resolutionContext);
-          if (indexFieldReferrer.ObjectCopy.Type.AsArrayType is not { } arrayType) {
-            resolver.reporter.Error(MessageSource.Resolver, indexFieldReferrer,
-              $"Expected array memory location to be applied to an array, but got {indexFieldReferrer.ObjectCopy.Type}");
+        case IndexFieldLocation indexFieldLocation: {
+          ResolveExpression(indexFieldLocation.ObjectCopy, resolutionContext);
+          if (indexFieldLocation.ObjectCopy.Type.AsArrayType is not { } arrayType) {
+            resolver.reporter.Error(MessageSource.Resolver, indexFieldLocation,
+              $"Expected array memory location to be applied to an array, but got {indexFieldLocation.ObjectCopy.Type}");
           } else {
-            if (arrayType.Dims != indexFieldReferrer.Indices.Count) {
-              resolver.reporter.Error(MessageSource.Resolver, indexFieldReferrer,
-                $"Expected {arrayType.Dims} {(arrayType.Dims > 1 ? "indices" : "index")}, but got {indexFieldReferrer.Indices.Count}");
+            if (arrayType.Dims != indexFieldLocation.Indices.Count) {
+              resolver.reporter.Error(MessageSource.Resolver, indexFieldLocation,
+                $"Expected {arrayType.Dims} {(arrayType.Dims > 1 ? "indices" : "index")}, but got {indexFieldLocation.Indices.Count}");
             }
 
-            foreach (var subexpr in indexFieldReferrer.SubExpressions) {
+            foreach (var subexpr in indexFieldLocation.SubExpressions) {
               ResolveExpression(subexpr, resolutionContext);
               ConstrainToIntFamily(subexpr.PreType, subexpr.Origin, "Expected int, but got {0}");
             }
 
-            indexFieldReferrer.PreType = Type2PreType(Type.Field);
-            indexFieldReferrer.Type = Type.Field;
+            indexFieldLocation.PreType = Type2PreType(Type.Field);
+            indexFieldLocation.Type = Type.Field;
           }
           break;
         }

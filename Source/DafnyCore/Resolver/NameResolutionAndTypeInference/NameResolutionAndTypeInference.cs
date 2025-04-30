@@ -1180,37 +1180,37 @@ namespace Microsoft.Dafny {
         }
 
         decreasesToExpr.Type = Type.Bool;
-      } else if (expr is FieldReferrer fieldReferrer) {
-        fieldReferrer.Type = Type.Field;
-        ResolveExpression(fieldReferrer.ObjectCopy, resolutionContext);
+      } else if (expr is FieldLocation fieldLocation) {
+        fieldLocation.Type = Type.Field;
+        ResolveExpression(fieldLocation.ObjectCopy, resolutionContext);
         // Determine what field it is.
-        var dotSuffix = ResolveDotSuffix(new ExprDotName(fieldReferrer.Origin, fieldReferrer.ObjectCopy, fieldReferrer.Name, null),
+        var dotSuffix = ResolveDotSuffix(new ExprDotName(fieldLocation.Origin, fieldLocation.ObjectCopy, fieldLocation.Name, null),
           false, true, [], resolutionContext, false);
         if (dotSuffix is MemberSelectExpr memberSelect) {
           if (memberSelect.Member is Field field) {
-            fieldReferrer.ResolvedField = field;
+            fieldLocation.ResolvedField = field;
           } else {
-            reporter.Error(MessageSource.Resolver, fieldReferrer, 
+            reporter.Error(MessageSource.Resolver, fieldLocation, 
               $"Expected constant or mutable field reference, but got {memberSelect.Member.WhatKind}");
           }
         }
         
-      } else if (expr is IndexFieldReferrer indexFieldReferrer) {
-        ResolveExpression(indexFieldReferrer.ObjectCopy, resolutionContext);
-        if (indexFieldReferrer.ObjectCopy.Type.AsArrayType is not {} arrayType) {
-          reporter.Error(MessageSource.Resolver, indexFieldReferrer, 
-            $"Expected array memory location to be applied to an array, but got {indexFieldReferrer.ObjectCopy.Type}");
+      } else if (expr is IndexFieldLocation indexFieldLocation) {
+        ResolveExpression(indexFieldLocation.ObjectCopy, resolutionContext);
+        if (indexFieldLocation.ObjectCopy.Type.AsArrayType is not {} arrayType) {
+          reporter.Error(MessageSource.Resolver, indexFieldLocation, 
+            $"Expected array memory location to be applied to an array, but got {indexFieldLocation.ObjectCopy.Type}");
         } else {
-          if (arrayType.Dims != indexFieldReferrer.Indices.Count) {
-            reporter.Error(MessageSource.Resolver, indexFieldReferrer, 
-              $"Expected {arrayType.Dims} {(arrayType.Dims > 1 ? "indices" : "index")}, but got {indexFieldReferrer.Indices.Count}");
+          if (arrayType.Dims != indexFieldLocation.Indices.Count) {
+            reporter.Error(MessageSource.Resolver, indexFieldLocation, 
+              $"Expected {arrayType.Dims} {(arrayType.Dims > 1 ? "indices" : "index")}, but got {indexFieldLocation.Indices.Count}");
           }
-          foreach (var subexpr in indexFieldReferrer.SubExpressions) {
+          foreach (var subexpr in indexFieldLocation.SubExpressions) {
             ResolveExpression(subexpr, resolutionContext);
             ConstrainToIntegerType(subexpr, false, "Expected array location index to be int, got {0}");
           }
 
-          indexFieldReferrer.Type = Type.Field;
+          indexFieldLocation.Type = Type.Field;
         }
       } else {
         Contract.Assert(false); throw new cce.UnreachableException();  // unexpected expression
@@ -2924,6 +2924,9 @@ namespace Microsoft.Dafny {
     public void ResolveFrameExpressionTopLevel(FrameExpression fe, FrameExpressionUse use, ICodeContext codeContext) {
       ResolveFrameExpression(fe, use, new ResolutionContext(codeContext, false));
     }
+    
+    public static readonly string CollectionOfFieldLocations = "a set/iset/multiset/seq of objects or single field locations";
+    public static readonly string SingleFieldLocation = "a single field location like o`x or a`[i] of type (object, field)";
 
     public void ResolveFrameExpression(FrameExpression fe, FrameExpressionUse use, ResolutionContext resolutionContext) {
       Contract.Requires(fe != null);
@@ -2935,12 +2938,12 @@ namespace Microsoft.Dafny {
       var eventualRefType = new InferredTypeProxy();
       if (use == FrameExpressionUse.Reads) {
         AddXConstraint(fe.E.Origin, "ReadsFrame", t, eventualRefType,
-          "a reads-clause expression must denote an object, a single memory location oneObject`oneField or oneArray`[index] of type (object, field), a set/iset/multiset/seq of objects or single memory locations, or a function to a set/iset/multiset/seq of objects or single memory locations (instead got {0})");
+          $"a reads-clause expression must denote an object, {SingleFieldLocation}, {CollectionOfFieldLocations}, or a function to {CollectionOfFieldLocations} (instead got {{0}})");
       } else {
         AddXConstraint(fe.E.Origin, "ModifiesFrame", t, eventualRefType,
           use == FrameExpressionUse.Modifies ?
-          "a modifies-clause expression must denote an object, a single memory location oneObject`oneField or oneArray`[index] of type (object, field), a set/iset/multiset/seq of objects or single memory locations (instead got {0})" :
-          "an unchanged expression must denote an object or a set/iset/multiset/seq of objects (instead got {0})");
+          $"a modifies-clause expression must denote an object, {SingleFieldLocation}, {CollectionOfFieldLocations} (instead got {{0}})" :
+          $"an unchanged expression must denote an object, {SingleFieldLocation} or {CollectionOfFieldLocations} (instead got {{0}})");
       }
       if (fe.FieldName != null) {
         var member = ResolveMember(fe.E.Origin, eventualRefType, fe.FieldName, out var tentativeReceiverType);

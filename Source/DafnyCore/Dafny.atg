@@ -2112,9 +2112,10 @@ FrameExpression<out FrameExpression fe, bool allowLemma, bool allowLambda>
      fe = dummyFrameExpr;
   .)
   ( Expression<out e, allowLemma, allowLambda>   (. feTok = e.Origin; .)
-    [ FrameField<out id>        (. fieldName = id.val;  feTok = id; .)
+    [ IF(!AcceptReferrers())
+      FrameField<out id>        (. fieldName = id.val;  feTok = id; .)
     ]                           (. fe = new FrameExpression(feTok, e, fieldName); .)
-  |
+  | IF(!AcceptReferrers())
     FrameField<out id>          (. fieldName = id.val; .)
                                 (. fe = new FrameExpression(id, new ImplicitThisExpr(id), fieldName); .)
   )
@@ -3746,6 +3747,8 @@ ConstAtomExpression<out Expression e>
     "|"
   | "assigned"                                 (. x = t; .)
     "(" NameSegment<out e> ")"                 (. e = new UnaryOpExpr(x, UnaryOpExpr.Opcode.Assigned, e); .)
+  | IF(AcceptReferrersAndBacktick())           (. e = new ImplicitThisExpr(la); .)
+    FieldLocation<ref e>
   | ParensExpression<out e>
   ) (. if(x!= null) { e.SetOrigin(new SourceOrigin(x, t, e.Center)); } .)
   .
@@ -4478,21 +4481,25 @@ Suffix<ref Expression e>
     [ ActualBindings<args> ]
     ")"                                    (. e = new ApplySuffix(new SourceOrigin(startToken, t, openParen), null, e, args, t);
                                            .)
-  | "`"                                    (. Token backtick = t; .)
-    ( IF(IsIdentifier(la.kind))            (. Name name = null; .)
-      NoDigitName<out name>
-      (.
-        var field = new FieldReferrer(e, name);
-        e = ProcessTupleArgs([new ActualBinding(null, e, false), new ActualBinding(null, field, false)], backtick);
-      .)
-    | "["               (. Token openParen = t; var args = new List<ActualBinding>(); .)
-      TupleArgs<args>
-      "]"               (. Token closeParen = t; .)
-      (.
-        var field = new IndexFieldReferrer(e, openParen, args, closeParen);
-        e = ProcessTupleArgs([new ActualBinding(null, e, false), new ActualBinding(null, field, false)], closeParen);
-      .)
-    )
+  | FieldLocation<ref e>
+  )
+  .
+
+FieldLocation<ref Expression e>
+= "`"                                    (. Token backtick = t; .)
+  ( IF(IsIdentifier(la.kind))            (. Name name = null; .)
+    NoDigitName<out name>
+    (.
+      var field = new FieldLocation(e, name);
+      e = ProcessTupleArgs([new ActualBinding(null, e, false), new ActualBinding(null, field, false)], backtick);
+    .)
+  | "["               (. Token openParen = t; var args = new List<ActualBinding>(); .)
+    TupleArgs<args>
+    "]"               (. Token closeParen = t; .)
+    (.
+      var field = new IndexFieldLocation(e, openParen, args, closeParen);
+      e = ProcessTupleArgs([new ActualBinding(null, e, false), new ActualBinding(null, field, false)], closeParen);
+    .)
   )
   .
 
