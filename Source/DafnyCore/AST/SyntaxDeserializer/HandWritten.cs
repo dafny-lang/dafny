@@ -27,6 +27,9 @@ namespace Microsoft.Dafny;
 public partial class SyntaxDeserializer(IDecoder decoder) {
   private Uri? uri;
 
+  public readonly List<Action<SystemModuleManager>> SystemModuleModifiers = [];
+
+
   private Specification<T> ReadSpecification<T>() where T : Node {
     if (typeof(T) == typeof(FrameExpression)) {
       var parameter1 = ReadListOption<T>(() => (T)(object)ReadFrameExpression());
@@ -205,6 +208,12 @@ public partial class SyntaxDeserializer(IDecoder decoder) {
 
     if (actualType == typeof(Token)) {
       return (T)(object)ReadToken();
+    }
+
+    if (actualType == typeof(MultiSelectExpr)) {
+      var ret = ReadMultiSelectExpr();
+      SystemModuleModifiers.Add(b => b.ArrayType(ret.Indices.Count, new IntType(), true));
+      return (T)(object)ret;
     }
 
     return (T)ReadObject(actualType);
