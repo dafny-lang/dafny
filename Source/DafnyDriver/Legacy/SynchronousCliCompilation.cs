@@ -287,7 +287,7 @@ namespace Microsoft.Dafny {
         options.Printer.ErrorWriteLine(options.OutputWriter, err);
       } else if (dafnyProgram != null && !options.NoResolve && !options.NoTypecheck) {
 
-        var (verified, outcome, moduleStats) = 
+        var (verified, outcome, moduleStats) =
           await HandleVerification(options, depManager, programId, dafnyProgram, dafnyFileNames);
 
         bool compiled;
@@ -334,8 +334,7 @@ namespace Microsoft.Dafny {
     }
 
     private async Task<(bool verified, PipelineOutcome outcome, IDictionary<string, PipelineStatistics> moduleStats)> HandleVerification(DafnyOptions options, ProofDependencyManager depManager, string programId,
-      Program dafnyProgram, List<string> dafnyFileNames)
-    {
+      Program dafnyProgram, List<string> dafnyFileNames) {
       bool verified;
       PipelineOutcome outcome;
       IDictionary<string, PipelineStatistics> moduleStats;
