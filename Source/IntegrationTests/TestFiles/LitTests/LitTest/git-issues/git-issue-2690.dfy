@@ -1,6 +1,4 @@
-// RUN: %dafny run --target cs "%s" > "%t"
-// RUN: %dafny run --no-verify --target js "%s" >> "%t"
-// RUN: %diff "%s.expect" "%t"
+// RUN: %testDafnyForEachCompiler "%s"
 
 method InSeq<T>(ts: seq<T>) returns (f: T --> bool)
   ensures forall t <- ts :: f.requires(t)
