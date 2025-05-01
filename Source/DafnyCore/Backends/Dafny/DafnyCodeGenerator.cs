@@ -2334,6 +2334,9 @@ namespace Microsoft.Dafny.Compilers {
       } else if (source.Type.NormalizeToAncestorType() is { IsMapType: true } normalized) {
         collKind = DAST.CollKind.create_Map();
         indexType = normalized.AsMapType.Domain;
+      } else if (source.Type.NormalizeToAncestorType() is { AsMultiSetType: {} msType }) {
+        collKind = DAST.CollKind.create_Map();
+        indexType = msType.Arg;
       } else {
         collKind = DAST.CollKind.create_Seq();
         indexType = Type.Int;

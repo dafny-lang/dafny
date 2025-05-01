@@ -1,10 +1,5 @@
-// RUN: %baredafny verify %args "%s" > "%t"
-// RUN: %baredafny build %args --no-verify -t:cs "%s" >> "%t"
-// RUN: %baredafny build %args --no-verify -t:js "%s" >> "%t"
-// RUN: %baredafny build %args --no-verify -t:cpp "%s" >> "%t"
-// RUN: %baredafny build %args --no-verify -t:java "%s" >> "%t"
-// RUN: %baredafny build %args --no-verify -t:go "%s" >> "%t"
-// RUN: %baredafny build %args --no-verify -t:py "%s" >> "%t"
+// NONUNIFORM: Testing that we don't need --emit-uncompilable-code.
+// RUN: %baredafny build -t:rs %args  --enforce-determinism "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 module Test {
