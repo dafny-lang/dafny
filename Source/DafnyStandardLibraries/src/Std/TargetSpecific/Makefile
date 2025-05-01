@@ -26,6 +26,10 @@ check-binary: build-binary
 	unzip -o ${DOO_FILE_SOURCE} -d ../../../build/current-${TARGETLANG}
 	unzip -o ${DOO_FILE_TARGET} -d ../../../build/rebuilt-${TARGETLANG}
 	diff ../../../build/current-${TARGETLANG} ../../../build/rebuilt-${TARGETLANG}
+# Explicitly check for --hidden-no-verify since Dafny itself doesn't
+	grep "hidden-no-verify = true" ../../../build/current-${TARGETLANG}/manifest.toml && 
+		(echo "ERROR: doo file built with --hidden-no-verify, rebuild without this option" && exit 1)
+
 
 check-binary-all:
 	make check-binary TARGETLANG=notarget

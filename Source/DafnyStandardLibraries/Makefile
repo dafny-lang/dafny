@@ -3,7 +3,7 @@
 DAFNY = dotnet run --project ../Dafny --no-build --roll-forward LatestMajor --
 
 # TODO: Check that this option isn't ever on the doo files we check in!
-NO_VERIFY := false # Use make update-binary NO_VERIFY=true to generate the binaries without verification
+NO_VERIFY := true # Use make update-binary NO_VERIFY=true to generate the binaries without verification
 DOO_FILE_SOURCE=build/DafnyStandardLibraries.doo
 DOO_FILE_TARGET=binaries/DafnyStandardLibraries.doo
 
@@ -19,7 +19,10 @@ build-binary:
 check-binary: build-binary
 	unzip -o ${DOO_FILE_SOURCE} -d build/current
 	unzip -o ${DOO_FILE_TARGET} -d build/previous
-	diff build/previous build/current 
+	diff build/previous build/current
+# Explicitly check for --hidden-no-verify since Dafny itself doesn't
+	grep "hidden-no-verify = true" build/current/manifest.toml && \
+		(echo "ERROR: doo file built with --hidden-no-verify, rebuild without this option" && exit 1)
 	make -C src/Std/TargetSpecific check-binary-all
 
 update-binary: build-binary
