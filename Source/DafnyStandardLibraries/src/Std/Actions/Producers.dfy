@@ -1890,6 +1890,7 @@ module Std.Producers {
     }
   }
 
+
   trait ProducerOfNewProducers<T> extends Producer<Producer<T>> {
 
     ghost function MaxProduced(): TerminationMetric
@@ -1901,9 +1902,9 @@ module Std.Producers {
       decreases Decreases(()), 0
       ensures Ensures((), r)
       ensures DecreasedBy(r)
-      ensures r.Some? ==> JustProduced(r.value)
+      ensures r.Some? ==> ProducedFresh(r.value)
 
-    twostate predicate JustProduced(new produced: Producer<T>)
+    twostate predicate ProducedFresh(new produced: Producer<T>)
       reads this, produced, produced.Repr
     {
       && produced.Valid()
@@ -1911,6 +1912,202 @@ module Std.Producers {
       && Repr !! produced.Repr
       && produced.history == []
       && MaxProduced().DecreasesTo(produced.DecreasesMetric())
+    }
+  }
+
+  @AssumeCrossModuleTermination
+  trait OutputterOfNewProducers<I, O> extends Action<I, Producer<O>>, TotalActionProof<I, Producer<O>>  {
+
+    ghost function MaxProduced(): TerminationMetric
+
+    ghost function Action(): Action<I, Producer<O>> {
+      this
+    }
+
+    method Invoke(i: I) returns (r: Producer<O>)
+      requires Requires(i)
+      reads Reads(i)
+      modifies Modifies(i)
+      decreases Decreases(i), 0
+      ensures Ensures(i, r)
+      ensures OutputFresh(r)
+
+    twostate predicate OutputFresh(new output: Producer<O>)
+      reads this, output, output.Repr
+    {
+      && output.Valid()
+      && fresh(output.Repr)
+      && Repr !! output.Repr
+      && output.history == []
+      && MaxProduced().DecreasesTo(output.DecreasesMetric())
+    }
+  }
+
+  class MappedProducerOfNewProducers<I, O> extends ProducerOfNewProducers<O> {
+
+    const original: Producer<I>
+    const mapping: OutputterOfNewProducers<I, O>
+
+    ghost const base: TerminationMetric
+
+    constructor (original: Producer<I>, mapping: OutputterOfNewProducers<I, O>)
+      requires original.Valid()
+      requires original.history == []
+      requires mapping.Valid()
+      requires mapping.history == []
+      requires original.Repr !! mapping.Repr
+      reads original, original.Repr, mapping, mapping.Repr
+      ensures Valid()
+      ensures history == []
+      ensures fresh(Repr - original.Repr - mapping.Repr)
+    {
+      this.original := original;
+      this.mapping := mapping;
+      this.base := TMSucc(original.DecreasesMetric());
+
+      Repr := {this} + original.Repr + mapping.Repr;
+      history := [];
+
+      new;
+      this.base.SuccDecreasesToOriginal();
+    }
+
+    ghost predicate Valid()
+      reads this, Repr
+      ensures Valid() ==> this in Repr
+      ensures Valid() ==> ValidHistory(history)
+      decreases Repr, 0
+    {
+      && this in Repr
+      && ValidComponent(original)
+      && ValidComponent(mapping)
+      && original.Repr !! mapping.Repr
+      && ValidHistory(history)
+      && base.DecreasesTo(original.DecreasesMetric())
+      && (!original.Done() <==> !Done())
+      && |Produced()| == |original.Produced()|
+    }
+
+    twostate lemma ValidImpliesValidChange()
+      requires old(Valid())
+      requires unchanged(old(Repr))
+      ensures ValidChange()
+    {}
+
+    ghost predicate ValidOutputs(outputs: seq<Option<Producer<O>>>)
+      requires Seq.Partitioned(outputs, IsSome<Producer<O>>)
+      decreases Repr
+    {
+      true
+    }
+
+    ghost function MaxProduced(): TerminationMetric {
+      mapping.MaxProduced()
+    }
+
+    function ProducedCount(): nat
+      reads this, Repr
+      requires Valid()
+      ensures ProducedCount() == |Produced()|
+    {
+      original.ProducedCount()
+    }
+
+    function Remaining(): Option<nat>
+      reads this, Repr
+      requires Valid()
+    {
+      None
+    }
+
+
+    ghost function DecreasesMetric(): TerminationMetric
+      requires Valid()
+      reads this, Repr
+      decreases Repr, 3
+    {
+      TMTuple(base, TMNat(0), original.DecreasesMetric())
+    }
+
+    @ResourceLimit("1e7")
+    method Invoke(t: ()) returns (result: Option<Producer<O>>)
+      requires Requires(t)
+      reads Reads(t)
+      modifies Modifies(t)
+      decreases Decreases(t), 0
+      ensures Ensures(t, result)
+      ensures DecreasedBy(result)
+      ensures result.Some? ==> ProducedFresh(result.value)
+    {
+      assert Requires(t);
+      assert Valid();
+      DecreasesMetric().TupleDecreasesToSecond();
+      assert Decreasing() > original.Decreasing();
+      var next := original.Next();
+
+      if next.Some? {
+        original.NewProducedAfterInvoke(next);
+        assert original.NewProducedCount() == 1;
+        mapping.AnyInputIsValid(mapping.history, next.value);
+        var nextValue := mapping.Invoke(next.value);
+        result := Some(nextValue);
+
+        original.OutputtingSomeMeansAllSome(next.value);
+        OutputsPartitionedAfterOutputtingSome(result.value);
+        ProduceSome(result.value);
+      } else {
+        result := None;
+
+        original.OutputtingNoneMeansNotAllSome();
+        OutputsPartitionedAfterOutputtingNone();
+        ProduceNone();
+
+        assert original.NewProducedCount() == 0;
+        assert !IsSome(Seq.Last(Outputs()));
+      }
+
+      Repr := {this} + original.Repr + mapping.Repr;
+      assert Valid();
+      assert original.DecreasedBy(next);
+      if next.Some? {
+        old(DecreasesMetric()).TupleDecreasesToTuple(DecreasesMetric());
+      } else {
+        old(DecreasesMetric()).TupleNonIncreasesToTuple(DecreasesMetric());
+      }
+    }
+
+    method ForEach(consumer: IConsumer<Producer<O>>, ghost totalActionProof: TotalActionProof<Producer<O>, ()>)
+      requires Valid()
+      requires consumer.Valid()
+      requires Repr !! consumer.Repr !! totalActionProof.Repr
+      requires totalActionProof.Valid()
+      requires totalActionProof.Action() == consumer
+      reads this, Repr, consumer, consumer.Repr, totalActionProof, totalActionProof.Repr
+      modifies Repr, consumer.Repr
+      ensures ValidChange()
+      ensures consumer.ValidChange()
+      ensures Done()
+      ensures NewProduced() == consumer.NewInputs()
+    {
+      DefaultForEach(this, consumer, totalActionProof);
+    }
+
+    method Fill(consumer: Consumer<Producer<O>>, ghost totalActionProof: TotalActionProof<Producer<O>, bool>)
+      returns (leftover: Option<Producer<O>>)
+      requires Valid()
+      requires consumer.Valid()
+      requires Repr !! consumer.Repr !! totalActionProof.Repr
+      requires totalActionProof.Valid()
+      requires totalActionProof.Action() == consumer
+      modifies Repr, consumer.Repr
+      ensures Valid()
+      ensures consumer.Valid()
+      ensures Done() || consumer.Done()
+      ensures ValidChange()
+      ensures consumer.ValidChange()
+      ensures NewProduced() == consumer.NewInputs()
+    {
+      leftover := DefaultFill(this, consumer, totalActionProof);
     }
   }
 

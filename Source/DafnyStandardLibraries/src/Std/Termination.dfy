@@ -307,5 +307,13 @@ module Std.Termination {
     {
       reveal Ordinal();
     }
+
+    lemma TopDecreasesToNat(other: TerminationMetric)
+      requires TMTop?
+      requires other.TMNat?
+      ensures DecreasesTo(other)
+    {
+      reveal Ordinal();
+    }
   }
 }

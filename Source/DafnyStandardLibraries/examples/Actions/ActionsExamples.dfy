@@ -204,17 +204,13 @@ module ActionsExamples {
   }
 
   @AssumeCrossModuleTermination
-  class SplitProducer extends ProducerOfNewProducers<nat> {
+  class Splitter extends OutputterOfNewProducers<nat, nat> {
 
-    var inputs: seq<nat>
-
-    constructor (inputs: seq<nat>)
+    constructor ()
       ensures Valid()
       ensures fresh(Repr)
       ensures history == []
     {
-      this.inputs := inputs;
-
       history := [];
       Repr := {this};
     }
@@ -227,7 +223,19 @@ module ActionsExamples {
     {
       && this in Repr
       && ValidHistory(history)
-      && (0 < |inputs| ==> Seq.All(Outputs(), IsSome))
+    }
+
+    twostate predicate ValidChange()
+      reads this, Repr
+      ensures ValidChange() ==> old(Valid()) && Valid()
+      ensures ValidChange() ==> fresh(Repr - old(Repr))
+      ensures ValidChange() ==> old(history) <= history
+      decreases Repr, 0
+    {
+      && old(Valid())
+      && Valid()
+      && fresh(Repr - old(Repr))
+      && old(history) <= history
     }
 
     twostate lemma ValidImpliesValidChange()
@@ -236,117 +244,64 @@ module ActionsExamples {
       ensures ValidChange()
     {}
 
-    ghost predicate ValidOutputs(outputs: seq<Option<Producer<nat>>>)
-      requires Seq.Partitioned(outputs, IsSome)
+    ghost predicate ValidHistory(history: seq<(nat, Producer<nat>)>)
       decreases Repr
     {
       true
     }
+    ghost predicate ValidInput(history: seq<(nat, Producer<nat>)>, next: nat)
+      requires ValidHistory(history)
+      decreases Repr
+    {
+      true
+    }
+
+    lemma AnyInputIsValid(history: seq<(nat, Producer<nat>)>, next: nat)
+      requires Valid()
+      requires Action().ValidHistory(history)
+      ensures Action().ValidInput(history, next)
+    {}
 
     ghost function MaxProduced(): TerminationMetric
     {
       TMTop
     }
 
-    function Remaining(): Option<nat>
-      requires Valid()
-      reads this, Repr
-    {
-      None
-    }
-
-    ghost function DecreasesMetric(): TerminationMetric
+    ghost function Decreases(i: nat): ORDINAL
       requires Valid()
       reads this, Repr
       decreases Repr, 3
     {
-      TMNat(|inputs|)
+      0
     }
 
-    method Invoke(t: ()) returns (result: Option<Producer<nat>>)
-      requires Requires(t)
+    method Invoke(x: nat) returns (result: Producer<nat>)
+      requires Requires(x)
       reads Repr
-      modifies Modifies(t)
-      decreases Decreases(t), 0
-      ensures Ensures(t, result)
-      ensures if result.Some? then
-                old(Decreasing()) > Decreasing()
-              else
-                old(Decreasing()) >= Decreasing()
-      ensures result.Some? ==> JustProduced(result.value)
+      modifies Modifies(x)
+      decreases Decreases(x), 0
+      ensures Ensures(x, result)
+      ensures OutputFresh(result)
     {
-      assert Valid();
-
-      if |inputs| == 0 {
-        result := None;
-
-        OutputsPartitionedAfterOutputtingNone();
-        ProduceNone();
-      } else {
-        var x := inputs[0];
-        inputs := Seq.DropFirst(inputs);
-        var p := new SeqReader<nat>([x / 2, x - (x / 2)]);
-
-        result := Some(p);
-
-        OutputsPartitionedAfterOutputtingSome(result.value);
-        ProduceSome(result.value);
-      }
-
-      reveal TerminationMetric.Ordinal();
-      assert Valid();
-    }
-
-
-    method ForEach(consumer: IConsumer<Producer<nat>>, ghost totalActionProof: TotalActionProof<Producer<nat>, ()>) returns (count: nat)
-      requires Valid()
-      requires consumer.Valid()
-      requires Repr !! consumer.Repr !! totalActionProof.Repr
-      requires totalActionProof.Valid()
-      requires totalActionProof.Action() == consumer
-      reads this, Repr, consumer, consumer.Repr, totalActionProof, totalActionProof.Repr
-      modifies Repr, consumer.Repr
-      ensures ValidChange()
-      ensures consumer.ValidChange()
-      ensures Done()
-      ensures count == |NewProduced()|
-      ensures NewProduced() == consumer.NewInputs()
-    {
-      count := DefaultForEach(this, consumer, totalActionProof);
-    }
-
-    method Fill(consumer: Consumer<Producer<nat>>, ghost totalActionProof: TotalActionProof<Producer<nat>, bool>)
-      returns (count: int, leftover: Option<Producer<nat>>)
-      requires Valid()
-      requires consumer.Valid()
-      requires Repr !! consumer.Repr !! totalActionProof.Repr
-      requires totalActionProof.Valid()
-      requires totalActionProof.Action() == consumer
-      modifies Repr, consumer.Repr
-      ensures Valid()
-      ensures consumer.Valid()
-      ensures Done() || consumer.Done()
-      ensures ValidChange()
-      ensures consumer.ValidChange()
-      ensures NewProduced() == consumer.NewInputs()
-    {
-      count, leftover := DefaultFill(this, consumer, totalActionProof);
+      result := new SeqReader<nat>([x / 2, x - (x / 2)]);
+      UpdateHistory(x, result);
+      MaxProduced().TopDecreasesToNat(result.DecreasesMetric());
     }
   }
 
   @IsolateAssertions
   method {:test} ExamplePipeline() {
-    var producerProducer := new SplitProducer([1, 2, 3, 4, 5]);
-
-    var flattened := new FlattenedProducer(producerProducer);
+    var input := new SeqReader<nat>([1, 2, 3, 4, 5]);
+    var splitter := new Splitter();
+    var mapped := new MappedProducerOfNewProducers(input, splitter);
+    var flattened := new FlattenedProducer(mapped);
 
     var collector := new SeqWriter();
 
     var collectorTotalProof := new DefaultTotalActionProof(collector);
-    var count := flattened.ForEach(collector, collectorTotalProof);
+    flattened.ForEach(collector, collectorTotalProof);
 
     expect collector.values == [0, 1, 1, 1, 1, 2, 2, 2, 2, 3], collector.values;
-    expect count == 10;
   }
 
   @IsolateAssertions
@@ -393,9 +348,10 @@ module ActionsExamples {
 
     var s := { 1, 2, 3, 4, 5 };
     var setReader: Producer<nat>, producerOfSetProof := MakeSetReader(s);
+    assert setReader.Valid();
     var seqWriter := new SeqWriter<nat>();
     var writerTotalProof := seqWriter.totalActionProof();
-    var _ := setReader.ForEach(seqWriter, writerTotalProof);
+    setReader.ForEach(seqWriter, writerTotalProof);
     var asSeq := seqWriter.values;
 
     producerOfSetProof.ProducesSet(setReader.history);
