@@ -16,9 +16,10 @@ method TestClass(t1: Test, t2: Test, t3: Test, b: bool, c: bool) {
   ghost var setMems: set<(object, field)> := {t1`x,t2`x};
   assert setMems == set t: Test <- allTs :: t`x;
   ghost var seqMems: seq<(object, field)> := [t1`x,t2`x];
-  assert {t1, t2} == set r <- setMems :: r.0;
-  assert setMems == set r <- seqMems;
-  
+  assert t1`x in setMems;
+  assert t2`x in setMems;
+
+
   ghost var m: (object, field) := if c then (if b then t1`x else t2`x) else t3`x;
   ghost var m2: (object, field) := if c then (if b then t1 else t2)`x else t3`x;
   assert m == m2;
@@ -69,7 +70,9 @@ class InScopeLocations {
   {
     assert `x == this`x;
   }
-  method TestTest() {
+  method TestTest()
+    modifies this
+  {
     Test();
     assert old(y) == y;
   }

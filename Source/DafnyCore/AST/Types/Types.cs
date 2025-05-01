@@ -417,6 +417,8 @@ public abstract class Type : NodeWithOrigin {
       return AutoInitInfo.CompilableValue;
     } else if (t is CollectionType) {
       return AutoInitInfo.CompilableValue;
+    } else if (t is FieldType) {
+      return AutoInitInfo.MaybeEmpty;
     }
 
     var udt = (UserDefinedType)t;

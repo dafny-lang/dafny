@@ -3696,6 +3696,8 @@ namespace Microsoft.Dafny {
         return new Bpl.IdentifierExpr(Token.NoToken, "TORDINAL", Predef.Ty);
       } else if (type is ParamTypeProxy) {
         return TrTypeParameter(((ParamTypeProxy)type).orig);
+      } else if (type is FieldType) {
+        return new Bpl.IdentifierExpr(Token.NoToken, "TField", Predef.Ty);
       } else {
         Contract.Assert(false); throw new cce.UnreachableException();  // unexpected type
       }

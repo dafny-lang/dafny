@@ -4493,11 +4493,15 @@ FieldLocation<ref Expression e>
       var field = new FieldLocation(e, name);
       e = ProcessTupleArgs([new ActualBinding(null, e, false), new ActualBinding(null, field, false)], backtick);
     .)
-  | "["               (. Token openParen = t; var args = new List<ActualBinding>(); .)
-    TupleArgs<args>
+  | "["               (. Token openParen = t;
+                         var multipleIndices = new List<Expression>();
+                         Expression ee = null; .)
+    Expression<out ee, true, true>         (. multipleIndices.Add(ee); .)
+    { "," Expression<out ee, true, true>   (. multipleIndices.Add(ee); .)
+    }
     "]"               (. Token closeParen = t; .)
     (.
-      var field = new IndexFieldLocation(e, openParen, args, closeParen);
+      var field = new IndexFieldLocation(e, openParen, multipleIndices, closeParen);
       e = ProcessTupleArgs([new ActualBinding(null, e, false), new ActualBinding(null, field, false)], closeParen);
     .)
   )

@@ -1,8 +1,13 @@
-Line 20: Index might be out of range
-Line 27: Not part of reads clause
-Line 34: Not part of the modifies clause
-Line 39: Could not prove a.Length >= 1
-Line 40: Could not prove a.Length >= 2
-Line 25: Could not prove a.Length1 and a.Length2 >= 1
+Line 12: Index might be out of range
+Line 16: Index might be out of range
+Line 18: Not part of reads clause
+Line 25: Not part of the modifies clause
+Line 30: Could not prove a.Length >= 1
+Line 31: Could not prove a.Length >= 2
+Line 36: Could not prove a.Length1 and a.Length2 >= 1
+Line 40: Constants could not be proved to be absent from the reads clause
+Line 46: Constants could not be proved to be absent from the reads clause
+Line 52: Constants could not be proved to be absent from the modifies clause
+Line 57: Constants could not be proved to be absent from the modifies clause
 
 Dafny finished with nothing verified correctly

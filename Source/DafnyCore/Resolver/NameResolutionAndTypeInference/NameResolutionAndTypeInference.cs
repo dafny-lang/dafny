@@ -1205,7 +1205,7 @@ namespace Microsoft.Dafny {
             reporter.Error(MessageSource.Resolver, indexFieldLocation, 
               $"Expected {arrayType.Dims} {(arrayType.Dims > 1 ? "indices" : "index")}, but got {indexFieldLocation.Indices.Count}");
           }
-          foreach (var subexpr in indexFieldLocation.SubExpressions) {
+          foreach (var subexpr in indexFieldLocation.Indices) {
             ResolveExpression(subexpr, resolutionContext);
             ConstrainToIntegerType(subexpr, false, "Expected array location index to be int, got {0}");
           }

@@ -17,9 +17,9 @@ public class IndexFieldLocation: Expression, ICloneable<IndexFieldLocation> {
 
   public Token OpenParen { get; }
 
-  public List<ActualBinding> Indices { get; }
+  public List<Expression> Indices { get; }
   
-  public IndexFieldLocation(Expression objectCopy, Token openParen, List<ActualBinding> indices, Token closeParen) : base(new SourceOrigin(openParen, closeParen)) {
+  public IndexFieldLocation(Expression objectCopy, Token openParen, List<Expression> indices, Token closeParen) : base(new SourceOrigin(openParen, closeParen)) {
     Contract.Requires(indices.Count != 0);
     this.ObjectCopy = objectCopy;
     this.Indices = indices;
@@ -42,5 +42,5 @@ public class IndexFieldLocation: Expression, ICloneable<IndexFieldLocation> {
   }
 
   // objectCopy is not part of it because it's only used for resolution
-  public override IEnumerable<Expression> SubExpressions => Indices.Select(index => index.Actual);
+  public override IEnumerable<Expression> SubExpressions => Indices;
 }

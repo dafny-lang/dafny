@@ -1519,6 +1519,10 @@ namespace Microsoft.Dafny {
               newExprsDafny, oldExprsDafny, newExprs, oldExprs, null,
               null, allowNoChange, false);
             return decreasesExpr;
+          case FieldLocation fieldLocation:
+            return new Boogie.IdentifierExpr(GetToken(expr), BoogieGenerator.GetField(fieldLocation.ResolvedField));
+          case IndexFieldLocation indexFieldLocation:
+            return GetArrayIndexFieldName(indexFieldLocation.Origin, indexFieldLocation.Indices.ToList());
           default:
             Contract.Assert(false); throw new cce.UnreachableException();  // unexpected expression
         }
@@ -2177,11 +2181,7 @@ BplBoundVar(varNameGen.FreshId(string.Format("#{0}#", bv.Name)), Predef.BoxType,
           return total;
         } else if (expr is MultiSelectExpr) {
           MultiSelectExpr e = (MultiSelectExpr)expr;
-          Boogie.Expr total = CanCallAssumption(e.Array, cco);
-          foreach (Expression idx in e.Indices) {
-            total = BplAnd(total, CanCallAssumption(idx, cco));
-          }
-          return total;
+          return CanCallAssumption((IEnumerable<Expression>)e.Indices, cco, CanCallAssumption(e.Array, cco));
         } else if (expr is SeqUpdateExpr) {
           SeqUpdateExpr e = (SeqUpdateExpr)expr;
           Boogie.Expr total = CanCallAssumption(e.Seq, cco);
@@ -2474,17 +2474,21 @@ BplBoundVar(varNameGen.FreshId(string.Format("#{0}#", bv.Name)), Predef.BoxType,
           var oldCanCall = CanCallAssumption(decreasesToExpr.OldExpressions.ToList(), cco);
           var newCanCall = CanCallAssumption(decreasesToExpr.NewExpressions.ToList(), cco);
           return BplAnd(oldCanCall, newCanCall);
+        } else if (expr is FieldLocation fieldLocation) {
+          return Expr.True;
+        } else if (expr is IndexFieldLocation indexFieldLocation) {
+          return CanCallAssumption(indexFieldLocation.Indices, cco);
         } else {
           Contract.Assert(false); throw new cce.UnreachableException();  // unexpected expression
         }
       }
 
-      public Expr CanCallAssumption(List<Expression> exprs, CanCallOptions cco) {
+      public Expr CanCallAssumption(IEnumerable<Expression> exprs, CanCallOptions cco, Expr init = null) {
         Contract.Requires(this != null);
         Contract.Requires(exprs != null);
         Contract.Ensures(Contract.Result<Boogie.Expr>() != null);
 
-        Boogie.Expr total = Boogie.Expr.True;
+        Boogie.Expr total = init ?? Boogie.Expr.True;
         foreach (Expression e in exprs) {
           Contract.Assert(e != null);
           total = BplAnd(total, CanCallAssumption(e, cco));

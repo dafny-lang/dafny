@@ -11,10 +11,9 @@ class Test {
 opaque function ReadFirstElement(a: array<int>)
   reads a`[0]  // Well-formedness error
 
-
 opaque function ReadSecondElement(a: array<int>)
   requires a.Length >= 2
-  reads a`[0]
+  reads a`[if a[2] == 0 then 0 else 0] // Well-formedness error
 {
   a[1]   // No rights no read this index
 }
@@ -35,4 +34,26 @@ method TestArray(a: array<int>, c: bool)
 method TestArray2(a: array2<int>, c: bool)
 {
   ghost var m := a`[0, 0]; // Error, could not prove a.Length1 and a.Length2 >= 1
+}
+
+function ReadsConst(t: Test): int
+  reads t`c // Error, constants could not be proved to be absent from the reads clause
+{
+  0
+}
+
+function ReadsConsts(t1: Test, t2: Test): int
+  reads {t1`x, t2`c} // Error, constants could not be proved to be absent from the reads clause
+{
+  0
+}
+
+method ModifiesConst(t: Test): int
+  modifies t`c // Error, constants could not be proved to be absent from the modifies clause
+{
+}
+
+method ModifiesConst(t: Test): int
+  modifies {t`x, t`c} // Error, constants could not be proved to be absent from the modifies clause
+{
 }

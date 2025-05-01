@@ -750,9 +750,11 @@ namespace Microsoft.Dafny {
         case FieldLocation fieldLocation: {
           fieldLocation.Type = Type.Field;
           ResolveExpression(fieldLocation.ObjectCopy, resolutionContext);
-          var dotSuffix = ResolveDotSuffix(
-            new ExprDotName(fieldLocation.Origin, fieldLocation.ObjectCopy, fieldLocation.Name, null),
+          var tmpDotSuffix =
+            new ExprDotName(fieldLocation.Origin, fieldLocation.ObjectCopy, fieldLocation.Name, null);
+          var dotSuffix = ResolveDotSuffix(tmpDotSuffix,
             false, true, [], resolutionContext, false);
+          dotSuffix = dotSuffix ?? tmpDotSuffix.ResolvedExpression;
           if (dotSuffix is MemberSelectExpr memberSelect) {
             if (memberSelect.Member is Field field) {
               fieldLocation.ResolvedField = field;
@@ -776,7 +778,7 @@ namespace Microsoft.Dafny {
                 $"Expected {arrayType.Dims} {(arrayType.Dims > 1 ? "indices" : "index")}, but got {indexFieldLocation.Indices.Count}");
             }
 
-            foreach (var subexpr in indexFieldLocation.SubExpressions) {
+            foreach (var subexpr in indexFieldLocation.Indices) {
               ResolveExpression(subexpr, resolutionContext);
               ConstrainToIntFamily(subexpr.PreType, subexpr.Origin, "Expected int, but got {0}");
             }
