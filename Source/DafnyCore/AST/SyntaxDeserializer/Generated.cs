@@ -149,6 +149,24 @@ namespace Microsoft.Dafny
             return ReadAutoGhostIdentifierExpr();
         }
 
+        public TypeTestExpr ReadTypeTestExpr()
+        {
+            var parameter0 = ReadAbstract<IOrigin>();
+            var parameter1 = ReadAbstract<Expression>();
+            var parameter2 = ReadAbstract<Type>();
+            return new TypeTestExpr(parameter0, parameter1, parameter2);
+        }
+
+        public TypeTestExpr ReadTypeTestExprOption()
+        {
+            if (ReadIsNull())
+            {
+                return default;
+            }
+
+            return ReadTypeTestExpr();
+        }
+
         public ConversionExpr ReadConversionExpr()
         {
             var parameter0 = ReadAbstract<IOrigin>();
@@ -2105,6 +2123,11 @@ namespace Microsoft.Dafny
             if (actualType == typeof(AutoGhostIdentifierExpr))
             {
                 return ReadAutoGhostIdentifierExpr();
+            }
+
+            if (actualType == typeof(TypeTestExpr))
+            {
+                return ReadTypeTestExpr();
             }
 
             if (actualType == typeof(ConversionExpr))
