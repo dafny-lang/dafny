@@ -10,7 +10,7 @@ module ReadFromFile {
   method Test() {
     // TODO: extern function for the expected error prefix
     theMain("examples/FileIO/../FileIO/data.txt", "");
-    theError("example/FileIO/invalid_utf8.txt");
+    theError("examples/FileIO/invalid_utf8.txt");
   }
 
   method theMain(dataPath: string, expectedErrorPrefix: string) {
