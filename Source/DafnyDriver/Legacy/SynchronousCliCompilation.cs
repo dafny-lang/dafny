@@ -291,14 +291,7 @@ namespace Microsoft.Dafny {
         PipelineOutcome outcome;
         IDictionary<string, PipelineStatistics> moduleStats;
         dafnyProgram.ProofDependencyManager = depManager;
-        if (!options.DafnyVerify) {
-          verified = false;
-          outcome = PipelineOutcome.Done;
-          moduleStats = new Dictionary<string, PipelineStatistics>();
-          if (options.Get(BoogieOptionBag.HiddenNoVerify)) {
-            options.ProcessSolverOptions(dafnyProgram.Reporter, Token.Cli);
-          }
-        } else {
+        if (options.GenerateBoogie) {
           var boogiePrograms =
             await DafnyMain.LargeStackFactory.StartNew(() => Translate(engine.Options, dafnyProgram).ToList());
 
@@ -316,6 +309,13 @@ namespace Microsoft.Dafny {
                 boogiePrograms.SelectMany(tp => tp.Item2.AllCoveredElements),
                 coverageReportDir);
             }
+          }
+        } else {
+          verified = false;
+          outcome = PipelineOutcome.Done;
+          moduleStats = new Dictionary<string, PipelineStatistics>();
+          if (options.Get(BoogieOptionBag.HiddenNoVerify)) {
+            options.ProcessSolverOptions(dafnyProgram.Reporter, Token.Cli);
           }
         }
 
@@ -339,7 +339,7 @@ namespace Microsoft.Dafny {
         }
 
         var failBecauseOfDiagnostics = dafnyProgram.Reporter.FailCompilationMessage;
-        if (!verified && options.DafnyVerify) {
+        if (!verified && options.GenerateBoogie) {
           exitValue = ExitValue.VERIFICATION_ERROR;
         } else if (!compiled) {
           exitValue = ExitValue.COMPILE_ERROR;
