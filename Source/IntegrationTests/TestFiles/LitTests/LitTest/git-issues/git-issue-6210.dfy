@@ -1,14 +1,13 @@
-// RUN: %baredafny verify %args "%s" > "%t"
-// RUN: %baredafny build %args --no-verify -t:cs "%s" >> "%t"
-// RUN: %baredafny build %args --no-verify -t:js "%s" >> "%t"
-// RUN: %baredafny build %args --no-verify -t:cpp "%s" >> "%t"
-// RUN: %baredafny build %args --no-verify -t:java "%s" >> "%t"
-// RUN: %baredafny build %args --no-verify -t:go "%s" >> "%t"
-// RUN: %baredafny build %args --no-verify -t:py "%s" >> "%t"
+// NONUNIFORM: Testing the initialization of Rust, not relevant to other backends.
+// RUN: %baredafny build -t:rs %args  --enforce-determinism "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 module Test {
   datatype StringWrapped = String(s: string)
+
+  method StringWrap(name : string) returns (output : StringWrapped) {
+    return String("world");
+  }
 
   method PackTupleWithStringWrapped(name : string) returns (output : (string, StringWrapped)) {
     return ("hello", String("world"));
