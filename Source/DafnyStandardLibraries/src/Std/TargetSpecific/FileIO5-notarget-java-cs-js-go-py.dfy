@@ -84,43 +84,6 @@ module Std.FileIO {
     return UnicodeStringsWithUnicodeChar.FromUTF8Checked(seq(|bytes|, i requires 0 <= i < |bytes| => bytes[i] as uint8));
   }
 
-  opaque predicate WriteFileInvariantFor(c: char)
-  {
-    && IsCodePoint(c as bv24)
-    && IsScalarValue(ToCodePoint(c as bv24))
-  }
-
-  predicate IsCodePoint(i: bv24) {
-    0 <= i <= 0x10FFFF
-  }
-
-  predicate IsScalarValue(p: Utf8EncodingForm.Base.CodePoint) {
-    && (p < Utf8EncodingForm.Base.HIGH_SURROGATE_MIN || p > Utf8EncodingForm.Base.HIGH_SURROGATE_MAX)
-    && (p < Utf8EncodingForm.Base.LOW_SURROGATE_MIN || p > Utf8EncodingForm.Base.LOW_SURROGATE_MAX)
-  }
-
-
-  function ToCodePoint(i: bv24): Utf8EncodingForm.Base.CodePoint
-    requires IsCodePoint(i)
-  {
-    i
-  }
-
-
-  function ToScalarValue(p: Utf8EncodingForm.Base.CodePoint): Utf8EncodingForm.Base.ScalarValue
-    requires IsScalarValue(p)
-  {
-    p
-  }
-
-  @IsolateAssertions
-  function EncodeWriteChar(c: char): Utf8EncodingForm.Base.ScalarValue
-    requires WriteFileInvariantFor(c)
-  {
-    reveal WriteFileInvariantFor();
-    ToScalarValue(ToCodePoint(c as bv24))
-  }
-
   /**
     * Attempts to write a string to a file using UTF-8 encoding.
     * Creates the file if it doesn't exist, or overwrites it if it does.

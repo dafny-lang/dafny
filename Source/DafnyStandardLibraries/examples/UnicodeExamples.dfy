@@ -90,6 +90,7 @@ module UnicodeExamples {
       for i := 0 to |TEST_ILL_FORMED_SEQUENCES| {
         var s := TEST_ILL_FORMED_SEQUENCES[i];
         AssertAndExpect(DecodeCodeUnitSequenceChecked(s).Failure?);
+        expect DecodeCodeUnitSequenceChecked(s).error == "Could not decode byte at index 0";
       }
     }
   }
@@ -148,6 +149,7 @@ module UnicodeExamples {
       for i := 0 to |TEST_ILL_FORMED_SEQUENCES| {
         var s := TEST_ILL_FORMED_SEQUENCES[i];
         AssertAndExpect(DecodeCodeUnitSequenceChecked(s).Failure?);
+        expect DecodeCodeUnitSequenceChecked(s).error == "Could not decode byte at index 0";
       }
     }
   }

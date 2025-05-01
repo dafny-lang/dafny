@@ -10,6 +10,7 @@ module ReadFromFile {
   method Test() {
     // TODO: extern function for the expected error prefix
     theMain("examples/FileIO/../FileIO/data.txt", "");
+    theError("example/FileIO/invalid_utf8.txt");
   }
 
   method theMain(dataPath: string, expectedErrorPrefix: string) {
@@ -27,6 +28,15 @@ module ReadFromFile {
       var res := FileIO.ReadUTF8FromFile("");
       expect res.Failure?, "unexpected success";
       expect expectedErrorPrefix <= res.error, "unexpected error message: " + res.error;
+    }
+  }
+  
+  method theError(dataPath: string) {
+      // Failure path: attempting to read from a blank file path should never work.
+    {
+      var res := FileIO.ReadUTF8FromFile(dataPath);
+      expect res.Failure?, "unexpected success";
+      expect res.error == "Could not decode byte at index 20", "unexpected error message: " + res.error;
     }
   }
 }
