@@ -287,37 +287,8 @@ namespace Microsoft.Dafny {
         options.Printer.ErrorWriteLine(options.OutputWriter, err);
       } else if (dafnyProgram != null && !options.NoResolve && !options.NoTypecheck) {
 
-        bool verified;
-        PipelineOutcome outcome;
-        IDictionary<string, PipelineStatistics> moduleStats;
-        dafnyProgram.ProofDependencyManager = depManager;
-        if (options.GenerateBoogie) {
-          var boogiePrograms =
-            await DafnyMain.LargeStackFactory.StartNew(() => Translate(engine.Options, dafnyProgram).ToList());
-
-          string baseName = cce.NonNull(Path.GetFileName(dafnyFileNames[^1]));
-          (verified, outcome, moduleStats) =
-            await BoogieAsync(dafnyProgram.Reporter, options, baseName, boogiePrograms, programId);
-
-          if (options.TrackVerificationCoverage) {
-            ProofDependencyWarnings.WarnAboutSuspiciousDependenciesUsingStoredPartialResults(options,
-              dafnyProgram.Reporter, depManager);
-            var coverageReportDir = options.Get(CommonOptionBag.VerificationCoverageReport);
-            if (coverageReportDir != null) {
-              await new CoverageReporter(options).SerializeVerificationCoverageReport(
-                depManager, dafnyProgram,
-                boogiePrograms.SelectMany(tp => tp.Item2.AllCoveredElements),
-                coverageReportDir);
-            }
-          }
-        } else {
-          verified = false;
-          outcome = PipelineOutcome.Done;
-          moduleStats = new Dictionary<string, PipelineStatistics>();
-          if (options.Get(BoogieOptionBag.HiddenNoVerify)) {
-            options.ProcessSolverOptions(dafnyProgram.Reporter, Token.Cli);
-          }
-        }
+        var (verified, outcome, moduleStats) = 
+          await HandleVerification(options, depManager, programId, dafnyProgram, dafnyFileNames);
 
         bool compiled;
         try {
@@ -360,6 +331,44 @@ namespace Microsoft.Dafny {
       }
 
       return exitValue;
+    }
+
+    private async Task<(bool verified, PipelineOutcome outcome, IDictionary<string, PipelineStatistics> moduleStats)> HandleVerification(DafnyOptions options, ProofDependencyManager depManager, string programId,
+      Program dafnyProgram, List<string> dafnyFileNames)
+    {
+      bool verified;
+      PipelineOutcome outcome;
+      IDictionary<string, PipelineStatistics> moduleStats;
+      dafnyProgram.ProofDependencyManager = depManager;
+      if (options.GenerateBoogie) {
+        var boogiePrograms =
+          await DafnyMain.LargeStackFactory.StartNew(() => Translate(engine.Options, dafnyProgram).ToList());
+
+        string baseName = cce.NonNull(Path.GetFileName(dafnyFileNames[^1]));
+        (verified, outcome, moduleStats) =
+          await BoogieAsync(dafnyProgram.Reporter, options, baseName, boogiePrograms, programId);
+
+        if (options.TrackVerificationCoverage) {
+          ProofDependencyWarnings.WarnAboutSuspiciousDependenciesUsingStoredPartialResults(options,
+            dafnyProgram.Reporter, depManager);
+          var coverageReportDir = options.Get(CommonOptionBag.VerificationCoverageReport);
+          if (coverageReportDir != null) {
+            await new CoverageReporter(options).SerializeVerificationCoverageReport(
+              depManager, dafnyProgram,
+              boogiePrograms.SelectMany(tp => tp.Item2.AllCoveredElements),
+              coverageReportDir);
+          }
+        }
+      } else {
+        verified = false;
+        outcome = PipelineOutcome.Done;
+        moduleStats = new Dictionary<string, PipelineStatistics>();
+        if (options.Get(BoogieOptionBag.HiddenNoVerify)) {
+          options.ProcessSolverOptions(dafnyProgram.Reporter, Token.Cli);
+        }
+      }
+
+      return (verified, outcome, moduleStats);
     }
 
     /// <summary>
