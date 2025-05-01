@@ -295,6 +295,9 @@ namespace Microsoft.Dafny {
           verified = false;
           outcome = PipelineOutcome.Done;
           moduleStats = new Dictionary<string, PipelineStatistics>();
+          if (options.Get(BoogieOptionBag.HiddenNoVerify)) {
+            options.ProcessSolverOptions(dafnyProgram.Reporter, Token.Cli);
+          }
         } else {
           var boogiePrograms =
             await DafnyMain.LargeStackFactory.StartNew(() => Translate(engine.Options, dafnyProgram).ToList());
