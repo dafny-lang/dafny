@@ -870,23 +870,6 @@ namespace Microsoft.Dafny.Compilers {
             bufferedInitializationValue = Option<DAST._IExpression>.create_Some(
               ConvertExpression(type.AsSubsetType.Witness, new BuilderSyntaxTree<StatementContainer>(bufStmt, this)));
             bufferedInitializationStmts = Option<List<DAST.Statement>>.create_Some(bufStmt.PopAll());
-          } else if (type.AsDatatype != null && type.AsDatatype.Ctors.Count == 1 && type.AsDatatype.Ctors[0].EnclosingDatatype is TupleTypeDecl tupleDecl) {
-            var elems = new List<DAST._IExpression>();
-            for (var i = 0; i < tupleDecl.Ctors[0].Formals.Count; i++) {
-              if (!tupleDecl.Ctors[0].Formals[i].IsGhost) {
-                TypeInitializationValue(type.TypeArgs[i], wr, tok, usePlaceboValue, constructTypeParameterDefaultsFromTypeDescriptors);
-                elems.Add(bufferedInitializationValue.dtor_value);
-                bufferedInitializationValue = null;
-              }
-            }
-
-            if (elems.Count == 1) {
-              bufferedInitializationValue = Option<DAST._IExpression>.create_Some(elems[0]);
-            } else {
-              bufferedInitializationValue = Option<DAST._IExpression>.create_Some(
-                DAST.Expression.create_Tuple(Sequence<DAST._IExpression>.FromArray(elems.ToArray()))
-              );
-            }
           } else {
             bufferedInitializationValue = Option<DAST._IExpression>.create_Some(
               DAST.Expression.create_InitializationValue(GenType(type))
