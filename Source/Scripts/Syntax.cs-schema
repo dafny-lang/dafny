@@ -662,12 +662,6 @@ class MultiSelectExpr : Expression
     List<Expression> indices;
 }
 
-class MemberSelectExpr : Expression
-{
-    Expression obj;
-    Name memberName;
-}
-
 abstract class BasicType : NonProxyType
 {
 }
@@ -875,6 +869,11 @@ class IndDatatypeDecl : DatatypeDecl
 
 abstract class ClassLikeDecl : TopLevelDeclWithMembers
 {
+}
+
+class TraitDecl : ClassLikeDecl
+{
+    Boolean isRefining;
 }
 
 class ClassDecl : ClassLikeDecl
