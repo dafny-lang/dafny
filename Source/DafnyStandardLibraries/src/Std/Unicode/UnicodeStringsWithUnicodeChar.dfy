@@ -61,11 +61,11 @@ module Std.Unicode.UnicodeStringsWithUnicodeChar refines AbstractUnicodeStrings 
     Some(asBytes)
   }
 
-  function FromUTF8Checked(bs: seq<uint8>): Option<string> {
+  function FromUTF8Checked(bs: seq<uint8>): Result<string, string> {
     var asCodeUnits := Seq.Map(c => c as Utf8EncodingForm.CodeUnit, bs);
     var utf32 :- Utf8EncodingForm.DecodeCodeUnitSequenceChecked(asCodeUnits);
     var asChars := Seq.Map(CharFromUnicodeScalarValue, utf32);
-    Some(asChars)
+    Success(asChars)
   }
 
   function ToUTF16Checked(s: string): Option<seq<uint16>>
@@ -77,10 +77,10 @@ module Std.Unicode.UnicodeStringsWithUnicodeChar refines AbstractUnicodeStrings 
     Some(asBytes)
   }
 
-  function FromUTF16Checked(bs: seq<uint16>): Option<string> {
+  function FromUTF16Checked(bs: seq<uint16>): Result<string, string> {
     var asCodeUnits := Seq.Map(c => c as Utf16EncodingForm.CodeUnit, bs);
     var utf32 :- Utf16EncodingForm.DecodeCodeUnitSequenceChecked(asCodeUnits);
     var asChars := Seq.Map(CharFromUnicodeScalarValue, utf32);
-    Some(asChars)
+    Success(asChars)
   }
 }
