@@ -2229,8 +2229,40 @@ namespace Microsoft.Dafny {
       Contract.Requires(Predef != null);
       Contract.Requires(receiverReplacement == null || substMap != null);
       Contract.Ensures(Contract.Result<Bpl.Expr>() != null);
-      var boxO = FunctionCall(tok, BuiltinFunction.Box, null, o);
+      var boxO = Box(tok, o);
       return InRWClause_Aux(tok, o, boxO, f, rw, useInUnchanged, etran, receiverReplacement, substMap);
+    }
+
+    private NAryExpr Box(IOrigin tok, Expr o)
+    {
+      return FunctionCall(tok, BuiltinFunction.Box, null, o);
+    }
+
+    private Bpl.Expr PossibleOWithField(IOrigin tok, Type elemType, Bpl.Expr o, Bpl.Expr boxO, Bpl.Expr f) {
+      if (ReferrersEnabled(elemType)) {
+        if (f == null) {
+          f = new Bpl.IdentifierExpr(tok, "todo_f", Predef.Ty);
+        }
+        return new NAryExpr(tok, new Bpl.FunctionCall(Predef.Tuple2Constructor), [boxO, Box(tok, f)]);
+      } else {
+        return o;
+      }
+    }
+
+    private bool ReferrersEnabled(Type elemType)
+    {
+      return Options.Get(CommonOptionBag.Referrers) && elemType.AsDatatype is TupleTypeDecl { Dims: 2 };
+    }
+
+    private Bpl.Expr PossibleBox_OWithField(IOrigin tok, Type elemType, Bpl.Expr boxO, Bpl.Expr f) {
+      if (Options.Get(CommonOptionBag.Referrers) && elemType.AsDatatype is TupleTypeDecl { Dims: 2 }) {
+        if (f == null) {
+          f = new Bpl.IdentifierExpr(tok, "todo_f", Predef.Ty);
+        }
+        return Box(tok, new NAryExpr(tok, new Bpl.FunctionCall(Predef.Tuple2Constructor), [boxO, Box(tok, f)])); 
+      } else {
+        return boxO;
+      }
     }
 
     /// <summary>
@@ -2263,6 +2295,8 @@ namespace Microsoft.Dafny {
 
         Bpl.Expr disjunct;
         var eType = e.Type.NormalizeToAncestorType();
+
+
         if (e is WildcardExpr) {
           // For /allocated:{0,1,3}, "function f(...)... reads *"
           // is more useful if "reads *" excludes unallocated references,
@@ -2273,13 +2307,17 @@ namespace Microsoft.Dafny {
           // this issue.
           disjunct = etran.IsAlloced(tok, o);
         } else if (eType is SetType setType) {
+          o = PossibleOWithField(tok, setType.Arg, o, boxO, f);
+          boxO = PossibleBox_OWithField(tok, setType.Arg, boxO, f);
           // e[Box(o)]
           bool pr;
           disjunct = etran.TrInSet_Aux(tok, o, boxO, e, setType.Finite, true, out pr);
-        } else if (eType is MultiSetType) {
+        } else if (eType is MultiSetType multisetType) {
+          o = PossibleOWithField(tok, multisetType.Arg, o, boxO, f);
+          boxO = PossibleBox_OWithField(tok, multisetType.Arg, boxO, f);
           // e[Box(o)] > 0
           disjunct = etran.TrInMultiSet_Aux(tok, o, boxO, e, true);
-        } else if (eType is SeqType) {
+        } else if (eType is SeqType segType) {
           // (exists i: int :: 0 <= i && i < Seq#Length(e) && Seq#Index(e,i) == Box(o))
           Bpl.Variable iVar = new Bpl.BoundVariable(tok, new Bpl.TypedIdent(tok, "$i", Bpl.Type.Int));
           Bpl.Expr i = new Bpl.IdentifierExpr(tok, iVar);
@@ -2287,12 +2325,15 @@ namespace Microsoft.Dafny {
           Bpl.Expr XsubI = FunctionCall(tok, BuiltinFunction.SeqIndex, Predef.BoxType, etran.TrExpr(e), i);
           // TODO: the equality in the next line should be changed to one that understands extensionality
           //TRIG (exists $i: int :: 0 <= $i && $i < Seq#Length(read($h0, this, _module.DoublyLinkedList.Nodes)) && Seq#Index(read($h0, this, _module.DoublyLinkedList.Nodes), $i) == $Box($o))
+          
+          boxO = PossibleBox_OWithField(tok, segType.Arg, boxO, f);
           disjunct = new Bpl.ExistsExpr(tok, [iVar], BplAnd(iBounds, Bpl.Expr.Eq(XsubI, boxO)));  // LL_TRIGGER
         } else {
           // o == e
+          o = PossibleOWithField(tok, e.Type, o, boxO, f);
           disjunct = Bpl.Expr.Eq(o, etran.TrExpr(e));
         }
-        if (rwComponent.Field != null && f != null) {
+        if (rwComponent.Field != null && f != null) {// TODO: Optimize when writing {a, b} field?
           Bpl.Expr q = Bpl.Expr.Eq(f, new Bpl.IdentifierExpr(rwComponent.E.Origin, GetField(rwComponent.Field)));
           if (usedInUnchanged) {
             q = BplOr(q,
