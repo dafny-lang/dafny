@@ -4,7 +4,7 @@
 
 class Anything {
   const x := 3123.012314
-
+  
   method foo() {
     while(true) {
       continue;
@@ -12,6 +12,8 @@ class Anything {
     assert(old(this) == this);
     assert(unchanged(this));
     assert(fresh(this));
+    var v := new Anything;
+    assert(v is Anything);
   }
 }
 
