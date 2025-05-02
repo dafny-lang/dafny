@@ -1,7 +1,7 @@
 // Internal implementation of runtime datatypes and algorithms in Dafny.
 // Although some of the code in here is likely useful for other codebases,
 // it is NOT intended to be used as such in its current state.
-abstract module {:options "/functionSyntax:4"} Dafny {
+abstract module {:options "--function-syntax=4"} Dafny {
 
   // Note that the T type parameters on some types,
   // such as Sequence<T> and ImmutableArray<T>,

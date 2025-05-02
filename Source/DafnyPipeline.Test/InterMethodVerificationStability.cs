@@ -9,6 +9,7 @@ using DiffPlex.DiffBuilder.Model;
 using Microsoft.VisualStudio.TestPlatform.PlatformAbstractions;
 using Xunit;
 using Xunit.Abstractions;
+using XunitAssertMessages;
 
 namespace DafnyPipeline.Test {
   // Main.Resolve has static shared state (TypeConstraint.ErrorsToBeReported for example)
@@ -24,7 +25,7 @@ method M(heap: object)
 modifies heap
 {
   var x := 0;
-  if y :| y < x {
+  if y {:trigger} :| y < x {
     var x := 0; 
   } else {
     var y := 0;
@@ -62,7 +63,7 @@ method M(heap: object)
   modifies heap
 {
   var x := 0;
-  if k :| k < x {
+  if k {:trigger} :| k < x {
     var a := 0; 
   } else {
     var b := 0;
@@ -198,7 +199,7 @@ method M(heap: object)
       File.WriteAllText(fileName, dafnyProgram);
       var processStartInfo = new ProcessStartInfo {
         FileName = "dotnet",
-        Arguments = $"{DefaultDafnyArgs} /compile:0 /env:0 /print:- {fileName}",
+        Arguments = $"{DefaultDafnyArgs} verify --relax-definite-assignment --bprint=- {fileName}",
         RedirectStandardOutput = true,
         RedirectStandardError = true,
         UseShellExecute = false
@@ -213,7 +214,7 @@ method M(heap: object)
         output.WriteLine(result);
         output.WriteLine(dafnyProcess.StandardError.ReadToEnd());
       }
-      Assert.Equal(4, dafnyProcess.ExitCode);
+      AssertM.Equal(4, dafnyProcess.ExitCode, result);
       return result;
     }
   }

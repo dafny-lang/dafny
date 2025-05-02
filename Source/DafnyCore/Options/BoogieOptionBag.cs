@@ -110,7 +110,7 @@ public static class BoogieOptionBag {
     DafnyOptions.RegisterLegacyBinding(NoVerify, (options, dotNotVerify) => {
       var shouldVerify = !dotNotVerify && !options.Get(HiddenNoVerify);
       options.Verify = shouldVerify; // Boogie won't verify
-      options.DafnyVerify =
+      options.GenerateBoogie =
         shouldVerify ||
         options.Get(DeveloperOptionBag.BoogiePrint) != null ||
         options.Get(DeveloperOptionBag.SplitPrint) != null ||

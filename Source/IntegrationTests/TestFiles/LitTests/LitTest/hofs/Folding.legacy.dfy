@@ -1,5 +1,5 @@
-// NONUNIFORM: /induction:3 not supported by new CLI
-// RUN: %dafny /compile:3 /induction:3 "%s" > "%t"
+
+// RUN: %dafny verify "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 // Specifications and proofs involving foldr (inspired by Liquid Haskell) and foldl
@@ -108,11 +108,12 @@ lemma FoldR_F23(xs: List<int>)
   case Cons(head, tail) =>
 }
 
+
 // In fact, it's also possible to write this lemma in an inline assertion.
 method FoldR_Use_Direct(xs: List<int>)
 {
   var r := foldr(F23, 0, xs);
-  assert forall ys :: foldr(F23, 0, ys) % 2 == 0;
+  FoldR_F23(xs);
   assert r % 2 == 0;
 }
 
@@ -120,7 +121,7 @@ method FoldR_Use_Direct_lambda(xs: List<int>)
 {
   var f := (a,b) => 2*a + 3*b;
   var r := foldr(f, 0, xs);
-  assert forall ys :: foldr(f, 0, ys) % 2 == 0;
+  FoldR_Property_inv_f((l: List<int>, x: int) => x % 2 == 0, f, 0, xs);
   assert r % 2 == 0;
 }
 
@@ -231,7 +232,7 @@ lemma FoldL_F32(xs: List<int>, b: int)
 method FoldL_Use_Direct(xs: List<int>)
 {
   var r := foldl(F32, 0, xs);
-  assert forall ys,b :: b % 2 == 0 ==> foldl(F32, b, ys) % 2 == 0;
+  FoldL_F32(xs, 0);
   assert r % 2 == 0;
 }
 
@@ -239,7 +240,7 @@ method {:isolate_assertions} FoldL_Use_Direct_lambda(xs: List<int>)
 {
   var f := (b,a) => 3*b + 2*a;
   var r := foldl(f, 0, xs);
-  assert forall ys,b :: b % 2 == 0 ==> foldl(f, b, ys) % 2 == 0;
+  FoldL_Property_inv_f((x: int, l: List<int>) => x % 2 == 0, f, 0, xs);
   assert r % 2 == 0;
 }
 

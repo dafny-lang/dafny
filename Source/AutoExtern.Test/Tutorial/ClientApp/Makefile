@@ -29,7 +29,7 @@ $(LibraryModelFile): $(LibraryProjectFile) $(AutoExternSources) $(ManuallyTransl
 		$(AutoExternSources)
 
 $(AppDafnyCSharpFile): $(AppDafnyFile)
-	$(Dafny) -compile:0 -noVerify -spillTargetCode:3 "$<"
+	$(Dafny) translate cs --include-runtime --no-verify "$<"
 
 dotnet-run: $(LibraryModelFile) $(AppCSharpFile) $(AppDafnyCSharpFile)
 	dotnet run

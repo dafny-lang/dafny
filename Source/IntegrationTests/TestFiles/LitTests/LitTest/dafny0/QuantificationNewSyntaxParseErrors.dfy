@@ -18,7 +18,7 @@ module {:options "--quantifier-syntax=3"} OldSyntax {
   }
 }
 
-module {:options "/quantifierSyntax:4"} NewSyntax {
+module {:options "--quantifier-syntax=4"} NewSyntax {
   method M()
   {
     var y := 5;

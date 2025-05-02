@@ -2,7 +2,7 @@ include "System.dfy"
 
 // Interface with existing Dafny code (IOrigin)
 @Compile(false)
-@Options("-functionSyntax:4")
+@Options("--function-syntax:4")
 module {:extern "Microsoft.Dafny"} MicrosoftDafny {
   import opened System
 

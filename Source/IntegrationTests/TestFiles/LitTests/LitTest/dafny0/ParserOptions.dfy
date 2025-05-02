@@ -4,19 +4,19 @@
 // This module tests support for the `:options` attribute
 
 // Use legacy syntax
-module {:options "/functionSyntax:3"} FunctionMethodSyntax {
+module {:options "--function-syntax:3"} FunctionMethodSyntax {
   function method CompiledFunction() : int { 1 }
   function GhostFunction() : int { 1 }
 }
 
 // Use new syntax
-module {:options "/functionSyntax:4"} GhostFunctionSyntax {
+module {:options "--function-syntax=4"} GhostFunctionSyntax {
   function CompiledFunction() : int { 1 }
   ghost function GhostFunction() : int { 1 }
 }
 
 // Check that later :options take precedence
-module {:options "/functionSyntax:3"} {:options "/functionSyntax:4"}
+module {:options "--function-syntax:3"} {:options "--function-syntax=4"}
   StillGhostFunctionSyntax
 {
   function CompiledFunction() : int { 1 }

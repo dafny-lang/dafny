@@ -19,9 +19,6 @@ public abstract class MethodOrConstructor : MethodOrFunction, TypeParameter.Pare
   );
 
   static MethodOrConstructor() {
-    DafnyOptions.RegisterLegacyUi(ReadsClausesOnMethods, DafnyOptions.ParseBoolean, "Language feature selection", "readsClausesOnMethods", @"
-0 (default) - Reads clauses on methods are forbidden.
-1 - Reads clauses on methods are permitted (with a default of 'reads *').".TrimStart(), defaultValue: false);
     OptionRegistry.RegisterGlobalOption(ReadsClausesOnMethods, OptionCompatibility.CheckOptionLocalImpliesLibrary);
   }
 

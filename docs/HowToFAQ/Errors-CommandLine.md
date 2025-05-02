@@ -61,16 +61,6 @@ The named command-line argument is either a misspelled option or a filename
 in an unrecognized form (e.g., with no filename extension).
 An invalid option with a filename as value can look like either one, such as `--out:a.doo`.
 
-## **Error: unknown switch: -zzz** {#cli_bad_option_legacy}
-
-<!-- %check-cli %err %first -->
-```bash
-dafny -zzz
-```
-
-The named command-line argument is either a misspelled option or a filename
-in an unrecognized form (e.g., with no filename extension).
-
 ## **Error: '_name_': Filename extension '_ext_' is not supported. Input files must be Dafny programs (.dfy) or supported auxiliary files (_ext_)** {#cli_bad_extension}
 
 <!-- %check-cli -->
@@ -160,48 +150,6 @@ You can use `--print` to see the output. Also for an input file `test.dfy`, the 
 
 <!-- DafnyCore/DafnyOptions.cs -->
 
-## **Error: Invalid argument _argument_ to option print-mode_help_** {#cli_print_mode}
-
-<!-- %check-cli %err %first -->
-```bash 
-dafny -printMode:zzz
-```
-
-The `printMode` option has a number of alternative values that are spelled out in the help document (`dafny -?`).
-It is also recommended to use the new CLI, with the option `--print-mode`.
-
-## **Error: Unsupported diagnostic format: _format_; expecting one of 'json', 'text'.** {#cli_diagnostic_format}
-
-<!-- %check-cli %err %first -->
-```bash
-dafny /diagnosticsFormat:zzz
-```
-
-This option controls the format of error messages. Typically the 'text' format is used (and is the default).
-But 'json' is also an option. Any other choice is illegal and results in this error message.
-
-## **Error: Invalid argument _argument_ to option functionSyntax_help_** {#cli_function_syntax}
-
-<!-- %check-cli %err %first -->
-```bash 
-dafny -functionSyntax:z
-```
-
-The `functionSyntax` option has a number of alternative values that are spelled out in the help document (`dafny -?`),
-most commonly the values '3' and '4' ('4' for dafny version 4.0 and later).
-It is also recommended to use the new CLI, with the option `--function-syntax`.
-
-## **Error: Invalid argument _argument_ to option quantifierSyntax_help_** {#cli_quantifier_syntax}
-
-<!-- %check-cli %err %first -->
-```bash 
-dafny -quantifierSyntax:z
-```
-
-The `quantifierSyntax ` option has a number of alternative values that are spelled out in the help document (`dafny -?`),
-most commonly the values '3' and '4' ('4' for dafny version 4.0 and later).
-It is also recommended to use the new CLI, with the option `--quantifier-syntax`.
-
 ## **Error: Invalid argument _argument_ to option verificationLogger_help_** {#cli_verification_logger}
 
 <!-- %verify %err %first -->
@@ -210,25 +158,6 @@ It is also recommended to use the new CLI, with the option `--quantifier-syntax`
 ```
 
 The `--log-format` option has these alternatives: trx, csv, text.
-
-## **Error: Invalid argument _argument_ to option testContracts_help_** {#cli_test_contracts}
-
-<!-- %check-cli %err %first -->
-```bash 
-dafny -testContracts:z
-```
-
-The `testContracts` option has these alternatives: Externs, TestedExterns.
-The similar option in the new CLI is `--test-assumptions`.
-
-## **Error: Invalid argument _argument_ to option printIncludes_help_** {#cli_print_includes}
-
-<!-- %check-cli %err %first -->
-```bash 
-dafny -printIncludes:z
-```
-
-The `printIncludes` option has these alternatives: None, Immediate, Transitive.
 
 ## **Argument '_argument_' not recognized. _Alternatives_** {#cli_quantifier_syntax}
 
@@ -245,16 +174,3 @@ in the help document (`dafny -?` or `dafny <command> -h`).
 
 
 <!-- In boogie option processing -->
-
-## **Error: unknown switch: _switch_** {#cli_unknown_legacy_option}
-
-<!-- %check-cli %err %first -->
-```bash
-dafny --stdin
-```
-
-This error results from using an unknown command-line option in the 
-legacy CLI, such as one that begins with a double hyphen.
-It is recommended to use the new CLI in which the command-line begins
-with an action verb (e.g., resolve, verify, run) followed by 
-files, folders, and options written with double-hyphen prefixes.

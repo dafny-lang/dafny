@@ -52,7 +52,7 @@ module Ghost {
   }
 }
 
-module {:options "/functionSyntax:4"} Match {
+module {:options "--function-syntax=4"} Match {
   import opened Types
 
   method M0(xy: XY) returns (r: int) {
@@ -204,7 +204,7 @@ module {:options "/functionSyntax:4"} Match {
   }
 }
 
-module {:options "/functionSyntax:4"} EqualitySupport {
+module {:options "--function-syntax=4"} EqualitySupport {
   import opened Types
 
   method M(xy: XY) returns (a: int) {
@@ -225,7 +225,7 @@ module {:options "/functionSyntax:4"} EqualitySupport {
   }
 }
 
-module {:options "/functionSyntax:4"} Constructors {
+module {:options "--function-syntax=4"} Constructors {
   import opened Types
 
   method M0() returns (xy0: XY, ghost xy1: XY) {
@@ -344,7 +344,7 @@ module Updates {
   }
 }
 
-module {:options "/functionSyntax:4"} EnumTests0 {
+module {:options "--function-syntax=4"} EnumTests0 {
   datatype Enum = ghost EnumA | EnumB
   {
     predicate P() {
@@ -360,7 +360,7 @@ module {:options "/functionSyntax:4"} EnumTests0 {
   }
 }
 
-module {:options "/functionSyntax:4"} EnumTests1 {
+module {:options "--function-syntax=4"} EnumTests1 {
   datatype Enum = ghost EnumA | EnumB
   {
     predicate P() {

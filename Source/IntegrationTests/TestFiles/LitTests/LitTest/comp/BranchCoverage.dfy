@@ -1,8 +1,8 @@
-// RUN: %dafny /useBaseNameForFileName /compile:3 /coverage:- /spillTargetCode:1 /compileTarget:cs %S/BranchCoverage2.cs "%s" > "%t"
-// RUN: %dafny /useBaseNameForFileName /compile:3 /coverage:- /spillTargetCode:1 /compileTarget:js %S/BranchCoverage3.js "%s" >> "%t"
-// RUN: %dafny /useBaseNameForFileName /compile:3 /coverage:- /spillTargetCode:1 /compileTarget:go %S/BranchCoverage4.go "%s" >> "%t"
-// RUN: %dafny /useBaseNameForFileName /compile:3 /coverage:- /spillTargetCode:1 /compileTarget:java %S/CodeCoverage.java "%s" >> "%t"
-// RUN: %dafny /useBaseNameForFileName /compile:3 /coverage:- /spillTargetCode:1 /compileTarget:py %S/BranchCoverage.py "%s" >> "%t"
+// RUN: %run --coverage=- --target cs --relax-definite-assignment --input %S/BranchCoverage2.cs "%s" > "%t"
+// RUN: %run --coverage=- --target js --relax-definite-assignment --input %S/BranchCoverage3.js "%s" >> "%t"
+// RUN: %run --coverage=- --target go --relax-definite-assignment --input %S/BranchCoverage4.go "%s" >> "%t"
+// RUN: %run --coverage=- --target java --relax-definite-assignment --input %S/CodeCoverage.java "%s" >> "%t"
+// RUN: %run --coverage=- --target py --relax-definite-assignment --input %S/BranchCoverage.py "%s" >> "%t"
 // RUN: %diff "%s.expect" "%t"
 
 // The Main method is at the end of this file, because that makes it easier to maintain

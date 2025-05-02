@@ -1,7 +1,7 @@
 // RUN: %testDafnyForEachResolver --expect-exit-code=4 "%s"
 
 
-module {:options "/quantifierSyntax:4"} NewSyntax {
+module {:options "--quantifier-syntax=4"} NewSyntax {
   method M()
   {
     // Illustrating that per-quantified variable ranges

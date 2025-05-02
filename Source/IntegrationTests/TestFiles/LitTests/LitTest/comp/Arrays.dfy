@@ -561,7 +561,7 @@ module ArrayToSeq {
   }
 }
 
-module {:options "/functionSyntax:4"} ArrayAllocationInitialization {
+module {:options "--function-syntax=4"} ArrayAllocationInitialization {
   newtype AutoInit = x | 20 <= x < 2_000_000 witness 77
   newtype NonAutoInit = x | 20 <= x < 2_000_000 witness *
   newtype byte = x | 0 <= x < 256
@@ -791,7 +791,7 @@ module {:options "/functionSyntax:4"} ArrayAllocationInitialization {
   }
 }
 
-module {:options "/functionSyntax:4"} VariationsOnIndexAndDimensionTypes {
+module {:options "--function-syntax=4"} VariationsOnIndexAndDimensionTypes {
   newtype byte = x | 0 <= x < 256
   newtype onebyte = x | 0 < x < 256 witness 1
   newtype Long = x | -0x8000_0000_0000_0000 < x < 0x8000_0000_0000_0000

@@ -4,6 +4,7 @@ using DafnyCore.Test;
 using Microsoft.Dafny;
 using Xunit;
 using Xunit.Abstractions;
+using XunitAssertMessages;
 
 namespace DafnyPipeline.Test {
   [Collection("Singleton Test Collection - Resolution")]
@@ -17,8 +18,9 @@ namespace DafnyPipeline.Test {
 
     [Fact]
     public async Task Test() {
-      Assert.Equal(0, await DafnyBackwardsCompatibleCli.MainWithWriters(output, output,
-        TextReader.Null, ["/spillTargetCode:3", "testFile2.dfy"]));
+      var exitCode = await DafnyBackwardsCompatibleCli.MainWithWriters(output, output,
+        TextReader.Null, ["build", "--spill-translation", "testFile2.dfy"]);
+      AssertM.Equal(0, exitCode, output.ToString());
     }
 
     [Fact]

@@ -1,7 +1,7 @@
 // RUN: %exits-with 2 %build --type-system-refresh=false --general-newtypes=false "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
-module {:options "/quantifierSyntax:4"} NewSyntax {
+module {:options "--quantifier-syntax=4"} NewSyntax {
   method M()
   {
     // Ensuring we get sensible errors for type mismatches,

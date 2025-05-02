@@ -26,6 +26,7 @@ public static class DafnyCommands {
     BoogieOptionBag.VerificationTimeLimit,
     CommonOptionBag.VerifyIncludedFiles,
     CommonOptionBag.ManualLemmaInduction,
+    CommonOptionBag.AutomaticQuantifierInduction,
     BoogieOptionBag.SolverPath,
     CommonOptionBag.DisableNonLinearArithmetic,
     BoogieOptionBag.IsolateAssertions,
@@ -67,7 +68,8 @@ public static class DafnyCommands {
     CommonOptionBag.Target,
     CommonOptionBag.SpillTranslation,
     CommonOptionBag.InternalIncludeRuntimeOptionForExecution,
-    CommonOptionBag.ExecutionCoverageReport
+    CommonOptionBag.ExecutionCoverageReport,
+    CommonOptionBag.Coverage
   }.Concat(TranslationOptions).ToList();
 
   public static readonly IReadOnlyList<Option> ConsoleOutputOptions = new List<Option>(new Option[] {
