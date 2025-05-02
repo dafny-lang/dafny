@@ -88,7 +88,7 @@ public class SyntaxSchemaGenerator : SyntaxAstVisitor {
         Console.WriteLine($"\t{name}");
       }
     }
-    Console.WriteLine($"{generatedTypeNames.Count} of {expectedTypeNames.Count} expected syntax types generated");
+    Console.WriteLine($"{(expectedTypeNames.Count - ungeneratedTypeNames.Count)} of {expectedTypeNames.Count} expected syntax types generated");
   }
 
   protected override void HandleEnum(Type type) {
