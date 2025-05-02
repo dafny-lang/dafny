@@ -305,7 +305,7 @@ abstract module Std.Unicode.UnicodeEncodingForm {
     }
     vs
   }
-  
+
   function DecodeErrorMessage(index: int): string {
     "Could not decode byte at index " + Strings.OfInt(index)
   }

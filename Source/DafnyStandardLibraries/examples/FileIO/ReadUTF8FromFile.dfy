@@ -30,7 +30,7 @@ module ReadFromFile {
       expect expectedErrorPrefix <= res.error, "unexpected error message: " + res.error;
     }
   }
-  
+
   method theError(dataPath: string) {
       // Failure path: attempting to read from a blank file path should never work.
     {
