@@ -4,7 +4,7 @@
 
 class Anything {
   const x := 3123.012314
-  
+
   method foo() {
     while(true) {
       continue;
