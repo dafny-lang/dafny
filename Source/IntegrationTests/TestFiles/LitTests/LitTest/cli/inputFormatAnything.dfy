@@ -12,6 +12,10 @@ class Anything {
     assert(old(this) == this);
     assert(unchanged(this));
     assert(fresh(this));
+    
+    var tab := new int[3,4];
+    assert(tab.Length0==3);
+    assert(tab.Length1==4);
   }
 }
 
