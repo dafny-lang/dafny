@@ -2121,6 +2121,7 @@ module Std.Producers {
       requires original.Valid()
       ensures Valid()
       ensures fresh(Repr - original.Repr)
+      ensures history == []
     {
       this.original := original;
       this.currentInner := None;
