@@ -1855,9 +1855,7 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
         selfIdent := ThisTyped(selfId, instanceType);
       }
 
-      // TODO: Use mut instead of a tuple for the API of multiple output parameters
       var retTypeArgs := [];
-      //var retType := if |m.outTypes| != 1 then "(" else "";
 
       var typeI := 0;
       while typeI < |m.outTypes| {

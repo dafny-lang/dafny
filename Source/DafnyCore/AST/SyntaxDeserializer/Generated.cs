@@ -1489,24 +1489,6 @@ namespace Microsoft.Dafny
             return ReadMultiSelectExpr();
         }
 
-        public MemberSelectExpr ReadMemberSelectExpr()
-        {
-            var parameter0 = ReadAbstract<IOrigin>();
-            var parameter1 = ReadAbstract<Expression>();
-            var parameter2 = ReadName();
-            return new MemberSelectExpr(parameter0, parameter1, parameter2);
-        }
-
-        public MemberSelectExpr ReadMemberSelectExprOption()
-        {
-            if (ReadIsNull())
-            {
-                return default;
-            }
-
-            return ReadMemberSelectExpr();
-        }
-
         public BitvectorType ReadBitvectorType()
         {
             var parameter0 = ReadAbstract<IOrigin>();
@@ -1939,6 +1921,29 @@ namespace Microsoft.Dafny
             }
 
             return ReadIndDatatypeDecl();
+        }
+
+        public TraitDecl ReadTraitDecl()
+        {
+            Microsoft.Dafny.ModuleDefinition parameter2 = null;
+            var parameter0 = ReadAbstract<IOrigin>();
+            var parameter1 = ReadName();
+            var parameter5 = ReadAttributesOption();
+            var parameter3 = ReadList<TypeParameter>(() => ReadTypeParameter());
+            var parameter4 = ReadList<MemberDecl>(() => ReadAbstract<MemberDecl>());
+            var parameter7 = ReadList<Type>(() => ReadAbstract<Type>());
+            var parameter6 = ReadBoolean();
+            return new TraitDecl(parameter0, parameter1, parameter2, parameter3, parameter4, parameter5, parameter6, parameter7);
+        }
+
+        public TraitDecl ReadTraitDeclOption()
+        {
+            if (ReadIsNull())
+            {
+                return default;
+            }
+
+            return ReadTraitDecl();
         }
 
         public ClassDecl ReadClassDecl()
@@ -2452,11 +2457,6 @@ namespace Microsoft.Dafny
                 return ReadMultiSelectExpr();
             }
 
-            if (actualType == typeof(MemberSelectExpr))
-            {
-                return ReadMemberSelectExpr();
-            }
-
             if (actualType == typeof(BitvectorType))
             {
                 return ReadBitvectorType();
@@ -2555,6 +2555,11 @@ namespace Microsoft.Dafny
             if (actualType == typeof(IndDatatypeDecl))
             {
                 return ReadIndDatatypeDecl();
+            }
+
+            if (actualType == typeof(TraitDecl))
+            {
+                return ReadTraitDecl();
             }
 
             if (actualType == typeof(ClassDecl))
