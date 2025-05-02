@@ -52,9 +52,9 @@ module Std.Arithmetic.DivInternals {
   lemma LemmaDivBasics(n: int)
     requires n > 0
     ensures  n / n == -((-n) / n) == 1
-    ensures  forall x:int {:trigger x / n} :: 0 <= x < n <==> x / n == 0
-    ensures  forall x:int {:trigger (x + n) / n} :: (x + n) / n == x / n + 1
-    ensures  forall x:int {:trigger (x - n) / n} :: (x - n) / n == x / n - 1
+    ensures  forall x:int {:trigger} :: 0 <= x < n <==> x / n == 0
+    ensures  forall x:int {:trigger} :: (x + n) / n == x / n + 1
+    ensures  forall x:int {:trigger} :: (x - n) / n == x / n - 1
   {
     LemmaModAuto(n);
     LemmaModBasics(n);
@@ -75,7 +75,7 @@ module Std.Arithmetic.DivInternals {
   {
     && ModAuto(n)
     && (n / n == -((-n) / n) == 1)
-    && (forall x: int {:trigger x / n} :: 0 <= x < n <==> x / n == 0)
+    && (forall x: int {:trigger} :: 0 <= x < n <==> x / n == 0)
     && DivAutoMinus(n)
     && DivAutoPlus(n)
   }
@@ -83,7 +83,7 @@ module Std.Arithmetic.DivInternals {
   ghost predicate DivAutoPlus(n: int)
     requires n > 0
   {
-    forall x: int, y: int {:trigger (x + y) / n} :: DivPlus(n, x, y)
+    forall x: int, y: int {:trigger} :: DivPlus(n, x, y)
   }
 
   ghost predicate DivPlus(n: int, x: int, y: int)
@@ -97,7 +97,7 @@ module Std.Arithmetic.DivInternals {
   ghost predicate DivAutoMinus(n: int)
     requires n > 0
   {
-    forall x: int, y: int {:trigger (x - y) / n} :: DivMinus(n, x, y)
+    forall x: int, y: int {:trigger} :: DivMinus(n, x, y)
   }
 
   ghost predicate DivMinus(n: int, x: int, y: int)
@@ -226,8 +226,8 @@ module Std.Arithmetic.DivInternals {
   {
     LemmaDivAuto(n);
     assert forall i :: IsLe(0, i) && i < n ==> f(i);
-    assert forall i {:trigger f(i), f(i + n)} :: IsLe(0, i) && f(i) ==> f(i + n);
-    assert forall i {:trigger f(i), f(i - n)} :: IsLe(i + 1, n) && f(i) ==> f(i - n);
+    assert forall i {:trigger f(i)} :: IsLe(0, i) && f(i) ==> f(i + n);
+    assert forall i {:trigger f(i)} :: IsLe(i + 1, n) && f(i) ==> f(i - n);
     LemmaModInductionForall(n, f);
   }
 
