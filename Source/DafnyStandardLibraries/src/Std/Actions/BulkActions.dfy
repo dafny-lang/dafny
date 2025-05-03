@@ -168,9 +168,9 @@ module Std.BulkActions {
 
     // TODO: Optimize this too
     method Fill(consumer: Consumer<Batched<T, E>>, ghost totalActionProof: TotalActionProof<Batched<T, E>, bool>)
-      returns (leftover: Option<Batched<T, E>>)
       requires Valid()
       requires consumer.Valid()
+      requires consumer.Capacity().Some?
       requires Repr !! consumer.Repr !! totalActionProof.Repr
       requires totalActionProof.Valid()
       requires totalActionProof.Action() == consumer
@@ -182,7 +182,7 @@ module Std.BulkActions {
       ensures consumer.ValidChange()
       ensures NewProduced() == consumer.NewInputs()
     {
-      leftover := DefaultFill(this, consumer, totalActionProof);
+      DefaultFill(this, consumer, totalActionProof);
     }
 
     @IsolateAssertions
@@ -392,8 +392,8 @@ module Std.BulkActions {
       && this in Repr
       && ValidHistory(history)
       && storage in Repr
-      && size <= storage.Length
-      && (Done() ==> size == storage.Length)
+      && size + otherInputs <= storage.Length
+      && (Done() ==> size + otherInputs == storage.Length)
       && |Consumed()| == size + otherInputs
       && (size < storage.Length ==> Seq.All(history, WasConsumed))
     }

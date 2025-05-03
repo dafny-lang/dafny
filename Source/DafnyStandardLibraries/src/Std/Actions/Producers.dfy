@@ -404,16 +404,16 @@ module Std.Producers {
     // until either the producer or consumer is done.
     // May be optimized to process values in batches for efficiency.
     //
-    // If the consumer's Capacity() is unknown (None),
-    // there is no way to know if the consumer will accept a value ahead of time.
-    // Therefore the producer may end up producing an extra value
-    // that the consumer cannot accept, hence the extra leftover return value.
-    //
-    // TODO: Better name - Fill?
+    // The consumer's Capacity() must be known (i.e. not None)
+    // because otherwise there is no way to know if the consumer will accept a value ahead of time.
+    // Therefore the producer could end up producing an extra value
+    // that the consumer cannot accept.
+    // This could be returned from this method, but that would
+    // greatly complicate consumers in order to not lose this extra value.
     method Fill(consumer: Consumer<T>, ghost totalActionProof: TotalActionProof<T, bool>)
-      returns (leftover: Option<T>)
       requires Valid()
       requires consumer.Valid()
+      requires consumer.Capacity().Some?
       requires Repr !! consumer.Repr !! totalActionProof.Repr
       requires totalActionProof.Valid()
       requires totalActionProof.Action() == consumer
@@ -424,7 +424,6 @@ module Std.Producers {
       ensures ValidChange()
       ensures consumer.ValidChange()
       ensures NewProduced() == consumer.NewInputs()
-    // TODO: Stronger postcondition about leftover
 
     // True if this has outputted None at least once.
     // But note that !Done() does not guarantee that
@@ -608,23 +607,23 @@ module Std.Producers {
 
   @ResourceLimit("1e7")
   @IsolateAssertions
-  method DefaultFill<T>(producer: Producer<T>, consumer: Consumer<T>, ghost totalActionProof: TotalActionProof<T, bool>)
-    returns (leftover: Option<T>)
+  method {:only} DefaultFill<T>(producer: Producer<T>, consumer: Consumer<T>, ghost totalActionProof: TotalActionProof<T, bool>)
     requires producer.Valid()
     requires consumer.Valid()
+    requires consumer.Capacity().Some?
     requires producer.Repr !! consumer.Repr !! totalActionProof.Repr
     requires totalActionProof.Valid()
     requires totalActionProof.Action() == consumer
     modifies producer.Repr, consumer.Repr
     ensures producer.ValidChange()
     ensures consumer.ValidChange()
-    ensures producer.Done() || consumer.Done()
-    ensures producer.NewProduced() == consumer.NewInputs()
+    ensures producer.Done() || consumer.Capacity() == Some(0)
+    ensures producer.NewProduced() == consumer.NewConsumed()
   {
     producer.ValidImpliesValidChange();
     consumer.ValidImpliesValidChange();
 
-    while true
+    for c := consumer.Capacity().value downto 0
       invariant fresh(producer.Repr - old(producer.Repr))
       invariant fresh(consumer.Repr - old(consumer.Repr))
       invariant producer.ValidChange()
@@ -633,14 +632,9 @@ module Std.Producers {
       invariant totalActionProof.Valid()
       invariant old(producer.Produced()) <= producer.Produced()
       invariant old(consumer.Inputs()) <= consumer.Inputs()
-      invariant producer.NewProduced() == consumer.NewInputs()
-      decreases producer.Decreasing()
+      invariant producer.NewProduced() == consumer.NewConsumed()
+      invariant c == consumer.Capacity().value
     {
-      // if consumer.Capacity().Some? && consumer.Capacity().value == 0 {
-      //   leftover := None;
-      //   break;
-      // }
-
       label before:
       var t := producer.Next();
       assert Seq.Partitioned(producer.Outputs(), IsSome);
@@ -656,24 +650,18 @@ module Std.Producers {
         assert producer.Done();
         assert ProducedOf([t]) == [];
         assert producer.Produced() == old@before(producer.Produced());
-        assert producer.NewProduced() == consumer.NewInputs();
-        leftover := None;
+        assert producer.NewProduced() == consumer.NewConsumed();
         break;
       }
 
       totalActionProof.AnyInputIsValid(consumer.history, t.value);
+      assert {:only} 0 < consumer.Capacity().value;
       var accepted := consumer.Accept(t.value);
       old(consumer.State()).ValidChangeTransitive(old@before(consumer.State()), consumer.State());
-
-      if !accepted {
-        assert Seq.Last(consumer.Outputs()) == false;
-        assert consumer.Done();
-        leftover := t;
-        break;
-      }
+      assert {:only} accepted;
 
       assert Seq.Last(consumer.Inputs()) == t.value;
-      assert producer.NewProduced() == consumer.NewInputs();
+      assert producer.NewProduced() == consumer.NewConsumed();
     }
   }
 
@@ -893,9 +881,9 @@ module Std.Producers {
     }
 
     method Fill(consumer: Consumer<T>, ghost totalActionProof: TotalActionProof<T, bool>)
-      returns (leftover: Option<T>)
       requires Valid()
       requires consumer.Valid()
+      requires consumer.Capacity().Some?
       requires Repr !! consumer.Repr !! totalActionProof.Repr
       requires totalActionProof.Valid()
       requires totalActionProof.Action() == consumer
@@ -907,7 +895,7 @@ module Std.Producers {
       ensures consumer.ValidChange()
       ensures NewProduced() == consumer.NewInputs()
     {
-      leftover := DefaultFill(this, consumer, totalActionProof);
+      DefaultFill(this, consumer, totalActionProof);
     }
   }
 
@@ -1042,9 +1030,9 @@ module Std.Producers {
     }
 
     method Fill(consumer: Consumer<T>, ghost totalActionProof: TotalActionProof<T, bool>)
-      returns (leftover: Option<T>)
       requires Valid()
       requires consumer.Valid()
+      requires consumer.Capacity().Some?
       requires Repr !! consumer.Repr !! totalActionProof.Repr
       requires totalActionProof.Valid()
       requires totalActionProof.Action() == consumer
@@ -1056,7 +1044,7 @@ module Std.Producers {
       ensures consumer.ValidChange()
       ensures NewProduced() == consumer.NewInputs()
     {
-      leftover := DefaultFill(this, consumer, totalActionProof);
+      DefaultFill(this, consumer, totalActionProof);
     }
   }
 
@@ -1178,9 +1166,9 @@ module Std.Producers {
     }
 
     method Fill(consumer: Consumer<T>, ghost totalActionProof: TotalActionProof<T, bool>)
-      returns (leftover: Option<T>)
       requires Valid()
       requires consumer.Valid()
+      requires consumer.Capacity().Some?
       requires Repr !! consumer.Repr !! totalActionProof.Repr
       requires totalActionProof.Valid()
       requires totalActionProof.Action() == consumer
@@ -1192,7 +1180,7 @@ module Std.Producers {
       ensures consumer.ValidChange()
       ensures NewProduced() == consumer.NewInputs()
     {
-      leftover := DefaultFill(this, consumer, totalActionProof);
+      DefaultFill(this, consumer, totalActionProof);
     }
   }
 
@@ -1344,9 +1332,9 @@ module Std.Producers {
     }
 
     method Fill(consumer: Consumer<T>, ghost totalActionProof: TotalActionProof<T, bool>)
-      returns (leftover: Option<T>)
       requires Valid()
       requires consumer.Valid()
+      requires consumer.Capacity().Some?
       requires Repr !! consumer.Repr !! totalActionProof.Repr
       requires totalActionProof.Valid()
       requires totalActionProof.Action() == consumer
@@ -1358,7 +1346,7 @@ module Std.Producers {
       ensures consumer.ValidChange()
       ensures NewProduced() == consumer.NewInputs()
     {
-      leftover := DefaultFill(this, consumer, totalActionProof);
+      DefaultFill(this, consumer, totalActionProof);
     }
   }
 
@@ -1515,9 +1503,9 @@ module Std.Producers {
     }
 
     method Fill(consumer: Consumer<T>, ghost totalActionProof: TotalActionProof<T, bool>)
-      returns (leftover: Option<T>)
       requires Valid()
       requires consumer.Valid()
+      requires consumer.Capacity().Some?
       requires Repr !! consumer.Repr !! totalActionProof.Repr
       requires totalActionProof.Valid()
       requires totalActionProof.Action() == consumer
@@ -1529,7 +1517,7 @@ module Std.Producers {
       ensures consumer.ValidChange()
       ensures NewProduced() == consumer.NewInputs()
     {
-      leftover := DefaultFill(this, consumer, totalActionProof);
+      DefaultFill(this, consumer, totalActionProof);
     }
   }
 
@@ -1703,9 +1691,9 @@ module Std.Producers {
     }
 
     method Fill(consumer: Consumer<T>, ghost totalActionProof: TotalActionProof<T, bool>)
-      returns (leftover: Option<T>)
       requires Valid()
       requires consumer.Valid()
+      requires consumer.Capacity().Some?
       requires Repr !! consumer.Repr !! totalActionProof.Repr
       requires totalActionProof.Valid()
       requires totalActionProof.Action() == consumer
@@ -1717,7 +1705,7 @@ module Std.Producers {
       ensures consumer.ValidChange()
       ensures NewProduced() == consumer.NewInputs()
     {
-      leftover := DefaultFill(this, consumer, totalActionProof);
+      DefaultFill(this, consumer, totalActionProof);
     }
   }
 
@@ -1872,9 +1860,9 @@ module Std.Producers {
     }
 
     method Fill(consumer: Consumer<O>, ghost totalActionProof: TotalActionProof<O, bool>)
-      returns (leftover: Option<O>)
       requires Valid()
       requires consumer.Valid()
+      requires consumer.Capacity().Some?
       requires Repr !! consumer.Repr !! totalActionProof.Repr
       requires totalActionProof.Valid()
       requires totalActionProof.Action() == consumer
@@ -1886,7 +1874,7 @@ module Std.Producers {
       ensures consumer.ValidChange()
       ensures NewProduced() == consumer.NewInputs()
     {
-      leftover := DefaultFill(this, consumer, totalActionProof);
+      DefaultFill(this, consumer, totalActionProof);
     }
   }
 
@@ -2093,9 +2081,9 @@ module Std.Producers {
     }
 
     method Fill(consumer: Consumer<Producer<O>>, ghost totalActionProof: TotalActionProof<Producer<O>, bool>)
-      returns (leftover: Option<Producer<O>>)
       requires Valid()
       requires consumer.Valid()
+      requires consumer.Capacity().Some?
       requires Repr !! consumer.Repr !! totalActionProof.Repr
       requires totalActionProof.Valid()
       requires totalActionProof.Action() == consumer
@@ -2107,7 +2095,7 @@ module Std.Producers {
       ensures consumer.ValidChange()
       ensures NewProduced() == consumer.NewInputs()
     {
-      leftover := DefaultFill(this, consumer, totalActionProof);
+      DefaultFill(this, consumer, totalActionProof);
     }
   }
 
@@ -2255,7 +2243,6 @@ module Std.Producers {
       None
     }
 
-
     @ResourceLimit("1e8")
     method Invoke(t: ()) returns (result: Option<T>)
       requires Requires(t)
@@ -2394,9 +2381,9 @@ module Std.Producers {
     }
 
     method Fill(consumer: Consumer<T>, ghost totalActionProof: TotalActionProof<T, bool>)
-      returns (leftover: Option<T>)
       requires Valid()
       requires consumer.Valid()
+      requires consumer.Capacity().Some?
       requires Repr !! consumer.Repr !! totalActionProof.Repr
       requires totalActionProof.Valid()
       requires totalActionProof.Action() == consumer
@@ -2408,7 +2395,7 @@ module Std.Producers {
       ensures consumer.ValidChange()
       ensures NewProduced() == consumer.NewInputs()
     {
-      leftover := DefaultFill(this, consumer, totalActionProof);
+      DefaultFill(this, consumer, totalActionProof);
     }
   }
 }
