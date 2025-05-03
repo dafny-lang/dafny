@@ -1530,8 +1530,7 @@ namespace Microsoft.Dafny.Compilers {
 
       EmitHeader(program, wrx);
       EmitBuiltInDecls(program.SystemModuleManager, wrx);
-      var temp = new List<ModuleDefinition>();
-      OrganizeModules(program, out temp);
+      OrganizeModules(program, out var temp);
       foreach (var m in temp) {
         EmitModule(program, wrx, m);
       }
@@ -1828,7 +1827,7 @@ namespace Microsoft.Dafny.Compilers {
 
     public static void WriteFromStream(StreamReader rd, TextWriter outputWriter) {
       while (true) {
-        string s = rd.ReadLine();
+        var s = rd.ReadLine();
         if (s == null) {
           return;
         }
