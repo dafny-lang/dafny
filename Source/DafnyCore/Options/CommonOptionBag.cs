@@ -376,6 +376,9 @@ Use the `{:contradiction}` attribute to mark any `assert` statement intended to 
 
 Functionality is still being expanded. Currently only checks contracts on every call to a function or method marked with the {:extern} attribute.".TrimStart());
 
+  public static readonly Option<bool> CheckProtocol = new("--protocol", () => false,
+  "(experimental) When turned on, checks that the source conforms to the Protocol DSL grammar.");
+
   public enum DefaultFunctionOpacityOptions {
     Transparent,
     AutoRevealDependencies,
@@ -631,6 +634,13 @@ NoGhost - disable printing of functions, ghost methods, and proof
       }
     });
 
+    DafnyOptions.RegisterLegacyUi(CheckProtocol, DafnyOptions.ParseBoolean, "Compilation options", "protocol", null,
+      false);
+    
+    DafnyOptions.RegisterLegacyBinding(CheckProtocol, (options, value) => {
+      options.Protocol = value;
+    });
+
     OptionRegistry.RegisterGlobalOption(UnicodeCharacters, OptionCompatibility.CheckOptionMatches);
     OptionRegistry.RegisterGlobalOption(EnforceDeterminism, OptionCompatibility.CheckOptionLocalImpliesLibrary);
     OptionRegistry.RegisterGlobalOption(RelaxDefiniteAssignment, OptionCompatibility.OptionLibraryImpliesLocalError);
@@ -689,6 +699,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
     OptionRegistry.RegisterOption(PrintDiagnosticsRanges, OptionScope.Cli);
     OptionRegistry.RegisterOption(WaitForDebugger, OptionScope.Cli);
     OptionRegistry.RegisterOption(IgnoreIndentation, OptionScope.Cli);
+    OptionRegistry.RegisterGlobalOption(CheckProtocol, OptionCompatibility.OptionLibraryImpliesLocalError);
   }
 }
 

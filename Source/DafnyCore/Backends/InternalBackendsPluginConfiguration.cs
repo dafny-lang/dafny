@@ -1,3 +1,4 @@
+using DafnyCore.Backends.Lean;
 using Microsoft.Dafny.Plugins;
 
 namespace Microsoft.Dafny.Compilers;
@@ -15,7 +16,8 @@ internal class InternalBackendsPluginConfiguration : Plugins.PluginConfiguration
       new CppBackend(options),
       new LibraryBackend(options),
       new RustBackend(options),
-      new ResolvedDesugaredExecutableDafnyBackend(options)
+      new ResolvedDesugaredExecutableDafnyBackend(options),
+      new LeanBackend(options)
     ];
   }
 }

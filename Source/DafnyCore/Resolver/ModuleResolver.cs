@@ -1182,6 +1182,11 @@ namespace Microsoft.Dafny {
         ResolveNamesAndInferTypes(declarations, true);
         ResolveNamesAndInferTypes(declarations, false);
       }
+      
+      if (Options.Get(CommonOptionBag.CheckProtocol)) {
+        var p = new ProtocolDetector(this);
+        p.Check(declarations);
+      }
 
       // Check that all types have been determined. During this process, also fill in all .ResolvedOp fields.
       // Note, in the type system refresh, it can happen that the under-specification detector above finds all pre-types to

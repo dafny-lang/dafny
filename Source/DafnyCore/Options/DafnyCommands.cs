@@ -119,6 +119,7 @@ public static class DafnyCommands {
     DafnyProject.FindProjectOption,
     CommonOptionBag.PrintDiagnosticsRanges,
     CommonOptionBag.WaitForDebugger,
-    CommonOptionBag.IgnoreIndentation
+    CommonOptionBag.IgnoreIndentation,
+    CommonOptionBag.CheckProtocol
   }).Concat(ParserOptions).ToList();
 }
