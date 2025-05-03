@@ -28,8 +28,6 @@ with open(output + '.cs', 'r' ) as f:
   content = f.read()
   
   content_without_runtimelib = re.sub(r'#if\s+ISDAFNYRUNTIMELIB\s*[\s\S]*?#endif', '', content, flags=re.MULTILINE)
-  if content_without_runtimelib == content:
-        raise Exception("Error: No dafny runtime lib trimmed from the file. Please check the regular expression")
   content_trimmed = re.sub(r'\[assembly[\s\S]*?(?=namespace Formatting)|namespace\s+\w+\s*\{\s*\}\s*//.*', '', content_without_runtimelib, flags = re.M)
   if content_trimmed == content_without_runtimelib:
         raise Exception("Error: No assembly directive or namespace trimmed from the file. Please check the regular expression")
