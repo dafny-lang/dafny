@@ -1849,7 +1849,7 @@ namespace Microsoft.Dafny {
         var comment = "user-defined postconditions";
         foreach (var p in ConjunctsOf(m.Ens)) {
           var (errorMessage, successMessage) = CustomErrorMessage(p.Attributes);
-          AddEnsures(ens, FreeEnsures(p.E.Origin, etran.CanCallAssumption(p.E), comment, true));
+          AddEnsures(ens, FreeEnsures(p.E.Origin, etran.WithoutFuelInQuantifiers().CanCallAssumption(p.E), comment, true));
           comment = null;
           foreach (var split in TrSplitExprForMethodSpec(new BodyTranslationContext(m.ContainsHide), p.E, etran, kind)) {
             var post = split.E;

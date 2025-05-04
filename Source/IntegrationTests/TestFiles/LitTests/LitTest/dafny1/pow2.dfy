@@ -39,6 +39,7 @@ lemma Lemma(n: int)
   ensures pow2_slow(n) == Square(pow2_slow(n/2));
 {
   if n != 0 {
+    assert pow2_slow (n) == 2 * pow2_slow (n - 1);
     Lemma(n-2);
   }
 }

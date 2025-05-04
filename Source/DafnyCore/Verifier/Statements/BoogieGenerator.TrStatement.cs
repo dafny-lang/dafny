@@ -437,7 +437,7 @@ public partial class BoogieGenerator {
           }
 
           TrStmt_CheckWellformed(rhs, builder, locals, etran, false, false, AddResultCommands);
-          builder.Add(TrAssumeCmd(rhs.Origin, etran.CanCallAssumption(rhs)));
+          builder.Add(TrAssumeCmd(rhs.Origin, etran.WithoutFuelInQuantifiers().CanCallAssumption(rhs)));
           builder.Add(new CommentCmd("CheckWellformedWithResult: any expression"));
           builder.Add(TrAssumeCmd(rhs.Origin, MkIs(boogieTupleReference, pat.Expr.Type)));
 
@@ -654,7 +654,7 @@ public partial class BoogieGenerator {
       builder.Add(ifCmd);
       // assume result:
       if (stmt.Steps.Count > 1) {
-        builder.Add(TrAssumeCmd(stmt.Origin, etran.CanCallAssumption(stmt.Result)));
+        builder.Add(TrAssumeCmd(stmt.Origin, etran.WithoutFuelInQuantifiers().CanCallAssumption(stmt.Result)));
         builder.Add(TrAssumeCmdWithDependencies(etran, stmt.Origin, stmt.Result, "calc statement result"));
       }
     }
@@ -701,7 +701,7 @@ public partial class BoogieGenerator {
     Bpl.Expr noGuard = Bpl.Expr.True;
     var b = new BoogieStmtListBuilder(this, options, builder.Context);
     foreach (var g in guards) {
-      b.Add(TrAssumeCmd(g.Origin, etran.CanCallAssumption(g)));
+      b.Add(TrAssumeCmd(g.Origin, etran.WithoutFuelInQuantifiers().CanCallAssumption(g)));
       noGuard = BplAnd(noGuard, Bpl.Expr.Not(etran.TrExpr(g)));
     }
 
@@ -937,7 +937,7 @@ public partial class BoogieGenerator {
       options = options.WithLValueContext(true);
     }
     CheckWellformedWithResult(expr, options, locals, builder, etran, addResultCommands);
-    builder.Add(TrAssumeCmd(expr.Origin, etran.CanCallAssumption(expr)));
+    builder.Add(TrAssumeCmd(expr.Origin, etran.WithoutFuelInQuantifiers().CanCallAssumption(expr)));
   }
 
   List<FrameExpression> GetContextReadsFrames() {

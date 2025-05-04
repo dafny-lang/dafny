@@ -68,6 +68,7 @@ ghost function len<T>(l: List<T>): int
 ghost function SingletonList<T>(h: T): List<T>
   ensures len(SingletonList(h)) == 1;
 {
+  assert len<T>(List.Nil) == 0;
   List.Cons(h, List.Nil)
 }
 

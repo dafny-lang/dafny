@@ -217,7 +217,7 @@ namespace Microsoft.Dafny {
     // proof dependency.
     public Bpl.AssumeCmd TrAssumeCmdWithDependenciesAndExtend(ExpressionTranslator etran, Bpl.IToken tok, Expression dafnyExpr, Func<Bpl.Expr, Bpl.Expr> extendExpr,
       string comment = null, bool warnWhenUnused = false, Bpl.QKeyValue attributes = null) {
-      var expr = etran.TrExpr(dafnyExpr);
+      var expr = etran.WithoutFuelInQuantifiers().TrExpr(dafnyExpr);
       var cmd = TrAssumeCmd(tok, extendExpr(expr), attributes);
       proofDependencies?.AddProofDependencyId(cmd, dafnyExpr.Origin, new AssumptionDependency(warnWhenUnused, comment, dafnyExpr));
       return cmd;

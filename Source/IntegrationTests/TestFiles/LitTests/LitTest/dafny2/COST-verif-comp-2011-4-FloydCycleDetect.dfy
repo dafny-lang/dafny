@@ -151,7 +151,7 @@ class Node {
     exists k :: 0 <= k && Nexxxt(k, S) == sink
   }
 
-  method Cyclic(ghost S: set<Node?>) returns (reachesCycle: bool)
+  method {:fuel Nexxxt, 2} Cyclic(ghost S: set<Node?>) returns (reachesCycle: bool)
     requires IsClosed(S)
     ensures reachesCycle <==> exists n: Node :: Reaches(n, S) && n.next != null && n.next.Reaches(n, S)
   {
@@ -303,7 +303,7 @@ class Node {
 
   lemma Lemma_NullIsTerminal(d: int, S: set<Node?>)
     requires IsClosed(S) && 0 <= d
-    ensures forall k :: 0 <= k < d && Nexxxt(d, S) != null ==> Nexxxt(k, S) != null
+    ensures Nexxxt(d, S) != null ==> forall k :: 0 <= k < d ==> Nexxxt(k, S) != null
   {
     var j := d;
     while 0 < j

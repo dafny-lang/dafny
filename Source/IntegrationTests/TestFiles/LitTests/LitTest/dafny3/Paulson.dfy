@@ -119,6 +119,7 @@ lemma Lemma25<A>(n: nat, f: FunctionHandle<A>, b: A, M: LList<A>)
 lemma Lemma26<A>(n: nat, f: FunctionHandle, x: LList)  // (26) in the paper, but with f := LMap f
   ensures LmapIter(n, f, Lmap(f, x)) == LmapIter(n+1, f, x);
 {
+  assert LmapIter(n+1, f, x) == Lmap (f, LmapIter(n, f, x));
   // proof is by (automatic) induction
 }
 

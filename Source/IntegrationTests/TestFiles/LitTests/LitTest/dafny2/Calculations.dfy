@@ -91,7 +91,9 @@ lemma Lemma_Revacc_calc(xs: List, ys: List)
         concat(revacc(xrest, Cons(x, Nil)), ys);
         { Lemma_RevCatCommute(xrest); } // forall xs,ys,zs :: revacc(xs, concat(ys, zs)) == concat(revacc(xs, ys), zs)
         revacc(xrest, concat(Cons(x, Nil), ys));
-        // def. concat (x2)
+        // def. concat (x1)
+        revacc (xrest, Cons(x, concat(Nil, ys)));
+        // def. concat (x1)
         revacc(xrest, Cons(x, ys));
         // def. revacc
         revacc(xs, ys);
@@ -172,7 +174,7 @@ lemma Lemma_Concat_Length(xs: List, ys: List)
   ensures length(concat(xs, ys)) == length(xs) + length(ys);
 {}
 
-lemma Lemma_Reverse_Length(xs: List)
+lemma Lemma_Reverse_Length<T>(xs: List)
   ensures length(xs) == length(reverse(xs));
 {
   match (xs) {
@@ -189,7 +191,7 @@ lemma Lemma_Reverse_Length(xs: List)
         calc {
           length(Cons(x, Nil));
           // def. length
-          // 1 + length(Nil);  // ambigious type parameter
+          1 + length<T>(Nil);
           // def. length
           1 + 0;
           1;

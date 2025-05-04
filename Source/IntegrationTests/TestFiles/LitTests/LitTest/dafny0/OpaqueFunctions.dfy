@@ -250,7 +250,7 @@ module LayerQuantifiers
     requires one == 1
   {
     reveal f();
-    // this one should have enough fuel
+    // error: this one does not have enough fuel
     assert f(one + one);
   }
 

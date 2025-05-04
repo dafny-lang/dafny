@@ -303,6 +303,7 @@ public partial class BoogieGenerator {
         ? new ExpressionTranslator(this, Predef, f.Origin, f)
         : new ExpressionTranslator(this, Predef, readsHeap ? NewOneHeapExpr(f.Origin) : null, f);
     }
+    etran = etran.WithoutFuelInQuantifiers();
 
     // quantify over the type arguments, and add them first to the arguments
     List<Bpl.Expr> args = [];
