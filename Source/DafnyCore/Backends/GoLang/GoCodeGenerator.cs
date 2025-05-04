@@ -2412,7 +2412,7 @@ namespace Microsoft.Dafny.Compilers {
 
       s = Util.ReplaceNullEscapesWithCharacterEscapes(s);
 
-      s = Util.ExpandUnicodeEscapes(s, false);
+      s = Util.ExpandUnicodeEscapes(s, false, false);
 
       return s;
     }
