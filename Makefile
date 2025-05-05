@@ -10,6 +10,12 @@ all: exe refman
 exe:
 	(cd "${DIR}" ; dotnet build Source/Dafny.sln ) ## includes parser
 
+exe-2:
+	(cd "${DIR}" ; dotnet build Source/Dafny.sln ) ## includes parser
+
+exe-3:
+	(cd "${DIR}" ; dotnet build Source/Dafny.sln ) ## includes parser
+
 format-dfy:
 	(cd "${DIR}"/Source/DafnyCore ; make format)
 	(cd "${DIR}"/Source/DafnyStandardLibraries ; make format)
@@ -116,17 +122,22 @@ update-runtime-dafny:
 
 pr-nogeneration: format-dfy format update-runtime-dafny update-cs-module update-rs-module update-go-module
 
+format-standard-libraries:
+	(cd "${DIR}"; cd Source/DafnyStandardLibraries; make format)
+
 update-standard-libraries:
 	(cd "${DIR}"; cd Source/DafnyStandardLibraries; make update-binary)
 
 # `make pr` will bring you in a state suitable for submitting a PR
 # - Builds the Dafny executable
-# - Use the build to convert core .dfy files to .cs
+# - Use the build to generate the standard libraries
+# - Rebuild the Dafny executable so that it embeds the generated C# for standard libraries
+# - Use that executable to convert .dfy files to .cs (especially FuncExtensions)
 # - Rebuilds the Dafny executable with this .cs files
 # - Apply dafny format on all dfy files
 # - Apply dotnet format on all cs files except the generated ones
 # - Rebuild the Go and C# runtime modules as needed.
-pr: exe dfy-to-cs-exe pr-nogeneration
+pr: exe format-standard-libraries update-standard-libraries exe-2 dfy-to-cs-exe pr-nogeneration
 
 # Same as `make pr` but useful when resolving conflicts, to take the last compiled version of Dafny first
 pr-conflict: dfy-to-cs-exe dfy-to-cs-exe pr-nogeneration
