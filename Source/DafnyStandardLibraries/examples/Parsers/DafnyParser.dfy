@@ -72,11 +72,11 @@ module Test {
     assert 0 <= 1 && 1 <= |program|;
     var inputFinal := ToInputEnd(program); // Inlining this fails
     var result := Apply(parseProgram, program);
-    expect Apply(parseProgram, program)
+    expect result
         == ParseResult.ParseSuccess(
              Program.Program(
                ["file"],
-               [Declaration.Import(true, "test"),
+               [Declaration.Import(true, "Test"),
                 Declaration.Module(
                   "test",
                   [

@@ -105,6 +105,7 @@ module ExampleParsers.JSONParser {
            @"      ^"              + "\n" +
            @"expected 'null', or"  + "\n" +
            @"expected 'true', or"  + "\n" +
+           @"expected 'false', or"  + "\n" +
            @"expected '""', or"    + "\n" +
            @"expected a digit, or" + "\n" +
            @"expected '[', or"     + "\n" +

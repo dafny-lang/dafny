@@ -91,8 +91,7 @@ abstract module ExampleParsers.TestPolynomialParser {
     }
   }
 
-  @Test
-  method TestPolynomial() {
+  method TestPolynomialCommon() {
     TestSimplify("2+3*4", "14");
     TestSimplify("(2+3)*4", "20");
     TestSimplify("3*4+2", "14");
@@ -155,6 +154,11 @@ module ExampleParsers.PolynomialParsersBuilder refines TestPolynomialParser {
                 .I_I(c("factor")).RepFold(atom, Expr.InfixBuilder())))
       ], "term")
     .End()
+
+  @Test
+  method TestPolynomial() {
+    TestPolynomialCommon();
+  }
 }
 
 // Same as above, but using the Parsers functional syntax instead of the builder syntax
@@ -216,4 +220,9 @@ module ExampleParsers.PolynomialParsers refines TestPolynomialParser {
                           Expr.InfixBuilder(), factor)
                  ))
            ], "term"), EndOfString())
+
+  @Test
+  method TestPolynomial() {
+    TestPolynomialCommon();
+  }
 }
