@@ -27,6 +27,9 @@ namespace Microsoft.Dafny;
 public partial class SyntaxDeserializer(IDecoder decoder) {
   private Uri? uri;
 
+  public readonly List<Action<SystemModuleManager>> SystemModuleModifiers = [];
+
+
   private Specification<T> ReadSpecification<T>() where T : Node {
     if (typeof(T) == typeof(FrameExpression)) {
       var parameter1 = ReadListOption<T>(() => (T)(object)ReadFrameExpression());
@@ -207,11 +210,38 @@ public partial class SyntaxDeserializer(IDecoder decoder) {
       return (T)(object)ReadToken();
     }
 
+    if (actualType == typeof(MultiSelectExpr)) {
+      return (T)(object)ReadMultiSelectExpr();
+    }
+
+    if (actualType == typeof(AllocateArray)) {
+      return (T)(object)ReadAllocateArray();
+    }
+
     return (T)ReadObject(actualType);
   }
 
   private int ReadInt32() {
     return decoder.ReadInt32();
+  }
+
+  // For MultiSelectExpr and AllocateArray, we need specific cases to properly update the
+  // SystemModuleModifiers, as done in Dafny.atg
+  public MultiSelectExpr ReadMultiSelectExpr() {
+    var parameter0 = ReadAbstract<IOrigin>();
+    var parameter1 = ReadAbstract<Expression>();
+    var parameter2 = ReadList<Expression>(() => ReadAbstract<Expression>());
+    SystemModuleModifiers.Add(b => b.ArrayType(parameter2.Count, new IntType(), true));
+    return new MultiSelectExpr(parameter0, parameter1, parameter2);
+  }
+  public AllocateArray ReadAllocateArray() {
+    var parameter0 = ReadAbstract<IOrigin>();
+    var parameter4 = ReadAttributesOption();
+    var parameter1 = ReadAbstractOption<Type>();
+    var parameter2 = ReadList<Expression>(() => ReadAbstract<Expression>());
+    var parameter3 = ReadAbstractOption<Expression>();
+    SystemModuleModifiers.Add(b => b.ArrayType(parameter2.Count, new IntType(), true));
+    return new AllocateArray(parameter0, parameter1, parameter2, parameter3, parameter4);
   }
 }
 
