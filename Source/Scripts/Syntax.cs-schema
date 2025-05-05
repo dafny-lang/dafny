@@ -105,6 +105,10 @@ abstract class TypeUnaryExpr : UnaryExpr
     Type toType;
 }
 
+class TypeTestExpr : TypeUnaryExpr
+{
+}
+
 class ConversionExpr : TypeUnaryExpr
 {
     String messagePrefix;

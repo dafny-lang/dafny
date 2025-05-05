@@ -149,6 +149,24 @@ namespace Microsoft.Dafny
             return ReadAutoGhostIdentifierExpr();
         }
 
+        public TypeTestExpr ReadTypeTestExpr()
+        {
+            var parameter0 = ReadAbstract<IOrigin>();
+            var parameter1 = ReadAbstract<Expression>();
+            var parameter2 = ReadAbstract<Type>();
+            return new TypeTestExpr(parameter0, parameter1, parameter2);
+        }
+
+        public TypeTestExpr ReadTypeTestExprOption()
+        {
+            if (ReadIsNull())
+            {
+                return default;
+            }
+
+            return ReadTypeTestExpr();
+        }
+
         public ConversionExpr ReadConversionExpr()
         {
             var parameter0 = ReadAbstract<IOrigin>();
@@ -638,26 +656,6 @@ namespace Microsoft.Dafny
             }
 
             return ReadAllocateClass();
-        }
-
-        public AllocateArray ReadAllocateArray()
-        {
-            var parameter0 = ReadAbstract<IOrigin>();
-            var parameter4 = ReadAttributesOption();
-            var parameter1 = ReadAbstractOption<Type>();
-            var parameter2 = ReadList<Expression>(() => ReadAbstract<Expression>());
-            var parameter3 = ReadAbstractOption<Expression>();
-            return new AllocateArray(parameter0, parameter1, parameter2, parameter3, parameter4);
-        }
-
-        public AllocateArray ReadAllocateArrayOption()
-        {
-            if (ReadIsNull())
-            {
-                return default;
-            }
-
-            return ReadAllocateArray();
         }
 
         public ExprRhs ReadExprRhs()
@@ -1471,24 +1469,6 @@ namespace Microsoft.Dafny
             return ReadSeqSelectExpr();
         }
 
-        public MultiSelectExpr ReadMultiSelectExpr()
-        {
-            var parameter0 = ReadAbstract<IOrigin>();
-            var parameter1 = ReadAbstract<Expression>();
-            var parameter2 = ReadList<Expression>(() => ReadAbstract<Expression>());
-            return new MultiSelectExpr(parameter0, parameter1, parameter2);
-        }
-
-        public MultiSelectExpr ReadMultiSelectExprOption()
-        {
-            if (ReadIsNull())
-            {
-                return default;
-            }
-
-            return ReadMultiSelectExpr();
-        }
-
         public BitvectorType ReadBitvectorType()
         {
             var parameter0 = ReadAbstract<IOrigin>();
@@ -2107,6 +2087,11 @@ namespace Microsoft.Dafny
                 return ReadAutoGhostIdentifierExpr();
             }
 
+            if (actualType == typeof(TypeTestExpr))
+            {
+                return ReadTypeTestExpr();
+            }
+
             if (actualType == typeof(ConversionExpr))
             {
                 return ReadConversionExpr();
@@ -2235,11 +2220,6 @@ namespace Microsoft.Dafny
             if (actualType == typeof(AllocateClass))
             {
                 return ReadAllocateClass();
-            }
-
-            if (actualType == typeof(AllocateArray))
-            {
-                return ReadAllocateArray();
             }
 
             if (actualType == typeof(ExprRhs))
@@ -2450,11 +2430,6 @@ namespace Microsoft.Dafny
             if (actualType == typeof(SeqSelectExpr))
             {
                 return ReadSeqSelectExpr();
-            }
-
-            if (actualType == typeof(MultiSelectExpr))
-            {
-                return ReadMultiSelectExpr();
             }
 
             if (actualType == typeof(BitvectorType))
