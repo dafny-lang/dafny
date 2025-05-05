@@ -18,6 +18,7 @@ class Anything {
     var tab := new int[3,4];
     assert(tab.Length0==3);
     assert(tab.Length1==4);
+
   }
 }
 
