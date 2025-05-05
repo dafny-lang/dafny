@@ -76,9 +76,9 @@ module Test {
         == ParseResult.ParseSuccess(
              Program.Program(
                ["file"],
-               [Declaration.Import(true, "Test"),
+               [Declaration.Import(true, "test"),
                 Declaration.Module(
-                  "test",
+                  "Test",
                   [
                     Declaration.Module("Inner", [])])]),
              inputFinal);
