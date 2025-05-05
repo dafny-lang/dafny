@@ -217,6 +217,8 @@ public partial class SyntaxDeserializer(IDecoder decoder) {
     return decoder.ReadInt32();
   }
 
+  // For MultiSelectExpr and AllocateArray, we need specific cases to properly update the
+  // SystemModuleModifiers, as done in Dafny.atg
   public MultiSelectExpr ReadMultiSelectExpr()
   {
     var parameter0 = ReadAbstract<IOrigin>();
@@ -225,6 +227,18 @@ public partial class SyntaxDeserializer(IDecoder decoder) {
     SystemModuleModifiers.Add(b => b.ArrayType(parameter2.Count, new IntType(), true));
     return new MultiSelectExpr(parameter0, parameter1, parameter2);
   }
+  
+  public AllocateArray ReadAllocateArray()
+  {
+    var parameter0 = ReadAbstract<IOrigin>();
+    var parameter4 = ReadAttributesOption();
+    var parameter1 = ReadAbstractOption<Type>();
+    var parameter2 = ReadList<Expression>(() => ReadAbstract<Expression>());
+    var parameter3 = ReadAbstractOption<Expression>();
+    SystemModuleModifiers.Add(b => b.ArrayType(parameter2.Count, new IntType(), true));
+    return new AllocateArray(parameter0, parameter1, parameter2, parameter3, parameter4);
+  }
+  
 }
 
 public class FilesContainer(List<FileStart> files) {
