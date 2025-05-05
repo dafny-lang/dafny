@@ -15,9 +15,9 @@ abstract module AbstractWrapper {
     var js  :- expect Deserialize(bs);
     // print indent, "=> ", js, "\n";
     var bs'  :- expect Serialize(js);
-    // print indent, "=> ", FromUTF8Checked(bs'), "\n";
+    // print indent, "=> ", FromUTF8Checked(bs').ToOption(), "\n";
     var sbs' :- expect SpecSerialize(js);
-    // print indent, "=> ", FromUTF8Checked(sbs'), "\n";
+    // print indent, "=> ", FromUTF8Checked(sbs').ToOption(), "\n";
     var js'  :- expect Deserialize(bs');
     Check(bs, js, bs', sbs', js');
   }

@@ -54,7 +54,7 @@ module Std.JSON.Spec {
   function EscapeToUTF8(str: string, start: nat := 0): Result<bytes> {
     var utf16 :- ToUTF16Checked(str).ToResult(SerializationError.InvalidUnicode);
     var escaped := Escape(utf16);
-    var utf32 :- FromUTF16Checked(escaped).ToResult(SerializationError.InvalidUnicode);
+    var utf32 :- FromUTF16Checked(escaped).ToOption().ToResult(SerializationError.InvalidUnicode);
     ToUTF8Checked(utf32).ToResult(SerializationError.InvalidUnicode)
   }
 

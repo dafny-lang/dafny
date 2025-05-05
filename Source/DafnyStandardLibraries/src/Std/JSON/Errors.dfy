@@ -21,7 +21,7 @@ module Std.JSON.Errors {
     | ReachedEOF
     | ExpectingByte(expected: byte, b: opt_byte)
     | ExpectingAnyByte(expected_sq: seq<byte>, b: opt_byte)
-    | InvalidUnicode
+    | InvalidUnicode(str: string)
   {
     function ToString() : string {
       match this
@@ -39,7 +39,7 @@ module Std.JSON.Errors {
         var c := if b > 0 then "'" + [b as char] + "'" else "EOF";
         var c0s := seq(|bs0|, idx requires 0 <= idx < |bs0| => bs0[idx] as char);
         "Expecting one of '" + c0s + "', read " + c
-      case InvalidUnicode => "Invalid Unicode sequence"
+      case InvalidUnicode(str) => if str == "" then "Invalid Unicode sequence" else str
     }
   }
 
