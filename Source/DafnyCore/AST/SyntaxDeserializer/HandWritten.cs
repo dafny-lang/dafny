@@ -209,18 +209,21 @@ public partial class SyntaxDeserializer(IDecoder decoder) {
     if (actualType == typeof(Token)) {
       return (T)(object)ReadToken();
     }
-
-    if (actualType == typeof(MultiSelectExpr)) {
-      var ret = ReadMultiSelectExpr();
-      SystemModuleModifiers.Add(b => b.ArrayType(ret.Indices.Count, new IntType(), true));
-      return (T)(object)ret;
-    }
-
+    
     return (T)ReadObject(actualType);
   }
 
   private int ReadInt32() {
     return decoder.ReadInt32();
+  }
+
+  public MultiSelectExpr ReadMultiSelectExpr()
+  {
+    var parameter0 = ReadAbstract<IOrigin>();
+    var parameter1 = ReadAbstract<Expression>();
+    var parameter2 = ReadList<Expression>(() => ReadAbstract<Expression>());
+    SystemModuleModifiers.Add(b => b.ArrayType(parameter2.Count, new IntType(), true));
+    return new MultiSelectExpr(parameter0, parameter1, parameter2);
   }
 }
 
