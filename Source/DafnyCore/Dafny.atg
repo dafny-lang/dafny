@@ -2112,10 +2112,11 @@ FrameExpression<out FrameExpression fe, bool allowLemma, bool allowLambda>
      fe = dummyFrameExpr;
   .)
   ( Expression<out e, allowLemma, allowLambda>   (. feTok = e.Origin; .)
-    [ IF(!AcceptReferrers())
+    [ 
+      IF(!AcceptReferrers() && la.kind is _backtick)
       FrameField<out id>        (. fieldName = id.val;  feTok = id; .)
     ]                           (. fe = new FrameExpression(feTok, e, fieldName); .)
-  | IF(!AcceptReferrers())
+  | IF(!AcceptReferrers() && la.kind is _backtick)
     FrameField<out id>          (. fieldName = id.val; .)
                                 (. fe = new FrameExpression(id, new ImplicitThisExpr(id), fieldName); .)
   )

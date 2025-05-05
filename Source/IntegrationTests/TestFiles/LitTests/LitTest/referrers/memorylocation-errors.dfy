@@ -1,6 +1,6 @@
-// RUN: %verify --referrers --type-system-refresh "%s" > "%t"
+// RUN: %exits-with 4 %verify --referrers --type-system-refresh "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
-// RUN: %verify --referrers "%s" > "%t"
+// RUN: %exits-with 4 %verify --referrers "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 class Test {
@@ -8,10 +8,10 @@ class Test {
   const c: int
 }
 
-opaque function ReadFirstElement(a: array<int>)
+opaque function ReadFirstElement(a: array<int>): int
   reads a`[0]  // Well-formedness error
 
-opaque function ReadSecondElement(a: array<int>)
+opaque function ReadSecondElement(a: array<int>): int
   requires a.Length >= 2
   reads a`[if a[2] == 0 then 0 else 0] // Well-formedness error
 {
@@ -28,7 +28,7 @@ method ModifyArray(a: array<int>, c: bool)
 method TestArray(a: array<int>, c: bool)
 {
   ghost var m := a`[0]; // Error, could not prove a.Length >= 1
-  ghost var m := a`[1]; // Error, could not prove a.Length >= 2
+  ghost var m2 := a`[1]; // Error, could not prove a.Length >= 2
 }
 
 method TestArray2(a: array2<int>, c: bool)
@@ -48,12 +48,12 @@ function ReadsConsts(t1: Test, t2: Test): int
   0
 }
 
-method ModifiesConst(t: Test): int
+method ModifiesConst(t: Test)
   modifies t`c // Error, constants could not be proved to be absent from the modifies clause
 {
 }
 
-method ModifiesConst(t: Test): int
+method ModifiesConst2(t: Test)
   modifies {t`x, t`c} // Error, constants could not be proved to be absent from the modifies clause
 {
 }

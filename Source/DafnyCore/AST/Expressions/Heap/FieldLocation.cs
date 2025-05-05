@@ -20,6 +20,8 @@ public class FieldLocation: Expression, ICloneable<FieldLocation> {
 
   public FieldLocation(Cloner cloner, FieldLocation original) : base(cloner, original) {
     this.ObjectCopy = cloner.CloneExpr(original.ObjectCopy);
+    this.ResolvedField = original.ResolvedField != null
+      ? cloner.CloneField(original.ResolvedField) : null;
     this.Name = original.Name;
   }
 
