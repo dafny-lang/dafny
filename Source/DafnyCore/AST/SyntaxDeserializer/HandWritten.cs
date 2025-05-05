@@ -210,6 +210,14 @@ public partial class SyntaxDeserializer(IDecoder decoder) {
       return (T)(object)ReadToken();
     }
 
+    if (actualType == typeof(MultiSelectExpr)) {
+      return (T)(object)ReadMultiSelectExpr();
+    }
+
+    if (actualType == typeof(AllocateArray)) {
+      return (T)(object)ReadAllocateArray();
+    }
+
     return (T)ReadObject(actualType);
   }
 
