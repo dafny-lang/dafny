@@ -1489,13 +1489,6 @@ namespace Microsoft.Dafny
             return ReadSeqSelectExpr();
         }
 
-        public MultiSelectExpr ReadMultiSelectExpr()
-        {
-            var parameter0 = ReadAbstract<IOrigin>();
-            var parameter1 = ReadAbstract<Expression>();
-            var parameter2 = ReadList<Expression>(() => ReadAbstract<Expression>());
-            return new MultiSelectExpr(parameter0, parameter1, parameter2);
-        }
 
         public MultiSelectExpr ReadMultiSelectExprOption()
         {
