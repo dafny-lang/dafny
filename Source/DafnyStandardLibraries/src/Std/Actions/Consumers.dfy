@@ -261,6 +261,17 @@ module Std.Consumers {
     ensures ConsumedOf(history) == []
   {}
 
+  lemma {:only} ConsumedOfAllAccepted<T>(history: seq<(T, bool)>)
+    requires Seq.Partitioned(history, WasConsumed)
+    requires |ConsumedOf(history)| == |history|
+    ensures forall accepted <- OutputsOf(history) :: accepted
+  {
+    if history == [] {
+    } else {
+      assume false;
+    }
+  }
+
   @IsolateAssertions
   lemma ConsumedComposition<T>(left: seq<(T, bool)>, right: seq<(T, bool)>)
     requires Seq.Partitioned(left, WasConsumed)

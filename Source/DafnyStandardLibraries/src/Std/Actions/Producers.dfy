@@ -656,9 +656,19 @@ module Std.Producers {
 
       totalActionProof.AnyInputIsValid(consumer.history, t.value);
       assert {:only} 0 < consumer.Capacity().value;
+      assert {:only} !consumer.Done();
+      label beforeAccept:
       var accepted := consumer.Accept(t.value);
       old(consumer.State()).ValidChangeTransitive(old@before(consumer.State()), consumer.State());
-      assert {:only} accepted;
+      assert {:only} |old@beforeAccept(consumer.State()).NewConsumed(consumer.State())| >= 1;
+      assert {:only} |consumer.NewConsumed@beforeAccept()| >= 1;
+      assert {:only} consumer.NewConsumed@beforeAccept() == ConsumedOf([(t.value, accepted)]);
+      assert {:only} ConsumedOf([(t.value, accepted)]) == [t.value];
+      ConsumedOfAllAccepted([(t.value, accepted)]);
+      assert {:only} accepted == true;
+      // assert {:only} Seq.Last(consumer.Outputs()) == accepted;
+      // assert {:only} !consumer.Done();
+      // assert {:only} accepted;
 
       assert Seq.Last(consumer.Inputs()) == t.value;
       assert producer.NewProduced() == consumer.NewConsumed();
