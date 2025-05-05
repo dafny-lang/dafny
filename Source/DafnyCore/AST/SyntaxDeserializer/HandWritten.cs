@@ -209,7 +209,7 @@ public partial class SyntaxDeserializer(IDecoder decoder) {
     if (actualType == typeof(Token)) {
       return (T)(object)ReadToken();
     }
-    
+
     return (T)ReadObject(actualType);
   }
 
@@ -219,17 +219,14 @@ public partial class SyntaxDeserializer(IDecoder decoder) {
 
   // For MultiSelectExpr and AllocateArray, we need specific cases to properly update the
   // SystemModuleModifiers, as done in Dafny.atg
-  public MultiSelectExpr ReadMultiSelectExpr()
-  {
+  public MultiSelectExpr ReadMultiSelectExpr() {
     var parameter0 = ReadAbstract<IOrigin>();
     var parameter1 = ReadAbstract<Expression>();
     var parameter2 = ReadList<Expression>(() => ReadAbstract<Expression>());
     SystemModuleModifiers.Add(b => b.ArrayType(parameter2.Count, new IntType(), true));
     return new MultiSelectExpr(parameter0, parameter1, parameter2);
   }
-  
-  public AllocateArray ReadAllocateArray()
-  {
+  public AllocateArray ReadAllocateArray() {
     var parameter0 = ReadAbstract<IOrigin>();
     var parameter4 = ReadAttributesOption();
     var parameter1 = ReadAbstractOption<Type>();
@@ -238,7 +235,6 @@ public partial class SyntaxDeserializer(IDecoder decoder) {
     SystemModuleModifiers.Add(b => b.ArrayType(parameter2.Count, new IntType(), true));
     return new AllocateArray(parameter0, parameter1, parameter2, parameter3, parameter4);
   }
-  
 }
 
 public class FilesContainer(List<FileStart> files) {
