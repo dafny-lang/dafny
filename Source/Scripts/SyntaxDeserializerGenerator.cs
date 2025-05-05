@@ -18,6 +18,8 @@ public class SyntaxDeserializerGenerator : SyntaxAstVisitor {
     typeof(Token),
     typeof(Specification<>),
     typeof(CasePattern<>),
+    typeof(MultiSelectExpr),
+    typeof(AllocateArray)
   ];
 
   private ClassDeclarationSyntax deserializeClass = (ClassDeclarationSyntax)SyntaxFactory.ParseMemberDeclaration(@"
