@@ -56,23 +56,23 @@
       <LogicalName>DafnyStandardLibraries-py.doo</LogicalName>
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </EmbeddedResource>
-    <EmbeddedResource Include="..\DafnyStandardLibraries\src\Std\*Externs\*.cs">
+    <EmbeddedResource Include="..\DafnyStandardLibraries\src\Std\*Externs\**\*.cs">
       <LinkBase>DafnyStandardLibraries_cs</LinkBase>
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </EmbeddedResource>
-    <EmbeddedResource Include="..\DafnyStandardLibraries\src\Std\*Externs\*.java">
+    <EmbeddedResource Include="..\DafnyStandardLibraries\src\Std\*Externs\**\*.java">
       <LinkBase>DafnyStandardLibraries_java</LinkBase>
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </EmbeddedResource>
-    <EmbeddedResource Include="..\DafnyStandardLibraries\src\Std\*Externs\*.js">
+    <EmbeddedResource Include="..\DafnyStandardLibraries\src\Std\*Externs\**\*.js">
       <LinkBase>DafnyStandardLibraries_js</LinkBase>
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </EmbeddedResource>
-    <EmbeddedResource Include="..\DafnyStandardLibraries\src\Std\*Externs\*.go">
+    <EmbeddedResource Include="..\DafnyStandardLibraries\src\Std\*Externs\**\*.go">
       <LinkBase>DafnyStandardLibraries_go</LinkBase>
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </EmbeddedResource>
-    <EmbeddedResource Include="..\DafnyStandardLibraries\src\Std\*Externs\*.py">
+    <EmbeddedResource Include="..\DafnyStandardLibraries\src\Std\*Externs\**\*.py">
       <LinkBase>DafnyStandardLibraries_py</LinkBase>
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </EmbeddedResource>

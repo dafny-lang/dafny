@@ -1798,6 +1798,10 @@ namespace Microsoft.Dafny.Compilers {
       public void Finish() { }
     }
 
+    protected virtual string FilterRuntimeSourcePathEmission(string source) {
+      return source;
+    }
+
     protected void EmitRuntimeSource(String root, ConcreteSyntaxTree wr, bool useFiles = true) {
       var assembly = System.Reflection.Assembly.Load("DafnyPipeline");
       var files = assembly.GetManifestResourceNames();
@@ -1806,7 +1810,7 @@ namespace Microsoft.Dafny.Compilers {
       String header = $"DafnyPipeline.{root}";
       foreach (var file in files.Where(f => f.StartsWith(header))) {
         var parts = file.Split('.');
-        var realName = string.Join('/', parts.SkipLast(1).Skip(2)) + "." + parts.Last();
+        var realName = FilterRuntimeSourcePathEmission(string.Join('/', parts.SkipLast(1).Skip(2)) + "." + parts.Last());
         ImportRuntimeTo(file, useFiles ? wr.NewFile(realName) : wr);
       }
     }
