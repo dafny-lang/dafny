@@ -2869,12 +2869,9 @@ namespace Microsoft.Dafny.Compilers {
       Contract.Assert(wrDims.Count == 1);
       wrDims[0].Write(lengthVar);
       wrLamBody.WriteLine(";");
-      
-      // Since at least C# 5 (and certainly C# 12), array indices are allowed to be int, uint, long, or ulong
+
       var ixVar = idGenerator.FreshId("i");
-      var ixType = TypeName(indexType, wrLamBody, body.Origin);
-      Contract.Assert(ixType is "int" or "uint" or "long" or "ulong");
-      var wrLoopBody = wrLamBody.NewBlock(string.Format("for ({2} {0} = 0; {0} < {1}; {0}++)", ixVar, lengthVar, ixType));
+      var wrLoopBody = wrLamBody.NewBlock(string.Format("for (int {0} = 0; {0} < {2}.ToIntChecked({1}, \"upper bound on index is too large\"); {0}++)", ixVar, lengthVar, DafnyHelpersClass));
       var wrArrName = EmitArrayUpdate([wr => wr.Write(ixVar)], body, wrLoopBody);
       wrArrName.Write(arrVar);
       EndStmt(wrLoopBody);
