@@ -2000,13 +2000,5 @@ namespace Microsoft.Dafny.Compilers {
       exceptBlock.WriteLine();
       TrStmt(recoveryBody, exceptBlock);
     }
-
-    protected override string FilterRuntimeSourcePathEmission(string path) {
-      if (Path.GetDirectoryName(path)?.EndsWith("Externs") == true) {
-        return Path.GetFileName(path);
-      }
-
-      return path;
-    }
   }
 }

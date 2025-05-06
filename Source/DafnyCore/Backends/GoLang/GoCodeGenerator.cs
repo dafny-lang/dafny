@@ -4099,10 +4099,5 @@ namespace Microsoft.Dafny.Compilers {
       TrStmt(body, funcBlock);
       wr.WriteLine("()");
     }
-
-    protected override string FilterRuntimeSourcePathEmission(string path) {
-      return path.IndexOf("Externs", StringComparison.Ordinal) is var i and >= 0
-        ? path[(i + 1 + "Externs".Length)..] : path;
-    }
   }
 }

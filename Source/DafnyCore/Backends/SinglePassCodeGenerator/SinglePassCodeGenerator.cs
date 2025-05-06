@@ -1798,8 +1798,9 @@ namespace Microsoft.Dafny.Compilers {
       public void Finish() { }
     }
 
-    protected virtual string FilterRuntimeSourcePathEmission(string source) {
-      return source;
+    protected string FilterRuntimeSourcePathEmission(string path) {
+      return path.IndexOf("Externs", StringComparison.Ordinal) is var i and >= 0
+        ? path[(i + 1 + "Externs".Length)..] : path;
     }
 
     protected void EmitRuntimeSource(String root, ConcreteSyntaxTree wr, bool useFiles = true) {
