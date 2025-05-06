@@ -693,7 +693,8 @@ namespace Microsoft.Dafny {
       // play havoc with the heap according to the modifies clause
       builder.Add(new Boogie.HavocCmd(node.Origin, [etran.HeapCastToIdentifierExpr]));
       // assume the usual two-state boilerplate information
-      foreach (BoilerplateTriple tri in GetTwoStateBoilerplate(node.Origin, modifies.Expressions, isGhostContext, allowsAllocation, etran.Old, etran, etran.Old)) {
+      foreach (BoilerplateTriple tri in GetTwoStateBoilerplate(node.Origin, modifies.Expressions, isGhostContext, 
+                 allowsAllocation, etran.Old, etran, etran.Old)) {
         if (tri.IsFree) {
           builder.Add(TrAssumeCmd(node.Origin, tri.Expr));
         }

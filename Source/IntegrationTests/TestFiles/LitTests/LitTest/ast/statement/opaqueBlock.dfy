@@ -227,3 +227,24 @@ method FreshEnsures() {
   }
   assert false;
 }
+
+class Test
+{
+  var x : int
+  var y : int
+
+  method foo()
+    modifies this
+    ensures x == 1
+    ensures y == 1
+  {
+    x := 1;
+    opaque
+      modifies this`y
+      ensures y == 1
+      // ensures x == 1
+    {
+      y := 1;
+    }
+  }
+}
