@@ -6,6 +6,10 @@ namespace Microsoft.Dafny;
 
 public class OpaqueBlock : BlockStmt, ICanResolveNewAndOld, ICloneable<OpaqueBlock> {
   public List<AttributedExpression> Ensures;
+
+  /**
+   * Default is empty. Does not assume the method modifies as a default
+   */
   public Specification<FrameExpression> Modifies;
 
   protected OpaqueBlock(Cloner cloner, OpaqueBlock original) : base(cloner, original) {
