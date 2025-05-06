@@ -29,10 +29,10 @@ module M {
       String("O"), String("X"), String(" ")
     ]);
     var v := String("|");
-    var row := Concat(cell, ConcatR(v, Concat(cell, ConcatR(v, cell))));
+    var row := Concat(cell, ConcatKeepRight(v, Concat(cell, ConcatKeepRight(v, cell))));
     var sep := String("\n-+-+-\n");
     var grid := 
-    Concat(row, ConcatR(sep, Concat(row, ConcatR(sep, row))));
+      Concat(row, ConcatKeepRight(sep, Concat(row, ConcatKeepRight(sep, row))));
     var input := "O|X| \n-+-+-\nX|O| \n-+-+-\nP| |O";
     var r := Apply(grid, input);
     expect r.IsFailure();
