@@ -228,7 +228,7 @@ method FreshEnsures() {
   assert false;
 }
 
-class Test
+class GranularModifies
 {
   var x : int
   var y : int

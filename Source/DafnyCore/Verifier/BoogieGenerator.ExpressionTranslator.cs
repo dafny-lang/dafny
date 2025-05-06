@@ -175,7 +175,12 @@ namespace Microsoft.Dafny {
         if (label == null) {
           return Old;
         }
-        var heapAt = new Boogie.IdentifierExpr(Token.NoToken, "$Heap_at_" + label.AssignUniqueId(BoogieGenerator.CurrentIdGenerator), Predef.HeapType);
+
+        return WithHeapVariable("$Heap_at_" + label.AssignUniqueId(BoogieGenerator.CurrentIdGenerator));
+      }
+
+      public ExpressionTranslator WithHeapVariable(string heapVariableName) {
+        var heapAt = new Boogie.IdentifierExpr(Token.NoToken, heapVariableName, Predef.HeapType);
         return new ExpressionTranslator(BoogieGenerator, Predef, heapAt, This, applyLimited_CurrentFunction, layerInterCluster, layerIntraCluster, scope, readsFrame, modifiesFrame, stripLits);
       }
 
