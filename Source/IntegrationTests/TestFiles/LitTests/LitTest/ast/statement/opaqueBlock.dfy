@@ -232,6 +232,7 @@ class GranularModifies
 {
   var x : int
   var y : int
+  var objects: set<GranularModifies>
 
   method foo()
     modifies this
@@ -239,8 +240,9 @@ class GranularModifies
     ensures y == 1
   {
     x := 1;
+    objects := {this};
     opaque
-      modifies this`y
+      modifies objects`y
       ensures y == 1
       // ensures x == 1
     {
