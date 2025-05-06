@@ -18,6 +18,12 @@ newtype int32 = x: int  | -0x8000_0000 <= x < 0x8000_0000
 newtype int64 = x: int  | -0x8000_0000_0000_0000 <= x < 0x8000_0000_0000_0000
 newtype int128 = x: int  | -0x8000_0000_0000_0000_0000_0000_0000_0000 <= x < 0x8000_0000_0000_0000_0000_0000_0000_0000
 
+method TestLessEq() {
+  var x64: uint64 := 8 as uint64;
+  expect 8 as uint8 > 1 as uint8 + x64 as uint8;
+  expect 9 as uint8 > 1 as uint8 * x64 as uint8;
+}
+
 method TestU8() {
   var o8: uint8 := 1 as uint8;
   var s8: uint8 := 2 as uint8;

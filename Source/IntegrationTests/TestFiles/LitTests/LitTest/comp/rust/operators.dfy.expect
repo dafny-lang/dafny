@@ -1,5 +1,5 @@
 
-Dafny program verifier finished with 21 verified, 0 errors
+Dafny program verifier finished with 22 verified, 0 errors
 && || ==> <==> <= < >= > != ==
 + * - / %
 operators(u8) operators(u16) operators(u32) operators(u64) operators(u128)
