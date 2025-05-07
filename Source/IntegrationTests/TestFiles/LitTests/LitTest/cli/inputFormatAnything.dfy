@@ -14,6 +14,10 @@ class Anything {
     assert(fresh(this));
     var v := new Anything;
     assert(v is Anything);
+    
+    var tab := new int[3,4];
+    tab[0,0] := 0;
+    assert(tab[0,0] == 0);
   }
 }
 
