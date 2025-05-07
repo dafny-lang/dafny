@@ -6455,6 +6455,7 @@ namespace RAST {
     RAST._IExpr Replace(Func<RAST._IExpr, RAST._IExpr> f, Func<RAST._IType, RAST._IType> ft);
     __T Fold<__T>(__T acc, Func<__T, RAST._IExpr, __T> f, Func<__T, RAST._IType, __T> ft);
     bool NoExtraSemicolonAfter();
+    bool EndsWithTypeThatCanAcceptGenericsWhenPrinting();
     RAST._IPrintingInfo printingInfo { get; }
     bool LeftRequiresParentheses(RAST._IExpr left);
     _System._ITuple2<Dafny.ISequence<Dafny.Rune>, Dafny.ISequence<Dafny.Rune>> LeftParentheses(RAST._IExpr left);
@@ -7351,6 +7352,33 @@ namespace RAST {
     public bool NoExtraSemicolonAfter() {
       return (((((((this).is_DeclareVar) || ((this).is_Assign)) || ((this).is_Break)) || ((this).is_Continue)) || ((this).is_Return)) || ((this).is_For)) || ((((this).is_RawExpr) && ((new BigInteger(((this).dtor_content).Count)).Sign == 1)) && ((((this).dtor_content).Select((new BigInteger(((this).dtor_content).Count)) - (BigInteger.One))) == (new Dafny.Rune(';'))));
     }
+    public bool EndsWithTypeThatCanAcceptGenericsWhenPrinting() {
+      _IExpr _this = this;
+    TAIL_CALL_START: ;
+      RAST._IExpr _source0 = _this;
+      {
+        if (_source0.is_TypeAscription) {
+          RAST._IExpr _0_e = _source0.dtor_left;
+          RAST._IType _1_tpe = _source0.dtor_tpe;
+          return (_1_tpe).EndsWithNameThatCanAcceptGenerics();
+        }
+      }
+      {
+        if (_source0.is_BinaryOp) {
+          Dafny.ISequence<Dafny.Rune> _2_op2 = _source0.dtor_op2;
+          RAST._IExpr _3_left = _source0.dtor_left;
+          RAST._IExpr _4_right = _source0.dtor_right;
+          DAST.Format._IBinaryOpFormat _5_format = _source0.dtor_format2;
+          RAST._IExpr _in0 = _4_right;
+          _this = _in0;
+          ;
+          goto TAIL_CALL_START;
+        }
+      }
+      {
+        return false;
+      }
+    }
     public bool LeftRequiresParentheses(RAST._IExpr left) {
       return ((this).printingInfo).NeedParenthesesForLeft((left).printingInfo);
     }
@@ -8075,7 +8103,7 @@ namespace RAST {
               disjunctiveMatch3 = true;
             }
             if (disjunctiveMatch3) {
-              if ((((_14_op2).Equals(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("<<"))) && ((_15_left).is_TypeAscription)) && (((_15_left).dtor_tpe).EndsWithNameThatCanAcceptGenerics())) {
+              if (((_14_op2).Equals(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("<<"))) && ((_15_left).EndsWithTypeThatCanAcceptGenericsWhenPrinting())) {
                 return RAST.PrintingInfo.create_PrecedenceAssociativity(new BigInteger(9), RAST.Associativity.create_LeftToRight());
               } else {
                 return RAST.PrintingInfo.create_PrecedenceAssociativity(new BigInteger(40), RAST.Associativity.create_LeftToRight());
@@ -8118,7 +8146,7 @@ namespace RAST {
               disjunctiveMatch4 = true;
             }
             if (disjunctiveMatch4) {
-              if (((((_14_op2).Equals(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("<"))) || ((_14_op2).Equals(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("<=")))) && ((_15_left).is_TypeAscription)) && (((_15_left).dtor_tpe).EndsWithNameThatCanAcceptGenerics())) {
+              if ((((_14_op2).Equals(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("<"))) || ((_14_op2).Equals(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("<=")))) && ((_15_left).EndsWithTypeThatCanAcceptGenericsWhenPrinting())) {
                 return RAST.PrintingInfo.create_PrecedenceAssociativity(new BigInteger(9), RAST.Associativity.create_LeftToRight());
               } else {
                 return RAST.PrintingInfo.create_PrecedenceAssociativity(new BigInteger(80), RAST.Associativity.create_RequiresParentheses());
