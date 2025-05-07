@@ -2870,7 +2870,7 @@ namespace Microsoft.Dafny.Compilers {
       wrDims[0].Write(lengthVar);
       wrLamBody.WriteLine(";");
 
-      var ixVar = idGenerator.FreshId("i");
+      var ixVar = IdName(boundVar);
       var wrLoopBody = wrLamBody.NewBlock(string.Format("for (int {0} = 0; {0} < {2}.ToIntChecked({1}, \"upper bound on index is too large\"); {0}++)", ixVar, lengthVar, DafnyHelpersClass));
       var wrArrName = EmitArrayUpdate([wr => wr.Write(ixVar)], body, wrLoopBody);
       wrArrName.Write(arrVar);
