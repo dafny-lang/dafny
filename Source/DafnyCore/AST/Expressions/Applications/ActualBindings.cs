@@ -32,7 +32,7 @@ public class ActualBindings : NodeWithoutOrigin {
 
   public bool WasResolved => arguments != null;
 
-  public List<Expression> Arguments => arguments!;
+  public List<Expression>? Arguments => arguments;
 
   public void AcceptArgumentExpressionsAsExactParameterList(List<Expression>? args = null) {
     Contract.Requires(!WasResolved); // this operation should be done at most once

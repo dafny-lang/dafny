@@ -535,7 +535,7 @@ namespace Microsoft.Dafny {
             typeArgs = $"<{string.Join(",", dtv.InferredTypeArgs.ConvertAll(ty => ty.ToString()))}>";
           }
           wr.Write("{0}{1}.{2}", dtv.DatatypeName, typeArgs, dtv.MemberName);
-          printParens = dtv.Arguments.Count != 0;
+          printParens = dtv.Bindings.ArgumentBindings.Count != 0;
         }
         if (printParens) {
           PrintActualArguments(dtv.Bindings, null, null);
