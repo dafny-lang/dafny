@@ -1180,38 +1180,11 @@ namespace Microsoft.Dafny {
         }
 
         decreasesToExpr.Type = Type.Bool;
-      } else if (expr is FieldLocation fieldLocation) {
-        fieldLocation.Type = Type.Field;
-        ResolveExpression(fieldLocation.ObjectCopy, resolutionContext);
-        // Determine what field it is.
-        var dotSuffix = ResolveDotSuffix(new ExprDotName(fieldLocation.Origin, fieldLocation.ObjectCopy, fieldLocation.Name, null),
-          false, true, [], resolutionContext, false);
-        if (dotSuffix is MemberSelectExpr memberSelect) {
-          if (memberSelect.Member is Field field) {
-            fieldLocation.ResolvedField = field;
-          } else {
-            reporter.Error(MessageSource.Resolver, fieldLocation, 
-              $"Expected constant or mutable field reference, but got {memberSelect.Member.WhatKind}");
-          }
-        }
-        
-      } else if (expr is IndexFieldLocation indexFieldLocation) {
-        ResolveExpression(indexFieldLocation.ObjectCopy, resolutionContext);
-        if (indexFieldLocation.ObjectCopy.Type.AsArrayType is not {} arrayType) {
-          reporter.Error(MessageSource.Resolver, indexFieldLocation, 
-            $"Expected array memory location to be applied to an array, but got {indexFieldLocation.ObjectCopy.Type}");
-        } else {
-          if (arrayType.Dims != indexFieldLocation.Indices.Count) {
-            reporter.Error(MessageSource.Resolver, indexFieldLocation, 
-              $"Expected {arrayType.Dims} {(arrayType.Dims > 1 ? "indices" : "index")}, but got {indexFieldLocation.Indices.Count}");
-          }
-          foreach (var subexpr in indexFieldLocation.Indices) {
-            ResolveExpression(subexpr, resolutionContext);
-            ConstrainToIntegerType(subexpr, false, "Expected array location index to be int, got {0}");
-          }
-
-          indexFieldLocation.Type = Type.Field;
-        }
+      } else if (expr is FieldLocationExpression or IndexFieldLocationExpression or FieldLocation or IndexFieldLocation) {
+        reporter.Error(MessageSource.Resolver, expr,
+          $"Requires --type-system-refresh to resolve");
+        expr.Type = new InferredTypeProxy();
+        return;
       } else {
         Contract.Assert(false); throw new cce.UnreachableException();  // unexpected expression
       }
@@ -5328,7 +5301,7 @@ namespace Microsoft.Dafny {
 
         var token = expr.Origin;
         var receiver = GetReceiver(currentClass, member, token);
-        r = ResolveExprDotCall(token, new Name(expr.Origin, expr.Name), receiver, null, member, args, expr.OptTypeArguments, resolutionContext, allowMethodCall);
+        r = ResolveExprDotCall(token, new Name(expr.Origin, expr.Name), receiver, null, member, expr.OptTypeArguments, resolutionContext, allowMethodCall);
       } else if (isLastNameSegment && moduleInfo.Ctors.TryGetValue(name, out var pair)) {
         // ----- 2. datatype constructor
         if (ResolveDatatypeConstructor(expr, args, resolutionContext, complain, pair, name, ref r, ref rWithArgs)) {
@@ -5381,7 +5354,7 @@ namespace Microsoft.Dafny {
           }
         } else {
           var receiver = new StaticReceiverExpr(expr.Origin, (TopLevelDeclWithMembers)member.EnclosingClass, true);
-          r = ResolveExprDotCall(expr.Origin, new Name(expr.Origin, expr.Name), receiver, null, member, args, expr.OptTypeArguments, resolutionContext, allowMethodCall);
+          r = ResolveExprDotCall(expr.Origin, new Name(expr.Origin, expr.Name), receiver, null, member, expr.OptTypeArguments, resolutionContext, allowMethodCall);
         }
 
       } else if (!isLastNameSegment && moduleInfo.Ctors.TryGetValue(name, out pair)) {
@@ -5694,7 +5667,7 @@ namespace Microsoft.Dafny {
             var receiver = new StaticReceiverExpr(expr.Lhs.Origin, (TopLevelDeclWithMembers)member.EnclosingClass, false) {
               ContainerExpression = expr.Lhs
             };
-            r = ResolveExprDotCall(expr.Origin, expr.SuffixNameNode, receiver, null, member, args, expr.OptTypeArguments, resolutionContext, allowMethodCall);
+            r = ResolveExprDotCall(expr.Origin, expr.SuffixNameNode, receiver, null, member, expr.OptTypeArguments, resolutionContext, allowMethodCall);
           }
         } else {
           ReportUnresolvedIdentifierError(expr.Origin, name, resolutionContext);
@@ -5736,7 +5709,7 @@ namespace Microsoft.Dafny {
             var receiver = new StaticReceiverExpr(expr.Lhs.Origin, (UserDefinedType)ty.NormalizeExpand(), (TopLevelDeclWithMembers)member.EnclosingClass, false) {
               ContainerExpression = expr.Lhs
             };
-            r = ResolveExprDotCall(expr.Origin, expr.SuffixNameNode, receiver, null, member, args, expr.OptTypeArguments, resolutionContext, allowMethodCall);
+            r = ResolveExprDotCall(expr.Origin, expr.SuffixNameNode, receiver, null, member, expr.OptTypeArguments, resolutionContext, allowMethodCall);
           }
         }
         if (r == null) {
@@ -5750,10 +5723,10 @@ namespace Microsoft.Dafny {
           if (!member.IsStatic) {
             receiver = expr.Lhs;
             AddAssignableConstraint(expr.Origin, tentativeReceiverType, receiver.Type, "receiver type ({1}) does not have a member named " + name);
-            r = ResolveExprDotCall(expr.Origin, expr.SuffixNameNode, receiver, tentativeReceiverType, member, args, expr.OptTypeArguments, resolutionContext, allowMethodCall);
+            r = ResolveExprDotCall(expr.Origin, expr.SuffixNameNode, receiver, tentativeReceiverType, member, expr.OptTypeArguments, resolutionContext, allowMethodCall);
           } else {
             receiver = new StaticReceiverExpr(expr.Origin, (UserDefinedType)tentativeReceiverType, (TopLevelDeclWithMembers)member.EnclosingClass, false, lhs);
-            r = ResolveExprDotCall(expr.Origin, expr.SuffixNameNode, receiver, null, member, args, expr.OptTypeArguments, resolutionContext, allowMethodCall);
+            r = ResolveExprDotCall(expr.Origin, expr.SuffixNameNode, receiver, null, member, expr.OptTypeArguments, resolutionContext, allowMethodCall);
           }
         }
       }
@@ -5800,8 +5773,8 @@ namespace Microsoft.Dafny {
       );
     }
 
-    Expression ResolveExprDotCall(IOrigin tok, Name name, Expression receiver, Type receiverTypeBound/*?*/,
-      MemberDecl member, List<ActualBinding> args, List<Type> optTypeArguments, ResolutionContext resolutionContext, bool allowMethodCall) {
+    MemberSelectExpr ResolveExprDotCall(IOrigin tok, Name name, Expression receiver, Type receiverTypeBound/*?*/,
+      MemberDecl member, List<Type> optTypeArguments, ResolutionContext resolutionContext, bool allowMethodCall) {
       Contract.Requires(tok != null);
       Contract.Requires(receiver != null);
       Contract.Requires(receiver.WasResolved());

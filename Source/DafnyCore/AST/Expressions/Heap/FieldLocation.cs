@@ -6,22 +6,16 @@
 /// </summary>
 public class FieldLocation: Expression, ICloneable<FieldLocation> {
   // Because memory locations are tuples, this is just a copy of the expression so that we can determine if
-  // it's legit to 
-  public Expression ObjectCopy { get; }
   public Name Name { get; }
+  public Field Field { get; set; }
   
-  [FilledInDuringResolution]
-  public Field ResolvedField { get; set; }
-  
-  public FieldLocation(Expression objectCopy, Name name) : base(name.Origin) {
-    this.ObjectCopy = objectCopy;
+  public FieldLocation(Name name, Field field) : base(name.Origin) {
     this.Name = name;
+    this.Field = field;
   }
 
   public FieldLocation(Cloner cloner, FieldLocation original) : base(cloner, original) {
-    this.ObjectCopy = cloner.CloneExpr(original.ObjectCopy);
-    this.ResolvedField = original.ResolvedField != null
-      ? cloner.CloneField(original.ResolvedField) : null;
+    this.Field = original.Field;// We should not clone the field otherwise we loose precomputed visibility scopes
     this.Name = original.Name;
   }
 

@@ -1520,7 +1520,7 @@ namespace Microsoft.Dafny {
               null, allowNoChange, false);
             return decreasesExpr;
           case FieldLocation fieldLocation:
-            return new Boogie.IdentifierExpr(GetToken(expr), BoogieGenerator.GetField(fieldLocation.ResolvedField));
+            return new Boogie.IdentifierExpr(GetToken(expr), BoogieGenerator.GetField(fieldLocation.Field));
           case IndexFieldLocation indexFieldLocation:
             return GetArrayIndexFieldName(indexFieldLocation.Origin, indexFieldLocation.Indices.ToList());
           default:

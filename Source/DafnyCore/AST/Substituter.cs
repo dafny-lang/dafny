@@ -437,7 +437,8 @@ namespace Microsoft.Dafny {
       } else if (expr is IndexFieldLocation indexFieldLocation) {
         var exprList = indexFieldLocation.Indices;
         List<Expression> newArgs = SubstituteExprList(exprList);
-        newExpr = new IndexFieldLocation(indexFieldLocation.ObjectCopy, indexFieldLocation.OpenParen, newArgs, indexFieldLocation.CloseParen);
+        var resolvedArrayCopy = Substitute(indexFieldLocation.ResolvedArrayCopy);
+        newExpr = new IndexFieldLocation(resolvedArrayCopy, indexFieldLocation.OpenParen, newArgs, indexFieldLocation.CloseParen);
       } else {
         Contract.Assume(false); // unexpected Expression
       }

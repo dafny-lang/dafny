@@ -9,19 +9,14 @@ namespace Microsoft.Dafny;
 /// Denotes the memory location at this index
 /// </summary>
 public class IndexFieldLocation: Expression, ICloneable<IndexFieldLocation> {
-  // Because memory locations are tuples, this is just a copy of the expression so that we can determine if
-  // it's legit to 
-  public Expression ObjectCopy { get; }
-
+  public Expression ResolvedArrayCopy { get; }
   public Token CloseParen { get; }
-
   public Token OpenParen { get; }
-
   public List<Expression> Indices { get; }
   
-  public IndexFieldLocation(Expression objectCopy, Token openParen, List<Expression> indices, Token closeParen) : base(new SourceOrigin(openParen, closeParen)) {
+  public IndexFieldLocation(Expression resolvedArrayCopy, Token openParen, List<Expression> indices, Token closeParen) : base(new SourceOrigin(openParen, closeParen)) {
     Contract.Requires(indices.Count != 0);
-    this.ObjectCopy = objectCopy;
+    this.ResolvedArrayCopy = resolvedArrayCopy;
     this.Indices = indices;
     this.OpenParen = openParen;
     this.CloseParen = closeParen;
@@ -31,8 +26,8 @@ public class IndexFieldLocation: Expression, ICloneable<IndexFieldLocation> {
   {
     Contract.Requires(original != null);
     Contract.Ensures(type == null);
-    this.ObjectCopy = original.ObjectCopy;
-    this.Indices = original.Indices;
+    this.ResolvedArrayCopy = cloner.CloneExpr(original.ResolvedArrayCopy);
+    this.Indices = original.Indices.Select(cloner.CloneExpr).ToList();
     this.OpenParen = original.OpenParen;
     this.CloseParen = original.CloseParen;
   }

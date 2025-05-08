@@ -2253,7 +2253,7 @@ namespace Microsoft.Dafny {
       boxO = Box(tok, o);
     }
     
-    private bool HasMemoryLocation(Type type) {
+    private bool ContainsFieldLocation(Type type) {
       return type switch {
         SetType setType => ReferrersEnabled(setType.Arg),
         SeqType seqType => ReferrersEnabled(seqType.Arg),
@@ -2304,13 +2304,29 @@ namespace Microsoft.Dafny {
       Bpl.Expr disjunction = Bpl.Expr.False;
       foreach (FrameExpression rwComponent in rw) {
         Expression e = rwComponent.E;
+        var field = rwComponent.Field;
+
+        if (f == null) {
+          e = e switch {
+            // Field granularity
+            IndexFieldLocationExpression { Lhs: var lhs } => lhs,
+            FieldLocationExpression { Lhs: var lhs2 } => lhs2,
+            _ => e
+          };
+        }
         if (substMap != null) {
           e = Substitute(e, receiverReplacement, substMap);
         }
 
         Bpl.Expr disjunct;
+        // We revert back to the previous handling for backward compatibility and avoiding triggers
+        if (e is FieldLocationExpression fle && f != null) {
+          Contract.Assert(rwComponent.Field == null);
+          field = fle.ResolvedField;
+          e = fle.Lhs;
+        }
         var eType = e.Type.NormalizeToAncestorType();
-        if (HasMemoryLocation(eType) && f != null) {
+        if (ContainsFieldLocation(eType) && f != null) {
           PairWithField(tok, ref o, ref boxO, f);
         }
 
@@ -2348,8 +2364,8 @@ namespace Microsoft.Dafny {
           // o == e
           disjunct = Bpl.Expr.Eq(o, MaybeExtractObjectFromMemoryLocation(tok, etran.TrExpr(e), e.Type, f, etran));
         }
-        if (rwComponent.Field != null && f != null) {// TODO: Optimize when writing {a, b} field?
-          Bpl.Expr q = Bpl.Expr.Eq(f, new Bpl.IdentifierExpr(rwComponent.E.Origin, GetField(rwComponent.Field)));
+        if (field != null && f != null) {// TODO: Optimize when writing {a, b} field?
+          Bpl.Expr q = Bpl.Expr.Eq(f, new Bpl.IdentifierExpr(rwComponent.E.Origin, GetField(field)));
           if (usedInUnchanged) {
             q = BplOr(q,
               Bpl.Expr.Eq(f, new Bpl.IdentifierExpr(rwComponent.E.Origin, Predef.AllocField)));
@@ -3012,7 +3028,7 @@ namespace Microsoft.Dafny {
         bool objectGranularity = !fieldGranularity;
         // the frame condition, which is free since it is checked with every heap update and call
         boilerplate.Add(new BoilerplateTriple(tok, true, FrameCondition(tok, modifiesClause, canAllocate, FrameExpressionUse.Modifies, etranPre, etran, etranMod, objectGranularity), null, null, "frame condition: object granularity"));
-        if (modifiesClause.Exists(fe => fe.FieldName != null || HasMemoryLocation(fe.E.Type))) {
+        if (modifiesClause.Exists(fe => fe.FieldName != null || ContainsFieldLocation(fe.E.Type))) {
           boilerplate.Add(new BoilerplateTriple(tok, true, FrameCondition(tok, modifiesClause, canAllocate, FrameExpressionUse.Modifies, etranPre, etran, etranMod, fieldGranularity), null, null, "frame condition: field granularity"));
         }
         // HeapSucc(S1, S2) or HeapSuccGhost(S1, S2)

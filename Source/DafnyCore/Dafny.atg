@@ -3749,7 +3749,7 @@ ConstAtomExpression<out Expression e>
   | "assigned"                                 (. x = t; .)
     "(" NameSegment<out e> ")"                 (. e = new UnaryOpExpr(x, UnaryOpExpr.Opcode.Assigned, e); .)
   | IF(AcceptReferrersAndBacktick())           (. e = new ImplicitThisExpr(la); .)
-    FieldLocation<ref e>
+    FieldLocationExpression<ref e>
   | ParensExpression<out e>
   ) (. if(x!= null) { e.SetOrigin(new SourceOrigin(x, t, e.Center)); } .)
   .
@@ -4482,17 +4482,16 @@ Suffix<ref Expression e>
     [ ActualBindings<args> ]
     ")"                                    (. e = new ApplySuffix(new SourceOrigin(startToken, t, openParen), null, e, args, t);
                                            .)
-  | FieldLocation<ref e>
+  | FieldLocationExpression<ref e>
   )
   .
 
-FieldLocation<ref Expression e>
+FieldLocationExpression<ref Expression e>
 = "`"                                    (. Token backtick = t; .)
   ( IF(IsIdentifier(la.kind))            (. Name name = null; .)
     NoDigitName<out name>
     (.
-      var field = new FieldLocation(e, name);
-      e = ProcessTupleArgs([new ActualBinding(null, e, false), new ActualBinding(null, field, false)], backtick);
+      e = new FieldLocationExpression(e, backtick, name);
     .)
   | "["               (. Token openParen = t;
                          var multipleIndices = new List<Expression>();
@@ -4502,8 +4501,7 @@ FieldLocation<ref Expression e>
     }
     "]"               (. Token closeParen = t; .)
     (.
-      var field = new IndexFieldLocation(e, openParen, multipleIndices, closeParen);
-      e = ProcessTupleArgs([new ActualBinding(null, e, false), new ActualBinding(null, field, false)], closeParen);
+      e = new IndexFieldLocationExpression(e, openParen, multipleIndices, closeParen);
     .)
   )
   .

@@ -1373,9 +1373,9 @@ namespace Microsoft.Dafny {
           // Verify similar to MultiSelectExpr, except we don't actually read the location
           // The well-formedness of the array should already have been established.
           // However, we also need the array to be non-null and allocated
-          var array = CheckNonNullAndAllocated(builder, etran, ifl.ObjectCopy);
+          var array = CheckNonNullAndAllocated(builder, etran, ifl.ResolvedArrayCopy);
           CheckWellFormednessOfIndexList(wfOptions, locals, builder, etran,
-            ifl.Indices, array, ifl.ObjectCopy, ifl);
+            ifl.Indices, array, ifl.ResolvedArrayCopy, ifl);
           // We don't do reads checks as we are not reading the heap
           break;
         }

@@ -1,0 +1,13 @@
+memorylocation-resolutionerrors.dfy(12,25): Error: member 'y' does not exist in class 'Test'
+memorylocation-resolutionerrors.dfy(12,25): Error: Expected member selection, but got 
+memorylocation-resolutionerrors.dfy(13,24): Error: member 'x' does not exist in type 'int'
+memorylocation-resolutionerrors.dfy(13,24): Error: Expected member selection, but got 
+memorylocation-resolutionerrors.dfy(14,46): Error: member 'x' does not exist in type 'map'
+memorylocation-resolutionerrors.dfy(14,46): Error: Expected member selection, but got 
+memorylocation-resolutionerrors.dfy(16,25): Error: Expected array memory location to be applied to an array, but got tmp
+memorylocation-resolutionerrors.dfy(17,25): Error: Expected constant or mutable field reference, but got function
+memorylocation-resolutionerrors.dfy(24,20): Error: member 'i' does not exist in array type 'array'
+memorylocation-resolutionerrors.dfy(24,20): Error: Expected member selection, but got 
+memorylocation-resolutionerrors.dfy(25,20): Error: Expected 1 index, but got 2
+memorylocation-resolutionerrors.dfy(23,20): Error: Expected int, but got bool
+12 resolution/type errors detected in memorylocation-resolutionerrors.dfy
