@@ -1,13 +1,10 @@
-Line 12: Index might be out of range
-Line 16: Index might be out of range
-Line 18: Not part of reads clause
-Line 25: Not part of the modifies clause
-Line 30: Could not prove a.Length >= 1
-Line 31: Could not prove a.Length >= 2
-Line 36: Could not prove a.Length1 and a.Length2 >= 1
-Line 40: Constants could not be proved to be absent from the reads clause
-Line 46: Constants could not be proved to be absent from the reads clause
-Line 52: Constants could not be proved to be absent from the modifies clause
-Line 57: Constants could not be proved to be absent from the modifies clause
+memorylocation-errors.dfy(10,11): Error: index 0 out of range
+memorylocation-errors.dfy(14,15): Error: index out of range
+memorylocation-errors.dfy(14,15): Error: insufficient reads clause to read array element; Consider adding 'reads a' in the enclosing function specification for resolution
+memorylocation-errors.dfy(23,3): Error: assignment might update an array element not in the enclosing context's modifies clause
+memorylocation-errors.dfy(28,20): Error: index 0 out of range
+memorylocation-errors.dfy(29,21): Error: index 0 out of range
+memorylocation-errors.dfy(34,20): Error: index 0 out of range
+memorylocation-errors.dfy(34,23): Error: index 1 out of range
 
-Dafny finished with nothing verified correctly
+Dafny program verifier finished with 1 verified, 8 errors
