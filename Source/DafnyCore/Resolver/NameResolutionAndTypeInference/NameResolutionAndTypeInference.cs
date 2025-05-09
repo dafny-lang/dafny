@@ -2915,7 +2915,7 @@ namespace Microsoft.Dafny {
       } else {
         AddXConstraint(fe.E.Origin, "ModifiesFrame", t, eventualRefType,
           use == FrameExpressionUse.Modifies ?
-          $"a modifies-clause expression must denote an object, {SingleFieldLocation}, {CollectionOfFieldLocations} (instead got {{0}})" :
+          $"a modifies-clause expression must denote an object, {SingleFieldLocation} or {CollectionOfFieldLocations} (instead got {{0}})" :
           $"an unchanged expression must denote an object, {SingleFieldLocation} or {CollectionOfFieldLocations} (instead got {{0}})");
       }
       if (fe.FieldName != null) {
