@@ -1,5 +1,5 @@
 // RUN: %exits-with 4 %baredafny verify %args "%s" > "%t".raw
-// RUN: %exits-with 4 %baredafny verify %args --json-diagnostics "%s" >> "%t".raw
+// RUN: %exits-with 4 %baredafny verify %args --use-basename-for-filename=false --json-diagnostics "%s" >> "%t".raw
 // RUN: %exits-with 4 %dafny /compile:0 /diagnosticsFormat:json -printTooltips "%s" >> "%t".raw
 // RUN: %exits-with 4 %dafny /compile:0 /diagnosticsFormat:json -showSnippets:1 "%s" >> "%t".raw
 // RUN: %sed 's#%S##g' "%t".raw > "%t.raw2"

@@ -1,0 +1,1 @@
+Valid text before...ÿþý...and valid text after

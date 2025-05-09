@@ -1,3 +1,4 @@
+#nullable enable
 using System.Collections.Generic;
 using Microsoft.Dafny.Auditor;
 using System.Diagnostics.Contracts;
@@ -28,9 +29,10 @@ public class TraitDecl : ClassLikeDecl {
   /// This constructor creates a TraitDecl object. However, before the object really functions as a TraitDecl, it is necessary
   /// to call SetUpAsReferenceType, which sets .NonNullTypeDecl (if necessary) and calls NewSelfSynonym().
   /// </summary>
-  public TraitDecl(IOrigin origin, Name nameNode, ModuleDefinition enclosingModule,
-    List<TypeParameter> typeArgs, [Captured] List<MemberDecl> members, Attributes attributes, bool isRefining, List<Type> /*?*/ traits)
-    : base(origin, nameNode, attributes, typeArgs, enclosingModule, members, traits) {
+  [SyntaxConstructor]
+  public TraitDecl(IOrigin origin, Name nameNode, ModuleDefinition enclosingModuleDefinition,
+    List<TypeParameter> typeArgs, [Captured] List<MemberDecl> members, Attributes? attributes, bool isRefining, List<Type> traits)
+    : base(origin, nameNode, attributes, typeArgs, enclosingModuleDefinition, members, traits) {
     IsRefining = isRefining;
   }
 
@@ -54,10 +56,11 @@ public class TraitDecl : ClassLikeDecl {
     foreach (var subTrait in TraitDeclsCanBeDowncastedTo) {
       // Recovers which of the parent traits of the subTraits is the current trait declaration
       var parentTrait = subTrait.Traits.FirstOrDefault(t => t.AsTraitType == this);
-      Type downcastType = null;
-      if (parentTrait is UserDefinedType { TypeArgs: var parentTypeArguments } &&
-          CanDowncastIfMonomorphized(parentTypeArguments, subTrait, ref downcastType)) {
-        downcastableTraits.Add(downcastType);
+      if (parentTrait is UserDefinedType { TypeArgs: var parentTypeArguments }) {
+        var downcastType = CanDowncastIfMonomorphized(parentTypeArguments, subTrait);
+        if (downcastType != null) {
+          downcastableTraits.Add(downcastType);
+        }
       }
     }
 
@@ -73,8 +76,8 @@ public class TraitDecl : ClassLikeDecl {
   /// and traits only build a finite virtual dispatch table.
   /// This algorithm determines if there are enough type parameters in common so that the downcast can be known
   /// no matter what 
-  public bool CanDowncastIfMonomorphized(
-    List<Type> parentTypeArguments, TraitDecl subTrait, ref Type downcastType) {
+  public Type? CanDowncastIfMonomorphized(
+    List<Type> parentTypeArguments, TraitDecl subTrait) {
     // Algorithm:
     // trait Sub<TC1, ...TCn> extends Parent<PT1, ...PTn>   where trait Parent<TP1, ...TPn>
     // Foreach type parameter in the parent TPi
@@ -103,17 +106,16 @@ public class TraitDecl : ClassLikeDecl {
         var downcastTypeParam = subTrait.TypeArgs[i];
         var parentType = typeArgs[i];
         if (!IsCompatibleWith(parentType, downcastTypeParam)) {
-          return false;
+          return null;
         }
       }
 
       var subTraitTypeDowncastable =
         new UserDefinedType(Token.NoToken, subTrait.Name, subTrait, typeArgs);
-      downcastType = subTraitTypeDowncastable;
-      return true;
+      return subTraitTypeDowncastable;
     }
 
-    return false;
+    return null;
   }
 
   private static bool IsCompatibleWith(Type type, TypeParameter typeParameter) {

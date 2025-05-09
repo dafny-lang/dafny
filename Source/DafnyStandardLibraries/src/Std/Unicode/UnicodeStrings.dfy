@@ -35,7 +35,7 @@ abstract module Std.Unicode.AbstractUnicodeStrings {
     Seq.Map(c requires 0 <= c as int < 128 => c as uint8, s)
   }
 
-  function FromUTF8Checked(bs: seq<uint8>): Option<string>
+  function FromUTF8Checked(bs: seq<uint8>): Result<string, string>
 
   function ToUTF16Checked(s: string): Option<seq<uint16>>
 
@@ -45,5 +45,5 @@ abstract module Std.Unicode.AbstractUnicodeStrings {
     Seq.Map(c requires 0 <= c as int < 128 => c as uint16, s)
   }
 
-  function FromUTF16Checked(bs: seq<uint16>): Option<string>
+  function FromUTF16Checked(bs: seq<uint16>): Result<string, string>
 }

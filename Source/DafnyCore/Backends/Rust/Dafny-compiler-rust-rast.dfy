@@ -1674,6 +1674,16 @@ module RAST
       DeclareVar? || Assign? || Break? || Continue? || Return? || For? ||
       (RawExpr? && |content| > 0 && content[|content| - 1] == ';')
     }
+
+    predicate EndsWithTypeThatCanAcceptGenericsWhenPrinting() {
+      match this {
+        case TypeAscription(e, tpe) => tpe.EndsWithNameThatCanAcceptGenerics()
+        case BinaryOp(op2, left, right, format) =>
+          right.EndsWithTypeThatCanAcceptGenericsWhenPrinting()
+        case _ => false
+      }
+    }
+
     // Taken from https://doc.rust-lang.org/reference/expressions.html
     const printingInfo: PrintingInfo :=
       match this {
@@ -1708,7 +1718,7 @@ module RAST
             case "+" | "-" => PrecedenceAssociativity(30, LeftToRight)
             case "<<" | ">>" =>
               // x as u16 << 6 is parsed as x as u16<... and expect a generic argument
-              if op2 == "<<" && left.TypeAscription? && left.tpe.EndsWithNameThatCanAcceptGenerics() then
+              if op2 == "<<" && left.EndsWithTypeThatCanAcceptGenericsWhenPrinting() then
                 PrecedenceAssociativity(9, LeftToRight)
               else
                 PrecedenceAssociativity(40, LeftToRight)
@@ -1716,7 +1726,7 @@ module RAST
             case "^" => PrecedenceAssociativity(60, LeftToRight)
             case "|" => PrecedenceAssociativity(70, LeftToRight)
             case "==" | "!=" | "<" | ">" | "<=" | ">=" =>
-              if (op2 == "<" || op2 == "<=") && left.TypeAscription? && left.tpe.EndsWithNameThatCanAcceptGenerics() then
+              if (op2 == "<" || op2 == "<=") && left.EndsWithTypeThatCanAcceptGenericsWhenPrinting() then
                 PrecedenceAssociativity(9, LeftToRight)
               else
                 PrecedenceAssociativity(80, RequiresParentheses)
