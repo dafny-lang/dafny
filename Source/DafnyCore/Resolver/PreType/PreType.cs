@@ -132,7 +132,7 @@ namespace Microsoft.Dafny {
     public bool IsRefType => Normalize() is DPreType { Decl: ClassLikeDecl { IsReferenceTypeDecl: true } };
 
     public bool IsFieldType =>
-      Normalize() is DPreType { Decl:  Declaration { Name: TypeNameField } };
+      Normalize() is DPreType { Decl: Declaration { Name: TypeNameField } };
 
     /// <summary>
     /// Returns "true" if "proxy" is among the free variables of "this".

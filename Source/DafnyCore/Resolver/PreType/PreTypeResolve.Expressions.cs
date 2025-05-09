@@ -748,117 +748,117 @@ namespace Microsoft.Dafny {
           }
 
         case FieldLocationExpression fieldLocation: {
-          ResolveExpression(fieldLocation.Lhs, resolutionContext);
-          var lhsObjType = fieldLocation.Lhs.PreType;
-          lhsObjType = Constraints.FindDefinedPreType(lhsObjType, true) ?? lhsObjType;
-          var innerLhsObjType = InnerTypeForBacktickLhs(lhsObjType);
-          var receiver = new IdentifierExpr(expr.Origin, "tmp") {
-            PreType = innerLhsObjType
-          };
+            ResolveExpression(fieldLocation.Lhs, resolutionContext);
+            var lhsObjType = fieldLocation.Lhs.PreType;
+            lhsObjType = Constraints.FindDefinedPreType(lhsObjType, true) ?? lhsObjType;
+            var innerLhsObjType = InnerTypeForBacktickLhs(lhsObjType);
+            var receiver = new IdentifierExpr(expr.Origin, "tmp") {
+              PreType = innerLhsObjType
+            };
 
-          var tmpDotSuffix =
-            new ExprDotName(fieldLocation.Origin, receiver, fieldLocation.Name, null);
-          var dotSuffix = ResolveDotSuffix(tmpDotSuffix,
-            false, true, [], resolutionContext, false);
-          
-          dotSuffix ??= tmpDotSuffix.ResolvedExpression;
-          if (dotSuffix is not MemberSelectExpr memberSelect) {
-            ReportError(fieldLocation,
-              $"Expected member selection, but got {dotSuffix?.GetType()}");
-            fieldLocation.PreType = CreatePreTypeProxy("field-location");
-            return;
+            var tmpDotSuffix =
+              new ExprDotName(fieldLocation.Origin, receiver, fieldLocation.Name, null);
+            var dotSuffix = ResolveDotSuffix(tmpDotSuffix,
+              false, true, [], resolutionContext, false);
+
+            dotSuffix ??= tmpDotSuffix.ResolvedExpression;
+            if (dotSuffix is not MemberSelectExpr memberSelect) {
+              ReportError(fieldLocation,
+                $"Expected member selection, but got {dotSuffix?.GetType()}");
+              fieldLocation.PreType = CreatePreTypeProxy("field-location");
+              return;
+            }
+
+            if (memberSelect.Member is not Field field) {
+              ReportError(fieldLocation,
+                $"Expected constant or mutable field reference, but got {memberSelect.Member.WhatKind}");
+              fieldLocation.PreType = CreatePreTypeProxy("field-location");
+              return;
+            }
+
+            Expression resolved;
+            if (lhsObjType.IsRefType) {
+              resolved = CreateObjectFieldLocation(fieldLocation.Origin, fieldLocation.Lhs, fieldLocation.Name, field);
+            } else {
+              innerLhsObjType = Constraints.FindDefinedPreType(innerLhsObjType, true) ?? innerLhsObjType;
+              resolved = MemoryLocationSetComprehension(fieldLocation.Origin, innerLhsObjType, fieldLocation.Lhs,
+                o => (
+                  CreateObjectFieldLocation(fieldLocation.Origin, o, fieldLocation.Name, field),
+                  new ExprDotName(fieldLocation.Origin, o, fieldLocation.Name, null))
+                  );
+            }
+
+            ResolveExpression(resolved, resolutionContext);
+            fieldLocation.ResolvedExpression = resolved;
+            fieldLocation.PreType = resolved.PreType;
+            fieldLocation.ResolvedField = field;
+
+            break;
           }
-
-          if (memberSelect.Member is not Field field) {
-            ReportError(fieldLocation,
-              $"Expected constant or mutable field reference, but got {memberSelect.Member.WhatKind}");
-            fieldLocation.PreType = CreatePreTypeProxy("field-location");
-            return;
-          }
-
-          Expression resolved;
-          if (lhsObjType.IsRefType) {
-            resolved = CreateObjectFieldLocation(fieldLocation.Origin, fieldLocation.Lhs, fieldLocation.Name, field);
-          } else {
-            innerLhsObjType = Constraints.FindDefinedPreType(innerLhsObjType, true) ?? innerLhsObjType;
-            resolved = MemoryLocationSetComprehension(fieldLocation.Origin, innerLhsObjType, fieldLocation.Lhs, 
-              o => (
-                CreateObjectFieldLocation(fieldLocation.Origin, o, fieldLocation.Name, field),
-                new ExprDotName(fieldLocation.Origin, o, fieldLocation.Name, null))
-                );
-          }
-
-          ResolveExpression(resolved, resolutionContext);
-          fieldLocation.ResolvedExpression = resolved;
-          fieldLocation.PreType = resolved.PreType;
-          fieldLocation.ResolvedField = field;
-
-          break;
-        }
         case IndexFieldLocationExpression indexFieldLocation: {
-          ResolveExpression(indexFieldLocation.Lhs, resolutionContext);
-          var lhsObjType = indexFieldLocation.Lhs.PreType;
-          lhsObjType = Constraints.FindDefinedPreType(lhsObjType, true) ?? lhsObjType;
-          var innerLhsObjType = InnerTypeForBacktickLhs(lhsObjType);
-          innerLhsObjType = Constraints.FindDefinedPreType(innerLhsObjType, true) ?? innerLhsObjType;
-
-          var receiver = new IdentifierExpr(expr.Origin, "tmp") {
-            PreType = innerLhsObjType
-          };
-
-          var arrayDims = 1;
-          if (receiver.PreType is not DPreType { Decl.Name: var arrayName } arrayType
-              || !arrayName.StartsWith(PreType.TypeNameArray) ||
-              arrayName != PreType.TypeNameArray
-              && !int.TryParse(arrayName.AsSpan(PreType.TypeNameArray.Length), out arrayDims)) {
-            ReportError(indexFieldLocation,
-              $"Expected array memory location to be applied to an array, but got {receiver}");
-            indexFieldLocation.PreType = CreatePreTypeProxy("index-field-location");
-            return;
-          }
-          if (arrayDims != indexFieldLocation.Indices.Count) {
-            ReportError(indexFieldLocation,
-              $"Expected {arrayDims} {(arrayDims > 1 ? "indices" : "index")}, but got {indexFieldLocation.Indices.Count}");
-            indexFieldLocation.PreType = CreatePreTypeProxy("index-field-location");
-          }
-
-          foreach (var subexpr in indexFieldLocation.Indices) {
-            ResolveExpression(subexpr, resolutionContext);
-            ConstrainToIntFamily(subexpr.PreType, subexpr.Origin, "Expected int, but got {0}");
-          }
-
-          
-
-          Expression resolved;
-          if (lhsObjType.Normalize().IsRefType) {
-            resolved = CreateObjectIndexFieldLocation(indexFieldLocation.Origin, indexFieldLocation.Lhs, indexFieldLocation.Indices, indexFieldLocation.OpenParen, indexFieldLocation.CloseParen);
-          } else {
+            ResolveExpression(indexFieldLocation.Lhs, resolutionContext);
+            var lhsObjType = indexFieldLocation.Lhs.PreType;
+            lhsObjType = Constraints.FindDefinedPreType(lhsObjType, true) ?? lhsObjType;
+            var innerLhsObjType = InnerTypeForBacktickLhs(lhsObjType);
             innerLhsObjType = Constraints.FindDefinedPreType(innerLhsObjType, true) ?? innerLhsObjType;
-            resolved = MemoryLocationSetComprehension(indexFieldLocation.Origin, innerLhsObjType, indexFieldLocation.Lhs, 
-              o =>
-                (CreateObjectIndexFieldLocation(indexFieldLocation.Origin, o, indexFieldLocation.Indices, 
-                indexFieldLocation.OpenParen, indexFieldLocation.CloseParen),
-                  indexFieldLocation.Indices.Count == 1 ?
-                    new SeqSelectExpr(indexFieldLocation.Origin, true, o, indexFieldLocation.Indices[0], null, null) :
-                    new MultiSelectExpr(indexFieldLocation.Origin, o, indexFieldLocation.Indices)
-                  ));
-          }
 
-          ResolveExpression(resolved, resolutionContext);
-          indexFieldLocation.ResolvedExpression = resolved;
-          indexFieldLocation.PreType = resolved.PreType;
-          break;
-        }
+            var receiver = new IdentifierExpr(expr.Origin, "tmp") {
+              PreType = innerLhsObjType
+            };
+
+            var arrayDims = 1;
+            if (receiver.PreType is not DPreType { Decl.Name: var arrayName } arrayType
+                || !arrayName.StartsWith(PreType.TypeNameArray) ||
+                arrayName != PreType.TypeNameArray
+                && !int.TryParse(arrayName.AsSpan(PreType.TypeNameArray.Length), out arrayDims)) {
+              ReportError(indexFieldLocation,
+                $"Expected array memory location to be applied to an array, but got {receiver}");
+              indexFieldLocation.PreType = CreatePreTypeProxy("index-field-location");
+              return;
+            }
+            if (arrayDims != indexFieldLocation.Indices.Count) {
+              ReportError(indexFieldLocation,
+                $"Expected {arrayDims} {(arrayDims > 1 ? "indices" : "index")}, but got {indexFieldLocation.Indices.Count}");
+              indexFieldLocation.PreType = CreatePreTypeProxy("index-field-location");
+            }
+
+            foreach (var subexpr in indexFieldLocation.Indices) {
+              ResolveExpression(subexpr, resolutionContext);
+              ConstrainToIntFamily(subexpr.PreType, subexpr.Origin, "Expected int, but got {0}");
+            }
+
+
+
+            Expression resolved;
+            if (lhsObjType.Normalize().IsRefType) {
+              resolved = CreateObjectIndexFieldLocation(indexFieldLocation.Origin, indexFieldLocation.Lhs, indexFieldLocation.Indices, indexFieldLocation.OpenParen, indexFieldLocation.CloseParen);
+            } else {
+              innerLhsObjType = Constraints.FindDefinedPreType(innerLhsObjType, true) ?? innerLhsObjType;
+              resolved = MemoryLocationSetComprehension(indexFieldLocation.Origin, innerLhsObjType, indexFieldLocation.Lhs,
+                o =>
+                  (CreateObjectIndexFieldLocation(indexFieldLocation.Origin, o, indexFieldLocation.Indices,
+                  indexFieldLocation.OpenParen, indexFieldLocation.CloseParen),
+                    indexFieldLocation.Indices.Count == 1 ?
+                      new SeqSelectExpr(indexFieldLocation.Origin, true, o, indexFieldLocation.Indices[0], null, null) :
+                      new MultiSelectExpr(indexFieldLocation.Origin, o, indexFieldLocation.Indices)
+                    ));
+            }
+
+            ResolveExpression(resolved, resolutionContext);
+            indexFieldLocation.ResolvedExpression = resolved;
+            indexFieldLocation.PreType = resolved.PreType;
+            break;
+          }
         case FieldLocation fLoc: {
-          fLoc.PreType = Type2PreType(Type.Field);
-          fLoc.Type = Type.Field;
-          break;
-        }
+            fLoc.PreType = Type2PreType(Type.Field);
+            fLoc.Type = Type.Field;
+            break;
+          }
         case IndexFieldLocation ifLoc: {
-          ifLoc.PreType = Type2PreType(Type.Field);
-          ifLoc.Type = Type.Field;
-          break;
-        }
+            ifLoc.PreType = Type2PreType(Type.Field);
+            ifLoc.Type = Type.Field;
+            break;
+          }
         case NestedMatchExpr matchExpr: {
             var e = matchExpr;
             ResolveNestedMatchExpr(e, resolutionContext);
@@ -880,9 +880,9 @@ namespace Microsoft.Dafny {
     private static PreType InnerTypeForBacktickLhs(PreType lhsObjType) {
       PreType innerLhsObjType;
       if (lhsObjType.Normalize() is DPreType {
-            Decl.Name: PreType.TypeNameSet or PreType.TypeNameSeq or PreType.TypeNameMultiset,
-            Arguments: [var arg]
-          } dpt) {
+        Decl.Name: PreType.TypeNameSet or PreType.TypeNameSeq or PreType.TypeNameMultiset,
+        Arguments: [var arg]
+      } dpt) {
         innerLhsObjType = arg;
       } else {
         innerLhsObjType = lhsObjType;
@@ -890,11 +890,10 @@ namespace Microsoft.Dafny {
 
       return innerLhsObjType;
     }
-    
-    
+
+
     // Returns also the trigger obj.fieldName
-    private static DatatypeValue CreateObjectFieldLocation(IOrigin origin, Expression obj, Name fieldName, Field field)
-    {
+    private static DatatypeValue CreateObjectFieldLocation(IOrigin origin, Expression obj, Name fieldName, Field field) {
       return new DatatypeValue(origin, SystemModuleManager.TupleTypeName([false, false]), SystemModuleManager.TupleTypeCtorName(2),
         [obj, new FieldLocation(fieldName, field) { Type = Type.Field }]);
     }
@@ -902,9 +901,9 @@ namespace Microsoft.Dafny {
     private static DatatypeValue CreateObjectIndexFieldLocation(IOrigin origin, Expression obj,
       List<Expression> indices, Token openParen, Token closeParen) {
       return new DatatypeValue(origin, SystemModuleManager.TupleTypeName([false, false]), SystemModuleManager.TupleTypeCtorName(2),
-        [obj, new IndexFieldLocation(obj, openParen, indices, closeParen) { Type = Type.Field}]);
+        [obj, new IndexFieldLocation(obj, openParen, indices, closeParen) { Type = Type.Field }]);
     }
-    
+
     private static Expression MemoryLocationSetComprehension(IOrigin tok, PreType innerLhsObjType, Expression collection,
       Func<IdentifierExpr, (DatatypeValue, Expression trigger)> getTermTrigger) // TODO: make termFromBoundIdentifier return possible triggers like MemberSelectExpr
     {
@@ -914,8 +913,8 @@ namespace Microsoft.Dafny {
       // that would otherwise return a '?';
       var c = pt.Decl is ClassLikeDecl cd ? cd.NonNullTypeDecl : pt.Decl;
       var userDefinedType = new UserDefinedType(pt.Decl.Origin, pt.Decl.Name, c, arguments);
-      
-      var bv = new BoundVar(tok, "_x",  userDefinedType);
+
+      var bv = new BoundVar(tok, "_x", userDefinedType);
       var termExpr = new IdentifierExpr(tok, bv);
       var termTrigger = getTermTrigger(termExpr);
       var term = termTrigger.Item1;

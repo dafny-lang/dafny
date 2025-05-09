@@ -2233,18 +2233,15 @@ namespace Microsoft.Dafny {
       return InRWClause_Aux(tok, o, boxO, f, rw, useInUnchanged, etran, receiverReplacement, substMap);
     }
 
-    private NAryExpr Box(IOrigin tok, Expr o)
-    {
+    private NAryExpr Box(IOrigin tok, Expr o) {
       return FunctionCall(tok, BuiltinFunction.Box, null, o);
     }
 
-    private bool ReferrersEnabled(Type elemType)
-    {
+    private bool ReferrersEnabled(Type elemType) {
       return Options.Get(CommonOptionBag.Referrers) && elemType.AsDatatype is TupleTypeDecl { Dims: 2 };
     }
 
-    private bool ShouldExtractObjectFromMemoryLocation(Type elemType, Expr f)
-    {
+    private bool ShouldExtractObjectFromMemoryLocation(Type elemType, Expr f) {
       return ReferrersEnabled(elemType) && f == null;
     }
 
@@ -2252,7 +2249,7 @@ namespace Microsoft.Dafny {
       o = new NAryExpr(tok, new Bpl.FunctionCall(Predef.Tuple2Constructor), [boxO, Box(tok, f)]);
       boxO = Box(tok, o);
     }
-    
+
     private bool ContainsFieldLocation(Type type) {
       return type switch {
         SetType setType => ReferrersEnabled(setType.Arg),

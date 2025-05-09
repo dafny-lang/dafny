@@ -1586,9 +1586,9 @@ namespace Microsoft.Dafny {
 
         if (dp.UrAncestor(this) is DPreType dpAncestor) {
           if (dpAncestor is {
-                Decl.Name: PreType.TypeNameSet or PreType.TypeNameIset or PreType.TypeNameSeq
+            Decl.Name: PreType.TypeNameSet or PreType.TypeNameIset or PreType.TypeNameSeq
                 or PreType.TypeNameMultiset
-              }) {
+          }) {
             hasCollectionType = true;
             var elementType = dpAncestor.Arguments[0].Normalize();
             dp = elementType as DPreType;

@@ -1366,19 +1366,19 @@ namespace Microsoft.Dafny {
             break;
           }
         case FieldLocation: {
-          // Nothing to verify
-          break;
-        }
+            // Nothing to verify
+            break;
+          }
         case IndexFieldLocation ifl: {
-          // Verify similar to MultiSelectExpr, except we don't actually read the location
-          // The well-formedness of the array should already have been established.
-          // However, we also need the array to be non-null and allocated
-          var array = CheckNonNullAndAllocated(builder, etran, ifl.ResolvedArrayCopy);
-          CheckWellFormednessOfIndexList(wfOptions, locals, builder, etran,
-            ifl.Indices, array, ifl.ResolvedArrayCopy, ifl);
-          // We don't do reads checks as we are not reading the heap
-          break;
-        }
+            // Verify similar to MultiSelectExpr, except we don't actually read the location
+            // The well-formedness of the array should already have been established.
+            // However, we also need the array to be non-null and allocated
+            var array = CheckNonNullAndAllocated(builder, etran, ifl.ResolvedArrayCopy);
+            CheckWellFormednessOfIndexList(wfOptions, locals, builder, etran,
+              ifl.Indices, array, ifl.ResolvedArrayCopy, ifl);
+            // We don't do reads checks as we are not reading the heap
+            break;
+          }
         default:
           Contract.Assert(false); throw new cce.UnreachableException();  // unexpected expression
       }
@@ -1387,8 +1387,7 @@ namespace Microsoft.Dafny {
     }
 
     private void CheckWellFormednessOfIndexList(WFOptions wfOptions, Variables locals, BoogieStmtListBuilder builder,
-      ExpressionTranslator etran, List<Expression> indices, Expr array, Expression arrayExpression, Expression e)
-    {
+      ExpressionTranslator etran, List<Expression> indices, Expr array, Expression arrayExpression, Expression e) {
       for (int idxId = 0; idxId < indices.Count; idxId++) {
         var idx = indices[idxId];
         CheckWellformed(idx, wfOptions, locals, builder, etran);
@@ -1405,12 +1404,11 @@ namespace Microsoft.Dafny {
       }
     }
 
-    private Expr CheckNonNullAndAllocated(BoogieStmtListBuilder builder, ExpressionTranslator etran, Expression obj)
-    {
+    private Expr CheckNonNullAndAllocated(BoogieStmtListBuilder builder, ExpressionTranslator etran, Expression obj) {
       Bpl.Expr array = etran.TrExpr(obj);
       builder.Add(Assert(GetToken(obj), Bpl.Expr.Neq(array, Predef.Null),
         new NonNull("array", obj), builder.Context));
-      
+
       if (etran.UsesOldHeap) {
         builder.Add(Assert(GetToken(obj), MkIsAlloc(array, obj.Type, etran.HeapExpr),
           new IsAllocated("array", null, obj), builder.Context));

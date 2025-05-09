@@ -1896,10 +1896,10 @@ BplBoundVar(varNameGen.FreshId(string.Format("#{0}#", bv.Name)), Predef.BoxType,
             BoogieGenerator.FunctionCall(tok, BuiltinFunction.SetIsMember, Bpl.Type.Bool, xsExpr, TrExpr(s))
           ]);
           var ebody = Boogie.Expr.Eq(elmt, xsExprBoxExtract);
-          return new Boogie.ExistsExpr(GetToken(s), new List<Variable>(){xs}, trigger, ebody);
+          return new Boogie.ExistsExpr(GetToken(s), new List<Variable>() { xs }, trigger, ebody);
         }
         performedRewrite = false;
-        
+
         return BoogieGenerator.IsSetMember(tok, TrExpr(s), elmtBox, isFiniteSet);
       }
 

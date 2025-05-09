@@ -304,7 +304,7 @@ public partial class Parser {
 
     return false;
   }
-  
+
   bool AcceptReferrers() {
     return theOptions.Get(CommonOptionBag.Referrers);
   }

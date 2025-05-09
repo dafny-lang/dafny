@@ -8,16 +8,16 @@ namespace Microsoft.Dafny;
 /// If obj is a set of objects, resolves to set x | x in ObjectCopy :: x`Name (FieldLocation)
 /// Same for sequences or multisets
 /// </summary>
-public class FieldLocationExpression: ConcreteSyntaxExpression, ICloneable<FieldLocationExpression> {
+public class FieldLocationExpression : ConcreteSyntaxExpression, ICloneable<FieldLocationExpression> {
   // Because memory locations are tuples, this is just a copy of the expression so that we can determine if
   public Expression Lhs { get; }
   public Name Name { get; }
-  
+
   [FilledInDuringResolution]
   public Field ResolvedField { get; set; }
 
   public Token Backtick { get; set; }
-  
+
   public FieldLocationExpression(Expression lhs, Token backtick, Name name) : base(name.Origin) {
     this.Lhs = lhs;
     this.Backtick = backtick;

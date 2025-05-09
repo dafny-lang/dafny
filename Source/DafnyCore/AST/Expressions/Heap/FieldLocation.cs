@@ -4,11 +4,11 @@
 /// The right-hand-side of an expression of the type obj`fieldName
 /// Denotes the memory location at this index
 /// </summary>
-public class FieldLocation: Expression, ICloneable<FieldLocation> {
+public class FieldLocation : Expression, ICloneable<FieldLocation> {
   // Because memory locations are tuples, this is just a copy of the expression so that we can determine if
   public Name Name { get; }
   public Field Field { get; set; }
-  
+
   public FieldLocation(Name name, Field field) : base(name.Origin) {
     this.Name = name;
     this.Field = field;

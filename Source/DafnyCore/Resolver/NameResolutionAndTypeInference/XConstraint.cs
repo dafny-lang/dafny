@@ -439,7 +439,7 @@ public class XConstraint {
           if (collType != null) {
             t = collType.Arg.NormalizeExpand();
           }
-          
+
           var tType = t.AsDatatype is TupleTypeDecl { Dims: 2 } tDecl ? tDecl : null;
           if (tType != null) {
             var refType = t.TypeArgs[0];

@@ -2897,9 +2897,9 @@ namespace Microsoft.Dafny {
     public void ResolveFrameExpressionTopLevel(FrameExpression fe, FrameExpressionUse use, ICodeContext codeContext) {
       ResolveFrameExpression(fe, use, new ResolutionContext(codeContext, false));
     }
-    
-    public static readonly string CollectionOfFieldLocations = "a set/iset/multiset/seq of objects or single field locations";
-    public static readonly string SingleFieldLocation = "a single field location like o`x or a`[i] of type (object, field)";
+
+    public static readonly string CollectionOfFieldLocations = "a set/iset/multiset/seq of objects or single field locations (with `--referrers`)";
+    public static readonly string SingleFieldLocation = "a single field location like o`x or a`[i] of type (object, field)  (with `--referrers`)";
 
     public void ResolveFrameExpression(FrameExpression fe, FrameExpressionUse use, ResolutionContext resolutionContext) {
       Contract.Requires(fe != null);
