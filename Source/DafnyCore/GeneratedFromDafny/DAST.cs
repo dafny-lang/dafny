@@ -987,8 +987,7 @@ namespace DAST {
             Dafny.ISequence<DAST._IType> _7_newtypeArgs = ((System.Func<Dafny.ISequence<DAST._IType>>) (() => {
               BigInteger dim12 = new BigInteger((_1_typeArgs).Count);
               var arr12 = new DAST._IType[Dafny.Helpers.ToIntChecked(dim12, "array size exceeds memory limit")];
-              for (int i12 = 0; i12 < dim12; i12++) {
-                var _8_i = (BigInteger) i12;
+              for (int _8_i = 0; _8_i < Dafny.Helpers.ToIntChecked(dim12, "upper bound on index is too large"); _8_i++) {
                 arr12[(int)(_8_i)] = ((_1_typeArgs).Select(_8_i)).RemoveSynonyms();
               }
               return Dafny.Sequence<DAST._IType>.FromArray(arr12);
