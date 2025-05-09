@@ -88,7 +88,7 @@ public static class TokenExtensions {
       "transcript" => Path.GetFileName(token.Filepath),
       _ => options.UseBaseNameForFileName
         ? Path.GetFileName(token.Filepath)
-        : (token.Filepath.StartsWith(currentDirectory) ? Path.GetRelativePath(currentDirectory, token.Filepath) : token.Filepath)
+        : (token.Filepath.StartsWith(currentDirectory) ? Path.GetRelativePath(currentDirectory, token.Filepath) : token.Filepath).Replace('\\', '/')
     };
     return filename;
   }
