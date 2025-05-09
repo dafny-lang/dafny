@@ -158,6 +158,7 @@ axiom (forall a: char, b: char ::
 
 type ref;
 const null: ref;
+const locals: ref;
 
 // ---------------------------------------------------------------
 // -- Boxing and unboxing ----------------------------------------
@@ -233,6 +234,7 @@ axiom(forall v : int  :: { $Is(v,TInt) }  $Is(v,TInt));
 axiom(forall v : real :: { $Is(v,TReal) } $Is(v,TReal));
 axiom(forall v : bool :: { $Is(v,TBool) } $Is(v,TBool));
 axiom(forall v : char :: { $Is(v,TChar) } $Is(v,TChar));
+axiom(forall v : Field :: { $Is(v,TField) } $Is(v,TField));
 axiom(forall v : ORDINAL :: { $Is(v,TORDINAL) } $Is(v,TORDINAL));
 
 // Since every bitvector type is a separate type in Boogie, the $Is/$IsAlloc axioms

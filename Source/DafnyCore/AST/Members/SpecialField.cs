@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
+using JetBrains.Annotations;
 
 namespace Microsoft.Dafny;
 
@@ -61,9 +62,23 @@ public class SpecialField : Field {
   public override string FullSanitizedName { // Override beacuse EnclosingClass may be null
     get {
       Contract.Ensures(Contract.Result<string>() != null);
-      return EnclosingClass != null ? EnclosingClass.FullSanitizedName + "." + SanitizedName : SanitizedName;
+      return EnclosingClass != null ? 
+        EnclosingClass.FullSanitizedName + "." + 
+        (EnclosingMethod != null ?
+          EnclosingMethod.FullSanitizedName + "." +
+          (AtCallSite ? "call." : "")
+          : "")
+        + SanitizedName : SanitizedName;
     }
   }
+
+  // Used by referrers to designate the memory location of local variables and method parameters
+  [FilledInDuringResolution]
+  [CanBeNull] public MethodOrConstructor EnclosingMethod { get; set; }
+  
+  // Used by referrers to designate if the memory location of input parameters is a call site or in the body of a method
+  [FilledInDuringResolution]
+  [CanBeNull] public bool AtCallSite { get; set; }
 
   public override string GetCompileName(DafnyOptions options) {
     Contract.Ensures(Contract.Result<string>() != null);

@@ -1528,8 +1528,10 @@ namespace Microsoft.Dafny {
             return new Boogie.IdentifierExpr(GetToken(expr), BoogieGenerator.GetField(fieldLocation.Field));
           case IndexFieldLocation indexFieldLocation:
             return GetArrayIndexFieldName(indexFieldLocation.Origin, indexFieldLocation.Indices.ToList());
+          case LocalsObjectExpression:
+            return Predef.Locals;
           default:
-            Contract.Assert(false); throw new cce.UnreachableException();  // unexpected expression
+              Contract.Assert(false); throw new cce.UnreachableException();  // unexpected expression
         }
       }
 
@@ -2501,6 +2503,8 @@ BplBoundVar(varNameGen.FreshId(string.Format("#{0}#", bv.Name)), Predef.BoxType,
           return Expr.True;
         } else if (expr is IndexFieldLocation indexFieldLocation) {
           return CanCallAssumption(indexFieldLocation.Indices, cco);
+        } else if (expr is LocalsObjectExpression) {
+          return Expr.True;
         } else {
           Contract.Assert(false); throw new cce.UnreachableException();  // unexpected expression
         }

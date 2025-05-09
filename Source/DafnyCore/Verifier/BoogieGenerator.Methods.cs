@@ -180,6 +180,18 @@ namespace Microsoft.Dafny {
 
       FuelContext oldFuelContext = this.fuelContext;
       this.fuelContext = FuelSetting.NewFuelContext(m);
+      if (Options.Get(CommonOptionBag.Referrers) && !isByMethod) {
+        foreach (var formal in m.Ins) {
+          if (formal.LocalFieldBody is {} field) {
+            var fieldDeclaration = GetField(field);
+            sink.AddTopLevelDeclaration(fieldDeclaration);
+          }
+          if (formal.LocalFieldCallSite is {} fieldCallSite) {
+            var fieldDeclaration = GetField(fieldCallSite);
+            sink.AddTopLevelDeclaration(fieldDeclaration);
+          }
+        }
+      }
 
       // wellformedness check for method specification
       if (m.EnclosingClass is IteratorDecl && m == ((IteratorDecl)m.EnclosingClass).Member_MoveNext) {

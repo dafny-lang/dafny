@@ -8,7 +8,7 @@ namespace Microsoft.Dafny;
 public class Formal : NonglobalVariable {
   public Attributes? Attributes { get; set; }
 
-  public bool InParam;  // true to in-parameter, false for out-parameter
+  public bool InParam; // true to in-parameter, false for out-parameter
   public override bool IsMutable => !InParam;
   public bool IsOld;
   public Expression? DefaultValue;
@@ -24,7 +24,8 @@ public class Formal : NonglobalVariable {
   }
 
   [SyntaxConstructor]
-  public Formal(IOrigin origin, Name nameNode, Type? syntacticType, bool inParam, bool isGhost, Expression? defaultValue,
+  public Formal(IOrigin origin, Name nameNode, Type? syntacticType, bool inParam, bool isGhost,
+    Expression? defaultValue,
     Attributes? attributes = null,
     bool isOld = false, bool isNameOnly = false, bool isOlder = false, string? nameForCompilation = null)
     : base(origin, nameNode, syntacticType, isGhost) {
@@ -47,6 +48,8 @@ public class Formal : NonglobalVariable {
     IsNameOnly = original.IsNameOnly;
     IsOlder = original.IsOlder;
     NameForCompilation = original.NameForCompilation;
+    localFieldBody = original.localFieldBody;
+    localFieldCallSite = original.localFieldCallSite;
   }
 
   public bool HasName => !Name.StartsWith("#");
@@ -61,6 +64,40 @@ public class Formal : NonglobalVariable {
     (DefaultValue != null ? new List<Node> { DefaultValue } : Enumerable.Empty<Node>()).Concat(base.Children);
 
   public override IEnumerable<INode> PreResolveChildren => Children;
+
+  private Field? localFieldBody;
+  
+  private Field? localFieldCallSite;
+
+  public Field? LocalFieldBody => localFieldBody;
+  public Field? LocalFieldCallSite => localFieldCallSite;
+
+  public Field GetLocalFieldBody(MethodOrConstructor methodOrConstructor) {
+    if (localFieldBody == null) {
+      localFieldBody = new SpecialField(Origin, Name, SpecialField.ID.UseIdParam, (object)Name, true,
+        false, false, Type, null) {
+        EnclosingClass = methodOrConstructor.EnclosingClass,
+        EnclosingMethod = methodOrConstructor,
+        AtCallSite = false
+      };
+      localFieldBody.InheritVisibility(methodOrConstructor);
+    }
+
+    return localFieldBody;
+  }
+  public Field GetLocalFieldCallSite(MethodOrConstructor methodOrConstructor) {
+    if (localFieldCallSite == null) {
+      localFieldCallSite = new SpecialField(Origin, Name, SpecialField.ID.UseIdParam, (object)Name, true,
+        false, false, Type, null) {
+        EnclosingClass = methodOrConstructor.EnclosingClass,
+        EnclosingMethod = methodOrConstructor,
+        AtCallSite = true
+      };
+      localFieldCallSite.InheritVisibility(methodOrConstructor);
+    }
+
+    return localFieldCallSite;
+  }
 }
 
 /// <summary>

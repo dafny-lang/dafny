@@ -937,23 +937,23 @@ namespace Microsoft.Dafny {
             fragileRightContext = true;
             break;
           case BinaryExpr.Opcode.Add: {
-              opBindingStrength = BindingStrengthAdd;
-              var t1 = e.E1.Type;
-              fragileRightContext = t1 == null ||
-                                    !(t1.IsIntegerType || t1.IsRealType || t1.IsBigOrdinalType || t1.IsBitVectorType);
-              break;
-            }
+            opBindingStrength = BindingStrengthAdd;
+            var t1 = e.E1.Type;
+            fragileRightContext = t1 == null ||
+                                  !(t1.IsIntegerType || t1.IsRealType || t1.IsBigOrdinalType || t1.IsBitVectorType);
+            break;
+          }
           case BinaryExpr.Opcode.Sub:
             opBindingStrength = BindingStrengthAdd;
             fragileRightContext = true;
             break;
           case BinaryExpr.Opcode.Mul: {
-              opBindingStrength = BindingStrengthMul;
-              var t1 = e.E1.Type;
-              fragileRightContext = t1 == null ||
-                                    !(t1.IsIntegerType || t1.IsRealType || t1.IsBigOrdinalType || t1.IsBitVectorType);
-              break;
-            }
+            opBindingStrength = BindingStrengthMul;
+            var t1 = e.E1.Type;
+            fragileRightContext = t1 == null ||
+                                  !(t1.IsIntegerType || t1.IsRealType || t1.IsBigOrdinalType || t1.IsBitVectorType);
+            break;
+          }
           case BinaryExpr.Opcode.Div:
           case BinaryExpr.Opcode.Mod:
             opBindingStrength = BindingStrengthMul;
@@ -1510,10 +1510,13 @@ namespace Microsoft.Dafny {
         }
 
         wr.Write("]");
-      } else if (expr is FieldLocationExpression) {
+      } else if (expr is FieldLocationExpression fle) {
         var e = (FieldLocationExpression)expr;
         PrintExpr(e.Lhs, BindingStrengthSuffix, false, false, false, -1);
         wr.Write("`");
+        if (fle.DesignatesMethodInputParameter) {
+          wr.Write("`");
+        }
         wr.Write(e.Name);
       } else if (expr is FieldLocation) {
         var e = (FieldLocation)expr;
@@ -1531,6 +1534,8 @@ namespace Microsoft.Dafny {
         }
 
         wr.Write("]");
+      } else if (expr is LocalsObjectExpression) {
+        wr.Write("locals");
       } else {
         Contract.Assert(false);
         throw new cce.UnreachableException(); // unexpected expression
