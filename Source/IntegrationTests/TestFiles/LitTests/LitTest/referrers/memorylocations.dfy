@@ -4,6 +4,16 @@
 class Test {
   var x: int
   const c: int
+  
+  method InsideTest() {
+    assert `x == this`x;
+  }
+  
+  function ReadTest(): int 
+    reads `x 
+  {
+    x
+  }
 }
 
 method TestClass(t1: Test, t2: Test, t3: Test, b: bool, c: bool) {

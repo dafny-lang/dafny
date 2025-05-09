@@ -36,7 +36,8 @@ public partial class Parser {
   bool IsReveal(IOrigin nextToken) => la.kind == _reveal || (la.kind == _hide && nextToken.kind is _star or _ident);
 
   bool IsIdentifier(int kind) {
-    return kind == _ident || kind == _least || kind == _greatest || kind == _older || kind == _opaque;
+    return kind == _ident || kind == _least || kind == _greatest || kind == _older || kind == _opaque
+      || (!AcceptReferrers() && kind == _field);
   }
 
   bool IsQuantifierVariableDecl(QuantifiedVar previousVar) {
@@ -569,7 +570,6 @@ public partial class Parser {
       case _ORDINAL:
       case _string:
       case _object_q:
-      case _field:
       case _object:
         pt = scanner.Peek();
         return true;
@@ -610,6 +610,10 @@ public partial class Parser {
         }
         return IsTypeSequence(ref pt, _closeparen);
       default:
+        if (AcceptReferrers() && pt.val == "field") {
+          pt = scanner.Peek();
+          return true;
+        }
         return false;
     }
   }
