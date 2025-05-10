@@ -15,9 +15,9 @@ by hand. Instead, it is now generated from
 `PreludeCore.bpl` and from models such as `Sequences.dfy`.
 multisets).
 
-To generate a new version of `DafnyPrelude.bpl`, run `make extract` in
-the `../../DafnyCore` folder. This will run `make` in this folder and will then copy the generated
-`../Prelude/DafnyPrelude.bpl` to `../Da0fnyPrelude.bpl`.
+To generate a new version of `DafnyPrelude.bpl`, run `make` in this folder.
+This will generate and copy the generated
+`../Prelude/Output/DafnyPrelude.bpl` to `../DafnyPrelude.bpl`.
 
 ## CLI option
 
