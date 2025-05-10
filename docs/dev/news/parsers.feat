@@ -1,0 +1,13 @@
+The Dafny standard libraries now include a powerful parser combinators framework, available through `Std.Parsers.StringBuilders`. 
+
+Key Features
+
+- **Guaranteed Termination**: All parsers, including those built with recursive combinators, are proven to terminate
+- **Mutual Recursion Support**: Build complex parsers that can reference each other (demonstrated in the Polynomial example)
+- **Rich Error Reporting**: Failed parsing attempts combine their error messages to provide meaningful feedback
+- **Developer-Friendly Tools**: Built-in debugging utilities for inspecting parser inputs and outputs
+- **Memory-Efficient Recursion**: Advanced implementations avoid stack overflow in recursive parsers
+- **Elegant DSL**: Compact, datatype-based combinators designed for readability and composition
+- **Flexible Backtracking**: Optional backtracking available through `.??()` (DSL) or `?(...)` (standard syntax)
+- **Comprehensive Toolkit**: Rich set of combinators including lookahead, negation, folding, and binding operations
+- The library includes several practical examples, including JSON and SMT parsers, each implemented in about 50 lines of code.
