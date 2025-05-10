@@ -6,36 +6,35 @@
 /** Until string slicing is implemented in O(1), a string input consists of the original string,
   * a start and an end marker. */
 module Std.Parsers.InputString refines AbstractInput {
-  datatype Input_ = Input(data: seq<char>, start: int, end: int) {
-    ghost predicate Valid() {
-      0 <= start <= end <= |data|
-    }
-    function ToString(): string
-      requires Valid()
-    {
-      data[start..end]
-    }
-  }
+  import Collections.Seq
 
-  type Input = x: Input_ | x.Valid() witness *
+  type Input = x: Seq.Slice<char> | x.Valid() witness *
   type C = char
 
   function ToInput(r: seq<C>): (i: Input)
     ensures View(i) == r
   {
-    Input(r, 0, |r|)
+    Seq.Slice(r, 0, |r|)
   }
 
   function View(self: Input): (r: seq<C>)
     ensures |View(self)| == Length(self) {
-    self.data[self.start..self.end]
+    self.View()
   }
-  function Length(self: Input): nat { self.end - self.start  }
+  function Length(self: Input): nat {
+    self.Length()
+  }
   function CharAt(self: Input, i: int): C
-    ensures CharAt(self, i) == View(self)[i]  { self.data[self.start + i] }
+    ensures CharAt(self, i) == View(self)[i]
+  {
+    self.At(i)
+  }
   function Drop(self: Input, start: int): Input
-    ensures View(self)[start..] == View(Drop(self, start)) { Input(self.data, self.start + start, self.end) }
-  @IsolateAssertions function Slice(self: Input, start: int, end: int): Input
+    ensures View(self)[start..] == View(Drop(self, start))
+  {
+    self.Drop(start)
+  }
+  function Slice(self: Input, start: int, end: int): Input
     // ...................... self.data.............
     //         ^ self.start       self.end ^
     //         -----start^
@@ -43,31 +42,7 @@ module Std.Parsers.InputString refines AbstractInput {
     ensures
       View(Slice(self, start, end)) == View(self)[start..end]
   {
-    PrefixRestrict(self.data, self.start, self.end, start, end);
-    Input(self.data, self.start + start, self.start + end)
-  }
-  lemma PrefixRestrict(s: seq<C>, a: int, b: int, start: int, end: int)
-    requires 0 <= a <= b <= |s|
-    requires 0 <= start <= end
-    requires end <= b - a
-    decreases |s| - b
-    ensures s[a..][start..end] == s[a..b][start..end]
-  {
-    if b == |s| {
-      assert s[a..b] == s[a..];
-    } else {
-      var before := s[a .. b][start .. end];
-      var after := s[a .. b + 1][start .. end];
-      calc {
-        s[a .. b][start .. end];
-        {
-          assert |before| == |after|;
-          assert forall i | 0 <= i < |before| :: before[i] == after[i];
-        }
-        s[a .. b + 1][start .. end];
-      }
-      PrefixRestrict(s, a, b+1, start, end);
-    }
+    self.Sub(start, end)
   }
   lemma AboutDrop(self: Input, a: int, b: int)
     ensures Drop(self, a + b) == Drop(Drop(self, a), b)
@@ -81,6 +56,7 @@ module Std.Parsers.InputString refines AbstractInput {
 }
 
 module Std.Parsers.StringParsers refines Core {
+  import Collections.Seq
   export StringParsers reveals *
   export Export extends Core
     provides
@@ -113,7 +89,7 @@ module Std.Parsers.StringParsers refines Core {
   opaque function Space(): (p: Parser<char>)
     // A parser that tests if the current char is a whitespace including newline
   {
-    CharTest(c => c in " \t\r\n", "space")
+    CharTest(c => c in " \t\r\n               　", "space")
   }
 
   opaque function WS(): (p: Parser<string>)
@@ -163,7 +139,7 @@ module Std.Parsers.StringParsers refines Core {
     // Its failure is recoverable, so it's possible to branch to something else
   {
     (input: Input) =>
-      if |expected| <= A.Length(input) && A.Slice(input, 0, |expected|).ToString() == expected then
+      if |expected| <= A.Length(input) && A.Slice(input, 0, |expected|).View() == expected then
         ParseSuccess(expected, A.Drop(input, |expected|))
       else ParseFailure(Recoverable, FailureData("expected '"+expected+"'", input, Option.None))
   }
@@ -171,14 +147,6 @@ module Std.Parsers.StringParsers refines Core {
   // ########################
   // Error handling utilities
   // ########################
-
-  function repeat_(str: string, n: nat): (r: string)
-    // Repeats the given string n times
-    ensures |r| == |str| * n
-  {
-    if n == 0 then ""
-    else str + repeat_(str, n-1)
-  }
 
   datatype CodeLocation = CodeLocation(lineNumber: nat, colNumber: nat, lineStr: string)
   datatype ExtractLineMutableState = ExtractLineMutableState(input: string, pos: nat, startLinePos: nat, i: nat, lineNumber: nat, colNumber: nat)
@@ -192,7 +160,6 @@ module Std.Parsers.StringParsers refines Core {
     if vars.i < |vars.input| && vars.i != vars.pos then
       var colNumber := vars.colNumber + 1;
       if vars.input[vars.i] == '\r' && vars.i + 1 < |vars.input| && vars.input[vars.i+1] == '\n' then
-        //var startLinePos := i + 1; // ORIGINAL BUG: vars.i + 1
         ExtractLineColSpecAux(ExtractLineMutableState(vars.input, vars.pos, vars.i + 2, vars.i + 2, vars.lineNumber + 1, 0))
       else if vars.input[vars.i] in "\r\n" then
         var lineNumber := vars.lineNumber + 1;
@@ -384,7 +351,7 @@ module Std.Parsers.StringParsers refines Core {
       var output := ExtractLineCol(input, pos);
       var CodeLocation(line, col, lineStr) := output;
       failure + Strings.OfInt(line) + ": " + lineStr + "\n" +
-      repeat_(" ", col + 2 + |Strings.OfInt(line)|) + "^" + "\n";
+      Seq.Repeat(' ', col + 2 + |Strings.OfInt(line)|) + "^" + "\n";
     var failure := failure + result.data.message;
     if result.data.next.Some? then
       var failure := failure + ", or\n";
@@ -403,6 +370,6 @@ module Std.Parsers.StringParsers refines Core {
 
   /** Converts the given string to an input suitable for parsing and slicing */
   function ToInput(input: string): Input {
-    A.Input(input, 0, |input|)
+    A.Seq.Slice(input, 0, |input|)
   }
 }

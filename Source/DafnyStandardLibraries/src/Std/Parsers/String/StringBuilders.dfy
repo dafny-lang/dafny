@@ -13,14 +13,14 @@ module Std.Parsers.StringBuilders refines Builders {
   function ToInput(other: seq<C>): (i: Input)
     ensures P.A.View(i) == other
   {
-    P.A.Input(other, 0, |other|)
+    P.A.Seq.Slice(other, 0, |other|)
   }
 
   function ToInputEnd(other: seq<C>, fromEnd: int := 0): (i: Input)
     requires 0 <= fromEnd <= |other|
     ensures P.A.View(i) == other[|other|-fromEnd..|other|]
   {
-    P.A.Input(other, |other| - fromEnd, |other|)
+    P.A.Seq.Slice(other, |other| - fromEnd, |other|)
   }
 
   /** `S(PREFIX)` returns success on its input if its starts with `PREFIX`,  

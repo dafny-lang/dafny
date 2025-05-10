@@ -188,7 +188,7 @@ namespace Microsoft.Dafny.Compilers {
       var funcExtensions = wr.NewNamedBlock("internal static class FuncExtensions");
       wr.WriteLine("// end of class FuncExtensions");
       var arrowTypeDecls = systemModuleManager.ArrowTypeDecls.ToList();
-      arrowTypeDecls.Sort((pair, valuePair) => pair.Key - valuePair.Key);
+      arrowTypeDecls.Sort((left, right) => left.Key - right.Key);
       foreach (var kv in arrowTypeDecls) {
         int arity = kv.Key;
 

@@ -23,8 +23,7 @@ format-dfy:
 dfy-to-cs: 
 	(cd "${DIR}"/Source/DafnyCore ; bash DafnyGeneratedFromDafny.sh)
 
-dfy-to-cs-exe: dfy-to-cs
-	(cd "${DIR}" ; dotnet build Source/Dafny.sln )
+dfy-to-cs-exe: dfy-to-cs exe-3
 
 dfy-to-cs-noverify:
 	(cd "${DIR}"/Source/DafnyCore ; bash DafnyGeneratedFromDafny.sh --no-verify)

@@ -25,7 +25,7 @@ abstract module Std.Parsers.Theorems refines Core {
       && p(input).remaining == input
   { reveal SucceedWith(); }
 
-  lemma AboutFail_<R>(message: string, level: FailureLevel, input: Input)
+  lemma AboutFail<R>(message: string, level: FailureLevel, input: Input)
     ensures
       var p := FailWith<R>(message, level)(input);
       && p.ParseFailure?
@@ -185,7 +185,7 @@ abstract module Std.Parsers.Theorems refines Core {
     reveal ConcatMap();
   }
 
-  predicate AboutRepIncreasesPosIfUnderlyingSucceedsAtLeastOnceEnsures<R>(
+  predicate AboutRepIncreasesPosIfUnderlyingSucceedsAtLeastOnce_Ensures<R>(
     underlying: Parser<R>,
     acc: seq<R>,
     input: Input
@@ -340,7 +340,6 @@ abstract module Std.Parsers.Theorems refines Core {
         assert IsRemaining(input, p(input).Remaining());
       }
       assert IsRemaining(input, p(input).Remaining());
-      //reveal v;
     }
     assert NeverFatal(p);
   }

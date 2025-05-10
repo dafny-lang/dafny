@@ -3,13 +3,13 @@
  and RecNoStack to create an SMT parser that does not consume any stack.
 */
 module ExampleParsers.SmtParser {
+  import Std.Collections.Seq
   import opened Std.Parsers.StringBuilders
 
   function SeqToString<T>(s: seq<T>, f: T --> string, separator: string := ""): string
     requires forall t <- s :: f.requires(t)
   {
-    if |s| == 0 then "" else
-    f(s[0]) + (if |s| > 1 then separator + SeqToString(s[1..], f, separator) else "")
+    Seq.Join(Seq.MapPartialFunction(f, s), separator)
   }
 
   datatype TopLevelSmt = TopLevelSmt(s: seq<SmtNode>)

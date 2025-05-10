@@ -24,7 +24,7 @@ if os.path.exists(output + '-cs.dtr'):
     os.remove(output + '-cs.dtr')
     print("File deleted: " + output + '-cs.dtr')
 
-with open(output + '.cs', 'r' ) as f:
+with open(output + '.cs', 'r', encoding='utf-8') as f:
   content = f.read()
   
   content_without_runtimelib = re.sub(r'#if\s+ISDAFNYRUNTIMELIB\s*[\s\S]*?#endif', '', content, flags=re.MULTILINE)
@@ -72,10 +72,10 @@ with open(output + '.cs', 'r' ) as f:
     
     # Write content to a file
     file_path = f"{file_path_prefix}{output}/{namespace_name.replace('.', '_')}.cs"  # Replace dots with underscores in file name
-    with open(file_path, 'w') as file:
+    with open(file_path, 'w', encoding='utf-8') as file:
       file.write(file_content)
 
-    print(f"File generated: {file_path}")
+    print(f"File extracted: {file_path}")
 
   # Special-case the FuncExtensions class, which isn't declared inside a namespace
   func_extensions_pattern = re.compile(r'(internal\s+static\s+class\s+FuncExtensions\s*{[\s\S]*?}\s*//\s*end\s*of\s*class\s*FuncExtensions)')
@@ -84,7 +84,7 @@ with open(output + '.cs', 'r' ) as f:
 
   file_content = f"{prelude}\n\n{func_extensions_content}"
   file_path = f"{output}/FuncExtensions.cs"
-  with open(file_path, 'w') as file:
+  with open(file_path, 'w', encoding='utf-8') as file:
     file.write(file_content)
 
   print(f"File generated: {file_path}")

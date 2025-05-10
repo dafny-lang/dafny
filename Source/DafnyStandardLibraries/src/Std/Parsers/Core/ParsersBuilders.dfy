@@ -3,18 +3,11 @@
  *  SPDX-License-Identifier: MIT 
  *******************************************************************************/
 
-// Simple DSL to build parsers to avoid too much parenthesis nesting
-// B(p)       returns a parser builder from a normal parser.
-// B1.e_I(B2) will parse both but return the result of B2
-// B1.I_e(B2) will parse both but return the result of B1
-// B.M(f)     will map the result of the parser builder by f if succeeded
-// B1.O(B2)   will either parse B1, or B2 if B1 fails with Recoverable
-// O([B1, B2, B3])
-//            will parse with B1, but if B1 fails with Recoverable,
-//            it will parse with B2, but if B2 fails with Recoverable,
-//            it will parse with B3
-// R(v)       returns a parser builder that returns immediately v
-
+// A domain-specific language (DSL) for building parsers that uses minimal syntax
+// (including single-letter combinators like M or C) to visually separate the parser logic
+// (constants, strings, and custom parser calls) from the underlying combinator
+// machinery. This makes complex parser definitions more readable by reducing
+// syntactic noise.
 abstract module Std.Parsers.Builders {
   import P: Core
   export

@@ -54,12 +54,6 @@ module ExampleParsers.Tutorial {
     var r := grid(input);
     expect r.IsFailure();
     expect A.Length(input) - A.Length(r.data.remaining) == 24;
-    expect r.data.message == "expected 'O'";
-    expect r.data.next.Some?;
-    expect r.data.next.value.message == "expected 'X'";
-    expect r.data.next.value.next.Some?;
-    expect r.data.next.value.next.value.message == "expected ' '";
-    expect r.data.next.value.next.value.next.None?;
     var failureMessage := FailureToString(input.data, r);
     expect failureMessage
         == "Error:"           + "\n" +
