@@ -4514,6 +4514,9 @@ FieldLocationSuffix<ref Expression e>
     }
     "]"               (. Token closeParen = t; .)
     (.
+      if (!AcceptReferrers()) {
+        SemErr(ErrorId.p_needs_referrers, t, "To use array index locations, you need --referrers");
+      }
       e = new IndexFieldLocationExpression(e, openParen, multipleIndices, closeParen);
     .)
   )
