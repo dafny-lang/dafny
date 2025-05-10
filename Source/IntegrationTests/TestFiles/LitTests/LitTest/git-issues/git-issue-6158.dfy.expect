@@ -1,0 +1,13 @@
+git-issue-6158.dfy(38,18): Error: this loop invariant could not be proved on entry
+ Related message: loop invariant violation
+git-issue-6158.dfy(40,28): Error: this loop invariant could not be proved on entry
+ Related message: loop invariant violation
+git-issue-6158.dfy(91,16): Error: this loop invariant could not be proved on entry
+ Related message: loop invariant violation
+git-issue-6158.dfy(95,26): Error: this loop invariant could not be proved on entry
+ Related message: loop invariant violation
+git-issue-6158.dfy(127,17): Error: this loop invariant could not be proved on entry
+ Related message: loop invariant violation
+git-issue-6158.dfy(133,4): Error: assertion might not hold
+
+Dafny program verifier finished with 7 verified, 6 errors

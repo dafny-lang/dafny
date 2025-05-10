@@ -53,11 +53,17 @@ namespace Microsoft.Dafny {
         }
 
         // conjoin all the new equalities to the range of the quantifier
-        foreach (var entry in usedSubstMap) {
-          var eq = new BinaryExpr(e.Origin, BinaryExpr.ResolvedOpcode.EqCommon, entry.Item2, entry.Item1);
-          newRange = newRange == null ? eq : new BinaryExpr(e.Origin, BinaryExpr.ResolvedOpcode.And, eq, newRange);
-          newBoundVars.Add((BoundVar)entry.Item2.Var);
-          newBounds.Add(new ExactBoundedPool(entry.Item1));
+        if (usedSubstMap.Count != 0) {
+          Expression equalities = Expression.CreateBoolLiteral(e.Origin, true);
+          foreach (var entry in usedSubstMap) {
+            var eq = new BinaryExpr(e.Origin, BinaryExpr.ResolvedOpcode.EqCommon, entry.Item2, entry.Item1);
+            equalities = Expression.CreateAnd(eq, equalities);
+            newBoundVars.Add((BoundVar)entry.Item2.Var);
+            newBounds.Add(new ExactBoundedPool(entry.Item1));
+          }
+          newRange = newRange == null ? equalities : Expression.CreateAnd(equalities, newRange);
+          // For a description of _triggerRewrites, see the ComprehensionExpr case of ExpressionTranslator.CanCallAssumption.
+          newAttrs = new Attributes(e.Origin, "_triggerRewrites", [equalities, e.LogicalBody()], newAttrs);
         }
 
         QuantifierExpr newExpr;

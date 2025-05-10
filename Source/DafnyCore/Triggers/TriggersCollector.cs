@@ -21,7 +21,7 @@ internal class TriggersCollector {
   }
 
   private T ReduceAnnotatedSubExpressions<T>(Expression expr, T seed, Func<TriggerAnnotation, T> map, Func<T, T, T> reduce) {
-    return expr.SubExpressions.Select(e => map(Annotate(e)))
+    return expr.SubExpressionsWithoutAttributes.Select(e => map(Annotate(e)))
       .Aggregate(seed, reduce);
   }
 
@@ -54,7 +54,7 @@ internal class TriggersCollector {
     }
 
     if (annotation == null) {
-      expr.SubExpressions.ForEach(e => Annotate(e));
+      expr.SubExpressionsWithoutAttributes.ForEach(e => Annotate(e));
 
       if (IsPotentialTriggerCandidate(expr)) {
         annotation = AnnotatePotentialCandidate(expr);
