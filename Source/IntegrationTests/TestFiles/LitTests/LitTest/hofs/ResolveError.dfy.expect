@@ -10,7 +10,7 @@ ResolveError.dfy(34,22): Error: boolean literal used as if it had type int
 ResolveError.dfy(35,28): Error: integer literal used as if it had type bool
 ResolveError.dfy(37,19): Error: boolean literal used as if it had type int
 ResolveError.dfy(38,25): Error: integer literal used as if it had type set<object?>
-ResolveError.dfy(46,15): Error: a reads-clause expression must denote an object, a set/iset/multiset/seq of objects, or a function to a set/iset/multiset/seq of objects (instead got int)
+ResolveError.dfy(46,15): Error: a reads-clause expression must denote an object, a single field location like o`x or a`[i] of type (object, field)  (with `--referrers`), a set/iset/multiset/seq of objects or single field locations (with `--referrers`), or a function to a set/iset/multiset/seq of objects or single field locations (with `--referrers`) (instead got int)
 ResolveError.dfy(47,18): Error: precondition must be boolean (got int)
 ResolveError.dfy(56,9): Error: condition is expected to be of type bool, but is () -> bool
 ResolveError.dfy(59,42): Error: type of 'null' is a reference type, but it is used as A ~> B

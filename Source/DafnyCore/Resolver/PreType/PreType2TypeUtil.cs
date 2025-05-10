@@ -54,6 +54,8 @@ public static class PreType2TypeUtil {
         return Type.Real;
       case PreType.TypeNameORDINAL:
         return Type.BigOrdinal;
+      case PreType.TypeNameField:
+        return Type.Field;
       case PreType.TypeNameSet:
         return new SetType(true, ArgumentAsCo(0));
       case PreType.TypeNameIset:

@@ -36,7 +36,8 @@ public partial class Parser {
   bool IsReveal(IOrigin nextToken) => la.kind == _reveal || (la.kind == _hide && nextToken.kind is _star or _ident);
 
   bool IsIdentifier(int kind) {
-    return kind == _ident || kind == _least || kind == _greatest || kind == _older || kind == _opaque;
+    return kind == _ident || kind == _least || kind == _greatest || kind == _older || kind == _opaque
+      || (!AcceptReferrers() && kind == _field);
   }
 
   bool IsQuantifierVariableDecl(QuantifiedVar previousVar) {
@@ -304,8 +305,16 @@ public partial class Parser {
     return false;
   }
 
+  bool AcceptReferrers() {
+    return theOptions.Get(CommonOptionBag.Referrers);
+  }
+
+  bool AcceptReferrersAndBacktick() {
+    return AcceptReferrers() && la.kind is _backtick;
+  }
+
   bool IsSuffix() {
-    return la.kind == _dot || la.kind == _lbracket || la.kind == _openparen;
+    return la.kind is _dot or _lbracket or _openparen || AcceptReferrersAndBacktick();
   }
 
   string UnwildIdent(IOrigin x, bool allowWildcardId) {
@@ -601,6 +610,10 @@ public partial class Parser {
         }
         return IsTypeSequence(ref pt, _closeparen);
       default:
+        if (AcceptReferrers() && pt.val == "field") {
+          pt = scanner.Peek();
+          return true;
+        }
         return false;
     }
   }

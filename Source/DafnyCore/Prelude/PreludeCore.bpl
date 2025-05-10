@@ -27,6 +27,9 @@ const unique TChar : Ty uses {
 const unique TInt  : Ty uses {
   axiom Tag(TInt) == TagInt;
 }
+const unique TField: Ty uses {
+  axiom Tag(TField) == TagField;
+}
 const unique TReal : Ty uses {
   axiom Tag(TReal) == TagReal;
 }
@@ -83,6 +86,7 @@ function Tag(Ty) : TyTag;
 const unique TagBool     : TyTag;
 const unique TagChar     : TyTag;
 const unique TagInt      : TyTag;
+const unique TagField    : TyTag;
 const unique TagReal     : TyTag;
 const unique TagORDINAL  : TyTag;
 const unique TagSet      : TyTag;

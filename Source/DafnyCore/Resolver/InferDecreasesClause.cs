@@ -184,6 +184,13 @@ public class InferDecreasesClause {
         };
         sets.Add(s);
 
+      } else if (eType.AsIndDatatype is TupleTypeDecl tupleTypeDecl) {
+        // e represents a memory location, we abstract more by taking all fields of the reference
+        if (singletons == null) {
+          singletons = [];
+        }
+
+        singletons.Add(Expression.CreateFieldSelect(e.Origin, e, tupleTypeDecl.Ctors[0].Destructors[0]));
       } else {
         // e is already a set
         Contract.Assert(eType is SetType);
