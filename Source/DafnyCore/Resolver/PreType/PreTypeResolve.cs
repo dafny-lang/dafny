@@ -582,7 +582,7 @@ namespace Microsoft.Dafny {
       if (a.Normalize() is not DPreType aa || b.Normalize() is not DPreType bb) {
         return false;
       }
-      if (IsSuperPreTypeOf(aa, bb) || IsSuperPreTypeOf(bb, aa)) {
+      if (HaveCommonSuperPreType(aa, bb)) {
         return true;
       }
       if (!allowConversion) {
@@ -634,6 +634,42 @@ namespace Microsoft.Dafny {
       }
 
       return false;
+    }
+
+    bool HaveCommonSuperPreType(DPreType t, DPreType u) {
+      if (IsSuperPreTypeOf(t, u) || IsSuperPreTypeOf(u, t)) {
+        return true;
+      }
+      
+      // var fromAncestor = AncestorPreType(t);
+      // var toAncestor = AncestorPreType(u);
+      // if (fromAncestor == null || toAncestor == null) {
+      //   return false;
+      // }
+      //
+      // var tAncestors = new HashSet<TopLevelDecl>();
+      // var uAncestors = new HashSet<TopLevelDecl>();
+      // ComputeAncestors(t.Decl, tAncestors, resolver.SystemModuleManager);
+      // ComputeAncestors(u.Decl, uAncestors, resolver.SystemModuleManager);
+      // if (!tAncestors.Overlaps(uAncestors)) {
+      //   return false;
+      // }
+
+      var joined = PreTypeConstraints.JoinHeads(t.Decl, u.Decl, resolver.SystemModuleManager);
+
+      if (joined is null or TraitDecl { IsObjectTrait: false }) {
+        return false;
+      }
+
+      var common = true;
+      var tArgs = Constraints.GetTypeArgumentsForSuperType(joined, t, true);
+      var uArgs = Constraints.GetTypeArgumentsForSuperType(joined, u, true);
+      for (var i = 0; i < joined.TypeArgs.Count; i++) {
+        if (tArgs != null && uArgs != null) {
+          common = common && HaveCommonSuperPreType((DPreType)tArgs[i], (DPreType)uArgs[i]);
+        }
+      }
+      return common;
     }
 
     bool ApproximateComparableConstraints(PreType a, PreType b, IOrigin tok, bool allowBaseTypeCast, string errorFormatString, bool reportErrors = true) {
