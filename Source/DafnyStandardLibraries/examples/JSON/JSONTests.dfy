@@ -98,6 +98,7 @@ module MainTests {
   import AbstractSyntaxWrapper
   import opened Std.Collections.Seq
   import Std.JSON.Spec
+  import opened Std.BoundedInts
 
   const VECTORS := [
     "true",
@@ -139,6 +140,6 @@ module MainTests {
 
   @Test
   method SpecTest() {
-    expect Spec.EscapeUnicode(7) == "0007";
+    expect Spec.EscapeUnicode(7) == ['0' as uint16, '0' as uint16, '0' as uint16, '7' as uint16];
   }
 }
