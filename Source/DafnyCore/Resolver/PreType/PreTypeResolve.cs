@@ -640,7 +640,7 @@ namespace Microsoft.Dafny {
       if (IsSuperPreTypeOf(t, u) || IsSuperPreTypeOf(u, t)) {
         return true;
       }
-      
+
       // var fromAncestor = AncestorPreType(t);
       // var toAncestor = AncestorPreType(u);
       // if (fromAncestor == null || toAncestor == null) {
@@ -664,10 +664,14 @@ namespace Microsoft.Dafny {
       var common = true;
       var tArgs = Constraints.GetTypeArgumentsForSuperType(joined, t, true);
       var uArgs = Constraints.GetTypeArgumentsForSuperType(joined, u, true);
+      if (tArgs == null || uArgs == null) {
+        return false;
+      }
       for (var i = 0; i < joined.TypeArgs.Count; i++) {
-        if (tArgs != null && uArgs != null) {
-          common = common && HaveCommonSuperPreType((DPreType)tArgs[i], (DPreType)uArgs[i]);
+        if (tArgs[i].Normalize() is not DPreType tt || uArgs[i].Normalize() is not DPreType uu) {
+          return false;
         }
+        common = common && HaveCommonSuperPreType(tt, uu);
       }
       return common;
     }
