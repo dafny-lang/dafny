@@ -505,7 +505,7 @@ namespace Microsoft.Dafny {
                 }
                 return string.Format(errorMessageFormat, toPreType, e.E.PreType);
               };
-              AddComparableConstraint(toPreType, e.E.PreType, expr.Origin, true, errorMessage);
+              AddComparableConstraint(toPreType, e.E.PreType, expr.Origin, true, false, errorMessage);
               e.PreType = toPreType;
             } else {
               e.PreType = CreatePreTypeProxy("'as' target type");
@@ -519,8 +519,7 @@ namespace Microsoft.Dafny {
             testExpr.PreType = ConstrainResultToBoolFamilyOperator(testExpr.Origin, "is");
             resolver.ResolveType(e.Origin, e.ToType, resolutionContext, new ModuleResolver.ResolveTypeOption(ResolveTypeOptionEnum.InferTypeProxies), null);
             var toPreType = Type2PreType(e.ToType);
-            AddComparableConstraint(toPreType, e.E.PreType, testExpr.Origin, true,
-              "type test for type '{0}' must be from an expression assignable to it (got '{1}')");
+            AddComparableConstraint(toPreType, e.E.PreType, testExpr.Origin, true, false, "type test for type '{0}' must be from an expression assignable to it (got '{1}')");
             break;
           }
         case BinaryExpr binaryExpr: {
@@ -540,8 +539,7 @@ namespace Microsoft.Dafny {
               case TernaryExpr.Opcode.PrefixNeqOp:
                 ternaryExpr.PreType = ConstrainResultToBoolFamily(ternaryExpr.Origin, "ternary op", "boolean literal used as if it had type {0}");
                 AddConfirmation(PreTypeConstraints.CommonConfirmationBag.IntOrORDINAL, e.E0.PreType, ternaryExpr.Origin, "prefix-equality limit argument must be an ORDINAL or integer expression (got {0})");
-                AddComparableConstraint(e.E1.PreType, e.E2.PreType, ternaryExpr.Origin, false,
-                  "arguments must have the same type (got {0} and {1})");
+                AddComparableConstraint(e.E1.PreType, e.E2.PreType, ternaryExpr.Origin, false, true, "arguments must have the same type (got {0} and {1})");
                 AddConfirmation(PreTypeConstraints.CommonConfirmationBag.IsCoDatatype, e.E1.PreType, ternaryExpr.Origin, "arguments to prefix equality must be codatatypes (instead of {0})");
                 break;
               default:
@@ -824,7 +822,7 @@ namespace Microsoft.Dafny {
         case BinaryExpr.Opcode.Eq:
         case BinaryExpr.Opcode.Neq:
           resultPreType = ConstrainResultToBoolFamilyOperator(tok, opString);
-          AddComparableConstraint(e0.PreType, e1.PreType, tok, false, "arguments must have comparable types (got {0} and {1})");
+          AddComparableConstraint(e0.PreType, e1.PreType, tok, false, true, "arguments must have comparable types (got {0} and {1})");
           break;
 
         case BinaryExpr.Opcode.Disjoint:
@@ -980,7 +978,7 @@ namespace Microsoft.Dafny {
             var coll = a1.UrAncestor(this).AsCollectionPreType();
             if (coll != null) {
               Constraints.DebugPrint($"    DEBUG: guard applies: Innable {a0} {a1}");
-              AddComparableConstraint(coll.Arguments[0], a0, tok, false, "expecting element type to be assignable to {0} (got {1})");
+              AddComparableConstraint(coll.Arguments[0], a0, tok, false, true, "expecting element type to be assignable to {0} (got {1})");
               return true;
             } else if (a1 is DPreType) {
               // type head is determined and it isn't a collection type
