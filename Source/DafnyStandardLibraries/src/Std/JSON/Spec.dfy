@@ -29,7 +29,7 @@ module Std.JSON.Spec {
       }
       assert Log(16, 0xFFFF) == 3;
     }
-    seq(4 - |s|, _ => '0' as uint16) + s 
+    seq(4 - |s|, _ => '0' as uint16) + s
   }
 
   function Escape(str: seq<uint16>, start: nat := 0): seq<uint16>
