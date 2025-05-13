@@ -1,4 +1,5 @@
 #nullable enable
+using System;
 using System.Diagnostics.Contracts;
 using System.IO;
 
@@ -72,19 +73,24 @@ public static class TokenExtensions {
       return $"({start.line},{start.col - 1})";
     }
 
-    var currentDirectory = Directory.GetCurrentDirectory();
-    string filename = range.Uri.Scheme switch {
-      "stdin" => "<stdin>",
-      "transcript" => Path.GetFileName(start.Filepath),
-      _ => options.UseBaseNameForFileName
-        ? Path.GetFileName(start.Filepath)
-        : (start.Filepath.StartsWith(currentDirectory) ? Path.GetRelativePath(currentDirectory, start.Filepath) : start.Filepath)
-    };
+    var filename = GetRelativeFilename(options, start);
 
     if (options.Get(CommonOptionBag.PrintDiagnosticsRanges)) {
       return $"{filename}{range.ToRangeString()}";
     }
     return $"{filename}({start.line},{start.col - 1})";
+  }
+
+  public static string GetRelativeFilename(DafnyOptions options, Token token) {
+    var currentDirectory = Directory.GetCurrentDirectory();
+    string filename = token.Uri.Scheme switch {
+      "stdin" => "<stdin>",
+      "transcript" => Path.GetFileName(token.Filepath),
+      _ => options.UseBaseNameForFileName
+        ? Path.GetFileName(token.Filepath)
+        : (token.Filepath.StartsWith(currentDirectory) ? Path.GetRelativePath(currentDirectory, token.Filepath) : token.Filepath).Replace('\\', '/')
+    };
+    return filename;
   }
 
   public static string RangeToFileString(this TokenRange range) {
