@@ -330,8 +330,7 @@ namespace FactorPathsOptimization {
       return ((System.Func<Dafny.ISequence<RAST._IModDecl>>) (() => {
         BigInteger dim15 = new BigInteger((_0_toUse).Count);
         var arr15 = new RAST._IModDecl[Dafny.Helpers.ToIntChecked(dim15, "array size exceeds memory limit")];
-        for (int i15 = 0; i15 < dim15; i15++) {
-          var _4_i = (BigInteger) i15;
+        for (int _4_i = 0; _4_i < Dafny.Helpers.ToIntChecked(dim15, "upper bound on index is too large"); _4_i++) {
           arr15[(int)(_4_i)] = RAST.ModDecl.create_UseDecl(RAST.Use.create(RAST.Visibility.create_PUB(), (Dafny.Map<Dafny.ISequence<Dafny.Rune>, RAST._IPath>.Select(finalReplacement,(_0_toUse).Select(_4_i))).MSel((_0_toUse).Select(_4_i))));
         }
         return Dafny.Sequence<RAST._IModDecl>.FromArray(arr15);
