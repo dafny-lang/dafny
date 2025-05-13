@@ -5,7 +5,6 @@
 /// Denotes the memory location at this index
 /// </summary>
 public class FieldLocation : Expression, ICloneable<FieldLocation> {
-  // Because memory locations are tuples, this is just a copy of the expression so that we can determine if
   public Name Name { get; }
   public Field Field { get; set; }
 

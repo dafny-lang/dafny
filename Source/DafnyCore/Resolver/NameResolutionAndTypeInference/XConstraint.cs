@@ -463,7 +463,7 @@ public class XConstraint {
               return false;  // there is not enough information
             }
           }
-          if (t.IsRefType || t.IsMemoryLocationType) {
+          if (t.IsRefType) {
             resolver.ConstrainSubtypeRelation_Equal(u, t, errorMsg);
             convertedIntoOtherTypeConstraints = true;
             return true;

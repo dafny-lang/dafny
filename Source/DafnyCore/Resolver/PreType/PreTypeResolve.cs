@@ -1621,9 +1621,9 @@ namespace Microsoft.Dafny {
             FrameExpressionUse.Reads =>
               $"a reads-clause {expressionMustDenoteObject}, {fieldLocation}, {collection}, or a function to {collection} {instead}",
             FrameExpressionUse.Modifies =>
-              $"a modifies-clause {expressionMustDenoteObject}, {fieldLocation} or {collection} {instead}",
+              $"a modifies-clause {expressionMustDenoteObject}, {fieldLocation}, or {collection} {instead}",
             FrameExpressionUse.Unchanged =>
-              $"an unchanged {expressionMustDenoteObject}, {fieldLocation} or {collection} {instead}",
+              $"an unchanged {expressionMustDenoteObject}, {fieldLocation}, or {collection} {instead}",
             _ => throw new ArgumentOutOfRangeException(nameof(use), use, null)
           };
           ReportError(fe.E.Origin, errorMsgFormat, fe.E.PreType);

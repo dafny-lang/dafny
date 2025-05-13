@@ -2361,7 +2361,7 @@ namespace Microsoft.Dafny {
           // o == e
           disjunct = Bpl.Expr.Eq(o, MaybeExtractObjectFromMemoryLocation(tok, etran.TrExpr(e), e.Type, f, etran));
         }
-        if (field != null && f != null) {// TODO: Optimize when writing {a, b} field?
+        if (field != null && f != null) {
           Bpl.Expr q = Bpl.Expr.Eq(f, new Bpl.IdentifierExpr(rwComponent.E.Origin, GetField(field)));
           if (usedInUnchanged) {
             q = BplOr(q,
