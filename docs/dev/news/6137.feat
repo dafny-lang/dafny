@@ -1,1 +1,0 @@
-Support using `--standard-libraries` with `--enforce-determinism`. Removed `Std.Collections.Seq.SetToSeq` since it was slow and not compatible with this mode.
