@@ -1,0 +1,2 @@
+JSON serialization now properly encodes unicode characters with 0 pre-pend instead of space-append.
+Also, string literals ending with escaped characters are now supported as well.
