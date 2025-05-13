@@ -22,7 +22,7 @@ module ExampleParsers.Tutorial {
     expect result.result == ["abc","d","efg"];
     var source := "abc,d,,";
     expect p(ToInput(source))
-        == ParseResult.ParseFailure(Recoverable, FailureData("expected a non-comma", A.Input(source, |source| - 1, |source|), Option.None));
+        == ParseResult.ParseFailure(Recoverable, FailureData("expected a non-comma", A.Seq.Slice(source, |source| - 1, |source|), Option.None));
     var failureMessage := FailureToString(source, p(ToInput(source)));
     expect failureMessage
         == "Error:"               + "\n" +
