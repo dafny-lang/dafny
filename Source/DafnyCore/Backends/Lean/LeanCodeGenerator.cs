@@ -34,7 +34,7 @@ public class LeanCodeGenerator(DafnyOptions options, ErrorReporter reporter) : S
 
   protected override ConcreteSyntaxTree CreateModule(ModuleDefinition module, string moduleName, bool isDefault,
     ModuleDefinition externModule, string libraryName, Attributes moduleAttributes, ConcreteSyntaxTree wr) {
-    throw new NotImplementedException();
+    return wr;
   }
 
   protected override string GetHelperModuleName() {
@@ -57,12 +57,29 @@ public class LeanCodeGenerator(DafnyOptions options, ErrorReporter reporter) : S
 
   protected override IClassWriter DeclareDatatype(DatatypeDecl dt, ConcreteSyntaxTree wr) {
     // TODO look at DeclareDatatype in CsharpCodeGenerator
-    throw new NotImplementedException();
+    if (dt.Ctors.Count >= 1)
+    {
+      // Inductive
+      Contract.Assert(dt.Members.Count == 0);
+    }
+    else
+    {
+      // Structure
+      // REVIEW: do function members of dt need to do explicit `this` passing?
+      wr.Write($"structure {dt.GetCompileName(Options)} where");
+      foreach (var ctor in dt.Ctors)
+      {
+        var record = string.Join(" ", ctor.Formals.Select(formal => $"({formal.CompileName}: {TypeName(formal.Type, wr, formal.StartToken)})"));
+        wr.WriteLine($"{ctor.GetCompileName(Options)}: {record}");
+      }
+      // Handle the member functions
+    }
+    // TODO this might be incorrect
+    return new NullClassWriter(this);
   }
 
   protected override IClassWriter DeclareNewtype(NewtypeDecl nt, ConcreteSyntaxTree wr) {
-    // TODO
-    throw new NotImplementedException();
+    throw new UnsupportedFeatureException(nt.StartToken, 0, "newtype");
   }
 
   protected override void DeclareSubsetType(SubsetTypeDecl sst, ConcreteSyntaxTree wr) {
