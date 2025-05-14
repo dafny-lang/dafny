@@ -391,7 +391,7 @@ namespace Microsoft.Dafny {
       return null;
     }
 
-    TopLevelDecl/*?*/ MeetHeads(TopLevelDecl a, TopLevelDecl b, SystemModuleManager systemModuleManager) {
+    public static TopLevelDecl/*?*/ MeetHeads(TopLevelDecl a, TopLevelDecl b, SystemModuleManager systemModuleManager) {
       var aAncestors = new HashSet<TopLevelDecl>();
       PreTypeResolver.ComputeAncestors(a, aAncestors, systemModuleManager);
       if (aAncestors.Contains(b)) {
