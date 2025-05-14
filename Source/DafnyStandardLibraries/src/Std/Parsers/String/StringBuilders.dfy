@@ -8,7 +8,23 @@
 module Std.Parsers.StringBuilders refines Builders {
   import P = StringParsers
   export StringBuilders extends Builders
-    provides ToInput, ToInputEnd, S, Int, Nat, WS, Except, Digit, DigitNumber, DebugSummaryInput, PrintDebugSummaryOutput, FailureToString, Apply, InputToString
+    provides ToInput,
+             ToInputEnd,
+             S,
+             Int,
+             Nat,
+             WS,
+             Except,
+             Digit,
+             DigitNumber,
+             DebugSummaryInput,
+             PrintDebugSummaryOutput,
+             FailureToString,
+             Apply,
+             InputToString,
+             // Verbose
+             String,
+             Whitespace
 
   function ToInput(other: seq<C>): (i: Input)
     ensures P.A.View(i) == other
@@ -25,9 +41,16 @@ module Std.Parsers.StringBuilders refines Builders {
 
   /** `S(PREFIX)` returns success on its input if its starts with `PREFIX`,  
       On success, `.value` contains the extracted string. You can ignore it by chaining it like `S(PREFIX).e_I(...)`  
-      On failure, returns a recoverable error that did not consume the input.*/
+      On failure, returns a recoverable error that did not consume the input.
+      Verbose equivalent: `String(PREFIX)`
+      */
   function S(s: string): B<string> {
     B(P.String(s))
+  }
+
+  /** `String(PREFIX)` is the verbose equivalent of `S(PREFIX)` */
+  function String(s: string): B<string> {
+    S(s)
   }
 
   /** `Int` parses any integer.  
@@ -54,8 +77,12 @@ module Std.Parsers.StringBuilders refines Builders {
 
   /** `WS` parses any number of white space characters in "\r\n\t ", and return it as a string.  
       On success, `.value` contains the extracted whitespace. You can ignore it by chaining it like `WS.e_I(...)`  
-      Never fails since it can also return an empty string.*/
+      Never fails since it can also return an empty string.
+      Verbose equivalent: `Whitespace` */
   const WS: B<string> := B(P.WS())
+
+  /** `Whitespace` is the verbose equivalent of `WS`. */
+  const Whitespace: B<string> := WS
 
   /** `Except(CHARACTERS)` parses any number of characters not in the given string.  
       On success, `.value` contains the parsed characters as a `string`.  

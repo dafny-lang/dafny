@@ -53,7 +53,7 @@ expected 'X', or
 expected ' '
 ```
 
-Here is the equivalent using parser builders:
+Here is the equivalent using parser builders, abbreviated version:
 
 <!-- %check-verify -->
 ```dafny
@@ -74,6 +74,31 @@ module M {
   }
 }
 ```
+
+If you prefer, you can still write a parser using the verbose names of the builders. Some think it is distracting to have long names when all that matters is
+the described parser, but some others believe it's easier to understand. You choose:
+
+<!-- %check-verify -->
+```dafny
+module M {
+  import opened Std.Parsers.StringBuilders
+
+  /** Tic tac toe using string parser builders */
+  method Main() {
+    var cell := Or([ String("O"), String("X"), String(" ") ]);
+    var v := String("|");
+    var row := cell.ConcatKeepRight(v).Concat(cell).ConcatKeepLeft(v).Concat(cell);
+    var sep := String("\n-+-+-\n");
+    var grid := row.I_e(sep).I_I(row).I_e(sep).I_I(row);
+    var input := "O|X| \n-+-+-\nX|O| \n-+-+-\nP| |O";
+    var r := grid.Apply(input);
+    expect r.IsFailure();
+    print FailureToString(input, r);
+  }
+}
+```
+
+
 
 The output is the same as before.
 
@@ -150,3 +175,39 @@ There are several ways parsers can backtrack in the current design.
 ### My parser is not parsing my input string but should. How to figure out what's wrong?
 
 See [DEBUGGING.md](DEBUGGING.md) for a step-by-step walkthrough on how to debug your parsers effectively.
+
+### What are the verbose names for the parser builders? Why are there abbreviated and verbose versions?
+
+
+This table shows the abbreviated and verbose equivalents of parser combinators in the `Std.Parsers.ParserBuilders` module.
+
+| Abbreviated Syntax | Verbose Equivalent |
+|-------------------|-------------------|
+| `a.?()`           | `a.Option()`      |
+| `a.??()`          | `a.FailureResetsInput()` |
+| `a.e_I(b)`        | `a.ConcatKeepRight(b)` |
+| `a.I_e(b)`        | `a.ConcatKeepLeft(b)` |
+| `a.I_I(b)`        | `a.Concat(b)` |
+| `a.M(f)`          | `a.Map(f)` |
+| `a.M2(unfolder, f)` | `a.Map2(unfolder, f)` |
+| `a.M3(unfolder, f)` | `a.Map3(unfolder, f)` |
+| `MId(r)`          | `MapIdentity(r)` |
+| `a.Rep()`         | `a.Repeat()` |
+| `a.RepFold(init, combine)` | `a.RepeatFold(init, combine)` |
+| `a.RepSep(separator)` | `a.RepeatSeparator(separator)` |
+| `a.RepMerge(merger)` | `a.RepeatMerge(merger)` |
+| `a.RepSepMerge(separator, merger)` | `a.RepeatSeparatorMerge(separator, merger)` |
+| `a.Rep1()`        | `a.RepeatAtLeastOnce()` |
+| `O([a, b, ...])` | `Or([a, b, ...])` |
+| `EOS`             | `EndOfString` |
+| `Rec(underlying)` | `Recursive(underlying)` |
+| `RecNoStack(underlying)` | `RecursiveNoStack(underlying)` |
+
+Additionally, the emodule `Std.Parsers.Stringbuilders` inherits from these definitions and has two more abbreviated parser definitions:
+
+| Abbreviated Syntax | Verbose Equivalent |
+|-------------------|-------------------|
+| `S("constant")`   | `String("constant")` |
+| `WS`              | `Whitespace` |
+
+The abbreviated syntax is designed to reduce visual noise in complex parser definitions, making the parser logic more readable by visually separating the parser logic (constants, strings, and custom parser calls) from the underlying combinator machinery. It's a matter of taste.

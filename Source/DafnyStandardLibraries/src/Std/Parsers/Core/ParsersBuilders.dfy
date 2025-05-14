@@ -43,6 +43,28 @@ abstract module Std.Parsers.Builders {
     provides ToInput
     provides RecNoStack
     provides RecursiveProgressError
+    // Verbose
+    provides MapIdentity
+    provides B.Option
+    provides B.FailureResetsInput
+    provides B.ConcatKeepRight
+    provides B.ConcatKeepLeft
+    provides B.Concat
+    provides B.Map
+    provides B.Map2
+    provides B.Map3
+    provides EndOfString
+    provides Or
+    provides B.Repeat
+    provides B.RepeatFold
+    provides B.RepeatSeparator
+    provides B.RepeatMerge
+    provides B.RepeatSeparatorMerge
+    provides B.RepeatAtLeastOnce
+    provides Recursive
+    provides RecursiveNoStack
+    provides RecursiveMap
+
     reveals NonProgressing
     reveals Input
     reveals InputLength
@@ -85,8 +107,11 @@ abstract module Std.Parsers.Builders {
   /** Parses nothing, always returns a success with nothing consumed. Can be useful in alternatives. */
   const Nothing: B<()> := B(P.Epsilon())
 
-  /** An identity function useful for B.M2 and B.M3 */
+  /** An identity function useful for B.M2 and B.M3 . Short version of MapIdentity() */
   function MId<R>(r: R): R { r }
+
+  /** An identity function useful for B.Map2 and B.Map3 . Can be abbreviated into MId() */
+  function MapIdentity<R>(r: R): R { r }
 
   /** Adapter to wrap any underlying parser so that they can be chained together. */
   datatype B<R> = B(apply: P.Parser<R>)
@@ -98,16 +123,30 @@ abstract module Std.Parsers.Builders {
     /** `a.?()` evaluates `a` on the input, and then  
         - If `a` succeeds, then wraps its result with `Some(...)`  
         - If `a` fails, and the failure is not fatal and did not consume input, succeeds with `None`.  
-          If the error is fatal or did consume input, fails with the same failure.*/
+          If the error is fatal or did consume input, fails with the same failure.
+        Verbose equivalent: `a.Option()`
+      */
     function ?(): B<P.Option<R>> {
+      B(P.Maybe(apply))
+    }
+
+    /** Verbose equivalent of `a.?()` */
+    function Option(): B<P.Option<R>> {
       B(P.Maybe(apply))
     }
 
     /** `a.??()` evaluates `a` on the input, and then  
         - If `a` succeeds, returns the result unchanged.  
         - If `a` fails, and the failure is not fatal, propagate the same failure but without consuming input.  
-         `a.??()` is useful when there are other alternatives to parse and a parsed partially and we are ok with trying something else. */
+         `a.??()` is useful when there are other alternatives to parse and a parsed partially and we are ok with trying something else.
+        Verbose equivalent: `a.FailureResetsInput()`   
+      */
     function ??(): B<R> {
+      B(P.?(apply))
+    }
+
+    /** `a.FailureResetsInput()` is the verbose equivalent of `a.??()` */
+    function FailureResetsInput(): B<R> {
       B(P.?(apply))
     }
 
@@ -120,10 +159,17 @@ abstract module Std.Parsers.Builders {
             a.e_I(b).e_I(c)
             a.e_I(b.e_I(c))  
         
-        will parse a, b, c but only return the result of `c`. */
+        will parse a, b, c but only return the result of `c`.
+        Verbose equivalent: `a.ConcatKeepRight(b)` */
     function e_I<U>(other: B<U>): (p: B<U>)
     {
       B(P.ConcatKeepRight(apply, other.apply))
+    }
+
+    /** `a.ConcatKeepRight(b)` is the verbose equivalent of `a.e_I(b)` */
+    function ConcatKeepRight<U>(other: B<U>): (p: B<U>)
+    {
+      e_I(other)
     }
 
     /** `a.I_e(b)` (include exclude) evaluates `a` on the input, and then  
@@ -135,10 +181,17 @@ abstract module Std.Parsers.Builders {
             a.I_e(b).I_e(c)
             a.I_e((b.I_e(c))
         
-        will parse a, b, c but only return the result of `a`. */
+        will parse a, b, c but only return the result of `a`.
+        Verbose equivalent: `a.ConcatKeepLeft(b)`.  */
     function I_e<U>(other: B<U>): (p: B<R>)
     {
       B(P.ConcatKeepLeft(apply, other.apply))
+    }
+
+    /** `a.ConcatKeepLeft(b)` is the verbose equivalent of `a.I_e(b)` */
+    function ConcatKeepLeft<U>(other: B<U>): (p: B<R>)
+    {
+      I_e(other)
     }
 
     /** `a.I_I(b)` (include include) evaluates `a` on the input, and then  
@@ -150,34 +203,66 @@ abstract module Std.Parsers.Builders {
 
             a.I_I(b).I_I(c)
         
-        will parse a, b, c and return the result of `((a, b), c)`. */
+        will parse a, b, c and return the result of `((a, b), c)`.
+        Verbose equivalent: `a.Concat(b)`. */
     function I_I<U>(other: B<U>): (p: B<(R, U)>)
     {
       B(P.Concat(apply, other.apply))
+    }
+
+    /** `a.Concat(b)` is the verbose equivalent of `a.I_I(b)` */
+    function Concat<U>(other: B<U>): (p: B<(R, U)>)
+    {
+      I_I(other)
     }
 
     /** `a.If(cond)` evaluates `cond` on the input, and then if cond returns a success,  
         evalutes `a` on the original string and returns the result of `a`.  
         If cond evaluates to a failure, returns the same failure
         
-        For example, a.If(b.??()) is a way to test the parser b as a lookahead without committing anything.
+        For example, `a.If(b.??())` is a way to test the parser b as a lookahead without committing anything.
          */
     function If<U>(cond: B<U>): (p: B<R>) {
       B(P.If(cond.apply, apply))
     }
 
     /** `a.M(f)` evaluates `a` on the input, and then if it returns a success,  
-        transforms the value using the function `f`. */
+        transforms the value using the function `f`.
+        Verbose equivalent: `a.Map(f)`. */
     function M<U>(mappingFunc: R -> U): (p: B<U>) {
       B(P.Map(apply, mappingFunc))
     }
 
+    /** `a.Map(f)` is the verbose equivalent of `a.M(f)`. */
+    function Map<U>(mappingFunc: R -> U): (p: B<U>) {
+      M(mappingFunc)
+    }
+
+    /** `a.M2(unfolder, f)` evaluates `a` on the input, and then transforms its result to a pair
+        thanks to unfolder, on which it can apply the mapping function. Short version of `.Map2()`.
+        If the parser returns a pair already, use `Mid()` as built-in unfolder.
+        Verboe equivalent: `a.Map2(unfolder, f)` */
     function M2<R1, R2, U>(unfolder: R -> (R1, R2), mappingFunc: (R1, R2) -> U): (p: B<U>) {
       B(P.Map(apply, (x: R) => var x := unfolder(x); mappingFunc(x.0, x.1)))
     }
 
+    /** `a.Map2(unfolder, f)` is the verbose equivalent of `a.M2(unfolder, f)`.
+        If the parser returns a triplet already, use `MapIdentity()` as built-in unfolder. */
+    function Map2<R1, R2, U>(unfolder: R -> (R1, R2), mappingFunc: (R1, R2) -> U): (p: B<U>) {
+      M2(unfolder, mappingFunc)
+    }
+
+    /** `a.M3(unfolder, f)` evaluates `a` on the input, and then extracts its result to a triplet
+        thanks to unfolder, on which it can apply the mapping function.
+        Verbose equivalent: `a.Map3(unfolder, f)`.
+        If the parser returns a triplet already, use `Mid()` as built-in unfolder. */
     function M3<R1, R2, R3, U>(unfolder: R -> (R1, R2, R3), mappingFunc: (R1, R2, R3) -> U): (p: B<U>) {
       B(P.Map(apply, (x: R) => var x := unfolder(x); mappingFunc(x.0, x.1, x.2)))
+    }
+
+    /** `a.Map3(unfolder, f)` is the verbose equivalent of `a.M3(unfolder, f)`. */
+    function Map3<R1, R2, R3, U>(unfolder: R -> (R1, R2, R3), mappingFunc: (R1, R2, R3) -> U): (p: B<U>) {
+      M3(unfolder, mappingFunc)
     }
 
     /** `a.Then(f)` evaluates `a` on the input, and if it is a success,  
@@ -218,21 +303,30 @@ abstract module Std.Parsers.Builders {
       B(P.Debug(apply, name, onEnter, onExit))
     }
 
-    /** `a.RepFold(init, combine) will consider init as an accumulator, and every time `a` succeeds and parses some input, it will
+    /** `a.RepFold(init, combine)` will consider init as an accumulator, and every time `a` succeeds and parses some input, it will
         combine(init, result) for the new accumulator value.  
-        If `a` fails once while consuming input, it returns the failure. */
+        If `a` fails once while consuming input, it returns the failure.
+        Verbose equivalent: `a.RepeatFold(init, combine)`.
+        */
     function RepFold<A>(init: A, combine: (A, R) -> A): (p: B<A>)
     {
       B(P.Rep(apply, combine, init))
     }
 
+    /** `a.RepeatFold(init, combine)` is the verbose equivalent of `a.RepFold(init, combine)`. */
+    function RepeatFold<A>(init: A, combine: (A, R) -> A): (p: B<A>)
+    {
+      RepFold(init, combine)
+    }
+
     /** `a.RepSep(separator)` returns a sequence of `a` separated by the given separator parser. If the separator parser fails but consumed some input,
-        returns that failure. You might have to suffix your separator with `.??()` if it is a complex separator.
+        returns that failure, you might have to suffix your separator with `.??()` if it is a complex separator.
         `a.RepSep(separator)` is equivalent to
         `a.?().Then(result => if result.None? then Succeed([]) else
           separator.e_I(a).Rep([result.a], (acc, newA) => acc + [newA])
         )`
         but it's optimized to avoid concatenation of a big sequence with a small one.
+        Verbose equivalent: `a.RepeatSeparator(separator)`.
         
         See `.ZeroOrMore()` if you don't need a separator. */
     function RepSep<K>(separator: B<K>): (p: B<seq<R>>)
@@ -240,35 +334,69 @@ abstract module Std.Parsers.Builders {
       B(P.RepSep(apply, separator.apply))
     }
 
+    /** `a.RepeatSeparator(separator)` is the verbose equivalent of `a.RepSep(separator)`  */
+    function RepeatSeparator<K>(separator: B<K>): (p: B<seq<R>>)
+    {
+      RepSep(separator)
+    }
+
     /** `a.RepMerge(merger)` parses `a` as long as possible and applies the merger on the previous result and the new output.
       * If `a` cannot be parsed the first time, does not consume any input and returns a recoverable failure.
+      * Verbose equivalent: `a.RepeatMerge(merger)`
       */
     function RepMerge(merger: (R, R) -> R): (p: B<R>)
     {
       B(P.RepMerge(apply, merger))
     }
 
+    /** `a.RepMerge(merger)` is the verbose equivalent of `.RepMerge()`. */
+    function RepeatMerge(merger: (R, R) -> R): (p: B<R>)
+    {
+      RepMerge(merger)
+    }
+
     /** `a.RepSepMerge(merger)` parses `a` as long as possible and applies the merger on the previous result and the new output,
       * parsing a potential separator in between.
       * If `a` cannot be parsed the first time, does not consume any input and returns a recoverable failure.
-      */
+      * Verbose equivalent: `a.RepeatSeparatorMerge(merger)` */
     function RepSepMerge<K>(separator: B<K>, merger: (R, R) -> R): (p: B<R>)
     {
       B(P.RepSepMerge(apply, separator.apply, merger))
     }
 
+    /** `a.RepeatSeparatorMerge(merger)` is the verbose equivalent of `a.RepSepMerge(merger)` */
+    function RepeatSeparatorMerge<K>(separator: B<K>, merger: (R, R) -> R): (p: B<R>)
+    {
+      RepSepMerge(separator, merger)
+    }
+
     /** `a.Rep()` keeps parsing `a` as long as the parser consumes some input. It returns a sequence of the parse results.
-      * If returns a failure only if `a` returns a failure that partially parsed the input, or in case of a fatal error. */
+      * If returns a failure only if `a` returns a failure that partially parsed the input, or in case of a fatal error.
+      * Verbose equivalent: `a.Repeat()`. */
     function Rep(): (p: B<seq<R>>)
     {
       B(P.ZeroOrMore(apply))
     }
 
+    /** `a.Repeat()` is the verbose equivalent of `a.Rep()`. */
+    function Repeat(): (p: B<seq<R>>)
+    {
+      Rep()
+    }
+
     /** `a.Rep1()` keeps parsing `a` as long as the parser consumes some input. It returns a sequence of the parse results.
-      * If returns a failure only if `a` does not parse at the beginning (even if it did not consume any input), or `a` returns a failure that partially parsed the input, or in case of a fatal error. */
+      * If returns a failure only if `a` does not parse at the beginning (even if it did not consume any input), or `a` returns a failure that partially parsed the input, or in case of a fatal error.
+      * Verbose equivalent: `a.RepeatAtLeastOnce()`
+      */
     function Rep1(): (p: B<seq<R>>)
     {
       B(P.OneOrMore(apply))
+    }
+
+    /** `a.RepeatAtLeastOnce()` is the verbose equivalent of  `a.Rep1()` */
+    function RepeatAtLeastOnce(): (p: B<seq<R>>)
+    {
+      Rep1()
     }
 
     /** `a.End()` uses the parser `a` with the assertion that there is no input remaining afterwards, otherwise it fails with a recoverable error.
@@ -284,6 +412,7 @@ abstract module Std.Parsers.Builders {
       If `a` fails and consumed some input, returns that error.
       If `a` fails but did not consume any input, continues parsing `b` and so on.
       If none of the alternatives parse the input, builds a more complex failure message indicating what each sub-parser was expecting.
+      Verbose equivalent: `Or([a, b, ...])`
   */
   function O<R>(alternatives: seq<B<R>>): B<R>
     // Declares a set of alternatives as a single list
@@ -294,8 +423,18 @@ abstract module Std.Parsers.Builders {
       B(P.Or(alternatives[0].apply, O(alternatives[1..]).apply))
   }
 
-  /** `End` succeeds only on an empty string (i.e. the end of the input). */
+  /** `Or([a, b, ...])` is the verbose equivalent of `O([a, b, ...])`. */
+  function Or<R>(alternatives: seq<B<R>>): B<R>
+  {
+    O(alternatives)
+  }
+
+  /** `EOS` succeeds only on an empty string (i.e. the end of the input). */
   const EOS: B<()> := B(P.EndOfString())
+
+
+  /** `EndOfString` is the verbose equivalent of `EOS` */
+  const EndOfString: B<()> := EOS
 
   /** `CharTest(test, name)` tests if the next char of the input satisfies the test, and if so, succeeds with the character.
       On failure, returns an error message like "expected a {name}" */
@@ -322,6 +461,8 @@ abstract module Std.Parsers.Builders {
       and it will explain
 
           Error: no progress in recursive parser
+    
+    Verbose equivalent: Recursive(underlying)
   */
   opaque function Rec<R(!new)>(
     underlying: B<R> -> B<R>
@@ -330,6 +471,14 @@ abstract module Std.Parsers.Builders {
     B(P.Recursive(
         (p: P.Parser<R>) =>
           underlying(B(p)).apply))
+  }
+
+  /** `Recursive(underlying)` is the verbose equivalent of `Rec(underlying)` */
+  opaque function Recursive<R(!new)>(
+    underlying: B<R> -> B<R>
+  ): B<R>
+  {
+    Rec(underlying)
   }
 
   function InputLength(input: Input): nat {
@@ -377,6 +526,14 @@ abstract module Std.Parsers.Builders {
   ): B<R>
   {
     B((input: Input) => RecNoStack_(underlying, underlying, input, input, []))
+  }
+
+  /** `RecursiveNoStack(underlying)` is the verbose equivalent of `RecNoStack(underlying)` */
+  function RecursiveNoStack<R(!new)>(
+    underlying: B<RecNoStackResult<R>>
+  ): B<R>
+  {
+    RecNoStack(underlying)
   }
 
   /** Tail-recursive auxiliary function for RecursiveNoStack() */
@@ -476,7 +633,7 @@ abstract module Std.Parsers.Builders {
   */
   opaque function RecMap<R(!new)>(
     underlying: map<string, RecMapDef<R>>,
-    fun: string): (p: B<R>)
+    startFun: string): (p: B<R>)
   {
     B(P.RecursiveMap(
         map k <- underlying ::
@@ -488,7 +645,15 @@ abstract module Std.Parsers.Builders {
                 (name: string) =>
                   B(selector(name))
               ).apply),
-        fun
+        startFun
       ))
+  }
+
+  /** `RecursiveMap(underlying, startFun)` is the verbose equivalent of `RecMap(underlying, startFun)` */
+  opaque function RecursiveMap<R(!new)>(
+    underlying: map<string, RecMapDef<R>>,
+    startFun: string): (p: B<R>)
+  {
+    RecMap(underlying, startFun)
   }
 }
