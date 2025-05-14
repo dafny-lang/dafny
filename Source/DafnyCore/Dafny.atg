@@ -524,6 +524,7 @@ ClassDecl<DeclModifierData dmodClass, ModuleDefinition/*!*/ module, out TopLevel
      Token bodyStart;
      CheckDeclModifiers(ref dmodClass, "class", AllowedDeclModifiers.None);
      DeclModifierData dmod;
+     List<AttributedExpression> invariants = new List<AttributedExpression>();
   .)
   SYNC
   "class" (. CheckAndSetTokenOnce(ref dmodClass.FirstTokenExceptAttributes); .)
@@ -536,13 +537,14 @@ ClassDecl<DeclModifierData dmodClass, ModuleDefinition/*!*/ module, out TopLevel
   SYNC
   "{"                                            (. bodyStart = t;  .)
     {
-      (. dmod = new DeclModifierData(); .)
+      ((. dmod = new DeclModifierData(); .)
       AtAttributes<ref dmod.Attributes>
       { DeclModifier<ref dmod> }
-      ClassMemberDecl<dmod, members, true, false>
+      ClassMemberDecl<dmod, members, true, false>)
+      | InvariantClause<invariants>
     }
   "}"
-  (. c = new ClassDecl(new SourceOrigin(dmodClass.FirstToken, t, name.ReportingRange), name, dmodClass.Attributes, typeArgs, module, members, parentTraits, isRefining);
+  (. c = new ClassDecl(new SourceOrigin(dmodClass.FirstToken, t, name.ReportingRange), name, dmodClass.Attributes, typeArgs, module, members, parentTraits, isRefining, invariants);
      c.BodyStartTok = bodyStart;
   .)
   .
@@ -575,6 +577,7 @@ TraitDecl<DeclModifierData dmodIn, ModuleDefinition/*!*/ module, out TraitDecl/*
      List<MemberDecl/*!*/> members = new List<MemberDecl/*!*/>();
      Token bodyStart;
      DeclModifierData dmod;
+     List<AttributedExpression> invariants = new List<AttributedExpression>();
   .)
   SYNC
   "trait"                       (. CheckAndSetTokenOnce(ref dmodIn.FirstTokenExceptAttributes); .)
@@ -585,13 +588,14 @@ TraitDecl<DeclModifierData dmodIn, ModuleDefinition/*!*/ module, out TraitDecl/*
   | ellipsis                    (. isRefining = true; .)
   ]
   "{"                                            (. bodyStart = t; .)
-    { (. dmod = new DeclModifierData(); .)
+    { ((. dmod = new DeclModifierData(); .)
       AtAttributes<ref dmod.Attributes>
       { DeclModifier<ref dmod> }
-      ClassMemberDecl<dmod, members, true, false>
+      ClassMemberDecl<dmod, members, true, false>)
+      | InvariantClause<invariants>
     }
   "}"
-  (. trait = new TraitDecl(new SourceOrigin(dmodIn.FirstToken, t, name.ReportingRange), name, module, typeArgs, members, dmodIn.Attributes, isRefining, parentTraits);
+  (. trait = new TraitDecl(new SourceOrigin(dmodIn.FirstToken, t, name.ReportingRange), name, module, typeArgs, members, dmodIn.Attributes, isRefining, parentTraits, invariants);
      trait.BodyStartTok = bodyStart;
     .)
   .

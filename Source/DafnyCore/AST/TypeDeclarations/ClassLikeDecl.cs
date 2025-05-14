@@ -24,16 +24,19 @@ public abstract class ClassLikeDecl : TopLevelDeclWithMembers, RevealableTypeDec
   public TopLevelDecl AsTopLevelDecl => this;
   public TypeDeclSynonymInfo SynonymInfo { get; set; }
 
+  public List<AttributedExpression> Invariants { get; }
+
   [SyntaxConstructor]
   protected ClassLikeDecl(IOrigin origin, Name nameNode, Attributes attributes,
     List<TypeParameter> typeArgs, ModuleDefinition enclosingModuleDefinition,
-    [Captured] List<MemberDecl> members, List<Type> traits)
+    [Captured] List<MemberDecl> members, List<Type> traits, List<AttributedExpression> invariants)
     : base(origin, nameNode, enclosingModuleDefinition, typeArgs, members, attributes, traits) {
     Contract.Requires(origin != null);
     Contract.Requires(nameNode != null);
     Contract.Requires(enclosingModuleDefinition != null);
     Contract.Requires(cce.NonNullElements(typeArgs));
     Contract.Requires(cce.NonNullElements(members));
+   Invariants = invariants;
   }
 
   public virtual bool SetIndent(int indentBefore, TokenNewIndentCollector formatter) {

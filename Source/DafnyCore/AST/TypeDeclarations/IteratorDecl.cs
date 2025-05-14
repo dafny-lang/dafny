@@ -39,7 +39,7 @@ public class IteratorDecl : ClassDecl, IMethodCodeContext, ICanVerify, ICodeCont
     List<AttributedExpression> yieldRequires,
     List<AttributedExpression> yieldEnsures,
     BlockStmt body, Attributes attributes, IOrigin signatureEllipsis)
-    : base(origin, nameNode, attributes, typeArgs, enclosingModule, [], null, signatureEllipsis != null) {
+    : base(origin, nameNode, attributes, typeArgs, enclosingModule, [], null, signatureEllipsis != null, new()) {
     Contract.Requires(origin != null);
     Contract.Requires(nameNode != null);
     Contract.Requires(enclosingModule != null);
