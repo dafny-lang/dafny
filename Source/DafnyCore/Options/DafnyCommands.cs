@@ -105,7 +105,8 @@ public static class DafnyCommands {
     Method.ReadsClausesOnMethods,
     CommonOptionBag.UseStandardLibraries,
     CommonOptionBag.LogLevelOption,
-    CommonOptionBag.LogLocation
+    CommonOptionBag.LogLocation,
+    CommonOptionBag.CheckSourceLocationConsistency
   });
 
   public static IReadOnlyList<Option> ResolverOptions = new List<Option>(new Option[] {

@@ -14,6 +14,11 @@ public class CommonOptionBag {
 
   public static void EnsureStaticConstructorHasRun() { }
 
+  public static readonly Option<bool> CheckSourceLocationConsistency =
+    new("--check-source-location-consistency", "Check that parent nodes contain their children") {
+      IsHidden = true
+    };
+
   public enum ProgressLevel { None, Symbol, Batch }
   public static readonly Option<ProgressLevel> ProgressOption =
     new("--progress", $"While verifying, output information that helps track progress. " +
@@ -689,6 +694,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
     OptionRegistry.RegisterOption(PrintDiagnosticsRanges, OptionScope.Cli);
     OptionRegistry.RegisterOption(WaitForDebugger, OptionScope.Cli);
     OptionRegistry.RegisterOption(IgnoreIndentation, OptionScope.Cli);
+    OptionRegistry.RegisterOption(CheckSourceLocationConsistency, OptionScope.Cli);
   }
 }
 

@@ -232,6 +232,10 @@ public class Compilation : IDisposable {
     }
 
     var parseResult = await documentLoader.ParseAsync(this, cancellationSource.Token);
+    if (Options.Get(CommonOptionBag.CheckSourceLocationConsistency)) {
+      CheckSourceLocationConsistency(null, parseResult.Program);
+    }
+
     transformedProgram = parseResult.Program;
     transformedProgram.HasParseErrors = HasErrors;
 
@@ -242,6 +246,17 @@ public class Compilation : IDisposable {
     logger.LogDebug(
       $"Passed parsedCompilation to documentUpdates.OnNext, resolving ParsedCompilation task for version {Input.Version}.");
     return programAfterParsing;
+  }
+
+  private void CheckSourceLocationConsistency(TokenRange? containerRange, INode node) {
+    var nodeRange = node.EntireRange;
+    if (containerRange != null && nodeRange.Uri != null && !containerRange.Contains(nodeRange)) {
+      throw new Exception($"Parent node range {containerRange} did not contain child node range {nodeRange}");
+    }
+
+    foreach (var child in node.PreResolveChildren) {
+      CheckSourceLocationConsistency(node.Origin.Uri == null ? containerRange : nodeRange, child);
+    }
   }
 
   private async Task<ResolutionResult?> ResolveAsync() {
