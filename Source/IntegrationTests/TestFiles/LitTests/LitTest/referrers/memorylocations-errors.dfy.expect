@@ -1,0 +1,10 @@
+memorylocations-errors.dfy(10,11): Error: index 0 out of range
+memorylocations-errors.dfy(14,15): Error: index out of range
+memorylocations-errors.dfy(14,15): Error: insufficient reads clause to read array element; Consider adding 'reads a' in the enclosing function specification for resolution
+memorylocations-errors.dfy(23,3): Error: assignment might update an array element not in the enclosing context's modifies clause
+memorylocations-errors.dfy(28,20): Error: index 0 out of range
+memorylocations-errors.dfy(29,21): Error: index 0 out of range
+memorylocations-errors.dfy(34,20): Error: index 0 out of range
+memorylocations-errors.dfy(34,23): Error: index 1 out of range
+
+Dafny program verifier finished with 1 verified, 8 errors
