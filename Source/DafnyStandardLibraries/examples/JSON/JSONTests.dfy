@@ -97,6 +97,8 @@ module MainTests {
   import ZeroCopyWrapper
   import AbstractSyntaxWrapper
   import opened Std.Collections.Seq
+  import Std.JSON.Spec
+  import opened Std.BoundedInts
 
   const VECTORS := [
     "true",
@@ -118,7 +120,7 @@ module MainTests {
     "  true  ",
     " {  } ",
     "\"\\t\\r\\n\\f\"",
-    "\"∀ABC // \\u2200ABC\"", // ∀
+    "\"∀ABC // ABC\\u2200\"", // ∀
     "\"🇫🇷 // \\u1f1eb\\u1f1EBABC\"", // 🇫🇷
 
     "[true, false , null, { \"some\" : \"string\", \"and\": [ \"a number\", -123.456e-18 ] } ]  ",
@@ -134,5 +136,10 @@ module MainTests {
   method Main() {
     ZeroCopyWrapper.TestStrings(VECTORS);
     AbstractSyntaxWrapper.TestStrings(VECTORS);
+  }
+
+  @Test
+  method SpecTest() {
+    expect Spec.EscapeUnicode(7) == ['0' as uint16, '0' as uint16, '0' as uint16, '7' as uint16];
   }
 }
