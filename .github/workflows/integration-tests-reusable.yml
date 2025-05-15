@@ -178,7 +178,7 @@ jobs:
         DAFNY_RELEASE: ${{ github.workspace }}\unzippedRelease\dafny
         DAFNY_INTEGRATION_TESTS_ONLY_COMPILERS: ${{ inputs.compilers }}
       run: |
-        cmd /c mklink $DAFNY_RELEASE\z3\bin\z3-4.12.1 $DAFNY_RELEASE\z3\bin\z3-4.12.1.exe
+        cmd /c mklink ${{ env.DAFNY_RELEASE }}\z3\bin\z3-4.12.1 ${{ env.DAFNY_RELEASE }}\z3\bin\z3-4.12.1.exe
         dotnet test --logger trx --logger "console;verbosity=normal" --collect:"XPlat Code Coverage" --settings dafny/Source/IntegrationTests/coverlet.runsettings dafny/Source/IntegrationTests/IntegrationTests.csproj
     - name: Generate tests (non-Windows)
       ## This step creates lit tests from examples in documentation
