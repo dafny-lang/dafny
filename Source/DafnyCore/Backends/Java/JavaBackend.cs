@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.CommandLine;
+using System.Diagnostics;
 using System.Diagnostics.Contracts;
 using System.IO;
 using System.Linq;
@@ -68,6 +69,16 @@ for backwards compatibility with Java code generated with Dafny versions earlier
     outStream.Close();
   }
 
+  private ProcessStartInfo PrepareProcessStartInfo(IEnumerable<string> files, out string tempFilePath) {
+    tempFilePath = Path.GetTempFileName();
+
+    // Wrap each filename in quotes to handle spaces
+    var quotedFiles = files.Select(f => $"\"{f.Replace(@"\", @"\\")}\"");
+    File.WriteAllLines(tempFilePath, quotedFiles);
+
+    return new ProcessStartInfo("javac", $"-encoding UTF8 @{tempFilePath}");
+  }
+
   public override async Task<(bool Success, object CompilationResult)> CompileTargetProgram(string dafnyProgramName,
     string targetProgramText,
     string callToMain /*?*/, string targetFilename, /*?*/
@@ -90,43 +101,52 @@ for backwards compatibility with Java code generated with Dafny versions earlier
     }
 
     // Compile the generated source to .class files, adding the output directory to the classpath
-    var compileProcess = PrepareProcessStartInfo("javac", new List<string> { "-encoding", "UTF8" }.Concat(files));
+    var compileProcess = PrepareProcessStartInfo(files, out var tempFilePath);
     compileProcess.WorkingDirectory = Path.GetFullPath(Path.GetDirectoryName(targetFilename));
     compileProcess.EnvironmentVariables["CLASSPATH"] = GetClassPath(targetFilename);
-    if (0 != await RunProcess(compileProcess, outputWriter, outputWriter, "Error while compiling Java files.")) {
-      return (false, null);
-    }
+    try {
+      if (0 != await RunProcess(compileProcess, outputWriter, outputWriter, "Error while compiling Java files.")) {
+        return (false, null);
+      }
 
-    var classFiles = Directory.EnumerateFiles(targetDirectory, "*.class", SearchOption.AllDirectories)
+      var classFiles = Directory.EnumerateFiles(targetDirectory, "*.class", SearchOption.AllDirectories)
         .Select(file => Path.GetRelativePath(targetDirectory, file)).ToList();
 
-    var simpleProgramName = Path.GetFileNameWithoutExtension(targetFilename);
-    var jarPath = Path.GetFullPath(Path.ChangeExtension(dafnyProgramName, ".jar"));
-    if (!await CreateJar(callToMain == null ? null : simpleProgramName,
-                   jarPath,
-                   Path.GetFullPath(Path.GetDirectoryName(targetFilename)),
-                   classFiles,
-                   outputWriter)) {
-      return (false, null);
-    }
+      var simpleProgramName = Path.GetFileNameWithoutExtension(targetFilename);
+      var jarPath = Path.GetFullPath(Path.ChangeExtension(dafnyProgramName, ".jar"));
+      if (!await CreateJar(callToMain == null ? null : simpleProgramName,
+            jarPath,
+            Path.GetFullPath(Path.GetDirectoryName(targetFilename)),
+            classFiles,
+            outputWriter)) {
+        return (false, null);
+      }
 
-    // Keep the build artifacts if --spill-translation is true
-    // But keep them for legacy CLI so as not to break old behavior
-    if (Options.UsingNewCli) {
-      if (Options.SpillTargetCode == 0) {
-        Directory.Delete(targetDirectory, true);
-      } else {
-        classFiles.ForEach(f => File.Delete(Path.Join(targetDirectory, f)));
+      // Keep the build artifacts if --spill-translation is true
+      // But keep them for legacy CLI so as not to break old behavior
+      if (Options.UsingNewCli) {
+        if (Options.SpillTargetCode == 0) {
+          Directory.Delete(targetDirectory, true);
+        } else {
+          classFiles.ForEach(f => File.Delete(Path.Join(targetDirectory, f)));
+        }
+      }
+
+      if (Options.Verbose) {
+        // For the sake of tests, just write out the filename and not the directory path
+        var fileKind = callToMain != null ? "executable" : "library";
+        await outputWriter.WriteLineAsync($"Wrote {fileKind} jar {Path.GetFileName(jarPath)}");
+      }
+
+      return (true, null);
+    }
+    finally {
+      try {
+        File.Delete(tempFilePath);
+      } catch (Exception) {
+        // ignore
       }
     }
-
-    if (Options.Verbose) {
-      // For the sake of tests, just write out the filename and not the directory path
-      var fileKind = callToMain != null ? "executable" : "library";
-      await outputWriter.WriteLineAsync($"Wrote {fileKind} jar {Path.GetFileName(jarPath)}");
-    }
-
-    return (true, null);
   }
 
 
