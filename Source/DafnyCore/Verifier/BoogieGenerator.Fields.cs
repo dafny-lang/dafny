@@ -10,9 +10,6 @@ using PODesc = Microsoft.Dafny.ProofObligationDescription;
 
 namespace Microsoft.Dafny {
   public partial class BoogieGenerator {
-
-
-
     Bpl.Constant GetField(Field f) {
       Contract.Requires(f != null && f.IsMutable);
       Contract.Requires(sink != null && Predef != null);
@@ -24,9 +21,10 @@ namespace Microsoft.Dafny {
       if (fields.TryGetValue(f, out fc)) {
         Contract.Assert(fc != null);
       } else {
-        // const f: Field ty;
+        // const f: Field;
         Bpl.Type ty = Predef.FieldName(f.Origin);
-        fc = new Bpl.Constant(f.Origin, new Bpl.TypedIdent(f.Origin, f.FullSanitizedName, ty), false);
+        var requireUnicityOfFields = Options.Get(CommonOptionBag.Referrers);
+        fc = new Bpl.Constant(f.Origin, new Bpl.TypedIdent(f.Origin, f.FullSanitizedName, ty), requireUnicityOfFields);
         fields.Add(f, fc);
         // axiom FDim(f) == 0 && FieldOfDecl(C, name) == f &&
         //       $IsGhostField(f);    // if the field is a ghost field
@@ -39,6 +37,9 @@ namespace Microsoft.Dafny {
         cond = BplAnd(cond, f.IsGhost ? ig : Bpl.Expr.Not(ig));
         Bpl.Axiom ax = new Bpl.Axiom(f.Origin, cond);
         AddOtherDefinition(fc, ax);
+        if (f is SpecialField { EnclosingMethod: not null }) {
+          sink.AddTopLevelDeclaration(fc);
+        }
       }
       return fc;
     }
