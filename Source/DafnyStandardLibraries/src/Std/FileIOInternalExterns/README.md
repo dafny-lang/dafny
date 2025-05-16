@@ -1,1 +1,0 @@
-Everything before and including the path `FileIOInternalExterns/` is removed when importing these extern files into a project
