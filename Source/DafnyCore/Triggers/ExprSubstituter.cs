@@ -100,20 +100,14 @@ namespace Microsoft.Dafny {
         additionalBoundedPools = previousAdditionalBoundedPools;
         guardExpressions = previousGuardExpressions;
         return newExpr;
-      } else if (expr is BinaryExpr { Op: BinaryExpr.Opcode.And or BinaryExpr.Opcode.Or or BinaryExpr.Opcode.Imp or BinaryExpr.Opcode.Exp } binaryExpr) {
+      } else if (expr is BinaryExpr {
+        ResolvedOp: BinaryExpr.ResolvedOpcode.Add or BinaryExpr.ResolvedOpcode.Or or BinaryExpr.ResolvedOpcode.Imp
+      } binaryExpr) {
         Contract.Assert(guardExpressions != null);
-        Expression e0, e1;
-        if (binaryExpr.Op != BinaryExpr.Opcode.Exp) {
-          e0 = Substitute(binaryExpr.E0);
-          guardExpressions.Push(e0);
-          e1 = Substitute(binaryExpr.E1);
-          guardExpressions.Pop();
-        } else {
-          e1 = Substitute(binaryExpr.E1);
-          guardExpressions.Push(e1);
-          e0 = Substitute(binaryExpr.E0);
-          guardExpressions.Pop();
-        }
+        var e0 = Substitute(binaryExpr.E0);
+        guardExpressions.Push(e0);
+        var e1 = Substitute(binaryExpr.E1);
+        guardExpressions.Pop();
 
         if (e0 != binaryExpr.E0 || e1 != binaryExpr.E1) {
           expr = new BinaryExpr(expr.Origin, binaryExpr.Op, e0, e1) {
@@ -121,6 +115,7 @@ namespace Microsoft.Dafny {
             Type = binaryExpr.Type
           };
         }
+
         return expr;
       } else if (expr is ITEExpr iteExpr) {
         Contract.Assert(guardExpressions != null);
