@@ -646,9 +646,9 @@ namespace Microsoft.Dafny {
     }
 
     bool HaveCommonSuperPreType(DPreType t, DPreType u) {
-      return PreTypeConstraints.MeetHeads(t.Decl, u.Decl, resolver.SystemModuleManager) is not null && Supertype(t, u);
+      return PreTypeConstraints.MeetHeads(t.Decl, u.Decl, resolver.SystemModuleManager) is not null && ComparablePretypes(t, u);
 
-      bool Supertype(DPreType t, DPreType u) {
+      bool ComparablePretypes(DPreType t, DPreType u) {
         var joined = PreTypeConstraints.JoinHeads(t.Decl, u.Decl, resolver.SystemModuleManager);
 
         if (joined is null) {
@@ -666,7 +666,7 @@ namespace Microsoft.Dafny {
             return false;
           }
 
-          if (!Supertype(tt, uu)) {
+          if (!ComparablePretypes(tt, uu)) {
             return false;
           }
         }
