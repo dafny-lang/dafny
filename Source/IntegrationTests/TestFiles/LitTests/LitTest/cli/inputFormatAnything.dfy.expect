@@ -1,3 +1,4 @@
-inputFormatAnything.dfy(12,11): Warning: Argument to 'old' does not dereference the mutable heap, so this use of 'old' has no effect
+inputFormatAnything.dfy(13,11): Warning: Argument to 'old' does not dereference the mutable heap, so this use of 'old' has no effect
 
 Dafny program verifier did not attempt verification
+Encountered internal compilation exception: Parent node range Microsoft.Dafny.TokenRange did not contain child node range Microsoft.Dafny.TokenRange
