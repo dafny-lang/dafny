@@ -64,6 +64,11 @@ namespace Microsoft.Dafny {
             fieldDeclaration = GetReadonlyField(f);
             fuelContext = oldFuelContext;
             currentModule = null;
+            if (Options.Get(CommonOptionBag.Referrers)) {
+              // A constant is also treated as a memory location
+              fieldDeclaration = GetField(f);
+              sink.AddTopLevelDeclaration(fieldDeclaration);
+            }
           } else {
             if (f.IsMutable) {
               fieldDeclaration = GetField(f);
@@ -651,7 +656,7 @@ namespace Microsoft.Dafny {
         var modifies = m.Mod;
         var allowsAllocation = m.AllowsAllocation;
 
-        ApplyModifiesEffect(m, etran, builder, modifies, allowsAllocation, m.IsGhost);
+        ApplyModifiesEffect(m, etran.Old, etran, builder, modifies, allowsAllocation, m.IsGhost);
       }
 
       // also play havoc with the out parameters
@@ -688,12 +693,14 @@ namespace Microsoft.Dafny {
       return stmts;
     }
 
-    public void ApplyModifiesEffect(INode node, ExpressionTranslator etran, BoogieStmtListBuilder builder,
+    public void ApplyModifiesEffect(INode node, ExpressionTranslator beforeBlockExpressionTranslator,
+      ExpressionTranslator etran, BoogieStmtListBuilder builder,
       Specification<FrameExpression> modifies, bool allowsAllocation, bool isGhostContext) {
       // play havoc with the heap according to the modifies clause
       builder.Add(new Boogie.HavocCmd(node.Origin, [etran.HeapCastToIdentifierExpr]));
       // assume the usual two-state boilerplate information
-      foreach (BoilerplateTriple tri in GetTwoStateBoilerplate(node.Origin, modifies.Expressions, isGhostContext, allowsAllocation, etran.Old, etran, etran.Old)) {
+      foreach (BoilerplateTriple tri in GetTwoStateBoilerplate(node.Origin, modifies.Expressions, isGhostContext,
+                 allowsAllocation, beforeBlockExpressionTranslator, etran, beforeBlockExpressionTranslator)) {
         if (tri.IsFree) {
           builder.Add(TrAssumeCmd(node.Origin, tri.Expr));
         }

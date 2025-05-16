@@ -2229,8 +2229,52 @@ namespace Microsoft.Dafny {
       Contract.Requires(Predef != null);
       Contract.Requires(receiverReplacement == null || substMap != null);
       Contract.Ensures(Contract.Result<Bpl.Expr>() != null);
-      var boxO = FunctionCall(tok, BuiltinFunction.Box, null, o);
+      var boxO = Box(tok, o);
       return InRWClause_Aux(tok, o, boxO, f, rw, useInUnchanged, etran, receiverReplacement, substMap);
+    }
+
+    private NAryExpr Box(IOrigin tok, Expr o) {
+      return FunctionCall(tok, BuiltinFunction.Box, null, o);
+    }
+
+    private bool ReferrersEnabled(Type elemType) {
+      return Options.Get(CommonOptionBag.Referrers) && elemType.AsDatatype is TupleTypeDecl { Dims: 2 };
+    }
+
+    private bool ShouldExtractObjectFromMemoryLocation(Type elemType, Expr f) {
+      return ReferrersEnabled(elemType) && f == null;
+    }
+
+    private void PairWithField(IOrigin tok, ref Expr o, ref Expr boxO, Expr f) {
+      o = new NAryExpr(tok, new Bpl.FunctionCall(Predef.Tuple2Constructor), [boxO, Box(tok, f)]);
+      boxO = Box(tok, o);
+    }
+
+    private bool ContainsFieldLocation(Type type) {
+      return type switch {
+        SetType setType => ReferrersEnabled(setType.Arg),
+        SeqType seqType => ReferrersEnabled(seqType.Arg),
+        MultiSetType multiSetType => ReferrersEnabled(multiSetType.Arg),
+        _ => ReferrersEnabled(type)
+      };
+    }
+
+    // From an expression that contains a memory location like o`f, extracts the object (first component of the tuple)
+    Bpl.Expr MaybeExtractObjectFromMemoryLocation(IOrigin tok, Bpl.Expr xb, Type elemType, Bpl.Expr f, ExpressionTranslator etran) {
+      if (ShouldExtractObjectFromMemoryLocation(elemType, f)) {
+        return ExtractObjectFromMemoryLocation(tok, xb, elemType, etran);
+      }
+
+      return xb;
+    }
+
+    private Expr ExtractObjectFromMemoryLocation(IOrigin tok, Expr xb, Type elemType, ExpressionTranslator etran) {
+      return etran.TrExpr(new MemberSelectExpr(tok, new BoogieWrapper(xb, elemType),
+        program.SystemModuleManager.TupleType(tok, 2, false).Ctors[0].Destructors[0]));
+    }
+
+    private Func<Expr, Expr> ExtractObjectFromMemoryLocationCallback(IOrigin tok, Type elemType, ExpressionTranslator etran) {
+      return (Expr xb) => ExtractObjectFromMemoryLocation(tok, xb, elemType, etran);
     }
 
     /// <summary>
@@ -2257,12 +2301,32 @@ namespace Microsoft.Dafny {
       Bpl.Expr disjunction = Bpl.Expr.False;
       foreach (FrameExpression rwComponent in rw) {
         Expression e = rwComponent.E;
+        var field = rwComponent.Field;
+
+        if (f == null) {
+          e = e switch {
+            // Field granularity
+            IndexFieldLocationExpression { Lhs: var lhs } => lhs,
+            FieldLocationExpression { Lhs: var lhs2 } => lhs2,
+            _ => e
+          };
+        }
         if (substMap != null) {
           e = Substitute(e, receiverReplacement, substMap);
         }
 
         Bpl.Expr disjunct;
+        // We revert back to the previous handling for backward compatibility and avoiding triggers
+        if (e is FieldLocationExpression fle && f != null) {
+          Contract.Assert(rwComponent.Field == null);
+          field = fle.ResolvedField;
+          e = fle.Lhs;
+        }
         var eType = e.Type.NormalizeToAncestorType();
+        if (ContainsFieldLocation(eType) && f != null) {
+          PairWithField(tok, ref o, ref boxO, f);
+        }
+
         if (e is WildcardExpr) {
           // For /allocated:{0,1,3}, "function f(...)... reads *"
           // is more useful if "reads *" excludes unallocated references,
@@ -2273,27 +2337,32 @@ namespace Microsoft.Dafny {
           // this issue.
           disjunct = etran.IsAlloced(tok, o);
         } else if (eType is SetType setType) {
+
           // e[Box(o)]
           bool pr;
-          disjunct = etran.TrInSet_Aux(tok, o, boxO, e, setType.Finite, true, out pr);
-        } else if (eType is MultiSetType) {
+          disjunct = etran.TrInSet_Aux(tok, o, boxO, e, setType.Finite, true, out pr,
+            ShouldExtractObjectFromMemoryLocation(setType.Arg, f) ? ExtractObjectFromMemoryLocationCallback(tok, setType.Arg, etran) : null);
+        } else if (eType is MultiSetType multisetType) {
           // e[Box(o)] > 0
           disjunct = etran.TrInMultiSet_Aux(tok, o, boxO, e, true);
-        } else if (eType is SeqType) {
+        } else if (eType is SeqType seqType) {
           // (exists i: int :: 0 <= i && i < Seq#Length(e) && Seq#Index(e,i) == Box(o))
           Bpl.Variable iVar = new Bpl.BoundVariable(tok, new Bpl.TypedIdent(tok, "$i", Bpl.Type.Int));
           Bpl.Expr i = new Bpl.IdentifierExpr(tok, iVar);
           Bpl.Expr iBounds = InSeqRange(tok, i, Type.Int, etran.TrExpr(e), true, null, false);
           Bpl.Expr XsubI = FunctionCall(tok, BuiltinFunction.SeqIndex, Predef.BoxType, etran.TrExpr(e), i);
+          XsubI = MaybeExtractObjectFromMemoryLocation(tok, XsubI, seqType.Arg, f, etran);
           // TODO: the equality in the next line should be changed to one that understands extensionality
           //TRIG (exists $i: int :: 0 <= $i && $i < Seq#Length(read($h0, this, _module.DoublyLinkedList.Nodes)) && Seq#Index(read($h0, this, _module.DoublyLinkedList.Nodes), $i) == $Box($o))
+
+
           disjunct = new Bpl.ExistsExpr(tok, [iVar], BplAnd(iBounds, Bpl.Expr.Eq(XsubI, boxO)));  // LL_TRIGGER
         } else {
           // o == e
-          disjunct = Bpl.Expr.Eq(o, etran.TrExpr(e));
+          disjunct = Bpl.Expr.Eq(o, MaybeExtractObjectFromMemoryLocation(tok, etran.TrExpr(e), e.Type, f, etran));
         }
-        if (rwComponent.Field != null && f != null) {
-          Bpl.Expr q = Bpl.Expr.Eq(f, new Bpl.IdentifierExpr(rwComponent.E.Origin, GetField(rwComponent.Field)));
+        if (field != null && f != null) {
+          Bpl.Expr q = Bpl.Expr.Eq(f, new Bpl.IdentifierExpr(rwComponent.E.Origin, GetField(field)));
           if (usedInUnchanged) {
             q = BplOr(q,
               Bpl.Expr.Eq(f, new Bpl.IdentifierExpr(rwComponent.E.Origin, Predef.AllocField)));
@@ -2956,7 +3025,7 @@ namespace Microsoft.Dafny {
         bool objectGranularity = !fieldGranularity;
         // the frame condition, which is free since it is checked with every heap update and call
         boilerplate.Add(new BoilerplateTriple(tok, true, FrameCondition(tok, modifiesClause, canAllocate, FrameExpressionUse.Modifies, etranPre, etran, etranMod, objectGranularity), null, null, "frame condition: object granularity"));
-        if (modifiesClause.Exists(fe => fe.FieldName != null)) {
+        if (modifiesClause.Exists(fe => fe.FieldName != null || ContainsFieldLocation(fe.E.Type))) {
           boilerplate.Add(new BoilerplateTriple(tok, true, FrameCondition(tok, modifiesClause, canAllocate, FrameExpressionUse.Modifies, etranPre, etran, etranMod, fieldGranularity), null, null, "frame condition: field granularity"));
         }
         // HeapSucc(S1, S2) or HeapSuccGhost(S1, S2)
@@ -3696,6 +3765,8 @@ namespace Microsoft.Dafny {
         return new Bpl.IdentifierExpr(Token.NoToken, "TORDINAL", Predef.Ty);
       } else if (type is ParamTypeProxy) {
         return TrTypeParameter(((ParamTypeProxy)type).orig);
+      } else if (type is FieldType) {
+        return new Bpl.IdentifierExpr(Token.NoToken, "TField", Predef.Ty);
       } else {
         Contract.Assert(false); throw new cce.UnreachableException();  // unexpected type
       }

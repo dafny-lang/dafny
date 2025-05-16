@@ -225,7 +225,7 @@ public class RemoveShortCircuitingRewriter : Cloner {
   }
 
   private Statement CloneCallStmt(CallStmt callStmt) {
-    return new CallStmt(callStmt.Origin, CloneExpressionList(callStmt.Lhs), callStmt.MethodSelect, CloneExpressionList(callStmt.Args));
+    return new CallStmt(callStmt.Origin, CloneExpressionList(callStmt.Lhs), callStmt.MethodSelect, CloneExpressionList(callStmt.Args), callStmt.MethodSelect.EndToken.Next.ReportingRange);
   }
 
   private Statement CloneNestedMatchStmt(NestedMatchStmt nestedMatchStatement) {

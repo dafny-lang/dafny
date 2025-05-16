@@ -254,13 +254,13 @@ namespace DafnyCompilerRustUtils {
         })), ((this).dtor_submodules).dtor_keys);
         RAST._IMod _2_dt__update__tmp_h0 = (this).dtor_existingMod;
         Dafny.ISequence<RAST._IModDecl> _3_dt__update_hbody_h0 = Dafny.Sequence<RAST._IModDecl>.Concat(((this).dtor_existingMod).dtor_body, ((System.Func<Dafny.ISequence<RAST._IModDecl>>) (() => {
-          BigInteger dim14 = new BigInteger((_0_keysWithContent).Count);
-          var arr14 = new RAST._IModDecl[Dafny.Helpers.ToIntChecked(dim14, "array size exceeds memory limit")];
-          for (int i14 = 0; i14 < dim14; i14++) {
-            var _4_i = (BigInteger) i14;
-            arr14[(int)(_4_i)] = Dafny.Helpers.Let<Dafny.ISequence<Dafny.Rune>, RAST._IModDecl>((_0_keysWithContent).Select(_4_i), _pat_let23_0 => Dafny.Helpers.Let<Dafny.ISequence<Dafny.Rune>, RAST._IModDecl>(_pat_let23_0, _5_moduleName => Dafny.Helpers.Let<RAST._IMod, RAST._IModDecl>((Dafny.Map<Dafny.ISequence<Dafny.Rune>, DafnyCompilerRustUtils._IGatheringModule>.Select(((this).dtor_submodules).dtor_values,_5_moduleName)).ToRust(), _pat_let24_0 => Dafny.Helpers.Let<RAST._IMod, RAST._IModDecl>(_pat_let24_0, _6_submodule => RAST.ModDecl.create_ModDecl(_6_submodule)))));
+          BigInteger dim16 = new BigInteger((_0_keysWithContent).Count);
+          var arr16 = new RAST._IModDecl[Dafny.Helpers.ToIntChecked(dim16, "array size exceeds memory limit")];
+          for (int i16 = 0; i16 < dim16; i16++) {
+            var _4_i = (BigInteger) i16;
+            arr16[(int)(_4_i)] = Dafny.Helpers.Let<Dafny.ISequence<Dafny.Rune>, RAST._IModDecl>((_0_keysWithContent).Select(_4_i), _pat_let69_0 => Dafny.Helpers.Let<Dafny.ISequence<Dafny.Rune>, RAST._IModDecl>(_pat_let69_0, _5_moduleName => Dafny.Helpers.Let<RAST._IMod, RAST._IModDecl>((Dafny.Map<Dafny.ISequence<Dafny.Rune>, DafnyCompilerRustUtils._IGatheringModule>.Select(((this).dtor_submodules).dtor_values,_5_moduleName)).ToRust(), _pat_let70_0 => Dafny.Helpers.Let<RAST._IMod, RAST._IModDecl>(_pat_let70_0, _6_submodule => RAST.ModDecl.create_ModDecl(_6_submodule)))));
           }
-          return Dafny.Sequence<RAST._IModDecl>.FromArray(arr14);
+          return Dafny.Sequence<RAST._IModDecl>.FromArray(arr16);
         }))());
         return RAST.Mod.create_Mod((_2_dt__update__tmp_h0).dtor_docString, (_2_dt__update__tmp_h0).dtor_attributes, (_2_dt__update__tmp_h0).dtor_name, _3_dt__update_hbody_h0);
       }
