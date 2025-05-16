@@ -133,3 +133,16 @@ module Repro2 {
     assert false; // error
   }
 }
+
+module RegressionTest {
+  // The nested quantifier in the following code had caused a crash previously, because the `usedSubstMap`
+  // field in the implementation had been incorrectly cleared.
+  method Test(b: array<int>, lo: int, hi: int, n: int)
+    requires 0 <= lo < hi <= b.Length
+  {
+    assert forall u :: lo < u < hi ==> RightmostMax(b, b[u-1] + 1, b[u], n) || forall xx :: F(xx) == b[u-1];
+  }
+
+  ghost predicate RightmostMax(a: array<int>, lo: int, x: int, hi: int)
+  function F(x: int): int
+}
