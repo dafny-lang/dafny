@@ -493,7 +493,7 @@ AttributeChecks.dfy(140,29): Error: type of right argument to + (int) must agree
 AttributeChecks.dfy(155,25): Error: unresolved identifier: r
 AttributeChecks.dfy(156,22): Error: unresolved identifier: r
 AttributeChecks.dfy(158,26): Error: unresolved identifier: r
-AttributeChecks.dfy(156,25): Error: a reads-clause expression must denote an object, a set/iset/multiset/seq of objects, or a function to a set/iset/multiset/seq of objects (instead got bool)
+AttributeChecks.dfy(156,25): Error: a reads-clause expression must denote an object, a single field location like o`x or a`[i] of type (object, field)  (with `--referrers`), a set/iset/multiset/seq of objects or single field locations (with `--referrers`), or a function to a set/iset/multiset/seq of objects or single field locations (with `--referrers`) (instead got bool)
 AttributeChecks.dfy(164,28): Error: type of + must be of a numeric type, a bitvector type, ORDINAL, char, a sequence type, or a set-like or map-like type (instead got bool)
 AttributeChecks.dfy(165,25): Error: type of + must be of a numeric type, a bitvector type, ORDINAL, char, a sequence type, or a set-like or map-like type (instead got bool)
 AttributeChecks.dfy(166,28): Error: type of + must be of a numeric type, a bitvector type, ORDINAL, char, a sequence type, or a set-like or map-like type (instead got bool)
