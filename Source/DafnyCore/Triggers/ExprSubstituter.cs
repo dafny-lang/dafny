@@ -3,19 +3,52 @@ using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 using System.Linq;
 using JetBrains.Annotations;
+using Microsoft.Boogie;
 
 namespace Microsoft.Dafny {
   public class ExprSubstituter : Substituter {
     private readonly List<Tuple<Expression, IdentifierExpr>> exprSubstMap;
-    // The following 3 fields are non-null if the traversal is inside a quantifier
-    [CanBeNull] private Expression antecedentToBeAdded = null;
-    [CanBeNull] private List<BoundVar> additionalBoundVars = null;
-    [CanBeNull] private List<BoundedPool> additionalBoundedPools = null;
+    [CanBeNull] private List<AntecedentTobeAdded> antecedentsToBeAdded = null; // non-null if the traversal is inside a quantifier 
     // In some places, substitutions are made in contexts that are not always evaluated. In particular,
     // this happens in short-circuit expressions (&&, ||, ==>, <==, if-then-else, and match). In those contexts,
     // "guardExpressions" keeps track of the conditions under which the currently visited expression is
     // evaluated.
     [CanBeNull] private Stack<Expression> guardExpressions = [];
+
+    private record AntecedentTobeAdded(Expression Guard, IdentifierExpr Var, Expression Value);
+
+    private Expression CollectAntecedent(IOrigin origin, out List<BoundVar> additionalBoundVars, out List<BoundedPool> additionalBoundedPools) {
+      Contract.Assert(antecedentsToBeAdded != null);
+      Expression result = Expression.CreateBoolLiteral(origin, true);
+      additionalBoundVars = [];
+      additionalBoundedPools = [];
+
+      // For each variable in "antecedentsToBeAdded", construct the disjunction of its guards
+      var variables = new HashSet<IdentifierExpr>(antecedentsToBeAdded.Select(a => a.Var));
+      foreach (var v in variables) {
+        additionalBoundVars.Add((BoundVar)v.Var);
+#if PREVIOUS
+        additionalBoundedPools.Add(new ExactBoundedPool(entry.Item1)); // TODO: this is not right if there's a further antecedent
+#else
+        additionalBoundedPools.Add(null);
+#endif
+
+        Expression value = null;
+        Expression guard = Expression.CreateBoolLiteral(origin, false);
+        foreach (var antecedentsForV in antecedentsToBeAdded.Where(a => a.Var == v)) {
+          if (value == null) {
+            value = antecedentsForV.Value;
+          } else {
+            // we expect the .Value to be the same for every record for this variable
+            Contract.Assert(value == antecedentsForV.Value);
+          }
+          guard = Expression.CreateOr(guard, antecedentsForV.Guard);
+        }
+        result = Expression.CreateAnd(result, guard);
+      }
+
+      return result;
+    }
 
     public ExprSubstituter(List<Tuple<Expression, IdentifierExpr>> exprSubstMap)
       : base(null, new Dictionary<IVariable, Expression>(), new Dictionary<TypeParameter, Type>()) {
@@ -26,14 +59,12 @@ namespace Microsoft.Dafny {
       var entry = exprSubstMap.Find(x => Triggers.ExprExtensions.ExpressionEq(expr, x.Item1));
       if (entry != null) {
         // We have encountered a substitution, which we only expect to happen inside the quantifier, so these fields should be non-null
-        Contract.Assert(antecedentToBeAdded != null && additionalBoundVars != null && additionalBoundedPools != null);
-        var context = guardExpressions.Aggregate((Expression)Expression.CreateBoolLiteral(expr.Origin, true),
+        Contract.Assert(antecedentsToBeAdded != null);
+        var context = guardExpressions!.Aggregate((Expression)Expression.CreateBoolLiteral(expr.Origin, true),
           (acc, e) => Expression.CreateAnd(acc, e)); // TODO: or should this be "e, acc"?
         var eq = new BinaryExpr(expr.Origin, BinaryExpr.ResolvedOpcode.EqCommon, entry.Item2, entry.Item1) { Type = Type.Bool };
-        var antecedent = Expression.CreateImplies(context, eq);
-        antecedentToBeAdded = Expression.CreateAnd(antecedentToBeAdded, antecedent);
-        additionalBoundVars.Add((BoundVar)entry.Item2.Var);
-        additionalBoundedPools.Add(new ExactBoundedPool(entry.Item1)); // TODO: this is not right if there's a further antecedent
+        var guard = Expression.CreateImplies(context, eq);
+        antecedentsToBeAdded.Add(new AntecedentTobeAdded(guard, entry.Item2, entry.Item1));
 
         ie = entry.Item2;
         return true;
@@ -51,13 +82,9 @@ namespace Microsoft.Dafny {
 
       if (expr is QuantifierExpr e) {
         // initialize the fields used to gather information about the traversal inside the quantifier
-        var previousAntecedentToBeAdded = antecedentToBeAdded;
-        var previousAdditionalBoundVars = additionalBoundVars;
-        var previousAdditionalBoundedPools = additionalBoundedPools;
+        var previousAntecedentsToBeAdded = antecedentsToBeAdded;
         var previousGuardExpressions = guardExpressions;
-        antecedentToBeAdded = Expression.CreateBoolLiteral(e.Origin, true);
-        additionalBoundVars = [];
-        additionalBoundedPools = [];
+        antecedentsToBeAdded = new();
         guardExpressions = new Stack<Expression>();
 
         // Note: don't perform this substitution in .Attributes or .Bounds
@@ -68,14 +95,12 @@ namespace Microsoft.Dafny {
         var newTerm = Substitute(e.Term);
 
         if (newRange == e.Range && newTerm == e.Term) {
-          Contract.Assert(additionalBoundVars?.Count == 0);
-          antecedentToBeAdded = previousAntecedentToBeAdded;
-          additionalBoundVars = previousAdditionalBoundVars;
-          additionalBoundedPools = previousAdditionalBoundedPools;
+          antecedentsToBeAdded = previousAntecedentsToBeAdded;
           guardExpressions = previousGuardExpressions;
           return e;
         }
 
+        var antecedent = CollectAntecedent(e.Origin, out var additionalBoundVars, out var additionalBoundedPools);
         var newBoundVars = new List<BoundVar>(e.BoundVars);
         newBoundVars.AddRange(additionalBoundVars!);
         var newBounds = new List<BoundedPool>();
@@ -83,8 +108,7 @@ namespace Microsoft.Dafny {
           newBounds.AddRange(e.Bounds);
         }
         newBounds.AddRange(additionalBoundedPools!);
-
-        newRange = newRange == null ? antecedentToBeAdded : Expression.CreateAnd(antecedentToBeAdded, newRange);
+        newRange = newRange == null ? antecedent : Expression.CreateAnd(antecedent, newRange);
 
         QuantifierExpr newExpr;
         if (expr is ForallExpr) {
@@ -95,13 +119,11 @@ namespace Microsoft.Dafny {
         }
         newExpr.Type = expr.Type;
 
-        antecedentToBeAdded = previousAntecedentToBeAdded;
-        additionalBoundVars = previousAdditionalBoundVars;
-        additionalBoundedPools = previousAdditionalBoundedPools;
+        antecedentsToBeAdded = previousAntecedentsToBeAdded;
         guardExpressions = previousGuardExpressions;
         return newExpr;
       } else if (expr is BinaryExpr {
-        ResolvedOp: BinaryExpr.ResolvedOpcode.Add or BinaryExpr.ResolvedOpcode.Or or BinaryExpr.ResolvedOpcode.Imp
+        ResolvedOp: BinaryExpr.ResolvedOpcode.And or BinaryExpr.ResolvedOpcode.Or or BinaryExpr.ResolvedOpcode.Imp
       } binaryExpr) {
         Contract.Assert(guardExpressions != null);
         var e0 = Substitute(binaryExpr.E0);
@@ -110,12 +132,8 @@ namespace Microsoft.Dafny {
         guardExpressions.Pop();
 
         if (e0 != binaryExpr.E0 || e1 != binaryExpr.E1) {
-          expr = new BinaryExpr(expr.Origin, binaryExpr.Op, e0, e1) {
-            ResolvedOp = binaryExpr.ResolvedOp,
-            Type = binaryExpr.Type
-          };
+          expr = new BinaryExpr(expr.Origin, binaryExpr.ResolvedOp, e0, e1) { Type = binaryExpr.Type };
         }
-
         return expr;
       } else if (expr is ITEExpr iteExpr) {
         Contract.Assert(guardExpressions != null);
@@ -126,6 +144,7 @@ namespace Microsoft.Dafny {
         guardExpressions.Push(Expression.CreateNot(test.Origin, test));
         var els = Substitute(iteExpr.Els);
         guardExpressions.Pop();
+
         if (test != iteExpr.Test || thn != iteExpr.Thn || els != iteExpr.Els) {
           expr = new ITEExpr(expr.Origin, iteExpr.IsBindingGuard, test, thn, els) { Type = iteExpr.Type };
         }
