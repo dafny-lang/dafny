@@ -78,12 +78,11 @@ namespace Microsoft.Dafny {
 
         antecedentState = previousAntecedentState;
         return newExpr;
-      } else if (expr is BinaryExpr {
-        ResolvedOp: BinaryExpr.ResolvedOpcode.And or BinaryExpr.ResolvedOpcode.Or or BinaryExpr.ResolvedOpcode.Imp
-      } binaryExpr) {
+      } else if (expr is BinaryExpr { ResolvedOp: var op } binaryExpr &&
+                 op is BinaryExpr.ResolvedOpcode.And or BinaryExpr.ResolvedOpcode.Or or BinaryExpr.ResolvedOpcode.Imp) {
         Contract.Assert(antecedentState != null);
         var e0 = Substitute(binaryExpr.E0);
-        antecedentState.Push(e0);
+        antecedentState.Push(op == BinaryExpr.ResolvedOpcode.Or ? Expression.CreateNot(expr.Origin, e0) : e0);
         var e1 = Substitute(binaryExpr.E1);
         antecedentState.Pop();
 
