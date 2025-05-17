@@ -152,11 +152,9 @@ namespace Microsoft.Dafny {
         var variables = new HashSet<BoundVar>(antecedentsToBeAdded.Select(a => a.Var));
         foreach (var v in variables) {
           additionalBoundVars.Add(v);
-#if PREVIOUS
-        additionalBoundedPools.Add(new ExactBoundedPool(entry.Item1)); // TODO: this is not right if there's a further antecedent
-#else
+          // It would be nice to use "new ExactBoundedPool(antecedentsForV.Rhs)" as the BoundedPool for this variable. However,
+          // because of the context antecedent, it may not hold. So, we use just "null".
           additionalBoundedPools.Add(null);
-#endif
 
           Expression rhs = null;
           Expression guard = Expression.CreateBoolLiteral(origin, false);
