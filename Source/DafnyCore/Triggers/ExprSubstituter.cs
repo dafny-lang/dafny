@@ -104,10 +104,36 @@ namespace Microsoft.Dafny {
           expr = new ITEExpr(expr.Origin, iteExpr.IsBindingGuard, test, thn, els) { Type = iteExpr.Type };
         }
         return expr;
-      } else if (expr is MatchExpr or NestedMatchExpr) {
-        var newExpr = base.Substitute(expr);
-        Contract.Assert(newExpr == expr); // trigger-generation does not offer to rewrite things inside `match` expressions
-        return newExpr;
+      } else if (expr is MatchExpr matchExpr) {
+        Contract.Assert(antecedentState != null);
+        var src = Substitute(matchExpr.Source);
+        bool anythingChanged = src != matchExpr.Source;
+        var cases = new List<MatchCaseExpr>();
+        foreach (var mc in matchExpr.Cases) {
+          var newBoundVars = CreateBoundVarSubstitutions(mc.Arguments, false);
+          var sourceHasThisVariant = Expression.CreateFieldSelect(expr.Origin, src, mc.Ctor.QueryField);
+          antecedentState.Push(sourceHasThisVariant);
+          var body = Substitute(mc.Body);
+          antecedentState.Pop();
+          // undo any changes to substMap (could be optimized to do this only if newBoundVars != mc.Arguments)
+          foreach (var bv in mc.Arguments) {
+            substMap.Remove(bv);
+          }
+          // Put things together
+          if (newBoundVars != mc.Arguments || body != mc.Body) {
+            anythingChanged = true;
+          }
+          var newCaseExpr = new MatchCaseExpr(mc.Origin, mc.Ctor, mc.FromBoundVar, newBoundVars, body, mc.Attributes);
+          newCaseExpr.Ctor = mc.Ctor;  // resolve here
+          cases.Add(newCaseExpr);
+        }
+
+        if (anythingChanged) {
+          var newME = new MatchExpr(expr.Origin, src, cases, matchExpr.UsesOptionalBraces);
+          newME.MissingCases.AddRange(matchExpr.MissingCases);
+          expr = newME;
+        }
+        return expr;
       }
       return base.Substitute(expr);
     }
