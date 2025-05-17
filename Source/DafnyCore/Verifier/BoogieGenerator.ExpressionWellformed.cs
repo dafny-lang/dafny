@@ -1369,6 +1369,10 @@ namespace Microsoft.Dafny {
             // Nothing to verify
             break;
           }
+        case LocalsObjectExpression: {
+            // Nothing to verify
+            break;
+          }
         case IndexFieldLocation ifl: {
             // Verify similar to MultiSelectExpr, except we don't actually read the location
             // The well-formedness of the array should already have been established.

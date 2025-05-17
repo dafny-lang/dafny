@@ -1510,10 +1510,13 @@ namespace Microsoft.Dafny {
         }
 
         wr.Write("]");
-      } else if (expr is FieldLocationExpression) {
+      } else if (expr is FieldLocationExpression fle) {
         var e = (FieldLocationExpression)expr;
         PrintExpr(e.Lhs, BindingStrengthSuffix, false, false, false, -1);
         wr.Write("`");
+        if (fle.DesignatesMethodInputParameter) {
+          wr.Write("`");
+        }
         wr.Write(e.Name);
       } else if (expr is FieldLocation) {
         var e = (FieldLocation)expr;
@@ -1531,6 +1534,8 @@ namespace Microsoft.Dafny {
         }
 
         wr.Write("]");
+      } else if (expr is LocalsObjectExpression) {
+        wr.Write("locals");
       } else {
         Contract.Assert(false);
         throw new cce.UnreachableException(); // unexpected expression
