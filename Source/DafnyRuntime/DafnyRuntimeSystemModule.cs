@@ -504,11 +504,11 @@ namespace Dafny {
   }
 } // end of namespace Dafny
 internal static class FuncExtensions {
-  public static Func<U, UResult> DowncastClone<T, TResult, U, UResult>(this Func<T, TResult> F, Func<U, T> ArgConv, Func<TResult, UResult> ResConv) {
-    return arg => ResConv(F(ArgConv(arg)));
-  }
   public static Func<UResult> DowncastClone<TResult, UResult>(this Func<TResult> F, Func<TResult, UResult> ResConv) {
     return () => ResConv(F());
+  }
+  public static Func<U, UResult> DowncastClone<T, TResult, U, UResult>(this Func<T, TResult> F, Func<U, T> ArgConv, Func<TResult, UResult> ResConv) {
+    return arg => ResConv(F(ArgConv(arg)));
   }
   public static Func<U1, U2, UResult> DowncastClone<T1, T2, TResult, U1, U2, UResult>(this Func<T1, T2, TResult> F, Func<U1, T1> ArgConv1, Func<U2, T2> ArgConv2, Func<TResult, UResult> ResConv) {
     return (arg1, arg2) => ResConv(F(ArgConv1(arg1), ArgConv2(arg2)));
