@@ -3762,6 +3762,9 @@ ConstAtomExpression<out Expression e>
     "|"
   | "assigned"                                 (. x = t; .)
     "(" NameSegment<out e> ")"                 (. e = new UnaryOpExpr(x, UnaryOpExpr.Opcode.Assigned, e); .)
+  | IF(AcceptReferrers() && la.val == "referrers")
+    "referrers"                                (. x = t; .)
+    "(" Expression<out e, true, true> ")"      (. e = new UnaryOpExpr(x, UnaryOpExpr.Opcode.Referrers, e); .)
   | IF(AcceptReferrersAndBacktick())           (. e = new ImplicitThisExpr(la); .)
     FieldLocationSuffix<ref e>
   | ParensExpression<out e>
