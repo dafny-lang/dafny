@@ -576,10 +576,8 @@ axiom (forall h, k : Heap, bx : Box, t : Ty ::
 
 // No axioms for $Is and $IsBox since they don't talk about the heap.
 
-const unique alloc: Field
-uses {
-  axiom field_family(alloc) == object_field;
-}
+const unique alloc: Field;
+
 const unique allocName: NameFamily;
 
 // ---------------------------------------------------------------
