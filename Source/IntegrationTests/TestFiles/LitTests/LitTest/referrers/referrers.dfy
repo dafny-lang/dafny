@@ -22,14 +22,14 @@ method ReferrersLocal() {
   assert referrers(u) == {locals`u};
 }
 
-method ReferrersMethodCall(t: Test)
+method ReferrersMethodCall(t: SimpleObject)
 {
   assert locals`t in referrers(t);
 }
 
 // Input parameters are not unassigned when the method exits.
 // However, local variables in scope are unassigned before a return
-method EnsuresReferrersUnchanged(t2: Test)
+method EnsuresReferrersUnchanged(t2: SimpleObject)
   ensures old(referrers(t2)) == referrers(t2)
 {
   var t_local := t2;
@@ -48,11 +48,11 @@ method CallReferrersMethodCall() {
 //// Ghost versions are the same //////
 
 ghost method GhostReferrersLocals() {
-  var t := new Test.Ghost(null);
+  var t := new SimpleObject.Ghost(null);
   assert referrers(t) == {locals`t};
   ghost var alias_untracked := t;    // Even in ghost context, ghost markers means non-tracking by default.
   assert referrers(t) == {locals`t};
-  ghost var {:tracked} alias_tracked := t; // This is not useful in practice in ghost methods since one can just declare normal variables, but it's here for coherence
+  ghost var {:tracking} alias_tracked := t; // This is not useful in practice in ghost methods since one can just declare normal variables, but it's here for coherence
   assert referrers(t) == {locals`t, locals`alias_tracked};
   
   assert (locals`t.1).IsGhost;
@@ -65,7 +65,7 @@ method ReferrersLocalWithGhostAliases() {
   assert referrers(t) == {locals`t};
   ghost var alias_untracked := t;    // Ghost variables, like ghost fields, are non-tracking by default.
   assert referrers(t) == {locals`t};
-  ghost var {:tracked} alias_tracked := t; // To make a ghost variable tracking, one must force it.
+  ghost var {:tracking} alias_tracked := t; // To make a ghost variable tracking, one must force it.
   assert referrers(t) == {locals`t, locals`alias_tracked};
   
   assert !(locals`t.1).IsGhost;
@@ -75,11 +75,11 @@ method ReferrersLocalWithGhostAliases() {
 
 
 method ReferrersOnGhostConstructedInstanceInCompiledContext() {
-  ghost var t := new Test.Ghost(null); // Automatically marked as tracked when the RHS
+  ghost var t := new SimpleObject.Ghost(null); // Automatically marked as tracking when the RHS
   assert referrers(t) == {};
   ghost var alias_untracked := t;    // Ghost variables, like ghost fields, are non-tracking by default.
   assert referrers(t) == {};
-  ghost var {:tracked} alias_tracked := t; // To make a ghost variable tracking, one must force it.
+  ghost var {:tracking} alias_tracked := t; // To make a ghost variable tracking, one must force it.
   assert referrers(t) == {locals`alias_tracked};
   
   assert (locals`t.1).IsGhost;
@@ -93,28 +93,23 @@ method ReferrersOnGhostConstructedInstanceInCompiledContext() {
 class ChainingObject {
   var x: ChainingObject?
   var y: ChainingObject?
+  ghost var nontracking: ChainingObject?
+  ghost var {:tracking} tracking: ChainingObject?
   const tail: ChainingObject? := null
-  constructor(chained_test: ChainingObject?) ensures x == y == null && tail == chained_test
+  constructor(chained_test: ChainingObject?) ensures x == y == nontracking == tracking == null && tail == chained_test
     ensures chained_test != null ==> referrers(chained_test) == old(referrers(chained_test)) + {this`tail}
     ensures forall o: object | o != chained_test :: referrers(o) == old(referrers(o)) // Replace by referrers clauses when they arrive
   {
     x := null;
     y := null;
-    tail := chained_test;
-  }
-
-  ghost constructor Ghost(chained_test: ChainingObject?) ensures x == y == null && tail == chained_test
-    ensures chained_test != null ==> referrers(chained_test) == old(referrers(chained_test)) + {this`tail}
-    ensures forall o: object | o != chained_test :: referrers(o) == old(referrers(o))
-  {
-    x := null;
-    y := null;
+    tracking := null;
+    nontracking := null;
     tail := chained_test;
   }
 }
 
 // Ghost parameters are untracking by default
-ghost lemma CouldFree(t: object)
+lemma CouldFree(t: object)
   requires |set r <- referrers(t) | !r.0.IsGhost| == 1
 
 method ObjectFields() {
@@ -128,6 +123,12 @@ method ObjectFields() {
   assert referrers(t) == {locals`t, t`y};
   t.y := null;
   assert referrers(t) == {locals`t};
+  t.tracking := t; // Ghost assignment
+  assert referrers(t) == {locals`t, t`tracking};
+  t.tracking := null;
+  assert referrers(t) == {locals`t};
+  t.nontracking := t;
+  assert referrers(t) == {locals`t};  
   CouldFree(t);
   
   var u := new ChainingObject(t);
