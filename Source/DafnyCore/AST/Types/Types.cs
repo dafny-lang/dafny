@@ -332,6 +332,7 @@ public abstract class Type : NodeWithOrigin {
   public bool IsCharType => NormalizeExpand() is CharType;
   public bool IsIntegerType => NormalizeExpand() is IntType;
   public bool IsRealType => NormalizeExpand() is RealType;
+  public bool IsFieldType => NormalizeExpand() is FieldType;
   public bool IsBigOrdinalType => NormalizeExpand() is BigOrdinalType;
   public bool IsBitVectorType => AsBitVectorType != null;
   public bool IsStringType => AsSeqType?.Arg.IsCharType == true;

@@ -94,9 +94,11 @@ namespace Microsoft.Dafny {
         if (assertStmt is { Label: not null }) {
           // make copies of the variables used in the assertion
           var name = "$Heap_at_" + assertStmt.Label.AssignUniqueId(CurrentIdGenerator);
-          var heapAt = locals.GetOrAdd(new Bpl.LocalVariable(stmt.Origin, new Bpl.TypedIdent(stmt.Origin, name, Predef.HeapType)));
-          var heapReference = new Bpl.IdentifierExpr(stmt.Origin, heapAt);
-          b.Add(Bpl.Cmd.SimpleAssign(stmt.Origin, heapReference, etran.HeapExpr));
+          var heapReference = BplLocalVarHeap(stmt.Origin, name, new HeapReadingStatus(true, VerifyReferrers), locals);
+          b.Add(Bpl.Cmd.SimpleAssign(stmt.Origin, (Bpl.IdentifierExpr)heapReference.HeapExpr, etran.HeapExpr));
+          if (VerifyReferrers) {
+            b.Add(Bpl.Cmd.SimpleAssign(stmt.Origin, (Bpl.IdentifierExpr)heapReference.ReferrersHeapExpr, etran.ReferrersHeapExpr));
+          }
           var substMap = new Dictionary<IVariable, Expression>();
           foreach (var v in FreeVariablesUtil.ComputeFreeVariables(options, assertStmt.Expr)) {
             if (v is LocalVariable) {

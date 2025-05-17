@@ -11,23 +11,41 @@ using static Microsoft.Dafny.Util;
 
 namespace Microsoft.Dafny {
   public partial class BoogieGenerator {
+    public record HeapExpressions(Expr HeapExpr, Expr ReferrersHeapExpr) {
+      public IToken tok => HeapExpr?.tok ?? ReferrersHeapExpr.tok;
+      public List<Expr> AsList(HeapReadingStatus heapReadingStatus) {
+        var result = new List<Expr>();
+        if (heapReadingStatus.NeedsHeap) {
+          result.Add(HeapExpr);
+        }
+        if (heapReadingStatus.NeedsReferrersHeap) {
+          result.Add(ReferrersHeapExpr);
+        }
+
+        return result;
+      }
+    }
+
     public partial class ExpressionTranslator {
       private DafnyOptions options;
 
+      public readonly HeapExpressions HeapExpressions;
+
       // HeapExpr == null ==> translation of pure (no-heap) expression
-      readonly Boogie.Expr _the_heap_expr;
       public Boogie.Expr HeapExpr {
         // The increment of Statistics_HeapUses in the following line is a hack and not entirely a good idea.
         // Not only does one need to be careful not to mention HeapExpr in contracts (in particular, in ObjectInvariant()
         // below), but also, the debugger may invoke HeapExpr and that will cause an increment as well.
-        get { Statistics_HeapUses++; return _the_heap_expr; }
+        get { Statistics_HeapUses++; return HeapExpressions?.HeapExpr; }
       }
 
-      public Boogie.Expr HeapExprForArrow(Type arrowType) {
+      public Boogie.Expr ReferrersHeapExpr => HeapExpressions?.ReferrersHeapExpr;
+
+      public HeapExpressions HeapExprForArrow(Type arrowType) {
         if (arrowType.IsArrowTypeWithoutReadEffects) {
           return BoogieGenerator.NewOneHeapExpr(arrowType.Origin);
         } else {
-          return HeapExpr;
+          return HeapExpressions;
         }
       }
 
@@ -60,7 +78,8 @@ namespace Microsoft.Dafny {
       void ObjectInvariant() {
         // In the following line, it is important to use _the_heap_expr directly, rather than HeapExpr, because
         // the HeapExpr getter has a side effect on Statistics_HeapUses.
-        Contract.Invariant(_the_heap_expr == null || _the_heap_expr is Boogie.OldExpr || _the_heap_expr is Boogie.IdentifierExpr);
+        Contract.Invariant(HeapExpressions == null || HeapExpressions.HeapExpr is Boogie.OldExpr || HeapExpressions.HeapExpr is Boogie.IdentifierExpr);
+        Contract.Invariant(HeapExpressions == null || HeapExpressions.ReferrersHeapExpr is Boogie.OldExpr || HeapExpressions.ReferrersHeapExpr is Boogie.IdentifierExpr);
         Contract.Invariant(Predef != null);
         Contract.Invariant(BoogieGenerator != null);
         Contract.Invariant(This != null);
@@ -73,7 +92,7 @@ namespace Microsoft.Dafny {
       /// This is the most general constructor.  It is private and takes all the parameters.  Whenever
       /// one ExpressionTranslator is constructed from another, unchanged parameters are just copied in.
       /// </summary>
-      ExpressionTranslator(BoogieGenerator boogieGenerator, PredefinedDecls predef, Boogie.Expr heap, string thisVar,
+      ExpressionTranslator(BoogieGenerator boogieGenerator, PredefinedDecls predef, HeapExpressions heapExpressions, string thisVar,
         Function applyLimitedCurrentFunction, FuelSetting layerInterCluster, FuelSetting layerIntraCluster, IFrameScope scope,
         string readsFrame, string modifiesFrame, bool stripLits) {
 
@@ -85,7 +104,7 @@ namespace Microsoft.Dafny {
 
         this.BoogieGenerator = boogieGenerator;
         this.Predef = predef;
-        this._the_heap_expr = heap;
+        this.HeapExpressions = heapExpressions;
         this.This = thisVar;
         this.applyLimited_CurrentFunction = applyLimitedCurrentFunction;
         this.layerInterCluster = layerInterCluster;
@@ -106,51 +125,62 @@ namespace Microsoft.Dafny {
         return new Boogie.IdentifierExpr(heapToken, predef.HeapVarName, predef.HeapType);
       }
 
+      public static Boogie.IdentifierExpr ReferrersHeapIdentifierExpr(PredefinedDecls predef, Boogie.IToken heapToken) {
+        return new Boogie.IdentifierExpr(heapToken, predef.ReferrersHeapVarName, predef.ReferrersHeapType);
+      }
+
+      public static HeapExpressions HeapIdentifierExprs(PredefinedDecls predef, Boogie.IToken heapToken) {
+        return new HeapExpressions(
+          new Boogie.IdentifierExpr(heapToken, predef.HeapVarName, predef.HeapType),
+          new Boogie.IdentifierExpr(heapToken, predef.ReferrersHeapVarName, predef.ReferrersHeapType)
+        );
+      }
+
       public ExpressionTranslator(BoogieGenerator boogieGenerator, PredefinedDecls predef, Boogie.IToken heapToken, IFrameScope scope)
-        : this(boogieGenerator, predef, HeapIdentifierExpr(predef, heapToken), scope) {
+        : this(boogieGenerator, predef, HeapIdentifierExprs(predef, heapToken), scope) {
         Contract.Requires(boogieGenerator != null);
         Contract.Requires(predef != null);
         Contract.Requires(heapToken != null);
       }
 
-      public ExpressionTranslator(BoogieGenerator boogieGenerator, PredefinedDecls predef, Boogie.Expr heap, IFrameScope scope)
-        : this(boogieGenerator, predef, heap, scope, "this") {
+      public ExpressionTranslator(BoogieGenerator boogieGenerator, PredefinedDecls predef, HeapExpressions heapExpressions, IFrameScope scope)
+        : this(boogieGenerator, predef, heapExpressions, scope, "this") {
         Contract.Requires(boogieGenerator != null);
         Contract.Requires(predef != null);
       }
 
-      public ExpressionTranslator(BoogieGenerator boogieGenerator, PredefinedDecls predef, Boogie.Expr heap, Boogie.Expr oldHeap, IFrameScope scope)
-        : this(boogieGenerator, predef, heap, scope, "this") {
+      public ExpressionTranslator(BoogieGenerator boogieGenerator, PredefinedDecls predef, HeapExpressions heapExpressions, HeapExpressions oldHeapExpressions, IFrameScope scope)
+        : this(boogieGenerator, predef, heapExpressions, scope, "this") {
         Contract.Requires(boogieGenerator != null);
         Contract.Requires(predef != null);
-        Contract.Requires(oldHeap != null);
+        Contract.Requires(oldHeapExpressions != null);
 
-        var old = new ExpressionTranslator(boogieGenerator, predef, oldHeap, scope);
+        var old = new ExpressionTranslator(boogieGenerator, predef, oldHeapExpressions, scope);
         old.oldEtran = old;
         this.oldEtran = old;
       }
 
-      public ExpressionTranslator(BoogieGenerator boogieGenerator, PredefinedDecls predef, Boogie.Expr heap, IFrameScope scope, string thisVar)
-        : this(boogieGenerator, predef, heap, thisVar, null, new FuelSetting(boogieGenerator, 1), null, scope, "$_ReadsFrame", "$_ModifiesFrame", false) {
+      public ExpressionTranslator(BoogieGenerator boogieGenerator, PredefinedDecls predef, HeapExpressions heapExpressions, IFrameScope scope, string thisVar)
+        : this(boogieGenerator, predef, heapExpressions, thisVar, null, new FuelSetting(boogieGenerator, 1), null, scope, "$_ReadsFrame", "$_ModifiesFrame", false) {
         Contract.Requires(boogieGenerator != null);
         Contract.Requires(predef != null);
         Contract.Requires(thisVar != null);
       }
 
-      public ExpressionTranslator(ExpressionTranslator etran, Boogie.Expr heap)
-        : this(etran.BoogieGenerator, etran.Predef, heap, etran.This, etran.applyLimited_CurrentFunction, etran.layerInterCluster, etran.layerIntraCluster, etran.scope, etran.readsFrame, etran.modifiesFrame, etran.stripLits) {
+      public ExpressionTranslator(ExpressionTranslator etran, HeapExpressions heapExpressions)
+        : this(etran.BoogieGenerator, etran.Predef, heapExpressions, etran.This, etran.applyLimited_CurrentFunction, etran.layerInterCluster, etran.layerIntraCluster, etran.scope, etran.readsFrame, etran.modifiesFrame, etran.stripLits) {
         Contract.Requires(etran != null);
       }
 
       public ExpressionTranslator WithReadsFrame(string newReadsFrame, IFrameScope frameScope) {
-        return new ExpressionTranslator(BoogieGenerator, Predef, HeapExpr, This, applyLimited_CurrentFunction, layerInterCluster, layerIntraCluster, frameScope, newReadsFrame, modifiesFrame, stripLits);
+        return new ExpressionTranslator(BoogieGenerator, Predef, HeapExpressions, This, applyLimited_CurrentFunction, layerInterCluster, layerIntraCluster, frameScope, newReadsFrame, modifiesFrame, stripLits);
       }
       public ExpressionTranslator WithReadsFrame(string newReadsFrame) {
-        return new ExpressionTranslator(BoogieGenerator, Predef, HeapExpr, This, applyLimited_CurrentFunction, layerInterCluster, layerIntraCluster, scope, newReadsFrame, modifiesFrame, stripLits);
+        return new ExpressionTranslator(BoogieGenerator, Predef, HeapExpressions, This, applyLimited_CurrentFunction, layerInterCluster, layerIntraCluster, scope, newReadsFrame, modifiesFrame, stripLits);
       }
 
       public ExpressionTranslator WithModifiesFrame(string newModifiesFrame) {
-        return new ExpressionTranslator(BoogieGenerator, Predef, HeapExpr, This, applyLimited_CurrentFunction, layerInterCluster, layerIntraCluster, scope, readsFrame, newModifiesFrame, stripLits);
+        return new ExpressionTranslator(BoogieGenerator, Predef, HeapExpressions, This, applyLimited_CurrentFunction, layerInterCluster, layerIntraCluster, scope, readsFrame, newModifiesFrame, stripLits);
       }
 
       internal IOrigin GetToken(Expression expression) {
@@ -163,11 +193,15 @@ namespace Microsoft.Dafny {
           Contract.Ensures(Contract.Result<ExpressionTranslator>() != null);
 
           if (oldEtran == null) {
-            oldEtran = new ExpressionTranslator(BoogieGenerator, Predef, new Boogie.OldExpr(HeapExpr.tok, HeapExpr), This, applyLimited_CurrentFunction, layerInterCluster, layerIntraCluster, scope, readsFrame, modifiesFrame, stripLits);
+            oldEtran = new ExpressionTranslator(BoogieGenerator, Predef, OldHeapExpressions(), This, applyLimited_CurrentFunction, layerInterCluster, layerIntraCluster, scope, readsFrame, modifiesFrame, stripLits);
             oldEtran.oldEtran = oldEtran;
           }
           return oldEtran;
         }
+      }
+
+      private HeapExpressions OldHeapExpressions() {
+        return new HeapExpressions(new Boogie.OldExpr(HeapExpr.tok, HeapExpr), new Boogie.OldExpr(ReferrersHeapExpr.tok, ReferrersHeapExpr));
       }
 
       public ExpressionTranslator OldAt(Label/*?*/ label) {
@@ -176,12 +210,24 @@ namespace Microsoft.Dafny {
           return Old;
         }
 
-        return WithHeapVariable("$Heap_at_" + label.AssignUniqueId(BoogieGenerator.CurrentIdGenerator));
+        return WithHeapVariable(
+          "$Heap_at_" + label.AssignUniqueId(BoogieGenerator.CurrentIdGenerator),
+          out _
+          );
       }
 
-      public ExpressionTranslator WithHeapVariable(string heapVariableName) {
-        var heapAt = new Boogie.IdentifierExpr(Token.NoToken, heapVariableName, Predef.HeapType);
-        return new ExpressionTranslator(BoogieGenerator, Predef, heapAt, This, applyLimited_CurrentFunction, layerInterCluster, layerIntraCluster, scope, readsFrame, modifiesFrame, stripLits);
+      public ExpressionTranslator WithHeapVariable(string heapVariableName, out string referrersHeapVariableName) {
+        var heapIdentifier = new Boogie.IdentifierExpr(Token.NoToken, heapVariableName, Predef.HeapType);
+        HeapExpressions heapExpressions;
+        referrersHeapVariableName = null;
+        if (BoogieGenerator.VerifyReferrers) {
+          // Just replace the first "[hH]eap" by "[rR]eferrersHeap"
+          referrersHeapVariableName = ToReferrersHeapName(heapVariableName);
+          heapExpressions = new HeapExpressions(heapIdentifier, new Boogie.IdentifierExpr(Token.NoToken, referrersHeapVariableName, Predef.ReferrersHeapType));
+        } else {
+          heapExpressions = new HeapExpressions(heapIdentifier, null);
+        }
+        return new ExpressionTranslator(BoogieGenerator, Predef, heapExpressions, This, applyLimited_CurrentFunction, layerInterCluster, layerIntraCluster, scope, readsFrame, modifiesFrame, stripLits);
       }
 
       public bool UsesOldHeap {
@@ -195,7 +241,7 @@ namespace Microsoft.Dafny {
         Contract.Requires(layerArgument != null);
         Contract.Ensures(Contract.Result<ExpressionTranslator>() != null);
 
-        return CloneExpressionTranslator(this, BoogieGenerator, Predef, HeapExpr, This, null, new FuelSetting(BoogieGenerator, 0, layerArgument), new FuelSetting(BoogieGenerator, 0, layerArgument), readsFrame, modifiesFrame, stripLits);
+        return CloneExpressionTranslator(this, BoogieGenerator, Predef, HeapExpressions, This, null, new FuelSetting(BoogieGenerator, 0, layerArgument), new FuelSetting(BoogieGenerator, 0, layerArgument), readsFrame, modifiesFrame, stripLits);
       }
 
       internal ExpressionTranslator WithCustomFuelSetting(CustomFuelSettings customSettings) {
@@ -203,7 +249,7 @@ namespace Microsoft.Dafny {
         Contract.Requires(customSettings != null);
         Contract.Ensures(Contract.Result<ExpressionTranslator>() != null);
 
-        return CloneExpressionTranslator(this, BoogieGenerator, Predef, HeapExpr, This, null, layerInterCluster.WithContext(customSettings), layerIntraCluster.WithContext(customSettings), readsFrame, modifiesFrame, stripLits);
+        return CloneExpressionTranslator(this, BoogieGenerator, Predef, HeapExpressions, This, null, layerInterCluster.WithContext(customSettings), layerIntraCluster.WithContext(customSettings), readsFrame, modifiesFrame, stripLits);
       }
 
       public ExpressionTranslator ReplaceLayer(Boogie.Expr layerArgument) {
@@ -211,12 +257,12 @@ namespace Microsoft.Dafny {
         Contract.Requires(layerArgument != null);
         Contract.Ensures(Contract.Result<ExpressionTranslator>() != null);
 
-        return CloneExpressionTranslator(this, BoogieGenerator, Predef, HeapExpr, This, applyLimited_CurrentFunction, layerInterCluster.WithLayer(layerArgument), layerIntraCluster.WithLayer(layerArgument), readsFrame, modifiesFrame, stripLits);
+        return CloneExpressionTranslator(this, BoogieGenerator, Predef, HeapExpressions, This, applyLimited_CurrentFunction, layerInterCluster.WithLayer(layerArgument), layerIntraCluster.WithLayer(layerArgument), readsFrame, modifiesFrame, stripLits);
       }
 
       public ExpressionTranslator WithNoLits() {
         Contract.Ensures(Contract.Result<ExpressionTranslator>() != null);
-        return CloneExpressionTranslator(this, BoogieGenerator, Predef, HeapExpr, This, applyLimited_CurrentFunction, layerInterCluster, layerIntraCluster, readsFrame, modifiesFrame, true);
+        return CloneExpressionTranslator(this, BoogieGenerator, Predef, HeapExpressions, This, applyLimited_CurrentFunction, layerInterCluster, layerIntraCluster, readsFrame, modifiesFrame, true);
       }
 
       public ExpressionTranslator LimitedFunctions(Function applyLimited_CurrentFunction, Boogie.Expr layerArgument) {
@@ -224,29 +270,29 @@ namespace Microsoft.Dafny {
         Contract.Requires(layerArgument != null);
         Contract.Ensures(Contract.Result<ExpressionTranslator>() != null);
 
-        return CloneExpressionTranslator(this, BoogieGenerator, Predef, HeapExpr, This, applyLimited_CurrentFunction, /* layerArgument */ layerInterCluster, new FuelSetting(BoogieGenerator, 0, layerArgument), readsFrame, modifiesFrame, stripLits);
+        return CloneExpressionTranslator(this, BoogieGenerator, Predef, HeapExpressions, This, applyLimited_CurrentFunction, /* layerArgument */ layerInterCluster, new FuelSetting(BoogieGenerator, 0, layerArgument), readsFrame, modifiesFrame, stripLits);
       }
 
       public ExpressionTranslator LayerOffset(int offset) {
         Contract.Requires(0 <= offset);
         Contract.Ensures(Contract.Result<ExpressionTranslator>() != null);
 
-        return CloneExpressionTranslator(this, BoogieGenerator, Predef, HeapExpr, This, applyLimited_CurrentFunction, layerInterCluster.Offset(offset), layerIntraCluster, readsFrame, modifiesFrame, stripLits);
+        return CloneExpressionTranslator(this, BoogieGenerator, Predef, HeapExpressions, This, applyLimited_CurrentFunction, layerInterCluster.Offset(offset), layerIntraCluster, readsFrame, modifiesFrame, stripLits);
       }
 
       public ExpressionTranslator DecreaseFuel(int offset) {
         Contract.Requires(0 <= offset);
         Contract.Ensures(Contract.Result<ExpressionTranslator>() != null);
 
-        return CloneExpressionTranslator(this, BoogieGenerator, Predef, HeapExpr, This, applyLimited_CurrentFunction, layerInterCluster.Decrease(offset), layerIntraCluster, readsFrame, modifiesFrame, stripLits);
+        return CloneExpressionTranslator(this, BoogieGenerator, Predef, HeapExpressions, This, applyLimited_CurrentFunction, layerInterCluster.Decrease(offset), layerIntraCluster, readsFrame, modifiesFrame, stripLits);
       }
 
       private static ExpressionTranslator CloneExpressionTranslator(ExpressionTranslator orig,
-        BoogieGenerator boogieGenerator, PredefinedDecls predef, Boogie.Expr heap, string thisVar,
+        BoogieGenerator boogieGenerator, PredefinedDecls predef, HeapExpressions heap, string thisVar,
         Function applyLimited_CurrentFunction, FuelSetting layerInterCluster, FuelSetting layerIntraCluster, string readsFrame, string modifiesFrame, bool stripLits) {
         var et = new ExpressionTranslator(boogieGenerator, predef, heap, thisVar, applyLimited_CurrentFunction, layerInterCluster, layerIntraCluster, orig.scope, readsFrame, modifiesFrame, stripLits);
         if (orig.oldEtran != null) {
-          var etOld = new ExpressionTranslator(boogieGenerator, predef, orig.Old.HeapExpr, thisVar, applyLimited_CurrentFunction, layerInterCluster, layerIntraCluster, orig.scope, readsFrame, modifiesFrame, stripLits);
+          var etOld = new ExpressionTranslator(boogieGenerator, predef, orig.Old.HeapExpressions, thisVar, applyLimited_CurrentFunction, layerInterCluster, layerIntraCluster, orig.scope, readsFrame, modifiesFrame, stripLits);
           etOld.oldEtran = etOld;
           et.oldEtran = etOld;
         }
@@ -658,9 +704,10 @@ namespace Microsoft.Dafny {
 
               Func<Expression, Boogie.Expr> TrArg = arg => BoogieGenerator.BoxIfNotNormallyBoxed(arg.Origin, TrExpr(arg), arg.Type);
 
+              var heapReadingStatus = new HeapReadingStatus(true, false);
               var applied = FunctionCall(GetToken(applyExpr), BoogieGenerator.Apply(arity), Predef.BoxType,
                 Concat(Map(tt.TypeArgs, BoogieGenerator.TypeToTy),
-                  Cons(HeapExprForArrow(e.Function.Type), Cons(TrExpr(e.Function), e.Args.ConvertAll(arg => TrArg(arg))))));
+                  Concat(HeapExprForArrow(e.Function.Type).AsList(heapReadingStatus), Cons(TrExpr(e.Function), e.Args.ConvertAll(arg => TrArg(arg))))));
 
               return BoogieGenerator.UnboxUnlessInherentlyBoxed(applied, tt.Result);
             }
@@ -738,10 +785,10 @@ namespace Microsoft.Dafny {
           case SeqConstructionExpr constructionExpr: {
               var e = constructionExpr;
               var eType = e.Type.NormalizeToAncestorType().AsSeqType.Arg.NormalizeExpand();
-              var initalizerHeap = e.Initializer.Type.IsArrowType ? HeapExprForArrow(e.Initializer.Type) : HeapExpr;
+              var initalizerHeap = e.Initializer.Type.IsArrowType ? HeapExprForArrow(e.Initializer.Type) : HeapExpressions;
               return FunctionCall(GetToken(constructionExpr), "Seq#Create", Predef.SeqType,
                 BoogieGenerator.TypeToTy(eType),
-                initalizerHeap,
+                initalizerHeap.HeapExpr,
                 TrExpr(e.N),
                 TrExpr(e.Initializer));
             }
@@ -856,6 +903,8 @@ namespace Microsoft.Dafny {
                   }
                   BoogieGenerator.DefiniteAssignmentTrackers.TryGetValue(name, out var defass);
                   return defass;
+                case UnaryOpExpr.ResolvedOpcode.Referrers:
+                  return BoogieGenerator.MkReferrersOf(TrExpr(e.E), ReferrersHeapExpr);
                 default:
                   Contract.Assert(false); throw new cce.UnreachableException();  // unexpected unary expression
               }
@@ -1590,8 +1639,8 @@ BplBoundVar(varNameGen.FreshId(string.Format("#{0}#", bv.Name)), Predef.BoxType,
         }).ToDictionary(x => x.Key, x => x.Value);
         var su = new Substituter(null, subst, new Dictionary<TypeParameter, Type>());
         var et = this.HeapExpr != null
-          ? new ExpressionTranslator(this.BoogieGenerator, this.Predef, heap, this.Old.HeapExpr, this.scope)
-          : new ExpressionTranslator(this, heap);
+          ? new ExpressionTranslator(this.BoogieGenerator, this.Predef, new HeapExpressions(heap, null), this.Old.HeapExpressions, this.scope)
+          : new ExpressionTranslator(this, new HeapExpressions(heap, null));
         var lvars = new List<Boogie.Variable>();
         var ly = BplBoundVar(varNameGen.FreshId("#ly#"), Predef.LayerType, lvars);
         et = et.WithLayer(ly);
@@ -2399,9 +2448,10 @@ BplBoundVar(varNameGen.FreshId(string.Format("#{0}#", bv.Name)), Predef.BoxType,
           var bvarsAndAntecedents = new List<Tuple<Boogie.Variable, Boogie.Expr>>();
           var varNameGen = BoogieGenerator.CurrentIdGenerator.NestedFreshIdGenerator("$l#");
 
-          Boogie.Expr heap; var hVar = BplBoundVar(varNameGen.FreshId("#heap#"), BoogieGenerator.Predef.HeapType, out heap);
+          HeapExpressions heap = BoogieGenerator.BplBoundVarHeap(varNameGen.FreshId("#heap#"), new HeapReadingStatus(true, this.BoogieGenerator.VerifyReferrers), out var hVar,
+            out var rHVar);
           var et = this.HeapExpr != null
-            ? new ExpressionTranslator(this.BoogieGenerator, this.Predef, heap, this.Old.HeapExpr, this.scope)
+            ? new ExpressionTranslator(this.BoogieGenerator, this.Predef, heap, this.Old.HeapExpressions, this.scope)
             : new ExpressionTranslator(this, heap);
 
           Dictionary<IVariable, Expression> subst = new Dictionary<IVariable, Expression>();
@@ -2420,7 +2470,7 @@ BplBoundVar(varNameGen.FreshId(string.Format("#{0}#", bv.Name)), Predef.BoxType,
 
           // It's important to add the heap last to "bvarsAndAntecedents", because the heap may occur in the antecedents of
           // the other variables and BplForallTrim processes the given tuples in order.
-          var goodHeap = BoogieGenerator.FunctionCall(e.Origin, BuiltinFunction.IsGoodHeap, null, heap);
+          var goodHeap = BoogieGenerator.FunctionCall(e.Origin, BuiltinFunction.IsGoodHeap, null, heap.HeapExpr);
           bvarsAndAntecedents.Add(Tuple.Create<Boogie.Variable, Boogie.Expr>(hVar, goodHeap));
 
           //TRIG (forall $l#0#heap#0: Heap, $l#0#x#0: int :: true)

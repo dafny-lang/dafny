@@ -29,6 +29,7 @@ namespace Microsoft.Dafny {
           // No axiom necessary, they are added in the prelude
           return fc;
         }
+
         // If 
         // const f: Field;
         Bpl.Type ty = Predef.FieldName(f.Origin);
@@ -36,15 +37,15 @@ namespace Microsoft.Dafny {
         fc = new Bpl.Constant(f.Origin, new Bpl.TypedIdent(f.Origin, f.FullSanitizedName, ty), requireUnicityOfFields);
         fields.Add(f, fc);
         // axiom FDim(f) == 0 && FieldOfDecl(C, name) == f &&
-        //       $IsGhostField(f);    // if the field is a ghost field
+        //       _System.field.IsGhost(f);    // if the field is a ghost field
         // OR:
-        //       !$IsGhostField(f);    // if the field is not a ghost field
+        //       !_System.field.IsGhost(f);    // if the field is not a ghost field
         Bpl.Expr fdim = Bpl.Expr.Eq(FunctionCall(f.Origin, BuiltinFunction.FDim, ty, Bpl.Expr.Ident(fc)), Bpl.Expr.Literal(0));
         Bpl.Expr declType = Bpl.Expr.Eq(FunctionCall(f.Origin, BuiltinFunction.FieldOfDecl, ty, new Bpl.IdentifierExpr(f.Origin, GetClass(cce.NonNull(f.EnclosingClass))), new Bpl.IdentifierExpr(f.Origin, GetFieldNameFamily(f.Name))), Bpl.Expr.Ident(fc));
         Bpl.Expr cond = BplAnd(fdim, declType);
         var ig = FunctionCall(f.Origin, BuiltinFunction.IsGhostField, ty, Bpl.Expr.Ident(fc));
         cond = BplAnd(cond, f.IsGhost ? ig : Bpl.Expr.Not(ig));
-        if (Options.Get(CommonOptionBag.Referrers)) {
+        if (VerifyReferrers) {
           // We emit the axiom that field_family(_module.Test.x) == object_field;
           // so that local fields can be determined to be different from object fields
           // (which are not visible in the current scope)

@@ -29,6 +29,7 @@ using static Microsoft.Dafny.GenericErrors;
 namespace Microsoft.Dafny {
   public partial class BoogieGenerator {
     private DafnyOptions options;
+    public bool VerifyReferrers { get; }
     public DafnyOptions Options => options;
     public const string NameSeparator = "$$";
     public const string CallPrefix = "Call";
@@ -77,6 +78,7 @@ namespace Microsoft.Dafny {
     [NotDelayed]
     public BoogieGenerator(ErrorReporter reporter, ProofDependencyManager depManager, TranslatorFlags flags = null) {
       this.options = reporter.Options;
+      this.VerifyReferrers = Options.Get(CommonOptionBag.Referrers);
       this.flags = new TranslatorFlags(options);
       this.proofDependencies = depManager;
       this.reporter = reporter;
@@ -232,6 +234,7 @@ namespace Microsoft.Dafny {
       }
       public readonly Bpl.Function ArrayLength;
       public readonly Bpl.Function RealFloor;
+      public readonly Bpl.Function IsGhostField;
       public readonly Bpl.Function ORDINAL_IsLimit;
       public readonly Bpl.Function ORDINAL_IsSucc;
       public readonly Bpl.Function ORDINAL_Offset;
@@ -253,11 +256,14 @@ namespace Microsoft.Dafny {
       readonly Bpl.TypeCtorDecl fieldNameFamily;
       public readonly Bpl.Type HeapType;
       public readonly string HeapVarName;
+      public readonly Bpl.Type ReferrersHeapType;
+      public readonly string ReferrersHeapVarName;
       public readonly Bpl.Type ClassNameType;
       public readonly Bpl.Type NameFamilyType;
       public readonly Bpl.Type DatatypeType;
       public readonly Bpl.Type HandleType;
       public readonly Bpl.Type LayerType;
+      public readonly Bpl.Type FieldType;
       public readonly Bpl.Type DtCtorId;
       public readonly Bpl.Type Ty;
       public readonly Bpl.Type TyTag;
@@ -278,6 +284,7 @@ namespace Microsoft.Dafny {
         Contract.Invariant(IMapType != null);
         Contract.Invariant(ArrayLength != null);
         Contract.Invariant(RealFloor != null);
+        Contract.Invariant(IsGhostField != null);
         Contract.Invariant(ORDINAL_IsLimit != null);
         Contract.Invariant(ORDINAL_IsSucc != null);
         Contract.Invariant(ORDINAL_Offset != null);
@@ -331,7 +338,7 @@ namespace Microsoft.Dafny {
       public PredefinedDecls(Bpl.TypeCtorDecl charType, Bpl.TypeCtorDecl refType, Bpl.TypeCtorDecl boxType,
                              Bpl.TypeCtorDecl setTypeCtor, Bpl.TypeSynonymDecl isetTypeCtor, Bpl.TypeCtorDecl multiSetTypeCtor,
                              Bpl.TypeCtorDecl mapTypeCtor, Bpl.TypeCtorDecl imapTypeCtor,
-                             Bpl.Function arrayLength, Bpl.Function realFloor,
+                             Bpl.Function arrayLength, Bpl.Function realFloor, Bpl.Function isGhostField,
                              Bpl.Function ORD_isLimit, Bpl.Function ORD_isSucc, Bpl.Function ORD_offset, Bpl.Function ORD_isNat,
                              Bpl.Function mapDomain, Bpl.Function imapDomain,
                              Bpl.Function mapValues, Bpl.Function imapValues, Bpl.Function mapItems, Bpl.Function imapItems,
@@ -339,7 +346,7 @@ namespace Microsoft.Dafny {
                              Bpl.Function tuple2Destructors0, Bpl.Function tuple2Destructors1, Bpl.Function tuple2Constructor, Bpl.Function tuple2TypeConstructor,
                              Bpl.TypeCtorDecl seqTypeCtor, Bpl.TypeSynonymDecl bv0TypeDecl,
                              Bpl.TypeCtorDecl fieldNameType, Bpl.TypeCtorDecl fieldNameFamilyType, Bpl.TypeCtorDecl tyType, Bpl.TypeCtorDecl tyTagType, Bpl.TypeCtorDecl tyTagFamilyType,
-                             Bpl.GlobalVariable heap, Bpl.TypeCtorDecl classNameType, Bpl.TypeCtorDecl nameFamilyType,
+                             Bpl.GlobalVariable heap, Bpl.GlobalVariable referrersHeap, Bpl.TypeCtorDecl classNameType, Bpl.TypeCtorDecl nameFamilyType,
                              Bpl.TypeCtorDecl datatypeType, Bpl.TypeCtorDecl handleType, Bpl.TypeCtorDecl layerType, Bpl.TypeCtorDecl dtCtorId,
                              Bpl.Constant allocField) {
         #region Non-null preconditions on parameters
@@ -353,6 +360,7 @@ namespace Microsoft.Dafny {
         Contract.Requires(imapTypeCtor != null);
         Contract.Requires(arrayLength != null);
         Contract.Requires(realFloor != null);
+        Contract.Requires(isGhostField != null);
         Contract.Requires(ORD_isLimit != null);
         Contract.Requires(ORD_isSucc != null);
         Contract.Requires(ORD_offset != null);
@@ -392,6 +400,7 @@ namespace Microsoft.Dafny {
         this.IMapType = new Bpl.CtorType(Token.NoToken, imapTypeCtor, []);
         this.ArrayLength = arrayLength;
         this.RealFloor = realFloor;
+        this.IsGhostField = isGhostField;
         this.ORDINAL_IsLimit = ORD_isLimit;
         this.ORDINAL_IsSucc = ORD_isSucc;
         this.ORDINAL_Offset = ORD_offset;
@@ -413,6 +422,9 @@ namespace Microsoft.Dafny {
         this.fieldNameFamily = fieldNameFamilyType;
         this.HeapType = heap.TypedIdent.Type;
         this.HeapVarName = heap.Name;
+        this.ReferrersHeapType = referrersHeap.TypedIdent.Type;
+        this.ReferrersHeapVarName = referrersHeap.Name;
+        this.FieldType = new Bpl.CtorType(Token.NoToken, fieldNameType, []);
         this.Ty = new Bpl.CtorType(Token.NoToken, tyType, []);
         this.TyTag = new Bpl.CtorType(Token.NoToken, tyTagType, []);
         this.TyTagFamily = new Bpl.CtorType(Token.NoToken, tyTagFamilyType, []);
@@ -442,6 +454,7 @@ namespace Microsoft.Dafny {
       Bpl.TypeCtorDecl multiSetTypeCtor = null;
       Bpl.Function arrayLength = null;
       Bpl.Function realFloor = null;
+      Bpl.Function isGhostField = null;
       Bpl.Function ORDINAL_isLimit = null;
       Bpl.Function ORDINAL_isSucc = null;
       Bpl.Function ORDINAL_offset = null;
@@ -474,6 +487,7 @@ namespace Microsoft.Dafny {
       Bpl.TypeCtorDecl mapTypeCtor = null;
       Bpl.TypeCtorDecl imapTypeCtor = null;
       Bpl.GlobalVariable heap = null;
+      Bpl.GlobalVariable referrersHeap = null;
       Bpl.Constant allocField = null;
       foreach (var d in prog.TopLevelDeclarations) {
         if (d is Bpl.TypeCtorDecl) {
@@ -533,6 +547,8 @@ namespace Microsoft.Dafny {
           Bpl.GlobalVariable v = (Bpl.GlobalVariable)d;
           if (v.Name == "$Heap") {
             heap = v;
+          } else if (v.Name == "$ReferrersHeap") {
+            referrersHeap = v;
           }
         } else if (d is Bpl.Function) {
           var f = (Bpl.Function)d;
@@ -540,6 +556,8 @@ namespace Microsoft.Dafny {
             arrayLength = f;
           } else if (f.Name == "_System.real.Floor") {
             realFloor = f;
+          } else if (f.Name == "_System.field.IsGhost") {
+            isGhostField = f;
           } else if (f.Name == "ORD#IsLimit") {
             ORDINAL_isLimit = f;
           } else if (f.Name == "ORD#IsSucc") {
@@ -589,6 +607,8 @@ namespace Microsoft.Dafny {
         options.OutputWriter.Exception("Dafny prelude is missing declaration of function _System.array.Length");
       } else if (realFloor == null) {
         options.OutputWriter.Exception("Dafny prelude is missing declaration of function _System.real.Floor");
+      } else if (isGhostField == null) {
+        options.OutputWriter.Exception("Error: Dafny prelude is missing declaration of function _System.field.IsGhost");
       } else if (ORDINAL_isLimit == null) {
         options.OutputWriter.Exception("Dafny prelude is missing declaration of function ORD#IsLimit");
       } else if (ORDINAL_isSucc == null) {
@@ -647,6 +667,8 @@ namespace Microsoft.Dafny {
         options.OutputWriter.Exception("Dafny prelude is missing declaration of type Box");
       } else if (heap == null) {
         options.OutputWriter.Exception("Dafny prelude is missing declaration of $Heap");
+      } else if (referrersHeap == null) {
+        options.OutputWriter.Exception("Error: Dafny prelude is missing declaration of $ReferrersHeap");
       } else if (allocField == null) {
         options.OutputWriter.Exception("Dafny prelude is missing declaration of constant alloc");
       } else if (tuple2TypeConstructor == null) {
@@ -657,7 +679,7 @@ namespace Microsoft.Dafny {
         return new PredefinedDecls(charType, refType, boxType,
                                    setTypeCtor, isetTypeCtor, multiSetTypeCtor,
                                    mapTypeCtor, imapTypeCtor,
-                                   arrayLength, realFloor,
+                                   arrayLength, realFloor, isGhostField,
                                    ORDINAL_isLimit, ORDINAL_isSucc, ORDINAL_offset, ORDINAL_isNat,
                                    mapDomain, imapDomain,
                                    mapValues, imapValues, mapItems, imapItems,
@@ -665,7 +687,7 @@ namespace Microsoft.Dafny {
                                    tuple2Destructors0, tuple2Destructors1, tuple2Constructor, tuple2TypeConstructor,
                                    seqTypeCtor, bv0TypeDecl,
                                    fieldNameType, fieldFamilyNameType, tyType, tyTagType, tyTagFamilyType,
-                                   heap, classNameType, nameFamilyType,
+                                   heap, referrersHeap, classNameType, nameFamilyType,
                                    datatypeType, handleType, layerType, dtCtorId,
                                    allocField);
       }
@@ -1555,7 +1577,7 @@ namespace Microsoft.Dafny {
       //         IsGoodHeap(h) && OlderTag(h) && F(x, y) && IsAlloc(y, Y, h)
       //         ==>  IsAlloc(x, X, h))
       var heapVar = BplBoundVar("$olderHeap", Predef.HeapType, out var heap);
-      var etran = new ExpressionTranslator(this, Predef, heap, f);
+      var etran = new ExpressionTranslator(this, Predef, new HeapExpressions(heap, null), f);
 
       var isGoodHeap = FunctionCall(f.Origin, BuiltinFunction.IsGoodHeap, null, heap);
       var olderTag = FunctionCall(f.Origin, "$OlderTag", Bpl.Type.Bool, heap);
@@ -1822,13 +1844,18 @@ namespace Microsoft.Dafny {
       return ie;
     }
 
-    Bpl.IdentifierExpr GetPrevHeapVar_IdExpr(IOrigin tok, Variables locals)  // local variable that's shared between statements that need it
+    HeapExpressions GetPrevHeapVar_IdExpr(IOrigin tok, HeapReadingStatus heapReadingStatus, Variables locals)  // local variable that's shared between statements that need it
     {
       Contract.Requires(tok != null);
       Contract.Requires(locals != null); Contract.Requires(Predef != null);
       Contract.Ensures(Contract.Result<Bpl.IdentifierExpr>() != null);
 
-      return GetTmpVar_IdExpr(tok, "$prevHeap", Predef.HeapType, locals);
+      var prevHeap = GetTmpVar_IdExpr(tok, "$prevHeap", Predef.HeapType, locals);
+      Bpl.Expr prevReferrersHeap = null;
+      if (heapReadingStatus.NeedsReferrersHeap) {
+        prevReferrersHeap = GetTmpVar_IdExpr(tok, "$prevReferrersHeap", Predef.ReferrersHeapType, locals);
+      }
+      return new HeapExpressions(prevHeap, prevReferrersHeap);
     }
 
     Bpl.IdentifierExpr GetNewVar_IdExpr(IOrigin tok, Variables locals)  // local variable that's shared between statements that need it
@@ -2591,8 +2618,10 @@ namespace Microsoft.Dafny {
       return f.FullSanitizedName + "#requires";
     }
 
-    private Expr NewOneHeapExpr(IOrigin tok) {
-      return new Bpl.IdentifierExpr(tok, "$OneHeap", Predef.HeapType);
+    private HeapExpressions NewOneHeapExpr(IOrigin tok) {
+      return new HeapExpressions(
+        new Bpl.IdentifierExpr(tok, "$OneHeap", Predef.HeapType),
+        new Bpl.IdentifierExpr(tok, "$OneReferrersHeap", Predef.ReferrersHeapType));
     }
 
     /// <summary>
@@ -3238,6 +3267,8 @@ namespace Microsoft.Dafny {
         return ((MapType)type).Finite ? Predef.MapType : Predef.IMapType;
       } else if (type is SeqType) {
         return Predef.SeqType;
+      } else if (type is FieldType or UserDefinedType { ResolvedClass: ValuetypeDecl { Name: "field" } }) {
+        return Predef.FieldType;
       } else {
         Contract.Assert(false); throw new cce.UnreachableException();  // unexpected type
       }
@@ -3870,6 +3901,10 @@ namespace Microsoft.Dafny {
       } else {
         return FunctionCall(x.tok, BuiltinFunction.IsAlloc, null, x, t, h);
       }
+    }
+
+    Bpl.Expr MkReferrersOf(Bpl.Expr x, Bpl.Expr h) {
+      return FunctionCall(x.tok, BuiltinFunction.ReadReferrers, null, h, x);
     }
 
     /// <summary>
@@ -4655,7 +4690,9 @@ namespace Microsoft.Dafny {
       bool useHeapAsQuantifier = argsEtran.Statistics_HeapAsQuantifierCount > 0;
       if (useHeapAsQuantifier) {
         var heapExpr = BplBoundVar(CurrentIdGenerator.FreshId("tr$heap#"), Predef.HeapType, bvars);
-        argsEtran = new ExpressionTranslator(argsEtran, heapExpr);
+        var referrersHeapExpr = Options.Get(CommonOptionBag.Referrers) ? BplBoundVar(CurrentIdGenerator.FreshId("tr$referrersHeap#"), Predef.ReferrersHeapType, bvars) : heapExpr;
+
+        argsEtran = new ExpressionTranslator(argsEtran, new HeapExpressions(heapExpr, referrersHeapExpr));
       }
 
       // now translate it with the correct layer and heapExpr
@@ -4745,11 +4782,21 @@ namespace Microsoft.Dafny {
       if (visitor.foundHeap) {
         return true;
       }
-      bool usesHeap = false, usesOldHeap = false;
+
+      var exprHeapUsage = new ExprHeapUsage();
       var FVsHeapAt = new HashSet<Label>();
       Type usesThis = null;
-      FreeVariablesUtil.ComputeFreeVariables(options, expr, new HashSet<IVariable>(), ref usesHeap, ref usesOldHeap, FVsHeapAt, ref usesThis, false);
-      return usesHeap || usesOldHeap || FVsHeapAt.Count != 0;
+      FreeVariablesUtil.ComputeFreeVariables(options, expr, new HashSet<IVariable>(), ref exprHeapUsage, FVsHeapAt, ref usesThis, false);
+      return exprHeapUsage.UseHeap || exprHeapUsage.UseOldHeap || FVsHeapAt.Count != 0;
+    }
+
+    public bool UsesReferrersHeap(Expression expr) {
+
+      var exprHeapUsage = new ExprHeapUsage();
+      var FVsHeapAt = new HashSet<Label>();
+      Type usesThis = null;
+      FreeVariablesUtil.ComputeFreeVariables(options, expr, new HashSet<IVariable>(), ref exprHeapUsage, FVsHeapAt, ref usesThis, false);
+      return exprHeapUsage.UseReferrersHeap || FVsHeapAt.Count != 0;
     }
 
     class UsesHeapVisitor : BottomUpVisitor {

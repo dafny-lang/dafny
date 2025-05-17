@@ -253,8 +253,9 @@ public partial class BoogieGenerator {
           Snoc(Map(Enumerable.Range(0, arity), i =>
             BplAnd(MkIs(boxes[i], types[i], true), Bpl.Expr.True)),
           BplAnd(MkIs(f, ClassTyCon(ad, types)), Bpl.Expr.True)));
+        var heapReadingStatus = new HeapReadingStatus(true, false);
 
-        var readsOne = FunctionCall(tok, Reads(arity), objset_ty, Concat(types, Cons(oneheap, Cons(f, boxes))));
+        var readsOne = FunctionCall(tok, Reads(arity), objset_ty, Concat(types, Concat(oneheap.AsList(heapReadingStatus), Cons(f, boxes))));
         var readsH = FunctionCall(tok, Reads(arity), objset_ty, Concat(types, Cons(h, Cons(f, boxes))));
         var empty = FunctionCall(tok, BuiltinFunction.SetEmpty, Predef.BoxType);
         var readsNothingOne = FunctionCall(tok, BuiltinFunction.SetEqual, null, readsOne, empty);
@@ -291,12 +292,13 @@ public partial class BoogieGenerator {
           Snoc(Map(Enumerable.Range(0, arity), i =>
             BplAnd(MkIs(boxes[i], types[i], true), Bpl.Expr.True)),
           BplAnd(MkIs(f, ClassTyCon(ad, types)), Bpl.Expr.True)));
+        var heapReadingStatus = new HeapReadingStatus(true, false);
 
-        var readsOne = FunctionCall(tok, Reads(arity), objset_ty, Concat(types, Cons(oneheap, Cons(f, boxes))));
+        var readsOne = FunctionCall(tok, Reads(arity), objset_ty, Concat(types, Concat(oneheap.AsList(heapReadingStatus), Cons(f, boxes))));
         var empty = FunctionCall(tok, BuiltinFunction.SetEmpty, Predef.BoxType);
         var readsNothingOne = FunctionCall(tok, BuiltinFunction.SetEqual, null, readsOne, empty);
 
-        var requiresOne = FunctionCall(tok, Requires(arity), Bpl.Type.Bool, Concat(types, Cons(oneheap, Cons(f, boxes))));
+        var requiresOne = FunctionCall(tok, Requires(arity), Bpl.Type.Bool, Concat(types, Concat(oneheap.AsList(heapReadingStatus), Cons(f, boxes))));
         var requiresH = FunctionCall(tok, Requires(arity), Bpl.Type.Bool, Concat(types, Cons(h, Cons(f, boxes))));
 
         sink.AddTopLevelDeclaration(new Axiom(tok, BplForall(bvars,

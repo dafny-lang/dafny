@@ -459,6 +459,20 @@ namespace Microsoft.Dafny {
                 // the argument is allowed to have any type at all
                 expr.PreType = ConstrainResultToBoolFamily(expr.Origin, "assigned", "boolean literal used as if it had type {0}");
                 break;
+              case UnaryOpExpr.Opcode.Referrers:
+                // Verify that the expression is a unique object
+                AddConfirmation(PreTypeConstraints.CommonConfirmationBag.IsNullableRefType, e.E.PreType, opExpr.Origin, "referrers expects a instance of an class or an array (instead got {0})");
+
+                // Create a tuple type for (object, field)
+                var objectPreType = new DPreType(BuiltInTypeDecl(PreType.TypeNameObjectQ), []);
+                var fieldPreType = new DPreType(BuiltInTypeDecl(PreType.TypeNameField), []);
+                var tupleTypeArgs = new List<PreType> { objectPreType, fieldPreType };
+                var tuplePreType = new DPreType(resolver.SystemModuleManager.TupleType(opExpr.Origin, 2, true), tupleTypeArgs);
+
+                // Create the set type containing the tuple type
+                expr.PreType = new DPreType(BuiltInTypeDecl(PreType.TypeNameSet), [tuplePreType]);
+                break;
+
               default:
                 Contract.Assert(false); throw new cce.UnreachableException();  // unexpected unary operator
             }

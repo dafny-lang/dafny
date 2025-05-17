@@ -121,8 +121,12 @@ public partial class BoogieGenerator {
           // assume $IsGoodHeap($Heap);
           builder.Add(AssumeGoodHeap(s.Origin, etran));
           // assert YieldEnsures[subst];  // where 'subst' replaces "old(E)" with "E" being evaluated in $_OldIterHeap
-          var yeEtran = new ExpressionTranslator(this, Predef, etran.HeapExpr,
-            new Bpl.IdentifierExpr(s.Origin, "$_OldIterHeap", Predef.HeapType), iter);
+          var oldHeap = new HeapExpressions(
+            new Bpl.IdentifierExpr(s.Origin, "$_OldIterHeap", Predef.HeapType),
+            new Bpl.IdentifierExpr(s.Origin, "$_OldIterReferrersHeap", Predef.ReferrersHeapType)
+          );
+          var yeEtran = new ExpressionTranslator(this, Predef, etran.HeapExpressions,
+            oldHeap, iter);
 
           var rhss = s.Rhss == null
             ? dafnyOutExprs
@@ -360,17 +364,17 @@ public partial class BoogieGenerator {
           // cause the change of the heap according to the given frame
           var suffix = CurrentIdGenerator.FreshId("modify#");
           string modifyFrameName = FrameVariablePrefix + suffix;
-          var preModifyHeapVar = locals.GetOrAdd(new Bpl.LocalVariable(s.Origin,
-            new Bpl.TypedIdent(s.Origin, "$PreModifyHeap$" + suffix, Predef.HeapType)));
+          var preModifyHeapName = "$PreModifyHeap$" + suffix;
+          var preModifyHeap = BplLocalVarHeap(s.Origin, preModifyHeapName, new HeapReadingStatus(true, VerifyReferrers),
+            locals);
           DefineFrame(s.Origin, etran.ModifiesFrame(s.Origin), s.Mod.Expressions, builder, locals, modifyFrameName);
           if (s.Body == null) {
-            var preModifyHeap = new Bpl.IdentifierExpr(s.Origin, preModifyHeapVar);
             // preModifyHeap := $Heap;
-            builder.Add(Bpl.Cmd.SimpleAssign(s.Origin, preModifyHeap, etran.HeapExpr));
+            builder.Add(Bpl.Cmd.SimpleAssign(s.Origin, (Bpl.IdentifierExpr)preModifyHeap.HeapExpr, etran.HeapExpr));
             // havoc $Heap;
             builder.Add(new Bpl.HavocCmd(s.Origin, [etran.HeapCastToIdentifierExpr]));
             // assume $HeapSucc(preModifyHeap, $Heap);   OR $HeapSuccGhost
-            builder.Add(TrAssumeCmd(s.Origin, HeapSucc(preModifyHeap, etran.HeapExpr, s.IsGhost)));
+            builder.Add(TrAssumeCmd(s.Origin, HeapSucc(preModifyHeap.HeapExpr, etran.HeapExpr, s.IsGhost)));
             // assume nothing outside the frame was changed
             var etranPreLoop = new ExpressionTranslator(this, Predef, preModifyHeap,
               this.CurrentDeclaration is IFrameScope fs ? fs : null);
@@ -891,9 +895,10 @@ public partial class BoogieGenerator {
       if (processLabels) {
         if (ss is LabeledStatement labelledStatement) {
           foreach (var label in labelledStatement.Labels) {
-            var heapAt = locals.GetOrAdd(new Bpl.LocalVariable(ss.Origin,
-              new Bpl.TypedIdent(ss.Origin, "$Heap_at_" + label.AssignUniqueId(CurrentIdGenerator), Predef.HeapType)));
-            builder.Add(Bpl.Cmd.SimpleAssign(ss.Origin, new Bpl.IdentifierExpr(ss.Origin, heapAt), etran.HeapExpr));
+            var heapExpressions = BplLocalVarHeap(ss.Origin, "$Heap_at_" + label.AssignUniqueId(CurrentIdGenerator),
+              new HeapReadingStatus(true, VerifyReferrers), locals);
+            builder.Add(Bpl.Cmd.SimpleAssign(ss.Origin, (Bpl.IdentifierExpr)heapExpressions.HeapExpr, etran.HeapExpr));
+            builder.Add(Bpl.Cmd.SimpleAssign(ss.Origin, (Bpl.IdentifierExpr)heapExpressions.ReferrersHeapExpr, etran.ReferrersHeapExpr));
           }
         }
       }

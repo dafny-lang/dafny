@@ -140,12 +140,11 @@ public partial class BoogieGenerator {
 
     // Now for the other branch, where the postcondition of the call is exported.
     {
-      var initHeapVar = new Bpl.LocalVariable(tok, new Bpl.TypedIdent(tok, CurrentIdGenerator.FreshId("$initHeapForallStmt#"), Predef.HeapType));
-      locals.Add(initHeapVar);
-      var initHeap = new Bpl.IdentifierExpr(tok, initHeapVar);
-      var initEtran = new ExpressionTranslator(this, Predef, initHeap, etran.Old.HeapExpr, etran.scope);
+      var newVars = BplLocalVarHeap("$initHeapForallStmt#", out var initHeap);
+      locals.AddRange(newVars);
+      var initEtran = new ExpressionTranslator(this, Predef, initHeap, etran.Old.HeapExpressions, etran.scope);
       // initHeap := $Heap;
-      exporter.Add(Bpl.Cmd.SimpleAssign(tok, initHeap, etran.HeapExpr));
+      exporter.Add(Bpl.Cmd.SimpleAssign(tok, (Bpl.IdentifierExpr)initHeap.HeapExpr, etran.HeapExpr));
       var heapIdExpr = etran.HeapCastToIdentifierExpr;
       // advance $Heap;
       exporter.Add(new Bpl.HavocCmd(tok, [heapIdExpr]));
@@ -157,7 +156,7 @@ public partial class BoogieGenerator {
       }
       if (codeContext is IteratorDecl) {
         var iter = (IteratorDecl)codeContext;
-        RecordNewObjectsIn_New(tok, iter, initHeap, heapIdExpr, exporter, locals, etran);
+        RecordNewObjectsIn_New(tok, iter, initHeap.HeapExpr, heapIdExpr, exporter, locals, etran);
       }
 
       // Note, in the following, we need to do a bit of a song and dance.  The actual arguments of the
@@ -168,7 +167,7 @@ public partial class BoogieGenerator {
       Dictionary<IVariable, Expression> substMap;
       var argsSubstMap = new Dictionary<IVariable, Expression>();  // maps formal arguments to actuals
       Contract.Assert(s0.Method.Ins.Count == s0.Args.Count);
-      var callEtran = new ExpressionTranslator(this, Predef, etran.HeapExpr, initHeap, etran.scope);
+      var callEtran = new ExpressionTranslator(this, Predef, etran.HeapExpressions, initHeap, etran.scope);
       Bpl.Expr anteCanCalls, ante;
       Bpl.Expr post = Bpl.Expr.True;
       Bpl.Trigger tr;
@@ -387,11 +386,11 @@ public partial class BoogieGenerator {
 
     // Now for the translation of the update itself
 
-    Bpl.IdentifierExpr prevHeap = GetPrevHeapVar_IdExpr(s.Origin, locals);
+    var prevHeap = GetPrevHeapVar_IdExpr(s.Origin, new HeapReadingStatus(true, VerifyReferrers), locals);
     var prevEtran = new ExpressionTranslator(this, Predef, prevHeap, etran.scope);
-    updater.Add(Bpl.Cmd.SimpleAssign(s.Origin, prevHeap, etran.HeapExpr));
+    updater.Add(Bpl.Cmd.SimpleAssign(s.Origin, (Bpl.IdentifierExpr)prevHeap.HeapExpr, etran.HeapExpr));
     updater.Add(new Bpl.HavocCmd(s.Origin, [etran.HeapCastToIdentifierExpr]));
-    updater.Add(TrAssumeCmd(s.Origin, HeapSucc(prevHeap, etran.HeapExpr)));
+    updater.Add(TrAssumeCmd(s.Origin, HeapSucc(prevHeap.HeapExpr, etran.HeapExpr)));
 
     // Here comes:
     //   assume (forall o: ref, f: Field ::
@@ -404,7 +403,7 @@ public partial class BoogieGenerator {
     Bpl.BoundVariable fVar = new Bpl.BoundVariable(s.Origin, new Bpl.TypedIdent(s.Origin, "$f", Predef.FieldName(s.Origin)));
     Bpl.IdentifierExpr f = new Bpl.IdentifierExpr(s.Origin, fVar);
     Bpl.Expr heapOF = ReadHeap(s.Origin, etran.HeapExpr, o, f);
-    Bpl.Expr oldHeapOF = ReadHeap(s.Origin, prevHeap, o, f);
+    Bpl.Expr oldHeapOF = ReadHeap(s.Origin, prevHeap.HeapExpr, o, f);
     List<bool> freeOfAlloc = BoundedPool.HasBounds(s.Bounds, BoundedPool.PoolVirtues.IndependentOfAlloc_or_ExplicitAlloc);
     List<Variable> xBvars = [];
     var xBody = etran.TrBoundVariables(s.BoundVars, xBvars, false, freeOfAlloc);

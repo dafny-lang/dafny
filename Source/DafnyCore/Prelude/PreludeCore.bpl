@@ -551,14 +551,15 @@ axiom (forall cl : ClassName, nm: NameFamily ::
    {FieldOfDecl(cl, nm): Field}
    DeclType(FieldOfDecl(cl, nm): Field) == cl && DeclName(FieldOfDecl(cl, nm): Field) == nm);
 
-function $IsGhostField(Field): bool uses {
-   axiom $IsGhostField(alloc); // treat as ghost field, since it is allowed to be changed by ghost code
+function _System.field.IsGhost(Field): bool uses {
+   axiom _System.field.IsGhost(alloc); // treat as ghost field, since it is allowed to be changed by ghost code
 }
+
 axiom (forall h: Heap, k: Heap :: { $HeapSuccGhost(h,k) }
   $HeapSuccGhost(h,k) ==>
     $HeapSucc(h,k) &&
     (forall o: ref, f: Field :: { read(k, o, f) }
-      !$IsGhostField(f) ==> read(h, o, f) == read(k, o, f)));
+      !_System.field.IsGhost(f) ==> read(h, o, f) == read(k, o, f)));
 
 // ---------------------------------------------------------------
 // -- Allocatedness and Heap Succession --------------------------
@@ -626,6 +627,21 @@ axiom (forall h: Heap, k: Heap :: { $HeapSucc(h,k) }
   $HeapSucc(h,k) ==> (forall o: ref :: { read(k, o, alloc) } $Unbox(read(h, o, alloc)) ==> $Unbox(read(k, o, alloc))));
 
 function $HeapSuccGhost(Heap, Heap): bool;
+
+// ---------------------------------------------------------------
+// -- Referrers --------------------------------------------------
+// ---------------------------------------------------------------
+
+type ReferrersHeap = [ref]Set;
+function {:inline} readReferrers(H: ReferrersHeap, r: ref) : Set { H[r] }
+function {:inline} updateReferrers(H: ReferrersHeap, r:ref, v: Set) : ReferrersHeap { H[r := v] }
+
+var $ReferrersHeap: ReferrersHeap;
+
+// The following is used as a reference heap in places where the translation needs a heap
+// but the expression generated is really one that is (at least in a correct program)
+// independent of the ReferrersHeap.
+const $OneReferrersHeap: ReferrersHeap;
 
 // ---------------------------------------------------------------
 // -- Useful macros ----------------------------------------------
