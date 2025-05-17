@@ -1,0 +1,13 @@
+localsmemorylocation-resolutionerrors.dfy(12,17): Error: variable 'i' is not declared
+localsmemorylocation-resolutionerrors.dfy(12,29): Error: variable 'i' is not declared
+localsmemorylocation-resolutionerrors.dfy(15,22): Error: variable 'j' is not declared - did you mean locals`i
+localsmemorylocation-resolutionerrors.dfy(16,14): Error: double backtick is only available with locals``name if name is a method input parameter in context
+localsmemorylocation-resolutionerrors.dfy(22,27): Error: variable 'r' is not declared - did you mean one of locals`i, or locals`mem_i
+localsmemorylocation-resolutionerrors.dfy(25,22): Error: variable 'j' is not declared - did you mean one of locals`i, locals`mem_i, locals`r, locals`mem_r, or locals`mem_i2
+localsmemorylocation-resolutionerrors.dfy(26,22): Error: variable 'k' is not declared - did you mean one of locals`i, locals`mem_i, locals`r, locals`mem_r, locals`mem_i2, or locals`mem_j
+localsmemorylocation-resolutionerrors.dfy(32,26): Error: variable 'i' is not declared - did you mean locals``i
+localsmemorylocation-resolutionerrors.dfy(33,27): Error: input parameter 'k' is not declared - did you mean one of locals``i, locals``mem_i, or locals`test
+localsmemorylocation-resolutionerrors.dfy(37,22): Error: field location expressions cannot be used outside of a method
+localsmemorylocation-resolutionerrors.dfy(45,22): Error: input parameter 'mem_j' is not declared - did you mean locals``mem_i
+localsmemorylocation-resolutionerrors.dfy(49,9): Error: field location expressions cannot be used outside of a method
+12 resolution/type errors detected in localsmemorylocation-resolutionerrors.dfy
