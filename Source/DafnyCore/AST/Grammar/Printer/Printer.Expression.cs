@@ -937,23 +937,23 @@ namespace Microsoft.Dafny {
             fragileRightContext = true;
             break;
           case BinaryExpr.Opcode.Add: {
-            opBindingStrength = BindingStrengthAdd;
-            var t1 = e.E1.Type;
-            fragileRightContext = t1 == null ||
-                                  !(t1.IsIntegerType || t1.IsRealType || t1.IsBigOrdinalType || t1.IsBitVectorType);
-            break;
-          }
+              opBindingStrength = BindingStrengthAdd;
+              var t1 = e.E1.Type;
+              fragileRightContext = t1 == null ||
+                                    !(t1.IsIntegerType || t1.IsRealType || t1.IsBigOrdinalType || t1.IsBitVectorType);
+              break;
+            }
           case BinaryExpr.Opcode.Sub:
             opBindingStrength = BindingStrengthAdd;
             fragileRightContext = true;
             break;
           case BinaryExpr.Opcode.Mul: {
-            opBindingStrength = BindingStrengthMul;
-            var t1 = e.E1.Type;
-            fragileRightContext = t1 == null ||
-                                  !(t1.IsIntegerType || t1.IsRealType || t1.IsBigOrdinalType || t1.IsBitVectorType);
-            break;
-          }
+              opBindingStrength = BindingStrengthMul;
+              var t1 = e.E1.Type;
+              fragileRightContext = t1 == null ||
+                                    !(t1.IsIntegerType || t1.IsRealType || t1.IsBigOrdinalType || t1.IsBitVectorType);
+              break;
+            }
           case BinaryExpr.Opcode.Div:
           case BinaryExpr.Opcode.Mod:
             opBindingStrength = BindingStrengthMul;

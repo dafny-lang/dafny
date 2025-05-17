@@ -779,8 +779,8 @@ namespace Microsoft.Dafny {
                   return;
                 }
 
-                localField = formal.GetLocalFieldCallSite(method);
-                resolved = CreateObjectFieldLocation(fieldLocation.Origin, fieldLocation.Lhs, fieldLocation.Name, localField);
+                localField = formal.GetLocalField(method);
+                resolved = CreateObjectFieldLocation(fieldLocation.Origin, fieldLocation.Lhs, fieldLocation.Name, localField, true);
                 ResolveWith(localField, resolved);
                 return;
               }
@@ -800,7 +800,7 @@ namespace Microsoft.Dafny {
                     .Where(n => n != null).Select(n => $"locals``{n}"));
                   hint = DidYouMeanOneOf(hints);
                 }
-                ReportError(fieldLocation, "variable '{0}' is not declared${1}", name, hint);
+                ReportError(fieldLocation, "variable '{0}' is not declared{1}", name, hint);
                 fieldLocation.PreType = CreatePreTypeProxy("field-location");
                 return;
               }
@@ -810,11 +810,11 @@ namespace Microsoft.Dafny {
                   fieldLocation.PreType = CreatePreTypeProxy("field-location");
                   return;
                 }
-                localField = formal.GetLocalFieldBody(method);
+                localField = formal.GetLocalField(method);
               } else {
                 localField = local.GetLocalField(method);
               }
-              resolved = CreateObjectFieldLocation(fieldLocation.Origin, fieldLocation.Lhs, fieldLocation.Name, localField);
+              resolved = CreateObjectFieldLocation(fieldLocation.Origin, fieldLocation.Lhs, fieldLocation.Name, localField, false);
               ResolveWith(localField, resolved);
               break;
             }
@@ -854,12 +854,12 @@ namespace Microsoft.Dafny {
             }
 
             if (lhsObjType.IsRefType) {
-              resolved = CreateObjectFieldLocation(fieldLocation.Origin, fieldLocation.Lhs, fieldLocation.Name, field);
+              resolved = CreateObjectFieldLocation(fieldLocation.Origin, fieldLocation.Lhs, fieldLocation.Name, field, false);
             } else {
               innerLhsObjType = Constraints.FindDefinedPreType(innerLhsObjType, true) ?? innerLhsObjType;
               resolved = MemoryLocationSetComprehension(fieldLocation.Origin, innerLhsObjType, fieldLocation.Lhs,
                 o => (
-                  CreateObjectFieldLocation(fieldLocation.Origin, o, fieldLocation.Name, field),
+                  CreateObjectFieldLocation(fieldLocation.Origin, o, fieldLocation.Name, field, false),
                   new ExprDotName(fieldLocation.Origin, o, fieldLocation.Name, null))
                   );
             }
@@ -941,9 +941,9 @@ namespace Microsoft.Dafny {
             break;
           }
         case MatchExpr: {
-          Contract.Assert(false); // this case is always handled via NestedMatchExpr
-          break;
-        }
+            Contract.Assert(false); // this case is always handled via NestedMatchExpr
+            break;
+          }
         case LocalsObjectExpression locals:
           locals.PreType = new DPreType(BuiltInTypeDecl(PreType.TypeNameObjectQ), []);
           var objectQDecl = resolver.ProgramResolver.Program.SystemModuleManager.ObjectDecl.NonNullTypeDecl;
@@ -960,10 +960,9 @@ namespace Microsoft.Dafny {
       }
     }
 
-    private static string DidYouMeanOneOf(List<string> hints)
-    {
-      return hints.Count > 1 
-        ? " - did you mean one of " + string.Join(", ", hints.Take(hints.Count - 1)) + " or " + hints.Last()
+    private static string DidYouMeanOneOf(List<string> hints) {
+      return hints.Count > 1
+        ? " - did you mean one of " + string.Join(", ", hints.Take(hints.Count - 1)) + ", or " + hints.Last()
         : hints.Count == 1
           ? " - did you mean " + hints.FirstOrDefault() : "";
     }
@@ -984,9 +983,9 @@ namespace Microsoft.Dafny {
 
 
     // Returns also the trigger obj.fieldName
-    private static DatatypeValue CreateObjectFieldLocation(IOrigin origin, Expression obj, Name fieldName, Field field) {
+    private static DatatypeValue CreateObjectFieldLocation(IOrigin origin, Expression obj, Name fieldName, Field field, bool atCallSite) {
       return new DatatypeValue(origin, SystemModuleManager.TupleTypeName([false, false]), SystemModuleManager.TupleTypeCtorName(2),
-        [obj, new FieldLocation(fieldName, field) { Type = Type.Field}]);
+        [obj, new FieldLocation(fieldName, field, atCallSite) { Type = Type.Field }]);
     }
 
     private static DatatypeValue CreateObjectIndexFieldLocation(IOrigin origin, Expression obj,

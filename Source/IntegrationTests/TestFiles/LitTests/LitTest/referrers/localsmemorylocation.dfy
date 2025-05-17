@@ -1,3 +1,6 @@
+// RUN: %verify --referrers --type-system-refresh "%s" > "%t"
+// RUN: %diff "%s.expect" "%t"
+
 class Test {
   var x: int
   constructor() {
@@ -12,9 +15,11 @@ method LocalVars() {
   var mem_i := locals`i;
   assert mem_i == locals`i;
   assert mem_i != locals`j;
+  assert locals`j != j`x;
 }
 
 method Parameters(i: Test, ghost mem_i: (object, field)) returns (r: Test, ghost mem_r: (object, field))
+  decreases *
   requires mem_i == locals`i // We want to be able to express memory locations on parameters in contracts
   ensures mem_r == locals`r  // Same here
 {
@@ -22,18 +27,23 @@ method Parameters(i: Test, ghost mem_i: (object, field)) returns (r: Test, ghost
   var mem_r2 := locals`r;
   mem_r := locals`r;
   r := i;
+  var _, _ := Parameters(i, locals``i) by {
+    assert locals``i != locals`i; // Recursive calls should have different memory locations
+  }
 }
 
-method CallParameters() {
+method CallParameters()
+  decreases * {
   var test := new Test();
   var i := new Test();
   var test2, memTest2 := Parameters(i := test, mem_i := locals``i) by {
     assert locals``i != locals`i; // All fields are unique
   }
-  assert memTest2 == locals`test2; // From the ensures of parameters.
+  assert memTest2 != locals`test2; // From the ensures of parameters.
 }
 
-method CallParametersNoLocalI() {
+method CallParametersNoLocalI()
+  decreases * {
   var test := new Test();
   var test2, memTest2 := Parameters(i := test, mem_i := locals``i);
 }

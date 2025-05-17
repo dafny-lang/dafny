@@ -157,8 +157,26 @@ axiom (forall a: char, b: char ::
 // ---------------------------------------------------------------
 
 type ref;
+
 const null: ref;
 const locals: ref;
+
+type FieldFamily;
+const unique object_field: FieldFamily;
+
+// local_field keeps the information about the depth and the field family
+
+function field_depth(f: Field): int;
+function field_family(f: Field): FieldFamily;
+
+function local_field(ff: FieldFamily, depth: int): Field
+uses {
+  axiom (forall ff: FieldFamily, depth: int ::
+    {:trigger local_field(ff, depth)}
+    field_depth(local_field(ff, depth)) == depth
+    && field_family(local_field(ff, depth)) == ff
+  );
+}
 
 // ---------------------------------------------------------------
 // -- Boxing and unboxing ----------------------------------------
@@ -558,7 +576,10 @@ axiom (forall h, k : Heap, bx : Box, t : Ty ::
 
 // No axioms for $Is and $IsBox since they don't talk about the heap.
 
-const unique alloc: Field;
+const unique alloc: Field
+uses {
+  axiom field_family(alloc) == object_field;
+}
 const unique allocName: NameFamily;
 
 // ---------------------------------------------------------------

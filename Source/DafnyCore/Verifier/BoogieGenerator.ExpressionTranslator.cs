@@ -1525,14 +1525,64 @@ namespace Microsoft.Dafny {
               null, allowNoChange, false);
             return decreasesExpr;
           case FieldLocation fieldLocation:
-            return new Boogie.IdentifierExpr(GetToken(expr), BoogieGenerator.GetField(fieldLocation.Field));
+            var tok = GetToken(expr);
+            if (fieldLocation.Field is SpecialField { EnclosingMethod: not null }) {
+              Expr depthExpr = fieldLocation.AtCallSite ?
+                Call(tok, "+", Id(tok, "depth"), One(tok))
+                : Id(tok, "depth");
+              return Call(tok, "local_field",
+                Id(tok, BoogieGenerator.GetField(fieldLocation.Field)),
+                depthExpr
+              );
+            } else {
+              return Id(tok, BoogieGenerator.GetField(fieldLocation.Field));
+            }
           case IndexFieldLocation indexFieldLocation:
             return GetArrayIndexFieldName(indexFieldLocation.Origin, indexFieldLocation.Indices.ToList());
           case LocalsObjectExpression:
             return Predef.Locals;
           default:
-              Contract.Assert(false); throw new cce.UnreachableException();  // unexpected expression
+            Contract.Assert(false); throw new cce.UnreachableException();  // unexpected expression
         }
+      }
+
+      private Expr Id(IToken tok, string name) {
+        return new Boogie.IdentifierExpr(tok, name);
+      }
+      private Expr Id(IToken tok, Boogie.Constant constant) {
+        return new Boogie.IdentifierExpr(tok, constant);
+      }
+      private Expr One(IToken tok) {
+        return new Boogie.LiteralExpr(tok, BigNum.ONE);
+      }
+      private static Dictionary<string, Boogie.BinaryOperator.Opcode> OpCodeMapping = new() {
+        { "+", BinaryOperator.Opcode.Add },
+        { "-", BinaryOperator.Opcode.Sub },
+        { "*", BinaryOperator.Opcode.Mul },
+        { "div", BinaryOperator.Opcode.Div },
+        { "mod", BinaryOperator.Opcode.Mod },
+        { "/", BinaryOperator.Opcode.RealDiv },
+        { "float_div", BinaryOperator.Opcode.FloatDiv },
+        { "**", BinaryOperator.Opcode.Pow },
+        { "==", BinaryOperator.Opcode.Eq },
+        { "!=", BinaryOperator.Opcode.Neq },
+        { ">", BinaryOperator.Opcode.Gt },
+        { ">=", BinaryOperator.Opcode.Ge },
+        { "<", BinaryOperator.Opcode.Lt },
+        { "<=", BinaryOperator.Opcode.Le },
+        { "&&", BinaryOperator.Opcode.And },
+        { "||", BinaryOperator.Opcode.Or },
+        { "==>", BinaryOperator.Opcode.Imp },
+        { "<==>", BinaryOperator.Opcode.Iff }
+      };
+
+      private Expr Call(IToken tok, string name, params Expr[] args) {
+        if (OpCodeMapping.TryGetValue(name, out var opcode)) {
+          return Boogie.Expr.Binary(tok, opcode, args[0], args[1]); 
+        }
+        return new NAryExpr(tok,
+          new FunctionCall(new Boogie.IdentifierExpr(tok, name)), args
+        );
       }
 
       public Expr TrExprSpecialFunctionCall(FunctionCallExpr expr) {

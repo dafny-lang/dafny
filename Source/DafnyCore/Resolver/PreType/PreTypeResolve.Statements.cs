@@ -17,7 +17,7 @@ namespace Microsoft.Dafny {
     public Scope<Label> DominatingStatementLabels { get; }
 
     public Scope<LabeledStatement> EnclosingStatementLabels { get; set; }
-    
+
     public Scope<Formal> EnclosingInputParameterFormals { get; set; }
 
     public List<LabeledStatement> LoopStack {
@@ -508,7 +508,7 @@ namespace Microsoft.Dafny {
         var prevLoopStack = loopStack;
         EnclosingStatementLabels = new Scope<LabeledStatement>(resolver.Options);
         EnclosingInputParameterFormals = new Scope<Formal>(resolver.Options);
-        
+
         loopStack = [];
         foreach (var h in s.Hints) {
           foreach (var oneHint in h.Body) {

@@ -1,5 +1,11 @@
+// RUN: %exits-with 2 %resolve --referrers --type-system-refresh "%s" > "%t"
+// RUN: %diff "%s.expect" "%t"
+
 class Test {
   var x: int
+  constructor() {
+    x := 0;
+  }
 }
 
 method LocalVars()
@@ -25,6 +31,7 @@ method CallParameters() {
   var test := new Test();
   Parameters(test, locals`i); // locals`i is not defined. Did you mean in this context 'locals.``i?'
   Parameters(test, locals``k); // locals``k is not defined. Available in context: locals``i, locals`test, locals``mem_i
+}
 
 function FunctionParametersAreNoLocalsMemoryLocation(i: Test): int {
   var mem_i := locals`i; // Function don't have local memory locations, all their variables are only intermediates.

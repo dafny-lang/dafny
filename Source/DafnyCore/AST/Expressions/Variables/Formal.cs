@@ -48,8 +48,7 @@ public class Formal : NonglobalVariable {
     IsNameOnly = original.IsNameOnly;
     IsOlder = original.IsOlder;
     NameForCompilation = original.NameForCompilation;
-    localFieldBody = original.localFieldBody;
-    localFieldCallSite = original.localFieldCallSite;
+    localField = original.LocalField;
   }
 
   public bool HasName => !Name.StartsWith("#");
@@ -65,38 +64,21 @@ public class Formal : NonglobalVariable {
 
   public override IEnumerable<INode> PreResolveChildren => Children;
 
-  private Field? localFieldBody;
+  private Field? localField;
   
-  private Field? localFieldCallSite;
+  public Field? LocalField => localField;
 
-  public Field? LocalFieldBody => localFieldBody;
-  public Field? LocalFieldCallSite => localFieldCallSite;
-
-  public Field GetLocalFieldBody(MethodOrConstructor methodOrConstructor) {
-    if (localFieldBody == null) {
-      localFieldBody = new SpecialField(Origin, Name, SpecialField.ID.UseIdParam, (object)Name, true,
+  public Field GetLocalField(MethodOrConstructor methodOrConstructor) {
+    if (localField == null) {
+      localField = new SpecialField(Origin, Name, SpecialField.ID.UseIdParam, (object)Name, true,
         false, false, Type, null) {
         EnclosingClass = methodOrConstructor.EnclosingClass,
-        EnclosingMethod = methodOrConstructor,
-        AtCallSite = false
+        EnclosingMethod = methodOrConstructor
       };
-      localFieldBody.InheritVisibility(methodOrConstructor);
+      localField.InheritVisibility(methodOrConstructor);
     }
 
-    return localFieldBody;
-  }
-  public Field GetLocalFieldCallSite(MethodOrConstructor methodOrConstructor) {
-    if (localFieldCallSite == null) {
-      localFieldCallSite = new SpecialField(Origin, Name, SpecialField.ID.UseIdParam, (object)Name, true,
-        false, false, Type, null) {
-        EnclosingClass = methodOrConstructor.EnclosingClass,
-        EnclosingMethod = methodOrConstructor,
-        AtCallSite = true
-      };
-      localFieldCallSite.InheritVisibility(methodOrConstructor);
-    }
-
-    return localFieldCallSite;
+    return localField;
   }
 }
 

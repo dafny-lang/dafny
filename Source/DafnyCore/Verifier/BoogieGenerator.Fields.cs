@@ -21,6 +21,7 @@ namespace Microsoft.Dafny {
       if (fields.TryGetValue(f, out fc)) {
         Contract.Assert(fc != null);
       } else {
+        // If 
         // const f: Field;
         Bpl.Type ty = Predef.FieldName(f.Origin);
         var requireUnicityOfFields = Options.Get(CommonOptionBag.Referrers);
@@ -32,7 +33,9 @@ namespace Microsoft.Dafny {
         //       !$IsGhostField(f);    // if the field is not a ghost field
         Bpl.Expr fdim = Bpl.Expr.Eq(FunctionCall(f.Origin, BuiltinFunction.FDim, ty, Bpl.Expr.Ident(fc)), Bpl.Expr.Literal(0));
         Bpl.Expr declType = Bpl.Expr.Eq(FunctionCall(f.Origin, BuiltinFunction.FieldOfDecl, ty, new Bpl.IdentifierExpr(f.Origin, GetClass(cce.NonNull(f.EnclosingClass))), new Bpl.IdentifierExpr(f.Origin, GetFieldNameFamily(f.Name))), Bpl.Expr.Ident(fc));
-        Bpl.Expr cond = BplAnd(fdim, declType);
+        // With referrers, we don't declare a declType for a field that represents a memory location since it's not public
+        // Doing so would be unsound, unless GetFieldNameFamily(f.Name) could somehow return a name that also depends on the enclosing method's name
+        Bpl.Expr cond = f is SpecialField { EnclosingMethod: not null } ? fdim : BplAnd(fdim, declType);
         var ig = FunctionCall(f.Origin, BuiltinFunction.IsGhostField, ty, Bpl.Expr.Ident(fc));
         cond = BplAnd(cond, f.IsGhost ? ig : Bpl.Expr.Not(ig));
         Bpl.Axiom ax = new Bpl.Axiom(f.Origin, cond);

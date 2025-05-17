@@ -1,5 +1,11 @@
+// RUN: %exits-with 4 %verify --referrers --type-system-refresh "%s" > "%t"
+// RUN: %diff "%s.expect" "%t"
+
 class Test {
   var x: int
+  constructor() {
+    x := 0;
+  }
 }
 
 method Parameters(i: Test, ghost mem_i: (object, field))
