@@ -24,7 +24,7 @@ namespace Microsoft.Dafny {
       if (entry != null) {
         // We have encountered a substitution, which we only expect to happen inside the quantifier, so these fields should be non-null
         Contract.Assert(antecedentState != null);
-        antecedentState.AddGuard(entry.Item2, entry.Item2);
+        antecedentState.AddGuard(entry.Item2, entry.Item1);
 
         ie = entry.Item2;
         return true;
@@ -113,14 +113,22 @@ namespace Microsoft.Dafny {
       return base.Substitute(expr);
     }
 
-    private class AntecedentState(IOrigin origin) {
-      private readonly Stack<Expression> guardExpressions = [];
+    private class AntecedentState {
+      private readonly IOrigin origin;
+      private readonly Stack<Expression> guardExpressions;
       private readonly List<AntecedentTobeAdded> antecedentsToBeAdded = [];
 
-      private record AntecedentTobeAdded(Expression Guard, IdentifierExpr Var, Expression Value);
+      public AntecedentState(IOrigin origin) {
+        this.origin = origin;
+        guardExpressions = new Stack<Expression>();
+        guardExpressions.Push(Expression.CreateBoolLiteral(origin, true));
+      }
+
+      private record AntecedentTobeAdded(BoundVar Var, Expression Guard, Expression Rhs);
 
       public void Push(Expression expr) {
-        guardExpressions.Push(expr);
+        var top = guardExpressions.Peek();
+        guardExpressions.Push(Expression.CreateAnd(top, expr));
       }
 
       public void Pop() {
@@ -128,11 +136,11 @@ namespace Microsoft.Dafny {
       }
 
       public void AddGuard(IdentifierExpr idExpr, Expression rhs) {
-        var context = guardExpressions!.Aggregate((Expression)Expression.CreateBoolLiteral(origin, true),
-          (acc, e) => Expression.CreateAnd(acc, e)); // TODO: or should this be "e, acc"?
-        var eq = new BinaryExpr(origin, BinaryExpr.ResolvedOpcode.EqCommon, idExpr, rhs) { Type = Type.Bool };
-        var guard = Expression.CreateImplies(context, eq);
-        antecedentsToBeAdded.Add(new AntecedentTobeAdded(guard, idExpr, rhs));
+        var guard = guardExpressions.Peek();
+        var variable = (BoundVar)idExpr.Var;
+        if (!antecedentsToBeAdded.Any(a => a.Var == variable && a.Guard == guard)) {
+          antecedentsToBeAdded.Add(new AntecedentTobeAdded(variable, guard, rhs));
+        }
       }
 
       public Expression CollectAntecedent(IOrigin origin, out List<BoundVar> additionalBoundVars, out List<BoundedPool> additionalBoundedPools) {
@@ -142,27 +150,29 @@ namespace Microsoft.Dafny {
         additionalBoundedPools = [];
 
         // For each variable in "antecedentsToBeAdded", construct the disjunction of its guards
-        var variables = new HashSet<IdentifierExpr>(antecedentsToBeAdded.Select(a => a.Var));
+        var variables = new HashSet<BoundVar>(antecedentsToBeAdded.Select(a => a.Var));
         foreach (var v in variables) {
-          additionalBoundVars.Add((BoundVar)v.Var);
+          additionalBoundVars.Add(v);
 #if PREVIOUS
         additionalBoundedPools.Add(new ExactBoundedPool(entry.Item1)); // TODO: this is not right if there's a further antecedent
 #else
           additionalBoundedPools.Add(null);
 #endif
 
-          Expression value = null;
+          Expression rhs = null;
           Expression guard = Expression.CreateBoolLiteral(origin, false);
           foreach (var antecedentsForV in antecedentsToBeAdded.Where(a => a.Var == v)) {
-            if (value == null) {
-              value = antecedentsForV.Value;
+            if (rhs == null) {
+              rhs = antecedentsForV.Rhs;
             } else {
               // we expect the .Value to be the same for every record for this variable
-              Contract.Assert(value == antecedentsForV.Value);
+              Contract.Assert(rhs == antecedentsForV.Rhs);
             }
             guard = Expression.CreateOr(guard, antecedentsForV.Guard);
           }
-          result = Expression.CreateAnd(result, guard);
+          var idExpr = new IdentifierExpr(origin, v);
+          var eq = new BinaryExpr(origin, BinaryExpr.ResolvedOpcode.EqCommon, idExpr, rhs) { Type = Type.Bool };
+          result = Expression.CreateAnd(result, Expression.CreateImplies(guard, eq));
         }
 
         return result;
