@@ -139,6 +139,9 @@ module RegressionTest {
   // field in the implementation had been incorrectly cleared.
   method Test(b: array<int>, lo: int, hi: int, n: int)
     requires 0 <= lo < hi <= b.Length
+    requires lo + 2 == hi
+    requires b[lo] == 15 && b[lo + 1] == 98
+    requires RightmostMax(b, 16, 98, n)
   {
     assert forall u :: lo < u < hi ==> RightmostMax(b, b[u-1] + 1, b[u], n) || forall xx :: F(xx) == b[u-1];
   }
