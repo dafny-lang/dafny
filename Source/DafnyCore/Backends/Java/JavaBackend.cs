@@ -69,14 +69,14 @@ for backwards compatibility with Java code generated with Dafny versions earlier
     outStream.Close();
   }
 
-  private ProcessStartInfo PrepareProcessStartInfo(IEnumerable<string> files, out string tempFilePath) {
+  private ProcessStartInfo JavacCommand(IEnumerable<string> files, out string tempFilePath) {
     tempFilePath = Path.GetTempFileName();
 
     // Wrap each filename in quotes to handle spaces
     var quotedFiles = files.Select(f => $"\"{f.Replace(@"\", @"\\")}\"");
     File.WriteAllLines(tempFilePath, quotedFiles);
 
-    return new ProcessStartInfo("javac", $"-encoding UTF8 @{tempFilePath}");
+    return PrepareProcessStartInfo("javac", ["-encoding", "UTF8", $"@{tempFilePath}"]);
   }
 
   public override async Task<(bool Success, object CompilationResult)> CompileTargetProgram(string dafnyProgramName,
@@ -101,7 +101,7 @@ for backwards compatibility with Java code generated with Dafny versions earlier
     }
 
     // Compile the generated source to .class files, adding the output directory to the classpath
-    var compileProcess = PrepareProcessStartInfo(files, out var tempFilePath);
+    var compileProcess = JavacCommand(files, out var tempFilePath);
     compileProcess.WorkingDirectory = Path.GetFullPath(Path.GetDirectoryName(targetFilename));
     compileProcess.EnvironmentVariables["CLASSPATH"] = GetClassPath(targetFilename);
     try {
