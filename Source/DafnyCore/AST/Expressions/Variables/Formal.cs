@@ -65,7 +65,7 @@ public class Formal : NonglobalVariable {
   public override IEnumerable<INode> PreResolveChildren => Children;
 
   private Field? localField;
-  
+
   public Field? LocalField => localField;
 
   public Field GetLocalField(MethodOrConstructor methodOrConstructor) {

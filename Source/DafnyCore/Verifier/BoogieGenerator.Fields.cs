@@ -21,6 +21,14 @@ namespace Microsoft.Dafny {
       if (fields.TryGetValue(f, out fc)) {
         Contract.Assert(fc != null);
       } else {
+        if (f is SpecialField { EnclosingMethod: not null }) {
+          // We declare a FieldFamily, not a single field. Fields are obtained through local_field(fieldFamily, depth)
+          fc = new Constant(f.Origin, new TypedIdent(f.Origin, f.FullSanitizedName, Predef.FieldNameFamily(f.Origin)), true);
+          fields.Add(f, fc);
+          sink.AddTopLevelDeclaration(fc);
+          // No axiom necessary, they are added in the prelude
+          return fc;
+        }
         // If 
         // const f: Field;
         Bpl.Type ty = Predef.FieldName(f.Origin);
@@ -33,16 +41,20 @@ namespace Microsoft.Dafny {
         //       !$IsGhostField(f);    // if the field is not a ghost field
         Bpl.Expr fdim = Bpl.Expr.Eq(FunctionCall(f.Origin, BuiltinFunction.FDim, ty, Bpl.Expr.Ident(fc)), Bpl.Expr.Literal(0));
         Bpl.Expr declType = Bpl.Expr.Eq(FunctionCall(f.Origin, BuiltinFunction.FieldOfDecl, ty, new Bpl.IdentifierExpr(f.Origin, GetClass(cce.NonNull(f.EnclosingClass))), new Bpl.IdentifierExpr(f.Origin, GetFieldNameFamily(f.Name))), Bpl.Expr.Ident(fc));
-        // With referrers, we don't declare a declType for a field that represents a memory location since it's not public
-        // Doing so would be unsound, unless GetFieldNameFamily(f.Name) could somehow return a name that also depends on the enclosing method's name
-        Bpl.Expr cond = f is SpecialField { EnclosingMethod: not null } ? fdim : BplAnd(fdim, declType);
+        Bpl.Expr cond = BplAnd(fdim, declType);
         var ig = FunctionCall(f.Origin, BuiltinFunction.IsGhostField, ty, Bpl.Expr.Ident(fc));
         cond = BplAnd(cond, f.IsGhost ? ig : Bpl.Expr.Not(ig));
+        if (Options.Get(CommonOptionBag.Referrers)) {
+          // We emit the axiom that field_family(_module.Test.x) == object_field;
+          // so that local fields can be determined to be different from object fields
+          // (which are not visible in the current scope)
+          // object_field is an identifier
+          var fieldFamily = FunctionCall(f.Origin, BuiltinFunction.FieldFamily, ty, Bpl.Expr.Ident(fc));
+          var objectField = Id(f.Origin, "object_field");
+          cond = BplAnd(cond, Bpl.Expr.Eq(fieldFamily, objectField));
+        }
         Bpl.Axiom ax = new Bpl.Axiom(f.Origin, cond);
         AddOtherDefinition(fc, ax);
-        if (f is SpecialField { EnclosingMethod: not null }) {
-          sink.AddTopLevelDeclaration(fc);
-        }
       }
       return fc;
     }

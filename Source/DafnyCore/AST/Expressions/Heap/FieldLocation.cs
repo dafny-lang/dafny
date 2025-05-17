@@ -9,7 +9,7 @@ namespace Microsoft.Dafny;
 public class FieldLocation : Expression, ICloneable<FieldLocation> {
   public Name Name { get; }
   public Field Field { get; set; }
-  
+
   // Relevant only when the field is a SpecialField and has an EnclosingMethod
   public bool AtCallSite { get; set; }
 
