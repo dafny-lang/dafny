@@ -226,7 +226,7 @@ module Std.Arithmetic.Power {
                    Pow(b, e2 - e1) == Pow(b, e2) / Pow(b, e1) > 0
   {
     LemmaPowPositiveAuto();
-    forall b: nat, e1: nat, e2: nat {:trigger Pow(b, e2 - e1)}
+    forall b: nat, e1: nat, e2: nat
       | b > 0 && e1 <= e2
       ensures Pow(b, e2 - e1) == Pow(b, e2) / Pow(b, e1) > 0
     {
