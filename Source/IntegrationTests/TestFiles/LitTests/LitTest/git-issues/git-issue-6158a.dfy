@@ -149,3 +149,17 @@ module RegressionTest {
   ghost predicate RightmostMax(a: array<int>, lo: int, x: int, hi: int)
   function F(x: int): int
 }
+
+module DifferentAntecedents {
+  method Test(b: array<int>, lo: int, hi: int, n: int)
+    requires 0 <= lo < hi <= b.Length
+    requires lo + 2 == hi
+    requires b[lo] == 15 && b[lo + 1] == 98
+    requires RightmostMax(b, if (lo + 1) % 2 == 0 then 30 else 113, 98, n)
+  { // TODO: the following also produces the trigger "b[tmp], u % 2", but it shouldn't, because the trigger has to include "b[u]" -- see also "triggers/splitting-triggers-recovers-expressivity.dfy", which has the same issue in "exists_0" and "forall_0"
+    assert forall u :: lo < u < hi ==> RightmostMax(b, b[u-1] + if u % 2 == 0 then b[u-1] else b[u], b[u], n) || forall xx :: F(xx) == b[u-1];
+  }
+
+  ghost predicate RightmostMax(a: array<int>, lo: int, x: int, hi: int)
+  function F(x: int): int
+}
