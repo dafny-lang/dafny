@@ -51,7 +51,7 @@ module Repro0 {
     }
   }
 
-  method Main()
+  method Test()
     ensures false
   {
     var FT := new fenwick([0]);
