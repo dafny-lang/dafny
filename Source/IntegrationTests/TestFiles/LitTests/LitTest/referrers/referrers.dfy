@@ -48,7 +48,7 @@ method CallReferrersMethodCall() {
 //// Ghost versions are the same //////
 
 ghost method GhostReferrersLocals() {
-  var t := new SimpleObject.Ghost(null);
+  ghost var t := new SimpleObject;
   assert referrers(t) == {locals`t};
   ghost var alias_untracked := t;    // Even in ghost context, ghost markers means non-tracking by default.
   assert referrers(t) == {locals`t};
@@ -75,7 +75,7 @@ method ReferrersLocalWithGhostAliases() {
 
 
 method ReferrersOnGhostConstructedInstanceInCompiledContext() {
-  ghost var t := new SimpleObject.Ghost(null); // Automatically marked as tracking when the RHS
+  ghost var t := new SimpleObject; // Automatically marked as tracking when the RHS
   assert referrers(t) == {};
   ghost var alias_untracked := t;    // Ghost variables, like ghost fields, are non-tracking by default.
   assert referrers(t) == {};
@@ -95,7 +95,7 @@ class ChainingObject {
   var y: ChainingObject?
   ghost var nontracking: ChainingObject?
   ghost var {:tracking} tracking: ChainingObject?
-  const tail: ChainingObject? := null
+  const tail: ChainingObject?
   constructor(chained_test: ChainingObject?) ensures x == y == nontracking == tracking == null && tail == chained_test
     ensures chained_test != null ==> referrers(chained_test) == old(referrers(chained_test)) + {this`tail}
     ensures forall o: object | o != chained_test :: referrers(o) == old(referrers(o)) // Replace by referrers clauses when they arrive
@@ -110,7 +110,7 @@ class ChainingObject {
 
 // Ghost parameters are untracking by default
 lemma CouldFree(t: object)
-  requires |set r <- referrers(t) | !r.0.IsGhost| == 1
+  requires |set r: (object, field) <- referrers(t) | !r.1.IsGhost| == 1
 
 method ObjectFields() {
   var t := new ChainingObject(null);

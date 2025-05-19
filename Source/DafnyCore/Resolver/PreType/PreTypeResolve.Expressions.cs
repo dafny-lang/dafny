@@ -467,7 +467,7 @@ namespace Microsoft.Dafny {
                 var objectPreType = new DPreType(BuiltInTypeDecl(PreType.TypeNameObjectQ), []);
                 var fieldPreType = new DPreType(BuiltInTypeDecl(PreType.TypeNameField), []);
                 var tupleTypeArgs = new List<PreType> { objectPreType, fieldPreType };
-                var tuplePreType = new DPreType(BuiltInTypeDecl(SystemModuleManager.TupleTypeCtorName(2)), tupleTypeArgs);
+                var tuplePreType = new DPreType(resolver.SystemModuleManager.TupleType(opExpr.Origin, 2, true), tupleTypeArgs);
   
                 // Create the set type containing the tuple type
                 expr.PreType = new DPreType(BuiltInTypeDecl(PreType.TypeNameSet), [tuplePreType]);
