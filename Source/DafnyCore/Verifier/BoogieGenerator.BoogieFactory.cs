@@ -157,7 +157,10 @@ namespace Microsoft.Dafny {
 
       GenericAlloc,
 
-      AtLayer
+      AtLayer,
+      
+      ReadReferrers,
+      UpdateReferrers
     }
 
     public const string BoxFunctionName = "$Box";
@@ -609,6 +612,16 @@ namespace Microsoft.Dafny {
           Contract.Assert(typeInstantiation != null);
           return FunctionCall(tok, "local_field", Predef.FieldName(tok), args);
 
+        case BuiltinFunction.ReadReferrers:
+          Contract.Assert(args.Length == 1);
+          Contract.Assert(typeInstantiation == null);
+          return FunctionCall(tok, "readReferrers", Predef.BoxType, args);
+
+        case BuiltinFunction.UpdateReferrers:
+          Contract.Assert(args.Length == 2);
+          Contract.Assert(typeInstantiation == null);
+          return FunctionCall(tok, "updateReferrers", Predef.ReferrersHeapType, args);
+
         default:
           Contract.Assert(false); throw new cce.UnreachableException();  // unexpected built-in function
       }
@@ -912,6 +925,14 @@ namespace Microsoft.Dafny {
       return v;
     }
 
+    public List<Bpl.Variable> BplLocalVarHeap(string heapName, out HeapExpressions heapInfo) {
+      var heapVar = BplLocalVar(heapName, Predef.HeapType, out var heapExpr);
+      var referrersHeapName = ToReferrersHeapName(heapName);
+      var referrersHeapVar = BplLocalVar(referrersHeapName, Predef.ReferrersHeapType, out var referrersHeapExpr);
+      heapInfo = new HeapExpressions(heapExpr, referrersHeapExpr);
+      return [heapVar, referrersHeapVar];
+    }
+
     /* This function allows you to replace, for example:
 
            Bpl.BoundVariable iVar = new Bpl.BoundVariable(e.Tok, new Bpl.TypedIdent(e.Tok, "$i", Bpl.Type.Int));
@@ -927,10 +948,31 @@ namespace Microsoft.Dafny {
       e = new Bpl.IdentifierExpr(ty.tok, name, ty);
       return v;
     }
+    
+    HeapExpressions BplBoundVarHeap(string heapName, HeapReadingStatus heapReadingStatus, out Bpl.BoundVariable heapVar, out Bpl.BoundVariable referrersHeapVar) {
+      Bpl.Expr heapExpr = null;
+      Bpl.Expr referrersHeapExpr = null;
+      heapVar = heapReadingStatus.NeedsHeap ? BplBoundVar(heapName, Predef.HeapType, out heapExpr) : null;
+      var referrersHeapName = ToReferrersHeapName(heapName);
+      referrersHeapVar = heapReadingStatus.NeedsReferrersHeap ? BplBoundVar(referrersHeapName, Predef.ReferrersHeapType, out referrersHeapExpr) : null;
+      return new HeapExpressions(heapExpr, referrersHeapExpr);
+    }
 
     static Bpl.Expr BplBoundVar(string name, Bpl.Type ty, List<Bpl.Variable> bvars) {
       bvars.Add(BplBoundVar(name, ty, out var e));
       return e;
+    }
+
+    HeapExpressions BplBoundVarHeap(string heapName, HeapReadingStatus heapReadingStatus, List<Bpl.Variable> bvars) {
+      var heapInfo = BplBoundVarHeap(heapName, heapReadingStatus, out var heapVar, out var referrersHeapVar);
+      if (heapReadingStatus.NeedsHeap) {
+        bvars.Add(heapVar);
+      }
+      if (heapReadingStatus.NeedsReferrersHeap) {
+        bvars.Add(referrersHeapVar);
+      }
+
+      return heapInfo;
     }
 
     // Makes a formal variable
@@ -950,6 +992,28 @@ namespace Microsoft.Dafny {
     static Bpl.Expr BplFormalVar(string name, Bpl.Type ty, bool incoming, List<Bpl.Variable> fvars) {
       fvars.Add(BplFormalVar(name, ty, incoming, out var e));
       return e;
+    }
+    
+    HeapExpressions BplFormalVarHeap(string heapName, HeapReadingStatus heapReadingStatus, bool incoming, List<Bpl.Variable> fvars) {
+      Bpl.Expr heapExpr = null;
+      Bpl.Expr referrersHeapExpr = null;
+      if (heapReadingStatus.NeedsHeap) {
+        heapExpr = BplFormalVar(heapName, Predef.HeapType, incoming, fvars);
+      }
+
+      if (heapReadingStatus.NeedsReferrersHeap) {
+        referrersHeapExpr = BplFormalVar(ToReferrersHeapName(heapName), Predef.ReferrersHeapType, incoming, fvars);
+      }
+      return new HeapExpressions(heapExpr, referrersHeapExpr);
+    }
+
+    private static string ToReferrersHeapName(string heapName) {
+      var referrersHeapVariableName = heapName.Replace("heap", "referrersHeap").Replace("Heap", "ReferrersHeap");
+      if (referrersHeapVariableName == heapName) {
+        referrersHeapVariableName = heapName.Replace("h", "rH");
+      }
+      Contract.Assert(referrersHeapVariableName != heapName);
+      return referrersHeapVariableName;
     }
 
     public static IOrigin ToDafnyToken(Bpl.IToken boogieToken) {

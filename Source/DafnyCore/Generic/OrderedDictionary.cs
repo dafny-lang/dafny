@@ -41,6 +41,11 @@ public class OrderedDictionary<TKey, TValue> {
     keyOrder.Add(key);
     keyToValue[key] = value;
   }
+  public void Add(List<TValue> value) {
+    foreach (var v in value) {
+      Add(v);
+    }
+  }
 
   public TValue GetValueOrDefault(TKey key) {
     return keyToValue.GetValueOrDefault(key);

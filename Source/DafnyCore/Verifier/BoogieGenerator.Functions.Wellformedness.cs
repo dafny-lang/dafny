@@ -337,18 +337,14 @@ public partial class BoogieGenerator {
       additionalRequires = [];
       inParams_Heap = [];
       if (f is TwoStateFunction) {
-        var prevHeapVar = new Bpl.Formal(f.Origin, new TypedIdent(f.Origin, "previous$Heap", generator.Predef.HeapType), true);
-        var currHeapVar = new Bpl.Formal(f.Origin, new TypedIdent(f.Origin, "current$Heap", generator.Predef.HeapType), true);
-        inParams_Heap.Add(prevHeapVar);
-        inParams_Heap.Add(currHeapVar);
-        Expr prevHeap = new Bpl.IdentifierExpr(f.Origin, prevHeapVar);
-        Expr currHeap = new Bpl.IdentifierExpr(f.Origin, currHeapVar);
+        HeapExpressions prevHeap = generator.BplFormalVarHeap("previous$Heap", f.HeapReadingStatus, true, inParams_Heap);
+        HeapExpressions currHeap = generator.BplFormalVarHeap("current$Heap", f.HeapReadingStatus, true, inParams_Heap);
         etran = new ExpressionTranslator(generator, generator.Predef, currHeap, prevHeap, f);
 
         // free requires prevHeap == Heap && HeapSucc(prevHeap, currHeap) && IsHeap(currHeap)
-        var a0 = Expr.Eq(prevHeap, ordinaryEtran.HeapExpr);
-        var a1 = generator.HeapSucc(prevHeap, currHeap);
-        var a2 = generator.FunctionCall(f.Origin, BuiltinFunction.IsGoodHeap, null, currHeap);
+        var a0 = Expr.Eq(prevHeap.HeapExpr, ordinaryEtran.HeapExpr);
+        var a1 = generator.HeapSucc(prevHeap.HeapExpr, currHeap.HeapExpr);
+        var a2 = generator.FunctionCall(f.Origin, BuiltinFunction.IsGoodHeap, null, currHeap.HeapExpr);
         additionalRequires.Add(generator.Requires(f.Origin, true, null, BplAnd(a0, BplAnd(a1, a2)), null, null, null));
       } else {
         etran = ordinaryEtran;

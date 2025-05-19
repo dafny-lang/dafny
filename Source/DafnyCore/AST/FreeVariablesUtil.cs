@@ -110,8 +110,6 @@ namespace Microsoft.Dafny {
           }
         } else if (e.Op == UnaryOpExpr.Opcode.Allocated) {
           usesHeap = true;
-        } else if (e.Op == UnaryOpExpr.Opcode.Referrers) {
-          usesHeap = true;
         }
       }
 

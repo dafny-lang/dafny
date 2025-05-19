@@ -1170,8 +1170,8 @@ namespace Microsoft.Dafny {
               var comprehensionEtran = etran;
               if (lam != null) {
                 // Havoc heap
-                locals.GetOrAdd(BplLocalVar(CurrentIdGenerator.FreshId((etran.UsesOldHeap ? "$Heap_at_" : "") + "$lambdaHeap#"), Predef.HeapType, out var lambdaHeap));
-                comprehensionEtran = new ExpressionTranslator(comprehensionEtran, lambdaHeap);
+                locals.Add(BplLocalVarHeap(CurrentIdGenerator.FreshId((etran.UsesOldHeap ? "$Heap_at_" : "") + "$lambdaHeap#"), out var lambdaHeapInfo));
+                comprehensionEtran = new ExpressionTranslator(comprehensionEtran, lambdaHeapInfo);
                 nextBuilder.Add(new HavocCmd(e.Origin, Singleton((Bpl.IdentifierExpr)comprehensionEtran.HeapExpr)));
                 nextBuilder.Add(new AssumeCmd(e.Origin, FunctionCall(e.Origin, BuiltinFunction.IsGoodHeap, null, comprehensionEtran.HeapExpr)));
                 nextBuilder.Add(new AssumeCmd(e.Origin, HeapSameOrSucc(etran.HeapExpr, comprehensionEtran.HeapExpr)));

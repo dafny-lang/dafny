@@ -163,7 +163,7 @@ namespace Microsoft.Dafny {
     public static List<A> Nil<A>() {
       return [];
     }
-
+    
     public static List<A> Singleton<A>(A x) {
       return [x];
     }
@@ -174,6 +174,9 @@ namespace Microsoft.Dafny {
 
     public static List<A> Cons<A>(A x, List<A> xs) {
       return Concat(Singleton(x), xs);
+    }
+    public static List<A> Cons2<A>((A, A) x, List<A> xs) {
+      return Concat([x.Item1, x.Item2], xs);
     }
 
     public static List<A> Snoc<A>(List<A> xs, A x) {

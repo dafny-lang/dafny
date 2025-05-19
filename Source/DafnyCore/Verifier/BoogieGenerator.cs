@@ -253,6 +253,8 @@ namespace Microsoft.Dafny {
       readonly Bpl.TypeCtorDecl fieldNameFamily;
       public readonly Bpl.Type HeapType;
       public readonly string HeapVarName;
+      public readonly Bpl.Type ReferrersHeapType;
+      public readonly string ReferrersHeapVarName;
       public readonly Bpl.Type ClassNameType;
       public readonly Bpl.Type NameFamilyType;
       public readonly Bpl.Type DatatypeType;
@@ -339,7 +341,7 @@ namespace Microsoft.Dafny {
                              Bpl.Function tuple2Destructors0, Bpl.Function tuple2Destructors1, Bpl.Function tuple2Constructor, Bpl.Function tuple2TypeConstructor,
                              Bpl.TypeCtorDecl seqTypeCtor, Bpl.TypeSynonymDecl bv0TypeDecl,
                              Bpl.TypeCtorDecl fieldNameType, Bpl.TypeCtorDecl fieldNameFamilyType, Bpl.TypeCtorDecl tyType, Bpl.TypeCtorDecl tyTagType, Bpl.TypeCtorDecl tyTagFamilyType,
-                             Bpl.GlobalVariable heap, Bpl.TypeCtorDecl classNameType, Bpl.TypeCtorDecl nameFamilyType,
+                             Bpl.GlobalVariable heap, Bpl.GlobalVariable referrersHeap, Bpl.TypeCtorDecl classNameType, Bpl.TypeCtorDecl nameFamilyType,
                              Bpl.TypeCtorDecl datatypeType, Bpl.TypeCtorDecl handleType, Bpl.TypeCtorDecl layerType, Bpl.TypeCtorDecl dtCtorId,
                              Bpl.Constant allocField) {
         #region Non-null preconditions on parameters
@@ -413,6 +415,8 @@ namespace Microsoft.Dafny {
         this.fieldNameFamily = fieldNameFamilyType;
         this.HeapType = heap.TypedIdent.Type;
         this.HeapVarName = heap.Name;
+        this.ReferrersHeapType = referrersHeap.TypedIdent.Type;
+        this.ReferrersHeapVarName = referrersHeap.Name;
         this.Ty = new Bpl.CtorType(Token.NoToken, tyType, []);
         this.TyTag = new Bpl.CtorType(Token.NoToken, tyTagType, []);
         this.TyTagFamily = new Bpl.CtorType(Token.NoToken, tyTagFamilyType, []);
@@ -474,6 +478,7 @@ namespace Microsoft.Dafny {
       Bpl.TypeCtorDecl mapTypeCtor = null;
       Bpl.TypeCtorDecl imapTypeCtor = null;
       Bpl.GlobalVariable heap = null;
+      Bpl.GlobalVariable referrersHeap = null;
       Bpl.Constant allocField = null;
       foreach (var d in prog.TopLevelDeclarations) {
         if (d is Bpl.TypeCtorDecl) {
@@ -533,6 +538,8 @@ namespace Microsoft.Dafny {
           Bpl.GlobalVariable v = (Bpl.GlobalVariable)d;
           if (v.Name == "$Heap") {
             heap = v;
+          } else if (v.Name == "$ReferrersHeap") {
+            referrersHeap = v;
           }
         } else if (d is Bpl.Function) {
           var f = (Bpl.Function)d;
@@ -665,7 +672,7 @@ namespace Microsoft.Dafny {
                                    tuple2Destructors0, tuple2Destructors1, tuple2Constructor, tuple2TypeConstructor,
                                    seqTypeCtor, bv0TypeDecl,
                                    fieldNameType, fieldFamilyNameType, tyType, tyTagType, tyTagFamilyType,
-                                   heap, classNameType, nameFamilyType,
+                                   heap, referrersHeap, classNameType, nameFamilyType,
                                    datatypeType, handleType, layerType, dtCtorId,
                                    allocField);
       }
@@ -1555,7 +1562,7 @@ namespace Microsoft.Dafny {
       //         IsGoodHeap(h) && OlderTag(h) && F(x, y) && IsAlloc(y, Y, h)
       //         ==>  IsAlloc(x, X, h))
       var heapVar = BplBoundVar("$olderHeap", Predef.HeapType, out var heap);
-      var etran = new ExpressionTranslator(this, Predef, heap, f);
+      var etran = new ExpressionTranslator(this, Predef, new HeapExpressions(heap, null), f);
 
       var isGoodHeap = FunctionCall(f.Origin, BuiltinFunction.IsGoodHeap, null, heap);
       var olderTag = FunctionCall(f.Origin, "$OlderTag", Bpl.Type.Bool, heap);
@@ -2591,8 +2598,10 @@ namespace Microsoft.Dafny {
       return f.FullSanitizedName + "#requires";
     }
 
-    private Expr NewOneHeapExpr(IOrigin tok) {
-      return new Bpl.IdentifierExpr(tok, "$OneHeap", Predef.HeapType);
+    private HeapExpressions NewOneHeapExpr(IOrigin tok) {
+      return new HeapExpressions(
+        new Bpl.IdentifierExpr(tok, "$OneHeap", Predef.HeapType),
+        new Bpl.IdentifierExpr(tok, "$OneReferrersHeap", Predef.ReferrersHeapType));
     }
 
     /// <summary>
@@ -3872,6 +3881,10 @@ namespace Microsoft.Dafny {
       }
     }
 
+    Bpl.Expr MkReferrersOf(Bpl.Expr x, Bpl.Expr h) {
+      return FunctionCall(x.tok, BuiltinFunction.ReadReferrers, null, h, x);
+    }
+
     /// <summary>
     /// A "where" clause for a variable in Boogie turns into an assumption anytime that Boogie is tasked
     /// with assigning an arbitrary value to that variable. This happens at the beginning of a procedure
@@ -4655,7 +4668,9 @@ namespace Microsoft.Dafny {
       bool useHeapAsQuantifier = argsEtran.Statistics_HeapAsQuantifierCount > 0;
       if (useHeapAsQuantifier) {
         var heapExpr = BplBoundVar(CurrentIdGenerator.FreshId("tr$heap#"), Predef.HeapType, bvars);
-        argsEtran = new ExpressionTranslator(argsEtran, heapExpr);
+        var referrersHeapExpr = Options.Get(CommonOptionBag.Referrers) ? BplBoundVar(CurrentIdGenerator.FreshId("tr$referrersHeap#"), Predef.ReferrersHeapType, bvars) : heapExpr;
+        
+        argsEtran = new ExpressionTranslator(argsEtran, new HeapExpressions(heapExpr, referrersHeapExpr));
       }
 
       // now translate it with the correct layer and heapExpr
@@ -4750,6 +4765,14 @@ namespace Microsoft.Dafny {
       Type usesThis = null;
       FreeVariablesUtil.ComputeFreeVariables(options, expr, new HashSet<IVariable>(), ref usesHeap, ref usesOldHeap, FVsHeapAt, ref usesThis, false);
       return usesHeap || usesOldHeap || FVsHeapAt.Count != 0;
+    }
+
+    public bool UsesReferrersHeap(Expression expr) {
+      var foundReferrersHeap = false;
+      expr.Visit((INode toVisit) => !foundReferrersHeap, (INode visited) => {
+        foundReferrersHeap = foundReferrersHeap || visited is UnaryOpExpr { Op: UnaryOpExpr.Opcode.Referrers };
+      }, null);
+      return foundReferrersHeap;
     }
 
     class UsesHeapVisitor : BottomUpVisitor {

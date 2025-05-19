@@ -140,12 +140,11 @@ public partial class BoogieGenerator {
 
     // Now for the other branch, where the postcondition of the call is exported.
     {
-      var initHeapVar = new Bpl.LocalVariable(tok, new Bpl.TypedIdent(tok, CurrentIdGenerator.FreshId("$initHeapForallStmt#"), Predef.HeapType));
-      locals.Add(initHeapVar);
-      var initHeap = new Bpl.IdentifierExpr(tok, initHeapVar);
-      var initEtran = new ExpressionTranslator(this, Predef, initHeap, etran.Old.HeapExpr, etran.scope);
+      var newVars = BplLocalVarHeap("$initHeapForallStmt#", out var initHeap);
+      locals.AddRange(newVars);
+      var initEtran = new ExpressionTranslator(this, Predef, initHeap, etran.Old.HeapExpressions, etran.scope);
       // initHeap := $Heap;
-      exporter.Add(Bpl.Cmd.SimpleAssign(tok, initHeap, etran.HeapExpr));
+      exporter.Add(Bpl.Cmd.SimpleAssign(tok, (Bpl.IdentifierExpr)initHeap.HeapExpr, etran.HeapExpr));
       var heapIdExpr = etran.HeapCastToIdentifierExpr;
       // advance $Heap;
       exporter.Add(new Bpl.HavocCmd(tok, [heapIdExpr]));
