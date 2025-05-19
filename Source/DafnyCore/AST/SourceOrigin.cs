@@ -8,6 +8,7 @@ using VCGeneration;
 namespace Microsoft.Dafny;
 
 [method: SyntaxConstructor]
+[SyntaxBaseType(typeof(IOrigin))]
 public class SourceOrigin(TokenRange entireRange, TokenRange? reportingRange = null)
   : IOrigin, IComparable<SourceOrigin> {
   public Uri Uri => ReportingRange.StartToken.Uri;

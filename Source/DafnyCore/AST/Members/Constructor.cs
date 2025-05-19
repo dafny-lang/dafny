@@ -36,7 +36,7 @@ public class Constructor : MethodOrConstructor {
     [Captured] Specification<FrameExpression> mod,
     List<AttributedExpression> ens,
     Specification<Expression> decreases,
-    DividedBlockStmt body,
+    DividedBlockStmt? body,
     Attributes? attributes, IOrigin? signatureEllipsis
     )
     : base(origin, nameNode, attributes, isGhost, typeArgs, ins, req, ens, reads, decreases, mod,
@@ -65,6 +65,6 @@ public class Constructor : MethodOrConstructor {
   public override DividedBlockStmt? Body => body;
   public override void SetBody(BlockLikeStmt newBody) {
     body = newBody is BlockStmt blockStmt
-      ? new DividedBlockStmt(blockStmt.Origin, blockStmt.Body, null, []) : (DividedBlockStmt)newBody;
+      ? new DividedBlockStmt(blockStmt.Origin, blockStmt.Body, null, [], []) : (DividedBlockStmt)newBody;
   }
 }

@@ -91,20 +91,16 @@ TAIL_CALL_START:
 			panic("dafnyRuntime.dfy(754,6): " + (SeqOfString("expectation violation")).String())
 		}
 		(stack).AddLast((_0_concat).Right())
-		{
-			var _in0 *Vector = builder
-			_ = _in0
-			var _in1 Sequence = (_0_concat).Left()
-			_ = _in1
-			var _in2 *Vector = stack
-			_ = _in2
-			builder = _in0
-			e = _in1
-			stack = _in2
-			goto TAIL_CALL_START
-			goto L0
-		}
-	L0:
+		var _in0 *Vector = builder
+		_ = _in0
+		var _in1 Sequence = (_0_concat).Left()
+		_ = _in1
+		var _in2 *Vector = stack
+		_ = _in2
+		builder = _in0
+		e = _in1
+		stack = _in2
+		goto TAIL_CALL_START
 	} else if func(_is_3 Sequence) bool {
 		return InstanceOf(_is_3, (*LazySequence)(nil))
 	}(e) {
@@ -141,20 +137,16 @@ TAIL_CALL_START:
 			_ = _out1
 			_out1 = (stack).RemoveLast()
 			_4_next = Companion_Sequence_.CastTo_(Companion_Sequence_.CastTo_(_out1))
-			{
-				var _in6 *Vector = builder
-				_ = _in6
-				var _in7 Sequence = _4_next
-				_ = _in7
-				var _in8 *Vector = stack
-				_ = _in8
-				builder = _in6
-				e = _in7
-				stack = _in8
-				goto TAIL_CALL_START
-				goto L1
-			}
-		L1:
+			var _in6 *Vector = builder
+			_ = _in6
+			var _in7 Sequence = _4_next
+			_ = _in7
+			var _in8 *Vector = stack
+			_ = _in8
+			builder = _in6
+			e = _in7
+			stack = _in8
+			goto TAIL_CALL_START
 		}
 	} else {
 		if !(false) {

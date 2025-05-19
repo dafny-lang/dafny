@@ -249,6 +249,8 @@ namespace Microsoft.Dafny {
         decl = BuiltInTypeDecl(PreType.TypeNameInt);
       } else if (type is RealType) {
         decl = BuiltInTypeDecl(PreType.TypeNameReal);
+      } else if (type is FieldType) {
+        decl = BuiltInTypeDecl(PreType.TypeNameField);
       } else if (type is BigOrdinalType) {
         decl = BuiltInTypeDecl(PreType.TypeNameORDINAL);
       } else if (type is BitvectorType bitvectorType) {
@@ -467,7 +469,7 @@ namespace Microsoft.Dafny {
       this.preTypeInferenceModuleState = preTypeInferenceModuleState;
 
       scope = new Scope<IVariable>(resolver.Options);
-      EnclosingStatementLabels = new Scope<Statement>(resolver.Options);
+      EnclosingStatementLabels = new Scope<LabeledStatement>(resolver.Options);
       DominatingStatementLabels = new Scope<Label>(resolver.Options);
       Constraints = new PreTypeConstraints(this);
     }
@@ -612,6 +614,9 @@ namespace Microsoft.Dafny {
         return true;
       }
       if (fromFamily == PreType.TypeNameInt && toName is PreType.TypeNameChar or PreType.TypeNameReal or PreType.TypeNameORDINAL) {
+        return true;
+      }
+      if (fromFamily == PreType.TypeNameChar && (toFamily is PreType.TypeNameInt or PreType.TypeNameORDINAL || IsBitvectorName(toFamily))) {
         return true;
       }
 
@@ -1579,30 +1584,46 @@ namespace Microsoft.Dafny {
           }
         }
 
-        if (dp.UrAncestor(this) is DPreType {
-          Decl.Name: PreType.TypeNameSet or PreType.TypeNameIset or PreType.TypeNameSeq or PreType.TypeNameMultiset
-        } dpAncestor) {
-          hasCollectionType = true;
-          var elementType = dpAncestor.Arguments[0].Normalize();
-          dp = elementType as DPreType;
-          if (dp == null) {
-            // element type not yet known
-            Constraints.AddDefaultAdvice(elementType, CommonAdvice.Target.Object);
-            return false;
+        if (dp.UrAncestor(this) is DPreType dpAncestor) {
+          if (dpAncestor is {
+            Decl.Name: PreType.TypeNameSet or PreType.TypeNameIset or PreType.TypeNameSeq
+                or PreType.TypeNameMultiset
+          }) {
+            hasCollectionType = true;
+            var elementType = dpAncestor.Arguments[0].Normalize();
+            dp = elementType as DPreType;
+            if (dp == null) {
+              // element type not yet known
+              Constraints.AddDefaultAdvice(elementType, CommonAdvice.Target.Object);
+              return false;
+            }
+          }
+
+          if (SystemModuleManager.IsTupleTypeName(dpAncestor.Decl.Name) && dp.Arguments.Count == 2) {
+            var elementType = dpAncestor.Arguments[0].Normalize();
+            hasCollectionType = true;
+            dp = elementType as DPreType;
+            if (dp == null) {
+              // element type not yet known
+              Constraints.AddDefaultAdvice(elementType, CommonAdvice.Target.Object);
+              return false;
+            }
           }
         }
 
-        if (!DPreType.IsReferenceTypeDecl(dp.Decl) || (hasArrowType && !hasCollectionType)) {
+        if (!((DPreType.IsReferenceTypeDecl(dp.Decl) ||
+               DPreType.IsFieldLocationType(dp)) && (!hasArrowType || hasCollectionType))) {
           var expressionMustDenoteObject = "expression must denote an object";
-          var collection = "a set/iset/multiset/seq of objects";
+          var fieldLocation = ModuleResolver.SingleFieldLocation;
+          var collection = ModuleResolver.CollectionOfFieldLocations;
           var instead = "(instead got {0})";
           var errorMsgFormat = use switch {
             FrameExpressionUse.Reads =>
-              $"a reads-clause {expressionMustDenoteObject}, {collection}, or a function to {collection} {instead}",
+              $"a reads-clause {expressionMustDenoteObject}, {fieldLocation}, {collection}, or a function to {collection} {instead}",
             FrameExpressionUse.Modifies =>
-              $"a modifies-clause {expressionMustDenoteObject} or {collection} {instead}",
+              $"a modifies-clause {expressionMustDenoteObject}, {fieldLocation}, or {collection} {instead}",
             FrameExpressionUse.Unchanged =>
-              $"an unchanged {expressionMustDenoteObject} or {collection} {instead}",
+              $"an unchanged {expressionMustDenoteObject}, {fieldLocation}, or {collection} {instead}",
             _ => throw new ArgumentOutOfRangeException(nameof(use), use, null)
           };
           ReportError(fe.E.Origin, errorMsgFormat, fe.E.PreType);

@@ -1855,9 +1855,7 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
         selfIdent := ThisTyped(selfId, instanceType);
       }
 
-      // TODO: Use mut instead of a tuple for the API of multiple output parameters
       var retTypeArgs := [];
-      //var retType := if |m.outTypes| != 1 then "(" else "";
 
       var typeI := 0;
       while typeI < |m.outTypes| {
@@ -1974,6 +1972,7 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
            stmts[i + 1].lhs.ident == stmt.name {
           var name := stmt.name;
           var typ := stmt.typ;
+          assert stmts[i + 1].value < stmts[i + 1];
           var stmtExpr, recIdents, newEnv2 := GenDeclareVarAssign(name, typ, stmts[i + 1].value, selfIdent, newEnv);
           newEnv := newEnv2;
           readIdents := readIdents + (recIdents - declarations);

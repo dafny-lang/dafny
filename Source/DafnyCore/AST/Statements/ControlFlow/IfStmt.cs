@@ -4,7 +4,7 @@ using System.Diagnostics.Contracts;
 
 namespace Microsoft.Dafny;
 
-public class IfStmt : Statement, ICloneable<IfStmt>, ICanFormat {
+public class IfStmt : LabeledStatement, ICloneable<IfStmt>, ICanFormat {
   public bool IsBindingGuard;
   public Expression? Guard;
   public BlockStmt Thn;
@@ -16,7 +16,7 @@ public class IfStmt : Statement, ICloneable<IfStmt>, ICanFormat {
     Contract.Invariant(Els == null || Els is BlockStmt || Els is IfStmt || Els is SkeletonStatement);
   }
 
-  public IfStmt Clone(Cloner cloner) {
+  public new IfStmt Clone(Cloner cloner) {
     return new IfStmt(cloner, this);
   }
 
@@ -27,8 +27,8 @@ public class IfStmt : Statement, ICloneable<IfStmt>, ICanFormat {
     Els = cloner.CloneStmt(original.Els, false);
   }
 
-  public IfStmt(IOrigin origin, bool isBindingGuard, Expression guard, BlockStmt thn, Statement els)
-    : base(origin) {
+  public IfStmt(IOrigin origin, bool isBindingGuard, Expression? guard, BlockStmt thn, Statement? els)
+    : base(origin, []) {
     Contract.Requires(origin != null);
     Contract.Requires(!isBindingGuard || (guard is ExistsExpr && ((ExistsExpr)guard).Range == null));
     Contract.Requires(els == null || els is BlockStmt || els is IfStmt || els is SkeletonStatement);
@@ -39,8 +39,9 @@ public class IfStmt : Statement, ICloneable<IfStmt>, ICanFormat {
   }
 
   [SyntaxConstructor]
-  public IfStmt(IOrigin origin, bool isBindingGuard, Expression guard, BlockStmt thn, Statement? els, Attributes? attributes)
-    : base(origin, attributes) {
+  public IfStmt(IOrigin origin, bool isBindingGuard, Expression? guard, BlockStmt thn, Statement? els,
+    List<Label> labels, Attributes? attributes)
+    : base(origin, labels, attributes) {
     Contract.Requires(origin != null);
     Contract.Requires(!isBindingGuard || (guard is ExistsExpr && ((ExistsExpr)guard).Range == null));
     Contract.Requires(els == null || els is BlockStmt || els is IfStmt || els is SkeletonStatement);

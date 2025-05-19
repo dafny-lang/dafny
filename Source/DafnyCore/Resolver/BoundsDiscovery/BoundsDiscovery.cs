@@ -377,7 +377,7 @@ namespace Microsoft.Dafny {
         }
         if (conjunct is UnaryOpExpr or OldExpr) {
           // we also consider a unary expression sitting immediately inside an old
-          var unary = conjunct as UnaryOpExpr ?? ((OldExpr)conjunct).E.Resolved as UnaryOpExpr;
+          var unary = conjunct as UnaryOpExpr ?? ((OldExpr)conjunct).Expr.Resolved as UnaryOpExpr;
           if (unary != null) {
             if (unary.E.Resolved is IdentifierExpr ide && ide.Var == (IVariable)bv) {
               if (unary.ResolvedOp == UnaryOpExpr.ResolvedOpcode.BoolNot) {

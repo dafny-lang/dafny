@@ -3,6 +3,7 @@ using System.CommandLine;
 using System.Numerics;
 using System.Reflection;
 using System.Text;
+using Microsoft.BaseTypes;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -150,6 +151,9 @@ public class Serializer(IEncoder encoder, IReadOnlyList<INamedTypeSymbol> parsed
       case BigInteger i:
         encoder.WriteInt(i);
         break;
+      case BigDec i:
+        encoder.WriteBigDec(i);
+        break;
       case int i:
         encoder.WriteInt(i);
         break;
@@ -230,12 +234,16 @@ public class Serializer(IEncoder encoder, IReadOnlyList<INamedTypeSymbol> parsed
         // Support fields from a primary constructor
         fieldName = fieldName.Substring(1, fieldName.Length - 3);
       }
+
       // If this is an overridden field, overwrite the entry
       fieldsPerName[fieldName.ToLower()] = fieldInfo;
     }
 
     foreach (var fieldName in fieldNames) {
-      var field = fieldsPerName[fieldName];
+      var field = fieldsPerName.GetValueOrDefault(fieldName);
+      if (field == null) {
+        continue;
+      }
 
       try {
         object? value = field.GetValue(obj);

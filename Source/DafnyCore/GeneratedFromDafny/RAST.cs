@@ -235,13 +235,13 @@ namespace RAST {
     public static RAST._IExpr SystemTuple(Dafny.ISequence<RAST._IExpr> elements) {
       Dafny.ISequence<Dafny.Rune> _0_size = Std.Strings.__default.OfNat(new BigInteger((elements).Count));
       return RAST.Expr.create_StructBuild(((((RAST.__default.dafny__runtime).MSel(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("_System"))).MSel(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("Tuple"), _0_size))).MSel(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("_T"), _0_size))).AsExpr(), ((System.Func<Dafny.ISequence<RAST._IAssignIdentifier>>) (() => {
-  BigInteger dim11 = new BigInteger((elements).Count);
-  var arr11 = new RAST._IAssignIdentifier[Dafny.Helpers.ToIntChecked(dim11, "array size exceeds memory limit")];
-  for (int i11 = 0; i11 < dim11; i11++) {
-    var _1_i = (BigInteger) i11;
-    arr11[(int)(_1_i)] = RAST.AssignIdentifier.create(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("_"), Std.Strings.__default.OfNat(_1_i)), (elements).Select(_1_i));
+  BigInteger dim13 = new BigInteger((elements).Count);
+  var arr13 = new RAST._IAssignIdentifier[Dafny.Helpers.ToIntChecked(dim13, "array size exceeds memory limit")];
+  for (int i13 = 0; i13 < dim13; i13++) {
+    var _1_i = (BigInteger) i13;
+    arr13[(int)(_1_i)] = RAST.AssignIdentifier.create(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("_"), Std.Strings.__default.OfNat(_1_i)), (elements).Select(_1_i));
   }
-  return Dafny.Sequence<RAST._IAssignIdentifier>.FromArray(arr11);
+  return Dafny.Sequence<RAST._IAssignIdentifier>.FromArray(arr13);
 }))());
     }
     public static RAST._IType MaybeUninitType(RAST._IType underlying) {
@@ -2479,13 +2479,13 @@ namespace RAST {
     public abstract _IFields DowncastClone();
     public RAST._IFields ToNamelessFields() {
       return RAST.Fields.create_NamelessFields(((System.Func<Dafny.ISequence<RAST._INamelessField>>) (() => {
-  BigInteger dim12 = new BigInteger(((this).dtor_fields).Count);
-  var arr12 = new RAST._INamelessField[Dafny.Helpers.ToIntChecked(dim12, "array size exceeds memory limit")];
-  for (int i12 = 0; i12 < dim12; i12++) {
-    var _0_i = (BigInteger) i12;
-    arr12[(int)(_0_i)] = (((this).dtor_fields).Select(_0_i)).ToNamelessField();
+  BigInteger dim14 = new BigInteger(((this).dtor_fields).Count);
+  var arr14 = new RAST._INamelessField[Dafny.Helpers.ToIntChecked(dim14, "array size exceeds memory limit")];
+  for (int i14 = 0; i14 < dim14; i14++) {
+    var _0_i = (BigInteger) i14;
+    arr14[(int)(_0_i)] = (((this).dtor_fields).Select(_0_i)).ToNamelessField();
   }
-  return Dafny.Sequence<RAST._INamelessField>.FromArray(arr12);
+  return Dafny.Sequence<RAST._INamelessField>.FromArray(arr14);
 }))());
     }
     public Dafny.ISequence<Dafny.Rune> _ToString(Dafny.ISequence<Dafny.Rune> ind, bool newLine)
@@ -6455,6 +6455,7 @@ namespace RAST {
     RAST._IExpr Replace(Func<RAST._IExpr, RAST._IExpr> f, Func<RAST._IType, RAST._IType> ft);
     __T Fold<__T>(__T acc, Func<__T, RAST._IExpr, __T> f, Func<__T, RAST._IType, __T> ft);
     bool NoExtraSemicolonAfter();
+    bool EndsWithTypeThatCanAcceptGenericsWhenPrinting();
     RAST._IPrintingInfo printingInfo { get; }
     bool LeftRequiresParentheses(RAST._IExpr left);
     _System._ITuple2<Dafny.ISequence<Dafny.Rune>, Dafny.ISequence<Dafny.Rune>> LeftParentheses(RAST._IExpr left);
@@ -7351,6 +7352,33 @@ namespace RAST {
     public bool NoExtraSemicolonAfter() {
       return (((((((this).is_DeclareVar) || ((this).is_Assign)) || ((this).is_Break)) || ((this).is_Continue)) || ((this).is_Return)) || ((this).is_For)) || ((((this).is_RawExpr) && ((new BigInteger(((this).dtor_content).Count)).Sign == 1)) && ((((this).dtor_content).Select((new BigInteger(((this).dtor_content).Count)) - (BigInteger.One))) == (new Dafny.Rune(';'))));
     }
+    public bool EndsWithTypeThatCanAcceptGenericsWhenPrinting() {
+      _IExpr _this = this;
+    TAIL_CALL_START: ;
+      RAST._IExpr _source0 = _this;
+      {
+        if (_source0.is_TypeAscription) {
+          RAST._IExpr _0_e = _source0.dtor_left;
+          RAST._IType _1_tpe = _source0.dtor_tpe;
+          return (_1_tpe).EndsWithNameThatCanAcceptGenerics();
+        }
+      }
+      {
+        if (_source0.is_BinaryOp) {
+          Dafny.ISequence<Dafny.Rune> _2_op2 = _source0.dtor_op2;
+          RAST._IExpr _3_left = _source0.dtor_left;
+          RAST._IExpr _4_right = _source0.dtor_right;
+          DAST.Format._IBinaryOpFormat _5_format = _source0.dtor_format2;
+          RAST._IExpr _in0 = _4_right;
+          _this = _in0;
+          ;
+          goto TAIL_CALL_START;
+        }
+      }
+      {
+        return false;
+      }
+    }
     public bool LeftRequiresParentheses(RAST._IExpr left) {
       return ((this).printingInfo).NeedParenthesesForLeft((left).printingInfo);
     }
@@ -8075,7 +8103,7 @@ namespace RAST {
               disjunctiveMatch3 = true;
             }
             if (disjunctiveMatch3) {
-              if ((((_14_op2).Equals(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("<<"))) && ((_15_left).is_TypeAscription)) && (((_15_left).dtor_tpe).EndsWithNameThatCanAcceptGenerics())) {
+              if (((_14_op2).Equals(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("<<"))) && ((_15_left).EndsWithTypeThatCanAcceptGenericsWhenPrinting())) {
                 return RAST.PrintingInfo.create_PrecedenceAssociativity(new BigInteger(9), RAST.Associativity.create_LeftToRight());
               } else {
                 return RAST.PrintingInfo.create_PrecedenceAssociativity(new BigInteger(40), RAST.Associativity.create_LeftToRight());
@@ -8118,7 +8146,7 @@ namespace RAST {
               disjunctiveMatch4 = true;
             }
             if (disjunctiveMatch4) {
-              if (((((_14_op2).Equals(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("<"))) || ((_14_op2).Equals(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("<=")))) && ((_15_left).is_TypeAscription)) && (((_15_left).dtor_tpe).EndsWithNameThatCanAcceptGenerics())) {
+              if ((((_14_op2).Equals(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("<"))) || ((_14_op2).Equals(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("<=")))) && ((_15_left).EndsWithTypeThatCanAcceptGenericsWhenPrinting())) {
                 return RAST.PrintingInfo.create_PrecedenceAssociativity(new BigInteger(9), RAST.Associativity.create_LeftToRight());
               } else {
                 return RAST.PrintingInfo.create_PrecedenceAssociativity(new BigInteger(80), RAST.Associativity.create_RequiresParentheses());

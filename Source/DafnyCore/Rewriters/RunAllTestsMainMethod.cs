@@ -179,7 +179,7 @@ public class RunAllTestsMainMethod : IRewriter {
               }
           }
 
-          var callStmt = new CallStmt(tok, lhss, methodSelectExpr, []);
+          var callStmt = new CallStmt(tok, lhss, methodSelectExpr, (List<Expression>)[]);
           tryBodyStatements.Add(callStmt);
 
           Statement passedStmt = Statement.CreatePrintStmt(tok, Expression.CreateStringLiteral(tok, "PASSED\n"));

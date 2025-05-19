@@ -791,11 +791,8 @@ module Std.Producers {
         var sourceNewOutputs := source.Outputs()[|old(source.Outputs())|..];
         assert source.Outputs() == old(source.Outputs()) + sourceNewOutputs;
 
-        source.DoneIsOneWay();
+        assert Seq.All(Outputs(), IsSome);
         assert old(!source.Done());
-        assert old(!Done());
-        assert Seq.All<Option<T>>(OutputsOf(history), IsSome);
-        
         OutputsPartitionedAfterOutputtingSome(result.value);
         ProduceSome(result.value);
         assert (Seq.All(source.Outputs(), IsSome) ==> Seq.All(Outputs(), IsSome));

@@ -17,13 +17,13 @@ class Token
 class SourceOrigin : IOrigin
 {
     TokenRange entireRange;
-    TokenRange reportingRange;
+    TokenRange? reportingRange;
 }
 
 class TokenRange
 {
     Token startToken;
-    Token endToken;
+    Token? endToken;
 }
 
 class FilesContainer
@@ -43,7 +43,7 @@ abstract class Node
 
 abstract class NodeWithOrigin : Node
 {
-    IOrigin origin;
+    IOrigin? origin;
 }
 
 abstract class Type : NodeWithOrigin
@@ -61,6 +61,29 @@ class UserDefinedType : NonProxyType
 
 abstract class Expression : NodeWithOrigin
 {
+}
+
+class LetExpr : Expression
+{
+    List<CasePattern<BoundVar>> lhss;
+    List<Expression> rhss;
+    Expression body;
+    Boolean exact;
+    Attributes? attributes;
+}
+
+class Attributes : NodeWithOrigin
+{
+    String name;
+    List<Expression> args;
+    Attributes? prev;
+}
+
+class CasePattern<VT> : NodeWithOrigin
+{
+    String id;
+    VT? var;
+    List<CasePattern<VT>>? arguments;
 }
 
 class IdentifierExpr : Expression
@@ -82,6 +105,10 @@ abstract class TypeUnaryExpr : UnaryExpr
     Type toType;
 }
 
+class TypeTestExpr : TypeUnaryExpr
+{
+}
+
 class ConversionExpr : TypeUnaryExpr
 {
     String messagePrefix;
@@ -100,6 +127,11 @@ enum UnaryOpExprOpcode
     Allocated,
     Lit,
     Assigned
+}
+
+class FreshExpr : UnaryExpr
+{
+    String? at;
 }
 
 class BinaryExpr : Expression
@@ -142,6 +174,73 @@ class LiteralExpr : Expression
     Object? value;
 }
 
+class StringLiteralExpr : LiteralExpr
+{
+    Boolean isVerbatim;
+}
+
+class CharLiteralExpr : LiteralExpr
+{
+}
+
+class UnchangedExpr : Expression
+{
+    List<FrameExpression> frame;
+    String? at;
+}
+
+class FrameExpression : NodeWithOrigin
+{
+    Expression originalExpression;
+    String? fieldName;
+}
+
+class OldExpr : Expression
+{
+    Expression expr;
+    String? at;
+}
+
+class DatatypeValue : Expression
+{
+    String datatypeName;
+    String memberName;
+    ActualBindings bindings;
+}
+
+abstract class NodeWithoutOrigin : Node
+{
+}
+
+class ModuleQualifiedId : NodeWithoutOrigin
+{
+    List<Name> path;
+}
+
+class Name : Node
+{
+    IOrigin origin;
+    String value;
+}
+
+class Specification<T> : NodeWithoutOrigin where T : Node
+{
+    List<T>? expressions;
+    Attributes? attributes;
+}
+
+class ActualBinding : NodeWithoutOrigin
+{
+    IOrigin? formalParameterName;
+    Expression actual;
+    Boolean isGhost;
+}
+
+class ActualBindings : NodeWithoutOrigin
+{
+    List<ActualBinding> argumentBindings;
+}
+
 class TernaryExpr : Expression
 {
     TernaryExprOpcode op;
@@ -156,6 +255,222 @@ enum TernaryExprOpcode
     PrefixNeqOp
 }
 
+class NestedMatchExpr : Expression
+{
+    Expression source;
+    List<NestedMatchCaseExpr> cases;
+    Boolean usesOptionalBraces;
+    Attributes? attributes;
+}
+
+abstract class NestedMatchCase : NodeWithOrigin
+{
+    ExtendedPattern pat;
+}
+
+abstract class ExtendedPattern : NodeWithOrigin
+{
+    Boolean isGhost;
+}
+
+class LitPattern : ExtendedPattern
+{
+    Expression origLit;
+}
+
+class IdPattern : ExtendedPattern
+{
+    String id;
+    Type? syntacticType;
+    List<ExtendedPattern>? arguments;
+    Boolean hasParenthesis;
+}
+
+class DisjunctivePattern : ExtendedPattern
+{
+    List<ExtendedPattern> alternatives;
+}
+
+class NestedMatchCaseStmt : NestedMatchCase
+{
+    List<Statement> body;
+    Attributes? attributes;
+}
+
+abstract class Statement : NodeWithOrigin
+{
+    Attributes? attributes;
+}
+
+abstract class PredicateStmt : Statement
+{
+    Expression expr;
+}
+
+class ExpectStmt : PredicateStmt
+{
+    Expression? message;
+}
+
+class AssertStmt : PredicateStmt
+{
+    AssertLabel? label;
+}
+
+class Label
+{
+    IOrigin tok;
+    String name;
+}
+
+class AssertLabel : Label
+{
+}
+
+abstract class ProduceStmt : Statement
+{
+    List<AssignmentRhs>? rhss;
+}
+
+abstract class AssignmentRhs : NodeWithOrigin
+{
+    Attributes? attributes;
+}
+
+abstract class TypeRhs : AssignmentRhs
+{
+}
+
+class AllocateClass : TypeRhs
+{
+    Type path;
+    ActualBindings? bindings;
+}
+
+class AllocateArray : TypeRhs
+{
+    Type? explicitType;
+    List<Expression> arrayDimensions;
+    Expression? elementInit;
+}
+
+class ExprRhs : AssignmentRhs
+{
+    Expression expr;
+}
+
+class ReturnStmt : ProduceStmt
+{
+}
+
+class PrintStmt : Statement
+{
+    List<Expression> args;
+}
+
+class LabeledStatement : Statement
+{
+    List<Label> labels;
+}
+
+abstract class LoopStmt : LabeledStatement
+{
+    List<AttributedExpression> invariants;
+    Specification<Expression> decreases;
+    Specification<FrameExpression> mod;
+}
+
+class AttributedExpression
+{
+    Expression e;
+    AssertLabel? label;
+    Attributes? attributes;
+}
+
+abstract class OneBodyLoopStmt : LoopStmt
+{
+    BlockStmt? body;
+}
+
+abstract class BlockLikeStmt : LabeledStatement
+{
+}
+
+class DividedBlockStmt : BlockLikeStmt
+{
+    List<Statement> bodyInit;
+    IOrigin? separatorTok;
+    List<Statement> bodyProper;
+}
+
+class BlockStmt : BlockLikeStmt
+{
+    List<Statement> body;
+}
+
+class OpaqueBlock : BlockStmt
+{
+    List<AttributedExpression> ensures;
+    Specification<FrameExpression> modifies;
+}
+
+class WhileStmt : OneBodyLoopStmt
+{
+    Expression guard;
+}
+
+class IfStmt : LabeledStatement
+{
+    Boolean isBindingGuard;
+    Expression? guard;
+    BlockStmt thn;
+    Statement? els;
+}
+
+class BreakOrContinueStmt : Statement
+{
+    Name? targetLabel;
+    Int32 breakAndContinueCount;
+    Boolean isContinue;
+}
+
+class VarDeclStmt : Statement
+{
+    List<LocalVariable> locals;
+    ConcreteAssignStatement? assign;
+}
+
+abstract class ConcreteAssignStatement : Statement
+{
+    List<Expression> lhss;
+}
+
+class AssignStatement : ConcreteAssignStatement
+{
+    List<AssignmentRhs> rhss;
+    Boolean canMutateKnownState;
+}
+
+class LocalVariable : NodeWithOrigin
+{
+    String name;
+    Type? syntacticType;
+    Boolean isGhost;
+}
+
+class NestedMatchStmt : Statement
+{
+    Expression source;
+    List<NestedMatchCaseStmt> cases;
+    Boolean usesOptionalBraces;
+}
+
+class NestedMatchCaseExpr : NestedMatchCase
+{
+    Expression body;
+    Attributes? attributes;
+}
+
 class ITEExpr : Expression
 {
     Boolean isBindingGuard;
@@ -166,6 +481,43 @@ class ITEExpr : Expression
 
 abstract class ConcreteSyntaxExpression : Expression
 {
+}
+
+class LetOrFailExpr : ConcreteSyntaxExpression
+{
+    CasePattern<BoundVar>? lhs;
+    Expression rhs;
+    Expression body;
+}
+
+abstract class NonglobalVariable : NodeWithOrigin
+{
+    Name nameNode;
+    Type? syntacticType;
+    Boolean isGhost;
+}
+
+class Formal : NonglobalVariable
+{
+    Boolean inParam;
+    Expression? defaultValue;
+    Attributes? attributes;
+    Boolean isOld;
+    Boolean isNameOnly;
+    Boolean isOlder;
+    String? nameForCompilation;
+}
+
+class BoundVar : NonglobalVariable
+{
+}
+
+class QuantifiedVar : NodeWithOrigin
+{
+    Name nameNode;
+    Type? syntacticType;
+    Expression? domain;
+    Expression? range;
 }
 
 class ParensExpression : ConcreteSyntaxExpression
@@ -197,51 +549,11 @@ class ExprDotName : SuffixExpr
     List<Type>? optTypeArguments;
 }
 
-class Name : Node
-{
-    IOrigin origin;
-    String value;
-}
-
 class ApplySuffix : SuffixExpr
 {
     IOrigin? atTok;
     ActualBindings bindings;
     Token? closeParen;
-}
-
-abstract class NodeWithoutOrigin : Node
-{
-}
-
-class ModuleQualifiedId : NodeWithoutOrigin
-{
-    List<Name> path;
-}
-
-class Specification<T> : NodeWithoutOrigin where T : Node
-{
-    List<T>? expressions;
-    Attributes? attributes;
-}
-
-class Attributes : NodeWithOrigin
-{
-    String name;
-    List<Expression> args;
-    Attributes? prev;
-}
-
-class ActualBinding : NodeWithoutOrigin
-{
-    IOrigin? formalParameterName;
-    Expression actual;
-    Boolean isGhost;
-}
-
-class ActualBindings : NodeWithoutOrigin
-{
-    List<ActualBinding> argumentBindings;
 }
 
 class NameSegment : ConcreteSyntaxExpression
@@ -256,34 +568,6 @@ abstract class ComprehensionExpr : Expression
     Expression? range;
     Expression term;
     Attributes? attributes;
-}
-
-abstract class NonglobalVariable : NodeWithOrigin
-{
-    Name nameNode;
-    Type? syntacticType;
-    Boolean isGhost;
-}
-
-class Formal : NonglobalVariable
-{
-    Boolean inParam;
-    Expression? defaultValue;
-    Attributes? attributes;
-    Boolean isOld;
-    Boolean isNameOnly;
-    Boolean isOlder;
-    String nameForCompilation;
-}
-
-class BoundVar : NonglobalVariable
-{
-}
-
-class QuantifiedVar : BoundVar
-{
-    Expression? domain;
-    Expression? range;
 }
 
 class SetComprehension : ComprehensionExpr
@@ -312,12 +596,6 @@ class MapComprehension : ComprehensionExpr
 class LambdaExpr : ComprehensionExpr
 {
     Specification<FrameExpression> reads;
-}
-
-class FrameExpression : NodeWithOrigin
-{
-    Expression originalExpression;
-    String? fieldName;
 }
 
 class SeqUpdateExpr : Expression
@@ -386,12 +664,6 @@ class MultiSelectExpr : Expression
 {
     Expression array;
     List<Expression> indices;
-}
-
-class MemberSelectExpr : Expression
-{
-    Expression obj;
-    Name memberName;
 }
 
 abstract class BasicType : NonProxyType
@@ -523,7 +795,7 @@ enum SubsetTypeDeclWKind
 abstract class TopLevelDeclWithMembers : TopLevelDecl
 {
     List<MemberDecl> members;
-    List<Type> traits;
+    List<Type>? traits;
 }
 
 abstract class MemberDecl : Declaration
@@ -542,23 +814,6 @@ abstract class MethodOrFunction : MemberDecl
     Specification<Expression> decreases;
 }
 
-class AttributedExpression
-{
-    Expression e;
-    AssertLabel? label;
-    Attributes? attributes;
-}
-
-class Label
-{
-    IOrigin tok;
-    String name;
-}
-
-class AssertLabel : Label
-{
-}
-
 abstract class MethodOrConstructor : MethodOrFunction
 {
     Specification<FrameExpression> mod;
@@ -570,127 +825,6 @@ class Method : MethodOrConstructor
     List<Formal> outs;
     BlockStmt? body;
     Boolean isByMethod;
-}
-
-abstract class Statement : NodeWithOrigin
-{
-    Attributes? attributes;
-}
-
-abstract class PredicateStmt : Statement
-{
-    Expression expr;
-}
-
-class ExpectStmt : PredicateStmt
-{
-    Expression? message;
-}
-
-class AssertStmt : PredicateStmt
-{
-    AssertLabel? label;
-}
-
-abstract class ProduceStmt : Statement
-{
-    List<AssignmentRhs>? rhss;
-}
-
-abstract class AssignmentRhs : NodeWithOrigin
-{
-    Attributes? attributes;
-}
-
-abstract class TypeRhs : AssignmentRhs
-{
-}
-
-class AllocateClass : TypeRhs
-{
-    Type path;
-    ActualBindings? bindings;
-}
-
-class AllocateArray : TypeRhs
-{
-    Type explicitType;
-    List<Expression> arrayDimensions;
-    Expression? elementInit;
-}
-
-class ExprRhs : AssignmentRhs
-{
-    Expression expr;
-}
-
-class ReturnStmt : ProduceStmt
-{
-}
-
-abstract class LoopStmt : Statement
-{
-    List<AttributedExpression> invariants;
-    Specification<Expression> decreases;
-    Specification<FrameExpression> mod;
-}
-
-abstract class OneBodyLoopStmt : LoopStmt
-{
-    BlockStmt body;
-}
-
-abstract class BlockLikeStmt : Statement
-{
-}
-
-class DividedBlockStmt : BlockLikeStmt
-{
-    List<Statement> bodyInit;
-    IOrigin? separatorTok;
-    List<Statement> bodyProper;
-}
-
-class BlockStmt : BlockLikeStmt
-{
-    List<Statement> body;
-}
-
-class WhileStmt : OneBodyLoopStmt
-{
-    Expression guard;
-}
-
-class IfStmt : Statement
-{
-    Boolean isBindingGuard;
-    Expression? guard;
-    BlockStmt thn;
-    Statement? els;
-}
-
-class VarDeclStmt : Statement
-{
-    List<LocalVariable> locals;
-    ConcreteAssignStatement? assign;
-}
-
-abstract class ConcreteAssignStatement : Statement
-{
-    List<Expression> lhss;
-}
-
-class AssignStatement : ConcreteAssignStatement
-{
-    List<AssignmentRhs> rhss;
-    Boolean canMutateKnownState;
-}
-
-class LocalVariable : NodeWithOrigin
-{
-    String name;
-    Type? syntacticType;
-    Boolean isGhost;
 }
 
 class Constructor : MethodOrConstructor
@@ -711,12 +845,12 @@ class Function : MethodOrFunction
 
 class Field : MemberDecl
 {
-    Type type;
+    Type? explicitType;
 }
 
 class ConstantField : Field
 {
-    Expression rhs;
+    Expression? rhs;
     Boolean hasStaticKeyword;
     Boolean isOpaque;
 }
@@ -739,6 +873,11 @@ class IndDatatypeDecl : DatatypeDecl
 
 abstract class ClassLikeDecl : TopLevelDeclWithMembers
 {
+}
+
+class TraitDecl : ClassLikeDecl
+{
+    Boolean isRefining;
 }
 
 class ClassDecl : ClassLikeDecl

@@ -91,7 +91,7 @@ namespace Microsoft.Dafny {
 
       allTypeParameters = new Scope<TypeParameter>(Options);
       scope = new Scope<IVariable>(Options);
-      EnclosingStatementLabels = new Scope<Statement>(Options);
+      EnclosingStatementLabels = new Scope<LabeledStatement>(Options);
       DominatingStatementLabels = new Scope<Label>(Options);
 
       SystemModuleManager = programResolver.SystemModuleManager;
@@ -2367,7 +2367,7 @@ namespace Microsoft.Dafny {
         if (member is Field) {
           if (member is ConstantField) {
             var m = (ConstantField)member;
-            ResolveType(member.Origin, ((Field)member).Type, m, ResolveTypeOptionEnum.DontInfer, null);
+            ResolveType(member.Origin, m.Type, m, ResolveTypeOptionEnum.DontInfer, null);
           } else {
             // In the following, we pass in a NoContext, because any cycle formed by a redirecting-type constraints would have to
             // dereference the heap, and such constraints are not allowed to dereference the heap so an error will be produced

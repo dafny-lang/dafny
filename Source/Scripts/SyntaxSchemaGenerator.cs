@@ -1,5 +1,6 @@
 using System.Collections.Frozen;
 using System.CommandLine;
+using System.Diagnostics;
 using System.Numerics;
 using System.Reflection;
 using System.Text.RegularExpressions;
@@ -87,7 +88,7 @@ public class SyntaxSchemaGenerator : SyntaxAstVisitor {
         Console.WriteLine($"\t{name}");
       }
     }
-    Console.WriteLine($"{generatedTypeNames.Count} of {expectedTypeNames.Count} expected syntax types generated");
+    Console.WriteLine($"{(expectedTypeNames.Count - ungeneratedTypeNames.Count)} of {expectedTypeNames.Count} expected syntax types generated");
   }
 
   protected override void HandleEnum(Type type) {
@@ -104,6 +105,7 @@ public class SyntaxSchemaGenerator : SyntaxAstVisitor {
     var classDeclaration = GenerateClassHeader(type);
     List<MemberDeclarationSyntax> newFields = [];
 
+    var baseType = GetBaseType(type);
     VisitParameters(type, (_, parameter, memberInfo) => {
       if (ExcludedTypes.Contains(parameter.ParameterType)) {
         return;
@@ -113,12 +115,12 @@ public class SyntaxSchemaGenerator : SyntaxAstVisitor {
         return;
       }
 
-      if (memberInfo.DeclaringType != type) {
+      if (DoesMemberBelongToBase(type, memberInfo, baseType)) {
         return;
       }
 
       var nullabilityContext = new NullabilityInfoContext();
-      var nullabilityInfo = memberInfo is PropertyInfo propertyInfo ? nullabilityContext.Create(propertyInfo) : nullabilityContext.Create((FieldInfo)memberInfo);
+      var nullabilityInfo = nullabilityContext.Create(parameter);
       bool isNullable = nullabilityInfo.ReadState == NullabilityState.Nullable;
       var nullableSuffix = isNullable ? "?" : "";
 
@@ -128,7 +130,6 @@ public class SyntaxSchemaGenerator : SyntaxAstVisitor {
     });
 
     var baseList = new List<BaseTypeSyntax>();
-    var baseType = OverrideBaseType.GetOrDefault(type, () => type.BaseType);
     if (baseType != null && baseType != typeof(ValueType) && baseType != typeof(object)) {
       baseList.Add(SimpleBaseType(ParseTypeName(ToGenericTypeString(baseType))));
     }
@@ -217,9 +218,10 @@ public class SyntaxSchemaGenerator : SyntaxAstVisitor {
     namespaceDeclaration = namespaceDeclaration.WithMembers(compilationUnit.Members);
     compilationUnit = CompilationUnit().AddMembers(namespaceDeclaration);
     compilationUnit = compilationUnit.AddUsings(
-      UsingDirective(ParseName("System"))).AddUsings(
-      UsingDirective(ParseName("System.Collections.Generic"))).AddUsings(
-      UsingDirective(ParseName("System.Numerics")));
+      UsingDirective(ParseName("System")),
+      UsingDirective(ParseName("System.Collections.Generic")),
+      UsingDirective(ParseName("System.Numerics"))
+    );
 
     // Create a list of basic references that most code will need
     var references = new List<string>
@@ -229,7 +231,6 @@ public class SyntaxSchemaGenerator : SyntaxAstVisitor {
       typeof(System.Runtime.AssemblyTargetedPatchBandAttribute).Assembly.Location,
       typeof(List<>).Assembly.Location,
       typeof(BigInteger).Assembly.Location,
-      typeof(ValueType).Assembly.Location
     }.Distinct().ToList();
     var syntaxTree = CSharpSyntaxTree.Create(compilationUnit);
     var compilation = CSharpCompilation.Create(

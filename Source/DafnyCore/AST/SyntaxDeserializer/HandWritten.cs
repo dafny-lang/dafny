@@ -4,6 +4,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
+using Microsoft.BaseTypes;
 
 namespace Microsoft.Dafny;
 
@@ -26,6 +27,9 @@ namespace Microsoft.Dafny;
 public partial class SyntaxDeserializer(IDecoder decoder) {
   private Uri? uri;
 
+  public readonly List<Action<SystemModuleManager>> SystemModuleModifiers = [];
+
+
   private Specification<T> ReadSpecification<T>() where T : Node {
     if (typeof(T) == typeof(FrameExpression)) {
       var parameter1 = ReadListOption<T>(() => (T)(object)ReadFrameExpression());
@@ -36,6 +40,28 @@ public partial class SyntaxDeserializer(IDecoder decoder) {
       var parameter2 = ReadAttributesOption();
       return new Specification<T>(parameter1, parameter2);
     }
+  }
+
+  private CasePattern<VT> ReadCasePattern<VT>() where VT : IVariable {
+    if (typeof(VT) == typeof(BoundVar)) {
+      var parameter0 = ReadAbstract<IOrigin>();
+      var parameter1 = ReadString();
+      var parameter2 = (VT)(object)ReadBoundVarOption();
+      var parameter3 = ReadListOption(() => ReadCasePattern<VT>());
+      return new CasePattern<VT>(parameter0, parameter1, parameter2, parameter3);
+    } else if (typeof(VT) == typeof(LocalVariable)) {
+      var parameter0 = ReadAbstract<IOrigin>();
+      var parameter1 = ReadString();
+      var parameter2 = (VT)(object)ReadLocalVariableOption();
+      var parameter3 = ReadListOption(() => ReadCasePattern<VT>());
+      return new CasePattern<VT>(parameter0, parameter1, parameter2, parameter3);
+    } else {
+      throw new Exception($"Unhandled CasePattern type: {typeof(VT)}");
+    }
+  }
+
+  private CasePattern<VT>? ReadCasePatternOption<VT>() where VT : IVariable {
+    return ReadIsNull() ? null : ReadCasePattern<VT>();
   }
 
   private List<T>? ReadListOption<T>(Func<T> readElement) {
@@ -106,7 +132,8 @@ public partial class SyntaxDeserializer(IDecoder decoder) {
     var typeName = decoder.ReadQualifiedName();
     var actualType = System.Type.GetType("Microsoft.Dafny." + typeName) ??
                      System.Type.GetType("System." + typeName) ??
-                     (typeName == "BigInteger" ? typeof(BigInteger) : null);
+                     (typeName == "BigInteger" ? typeof(BigInteger) : null) ??
+                     (typeName == "BigDec" ? typeof(BigDec) : null);
     if (actualType == null) {
       throw new Exception($"Type not found: {typeName}, expected type {typeof(T).Name}, position {decoder.Position}");
     }
@@ -151,8 +178,24 @@ public partial class SyntaxDeserializer(IDecoder decoder) {
       return (T)(object)decoder.ReadBool();
     }
 
+    if (actualType == typeof(short)) {
+      return (T)(object)decoder.ReadInt16();
+    }
+
     if (actualType == typeof(int)) {
       return (T)(object)decoder.ReadInt32();
+    }
+
+    if (actualType == typeof(char)) {
+      return (T)(object)decoder.ReadString();
+    }
+
+    if (actualType == typeof(long)) {
+      return (T)(object)decoder.ReadInt64();
+    }
+
+    if (actualType == typeof(BigDec)) {
+      return (T)(object)decoder.ReadBigDec();
     }
 
     if (actualType == typeof(BigInteger)) {
@@ -167,11 +210,38 @@ public partial class SyntaxDeserializer(IDecoder decoder) {
       return (T)(object)ReadToken();
     }
 
+    if (actualType == typeof(MultiSelectExpr)) {
+      return (T)(object)ReadMultiSelectExpr();
+    }
+
+    if (actualType == typeof(AllocateArray)) {
+      return (T)(object)ReadAllocateArray();
+    }
+
     return (T)ReadObject(actualType);
   }
 
   private int ReadInt32() {
     return decoder.ReadInt32();
+  }
+
+  // For MultiSelectExpr and AllocateArray, we need specific cases to properly update the
+  // SystemModuleModifiers, as done in Dafny.atg
+  public MultiSelectExpr ReadMultiSelectExpr() {
+    var parameter0 = ReadAbstract<IOrigin>();
+    var parameter1 = ReadAbstract<Expression>();
+    var parameter2 = ReadList<Expression>(() => ReadAbstract<Expression>());
+    SystemModuleModifiers.Add(b => b.ArrayType(parameter2.Count, new IntType(), true));
+    return new MultiSelectExpr(parameter0, parameter1, parameter2);
+  }
+  public AllocateArray ReadAllocateArray() {
+    var parameter0 = ReadAbstract<IOrigin>();
+    var parameter4 = ReadAttributesOption();
+    var parameter1 = ReadAbstractOption<Type>();
+    var parameter2 = ReadList<Expression>(() => ReadAbstract<Expression>());
+    var parameter3 = ReadAbstractOption<Expression>();
+    SystemModuleModifiers.Add(b => b.ArrayType(parameter2.Count, new IntType(), true));
+    return new AllocateArray(parameter0, parameter1, parameter2, parameter3, parameter4);
   }
 }
 

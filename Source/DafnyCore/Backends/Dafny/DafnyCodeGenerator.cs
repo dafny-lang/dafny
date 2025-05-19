@@ -870,23 +870,6 @@ namespace Microsoft.Dafny.Compilers {
             bufferedInitializationValue = Option<DAST._IExpression>.create_Some(
               ConvertExpression(type.AsSubsetType.Witness, new BuilderSyntaxTree<StatementContainer>(bufStmt, this)));
             bufferedInitializationStmts = Option<List<DAST.Statement>>.create_Some(bufStmt.PopAll());
-          } else if (type.AsDatatype != null && type.AsDatatype.Ctors.Count == 1 && type.AsDatatype.Ctors[0].EnclosingDatatype is TupleTypeDecl tupleDecl) {
-            var elems = new List<DAST._IExpression>();
-            for (var i = 0; i < tupleDecl.Ctors[0].Formals.Count; i++) {
-              if (!tupleDecl.Ctors[0].Formals[i].IsGhost) {
-                TypeInitializationValue(type.TypeArgs[i], wr, tok, usePlaceboValue, constructTypeParameterDefaultsFromTypeDescriptors);
-                elems.Add(bufferedInitializationValue.dtor_value);
-                bufferedInitializationValue = null;
-              }
-            }
-
-            if (elems.Count == 1) {
-              bufferedInitializationValue = Option<DAST._IExpression>.create_Some(elems[0]);
-            } else {
-              bufferedInitializationValue = Option<DAST._IExpression>.create_Some(
-                DAST.Expression.create_Tuple(Sequence<DAST._IExpression>.FromArray(elems.ToArray()))
-              );
-            }
           } else {
             bufferedInitializationValue = Option<DAST._IExpression>.create_Some(
               DAST.Expression.create_InitializationValue(GenType(type))
@@ -1403,7 +1386,7 @@ namespace Microsoft.Dafny.Compilers {
 
     // Return a writer to write the start expression, which is lo if going up, and hi if going down
     protected override ConcreteSyntaxTree EmitForStmt(IOrigin tok, IVariable loopIndex, bool goingUp, string endVarName,
-      List<Statement> body, LList<Label> labels, ConcreteSyntaxTree wr) {
+      List<Statement> body, List<Label> labels, ConcreteSyntaxTree wr) {
       if (GetStatementBuilder(wr, out var statementContainer)) {
         var indexName = loopIndex.CompileNameShadowable;
         ForeachBuilder foreachBuilder = statementContainer.Builder.Foreach(
@@ -2334,6 +2317,9 @@ namespace Microsoft.Dafny.Compilers {
       } else if (source.Type.NormalizeToAncestorType() is { IsMapType: true } normalized) {
         collKind = DAST.CollKind.create_Map();
         indexType = normalized.AsMapType.Domain;
+      } else if (source.Type.NormalizeToAncestorType() is { AsMultiSetType: { } msType }) {
+        collKind = DAST.CollKind.create_Map();
+        indexType = msType.Arg;
       } else {
         collKind = DAST.CollKind.create_Seq();
         indexType = Type.Int;

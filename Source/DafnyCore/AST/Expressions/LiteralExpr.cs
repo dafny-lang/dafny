@@ -58,7 +58,12 @@ public class LiteralExpr : Expression, ICloneable<LiteralExpr> {
   [SyntaxConstructor]
   public LiteralExpr(IOrigin origin, object? value)
     : base(origin) {
-    this.Value = value is int n ? new BigInteger(n) : value;
+    this.Value = value switch {
+      int n => new BigInteger(n),
+      short n => new BigInteger(n),
+      long n => new BigInteger(n),
+      _ => value
+    };
   }
 
   public LiteralExpr(IOrigin origin)
@@ -116,6 +121,16 @@ public class LiteralExpr : Expression, ICloneable<LiteralExpr> {
 }
 
 public class CharLiteralExpr : LiteralExpr, ICloneable<CharLiteralExpr> {
+
+  /// <summary>
+  /// Because the base field type is object, we need an object constructor here as well
+  /// </summary>
+  [SyntaxConstructor]
+  public CharLiteralExpr(IOrigin origin, object value)
+    : base(origin, value) {
+    Contract.Requires(value != null);
+  }
+
   public CharLiteralExpr(IOrigin origin, string value)
     : base(origin, value) {
     Contract.Requires(value != null);
@@ -131,9 +146,17 @@ public class CharLiteralExpr : LiteralExpr, ICloneable<CharLiteralExpr> {
 
 public class StringLiteralExpr : LiteralExpr, ICloneable<StringLiteralExpr> {
   public bool IsVerbatim;
+
+  /// <summary>
+  /// Because the base field type is object, we need an object constructor here as well
+  /// </summary>
+  [SyntaxConstructor]
+  public StringLiteralExpr(IOrigin origin, object value, bool isVerbatim)
+    : this(origin, (string)value, isVerbatim) {
+  }
+
   public StringLiteralExpr(IOrigin origin, string value, bool isVerbatim)
     : base(origin, value) {
-    Contract.Requires(value != null);
     IsVerbatim = isVerbatim;
   }
 

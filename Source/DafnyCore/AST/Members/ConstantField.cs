@@ -1,3 +1,5 @@
+#nullable enable
+
 using System;
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
@@ -8,33 +10,37 @@ namespace Microsoft.Dafny;
 
 public class ConstantField : Field, ICallable, ICanAutoRevealDependencies, ICanVerify {
   public override string WhatKind => "const field";
-  public Expression Rhs;
-
-  public virtual string IdParam => NonglobalVariable.SanitizeName(Name);
+  public Expression? Rhs;
 
   public override bool IsOpaque { get; }
 
   public override bool IsMutable => false;
   public override bool IsUserMutable => false;
 
+  public override bool HasStaticKeyword { get; }
+
+  public ConstantField(Cloner cloner, ConstantField original) : base(cloner, original) {
+    Rhs = cloner.CloneExpr(original.Rhs);
+    HasStaticKeyword = original.HasStaticKeyword;
+    IsOpaque = original.IsOpaque;
+  }
+
+  [FilledInDuringResolution]
+  public bool ContainsHide { get; set; }
+
   [SyntaxConstructor]
-  public ConstantField(IOrigin origin, Name nameNode, Expression/*?*/ rhs, bool hasStaticKeyword,
-    bool isGhost, bool isOpaque, Type type, Attributes attributes)
-    : base(origin, nameNode, isGhost, type, attributes) {
+  public ConstantField(IOrigin origin, Name nameNode, Expression? rhs, bool hasStaticKeyword,
+    bool isGhost, bool isOpaque, Type? explicitType, Attributes? attributes)
+    : base(origin, nameNode, isGhost, explicitType, attributes) {
     Contract.Requires(nameNode != null);
-    Contract.Requires(type != null);
     this.Rhs = rhs;
     this.IsOpaque = isOpaque;
     HasStaticKeyword = hasStaticKeyword;
   }
 
-  public override bool HasStaticKeyword { get; }
-
   public override bool CanBeRevealed() {
     return true;
   }
-
-  public bool ContainsHide { get; set; }
   public List<TypeParameter> TypeArgs { get { return []; } }
   public List<Formal> Ins { get { return []; } }
   public ModuleDefinition EnclosingModule { get { return this.EnclosingClass.EnclosingModuleDefinition; } }
@@ -58,8 +64,8 @@ public class ConstantField : Field, ICallable, ICanAutoRevealDependencies, ICanV
   }
   public bool AllowsAllocation => true;
 
-  public override IEnumerable<INode> Children =>
-    base.Children.Concat(new[] { Rhs }.Where(x => x != null));
+  public override IEnumerable<INode> Children => base.Children.Concat(Rhs == null ? [] : [Rhs]);
+
   public override SymbolKind? Kind => SymbolKind.Constant;
 
   public override IEnumerable<INode> PreResolveChildren => Children;

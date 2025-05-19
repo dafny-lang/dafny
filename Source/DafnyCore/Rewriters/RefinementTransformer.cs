@@ -931,7 +931,7 @@ namespace Microsoft.Dafny {
         Reporter.Info(MessageSource.RefinementTransformer, sbsSkeleton.Origin, hoverText);
       }
 
-      return new DividedBlockStmt(sbsSkeleton.Origin, bodyInit, sbsSkeleton.SeparatorTok, bodyProper);
+      return new DividedBlockStmt(sbsSkeleton.Origin, bodyInit, sbsSkeleton.SeparatorTok, bodyProper, sbsSkeleton.Labels);
     }
 
     /// <summary>
@@ -1295,6 +1295,10 @@ namespace Microsoft.Dafny {
               MergeAddStatement(cur, body);
               i++;
             }
+          } else if (cur is LabeledStatement) {
+            MergeAddStatement(cur, body);
+            i++;
+            j++;
           } else {
             MergeAddStatement(cur, body);
             i++;
@@ -1346,18 +1350,17 @@ namespace Microsoft.Dafny {
       Contract.Requires(!(nxt is SkeletonStatement) || ((SkeletonStatement)nxt).S != null);  // nxt is not "...;"
       Contract.Requires(other != null);
 
-      if (nxt.Labels != null) {
-        for (var olbl = other.Labels; olbl != null; olbl = olbl.Next) {
-          var odata = olbl.Data;
-          for (var l = nxt.Labels; l != null; l = l.Next) {
-            if (odata.Name == l.Data.Name) {
+      if (nxt is LabeledStatement nextLabelled && other is LabeledStatement otherLabelled && nextLabelled.Labels.Any()) {
+        foreach (var olbl in otherLabelled.Labels) {
+          foreach (var l in nextLabelled.Labels) {
+            if (olbl.Name == l.Name) {
               return true;
             }
           }
         }
         return false;  // labels of 'nxt' don't match any label of 'other'
-      } else if (nxt is SkeletonStatement) {
-        var S = ((SkeletonStatement)nxt).S;
+      } else if (nxt is SkeletonStatement statement) {
+        var S = statement.S;
         if (S is AssertStmt) {
           return other is PredicateStmt;
         } else if (S is ExpectStmt) {
@@ -1385,19 +1388,17 @@ namespace Microsoft.Dafny {
         return oth != null && LocalVarsAgree(((VarDeclStmt)nxt).Locals, oth.Locals);
       } else if (nxt is BlockStmt) {
         var b = (BlockStmt)nxt;
-        if (b.Labels != null) {
-          var oth = other as BlockStmt;
-          if (oth != null && oth.Labels != null) {
-            return b.Labels.Data.Name == oth.Labels.Data.Name; // both have the same label
+        if (b.Labels.Any()) {
+          if (other is BlockStmt oth && oth.Labels.Any()) {
+            return b.Labels.First().Name == oth.Labels.First().Name; // both have the same label
           }
-        } else if (other is BlockStmt && ((BlockStmt)other).Labels == null) {
+        } else if (other is BlockStmt stmt && !stmt.Labels.Any()) {
           return true; // both are unlabeled
         }
       } else if (nxt is AssignStatement) {
         var up = (AssignStatement)nxt;
-        if (other is AssignSuchThatStmt) {
-          var oth = other as AssignSuchThatStmt;
-          return oth != null && LeftHandSidesAgree(oth.Lhss, up.Lhss);
+        if (other is AssignSuchThatStmt oth) {
+          return LeftHandSidesAgree(oth.Lhss, up.Lhss);
         }
       }
 
@@ -1487,8 +1488,10 @@ namespace Microsoft.Dafny {
       Contract.Requires(labels != null);
       Contract.Requires(0 <= loopLevels);
 
-      for (LList<Label> n = s.Labels; n != null; n = n.Next) {
-        labels.Push(n.Data.Name);
+      if (s is LabeledStatement labelledStatement) {
+        foreach (var n in labelledStatement.Labels) {
+          labels.Push(n.Name);
+        }
       }
       if (s is SkeletonStatement) {
         Error(ErrorId.ref_misplaced_skeleton, s, "skeleton statement may not be used here; it does not have a matching statement in what is being replaced");
@@ -1499,7 +1502,7 @@ namespace Microsoft.Dafny {
         Error(ErrorId.ref_misplaced_yield, s, "yield statements are not allowed in skeletons");
       } else if (s is BreakOrContinueStmt) {
         var b = (BreakOrContinueStmt)s;
-        if (b.TargetLabel != null ? !labels.Contains(b.TargetLabel.val) : loopLevels < b.BreakAndContinueCount) {
+        if (b.TargetLabel != null ? !labels.Contains(b.TargetLabel.Value) : loopLevels < b.BreakAndContinueCount) {
           Error(ErrorId.ref_invalid_break_in_skeleton, s, $"{b.Kind} statement in skeleton is not allowed to break outside the skeleton fragment");
         }
       } else if (s is SingleAssignStmt) {
@@ -1523,8 +1526,10 @@ namespace Microsoft.Dafny {
         }
       }
 
-      for (LList<Label> n = s.Labels; n != null; n = n.Next) {
-        labels.Pop();
+      if (s is LabeledStatement labelledStatement2) {
+        foreach (var n in labelledStatement2.Labels) {
+          labels.Pop();
+        }
       }
     }
 
