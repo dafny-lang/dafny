@@ -197,7 +197,7 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
 
       public override void Visit(TypeRhs typeRhs) {
         cancellationToken.ThrowIfCancellationRequested();
-        if (typeRhs is AllocateArray allocateArray) {
+        if (typeRhs is AllocateArray allocateArray && allocateArray.ExplicitType != null) {
           RegisterTypeDesignator(currentScope, allocateArray.ExplicitType);
         }
         if (typeRhs is AllocateClass allocateClass) {

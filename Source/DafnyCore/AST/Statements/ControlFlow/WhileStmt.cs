@@ -4,7 +4,7 @@ using System.Collections.Generic;
 namespace Microsoft.Dafny;
 
 public class WhileStmt : OneBodyLoopStmt, ICloneable<WhileStmt>, ICanFormat {
-  public Expression/*?*/ Guard;
+  public Expression? Guard;
 
   public class LoopBodySurrogate {
     public List<IVariable> LocalLoopTargets;
@@ -16,7 +16,7 @@ public class WhileStmt : OneBodyLoopStmt, ICloneable<WhileStmt>, ICanFormat {
     }
   }
 
-  public WhileStmt Clone(Cloner cloner) {
+  public new WhileStmt Clone(Cloner cloner) {
     return new WhileStmt(cloner, this);
   }
 
@@ -27,15 +27,15 @@ public class WhileStmt : OneBodyLoopStmt, ICloneable<WhileStmt>, ICanFormat {
   public WhileStmt(IOrigin origin, Expression guard,
     List<AttributedExpression> invariants, Specification<Expression> decreases, Specification<FrameExpression> mod,
     BlockStmt body)
-    : base(origin, invariants, decreases, mod, body, null) {
+    : base(origin, invariants, decreases, mod, body, [], null) {
     Guard = guard;
   }
 
   [SyntaxConstructor]
   public WhileStmt(IOrigin origin, Expression guard,
     List<AttributedExpression> invariants, Specification<Expression> decreases, Specification<FrameExpression> mod,
-    BlockStmt body, Attributes? attributes)
-    : base(origin, invariants, decreases, mod, body, attributes) {
+    BlockStmt body, List<Label> labels, Attributes? attributes)
+    : base(origin, invariants, decreases, mod, body, labels, attributes) {
     Guard = guard;
   }
 

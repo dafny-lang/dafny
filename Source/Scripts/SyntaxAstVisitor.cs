@@ -12,19 +12,6 @@ namespace Scripts;
 public abstract class SyntaxAstVisitor {
 
   /// <summary>
-  /// Sometimes a type has an incorrect base-type in the sense that it does not
-  /// use all the fields of the base-type. In those cases, we can override the bas type,
-  /// so we do not need to refactor the Dafny AST
-  /// </summary>
-  protected static Dictionary<Type, Type?> OverrideBaseType = new() {
-    { typeof(TypeParameter), typeof(Declaration) },
-    { typeof(ModuleDecl), typeof(Declaration) },
-    { typeof(SourceOrigin), typeof(IOrigin) },
-    { typeof(TokenRangeOrigin), typeof(IOrigin) },
-    { typeof(AttributedExpression), null }
-  };
-
-  /// <summary>
   /// Sometimes the parser sets fields that do not relate to the parsed source file
   /// </summary>
   protected static HashSet<Type> ExcludedTypes = [typeof(DafnyOptions)];
@@ -54,7 +41,7 @@ public abstract class SyntaxAstVisitor {
       if (current.IsGenericType) {
         current = current.GetGenericTypeDefinition();
       }
-      var baseType = OverrideBaseType.GetOrDefault(current, () => current.BaseType);
+      var baseType = GetBaseType(current);
       if (baseType != null && baseType != typeof(ValueType) && baseType != typeof(object)) {
         if (!visited.Contains(baseType)) {
           toVisit.Push(current);
@@ -86,14 +73,13 @@ public abstract class SyntaxAstVisitor {
 
   private void VisitClass(Type type, Stack<Type> toVisit, IDictionary<Type, ISet<Type>> inheritors) {
     HandleClass(type);
-    var baseType = OverrideBaseType.GetOrDefault(type, () => type.BaseType);
+    var baseType = GetBaseType(type);
     if (baseType != null && baseType != typeof(ValueType) && baseType != typeof(object)) {
       var myParseConstructor = GetParseConstructor(type)!;
       var baseParseConstructor = GetParseConstructor(baseType);
       var missingParameters = baseParseConstructor == null ? [] :
         baseParseConstructor.GetParameters().Select(p => p.Name)
           .Except(myParseConstructor.GetParameters().Select(p => p.Name))
-          .ExceptBy(GetRedundantFieldNames(type).Select(name => name.ToLower()), str => str?.ToLower())
           .ToList();
       if (missingParameters.Any()) {
         throw new Exception($"in type {type}, missing parameters: {string.Join(",", missingParameters)}");
@@ -172,12 +158,12 @@ public abstract class SyntaxAstVisitor {
   }
 
   /// <summary>
-  /// Return all field/property names appearing in <see cref="RedundantField"/>
-  /// attributes of the specified type (or its base types).
+  /// Return the argument of the <see cref="SyntaxBaseType"/> attribute on the specified type if present,
+  /// or its normal base type otherwise.
   /// </summary>
-  protected static IEnumerable<string> GetRedundantFieldNames(Type type) {
-    return type.GetCustomAttributes<RedundantField>()
-      .Select(attr => attr.Name);
+  public static Type? GetBaseType(Type type) {
+    return type.GetCustomAttributes<SyntaxBaseType>()
+      .Select(attr => attr.NewBase).FirstOrDefault(type.BaseType);
   }
 
   private static (string typeName, string typeArgs) MakeGenericTypeStringParts(
@@ -217,6 +203,21 @@ public abstract class SyntaxAstVisitor {
   public static string CutOffGenericSuffixPartOfName(string genericTypeName) {
     var tildeLocation = genericTypeName.IndexOf('`');
     return tildeLocation >= 0 ? genericTypeName.Substring(0, tildeLocation) : genericTypeName;
+  }
+
+  protected static bool DoesMemberBelongToBase(Type type, MemberInfo memberInfo, Type? baseType) {
+    var memberBelongsToBase = false;
+    if (memberInfo.DeclaringType != type && baseType != null) {
+      var baseMembers = baseType.GetMember(
+        memberInfo.Name,
+        MemberTypes.Field | MemberTypes.Property,
+        BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
+      if (baseMembers.Length != 0) {
+        memberBelongsToBase = true;
+      }
+    }
+
+    return memberBelongsToBase;
   }
 }
 

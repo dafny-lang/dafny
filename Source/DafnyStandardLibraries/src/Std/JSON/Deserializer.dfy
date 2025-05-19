@@ -28,7 +28,7 @@ module Std.JSON.Deserializer {
   }
 
   function UnsupportedEscape16(code: seq<uint16>): DeserializationError {
-    UnsupportedEscape(FromUTF16Checked(code).GetOr("Couldn't decode UTF-16"))
+    UnsupportedEscape(FromUTF16Checked(code).ToOption().GetOr("Couldn't decode UTF-16"))
   }
 
   @DisableNonlinearArithmetic
@@ -83,7 +83,7 @@ module Std.JSON.Deserializer {
       else
         var c := str[start + 1];
         if c == 'u' as uint16 then
-          if |str| <= start + 6 then
+          if |str| < start + 6 then
             Failure(EscapeAtEOS)
           else
             var code := str[start + 2..start + 6];
@@ -111,10 +111,10 @@ module Std.JSON.Deserializer {
   }
 
   function String(js: Grammar.jstring): DeserializationResult<string> {
-    var asUtf32 :- FromUTF8Checked(js.contents.Bytes()).ToResult(DeserializationError.InvalidUnicode);
-    var asUint16 :- ToUTF16Checked(asUtf32).ToResult(DeserializationError.InvalidUnicode);
+    var asUtf32 :- FromUTF8Checked(js.contents.Bytes()).MapFailure((error: string) => DeserializationError.InvalidUnicode(error));
+    var asUint16 :- ToUTF16Checked(asUtf32).ToResult(DeserializationError.InvalidUnicode(""));
     var unescaped :- Unescape(asUint16);
-    FromUTF16Checked(unescaped).ToResult(DeserializationError.InvalidUnicode)
+    FromUTF16Checked(unescaped).MapFailure((error: string) => DeserializationError.InvalidUnicode(error))
   }
 
   const DIGITS := ByteStrConversion.charToDigit

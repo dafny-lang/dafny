@@ -177,7 +177,7 @@ public class AssignStatement : ConcreteAssignStatement, ICloneable<AssignStateme
         foreach (var ll in Lhss) {
           resolvedLhss.Add(ll.Resolved);
         }
-        CallStmt a = new CallStmt(Origin, resolvedLhss, methodCallInfo.Callee, methodCallInfo.ActualParameters, methodCallInfo.Tok.Center);
+        CallStmt a = new CallStmt(Origin, resolvedLhss, methodCallInfo.Callee, methodCallInfo.ActualParameters, methodCallInfo.Tok.ReportingRange);
         a.OriginalInitialLhs = OriginalInitialLhs;
         ResolvedStatements.Add(a);
       }

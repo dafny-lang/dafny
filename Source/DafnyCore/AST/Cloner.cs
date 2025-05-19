@@ -5,6 +5,7 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
+using System.Linq;
 
 namespace Microsoft.Dafny {
   interface ICloneable<out T> {
@@ -426,7 +427,6 @@ namespace Microsoft.Dafny {
       if (stmt is ICloneable<Statement> cloneable) {
         var r = cloneable.Clone(this);
         // add labels to the cloned statement
-        AddStmtLabels(r, stmt.Labels);
         r.Attributes = CloneAttributes(stmt.Attributes);
 
         return r;
@@ -477,17 +477,6 @@ namespace Microsoft.Dafny {
       }
     }
 
-    public void AddStmtLabels(Statement s, LList<Label> node) {
-      if (node != null) {
-        AddStmtLabels(s, node.Next);
-        if (node.Data.Name == null) {
-          // this indicates an implicit-target break statement that has been resolved; don't add it
-        } else {
-          s.Labels = new LList<Label>(new Label(Origin(node.Data.Tok), node.Data.Name), s.Labels);
-        }
-      }
-    }
-
     public GuardedAlternative CloneGuardedAlternative(GuardedAlternative alt) {
       return new GuardedAlternative(Origin(alt.Origin), alt.IsBindingGuard, CloneExpr(alt.Guard),
         alt.Body.ConvertAll(stmt => CloneStmt(stmt, false)), CloneAttributes(alt.Attributes));
@@ -496,13 +485,11 @@ namespace Microsoft.Dafny {
     public virtual Field CloneField(Field f) {
       Contract.Requires(f != null);
       return f switch {
-        ConstantField c => new ConstantField(Origin(c.Origin), c.NameNode.Clone(this), CloneExpr(c.Rhs),
-          c.HasStaticKeyword, c.IsGhost, c.IsOpaque, CloneType(c.Type), CloneAttributes(c.Attributes)),
+        ConstantField c => new ConstantField(this, c),
         // We don't expect a SpecialField to ever be cloned. However, it can happen for malformed programs, for example if
         // an iterator in a refined module is replaced by a class in the refining module.
-        SpecialField s => new SpecialField(Origin(s.Origin), s.Name, s.SpecialId, s.IdParam, s.IsGhost, s.IsMutable,
-          s.IsUserMutable, CloneType(s.Type), CloneAttributes(s.Attributes)),
-        _ => new Field(Origin(f.Origin), f.NameNode.Clone(this), f.IsGhost, CloneType(f.Type), CloneAttributes(f.Attributes))
+        SpecialField s => new SpecialField(this, s),
+        _ => new Field(this, f)
       };
     }
 

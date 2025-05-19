@@ -14,4 +14,4 @@ opaqueBlock.dfy(206,6): Error: assignment might update an object not in the encl
 opaqueBlock.dfy(218,2): Error: assertion might not hold
 opaqueBlock.dfy(228,2): Error: assertion might not hold
 
-Dafny program verifier finished with 3 verified, 15 errors
+Dafny program verifier finished with 4 verified, 15 errors

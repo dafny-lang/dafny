@@ -1,5 +1,4 @@
 #nullable enable
-using System;
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 using System.Numerics;
@@ -147,9 +146,17 @@ public class CharLiteralExpr : LiteralExpr, ICloneable<CharLiteralExpr> {
 
 public class StringLiteralExpr : LiteralExpr, ICloneable<StringLiteralExpr> {
   public bool IsVerbatim;
+
+  /// <summary>
+  /// Because the base field type is object, we need an object constructor here as well
+  /// </summary>
+  [SyntaxConstructor]
+  public StringLiteralExpr(IOrigin origin, object value, bool isVerbatim)
+    : this(origin, (string)value, isVerbatim) {
+  }
+
   public StringLiteralExpr(IOrigin origin, string value, bool isVerbatim)
     : base(origin, value) {
-    Contract.Requires(value != null);
     IsVerbatim = isVerbatim;
   }
 

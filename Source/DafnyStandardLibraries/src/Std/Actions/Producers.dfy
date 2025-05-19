@@ -1476,6 +1476,8 @@ module Std.Producers {
         Seq.PartitionedLastTrueImpliesAll(source.Outputs(), IsSome);
         var sourceNewOutputs := source.Outputs()[|old(source.Outputs())|..];
 
+        assert Seq.All(Outputs(), IsSome);
+        assert old(!source.Done());
         OutputsPartitionedAfterOutputtingSome(result.value);
         ProduceSome(result.value);
 

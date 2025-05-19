@@ -1,3 +1,5 @@
+#nullable enable
+
 using System.Collections.Generic;
 using System.CommandLine;
 using System.Diagnostics.Contracts;
@@ -20,11 +22,6 @@ public class PrintStmt : Statement, ICloneable<PrintStmt>, ICanFormat {
     OptionRegistry.RegisterGlobalOption(TrackPrintEffectsOption, OptionCompatibility.CheckOptionLocalImpliesLibrary);
   }
 
-  [ContractInvariantMethod]
-  void ObjectInvariant() {
-    Contract.Invariant(cce.NonNullElements(Args));
-  }
-
   public PrintStmt Clone(Cloner cloner) {
     return new PrintStmt(cloner, this);
   }
@@ -33,11 +30,9 @@ public class PrintStmt : Statement, ICloneable<PrintStmt>, ICanFormat {
     Args = original.Args.Select(cloner.CloneExpr).ToList();
   }
 
-  public PrintStmt(IOrigin origin, List<Expression> args)
-    : base(origin) {
-    Contract.Requires(origin != null);
-    Contract.Requires(cce.NonNullElements(args));
-
+  [SyntaxConstructor]
+  public PrintStmt(IOrigin origin, List<Expression> args, Attributes? attributes = null)
+    : base(origin, attributes) {
     Args = args;
   }
   public override IEnumerable<Expression> NonSpecificationSubExpressions {
@@ -55,7 +50,7 @@ public class PrintStmt : Statement, ICloneable<PrintStmt>, ICanFormat {
 
   public override void ResolveGhostness(ModuleResolver resolver, ErrorReporter reporter, bool mustBeErasable,
     ICodeContext codeContext,
-    string proofContext, bool allowAssumptionVariables, bool inConstructorInitializationPhase) {
+    string? proofContext, bool allowAssumptionVariables, bool inConstructorInitializationPhase) {
     if (mustBeErasable) {
       reporter.Error(MessageSource.Resolver, ResolutionErrors.ErrorId.r_print_statement_is_not_ghost, this,
         "print statement is not allowed in this context (because this is a ghost method or because the statement is guarded by a specification-only expression)");

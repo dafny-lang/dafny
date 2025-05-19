@@ -1,5 +1,6 @@
 using System.Numerics;
 using System.Text;
+using Microsoft.BaseTypes;
 
 namespace Scripts;
 
@@ -13,6 +14,12 @@ class TextEncoder(StringBuilder writer) : IEncoder {
 
   public void WriteBool(bool value) {
     writer.Append(value ? "true" : "false");
+    writer.Append(' ');
+  }
+
+  public void WriteBigDec(BigDec bigDec) {
+    writer.Append(bigDec.ToString());
+    writer.Append(";");
     writer.Append(' ');
   }
 

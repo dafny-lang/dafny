@@ -290,14 +290,15 @@ public class ProgramParser {
       return ParseFile(options, fileSnapshot.Version, text, uri, cancellationToken);
     }
 
-    var filesContainer = new SyntaxDeserializer(new TextDecoder(reader.ReadToEnd())).ReadFilesContainer();
+    var syntaxDeserializer = new SyntaxDeserializer(new TextDecoder(reader.ReadToEnd()));
+    var filesContainer = syntaxDeserializer.ReadFilesContainer();
     var filesModule = new FileModuleDefinition(SourceOrigin.NoToken);
     filesModule.SourceDecls.AddRange(
       filesContainer.Files.SelectMany(f => f.TopLevelDecls));
 
     return new DfyParseFileResult(null, uri,
       filesContainer.Files.Select(f => new Uri(f.Uri)).ToList(),
-      new BatchErrorReporter(options), filesModule, []);
+      new BatchErrorReporter(options), filesModule, syntaxDeserializer.SystemModuleModifiers);
   }
 
   ///<summary>

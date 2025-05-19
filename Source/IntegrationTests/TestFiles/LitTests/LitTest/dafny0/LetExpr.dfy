@@ -432,6 +432,6 @@ module LitLet {
     var n10 := plus(n5, n5);
     var n12 := S(S(n10));
 
-    assert factorial(n5) == mult(n10, n12);
+    assert factorial(S(n3)) == mult(n2, n12);
   }
 }

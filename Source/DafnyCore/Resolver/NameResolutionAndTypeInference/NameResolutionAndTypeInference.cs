@@ -20,20 +20,20 @@ using Microsoft.Dafny.Plugins;
 
 namespace Microsoft.Dafny {
   public partial class ModuleResolver {
-    public List<Statement> loopStack = [];  // the enclosing loops (from which it is possible to break out)
+    public List<LabeledStatement> loopStack = [];  // the enclosing loops (from which it is possible to break out)
     public Scope<Label>/*!*/ DominatingStatementLabels { get; private set; }
 
-    public Scope<Statement> EnclosingStatementLabels {
+    public Scope<LabeledStatement> EnclosingStatementLabels {
       get => enclosingStatementLabels;
       set => enclosingStatementLabels = value;
     }
 
-    public List<Statement> LoopStack {
+    public List<LabeledStatement> LoopStack {
       get => loopStack;
       set => loopStack = value;
     }
 
-    public Scope<Statement>/*!*/ enclosingStatementLabels;
+    public Scope<LabeledStatement>/*!*/ enclosingStatementLabels;
     public MethodOrConstructor currentMethod;
 
     Label/*?*/ ResolveDominatingLabelInExpr(IOrigin tok, string/*?*/ labelName, string expressionDescription, ResolutionContext resolutionContext) {
@@ -722,8 +722,8 @@ namespace Microsoft.Dafny {
       } else if (expr is OldExpr) {
         var e = (OldExpr)expr;
         e.AtLabel = ResolveDominatingLabelInExpr(expr.Origin, e.At, "old", resolutionContext);
-        ResolveExpression(e.E, new ResolutionContext(resolutionContext.CodeContext, false) with { InOld = true });
-        expr.Type = e.E.Type;
+        ResolveExpression(e.Expr, new ResolutionContext(resolutionContext.CodeContext, false) with { InOld = true });
+        expr.Type = e.Expr.Type;
 
       } else if (expr is UnchangedExpr) {
         var e = (UnchangedExpr)expr;
@@ -1180,6 +1180,11 @@ namespace Microsoft.Dafny {
         }
 
         decreasesToExpr.Type = Type.Bool;
+      } else if (expr is FieldLocationExpression or IndexFieldLocationExpression or FieldLocation or IndexFieldLocation) {
+        reporter.Error(MessageSource.Resolver, expr,
+          $"Requires --type-system-refresh to resolve");
+        expr.Type = new InferredTypeProxy();
+        return;
       } else {
         Contract.Assert(false); throw new cce.UnreachableException();  // unexpected expression
       }
@@ -2893,6 +2898,9 @@ namespace Microsoft.Dafny {
       ResolveFrameExpression(fe, use, new ResolutionContext(codeContext, false));
     }
 
+    public static readonly string CollectionOfFieldLocations = "a set/iset/multiset/seq of objects or single field locations (with `--referrers`)";
+    public static readonly string SingleFieldLocation = "a single field location like o`x or a`[i] of type (object, field)  (with `--referrers`)";
+
     public void ResolveFrameExpression(FrameExpression fe, FrameExpressionUse use, ResolutionContext resolutionContext) {
       Contract.Requires(fe != null);
       Contract.Requires(resolutionContext != null);
@@ -2903,12 +2911,12 @@ namespace Microsoft.Dafny {
       var eventualRefType = new InferredTypeProxy();
       if (use == FrameExpressionUse.Reads) {
         AddXConstraint(fe.E.Origin, "ReadsFrame", t, eventualRefType,
-          "a reads-clause expression must denote an object, a set/iset/multiset/seq of objects, or a function to a set/iset/multiset/seq of objects (instead got {0})");
+          $"a reads-clause expression must denote an object, {SingleFieldLocation}, {CollectionOfFieldLocations}, or a function to {CollectionOfFieldLocations} (instead got {{0}})");
       } else {
         AddXConstraint(fe.E.Origin, "ModifiesFrame", t, eventualRefType,
           use == FrameExpressionUse.Modifies ?
-          "a modifies-clause expression must denote an object or a set/iset/multiset/seq of objects (instead got {0})" :
-          "an unchanged expression must denote an object or a set/iset/multiset/seq of objects (instead got {0})");
+          $"a modifies-clause expression must denote an object, {SingleFieldLocation}, or {CollectionOfFieldLocations} (instead got {{0}})" :
+          $"an unchanged expression must denote an object, {SingleFieldLocation}, or {CollectionOfFieldLocations} (instead got {{0}})");
       }
       if (fe.FieldName != null) {
         var member = ResolveMember(fe.E.Origin, eventualRefType, fe.FieldName, out var tentativeReceiverType);
@@ -3096,22 +3104,23 @@ namespace Microsoft.Dafny {
 
       EnclosingStatementLabels.PushMarker();
       // push labels
-      for (var l = stmt.Labels; l != null; l = l.Next) {
-        var lnode = l.Data;
-        Contract.Assert(lnode.Name != null);  // LabelNode's with .Label==null are added only during resolution of the break statements with 'stmt' as their target, which hasn't happened yet
-        var prev = EnclosingStatementLabels.Find(lnode.Name);
-        if (prev == stmt) {
-          reporter.Error(MessageSource.Resolver, lnode.Tok, "duplicate label");
-        } else if (prev != null) {
-          reporter.Error(MessageSource.Resolver, lnode.Tok, "label shadows an enclosing label");
-        } else {
-          var r = EnclosingStatementLabels.Push(lnode.Name, stmt);
-          Contract.Assert(r == Scope<Statement>.PushResult.Success);  // since we just checked for duplicates, we expect the Push to succeed
-          if (DominatingStatementLabels.Find(lnode.Name) != null) {
-            reporter.Error(MessageSource.Resolver, lnode.Tok, "label shadows a dominating label");
+      if (stmt is LabeledStatement labelledStatement) {
+        foreach (var lnode in labelledStatement.Labels) {
+          Contract.Assert(lnode.Name != null);  // Label's with .Name==null are added only during resolution of the break statements with 'stmt' as their target, which hasn't happened yet
+          var prev = EnclosingStatementLabels.Find(lnode.Name);
+          if (prev == stmt) {
+            reporter.Error(MessageSource.Resolver, lnode.Tok, "duplicate label");
+          } else if (prev != null) {
+            reporter.Error(MessageSource.Resolver, lnode.Tok, "label shadows an enclosing label");
           } else {
-            var rr = DominatingStatementLabels.Push(lnode.Name, lnode);
-            Contract.Assert(rr == Scope<Label>.PushResult.Success);  // since we just checked for duplicates, we expect the Push to succeed
+            var r = EnclosingStatementLabels.Push(lnode.Name, labelledStatement);
+            Contract.Assert(r == Scope<LabeledStatement>.PushResult.Success);  // since we just checked for duplicates, we expect the Push to succeed
+            if (DominatingStatementLabels.Find(lnode.Name) != null) {
+              reporter.Error(MessageSource.Resolver, lnode.Tok, "label shadows a dominating label");
+            } else {
+              var rr = DominatingStatementLabels.Push(lnode.Name, lnode);
+              Contract.Assert(rr == Scope<Label>.PushResult.Success);  // since we just checked for duplicates, we expect the Push to succeed
+            }
           }
         }
       }
@@ -3513,11 +3522,11 @@ namespace Microsoft.Dafny {
       } else if (stmt is BreakOrContinueStmt) {
         var s = (BreakOrContinueStmt)stmt;
         if (s.TargetLabel != null) {
-          Statement target = EnclosingStatementLabels.Find(s.TargetLabel.val);
+          var target = EnclosingStatementLabels.Find(s.TargetLabel.Value);
           if (target == null) {
-            reporter.Error(MessageSource.Resolver, s.TargetLabel, $"{s.Kind} label is undefined or not in scope: {s.TargetLabel.val}");
+            reporter.Error(MessageSource.Resolver, s.TargetLabel, $"{s.Kind} label is undefined or not in scope: {s.TargetLabel.Value}");
           } else if (s.IsContinue && !(target is LoopStmt)) {
-            reporter.Error(MessageSource.Resolver, s.TargetLabel, $"continue label must designate a loop: {s.TargetLabel.val}");
+            reporter.Error(MessageSource.Resolver, s.TargetLabel, $"continue label must designate a loop: {s.TargetLabel.Value}");
           } else {
             s.TargetStmt = target;
           }
@@ -3532,10 +3541,10 @@ namespace Microsoft.Dafny {
             reporter.Error(MessageSource.Resolver, s,
               $"{jumpStmt} is allowed only in contexts with {s.BreakAndContinueCount} enclosing loops, but the current context only has {LoopStack.Count}");
           } else {
-            Statement target = LoopStack[LoopStack.Count - s.BreakAndContinueCount];
-            if (target.Labels == null) {
+            var target = LoopStack[LoopStack.Count - s.BreakAndContinueCount];
+            if (!target.Labels.Any()) {
               // make sure there is a label, because the compiler and translator will want to see a unique ID
-              target.Labels = new LList<Label>(new Label(target.Origin, null), null);
+              target.Labels = [new Label(target.Origin, null)];
             }
             s.TargetStmt = target;
           }
@@ -3821,7 +3830,7 @@ namespace Microsoft.Dafny {
           // clear the labels for the duration of checking the body, because break statements are not allowed to leave a forall statement
           var prevLblStmts = EnclosingStatementLabels;
           var prevLoopStack = LoopStack;
-          EnclosingStatementLabels = new Scope<Statement>(Options);
+          EnclosingStatementLabels = new Scope<LabeledStatement>(Options);
           LoopStack = [];
           ResolveStatement(s.Body, resolutionContext);
           EnclosingStatementLabels = prevLblStmts;
@@ -3938,7 +3947,7 @@ namespace Microsoft.Dafny {
           // clear the labels for the duration of checking the hints, because break statements are not allowed to leave a forall statement
           var prevLblStmts = EnclosingStatementLabels;
           var prevLoopStack = LoopStack;
-          EnclosingStatementLabels = new Scope<Statement>(Options);
+          EnclosingStatementLabels = new Scope<LabeledStatement>(Options);
           LoopStack = [];
           foreach (var h in s.Hints) {
             foreach (var oneHint in h.Body) {
@@ -3969,6 +3978,8 @@ namespace Microsoft.Dafny {
         if (s.S != null) {
           ResolveStatement(s.S, resolutionContext);
         }
+      } else if (stmt is LabeledStatement) {
+        // content already handled
       } else {
         Contract.Assert(false); throw new cce.UnreachableException();
       }
@@ -4334,7 +4345,7 @@ namespace Microsoft.Dafny {
       if (rr2.Type == null) {
         if (rr2 is AllocateArray allocateArray) {
           // ---------- new T[EE]    OR    new T[EE] (elementInit)
-          ResolveType(stmt.Origin, allocateArray.ExplicitType, resolutionContext, ResolveTypeOptionEnum.InferTypeProxies, null);
+          ResolveType(stmt.Origin, allocateArray.ElementType, resolutionContext, ResolveTypeOptionEnum.InferTypeProxies, null);
           int i = 0;
           foreach (Expression dim in allocateArray.ArrayDimensions) {
             Contract.Assert(dim != null);
@@ -4342,7 +4353,7 @@ namespace Microsoft.Dafny {
             ConstrainToIntegerType(dim, false, string.Format("new must use an integer-based expression for the array size (got {{0}}{0})", allocateArray.ArrayDimensions.Count == 1 ? "" : " for index " + i));
             i++;
           }
-          allocateArray.Type = ResolvedArrayType(stmt.Origin, allocateArray.ArrayDimensions.Count, allocateArray.ExplicitType, resolutionContext, false);
+          allocateArray.Type = ResolvedArrayType(stmt.Origin, allocateArray.ArrayDimensions.Count, allocateArray.ElementType, resolutionContext, false);
           if (allocateArray.ElementInit != null) {
             ResolveExpression(allocateArray.ElementInit, resolutionContext);
             // Check
@@ -4352,7 +4363,7 @@ namespace Microsoft.Dafny {
             for (int ii = 0; ii < allocateArray.ArrayDimensions.Count; ii++) {
               args.Add(SystemModuleManager.Nat());
             }
-            var arrowType = new ArrowType(allocateArray.ElementInit.Origin, SystemModuleManager.ArrowTypeDecls[allocateArray.ArrayDimensions.Count], args, allocateArray.ExplicitType);
+            var arrowType = new ArrowType(allocateArray.ElementInit.Origin, SystemModuleManager.ArrowTypeDecls[allocateArray.ArrayDimensions.Count], args, allocateArray.ElementType);
             var lambdaType = allocateArray.ElementInit.Type.AsArrowType;
             if (lambdaType != null && lambdaType.TypeArgs[0] is InferredTypeProxy) {
               (lambdaType.TypeArgs[0] as InferredTypeProxy).KeepConstraints = true;
@@ -4365,11 +4376,11 @@ namespace Microsoft.Dafny {
             }
             var hintString = string.Format(" (perhaps write '{0} =>' in front of the expression you gave in order to make it an arrow type)", underscores);
             ConstrainSubtypeRelation(arrowType, allocateArray.ElementInit.Type, allocateArray.ElementInit, "array-allocation initialization expression expected to have type '{0}' (instead got '{1}'){2}",
-              arrowType, allocateArray.ElementInit.Type, new LazyStringOnTypeEquals(allocateArray.ExplicitType, allocateArray.ElementInit.Type, hintString));
+              arrowType, allocateArray.ElementInit.Type, new LazyStringOnTypeEquals(allocateArray.ElementType, allocateArray.ElementInit.Type, hintString));
           } else if (allocateArray.InitDisplay != null) {
             foreach (var v in allocateArray.InitDisplay) {
               ResolveExpression(v, resolutionContext);
-              AddAssignableConstraint(v.Origin, allocateArray.ExplicitType, v.Type, "initial value must be assignable to array's elements (expected '{0}', got '{1}')");
+              AddAssignableConstraint(v.Origin, allocateArray.ElementType, v.Type, "initial value must be assignable to array's elements (expected '{0}', got '{1}')");
             }
           }
         } else if (rr2 is AllocateClass allocateClass) {
@@ -4420,7 +4431,7 @@ namespace Microsoft.Dafny {
                 Contract.Assert(callLhs.ResolvedExpression is MemberSelectExpr);  // since ResolveApplySuffix succeeded and call.Lhs denotes an expression (not a module or a type)
                 var methodSel = (MemberSelectExpr)callLhs.ResolvedExpression;
                 if (methodSel.Member is MethodOrConstructor) {
-                  allocateClass.InitCall = new CallStmt(stmt.Origin, [], methodSel, allocateClass.Bindings.ArgumentBindings, initCallTok.Center);
+                  allocateClass.InitCall = new CallStmt(stmt.Origin, [], methodSel, allocateClass.Bindings.ArgumentBindings, initCallTok.ReportingRange);
                   ResolveCallStmt(allocateClass.InitCall, resolutionContext, allocateClass.Type);
                 } else {
                   reporter.Error(MessageSource.Resolver, initCallTok, "object initialization must denote an initializing method or constructor ({0})", initCallName);
@@ -5290,7 +5301,7 @@ namespace Microsoft.Dafny {
 
         var token = expr.Origin;
         var receiver = GetReceiver(currentClass, member, token);
-        r = ResolveExprDotCall(token, new Name(expr.Origin, expr.Name), receiver, null, member, args, expr.OptTypeArguments, resolutionContext, allowMethodCall);
+        r = ResolveExprDotCall(token, new Name(expr.Origin, expr.Name), receiver, null, member, expr.OptTypeArguments, resolutionContext, allowMethodCall);
       } else if (isLastNameSegment && moduleInfo.Ctors.TryGetValue(name, out var pair)) {
         // ----- 2. datatype constructor
         if (ResolveDatatypeConstructor(expr, args, resolutionContext, complain, pair, name, ref r, ref rWithArgs)) {
@@ -5343,7 +5354,7 @@ namespace Microsoft.Dafny {
           }
         } else {
           var receiver = new StaticReceiverExpr(expr.Origin, (TopLevelDeclWithMembers)member.EnclosingClass, true);
-          r = ResolveExprDotCall(expr.Origin, new Name(expr.Origin, expr.Name), receiver, null, member, args, expr.OptTypeArguments, resolutionContext, allowMethodCall);
+          r = ResolveExprDotCall(expr.Origin, new Name(expr.Origin, expr.Name), receiver, null, member, expr.OptTypeArguments, resolutionContext, allowMethodCall);
         }
 
       } else if (!isLastNameSegment && moduleInfo.Ctors.TryGetValue(name, out pair)) {
@@ -5656,7 +5667,7 @@ namespace Microsoft.Dafny {
             var receiver = new StaticReceiverExpr(expr.Lhs.Origin, (TopLevelDeclWithMembers)member.EnclosingClass, false) {
               ContainerExpression = expr.Lhs
             };
-            r = ResolveExprDotCall(expr.Origin, expr.SuffixNameNode, receiver, null, member, args, expr.OptTypeArguments, resolutionContext, allowMethodCall);
+            r = ResolveExprDotCall(expr.Origin, expr.SuffixNameNode, receiver, null, member, expr.OptTypeArguments, resolutionContext, allowMethodCall);
           }
         } else {
           ReportUnresolvedIdentifierError(expr.Origin, name, resolutionContext);
@@ -5698,7 +5709,7 @@ namespace Microsoft.Dafny {
             var receiver = new StaticReceiverExpr(expr.Lhs.Origin, (UserDefinedType)ty.NormalizeExpand(), (TopLevelDeclWithMembers)member.EnclosingClass, false) {
               ContainerExpression = expr.Lhs
             };
-            r = ResolveExprDotCall(expr.Origin, expr.SuffixNameNode, receiver, null, member, args, expr.OptTypeArguments, resolutionContext, allowMethodCall);
+            r = ResolveExprDotCall(expr.Origin, expr.SuffixNameNode, receiver, null, member, expr.OptTypeArguments, resolutionContext, allowMethodCall);
           }
         }
         if (r == null) {
@@ -5712,10 +5723,10 @@ namespace Microsoft.Dafny {
           if (!member.IsStatic) {
             receiver = expr.Lhs;
             AddAssignableConstraint(expr.Origin, tentativeReceiverType, receiver.Type, "receiver type ({1}) does not have a member named " + name);
-            r = ResolveExprDotCall(expr.Origin, expr.SuffixNameNode, receiver, tentativeReceiverType, member, args, expr.OptTypeArguments, resolutionContext, allowMethodCall);
+            r = ResolveExprDotCall(expr.Origin, expr.SuffixNameNode, receiver, tentativeReceiverType, member, expr.OptTypeArguments, resolutionContext, allowMethodCall);
           } else {
             receiver = new StaticReceiverExpr(expr.Origin, (UserDefinedType)tentativeReceiverType, (TopLevelDeclWithMembers)member.EnclosingClass, false, lhs);
-            r = ResolveExprDotCall(expr.Origin, expr.SuffixNameNode, receiver, null, member, args, expr.OptTypeArguments, resolutionContext, allowMethodCall);
+            r = ResolveExprDotCall(expr.Origin, expr.SuffixNameNode, receiver, null, member, expr.OptTypeArguments, resolutionContext, allowMethodCall);
           }
         }
       }
@@ -5762,8 +5773,8 @@ namespace Microsoft.Dafny {
       );
     }
 
-    Expression ResolveExprDotCall(IOrigin tok, Name name, Expression receiver, Type receiverTypeBound/*?*/,
-      MemberDecl member, List<ActualBinding> args, List<Type> optTypeArguments, ResolutionContext resolutionContext, bool allowMethodCall) {
+    MemberSelectExpr ResolveExprDotCall(IOrigin tok, Name name, Expression receiver, Type receiverTypeBound/*?*/,
+      MemberDecl member, List<Type> optTypeArguments, ResolutionContext resolutionContext, bool allowMethodCall) {
       Contract.Requires(tok != null);
       Contract.Requires(receiver != null);
       Contract.Requires(receiver.WasResolved());

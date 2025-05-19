@@ -324,6 +324,7 @@ lemma P5()
     add(Suc(Zero), count(n, xs)) == count(n, Cons(x, xs))
     ==> n == x;
 {
+  assert forall n :: Suc(n) > n;
 }
 
 lemma P6()
