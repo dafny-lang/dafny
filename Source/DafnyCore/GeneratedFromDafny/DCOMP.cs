@@ -4260,16 +4260,14 @@ namespace DCOMP {
         })))(fromTpe, fromType), ((System.Func<Dafny.ISequence<BigInteger>>) (() => {
           BigInteger dim17 = new BigInteger(((fromTpe).dtor_arguments).Count);
           var arr17 = new BigInteger[Dafny.Helpers.ToIntChecked(dim17, "array size exceeds memory limit")];
-          for (int i17 = 0; i17 < dim17; i17++) {
-            var _10_i = (BigInteger) i17;
+          for (int _10_i = 0; _10_i < Dafny.Helpers.ToIntChecked(dim17, "upper bound on index is too large"); _10_i++) {
             arr17[(int)(_10_i)] = _10_i;
           }
           return Dafny.Sequence<BigInteger>.FromArray(arr17);
         }))())) : (((System.Func<Dafny.ISequence<BigInteger>>) (() => {
           BigInteger dim18 = new BigInteger(((fromTpe).dtor_arguments).Count);
           var arr18 = new BigInteger[Dafny.Helpers.ToIntChecked(dim18, "array size exceeds memory limit")];
-          for (int i18 = 0; i18 < dim18; i18++) {
-            var _11_i = (BigInteger) i18;
+          for (int _11_i = 0; _11_i < Dafny.Helpers.ToIntChecked(dim18, "upper bound on index is too large"); _11_i++) {
             arr18[(int)(_11_i)] = _11_i;
           }
           return Dafny.Sequence<BigInteger>.FromArray(arr18);
@@ -4277,8 +4275,7 @@ namespace DCOMP {
         Std.Wrappers._IResult<Dafny.ISequence<RAST._IExpr>, _System._ITuple5<DAST._IType, RAST._IType, DAST._IType, RAST._IType, Dafny.IMap<_System._ITuple2<RAST._IType, RAST._IType>,RAST._IExpr>>> _12_valueOrError1 = (this).SeqResultToResultSeq<RAST._IExpr, _System._ITuple5<DAST._IType, RAST._IType, DAST._IType, RAST._IType, Dafny.IMap<_System._ITuple2<RAST._IType, RAST._IType>,RAST._IExpr>>>(((System.Func<Dafny.ISequence<Std.Wrappers._IResult<RAST._IExpr, _System._ITuple5<DAST._IType, RAST._IType, DAST._IType, RAST._IType, Dafny.IMap<_System._ITuple2<RAST._IType, RAST._IType>,RAST._IExpr>>>>>) (() => {
           BigInteger dim19 = new BigInteger((_6_indices).Count);
           var arr19 = new Std.Wrappers._IResult<RAST._IExpr, _System._ITuple5<DAST._IType, RAST._IType, DAST._IType, RAST._IType, Dafny.IMap<_System._ITuple2<RAST._IType, RAST._IType>,RAST._IExpr>>>[Dafny.Helpers.ToIntChecked(dim19, "array size exceeds memory limit")];
-          for (int i19 = 0; i19 < dim19; i19++) {
-            var _13_j = (BigInteger) i19;
+          for (int _13_j = 0; _13_j < Dafny.Helpers.ToIntChecked(dim19, "upper bound on index is too large"); _13_j++) {
             arr19[(int)(_13_j)] = Dafny.Helpers.Let<BigInteger, Std.Wrappers._IResult<RAST._IExpr, _System._ITuple5<DAST._IType, RAST._IType, DAST._IType, RAST._IType, Dafny.IMap<_System._ITuple2<RAST._IType, RAST._IType>,RAST._IExpr>>>>((_6_indices).Select(_13_j), _pat_let27_0 => Dafny.Helpers.Let<BigInteger, Std.Wrappers._IResult<RAST._IExpr, _System._ITuple5<DAST._IType, RAST._IType, DAST._IType, RAST._IType, Dafny.IMap<_System._ITuple2<RAST._IType, RAST._IType>,RAST._IExpr>>>>(_pat_let27_0, _14_i => (this).UpcastConversionLambda((((_pat_let_tv0).dtor_resolved).dtor_typeArgs).Select(_14_i), ((_pat_let_tv1).dtor_arguments).Select(_14_i), (((_pat_let_tv2).dtor_resolved).dtor_typeArgs).Select(_14_i), ((_pat_let_tv3).dtor_arguments).Select(_14_i), _pat_let_tv4)));
           }
           return Dafny.Sequence<Std.Wrappers._IResult<RAST._IExpr, _System._ITuple5<DAST._IType, RAST._IType, DAST._IType, RAST._IType, Dafny.IMap<_System._ITuple2<RAST._IType, RAST._IType>,RAST._IExpr>>>>.FromArray(arr19);
@@ -4290,8 +4287,7 @@ namespace DCOMP {
           return Std.Wrappers.Result<RAST._IExpr, _System._ITuple5<DAST._IType, RAST._IType, DAST._IType, RAST._IType, Dafny.IMap<_System._ITuple2<RAST._IType, RAST._IType>,RAST._IExpr>>>.create_Success((((RAST.Expr.create_ExprFromType((fromTpe).dtor_baseName)).ApplyType(((System.Func<Dafny.ISequence<RAST._IType>>) (() => {
   BigInteger dim20 = new BigInteger(((fromTpe).dtor_arguments).Count);
   var arr20 = new RAST._IType[Dafny.Helpers.ToIntChecked(dim20, "array size exceeds memory limit")];
-  for (int i20 = 0; i20 < dim20; i20++) {
-    var _16_i = (BigInteger) i20;
+  for (int _16_i = 0; _16_i < Dafny.Helpers.ToIntChecked(dim20, "upper bound on index is too large"); _16_i++) {
     arr20[(int)(_16_i)] = ((fromTpe).dtor_arguments).Select(_16_i);
   }
   return Dafny.Sequence<RAST._IType>.FromArray(arr20);
