@@ -62,7 +62,7 @@ public static class OpaqueBlockVerifier {
       builder.Add(Cmd.SimpleAssign(block.Origin, new Boogie.IdentifierExpr(block.Origin, heapAtVariable), etran.HeapExpr));
 
       beforeBlockExpressionTranslator = etran.WithHeapVariable(uniqueId, out var uniqueIdReferrers);
-      
+
       if (builder.Options.Get(CommonOptionBag.Referrers)) {
         Contract.Assert(uniqueIdReferrers != null);
         var referrersHeapAtVariable = locals.GetOrAdd(new Boogie.LocalVariable(block.Origin,

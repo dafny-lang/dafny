@@ -52,29 +52,29 @@ public abstract class OneBodyLoopStmt : LoopStmt {
     }
 
     var fvs = new HashSet<IVariable>();
-    var usesHeap = false;
+    var heapUsage = new ExprHeapUsage();
 
     if (this is WhileStmt { Guard: { } whileGuard }) {
-      FreeVariablesUtil.ComputeFreeVariables(reporter.Options, whileGuard, fvs, ref usesHeap);
+      FreeVariablesUtil.ComputeFreeVariables(reporter.Options, whileGuard, fvs, ref heapUsage);
 
     } else if (this is ForLoopStmt forS) {
       var loopIndex = forS.LoopIndex;
       fvs.Add(loopIndex);
 
-      FreeVariablesUtil.ComputeFreeVariables(reporter.Options, forS.Start, fvs, ref usesHeap);
+      FreeVariablesUtil.ComputeFreeVariables(reporter.Options, forS.Start, fvs, ref heapUsage);
       if (forS.End != null) {
-        FreeVariablesUtil.ComputeFreeVariables(reporter.Options, forS.End, fvs, ref usesHeap);
+        FreeVariablesUtil.ComputeFreeVariables(reporter.Options, forS.End, fvs, ref heapUsage);
       }
     }
 
     foreach (AttributedExpression inv in Invariants) {
-      FreeVariablesUtil.ComputeFreeVariables(reporter.Options, inv.E, fvs, ref usesHeap);
+      FreeVariablesUtil.ComputeFreeVariables(reporter.Options, inv.E, fvs, ref heapUsage);
     }
     foreach (Expression e in Decreases.Expressions!) {
-      FreeVariablesUtil.ComputeFreeVariables(reporter.Options, e, fvs, ref usesHeap);
+      FreeVariablesUtil.ComputeFreeVariables(reporter.Options, e, fvs, ref heapUsage);
     }
     if (Mod.Expressions != null) {
-      usesHeap = true;  // bearing a modifies clause counts as using the heap
+      heapUsage.UseHeap = true;  // bearing a modifies clause counts as using the heap
     }
 
     Contract.Assert(BodySurrogate == null); // .BodySurrogate is set only once
@@ -83,7 +83,7 @@ public abstract class OneBodyLoopStmt : LoopStmt {
       loopFrame.Add(forLoopStmt.LoopIndex);
     }
     loopFrame.AddRange(fvs.Where(fv => fv.IsMutable));
-    BodySurrogate = new WhileStmt.LoopBodySurrogate(loopFrame, usesHeap);
+    BodySurrogate = new WhileStmt.LoopBodySurrogate(loopFrame, heapUsage.UseHeap);
     var text = BodySurrogate.LocalLoopTargets.Comma(fv => fv.Name);
     if (BodySurrogate.UsesHeap) {
       text += text.Length == 0 ? "$Heap" : ", $Heap";

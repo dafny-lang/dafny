@@ -24,10 +24,9 @@ public partial class BoogieGenerator {
     if (!(f is ExtremePredicate) && f.CoClusterTarget == Function.CoCallClusterInvolvement.None && f.Reads.Expressions.Count == 0) {
       var FVs = new HashSet<IVariable>();
       Type usesThis = null;
-      bool dontCare0 = false, dontCare1 = false;
       var dontCareHeapAt = new HashSet<Label>();
       foreach (var e in f.Decreases.Expressions) {
-        FreeVariablesUtil.ComputeFreeVariables(options, e, FVs, ref dontCare0, ref dontCare1, dontCareHeapAt, ref usesThis, false);
+        FreeVariablesUtil.ComputeFreeVariables(options, e, FVs, ref ExprHeapUsage.DontCare, dontCareHeapAt, ref usesThis, false);
       }
 
       var allFormals = new List<Formal>();
@@ -244,8 +243,7 @@ public partial class BoogieGenerator {
     }
   }
 
-  private HeapExpressions CurrentHeapInformation(IOrigin origin, HeapReadingStatus heapReadingStatus)
-  {
+  private HeapExpressions CurrentHeapInformation(IOrigin origin, HeapReadingStatus heapReadingStatus) {
     return new HeapExpressions(
       heapReadingStatus.NeedsHeap ? new Bpl.IdentifierExpr(origin, Predef.HeapVarName, Predef.HeapType) : null,
       heapReadingStatus.NeedsReferrersHeap
@@ -316,7 +314,7 @@ public partial class BoogieGenerator {
     if (f is TwoStateFunction) {
       var prevHeapInfo = BplBoundVarHeap("$prevHeap", heapReadingStatus, out bvPrevHeap, out bvPrevReferrersHeap);
       var heapInfo = CurrentHeapInformation(f.Origin, heapReadingStatus);
-      
+
       etran = new ExpressionTranslator(this, Predef, heapInfo, prevHeapInfo, f);
     } else {
       etran = f.ReadsHeap

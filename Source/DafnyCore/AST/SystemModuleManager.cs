@@ -178,7 +178,7 @@ public class SystemModuleManager {
 
     var isNat = new SpecialField(SourceOrigin.NoToken, "IsNat", SpecialField.ID.IsNat, null, false, false, false, Type.Bool, null);
     AddMember(isNat, ValuetypeVariety.BigOrdinal);
-    
+
     var isGhost = new SpecialField(SourceOrigin.NoToken, "IsGhost", SpecialField.ID.IsGhost, null, false, false, false, Type.Bool, null);
     AddMember(isGhost, ValuetypeVariety.Field);
 

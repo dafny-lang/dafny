@@ -163,7 +163,7 @@ namespace Microsoft.Dafny {
     public static List<A> Nil<A>() {
       return [];
     }
-    
+
     public static List<A> Singleton<A>(A x) {
       return [x];
     }

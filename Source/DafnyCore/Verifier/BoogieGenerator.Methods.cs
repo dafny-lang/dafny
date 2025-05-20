@@ -64,7 +64,7 @@ namespace Microsoft.Dafny {
             fieldDeclaration = GetReadonlyField(f);
             fuelContext = oldFuelContext;
             currentModule = null;
-            if (Options.Get(CommonOptionBag.Referrers)) {
+            if (VerifyReferrers) {
               // A constant is also treated as a memory location
               fieldDeclaration = GetField(f);
               sink.AddTopLevelDeclaration(fieldDeclaration);

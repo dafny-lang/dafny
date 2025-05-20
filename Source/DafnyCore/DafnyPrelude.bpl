@@ -628,6 +628,21 @@ axiom (forall h: Heap, k: Heap :: { $HeapSucc(h,k) }
 function $HeapSuccGhost(Heap, Heap): bool;
 
 // ---------------------------------------------------------------
+// -- Referrers --------------------------------------------------
+// ---------------------------------------------------------------
+
+type ReferrersHeap = [ref]Set;
+function {:inline} readReferrers(H: ReferrersHeap, r: ref) : Set { H[r] }
+function {:inline} updateReferrers(H: ReferrersHeap, r:ref, v: Set) : ReferrersHeap { H[r := v] }
+
+var $ReferrersHeap: ReferrersHeap;
+
+// The following is used as a reference heap in places where the translation needs a heap
+// but the expression generated is really one that is (at least in a correct program)
+// independent of the ReferrersHeap.
+const $OneReferrersHeap: ReferrersHeap;
+
+// ---------------------------------------------------------------
 // -- Useful macros ----------------------------------------------
 // ---------------------------------------------------------------
 

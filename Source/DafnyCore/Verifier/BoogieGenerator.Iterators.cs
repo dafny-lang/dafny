@@ -211,7 +211,7 @@ namespace Microsoft.Dafny {
         []));
       // assume the implicit postconditions promised by MoveNext:
       // assume fresh(_new - old(_new));
-      
+
       var yeEtran = new ExpressionTranslator(this, Predef, etran.HeapExpressions, new HeapExpressions(new Bpl.IdentifierExpr(iter.Origin, "$_OldIterHeap", Predef.HeapType), null), iter);
       var old_nw = new OldExpr(iter.Origin, nw);
       old_nw.Type = nw.Type;  // resolve here

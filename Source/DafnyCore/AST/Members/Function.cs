@@ -294,8 +294,8 @@ public class Function : MethodOrFunction, TypeParameter.ParentType, ICallable, I
   public virtual bool ReadsHeap { get { return Reads.Expressions!.Count != 0; } }
 
   public virtual bool ReadsReferrersHeap => false; // Until we have referrers reads clauses
-  
-  public HeapReadingStatus HeapReadingStatus => new (ReadsHeap, ReadsReferrersHeap);
+
+  public HeapReadingStatus HeapReadingStatus => new(ReadsHeap, ReadsReferrersHeap);
 
   public static Option<string> FunctionSyntaxOption = new("--function-syntax",
     () => "4",

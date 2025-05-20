@@ -44,7 +44,7 @@ namespace Microsoft.Dafny {
         Bpl.Expr cond = BplAnd(fdim, declType);
         var ig = FunctionCall(f.Origin, BuiltinFunction.IsGhostField, ty, Bpl.Expr.Ident(fc));
         cond = BplAnd(cond, f.IsGhost ? ig : Bpl.Expr.Not(ig));
-        if (Options.Get(CommonOptionBag.Referrers)) {
+        if (VerifyReferrers) {
           // We emit the axiom that field_family(_module.Test.x) == object_field;
           // so that local fields can be determined to be different from object fields
           // (which are not visible in the current scope)

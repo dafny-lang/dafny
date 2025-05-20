@@ -220,7 +220,7 @@ namespace Microsoft.Dafny {
         var heapIdentifier = new Boogie.IdentifierExpr(Token.NoToken, heapVariableName, Predef.HeapType);
         HeapExpressions heapExpressions;
         referrersHeapVariableName = null;
-        if (BoogieGenerator.Options.Get(CommonOptionBag.Referrers)) {
+        if (BoogieGenerator.VerifyReferrers) {
           // Just replace the first "[hH]eap" by "[rR]eferrersHeap"
           referrersHeapVariableName = ToReferrersHeapName(heapVariableName);
           heapExpressions = new HeapExpressions(heapIdentifier, new Boogie.IdentifierExpr(Token.NoToken, referrersHeapVariableName, Predef.ReferrersHeapType));
@@ -2448,9 +2448,10 @@ BplBoundVar(varNameGen.FreshId(string.Format("#{0}#", bv.Name)), Predef.BoxType,
           var bvarsAndAntecedents = new List<Tuple<Boogie.Variable, Boogie.Expr>>();
           var varNameGen = BoogieGenerator.CurrentIdGenerator.NestedFreshIdGenerator("$l#");
 
-          Boogie.Expr heap; var hVar = BplBoundVar(varNameGen.FreshId("#heap#"), BoogieGenerator.Predef.HeapType, out heap);
+          HeapExpressions heap = BoogieGenerator.BplBoundVarHeap(varNameGen.FreshId("#heap#"), new HeapReadingStatus(true, this.BoogieGenerator.VerifyReferrers), out var hVar,
+            out var rHVar);
           var et = this.HeapExpr != null
-            ? new ExpressionTranslator(this.BoogieGenerator, this.Predef, heap, this.Old.HeapExpr, this.scope)
+            ? new ExpressionTranslator(this.BoogieGenerator, this.Predef, heap, this.Old.HeapExpressions, this.scope)
             : new ExpressionTranslator(this, heap);
 
           Dictionary<IVariable, Expression> subst = new Dictionary<IVariable, Expression>();
@@ -2469,7 +2470,7 @@ BplBoundVar(varNameGen.FreshId(string.Format("#{0}#", bv.Name)), Predef.BoxType,
 
           // It's important to add the heap last to "bvarsAndAntecedents", because the heap may occur in the antecedents of
           // the other variables and BplForallTrim processes the given tuples in order.
-          var goodHeap = BoogieGenerator.FunctionCall(e.Origin, BuiltinFunction.IsGoodHeap, null, heap);
+          var goodHeap = BoogieGenerator.FunctionCall(e.Origin, BuiltinFunction.IsGoodHeap, null, heap.HeapExpr);
           bvarsAndAntecedents.Add(Tuple.Create<Boogie.Variable, Boogie.Expr>(hVar, goodHeap));
 
           //TRIG (forall $l#0#heap#0: Heap, $l#0#x#0: int :: true)

@@ -633,7 +633,7 @@ function $HeapSuccGhost(Heap, Heap): bool;
 
 type ReferrersHeap = [ref]Set;
 function {:inline} readReferrers(H: ReferrersHeap, r: ref) : Set { H[r] }
-function {:inline} updateReferrers(H: ReferrersHeap, r:ref, v: Box) : ReferrersHeap { H[r := H[r := v] }
+function {:inline} updateReferrers(H: ReferrersHeap, r:ref, v: Set) : ReferrersHeap { H[r := v] }
 
 var $ReferrersHeap: ReferrersHeap;
 

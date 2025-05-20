@@ -29,6 +29,7 @@ using static Microsoft.Dafny.GenericErrors;
 namespace Microsoft.Dafny {
   public partial class BoogieGenerator {
     private DafnyOptions options;
+    public bool VerifyReferrers { get; }
     public DafnyOptions Options => options;
     public const string NameSeparator = "$$";
     public const string CallPrefix = "Call";
@@ -77,6 +78,7 @@ namespace Microsoft.Dafny {
     [NotDelayed]
     public BoogieGenerator(ErrorReporter reporter, ProofDependencyManager depManager, TranslatorFlags flags = null) {
       this.options = reporter.Options;
+      this.VerifyReferrers = Options.Get(CommonOptionBag.Referrers);
       this.flags = new TranslatorFlags(options);
       this.proofDependencies = depManager;
       this.reporter = reporter;
@@ -260,6 +262,7 @@ namespace Microsoft.Dafny {
       public readonly Bpl.Type DatatypeType;
       public readonly Bpl.Type HandleType;
       public readonly Bpl.Type LayerType;
+      public readonly Bpl.Type FieldType;
       public readonly Bpl.Type DtCtorId;
       public readonly Bpl.Type Ty;
       public readonly Bpl.Type TyTag;
@@ -417,6 +420,7 @@ namespace Microsoft.Dafny {
         this.HeapVarName = heap.Name;
         this.ReferrersHeapType = referrersHeap.TypedIdent.Type;
         this.ReferrersHeapVarName = referrersHeap.Name;
+        this.FieldType = new Bpl.CtorType(Token.NoToken, fieldNameType, []);
         this.Ty = new Bpl.CtorType(Token.NoToken, tyType, []);
         this.TyTag = new Bpl.CtorType(Token.NoToken, tyTagType, []);
         this.TyTagFamily = new Bpl.CtorType(Token.NoToken, tyTagFamilyType, []);
@@ -654,6 +658,8 @@ namespace Microsoft.Dafny {
         options.OutputWriter.WriteLine("Error: Dafny prelude is missing declaration of type Box");
       } else if (heap == null) {
         options.OutputWriter.WriteLine("Error: Dafny prelude is missing declaration of $Heap");
+      } else if (referrersHeap == null) {
+        options.OutputWriter.WriteLine("Error: Dafny prelude is missing declaration of $ReferrersHeap");
       } else if (allocField == null) {
         options.OutputWriter.WriteLine("Error: Dafny prelude is missing declaration of constant alloc");
       } else if (tuple2TypeConstructor == null) {
@@ -1829,13 +1835,18 @@ namespace Microsoft.Dafny {
       return ie;
     }
 
-    Bpl.IdentifierExpr GetPrevHeapVar_IdExpr(IOrigin tok, Variables locals)  // local variable that's shared between statements that need it
+    HeapExpressions GetPrevHeapVar_IdExpr(IOrigin tok, HeapReadingStatus heapReadingStatus, Variables locals)  // local variable that's shared between statements that need it
     {
       Contract.Requires(tok != null);
       Contract.Requires(locals != null); Contract.Requires(Predef != null);
       Contract.Ensures(Contract.Result<Bpl.IdentifierExpr>() != null);
 
-      return GetTmpVar_IdExpr(tok, "$prevHeap", Predef.HeapType, locals);
+      var prevHeap = GetTmpVar_IdExpr(tok, "$prevHeap", Predef.HeapType, locals);
+      Bpl.Expr prevReferrersHeap = null;
+      if (heapReadingStatus.NeedsReferrersHeap) {
+        prevReferrersHeap = GetTmpVar_IdExpr(tok, "$prevReferrersHeap", Predef.ReferrersHeapType, locals);
+      }
+      return new HeapExpressions(prevHeap, prevReferrersHeap);
     }
 
     Bpl.IdentifierExpr GetNewVar_IdExpr(IOrigin tok, Variables locals)  // local variable that's shared between statements that need it
@@ -3247,6 +3258,8 @@ namespace Microsoft.Dafny {
         return ((MapType)type).Finite ? Predef.MapType : Predef.IMapType;
       } else if (type is SeqType) {
         return Predef.SeqType;
+      } else if (type is FieldType or UserDefinedType { ResolvedClass: ValuetypeDecl { Name: "field" } }) {
+        return Predef.FieldType;
       } else {
         Contract.Assert(false); throw new cce.UnreachableException();  // unexpected type
       }
@@ -4669,7 +4682,7 @@ namespace Microsoft.Dafny {
       if (useHeapAsQuantifier) {
         var heapExpr = BplBoundVar(CurrentIdGenerator.FreshId("tr$heap#"), Predef.HeapType, bvars);
         var referrersHeapExpr = Options.Get(CommonOptionBag.Referrers) ? BplBoundVar(CurrentIdGenerator.FreshId("tr$referrersHeap#"), Predef.ReferrersHeapType, bvars) : heapExpr;
-        
+
         argsEtran = new ExpressionTranslator(argsEtran, new HeapExpressions(heapExpr, referrersHeapExpr));
       }
 
@@ -4760,19 +4773,21 @@ namespace Microsoft.Dafny {
       if (visitor.foundHeap) {
         return true;
       }
-      bool usesHeap = false, usesOldHeap = false;
+
+      var exprHeapUsage = new ExprHeapUsage();
       var FVsHeapAt = new HashSet<Label>();
       Type usesThis = null;
-      FreeVariablesUtil.ComputeFreeVariables(options, expr, new HashSet<IVariable>(), ref usesHeap, ref usesOldHeap, FVsHeapAt, ref usesThis, false);
-      return usesHeap || usesOldHeap || FVsHeapAt.Count != 0;
+      FreeVariablesUtil.ComputeFreeVariables(options, expr, new HashSet<IVariable>(), ref exprHeapUsage, FVsHeapAt, ref usesThis, false);
+      return exprHeapUsage.UseHeap || exprHeapUsage.UseOldHeap || FVsHeapAt.Count != 0;
     }
 
     public bool UsesReferrersHeap(Expression expr) {
-      var foundReferrersHeap = false;
-      expr.Visit((INode toVisit) => !foundReferrersHeap, (INode visited) => {
-        foundReferrersHeap = foundReferrersHeap || visited is UnaryOpExpr { Op: UnaryOpExpr.Opcode.Referrers };
-      }, null);
-      return foundReferrersHeap;
+
+      var exprHeapUsage = new ExprHeapUsage();
+      var FVsHeapAt = new HashSet<Label>();
+      Type usesThis = null;
+      FreeVariablesUtil.ComputeFreeVariables(options, expr, new HashSet<IVariable>(), ref exprHeapUsage, FVsHeapAt, ref usesThis, false);
+      return exprHeapUsage.UseReferrersHeap || FVsHeapAt.Count != 0;
     }
 
     class UsesHeapVisitor : BottomUpVisitor {

@@ -178,10 +178,8 @@ public partial class BoogieGenerator {
     var suffix = CurrentIdGenerator.FreshId("loop#");
 
     var theDecreases = loop.Decreases.Expressions;
-
     var preloopheap = "$PreLoopHeap$" + suffix;
-    var preLoopHeapVar = locals.GetOrCreate(preloopheap, () => new Bpl.LocalVariable(loop.Origin, new Bpl.TypedIdent(loop.Origin, preloopheap, Predef.HeapType)));
-    Bpl.IdentifierExpr preLoopHeap = new Bpl.IdentifierExpr(loop.Origin, preLoopHeapVar);
+    var preLoopHeap = BplLocalVarHeap(loop.Origin, preloopheap, new HeapReadingStatus(true, VerifyReferrers), locals);
     ExpressionTranslator etranPreLoop = new ExpressionTranslator(this, Predef, preLoopHeap, etran.scope);
     ExpressionTranslator updatedFrameEtran;
     string loopFrameName = FrameVariablePrefix + suffix;
@@ -197,7 +195,7 @@ public partial class BoogieGenerator {
       CheckFrameSubset(loop.Origin, loop.Mod.Expressions, null, null, etran, etran.ModifiesFrame(loop.Origin), builder, desc, null);
       DefineFrame(loop.Origin, etran.ModifiesFrame(loop.Origin), loop.Mod.Expressions, builder, locals, loopFrameName);
     }
-    builder.Add(Bpl.Cmd.SimpleAssign(loop.Origin, preLoopHeap, etran.HeapExpr));
+    builder.Add(Bpl.Cmd.SimpleAssign(loop.Origin, (Bpl.IdentifierExpr)preLoopHeap.HeapExpr, etran.HeapExpr));
 
     var assignedVariables = loop.DescendantsAndSelf.
       SelectMany(s => s.GetAssignedLocals()).Select(ie => ie.Var)
