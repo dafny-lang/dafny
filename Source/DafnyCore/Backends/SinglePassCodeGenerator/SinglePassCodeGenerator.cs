@@ -1530,8 +1530,7 @@ namespace Microsoft.Dafny.Compilers {
 
       EmitHeader(program, wrx);
       EmitBuiltInDecls(program.SystemModuleManager, wrx);
-      var temp = new List<ModuleDefinition>();
-      OrganizeModules(program, out temp);
+      OrganizeModules(program, out var temp);
       foreach (var m in temp) {
         EmitModule(program, wrx, m);
       }
@@ -1799,6 +1798,11 @@ namespace Microsoft.Dafny.Compilers {
       public void Finish() { }
     }
 
+    protected string FilterRuntimeSourcePathEmission(string path) {
+      return path.IndexOf("Externs", StringComparison.Ordinal) is var i and >= 0
+        ? path[(i + 1 + "Externs".Length)..] : path;
+    }
+
     protected void EmitRuntimeSource(String root, ConcreteSyntaxTree wr, bool useFiles = true) {
       var assembly = System.Reflection.Assembly.Load("DafnyPipeline");
       var files = assembly.GetManifestResourceNames();
@@ -1807,7 +1811,7 @@ namespace Microsoft.Dafny.Compilers {
       String header = $"DafnyPipeline.{root}";
       foreach (var file in files.Where(f => f.StartsWith(header))) {
         var parts = file.Split('.');
-        var realName = string.Join('/', parts.SkipLast(1).Skip(2)) + "." + parts.Last();
+        var realName = FilterRuntimeSourcePathEmission(string.Join('/', parts.SkipLast(1).Skip(2)) + "." + parts.Last());
         ImportRuntimeTo(file, useFiles ? wr.NewFile(realName) : wr);
       }
     }
@@ -1828,7 +1832,7 @@ namespace Microsoft.Dafny.Compilers {
 
     public static void WriteFromStream(StreamReader rd, TextWriter outputWriter) {
       while (true) {
-        string s = rd.ReadLine();
+        var s = rd.ReadLine();
         if (s == null) {
           return;
         }
