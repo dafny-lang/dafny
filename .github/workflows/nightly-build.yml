@@ -23,11 +23,11 @@ on:
   workflow_dispatch:
 
 jobs:
-  nightly-build-for-master:
+  nightly-build-for-4-11-0:
     if: github.repository_owner == 'dafny-lang'
     uses: ./.github/workflows/nightly-build-reusable.yml
     with:
-      ref: master
+      ref: 4.11.0
       publish-prerelease: true
     secrets:
       nuget_api_key: ${{ secrets.NUGET_API_KEY }}
