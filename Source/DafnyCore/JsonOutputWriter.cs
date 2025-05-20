@@ -1,18 +1,53 @@
-﻿#nullable enable
-
+#nullable enable
 using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text.Json;
 using System.Text.Json.Nodes;
+using System.Threading.Tasks;
 using DafnyCore;
 using VCGeneration;
 
 namespace Microsoft.Dafny;
 
-record DiagnosticMessageData(MessageSource source, ErrorLevel level, TokenRange Range, string? category, string message,
-  IReadOnlyList<DafnyRelatedInformation> related) {
+class JsonOutputWriter(DafnyOptions options) : IDafnyOutputWriter {
+
+  public void Debug(string message) {
+    throw new System.NotImplementedException();
+  }
+
+  public void Exception(string message) {
+    throw new System.NotImplementedException();
+  }
+
+  public Task Status(string message) {
+    throw new System.NotImplementedException();
+  }
+
+  public TextWriter StatusWriter() {
+    throw new System.NotImplementedException();
+  }
+
+  public TextWriter ErrorWriter() {
+    throw new NotImplementedException();
+  }
+
+  public void WriteDiagnostic(DafnyDiagnostic dafnyDiagnostic) {
+
+    var data = new DiagnosticMessageData(dafnyDiagnostic.Source, dafnyDiagnostic.Level, dafnyDiagnostic.Range,
+      dafnyDiagnostic.Level == ErrorLevel.Error ? "Error" : null, dafnyDiagnostic.Message,
+      dafnyDiagnostic.RelatedInformation);
+    data.WriteJsonTo(options, options.BaseOutputWriter);
+  }
+
+  public Task Error(string message) {
+    throw new NotImplementedException();
+  }
+}
+
+record DiagnosticMessageData(MessageSource Source, ErrorLevel Level, TokenRange Range, string? Category, string Message,
+  IReadOnlyList<DafnyRelatedInformation> Related) {
   private static JsonObject SerializePosition(Boogie.IToken tok, bool includeLength) {
     var addition = includeLength ? tok.val.Length : 0;
     return new JsonObject {
@@ -59,13 +94,13 @@ record DiagnosticMessageData(MessageSource source, ErrorLevel level, TokenRange 
   }
 
   public JsonNode ToJson(DafnyOptions options) {
-    var auxRelated = related.Select<DafnyRelatedInformation, JsonNode>(aux =>
+    var auxRelated = Related.Select<DafnyRelatedInformation, JsonNode>(aux =>
       SerializeRelated(options, aux.Range, aux.Message));
     return new JsonObject {
       ["location"] = SerializeToken(options, Range),
-      ["severity"] = SerializeErrorLevel(level),
-      ["message"] = SerializeMessage(category, message),
-      ["source"] = source.ToString(),
+      ["severity"] = SerializeErrorLevel(Level),
+      ["message"] = SerializeMessage(Category, Message),
+      ["source"] = Source.ToString(),
       ["relatedInformation"] = new JsonArray(auxRelated.ToArray())
     };
   }
@@ -93,20 +128,5 @@ public class DafnyJsonConsolePrinter(DafnyOptions options) : DafnyConsolePrinter
     new DiagnosticMessageData(MessageSource.Verifier, ErrorLevel.Error,
       dafnyToken.ReportingRange, errorInfo.Category, errorInfo.Msg, related).WriteJsonTo(Options, tw);
     tw.Flush();
-  }
-}
-
-public class JsonConsoleErrorReporter(DafnyOptions options) : BatchErrorReporter(options) {
-  public override bool MessageCore(DafnyDiagnostic dafnyDiagnostic) {
-    if (!base.MessageCore(dafnyDiagnostic) ||
-        (Options is not { PrintTooltips: true } && dafnyDiagnostic.Level == ErrorLevel.Info)) {
-      return false;
-    }
-
-    var data = new DiagnosticMessageData(dafnyDiagnostic.Source, dafnyDiagnostic.Level, dafnyDiagnostic.Range,
-      dafnyDiagnostic.Level == ErrorLevel.Error ? "Error" : null, dafnyDiagnostic.Message,
-      dafnyDiagnostic.RelatedInformation);
-    data.WriteJsonTo(Options, Options.OutputWriter);
-    return true;
   }
 }

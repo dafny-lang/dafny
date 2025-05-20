@@ -135,7 +135,7 @@ public abstract class IExecutableBackend {
   /// <summary>
   /// Perform any required processing after generating code with <c>Compile</c> and <c>EmitCallToMain</c>.
   /// </summary>
-  public abstract Task<bool> OnPostGenerate(string dafnyProgramName, string targetDirectory, TextWriter outputWriter);
+  public abstract Task<bool> OnPostGenerate(string dafnyProgramName, string targetDirectory, IDafnyOutputWriter outputWriter);
 
   /// <summary>
   /// Remove previously generated source files.  This is only applicable to compilers that put sources in a separate
@@ -171,7 +171,7 @@ public abstract class IExecutableBackend {
   public abstract Task<(bool Success, object CompilationResult)> CompileTargetProgram(string dafnyProgramName,
     string targetProgramText, string callToMain,
     string targetFilename,
-    ReadOnlyCollection<string> otherFileNames, bool runAfterCompile, TextWriter outputWriter);
+    ReadOnlyCollection<string> otherFileNames, bool runAfterCompile, IDafnyOutputWriter outputWriter);
 
   /// <summary>
   /// Runs a target program after it has been successfully compiled.
@@ -183,8 +183,8 @@ public abstract class IExecutableBackend {
   /// </summary>
   public abstract Task<bool> RunTargetProgram(string dafnyProgramName, string targetProgramText, string callToMain,
     string pathsFilename,
-    ReadOnlyCollection<string> otherFileNames, object compilationResult, TextWriter outputWriter,
-    TextWriter errorWriter);
+    ReadOnlyCollection<string> otherFileNames, object compilationResult,
+    IDafnyOutputWriter outputWriter);
 
   /// <summary>
   /// Instruments the underlying SinglePassCompiler, if it exists.

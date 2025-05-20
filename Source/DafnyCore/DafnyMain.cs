@@ -33,12 +33,9 @@ namespace Microsoft.Dafny {
         return;
       }
 
-      var tw = filename == "-" ? program.Options.OutputWriter : new StreamWriter(filename);
+      using var tw = filename == "-" ? program.Options.OutputWriter.StatusWriter() : new StreamWriter(filename);
       var pr = new Printer(tw, program.Options, program.Options.PrintMode);
       pr.PrintProgramLargeStack(program, afterResolver);
-      if (filename != "-") {
-        tw.Dispose();
-      }
     }
 
     /// <summary>
@@ -62,12 +59,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(programName != null);
       Contract.Requires(files != null);
 
-      ErrorReporter reporter = options.DiagnosticsFormat switch {
-        DafnyOptions.DiagnosticsFormats.PlainText => new ConsoleErrorReporter(options),
-        DafnyOptions.DiagnosticsFormats.JSON => new JsonConsoleErrorReporter(options),
-        _ => throw new ArgumentOutOfRangeException()
-      };
-
+      var reporter = new ConsoleErrorReporter(options);
       var parseResult = await new ProgramParser(NullLogger<ProgramParser>.Instance, OnDiskFileSystem.Instance).
         ParseFiles(programName, files, reporter, CancellationToken.None);
       var program = parseResult.Program;
@@ -168,10 +160,8 @@ namespace Microsoft.Dafny {
         case PipelineOutcome.ResolutionError:
         case PipelineOutcome.TypeCheckingError:
           engine.PrintBplFile(bplFileName, program, false, false, options.PrettyPrint);
-          await options.OutputWriter.WriteLineAsync();
-          await options.OutputWriter.WriteLineAsync(
+          options.OutputWriter.Exception(
             "*** Encountered internal translation error - re-running Boogie to get better debug information");
-          await options.OutputWriter.WriteLineAsync();
 
           var /*!*/
             fileNames = new List<string /*!*/> { bplFileName };

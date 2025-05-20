@@ -9,7 +9,10 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Diagnostics.Contracts;
+using System.IO;
+using System.Text;
 using JetBrains.Annotations;
+using Microsoft.Extensions.Primitives;
 
 namespace Microsoft.Dafny {
   /// <summary>
@@ -209,40 +212,38 @@ namespace Microsoft.Dafny {
       if (!options.Get(CommonOptionBag.NewTypeInferenceDebug)) {
         return;
       }
-      options.OutputWriter.WriteLine("*** Type inference state ***{0}", header == null ? "" : $" {header} ");
-      PrintList("Subtype constraints", unnormalizedSubtypeConstraints, stc => {
-        return $"{stc.Super} :> {stc.Sub}";
-      });
-      PrintList("Equality constraints", equalityConstraints, eqc => {
-        return $"{eqc.A} == {eqc.B}";
-      });
-      options.OutputWriter.WriteLine($"    Guarded constraints: {guardedConstraints.Count}");
-      PrintList("Default-type advice", defaultAdvice, advice => {
-        return $"{advice.PreType} ~-~-> {advice.WhatString}";
-      });
-      PrintList("Post-inference confirmations", confirmations, confirmationInfo => {
-        return confirmationInfo.DebugInformation();
-      });
+
+      var stringWriter = new StringWriter();
+      stringWriter.WriteLine($"*** Type inference state ***{(header == null ? "" : $" {header} ")}");
+      PrintList(stringWriter, "Subtype constraints", unnormalizedSubtypeConstraints,
+        stc => $"{stc.Super} :> {stc.Sub}");
+      PrintList(stringWriter, "Equality constraints", equalityConstraints, eqc => $"{eqc.A} == {eqc.B}");
+      stringWriter.WriteLine($"    Guarded constraints: {guardedConstraints.Count}");
+      PrintList(stringWriter, "Default-type advice", defaultAdvice, advice => $"{advice.PreType} ~-~-> {advice.WhatString}");
+      PrintList(stringWriter, "Post-inference confirmations", confirmations, confirmationInfo => confirmationInfo.DebugInformation());
+      options.OutputWriter.Debug(stringWriter.ToString());
     }
 
     void PrintLegend() {
-      PrintList("Legend", PreTypeResolver.allPreTypeProxies, pair => {
+      var sw = new StringWriter();
+      PrintList(sw, "Legend", PreTypeResolver.allPreTypeProxies, pair => {
         var s = Pad($"?{pair.Item1.UniqueId}", 4) + pair.Item1;
         return pair.Item2 == null ? s : $"{Pad(s, 20)}  {pair.Item2}";
       });
+      options.OutputWriter.Debug(sw.ToString());
     }
 
-    void PrintList<T>(string rubric, IEnumerable<T> list, Func<T, string> formatter) {
+    void PrintList<T>(TextWriter writer, string rubric, IEnumerable<T> list, Func<T, string> formatter) {
       if (!options.Get(CommonOptionBag.NewTypeInferenceDebug)) {
         return;
       }
-      options.OutputWriter.WriteLine($"    {rubric}:");
+      writer.WriteLine($"    {rubric}:");
       foreach (var t in list) {
         var info = $"        {formatter(t)}";
         if (t is PreTypeConstraint preTypeConstraint) {
           info = $"{Pad(info, 30)}  {TokToShortLocation(preTypeConstraint.tok)}: {preTypeConstraint.ErrorMessage()}";
         }
-        options.OutputWriter.WriteLine(info);
+        writer.WriteLine(info);
       }
     }
 
@@ -880,11 +881,10 @@ namespace Microsoft.Dafny {
       return s + new string(' ', Math.Max(minWidth - s.Length, 0));
     }
 
-    public void DebugPrint(string format, params object[] args) {
+    public void DebugPrint(string message) {
       if (options.Get(CommonOptionBag.NewTypeInferenceDebug)) {
-        options.OutputWriter.WriteLine(format, args);
+        options.OutputWriter.Debug(message);
       }
     }
-
   }
 }

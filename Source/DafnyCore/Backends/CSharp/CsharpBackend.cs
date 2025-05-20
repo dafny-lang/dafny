@@ -35,7 +35,7 @@ public class CsharpBackend : ExecutableBackend {
   public override async Task<(bool Success, object CompilationResult)> CompileTargetProgram(string dafnyProgramName,
     string targetProgramText,
     string callToMain /*?*/, string targetFilename /*?*/, ReadOnlyCollection<string> otherFileNames,
-    bool runAfterCompile, TextWriter outputWriter) {
+    bool runAfterCompile, IDafnyOutputWriter outputWriter) {
 
     var outputDir = targetFilename == null ? Directory.GetCurrentDirectory() : Path.GetDirectoryName(Path.GetFullPath(targetFilename));
     var fileNames = Path.GetFileNameWithoutExtension(Path.GetFileName(dafnyProgramName));
@@ -69,7 +69,7 @@ public class CsharpBackend : ExecutableBackend {
         if (File.Exists(normalizedPath)) {
           sourceFiles.AppendLine(@$"<Compile Include=""{normalizedPath}"" />");
         } else {
-          await outputWriter.WriteLineAsync($"Errors compiling program: Could not find {file}");
+          await outputWriter.Status($"Errors compiling program: Could not find {file}");
           return (false, null);
         }
       } else if (extension == ".dll") {
@@ -110,23 +110,23 @@ public class CsharpBackend : ExecutableBackend {
     var psi = PrepareProcessStartInfo("dotnet", arguments);
     var dotnetOutputWriter = new StringWriter();
     var dotnetErrorWriter = new StringWriter();
-    var exitCode = await RunProcess(psi, dotnetOutputWriter, dotnetErrorWriter);
+    var exitCode = await RunProcess(psi, outputWriter);
     var dllPath = Path.Combine(outputDir, fileNames + ".dll");
     if (exitCode != 0 || !File.Exists(dllPath)) {
-      await outputWriter.WriteLineAsync($@"Failed to compile C# source code using 'dotnet {string.Join(" ", arguments)}'. Command output was:");
-      await outputWriter.WriteAsync(dotnetOutputWriter.ToString());
-      await outputWriter.WriteAsync(dotnetErrorWriter.ToString());
+      await outputWriter.Status($@"Failed to compile C# source code using 'dotnet {string.Join(" ", arguments)}'. Command output was:" +
+                                dotnetOutputWriter.ToString() + dotnetErrorWriter.ToString());
     } else {
       if (Options.Verbose) {
-        await outputWriter.WriteLineAsync($"Compiled assembly into {Path.GetFileName(dllPath)}");
+        await outputWriter.Status($"Compiled assembly into {Path.GetFileName(dllPath)}");
       }
     }
     return (exitCode == 0, dllPath);
   }
 
-  public override async Task<bool> RunTargetProgram(string dafnyProgramName, string targetProgramText, string callToMain,
+  public override async Task<bool> RunTargetProgram(string dafnyProgramName, string targetProgramText,
+    string callToMain,
     string targetFilename /*?*/, ReadOnlyCollection<string> otherFileNames,
-    object compilationResult, TextWriter outputWriter, TextWriter errorWriter) {
+    object compilationResult, IDafnyOutputWriter outputWriter) {
 
     var dllPath = (string)compilationResult;
     var dllFolder = Path.GetDirectoryName(dllPath)!;
@@ -141,7 +141,7 @@ public class CsharpBackend : ExecutableBackend {
     }
 
     var psi = PrepareProcessStartInfo("dotnet", new[] { dllPath }.Concat(Options.MainArgs));
-    return await RunProcess(psi, outputWriter, errorWriter) == 0;
+    return await RunProcess(psi, outputWriter) == 0;
   }
 
   public override void PopulateCoverageReport(CoverageReport coverageReport) {

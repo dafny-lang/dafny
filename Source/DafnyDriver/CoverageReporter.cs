@@ -49,11 +49,7 @@ public class CoverageReporter {
     });
   }
   public CoverageReporter(DafnyOptions options) {
-    reporter = options.DiagnosticsFormat switch {
-      DafnyOptions.DiagnosticsFormats.PlainText => new ConsoleErrorReporter(options),
-      DafnyOptions.DiagnosticsFormats.JSON => new JsonConsoleErrorReporter(options),
-      _ => throw new ArgumentOutOfRangeException()
-    };
+    reporter = new ConsoleErrorReporter(options);
     this.options = options;
   }
 

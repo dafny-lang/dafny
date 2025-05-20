@@ -13,6 +13,7 @@ using System.Linq;
 using System.IO;
 using System.Reflection;
 using System.Text.RegularExpressions;
+using System.Threading.Tasks;
 using JetBrains.Annotations;
 using Microsoft.Dafny;
 using Microsoft.Dafny.Compilers;
@@ -34,9 +35,40 @@ namespace Microsoft.Dafny {
     Version4,
   }
 
+  public interface IDafnyOutputWriter {
+    void Debug(string message);
+
+    [StringFormatMethod(nameof(message))]
+    void Debug(string message, params object[] arguments) {
+      Debug(string.Format(message, arguments));
+    }
+
+    void Exception(string message);
+    Task Status(string message);
+
+
+    /// <summary>
+    /// Closing the writer will print a status message
+    /// </summary>
+    TextWriter StatusWriter();
+
+    TextWriter ErrorWriter();
+
+    void WriteDiagnostic(DafnyDiagnostic diagnostic);
+    Task Error(string message);
+  }
+
   public record Options(Dictionary<Option, object> OptionArguments, Dictionary<Argument, object> Arguments);
 
   public class DafnyOptions : Bpl.CommandLineOptions {
+
+    public TextWriter BaseOutputWriter => base.OutputWriter;
+    public new IDafnyOutputWriter OutputWriter =>
+      DiagnosticsFormat switch {
+        DiagnosticsFormats.PlainText => new HumanReadableOutputWriter(this),
+        DiagnosticsFormats.JSON => new JsonOutputWriter(this),
+        _ => throw new ArgumentOutOfRangeException()
+      };
 
     public string GetPrintPath(string path) => UseBaseNameForFileName ? Path.GetFileName(path) : path;
     public TextWriter ErrorWriter { get; set; }
@@ -452,7 +484,7 @@ namespace Microsoft.Dafny {
     /// Automatic shallow-copy constructor
     /// </summary>
     public DafnyOptions(DafnyOptions src, bool useNullWriters = false) : this(
-      src.Input, src.OutputWriter, src.ErrorWriter) {
+      src.Input, src.BaseOutputWriter, src.ErrorWriter) {
       src.CopyTo(this, useNullWriters);
       CliRootSourceUris = new List<Uri>(src.CliRootSourceUris);
       ProverOptions = [.. src.ProverOptions];
