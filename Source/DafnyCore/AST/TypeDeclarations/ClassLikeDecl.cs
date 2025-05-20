@@ -1,10 +1,11 @@
+using System;
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 using System.Linq;
 
 namespace Microsoft.Dafny;
 
-public abstract class ClassLikeDecl : TopLevelDeclWithMembers, RevealableTypeDecl, ICanFormat, IHasDocstring {
+public abstract class ClassLikeDecl : TopLevelDeclWithMembers, RevealableTypeDecl, ICanFormat, IHasDocstring, ICodeContext {
   public NonNullTypeDecl NonNullTypeDecl; // returns non-null value iff IsReferenceTypeDecl
 
   public override bool CanBeRevealed() { return true; }
@@ -103,4 +104,17 @@ public abstract class ClassLikeDecl : TopLevelDeclWithMembers, RevealableTypeDec
   }
 
   public override string ReferenceName => base.ReferenceName + (IsReferenceTypeDecl ? "?" : "");
+  
+  // NB: largely copied from DatatypeDecl
+  public ModuleDefinition EnclosingModule => EnclosingModuleDefinition;
+  bool ICodeContext.ContainsHide {
+    get => throw new NotSupportedException();
+    set => throw new NotSupportedException();
+  }
+  bool ICodeContext.IsGhost => true;
+  List<TypeParameter> ICodeContext.TypeArgs => TypeArgs;
+  List<Formal> ICodeContext.Ins => []; // TODO is this where field formals come in
+  bool ICodeContext.MustReverify => false;
+  bool ICodeContext.AllowsNontermination => false;
+  CodeGenIdGenerator ICodeContext.CodeGenIdGenerator => CodeGenIdGenerator;
 }

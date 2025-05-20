@@ -1012,6 +1012,8 @@ namespace Microsoft.Dafny {
           ResolveParameterDefaultValues(ctor.Formals, dt);
           scope.PopMarker();
         }
+      } else if (d is ClassLikeDecl clt) {
+        ResolveClassLikeDecl(clt);
       }
     }
 
@@ -1232,6 +1234,15 @@ namespace Microsoft.Dafny {
 
       } else {
         Contract.Assert(false); throw new cce.UnreachableException();  // unexpected member type
+      }
+    }
+
+    void ResolveClassLikeDecl(ClassLikeDecl classLikeDecl) {
+      Contract.Requires(classLikeDecl != null);
+      foreach (AttributedExpression invariant in classLikeDecl.Invariants) {
+        ResolveAttributes(invariant, new ResolutionContext(classLikeDecl, false), false);
+        ResolveExpression(invariant.E, new ResolutionContext(classLikeDecl, false));
+        ConstrainTypeExprBool(invariant.E, "Invariant must be a boolean (got {0})");
       }
     }
 
