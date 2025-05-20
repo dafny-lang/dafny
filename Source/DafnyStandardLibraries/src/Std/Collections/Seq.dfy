@@ -1186,4 +1186,86 @@ module Std.Collections.Seq {
       }
     }
   }
+
+  /**********************************************************
+   *
+   *  Slices
+   *  Optimization on sequences when there is a lot of slicing
+   *
+   ***********************************************************/
+
+  datatype Slice<T> = Slice(data: seq<T>, start: int, end: int) {
+    /* Checks if the slice indices are valid for the underlying data sequence. */
+    ghost predicate Valid() {
+      0 <= start <= end <= |data|
+    }
+
+    /* Returns the slice as a sequence. */
+    function View(): seq<T>
+      requires Valid()
+    {
+      data[start..end]
+    }
+
+    /* Returns the length of the slice. */
+    function Length(): nat
+      requires Valid()
+    {
+      end - start
+    }
+
+    /* Returns the element at the specified index within the slice. */
+    function At(i: int): (result: T)
+      requires Valid()
+      requires 0 <= i < Length()
+      ensures result == View()[i]
+    {
+      data[start + i]
+    }
+
+    /* Returns a new slice that drops elements from the beginning of this slice. */
+    function Drop(firstIncludedIndex: int): (result: Slice<T>)
+      requires Valid()
+      requires 0 <= firstIncludedIndex <= Length()
+      ensures result.Valid()
+      ensures result.View() == View()[firstIncludedIndex..]
+    {
+      Slice(data, start + firstIncludedIndex, end)
+    }
+
+    /* Returns a sub-slice from this slice using the specified range. */
+    function Sub(firstIncludedIndex: int, lastExcludedIndex: int): (result: Slice<T>)
+      requires Valid()
+      requires 0 <= firstIncludedIndex <= lastExcludedIndex <= Length()
+      ensures result.Valid()
+      ensures result.View() == View()[firstIncludedIndex..lastExcludedIndex]
+    {
+      PrefixRestrict(firstIncludedIndex, lastExcludedIndex);
+      Slice(data, start + firstIncludedIndex, start + lastExcludedIndex)
+    }
+
+    /* Proves that slicing a prefix of data is equivalent to slicing the full data within the same range. */
+    lemma PrefixRestrict(firstIncludedIndex: int, lastExcludedIndex: int)
+      requires Valid()
+      requires 0 <= firstIncludedIndex <= lastExcludedIndex <= Length()
+      decreases |data| - end
+      ensures data[start..][firstIncludedIndex..lastExcludedIndex] == data[start..end][firstIncludedIndex..lastExcludedIndex]
+    {
+      if end == |data| {
+        assert data[start..end] == data[start..];
+      } else {
+        var before := data[start .. end][firstIncludedIndex .. lastExcludedIndex];
+        var after := data[start .. end + 1][firstIncludedIndex .. lastExcludedIndex];
+        calc {
+          data[start .. end][firstIncludedIndex .. lastExcludedIndex];
+          {
+            assert |before| == |after|;
+            assert forall i | 0 <= i < |before| :: before[i] == after[i];
+          }
+          data[start .. end + 1][firstIncludedIndex .. lastExcludedIndex];
+        }
+        Slice(data, start, end+1).PrefixRestrict(firstIncludedIndex, lastExcludedIndex);
+      }
+    }
+  }
 }
