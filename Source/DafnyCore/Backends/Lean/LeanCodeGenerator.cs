@@ -60,7 +60,11 @@ public class LeanCodeGenerator(DafnyOptions options, ErrorReporter reporter) : S
     if (dt.Ctors.Count > 1)
     {
       // Inductive
-      Contract.Assert(dt.Members.Count == 0);
+      Contract.Assert(dt.Members.Count == 0); // This is to make sure that the inductive datatype has no function members
+      wr.WriteLine($"inductive {dt.GetCompileName(Options)} where");
+      foreach (var ctor in dt.Ctors) {
+        wr.WriteLine($"| {ctor.GetCompileName(options)} {string.Join(" ", ctor.Formals.Select(formal => $"({formal.CompileName} : {TypeName(formal.Type, wr, formal.StartToken)})"))}");
+      }
     }
     else
     {
@@ -78,6 +82,7 @@ public class LeanCodeGenerator(DafnyOptions options, ErrorReporter reporter) : S
           case Function f:
             // TODO Handle the member functions
             // wr.WriteLine($"def {structName}.{f.GetCompileName(options)}()");
+            EmitExpr(f.Body, false, wr, null);
             break;
           default:
             // Constant member of some kind
@@ -115,27 +120,17 @@ public class LeanCodeGenerator(DafnyOptions options, ErrorReporter reporter) : S
 
   internal override string TypeName(Type type, ConcreteSyntaxTree wr, IOrigin tok, MemberDecl member = null) =>
     type switch {
-      ArrowType arrowType => throw new NotImplementedException(),
       BoolType => "Bool",
-      CharType charType => throw new NotImplementedException(),
-      IntType intType => throw new NotImplementedException(),
-      BasicType basicType => throw new NotImplementedException(),
-      BottomTypePlaceholder bottomTypePlaceholder => throw new NotImplementedException(),
-      MapType mapType => throw new NotImplementedException(),
+      CharType => "Char",
+      IntType => "Int",
+      MapType { Domain: var domain, Range: var range } =>
+        $"{TypeName(domain, wr, tok, member)} -> {TypeName(range, wr, tok, member)}",
       MultiSetType multiSetType => throw new NotImplementedException(),
       SeqType { Arg: var argType } => $"List ({TypeName(argType, wr, tok, member)})",
-      SetType setType => throw new NotImplementedException(),
-      CollectionType collectionType => throw new NotImplementedException(),
-      InferredTypeProxy inferredTypeProxy => throw new NotImplementedException(),
-      SelfType selfType => throw new NotImplementedException(),
+      SetType { Arg: var argType } => $"List ({TypeName(argType, wr, tok, member)})",
       UserDefinedType { Name: "nat" } => "Nat",
-      NonProxyType nonProxyType => throw new NotImplementedException(),
-      ParamTypeProxy paramTypeProxy => throw new NotImplementedException(),
-      ResolverIdentifierExpr.ResolverTypeModule resolverTypeModule => throw new NotImplementedException(),
-      ResolverIdentifierExpr.ResolverTypeType resolverTypeType => throw new NotImplementedException(),
-      ResolverIdentifierExpr.ResolverType resolverType => throw new NotImplementedException(),
-      TypeRefinementWrapper typeRefinementWrapper => throw new NotImplementedException(),
-      TypeProxy typeProxy => throw new NotImplementedException(),
+      UserDefinedType { Name: "_tuple#0" } => "Unit",
+      UserDefinedType { Name: var name } => name,
       _ => throw new ArgumentOutOfRangeException(nameof(type))
     };
 
