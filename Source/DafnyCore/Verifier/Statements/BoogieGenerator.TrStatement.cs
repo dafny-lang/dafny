@@ -895,9 +895,10 @@ public partial class BoogieGenerator {
       if (processLabels) {
         if (ss is LabeledStatement labelledStatement) {
           foreach (var label in labelledStatement.Labels) {
-            var heapAt = locals.GetOrAdd(new Bpl.LocalVariable(ss.Origin,
-              new Bpl.TypedIdent(ss.Origin, "$Heap_at_" + label.AssignUniqueId(CurrentIdGenerator), Predef.HeapType)));
-            builder.Add(Bpl.Cmd.SimpleAssign(ss.Origin, new Bpl.IdentifierExpr(ss.Origin, heapAt), etran.HeapExpr));
+            var heapExpressions = BplLocalVarHeap(ss.Origin, "$Heap_at_" + label.AssignUniqueId(CurrentIdGenerator),
+              new HeapReadingStatus(true, VerifyReferrers), locals);
+            builder.Add(Bpl.Cmd.SimpleAssign(ss.Origin, (Bpl.IdentifierExpr)heapExpressions.HeapExpr, etran.HeapExpr));
+            builder.Add(Bpl.Cmd.SimpleAssign(ss.Origin, (Bpl.IdentifierExpr)heapExpressions.ReferrersHeapExpr, etran.ReferrersHeapExpr));
           }
         }
       }
