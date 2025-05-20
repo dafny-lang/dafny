@@ -3363,7 +3363,7 @@ procedure {:verboseName "CallReferrersMethodCall (call)"} Call$$_module.__defaul
 
 
 procedure {:verboseName "CallReferrersMethodCall (correctness)"} Impl$$_module.__default.CallReferrersMethodCall(depth: int) returns ($_reverifyPost: bool);
-  modifies $Heap;
+  modifies $Heap, $ReferrersHeap;
   // frame condition: object granularity
   free ensures (forall $o: ref :: 
     { $Heap[$o] } 
@@ -3401,6 +3401,9 @@ implementation {:smt_option "smt.arith.solver", "2"} {:verboseName "CallReferrer
     assume $IsGoodHeap($Heap);
     assume $IsHeapAnchor($Heap);
     t#0 := $nw;
+    $ReferrersHeap := updateReferrers($ReferrersHeap, t#0, Set#UnionOne(Set#Empty(),
+      $Box(#_System._tuple#2._#Make2($Box(locals), $Box(local_field(_module.__default.CallReferrersMethodCall.t, depth))))
+    ));
     defass#t#0 := true;
     assume {:captureState "referrers.dfy(42,27)"} true;
     // ----- assert statement ----- C:\Users\mimayere\Documents\dafny\Source\IntegrationTests\TestFiles\LitTests\LitTest\referrers\referrers.dfy(43,3)
@@ -3448,7 +3451,7 @@ procedure {:verboseName "GhostReferrersLocals (call)"} Call$$_module.__default.G
 
 
 procedure {:verboseName "GhostReferrersLocals (correctness)"} Impl$$_module.__default.GhostReferrersLocals(depth: int) returns ($_reverifyPost: bool);
-  modifies $Heap;
+  modifies $Heap, $ReferrersHeap;
   // frame condition: object granularity
   free ensures (forall $o: ref :: 
     { $Heap[$o] } 
@@ -3459,11 +3462,26 @@ procedure {:verboseName "GhostReferrersLocals (correctness)"} Impl$$_module.__de
 
 
 
-const unique _module.__default.GhostReferrersLocals.t: FieldFamily;
+const unique _module.__default.GhostReferrersLocals.t: FieldFamily uses {
+  axiom
+    (forall depth: int ::
+    { local_field(_module.__default.GhostReferrersLocals.t, depth) }
+    _System.field.IsGhost(local_field(_module.__default.GhostReferrersLocals.t, depth)));
+}
 
-const unique _module.__default.GhostReferrersLocals.alias__tracked: FieldFamily;
+const unique _module.__default.GhostReferrersLocals.alias__tracked: FieldFamily uses {
+  axiom
+    (forall depth: int ::
+    { local_field(_module.__default.GhostReferrersLocals.alias__tracked, depth) }
+    _System.field.IsGhost(local_field(_module.__default.GhostReferrersLocals.alias__tracked, depth)));
+}
 
-const unique _module.__default.GhostReferrersLocals.alias__untracked: FieldFamily;
+const unique _module.__default.GhostReferrersLocals.alias__untracked: FieldFamily uses {
+  axiom
+    (forall depth: int ::
+    { local_field(_module.__default.GhostReferrersLocals.alias__untracked, depth) }
+    _System.field.IsGhost(local_field(_module.__default.GhostReferrersLocals.alias__untracked, depth)));
+}
 
 implementation {:smt_option "smt.arith.solver", "2"} {:verboseName "GhostReferrersLocals (correctness)"} Impl$$_module.__default.GhostReferrersLocals(depth: int) returns ($_reverifyPost: bool)
 {
@@ -3499,6 +3517,9 @@ implementation {:smt_option "smt.arith.solver", "2"} {:verboseName "GhostReferre
     assume $IsGoodHeap($Heap);
     assume $IsHeapAnchor($Heap);
     t#0 := $nw;
+    $ReferrersHeap := updateReferrers($ReferrersHeap, t#0, Set#UnionOne(Set#Empty(),
+      $Box(#_System._tuple#2._#Make2($Box(locals), $Box(local_field(_module.__default.GhostReferrersLocals.t, depth))))
+    ));
     defass#t#0 := true;
     assume {:captureState "referrers.dfy(51,33)"} true;
     // ----- assert statement ----- C:\Users\mimayere\Documents\dafny\Source\IntegrationTests\TestFiles\LitTests\LitTest\referrers\referrers.dfy(52,3)
@@ -3525,6 +3546,9 @@ implementation {:smt_option "smt.arith.solver", "2"} {:verboseName "GhostReferre
     assert {:id "id34"} defass#t#0;
     assume true;
     alias_tracked#0 := t#0;
+    $ReferrersHeap := updateReferrers($ReferrersHeap, t#0, Set#UnionOne(readReferrers($ReferrersHeap, alias_tracked#0),
+      $Box(#_System._tuple#2._#Make2($Box(locals), $Box(local_field(_module.__default.GhostReferrersLocals.alias__tracked, depth))))
+    ));
     defass#alias_tracked#0 := true;
     assume {:captureState "referrers.dfy(55,42)"} true;
     // ----- assert statement ----- C:\Users\mimayere\Documents\dafny\Source\IntegrationTests\TestFiles\LitTests\LitTest\referrers\referrers.dfy(56,3)
@@ -3596,11 +3620,26 @@ procedure {:verboseName "ReferrersLocalWithGhostAliases (correctness)"} Impl$$_m
 
 
 
-const unique _module.__default.ReferrersLocalWithGhostAliases.t: FieldFamily;
+const unique _module.__default.ReferrersLocalWithGhostAliases.t: FieldFamily uses {
+  axiom
+    (forall depth: int ::
+    { local_field(_module.__default.ReferrersLocalWithGhostAliases.t, depth) }
+    !_System.field.IsGhost(local_field(_module.__default.ReferrersLocalWithGhostAliases.t, depth)));
+}
 
-const unique _module.__default.ReferrersLocalWithGhostAliases.alias__tracked: FieldFamily;
+const unique _module.__default.ReferrersLocalWithGhostAliases.alias__tracked: FieldFamily uses {
+  axiom
+    (forall depth: int ::
+    { local_field(_module.__default.ReferrersLocalWithGhostAliases.alias__tracked, depth) }
+    _System.field.IsGhost(local_field(_module.__default.ReferrersLocalWithGhostAliases.alias__tracked, depth)));
+}
 
-const unique _module.__default.ReferrersLocalWithGhostAliases.alias__untracked: FieldFamily;
+const unique _module.__default.ReferrersLocalWithGhostAliases.alias__untracked: FieldFamily uses {
+  axiom
+    (forall depth: int ::
+    { local_field(_module.__default.ReferrersLocalWithGhostAliases.alias__untracked, depth) }
+    _System.field.IsGhost(local_field(_module.__default.ReferrersLocalWithGhostAliases.alias__untracked, depth)));
+}
 
 implementation {:smt_option "smt.arith.solver", "2"} {:verboseName "ReferrersLocalWithGhostAliases (correctness)"} Impl$$_module.__default.ReferrersLocalWithGhostAliases(depth: int) returns ($_reverifyPost: bool)
 {
@@ -3741,11 +3780,26 @@ procedure {:verboseName "ReferrersOnGhostConstructedInstanceInCompiledContext (c
 
 
 
-const unique _module.__default.ReferrersOnGhostConstructedInstanceInCompiledContext.alias__tracked: FieldFamily;
+const unique _module.__default.ReferrersOnGhostConstructedInstanceInCompiledContext.alias__tracked: FieldFamily uses {
+  axiom
+    (forall depth: int ::
+    { local_field(_module.__default.ReferrersOnGhostConstructedInstanceInCompiledContext.alias__tracked, depth) }
+    _System.field.IsGhost(local_field(_module.__default.ReferrersOnGhostConstructedInstanceInCompiledContext.alias__tracked, depth)));
+}
 
-const unique _module.__default.ReferrersOnGhostConstructedInstanceInCompiledContext.t: FieldFamily;
+const unique _module.__default.ReferrersOnGhostConstructedInstanceInCompiledContext.t: FieldFamily uses {
+  axiom
+    (forall depth: int ::
+    { local_field(_module.__default.ReferrersOnGhostConstructedInstanceInCompiledContext.t, depth) }
+    !_System.field.IsGhost(local_field(_module.__default.ReferrersOnGhostConstructedInstanceInCompiledContext.t, depth)));
+}
 
-const unique _module.__default.ReferrersOnGhostConstructedInstanceInCompiledContext.alias__untracked: FieldFamily;
+const unique _module.__default.ReferrersOnGhostConstructedInstanceInCompiledContext.alias__untracked: FieldFamily uses {
+  axiom
+    (forall depth: int ::
+    { local_field(_module.__default.ReferrersOnGhostConstructedInstanceInCompiledContext.alias__untracked, depth) }
+    _System.field.IsGhost(local_field(_module.__default.ReferrersOnGhostConstructedInstanceInCompiledContext.alias__untracked, depth)));
+}
 
 implementation {:smt_option "smt.arith.solver", "2"} {:verboseName "ReferrersOnGhostConstructedInstanceInCompiledContext (correctness)"} Impl$$_module.__default.ReferrersOnGhostConstructedInstanceInCompiledContext(depth: int) returns ($_reverifyPost: bool)
 {
