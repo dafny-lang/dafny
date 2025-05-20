@@ -234,6 +234,7 @@ namespace Microsoft.Dafny {
       }
       public readonly Bpl.Function ArrayLength;
       public readonly Bpl.Function RealFloor;
+      public readonly Bpl.Function IsGhostField;
       public readonly Bpl.Function ORDINAL_IsLimit;
       public readonly Bpl.Function ORDINAL_IsSucc;
       public readonly Bpl.Function ORDINAL_Offset;
@@ -283,6 +284,7 @@ namespace Microsoft.Dafny {
         Contract.Invariant(IMapType != null);
         Contract.Invariant(ArrayLength != null);
         Contract.Invariant(RealFloor != null);
+        Contract.Invariant(IsGhostField != null);
         Contract.Invariant(ORDINAL_IsLimit != null);
         Contract.Invariant(ORDINAL_IsSucc != null);
         Contract.Invariant(ORDINAL_Offset != null);
@@ -336,7 +338,7 @@ namespace Microsoft.Dafny {
       public PredefinedDecls(Bpl.TypeCtorDecl charType, Bpl.TypeCtorDecl refType, Bpl.TypeCtorDecl boxType,
                              Bpl.TypeCtorDecl setTypeCtor, Bpl.TypeSynonymDecl isetTypeCtor, Bpl.TypeCtorDecl multiSetTypeCtor,
                              Bpl.TypeCtorDecl mapTypeCtor, Bpl.TypeCtorDecl imapTypeCtor,
-                             Bpl.Function arrayLength, Bpl.Function realFloor,
+                             Bpl.Function arrayLength, Bpl.Function realFloor, Bpl.Function isGhostField,
                              Bpl.Function ORD_isLimit, Bpl.Function ORD_isSucc, Bpl.Function ORD_offset, Bpl.Function ORD_isNat,
                              Bpl.Function mapDomain, Bpl.Function imapDomain,
                              Bpl.Function mapValues, Bpl.Function imapValues, Bpl.Function mapItems, Bpl.Function imapItems,
@@ -358,6 +360,7 @@ namespace Microsoft.Dafny {
         Contract.Requires(imapTypeCtor != null);
         Contract.Requires(arrayLength != null);
         Contract.Requires(realFloor != null);
+        Contract.Requires(isGhostField != null);
         Contract.Requires(ORD_isLimit != null);
         Contract.Requires(ORD_isSucc != null);
         Contract.Requires(ORD_offset != null);
@@ -397,6 +400,7 @@ namespace Microsoft.Dafny {
         this.IMapType = new Bpl.CtorType(Token.NoToken, imapTypeCtor, []);
         this.ArrayLength = arrayLength;
         this.RealFloor = realFloor;
+        this.IsGhostField = isGhostField;
         this.ORDINAL_IsLimit = ORD_isLimit;
         this.ORDINAL_IsSucc = ORD_isSucc;
         this.ORDINAL_Offset = ORD_offset;
@@ -450,6 +454,7 @@ namespace Microsoft.Dafny {
       Bpl.TypeCtorDecl multiSetTypeCtor = null;
       Bpl.Function arrayLength = null;
       Bpl.Function realFloor = null;
+      Bpl.Function isGhostField = null;
       Bpl.Function ORDINAL_isLimit = null;
       Bpl.Function ORDINAL_isSucc = null;
       Bpl.Function ORDINAL_offset = null;
@@ -551,6 +556,8 @@ namespace Microsoft.Dafny {
             arrayLength = f;
           } else if (f.Name == "_System.real.Floor") {
             realFloor = f;
+          } else if (f.Name == "_System.field.IsGhost") {
+            isGhostField = f;
           } else if (f.Name == "ORD#IsLimit") {
             ORDINAL_isLimit = f;
           } else if (f.Name == "ORD#IsSucc") {
@@ -600,6 +607,8 @@ namespace Microsoft.Dafny {
         options.OutputWriter.WriteLine("Error: Dafny prelude is missing declaration of function _System.array.Length");
       } else if (realFloor == null) {
         options.OutputWriter.WriteLine("Error: Dafny prelude is missing declaration of function _System.real.Floor");
+      } else if (isGhostField == null) {
+        options.OutputWriter.WriteLine("Error: Dafny prelude is missing declaration of function _System.field.IsGhost");
       } else if (ORDINAL_isLimit == null) {
         options.OutputWriter.WriteLine("Error: Dafny prelude is missing declaration of function ORD#IsLimit");
       } else if (ORDINAL_isSucc == null) {
@@ -670,7 +679,7 @@ namespace Microsoft.Dafny {
         return new PredefinedDecls(charType, refType, boxType,
                                    setTypeCtor, isetTypeCtor, multiSetTypeCtor,
                                    mapTypeCtor, imapTypeCtor,
-                                   arrayLength, realFloor,
+                                   arrayLength, realFloor, isGhostField,
                                    ORDINAL_isLimit, ORDINAL_isSucc, ORDINAL_offset, ORDINAL_isNat,
                                    mapDomain, imapDomain,
                                    mapValues, imapValues, mapItems, imapItems,

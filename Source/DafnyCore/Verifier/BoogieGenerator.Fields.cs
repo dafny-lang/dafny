@@ -29,6 +29,7 @@ namespace Microsoft.Dafny {
           // No axiom necessary, they are added in the prelude
           return fc;
         }
+
         // If 
         // const f: Field;
         Bpl.Type ty = Predef.FieldName(f.Origin);
@@ -36,9 +37,9 @@ namespace Microsoft.Dafny {
         fc = new Bpl.Constant(f.Origin, new Bpl.TypedIdent(f.Origin, f.FullSanitizedName, ty), requireUnicityOfFields);
         fields.Add(f, fc);
         // axiom FDim(f) == 0 && FieldOfDecl(C, name) == f &&
-        //       $IsGhostField(f);    // if the field is a ghost field
+        //       _System.field.IsGhost(f);    // if the field is a ghost field
         // OR:
-        //       !$IsGhostField(f);    // if the field is not a ghost field
+        //       !_System.field.IsGhost(f);    // if the field is not a ghost field
         Bpl.Expr fdim = Bpl.Expr.Eq(FunctionCall(f.Origin, BuiltinFunction.FDim, ty, Bpl.Expr.Ident(fc)), Bpl.Expr.Literal(0));
         Bpl.Expr declType = Bpl.Expr.Eq(FunctionCall(f.Origin, BuiltinFunction.FieldOfDecl, ty, new Bpl.IdentifierExpr(f.Origin, GetClass(cce.NonNull(f.EnclosingClass))), new Bpl.IdentifierExpr(f.Origin, GetFieldNameFamily(f.Name))), Bpl.Expr.Ident(fc));
         Bpl.Expr cond = BplAnd(fdim, declType);
