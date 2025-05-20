@@ -3153,6 +3153,9 @@ implementation {:smt_option "smt.arith.solver", "2"} {:verboseName "ReferrersLoc
     assume $IsGoodHeap($Heap);
     assume $IsHeapAnchor($Heap);
     u#0 := $nw;
+    $ReferrersHeap := updateReferrers($ReferrersHeap, u#0, Set#UnionOne(Set#Empty(),
+      $Box(#_System._tuple#2._#Make2($Box(locals), $Box(local_field(_module.__default.ReferrersLocal.u, depth))))
+    ));
     assume {:captureState "referrers.dfy(21,42)"} true;
     // ----- assert statement ----- C:\Users\mimayere\Documents\dafny\Source\IntegrationTests\TestFiles\LitTests\LitTest\referrers\referrers.dfy(22,3)
     assume true;
@@ -3207,6 +3210,8 @@ procedure {:verboseName "ReferrersMethodCall (correctness)"} Impl$$_module.__def
        where $Is(t#0, Tclass._module.SimpleObject())
          && $IsAlloc(t#0, Tclass._module.SimpleObject(), $Heap))
    returns ($_reverifyPost: bool);
+  free requires Set#IsMember(readReferrers($ReferrersHeap, t#0), 
+      $Box(#_System._tuple#2._#Make2($Box(locals), $Box(local_field(_module.__default.ReferrersMethodCall.t, depth))))); // Assignment happens before the call
   modifies $Heap;
   // frame condition: object granularity
   free ensures (forall $o: ref :: 
@@ -3268,7 +3273,10 @@ procedure {:verboseName "EnsuresReferrersUnchanged (correctness)"} Impl$$_module
        where $Is(t2#0, Tclass._module.SimpleObject())
          && $IsAlloc(t2#0, Tclass._module.SimpleObject(), $Heap))
    returns ($_reverifyPost: bool);
-  modifies $Heap;
+  free requires Set#IsMember(readReferrers($ReferrersHeap, t2#0), 
+      $Box(#_System._tuple#2._#Make2($Box(locals), $Box(local_field(_module.__default.EnsuresReferrersUnchanged.t2, depth)))));
+
+  modifies $Heap, $ReferrersHeap;
   // user-defined postconditions
   free ensures {:always_assume} true;
   ensures {:id "id15"} Set#Equal(readReferrers(old($ReferrersHeap), t2#0), readReferrers($ReferrersHeap, t2#0));
@@ -3283,6 +3291,7 @@ procedure {:verboseName "EnsuresReferrersUnchanged (correctness)"} Impl$$_module
 
 
 const unique _module.__default.EnsuresReferrersUnchanged.t__local: FieldFamily;
+const unique _module.__default.EnsuresReferrersUnchanged.t2: FieldFamily;
 
 implementation {:smt_option "smt.arith.solver", "2"} {:verboseName "EnsuresReferrersUnchanged (correctness)"} Impl$$_module.__default.EnsuresReferrersUnchanged(depth: int, t2#0: ref) returns ($_reverifyPost: bool)
 {
@@ -3302,6 +3311,15 @@ implementation {:smt_option "smt.arith.solver", "2"} {:verboseName "EnsuresRefer
     assume true;
     assume true;
     t_local#0 := t2#0;
+    // After new variable assignment, we assume the disjointness of the local variable memorylocation
+    // with everything that existed before.
+    assume Set#Disjoint(readReferrers($ReferrersHeap, t_local#0), Set#UnionOne(Set#Empty(),
+      $Box(#_System._tuple#2._#Make2($Box(locals), $Box(local_field(_module.__default.EnsuresReferrersUnchanged.t__local, depth))))
+    ));
+
+    $ReferrersHeap := updateReferrers($ReferrersHeap, t_local#0, Set#UnionOne(readReferrers($ReferrersHeap, t_local#0),
+      $Box(#_System._tuple#2._#Make2($Box(locals), $Box(local_field(_module.__default.EnsuresReferrersUnchanged.t__local, depth))))
+    ));
     defass#t_local#0 := true;
     assume {:captureState "referrers.dfy(35,19)"} true;
     // ----- assert statement ----- C:\Users\mimayere\Documents\dafny\Source\IntegrationTests\TestFiles\LitTests\LitTest\referrers\referrers.dfy(36,3)
@@ -3317,6 +3335,11 @@ implementation {:smt_option "smt.arith.solver", "2"} {:verboseName "EnsuresRefer
           $Box(#_System._tuple#2._#Make2($Box(locals), 
               $Box(local_field(_module.__default.EnsuresReferrersUnchanged.t__local, depth)))))));
     // ----- return statement ----- C:\Users\mimayere\Documents\dafny\Source\IntegrationTests\TestFiles\LitTests\LitTest\referrers\referrers.dfy(38,3)
+    $ReferrersHeap := updateReferrers($ReferrersHeap, t_local#0, Set#Difference(readReferrers($ReferrersHeap, t_local#0),
+      Set#UnionOne(Set#Empty(),
+      $Box(#_System._tuple#2._#Make2($Box(locals), $Box(local_field(_module.__default.EnsuresReferrersUnchanged.t__local, depth))))
+    )));
+    assert Set#Equal(readReferrers(old($ReferrersHeap), t2#0), readReferrers($ReferrersHeap, t2#0));
     return;
 }
 
