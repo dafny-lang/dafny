@@ -43,7 +43,7 @@ public class LeanCodeGenerator(DafnyOptions options, ErrorReporter reporter) : S
 
   protected override IClassWriter CreateClass(string moduleName, bool isExtern, string fullPrintName, List<TypeParameter> typeParameters, TopLevelDecl cls,
     List<Type> superClasses, IOrigin tok, ConcreteSyntaxTree wr) {
-    throw new NotImplementedException();
+    return new NullClassWriter(this);
   }
 
   protected override IClassWriter CreateTrait(string name, bool isExtern, List<TypeParameter> typeParameters, TraitDecl trait, List<Type> superClasses,
@@ -57,7 +57,7 @@ public class LeanCodeGenerator(DafnyOptions options, ErrorReporter reporter) : S
 
   protected override IClassWriter DeclareDatatype(DatatypeDecl dt, ConcreteSyntaxTree wr) {
     // TODO look at DeclareDatatype in CsharpCodeGenerator
-    if (dt.Ctors.Count >= 1)
+    if (dt.Ctors.Count > 1)
     {
       // Inductive
       Contract.Assert(dt.Members.Count == 0);
@@ -65,14 +65,25 @@ public class LeanCodeGenerator(DafnyOptions options, ErrorReporter reporter) : S
     else
     {
       // Structure
-      // REVIEW: do function members of dt need to do explicit `this` passing?
-      wr.Write($"structure {dt.GetCompileName(Options)} where");
+      // REVIEW: do function members of dt need to do explicit `this` passing? Yes they do - Siva
+      var structName = dt.GetCompileName(Options);
+      wr.WriteLine($"structure {structName} where");
       foreach (var ctor in dt.Ctors)
       {
-        var record = string.Join(" ", ctor.Formals.Select(formal => $"({formal.CompileName}: {TypeName(formal.Type, wr, formal.StartToken)})"));
-        wr.WriteLine($"{ctor.GetCompileName(Options)}: {record}");
+        var record = string.Join("\n  ", ctor.Formals.Select(formal => $"{formal.CompileName} : {TypeName(formal.Type, wr, formal.StartToken)}"));
+        wr.WriteLine($"  {ctor.GetCompileName(Options)} ::\n  {record}");
       }
-      // Handle the member functions
+      foreach (var member in dt.Members) {
+        switch (member) {
+          case Function f:
+            // TODO Handle the member functions
+            // wr.WriteLine($"def {structName}.{f.GetCompileName(options)}()");
+            break;
+          default:
+            // Constant member of some kind
+            break;
+        }
+      }
     }
     // TODO this might be incorrect
     return new NullClassWriter(this);
@@ -102,9 +113,31 @@ public class LeanCodeGenerator(DafnyOptions options, ErrorReporter reporter) : S
     throw new NotImplementedException();
   }
 
-  internal override string TypeName(Type type, ConcreteSyntaxTree wr, IOrigin tok, MemberDecl member = null) {
-    throw new NotImplementedException();
-  }
+  internal override string TypeName(Type type, ConcreteSyntaxTree wr, IOrigin tok, MemberDecl member = null) =>
+    type switch {
+      ArrowType arrowType => throw new NotImplementedException(),
+      BoolType => "Bool",
+      CharType charType => throw new NotImplementedException(),
+      IntType intType => throw new NotImplementedException(),
+      BasicType basicType => throw new NotImplementedException(),
+      BottomTypePlaceholder bottomTypePlaceholder => throw new NotImplementedException(),
+      MapType mapType => throw new NotImplementedException(),
+      MultiSetType multiSetType => throw new NotImplementedException(),
+      SeqType { Arg: var argType } => $"List ({TypeName(argType, wr, tok, member)})",
+      SetType setType => throw new NotImplementedException(),
+      CollectionType collectionType => throw new NotImplementedException(),
+      InferredTypeProxy inferredTypeProxy => throw new NotImplementedException(),
+      SelfType selfType => throw new NotImplementedException(),
+      UserDefinedType { Name: "nat" } => "Nat",
+      NonProxyType nonProxyType => throw new NotImplementedException(),
+      ParamTypeProxy paramTypeProxy => throw new NotImplementedException(),
+      ResolverIdentifierExpr.ResolverTypeModule resolverTypeModule => throw new NotImplementedException(),
+      ResolverIdentifierExpr.ResolverTypeType resolverTypeType => throw new NotImplementedException(),
+      ResolverIdentifierExpr.ResolverType resolverType => throw new NotImplementedException(),
+      TypeRefinementWrapper typeRefinementWrapper => throw new NotImplementedException(),
+      TypeProxy typeProxy => throw new NotImplementedException(),
+      _ => throw new ArgumentOutOfRangeException(nameof(type))
+    };
 
   protected override string TypeInitializationValue(Type type, ConcreteSyntaxTree wr, IOrigin tok, bool usePlaceboValue,
     bool constructTypeParameterDefaultsFromTypeDescriptors) {
@@ -227,7 +260,21 @@ public class LeanCodeGenerator(DafnyOptions options, ErrorReporter reporter) : S
   }
 
   protected override void EmitLiteralExpr(ConcreteSyntaxTree wr, LiteralExpr e) {
-    throw new NotImplementedException();
+    switch(e)
+    {
+      case CharLiteralExpr { Value: var value }:
+        wr.Write($"'{value}'");
+        break;
+      case StringLiteralExpr { Value: var value }:
+        wr.Write($"\"{value}\"");
+        break;
+      case StaticReceiverExpr:
+        throw new ArgumentOutOfRangeException(nameof(e));
+      default:
+        // NB: Integer/Decimal/Boolean literal
+        wr.Write($"{e}");
+        break;
+    }
   }
 
   protected override void EmitStringLiteral(string str, bool isVerbatim, ConcreteSyntaxTree wr) {
@@ -419,6 +466,6 @@ public class LeanCodeGenerator(DafnyOptions options, ErrorReporter reporter) : S
   }
 
   protected override void EmitHaltRecoveryStmt(Statement body, string haltMessageVarName, Statement recoveryBody, ConcreteSyntaxTree wr) {
-    throw new UnsupportedFeatureException(body.StartToken, Feature.MethodSynthesis);
+    throw new UnsupportedFeatureException(body.StartToken, 0);
   }
 }
