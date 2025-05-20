@@ -14,8 +14,8 @@ method ReferrersLocal() {
   assert referrers(t) == {locals`t, locals`alias_t};
   label before_t_null:
   t := null;
-  assert referrers(t) == {locals`alias_t};
-  assert old@before_t_null(referrers(t)) == {locals`t, locals`alias_t};
+  assert referrers(alias_t) == {locals`alias_t};
+  assert old@before_t_null(referrers(alias_t#0)) == {locals`t, locals`alias_t};
   
   // Arrays too have referrers
   var u := new SimpleObject?[1](i => null);
