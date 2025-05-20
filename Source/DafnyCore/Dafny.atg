@@ -2602,7 +2602,7 @@ VarDeclStatement<.out Statement/*!*/ s.>
        } else if (rhss.Count == 0) {
          assignment = null;
        } else {
-         var updateOrigin = new SourceOrigin(assignTok, t);
+         var updateOrigin = new SourceOrigin(lhsExprs.First().StartToken, t, assignTok);
          assignment = new AssignStatement(updateOrigin, lhsExprs, rhss);
        }
        s = new VarDeclStmt(rangeToken, lhss, assignment);
