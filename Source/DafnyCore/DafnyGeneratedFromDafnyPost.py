@@ -24,11 +24,17 @@ if os.path.exists(output + '-cs.dtr'):
     os.remove(output + '-cs.dtr')
     print("File deleted: " + output + '-cs.dtr')
 
-with open(output + '.cs', 'r' ) as f:
+with open(output + '.cs', 'r', encoding='utf-8') as f:
   content = f.read()
-  content_trimmed = re.sub('\[assembly[\s\S]*?(?=namespace Formatting)|namespace\s+\w+\s*\{\s*\}\s*//.*', '', content, flags = re.M)
-  content_new = re.sub('\r?\nnamespace\s+(Std\.(?!Wrappers)(?!Strings)(?!Collections.Seq)(?!Arithmetic)(?!Math)\S+)\s*\{[\s\S]*?\}\s*// end of namespace \\1', '', content_trimmed, flags = re.M)
-  content_new = re.sub('Backends\\\\\\\\Rust\\\\\\\\', 'Backends/Rust/', content_new, flags = re.M)
+  
+  content_without_runtimelib = re.sub(r'#if\s+ISDAFNYRUNTIMELIB\s*[\s\S]*?#endif', '', content, flags=re.MULTILINE)
+  content_trimmed = re.sub(r'\[assembly[\s\S]*?(?=namespace Formatting)|namespace\s+\w+\s*\{\s*\}\s*//.*', '', content_without_runtimelib, flags = re.M)
+  if content_trimmed == content_without_runtimelib:
+        raise Exception("Error: No assembly directive or namespace trimmed from the file. Please check the regular expression")
+  content_new = re.sub(r'\r?\nnamespace\s+(Std\.(?!Wrappers)(?!Strings)(?!Collections.Seq)(?!Arithmetic)(?!Math)\S+)\s*\{[\s\S]*?\}\s*// end of namespace \1', '', content_trimmed, flags = re.M)
+  if content_trimmed == content_new:
+        raise Exception("Error: Nothing trimmed from the file. Please check the regular expression")
+  content_new = re.sub(r'Backends\\\\Rust\\\\', 'Backends/Rust/', content_new, flags = re.M)
 
   # Any test looking like "  if()"
 
@@ -66,19 +72,19 @@ with open(output + '.cs', 'r' ) as f:
     
     # Write content to a file
     file_path = f"{file_path_prefix}{output}/{namespace_name.replace('.', '_')}.cs"  # Replace dots with underscores in file name
-    with open(file_path, 'w') as file:
+    with open(file_path, 'w', encoding='utf-8') as file:
       file.write(file_content)
 
-    print(f"File generated: {file_path}")
+    print(f"File extracted: {file_path}")
 
   # Special-case the FuncExtensions class, which isn't declared inside a namespace
   func_extensions_pattern = re.compile(r'(internal\s+static\s+class\s+FuncExtensions\s*{[\s\S]*?}\s*//\s*end\s*of\s*class\s*FuncExtensions)')
-  match = func_extensions_pattern.search(content)
+  match = func_extensions_pattern.search(content_without_runtimelib)
   func_extensions_content = match[0]
 
   file_content = f"{prelude}\n\n{func_extensions_content}"
   file_path = f"{output}/FuncExtensions.cs"
-  with open(file_path, 'w') as file:
+  with open(file_path, 'w', encoding='utf-8') as file:
     file.write(file_content)
 
   print(f"File generated: {file_path}")

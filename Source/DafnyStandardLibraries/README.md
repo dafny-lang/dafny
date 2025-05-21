@@ -58,6 +58,7 @@ The sections below describe how to use each library:
 - [Std.JSON](src/Std/JSON/JSON.md) -- JSON serialization and deserialization
 - [Std.Math](src/Std/Math.md) -- common mathematical functions, such as Min and Abs
 - [Std.Ordinal](src/Std/Ordinal.md) -- operations and properties of the ORDINAL type
+- [Std.Parsers](src/Std/Parsers/README.md) -- parser combinators
 - [Std.Relations](src/Std/Relations.md) -- properties of relations
 - [Std.Strings](src/Std/Strings.md) -- utilities for strings, especially converting to and from string representations of common types
 - [Std.Termination](src/Std/Termination.md) -- a datatype for representing Dafny decreases clauses and extensions
