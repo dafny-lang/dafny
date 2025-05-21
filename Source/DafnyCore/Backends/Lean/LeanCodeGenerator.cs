@@ -75,14 +75,16 @@ public class LeanCodeGenerator(DafnyOptions options, ErrorReporter reporter) : S
       foreach (var ctor in dt.Ctors)
       {
         var record = string.Join("\n  ", ctor.Formals.Select(formal => $"{formal.CompileName} : {TypeName(formal.Type, wr, formal.StartToken)}"));
-        wr.WriteLine($"  {ctor.GetCompileName(Options)} ::\n  {record}");
+        wr.WriteLine($"  {ctor.GetCompileName(Options)} ::\n  {record}\n");
       }
       foreach (var member in dt.Members) {
         switch (member) {
           case Function f:
             // TODO Handle the member functions
-            // wr.WriteLine($"def {structName}.{f.GetCompileName(options)}()");
-            EmitExpr(f.Body, false, wr, null);
+            wr.Write($"def {structName}.{f.GetCompileName(options)} (this : {structName})");
+            wr.Write(string.Join("\n  ", f.Ins.Select(formal => $"({formal.CompileName} : {TypeName(formal.Type, wr, formal.StartToken)})")));
+            wr.WriteLine($" : {TypeName(f.ResultType, wr, f.StartToken)}");
+              //EmitExpr(f.Body, false, wr, null);
             break;
           default:
             // Constant member of some kind
