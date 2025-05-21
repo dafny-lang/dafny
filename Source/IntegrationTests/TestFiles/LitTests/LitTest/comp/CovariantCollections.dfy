@@ -1,4 +1,4 @@
-// RUN: %testDafnyForEachCompiler "%s" -- --type-system-refresh=false --general-newtypes=false --relax-definite-assignment --spill-translation
+// RUN: %testDafnyForEachCompiler --expect-exit-code=2 "%s" -- --relax-definite-assignment --spill-translation
 
 method Main() {
   Sequences();
@@ -326,9 +326,9 @@ method Downcasts() {
   var m: set<Number>, n: multiset<Number>, o: seq<Number>, p: map<Number, Number>;
   var s: set<Integer>, t: multiset<Integer>, u: seq<Integer>, v: map<Integer, Integer>;
   m, n, o, p := Create<Number>(a, b);
-  s, t, u, v := m, n, o, p;  // in C#, this requires a downcast clone
+  s, t, u, v := m as set<Integer>, n as multiset<Integer>, o as seq<Integer>, p as map<Integer, Integer>;  // in C#, this requires a downcast clone
   m, n, o, p := s, t, u, v;
-  s, t, u, v := m, n, o, p;  // here, the downcast clone is the identity
+  s, t, u, v := m as set<Integer>, n as multiset<Integer>, o as seq<Integer>, p as map<Integer, Integer>;  // here, the downcast clone is the identity
   m, n, o, p := s, t, u, v;
 
   PrintSet("set: ", m); print "\n";
@@ -336,22 +336,27 @@ method Downcasts() {
   PrintSeq("seq: ", o); print "\n";
   PrintMap("map: ", p); print "\n";
 
-  s := DowncastF(m);  // cast in, cast out
-  s := DowncastM(m);  // cast in, cast out
+  s := DowncastF(m as set<Integer>) as set<Integer>;  // cast in, cast out
+  var m' := DowncastM(m as set<Integer>);
+  s := m' as set<Integer>;  // cast in, cast out
   var s': set<Integer>;
-  s, s' := DowncastM2(m);  // cast in, cast out
-  s := var v: set<Integer> := m; v;  // regression test -- this once tripped up the compilation to Java, whereas the next line had not
-  s' := var u: set<Number> := var v: set<Integer> := m; v; u;
+  var m'';
+  m', m'' := DowncastM2(m as set<Integer>);
+  s, s' := m' as set<Integer>, m'' as set<Integer>;  // cast in, cast out
+  s := var v: set<Integer> := m as set<Integer>; v;  // regression test -- this once tripped up the compilation to Java, whereas the next line had not
+  s' := var u: set<Number> := var v: set<Integer> := m as set<Integer>; v; u as set<Integer>;
   var s'' := DowncastFunction(a, b); // regression test -- the same error was later discovered in top-level function bodies
   var eq := s == m && m == s && s == s'';
   print eq, "\n";  // true
 
-  s := FId<Integer>(m);  // cast in
-  s := FId<Number>(s);  // cast out
-  s := MId<Integer>(m);  // cast in
-  s := MId<Number>(s);  // cast out
-  s, s' := MId2<Integer>(m);  // cast in
-  s, s' := MId2<Number>(m);  // cast out
+  s := FId<Integer>(m as set<Integer>);  // cast in
+  s := FId<Number>(s) as set<Integer>;  // cast out
+  s := MId<Integer>(m as set<Integer>);  // cast in
+  m' := MId<Number>(s);  // cast out
+  s := m' as set<Integer>;
+  s, s' := MId2<Integer>(m as set<Integer>);  // cast in
+  m', m'' := MId2<Number>(m);
+  s, s' := m' as set<Integer>, m'' as set<Integer>; // cast out
   eq := s == m && m == s;
   print eq, "\n";  // true
 
@@ -370,7 +375,7 @@ method Create<T>(a: T, b: T) returns (m: set<T>, n: multiset<T>, o: seq<T>, p: m
 
 function DowncastFunction(a: Integer, b: Integer): set<Integer> {
   var m: set<Number> := {a, b};
-  var v: set<Integer> := m;
+  var v: set<Integer> := m as set<Integer>;
   v
 }
 
@@ -401,13 +406,13 @@ method MId2<T>(s: set<T>) returns (r0: set<T>, r1: set<T>)
 method {:tailrecursion} TailRecursiveMethod(x: nat, ghost u: int, s: set<Integer>) {
   var n: set<Number> := s;
   if x != 0 {
-    TailRecursiveMethod(x - 1, 100 * u, n);
+    TailRecursiveMethod(x - 1, 100 * u, n as set<Integer>);
   }
 }
 
 function {:tailrecursion} TailRecursiveFunction(x: nat, ghost u: int, s: set<Integer>): int {
   var n: set<Number> := s;
-  if x == 0 then 16 else TailRecursiveFunction(x - 1, 100 * u, n)
+  if x == 0 then 16 else TailRecursiveFunction(x - 1, 100 * u, n as set<Integer>)
 }
 
 class Class {
@@ -421,15 +426,15 @@ class Class {
 method HeapAssignmentDowncasts() {
   var n: Number := new Integer(22);
   var ns: set<Number> := {n};
-  var c := new Class(ns);
+  var c := new Class(ns as set<Integer>);
   c.ns := c.js;
-  c.js := c.ns;
+  c.js := c.ns as set<Integer>;
   PrintSet("c.js: ", c.js); print " ";
 
   var a := new set<Integer>[20];
   var m := new set<Integer>[18, 18];
   a[7] := ns;
-  // m[7, 9] := ns;  // TODO: type checking gives an error, which is questionable (see https://github.com/dafny-lang/dafny/issues/885)
+  m[7, 9] := ns as set<Integer>;  // TODO: type checking gives an error, which is questionable (see https://github.com/dafny-lang/dafny/issues/885)
   ns := a[1];
   ns := m[3, 3];
   PrintSet(" a[7]: ", a[7]); print "\n";
@@ -441,12 +446,12 @@ method DeepDowncast() {
 
   var t: Number := new Integer(4);
   var ttt: set<seq<Number>> := SetOfSeqOf<Number>(t);
-  var ccc: set<seq<Integer>> := ttt;
+  var ccc: set<seq<Integer>> := ttt as set<seq<Integer>>;
   print |ttt|, " ", |ccc|, "\n";
 
   var o := new object;
   var mtt: map<seq<Number>, object> := MapOfSeqOf<Number, object>(t, o);
-  var mcc: map<seq<Integer>, object> := mtt;
+  var mcc: map<seq<Integer>, object> := mtt as map<seq<Integer>, object>;
   print |mtt|, " ", |mcc|, "\n";
 }
 

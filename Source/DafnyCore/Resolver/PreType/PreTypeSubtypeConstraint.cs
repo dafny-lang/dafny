@@ -166,10 +166,11 @@ namespace Microsoft.Dafny {
           var co = tp.Variance == TypeParameter.TPVariance.Co ? "co" : "contra";
           var proxy = state.PreTypeResolver.CreatePreTypeProxy($"type used in {co}variance constraint");
           newArgs.Add(proxy);
+          var error = $"type parameter '{tp.Name}' would require {{0}} :> {{1}}";
           if ((tp.Variance == TypeParameter.TPVariance.Co) == proxiesAreSupertypes) {
-            state.AddSubtypeConstraint(proxy, arguments[i], tok, "bad", null, reportErrors); // TODO: improve error message
+            state.AddSubtypeConstraint(proxy, arguments[i], tok, error, null, reportErrors); // TODO: improve error message
           } else {
-            state.AddSubtypeConstraint(arguments[i], proxy, tok, "bad", null, reportErrors); // TODO: improve error message
+            state.AddSubtypeConstraint(arguments[i], proxy, tok, error, null, reportErrors); // TODO: improve error message
           }
         }
       }
