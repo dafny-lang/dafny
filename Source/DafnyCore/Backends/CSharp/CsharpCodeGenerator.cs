@@ -187,7 +187,9 @@ namespace Microsoft.Dafny.Compilers {
     private void EmitFuncExtensions(SystemModuleManager systemModuleManager, ConcreteSyntaxTree wr) {
       var funcExtensions = wr.NewNamedBlock("internal static class FuncExtensions");
       wr.WriteLine("// end of class FuncExtensions");
-      foreach (var kv in systemModuleManager.ArrowTypeDecls) {
+      var arrowTypeDecls = systemModuleManager.ArrowTypeDecls.ToList();
+      arrowTypeDecls.Sort((left, right) => left.Key - right.Key);
+      foreach (var kv in arrowTypeDecls) {
         int arity = kv.Key;
 
         List<string> TypeParameterList(string prefix) {
