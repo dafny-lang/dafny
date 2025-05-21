@@ -225,6 +225,9 @@ namespace Microsoft.Dafny {
     }
 
     void PrintLegend() {
+      if (!options.Get(CommonOptionBag.NewTypeInferenceDebug)) {
+        return;
+      }
       var sw = new StringWriter();
       PrintList(sw, "Legend", PreTypeResolver.allPreTypeProxies, pair => {
         var s = Pad($"?{pair.Item1.UniqueId}", 4) + pair.Item1;

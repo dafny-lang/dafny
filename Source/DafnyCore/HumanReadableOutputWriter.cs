@@ -8,6 +8,9 @@ namespace Microsoft.Dafny;
 public class HumanReadableOutputWriter(DafnyOptions options) : IDafnyOutputWriter {
 
   public void Debug(string message) {
+    if (string.IsNullOrEmpty(message)) {
+      return;
+    }
     options.BaseOutputWriter.WriteLine(message);
   }
 
@@ -20,7 +23,7 @@ public class HumanReadableOutputWriter(DafnyOptions options) : IDafnyOutputWrite
   }
 
   public TextWriter StatusWriter() {
-    return new StringWriterWithDispose(s => options.BaseOutputWriter.WriteLine(s));
+    return new StringWriterWithDispose(s => options.BaseOutputWriter.Write(s));
   }
 
   class StringWriterWithDispose(Action<string> onDispose) : StringWriter {
