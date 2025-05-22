@@ -142,7 +142,8 @@ public class RustBackend : DafnyExecutableBackend {
 
     var psi = PrepareProcessStartInfo("cargo", args);
     psi.WorkingDirectory = targetDirectory;
-    return (0 == await RunProcess(psi, outputWriter, "Error while compiling Rust files."), null);
+    var sw = outputWriter.StatusWriter();
+    return (0 == await RunProcess(psi, sw, sw, "Error while compiling Rust files."), null);
   }
 
   private static async Task WriteCargoFile(string callToMain, string targetFilename, string targetDirectory) {
@@ -216,7 +217,9 @@ public class RustBackend : DafnyExecutableBackend {
     IDafnyOutputWriter outputWriter) {
     Contract.Requires(targetFilename != null || otherFileNames.Count == 0);
     var psi = PrepareProcessStartInfo(ComputeExeName(targetFilename), Options.MainArgs);
-    return 0 == await RunProcess(psi, outputWriter);
+    await using var sw = outputWriter.StatusWriter();
+    await using var ew = outputWriter.ErrorWriter();
+    return 0 == await RunProcess(psi, sw, ew);
   }
 
   public RustBackend(DafnyOptions options) : base(options) {

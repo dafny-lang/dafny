@@ -105,7 +105,8 @@ for backwards compatibility with Java code generated with Dafny versions earlier
     compileProcess.WorkingDirectory = Path.GetFullPath(Path.GetDirectoryName(targetFilename));
     compileProcess.EnvironmentVariables["CLASSPATH"] = GetClassPath(targetFilename);
     try {
-      if (0 != await RunProcess(compileProcess, outputWriter, "Error while compiling Java files.")) {
+      await using var sw = outputWriter.StatusWriter();
+      if (0 != await RunProcess(compileProcess, sw, sw, "Error while compiling Java files.")) {
         return (false, null);
       }
 
@@ -158,7 +159,8 @@ for backwards compatibility with Java code generated with Dafny versions earlier
       : new List<string> { "cfe", jarPath, entryPointName };
     var jarCreationProcess = PrepareProcessStartInfo("jar", args.Concat(files));
     jarCreationProcess.WorkingDirectory = rootDirectory;
-    return 0 == await RunProcess(jarCreationProcess, outputWriter, "Error while creating jar file: " + jarPath);
+    await using var sw = outputWriter.StatusWriter();
+    return 0 == await RunProcess(jarCreationProcess, sw, sw, "Error while creating jar file: " + jarPath);
   }
 
   public override async Task<bool> RunTargetProgram(string dafnyProgramName, string targetProgramText,
@@ -172,7 +174,10 @@ for backwards compatibility with Java code generated with Dafny versions earlier
         .Concat(Options.MainArgs));
     // Run the target program in the user's working directory and with the user's classpath
     psi.EnvironmentVariables["CLASSPATH"] = GetClassPath(null);
-    return 0 == await RunProcess(psi, outputWriter);
+
+    await using var sw = outputWriter.StatusWriter();
+    await using var ew = outputWriter.ErrorWriter();
+    return 0 == await RunProcess(psi, sw, ew);
   }
 
   private string GetClassPath(string targetFilename) {

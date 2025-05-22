@@ -62,12 +62,12 @@ public class GoBackend : ExecutableBackend {
       targetFilename
     };
 
-    var errorWriter = new StringWriter();
+    var writer = new StringWriter();
     var psi = PrepareProcessStartInfo("goimports", goArgs);
 
-    var result = await RunProcess(psi, outputWriter);
+    var result = await RunProcess(psi, writer, writer);
     if (result != 0) {
-      await outputWriter.Status("Error occurred while invoking goimports:" + errorWriter);
+      await outputWriter.Status("Error occurred while invoking goimports:" + writer);
     }
     return 0 == result;
   }
@@ -173,7 +173,9 @@ public class GoBackend : ExecutableBackend {
     psi.EnvironmentVariables["GOPATH"] = GoPath(targetFilename);
     psi.EnvironmentVariables["GO111MODULE"] = "auto";
 
-    return 0 == await RunProcess(psi, outputWriter);
+    await using var sw = outputWriter.StatusWriter();
+    await using var ew = outputWriter.ErrorWriter();
+    return 0 == await RunProcess(psi, sw, ew);
   }
 
   static string GoPath(string filename) {

@@ -122,7 +122,8 @@ public class PythonBackend : ExecutableBackend {
     if (!runAfterCompile) {
       var psi = PrepareProcessStartInfo(DefaultPythonCommand);
       psi.Arguments = $"-m compileall -q {Path.GetDirectoryName(targetFilename)}";
-      return (0 == await RunProcess(psi, outputWriter, "Error while compiling Python files."), null);
+      await using var sw = outputWriter.StatusWriter();
+      return (0 == await RunProcess(psi, sw, sw, "Error while compiling Python files."), null);
     }
     return (true, null);
   }
@@ -134,7 +135,10 @@ public class PythonBackend : ExecutableBackend {
     Contract.Requires(targetFilename != null || otherFileNames.Count == 0);
     var psi = PrepareProcessStartInfo(DefaultPythonCommand, Options.MainArgs.Prepend(targetFilename));
     psi.EnvironmentVariables["PYTHONIOENCODING"] = "utf8";
-    return 0 == await RunProcess(psi, outputWriter);
+
+    await using var sw = outputWriter.StatusWriter();
+    await using var ew = outputWriter.ErrorWriter();
+    return 0 == await RunProcess(psi, sw, ew);
   }
 
   public PythonBackend(DafnyOptions options) : base(options) {

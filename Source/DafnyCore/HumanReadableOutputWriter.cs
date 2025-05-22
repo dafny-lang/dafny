@@ -34,7 +34,7 @@ public class HumanReadableOutputWriter(DafnyOptions options) : IDafnyOutputWrite
   }
 
   public TextWriter ErrorWriter() {
-    return new StringWriterWithDispose(s => options.BaseOutputWriter.WriteLine(s));
+    return new StringWriterWithDispose(s => options.BaseOutputWriter.Write(s));
   }
 
   public void WriteDiagnostic(DafnyDiagnostic diagnostic) {

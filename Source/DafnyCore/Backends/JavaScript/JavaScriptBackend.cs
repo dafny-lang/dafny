@@ -78,10 +78,9 @@ public class JavaScriptBackend : ExecutableBackend {
       nodeProcess.StandardInput.Close();
       // Fixes a problem of Node on Windows, where Node does not prints to the parent console its standard outputs.
       await PassthroughBuffer(nodeProcess.StandardError, Options.ErrorWriter);
-      var tempOutputWriter = new StringWriter();
+      await using var tempOutputWriter = Options.OutputWriter.StatusWriter();
       await PassthroughBuffer(nodeProcess.StandardOutput, tempOutputWriter);
       await nodeProcess.WaitForExitAsync();
-      await Options.OutputWriter.Status(tempOutputWriter.ToString());
 #pragma warning disable VSTHRD00
       return nodeProcess.ExitCode == 0;
     } catch (System.ComponentModel.Win32Exception e) {

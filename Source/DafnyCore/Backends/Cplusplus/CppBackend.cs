@@ -40,7 +40,8 @@ public class CppBackend : ExecutableBackend {
       "-o", ComputeExeName(targetFilename),
       targetFilename
     });
-    return (0 == await RunProcess(psi, outputWriter, "Error while compiling C++ files."), null);
+    await using var statusWriter = outputWriter.StatusWriter();
+    return (0 == await RunProcess(psi, statusWriter, statusWriter, "Error while compiling C++ files."), null);
   }
 
   public override async Task<bool> RunTargetProgram(string dafnyProgramName, string targetProgramText,
@@ -48,7 +49,10 @@ public class CppBackend : ExecutableBackend {
     string targetFilename, ReadOnlyCollection<string> otherFileNames,
     object compilationResult, IDafnyOutputWriter outputWriter) {
     var psi = PrepareProcessStartInfo(ComputeExeName(targetFilename), Options.MainArgs);
-    return 0 == await RunProcess(psi, outputWriter);
+
+    await using var sw = outputWriter.StatusWriter();
+    await using var ew = outputWriter.ErrorWriter();
+    return 0 == await RunProcess(psi, sw, ew);
   }
 
   public override Command GetCommand() {

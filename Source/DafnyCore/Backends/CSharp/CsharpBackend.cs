@@ -110,7 +110,7 @@ public class CsharpBackend : ExecutableBackend {
     var psi = PrepareProcessStartInfo("dotnet", arguments);
     var dotnetOutputWriter = new StringWriter();
     var dotnetErrorWriter = new StringWriter();
-    var exitCode = await RunProcess(psi, outputWriter);
+    var exitCode = await RunProcess(psi, dotnetOutputWriter, dotnetErrorWriter);
     var dllPath = Path.Combine(outputDir, fileNames + ".dll");
     if (exitCode != 0 || !File.Exists(dllPath)) {
       await outputWriter.Status($@"Failed to compile C# source code using 'dotnet {string.Join(" ", arguments)}'. Command output was:" +
@@ -141,7 +141,10 @@ public class CsharpBackend : ExecutableBackend {
     }
 
     var psi = PrepareProcessStartInfo("dotnet", new[] { dllPath }.Concat(Options.MainArgs));
-    return await RunProcess(psi, outputWriter) == 0;
+
+    await using var sw = outputWriter.StatusWriter();
+    await using var ew = outputWriter.ErrorWriter();
+    return await RunProcess(psi, sw, ew) == 0;
   }
 
   public override void PopulateCoverageReport(CoverageReport coverageReport) {

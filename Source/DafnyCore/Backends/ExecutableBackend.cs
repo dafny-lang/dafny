@@ -162,15 +162,15 @@ public abstract class ExecutableBackend : IExecutableBackend {
   }
 
   public async Task<int> RunProcess(ProcessStartInfo psi,
-    IDafnyOutputWriter outputWriter,
+    TextWriter outputWriter,
+    TextWriter errorWriter,
     string errorMessage = null) {
     if (OutputWriterEncoding != null) {
       psi.StandardOutputEncoding = OutputWriterEncoding;
     }
 
-    await using var tw = outputWriter.StatusWriter();
-    if (StartProcess(psi, tw) is { } process) {
-      return await WaitForExit(process, tw, outputWriter.ErrorWriter(), errorMessage);
+    if (StartProcess(psi, outputWriter) is { } process) {
+      return await WaitForExit(process, outputWriter, errorWriter, errorMessage);
     }
 
     return -1;
