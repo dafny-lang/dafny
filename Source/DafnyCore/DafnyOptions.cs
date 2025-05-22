@@ -52,6 +52,9 @@ namespace Microsoft.Dafny {
     /// </summary>
     TextWriter StatusWriter();
 
+    /// <summary>
+    /// Closing the writer will print an error message
+    /// </summary>
     TextWriter ErrorWriter();
 
     void WriteDiagnostic(DafnyDiagnostic diagnostic);

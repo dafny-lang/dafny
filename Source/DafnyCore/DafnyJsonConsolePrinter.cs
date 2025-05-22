@@ -8,7 +8,6 @@ using VCGeneration;
 
 namespace Microsoft.Dafny;
 
-
 public class JsonConsoleErrorReporter(DafnyOptions options) : BatchErrorReporter(options) {
   public override bool MessageCore(DafnyDiagnostic dafnyDiagnostic) {
     if (!base.MessageCore(dafnyDiagnostic) ||
