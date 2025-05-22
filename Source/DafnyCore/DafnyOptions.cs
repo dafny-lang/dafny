@@ -45,6 +45,7 @@ namespace Microsoft.Dafny {
 
     void Exception(string message);
     Task Status(string message);
+    Task Raw(string message);
 
 
     /// <summary>
@@ -63,12 +64,9 @@ namespace Microsoft.Dafny {
   public class DafnyOptions : Bpl.CommandLineOptions {
 
     public TextWriter BaseOutputWriter => base.OutputWriter;
+
     public new IDafnyOutputWriter OutputWriter =>
-      DiagnosticsFormat switch {
-        DiagnosticsFormats.PlainText => new HumanReadableOutputWriter(this),
-        DiagnosticsFormats.JSON => new JsonOutputWriter(this),
-        _ => throw new ArgumentOutOfRangeException()
-      };
+      Get(CommonOptionBag.JsonOutput) ? new JsonOutputWriter(this) : new HumanReadableOutputWriter(this);
 
     public string GetPrintPath(string path) => UseBaseNameForFileName ? Path.GetFileName(path) : path;
     public TextWriter ErrorWriter { get; set; }

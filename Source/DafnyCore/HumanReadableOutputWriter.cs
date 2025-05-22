@@ -22,19 +22,16 @@ public class HumanReadableOutputWriter(DafnyOptions options) : IDafnyOutputWrite
     return options.BaseOutputWriter.WriteLineAsync(message);
   }
 
+  public Task Raw(string message) {
+    return options.BaseOutputWriter.WriteAsync(message);
+  }
+
   public TextWriter StatusWriter() {
     return new StringWriterWithDispose(s => options.BaseOutputWriter.Write(s));
   }
 
-  class StringWriterWithDispose(Action<string> onDispose) : StringWriter {
-    protected override void Dispose(bool disposing) {
-      onDispose(ToString());
-      base.Dispose(disposing);
-    }
-  }
-
   public TextWriter ErrorWriter() {
-    return new StringWriterWithDispose(s => options.BaseOutputWriter.Write(s));
+    return new StringWriterWithDispose(s => options.ErrorWriter.Write(s));
   }
 
   public void WriteDiagnostic(DafnyDiagnostic diagnostic) {
@@ -100,5 +97,12 @@ public class HumanReadableOutputWriter(DafnyOptions options) : IDafnyOutputWrite
       default:
         throw new cce.UnreachableException();
     }
+  }
+}
+
+class StringWriterWithDispose(Action<string> onDispose) : StringWriter {
+  protected override void Dispose(bool disposing) {
+    onDispose(ToString());
+    base.Dispose(disposing);
   }
 }

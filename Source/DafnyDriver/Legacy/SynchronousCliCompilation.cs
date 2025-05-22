@@ -752,7 +752,7 @@ namespace Microsoft.Dafny {
       if (compiledCorrectly && options.RunAfterCompile) {
         if (hasMain) {
           if (options.Verbose) {
-            await outputWriter.Status("Running...");
+            await outputWriter.Status("Running...\n");
           }
 
           compiledCorrectly = await compiler.RunTargetProgram(dafnyProgramName, targetProgramText, callToMain,

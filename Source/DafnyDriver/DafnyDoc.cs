@@ -62,7 +62,7 @@ class DafnyDoc {
     var folderFiles = dafnyFolders.Select(folderPath =>
       FormatCommand.GetFilesForFolder(options, folderPath)).SelectMany(x => x);
     dafnyFiles = dafnyFiles.Concat(folderFiles).ToList();
-    await options.OutputWriter.Status($"Documenting {dafnyFiles.Count} files from {dafnyFolders.Count} folders\n");
+    await options.OutputWriter.Status($"Documenting {dafnyFiles.Count} files from {dafnyFolders.Count} folders");
     if (dafnyFiles.Count == 0) {
       return exitValue;
     }

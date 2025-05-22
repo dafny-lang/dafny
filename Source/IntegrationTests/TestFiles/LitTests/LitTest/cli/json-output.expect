@@ -1,0 +1,10 @@
+diagnosticsFormats.dfy(13,0): Warning: module-level const declarations are always non-instance, so the 'static' keyword is not allowed here
+diagnosticsFormats.dfy(14,17): Error: result of operation might violate newtype constraint for 'byte'
+diagnosticsFormats.dfy(17,16): Error: a precondition for this call could not be proved
+diagnosticsFormats.dfy(16,35): Related location: this is the precondition that could not be proved
+
+Dafny program verifier finished with 1 verified, 2 errors
+{"type":"diagnostic","value":{"location":{"filename":"diagnosticsFormats.dfy","filePath":"TestFiles/LitTests/LitTest/cli/diagnosticsFormats.dfy","uri":"file:///diagnosticsFormats.dfy","range":{"start":{"line":13,"character":0},"end":{"line":13,"character":6}}},"severity":2,"message":"module-level const declarations are always non-instance, so the \u0027static\u0027 keyword is not allowed here","source":"Parser","relatedInformation":[]}}
+{"type":"diagnostic","value":{"location":{"filename":"diagnosticsFormats.dfy","filePath":"TestFiles/LitTests/LitTest/cli/diagnosticsFormats.dfy","uri":"file:///diagnosticsFormats.dfy","range":{"start":{"line":14,"character":17},"end":{"line":14,"character":20}}},"severity":1,"message":"Error: result of operation might violate newtype constraint for \u0027byte\u0027","source":"Verifier","relatedInformation":[]}}
+{"type":"diagnostic","value":{"location":{"filename":"diagnosticsFormats.dfy","filePath":"TestFiles/LitTests/LitTest/cli/diagnosticsFormats.dfy","uri":"file:///diagnosticsFormats.dfy","range":{"start":{"line":17,"character":16},"end":{"line":17,"character":17}}},"severity":1,"message":"Error: a precondition for this call could not be proved","source":"Verifier","relatedInformation":[{"location":{"filename":"diagnosticsFormats.dfy","filePath":"TestFiles/LitTests/LitTest/cli/diagnosticsFormats.dfy","uri":"file:///diagnosticsFormats.dfy","range":{"start":{"line":16,"character":35},"end":{"line":16,"character":40}}},"message":"this is the precondition that could not be proved"}]}}
+{"type":"status","value":"\nDafny program verifier finished with 1 verified, 2 errors\n"}

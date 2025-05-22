@@ -6,43 +6,58 @@ using System.Linq;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Threading.Tasks;
-using DafnyCore;
-using VCGeneration;
 
 namespace Microsoft.Dafny;
 
 class JsonOutputWriter(DafnyOptions options) : IDafnyOutputWriter {
 
   public void Debug(string message) {
-    throw new System.NotImplementedException();
+    options.BaseOutputWriter.WriteLine(new JsonObject() {
+      ["type"] = "debug",
+      ["value"] = message
+    }.ToJsonString());
   }
 
   public void Exception(string message) {
-    throw new System.NotImplementedException();
+    options.BaseOutputWriter.WriteLine(new JsonObject() {
+      ["type"] = "exception",
+      ["value"] = message
+    }.ToJsonString());
   }
 
   public Task Status(string message) {
-    throw new System.NotImplementedException();
+    return WriteMessage(message, "status");
+  }
+
+  public Task Raw(string message) {
+    return WriteMessage(message, "raw");
+  }
+
+  private Task WriteMessage(string message, string type) {
+    return options.BaseOutputWriter.WriteLineAsync(new JsonObject() {
+      ["type"] = type,
+      ["value"] = message
+    }.ToJsonString());
   }
 
   public TextWriter StatusWriter() {
-    throw new System.NotImplementedException();
+    return new StringWriterWithDispose(s => WriteMessage(s, "status"));
   }
 
   public TextWriter ErrorWriter() {
-    throw new NotImplementedException();
+    return new StringWriterWithDispose(s => WriteMessage(s, "error"));
   }
 
   public void WriteDiagnostic(DafnyDiagnostic dafnyDiagnostic) {
-
     var data = new DiagnosticMessageData(dafnyDiagnostic.Source, dafnyDiagnostic.Level, dafnyDiagnostic.Range,
       dafnyDiagnostic.Level == ErrorLevel.Error ? "Error" : null, dafnyDiagnostic.Message,
       dafnyDiagnostic.RelatedInformation);
-    data.WriteJsonTo(options, options.BaseOutputWriter);
+    var jsonString = data.ToJsonMessage(options).ToJsonString(new JsonSerializerOptions { WriteIndented = false });
+    options.BaseOutputWriter.WriteLine(jsonString);
   }
 
   public Task Error(string message) {
-    throw new NotImplementedException();
+    return WriteMessage(message, "error");
   }
 }
 
@@ -105,28 +120,14 @@ record DiagnosticMessageData(MessageSource Source, ErrorLevel Level, TokenRange 
     };
   }
 
+  public JsonNode ToJsonMessage(DafnyOptions options) {
+    return new JsonObject() {
+      ["type"] = "diagnostic",
+      ["value"] = ToJson(options)
+    };
+  }
+
   public void WriteJsonTo(DafnyOptions options, TextWriter wr) {
-    wr.WriteLine(ToJson(options).ToJsonString(new JsonSerializerOptions { WriteIndented = false }));
-  }
-}
-
-public class DafnyJsonConsolePrinter(DafnyOptions options) : DafnyConsolePrinter(options) {
-  public override void ReportBplError(Boogie.IToken tok, string message, bool error, TextWriter tw, string? category = null) {
-    var level = error ? ErrorLevel.Error : ErrorLevel.Warning;
-    var dafnyToken = BoogieGenerator.ToDafnyToken(tok);
-    var relatedInformation = new List<DafnyRelatedInformation>();
-    relatedInformation.AddRange(
-      ErrorReporterExtensions.CreateDiagnosticRelatedInformationFor(dafnyToken, Options.Get(Snippets.ShowSnippets)));
-    new DiagnosticMessageData(MessageSource.Verifier, level, dafnyToken.ReportingRange, category, message, relatedInformation).WriteJsonTo(Options, tw);
-  }
-
-  public override void WriteErrorInformation(ErrorInformation errorInfo, TextWriter tw, bool skipExecutionTrace = true) {
-    var related = errorInfo.Aux.Where(e =>
-      !(skipExecutionTrace && (e.Category ?? "").Contains("Execution trace"))).Select(aei => new DafnyRelatedInformation(
-      BoogieGenerator.ToDafnyToken(aei.Tok).ReportingRange, aei.FullMsg)).ToList();
-    var dafnyToken = BoogieGenerator.ToDafnyToken(errorInfo.Tok);
-    new DiagnosticMessageData(MessageSource.Verifier, ErrorLevel.Error,
-      dafnyToken.ReportingRange, errorInfo.Category, errorInfo.Msg, related).WriteJsonTo(Options, tw);
-    tw.Flush();
+    wr.WriteLine(ToJsonMessage(options).ToJsonString(new JsonSerializerOptions { WriteIndented = false }));
   }
 }
