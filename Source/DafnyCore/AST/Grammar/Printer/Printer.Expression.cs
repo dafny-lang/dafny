@@ -1514,9 +1514,6 @@ namespace Microsoft.Dafny {
         var e = (FieldLocationExpression)expr;
         PrintExpr(e.Lhs, BindingStrengthSuffix, false, false, false, -1);
         wr.Write("`");
-        if (fle.DesignatesMethodInputParameter) {
-          wr.Write("`");
-        }
         wr.Write(e.Name);
       } else if (expr is FieldLocation) {
         var e = (FieldLocation)expr;

@@ -2117,7 +2117,7 @@ FrameExpression<out FrameExpression fe, bool allowLemma, bool allowLambda>
   ( FrameField<out id>          (. fieldName = id.val; .)
       (. 
          if (AcceptReferrers()) {
-           fe = new FrameExpression(id, new FieldLocationExpression(new ImplicitThisExpr(id), currentToken, null, new Name(t)), null);
+           fe = new FrameExpression(id, new FieldLocationExpression(new ImplicitThisExpr(id), currentToken, new Name(t)), null);
          } else {
            fe = new FrameExpression(id, new ImplicitThisExpr(id), fieldName);
          }
@@ -4509,12 +4509,7 @@ FieldLocationSuffix<ref Expression e>
   ( IF(IsIdentifier(la.kind))            (. Name name = null; .)
     NoDigitName<out name>
     (.
-      e = new FieldLocationExpression(e, backtick, null, name);
-    .)
-  | "`"                                  (. Name name = null; Token secondBacktick = t; .)
-    NoDigitName<out name>
-    (.
-      e = new FieldLocationExpression(e, backtick, secondBacktick, name);
+      e = new FieldLocationExpression(e, backtick, name);
     .)
   | "["               (. Token openParen = t;
                          var multipleIndices = new List<Expression>();

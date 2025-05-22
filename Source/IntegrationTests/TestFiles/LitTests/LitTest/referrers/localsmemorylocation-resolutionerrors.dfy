@@ -8,12 +8,12 @@ class Test {
   }
 }
 
-method LocalVars()
+method LocalVars(x: Test)
   ensures locals`i == locals`i // WF Error: Local variable names cannot appear in contracts
 {
   var i := new Test();
   var mem_j := locals`j; // j not declared (yet)
-  var k := i``x; // Error: Double backtick only available if the lhs is locals, to designate input parameter memory locations.
+  var k := LocalVars`x; // To designate the input parameter memory location, use locals`x
   var j := new Test();
 }
 
@@ -29,8 +29,8 @@ method Parameters(i: Test, ghost mem_i: (object, field)) returns (r: Test, ghost
 
 method CallParameters() {
   var test := new Test();
-  Parameters(test, locals`i); // locals`i is not defined. Did you mean in this context 'locals.``i?'
-  Parameters(test, locals``k); // locals``k is not defined. Available in context: locals``i, locals`test, locals``mem_i
+  Parameters(test, locals`i); // locals`i is not defined. Did you mean in this context 'Parameters`i?'
+  Parameters(test, Parameters`k); // Parameters`k is not defined. Available in context: Parameters`i, locals`test, Parameters`mem_i
 }
 
 function FunctionParametersAreNoLocalsMemoryLocation(i: Test): int {
@@ -42,7 +42,9 @@ method SingleParam(ghost mem_i: (object, field)) {
 }
 
 method CallSingleParam() {
-  SingleParam(locals``mem_j); // Did you mean locals``mem_i?
+  SingleParam(SingleParam`mem_j); // Did you mean SingleParam`mem_i?
+  SingleParam(CallSingleParam`mem_i); // Did you mean SingleParam`mem_i?
+  SingleParam(NonExistingMethod`mem_i); // Did you mean NonExistingMethod`mem_i?
 }
 
 function NoLocals(i: Test): (object, field) {

@@ -17,13 +17,8 @@ public class FieldLocationExpression : SuffixExpr, ICloneable<FieldLocationExpre
 
   public Token Backtick { get; }
 
-  [CanBeNull] public Token SecondBacktick { get; }
-
-  public bool DesignatesMethodInputParameter => SecondBacktick != null;
-
-  public FieldLocationExpression(Expression lhs, Token backtick, [CanBeNull] Token secondBacktick, Name name) : base(name.Origin, lhs) {
+  public FieldLocationExpression(Expression lhs, Token backtick, Name name) : base(name.Origin, lhs) {
     this.Backtick = backtick;
-    this.SecondBacktick = secondBacktick;
     this.Name = name;
   }
 
@@ -34,7 +29,6 @@ public class FieldLocationExpression : SuffixExpr, ICloneable<FieldLocationExpre
       ? cloner.CloneExpr(original.ResolvedExpression) : null;
     this.Name = original.Name;
     this.Backtick = original.Backtick;
-    this.SecondBacktick = original.SecondBacktick;
   }
 
   public FieldLocationExpression Clone(Cloner cloner) {

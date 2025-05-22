@@ -27,8 +27,8 @@ method Parameters(i: Test, ghost mem_i: (object, field)) returns (r: Test, ghost
   var mem_r2 := locals`r;
   mem_r := locals`r;
   r := i;
-  var _, _ := Parameters(i, locals``i) by {
-    assert locals``i != locals`i; // Recursive calls should have different memory locations
+  var _, _ := Parameters(i, Parameters`i) by {
+    assert Parameters`i != locals`i; // Recursive calls should have different memory locations
   }
 }
 
@@ -36,8 +36,8 @@ method CallParameters()
   decreases * {
   var test := new Test();
   var i := new Test();
-  var test2, memTest2 := Parameters(i := test, mem_i := locals``i) by {
-    assert locals``i != locals`i; // All fields are unique
+  var test2, memTest2 := Parameters(i := test, mem_i := Parameters`i) by {
+    assert Parameters`i != locals`i; // All fields are unique
   }
   assert memTest2 != locals`test2; // From the ensures of parameters.
 }
@@ -45,12 +45,20 @@ method CallParameters()
 method CallParametersNoLocalI()
   decreases * {
   var test := new Test();
-  var test2, memTest2 := Parameters(i := test, mem_i := locals``i);
+  var test2, memTest2 := Parameters(i := test, mem_i := Parameters`i);
 }
 
 method SingleParam(ghost mem_i: (object, field)) {
 }
 
 method CallSingleParam() {
-  SingleParam(locals``mem_i);
+  SingleParam(SingleParam`mem_i);
+}
+
+method OnlyStackMemoryLocations(t: Test, s: set<(object, field)>)
+  requires forall r <- s :: r.0 == locals
+  decreases *
+{
+  var alias_t := t;
+  OnlyStackMemoryLocations(t, s + {locals`alias_t, OnlyStackMemoryLocations`t});
 }
