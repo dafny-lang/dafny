@@ -14,7 +14,7 @@ datatype tReceiverInit = New(sender: nat, bit: bool)
 datatype tSenderState = New(messages: seq<nat>, current: nat, bit: bool)
 
 datatype tReceiverState = New(messages: seq<nat>, bit: bool) {
-  function This(): int { 3 }
+  function This(i: int): int { 3 }
 }
 
 datatype Event = Null(Null: ()) | halt(Null: ()) | eData(TData: tData) | eAck(TAck: tAck) | eTick(Null: ()) | eSenderInit(TSenderInit: tSenderInit) | eReceiverInit(TReceiverInit: tReceiverInit) | eSenderState(TSenderState: tSenderState) | eReceiverState(TReceiverState: tReceiverState)

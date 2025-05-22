@@ -10,6 +10,46 @@ using Type = Microsoft.Dafny.Type;
 namespace DafnyCore.Backends.Lean;
 
 public class LeanCodeGenerator(DafnyOptions options, ErrorReporter reporter) : SinglePassCodeGenerator(options, reporter) {
+  private struct StructureWriter(LeanCodeGenerator super, DatatypeDecl dt, ConcreteSyntaxTree functions) : IClassWriter {
+    public ConcreteSyntaxTree CreateMethod(MethodOrConstructor m, List<TypeArgumentInstantiation> typeArgs, bool createBody, bool forBodyInheritance, bool lookasideBody) {
+      throw new NotImplementedException();
+    }
+
+    public ConcreteSyntaxTree SynthesizeMethod(Method m, List<TypeArgumentInstantiation> typeArgs, bool createBody, bool forBodyInheritance, bool lookasideBody) {
+      throw new NotImplementedException();
+    }
+
+    public ConcreteSyntaxTree CreateFunction(string name, List<TypeArgumentInstantiation> typeArgs, List<Formal> formals, Type resultType, IOrigin tok, bool isStatic,
+      bool createBody, MemberDecl member, bool forBodyInheritance, bool lookasideBody) {
+      functions = functions.Write($"def {dt.GetCompileName(super.Options)}.{name}");
+      super.DeclareFormal(" ", "this", UserDefinedType.FromTopLevelDecl(tok, dt, new List<Type>()), tok, true, functions); // TODO should typeArguments always be empty?
+      super.WriteFormals(" ", formals, functions);
+      return functions.NewBlock(header: $": {super.TypeName(resultType, functions, tok)} :=", open: BlockStyle.Newline, close: BlockStyle.Nothing);
+    }
+
+    public ConcreteSyntaxTree CreateGetter(string name, TopLevelDecl enclosingDecl, Type resultType, IOrigin tok, bool isStatic, bool isConst, bool createBody, MemberDecl member, bool forBodyInheritance) {
+      throw new NotImplementedException();
+    }
+
+    public ConcreteSyntaxTree CreateGetterSetter(string name, Type resultType, IOrigin tok, bool createBody, MemberDecl member, out ConcreteSyntaxTree setterWriter, bool forBodyInheritance) {
+      throw new NotImplementedException();
+    }
+
+    public void DeclareField(string name, TopLevelDecl enclosingDecl, bool isStatic, bool isConst, Type type, IOrigin tok, string rhs, Field field) {
+      throw new NotImplementedException();
+    }
+
+    public void InitializeField(Field field, Type instantiatedFieldType, TopLevelDeclWithMembers enclosingClass) {
+      throw new NotImplementedException();
+    }
+
+    public ConcreteSyntaxTree ErrorWriter() {
+      return null;
+    }
+
+    public void Finish() { }
+  }
+  
   public override void EmitCallToMain(Method mainMethod, string baseName, ConcreteSyntaxTree callToMainTree) {
     throw new NotImplementedException();
   }
@@ -32,22 +72,19 @@ public class LeanCodeGenerator(DafnyOptions options, ErrorReporter reporter) : S
     throw new NotImplementedException();
   }
 
-  protected override ConcreteSyntaxTree CreateModule(ModuleDefinition module, string moduleName, bool isDefault,
-    ModuleDefinition externModule, string libraryName, Attributes moduleAttributes, ConcreteSyntaxTree wr) {
-    return wr;
+  protected override ConcreteSyntaxTree CreateModule(ModuleDefinition module, string moduleName, bool isDefault, ModuleDefinition externModule, string libraryName, Attributes moduleAttributes, ConcreteSyntaxTree wr) {
+    return wr.NewBlock($"namespace {moduleName}", $"end {moduleName}", BlockStyle.Newline, BlockStyle.Nothing);
   }
 
   protected override string GetHelperModuleName() {
     throw new NotImplementedException();
   }
 
-  protected override IClassWriter CreateClass(string moduleName, bool isExtern, string fullPrintName, List<TypeParameter> typeParameters, TopLevelDecl cls,
-    List<Type> superClasses, IOrigin tok, ConcreteSyntaxTree wr) {
+  protected override IClassWriter CreateClass(string moduleName, bool isExtern, string fullPrintName, List<TypeParameter> typeParameters, TopLevelDecl cls, List<Type> superClasses, IOrigin tok, ConcreteSyntaxTree wr) {
     return new NullClassWriter(this);
   }
 
-  protected override IClassWriter CreateTrait(string name, bool isExtern, List<TypeParameter> typeParameters, TraitDecl trait, List<Type> superClasses,
-    IOrigin tok, ConcreteSyntaxTree wr) {
+  protected override IClassWriter CreateTrait(string name, bool isExtern, List<TypeParameter> typeParameters, TraitDecl trait, List<Type> superClasses, IOrigin tok, ConcreteSyntaxTree wr) {
     throw new UnsupportedFeatureException(tok, Feature.Traits);
   }
 
@@ -56,44 +93,32 @@ public class LeanCodeGenerator(DafnyOptions options, ErrorReporter reporter) : S
   }
 
   protected override IClassWriter DeclareDatatype(DatatypeDecl dt, ConcreteSyntaxTree wr) {
-    // TODO look at DeclareDatatype in CsharpCodeGenerator
     if (dt.Ctors.Count > 1)
     {
       // Inductive
       Contract.Assert(dt.Members.Count == 0); // This is to make sure that the inductive datatype has no function members
       wr.WriteLine($"inductive {dt.GetCompileName(Options)} where");
       foreach (var ctor in dt.Ctors) {
-        wr.WriteLine($"| {ctor.GetCompileName(options)} {string.Join(" ", ctor.Formals.Select(formal => $"({formal.CompileName} : {TypeName(formal.Type, wr, formal.StartToken)})"))}");
+        wr.Write($"| {ctor.GetCompileName(options)}");
+        WriteFormals(" ", ctor.Formals, wr);
+        wr.WriteLine();
       }
+      return new NullClassWriter(this);
     }
     else
     {
       // Structure
-      // REVIEW: do function members of dt need to do explicit `this` passing? Yes they do - Siva
       var structName = dt.GetCompileName(Options);
-      wr.WriteLine($"structure {structName} where");
-      foreach (var ctor in dt.Ctors)
-      {
-        var record = string.Join("\n  ", ctor.Formals.Select(formal => $"{formal.CompileName} : {TypeName(formal.Type, wr, formal.StartToken)}"));
-        wr.WriteLine($"  {ctor.GetCompileName(Options)} ::\n  {record}\n");
+      Contract.Assert(dt.Ctors.Count == 1);
+      var ctor = dt.Ctors[0];
+      var wrFunctions = wr;
+      wr = wr.NewBlock(header: $"structure {structName} where", open: BlockStyle.Newline, close: BlockStyle.Newline);
+      wr = wr.WriteLine($"{ctor.GetCompileName(Options)} ::");
+      foreach (var field in ctor.Formals) {
+        wr = wr.WriteLine($"{field.GetOrCreateCompileName(currentIdGenerator)} : {TypeName(field.Type, wr, field.Origin)}");
       }
-      foreach (var member in dt.Members) {
-        switch (member) {
-          case Function f:
-            // TODO Handle the member functions
-            wr.Write($"def {structName}.{f.GetCompileName(options)} (this : {structName})");
-            wr.Write(string.Join("\n  ", f.Ins.Select(formal => $"({formal.CompileName} : {TypeName(formal.Type, wr, formal.StartToken)})")));
-            wr.WriteLine($" : {TypeName(f.ResultType, wr, f.StartToken)}");
-              //EmitExpr(f.Body, false, wr, null);
-            break;
-          default:
-            // Constant member of some kind
-            break;
-        }
-      }
+      return new StructureWriter(this, dt, wrFunctions);
     }
-    // TODO this might be incorrect
-    return new NullClassWriter(this);
   }
 
   protected override IClassWriter DeclareNewtype(NewtypeDecl nt, ConcreteSyntaxTree wr) {
@@ -151,7 +176,8 @@ public class LeanCodeGenerator(DafnyOptions options, ErrorReporter reporter) : S
   }
 
   protected override bool DeclareFormal(string prefix, string name, Type type, IOrigin tok, bool isInParam, ConcreteSyntaxTree wr) {
-    throw new NotImplementedException();
+    wr.Write($"{prefix}({name} : {TypeName(type, wr, tok)})");
+    return false;
   }
 
   protected override void DeclareLocalVar(string name, Type type, IOrigin tok, bool leaveRoomForRhs, string rhs, ConcreteSyntaxTree wr) {
