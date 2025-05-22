@@ -1239,11 +1239,13 @@ namespace Microsoft.Dafny {
 
     void ResolveClassLikeDecl(ClassLikeDecl classLikeDecl) {
       Contract.Requires(classLikeDecl != null);
+      currentClass = classLikeDecl;
       foreach (AttributedExpression invariant in classLikeDecl.Invariants) {
         ResolveAttributes(invariant, new ResolutionContext(classLikeDecl, false), false);
         ResolveExpression(invariant.E, new ResolutionContext(classLikeDecl, false));
         ConstrainTypeExprBool(invariant.E, "Invariant must be a boolean (got {0})");
       }
+      currentClass = null;
     }
 
     /// <summary>
