@@ -47,7 +47,6 @@ namespace Microsoft.Dafny {
     Task Status(string message);
     Task Raw(string message);
 
-
     /// <summary>
     /// Closing the writer will print a status message
     /// </summary>

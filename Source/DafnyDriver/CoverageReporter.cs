@@ -48,8 +48,13 @@ public class CoverageReporter {
       return actualPath;
     });
   }
+
   public CoverageReporter(DafnyOptions options) {
-    reporter = new ConsoleErrorReporter(options);
+    reporter = options.DiagnosticsFormat switch {
+      DafnyOptions.DiagnosticsFormats.PlainText => new ConsoleErrorReporter(options),
+      DafnyOptions.DiagnosticsFormats.JSON => new JsonConsoleErrorReporter(options),
+      _ => throw new ArgumentOutOfRangeException()
+    };
     this.options = options;
   }
 

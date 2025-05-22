@@ -126,8 +126,4 @@ record DiagnosticMessageData(MessageSource Source, ErrorLevel Level, TokenRange 
       ["value"] = ToJson(options)
     };
   }
-
-  public void WriteJsonTo(DafnyOptions options, TextWriter wr) {
-    wr.WriteLine(ToJsonMessage(options).ToJsonString(new JsonSerializerOptions { WriteIndented = false }));
-  }
 }

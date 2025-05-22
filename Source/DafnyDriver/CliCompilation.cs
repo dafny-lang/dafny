@@ -106,7 +106,11 @@ public class CliCompilation {
       throw new InvalidOperationException("Compilation was already started");
     }
 
-    var consoleReporter = new ConsoleErrorReporter(Options);
+    ErrorReporter consoleReporter = Options.DiagnosticsFormat switch {
+      DafnyOptions.DiagnosticsFormats.PlainText => new ConsoleErrorReporter(Options),
+      DafnyOptions.DiagnosticsFormats.JSON => new JsonConsoleErrorReporter(Options),
+      _ => throw new ArgumentOutOfRangeException()
+    };
 
     var internalExceptionsFound = 0;
     Compilation.Updates.Subscribe(ev => {

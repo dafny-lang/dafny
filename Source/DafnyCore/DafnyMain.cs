@@ -59,7 +59,12 @@ namespace Microsoft.Dafny {
       Contract.Requires(programName != null);
       Contract.Requires(files != null);
 
-      var reporter = new ConsoleErrorReporter(options);
+      ErrorReporter reporter = options.DiagnosticsFormat switch {
+        DafnyOptions.DiagnosticsFormats.PlainText => new ConsoleErrorReporter(options),
+        DafnyOptions.DiagnosticsFormats.JSON => new JsonConsoleErrorReporter(options),
+        _ => throw new ArgumentOutOfRangeException()
+      };
+
       var parseResult = await new ProgramParser(NullLogger<ProgramParser>.Instance, OnDiskFileSystem.Instance).
         ParseFiles(programName, files, reporter, CancellationToken.None);
       var program = parseResult.Program;
