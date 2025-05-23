@@ -3227,7 +3227,7 @@ namespace Microsoft.Dafny.Compilers {
       return v != TypeParameter.TPVariance.Non && t.IsTraitType;
     }
 
-    protected string/*!*/ TypeNames(List<Type/*!*/>/*!*/ types, ConcreteSyntaxTree wr, IOrigin tok) {
+    protected virtual string/*!*/ TypeNames(List<Type/*!*/>/*!*/ types, ConcreteSyntaxTree wr, IOrigin tok) {
       Contract.Requires(cce.NonNullElements(types));
       Contract.Ensures(Contract.Result<string>() != null);
       return Util.Comma(types, ty => TypeName(ty, wr, tok));
@@ -3437,7 +3437,7 @@ namespace Microsoft.Dafny.Compilers {
     /// Note that, while the values returned by the enumeration have the target representation of "bv.Type", they may
     /// not be legal "bv.Type" values -- that is, it could be that "bv.Type" has further constraints that need to be checked.
     /// </summary>
-    Type CompileCollection(BoundedPool bound, IVariable bv, bool inLetExprBody, bool includeDuplicates,
+    protected Type CompileCollection(BoundedPool bound, IVariable bv, bool inLetExprBody, bool includeDuplicates,
         Substituter/*?*/ su, out Action<ConcreteSyntaxTree> collectionWriter, out bool newtypeConversionsWereExplicit,
         ConcreteSyntaxTree wStmts,
         List<BoundedPool>/*?*/ bounds = null, List<BoundVar>/*?*/ boundVars = null, int boundIndex = 0) {

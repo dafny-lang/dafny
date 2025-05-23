@@ -275,7 +275,7 @@ namespace Microsoft.Dafny.Compilers {
                 var w = EmitCoercionIfNecessary(from: dtv.Arguments[i].Type, to: dtv.Ctor.Formals[i].Type.Subst(typeSubst),
                   toOrig: dtv.Ctor.Formals[i].Type, tok: dtv.Origin, wr: wrArgumentList);
                 EmitExpr(dtv.Arguments[i], inLetExprBody, w, wStmts);
-                sep = ", ";
+                sep = " ";
               }
             }
 

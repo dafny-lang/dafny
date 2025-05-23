@@ -85,13 +85,13 @@ datatype Message = New(target: MachineID, event: Event)
 
 datatype Handler = Return(state: Machine) | Send(message: Message, state: Machine) | Broadcast(messages: seq<Message>, state: Machine)
 
-newtype TickerID = nat
+type TickerID = nat
 
 datatype TickerState = Dummy
 
 datatype Ticker = New(state: TickerState)
 
-newtype SenderID = nat
+type SenderID = nat
 
 datatype SenderState = Init | Sending
 
@@ -121,7 +121,7 @@ datatype Sender = New(receiver: ReceiverID, messages: seq<nat>, current: nat, bi
   }
 }
 
-newtype ReceiverID = nat
+type ReceiverID = nat
 
 datatype ReceiverState = Init | Receiving
 
