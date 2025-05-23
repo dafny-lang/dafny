@@ -1,10 +1,13 @@
 using System;
 using System.IO;
+using System.Resources;
 using DafnyCore;
 
 namespace Microsoft.Dafny;
 
-public class ConsoleErrorReporter : BatchErrorReporter {
+public class ConsoleErrorReporter(DafnyOptions options) : BatchErrorReporter(options) {
+  private readonly ResourceManager resourceManager = new("diagnostics", typeof(ConsoleErrorReporter).Assembly);
+  
   private ConsoleColor ColorForLevel(ErrorLevel level) {
     switch (level) {
       case ErrorLevel.Error:
@@ -49,7 +52,7 @@ public class ConsoleErrorReporter : BatchErrorReporter {
     }
 
     foreach (var related in diagnostic.RelatedInformation) {
-      var innerMessage = related.Message;
+      var innerMessage = related.Message(resourceManager);
       if (string.IsNullOrEmpty(innerMessage)) {
         innerMessage = "Related location";
       } else {
@@ -71,8 +74,5 @@ public class ConsoleErrorReporter : BatchErrorReporter {
     }
 
     return true;
-  }
-
-  public ConsoleErrorReporter(DafnyOptions options) : base(options) {
   }
 }

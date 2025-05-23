@@ -80,8 +80,8 @@ public class ConstantField : Field, ICallable, ICanAutoRevealDependencies, ICanV
     Rhs = Rewriter.AddRevealStmtsToExpression(Rhs, addedReveals);
 
     if (addedReveals.Any()) {
-      Reporter.Message(MessageSource.Rewriter, ErrorLevel.Info, null, Origin,
-        AutoRevealFunctionDependencies.GenerateMessage(addedReveals.ToList()));
+      Reporter.Message(MessageSource.Rewriter, ErrorLevel.Info, "Verbatim", Origin,
+        [AutoRevealFunctionDependencies.GenerateMessage(addedReveals.ToList())]);
     }
   }
   public string Designator => WhatKind;

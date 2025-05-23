@@ -74,8 +74,7 @@ public class AssignSuchThatStmt : ConcreteAssignStatement, ICloneable<AssignSuch
     Contract.Requires(resolutionContext != null);
 
     if (!resolutionContext.IsGhost && resolver.Options.ForbidNondeterminism) {
-      resolver.Reporter.Error(MessageSource.Resolver, GeneratorErrors.ErrorId.c_assign_such_that_forbidden,
-        Origin, "assign-such-that statement forbidden by the --enforce-determinism option");
+      resolver.Reporter.Error(MessageSource.Resolver, GeneratorErrors.ErrorId.c_assign_such_that_forbidden, Origin, []);
     }
     base.GenResolve(resolver, resolutionContext);
 
@@ -118,16 +117,14 @@ public class AssignSuchThatStmt : ConcreteAssignStatement, ICloneable<AssignSuch
       foreach (var lhs in Lhss) {
         var gk = SingleAssignStmt.LhsIsToGhost_Which(lhs);
         if (gk != SingleAssignStmt.NonGhostKind.IsGhost) {
-          reporter.Error(MessageSource.Resolver, ResolutionErrors.ErrorId.r_no_assign_to_var_in_ghost, lhs,
-            "cannot assign to {0} in a ghost context", SingleAssignStmt.NonGhostKind_To_String(gk));
+          reporter.Error(MessageSource.Resolver, ResolutionErrors.ErrorId.r_no_assign_to_var_in_ghost, lhs, [SingleAssignStmt.NonGhostKind_To_String(gk)]);
         }
       }
     } else if (!mustBeErasable && AssumeToken == null && ExpressionTester.UsesSpecFeatures(Expr)) {
       foreach (var lhs in Lhss) {
         var gk = SingleAssignStmt.LhsIsToGhost_Which(lhs);
         if (gk != SingleAssignStmt.NonGhostKind.IsGhost) {
-          reporter.Error(MessageSource.Resolver, ResolutionErrors.ErrorId.r_no_assign_ghost_to_var, lhs,
-            "{0} cannot be assigned a value that depends on a ghost", SingleAssignStmt.NonGhostKind_To_String(gk));
+          reporter.Error(MessageSource.Resolver, ResolutionErrors.ErrorId.r_no_assign_ghost_to_var, lhs, [SingleAssignStmt.NonGhostKind_To_String(gk)]);
         }
       }
     }

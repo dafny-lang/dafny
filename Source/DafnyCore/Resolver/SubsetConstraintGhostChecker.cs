@@ -14,7 +14,7 @@ public class SubsetConstraintGhostChecker : ProgramTraverser {
 
     public override bool MessageCore(DafnyDiagnostic dafnyDiagnostic) {
       if (!Collected && dafnyDiagnostic.Level == ErrorLevel.Error) {
-        FirstCollectedMessage = dafnyDiagnostic.Message;
+        FirstCollectedMessage = dafnyDiagnostic.ErrorId; // TODO FIX
         FirstCollectedToken = dafnyDiagnostic.Range;
         Collected = true;
       }
@@ -98,13 +98,12 @@ public class SubsetConstraintGhostChecker : ProgramTraverser {
           new CodeContextWrapper(declWithConstraints, true));
         if (errorCollector.Collected) {
           relatedInformation.Add(new DafnyRelatedInformation(errorCollector.FirstCollectedToken,
-              "The constraint is not compilable because " + errorCollector.FirstCollectedMessage));
+              "ConstraintIsNotCompilableBecause", [errorCollector.FirstCollectedMessage]));
         }
       }
-      var message = $"{boundVar.Type} is a {declWithConstraints.WhatKind} and its constraint is not compilable, " +
-                    $"hence it cannot yet be used as the type of a bound variable in {e.WhatKind}.";
-      reporter.MessageCore(new DafnyDiagnostic(MessageSource.Resolver, null,
-        boundVar.ReportingRange, message, ErrorLevel.Error, relatedInformation));
+      reporter.MessageCore(new DafnyDiagnostic(MessageSource.Resolver, "ConstraintIsNotCompilable",
+        boundVar.ReportingRange, [boundVar.Type.ToString(), declWithConstraints.WhatKind, e.WhatKind], 
+        ErrorLevel.Error, relatedInformation));
     }
     return base.Traverse(e, field, parent);
   }

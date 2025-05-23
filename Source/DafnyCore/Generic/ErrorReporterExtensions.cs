@@ -16,7 +16,7 @@ public static class ErrorReporterExtensions {
         error.Msg += "\n" + auxiliaryInformation.FullMsg;
       } else if (auxiliaryInformation.Category == RelatedLocationCategory) {
         var auxiliaryToken = BoogieGenerator.ToDafnyToken(auxiliaryInformation.Tok);
-        relatedInformation.Add(new DafnyRelatedInformation(auxiliaryToken.ReportingRange, auxiliaryInformation.Msg));
+        relatedInformation.Add(new DafnyRelatedInformation(auxiliaryToken.ReportingRange, "verbatim", [auxiliaryInformation.Msg]));
         relatedInformation.AddRange(CreateDiagnosticRelatedInformationFor(auxiliaryToken, usingSnippets));
       } else {
         // The execution trace is an additional auxiliary which identifies itself with
