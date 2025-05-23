@@ -612,6 +612,14 @@ public class TokenNewIndentCollector : TopDownVisitor<int> {
     return true;
   }
 
+  private int InferIndentFromHowFirstNodeOnNewLine(Node firstLhsOrRhs, int defaultIndent) {
+    if (firstLhsOrRhs == null) {
+      return defaultIndent;
+    }
+
+    return GetNewTokenVisualIndent(firstLhsOrRhs.StartToken, defaultIndent);
+  }
+
   public bool SetIndentUpdateStmt(ConcreteAssignStatement stmt, int indent, bool inner) {
     var ownedTokens = stmt.OwnedTokens.ToList();
     var opIndentDefault =
@@ -621,7 +629,8 @@ public class TokenNewIndentCollector : TopDownVisitor<int> {
     var startToken = stmt.StartToken;
     int startAssignmentIndent = inner ? indent + SpaceTab : indent;
     int afterStartIndent = indent + SpaceTab;
-    var rightIndent = indent + SpaceTab;
+
+    var leftIndent = InferIndentFromHowFirstNodeOnNewLine(stmt.Lhss.FirstOrDefault(), indent + SpaceTab);
     var commaIndent = indent + SpaceTab;
     SetIndentations(startToken, startAssignmentIndent, startAssignmentIndent, afterStartIndent);
 
@@ -635,27 +644,11 @@ public class TokenNewIndentCollector : TopDownVisitor<int> {
     // is aligned with the beginning of the declaration. 
     var firstRhsOneSingleLine = rhss.Count >= 1 && rhss[0].StartToken.line == rhss[0].EndToken.line;
     var assignmentOperator = ownedTokens.Find(token => token.val == ":=" || token.val == ":-" || token.val == ":|");
-    if (assignmentOperator == null) {
-      rightIndent = startAssignmentIndent;
-    }
+    var rightIndent =
+      InferIndentFromHowFirstNodeOnNewLine(stmt.Lhss.FirstOrDefault(),
+        assignmentOperator == null && !inner ? indent : indent + SpaceTab);
 
-    void InferRightIndentFromRhs() {
-      if (!rhss.Any()) {
-        return;
-      }
-
-      var rhs = rhss[0];
-      if (ReduceBlockiness) {
-        rightIndent = indent;
-        return;
-      }
-
-      rightIndent = GetNewTokenVisualIndent(rhs.StartToken, rightIndent);
-    }
-
-    if (!ownedTokens.Any(token => token.val == ":=" || token.val == ":-" || token.val == ":|")) {
-      InferRightIndentFromRhs();
-    }
+    bool inLHS = true;
 
     foreach (var token in ownedTokens) {
       if (SetIndentLabelTokens(token, startAssignmentIndent)) {
@@ -664,7 +657,7 @@ public class TokenNewIndentCollector : TopDownVisitor<int> {
 
       switch (token.val) {
         case ",":
-          SetDelimiterSpeciallyIndentedRegions(token, commaIndent, rightIndent);
+          SetDelimiterSpeciallyIndentedRegions(token, commaIndent, inLHS ? leftIndent : rightIndent);
           break;
         case ":|":
         case ":-":
@@ -687,6 +680,8 @@ public class TokenNewIndentCollector : TopDownVisitor<int> {
               rightIndent = afterStartIndent;
               SetIndentations(assignmentOperator, afterStartIndent, opIndentDefault, rightIndent);
             }
+
+            inLHS = false;
 
             break;
           }

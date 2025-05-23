@@ -96,4 +96,7 @@ public class TokenRange(Token startToken, Token? endToken) : IComparable<TokenRa
   public override int GetHashCode() {
     return HashCode.Combine(StartToken.GetHashCode(), EndToken?.GetHashCode() ?? 0);
   }
+  public bool Contains(TokenRange contained) {
+    return StartToken.LessThanOrEquals(contained.StartToken) && contained.EndToken.LessThanOrEquals(EndToken);
+  }
 }
