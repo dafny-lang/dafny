@@ -163,3 +163,33 @@ module DifferentAntecedents {
   ghost predicate RightmostMax(a: array<int>, lo: int, x: int, hi: int)
   function F(x: int): int
 }
+
+module TestMatch {
+  datatype List<X> = Nil | Cons(X, List<X>) | SomethingElse(bool)
+
+  method Test(b: array<int>, lo: int, hi: int, n: int, xss: List<List<(int, int)>>)
+    requires 0 <= lo < hi <= b.Length
+    requires lo + 2 == hi
+    requires b[lo] == 15 && b[lo + 1] == 98
+    requires RightmostMax(b, 16, 98, n)
+  {
+    // This quantifier would need a rewrite in order to obtain a decent trigger, but
+    // we currently don't support rewrites in `match` expressions. Therefore, we instead
+    // get a trigger warning for this quantifier.
+    assert forall u :: // warning
+      match xss
+      case Cons(Cons((y, z), _), _) =>
+        y < u < z ==> lo == y && z == hi ==> RightmostMax(b, b[u-1] + 1, b[u], n) || forall xx :: F(xx) == b[u-1]
+      case _ =>
+        lo < u < hi ==> RightmostMax(b, b[u-1] + 1, b[u], n) || forall xx :: F(xx) == b[u-1];
+    assert forall u {:trigger} :: // suppress the warning
+      match xss
+      case Cons(Cons((y, z), _), _) =>
+        y < u < z ==> lo == y && z == hi ==> RightmostMax(b, b[u-1] + 1, b[u], n) || forall xx :: F(xx) == b[u-1]
+      case _ =>
+        lo < u < hi ==> RightmostMax(b, b[u-1] + 1, b[u], n) || forall xx :: F(xx) == b[u-1];
+  }
+
+  ghost predicate RightmostMax(a: array<int>, lo: int, x: int, hi: int)
+  function F(x: int): int
+}

@@ -1,3 +1,4 @@
+git-issue-6158a.dfy(179,11): Warning: Triggers were added to this quantifier that may introduce matching loops, which may cause brittle verification. To silence this warning, add an explicit trigger using the {:trigger} attribute. For more information, see the section on quantifier instantiation rules in the reference manual.
 git-issue-6158a.dfy(38,18): Error: this loop invariant could not be proved on entry
  Related message: loop invariant violation
 git-issue-6158a.dfy(40,28): Error: this loop invariant could not be proved on entry
@@ -10,4 +11,4 @@ git-issue-6158a.dfy(127,17): Error: this loop invariant could not be proved on e
  Related message: loop invariant violation
 git-issue-6158a.dfy(133,4): Error: assertion might not hold
 
-Dafny program verifier finished with 11 verified, 6 errors
+Dafny program verifier finished with 13 verified, 6 errors
