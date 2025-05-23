@@ -62,7 +62,7 @@ namespace Microsoft.Dafny {
     private void ActOnAdvice(PreTypeProxy proxy, PreTypeResolver preTypeResolver) {
       // Note, the following debug print may come out _before_ the "Type inference state ..." header, if ActOnAdvice is called
       // during what is only a partial constraint solving round.
-      preTypeResolver.Constraints.DebugPrint($"    DEBUG: acting on advice, setting {proxy} := {WhatString}");
+      preTypeResolver.Constraints.DebugPrint($"    acting on advice, setting {proxy} := {WhatString}");
 
       var adviceType = GetAdviceType(preTypeResolver);
       proxy.Set(adviceType);

@@ -650,7 +650,7 @@ namespace Microsoft.Dafny {
         if (subArguments != null) {
           // use B :> A
           var aa = new DPreType(normalizedB.Decl, subArguments, normalizedA.PrintablePreType);
-          Constraints.DebugPrint($"    DEBUG: turning ~~ into {b} :> {aa}");
+          Constraints.DebugPrint($"    turning ~~ into {b} :> {aa}");
           Constraints.AddSubtypeConstraint(b, aa, tok, errorFormatString, null, reportErrors);
           return true;
         }
@@ -658,7 +658,7 @@ namespace Microsoft.Dafny {
         if (subArguments != null) {
           // use A :> B
           var bb = new DPreType(normalizedA.Decl, subArguments, normalizedB.PrintablePreType);
-          Constraints.DebugPrint($"    DEBUG: turning ~~ into {a} :> {bb}");
+          Constraints.DebugPrint($"    turning ~~ into {a} :> {bb}");
           Constraints.AddSubtypeConstraint(a, bb, tok, errorFormatString, null, reportErrors);
           return true;
         }
@@ -677,12 +677,12 @@ namespace Microsoft.Dafny {
       if (!allowBaseTypeCast) {
         if ((normalizedA != null && normalizedA.IsLeafType()) || (normalizedB != null && normalizedB.IsRootType())) {
           // use B :> A
-          Constraints.DebugPrint($"    DEBUG: turning ~~ into {b} :> {a}");
+          Constraints.DebugPrint($"    turning ~~ into {b} :> {a}");
           Constraints.AddSubtypeConstraint(b, a, tok, errorFormatString, null, reportErrors);
           return true;
         } else if ((normalizedA != null && normalizedA.IsRootType()) || (normalizedB != null && normalizedB.IsLeafType())) {
           // use A :> B
-          Constraints.DebugPrint($"    DEBUG: turning ~~ into {a} :> {b}");
+          Constraints.DebugPrint($"    turning ~~ into {a} :> {b}");
           Constraints.AddSubtypeConstraint(a, b, tok, errorFormatString, null, reportErrors);
           return true;
         }

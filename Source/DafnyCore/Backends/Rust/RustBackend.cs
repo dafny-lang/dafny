@@ -93,7 +93,7 @@ public class RustBackend : DafnyExecutableBackend {
   }
 
 
-  public override async Task<bool> OnPostGenerate(string dafnyProgramName, string targetDirectory, TextWriter outputWriter) {
+  public override async Task<bool> OnPostGenerate(string dafnyProgramName, string targetDirectory, IDafnyOutputWriter outputWriter) {
     foreach (var keyValue in ImportFilesMapping(dafnyProgramName)) {
       var fullRustExternName = keyValue.Key;
       var expectedRustName = keyValue.Value;
@@ -122,7 +122,7 @@ public class RustBackend : DafnyExecutableBackend {
   public override async Task<(bool Success, object CompilationResult)> CompileTargetProgram(string dafnyProgramName,
     string targetProgramText,
     string callToMain /*?*/, string targetFilename /*?*/, ReadOnlyCollection<string> otherFileNames,
-    bool runAfterCompile, TextWriter outputWriter) {
+    bool runAfterCompile, IDafnyOutputWriter outputWriter) {
     var targetDirectory = Path.GetDirectoryName(Path.GetDirectoryName(targetFilename));
     ImportRuntimeTo(targetDirectory);
 
@@ -142,7 +142,8 @@ public class RustBackend : DafnyExecutableBackend {
 
     var psi = PrepareProcessStartInfo("cargo", args);
     psi.WorkingDirectory = targetDirectory;
-    return (0 == await RunProcess(psi, outputWriter, outputWriter, "Error while compiling Rust files."), null);
+    var sw = outputWriter.StatusWriter();
+    return (0 == await RunProcess(psi, sw, sw, "Error while compiling Rust files."), null);
   }
 
   private static async Task WriteCargoFile(string callToMain, string targetFilename, string targetDirectory) {
@@ -212,11 +213,13 @@ public class RustBackend : DafnyExecutableBackend {
 
   public override async Task<bool> RunTargetProgram(string dafnyProgramName, string targetProgramText,
     string callToMain, /*?*/
-    string targetFilename, ReadOnlyCollection<string> otherFileNames, object compilationResult, TextWriter outputWriter,
-    TextWriter errorWriter) {
+    string targetFilename, ReadOnlyCollection<string> otherFileNames, object compilationResult,
+    IDafnyOutputWriter outputWriter) {
     Contract.Requires(targetFilename != null || otherFileNames.Count == 0);
     var psi = PrepareProcessStartInfo(ComputeExeName(targetFilename), Options.MainArgs);
-    return 0 == await RunProcess(psi, outputWriter, errorWriter);
+    await using var sw = outputWriter.StatusWriter();
+    await using var ew = outputWriter.ErrorWriter();
+    return 0 == await RunProcess(psi, sw, ew);
   }
 
   public RustBackend(DafnyOptions options) : base(options) {

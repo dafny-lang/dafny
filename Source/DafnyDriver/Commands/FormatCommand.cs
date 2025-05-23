@@ -118,7 +118,7 @@ Use '--print' to output the content of the formatted files instead of overwritin
             }
 
             if (doCheck && (!doPrint || options.Verbose)) {
-              await options.OutputWriter.WriteLineAsync(
+              await options.OutputWriter.Status(
                 $"The file {options.GetPrintPath(dafnyFile.FilePath)} needs to be formatted");
             }
 
@@ -135,7 +135,7 @@ Use '--print' to output the content of the formatted files instead of overwritin
           emptyFiles.Add(options.GetPrintPath(dafnyFile.FilePath));
         }
         if (doPrint) {
-          await options.OutputWriter.WriteAsync(result);
+          await options.OutputWriter.Code(result);
         }
       }
 
@@ -163,12 +163,12 @@ Use '--print' to output the content of the formatted files instead of overwritin
     reportMsg = filesNeedFormatting + reportMsg;
 
     if (doCheck) {
-      await options.OutputWriter.WriteLineAsync(neededFormatting > 0
+      await options.OutputWriter.Status(neededFormatting > 0
         ? $"Error: {reportMsg}"
         : "All files are correctly formatted");
     } else if (failedToParseFiles.Count > 0 || options.Verbose) {
       // We don't display anything if we just format files without verbosity and there was no parse error
-      await options.OutputWriter.WriteLineAsync($"{reportMsg}");
+      await options.OutputWriter.Status($"{reportMsg}");
     }
 
     return exitValue;

@@ -113,6 +113,7 @@ The `text` format also includes a more detailed breakdown of what assertions app
   public static readonly Option<bool> JsonDiagnostics = new("--json-diagnostics", @"Deprecated. Return diagnostics in a JSON format.") {
     IsHidden = true
   };
+  public static readonly Option<bool> JsonOutput = new("--json-output", @"Return output in a JSON format.");
 
   public static readonly Option<IList<FileInfo>> Libraries = new("--library",
     @"
@@ -658,6 +659,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
     OptionRegistry.RegisterOption(Prelude, OptionScope.Cli);
     OptionRegistry.RegisterOption(Target, OptionScope.Cli);
     OptionRegistry.RegisterOption(Verbose, OptionScope.Cli);
+    OptionRegistry.RegisterOption(JsonOutput, OptionScope.Cli);
     OptionRegistry.RegisterOption(JsonDiagnostics, OptionScope.Cli);
     OptionRegistry.RegisterOption(QuantifierSyntax, OptionScope.Module);
     OptionRegistry.RegisterOption(SpillTranslation, OptionScope.Cli);
