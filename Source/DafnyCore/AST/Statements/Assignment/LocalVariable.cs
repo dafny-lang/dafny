@@ -28,6 +28,7 @@ public class LocalVariable : NodeWithOrigin, IVariable, IAttributeBearingDeclara
     name = original.Name;
     SyntacticType = cloner.CloneType(original.SyntacticType);
     IsGhost = original.IsGhost;
+    localField = localField != null ? cloner.CloneField(localField) : null;
 
     if (cloner.CloneResolvedFields) {
       type = original.type;
@@ -147,8 +148,6 @@ public class LocalVariable : NodeWithOrigin, IVariable, IAttributeBearingDeclara
   }
 
   private Field? localField;
-
-  public Field? LocalField => localField;
 
   public Field GetLocalField(MethodOrConstructor methodOrConstructor) {
     if (localField == null) {

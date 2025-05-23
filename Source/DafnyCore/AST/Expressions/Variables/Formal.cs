@@ -48,7 +48,7 @@ public class Formal : NonglobalVariable {
     IsNameOnly = original.IsNameOnly;
     IsOlder = original.IsOlder;
     NameForCompilation = original.NameForCompilation;
-    localField = original.LocalField;
+    localField = localField != null ? cloner.CloneField(localField) : null;
   }
 
   public bool HasName => !Name.StartsWith("#");
@@ -65,8 +65,6 @@ public class Formal : NonglobalVariable {
   public override IEnumerable<INode> PreResolveChildren => Children;
 
   private Field? localField;
-
-  public Field? LocalField => localField;
 
   public Field GetLocalField(MethodOrConstructor methodOrConstructor) {
     if (localField == null) {

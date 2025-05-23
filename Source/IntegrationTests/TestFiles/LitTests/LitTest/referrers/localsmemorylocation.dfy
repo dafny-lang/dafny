@@ -1,7 +1,7 @@
 // RUN: %verify --referrers --type-system-refresh "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
-class Test {
+class TestLocals {
   var x: int
   constructor() {
     x := 0;
@@ -9,8 +9,8 @@ class Test {
 }
 
 method LocalVars() {
-  var i := new Test();
-  var j := new Test();
+  var i := new TestLocals();
+  var j := new TestLocals();
   
   var mem_i := locals`i;
   assert mem_i == locals`i;
@@ -18,7 +18,7 @@ method LocalVars() {
   assert locals`j != j`x;
 }
 
-method Parameters(i: Test, ghost mem_i: (object, field)) returns (r: Test, ghost mem_r: (object, field))
+method Parameters(i: TestLocals, ghost mem_i: (object, field)) returns (r: TestLocals, ghost mem_r: (object, field))
   decreases *
   requires mem_i == locals`i // We want to be able to express memory locations on parameters in contracts
   ensures mem_r == locals`r  // Same here
@@ -34,8 +34,8 @@ method Parameters(i: Test, ghost mem_i: (object, field)) returns (r: Test, ghost
 
 method CallParameters()
   decreases * {
-  var test := new Test();
-  var i := new Test();
+  var test := new TestLocals();
+  var i := new TestLocals();
   var test2, memTest2 := Parameters(i := test, mem_i := Parameters`i) by {
     assert Parameters`i != locals`i; // All fields are unique
   }
@@ -44,7 +44,7 @@ method CallParameters()
 
 method CallParametersNoLocalI()
   decreases * {
-  var test := new Test();
+  var test := new TestLocals();
   var test2, memTest2 := Parameters(i := test, mem_i := Parameters`i);
 }
 
@@ -55,7 +55,7 @@ method CallSingleParam() {
   SingleParam(SingleParam`mem_i);
 }
 
-method OnlyStackMemoryLocations(t: Test, s: set<(object, field)>)
+method OnlyStackMemoryLocations(t: TestLocals, s: set<(object, field)>)
   requires forall r <- s :: r.0 == locals
   decreases *
 {
