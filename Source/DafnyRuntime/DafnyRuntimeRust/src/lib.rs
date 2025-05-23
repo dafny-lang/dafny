@@ -3307,7 +3307,7 @@ impl<T: ?Sized> Object<T> {
         let _previous_strong_count = ::std::hint::black_box(Rc::strong_count(&rebuilt));
         ::std::hint::black_box(increment_strong_count(pt));
         let _new_strong_count = ::std::hint::black_box(Rc::strong_count(&rebuilt));
-        //#[cfg(not(feature = "sync"))]
+        #[cfg(not(feature = "sync"))]
         assert_eq!(_new_strong_count, _previous_strong_count + 1); // Will panic if not. Asserted only in sequential mode
         Object(Some(rebuilt))
     }
