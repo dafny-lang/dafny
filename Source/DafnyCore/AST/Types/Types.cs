@@ -1284,7 +1284,7 @@ public abstract class Type : NodeWithOrigin {
     Contract.Requires(systemModuleManager != null);
     var j = JoinX(a, b, systemModuleManager);
     if (systemModuleManager.Options.Get(CommonOptionBag.TypeInferenceDebug)) {
-      _ = systemModuleManager.Options.OutputWriter.Status($"DEBUG: Join( {a}, {b} ) = {j}");
+      systemModuleManager.Options.OutputWriter.Debug($"Join( {a}, {b} ) = {j}");
     }
     return j;
   }
@@ -1505,7 +1505,7 @@ public abstract class Type : NodeWithOrigin {
       }
     }
     if (systemModuleManager.Options.Get(CommonOptionBag.TypeInferenceDebug)) {
-      _ = systemModuleManager.Options.OutputWriter.Status($"DEBUG: Meet( {a}, {b} ) = {j}");
+      systemModuleManager.Options.OutputWriter.Debug($"Meet( {a}, {b} ) = {j}");
     }
     return j;
   }

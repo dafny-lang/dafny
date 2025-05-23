@@ -36,16 +36,34 @@ namespace Microsoft.Dafny {
   }
 
   public interface IDafnyOutputWriter {
+
+    /// <summary>
+    /// Provide debugging information that's useful to a Dafny language developer
+    /// </summary>
     void Debug(string message);
 
+    /// <summary>
+    /// Provide debugging information that's useful to a Dafny language developer
+    /// </summary>
     [StringFormatMethod(nameof(message))]
     void Debug(string message, params object[] arguments) {
       Debug(string.Format(message, arguments));
     }
 
+    /// <summary>
+    /// When Dafny reaches a bad state, this can be used to provide debugging information.  
+    /// </summary>
     void Exception(string message);
+
+    /// <summary>
+    /// Provide progress updates and summary information
+    /// </summary>
     Task Status(string message);
-    Task Raw(string message);
+
+    /// <summary>
+    /// Output a piece of Dafny code
+    /// </summary>
+    Task Code(string message);
 
     /// <summary>
     /// Closing the writer will print a status message
@@ -57,7 +75,16 @@ namespace Microsoft.Dafny {
     /// </summary>
     TextWriter ErrorWriter();
 
+    /// <summary>
+    /// Emit a diagnostic
+    /// </summary>
     void WriteDiagnostic(DafnyDiagnostic diagnostic);
+
+    /// <summary>
+    /// Like Status, but uses stderr if possible
+    /// </summary>
+    /// <param name="message"></param>
+    /// <returns></returns>
     Task Error(string message);
   }
 

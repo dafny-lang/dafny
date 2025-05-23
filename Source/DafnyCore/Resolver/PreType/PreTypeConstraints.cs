@@ -347,7 +347,7 @@ namespace Microsoft.Dafny {
         }
         var pt = new DPreType(best, best.TypeArgs.ConvertAll(_ => PreTypeResolver.CreatePreTypeProxy()));
         var constraint = constraintOrigins[proxy];
-        DebugPrint($"    DEBUG: head decision {proxy} := {pt}");
+        DebugPrint($"    head decision {proxy} := {pt}");
         AddEqualityConstraint(proxy, pt, constraint.tok, constraint.ErrorFormatString, null, constraint.ReportErrors); // TODO: the message could be made more specific now (perhaps)
         anythingChanged = true;
       }

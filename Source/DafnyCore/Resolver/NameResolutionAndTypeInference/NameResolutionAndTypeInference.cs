@@ -261,7 +261,7 @@ namespace Microsoft.Dafny {
       }
 
       var sb = new StringBuilder();
-      sb.AppendLine($"DEBUG: ---------- type constraints ---------- {lbl} {(lbl == 0 && currentMethod != null ? currentMethod.Name : "")}");
+      sb.AppendLine($"---------- type constraints ---------- {lbl} {(lbl == 0 && currentMethod != null ? currentMethod.Name : "")}");
       foreach (var constraint in AllTypeConstraints) {
         var super = constraint.Super.Normalize();
         var sub = constraint.Sub.Normalize();
@@ -272,7 +272,7 @@ namespace Microsoft.Dafny {
       }
       sb.AppendLine();
       if (lbl % 2 == 1) {
-        sb.AppendLine("DEBUG: --------------------------------------");
+        sb.AppendLine("--------------------------------------");
       }
 
       Options.OutputWriter.Debug(sb.ToString());
@@ -4598,7 +4598,7 @@ namespace Microsoft.Dafny {
         return t;  // simplification did the trick
       }
       if (Options.Get(CommonOptionBag.TypeInferenceDebug)) {
-        Options.OutputWriter.Debug("DEBUG: Member selection{3}:  {1} :> {0} :> {2}", t,
+        Options.OutputWriter.Debug("Member selection{3}:  {1} :> {0} :> {2}", t,
           Util.Comma(proxy.SupertypesKeepConstraints, su => su.ToString()),
           Util.Comma(proxy.SubtypesKeepConstraints, su => su.ToString()),
           memberName == null ? "" : " (" + memberName + ")");

@@ -135,7 +135,7 @@ Use '--print' to output the content of the formatted files instead of overwritin
           emptyFiles.Add(options.GetPrintPath(dafnyFile.FilePath));
         }
         if (doPrint) {
-          await options.OutputWriter.Raw(result);
+          await options.OutputWriter.Code(result);
         }
       }
 

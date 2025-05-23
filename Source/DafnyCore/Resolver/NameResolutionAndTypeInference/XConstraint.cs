@@ -558,7 +558,7 @@ public class XConstraint {
     }
     if (t is CollectionType) {
       if (options.Get(CommonOptionBag.TypeInferenceDebug)) {
-        options.OutputWriter.Debug($"DEBUG: FindCollectionType({t}) = {((CollectionType)t).Arg}");
+        options.OutputWriter.Debug($"FindCollectionType({t}) = {((CollectionType)t).Arg}");
       }
       return ((CollectionType)t).Arg;
     }

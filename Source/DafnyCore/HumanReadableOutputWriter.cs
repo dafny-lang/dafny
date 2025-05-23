@@ -22,7 +22,7 @@ public class HumanReadableOutputWriter(DafnyOptions options) : IDafnyOutputWrite
     return options.BaseOutputWriter.WriteLineAsync(message);
   }
 
-  public Task Raw(string message) {
+  public Task Code(string message) {
     return options.BaseOutputWriter.WriteAsync(message);
   }
 

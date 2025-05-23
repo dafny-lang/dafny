@@ -29,8 +29,8 @@ class JsonOutputWriter(DafnyOptions options) : IDafnyOutputWriter {
     return WriteMessage(message, "status");
   }
 
-  public Task Raw(string message) {
-    return WriteMessage(message, "raw");
+  public Task Code(string message) {
+    return WriteMessage(message, "code");
   }
 
   private Task WriteMessage(string message, string type) {
