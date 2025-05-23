@@ -3304,10 +3304,11 @@ impl<T: ?Sized> Object<T> {
         // SAFETY: Not guaranteed unfortunately. But looking at the sources of from_raw as of today 10/24/2024
         // it will will correctly rebuilt the Rc
         let rebuilt = ::std::hint::black_box(unsafe { Rc::from_raw(pt) });
-        let previous_strong_count = ::std::hint::black_box(Rc::strong_count(&rebuilt));
+        let _previous_strong_count = ::std::hint::black_box(Rc::strong_count(&rebuilt));
         ::std::hint::black_box(increment_strong_count(pt));
-        let new_strong_count = ::std::hint::black_box(Rc::strong_count(&rebuilt));
-        assert_eq!(new_strong_count, previous_strong_count + 1); // Will panic if not
+        let _new_strong_count = ::std::hint::black_box(Rc::strong_count(&rebuilt));
+        #[cfg(not(feature = "sync"))]
+        assert_eq!(_new_strong_count, _previous_strong_count + 1); // Will panic if not. Asserted only in sequential mode
         Object(Some(rebuilt))
     }
 }
