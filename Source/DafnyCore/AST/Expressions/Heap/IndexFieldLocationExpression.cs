@@ -31,7 +31,7 @@ public class IndexFieldLocationExpression : SuffixExpr, ICloneable<IndexFieldLoc
   public IndexFieldLocationExpression(Cloner cloner, IndexFieldLocationExpression original) : base(cloner, original) {
     Contract.Requires(original != null);
     Contract.Ensures(type == null);
-    this.Indices = original.Indices;
+    this.Indices = original.Indices.Select(cloner.CloneExpr).ToList();
     this.OpenParen = original.OpenParen;
     this.CloseParen = original.CloseParen;
     this.ResolvedExpression = original.ResolvedExpression != null

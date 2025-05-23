@@ -8,7 +8,7 @@ namespace Microsoft.Dafny;
 public class Formal : NonglobalVariable {
   public Attributes? Attributes { get; set; }
 
-  public bool InParam;  // true to in-parameter, false for out-parameter
+  public bool InParam; // true to in-parameter, false for out-parameter
   public override bool IsMutable => !InParam;
   public bool IsOld;
   public Expression? DefaultValue;
@@ -24,7 +24,8 @@ public class Formal : NonglobalVariable {
   }
 
   [SyntaxConstructor]
-  public Formal(IOrigin origin, Name nameNode, Type? syntacticType, bool inParam, bool isGhost, Expression? defaultValue,
+  public Formal(IOrigin origin, Name nameNode, Type? syntacticType, bool inParam, bool isGhost,
+    Expression? defaultValue,
     Attributes? attributes = null,
     bool isOld = false, bool isNameOnly = false, bool isOlder = false, string? nameForCompilation = null)
     : base(origin, nameNode, syntacticType, isGhost) {
@@ -47,6 +48,7 @@ public class Formal : NonglobalVariable {
     IsNameOnly = original.IsNameOnly;
     IsOlder = original.IsOlder;
     NameForCompilation = original.NameForCompilation;
+    localField = localField != null ? cloner.CloneField(localField) : null;
   }
 
   public bool HasName => !Name.StartsWith("#");
@@ -61,6 +63,21 @@ public class Formal : NonglobalVariable {
     (DefaultValue != null ? new List<Node> { DefaultValue } : Enumerable.Empty<Node>()).Concat(base.Children);
 
   public override IEnumerable<INode> PreResolveChildren => Children;
+
+  private Field? localField;
+
+  public Field GetLocalField(MethodOrConstructor methodOrConstructor) {
+    if (localField == null) {
+      localField = new SpecialField(Origin, Name, SpecialField.ID.UseIdParam, (object)Name, true,
+        false, false, Type, null) {
+        EnclosingClass = methodOrConstructor.EnclosingClass,
+        EnclosingMethod = methodOrConstructor
+      };
+      localField.InheritVisibility(methodOrConstructor);
+    }
+
+    return localField;
+  }
 }
 
 /// <summary>

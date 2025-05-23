@@ -1525,9 +1525,22 @@ namespace Microsoft.Dafny {
               null, allowNoChange, false);
             return decreasesExpr;
           case FieldLocation fieldLocation:
-            return new Boogie.IdentifierExpr(GetToken(expr), BoogieGenerator.GetField(fieldLocation.Field));
+            var tok = GetToken(expr);
+            if (fieldLocation.Field is SpecialField { EnclosingMethod: not null }) {
+              Expr depthExpr = fieldLocation.AtCallSite ?
+                FunctionCall(tok, "+", Boogie.Type.Int, Id(tok, "depth"), One(tok))
+                : Id(tok, "depth");
+              return FunctionCall(tok, "local_field", Predef.FieldName(tok),
+                Id(tok, BoogieGenerator.GetField(fieldLocation.Field)),
+                depthExpr
+              );
+            } else {
+              return Id(tok, BoogieGenerator.GetField(fieldLocation.Field));
+            }
           case IndexFieldLocation indexFieldLocation:
             return GetArrayIndexFieldName(indexFieldLocation.Origin, indexFieldLocation.Indices.ToList());
+          case LocalsObjectExpression:
+            return Predef.Locals;
           default:
             Contract.Assert(false); throw new cce.UnreachableException();  // unexpected expression
         }
@@ -2501,6 +2514,8 @@ BplBoundVar(varNameGen.FreshId(string.Format("#{0}#", bv.Name)), Predef.BoxType,
           return Expr.True;
         } else if (expr is IndexFieldLocation indexFieldLocation) {
           return CanCallAssumption(indexFieldLocation.Indices, cco);
+        } else if (expr is LocalsObjectExpression) {
+          return Expr.True;
         } else {
           Contract.Assert(false); throw new cce.UnreachableException();  // unexpected expression
         }

@@ -201,6 +201,11 @@ class PreTypeToTypeVisitor : ASTVisitor<IASTVisitorContext> {
       return;
     }
 
+    if (expr is LocalsObjectExpression) {
+      Contract.Assert(expr.Type != null); // Must already have been set to non-nullable object
+      return;
+    }
+
     // Case: refinement-wrapper pre-type type
     expr.UnnormalizedType = PreType2TypeUtil.PreType2RefinableType(expr.PreType);
   }

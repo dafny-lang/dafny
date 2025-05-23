@@ -250,6 +250,7 @@ namespace Microsoft.Dafny {
       private readonly Bpl.TypeCtorDecl seqTypeCtor;
       public readonly Bpl.Type Bv0Type;
       readonly Bpl.TypeCtorDecl fieldName;
+      readonly Bpl.TypeCtorDecl fieldNameFamily;
       public readonly Bpl.Type HeapType;
       public readonly string HeapVarName;
       public readonly Bpl.Type ClassNameType;
@@ -262,6 +263,7 @@ namespace Microsoft.Dafny {
       public readonly Bpl.Type TyTag;
       public readonly Bpl.Type TyTagFamily;
       public readonly Bpl.Expr Null;
+      public readonly Bpl.Expr Locals;
       public readonly Bpl.Constant AllocField;
       [ContractInvariantMethod]
       void ObjectInvariant() {
@@ -312,6 +314,13 @@ namespace Microsoft.Dafny {
         return new Bpl.CtorType(tok, fieldName, []);
       }
 
+      public Bpl.Type FieldNameFamily(Bpl.IToken tok) {
+        Contract.Requires(tok != null);
+        Contract.Ensures(Contract.Result<Bpl.Type>() != null);
+
+        return new Bpl.CtorType(tok, fieldNameFamily, []);
+      }
+
       public Bpl.IdentifierExpr Alloc(Bpl.IToken tok) {
         Contract.Requires(tok != null);
         Contract.Ensures(Contract.Result<Bpl.IdentifierExpr>() != null);
@@ -329,7 +338,7 @@ namespace Microsoft.Dafny {
                              Bpl.Function objectTypeConstructor,
                              Bpl.Function tuple2Destructors0, Bpl.Function tuple2Destructors1, Bpl.Function tuple2Constructor, Bpl.Function tuple2TypeConstructor,
                              Bpl.TypeCtorDecl seqTypeCtor, Bpl.TypeSynonymDecl bv0TypeDecl,
-                             Bpl.TypeCtorDecl fieldNameType, Bpl.TypeCtorDecl tyType, Bpl.TypeCtorDecl tyTagType, Bpl.TypeCtorDecl tyTagFamilyType,
+                             Bpl.TypeCtorDecl fieldNameType, Bpl.TypeCtorDecl fieldNameFamilyType, Bpl.TypeCtorDecl tyType, Bpl.TypeCtorDecl tyTagType, Bpl.TypeCtorDecl tyTagFamilyType,
                              Bpl.GlobalVariable heap, Bpl.TypeCtorDecl classNameType, Bpl.TypeCtorDecl nameFamilyType,
                              Bpl.TypeCtorDecl datatypeType, Bpl.TypeCtorDecl handleType, Bpl.TypeCtorDecl layerType, Bpl.TypeCtorDecl dtCtorId,
                              Bpl.Constant allocField) {
@@ -401,6 +410,7 @@ namespace Microsoft.Dafny {
         this.seqTypeCtor = seqTypeCtor;
         this.Bv0Type = new Bpl.TypeSynonymAnnotation(Token.NoToken, bv0TypeDecl, []);
         this.fieldName = fieldNameType;
+        this.fieldNameFamily = fieldNameFamilyType;
         this.HeapType = heap.TypedIdent.Type;
         this.HeapVarName = heap.Name;
         this.Ty = new Bpl.CtorType(Token.NoToken, tyType, []);
@@ -414,6 +424,7 @@ namespace Microsoft.Dafny {
         this.DtCtorId = new Bpl.CtorType(Token.NoToken, dtCtorId, []);
         this.AllocField = allocField;
         this.Null = new Bpl.IdentifierExpr(Token.NoToken, "null", refT);
+        this.Locals = new Bpl.IdentifierExpr(Token.NoToken, "locals", refT);
       }
     }
 
@@ -448,6 +459,7 @@ namespace Microsoft.Dafny {
       Bpl.Function tuple2Constructor = null;
       Bpl.TypeCtorDecl seqTypeCtor = null;
       Bpl.TypeCtorDecl fieldNameType = null;
+      Bpl.TypeCtorDecl fieldFamilyNameType = null;
       Bpl.TypeCtorDecl classNameType = null;
       Bpl.TypeSynonymDecl bv0TypeDecl = null;
       Bpl.TypeCtorDecl tyType = null;
@@ -470,6 +482,8 @@ namespace Microsoft.Dafny {
             seqTypeCtor = dt;
           } else if (dt.Name == "Field") {
             fieldNameType = dt;
+          } else if (dt.Name == "FieldFamily") {
+            fieldFamilyNameType = dt;
           } else if (dt.Name == "ClassName") {
             classNameType = dt;
           } else if (dt.Name == "Ty") {
@@ -605,6 +619,8 @@ namespace Microsoft.Dafny {
         options.OutputWriter.Exception("Dafny prelude is missing declaration of type Bv0");
       } else if (fieldNameType == null) {
         options.OutputWriter.Exception("Dafny prelude is missing declaration of type Field");
+      } else if (fieldFamilyNameType == null) {
+        options.OutputWriter.Exception("Error: Dafny prelude is missing declaration of type FieldFamily");
       } else if (classNameType == null) {
         options.OutputWriter.Exception("Dafny prelude is missing declaration of type ClassName");
       } else if (tyType == null) {
@@ -648,7 +664,7 @@ namespace Microsoft.Dafny {
                                    objectTypeConstructor,
                                    tuple2Destructors0, tuple2Destructors1, tuple2Constructor, tuple2TypeConstructor,
                                    seqTypeCtor, bv0TypeDecl,
-                                   fieldNameType, tyType, tyTagType, tyTagFamilyType,
+                                   fieldNameType, fieldFamilyNameType, tyType, tyTagType, tyTagFamilyType,
                                    heap, classNameType, nameFamilyType,
                                    datatypeType, handleType, layerType, dtCtorId,
                                    allocField);

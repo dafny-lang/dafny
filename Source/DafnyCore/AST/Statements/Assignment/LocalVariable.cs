@@ -28,6 +28,7 @@ public class LocalVariable : NodeWithOrigin, IVariable, IAttributeBearingDeclara
     name = original.Name;
     SyntacticType = cloner.CloneType(original.SyntacticType);
     IsGhost = original.IsGhost;
+    localField = localField != null ? cloner.CloneField(localField) : null;
 
     if (cloner.CloneResolvedFields) {
       type = original.type;
@@ -144,5 +145,20 @@ public class LocalVariable : NodeWithOrigin, IVariable, IAttributeBearingDeclara
   public SymbolKind? Kind => SymbolKind.Variable;
   public string GetDescription(DafnyOptions options) {
     return this.AsText();
+  }
+
+  private Field? localField;
+
+  public Field GetLocalField(MethodOrConstructor methodOrConstructor) {
+    if (localField == null) {
+      localField = new SpecialField(Origin, Name, SpecialField.ID.UseIdParam, (object)Name, true,
+        false, false, Type, null) {
+        EnclosingClass = methodOrConstructor.EnclosingClass,
+        EnclosingMethod = methodOrConstructor
+      };
+      localField.InheritVisibility(methodOrConstructor);
+    }
+
+    return localField;
   }
 }

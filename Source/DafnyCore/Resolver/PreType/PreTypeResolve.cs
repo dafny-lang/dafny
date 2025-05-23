@@ -471,6 +471,8 @@ namespace Microsoft.Dafny {
       scope = new Scope<IVariable>(resolver.Options);
       EnclosingStatementLabels = new Scope<LabeledStatement>(resolver.Options);
       DominatingStatementLabels = new Scope<Label>(resolver.Options);
+      EnclosingInputParameterFormals = new Scope<Formal>(resolver.Options);
+      EnclosingMethodCall = null;
       Constraints = new PreTypeConstraints(this);
     }
 

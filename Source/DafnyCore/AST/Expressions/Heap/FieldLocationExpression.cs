@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using JetBrains.Annotations;
 
 namespace Microsoft.Dafny;
 
@@ -14,7 +15,7 @@ public class FieldLocationExpression : SuffixExpr, ICloneable<FieldLocationExpre
   [FilledInDuringResolution]
   public Field ResolvedField { get; set; }
 
-  public Token Backtick { get; set; }
+  public Token Backtick { get; }
 
   public FieldLocationExpression(Expression lhs, Token backtick, Name name) : base(name.Origin, lhs) {
     this.Backtick = backtick;

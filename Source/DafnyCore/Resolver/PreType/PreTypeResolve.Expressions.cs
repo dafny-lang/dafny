@@ -748,7 +748,104 @@ namespace Microsoft.Dafny {
           }
 
         case FieldLocationExpression fieldLocation: {
-            ResolveExpression(fieldLocation.Lhs, resolutionContext);
+            void ResolveWith(Field resolvedField, Expression resolved1) {
+              fieldLocation.ResolvedField = resolvedField;
+              ResolveExpression(resolved1, resolutionContext);
+              fieldLocation.ResolvedExpression = resolved1;
+              fieldLocation.PreType = resolved1.PreType;
+            }
+            var name = fieldLocation.Name;
+            MethodOrConstructor innerCallEnclosingMethod = null;
+            if (fieldLocation.Lhs is NameSegment nameSegment && currentClass != null &&
+                resolver.GetClassMembers(currentClass) is { } members &&
+                members.TryGetValue(nameSegment.Name, out var member)) {
+              if (EnclosingMethodCall == member) {
+                innerCallEnclosingMethod = EnclosingMethodCall;
+              } else if (EnclosingMethodCall != null) {
+                ReportError(fieldLocation.Lhs, "Expected 'locals' or the explicit name of the enclosing method call '{0}' as the left-hand-side of the memory location expression, got '{1}'", EnclosingMethodCall.Name, nameSegment.Name);
+                fieldLocation.PreType = CreatePreTypeProxy("field-location");
+                return;
+              } else {
+                ReportError(fieldLocation.Lhs, "Expected 'locals', got unrelated method name '{0}'", nameSegment.Name);
+                fieldLocation.PreType = CreatePreTypeProxy("field-location");
+                return;
+              }
+              nameSegment.PreType = CreatePreTypeProxy(); // Never used, just in case.
+            } else {
+              ResolveExpression(fieldLocation.Lhs, resolutionContext);
+            }
+
+            Expression resolved;
+            Field localField;
+
+            if (innerCallEnclosingMethod != null) {
+              var formal = EnclosingInputParameterFormals.Find(name.Value);
+              if (formal == null) {
+                // Let's give an hint about declared input parameters
+                var hints = new List<string>();
+                hints.AddRange(EnclosingInputParameterFormals.Names
+                  .Where(n => n != null).Select(n => $"{EnclosingMethodCall!.Name}`{n}"));
+                hints.AddRange(Scope.Names
+                  .Where(n => n != null).Select(n => $"locals`{n}"));
+                ReportError(fieldLocation, "input parameter '{0}' is not declared{1}", name, DidYouMeanOneOf(hints));
+                fieldLocation.PreType = CreatePreTypeProxy("field-location");
+                return;
+              }
+
+              localField = formal.GetLocalField(innerCallEnclosingMethod);
+              var locals = new LocalsObjectExpression(fieldLocation.Lhs.Origin);
+              ResolveExpression(locals, resolutionContext);
+              resolved = CreateObjectFieldLocation(fieldLocation.Origin, locals, fieldLocation.Name, localField, true);
+              ResolveWith(localField, resolved);
+              return;
+            }
+            if (fieldLocation.Lhs is LocalsObjectExpression) {
+              if (resolutionContext.AsMethod is not { } method) {
+                ReportError(fieldLocation, "field location expressions cannot be used outside of a method");
+                fieldLocation.PreType = CreatePreTypeProxy("field-location");
+                return;
+              }
+              // We resolve the field as a local variable like for identifiers and name segments
+              var v = scope.Find(name.Value);
+              if (v == null) {
+                var f = EnclosingInputParameterFormals.Find(name.Value);
+                var hint = "";
+                if (f != null) {
+                  hint = DidYouMeanOneOf([$"{EnclosingMethodCall!.Name}`{name.Value}"]);
+                } else {
+                  // We only suggest variables in scope.
+                  var hints = new List<string>();
+                  hints.AddRange(Scope.Names
+                    .Where(n => n != null).Select(n => $"locals`{n}"));
+                  hints.AddRange(EnclosingInputParameterFormals.Names
+                    .Where(n => n != null).Select(n => $"{EnclosingMethodCall!.Name}`{n}"));
+                  hint = DidYouMeanOneOf(hints);
+                }
+                ReportError(fieldLocation, "variable '{0}' is not declared{1}", name, hint);
+                fieldLocation.PreType = CreatePreTypeProxy("field-location");
+                return;
+              }
+              if (v is not LocalVariable local) {
+                if (v is not Formal formal) {
+                  ReportError(fieldLocation, "variable '{0}' is not a local variable or a method parameter", name);
+                  fieldLocation.PreType = CreatePreTypeProxy("field-location");
+                  return;
+                }
+                localField = formal.GetLocalField(method);
+              } else {
+                localField = local.GetLocalField(method);
+              }
+              resolved = CreateObjectFieldLocation(fieldLocation.Origin, fieldLocation.Lhs, fieldLocation.Name, localField, false);
+              ResolveWith(localField, resolved);
+              break;
+            }
+
+            if (innerCallEnclosingMethod != null) {
+              // We raise an error and exit
+              ReportError(fieldLocation.Name.Origin, "Method memory location requires the name to be a method input parameter");
+              fieldLocation.PreType = CreatePreTypeProxy("field-location");
+              break;
+            }
             var lhsObjType = fieldLocation.Lhs.PreType;
             lhsObjType = Constraints.FindDefinedPreType(lhsObjType, true) ?? lhsObjType;
             var innerLhsObjType = InnerTypeForBacktickLhs(lhsObjType);
@@ -776,14 +873,13 @@ namespace Microsoft.Dafny {
               return;
             }
 
-            Expression resolved;
             if (lhsObjType.IsRefType) {
-              resolved = CreateObjectFieldLocation(fieldLocation.Origin, fieldLocation.Lhs, fieldLocation.Name, field);
+              resolved = CreateObjectFieldLocation(fieldLocation.Origin, fieldLocation.Lhs, fieldLocation.Name, field, false);
             } else {
               innerLhsObjType = Constraints.FindDefinedPreType(innerLhsObjType, true) ?? innerLhsObjType;
               resolved = MemoryLocationSetComprehension(fieldLocation.Origin, innerLhsObjType, fieldLocation.Lhs,
                 o => (
-                  CreateObjectFieldLocation(fieldLocation.Origin, o, fieldLocation.Name, field),
+                  CreateObjectFieldLocation(fieldLocation.Origin, o, fieldLocation.Name, field, false),
                   new ExprDotName(fieldLocation.Origin, o, fieldLocation.Name, null))
                   );
             }
@@ -864,8 +960,15 @@ namespace Microsoft.Dafny {
             ResolveNestedMatchExpr(e, resolutionContext);
             break;
           }
-        case MatchExpr:
-          Contract.Assert(false); // this case is always handled via NestedMatchExpr
+        case MatchExpr: {
+            Contract.Assert(false); // this case is always handled via NestedMatchExpr
+            break;
+          }
+        case LocalsObjectExpression locals:
+          locals.PreType = new DPreType(BuiltInTypeDecl(PreType.TypeNameObjectQ), []);
+          var objectQDecl = resolver.ProgramResolver.Program.SystemModuleManager.ObjectDecl.NonNullTypeDecl;
+          var localsType = new UserDefinedType(locals.Origin, objectQDecl.Name, objectQDecl, []);
+          locals.Type = localsType;
           break;
         default:
           Contract.Assert(false); throw new cce.UnreachableException();  // unexpected expression
@@ -875,6 +978,13 @@ namespace Microsoft.Dafny {
         // some resolution error occurred
         expr.PreType = CreatePreTypeProxy("ResolveExpression didn't compute this pre-type");
       }
+    }
+
+    private static string DidYouMeanOneOf(List<string> hints) {
+      return hints.Count > 1
+        ? " - did you mean one of " + string.Join(", ", hints.Take(hints.Count - 1)) + ", or " + hints.Last()
+        : hints.Count == 1
+          ? " - did you mean " + hints.FirstOrDefault() : "";
     }
 
     private static PreType InnerTypeForBacktickLhs(PreType lhsObjType) {
@@ -893,9 +1003,9 @@ namespace Microsoft.Dafny {
 
 
     // Returns also the trigger obj.fieldName
-    private static DatatypeValue CreateObjectFieldLocation(IOrigin origin, Expression obj, Name fieldName, Field field) {
+    private static DatatypeValue CreateObjectFieldLocation(IOrigin origin, Expression obj, Name fieldName, Field field, bool atCallSite) {
       return new DatatypeValue(origin, SystemModuleManager.TupleTypeName([false, false]), SystemModuleManager.TupleTypeCtorName(2),
-        [obj, new FieldLocation(fieldName, field) { Type = Type.Field }]);
+        [obj, new FieldLocation(fieldName, field, atCallSite) { Type = Type.Field }]);
     }
 
     private static DatatypeValue CreateObjectIndexFieldLocation(IOrigin origin, Expression obj,
@@ -2006,6 +2116,12 @@ namespace Microsoft.Dafny {
               }
               if (allowMethodCall) {
                 Contract.Assert(!e.Bindings.WasResolved); // we expect that .Bindings has not yet been processed, so we use just .ArgumentBindings in the next lines
+                var method = (MethodOrConstructor)mse.Member;
+                foreach (var inputParameter in method.Ins) {
+                  EnclosingInputParameterFormals.Push(inputParameter.Name, inputParameter);
+                }
+
+                EnclosingMethodCall = method;
                 foreach (var binding in e.Bindings.ArgumentBindings) {
                   ResolveExpression(binding.Actual, resolutionContext);
                 }

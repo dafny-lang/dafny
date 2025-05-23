@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 using System.IO;
 using DafnyCore.Verifier;
+using Microsoft.BaseTypes;
 using Bpl = Microsoft.Boogie;
 using static Microsoft.Dafny.Util;
 
@@ -145,6 +146,10 @@ namespace Microsoft.Dafny {
       FieldOfDecl,
       FDim,  // field dimension (0 - named, 1 or more - indexed)
       IsGhostField,
+
+      FieldFamily,
+      FieldDepth,
+      LocalField,
 
       DatatypeCtorId,
       DtRank,
@@ -589,6 +594,21 @@ namespace Microsoft.Dafny {
           Contract.Assert(typeInstantiation != null);
           return FunctionCall(tok, "AtLayer", typeInstantiation, args);
 
+        case BuiltinFunction.FieldFamily:
+          Contract.Assert(args.Length == 1);
+          Contract.Assert(typeInstantiation != null);
+          return FunctionCall(tok, "field_family", Predef.FieldNameFamily(tok), args);
+
+        case BuiltinFunction.FieldDepth:
+          Contract.Assert(args.Length == 1);
+          Contract.Assert(typeInstantiation != null);
+          return FunctionCall(tok, "field_depth", Bpl.Type.Int, args);
+
+        case BuiltinFunction.LocalField:
+          Contract.Assert(args.Length == 2);
+          Contract.Assert(typeInstantiation != null);
+          return FunctionCall(tok, "local_field", Predef.FieldName(tok), args);
+
         default:
           Contract.Assert(false); throw new cce.UnreachableException();  // unexpected built-in function
       }
@@ -601,8 +621,43 @@ namespace Microsoft.Dafny {
       Contract.Requires(args != null);
       Contract.Ensures(Contract.Result<Bpl.NAryExpr>() != null);
 
+      if (OpCodeMapping.TryGetValue(function, out var opcode)) {
+        return Boogie.Expr.Binary(tok, opcode, args[0], args[1]);
+      }
       return new Bpl.NAryExpr(tok, new Bpl.FunctionCall(new Bpl.IdentifierExpr(tok, function, returnType)), new List<Bpl.Expr>(args));
     }
+
+
+    static Bpl.Expr Id(Bpl.IToken tok, string name) {
+      return new Boogie.IdentifierExpr(tok, name);
+    }
+    static Bpl.Expr Id(Bpl.IToken tok, Boogie.Constant constant) {
+      return new Boogie.IdentifierExpr(tok, constant);
+    }
+    static Bpl.Expr One(Bpl.IToken tok) {
+      return new Boogie.LiteralExpr(tok, BigNum.ONE);
+    }
+
+    private static readonly Dictionary<string, Boogie.BinaryOperator.Opcode> OpCodeMapping = new() {
+      { "+", Bpl.BinaryOperator.Opcode.Add },
+      { "-", Bpl.BinaryOperator.Opcode.Sub },
+      { "*", Bpl.BinaryOperator.Opcode.Mul },
+      { "/int", Bpl.BinaryOperator.Opcode.Div },
+      { "%", Bpl.BinaryOperator.Opcode.Mod },
+      { "/real", Bpl.BinaryOperator.Opcode.RealDiv },
+      { "/float", Bpl.BinaryOperator.Opcode.FloatDiv },
+      { "**", Bpl.BinaryOperator.Opcode.Pow },
+      { "==", Bpl.BinaryOperator.Opcode.Eq },
+      { "!=", Bpl.BinaryOperator.Opcode.Neq },
+      { ">", Bpl.BinaryOperator.Opcode.Gt },
+      { ">=", Bpl.BinaryOperator.Opcode.Ge },
+      { "<", Bpl.BinaryOperator.Opcode.Lt },
+      { "<=", Bpl.BinaryOperator.Opcode.Le },
+      { "&&", Bpl.BinaryOperator.Opcode.And },
+      { "||", Bpl.BinaryOperator.Opcode.Or },
+      { "==>", Bpl.BinaryOperator.Opcode.Imp },
+      { "<==>", Bpl.BinaryOperator.Opcode.Iff }
+    };
 
     static Bpl.NAryExpr FunctionCall(Bpl.IToken tok, string function, Bpl.Type returnType, List<Bpl.Expr> args) {
       Contract.Requires(tok != null);
