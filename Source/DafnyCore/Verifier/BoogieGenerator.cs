@@ -620,7 +620,7 @@ namespace Microsoft.Dafny {
       } else if (fieldNameType == null) {
         options.OutputWriter.Exception("Dafny prelude is missing declaration of type Field");
       } else if (fieldFamilyNameType == null) {
-        options.OutputWriter.WriteLine("Error: Dafny prelude is missing declaration of type FieldFamily");
+        options.OutputWriter.Exception("Error: Dafny prelude is missing declaration of type FieldFamily");
       } else if (classNameType == null) {
         options.OutputWriter.Exception("Dafny prelude is missing declaration of type ClassName");
       } else if (tyType == null) {
