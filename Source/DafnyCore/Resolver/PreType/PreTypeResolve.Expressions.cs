@@ -1093,7 +1093,7 @@ namespace Microsoft.Dafny {
               var left = (DPreType)a0.UrAncestor(this);
               Contract.Assert(left.Arguments.Count == 2);
               var st = new DPreType(BuiltInTypeDecl(PreType.TypeNameSet), [left.Arguments[0]]);
-              Constraints.DebugPrint($"    DEBUG: guard applies: Minusable {a0} {a1}, converting to {st} :> {a1}");
+              Constraints.DebugPrint($"    guard applies: Minusable {a0} {a1}, converting to {st} :> {a1}");
               Constraints.AddDefaultAdvice(a1, st);
 
               var messageFormat = $"map subtraction expects right-hand operand to have type {st} (instead got {{0}})";
@@ -1112,7 +1112,7 @@ namespace Microsoft.Dafny {
               AddConfirmation(PreTypeConstraints.CommonConfirmationBag.InSetFamily, a1, e1.Origin, messageFormat);
               return true;
             } else if (familyDeclNameLeft != null || (familyDeclNameRight != null && familyDeclNameRight != PreType.TypeNameSet)) {
-              Constraints.DebugPrint($"    DEBUG: guard applies: Minusable {a0} {a1}, converting to {a0} :> {a1}");
+              Constraints.DebugPrint($"    guard applies: Minusable {a0} {a1}, converting to {a0} :> {a1}");
               AddSubtypeConstraint(a0, a1, tok, "type of right argument to - ({0}) must agree with the result type ({1})");
               return true;
             }
@@ -1140,7 +1140,7 @@ namespace Microsoft.Dafny {
             var a1 = e1.PreType.NormalizeWrtScope();
             var coll = a1.UrAncestor(this).AsCollectionPreType();
             if (coll != null) {
-              Constraints.DebugPrint($"    DEBUG: guard applies: Innable {a0} {a1}");
+              Constraints.DebugPrint($"    guard applies: Innable {a0} {a1}");
               AddComparableConstraint(coll.Arguments[0], a0, tok, false, "expecting element type to be assignable to {0} (got {1})");
               return true;
             } else if (a1 is DPreType) {

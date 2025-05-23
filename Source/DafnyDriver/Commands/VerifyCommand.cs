@@ -134,8 +134,8 @@ public static class VerifyCommand {
         return (numberForUpRounding / performanceStatisticsDivisor) * performanceStatisticsDivisor;
       }
       var output = cliCompilation.Options.OutputWriter;
-      await output.WriteLineAsync($"Total resources used is {Round(statistics.TotalResourcesUsed)}");
-      await output.WriteLineAsync($"Max resources used by VC is {Round(statistics.MaxVcResourcesUsed)}");
+      await output.Status($"Total resources used is {Round(statistics.TotalResourcesUsed)}");
+      await output.Status($"Max resources used by VC is {Round(statistics.MaxVcResourcesUsed)}");
     }
   }
 
@@ -151,35 +151,35 @@ public static class VerifyCommand {
 
     var output = cliCompilation.Options.OutputWriter;
 
-    await output.WriteLineAsync();
+    await using var trailer = output.StatusWriter();
+    await trailer.WriteLineAsync();
 
     if (cliCompilation.VerifiedAssertions) {
-      await output.WriteAsync($"{cliCompilation.Options.DescriptiveToolName} finished with {statistics.VerifiedAssertions} assertions verified, {statistics.ErrorCount} error{Util.Plural(statistics.ErrorCount)}");
+      await trailer.WriteAsync($"{cliCompilation.Options.DescriptiveToolName} finished with {statistics.VerifiedAssertions} assertions verified, {statistics.ErrorCount} error{Util.Plural(statistics.ErrorCount)}");
     } else {
-      await output.WriteAsync($"{cliCompilation.Options.DescriptiveToolName} finished with {statistics.VerifiedSymbols} verified, {statistics.ErrorCount} error{Util.Plural(statistics.ErrorCount)}");
+      await trailer.WriteAsync($"{cliCompilation.Options.DescriptiveToolName} finished with {statistics.VerifiedSymbols} verified, {statistics.ErrorCount} error{Util.Plural(statistics.ErrorCount)}");
     };
     if (statistics.InconclusiveCount != 0) {
-      await output.WriteAsync($", {statistics.InconclusiveCount} inconclusive{Util.Plural(statistics.InconclusiveCount)}");
+      await trailer.WriteAsync($", {statistics.InconclusiveCount} inconclusive{Util.Plural(statistics.InconclusiveCount)}");
     }
 
     if (statistics.TimeoutCount != 0) {
-      await output.WriteAsync($", {statistics.TimeoutCount} time out{Util.Plural(statistics.TimeoutCount)}");
+      await trailer.WriteAsync($", {statistics.TimeoutCount} time out{Util.Plural(statistics.TimeoutCount)}");
     }
 
     if (statistics.OutOfMemoryCount != 0) {
-      await output.WriteAsync($", {statistics.OutOfMemoryCount} out of memory");
+      await trailer.WriteAsync($", {statistics.OutOfMemoryCount} out of memory");
     }
 
     if (statistics.OutOfResourceCount != 0) {
-      await output.WriteAsync($", {statistics.OutOfResourceCount} out of resource");
+      await trailer.WriteAsync($", {statistics.OutOfResourceCount} out of resource");
     }
 
     if (statistics.SolverExceptionCount != 0) {
-      await output.WriteAsync($", {statistics.SolverExceptionCount} solver exceptions");
+      await trailer.WriteAsync($", {statistics.SolverExceptionCount} solver exceptions");
     }
 
-    await output.WriteLineAsync();
-    await output.FlushAsync();
+    await trailer.WriteLineAsync();
   }
 
   public static void ReportVerificationDiagnostics(CliCompilation compilation, IObservable<CanVerifyResult> verificationResults) {

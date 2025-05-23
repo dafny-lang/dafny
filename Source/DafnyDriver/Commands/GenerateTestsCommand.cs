@@ -81,7 +81,7 @@ Path - Generate tests targeting path-coverage.");
 
     if (dafnyFiles.Count > 1 &&
         options.TestGenOptions.Mode != TestGenerationOptions.Modes.None) {
-      await options.OutputWriter.WriteLineAsync(
+      await options.OutputWriter.Status(
         "*** Error: Only one .dfy file can be specified for testing");
       return ExitValue.PREPROCESSING_ERROR;
     }
@@ -93,11 +93,11 @@ Path - Generate tests targeting path-coverage.");
     var coverageReport = new CoverageReport(name: "Expected Test Coverage", units: "Lines", suffix: "_tests_expected", program: null);
     if (options.TestGenOptions.WarnDeadCode) {
       await foreach (var line in TestGenerator.GetDeadCodeStatistics(source, uri, options, coverageReport)) {
-        await options.OutputWriter.WriteLineAsync(line);
+        await options.OutputWriter.Status(line);
       }
     } else {
       await foreach (var line in TestGenerator.GetTestClassForProgram(source, uri, options, coverageReport)) {
-        await options.OutputWriter.WriteLineAsync(line);
+        await options.OutputWriter.Status(line);
       }
     }
     if (options.TestGenOptions.CoverageReport != null) {

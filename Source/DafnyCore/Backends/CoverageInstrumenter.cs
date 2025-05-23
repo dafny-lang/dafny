@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 using System.IO;
 using System.Linq;
+using System.Threading.Tasks;
 
 namespace Microsoft.Dafny.Compilers;
 
@@ -79,19 +80,22 @@ public class CoverageInstrumenter {
     }
   }
 
-  public void WriteLegendFile() {
-    if (codeGenerator.Options?.CoverageLegendFile != null) {
-      var filename = codeGenerator.Options.CoverageLegendFile;
-      Contract.Assert(filename != null);
-      TextWriter wr = filename == "-" ? codeGenerator.Options.OutputWriter : new StreamWriter(new FileStream(Path.GetFullPath(filename), FileMode.Create));
-      {
-        for (var i = 0; i < legend.Count; i++) {
-          var e = legend[i];
-          wr.WriteLine($"{i}: {e.Item1.OriginToString(codeGenerator.Options)}: {e.Item2}");
-        }
-      }
-      legend = null;
+  public async Task WriteLegendFile() {
+    if (codeGenerator.Options?.CoverageLegendFile == null) {
+      return;
     }
+
+    var filename = codeGenerator.Options.CoverageLegendFile;
+    Contract.Assert(filename != null);
+    await using TextWriter wr = filename == "-"
+      ? codeGenerator.Options.OutputWriter.StatusWriter()
+      : new StreamWriter(new FileStream(Path.GetFullPath(filename), FileMode.Create));
+    for (var i = 0; i < legend.Count; i++) {
+      var e = legend[i];
+      await wr.WriteLineAsync($"{i}: {e.Item1.OriginToString(codeGenerator.Options)}: {e.Item2}");
+    }
+
+    legend = null;
   }
 
   public void PopulateCoverageReport(CoverageReport coverageReport) {

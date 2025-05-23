@@ -45,7 +45,7 @@ public class LibraryBackend : ExecutableBackend {
     return null;
   }
 
-  public override Task<bool> OnPostGenerate(string dafnyProgramName, string targetFilename, TextWriter outputWriter) {
+  public override Task<bool> OnPostGenerate(string dafnyProgramName, string targetFilename, IDafnyOutputWriter outputWriter) {
     // Not calling base.OnPostCompile() since it references `compiler`
     return Task.FromResult(true);
   }
@@ -74,7 +74,7 @@ public class LibraryBackend : ExecutableBackend {
   public override async Task<(bool Success, object CompilationResult)> CompileTargetProgram(string dafnyProgramName,
     string targetProgramText, string callToMain,
     string targetFilename,
-    ReadOnlyCollection<string> otherFileNames, bool runAfterCompile, TextWriter outputWriter) {
+    ReadOnlyCollection<string> otherFileNames, bool runAfterCompile, IDafnyOutputWriter outputWriter) {
 
     var targetDirectory = Path.GetFullPath(Path.GetDirectoryName(targetFilename));
     DooPath = DooFilePath(dafnyProgramName);
@@ -85,13 +85,13 @@ public class LibraryBackend : ExecutableBackend {
       ZipFile.CreateFromDirectory(targetDirectory, DooPath);
     } catch (IOException) {
       if (File.Exists(DooPath)) {
-        await outputWriter.WriteLineAsync($"Failed to delete doo file at {Options.GetPrintPath(DooPath)}");
+        await outputWriter.Status($"Failed to delete doo file at {Options.GetPrintPath(DooPath)}");
       }
 
       throw;
     }
     if (Options.Verbose) {
-      await outputWriter.WriteLineAsync($"Wrote Dafny library to {Options.GetPrintPath(DooPath)}");
+      await outputWriter.Status($"Wrote Dafny library to {Options.GetPrintPath(DooPath)}");
     }
 
     return (true, null);
@@ -99,9 +99,9 @@ public class LibraryBackend : ExecutableBackend {
 
   public override Task<bool> RunTargetProgram(string dafnyProgramName, string targetProgramText, string callToMain,
     string targetFilename,
-    ReadOnlyCollection<string> otherFileNames, object compilationResult, TextWriter outputWriter,
-    TextWriter errorWriter) {
+    ReadOnlyCollection<string> otherFileNames, object compilationResult,
+    IDafnyOutputWriter outputWriter) {
     var dooPath = DooFilePath(dafnyProgramName);
-    return RunTargetDafnyProgram(dooPath, outputWriter, errorWriter, true);
+    return RunTargetDafnyProgram(dooPath, outputWriter, true);
   }
 }

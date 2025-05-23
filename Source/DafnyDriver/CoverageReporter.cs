@@ -48,6 +48,7 @@ public class CoverageReporter {
       return actualPath;
     });
   }
+
   public CoverageReporter(DafnyOptions options) {
     reporter = options.DiagnosticsFormat switch {
       DafnyOptions.DiagnosticsFormats.PlainText => new ConsoleErrorReporter(options),

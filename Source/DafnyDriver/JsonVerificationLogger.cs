@@ -13,16 +13,16 @@ namespace Microsoft.Dafny;
 
 public class JsonVerificationLogger : IVerificationResultFormatLogger {
   private TextWriter output;
-  private readonly TextWriter fallbackOutput;
+  private readonly IDafnyOutputWriter fallbackOutput;
   private readonly ProofDependencyManager dependencyManager;
 
-  public JsonVerificationLogger(ProofDependencyManager dependencyManager, TextWriter fallbackOutput) {
+  public JsonVerificationLogger(ProofDependencyManager dependencyManager, IDafnyOutputWriter fallbackOutput) {
     this.dependencyManager = dependencyManager;
     this.fallbackOutput = fallbackOutput;
   }
 
   public void Initialize(Dictionary<string, string> parameters) {
-    output = parameters.TryGetValue("LogFileName", out string filename) ? new StreamWriter(filename) : fallbackOutput;
+    output = parameters.TryGetValue("LogFileName", out string filename) ? new StreamWriter(filename) : fallbackOutput.StatusWriter();
   }
 
   private static JsonNode SerializeAssertion(AssertCmd assertion) {
@@ -147,6 +147,6 @@ public class JsonVerificationLogger : IVerificationResultFormatLogger {
     await output.WriteLineAsync(new JsonObject {
       ["verificationResults"] = new JsonArray(verificationResultNode.ToArray())
     }.ToJsonString());
-    await output.FlushAsync();
+    await output.DisposeAsync();
   }
 }
