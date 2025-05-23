@@ -66,7 +66,7 @@ class SplitPartTriggerWriter {
   }
 
   public bool RewriteMatchingLoop(ErrorReporter reporter, ModuleDefinition module) {
-    if (!NeedsAutoTriggers() || !WantsMatchingLoopRewrite()) {
+    if (!NeedsAutoTriggers() || !WantsMatchingLoopRewrite() || CouldSuppressLoops) {
       return false;
     }
 
