@@ -3059,7 +3059,7 @@ implementation {:smt_option "smt.arith.solver", "2"} {:verboseName "ReferrersLoc
             $Box(local_field(_module.__default.ReferrersLocal.alias__t, depth))))));
     // ----- assert statement ----- C:\Users\mimayere\Documents\dafny\Source\IntegrationTests\TestFiles\LitTests\LitTest\referrers\referrers.dfy(18,3)
     assume true;
-    assert {:id "id6"} Set#Equal(readReferrers($ReferrersHeap_at_0, t#0), 
+    assert {:id "id6"} Set#Equal(readReferrers($ReferrersHeap_at_0, alias_t#0), 
       Set#UnionOne(Set#UnionOne(Set#Empty(): Set, 
           $Box(#_System._tuple#2._#Make2($Box(locals), $Box(local_field(_module.__default.ReferrersLocal.t, depth))))), 
         $Box(#_System._tuple#2._#Make2($Box(locals), 
@@ -3820,14 +3820,22 @@ implementation {:smt_option "smt.arith.solver", "2"} {:verboseName "ReferrersOnG
 
 procedure {:verboseName "CouldFree (well-formedness)"} CheckWellFormed$$_module.__default.CouldFree(t#0: ref
        where $Is(t#0, Tclass._System.object())
-         && $IsAlloc(t#0, Tclass._System.object(), $Heap));
+         && $IsAlloc(t#0, Tclass._System.object(), $Heap), 
+    compiledMemRef#0: DatatypeType
+       where $Is(compiledMemRef#0, Tclass._System.Tuple2(Tclass._System.object(), TField))
+         && $IsAlloc(compiledMemRef#0, Tclass._System.Tuple2(Tclass._System.object(), TField), $Heap)
+         && $IsA#_System.Tuple2(compiledMemRef#0));
   modifies $Heap;
 
 
 
 procedure {:verboseName "CouldFree (call)"} Call$$_module.__default.CouldFree(t#0: ref
        where $Is(t#0, Tclass._System.object())
-         && $IsAlloc(t#0, Tclass._System.object(), $Heap));
+         && $IsAlloc(t#0, Tclass._System.object(), $Heap), 
+    compiledMemRef#0: DatatypeType
+       where $Is(compiledMemRef#0, Tclass._System.Tuple2(Tclass._System.object(), TField))
+         && $IsAlloc(compiledMemRef#0, Tclass._System.Tuple2(Tclass._System.object(), TField), $Heap)
+         && $IsA#_System.Tuple2(compiledMemRef#0));
   // user-defined preconditions
   free requires {:always_assume} (forall r#1: DatatypeType :: 
     { _System.Tuple2._1(r#1) } 
@@ -3835,13 +3843,17 @@ procedure {:verboseName "CouldFree (call)"} Call$$_module.__default.CouldFree(t#
     $Is(r#1, Tclass._System.Tuple2(Tclass._System.object(), TField))
        ==> 
       Set#IsMember(readReferrers($ReferrersHeap, t#0), $Box(r#1))
-       ==> _System.Tuple2.___hMake2_q(r#1));
-  requires {:id "id70"} Set#Card(Set#FromBoogieMap((lambda $y#1: Box :: 
-          $IsBox($y#1, Tclass._System.Tuple2(Tclass._System.object(), TField))
-             && 
-            Set#IsMember(readReferrers($ReferrersHeap, t#0), $y#1)
-             && !_System.field.IsGhost($Unbox(_System.Tuple2._1($Unbox($y#1): DatatypeType)): Field))))
-     == LitInt(1);
+       ==> _System.Tuple2.___hMake2_q(r#1)
+         && (!_System.field.IsGhost($Unbox(_System.Tuple2._1(r#1)): Field)
+           ==> $IsA#_System.Tuple2(r#1) && $IsA#_System.Tuple2(compiledMemRef#0)));
+  requires {:id "id75"} (forall r#1: DatatypeType :: 
+    { _System.Tuple2._1(r#1) } 
+      { Set#IsMember(readReferrers($ReferrersHeap, t#0), $Box(r#1)) } 
+    $Is(r#1, Tclass._System.Tuple2(Tclass._System.object(), TField))
+         && Set#IsMember(readReferrers($ReferrersHeap, t#0), $Box(r#1))
+       ==> 
+      !_System.field.IsGhost($Unbox(_System.Tuple2._1(r#1)): Field)
+       ==> _System.Tuple2#Equal(r#1, compiledMemRef#0));
   modifies $Heap;
   // frame condition
   free ensures old($Heap) == $Heap;
@@ -3919,6 +3931,7 @@ implementation {:smt_option "smt.arith.solver", "2"} {:verboseName "ObjectFields
   var newtype$check#3: ref;
   var $rhs#6: ref;
   var t##0: ref;
+  var compiledMemRef##0: DatatypeType;
   var defass#u#0: bool;
   var u#0: ref
      where defass#u#0
@@ -3949,66 +3962,66 @@ implementation {:smt_option "smt.arith.solver", "2"} {:verboseName "ObjectFields
     assume true;
     // ProcessCallStmt: CheckSubrange
     chained_test##0 := null;
-    call {:id "id71"} $nw := Call$$_module.ChainingObject.__ctor(depth + 1, chained_test##0);
+    call {:id "id76"} $nw := Call$$_module.ChainingObject.__ctor(depth + 1, chained_test##0);
     // TrCallStmt: After ProcessCallStmt
     assume {:captureState "referrers.dfy(116,35)"} true;
     t#0 := $nw;
     defass#t#0 := true;
     assume {:captureState "referrers.dfy(116,35)"} true;
     // ----- assert statement ----- C:\Users\mimayere\Documents\dafny\Source\IntegrationTests\TestFiles\LitTests\LitTest\referrers\referrers.dfy(117,3)
-    assert {:id "id73"} defass#t#0;
+    assert {:id "id78"} defass#t#0;
     assume true;
-    assert {:id "id74"} Set#Equal(readReferrers($ReferrersHeap, t#0), 
+    assert {:id "id79"} Set#Equal(readReferrers($ReferrersHeap, t#0), 
       Set#UnionOne(Set#Empty(): Set, 
         $Box(#_System._tuple#2._#Make2($Box(locals), $Box(local_field(_module.__default.ObjectFields.t, depth))))));
     // ----- assignment statement ----- C:\Users\mimayere\Documents\dafny\Source\IntegrationTests\TestFiles\LitTests\LitTest\referrers\referrers.dfy(118,7)
-    assert {:id "id75"} defass#t#0;
-    assert {:id "id76"} t#0 != null;
+    assert {:id "id80"} defass#t#0;
+    assert {:id "id81"} t#0 != null;
     assume true;
     assume true;
-    assert {:id "id77"} $_ModifiesFrame[t#0, _module.ChainingObject.x];
-    assert {:id "id78"} defass#t#0;
+    assert {:id "id82"} $_ModifiesFrame[t#0, _module.ChainingObject.x];
+    assert {:id "id83"} defass#t#0;
     assume true;
     $rhs#0 := t#0;
     $Heap := update($Heap, t#0, _module.ChainingObject.x, $Box($rhs#0));
     assume $IsGoodHeap($Heap);
     assume {:captureState "referrers.dfy(118,10)"} true;
     // ----- assert statement ----- C:\Users\mimayere\Documents\dafny\Source\IntegrationTests\TestFiles\LitTests\LitTest\referrers\referrers.dfy(119,3)
-    assert {:id "id81"} defass#t#0;
-    assert {:id "id82"} defass#t#0;
+    assert {:id "id86"} defass#t#0;
+    assert {:id "id87"} defass#t#0;
     assume true;
-    assert {:id "id83"} Set#Equal(readReferrers($ReferrersHeap, t#0), 
+    assert {:id "id88"} Set#Equal(readReferrers($ReferrersHeap, t#0), 
       Set#UnionOne(Set#UnionOne(Set#Empty(): Set, 
           $Box(#_System._tuple#2._#Make2($Box(locals), $Box(local_field(_module.__default.ObjectFields.t, depth))))), 
         $Box(#_System._tuple#2._#Make2($Box(t#0), $Box(_module.ChainingObject.x)))));
     // ----- assignment statement ----- C:\Users\mimayere\Documents\dafny\Source\IntegrationTests\TestFiles\LitTests\LitTest\referrers\referrers.dfy(120,7)
-    assert {:id "id84"} defass#t#0;
-    assert {:id "id85"} t#0 != null;
+    assert {:id "id89"} defass#t#0;
+    assert {:id "id90"} t#0 != null;
     assume true;
     assume true;
-    assert {:id "id86"} $_ModifiesFrame[t#0, _module.ChainingObject.y];
-    assert {:id "id87"} defass#t#0;
+    assert {:id "id91"} $_ModifiesFrame[t#0, _module.ChainingObject.y];
+    assert {:id "id92"} defass#t#0;
     assume true;
     $rhs#1 := t#0;
     $Heap := update($Heap, t#0, _module.ChainingObject.y, $Box($rhs#1));
     assume $IsGoodHeap($Heap);
     assume {:captureState "referrers.dfy(120,10)"} true;
     // ----- assert statement ----- C:\Users\mimayere\Documents\dafny\Source\IntegrationTests\TestFiles\LitTests\LitTest\referrers\referrers.dfy(121,3)
-    assert {:id "id90"} defass#t#0;
-    assert {:id "id91"} defass#t#0;
-    assert {:id "id92"} defass#t#0;
+    assert {:id "id95"} defass#t#0;
+    assert {:id "id96"} defass#t#0;
+    assert {:id "id97"} defass#t#0;
     assume true;
-    assert {:id "id93"} Set#Equal(readReferrers($ReferrersHeap, t#0), 
+    assert {:id "id98"} Set#Equal(readReferrers($ReferrersHeap, t#0), 
       Set#UnionOne(Set#UnionOne(Set#UnionOne(Set#Empty(): Set, 
             $Box(#_System._tuple#2._#Make2($Box(locals), $Box(local_field(_module.__default.ObjectFields.t, depth))))), 
           $Box(#_System._tuple#2._#Make2($Box(t#0), $Box(_module.ChainingObject.x)))), 
         $Box(#_System._tuple#2._#Make2($Box(t#0), $Box(_module.ChainingObject.y)))));
     // ----- assignment statement ----- C:\Users\mimayere\Documents\dafny\Source\IntegrationTests\TestFiles\LitTests\LitTest\referrers\referrers.dfy(122,7)
-    assert {:id "id94"} defass#t#0;
-    assert {:id "id95"} t#0 != null;
+    assert {:id "id99"} defass#t#0;
+    assert {:id "id100"} t#0 != null;
     assume true;
     assume true;
-    assert {:id "id96"} $_ModifiesFrame[t#0, _module.ChainingObject.x];
+    assert {:id "id101"} $_ModifiesFrame[t#0, _module.ChainingObject.x];
     newtype$check#1 := null;
     assume true;
     $rhs#2 := null;
@@ -4016,19 +4029,19 @@ implementation {:smt_option "smt.arith.solver", "2"} {:verboseName "ObjectFields
     assume $IsGoodHeap($Heap);
     assume {:captureState "referrers.dfy(122,13)"} true;
     // ----- assert statement ----- C:\Users\mimayere\Documents\dafny\Source\IntegrationTests\TestFiles\LitTests\LitTest\referrers\referrers.dfy(123,3)
-    assert {:id "id99"} defass#t#0;
-    assert {:id "id100"} defass#t#0;
+    assert {:id "id104"} defass#t#0;
+    assert {:id "id105"} defass#t#0;
     assume true;
-    assert {:id "id101"} Set#Equal(readReferrers($ReferrersHeap, t#0), 
+    assert {:id "id106"} Set#Equal(readReferrers($ReferrersHeap, t#0), 
       Set#UnionOne(Set#UnionOne(Set#Empty(): Set, 
           $Box(#_System._tuple#2._#Make2($Box(locals), $Box(local_field(_module.__default.ObjectFields.t, depth))))), 
         $Box(#_System._tuple#2._#Make2($Box(t#0), $Box(_module.ChainingObject.y)))));
     // ----- assignment statement ----- C:\Users\mimayere\Documents\dafny\Source\IntegrationTests\TestFiles\LitTests\LitTest\referrers\referrers.dfy(124,7)
-    assert {:id "id102"} defass#t#0;
-    assert {:id "id103"} t#0 != null;
+    assert {:id "id107"} defass#t#0;
+    assert {:id "id108"} t#0 != null;
     assume true;
     assume true;
-    assert {:id "id104"} $_ModifiesFrame[t#0, _module.ChainingObject.y];
+    assert {:id "id109"} $_ModifiesFrame[t#0, _module.ChainingObject.y];
     newtype$check#2 := null;
     assume true;
     $rhs#3 := null;
@@ -4036,37 +4049,37 @@ implementation {:smt_option "smt.arith.solver", "2"} {:verboseName "ObjectFields
     assume $IsGoodHeap($Heap);
     assume {:captureState "referrers.dfy(124,13)"} true;
     // ----- assert statement ----- C:\Users\mimayere\Documents\dafny\Source\IntegrationTests\TestFiles\LitTests\LitTest\referrers\referrers.dfy(125,3)
-    assert {:id "id107"} defass#t#0;
+    assert {:id "id112"} defass#t#0;
     assume true;
-    assert {:id "id108"} Set#Equal(readReferrers($ReferrersHeap, t#0), 
+    assert {:id "id113"} Set#Equal(readReferrers($ReferrersHeap, t#0), 
       Set#UnionOne(Set#Empty(): Set, 
         $Box(#_System._tuple#2._#Make2($Box(locals), $Box(local_field(_module.__default.ObjectFields.t, depth))))));
     // ----- assignment statement ----- C:\Users\mimayere\Documents\dafny\Source\IntegrationTests\TestFiles\LitTests\LitTest\referrers\referrers.dfy(126,14)
-    assert {:id "id109"} defass#t#0;
-    assert {:id "id110"} t#0 != null;
+    assert {:id "id114"} defass#t#0;
+    assert {:id "id115"} t#0 != null;
     assume true;
     assume true;
-    assert {:id "id111"} $_ModifiesFrame[t#0, _module.ChainingObject.tracking];
-    assert {:id "id112"} defass#t#0;
+    assert {:id "id116"} $_ModifiesFrame[t#0, _module.ChainingObject.tracking];
+    assert {:id "id117"} defass#t#0;
     assume true;
     $rhs#4 := t#0;
     $Heap := update($Heap, t#0, _module.ChainingObject.tracking, $Box($rhs#4));
     assume $IsGoodHeap($Heap);
     assume {:captureState "referrers.dfy(126,17)"} true;
     // ----- assert statement ----- C:\Users\mimayere\Documents\dafny\Source\IntegrationTests\TestFiles\LitTests\LitTest\referrers\referrers.dfy(127,3)
-    assert {:id "id115"} defass#t#0;
-    assert {:id "id116"} defass#t#0;
+    assert {:id "id120"} defass#t#0;
+    assert {:id "id121"} defass#t#0;
     assume true;
-    assert {:id "id117"} Set#Equal(readReferrers($ReferrersHeap, t#0), 
+    assert {:id "id122"} Set#Equal(readReferrers($ReferrersHeap, t#0), 
       Set#UnionOne(Set#UnionOne(Set#Empty(): Set, 
           $Box(#_System._tuple#2._#Make2($Box(locals), $Box(local_field(_module.__default.ObjectFields.t, depth))))), 
         $Box(#_System._tuple#2._#Make2($Box(t#0), $Box(_module.ChainingObject.tracking)))));
     // ----- assignment statement ----- C:\Users\mimayere\Documents\dafny\Source\IntegrationTests\TestFiles\LitTests\LitTest\referrers\referrers.dfy(128,14)
-    assert {:id "id118"} defass#t#0;
-    assert {:id "id119"} t#0 != null;
+    assert {:id "id123"} defass#t#0;
+    assert {:id "id124"} t#0 != null;
     assume true;
     assume true;
-    assert {:id "id120"} $_ModifiesFrame[t#0, _module.ChainingObject.tracking];
+    assert {:id "id125"} $_ModifiesFrame[t#0, _module.ChainingObject.tracking];
     newtype$check#3 := null;
     assume true;
     $rhs#5 := null;
@@ -4074,125 +4087,128 @@ implementation {:smt_option "smt.arith.solver", "2"} {:verboseName "ObjectFields
     assume $IsGoodHeap($Heap);
     assume {:captureState "referrers.dfy(128,20)"} true;
     // ----- assert statement ----- C:\Users\mimayere\Documents\dafny\Source\IntegrationTests\TestFiles\LitTests\LitTest\referrers\referrers.dfy(129,3)
-    assert {:id "id123"} defass#t#0;
+    assert {:id "id128"} defass#t#0;
     assume true;
-    assert {:id "id124"} Set#Equal(readReferrers($ReferrersHeap, t#0), 
+    assert {:id "id129"} Set#Equal(readReferrers($ReferrersHeap, t#0), 
       Set#UnionOne(Set#Empty(): Set, 
         $Box(#_System._tuple#2._#Make2($Box(locals), $Box(local_field(_module.__default.ObjectFields.t, depth))))));
     // ----- assignment statement ----- C:\Users\mimayere\Documents\dafny\Source\IntegrationTests\TestFiles\LitTests\LitTest\referrers\referrers.dfy(130,17)
-    assert {:id "id125"} defass#t#0;
-    assert {:id "id126"} t#0 != null;
+    assert {:id "id130"} defass#t#0;
+    assert {:id "id131"} t#0 != null;
     assume true;
     assume true;
-    assert {:id "id127"} $_ModifiesFrame[t#0, _module.ChainingObject.nontracking];
-    assert {:id "id128"} defass#t#0;
+    assert {:id "id132"} $_ModifiesFrame[t#0, _module.ChainingObject.nontracking];
+    assert {:id "id133"} defass#t#0;
     assume true;
     $rhs#6 := t#0;
     $Heap := update($Heap, t#0, _module.ChainingObject.nontracking, $Box($rhs#6));
     assume $IsGoodHeap($Heap);
     assume {:captureState "referrers.dfy(130,20)"} true;
     // ----- assert statement ----- C:\Users\mimayere\Documents\dafny\Source\IntegrationTests\TestFiles\LitTests\LitTest\referrers\referrers.dfy(131,3)
-    assert {:id "id131"} defass#t#0;
+    assert {:id "id136"} defass#t#0;
     assume true;
-    assert {:id "id132"} Set#Equal(readReferrers($ReferrersHeap, t#0), 
+    assert {:id "id137"} Set#Equal(readReferrers($ReferrersHeap, t#0), 
       Set#UnionOne(Set#Empty(): Set, 
         $Box(#_System._tuple#2._#Make2($Box(locals), $Box(local_field(_module.__default.ObjectFields.t, depth))))));
     // ----- call statement ----- C:\Users\mimayere\Documents\dafny\Source\IntegrationTests\TestFiles\LitTests\LitTest\referrers\referrers.dfy(132,12)
     // TrCallStmt: Before ProcessCallStmt
-    assert {:id "id133"} defass#t#0;
+    assert {:id "id138"} defass#t#0;
     assume true;
     // ProcessCallStmt: CheckSubrange
     t##0 := t#0;
-    call {:id "id134"} Call$$_module.__default.CouldFree(t##0);
+    assume true;
+    // ProcessCallStmt: CheckSubrange
+    compiledMemRef##0 := #_System._tuple#2._#Make2($Box(locals), $Box(local_field(_module.__default.ObjectFields.t, depth)));
+    call {:id "id139"} Call$$_module.__default.CouldFree(t##0, compiledMemRef##0);
     // TrCallStmt: After ProcessCallStmt
-    assume {:captureState "referrers.dfy(132,14)"} true;
+    assume {:captureState "referrers.dfy(132,24)"} true;
     // ----- assignment statement ----- C:\Users\mimayere\Documents\dafny\Source\IntegrationTests\TestFiles\LitTests\LitTest\referrers\referrers.dfy(134,9)
     assume true;
     // ----- init call statement ----- C:\Users\mimayere\Documents\dafny\Source\IntegrationTests\TestFiles\LitTests\LitTest\referrers\referrers.dfy(134,12)
     // TrCallStmt: Before ProcessCallStmt
-    assert {:id "id135"} defass#t#0;
+    assert {:id "id140"} defass#t#0;
     assume true;
     // ProcessCallStmt: CheckSubrange
     chained_test##1 := t#0;
-    call {:id "id136"} $nw := Call$$_module.ChainingObject.__ctor(depth + 1, chained_test##1);
+    call {:id "id141"} $nw := Call$$_module.ChainingObject.__ctor(depth + 1, chained_test##1);
     // TrCallStmt: After ProcessCallStmt
     assume {:captureState "referrers.dfy(134,32)"} true;
     u#0 := $nw;
     defass#u#0 := true;
     assume {:captureState "referrers.dfy(134,32)"} true;
     // ----- assert statement ----- C:\Users\mimayere\Documents\dafny\Source\IntegrationTests\TestFiles\LitTests\LitTest\referrers\referrers.dfy(135,3)
-    assert {:id "id138"} defass#u#0;
+    assert {:id "id143"} defass#u#0;
     assume true;
-    assert {:id "id139"} Set#Equal(readReferrers($ReferrersHeap, u#0), 
+    assert {:id "id144"} Set#Equal(readReferrers($ReferrersHeap, u#0), 
       Set#UnionOne(Set#Empty(): Set, 
         $Box(#_System._tuple#2._#Make2($Box(locals), $Box(local_field(_module.__default.ObjectFields.u, depth))))));
     // ----- assert statement ----- C:\Users\mimayere\Documents\dafny\Source\IntegrationTests\TestFiles\LitTests\LitTest\referrers\referrers.dfy(136,3)
-    assert {:id "id140"} defass#t#0;
-    assert {:id "id141"} defass#u#0;
+    assert {:id "id145"} defass#t#0;
+    assert {:id "id146"} defass#u#0;
     assume true;
-    assert {:id "id142"} Set#Equal(readReferrers($ReferrersHeap, t#0), 
+    assert {:id "id147"} Set#Equal(readReferrers($ReferrersHeap, t#0), 
       Set#UnionOne(Set#UnionOne(Set#Empty(): Set, 
           $Box(#_System._tuple#2._#Make2($Box(locals), $Box(local_field(_module.__default.ObjectFields.t, depth))))), 
         $Box(#_System._tuple#2._#Make2($Box(u#0), $Box(_module.ChainingObject.tail)))));
     // ----- assignment statement ----- C:\Users\mimayere\Documents\dafny\Source\IntegrationTests\TestFiles\LitTests\LitTest\referrers\referrers.dfy(137,7)
-    assert {:id "id143"} defass#u#0;
-    assert {:id "id144"} u#0 != null;
+    assert {:id "id148"} defass#u#0;
+    assert {:id "id149"} u#0 != null;
     assume true;
     assume true;
-    assert {:id "id145"} $_ModifiesFrame[u#0, _module.ChainingObject.x];
-    assert {:id "id146"} defass#t#0;
+    assert {:id "id150"} $_ModifiesFrame[u#0, _module.ChainingObject.x];
+    assert {:id "id151"} defass#t#0;
     assume true;
     $rhs#7 := t#0;
     $Heap := update($Heap, u#0, _module.ChainingObject.x, $Box($rhs#7));
     assume $IsGoodHeap($Heap);
     assume {:captureState "referrers.dfy(137,10)"} true;
     // ----- assert statement ----- C:\Users\mimayere\Documents\dafny\Source\IntegrationTests\TestFiles\LitTests\LitTest\referrers\referrers.dfy(138,3)
-    assert {:id "id149"} defass#t#0;
-    assert {:id "id150"} defass#u#0;
-    assert {:id "id151"} defass#u#0;
+    assert {:id "id154"} defass#t#0;
+    assert {:id "id155"} defass#u#0;
+    assert {:id "id156"} defass#u#0;
     assume true;
-    assert {:id "id152"} Set#Equal(readReferrers($ReferrersHeap, t#0), 
+    assert {:id "id157"} Set#Equal(readReferrers($ReferrersHeap, t#0), 
       Set#UnionOne(Set#UnionOne(Set#UnionOne(Set#Empty(): Set, 
             $Box(#_System._tuple#2._#Make2($Box(locals), $Box(local_field(_module.__default.ObjectFields.t, depth))))), 
           $Box(#_System._tuple#2._#Make2($Box(u#0), $Box(_module.ChainingObject.tail)))), 
         $Box(#_System._tuple#2._#Make2($Box(u#0), $Box(_module.ChainingObject.x)))));
     // ----- assert statement ----- C:\Users\mimayere\Documents\dafny\Source\IntegrationTests\TestFiles\LitTests\LitTest\referrers\referrers.dfy(139,3)
-    assert {:id "id153"} defass#u#0;
+    assert {:id "id158"} defass#u#0;
     assume true;
-    assert {:id "id154"} Set#Equal(readReferrers($ReferrersHeap, u#0), 
+    assert {:id "id159"} Set#Equal(readReferrers($ReferrersHeap, u#0), 
       Set#UnionOne(Set#Empty(): Set, 
         $Box(#_System._tuple#2._#Make2($Box(locals), $Box(local_field(_module.__default.ObjectFields.u, depth))))));
     // ----- assignment statement ----- C:\Users\mimayere\Documents\dafny\Source\IntegrationTests\TestFiles\LitTests\LitTest\referrers\referrers.dfy(140,7)
-    assert {:id "id155"} defass#u#0;
-    assert {:id "id156"} u#0 != null;
+    assert {:id "id160"} defass#u#0;
+    assert {:id "id161"} u#0 != null;
     assume true;
     assume true;
-    assert {:id "id157"} $_ModifiesFrame[u#0, _module.ChainingObject.x];
-    assert {:id "id158"} defass#u#0;
+    assert {:id "id162"} $_ModifiesFrame[u#0, _module.ChainingObject.x];
+    assert {:id "id163"} defass#u#0;
     assume true;
     $rhs#8 := u#0;
     $Heap := update($Heap, u#0, _module.ChainingObject.x, $Box($rhs#8));
     assume $IsGoodHeap($Heap);
     assume {:captureState "referrers.dfy(140,10)"} true;
     // ----- assert statement ----- C:\Users\mimayere\Documents\dafny\Source\IntegrationTests\TestFiles\LitTests\LitTest\referrers\referrers.dfy(141,3)
-    assert {:id "id161"} defass#t#0;
-    assert {:id "id162"} defass#u#0;
+    assert {:id "id166"} defass#t#0;
+    assert {:id "id167"} defass#u#0;
     assume true;
-    assert {:id "id163"} Set#Equal(readReferrers($ReferrersHeap, t#0), 
+    assert {:id "id168"} Set#Equal(readReferrers($ReferrersHeap, t#0), 
       Set#UnionOne(Set#UnionOne(Set#Empty(): Set, 
           $Box(#_System._tuple#2._#Make2($Box(locals), $Box(local_field(_module.__default.ObjectFields.t, depth))))), 
         $Box(#_System._tuple#2._#Make2($Box(u#0), $Box(_module.ChainingObject.tail)))));
     // ----- assert statement ----- C:\Users\mimayere\Documents\dafny\Source\IntegrationTests\TestFiles\LitTests\LitTest\referrers\referrers.dfy(142,3)
-    assert {:id "id164"} defass#u#0;
-    assert {:id "id165"} defass#u#0;
+    assert {:id "id169"} defass#u#0;
+    assert {:id "id170"} defass#u#0;
     assume true;
-    assert {:id "id166"} Set#Equal(readReferrers($ReferrersHeap, u#0), 
+    assert {:id "id171"} Set#Equal(readReferrers($ReferrersHeap, u#0), 
       Set#UnionOne(Set#UnionOne(Set#Empty(): Set, 
           $Box(#_System._tuple#2._#Make2($Box(locals), $Box(local_field(_module.__default.ObjectFields.u, depth))))), 
         $Box(#_System._tuple#2._#Make2($Box(u#0), $Box(_module.ChainingObject.x)))));
     // ----- assignment statement ----- C:\Users\mimayere\Documents\dafny\Source\IntegrationTests\TestFiles\LitTests\LitTest\referrers\referrers.dfy(145,9)
     assume true;
-    assert {:id "id167"} 0 <= LitInt(2);
+    assert {:id "id172"} 0 <= LitInt(2);
     // Begin Comprehension WF check
     if (*)
     {
@@ -4206,17 +4222,17 @@ implementation {:smt_option "smt.arith.solver", "2"} {:verboseName "ObjectFields
               $o != null && $Unbox(read($lambdaHeap#0, $o, alloc)): bool ==> false);
             if (i#0 == LitInt(0))
             {
-                assert {:id "id168"} defass#t#0;
+                assert {:id "id173"} defass#t#0;
                 assume true;
-                assume {:id "id169"} lambdaResult#0 == t#0;
+                assume {:id "id174"} lambdaResult#0 == t#0;
                 // CheckWellformedWithResult: any expression
                 assume $Is(lambdaResult#0, Tclass._module.ChainingObject());
             }
             else
             {
-                assert {:id "id170"} defass#u#0;
+                assert {:id "id175"} defass#u#0;
                 assume true;
-                assume {:id "id171"} lambdaResult#0 == u#0;
+                assume {:id "id176"} lambdaResult#0 == u#0;
                 // CheckWellformedWithResult: any expression
                 assume $Is(lambdaResult#0, Tclass._module.ChainingObject());
             }
@@ -4231,7 +4247,7 @@ implementation {:smt_option "smt.arith.solver", "2"} {:verboseName "ObjectFields
     assume $nw != null && $Is($nw, Tclass._System.array?(Tclass._module.ChainingObject()));
     assume !$Unbox(read($Heap, $nw, alloc)): bool;
     assume _System.array.Length($nw) == LitInt(2);
-    assert {:id "id172"} {:subsumption 0} (forall arrayinit#0#i0#0: int :: 
+    assert {:id "id177"} {:subsumption 0} (forall arrayinit#0#i0#0: int :: 
       0 <= arrayinit#0#i0#0 && arrayinit#0#i0#0 < LitInt(2)
          ==> Requires1(TInt, 
           Tclass._module.ChainingObject(), 
@@ -4276,23 +4292,23 @@ implementation {:smt_option "smt.arith.solver", "2"} {:verboseName "ObjectFields
     a#0 := $nw;
     assume {:captureState "referrers.dfy(145,62)"} true;
     // ----- assert statement ----- C:\Users\mimayere\Documents\dafny\Source\IntegrationTests\TestFiles\LitTests\LitTest\referrers\referrers.dfy(146,3)
-    assert {:id "id174"} defass#t#0;
-    assert {:id "id175"} defass#u#0;
-    assert {:id "id176"} a#0 != null;
-    assert {:id "id177"} {:subsumption 0} 0 <= LitInt(0) && LitInt(0) < _System.array.Length(a#0);
+    assert {:id "id179"} defass#t#0;
+    assert {:id "id180"} defass#u#0;
+    assert {:id "id181"} a#0 != null;
+    assert {:id "id182"} {:subsumption 0} 0 <= LitInt(0) && LitInt(0) < _System.array.Length(a#0);
     assume true;
-    assert {:id "id178"} Set#Equal(readReferrers($ReferrersHeap, t#0), 
+    assert {:id "id183"} Set#Equal(readReferrers($ReferrersHeap, t#0), 
       Set#UnionOne(Set#UnionOne(Set#UnionOne(Set#Empty(): Set, 
             $Box(#_System._tuple#2._#Make2($Box(locals), $Box(local_field(_module.__default.ObjectFields.t, depth))))), 
           $Box(#_System._tuple#2._#Make2($Box(u#0), $Box(_module.ChainingObject.tail)))), 
         $Box(#_System._tuple#2._#Make2($Box(a#0), $Box(IndexField(LitInt(0)))))));
     // ----- assert statement ----- C:\Users\mimayere\Documents\dafny\Source\IntegrationTests\TestFiles\LitTests\LitTest\referrers\referrers.dfy(147,3)
-    assert {:id "id179"} defass#u#0;
-    assert {:id "id180"} defass#u#0;
-    assert {:id "id181"} a#0 != null;
-    assert {:id "id182"} {:subsumption 0} 0 <= LitInt(1) && LitInt(1) < _System.array.Length(a#0);
+    assert {:id "id184"} defass#u#0;
+    assert {:id "id185"} defass#u#0;
+    assert {:id "id186"} a#0 != null;
+    assert {:id "id187"} {:subsumption 0} 0 <= LitInt(1) && LitInt(1) < _System.array.Length(a#0);
     assume true;
-    assert {:id "id183"} Set#Equal(readReferrers($ReferrersHeap, u#0), 
+    assert {:id "id188"} Set#Equal(readReferrers($ReferrersHeap, u#0), 
       Set#UnionOne(Set#UnionOne(Set#UnionOne(Set#Empty(): Set, 
             $Box(#_System._tuple#2._#Make2($Box(locals), $Box(local_field(_module.__default.ObjectFields.t, depth))))), 
           $Box(#_System._tuple#2._#Make2($Box(u#0), $Box(_module.ChainingObject.x)))), 
@@ -4516,23 +4532,23 @@ procedure {:verboseName "ChainingObject._ctor (call)"} Call$$_module.ChainingObj
   modifies $Heap;
   // user-defined postconditions
   free ensures {:always_assume} true;
-  ensures {:id "id193"} $Unbox(read($Heap, this, _module.ChainingObject.x)): ref
+  ensures {:id "id198"} $Unbox(read($Heap, this, _module.ChainingObject.x)): ref
      == $Unbox(read($Heap, this, _module.ChainingObject.y)): ref;
-  ensures {:id "id194"} $Unbox(read($Heap, this, _module.ChainingObject.y)): ref
+  ensures {:id "id199"} $Unbox(read($Heap, this, _module.ChainingObject.y)): ref
      == $Unbox(read($Heap, this, _module.ChainingObject.nontracking)): ref;
-  ensures {:id "id195"} $Unbox(read($Heap, this, _module.ChainingObject.nontracking)): ref
+  ensures {:id "id200"} $Unbox(read($Heap, this, _module.ChainingObject.nontracking)): ref
      == $Unbox(read($Heap, this, _module.ChainingObject.tracking)): ref;
-  ensures {:id "id196"} $Unbox(read($Heap, this, _module.ChainingObject.tracking)): ref == null;
+  ensures {:id "id201"} $Unbox(read($Heap, this, _module.ChainingObject.tracking)): ref == null;
   free ensures {:always_assume} true;
-  ensures {:id "id197"} _module.ChainingObject.tail(this) == chained_test#0;
+  ensures {:id "id202"} _module.ChainingObject.tail(this) == chained_test#0;
   free ensures {:always_assume} true;
-  ensures {:id "id198"} chained_test#0 != null
+  ensures {:id "id203"} chained_test#0 != null
      ==> Set#Equal(readReferrers($ReferrersHeap, chained_test#0), 
       Set#Union(readReferrers(old($ReferrersHeap), chained_test#0), 
         Set#UnionOne(Set#Empty(): Set, 
           $Box(#_System._tuple#2._#Make2($Box(this), $Box(_module.ChainingObject.tail))))));
   free ensures {:always_assume} true;
-  ensures {:id "id199"} (forall o#1: ref :: 
+  ensures {:id "id204"} (forall o#1: ref :: 
     { readReferrers(old($ReferrersHeap), o#1) } 
       { readReferrers($ReferrersHeap, o#1) } 
     $Is(o#1, Tclass._System.object())
@@ -4559,23 +4575,23 @@ procedure {:verboseName "ChainingObject._ctor (correctness)"} Impl$$_module.Chai
   modifies $Heap;
   // user-defined postconditions
   free ensures {:always_assume} true;
-  ensures {:id "id200"} $Unbox(read($Heap, this, _module.ChainingObject.x)): ref
+  ensures {:id "id205"} $Unbox(read($Heap, this, _module.ChainingObject.x)): ref
      == $Unbox(read($Heap, this, _module.ChainingObject.y)): ref;
-  ensures {:id "id201"} $Unbox(read($Heap, this, _module.ChainingObject.y)): ref
+  ensures {:id "id206"} $Unbox(read($Heap, this, _module.ChainingObject.y)): ref
      == $Unbox(read($Heap, this, _module.ChainingObject.nontracking)): ref;
-  ensures {:id "id202"} $Unbox(read($Heap, this, _module.ChainingObject.nontracking)): ref
+  ensures {:id "id207"} $Unbox(read($Heap, this, _module.ChainingObject.nontracking)): ref
      == $Unbox(read($Heap, this, _module.ChainingObject.tracking)): ref;
-  ensures {:id "id203"} $Unbox(read($Heap, this, _module.ChainingObject.tracking)): ref == null;
+  ensures {:id "id208"} $Unbox(read($Heap, this, _module.ChainingObject.tracking)): ref == null;
   free ensures {:always_assume} true;
-  ensures {:id "id204"} _module.ChainingObject.tail(this) == chained_test#0;
+  ensures {:id "id209"} _module.ChainingObject.tail(this) == chained_test#0;
   free ensures {:always_assume} true;
-  ensures {:id "id205"} chained_test#0 != null
+  ensures {:id "id210"} chained_test#0 != null
      ==> Set#Equal(readReferrers($ReferrersHeap, chained_test#0), 
       Set#Union(readReferrers(old($ReferrersHeap), chained_test#0), 
         Set#UnionOne(Set#Empty(): Set, 
           $Box(#_System._tuple#2._#Make2($Box(this), $Box(_module.ChainingObject.tail))))));
   free ensures {:always_assume} true;
-  ensures {:id "id206"} (forall o#1: ref :: 
+  ensures {:id "id211"} (forall o#1: ref :: 
     { readReferrers(old($ReferrersHeap), o#1) } 
       { readReferrers($ReferrersHeap, o#1) } 
     $Is(o#1, Tclass._System.object())

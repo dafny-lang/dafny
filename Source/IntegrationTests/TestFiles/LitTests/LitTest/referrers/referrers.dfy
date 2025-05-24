@@ -15,7 +15,7 @@ method ReferrersLocal() {
   label before_t_null:
   t := null;
   assert referrers(alias_t) == {locals`alias_t};
-  assert old@before_t_null(referrers(alias_t#0)) == {locals`t, locals`alias_t};
+  assert old@before_t_null(referrers(alias_t)) == {locals`t, locals`alias_t};
   
   // Arrays too have referrers
   var u := new SimpleObject?[1](i => null);
@@ -109,8 +109,8 @@ class ChainingObject {
 }
 
 // Ghost parameters are untracking by default
-lemma CouldFree(t: object)
-  requires |set r: (object, field) <- referrers(t) | !r.1.IsGhost| == 1
+lemma CouldFree(t: object, compiledMemRef: (object, field))
+  requires forall r: (object, field) <- referrers(t) :: !r.1.IsGhost ==> r == compiledMemRef
 
 method ObjectFields() {
   var t := new ChainingObject(null);
@@ -129,7 +129,7 @@ method ObjectFields() {
   assert referrers(t) == {locals`t};
   t.nontracking := t;
   assert referrers(t) == {locals`t};  
-  CouldFree(t);
+  CouldFree(t, locals`t);
   
   var u := new ChainingObject(t);
   assert referrers(u) == {locals`u};
