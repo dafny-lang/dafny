@@ -776,7 +776,7 @@ var $ReferrersHeap: ReferrersHeap;
 const $OneReferrersHeap: ReferrersHeap;
 
 procedure $YieldHavoc(this: ref, rds: Set, nw: Set);
-  modifies $Heap;
+  modifies $Heap, $ReferrersHeap;
   ensures (forall $o: ref, $f: Field :: 
     { read($Heap, $o, $f) } 
     $o != null && $Unbox(read(old($Heap), $o, alloc))
@@ -788,7 +788,7 @@ procedure $YieldHavoc(this: ref, rds: Set, nw: Set);
 
 
 procedure $IterHavoc0(this: ref, rds: Set, modi: Set);
-  modifies $Heap;
+  modifies $Heap, $ReferrersHeap;
   ensures (forall $o: ref, $f: Field :: 
     { read($Heap, $o, $f) } 
     $o != null && $Unbox(read(old($Heap), $o, alloc))
@@ -800,7 +800,7 @@ procedure $IterHavoc0(this: ref, rds: Set, modi: Set);
 
 
 procedure $IterHavoc1(this: ref, modi: Set, nw: Set);
-  modifies $Heap;
+  modifies $Heap, $ReferrersHeap;
   ensures (forall $o: ref, $f: Field :: 
     { read($Heap, $o, $f) } 
     $o != null && $Unbox(read(old($Heap), $o, alloc))
