@@ -59,6 +59,13 @@ namespace Microsoft.Dafny {
           return (Boogie.IdentifierExpr)HeapExpr;
         }
       }
+      
+      public Boogie.IdentifierExpr ReferrerrsHeapCastToIdentifierExpr {
+        get {
+          Contract.Assume(ReferrersHeapExpr is Boogie.IdentifierExpr);
+          return (Boogie.IdentifierExpr)ReferrersHeapExpr;
+        }
+      }
 
       public readonly PredefinedDecls Predef;
       public readonly BoogieGenerator BoogieGenerator;

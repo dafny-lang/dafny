@@ -1756,6 +1756,9 @@ namespace Microsoft.Dafny {
       var name = MethodName(m, kind);
       var req = GetRequires();
       var mod = new List<Bpl.IdentifierExpr> { ordinaryEtran.HeapCastToIdentifierExpr };
+      if (Options.Get(CommonOptionBag.Referrers)) {
+        mod.Add(ordinaryEtran.ReferrerrsHeapCastToIdentifierExpr);
+      }
       var ens = GetEnsures();
       var proc = new Bpl.Procedure(m.Origin, name, [],
         inParams, outParams.Values.ToList(), false, req, mod, ens, etran.TrAttributes(m.Attributes, null));

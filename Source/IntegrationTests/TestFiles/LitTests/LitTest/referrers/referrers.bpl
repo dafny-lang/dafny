@@ -776,7 +776,7 @@ var $ReferrersHeap: ReferrersHeap;
 const $OneReferrersHeap: ReferrersHeap;
 
 procedure $YieldHavoc(this: ref, rds: Set, nw: Set);
-  modifies $Heap;
+  modifies $Heap, $ReferrersHeap;
   ensures (forall $o: ref, $f: Field :: 
     { read($Heap, $o, $f) } 
     $o != null && $Unbox(read(old($Heap), $o, alloc))
@@ -788,7 +788,7 @@ procedure $YieldHavoc(this: ref, rds: Set, nw: Set);
 
 
 procedure $IterHavoc0(this: ref, rds: Set, modi: Set);
-  modifies $Heap;
+  modifies $Heap, $ReferrersHeap;
   ensures (forall $o: ref, $f: Field :: 
     { read($Heap, $o, $f) } 
     $o != null && $Unbox(read(old($Heap), $o, alloc))
@@ -800,7 +800,7 @@ procedure $IterHavoc0(this: ref, rds: Set, modi: Set);
 
 
 procedure $IterHavoc1(this: ref, modi: Set, nw: Set);
-  modifies $Heap;
+  modifies $Heap, $ReferrersHeap;
   ensures (forall $o: ref, $f: Field :: 
     { read($Heap, $o, $f) } 
     $o != null && $Unbox(read(old($Heap), $o, alloc))
@@ -2936,12 +2936,12 @@ const unique class._System.Tuple0: ClassName;
 const unique class._module.__default: ClassName;
 
 procedure {:verboseName "ReferrersLocal (well-formedness)"} CheckWellFormed$$_module.__default.ReferrersLocal(depth: int);
-  modifies $Heap;
+  modifies $Heap, $ReferrersHeap;
 
 
 
 procedure {:verboseName "ReferrersLocal (call)"} Call$$_module.__default.ReferrersLocal(depth: int);
-  modifies $Heap;
+  modifies $Heap, $ReferrersHeap;
   // frame condition: object granularity
   free ensures (forall $o: ref :: 
     { $Heap[$o] } 
@@ -2953,7 +2953,7 @@ procedure {:verboseName "ReferrersLocal (call)"} Call$$_module.__default.Referre
 
 
 procedure {:verboseName "ReferrersLocal (correctness)"} Impl$$_module.__default.ReferrersLocal(depth: int) returns ($_reverifyPost: bool);
-  modifies $Heap;
+  modifies $Heap, $ReferrersHeap;
   // frame condition: object granularity
   free ensures (forall $o: ref :: 
     { $Heap[$o] } 
@@ -3164,7 +3164,7 @@ procedure {:verboseName "ReferrersMethodCall (well-formedness)"} CheckWellFormed
     t#0: ref
        where $Is(t#0, Tclass._module.SimpleObject())
          && $IsAlloc(t#0, Tclass._module.SimpleObject(), $Heap));
-  modifies $Heap;
+  modifies $Heap, $ReferrersHeap;
 
 
 
@@ -3172,7 +3172,7 @@ procedure {:verboseName "ReferrersMethodCall (call)"} Call$$_module.__default.Re
     t#0: ref
        where $Is(t#0, Tclass._module.SimpleObject())
          && $IsAlloc(t#0, Tclass._module.SimpleObject(), $Heap));
-  modifies $Heap;
+  modifies $Heap, $ReferrersHeap;
   // frame condition: object granularity
   free ensures (forall $o: ref :: 
     { $Heap[$o] } 
@@ -3188,7 +3188,7 @@ procedure {:verboseName "ReferrersMethodCall (correctness)"} Impl$$_module.__def
        where $Is(t#0, Tclass._module.SimpleObject())
          && $IsAlloc(t#0, Tclass._module.SimpleObject(), $Heap))
    returns ($_reverifyPost: bool);
-  modifies $Heap;
+  modifies $Heap, $ReferrersHeap;
   // frame condition: object granularity
   free ensures (forall $o: ref :: 
     { $Heap[$o] } 
@@ -3222,7 +3222,7 @@ procedure {:verboseName "EnsuresReferrersUnchanged (well-formedness)"} CheckWell
     t2#0: ref
        where $Is(t2#0, Tclass._module.SimpleObject())
          && $IsAlloc(t2#0, Tclass._module.SimpleObject(), $Heap));
-  modifies $Heap;
+  modifies $Heap, $ReferrersHeap;
 
 
 
@@ -3230,7 +3230,7 @@ procedure {:verboseName "EnsuresReferrersUnchanged (call)"} Call$$_module.__defa
     t2#0: ref
        where $Is(t2#0, Tclass._module.SimpleObject())
          && $IsAlloc(t2#0, Tclass._module.SimpleObject(), $Heap));
-  modifies $Heap;
+  modifies $Heap, $ReferrersHeap;
   // user-defined postconditions
   free ensures {:always_assume} true;
   ensures {:id "id14"} Set#Equal(readReferrers(old($ReferrersHeap), t2#0), readReferrers($ReferrersHeap, t2#0));
@@ -3249,7 +3249,7 @@ procedure {:verboseName "EnsuresReferrersUnchanged (correctness)"} Impl$$_module
        where $Is(t2#0, Tclass._module.SimpleObject())
          && $IsAlloc(t2#0, Tclass._module.SimpleObject(), $Heap))
    returns ($_reverifyPost: bool);
-  modifies $Heap;
+  modifies $Heap, $ReferrersHeap;
   // user-defined postconditions
   free ensures {:always_assume} true;
   ensures {:id "id15"} Set#Equal(readReferrers(old($ReferrersHeap), t2#0), readReferrers($ReferrersHeap, t2#0));
@@ -3304,12 +3304,12 @@ implementation {:smt_option "smt.arith.solver", "2"} {:verboseName "EnsuresRefer
 
 
 procedure {:verboseName "CallReferrersMethodCall (well-formedness)"} CheckWellFormed$$_module.__default.CallReferrersMethodCall(depth: int);
-  modifies $Heap;
+  modifies $Heap, $ReferrersHeap;
 
 
 
 procedure {:verboseName "CallReferrersMethodCall (call)"} Call$$_module.__default.CallReferrersMethodCall(depth: int);
-  modifies $Heap;
+  modifies $Heap, $ReferrersHeap;
   // frame condition: object granularity
   free ensures (forall $o: ref :: 
     { $Heap[$o] } 
@@ -3321,7 +3321,7 @@ procedure {:verboseName "CallReferrersMethodCall (call)"} Call$$_module.__defaul
 
 
 procedure {:verboseName "CallReferrersMethodCall (correctness)"} Impl$$_module.__default.CallReferrersMethodCall(depth: int) returns ($_reverifyPost: bool);
-  modifies $Heap;
+  modifies $Heap, $ReferrersHeap;
   // frame condition: object granularity
   free ensures (forall $o: ref :: 
     { $Heap[$o] } 
@@ -3389,12 +3389,12 @@ implementation {:smt_option "smt.arith.solver", "2"} {:verboseName "CallReferrer
 
 
 procedure {:verboseName "GhostReferrersLocals (well-formedness)"} CheckWellFormed$$_module.__default.GhostReferrersLocals(depth: int);
-  modifies $Heap;
+  modifies $Heap, $ReferrersHeap;
 
 
 
 procedure {:verboseName "GhostReferrersLocals (call)"} Call$$_module.__default.GhostReferrersLocals(depth: int);
-  modifies $Heap;
+  modifies $Heap, $ReferrersHeap;
   // frame condition: object granularity
   free ensures (forall $o: ref :: 
     { $Heap[$o] } 
@@ -3406,7 +3406,7 @@ procedure {:verboseName "GhostReferrersLocals (call)"} Call$$_module.__default.G
 
 
 procedure {:verboseName "GhostReferrersLocals (correctness)"} Impl$$_module.__default.GhostReferrersLocals(depth: int) returns ($_reverifyPost: bool);
-  modifies $Heap;
+  modifies $Heap, $ReferrersHeap;
   // frame condition: object granularity
   free ensures (forall $o: ref :: 
     { $Heap[$o] } 
@@ -3526,12 +3526,12 @@ implementation {:smt_option "smt.arith.solver", "2"} {:verboseName "GhostReferre
 
 
 procedure {:verboseName "ReferrersLocalWithGhostAliases (well-formedness)"} CheckWellFormed$$_module.__default.ReferrersLocalWithGhostAliases(depth: int);
-  modifies $Heap;
+  modifies $Heap, $ReferrersHeap;
 
 
 
 procedure {:verboseName "ReferrersLocalWithGhostAliases (call)"} Call$$_module.__default.ReferrersLocalWithGhostAliases(depth: int);
-  modifies $Heap;
+  modifies $Heap, $ReferrersHeap;
   // frame condition: object granularity
   free ensures (forall $o: ref :: 
     { $Heap[$o] } 
@@ -3543,7 +3543,7 @@ procedure {:verboseName "ReferrersLocalWithGhostAliases (call)"} Call$$_module._
 
 
 procedure {:verboseName "ReferrersLocalWithGhostAliases (correctness)"} Impl$$_module.__default.ReferrersLocalWithGhostAliases(depth: int) returns ($_reverifyPost: bool);
-  modifies $Heap;
+  modifies $Heap, $ReferrersHeap;
   // frame condition: object granularity
   free ensures (forall $o: ref :: 
     { $Heap[$o] } 
@@ -3671,12 +3671,12 @@ implementation {:smt_option "smt.arith.solver", "2"} {:verboseName "ReferrersLoc
 
 
 procedure {:verboseName "ReferrersOnGhostConstructedInstanceInCompiledContext (well-formedness)"} CheckWellFormed$$_module.__default.ReferrersOnGhostConstructedInstanceInCompiledContext(depth: int);
-  modifies $Heap;
+  modifies $Heap, $ReferrersHeap;
 
 
 
 procedure {:verboseName "ReferrersOnGhostConstructedInstanceInCompiledContext (call)"} Call$$_module.__default.ReferrersOnGhostConstructedInstanceInCompiledContext(depth: int);
-  modifies $Heap;
+  modifies $Heap, $ReferrersHeap;
   // frame condition: object granularity
   free ensures (forall $o: ref :: 
     { $Heap[$o] } 
@@ -3688,7 +3688,7 @@ procedure {:verboseName "ReferrersOnGhostConstructedInstanceInCompiledContext (c
 
 
 procedure {:verboseName "ReferrersOnGhostConstructedInstanceInCompiledContext (correctness)"} Impl$$_module.__default.ReferrersOnGhostConstructedInstanceInCompiledContext(depth: int) returns ($_reverifyPost: bool);
-  modifies $Heap;
+  modifies $Heap, $ReferrersHeap;
   // frame condition: object granularity
   free ensures (forall $o: ref :: 
     { $Heap[$o] } 
@@ -3825,7 +3825,7 @@ procedure {:verboseName "CouldFree (well-formedness)"} CheckWellFormed$$_module.
        where $Is(compiledMemRef#0, Tclass._System.Tuple2(Tclass._System.object(), TField))
          && $IsAlloc(compiledMemRef#0, Tclass._System.Tuple2(Tclass._System.object(), TField), $Heap)
          && $IsA#_System.Tuple2(compiledMemRef#0));
-  modifies $Heap;
+  modifies $Heap, $ReferrersHeap;
 
 
 
@@ -3854,19 +3854,19 @@ procedure {:verboseName "CouldFree (call)"} Call$$_module.__default.CouldFree(t#
        ==> 
       !_System.field.IsGhost($Unbox(_System.Tuple2._1(r#1)): Field)
        ==> _System.Tuple2#Equal(r#1, compiledMemRef#0));
-  modifies $Heap;
+  modifies $Heap, $ReferrersHeap;
   // frame condition
   free ensures old($Heap) == $Heap;
 
 
 
 procedure {:verboseName "ObjectFields (well-formedness)"} CheckWellFormed$$_module.__default.ObjectFields(depth: int);
-  modifies $Heap;
+  modifies $Heap, $ReferrersHeap;
 
 
 
 procedure {:verboseName "ObjectFields (call)"} Call$$_module.__default.ObjectFields(depth: int);
-  modifies $Heap;
+  modifies $Heap, $ReferrersHeap;
   // frame condition: object granularity
   free ensures (forall $o: ref :: 
     { $Heap[$o] } 
@@ -3878,7 +3878,7 @@ procedure {:verboseName "ObjectFields (call)"} Call$$_module.__default.ObjectFie
 
 
 procedure {:verboseName "ObjectFields (correctness)"} Impl$$_module.__default.ObjectFields(depth: int) returns ($_reverifyPost: bool);
-  modifies $Heap;
+  modifies $Heap, $ReferrersHeap;
   // frame condition: object granularity
   free ensures (forall $o: ref :: 
     { $Heap[$o] } 
@@ -4516,7 +4516,7 @@ procedure {:verboseName "ChainingObject._ctor (well-formedness)"} CheckWellForme
        where $Is(chained_test#0, Tclass._module.ChainingObject?())
          && $IsAlloc(chained_test#0, Tclass._module.ChainingObject?(), $Heap))
    returns (this: ref);
-  modifies $Heap;
+  modifies $Heap, $ReferrersHeap;
 
 
 
@@ -4529,7 +4529,7 @@ procedure {:verboseName "ChainingObject._ctor (call)"} Call$$_module.ChainingObj
          && 
         $Is(this, Tclass._module.ChainingObject())
          && $IsAlloc(this, Tclass._module.ChainingObject(), $Heap));
-  modifies $Heap;
+  modifies $Heap, $ReferrersHeap;
   // user-defined postconditions
   free ensures {:always_assume} true;
   ensures {:id "id198"} $Unbox(read($Heap, this, _module.ChainingObject.x)): ref
@@ -4572,7 +4572,7 @@ procedure {:verboseName "ChainingObject._ctor (correctness)"} Impl$$_module.Chai
        where $Is(chained_test#0, Tclass._module.ChainingObject?())
          && $IsAlloc(chained_test#0, Tclass._module.ChainingObject?(), $Heap))
    returns (this: ref, $_reverifyPost: bool);
-  modifies $Heap;
+  modifies $Heap, $ReferrersHeap;
   // user-defined postconditions
   free ensures {:always_assume} true;
   ensures {:id "id205"} $Unbox(read($Heap, this, _module.ChainingObject.x)): ref
