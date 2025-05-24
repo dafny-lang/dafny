@@ -1,8 +1,10 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Diagnostics.Contracts;
 using System.Linq;
 using System.Numerics;
+using JetBrains.Annotations;
 using Microsoft.Dafny;
 using Microsoft.Dafny.Compilers;
 using Type = Microsoft.Dafny.Type;
@@ -10,7 +12,7 @@ using Type = Microsoft.Dafny.Type;
 namespace DafnyCore.Backends.Lean;
 
 public class LeanCodeGenerator(DafnyOptions options, ErrorReporter reporter) : SinglePassCodeGenerator(options, reporter) {
-  private struct StructureWriter(LeanCodeGenerator super, DatatypeDecl dt, ConcreteSyntaxTree functions) : IClassWriter {
+  private struct StructureWriter(LeanCodeGenerator parent, DatatypeDecl dt, ConcreteSyntaxTree functions) : IClassWriter {
     public ConcreteSyntaxTree CreateMethod(MethodOrConstructor m, List<TypeArgumentInstantiation> typeArgs, bool createBody, bool forBodyInheritance, bool lookasideBody) {
       throw new NotImplementedException();
     }
@@ -21,19 +23,22 @@ public class LeanCodeGenerator(DafnyOptions options, ErrorReporter reporter) : S
 
     public ConcreteSyntaxTree CreateFunction(string name, List<TypeArgumentInstantiation> typeArgs, List<Formal> formals, Type resultType, IOrigin tok, bool isStatic,
       bool createBody, MemberDecl member, bool forBodyInheritance, bool lookasideBody) {
-      functions = functions.Write($"def {dt.GetCompileName(super.Options)}.{name}");
-      super.DeclareFormal(" ", "this", UserDefinedType.FromTopLevelDecl(tok, dt, new List<Type>()), tok, true, functions); // TODO should typeArguments always be empty?
-      super.WriteFormals(" ", formals, functions);
-      // TODO fix order of header and body
-      var bodyWr = functions.NewBlock(header: $": {super.TypeName(resultType, functions, tok)} :=", open: BlockStyle.Newline, close: BlockStyle.Nothing);
-       bodyWr = bodyWr.NewBlock(header: "", "else this", open: BlockStyle.Space, close: BlockStyle.Newline);
-       var realBodyWr = bodyWr.NewBlock(header: "if", footer: "then", open: BlockStyle.Space, close: BlockStyle.Space);
-       foreach (var clause in ((Function)member).Req) {
-         super.EmitExpr(clause.E, false, realBodyWr, null);
-         realBodyWr = realBodyWr.Write("∧");
-         realBodyWr.WriteLine();
-       }
-      return  bodyWr;
+      functions = functions.Write($"def {dt.GetCompileName(parent.Options)}.{name}");
+      Contract.Assert(typeArgs.Count == 0);
+      var dtType = UserDefinedType.FromTopLevelDecl(tok, dt, new List<Type>());
+      parent.DeclareFormal(" ", "this", dtType, tok, true, functions);
+      parent.WriteFormals(" ", formals, functions);
+      var bodyWr = functions.NewBlock(header: $": {parent.TypeName(resultType, functions, tok)} :=", open: BlockStyle.Newline, close: BlockStyle.Nothing);
+      var defaultExpr = resultType.Equals(dtType) ? "this" : "default";
+      bodyWr = bodyWr.NewBlock(header: "", $" else {defaultExpr}", open: BlockStyle.Space, close: BlockStyle.Newline);
+      var headerWr = bodyWr.NewBlock(header: "if", footer: "then", open: BlockStyle.Space, close: BlockStyle.Space);
+      headerWr.WriteLine("true");
+      foreach (var clause in ((Function)member).Req) {
+        headerWr = headerWr.Write("∧ ");
+        parent.EmitExpr(clause.E, false, headerWr, null);
+        headerWr.WriteLine();
+      }
+      return bodyWr;
     }
 
     public ConcreteSyntaxTree CreateGetter(string name, TopLevelDecl enclosingDecl, Type resultType, IOrigin tok, bool isStatic, bool isConst, bool createBody, MemberDecl member, bool forBodyInheritance) {
@@ -74,46 +79,6 @@ public class LeanCodeGenerator(DafnyOptions options, ErrorReporter reporter) : S
       var ret = Enum.GetValues<Feature>().ToHashSet();
       // TODO incrementally remove things
       return ret;
-    }
-  }
-
-  public override void EmitExpr(Expression expr, bool inLetExprBody, ConcreteSyntaxTree wr,
-    ConcreteSyntaxTree wStmts) {
-    switch (expr) {
-      case QuantifierExpr quantifierExpr:
-        var e = quantifierExpr;
-
-            // Compilation does not check whether a quantifier was split.
-
-            wr = CaptureFreeVariables(quantifierExpr, true, out var su, inLetExprBody, wr, ref wStmts);
-            var logicalBody = su.Substitute(e.LogicalBody(true));
-
-            Contract.Assert(e.Bounds !=
-                            null); // for non-ghost quantifiers, the resolver would have insisted on finding bounds
-            var n = e.BoundVars.Count;
-            Contract.Assert(e.Bounds.Count == n);
-            var wBody = wr;
-            for (int i = 0; i < n; i++) {
-              var bound = e.Bounds[i];
-              var bv = e.BoundVars[i];
-
-              var collectionElementType = CompileCollection(bound, bv, inLetExprBody, false, su, out var collection,
-            out var newtypeConversionsWereExplicit, wStmts,
-                e.Bounds, e.BoundVars, i);
-              wBody = EmitQuantifierExpr(collection, quantifierExpr is ForallExpr, collectionElementType, bv, wBody);
-            }
-
-            EmitExpr(logicalBody, inLetExprBody, wBody, wStmts);
-        break;
-      case LetExpr letExpr:
-        var bvs = letExpr.BoundVars.ToArray();
-        Contract.Assert(bvs.Length == 1);
-        var lhs = bvs[0];
-        DeclareLocalVar(lhs.GetOrCreateCompileName(currentIdGenerator), lhs.Type, letExpr.Origin, letExpr.Body, inLetExprBody, wr);
-        break;
-      default:
-        base.EmitExpr(expr, inLetExprBody, wr, wStmts);
-        break;
     }
   }
 
@@ -172,12 +137,99 @@ public class LeanCodeGenerator(DafnyOptions options, ErrorReporter reporter) : S
   
   protected override ConcreteSyntaxTree EmitReturnExpr(ConcreteSyntaxTree wr) {
     // emits "<returnExpr>" for function bodies
-    var wrbody = wr.Fork();
+    var wrBody = wr.Fork();
     wr.WriteLine();
-    return wrbody;
+    return wrBody;
   }
   
+  public override void EmitExpr(Expression expr, bool inLetExprBody, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
+    switch (expr) {
+      case ForallExpr forallExpr: // Overriding the lambda hell from SinglePassCodeGenerator
+        Contract.Assert(forallExpr.BoundVars.Count == 1);
+        var bv = forallExpr.BoundVars[0];
+        Contract.Assert(forallExpr.Bounds != null);
+        CompileCollection(forallExpr.Bounds[0], bv, inLetExprBody, false, null, out var wrCollection, out _, wStmts, forallExpr.Bounds, forallExpr.BoundVars);
+        EmitQuantifierExpr(wrCollection, true, forallExpr.BoundVars[0].Type, forallExpr.BoundVars[0], wr);
+        break;
+      case LetExpr letExpr: // Destructuring let
+        var wrVars = wr.Write("let ");
+        if (letExpr.AllBoundVars.Count() > 1) {
+          wrVars = wr.NewBlock(header: "⟨", footer: "⟩", open: BlockStyle.Nothing, close: BlockStyle.Space);
+        }
+        TrExprList(letExpr.AllBoundVars.Select(Expression (bv) => new IdentifierExpr(bv.Origin, bv)).ToList(), wrVars, inLetExprBody, wStmts, parens: false);
+        wr = wr.Write(":= ");
+        EmitExpr(letExpr.Body, inLetExprBody, wr, wStmts);
+        wr.WriteLine();
+        break;
+      case DatatypeValue datatypeValue:
+        EmitApplyExpr(null, datatypeValue.Origin, new IdentifierExpr(datatypeValue.Origin, new BoundVar(datatypeValue.Origin, datatypeValue.Ctor.Name)), datatypeValue.Arguments, inLetExprBody, wr, wStmts);
+        break;
+      case DatatypeUpdateExpr updateExpr:
+        wr = wr.NewBlock(header: " ", open: BlockStyle.Brace, close: BlockStyle.SpaceBrace);
+        EmitExpr(updateExpr.Root, inLetExprBody, wr, wStmts);
+        wr.Write(" with ");
+        wr.Comma(updateExpr.Updates, update => {
+          EmitIdentifier(update.Item2, wr);
+          wr = wr.Write(" := ");
+          EmitExpr(update.Item3, inLetExprBody, wr, wStmts);
+        });
+        break;
+      case ITEExpr iteExpr:
+        EmitExpr(iteExpr.Test, inLetExprBody, wr.NewBlock(header: "if", footer: " then", open: BlockStyle.Space, close: BlockStyle.Newline), wStmts);
+        EmitExpr(iteExpr.Thn, inLetExprBody, wr, wStmts);
+        wr = wr.Write(" else ");
+        EmitExpr(iteExpr.Els, inLetExprBody, wr, wStmts);
+        break;
+      default:
+        base.EmitExpr(expr, inLetExprBody, wr, wStmts);
+        break;
+    }
+  }
   
+  // NB: TrExprOpt is used to compile the body of functions; we just redirect it to EmitExpr
+  protected override void TrExprOpt(Expression expr, Type resultType, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts,
+    bool inLetExprBody, [CanBeNull] IVariable accumulatorVar, OptimizedExpressionContinuation continuation) {
+    EmitExpr(expr, inLetExprBody, wr, wStmts);
+  }
+  
+  protected override void EmitNestedMatchExpr(NestedMatchExpr e, bool inLetExprBody, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
+    EmitExpr(e.Source, inLetExprBody, wr.NewBlock(header: "match", footer: " with", open: BlockStyle.Space, close: BlockStyle.Newline), wStmts);
+    foreach (var @case in e.Cases) {
+      var wrPattern = wr.NewBlock(header: "|", footer: " :=", open: BlockStyle.Space, close: BlockStyle.Space);
+      EmitExtendedPattern(@case.Pat, inLetExprBody, wrPattern, wStmts);
+      EmitExpr(@case.Body, inLetExprBody, wr, wStmts);
+      wr.WriteLine();
+    }
+    wr.WriteLine("end");
+  }
+
+  private void EmitExtendedPattern(ExtendedPattern extendedPattern, bool inLetExprBody, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts)
+  {
+    switch (extendedPattern) {
+      case IdPattern idPattern:
+        EmitIdentifier(idPattern.Id, wr);
+        if (idPattern.Arguments is { } args) {
+          wr.Write(" ");
+          wr.Comma(" ", args, ep => EmitExtendedPattern(ep, inLetExprBody, wr, wStmts));
+        }
+        break;
+      case LitPattern litPattern:
+        EmitExpr(litPattern.OrigLit, inLetExprBody, wr, wStmts);
+        break;
+      case DisjunctivePattern disjunctivePattern:
+      default:
+        throw new ArgumentOutOfRangeException(nameof(extendedPattern), "Disjunctive patterns not supported by Lean code generator.");
+    }
+  }
+
+  protected override void EmitMatchExpr(MatchExpr e, bool inLetExprBody, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
+    // Reduces a base pattern match to a nested one
+    EmitNestedMatchExpr(new NestedMatchExpr(e.Origin, e.Source, e.Cases.Select(
+      @case => new NestedMatchCaseExpr(@case.Origin, new LitPattern(@case.Origin,
+        new DatatypeValue(@case.Origin, @case.Ctor.EnclosingDatatype.Name, @case.Ctor.Name, @case.Arguments.Select(
+          Expression (bv) => new IdentifierExpr(bv.Origin, bv)).ToList())), @case.Body, @case.Attributes)).ToList(),
+      false), inLetExprBody, wr, wStmts);
+  }
 
   protected override IClassWriter DeclareNewtype(NewtypeDecl nt, ConcreteSyntaxTree wr) {
     throw new UnsupportedFeatureException(nt.StartToken, 0, "newtype");
@@ -450,7 +502,7 @@ public class LeanCodeGenerator(DafnyOptions options, ErrorReporter reporter) : S
 
   protected override void EmitIndexCollectionUpdate(Expression source, Expression index, Expression value,
     CollectionType resultCollectionType, bool inLetExprBody, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
-    TrExprList([source, index, value], wr.Write("update "), inLetExprBody, wStmts, parens: false);
+    TrExprList([source, index, value], wr.Write("update "), inLetExprBody, wStmts, parens: false, sep: " ");
   }
 
   protected override void EmitSeqSelectRange(Expression source, Expression lo, Expression hi, bool fromArray, bool inLetExprBody,
@@ -472,7 +524,9 @@ public class LeanCodeGenerator(DafnyOptions options, ErrorReporter reporter) : S
 
   protected override void EmitApplyExpr(Type functionType, IOrigin tok, Expression function, List<Expression> arguments, bool inLetExprBody,
     ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
-    throw new NotImplementedException();
+    EmitExpr(function, inLetExprBody, wr, wStmts);
+    wr.Write(" ");
+    TrExprList(arguments, wr, inLetExprBody, wStmts, sep: " ");
   }
 
   protected override ConcreteSyntaxTree EmitBetaRedex(List<string> boundVars, List<Expression> arguments, List<Type> boundTypes, Type resultType, IOrigin resultTok,
@@ -674,6 +728,8 @@ public class LeanCodeGenerator(DafnyOptions options, ErrorReporter reporter) : S
       case BinaryExpr.ResolvedOpcode.YetUndetermined:
       case BinaryExpr.ResolvedOpcode.LessThanLimit:
       case BinaryExpr.ResolvedOpcode.Add:
+        opString = "+";
+        break;
       case BinaryExpr.ResolvedOpcode.Sub:
       case BinaryExpr.ResolvedOpcode.Mul:
       case BinaryExpr.ResolvedOpcode.Div:

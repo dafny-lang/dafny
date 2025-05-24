@@ -3002,7 +3002,7 @@ namespace Microsoft.Dafny.Compilers {
     /// Other than the syntactic differences in the target code, the idea is that "TrExprOpt(...)" and "Expr(...)" generate code with the
     /// same semantics.
     /// </summary>
-    protected void TrExprOpt(Expression expr, Type resultType, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts, bool inLetExprBody,
+    protected virtual void TrExprOpt(Expression expr, Type resultType, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts, bool inLetExprBody,
       [CanBeNull] IVariable accumulatorVar, OptimizedExpressionContinuation continuation) {
       Contract.Requires(expr != null);
       Contract.Requires(wr != null);
@@ -4791,11 +4791,11 @@ namespace Microsoft.Dafny.Compilers {
     /// Before calling TrExprList(exprs), the caller must have spilled the let variables declared in expressions in "exprs".
     /// </summary>
     protected void TrExprList(List<Expression> exprs, ConcreteSyntaxTree wr, bool inLetExprBody, ConcreteSyntaxTree wStmts,
-        Func<int, Type> typeAt = null, bool parens = true) {
+        Func<int, Type> typeAt = null, bool parens = true, string sep = ", ") {
       Contract.Requires(cce.NonNullElements(exprs));
       if (parens) { wr = wr.ForkInParens(); }
 
-      wr.Comma(exprs, (e, index) => {
+      wr.Comma(sep, exprs, (e, index) => {
         ConcreteSyntaxTree w;
         if (typeAt != null) {
           w = wr.Fork();

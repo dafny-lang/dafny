@@ -686,7 +686,7 @@ namespace Microsoft.Dafny.Compilers {
       wr.Write(postOpString);
     }
 
-    private void EmitMatchExpr(MatchExpr e, bool inLetExprBody, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
+    protected virtual void EmitMatchExpr(MatchExpr e, bool inLetExprBody, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
       // ((System.Func<SourceType, TargetType>)((SourceType _source) => {
       //   if (source.is_Ctor0) {
       //     FormalType f0 = ((Dt_Ctor0)source._D).a0;
