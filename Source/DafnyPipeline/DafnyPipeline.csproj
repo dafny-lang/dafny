@@ -126,6 +126,10 @@
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </EmbeddedResource>
     <EmbeddedResource Remove="..\DafnyRuntime\DafnyRuntimeRust\target\**"/>
+    <EmbeddedResource Include="..\DafnyCore\Syntax.cs-schema">
+      <LogicalName>Syntax.cs-schema</LogicalName>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </EmbeddedResource>
   </ItemGroup>
 
 </Project>

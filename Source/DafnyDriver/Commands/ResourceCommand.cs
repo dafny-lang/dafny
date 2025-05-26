@@ -21,21 +21,20 @@ public class ResourceCommand {
   private static readonly Argument<string> ResourceName = new("The name of the resource to output.");
   private static readonly Argument<FileInfo> OutputPath = new("The path to output the resource to.");
 
-  public static async Task<int> OutputResource(DafnyOptions options) {
+  private static async Task<int> OutputResource(DafnyOptions options) {
     var resourceName = options.Get(ResourceName);
     var outputPath = options.Get(OutputPath);
 
     var assembly = System.Reflection.Assembly.Load("DafnyPipeline");
     var stream = assembly.GetManifestResourceStream(resourceName);
     if (stream is null) {
-      options.OutputWriter.Status($"Cannot find embedded resource: {resourceName}");
+      await options.OutputWriter.Status($"Cannot find embedded resource: {resourceName}");
       return (int)ExitValue.PREPROCESSING_ERROR;
     }
 
     var rd = new StreamReader(stream);
-    using (StreamWriter writer = outputPath.CreateText()) {
-      SinglePassCodeGenerator.WriteFromStream(rd, writer);
-    }
+    await using var writer = outputPath.CreateText();
+    SinglePassCodeGenerator.WriteFromStream(rd, writer);
 
     return 0;
   }
