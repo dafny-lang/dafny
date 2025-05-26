@@ -36,7 +36,7 @@ public static class ErrorReporterExtensions {
 
     var dafnyToken = BoogieGenerator.ToDafnyToken(error.Tok);
 
-    var diagnostic = new DafnyDiagnostic(MessageSource.Verifier, null!, dafnyToken.ReportingRange, error.Msg,
+    var diagnostic = new DafnyDiagnostic(MessageSource.Verifier, null!, dafnyToken.ReportingRange, [error.Msg],
       ErrorLevel.Error, relatedInformation);
     reporter.MessageCore(diagnostic);
   }
@@ -62,7 +62,7 @@ public static class ErrorReporterExtensions {
         //     message = $"Could not prove: {dafnyToken.PrintOriginal()}";
         //   }
         // }
-        yield return new DafnyRelatedInformation(nestedOrigin.Inner.ReportingRange, nestedOrigin.Message);
+        yield return new DafnyRelatedInformation(nestedOrigin.Inner.ReportingRange, "", [nestedOrigin.Message]);
         innerToken = nestedOrigin.Inner;
       } else {
         innerToken = wrapper.WrappedOrigin;

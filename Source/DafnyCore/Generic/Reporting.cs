@@ -16,7 +16,7 @@ namespace Microsoft.Dafny {
   }
 
   public record DafnyRelatedInformation(TokenRange Range, string ErrorId, List<string> Arguments) {
-    public string Message(ResourceManager resourceManager) => string.Format(resourceManager.GetString(ErrorId)!, Arguments); 
+    public string Message(ResourceManager resourceManager) => string.Format(resourceManager.GetString(ErrorId) ?? "{0}", Arguments); 
   }
 
   public class ErrorReporterSink(DafnyOptions options) : ErrorReporter(options) {

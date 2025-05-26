@@ -68,7 +68,7 @@ public class PluginsTest {
     DafnyMain.Resolve(dafnyProgram);
 
     Assert.Equal(1, reporter.Count(ErrorLevel.Error));
-    Assert.Equal("Impossible to continue because whatever", reporter.AllMessagesByLevel[ErrorLevel.Error][0].Message);
+    Assert.Equal("Impossible to continue because whatever", reporter.AllMessagesByLevel[ErrorLevel.Error][0].Message(ConsoleErrorReporter.ResourceManager));
   }
 
   [Fact]
@@ -83,7 +83,7 @@ public class PluginsTest {
     var dafnyProgram = await Utils.Parse(reporter, programString, false);
     DafnyMain.Resolve(dafnyProgram);
     Assert.Equal(1, reporter.ErrorCount);
-    Assert.Equal("Impossible to continue", reporter.AllMessagesByLevel[ErrorLevel.Error][0].Message);
+    Assert.Equal("Impossible to continue", reporter.AllMessagesByLevel[ErrorLevel.Error][0].Message(ConsoleErrorReporter.ResourceManager));
   }
 
   [Fact]

@@ -51,16 +51,18 @@ record DiagnosticMessageData(MessageSource source, ErrorLevel level, TokenRange 
     return category == null ? message : $"{category}: {message}";
   }
 
-  private static JsonObject SerializeRelated(DafnyOptions options, TokenRange range, string message) {
+  private static JsonObject SerializeRelated(DafnyOptions options, TokenRange range, string errorId, List<string> arguments) {
     return new JsonObject {
       ["location"] = SerializeToken(options, range),
-      ["message"] = message,
+      ["arguments"] = new JsonArray { arguments },
+      ["errorId"] = errorId,
+      ["message"] = string.Format(ConsoleErrorReporter.ResourceManager.GetString(errorId) ?? "{0}", arguments),
     };
   }
 
   public JsonNode ToJson(DafnyOptions options) {
     var auxRelated = related.Select<DafnyRelatedInformation, JsonNode>(aux =>
-      SerializeRelated(options, aux.Range, aux.Message));
+      SerializeRelated(options, aux.Range, aux.ErrorId, aux.Arguments));
     return new JsonObject {
       ["location"] = SerializeToken(options, Range),
       ["severity"] = SerializeErrorLevel(level),
@@ -88,7 +90,7 @@ public class DafnyJsonConsolePrinter(DafnyOptions options) : DafnyConsolePrinter
   public override void WriteErrorInformation(ErrorInformation errorInfo, TextWriter tw, bool skipExecutionTrace = true) {
     var related = errorInfo.Aux.Where(e =>
       !(skipExecutionTrace && (e.Category ?? "").Contains("Execution trace"))).Select(aei => new DafnyRelatedInformation(
-      BoogieGenerator.ToDafnyToken(aei.Tok).ReportingRange, aei.FullMsg)).ToList();
+      BoogieGenerator.ToDafnyToken(aei.Tok).ReportingRange, null, [aei.FullMsg])).ToList();
     var dafnyToken = BoogieGenerator.ToDafnyToken(errorInfo.Tok);
     new DiagnosticMessageData(MessageSource.Verifier, ErrorLevel.Error,
       dafnyToken.ReportingRange, errorInfo.Category, errorInfo.Msg, related).WriteJsonTo(Options, tw);
@@ -104,7 +106,7 @@ public class JsonConsoleErrorReporter(DafnyOptions options) : BatchErrorReporter
     }
 
     var data = new DiagnosticMessageData(dafnyDiagnostic.Source, dafnyDiagnostic.Level, dafnyDiagnostic.Range,
-      dafnyDiagnostic.Level == ErrorLevel.Error ? "Error" : null, dafnyDiagnostic.Message,
+      dafnyDiagnostic.Level == ErrorLevel.Error ? "Error" : null, dafnyDiagnostic.Message(ConsoleErrorReporter.ResourceManager),
       dafnyDiagnostic.RelatedInformation);
     data.WriteJsonTo(Options, Options.OutputWriter);
     return true;
