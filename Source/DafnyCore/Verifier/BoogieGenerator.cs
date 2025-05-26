@@ -1400,6 +1400,40 @@ namespace Microsoft.Dafny {
         new List<Boogie.Expr> { heap, r, f, ApplyBox(tok, v) });
     }
 
+
+
+    /// <summary>
+    /// Returns read(heap: Heap, r: ref, f: Field) : Box.
+    /// </summary>
+    public Bpl.Expr ReadReferrersHeap(IOrigin tok, Expr referrersHeap, Expr r) {
+      Contract.Requires(tok != null);
+      Contract.Requires(referrersHeap != null);
+      Contract.Requires(r != null);
+      Contract.Ensures(Contract.Result<Bpl.NAryExpr>() != null);
+
+      var res = new Bpl.NAryExpr(tok,
+        new Bpl.FunctionCall(new Bpl.IdentifierExpr(tok, "readReferrers", Predef.SetType)),
+        new List<Bpl.Expr> { referrersHeap, r });
+      res.Type = Predef.BoxType;
+      return res;
+    }
+
+    /// <summary>
+    /// Returns updateReferrers(h: Heap, r: ref, f: Field, v: Box) : Heap.
+    /// </summary>
+    public Boogie.NAryExpr UpdateReferrersHeap(IOrigin tok, Expr referrersHeap, Expr r, Expr v) {
+      Contract.Requires(tok != null);
+      Contract.Requires(referrersHeap != null);
+      Contract.Requires(r != null);
+      Contract.Requires(v != null);
+      Contract.Ensures(Contract.Result<Boogie.NAryExpr>() != null);
+
+
+      return new Boogie.NAryExpr(tok,
+        new Boogie.FunctionCall(new Boogie.IdentifierExpr(tok, "updateReferrers", referrersHeap.Type)),
+        new List<Boogie.Expr> { referrersHeap, r, v });
+    }
+
     public Bpl.Expr DType(Bpl.Expr e, Bpl.Expr type) {
       return Bpl.Expr.Eq(FunctionCall(e.tok, BuiltinFunction.DynamicType, null, e), type);
     }
