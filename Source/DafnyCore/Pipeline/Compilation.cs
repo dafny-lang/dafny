@@ -248,14 +248,19 @@ public class Compilation : IDisposable {
     return programAfterParsing;
   }
 
-  private void CheckSourceLocationConsistency(TokenRange? containerRange, INode node) {
+  private void CheckSourceLocationConsistency(INode? container, INode node) {
     var nodeRange = node.EntireRange;
-    if (containerRange != null && nodeRange.Uri != null && !containerRange.Contains(nodeRange)) {
-      throw new Exception($"Parent node range {containerRange} did not contain child node range {nodeRange}");
+    if (container != null) {
+      var containerRange = container.EntireRange;
+      if (nodeRange.Uri != null && !containerRange.Contains(nodeRange)) {
+        throw new Exception(
+          $"Range of parent node ({container}) did not contain range of child node ({node}):\n" +
+            $"    {containerRange} does not contain {nodeRange}");
+      }
     }
 
     foreach (var child in node.PreResolveChildren) {
-      CheckSourceLocationConsistency(node.Origin.Uri == null ? containerRange : nodeRange, child);
+      CheckSourceLocationConsistency(node.Origin.Uri == null ? container : node, child);
     }
   }
 

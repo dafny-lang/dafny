@@ -99,4 +99,8 @@ public class TokenRange(Token startToken, Token? endToken) : IComparable<TokenRa
   public bool Contains(TokenRange contained) {
     return StartToken.LessThanOrEquals(contained.StartToken) && contained.EndToken.LessThanOrEquals(EndToken);
   }
+
+  public override string ToString() {
+    return $"[{StartToken}, {EndToken}]";
+  }
 }
