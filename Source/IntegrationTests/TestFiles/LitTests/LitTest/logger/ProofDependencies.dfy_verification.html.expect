@@ -276,8 +276,8 @@ method {:testEntry} ObviouslyUnconstrainedCodeMethod(x: int) returns (r: (int, i
   requires </span><span class="pc" id="259:12">x > 10
 </span><span class="na" id="260:1">  ensures </span><span class="pc" id="260:11">r.0 > 10
 </span><span class="na" id="261:1">{
-  var a </span><span class="fc" id="262:9">:= x + 1;</span><span class="na" id="262:18"> // constrained by ensures clause
-  var b </span><span class="nc" id="263:9">:= x - 1;</span><span class="na" id="263:18"> // not constrained by ensures clause
+  var </span><span class="fc" id="262:7">a := x + 1;</span><span class="na" id="262:18"> // constrained by ensures clause
+  var </span><span class="nc" id="263:7">b := x - 1;</span><span class="na" id="263:18"> // not constrained by ensures clause
   </span><span class="fc" id="264:3">return
     (a,
      b);
@@ -362,7 +362,7 @@ method {:testEntry} CallContradictoryMethodMethod(x: int) returns (r: int)
   requires </span><span class="pc" id="345:12">x > 1
 </span><span class="na" id="346:1">  ensures </span><span class="nc" id="346:11">r < 0
 </span><span class="na" id="347:1">{
-  var y </span><span class="nc" id="348:9">:= ContradictoryEnsuresClauseMethod(x);
+  var </span><span class="nc" id="348:7">y := ContradictoryEnsuresClauseMethod(x);
 </span><span class="na" id="349:1">  </span><span class="nc" id="349:3">return y - 1;
 }
 
@@ -376,7 +376,7 @@ method {:testEntry} FalseAntecedentRequiresClauseMethod(x: int) returns (r: int)
 
 </span><span class="na" id="360:1">// False antecedent assert statement.
 method {:testEntry} FalseAntecedentAssertStatementMethod(x: int) {
-  var y </span><span class="fc" id="362:9">:= x*x;
+  var </span><span class="fc" id="362:7">y := x*x;
 </span><span class="na" id="363:1">  assert </span><span class="nc" id="363:10">y < 0 ==> </span><span class="pc" id="363:20">x < 0</span><span class="na" id="363:25">;
 }
 
