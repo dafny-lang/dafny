@@ -17,7 +17,7 @@ public class ResourceCommand {
     DafnyNewCli.SetHandlerUsingDafnyOptionsContinuation(result, (options, _) => OutputResource(options));
     return result;
   }
-  
+
   private static readonly Argument<string> ResourceName = new("The name of the resource to output.");
   private static readonly Argument<FileInfo> OutputPath = new("The path to output the resource to.");
 
@@ -33,6 +33,7 @@ public class ResourceCommand {
     }
 
     var rd = new StreamReader(stream);
+    Directory.CreateDirectory(Path.GetDirectoryName(outputPath.FullName));
     await using var writer = outputPath.CreateText();
     SinglePassCodeGenerator.WriteFromStream(rd, writer);
 
