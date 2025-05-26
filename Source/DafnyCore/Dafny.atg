@@ -90,6 +90,7 @@ TOKENS
   object = "object". // Keeping object and object? as literals simplifies ident
   object_q = "object?".
   field = "field".
+  locals = "locals".
   string = "string".
   set = "set".
   iset = "iset".
@@ -4324,11 +4325,15 @@ NameSegment<out Expression e>
       AtCall<out atLabel, out openParen, out args> ]
   )
   /* Note, since HashCall updates id.val, we make sure not to use id.val until after the possibility of calling HashCall. */
-  (. e = new NameSegment(new SourceOrigin(id, t), id.val, typeArgs);
-     if (openParen != null) {
-       e = new ApplySuffix(new SourceOrigin(id, t, openParen), atLabel, e, args, t);
-     } else {
-       Contract.Assert(atLabel == null);
+  (. if (AcceptReferrers() && id.val == "locals") {
+       e = new LocalsObjectExpression(id);
+     } else { 
+       e = new NameSegment(new SourceOrigin(id, t), id.val, typeArgs);
+       if (openParen != null) {
+         e = new ApplySuffix(new SourceOrigin(id, t, openParen), atLabel, e, args, t);
+       } else {
+         Contract.Assert(atLabel == null);
+       }
      }
   .)
   .
@@ -4707,6 +4712,7 @@ Ident<out Token/*!*/ x>
   | "hide"       (. t.kind = _ident; .) // convert it to an ident
   | "reveal"     (. t.kind = _ident; .) // convert it to an ident
   | "field"      (. t.kind = _ident; .) // convert it to an ident
+  | "locals"     (. t.kind = _ident; .) // convert it to an ident
   )
   (. x = t; .)
   .

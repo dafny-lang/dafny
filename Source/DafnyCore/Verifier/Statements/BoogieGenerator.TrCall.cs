@@ -147,6 +147,9 @@ public partial class BoogieGenerator {
     }
 
     var ins = new List<Bpl.Expr>();
+    if (Options.Get(CommonOptionBag.Referrers) && callee is not Lemma) {
+      ins.Add(FunctionCall(tok, "+", Boogie.Type.Int, Id(tok, "depth"), One(tok)));
+    }
     if (callee is TwoStateLemma) {
       ins.Add(etran.OldAt(atLabel).HeapExpr);
       ins.Add(etran.HeapExpr);
