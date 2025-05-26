@@ -205,4 +205,44 @@ public abstract class ErrorReporter {
   public void Error(MessageSource source, ErrorLevel errorLevel, IOrigin origin, string formatMsg) {
     Error(source, "Verbatim", origin, [formatMsg]);
   }
+
+  //[Obsolete]
+  public void Error(MessageSource source, object errorId, IOrigin origin, string formatMsg, params object[] formatArguments) {
+    Message(source, ErrorLevel.Error, errorId.ToString(), origin, [string.Format(formatMsg, formatArguments)]);
+  }
+  
+  //[Obsolete]
+  public void Error(MessageSource source, object errorId, IOrigin origin, string message) {
+    Message(source, ErrorLevel.Error, errorId.ToString(), origin, [message]);
+  }
+
+  //[Obsolete]
+  public void Message(MessageSource source, ErrorLevel level, object errorId, IOrigin origin, string message) {
+    Message(source, level, errorId.ToString(), origin, [message]);
+  }
+
+  //[Obsolete]
+  public void Error(MessageSource source, IOrigin origin, string formatMsg, params object[] formatArguments) {
+    Message(source, ErrorLevel.Error, null, origin,[string.Format(formatMsg, formatArguments)]);
+  }
+  
+  //[Obsolete]
+  public void Error(MessageSource source, object errorId, INode node, string formatMsg, params object[] formatArguments) {
+    Message(source, ErrorLevel.Error, errorId.ToString(), node.Origin, [string.Format(formatMsg, formatArguments)]);
+  }
+
+  
+  //[Obsolete]
+  public void Error(MessageSource source, object errorId, INode node, string message) {
+    Message(source, ErrorLevel.Error, errorId.ToString(), node.Origin, [message]);
+  }
+
+  //[Obsolete]
+  public void Error(MessageSource source, object errorId, INode node, string formatMsg, string formatArguments) {
+    Message(source, ErrorLevel.Error, errorId.ToString(), node.Origin, [string.Format(formatMsg, formatArguments)]);
+  }
+
+  public void Warning(MessageSource source, string errorId, IOrigin origin, string formatMsg, params object[] formatArguments) {
+    Message(source, ErrorLevel.Warning, errorId, origin, [string.Format(formatMsg, formatArguments)]);
+  }
 }

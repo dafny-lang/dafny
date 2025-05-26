@@ -8,8 +8,11 @@ namespace Microsoft.Dafny;
 public record DafnyDiagnostic(MessageSource Source, string ErrorId, TokenRange Range, List<string> Arguments, ErrorLevel Level,
   IReadOnlyList<DafnyRelatedInformation> RelatedInformation) : IComparable<DafnyDiagnostic> {
   
-  public string Message(ResourceManager resourceManager) => string.Format(resourceManager.GetString(ErrorId)!, Arguments);
-  
+  public string Message(ResourceManager resourceManager) {
+    var formatMsg = resourceManager.GetString(ErrorId) ?? "{0}";
+    return string.Format(formatMsg, Arguments);
+  }
+
   public int CompareTo(DafnyDiagnostic? other) {
     if (other == null) {
       return 1;
