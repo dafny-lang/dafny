@@ -213,11 +213,11 @@ public class DafnyProject : IEquatable<DafnyProject> {
     return commonPrefix;
   }
 
-  public void Validate(TextWriter outputWriter, IEnumerable<Option> possibleOptions) {
+  public async Task Validate(IDafnyOutputWriter outputWriter, IEnumerable<Option> possibleOptions) {
 
     var possibleNames = possibleOptions.Select(o => o.Name).ToHashSet();
     foreach (var optionThatDoesNotExist in Options.Where(option => !possibleNames.Contains(option.Key))) {
-      outputWriter.WriteLine(
+      await outputWriter.Status(
         $"Warning: option '{optionThatDoesNotExist.Key}' that was specified in the project file, is not a valid Dafny option.");
     }
   }

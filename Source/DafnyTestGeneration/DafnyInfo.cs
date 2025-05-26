@@ -4,6 +4,7 @@
 #nullable disable
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
 using Microsoft.Dafny;
 using Function = Microsoft.Dafny.Function;
 using IdentifierExpr = Microsoft.Dafny.IdentifierExpr;
@@ -362,7 +363,7 @@ namespace DafnyTestGeneration {
         if (witness != null) {
           info.witnessForType[newTypeName] = witness;
           if (info.Options.Verbose) {
-            info.Options.OutputWriter.WriteLine($"// Unconstrained values of type {newTypeName} will be " +
+            _ = info.Options.OutputWriter.Status($"// Unconstrained values of type {newTypeName} will be " +
                                    $"assigned the default value of " +
                                    $"{Printer.ExprToString(info.Options, info.witnessForType[newTypeName])}");
           }
