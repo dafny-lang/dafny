@@ -639,7 +639,10 @@ axiom (forall i: int :: { IndexField(i) } FDim(IndexField(i)) == 1);
 revealed function IndexField_Inverse(Field) : int;
 
 axiom (forall i: int :: { IndexField(i) } IndexField_Inverse(IndexField(i)) == i);
-axiom (forall f: Field :: { IndexField_Inverse(f) } IndexField(IndexField_Inverse(f)) == f);
+
+axiom (forall f: Field :: 
+  { IndexField_Inverse(f) } 
+  IndexField(IndexField_Inverse(f)) == f);
 
 revealed function MultiIndexField(Field, int) : Field;
 
@@ -3264,9 +3267,6 @@ procedure {:verboseName "EnsuresReferrersUnchanged (correctness)"} Impl$$_module
        where $Is(t2#0, Tclass._module.SimpleObject())
          && $IsAlloc(t2#0, Tclass._module.SimpleObject(), $Heap))
    returns ($_reverifyPost: bool);
-  free requires Set#IsMember(readReferrers($ReferrersHeap, t2#0), 
-      $Box(#_System._tuple#2._#Make2($Box(locals), $Box(local_field(_module.__default.EnsuresReferrersUnchanged.t2, depth)))));
-
   modifies $Heap, $ReferrersHeap;
   // user-defined postconditions
   free ensures {:always_assume} true;
@@ -3282,7 +3282,6 @@ procedure {:verboseName "EnsuresReferrersUnchanged (correctness)"} Impl$$_module
 
 
 const unique _module.__default.EnsuresReferrersUnchanged.t__local: FieldFamily;
-const unique _module.__default.EnsuresReferrersUnchanged.t2: FieldFamily;
 
 implementation {:smt_option "smt.arith.solver", "2"} {:verboseName "EnsuresReferrersUnchanged (correctness)"} Impl$$_module.__default.EnsuresReferrersUnchanged(depth: int, t2#0: ref) returns ($_reverifyPost: bool)
 {
@@ -3917,7 +3916,11 @@ implementation {:smt_option "smt.arith.solver", "2"} {:verboseName "ReferrersOnG
 
 procedure {:verboseName "CouldFree (well-formedness)"} CheckWellFormed$$_module.__default.CouldFree(t#0: ref
        where $Is(t#0, Tclass._System.object())
-         && $IsAlloc(t#0, Tclass._System.object(), $Heap));
+         && $IsAlloc(t#0, Tclass._System.object(), $Heap), 
+    compiledMemRef#0: DatatypeType
+       where $Is(compiledMemRef#0, Tclass._System.Tuple2(Tclass._System.object(), TField))
+         && $IsAlloc(compiledMemRef#0, Tclass._System.Tuple2(Tclass._System.object(), TField), $Heap)
+         && $IsA#_System.Tuple2(compiledMemRef#0));
   modifies $Heap, $ReferrersHeap;
 
 
@@ -4049,8 +4052,6 @@ implementation {:smt_option "smt.arith.solver", "2"} {:verboseName "ObjectFields
   var $oldRhs#0: ref;
   var $AllocationReferrersHeap#0: ReferrersHeap;
   var r#0: DatatypeType;
-  var i: int;
-  var $r: Box;
 
     // AddMethodImpl: ObjectFields, Impl$$_module.__default.ObjectFields
     $_ModifiesFrame := (lambda $o: ref, $f: Field :: 

@@ -531,6 +531,7 @@ function IndexField(int): Field;
 axiom (forall i: int :: { IndexField(i) } FDim(IndexField(i)) == 1);
 function IndexField_Inverse(Field): int;
 axiom (forall i: int :: { IndexField(i) } IndexField_Inverse(IndexField(i)) == i);
+axiom (forall f: Field :: { IndexField_Inverse(f) } IndexField(IndexField_Inverse(f)) == f);
 
 function MultiIndexField(Field, int): Field;
 axiom (forall f: Field, i: int :: { MultiIndexField(f,i) } FDim(MultiIndexField(f,i)) == FDim(f) + 1);
