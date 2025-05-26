@@ -142,7 +142,16 @@ method ObjectFields() {
   assert referrers(u) == {locals`u, u`x};
   
   // Assignment of array
-  var a := new ChainingObject[2](i => if i == 0 then t else u);
-  assert referrers(t) == {locals`t, u`tail, a`[0]};
-  assert referrers(u) == {locals`t, u`x, a`[1]};
+  label before:
+  var a := new ChainingObject[3](i => if i == 0 then t else u);
+  assert a[0] == t;
+  assert a`[0] in referrers(t) - old@before(referrers(t));
+  assert a`[1] !in referrers(t) - old@before(referrers(t));
+  assert a`[2] !in referrers(t) - old@before(referrers(t));
+  assert a`[0] !in referrers(u) - old@before(referrers(u));
+  assert a`[1] in referrers(u) - old@before(referrers(u));
+  assert a`[2] in referrers(u) - old@before(referrers(u));
+  assert forall r: (object, field) <- referrers(t) - old@before(referrers(t)) :: r == a`[0];
+  //assert referrers(t) == {locals`t, u`tail, a`[0]};
+  //assert referrers(u) == {locals`t, u`x, a`[1], a`[2]};
 }
