@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.CommandLine;
+using System.IO;
 using System.Linq;
 using System.Reactive.Subjects;
 using System.Threading;
@@ -103,17 +104,17 @@ static class MeasureComplexityCommand {
       }
     });
     await verificationResults.WaitForComplete();
-    var output = cliCompilation.Options.OutputWriter;
     var decreasingWorst = new Stack<VerificationTaskResult>();
     while (worstPerformers.Count > 0) {
       decreasingWorst.Push(worstPerformers.Dequeue());
     }
 
-    await output.WriteLineAsync($"The total consumed resources are {totalResources}");
-    await output.WriteLineAsync($"The most demanding {worstAmount} verification tasks consumed these resources:");
+    await using var sw = cliCompilation.Options.OutputWriter.StatusWriter();
+    await sw.WriteLineAsync($"The total consumed resources are {totalResources}");
+    await sw.WriteLineAsync($"The most demanding {worstAmount} verification tasks consumed these resources:");
     foreach (var performer in decreasingWorst) {
       var location = BoogieGenerator.ToDafnyToken(performer.Task.Token).OriginToString(cliCompilation.Options);
-      await output.WriteLineAsync($"{location}: {performer.Result.ResourceCount}");
+      await sw.WriteLineAsync($"{location}: {performer.Result.ResourceCount}");
     }
   }
 
@@ -123,7 +124,7 @@ static class MeasureComplexityCommand {
     var random = new Random(iterationSeed);
     var iterations = (int)options.Get(Mutations);
     foreach (var mutation in Enumerable.Range(0, iterations)) {
-      await options.OutputWriter.WriteLineAsync(
+      await options.OutputWriter.Status(
         $"Starting verification of mutation {mutation + 1}/{iterations} with seed {iterationSeed}");
       try {
         await foreach (var result in compilation.VerifyAllLazily(iterationSeed)) {

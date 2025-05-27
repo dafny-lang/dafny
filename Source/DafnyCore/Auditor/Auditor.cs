@@ -135,7 +135,7 @@ public class Auditor : IRewriter {
         _ => $"Internal error: unknown format {reportFormat}"
       };
       if (reportFileName is null) {
-        Options.OutputWriter.Write(text);
+        _ = Options.OutputWriter.Status(text);
       } else {
         if (compareReport) {
           try {
@@ -155,6 +155,6 @@ public class Auditor : IRewriter {
     }
 
     var findingCount = report.AllAssumptions().SelectMany(d => d.Value).Count();
-    Options.OutputWriter.WriteLine($"Dafny auditor completed with {findingCount} findings");
+    _ = Options.OutputWriter.Status($"Dafny auditor completed with {findingCount} findings");
   }
 }

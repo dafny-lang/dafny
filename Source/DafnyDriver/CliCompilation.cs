@@ -22,8 +22,10 @@ namespace DafnyDriver.Commands;
 
 public record CanVerifyResult(ICanVerify CanVerify, IReadOnlyList<VerificationTaskResult> Results);
 
+
 public class CliCompilation {
   public Compilation Compilation { get; }
+  private IDafnyOutputWriter writer;
   private readonly ConcurrentDictionary<MessageSource, int> errorsPerSource = new();
   private int errorCount;
   private int warningCount;
@@ -33,6 +35,7 @@ public class CliCompilation {
     CreateCompilation createCompilation,
     DafnyOptions options) {
     Options = options;
+    writer = new HumanReadableOutputWriter(options);
 
     if (options.DafnyProject == null) {
       var firstFile = options.CliRootSourceUris.FirstOrDefault();
@@ -68,7 +71,7 @@ public class CliCompilation {
     }
 
     if (warningCount > 0 && !Options.Get(CommonOptionBag.AllowWarnings)) {
-      await Options.OutputWriter.WriteLineAsync(
+      await writer.Status(
         "Compilation failed because warnings were found and --allow-warnings is false");
       return ExitValue.DAFNY_ERROR;
     }
@@ -127,18 +130,18 @@ public class CliCompilation {
       } else if (ev is FinishedParsing finishedParsing) {
         if (errorCount > 0) {
           var programName = finishedParsing.ParseResult.Program.Name;
-          Options.OutputWriter.WriteLine($"{errorCount} parse errors detected in {programName}");
+          _ = writer.Status($"{errorCount} parse errors detected in {programName}");
         }
       } else if (ev is FinishedResolution finishedResolution) {
         DafnyMain.MaybePrintProgram(finishedResolution.Result.ResolvedProgram, Options.DafnyPrintResolvedFile, true);
 
         if (errorCount > 0) {
           var programName = finishedResolution.Result.ResolvedProgram.Name;
-          Options.OutputWriter.WriteLine($"{errorCount} resolution/type errors detected in {programName}");
+          _ = writer.Status($"{errorCount} resolution/type errors detected in {programName}");
         }
       } else if (ev is InternalCompilationException internalCompilationException) {
         if (Interlocked.Increment(ref internalExceptionsFound) == 1) {
-          Options.OutputWriter.WriteLine($"Encountered internal compilation exception: {internalCompilationException.Exception.Message}");
+          _ = writer.Status($"Encountered internal compilation exception: {internalCompilationException.Exception.Message}");
         }
       }
 
@@ -216,7 +219,7 @@ public class CliCompilation {
 
           var runResult = completed.Result;
           var timeString = runResult.RunTime.ToString("g");
-          Options.OutputWriter.WriteLine(
+          _ = writer.Status(
             $"Verified {completedPartsCount}/{canVerifyResult.TaskCount} of {boogieUpdate.CanVerify.FullDafnyName}: " +
             $"{OriginDescription(partOrigin, true)} - " +
             $"{DescribeOutcome(Compilation.GetOutcome(runResult.Outcome))}" +
@@ -267,7 +270,7 @@ public class CliCompilation {
         var results = canVerifyResults[canVerify];
         try {
           if (Options.Get(CommonOptionBag.ProgressOption) > CommonOptionBag.ProgressLevel.None) {
-            await Options.OutputWriter.WriteLineAsync(
+            await writer.Status(
               $"Verified {done}/{canVerifies.ToList().Count} symbols. Waiting for {canVerify.FullDafnyName} to verify.");
           }
 

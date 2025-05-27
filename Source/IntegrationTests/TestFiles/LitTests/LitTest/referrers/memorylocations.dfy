@@ -3,6 +3,7 @@
 
 class Test {
   var x: int
+  var y: int
   const c: int
   
   method InsideTest() {

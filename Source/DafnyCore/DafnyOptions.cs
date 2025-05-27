@@ -13,6 +13,7 @@ using System.Linq;
 using System.IO;
 using System.Reflection;
 using System.Text.RegularExpressions;
+using System.Threading.Tasks;
 using JetBrains.Annotations;
 using Microsoft.Dafny;
 using Microsoft.Dafny.Compilers;
@@ -34,9 +35,67 @@ namespace Microsoft.Dafny {
     Version4,
   }
 
+  public interface IDafnyOutputWriter {
+
+    /// <summary>
+    /// Provide debugging information that's useful to a Dafny language developer
+    /// </summary>
+    void Debug(string message);
+
+    /// <summary>
+    /// Provide debugging information that's useful to a Dafny language developer
+    /// </summary>
+    [StringFormatMethod(nameof(message))]
+    void Debug(string message, params object[] arguments) {
+      Debug(string.Format(message, arguments));
+    }
+
+    /// <summary>
+    /// When Dafny reaches a bad state, this can be used to provide debugging information.  
+    /// </summary>
+    void Exception(string message);
+
+    /// <summary>
+    /// Provide progress updates and summary information
+    /// </summary>
+    Task Status(string message);
+
+    /// <summary>
+    /// Output a piece of Dafny code
+    /// </summary>
+    Task Code(string message);
+
+    /// <summary>
+    /// Closing the writer will print a status message
+    /// </summary>
+    TextWriter StatusWriter();
+
+    /// <summary>
+    /// Closing the writer will print an error message
+    /// </summary>
+    TextWriter ErrorWriter();
+
+    /// <summary>
+    /// Emit a diagnostic
+    /// </summary>
+    void WriteDiagnostic(DafnyDiagnostic diagnostic);
+
+    /// <summary>
+    /// Like Status, but uses stderr if possible
+    /// </summary>
+    /// <param name="message"></param>
+    /// <returns></returns>
+    Task Error(string message);
+  }
+
   public record Options(Dictionary<Option, object> OptionArguments, Dictionary<Argument, object> Arguments);
 
   public class DafnyOptions : Bpl.CommandLineOptions {
+
+    public TextWriter BaseOutputWriter => base.OutputWriter;
+
+    public new IDafnyOutputWriter OutputWriter =>
+      Get(CommonOptionBag.JsonOutput) ? new JsonOutputWriter(this) : new HumanReadableOutputWriter(this);
 
     public string GetPrintPath(string path) => UseBaseNameForFileName ? Path.GetFileName(path) : path;
     public TextWriter ErrorWriter { get; set; }
@@ -452,7 +511,7 @@ namespace Microsoft.Dafny {
     /// Automatic shallow-copy constructor
     /// </summary>
     public DafnyOptions(DafnyOptions src, bool useNullWriters = false) : this(
-      src.Input, src.OutputWriter, src.ErrorWriter) {
+      src.Input, src.BaseOutputWriter, src.ErrorWriter) {
       src.CopyTo(this, useNullWriters);
       CliRootSourceUris = new List<Uri>(src.CliRootSourceUris);
       ProverOptions = [.. src.ProverOptions];

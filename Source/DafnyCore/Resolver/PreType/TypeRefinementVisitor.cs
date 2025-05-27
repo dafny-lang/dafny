@@ -8,6 +8,7 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
+using System.IO;
 using System.Linq;
 
 namespace Microsoft.Dafny;
@@ -32,11 +33,13 @@ public class TypeRefinementVisitor : ASTVisitor<IASTVisitorContext> {
   private readonly List<Flow> flows = [];
 
   public void DebugPrint() {
-    systemModuleManager.Options.OutputWriter.WriteLine($"--------------------------- type-refinement flows, {moduleDescription}:");
+    var sw = new StringWriter();
+    sw.WriteLine($"--------------------------- type-refinement flows, {moduleDescription}:");
     foreach (var flow in flows) {
-      flow.DebugPrint(systemModuleManager.Options.OutputWriter);
+      flow.DebugPrint(sw);
     }
-    systemModuleManager.Options.OutputWriter.WriteLine($"------------------- (end of type-refinement flows, {moduleDescription})");
+    sw.WriteLine($"------------------- (end of type-refinement flows, {moduleDescription})");
+    systemModuleManager.Options.OutputWriter.Debug(sw.ToString());
   }
 
   public override void VisitField(Field field) {

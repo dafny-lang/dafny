@@ -143,7 +143,7 @@ type ImapSimulator<!A, B> =
       using (var engine = ExecutionEngine.CreateWithoutSharedCache(options)) {
         foreach (var boogieProgram in boogiePrograms) {
           var (outcome, _) = await DafnyMain.BoogieOnce(new ErrorReporterSink(options),
-            options, options.OutputWriter, engine, "", "", boogieProgram, "programId");
+            options, new StringWriter(), engine, "", "", boogieProgram, "programId");
         }
       }
       foreach (var proverFile in Directory.GetFiles(directory)) {

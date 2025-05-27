@@ -30,6 +30,7 @@ namespace Microsoft.Dafny {
 
       var events = new LocalTestLoggerEvents();
       var verificationResults = ((DafnyConsolePrinter)options.Printer).VerificationResults.ToList();
+      List<IDisposable> disposables = new();
       foreach (var loggerConfig in loggerConfigs) {
         VerificationResultLogger.ParseParametersAndLoggerName(loggerConfig, out var parameters, out var loggerName);
 
@@ -43,12 +44,14 @@ namespace Microsoft.Dafny {
           // This logger doesn't implement the ITestLogger interface because
           // it uses information that's tricky to encode in a TestResult.
           var jsonLogger = new LegacyJsonVerificationLogger(depManager, options.OutputWriter);
+          disposables.Add(jsonLogger);
           jsonLogger.Initialize(parameters);
           jsonLogger.LogResults(verificationResults);
         } else if (loggerName == "text") {
           // This logger doesn't implement the ITestLogger interface because
           // it uses information that's tricky to encode in a TestResult.
           var textLogger = new LegacyTextVerificationLogger(depManager, options.OutputWriter);
+          disposables.Add(textLogger);
           textLogger.Initialize(parameters);
           textLogger.LogResults(verificationResults);
         } else {
@@ -70,6 +73,9 @@ namespace Microsoft.Dafny {
         new TestRunStatistics(),
         false, false, null, null, new TimeSpan()
       ));
+      foreach (var disposable in disposables) {
+        disposable.Dispose();
+      }
     }
 
     private static IEnumerable<TestResult> VerificationToTestResults(IEnumerable<(DafnyConsolePrinter.ImplementationLogEntry, List<VerificationRunResultPartialCopy>)> verificationResults) {

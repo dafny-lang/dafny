@@ -10,6 +10,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
 using System.Diagnostics.Contracts;
+using System.IO;
 using JetBrains.Annotations;
 using Microsoft.Boogie;
 using static Microsoft.Dafny.ResolutionErrors;
@@ -543,11 +544,12 @@ namespace Microsoft.Dafny {
         Cloner cloner = new ScopeCloner(scope);
         var exportView = cloner.CloneModuleDefinition(m, m.EnclosingModule, m.NameNode);
         if (Options.DafnyPrintExportedViews.Contains(exportDecl.FullName)) {
-          var wr = Options.OutputWriter;
+          var wr = new StringWriter();
           wr.WriteLine("/* ===== export set {0}", exportDecl.FullName);
           var pr = new Printer(wr, Options);
           pr.PrintTopLevelDecls(compilation, exportView.TopLevelDecls, 0, null);
           wr.WriteLine("*/");
+          Options.OutputWriter.Debug(wr.ToString());
         }
 
         if (reporter.Count(ErrorLevel.Error) != prevErrors) {

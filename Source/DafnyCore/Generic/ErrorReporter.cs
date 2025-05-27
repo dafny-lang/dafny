@@ -182,7 +182,7 @@ public abstract class ErrorReporter {
     Contract.Requires(format != null);
     Message(source, ErrorLevel.Info, "", tok, format);
   }
-  
+
   public void Info(MessageSource source, IOrigin tok, string format, params object[] args) {
     Contract.Requires(tok != null);
     Contract.Requires(format != null);
@@ -198,9 +198,9 @@ public abstract class ErrorReporter {
     return args.Length == 0 ? format : string.Format(format, args);
   }
 
-  public string FormatDiagnostic(DafnyDiagnostic diagnostic) {
+  public static string FormatDiagnostic(DafnyOptions options, DafnyDiagnostic diagnostic) {
     var range = diagnostic.Range.StartToken == Token.Cli ? null : diagnostic.Range;
-    return $"{range.ToFileRangeString(Options)}: {diagnostic.Level.ToString()}: {diagnostic.Message}";
+    return $"{range.ToFileRangeString(options)}: {diagnostic.Level.ToString()}: {diagnostic.Message}";
   }
 
   public void Error(MessageSource source, IOrigin origin, string formatMsg, string arguments) {
@@ -250,7 +250,7 @@ public abstract class ErrorReporter {
   public void Warning(MessageSource source, string errorId, IOrigin origin, string message) {
     Message(source, ErrorLevel.Warning, errorId, origin, [message]);
   }
-  
+
   public void Warning(MessageSource source, string errorId, IOrigin origin, string formatMsg, params object[] formatArguments) {
     Message(source, ErrorLevel.Warning, errorId, origin, [string.Format(formatMsg, formatArguments)]);
   }
