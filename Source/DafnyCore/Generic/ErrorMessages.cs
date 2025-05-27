@@ -4,6 +4,11 @@ namespace Microsoft.Dafny;
 
 static class ErrorMessages {
   public static string GetMessage(string errorId, params object[] arguments) {
+
+    if (errorId == null) {
+      return (string)(arguments[0]);
+    }
+
     var formatMsg = Messages.GetValueOrDefault(errorId);
     if (formatMsg == null) {
       return (string)(arguments[0]);

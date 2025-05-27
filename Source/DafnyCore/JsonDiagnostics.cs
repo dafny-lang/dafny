@@ -90,7 +90,7 @@ public class DafnyJsonConsolePrinter(DafnyOptions options) : DafnyConsolePrinter
   public override void WriteErrorInformation(ErrorInformation errorInfo, TextWriter tw, bool skipExecutionTrace = true) {
     var related = errorInfo.Aux.Where(e =>
       !(skipExecutionTrace && (e.Category ?? "").Contains("Execution trace"))).Select(aei => new DafnyRelatedInformation(
-      BoogieGenerator.ToDafnyToken(aei.Tok).ReportingRange, null, [aei.FullMsg])).ToList();
+      BoogieGenerator.ToDafnyToken(aei.Tok).ReportingRange, "", [aei.FullMsg])).ToList();
     var dafnyToken = BoogieGenerator.ToDafnyToken(errorInfo.Tok);
     new DiagnosticMessageData(MessageSource.Verifier, ErrorLevel.Error,
       dafnyToken.ReportingRange, errorInfo.Category, errorInfo.Msg, related).WriteJsonTo(Options, tw);

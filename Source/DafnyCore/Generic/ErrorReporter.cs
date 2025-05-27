@@ -36,7 +36,7 @@ public abstract class ErrorReporter {
 
   public int ErrorCountUntilResolver => CountExceptVerifierAndCompiler(ErrorLevel.Error);
 
-  public bool Message(MessageSource source, ErrorLevel level, string errorId, IOrigin tok, object[] arguments) {
+  public bool Message(MessageSource source, ErrorLevel level, string errorId, IOrigin tok, params object[] arguments) {
     return MessageCore(source, level, errorId, tok, arguments);
   }
 
@@ -200,9 +200,8 @@ public abstract class ErrorReporter {
     Error(source, "Verbatim", origin, [string.Format(formatMsg, arguments)]);
   }
 
-  // TODO: Should be renamed to Message
-  public void Error(MessageSource source, ErrorLevel errorLevel, IOrigin origin, string formatMsg) {
-    Error(source, "Verbatim", origin, [formatMsg]);
+  public void Message(MessageSource source, ErrorLevel errorLevel, IOrigin origin, string formatMsg) {
+    Message(source, errorLevel, "Verbatim", origin, [formatMsg]);
   }
 
   //[Obsolete]
@@ -216,9 +215,9 @@ public abstract class ErrorReporter {
   }
 
   //[Obsolete]
-  public void Message(MessageSource source, ErrorLevel level, object errorId, IOrigin origin, string message) {
-    Message(source, level, errorId.ToString(), origin, [message]);
-  }
+  // public void Message(MessageSource source, ErrorLevel level, object errorId, IOrigin origin, string message) {
+  //   Message(source, level, errorId ?? "", origin, [message]);
+  // }
 
   //[Obsolete]
   public void Error(MessageSource source, IOrigin origin, string formatMsg, params object[] formatArguments) {
