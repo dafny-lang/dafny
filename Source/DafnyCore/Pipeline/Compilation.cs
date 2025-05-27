@@ -555,12 +555,17 @@ public class Compilation : IDisposable {
     var outcome = GetOutcome(result.Outcome);
     result.CounterExamples.Sort(new CounterexampleComparer());
     foreach (var counterExample in result.CounterExamples) {
-      var errorInformation = counterExample.CreateErrorInformation(outcome, options.ForceBplErrors);
-      if (options.ShowProofObligationExpressions) {
-        AddAssertedExprToCounterExampleErrorInfo(options, counterExample, errorInformation);
+      var description = (ProofObligationDescription)counterExample.FailingAssert.Description;
+      if (options.Get(CommonOptionBag.JsonOutput) && description.GetDiagnostic(TODO) != null) {
+        errorReporter.MessageCore(description.GetDiagnostic(TODO));
+      } else {
+        var errorInformation = counterExample.CreateErrorInformation(outcome, options.ForceBplErrors);
+        if (options.ShowProofObligationExpressions) {
+          AddAssertedExprToCounterExampleErrorInfo(options, counterExample, errorInformation);
+        }
+        var dafnyCounterExampleModel = options.ExtractCounterexample ? new DafnyModel(counterExample.Model, options) : null;
+        errorReporter.ReportBoogieError(errorInformation, dafnyCounterExampleModel);
       }
-      var dafnyCounterExampleModel = options.ExtractCounterexample ? new DafnyModel(counterExample.Model, options) : null;
-      errorReporter.ReportBoogieError(errorInformation, dafnyCounterExampleModel);
     }
 
     var outcomeError = ReportOutcome(options, outcome, name, token, timeLimit, result.CounterExamples);
