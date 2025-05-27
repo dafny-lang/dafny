@@ -17,7 +17,7 @@
     </ItemGroup>
 
     <ItemGroup>
-      <EmbeddedResource Include="Syntax.cs-schema">
+      <EmbeddedResource Include="../DafnyCore/Syntax.cs-schema">
         <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       </EmbeddedResource>
       <EmbeddedResource Include="../DafnyCore/Parser.cs">
