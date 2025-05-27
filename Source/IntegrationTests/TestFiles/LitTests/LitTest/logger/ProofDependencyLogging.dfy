@@ -62,7 +62,7 @@
 // CHECK:     Proof dependencies:
 // CHECK:       ProofDependencies.dfy\(259,12\)-\(259,16\): requires clause
 // CHECK:       ProofDependencies.dfy\(260,11\)-\(260,17\): ensures clause
-// CHECK:       ProofDependencies.dfy\(262,9\)-\(262,17\): assignment \(or return\)
+// CHECK:       ProofDependencies.dfy\(262,7\)-\(262,17\): assignment \(or return\)
 // CHECK:       ProofDependencies.dfy\(264,3\)-\(266,8\): assignment \(or return\)
 //
 // CHECK: Results for M.PartiallyRedundantRequiresFunc \(well-formedness\)
@@ -116,9 +116,9 @@
 // CHECK: Results for M.CallContradictoryMethodMethod \(correctness\)
 // CHECK:     Proof dependencies:
 // CHECK:       ProofDependencies.dfy\(345,12\)-\(345,16\): requires clause
-// CHECK:       ProofDependencies.dfy\(348,9\)-\(348,47\): ensures clause at ProofDependencies.dfy\(333,12\)-\(333,16\) from call
-// CHECK:       ProofDependencies.dfy\(348,9\)-\(348,47\): ensures clause at ProofDependencies.dfy\(333,21\)-\(333,25\) from call
-// CHECK:       ProofDependencies.dfy\(348,9\)-\(348,47\): requires clause at ProofDependencies.dfy\(332,12\)-\(332,16\) from call
+// CHECK:       ProofDependencies.dfy\(348,7\)-\(348,47\): ensures clause at ProofDependencies.dfy\(333,12\)-\(333,16\) from call
+// CHECK:       ProofDependencies.dfy\(348,7\)-\(348,47\): ensures clause at ProofDependencies.dfy\(333,21\)-\(333,25\) from call
+// CHECK:       ProofDependencies.dfy\(348,7\)-\(348,47\): requires clause at ProofDependencies.dfy\(332,12\)-\(332,16\) from call
 //
 // CHECK: Results for M.FalseAntecedentRequiresClauseMethod \(correctness\)
 // CHECK:     Proof dependencies:
@@ -126,7 +126,7 @@
 //
 // CHECK: Results for M.FalseAntecedentAssertStatementMethod \(correctness\)
 // CHECK:     Proof dependencies:
-// CHECK:       ProofDependencies.dfy\(362,9\)-\(362,15\): assignment \(or return\)
+// CHECK:       ProofDependencies.dfy\(362,7\)-\(362,15\): assignment \(or return\)
 // CHECK:       ProofDependencies.dfy\(363,20\)-\(363,24\): assertion always holds
 //
 // CHECK: Results for M.FalseAntecedentEnsuresClauseMethod \(correctness\)

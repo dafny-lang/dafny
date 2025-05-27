@@ -107,6 +107,7 @@ public static class DafnyCommands {
     CommonOptionBag.UseStandardLibraries,
     CommonOptionBag.LogLevelOption,
     CommonOptionBag.LogLocation,
+    CommonOptionBag.CheckSourceLocationConsistency,
     CommonOptionBag.Referrers
   });
 
