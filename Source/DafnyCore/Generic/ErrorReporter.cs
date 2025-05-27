@@ -132,7 +132,7 @@ public abstract class ErrorReporter {
     Contract.Requires(tok != null);
     Contract.Requires(format != null);
     Contract.Requires(args != null);
-    Warning(source, errorId, tok, Format(format, args));
+    Message(source, ErrorLevel.Warning, errorId.ToString(), tok, Format(format, args));
   }
 
   public void Warning(MessageSource source, Enum errorId, IOrigin tok, object[] arguments) {
@@ -177,10 +177,17 @@ public abstract class ErrorReporter {
     Message(source, ErrorLevel.Info, errorId, tok, arguments);
   }
 
+  public void Info(MessageSource source, IOrigin tok, string format) {
+    Contract.Requires(tok != null);
+    Contract.Requires(format != null);
+    Message(source, ErrorLevel.Info, "", tok, format);
+  }
+  
   public void Info(MessageSource source, IOrigin tok, string format, params object[] args) {
     Contract.Requires(tok != null);
     Contract.Requires(format != null);
     Contract.Requires(args != null);
+    Message(source, ErrorLevel.Info, "", tok, string.Format(format, args));
   }
 
   private string Format(string format, object[] args) {
@@ -240,6 +247,10 @@ public abstract class ErrorReporter {
     Message(source, ErrorLevel.Error, errorId.ToString(), node.Origin, [string.Format(formatMsg, formatArguments)]);
   }
 
+  public void Warning(MessageSource source, string errorId, IOrigin origin, string message) {
+    Message(source, ErrorLevel.Warning, errorId, origin, [message]);
+  }
+  
   public void Warning(MessageSource source, string errorId, IOrigin origin, string formatMsg, params object[] formatArguments) {
     Message(source, ErrorLevel.Warning, errorId, origin, [string.Format(formatMsg, formatArguments)]);
   }

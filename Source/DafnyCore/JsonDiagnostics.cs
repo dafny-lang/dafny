@@ -11,8 +11,8 @@ using VCGeneration;
 
 namespace Microsoft.Dafny;
 
-record DiagnosticMessageData(MessageSource source, ErrorLevel level, TokenRange Range, string? category, string message,
-  IReadOnlyList<DafnyRelatedInformation> related) {
+record DiagnosticMessageData(MessageSource Source, ErrorLevel Level, TokenRange Range, string? Category, string ErrorId, object[] Arguments,
+  IReadOnlyList<DafnyRelatedInformation> Related) {
   private static JsonObject SerializePosition(Boogie.IToken tok, bool includeLength) {
     var addition = includeLength ? tok.val.Length : 0;
     return new JsonObject {
@@ -51,23 +51,25 @@ record DiagnosticMessageData(MessageSource source, ErrorLevel level, TokenRange 
     return category == null ? message : $"{category}: {message}";
   }
 
-  private static JsonObject SerializeRelated(DafnyOptions options, TokenRange range, string errorId, List<string> arguments) {
+  private static JsonObject SerializeRelated(DafnyOptions options, TokenRange range, string errorId, object[] arguments) {
     return new JsonObject {
       ["location"] = SerializeToken(options, range),
-      ["arguments"] = new JsonArray { arguments },
+      ["arguments"] = new JsonArray(arguments.Select(o => (JsonNode)JsonValue.Create(o.ToString()!)).ToArray()),
       ["errorId"] = errorId,
-      ["message"] = ErrorMessages.GetMessage(errorId, arguments),
+      ["format"] = ErrorMessages.GetFormat(errorId),
     };
   }
 
   public JsonNode ToJson(DafnyOptions options) {
-    var auxRelated = related.Select<DafnyRelatedInformation, JsonNode>(aux =>
+    var auxRelated = Related.Select<DafnyRelatedInformation, JsonNode>(aux =>
       SerializeRelated(options, aux.Range, aux.ErrorId, aux.Arguments));
     return new JsonObject {
       ["location"] = SerializeToken(options, Range),
-      ["severity"] = SerializeErrorLevel(level),
-      ["message"] = SerializeMessage(category, message),
-      ["source"] = source.ToString(),
+      ["severity"] = SerializeErrorLevel(Level),
+      ["format"] = ErrorMessages.GetFormat(ErrorId),
+      ["arguments"] = new JsonArray(Arguments.Select(o => (JsonNode)JsonValue.Create(o.ToString()!)).ToArray()),
+      ["errorId"] = ErrorId,
+      ["source"] = Source.ToString(),
       ["relatedInformation"] = new JsonArray(auxRelated.ToArray())
     };
   }
@@ -84,7 +86,7 @@ public class DafnyJsonConsolePrinter(DafnyOptions options) : DafnyConsolePrinter
     var relatedInformation = new List<DafnyRelatedInformation>();
     relatedInformation.AddRange(
       ErrorReporterExtensions.CreateDiagnosticRelatedInformationFor(dafnyToken, Options.Get(Snippets.ShowSnippets)));
-    new DiagnosticMessageData(MessageSource.Verifier, level, dafnyToken.ReportingRange, category, message, relatedInformation).WriteJsonTo(Options, tw);
+    new DiagnosticMessageData(MessageSource.Verifier, level, dafnyToken.ReportingRange, category, "", [message], relatedInformation).WriteJsonTo(Options, tw);
   }
 
   public override void WriteErrorInformation(ErrorInformation errorInfo, TextWriter tw, bool skipExecutionTrace = true) {
@@ -93,7 +95,7 @@ public class DafnyJsonConsolePrinter(DafnyOptions options) : DafnyConsolePrinter
       BoogieGenerator.ToDafnyToken(aei.Tok).ReportingRange, "", [aei.FullMsg])).ToList();
     var dafnyToken = BoogieGenerator.ToDafnyToken(errorInfo.Tok);
     new DiagnosticMessageData(MessageSource.Verifier, ErrorLevel.Error,
-      dafnyToken.ReportingRange, errorInfo.Category, errorInfo.Msg, related).WriteJsonTo(Options, tw);
+      dafnyToken.ReportingRange, errorInfo.Category, "", [errorInfo.Msg], related).WriteJsonTo(Options, tw);
     tw.Flush();
   }
 }
@@ -106,7 +108,8 @@ public class JsonConsoleErrorReporter(DafnyOptions options) : BatchErrorReporter
     }
 
     var data = new DiagnosticMessageData(dafnyDiagnostic.Source, dafnyDiagnostic.Level, dafnyDiagnostic.Range,
-      dafnyDiagnostic.Level == ErrorLevel.Error ? "Error" : null, dafnyDiagnostic.Message,
+      dafnyDiagnostic.Level == ErrorLevel.Error ? "Error" : null, dafnyDiagnostic.ErrorId, 
+      dafnyDiagnostic.Arguments, 
       dafnyDiagnostic.RelatedInformation);
     data.WriteJsonTo(Options, Options.OutputWriter);
     return true;

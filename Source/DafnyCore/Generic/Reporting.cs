@@ -15,7 +15,7 @@ namespace Microsoft.Dafny {
     Project, Parser, Cloner, RefinementTransformer, Rewriter, Resolver, Translator, Verifier, Compiler, Documentation, TestGeneration
   }
 
-  public record DafnyRelatedInformation(TokenRange Range, string ErrorId, List<string> Arguments) {
+  public record DafnyRelatedInformation(TokenRange Range, string ErrorId, object[] Arguments) {
     public string Message => ErrorMessages.GetMessage(ErrorId, Arguments);
   }
 

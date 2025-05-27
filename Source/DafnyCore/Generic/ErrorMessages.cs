@@ -3,6 +3,19 @@ using System.Collections.Generic;
 namespace Microsoft.Dafny;
 
 static class ErrorMessages {
+  public static string GetFormat(string errorId, params object[] arguments) {
+
+    if (errorId == null) {
+      return "{0}";
+    }
+
+    var formatMsg = Messages.GetValueOrDefault(errorId);
+    if (formatMsg == null) {
+      return "{0}";
+    }
+
+    return formatMsg;
+  }
   public static string GetMessage(string errorId, params object[] arguments) {
 
     if (errorId == null) {
@@ -24,10 +37,11 @@ static class ErrorMessages {
     },
     { "ConstraintIsNotCompilableBecause", "The constraint is not compilable because {0}" },
     { "LibraryImpliesLocalOption", "{0}: --{1} is set locally to {2}, but the library was built with {3}" }, {
-      "r_assert_only_assumes_others", "Assertion with {:only} temporarily transforms other assertions into assumptions"
+      "r_assert_only_assumes_others", "Assertion with {{:only}} temporarily transforms other assertions into assumptions"
     },
-    { "r_assert_only_before_after", "{:only} only accepts \"before\" or \"after\" as an optional argument" },
-    { "RedundantBranch", "this branch is redundant" }, {
+    { "r_assert_only_before_after", "{{:only}} only accepts \"before\" or \"after\" as an optional argument" },
+    { "RedundantBranch", "this branch is redundant" },
+    {
       "UnverifiedLibrary",
       "The file '{0}' was passed to --library. Verification for that file might have used options incompatible with the current ones, or might have been skipped entirely. Use a .doo file to enable Dafny to check that compatible options were used"
     },
