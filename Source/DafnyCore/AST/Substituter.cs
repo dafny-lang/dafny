@@ -439,6 +439,8 @@ namespace Microsoft.Dafny {
         List<Expression> newArgs = SubstituteExprList(exprList);
         var resolvedArrayCopy = Substitute(indexFieldLocation.ResolvedArrayCopy);
         newExpr = new IndexFieldLocation(resolvedArrayCopy, indexFieldLocation.OpenParen, newArgs, indexFieldLocation.CloseParen);
+      } else if (expr is LocalsObjectExpression) {
+        newExpr = null;
       } else {
         Contract.Assume(false); // unexpected Expression
       }

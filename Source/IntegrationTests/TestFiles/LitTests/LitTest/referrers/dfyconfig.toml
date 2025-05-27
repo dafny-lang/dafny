@@ -1,4 +1,4 @@
-includes=["memorylocations.dfy"]
+includes=["memorylocations.dfy", "localsmemorylocation.dfy"]
 
 [options]
 type-system-refresh=true
