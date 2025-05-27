@@ -16,14 +16,14 @@ static class ErrorMessages {
 
     return formatMsg;
   }
-  
+
   public static string GetMessage(string errorId, params object[] arguments) {
 
     if (errorId != null && errorId.Contains("r_ghost_call_only_in_specification_function_4") ||
         arguments[0] == "r_ghost_call_only_in_specification_function_4") {
       var b = 3;
     }
-    
+
     if (errorId == null) {
       return (string)(arguments[0]);
     }

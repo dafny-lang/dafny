@@ -150,7 +150,7 @@ public abstract class ErrorReporter {
     if (Options.DeprecationNoise != 0) {
       Warning(source, errorId, tok, arguments);
     } else {
-      Info(source, tok, errorId, arguments);
+      Info(source, errorId, tok, arguments);
     }
   }
 
@@ -159,7 +159,7 @@ public abstract class ErrorReporter {
     if (Options.DeprecationNoise != 0) {
       Warning(source, errorId, tok, arguments);
     } else {
-      Info(source, tok, errorId.ToString(), arguments);
+      Info(source, errorId.ToString(), tok, arguments);
     }
   }
 
@@ -169,6 +169,8 @@ public abstract class ErrorReporter {
     Contract.Requires(args != null);
     if (Options.DeprecationNoise != 0) {
       Warning(source, errorId, tok, Format(format, args));
+    } else {
+      Info(source, errorId.ToString(), tok, [Format(format, args)]);
     }
   }
 

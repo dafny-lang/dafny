@@ -134,7 +134,7 @@ record DiagnosticMessageData(MessageSource Source, ErrorLevel Level, TokenRange 
         ["relatedInformation"] = new JsonArray(auxRelated.ToArray())
       };
     }
-    
+
     // Backwards compatibility case. Can be removed with the option --json-diagnostics
     return new JsonObject {
       ["location"] = SerializeToken(options, Range),
