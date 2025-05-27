@@ -61,11 +61,10 @@ namespace Microsoft.Dafny {
       resolver.Reporter.Warning(MessageSource.Resolver, ParseErrors.ErrorId.none, tok, msg, args);
     }
 
-    protected void ReportInfo(IOrigin tok, string msg, params object[] args) {
+    protected void ReportInfo(IOrigin tok, string msg) {
       Contract.Requires(tok != null);
       Contract.Requires(msg != null);
-      Contract.Requires(args != null);
-      resolver.Reporter.Info(MessageSource.Resolver, tok, msg, args);
+      resolver.Reporter.Info(MessageSource.Resolver, tok, msg);
     }
   }
 

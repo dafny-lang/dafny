@@ -8,14 +8,12 @@ namespace Microsoft.Dafny;
 /// </summary>
 public class SubsetConstraintGhostChecker : ProgramTraverser {
   private class FirstErrorCollector : ErrorReporter {
-    public string FirstCollectedMessage = "";
-    public TokenRange FirstCollectedToken;
+    public DafnyDiagnostic FirstCollectedDiagnostic = null;
     public bool Collected;
 
     public override bool MessageCore(DafnyDiagnostic dafnyDiagnostic) {
       if (!Collected && dafnyDiagnostic.Level == ErrorLevel.Error) {
-        FirstCollectedMessage = dafnyDiagnostic.ErrorId; // TODO FIX
-        FirstCollectedToken = dafnyDiagnostic.Range;
+        FirstCollectedDiagnostic = dafnyDiagnostic;
         Collected = true;
       }
       return true;
@@ -97,8 +95,8 @@ public class SubsetConstraintGhostChecker : ProgramTraverser {
         ExpressionTester.CheckIsCompilable(null, errorCollector, declWithConstraints.Constraint,
           new CodeContextWrapper(declWithConstraints, true));
         if (errorCollector.Collected) {
-          relatedInformation.Add(new DafnyRelatedInformation(errorCollector.FirstCollectedToken,
-              "ConstraintIsNotCompilableBecause", [errorCollector.FirstCollectedMessage]));
+          relatedInformation.Add(new DafnyRelatedInformation(errorCollector.FirstCollectedDiagnostic.Range,
+            errorCollector.FirstCollectedDiagnostic.ErrorId, errorCollector.FirstCollectedDiagnostic.Arguments));
         }
       }
       reporter.MessageCore(new DafnyDiagnostic(MessageSource.Resolver, "ConstraintIsNotCompilable",
