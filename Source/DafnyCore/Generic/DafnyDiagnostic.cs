@@ -5,13 +5,10 @@ using System.Resources;
 
 namespace Microsoft.Dafny;
 
-public record DafnyDiagnostic(MessageSource Source, string ErrorId, TokenRange Range, List<string> Arguments, ErrorLevel Level,
+public record DafnyDiagnostic(MessageSource Source, string ErrorId, TokenRange Range, object[] Arguments, ErrorLevel Level,
   IReadOnlyList<DafnyRelatedInformation> RelatedInformation) : IComparable<DafnyDiagnostic> {
-  
-  public string Message(ResourceManager resourceManager) {
-    var formatMsg = resourceManager.GetString(ErrorId) ?? "{0}";
-    return string.Format(formatMsg, Arguments);
-  }
+
+  public string Message => ErrorMessages.GetMessage(ErrorId, Arguments);
 
   public int CompareTo(DafnyDiagnostic? other) {
     if (other == null) {

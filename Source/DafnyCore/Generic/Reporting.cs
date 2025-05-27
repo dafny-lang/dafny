@@ -16,7 +16,7 @@ namespace Microsoft.Dafny {
   }
 
   public record DafnyRelatedInformation(TokenRange Range, string ErrorId, List<string> Arguments) {
-    public string Message(ResourceManager resourceManager) => string.Format(resourceManager.GetString(ErrorId) ?? "{0}", Arguments); 
+    public string Message => ErrorMessages.GetMessage(ErrorId, Arguments);
   }
 
   public class ErrorReporterSink(DafnyOptions options) : ErrorReporter(options) {
@@ -24,7 +24,7 @@ namespace Microsoft.Dafny {
       return false;
     }
 
-    public override void Error(MessageSource source, string errorId, IOrigin tok, List<string> arguments) {
+    public override void Error(MessageSource source, string errorId, IOrigin tok, object[] arguments) {
     }
 
     public override int Count(ErrorLevel level) {

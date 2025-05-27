@@ -554,7 +554,7 @@ namespace Microsoft.Dafny {
           continue;
         }
 
-        reporter = new ErrorReporterWrapper(reporter, new DafnyRelatedInformation(exportDecl.Origin.ReportingRange, "", 
+        reporter = new ErrorReporterWrapper(reporter, new DafnyRelatedInformation(exportDecl.Origin.ReportingRange, "",
           [$"Raised while checking export set {exportDecl.Name}"])
           );
         var testSig = exportView.RegisterTopLevelDecls(this, true);

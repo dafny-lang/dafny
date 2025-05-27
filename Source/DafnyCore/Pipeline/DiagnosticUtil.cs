@@ -10,13 +10,13 @@ public static class DiagnosticUtil {
     return new Diagnostic {
       Code = dafnyDiagnostic.ErrorId,
       Severity = ToSeverity(dafnyDiagnostic.Level),
-      Message = dafnyDiagnostic.Message(ConsoleErrorReporter.ResourceManager),
+      Message = dafnyDiagnostic.Message,
       Range = dafnyDiagnostic.Range.ToLspRange(),
       Source = dafnyDiagnostic.Source.ToString(),
       RelatedInformation = dafnyDiagnostic.RelatedInformation.Select(r =>
         new DiagnosticRelatedInformation {
           Location = CreateLocation(r.Range),
-          Message = r.Message(ConsoleErrorReporter.ResourceManager)
+          Message = r.Message
         }).ToList(),
       CodeDescription = dafnyDiagnostic.ErrorId == null
         ? null

@@ -6,8 +6,7 @@ using DafnyCore;
 namespace Microsoft.Dafny;
 
 public class ConsoleErrorReporter(DafnyOptions options) : BatchErrorReporter(options) {
-  public static readonly ResourceManager ResourceManager = new("diagnostics", typeof(ConsoleErrorReporter).Assembly);
-  
+
   private ConsoleColor ColorForLevel(ErrorLevel level) {
     switch (level) {
       case ErrorLevel.Error:
@@ -52,7 +51,7 @@ public class ConsoleErrorReporter(DafnyOptions options) : BatchErrorReporter(opt
     }
 
     foreach (var related in diagnostic.RelatedInformation) {
-      var innerMessage = related.Message(ResourceManager);
+      var innerMessage = related.Message;
       if (string.IsNullOrEmpty(innerMessage)) {
         innerMessage = "Related location";
       } else {

@@ -102,7 +102,7 @@ public class SubsetConstraintGhostChecker : ProgramTraverser {
         }
       }
       reporter.MessageCore(new DafnyDiagnostic(MessageSource.Resolver, "ConstraintIsNotCompilable",
-        boundVar.ReportingRange, [boundVar.Type.ToString(), declWithConstraints.WhatKind, e.WhatKind], 
+        boundVar.ReportingRange, [boundVar.Type.ToString(), declWithConstraints.WhatKind, e.WhatKind],
         ErrorLevel.Error, relatedInformation));
     }
     return base.Traverse(e, field, parent);

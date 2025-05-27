@@ -56,7 +56,7 @@ record DiagnosticMessageData(MessageSource source, ErrorLevel level, TokenRange 
       ["location"] = SerializeToken(options, range),
       ["arguments"] = new JsonArray { arguments },
       ["errorId"] = errorId,
-      ["message"] = string.Format(ConsoleErrorReporter.ResourceManager.GetString(errorId) ?? "{0}", arguments),
+      ["message"] = ErrorMessages.GetMessage(errorId, arguments),
     };
   }
 
@@ -106,7 +106,7 @@ public class JsonConsoleErrorReporter(DafnyOptions options) : BatchErrorReporter
     }
 
     var data = new DiagnosticMessageData(dafnyDiagnostic.Source, dafnyDiagnostic.Level, dafnyDiagnostic.Range,
-      dafnyDiagnostic.Level == ErrorLevel.Error ? "Error" : null, dafnyDiagnostic.Message(ConsoleErrorReporter.ResourceManager),
+      dafnyDiagnostic.Level == ErrorLevel.Error ? "Error" : null, dafnyDiagnostic.Message,
       dafnyDiagnostic.RelatedInformation);
     data.WriteJsonTo(Options, Options.OutputWriter);
     return true;
