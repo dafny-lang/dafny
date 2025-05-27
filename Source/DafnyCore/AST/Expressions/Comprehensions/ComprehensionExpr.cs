@@ -77,6 +77,13 @@ public abstract partial class ComprehensionExpr : Expression, IAttributeBearingD
     }
   }
 
+  public override IEnumerable<Expression> SubExpressionsWithoutAttributes {
+    get {
+      if (Range != null) { yield return Range; }
+      yield return Term;
+    }
+  }
+
   public override IEnumerable<Type> ComponentTypes => BoundVars.Select(bv => bv.Type);
   public virtual bool SetIndent(int indentBefore, TokenNewIndentCollector formatter) {
     var alreadyAligned = false;
