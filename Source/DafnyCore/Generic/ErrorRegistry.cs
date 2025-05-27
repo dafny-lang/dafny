@@ -21,9 +21,6 @@ public record DafnyRange(DafnyPosition Start, DafnyPosition ExclusiveEnd) {
   public bool Contains(DafnyPosition position) {
     return Start.LessThanOrEquals(position) && position.LessThanOrEquals(ExclusiveEnd);
   }
-  public bool Contains(DafnyRange contained) {
-    return Start.LessThanOrEquals(contained.Start) && contained.ExclusiveEnd.LessThanOrEquals(ExclusiveEnd);
-  }
 }
 
 /// <summary>

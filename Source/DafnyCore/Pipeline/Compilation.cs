@@ -252,10 +252,14 @@ public class Compilation : IDisposable {
     var nodeRange = node.EntireRange;
     if (container != null) {
       var containerRange = container.EntireRange;
-      if (nodeRange.Uri != null && !containerRange.Contains(nodeRange)) {
-        throw new Exception(
-          $"Range of parent node ({container}) did not contain range of child node ({node}):\n" +
+      if (nodeRange.Uri != null) {
+        var contained = containerRange.StartToken.LessThanOrEquals(nodeRange.StartToken) &&
+                        nodeRange.EndToken.LessThanOrEquals(containerRange.EndToken);
+        if (!contained) {
+          throw new Exception(
+            $"Range of parent node ({container}) did not contain range of child node ({node}):\n" +
             $"    {containerRange} does not contain {nodeRange}");
+        }
       }
     }
 
