@@ -900,10 +900,10 @@ public abstract class Type : NodeWithOrigin {
   /// Returns "true" iff "sub" is a subtype of "super".
   /// Expects that neither "super" nor "sub" is an unresolved proxy.
   /// </summary>
-  public static bool IsSupertype(Type super, Type sub, bool ignoreNullity = false) {
+  public static bool IsSupertype(Type super, Type sub) {
     Contract.Requires(super != null);
     Contract.Requires(sub != null);
-    return sub.IsSubtypeOf(super, false, ignoreNullity);
+    return sub.IsSubtypeOf(super, false, false);
   }
 
   /// <summary>
@@ -1716,7 +1716,7 @@ public abstract class Type : NodeWithOrigin {
       }
     }
     if (equivalentHeads) {
-      return ignoreTypeArguments || CompatibleTypeArgs(super, sub, ignoreNullity);
+      return ignoreTypeArguments || CompatibleTypeArgs(super, sub);
     }
 
     // There is a special case, namely when super is the non-null "object". Since "sub.ParentTypes()" only gives
@@ -1728,17 +1728,17 @@ public abstract class Type : NodeWithOrigin {
     return sub.ParentTypes(true).Any(parentType => parentType.IsSubtypeOf(super, ignoreTypeArguments, ignoreNullity));
   }
 
-  public static bool CompatibleTypeArgs(Type super, Type sub, bool ignoreNullity = false) {
+  public static bool CompatibleTypeArgs(Type super, Type sub) {
     var polarities = GetPolarities(super);
     Contract.Assert(polarities.Count == super.TypeArgs.Count && polarities.Count == sub.TypeArgs.Count);
     var allGood = true;
     for (int i = 0; allGood && i < polarities.Count; i++) {
       switch (polarities[i]) {
         case TypeParameter.TPVariance.Co:
-          allGood = IsSupertype(super.TypeArgs[i], sub.TypeArgs[i], ignoreNullity);
+          allGood = IsSupertype(super.TypeArgs[i], sub.TypeArgs[i]);
           break;
         case TypeParameter.TPVariance.Contra:
-          allGood = IsSupertype(sub.TypeArgs[i], super.TypeArgs[i], ignoreNullity);
+          allGood = IsSupertype(sub.TypeArgs[i], super.TypeArgs[i]);
           break;
         case TypeParameter.TPVariance.Non:
         default:  // "default" shouldn't ever happen

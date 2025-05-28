@@ -25,9 +25,6 @@ public class ForEachCompilerOptions {
   [Option("run-fails", HelpText = "Whether the running program should return a non-zero exit code")]
   public bool RunShouldFail { get; set; } = false;
 
-  [Option("expect-exit-code", HelpText = "Expected exit code for legacy resolver (default 0).")]
-  public int? ExpectExitCode { get; set; } = null;
-
   [Option("refresh-exit-code", HelpText = "If present, also run with --type-system-refresh and expect the given exit code.")]
   public int? RefreshExitCode { get; set; } = null;
 
@@ -148,7 +145,7 @@ public class MultiBackendTest {
         "legacy",
         ["--type-system-refresh=false", "--general-traits=legacy", "--general-newtypes=false"],
         [".verifier.expect"],
-        options.ExpectExitCode ?? 0)
+        0)
     };
     if (options.RefreshExitCode != null) {
       resolutionOptions.Add(
@@ -156,7 +153,7 @@ public class MultiBackendTest {
           "refresh",
           ["--type-system-refresh", "--general-traits=datatype", "--general-newtypes"],
           [".refresh.expect", ".verifier.expect"],
-          options.RefreshExitCode ?? options.ExpectExitCode ?? 0)
+          (int)options.RefreshExitCode)
       );
     }
 

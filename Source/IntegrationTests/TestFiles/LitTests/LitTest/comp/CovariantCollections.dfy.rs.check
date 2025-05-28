@@ -1,1 +1,1 @@
-// CHECK: Unsupported
+// CHECK: .*<i>Unsupported:\ DAST_dBinOp_dAnd\ with\ not\ 2\ elements</i>.*

@@ -3095,7 +3095,6 @@ namespace Microsoft.Dafny.Compilers {
       truncateResult = false;
       convertE1_to_int = false;
       coerceE1 = false;
-      var argSupertype = Type.IsSupertype(e1Type, e0Type, true) ? e1Type : e0Type;
 
       switch (op) {
         case BinaryExpr.ResolvedOpcode.EqCommon: {
@@ -3204,14 +3203,14 @@ namespace Microsoft.Dafny.Compilers {
 
         case BinaryExpr.ResolvedOpcode.ProperSubset:
         case BinaryExpr.ResolvedOpcode.ProperMultiSubset:
-          staticCallString = TypeHelperName(argSupertype, errorWr, tok, e1Type) + ".IsProperSubsetOf"; break;
+          staticCallString = TypeHelperName(e0Type, errorWr, tok, e1Type) + ".IsProperSubsetOf"; break;
         case BinaryExpr.ResolvedOpcode.Subset:
         case BinaryExpr.ResolvedOpcode.MultiSubset:
-          staticCallString = TypeHelperName(argSupertype, errorWr, tok, e1Type) + ".IsSubsetOf"; break;
+          staticCallString = TypeHelperName(e0Type, errorWr, tok, e1Type) + ".IsSubsetOf"; break;
 
         case BinaryExpr.ResolvedOpcode.Disjoint:
         case BinaryExpr.ResolvedOpcode.MultiSetDisjoint:
-          staticCallString = TypeHelperName(argSupertype, errorWr, tok, e1Type) + ".IsDisjointFrom"; break;
+          staticCallString = TypeHelperName(e0Type, errorWr, tok, e1Type) + ".IsDisjointFrom"; break;
         case BinaryExpr.ResolvedOpcode.InSet:
         case BinaryExpr.ResolvedOpcode.InMultiSet:
         case BinaryExpr.ResolvedOpcode.InMap:
@@ -3234,11 +3233,11 @@ namespace Microsoft.Dafny.Compilers {
           staticCallString = TypeHelperName(resultType, errorWr, tok) + ".Subtract"; break;
 
         case BinaryExpr.ResolvedOpcode.ProperPrefix:
-          staticCallString = TypeHelperName(argSupertype, errorWr, e0Type.Origin) + ".IsProperPrefixOf"; break;
+          staticCallString = TypeHelperName(e0Type, errorWr, e0Type.Origin) + ".IsProperPrefixOf"; break;
         case BinaryExpr.ResolvedOpcode.Prefix:
-          staticCallString = TypeHelperName(argSupertype, errorWr, e0Type.Origin) + ".IsPrefixOf"; break;
+          staticCallString = TypeHelperName(e0Type, errorWr, e0Type.Origin) + ".IsPrefixOf"; break;
         case BinaryExpr.ResolvedOpcode.Concat:
-          staticCallString = TypeHelperName(resultType, errorWr, e0Type.Origin) + ".Concat"; break;
+          staticCallString = TypeHelperName(e0Type, errorWr, e0Type.Origin) + ".Concat"; break;
 
         default:
           base.CompileBinOp(op, e0Type, e1Type, tok, resultType,
