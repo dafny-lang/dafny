@@ -39,7 +39,7 @@ public class ReadFrameSubset : ProofObligationDescription {
         }
         var hint = "adding 'reads {1}'" + extraHint + " in the enclosing {2} specification for resolution";
         if (lambdaScope != null && lambdaScope.Reads.Expressions!.Count == 0) {
-          hint = "extracting {3} to a local variable before the lambda expression, or {hint}";
+          hint = "extracting {3} to a local variable before the lambda expression, or " + hint;
         }
 
         return (message + $"; Consider {hint}", arguments);

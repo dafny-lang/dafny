@@ -9,7 +9,7 @@ usesLibrary.dfy(12,37): Error: a postcondition could not be proved on this retur
 usesLibrary.dfy(12,31): Related location: this is the postcondition that could not be proved
 
 Dafny program verifier finished with 0 verified, 1 error
-CLI: Error: Failed to build dependency dfyconfig.toml (ID: Verbatim)
+CLI: Error: Failed to build dependency dfyconfig.toml
 CLI: Warning: The file 'wrappersLib.dfy' was passed to --library. Verification for that file might have used options incompatible with the current ones, or might have been skipped entirely. Use a .doo file to enable Dafny to check that compatible options were used (ID: UnverifiedLibrary)
 Building dependency dfyconfig.toml
 CLI: Warning: The file 'wrappersLib.dfy' was passed to --library. Verification for that file might have used options incompatible with the current ones, or might have been skipped entirely. Use a .doo file to enable Dafny to check that compatible options were used (ID: UnverifiedLibrary)

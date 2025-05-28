@@ -149,7 +149,7 @@ public abstract class ErrorReporter {
     if (Options.DeprecationNoise != 0) {
       Warning(source, errorId, tok, Format(format, args), []);
     } else {
-      Info(source, tok, errorId.ToString(), [Format(format, args)]);
+      Info(source, errorId.ToString(), tok, format, args);
     }
   }
 
