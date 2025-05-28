@@ -13,7 +13,6 @@ using JetBrains.Annotations;
 namespace Microsoft.Dafny;
 
 record FlowContext(SystemModuleManager SystemModuleManager, ErrorReporter Reporter, bool DebugPrint) {
-  public TextWriter OutputWriter => SystemModuleManager.Options.OutputWriter;
 }
 
 /// <summary>
@@ -66,7 +65,7 @@ abstract class Flow {
       return false;
     }
     if (context.DebugPrint) {
-      context.OutputWriter.WriteLine($"DEBUG: refining {previousLhs} to {TypeRefinementWrapper.ToStringAsBottom(sink)} ({joinArguments})");
+      context.Reporter.Options.OutputWriter.Debug($"refining {previousLhs} to {TypeRefinementWrapper.ToStringAsBottom(sink)} ({joinArguments})");
     }
     return true;
   }

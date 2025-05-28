@@ -21,7 +21,7 @@ static class ResolveCommand {
 
       var value = await compilation.GetAndReportExitValue();
       if (value == ExitValue.SUCCESS) {
-        await options.OutputWriter.WriteLineAsync("\nDafny program verifier did not attempt verification");
+        await options.OutputWriter.Status("\nDafny program verifier did not attempt verification");
       }
       return (int)value;
     });

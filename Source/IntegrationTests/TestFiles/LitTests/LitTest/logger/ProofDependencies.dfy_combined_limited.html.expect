@@ -277,7 +277,7 @@ method {:testEntry} ObviouslyUnconstrainedCodeMethod(x: int) returns (r: (int, i
   ensures r.0 > 10
 {
   var a := x + 1; // constrained by ensures clause
-  var b </span><span class="nc" id="263:9">:= x - 1;</span><span class="na" id="263:18"> // not constrained by ensures clause
+  var </span><span class="nc" id="263:7">b := x - 1;</span><span class="na" id="263:18"> // not constrained by ensures clause
   return
     (a,
      b);

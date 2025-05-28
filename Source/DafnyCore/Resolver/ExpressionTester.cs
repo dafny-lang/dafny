@@ -650,6 +650,8 @@ public class ExpressionTester {
       return UsesSpecFeatures(e.E);
     } else if (expr is IndexFieldLocation or FieldLocation) {
       return true;
+    } else if (expr is LocalsObjectExpression) {
+      return true;
     } else {
       Contract.Assert(false); throw new cce.UnreachableException();  // unexpected expression
     }
