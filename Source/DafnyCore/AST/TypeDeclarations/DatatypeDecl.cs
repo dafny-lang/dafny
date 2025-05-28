@@ -210,7 +210,7 @@ public abstract class DatatypeDecl : TopLevelDeclWithMembers, RevealableTypeDecl
         formal.DefaultValue = Rewriter.AddRevealStmtsToExpression(formal.DefaultValue, addedReveals);
 
         if (addedReveals.Any()) {
-          Reporter.Message(MessageSource.Rewriter, ErrorLevel.Info, "Verbatim", formal.Origin,
+          Reporter.Message(MessageSource.Rewriter, ErrorLevel.Info, null, formal.Origin,
             AutoRevealFunctionDependencies.GenerateMessage(addedReveals.ToList()));
         }
       }

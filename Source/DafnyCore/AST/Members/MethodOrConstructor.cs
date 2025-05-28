@@ -490,7 +490,7 @@ public abstract class MethodOrConstructor : MethodOrFunction, TypeParameter.Pare
     }
 
     if (addedReveals.Any()) {
-      reporter.Message(MessageSource.Rewriter, ErrorLevel.Info, "Verbatim", Origin,
+      reporter.Message(MessageSource.Rewriter, ErrorLevel.Info, null, Origin,
         AutoRevealFunctionDependencies.GenerateMessage(addedReveals, autoRevealDepth));
     }
   }

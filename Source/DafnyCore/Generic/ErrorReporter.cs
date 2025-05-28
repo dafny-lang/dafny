@@ -73,7 +73,7 @@ public abstract class ErrorReporter {
 
   public void Error(MessageSource source, IOrigin tok, string message) {
     Contract.Requires(tok != null);
-    Error(source, "Verbatim", tok, message, []);
+    Error(source, null, tok, message);
   }
 
   public void Error(MessageSource source, Enum errorId, IOrigin tok, string formatMsg, object[] arguments) {
@@ -101,14 +101,14 @@ public abstract class ErrorReporter {
     Contract.Requires(s != null);
     Contract.Requires(format != null);
     Contract.Requires(args != null);
-    Error(source, "Verbatim", s.Origin, string.Format(format, args), []);
+    Error(source, null, s.Origin, string.Format(format, args));
   }
 
   public void Error(MessageSource source, INode v, string format, params object[] args) {
     Contract.Requires(v != null);
     Contract.Requires(format != null);
     Contract.Requires(args != null);
-    Error(source, "Verbatim", v.Origin, string.Format(format, args), []);
+    Error(source, null, v.Origin, string.Format(format, args));
   }
 
   public void Error(MessageSource source, Enum errorId, INode v, string formatMsg, object[] arguments) {
@@ -125,7 +125,7 @@ public abstract class ErrorReporter {
     Contract.Requires(e != null);
     Contract.Requires(format != null);
     Contract.Requires(args != null);
-    Error(source, "Verbatim", e.Origin, string.Format(format, args), []);
+    Error(source, null, e.Origin, string.Format(format, args));
   }
 
   public void Warning(MessageSource source, Enum errorId, IOrigin tok, string formatMsg, object[] arguments) {
@@ -185,11 +185,11 @@ public abstract class ErrorReporter {
   }
 
   public void Error(MessageSource source, IOrigin origin, string formatMsg, string arguments) {
-    Error(source, "Verbatim", origin, string.Format(formatMsg, arguments), []);
+    Error(source, null, origin, string.Format(formatMsg, arguments));
   }
 
   public void Message(MessageSource source, ErrorLevel errorLevel, IOrigin origin, string formatMsg) {
-    Message(source, errorLevel, "Verbatim", origin, formatMsg, []);
+    Message(source, errorLevel, null, origin, formatMsg, []);
   }
 
   //[Obsolete]
@@ -199,7 +199,7 @@ public abstract class ErrorReporter {
 
   //[Obsolete]
   public void Error(MessageSource source, object errorId, IOrigin origin, string message) {
-    Message(source, ErrorLevel.Error, errorId.ToString(), origin, message, []);
+    Message(source, ErrorLevel.Error, errorId + "", origin, message, []);
   }
 
   //[Obsolete]
