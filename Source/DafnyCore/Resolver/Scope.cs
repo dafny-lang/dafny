@@ -23,6 +23,8 @@ public class Scope<Thing> where Thing : class {
     this.options = options;
   }
 
+  public List<string> Names => names;
+
   public bool AllowInstance {
     get { return scopeSizeWhereInstancesWereDisallowed == -1; }
     set {

@@ -9,7 +9,6 @@ using System.Linq;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using Microsoft.Boogie;
-using Microsoft.Boogie.SMTLib;
 using Microsoft.Dafny;
 using Program = Microsoft.Boogie.Program;
 
@@ -106,11 +105,10 @@ namespace DafnyTestGeneration {
       var options = CopyForProcedure(Options, testEntryNames);
       SetupForCounterexamples(options);
       var writer = new StringWriter();
-      if (cache.preprocessedPrograms.Contains(program.UniqueId)) {
+      if (!cache.preprocessedPrograms.Add(program.UniqueId)) {
         options.UseAbstractInterpretation = false; // running abs. inter. twice on the same program leads to errors
-      } else {
-        cache.preprocessedPrograms.Add(program.UniqueId);
       }
+
       using (var engine = ExecutionEngine.CreateWithoutSharedCache(options)) {
         var guid = Guid.NewGuid().ToString();
         var result = await Task.WhenAny(engine.InferAndVerify(writer, program,
@@ -124,7 +122,7 @@ namespace DafnyTestGeneration {
         counterexampleLog = null;
         if (result is not Task<PipelineOutcome>) {
           if (Options.Verbose) {
-            await options.OutputWriter.WriteLineAsync(
+            await options.OutputWriter.Status(
               $"// No test can be generated for {uniqueId} " +
               "because the verifier timed out.");
           }
@@ -153,23 +151,23 @@ namespace DafnyTestGeneration {
           var blockId = Regex.Replace(line, @"\s+", "").Split('|')[2];
           if (Options.Verbose &&
               Options.TestGenOptions.Mode != TestGenerationOptions.Modes.Path && !CapturedStates.Contains(blockId)) {
-            await options.OutputWriter.WriteLineAsync($"// Test {uniqueId} covers {blockId}");
+            await options.OutputWriter.Status($"// Test {uniqueId} covers {blockId}");
           }
           CapturedStates.Add(blockId);
         }
       }
       if (Options.Verbose && counterexampleLog == null) {
         if (log == "") {
-          await options.OutputWriter.WriteLineAsync(
+          await options.OutputWriter.Status(
             $"// No test is generated for {uniqueId} " +
             "because the verifier proved that no inputs could cause this location to be visited.");
         } else if (log.Contains("MODEL") || log.Contains("anon0")) {
-          await options.OutputWriter.WriteLineAsync(
+          await options.OutputWriter.Status(
             $"// No test is generated for {uniqueId} " +
             "because there is no enhanced error trace. This can be caused " +
             "by a bug in Boogie error reporting.");
         } else {
-          await options.OutputWriter.WriteLineAsync(
+          await options.OutputWriter.Status(
             $"// No test is generated for {uniqueId} " +
             "because the verifier timed out.");
         }
@@ -192,7 +190,7 @@ namespace DafnyTestGeneration {
 
     public async Task<TestMethod> GetTestMethod(Modifications cache, DafnyInfo dafnyInfo, bool returnNullIfNotUnique = true) {
       if (Options.Verbose) {
-        await dafnyInfo.Options.OutputWriter.WriteLineAsync(
+        await dafnyInfo.Options.OutputWriter.Status(
           $"// Constructing the test for {uniqueId}...");
       }
       var log = await GetCounterExampleLog(cache);
@@ -210,7 +208,7 @@ namespace DafnyTestGeneration {
         return TestMethod;
       }
       if (Options.Verbose) {
-        await dafnyInfo.Options.OutputWriter.WriteLineAsync(
+        await dafnyInfo.Options.OutputWriter.Status(
           $"// Test for {uniqueId} matches a test previously generated " +
           $"for {duplicate.uniqueId} - this may occur if the code under test is non-deterministic, " +
           $"if a method/function is not inlined, or the input parameters are of a type not supported by " +
