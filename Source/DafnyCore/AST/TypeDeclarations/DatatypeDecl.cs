@@ -211,7 +211,7 @@ public abstract class DatatypeDecl : TopLevelDeclWithMembers, RevealableTypeDecl
 
         if (addedReveals.Any()) {
           Reporter.Message(MessageSource.Rewriter, ErrorLevel.Info, "Verbatim", formal.Origin,
-            [AutoRevealFunctionDependencies.GenerateMessage(addedReveals.ToList())]);
+            AutoRevealFunctionDependencies.GenerateMessage(addedReveals.ToList()));
         }
       }
     }

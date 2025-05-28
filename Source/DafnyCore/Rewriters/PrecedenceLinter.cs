@@ -232,7 +232,7 @@ namespace Microsoft.Dafny {
         var st = new LeftMargin(leftMargin);
         Visit(expr, st);
         if (st.Column < leftMargin) {
-          reporter.Warning(MessageSource.Rewriter, ErrorId.rw_unusual_indentation_start, errorToken,
+          reporter.Warning(MessageSource.Rewriter, ErrorId.rw_unusual_indentation_start.ToString(), errorToken,
             $"unusual indentation in {what} (which starts at {LineCol(expr.StartToken)}); do you perhaps need parentheses?");
         }
       }
@@ -249,7 +249,7 @@ namespace Microsoft.Dafny {
         var st = new LeftMargin(rightMargin);
         Visit(expr, st);
         if (st.Column < rightMargin) {
-          reporter.Warning(MessageSource.Rewriter, ErrorId.rw_unusual_indentation_end, errorToken,
+          reporter.Warning(MessageSource.Rewriter, ErrorId.rw_unusual_indentation_end.ToString(), errorToken,
             $"unusual indentation in {what} (which ends at {LineCol(expr.EndToken)}); do you perhaps need parentheses?");
         }
       }

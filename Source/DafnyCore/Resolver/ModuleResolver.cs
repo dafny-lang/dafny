@@ -557,7 +557,7 @@ namespace Microsoft.Dafny {
         }
 
         reporter = new ErrorReporterWrapper(reporter, new DafnyRelatedInformation(exportDecl.Origin.ReportingRange, "",
-          [$"raised while checking export set {exportDecl.Name}"])
+          $"raised while checking export set {exportDecl.Name}", [])
           );
         var testSig = exportView.RegisterTopLevelDecls(this, true);
         exportView.Resolve(testSig, this, exportDecl.Name);
@@ -1297,7 +1297,7 @@ namespace Microsoft.Dafny {
       if (reporter.Count(ErrorLevel.Error) == prevErrorCount) {
         foreach (var dtd in declarations.ConvertAll(decl => decl as IndDatatypeDecl).Where(dtd => dtd != null && dtd.Ctors.Count != 0)) {
           if (AreThereAnyObviousSignsOfEmptiness(UserDefinedType.FromTopLevelDecl(dtd.Origin, dtd), new HashSet<IndDatatypeDecl>())) {
-            reporter.Warning(MessageSource.Resolver, ResolutionErrors.ErrorId.r_empty_cyclic_datatype, dtd.Origin,
+            reporter.Warning(MessageSource.Resolver, ErrorId.r_empty_cyclic_datatype, dtd.Origin,
               $"because of cyclic dependencies among constructor argument types, no instances of datatype '{dtd.Name}' can be constructed");
           }
         }
@@ -3080,7 +3080,7 @@ namespace Microsoft.Dafny {
           reporter.Error(MessageSource.Resolver, ResolutionErrors.ErrorId.none, tok, "Duplicate {0} name: {1}", kind, name);
           break;
         case Scope<Thing>.PushResult.Shadow:
-          reporter.Warning(MessageSource.Resolver, ResolutionErrors.ErrorId.none, tok, "Shadowed {0} name: {1}", kind, name);
+          reporter.Warning(MessageSource.Resolver, "", tok, "Shadowed {0} name: {1}", kind, name);
           break;
       }
 

@@ -1,4 +1,3 @@
-#nullable enable
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
@@ -12,7 +11,7 @@ using Microsoft.Boogie;
 namespace Microsoft.Dafny;
 
 public abstract class ProofObligationDescription : Boogie.ProofObligationDescription {
-  public virtual DafnyDiagnostic? GetDiagnostic(TokenRange range) => null;
+  public virtual DafnyDiagnostic GetDiagnostic(TokenRange range) => null;
 
   public virtual bool IsImplicit => true;
 
@@ -915,7 +914,9 @@ public class Terminates : ProofObligationDescription {
     return null;
   }
 
-  public Terminates(bool inferredDescreases, List<VarDeclStmt> prevGhostLocals, Expression allowance, List<Expression> oldExpressions, List<Expression> newExpressions, bool allowNoChange, string hint = null) {
+  public Terminates(bool inferredDescreases, List<VarDeclStmt> prevGhostLocals, 
+    Expression allowance, List<Expression> oldExpressions, List<Expression> newExpressions, 
+    bool allowNoChange, string hint = null) {
     this.inferredDescreases = inferredDescreases;
     this.prevGhostLocals = prevGhostLocals;
     this.allowance = allowance;
@@ -1214,48 +1215,6 @@ public class IndicesInDomain : ProofObligationDescription {
     Utils.MakeQuantifierVarsForDims(dims, out var indexVars, out var indexVarExprs, out var indicesRange);
     var precond = new FunctionCallExpr("requires", init, Token.NoToken, Token.NoToken, new ActualBindings(indexVarExprs));
     return new ForallExpr(Token.NoToken, indexVars, indicesRange, precond, null);
-  }
-}
-
-public class SubrangeCheck : ProofObligationDescription {
-  public override string SuccessDescription =>
-    isSubset
-      ? $"value always satisfies the subset constraints of '{targetType}'"
-      : $"value of expression (of type '{sourceType}') is always an instance of type '{targetType}'";
-
-  public override string FailureDescription => BaseFailureDescription + (isCertain ? "" : cause);
-
-  public override string ShortDescription => "subrange check";
-
-  private string BaseFailureDescription =>
-    isSubset
-      ? $"{prefix}value does not satisfy the subset constraints of '{targetType}'"
-      : $"{prefix}value of expression (of type '{sourceType}') is not known to be an instance of type '{targetType}'" +
-        (isCertain ? ", because it might be null" : "");
-
-  private readonly string prefix;
-  private readonly string sourceType;
-  private readonly string targetType;
-  private readonly bool isSubset;
-  private readonly bool isCertain;
-  private readonly string cause;
-  private readonly Expression check;
-
-  public SubrangeCheck(
-    string prefix, string sourceType, string targetType,
-    bool isSubset, bool isCertain, [CanBeNull] string cause, [CanBeNull] Expression check
-  ) {
-    this.prefix = prefix;
-    this.sourceType = sourceType;
-    this.targetType = targetType;
-    this.isSubset = isSubset;
-    this.isCertain = isCertain;
-    this.cause = cause is null ? "" : $" (possible cause: {cause})";
-    this.check = check;
-  }
-
-  public override Expression GetAssertedExpr(DafnyOptions options) {
-    return check;
   }
 }
 

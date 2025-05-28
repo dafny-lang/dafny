@@ -81,7 +81,7 @@ public class ConstantField : Field, ICallable, ICanAutoRevealDependencies, ICanV
 
     if (addedReveals.Any()) {
       Reporter.Message(MessageSource.Rewriter, ErrorLevel.Info, "Verbatim", Origin,
-        [AutoRevealFunctionDependencies.GenerateMessage(addedReveals.ToList())]);
+        AutoRevealFunctionDependencies.GenerateMessage(addedReveals.ToList()));
     }
   }
   public string Designator => WhatKind;

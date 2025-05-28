@@ -50,7 +50,7 @@ class JsonOutputWriter(DafnyOptions options) : IDafnyOutputWriter {
 
   public void WriteDiagnostic(DafnyDiagnostic dafnyDiagnostic) {
     var data = new DiagnosticMessageData(dafnyDiagnostic.Source, dafnyDiagnostic.Level, dafnyDiagnostic.Range,
-      dafnyDiagnostic.Level == ErrorLevel.Error ? "Error" : null, dafnyDiagnostic.ErrorId, dafnyDiagnostic.Arguments,
+      dafnyDiagnostic.Level == ErrorLevel.Error ? "Error" : null, dafnyDiagnostic.ErrorId, dafnyDiagnostic.FormatMsg, dafnyDiagnostic.Arguments,
       dafnyDiagnostic.RelatedInformation);
     var jsonString = data.ToJsonMessage(options).ToJsonString(new JsonSerializerOptions { WriteIndented = false });
     options.BaseOutputWriter.WriteLine(jsonString);
@@ -61,7 +61,7 @@ class JsonOutputWriter(DafnyOptions options) : IDafnyOutputWriter {
   }
 }
 
-record DiagnosticMessageData(MessageSource Source, ErrorLevel Level, TokenRange Range, string? Category, string ErrorId, object[] Arguments,
+record DiagnosticMessageData(MessageSource Source, ErrorLevel Level, TokenRange Range, string? Category, string ErrorId, string FormatMsg, object[] Arguments,
   IReadOnlyList<DafnyRelatedInformation> Related) {
 
   private static JsonObject SerializePosition(Boogie.IToken tok, bool includeLength) {
@@ -102,32 +102,32 @@ record DiagnosticMessageData(MessageSource Source, ErrorLevel Level, TokenRange 
     return category == null ? message : $"{category}: {message}";
   }
 
-  private static JsonObject SerializeRelated(DafnyOptions options, TokenRange range, string errorId, object[] arguments) {
+  private static JsonObject SerializeRelated(DafnyOptions options, TokenRange range, string errorId, string formatMsg, object[] arguments) {
     if (options.Get(CommonOptionBag.JsonOutput)) {
       return new JsonObject {
         ["location"] = SerializeToken(options, range),
         ["arguments"] = new JsonArray(arguments.Select(o => (JsonNode)JsonValue.Create(o.ToString()!)).ToArray()),
         ["errorId"] = errorId,
-        ["format"] = ErrorMessages.GetFormat(errorId),
+        ["format"] = formatMsg,
       };
     }
 
     // Backwards compatibility case. Can be removed with the option --json-diagnostics
     return new JsonObject {
       ["location"] = SerializeToken(options, range),
-      ["message"] = ErrorMessages.GetMessage(errorId, arguments),
+      ["message"] = arguments.Length == 0 ? formatMsg : string.Format(formatMsg, arguments),
     };
   }
 
   public JsonNode ToJson(DafnyOptions options) {
     var auxRelated = Related.Select<DafnyRelatedInformation, JsonNode>(aux =>
-      SerializeRelated(options, aux.Range, aux.ErrorId, aux.Arguments));
+      SerializeRelated(options, aux.Range, aux.ErrorId, aux.FormatMsg, aux.Arguments));
 
     if (options.Get(CommonOptionBag.JsonOutput)) {
       return new JsonObject {
         ["location"] = SerializeToken(options, Range),
         ["severity"] = SerializeErrorLevel(Level),
-        ["format"] = ErrorMessages.GetFormat(ErrorId),
+        ["format"] = FormatMsg,
         ["arguments"] = new JsonArray(Arguments.Select(o => (JsonNode)JsonValue.Create(o.ToString()!)).ToArray()),
         ["errorId"] = ErrorId,
         ["source"] = Source.ToString(),
@@ -139,7 +139,7 @@ record DiagnosticMessageData(MessageSource Source, ErrorLevel Level, TokenRange 
     return new JsonObject {
       ["location"] = SerializeToken(options, Range),
       ["severity"] = SerializeErrorLevel(Level),
-      ["message"] = SerializeMessage(Category, ErrorMessages.GetMessage(ErrorId, Arguments)),
+      ["message"] = SerializeMessage(Category, Arguments.Length == 0 ? FormatMsg : string.Format(FormatMsg, Arguments)),
       ["source"] = Source.ToString(),
       ["relatedInformation"] = new JsonArray(auxRelated.ToArray())
     };

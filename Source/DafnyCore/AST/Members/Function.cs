@@ -585,7 +585,7 @@ experimentalPredicateAlwaysGhost - Compiled functions are written `function`. Gh
 
     if (addedReveals.Any()) {
       reporter.Message(MessageSource.Rewriter, ErrorLevel.Info, "Verbatim", Origin,
-        [AutoRevealFunctionDependencies.GenerateMessage(addedReveals, autoRevealDepth)]);
+        AutoRevealFunctionDependencies.GenerateMessage(addedReveals, autoRevealDepth));
     }
   }
   public string Designator => WhatKind;

@@ -36,11 +36,11 @@ public abstract class ErrorReporter {
 
   public int ErrorCountUntilResolver => CountExceptVerifierAndCompiler(ErrorLevel.Error);
 
-  public bool Message(MessageSource source, ErrorLevel level, string errorId, IOrigin tok, params object[] arguments) {
-    return MessageCore(source, level, errorId, tok, arguments);
+  public bool Message(MessageSource source, ErrorLevel level, string errorId, IOrigin tok, string formatMsg, params object[] arguments) {
+    return MessageCore(source, level, errorId, tok, formatMsg, arguments);
   }
 
-  public bool MessageCore(MessageSource source, ErrorLevel level, string errorId, IOrigin rootTok, object[] arguments) {
+  public bool MessageCore(MessageSource source, ErrorLevel level, string errorId, IOrigin rootTok, string formatMsg, object[] arguments) {
     if (ErrorsOnly && level != ErrorLevel.Error) {
       return false;
     }
@@ -50,15 +50,15 @@ public abstract class ErrorReporter {
     relatedInformation.AddRange(
       ErrorReporterExtensions.CreateDiagnosticRelatedInformationFor(rootTok, usingSnippets));
 
-    var dafnyDiagnostic = new DafnyDiagnostic(source, errorId!, rootTok.ReportingRange, arguments, level, relatedInformation);
+    var dafnyDiagnostic = new DafnyDiagnostic(source, errorId!, rootTok.ReportingRange, formatMsg, arguments, level, relatedInformation);
     return MessageCore(dafnyDiagnostic);
   }
 
   public abstract bool MessageCore(DafnyDiagnostic dafnyDiagnostic);
 
-  public virtual void Error(MessageSource source, string errorId, IOrigin tok, object[] arguments) {
+  public virtual void Error(MessageSource source, string errorId, IOrigin tok, string formatMsg, object[] arguments) {
     Contract.Requires(tok != null);
-    Message(source, ErrorLevel.Error, errorId, tok, arguments);
+    Message(source, ErrorLevel.Error, errorId, tok, formatMsg, arguments);
   }
 
   public abstract int Count(ErrorLevel level);
@@ -68,98 +68,77 @@ public abstract class ErrorReporter {
   internal void Error(MessageSource source, Enum errorId, Uri uri, int line, int col, string msg) {
     var tok = new Token(line, col);
     tok.Uri = uri;
-    Error(source, errorId, tok, [msg]);
+    Error(source, errorId, tok, msg, []);
   }
 
   public void Error(MessageSource source, IOrigin tok, string message) {
     Contract.Requires(tok != null);
-    Error(source, "Verbatim", tok, [message]);
+    Error(source, "Verbatim", tok, message, []);
   }
 
-  public void Error(MessageSource source, Enum errorId, IOrigin tok, object[] arguments) {
+  public void Error(MessageSource source, Enum errorId, IOrigin tok, string formatMsg, object[] arguments) {
     Contract.Requires(tok != null);
-    Error(source, errorId.ToString(), tok, arguments);
+    Error(source, errorId.ToString(), tok, formatMsg, arguments);
   }
 
-  public void Error(MessageSource source, string errorId, Declaration d, object[] arguments) {
+  public void Error(MessageSource source, string errorId, Declaration d, string formatMsg, object[] arguments) {
     Contract.Requires(d != null);
     Contract.Requires(errorId != null);
-    Error(source, errorId, d.Origin, arguments);
+    Error(source, errorId, d.Origin, formatMsg, arguments);
   }
 
-  public void Error(MessageSource source, Enum errorId, Declaration d, object[] arguments) {
+  public void Error(MessageSource source, Enum errorId, Declaration d, string formatMsg, object[] arguments) {
     Contract.Requires(d != null);
-    Error(source, errorId, d.Origin, arguments);
+    Error(source, errorId, d.Origin, formatMsg, arguments);
   }
 
-  public void Error(MessageSource source, Enum errorId, Statement s, object[] arguments) {
+  public void Error(MessageSource source, Enum errorId, Statement s, string formatMsg, object[] arguments) {
     Contract.Requires(s != null);
-    Error(source, errorId, s.Origin, arguments);
+    Error(source, errorId, s.Origin, formatMsg, arguments);
   }
 
   public void Error(MessageSource source, Statement s, string format, params object[] args) {
     Contract.Requires(s != null);
     Contract.Requires(format != null);
     Contract.Requires(args != null);
-    Error(source, "Verbatim", s.Origin, [string.Format(format, args)]);
+    Error(source, "Verbatim", s.Origin, string.Format(format, args), []);
   }
 
   public void Error(MessageSource source, INode v, string format, params object[] args) {
     Contract.Requires(v != null);
     Contract.Requires(format != null);
     Contract.Requires(args != null);
-    Error(source, "Verbatim", v.Origin, [string.Format(format, args)]);
+    Error(source, "Verbatim", v.Origin, string.Format(format, args), []);
   }
 
-  public void Error(MessageSource source, Enum errorId, INode v, object[] arguments) {
+  public void Error(MessageSource source, Enum errorId, INode v, string formatMsg, object[] arguments) {
     Contract.Requires(v != null);
-    Error(source, errorId, v.Origin, arguments);
+    Error(source, errorId, v.Origin, formatMsg, arguments);
   }
 
-  public void Error(MessageSource source, Enum errorId, Expression e, object[] arguments) {
+  public void Error(MessageSource source, Enum errorId, Expression e, string formatMsg, object[] arguments) {
     Contract.Requires(e != null);
-    Error(source, errorId, e.Origin, arguments);
+    Error(source, errorId, e.Origin, formatMsg, arguments);
   }
 
   public void Error(MessageSource source, Expression e, string format, params object[] args) {
     Contract.Requires(e != null);
     Contract.Requires(format != null);
     Contract.Requires(args != null);
-    Error(source, "Verbatim", e.Origin, [string.Format(format, args)]);
+    Error(source, "Verbatim", e.Origin, string.Format(format, args), []);
   }
 
-  public void Warning(MessageSource source, Enum errorId, IOrigin tok, string format, params object[] args) {
+  public void Warning(MessageSource source, Enum errorId, IOrigin tok, string formatMsg, object[] arguments) {
     Contract.Requires(tok != null);
-    Contract.Requires(format != null);
-    Contract.Requires(args != null);
-    Message(source, ErrorLevel.Warning, errorId.ToString(), tok, Format(format, args));
+    Message(source, ErrorLevel.Warning, errorId.ToString(), tok, formatMsg, arguments);
   }
 
-  public void Warning(MessageSource source, Enum errorId, IOrigin tok, object[] arguments) {
-    Contract.Requires(tok != null);
-    Message(source, ErrorLevel.Warning, errorId.ToString(), tok, arguments);
-  }
-
-  public void Warning(MessageSource source, string errorId, IOrigin tok, object[] arguments) {
-    Contract.Requires(tok != null);
-    Message(source, ErrorLevel.Warning, errorId, tok, arguments);
-  }
-
-  public void Deprecated(MessageSource source, string errorId, IOrigin tok, object[] arguments) {
+  public void Deprecated(MessageSource source, string errorId, IOrigin tok, string formatMsg, params object[] arguments) {
     Contract.Requires(tok != null);
     if (Options.DeprecationNoise != 0) {
-      Warning(source, errorId, tok, arguments);
+      Warning(source, errorId, tok, formatMsg, arguments);
     } else {
-      Info(source, errorId, tok, arguments);
-    }
-  }
-
-  public void Deprecated(MessageSource source, Enum errorId, IOrigin tok, object[] arguments) {
-    Contract.Requires(tok != null);
-    if (Options.DeprecationNoise != 0) {
-      Warning(source, errorId, tok, arguments);
-    } else {
-      Info(source, errorId.ToString(), tok, arguments);
+      Info(source, tok, errorId, arguments);
     }
   }
 
@@ -168,15 +147,15 @@ public abstract class ErrorReporter {
     Contract.Requires(format != null);
     Contract.Requires(args != null);
     if (Options.DeprecationNoise != 0) {
-      Warning(source, errorId, tok, Format(format, args));
+      Warning(source, errorId, tok, Format(format, args), []);
     } else {
-      Info(source, errorId.ToString(), tok, [Format(format, args)]);
+      Info(source, tok, errorId.ToString(), [Format(format, args)]);
     }
   }
 
-  public void Info(MessageSource source, string errorId, IOrigin tok, object[] arguments) {
+  public void Info(MessageSource source, string errorId, IOrigin tok, string formatMsg, object[] arguments) {
     Contract.Requires(tok != null);
-    Message(source, ErrorLevel.Info, errorId, tok, arguments);
+    Message(source, ErrorLevel.Info, errorId, tok, formatMsg, arguments);
   }
 
   public void Info(MessageSource source, IOrigin tok, string format) {
@@ -206,21 +185,21 @@ public abstract class ErrorReporter {
   }
 
   public void Error(MessageSource source, IOrigin origin, string formatMsg, string arguments) {
-    Error(source, "Verbatim", origin, [string.Format(formatMsg, arguments)]);
+    Error(source, "Verbatim", origin, string.Format(formatMsg, arguments), []);
   }
 
   public void Message(MessageSource source, ErrorLevel errorLevel, IOrigin origin, string formatMsg) {
-    Message(source, errorLevel, "Verbatim", origin, [formatMsg]);
+    Message(source, errorLevel, "Verbatim", origin, formatMsg, []);
   }
 
   //[Obsolete]
   public void Error(MessageSource source, object errorId, IOrigin origin, string formatMsg, params object[] formatArguments) {
-    Message(source, ErrorLevel.Error, errorId.ToString(), origin, [string.Format(formatMsg, formatArguments)]);
+    Message(source, ErrorLevel.Error, errorId.ToString(), origin, string.Format(formatMsg, formatArguments), []);
   }
 
   //[Obsolete]
   public void Error(MessageSource source, object errorId, IOrigin origin, string message) {
-    Message(source, ErrorLevel.Error, errorId.ToString(), origin, [message]);
+    Message(source, ErrorLevel.Error, errorId.ToString(), origin, message, []);
   }
 
   //[Obsolete]
@@ -230,30 +209,34 @@ public abstract class ErrorReporter {
 
   //[Obsolete]
   public void Error(MessageSource source, IOrigin origin, string formatMsg, params object[] formatArguments) {
-    Message(source, ErrorLevel.Error, null, origin, [string.Format(formatMsg, formatArguments)]);
+    Message(source, ErrorLevel.Error, null, origin, string.Format(formatMsg, formatArguments), []);
   }
 
   //[Obsolete]
   public void Error(MessageSource source, object errorId, INode node, string formatMsg, params object[] formatArguments) {
-    Message(source, ErrorLevel.Error, errorId.ToString(), node.Origin, [string.Format(formatMsg, formatArguments)]);
+    Message(source, ErrorLevel.Error, errorId.ToString(), node.Origin, string.Format(formatMsg, formatArguments), []);
   }
 
 
   //[Obsolete]
   public void Error(MessageSource source, object errorId, INode node, string message) {
-    Message(source, ErrorLevel.Error, errorId.ToString(), node.Origin, [message]);
+    Message(source, ErrorLevel.Error, errorId.ToString(), node.Origin, message, []);
   }
 
   //[Obsolete]
   public void Error(MessageSource source, object errorId, INode node, string formatMsg, string formatArguments) {
-    Message(source, ErrorLevel.Error, errorId.ToString(), node.Origin, [string.Format(formatMsg, formatArguments)]);
+    Message(source, ErrorLevel.Error, errorId.ToString(), node.Origin, string.Format(formatMsg, formatArguments), []);
   }
 
   public void Warning(MessageSource source, string errorId, IOrigin origin, string message) {
-    Message(source, ErrorLevel.Warning, errorId, origin, [message]);
+    Message(source, ErrorLevel.Warning, errorId, origin, message, []);
   }
 
   public void Warning(MessageSource source, string errorId, IOrigin origin, string formatMsg, params object[] formatArguments) {
-    Message(source, ErrorLevel.Warning, errorId, origin, [string.Format(formatMsg, formatArguments)]);
+    Message(source, ErrorLevel.Warning, errorId, origin, string.Format(formatMsg, formatArguments), []);
+  }
+
+  public void Warning(MessageSource source, ResolutionErrors.ErrorId errorId, IOrigin origin, string formatMsg) {
+    Warning(source, errorId.ToString(), origin, formatMsg);
   }
 }

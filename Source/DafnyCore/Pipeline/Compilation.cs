@@ -556,8 +556,10 @@ public class Compilation : IDisposable {
     result.CounterExamples.Sort(new CounterexampleComparer());
     foreach (var counterExample in result.CounterExamples) {
       var description = (ProofObligationDescription)counterExample.FailingAssert.Description;
-      if (options.Get(CommonOptionBag.JsonOutput) && description.GetDiagnostic(TODO) != null) {
-        errorReporter.MessageCore(description.GetDiagnostic(TODO));
+      var dafnyDiagnostic = description.GetDiagnostic(
+        BoogieGenerator.ToDafnyToken(counterExample.FailingAssert.tok).ReportingRange);
+      if (options.Get(CommonOptionBag.JsonOutput) && dafnyDiagnostic != null) {
+        errorReporter.MessageCore(dafnyDiagnostic);
       } else {
         var errorInformation = counterExample.CreateErrorInformation(outcome, options.ForceBplErrors);
         if (options.ShowProofObligationExpressions) {

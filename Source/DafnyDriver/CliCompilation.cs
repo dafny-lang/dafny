@@ -156,7 +156,7 @@ public class CliCompilation {
   public async IAsyncEnumerable<CanVerifyResult> VerifyAllLazily(int? randomSeed = null) {
     if (!Options.Get(CommonOptionBag.UnicodeCharacters) && Options.Backend is not CppBackend) {
       Compilation.Reporter.Deprecated(MessageSource.Verifier, "unicodeCharDeprecated", Token.Cli,
-        ["the option unicode-char has been deprecated."]);
+        "the option unicode-char has been deprecated.");
     }
 
     var canVerifyResults = new Dictionary<ICanVerify, CliCanVerifyState>();

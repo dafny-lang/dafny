@@ -110,7 +110,7 @@ public class Auditor : IRewriter {
     var assembly = System.Reflection.Assembly.GetCallingAssembly();
     var templateStream = assembly.GetManifestResourceStream("audit_template.html");
     if (templateStream is null) {
-      Reporter.Warning(MessageSource.Verifier, "Verbatim", Token.NoToken, ["Embedded HTML template not found. Returning raw HTML."]);
+      Reporter.Warning(MessageSource.Verifier, "Verbatim", Token.NoToken, "Embedded HTML template not found. Returning raw HTML.");
       return table;
     }
     var templateText = new StreamReader(templateStream).ReadToEnd();
@@ -123,7 +123,7 @@ public class Auditor : IRewriter {
     if (reportFileName is null && reportFormat is null) {
       foreach (var (_, assumptions) in report.AllAssumptions()) {
         foreach (var assumption in assumptions) {
-          Reporter.Warning(MessageSource.Verifier, "Verbatim", assumption.Tok, [assumption.Warning()]);
+          Reporter.Warning(MessageSource.Verifier, "Verbatim", assumption.Tok, assumption.Warning());
         }
       }
     } else {
