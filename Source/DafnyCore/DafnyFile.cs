@@ -150,8 +150,8 @@ public class DafnyFile {
     }
 
     if (!options.Get(DoNotVerifyDependencies) && asLibrary && warnLibrary) {
-      reporter.Warning(MessageSource.Project, "UnverifiedLibrary", origin, 
-        "The file '{0}' was passed to --library. Verification for that file might have used options incompatible with the current ones, or might have been skipped entirely. Use a .doo file to enable Dafny to check that compatible options were used", 
+      reporter.Warning(MessageSource.Project, "UnverifiedLibrary", origin,
+        "The file '{0}' was passed to --library. Verification for that file might have used options incompatible with the current ones, or might have been skipped entirely. Use a .doo file to enable Dafny to check that compatible options were used",
         options.GetPrintPath(filePath));
     }
 

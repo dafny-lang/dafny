@@ -914,8 +914,8 @@ public class Terminates : ProofObligationDescription {
     return null;
   }
 
-  public Terminates(bool inferredDescreases, List<VarDeclStmt> prevGhostLocals, 
-    Expression allowance, List<Expression> oldExpressions, List<Expression> newExpressions, 
+  public Terminates(bool inferredDescreases, List<VarDeclStmt> prevGhostLocals,
+    Expression allowance, List<Expression> oldExpressions, List<Expression> newExpressions,
     bool allowNoChange, string hint = null) {
     this.inferredDescreases = inferredDescreases;
     this.prevGhostLocals = prevGhostLocals;

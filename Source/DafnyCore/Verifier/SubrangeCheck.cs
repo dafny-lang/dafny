@@ -5,8 +5,8 @@ namespace Microsoft.Dafny;
 public class SubrangeCheck : ProofObligationDescription {
   public override DafnyDiagnostic GetDiagnostic(TokenRange range) {
     if (!isSubset && !isCertain) {
-      return new DafnyDiagnostic(MessageSource.Verifier, "NotInstanceOfType", range, 
-        "value of expression (of type '{0}') is not known to be an instance of type '{1}'", 
+      return new DafnyDiagnostic(MessageSource.Verifier, "NotInstanceOfType", range,
+        "value of expression (of type '{0}') is not known to be an instance of type '{1}'",
         [sourceType, targetType],
         ErrorLevel.Error, []);
     }

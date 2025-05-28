@@ -74,14 +74,14 @@ public class AssignSuchThatStmt : ConcreteAssignStatement, ICloneable<AssignSuch
     Contract.Requires(resolutionContext != null);
 
     if (!resolutionContext.IsGhost && resolver.Options.ForbidNondeterminism) {
-      resolver.Reporter.Error(MessageSource.Resolver, GeneratorErrors.ErrorId.c_assign_such_that_forbidden, Origin, 
+      resolver.Reporter.Error(MessageSource.Resolver, GeneratorErrors.ErrorId.c_assign_such_that_forbidden, Origin,
         "assign-such-that statement forbidden by the --enforce-determinism option");
     }
     base.GenResolve(resolver, resolutionContext);
 
     if (AssumeToken != null) {
       if (!resolver.Options.Get(CommonOptionBag.AllowAxioms) && !AssumeToken.IsExplicitAxiom()) {
-        resolver.Reporter.Warning(MessageSource.Resolver, "", AssumeToken.Token, 
+        resolver.Reporter.Warning(MessageSource.Resolver, "", AssumeToken.Token,
           "assume keyword in assign-such-that statement has no {:axiom} annotation");
       }
 
@@ -119,7 +119,7 @@ public class AssignSuchThatStmt : ConcreteAssignStatement, ICloneable<AssignSuch
       foreach (var lhs in Lhss) {
         var gk = SingleAssignStmt.LhsIsToGhost_Which(lhs);
         if (gk != SingleAssignStmt.NonGhostKind.IsGhost) {
-          reporter.Error(MessageSource.Resolver, ResolutionErrors.ErrorId.r_no_assign_to_var_in_ghost, lhs, 
+          reporter.Error(MessageSource.Resolver, ResolutionErrors.ErrorId.r_no_assign_to_var_in_ghost, lhs,
             "cannot assign to {0} in a ghost context", [SingleAssignStmt.NonGhostKind_To_String(gk)]);
         }
       }
@@ -127,7 +127,7 @@ public class AssignSuchThatStmt : ConcreteAssignStatement, ICloneable<AssignSuch
       foreach (var lhs in Lhss) {
         var gk = SingleAssignStmt.LhsIsToGhost_Which(lhs);
         if (gk != SingleAssignStmt.NonGhostKind.IsGhost) {
-          reporter.Error(MessageSource.Resolver, ResolutionErrors.ErrorId.r_no_assign_ghost_to_var, lhs, 
+          reporter.Error(MessageSource.Resolver, ResolutionErrors.ErrorId.r_no_assign_ghost_to_var, lhs,
             "{0} cannot be assigned a value that depends on a ghost", [SingleAssignStmt.NonGhostKind_To_String(gk)]);
         }
       }
