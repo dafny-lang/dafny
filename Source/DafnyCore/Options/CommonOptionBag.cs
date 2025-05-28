@@ -14,6 +14,11 @@ public class CommonOptionBag {
 
   public static void EnsureStaticConstructorHasRun() { }
 
+  public static readonly Option<bool> CheckSourceLocationConsistency =
+    new("--check-source-location-consistency", "Check that parent nodes contain their children") {
+      IsHidden = true
+    };
+
   public enum ProgressLevel { None, Symbol, Batch }
   public static readonly Option<ProgressLevel> ProgressOption =
     new("--progress", $"While verifying, output information that helps track progress. " +
@@ -113,6 +118,7 @@ The `text` format also includes a more detailed breakdown of what assertions app
   public static readonly Option<bool> JsonDiagnostics = new("--json-diagnostics", @"Deprecated. Return diagnostics in a JSON format.") {
     IsHidden = true
   };
+  public static readonly Option<bool> JsonOutput = new("--json-output", @"Return output in a JSON format.");
 
   public static readonly Option<IList<FileInfo>> Libraries = new("--library",
     @"
@@ -658,6 +664,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
     OptionRegistry.RegisterOption(Prelude, OptionScope.Cli);
     OptionRegistry.RegisterOption(Target, OptionScope.Cli);
     OptionRegistry.RegisterOption(Verbose, OptionScope.Cli);
+    OptionRegistry.RegisterOption(JsonOutput, OptionScope.Cli);
     OptionRegistry.RegisterOption(JsonDiagnostics, OptionScope.Cli);
     OptionRegistry.RegisterOption(QuantifierSyntax, OptionScope.Module);
     OptionRegistry.RegisterOption(SpillTranslation, OptionScope.Cli);
@@ -695,6 +702,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
     OptionRegistry.RegisterOption(PrintDiagnosticsRanges, OptionScope.Cli);
     OptionRegistry.RegisterOption(WaitForDebugger, OptionScope.Cli);
     OptionRegistry.RegisterOption(IgnoreIndentation, OptionScope.Cli);
+    OptionRegistry.RegisterOption(CheckSourceLocationConsistency, OptionScope.Cli);
   }
 }
 

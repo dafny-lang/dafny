@@ -31,3 +31,4 @@ Binaries/dafny-server text eol=lf
 *.jpg binary
 *.xcf binary
 *.snk binary
+*.doo binary merge=keepMine

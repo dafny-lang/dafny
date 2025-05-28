@@ -52,24 +52,22 @@ public class GoBackend : ExecutableBackend {
     return new GoCodeGenerator(Options, Reporter);
   }
 
-  public override async Task<bool> OnPostGenerate(string dafnyProgramName, string targetDirectory, TextWriter outputWriter) {
+  public override async Task<bool> OnPostGenerate(string dafnyProgramName, string targetDirectory, IDafnyOutputWriter outputWriter) {
     return await base.OnPostGenerate(dafnyProgramName, targetDirectory, outputWriter) && await OptimizeImports(targetDirectory, outputWriter);
   }
 
-  private async Task<bool> OptimizeImports(string targetFilename, TextWriter outputWriter) {
+  private async Task<bool> OptimizeImports(string targetFilename, IDafnyOutputWriter outputWriter) {
     var goArgs = new List<string> {
       "-w",
       targetFilename
     };
 
     var writer = new StringWriter();
-
     var psi = PrepareProcessStartInfo("goimports", goArgs);
 
     var result = await RunProcess(psi, writer, writer);
     if (result != 0) {
-      await outputWriter.WriteLineAsync("Error occurred while invoking goimports:");
-      await outputWriter.WriteAsync(writer.ToString());
+      await outputWriter.Status("Error occurred while invoking goimports:" + writer);
     }
     return 0 == result;
   }
@@ -78,7 +76,7 @@ public class GoBackend : ExecutableBackend {
     string targetProgramText,
     string callToMain, /*?*/
     string targetFilename /*?*/, ReadOnlyCollection<string> otherFileNames,
-    bool runAfterCompile, TextWriter outputWriter) {
+    bool runAfterCompile, IDafnyOutputWriter outputWriter) {
     if (runAfterCompile) {
       Contract.Assert(callToMain != null);  // this is part of the contract of CompileTargetProgram
       // Since the program is to be run soon, nothing further is done here. Any compilation errors (that is, any errors
@@ -88,30 +86,29 @@ public class GoBackend : ExecutableBackend {
     } else {
       // compile now
       return (await SendToNewGoProcess(dafnyProgramName, targetFilename, otherFileNames,
-        outputWriter, outputWriter, callToMain != null, run: false), null);
+        outputWriter, callToMain != null, run: false), null);
     }
   }
 
   public override Task<bool> RunTargetProgram(string dafnyProgramName, string targetProgramText,
     string callToMain, /*?*/
     string targetFilename, ReadOnlyCollection<string> otherFileNames,
-    object compilationResult, TextWriter outputWriter, TextWriter errorWriter) {
+    object compilationResult, IDafnyOutputWriter outputWriter) {
 
-    return SendToNewGoProcess(dafnyProgramName, targetFilename, otherFileNames, outputWriter, errorWriter, hasMain: true, run: true);
+    return SendToNewGoProcess(dafnyProgramName, targetFilename, otherFileNames, outputWriter, hasMain: true, run: true);
   }
 
   private async Task<bool> SendToNewGoProcess(string dafnyProgramName, string targetFilename,
     ReadOnlyCollection<string> otherFileNames,
-    TextWriter outputWriter, TextWriter errorWriter, bool hasMain, bool run) {
-    Contract.Requires(targetFilename != null);
+    IDafnyOutputWriter outputWriter, bool hasMain, bool run) {
 
     foreach (var otherFileName in otherFileNames) {
       if (Path.GetExtension(otherFileName) != ".go") {
-        await outputWriter.WriteLineAsync($"Unrecognized file as extra input for Go compilation: {otherFileName}");
+        await outputWriter.Status($"Unrecognized file as extra input for Go compilation: {otherFileName}");
         return false;
       }
 
-      if (!CopyExternLibraryIntoPlace(mainProgram: targetFilename, externFilename: otherFileName, outputWriter: outputWriter)) {
+      if (!await CopyExternLibraryIntoPlace(mainProgram: targetFilename, externFilename: otherFileName, outputWriter: outputWriter)) {
         return false;
       }
     }
@@ -176,7 +173,9 @@ public class GoBackend : ExecutableBackend {
     psi.EnvironmentVariables["GOPATH"] = GoPath(targetFilename);
     psi.EnvironmentVariables["GO111MODULE"] = "auto";
 
-    return 0 == await RunProcess(psi, outputWriter, errorWriter);
+    await using var sw = outputWriter.StatusWriter();
+    await using var ew = outputWriter.ErrorWriter();
+    return 0 == await RunProcess(psi, sw, ew);
   }
 
   static string GoPath(string filename) {
@@ -188,16 +187,16 @@ public class GoBackend : ExecutableBackend {
     return Path.GetFullPath(dirName);
   }
 
-  bool CopyExternLibraryIntoPlace(string externFilename, string mainProgram, TextWriter outputWriter) {
+  async Task<bool> CopyExternLibraryIntoPlace(string externFilename, string mainProgram, IDafnyOutputWriter outputWriter) {
     // Grossly, we need to look in the file to figure out where to put it
     var pkgName = FindPackageName(externFilename);
     if (pkgName == null) {
-      outputWriter.WriteLine("Unable to determine package name: {0}", externFilename);
+      await outputWriter.Status($"Unable to determine package name: {externFilename}");
       return false;
     }
     if (pkgName.StartsWith("_")) {
       // Check this here because otherwise Go acts like the package simply doesn't exist, which is confusing
-      outputWriter.WriteLine("Go packages can't start with underscores: {0}", pkgName);
+      await outputWriter.Status($"Go packages can't start with underscores: {pkgName}");
       return false;
     }
 
@@ -219,7 +218,7 @@ public class GoBackend : ExecutableBackend {
       relTgtFilename = tgtFilename;
     }
     if (Options.Verbose) {
-      outputWriter.WriteLine("Additional input {0} copied to {1}", externFilename, relTgtFilename);
+      await outputWriter.Status($"Additional input {externFilename} copied to {relTgtFilename}");
     }
     return true;
   }
