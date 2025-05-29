@@ -1,23 +1,22 @@
 using System.Collections.Generic;
 using JetBrains.Annotations;
+using Microsoft.Extensions.FileSystemGlobbing.Internal.PathSegments;
 
 namespace Microsoft.Dafny;
 
 public class ReadFrameSubset : ProofObligationDescription {
   public override DafnyDiagnostic GetDiagnostic(TokenRange range) {
-    var (formatMsg, arguments) = GetDeets();
-    return new DafnyDiagnostic(MessageSource.Verifier, "", range, formatMsg, arguments.ToArray(), ErrorLevel.Error, []);
+    return new DafnyDiagnostic(MessageSource.Verifier, "", range, GetMessageParts(),  ErrorLevel.Error, []);
   }
 
-  (string FormatMsg, List<object> Arguments) GetDeets() {
-    var arguments = new List<object>() { whatKind };
+  List<string> GetMessageParts() {
     var message = "insufficient reads clause to {0}";
+    var parts = new List<string>() { message, whatKind };
     if (readExpression is null) {
-      return (message, arguments);
+      return parts;
     }
     if (scope is { Designator: var designator }) {
       var lambdaScope = scope as LambdaExpr;
-      var extraHint = "";
       var obj = "object";
       if (readExpression is MemberSelectExpr e) {
         obj = Printer.ExprToString(DafnyOptions.DefaultImmutableOptions, e.Obj, new PrintFlags(UseOriginalDafnyNames: true));
@@ -30,19 +29,24 @@ public class ReadFrameSubset : ProofObligationDescription {
 
       if (scope is Function { CoClusterTarget: var x } && x != Function.CoCallClusterInvolvement.None) {
       } else {
-        arguments.Add(obj);
-        arguments.Add(designator);
-        arguments.Add(readExpression.ToString());
-        if (lambdaScope == null && readExpression is MemberSelectExpr { MemberName: var field }) {
-          arguments.Add(field);
-          extraHint = " or 'reads {1}`{4}'";
-        }
-        var hint = "adding 'reads {1}'" + extraHint + " in the enclosing {2} specification for resolution";
+        parts.Add("; Consider {0}");
+        
         if (lambdaScope != null && lambdaScope.Reads.Expressions!.Count == 0) {
-          hint = "extracting {3} to a local variable before the lambda expression, or " + hint;
+          parts.Add("extracting {0} to a local variable before the lambda expression, or {1}");
+          parts.Add(readExpression.ToString());
         }
-
-        return (message + $"; Consider {hint}", arguments);
+        
+        parts.Add("adding 'reads {0}'{1} in the enclosing {2} specification for resolution");
+        parts.Add(obj);
+        if (lambdaScope == null && readExpression is MemberSelectExpr { MemberName: var field }) {
+          parts.Add(" or 'reads {0}`{1}'");
+          parts.Add(obj);
+          parts.Add(field);
+        } else {
+          parts.Add("");
+        }
+        parts.Add(designator);
+        return parts;
       }
     }
 
@@ -54,14 +58,15 @@ public class ReadFrameSubset : ProofObligationDescription {
       whyNotWhat = "Array elements";
     }
 
-    arguments.Add(whyNotWhat);
-    return (message + "; {1} cannot be accessed within certain scopes, such as default values, the right-hand side of constants, or co-recursive calls", arguments);
+    parts.Add("; {0} cannot be accessed within certain scopes, such as default values, the right-hand side of constants, or co-recursive calls");
+    parts.Add(whyNotWhat);
+    return parts;
   }
 
   public override string SuccessDescription =>
     $"sufficient reads clause to {whatKind}";
 
-  public override string FailureDescription => GetDiagnostic(null).Message;
+  public override string FailureDescription => DafnyDiagnostic.MessageFromParts(GetMessageParts());
 
   public override string ShortDescription => "read frame subset";
 

@@ -158,7 +158,7 @@ public abstract class ExtendedPattern : NodeWithOrigin {
           // else applied to the wrong number of arguments
           resolver.reporter.Error(MessageSource.Resolver, "ConstructorWrongArity", idpat.Origin,
             "constructor {0} of arity {2} is applied to {1} argument(s)",
-            [idpat.Id, (idpat.Arguments?.Count ?? 0).ToString(), ctor.Formals.Count.ToString()]);
+            idpat.Id, (idpat.Arguments?.Count ?? 0).ToString(), ctor.Formals.Count.ToString());
         }
       } else {
         /* =[4]= */

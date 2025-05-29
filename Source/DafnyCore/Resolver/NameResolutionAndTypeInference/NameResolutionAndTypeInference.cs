@@ -1216,9 +1216,9 @@ namespace Microsoft.Dafny {
         var r = allTypeParameters.Push(tp.Name, tp);
         if (emitErrors) {
           if (r == Scope<TypeParameter>.PushResult.Duplicate) {
-            reporter.Error(MessageSource.Resolver, ParseErrors.ErrorId.none, tp, "Duplicate type-parameter name: {0}", [tp.Name]);
+            reporter.Error(MessageSource.Resolver, ParseErrors.ErrorId.none, tp, "Duplicate type-parameter name: {0}", tp.Name);
           } else if (r == Scope<TypeParameter>.PushResult.Shadow) {
-            reporter.Warning(MessageSource.Resolver, ParseErrors.ErrorId.none, tp.Origin, "Shadowed type-parameter name: {0}", [tp.Name]);
+            reporter.Warning(MessageSource.Resolver, ParseErrors.ErrorId.none, tp.Origin, "Shadowed type-parameter name: {0}", tp.Name);
           }
         }
       }

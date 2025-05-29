@@ -5,11 +5,24 @@ using System.Resources;
 
 namespace Microsoft.Dafny;
 
-public record DafnyDiagnostic(MessageSource Source, string ErrorId, TokenRange Range, string FormatMsg, object[] Arguments, ErrorLevel Level,
+public record DafnyDiagnostic(MessageSource Source, string ErrorId, TokenRange Range, IReadOnlyList<string> MessageParts, ErrorLevel Level,
   IReadOnlyList<DafnyRelatedInformation> RelatedInformation) : IComparable<DafnyDiagnostic> {
 
-  public string Message => Arguments.Length == 0 ? FormatMsg : string.Format(FormatMsg, Arguments);
+  public string Message => MessageFromParts(MessageParts);
 
+  public static string ResolveMessageIds(IEnumerable<string> messageParts) {
+    throw new Exception();
+    
+  }
+  
+  public static string MessageFromParts(IEnumerable<string> messageParts) {
+    throw new Exception();
+  }
+
+  private int CountArgumentsOfFormatMessage(string formatMessage) {
+    throw new Exception();
+  }
+  
   public int CompareTo(DafnyDiagnostic? other) {
     if (other == null) {
       return 1;

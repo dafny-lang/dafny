@@ -15,8 +15,8 @@ namespace Microsoft.Dafny {
     Project, Parser, Cloner, RefinementTransformer, Rewriter, Resolver, Translator, Verifier, Compiler, Documentation, TestGeneration
   }
 
-  public record DafnyRelatedInformation(TokenRange Range, string ErrorId, string FormatMsg, object[] Arguments) {
-    public string Message => Arguments.Length == 0 ? FormatMsg : string.Format(FormatMsg, Arguments);
+  public record DafnyRelatedInformation(TokenRange Range, string ErrorId, IReadOnlyList<string> MessageParts) {
+    public string Message => DafnyDiagnostic.MessageFromParts(MessageParts);
   }
 
   public class ErrorReporterSink(DafnyOptions options) : ErrorReporter(options) {
@@ -24,7 +24,7 @@ namespace Microsoft.Dafny {
       return false;
     }
 
-    public override void Error(MessageSource source, string errorId, IOrigin tok, string formatMsg, object[] arguments) {
+    public override void Error(MessageSource source, string errorId, IOrigin tok, params object[] messageParts) {
     }
 
     public override int Count(ErrorLevel level) {

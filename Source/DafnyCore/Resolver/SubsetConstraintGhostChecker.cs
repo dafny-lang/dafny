@@ -96,12 +96,12 @@ public class SubsetConstraintGhostChecker : ProgramTraverser {
           new CodeContextWrapper(declWithConstraints, true));
         if (errorCollector.Collected) {
           relatedInformation.Add(new DafnyRelatedInformation(errorCollector.FirstCollectedDiagnostic.Range,
-            errorCollector.FirstCollectedDiagnostic.ErrorId, errorCollector.FirstCollectedDiagnostic.FormatMsg, errorCollector.FirstCollectedDiagnostic.Arguments));
+            errorCollector.FirstCollectedDiagnostic.ErrorId, errorCollector.FirstCollectedDiagnostic.MessageParts));
         }
       }
       reporter.MessageCore(new DafnyDiagnostic(MessageSource.Resolver, "ConstraintIsNotCompilable",
-        boundVar.ReportingRange, "{0} is a {1} and its constraint is not compilable, hence it cannot yet be used as the type of a bound variable in {2}.",
-        [boundVar.Type.ToString(), declWithConstraints.WhatKind, e.WhatKind],
+        boundVar.ReportingRange, ["{0} is a {1} and its constraint is not compilable, hence it cannot yet be used as the type of a bound variable in {2}.",
+        boundVar.Type.ToString(), declWithConstraints.WhatKind, e.WhatKind],
         ErrorLevel.Error, relatedInformation));
     }
     return base.Traverse(e, field, parent);

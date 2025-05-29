@@ -120,7 +120,7 @@ public class AssignSuchThatStmt : ConcreteAssignStatement, ICloneable<AssignSuch
         var gk = SingleAssignStmt.LhsIsToGhost_Which(lhs);
         if (gk != SingleAssignStmt.NonGhostKind.IsGhost) {
           reporter.Error(MessageSource.Resolver, ResolutionErrors.ErrorId.r_no_assign_to_var_in_ghost, lhs,
-            "cannot assign to {0} in a ghost context", [SingleAssignStmt.NonGhostKind_To_String(gk)]);
+            "cannot assign to {0} in a ghost context", SingleAssignStmt.NonGhostKind_To_String(gk));
         }
       }
     } else if (!mustBeErasable && AssumeToken == null && ExpressionTester.UsesSpecFeatures(Expr)) {
@@ -128,7 +128,7 @@ public class AssignSuchThatStmt : ConcreteAssignStatement, ICloneable<AssignSuch
         var gk = SingleAssignStmt.LhsIsToGhost_Which(lhs);
         if (gk != SingleAssignStmt.NonGhostKind.IsGhost) {
           reporter.Error(MessageSource.Resolver, ResolutionErrors.ErrorId.r_no_assign_ghost_to_var, lhs,
-            "{0} cannot be assigned a value that depends on a ghost", [SingleAssignStmt.NonGhostKind_To_String(gk)]);
+            "{0} cannot be assigned a value that depends on a ghost", SingleAssignStmt.NonGhostKind_To_String(gk));
         }
       }
     }
