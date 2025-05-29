@@ -1,7 +1,11 @@
 #nullable enable
 using System;
 using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using System.Reflection;
 using System.Resources;
+using System.Text.RegularExpressions;
 
 namespace Microsoft.Dafny;
 
@@ -10,17 +14,44 @@ public record DafnyDiagnostic(MessageSource Source, string ErrorId, TokenRange R
 
   public string Message => MessageFromParts(MessageParts);
 
-  public static string ResolveMessageIds(IEnumerable<string> messageParts) {
-    throw new Exception();
-    
-  }
-  
-  public static string MessageFromParts(IEnumerable<string> messageParts) {
-    throw new Exception();
+  private static readonly IDictionary<string, string> MessageIdToMessage = new Dictionary<string, string>();
+
+  static DafnyDiagnostic() {
+    var assembly = Assembly.GetExecutingAssembly();
+    using Stream stream = assembly.GetManifestResourceStream("messages.txt")!;
+    using StreamReader reader = new StreamReader(stream);
+    while (true) {
+      var line = reader.ReadLine();
+      if (line == null) {
+        break;
+      }
+      var split = line.Split("=");
+      MessageIdToMessage.Add(split[0], split[1]);
+    }
   }
 
-  private int CountArgumentsOfFormatMessage(string formatMessage) {
-    throw new Exception();
+  public static string[] ResolveMessageIds(IEnumerable<string> messageParts) {
+    return messageParts.Where(s => s.StartsWith('$')).Select(s => MessageIdToMessage[s]).ToArray();
+  }
+  
+  public static string MessageFromParts(IReadOnlyList<string> messageParts) {
+    var stack = new Stack<string>(messageParts);
+    string MessageFromStack() {
+      var current = stack.Pop();
+      var resolved = current.StartsWith('$') ? MessageIdToMessage[current] : current;
+      var argumentCount = CountArgumentsOfFormatMessage(resolved);
+      var arguments = new object[argumentCount];
+      for (int index = 0; index < argumentCount; index++) {
+        arguments[index] = MessageFromStack();
+      }
+
+      return string.Format(resolved, arguments);
+    }
+    return MessageFromStack();
+  }
+
+  private static int CountArgumentsOfFormatMessage(string formatMessage) {
+    return Regex.Matches(formatMessage, @"\{\d+\}").Count;
   }
   
   public int CompareTo(DafnyDiagnostic? other) {

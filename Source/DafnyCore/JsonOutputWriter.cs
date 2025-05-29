@@ -108,7 +108,7 @@ record DiagnosticMessageData(MessageSource Source, ErrorLevel Level, TokenRange 
         ["location"] = SerializeToken(options, range),
         ["messageParts"] = new JsonArray(messageParts.Select(o => (JsonNode)JsonValue.Create(o)).ToArray()),
         ["errorId"] = errorId,
-        ["messageIdDefaults"] = DafnyDiagnostic.ResolveMessageIds(messageParts),
+        ["messageIdDefaults"] = new JsonArray(DafnyDiagnostic.ResolveMessageIds(messageParts).Select(o => (JsonNode)JsonValue.Create(o)).ToArray()),
       };
     }
 
