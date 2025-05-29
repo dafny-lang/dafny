@@ -49,6 +49,8 @@
     <EmbeddedResource Include="assets\audit_template.html">
       <LogicalName>audit_template.html</LogicalName>
     </EmbeddedResource>
+    <None Remove="assets\messages.txt" />
+    <EmbeddedResource Include="assets\messages.txt" />
   </ItemGroup>
 
   <ItemGroup>

@@ -1,5 +1,7 @@
-text.dfy(7,20): Error: Raised while checking export set BadSpec: integer literal used as if it had type T
+text.dfy(7,20): Error: integer literal used as if it had type T
+text.dfy(4,9): Related location: raised while checking export set BadSpec
 text.dfy(4,9): Error: This export set is not consistent: BadSpec
-text.dfy(7,16): Error: Raised while checking export set BadSpec2: Type or type parameter is not declared in this scope: T (did you forget to qualify a name or declare a module import 'opened'?) (note that names in outer modules are not visible in contained modules)
+text.dfy(7,16): Error: Type or type parameter is not declared in this scope: T (did you forget to qualify a name or declare a module import 'opened'?) (note that names in outer modules are not visible in contained modules)
+text.dfy(5,9): Related location: raised while checking export set BadSpec2
 text.dfy(5,9): Error: This export set is not consistent: BadSpec2
 4 resolution/type errors detected in text.dfy

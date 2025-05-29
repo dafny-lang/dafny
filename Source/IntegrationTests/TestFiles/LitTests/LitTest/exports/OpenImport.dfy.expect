@@ -1,5 +1,7 @@
-OpenImport.dfy(25,22): Error: Raised while checking export set Body: Type or type parameter is not declared in this scope: T (did you forget to qualify a name or declare a module import 'opened'?) (note that names in outer modules are not visible in contained modules)
-OpenImport.dfy(26,22): Error: Raised while checking export set Body: Type or type parameter is not declared in this scope: A (did you forget to qualify a name or declare a module import 'opened'?) (note that names in outer modules are not visible in contained modules)
+OpenImport.dfy(25,22): Error: Type or type parameter is not declared in this scope: T (did you forget to qualify a name or declare a module import 'opened'?) (note that names in outer modules are not visible in contained modules)
+OpenImport.dfy(24,9): Related location: raised while checking export set Body
+OpenImport.dfy(26,22): Error: Type or type parameter is not declared in this scope: A (did you forget to qualify a name or declare a module import 'opened'?) (note that names in outer modules are not visible in contained modules)
+OpenImport.dfy(24,9): Related location: raised while checking export set Body
 OpenImport.dfy(24,9): Error: This export set is not consistent: Body
 OpenImport.dfy(33,32): Error: unresolved identifier: f
 OpenImport.dfy(35,28): Error: unresolved identifier: f

@@ -440,7 +440,7 @@ public abstract class MethodOrConstructor : MethodOrFunction, TypeParameter.Pare
       ref autoRevealDepsVal, new HashSet<Attributes.MatchingValueOption> {
         Attributes.MatchingValueOption.Bool,
         Attributes.MatchingValueOption.Int
-      }, s => reporter.Error(MessageSource.Rewriter, ErrorLevel.Error, Origin, s));
+      }, s => reporter.Message(MessageSource.Rewriter, ErrorLevel.Error, Origin, s));
 
     // Default behavior is reveal all dependencies
     int autoRevealDepth = int.MaxValue;

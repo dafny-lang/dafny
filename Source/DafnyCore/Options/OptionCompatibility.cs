@@ -69,8 +69,9 @@ public class OptionCompatibility {
       return true;
     }
 
-    reporter.Message(MessageSource.Project, severity, "", origin,
-      $"{prefix}: --{option.Name} is set locally to {OptionValueToString(option, localValue)}, but the library was built with {OptionValueToString(option, libraryValue)}");
+    reporter.Message(MessageSource.Project, severity, "LibraryImpliesLocalOption", origin,
+      "{0}: --{1} is set locally to {2}, but the library was built with {3}",
+      prefix, option.Name, OptionValueToString(option, localValue), OptionValueToString(option, libraryValue));
     return false;
   }
 

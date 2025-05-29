@@ -3,7 +3,8 @@ GeneralTraits.dfy(25,26): Error: codatatype is not allowed to extend 'Parent', b
 GeneralTraits.dfy(26,27): Error: abstract type is not allowed to extend 'Parent', because it is a reference type
 GeneralTraits.dfy(27,24): Error: newtype is not allowed to extend 'Parent', because it is a reference type
 GeneralTraits.dfy(28,35): Error: newtype is not allowed to extend 'Parent', because it is a reference type
-GeneralTraits.dfy(56,36): Error: Raised while checking export set ProvideThem: a abstract type can only extend traits (found 'Trait')
+GeneralTraits.dfy(56,36): Error: a abstract type can only extend traits (found 'Trait')
+GeneralTraits.dfy(37,9): Related location: raised while checking export set ProvideThem
 GeneralTraits.dfy(37,9): Error: This export set is not consistent: ProvideThem
 GeneralTraits.dfy(70,11): Error: arguments must have comparable types (got object and MyInt)
 GeneralTraits.dfy(71,11): Error: arguments must have comparable types (got TraitC and MyInt)

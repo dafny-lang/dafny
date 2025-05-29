@@ -50,7 +50,7 @@ class JsonOutputWriter(DafnyOptions options) : IDafnyOutputWriter {
 
   public void WriteDiagnostic(DafnyDiagnostic dafnyDiagnostic) {
     var data = new DiagnosticMessageData(dafnyDiagnostic.Source, dafnyDiagnostic.Level, dafnyDiagnostic.Range,
-      dafnyDiagnostic.Level == ErrorLevel.Error ? "Error" : null, dafnyDiagnostic.Message,
+      dafnyDiagnostic.Level == ErrorLevel.Error ? "Error" : null, dafnyDiagnostic.ErrorId, dafnyDiagnostic.MessageParts,
       dafnyDiagnostic.RelatedInformation);
     var jsonString = data.ToJsonMessage(options).ToJsonString(new JsonSerializerOptions { WriteIndented = false });
     options.BaseOutputWriter.WriteLine(jsonString);
@@ -61,8 +61,9 @@ class JsonOutputWriter(DafnyOptions options) : IDafnyOutputWriter {
   }
 }
 
-record DiagnosticMessageData(MessageSource Source, ErrorLevel Level, TokenRange Range, string? Category, string Message,
+record DiagnosticMessageData(MessageSource Source, ErrorLevel Level, TokenRange Range, string? Category, string ErrorId, IReadOnlyList<string> MessageParts,
   IReadOnlyList<DafnyRelatedInformation> Related) {
+
   private static JsonObject SerializePosition(Boogie.IToken tok, bool includeLength) {
     var addition = includeLength ? tok.val.Length : 0;
     return new JsonObject {
@@ -101,27 +102,56 @@ record DiagnosticMessageData(MessageSource Source, ErrorLevel Level, TokenRange 
     return category == null ? message : $"{category}: {message}";
   }
 
-  private static JsonObject SerializeRelated(DafnyOptions options, TokenRange range, string message) {
+  private static JsonObject SerializeRelated(DafnyOptions options, TokenRange range, string errorId, IReadOnlyList<string> messageParts) {
+    if (options.Get(CommonOptionBag.JsonOutput)) {
+      return new JsonObject {
+        ["location"] = SerializeToken(options, range),
+        ["messageParts"] = new JsonArray(messageParts.Select(o => (JsonNode)JsonValue.Create(o)).ToArray()),
+        ["errorId"] = errorId,
+        ["messageIdDefaults"] = new JsonArray(DafnyDiagnostic.ResolveMessageIds(messageParts).Select(o => (JsonNode)JsonValue.Create(o)).ToArray()),
+      };
+    }
+
+    // Backwards compatibility case. Can be removed with the option --json-diagnostics
     return new JsonObject {
       ["location"] = SerializeToken(options, range),
-      ["message"] = message,
+      ["message"] = DafnyDiagnostic.MessageFromParts(messageParts),
     };
   }
 
   public JsonNode ToJson(DafnyOptions options) {
     var auxRelated = Related.Select<DafnyRelatedInformation, JsonNode>(aux =>
-      SerializeRelated(options, aux.Range, aux.Message));
+      SerializeRelated(options, aux.Range, aux.ErrorId, aux.MessageParts));
+
+    if (options.Get(CommonOptionBag.JsonOutput)) {
+      return new JsonObject {
+        ["location"] = SerializeToken(options, Range),
+        ["severity"] = SerializeErrorLevel(Level),
+        ["messageParts"] = new JsonArray(MessageParts.Select(o => (JsonNode)JsonValue.Create(o)).ToArray()),
+        ["messageIdDefaults"] = new JsonArray(DafnyDiagnostic.ResolveMessageIds(MessageParts).
+          Select(o => (JsonNode)JsonValue.Create(o)).ToArray()),
+        ["errorId"] = ErrorId,
+        ["source"] = Source.ToString(),
+        ["relatedInformation"] = new JsonArray(auxRelated.ToArray())
+      };
+    }
+
+    // Backwards compatibility case. Can be removed with the option --json-diagnostics
     return new JsonObject {
       ["location"] = SerializeToken(options, Range),
       ["severity"] = SerializeErrorLevel(Level),
-      ["message"] = SerializeMessage(Category, Message),
+      ["message"] = SerializeMessage(Category, DafnyDiagnostic.MessageFromParts(MessageParts)),
       ["source"] = Source.ToString(),
       ["relatedInformation"] = new JsonArray(auxRelated.ToArray())
     };
   }
 
+  public void WriteJsonTo(DafnyOptions options, TextWriter wr) {
+    wr.WriteLine(ToJson(options).ToJsonString(new JsonSerializerOptions { WriteIndented = false }));
+  }
+
   public JsonNode ToJsonMessage(DafnyOptions options) {
-    return new JsonObject() {
+    return new JsonObject {
       ["type"] = "diagnostic",
       ["value"] = ToJson(options)
     };

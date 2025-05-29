@@ -4080,11 +4080,11 @@ namespace Microsoft.Dafny {
           canTestFunctionTypes ? dafnyCheck : null
         );
       } else {
+        var isSubset = targetType.NormalizeExpandKeepConstraints() is UserDefinedType {
+          ResolvedClass: SubsetTypeDecl or NewtypeDecl { Var: { } }
+        };
         desc = new SubrangeCheck(errorMessagePrefix, sourceType.ToString(), targetType.ToString(),
-          targetType.NormalizeExpandKeepConstraints() is UserDefinedType {
-            ResolvedClass: SubsetTypeDecl or NewtypeDecl { Var: { } }
-          },
-          false, null, dafnyCheck);
+          isSubset, false, null, dafnyCheck);
       }
       return cre;
     }

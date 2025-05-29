@@ -200,7 +200,7 @@ public class Errors {
   public void Warning(ErrorId errorId, IOrigin tok, string msg) {
     Contract.Requires(tok != null);
     Contract.Requires(msg != null);
-    Reporting.Warning(MessageSource.Parser, errorId, tok, msg);
+    Reporting.Warning(MessageSource.Parser, errorId.ToString(), tok, msg);
   }
 
 } // Errors

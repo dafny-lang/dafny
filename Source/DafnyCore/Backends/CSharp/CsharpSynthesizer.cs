@@ -179,7 +179,7 @@ public class CsharpSynthesizer {
 
     if (((Function)method).Ens.Count != 0) {
       codeGenerator.Reporter.Warning(MessageSource.Compiler,
-          GeneratorErrors.ErrorId.c_possibly_unsatisfied_postconditions, lastSynthesizedMethod.Origin,
+          GeneratorErrors.ErrorId.c_possibly_unsatisfied_postconditions.ToString(), lastSynthesizedMethod.Origin,
         "Post-conditions on function {0} might " +
         "be unsatisfied when synthesizing code " +
         "for method {1}",
@@ -224,7 +224,7 @@ public class CsharpSynthesizer {
       var field = ((MemberSelectExpr)exprDotName.Resolved).Member;
       var fieldName = field.GetCompileName(Options);
       codeGenerator.Reporter.Warning(MessageSource.Compiler,
-        GeneratorErrors.ErrorId.c_stubbing_fields_not_recommended, lastSynthesizedMethod.Origin,
+        GeneratorErrors.ErrorId.c_stubbing_fields_not_recommended.ToString(), lastSynthesizedMethod.Origin,
         "Stubbing fields is not recommended (field {0} of object {1} inside method {2})",
         fieldName, obj.Name, lastSynthesizedMethod.Name);
       var tmpId = codeGenerator.idGenerator.FreshId("tmp");

@@ -1,9 +1,7 @@
-using System;
 using System.Collections.Generic;
 using System.Linq;
 using DafnyCore.Verifier;
 using Microsoft.Boogie;
-using Microsoft.Dafny.Triggers;
 using VC;
 
 namespace Microsoft.Dafny;
