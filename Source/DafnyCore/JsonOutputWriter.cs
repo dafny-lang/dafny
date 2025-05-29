@@ -128,6 +128,8 @@ record DiagnosticMessageData(MessageSource Source, ErrorLevel Level, TokenRange 
         ["location"] = SerializeToken(options, Range),
         ["severity"] = SerializeErrorLevel(Level),
         ["messageParts"] = new JsonArray(MessageParts.Select(o => (JsonNode)JsonValue.Create(o)).ToArray()),
+        ["messageIdDefaults"] = new JsonArray(DafnyDiagnostic.ResolveMessageIds(MessageParts).
+          Select(o => (JsonNode)JsonValue.Create(o)).ToArray()),
         ["errorId"] = ErrorId,
         ["source"] = Source.ToString(),
         ["relatedInformation"] = new JsonArray(auxRelated.ToArray())

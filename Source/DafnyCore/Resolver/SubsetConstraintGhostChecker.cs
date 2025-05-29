@@ -101,7 +101,9 @@ public class SubsetConstraintGhostChecker : ProgramTraverser {
       }
       reporter.MessageCore(new DafnyDiagnostic(MessageSource.Resolver, "ConstraintIsNotCompilable",
         boundVar.ReportingRange, ["{0} is a {1} and its constraint is not compilable, hence it cannot yet be used as the type of a bound variable in {2}.",
-        boundVar.Type.ToString(), declWithConstraints.WhatKind, e.WhatKind],
+          boundVar.Type.ToString(),
+          declWithConstraints.WhatKind,
+          e.WhatKind],
         ErrorLevel.Error, relatedInformation));
     }
     return base.Traverse(e, field, parent);

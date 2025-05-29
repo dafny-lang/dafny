@@ -6,13 +6,14 @@ namespace Microsoft.Dafny;
 
 public class ReadFrameSubset : ProofObligationDescription {
   public override DafnyDiagnostic GetDiagnostic(TokenRange range) {
-    return new DafnyDiagnostic(MessageSource.Verifier, "", range, GetMessageParts(),  ErrorLevel.Error, []);
+    return new DafnyDiagnostic(MessageSource.Verifier, "", range, GetMessageParts(), ErrorLevel.Error, []);
   }
 
   List<string> GetMessageParts() {
-    var message = "insufficient reads clause to {0}";
+    var message = "insufficient reads clause to {0}{1}";
     var parts = new List<string>() { message, whatKind };
     if (readExpression is null) {
+      parts.Add("");
       return parts;
     }
     if (scope is { Designator: var designator }) {
@@ -30,12 +31,12 @@ public class ReadFrameSubset : ProofObligationDescription {
       if (scope is Function { CoClusterTarget: var x } && x != Function.CoCallClusterInvolvement.None) {
       } else {
         parts.Add("; Consider {0}");
-        
+
         if (lambdaScope != null && lambdaScope.Reads.Expressions!.Count == 0) {
           parts.Add("extracting {0} to a local variable before the lambda expression, or {1}");
           parts.Add(readExpression.ToString());
         }
-        
+
         parts.Add("adding 'reads {0}'{1} in the enclosing {2} specification for resolution");
         parts.Add(obj);
         if (lambdaScope == null && readExpression is MemberSelectExpr { MemberName: var field }) {

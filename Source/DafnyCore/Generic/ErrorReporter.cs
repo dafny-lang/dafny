@@ -67,7 +67,7 @@ public abstract class ErrorReporter(DafnyOptions options) {
     tok.Uri = uri;
     Error(source, errorId, tok, msg);
   }
-  
+
   public void Error(MessageSource source, Enum errorId, IOrigin tok, params string[] messageParts) {
     Contract.Requires(tok != null);
     Error(source, errorId.ToString(), tok, messageParts);

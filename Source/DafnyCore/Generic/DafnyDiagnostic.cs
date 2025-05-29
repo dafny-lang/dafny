@@ -21,8 +21,7 @@ public record DafnyDiagnostic(MessageSource Source, string ErrorId, TokenRange R
     InitializeMessageIdToMessage();
   }
 
-  private static void InitializeMessageIdToMessage()
-  {
+  private static void InitializeMessageIdToMessage() {
     var assembly = Assembly.GetExecutingAssembly();
     using Stream stream = assembly.GetManifestResourceStream("DafnyCore.assets.messages.txt")!;
     using StreamReader reader = new StreamReader(stream);
@@ -32,23 +31,23 @@ public record DafnyDiagnostic(MessageSource Source, string ErrorId, TokenRange R
         break;
       }
       var split = line.Split("=");
-      MessageIdToMessage.Add(split[0], split[1]);
+      MessageIdToMessage.Add("$" + split[0], split[1]);
     }
   }
 
   public static string[] ResolveMessageIds(IEnumerable<string> messageParts) {
     return messageParts.Where(IsMessageId).Select(s => MessageIdToMessage[s]).ToArray();
   }
-  
+
   public static string MessageFromParts(IReadOnlyList<string> messageParts) {
-    var stack = new Stack<string>(messageParts.Reversed());
+    var stack = new Queue<string>(messageParts);
     string MessageFromStack() {
-      var current = stack.Pop();
+      var current = stack.Dequeue();
       var resolved = IsMessageId(current) ? MessageIdToMessage[current] : current;
-      
+
       // Escape braces that don't contain just numbers
       var safeResolved = SafeFormat(resolved);
-      
+
       var argumentCount = CountArgumentsOfFormatMessage(safeResolved);
       var arguments = new object[argumentCount];
       for (int index = 0; index < argumentCount; index++) {
@@ -60,28 +59,25 @@ public record DafnyDiagnostic(MessageSource Source, string ErrorId, TokenRange R
     return MessageFromStack();
   }
 
-  private static string SafeFormat(string format)
-  {
+  private static string SafeFormat(string format) {
     // Replace { not followed by \d} with {{
     string escaped = Regex.Replace(format, @"\{(?!\d\})", "{{");
-    
+
     // Replace } not preceded by {\d with }}
     return Regex.Replace(escaped, @"(?<!\{\d)\}", "}}");
   }
-  private static bool IsNumericOnly(string text)
-  {
+  private static bool IsNumericOnly(string text) {
     return !string.IsNullOrEmpty(text) && text.All(char.IsDigit);
   }
 
-  private static bool IsMessageId(string current)
-  {
+  private static bool IsMessageId(string current) {
     return current.StartsWith('$');
   }
 
   private static int CountArgumentsOfFormatMessage(string formatMessage) {
     return Regex.Matches(formatMessage, @"\{\d+\}").Count;
   }
-  
+
   public int CompareTo(DafnyDiagnostic? other) {
     if (other == null) {
       return 1;
