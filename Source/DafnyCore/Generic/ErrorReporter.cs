@@ -81,29 +81,6 @@ public abstract class ErrorReporter {
     Error(source, errorId.ToString(), tok, formatMsg, arguments);
   }
 
-  public void Error(MessageSource source, string errorId, Declaration d, string formatMsg, object[] arguments) {
-    Contract.Requires(d != null);
-    Contract.Requires(errorId != null);
-    Error(source, errorId, d.Origin, formatMsg, arguments);
-  }
-
-  public void Error(MessageSource source, Enum errorId, Declaration d, string formatMsg, object[] arguments) {
-    Contract.Requires(d != null);
-    Error(source, errorId, d.Origin, formatMsg, arguments);
-  }
-
-  public void Error(MessageSource source, Enum errorId, Statement s, string formatMsg, object[] arguments) {
-    Contract.Requires(s != null);
-    Error(source, errorId, s.Origin, formatMsg, arguments);
-  }
-
-  public void Error(MessageSource source, Statement s, string format, params object[] args) {
-    Contract.Requires(s != null);
-    Contract.Requires(format != null);
-    Contract.Requires(args != null);
-    Error(source, null, s.Origin, string.Format(format, args));
-  }
-
   public void Error(MessageSource source, INode v, string format, params object[] args) {
     Contract.Requires(v != null);
     Contract.Requires(format != null);
@@ -119,13 +96,6 @@ public abstract class ErrorReporter {
   public void Error(MessageSource source, Enum errorId, Expression e, string formatMsg, object[] arguments) {
     Contract.Requires(e != null);
     Error(source, errorId, e.Origin, formatMsg, arguments);
-  }
-
-  public void Error(MessageSource source, Expression e, string format, params object[] args) {
-    Contract.Requires(e != null);
-    Contract.Requires(format != null);
-    Contract.Requires(args != null);
-    Error(source, null, e.Origin, string.Format(format, args));
   }
 
   public void Warning(MessageSource source, Enum errorId, IOrigin tok, string formatMsg, object[] arguments) {
@@ -149,13 +119,9 @@ public abstract class ErrorReporter {
     if (Options.DeprecationNoise != 0) {
       Warning(source, errorId, tok, Format(format, args), []);
     } else {
-      Info(source, errorId.ToString(), tok, format, args);
+      Contract.Requires(tok != null);
+      Message(source, ErrorLevel.Info, errorId.ToString(), tok, format, args);
     }
-  }
-
-  public void Info(MessageSource source, string errorId, IOrigin tok, string formatMsg, object[] arguments) {
-    Contract.Requires(tok != null);
-    Message(source, ErrorLevel.Info, errorId, tok, formatMsg, arguments);
   }
 
   public void Info(MessageSource source, IOrigin tok, string format) {
@@ -192,38 +158,22 @@ public abstract class ErrorReporter {
     Message(source, errorLevel, null, origin, formatMsg, []);
   }
 
-  //[Obsolete]
   public void Error(MessageSource source, object errorId, IOrigin origin, string formatMsg, params object[] formatArguments) {
     Message(source, ErrorLevel.Error, errorId.ToString(), origin, string.Format(formatMsg, formatArguments), []);
   }
 
-  //[Obsolete]
   public void Error(MessageSource source, object errorId, IOrigin origin, string message) {
     Message(source, ErrorLevel.Error, errorId + "", origin, message, []);
   }
 
-  //[Obsolete]
-  // public void Message(MessageSource source, ErrorLevel level, object errorId, IOrigin origin, string message) {
-  //   Message(source, level, errorId ?? "", origin, [message]);
-  // }
-
-  //[Obsolete]
   public void Error(MessageSource source, IOrigin origin, string formatMsg, params object[] formatArguments) {
     Message(source, ErrorLevel.Error, null, origin, string.Format(formatMsg, formatArguments), []);
   }
 
-  //[Obsolete]
-  public void Error(MessageSource source, object errorId, INode node, string formatMsg, params object[] formatArguments) {
-    Message(source, ErrorLevel.Error, errorId.ToString(), node.Origin, string.Format(formatMsg, formatArguments), []);
-  }
-
-
-  //[Obsolete]
   public void Error(MessageSource source, object errorId, INode node, string message) {
     Message(source, ErrorLevel.Error, errorId.ToString(), node.Origin, message, []);
   }
 
-  //[Obsolete]
   public void Error(MessageSource source, object errorId, INode node, string formatMsg, string formatArguments) {
     Message(source, ErrorLevel.Error, errorId.ToString(), node.Origin, string.Format(formatMsg, formatArguments), []);
   }
