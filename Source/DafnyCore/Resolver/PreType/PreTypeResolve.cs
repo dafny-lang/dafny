@@ -1244,6 +1244,7 @@ namespace Microsoft.Dafny {
         ResolveAttributes(invariant, new ResolutionContext(classLikeDecl, false), false);
         ResolveExpression(invariant.E, new ResolutionContext(classLikeDecl, false));
         ConstrainTypeExprBool(invariant.E, "Invariant must be a boolean (got {0})");
+        // TODO resolved opcodes not showing up...
       }
       currentClass = null;
     }

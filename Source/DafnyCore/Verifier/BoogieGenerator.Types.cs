@@ -992,6 +992,7 @@ public partial class BoogieGenerator {
         if (d is IteratorDecl) {
           AddIteratorSpecAndBody((IteratorDecl)d);
         }
+        AddInvariantsWellformednessCheck(cl);
       } else if (d is DatatypeDecl) {
         var dd = (DatatypeDecl)d;
         AddDatatype(dd);

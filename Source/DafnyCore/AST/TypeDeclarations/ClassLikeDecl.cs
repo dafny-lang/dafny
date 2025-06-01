@@ -5,7 +5,7 @@ using System.Linq;
 
 namespace Microsoft.Dafny;
 
-public abstract class ClassLikeDecl : TopLevelDeclWithMembers, RevealableTypeDecl, ICanFormat, IHasDocstring, ICodeContext {
+public abstract class ClassLikeDecl : TopLevelDeclWithMembers, RevealableTypeDecl, ICanFormat, IHasDocstring, ICallable, ICanVerify {
   public NonNullTypeDecl NonNullTypeDecl; // returns non-null value iff IsReferenceTypeDecl
 
   public override bool CanBeRevealed() { return true; }
@@ -106,15 +106,25 @@ public abstract class ClassLikeDecl : TopLevelDeclWithMembers, RevealableTypeDec
   public override string ReferenceName => base.ReferenceName + (IsReferenceTypeDecl ? "?" : "");
   
   // NB: largely copied from DatatypeDecl
-  public ModuleDefinition EnclosingModule => EnclosingModuleDefinition;
+  ModuleDefinition IASTVisitorContext.EnclosingModule => EnclosingModuleDefinition;
   bool ICodeContext.ContainsHide {
     get => throw new NotSupportedException();
     set => throw new NotSupportedException();
   }
   bool ICodeContext.IsGhost => true;
   List<TypeParameter> ICodeContext.TypeArgs => TypeArgs;
-  List<Formal> ICodeContext.Ins => []; // TODO is this where field formals come in
+  List<Formal> ICodeContext.Ins => [];
   bool ICodeContext.MustReverify => false;
   bool ICodeContext.AllowsNontermination => false;
   CodeGenIdGenerator ICodeContext.CodeGenIdGenerator => CodeGenIdGenerator;
+  string IFrameScope.Designator => WhatKind;
+  string ICallable.NameRelativeToModule => Name;
+  // See DatatypeDecl for why we don't implement these members
+  Specification<Expression> ICallable.Decreases => throw new cce.UnreachableException();
+  bool ICallable.InferredDecreases {
+    get => throw new cce.UnreachableException();
+    set => throw new cce.UnreachableException();
+  }
+  ModuleDefinition ICanVerify.ContainingModule => EnclosingModuleDefinition;
+  bool ICanVerify.ShouldVerify => Invariants.Any();
 }

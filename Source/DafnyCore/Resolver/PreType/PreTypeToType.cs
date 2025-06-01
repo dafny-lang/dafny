@@ -67,8 +67,11 @@ class PreTypeToTypeVisitor : ASTVisitor<IASTVisitorContext> {
       PreType2TypeUtil.Combine(newtypeDecl.BaseType, newtypeDecl.BasePreType, false);
     } else if (decl is SubsetTypeDecl subsetTypeDecl) {
       PreType2TypeUtil.Combine(subsetTypeDecl.Var.Type, subsetTypeDecl.Var.PreType, false);
+    } else if (decl is ClassLikeDecl classLikeDecl) {
+      foreach (var invariant in classLikeDecl.Invariants) {
+        VisitExpression(invariant.E, classLikeDecl);
+      }
     }
-
     base.VisitOneDeclaration(decl);
   }
 
