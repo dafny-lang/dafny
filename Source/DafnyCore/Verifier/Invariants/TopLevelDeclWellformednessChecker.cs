@@ -9,15 +9,13 @@ namespace Microsoft.Dafny;
 // usually for type invariants (initially for class-like declarations, eventually for datatypes, etc.)
 // NB: inside Boogie generator to access its private methods
 public partial class BoogieGenerator {
-  private abstract class TopLevelDeclWellformednessChecker<T>(BoogieGenerator parent, T decl)
-    where T : TopLevelDeclWithMembers, ICallable {
-
+  private abstract class TopLevelDeclWellformednessChecker<T>(BoogieGenerator parent, T decl) where T : TopLevelDeclWithMembers, ICallable {
     protected readonly Variables Locals = new Variables();
-    
+    protected readonly ExpressionTranslator ETran = new(parent, parent.Predef, decl.Origin, decl);
+    protected readonly BodyTranslationContext Context = new(false);
     
     // Implements the core logic of a well-formedness check, may delegate reads checks to delayer
-    protected abstract void Check(Variables locals, BoogieStmtListBuilder builder, ExpressionTranslator etran,
-      ReadsCheckDelayer delayer);
+    protected abstract void Check(BoogieStmtListBuilder builder, ReadsCheckDelayer delayer);
 
     protected virtual IEnumerable<Bpl.Requires> Requires() {
       foreach (var typeBoundAxiom in parent.TypeBoundAxioms(decl.Origin, decl.TypeArgs)) {
@@ -32,18 +30,15 @@ public partial class BoogieGenerator {
       parent.proofDependencies.SetCurrentDefinition($"{decl.FullName} (well-formedness)", decl);
       parent.currentModule = decl.EnclosingModule;
       parent.codeContext = decl;
-
-      var etran = new ExpressionTranslator(parent, parent.Predef, decl.Origin, decl);
-      var context = new BodyTranslationContext(false);
-      var locals = new Variables();
-      var builder = new BoogieStmtListBuilder(parent, parent.options, context);
-      var builderInitializationArea = new BoogieStmtListBuilder(parent, parent.options, context);
+      
+      var builderInitializationArea = new BoogieStmtListBuilder(parent, parent.options, Context);
+      var builder = new BoogieStmtListBuilder(parent, parent.options, Context);
 
       // NB: decl.TypeArgs freely occur in type, to be captured by inParams
       var type = UserDefinedType.FromTopLevelDecl(decl.Origin, decl);
       var boogieType = parent.TrType(type);
       var @this = new Bpl.IdentifierExpr(decl.Origin, "this", boogieType);
-      var where = BplAnd(parent.ReceiverNotNull(@this), etran.GoodRef(decl.Origin, @this, type));
+      var where = BplAnd(parent.ReceiverNotNull(@this), ETran.GoodRef(decl.Origin, @this, type));
 
       List<Bpl.Variable> inParams =
         parent.MkTyParamFormals(decl.TypeArgs, true).Append(
@@ -59,9 +54,9 @@ public partial class BoogieGenerator {
         [],
         false,
         Requires().ToList(),
-        [etran.HeapCastToIdentifierExpr], // TODO do we want this?
+        [ETran.HeapCastToIdentifierExpr], // TODO do we want this?
         [],
-        etran.TrAttributes(decl.Attributes)
+        ETran.TrAttributes(decl.Attributes)
       );
       AddVerboseNameAttribute(proc, decl.FullSanitizedName, MethodTranslationKind.SpecWellformedness);
       parent.sink.AddTopLevelDeclaration(proc);
@@ -69,20 +64,17 @@ public partial class BoogieGenerator {
       // TODO What does this do?
       builder.AddCaptureState(decl.Origin, false, "initial state");
       List<FrameExpression> reads = [new(decl.Origin, new ThisExpr(decl), null)];
-      parent.DefineFrame(decl.Origin, etran.ReadsFrame(decl.Origin), reads, builder, locals, null);
+      parent.DefineFrame(decl.Origin, ETran.ReadsFrame(decl.Origin), reads, builder, Locals, null);
       // TODO do we need fuel?
-      parent.InitializeFuelConstant(decl.Origin, builder, etran);
+      parent.InitializeFuelConstant(decl.Origin, builder, ETran);
 
-      var delayer = new ReadsCheckDelayer(etran, null, locals, builderInitializationArea, builder);
-      
-      // builder.Add(new Bpl.CommentCmd("Assert false 1"));
-      // builder.Add(new Bpl.AssertCmd(decl.Origin, Bpl.Expr.False));
+      var delayer = new ReadsCheckDelayer(ETran, null, Locals, builderInitializationArea, builder);
 
-      Check(locals, builder, etran, delayer);
+      Check(builder, delayer);
       
       // Sanity check, can remove
       builder.Add(new Bpl.CommentCmd("Check well-formedness of the reads clause"));
-      delayer.DoWithDelayedReadsChecks(false, wfo => { parent.CheckFrameWellFormed(wfo, reads, locals, builder, etran); });
+      delayer.DoWithDelayedReadsChecks(false, wfo => { parent.CheckFrameWellFormed(wfo, reads, Locals, builder, ETran); });
       
       var implBody = new Bpl.StmtList(new List<Bpl.BigBlock>(
         builderInitializationArea.Collect(decl.Origin).BigBlocks.Concat(
@@ -90,20 +82,20 @@ public partial class BoogieGenerator {
         ), decl.Origin);
 
       parent.AddImplementationWithAttributes(parent.GetToken(decl), proc,
-        Bpl.Formal.StripWhereClauses(inParams), [], locals, implBody,
-        etran.TrAttributes(decl.Attributes));
+        Bpl.Formal.StripWhereClauses(inParams), [], Locals, implBody,
+        ETran.TrAttributes(decl.Attributes));
 
       parent.Reset();
     }
   }
 
   private class ClassLikeDeclWellformednessChecker(BoogieGenerator parent, ClassLikeDecl cls) : TopLevelDeclWellformednessChecker<ClassLikeDecl>(parent, cls) {
-    protected override void Check(Variables locals, BoogieStmtListBuilder builder, ExpressionTranslator etran, ReadsCheckDelayer delayer) {
+    protected override void Check(BoogieStmtListBuilder builder, ReadsCheckDelayer delayer) {
       // Idea: check-wellformedness-and-assume each invariant. Then, at the end, check that we've only read "this"
       delayer.DoWithDelayedReadsChecks(false, wfo => {
         builder.Add(new Bpl.CommentCmd("Check invariants are well-formed and only read this"));
         foreach (var invariant in ConjunctsOf(cls.Invariants)) {
-          parent.CheckWellformedAndAssume(invariant.E, wfo, locals, builder, etran, "invariant");
+          parent.CheckWellformedAndAssume(invariant.E, wfo, Locals, builder, ETran, "invariant");
         }
       });
     }

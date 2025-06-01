@@ -1240,11 +1240,11 @@ namespace Microsoft.Dafny {
     void ResolveClassLikeDecl(ClassLikeDecl classLikeDecl) {
       Contract.Requires(classLikeDecl != null);
       currentClass = classLikeDecl;
+      // NB: resolution of invariants excludes fields inherited from traits (InInvariant = true)
       foreach (AttributedExpression invariant in classLikeDecl.Invariants) {
         ResolveAttributes(invariant, new ResolutionContext(classLikeDecl, false), false);
-        ResolveExpression(invariant.E, new ResolutionContext(classLikeDecl, false));
+        ResolveExpression(invariant.E, new ResolutionContext(classLikeDecl, false) { InInvariant = true });
         ConstrainTypeExprBool(invariant.E, "Invariant must be a boolean (got {0})");
-        // TODO resolved opcodes not showing up...
       }
       currentClass = null;
     }

@@ -824,8 +824,9 @@ public class ReadFrameSubset : ProofObligationDescription {
   public override string SuccessDescription =>
     $"sufficient reads clause to {whatKind}";
 
+  // TODO is this a good error message for invariants?
   public override string FailureDescription =>
-    $"insufficient reads clause to {whatKind}" + ExtendedFailureHint();
+    scope is ClassLikeDecl ? $"invariant can only read 'this' and cannot {whatKind}" : $"insufficient reads clause to {whatKind}" + ExtendedFailureHint();
 
   public string ExtendedFailureHint() {
     if (readExpression is null) {
