@@ -63,6 +63,11 @@
 ##              "dafny run --use-basename-for-filename $F" and,
 ##              if <expect> is present, checks that the output matches the
 ##              content of the file names <expect>
+##   %check-run-output <expect> : Like %check-run, runs
+##              "dafny run --use-basename-for-filename $F" and,
+##              if there is an output, it will ignore it
+##   %check-expect : compares the output against the output of the previous
+##              %check-run-output command
 ##   %check-error
 ##   check
 
@@ -92,6 +97,7 @@ shift $(($OPTIND - 1))
 
 ## Temporary file
 text=text.dfy
+lastRunOutput=""
 
 ## Tracks if there have been any failures
 ANYFAIL=0
@@ -204,8 +210,38 @@ do
       fi
       if [ "$command" == "%no-check" ]; then
         echo -n ""
-      elif [ "$command" == "%check-verify" -o "$command" == "%check-verify-warn" -o "$command" == "%check-resolve"  -o "$command" == "%check-run" -o "$command" == "%check-translate" -o "$command" == "%check-test" -o "$command" == "%check-resolve-warn"  -o "$command" == "%check-legacy" ]; then
+      elif [ "$command" == "%check-expect" ]; then
+        if [ -z "$lastRunOutput" ]; then
+            echo "NO PREVIOUS RUN OUTPUT TO COMPARE AGAINST"
+            FAIL=1
+        else
+            expected=$(cat "$text" | tr -d '\r')
+            normalized_last=$(echo "$lastRunOutput" | tr -d '\r')
+            normalized_last_simplified=$(echo "$lastRunOutput" | tr -d '\r' | sed '/^$/d;/^[[:space:]]*Dafny program verifier finished with [0-9]* verified, [0-9]* errors$/d')
+            if [ "$expected" != "$normalized_last" -a "$expected" != "$normalized_last_simplified" ]; then
+                echo "OUTPUT MISMATCH"
+                echo "Expected:"
+                echo "$expected"
+                echo "Got:"
+                echo "$normalized_last"
+                echo "Or, if simplified:"
+                echo "$normalized_last_simplified"
+                echo "Hex Expected:"
+                echo "$expected" | xxd
+                echo "Got:"
+                echo "$normalized_last" | xxd
+                echo "Or, if simplified:"
+                echo "$normalized_last_simplified" | xxd
+                echo "Diff:"
+                diff <(echo "$expected") <(echo "$normalized_last")
+                echo "Or, if simplified:"
+                diff <(echo "$expected") <(echo "$normalized_last_simplified")
+                FAIL=1
+            fi
+        fi
+      elif [ "$command" == "%check-verify" -o "$command" == "%check-verify-warn" -o "$command" == "%check-resolve"  -o "$command" == "%check-run" -o "$command" == "%check-run-output" -o "$command" == "%check-translate" -o "$command" == "%check-test" -o "$command" == "%check-resolve-warn"  -o "$command" == "%check-legacy" ]; then
         capture=1
+        failonunexpectedoutput=1
         dOptions=$defOptions
         if [ "$command" == "%check-verify" ]; then
           ##cat $text
@@ -228,6 +264,11 @@ do
           com=run
           ec=0
           if [ "$useHeadings" == "1" ]; then ec=3; fi
+        elif [ "$command" == "%check-run-output" ]; then
+          com=run
+          failonunexpectedoutput=0
+          ec=0
+          if [ "$useHeadings" == "1" ]; then ec=3; fi
         elif [ "$command" == "%check-test" ]; then
           com=test
           ec=2
@@ -248,9 +289,12 @@ do
           elif [ "$com" == "%check-legacy" ]; then
             "$dafny" $com $dOptions ${options[@]} $text > actual
           else
-            "$dafny" $com --function-syntax:4 $dOptions ${options[@]} $text --standard-libraries > actual
+            targetOpts=()
+            [ "$com" = "run" ] && targetOpts+=(-t:js)
+            "$dafny" $com ${targetOpts[@]} --function-syntax:4 $dOptions ${options[@]} $text --standard-libraries > actual
           fi
           actualec=$?
+          lastRunOutput=$(cat actual)
           if [ "$useHeadings" == "1" ]; then
             act=`cat actual | grep -E '(Error|Warning)' | sed -e 's/^[^:]*: //'`
             if [ -n "$msg" ]; then
@@ -289,7 +333,7 @@ do
               FAIL=1
             fi
             # Warnings differ from version to version; "No trigger" is sometimes on a different line
-            if [ `cat actual | grep -v "Warning" | grep -v "No trigger" | wc -l ` != "2" ]; then
+            if [ `cat actual | grep -v "Warning" | grep -v "No trigger" | wc -l ` != "2" ] && [ "$failonunexpectedoutput" != "0" ]; then
               echo ACTUAL ERROR OUTPUT BUT NONE EXPECTED `cat actual | wc -l `
               cat actual
               FAIL=1

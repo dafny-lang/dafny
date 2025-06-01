@@ -36,6 +36,7 @@ public static class DafnyCommands {
     BoogieOptionBag.SolverOptionHelp,
     BoogieOptionBag.SolverPlugin,
     BoogieOptionBag.SolverLog,
+    CommonOptionBag.JsonOutput,
     CommonOptionBag.JsonDiagnostics,
     BoogieOptionBag.VerificationErrorLimit,
     CommonOptionBag.DefaultFunctionOpacity,
@@ -105,7 +106,9 @@ public static class DafnyCommands {
     Method.ReadsClausesOnMethods,
     CommonOptionBag.UseStandardLibraries,
     CommonOptionBag.LogLevelOption,
-    CommonOptionBag.LogLocation
+    CommonOptionBag.LogLocation,
+    CommonOptionBag.CheckSourceLocationConsistency,
+    CommonOptionBag.Referrers
   });
 
   public static IReadOnlyList<Option> ResolverOptions = new List<Option>(new Option[] {

@@ -3,24 +3,25 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text.Json.Nodes;
+using System.Threading.Tasks;
 using DafnyCore.Verifier;
 using Microsoft.Boogie;
 using VC;
 
 namespace Microsoft.Dafny;
 
-public class LegacyJsonVerificationLogger {
+public class LegacyJsonVerificationLogger : IDisposable, IAsyncDisposable {
   private TextWriter tw;
-  private readonly TextWriter outWriter;
+  private readonly IDafnyOutputWriter outWriter;
   private readonly ProofDependencyManager depManager;
 
-  public LegacyJsonVerificationLogger(ProofDependencyManager depManager, TextWriter outWriter) {
+  public LegacyJsonVerificationLogger(ProofDependencyManager depManager, IDafnyOutputWriter outWriter) {
     this.depManager = depManager;
     this.outWriter = outWriter;
   }
 
   public void Initialize(Dictionary<string, string> parameters) {
-    tw = parameters.TryGetValue("LogFileName", out string filename) ? new StreamWriter(filename) : outWriter;
+    tw = parameters.TryGetValue("LogFileName", out string filename) ? new StreamWriter(filename) : outWriter.StatusWriter();
   }
 
   class DummyProofObligationDescription : Boogie.ProofObligationDescription {
@@ -86,5 +87,15 @@ public class LegacyJsonVerificationLogger {
 
   public void LogResults(IEnumerable<DafnyConsolePrinter.ConsoleLogEntry> verificationResults) {
     tw.Write(SerializeVerificationResults(verificationResults).ToJsonString());
+  }
+
+  public void Dispose() {
+    tw?.Dispose();
+  }
+
+  public async ValueTask DisposeAsync() {
+    if (tw != null) {
+      await tw.DisposeAsync();
+    }
   }
 }

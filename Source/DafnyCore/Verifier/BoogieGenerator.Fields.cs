@@ -10,9 +10,6 @@ using PODesc = Microsoft.Dafny.ProofObligationDescription;
 
 namespace Microsoft.Dafny {
   public partial class BoogieGenerator {
-
-
-
     Bpl.Constant GetField(Field f) {
       Contract.Requires(f != null && f.IsMutable);
       Contract.Requires(sink != null && Predef != null);
@@ -24,9 +21,19 @@ namespace Microsoft.Dafny {
       if (fields.TryGetValue(f, out fc)) {
         Contract.Assert(fc != null);
       } else {
-        // const f: Field ty;
+        if (f is SpecialField { EnclosingMethod: not null }) {
+          // We declare a FieldFamily, not a single field. Fields are obtained through local_field(fieldFamily, depth)
+          fc = new Constant(f.Origin, new TypedIdent(f.Origin, f.FullSanitizedName, Predef.FieldNameFamily(f.Origin)), true);
+          fields.Add(f, fc);
+          sink.AddTopLevelDeclaration(fc);
+          // No axiom necessary, they are added in the prelude
+          return fc;
+        }
+        // If 
+        // const f: Field;
         Bpl.Type ty = Predef.FieldName(f.Origin);
-        fc = new Bpl.Constant(f.Origin, new Bpl.TypedIdent(f.Origin, f.FullSanitizedName, ty), false);
+        var requireUnicityOfFields = Options.Get(CommonOptionBag.Referrers);
+        fc = new Bpl.Constant(f.Origin, new Bpl.TypedIdent(f.Origin, f.FullSanitizedName, ty), requireUnicityOfFields);
         fields.Add(f, fc);
         // axiom FDim(f) == 0 && FieldOfDecl(C, name) == f &&
         //       $IsGhostField(f);    // if the field is a ghost field
@@ -37,6 +44,15 @@ namespace Microsoft.Dafny {
         Bpl.Expr cond = BplAnd(fdim, declType);
         var ig = FunctionCall(f.Origin, BuiltinFunction.IsGhostField, ty, Bpl.Expr.Ident(fc));
         cond = BplAnd(cond, f.IsGhost ? ig : Bpl.Expr.Not(ig));
+        if (Options.Get(CommonOptionBag.Referrers)) {
+          // We emit the axiom that field_family(_module.Test.x) == object_field;
+          // so that local fields can be determined to be different from object fields
+          // (which are not visible in the current scope)
+          // object_field is an identifier
+          var fieldFamily = FunctionCall(f.Origin, BuiltinFunction.FieldFamily, ty, Bpl.Expr.Ident(fc));
+          var objectField = Id(f.Origin, "object_field");
+          cond = BplAnd(cond, Bpl.Expr.Eq(fieldFamily, objectField));
+        }
         Bpl.Axiom ax = new Bpl.Axiom(f.Origin, cond);
         AddOtherDefinition(fc, ax);
       }
