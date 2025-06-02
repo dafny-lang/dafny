@@ -31,7 +31,7 @@ public record DafnyDiagnostic(MessageSource Source, string ErrorId, TokenRange R
         break;
       }
       var split = line.Split("=");
-      MessageIdToMessage.Add("$" + split[0], split[1]);
+      MessageIdToMessage.Add(split[0], split[1]);
     }
   }
 

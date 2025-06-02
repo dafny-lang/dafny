@@ -107,7 +107,7 @@ record DiagnosticMessageData(MessageSource Source, ErrorLevel Level, TokenRange 
       var formatMessage = DafnyDiagnostic.GetFormatMsgAndRemainingParts(errorId, ref messageParts);
       return new JsonObject {
         ["location"] = SerializeToken(options, range),
-        ["arguments"] = new JsonArray(messageParts.Select(o => (JsonNode)JsonValue.Create(o)!).ToArray()),
+        ["arguments"] = new JsonArray(messageParts.Select(o => (JsonNode)JsonValue.Create(o.ToString())!).ToArray()),
         ["errorId"] = errorId,
         ["defaultFormatMessage"] = formatMessage,
       };
@@ -130,7 +130,7 @@ record DiagnosticMessageData(MessageSource Source, ErrorLevel Level, TokenRange 
       return new JsonObject {
         ["location"] = SerializeToken(options, Range),
         ["severity"] = SerializeErrorLevel(Level),
-        ["messageParts"] = new JsonArray(messageParts.Select(o => (JsonNode)JsonValue.Create(o)!).ToArray()),
+        ["arguments"] = new JsonArray(messageParts.Select(o => (JsonNode)JsonValue.Create(o.ToString())!).ToArray()),
         ["defaultFormatMessage"] = formatMessage,
         ["errorId"] = ErrorId,
         ["source"] = Source.ToString(),

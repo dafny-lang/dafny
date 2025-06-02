@@ -40,14 +40,13 @@ public class ReadFrameSubset : ProofObligationDescription {
         parts.Add(readExpression.ToString());
 
         string extraField;
-        parts.Add(obj);
         if (lambdaScope == null && readExpression is MemberSelectExpr { MemberName: var field }) {
           extraField = " or 'reads {1}`{4}'";
           parts.Add(field);
         } else {
           extraField = "";
         }
-        message += "adding 'reads {0}'" + extraField + " in the enclosing {1} specification for resolution";
+        message += "adding 'reads {1}'" + extraField + " in the enclosing {2} specification for resolution";
         parts.Insert(0, message);
         return parts;
       }
@@ -61,8 +60,9 @@ public class ReadFrameSubset : ProofObligationDescription {
       whyNotWhat = "Array elements";
     }
 
-    parts.Add("; {0} cannot be accessed within certain scopes, such as default values, the right-hand side of constants, or co-recursive calls");
+    message += "; {1} cannot be accessed within certain scopes, such as default values, the right-hand side of constants, or co-recursive calls";
     parts.Add(whyNotWhat);
+    parts.Insert(0, message);
     return parts;
   }
 
