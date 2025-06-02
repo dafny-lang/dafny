@@ -13,7 +13,7 @@ namespace Microsoft.Dafny;
 public record DafnyDiagnostic(MessageSource Source, string ErrorId, TokenRange Range, IReadOnlyList<string> MessageParts, ErrorLevel Level,
   IReadOnlyList<DafnyRelatedInformation> RelatedInformation) : IComparable<DafnyDiagnostic> {
 
-  public string Message => MessageFromParts(MessageParts);
+  public string Message => MessageFromParts(ErrorId, MessageParts);
 
   private static readonly IDictionary<string, string> MessageIdToMessage = new Dictionary<string, string>();
 
@@ -35,43 +35,18 @@ public record DafnyDiagnostic(MessageSource Source, string ErrorId, TokenRange R
     }
   }
 
-  public static string[] ResolveMessageIds(IEnumerable<string> messageParts) {
-    return messageParts.Where(IsMessageId).Select(s => MessageIdToMessage[s]).ToArray();
+  public static string MessageFromParts(string errorId, IReadOnlyList<object> messageParts) {
+    var formatMsg = GetFormatMsgAndRemainingParts(errorId, ref messageParts);
+    return string.Format(formatMsg, messageParts.ToArray());
   }
 
-  public static string MessageFromParts(IReadOnlyList<string> messageParts) {
-    var stack = new Queue<string>(messageParts);
-    string MessageFromStack() {
-      var current = stack.Dequeue();
-      var resolved = IsMessageId(current) ? MessageIdToMessage[current] : current;
-
-      // Escape braces that don't contain just numbers
-
-      var argumentCount = CountArgumentsOfFormatMessage(resolved);
-      if (argumentCount == 0) {
-        return resolved;
-      }
-
-      var arguments = new object[argumentCount];
-      for (int index = 0; index < argumentCount; index++) {
-        arguments[index] = MessageFromStack();
-      }
-
-      return string.Format(resolved, arguments);
+  public static string GetFormatMsgAndRemainingParts(string errorId, ref IReadOnlyList<object> messageParts) {
+    if (string.IsNullOrEmpty(errorId) || !MessageIdToMessage.TryGetValue(errorId, out var formatMsg)) {
+      formatMsg = (string)messageParts.First();
+      messageParts = messageParts.Skip(1).ToList();
     }
-    return MessageFromStack();
-  }
 
-  private static bool IsNumericOnly(string text) {
-    return !string.IsNullOrEmpty(text) && text.All(char.IsDigit);
-  }
-
-  private static bool IsMessageId(string current) {
-    return current.StartsWith('$');
-  }
-
-  private static int CountArgumentsOfFormatMessage(string formatMessage) {
-    return Regex.Matches(formatMessage, @"\{\d+\}").DistinctBy(m => m.Value).Count();
+    return formatMsg;
   }
 
   public int CompareTo(DafnyDiagnostic? other) {

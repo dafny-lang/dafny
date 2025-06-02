@@ -16,7 +16,7 @@ namespace Microsoft.Dafny {
   }
 
   public record DafnyRelatedInformation(TokenRange Range, string ErrorId, IReadOnlyList<string> MessageParts) {
-    public string Message => DafnyDiagnostic.MessageFromParts(MessageParts);
+    public string Message => DafnyDiagnostic.MessageFromParts(ErrorId, MessageParts);
   }
 
   public class ErrorReporterSink(DafnyOptions options) : ErrorReporter(options) {

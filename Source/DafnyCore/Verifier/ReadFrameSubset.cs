@@ -10,10 +10,10 @@ public class ReadFrameSubset : ProofObligationDescription {
   }
 
   List<string> GetMessageParts() {
-    var message = "insufficient reads clause to {0}{1}";
-    var parts = new List<string>() { message, whatKind };
+    var message = "insufficient reads clause to {0}";
+    var parts = new List<string>() { whatKind };
     if (readExpression is null) {
-      parts.Add("");
+      parts.Insert(0, message);
       return parts;
     }
     if (scope is { Designator: var designator }) {
@@ -30,23 +30,25 @@ public class ReadFrameSubset : ProofObligationDescription {
 
       if (scope is Function { CoClusterTarget: var x } && x != Function.CoCallClusterInvolvement.None) {
       } else {
-        parts.Add("; Consider {0}");
+        message += "; Consider ";
 
+        parts.Add(obj);
+        parts.Add(designator);
         if (lambdaScope != null && lambdaScope.Reads.Expressions!.Count == 0) {
-          parts.Add("extracting {0} to a local variable before the lambda expression, or {1}");
-          parts.Add(readExpression.ToString());
+          message += "extracting {3} to a local variable before the lambda expression, or ";
         }
+        parts.Add(readExpression.ToString());
 
-        parts.Add("adding 'reads {0}'{1} in the enclosing {2} specification for resolution");
+        string extraField;
         parts.Add(obj);
         if (lambdaScope == null && readExpression is MemberSelectExpr { MemberName: var field }) {
-          parts.Add(" or 'reads {0}`{1}'");
-          parts.Add(obj);
+          extraField = " or 'reads {1}`{4}'";
           parts.Add(field);
         } else {
-          parts.Add("");
+          extraField = "";
         }
-        parts.Add(designator);
+        message += "adding 'reads {0}'" + extraField + " in the enclosing {1} specification for resolution";
+        parts.Insert(0, message);
         return parts;
       }
     }
@@ -67,7 +69,7 @@ public class ReadFrameSubset : ProofObligationDescription {
   public override string SuccessDescription =>
     $"sufficient reads clause to {whatKind}";
 
-  public override string FailureDescription => DafnyDiagnostic.MessageFromParts(GetMessageParts());
+  public override string FailureDescription => DafnyDiagnostic.MessageFromParts("", GetMessageParts());
 
   public override string ShortDescription => "read frame subset";
 

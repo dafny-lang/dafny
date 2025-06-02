@@ -111,7 +111,7 @@ namespace Microsoft.Dafny.Compilers {
     protected static void ReportError(ErrorId errorId, ErrorReporter reporter, IOrigin tok, ConcreteSyntaxTree/*?*/ wr, params object[] messageParts) {
 
       reporter.Error(MessageSource.Compiler, errorId, tok, messageParts);
-      var message = DafnyDiagnostic.MessageFromParts(messageParts.Select(s => s.ToString()).ToList());
+      var message = DafnyDiagnostic.MessageFromParts(errorId.ToString(), messageParts.Select(s => s.ToString()).ToList());
       wr?.WriteLine("/* {0} */", string.Format("Compilation error: " + message));
     }
 
