@@ -79,7 +79,7 @@ namespace Microsoft.Dafny {
         engine.Inline(boogieProgram);
 
         //NOTE: We could capture errors instead of printing them (pass a delegate instead of null)
-        switch (engine.InferAndVerify(options.OutputWriter, boogieProgram, new PipelineStatistics(),
+        switch (engine.InferAndVerify(options.BaseOutputWriter, boogieProgram, new PipelineStatistics(),
 #pragma warning disable VSTHRD002
                   "ServerProgram_" + moduleName, null, DateTime.UtcNow.Ticks.ToString()).Result) {
 #pragma warning restore VSTHRD002
@@ -105,9 +105,9 @@ namespace Microsoft.Dafny {
       if (await Parse() && Resolve()) {
         var symbolTable = new SuperLegacySymbolTable(dafnyProgram);
         var symbols = symbolTable.CalculateSymbols();
-        await options.OutputWriter.WriteLineAsync("SYMBOLS_START " + ConvertToJson(symbols) + " SYMBOLS_END");
+        await options.BaseOutputWriter.WriteLineAsync("SYMBOLS_START " + ConvertToJson(symbols) + " SYMBOLS_END");
       } else {
-        await options.OutputWriter.WriteLineAsync("SYMBOLS_START [] SYMBOLS_END");
+        await options.BaseOutputWriter.WriteLineAsync("SYMBOLS_START [] SYMBOLS_END");
       }
     }
 
@@ -121,11 +121,11 @@ namespace Microsoft.Dafny {
             RemoveExistingModel();
             BoogieOnce(boogieProgram.Item1, boogieProgram.Item2);
             var model = counterExampleProvider.LoadCounterModel(options);
-            await options.OutputWriter.WriteLineAsync("COUNTEREXAMPLE_START " + ConvertToJson(model) + " COUNTEREXAMPLE_END");
+            await options.BaseOutputWriter.WriteLineAsync("COUNTEREXAMPLE_START " + ConvertToJson(model) + " COUNTEREXAMPLE_END");
           }
         }
       } catch (Exception e) {
-        await options.OutputWriter.WriteLineAsync("Error collection models: " + e.Message);
+        await options.BaseOutputWriter.WriteLineAsync("Error collection models: " + e.Message);
       }
     }
 

@@ -30,7 +30,7 @@ public class JavaScriptBackend : ExecutableBackend {
   public override async Task<(bool Success, object CompilationResult)> CompileTargetProgram(string dafnyProgramName,
     string targetProgramText,
     string callToMain /*?*/, string targetFilename /*?*/, ReadOnlyCollection<string> otherFileNames,
-    bool runAfterCompile, TextWriter outputWriter) {
+    bool runAfterCompile, IDafnyOutputWriter outputWriter) {
     if (runAfterCompile) {
       Contract.Assert(callToMain != null);  // this is part of the contract of CompileTargetProgram
                                             // Since the program is to be run soon, nothing further is done here. Any compilation errors (that is, any errors
@@ -46,13 +46,14 @@ public class JavaScriptBackend : ExecutableBackend {
   public override Task<bool> RunTargetProgram(string dafnyProgramName, string targetProgramText,
     string callToMain, /*?*/
     string targetFilename, ReadOnlyCollection<string> otherFileNames,
-    object compilationResult, TextWriter outputWriter, TextWriter errorWriter) {
+    object compilationResult, IDafnyOutputWriter outputWriter) {
 
     return SendToNewNodeProcess(dafnyProgramName, targetProgramText, callToMain, targetFilename, otherFileNames, outputWriter);
   }
 
-  async Task<bool> SendToNewNodeProcess(string dafnyProgramName, string targetProgramText, string/*?*/ callToMain, string targetFilename, ReadOnlyCollection<string> otherFileNames,
-    TextWriter outputWriter) {
+  async Task<bool> SendToNewNodeProcess(string dafnyProgramName, string targetProgramText, string/*?*/ callToMain,
+    string targetFilename, ReadOnlyCollection<string> otherFileNames,
+    IDafnyOutputWriter outputWriter) {
     Contract.Requires(targetFilename != null || otherFileNames.Count == 0);
 
     var psi = new ProcessStartInfo("node", "") {
@@ -77,12 +78,13 @@ public class JavaScriptBackend : ExecutableBackend {
       nodeProcess.StandardInput.Close();
       // Fixes a problem of Node on Windows, where Node does not prints to the parent console its standard outputs.
       await PassthroughBuffer(nodeProcess.StandardError, Options.ErrorWriter);
-      await PassthroughBuffer(nodeProcess.StandardOutput, Options.OutputWriter);
+      await using var tempOutputWriter = Options.OutputWriter.StatusWriter();
+      await PassthroughBuffer(nodeProcess.StandardOutput, tempOutputWriter);
       await nodeProcess.WaitForExitAsync();
 #pragma warning disable VSTHRD00
       return nodeProcess.ExitCode == 0;
     } catch (System.ComponentModel.Win32Exception e) {
-      await outputWriter.WriteLineAsync($"Error: Unable to start node.js ({psi.FileName}): {e.Message}");
+      await outputWriter.Status($"Error: Unable to start node.js ({psi.FileName}): {e.Message}");
       return false;
     }
   }

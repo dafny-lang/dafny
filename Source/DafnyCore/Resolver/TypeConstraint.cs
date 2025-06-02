@@ -24,7 +24,7 @@ namespace Microsoft.Dafny {
       bool reported;
       public void FlagAsError(ModuleResolver resolver) {
         if (resolver.Options.Get(CommonOptionBag.TypeInferenceDebug)) {
-          resolver.Options.OutputWriter.WriteLine($"DEBUG: flagging error: {ApproximateErrorMessage()}");
+          resolver.Options.OutputWriter.Debug($"flagging error: {ApproximateErrorMessage()}");
         }
         resolver.TypeConstraintErrorsToBeReported.Add(this);
       }

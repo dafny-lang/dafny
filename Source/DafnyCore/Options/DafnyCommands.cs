@@ -36,6 +36,7 @@ public static class DafnyCommands {
     BoogieOptionBag.SolverOptionHelp,
     BoogieOptionBag.SolverPlugin,
     BoogieOptionBag.SolverLog,
+    CommonOptionBag.JsonOutput,
     CommonOptionBag.JsonDiagnostics,
     BoogieOptionBag.VerificationErrorLimit,
     CommonOptionBag.DefaultFunctionOpacity,
@@ -106,6 +107,7 @@ public static class DafnyCommands {
     CommonOptionBag.UseStandardLibraries,
     CommonOptionBag.LogLevelOption,
     CommonOptionBag.LogLocation,
+    CommonOptionBag.CheckSourceLocationConsistency,
     CommonOptionBag.Referrers
   });
 

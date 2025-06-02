@@ -18,6 +18,9 @@ namespace Microsoft.Dafny {
 
     public Scope<LabeledStatement> EnclosingStatementLabels { get; set; }
 
+    [CanBeNull] public MethodOrConstructor EnclosingMethodCall { get; set; }
+    public Scope<Formal> EnclosingInputParameterFormals { get; set; }
+
     public List<LabeledStatement> LoopStack {
       get => loopStack;
       set => loopStack = value;
@@ -49,6 +52,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(resolutionContext != null);
 
       EnclosingStatementLabels.PushMarker();
+      EnclosingInputParameterFormals.PushMarker();
       // push labels
       if (stmt is LabeledStatement labelledStatement) {
         foreach (var lnode in labelledStatement.Labels) {
@@ -72,6 +76,7 @@ namespace Microsoft.Dafny {
       }
       ResolveStatement(stmt, resolutionContext);
       EnclosingStatementLabels.PopMarker();
+      EnclosingInputParameterFormals.PopMarker();
     }
 
     Label/*?*/ ResolveDominatingLabelInExpr(IOrigin tok, string/*?*/ labelName, string expressionDescription, ResolutionContext resolutionContext) {
@@ -301,11 +306,17 @@ namespace Microsoft.Dafny {
         if (s.Body != null) {
           // clear the labels for the duration of checking the body, because break statements are not allowed to leave a forall statement
           var prevLblStmts = EnclosingStatementLabels;
+          var prevFormals = EnclosingInputParameterFormals;
+          var prevMethodCall = EnclosingMethodCall;
           var prevLoopStack = loopStack;
           EnclosingStatementLabels = new Scope<LabeledStatement>(resolver.Options);
+          EnclosingInputParameterFormals = new Scope<Formal>(resolver.Options);
+          EnclosingMethodCall = null;
           loopStack = [];
           ResolveStatement(s.Body, resolutionContext);
           EnclosingStatementLabels = prevLblStmts;
+          EnclosingInputParameterFormals = prevFormals;
+          EnclosingMethodCall = prevMethodCall;
           loopStack = prevLoopStack;
         }
         scope.PopMarker();
@@ -497,8 +508,13 @@ namespace Microsoft.Dafny {
 
         // clear the labels for the duration of checking the hints, because break statements are not allowed to leave a forall statement
         var prevLblStmts = EnclosingStatementLabels;
+        var prevFormals = EnclosingInputParameterFormals;
+        var prevMethodCall = EnclosingMethodCall;
         var prevLoopStack = loopStack;
         EnclosingStatementLabels = new Scope<LabeledStatement>(resolver.Options);
+        EnclosingInputParameterFormals = new Scope<Formal>(resolver.Options);
+        EnclosingMethodCall = null;
+
         loopStack = [];
         foreach (var h in s.Hints) {
           foreach (var oneHint in h.Body) {
@@ -508,6 +524,8 @@ namespace Microsoft.Dafny {
           }
         }
         EnclosingStatementLabels = prevLblStmts;
+        EnclosingInputParameterFormals = prevFormals;
+        EnclosingMethodCall = prevMethodCall;
         loopStack = prevLoopStack;
       }
       if (prevErrorCount == ErrorCount && s.Lines.Count > 0) {

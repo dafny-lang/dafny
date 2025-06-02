@@ -20,7 +20,7 @@ public class CppBackend : ExecutableBackend {
   public override async Task<(bool Success, object CompilationResult)> CompileTargetProgram(string dafnyProgramName,
     string targetProgramText,
     string callToMain /*?*/, string targetFilename /*?*/, ReadOnlyCollection<string> otherFileNames,
-    bool runAfterCompile, TextWriter outputWriter) {
+    bool runAfterCompile, IDafnyOutputWriter outputWriter) {
     var assemblyLocation = System.Reflection.Assembly.GetExecutingAssembly().Location;
     Contract.Assert(assemblyLocation != null);
     var codebase = Path.GetDirectoryName(assemblyLocation);
@@ -40,15 +40,19 @@ public class CppBackend : ExecutableBackend {
       "-o", ComputeExeName(targetFilename),
       targetFilename
     });
-    return (0 == await RunProcess(psi, outputWriter, outputWriter, "Error while compiling C++ files."), null);
+    await using var statusWriter = outputWriter.StatusWriter();
+    return (0 == await RunProcess(psi, statusWriter, statusWriter, "Error while compiling C++ files."), null);
   }
 
   public override async Task<bool> RunTargetProgram(string dafnyProgramName, string targetProgramText,
     string callToMain, /*?*/
     string targetFilename, ReadOnlyCollection<string> otherFileNames,
-    object compilationResult, TextWriter outputWriter, TextWriter errorWriter) {
+    object compilationResult, IDafnyOutputWriter outputWriter) {
     var psi = PrepareProcessStartInfo(ComputeExeName(targetFilename), Options.MainArgs);
-    return 0 == await RunProcess(psi, outputWriter, errorWriter);
+
+    await using var sw = outputWriter.StatusWriter();
+    await using var ew = outputWriter.ErrorWriter();
+    return 0 == await RunProcess(psi, sw, ew);
   }
 
   public override Command GetCommand() {
