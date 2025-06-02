@@ -579,12 +579,19 @@ public class Compilation : IDisposable {
     var outcome = GetOutcome(result.Outcome);
     result.CounterExamples.Sort(new CounterexampleComparer());
     foreach (var counterExample in result.CounterExamples) {
-      var errorInformation = counterExample.CreateErrorInformation(outcome, options.ForceBplErrors);
-      if (options.ShowProofObligationExpressions) {
-        AddAssertedExprToCounterExampleErrorInfo(options, counterExample, errorInformation);
+      var description = counterExample.FailingAssert.Description as ProofObligationDescription;
+      var dafnyDiagnostic = description?.GetDiagnostic(
+        BoogieGenerator.ToDafnyToken(counterExample.FailingAssert.tok).ReportingRange);
+      if (options.Get(CommonOptionBag.JsonOutput) && dafnyDiagnostic != null) {
+        errorReporter.MessageCore(dafnyDiagnostic);
+      } else {
+        var errorInformation = counterExample.CreateErrorInformation(outcome, options.ForceBplErrors);
+        if (options.ShowProofObligationExpressions) {
+          AddAssertedExprToCounterExampleErrorInfo(options, counterExample, errorInformation);
+        }
+        var dafnyCounterExampleModel = options.ExtractCounterexample ? new DafnyModel(counterExample.Model, options) : null;
+        errorReporter.ReportBoogieError(errorInformation, dafnyCounterExampleModel);
       }
-      var dafnyCounterExampleModel = options.ExtractCounterexample ? new DafnyModel(counterExample.Model, options) : null;
-      errorReporter.ReportBoogieError(errorInformation, dafnyCounterExampleModel);
     }
 
     var outcomeError = ReportOutcome(options, outcome, name, token, timeLimit, result.CounterExamples);
