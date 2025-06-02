@@ -43,12 +43,12 @@ public class ExpressionTester {
     new ExpressionTester(resolver, reporter, reporter.Options).CheckIsCompilable(expr, codeContext, true);
   }
 
-  private void ReportError(ErrorId errorId, Expression e, string msg, params object[] args) {
-    reporter?.Error(MessageSource.Resolver, errorId, e, msg, args);
+  private void ReportError(ErrorId errorId, Expression e, params object[] messageParts) {
+    reporter?.Error(MessageSource.Resolver, errorId, e, messageParts);
   }
 
-  private void ReportError(ErrorId errorId, IOrigin t, string msg, params object[] args) {
-    reporter?.Error(MessageSource.Resolver, errorId, t, msg, args);
+  private void ReportError(ErrorId errorId, IOrigin t, params object[] messageParts) {
+    reporter?.Error(MessageSource.Resolver, errorId, t, messageParts);
   }
 
   /// <summary>

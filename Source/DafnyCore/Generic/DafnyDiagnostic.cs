@@ -71,7 +71,7 @@ public record DafnyDiagnostic(MessageSource Source, string ErrorId, TokenRange R
   }
 
   private static int CountArgumentsOfFormatMessage(string formatMessage) {
-    return Regex.Matches(formatMessage, @"\{\d+\}").Count;
+    return Regex.Matches(formatMessage, @"\{\d+\}").DistinctBy(m => m.Value).Count();
   }
 
   public int CompareTo(DafnyDiagnostic? other) {
