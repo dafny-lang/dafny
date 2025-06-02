@@ -37,7 +37,11 @@ public record DafnyDiagnostic(MessageSource Source, string ErrorId, TokenRange R
 
   public static string MessageFromParts(string errorId, IReadOnlyList<object> messageParts) {
     var formatMsg = GetFormatMsgAndRemainingParts(errorId, ref messageParts);
-    return string.Format(formatMsg, messageParts.ToArray());
+    if (messageParts.Count > 0) {
+      return string.Format(formatMsg, messageParts.ToArray());
+    } else {
+      return formatMsg;
+    }
   }
 
   public static string GetFormatMsgAndRemainingParts(string errorId, ref IReadOnlyList<object> messageParts) {
