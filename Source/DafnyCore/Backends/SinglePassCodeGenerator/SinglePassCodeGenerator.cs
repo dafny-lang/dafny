@@ -109,10 +109,9 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected static void ReportError(ErrorId errorId, ErrorReporter reporter, IOrigin tok, ConcreteSyntaxTree/*?*/ wr, params object[] messageParts) {
-
       reporter.Error(MessageSource.Compiler, errorId, tok, messageParts);
-      var message = DafnyDiagnostic.MessageFromParts(errorId.ToString(), messageParts.Select(s => s.ToString()).ToList());
-      wr?.WriteLine("/* {0} */", string.Format("Compilation error: " + message));
+      var message = DafnyDiagnostic.MessageFromParts(errorId.ToString(), messageParts);
+      wr?.WriteLine("/* {0} */", "Compilation error: " + message);
     }
 
     public void Error(ErrorId errorId, IOrigin tok, ConcreteSyntaxTree wr, params object[] messageParts) {
