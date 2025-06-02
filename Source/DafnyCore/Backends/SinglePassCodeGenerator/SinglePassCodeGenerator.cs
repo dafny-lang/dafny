@@ -1639,7 +1639,7 @@ namespace Microsoft.Dafny.Compilers {
             v.Visit(exprs);
           } else {
             Error(ErrorId.c_abstract_type_cannot_be_compiled, d.Origin,
-              wr, "Abstract type ('{0}') cannot be compiled; perhaps make it a type synonym or use :extern.", 
+              wr, "Abstract type ('{0}') cannot be compiled; perhaps make it a type synonym or use :extern.",
               at.FullName);
           }
         } else if (d is TypeSynonymDecl) {
@@ -1940,7 +1940,7 @@ namespace Microsoft.Dafny.Compilers {
                   hasMain = true;
                 } else {
                   // more than one main in the program
-                  ReportError(ErrorId.c_more_than_one_explicit_main_method, program.Reporter, m.Origin, null, "More than one method is marked {{:main}}. First declaration appeared at {0}.", 
+                  ReportError(ErrorId.c_more_than_one_explicit_main_method, program.Reporter, m.Origin, null, "More than one method is marked {{:main}}. First declaration appeared at {0}.",
                     mainMethod.Origin.OriginToString(program.Options));
                   hasMain = false;
                 }
@@ -1978,7 +1978,7 @@ namespace Microsoft.Dafny.Compilers {
                   hasMain = true;
                 } else {
                   // more than one main in the program
-                  ReportError(ErrorId.c_more_than_one_default_Main_method, program.Reporter, m.Origin, null, "More than one method is declared as '{0}'. First declaration appeared at {1}.", 
+                  ReportError(ErrorId.c_more_than_one_default_Main_method, program.Reporter, m.Origin, null, "More than one method is declared as '{0}'. First declaration appeared at {1}.",
                     DefaultNameMain, mainMethod.Origin.OriginToString(program.Options));
                   hasMain = false;
                 }
@@ -2342,7 +2342,7 @@ namespace Microsoft.Dafny.Compilers {
           var f = (Function)member;
           if (f.IsGhost) {
             if (Attributes.Contains(f.Attributes, "test")) {
-              Error(ErrorId.c_test_function_must_be_compilable, f.Origin, errorWr, 
+              Error(ErrorId.c_test_function_must_be_compilable, f.Origin, errorWr,
                 "Function {0} must be compiled to use the {{:test}} attribute", f.FullName);
             }
           } else if (f.IsVirtual) {
@@ -2376,7 +2376,7 @@ namespace Microsoft.Dafny.Compilers {
             if (m is Method method && m.IsStatic && m.Outs.Count > 0 && m.Body == null) {
               classWriter.SynthesizeMethod(method, CombineAllTypeArguments(m), true, true, false);
             } else {
-              Error(ErrorId.c_invalid_synthesize_method, m.Origin, errorWr, 
+              Error(ErrorId.c_invalid_synthesize_method, m.Origin, errorWr,
                 "Method {0} is annotated with :synthesize but is not static, has a body, or does not return anything",
                 m.FullName);
             }
@@ -2396,7 +2396,7 @@ namespace Microsoft.Dafny.Compilers {
               CompileMethod(program, m, classWriter, false);
             }
           } else if (m.Body == null) {
-            Error(ErrorId.c_method_has_no_body, m.Origin, errorWr,"Method {0} has no body so it cannot be compiled",  m.FullName);
+            Error(ErrorId.c_method_has_no_body, m.Origin, errorWr, "Method {0} has no body so it cannot be compiled", m.FullName);
           } else if (c is NewtypeDecl && m != m.Original) {
             CompileMethod(program, m, classWriter, false);
             var w = classWriter.CreateMethod(m, CombineAllTypeArguments(member), true, true, false);

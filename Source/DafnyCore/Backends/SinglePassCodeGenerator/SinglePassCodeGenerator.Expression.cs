@@ -369,7 +369,7 @@ namespace Microsoft.Dafny.Compilers {
                 BoundedPool.PoolVirtues.Enumerable);
               if (missingBounds.Count != 0) {
                 foreach (var bv in missingBounds) {
-                  Error(ErrorId.c_let_such_that_is_too_complex, e.Origin,wr, 
+                  Error(ErrorId.c_let_such_that_is_too_complex, e.Origin, wr,
                     "this let-such-that expression is too advanced for the current compiler; Dafny's heuristics cannot find any bound for variable '{0}'",
                     bv.Name);
                 }

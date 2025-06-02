@@ -51,7 +51,7 @@ public record DafnyDiagnostic(MessageSource Source, string ErrorId, TokenRange R
       if (argumentCount == 0) {
         return resolved;
       }
-      
+
       var arguments = new object[argumentCount];
       for (int index = 0; index < argumentCount; index++) {
         arguments[index] = MessageFromStack();

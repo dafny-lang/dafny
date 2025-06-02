@@ -42,7 +42,7 @@ namespace Microsoft.Dafny {
         if (this is ErrorMsgWithToken) {
           var err = (ErrorMsgWithToken)this;
           Contract.Assert(err.Tok != null);
-          reporter.Error(MessageSource.Resolver, err.Tok, new object[] {err.Msg + suffix }.Concat(RemoveAmbiguity(err.MsgArgs)).ToArray());
+          reporter.Error(MessageSource.Resolver, err.Tok, new object[] { err.Msg + suffix }.Concat(RemoveAmbiguity(err.MsgArgs)).ToArray());
         } else {
           var err = (ErrorMsgWithBase)this;
           if (!err.BaseMsg.reported) {
