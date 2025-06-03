@@ -1266,7 +1266,7 @@ namespace Microsoft.Dafny {
           if (resolutionContext.InInvariant && member is Field && currentClass.InheritedMembers.Contains(member)) {
             if (complain) {
               // TODO what do we think of this error message?
-              ReportError(expr.Origin, $"Field {member.Name} of supertype trait {member.EnclosingClass.Name} cannot be referenced in invariant");
+              ReportError(expr.Origin, $"Field {member.Name} of supertype trait {member.EnclosingClass.Name} cannot be referenced in invariant of {currentClass.Name}");
             } else {
               expr.ResolvedExpression = null;
               return null;
