@@ -670,6 +670,10 @@ abstract class BasicType : NonProxyType
 {
 }
 
+class FieldType : BasicType
+{
+}
+
 class BitvectorType : BasicType
 {
     Int32 width;
@@ -873,6 +877,7 @@ class IndDatatypeDecl : DatatypeDecl
 
 abstract class ClassLikeDecl : TopLevelDeclWithMembers
 {
+    List<AttributedExpression> invariants;
 }
 
 class TraitDecl : ClassLikeDecl

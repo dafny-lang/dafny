@@ -1469,6 +1469,22 @@ namespace Microsoft.Dafny
             return ReadSeqSelectExpr();
         }
 
+        public FieldType ReadFieldType()
+        {
+            var parameter0 = ReadAbstract<IOrigin>();
+            return new FieldType(parameter0);
+        }
+
+        public FieldType ReadFieldTypeOption()
+        {
+            if (ReadIsNull())
+            {
+                return default;
+            }
+
+            return ReadFieldType();
+        }
+
         public BitvectorType ReadBitvectorType()
         {
             var parameter0 = ReadAbstract<IOrigin>();
@@ -1912,8 +1928,8 @@ namespace Microsoft.Dafny
             var parameter3 = ReadList<TypeParameter>(() => ReadTypeParameter());
             var parameter4 = ReadList<MemberDecl>(() => ReadAbstract<MemberDecl>());
             var parameter7 = ReadList<Type>(() => ReadAbstract<Type>());
-            var parameter6 = ReadBoolean();
             var parameter8 = ReadList<AttributedExpression>(() => ReadAttributedExpression());
+            var parameter6 = ReadBoolean();
             return new TraitDecl(parameter0, parameter1, parameter2, parameter3, parameter4, parameter5, parameter6, parameter7, parameter8);
         }
 
@@ -1936,8 +1952,8 @@ namespace Microsoft.Dafny
             var parameter3 = ReadList<TypeParameter>(() => ReadTypeParameter());
             var parameter5 = ReadList<MemberDecl>(() => ReadAbstract<MemberDecl>());
             var parameter6 = ReadList<Type>(() => ReadAbstract<Type>());
-            var parameter7 = ReadBoolean();
             var parameter8 = ReadList<AttributedExpression>(() => ReadAttributedExpression());
+            var parameter7 = ReadBoolean();
             return new ClassDecl(parameter0, parameter1, parameter2, parameter3, parameter4, parameter5, parameter6, parameter7, parameter8);
         }
 
@@ -2432,6 +2448,11 @@ namespace Microsoft.Dafny
             if (actualType == typeof(SeqSelectExpr))
             {
                 return ReadSeqSelectExpr();
+            }
+
+            if (actualType == typeof(FieldType))
+            {
+                return ReadFieldType();
             }
 
             if (actualType == typeof(BitvectorType))
