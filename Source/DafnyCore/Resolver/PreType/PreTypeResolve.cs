@@ -249,6 +249,8 @@ namespace Microsoft.Dafny {
         decl = BuiltInTypeDecl(PreType.TypeNameInt);
       } else if (type is RealType) {
         decl = BuiltInTypeDecl(PreType.TypeNameReal);
+      } else if (type is FieldType) {
+        decl = BuiltInTypeDecl(PreType.TypeNameField);
       } else if (type is BigOrdinalType) {
         decl = BuiltInTypeDecl(PreType.TypeNameORDINAL);
       } else if (type is BitvectorType bitvectorType) {
@@ -469,6 +471,8 @@ namespace Microsoft.Dafny {
       scope = new Scope<IVariable>(resolver.Options);
       EnclosingStatementLabels = new Scope<LabeledStatement>(resolver.Options);
       DominatingStatementLabels = new Scope<Label>(resolver.Options);
+      EnclosingInputParameterFormals = new Scope<Formal>(resolver.Options);
+      EnclosingMethodCall = null;
       Constraints = new PreTypeConstraints(this);
     }
 
@@ -646,7 +650,7 @@ namespace Microsoft.Dafny {
         if (subArguments != null) {
           // use B :> A
           var aa = new DPreType(normalizedB.Decl, subArguments, normalizedA.PrintablePreType);
-          Constraints.DebugPrint($"    DEBUG: turning ~~ into {b} :> {aa}");
+          Constraints.DebugPrint($"    turning ~~ into {b} :> {aa}");
           Constraints.AddSubtypeConstraint(b, aa, tok, errorFormatString, null, reportErrors);
           return true;
         }
@@ -654,7 +658,7 @@ namespace Microsoft.Dafny {
         if (subArguments != null) {
           // use A :> B
           var bb = new DPreType(normalizedA.Decl, subArguments, normalizedB.PrintablePreType);
-          Constraints.DebugPrint($"    DEBUG: turning ~~ into {a} :> {bb}");
+          Constraints.DebugPrint($"    turning ~~ into {a} :> {bb}");
           Constraints.AddSubtypeConstraint(a, bb, tok, errorFormatString, null, reportErrors);
           return true;
         }
@@ -673,12 +677,12 @@ namespace Microsoft.Dafny {
       if (!allowBaseTypeCast) {
         if ((normalizedA != null && normalizedA.IsLeafType()) || (normalizedB != null && normalizedB.IsRootType())) {
           // use B :> A
-          Constraints.DebugPrint($"    DEBUG: turning ~~ into {b} :> {a}");
+          Constraints.DebugPrint($"    turning ~~ into {b} :> {a}");
           Constraints.AddSubtypeConstraint(b, a, tok, errorFormatString, null, reportErrors);
           return true;
         } else if ((normalizedA != null && normalizedA.IsRootType()) || (normalizedB != null && normalizedB.IsLeafType())) {
           // use A :> B
-          Constraints.DebugPrint($"    DEBUG: turning ~~ into {a} :> {b}");
+          Constraints.DebugPrint($"    turning ~~ into {a} :> {b}");
           Constraints.AddSubtypeConstraint(a, b, tok, errorFormatString, null, reportErrors);
           return true;
         }
@@ -1596,30 +1600,46 @@ namespace Microsoft.Dafny {
           }
         }
 
-        if (dp.UrAncestor(this) is DPreType {
-          Decl.Name: PreType.TypeNameSet or PreType.TypeNameIset or PreType.TypeNameSeq or PreType.TypeNameMultiset
-        } dpAncestor) {
-          hasCollectionType = true;
-          var elementType = dpAncestor.Arguments[0].Normalize();
-          dp = elementType as DPreType;
-          if (dp == null) {
-            // element type not yet known
-            Constraints.AddDefaultAdvice(elementType, CommonAdvice.Target.Object);
-            return false;
+        if (dp.UrAncestor(this) is DPreType dpAncestor) {
+          if (dpAncestor is {
+            Decl.Name: PreType.TypeNameSet or PreType.TypeNameIset or PreType.TypeNameSeq
+                or PreType.TypeNameMultiset
+          }) {
+            hasCollectionType = true;
+            var elementType = dpAncestor.Arguments[0].Normalize();
+            dp = elementType as DPreType;
+            if (dp == null) {
+              // element type not yet known
+              Constraints.AddDefaultAdvice(elementType, CommonAdvice.Target.Object);
+              return false;
+            }
+          }
+
+          if (SystemModuleManager.IsTupleTypeName(dpAncestor.Decl.Name) && dp.Arguments.Count == 2) {
+            var elementType = dpAncestor.Arguments[0].Normalize();
+            hasCollectionType = true;
+            dp = elementType as DPreType;
+            if (dp == null) {
+              // element type not yet known
+              Constraints.AddDefaultAdvice(elementType, CommonAdvice.Target.Object);
+              return false;
+            }
           }
         }
 
-        if (!DPreType.IsReferenceTypeDecl(dp.Decl) || (hasArrowType && !hasCollectionType)) {
+        if (!((DPreType.IsReferenceTypeDecl(dp.Decl) ||
+               DPreType.IsFieldLocationType(dp)) && (!hasArrowType || hasCollectionType))) {
           var expressionMustDenoteObject = "expression must denote an object";
-          var collection = "a set/iset/multiset/seq of objects";
+          var fieldLocation = ModuleResolver.SingleFieldLocation;
+          var collection = ModuleResolver.CollectionOfFieldLocations;
           var instead = "(instead got {0})";
           var errorMsgFormat = use switch {
             FrameExpressionUse.Reads =>
-              $"a reads-clause {expressionMustDenoteObject}, {collection}, or a function to {collection} {instead}",
+              $"a reads-clause {expressionMustDenoteObject}, {fieldLocation}, {collection}, or a function to {collection} {instead}",
             FrameExpressionUse.Modifies =>
-              $"a modifies-clause {expressionMustDenoteObject} or {collection} {instead}",
+              $"a modifies-clause {expressionMustDenoteObject}, {fieldLocation}, or {collection} {instead}",
             FrameExpressionUse.Unchanged =>
-              $"an unchanged {expressionMustDenoteObject} or {collection} {instead}",
+              $"an unchanged {expressionMustDenoteObject}, {fieldLocation}, or {collection} {instead}",
             _ => throw new ArgumentOutOfRangeException(nameof(use), use, null)
           };
           ReportError(fe.E.Origin, errorMsgFormat, fe.E.PreType);

@@ -89,6 +89,8 @@ TOKENS
   ORDINAL = "ORDINAL".
   object = "object". // Keeping object and object? as literals simplifies ident
   object_q = "object?".
+  field = "field".
+  locals = "locals".
   string = "string".
   set = "set".
   iset = "iset".
@@ -985,7 +987,7 @@ TypeIdentOptional<out SourceOrigin/*!*/ range, out Name/*!*/ identName, out Type
     [ ":"
       (. /* try to convert ty to an identifier */
          UserDefinedType udt = ty as UserDefinedType;
-         if (udt != null && udt.TypeArgs.Count == 0) {
+         if (udt != null && udt.TypeArgs.Count == 0 || ty is FieldType && !AcceptReferrers()) {
            nameToken = firstToken;
          } else {
            SemErr(ErrorId.p_datatype_formal_is_not_id, firstToken, "invalid formal-parameter name in datatype constructor");
@@ -1492,6 +1494,8 @@ TypeAndToken<out Token tok, out Type ty, bool inExpressionContext>
   | "int"                           (. tok = t; startToken = t; ty = new IntType(); ty.SetOrigin(t); .)
   | "nat"                           (. tok = t; startToken = t; ty = new UserDefinedType(tok, tok.val, null); .)
   | "real"                          (. tok = t; startToken = t; ty = new RealType(); ty.SetOrigin(t); .)
+  | IF(la.val == "field" && AcceptReferrers())
+    "field"                         (. tok = t; startToken = t; ty = new FieldType(); ty.SetOrigin(t); .)
   | "ORDINAL"                       (. tok = t; startToken = t; ty = new BigOrdinalType(); ty.SetOrigin(t); .)
   | bvToken                         (. tok = t; startToken = t;
                                        int w = StringToInt(tok.val.Substring(2), 0, "bitvectors that wide", startToken);
@@ -2112,13 +2116,27 @@ FrameExpression<out FrameExpression fe, bool allowLemma, bool allowLambda>
      string fieldName = null;
      IOrigin feTok = null;
      fe = dummyFrameExpr;
+     Token currentToken = la;
   .)
-  ( Expression<out e, allowLemma, allowLambda>   (. feTok = e.Origin; .)
-    [ FrameField<out id>        (. fieldName = id.val;  feTok = id; .)
+  ( FrameField<out id>          (. fieldName = id.val; .)
+      (. 
+         if (AcceptReferrers()) {
+           fe = new FrameExpression(id, new FieldLocationExpression(new ImplicitThisExpr(id), currentToken, new Name(t)), null);
+         } else {
+           fe = new FrameExpression(id, new ImplicitThisExpr(id), fieldName);
+         }
+      .)
+  | Expression<out e, allowLemma, allowLambda>   (. feTok = e.Origin; .)
+    [ 
+      FrameField<out id> 
+      (. 
+        if(AcceptReferrers()) {
+          throw new cce.UnreachableException();
+        }
+        fieldName = id.val;
+        feTok = id;
+      .)
     ]                           (. fe = new FrameExpression(feTok, e, fieldName); .)
-  |
-    FrameField<out id>          (. fieldName = id.val; .)
-                                (. fe = new FrameExpression(id, new ImplicitThisExpr(id), fieldName); .)
   )
   .
 
@@ -2589,7 +2607,7 @@ VarDeclStatement<.out Statement/*!*/ s.>
        } else if (rhss.Count == 0) {
          assignment = null;
        } else {
-         var updateOrigin = new SourceOrigin(assignTok, t);
+         var updateOrigin = new SourceOrigin(lhsExprs.First().StartToken, t, assignTok);
          assignment = new AssignStatement(updateOrigin, lhsExprs, rhss);
        }
        s = new VarDeclStmt(rangeToken, lhss, assignment);
@@ -3748,6 +3766,8 @@ ConstAtomExpression<out Expression e>
     "|"
   | "assigned"                                 (. x = t; .)
     "(" NameSegment<out e> ")"                 (. e = new UnaryOpExpr(x, UnaryOpExpr.Opcode.Assigned, e); .)
+  | IF(AcceptReferrersAndBacktick())           (. e = new ImplicitThisExpr(la); .)
+    FieldLocationSuffix<ref e>
   | ParensExpression<out e>
   ) (. if(x!= null) { e.SetOrigin(new SourceOrigin(x, t, e.Center)); } .)
   .
@@ -4309,11 +4329,15 @@ NameSegment<out Expression e>
       AtCall<out atLabel, out openParen, out args> ]
   )
   /* Note, since HashCall updates id.val, we make sure not to use id.val until after the possibility of calling HashCall. */
-  (. e = new NameSegment(new SourceOrigin(id, t), id.val, typeArgs);
-     if (openParen != null) {
-       e = new ApplySuffix(new SourceOrigin(id, t, openParen), atLabel, e, args, t);
-     } else {
-       Contract.Assert(atLabel == null);
+  (. if (AcceptReferrers() && id.val == "locals") {
+       e = new LocalsObjectExpression(id);
+     } else { 
+       e = new NameSegment(new SourceOrigin(id, t), id.val, typeArgs);
+       if (openParen != null) {
+         e = new ApplySuffix(new SourceOrigin(id, t, openParen), atLabel, e, args, t);
+       } else {
+         Contract.Assert(atLabel == null);
+       }
      }
   .)
   .
@@ -4321,7 +4345,7 @@ NameSegment<out Expression e>
 /*------------------------------------------------------------------------*/
 /* NameSegmentForTypeName is like the production NameSegment, except that it does not allow HashCall */
 NameSegmentForTypeName<out Expression e, bool inExpressionContext>
-= (. Token id;  List<Type> typeArgs; .)
+= (. Token id = la;  List<Type> typeArgs; .)
   Ident<out id>
   OptGenericInstantiation<out typeArgs, inExpressionContext>
   (. e = new NameSegment(new SourceOrigin(id, t, id), id.val, typeArgs);
@@ -4480,6 +4504,30 @@ Suffix<ref Expression e>
     [ ActualBindings<args> ]
     ")"                                    (. e = new ApplySuffix(new SourceOrigin(startToken, t, openParen), null, e, args, t);
                                            .)
+  | FieldLocationSuffix<ref e>
+  )
+  .
+
+FieldLocationSuffix<ref Expression e>
+= "`"                                    (. Token backtick = t; .)
+  ( IF(IsIdentifier(la.kind))            (. Name name = null; .)
+    NoDigitName<out name>
+    (.
+      e = new FieldLocationExpression(e, backtick, name);
+    .)
+  | "["               (. Token openParen = t;
+                         var multipleIndices = new List<Expression>();
+                         Expression ee = null; .)
+    Expression<out ee, true, true>         (. multipleIndices.Add(ee); .)
+    { "," Expression<out ee, true, true>   (. multipleIndices.Add(ee); .)
+    }
+    "]"               (. Token closeParen = t; .)
+    (.
+      if (!AcceptReferrers()) {
+        SemErr(ErrorId.p_needs_referrers, t, "To use array index locations, you need --referrers");
+      }
+      e = new IndexFieldLocationExpression(e, openParen, multipleIndices, closeParen);
+    .)
   )
   .
 
@@ -4667,7 +4715,8 @@ Ident<out Token/*!*/ x>
                  (. errors.Deprecated(ErrorId.p_deprecated_opaque_as_identifier, t, "opaque is deprecated as an identifier. It will soon become a reserved word. Use a different name."); .)
   | "hide"       (. t.kind = _ident; .) // convert it to an ident
   | "reveal"     (. t.kind = _ident; .) // convert it to an ident
-                 
+  | "field"      (. t.kind = _ident; .) // convert it to an ident
+  | "locals"     (. t.kind = _ident; .) // convert it to an ident
   )
   (. x = t; .)
   .

@@ -41,6 +41,7 @@ namespace Microsoft.Dafny {
     public const string TypeNameObjectQ = "object?";
     public const string TypeNameArray = "array";
     public const string TypeNameString = "string";
+    public const string TypeNameField = "field";
 
     public static string SetTypeName(bool finite) => finite ? TypeNameSet : TypeNameIset;
     public static string MapTypeName(bool finite) => finite ? TypeNameMap : TypeNameImap;
@@ -129,6 +130,9 @@ namespace Microsoft.Dafny {
     }
 
     public bool IsRefType => Normalize() is DPreType { Decl: ClassLikeDecl { IsReferenceTypeDecl: true } };
+
+    public bool IsFieldType =>
+      Normalize() is DPreType { Decl: Declaration { Name: TypeNameField } };
 
     /// <summary>
     /// Returns "true" if "proxy" is among the free variables of "this".
@@ -332,6 +336,12 @@ namespace Microsoft.Dafny {
     public static bool IsReferenceTypeDecl(TopLevelDecl decl) {
       Contract.Requires(decl != null);
       return decl is ClassLikeDecl { IsReferenceTypeDecl: true };
+    }
+
+    public static bool IsFieldLocationType(DPreType dp) {
+      return dp.Decl is TupleTypeDecl { Dims: 2 }
+             && dp.Arguments[0].Normalize().IsRefType
+             && dp.Arguments[1].Normalize().IsFieldType;
     }
 
     public static bool IsArrowType(TopLevelDecl decl) {

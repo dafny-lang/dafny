@@ -27,6 +27,9 @@ const unique TChar : Ty uses {
 const unique TInt  : Ty uses {
   axiom Tag(TInt) == TagInt;
 }
+const unique TField: Ty uses {
+  axiom Tag(TField) == TagField;
+}
 const unique TReal : Ty uses {
   axiom Tag(TReal) == TagReal;
 }
@@ -83,6 +86,7 @@ function Tag(Ty) : TyTag;
 const unique TagBool     : TyTag;
 const unique TagChar     : TyTag;
 const unique TagInt      : TyTag;
+const unique TagField    : TyTag;
 const unique TagReal     : TyTag;
 const unique TagORDINAL  : TyTag;
 const unique TagSet      : TyTag;
@@ -153,7 +157,26 @@ axiom (forall a: char, b: char ::
 // ---------------------------------------------------------------
 
 type ref;
+
 const null: ref;
+const locals: ref;
+
+type FieldFamily;
+const unique object_field: FieldFamily;
+
+// local_field keeps the information about the depth and the field family
+
+function field_depth(f: Field): int;
+function field_family(f: Field): FieldFamily;
+
+function local_field(ff: FieldFamily, depth: int): Field
+uses {
+  axiom (forall ff: FieldFamily, depth: int ::
+    {:trigger local_field(ff, depth)}
+    field_depth(local_field(ff, depth)) == depth
+    && field_family(local_field(ff, depth)) == ff
+  );
+}
 
 // ---------------------------------------------------------------
 // -- Boxing and unboxing ----------------------------------------
@@ -229,6 +252,7 @@ axiom(forall v : int  :: { $Is(v,TInt) }  $Is(v,TInt));
 axiom(forall v : real :: { $Is(v,TReal) } $Is(v,TReal));
 axiom(forall v : bool :: { $Is(v,TBool) } $Is(v,TBool));
 axiom(forall v : char :: { $Is(v,TChar) } $Is(v,TChar));
+axiom(forall v : Field :: { $Is(v,TField) } $Is(v,TField));
 axiom(forall v : ORDINAL :: { $Is(v,TORDINAL) } $Is(v,TORDINAL));
 
 // Since every bitvector type is a separate type in Boogie, the $Is/$IsAlloc axioms
@@ -553,6 +577,7 @@ axiom (forall h, k : Heap, bx : Box, t : Ty ::
 // No axioms for $Is and $IsBox since they don't talk about the heap.
 
 const unique alloc: Field;
+
 const unique allocName: NameFamily;
 
 // ---------------------------------------------------------------
@@ -646,7 +671,6 @@ procedure $IterCollectNewObjects(prevHeap: Heap, newHeap: Heap, this: ref, NW: F
 // ---------------------------------------------------------------
 // -- Axiomatization of sets -------------------------------------
 // ---------------------------------------------------------------
-
 
 
 type Set;
@@ -787,7 +811,6 @@ axiom (forall a: Set, b: Set ::
       { Set#IsMember(a, o) } { Set#IsMember(b, o) }
       !Set#IsMember(a, o) || !Set#IsMember(b, o)));
 
-
 // FIXME: Finite-set comprehensions are translated into Boogie lambda expressions for Boogie maps and then converted,
 // using function Set#FromBoogieMap, to a set. The use of Boogie lambda expressions is convenient, since Boogie
 // performs lambda lifting on them. However, this is NOT right, because it allows ANY lambda to be converted
@@ -871,7 +894,6 @@ axiom (forall a: ISet, b: ISet :: { ISet#Disjoint(a,b) }
 // ---------------------------------------------------------------
 
 
-
 function Math#min(a: int, b: int) : int;
 
 axiom (forall a: int, b: int :: { Math#min(a, b) } a <= b <==> Math#min(a, b) == a);
@@ -887,8 +909,6 @@ function Math#clip(a: int) : int;
 axiom (forall a: int :: { Math#clip(a) } 0 <= a ==> Math#clip(a) == a);
 
 axiom (forall a: int :: { Math#clip(a) } a < 0 ==> Math#clip(a) == 0);
-
-
 
 
 type MultiSet;
@@ -1102,11 +1122,9 @@ axiom (forall s: Seq, x: Box ::
       0 <= i && i < Seq#Length(s) && x == Seq#Index(s, i))
      <==> 0 < MultiSet#Multiplicity(MultiSet#FromSeq(s), x));
 
-
 // ---------------------------------------------------------------
 // -- Axiomatization of sequences --------------------------------
 // ---------------------------------------------------------------
-
 
 
 type Seq;
@@ -1292,7 +1310,6 @@ axiom (forall s: Seq, m: int, n: int ::
   { Seq#Drop(Seq#Drop(s, m), n) }
   0 <= m && 0 <= n && m + n <= Seq#Length(s)
      ==> Seq#Drop(Seq#Drop(s, m), n) == Seq#Drop(s, m + n));
-
 
 // The empty sequence $Is any type
 //axiom (forall t: Ty :: {$Is(Seq#Empty(): Seq, TSeq(t))} $Is(Seq#Empty(): Seq, TSeq(t)));
@@ -1677,4 +1694,3 @@ axiom (forall x, y, z: int ::
 #endif
 
 // -------------------------------------------------------------------------
-

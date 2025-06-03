@@ -3479,6 +3479,31 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
       }
     }
 
+    /** Takes a lambda like 'move |x: &T| Y' and makes it into a
+        Rc::new(move |x: &T| Y) as Rc<dyn Fn(&_) -> _> */
+    method LambdaWrapRc(rInput: R.Expr) returns (r: R.Expr)
+      requires rInput.Lambda?
+    {
+      var typeShapeArgs := [];
+      for i := 0 to |rInput.params| {
+        var typeShapeArg :=
+          if rInput.params[i].tpe.Borrowed? then
+            R.Borrowed(R.TIdentifier("_"))
+          else
+            R.TIdentifier("_");
+        typeShapeArgs := typeShapeArgs + [typeShapeArg];
+      }
+
+      var typeShape := R.DynType(R.FnType(typeShapeArgs, R.TIdentifier("_")));
+      if syncType.Sync? {
+        typeShape := R.IntersectionType(typeShape, SyncSendType);
+      }
+
+      r := R.TypeAscription(
+        rcNew(rInput),
+        rc(typeShape));
+    }
+
     method GenExpr(
       e: Expression,
       selfIdent: SelfInfo,
@@ -3698,9 +3723,10 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
           range := range.Apply1(
             rangeMap
           );
-          range := range.Sel("collect").ApplyType([
-                                                    R.dafny_runtime.MSel("Sequence").AsType().Apply([R.TIdentifier("_")])
-                                                  ]).Apply0();
+          range := range.Sel("collect").ApplyType(
+            [
+              R.dafny_runtime.MSel("Sequence").AsType().Apply([R.TIdentifier("_")])
+            ]).Apply0();
           r := R.Block(r.Then(range));
 
           readIdents := recIdents + lengthIdents;
@@ -3958,6 +3984,8 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
           }
           body := body.Apply(onExprArgs);
           r := R.Lambda(parameters, None, body);
+          // Rc::new(r) as Rc<dyn ::std::ops::Fn(&_, ... &_) -> _>
+          r := LambdaWrapRc(r);
           if isStatic {
             // Generates |x0: &tp0, ...xn: &tpn| on::field(x0, .... xn) (possibly with some .clone())
           } else {
@@ -3972,20 +4000,6 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
                 r));
           }
 
-          // as dyn ::std::ops::Fn(&_, ... &_) -> _
-          var typeShapeArgs := [];
-          for i := 0 to |arguments| {
-            typeShapeArgs := typeShapeArgs + [R.Borrowed(R.TIdentifier("_"))];
-          }
-
-          var typeShape := R.DynType(R.FnType(typeShapeArgs, R.TIdentifier("_")));
-          if syncType.Sync? {
-            typeShape := R.IntersectionType(typeShape, SyncSendType);
-          }
-
-          r := R.TypeAscription(
-            rcNew(r),
-            rc(typeShape));
           r, resultingOwnership := FromOwned(r, expectedOwnership);
           readIdents := recIdents;
           return;
@@ -4201,12 +4215,8 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
           }
 
           var retTypeGen := GenType(retType, GenTypeContext.default());
-          r := R.Block(
-            allReadCloned.Then(
-              rcNew(
-                R.Lambda(params, Some(retTypeGen), R.Block(recursiveGen))
-              )
-            ));
+          r := LambdaWrapRc(R.Lambda(params, Some(retTypeGen), R.Block(recursiveGen)));
+          r := R.Block(allReadCloned.Then(r));
           r, resultingOwnership := FromOwned(r, expectedOwnership);
           return;
         }

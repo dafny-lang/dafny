@@ -432,6 +432,15 @@ namespace Microsoft.Dafny {
           Type = decreasesToExpr.Type
         };
 
+      } else if (expr is FieldLocation fieldLocation) {
+        newExpr = null;
+      } else if (expr is IndexFieldLocation indexFieldLocation) {
+        var exprList = indexFieldLocation.Indices;
+        List<Expression> newArgs = SubstituteExprList(exprList);
+        var resolvedArrayCopy = Substitute(indexFieldLocation.ResolvedArrayCopy);
+        newExpr = new IndexFieldLocation(resolvedArrayCopy, indexFieldLocation.OpenParen, newArgs, indexFieldLocation.CloseParen);
+      } else if (expr is LocalsObjectExpression) {
+        newExpr = null;
       } else {
         Contract.Assume(false); // unexpected Expression
       }

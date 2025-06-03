@@ -35,7 +35,7 @@ public class SourceToBinary {
     if (errorReporter.HasErrors) {
       var errors = errorReporter.AllMessagesByLevel[ErrorLevel.Error];
       var exceptions = errors.Select(diagnostic =>
-        new Exception($"Parsing error: {errorReporter.FormatDiagnostic(diagnostic)}"));
+        new Exception($"Parsing error: {ErrorReporter.FormatDiagnostic(options, diagnostic)}"));
       throw new AggregateException($"{errors.Count} errors occurred during parsing", exceptions);
     }
 
