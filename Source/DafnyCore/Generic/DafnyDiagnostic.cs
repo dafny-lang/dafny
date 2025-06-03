@@ -1,11 +1,58 @@
 #nullable enable
 using System;
 using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using System.Reflection;
+using System.Resources;
+using System.Text.RegularExpressions;
+using Microsoft.Boogie;
 
 namespace Microsoft.Dafny;
 
-public record DafnyDiagnostic(MessageSource Source, string ErrorId, TokenRange Range, string Message, ErrorLevel Level,
+public record DafnyDiagnostic(MessageSource Source, string ErrorId, TokenRange Range, IReadOnlyList<string> MessageParts, ErrorLevel Level,
   IReadOnlyList<DafnyRelatedInformation> RelatedInformation) : IComparable<DafnyDiagnostic> {
+
+  public string Message => MessageFromParts(ErrorId, MessageParts);
+
+  private static readonly IDictionary<string, string> MessageIdToMessage = new Dictionary<string, string>();
+
+  static DafnyDiagnostic() {
+    InitializeMessageIdToMessage();
+  }
+
+  private static void InitializeMessageIdToMessage() {
+    var assembly = Assembly.GetExecutingAssembly();
+    using Stream stream = assembly.GetManifestResourceStream("DafnyCore.assets.messages.txt")!;
+    using StreamReader reader = new StreamReader(stream);
+    while (true) {
+      var line = reader.ReadLine();
+      if (line == null) {
+        break;
+      }
+      var split = line.Split("=");
+      MessageIdToMessage.Add(split[0], split[1]);
+    }
+  }
+
+  public static string MessageFromParts(string errorId, IReadOnlyList<object> messageParts) {
+    var formatMsg = GetFormatMsgAndRemainingParts(errorId, ref messageParts);
+    if (messageParts.Count > 0) {
+      return string.Format(formatMsg, messageParts.ToArray());
+    } else {
+      return formatMsg;
+    }
+  }
+
+  public static string GetFormatMsgAndRemainingParts(string errorId, ref IReadOnlyList<object> messageParts) {
+    if (string.IsNullOrEmpty(errorId) || !MessageIdToMessage.TryGetValue(errorId, out var formatMsg)) {
+      formatMsg = (string)messageParts.First();
+      messageParts = messageParts.Skip(1).ToList();
+    }
+
+    return formatMsg;
+  }
+
   public int CompareTo(DafnyDiagnostic? other) {
     if (other == null) {
       return 1;
