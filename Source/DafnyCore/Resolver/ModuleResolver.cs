@@ -2531,6 +2531,8 @@ namespace Microsoft.Dafny {
 
             CheckOverride_FunctionParameters(classFunction, traitFunction, cl.ParentFormalTypeParametersToActuals);
 
+          } else if (traitMember is Constructor) {
+            throw new Exception("traits can not contain constructors");
           } else {
             Contract.Assert(false); // unexpected member
           }
