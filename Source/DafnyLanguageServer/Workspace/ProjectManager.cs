@@ -299,11 +299,15 @@ Determine when to automatically verify the program. Choose from: Never, OnChange
     var compilation = Compilation;
     var resolution = await compilation.Resolution;
 
+    if (resolution?.CanVerifies == null) {
+      return;
+    }
+
     IReadOnlyList<ICanVerify> canVerifies;
-    if (uri != null && resolution?.CanVerifies != null && resolution.CanVerifies.TryGetValue(uri, out var tree)) {
+    if (uri != null && resolution.CanVerifies.TryGetValue(uri, out var tree)) {
       canVerifies = tree.Values.ToList();
     } else {
-      return;
+      canVerifies = resolution.CanVerifies.Values.SelectMany(t => t.Values).ToList();
     }
 
     List<FilePosition> changedVerifiables;

@@ -72,9 +72,10 @@ namespace Microsoft.Dafny {
                   v.ShouldVerify).ToList()) {
           var forUri =
             verifiables.GetOrCreate(canVerify.Origin.Uri, () => new IntervalTree<DafnyPosition, ICanVerify>());
+          var range = canVerify.ReportingRange.ToDafnyRange();
           forUri.Add(
-            canVerify.ReportingRange.StartToken.ToDafnyPosition(),
-            canVerify.ReportingRange.EndToken.ToDafnyPosition(),
+            range.Start,
+            range.ExclusiveEnd,
             canVerify);
         }
       }

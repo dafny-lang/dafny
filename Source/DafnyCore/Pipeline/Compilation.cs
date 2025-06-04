@@ -320,7 +320,7 @@ public class Compilation : IDisposable {
   private static ICanVerify? GetCanVerify(
     FilePosition verifiableLocation,
     ResolutionResult resolution) {
-    if (resolution.CanVerifies.TryGetValue(verifiableLocation.Uri, out var canVerifyForUri)) {
+    if (resolution.CanVerifies?.TryGetValue(verifiableLocation.Uri, out var canVerifyForUri) == true) {
       var canVerifies = canVerifyForUri.Query(verifiableLocation.Position.ToDafnyPosition());
       return canVerifies.FirstOrDefault();
     }
