@@ -298,13 +298,12 @@ Determine when to automatically verify the program. Choose from: Never, OnChange
   public async Task VerifyEverythingAsync(Uri? uri) {
     var compilation = Compilation;
     var resolution = await compilation.Resolution;
-    var canVerifies = resolution?.CanVerifies?.ToList();
-    if (canVerifies == null) {
-      return;
-    }
 
-    if (uri != null) {
-      canVerifies = canVerifies.Where(d => d.Origin.Uri == uri).ToList();
+    IReadOnlyList<ICanVerify> canVerifies;
+    if (uri != null && resolution?.CanVerifies != null && resolution.CanVerifies.TryGetValue(uri, out var tree)) {
+      canVerifies = tree.Values.ToList();
+    } else {
+      return;
     }
 
     List<FilePosition> changedVerifiables;
