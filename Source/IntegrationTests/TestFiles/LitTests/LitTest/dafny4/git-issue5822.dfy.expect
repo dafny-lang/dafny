@@ -1,0 +1,7 @@
+git-issue5822.dfy(7,26): Error: insufficient reads clause to read field; Consider adding 'reads this' or 'reads this`x' in the enclosing function specification for resolution
+   |
+ 7 |         ensures Test() == x
+   |                           ^
+ 
+ 
+ Dafny program verifier finished with 1 verified, 1 error
