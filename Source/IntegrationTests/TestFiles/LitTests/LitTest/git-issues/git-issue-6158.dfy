@@ -1,5 +1,7 @@
-// RUN: %verify "%s" > "%t"
+// RUN: ! %verify "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
+
+// ---> This now does NOT verify, as intended
 
 // WISH: The following example should NOT verify.
 
