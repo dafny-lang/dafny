@@ -308,22 +308,24 @@ public class Compilation : IDisposable {
       return false;
     }
 
-    var canVerify = resolution.ResolvedProgram.FindNode(verifiableLocation.Uri, verifiableLocation.Position.ToDafnyPosition(),
-      node => {
-        if (node is not ICanVerify) {
-          return false;
-        }
-        // Sometimes traversing the AST can return different versions of a single source AST node,
-        // for example in the case of a LeastLemma, which is later also represented as a PrefixLemma.
-        // This check ensures that we consistently use the same version of an AST node. 
-        return resolution.CanVerifies!.Contains(node);
-      }) as ICanVerify;
+    var canVerify = GetCanVerify(verifiableLocation, resolution);
 
     if (canVerify == null) {
       return false;
     }
 
     return await VerifyCanVerify(canVerify, taskFilter ?? (_ => true), randomSeed, onlyPrepareVerificationForGutterTests);
+  }
+
+  private static ICanVerify? GetCanVerify(
+    FilePosition verifiableLocation,
+    ResolutionResult resolution) {
+    if (resolution.CanVerifies?.TryGetValue(verifiableLocation.Uri, out var canVerifyForUri) == true) {
+      var canVerifies = canVerifyForUri.Query(verifiableLocation.Position.ToDafnyPosition());
+      return canVerifies.FirstOrDefault();
+    }
+
+    return null;
   }
 
   private async Task<bool> VerifyCanVerify(ICanVerify canVerify, Func<IVerificationTask, bool> taskFilter,
@@ -489,7 +491,7 @@ public class Compilation : IDisposable {
       return;
     }
 
-    var canVerify = resolution.ResolvedProgram.FindNode<ICanVerify>(filePosition.Uri, filePosition.Position.ToDafnyPosition());
+    var canVerify = GetCanVerify(filePosition, resolution);
     if (canVerify != null) {
       var implementations = tasksPerVerifiable.TryGetValue(canVerify, out var implementationsPerName)
         ? implementationsPerName! : Enumerable.Empty<IVerificationTask>();
