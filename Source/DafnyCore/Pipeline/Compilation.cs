@@ -308,24 +308,24 @@ public class Compilation : IDisposable {
       return false;
     }
 
-    var canVerify = GetCanVerify(verifiableLocation, resolution);
+    var canVerifies = GetCanVerify(verifiableLocation, resolution);
 
-    if (canVerify == null) {
-      return false;
+    var shouldVerify = false;
+    foreach (var canVerify in canVerifies) {
+      shouldVerify |= await VerifyCanVerify(canVerify, taskFilter ?? (_ => true), randomSeed, onlyPrepareVerificationForGutterTests);
     }
-
-    return await VerifyCanVerify(canVerify, taskFilter ?? (_ => true), randomSeed, onlyPrepareVerificationForGutterTests);
+    return shouldVerify;
   }
 
-  private static ICanVerify? GetCanVerify(
+  private static IEnumerable<ICanVerify> GetCanVerify(
     FilePosition verifiableLocation,
     ResolutionResult resolution) {
     if (resolution.CanVerifies?.TryGetValue(verifiableLocation.Uri, out var canVerifyForUri) == true) {
       var canVerifies = canVerifyForUri.Query(verifiableLocation.Position.ToDafnyPosition());
-      return canVerifies.FirstOrDefault();
+      return canVerifies;
     }
 
-    return null;
+    return [];
   }
 
   private async Task<bool> VerifyCanVerify(ICanVerify canVerify, Func<IVerificationTask, bool> taskFilter,
@@ -491,8 +491,8 @@ public class Compilation : IDisposable {
       return;
     }
 
-    var canVerify = GetCanVerify(filePosition, resolution);
-    if (canVerify != null) {
+    var canVerifies = GetCanVerify(filePosition, resolution);
+    foreach (var canVerify in canVerifies) {
       var implementations = tasksPerVerifiable.TryGetValue(canVerify, out var implementationsPerName)
         ? implementationsPerName! : Enumerable.Empty<IVerificationTask>();
       foreach (var view in implementations) {
