@@ -105,6 +105,6 @@ public class TokenRange(Token startToken, Token? endToken) : IComparable<TokenRa
   }
 
   public override string ToString() {
-    return $"[{StartToken}, {EndToken}]";
+    return $"{StartToken.filename}({StartToken.PrintPosition()}-{EndToken.PrintPosition()})";
   }
 }

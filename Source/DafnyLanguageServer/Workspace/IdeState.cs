@@ -309,8 +309,8 @@ public record IdeState(
 
     var verificationResults = finishedResolution.Result.CanVerifies == null
       ? previousState.CanVerifyStates
-      : finishedResolution.Result.CanVerifies.GroupBy(l => l.NavigationRange.Uri).ToImmutableDictionary(k => k.Key,
-        k => k.GroupBy<ICanVerify, Range>(l => l.NavigationRange.ToLspRange()).ToImmutableDictionary(
+      : finishedResolution.Result.CanVerifies.ToImmutableDictionary(k => k.Key,
+        k => k.Value.Values.GroupBy<ICanVerify, Range>(l => l.NavigationRange.ToLspRange()).ToImmutableDictionary(
           l => l.Key,
           l => MergeResults(l.Select(canVerify => MergeVerifiable(previousState, canVerify)))));
     var signatureAndCompletionTable = legacySignatureAndCompletionTable.Resolved
