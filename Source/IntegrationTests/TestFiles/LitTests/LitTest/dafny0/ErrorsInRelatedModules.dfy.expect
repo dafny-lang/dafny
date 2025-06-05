@@ -10,6 +10,4 @@ ErrorsInRelatedModules.dfy(138,20): Error: boolean literal used as if it had typ
 ErrorsInRelatedModules.dfy(151,8): Error: duplicate name of top-level declaration: EverythingHasTheSameName
 ErrorsInRelatedModules.dfy(150,8): Related location
 ErrorsInRelatedModules.dfy(152,11): Error: duplicate name of top-level declaration: EverythingHasTheSameName
-ErrorsInRelatedModules.dfy(150,8): Related location
-ErrorsInRelatedModules.dfy(151,8): Error: a module that already contains a top-level declaration 'EverythingHasTheSameName?' is not allowed to declare a reference type (class) 'EverythingHasTheSameName'
-12 resolution/type errors detected in ErrorsInRelatedModules.dfy
+11 resolution/type errors detected in ErrorsInRelatedModules.dfy

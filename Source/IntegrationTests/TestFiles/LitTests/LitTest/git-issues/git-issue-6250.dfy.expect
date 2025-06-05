@@ -1,0 +1,5 @@
+git-issue-6250.dfy(6,6): Error: duplicate name of top-level declaration: Stack
+git-issue-6250.dfy(3,6): Related location
+git-issue-6250.dfy(3,6): Error: Type or type parameter is not declared in this scope: Stack? (did you forget to qualify a name or declare a module import 'opened'?) (note that names in outer modules are not visible in contained modules)
+git-issue-6250.dfy(6,6): Error: Type or type parameter is not declared in this scope: Stack? (did you forget to qualify a name or declare a module import 'opened'?) (note that names in outer modules are not visible in contained modules)
+3 resolution/type errors detected in git-issue-6250.dfy

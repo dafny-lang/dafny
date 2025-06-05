@@ -21,6 +21,8 @@ ResolutionErrors6.dfy(199,11): Error: duplicate name of top-level declaration: G
 ResolutionErrors6.dfy(202,10): Related location
 ResolutionErrors6.dfy(205,11): Error: duplicate name of top-level declaration: H
 ResolutionErrors6.dfy(203,10): Related location
+ResolutionErrors6.dfy(202,10): Error: Type or type parameter is not declared in this scope: G? (did you forget to qualify a name or declare a module import 'opened'?) (note that names in outer modules are not visible in contained modules)
+ResolutionErrors6.dfy(203,10): Error: Type or type parameter is not declared in this scope: H? (did you forget to qualify a name or declare a module import 'opened'?) (note that names in outer modules are not visible in contained modules)
 ResolutionErrors6.dfy(221,4): Error: ghost variables such as y are allowed only in specification contexts. y was inferred to be ghost based on its declaration or initialization.
 ResolutionErrors6.dfy(223,20): Error: ghost variables such as y are allowed only in specification contexts. y was inferred to be ghost based on its declaration or initialization.
 ResolutionErrors6.dfy(232,6): Error: ghost variables such as i are allowed only in specification contexts. i was inferred to be ghost based on its declaration or initialization.
@@ -46,4 +48,4 @@ ResolutionErrors6.dfy(372,5): Error: type parameter (G) passed to method P must 
 ResolutionErrors6.dfy(381,11): Error: type parameter (F) passed to function FQ must support auto-initialization (got Y) (perhaps try declaring type parameter 'Y' on line 376 as 'Y(0)', which says it can only be instantiated with a type that supports auto-initialization)
 ResolutionErrors6.dfy(384,11): Error: type parameter (F) passed to function FQ must support auto-initialization (got Z) (perhaps try declaring type parameter 'Z' on line 376 as 'Z(0)', which says it can only be instantiated with a type that supports auto-initialization)
 ResolutionErrors6.dfy(385,11): Error: type parameter (G) passed to function FP must be nonempty (got Z) (perhaps try declaring type parameter 'Z' on line 376 as 'Z(00)', which says it can only be instantiated with a nonempty type)
-44 resolution/type errors detected in ResolutionErrors6.dfy
+46 resolution/type errors detected in ResolutionErrors6.dfy
