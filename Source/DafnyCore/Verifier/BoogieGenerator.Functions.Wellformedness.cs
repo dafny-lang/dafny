@@ -192,7 +192,7 @@ public partial class BoogieGenerator {
       //     // fall through to check the postconditions themselves
       //   }
       // Here go the postconditions (termination checks included)
-      // We perform reads checks only for bodyless functions
+      // We perform reads checks only for bodiless functions
       var emptyBody = f.Body == null || !generator.RevealedInScope(f);
       var doReadsChecks = emptyBody && etran.readsFrame != null;
       var postCheckBuilder = GetPostCheckBuilder(f, etran, locals, doReadsChecks);
