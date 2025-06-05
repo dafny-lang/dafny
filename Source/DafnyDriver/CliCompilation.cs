@@ -158,9 +158,30 @@ public class CliCompilation {
         "the option unicode-char has been deprecated.");
     }
 
+    var resolution = await Compilation.Resolution;
+    if (resolution == null || resolution.HasErrors) {
+      yield break;
+    }
+
+    if (resolution.CanVerifies == null) {
+      yield break;
+    }
+    
+    var canVerifies = FilterCanVerifies(resolution.CanVerifies, out var filterRange);
+    VerifiedAssertions = filterRange.Filters;
+
     var canVerifyResults = new Dictionary<ICanVerify, CliCanVerifyState>();
+    Func<IVerificationTask, bool>? taskFilter = VerifiedAssertions ? t => KeepVerificationTask(t, filterRange) : null;
+
     using var subscription = Compilation.Updates.Subscribe(ev => {
 
+      if (ev is ScheduledVerification scheduledVerification) {
+        var results = new CliCanVerifyState();
+        if (VerifiedAssertions) {
+          results.TaskFilter = t => KeepVerificationTask(t, filterRange);
+        }
+        canVerifyResults[scheduledVerification.CanVerify] = results;
+      }
       if (ev is CanVerifyPartsIdentified canVerifyPartsIdentified) {
         var canVerifyResult = canVerifyResults[canVerifyPartsIdentified.CanVerify];
         foreach (var part in canVerifyPartsIdentified.Parts.Where(canVerifyResult.TaskFilter)) {
@@ -230,19 +251,7 @@ public class CliCompilation {
       }
     });
 
-    var resolution = await Compilation.Resolution;
-    if (resolution == null || resolution.HasErrors) {
-      yield break;
-    }
-
-    if (resolution.CanVerifies == null) {
-      yield break;
-    }
-
     DidVerification = true;
-
-    var canVerifies = FilterCanVerifies(resolution.CanVerifies, out var filterRange);
-    VerifiedAssertions = filterRange.Filters;
 
     int done = 0;
 
@@ -251,15 +260,9 @@ public class CliCompilation {
                OrderBy(v => v.Key.Origin.pos)) {
       var toAwait = new List<ICanVerify>();
       foreach (var canVerify in canVerifiesForModule.OrderBy(v => v.Origin.pos)) {
-        var results = new CliCanVerifyState();
-        canVerifyResults[canVerify] = results;
-        if (VerifiedAssertions) {
-          results.TaskFilter = t => KeepVerificationTask(t, filterRange);
-        }
-
-        var shouldVerify = await Compilation.VerifyLocation(canVerify.Origin.GetFilePosition(), results.TaskFilter, randomSeed);
-        if (shouldVerify) {
-          toAwait.Add(canVerify);
+        var beingVerified = await Compilation.VerifyLocation(canVerify.Origin.GetFilePosition(), taskFilter, randomSeed);
+        foreach (var shouldVerify in beingVerified) {
+          toAwait.Add(shouldVerify);
         }
       }
 

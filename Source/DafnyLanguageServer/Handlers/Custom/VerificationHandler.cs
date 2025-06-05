@@ -31,7 +31,8 @@ public class VerificationHandler : IJsonRpcRequestHandler<VerificationParams, bo
       return false;
     }
 
-    return await projectManager.Compilation.VerifyLocation(new FilePosition(request.TextDocument.Uri.ToUri(), request.Position));
+    await projectManager.Compilation.VerifyLocation(new FilePosition(request.TextDocument.Uri.ToUri(), request.Position));
+    return true;
   }
 
   public async Task<bool> Handle(CancelVerificationParams request, CancellationToken cancellationToken) {

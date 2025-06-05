@@ -298,31 +298,35 @@ public class Compilation : IDisposable {
 
   // When verifying a symbol, a ticket must be acquired before the SMT part of verification may start.
   private readonly AsyncQueue<Unit> verificationTickets = new();
-  public async Task<bool> VerifyLocation(FilePosition verifiableLocation, Func<IVerificationTask, bool>? taskFilter = null,
+  public async Task<IEnumerable<ICanVerify>> VerifyLocation(FilePosition verifiableLocation, Func<IVerificationTask, bool>? taskFilter = null,
     int? randomSeed = null,
     bool onlyPrepareVerificationForGutterTests = false) {
     cancellationSource.Token.ThrowIfCancellationRequested();
 
     var resolution = await Resolution;
     if (resolution == null || resolution.HasErrors) {
-      return false;
+      return [];
     }
 
     var canVerifies = GetCanVerify(verifiableLocation, resolution);
 
-    var shouldVerify = false;
+    var results = new List<ICanVerify>();
     foreach (var canVerify in canVerifies) {
-      shouldVerify |= await VerifyCanVerify(canVerify, taskFilter ?? (_ => true), randomSeed, onlyPrepareVerificationForGutterTests);
+      bool isVerifying = await VerifyCanVerify(canVerify, taskFilter ?? (_ => true), randomSeed,
+        onlyPrepareVerificationForGutterTests);
+      if (isVerifying) {
+        results.Add(canVerify);
+      }
     }
-    return shouldVerify;
+
+    return results;
   }
 
   private static IEnumerable<ICanVerify> GetCanVerify(
     FilePosition verifiableLocation,
     ResolutionResult resolution) {
     if (resolution.CanVerifies?.TryGetValue(verifiableLocation.Uri, out var canVerifyForUri) == true) {
-      var canVerifies = canVerifyForUri.Query(verifiableLocation.Position.ToDafnyPosition());
-      return canVerifies;
+      return canVerifyForUri.Query(verifiableLocation.Position.ToDafnyPosition());
     }
 
     return [];
