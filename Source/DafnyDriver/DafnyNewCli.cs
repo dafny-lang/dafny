@@ -47,6 +47,7 @@ public static class DafnyNewCli {
     AddCommand(CoverageReportCommand.Create());
     AddCommand(DocumentationCommand.Create());
     AddCommand(ExtractCommand.Create());
+    AddCommand(ResourceCommand.Create());
 
     OptionRegistry.CheckOptionsAreKnown(AllOptions);
 
