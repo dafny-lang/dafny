@@ -739,8 +739,9 @@ Generate module names in the older A_mB_mC style instead of the current A.B.C sc
       TopLevelDecl? registerThisDecl = null;
       var registerUnderThisName = d.Name;
       var duplicateName = duplicateNames.Contains(registerUnderThisName);
+      INode? existingTopLevel = null;
       if (d is ModuleExportDecl export) {
-        if (!duplicateName && !sig.ExportSets.TryAdd(registerUnderThisName, export)) {
+        if (duplicateName || !sig.ExportSets.TryAdd(registerUnderThisName, export)) {
           duplicateName = true;
           resolver.reporter.Error(MessageSource.Resolver, d, "duplicate name of export set: {0}", registerUnderThisName);
         }
@@ -749,10 +750,10 @@ Generate module names in the older A_mB_mC style instead of the current A.B.C sc
         registerThisDecl = d;
         registerUnderThisName = $"{d.Name}#{anonymousImportCount}";
         anonymousImportCount++;
-      } else if (!duplicateName && toplevels.TryGetValue(d.Name, out var existingTopLevel)) {
+      } else if (duplicateName || toplevels.TryGetValue(d.Name, out existingTopLevel)) {
         duplicateName = true;
-        resolver.reporter.Error(MessageSource.Resolver, new NestedOrigin(d.Origin, existingTopLevel.Origin),
-          "duplicate name of top-level declaration: {0}", d.Name);
+        var origin = existingTopLevel != null ? new NestedOrigin(d.Origin, existingTopLevel.Origin) : d.Origin;
+        resolver.reporter.Error(MessageSource.Resolver, origin, "duplicate name of top-level declaration: {0}", d.Name);
       } else if (d is ClassLikeDecl { NonNullTypeDecl: { } nntd }) {
         registerThisDecl = nntd;
       } else {

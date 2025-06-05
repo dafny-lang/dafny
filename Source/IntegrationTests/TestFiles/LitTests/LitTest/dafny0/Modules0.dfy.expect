@@ -4,16 +4,14 @@ Modules0.dfy(337,2): Warning: module-level const declarations are always non-ins
 Modules0.dfy(8,8): Error: duplicate name of top-level declaration: WazzupA
 Modules0.dfy(7,8): Related location
 Modules0.dfy(9,11): Error: duplicate name of top-level declaration: WazzupA
-Modules0.dfy(7,8): Related location
 Modules0.dfy(10,7): Error: duplicate name of top-level declaration: WazzupA
-Modules0.dfy(7,8): Related location
 Modules0.dfy(13,7): Error: duplicate name of top-level declaration: WazzupB
 Modules0.dfy(12,7): Related location
 Modules0.dfy(14,8): Error: duplicate name of top-level declaration: WazzupB
-Modules0.dfy(12,7): Related location
 Modules0.dfy(15,11): Error: duplicate name of top-level declaration: WazzupB
-Modules0.dfy(12,7): Related location
-Modules0.dfy(8,8): Error: a module that already contains a top-level declaration 'WazzupA?' is not allowed to declare a reference type (class) 'WazzupA'
+Modules0.dfy(7,8): Error: Type or type parameter is not declared in this scope: WazzupA? (did you forget to qualify a name or declare a module import 'opened'?) (note that names in outer modules are not visible in contained modules)
+Modules0.dfy(8,8): Error: Type or type parameter is not declared in this scope: WazzupA? (did you forget to qualify a name or declare a module import 'opened'?) (note that names in outer modules are not visible in contained modules)
+Modules0.dfy(14,8): Error: Type or type parameter is not declared in this scope: WazzupB? (did you forget to qualify a name or declare a module import 'opened'?) (note that names in outer modules are not visible in contained modules)
 Modules0.dfy(39,8): Error: class 'X' with fields without known initializers, like 't' of type 'MM.T', must declare a constructor
 Modules0.dfy(56,21): Error: Type or type parameter is not declared in this scope: MyClass1 (did you forget to qualify a name or declare a module import 'opened'?) (note that names in outer modules are not visible in contained modules)
 Modules0.dfy(57,21): Error: Type or type parameter is not declared in this scope: MyClass2 (did you forget to qualify a name or declare a module import 'opened'?) (note that names in outer modules are not visible in contained modules)
@@ -41,4 +39,4 @@ Modules0.dfy(323,13): Error: new can be applied only to class types (got Q_Imp.L
 Modules0.dfy(324,23): Error: member 'Create' does not exist in class 'Klassy'
 Modules0.dfy(318,13): Error: arguments must have comparable types (got Q_Imp.Node and Node)
 Modules0.dfy(349,11): Error: a datatype declaration (T) in a refinement module can only refine a datatype declaration or replace an abstract type declaration
-34 resolution/type errors detected in Modules0.dfy
+36 resolution/type errors detected in Modules0.dfy
