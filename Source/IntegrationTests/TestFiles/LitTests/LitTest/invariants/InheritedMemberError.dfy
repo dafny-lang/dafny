@@ -1,8 +1,10 @@
-// RUN: %resolve --type-system-refresh "%s" > "%t"
+// RUN: %exits-with 2 %resolve --type-system-refresh "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 include "Baseline.dfy"
 
-class Node<A>... {
-  invariant y >= 0 // resolution error
+module InheritedMemberError refines Baseline {
+  class Node<A>... {
+    invariant y >= 0 // resolution error
+  }
 }
