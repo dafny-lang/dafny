@@ -1,4 +1,4 @@
-// RUN: %testDafnyForEachResolver "%s"
+// RUN: ! %testDafnyForEachResolver "%s"
 
 module Issue5822 {
     trait A {
