@@ -1,4 +1,4 @@
-// RUN: %exits-with 4 %verify --show-hints "%s" > "%t"
+// RUN: %verify --show-hints "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 ghost predicate P(i: int)
@@ -9,15 +9,15 @@ ghost predicate Q(i: int)
 
 lemma exists_0()
   requires P(0)
-  ensures exists i {:split false} :: P(i) || (Q(i) ==> P(i+1)) {
-    // Fails: P(i) is not a trigger
+  ensures exists i {:split false} :: P(i) || (Q(i) ==> P(i+1))
+{ // Even without a split, one can obtain P(i), because the tmp==i+1 constraint applies only if Q(i)
 }
 
 lemma forall_0(i: int)
-  requires forall j {:split false} :: j >= 0 ==> (P(j) && (Q(j) ==> P(j+1)))
-  requires i >= 0
-  ensures P(i) {
-    // Fails: P(i) is not a trigger
+  requires forall j {:split false} :: 0 <= j ==> P(j) && (Q(j) ==> P(j+1))
+  requires 0 <= i
+  ensures P(i)
+{ // Even without a split, one can obtain P(i), because the tmp==i+1 constraint applies only if Q(i)
 }
 
 

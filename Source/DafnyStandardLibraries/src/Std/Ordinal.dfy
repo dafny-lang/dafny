@@ -119,7 +119,7 @@ module Std.Ordinal {
     else a
   }
 
-  lemma RadixStrictlyIncreasing(base: ORDINAL, a: ORDINAL, a': ORDINAL, b: ORDINAL)
+  lemma {:induction false} RadixStrictlyIncreasing(base: ORDINAL, a: ORDINAL, a': ORDINAL, b: ORDINAL)
     requires a < a'
     requires b < base
     ensures Times(base, a) + b < Times(base, a')
