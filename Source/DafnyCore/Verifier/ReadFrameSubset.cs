@@ -31,7 +31,7 @@ public class ReadFrameSubset : ProofObligationDescription {
       if (scope is ClassLikeDecl) {
         message = "invariant can only read 'this'";
         if (readExpression is MemberSelectExpr { MemberName: var member }) {
-          message += " and cannot {0}`{1}";
+          message += " and therefore cannot read {0}`{1}";
           parts.Add(obj);
           parts.Add(member);
         }
