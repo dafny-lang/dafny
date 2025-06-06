@@ -364,6 +364,12 @@ Use the `{:contradiction}` attribute to mark any `assert` statement intended to 
     "Include the Dafny runtime as source in the target language.") {
     IsHidden = true
   };
+  
+  // TODO is this a good message?
+  public static readonly Option<bool> VerifyInvariants = new("--verify-invariants", () => false,
+    "Enable verification of class invariants.") {
+    IsHidden = true
+  };
 
   public enum SystemModuleMode {
     Include,
@@ -703,6 +709,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
     OptionRegistry.RegisterOption(WaitForDebugger, OptionScope.Cli);
     OptionRegistry.RegisterOption(IgnoreIndentation, OptionScope.Cli);
     OptionRegistry.RegisterOption(CheckSourceLocationConsistency, OptionScope.Cli);
+    OptionRegistry.RegisterOption(VerifyInvariants, OptionScope.Cli);
   }
 }
 

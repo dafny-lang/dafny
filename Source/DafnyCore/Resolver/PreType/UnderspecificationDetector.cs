@@ -106,6 +106,13 @@ namespace Microsoft.Dafny {
         } else if (d is TopLevelDeclWithMembers md) {
           CheckMembers(md);
         }
+        
+        // Complete resolution of class/trait invariants
+        if (d is ClassLikeDecl c) {
+          foreach (var invariant in c.Invariants) {
+            CheckAttributedExpression(invariant, context);
+          }
+        }
       }
     }
 

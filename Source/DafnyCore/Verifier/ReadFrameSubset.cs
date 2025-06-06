@@ -27,8 +27,18 @@ public class ReadFrameSubset : ProofObligationDescription {
         obj = Printer.ExprToString(DafnyOptions.DefaultImmutableOptions, m.Array,
           new PrintFlags(UseOriginalDafnyNames: true));
       }
-
-      if (scope is Function { CoClusterTarget: var x } && x != Function.CoCallClusterInvolvement.None) {
+      // TODO is this a good error message for invariants?
+      if (scope is ClassLikeDecl) {
+        message = "invariant can only read 'this'";
+        if (readExpression is MemberSelectExpr { MemberName: var member }) {
+          message += " and therefore cannot read {0}`{1}";
+          parts.Add(obj);
+          parts.Add(member);
+        }
+        parts.Insert(0, message);
+        return parts;
+      }
+      else if (scope is Function { CoClusterTarget: var x } && x != Function.CoCallClusterInvolvement.None) {
       } else {
         message += "; Consider ";
 

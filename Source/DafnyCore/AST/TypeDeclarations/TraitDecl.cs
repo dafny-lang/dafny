@@ -31,8 +31,8 @@ public class TraitDecl : ClassLikeDecl {
   /// </summary>
   [SyntaxConstructor]
   public TraitDecl(IOrigin origin, Name nameNode, ModuleDefinition enclosingModuleDefinition,
-    List<TypeParameter> typeArgs, [Captured] List<MemberDecl> members, Attributes? attributes, bool isRefining, List<Type> traits)
-    : base(origin, nameNode, attributes, typeArgs, enclosingModuleDefinition, members, traits) {
+    List<TypeParameter> typeArgs, [Captured] List<MemberDecl> members, Attributes? attributes, bool isRefining, List<Type> traits, List<AttributedExpression> invariants)
+    : base(origin, nameNode, attributes, typeArgs, enclosingModuleDefinition, members, traits, invariants) {
     IsRefining = isRefining;
   }
 
