@@ -7,16 +7,6 @@ using VCGeneration;
 
 namespace Microsoft.Dafny;
 
-
-[SyntaxBaseType(typeof(IOrigin))]
-class GeneratedOrigin : OriginWrapper {
-  private string suffix;
-
-  public GeneratedOrigin(IOrigin wrappedOrigin, string suffix) : base(wrappedOrigin) {
-    this.suffix = suffix;
-  }
-}
-
 [method: SyntaxConstructor]
 [SyntaxBaseType(typeof(IOrigin))]
 public class SourceOrigin(TokenRange entireRange, TokenRange? reportingRange = null)
