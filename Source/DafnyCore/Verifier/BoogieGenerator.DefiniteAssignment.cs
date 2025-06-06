@@ -107,6 +107,10 @@ namespace Microsoft.Dafny {
       }
     }
 
+    internal CanVerifyOrigin GetToken(ICanVerify node) {
+      return new CanVerifyOrigin(node);
+    }
+    
     internal IOrigin GetToken(INode node) {
       return node.Origin.EntireRange == null ? new WithRange(node.Origin, node.EntireRange) : node.Origin;
     }
