@@ -67,9 +67,10 @@ namespace Microsoft.Dafny {
         verifiables = new Dictionary<Uri, IIntervalTree<DafnyPosition, ICanVerify>>();
         foreach (var canVerify in symbols.OfType<ICanVerify>().Where(v =>
                    !v.Origin.IsCopy &&
+                   v.ShouldVerify &&
                   v.ContainingModule.ShouldVerify(program.Compilation) &&
-                  v.ShouldVerify(program.Compilation) &&
-                  v.ShouldVerify).ToList()) {
+                  v.ShouldVerify(program.Compilation)
+                  ).ToList()) {
           var forUri =
             verifiables.GetOrCreate(canVerify.Origin.Uri, () => new IntervalTree<DafnyPosition, ICanVerify>());
           var range = canVerify.ReportingRange.ToDafnyRange();

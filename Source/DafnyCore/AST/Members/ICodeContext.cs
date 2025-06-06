@@ -150,7 +150,7 @@ public class NoContext : ICodeContext {
   public bool AllowsAllocation => true;
 }
 
-public interface RedirectingTypeDecl : ICallable {
+public interface RedirectingTypeDecl : ICallable, ICanVerify {
   string Name { get; }
 
   string FullDafnyName { get; }
