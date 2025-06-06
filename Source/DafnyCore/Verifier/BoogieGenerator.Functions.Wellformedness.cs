@@ -191,8 +191,11 @@ public partial class BoogieGenerator {
       //     check well-formedness of body
       //     // fall through to check the postconditions themselves
       //   }
-      // Here go the postconditions (termination checks included, but no reads checks)
-      var postCheckBuilder = GetPostCheckBuilder(f, etran, locals);
+      // Here go the postconditions (termination checks included)
+      // We perform reads checks only for bodiless functions
+      var emptyBody = f.Body == null || !generator.RevealedInScope(f);
+      var doReadsChecks = emptyBody && etran.readsFrame != null;
+      var postCheckBuilder = GetPostCheckBuilder(f, etran, locals, doReadsChecks);
 
       // Here goes the body (and include both termination checks and reads checks)
       var bodyCheckBuilder = GetBodyCheckBuilder(f, etran, inParams, locals, builderInitializationArea);
@@ -274,7 +277,7 @@ public partial class BoogieGenerator {
       return funcAppl;
     }
 
-    private BoogieStmtListBuilder GetPostCheckBuilder(Function f, ExpressionTranslator etran, Variables locals) {
+    private BoogieStmtListBuilder GetPostCheckBuilder(Function f, ExpressionTranslator etran, Variables locals, bool doReadsChecks = false) {
       var context = new BodyTranslationContext(f.ContainsHide);
       var postCheckBuilder = new BoogieStmtListBuilder(generator, generator.options, context);
       postCheckBuilder.Add(new CommentCmd("Check well-formedness of postcondition and assume false"));
@@ -324,7 +327,7 @@ public partial class BoogieGenerator {
       // Now for the ensures clauses
       foreach (AttributedExpression p in f.Ens) {
         // assume the postcondition for the benefit of checking the remaining postconditions
-        generator.CheckWellformedAndAssume(p.E, new WFOptions(f, false), locals, postCheckBuilder, etran, "ensures clause");
+        generator.CheckWellformedAndAssume(p.E, new WFOptions(f, doReadsChecks), locals, postCheckBuilder, etran, "ensures clause");
       }
 
       postCheckBuilder.Add(TrAssumeCmd(f.Origin, Expr.False));
