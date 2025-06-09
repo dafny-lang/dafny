@@ -152,8 +152,6 @@ public class NoContext : ICodeContext {
 
 public interface RedirectingTypeDecl : ICallable, ICanVerify {
   string Name { get; }
-
-  string FullDafnyName { get; }
   IOrigin Tok { get; }
 
   Attributes Attributes { get; }

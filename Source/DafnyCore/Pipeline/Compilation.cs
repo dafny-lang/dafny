@@ -329,7 +329,7 @@ public class Compilation : IDisposable {
     return [];
   }
 
-  private async Task<bool> VerifyCanVerify(ICanVerify canVerify, Func<IVerificationTask, bool> taskFilter,
+  public async Task<bool> VerifyCanVerify(ICanVerify canVerify, Func<IVerificationTask, bool> taskFilter,
     int? randomSeed = 0,
     bool onlyPrepareVerificationForGutterTests = false) {
 
