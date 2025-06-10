@@ -5,10 +5,13 @@ module RandomCSharp replaces DfyRandom {
   
   method GetRandomNat ... {
     var random := new Random();
-    
-    var ceilingInt32 := IntToInt32(ceiling).GetOr(Int32.MaxValue);
+        
+    var ceilingInt32opt := IntToInt32(ceiling);
+    var ceilingInt32 := ceilingInt32opt.GetOr(Int32.MaxValue);
     Int32.MaxValueValue();
-    var resultInt32 := random.Next(IntToInt32(0).Extract(), ceilingInt32);
+    var zeroOpt := IntToInt32(0);
+    var zero := zeroOpt.Extract();
+    var resultInt32 := random.Next(zero, ceilingInt32);
     var resultInt := Int32ToInt(resultInt32);
     return resultInt as nat;
   }
@@ -18,14 +21,14 @@ module Interop {
   import opened CSharpSystem
   import opened Std.Wrappers
   
-  function {:axiom} {:extern} IntToInt32(value: int): Option<Int32>
-    ensures var r := IntToInt32(value); 
+  method {:axiom} {:extern} IntToInt32(value: int) returns (res: Option<Int32>)
+    ensures  
       if value <= Int32.MaxValue.value 
-        then r.Some? && r.Extract().value == value
-        else r.None?
+        then res.Some? && res.Extract().value == value
+        else res.None?
     
-  function {:axiom} {:extern} Int32ToInt(value: Int32): int
-    ensures Int32ToInt(value) == value.value
+  method {:axiom} {:extern} Int32ToInt(value: Int32) returns (res: int)
+    ensures res == value.value
 }
 
 module {:extern "System"} CSharpSystem {
