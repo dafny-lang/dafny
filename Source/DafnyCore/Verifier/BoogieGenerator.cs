@@ -35,7 +35,7 @@ namespace Microsoft.Dafny {
       CanVerify = canVerify;
     }
   }
-  
+
   public partial class BoogieGenerator {
     private DafnyOptions options;
     public DafnyOptions Options => options;
