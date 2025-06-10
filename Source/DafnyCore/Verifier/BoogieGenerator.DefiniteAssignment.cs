@@ -108,6 +108,9 @@ namespace Microsoft.Dafny {
     }
 
     internal CanVerifyOrigin GetToken(ICanVerify node) {
+      if (node.Origin is CanVerifyOrigin canVerifyOrigin) {
+        return canVerifyOrigin;
+      }
       return new CanVerifyOrigin(node);
     }
     

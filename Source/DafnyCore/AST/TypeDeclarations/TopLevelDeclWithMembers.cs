@@ -247,7 +247,7 @@ public abstract class TopLevelDeclWithMembers : TopLevelDecl, IHasSymbolChildren
                 var ens = extremeLemma is GreatestLemma
                   ? new List<AttributedExpression>()
                   : extremeLemma.Ens.ConvertAll(cloner.CloneAttributedExpr);
-                extremeLemma.PrefixLemma = new PrefixLemma(extremeLemma.Origin, extraName, extremeLemma.HasStaticKeyword,
+                extremeLemma.PrefixLemma = new PrefixLemma(new CanVerifyOrigin(extremeLemma), extraName, extremeLemma.HasStaticKeyword,
                   extremeLemma.TypeArgs.ConvertAll(cloner.CloneTypeParam), k, formals, extremeLemma.Outs.ConvertAll(f => cloner.CloneFormal(f, false)),
                   req, cloner.CloneSpecFrameExpr(extremeLemma.Reads),
                   cloner.CloneSpecFrameExpr(extremeLemma.Mod), ens,
