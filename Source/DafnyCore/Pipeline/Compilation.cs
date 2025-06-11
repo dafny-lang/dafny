@@ -202,7 +202,7 @@ public class Compilation : IDisposable {
       }
     }
 
-    var libraryPaths = CommonOptionBag.SplitOptionValueIntoFiles(Options.Get(CommonOptionBag.Libraries).Select(f => f.FullName));
+    var libraryPaths = CommonOptionBag.SplitOptionValueIntoFiles(Options.GetOrOptionDefault(CommonOptionBag.Libraries).Select(f => f.FullName));
     foreach (var library in libraryPaths) {
       await foreach (var file in DafnyFile.CreateAndValidate(fileSystem, errorReporter, Options, new Uri(library), Project.StartingToken, true)) {
         result.Add(file);

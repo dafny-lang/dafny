@@ -4,6 +4,7 @@ using System.Linq;
 
 namespace Microsoft.Dafny;
 
+[SyntaxBaseType(typeof(MethodOrFunction))]
 public abstract class ExtremePredicate : Function {
   public override string WhatKindMentionGhost => WhatKind;
   public enum KType { Unspecified, Nat, ORDINAL }
@@ -16,14 +17,17 @@ public abstract class ExtremePredicate : Function {
   [FilledInDuringResolution] public List<FunctionCallExpr> Uses = [];  // used by verifier
   [FilledInDuringResolution] public PrefixPredicate PrefixPredicate;  // (name registration)
 
-  public override IEnumerable<INode> Children => base.Children.Concat(new[] { PrefixPredicate });
+  public override IEnumerable<INode> Children => base.Children.
+    Concat(PrefixPredicate == null ? [] : new[] { PrefixPredicate });
+
   public override IEnumerable<INode> PreResolveChildren => base.Children;
 
-  public ExtremePredicate(IOrigin rangeOrigin, Name nameNode, bool hasStaticKeyword, bool isOpaque, KType typeOfK,
+  [SyntaxConstructor]
+  protected ExtremePredicate(IOrigin origin, Name nameNode, bool hasStaticKeyword, bool isOpaque, KType typeOfK,
     List<TypeParameter> typeArgs, List<Formal> ins, Formal result,
     List<AttributedExpression> req, Specification<FrameExpression> reads, List<AttributedExpression> ens,
     Expression body, Attributes attributes, IOrigin signatureEllipsis)
-    : base(rangeOrigin, nameNode, hasStaticKeyword, true, isOpaque, typeArgs, ins, result, Type.Bool,
+    : base(origin, nameNode, hasStaticKeyword, true, isOpaque, typeArgs, ins, result, Type.Bool,
       req, reads, ens, new Specification<Expression>([], null), body, null,
       null, attributes, signatureEllipsis) {
     TypeOfK = typeOfK;
@@ -48,17 +52,6 @@ public abstract class ExtremePredicate : Function {
     prefixPredCall.Type = fexp.Type;  // resolve here
     prefixPredCall.CoCall = fexp.CoCall;  // resolve here
     return prefixPredCall;
-  }
-}
-
-public class GreatestPredicate : ExtremePredicate {
-  public override string WhatKind => "greatest predicate";
-  public GreatestPredicate(IOrigin rangeOrigin, Name nameNode, bool hasStaticKeyword, bool isOpaque, KType typeOfK,
-    List<TypeParameter> typeArgs, List<Formal> ins, Formal result,
-    List<AttributedExpression> req, Specification<FrameExpression> reads, List<AttributedExpression> ens,
-    Expression body, Attributes attributes, IOrigin signatureEllipsis)
-    : base(rangeOrigin, nameNode, hasStaticKeyword, isOpaque, typeOfK, typeArgs, ins, result,
-      req, reads, ens, body, attributes, signatureEllipsis) {
   }
 }
 

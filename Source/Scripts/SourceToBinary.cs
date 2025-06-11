@@ -15,23 +15,40 @@ namespace Scripts;
 
 public class SourceToBinary {
 
-  public static Command GetCommand() {
+  public static Command GetCommand(TextWriter outputWriter) {
+    var result = new Command("source-to-binary", "");
+    var inputArgument = new Argument<FileInfo>("input", "Dafny source file");
+    result.AddArgument(inputArgument);
+
+    var deleteSourcesOption = new Option<bool>("--delete-sources");
+    result.AddOption(deleteSourcesOption);
+    result.SetHandler((file1, deleteSources) => Handle(file1.FullName, deleteSources, outputWriter),
+      inputArgument, deleteSourcesOption);
+    return result;
+  }
+
+  public static Command GetCommand2() {
     var result = new Command("source-to-binary", "");
     var inputArgument = new Argument<FileInfo>("input", "Dafny source file");
     result.AddArgument(inputArgument);
     var outputArgument = new Argument<FileInfo>("output", "File to write binary output to");
     result.AddArgument(outputArgument);
-    result.SetHandler((file1, file2) => Handle(file1.FullName,
-      new StreamWriter(file2.FullName)),
-      inputArgument, outputArgument);
+    var deleteSourcesOption = new Option<bool>("--delete-sources");
+    result.AddOption(deleteSourcesOption);
+    result.SetHandler((file1, file2, deleteSources) => Handle(file1.FullName, deleteSources,
+        new StreamWriter(file2.FullName)),
+      inputArgument, outputArgument, deleteSourcesOption);
     return result;
   }
 
-  public static async Task Handle(string inputFile, TextWriter outputFile) {
+  public static async Task Handle(string inputFile, bool deleteSources, TextWriter outputFile) {
     var options = DafnyOptions.Default;
     var errorReporter = new BatchErrorReporter(options);
     var input = await File.ReadAllTextAsync(inputFile);
     var parseResult = await ProgramParser.Parse(input, new Uri(Path.GetFullPath(inputFile)), errorReporter);
+    if (deleteSources) {
+      DeleteSources(parseResult);
+    }
     if (errorReporter.HasErrors) {
       var errors = errorReporter.AllMessagesByLevel[ErrorLevel.Error];
       var exceptions = errors.Select(diagnostic =>
@@ -66,6 +83,25 @@ public class SourceToBinary {
     new Serializer(textEncoder, types).Serialize(filesContainer);
     await outputFile.WriteAsync(output);
     await outputFile.FlushAsync();
+  }
+
+  private static void DeleteSources(ProgramParseResult parseResult) {
+    var toVisit = new Stack<INode>();
+    toVisit.Push(parseResult.Program);
+    while (toVisit.Any()) {
+      var current = toVisit.Pop();
+      foreach (var child in current.Children) {
+        if (child == null) {
+          throw new Exception();
+        }
+        toVisit.Push(child);
+      }
+
+      if (current is NodeWithOrigin withOrigin && withOrigin.Origin != Token.NoToken) {
+        var token = new Token(-1, -1) { Uri = withOrigin.Origin.Uri };
+        withOrigin.SetOrigin(new SourceOrigin(token, token));
+      }
+    }
   }
 }
 

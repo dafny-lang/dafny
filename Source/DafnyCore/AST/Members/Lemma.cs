@@ -1,12 +1,16 @@
+#nullable enable
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 
 namespace Microsoft.Dafny;
 
+[SyntaxBaseType(typeof(MethodOrFunction))]
 public class Lemma : Method {
   public override string WhatKind => "lemma";
   public override string WhatKindMentionGhost => WhatKind;
 
+  
+  [SyntaxConstructor]
   public Lemma(IOrigin origin, Name nameNode,
     bool hasStaticKeyword,
     [Captured] List<TypeParameter> typeArgs,
