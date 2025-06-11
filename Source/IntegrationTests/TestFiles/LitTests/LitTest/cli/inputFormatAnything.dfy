@@ -6,10 +6,6 @@
 class Anything {
   const x := 3123.012314
 
-  function bar(x:int, y:int):int {
-    x+y
-  }
-
   method foo() {
     while(true) {
       continue;
@@ -24,8 +20,16 @@ class Anything {
     tab[0,0] := 0;
     assert(tab[0,0] == 0);
     
-    var tmp := bar(0,1);
   }
+  
+  
+    function bar(x:int, y:int):int {
+      x+y
+    }
+    
+    method barCall() {
+      var tmp := bar(0,1);
+    }
 }
 
 trait ATrait {
