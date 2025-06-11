@@ -6,8 +6,8 @@
 class Anything {
   const x := 3123.012314
 
-  function bar(x:int, y:int) {
-    return x+y;
+  function bar(x:int, y:int):int {
+    x+y
   }
 
   method foo() {
