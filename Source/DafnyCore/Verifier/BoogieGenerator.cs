@@ -27,6 +27,23 @@ using PODesc = Microsoft.Dafny.ProofObligationDescription;
 using static Microsoft.Dafny.GenericErrors;
 
 namespace Microsoft.Dafny {
+
+  /// <summary>
+  /// Used as an origin for Boogie implementations, to track which Dafny ICanVerify the implementation originated from
+  /// When Dafny generates ICanVerify nodes from other ones, this should be used so we can backtrack to the original one.
+  /// </summary>
+  class CanVerifyOrigin : OriginWrapper {
+    /// <summary>
+    /// Used as an origin for Boogie implementations, to track which Dafny ICanVerify the implementation originated from
+    /// When Dafny generates ICanVerify nodes from other ones, this should be used so we can backtrack to the original one.
+    /// </summary>
+    public CanVerifyOrigin(ICanVerify canVerify) : base(canVerify.Origin) {
+      CanVerify = canVerify;
+    }
+
+    public ICanVerify CanVerify { get; }
+  }
+
   public partial class BoogieGenerator {
     private DafnyOptions options;
     public DafnyOptions Options => options;
@@ -1428,7 +1445,7 @@ namespace Microsoft.Dafny {
       }
     }
 
-    private Implementation AddImplementationWithAttributes(IOrigin tok, Procedure proc, List<Variable> inParams,
+    private Implementation AddImplementationWithAttributes(CanVerifyOrigin tok, Procedure proc, List<Variable> inParams,
       List<Variable> outParams, Variables localVariables, StmtList stmts, QKeyValue kv) {
       Bpl.Implementation impl = new Bpl.Implementation(tok, proc.Name,
         [], inParams, outParams,

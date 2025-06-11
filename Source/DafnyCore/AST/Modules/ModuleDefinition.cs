@@ -160,13 +160,13 @@ Generate module names in the older A_mB_mC style instead of the current A.B.C sc
 
   [SyntaxConstructor]
   public ModuleDefinition(IOrigin origin, Name nameNode, List<IOrigin> prefixIds, ModuleKindEnum moduleKind,
-    Implements? implements, ModuleDefinition enclosingModule, Attributes? attributes,
+    Implements? implements, ModuleDefinition? enclosingModule, Attributes? attributes,
     List<TopLevelDecl> sourceDecls)
     : this(origin, nameNode, prefixIds, moduleKind, false, implements, enclosingModule, attributes, sourceDecls) {
   }
 
   public ModuleDefinition(IOrigin origin, Name nameNode, List<IOrigin> prefixIds, ModuleKindEnum moduleKind, bool isFacade,
-    Implements? implements, ModuleDefinition enclosingModule, Attributes? attributes, List<TopLevelDecl>? sourceDecls = null) : base(origin) {
+    Implements? implements, ModuleDefinition? enclosingModule, Attributes? attributes, List<TopLevelDecl>? sourceDecls = null) : base(origin) {
     this.NameNode = nameNode;
     this.PrefixIds = prefixIds;
     this.Attributes = attributes;

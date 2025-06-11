@@ -12,6 +12,8 @@ class ConcreteTypeSynonymDecl : TypeSynonymDecl {
   }
 
   public override Type Rhs { get; }
+  public override ModuleDefinition ContainingModule => null;
+  public override bool ShouldVerify => false;
 }
 
 public abstract class TypeSynonymDecl : TypeSynonymDeclBase, RevealableTypeDecl {
@@ -45,4 +47,7 @@ public class InternalTypeSynonymDecl : TypeSynonymDeclBase {
   public override string GetDescription(DafnyOptions options) {
     return "type synonym";
   }
+
+  public override ModuleDefinition ContainingModule => null;
+  public override bool ShouldVerify => false;
 }
