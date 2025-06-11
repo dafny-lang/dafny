@@ -247,9 +247,8 @@ public partial class SyntaxDeserializer(IDecoder decoder) {
     SystemModuleModifiers.Add(b => b.ArrayType(parameter2.Count, new IntType(), true));
     return new AllocateArray(parameter0, parameter1, parameter2, parameter3, parameter4);
   }
-  
-  public Function ReadFunction()
-  {
+
+  public Function ReadFunction() {
     var parameter0 = ReadAbstract<IOrigin>();
     var parameter1 = ReadName();
     var parameter16 = ReadAttributesOption();
