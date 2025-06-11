@@ -218,6 +218,10 @@ public partial class SyntaxDeserializer(IDecoder decoder) {
       return (T)(object)ReadAllocateArray();
     }
 
+    if (actualType == typeof(Function)) {
+      return (T)(object)ReadFunction();
+    }
+
     return (T)ReadObject(actualType);
   }
 
@@ -242,6 +246,30 @@ public partial class SyntaxDeserializer(IDecoder decoder) {
     var parameter3 = ReadAbstractOption<Expression>();
     SystemModuleModifiers.Add(b => b.ArrayType(parameter2.Count, new IntType(), true));
     return new AllocateArray(parameter0, parameter1, parameter2, parameter3, parameter4);
+  }
+  
+  public Function ReadFunction()
+  {
+    var parameter0 = ReadAbstract<IOrigin>();
+    var parameter1 = ReadName();
+    var parameter16 = ReadAttributesOption();
+    var parameter3 = ReadBoolean();
+    var parameter17 = ReadAbstractOption<IOrigin>();
+    var parameter5 = ReadList<TypeParameter>(() => ReadTypeParameter());
+    var parameter6 = ReadList<Formal>(() => ReadFormal());
+    var parameter9 = ReadList<AttributedExpression>(() => ReadAttributedExpression());
+    var parameter11 = ReadList<AttributedExpression>(() => ReadAttributedExpression());
+    var parameter10 = ReadSpecification<FrameExpression>();
+    var parameter12 = ReadSpecification<Expression>();
+    var parameter2 = ReadBoolean();
+    var parameter4 = ReadBoolean();
+    var parameter7 = ReadFormalOption();
+    var parameter8 = ReadAbstract<Type>();
+    var parameter13 = ReadAbstractOption<Expression>();
+    var parameter14 = ReadAbstractOption<IOrigin>();
+    var parameter15 = ReadBlockStmtOption();
+    SystemModuleModifiers.Add(b => b.CreateArrowTypeDecl(parameter6.Count));
+    return new Function(parameter0, parameter1, parameter2, parameter3, parameter4, parameter5, parameter6, parameter7, parameter8, parameter9, parameter10, parameter11, parameter12, parameter13, parameter14, parameter15, parameter16, parameter17);
   }
 }
 
