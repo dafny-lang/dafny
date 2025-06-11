@@ -900,6 +900,25 @@ namespace Microsoft.Dafny
             return ReadBreakOrContinueStmt();
         }
 
+        public BlockByProofStmt ReadBlockByProofStmt()
+        {
+            var parameter0 = ReadAbstract<IOrigin>();
+            var parameter3 = ReadAttributesOption();
+            var parameter1 = ReadBlockStmt();
+            var parameter2 = ReadAbstract<Statement>();
+            return new BlockByProofStmt(parameter0, parameter1, parameter2, parameter3);
+        }
+
+        public BlockByProofStmt ReadBlockByProofStmtOption()
+        {
+            if (ReadIsNull())
+            {
+                return default;
+            }
+
+            return ReadBlockByProofStmt();
+        }
+
         public VarDeclStmt ReadVarDeclStmt()
         {
             var parameter0 = ReadAbstract<IOrigin>();
@@ -1801,7 +1820,7 @@ namespace Microsoft.Dafny
         {
             var parameter0 = ReadAbstract<IOrigin>();
             var parameter1 = ReadName();
-            var parameter12 = ReadAttributes();
+            var parameter12 = ReadAttributesOption();
             var parameter2 = ReadBoolean();
             var parameter3 = ReadList<TypeParameter>(() => ReadTypeParameter());
             var parameter4 = ReadList<Formal>(() => ReadFormal());
@@ -1812,7 +1831,7 @@ namespace Microsoft.Dafny
             var parameter9 = ReadList<AttributedExpression>(() => ReadAttributedExpression());
             var parameter10 = ReadSpecification<Expression>();
             var parameter11 = ReadBlockStmt();
-            var parameter13 = ReadAbstract<IOrigin>();
+            var parameter13 = ReadAbstractOption<IOrigin>();
             return new Lemma(parameter0, parameter1, parameter2, parameter3, parameter4, parameter5, parameter6, parameter7, parameter8, parameter9, parameter10, parameter11, parameter12, parameter13);
         }
 
@@ -1824,6 +1843,42 @@ namespace Microsoft.Dafny
             }
 
             return ReadLemma();
+        }
+
+        private ExtremePredicate.KType ReadExtremePredicateKType()
+        {
+            int ordinal = ReadInt32();
+            return (ExtremePredicate.KType)ordinal;
+        }
+
+        public GreatestLemma ReadGreatestLemma()
+        {
+            var parameter0 = ReadAbstract<IOrigin>();
+            var parameter1 = ReadName();
+            var parameter13 = ReadAttributesOption();
+            var parameter2 = ReadBoolean();
+            var parameter3 = ReadExtremePredicateKType();
+            var parameter4 = ReadList<TypeParameter>(() => ReadTypeParameter());
+            var parameter5 = ReadList<Formal>(() => ReadFormal());
+            var parameter6 = ReadList<Formal>(() => ReadFormal());
+            var parameter7 = ReadList<AttributedExpression>(() => ReadAttributedExpression());
+            var parameter8 = ReadSpecification<FrameExpression>();
+            var parameter9 = ReadSpecification<FrameExpression>();
+            var parameter10 = ReadList<AttributedExpression>(() => ReadAttributedExpression());
+            var parameter11 = ReadSpecification<Expression>();
+            var parameter12 = ReadBlockStmt();
+            var parameter14 = ReadAbstractOption<IOrigin>();
+            return new GreatestLemma(parameter0, parameter1, parameter2, parameter3, parameter4, parameter5, parameter6, parameter7, parameter8, parameter9, parameter10, parameter11, parameter12, parameter13, parameter14);
+        }
+
+        public GreatestLemma ReadGreatestLemmaOption()
+        {
+            if (ReadIsNull())
+            {
+                return default;
+            }
+
+            return ReadGreatestLemma();
         }
 
         public Constructor ReadConstructor()
@@ -1891,9 +1946,9 @@ namespace Microsoft.Dafny
         {
             var parameter0 = ReadAbstract<IOrigin>();
             var parameter1 = ReadName();
-            var parameter16 = ReadAttributes();
+            var parameter16 = ReadAttributesOption();
             var parameter3 = ReadBoolean();
-            var parameter17 = ReadAbstract<IOrigin>();
+            var parameter17 = ReadAbstractOption<IOrigin>();
             var parameter5 = ReadList<TypeParameter>(() => ReadTypeParameter());
             var parameter6 = ReadList<Formal>(() => ReadFormal());
             var parameter8 = ReadList<AttributedExpression>(() => ReadAttributedExpression());
@@ -1902,11 +1957,11 @@ namespace Microsoft.Dafny
             var parameter11 = ReadSpecification<Expression>();
             var parameter2 = ReadBoolean();
             var parameter4 = ReadBoolean();
-            var parameter7 = ReadFormal();
+            var parameter7 = ReadFormalOption();
             var parameter12 = ReadAbstract<Expression>();
             var parameter13 = ReadPredicateBodyOriginKind();
-            var parameter14 = ReadAbstract<IOrigin>();
-            var parameter15 = ReadBlockStmt();
+            var parameter14 = ReadAbstractOption<IOrigin>();
+            var parameter15 = ReadBlockStmtOption();
             return new Predicate(parameter0, parameter1, parameter2, parameter3, parameter4, parameter5, parameter6, parameter7, parameter8, parameter9, parameter10, parameter11, parameter12, parameter13, parameter14, parameter15, parameter16, parameter17);
         }
 
@@ -1926,28 +1981,22 @@ namespace Microsoft.Dafny
             return (Predicate.BodyOriginKind)ordinal;
         }
 
-        private ExtremePredicate.KType ReadExtremePredicateKType()
-        {
-            int ordinal = ReadInt32();
-            return (ExtremePredicate.KType)ordinal;
-        }
-
         public GreatestPredicate ReadGreatestPredicate()
         {
             var parameter0 = ReadAbstract<IOrigin>();
             var parameter1 = ReadName();
-            var parameter12 = ReadAttributes();
+            var parameter12 = ReadAttributesOption();
             var parameter2 = ReadBoolean();
             var parameter3 = ReadBoolean();
             var parameter4 = ReadExtremePredicateKType();
             var parameter5 = ReadList<TypeParameter>(() => ReadTypeParameter());
             var parameter6 = ReadList<Formal>(() => ReadFormal());
-            var parameter7 = ReadFormal();
+            var parameter7 = ReadFormalOption();
             var parameter8 = ReadList<AttributedExpression>(() => ReadAttributedExpression());
             var parameter9 = ReadSpecification<FrameExpression>();
             var parameter10 = ReadList<AttributedExpression>(() => ReadAttributedExpression());
             var parameter11 = ReadAbstract<Expression>();
-            var parameter13 = ReadAbstract<IOrigin>();
+            var parameter13 = ReadAbstractOption<IOrigin>();
             return new GreatestPredicate(parameter0, parameter1, parameter2, parameter3, parameter4, parameter5, parameter6, parameter7, parameter8, parameter9, parameter10, parameter11, parameter12, parameter13);
         }
 
@@ -2092,6 +2141,37 @@ namespace Microsoft.Dafny
             }
 
             return ReadClassDecl();
+        }
+
+        public IteratorDecl ReadIteratorDecl()
+        {
+            Microsoft.Dafny.ModuleDefinition parameter2 = null;
+            var parameter0 = ReadAbstract<IOrigin>();
+            var parameter1 = ReadName();
+            var parameter14 = ReadAttributesOption();
+            var parameter3 = ReadList<TypeParameter>(() => ReadTypeParameter());
+            var parameter4 = ReadList<Formal>(() => ReadFormal());
+            var parameter5 = ReadList<Formal>(() => ReadFormal());
+            var parameter6 = ReadSpecification<FrameExpression>();
+            var parameter7 = ReadSpecification<FrameExpression>();
+            var parameter8 = ReadSpecification<Expression>();
+            var parameter9 = ReadList<AttributedExpression>(() => ReadAttributedExpression());
+            var parameter10 = ReadList<AttributedExpression>(() => ReadAttributedExpression());
+            var parameter11 = ReadList<AttributedExpression>(() => ReadAttributedExpression());
+            var parameter12 = ReadList<AttributedExpression>(() => ReadAttributedExpression());
+            var parameter13 = ReadBlockStmt();
+            var parameter15 = ReadAbstractOption<IOrigin>();
+            return new IteratorDecl(parameter0, parameter1, parameter2, parameter3, parameter4, parameter5, parameter6, parameter7, parameter8, parameter9, parameter10, parameter11, parameter12, parameter13, parameter14, parameter15);
+        }
+
+        public IteratorDecl ReadIteratorDeclOption()
+        {
+            if (ReadIsNull())
+            {
+                return default;
+            }
+
+            return ReadIteratorDecl();
         }
 
         public DefaultClassDecl ReadDefaultClassDecl()
@@ -2427,6 +2507,11 @@ namespace Microsoft.Dafny
                 return ReadBreakOrContinueStmt();
             }
 
+            if (actualType == typeof(BlockByProofStmt))
+            {
+                return ReadBlockByProofStmt();
+            }
+
             if (actualType == typeof(VarDeclStmt))
             {
                 return ReadVarDeclStmt();
@@ -2662,6 +2747,11 @@ namespace Microsoft.Dafny
                 return ReadLemma();
             }
 
+            if (actualType == typeof(GreatestLemma))
+            {
+                return ReadGreatestLemma();
+            }
+
             if (actualType == typeof(Constructor))
             {
                 return ReadConstructor();
@@ -2710,6 +2800,11 @@ namespace Microsoft.Dafny
             if (actualType == typeof(ClassDecl))
             {
                 return ReadClassDecl();
+            }
+
+            if (actualType == typeof(IteratorDecl))
+            {
+                return ReadIteratorDecl();
             }
 
             if (actualType == typeof(DefaultClassDecl))

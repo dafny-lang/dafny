@@ -446,6 +446,12 @@ class BreakOrContinueStmt : Statement
     Boolean isContinue;
 }
 
+class BlockByProofStmt : Statement
+{
+    BlockStmt proof;
+    Statement body;
+}
+
 class VarDeclStmt : Statement
 {
     List<LocalVariable> locals;
@@ -855,7 +861,34 @@ class Lemma : Declaration
     List<AttributedExpression> ens;
     Specification<Expression> decreases;
     BlockStmt body;
-    IOrigin signatureEllipsis;
+    IOrigin? signatureEllipsis;
+}
+
+abstract class ExtremeLemma : Declaration
+{
+    Boolean hasStaticKeyword;
+    ExtremePredicateKType typeOfK;
+    List<TypeParameter> typeArgs;
+    List<Formal> ins;
+    List<Formal> outs;
+    List<AttributedExpression> req;
+    Specification<FrameExpression> reads;
+    Specification<FrameExpression> mod;
+    List<AttributedExpression> ens;
+    Specification<Expression> decreases;
+    BlockStmt body;
+    IOrigin? signatureEllipsis;
+}
+
+enum ExtremePredicateKType
+{
+    Unspecified,
+    Nat,
+    ORDINAL
+}
+
+class GreatestLemma : ExtremeLemma
+{
 }
 
 class Constructor : MethodOrConstructor
@@ -876,11 +909,13 @@ class Function : MethodOrFunction
 
 class Predicate : MethodOrFunction
 {
-    Formal result;
+    Boolean hasStaticKeyword;
+    Boolean isOpaque;
+    Formal? result;
     Expression body;
     PredicateBodyOriginKind bodyOrigin;
-    IOrigin byMethodTok;
-    BlockStmt byMethodBody;
+    IOrigin? byMethodTok;
+    BlockStmt? byMethodBody;
 }
 
 enum PredicateBodyOriginKind
@@ -897,19 +932,12 @@ abstract class ExtremePredicate : Declaration
     ExtremePredicateKType typeOfK;
     List<TypeParameter> typeArgs;
     List<Formal> ins;
-    Formal result;
+    Formal? result;
     List<AttributedExpression> req;
     Specification<FrameExpression> reads;
     List<AttributedExpression> ens;
     Expression body;
-    IOrigin signatureEllipsis;
-}
-
-enum ExtremePredicateKType
-{
-    Unspecified,
-    Nat,
-    ORDINAL
+    IOrigin? signatureEllipsis;
 }
 
 class GreatestPredicate : ExtremePredicate
@@ -956,6 +984,21 @@ class TraitDecl : ClassLikeDecl
 class ClassDecl : ClassLikeDecl
 {
     Boolean isRefining;
+}
+
+class IteratorDecl : TopLevelDecl
+{
+    List<Formal> ins;
+    List<Formal> outs;
+    Specification<FrameExpression> reads;
+    Specification<FrameExpression> modifies;
+    Specification<Expression> decreases;
+    List<AttributedExpression> requires;
+    List<AttributedExpression> ensures;
+    List<AttributedExpression> yieldRequires;
+    List<AttributedExpression> yieldEnsures;
+    BlockStmt body;
+    IOrigin? signatureEllipsis;
 }
 
 class DefaultClassDecl : TopLevelDeclWithMembers

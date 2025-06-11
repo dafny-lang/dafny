@@ -150,7 +150,7 @@ public abstract class SyntaxAstVisitor {
     toVisit.Push(type);
   }
 
-  protected static ConstructorInfo? GetParseConstructor(Type type) {
+  public static ConstructorInfo? GetParseConstructor(Type type) {
     var constructors = type.GetConstructors(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
     return constructors.Where(c => !c.IsPrivate &&
                                    !c.GetParameters().Any(p => p.ParameterType.IsAssignableTo(typeof(Cloner)))).MaxBy(c =>

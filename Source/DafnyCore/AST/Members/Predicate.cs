@@ -18,12 +18,12 @@ public class Predicate : Function {
   [SyntaxConstructor]
   public Predicate(IOrigin origin, Name nameNode, bool hasStaticKeyword, bool isGhost, bool isOpaque,
     List<TypeParameter> typeArgs, List<Formal> ins,
-    Formal result,
+    Formal? result,
     List<AttributedExpression> req,
     Specification<FrameExpression> reads,
     List<AttributedExpression> ens, Specification<Expression> decreases,
-    Expression body, BodyOriginKind bodyOrigin, IOrigin/*?*/ byMethodTok,
-    BlockStmt/*?*/ byMethodBody, Attributes attributes, IOrigin signatureEllipsis)
+    Expression? body, BodyOriginKind bodyOrigin, IOrigin? byMethodTok,
+    BlockStmt? byMethodBody, Attributes? attributes, IOrigin? signatureEllipsis)
     : base(origin, nameNode, hasStaticKeyword, isGhost, isOpaque, typeArgs, ins,
       result, Type.Bool, req, reads, ens, decreases, body,
       byMethodTok, byMethodBody, attributes, signatureEllipsis) {
