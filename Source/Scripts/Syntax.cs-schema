@@ -843,8 +843,19 @@ class Method : MethodOrConstructor
     Boolean isByMethod;
 }
 
-class Lemma : Method
+class Lemma : Declaration
 {
+    Boolean hasStaticKeyword;
+    List<TypeParameter> typeArgs;
+    List<Formal> ins;
+    List<Formal> outs;
+    List<AttributedExpression> req;
+    Specification<FrameExpression> reads;
+    Specification<FrameExpression> mod;
+    List<AttributedExpression> ens;
+    Specification<Expression> decreases;
+    BlockStmt body;
+    IOrigin signatureEllipsis;
 }
 
 class Constructor : MethodOrConstructor
@@ -863,7 +874,45 @@ class Function : MethodOrFunction
     BlockStmt? byMethodBody;
 }
 
-class Predicate : Function
+class Predicate : MethodOrFunction
+{
+    Formal result;
+    Expression body;
+    PredicateBodyOriginKind bodyOrigin;
+    IOrigin byMethodTok;
+    BlockStmt byMethodBody;
+}
+
+enum PredicateBodyOriginKind
+{
+    OriginalOrInherited,
+    DelayedDefinition,
+    Extension
+}
+
+abstract class ExtremePredicate : Declaration
+{
+    Boolean hasStaticKeyword;
+    Boolean isOpaque;
+    ExtremePredicateKType typeOfK;
+    List<TypeParameter> typeArgs;
+    List<Formal> ins;
+    Formal result;
+    List<AttributedExpression> req;
+    Specification<FrameExpression> reads;
+    List<AttributedExpression> ens;
+    Expression body;
+    IOrigin signatureEllipsis;
+}
+
+enum ExtremePredicateKType
+{
+    Unspecified,
+    Nat,
+    ORDINAL
+}
+
+class GreatestPredicate : ExtremePredicate
 {
 }
 

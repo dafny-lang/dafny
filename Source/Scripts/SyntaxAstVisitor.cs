@@ -205,19 +205,15 @@ public abstract class SyntaxAstVisitor {
     return tildeLocation >= 0 ? genericTypeName.Substring(0, tildeLocation) : genericTypeName;
   }
 
-  protected static bool DoesMemberBelongToBase(Type type, MemberInfo memberInfo, Type? baseType) {
-    var memberBelongsToBase = false;
-    if (memberInfo.DeclaringType != type && baseType != null) {
-      var baseMembers = baseType.GetMember(
-        memberInfo.Name,
-        MemberTypes.Field | MemberTypes.Property,
-        BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
-      if (baseMembers.Length != 0) {
-        memberBelongsToBase = true;
-      }
+  protected static bool DoesMemberBelongToBase(Type type, ParameterInfo parameterInfo, Type? baseType) {
+    if (baseType == null) {
+      return false;
     }
-
-    return memberBelongsToBase;
+    var baseConstructor = GetParseConstructor(baseType);
+    if (baseConstructor == null) {
+      return false;
+    }
+    return baseConstructor.GetParameters().Any(p => p.Name == parameterInfo.Name);
   }
 }
 

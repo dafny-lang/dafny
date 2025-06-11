@@ -68,6 +68,7 @@ using BinaryExprOpcode = Microsoft.Dafny.BinaryExpr.Opcode;
     if (baseType != null && baseType != typeof(ValueType) && baseType != typeof(object)) {
       ownedFieldPosition = ParameterToSchemaPositions[baseType].Count;
     }
+
     var parameterToSchemaPosition = new Dictionary<string, int>();
     var schemaToConstructorPosition = new Dictionary<int, int>();
     ParameterToSchemaPositions[type] = parameterToSchemaPosition;
@@ -85,12 +86,12 @@ using BinaryExprOpcode = Microsoft.Dafny.BinaryExpr.Opcode;
         return;
       }
 
-      var memberBelongsToBase = DoesMemberBelongToBase(type, memberInfo, baseType);
+      var memberBelongsToBase = DoesMemberBelongToBase(type, parameter, baseType);
       if (memberBelongsToBase) {
-        if (!ParameterToSchemaPositions[memberInfo.DeclaringType!]
+        if (!ParameterToSchemaPositions[baseType!]
               .TryGetValue(memberInfo.Name, out var schemaPosition)) {
           throw new Exception(
-            $"parameter '{parameter.Name}' of '{type.Name}' should have been in parent type '{memberInfo.DeclaringType}' constructor, but was not found");
+            $"parameter '{parameter.Name}' of '{type.Name}' should have been in parent type '{baseType}' constructor, but was not found");
         }
 
         schemaToConstructorPosition[schemaPosition] = index;

@@ -115,7 +115,7 @@ public class SyntaxSchemaGenerator : SyntaxAstVisitor {
         return;
       }
 
-      if (DoesMemberBelongToBase(type, memberInfo, baseType)) {
+      if (DoesMemberBelongToBase(type, parameter, baseType)) {
         return;
       }
 

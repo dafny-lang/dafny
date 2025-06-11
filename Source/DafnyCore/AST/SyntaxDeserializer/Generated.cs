@@ -1801,21 +1801,19 @@ namespace Microsoft.Dafny
         {
             var parameter0 = ReadAbstract<IOrigin>();
             var parameter1 = ReadName();
-            var parameter2 = ReadAttributesOption();
-            var parameter4 = ReadBoolean();
-            var parameter14 = ReadAbstractOption<IOrigin>();
-            var parameter5 = ReadList<TypeParameter>(() => ReadTypeParameter());
-            var parameter6 = ReadList<Formal>(() => ReadFormal());
-            var parameter7 = ReadList<AttributedExpression>(() => ReadAttributedExpression());
-            var parameter8 = ReadList<AttributedExpression>(() => ReadAttributedExpression());
-            var parameter9 = ReadSpecification<FrameExpression>();
+            var parameter12 = ReadAttributes();
+            var parameter2 = ReadBoolean();
+            var parameter3 = ReadList<TypeParameter>(() => ReadTypeParameter());
+            var parameter4 = ReadList<Formal>(() => ReadFormal());
+            var parameter5 = ReadList<Formal>(() => ReadFormal());
+            var parameter6 = ReadList<AttributedExpression>(() => ReadAttributedExpression());
+            var parameter7 = ReadSpecification<FrameExpression>();
+            var parameter8 = ReadSpecification<FrameExpression>();
+            var parameter9 = ReadList<AttributedExpression>(() => ReadAttributedExpression());
             var parameter10 = ReadSpecification<Expression>();
-            var parameter12 = ReadSpecification<FrameExpression>();
-            var parameter3 = ReadBoolean();
-            var parameter11 = ReadList<Formal>(() => ReadFormal());
-            var parameter13 = ReadBlockStmtOption();
-            var parameter15 = ReadBoolean();
-            return null;
+            var parameter11 = ReadBlockStmt();
+            var parameter13 = ReadAbstract<IOrigin>();
+            return new Lemma(parameter0, parameter1, parameter2, parameter3, parameter4, parameter5, parameter6, parameter7, parameter8, parameter9, parameter10, parameter11, parameter12, parameter13);
         }
 
         public Lemma ReadLemmaOption()
@@ -1893,23 +1891,23 @@ namespace Microsoft.Dafny
         {
             var parameter0 = ReadAbstract<IOrigin>();
             var parameter1 = ReadName();
-            var parameter16 = ReadAttributesOption();
+            var parameter16 = ReadAttributes();
             var parameter3 = ReadBoolean();
-            var parameter17 = ReadAbstractOption<IOrigin>();
+            var parameter17 = ReadAbstract<IOrigin>();
             var parameter5 = ReadList<TypeParameter>(() => ReadTypeParameter());
             var parameter6 = ReadList<Formal>(() => ReadFormal());
-            var parameter9 = ReadList<AttributedExpression>(() => ReadAttributedExpression());
-            var parameter11 = ReadList<AttributedExpression>(() => ReadAttributedExpression());
-            var parameter10 = ReadSpecification<FrameExpression>();
-            var parameter12 = ReadSpecification<Expression>();
+            var parameter8 = ReadList<AttributedExpression>(() => ReadAttributedExpression());
+            var parameter10 = ReadList<AttributedExpression>(() => ReadAttributedExpression());
+            var parameter9 = ReadSpecification<FrameExpression>();
+            var parameter11 = ReadSpecification<Expression>();
             var parameter2 = ReadBoolean();
             var parameter4 = ReadBoolean();
-            var parameter7 = ReadFormalOption();
-            var parameter8 = ReadAbstract<Type>();
-            var parameter13 = ReadAbstractOption<Expression>();
-            var parameter14 = ReadAbstractOption<IOrigin>();
-            var parameter15 = ReadBlockStmtOption();
-            return null;
+            var parameter7 = ReadFormal();
+            var parameter12 = ReadAbstract<Expression>();
+            var parameter13 = ReadPredicateBodyOriginKind();
+            var parameter14 = ReadAbstract<IOrigin>();
+            var parameter15 = ReadBlockStmt();
+            return new Predicate(parameter0, parameter1, parameter2, parameter3, parameter4, parameter5, parameter6, parameter7, parameter8, parameter9, parameter10, parameter11, parameter12, parameter13, parameter14, parameter15, parameter16, parameter17);
         }
 
         public Predicate ReadPredicateOption()
@@ -1920,6 +1918,47 @@ namespace Microsoft.Dafny
             }
 
             return ReadPredicate();
+        }
+
+        private Predicate.BodyOriginKind ReadPredicateBodyOriginKind()
+        {
+            int ordinal = ReadInt32();
+            return (Predicate.BodyOriginKind)ordinal;
+        }
+
+        private ExtremePredicate.KType ReadExtremePredicateKType()
+        {
+            int ordinal = ReadInt32();
+            return (ExtremePredicate.KType)ordinal;
+        }
+
+        public GreatestPredicate ReadGreatestPredicate()
+        {
+            var parameter0 = ReadAbstract<IOrigin>();
+            var parameter1 = ReadName();
+            var parameter12 = ReadAttributes();
+            var parameter2 = ReadBoolean();
+            var parameter3 = ReadBoolean();
+            var parameter4 = ReadExtremePredicateKType();
+            var parameter5 = ReadList<TypeParameter>(() => ReadTypeParameter());
+            var parameter6 = ReadList<Formal>(() => ReadFormal());
+            var parameter7 = ReadFormal();
+            var parameter8 = ReadList<AttributedExpression>(() => ReadAttributedExpression());
+            var parameter9 = ReadSpecification<FrameExpression>();
+            var parameter10 = ReadList<AttributedExpression>(() => ReadAttributedExpression());
+            var parameter11 = ReadAbstract<Expression>();
+            var parameter13 = ReadAbstract<IOrigin>();
+            return new GreatestPredicate(parameter0, parameter1, parameter2, parameter3, parameter4, parameter5, parameter6, parameter7, parameter8, parameter9, parameter10, parameter11, parameter12, parameter13);
+        }
+
+        public GreatestPredicate ReadGreatestPredicateOption()
+        {
+            if (ReadIsNull())
+            {
+                return default;
+            }
+
+            return ReadGreatestPredicate();
         }
 
         public Field ReadField()
@@ -2636,6 +2675,11 @@ namespace Microsoft.Dafny
             if (actualType == typeof(Predicate))
             {
                 return ReadPredicate();
+            }
+
+            if (actualType == typeof(GreatestPredicate))
+            {
+                return ReadGreatestPredicate();
             }
 
             if (actualType == typeof(Field))
