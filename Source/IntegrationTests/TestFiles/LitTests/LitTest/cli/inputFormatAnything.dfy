@@ -22,14 +22,14 @@ class Anything {
     
   }
   
-  
-    function bar(x:int, y:int):int {
-      x+y
-    }
     
-    method barCall() {
-      var tmp := bar(0,1);
-    }
+  function P2(x:int, y:int) : bool {
+    x>y
+  }
+    
+  function P(x:int) : bool {
+    P2(x,10)
+  }
 }
 
 trait ATrait {
