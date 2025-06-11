@@ -6,6 +6,10 @@
 class Anything {
   const x := 3123.012314
 
+  function bar(x:int, y:int) {
+    return x+y;
+  }
+
   method foo() {
     while(true) {
       continue;
@@ -19,6 +23,8 @@ class Anything {
     var tab := new int[3,4];
     tab[0,0] := 0;
     assert(tab[0,0] == 0);
+    
+    var tmp := bar(0,1);
   }
 }
 
