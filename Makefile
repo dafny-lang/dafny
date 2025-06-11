@@ -143,7 +143,7 @@ pr-conflict: dfy-to-cs-exe dfy-to-cs-exe pr-nogeneration
 
 gen-integration: gen-schema gen-deserializer
 
-PARSED_AST_FILE=Source/Scripts/Syntax.cs-schema
+PARSED_AST_FILE=Source/DafnyCore/Syntax.cs-schema
 gen-schema:
 	./script.sh generate-syntax-schema $(PARSED_AST_FILE)
   
