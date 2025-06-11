@@ -48,7 +48,7 @@ public class Compilation : IDisposable {
   /// FilePosition is required because the default module lives in multiple files
   /// </summary>
   private readonly LazyConcurrentDictionary<ModuleDefinition,
-    Task<IReadOnlyDictionary<FilePosition, IReadOnlyList<IVerificationTask>>>> translatedModules = new();
+    Task<IReadOnlyDictionary<ICanVerify, IReadOnlyList<IVerificationTask>>>> translatedModules = new();
 
   private readonly ConcurrentDictionary<ICanVerify, Unit> verifyingOrVerifiedSymbols = new();
   private readonly LazyConcurrentDictionary<ICanVerify, IReadOnlyList<IVerificationTask>> tasksPerVerifiable = new();
@@ -202,7 +202,7 @@ public class Compilation : IDisposable {
       }
     }
 
-    var libraryPaths = CommonOptionBag.SplitOptionValueIntoFiles(Options.Get(CommonOptionBag.Libraries).Select(f => f.FullName));
+    var libraryPaths = CommonOptionBag.SplitOptionValueIntoFiles(Options.GetOrOptionDefault(CommonOptionBag.Libraries).Select(f => f.FullName));
     foreach (var library in libraryPaths) {
       await foreach (var file in DafnyFile.CreateAndValidate(fileSystem, errorReporter, Options, new Uri(library), Project.StartingToken, true)) {
         result.Add(file);
@@ -308,27 +308,28 @@ public class Compilation : IDisposable {
       return false;
     }
 
-    var canVerify = GetCanVerify(verifiableLocation, resolution);
+    var canVerifies = GetCanVerify(verifiableLocation, resolution);
 
-    if (canVerify == null) {
-      return false;
+    var result = false;
+    foreach (var canVerify in canVerifies) {
+      result |= await VerifyCanVerify(canVerify, taskFilter ?? (_ => true), randomSeed, onlyPrepareVerificationForGutterTests);
     }
 
-    return await VerifyCanVerify(canVerify, taskFilter ?? (_ => true), randomSeed, onlyPrepareVerificationForGutterTests);
+    return result;
   }
 
-  private static ICanVerify? GetCanVerify(
+  private static IEnumerable<ICanVerify> GetCanVerify(
     FilePosition verifiableLocation,
     ResolutionResult resolution) {
     if (resolution.CanVerifies?.TryGetValue(verifiableLocation.Uri, out var canVerifyForUri) == true) {
       var canVerifies = canVerifyForUri.Query(verifiableLocation.Position.ToDafnyPosition());
-      return canVerifies.FirstOrDefault();
+      return canVerifies;
     }
 
-    return null;
+    return [];
   }
 
-  private async Task<bool> VerifyCanVerify(ICanVerify canVerify, Func<IVerificationTask, bool> taskFilter,
+  public async Task<bool> VerifyCanVerify(ICanVerify canVerify, Func<IVerificationTask, bool> taskFilter,
     int? randomSeed = 0,
     bool onlyPrepareVerificationForGutterTests = false) {
 
@@ -364,13 +365,16 @@ public class Compilation : IDisposable {
       var ticket = verificationTickets.Dequeue();
       var containingModule = canVerify.ContainingModule;
 
-      IReadOnlyDictionary<FilePosition, IReadOnlyList<IVerificationTask>> tasksForModule;
+      IReadOnlyDictionary<ICanVerify, IReadOnlyList<IVerificationTask>> tasksForModule;
       try {
         tasksForModule = await translatedModules.GetOrAdd(containingModule, async () => {
           var result = await verifier.GetVerificationTasksAsync(boogieEngine, resolution, containingModule,
             cancellationSource.Token);
 
-          return result.GroupBy(t => ((IOrigin)t.ScopeToken).GetFilePosition()).ToDictionary(
+          return result.GroupBy(t => {
+            var dafnyToken = (CanVerifyOrigin)t.ScopeToken;
+            return dafnyToken.CanVerify;
+          }).ToDictionary(
             g => g.Key,
             g => (IReadOnlyList<IVerificationTask>)g.ToList());
         });
@@ -385,7 +389,7 @@ public class Compilation : IDisposable {
       var updated = false;
       var tasks = tasksPerVerifiable.GetOrAdd(canVerify, () => {
         var result =
-          tasksForModule.GetValueOrDefault(canVerify.NavigationRange.StartToken.GetFilePosition()) ??
+          tasksForModule.GetValueOrDefault(canVerify) ??
           new List<IVerificationTask>(0);
 
         updated = true;
@@ -491,8 +495,8 @@ public class Compilation : IDisposable {
       return;
     }
 
-    var canVerify = GetCanVerify(filePosition, resolution);
-    if (canVerify != null) {
+    var canVerifies = GetCanVerify(filePosition, resolution);
+    foreach (var canVerify in canVerifies) {
       var implementations = tasksPerVerifiable.TryGetValue(canVerify, out var implementationsPerName)
         ? implementationsPerName! : Enumerable.Empty<IVerificationTask>();
       foreach (var view in implementations) {

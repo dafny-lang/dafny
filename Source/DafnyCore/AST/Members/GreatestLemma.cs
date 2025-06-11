@@ -1,27 +1,14 @@
 #nullable enable
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
-using System.Linq;
 
 namespace Microsoft.Dafny;
 
-[SyntaxBaseType(typeof(Declaration))]
-public abstract class ExtremeLemma : Method {
-  public override string WhatKindMentionGhost => WhatKind;
-  public ExtremePredicate.KType TypeOfK;
-  public bool KNat => TypeOfK == ExtremePredicate.KType.Nat;
-  [FilledInDuringResolution] public PrefixLemma PrefixLemma = null!;  // (name registration)
-
-  public override IEnumerable<INode> Children => base.Children.Concat(PrefixLemma == null ? [] : [PrefixLemma]);
-
-  public override IEnumerable<INode> PreResolveChildren => base.Children;
-
-  public ExtremeLemma(Cloner cloner, ExtremeLemma lemma) : base(cloner, lemma) {
-    TypeOfK = lemma.TypeOfK;
-  }
+public class GreatestLemma : ExtremeLemma {
+  public override string WhatKind => "greatest lemma";
 
   [SyntaxConstructor]
-  protected ExtremeLemma(IOrigin origin, Name nameNode,
+  public GreatestLemma(IOrigin origin, Name nameNode,
     bool hasStaticKeyword, ExtremePredicate.KType typeOfK,
     List<TypeParameter> typeArgs,
     List<Formal> ins, [Captured] List<Formal> outs,
@@ -32,8 +19,7 @@ public abstract class ExtremeLemma : Method {
     Specification<Expression> decreases,
     BlockStmt body,
     Attributes? attributes, IOrigin? signatureEllipsis)
-    : base(origin, nameNode, attributes, hasStaticKeyword, true,
-      typeArgs, ins, req, ens, reads, decreases, outs, mod, body, signatureEllipsis) {
+    : base(origin, nameNode, hasStaticKeyword, typeOfK, typeArgs, ins, outs, req, reads, mod, ens, decreases, body, attributes, signatureEllipsis) {
     Contract.Requires(origin != null);
     Contract.Requires(nameNode != null);
     Contract.Requires(cce.NonNullElements(typeArgs));
@@ -43,8 +29,8 @@ public abstract class ExtremeLemma : Method {
     Contract.Requires(mod != null);
     Contract.Requires(cce.NonNullElements(ens));
     Contract.Requires(decreases != null);
-    TypeOfK = typeOfK;
   }
 
-  public override bool AllowsAllocation => false;
+  public GreatestLemma(Cloner cloner, GreatestLemma greatestLemma) : base(cloner, greatestLemma) {
+  }
 }

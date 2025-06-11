@@ -19,6 +19,16 @@ class Anything {
     var tab := new int[3,4];
     tab[0,0] := 0;
     assert(tab[0,0] == 0);
+    
+  }
+  
+    
+  function P2(x:int, y:int) : bool {
+    x>y
+  }
+    
+  function P(x:int) : bool {
+    P2(x,10)
   }
 }
 

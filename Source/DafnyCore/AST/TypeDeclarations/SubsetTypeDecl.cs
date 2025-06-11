@@ -60,8 +60,8 @@ public class SubsetTypeDecl : TypeSynonymDecl, RedirectingTypeDecl, ICanAutoReve
   public override List<Type> ParentTypes(List<Type> typeArgs, bool includeTypeBounds) {
     return [RhsWithArgument(typeArgs)];
   }
-  public bool ShouldVerify => true; // This could be made more accurate
-  public ModuleDefinition ContainingModule => EnclosingModuleDefinition;
+  public override bool ShouldVerify => true; // This could be made more accurate
+  public override ModuleDefinition ContainingModule => EnclosingModuleDefinition;
   public override SymbolKind? Kind => SymbolKind.Class;
   public override string GetDescription(DafnyOptions options) {
     return "subset type";

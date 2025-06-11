@@ -257,7 +257,7 @@ public class CliCompilation {
           results.TaskFilter = t => KeepVerificationTask(t, filterRange);
         }
 
-        var shouldVerify = await Compilation.VerifyLocation(canVerify.Origin.GetFilePosition(), results.TaskFilter, randomSeed);
+        var shouldVerify = await Compilation.VerifyCanVerify(canVerify, results.TaskFilter, randomSeed);
         if (shouldVerify) {
           toAwait.Add(canVerify);
         }
