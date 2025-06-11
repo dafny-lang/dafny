@@ -4,11 +4,10 @@ using System.Diagnostics.Contracts;
 
 namespace Microsoft.Dafny;
 
-[SyntaxBaseType(typeof(MethodOrFunction))]
+[SyntaxBaseType(typeof(Declaration))]
 public class Lemma : Method {
   public override string WhatKind => "lemma";
   public override string WhatKindMentionGhost => WhatKind;
-
   
   [SyntaxConstructor]
   public Lemma(IOrigin origin, Name nameNode,

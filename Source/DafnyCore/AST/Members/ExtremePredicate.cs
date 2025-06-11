@@ -4,7 +4,7 @@ using System.Linq;
 
 namespace Microsoft.Dafny;
 
-[SyntaxBaseType(typeof(MethodOrFunction))]
+[SyntaxBaseType(typeof(Declaration))]
 public abstract class ExtremePredicate : Function {
   public override string WhatKindMentionGhost => WhatKind;
   public enum KType { Unspecified, Nat, ORDINAL }
