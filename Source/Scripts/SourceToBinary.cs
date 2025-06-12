@@ -20,7 +20,7 @@ public class SourceToBinary {
     var inputArgument = new Argument<FileInfo>("input", "Dafny source file");
     result.AddArgument(inputArgument);
 
-    var deleteSourcesOption = new Option<bool>("--delete-sources");
+    var deleteSourcesOption = new Option<bool>("--delete-source-locations", "Useful for checking whether source-locations are used by certain Dafny commands");
     result.AddOption(deleteSourcesOption);
     result.SetHandler((file1, deleteSources) => Handle(file1.FullName, deleteSources, outputWriter),
       inputArgument, deleteSourcesOption);
