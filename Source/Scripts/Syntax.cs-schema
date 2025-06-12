@@ -817,7 +817,7 @@ enum SubsetTypeDeclWKind
 abstract class TopLevelDeclWithMembers : TopLevelDecl
 {
     List<MemberDecl> members;
-    List<Type>? traits;
+    List<Type> traits;
 }
 
 abstract class MemberDecl : Declaration
@@ -912,7 +912,7 @@ class Predicate : MethodOrFunction
     Boolean hasStaticKeyword;
     Boolean isOpaque;
     Formal? result;
-    Expression body;
+    Expression? body;
     PredicateBodyOriginKind bodyOrigin;
     IOrigin? byMethodTok;
     BlockStmt? byMethodBody;
