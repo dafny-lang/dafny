@@ -75,14 +75,14 @@ using BinaryExprOpcode = Microsoft.Dafny.BinaryExpr.Opcode;
     ParameterToSchemaPositions[type] = parameterToSchemaPosition;
     var statements = new StringBuilder();
 
-    VisitParameters(type, (index, parameter, memberInfo) => {
+    VisitParameters(type, (index, parameter) => {
       var parameterType = parameter.ParameterType;
       if (ExcludedTypes.Contains(parameterType)) {
         statements.AppendLine($"{parameterType} parameter{index} = null;");
         return;
       }
 
-      if (memberInfo.GetCustomAttribute<BackEdge>() != null) {
+      if (parameter.GetCustomAttribute<BackEdge>() != null) {
         statements.AppendLine($"{parameterType} parameter{index} = null;");
         return;
       }
@@ -90,18 +90,18 @@ using BinaryExprOpcode = Microsoft.Dafny.BinaryExpr.Opcode;
       var memberBelongsToBase = DoesMemberBelongToBase(type, parameter, baseType);
       if (memberBelongsToBase) {
         if (!ParameterToSchemaPositions[baseType!]
-              .TryGetValue(memberInfo.Name, out var schemaPosition)) {
+              .TryGetValue(parameter.Name!, out var schemaPosition)) {
           throw new Exception(
             $"parameter '{parameter.Name}' of '{type.Name}' should have been in parent type '{baseType}' constructor, but was not found");
         }
 
         schemaToConstructorPosition[schemaPosition] = index;
-        parameterToSchemaPosition[memberInfo.Name] = schemaPosition;
+        parameterToSchemaPosition[parameter.Name!] = schemaPosition;
         return;
       }
 
       var schemaPosition2 = ownedFieldPosition++;
-      parameterToSchemaPosition[memberInfo.Name] = schemaPosition2;
+      parameterToSchemaPosition[parameter.Name!] = schemaPosition2;
       schemaToConstructorPosition[schemaPosition2] = index;
     });
 

@@ -96,15 +96,15 @@ public abstract class SyntaxAstVisitor {
       }
     }
 
-    VisitParameters(type, (_, parameter, field) => {
+    VisitParameters(type, (_, parameter) => {
       if (ExcludedTypes.Contains(parameter.ParameterType)) {
         return;
       }
-      if (field.GetCustomAttribute<BackEdge>() != null) {
+      if (parameter.GetCustomAttribute<BackEdge>() != null) {
         return;
       }
 
-      if (field.DeclaringType != type) {
+      if (DoesMemberBelongToBase(type, parameter, baseType)) {
         return;
       }
 
@@ -116,28 +116,16 @@ public abstract class SyntaxAstVisitor {
     });
   }
 
-  protected void VisitParameters(Type type, Action<int, ParameterInfo, MemberInfo> handle) {
+  protected void VisitParameters(Type type, Action<int, ParameterInfo> handle) {
     var constructor = GetParseConstructor(type);
     if (constructor == null) {
       return;
     }
 
-    var fields = type.GetFields().ToDictionary(f => f.Name.ToLower(), f => f);
-    var properties = type.GetProperties().
-      DistinctBy(p => p.Name).
-      ToDictionary(p => p.Name.ToLower(), p => p);
-
     var parameters = constructor.GetParameters();
     for (var index = 0; index < parameters.Length; index++) {
       var parameter = constructor.GetParameters()[index];
-
-      var memberInfo = fields.GetValueOrDefault(parameter.Name!.ToLower()) ??
-                       (MemberInfo)properties.GetValueOrDefault(parameter.Name.ToLower())!;
-
-      if (memberInfo == null) {
-        throw new Exception($"Could not find field or property corresponding to parameter {parameter.Name} in constructor of {type.Name}");
-      }
-      handle(index, parameter, memberInfo);
+      handle(index, parameter);
     }
   }
 
