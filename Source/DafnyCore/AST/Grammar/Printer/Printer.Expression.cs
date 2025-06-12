@@ -526,10 +526,10 @@ namespace Microsoft.Dafny {
 
       } else if (expr is DatatypeValue) {
         var dtv = (DatatypeValue)expr;
-        bool printParens;
+        bool printArgs;
         if (dtv.MemberName.StartsWith(SystemModuleManager.TupleTypeCtorNamePrefix)) {
           // we're looking at a tuple, whose printed constructor name is essentially the empty string
-          printParens = true;
+          printArgs = true;
         } else {
           var typeArgs = "";
           if (dtv.InferredTypeArgs != null && dtv.InferredTypeArgs.Count != 0) {
@@ -537,10 +537,10 @@ namespace Microsoft.Dafny {
           }
 
           wr.Write("{0}{1}.{2}", dtv.DatatypeName, typeArgs, dtv.MemberName);
-          printParens = dtv.Arguments.Count != 0;
+          printArgs = dtv.Bindings.ArgumentBindings.Count > 0;
         }
 
-        if (printParens) {
+        if (printArgs) {
           PrintActualArguments(dtv.Bindings, null, null);
         }
 
