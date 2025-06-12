@@ -83,7 +83,7 @@ using BinaryExprOpcode = Microsoft.Dafny.BinaryExpr.Opcode;
       }
 
       if (parameter.GetCustomAttribute<BackEdge>() != null) {
-        statements.AppendLine($"{parameterType} parameter{index} = null;");
+        parameterToSchemaPosition[parameter.Name!] = -1;
         return;
       }
 
@@ -148,13 +148,17 @@ private {typeString} Read{typeString2}() {{
 
     // If some fields should not be serialized, the keys of schemaToConstructorPosition may not be contiguous,
     // so we iterate in ascending order rather than by indexing from 0 to its size.
-    foreach (var (_, constructorIndex) in schemaToConstructorPosition.OrderBy(p => p.Key)) {
+    foreach (var (schemaPosition, constructorIndex) in schemaToConstructorPosition.OrderBy(p => p.Key)) {
       var parameter = parameters[constructorIndex];
       var nullabilityContext = new NullabilityInfoContext();
       var nullabilityInfo = nullabilityContext.Create(parameter);
       var parameterTypeReadCall = GetReadTypeCall(parameter.ParameterType, nullabilityInfo);
-      statements.AppendLine(
-        $"var parameter{constructorIndex} = {parameterTypeReadCall};");
+      if (schemaPosition == -1) {
+        statements.AppendLine($"{parameter.ParameterType} parameter{constructorIndex} = null;");
+      } else {
+        statements.AppendLine(
+          $"var parameter{constructorIndex} = {parameterTypeReadCall};");
+      }
     }
     AddReadMethodForType(parameters, statements, typeString, readMethodName);
     AddReadOptionMethodForType(typeString, readMethodName, readOptionMethodName);
