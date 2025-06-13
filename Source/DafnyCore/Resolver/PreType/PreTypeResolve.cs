@@ -558,6 +558,8 @@ namespace Microsoft.Dafny {
     ///
     /// If "allowCommonSuperType", then "X<T> ::> Y<U>" also means
     ///     T and U have common supertype S such that S :> T and S :> U.
+    ///
+    /// As we currently use this method, allowConversion ^ allowCommonSuperType holds.
     /// Additionally, under the legacy option /generalNewtypes:0 (which will be phased out over time), the latter also allows
     /// several additional cases, see IsConversionCompatible.
     /// </summary>
