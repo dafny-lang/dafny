@@ -103,7 +103,7 @@ using BinaryExprOpcode = Microsoft.Dafny.BinaryExpr.Opcode;
 
       var schemaPosition2 = ownedFieldPosition++;
       parameterToSchemaPosition[parameter.Name!] = schemaPosition2;
-      schemaToConstructorPosition[schemaPosition2] = index; 
+      schemaToConstructorPosition[schemaPosition2] = index;
     });
 
     if (baseType != null && baseType != typeof(ValueType) && baseType != typeof(object)) {
