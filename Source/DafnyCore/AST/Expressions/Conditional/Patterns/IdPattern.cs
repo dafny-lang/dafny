@@ -147,7 +147,7 @@ public class IdPattern : ExtendedPattern, IHasReferences {
       if (Id == SystemModuleManager.TupleTypeCtorName(1)) {
         resolver.reporter.Error(MessageSource.Resolver, this.Origin, "parentheses are not allowed around a pattern");
       } else {
-        resolver.reporter.Error(MessageSource.Resolver, this.Origin, "member {0} does not exist in type {1}", this.Id, type);
+        resolver.reporter.Error(MessageSource.Resolver, "MemberDoesNotExist", this.Origin, "member {0} does not exist in type {1}", this.Id, type.ToString());
       }
       return;
     }

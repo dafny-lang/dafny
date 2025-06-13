@@ -971,26 +971,26 @@ namespace Microsoft.Dafny.Compilers {
       } else if (xType is SetType) {
         Type argType = ((SetType)xType).Arg;
         if (ComplicatedTypeParameterForCompilation(TypeParameter.TPVariance.Co, argType)) {
-          UnsupportedFeatureError(tok, Feature.CollectionsOfTraits, "compilation of set<TRAIT> is not supported; consider introducing a ghost", wr);
+          UnsupportedFeatureError(tok, Feature.CollectionsOfTraits, wr, "compilation of set<TRAIT> is not supported; consider introducing a ghost");
         }
         return DafnySetClass + "<" + TypeName(argType, wr, tok) + ">";
       } else if (xType is SeqType) {
         Type argType = ((SeqType)xType).Arg;
         if (ComplicatedTypeParameterForCompilation(TypeParameter.TPVariance.Co, argType)) {
-          UnsupportedFeatureError(tok, Feature.CollectionsOfTraits, "compilation of seq<TRAIT> is not supported; consider introducing a ghost", wr);
+          UnsupportedFeatureError(tok, Feature.CollectionsOfTraits, wr, "compilation of seq<TRAIT> is not supported; consider introducing a ghost");
         }
         return DafnySeqClass + "<" + TypeName(argType, wr, tok) + ">";
       } else if (xType is MultiSetType) {
         Type argType = ((MultiSetType)xType).Arg;
         if (ComplicatedTypeParameterForCompilation(TypeParameter.TPVariance.Co, argType)) {
-          UnsupportedFeatureError(tok, Feature.CollectionsOfTraits, "compilation of multiset<TRAIT> is not supported; consider introducing a ghost", wr);
+          UnsupportedFeatureError(tok, Feature.CollectionsOfTraits, wr, "compilation of multiset<TRAIT> is not supported; consider introducing a ghost");
         }
         return DafnyMultiSetClass + "<" + TypeName(argType, wr, tok) + ">";
       } else if (xType is MapType) {
         Type domType = ((MapType)xType).Domain;
         Type ranType = ((MapType)xType).Range;
         if (ComplicatedTypeParameterForCompilation(TypeParameter.TPVariance.Co, domType) || ComplicatedTypeParameterForCompilation(TypeParameter.TPVariance.Co, ranType)) {
-          UnsupportedFeatureError(tok, Feature.CollectionsOfTraits, "compilation of map<TRAIT, _> or map<_, TRAIT> is not supported; consider introducing a ghost", wr);
+          UnsupportedFeatureError(tok, Feature.CollectionsOfTraits, wr, "compilation of map<TRAIT, _> or map<_, TRAIT> is not supported; consider introducing a ghost");
         }
         return DafnyMapClass + "<" + TypeName(domType, wr, tok) + "," + TypeName(ranType, wr, tok) + ">";
       } else {
@@ -1137,7 +1137,8 @@ namespace Microsoft.Dafny.Compilers {
       if (compileTypeHint.AsStringLiteral() == "struct") {
         modDeclWr.WriteLine("// Extern declaration of {1}\n{0} struct {1};", DeclareTemplate(d.TypeArgs), d.Name);
       } else {
-        Error(GeneratorErrors.ErrorId.c_abstract_type_cannot_be_compiled_extern, d.Origin, "Abstract type ('{0}') with unrecognized extern attribute {1} cannot be compiled.  Expected {{:extern compile_type_hint}}, e.g., 'struct'.", wr, d.FullName, compileTypeHint.AsStringLiteral());
+        Error(GeneratorErrors.ErrorId.c_abstract_type_cannot_be_compiled_extern, d.Origin, wr,
+          "Abstract type ('{0}') with unrecognized extern attribute {1} cannot be compiled.  Expected {{:extern compile_type_hint}}, e.g., 'struct'.", d.FullName, compileTypeHint.AsStringLiteral());
       }
     }
 
@@ -1785,9 +1786,9 @@ namespace Microsoft.Dafny.Compilers {
           return SuffixLvalue(obj, ".{0}", compiledName);
         } else if (sf is DatatypeDestructor dtor2) {
           if (!(dtor2.EnclosingClass is IndDatatypeDecl)) {
-            UnsupportedFeatureError(dtor2.Origin, Feature.Codatatypes,
-              String.Format("Unexpected use of a destructor {0} that isn't for an inductive datatype.  Panic!",
-                member.Name));
+            UnsupportedFeatureError(dtor2.Origin, Feature.Codatatypes, null,
+              "Unexpected use of a destructor {0} that isn't for an inductive datatype.  Panic!",
+                member.Name);
           }
 
           var dt = dtor2.EnclosingClass as IndDatatypeDecl;

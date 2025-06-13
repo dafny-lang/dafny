@@ -433,7 +433,7 @@ method Bar() { assert false; }";
     Assert.Equal(PublishedVerificationStatus.Stale, stale.NamedVerifiables[0].Status);
     await AssertNoVerificationStatusIsComing(documentItem, CancellationToken);
 
-    var methodHeader = new Position(0, 21);
+    var methodHeader = new Position(0, 32);
     await client.RunSymbolVerification(new TextDocumentIdentifier(documentItem.Uri), methodHeader, CancellationToken);
     var running0 = await verificationStatusReceiver.AwaitNextNotificationAsync(CancellationToken);
     Assert.Equal(documentItem.Uri, running0.Uri);

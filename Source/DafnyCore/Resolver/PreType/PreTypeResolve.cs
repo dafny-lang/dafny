@@ -22,50 +22,29 @@ namespace Microsoft.Dafny {
 
     protected int ErrorCount => resolver.Reporter.Count(ErrorLevel.Error);
 
-    protected void ReportError(Declaration d, string msg, params object[] args) {
-      Contract.Requires(d != null);
-      Contract.Requires(msg != null);
-      Contract.Requires(args != null);
-      ReportError(d.Origin, msg, args);
+    protected void ReportError(INode node, params object[] messageParts) {
+      Contract.Requires(node != null);
+      ReportError(node.Origin, messageParts);
     }
 
-    protected void ReportError(Statement stmt, string msg, params object[] args) {
-      Contract.Requires(stmt != null);
-      Contract.Requires(msg != null);
-      Contract.Requires(args != null);
-      ReportError(stmt.Origin, msg, args);
-    }
-
-    protected void ReportError(Expression expr, string msg, params object[] args) {
-      Contract.Requires(expr != null);
-      Contract.Requires(msg != null);
-      Contract.Requires(args != null);
-      ReportError(expr.Origin, msg, args);
-    }
-
-    public void ReportError(IOrigin tok, string msg, params object[] args) {
+    public void ReportError(IOrigin tok, params object[] messageParts) {
       Contract.Requires(tok != null);
-      Contract.Requires(msg != null);
-      Contract.Requires(args != null);
-      resolver.Reporter.Error(MessageSource.Resolver, tok, msg, args);
+      Contract.Requires(messageParts != null);
+      resolver.Reporter.Error(MessageSource.Resolver, tok, messageParts);
     }
 
-    public void ReportError(ResolutionErrors.ErrorId errorId, IOrigin tok, string msg, params object[] args) {
-      resolver.Reporter.Error(MessageSource.Resolver, errorId, tok, msg, args);
+    public void ReportError(ResolutionErrors.ErrorId errorId, IOrigin tok, params object[] messageParts) {
+      resolver.Reporter.Error(MessageSource.Resolver, errorId, tok, messageParts);
     }
 
-    public void ReportWarning(IOrigin tok, string msg, params object[] args) {
+    public void ReportWarning(IOrigin tok, params object[] messageParts) {
       Contract.Requires(tok != null);
-      Contract.Requires(msg != null);
-      Contract.Requires(args != null);
-      resolver.Reporter.Warning(MessageSource.Resolver, ParseErrors.ErrorId.none, tok, msg, args);
+      resolver.Reporter.Warning(MessageSource.Resolver, ParseErrors.ErrorId.none, tok, messageParts);
     }
 
-    protected void ReportInfo(IOrigin tok, string msg, params object[] args) {
+    protected void ReportInfo(IOrigin tok, params object[] messageParts) {
       Contract.Requires(tok != null);
-      Contract.Requires(msg != null);
-      Contract.Requires(args != null);
-      resolver.Reporter.Info(MessageSource.Resolver, tok, msg, args);
+      resolver.Reporter.Info(MessageSource.Resolver, tok, messageParts);
     }
   }
 

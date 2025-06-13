@@ -160,13 +160,13 @@ Generate module names in the older A_mB_mC style instead of the current A.B.C sc
 
   [SyntaxConstructor]
   public ModuleDefinition(IOrigin origin, Name nameNode, List<IOrigin> prefixIds, ModuleKindEnum moduleKind,
-    Implements? implements, ModuleDefinition enclosingModule, Attributes? attributes,
+    Implements? implements, ModuleDefinition? enclosingModule, Attributes? attributes,
     List<TopLevelDecl> sourceDecls)
     : this(origin, nameNode, prefixIds, moduleKind, false, implements, enclosingModule, attributes, sourceDecls) {
   }
 
   public ModuleDefinition(IOrigin origin, Name nameNode, List<IOrigin> prefixIds, ModuleKindEnum moduleKind, bool isFacade,
-    Implements? implements, ModuleDefinition enclosingModule, Attributes? attributes, List<TopLevelDecl>? sourceDecls = null) : base(origin) {
+    Implements? implements, ModuleDefinition? enclosingModule, Attributes? attributes, List<TopLevelDecl>? sourceDecls = null) : base(origin) {
     this.NameNode = nameNode;
     this.PrefixIds = prefixIds;
     this.Attributes = attributes;
@@ -725,6 +725,7 @@ Generate module names in the older A_mB_mC style instead of the current A.B.C sc
 
     // This is solely used to detect duplicates amongst the various e
     Dictionary<string, INode> toplevels = new();
+    var duplicateNames = new HashSet<string>();
     // Now add the things present
     var anonymousImportCount = 0;
     foreach (TopLevelDecl d in TopLevelDecls) {
@@ -736,40 +737,46 @@ Generate module names in the older A_mB_mC style instead of the current A.B.C sc
 
       // register the class/datatype/module name
       TopLevelDecl? registerThisDecl = null;
-      string? registerUnderThisName = null;
+      var registerUnderThisName = d.Name;
+      var duplicateName = duplicateNames.Contains(registerUnderThisName);
+      INode? existingTopLevel = null;
       if (d is ModuleExportDecl export) {
-        if (!sig.ExportSets.TryAdd(d.Name, export)) {
-          resolver.reporter.Error(MessageSource.Resolver, d, "duplicate name of export set: {0}", d.Name);
+        if (duplicateName || !sig.ExportSets.TryAdd(registerUnderThisName, export)) {
+          duplicateName = true;
+          resolver.reporter.Error(MessageSource.Resolver, d, "duplicate name of export set: {0}", registerUnderThisName);
         }
-      } else if (d is AliasModuleDecl importDecl && importDecl.ShadowsLiteralModule) {
+      } else if (d is AliasModuleDecl { ShadowsLiteralModule: true }) {
         // add under an anonymous name
         registerThisDecl = d;
-        registerUnderThisName = string.Format("{0}#{1}", d.Name, anonymousImportCount);
+        registerUnderThisName = $"{d.Name}#{anonymousImportCount}";
         anonymousImportCount++;
-      } else if (toplevels.TryGetValue(d.Name, out var existingTopLevel)) {
-        resolver.reporter.Error(MessageSource.Resolver, new NestedOrigin(d.Origin, existingTopLevel.Origin),
-          "duplicate name of top-level declaration: {0}", d.Name);
+      } else if (duplicateName || toplevels.TryGetValue(d.Name, out existingTopLevel)) {
+        duplicateName = true;
+        var origin = existingTopLevel != null ? new NestedOrigin(d.Origin, existingTopLevel.Origin) : d.Origin;
+        resolver.reporter.Error(MessageSource.Resolver, origin, "duplicate name of top-level declaration: {0}", d.Name);
       } else if (d is ClassLikeDecl { NonNullTypeDecl: { } nntd }) {
         registerThisDecl = nntd;
-        registerUnderThisName = d.Name;
       } else {
         // Register each class and trait C under its own name, C. Below, we will change this for reference types (which includes all classes
         // and some of the traits), so that C? maps to the class/trait and C maps to the corresponding NonNullTypeDecl. We will need these
         // initial mappings in order to look through the parent traits of traits, below.
         registerThisDecl = d;
-        registerUnderThisName = d.Name;
       }
 
       if (registerThisDecl != null) {
-        toplevels[registerUnderThisName!] = d;
-        sig.TopLevels[registerUnderThisName!] = registerThisDecl;
+        toplevels[registerUnderThisName] = d;
+        sig.TopLevels[registerUnderThisName] = registerThisDecl;
+      } else if (duplicateName) {
+        duplicateNames.Add(registerUnderThisName);
+        toplevels.Remove(registerUnderThisName);
+        sig.TopLevels.Remove(registerUnderThisName);
       }
 
       if (d is ModuleDecl) {
         // nothing to do
       } else if (d is TypeSynonymDecl) {
         // nothing more to register
-      } else if (d is NewtypeDecl || d is AbstractTypeDecl) {
+      } else if (d is NewtypeDecl or AbstractTypeDecl) {
         var cl = (TopLevelDeclWithMembers)d;
         // register the names of the type members
         var members = new Dictionary<string, MemberDecl>();
@@ -922,7 +929,7 @@ Generate module names in the older A_mB_mC style instead of the current A.B.C sc
     // Now, for each reference type (class and some traits), register its possibly-null type.
     // In the big loop above, each class and trait was registered under its own name. We're now going to change that for the reference types.
     foreach (TopLevelDecl d in TopLevelDecls) {
-      if (d is ClassLikeDecl { NonNullTypeDecl: { } nntd }) {
+      if (d is ClassLikeDecl { NonNullTypeDecl: { } nntd } && !duplicateNames.Contains(d.Name)) {
         var name = d.Name + "?";
         if (toplevels.ContainsKey(name)) {
           resolver.reporter.Error(MessageSource.Resolver, d,

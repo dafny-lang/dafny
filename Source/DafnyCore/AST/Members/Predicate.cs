@@ -1,8 +1,11 @@
+#nullable enable
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
+using JetBrains.Annotations;
 
 namespace Microsoft.Dafny;
 
+[SyntaxBaseType(typeof(MethodOrFunction))]
 public class Predicate : Function {
   public override string WhatKind => "predicate";
   public enum BodyOriginKind {
@@ -11,12 +14,19 @@ public class Predicate : Function {
     Extension  // this predicate extends the definition of a predicate with a body in a module being refined
   }
   public BodyOriginKind BodyOrigin;
-  public Predicate(IOrigin rangeOrigin, Name nameNode, bool hasStaticKeyword, bool isGhost, bool isOpaque,
+
+  [SyntaxConstructor]
+  public Predicate(IOrigin origin, Name nameNode, bool hasStaticKeyword, bool isGhost, bool isOpaque,
     List<TypeParameter> typeArgs, List<Formal> ins,
-    Formal result,
-    List<AttributedExpression> req, Specification<FrameExpression> reads, List<AttributedExpression> ens, Specification<Expression> decreases,
-    Expression body, BodyOriginKind bodyOrigin, IOrigin/*?*/ byMethodTok, BlockStmt/*?*/ byMethodBody, Attributes attributes, IOrigin signatureEllipsis)
-    : base(rangeOrigin, nameNode, hasStaticKeyword, isGhost, isOpaque, typeArgs, ins, result, Type.Bool, req, reads, ens, decreases, body, byMethodTok, byMethodBody, attributes, signatureEllipsis) {
+    Formal? result,
+    List<AttributedExpression> req,
+    Specification<FrameExpression> reads,
+    List<AttributedExpression> ens, Specification<Expression> decreases,
+    Expression? body, BodyOriginKind bodyOrigin, IOrigin? byMethodTok,
+    BlockStmt? byMethodBody, Attributes? attributes, IOrigin? signatureEllipsis)
+    : base(origin, nameNode, hasStaticKeyword, isGhost, isOpaque, typeArgs, ins,
+      result, Type.Bool, req, reads, ens, decreases, body,
+      byMethodTok, byMethodBody, attributes, signatureEllipsis) {
     Contract.Requires(bodyOrigin == Predicate.BodyOriginKind.OriginalOrInherited || body != null);
     BodyOrigin = bodyOrigin;
   }

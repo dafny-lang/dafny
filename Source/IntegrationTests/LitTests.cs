@@ -1,5 +1,7 @@
 using System;
 using System.Collections.Generic;
+using System.CommandLine;
+using System.CommandLine.Builder;
 using System.IO;
 using System.Linq;
 using System.Reflection;
@@ -136,10 +138,8 @@ namespace IntegrationTests {
         {
           "%tobinary", (args, config) =>
             new MainWithWritersCommand("source-to-binary", args,
-              async (output, error, input, finalArgs) => {
-                await SourceToBinary.Handle(finalArgs.ElementAt(0), output);
-                return 0;
-              })
+              async (output, error, input, finalArgs) =>
+                await SourceToBinary.GetCommand(output).InvokeAsync(finalArgs))
         },
         {
           "%baredafny", (args, config) =>

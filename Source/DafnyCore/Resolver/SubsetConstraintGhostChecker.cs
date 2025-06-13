@@ -8,14 +8,12 @@ namespace Microsoft.Dafny;
 /// </summary>
 public class SubsetConstraintGhostChecker : ProgramTraverser {
   private class FirstErrorCollector : ErrorReporter {
-    public string FirstCollectedMessage = "";
-    public TokenRange FirstCollectedToken;
+    public DafnyDiagnostic FirstCollectedDiagnostic = null;
     public bool Collected;
 
     public override bool MessageCore(DafnyDiagnostic dafnyDiagnostic) {
       if (!Collected && dafnyDiagnostic.Level == ErrorLevel.Error) {
-        FirstCollectedMessage = dafnyDiagnostic.Message;
-        FirstCollectedToken = dafnyDiagnostic.Range;
+        FirstCollectedDiagnostic = dafnyDiagnostic;
         Collected = true;
       }
       return true;
@@ -97,14 +95,16 @@ public class SubsetConstraintGhostChecker : ProgramTraverser {
         ExpressionTester.CheckIsCompilable(null, errorCollector, declWithConstraints.Constraint,
           new CodeContextWrapper(declWithConstraints, true));
         if (errorCollector.Collected) {
-          relatedInformation.Add(new DafnyRelatedInformation(errorCollector.FirstCollectedToken,
-              "The constraint is not compilable because " + errorCollector.FirstCollectedMessage));
+          relatedInformation.Add(new DafnyRelatedInformation(errorCollector.FirstCollectedDiagnostic.Range,
+            errorCollector.FirstCollectedDiagnostic.ErrorId, errorCollector.FirstCollectedDiagnostic.MessageParts));
         }
       }
-      var message = $"{boundVar.Type} is a {declWithConstraints.WhatKind} and its constraint is not compilable, " +
-                    $"hence it cannot yet be used as the type of a bound variable in {e.WhatKind}.";
-      reporter.MessageCore(new DafnyDiagnostic(MessageSource.Resolver, null,
-        boundVar.ReportingRange, message, ErrorLevel.Error, relatedInformation));
+      reporter.MessageCore(new DafnyDiagnostic(MessageSource.Resolver, "ConstraintIsNotCompilable",
+        boundVar.ReportingRange, ["{0} is a {1} and its constraint is not compilable, hence it cannot yet be used as the type of a bound variable in {2}.",
+          boundVar.Type.ToString(),
+          declWithConstraints.WhatKind,
+          e.WhatKind],
+        ErrorLevel.Error, relatedInformation));
     }
     return base.Traverse(e, field, parent);
   }

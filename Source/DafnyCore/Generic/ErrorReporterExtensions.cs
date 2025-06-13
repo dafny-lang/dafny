@@ -16,7 +16,7 @@ public static class ErrorReporterExtensions {
         error.Msg += "\n" + auxiliaryInformation.FullMsg;
       } else if (auxiliaryInformation.Category == RelatedLocationCategory) {
         var auxiliaryToken = BoogieGenerator.ToDafnyToken(auxiliaryInformation.Tok);
-        relatedInformation.Add(new DafnyRelatedInformation(auxiliaryToken.ReportingRange, auxiliaryInformation.Msg));
+        relatedInformation.Add(new DafnyRelatedInformation(auxiliaryToken.ReportingRange, "", [auxiliaryInformation.Msg]));
         relatedInformation.AddRange(CreateDiagnosticRelatedInformationFor(auxiliaryToken, usingSnippets));
       } else {
         // The execution trace is an additional auxiliary which identifies itself with
@@ -36,7 +36,7 @@ public static class ErrorReporterExtensions {
 
     var dafnyToken = BoogieGenerator.ToDafnyToken(error.Tok);
 
-    var diagnostic = new DafnyDiagnostic(MessageSource.Verifier, null!, dafnyToken.ReportingRange, error.Msg,
+    var diagnostic = new DafnyDiagnostic(MessageSource.Verifier, null!, dafnyToken.ReportingRange, [error.Msg],
       ErrorLevel.Error, relatedInformation);
     reporter.MessageCore(diagnostic);
   }
@@ -62,7 +62,7 @@ public static class ErrorReporterExtensions {
         //     message = $"Could not prove: {dafnyToken.PrintOriginal()}";
         //   }
         // }
-        yield return new DafnyRelatedInformation(nestedOrigin.Inner.ReportingRange, nestedOrigin.Message);
+        yield return new DafnyRelatedInformation(nestedOrigin.Inner.ReportingRange, "", [nestedOrigin.Message]);
         innerToken = nestedOrigin.Inner;
       } else {
         innerToken = wrapper.WrappedOrigin;

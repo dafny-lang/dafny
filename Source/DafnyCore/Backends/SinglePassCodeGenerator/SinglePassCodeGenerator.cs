@@ -108,25 +108,26 @@ namespace Microsoft.Dafny.Compilers {
       System.Runtime.CompilerServices.RuntimeHelpers.RunClassConstructor(typeof(GeneratorErrors).TypeHandle);
     }
 
-    protected static void ReportError(ErrorId errorId, ErrorReporter reporter, IOrigin tok, string msg, ConcreteSyntaxTree/*?*/ wr, params object[] args) {
-      Contract.Requires(msg != null);
-      Contract.Requires(args != null);
-
-      reporter.Error(MessageSource.Compiler, errorId, tok, msg, args);
-      wr?.WriteLine("/* {0} */", string.Format("Compilation error: " + msg, args));
+    protected static void ReportError(ErrorId errorId, ErrorReporter reporter, IOrigin tok, ConcreteSyntaxTree/*?*/ wr, params object[] messageParts) {
+      reporter.Error(MessageSource.Compiler, errorId, tok, messageParts);
+      var message = DafnyDiagnostic.MessageFromParts(errorId.ToString(), messageParts);
+      wr?.WriteLine("/* {0} */", "Compilation error: " + message);
     }
 
-    public void Error(ErrorId errorId, IOrigin tok, string msg, ConcreteSyntaxTree wr, params object[] args) {
-      ReportError(errorId, Reporter, tok, msg, wr, args);
+    public void Error(ErrorId errorId, IOrigin tok, ConcreteSyntaxTree wr, params object[] messageParts) {
+      ReportError(errorId, Reporter, tok, wr, messageParts);
     }
 
-    protected void UnsupportedFeatureError(IOrigin tok, Feature feature, string message = null, ConcreteSyntaxTree wr = null, params object[] args) {
+    protected void UnsupportedFeatureError(IOrigin tok, Feature feature, ConcreteSyntaxTree wr = null, params string[] messageParts) {
       if (!UnsupportedFeatures.Contains(feature)) {
         throw new Exception($"'{feature}' is not an element of the {GetType().Name} compiler's UnsupportedFeatures set");
       }
 
-      message ??= UnsupportedFeatureException.MessagePrefix + FeatureDescriptionAttribute.GetDescription(feature).Description;
-      Error(ErrorId.c_unsupported_feature, tok, message, wr, args);
+      if (messageParts.Length == 0) {
+        messageParts =
+          [UnsupportedFeatureException.MessagePrefix + FeatureDescriptionAttribute.GetDescription(feature).Description];
+      }
+      Error(ErrorId.c_unsupported_feature, tok, wr, messageParts);
     }
 
     protected string IntSelect = ",int";
@@ -1637,7 +1638,7 @@ namespace Microsoft.Dafny.Compilers {
             v.Visit(exprs);
           } else {
             Error(ErrorId.c_abstract_type_cannot_be_compiled, d.Origin,
-              "Abstract type ('{0}') cannot be compiled; perhaps make it a type synonym or use :extern.", wr,
+              wr, "Abstract type ('{0}') cannot be compiled; perhaps make it a type synonym or use :extern.",
               at.FullName);
           }
         } else if (d is TypeSynonymDecl) {
@@ -1676,7 +1677,7 @@ namespace Microsoft.Dafny.Compilers {
 
           var wIter = CreateIterator(iter, wr);
           if (iter.Body == null) {
-            Error(ErrorId.c_iterator_has_no_body, iter.Origin, "iterator {0} has no body", wIter, iter.FullName);
+            Error(ErrorId.c_iterator_has_no_body, iter.Origin, wIter, "iterator {0} has no body", iter.FullName);
           } else {
             TrStmtList(iter.Body.Body, wIter);
           }
@@ -1908,7 +1909,7 @@ namespace Microsoft.Dafny.Compilers {
                 if (member is Method m && member.FullDafnyName == name) {
                   mainMethod = m;
                   if (!IsPermittedAsMain(program, mainMethod, out string reason)) {
-                    ReportError(ErrorId.c_method_may_not_be_main_method, program.Reporter, mainMethod.Origin, "The method '{0}' is not permitted as a main method ({1}).", null, name, reason);
+                    ReportError(ErrorId.c_method_may_not_be_main_method, program.Reporter, mainMethod.Origin, null, "The method '{0}' is not permitted as a main method ({1}).", name, reason);
                     mainMethod = null;
                     return false;
                   } else {
@@ -1920,7 +1921,7 @@ namespace Microsoft.Dafny.Compilers {
           }
         }
         if (name != RunAllTestsMainMethod.SyntheticTestMainName) {
-          ReportError(ErrorId.c_could_not_find_stipulated_main_method, program.Reporter, program.DefaultModule.Origin, "Could not find the method named by the -Main option: {0}", null, name);
+          ReportError(ErrorId.c_could_not_find_stipulated_main_method, program.Reporter, program.DefaultModule.Origin, null, "Could not find the method named by the -Main option: {0}", name);
         }
       }
       foreach (var module in program.CompileModules) {
@@ -1938,7 +1939,7 @@ namespace Microsoft.Dafny.Compilers {
                   hasMain = true;
                 } else {
                   // more than one main in the program
-                  ReportError(ErrorId.c_more_than_one_explicit_main_method, program.Reporter, m.Origin, "More than one method is marked {{:main}}. First declaration appeared at {0}.", null,
+                  ReportError(ErrorId.c_more_than_one_explicit_main_method, program.Reporter, m.Origin, null, "More than one method is marked {{:main}}. First declaration appeared at {0}.",
                     mainMethod.Origin.OriginToString(program.Options));
                   hasMain = false;
                 }
@@ -1949,7 +1950,7 @@ namespace Microsoft.Dafny.Compilers {
       }
       if (hasMain) {
         if (!IsPermittedAsMain(program, mainMethod, out string reason)) {
-          ReportError(ErrorId.c_method_not_permitted_as_main, program.Reporter, mainMethod.Origin, "This method marked {{:main}} is not permitted as a main method ({0}).", null, reason);
+          ReportError(ErrorId.c_method_not_permitted_as_main, program.Reporter, mainMethod.Origin, null, "This method marked {{:main}} is not permitted as a main method ({0}).", reason);
           mainMethod = null;
           return false;
         } else {
@@ -1976,7 +1977,7 @@ namespace Microsoft.Dafny.Compilers {
                   hasMain = true;
                 } else {
                   // more than one main in the program
-                  ReportError(ErrorId.c_more_than_one_default_Main_method, program.Reporter, m.Origin, "More than one method is declared as '{0}'. First declaration appeared at {1}.", null,
+                  ReportError(ErrorId.c_more_than_one_default_Main_method, program.Reporter, m.Origin, null, "More than one method is declared as '{0}'. First declaration appeared at {1}.",
                     DefaultNameMain, mainMethod.Origin.OriginToString(program.Options));
                   hasMain = false;
                 }
@@ -1988,7 +1989,7 @@ namespace Microsoft.Dafny.Compilers {
 
       if (hasMain) {
         if (!IsPermittedAsMain(program, mainMethod, out string reason)) {
-          ReportError(ErrorId.c_Main_method_not_permitted, program.Reporter, mainMethod.Origin, "This method 'Main' is not permitted as a main method ({0}).", null, reason);
+          ReportError(ErrorId.c_Main_method_not_permitted, program.Reporter, mainMethod.Origin, null, "This method 'Main' is not permitted as a main method ({0}).", reason);
           return false;
         } else {
           return true;
@@ -2340,8 +2341,8 @@ namespace Microsoft.Dafny.Compilers {
           var f = (Function)member;
           if (f.IsGhost) {
             if (Attributes.Contains(f.Attributes, "test")) {
-              Error(ErrorId.c_test_function_must_be_compilable, f.Origin,
-                "Function {0} must be compiled to use the {{:test}} attribute", errorWr, f.FullName);
+              Error(ErrorId.c_test_function_must_be_compilable, f.Origin, errorWr,
+                "Function {0} must be compiled to use the {{:test}} attribute", f.FullName);
             }
           } else if (f.IsVirtual) {
             if (f.OverriddenMember == null) {
@@ -2358,7 +2359,7 @@ namespace Microsoft.Dafny.Compilers {
               CompileFunction(f, classWriter, false);
             }
           } else if (f.Body == null) {
-            Error(ErrorId.c_function_has_no_body, f.Origin, "Function {0} has no body so it cannot be compiled", errorWr, f.FullName);
+            Error(ErrorId.c_function_has_no_body, f.Origin, errorWr, "Function {0} has no body so it cannot be compiled", f.FullName);
           } else if (c is NewtypeDecl && f != f.Original) {
             CompileFunction(f, classWriter, false);
             var w = classWriter.CreateFunction(IdName(f), CombineAllTypeArguments(f), f.Ins, f.ResultType, f.Origin,
@@ -2374,9 +2375,9 @@ namespace Microsoft.Dafny.Compilers {
             if (m is Method method && m.IsStatic && m.Outs.Count > 0 && m.Body == null) {
               classWriter.SynthesizeMethod(method, CombineAllTypeArguments(m), true, true, false);
             } else {
-              Error(ErrorId.c_invalid_synthesize_method, m.Origin,
+              Error(ErrorId.c_invalid_synthesize_method, m.Origin, errorWr,
                 "Method {0} is annotated with :synthesize but is not static, has a body, or does not return anything",
-                errorWr, m.FullName);
+                m.FullName);
             }
           } else if (m.IsGhost) {
           } else if (m.IsVirtual) {
@@ -2394,7 +2395,7 @@ namespace Microsoft.Dafny.Compilers {
               CompileMethod(program, m, classWriter, false);
             }
           } else if (m.Body == null) {
-            Error(ErrorId.c_method_has_no_body, m.Origin, "Method {0} has no body so it cannot be compiled", errorWr, m.FullName);
+            Error(ErrorId.c_method_has_no_body, m.Origin, errorWr, "Method {0} has no body so it cannot be compiled", m.FullName);
           } else if (c is NewtypeDecl && m != m.Original) {
             CompileMethod(program, m, classWriter, false);
             var w = classWriter.CreateMethod(m, CombineAllTypeArguments(member), true, true, false);
@@ -2846,7 +2847,7 @@ namespace Microsoft.Dafny.Compilers {
         w = EmitMethodReturns(m, w);
 
         if (m.Body == null) {
-          Error(ErrorId.c_method_has_no_body, m.Origin, "Method {0} has no body so it cannot be compiled", w, m.FullName);
+          Error(ErrorId.c_method_has_no_body, m.Origin, w, "Method {0} has no body so it cannot be compiled", m.FullName);
         } else {
           Contract.Assert(enclosingMethod == null);
           enclosingMethod = m;
@@ -3301,12 +3302,12 @@ namespace Microsoft.Dafny.Compilers {
         if (stmt is ForallStmt) {
           var s = (ForallStmt)stmt;
           if (s.Body == null) {
-            codeGenerator.Error(ErrorId.c_forall_statement_has_no_body, stmt.Origin, "a forall statement without a body cannot be compiled", wr);
+            codeGenerator.Error(ErrorId.c_forall_statement_has_no_body, stmt.Origin, wr, "a forall statement without a body cannot be compiled");
           }
         } else if (stmt is OneBodyLoopStmt) {
           var s = (OneBodyLoopStmt)stmt;
           if (s.Body == null) {
-            codeGenerator.Error(ErrorId.c_loop_has_no_body, stmt.Origin, "a loop without a body cannot be compiled", wr);
+            codeGenerator.Error(ErrorId.c_loop_has_no_body, stmt.Origin, wr, "a loop without a body cannot be compiled");
           }
         }
       }
