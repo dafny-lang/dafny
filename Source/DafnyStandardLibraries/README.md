@@ -45,7 +45,7 @@ In particular, `--standard-libraries` currently cannot be used together with `--
 
 The sections below describe how to use each library:
 
-- [Std.Actions](src/Std/Actions/README.md) -- utilities for abstract imperative actions, including enumerating and streaming values
+- [Std.Actions](src/Std/Actions/Actions.md) -- utilities for abstract imperative actions, including enumerating and streaming values
 - [Std.Arithmetic](src/Std/Arithmetic/README.md) -- utilities and lemmas related to basic operations, such as multiplication and exponentiation
 - [Std.Base64](src/Std/Base64.md) -- base-64 encoding and decoding
 - [Std.BoundedInts](src/Std/BoundedInts.md) -- definitions of types and constants for fixed-bit-width integers
