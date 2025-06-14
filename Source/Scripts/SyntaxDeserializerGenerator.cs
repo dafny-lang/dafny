@@ -75,33 +75,34 @@ using BinaryExprOpcode = Microsoft.Dafny.BinaryExpr.Opcode;
     ParameterToSchemaPositions[type] = parameterToSchemaPosition;
     var statements = new StringBuilder();
 
-    VisitParameters(type, (index, parameter, memberInfo) => {
+    VisitParameters(type, (index, parameter) => {
       var parameterType = parameter.ParameterType;
       if (ExcludedTypes.Contains(parameterType)) {
         statements.AppendLine($"{parameterType} parameter{index} = null;");
         return;
       }
 
-      if (memberInfo.GetCustomAttribute<BackEdge>() != null) {
-        statements.AppendLine($"{parameterType} parameter{index} = null;");
+      if (parameter.GetCustomAttribute<BackEdge>() != null) {
+        parameterToSchemaPosition[parameter.Name!] = -1;
+        schemaToConstructorPosition[-1] = index;
         return;
       }
 
       var memberBelongsToBase = DoesMemberBelongToBase(type, parameter, baseType);
       if (memberBelongsToBase) {
         if (!ParameterToSchemaPositions[baseType!]
-              .TryGetValue(memberInfo.Name, out var schemaPosition)) {
+              .TryGetValue(parameter.Name!, out var schemaPosition)) {
           throw new Exception(
             $"parameter '{parameter.Name}' of '{type.Name}' should have been in parent type '{baseType}' constructor, but was not found");
         }
 
         schemaToConstructorPosition[schemaPosition] = index;
-        parameterToSchemaPosition[memberInfo.Name] = schemaPosition;
+        parameterToSchemaPosition[parameter.Name!] = schemaPosition;
         return;
       }
 
       var schemaPosition2 = ownedFieldPosition++;
-      parameterToSchemaPosition[memberInfo.Name] = schemaPosition2;
+      parameterToSchemaPosition[parameter.Name!] = schemaPosition2;
       schemaToConstructorPosition[schemaPosition2] = index;
     });
 
@@ -148,13 +149,17 @@ private {typeString} Read{typeString2}() {{
 
     // If some fields should not be serialized, the keys of schemaToConstructorPosition may not be contiguous,
     // so we iterate in ascending order rather than by indexing from 0 to its size.
-    foreach (var (_, constructorIndex) in schemaToConstructorPosition.OrderBy(p => p.Key)) {
+    foreach (var (schemaPosition, constructorIndex) in schemaToConstructorPosition.OrderBy(p => p.Key)) {
       var parameter = parameters[constructorIndex];
       var nullabilityContext = new NullabilityInfoContext();
       var nullabilityInfo = nullabilityContext.Create(parameter);
       var parameterTypeReadCall = GetReadTypeCall(parameter.ParameterType, nullabilityInfo);
-      statements.AppendLine(
-        $"var parameter{constructorIndex} = {parameterTypeReadCall};");
+      if (schemaPosition == -1) {
+        statements.AppendLine($"{parameter.ParameterType} parameter{constructorIndex} = null;");
+      } else {
+        statements.AppendLine(
+          $"var parameter{constructorIndex} = {parameterTypeReadCall};");
+      }
     }
     AddReadMethodForType(parameters, statements, typeString, readMethodName);
     AddReadOptionMethodForType(typeString, readMethodName, readOptionMethodName);

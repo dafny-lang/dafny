@@ -43,7 +43,7 @@ public class IteratorDecl : ClassDecl, IMethodCodeContext, ICanVerify, ICodeCont
     List<AttributedExpression> yieldRequires,
     List<AttributedExpression> yieldEnsures,
     BlockStmt body, Attributes? attributes, IOrigin? signatureEllipsis)
-    : base(origin, nameNode, attributes, typeArgs, enclosingModuleDefinition, [], null, signatureEllipsis != null) {
+    : base(origin, nameNode, attributes, typeArgs, enclosingModuleDefinition, [], [], signatureEllipsis != null) {
     Ins = ins;
     Outs = outs;
     Reads = reads;

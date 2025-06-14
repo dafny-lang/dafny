@@ -85,10 +85,10 @@ public abstract class TopLevelDeclWithMembers : TopLevelDecl, IHasSymbolChildren
   [SyntaxConstructor]
   protected TopLevelDeclWithMembers(IOrigin origin, Name nameNode, ModuleDefinition enclosingModuleDefinition,
     List<TypeParameter> typeArgs, List<MemberDecl> members, Attributes? attributes,
-    List<Type>? traits = null)
+    List<Type> traits)
     : base(origin, nameNode, enclosingModuleDefinition, typeArgs, attributes) {
     Members = members;
-    Traits = traits ?? [];
+    Traits = traits;
     SetMembersBeforeResolution();
   }
 

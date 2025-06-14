@@ -19,7 +19,7 @@ public class ClassDecl : ClassLikeDecl {
   [SyntaxConstructor]
   public ClassDecl(IOrigin origin, Name nameNode, Attributes? attributes,
     List<TypeParameter> typeArgs, ModuleDefinition enclosingModuleDefinition,
-    [Captured] List<MemberDecl> members, List<Type>? traits, bool isRefining)
+    [Captured] List<MemberDecl> members, List<Type> traits, bool isRefining)
     : base(origin, nameNode, attributes, typeArgs, enclosingModuleDefinition, members, traits) {
     Contract.Requires(origin != null);
     Contract.Requires(nameNode != null);
