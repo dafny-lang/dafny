@@ -28,7 +28,7 @@ public abstract class ClassLikeDecl : TopLevelDeclWithMembers, RevealableTypeDec
   [SyntaxConstructor]
   protected ClassLikeDecl(IOrigin origin, Name nameNode, Attributes? attributes,
     List<TypeParameter> typeArgs, ModuleDefinition enclosingModuleDefinition,
-    [Captured] List<MemberDecl> members, List<Type>? traits)
+    [Captured] List<MemberDecl> members, List<Type> traits)
     : base(origin, nameNode, enclosingModuleDefinition, typeArgs, members, attributes, traits) {
     Contract.Requires(origin != null);
     Contract.Requires(nameNode != null);

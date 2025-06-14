@@ -1,4 +1,4 @@
-// RUN: %tobinary %s --delete-sources > %t.deleteSources.dbin
+// RUN: %tobinary %s --delete-source-locations > %t.deleteSources.dbin
 // RUN: ! %verify --input-format Binary --allow-warnings --stdin < %t.deleteSources.dbin > %t
 // RUN: %diff "%s.expect" "%t"
 
@@ -16,6 +16,9 @@ function F(): int {
   assert false; // error
   return 1 + 2;
 }
+
+// Currently commented out because 'SyntaxDeserializer' does not handle these types well, 
+// because it does not correctly update the SystemModule
 
 // opaque predicate P() { true }
 

@@ -10,7 +10,7 @@ public class ArrayClassDecl : ClassDecl {
   public ArrayClassDecl(int dims, ModuleDefinition enclosingModule, Attributes attributes)
     : base(SourceOrigin.NoToken, new Name(SystemModuleManager.ArrayClassName(dims)), attributes,
       [new TypeParameter(SourceOrigin.NoToken, new Name("arg"), TPVarianceSyntax.NonVariant_Strict)],
-      enclosingModule, [], null, false) {
+      enclosingModule, [], [], false) {
     Contract.Requires(1 <= dims);
     Contract.Requires(enclosingModule != null);
 
