@@ -607,7 +607,7 @@ module Std.Producers {
 
   @ResourceLimit("1e7")
   @IsolateAssertions
-  method {:only} DefaultFill<T>(producer: Producer<T>, consumer: Consumer<T>, ghost totalActionProof: TotalActionProof<T, bool>)
+  method DefaultFill<T>(producer: Producer<T>, consumer: Consumer<T>, ghost totalActionProof: TotalActionProof<T, bool>)
     requires producer.Valid()
     requires consumer.Valid()
     requires consumer.Capacity().Some?
@@ -655,24 +655,21 @@ module Std.Producers {
       }
 
       totalActionProof.AnyInputIsValid(consumer.history, t.value);
-      assert {:only} 0 < consumer.Capacity().value;
-      assert {:only} !consumer.Done();
+      assert 0 < consumer.Capacity().value;
+      assert !consumer.Done();
       label beforeAccept:
       var accepted := consumer.Accept(t.value);
       old(consumer.State()).ValidChangeTransitive(old@before(consumer.State()), consumer.State());
-      assert {:only} |old@beforeAccept(consumer.State()).NewConsumed(consumer.State())| >= 1;
-      assert {:only} |consumer.NewConsumed@beforeAccept()| >= 1;
-      assert {:only} consumer.NewConsumed@beforeAccept() == ConsumedOf([(t.value, accepted)]);
-      assert {:only} ConsumedOf([(t.value, accepted)]) == [t.value];
+      assert |old@beforeAccept(consumer.State()).NewConsumed(consumer.State())| >= 1;
+      assert |consumer.NewConsumed@beforeAccept()| >= 1;
+      assert consumer.NewConsumed@beforeAccept() == ConsumedOf([(t.value, accepted)]);
+      assert ConsumedOf([(t.value, accepted)]) == [t.value];
       ConsumedOfAllAccepted([(t.value, accepted)]);
-      assert {:only} OutputsOf([(t.value, accepted)]) == [accepted];
-      assert {:only} OutputsOf([(t.value, accepted)]) == Seq.Repeat(true, 1);
+      assert OutputsOf([(t.value, accepted)]) == [accepted];
+      assert OutputsOf([(t.value, accepted)]) == Seq.Repeat(true, 1);
       reveal Seq.Repeat();
-      assert {:only} [accepted] == [true];
-      assert {:only} accepted == true;
-      // assert {:only} Seq.Last(consumer.Outputs()) == accepted;
-      // assert {:only} !consumer.Done();
-      // assert {:only} accepted;
+      assert [accepted] == [true];
+      assert accepted == true;
 
       assert Seq.Last(consumer.Inputs()) == t.value;
       assert producer.NewProduced() == consumer.NewConsumed();
@@ -907,7 +904,7 @@ module Std.Producers {
       ensures Done() || consumer.Done()
       ensures ValidChange()
       ensures consumer.ValidChange()
-      ensures NewProduced() == consumer.NewInputs()
+      ensures NewProduced() == consumer.NewConsumed()
     {
       DefaultFill(this, consumer, totalActionProof);
     }
