@@ -665,6 +665,10 @@ module Std.Producers {
       assert {:only} consumer.NewConsumed@beforeAccept() == ConsumedOf([(t.value, accepted)]);
       assert {:only} ConsumedOf([(t.value, accepted)]) == [t.value];
       ConsumedOfAllAccepted([(t.value, accepted)]);
+      assert {:only} OutputsOf([(t.value, accepted)]) == [accepted];
+      assert {:only} OutputsOf([(t.value, accepted)]) == Seq.Repeat(true, 1);
+      reveal Seq.Repeat();
+      assert {:only} [accepted] == [true];
       assert {:only} accepted == true;
       // assert {:only} Seq.Last(consumer.Outputs()) == accepted;
       // assert {:only} !consumer.Done();

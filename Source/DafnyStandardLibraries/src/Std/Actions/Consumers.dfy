@@ -261,14 +261,32 @@ module Std.Consumers {
     ensures ConsumedOf(history) == []
   {}
 
+  @IsolateAssertions
   lemma {:only} ConsumedOfAllAccepted<T>(history: seq<(T, bool)>)
     requires Seq.Partitioned(history, WasConsumed)
     requires |ConsumedOf(history)| == |history|
-    ensures forall accepted <- OutputsOf(history) :: accepted
+    ensures OutputsOf(history) == Seq.Repeat(true, |history|)
   {
     if history == [] {
     } else {
-      assume false;
+      var first := history[0];
+      var rest := history[1..];
+      var (input, accepted) := first;
+      ConsumedComposition([first], rest);
+      Seq.PartitionedDecomposition([first], rest, WasConsumed);
+      assert ConsumedOf(history) == ConsumedOf([first]) + ConsumedOf(rest);
+      if accepted {
+        assert ConsumedOf([first]) == [input];
+        assert |ConsumedOf(rest)| == |rest|;
+        ConsumedOfAllAccepted(rest);
+        reveal Seq.Repeat();
+      } else {
+        assert ConsumedOf([first]) == [];
+        assert |OutputsOf(history)| == |ConsumedOf(rest)|;
+        assert |ConsumedOf([first])| == 0;
+        ConsumedOfAllAccepted(rest);
+        assert false;
+      }
     }
   }
 
