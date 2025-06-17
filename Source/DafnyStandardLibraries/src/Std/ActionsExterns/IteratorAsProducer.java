@@ -32,8 +32,8 @@ class IteratorAsProducer<T> implements Producer<T> {
         }
     }
 
-    public void ForEachRemaining(Std.Consumers.IConsumer<T> consumer) {
-      _Companion_Producer.ForEachRemaining(td, this, consumer);
+    public void ForEach(Std.Consumers.IConsumer<T> consumer) {
+      _Companion_Producer.ForEach(td, this, consumer);
     }
 
     public Option<T> Next() {

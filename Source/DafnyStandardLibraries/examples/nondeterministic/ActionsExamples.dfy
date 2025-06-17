@@ -45,6 +45,24 @@ module ActionsExamples {
       && iter.Valid()
     }
 
+    twostate predicate ValidChange()
+      reads this, Repr
+      ensures ValidChange() ==> old(Valid()) && Valid()
+      ensures ValidChange() ==> fresh(Repr - old(Repr))
+      ensures ValidChange() ==> old(history) <= history
+    {
+      && fresh(Repr - old(Repr))
+      && old(Valid())
+      && Valid()
+      && old(history) <= history
+    }
+
+    twostate lemma ValidImpliesValidChange()
+      requires old(Valid())
+      requires unchanged(old(Repr))
+      ensures ValidChange()
+    {}
+
     constructor ()
       ensures Valid()
       ensures fresh(Repr)
@@ -131,6 +149,24 @@ module ActionsExamples {
       && ValidHistory(history)
       && remaining == original - OutputSet(history)
     }
+
+    twostate predicate ValidChange()
+      reads this, Repr
+      ensures ValidChange() ==> old(Valid()) && Valid()
+      ensures ValidChange() ==> fresh(Repr - old(Repr))
+      ensures ValidChange() ==> old(history) <= history
+    {
+      && fresh(Repr - old(Repr))
+      && old(Valid())
+      && Valid()
+      && old(history) <= history
+    }
+
+    twostate lemma ValidImpliesValidChange()
+      requires old(Valid())
+      requires unchanged(old(Repr))
+      ensures ValidChange()
+    {}
 
     constructor(s: set<T>)
       ensures Valid()
@@ -256,6 +292,7 @@ module ActionsExamples {
   @AssumeCrossModuleTermination
   class SetReader<T(==)> extends Producer<T>, ProducerOfSetProof<T> {
     ghost const original: set<T>
+    var producedCount: nat
     var remaining: set<T>
 
     ghost predicate Valid()
@@ -266,9 +303,16 @@ module ActionsExamples {
     {
       && this in Repr
       && ValidHistory(history)
+      && producedCount == |Produced()|
       && remaining == original - OutputSet(history)
       && (0 < |remaining| ==> !Done())
     }
+
+    twostate lemma ValidImpliesValidChange()
+      requires old(Valid())
+      requires unchanged(old(Repr))
+      ensures ValidChange()
+    {}
 
     constructor(s: set<T>)
       ensures Valid()
@@ -278,6 +322,7 @@ module ActionsExamples {
     {
       original := s;
       remaining := s;
+      producedCount := 0;
 
       history := [];
       Repr := {this};
@@ -327,7 +372,23 @@ module ActionsExamples {
       TMNat(|remaining|)
     }
 
-    @IsolateAssertions
+    function ProducedCount(): nat
+      reads this, Repr
+      requires Valid()
+      ensures ProducedCount() == |Produced()|
+    {
+      producedCount
+    }
+
+    function Remaining(): Option<nat>
+      reads this, Repr
+      requires Valid()
+    {
+      Some(|remaining|)
+    }
+
+    // @IsolateAssertions
+    @ResourceLimit("1e8")
     method Invoke(i: ()) returns (r: Option<T>)
       requires Requires(i)
       modifies Modifies(i)
@@ -341,6 +402,7 @@ module ActionsExamples {
         var o: T :| o in remaining;
         r := Some(o);
         remaining := remaining - {o};
+        producedCount := producedCount + 1;
 
         reveal Seq.ToSet();
         reveal Seq.HasNoDuplicates();
@@ -360,6 +422,37 @@ module ActionsExamples {
       reveal TerminationMetric.Ordinal();
 
       assert Valid();
+    }
+
+    method ForEach(consumer: IConsumer<T>, ghost totalActionProof: TotalActionProof<T, ()>)
+      requires Valid()
+      requires consumer.Valid()
+      requires Repr !! consumer.Repr !! totalActionProof.Repr
+      requires totalActionProof.Valid()
+      requires totalActionProof.Action() == consumer
+      modifies Repr, consumer.Repr
+      ensures ValidChange()
+      ensures consumer.ValidChange()
+      ensures Done()
+      ensures NewProduced() == consumer.NewInputs()
+    {
+      DefaultForEach(this, consumer, totalActionProof);
+    }
+
+    method Fill(consumer: Consumer<T>, ghost totalActionProof: TotalActionProof<T, bool>)
+      requires Valid()
+      requires consumer.Valid()
+      requires consumer.Capacity().Some?
+      requires Repr !! consumer.Repr !! totalActionProof.Repr
+      requires totalActionProof.Valid()
+      requires totalActionProof.Action() == consumer
+      modifies Repr, consumer.Repr
+      ensures ValidChange()
+      ensures consumer.ValidChange()
+      ensures Done() || consumer.Capacity() == Some(0)
+      ensures NewProduced() == consumer.NewConsumed()
+    {
+      DefaultFill(this, consumer, totalActionProof);
     }
   }
 
