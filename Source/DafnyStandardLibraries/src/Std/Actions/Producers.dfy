@@ -418,12 +418,10 @@ module Std.Producers {
       requires totalActionProof.Valid()
       requires totalActionProof.Action() == consumer
       modifies Repr, consumer.Repr
-      ensures Valid()
-      ensures consumer.Valid()
-      ensures Done() || consumer.Done()
       ensures ValidChange()
       ensures consumer.ValidChange()
-      ensures NewProduced() == consumer.NewInputs()
+      ensures Done() || consumer.Capacity() == Some(0)
+      ensures NewProduced() == consumer.NewConsumed()
 
     // True if this has outputted None at least once.
     // But note that !Done() does not guarantee that
@@ -901,9 +899,9 @@ module Std.Producers {
       modifies Repr, consumer.Repr
       ensures Valid()
       ensures consumer.Valid()
-      ensures Done() || consumer.Done()
       ensures ValidChange()
       ensures consumer.ValidChange()
+      ensures Done() || consumer.Capacity() == Some(0)
       ensures NewProduced() == consumer.NewConsumed()
     {
       DefaultFill(this, consumer, totalActionProof);
@@ -1048,12 +1046,10 @@ module Std.Producers {
       requires totalActionProof.Valid()
       requires totalActionProof.Action() == consumer
       modifies Repr, consumer.Repr
-      ensures Valid()
-      ensures consumer.Valid()
-      ensures Done() || consumer.Done()
       ensures ValidChange()
       ensures consumer.ValidChange()
-      ensures NewProduced() == consumer.NewInputs()
+      ensures Done() || consumer.Capacity() == Some(0)
+      ensures NewProduced() == consumer.NewConsumed()
     {
       DefaultFill(this, consumer, totalActionProof);
     }
@@ -1184,12 +1180,10 @@ module Std.Producers {
       requires totalActionProof.Valid()
       requires totalActionProof.Action() == consumer
       modifies Repr, consumer.Repr
-      ensures Valid()
-      ensures consumer.Valid()
-      ensures Done() || consumer.Done()
       ensures ValidChange()
       ensures consumer.ValidChange()
-      ensures NewProduced() == consumer.NewInputs()
+      ensures Done() || consumer.Capacity() == Some(0)
+      ensures NewProduced() == consumer.NewConsumed()
     {
       DefaultFill(this, consumer, totalActionProof);
     }
@@ -1350,12 +1344,10 @@ module Std.Producers {
       requires totalActionProof.Valid()
       requires totalActionProof.Action() == consumer
       modifies Repr, consumer.Repr
-      ensures Valid()
-      ensures consumer.Valid()
-      ensures Done() || consumer.Done()
       ensures ValidChange()
       ensures consumer.ValidChange()
-      ensures NewProduced() == consumer.NewInputs()
+      ensures Done() || consumer.Capacity() == Some(0)
+      ensures NewProduced() == consumer.NewConsumed()
     {
       DefaultFill(this, consumer, totalActionProof);
     }
@@ -1431,7 +1423,7 @@ module Std.Producers {
     }
 
     @ResourceLimit("1e7")
-    method Invoke(t: ()) returns (result: Option<T>)
+    method {:only} Invoke(t: ()) returns (result: Option<T>)
       requires Requires(t)
       reads Reads(t)
       modifies Modifies(t)
@@ -1478,6 +1470,7 @@ module Std.Producers {
         var sourceNewOutputs := source.Outputs()[|old(source.Outputs())|..];
 
         assert Seq.All(Outputs(), IsSome);
+        source.DoneIsOneWay();
         assert old(!source.Done());
         OutputsPartitionedAfterOutputtingSome(result.value);
         ProduceSome(result.value);
@@ -1523,12 +1516,10 @@ module Std.Producers {
       requires totalActionProof.Valid()
       requires totalActionProof.Action() == consumer
       modifies Repr, consumer.Repr
-      ensures Valid()
-      ensures consumer.Valid()
-      ensures Done() || consumer.Done()
       ensures ValidChange()
       ensures consumer.ValidChange()
-      ensures NewProduced() == consumer.NewInputs()
+      ensures Done() || consumer.Capacity() == Some(0)
+      ensures NewProduced() == consumer.NewConsumed()
     {
       DefaultFill(this, consumer, totalActionProof);
     }
@@ -1711,12 +1702,10 @@ module Std.Producers {
       requires totalActionProof.Valid()
       requires totalActionProof.Action() == consumer
       modifies Repr, consumer.Repr
-      ensures Valid()
-      ensures consumer.Valid()
-      ensures Done() || consumer.Done()
       ensures ValidChange()
       ensures consumer.ValidChange()
-      ensures NewProduced() == consumer.NewInputs()
+      ensures Done() || consumer.Capacity() == Some(0)
+      ensures NewProduced() == consumer.NewConsumed()
     {
       DefaultFill(this, consumer, totalActionProof);
     }
@@ -1880,12 +1869,10 @@ module Std.Producers {
       requires totalActionProof.Valid()
       requires totalActionProof.Action() == consumer
       modifies Repr, consumer.Repr
-      ensures Valid()
-      ensures consumer.Valid()
-      ensures Done() || consumer.Done()
       ensures ValidChange()
       ensures consumer.ValidChange()
-      ensures NewProduced() == consumer.NewInputs()
+      ensures Done() || consumer.Capacity() == Some(0)
+      ensures NewProduced() == consumer.NewConsumed()
     {
       DefaultFill(this, consumer, totalActionProof);
     }
@@ -2101,12 +2088,10 @@ module Std.Producers {
       requires totalActionProof.Valid()
       requires totalActionProof.Action() == consumer
       modifies Repr, consumer.Repr
-      ensures Valid()
-      ensures consumer.Valid()
-      ensures Done() || consumer.Done()
       ensures ValidChange()
       ensures consumer.ValidChange()
-      ensures NewProduced() == consumer.NewInputs()
+      ensures Done() || consumer.Capacity() == Some(0)
+      ensures NewProduced() == consumer.NewConsumed()
     {
       DefaultFill(this, consumer, totalActionProof);
     }
@@ -2401,12 +2386,10 @@ module Std.Producers {
       requires totalActionProof.Valid()
       requires totalActionProof.Action() == consumer
       modifies Repr, consumer.Repr
-      ensures Valid()
-      ensures consumer.Valid()
-      ensures Done() || consumer.Done()
       ensures ValidChange()
       ensures consumer.ValidChange()
-      ensures NewProduced() == consumer.NewInputs()
+      ensures Done() || consumer.Capacity() == Some(0)
+      ensures NewProduced() == consumer.NewConsumed()
     {
       DefaultFill(this, consumer, totalActionProof);
     }
