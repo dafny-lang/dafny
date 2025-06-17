@@ -347,9 +347,9 @@ module ActionsExamples {
   method {:test} SetToSeq() {
 
     var s := { 1, 2, 3, 4, 5 };
-    var setReader: Producer<nat>, producerOfSetProof := MakeSetReader(s);
+    var setReader, producerOfSetProof := MakeSetReader(s);
     assert setReader.Valid();
-    var seqWriter := new SeqWriter<nat>();
+    var seqWriter := new SeqWriter();
     var writerTotalProof := seqWriter.totalActionProof();
     setReader.ForEach(seqWriter, writerTotalProof);
     var asSeq := seqWriter.values;
