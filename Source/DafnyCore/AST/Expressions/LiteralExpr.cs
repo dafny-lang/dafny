@@ -29,6 +29,8 @@ public class LiteralExpr : Expression, ICloneable<LiteralExpr> {
   /// </summary>
   public object? Value;
 
+  public string EscapedValue => $"{Value}".Replace("{", "{{").Replace("}", "}}");
+
   [System.Diagnostics.Contracts.Pure]
   public static bool IsTrue(Expression e) {
     Contract.Requires(e != null);

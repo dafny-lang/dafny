@@ -279,3 +279,18 @@ module ArrayInitializer {
     var a: array<bool> := new [n] [23]; // error: array<int> and array<bool> are incompatible
   }
 }
+
+module EscapedStringLiterals {
+  // Make sure that string literals given in the input are properly escaped before they are
+  // displayed in error messages
+  method Test() returns (u: int) {
+    u := "x"; // error
+    u := "{"; // error
+    u := "{{"; // error
+    u := "}"; // error
+    u := "{0}"; // error
+
+    u := 'x'; // error
+    u := '{'; // error
+  }
+}
