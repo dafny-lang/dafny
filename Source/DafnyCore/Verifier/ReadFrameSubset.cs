@@ -27,9 +27,8 @@ public class ReadFrameSubset : ProofObligationDescription {
         obj = Printer.ExprToString(DafnyOptions.DefaultImmutableOptions, m.Array,
           new PrintFlags(UseOriginalDafnyNames: true));
       }
-      // TODO is this a good error message for invariants?
       if (scope is Invariant) {
-        message = "invariant can only read 'this'";
+        message = "invariants are currently restricted to only read 'this'";
         if (readExpression is MemberSelectExpr { MemberName: var member }) {
           message += " and therefore cannot {0}`{1}";
           parts.Add(obj);
