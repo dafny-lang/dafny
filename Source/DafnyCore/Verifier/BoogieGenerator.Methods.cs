@@ -85,6 +85,8 @@ namespace Microsoft.Dafny {
           AddFunction_Top(function, includeAllMethods);
         } else if (member is MethodOrConstructor method) {
           AddMethod_Top(method, false, includeAllMethods);
+        } else if (member.TryCastToInvariant(options, reporter, MessageSource.Verifier, out var invariant)) {
+          AddInvariantsWellformednessCheck(invariant);
         } else {
           Contract.Assert(false); throw new cce.UnreachableException();  // unexpected member
         }

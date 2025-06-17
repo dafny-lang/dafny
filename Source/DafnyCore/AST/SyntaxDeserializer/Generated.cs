@@ -1930,7 +1930,7 @@ namespace Microsoft.Dafny
             var parameter7 = ReadList<Type>(() => ReadAbstract<Type>());
             var parameter8 = ReadList<AttributedExpression>(() => ReadAttributedExpression());
             var parameter6 = ReadBoolean();
-            return new TraitDecl(parameter0, parameter1, parameter2, parameter3, parameter4, parameter5, parameter6, parameter7, parameter8);
+            return new TraitDecl(parameter0, parameter1, parameter2, parameter3, parameter4, parameter5, parameter6, parameter7);
         }
 
         public TraitDecl ReadTraitDeclOption()
@@ -1954,7 +1954,7 @@ namespace Microsoft.Dafny
             var parameter6 = ReadList<Type>(() => ReadAbstract<Type>());
             var parameter8 = ReadList<AttributedExpression>(() => ReadAttributedExpression());
             var parameter7 = ReadBoolean();
-            return new ClassDecl(parameter0, parameter1, parameter2, parameter3, parameter4, parameter5, parameter6, parameter7, parameter8);
+            return new ClassDecl(parameter0, parameter1, parameter2, parameter3, parameter4, parameter5, parameter6, parameter7);
         }
 
         public ClassDecl ReadClassDeclOption()

@@ -28,10 +28,10 @@ public class ReadFrameSubset : ProofObligationDescription {
           new PrintFlags(UseOriginalDafnyNames: true));
       }
       // TODO is this a good error message for invariants?
-      if (scope is ClassLikeDecl) {
+      if (scope is Invariant) {
         message = "invariant can only read 'this'";
         if (readExpression is MemberSelectExpr { MemberName: var member }) {
-          message += " and therefore cannot read {0}`{1}";
+          message += " and therefore cannot {0}`{1}";
           parts.Add(obj);
           parts.Add(member);
         }

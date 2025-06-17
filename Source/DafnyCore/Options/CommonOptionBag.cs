@@ -366,8 +366,8 @@ Use the `{:contradiction}` attribute to mark any `assert` statement intended to 
   };
   
   // TODO is this a good message?
-  public static readonly Option<bool> VerifyInvariants = new("--verify-invariants", () => false,
-    "Enable verification of class invariants.") {
+  public static readonly Option<bool> CheckInvariants = new("--check-invariants", () => false,
+    "Enable resolution and verification of class invariants.") {
     IsHidden = true
   };
 
@@ -709,7 +709,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
     OptionRegistry.RegisterOption(WaitForDebugger, OptionScope.Cli);
     OptionRegistry.RegisterOption(IgnoreIndentation, OptionScope.Cli);
     OptionRegistry.RegisterOption(CheckSourceLocationConsistency, OptionScope.Cli);
-    OptionRegistry.RegisterOption(VerifyInvariants, OptionScope.Cli);
+    OptionRegistry.RegisterOption(CheckInvariants, OptionScope.Cli);
   }
 }
 

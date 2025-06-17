@@ -739,14 +739,27 @@ NoGhost - disable printing of functions, ghost methods, and proof
           PrintField((Field)m, indent);
           state = 1;
         } else if (m is Function) {
-          if (state != 0) { wr.WriteLine(); }
+          if (state != 0) {
+            wr.WriteLine();
+          }
+
           PrintFunction((Function)m, indent, false);
           if (m is ExtremePredicate fixp && fixp.PrefixPredicate != null) {
-            Indent(indent); wr.WriteLine("/*** (note, what is printed here does not show substitutions of calls to prefix predicates)");
+            Indent(indent);
+            wr.WriteLine("/*** (note, what is printed here does not show substitutions of calls to prefix predicates)");
             PrintFunction(fixp.PrefixPredicate, indent, false);
-            Indent(indent); wr.WriteLine("***/");
+            Indent(indent);
+            wr.WriteLine("***/");
           }
+
           state = 2;
+        } else if (m is Invariant invariant) {
+          foreach (var clause in invariant.Body) {
+            Indent(indent);
+            wr.Write("invariant ");
+            PrintAttributedExpression(clause);
+            wr.WriteLine();
+          }
         } else {
           Contract.Assert(false); throw new cce.UnreachableException();  // unexpected member
         }

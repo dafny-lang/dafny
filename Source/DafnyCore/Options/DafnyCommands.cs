@@ -48,8 +48,7 @@ public static class DafnyCommands {
     CommonOptionBag.VerificationCoverageReport,
     CommonOptionBag.ExtractCounterexample,
     CommonOptionBag.ManualTriggerOption,
-    CommonOptionBag.ShowProofObligationExpressions,
-    CommonOptionBag.VerifyInvariants
+    CommonOptionBag.ShowProofObligationExpressions
   }.ToList();
 
   public static readonly IReadOnlyList<Option> TranslationOptions = new Option[] {
@@ -109,7 +108,8 @@ public static class DafnyCommands {
     CommonOptionBag.LogLevelOption,
     CommonOptionBag.LogLocation,
     CommonOptionBag.CheckSourceLocationConsistency,
-    CommonOptionBag.Referrers
+    CommonOptionBag.Referrers,
+    CommonOptionBag.CheckInvariants
   });
 
   public static IReadOnlyList<Option> ResolverOptions = new List<Option>(new Option[] {

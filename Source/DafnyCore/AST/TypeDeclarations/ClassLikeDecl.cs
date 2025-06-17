@@ -5,7 +5,7 @@ using System.Linq;
 
 namespace Microsoft.Dafny;
 
-public abstract class ClassLikeDecl : TopLevelDeclWithMembers, RevealableTypeDecl, ICanFormat, IHasDocstring, ICallable, ICanVerify {
+public abstract class ClassLikeDecl : TopLevelDeclWithMembers, RevealableTypeDecl, ICanFormat, IHasDocstring {
   public NonNullTypeDecl NonNullTypeDecl; // returns non-null value iff IsReferenceTypeDecl
 
   public override bool CanBeRevealed() { return true; }
@@ -25,19 +25,16 @@ public abstract class ClassLikeDecl : TopLevelDeclWithMembers, RevealableTypeDec
   public TopLevelDecl AsTopLevelDecl => this;
   public TypeDeclSynonymInfo SynonymInfo { get; set; }
 
-  public List<AttributedExpression> Invariants { get; }
-
   [SyntaxConstructor]
   protected ClassLikeDecl(IOrigin origin, Name nameNode, Attributes attributes,
     List<TypeParameter> typeArgs, ModuleDefinition enclosingModuleDefinition,
-    [Captured] List<MemberDecl> members, List<Type> traits, List<AttributedExpression> invariants)
+    [Captured] List<MemberDecl> members, List<Type> traits)
     : base(origin, nameNode, enclosingModuleDefinition, typeArgs, members, attributes, traits) {
     Contract.Requires(origin != null);
     Contract.Requires(nameNode != null);
     Contract.Requires(enclosingModuleDefinition != null);
     Contract.Requires(cce.NonNullElements(typeArgs));
     Contract.Requires(cce.NonNullElements(members));
-   Invariants = invariants;
   }
 
   public virtual bool SetIndent(int indentBefore, TokenNewIndentCollector formatter) {
@@ -104,27 +101,4 @@ public abstract class ClassLikeDecl : TopLevelDeclWithMembers, RevealableTypeDec
   }
 
   public override string ReferenceName => base.ReferenceName + (IsReferenceTypeDecl ? "?" : "");
-  
-  // NB: largely copied from DatatypeDecl
-  ModuleDefinition IASTVisitorContext.EnclosingModule => EnclosingModuleDefinition;
-  bool ICodeContext.ContainsHide {
-    get => throw new NotSupportedException();
-    set => throw new NotSupportedException();
-  }
-  bool ICodeContext.IsGhost => true;
-  List<TypeParameter> ICodeContext.TypeArgs => TypeArgs;
-  List<Formal> ICodeContext.Ins => [];
-  bool ICodeContext.MustReverify => false;
-  bool ICodeContext.AllowsNontermination => false;
-  CodeGenIdGenerator ICodeContext.CodeGenIdGenerator => CodeGenIdGenerator;
-  string IFrameScope.Designator => WhatKind;
-  string ICallable.NameRelativeToModule => Name;
-  // See DatatypeDecl for why we don't implement these members
-  Specification<Expression> ICallable.Decreases => throw new cce.UnreachableException();
-  bool ICallable.InferredDecreases {
-    get => throw new cce.UnreachableException();
-    set => throw new cce.UnreachableException();
-  }
-  ModuleDefinition ICanVerify.ContainingModule => EnclosingModuleDefinition;
-  bool ICanVerify.ShouldVerify => Invariants.Any();
 }

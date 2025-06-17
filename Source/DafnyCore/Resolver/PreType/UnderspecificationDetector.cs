@@ -106,13 +106,6 @@ namespace Microsoft.Dafny {
         } else if (d is TopLevelDeclWithMembers md) {
           CheckMembers(md);
         }
-        
-        // Complete resolution of class/trait invariants
-        if (d is ClassLikeDecl c) {
-          foreach (var invariant in c.Invariants) {
-            CheckAttributedExpression(invariant, context);
-          }
-        }
       }
     }
 
@@ -170,6 +163,11 @@ namespace Microsoft.Dafny {
           } else if (function.ByMethodDecl != null) {
             CheckMember(function.ByMethodDecl);
           }
+        }
+      } else if (member is Invariant invariant) {
+        // NB: cannot check CheckInvariants here
+        foreach (var clause in invariant.Body) {
+          CheckAttributedExpression(clause, context);
         }
       }
     }

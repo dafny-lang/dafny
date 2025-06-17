@@ -112,7 +112,12 @@ namespace Microsoft.Dafny {
         if (prefixLemma != null) {
           VisitMethod(prefixLemma);
         }
-
+      } else if (member is Invariant invariant) {
+        // NB: cannot check CheckInvariants here
+        var context = GetContext(invariant, false);
+        foreach (var clause in invariant.Body) {
+          VisitAttributedExpression(clause, context);
+        }
       } else {
         Contract.Assert(false);
         throw new cce.UnreachableException(); // unexpected member type
