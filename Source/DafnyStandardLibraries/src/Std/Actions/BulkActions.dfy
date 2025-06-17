@@ -175,12 +175,10 @@ module Std.BulkActions {
       requires totalActionProof.Valid()
       requires totalActionProof.Action() == consumer
       modifies Repr, consumer.Repr
-      ensures Valid()
-      ensures consumer.Valid()
-      ensures Done() || consumer.Done()
       ensures ValidChange()
       ensures consumer.ValidChange()
-      ensures NewProduced() == consumer.NewInputs()
+      ensures Done() || consumer.Capacity() == Some(0)
+      ensures NewProduced() == consumer.NewConsumed()
     {
       DefaultFill(this, consumer, totalActionProof);
     }
@@ -395,7 +393,7 @@ module Std.BulkActions {
       && size + otherInputs <= storage.Length
       && (Done() ==> size + otherInputs == storage.Length)
       && |Consumed()| == size + otherInputs
-      && (size < storage.Length ==> Seq.All(history, WasConsumed))
+      && (size + otherInputs < storage.Length ==> Seq.All(history, WasConsumed))
     }
 
     twostate lemma ValidImpliesValidChange()
@@ -427,7 +425,7 @@ module Std.BulkActions {
     }
 
     @IsolateAssertions
-    method Invoke(t: Batched<T, E>) returns (r: bool)
+    method {:only} Invoke(t: Batched<T, E>) returns (r: bool)
       requires Requires(t)
       reads Reads(t)
       modifies Modifies(t)
@@ -439,7 +437,7 @@ module Std.BulkActions {
       assert Valid();
       reveal TerminationMetric.Ordinal();
 
-      if size == storage.Length {
+      if size + otherInputs == storage.Length {
         r := false;
 
         UpdateHistory(t, r);

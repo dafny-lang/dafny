@@ -1423,7 +1423,7 @@ module Std.Producers {
     }
 
     @ResourceLimit("1e7")
-    method {:only} Invoke(t: ()) returns (result: Option<T>)
+    method Invoke(t: ()) returns (result: Option<T>)
       requires Requires(t)
       reads Reads(t)
       modifies Modifies(t)
