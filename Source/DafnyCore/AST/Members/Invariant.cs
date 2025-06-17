@@ -23,6 +23,9 @@ public class Invariant : MemberDecl, ICallable, ICanVerify {
     Body = body;
   }
 
+  public override IEnumerable<Expression> SubExpressions =>
+    Body.ConvertAll(clause => clause.E);
+
   public override string WhatKind => "invariant";
   
   string ICallable.NameRelativeToModule => EnclosingClass.Name + "." + Name;

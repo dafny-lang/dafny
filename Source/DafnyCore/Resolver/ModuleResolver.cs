@@ -1203,6 +1203,12 @@ namespace Microsoft.Dafny {
       if (reporter.Count(ErrorLevel.Error) == prevErrorCount) {
         FillInDefaultValueExpressions();
       }
+      
+      // To make sure that invariants are only reading uninherited fields
+      if (reporter.Count(ErrorLevel.Error) == prevErrorCount) {
+        var invariantVisitor = new InvariantVisitor(this);
+        invariantVisitor.VisitDeclarations(declarations);
+      }
 
       // ---------------------------------- Pass 1 ----------------------------------
       // This pass does the following:

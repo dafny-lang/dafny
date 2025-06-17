@@ -1,3 +1,3 @@
-ReadsError.dfy(8,19): Error: invariant can only read 'this' and therefore cannot read field`tail
+ReadsError.dfy(8,19): Error: invariants are currently restricted to only read 'this' and therefore cannot read field`tail
 
 Dafny program verifier finished with 0 verified, 1 error

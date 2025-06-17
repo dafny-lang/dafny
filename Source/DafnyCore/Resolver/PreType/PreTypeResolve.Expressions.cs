@@ -1534,14 +1534,6 @@ namespace Microsoft.Dafny {
             }
             // nevertheless, set "receiver" to a value so we can continue resolution
           }
-          if (resolutionContext.CodeContext is Invariant && member is Field && currentClass.InheritedMembers.Contains(member)) {
-            if (complain) {
-              ReportError(expr.Origin, $"Field {member.Name} of supertype trait {member.EnclosingClass.Name} cannot be referenced in invariant of {currentClass.Name}");
-            } else {
-              expr.ResolvedExpression = null;
-              return null;
-            }
-          }
           receiver = new ImplicitThisExpr(expr.Origin);
           receiver.Type = ModuleResolver.GetThisType(expr.Origin, currentClass);
           receiver.PreType = Type2PreType(receiver.Type);
