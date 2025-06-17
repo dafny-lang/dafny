@@ -16,12 +16,12 @@ public class DefaultClassDecl : TopLevelDeclWithMembers, RevealableTypeDecl {
   [SyntaxConstructor]
   public DefaultClassDecl(IOrigin origin, Name nameNode, Attributes? attributes,
     List<TypeParameter> typeArgs, ModuleDefinition enclosingModuleDefinition,
-    List<MemberDecl> members, List<Type>? traits = null)
+    List<MemberDecl> members, List<Type> traits)
     : base(origin, nameNode, enclosingModuleDefinition, typeArgs, members, attributes, traits) {
   }
 
   public DefaultClassDecl(ModuleDefinition enclosingModule, [Captured] List<MemberDecl> members)
-    : base(SourceOrigin.NoToken, new Name("_default"), enclosingModule, [], members, null) {
+    : base(SourceOrigin.NoToken, new Name("_default"), enclosingModule, [], members, null, []) {
     Contract.Requires(enclosingModule != null);
     Contract.Requires(cce.NonNullElements(members));
     this.NewSelfSynonym();

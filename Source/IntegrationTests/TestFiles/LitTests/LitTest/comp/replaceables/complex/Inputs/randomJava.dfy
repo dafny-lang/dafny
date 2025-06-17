@@ -7,7 +7,9 @@ module RandomJava replaces DfyRandom {
   method GetRandomNat ... {
     var random := new JavaRandom();
     
-    var ceilingInt32 := IntToInt32(ceiling).GetOr(IntegerMaxValue());
+    var ceilingInt32opt := IntToInt32(ceiling);
+    var baseIntMaxValue := IntegerMaxValue();
+    var ceilingInt32 := ceilingInt32opt.GetOr(baseIntMaxValue);
     assert ceilingInt32.value <= ceiling;
     var resultInt32 := random.Next(ceilingInt32);
     var resultInt := Int32ToInt(resultInt32);
@@ -21,17 +23,17 @@ module Interop {
   
   const int32MaxValue := 2147483647
   
-  function {:axiom} {:extern} IntToInt32(value: int): Option<Integer>
-    ensures var r := IntToInt32(value); 
+  method {:axiom} {:extern} IntToInt32(value: int) returns (res: Option<Integer>)
+    ensures
       if value <= int32MaxValue 
-        then r.Some? && r.Extract().value == value
-        else r.None?
+        then res.Some? && res.Extract().value == value
+        else res.None?
     
-  function {:axiom} {:extern} Int32ToInt(value: Integer): int
-    ensures Int32ToInt(value) == value.value
+  method {:axiom} {:extern} Int32ToInt(value: Integer) returns (res: int)
+    ensures res == value.value
   
-  function {:axiom} {:extern} IntegerMaxValue(): Integer
-    ensures IntegerMaxValue().value == int32MaxValue
+  method {:axiom} {:extern} IntegerMaxValue() returns (res: Integer)
+    ensures res.value == int32MaxValue
 }
   
 module {:extern "java.lang"} JavaLang {

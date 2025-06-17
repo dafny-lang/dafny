@@ -128,4 +128,6 @@ public abstract class TypeSynonymDeclBase : TopLevelDecl, RedirectingTypeDecl, I
   public abstract override SymbolKind? Kind { get; }
   public abstract override string GetDescription(DafnyOptions options);
   public string Designator => WhatKind;
+  public abstract ModuleDefinition ContainingModule { get; }
+  public abstract bool ShouldVerify { get; }
 }

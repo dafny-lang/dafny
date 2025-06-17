@@ -113,6 +113,10 @@ public class Token : IOrigin {
     return $"'{val}': {Path.GetFileName(Filepath)}@{pos} - @{line}:{col}";
   }
 
+  public string PrintPosition() {
+    return $"{line}:{col}";
+  }
+
   public int CompareTo(IOrigin other) {
     if (line != other.line) {
       return line.CompareTo(other.line);

@@ -1,4 +1,4 @@
-using System;
+#nullable enable
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 using System.Linq;
@@ -6,7 +6,7 @@ using System.Linq;
 namespace Microsoft.Dafny;
 
 public abstract class ClassLikeDecl : TopLevelDeclWithMembers, RevealableTypeDecl, ICanFormat, IHasDocstring {
-  public NonNullTypeDecl NonNullTypeDecl; // returns non-null value iff IsReferenceTypeDecl
+  public NonNullTypeDecl? NonNullTypeDecl; // returns non-null value iff IsReferenceTypeDecl
 
   public override bool CanBeRevealed() { return true; }
 
@@ -23,10 +23,10 @@ public abstract class ClassLikeDecl : TopLevelDeclWithMembers, RevealableTypeDec
   public abstract bool IsReferenceTypeDecl { get; }
 
   public TopLevelDecl AsTopLevelDecl => this;
-  public TypeDeclSynonymInfo SynonymInfo { get; set; }
+  public TypeDeclSynonymInfo SynonymInfo { get; set; } = null!;
 
   [SyntaxConstructor]
-  protected ClassLikeDecl(IOrigin origin, Name nameNode, Attributes attributes,
+  protected ClassLikeDecl(IOrigin origin, Name nameNode, Attributes? attributes,
     List<TypeParameter> typeArgs, ModuleDefinition enclosingModuleDefinition,
     [Captured] List<MemberDecl> members, List<Type> traits)
     : base(origin, nameNode, enclosingModuleDefinition, typeArgs, members, attributes, traits) {
@@ -38,7 +38,7 @@ public abstract class ClassLikeDecl : TopLevelDeclWithMembers, RevealableTypeDec
   }
 
   public virtual bool SetIndent(int indentBefore, TokenNewIndentCollector formatter) {
-    IOrigin classToken = null;
+    IOrigin? classToken = null;
     var parentTraitIndent = indentBefore + formatter.SpaceTab;
     var commaIndent = indentBefore;
     var extraIndent = 0;
@@ -80,7 +80,7 @@ public abstract class ClassLikeDecl : TopLevelDeclWithMembers, RevealableTypeDec
     return true;
   }
 
-  public virtual string GetTriviaContainingDocstring() {
+  public virtual string? GetTriviaContainingDocstring() {
     if (GetStartTriviaDocstring(out var triviaFound)) {
       return triviaFound;
     }
