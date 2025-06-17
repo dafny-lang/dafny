@@ -9,7 +9,7 @@ public class MainClass {
     root.AddCommand(UpdateTests.GetCommand());
     root.AddCommand(SyntaxSchemaGenerator.GetCommand());
     root.AddCommand(SyntaxDeserializerGenerator.GetCommand());
-    root.AddCommand(SourceToBinary.GetCommand());
+    root.AddCommand(SourceToBinary.GetCommand(Console.Out));
     return root.InvokeAsync(args);
   }
 }

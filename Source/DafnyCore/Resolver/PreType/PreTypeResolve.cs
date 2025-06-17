@@ -22,50 +22,29 @@ namespace Microsoft.Dafny {
 
     protected int ErrorCount => resolver.Reporter.Count(ErrorLevel.Error);
 
-    protected void ReportError(Declaration d, string msg, params object[] args) {
-      Contract.Requires(d != null);
-      Contract.Requires(msg != null);
-      Contract.Requires(args != null);
-      ReportError(d.Origin, msg, args);
+    protected void ReportError(INode node, params object[] messageParts) {
+      Contract.Requires(node != null);
+      ReportError(node.Origin, messageParts);
     }
 
-    protected void ReportError(Statement stmt, string msg, params object[] args) {
-      Contract.Requires(stmt != null);
-      Contract.Requires(msg != null);
-      Contract.Requires(args != null);
-      ReportError(stmt.Origin, msg, args);
-    }
-
-    protected void ReportError(Expression expr, string msg, params object[] args) {
-      Contract.Requires(expr != null);
-      Contract.Requires(msg != null);
-      Contract.Requires(args != null);
-      ReportError(expr.Origin, msg, args);
-    }
-
-    public void ReportError(IOrigin tok, string msg, params object[] args) {
+    public void ReportError(IOrigin tok, params object[] messageParts) {
       Contract.Requires(tok != null);
-      Contract.Requires(msg != null);
-      Contract.Requires(args != null);
-      resolver.Reporter.Error(MessageSource.Resolver, tok, msg, args);
+      Contract.Requires(messageParts != null);
+      resolver.Reporter.Error(MessageSource.Resolver, tok, messageParts);
     }
 
-    public void ReportError(ResolutionErrors.ErrorId errorId, IOrigin tok, string msg, params object[] args) {
-      resolver.Reporter.Error(MessageSource.Resolver, errorId, tok, msg, args);
+    public void ReportError(ResolutionErrors.ErrorId errorId, IOrigin tok, params object[] messageParts) {
+      resolver.Reporter.Error(MessageSource.Resolver, errorId, tok, messageParts);
     }
 
-    public void ReportWarning(IOrigin tok, string msg, params object[] args) {
+    public void ReportWarning(IOrigin tok, params object[] messageParts) {
       Contract.Requires(tok != null);
-      Contract.Requires(msg != null);
-      Contract.Requires(args != null);
-      resolver.Reporter.Warning(MessageSource.Resolver, ParseErrors.ErrorId.none, tok, msg, args);
+      resolver.Reporter.Warning(MessageSource.Resolver, ParseErrors.ErrorId.none, tok, messageParts);
     }
 
-    protected void ReportInfo(IOrigin tok, string msg, params object[] args) {
+    protected void ReportInfo(IOrigin tok, params object[] messageParts) {
       Contract.Requires(tok != null);
-      Contract.Requires(msg != null);
-      Contract.Requires(args != null);
-      resolver.Reporter.Info(MessageSource.Resolver, tok, msg, args);
+      resolver.Reporter.Info(MessageSource.Resolver, tok, messageParts);
     }
   }
 
@@ -471,6 +450,8 @@ namespace Microsoft.Dafny {
       scope = new Scope<IVariable>(resolver.Options);
       EnclosingStatementLabels = new Scope<LabeledStatement>(resolver.Options);
       DominatingStatementLabels = new Scope<Label>(resolver.Options);
+      EnclosingInputParameterFormals = new Scope<Formal>(resolver.Options);
+      EnclosingMethodCall = null;
       Constraints = new PreTypeConstraints(this);
     }
 
@@ -648,7 +629,7 @@ namespace Microsoft.Dafny {
         if (subArguments != null) {
           // use B :> A
           var aa = new DPreType(normalizedB.Decl, subArguments, normalizedA.PrintablePreType);
-          Constraints.DebugPrint($"    DEBUG: turning ~~ into {b} :> {aa}");
+          Constraints.DebugPrint($"    turning ~~ into {b} :> {aa}");
           Constraints.AddSubtypeConstraint(b, aa, tok, errorFormatString, null, reportErrors);
           return true;
         }
@@ -656,7 +637,7 @@ namespace Microsoft.Dafny {
         if (subArguments != null) {
           // use A :> B
           var bb = new DPreType(normalizedA.Decl, subArguments, normalizedB.PrintablePreType);
-          Constraints.DebugPrint($"    DEBUG: turning ~~ into {a} :> {bb}");
+          Constraints.DebugPrint($"    turning ~~ into {a} :> {bb}");
           Constraints.AddSubtypeConstraint(a, bb, tok, errorFormatString, null, reportErrors);
           return true;
         }
@@ -675,12 +656,12 @@ namespace Microsoft.Dafny {
       if (!allowBaseTypeCast) {
         if ((normalizedA != null && normalizedA.IsLeafType()) || (normalizedB != null && normalizedB.IsRootType())) {
           // use B :> A
-          Constraints.DebugPrint($"    DEBUG: turning ~~ into {b} :> {a}");
+          Constraints.DebugPrint($"    turning ~~ into {b} :> {a}");
           Constraints.AddSubtypeConstraint(b, a, tok, errorFormatString, null, reportErrors);
           return true;
         } else if ((normalizedA != null && normalizedA.IsRootType()) || (normalizedB != null && normalizedB.IsLeafType())) {
           // use A :> B
-          Constraints.DebugPrint($"    DEBUG: turning ~~ into {a} :> {b}");
+          Constraints.DebugPrint($"    turning ~~ into {a} :> {b}");
           Constraints.AddSubtypeConstraint(a, b, tok, errorFormatString, null, reportErrors);
           return true;
         }

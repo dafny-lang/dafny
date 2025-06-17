@@ -554,19 +554,19 @@ public class XConstraint {
     Contract.Requires(visited != null);
     t = t.NormalizeExpand();
     if (options.Get(CommonOptionBag.TypeInferenceDebug)) {
-      options.OutputWriter.WriteLine("DEBUG: FindCollectionType({0}, {1})", t, towardsSub ? "sub" : "super");
+      options.OutputWriter.Debug($"FindCollectionType({t}, {(towardsSub ? "sub" : "super")})");
     }
     if (t is CollectionType) {
       if (options.Get(CommonOptionBag.TypeInferenceDebug)) {
-        options.OutputWriter.WriteLine("DEBUG: FindCollectionType({0}) = {1}", t, ((CollectionType)t).Arg);
+        options.OutputWriter.Debug($"FindCollectionType({t}) = {((CollectionType)t).Arg}");
       }
       return ((CollectionType)t).Arg;
     }
     var proxy = t as TypeProxy;
-    if (proxy == null || visited.Contains(proxy)) {
+    if (proxy == null || !visited.Add(proxy)) {
       return null;
     }
-    visited.Add(proxy);
+
     foreach (var sub in towardsSub ? proxy.Subtypes : proxy.Supertypes) {
       var e = FindCollectionType(options, sub, towardsSub, visited);
       if (e != null) {

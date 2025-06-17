@@ -37,7 +37,7 @@ public partial class Parser {
 
   bool IsIdentifier(int kind) {
     return kind == _ident || kind == _least || kind == _greatest || kind == _older || kind == _opaque
-      || (!AcceptReferrers() && kind == _field);
+      || (!AcceptReferrers() && kind is _field or _locals);
   }
 
   bool IsQuantifierVariableDecl(QuantifiedVar previousVar) {
@@ -311,6 +311,10 @@ public partial class Parser {
 
   bool AcceptReferrersAndBacktick() {
     return AcceptReferrers() && la.kind is _backtick;
+  }
+
+  bool AcceptReferrersAndLocals() {
+    return AcceptReferrers() && la.kind is _locals;
   }
 
   bool IsSuffix() {

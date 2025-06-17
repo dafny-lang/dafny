@@ -121,12 +121,12 @@ namespace Microsoft.Dafny {
       Contract.Requires(program != null);
     }
 
-    public virtual void ReportWarning(ErrorId errorId, IOrigin t, string msg, params object[] args) {
-      Reporter.Warning(MessageSource.Rewriter, errorId, t, msg, args);
+    public virtual void ReportWarning(ErrorId errorId, IOrigin t, params object[] messageParts) {
+      Reporter.Warning(MessageSource.Rewriter, errorId, t, messageParts);
     }
 
-    public virtual void ReportError(ErrorId errorId, IOrigin t, string msg, params object[] args) {
-      Reporter.Error(MessageSource.Rewriter, errorId, t, msg, args);
+    public virtual void ReportError(ErrorId errorId, IOrigin t, params object[] messageParts) {
+      Reporter.Error(MessageSource.Rewriter, errorId, t, messageParts);
     }
   }
 }

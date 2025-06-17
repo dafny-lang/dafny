@@ -110,7 +110,9 @@ public static class DafnyNewCli {
       if (dafnyOptions.DafnyProject == null && dafnyOptions.Get(DafnyProject.FindProjectOption) && firstFile != null) {
         var opener = new ProjectFileOpener(OnDiskFileSystem.Instance, Token.Cli);
         var project = await opener.TryFindProject(firstFile);
-        project?.Validate(dafnyOptions.OutputWriter, AllOptions);
+        if (project != null) {
+          await project.Validate(dafnyOptions.OutputWriter, AllOptions);
+        }
         dafnyOptions.DafnyProject = project;
       }
 
@@ -126,7 +128,7 @@ public static class DafnyNewCli {
           dafnyOptions.ApplyBinding(option);
         } catch (Exception e) {
           context.ExitCode = (int)ExitValue.PREPROCESSING_ERROR;
-          await dafnyOptions.OutputWriter.WriteLineAsync(
+          await dafnyOptions.OutputWriter.Status(
             $"Invalid value for option {option.Name}: {e.Message}");
           return;
         }
@@ -230,7 +232,7 @@ public static class DafnyNewCli {
     }
     var projectFile = await DafnyProject.Open(OnDiskFileSystem.Instance, file, Token.Cli);
 
-    projectFile.Validate(dafnyOptions.OutputWriter, AllOptions);
+    await projectFile.Validate(dafnyOptions.OutputWriter, AllOptions);
     dafnyOptions.DafnyProject = projectFile;
     return true;
   }
@@ -305,7 +307,7 @@ public static class DafnyNewCli {
       }
     } else {
       if (options.Verbose) {
-        await options.OutputWriter.WriteLineAsync($"Building dependency {options.GetPrintPath(uri.LocalPath)}");
+        await options.OutputWriter.Status($"Building dependency {options.GetPrintPath(uri.LocalPath)}");
       }
 
       dependencyOptions.Compile = true;

@@ -207,7 +207,7 @@ public class AssignmentDependency : ProofDependency {
      "assignment (or return)";
 
   public AssignmentDependency(IOrigin rangeOrigin) {
-    this.Range = rangeOrigin.ReportingRange;
+    this.Range = rangeOrigin.EntireRange;
   }
 }
 

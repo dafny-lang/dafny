@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.CommandLine;
+using System.Diagnostics;
 using System.Diagnostics.Contracts;
 using System.IO;
 using System.Linq;
@@ -68,16 +69,26 @@ for backwards compatibility with Java code generated with Dafny versions earlier
     outStream.Close();
   }
 
+  private ProcessStartInfo JavacCommand(IEnumerable<string> files, out string tempFilePath) {
+    tempFilePath = Path.GetTempFileName();
+
+    // Wrap each filename in quotes to handle spaces
+    var quotedFiles = files.Select(f => $"\"{f.Replace(@"\", @"\\")}\"");
+    File.WriteAllLines(tempFilePath, quotedFiles);
+
+    return PrepareProcessStartInfo("javac", ["-encoding", "UTF8", $"@{tempFilePath}"]);
+  }
+
   public override async Task<(bool Success, object CompilationResult)> CompileTargetProgram(string dafnyProgramName,
     string targetProgramText,
     string callToMain /*?*/, string targetFilename, /*?*/
-    ReadOnlyCollection<string> otherFileNames, bool runAfterCompile, TextWriter outputWriter) {
+    ReadOnlyCollection<string> otherFileNames, bool runAfterCompile, IDafnyOutputWriter outputWriter) {
     foreach (var otherFileName in otherFileNames) {
       if (Path.GetExtension(otherFileName) != ".java") {
-        await outputWriter.WriteLineAsync($"Unrecognized file as extra input for Java compilation: {otherFileName}");
+        await outputWriter.Status($"Unrecognized file as extra input for Java compilation: {otherFileName}");
         return (false, null);
       }
-      if (!CopyExternLibraryIntoPlace(mainProgram: targetFilename, externFilename: otherFileName, outputWriter: outputWriter)) {
+      if (!await CopyExternLibraryIntoPlace(mainProgram: targetFilename, externFilename: otherFileName, outputWriter: outputWriter)) {
         return (false, null);
       }
     }
@@ -90,67 +101,83 @@ for backwards compatibility with Java code generated with Dafny versions earlier
     }
 
     // Compile the generated source to .class files, adding the output directory to the classpath
-    var compileProcess = PrepareProcessStartInfo("javac", new List<string> { "-encoding", "UTF8" }.Concat(files));
+    var compileProcess = JavacCommand(files, out var tempFilePath);
     compileProcess.WorkingDirectory = Path.GetFullPath(Path.GetDirectoryName(targetFilename));
     compileProcess.EnvironmentVariables["CLASSPATH"] = GetClassPath(targetFilename);
-    if (0 != await RunProcess(compileProcess, outputWriter, outputWriter, "Error while compiling Java files.")) {
-      return (false, null);
-    }
+    try {
+      await using var sw = outputWriter.StatusWriter();
+      if (0 != await RunProcess(compileProcess, sw, sw, "Error while compiling Java files.")) {
+        return (false, null);
+      }
 
-    var classFiles = Directory.EnumerateFiles(targetDirectory, "*.class", SearchOption.AllDirectories)
+      var classFiles = Directory.EnumerateFiles(targetDirectory, "*.class", SearchOption.AllDirectories)
         .Select(file => Path.GetRelativePath(targetDirectory, file)).ToList();
 
-    var simpleProgramName = Path.GetFileNameWithoutExtension(targetFilename);
-    var jarPath = Path.GetFullPath(Path.ChangeExtension(dafnyProgramName, ".jar"));
-    if (!await CreateJar(callToMain == null ? null : simpleProgramName,
-                   jarPath,
-                   Path.GetFullPath(Path.GetDirectoryName(targetFilename)),
-                   classFiles,
-                   outputWriter)) {
-      return (false, null);
-    }
+      var simpleProgramName = Path.GetFileNameWithoutExtension(targetFilename);
+      var jarPath = Path.GetFullPath(Path.ChangeExtension(dafnyProgramName, ".jar"));
+      if (!await CreateJar(callToMain == null ? null : simpleProgramName,
+            jarPath,
+            Path.GetFullPath(Path.GetDirectoryName(targetFilename)),
+            classFiles,
+            outputWriter)) {
+        return (false, null);
+      }
 
-    // Keep the build artifacts if --spill-translation is true
-    // But keep them for legacy CLI so as not to break old behavior
-    if (Options.UsingNewCli) {
-      if (Options.SpillTargetCode == 0) {
-        Directory.Delete(targetDirectory, true);
-      } else {
-        classFiles.ForEach(f => File.Delete(Path.Join(targetDirectory, f)));
+      // Keep the build artifacts if --spill-translation is true
+      // But keep them for legacy CLI so as not to break old behavior
+      if (Options.UsingNewCli) {
+        if (Options.SpillTargetCode == 0) {
+          Directory.Delete(targetDirectory, true);
+        } else {
+          classFiles.ForEach(f => File.Delete(Path.Join(targetDirectory, f)));
+        }
+      }
+
+      if (Options.Verbose) {
+        // For the sake of tests, just write out the filename and not the directory path
+        var fileKind = callToMain != null ? "executable" : "library";
+        await outputWriter.Status($"Wrote {fileKind} jar {Path.GetFileName(jarPath)}");
+      }
+
+      return (true, null);
+    }
+    finally {
+      try {
+        File.Delete(tempFilePath);
+      } catch (Exception) {
+        // ignore
       }
     }
-
-    if (Options.Verbose) {
-      // For the sake of tests, just write out the filename and not the directory path
-      var fileKind = callToMain != null ? "executable" : "library";
-      await outputWriter.WriteLineAsync($"Wrote {fileKind} jar {Path.GetFileName(jarPath)}");
-    }
-
-    return (true, null);
   }
 
 
-  public async Task<bool> CreateJar(string/*?*/ entryPointName, string jarPath, string rootDirectory, List<string> files, TextWriter outputWriter) {
+  public async Task<bool> CreateJar(string/*?*/ entryPointName, string jarPath, string rootDirectory,
+    List<string> files, IDafnyOutputWriter outputWriter) {
     Directory.CreateDirectory(Path.GetDirectoryName(jarPath));
     var args = entryPointName == null ? // If null, then no entry point is added
       ["cf", jarPath]
       : new List<string> { "cfe", jarPath, entryPointName };
     var jarCreationProcess = PrepareProcessStartInfo("jar", args.Concat(files));
     jarCreationProcess.WorkingDirectory = rootDirectory;
-    return 0 == await RunProcess(jarCreationProcess, outputWriter, outputWriter, "Error while creating jar file: " + jarPath);
+    await using var sw = outputWriter.StatusWriter();
+    return 0 == await RunProcess(jarCreationProcess, sw, sw, "Error while creating jar file: " + jarPath);
   }
 
-  public override async Task<bool> RunTargetProgram(string dafnyProgramName, string targetProgramText, string callToMain,
+  public override async Task<bool> RunTargetProgram(string dafnyProgramName, string targetProgramText,
+    string callToMain,
     string targetFilename, /*?*/
-    ReadOnlyCollection<string> otherFileNames, object compilationResult, TextWriter outputWriter,
-    TextWriter errorWriter) {
+    ReadOnlyCollection<string> otherFileNames, object compilationResult,
+    IDafnyOutputWriter outputWriter) {
     string jarPath = Path.ChangeExtension(dafnyProgramName, ".jar"); // Must match that in CompileTargetProgram
     var psi = PrepareProcessStartInfo("java",
       new List<string> { "-Dfile.encoding=UTF-8", "-jar", jarPath }
         .Concat(Options.MainArgs));
     // Run the target program in the user's working directory and with the user's classpath
     psi.EnvironmentVariables["CLASSPATH"] = GetClassPath(null);
-    return 0 == await RunProcess(psi, outputWriter, errorWriter);
+
+    await using var sw = outputWriter.StatusWriter();
+    await using var ew = outputWriter.ErrorWriter();
+    return 0 == await RunProcess(psi, sw, ew);
   }
 
   private string GetClassPath(string targetFilename) {
@@ -169,11 +196,11 @@ for backwards compatibility with Java code generated with Dafny versions earlier
     return classpath;
   }
 
-  bool CopyExternLibraryIntoPlace(string externFilename, string mainProgram, TextWriter outputWriter) {
+  async Task<bool> CopyExternLibraryIntoPlace(string externFilename, string mainProgram, IDafnyOutputWriter outputWriter) {
     // Grossly, we need to look in the file to figure out where to put it
     var pkgName = FindPackageName(externFilename);
     if (pkgName == null) {
-      outputWriter.WriteLine($"Unable to determine package name: {externFilename}");
+      await outputWriter.Status($"Unable to determine package name: {externFilename}");
       return false;
     }
     string baseName = Path.GetFileNameWithoutExtension(externFilename);
@@ -185,7 +212,7 @@ for backwards compatibility with Java code generated with Dafny versions earlier
     FileInfo file = new FileInfo(externFilename);
     file.CopyTo(tgtFilename, true);
     if (Options.Verbose) {
-      outputWriter.WriteLine($"Additional input {externFilename} copied to {tgtFilename}");
+      await outputWriter.Status($"Additional input {externFilename} copied to {tgtFilename}");
     }
     return true;
   }

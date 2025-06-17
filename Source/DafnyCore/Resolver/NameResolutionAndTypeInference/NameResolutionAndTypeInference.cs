@@ -13,6 +13,7 @@ using System.Numerics;
 using System.Diagnostics.Contracts;
 using System.IO;
 using System.Reflection;
+using System.Text;
 using DafnyCore;
 using JetBrains.Annotations;
 using Microsoft.BaseTypes;
@@ -258,19 +259,23 @@ namespace Microsoft.Dafny {
       if (!Options.Get(CommonOptionBag.TypeInferenceDebug)) {
         return;
       }
-      Options.OutputWriter.WriteLine("DEBUG: ---------- type constraints ---------- {0} {1}", lbl, lbl == 0 && currentMethod != null ? currentMethod.Name : "");
+
+      var sb = new StringBuilder();
+      sb.AppendLine($"---------- type constraints ---------- {lbl} {(lbl == 0 && currentMethod != null ? currentMethod.Name : "")}");
       foreach (var constraint in AllTypeConstraints) {
         var super = constraint.Super.Normalize();
         var sub = constraint.Sub.Normalize();
-        Options.OutputWriter.WriteLine("    {0} :> {1}", super is IntVarietiesSupertype ? "int-like" : super is RealVarietiesSupertype ? "real-like" : super.ToString(), sub);
+        sb.AppendLine($"    {(super is IntVarietiesSupertype ? "int-like" : super is RealVarietiesSupertype ? "real-like" : super.ToString())} :> {sub}");
       }
       foreach (var xc in AllXConstraints) {
-        Options.OutputWriter.WriteLine("    {0}", xc);
+        sb.AppendLine($"    {xc}");
       }
-      Options.OutputWriter.WriteLine();
+      sb.AppendLine();
       if (lbl % 2 == 1) {
-        Options.OutputWriter.WriteLine("DEBUG: --------------------------------------");
+        sb.AppendLine("--------------------------------------");
       }
+
+      Options.OutputWriter.Debug(sb.ToString());
     }
 
     /// <summary>
@@ -1326,14 +1331,14 @@ namespace Microsoft.Dafny {
       var proxy = a.Normalize() as TypeProxy;
       if (proxy != null && proxy.T == null && !Reaches(b, proxy, 1, [])) {
         if (Options.Get(CommonOptionBag.TypeInferenceDebug)) {
-          Options.OutputWriter.WriteLine("DEBUG: (invariance) assigning proxy {0}.T := {1}", proxy, b);
+          Options.OutputWriter.Debug($"(invariance) assigning proxy {proxy}.T := {b}");
         }
         proxy.T = b;
       }
       proxy = b.Normalize() as TypeProxy;
       if (proxy != null && proxy.T == null && !Reaches(a, proxy, 1, [])) {
         if (Options.Get(CommonOptionBag.TypeInferenceDebug)) {
-          Options.OutputWriter.WriteLine("DEBUG: (invariance) assigning proxy {0}.T := {1}", proxy, a);
+          Options.OutputWriter.Debug("(invariance) assigning proxy {0}.T := {1}", proxy, a);
         }
         proxy.T = a;
       }
@@ -1553,7 +1558,7 @@ namespace Microsoft.Dafny {
             if (t != t.NormalizeExpand()) {
               // force the type to be a base type
               if (Options.Get(CommonOptionBag.TypeInferenceDebug)) {
-                Options.OutputWriter.WriteLine("DEBUG: hijacking {0}.T := {1} to instead assign {2}", proxy, t, t.NormalizeExpand());
+                Options.OutputWriter.Debug("hijacking {0}.T := {1} to instead assign {2}", proxy, t, t.NormalizeExpand());
               }
               t = t.NormalizeExpand();
               followedRequestedAssignment = false;
@@ -1561,7 +1566,7 @@ namespace Microsoft.Dafny {
           } else {
             // hijack the setting of proxy; to do that, we decide on a particular int variety now
             if (Options.Get(CommonOptionBag.TypeInferenceDebug)) {
-              Options.OutputWriter.WriteLine("DEBUG: hijacking {0}.T := {1} to instead assign {2}", proxy, t, Type.Int);
+              Options.OutputWriter.Debug("hijacking {0}.T := {1} to instead assign {2}", proxy, t, Type.Int);
             }
             t = Type.Int;
             followedRequestedAssignment = false;
@@ -1574,7 +1579,7 @@ namespace Microsoft.Dafny {
             if (t != t.NormalizeExpand()) {
               // force the type to be a base type
               if (Options.Get(CommonOptionBag.TypeInferenceDebug)) {
-                Options.OutputWriter.WriteLine("DEBUG: hijacking {0}.T := {1} to instead assign {2}", proxy, t, t.NormalizeExpand());
+                Options.OutputWriter.Debug("hijacking {0}.T := {1} to instead assign {2}", proxy, t, t.NormalizeExpand());
               }
               t = t.NormalizeExpand();
               followedRequestedAssignment = false;
@@ -1582,7 +1587,7 @@ namespace Microsoft.Dafny {
           } else {
             // hijack the setting of proxy; to do that, we decide on a particular real variety now
             if (Options.Get(CommonOptionBag.TypeInferenceDebug)) {
-              Options.OutputWriter.WriteLine("DEBUG: hijacking {0}.T := {1} to instead assign {2}", proxy, t, Type.Real);
+              Options.OutputWriter.Debug("hijacking {0}.T := {1} to instead assign {2}", proxy, t, Type.Real);
             }
             t = Type.Real;
             followedRequestedAssignment = false;
@@ -1592,7 +1597,7 @@ namespace Microsoft.Dafny {
       }
       // set proxy.T right away, so that we can freely recurse without having to worry about infinite recursion
       if (Options.Get(CommonOptionBag.TypeInferenceDebug)) {
-        Options.OutputWriter.WriteLine("DEBUG: setting proxy {0}.T := {1}", proxy, t);
+        Options.OutputWriter.Debug("setting proxy {0}.T := {1}", proxy, t);
       }
       proxy.T = t;
 
@@ -2060,7 +2065,7 @@ namespace Microsoft.Dafny {
                 } else if (super is TypeProxy && sub is TypeProxy) {
                   var proxy = (TypeProxy)super;
                   if (Options.Get(CommonOptionBag.TypeInferenceDebug)) {
-                    Options.OutputWriter.WriteLine("DEBUG: (merge in PartiallySolve) assigning proxy {0}.T := {1}", proxy, sub);
+                    Options.OutputWriter.Debug("(merge in PartiallySolve) assigning proxy {0}.T := {1}", proxy, sub);
                   }
                   proxy.T = sub;
                   anyNewConstraints = true;  // signal a change in the constraints
@@ -2257,15 +2262,19 @@ namespace Microsoft.Dafny {
       Contract.Requires(lhs != null && lhs.T == null);
       Contract.Requires(rhss != null);
       if (Options.Get(CommonOptionBag.TypeInferenceDebug)) {
-        Console.Write("DEBUG: ProcessAssignable: {0} with rhss:", lhs);
+        var sb = new StringBuilder();
+        sb.Append($"ProcessAssignable: {lhs} with rhss:");
         foreach (var rhs in rhss) {
-          Options.OutputWriter.Write(" {0}", rhs);
+          sb.Append($" {rhs}");
         }
-        Options.OutputWriter.Write(" subtypes:");
+        sb.Append(" subtypes:");
         foreach (var sub in lhs.SubtypesKeepConstraints) {
-          Options.OutputWriter.Write(" {0}", sub);
+          sb.Append(" {sub}");
         }
-        Options.OutputWriter.WriteLine();
+
+        sb.AppendLine();
+
+        Options.OutputWriter.Debug(sb.ToString());
       }
       Type join = null;
       foreach (var rhs in rhss) {
@@ -2283,7 +2292,7 @@ namespace Microsoft.Dafny {
         return false;
       } else {
         if (Options.Get(CommonOptionBag.TypeInferenceDebug)) {
-          Options.OutputWriter.WriteLine("DEBUG: ProcessAssignable: assigning proxy {0}.T := {1}", lhs, join);
+          Options.OutputWriter.Debug("ProcessAssignable: assigning proxy {0}.T := {1}", lhs, join);
         }
         lhs.T = join;
         return true;
@@ -2563,7 +2572,7 @@ namespace Microsoft.Dafny {
             CloseOverAssignableRhss(proxySubs);
             if (HasApplicableNullableRefTypeConstraint(proxySubs)) {
               if (Options.Get(CommonOptionBag.TypeInferenceDebug)) {
-                Options.OutputWriter.WriteLine("DEBUG: Found join {0} for proxy {1}, but weakening it to {2}", joins[0], proxy, joins[0].NormalizeExpand());
+                Options.OutputWriter.Debug("Found join {0} for proxy {1}, but weakening it to {2}", joins[0], proxy, joins[0].NormalizeExpand());
               }
               AssignProxyAndHandleItsConstraints(proxy, joins[0].NormalizeExpand(), true);
               return true;
@@ -3882,7 +3891,8 @@ namespace Microsoft.Dafny {
               if (s.Body is BlockStmt && ((BlockStmt)s.Body).Body.Count == 0) {
                 // an empty statement, so don't produce any warning
               } else {
-                reporter.Warning(MessageSource.Resolver, ParseErrors.ErrorId.none, s.Origin, "the conclusion of the body of this forall statement will not be known outside the forall statement; consider using an 'ensures' clause");
+                reporter.Warning(MessageSource.Resolver, "", s.Origin,
+                  "the conclusion of the body of this forall statement will not be known outside the forall statement; consider using an 'ensures' clause");
               }
             }
           }
@@ -4569,14 +4579,14 @@ namespace Microsoft.Dafny {
             var r = GetBaseTypeFromProxy((TypeProxy)t, new Dictionary<TypeProxy, Type>());
             if (r != null) {
               if (Options.Get(CommonOptionBag.TypeInferenceDebug)) {
-                Options.OutputWriter.WriteLine("  ----> found improvement through GetBaseTypeFromProxy: {0}", r);
+                Options.OutputWriter.Debug("  ----> found improvement through GetBaseTypeFromProxy: {0}", r);
               }
               return r;
             }
           }
 
           if (Options.Get(CommonOptionBag.TypeInferenceDebug)) {
-            Options.OutputWriter.WriteLine("  ----> found no improvement, giving up");
+            Options.OutputWriter.Debug("  ----> found no improvement, giving up");
           }
           return t;
         }
@@ -4589,7 +4599,7 @@ namespace Microsoft.Dafny {
         return t;  // simplification did the trick
       }
       if (Options.Get(CommonOptionBag.TypeInferenceDebug)) {
-        Options.OutputWriter.WriteLine("DEBUG: Member selection{3}:  {1} :> {0} :> {2}", t,
+        Options.OutputWriter.Debug("Member selection{3}:  {1} :> {0} :> {2}", t,
           Util.Comma(proxy.SupertypesKeepConstraints, su => su.ToString()),
           Util.Comma(proxy.SubtypesKeepConstraints, su => su.ToString()),
           memberName == null ? "" : " (" + memberName + ")");
@@ -4601,14 +4611,14 @@ namespace Microsoft.Dafny {
         DetermineRootLeaf(joinType, out _, out _, out var headIsRoot, out _);
         if (joinType.IsDatatype) {
           if (Options.Get(CommonOptionBag.TypeInferenceDebug)) {
-            Options.OutputWriter.WriteLine("  ----> join is a datatype: {0}", joinType);
+            Options.OutputWriter.Debug("  ----> join is a datatype: {0}", joinType);
           }
           ConstrainSubtypeRelation(t, joinType, tok, "Member selection requires a supertype of {0} (got something more like {1})", t, joinType);
           return joinType;
         } else if (headIsRoot) {
           // we're good to go -- by picking "join" (whose type parameters have been replaced by fresh proxies), we're not losing any generality
           if (Options.Get(CommonOptionBag.TypeInferenceDebug)) {
-            Options.OutputWriter.WriteLine("  ----> improved to {0} through join", joinType);
+            Options.OutputWriter.Debug("  ----> improved to {0} through join", joinType);
           }
           AssignProxyAndHandleItsConstraints(proxy, joinType, true);
           return proxy.NormalizeExpand();  // we return proxy.T instead of join, in case the assignment gets hijacked
@@ -4617,7 +4627,7 @@ namespace Microsoft.Dafny {
           if (generalArrowType != null) {
             // pick the supertype "generalArrowType" of "join"
             if (Options.Get(CommonOptionBag.TypeInferenceDebug)) {
-              Options.OutputWriter.WriteLine("  ----> improved to {0} through join and function application", generalArrowType);
+              Options.OutputWriter.Debug("  ----> improved to {0} through join and function application", generalArrowType);
             }
             ConstrainSubtypeRelation(generalArrowType, t, tok, "Function application requires a subtype of {0} (got something more like {1})", generalArrowType, t);
             return generalArrowType;
@@ -4636,7 +4646,7 @@ namespace Microsoft.Dafny {
                   var mbr = plausibleMembers.First();
                   if (mbr.EnclosingClass == cl) {
                     if (Options.Get(CommonOptionBag.TypeInferenceDebug)) {
-                      Options.OutputWriter.WriteLine("  ----> improved to {0} through member-selection join", joinType);
+                      Options.OutputWriter.Debug("  ----> improved to {0} through member-selection join", joinType);
                     }
                     var joinRoot = joinType.NormalizeExpand();  // blow passed any constraints
                     ConstrainSubtypeRelation(joinRoot, t, tok, "Member selection requires a subtype of {0} (got something more like {1})", joinRoot, t);
@@ -4659,7 +4669,7 @@ namespace Microsoft.Dafny {
                     proxyTypeArgs = proxyTypeArgs.ConvertAll(t0 => t0.AsTypeParameter == null ? t0 : (Type)new InferredTypeProxy());
                     var pickItFromHere = new UserDefinedType(tok, mbr.EnclosingClass.Name, mbr.EnclosingClass, proxyTypeArgs);
                     if (Options.Get(CommonOptionBag.TypeInferenceDebug)) {
-                      Options.OutputWriter.WriteLine("  ----> improved to {0} through join and member lookup", pickItFromHere);
+                      Options.OutputWriter.Debug("  ----> improved to {0} through join and member lookup", pickItFromHere);
                     }
                     ConstrainSubtypeRelation(pickItFromHere, t, tok, "Member selection requires a subtype of {0} (got something more like {1})", pickItFromHere, t);
                     return pickItFromHere;
@@ -4670,7 +4680,7 @@ namespace Microsoft.Dafny {
           }
         }
         if (Options.Get(CommonOptionBag.TypeInferenceDebug)) {
-          Options.OutputWriter.WriteLine("  ----> found no improvement, because join does not determine type enough");
+          Options.OutputWriter.Debug("  ----> found no improvement, because join does not determine type enough");
         }
       }
 
@@ -4685,12 +4695,12 @@ namespace Microsoft.Dafny {
           if (proxy == meet.Normalize()) {
             // can this really ever happen?
             if (Options.Get(CommonOptionBag.TypeInferenceDebug)) {
-              Options.OutputWriter.WriteLine("  ----> found no improvement (other than the proxy itself)");
+              Options.OutputWriter.Debug("  ----> found no improvement (other than the proxy itself)");
             }
             return t;
           } else {
             if (Options.Get(CommonOptionBag.TypeInferenceDebug)) {
-              Options.OutputWriter.WriteLine("  ----> (merging, then trying to improve further) assigning proxy {0}.T := {1}", proxy, meet);
+              Options.OutputWriter.Debug("  ----> (merging, then trying to improve further) assigning proxy {0}.T := {1}", proxy, meet);
             }
             Contract.Assert(proxy != meet);
             proxy.T = meet;
@@ -4700,7 +4710,7 @@ namespace Microsoft.Dafny {
         }
         if (!(meet is ArtificialType)) {
           if (Options.Get(CommonOptionBag.TypeInferenceDebug)) {
-            Options.OutputWriter.WriteLine("  ----> improved to {0} through meet", meet);
+            Options.OutputWriter.Debug("  ----> improved to {0} through meet", meet);
           }
           if (memberName != null) {
             AssignProxyAndHandleItsConstraints(proxy, meet, true);
@@ -4715,14 +4725,14 @@ namespace Microsoft.Dafny {
       var artificialSuper = proxy.InClusterOfArtificial(AllXConstraints);
       if (artificialSuper != null) {
         if (Options.Get(CommonOptionBag.TypeInferenceDebug)) {
-          Options.OutputWriter.WriteLine("  ----> use artificial supertype: {0}", artificialSuper);
+          Options.OutputWriter.Debug("  ----> use artificial supertype: {0}", artificialSuper);
         }
         return artificialSuper;
       }
 
       // we weren't able to do it
       if (Options.Get(CommonOptionBag.TypeInferenceDebug)) {
-        Options.OutputWriter.WriteLine("  ----> found no improvement using simple things, trying harder once more");
+        Options.OutputWriter.Debug("  ----> found no improvement using simple things, trying harder once more");
       }
       return PartiallyResolveTypeForMemberSelection(tok, t, memberName, strength + 1);
     }
@@ -4817,7 +4827,7 @@ namespace Microsoft.Dafny {
         return;
       }
       if (Options.Get(CommonOptionBag.TypeInferenceDebug)) {
-        Options.OutputWriter.WriteLine("DEBUG: GetRelatedTypeProxies: finding {0} interesting", proxy);
+        Options.OutputWriter.Debug("GetRelatedTypeProxies: finding {0} interesting", proxy);
       }
       proxies.Add(proxy);
       // close over interesting constraints

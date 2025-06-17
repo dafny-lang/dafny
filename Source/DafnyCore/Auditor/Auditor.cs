@@ -110,7 +110,7 @@ public class Auditor : IRewriter {
     var assembly = System.Reflection.Assembly.GetCallingAssembly();
     var templateStream = assembly.GetManifestResourceStream("audit_template.html");
     if (templateStream is null) {
-      Reporter.Warning(MessageSource.Verifier, ErrorRegistry.NoneId, Token.NoToken, "Embedded HTML template not found. Returning raw HTML.");
+      Reporter.Warning(MessageSource.Verifier, "", Token.NoToken, "Embedded HTML template not found. Returning raw HTML.");
       return table;
     }
     var templateText = new StreamReader(templateStream).ReadToEnd();
@@ -123,7 +123,7 @@ public class Auditor : IRewriter {
     if (reportFileName is null && reportFormat is null) {
       foreach (var (_, assumptions) in report.AllAssumptions()) {
         foreach (var assumption in assumptions) {
-          Reporter.Warning(MessageSource.Verifier, ErrorRegistry.NoneId, assumption.Tok, assumption.Warning());
+          Reporter.Warning(MessageSource.Verifier, "", assumption.Tok, assumption.Warning());
         }
       }
     } else {
@@ -135,7 +135,7 @@ public class Auditor : IRewriter {
         _ => $"Internal error: unknown format {reportFormat}"
       };
       if (reportFileName is null) {
-        Options.OutputWriter.Write(text);
+        _ = Options.OutputWriter.Status(text);
       } else {
         if (compareReport) {
           try {
@@ -155,6 +155,6 @@ public class Auditor : IRewriter {
     }
 
     var findingCount = report.AllAssumptions().SelectMany(d => d.Value).Count();
-    Options.OutputWriter.WriteLine($"Dafny auditor completed with {findingCount} findings");
+    _ = Options.OutputWriter.Status($"Dafny auditor completed with {findingCount} findings");
   }
 }

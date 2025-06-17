@@ -78,11 +78,11 @@ public class PythonBackend : ExecutableBackend {
       new(OSPlatform.Linux, "python3")
     ).Value;
 
-  bool CopyExternLibraryIntoPlace(string externFilename, string mainProgram, TextWriter outputWriter) {
+  async Task<bool> CopyExternLibraryIntoPlace(string externFilename, string mainProgram, IDafnyOutputWriter outputWriter) {
     // Grossly, we need to look in the file to figure out where to put it
     var moduleName = FindModuleName(externFilename);
     if (moduleName == null) {
-      outputWriter.WriteLine($"Unable to determine module name: {externFilename}");
+      await outputWriter.Status($"Unable to determine module name: {externFilename}");
       return false;
     }
     var mainDir = Path.GetDirectoryName(mainProgram);
@@ -93,7 +93,7 @@ public class PythonBackend : ExecutableBackend {
     Directory.CreateDirectory(Path.GetDirectoryName(tgtFilename)!);
     file.CopyTo(tgtFilename, true);
     if (Options.Verbose) {
-      outputWriter.WriteLine($"Additional input {externFilename} copied to {tgtFilename}");
+      await outputWriter.Status($"Additional input {externFilename} copied to {tgtFilename}");
     }
     return true;
   }
@@ -109,32 +109,36 @@ public class PythonBackend : ExecutableBackend {
   public override async Task<(bool Success, object CompilationResult)> CompileTargetProgram(string dafnyProgramName,
     string targetProgramText,
     string callToMain /*?*/, string targetFilename /*?*/, ReadOnlyCollection<string> otherFileNames,
-    bool runAfterCompile, TextWriter outputWriter) {
+    bool runAfterCompile, IDafnyOutputWriter outputWriter) {
     foreach (var otherFileName in otherFileNames) {
       if (Path.GetExtension(otherFileName) != ".py") {
-        await outputWriter.WriteLineAsync($"Unrecognized file as extra input for Python compilation: {otherFileName}");
+        await outputWriter.Status($"Unrecognized file as extra input for Python compilation: {otherFileName}");
         return (false, null);
       }
-      if (!CopyExternLibraryIntoPlace(otherFileName, targetFilename, outputWriter)) {
+      if (!await CopyExternLibraryIntoPlace(otherFileName, targetFilename, outputWriter)) {
         return (false, null);
       }
     }
     if (!runAfterCompile) {
       var psi = PrepareProcessStartInfo(DefaultPythonCommand);
       psi.Arguments = $"-m compileall -q {Path.GetDirectoryName(targetFilename)}";
-      return (0 == await RunProcess(psi, outputWriter, outputWriter, "Error while compiling Python files."), null);
+      await using var sw = outputWriter.StatusWriter();
+      return (0 == await RunProcess(psi, sw, sw, "Error while compiling Python files."), null);
     }
     return (true, null);
   }
 
   public override async Task<bool> RunTargetProgram(string dafnyProgramName, string targetProgramText,
     string callToMain, /*?*/
-    string targetFilename, ReadOnlyCollection<string> otherFileNames, object compilationResult, TextWriter outputWriter,
-    TextWriter errorWriter) {
+    string targetFilename, ReadOnlyCollection<string> otherFileNames, object compilationResult,
+    IDafnyOutputWriter outputWriter) {
     Contract.Requires(targetFilename != null || otherFileNames.Count == 0);
     var psi = PrepareProcessStartInfo(DefaultPythonCommand, Options.MainArgs.Prepend(targetFilename));
     psi.EnvironmentVariables["PYTHONIOENCODING"] = "utf8";
-    return 0 == await RunProcess(psi, outputWriter, errorWriter);
+
+    await using var sw = outputWriter.StatusWriter();
+    await using var ew = outputWriter.ErrorWriter();
+    return 0 == await RunProcess(psi, sw, ew);
   }
 
   public PythonBackend(DafnyOptions options) : base(options) {

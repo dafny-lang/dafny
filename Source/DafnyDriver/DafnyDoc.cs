@@ -62,7 +62,7 @@ class DafnyDoc {
     var folderFiles = dafnyFolders.Select(folderPath =>
       FormatCommand.GetFilesForFolder(options, folderPath)).SelectMany(x => x);
     dafnyFiles = dafnyFiles.Concat(folderFiles).ToList();
-    await options.OutputWriter.WriteAsync($"Documenting {dafnyFiles.Count} files from {dafnyFolders.Count} folders\n");
+    await options.OutputWriter.Status($"Documenting {dafnyFiles.Count} files from {dafnyFolders.Count} folders");
     if (dafnyFiles.Count == 0) {
       return exitValue;
     }
@@ -75,12 +75,12 @@ class DafnyDoc {
     } catch (Exception e) {
       err = "Exception while parsing -- please report the error (use --verbose to see the call stack)";
       if (options.Verbose) {
-        await options.OutputWriter.WriteLineAsync(e.ToString()).ConfigureAwait(false);
+        options.OutputWriter.Exception(e.ToString());
       }
     }
     if (err != null) {
       exitValue = ExitValue.DAFNY_ERROR;
-      await options.OutputWriter.WriteLineAsync(err);
+      await options.OutputWriter.Status(err);
     } else {
       Contract.Assert(dafnyProgram != null);
 
@@ -93,11 +93,11 @@ class DafnyDoc {
       try {
         await File.Create(outputDir + "/index.html").DisposeAsync();
       } catch (Exception) {
-        await options.OutputWriter.WriteLineAsync("Insufficient permission to create output files in " + outputDir);
+        await options.OutputWriter.Status("Insufficient permission to create output files in " + outputDir);
         return ExitValue.DAFNY_ERROR;
       }
       // Generate all the documentation
-      exitValue = new DafnyDoc(dafnyProgram, options, outputDir).GenerateDocs(dafnyFiles);
+      exitValue = await new DafnyDoc(dafnyProgram, options, outputDir).GenerateDocs(dafnyFiles);
     }
     return exitValue;
   }
@@ -123,7 +123,7 @@ class DafnyDoc {
     this.Outputdir = outputdir;
   }
 
-  public ExitValue GenerateDocs(IReadOnlyList<DafnyFile> dafnyFiles) {
+  public async Task<ExitValue> GenerateDocs(IReadOnlyList<DafnyFile> dafnyFiles) {
     try {
       var modDecls = new List<LiteralModuleDecl>();
       var rootModule = DafnyProgram.DefaultModule;
@@ -133,9 +133,9 @@ class DafnyDoc {
       script.Append(ScriptEnd());
       // Call the following to geneate pages after all the Info structures have been generated
       AddSideBarEntry(info, sidebar, true);
-      WriteTOC();
-      WritePages();
-      WriteStyle();
+      await WriteTOC();
+      await WritePages();
+      await WriteStyle();
       return ExitValue.SUCCESS;
     } catch (Exception e) {
       // This is a fail-safe backstop so that dafny itself does not crash
@@ -167,21 +167,21 @@ class DafnyDoc {
     }
   }
 
-  public void WritePages() {
+  public async Task WritePages() {
     foreach (var info in AllInfo) {
       var filename = Outputdir + "/" + info.Link;
-      using StreamWriter file = new(filename);
-      file.Write(HtmlStart($"Dafny Documentation{ProgramHeader()}"));
-      file.Write(BodyStart());
-      file.Write(LocalHeading(info.Kind, info.FullName));
+      await using StreamWriter file = new(filename);
+      await file.WriteAsync(HtmlStart($"Dafny Documentation{ProgramHeader()}"));
+      await file.WriteAsync(BodyStart());
+      await file.WriteAsync(LocalHeading(info.Kind, info.FullName));
       if (!String.IsNullOrEmpty(info.Source)) {
-        file.WriteLine(br);
-        file.Write(info.Source);
+        await file.WriteLineAsync(br);
+        await file.WriteAsync(info.Source);
       }
-      file.WriteLine(br);
-      file.Write(info.HtmlDetail);
-      file.Write(BodyAndHtmlEnd());
-      AnnounceFile(filename);
+      await file.WriteLineAsync(br);
+      await file.WriteAsync(info.HtmlDetail);
+      await file.WriteAsync(BodyAndHtmlEnd());
+      await AnnounceFile(filename);
     }
   }
 
@@ -642,7 +642,7 @@ class DafnyDoc {
       decl.Append(" = ");
       // datatype constructors are written out several lines down
     } else {
-      Reporter.Warning(MessageSource.Documentation, ParseErrors.ErrorId.none, t.Origin, "Kind of type not handled in dafny doc");
+      Reporter.Warning(MessageSource.Documentation, "", t.Origin, "Kind of type not handled in dafny doc");
     }
     decl.Append(br).Append(eol);
     details.Append(AttrString(t.Attributes));
@@ -869,26 +869,26 @@ class DafnyDoc {
     return some;
   }
 
-  public void WriteTOC() {
+  public async Task WriteTOC() {
     string filename = Outputdir + "/index.html";
-    using StreamWriter file = new(filename);
-    file.Write(HtmlStart($"Dafny Documentation{ProgramHeader()}", script.ToString()));
+    await using StreamWriter file = new(filename);
+    await file.WriteAsync(HtmlStart($"Dafny Documentation{ProgramHeader()}", script.ToString()));
 
-    file.Write(Heading1($"Dafny Documentation{ProgramHeader()}"));
-    file.Write(BodyStart());
-    file.Write(MainStart());
-    file.WriteLine(MainEnd());
-    file.Write(SideBar(sidebar.ToString()));
-    file.Write(BodyAndHtmlEnd());
-    AnnounceFile(filename);
+    await file.WriteAsync(Heading1($"Dafny Documentation{ProgramHeader()}"));
+    await file.WriteAsync(BodyStart());
+    await file.WriteAsync(MainStart());
+    await file.WriteLineAsync(MainEnd());
+    await file.WriteAsync(SideBar(sidebar.ToString()));
+    await file.WriteAsync(BodyAndHtmlEnd());
+    await AnnounceFile(filename);
   }
 
 
-  public void WriteStyle() {
+  public async Task WriteStyle() {
     string filename = Outputdir + "/styles.css";
-    using StreamWriter file = new(filename);
-    file.WriteLine(Style);
-    AnnounceFile(filename);
+    await using StreamWriter file = new(filename);
+    await file.WriteLineAsync(Style);
+    await AnnounceFile(filename);
   }
 
   public string ProgramHeader() {
@@ -945,7 +945,7 @@ class DafnyDoc {
         return Code(s);
       }
     }
-    Reporter.Warning(MessageSource.Documentation, ParseErrors.ErrorId.none, t.Origin, "Implementation missing for type " + t.GetType() + " " + t.ToString());
+    Reporter.Warning(MessageSource.Documentation, "", t.Origin, "Implementation missing for type " + t.GetType() + " " + t.ToString());
     return Code(t.ToString());
   }
 
@@ -1036,9 +1036,9 @@ class DafnyDoc {
     return s;
   }
 
-  public void AnnounceFile(string filename) {
+  public async Task AnnounceFile(string filename) {
     if (Options.Verbose) {
-      Options.OutputWriter.WriteLine("Writing " + filename);
+      await Options.OutputWriter.Status("Writing " + filename);
     }
   }
 
