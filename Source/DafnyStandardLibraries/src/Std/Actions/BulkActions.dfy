@@ -425,7 +425,7 @@ module Std.BulkActions {
     }
 
     @IsolateAssertions
-    method {:only} Invoke(t: Batched<T, E>) returns (r: bool)
+    method Invoke(t: Batched<T, E>) returns (r: bool)
       requires Requires(t)
       reads Reads(t)
       modifies Modifies(t)
