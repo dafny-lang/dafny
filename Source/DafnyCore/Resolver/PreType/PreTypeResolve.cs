@@ -935,6 +935,8 @@ namespace Microsoft.Dafny {
         if (method is ExtremeLemma { PrefixLemma: { } prefixLemma }) {
           ComputePreTypeMethod(prefixLemma);
         }
+      } else if (declaration is MemberDecl member && member.TryCastToInvariant(Options, Reporter, MessageSource.Resolver, out _)) {
+        // Nothing to be done for invariants
       } else {
         Contract.Assert(false); // unexpected declaration
       }
@@ -1213,6 +1215,14 @@ namespace Microsoft.Dafny {
           resolver.allTypeParameters.PopMarker();
         }
 
+      } else if (member.TryCastToInvariant(Options, Reporter, MessageSource.Resolver, out var invariant)) {
+        // NB: resolution of invariants excludes fields inherited from traits (InInvariant = true)
+        var context = new ResolutionContext(invariant, false);
+        foreach (var clause in invariant.Body) {
+          ResolveAttributes(clause, context, true);
+          ResolveExpression(clause.E, context);
+          ConstrainTypeExprBool(clause.E, "Invariant must be a boolean (got {0})");
+        }
       } else {
         Contract.Assert(false); throw new cce.UnreachableException();  // unexpected member type
       }

@@ -1792,7 +1792,7 @@ namespace Microsoft.Dafny {
 
     ModuleDefinition currentModule = null;  // the module whose members are currently being translated
     ModuleDefinition forModule = null;  // the root module
-    ICallable codeContext = null;  // the method/iterator whose implementation is currently being translated or the function whose specification is being checked for well-formedness
+    ICallable codeContext = null;  // the method/iterator whose implementation is currently being translated or a(n) (function whose specification)/invariant that is being checked for well-formedness
     Bpl.LocalVariable yieldCountVariable = null;  // non-null when an iterator body is being translated
     bool inBodyInitContext = false;  // true during the translation of the .BodyInit portion of a divided constructor body
 

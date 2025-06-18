@@ -71,6 +71,8 @@ public class TopDownVisitor<State> {
       Visit((Function)decl, st);
     } else if (decl is MethodOrConstructor methodOrConstructor) {
       Visit(methodOrConstructor, st);
+    } else if (decl is Invariant invariant) {
+      Visit(invariant, st);
     }
     //TODO More?
   }
@@ -90,6 +92,12 @@ public class TopDownVisitor<State> {
     Visit(function.Decreases.Expressions, st);
     if (function.Body != null) { Visit(function.Body, st); }
     //TODO More?
+  }
+
+  public virtual void Visit(Invariant invariant, State st) {
+    foreach (var clause in invariant.Body) {
+      Visit(clause, st);
+    }
   }
   /// <summary>
   /// Visit one expression proper.  This method is invoked before it is invoked on the

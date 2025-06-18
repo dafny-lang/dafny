@@ -207,6 +207,9 @@ namespace Microsoft.Dafny {
           return CloneField(field);
         } else if (member is Function function) {
           return CloneFunction(function);
+        } else if (member is Invariant invariant) {
+          // NB: cannot check CheckInvariants here
+          return new Invariant(this, invariant);
         } else {
           var m = (MethodOrConstructor)member;
           return CloneMethod(m);

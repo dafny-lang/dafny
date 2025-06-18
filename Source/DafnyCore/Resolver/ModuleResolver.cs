@@ -14,6 +14,7 @@ using System.IO;
 using JetBrains.Annotations;
 using Microsoft.Boogie;
 using static Microsoft.Dafny.ResolutionErrors;
+using Action = System.Action;
 
 namespace Microsoft.Dafny {
   public record ModuleResolutionResult(
@@ -162,6 +163,8 @@ namespace Microsoft.Dafny {
               prefixPred.IsRecursive = true;
             }
           }
+        } else if (clbl is MemberDecl member && member.TryCastToInvariant(Options, reporter, MessageSource.Resolver, out _)) {
+          // Invariants aren't recursive!
         } else {
           var m = (MethodOrConstructor)clbl;
           if (!m.IsRecursive) {
@@ -1199,6 +1202,12 @@ namespace Microsoft.Dafny {
       // Substitute for DefaultValueExpression's
       if (reporter.Count(ErrorLevel.Error) == prevErrorCount) {
         FillInDefaultValueExpressions();
+      }
+      
+      // To make sure that invariants are only reading uninherited fields
+      if (reporter.Count(ErrorLevel.Error) == prevErrorCount) {
+        var invariantVisitor = new InvariantVisitor(this);
+        invariantVisitor.VisitDeclarations(declarations);
       }
 
       // ---------------------------------- Pass 1 ----------------------------------
@@ -2413,7 +2422,8 @@ namespace Microsoft.Dafny {
             ResolveMethodSignature(mm);
             allTypeParameters.PopMarker();
           }
-
+        } else if (member.TryCastToInvariant(Options, reporter, MessageSource.Resolver, out _)) {
+          // Nothing to do for invariants
         } else {
           Contract.Assert(false); throw new cce.UnreachableException();  // unexpected member type
         }
@@ -2530,6 +2540,11 @@ namespace Microsoft.Dafny {
             classFunction.OverriddenFunction = traitFunction;
 
             CheckOverride_FunctionParameters(classFunction, traitFunction, cl.ParentFormalTypeParametersToActuals);
+          } else if (traitMember.TryCastToInvariant(Options, reporter, MessageSource.Resolver, out var invariant)) {
+            if (invariant.Body.Any()) {
+              // TODO(somayyas) eventually implement overriding invariant
+              reporter.Error(MessageSource.Resolver, invariant.Origin, "overriding trait invariant is not yet supported");
+            }
 
           } else if (traitMember is Constructor) {
             throw new Exception("traits can not contain constructors");

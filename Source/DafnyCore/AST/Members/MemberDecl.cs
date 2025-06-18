@@ -152,4 +152,16 @@ public abstract class MemberDecl : Declaration, ISymbol {
       }
     }
   }
+
+  public bool TryCastToInvariant(DafnyOptions options, ErrorReporter reporter, MessageSource source, out Invariant @this) {
+    @this = null;
+    if (this is Invariant invariant) {
+      @this = invariant;
+      if (options.Get(CommonOptionBag.CheckInvariants)) {
+        return true;
+      }
+      reporter.Error(source, invariant, "class and trait invariants are forbidden without the command-line flag `--check-invariants`");
+    }
+    return false;
+  }
 }
