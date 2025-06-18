@@ -43,7 +43,7 @@ module FramesExamples {
     twostate predicate ValidChange()
       reads this, Repr
       ensures ValidChange() ==>
-        old(Valid()) && Valid() && fresh(Repr - old(Repr))
+                old(Valid()) && Valid() && fresh(Repr - old(Repr))
     {
       old(Valid()) && Valid() && fresh(Repr - old(Repr))
     }
@@ -104,7 +104,7 @@ module FramesExamples {
     twostate predicate ValidChange()
       reads this, Repr
       ensures ValidChange() ==>
-        old(Valid()) && Valid() && fresh(Repr - old(Repr))
+                old(Valid()) && Valid() && fresh(Repr - old(Repr))
     {
       old(Valid()) && Valid() && fresh(Repr - old(Repr))
     }

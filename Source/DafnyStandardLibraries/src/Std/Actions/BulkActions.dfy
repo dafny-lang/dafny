@@ -302,7 +302,7 @@ module Std.BulkActions {
 
     function Values(): seq<T>
       requires Valid()
-      reads this, Repr 
+      reads this, Repr
     {
       elements
     }
@@ -333,7 +333,7 @@ module Std.BulkActions {
     twostate predicate ValidChange()
       reads this, Repr
       ensures ValidChange() ==>
-        old(Valid()) && Valid() && fresh(Repr - old(Repr))
+                old(Valid()) && Valid() && fresh(Repr - old(Repr))
       decreases Repr, 0
     {
       old(Valid()) && Valid() && fresh(Repr - old(Repr))
@@ -445,10 +445,10 @@ module Std.BulkActions {
         ConsumedComposition(old(history), [(t, r)]);
       } else {
         match t {
-          case BatchValue(value) => 
+          case BatchValue(value) =>
             storage[size] := value;
             size := size + 1;
-          case BatchError(e) => 
+          case BatchError(e) =>
             state := Failure(e);
             otherInputs := otherInputs + 1;
           case EndOfInput =>
@@ -465,7 +465,7 @@ module Std.BulkActions {
           old(|Consumed()|) + |ConsumedOf([(t, r)])|;
           old(size + otherInputs) + 1;
           size + otherInputs;
-        } 
+        }
       }
 
       assert Valid();
@@ -474,7 +474,7 @@ module Std.BulkActions {
 
     function Values(): seq<T>
       requires Valid()
-      reads this, Repr 
+      reads this, Repr
     {
       storage[..size]
     }
@@ -505,7 +505,7 @@ module Std.BulkActions {
     twostate predicate ValidChange()
       reads this, Repr
       ensures ValidChange() ==>
-        old(Valid()) && Valid() && fresh(Repr - old(Repr))
+                old(Valid()) && Valid() && fresh(Repr - old(Repr))
       decreases Repr, 0
     {
       old(Valid()) && Valid() && fresh(Repr - old(Repr))

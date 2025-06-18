@@ -75,7 +75,7 @@ module ActionsExamples {
     twostate predicate ValidChange()
       reads this, Repr
       ensures ValidChange() ==>
-        old(Valid()) && Valid() && fresh(Repr - old(Repr))
+                old(Valid()) && Valid() && fresh(Repr - old(Repr))
       ensures ValidChange() ==> old(history) <= history
     {
       && old(Valid()) && Valid()
@@ -174,7 +174,7 @@ module ActionsExamples {
   // which would be related therefore to ValidInput().
   @IsolateAssertions
   method Fill<T>(producer: IProducer<T>, ghost producerTotalProof: TotalActionProof<(), T>,
-                              consumer: Consumer<T>, ghost consumerTotalProof: TotalActionProof<T, bool>)
+                 consumer: Consumer<T>, ghost consumerTotalProof: TotalActionProof<T, bool>)
     requires producer.Valid()
     requires consumer.Valid()
     requires producerTotalProof.Valid()

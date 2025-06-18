@@ -29,7 +29,7 @@ module Std.Frames {
     twostate predicate ValidChange()
       reads this, Repr
       ensures ValidChange() ==>
-        old(Valid()) && Valid() && fresh(Repr - old(Repr))
+                old(Valid()) && Valid() && fresh(Repr - old(Repr))
 
     twostate lemma ValidImpliesValidChange()
       requires old(Valid())

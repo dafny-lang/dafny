@@ -2,8 +2,7 @@
 # Invoking the CLI this way just to stay platform-independent
 DAFNY = dotnet run --project ../Dafny --no-build --roll-forward LatestMajor --
 
-# TODO: Check that this option isn't ever on the doo files we check in!
-NO_VERIFY := true # Use make update-binary NO_VERIFY=true to generate the binaries without verification
+NO_VERIFY := false # Use make update-binary NO_VERIFY=true to generate the binaries without verification
 DOO_FILE_SOURCE=build/DafnyStandardLibraries.doo
 DOO_FILE_TARGET=binaries/DafnyStandardLibraries.doo
 

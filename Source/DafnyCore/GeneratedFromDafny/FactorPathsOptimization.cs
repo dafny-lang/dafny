@@ -35,7 +35,7 @@ namespace FactorPathsOptimization {
       }
     }
     public static __T UniqueElementOf<__T>(Dafny.ISet<__T> s) {
-      return Dafny.Helpers.Let<int, __T>(0, _let_dummy_68 =>  {
+      return Dafny.Helpers.Let<int, __T>(0, _let_dummy_69 =>  {
         __T _0_e = default(__T);
         foreach (__T _assign_such_that_0 in (s).Elements) {
           _0_e = (__T)_assign_such_that_0;

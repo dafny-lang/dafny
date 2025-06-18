@@ -692,7 +692,7 @@ module Std.Consumers {
     twostate predicate ValidChange()
       reads this, Repr
       ensures ValidChange() ==>
-        old(Valid()) && Valid() && fresh(Repr - old(Repr))
+                old(Valid()) && Valid() && fresh(Repr - old(Repr))
       decreases Repr, 0
     {
       old(Valid()) && Valid() && fresh(Repr - old(Repr))
@@ -814,7 +814,7 @@ module Std.Consumers {
     twostate predicate ValidChange()
       reads this, Repr
       ensures ValidChange() ==>
-        old(Valid()) && Valid() && fresh(Repr - old(Repr))
+                old(Valid()) && Valid() && fresh(Repr - old(Repr))
       decreases Repr, 0
     {
       old(Valid()) && Valid() && fresh(Repr - old(Repr))
