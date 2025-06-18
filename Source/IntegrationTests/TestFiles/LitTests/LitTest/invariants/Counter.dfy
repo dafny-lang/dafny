@@ -13,8 +13,8 @@ class Counter {
     modifies this
   {
     old_value := value;
-    value     := value + 1;
+    value     := value + 2;
   }
-  invariant value == old_value + 1
+  invariant old_value == value || value == old_value + 1
 }
 

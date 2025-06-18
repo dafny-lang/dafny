@@ -743,6 +743,11 @@ namespace Microsoft.Dafny {
           rewriter.PreVerify(forModule);
         }
       }
+      
+      // TODO(somayyas) was this an oversight?
+      foreach (var rewriter in RewriterCollection.GetRewriters(reporter, p)) {
+        rewriter.PreVerify(forModule);
+      }
 
       program = p;
       this.forModule = forModule;
