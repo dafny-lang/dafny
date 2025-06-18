@@ -387,7 +387,6 @@ module ActionsExamples {
       Some(|remaining|)
     }
 
-    // @IsolateAssertions
     @ResourceLimit("1e8")
     method Invoke(i: ()) returns (r: Option<T>)
       requires Requires(i)
