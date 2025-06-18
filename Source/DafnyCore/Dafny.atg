@@ -539,10 +539,12 @@ ClassDecl<DeclModifierData dmodClass, ModuleDefinition/*!*/ module, out TopLevel
   SYNC
   "{"                                            (. bodyStart = t;  .)
     {
-      ((. dmod = new DeclModifierData(); .)
-      AtAttributes<ref dmod.Attributes>
-      { DeclModifier<ref dmod> }
-      ClassMemberDecl<dmod, members, true, false>)
+      (
+        (. dmod = new DeclModifierData(); .)
+        AtAttributes<ref dmod.Attributes>
+        { DeclModifier<ref dmod> }
+        ClassMemberDecl<dmod, members, true, false>
+      )
       | InvariantClause<invariants>
     }
   "}"
@@ -592,10 +594,12 @@ TraitDecl<DeclModifierData dmodIn, ModuleDefinition/*!*/ module, out TraitDecl/*
   | ellipsis                    (. isRefining = true; .)
   ]
   "{"                                            (. bodyStart = t; .)
-    { ((. dmod = new DeclModifierData(); .)
-      AtAttributes<ref dmod.Attributes>
-      { DeclModifier<ref dmod> }
-      ClassMemberDecl<dmod, members, true, false>)
+    { (
+        (. dmod = new DeclModifierData(); .)
+        AtAttributes<ref dmod.Attributes>
+        { DeclModifier<ref dmod> }
+        ClassMemberDecl<dmod, members, true, false>
+      )
       | InvariantClause<invariants>
     }
   "}"

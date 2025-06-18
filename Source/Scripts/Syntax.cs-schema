@@ -974,7 +974,6 @@ class IndDatatypeDecl : DatatypeDecl
 
 abstract class ClassLikeDecl : TopLevelDeclWithMembers
 {
-    List<AttributedExpression> invariants;
 }
 
 class TraitDecl : ClassLikeDecl

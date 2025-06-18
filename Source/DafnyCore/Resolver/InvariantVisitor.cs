@@ -14,7 +14,7 @@ class InvariantVisitor(ModuleResolver resolver) : ASTVisitor<InvariantVisitor.In
      && expr is MemberSelectExpr { Member: var member }
      && enclosingDecl.InheritedMembers.Contains(member)) {
       resolver.reporter.Error(MessageSource.Resolver, expr.Origin,
-        $"Field {member.Name} of supertype trait {member.EnclosingClass.Name} cannot be referenced in invariant of {enclosingDecl.Name}");
+        $"field '{member.Name}' of supertype trait '{member.EnclosingClass.Name}' cannot be referenced in invariant of '{enclosingDecl.Name}'");
     }
     return true;
   }

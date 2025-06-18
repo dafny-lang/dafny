@@ -30,7 +30,7 @@ public class ReadFrameSubset : ProofObligationDescription {
       if (scope is Invariant) {
         message = "invariants are currently restricted to only read 'this'";
         if (readExpression is MemberSelectExpr { MemberName: var member }) {
-          message += " and therefore cannot {0}`{1}";
+          message += " and therefore cannot read {1}`{2}";
           parts.Add(obj);
           parts.Add(member);
         }

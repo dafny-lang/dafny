@@ -1,2 +1,2 @@
-InheritedMemberError.dfy(8,14): Error: Field y of supertype trait T cannot be referenced in invariant of Node
+InheritedMemberError.dfy(8,14): Error: field 'y' of supertype trait 'T' cannot be referenced in invariant of 'Node'
 1 resolution/type errors detected in InheritedMemberError.dfy
