@@ -20,7 +20,7 @@ check-binary: build-binary
 	unzip -o ${DOO_FILE_TARGET} -d build/previous
 	diff build/previous build/current
 # Explicitly check for --hidden-no-verify since Dafny itself doesn't
-	grep "hidden-no-verify = true" build/current/manifest.toml && \
+	grep "hidden-no-verify = false" build/current/manifest.toml || \
 		(echo "ERROR: doo file built with --hidden-no-verify, rebuild without this option" && exit 1)
 	make -C src/Std/TargetSpecific check-binary-all
 
