@@ -778,7 +778,7 @@ module Std.Consumers {
       assert Valid();
     }
 
-    method totalActionProof() returns (p: TotalActionProof<T, ()>)
+    ghost method totalActionProof() returns (p: TotalActionProof<T, ()>)
       reads {}
       ensures p.Valid()
       ensures fresh(p.Repr)
@@ -793,7 +793,7 @@ module Std.Consumers {
 
     ghost const action: SeqWriter<T>
 
-    constructor (action: SeqWriter<T>)
+    ghost constructor (action: SeqWriter<T>)
       reads {}
       ensures Valid()
       ensures fresh(Repr)

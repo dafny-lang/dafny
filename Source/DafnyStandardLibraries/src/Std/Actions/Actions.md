@@ -139,4 +139,7 @@ There are three potentially more efficient ways to apply actions multiple times 
 1. `Producer.Fill(Consumer)` - Feeds all values from a `Producer` into a `Consumer`, until either the producer or consumer is exhausted.
 1. `BulkAction.Map(Producer, IConsumer)` - Feeds all values from a `Producer` through a `BulkAction` and the result into an `IConsumer`.
 
-TODO
+Each of these can process values in bulk by optimizing for common producer and consumer implementations.
+For example, the `Fill` operation on an `ArrayReader` can check if the provided producer is an `ArrayWriter`,
+in which case the semantics are satisfied by a much quicker direct array copy,
+as opposed to moving each value one at a time.

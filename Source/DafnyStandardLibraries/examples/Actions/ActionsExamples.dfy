@@ -2,6 +2,7 @@ module ActionsExamples {
   import opened Std.Actions
   import opened Std.ActionsExterns
   import opened Std.BulkActions
+  import opened Std.BoundedInts
   import opened Std.Producers
   import opened Std.Consumers
   import opened Std.Wrappers
@@ -304,4 +305,254 @@ module ActionsExamples {
 
     expect collector.values == [0, 1, 1, 1, 1, 2, 2, 2, 2, 3], collector.values;
   }
+
+  // "Batched Byte"
+  type BB = Batched<uint8, string>
+
+  // TODO - not verifying yet
+  // @AssumeCrossModuleTermination
+  // class Chunker extends BulkAction<BB, Producer<BB>>, OutputterOfNewProducers<BB, BB> {
+
+  //   const chunkSize: nat
+  //   var chunkBuffer: seq<uint8>
+
+  //   constructor(chunkSize: nat)
+  //     requires 0 < chunkSize
+  //     ensures Valid()
+  //     ensures fresh(Repr)
+  //     ensures history == []
+  //   {
+  //     this.chunkSize := chunkSize;
+  //     chunkBuffer := [];
+  //     history := [];
+  //     Repr := {this};
+  //   }
+
+  //   ghost predicate Valid()
+  //     reads this, Repr
+  //     ensures Valid() ==> this in Repr
+  //     ensures Valid() ==> ValidHistory(history)
+  //     decreases Repr, 0
+  //   {
+  //     && this in Repr
+  //     && 0 < chunkSize
+  //   }
+
+  //   twostate predicate ValidChange()
+  //     reads this, Repr
+  //     ensures ValidChange() ==> old(Valid()) && Valid()
+  //     ensures ValidChange() ==> fresh(Repr - old(Repr))
+  //     ensures ValidChange() ==> old(history) <= history
+  //   {
+  //     && fresh(Repr - old(Repr))
+  //     && old(Valid())
+  //     && Valid()
+  //     && old(history) <= history
+  //   }
+
+  //   twostate lemma ValidImpliesValidChange()
+  //     requires old(Valid())
+  //     requires unchanged(old(Repr))
+  //     ensures ValidChange()
+  //   {}
+
+  //   ghost predicate ValidHistory(history: seq<(BB, Producer<BB>)>)
+  //     decreases Repr
+  //   {
+  //     true
+  //   }
+
+  //   ghost predicate ValidInput(history: seq<(BB, Producer<BB>)>, next: BB)
+  //     requires ValidHistory(history)
+  //     decreases Repr
+  //   {
+  //     true
+  //   }
+
+  //   ghost function Decreases(i: BB): ORDINAL
+  //     requires Requires(i)
+  //     reads Reads(i)
+  //   {
+  //     0
+  //   }
+
+  //   ghost function MaxProduced(): TerminationMetric {
+  //     TMTop
+  //   }
+
+  //   lemma AnyInputIsValid(history: seq<(BB, Producer<BB>)>, next: BB)
+  //     requires Valid()
+  //     requires Action().ValidHistory(history)
+  //     ensures Action().ValidInput(history, next)
+  //   {}
+
+  //   @IsolateAssertions
+  //   method Invoke(i: BB) returns (o: Producer<BB>)
+  //     requires Requires(i)
+  //     reads Reads(i)
+  //     modifies Modifies(i)
+  //     decreases Decreases(i), 0
+  //     ensures Ensures(i, o)
+  //     ensures OutputFresh(o)
+  //   {
+  //     assert Valid();
+  //     var input := new SeqReader([i]);
+  //     var output := new SeqWriter();
+  //     ghost var outputTotalProof := new SeqWriterTotalActionProof(output);
+  //     ghost var thisTotalProof := new ChunkerTotalProof(this);
+  //     label before:
+  //     Map(input, output, thisTotalProof, outputTotalProof);
+  //     assert |output.values| == 1;
+  //     o := output.values[0];
+  //     assert Seq.Last(output.Inputs()) == o;
+  //     assert Seq.Last(Inputs()) == i;
+  //   }
+
+  //   @ResourceLimit("1e9")
+  //   @IsolateAssertions
+  //   method Map(input: Producer<BB>,
+  //              output: IConsumer<Producer<BB>>,
+  //              ghost thisTotalProof: TotalActionProof<BB, Producer<BB>>,
+  //              ghost outputTotalProof: TotalActionProof<Producer<BB>, ()>)
+  //     requires Valid()
+  //     requires input.Valid()
+  //     requires output.Valid()
+  //     requires outputTotalProof.Valid()
+  //     requires outputTotalProof.Action() == output
+  //     requires Repr !! input.Repr !! output.Repr !! outputTotalProof.Repr
+  //     reads this, Repr, input, input.Repr, output, output.Repr, thisTotalProof, thisTotalProof.Repr, outputTotalProof, outputTotalProof.Repr
+  //     modifies Repr, input.Repr, output.Repr, outputTotalProof.Repr
+  //     ensures ValidChange()
+  //     ensures input.ValidChange()
+  //     ensures output.ValidChange()
+  //     ensures input.Done()
+  //     ensures input.NewProduced() == NewInputs()
+  //     ensures |input.NewProduced()| == |output.NewInputs()|
+  //     ensures output.NewInputs() == NewOutputs()
+  //     ensures forall o <- NewOutputs() :: OutputFresh(o)
+  //   {
+  //     assert Valid();
+
+  //     var oldProducedCount := input.ProducedCount();
+  //     var batchWriter := new BatchSeqWriter();
+  //     var batchWriterTotalProof := new BatchSeqWriterTotalProof(batchWriter);
+  //     label before:
+  //     input.ForEach(batchWriter, batchWriterTotalProof);
+  //     label after:
+  //     assert input.ValidChange@before();
+  //     assert input.ValidChange();
+  //     input.ProducedAndNewProduced@before();
+
+  //     var newProducedCount := input.ProducedCount() - oldProducedCount;
+  //     assert newProducedCount == input.NewProducedCount();
+  //     if newProducedCount == 0 {
+  //       // No-op
+  //       assert input.ValidChange();
+  //       assert |batchWriter.Inputs()| == 0;
+  //       assert input.NewProduced() == batchWriter.Inputs();
+  //       assert |input.NewProduced()| == 0;
+  //       output.ValidImpliesValidChange();
+  //       return;
+  //     }
+
+  //     chunkBuffer := chunkBuffer + batchWriter.elements;
+
+  //     var chunks, leftover := Chunkify(chunkBuffer);
+  //     chunkBuffer := leftover;
+
+  //     var outputProducer: Producer<BB>;
+  //     match batchWriter.state {
+  //       case Failure(error) =>
+  //         outputProducer := new SeqReader([BatchError(error)]);
+  //       case Success(more) =>
+  //         if !more && 0 < |chunkBuffer| {
+  //           // To make it more interesting, produce an error if outputChunks is non empty?
+  //           chunks := chunks + Seq.Reverse(chunkBuffer);
+  //           chunkBuffer := [];
+  //         }
+  //         outputProducer := new BatchReader(chunks);
+  //     }
+
+  //     var empty := new EmptyProducer();
+  //     var padding: Producer<Producer<BB>> := new RepeatProducer(newProducedCount - 1, empty);
+  //     var producerProducer := new SeqReader([outputProducer]);
+  //     var concatenated: Producer<Producer<BB>> := new ConcatenatedProducer(padding, producerProducer);
+  //     assert producerProducer.Remaining() == Some(1);
+  //     assert padding.Remaining() == Some(newProducedCount - 1);
+  //     assert concatenated.Remaining() == Some(newProducedCount);
+  //     label beforeOutput:
+  //     concatenated.ForEach(output, outputTotalProof);
+  //     assert concatenated.ValidChange@beforeOutput();
+  //     concatenated.ProducedAndNewProduced@beforeOutput();
+
+  //     assert |input.NewProduced()| == newProducedCount;
+  //     assert |concatenated.NewProduced@beforeOutput()| == newProducedCount;
+  //     assert |input.NewProduced()| == |output.NewInputs()|;
+  //     history := history + Seq.Zip(input.NewProduced(), output.NewInputs());
+  //     assert input.NewProduced() == NewInputs();
+  //   }
+
+  //   method Chunkify(data: seq<uint8>) returns (chunks: seq<uint8>, leftover: seq<uint8>)
+  //     reads this, Repr
+  //     requires Valid()
+  //   {
+  //     leftover := data;
+  //     chunks := [];
+  //     while chunkSize as int <= |leftover|
+  //       decreases |leftover|
+  //     {
+  //       chunks := chunks + Seq.Reverse(leftover[..chunkSize]);
+  //       leftover := leftover[chunkSize..];
+  //     }
+  //   }
+  // }
+
+  // @AssumeCrossModuleTermination
+  // class ChunkerTotalProof extends TotalActionProof<BB, Producer<BB>> {
+
+  //   ghost const chunker: Chunker
+
+  //   ghost constructor(chunker: Chunker)
+  //     requires chunker.Valid()
+  //     reads {}
+  //     ensures this.chunker == chunker
+  //     ensures Valid()
+  //     ensures fresh(Repr)
+  //   {
+  //     this.chunker := chunker;
+  //     Repr := {this};
+  //   }
+
+  //   ghost function Action(): Action<BB, Producer<BB>> {
+  //     chunker
+  //   }
+
+  //   ghost predicate Valid()
+  //     reads this, Repr
+  //     ensures Valid() ==> this in Repr
+  //     decreases Repr, 0
+  //   {
+  //     this in Repr
+  //   }
+
+  //   twostate predicate ValidChange()
+  //     reads this, Repr
+  //     ensures ValidChange() ==>
+  //               old(Valid()) && Valid() && fresh(Repr - old(Repr))
+  //   {
+  //     old(Valid()) && Valid() && fresh(Repr - old(Repr))
+  //   }
+
+  //   twostate lemma ValidImpliesValidChange()
+  //     requires old(Valid())
+  //     requires unchanged(old(Repr))
+  //     ensures ValidChange()
+  //   {}
+
+  //   lemma AnyInputIsValid(history: seq<(BB, Producer<BB>)>, next: BB)
+  //     requires Valid()
+  //     requires Action().ValidHistory(history)
+  //     ensures Action().ValidInput(history, next)
+  //   {}
+  // }
 }
