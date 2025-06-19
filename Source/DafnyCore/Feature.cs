@@ -188,10 +188,10 @@ public enum Feature {
 
   [FeatureDescription("Execution coverage report", "sec-dafny-test")]
   RuntimeCoverageReport,
-  
+
   [FeatureDescription("Standard libraries", "sec-dafny-standard-libraries")]
   StandardLibraries,
-  
+
   [FeatureDescription("Standard library ActionsExterns", "sec-dafny-standard-libraries")]
   StandardLibrariesActionsExterns
 }
