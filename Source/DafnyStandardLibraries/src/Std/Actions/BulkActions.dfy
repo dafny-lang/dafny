@@ -7,21 +7,25 @@ module Std.BulkActions {
   import opened BoundedInts
   import opened Termination
 
+  // A wrapper type useful as the output type of producers that may encounter errors.
+  // Equvilant to Option<Result<T, E>> but generally more readable.
   datatype Batched<T, E> = BatchValue(value: T) | BatchError(error: E) | EndOfInput
   type BatchedByte<E> = Batched<uint8, E>
 
   @AssumeCrossModuleTermination
   trait BulkAction<I, O> extends Action<I, O> {
 
-    // TODO: Consider ForEach[With]?
-    method BulkInvoke(input: Producer<I>, output: IConsumer<O>, outputTotalProof: TotalActionProof<O, ()>)
+    method Map(input: Producer<I>, output: IConsumer<O>, 
+               ghost thisTotalProof: TotalActionProof<I, O>, ghost outputTotalProof: TotalActionProof<O, ()>)
       requires Valid()
       requires input.Valid()
       requires output.Valid()
+      requires thisTotalProof.Valid()
+      requires thisTotalProof.Action() == this
       requires outputTotalProof.Valid()
       requires outputTotalProof.Action() == output
-      requires Repr !! input.Repr !! output.Repr !! outputTotalProof.Repr
-      reads this, Repr, input, input.Repr, output, output.Repr, outputTotalProof, outputTotalProof.Repr
+      requires Repr !! input.Repr !! output.Repr !! thisTotalProof.Repr !! outputTotalProof.Repr
+      reads this, Repr, input, input.Repr, output, output.Repr, thisTotalProof, thisTotalProof.Repr, outputTotalProof, outputTotalProof.Repr
       modifies Repr, input.Repr, output.Repr, outputTotalProof.Repr
       ensures ValidChange()
       ensures input.ValidChange()
@@ -30,6 +34,71 @@ module Std.BulkActions {
       ensures |input.NewProduced()| == |output.NewInputs()|
       ensures history == old(history) + Seq.Zip(input.NewProduced(), output.NewInputs())
   }
+
+// TODO: Not actually implementable without a bunch of machinery in BulkAction to prove transitivity of ValidChange
+  // @ResourceLimit("1e7")
+  // @IsolateAssertions
+  // method DefaultMap<I, O>(input: Producer<I>, action: BulkAction<I, O>, output: IConsumer<O>, 
+  //                         ghost actionTotalProof: TotalActionProof<I, O>, ghost outputTotalProof: TotalActionProof<O, ()>)
+  //   requires input.Valid()
+  //   requires action.Valid()
+  //   requires output.Valid()
+  //   requires input.Repr !! action.Repr !! output.Repr !! actionTotalProof.Repr !! outputTotalProof.Repr
+  //   requires actionTotalProof.Valid()
+  //   requires actionTotalProof.Action() == action
+  //   requires outputTotalProof.Valid()
+  //   requires outputTotalProof.Action() == output
+  //   modifies input.Repr, action.Repr, output.Repr
+  //   ensures input.ValidChange()
+  //   ensures action.ValidChange()
+  //   ensures output.ValidChange()
+  //   ensures input.Done()
+  //   ensures |input.NewProduced()| == |output.NewInputs()|
+  //   ensures action.history == old(action.history) + Seq.Zip(input.NewProduced(), output.NewInputs())
+  // {
+  //   input.ValidImpliesValidChange();
+  //   action.ValidImpliesValidChange();
+  //   output.ValidImpliesValidChange();
+
+  //   while true
+  //     invariant fresh(input.Repr - old(input.Repr))
+  //     invariant fresh(action.Repr - old(action.Repr))
+  //     invariant fresh(output.Repr - old(output.Repr))
+  //     invariant input.Repr !! action.Repr !! output.Repr !! actionTotalProof.Repr !! outputTotalProof.Repr
+  //     invariant actionTotalProof.Valid()
+  //     invariant outputTotalProof.Valid()
+  //     invariant input.ValidChange()
+  //     invariant action.ValidChange()
+  //     invariant output.ValidChange()
+  //     invariant |input.NewProduced()| == |output.NewInputs()|
+  //     invariant action.history == old(action.history) + Seq.Zip(input.NewProduced(), output.NewInputs())
+  //     decreases input.Decreasing()
+  //   {
+  //     label before:
+  //     var t := input.Next();
+
+  //     assert Seq.Partitioned(input.Outputs(), IsSome);
+  //     assert input.Outputs() == old@before(input.Outputs()) + [t];
+  //     Seq.PartitionedDecomposition(old@before(input.Outputs()), [t], IsSome);
+  //     ProducedComposition(old@before(input.Outputs()), [t]);
+
+  //     old(input.State()).ValidChangeTransitive(old@before(input.State()), input.State());
+
+  //     if t == None {
+  //       assert Seq.Last(input.Outputs()).None?;
+  //       assert input.Done();
+  //       break;
+  //     }
+
+  //     actionTotalProof.AnyInputIsValid(action.history, t.value);
+  //     var o := action.Invoke(t.value);
+
+  //     outputTotalProof.AnyInputIsValid(output.history, o);
+  //     output.Accept(o);
+
+  //     assert Seq.Last(output.Inputs()) == o;
+  //   }
+  // }
 
   /**
     * The equivalent of MappedProducer(ToBatched, SeqReader(elements)),
@@ -166,7 +235,6 @@ module Std.BulkActions {
       DefaultForEach(this, consumer, totalActionProof);
     }
 
-    // TODO: Optimize this too
     method Fill(consumer: Consumer<Batched<T, E>>, ghost totalActionProof: TotalActionProof<Batched<T, E>, bool>)
       requires Valid()
       requires consumer.Valid()
@@ -220,7 +288,6 @@ module Std.BulkActions {
 
   }
 
-  // TODO: Would be more efficient to use a DynamicArray instead
   @AssumeCrossModuleTermination
   class BatchSeqWriter<T, E> extends IConsumer<Batched<T, E>> {
 
@@ -531,7 +598,6 @@ module Std.BulkActions {
   function ToBatched<T, E>(t: T): Batched<T, E> {
     BatchValue(t)
   }
-
 
   method ToBatchedProducer<T, E>(values: seq<T>) returns (result: Producer<Batched<T, E>>)
     reads {}

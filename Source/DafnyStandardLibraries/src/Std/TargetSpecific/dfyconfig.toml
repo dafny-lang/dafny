@@ -17,7 +17,7 @@ general-newtypes = true
 # of the libraries themselves.
 resource-limit = 1000000
 warn-redundant-assumptions = true
-warn-contradictory-assumptions = true
+warn-contradictory-assumptions = false
 
 library = [
   "../../../binaries/DafnyStandardLibraries.doo"

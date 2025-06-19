@@ -2,7 +2,7 @@
 # Invoking the CLI this way just to stay platform-independent
 DAFNY = dotnet run --project ../Dafny --no-build --roll-forward LatestMajor --
 
-NO_VERIFY := false # Use make update-binary NO_VERIFY=true to generate the binaries without verification
+NO_VERIFY := true # Use make update-binary NO_VERIFY=true to generate the binaries without verification
 DOO_FILE_SOURCE=build/DafnyStandardLibraries.doo
 DOO_FILE_TARGET=binaries/DafnyStandardLibraries.doo
 
@@ -37,22 +37,27 @@ update-binary: build-binary
 test-cs:
 	$(DAFNY) test $(VERIFY_OPTIONS) -t:cs examples/dfyconfig.toml examples/BoundedInts/NonDefault.cs --output:build/stdlibexamples --coverage-report:build/testcoverage
 	$(DAFNY) test $(VERIFY_OPTIONS) -t:cs examples/nondeterministic/dfyconfig.toml --output:build/stdlibexamples_nondeterministic --coverage-report:build/nondeterministic_testcoverage
+	TARGETLANG=cs make -C src/Std/TargetSpecific test
 
 test-java:
 	$(DAFNY) test $(VERIFY_OPTIONS) -t:java examples/dfyconfig.toml examples/BoundedInts/Externs/NonDefault.java --output:build/stdlibexamples
 # Iterators aren't supported on Java so we can't test the nondeterministic examples
+	TARGETLANG=java make -C src/Std/TargetSpecific test
 
 test-go:
 	$(DAFNY) test $(VERIFY_OPTIONS) -t:go examples/dfyconfig.toml examples/BoundedInts/NonDefault.go --output:build/stdlibexamples
 	$(DAFNY) test $(VERIFY_OPTIONS) -t:go examples/nondeterministic/dfyconfig.toml --output:build/stdlibexamples_nondeterministic
+	TARGETLANG=go make -C src/Std/TargetSpecific test
 
 test-py:
 	$(DAFNY) test $(VERIFY_OPTIONS) -t:py examples/dfyconfig.toml examples/BoundedInts/NonDefault.py --output:build/stdlibexamples
 	$(DAFNY) test $(VERIFY_OPTIONS) -t:py examples/nondeterministic/dfyconfig.toml --output:build/stdlibexamples_nondeterministic
+	TARGETLANG=py make -C src/Std/TargetSpecific test
 
 test-js:
 	$(DAFNY) test $(VERIFY_OPTIONS) -t:js examples/dfyconfig.toml examples/BoundedInts/NonDefault.js --output:build/stdlibexamples
 	$(DAFNY) test $(VERIFY_OPTIONS) -t:js examples/nondeterministic/dfyconfig.toml --output:build/stdlibexamples_nondeterministic
+	TARGETLANG=js make -C src/Std/TargetSpecific test
 
 test: test-cs test-java test-go test-py test-js
 

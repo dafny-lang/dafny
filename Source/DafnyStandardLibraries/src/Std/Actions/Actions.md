@@ -130,4 +130,13 @@ In practice, the most common traits will usually be `Producer` and `IConsumer`.
 That is, most data sources in real programs tend to produce finite elements,
 and it's usually impractical and/or unnecessary to specify how many statically,
 but most data sinks tend to have no constraints.
-  
+
+## Bulk Operations
+
+There are three potentially more efficient ways to apply actions multiple times in sequence:
+
+1. `Producer.ForEach(IConsumer)` - Feeds all values from a `Producer` into an `IConsumer`.
+1. `Producer.Fill(Consumer)` - Feeds all values from a `Producer` into a `Consumer`, until either the producer or consumer is exhausted.
+1. `BulkAction.Map(Producer, IConsumer)` - Feeds all values from a `Producer` through a `BulkAction` and the result into an `IConsumer`.
+
+TODO

@@ -12,7 +12,7 @@ import Std.Producers.Producer;
 
 public class __default {
 
-  public static <T> Producer<T> MakeSetReader(TypeDescriptor td, DafnySet<? extends T> s) {
+  public static <T> Producer<T> MakeSetReader(TypeDescriptor<T> td, DafnySet<? extends T> s) {
     return new IteratorAsProducer<T>(td, s.Elements().iterator());
   }
 }

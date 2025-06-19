@@ -16,11 +16,11 @@ import dafny.Tuple0;
 import dafny.TypeDescriptor;
 
 class IteratorAsProducer<T> implements Producer<T> {
-    private final TypeDescriptor td;
+    private final TypeDescriptor<T> td;
     private final Iterator<? extends T> iterator;
     private BigInteger producedCount;
 
-    public IteratorAsProducer(TypeDescriptor td, java.util.Iterator<? extends T> iterator) {
+    public IteratorAsProducer(TypeDescriptor<T> td, java.util.Iterator<? extends T> iterator) {
         this.td = td;
         this.iterator = iterator;
         this.producedCount = BigInteger.ZERO;

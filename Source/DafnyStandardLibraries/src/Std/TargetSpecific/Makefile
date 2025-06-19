@@ -49,3 +49,14 @@ update-binary-all:
 	make update-binary TARGETLANG=js
 	make update-binary TARGETLANG=go
 	make update-binary TARGETLANG=py
+
+test:
+	$(DAFNY) test -t:${TARGETLANG} ../../../examples/TargetSpecific/dfyconfig.toml --output:../../../build/stdlibexamples_targetspecific \
+		`find ../../../examples/TargetSpecific -name '*-${TARGETLANG}*.dfy' | sort`
+
+test-all:
+	make test TARGETLANG=cs
+	make test TARGETLANG=java
+	make test TARGETLANG=js
+	make test TARGETLANG=go
+	make test TARGETLANG=py
