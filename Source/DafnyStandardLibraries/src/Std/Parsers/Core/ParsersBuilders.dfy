@@ -255,7 +255,7 @@ abstract module Std.Parsers.Builders {
     /** `a.M3(unfolder, f)` evaluates `a` on the input, and then extracts its result to a triplet
         thanks to unfolder, on which it can apply the mapping function.
         Verbose equivalent: `a.Map3(unfolder, f)`.
-        If the parser returns a triplet already, use `Mid()` as built-in unfolder. */
+        If the parser returns a triplet already, use `MId()` as built-in unfolder. */
     function M3<R1, R2, R3, U>(unfolder: R -> (R1, R2, R3), mappingFunc: (R1, R2, R3) -> U): (p: B<U>) {
       B(P.Map(apply, (x: R) => var x := unfolder(x); mappingFunc(x.0, x.1, x.2)))
     }
