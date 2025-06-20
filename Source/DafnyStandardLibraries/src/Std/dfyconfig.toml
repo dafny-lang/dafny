@@ -23,6 +23,7 @@ general-newtypes = true
 # Options important for sustainable development
 # of the libraries themselves.
 resource-limit = 1000000
+verification-time-limit = 300
 # These give too many false positives right now, but should be enabled in the future
 warn-redundant-assumptions = false
 warn-contradictory-assumptions = false

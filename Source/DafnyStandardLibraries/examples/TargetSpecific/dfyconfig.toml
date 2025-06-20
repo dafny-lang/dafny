@@ -1,0 +1,16 @@
+# The Makefile has its own non-trivial logic for determining which files
+# to include in which mode.
+includes = []
+
+[options]
+standard-libraries = true
+enforce-determinism = true
+reads-clauses-on-methods = true
+type-system-refresh = true
+general-traits = "datatype"
+general-newtypes = true
+
+
+resource-limit = 1000000
+warn-redundant-assumptions = false
+warn-contradictory-assumptions = true

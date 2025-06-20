@@ -26,6 +26,16 @@ module Std.Frames {
       ensures Valid() ==> this in Repr
       decreases Repr, 0
 
+    twostate predicate ValidChange()
+      reads this, Repr
+      ensures ValidChange() ==>
+                old(Valid()) && Valid() && fresh(Repr - old(Repr))
+
+    twostate lemma ValidImpliesValidChange()
+      requires old(Valid())
+      requires unchanged(old(Repr))
+      ensures ValidChange()
+
     // Convenience predicate for when your object's validity depends on one
     // or more other objects.
     ghost predicate ValidComponent(component: Validatable)
@@ -37,6 +47,13 @@ module Std.Frames {
       && component.Valid()
     }
 
+    twostate predicate ValidComponentChange(component: Validatable)
+      reads this, Repr
+    {
+      && ValidComponent(component)
+      && component.ValidChange()
+    }
+
     ghost function ReprTerminationMetric(): TerminationMetric
       reads this
     {
@@ -45,6 +62,7 @@ module Std.Frames {
 
     // Convenience predicate, since you often want to assert that
     // new objects in Repr are fresh as well in most postconditions.
+    // This is often at least necessary in ValidChange().
     twostate predicate ValidAndDisjoint()
       reads this, Repr
     {
