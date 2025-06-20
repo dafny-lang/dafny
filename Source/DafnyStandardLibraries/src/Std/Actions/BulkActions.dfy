@@ -15,7 +15,7 @@ module Std.BulkActions {
   @AssumeCrossModuleTermination
   trait BulkAction<I, O> extends Action<I, O> {
 
-    method Map(input: Producer<I>, output: IConsumer<O>, 
+    method Map(input: Producer<I>, output: IConsumer<O>,
                ghost thisTotalProof: TotalActionProof<I, O>, ghost outputTotalProof: TotalActionProof<O, ()>)
       requires Valid()
       requires input.Valid()
@@ -35,10 +35,10 @@ module Std.BulkActions {
       ensures history == old(history) + Seq.Zip(input.NewProduced(), output.NewInputs())
   }
 
-// TODO: Not actually implementable without a bunch of machinery in BulkAction to prove transitivity of ValidChange
+  // TODO: Not actually implementable without a bunch of machinery in BulkAction to prove transitivity of ValidChange
   // @ResourceLimit("1e7")
   // @IsolateAssertions
-  // method DefaultMap<I, O>(input: Producer<I>, action: BulkAction<I, O>, output: IConsumer<O>, 
+  // method DefaultMap<I, O>(input: Producer<I>, action: BulkAction<I, O>, output: IConsumer<O>,
   //                         ghost actionTotalProof: TotalActionProof<I, O>, ghost outputTotalProof: TotalActionProof<O, ()>)
   //   requires input.Valid()
   //   requires action.Valid()
