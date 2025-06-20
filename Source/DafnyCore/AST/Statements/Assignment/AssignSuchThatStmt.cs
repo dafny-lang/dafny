@@ -74,14 +74,15 @@ public class AssignSuchThatStmt : ConcreteAssignStatement, ICloneable<AssignSuch
     Contract.Requires(resolutionContext != null);
 
     if (!resolutionContext.IsGhost && resolver.Options.ForbidNondeterminism) {
-      resolver.Reporter.Error(MessageSource.Resolver, GeneratorErrors.ErrorId.c_assign_such_that_forbidden,
-        Origin, "assign-such-that statement forbidden by the --enforce-determinism option");
+      resolver.Reporter.Error(MessageSource.Resolver, GeneratorErrors.ErrorId.c_assign_such_that_forbidden, Origin,
+        "assign-such-that statement forbidden by the --enforce-determinism option");
     }
     base.GenResolve(resolver, resolutionContext);
 
     if (AssumeToken != null) {
       if (!resolver.Options.Get(CommonOptionBag.AllowAxioms) && !AssumeToken.IsExplicitAxiom()) {
-        resolver.Reporter.Warning(MessageSource.Resolver, ResolutionErrors.ErrorId.none, AssumeToken.Token, "assume keyword in assign-such-that statement has no {:axiom} annotation");
+        resolver.Reporter.Warning(MessageSource.Resolver, "", AssumeToken.Token,
+          "assume keyword in assign-such-that statement has no {:axiom} annotation");
       }
 
       resolver.ResolveAttributes(AssumeToken, resolutionContext);

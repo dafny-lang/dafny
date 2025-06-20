@@ -4,6 +4,8 @@
 #[cfg(test)]
 mod tests {
     use crate::*;
+    #[cfg(feature = "sync")]
+    use std::thread;
 
     #[test]
     fn test_int() {
@@ -40,22 +42,22 @@ mod tests {
             let b_copy_3 = b.clone();
             let a_copy_4 = a.clone();
             let b_copy_4 = b.clone();
-            let handle_ab = std::thread::spawn(move || {
+            let handle_ab = thread::spawn(move || {
                 let a_plus_b = a_copy_1.concat(&b_copy_1);
                 let a_plus_b_vec = a_plus_b.to_array();
                 a_plus_b_vec
             });
-            let handle_ba = std::thread::spawn(move || {
+            let handle_ba = thread::spawn(move || {
                 let b_plus_a = b_copy_2.concat(&a_copy_2);
                 let b_plus_a_vec = b_plus_a.to_array();
                 b_plus_a_vec
             });
-            let handle_ab_2 = std::thread::spawn(move || {
+            let handle_ab_2 = thread::spawn(move || {
                 let a_plus_b = a_copy_3.concat(&b_copy_3);
                 let a_plus_b_vec = a_plus_b.to_array();
                 a_plus_b_vec
             });
-            let handle_ba_2 = std::thread::spawn(move || {
+            let handle_ba_2 = thread::spawn(move || {
                 let b_plus_a = b_copy_4.concat(&a_copy_4);
                 let b_plus_a_vec = b_plus_a.to_array();
                 b_plus_a_vec
@@ -1293,9 +1295,30 @@ mod tests {
         let c3 = c;
         assert_eq!(c3, c2);
     }
-    /*impl GeneralTrait for Rc<ADatatype> {
-        fn _clone(&self) -> Box<dyn GeneralTrait> {
-            Box::new(self.as_ref().clone())
+
+    #[cfg(feature = "sync")]
+    #[test]
+    fn test_object_share_async() {
+        let obj = ClassWrapper::constructor_object(53);
+        let objClone = obj.clone();
+
+        let handle: thread::JoinHandle<i32> = thread::spawn(move || {
+            // Thread code here
+            let mut result: *const ClassWrapper<i32> = objClone.as_ref();
+            for _i in 0..10000 {
+                let obj2 = Object::from_ref(objClone.as_ref());
+                result = obj2.as_ref() as *const ClassWrapper<i32>;
+            }
+            result as i32
+        });
+        let mut result: *const ClassWrapper<i32> = obj.as_ref();
+        for _i in 0..10000 {
+            let obj2 = Object::from_ref(obj.as_ref());
+            result = obj2.as_ref() as *const ClassWrapper<i32>;
         }
-    }*/
+
+        // Wait for thread to finish
+        assert_eq!(handle.join().unwrap(), result as i32);
+        assert_eq!(result as i32, obj.as_ref() as *const ClassWrapper<i32> as i32);
+    }
 }
