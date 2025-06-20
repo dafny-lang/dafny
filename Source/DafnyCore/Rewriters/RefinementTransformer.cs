@@ -123,16 +123,12 @@ namespace Microsoft.Dafny {
       : this(p.Reporter) {
     }
 
-    private void Error(ErrorId errorId, IOrigin tok, string msg, params object[] args) {
-      Reporter.Error(MessageSource.RefinementTransformer, errorId, tok, msg, args);
+    private void Error(ErrorId errorId, IOrigin tok, params object[] messageParts) {
+      Reporter.Error(MessageSource.RefinementTransformer, errorId, tok, messageParts);
     }
 
-    private void Error(ErrorId errorId, Declaration d, string msg, params object[] args) {
-      Reporter.Error(MessageSource.RefinementTransformer, errorId, d.Origin, msg, args);
-    }
-
-    private void Error(ErrorId errorId, INode n, string msg, params object[] args) {
-      Reporter.Error(MessageSource.RefinementTransformer, errorId, n.Origin, msg, args);
+    private void Error(ErrorId errorId, INode n, params object[] messageParts) {
+      Reporter.Error(MessageSource.RefinementTransformer, errorId, n.Origin, messageParts);
     }
 
     private ModuleDefinition moduleUnderConstruction;  // non-null for the duration of Construct calls

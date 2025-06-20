@@ -13,6 +13,7 @@ public abstract class Type : NodeWithOrigin {
   public static CharType Char = new CharType();
   public static IntType Int = new IntType();
   public static RealType Real = new RealType();
+  public static FieldType Field = new FieldType();
 
   [SyntaxConstructor]
   protected Type(IOrigin origin = null) : base(origin) {
@@ -416,6 +417,8 @@ public abstract class Type : NodeWithOrigin {
       return AutoInitInfo.CompilableValue;
     } else if (t is CollectionType) {
       return AutoInitInfo.CompilableValue;
+    } else if (t is FieldType) {
+      return AutoInitInfo.MaybeEmpty;
     }
 
     var udt = (UserDefinedType)t;
@@ -549,6 +552,16 @@ public abstract class Type : NodeWithOrigin {
   public bool IsRefType {
     get {
       return NormalizeExpand() is UserDefinedType { ResolvedClass: ClassLikeDecl { IsReferenceTypeDecl: true } };
+    }
+  }
+
+  public bool IsMemoryLocationType {
+    get {
+      return NormalizeExpand() is UserDefinedType {
+        ResolvedClass: TupleTypeDecl { Dims: 2 },
+        TypeArgs: var typeArgs,
+      }
+             && typeArgs.Count == 2 && typeArgs[0].IsRefType && typeArgs[1] is FieldType;
     }
   }
 
@@ -1106,6 +1119,8 @@ public abstract class Type : NodeWithOrigin {
       return b is IntType;
     } else if (a is RealType) {
       return b is RealType;
+    } else if (a is FieldType) {
+      return b is FieldType;
     } else if (a is BitvectorType) {
       var bitvectorSuper = (BitvectorType)a;
       var bitvectorSub = b as BitvectorType;
@@ -1269,7 +1284,7 @@ public abstract class Type : NodeWithOrigin {
     Contract.Requires(systemModuleManager != null);
     var j = JoinX(a, b, systemModuleManager);
     if (systemModuleManager.Options.Get(CommonOptionBag.TypeInferenceDebug)) {
-      systemModuleManager.Options.OutputWriter.WriteLine("DEBUG: Join( {0}, {1} ) = {2}", a, b, j);
+      systemModuleManager.Options.OutputWriter.Debug($"Join( {a}, {b} ) = {j}");
     }
     return j;
   }
@@ -1490,7 +1505,7 @@ public abstract class Type : NodeWithOrigin {
       }
     }
     if (systemModuleManager.Options.Get(CommonOptionBag.TypeInferenceDebug)) {
-      systemModuleManager.Options.OutputWriter.WriteLine("DEBUG: Meet( {0}, {1} ) = {2}", a, b, j);
+      systemModuleManager.Options.OutputWriter.Debug($"Meet( {a}, {b} ) = {j}");
     }
     return j;
   }
@@ -1994,6 +2009,28 @@ public class SelfType : NonProxyType {
   public override bool ComputeMayInvolveReferences(ISet<DatatypeDecl>/*?*/ visitedDatatypes) {
     // SelfType is used only with bitvector types
     return false;
+  }
+}
+
+public class FieldType : BasicType {
+  [SyntaxConstructor]
+  public FieldType(IOrigin origin) : base(origin) {
+  }
+
+  public FieldType() {
+  }
+  [System.Diagnostics.Contracts.Pure]
+  public override string TypeName(DafnyOptions options, ModuleDefinition context, bool parseAble) {
+    return "field";
+  }
+  public override bool Equals(Type that, bool keepConstraints = false) {
+    return that.NormalizeExpand(keepConstraints) is FieldType;
+  }
+  public override bool IsSubtypeOf(Type super, bool ignoreTypeArguments, bool ignoreNullity) {
+    if (super is FieldType) {
+      return true;
+    }
+    return base.IsSubtypeOf(super, ignoreTypeArguments, ignoreNullity);
   }
 }
 

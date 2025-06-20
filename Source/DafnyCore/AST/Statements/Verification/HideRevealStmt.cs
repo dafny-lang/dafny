@@ -1,3 +1,4 @@
+#nullable enable
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 using System.Linq;
@@ -10,7 +11,7 @@ public class HideRevealStmt : Statement, ICloneable<HideRevealStmt>, ICanFormat,
 
   public string Kind => Mode == HideRevealCmd.Modes.Hide ? "hide" : "reveal";
   public string KindVerb => Mode == HideRevealCmd.Modes.Hide ? "hidden" : "revealed";
-  public List<Expression> Exprs;
+  public List<Expression>? Exprs;
   [FilledInDuringResolution]
   public List<AssertLabel> LabeledAsserts = [];  // to indicate that "Expr" denotes a labeled assertion
   [FilledInDuringResolution]
@@ -25,8 +26,6 @@ public class HideRevealStmt : Statement, ICloneable<HideRevealStmt>, ICanFormat,
 
   [ContractInvariantMethod]
   void ObjectInvariant() {
-    Contract.Invariant(Exprs != null);
-    Contract.Invariant(LabeledAsserts.Count <= Exprs.Count);
   }
 
   public HideRevealStmt Clone(Cloner cloner) {
@@ -51,15 +50,15 @@ public class HideRevealStmt : Statement, ICloneable<HideRevealStmt>, ICanFormat,
     Mode = mode;
   }
 
-  public HideRevealStmt(IOrigin origin, List<Expression> exprs, HideRevealCmd.Modes mode)
-    : base(origin) {
-    Contract.Requires(exprs != null);
+  [SyntaxConstructor]
+  public HideRevealStmt(IOrigin origin, List<Expression>? exprs, HideRevealCmd.Modes mode, Attributes? attributes = null)
+    : base(origin, attributes) {
     this.Exprs = exprs;
-    Wildcard = false;
+    Wildcard = exprs == null;
     Mode = mode;
   }
 
-  public static string SingleName(Expression e) {
+  public static string? SingleName(Expression e) {
     Contract.Requires(e != null);
     if (e is NameSegment || e is LiteralExpr) {
       return e.Origin.val;
@@ -79,7 +78,7 @@ public class HideRevealStmt : Statement, ICloneable<HideRevealStmt>, ICanFormat,
       return;
     }
 
-    foreach (var expr in Exprs) {
+    foreach (var expr in Exprs!) {
       var name = SingleName(expr);
       var labeledAssert = name == null ? null : resolver.DominatingStatementLabels.Find(name) as AssertLabel;
       if (labeledAssert != null) {
@@ -144,7 +143,7 @@ public class HideRevealStmt : Statement, ICloneable<HideRevealStmt>, ICanFormat,
 
   public override void ResolveGhostness(ModuleResolver resolver, ErrorReporter reporter, bool mustBeErasable,
     ICodeContext codeContext,
-    string proofContext, bool allowAssumptionVariables, bool inConstructorInitializationPhase) {
+    string? proofContext, bool allowAssumptionVariables, bool inConstructorInitializationPhase) {
     ResolvedStatements.ForEach(ss => ss.ResolveGhostness(resolver, reporter, true, codeContext,
       $"a {Kind} statement", allowAssumptionVariables, inConstructorInitializationPhase));
     IsGhost = ResolvedStatements.All(ss => ss.IsGhost);

@@ -56,7 +56,7 @@ public class ProgramParser {
     foreach (var dafnyFile in files) {
       cancellationToken.ThrowIfCancellationRequested();
       if (options.Trace) {
-        await options.OutputWriter.WriteLineAsync("Parsing " + dafnyFile.FilePath);
+        await options.OutputWriter.Status("Parsing " + dafnyFile.FilePath);
       }
 
       if (options.XmlSink is { IsOpen: true } && dafnyFile.Uri.IsFile) {
@@ -88,7 +88,7 @@ public class ProgramParser {
     if (options.PrintIncludesMode == DafnyOptions.IncludesModes.Immediate) {
       var dependencyMap = new DependencyMap();
       dependencyMap.AddIncludes(defaultModule.Includes);
-      dependencyMap.PrintMap(options);
+      await dependencyMap.PrintMap(options);
     }
 
     if (!errorReporter.HasErrors) {
@@ -138,7 +138,7 @@ public class ProgramParser {
 
       var reporter = new BatchErrorReporter(options);
       reporter.Error(MessageSource.Parser, ErrorId.p_internal_exception, internalErrorDummyToken,
-        "[internal error] Parser exception: " + e.Message + "\n" + e.StackTrace);
+        "[internal error] Parser exception: {0}\n{1}", e.Message, e.StackTrace);
       return new DfyParseFileResult(fileSnapshot.Version, uri, [], reporter, new FileModuleDefinition(Token.NoToken),
         new Action<SystemModuleManager>[] { });
     }

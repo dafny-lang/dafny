@@ -113,6 +113,9 @@ public class XConstraint {
       case "IsRefType":
         satisfied = t.IsRefType;
         break;
+      case "IsFieldType":
+        satisfied = t is FieldType;
+        break;
       case "IsNullableRefType":
         satisfied = t.IsRefType && !t.IsNonNullRefType;
         break;
@@ -436,8 +439,19 @@ public class XConstraint {
           if (collType != null) {
             t = collType.Arg.NormalizeExpand();
           }
+
+          var tType = t.AsDatatype is TupleTypeDecl { Dims: 2 } tDecl ? tDecl : null;
+          if (tType != null) {
+            var refType = t.TypeArgs[0];
+            var fieldType = t.TypeArgs[1];
+            t = refType.NormalizeExpand();
+            if (fieldType is not FieldType) {
+              resolver.AddXConstraint(Token.NoToken/*bogus, but it seems this token would be used only when integers are involved*/, "IsFieldType", fieldType, errorMsg);
+              convertedIntoOtherTypeConstraints = true;
+            }
+          }
           if (t is TypeProxy) {
-            if (collType != null) {
+            if (collType != null || tType != null) {
               // we know enough to convert into a subtyping constraint
               resolver.AddXConstraint(Token.NoToken/*bogus, but it seems this token would be used only when integers are involved*/, "IsRefType", t, errorMsg);
               moreXConstraints = true;
@@ -467,8 +481,19 @@ public class XConstraint {
           if (collType != null) {
             t = collType.Arg.NormalizeExpand();
           }
+
+          var tType = t.AsDatatype is TupleTypeDecl { Dims: 2 } tDecl ? tDecl : null;
+          if (tType != null) {
+            var refType = t.TypeArgs[0];
+            var fieldType = t.TypeArgs[1];
+            t = refType.NormalizeExpand();
+            if (fieldType is not FieldType) {
+              resolver.AddXConstraint(Token.NoToken/*bogus, but it seems this token would be used only when integers are involved*/, "IsFieldType", fieldType, errorMsg);
+              convertedIntoOtherTypeConstraints = true;
+            }
+          }
           if (t is TypeProxy) {
-            if (collType != null) {
+            if (collType != null || tType != null) {
               // we know enough to convert into a subtyping constraint
               resolver.AddXConstraint(Token.NoToken/*bogus, but it seems this token would be used only when integers are involved*/, "IsRefType", t, errorMsg);
               resolver.ConstrainSubtypeRelation_Equal(u, t, errorMsg);
@@ -479,7 +504,7 @@ public class XConstraint {
               return false;  // there is not enough information
             }
           }
-          if (t.IsRefType && (arrTy == null || collType != null)) {
+          if ((t.IsRefType || t.IsMemoryLocationType) && (arrTy == null || collType != null)) {
             resolver.ConstrainSubtypeRelation_Equal(u, t, errorMsg);
             convertedIntoOtherTypeConstraints = true;
             return true;
@@ -529,19 +554,19 @@ public class XConstraint {
     Contract.Requires(visited != null);
     t = t.NormalizeExpand();
     if (options.Get(CommonOptionBag.TypeInferenceDebug)) {
-      options.OutputWriter.WriteLine("DEBUG: FindCollectionType({0}, {1})", t, towardsSub ? "sub" : "super");
+      options.OutputWriter.Debug($"FindCollectionType({t}, {(towardsSub ? "sub" : "super")})");
     }
     if (t is CollectionType) {
       if (options.Get(CommonOptionBag.TypeInferenceDebug)) {
-        options.OutputWriter.WriteLine("DEBUG: FindCollectionType({0}) = {1}", t, ((CollectionType)t).Arg);
+        options.OutputWriter.Debug($"FindCollectionType({t}) = {((CollectionType)t).Arg}");
       }
       return ((CollectionType)t).Arg;
     }
     var proxy = t as TypeProxy;
-    if (proxy == null || visited.Contains(proxy)) {
+    if (proxy == null || !visited.Add(proxy)) {
       return null;
     }
-    visited.Add(proxy);
+
     foreach (var sub in towardsSub ? proxy.Subtypes : proxy.Supertypes) {
       var e = FindCollectionType(options, sub, towardsSub, visited);
       if (e != null) {

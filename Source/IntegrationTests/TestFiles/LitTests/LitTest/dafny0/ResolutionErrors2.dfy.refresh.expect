@@ -9,7 +9,7 @@ ResolutionErrors2.dfy(152,6): Error: RHS (of type Dt) not assignable to LHS (of 
 ResolutionErrors2.dfy(153,6): Error: RHS (of type CoDt) not assignable to LHS (of type object)
 ResolutionErrors2.dfy(146,6): Error: RHS (of type B) not assignable to LHS (of type object)
 ResolutionErrors2.dfy(145,9): Error: integer literal used as if it had type object?
-ResolutionErrors2.dfy(164,13): Error: a modifies-clause expression must denote an object or a set/iset/multiset/seq of objects (instead got int)
+ResolutionErrors2.dfy(164,13): Error: a modifies-clause expression must denote an object, a single field location like o`x or a`[i] of type (object, field)  (with `--referrers`), or a set/iset/multiset/seq of objects or single field locations (with `--referrers`) (instead got int)
 ResolutionErrors2.dfy(175,16): Error: in a ghost context, only ghost fields can be mentioned as modifies frame targets (x)
 ResolutionErrors2.dfy(188,14): Error: in a ghost context, only ghost fields can be mentioned as modifies frame targets (x)
 ResolutionErrors2.dfy(197,16): Error: in a ghost context, only ghost fields can be mentioned as modifies frame targets (x)

@@ -144,6 +144,7 @@ public class ParseErrors {
     p_decreases_without_to,
     p_binding_in_decreases_to,
     p_ghost_in_decreases_to,
+    p_needs_referrers
   }
 
   static ParseErrors() {
@@ -1221,6 +1222,9 @@ the word `opaque` is being converted to a reserved keyword, whereas it used to b
 Please rename your use of opaque as an identifier to some other name.
 ".TrimStart());
 
+    Add(ErrorId.p_needs_referrers,
+      @"
+Array memory locations are supported only with --referrers here".TrimStart());
   }
 
   public static void RunStaticConstructor() {

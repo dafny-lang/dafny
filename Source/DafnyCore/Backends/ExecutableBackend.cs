@@ -134,9 +134,9 @@ public abstract class ExecutableBackend : IExecutableBackend {
     }
   }
 
-  public override Task<bool> OnPostGenerate(string dafnyProgramName, string targetDirectory, TextWriter outputWriter) {
-    CodeGenerator.Coverage.WriteLegendFile();
-    return Task.FromResult(true);
+  public override async Task<bool> OnPostGenerate(string dafnyProgramName, string targetDirectory, IDafnyOutputWriter outputWriter) {
+    await CodeGenerator.Coverage.WriteLegendFile();
+    return true;
   }
 
   protected abstract SinglePassCodeGenerator CreateCodeGenerator();
@@ -161,7 +161,7 @@ public abstract class ExecutableBackend : IExecutableBackend {
     return psi;
   }
 
-  public Task<int> RunProcess(ProcessStartInfo psi,
+  public async Task<int> RunProcess(ProcessStartInfo psi,
     TextWriter outputWriter,
     TextWriter errorWriter,
     string errorMessage = null) {
@@ -169,8 +169,11 @@ public abstract class ExecutableBackend : IExecutableBackend {
       psi.StandardOutputEncoding = OutputWriterEncoding;
     }
 
-    return StartProcess(psi, outputWriter) is { } process ?
-      WaitForExit(process, outputWriter, errorWriter, errorMessage) : Task.FromResult(-1);
+    if (StartProcess(psi, outputWriter) is { } process) {
+      return await WaitForExit(process, outputWriter, errorWriter, errorMessage);
+    }
+
+    return -1;
   }
 
   public virtual Encoding OutputWriterEncoding => null;
@@ -218,7 +221,7 @@ public abstract class ExecutableBackend : IExecutableBackend {
     string targetProgramText,
     string callToMain /*?*/, string targetFilename, /*?*/
     ReadOnlyCollection<string> otherFileNames,
-    bool runAfterCompile, TextWriter outputWriter) {
+    bool runAfterCompile, IDafnyOutputWriter outputWriter) {
     Contract.Requires(dafnyProgramName != null);
     Contract.Requires(targetProgramText != null);
     Contract.Requires(otherFileNames != null);
@@ -233,12 +236,11 @@ public abstract class ExecutableBackend : IExecutableBackend {
   public override Task<bool> RunTargetProgram(string dafnyProgramName, string targetProgramText,
     string callToMain, /*?*/
     string targetFilename /*?*/, ReadOnlyCollection<string> otherFileNames,
-    object compilationResult, TextWriter outputWriter, TextWriter errorWriter) {
+    object compilationResult, IDafnyOutputWriter outputWriter) {
     Contract.Requires(dafnyProgramName != null);
     Contract.Requires(targetProgramText != null);
     Contract.Requires(otherFileNames != null);
     Contract.Requires(otherFileNames.Count == 0 || targetFilename != null);
-    Contract.Requires(outputWriter != null);
     return Task.FromResult(true);
   }
 
@@ -255,7 +257,7 @@ public abstract class ExecutableBackend : IExecutableBackend {
     SinglePassCodeGenerator.WriteFromStream(rd, outputWriter);
   }
 
-  protected async Task<bool> RunTargetDafnyProgram(string targetFilename, TextWriter outputWriter, TextWriter errorWriter, bool verify) {
+  protected async Task<bool> RunTargetDafnyProgram(string targetFilename, IDafnyOutputWriter outputWriter, bool verify) {
 
     /*
      * In order to work for the continuous integration, we need to call the Dafny compiler using dotnet
@@ -303,21 +305,21 @@ public abstract class ExecutableBackend : IExecutableBackend {
       process.CancelErrorRead();
 
       for (int i = 2; i < outputBuilder.Count - 1; i++) {
-        await outputWriter.WriteLineAsync(outputBuilder[i]);
+        await outputWriter.Status(outputBuilder[i]);
       }
 
       for (int i = 0; i < errorBuilder.Count - 1; i++) {
-        await errorWriter.WriteLineAsync(errorBuilder[i]);
+        await outputWriter.Error(errorBuilder[i]);
       }
 
       if (process.ExitCode != 0) {
-        await outputWriter.WriteLineAsync($"Process exited with exit code {process.ExitCode}");
+        await outputWriter.Status($"Process exited with exit code {process.ExitCode}");
         return false;
       }
 
     } catch (System.ComponentModel.Win32Exception e) {
       string additionalInfo = $": {e.Message}";
-      await outputWriter.WriteLineAsync($"Error: Unable to start {psi.FileName}{additionalInfo}");
+      await outputWriter.Status($"Error: Unable to start {psi.FileName}{additionalInfo}");
       return false;
     }
 

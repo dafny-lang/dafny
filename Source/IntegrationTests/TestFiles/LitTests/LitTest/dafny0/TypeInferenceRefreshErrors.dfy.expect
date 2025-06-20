@@ -1,8 +1,8 @@
-TypeInferenceRefreshErrors.dfy(14,10): Error: a reads-clause expression must denote an object, a set/iset/multiset/seq of objects, or a function to a set/iset/multiset/seq of objects (instead got () -> C)
-TypeInferenceRefreshErrors.dfy(19,10): Error: a reads-clause expression must denote an object, a set/iset/multiset/seq of objects, or a function to a set/iset/multiset/seq of objects (instead got real)
-TypeInferenceRefreshErrors.dfy(20,10): Error: a reads-clause expression must denote an object, a set/iset/multiset/seq of objects, or a function to a set/iset/multiset/seq of objects (instead got set<real>)
-TypeInferenceRefreshErrors.dfy(21,10): Error: a reads-clause expression must denote an object, a set/iset/multiset/seq of objects, or a function to a set/iset/multiset/seq of objects (instead got () -> set<real>)
-TypeInferenceRefreshErrors.dfy(22,10): Error: a reads-clause expression must denote an object, a set/iset/multiset/seq of objects, or a function to a set/iset/multiset/seq of objects (instead got () -> map<object, object>)
+TypeInferenceRefreshErrors.dfy(14,10): Error: a reads-clause expression must denote an object, a single field location like o`x or a`[i] of type (object, field)  (with `--referrers`), a set/iset/multiset/seq of objects or single field locations (with `--referrers`), or a function to a set/iset/multiset/seq of objects or single field locations (with `--referrers`) (instead got () -> C)
+TypeInferenceRefreshErrors.dfy(19,10): Error: a reads-clause expression must denote an object, a single field location like o`x or a`[i] of type (object, field)  (with `--referrers`), a set/iset/multiset/seq of objects or single field locations (with `--referrers`), or a function to a set/iset/multiset/seq of objects or single field locations (with `--referrers`) (instead got real)
+TypeInferenceRefreshErrors.dfy(20,10): Error: a reads-clause expression must denote an object, a single field location like o`x or a`[i] of type (object, field)  (with `--referrers`), a set/iset/multiset/seq of objects or single field locations (with `--referrers`), or a function to a set/iset/multiset/seq of objects or single field locations (with `--referrers`) (instead got set<real>)
+TypeInferenceRefreshErrors.dfy(21,10): Error: a reads-clause expression must denote an object, a single field location like o`x or a`[i] of type (object, field)  (with `--referrers`), a set/iset/multiset/seq of objects or single field locations (with `--referrers`), or a function to a set/iset/multiset/seq of objects or single field locations (with `--referrers`) (instead got () -> set<real>)
+TypeInferenceRefreshErrors.dfy(22,10): Error: a reads-clause expression must denote an object, a single field location like o`x or a`[i] of type (object, field)  (with `--referrers`), a set/iset/multiset/seq of objects or single field locations (with `--referrers`), or a function to a set/iset/multiset/seq of objects or single field locations (with `--referrers`) (instead got () -> map<object, object>)
 TypeInferenceRefreshErrors.dfy(33,12): Error: type cast to reference type 'C' must be from an expression of a compatible type (got 'D')
 TypeInferenceRefreshErrors.dfy(34,12): Error: type cast to reference type 'D' must be from an expression of a compatible type (got 'C')
 TypeInferenceRefreshErrors.dfy(49,8): Error: the type ('E?<?0>') of this variable is underspecified
@@ -44,4 +44,11 @@ TypeInferenceRefreshErrors.dfy(269,15): Error: arguments to >= must be of a nume
 TypeInferenceRefreshErrors.dfy(268,15): Error: arguments to > must be of a numeric type, bitvector type, ORDINAL, char, or a set-like type (instead got bool)
 TypeInferenceRefreshErrors.dfy(275,34): Error: array-allocation initialization expression expected to have type 'nat ~> bool' (instead got 'nat -> nat') (covariant type parameter 'R' would require bool :> nat)
 TypeInferenceRefreshErrors.dfy(279,35): Error: integer literal used as if it had type bool
-43 resolution/type errors detected in TypeInferenceRefreshErrors.dfy
+TypeInferenceRefreshErrors.dfy(287,9): Error: string literal "x" used as if it had type int
+TypeInferenceRefreshErrors.dfy(288,9): Error: string literal "{" used as if it had type int
+TypeInferenceRefreshErrors.dfy(289,9): Error: string literal "{{" used as if it had type int
+TypeInferenceRefreshErrors.dfy(290,9): Error: string literal "}" used as if it had type int
+TypeInferenceRefreshErrors.dfy(291,9): Error: string literal "{0}" used as if it had type int
+TypeInferenceRefreshErrors.dfy(293,9): Error: character literal used as if it had type int
+TypeInferenceRefreshErrors.dfy(294,9): Error: character literal used as if it had type int
+50 resolution/type errors detected in TypeInferenceRefreshErrors.dfy

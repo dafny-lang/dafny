@@ -27,6 +27,23 @@ using PODesc = Microsoft.Dafny.ProofObligationDescription;
 using static Microsoft.Dafny.GenericErrors;
 
 namespace Microsoft.Dafny {
+
+  /// <summary>
+  /// Used as an origin for Boogie implementations, to track which Dafny ICanVerify the implementation originated from
+  /// When Dafny generates ICanVerify nodes from other ones, this should be used so we can backtrack to the original one.
+  /// </summary>
+  class CanVerifyOrigin : OriginWrapper {
+    /// <summary>
+    /// Used as an origin for Boogie implementations, to track which Dafny ICanVerify the implementation originated from
+    /// When Dafny generates ICanVerify nodes from other ones, this should be used so we can backtrack to the original one.
+    /// </summary>
+    public CanVerifyOrigin(ICanVerify canVerify) : base(canVerify.Origin) {
+      CanVerify = canVerify;
+    }
+
+    public ICanVerify CanVerify { get; }
+  }
+
   public partial class BoogieGenerator {
     private DafnyOptions options;
     public DafnyOptions Options => options;
@@ -250,6 +267,7 @@ namespace Microsoft.Dafny {
       private readonly Bpl.TypeCtorDecl seqTypeCtor;
       public readonly Bpl.Type Bv0Type;
       readonly Bpl.TypeCtorDecl fieldName;
+      readonly Bpl.TypeCtorDecl fieldNameFamily;
       public readonly Bpl.Type HeapType;
       public readonly string HeapVarName;
       public readonly Bpl.Type ClassNameType;
@@ -262,6 +280,7 @@ namespace Microsoft.Dafny {
       public readonly Bpl.Type TyTag;
       public readonly Bpl.Type TyTagFamily;
       public readonly Bpl.Expr Null;
+      public readonly Bpl.Expr Locals;
       public readonly Bpl.Constant AllocField;
       [ContractInvariantMethod]
       void ObjectInvariant() {
@@ -312,6 +331,13 @@ namespace Microsoft.Dafny {
         return new Bpl.CtorType(tok, fieldName, []);
       }
 
+      public Bpl.Type FieldNameFamily(Bpl.IToken tok) {
+        Contract.Requires(tok != null);
+        Contract.Ensures(Contract.Result<Bpl.Type>() != null);
+
+        return new Bpl.CtorType(tok, fieldNameFamily, []);
+      }
+
       public Bpl.IdentifierExpr Alloc(Bpl.IToken tok) {
         Contract.Requires(tok != null);
         Contract.Ensures(Contract.Result<Bpl.IdentifierExpr>() != null);
@@ -329,7 +355,7 @@ namespace Microsoft.Dafny {
                              Bpl.Function objectTypeConstructor,
                              Bpl.Function tuple2Destructors0, Bpl.Function tuple2Destructors1, Bpl.Function tuple2Constructor, Bpl.Function tuple2TypeConstructor,
                              Bpl.TypeCtorDecl seqTypeCtor, Bpl.TypeSynonymDecl bv0TypeDecl,
-                             Bpl.TypeCtorDecl fieldNameType, Bpl.TypeCtorDecl tyType, Bpl.TypeCtorDecl tyTagType, Bpl.TypeCtorDecl tyTagFamilyType,
+                             Bpl.TypeCtorDecl fieldNameType, Bpl.TypeCtorDecl fieldNameFamilyType, Bpl.TypeCtorDecl tyType, Bpl.TypeCtorDecl tyTagType, Bpl.TypeCtorDecl tyTagFamilyType,
                              Bpl.GlobalVariable heap, Bpl.TypeCtorDecl classNameType, Bpl.TypeCtorDecl nameFamilyType,
                              Bpl.TypeCtorDecl datatypeType, Bpl.TypeCtorDecl handleType, Bpl.TypeCtorDecl layerType, Bpl.TypeCtorDecl dtCtorId,
                              Bpl.Constant allocField) {
@@ -401,6 +427,7 @@ namespace Microsoft.Dafny {
         this.seqTypeCtor = seqTypeCtor;
         this.Bv0Type = new Bpl.TypeSynonymAnnotation(Token.NoToken, bv0TypeDecl, []);
         this.fieldName = fieldNameType;
+        this.fieldNameFamily = fieldNameFamilyType;
         this.HeapType = heap.TypedIdent.Type;
         this.HeapVarName = heap.Name;
         this.Ty = new Bpl.CtorType(Token.NoToken, tyType, []);
@@ -414,13 +441,14 @@ namespace Microsoft.Dafny {
         this.DtCtorId = new Bpl.CtorType(Token.NoToken, dtCtorId, []);
         this.AllocField = allocField;
         this.Null = new Bpl.IdentifierExpr(Token.NoToken, "null", refT);
+        this.Locals = new Bpl.IdentifierExpr(Token.NoToken, "locals", refT);
       }
     }
 
     PredefinedDecls FindPredefinedDecls(Bpl.Program prog) {
       Contract.Requires(prog != null);
       if (prog.Resolve(options) != 0) {
-        options.OutputWriter.WriteLine("Error: resolution errors encountered in Dafny prelude");
+        options.OutputWriter.Exception("resolution errors encountered in Dafny prelude");
         return null;
       }
 
@@ -448,6 +476,7 @@ namespace Microsoft.Dafny {
       Bpl.Function tuple2Constructor = null;
       Bpl.TypeCtorDecl seqTypeCtor = null;
       Bpl.TypeCtorDecl fieldNameType = null;
+      Bpl.TypeCtorDecl fieldFamilyNameType = null;
       Bpl.TypeCtorDecl classNameType = null;
       Bpl.TypeSynonymDecl bv0TypeDecl = null;
       Bpl.TypeCtorDecl tyType = null;
@@ -470,6 +499,8 @@ namespace Microsoft.Dafny {
             seqTypeCtor = dt;
           } else if (dt.Name == "Field") {
             fieldNameType = dt;
+          } else if (dt.Name == "FieldFamily") {
+            fieldFamilyNameType = dt;
           } else if (dt.Name == "ClassName") {
             classNameType = dt;
           } else if (dt.Name == "Ty") {
@@ -560,83 +591,85 @@ namespace Microsoft.Dafny {
         }
       }
       if (seqTypeCtor == null) {
-        options.OutputWriter.WriteLine("Error: Dafny prelude is missing declaration of type Seq");
+        options.OutputWriter.Exception("Dafny prelude is missing declaration of type Seq");
       } else if (setTypeCtor == null) {
-        options.OutputWriter.WriteLine("Error: Dafny prelude is missing declaration of type Set");
+        options.OutputWriter.Exception("Dafny prelude is missing declaration of type Set");
       } else if (isetTypeCtor == null) {
-        options.OutputWriter.WriteLine("Error: Dafny prelude is missing declaration of type ISet");
+        options.OutputWriter.Exception("Dafny prelude is missing declaration of type ISet");
       } else if (multiSetTypeCtor == null) {
-        options.OutputWriter.WriteLine("Error: Dafny prelude is missing declaration of type MultiSet");
+        options.OutputWriter.Exception("Dafny prelude is missing declaration of type MultiSet");
       } else if (mapTypeCtor == null) {
-        options.OutputWriter.WriteLine("Error: Dafny prelude is missing declaration of type Map");
+        options.OutputWriter.Exception("Dafny prelude is missing declaration of type Map");
       } else if (imapTypeCtor == null) {
-        options.OutputWriter.WriteLine("Error: Dafny prelude is missing declaration of type IMap");
+        options.OutputWriter.Exception("Dafny prelude is missing declaration of type IMap");
       } else if (arrayLength == null) {
-        options.OutputWriter.WriteLine("Error: Dafny prelude is missing declaration of function _System.array.Length");
+        options.OutputWriter.Exception("Dafny prelude is missing declaration of function _System.array.Length");
       } else if (realFloor == null) {
-        options.OutputWriter.WriteLine("Error: Dafny prelude is missing declaration of function _System.real.Floor");
+        options.OutputWriter.Exception("Dafny prelude is missing declaration of function _System.real.Floor");
       } else if (ORDINAL_isLimit == null) {
-        options.OutputWriter.WriteLine("Error: Dafny prelude is missing declaration of function ORD#IsLimit");
+        options.OutputWriter.Exception("Dafny prelude is missing declaration of function ORD#IsLimit");
       } else if (ORDINAL_isSucc == null) {
-        options.OutputWriter.WriteLine("Error: Dafny prelude is missing declaration of function ORD#IsSucc");
+        options.OutputWriter.Exception("Dafny prelude is missing declaration of function ORD#IsSucc");
       } else if (ORDINAL_offset == null) {
-        options.OutputWriter.WriteLine("Error: Dafny prelude is missing declaration of function ORD#Offset");
+        options.OutputWriter.Exception("Dafny prelude is missing declaration of function ORD#Offset");
       } else if (ORDINAL_isNat == null) {
-        options.OutputWriter.WriteLine("Error: Dafny prelude is missing declaration of function ORD#IsNat");
+        options.OutputWriter.Exception("Dafny prelude is missing declaration of function ORD#IsNat");
       } else if (mapDomain == null) {
-        options.OutputWriter.WriteLine("Error: Dafny prelude is missing declaration of function Map#Domain");
+        options.OutputWriter.Exception("Dafny prelude is missing declaration of function Map#Domain");
       } else if (imapDomain == null) {
-        options.OutputWriter.WriteLine("Error: Dafny prelude is missing declaration of function IMap#Domain");
+        options.OutputWriter.Exception("Dafny prelude is missing declaration of function IMap#Domain");
       } else if (mapValues == null) {
-        options.OutputWriter.WriteLine("Error: Dafny prelude is missing declaration of function Map#Values");
+        options.OutputWriter.Exception("Dafny prelude is missing declaration of function Map#Values");
       } else if (imapValues == null) {
-        options.OutputWriter.WriteLine("Error: Dafny prelude is missing declaration of function IMap#Values");
+        options.OutputWriter.Exception("Dafny prelude is missing declaration of function IMap#Values");
       } else if (mapItems == null) {
-        options.OutputWriter.WriteLine("Error: Dafny prelude is missing declaration of function Map#Items");
+        options.OutputWriter.Exception("Dafny prelude is missing declaration of function Map#Items");
       } else if (imapItems == null) {
-        options.OutputWriter.WriteLine("Error: Dafny prelude is missing declaration of function IMap#Items");
+        options.OutputWriter.Exception("Dafny prelude is missing declaration of function IMap#Items");
       } else if (tuple2Destructors0 == null) {
-        options.OutputWriter.WriteLine("Error: Dafny prelude is missing declaration of function _System.Tuple2._0");
+        options.OutputWriter.Exception("Dafny prelude is missing declaration of function _System.Tuple2._0");
       } else if (tuple2Destructors1 == null) {
-        options.OutputWriter.WriteLine("Error: Dafny prelude is missing declaration of function _System.Tuple2._1");
+        options.OutputWriter.Exception("Dafny prelude is missing declaration of function _System.Tuple2._1");
       } else if (tuple2Constructor == null) {
-        options.OutputWriter.WriteLine("Error: Dafny prelude is missing declaration of function #_System._tuple#2._#Make2");
+        options.OutputWriter.Exception("Dafny prelude is missing declaration of function #_System._tuple#2._#Make2");
       } else if (bv0TypeDecl == null) {
-        options.OutputWriter.WriteLine("Error: Dafny prelude is missing declaration of type Bv0");
+        options.OutputWriter.Exception("Dafny prelude is missing declaration of type Bv0");
       } else if (fieldNameType == null) {
-        options.OutputWriter.WriteLine("Error: Dafny prelude is missing declaration of type Field");
+        options.OutputWriter.Exception("Dafny prelude is missing declaration of type Field");
+      } else if (fieldFamilyNameType == null) {
+        options.OutputWriter.Exception("Error: Dafny prelude is missing declaration of type FieldFamily");
       } else if (classNameType == null) {
-        options.OutputWriter.WriteLine("Error: Dafny prelude is missing declaration of type ClassName");
+        options.OutputWriter.Exception("Dafny prelude is missing declaration of type ClassName");
       } else if (tyType == null) {
-        options.OutputWriter.WriteLine("Error: Dafny prelude is missing declaration of type Ty");
+        options.OutputWriter.Exception("Dafny prelude is missing declaration of type Ty");
       } else if (tyTagType == null) {
-        options.OutputWriter.WriteLine("Error: Dafny prelude is missing declaration of type TyTag");
+        options.OutputWriter.Exception("Dafny prelude is missing declaration of type TyTag");
       } else if (tyTagFamilyType == null) {
-        options.OutputWriter.WriteLine("Error: Dafny prelude is missing declaration of type TyTagFamily");
+        options.OutputWriter.Exception("Dafny prelude is missing declaration of type TyTagFamily");
       } else if (nameFamilyType == null) {
-        options.OutputWriter.WriteLine("Error: Dafny prelude is missing declaration of type NameFamily");
+        options.OutputWriter.Exception("Dafny prelude is missing declaration of type NameFamily");
       } else if (datatypeType == null) {
-        options.OutputWriter.WriteLine("Error: Dafny prelude is missing declaration of type DatatypeType");
+        options.OutputWriter.Exception("Dafny prelude is missing declaration of type DatatypeType");
       } else if (handleType == null) {
-        options.OutputWriter.WriteLine("Error: Dafny prelude is missing declaration of type HandleType");
+        options.OutputWriter.Exception("Dafny prelude is missing declaration of type HandleType");
       } else if (layerType == null) {
-        options.OutputWriter.WriteLine("Error: Dafny prelude is missing declaration of type LayerType");
+        options.OutputWriter.Exception("Dafny prelude is missing declaration of type LayerType");
       } else if (dtCtorId == null) {
-        options.OutputWriter.WriteLine("Error: Dafny prelude is missing declaration of type DtCtorId");
+        options.OutputWriter.Exception("Dafny prelude is missing declaration of type DtCtorId");
       } else if (charType == null) {
-        options.OutputWriter.WriteLine("Error: Dafny prelude is missing declaration of type char");
+        options.OutputWriter.Exception("Dafny prelude is missing declaration of type char");
       } else if (refType == null) {
-        options.OutputWriter.WriteLine("Error: Dafny prelude is missing declaration of type ref");
+        options.OutputWriter.Exception("Dafny prelude is missing declaration of type ref");
       } else if (boxType == null) {
-        options.OutputWriter.WriteLine("Error: Dafny prelude is missing declaration of type Box");
+        options.OutputWriter.Exception("Dafny prelude is missing declaration of type Box");
       } else if (heap == null) {
-        options.OutputWriter.WriteLine("Error: Dafny prelude is missing declaration of $Heap");
+        options.OutputWriter.Exception("Dafny prelude is missing declaration of $Heap");
       } else if (allocField == null) {
-        options.OutputWriter.WriteLine("Error: Dafny prelude is missing declaration of constant alloc");
+        options.OutputWriter.Exception("Dafny prelude is missing declaration of constant alloc");
       } else if (tuple2TypeConstructor == null) {
-        options.OutputWriter.WriteLine("Error: Dafny prelude is missing declaration of tuple2TypeConstructor");
+        options.OutputWriter.Exception("Dafny prelude is missing declaration of tuple2TypeConstructor");
       } else if (objectTypeConstructor == null) {
-        options.OutputWriter.WriteLine("Error: Dafny prelude is missing declaration of objectTypeConstructor");
+        options.OutputWriter.Exception("Dafny prelude is missing declaration of objectTypeConstructor");
       } else {
         return new PredefinedDecls(charType, refType, boxType,
                                    setTypeCtor, isetTypeCtor, multiSetTypeCtor,
@@ -648,7 +681,7 @@ namespace Microsoft.Dafny {
                                    objectTypeConstructor,
                                    tuple2Destructors0, tuple2Destructors1, tuple2Constructor, tuple2TypeConstructor,
                                    seqTypeCtor, bv0TypeDecl,
-                                   fieldNameType, tyType, tyTagType, tyTagFamilyType,
+                                   fieldNameType, fieldFamilyNameType, tyType, tyTagType, tyTagFamilyType,
                                    heap, classNameType, nameFamilyType,
                                    datatypeType, handleType, layerType, dtCtorId,
                                    allocField);
@@ -702,7 +735,7 @@ namespace Microsoft.Dafny {
       }
 
       if (Options.GetOrOptionDefault(CommonOptionBag.LogLevelOption).CompareTo(LogEventLevel.Verbose) <= 0) {
-        Options.OutputWriter.WriteLine("Starting translation to Boogie of module " + forModule.FullDafnyName);
+        _ = Options.OutputWriter.Status("Starting translation to Boogie of module " + forModule.FullDafnyName);
       }
 
       foreach (var plugin in p.Options.Plugins) {
@@ -1412,7 +1445,7 @@ namespace Microsoft.Dafny {
       }
     }
 
-    private Implementation AddImplementationWithAttributes(IOrigin tok, Procedure proc, List<Variable> inParams,
+    private Implementation AddImplementationWithAttributes(CanVerifyOrigin tok, Procedure proc, List<Variable> inParams,
       List<Variable> outParams, Variables localVariables, StmtList stmts, QKeyValue kv) {
       Bpl.Implementation impl = new Bpl.Implementation(tok, proc.Name,
         [], inParams, outParams,
@@ -2229,8 +2262,52 @@ namespace Microsoft.Dafny {
       Contract.Requires(Predef != null);
       Contract.Requires(receiverReplacement == null || substMap != null);
       Contract.Ensures(Contract.Result<Bpl.Expr>() != null);
-      var boxO = FunctionCall(tok, BuiltinFunction.Box, null, o);
+      var boxO = Box(tok, o);
       return InRWClause_Aux(tok, o, boxO, f, rw, useInUnchanged, etran, receiverReplacement, substMap);
+    }
+
+    private NAryExpr Box(IOrigin tok, Expr o) {
+      return FunctionCall(tok, BuiltinFunction.Box, null, o);
+    }
+
+    private bool ReferrersEnabled(Type elemType) {
+      return Options.Get(CommonOptionBag.Referrers) && elemType.AsDatatype is TupleTypeDecl { Dims: 2 };
+    }
+
+    private bool ShouldExtractObjectFromMemoryLocation(Type elemType, Expr f) {
+      return ReferrersEnabled(elemType) && f == null;
+    }
+
+    private void PairWithField(IOrigin tok, ref Expr o, ref Expr boxO, Expr f) {
+      o = new NAryExpr(tok, new Bpl.FunctionCall(Predef.Tuple2Constructor), [boxO, Box(tok, f)]);
+      boxO = Box(tok, o);
+    }
+
+    private bool ContainsFieldLocation(Type type) {
+      return type switch {
+        SetType setType => ReferrersEnabled(setType.Arg),
+        SeqType seqType => ReferrersEnabled(seqType.Arg),
+        MultiSetType multiSetType => ReferrersEnabled(multiSetType.Arg),
+        _ => ReferrersEnabled(type)
+      };
+    }
+
+    // From an expression that contains a memory location like o`f, extracts the object (first component of the tuple)
+    Bpl.Expr MaybeExtractObjectFromMemoryLocation(IOrigin tok, Bpl.Expr xb, Type elemType, Bpl.Expr f, ExpressionTranslator etran) {
+      if (ShouldExtractObjectFromMemoryLocation(elemType, f)) {
+        return ExtractObjectFromMemoryLocation(tok, xb, elemType, etran);
+      }
+
+      return xb;
+    }
+
+    private Expr ExtractObjectFromMemoryLocation(IOrigin tok, Expr xb, Type elemType, ExpressionTranslator etran) {
+      return etran.TrExpr(new MemberSelectExpr(tok, new BoogieWrapper(xb, elemType),
+        program.SystemModuleManager.TupleType(tok, 2, false).Ctors[0].Destructors[0]));
+    }
+
+    private Func<Expr, Expr> ExtractObjectFromMemoryLocationCallback(IOrigin tok, Type elemType, ExpressionTranslator etran) {
+      return (Expr xb) => ExtractObjectFromMemoryLocation(tok, xb, elemType, etran);
     }
 
     /// <summary>
@@ -2257,12 +2334,32 @@ namespace Microsoft.Dafny {
       Bpl.Expr disjunction = Bpl.Expr.False;
       foreach (FrameExpression rwComponent in rw) {
         Expression e = rwComponent.E;
+        var field = rwComponent.Field;
+
+        if (f == null) {
+          e = e switch {
+            // Field granularity
+            IndexFieldLocationExpression { Lhs: var lhs } => lhs,
+            FieldLocationExpression { Lhs: var lhs2 } => lhs2,
+            _ => e
+          };
+        }
         if (substMap != null) {
           e = Substitute(e, receiverReplacement, substMap);
         }
 
         Bpl.Expr disjunct;
+        // We revert back to the previous handling for backward compatibility and avoiding triggers
+        if (e is FieldLocationExpression fle && f != null) {
+          Contract.Assert(rwComponent.Field == null);
+          field = fle.ResolvedField;
+          e = fle.Lhs;
+        }
         var eType = e.Type.NormalizeToAncestorType();
+        if (ContainsFieldLocation(eType) && f != null) {
+          PairWithField(tok, ref o, ref boxO, f);
+        }
+
         if (e is WildcardExpr) {
           // For /allocated:{0,1,3}, "function f(...)... reads *"
           // is more useful if "reads *" excludes unallocated references,
@@ -2273,27 +2370,32 @@ namespace Microsoft.Dafny {
           // this issue.
           disjunct = etran.IsAlloced(tok, o);
         } else if (eType is SetType setType) {
+
           // e[Box(o)]
           bool pr;
-          disjunct = etran.TrInSet_Aux(tok, o, boxO, e, setType.Finite, true, out pr);
-        } else if (eType is MultiSetType) {
+          disjunct = etran.TrInSet_Aux(tok, o, boxO, e, setType.Finite, true, out pr,
+            ShouldExtractObjectFromMemoryLocation(setType.Arg, f) ? ExtractObjectFromMemoryLocationCallback(tok, setType.Arg, etran) : null);
+        } else if (eType is MultiSetType multisetType) {
           // e[Box(o)] > 0
           disjunct = etran.TrInMultiSet_Aux(tok, o, boxO, e, true);
-        } else if (eType is SeqType) {
+        } else if (eType is SeqType seqType) {
           // (exists i: int :: 0 <= i && i < Seq#Length(e) && Seq#Index(e,i) == Box(o))
           Bpl.Variable iVar = new Bpl.BoundVariable(tok, new Bpl.TypedIdent(tok, "$i", Bpl.Type.Int));
           Bpl.Expr i = new Bpl.IdentifierExpr(tok, iVar);
           Bpl.Expr iBounds = InSeqRange(tok, i, Type.Int, etran.TrExpr(e), true, null, false);
           Bpl.Expr XsubI = FunctionCall(tok, BuiltinFunction.SeqIndex, Predef.BoxType, etran.TrExpr(e), i);
+          XsubI = MaybeExtractObjectFromMemoryLocation(tok, XsubI, seqType.Arg, f, etran);
           // TODO: the equality in the next line should be changed to one that understands extensionality
           //TRIG (exists $i: int :: 0 <= $i && $i < Seq#Length(read($h0, this, _module.DoublyLinkedList.Nodes)) && Seq#Index(read($h0, this, _module.DoublyLinkedList.Nodes), $i) == $Box($o))
+
+
           disjunct = new Bpl.ExistsExpr(tok, [iVar], BplAnd(iBounds, Bpl.Expr.Eq(XsubI, boxO)));  // LL_TRIGGER
         } else {
           // o == e
-          disjunct = Bpl.Expr.Eq(o, etran.TrExpr(e));
+          disjunct = Bpl.Expr.Eq(o, MaybeExtractObjectFromMemoryLocation(tok, etran.TrExpr(e), e.Type, f, etran));
         }
-        if (rwComponent.Field != null && f != null) {
-          Bpl.Expr q = Bpl.Expr.Eq(f, new Bpl.IdentifierExpr(rwComponent.E.Origin, GetField(rwComponent.Field)));
+        if (field != null && f != null) {
+          Bpl.Expr q = Bpl.Expr.Eq(f, new Bpl.IdentifierExpr(rwComponent.E.Origin, GetField(field)));
           if (usedInUnchanged) {
             q = BplOr(q,
               Bpl.Expr.Eq(f, new Bpl.IdentifierExpr(rwComponent.E.Origin, Predef.AllocField)));
@@ -2956,7 +3058,7 @@ namespace Microsoft.Dafny {
         bool objectGranularity = !fieldGranularity;
         // the frame condition, which is free since it is checked with every heap update and call
         boilerplate.Add(new BoilerplateTriple(tok, true, FrameCondition(tok, modifiesClause, canAllocate, FrameExpressionUse.Modifies, etranPre, etran, etranMod, objectGranularity), null, null, "frame condition: object granularity"));
-        if (modifiesClause.Exists(fe => fe.FieldName != null)) {
+        if (modifiesClause.Exists(fe => fe.FieldName != null || ContainsFieldLocation(fe.E.Type))) {
           boilerplate.Add(new BoilerplateTriple(tok, true, FrameCondition(tok, modifiesClause, canAllocate, FrameExpressionUse.Modifies, etranPre, etran, etranMod, fieldGranularity), null, null, "frame condition: field granularity"));
         }
         // HeapSucc(S1, S2) or HeapSuccGhost(S1, S2)
@@ -3696,6 +3798,8 @@ namespace Microsoft.Dafny {
         return new Bpl.IdentifierExpr(Token.NoToken, "TORDINAL", Predef.Ty);
       } else if (type is ParamTypeProxy) {
         return TrTypeParameter(((ParamTypeProxy)type).orig);
+      } else if (type is FieldType) {
+        return new Bpl.IdentifierExpr(Token.NoToken, "TField", Predef.Ty);
       } else {
         Contract.Assert(false); throw new cce.UnreachableException();  // unexpected type
       }
@@ -3993,11 +4097,11 @@ namespace Microsoft.Dafny {
           canTestFunctionTypes ? dafnyCheck : null
         );
       } else {
+        var isSubset = targetType.NormalizeExpandKeepConstraints() is UserDefinedType {
+          ResolvedClass: SubsetTypeDecl or NewtypeDecl { Var: { } }
+        };
         desc = new SubrangeCheck(errorMessagePrefix, sourceType.ToString(), targetType.ToString(),
-          targetType.NormalizeExpandKeepConstraints() is UserDefinedType {
-            ResolvedClass: SubsetTypeDecl or NewtypeDecl { Var: { } }
-          },
-          false, null, dafnyCheck);
+          isSubset, false, null, dafnyCheck);
       }
       return cre;
     }

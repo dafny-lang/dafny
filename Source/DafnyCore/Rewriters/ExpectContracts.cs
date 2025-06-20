@@ -293,7 +293,7 @@ public class CallRedirector : TopDownVisitor<MemberDecl> {
     }
     // If there's no wrapper for the callee, don't try to call it, but warn.
     if (!NewRedirections.ContainsKey(callee)) {
-      reporter.Warning(MessageSource.Rewriter, ErrorId.rw_no_wrapper, caller.Origin, $"Internal: no wrapper for {callee.FullDafnyName}");
+      reporter.Warning(MessageSource.Rewriter, ErrorId.rw_no_wrapper.ToString(), caller.Origin, $"Internal: no wrapper for {callee.FullDafnyName}");
       return false;
     }
 

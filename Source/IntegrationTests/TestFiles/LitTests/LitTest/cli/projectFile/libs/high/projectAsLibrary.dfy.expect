@@ -4,21 +4,21 @@ CLI: Error: cannot load dfyconfig.toml: --unicode-char is set locally to False, 
 
 Dafny program verifier finished with 0 verified, 0 errors
 Building dependency dfyconfig.toml
-CLI: Warning: The file 'wrappersLib.dfy' was passed to --library. Verification for that file might have used options incompatible with the current ones, or might have been skipped entirely. Use a .doo file to enable Dafny to check that compatible options were used
+CLI: Warning: The file 'wrappersLib.dfy' was passed to --library. Verification for that file might have used options incompatible with the current ones, or might have been skipped entirely. Use a .doo file to enable Dafny to check that compatible options were used (ID: UnverifiedLibrary)
 usesLibrary.dfy(12,37): Error: a postcondition could not be proved on this return path
 usesLibrary.dfy(12,31): Related location: this is the postcondition that could not be proved
 
 Dafny program verifier finished with 0 verified, 1 error
 CLI: Error: Failed to build dependency dfyconfig.toml
-CLI: Warning: The file 'wrappersLib.dfy' was passed to --library. Verification for that file might have used options incompatible with the current ones, or might have been skipped entirely. Use a .doo file to enable Dafny to check that compatible options were used
+CLI: Warning: The file 'wrappersLib.dfy' was passed to --library. Verification for that file might have used options incompatible with the current ones, or might have been skipped entirely. Use a .doo file to enable Dafny to check that compatible options were used (ID: UnverifiedLibrary)
 Building dependency dfyconfig.toml
-CLI: Warning: The file 'wrappersLib.dfy' was passed to --library. Verification for that file might have used options incompatible with the current ones, or might have been skipped entirely. Use a .doo file to enable Dafny to check that compatible options were used
+CLI: Warning: The file 'wrappersLib.dfy' was passed to --library. Verification for that file might have used options incompatible with the current ones, or might have been skipped entirely. Use a .doo file to enable Dafny to check that compatible options were used (ID: UnverifiedLibrary)
 
 Dafny program verifier finished with 0 verified, 0 errors
 Wrote textual form of target program to usesLibrary-lib/usesLibrary.doo
 Additional output written to usesLibrary-lib/manifest.toml
 Additional output written to usesLibrary-lib/program
 Wrote Dafny library to usesLibrary.doo
-CLI: Warning: The file 'wrappersLib.dfy' was passed to --library. Verification for that file might have used options incompatible with the current ones, or might have been skipped entirely. Use a .doo file to enable Dafny to check that compatible options were used
+CLI: Warning: The file 'wrappersLib.dfy' was passed to --library. Verification for that file might have used options incompatible with the current ones, or might have been skipped entirely. Use a .doo file to enable Dafny to check that compatible options were used (ID: UnverifiedLibrary)
 
 Dafny program verifier finished with 0 verified, 0 errors

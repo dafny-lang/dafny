@@ -5,7 +5,7 @@ namespace Microsoft.Dafny;
 
 public abstract class TypeRhs : AssignmentRhs {
 
-  [FilledInDuringResolution] public PreType PreType = null!;
+  [FilledInDuringResolution] public PreType? PreType = null!;
   [FilledInDuringResolution] public Type Type = null!;
   public bool WasResolved => Type != null;
 

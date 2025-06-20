@@ -14,6 +14,11 @@ public class CommonOptionBag {
 
   public static void EnsureStaticConstructorHasRun() { }
 
+  public static readonly Option<bool> CheckSourceLocationConsistency =
+    new("--check-source-location-consistency", "Check that parent nodes contain their children") {
+      IsHidden = true
+    };
+
   public enum ProgressLevel { None, Symbol, Batch }
   public static readonly Option<ProgressLevel> ProgressOption =
     new("--progress", $"While verifying, output information that helps track progress. " +
@@ -113,8 +118,9 @@ The `text` format also includes a more detailed breakdown of what assertions app
   public static readonly Option<bool> JsonDiagnostics = new("--json-diagnostics", @"Deprecated. Return diagnostics in a JSON format.") {
     IsHidden = true
   };
+  public static readonly Option<bool> JsonOutput = new("--json-output", @"Return output in a JSON format.");
 
-  public static readonly Option<IList<FileInfo>> Libraries = new("--library",
+  public static readonly Option<IList<FileInfo>> Libraries = new("--library", () => new List<FileInfo>(),
     @"
 The contents of this file and any files it includes can be referenced from other files as if they were included. 
 However, these contents are skipped during code generation and verification.
@@ -276,6 +282,11 @@ true - Print debug information for the new type system.".TrimStart()) {
     "Rather than throwing an exception, allow compilers to emit uncompilable information including what is " +
     "not compilable instead of regular code. Useful when developing compilers or to document for each test what " +
     "compiler feature is missing") {
+  };
+  public static readonly Option<bool> Referrers = new("--referrers", () => false,
+    "Enables the modeling of backreferences in Dafny, so that one can reason about memory locations at " +
+    "which objects are being stored.") {
+    IsHidden = true
   };
   public static readonly Option<bool> SpillTranslation = new("--spill-translation",
     @"In case the Dafny source code is translated to another language, emit that translation.") {
@@ -639,6 +650,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
     OptionRegistry.RegisterGlobalOption(AllowDeprecation, OptionCompatibility.OptionLibraryImpliesLocalWarning);
     OptionRegistry.RegisterGlobalOption(WarnShadowing, OptionCompatibility.OptionLibraryImpliesLocalWarning);
     OptionRegistry.RegisterGlobalOption(UseStandardLibraries, OptionCompatibility.OptionLibraryImpliesLocalError);
+    OptionRegistry.RegisterGlobalOption(Referrers, OptionCompatibility.CheckOptionMatches);
     OptionRegistry.RegisterOption(TranslateStandardLibrary, OptionScope.Cli);
     OptionRegistry.RegisterOption(WarnAsErrors, OptionScope.Cli);
     OptionRegistry.RegisterOption(ProgressOption, OptionScope.Cli);
@@ -652,6 +664,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
     OptionRegistry.RegisterOption(Prelude, OptionScope.Cli);
     OptionRegistry.RegisterOption(Target, OptionScope.Cli);
     OptionRegistry.RegisterOption(Verbose, OptionScope.Cli);
+    OptionRegistry.RegisterOption(JsonOutput, OptionScope.Cli);
     OptionRegistry.RegisterOption(JsonDiagnostics, OptionScope.Cli);
     OptionRegistry.RegisterOption(QuantifierSyntax, OptionScope.Module);
     OptionRegistry.RegisterOption(SpillTranslation, OptionScope.Cli);
@@ -689,6 +702,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
     OptionRegistry.RegisterOption(PrintDiagnosticsRanges, OptionScope.Cli);
     OptionRegistry.RegisterOption(WaitForDebugger, OptionScope.Cli);
     OptionRegistry.RegisterOption(IgnoreIndentation, OptionScope.Cli);
+    OptionRegistry.RegisterOption(CheckSourceLocationConsistency, OptionScope.Cli);
   }
 }
 
