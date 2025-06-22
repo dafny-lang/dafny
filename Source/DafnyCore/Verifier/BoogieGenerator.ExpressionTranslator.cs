@@ -2430,7 +2430,7 @@ BplBoundVar(varNameGen.FreshId(string.Format("#{0}#", bv.Name)), Predef.BoxType,
 
         } else if (expr is ComprehensionExpr) {
           var e = (ComprehensionExpr)expr;
-          if (e is QuantifierExpr q && q.SplitQuantifier != null) {
+          if (e is QuantifierExpr { SplitQuantifier: not null } q) {
             return CanCallAssumption(q.SplitQuantifierExpression, cco);
           }
 
@@ -2439,7 +2439,8 @@ BplBoundVar(varNameGen.FreshId(string.Format("#{0}#", bv.Name)), Predef.BoxType,
           if (e.Range != null) {
             canCall = BplAnd(CanCallAssumption(e.Range, cco), BplImp(TrExpr(e.Range), canCall));
           }
-          if (expr is MapComprehension mc && mc.IsGeneralMapComprehension) {
+
+          if (expr is MapComprehension { IsGeneralMapComprehension: true } mc) {
             canCall = BplAnd(canCall, CanCallAssumption(mc.TermLeft, cco));
 
             // The translation of "map x,y | R(x,y) :: F(x,y) := G(x,y)" makes use of projection
@@ -2448,9 +2449,7 @@ BplBoundVar(varNameGen.FreshId(string.Format("#{0}#", bv.Name)), Predef.BoxType,
             // that is (without the let expression):
             //     forall x,y :: R(x,y) ==> R(project_x(F(x,y)), project_y(F(x,y))) && F(project_x(F(x,y)), project_y(F(x,y))) == F(x,y)
             // The triggers for the quantification are those detected for the given map comprehension, if any.
-            List<Boogie.Variable> bvs;
-            List<Boogie.Expr> args;
-            BoogieGenerator.CreateBoundVariables(mc.BoundVars, out bvs, out args);
+            BoogieGenerator.CreateBoundVariables(mc.BoundVars, out var bvs, out var args);
             Contract.Assert(mc.BoundVars.Count == bvs.Count);
             BoogieGenerator.CreateMapComprehensionProjectionFunctions(mc);
             Contract.Assert(mc.ProjectionFunctions != null);
@@ -2472,6 +2471,7 @@ BplBoundVar(varNameGen.FreshId(string.Format("#{0}#", bv.Name)), Predef.BoxType,
             var defn = BplForall(bvs, trig, BplImp(R, BplAnd(Rprime, Boogie.Expr.Eq(F, Fprime))));
             canCall = BplAnd(canCall, defn);
           }
+
           // Create a list of all possible bound variables
           var bvarsAndAntecedents = TrBoundVariables_SeparateWhereClauses(e.BoundVars);
           // Produce the quantified CanCall expression, with a suitably reduced set of bound variables

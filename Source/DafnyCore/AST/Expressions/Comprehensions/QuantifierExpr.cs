@@ -84,7 +84,18 @@ public abstract class QuantifierExpr : ComprehensionExpr, TypeParameter.ParentTy
       foreach (var e in base.SubExpressions) {
         yield return e;
       }
-      foreach (var e in Attributes.SubExpressions(Attributes)) {
+
+      if (SplitQuantifier != null) {
+        foreach (var e in SplitQuantifier) {
+          yield return e;
+        }
+      }
+    }
+  }
+
+  public override IEnumerable<Expression> SubExpressionsWithoutAttributes {
+    get {
+      foreach (var e in base.SubExpressionsWithoutAttributes) {
         yield return e;
       }
 

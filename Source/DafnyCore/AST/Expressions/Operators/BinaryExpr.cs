@@ -339,7 +339,7 @@ public class BinaryExpr : Expression, ICloneable<BinaryExpr>, ICanFormat {
   /// <summary>
   /// Returns a resolved binary expression
   /// </summary>
-  public BinaryExpr(IOrigin origin, BinaryExpr.ResolvedOpcode rop, Expression e0, Expression e1)
+  public BinaryExpr(IOrigin origin, ResolvedOpcode rop, Expression e0, Expression e1)
     : this(origin, BinaryExpr.ResolvedOp2SyntacticOp(rop), e0, e1) {
     ResolvedOp = rop;
     switch (rop) {

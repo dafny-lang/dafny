@@ -44,7 +44,7 @@ namespace Microsoft.Dafny.Triggers {
         yield break;
       }
 
-      foreach (var subexpr in expr.SubExpressions) {
+      foreach (var subexpr in expr.SubExpressionsWithoutAttributes) {
         foreach (var r_subexpr in AllSubExpressions(subexpr, wrapOld, false, inlineLets)) {
           foreach (var e in TriggerUtils.MaybeWrapInOld(r_subexpr, isOld)) {
             yield return e;
@@ -52,6 +52,7 @@ namespace Microsoft.Dafny.Triggers {
         }
       }
 
+#if IM_NOT_SO_SURE
       if (expr is StmtExpr) {
         foreach (var r_subexpr in AllSubExpressions(((StmtExpr)expr).S, wrapOld, false, inlineLets)) {
           foreach (var e in TriggerUtils.MaybeWrapInOld(r_subexpr, isOld)) {
@@ -59,12 +60,14 @@ namespace Microsoft.Dafny.Triggers {
           }
         }
       }
+#endif
 
       if (!strict) {
         yield return expr;
       }
     }
 
+#if IM_NOT_SO_SURE
     internal static IEnumerable<Expression> AllSubExpressions(this Statement stmt, bool wrapOld, bool strict, bool inlineLets = false) {
       foreach (var subexpr in stmt.SubExpressions) {
         foreach (var r_subexpr in AllSubExpressions(subexpr, wrapOld, false, inlineLets)) {
@@ -78,6 +81,7 @@ namespace Microsoft.Dafny.Triggers {
         }
       }
     }
+#endif
 
     internal static bool ExpressionEq(this Expression expr1, Expression expr2) {
       expr1 = expr1.Resolved;

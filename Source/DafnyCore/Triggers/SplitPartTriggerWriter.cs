@@ -66,7 +66,7 @@ class SplitPartTriggerWriter {
   }
 
   public bool RewriteMatchingLoop(ErrorReporter reporter, ModuleDefinition module) {
-    if (!NeedsAutoTriggers() || !WantsMatchingLoopRewrite()) {
+    if (!NeedsAutoTriggers() || !WantsMatchingLoopRewrite() || CouldSuppressLoops) {
       return false;
     }
 
@@ -97,7 +97,11 @@ class SplitPartTriggerWriter {
     var expr = (QuantifierExpr)Comprehension;
     if (substMap.Count > 0) {
       var s = new ExprSubstituter(substMap);
-      expr = s.Substitute(Comprehension) as QuantifierExpr;
+      expr = (QuantifierExpr)s.Substitute(Comprehension);
+      if (s.ErrorDetected) {
+        // Something unsupported was encountered in the substitution
+        return false;
+      }
       NamedExpressions.AddRange(substMap);
     } else {
       // make a copy of the expr

@@ -191,7 +191,7 @@ class Node {
   lemma AnalyzeList(S: set<Node?>) returns (A: int, B: int)
     requires IsClosed(S)
     // find an A and B (0 <= A && 1 <= B) such that:
-    // the first A steps are no on a cycle, and
+    // the first A steps are not on a cycle, and
     // either next^A == null or next^A == next^(A+B).
     ensures 0 <= A && 1 <= B
     ensures Nexxxt(A, S) != null ==> Nexxxt(A, S) == Nexxxt(A, S).Nexxxt(B, S)

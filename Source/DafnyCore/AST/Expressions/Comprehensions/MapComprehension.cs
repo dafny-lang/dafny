@@ -68,4 +68,12 @@ public class MapComprehension : ComprehensionExpr, ICloneable<MapComprehension> 
       yield return Term;
     }
   }
+
+  public override IEnumerable<Expression> SubExpressionsWithoutAttributes {
+    get {
+      if (Range != null) { yield return Range; }
+      if (TermLeft != null) { yield return TermLeft; }
+      yield return Term;
+    }
+  }
 }
