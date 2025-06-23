@@ -3160,6 +3160,7 @@ implementation {:smt_option "smt.arith.solver", "2"} {:verboseName "ReferrersLoc
     havoc $nw;
     assume $nw != null && $Is($nw, Tclass._System.array?(Tclass._module.SimpleObject?()));
     assume !$Unbox(read($Heap, $nw, alloc)): bool;
+    assume readReferrers($ReferrersHeap, $nw) == Set#Empty(): Set;
     assume _System.array.Length($nw) == LitInt(1);
     assert {:id "id9"} {:subsumption 0} (forall arrayinit#0#i0#0: int :: 
       0 <= arrayinit#0#i0#0 && arrayinit#0#i0#0 < LitInt(1)
@@ -4606,6 +4607,7 @@ implementation {:smt_option "smt.arith.solver", "2"} {:verboseName "ObjectFields
     havoc $nw;
     assume $nw != null && $Is($nw, Tclass._System.array?(Tclass._module.ChainingObject()));
     assume !$Unbox(read($Heap, $nw, alloc)): bool;
+    assume readReferrers($ReferrersHeap, $nw) == Set#Empty(): Set;
     assume _System.array.Length($nw) == LitInt(3);
     assert {:id "id177"} {:subsumption 0} (forall arrayinit#0#i0#0: int :: 
       0 <= arrayinit#0#i0#0 && arrayinit#0#i0#0 < LitInt(3)

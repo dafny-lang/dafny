@@ -3160,6 +3160,7 @@ implementation {:smt_option "smt.arith.solver", "2"} {:verboseName "ReferrersLoc
     havoc $nw;
     assume $nw != null && $Is($nw, Tclass._System.array?(Tclass._module.SimpleObject?()));
     assume !$Unbox(read($Heap, $nw, alloc)): bool;
+    assume readReferrers($ReferrersHeap, $nw) == Set#Empty(): Set;
     assume _System.array.Length($nw) == LitInt(1);
     assert {:id "id9"} {:subsumption 0} (forall arrayinit#0#i0#0: int :: 
       0 <= arrayinit#0#i0#0 && arrayinit#0#i0#0 < LitInt(1)
@@ -3201,9 +3202,14 @@ implementation {:smt_option "smt.arith.solver", "2"} {:verboseName "ReferrersLoc
     assume $IsGoodHeap($Heap);
     assume $IsHeapAnchor($Heap);
     u#0 := $nw;
-    $ReferrersHeap := updateReferrers($ReferrersHeap, u#0, Set#UnionOne(Set#Empty(),
-      $Box(#_System._tuple#2._#Make2($Box(locals), $Box(local_field(_module.__default.ReferrersLocal.u, depth))))
-    ));
+    if (u#0 != null)
+    {
+        $ReferrersHeap := updateReferrers($ReferrersHeap, 
+          u#0, 
+          Set#UnionOne(readReferrers($ReferrersHeap, u#0), 
+            $Box(#_System._tuple#2._#Make2($Box(locals), $Box(local_field(_module.__default.ReferrersLocal.u, depth))))));
+    }
+
     assume {:captureState "referrers.dfy(21,42)"} true;
     // ----- assert statement ----- C:\Users\mimayere\Documents\dafny\Source\IntegrationTests\TestFiles\LitTests\LitTest\referrers\referrers.dfy(22,3)
     assume true;
@@ -4060,6 +4066,8 @@ const unique _module.__default.ObjectFields.t: FieldFamily;
 
 const unique _module.__default.ObjectFields.u: FieldFamily;
 
+const unique _module.__default.ObjectFields.a: FieldFamily;
+
 const unique _module.ChainingObject.__ctor.this: FieldFamily;
 
 implementation {:smt_option "smt.arith.solver", "2"} {:verboseName "ObjectFields (correctness)"} Impl$$_module.__default.ObjectFields(depth: int) returns ($_reverifyPost: bool)
@@ -4343,13 +4351,20 @@ implementation {:smt_option "smt.arith.solver", "2"} {:verboseName "ObjectFields
     assume true;
     // ProcessCallStmt: CheckSubrange
     compiledMemRef##0 := #_System._tuple#2._#Make2($Box(locals), $Box(local_field(_module.__default.ObjectFields.t, depth)));
-
-    // Tmp assertion
     call {:id "id139"} Call$$_module.__default.CouldFree(t##0, compiledMemRef##0);
     // TrCallStmt: After ProcessCallStmt
     assume {:captureState "referrers.dfy(132,24)"} true;
     // ----- assignment statement ----- C:\Users\mimayere\Documents\dafny\Source\IntegrationTests\TestFiles\LitTests\LitTest\referrers\referrers.dfy(134,9)
     assume true;
+    if (u#0 != null && !defass#u#0)
+    {
+        $ReferrersHeap := updateReferrers($ReferrersHeap, 
+          u#0, 
+          Set#Difference(readReferrers($ReferrersHeap, u#0), 
+            Set#UnionOne(Set#Empty(): Set, 
+              $Box(#_System._tuple#2._#Make2($Box(locals), $Box(local_field(_module.__default.ObjectFields.u, depth)))))));
+    }
+
     // ----- init call statement ----- C:\Users\mimayere\Documents\dafny\Source\IntegrationTests\TestFiles\LitTests\LitTest\referrers\referrers.dfy(134,12)
     // TrCallStmt: Before ProcessCallStmt
     assert {:id "id140"} defass#t#0;
@@ -4363,9 +4378,13 @@ implementation {:smt_option "smt.arith.solver", "2"} {:verboseName "ObjectFields
     assume readReferrers($AllocationReferrersHeap#0, $nw) == Set#Empty();
     assert readReferrers($ReferrersHeap, $nw) == Set#Empty();
     u#0 := $nw;
-    $ReferrersHeap := updateReferrers($ReferrersHeap, u#0, Set#UnionOne(readReferrers($ReferrersHeap, u#0),
-      $Box(#_System._tuple#2._#Make2($Box(locals), $Box(local_field(_module.__default.ObjectFields.u, depth))))
-    ));
+    if (u#0 != null)
+    {
+        $ReferrersHeap := updateReferrers($ReferrersHeap, 
+          u#0, 
+          Set#UnionOne(readReferrers($ReferrersHeap, u#0), 
+            $Box(#_System._tuple#2._#Make2($Box(locals), $Box(local_field(_module.__default.ObjectFields.u, depth))))));
+    }
     defass#u#0 := true;
     assume {:captureState "referrers.dfy(134,32)"} true;
     // ----- assert statement ----- C:\Users\mimayere\Documents\dafny\Source\IntegrationTests\TestFiles\LitTests\LitTest\referrers\referrers.dfy(135,3)
@@ -4466,6 +4485,15 @@ implementation {:smt_option "smt.arith.solver", "2"} {:verboseName "ObjectFields
   after_0:
     // ----- assignment statement ----- C:\Users\mimayere\Documents\dafny\Source\IntegrationTests\TestFiles\LitTests\LitTest\referrers\referrers.dfy(146,9)
     assume true;
+    if (a#0 != null)
+    {
+        $ReferrersHeap := updateReferrers($ReferrersHeap, 
+          a#0, 
+          Set#Difference(readReferrers($ReferrersHeap, a#0), 
+            Set#UnionOne(Set#Empty(): Set, 
+              $Box(#_System._tuple#2._#Make2($Box(locals), $Box(local_field(_module.__default.ObjectFields.a, depth)))))));
+    }
+
     assert {:id "id172"} 0 <= LitInt(3);
     // Begin Comprehension WF check
     if (*)
@@ -4607,6 +4635,14 @@ implementation {:smt_option "smt.arith.solver", "2"} {:verboseName "ObjectFields
     assume $IsGoodHeap($Heap);
     assume $IsHeapAnchor($Heap);
     a#0 := $nw;
+    if (a#0 != null)
+    {
+        $ReferrersHeap := updateReferrers($ReferrersHeap, 
+          a#0, 
+          Set#UnionOne(readReferrers($ReferrersHeap, a#0), 
+            $Box(#_System._tuple#2._#Make2($Box(locals), $Box(local_field(_module.__default.ObjectFields.a, depth))))));
+    }
+
     assume {:captureState "referrers.dfy(146,62)"} true;
     // ----- assert statement ----- C:\Users\mimayere\Documents\dafny\Source\IntegrationTests\TestFiles\LitTests\LitTest\referrers\referrers.dfy(147,3)
     assert {:id "id179"} a#0 != null;

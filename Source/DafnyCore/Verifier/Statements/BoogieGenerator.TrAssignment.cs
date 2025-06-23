@@ -160,7 +160,6 @@ public partial class BoogieGenerator {
           var postReferrersHeapUpdate = Bpl.Cmd.SimpleAssign(stmt.Origin, etran.ReferrerrsHeapCastToIdentifierExpr, referrersHeapRhs);
           var b = new StmtListBuilder();
           b.Add(postReferrersHeapUpdate);
-          var bElse = new StmtListBuilder();
           var ifCmd = new Bpl.IfCmd(stmt.Origin,
             Bpl.Expr.Neq(bRhs, Predef.Null),
             b.Collect(stmt.Origin),
@@ -560,17 +559,7 @@ public partial class BoogieGenerator {
           heapAllocationRecorder = Bpl.Cmd.SimpleAssign(tok, etran.HeapCastToIdentifierExpr, heapRhs);
         }
         CommitAllocatedObject(tok, nw, heapAllocationRecorder, builder, etran);
-        if (Options.Get(CommonOptionBag.Referrers)) {
-          // Add assume readReferrers($ReferrersHeap, nw) == Set#Empty()
-
-          builder.Add(
-            new AssumeCmd(tok,
-             Bpl.Expr.Eq(
-               ReadReferrersHeap(tok, etran.ReferrersHeapExpr, nw),
-               FunctionCall(tok, BuiltinFunction.SetEmpty, Predef.SetType)
-             )
-           ));
-        }
+        AssumeEmptyReferrersFor(nw, tok, builder, etran);
       }
       if (allocateClass.InitCall != null) {
         AddComment(builder, allocateClass.InitCall, "init call statement");
@@ -614,6 +603,7 @@ public partial class BoogieGenerator {
       Bpl.IdentifierExpr nw = GetNewVar_IdExpr(tok, locals);
 
       SelectAllocateObject(tok, nw, allocateArray.Type, true, builder, etran);
+      AssumeEmptyReferrersFor(nw, tok, builder, etran);
       int i = 0;
       foreach (Expression dim in allocateArray.ArrayDimensions) {
         // assume Array#Length($nw, i) == arraySize;
@@ -652,6 +642,22 @@ public partial class BoogieGenerator {
       return HandleGivenLhs(tok, bGivenLhs, lhsType, builder, stmt, bLhs, nw, allocateArray);
     } else {
       throw new UnreachableException();
+    }
+  }
+
+  private void AssumeEmptyReferrersFor(Bpl.IdentifierExpr nw, IOrigin tok, BoogieStmtListBuilder builder,
+    ExpressionTranslator etran)
+  {
+    if (Options.Get(CommonOptionBag.Referrers)) {
+      // Add assume readReferrers($ReferrersHeap, nw) == Set#Empty()
+
+      builder.Add(
+        new AssumeCmd(tok,
+          Bpl.Expr.Eq(
+            ReadReferrersHeap(tok, etran.ReferrersHeapExpr, nw),
+            FunctionCall(tok, BuiltinFunction.SetEmpty, Predef.SetType)
+          )
+        ));
     }
   }
 
