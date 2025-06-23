@@ -56,7 +56,9 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected override string GetCompileNameNotProtected(IVariable v) {
-      return preventShadowing ? v.GetOrCreateCompileName(currentIdGenerator) : v.CompileNameShadowable;
+      var canShadow = !preventShadowing &&
+                      !(enclosingMethod != null && enclosingMethod.Outs.Any(outVar => outVar.Name == v.Name));
+      return canShadow ? v.CompileNameShadowable : v.GetOrCreateCompileName(currentIdGenerator);
     }
 
     public string TokenToString(IOrigin tok) {

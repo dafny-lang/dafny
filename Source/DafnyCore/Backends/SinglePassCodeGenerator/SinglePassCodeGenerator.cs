@@ -2829,6 +2829,8 @@ namespace Microsoft.Dafny.Compilers {
 
       var w = cw.CreateMethod(m, CombineAllTypeArguments(m), !IsExternallyImported(m), false, lookasideBody);
       if (w != null) {
+        Contract.Assert(enclosingMethod == null);
+        enclosingMethod = m;
         if (m.IsTailRecursive) {
           w = EmitTailCallStructure(m, w);
         }
@@ -2849,17 +2851,14 @@ namespace Microsoft.Dafny.Compilers {
         if (m.Body == null) {
           Error(ErrorId.c_method_has_no_body, m.Origin, w, "Method {0} has no body so it cannot be compiled", m.FullName);
         } else {
-          Contract.Assert(enclosingMethod == null);
-          enclosingMethod = m;
           if (m.Body is DividedBlockStmt dividedBlockStmt) {
             TrDividedBlockStmt((Constructor)m, dividedBlockStmt, w);
           } else {
             TrStmtList(m.Body.Body, w);
           }
-
-          Contract.Assert(enclosingMethod == m);
-          enclosingMethod = null;
         }
+        Contract.Assert(enclosingMethod == m);
+        enclosingMethod = null;
       }
 
       HandleCompilingMainMethod(program, m, cw);
