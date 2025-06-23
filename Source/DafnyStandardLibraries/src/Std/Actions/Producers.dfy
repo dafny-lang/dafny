@@ -159,8 +159,6 @@ module Std.Producers {
       ensures ValidChange(now)
       ensures NewProduced(now) == NewProduced(newer) + newer.NewProduced(now)
     {
-      // TODO: clean up using NewProduced etc
-      assert outputs <= now.outputs;
       var newerOutputs := newer.outputs[|outputs|..];
       var nowOutputs := now.outputs[|newer.outputs|..];
       var newOutputs := now.outputs[|outputs|..];
@@ -315,6 +313,10 @@ module Std.Producers {
       ProducedCount() - old(ProducedCount())
     }
 
+    // The exact number of remaining elements, if known.
+    // In other words, the number of times the action can be invoked
+    // before it outputs None.
+    // Remaining() is None iff this is not known.
     function Remaining(): Option<nat>
       reads this, Repr
       requires Valid()

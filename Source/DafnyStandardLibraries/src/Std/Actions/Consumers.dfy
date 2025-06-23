@@ -71,8 +71,6 @@ module Std.Consumers {
       ensures ValidChange(now)
       ensures NewConsumed(now) == NewConsumed(newer) + newer.NewConsumed(now)
     {
-      // TODO: clean up using NewConsumed etc
-      assert history <= now.history;
       var newerHistory := newer.history[|history|..];
       var nowHistory := now.history[|newer.history|..];
       var newHistory := now.history[|history|..];
@@ -185,7 +183,9 @@ module Std.Consumers {
       Seq.Partitioned(history, WasConsumed)
     }
 
-    // TODO: Name is wrong, should be more like RemainingCapacity()?
+    // The number of times the action can be invoked
+    // before it outputs false.
+    // Capacity() is None iff this is not known.
     function Capacity(): Option<nat>
       reads this, Repr
       requires Valid()

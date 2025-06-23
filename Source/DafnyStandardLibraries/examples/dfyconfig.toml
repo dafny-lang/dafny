@@ -16,5 +16,6 @@ type-system-refresh = true
 general-traits = "datatype"
 general-newtypes = true
 
+# This gives too many false positives right now, but should be enabled in the future
 warn-redundant-assumptions = false
 warn-contradictory-assumptions = true

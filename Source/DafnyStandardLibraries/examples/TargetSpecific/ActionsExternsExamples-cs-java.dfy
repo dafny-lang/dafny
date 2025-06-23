@@ -10,7 +10,8 @@ module ActionsExternsExamples {
   import opened Std.Termination
 
   @IsolateAssertions
-  method {:test} SetIteration() {
+  @Test
+  method SetIteration() {
 
     var s: set<nat> := { 1, 2, 3, 4, 5 };
     var e: Producer<nat>, proof := MakeSetReader(s);
@@ -49,7 +50,8 @@ module ActionsExternsExamples {
     expect copy == s;
   }
 
-  method {:test} SetToSeq() {
+  @Test
+  method SetToSeq() {
 
     var s := { 1, 2, 3, 4, 5 };
     var setReader, producerOfSetProof := MakeSetReader(s);
