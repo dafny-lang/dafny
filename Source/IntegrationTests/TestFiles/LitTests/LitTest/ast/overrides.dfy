@@ -1,6 +1,5 @@
-// RUN: %run "%s" > "%t"
-// RUN: %diff "%s.expect" "%t"
-
+// RUN: %testDafnyForEachCompiler %s
+ 
 trait T {
   method foo() returns (r: int)  {
     return 3;
