@@ -2469,10 +2469,7 @@ namespace Microsoft.Dafny {
 
         var traitMember = member.OverriddenMember;
         var trait = traitMember.EnclosingClass;
-        if (trait is not TraitDecl) {
-          reporter.Error(MessageSource.Resolver, member.Origin,
-            $"{traitMember.WhatKindAndName} is inherited from {trait.WhatKindAndName} and is not allowed to be re-declared in {cl.WhatKindAndName}");
-        } else if (traitMember.IsStatic) {
+        if (traitMember.IsStatic) {
           reporter.Error(MessageSource.Resolver, member.Origin,
             $"static {traitMember.WhatKindAndName} is inherited from trait '{trait.Name}' and is not allowed to be re-declared");
         } else if (member.IsStatic) {
@@ -2482,7 +2479,7 @@ namespace Microsoft.Dafny {
           // The class is not allowed to do anything with the field other than silently inherit it.
           reporter.Error(MessageSource.Resolver, member.Origin,
             $"{traitMember.WhatKindAndName} is inherited from trait '{trait.Name}' and is not allowed to be re-declared");
-        } else if ((traitMember as Function)?.Body != null || (traitMember as MethodOrConstructor)?.Body != null) {
+        } else if ((traitMember as Function)?.Body != null || (traitMember as Constructor)?.Body != null) {
           // the overridden member is a fully defined function or method, so the class is not allowed to do anything with it other than silently inherit it
           reporter.Error(MessageSource.Resolver, member.Origin,
             $"fully defined {traitMember.WhatKindAndName} is inherited from trait '{trait.Name}' and is not allowed to be re-declared");
