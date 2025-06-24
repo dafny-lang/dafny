@@ -38,7 +38,7 @@ namespace Microsoft.Dafny {
       return true;
     }
 
-    Bpl.Expr /*?*/ AddDefiniteAssignmentTracker(IVariable p, Variables localVariables, bool isOutParam = false,
+    Bpl.IdentifierExpr /*?*/ AddDefiniteAssignmentTracker(IVariable p, Variables localVariables, bool isOutParam = false,
       bool forceGhostVar = false) {
       Contract.Requires(p != null);
       Contract.Requires(localVariables != null);

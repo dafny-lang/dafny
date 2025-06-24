@@ -532,6 +532,10 @@ public partial class BoogieGenerator {
       }
       if (needDefiniteAssignmentTracking) {
         var defassExpr = AddDefiniteAssignmentTracker(local, locals);
+        if (defassExpr != null) { // Add the assignment defassExpr := false;
+          builder.Add(Bpl.Cmd.SimpleAssign(local.Origin, defassExpr, Bpl.Expr.False));
+        }
+
         if (wh != null && defassExpr != null) {
           // make the "where" expression be "defass ==> wh", because we don't want to assume anything
           // before the variable has been assigned (for a variable that needs definite-assignment tracking

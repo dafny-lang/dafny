@@ -3022,6 +3022,8 @@ implementation {:smt_option "smt.arith.solver", "2"} {:verboseName "ReferrersLoc
     assume true;
     if (t#0 != null)
     {
+        assume Set#IsMember(readReferrers($ReferrersHeap, t#0), 
+          $Box(#_System._tuple#2._#Make2($Box(locals), $Box(local_field(_module.__default.ReferrersLocal.t, depth)))));
         $ReferrersHeap := updateReferrers($ReferrersHeap, 
           t#0, 
           Set#Difference(readReferrers($ReferrersHeap, t#0), 
@@ -3039,6 +3041,8 @@ implementation {:smt_option "smt.arith.solver", "2"} {:verboseName "ReferrersLoc
     t#0 := $nw;
     if (t#0 != null)
     {
+        assume !Set#IsMember(readReferrers($ReferrersHeap, t#0), 
+          $Box(#_System._tuple#2._#Make2($Box(locals), $Box(local_field(_module.__default.ReferrersLocal.t, depth)))));
         $ReferrersHeap := updateReferrers($ReferrersHeap, 
           t#0, 
           Set#UnionOne(readReferrers($ReferrersHeap, t#0), 
@@ -3055,6 +3059,9 @@ implementation {:smt_option "smt.arith.solver", "2"} {:verboseName "ReferrersLoc
     assume true;
     if (alias_t#0 != null)
     {
+        assume Set#IsMember(readReferrers($ReferrersHeap, alias_t#0), 
+          $Box(#_System._tuple#2._#Make2($Box(locals), 
+              $Box(local_field(_module.__default.ReferrersLocal.alias__t, depth)))));
         $ReferrersHeap := updateReferrers($ReferrersHeap, 
           alias_t#0, 
           Set#Difference(readReferrers($ReferrersHeap, alias_t#0), 
@@ -3067,6 +3074,9 @@ implementation {:smt_option "smt.arith.solver", "2"} {:verboseName "ReferrersLoc
     alias_t#0 := t#0;
     if (alias_t#0 != null)
     {
+        assume !Set#IsMember(readReferrers($ReferrersHeap, alias_t#0), 
+          $Box(#_System._tuple#2._#Make2($Box(locals), 
+              $Box(local_field(_module.__default.ReferrersLocal.alias__t, depth)))));
         $ReferrersHeap := updateReferrers($ReferrersHeap, 
           alias_t#0, 
           Set#UnionOne(readReferrers($ReferrersHeap, alias_t#0), 
@@ -3090,6 +3100,8 @@ implementation {:smt_option "smt.arith.solver", "2"} {:verboseName "ReferrersLoc
     assume true;
     if (t#0 != null)
     {
+        assume Set#IsMember(readReferrers($ReferrersHeap, t#0), 
+          $Box(#_System._tuple#2._#Make2($Box(locals), $Box(local_field(_module.__default.ReferrersLocal.t, depth)))));
         $ReferrersHeap := updateReferrers($ReferrersHeap, 
           t#0, 
           Set#Difference(readReferrers($ReferrersHeap, t#0), 
@@ -3102,6 +3114,8 @@ implementation {:smt_option "smt.arith.solver", "2"} {:verboseName "ReferrersLoc
     t#0 := null;
     if (t#0 != null)
     {
+        assume !Set#IsMember(readReferrers($ReferrersHeap, t#0), 
+          $Box(#_System._tuple#2._#Make2($Box(locals), $Box(local_field(_module.__default.ReferrersLocal.t, depth)))));
         $ReferrersHeap := updateReferrers($ReferrersHeap, 
           t#0, 
           Set#UnionOne(readReferrers($ReferrersHeap, t#0), 
@@ -3126,6 +3140,8 @@ implementation {:smt_option "smt.arith.solver", "2"} {:verboseName "ReferrersLoc
     assume true;
     if (u#0 != null)
     {
+        assume Set#IsMember(readReferrers($ReferrersHeap, u#0), 
+          $Box(#_System._tuple#2._#Make2($Box(locals), $Box(local_field(_module.__default.ReferrersLocal.u, depth)))));
         $ReferrersHeap := updateReferrers($ReferrersHeap, 
           u#0, 
           Set#Difference(readReferrers($ReferrersHeap, u#0), 
@@ -3204,6 +3220,8 @@ implementation {:smt_option "smt.arith.solver", "2"} {:verboseName "ReferrersLoc
     u#0 := $nw;
     if (u#0 != null)
     {
+        assume !Set#IsMember(readReferrers($ReferrersHeap, u#0), 
+          $Box(#_System._tuple#2._#Make2($Box(locals), $Box(local_field(_module.__default.ReferrersLocal.u, depth)))));
         $ReferrersHeap := updateReferrers($ReferrersHeap, 
           u#0, 
           Set#UnionOne(readReferrers($ReferrersHeap, u#0), 
@@ -3355,10 +3373,14 @@ implementation {:smt_option "smt.arith.solver", "2"} {:verboseName "EnsuresRefer
       $o != null && $Unbox(read($Heap, $o, alloc)): bool ==> false);
     assume {:captureState "referrers.dfy(34,0): initial state"} true;
     $_reverifyPost := false;
+    defass#t_local#0 := false;
     // ----- assignment statement ----- C:\Users\mimayere\Documents\dafny\Source\IntegrationTests\TestFiles\LitTests\LitTest\referrers\referrers.dfy(35,15)
     assume true;
-    if (t_local#0 != null && !defass#t_local#0)
+    if (t_local#0 != null && defass#t_local#0)
     {
+        assume Set#IsMember(readReferrers($ReferrersHeap, t_local#0), 
+          $Box(#_System._tuple#2._#Make2($Box(locals), 
+              $Box(local_field(_module.__default.EnsuresReferrersUnchanged.t__local, depth)))));
         $ReferrersHeap := updateReferrers($ReferrersHeap, 
           t_local#0, 
           Set#Difference(readReferrers($ReferrersHeap, t_local#0), 
@@ -3371,6 +3393,9 @@ implementation {:smt_option "smt.arith.solver", "2"} {:verboseName "EnsuresRefer
     t_local#0 := t2#0;
     if (t_local#0 != null)
     {
+        assume !Set#IsMember(readReferrers($ReferrersHeap, t_local#0), 
+          $Box(#_System._tuple#2._#Make2($Box(locals), 
+              $Box(local_field(_module.__default.EnsuresReferrersUnchanged.t__local, depth)))));
         $ReferrersHeap := updateReferrers($ReferrersHeap, 
           t_local#0, 
           Set#UnionOne(readReferrers($ReferrersHeap, t_local#0), 
@@ -3445,10 +3470,14 @@ implementation {:smt_option "smt.arith.solver", "2"} {:verboseName "CallReferrer
       $o != null && $Unbox(read($Heap, $o, alloc)): bool ==> false);
     assume {:captureState "referrers.dfy(41,33): initial state"} true;
     $_reverifyPost := false;
+    defass#t#0 := false;
     // ----- assignment statement ----- C:\Users\mimayere\Documents\dafny\Source\IntegrationTests\TestFiles\LitTests\LitTest\referrers\referrers.dfy(42,9)
     assume true;
-    if (t#0 != null && !defass#t#0)
+    if (t#0 != null && defass#t#0)
     {
+        assume Set#IsMember(readReferrers($ReferrersHeap, t#0), 
+          $Box(#_System._tuple#2._#Make2($Box(locals), 
+              $Box(local_field(_module.__default.CallReferrersMethodCall.t, depth)))));
         $ReferrersHeap := updateReferrers($ReferrersHeap, 
           t#0, 
           Set#Difference(readReferrers($ReferrersHeap, t#0), 
@@ -3467,6 +3496,9 @@ implementation {:smt_option "smt.arith.solver", "2"} {:verboseName "CallReferrer
     t#0 := $nw;
     if (t#0 != null)
     {
+        assume !Set#IsMember(readReferrers($ReferrersHeap, t#0), 
+          $Box(#_System._tuple#2._#Make2($Box(locals), 
+              $Box(local_field(_module.__default.CallReferrersMethodCall.t, depth)))));
         $ReferrersHeap := updateReferrers($ReferrersHeap, 
           t#0, 
           Set#UnionOne(readReferrers($ReferrersHeap, t#0), 
@@ -3563,10 +3595,13 @@ implementation {:smt_option "smt.arith.solver", "2"} {:verboseName "GhostReferre
       $o != null && $Unbox(read($Heap, $o, alloc)): bool ==> false);
     assume {:captureState "referrers.dfy(50,36): initial state"} true;
     $_reverifyPost := false;
+    defass#t#0 := false;
     // ----- assignment statement ----- C:\Users\mimayere\Documents\dafny\Source\IntegrationTests\TestFiles\LitTests\LitTest\referrers\referrers.dfy(51,15)
     assume true;
-    if (t#0 != null && !defass#t#0)
+    if (t#0 != null && defass#t#0)
     {
+        assume Set#IsMember(readReferrers($ReferrersHeap, t#0), 
+          $Box(#_System._tuple#2._#Make2($Box(locals), $Box(local_field(_module.__default.GhostReferrersLocals.t, depth)))));
         $ReferrersHeap := updateReferrers($ReferrersHeap, 
           t#0, 
           Set#Difference(readReferrers($ReferrersHeap, t#0), 
@@ -3584,6 +3619,8 @@ implementation {:smt_option "smt.arith.solver", "2"} {:verboseName "GhostReferre
     t#0 := $nw;
     if (t#0 != null)
     {
+        assume !Set#IsMember(readReferrers($ReferrersHeap, t#0), 
+          $Box(#_System._tuple#2._#Make2($Box(locals), $Box(local_field(_module.__default.GhostReferrersLocals.t, depth)))));
         $ReferrersHeap := updateReferrers($ReferrersHeap, 
           t#0, 
           Set#UnionOne(readReferrers($ReferrersHeap, t#0), 
@@ -3598,10 +3635,14 @@ implementation {:smt_option "smt.arith.solver", "2"} {:verboseName "GhostReferre
     assert {:id "id29"} Set#Equal(readReferrers($ReferrersHeap, t#0), 
       Set#UnionOne(Set#Empty(): Set, 
         $Box(#_System._tuple#2._#Make2($Box(locals), $Box(local_field(_module.__default.GhostReferrersLocals.t, depth))))));
+    defass#alias_untracked#0 := false;
     // ----- assignment statement ----- C:\Users\mimayere\Documents\dafny\Source\IntegrationTests\TestFiles\LitTests\LitTest\referrers\referrers.dfy(53,29)
     assume true;
-    if (alias_untracked#0 != null && !defass#alias_untracked#0)
+    if (alias_untracked#0 != null && defass#alias_untracked#0)
     {
+        assume Set#IsMember(readReferrers($ReferrersHeap, alias_untracked#0), 
+          $Box(#_System._tuple#2._#Make2($Box(locals), 
+              $Box(local_field(_module.__default.GhostReferrersLocals.alias__untracked, depth)))));
         $ReferrersHeap := updateReferrers($ReferrersHeap, 
           alias_untracked#0, 
           Set#Difference(readReferrers($ReferrersHeap, alias_untracked#0), 
@@ -3615,6 +3656,9 @@ implementation {:smt_option "smt.arith.solver", "2"} {:verboseName "GhostReferre
     alias_untracked#0 := t#0;
     if (alias_untracked#0 != null)
     {
+        assume !Set#IsMember(readReferrers($ReferrersHeap, alias_untracked#0), 
+          $Box(#_System._tuple#2._#Make2($Box(locals), 
+              $Box(local_field(_module.__default.GhostReferrersLocals.alias__untracked, depth)))));
         $ReferrersHeap := updateReferrers($ReferrersHeap, 
           alias_untracked#0, 
           Set#UnionOne(readReferrers($ReferrersHeap, alias_untracked#0), 
@@ -3630,10 +3674,14 @@ implementation {:smt_option "smt.arith.solver", "2"} {:verboseName "GhostReferre
     assert {:id "id33"} Set#Equal(readReferrers($ReferrersHeap, t#0), 
       Set#UnionOne(Set#Empty(): Set, 
         $Box(#_System._tuple#2._#Make2($Box(locals), $Box(local_field(_module.__default.GhostReferrersLocals.t, depth))))));
+    defass#alias_tracked#0 := false;
     // ----- assignment statement ----- C:\Users\mimayere\Documents\dafny\Source\IntegrationTests\TestFiles\LitTests\LitTest\referrers\referrers.dfy(55,39)
     assume true;
-    if (alias_tracked#0 != null && !defass#alias_tracked#0)
+    if (alias_tracked#0 != null && defass#alias_tracked#0)
     {
+        assume Set#IsMember(readReferrers($ReferrersHeap, alias_tracked#0), 
+          $Box(#_System._tuple#2._#Make2($Box(locals), 
+              $Box(local_field(_module.__default.GhostReferrersLocals.alias__tracked, depth)))));
         $ReferrersHeap := updateReferrers($ReferrersHeap, 
           alias_tracked#0, 
           Set#Difference(readReferrers($ReferrersHeap, alias_tracked#0), 
@@ -3647,6 +3695,9 @@ implementation {:smt_option "smt.arith.solver", "2"} {:verboseName "GhostReferre
     alias_tracked#0 := t#0;
     if (alias_tracked#0 != null)
     {
+        assume !Set#IsMember(readReferrers($ReferrersHeap, alias_tracked#0), 
+          $Box(#_System._tuple#2._#Make2($Box(locals), 
+              $Box(local_field(_module.__default.GhostReferrersLocals.alias__tracked, depth)))));
         $ReferrersHeap := updateReferrers($ReferrersHeap, 
           alias_tracked#0, 
           Set#UnionOne(readReferrers($ReferrersHeap, alias_tracked#0), 
@@ -3756,10 +3807,14 @@ implementation {:smt_option "smt.arith.solver", "2"} {:verboseName "ReferrersLoc
       $o != null && $Unbox(read($Heap, $o, alloc)): bool ==> false);
     assume {:captureState "referrers.dfy(63,40): initial state"} true;
     $_reverifyPost := false;
+    defass#t#0 := false;
     // ----- assignment statement ----- C:\Users\mimayere\Documents\dafny\Source\IntegrationTests\TestFiles\LitTests\LitTest\referrers\referrers.dfy(64,9)
     assume true;
-    if (t#0 != null && !defass#t#0)
+    if (t#0 != null && defass#t#0)
     {
+        assume Set#IsMember(readReferrers($ReferrersHeap, t#0), 
+          $Box(#_System._tuple#2._#Make2($Box(locals), 
+              $Box(local_field(_module.__default.ReferrersLocalWithGhostAliases.t, depth)))));
         $ReferrersHeap := updateReferrers($ReferrersHeap, 
           t#0, 
           Set#Difference(readReferrers($ReferrersHeap, t#0), 
@@ -3778,6 +3833,9 @@ implementation {:smt_option "smt.arith.solver", "2"} {:verboseName "ReferrersLoc
     t#0 := $nw;
     if (t#0 != null)
     {
+        assume !Set#IsMember(readReferrers($ReferrersHeap, t#0), 
+          $Box(#_System._tuple#2._#Make2($Box(locals), 
+              $Box(local_field(_module.__default.ReferrersLocalWithGhostAliases.t, depth)))));
         $ReferrersHeap := updateReferrers($ReferrersHeap, 
           t#0, 
           Set#UnionOne(readReferrers($ReferrersHeap, t#0), 
@@ -3794,10 +3852,14 @@ implementation {:smt_option "smt.arith.solver", "2"} {:verboseName "ReferrersLoc
       Set#UnionOne(Set#Empty(): Set, 
         $Box(#_System._tuple#2._#Make2($Box(locals), 
             $Box(local_field(_module.__default.ReferrersLocalWithGhostAliases.t, depth))))));
+    defass#alias_untracked#0 := false;
     // ----- assignment statement ----- C:\Users\mimayere\Documents\dafny\Source\IntegrationTests\TestFiles\LitTests\LitTest\referrers\referrers.dfy(66,29)
     assume true;
-    if (alias_untracked#0 != null && !defass#alias_untracked#0)
+    if (alias_untracked#0 != null && defass#alias_untracked#0)
     {
+        assume Set#IsMember(readReferrers($ReferrersHeap, alias_untracked#0), 
+          $Box(#_System._tuple#2._#Make2($Box(locals), 
+              $Box(local_field(_module.__default.ReferrersLocalWithGhostAliases.alias__untracked, depth)))));
         $ReferrersHeap := updateReferrers($ReferrersHeap, 
           alias_untracked#0, 
           Set#Difference(readReferrers($ReferrersHeap, alias_untracked#0), 
@@ -3811,6 +3873,9 @@ implementation {:smt_option "smt.arith.solver", "2"} {:verboseName "ReferrersLoc
     alias_untracked#0 := t#0;
     if (alias_untracked#0 != null)
     {
+        assume !Set#IsMember(readReferrers($ReferrersHeap, alias_untracked#0), 
+          $Box(#_System._tuple#2._#Make2($Box(locals), 
+              $Box(local_field(_module.__default.ReferrersLocalWithGhostAliases.alias__untracked, depth)))));
         $ReferrersHeap := updateReferrers($ReferrersHeap, 
           alias_untracked#0, 
           Set#UnionOne(readReferrers($ReferrersHeap, alias_untracked#0), 
@@ -3827,10 +3892,14 @@ implementation {:smt_option "smt.arith.solver", "2"} {:verboseName "ReferrersLoc
       Set#UnionOne(Set#Empty(): Set, 
         $Box(#_System._tuple#2._#Make2($Box(locals), 
             $Box(local_field(_module.__default.ReferrersLocalWithGhostAliases.t, depth))))));
+    defass#alias_tracked#0 := false;
     // ----- assignment statement ----- C:\Users\mimayere\Documents\dafny\Source\IntegrationTests\TestFiles\LitTests\LitTest\referrers\referrers.dfy(68,39)
     assume true;
-    if (alias_tracked#0 != null && !defass#alias_tracked#0)
+    if (alias_tracked#0 != null && defass#alias_tracked#0)
     {
+        assume Set#IsMember(readReferrers($ReferrersHeap, alias_tracked#0), 
+          $Box(#_System._tuple#2._#Make2($Box(locals), 
+              $Box(local_field(_module.__default.ReferrersLocalWithGhostAliases.alias__tracked, depth)))));
         $ReferrersHeap := updateReferrers($ReferrersHeap, 
           alias_tracked#0, 
           Set#Difference(readReferrers($ReferrersHeap, alias_tracked#0), 
@@ -3844,6 +3913,9 @@ implementation {:smt_option "smt.arith.solver", "2"} {:verboseName "ReferrersLoc
     alias_tracked#0 := t#0;
     if (alias_tracked#0 != null)
     {
+        assume !Set#IsMember(readReferrers($ReferrersHeap, alias_tracked#0), 
+          $Box(#_System._tuple#2._#Make2($Box(locals), 
+              $Box(local_field(_module.__default.ReferrersLocalWithGhostAliases.alias__tracked, depth)))));
         $ReferrersHeap := updateReferrers($ReferrersHeap, 
           alias_tracked#0, 
           Set#UnionOne(readReferrers($ReferrersHeap, alias_tracked#0), 
@@ -3959,10 +4031,14 @@ implementation {:smt_option "smt.arith.solver", "2"} {:verboseName "ReferrersOnG
       $o != null && $Unbox(read($Heap, $o, alloc)): bool ==> false);
     assume {:captureState "referrers.dfy(77,62): initial state"} true;
     $_reverifyPost := false;
+    defass#t#0 := false;
     // ----- assignment statement ----- C:\Users\mimayere\Documents\dafny\Source\IntegrationTests\TestFiles\LitTests\LitTest\referrers\referrers.dfy(78,15)
     assume true;
-    if (t#0 != null && !defass#t#0)
+    if (t#0 != null && defass#t#0)
     {
+        assume Set#IsMember(readReferrers($ReferrersHeap, t#0), 
+          $Box(#_System._tuple#2._#Make2($Box(locals), 
+              $Box(local_field(_module.__default.ReferrersOnGhostConstructedInstanceInCompiledContext.t, depth)))));
         $ReferrersHeap := updateReferrers($ReferrersHeap, 
           t#0, 
           Set#Difference(readReferrers($ReferrersHeap, t#0), 
@@ -3981,6 +4057,9 @@ implementation {:smt_option "smt.arith.solver", "2"} {:verboseName "ReferrersOnG
     t#0 := $nw;
     if (t#0 != null)
     {
+        assume !Set#IsMember(readReferrers($ReferrersHeap, t#0), 
+          $Box(#_System._tuple#2._#Make2($Box(locals), 
+              $Box(local_field(_module.__default.ReferrersOnGhostConstructedInstanceInCompiledContext.t, depth)))));
         $ReferrersHeap := updateReferrers($ReferrersHeap, 
           t#0, 
           Set#UnionOne(readReferrers($ReferrersHeap, t#0), 
@@ -3994,10 +4073,15 @@ implementation {:smt_option "smt.arith.solver", "2"} {:verboseName "ReferrersOnG
     assert {:id "id56"} defass#t#0;
     assume true;
     assert {:id "id57"} Set#Equal(readReferrers($ReferrersHeap, t#0), Set#Empty(): Set);
+    defass#alias_untracked#0 := false;
     // ----- assignment statement ----- C:\Users\mimayere\Documents\dafny\Source\IntegrationTests\TestFiles\LitTests\LitTest\referrers\referrers.dfy(80,29)
     assume true;
-    if (alias_untracked#0 != null && !defass#alias_untracked#0)
+    if (alias_untracked#0 != null && defass#alias_untracked#0)
     {
+        assume Set#IsMember(readReferrers($ReferrersHeap, alias_untracked#0), 
+          $Box(#_System._tuple#2._#Make2($Box(locals), 
+              $Box(local_field(_module.__default.ReferrersOnGhostConstructedInstanceInCompiledContext.alias__untracked, 
+                  depth)))));
         $ReferrersHeap := updateReferrers($ReferrersHeap, 
           alias_untracked#0, 
           Set#Difference(readReferrers($ReferrersHeap, alias_untracked#0), 
@@ -4012,6 +4096,10 @@ implementation {:smt_option "smt.arith.solver", "2"} {:verboseName "ReferrersOnG
     alias_untracked#0 := t#0;
     if (alias_untracked#0 != null)
     {
+        assume !Set#IsMember(readReferrers($ReferrersHeap, alias_untracked#0), 
+          $Box(#_System._tuple#2._#Make2($Box(locals), 
+              $Box(local_field(_module.__default.ReferrersOnGhostConstructedInstanceInCompiledContext.alias__untracked, 
+                  depth)))));
         $ReferrersHeap := updateReferrers($ReferrersHeap, 
           alias_untracked#0, 
           Set#UnionOne(readReferrers($ReferrersHeap, alias_untracked#0), 
@@ -4026,10 +4114,15 @@ implementation {:smt_option "smt.arith.solver", "2"} {:verboseName "ReferrersOnG
     assert {:id "id60"} defass#t#0;
     assume true;
     assert {:id "id61"} Set#Equal(readReferrers($ReferrersHeap, t#0), Set#Empty(): Set);
+    defass#alias_tracked#0 := false;
     // ----- assignment statement ----- C:\Users\mimayere\Documents\dafny\Source\IntegrationTests\TestFiles\LitTests\LitTest\referrers\referrers.dfy(82,39)
     assume true;
-    if (alias_tracked#0 != null && !defass#alias_tracked#0)
+    if (alias_tracked#0 != null && defass#alias_tracked#0)
     {
+        assume Set#IsMember(readReferrers($ReferrersHeap, alias_tracked#0), 
+          $Box(#_System._tuple#2._#Make2($Box(locals), 
+              $Box(local_field(_module.__default.ReferrersOnGhostConstructedInstanceInCompiledContext.alias__tracked, 
+                  depth)))));
         $ReferrersHeap := updateReferrers($ReferrersHeap, 
           alias_tracked#0, 
           Set#Difference(readReferrers($ReferrersHeap, alias_tracked#0), 
@@ -4044,6 +4137,10 @@ implementation {:smt_option "smt.arith.solver", "2"} {:verboseName "ReferrersOnG
     alias_tracked#0 := t#0;
     if (alias_tracked#0 != null)
     {
+        assume !Set#IsMember(readReferrers($ReferrersHeap, alias_tracked#0), 
+          $Box(#_System._tuple#2._#Make2($Box(locals), 
+              $Box(local_field(_module.__default.ReferrersOnGhostConstructedInstanceInCompiledContext.alias__tracked, 
+                  depth)))));
         $ReferrersHeap := updateReferrers($ReferrersHeap, 
           alias_tracked#0, 
           Set#UnionOne(readReferrers($ReferrersHeap, alias_tracked#0), 
@@ -4250,10 +4347,13 @@ implementation {:smt_option "smt.arith.solver", "2"} {:verboseName "ObjectFields
       $o != null && $Unbox(read($Heap, $o, alloc)): bool ==> false);
     assume {:captureState "referrers.dfy(115,22): initial state"} true;
     $_reverifyPost := false;
+    defass#t#0 := false;
     // ----- assignment statement ----- C:\Users\mimayere\Documents\dafny\Source\IntegrationTests\TestFiles\LitTests\LitTest\referrers\referrers.dfy(116,9)
     assume true;
-    if (t#0 != null && !defass#t#0)
+    if (t#0 != null && defass#t#0)
     {
+        assume Set#IsMember(readReferrers($ReferrersHeap, t#0), 
+          $Box(#_System._tuple#2._#Make2($Box(locals), $Box(local_field(_module.__default.ObjectFields.t, depth)))));
         $ReferrersHeap := updateReferrers($ReferrersHeap, 
           t#0, 
           Set#Difference(readReferrers($ReferrersHeap, t#0), 
@@ -4273,6 +4373,8 @@ implementation {:smt_option "smt.arith.solver", "2"} {:verboseName "ObjectFields
     t#0 := $nw;
     if (t#0 != null)
     {
+        assume !Set#IsMember(readReferrers($ReferrersHeap, t#0), 
+          $Box(#_System._tuple#2._#Make2($Box(locals), $Box(local_field(_module.__default.ObjectFields.t, depth)))));
         $ReferrersHeap := updateReferrers($ReferrersHeap, 
           t#0, 
           Set#UnionOne(readReferrers($ReferrersHeap, t#0), 
@@ -4449,10 +4551,13 @@ implementation {:smt_option "smt.arith.solver", "2"} {:verboseName "ObjectFields
     call {:id "id139"} Call$$_module.__default.CouldFree(t##0, compiledMemRef##0);
     // TrCallStmt: After ProcessCallStmt
     assume {:captureState "referrers.dfy(132,24)"} true;
+    defass#u#0 := false;
     // ----- assignment statement ----- C:\Users\mimayere\Documents\dafny\Source\IntegrationTests\TestFiles\LitTests\LitTest\referrers\referrers.dfy(134,9)
     assume true;
-    if (u#0 != null && !defass#u#0)
+    if (u#0 != null && defass#u#0)
     {
+        assume Set#IsMember(readReferrers($ReferrersHeap, u#0), 
+          $Box(#_System._tuple#2._#Make2($Box(locals), $Box(local_field(_module.__default.ObjectFields.u, depth)))));
         $ReferrersHeap := updateReferrers($ReferrersHeap, 
           u#0, 
           Set#Difference(readReferrers($ReferrersHeap, u#0), 
@@ -4472,6 +4577,8 @@ implementation {:smt_option "smt.arith.solver", "2"} {:verboseName "ObjectFields
     u#0 := $nw;
     if (u#0 != null)
     {
+        assume !Set#IsMember(readReferrers($ReferrersHeap, u#0), 
+          $Box(#_System._tuple#2._#Make2($Box(locals), $Box(local_field(_module.__default.ObjectFields.u, depth)))));
         $ReferrersHeap := updateReferrers($ReferrersHeap, 
           u#0, 
           Set#UnionOne(readReferrers($ReferrersHeap, u#0), 
@@ -4562,6 +4669,8 @@ implementation {:smt_option "smt.arith.solver", "2"} {:verboseName "ObjectFields
     assume true;
     if (a#0 != null)
     {
+        assume Set#IsMember(readReferrers($ReferrersHeap, a#0), 
+          $Box(#_System._tuple#2._#Make2($Box(locals), $Box(local_field(_module.__default.ObjectFields.a, depth)))));
         $ReferrersHeap := updateReferrers($ReferrersHeap, 
           a#0, 
           Set#Difference(readReferrers($ReferrersHeap, a#0), 
@@ -4654,6 +4763,8 @@ implementation {:smt_option "smt.arith.solver", "2"} {:verboseName "ObjectFields
     a#0 := $nw;
     if (a#0 != null)
     {
+        assume !Set#IsMember(readReferrers($ReferrersHeap, a#0), 
+          $Box(#_System._tuple#2._#Make2($Box(locals), $Box(local_field(_module.__default.ObjectFields.a, depth)))));
         $ReferrersHeap := updateReferrers($ReferrersHeap, 
           a#0, 
           Set#UnionOne(readReferrers($ReferrersHeap, a#0), 
