@@ -111,4 +111,4 @@ TraitResolution1.dfy(562,13): Error: type parameter 'R' is not allowed to change
 TraitResolution1.dfy(562,20): Error: type parameter 'S' is not allowed to change the requirement of supporting auto-initialization
 TraitResolution1.dfy(563,21): Error: type parameter 'R' is not allowed to change the requirement of being nonempty
 TraitResolution1.dfy(563,28): Error: type parameter 'S' is not allowed to change the requirement of supporting auto-initialization
-117 resolution/type errors detected in TraitResolution1.dfy
+113 resolution/type errors detected in TraitResolution1.dfy
