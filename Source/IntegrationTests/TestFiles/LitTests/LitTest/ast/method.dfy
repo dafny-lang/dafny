@@ -1,10 +1,10 @@
 // RUN: %verify --allow-axioms:false --type-system-refresh --allow-warnings "%s" > "%t"
 // RUN: %verify --allow-axioms:false --type-system-refresh --allow-external-contracts --allow-warnings "%s" >> "%t"
+// RUN: %verify --allow-axioms:true --type-system-refresh --allow-external-contracts --allow-warnings "%s" >> "%t"
  
 // NONUNIFORM: warning will be the same for all back-ends
 // RUN: ! %run --allow-axioms:false "%s" >> "%t"
 // RUN: %diff "%s.expect" "%t"
-
 method Compiled() ensures false ensures false
 ghost method Ghost() ensures false ensures false
 method {:axiom} Axiom() ensures false
