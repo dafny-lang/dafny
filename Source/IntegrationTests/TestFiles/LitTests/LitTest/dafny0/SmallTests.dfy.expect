@@ -57,11 +57,6 @@ SmallTests.dfy(920,4): Error: assertion might not hold
 SmallTests.dfy(926,4): Error: assertion might not hold
 
 Dafny program verifier finished with 56 verified, 50 errors
-SmallTests.dfy.tmp.dprint.dfy(65,23): Warning: The {:verify false} attribute should only be used during development. Consider using a bodyless method together with the {:axiom} attribute instead
-SmallTests.dfy.tmp.dprint.dfy(75,31): Warning: The {:verify false} attribute should only be used during development. Consider using a bodyless function together with the {:axiom} attribute instead
-SmallTests.dfy.tmp.dprint.dfy(590,25): Warning: The {:verify false} attribute should only be used during development. Consider using a bodyless method together with the {:axiom} attribute instead
-SmallTests.dfy.tmp.dprint.dfy(600,30): Warning: The {:verify false} attribute should only be used during development. Consider using a bodyless constructor together with the {:axiom} attribute instead
-SmallTests.dfy.tmp.dprint.dfy(610,33): Warning: The {:verify false} attribute should only be used during development. Consider using a bodyless function together with the {:axiom} attribute instead
 SmallTests.dfy.tmp.dprint.dfy(121,12): Warning: Argument to 'old' does not dereference the mutable heap, so this use of 'old' has no effect
 SmallTests.dfy.tmp.dprint.dfy(685,4): Warning: Could not find a trigger for this quantifier. Without a trigger, the quantifier may cause brittle verification. To silence this warning, add an explicit trigger using the {:trigger} attribute. For more information, see the section on quantifier instantiation rules in the reference manual.
 

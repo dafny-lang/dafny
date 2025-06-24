@@ -13,8 +13,12 @@ class C extends T {
   }
 }
 
+class D extends T {}
+
 method Main() {
   var c := new C;
   var r := c.foo();
-  print r;
+  var d := new D;
+  var r2 := d.foo();
+  print r, ", ", r2;
 }
