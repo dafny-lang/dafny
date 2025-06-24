@@ -187,7 +187,13 @@ public enum Feature {
   BuiltinsInRuntime,
 
   [FeatureDescription("Execution coverage report", "sec-dafny-test")]
-  RuntimeCoverageReport
+  RuntimeCoverageReport,
+
+  [FeatureDescription("Standard libraries", "sec-dafny-standard-libraries")]
+  StandardLibraries,
+
+  [FeatureDescription("Standard library ActionsExterns", "sec-dafny-standard-libraries")]
+  StandardLibrariesActionsExterns
 }
 
 public class UnsupportedFeatureException : Exception {

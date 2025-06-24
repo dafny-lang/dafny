@@ -6,6 +6,7 @@
 module Std.Producers {
 
   import opened Actions
+  import opened BoundedInts
   import opened Consumers
   import opened Wrappers
   import opened Math
@@ -61,6 +62,24 @@ module Std.Producers {
       this in Repr
     }
 
+    twostate predicate ValidChange()
+      reads this, Repr
+      ensures ValidChange() ==> old(Valid()) && Valid()
+      ensures ValidChange() ==> fresh(Repr - old(Repr))
+      ensures ValidChange() ==> old(history) <= history
+    {
+      && fresh(Repr - old(Repr))
+      && old(Valid())
+      && Valid()
+      && old(history) <= history
+    }
+
+    twostate lemma ValidImpliesValidChange()
+      requires old(Valid())
+      requires unchanged(old(Repr))
+      ensures ValidChange()
+    {}
+
     constructor(state: S, stepFn: S -> (S, T))
       ensures Valid()
     {
@@ -111,8 +130,77 @@ module Std.Producers {
     {}
   }
 
-  // Actions that consume nothing and produce an Option<T>,
-  // where None indicates there are no more values to produce.
+  datatype ProducerState<T> = ProducerState(producer: Producer<T>, remaining: Option<nat>, outputs: seq<Option<T>>) {
+    ghost predicate Valid() {
+      && Seq.Partitioned(outputs, IsSome)
+      && (!Seq.All(outputs, IsSome) && remaining.Some? ==> remaining.value == 0)
+    }
+    ghost predicate ValidChange(newer: ProducerState<T>)
+    {
+      && newer.producer == producer
+      && Valid()
+      && newer.Valid()
+      && outputs <= newer.outputs
+      && var newOutputs := newer.outputs[|outputs|..];
+      assert newer.outputs == outputs + newOutputs;
+      Seq.PartitionedDecomposition(outputs, newOutputs, IsSome);
+      ProducedComposition(outputs, newOutputs);
+      && var newProduced := ProducedOf(newOutputs);
+      && remaining.Some? ==>
+        && |newProduced| <= remaining.value
+        && (!Seq.All(newer.outputs, IsSome) ==> |newProduced| == remaining.value)
+        && newer.remaining == Some(remaining.value - |newProduced|)
+    }
+
+    @ResourceLimit("0")
+    @IsolateAssertions
+    lemma ValidChangeTransitive(newer: ProducerState<T>, now: ProducerState<T>)
+      requires ValidChange(newer) && newer.ValidChange(now)
+      ensures ValidChange(now)
+      ensures NewProduced(now) == NewProduced(newer) + newer.NewProduced(now)
+    {
+      var newerOutputs := newer.outputs[|outputs|..];
+      var nowOutputs := now.outputs[|newer.outputs|..];
+      var newOutputs := now.outputs[|outputs|..];
+      assert now.outputs == (outputs + newerOutputs) + nowOutputs;
+      assert now.outputs == outputs + (newerOutputs + nowOutputs);
+      assert newOutputs == newerOutputs + nowOutputs;
+      assert now.outputs == outputs + newOutputs;
+      Seq.PartitionedDecomposition(outputs, newOutputs, IsSome);
+      assert Seq.Partitioned(outputs + newerOutputs + nowOutputs, IsSome);
+      Seq.PartitionedDecomposition(outputs + newerOutputs, nowOutputs, IsSome);
+      Seq.PartitionedDecomposition(outputs, newerOutputs, IsSome);
+      Seq.PartitionedDecomposition(outputs, newerOutputs + nowOutputs, IsSome);
+      assert Seq.Partitioned(newOutputs, IsSome);
+      var newerProduced := ProducedOf(newerOutputs);
+      var nowProduced := ProducedOf(nowOutputs);
+      var newProduced := ProducedOf(newOutputs);
+      ProducedComposition(outputs, newOutputs);
+      ProducedComposition(newerOutputs, nowOutputs);
+      ProducedComposition(outputs + newerOutputs, nowOutputs);
+      assert newProduced == newerProduced + nowProduced;
+      Seq.PartitionedDecomposition(outputs, newOutputs, IsSome);
+      ProducedComposition(outputs, newOutputs);
+
+      if remaining.Some? {
+        assert |newProduced| <= remaining.value;
+        assert (!Seq.All(outputs, IsSome) ==> |newProduced| == remaining.value);
+        assert now.remaining == Some(remaining.value - |newProduced|);
+      }
+    }
+
+    ghost function NewProduced(newer: ProducerState<T>): seq<T>
+      requires ValidChange(newer)
+    {
+      var newOutputs := newer.outputs[|outputs|..];
+      assert newer.outputs == outputs + newOutputs;
+      Seq.PartitionedDecomposition(outputs, newOutputs, IsSome);
+      ProducedOf(newOutputs)
+    }
+  }
+
+  /* Actions that consume nothing and produce an Option<T>,
+   * where None indicates there are no more values to produce. */
   @AssumeCrossModuleTermination
   trait Producer<T> extends Action<(), Option<T>>, TotalActionProof<(), Option<T>> {
 
@@ -124,6 +212,25 @@ module Std.Producers {
 
     ghost function Action(): Action<(), Option<T>> {
       this
+    }
+
+    ghost function State(): ProducerState<T>
+      requires Valid()
+      reads this, Repr
+    {
+      ProducerState(this, Remaining(), Outputs())
+    }
+
+    twostate predicate ValidChange()
+      reads this, Repr
+      ensures ValidChange() ==> old(Valid()) && Valid()
+      ensures ValidChange() ==> fresh(Repr - old(Repr))
+      ensures ValidChange() ==> old(history) <= history
+    {
+      && old(Valid()) && Valid()
+      && fresh(Repr - old(Repr))
+      && old(history) <= history
+      && old(State()).ValidChange(State())
     }
 
     ghost predicate ValidInput(history: seq<((), Option<T>)>, next: ())
@@ -147,6 +254,73 @@ module Std.Producers {
       ProducedOf(OutputsOf(history))
     }
 
+    twostate lemma ProducedPrefix()
+      requires old(ValidHistory(history))
+      requires ValidHistory(history)
+      requires old(history) <= history
+      ensures Seq.Partitioned(old(Outputs()), IsSome)
+      ensures Seq.Partitioned(Outputs(), IsSome)
+      ensures old(Produced()) <= Produced()
+    {
+      assert Outputs() == old(Outputs()) + NewOutputs();
+      Seq.PartitionedDecomposition(old(Outputs()), NewOutputs(), IsSome);
+      ProducedComposition(old(Outputs()), NewOutputs());
+    }
+
+    twostate function NewProduced(): seq<T>
+      requires ValidChange()
+      reads this, Repr
+    {
+      old(State()).NewProduced(State())
+    }
+
+    twostate lemma NewProducedAfterInvoke(new r: Option<T>)
+      requires ValidChange()
+      requires history == old(history) + [((), r)]
+      ensures if r.Some? then
+                NewProduced() == [r.value]
+              else
+                NewProduced() == []
+    {
+      assert Outputs() == old(Outputs()) + NewOutputs();
+      Seq.PartitionedDecomposition(old(Outputs()), NewOutputs(), IsSome);
+      ProducedComposition(old(Outputs()), NewOutputs());
+    }
+
+    twostate lemma ProducedAndNewProduced()
+      requires ValidChange()
+      ensures Produced() == old(Produced()) + NewProduced()
+    {
+      assert Outputs() == old(Outputs()) + NewOutputs();
+      Seq.PartitionedDecomposition(old(Outputs()), NewOutputs(), IsSome);
+      ProducedComposition(old(Outputs()), NewOutputs());
+    }
+
+    function ProducedCount(): nat
+      reads this, Repr
+      requires Valid()
+      ensures ProducedCount() == |Produced()|
+
+    twostate function NewProducedCount(): nat
+      reads this, Repr
+      requires ValidChange()
+      ensures NewProducedCount() == |NewProduced()|
+    {
+      var newOutputs := Outputs()[|old(Outputs())|..];
+      assert Outputs() == old(Outputs()) + newOutputs;
+      Seq.PartitionedDecomposition(old(Outputs()), newOutputs, IsSome);
+      ProducedComposition(old(Outputs()), newOutputs);
+      ProducedCount() - old(ProducedCount())
+    }
+
+    // The exact number of remaining elements, if known.
+    // In other words, the number of times the action can be invoked
+    // before it outputs None.
+    // Remaining() is None iff this is not known.
+    function Remaining(): Option<nat>
+      reads this, Repr
+      requires Valid()
+
     ghost predicate ValidOutputs(outputs: seq<Option<T>>)
       requires Seq.Partitioned(outputs, IsSome)
       decreases Repr
@@ -159,34 +333,34 @@ module Std.Producers {
     // Termination metric ensuring Next() eventually returns None.
     // Not necessarily an exact measurement of the number of elements remaining,
     // only a conservative bound.
-    ghost function RemainingMetric(): TerminationMetric
+    ghost function DecreasesMetric(): TerminationMetric
       requires Valid()
       reads this, Repr
       decreases Repr, 3
 
-    ghost function Remaining(): ORDINAL
+    ghost function Decreasing(): ORDINAL
       requires Valid()
       reads this, Repr
     {
-      RemainingMetric().Ordinal()
+      DecreasesMetric().Ordinal()
     }
 
-    twostate predicate RemainingDecreasedBy(new result: Option<T>)
+    twostate predicate DecreasedBy(new result: Option<T>)
       requires old(Valid())
       requires Valid()
       reads this, Repr
     {
       if result.Some? then
-        old(RemainingMetric()).DecreasesTo(RemainingMetric())
+        old(DecreasesMetric()).DecreasesTo(DecreasesMetric())
       else
-        old(RemainingMetric()).NonIncreasesTo(RemainingMetric())
+        old(DecreasesMetric()).NonIncreasesTo(DecreasesMetric())
     }
 
     ghost function Decreases(t: ()): ORDINAL
       requires Requires(t)
       reads Reads(t)
     {
-      Remaining()
+      Decreasing()
     }
 
     method Invoke(i: ()) returns (r: Option<T>)
@@ -195,7 +369,7 @@ module Std.Producers {
       modifies Modifies(i)
       decreases Decreases(i), 0
       ensures Ensures(i, r)
-      ensures RemainingDecreasedBy(r)
+      ensures DecreasedBy(r)
 
     // For better readability
     method Next() returns (r: Option<T>)
@@ -204,7 +378,7 @@ module Std.Producers {
       modifies Modifies(())
       decreases Decreases(())
       ensures Ensures((), r)
-      ensures RemainingDecreasedBy(r)
+      ensures DecreasedBy(r)
     {
       assert Requires(());
 
@@ -212,31 +386,44 @@ module Std.Producers {
       r := Invoke(());
     }
 
-    @IsolateAssertions
-    method ForEachRemaining(consumer: IConsumer<T>, ghost totalActionProof: TotalActionProof<T, ()>)
+    // Feeds every element from a producer into a consumer in sequence
+    // until the producer is done.
+    // May be optimized to process values in batches for efficiency.
+    method ForEach(consumer: IConsumer<T>, ghost totalActionProof: TotalActionProof<T, ()>)
       requires Valid()
       requires consumer.Valid()
       requires Repr !! consumer.Repr !! totalActionProof.Repr
       requires totalActionProof.Valid()
       requires totalActionProof.Action() == consumer
+      reads this, Repr, consumer, consumer.Repr, totalActionProof, totalActionProof.Repr
       modifies Repr, consumer.Repr
-    {
-      while true
-        invariant ValidAndDisjoint()
-        invariant consumer.ValidAndDisjoint()
-        invariant Repr !! consumer.Repr
-        invariant totalActionProof.Valid()
-        decreases Remaining()
-      {
-        var t := Next();
-        if t == None {
-          break;
-        }
+      ensures ValidChange()
+      ensures consumer.ValidChange()
+      ensures Done()
+      ensures NewProduced() == consumer.NewInputs()
 
-        totalActionProof.AnyInputIsValid(consumer.history, t.value);
-        consumer.Accept(t.value);
-      }
-    }
+    // Feeds every element from a producer into a consumer in sequence
+    // until either the producer or consumer is done.
+    // May be optimized to process values in batches for efficiency.
+    //
+    // The consumer's Capacity() must be known (i.e. not None)
+    // because otherwise there is no way to know if the consumer will accept a value ahead of time.
+    // Therefore the producer could end up producing an extra value
+    // that the consumer cannot accept.
+    // This could be returned from this method, but that would
+    // greatly complicate consumers in order to not lose this extra value.
+    method Fill(consumer: Consumer<T>, ghost totalActionProof: TotalActionProof<T, bool>)
+      requires Valid()
+      requires consumer.Valid()
+      requires consumer.Capacity().Some?
+      requires Repr !! consumer.Repr !! totalActionProof.Repr
+      requires totalActionProof.Valid()
+      requires totalActionProof.Action() == consumer
+      modifies Repr, consumer.Repr
+      ensures ValidChange()
+      ensures consumer.ValidChange()
+      ensures Done() || consumer.Capacity() == Some(0)
+      ensures NewProduced() == consumer.NewConsumed()
 
     // True if this has outputted None at least once.
     // But note that !Done() does not guarantee that
@@ -310,7 +497,7 @@ module Std.Producers {
       assert !IsSome(Seq.Last(Outputs()));
     }
 
-    method ProduceNone()
+    ghost method ProduceNone()
       requires ValidHistory(history)
       requires ValidHistory(history + [((), None)])
       reads this, Repr
@@ -334,7 +521,7 @@ module Std.Producers {
       }
     }
 
-    method ProduceSome(value: T)
+    ghost method ProduceSome(value: T)
       requires ValidHistory(history)
       requires ValidHistory(history + [((), Some(value))])
       reads this, Repr
@@ -364,6 +551,128 @@ module Std.Producers {
         old(Produced()) + ProducedOf([Some(value)]);
         old(Produced()) + [value];
       }
+    }
+  }
+
+  @ResourceLimit("1e7")
+  @IsolateAssertions
+  method DefaultForEach<T>(producer: Producer<T>, consumer: IConsumer<T>, ghost totalActionProof: TotalActionProof<T, ()>)
+    requires producer.Valid()
+    requires consumer.Valid()
+    requires producer.Repr !! consumer.Repr !! totalActionProof.Repr
+    requires totalActionProof.Valid()
+    requires totalActionProof.Action() == consumer
+    reads producer, producer.Repr, consumer, consumer.Repr, totalActionProof, totalActionProof.Repr
+    modifies producer.Repr, consumer.Repr
+    ensures producer.ValidChange()
+    ensures consumer.ValidChange()
+    ensures producer.Done()
+    ensures producer.NewProduced() == consumer.NewInputs()
+  {
+    producer.ValidImpliesValidChange();
+    consumer.ValidImpliesValidChange();
+
+    while true
+      invariant fresh(producer.Repr - old(producer.Repr))
+      invariant fresh(consumer.Repr - old(consumer.Repr))
+      invariant producer.Repr !! consumer.Repr
+      invariant totalActionProof.Valid()
+      invariant producer.ValidChange()
+      invariant consumer.ValidChange()
+      invariant producer.NewProduced() == consumer.NewInputs()
+      decreases producer.Decreasing()
+    {
+      label before:
+      var t := producer.Next();
+
+      assert Seq.Partitioned(producer.Outputs(), IsSome);
+      assert producer.Outputs() == old@before(producer.Outputs()) + [t];
+      Seq.PartitionedDecomposition(old@before(producer.Outputs()), [t], IsSome);
+      ProducedComposition(old@before(producer.Outputs()), [t]);
+
+      old(producer.State()).ValidChangeTransitive(old@before(producer.State()), producer.State());
+
+      if t == None {
+        assert Seq.Last(producer.Outputs()).None?;
+        assert producer.Done();
+        break;
+      }
+
+      totalActionProof.AnyInputIsValid(consumer.history, t.value);
+      consumer.Accept(t.value);
+
+      assert Seq.Last(consumer.Inputs()) == t.value;
+    }
+  }
+
+  @ResourceLimit("1e7")
+  @IsolateAssertions
+  method DefaultFill<T>(producer: Producer<T>, consumer: Consumer<T>, ghost totalActionProof: TotalActionProof<T, bool>)
+    requires producer.Valid()
+    requires consumer.Valid()
+    requires consumer.Capacity().Some?
+    requires producer.Repr !! consumer.Repr !! totalActionProof.Repr
+    requires totalActionProof.Valid()
+    requires totalActionProof.Action() == consumer
+    modifies producer.Repr, consumer.Repr
+    ensures producer.ValidChange()
+    ensures consumer.ValidChange()
+    ensures producer.Done() || consumer.Capacity() == Some(0)
+    ensures producer.NewProduced() == consumer.NewConsumed()
+  {
+    producer.ValidImpliesValidChange();
+    consumer.ValidImpliesValidChange();
+
+    for c := consumer.Capacity().value downto 0
+      invariant fresh(producer.Repr - old(producer.Repr))
+      invariant fresh(consumer.Repr - old(consumer.Repr))
+      invariant producer.ValidChange()
+      invariant consumer.ValidChange()
+      invariant producer.Repr !! consumer.Repr
+      invariant totalActionProof.Valid()
+      invariant old(producer.Produced()) <= producer.Produced()
+      invariant old(consumer.Inputs()) <= consumer.Inputs()
+      invariant producer.NewProduced() == consumer.NewConsumed()
+      invariant c == consumer.Capacity().value
+    {
+      label before:
+      var t := producer.Next();
+      assert Seq.Partitioned(producer.Outputs(), IsSome);
+      assert producer.Outputs() == old@before(producer.Outputs()) + [t];
+      Seq.PartitionedDecomposition(old@before(producer.Outputs()), [t], IsSome);
+      ProducedComposition(old@before(producer.Outputs()), [t]);
+
+      old(producer.State()).ValidChangeTransitive(old@before(producer.State()), producer.State());
+      assert producer.ValidChange();
+
+      if t == None {
+        assert Seq.Last(producer.Outputs()).None?;
+        assert producer.Done();
+        assert ProducedOf([t]) == [];
+        assert producer.Produced() == old@before(producer.Produced());
+        assert producer.NewProduced() == consumer.NewConsumed();
+        break;
+      }
+
+      totalActionProof.AnyInputIsValid(consumer.history, t.value);
+      assert 0 < consumer.Capacity().value;
+      assert !consumer.Done();
+      label beforeAccept:
+      var accepted := consumer.Accept(t.value);
+      old(consumer.State()).ValidChangeTransitive(old@before(consumer.State()), consumer.State());
+      assert |old@beforeAccept(consumer.State()).NewConsumed(consumer.State())| >= 1;
+      assert |consumer.NewConsumed@beforeAccept()| >= 1;
+      assert consumer.NewConsumed@beforeAccept() == ConsumedOf([(t.value, accepted)]);
+      assert ConsumedOf([(t.value, accepted)]) == [t.value];
+      ConsumedOfAllAccepted([(t.value, accepted)]);
+      assert OutputsOf([(t.value, accepted)]) == [accepted];
+      assert OutputsOf([(t.value, accepted)]) == Seq.Repeat(true, 1);
+      reveal Seq.Repeat();
+      assert [accepted] == [true];
+      assert accepted == true;
+
+      assert Seq.Last(consumer.Inputs()) == t.value;
+      assert producer.NewProduced() == consumer.NewConsumed();
     }
   }
 
@@ -403,6 +712,7 @@ module Std.Producers {
   ghost function OutputsForProduced<T>(values: seq<T>, n: nat): (result: seq<Option<T>>)
     ensures Seq.Partitioned(result, IsSome)
     ensures ProducedOf(result) <= values
+    ensures |values| <= n ==> ProducedOf(result) == values
   {
     var index := Min(|values|, n);
     var produced := values[..index];
@@ -468,6 +778,21 @@ module Std.Producers {
     }
   }
 
+  method CollectToSeq<T>(p: Producer<T>) returns (s: seq<T>)
+    requires p.Valid()
+    requires p.history == []
+    reads p, p.Repr
+    modifies p.Repr
+    ensures p.Valid()
+    ensures p.Done()
+    ensures p.Produced() == s
+  {
+    var seqWriter := new SeqWriter<T>();
+    var writerTotalProof := seqWriter.totalActionProof();
+    p.ForEach(seqWriter, writerTotalProof);
+    return seqWriter.values;
+  }
+
   /***********************
    * Simple Producers
    ***********************/
@@ -492,7 +817,14 @@ module Std.Producers {
     {
       && this in Repr
       && ValidHistory(history)
+      && |Produced()| == 0
     }
+
+    twostate lemma ValidImpliesValidChange()
+      requires old(Valid())
+      requires unchanged(old(Repr))
+      ensures ValidChange()
+    {}
 
     ghost predicate ValidOutputs(outputs: seq<Option<T>>)
       requires Seq.Partitioned(outputs, IsSome)
@@ -501,7 +833,23 @@ module Std.Producers {
       Seq.All(outputs, IsNone)
     }
 
-    ghost function RemainingMetric(): TerminationMetric
+    function ProducedCount(): nat
+      reads this, Repr
+      requires Valid()
+      ensures ProducedCount() == |Produced()|
+    {
+      0
+    }
+
+    function Remaining(): Option<nat>
+      reads this, Repr
+      requires Valid()
+    {
+      Some(0)
+    }
+
+
+    ghost function DecreasesMetric(): TerminationMetric
       requires Valid()
       reads this, Repr
       decreases Repr, 3
@@ -516,7 +864,7 @@ module Std.Producers {
       modifies Modifies(t)
       decreases Decreases(t), 0
       ensures Ensures(t, value)
-      ensures RemainingDecreasedBy(value)
+      ensures DecreasedBy(value)
     {
       assert Requires(t);
 
@@ -525,6 +873,187 @@ module Std.Producers {
       OutputsPartitionedAfterOutputtingNone();
       ProduceNone();
       assert Valid();
+    }
+
+    method ForEach(consumer: IConsumer<T>, ghost totalActionProof: TotalActionProof<T, ()>)
+      requires Valid()
+      requires consumer.Valid()
+      requires Repr !! consumer.Repr !! totalActionProof.Repr
+      requires totalActionProof.Valid()
+      requires totalActionProof.Action() == consumer
+      reads this, Repr, consumer, consumer.Repr, totalActionProof, totalActionProof.Repr
+      modifies Repr, consumer.Repr
+      ensures ValidChange()
+      ensures consumer.ValidChange()
+      ensures Done()
+      ensures NewProduced() == consumer.NewInputs()
+    {
+      DefaultForEach(this, consumer, totalActionProof);
+    }
+
+    method Fill(consumer: Consumer<T>, ghost totalActionProof: TotalActionProof<T, bool>)
+      requires Valid()
+      requires consumer.Valid()
+      requires consumer.Capacity().Some?
+      requires Repr !! consumer.Repr !! totalActionProof.Repr
+      requires totalActionProof.Valid()
+      requires totalActionProof.Action() == consumer
+      modifies Repr, consumer.Repr
+      ensures Valid()
+      ensures consumer.Valid()
+      ensures ValidChange()
+      ensures consumer.ValidChange()
+      ensures Done() || consumer.Capacity() == Some(0)
+      ensures NewProduced() == consumer.NewConsumed()
+    {
+      DefaultFill(this, consumer, totalActionProof);
+    }
+  }
+
+  /** 
+    * The equivalent of SeqReader(Seq.Repeat(n, t)),
+    * But avoids actually creating the sequence of values.
+    */
+  class RepeatProducer<T> extends Producer<T> {
+
+    // Note: it isn't great forcing a big integer in compiled code here,
+    // but on the other hand this kind of producer is mostly useful
+    // as a placeholder for bulk operations,
+    // so it should rarely actually be invoked directly
+    // for any large values of n anyway.
+    const n: nat
+    const t: T
+    var producedCount: nat
+
+    constructor(n: nat, t: T)
+      reads {}
+      ensures Valid()
+      ensures history == []
+      ensures fresh(Repr)
+      ensures this.n == n
+      ensures this.t == t
+      ensures history == []
+    {
+      this.n := n;
+      this.t := t;
+      this.producedCount := 0;
+      Repr := {this};
+      history := [];
+    }
+
+    ghost predicate Valid()
+      reads this, Repr
+      ensures Valid() ==> this in Repr
+      ensures Valid() ==> ValidHistory(history)
+      decreases Repr, 0
+    {
+      && this in Repr
+      && ValidHistory(history)
+      && |Produced()| == producedCount
+      && producedCount <= n
+      && (producedCount < n ==> Seq.All(Outputs(), IsSome))
+    }
+
+    twostate lemma ValidImpliesValidChange()
+      requires old(Valid())
+      requires unchanged(old(Repr))
+      ensures ValidChange()
+    {}
+
+    ghost predicate ValidOutputs(outputs: seq<Option<T>>)
+      requires Seq.Partitioned(outputs, IsSome)
+      decreases Repr
+    {
+      true
+    }
+
+    function ProducedCount(): nat
+      reads this, Repr
+      requires Valid()
+      ensures ProducedCount() == |Produced()|
+    {
+      producedCount
+    }
+
+    function Remaining(): Option<nat>
+      reads this, Repr
+      requires Valid()
+    {
+      Some(n - producedCount)
+    }
+
+
+    ghost function DecreasesMetric(): TerminationMetric
+      requires Valid()
+      reads this, Repr
+      decreases Repr, 3
+    {
+      TMNat(n - producedCount)
+    }
+
+    @IsolateAssertions
+    method Invoke(i: ()) returns (value: Option<T>)
+      requires Requires(i)
+      reads Reads(i)
+      modifies Modifies(i)
+      decreases Decreases(i), 0
+      ensures Ensures(i, value)
+      ensures DecreasedBy(value)
+    {
+      assert Requires(i);
+      assert Valid();
+
+      if producedCount == n {
+        value := None;
+
+        OutputsPartitionedAfterOutputtingNone();
+        ProduceNone();
+
+        old(DecreasesMetric()).NatNonIncreasesToNat(DecreasesMetric());
+      } else {
+        value := Some(t);
+
+        OutputsPartitionedAfterOutputtingSome(t);
+        ProduceSome(value.value);
+        producedCount := producedCount + 1;
+
+        old(DecreasesMetric()).NatDecreasesToNat(DecreasesMetric());
+      }
+
+      assert Valid();
+      assert old(State()).ValidChange(State());
+    }
+
+    method ForEach(consumer: IConsumer<T>, ghost totalActionProof: TotalActionProof<T, ()>)
+      requires Valid()
+      requires consumer.Valid()
+      requires Repr !! consumer.Repr !! totalActionProof.Repr
+      requires totalActionProof.Valid()
+      requires totalActionProof.Action() == consumer
+      reads this, Repr, consumer, consumer.Repr, totalActionProof, totalActionProof.Repr
+      modifies Repr, consumer.Repr
+      ensures ValidChange()
+      ensures consumer.ValidChange()
+      ensures Done()
+      ensures NewProduced() == consumer.NewInputs()
+    {
+      DefaultForEach(this, consumer, totalActionProof);
+    }
+
+    method Fill(consumer: Consumer<T>, ghost totalActionProof: TotalActionProof<T, bool>)
+      requires Valid()
+      requires consumer.Valid()
+      requires consumer.Capacity().Some?
+      requires Repr !! consumer.Repr !! totalActionProof.Repr
+      requires totalActionProof.Valid()
+      requires totalActionProof.Action() == consumer
+      modifies Repr, consumer.Repr
+      ensures ValidChange()
+      ensures consumer.ValidChange()
+      ensures Done() || consumer.Capacity() == Some(0)
+      ensures NewProduced() == consumer.NewConsumed()
+    {
+      DefaultFill(this, consumer, totalActionProof);
     }
   }
 
@@ -538,6 +1067,8 @@ module Std.Producers {
       ensures history == []
       ensures fresh(Repr)
       reads {}
+      ensures this.elements == elements
+      ensures index == 0
     {
       this.elements := elements;
       this.index := 0;
@@ -554,9 +1085,17 @@ module Std.Producers {
     {
       && this in Repr
       && ValidHistory(history)
+      && (Done() ==> index == |elements|)
       && index <= |elements|
+      && Produced() == elements[..index]
       && (index < |elements| ==> Seq.All(Outputs(), IsSome))
     }
+
+    twostate lemma ValidImpliesValidChange()
+      requires old(Valid())
+      requires unchanged(old(Repr))
+      ensures ValidChange()
+    {}
 
     ghost predicate ValidOutputs(outputs: seq<Option<T>>)
       requires Seq.Partitioned(outputs, IsSome)
@@ -565,7 +1104,23 @@ module Std.Producers {
       true
     }
 
-    ghost function RemainingMetric(): TerminationMetric
+    function ProducedCount(): nat
+      reads this, Repr
+      requires Valid()
+      ensures ProducedCount() == |Produced()|
+    {
+      index
+    }
+
+    function Remaining(): Option<nat>
+      reads this, Repr
+      requires Valid()
+    {
+      Some(|elements| - index)
+    }
+
+
+    ghost function DecreasesMetric(): TerminationMetric
       requires Valid()
       reads this, Repr
       decreases Repr, 3
@@ -580,7 +1135,7 @@ module Std.Producers {
       modifies Modifies(t)
       decreases Decreases(t), 0
       ensures Ensures(t, value)
-      ensures RemainingDecreasedBy(value)
+      ensures DecreasedBy(value)
     {
       assert Requires(t);
       assert Valid();
@@ -600,7 +1155,54 @@ module Std.Producers {
       }
 
       assert Valid();
+      assert old(State()).ValidChange(State());
     }
+
+    method ForEach(consumer: IConsumer<T>, ghost totalActionProof: TotalActionProof<T, ()>)
+      requires Valid()
+      requires consumer.Valid()
+      requires Repr !! consumer.Repr !! totalActionProof.Repr
+      requires totalActionProof.Valid()
+      requires totalActionProof.Action() == consumer
+      reads this, Repr, consumer, consumer.Repr, totalActionProof, totalActionProof.Repr
+      modifies Repr, consumer.Repr
+      ensures ValidChange()
+      ensures consumer.ValidChange()
+      ensures Done()
+      ensures NewProduced() == consumer.NewInputs()
+    {
+      DefaultForEach(this, consumer, totalActionProof);
+    }
+
+    method Fill(consumer: Consumer<T>, ghost totalActionProof: TotalActionProof<T, bool>)
+      requires Valid()
+      requires consumer.Valid()
+      requires consumer.Capacity().Some?
+      requires Repr !! consumer.Repr !! totalActionProof.Repr
+      requires totalActionProof.Valid()
+      requires totalActionProof.Action() == consumer
+      modifies Repr, consumer.Repr
+      ensures ValidChange()
+      ensures consumer.ValidChange()
+      ensures Done() || consumer.Capacity() == Some(0)
+      ensures NewProduced() == consumer.NewConsumed()
+    {
+      DefaultFill(this, consumer, totalActionProof);
+    }
+  }
+
+  // A proof that a given producer produces the elements from a given set.
+  trait ProducerOfSetProof<T> {
+    ghost function Producer(): Producer<T>
+    ghost function Set(): set<T>
+
+    lemma ProducesSet(history: seq<((), Option<T>)>)
+      requires Producer().ValidHistory(history)
+      ensures
+        var produced := ProducedOf(OutputsOf(history));
+        && Seq.HasNoDuplicates(produced)
+        && Seq.ToSet(produced) <= Set()
+        && (!Seq.All(OutputsOf(history), IsSome) ==> Seq.ToSet(produced) == Set())
   }
 
   /***********************
@@ -650,6 +1252,12 @@ module Std.Producers {
       && (produced < max ==> Seq.All(Outputs(), IsSome))
     }
 
+    twostate lemma ValidImpliesValidChange()
+      requires old(Valid())
+      requires unchanged(old(Repr))
+      ensures ValidChange()
+    {}
+
     ghost predicate ValidOutputs(outputs: seq<Option<T>>)
       requires Seq.Partitioned(outputs, IsSome)
       decreases Repr
@@ -657,7 +1265,23 @@ module Std.Producers {
       true
     }
 
-    ghost function RemainingMetric(): TerminationMetric
+    function ProducedCount(): nat
+      reads this, Repr
+      requires Valid()
+      ensures ProducedCount() == |Produced()|
+    {
+      produced
+    }
+
+    function Remaining(): Option<nat>
+      reads this, Repr
+      requires Valid()
+    {
+      Some(max - produced)
+    }
+
+
+    ghost function DecreasesMetric(): TerminationMetric
       requires Valid()
       reads this, Repr
       decreases Repr, 3
@@ -672,7 +1296,7 @@ module Std.Producers {
       modifies Modifies(t)
       decreases Decreases(t), 0
       ensures Ensures(t, value)
-      ensures RemainingDecreasedBy(value)
+      ensures DecreasedBy(value)
     {
       assert Requires(t);
       assert Valid();
@@ -695,6 +1319,39 @@ module Std.Producers {
 
       Repr := {this} + original.Repr + originalTotalAction.Repr;
       assert Valid();
+      assert old(State()).ValidChange(State());
+    }
+
+    method ForEach(consumer: IConsumer<T>, ghost totalActionProof: TotalActionProof<T, ()>)
+      requires Valid()
+      requires consumer.Valid()
+      requires Repr !! consumer.Repr !! totalActionProof.Repr
+      requires totalActionProof.Valid()
+      requires totalActionProof.Action() == consumer
+      reads this, Repr, consumer, consumer.Repr, totalActionProof, totalActionProof.Repr
+      modifies Repr, consumer.Repr
+      ensures ValidChange()
+      ensures consumer.ValidChange()
+      ensures Done()
+      ensures NewProduced() == consumer.NewInputs()
+    {
+      DefaultForEach(this, consumer, totalActionProof);
+    }
+
+    method Fill(consumer: Consumer<T>, ghost totalActionProof: TotalActionProof<T, bool>)
+      requires Valid()
+      requires consumer.Valid()
+      requires consumer.Capacity().Some?
+      requires Repr !! consumer.Repr !! totalActionProof.Repr
+      requires totalActionProof.Valid()
+      requires totalActionProof.Action() == consumer
+      modifies Repr, consumer.Repr
+      ensures ValidChange()
+      ensures consumer.ValidChange()
+      ensures Done() || consumer.Capacity() == Some(0)
+      ensures NewProduced() == consumer.NewConsumed()
+    {
+      DefaultFill(this, consumer, totalActionProof);
     }
   }
 
@@ -702,6 +1359,7 @@ module Std.Producers {
 
     const source: Producer<T>
     const filter: T -> bool
+    var producedCount: nat
 
     constructor (source: Producer<T>, filter: T -> bool)
       requires source.Valid()
@@ -711,6 +1369,7 @@ module Std.Producers {
     {
       this.source := source;
       this.filter := filter;
+      this.producedCount := 0;
 
       Repr := {this} + source.Repr;
       history := [];
@@ -726,7 +1385,14 @@ module Std.Producers {
       && ValidComponent(source)
       && ValidHistory(history)
       && (!source.Done() ==> !Done())
+      && producedCount == |Produced()|
     }
+
+    twostate lemma ValidImpliesValidChange()
+      requires old(Valid())
+      requires unchanged(old(Repr))
+      ensures ValidChange()
+    {}
 
     ghost predicate ValidOutputs(outputs: seq<Option<T>>)
       requires Seq.Partitioned(outputs, IsSome)
@@ -735,12 +1401,27 @@ module Std.Producers {
       true
     }
 
-    ghost function RemainingMetric(): TerminationMetric
+    function ProducedCount(): nat
+      reads this, Repr
+      requires Valid()
+      ensures ProducedCount() == |Produced()|
+    {
+      producedCount
+    }
+
+    function Remaining(): Option<nat>
+      reads this, Repr
+      requires Valid()
+    {
+      None
+    }
+
+    ghost function DecreasesMetric(): TerminationMetric
       requires Valid()
       reads this, Repr
       decreases Repr, 3
     {
-      TMSucc(source.RemainingMetric())
+      TMSucc(source.DecreasesMetric())
     }
 
     @ResourceLimit("1e7")
@@ -750,7 +1431,7 @@ module Std.Producers {
       modifies Modifies(t)
       decreases Decreases(t), 0
       ensures Ensures(t, result)
-      ensures RemainingDecreasedBy(result)
+      ensures DecreasedBy(result)
     {
       assert Requires(t);
       assert Valid();
@@ -763,14 +1444,14 @@ module Std.Producers {
         invariant history == old(history)
         invariant notFirstLoop ==>
                     && 0 < |source.Outputs()| && result == Seq.Last(source.Outputs())
-        invariant source.RemainingDecreasedBy(result)
+        invariant source.DecreasedBy(result)
         invariant old(source.history) <= source.history
-        invariant old(RemainingMetric()).NonIncreasesTo(RemainingMetric())
-        decreases source.Remaining()
+        invariant old(DecreasesMetric()).NonIncreasesTo(DecreasesMetric())
+        decreases source.Decreasing()
       {
         notFirstLoop := true;
 
-        old(RemainingMetric()).SuccDecreasesToOriginal();
+        old(DecreasesMetric()).SuccDecreasesToOriginal();
         result := source.Next();
         Repr := {this} + source.Repr;
 
@@ -782,22 +1463,24 @@ module Std.Producers {
           source.DoneIsOneWay();
         }
 
-        old(RemainingMetric()).SuccDecreasesToSucc(RemainingMetric());
+        old(DecreasesMetric()).SuccDecreasesToSucc(DecreasesMetric());
       }
 
       if result.Some? {
         assert Seq.Last(source.Outputs()) == result;
         Seq.PartitionedLastTrueImpliesAll(source.Outputs(), IsSome);
         var sourceNewOutputs := source.Outputs()[|old(source.Outputs())|..];
-        assert source.Outputs() == old(source.Outputs()) + sourceNewOutputs;
 
         assert Seq.All(Outputs(), IsSome);
+        source.DoneIsOneWay();
         assert old(!source.Done());
         OutputsPartitionedAfterOutputtingSome(result.value);
         ProduceSome(result.value);
+
         assert (Seq.All(source.Outputs(), IsSome) ==> Seq.All(Outputs(), IsSome));
 
-        old(RemainingMetric()).SuccDecreasesToSucc(RemainingMetric());
+        producedCount := producedCount + 1;
+        old(DecreasesMetric()).SuccDecreasesToSucc(DecreasesMetric());
       } else {
         OutputsPartitionedAfterOutputtingNone();
         ProduceNone();
@@ -805,10 +1488,42 @@ module Std.Producers {
         assert !Seq.All(source.Outputs(), IsSome);
         assert (Seq.All(source.Outputs(), IsSome) ==> Seq.All(Outputs(), IsSome));
 
-        old(RemainingMetric()).SuccNonIncreasesToSucc(RemainingMetric());
+        old(DecreasesMetric()).SuccNonIncreasesToSucc(DecreasesMetric());
       }
 
       assert Valid();
+    }
+
+    method ForEach(consumer: IConsumer<T>, ghost totalActionProof: TotalActionProof<T, ()>)
+      requires Valid()
+      requires consumer.Valid()
+      requires Repr !! consumer.Repr !! totalActionProof.Repr
+      requires totalActionProof.Valid()
+      requires totalActionProof.Action() == consumer
+      reads this, Repr, consumer, consumer.Repr, totalActionProof, totalActionProof.Repr
+      modifies Repr, consumer.Repr
+      ensures ValidChange()
+      ensures consumer.ValidChange()
+      ensures Done()
+      ensures NewProduced() == consumer.NewInputs()
+    {
+      DefaultForEach(this, consumer, totalActionProof);
+    }
+
+    method Fill(consumer: Consumer<T>, ghost totalActionProof: TotalActionProof<T, bool>)
+      requires Valid()
+      requires consumer.Valid()
+      requires consumer.Capacity().Some?
+      requires Repr !! consumer.Repr !! totalActionProof.Repr
+      requires totalActionProof.Valid()
+      requires totalActionProof.Action() == consumer
+      modifies Repr, consumer.Repr
+      ensures ValidChange()
+      ensures consumer.ValidChange()
+      ensures Done() || consumer.Capacity() == Some(0)
+      ensures NewProduced() == consumer.NewConsumed()
+    {
+      DefaultFill(this, consumer, totalActionProof);
     }
   }
 
@@ -825,13 +1540,16 @@ module Std.Producers {
       requires second.Valid()
       requires second.history == []
       requires first.Repr !! second.Repr
+      reads first, first.Repr, second, second.Repr
       ensures Valid()
       ensures history == []
       ensures fresh(Repr - first.Repr - second.Repr)
+      ensures this.first == first
+      ensures this.second == second
     {
       this.first := first;
       this.second := second;
-      this.base := TMSucc(second.RemainingMetric());
+      this.base := TMSucc(second.DecreasesMetric());
 
       Repr := {this} + first.Repr + second.Repr;
       history := [];
@@ -850,10 +1568,22 @@ module Std.Producers {
       && ValidComponent(first)
       && ValidComponent(second)
       && first.Repr !! second.Repr
-      && base.DecreasesTo(second.RemainingMetric())
+      && base.DecreasesTo(second.DecreasesMetric())
       && ValidHistory(history)
-      && (Seq.All(first.Outputs(), IsSome) || Seq.All(second.Outputs(), IsSome) ==> Seq.All(Outputs(), IsSome))
+      && Produced() == first.Produced() + second.Produced()
+      // Enforcing that we exhaust first before starting on second
+      && (!first.Done() ==> second.history == [])
+      && (!first.Done() || !second.Done() ==> !Done())
+      && (Done() ==> (
+              && (first.Remaining() == None || first.Remaining() == Some(0))
+              && (second.Remaining() == None || second.Remaining() == Some(0))))
     }
+
+    twostate lemma ValidImpliesValidChange()
+      requires old(Valid())
+      requires unchanged(old(Repr))
+      ensures ValidChange()
+    {}
 
     ghost predicate ValidOutputs(outputs: seq<Option<T>>)
       requires Seq.Partitioned(outputs, IsSome)
@@ -862,68 +1592,124 @@ module Std.Producers {
       true
     }
 
-    ghost function RemainingMetric(): TerminationMetric
+    function ProducedCount(): nat
+      reads this, Repr
+      requires Valid()
+      ensures ProducedCount() == |Produced()|
+    {
+      first.ProducedCount() + second.ProducedCount()
+    }
+
+    function Remaining(): Option<nat>
+      reads this, Repr
+      requires Valid()
+    {
+      var left := first.Remaining();
+      var right := second.Remaining();
+      if left.Some? && right.Some? then
+        Some(left.value + right.value)
+      else
+        None
+    }
+
+    ghost function DecreasesMetric(): TerminationMetric
       requires Valid()
       reads this, Repr
       decreases Repr, 3
     {
-      TMTuple(base, first.RemainingMetric(), second.RemainingMetric())
+      TMTuple(base, first.DecreasesMetric(), second.DecreasesMetric())
     }
 
-    @ResourceLimit("1e7")
+    @ResourceLimit("1e8")
+    @IsolateAssertions
     method Invoke(t: ()) returns (result: Option<T>)
       requires Requires(t)
       reads Reads(t)
       modifies Modifies(t)
       decreases Decreases(t), 0
       ensures Ensures(t, result)
-      ensures RemainingDecreasedBy(result)
+      ensures DecreasedBy(result)
     {
       assert Requires(t);
       assert Valid();
 
-      RemainingMetric().TupleDecreasesToFirst();
+      DecreasesMetric().TupleDecreasesToFirst();
       assert (Decreases(t), 0 decreases to first.Decreases(t), 0);
       result := first.Next();
       Repr := {this} + first.Repr + second.Repr;
+      first.NewProducedAfterInvoke(result);
+      first.ProducedAndNewProduced();
 
       if result.Some? {
         first.OutputtingSomeMeansAllSome(result.value);
-      } else {
-        first.OutputtingNoneMeansNotAllSome();
-        assert !Seq.All(first.Outputs(), IsSome);
 
-        old(RemainingMetric()).TupleDecreasesToSecond();
-        result := second.Next();
-        Repr := {this} + first.Repr + second.Repr;
-
-        if result.Some? {
-          second.OutputtingSomeMeansAllSome(result.value);
-        } else {
-          second.OutputtingNoneMeansNotAllSome();
-          assert !Seq.All(second.Outputs(), IsSome);
-        }
-      }
-
-      if result.Some? {
-        assert Seq.All(first.Outputs(), IsSome) || Seq.All(second.Outputs(), IsSome);
-        assert Seq.All(Outputs(), IsSome);
         OutputsPartitionedAfterOutputtingSome(result.value);
         ProduceSome(result.value);
 
-        old(RemainingMetric()).TupleDecreasesToTuple(RemainingMetric());
+        old(DecreasesMetric()).TupleDecreasesToTuple(DecreasesMetric());
       } else {
-        assert !Seq.All(first.Outputs(), IsSome);
-        assert !Seq.All(second.Outputs(), IsSome);
-        OutputsPartitionedAfterOutputtingNone();
-        ProduceNone();
+        first.OutputtingNoneMeansNotAllSome();
 
-        old(RemainingMetric()).TupleNonIncreasesToTuple(RemainingMetric());
+        label before:
+        old(DecreasesMetric()).TupleDecreasesToSecond();
+        result := second.Next();
+        Repr := {this} + first.Repr + second.Repr;
+        second.NewProducedAfterInvoke@before(result);
+        second.ProducedAndNewProduced@before();
+
+        if result.Some? {
+          second.OutputtingSomeMeansAllSome(result.value);
+
+          OutputsPartitionedAfterOutputtingSome(result.value);
+          ProduceSome(result.value);
+
+          old(DecreasesMetric()).TupleDecreasesToTuple(DecreasesMetric());
+        } else {
+          second.OutputtingNoneMeansNotAllSome();
+
+          OutputsPartitionedAfterOutputtingNone();
+          ProduceNone();
+
+          assert Valid();
+          old(DecreasesMetric()).TupleNonIncreasesToTuple(DecreasesMetric());
+        }
       }
 
-      assert (Seq.All(first.Outputs(), IsSome) || Seq.All(second.Outputs(), IsSome) ==> Seq.All(Outputs(), IsSome));
+      assert old(State()).ValidChange(State());
 
-      assert Valid();
+      assert Ensures(t, result);
+    }
+
+    method ForEach(consumer: IConsumer<T>, ghost totalActionProof: TotalActionProof<T, ()>)
+      requires Valid()
+      requires consumer.Valid()
+      requires Repr !! consumer.Repr !! totalActionProof.Repr
+      requires totalActionProof.Valid()
+      requires totalActionProof.Action() == consumer
+      reads this, Repr, consumer, consumer.Repr, totalActionProof, totalActionProof.Repr
+      modifies Repr, consumer.Repr
+      ensures ValidChange()
+      ensures consumer.ValidChange()
+      ensures Done()
+      ensures NewProduced() == consumer.NewInputs()
+    {
+      DefaultForEach(this, consumer, totalActionProof);
+    }
+
+    method Fill(consumer: Consumer<T>, ghost totalActionProof: TotalActionProof<T, bool>)
+      requires Valid()
+      requires consumer.Valid()
+      requires consumer.Capacity().Some?
+      requires Repr !! consumer.Repr !! totalActionProof.Repr
+      requires totalActionProof.Valid()
+      requires totalActionProof.Action() == consumer
+      modifies Repr, consumer.Repr
+      ensures ValidChange()
+      ensures consumer.ValidChange()
+      ensures Done() || consumer.Capacity() == Some(0)
+      ensures NewProduced() == consumer.NewConsumed()
+    {
+      DefaultFill(this, consumer, totalActionProof);
     }
   }
 
@@ -943,6 +1729,7 @@ module Std.Producers {
       requires mappingTotalProof.Valid()
       requires mappingTotalProof.Action() == mapping
       requires original.Repr !! mapping.Repr !! mappingTotalProof.Repr
+      reads original, original.Repr, mapping, mapping.Repr, mappingTotalProof, mappingTotalProof.Repr
       ensures Valid()
       ensures history == []
       ensures fresh(Repr - original.Repr - mapping.Repr - mappingTotalProof.Repr)
@@ -950,7 +1737,7 @@ module Std.Producers {
       this.original := original;
       this.mapping := mapping;
       this.mappingTotalProof := mappingTotalProof;
-      this.base := TMSucc(original.RemainingMetric());
+      this.base := TMSucc(original.DecreasesMetric());
 
       Repr := {this} + original.Repr + mapping.Repr + mappingTotalProof.Repr;
       history := [];
@@ -972,9 +1759,16 @@ module Std.Producers {
       && mappingTotalProof.Action() == mapping
       && original.Repr !! mapping.Repr !! mappingTotalProof.Repr
       && ValidHistory(history)
-      && base.DecreasesTo(original.RemainingMetric())
+      && base.DecreasesTo(original.DecreasesMetric())
       && (!original.Done() <==> !Done())
+      && |Produced()| == |original.Produced()|
     }
+
+    twostate lemma ValidImpliesValidChange()
+      requires old(Valid())
+      requires unchanged(old(Repr))
+      ensures ValidChange()
+    {}
 
     ghost predicate ValidOutputs(outputs: seq<Option<O>>)
       requires Seq.Partitioned(outputs, IsSome)
@@ -983,12 +1777,28 @@ module Std.Producers {
       true
     }
 
-    ghost function RemainingMetric(): TerminationMetric
+    function ProducedCount(): nat
+      reads this, Repr
+      requires Valid()
+      ensures ProducedCount() == |Produced()|
+    {
+      original.ProducedCount()
+    }
+
+    function Remaining(): Option<nat>
+      reads this, Repr
+      requires Valid()
+    {
+      None
+    }
+
+
+    ghost function DecreasesMetric(): TerminationMetric
       requires Valid()
       reads this, Repr
       decreases Repr, 3
     {
-      TMTuple(base, TMNat(0), original.RemainingMetric())
+      TMTuple(base, TMNat(0), original.DecreasesMetric())
     }
 
     @ResourceLimit("1e7")
@@ -998,15 +1808,17 @@ module Std.Producers {
       modifies Modifies(t)
       decreases Decreases(t), 0
       ensures Ensures(t, result)
-      ensures RemainingDecreasedBy(result)
+      ensures DecreasedBy(result)
     {
       assert Requires(t);
       assert Valid();
-      RemainingMetric().TupleDecreasesToSecond();
-      assert Remaining() > original.Remaining();
+      DecreasesMetric().TupleDecreasesToSecond();
+      assert Decreasing() > original.Decreasing();
       var next := original.Next();
 
       if next.Some? {
+        original.NewProducedAfterInvoke(next);
+        assert original.NewProducedCount() == 1;
         mappingTotalProof.AnyInputIsValid(mapping.history, next.value);
         var nextValue := mapping.Invoke(next.value);
         result := Some(nextValue);
@@ -1021,19 +1833,53 @@ module Std.Producers {
         OutputsPartitionedAfterOutputtingNone();
         ProduceNone();
 
+        assert original.NewProducedCount() == 0;
         assert !IsSome(Seq.Last(Outputs()));
       }
 
       Repr := {this} + original.Repr + mapping.Repr + mappingTotalProof.Repr;
       assert Valid();
-      assert original.RemainingDecreasedBy(next);
+      assert original.DecreasedBy(next);
       if next.Some? {
-        old(RemainingMetric()).TupleDecreasesToTuple(RemainingMetric());
+        old(DecreasesMetric()).TupleDecreasesToTuple(DecreasesMetric());
       } else {
-        old(RemainingMetric()).TupleNonIncreasesToTuple(RemainingMetric());
+        old(DecreasesMetric()).TupleNonIncreasesToTuple(DecreasesMetric());
       }
     }
+
+    method ForEach(consumer: IConsumer<O>, ghost totalActionProof: TotalActionProof<O, ()>)
+      requires Valid()
+      requires consumer.Valid()
+      requires Repr !! consumer.Repr !! totalActionProof.Repr
+      requires totalActionProof.Valid()
+      requires totalActionProof.Action() == consumer
+      reads this, Repr, consumer, consumer.Repr, totalActionProof, totalActionProof.Repr
+      modifies Repr, consumer.Repr
+      ensures ValidChange()
+      ensures consumer.ValidChange()
+      ensures Done()
+      ensures NewProduced() == consumer.NewInputs()
+    {
+      DefaultForEach(this, consumer, totalActionProof);
+    }
+
+    method Fill(consumer: Consumer<O>, ghost totalActionProof: TotalActionProof<O, bool>)
+      requires Valid()
+      requires consumer.Valid()
+      requires consumer.Capacity().Some?
+      requires Repr !! consumer.Repr !! totalActionProof.Repr
+      requires totalActionProof.Valid()
+      requires totalActionProof.Action() == consumer
+      modifies Repr, consumer.Repr
+      ensures ValidChange()
+      ensures consumer.ValidChange()
+      ensures Done() || consumer.Capacity() == Some(0)
+      ensures NewProduced() == consumer.NewConsumed()
+    {
+      DefaultFill(this, consumer, totalActionProof);
+    }
   }
+
 
   trait ProducerOfNewProducers<T> extends Producer<Producer<T>> {
 
@@ -1045,17 +1891,211 @@ module Std.Producers {
       modifies Modifies(())
       decreases Decreases(()), 0
       ensures Ensures((), r)
-      ensures RemainingDecreasedBy(r)
-      ensures r.Some? ==> JustProduced(r.value)
+      ensures DecreasedBy(r)
+      ensures r.Some? ==> ProducedFresh(r.value)
 
-    twostate predicate JustProduced(new produced: Producer<T>)
+    twostate predicate ProducedFresh(new produced: Producer<T>)
       reads this, produced, produced.Repr
     {
       && produced.Valid()
       && fresh(produced.Repr)
       && Repr !! produced.Repr
       && produced.history == []
-      && MaxProduced().DecreasesTo(produced.RemainingMetric())
+      && MaxProduced().DecreasesTo(produced.DecreasesMetric())
+    }
+  }
+
+  @AssumeCrossModuleTermination
+  trait OutputterOfNewProducers<I, O> extends Action<I, Producer<O>>, TotalActionProof<I, Producer<O>>  {
+
+    ghost function MaxProduced(): TerminationMetric
+
+    ghost function Action(): Action<I, Producer<O>> {
+      this
+    }
+
+    method Invoke(i: I) returns (r: Producer<O>)
+      requires Requires(i)
+      reads Reads(i)
+      modifies Modifies(i)
+      decreases Decreases(i), 0
+      ensures Ensures(i, r)
+      ensures OutputFresh(r)
+
+    twostate predicate OutputFresh(new output: Producer<O>)
+      reads this, output, output.Repr
+    {
+      && output.Valid()
+      && fresh(output.Repr)
+      && Repr !! output.Repr
+      && output.history == []
+      && MaxProduced().DecreasesTo(output.DecreasesMetric())
+    }
+  }
+
+  class MappedProducerOfNewProducers<I, O> extends ProducerOfNewProducers<O> {
+
+    const original: Producer<I>
+    const mapping: OutputterOfNewProducers<I, O>
+
+    ghost const base: TerminationMetric
+
+    constructor (original: Producer<I>, mapping: OutputterOfNewProducers<I, O>)
+      requires original.Valid()
+      requires original.history == []
+      requires mapping.Valid()
+      requires mapping.history == []
+      requires original.Repr !! mapping.Repr
+      reads original, original.Repr, mapping, mapping.Repr
+      ensures Valid()
+      ensures history == []
+      ensures fresh(Repr - original.Repr - mapping.Repr)
+    {
+      this.original := original;
+      this.mapping := mapping;
+      this.base := TMSucc(original.DecreasesMetric());
+
+      Repr := {this} + original.Repr + mapping.Repr;
+      history := [];
+
+      new;
+      this.base.SuccDecreasesToOriginal();
+    }
+
+    ghost predicate Valid()
+      reads this, Repr
+      ensures Valid() ==> this in Repr
+      ensures Valid() ==> ValidHistory(history)
+      decreases Repr, 0
+    {
+      && this in Repr
+      && ValidComponent(original)
+      && ValidComponent(mapping)
+      && original.Repr !! mapping.Repr
+      && ValidHistory(history)
+      && base.DecreasesTo(original.DecreasesMetric())
+      && (!original.Done() <==> !Done())
+      && |Produced()| == |original.Produced()|
+    }
+
+    twostate lemma ValidImpliesValidChange()
+      requires old(Valid())
+      requires unchanged(old(Repr))
+      ensures ValidChange()
+    {}
+
+    ghost predicate ValidOutputs(outputs: seq<Option<Producer<O>>>)
+      requires Seq.Partitioned(outputs, IsSome<Producer<O>>)
+      decreases Repr
+    {
+      true
+    }
+
+    ghost function MaxProduced(): TerminationMetric {
+      mapping.MaxProduced()
+    }
+
+    function ProducedCount(): nat
+      reads this, Repr
+      requires Valid()
+      ensures ProducedCount() == |Produced()|
+    {
+      original.ProducedCount()
+    }
+
+    function Remaining(): Option<nat>
+      reads this, Repr
+      requires Valid()
+    {
+      None
+    }
+
+
+    ghost function DecreasesMetric(): TerminationMetric
+      requires Valid()
+      reads this, Repr
+      decreases Repr, 3
+    {
+      TMTuple(base, TMNat(0), original.DecreasesMetric())
+    }
+
+    @ResourceLimit("1e7")
+    method Invoke(t: ()) returns (result: Option<Producer<O>>)
+      requires Requires(t)
+      reads Reads(t)
+      modifies Modifies(t)
+      decreases Decreases(t), 0
+      ensures Ensures(t, result)
+      ensures DecreasedBy(result)
+      ensures result.Some? ==> ProducedFresh(result.value)
+    {
+      assert Requires(t);
+      assert Valid();
+      DecreasesMetric().TupleDecreasesToSecond();
+      assert Decreasing() > original.Decreasing();
+      var next := original.Next();
+
+      if next.Some? {
+        original.NewProducedAfterInvoke(next);
+        assert original.NewProducedCount() == 1;
+        mapping.AnyInputIsValid(mapping.history, next.value);
+        var nextValue := mapping.Invoke(next.value);
+        result := Some(nextValue);
+
+        original.OutputtingSomeMeansAllSome(next.value);
+        OutputsPartitionedAfterOutputtingSome(result.value);
+        ProduceSome(result.value);
+      } else {
+        result := None;
+
+        original.OutputtingNoneMeansNotAllSome();
+        OutputsPartitionedAfterOutputtingNone();
+        ProduceNone();
+
+        assert original.NewProducedCount() == 0;
+        assert !IsSome(Seq.Last(Outputs()));
+      }
+
+      Repr := {this} + original.Repr + mapping.Repr;
+      assert Valid();
+      assert original.DecreasedBy(next);
+      if next.Some? {
+        old(DecreasesMetric()).TupleDecreasesToTuple(DecreasesMetric());
+      } else {
+        old(DecreasesMetric()).TupleNonIncreasesToTuple(DecreasesMetric());
+      }
+    }
+
+    method ForEach(consumer: IConsumer<Producer<O>>, ghost totalActionProof: TotalActionProof<Producer<O>, ()>)
+      requires Valid()
+      requires consumer.Valid()
+      requires Repr !! consumer.Repr !! totalActionProof.Repr
+      requires totalActionProof.Valid()
+      requires totalActionProof.Action() == consumer
+      reads this, Repr, consumer, consumer.Repr, totalActionProof, totalActionProof.Repr
+      modifies Repr, consumer.Repr
+      ensures ValidChange()
+      ensures consumer.ValidChange()
+      ensures Done()
+      ensures NewProduced() == consumer.NewInputs()
+    {
+      DefaultForEach(this, consumer, totalActionProof);
+    }
+
+    method Fill(consumer: Consumer<Producer<O>>, ghost totalActionProof: TotalActionProof<Producer<O>, bool>)
+      requires Valid()
+      requires consumer.Valid()
+      requires consumer.Capacity().Some?
+      requires Repr !! consumer.Repr !! totalActionProof.Repr
+      requires totalActionProof.Valid()
+      requires totalActionProof.Action() == consumer
+      modifies Repr, consumer.Repr
+      ensures ValidChange()
+      ensures consumer.ValidChange()
+      ensures Done() || consumer.Capacity() == Some(0)
+      ensures NewProduced() == consumer.NewConsumed()
+    {
+      DefaultFill(this, consumer, totalActionProof);
     }
   }
 
@@ -1063,17 +2103,20 @@ module Std.Producers {
 
     const original: ProducerOfNewProducers<T>
     var currentInner: Option<Producer<T>>
+    var producedCount: nat
 
     constructor (original: ProducerOfNewProducers<T>)
       requires original.Valid()
       ensures Valid()
       ensures fresh(Repr - original.Repr)
+      ensures history == []
     {
       this.original := original;
+      this.currentInner := None;
+      this.producedCount := 0;
 
       this.history := [];
       this.Repr := {this} + original.Repr;
-      this.currentInner := None;
     }
 
     ghost function BaseMetric(): TerminationMetric
@@ -1084,72 +2127,72 @@ module Std.Producers {
       TMSucc(original.MaxProduced())
     }
 
-    ghost function InnerRemainingMetric(): TerminationMetric
+    ghost function InnerDecreasesMetric(): TerminationMetric
       requires Valid()
       reads this, Repr
       decreases Repr, 2
-      ensures BaseMetric().DecreasesTo(InnerRemainingMetric())
+      ensures BaseMetric().DecreasesTo(InnerDecreasesMetric())
     {
       reveal TerminationMetric.Ordinal();
       if currentInner.Some? then
-        var result := TMSucc(currentInner.value.RemainingMetric());
+        var result := TMSucc(currentInner.value.DecreasesMetric());
         BaseMetric().SuccDecreasesToSucc(result);
         result
       else
         TMNat(0)
     }
 
-    twostate lemma InnerRemainingMetricNonIncreases()
+    twostate lemma InnerDecreasesMetricNonIncreases()
       requires old(Valid())
       requires old(currentInner.Some?)
       requires Valid()
       requires currentInner.Some?
       requires old(currentInner.value) == currentInner.value
-      requires old(currentInner.value.RemainingMetric()).NonIncreasesTo(currentInner.value.RemainingMetric())
-      ensures old(InnerRemainingMetric()).NonIncreasesTo(InnerRemainingMetric())
+      requires old(currentInner.value.DecreasesMetric()).NonIncreasesTo(currentInner.value.DecreasesMetric())
+      ensures old(InnerDecreasesMetric()).NonIncreasesTo(InnerDecreasesMetric())
     {
-      old(InnerRemainingMetric()).SuccNonIncreasesToSucc(InnerRemainingMetric());
+      old(InnerDecreasesMetric()).SuccNonIncreasesToSucc(InnerDecreasesMetric());
     }
 
-    twostate lemma InnerRemainingMetricDecreases()
+    twostate lemma InnerDecreasesMetricDecreases()
       requires old(Valid())
       requires old(currentInner.Some?)
       requires Valid()
       requires currentInner.Some?
       requires old(currentInner.value) == currentInner.value
-      requires old(currentInner.value.RemainingMetric()).DecreasesTo(currentInner.value.RemainingMetric())
-      ensures old(InnerRemainingMetric()).DecreasesTo(InnerRemainingMetric())
+      requires old(currentInner.value.DecreasesMetric()).DecreasesTo(currentInner.value.DecreasesMetric())
+      ensures old(InnerDecreasesMetric()).DecreasesTo(InnerDecreasesMetric())
     {
-      old(InnerRemainingMetric()).SuccDecreasesToSucc(InnerRemainingMetric());
+      old(InnerDecreasesMetric()).SuccDecreasesToSucc(InnerDecreasesMetric());
     }
 
-    twostate lemma InnerRemainingMetricDecreases2()
+    twostate lemma InnerDecreasesMetricDecreases2()
       requires old(Valid())
       requires old(currentInner.Some?)
       requires Valid()
       requires currentInner.None?
-      ensures old(InnerRemainingMetric()).DecreasesTo(InnerRemainingMetric())
+      ensures old(InnerDecreasesMetric()).DecreasesTo(InnerDecreasesMetric())
     {
       reveal TerminationMetric.Ordinal();
     }
 
-    ghost function RemainingMetric(): TerminationMetric
+    ghost function DecreasesMetric(): TerminationMetric
       requires Valid()
       reads this, Repr
       decreases Repr, 3
     {
-      TMTuple(BaseMetric(), original.RemainingMetric(), InnerRemainingMetric())
+      TMTuple(BaseMetric(), original.DecreasesMetric(), InnerDecreasesMetric())
     }
 
-    // Makes it much easier to prove RemainingMetric()
+    // Makes it much easier to prove DecreasesMetric()
     // behaves correctly before updating the history at the end of Invoke()
-    twostate lemma RemainingMetricDoesntReadHistory()
+    twostate lemma DecreasesMetricDoesntReadHistory()
       requires old(Valid())
       requires Valid()
       requires old(BaseMetric()) == BaseMetric()
-      requires old(original.RemainingMetric()) == original.RemainingMetric()
-      requires old(InnerRemainingMetric()) == InnerRemainingMetric()
-      ensures old(RemainingMetric()) == RemainingMetric()
+      requires old(original.DecreasesMetric()) == original.DecreasesMetric()
+      requires old(InnerDecreasesMetric()) == InnerDecreasesMetric()
+      ensures old(DecreasesMetric()) == DecreasesMetric()
     {}
 
     ghost predicate Valid()
@@ -1166,16 +2209,38 @@ module Std.Producers {
       && (currentInner.Some? ==>
             && 0 < |original.Outputs()|
             && currentInner == Seq.Last(original.Outputs())
-            && original.MaxProduced().DecreasesTo(currentInner.value.RemainingMetric()))
+            && original.MaxProduced().DecreasesTo(currentInner.value.DecreasesMetric()))
       && (!original.Done() && currentInner.Some? && !currentInner.value.Done() ==> !Done())
       && (Done() ==> original.Done() && currentInner.None?)
+      && producedCount == |Produced()|
     }
+
+    twostate lemma ValidImpliesValidChange()
+      requires old(Valid())
+      requires unchanged(old(Repr))
+      ensures ValidChange()
+    {}
 
     ghost predicate ValidOutputs(outputs: seq<Option<T>>)
       requires Seq.Partitioned(outputs, IsSome)
       decreases Repr
     {
       true
+    }
+
+    function ProducedCount(): nat
+      reads this, Repr
+      requires Valid()
+      ensures ProducedCount() == |Produced()|
+    {
+      producedCount
+    }
+
+    function Remaining(): Option<nat>
+      reads this, Repr
+      requires Valid()
+    {
+      None
     }
 
     @ResourceLimit("1e8")
@@ -1185,7 +2250,7 @@ module Std.Producers {
       modifies Modifies(t)
       decreases Decreases(t), 0
       ensures Ensures(t, result)
-      ensures RemainingDecreasedBy(result)
+      ensures DecreasedBy(result)
     {
       assert Valid();
 
@@ -1199,14 +2264,14 @@ module Std.Producers {
         invariant result.Some? ==> !original.Done() && currentInner.Some? && !currentInner.value.Done()
         invariant old(original.history) <= original.history
         invariant old(Done()) == Done()
-        invariant RemainingDecreasedBy(result)
-        decreases original.Remaining(), currentInner.Some?,
-                  if currentInner.Some? then currentInner.value.Remaining() else 0
+        invariant DecreasedBy(result)
+        decreases original.Decreasing(), currentInner.Some?,
+                  if currentInner.Some? then currentInner.value.Decreasing() else 0
       {
         if currentInner.None? {
           label beforeOriginalNext:
           ghost var historyBefore := original.history;
-          old(RemainingMetric()).TupleDecreasesToFirst();
+          old(DecreasesMetric()).TupleDecreasesToFirst();
           // Need to use Invoke() here for the extra postcondition from ProducerOfNewProducers
           currentInner := original.Invoke(());
 
@@ -1224,16 +2289,16 @@ module Std.Producers {
             assert !original.Done() && currentInner.Some? && !currentInner.value.Done();
             original.DoneIsOneWay();
 
-            old(RemainingMetric()).TupleDecreasesToTuple(RemainingMetric());
-            assert old(Remaining()) >= Remaining();
+            old(DecreasesMetric()).TupleDecreasesToTuple(DecreasesMetric());
+            assert old(Decreasing()) >= Decreasing();
           } else {
             Repr := {this} + original.Repr;
 
             assert currentInner == Seq.Last(original.Outputs());
             assert original.Done() && currentInner.None?;
 
-            old@beforeOriginalNext(RemainingMetric()).TupleNonIncreasesToTuple(RemainingMetric()) by {
-              assert old@beforeOriginalNext(InnerRemainingMetric()) == InnerRemainingMetric();
+            old@beforeOriginalNext(DecreasesMetric()).TupleNonIncreasesToTuple(DecreasesMetric()) by {
+              assert old@beforeOriginalNext(InnerDecreasesMetric()) == InnerDecreasesMetric();
             }
 
             break;
@@ -1241,15 +2306,15 @@ module Std.Producers {
         } else {
           label beforeCurrentInnerNext:
 
-          RemainingMetric().TupleDecreasesToSecond();
-          assert RemainingMetric().second == TMSucc(currentInner.value.RemainingMetric());
-          RemainingMetric().second.SuccDecreasesToOriginal();
+          DecreasesMetric().TupleDecreasesToSecond();
+          assert DecreasesMetric().second == TMSucc(currentInner.value.DecreasesMetric());
+          DecreasesMetric().second.SuccDecreasesToOriginal();
           result := currentInner.value.Next();
           this.Repr := {this} + original.Repr + currentInner.value.Repr;
 
-          assert old@beforeCurrentInnerNext(currentInner.value.RemainingMetric()).NonIncreasesTo(currentInner.value.RemainingMetric());
-          InnerRemainingMetricNonIncreases@beforeCurrentInnerNext();
-          old@beforeCurrentInnerNext(RemainingMetric()).TupleNonIncreasesToTuple(RemainingMetric());
+          assert old@beforeCurrentInnerNext(currentInner.value.DecreasesMetric()).NonIncreasesTo(currentInner.value.DecreasesMetric());
+          InnerDecreasesMetricNonIncreases@beforeCurrentInnerNext();
+          old@beforeCurrentInnerNext(DecreasesMetric()).TupleNonIncreasesToTuple(DecreasesMetric());
 
           label afterCurrentInnerNext:
 
@@ -1258,9 +2323,9 @@ module Std.Producers {
             var oldCurrentInner := currentInner;
             currentInner := None;
 
-            InnerRemainingMetricDecreases2@afterCurrentInnerNext();
-            old@afterCurrentInnerNext(RemainingMetric()).TupleDecreasesToTuple(RemainingMetric());
-            assert old(Remaining()) >= Remaining();
+            InnerDecreasesMetricDecreases2@afterCurrentInnerNext();
+            old@afterCurrentInnerNext(DecreasesMetric()).TupleDecreasesToTuple(DecreasesMetric());
+            assert old(Decreasing()) >= Decreasing();
           } else {
             assert currentInner == Seq.Last(original.Outputs());
             assert original.ValidHistory(original.history);
@@ -1274,9 +2339,9 @@ module Std.Producers {
             assert !old(original.Done());
             currentInner.value.DoneIsOneWay@beforeCurrentInnerNext();
 
-            InnerRemainingMetricDecreases@beforeCurrentInnerNext();
-            old@beforeCurrentInnerNext(RemainingMetric()).TupleDecreasesToTuple(RemainingMetric());
-            assert old(Remaining()) > Remaining();
+            InnerDecreasesMetricDecreases@beforeCurrentInnerNext();
+            old@beforeCurrentInnerNext(DecreasesMetric()).TupleDecreasesToTuple(DecreasesMetric());
+            assert old(Decreasing()) > Decreasing();
           }
         }
       }
@@ -1286,14 +2351,49 @@ module Std.Producers {
         OutputsPartitionedAfterOutputtingSome(result.value);
         ProduceSome(result.value);
 
-        RemainingMetricDoesntReadHistory@beforeUpdatingHistory();
+        producedCount := producedCount + 1;
+
+        DecreasesMetricDoesntReadHistory@beforeUpdatingHistory();
       } else {
         OutputsPartitionedAfterOutputtingNone();
         ProduceNone();
 
-        RemainingMetricDoesntReadHistory@beforeUpdatingHistory();
+        DecreasesMetricDoesntReadHistory@beforeUpdatingHistory();
       }
       assert Valid();
+    }
+
+
+    method ForEach(consumer: IConsumer<T>, ghost totalActionProof: TotalActionProof<T, ()>)
+      requires Valid()
+      requires consumer.Valid()
+      requires Repr !! consumer.Repr !! totalActionProof.Repr
+      requires totalActionProof.Valid()
+      requires totalActionProof.Action() == consumer
+      reads this, Repr, consumer, consumer.Repr, totalActionProof, totalActionProof.Repr
+      modifies Repr, consumer.Repr
+      ensures ValidChange()
+      ensures consumer.ValidChange()
+      ensures Done()
+      ensures NewProduced() == consumer.NewInputs()
+    {
+      DefaultForEach(this, consumer, totalActionProof);
+    }
+
+    method Fill(consumer: Consumer<T>, ghost totalActionProof: TotalActionProof<T, bool>)
+      requires Valid()
+      requires consumer.Valid()
+      requires consumer.Capacity().Some?
+      requires Repr !! consumer.Repr !! totalActionProof.Repr
+      requires totalActionProof.Valid()
+      requires totalActionProof.Action() == consumer
+      modifies Repr, consumer.Repr
+      ensures ValidChange()
+      ensures consumer.ValidChange()
+      ensures Done() || consumer.Capacity() == Some(0)
+      ensures NewProduced() == consumer.NewConsumed()
+    {
+      DefaultFill(this, consumer, totalActionProof);
     }
   }
 }

@@ -109,7 +109,9 @@ namespace Microsoft.Dafny.Compilers {
       Feature.ForLoops,
       Feature.Traits,
       Feature.RuntimeCoverageReport,
-      Feature.NonNativeNewtypes
+      Feature.NonNativeNewtypes,
+      Feature.StandardLibraries,
+      Feature.StandardLibrariesActionsExterns
     };
 
     private readonly List<string> Imports = [DafnyDefaultModule];
