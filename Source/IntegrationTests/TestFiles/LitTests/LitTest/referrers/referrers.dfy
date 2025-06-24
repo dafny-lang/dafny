@@ -48,12 +48,12 @@ method CallReferrersMethodCall() {
 //// Ghost versions are the same //////
 
 ghost method GhostReferrersLocals() {
-  ghost var t := new SimpleObject;
-  assert referrers(t) == {locals`t};
+  ghost var t := new SimpleObject; // Ghostly allocated
+  assert referrers(t) == {};
   ghost var alias_untracked := t;    // Even in ghost context, ghost markers means non-tracking by default.
-  assert referrers(t) == {locals`t};
+  assert referrers(t) == {};
   ghost var {:tracking} alias_tracked := t; // This is not useful in practice in ghost methods since one can just declare normal variables, but it's here for coherence
-  assert referrers(t) == {locals`t, locals`alias_tracked};
+  assert referrers(t) == {locals`alias_tracked};
   
   assert (locals`t.1).IsGhost;
   assert (locals`alias_untracked.1).IsGhost;

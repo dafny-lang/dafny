@@ -26,7 +26,28 @@ namespace Microsoft.Dafny {
           fc = new Constant(f.Origin, new TypedIdent(f.Origin, f.FullSanitizedName, Predef.FieldNameFamily(f.Origin)), true);
           fields.Add(f, fc);
           sink.AddTopLevelDeclaration(fc);
-          // No axiom necessary, they are added in the prelude
+          // We emit the axiom
+          /* axiom
+            (forall depth: int ::
+            { local_field(constant_field_family_name, depth) }
+                   _System.field.IsGhost(local_field(constant_field_family_name, depth))) // if the field is a ghost field
+            OR
+                   !_System.field.IsGhost(local_field(constant_field_family_name, depth))) // if the field is a ghost field
+            ; 
+          */
+          // Create the axiom for ghost field status
+          var depthVar = new Bpl.BoundVariable(f.Origin, new Bpl.TypedIdent(f.Origin, "depth", Bpl.Type.Int));
+          var depth = new Bpl.IdentifierExpr(f.Origin, depthVar);
+          var localFieldCall = FunctionCall(f.Origin, BuiltinFunction.LocalField, Predef.FieldName(f.Origin), 
+            Bpl.Expr.Ident(fc), depth);
+          var isGhostCall = FunctionCall(f.Origin, BuiltinFunction.IsGhostField, Predef.FieldName(f.Origin), localFieldCall);
+          
+          var body = f.IsGhost ? isGhostCall : Bpl.Expr.Not(isGhostCall);
+          var trigger = BplTrigger(localFieldCall);
+          var forall = new Bpl.ForallExpr(f.Origin, [depthVar], trigger, body);
+          var axFieldFamily = new Bpl.Axiom(f.Origin, forall);
+          AddOtherDefinition(fc, axFieldFamily);
+          
           return fc;
         }
 

@@ -95,9 +95,13 @@ public partial class BoogieGenerator {
   private void RemoveReferrersPreAssign(Expression lhs, Statement stmt, BoogieStmtListBuilder builder,
     ExpressionTranslator etran)
   {
-    if (Options.Get(CommonOptionBag.Referrers)) {
+    if (VerifyReferrers) {
       // Havoc the referrersHeap by default, unless we know what to do.
-      if (lhs is IdentifierExpr { Type.IsRefType: true, Var: LocalVariable localVariable } && CurrentDeclaration is MethodOrConstructor m) {
+      if (lhs is IdentifierExpr { Type.IsRefType: true, Var: LocalVariable localVariable }
+          && CurrentDeclaration is MethodOrConstructor m) {
+        if (!CountsAsReferrer(localVariable)) {
+          return;
+        }
         var field = localVariable.GetLocalField(m);
         var bField = GetField(field);
         var tok = stmt.Origin;
@@ -154,9 +158,13 @@ public partial class BoogieGenerator {
   private void AddReferrersPostAssign(Expression lhs, Expr bRhs, Statement stmt, BoogieStmtListBuilder builder,
     ExpressionTranslator etran)
   {
-    if (Options.Get(CommonOptionBag.Referrers)) {
+    if (VerifyReferrers) {
       // Havoc the referrersHeap by default, unless we know what to do.
-      if (lhs is IdentifierExpr { Type: { IsRefType: true }, Var: LocalVariable { } localVariable } && this.CurrentDeclaration is MethodOrConstructor m) {
+      if (lhs is IdentifierExpr { Type.IsRefType: true, Var: LocalVariable { } localVariable }
+          && CurrentDeclaration is MethodOrConstructor m) {
+        if (!CountsAsReferrer(localVariable)) {
+          return;
+        }
         var field = localVariable.GetLocalField(m);
         var bField = GetField(field);
         var tok = stmt.Origin;
@@ -201,6 +209,11 @@ public partial class BoogieGenerator {
         ReferrersNotSupported(builder, etran, stmt);
       }
     }
+  }
+
+  private static bool CountsAsReferrer(LocalVariable localVariable)
+  {
+    return (!localVariable.IsGhost || localVariable.HasUserAttribute("tracking", out _));
   }
 
   private void ReferrersNotSupported(BoogieStmtListBuilder builder, ExpressionTranslator etran, Statement stmt) {
