@@ -9,6 +9,10 @@ class Test {
 
 datatype X = X()
 
+predicate NotYetSupported(t: Test) {
+  referrers(t) == {} // Error: Not supported yet in function contexts
+}
+
 method Test() {
   assert referrers(X()) == {}; // Error, referrers should be applied to a single object or array, got X
   assert referrers(1) == {}; // Error, referrers should be applied to a single object or array, got int

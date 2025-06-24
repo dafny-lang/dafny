@@ -2988,19 +2988,19 @@ const unique _module.__default.ReferrersLocal.t: FieldFamily;
 
 axiom (forall depth: int :: 
   { local_field(_module.__default.ReferrersLocal.t, depth) } 
-  _System.field.IsGhost(local_field(_module.__default.ReferrersLocal.t, depth)));
+  !_System.field.IsGhost(local_field(_module.__default.ReferrersLocal.t, depth)));
 
 const unique _module.__default.ReferrersLocal.alias__t: FieldFamily;
 
 axiom (forall depth: int :: 
   { local_field(_module.__default.ReferrersLocal.alias__t, depth) } 
-  _System.field.IsGhost(local_field(_module.__default.ReferrersLocal.alias__t, depth)));
+  !_System.field.IsGhost(local_field(_module.__default.ReferrersLocal.alias__t, depth)));
 
 const unique _module.__default.ReferrersLocal.u: FieldFamily;
 
 axiom (forall depth: int :: 
   { local_field(_module.__default.ReferrersLocal.u, depth) } 
-  _System.field.IsGhost(local_field(_module.__default.ReferrersLocal.u, depth)));
+  !_System.field.IsGhost(local_field(_module.__default.ReferrersLocal.u, depth)));
 
 implementation {:smt_option "smt.arith.solver", "2"} {:verboseName "ReferrersLocal (correctness)"} Impl$$_module.__default.ReferrersLocal(depth: int) returns ($_reverifyPost: bool)
 {
@@ -3377,7 +3377,7 @@ const unique _module.__default.EnsuresReferrersUnchanged.t__local: FieldFamily;
 
 axiom (forall depth: int :: 
   { local_field(_module.__default.EnsuresReferrersUnchanged.t__local, depth) } 
-  _System.field.IsGhost(local_field(_module.__default.EnsuresReferrersUnchanged.t__local, depth)));
+  !_System.field.IsGhost(local_field(_module.__default.EnsuresReferrersUnchanged.t__local, depth)));
 
 implementation {:smt_option "smt.arith.solver", "2"} {:verboseName "EnsuresReferrersUnchanged (correctness)"} Impl$$_module.__default.EnsuresReferrersUnchanged(depth: int, t2#0: ref) returns ($_reverifyPost: bool)
 {
@@ -3476,7 +3476,7 @@ const unique _module.__default.CallReferrersMethodCall.t: FieldFamily;
 
 axiom (forall depth: int :: 
   { local_field(_module.__default.CallReferrersMethodCall.t, depth) } 
-  _System.field.IsGhost(local_field(_module.__default.CallReferrersMethodCall.t, depth)));
+  !_System.field.IsGhost(local_field(_module.__default.CallReferrersMethodCall.t, depth)));
 
 implementation {:smt_option "smt.arith.solver", "2"} {:verboseName "CallReferrersMethodCall (correctness)"} Impl$$_module.__default.CallReferrersMethodCall(depth: int) returns ($_reverifyPost: bool)
 {
@@ -3765,7 +3765,7 @@ const unique _module.__default.ReferrersLocalWithGhostAliases.t: FieldFamily;
 
 axiom (forall depth: int :: 
   { local_field(_module.__default.ReferrersLocalWithGhostAliases.t, depth) } 
-  _System.field.IsGhost(local_field(_module.__default.ReferrersLocalWithGhostAliases.t, depth)));
+  !_System.field.IsGhost(local_field(_module.__default.ReferrersLocalWithGhostAliases.t, depth)));
 
 const unique _module.__default.ReferrersLocalWithGhostAliases.alias__tracked: FieldFamily;
 
@@ -4231,19 +4231,19 @@ const unique _module.__default.ObjectFields.t: FieldFamily;
 
 axiom (forall depth: int :: 
   { local_field(_module.__default.ObjectFields.t, depth) } 
-  _System.field.IsGhost(local_field(_module.__default.ObjectFields.t, depth)));
+  !_System.field.IsGhost(local_field(_module.__default.ObjectFields.t, depth)));
 
 const unique _module.__default.ObjectFields.u: FieldFamily;
 
 axiom (forall depth: int :: 
   { local_field(_module.__default.ObjectFields.u, depth) } 
-  _System.field.IsGhost(local_field(_module.__default.ObjectFields.u, depth)));
+  !_System.field.IsGhost(local_field(_module.__default.ObjectFields.u, depth)));
 
 const unique _module.__default.ObjectFields.a: FieldFamily;
 
 axiom (forall depth: int :: 
   { local_field(_module.__default.ObjectFields.a, depth) } 
-  _System.field.IsGhost(local_field(_module.__default.ObjectFields.a, depth)));
+  !_System.field.IsGhost(local_field(_module.__default.ObjectFields.a, depth)));
 
 implementation {:smt_option "smt.arith.solver", "2"} {:verboseName "ObjectFields (correctness)"} Impl$$_module.__default.ObjectFields(depth: int) returns ($_reverifyPost: bool)
 {
