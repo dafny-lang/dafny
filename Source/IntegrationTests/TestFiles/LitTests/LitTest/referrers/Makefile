@@ -11,3 +11,6 @@ soundness:
 	fi
 	bash ~/Documents/boogie.sh $(name) -proverLog:$(name).smt2
 	z3.exe trace=true proof=true trace-file-name=$(name).smt2.log $(name).smt2
+
+diff:
+	diff -U 0 referrers.bpl referrers-fixed.bpl | grep -E '^\+|^\-' | wc -l
