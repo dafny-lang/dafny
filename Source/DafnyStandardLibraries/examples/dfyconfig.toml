@@ -1,5 +1,6 @@
 excludes = [
-  "**/nondeterministic/*.dfy"
+  "**/nondeterministic/*.dfy",
+  "**/TargetSpecific/*.dfy"
 ]
 
 [options]
@@ -11,6 +12,10 @@ standard-libraries = true
 reads-clauses-on-methods = true
 enforce-determinism = true
 resource-limit = 1000000
-# TODO: change this back. Necessary because I have to say `assert Requires(t)` in examples
+type-system-refresh = true
+general-traits = "datatype"
+general-newtypes = true
+
+# This gives too many false positives right now, but should be enabled in the future
 warn-redundant-assumptions = false
 warn-contradictory-assumptions = true

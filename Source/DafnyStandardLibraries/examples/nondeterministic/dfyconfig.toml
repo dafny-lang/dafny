@@ -3,5 +3,6 @@ standard-libraries = true
 reads-clauses-on-methods = false
 enforce-determinism = false
 resource-limit = 1000000
-warn-redundant-assumptions = true
+# This gives too many false positives right now, but should be enabled in the future
+warn-redundant-assumptions = false
 warn-contradictory-assumptions = true

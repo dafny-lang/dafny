@@ -1,5 +1,8 @@
 module ActionsExamples {
   import opened Std.Actions
+  import opened Std.ActionsExterns
+  import opened Std.BulkActions
+  import opened Std.BoundedInts
   import opened Std.Producers
   import opened Std.Consumers
   import opened Std.Wrappers
@@ -13,7 +16,7 @@ module ActionsExamples {
     while true
       invariant p.Valid()
       invariant fresh(p.Repr)
-      decreases p.Remaining()
+      decreases p.Decreasing()
     {
       var next := p.Next();
       if next.None? {
@@ -28,7 +31,8 @@ module ActionsExamples {
     ensures p.Valid()
     ensures fresh(p.Repr)
   {
-    p := new SeqReader([1, 2, 3, 4, 5]);
+    var s: seq<nat> := [1, 2, 3, 4, 5];
+    p := new SeqReader(s);
   }
 
   // Demonstration that actions can consume/produce reference values as well,
@@ -69,6 +73,23 @@ module ActionsExamples {
       && ValidHistory(history)
       && nextValue == |history|
     }
+
+    twostate predicate ValidChange()
+      reads this, Repr
+      ensures ValidChange() ==>
+                old(Valid()) && Valid() && fresh(Repr - old(Repr))
+      ensures ValidChange() ==> old(history) <= history
+    {
+      && old(Valid()) && Valid()
+      && fresh(Repr - old(Repr))
+      && old(history) <= history
+    }
+
+    twostate lemma ValidImpliesValidChange()
+      requires old(Valid())
+      requires unchanged(old(Repr))
+      ensures ValidChange()
+    {}
 
     constructor ()
       ensures Valid()
@@ -139,7 +160,7 @@ module ActionsExamples {
     assert a.storage.items == [1, 2, 3, 4, 5];
   }
 
-  // The dual of Producer.ForEachRemaining(IConsumer),
+  // The dual of Producer.ForEach(IConsumer),
   // which terminates when the consumer runs out of capacity
   // instead of when the producer runs out of elements.
   // Not defined on Consumer because that would create
@@ -154,8 +175,8 @@ module ActionsExamples {
   // whether it will accept the next element,
   // which would be related therefore to ValidInput().
   @IsolateAssertions
-  method ForEachRemaining<T>(producer: IProducer<T>, ghost producerTotalProof: TotalActionProof<(), T>,
-                             consumer: Consumer<T>, ghost consumerTotalProof: TotalActionProof<T, bool>)
+  method Fill<T>(producer: IProducer<T>, ghost producerTotalProof: TotalActionProof<(), T>,
+                 consumer: Consumer<T>, ghost consumerTotalProof: TotalActionProof<T, bool>)
     requires producer.Valid()
     requires consumer.Valid()
     requires producerTotalProof.Valid()
@@ -171,7 +192,7 @@ module ActionsExamples {
       invariant producerTotalProof.Valid()
       invariant consumerTotalProof.Valid()
       invariant producer.Repr !! consumer.Repr
-      decreases consumer.Remaining()
+      decreases consumer.Decreasing()
     {
       producerTotalProof.AnyInputIsValid(producer.history, ());
       var t := producer.Next();
@@ -185,17 +206,13 @@ module ActionsExamples {
   }
 
   @AssumeCrossModuleTermination
-  class SplitProducer extends ProducerOfNewProducers<nat> {
+  class Splitter extends OutputterOfNewProducers<nat, nat> {
 
-    var inputs: seq<nat>
-
-    constructor (inputs: seq<nat>)
+    constructor ()
       ensures Valid()
       ensures fresh(Repr)
       ensures history == []
     {
-      this.inputs := inputs;
-
       history := [];
       Repr := {this};
     }
@@ -208,75 +225,334 @@ module ActionsExamples {
     {
       && this in Repr
       && ValidHistory(history)
-      && (0 < |inputs| ==> Seq.All(Outputs(), IsSome))
     }
 
-    ghost predicate ValidOutputs(outputs: seq<Option<Producer<nat>>>)
-      requires Seq.Partitioned(outputs, IsSome)
+    twostate predicate ValidChange()
+      reads this, Repr
+      ensures ValidChange() ==> old(Valid()) && Valid()
+      ensures ValidChange() ==> fresh(Repr - old(Repr))
+      ensures ValidChange() ==> old(history) <= history
+      decreases Repr, 0
+    {
+      && old(Valid())
+      && Valid()
+      && fresh(Repr - old(Repr))
+      && old(history) <= history
+    }
+
+    twostate lemma ValidImpliesValidChange()
+      requires old(Valid())
+      requires unchanged(old(Repr))
+      ensures ValidChange()
+    {}
+
+    ghost predicate ValidHistory(history: seq<(nat, Producer<nat>)>)
       decreases Repr
     {
       true
     }
+    ghost predicate ValidInput(history: seq<(nat, Producer<nat>)>, next: nat)
+      requires ValidHistory(history)
+      decreases Repr
+    {
+      true
+    }
+
+    lemma AnyInputIsValid(history: seq<(nat, Producer<nat>)>, next: nat)
+      requires Valid()
+      requires Action().ValidHistory(history)
+      ensures Action().ValidInput(history, next)
+    {}
 
     ghost function MaxProduced(): TerminationMetric
     {
       TMTop
     }
 
-    ghost function RemainingMetric(): TerminationMetric
+    ghost function Decreases(i: nat): ORDINAL
       requires Valid()
       reads this, Repr
       decreases Repr, 3
     {
-      TMNat(|inputs|)
+      0
     }
 
-    method Invoke(t: ()) returns (result: Option<Producer<nat>>)
-      requires Requires(t)
+    method Invoke(x: nat) returns (result: Producer<nat>)
+      requires Requires(x)
       reads Repr
-      modifies Modifies(t)
-      decreases Decreases(t), 0
-      ensures Ensures(t, result)
-      ensures if result.Some? then
-                old(Remaining()) > Remaining()
-              else
-                old(Remaining()) >= Remaining()
-      ensures result.Some? ==> JustProduced(result.value)
+      modifies Modifies(x)
+      decreases Decreases(x), 0
+      ensures Ensures(x, result)
+      ensures OutputFresh(result)
     {
-      assert Valid();
-
-      if |inputs| == 0 {
-        result := None;
-
-        OutputsPartitionedAfterOutputtingNone();
-        ProduceNone();
-      } else {
-        var x := inputs[0];
-        inputs := Seq.DropFirst(inputs);
-        var p := new SeqReader([x / 2, x - (x / 2)]);
-
-        result := Some(p);
-
-        OutputsPartitionedAfterOutputtingSome(result.value);
-        ProduceSome(result.value);
-      }
-
-      reveal TerminationMetric.Ordinal();
-      assert Valid();
+      result := new SeqReader<nat>([x / 2, x - (x / 2)]);
+      UpdateHistory(x, result);
+      MaxProduced().TopDecreasesToNat(result.DecreasesMetric());
     }
   }
 
   @IsolateAssertions
   method {:test} ExamplePipeline() {
-    var producerProducer := new SplitProducer([1, 2, 3, 4, 5]);
-
-    var flattened := new FlattenedProducer(producerProducer);
+    var input := new SeqReader<nat>([1, 2, 3, 4, 5]);
+    var splitter := new Splitter();
+    var mapped := new MappedProducerOfNewProducers(input, splitter);
+    var flattened := new FlattenedProducer(mapped);
 
     var collector := new SeqWriter();
 
     var collectorTotalProof := new DefaultTotalActionProof(collector);
-    flattened.ForEachRemaining(collector, collectorTotalProof);
+    flattened.ForEach(collector, collectorTotalProof);
 
     expect collector.values == [0, 1, 1, 1, 1, 2, 2, 2, 2, 3], collector.values;
   }
+
+  // "Batched Byte"
+  type BB = Batched<uint8, string>
+
+  // TODO - not verifying yet
+  // @AssumeCrossModuleTermination
+  // class Chunker extends BulkAction<BB, Producer<BB>>, OutputterOfNewProducers<BB, BB> {
+
+  //   const chunkSize: nat
+  //   var chunkBuffer: seq<uint8>
+
+  //   constructor(chunkSize: nat)
+  //     requires 0 < chunkSize
+  //     ensures Valid()
+  //     ensures fresh(Repr)
+  //     ensures history == []
+  //   {
+  //     this.chunkSize := chunkSize;
+  //     chunkBuffer := [];
+  //     history := [];
+  //     Repr := {this};
+  //   }
+
+  //   ghost predicate Valid()
+  //     reads this, Repr
+  //     ensures Valid() ==> this in Repr
+  //     ensures Valid() ==> ValidHistory(history)
+  //     decreases Repr, 0
+  //   {
+  //     && this in Repr
+  //     && 0 < chunkSize
+  //   }
+
+  //   twostate predicate ValidChange()
+  //     reads this, Repr
+  //     ensures ValidChange() ==> old(Valid()) && Valid()
+  //     ensures ValidChange() ==> fresh(Repr - old(Repr))
+  //     ensures ValidChange() ==> old(history) <= history
+  //   {
+  //     && fresh(Repr - old(Repr))
+  //     && old(Valid())
+  //     && Valid()
+  //     && old(history) <= history
+  //   }
+
+  //   twostate lemma ValidImpliesValidChange()
+  //     requires old(Valid())
+  //     requires unchanged(old(Repr))
+  //     ensures ValidChange()
+  //   {}
+
+  //   ghost predicate ValidHistory(history: seq<(BB, Producer<BB>)>)
+  //     decreases Repr
+  //   {
+  //     true
+  //   }
+
+  //   ghost predicate ValidInput(history: seq<(BB, Producer<BB>)>, next: BB)
+  //     requires ValidHistory(history)
+  //     decreases Repr
+  //   {
+  //     true
+  //   }
+
+  //   ghost function Decreases(i: BB): ORDINAL
+  //     requires Requires(i)
+  //     reads Reads(i)
+  //   {
+  //     0
+  //   }
+
+  //   ghost function MaxProduced(): TerminationMetric {
+  //     TMTop
+  //   }
+
+  //   lemma AnyInputIsValid(history: seq<(BB, Producer<BB>)>, next: BB)
+  //     requires Valid()
+  //     requires Action().ValidHistory(history)
+  //     ensures Action().ValidInput(history, next)
+  //   {}
+
+  //   @IsolateAssertions
+  //   method Invoke(i: BB) returns (o: Producer<BB>)
+  //     requires Requires(i)
+  //     reads Reads(i)
+  //     modifies Modifies(i)
+  //     decreases Decreases(i), 0
+  //     ensures Ensures(i, o)
+  //     ensures OutputFresh(o)
+  //   {
+  //     assert Valid();
+  //     var input := new SeqReader([i]);
+  //     var output := new SeqWriter();
+  //     ghost var outputTotalProof := new SeqWriterTotalActionProof(output);
+  //     ghost var thisTotalProof := new ChunkerTotalProof(this);
+  //     label before:
+  //     Map(input, output, thisTotalProof, outputTotalProof);
+  //     assert |output.values| == 1;
+  //     o := output.values[0];
+  //     assert Seq.Last(output.Inputs()) == o;
+  //     assert Seq.Last(Inputs()) == i;
+  //   }
+
+  //   @ResourceLimit("1e9")
+  //   @IsolateAssertions
+  //   method Map(input: Producer<BB>,
+  //              output: IConsumer<Producer<BB>>,
+  //              ghost thisTotalProof: TotalActionProof<BB, Producer<BB>>,
+  //              ghost outputTotalProof: TotalActionProof<Producer<BB>, ()>)
+  //     requires Valid()
+  //     requires input.Valid()
+  //     requires output.Valid()
+  //     requires outputTotalProof.Valid()
+  //     requires outputTotalProof.Action() == output
+  //     requires Repr !! input.Repr !! output.Repr !! outputTotalProof.Repr
+  //     reads this, Repr, input, input.Repr, output, output.Repr, thisTotalProof, thisTotalProof.Repr, outputTotalProof, outputTotalProof.Repr
+  //     modifies Repr, input.Repr, output.Repr, outputTotalProof.Repr
+  //     ensures ValidChange()
+  //     ensures input.ValidChange()
+  //     ensures output.ValidChange()
+  //     ensures input.Done()
+  //     ensures input.NewProduced() == NewInputs()
+  //     ensures |input.NewProduced()| == |output.NewInputs()|
+  //     ensures output.NewInputs() == NewOutputs()
+  //     ensures forall o <- NewOutputs() :: OutputFresh(o)
+  //   {
+  //     assert Valid();
+
+  //     var oldProducedCount := input.ProducedCount();
+  //     var batchWriter := new BatchSeqWriter();
+  //     var batchWriterTotalProof := new BatchSeqWriterTotalProof(batchWriter);
+  //     label before:
+  //     input.ForEach(batchWriter, batchWriterTotalProof);
+  //     label after:
+  //     assert input.ValidChange@before();
+  //     assert input.ValidChange();
+  //     input.ProducedAndNewProduced@before();
+
+  //     var newProducedCount := input.ProducedCount() - oldProducedCount;
+  //     assert newProducedCount == input.NewProducedCount();
+  //     if newProducedCount == 0 {
+  //       // No-op
+  //       assert input.ValidChange();
+  //       assert |batchWriter.Inputs()| == 0;
+  //       assert input.NewProduced() == batchWriter.Inputs();
+  //       assert |input.NewProduced()| == 0;
+  //       output.ValidImpliesValidChange();
+  //       return;
+  //     }
+
+  //     chunkBuffer := chunkBuffer + batchWriter.elements;
+
+  //     var chunks, leftover := Chunkify(chunkBuffer);
+  //     chunkBuffer := leftover;
+
+  //     var outputProducer: Producer<BB>;
+  //     match batchWriter.state {
+  //       case Failure(error) =>
+  //         outputProducer := new SeqReader([BatchError(error)]);
+  //       case Success(more) =>
+  //         if !more && 0 < |chunkBuffer| {
+  //           // To make it more interesting, produce an error if outputChunks is non empty?
+  //           chunks := chunks + Seq.Reverse(chunkBuffer);
+  //           chunkBuffer := [];
+  //         }
+  //         outputProducer := new BatchReader(chunks);
+  //     }
+
+  //     var empty := new EmptyProducer();
+  //     var padding: Producer<Producer<BB>> := new RepeatProducer(newProducedCount - 1, empty);
+  //     var producerProducer := new SeqReader([outputProducer]);
+  //     var concatenated: Producer<Producer<BB>> := new ConcatenatedProducer(padding, producerProducer);
+  //     assert producerProducer.Remaining() == Some(1);
+  //     assert padding.Remaining() == Some(newProducedCount - 1);
+  //     assert concatenated.Remaining() == Some(newProducedCount);
+  //     label beforeOutput:
+  //     concatenated.ForEach(output, outputTotalProof);
+  //     assert concatenated.ValidChange@beforeOutput();
+  //     concatenated.ProducedAndNewProduced@beforeOutput();
+
+  //     assert |input.NewProduced()| == newProducedCount;
+  //     assert |concatenated.NewProduced@beforeOutput()| == newProducedCount;
+  //     assert |input.NewProduced()| == |output.NewInputs()|;
+  //     history := history + Seq.Zip(input.NewProduced(), output.NewInputs());
+  //     assert input.NewProduced() == NewInputs();
+  //   }
+
+  //   method Chunkify(data: seq<uint8>) returns (chunks: seq<uint8>, leftover: seq<uint8>)
+  //     reads this, Repr
+  //     requires Valid()
+  //   {
+  //     leftover := data;
+  //     chunks := [];
+  //     while chunkSize as int <= |leftover|
+  //       decreases |leftover|
+  //     {
+  //       chunks := chunks + Seq.Reverse(leftover[..chunkSize]);
+  //       leftover := leftover[chunkSize..];
+  //     }
+  //   }
+  // }
+
+  // @AssumeCrossModuleTermination
+  // class ChunkerTotalProof extends TotalActionProof<BB, Producer<BB>> {
+
+  //   ghost const chunker: Chunker
+
+  //   ghost constructor(chunker: Chunker)
+  //     requires chunker.Valid()
+  //     reads {}
+  //     ensures this.chunker == chunker
+  //     ensures Valid()
+  //     ensures fresh(Repr)
+  //   {
+  //     this.chunker := chunker;
+  //     Repr := {this};
+  //   }
+
+  //   ghost function Action(): Action<BB, Producer<BB>> {
+  //     chunker
+  //   }
+
+  //   ghost predicate Valid()
+  //     reads this, Repr
+  //     ensures Valid() ==> this in Repr
+  //     decreases Repr, 0
+  //   {
+  //     this in Repr
+  //   }
+
+  //   twostate predicate ValidChange()
+  //     reads this, Repr
+  //     ensures ValidChange() ==>
+  //               old(Valid()) && Valid() && fresh(Repr - old(Repr))
+  //   {
+  //     old(Valid()) && Valid() && fresh(Repr - old(Repr))
+  //   }
+
+  //   twostate lemma ValidImpliesValidChange()
+  //     requires old(Valid())
+  //     requires unchanged(old(Repr))
+  //     ensures ValidChange()
+  //   {}
+
+  //   lemma AnyInputIsValid(history: seq<(BB, Producer<BB>)>, next: BB)
+  //     requires Valid()
+  //     requires Action().ValidHistory(history)
+  //     ensures Action().ValidInput(history, next)
+  //   {}
+  // }
 }

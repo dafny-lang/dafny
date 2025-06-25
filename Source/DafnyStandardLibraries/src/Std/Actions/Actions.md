@@ -102,7 +102,7 @@ can be expressed, even within the same type signature:
     don't even let you invoke the action again)
 
 The key point in distinguishing these semantics 
-is how `ValidInput`, `ValidOutput`, and `ValidHistory` are constrained, 
+is how `ValidInput` and `ValidHistory` are constrained, 
 defining the protocol for using the action across time,
 depending on what inputs and outputs occur.
 All of the above cases are useful for precisely modeling behavior over time,
@@ -130,4 +130,16 @@ In practice, the most common traits will usually be `Producer` and `IConsumer`.
 That is, most data sources in real programs tend to produce finite elements,
 and it's usually impractical and/or unnecessary to specify how many statically,
 but most data sinks tend to have no constraints.
-  
+
+## Bulk Operations
+
+There are three potentially more efficient ways to apply actions multiple times in sequence:
+
+1. `Producer.ForEach(IConsumer)` - Feeds all values from a `Producer` into an `IConsumer`.
+1. `Producer.Fill(Consumer)` - Feeds all values from a `Producer` into a `Consumer`, until either the producer or consumer is exhausted.
+1. `BulkAction.Map(Producer, IConsumer)` - Feeds all values from a `Producer` through a `BulkAction` and the result into an `IConsumer`.
+
+Each of these can process values in bulk by optimizing for common producer and consumer implementations.
+For example, the `Fill` operation on an `ArrayReader` can check if the provided producer is an `ArrayWriter`,
+in which case the semantics are satisfied by a much quicker direct array copy,
+as opposed to moving each value one at a time.
