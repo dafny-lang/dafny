@@ -1,12 +1,12 @@
 GeneralNewtypeMemberResolution.dfy(6,8): Error: mutable fields are allowed only in reference types (consider declaring the field as a 'const')
-GeneralNewtypeMemberResolution.dfy(51,13): Error: fully defined function 'F' is inherited from trait 'Bool' and is not allowed to be re-declared
-GeneralNewtypeMemberResolution.dfy(55,19): Error: const field 'n' is inherited from trait 'Bool' and is not allowed to be re-declared
-GeneralNewtypeMemberResolution.dfy(60,13): Error: fully defined function 'H' is inherited from trait 'Bool' and is not allowed to be re-declared
-GeneralNewtypeMemberResolution.dfy(72,10): Error: field 'Floor' is inherited from trait 'real' and is not allowed to be re-declared
-GeneralNewtypeMemberResolution.dfy(88,11): Error: function 'RotateLeft' in 'bv7' can only be overridden by a function (got method)
-GeneralNewtypeMemberResolution.dfy(102,14): Error: field 'Values' is inherited from trait 'map' and is not allowed to be re-declared
-GeneralNewtypeMemberResolution.dfy(103,14): Error: field 'Items' is inherited from trait 'map' and is not allowed to be re-declared
-GeneralNewtypeMemberResolution.dfy(107,14): Error: field 'Keys' is inherited from trait 'imap' and is not allowed to be re-declared
-GeneralNewtypeMemberResolution.dfy(108,14): Error: field 'Values' is inherited from trait 'imap' and is not allowed to be re-declared
+GeneralNewtypeMemberResolution.dfy(51,13): Error: fully defined function 'F' is inherited from newtype 'Bool' and is not allowed to be re-declared
+GeneralNewtypeMemberResolution.dfy(55,19): Error: const field 'n' is inherited from newtype 'Bool' and is not allowed to be re-declared
+GeneralNewtypeMemberResolution.dfy(60,13): Error: fully defined function 'H' is inherited from newtype 'Bool' and is not allowed to be re-declared
+GeneralNewtypeMemberResolution.dfy(72,10): Error: field 'Floor' is inherited from type 'real' and is not allowed to be re-declared
+GeneralNewtypeMemberResolution.dfy(88,11): Error: function 'RotateLeft' in type 'bv7' can only be overridden by a function (got method)
+GeneralNewtypeMemberResolution.dfy(102,14): Error: field 'Values' is inherited from type 'map' and is not allowed to be re-declared
+GeneralNewtypeMemberResolution.dfy(103,14): Error: field 'Items' is inherited from type 'map' and is not allowed to be re-declared
+GeneralNewtypeMemberResolution.dfy(107,14): Error: field 'Keys' is inherited from type 'imap' and is not allowed to be re-declared
+GeneralNewtypeMemberResolution.dfy(108,14): Error: field 'Values' is inherited from type 'imap' and is not allowed to be re-declared
 GeneralNewtypeMemberResolution.dfy(139,15): Error: member 'P' does not exist in type 'set'
 11 resolution/type errors detected in GeneralNewtypeMemberResolution.dfy
