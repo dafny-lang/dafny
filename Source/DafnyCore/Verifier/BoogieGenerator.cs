@@ -1629,18 +1629,18 @@ namespace Microsoft.Dafny {
       //       f(Succ(s), $Heap, formals) == f(s, $Heap, formals));
 
       List<Bpl.Expr> tyargs;
-      var formals = MkTyParamBinders(GetTypeParams(f), out tyargs);
+      var forallFormals = MkTyParamBinders(GetTypeParamsIncludingType(f), out tyargs);
       var args1 = new List<Bpl.Expr>(tyargs);
       var args0 = new List<Bpl.Expr>(tyargs);
 
       var bv = new Bpl.BoundVariable(f.Origin, new Bpl.TypedIdent(f.Origin, "$ly", Predef.LayerType));
-      formals.Add(bv);
+      forallFormals.Add(bv);
       var s = new Bpl.IdentifierExpr(f.Origin, bv);
       args1.Add(FunctionCall(f.Origin, BuiltinFunction.LayerSucc, null, s));
       args0.Add(s);
       if (f.IsOpaque || f.IsMadeImplicitlyOpaque(options)) {
         var bvReveal = new Bpl.BoundVariable(f.Origin, new Bpl.TypedIdent(f.Origin, "$reveal", Boogie.Type.Bool));
-        formals.Add(bvReveal);
+        forallFormals.Add(bvReveal);
         var sReveal = new Bpl.IdentifierExpr(f.Origin, bvReveal);
         args1.Add(sReveal);
         args0.Add(sReveal);
@@ -1648,14 +1648,14 @@ namespace Microsoft.Dafny {
 
       if (f is TwoStateFunction) {
         bv = new Bpl.BoundVariable(f.Origin, new Bpl.TypedIdent(f.Origin, "$prevHeap", Predef.HeapType));
-        formals.Add(bv);
+        forallFormals.Add(bv);
         s = new Bpl.IdentifierExpr(f.Origin, bv);
         args1.Add(s);
         args0.Add(s);
       }
       if (!forHandle && f.ReadsHeap) {
         bv = new Bpl.BoundVariable(f.Origin, new Bpl.TypedIdent(f.Origin, Predef.HeapVarName, Predef.HeapType));
-        formals.Add(bv);
+        forallFormals.Add(bv);
         s = new Bpl.IdentifierExpr(f.Origin, bv);
         args1.Add(s);
         args0.Add(s);
@@ -1663,7 +1663,7 @@ namespace Microsoft.Dafny {
 
       if (!f.IsStatic) {
         bv = new Bpl.BoundVariable(f.Origin, new Bpl.TypedIdent(f.Origin, "this", TrReceiverType(f)));
-        formals.Add(bv);
+        forallFormals.Add(bv);
         s = new Bpl.IdentifierExpr(f.Origin, bv);
         args1.Add(s);
         args0.Add(s);
@@ -1671,7 +1671,7 @@ namespace Microsoft.Dafny {
       if (!forHandle) {
         foreach (var p in f.Ins) {
           bv = new Bpl.BoundVariable(p.Origin, new Bpl.TypedIdent(p.Origin, p.AssignUniqueName(f.IdGenerator), TrType(p.Type)));
-          formals.Add(bv);
+          forallFormals.Add(bv);
           s = new Bpl.IdentifierExpr(f.Origin, bv);
           args1.Add(s);
           args0.Add(s);
@@ -1684,7 +1684,7 @@ namespace Microsoft.Dafny {
       var funcAppl0 = new Bpl.NAryExpr(f.Origin, funcID, args0);
 
       Bpl.Trigger tr = new Bpl.Trigger(f.Origin, true, new List<Bpl.Expr> { funcAppl1 });
-      Bpl.Expr ax = new Bpl.ForallExpr(f.Origin, [], formals, null, tr, Bpl.Expr.Eq(funcAppl1, funcAppl0));
+      Bpl.Expr ax = new Bpl.ForallExpr(f.Origin, [], forallFormals, null, tr, Bpl.Expr.Eq(funcAppl1, funcAppl0));
       AddOtherDefinition(GetOrCreateFunction(f), new Bpl.Axiom(f.Origin, ax, "layer synonym axiom"));
     }
 
@@ -1698,20 +1698,20 @@ namespace Microsoft.Dafny {
       Contract.Requires(sink != null && Predef != null);
 
       List<Bpl.Expr> tyargs;
-      var formals = MkTyParamBinders(GetTypeParams(f), out tyargs);
+      var forallFormals = MkTyParamBinders(GetTypeParamsIncludingType(f), out tyargs);
       var args2 = new List<Bpl.Expr>(tyargs);
       var args1 = new List<Bpl.Expr>(tyargs);
       var args0 = new List<Bpl.Expr>(tyargs);
 
       var bv = new Bpl.BoundVariable(f.Origin, new Bpl.TypedIdent(f.Origin, "$ly", Predef.LayerType));
-      formals.Add(bv);
+      forallFormals.Add(bv);
       var s = new Bpl.IdentifierExpr(f.Origin, bv);
       args2.Add(FunctionCall(f.Origin, BuiltinFunction.AsFuelBottom, null, s));
       args1.Add(s);
       args0.Add(new Bpl.IdentifierExpr(f.Origin, "$LZ", Predef.LayerType)); // $LZ
       if (f.IsOpaque || f.IsMadeImplicitlyOpaque(options)) {
         var bvReveal = new Bpl.BoundVariable(f.Origin, new Bpl.TypedIdent(f.Origin, "$reveal", Boogie.Type.Bool));
-        formals.Add(bvReveal);
+        forallFormals.Add(bvReveal);
         var sReveal = new Bpl.IdentifierExpr(f.Origin, bvReveal);
         args2.Add(sReveal);
         args1.Add(sReveal);
@@ -1720,7 +1720,7 @@ namespace Microsoft.Dafny {
 
       if (f is TwoStateFunction) {
         bv = new Bpl.BoundVariable(f.Origin, new Bpl.TypedIdent(f.Origin, "$prevHeap", Predef.HeapType));
-        formals.Add(bv);
+        forallFormals.Add(bv);
         s = new Bpl.IdentifierExpr(f.Origin, bv);
         args2.Add(s);
         args1.Add(s);
@@ -1728,7 +1728,7 @@ namespace Microsoft.Dafny {
       }
       if (f.ReadsHeap) {
         bv = new Bpl.BoundVariable(f.Origin, new Bpl.TypedIdent(f.Origin, Predef.HeapVarName, Predef.HeapType));
-        formals.Add(bv);
+        forallFormals.Add(bv);
         s = new Bpl.IdentifierExpr(f.Origin, bv);
         args2.Add(s);
         args1.Add(s);
@@ -1737,7 +1737,7 @@ namespace Microsoft.Dafny {
 
       if (!f.IsStatic) {
         bv = new Bpl.BoundVariable(f.Origin, new Bpl.TypedIdent(f.Origin, "this", TrReceiverType(f)));
-        formals.Add(bv);
+        forallFormals.Add(bv);
         s = new Bpl.IdentifierExpr(f.Origin, bv);
         args2.Add(s);
         args1.Add(s);
@@ -1745,7 +1745,7 @@ namespace Microsoft.Dafny {
       }
       foreach (var p in f.Ins) {
         bv = new Bpl.BoundVariable(p.Origin, new Bpl.TypedIdent(p.Origin, p.AssignUniqueName(f.IdGenerator), TrType(p.Type)));
-        formals.Add(bv);
+        forallFormals.Add(bv);
         s = new Bpl.IdentifierExpr(f.Origin, bv);
         args2.Add(s);
         args1.Add(s);
@@ -1758,7 +1758,7 @@ namespace Microsoft.Dafny {
       var funcAppl0 = new Bpl.NAryExpr(f.Origin, funcID, args0);
 
       Bpl.Trigger tr = new Bpl.Trigger(f.Origin, true, new List<Bpl.Expr> { funcAppl2 });
-      Bpl.Expr ax = new Bpl.ForallExpr(f.Origin, [], formals, null, tr, Bpl.Expr.Eq(funcAppl1, funcAppl0));
+      Bpl.Expr ax = new Bpl.ForallExpr(f.Origin, [], forallFormals, null, tr, Bpl.Expr.Eq(funcAppl1, funcAppl0));
       AddOtherDefinition(GetOrCreateFunction(f), (new Bpl.Axiom(f.Origin, ax, "fuel synonym axiom")));
     }
 
@@ -2798,7 +2798,7 @@ namespace Microsoft.Dafny {
       Bpl.Function func;
       {
         var formals = new List<Variable>();
-        formals.AddRange(MkTyParamFormals(GetTypeParams(f), false));
+        formals.AddRange(MkTyParamFormals(f.TypeArgs, false));
         if (f.IsFuelAware()) {
           formals.Add(new Bpl.Formal(f.Origin, new Bpl.TypedIdent(f.Origin, "$ly", Predef.LayerType), true));
         }
@@ -2828,26 +2828,22 @@ namespace Microsoft.Dafny {
     }
 
     private Bpl.Function GetCanCallFunction(Function f) {
-      Bpl.Function canCallF;
-      {
-        var formals = new List<Variable>();
-        formals.AddRange(MkTyParamFormals(GetTypeParams(f), false));
-        if (f is TwoStateFunction) {
-          formals.Add(new Bpl.Formal(f.Origin, new Bpl.TypedIdent(f.Origin, "$prevHeap", Predef.HeapType), true));
-        }
-        if (f.ReadsHeap) {
-          formals.Add(new Bpl.Formal(f.Origin, new Bpl.TypedIdent(f.Origin, "$heap", Predef.HeapType), true));
-        }
-        if (!f.IsStatic) {
-          formals.Add(new Bpl.Formal(f.Origin, new Bpl.TypedIdent(f.Origin, "this", TrReceiverType(f)), true));
-        }
-        foreach (var p in f.Ins) {
-          formals.Add(new Bpl.Formal(p.Origin, new Bpl.TypedIdent(p.Origin, p.AssignUniqueName(f.IdGenerator), TrType(p.Type)), true));
-        }
-        var res = new Bpl.Formal(f.Origin, new Bpl.TypedIdent(f.Origin, Bpl.TypedIdent.NoName, Bpl.Type.Bool), false);
-        canCallF = new Bpl.Function(f.Origin, f.FullSanitizedName + "#canCall", [], formals, res);
+      var formals = new List<Variable>();
+      formals.AddRange(MkTyParamFormals(f.TypeArgs, false));
+      if (f is TwoStateFunction) {
+        formals.Add(new Bpl.Formal(f.Origin, new Bpl.TypedIdent(f.Origin, "$prevHeap", Predef.HeapType), true));
       }
-      return canCallF;
+      if (f.ReadsHeap) {
+        formals.Add(new Bpl.Formal(f.Origin, new Bpl.TypedIdent(f.Origin, "$heap", Predef.HeapType), true));
+      }
+      if (!f.IsStatic) {
+        formals.Add(new Bpl.Formal(f.Origin, new Bpl.TypedIdent(f.Origin, "this", TrReceiverType(f)), true));
+      }
+      foreach (var p in f.Ins) {
+        formals.Add(new Bpl.Formal(p.Origin, new Bpl.TypedIdent(p.Origin, p.AssignUniqueName(f.IdGenerator), TrType(p.Type)), true));
+      }
+      var res = new Bpl.Formal(f.Origin, new Bpl.TypedIdent(f.Origin, Bpl.TypedIdent.NoName, Bpl.Type.Bool), false);
+      return new Bpl.Function(f.Origin, f.FullSanitizedName + "#canCall", [], formals, res);
     }
 
     /// <summary>
@@ -3844,7 +3840,7 @@ namespace Microsoft.Dafny {
       return d.TypeArgs;
     }
 
-    static List<TypeParameter> GetTypeParams(Function f) {
+    static List<TypeParameter> GetTypeParamsIncludingType(Function f) {
       if (f.EnclosingClass == null) {
         return f.TypeArgs;
       } else {

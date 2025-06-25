@@ -50,7 +50,7 @@ public partial class BoogieGenerator {
     var tok = pp.Origin;
     var etran = new ExpressionTranslator(this, Predef, tok, pp);
 
-    var tyvars = MkTyParamBinders(GetTypeParams(pp), out var tyexprs);
+    var tyvars = MkTyParamBinders(GetTypeParamsIncludingType(pp), out var tyexprs);
 
     var bvs = new List<Variable>(tyvars);
     var coArgs = new List<Bpl.Expr>(tyexprs);

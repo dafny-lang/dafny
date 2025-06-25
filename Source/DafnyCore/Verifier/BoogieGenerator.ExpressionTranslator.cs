@@ -508,7 +508,7 @@ namespace Microsoft.Dafny {
                 },
                 fn => {
                   var typeMap = e.TypeArgumentSubstitutionsWithParents();
-                  var args = GetTypeParams(fn).ConvertAll(tp => BoogieGenerator.TypeToTy(typeMap[tp]));
+                  var args = fn.TypeArgs.ConvertAll(tp => BoogieGenerator.TypeToTy(typeMap[tp]));
                   if (fn.IsFuelAware()) {
                     args.Add(this.layerInterCluster.GetFunctionFuel(fn));
                   }
@@ -1750,7 +1750,7 @@ BplBoundVar(varNameGen.FreshId(string.Format("#{0}#", bv.Name)), Predef.BoxType,
         var args = new List<Boogie.Expr>();
 
         // first add type arguments
-        var tyParams = GetTypeParams(e.Function);
+        var tyParams = e.Function.TypeArgs;
         var tySubst = e.TypeArgumentSubstitutionsWithParents();
         args.AddRange(BoogieGenerator.TrTypeArgs(tySubst, tyParams));
 

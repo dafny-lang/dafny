@@ -969,7 +969,7 @@ namespace Microsoft.Dafny {
       }
 
       // parameters of the procedure
-      var typeInParams = MkTyParamFormals(GetTypeParams(f), true);
+      var typeInParams = MkTyParamFormals(GetTypeParamsIncludingType(f), true);
       var inParams = new List<Variable>();
       var outParams = new List<Boogie.Variable>();
       if (!f.IsStatic) {
@@ -1303,7 +1303,7 @@ namespace Microsoft.Dafny {
       var argsCFCanCall = new List<Boogie.Expr>();
 
       // Add type arguments
-      forallFormals.AddRange(MkTyParamBinders(GetTypeParams(overridingFunction), out _));
+      forallFormals.AddRange(MkTyParamBinders(GetTypeParamsIncludingType(overridingFunction), out _));
       {
         var typeArguments = GetTypeArguments(f, overridingFunction).ConvertAll(TypeToTy);
         argsJF.AddRange(typeArguments);

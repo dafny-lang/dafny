@@ -30,7 +30,7 @@ public partial class BoogieGenerator {
       var etran = GetExpressionTranslator(f, ordinaryEtran, out var additionalRequires, out var heapParameters);
 
       // parameters of the procedure
-      var typeInParams = generator.MkTyParamFormals(GetTypeParams(f), true);
+      var typeInParams = generator.MkTyParamFormals(GetTypeParamsIncludingType(f), true);
       var procedureParameters = GetParameters(f, etran);
       var outParams = GetWellformednessProcedureOutParameters(f, etran);
       var requires = GetWellformednessProcedureRequires(f, etran);
@@ -249,7 +249,7 @@ public partial class BoogieGenerator {
     private Expr GetSelfCall(Function f, ExpressionTranslator etran, List<Variable> parameters) {
       var funcId = new FunctionCall(new Bpl.IdentifierExpr(f.Origin, f.FullSanitizedName, generator.TrType(f.ResultType)));
       var args = new List<Expr>();
-      foreach (var p in GetTypeParams(f)) {
+      foreach (var p in GetTypeParamsIncludingType(f)) {
         args.Add(generator.TrTypeParameter(p));
       }
 
@@ -284,7 +284,7 @@ public partial class BoogieGenerator {
 
       // Assume the type returned by the call itself respects its type (this matters if the type is "nat", for example)
       var args = new List<Expr>();
-      foreach (var p in GetTypeParams(f)) {
+      foreach (var p in GetTypeParamsIncludingType(f)) {
         args.Add(generator.TrTypeParameter(p));
       }
 
