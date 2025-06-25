@@ -4509,10 +4509,16 @@ Suffix<ref Expression e>
 
 FieldLocationSuffix<ref Expression e>
 = "`"                                    (. Token backtick = t; .)
-  ( IF(IsIdentifier(la.kind))            (. Name name = null; .)
+  ( IF(IsIdentifier(la.kind))
+    (. Name name = null; .)
     NoDigitName<out name>
     (.
       e = new FieldLocationExpression(e, backtick, name);
+    .)
+  | IF(e is LocalsObjectExpression && la.val == "this")
+    "this"
+    (.
+      e = new FieldLocationExpression(e, backtick, new Name(t, "this"));
     .)
   | "["               (. Token openParen = t;
                          var multipleIndices = new List<Expression>();

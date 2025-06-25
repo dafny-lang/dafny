@@ -1835,7 +1835,8 @@ namespace Microsoft.Dafny {
     Bpl.LocalVariable yieldCountVariable = null;  // non-null when an iterator body is being translated
     bool inBodyInitContext = false;  // true during the translation of the .BodyInit portion of a divided constructor body
 
-    public ImmutableDictionary<string, Bpl.IdentifierExpr> DefiniteAssignmentTrackers { get; set; } = ImmutableDictionary<string, Bpl.IdentifierExpr>.Empty;
+    // tracked can be a IVariable, LocalVariable, a Formal or a Field
+    public ImmutableDictionary<string, (object tracked, Bpl.IdentifierExpr tracker)> DefiniteAssignmentTrackers { get; set; } = ImmutableDictionary<string, (object tracked, Bpl.IdentifierExpr tracker)>.Empty;
 
     Func<Token, bool> assertionOnlyFilter = null; // generate assume statements instead of assert statements if not targeted by {:only}
     public enum StmtType { NONE, ASSERT, ASSUME };
@@ -3110,6 +3111,10 @@ namespace Microsoft.Dafny {
         // HeapSucc(S1, S2) or HeapSuccGhost(S1, S2)
         Bpl.Expr heapSucc = HeapSucc(etranPre.HeapExpr, etran.HeapExpr, isGhostContext);
         boilerplate.Add(new BoilerplateTriple(tok, true, heapSucc, null, null, "boilerplate"));
+      }
+
+      if (VerifyReferrers && !canAllocate /*&& referrersClause.Count == 0*/) {
+        boilerplate.Add(new BoilerplateTriple(tok, true, Bpl.Expr.Eq(etranPre.ReferrersHeapExpr, etran.ReferrersHeapExpr), null, null, "referrers frame condition"));
       }
       return boilerplate;
     }

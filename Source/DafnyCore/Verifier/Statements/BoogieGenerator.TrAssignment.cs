@@ -142,7 +142,7 @@ public partial class BoogieGenerator {
         var bElse = new StmtListBuilder();
         Bpl.Expr bCond = Bpl.Expr.Neq(bLhs, Predef.Null);
         if (localVariable.UniqueName != null && DefiniteAssignmentTrackers.TryGetValue(localVariable.UniqueName, out var assignmentTracker)) {
-          bCond = BplAnd(bCond, assignmentTracker);
+          bCond = BplAnd(bCond, assignmentTracker.tracker);
         }
         var ifCmd = new Bpl.IfCmd(tok,
           bCond,

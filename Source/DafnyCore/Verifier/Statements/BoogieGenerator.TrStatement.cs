@@ -68,6 +68,27 @@ public partial class BoogieGenerator {
             method.Outs.ForEach(p => CheckDefiniteAssignmentReturn(stmt.Origin, p, builder));
           }
 
+          if (VerifyReferrers && codeContext is MethodOrConstructor) {
+            foreach (var trackedLocalVariable in DefiniteAssignmentTrackers) {
+              var localVarName = trackedLocalVariable.Key;
+              var localVar = trackedLocalVariable.Value.tracked;
+              var localVarDefAssTracker = trackedLocalVariable.Value.tracker;
+              if (localVar is LocalVariable l) {
+                // Need to unassign
+                var lhs = new IdentifierExpr(stmt.Origin, l);
+                RemoveReferrersPreAssign(lhs, stmt, builder, etran);
+              }
+              /*
+               Example:
+               if (defass#t_local#0 && t_local#0 != null) {
+                $ReferrersHeap := updateReferrers($ReferrersHeap, t_local#0, Set#Difference(readReferrers($ReferrersHeap, t_local#0),
+                  Set#UnionOne(Set#Empty(),
+                  $Box(#_System._tuple#2._#Make2($Box(locals), $Box(local_field(_module.__default.EnsuresReferrersUnchanged.t__local, depth))))
+                )));
+              } */
+            }
+          }
+
           if (codeContext is MethodOrConstructor { FunctionFromWhichThisIsByMethodDecl: { ByMethodTok: { } } fun } method2) {
             AssumeCanCallForByMethodDecl(method2, builder);
           }

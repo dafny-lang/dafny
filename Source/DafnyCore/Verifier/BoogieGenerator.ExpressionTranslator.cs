@@ -908,8 +908,8 @@ namespace Microsoft.Dafny {
                   if (name == null) {
                     return Expr.True;
                   }
-                  BoogieGenerator.DefiniteAssignmentTrackers.TryGetValue(name, out var defass);
-                  return defass;
+                  BoogieGenerator.DefiniteAssignmentTrackers.TryGetValue(name, out var trackedTracker);
+                  return trackedTracker.tracker;
                 case UnaryOpExpr.ResolvedOpcode.Referrers:
                   return BoogieGenerator.MkReferrersOf(TrExpr(e.E), ReferrersHeapExpr);
                 default:

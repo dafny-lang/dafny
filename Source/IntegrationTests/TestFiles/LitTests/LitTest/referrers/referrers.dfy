@@ -97,7 +97,7 @@ class ChainingObject {
   ghost var {:tracking} tracking: ChainingObject?
   const tail: ChainingObject?
   constructor(chained_test: ChainingObject?) ensures x == y == nontracking == tracking == null && tail == chained_test
-    ensures chained_test != null ==> referrers(chained_test) == old(referrers(chained_test)) + {this`tail}
+    ensures chained_test != null ==> referrers(chained_test) == old(referrers(chained_test)) + {this`tail} ensures referrers(this) == {locals`this}
     ensures forall o: object | o != chained_test :: referrers(o) == old(referrers(o)) // Replace by referrers clauses when they arrive
   {
     x := null;

@@ -203,9 +203,11 @@ public partial class BoogieGenerator {
 
     var daTrackersMonotonicity = new List<Tuple<Bpl.IdentifierExpr, Bpl.IdentifierExpr>>();
     foreach (var local in assignedVariables) {
-      if (local.UniqueName == null || !DefiniteAssignmentTrackers.TryGetValue(local.UniqueName, out var dat)) {
+      if (local.UniqueName == null || !DefiniteAssignmentTrackers.TryGetValue(local.UniqueName, out var trackedTracker)) {
         continue;
       }
+
+      var dat = trackedTracker.tracker;
 
       var name = "preLoop$" + suffix + "$" + dat.Name;
       var preLoopDat = locals.GetOrCreate(name, () => new Bpl.LocalVariable(dat.tok, new Bpl.TypedIdent(dat.tok, name, dat.Type)));
