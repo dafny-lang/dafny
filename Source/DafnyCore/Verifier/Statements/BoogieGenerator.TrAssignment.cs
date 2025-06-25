@@ -211,14 +211,17 @@ public partial class BoogieGenerator {
     }
   }
 
-  private static bool CountsAsReferrer(LocalVariable localVariable)
-  {
+  private static bool CountsAsReferrer(LocalVariable localVariable) {
     return (!localVariable.IsGhost || localVariable.HasUserAttribute("tracking", out _));
+  }
+
+  private static bool CountsAsReferrer(Formal formal) {
+    return !formal.IsGhost;
   }
 
   private void ReferrersNotSupported(BoogieStmtListBuilder builder, ExpressionTranslator etran, Statement stmt) {
     program.Reporter.Warning(MessageSource.Verifier, "Unknown referrers action", stmt.Origin,
-      "This update statement is not yet supported by referrers. Supported are {}.");
+      "This update statement is not yet supported by referrers..");
     builder.Add(new HavocCmd(stmt.EndToken, [etran.ReferrerrsHeapCastToIdentifierExpr]));
   }
 

@@ -3266,10 +3266,18 @@ axiom (forall bx: Box ::
      ==> $Box($Unbox(bx): ref) == bx
        && $Is($Unbox(bx): ref, Tclass._module.SimpleObject()));
 
+const unique _module.__default.ReferrersMethodCall.t: FieldFamily;
+
+axiom (forall depth: int :: 
+  { local_field(_module.__default.ReferrersMethodCall.t, depth) } 
+  _System.field.IsGhost(local_field(_module.__default.ReferrersMethodCall.t, depth)));
+
 procedure {:verboseName "ReferrersMethodCall (well-formedness)"} CheckWellFormed$$_module.__default.ReferrersMethodCall(depth: int, 
     t#0: ref
        where $Is(t#0, Tclass._module.SimpleObject())
          && $IsAlloc(t#0, Tclass._module.SimpleObject(), $Heap));
+  free requires Set#IsMember(readReferrers($ReferrersHeap, t#0), 
+    $Box(#_System._tuple#2._#Make2($Box(locals), $Box(local_field(_module.__default.ReferrersMethodCall.t, depth)))));
   modifies $Heap, $ReferrersHeap;
 
 
@@ -3294,6 +3302,8 @@ procedure {:verboseName "ReferrersMethodCall (correctness)"} Impl$$_module.__def
        where $Is(t#0, Tclass._module.SimpleObject())
          && $IsAlloc(t#0, Tclass._module.SimpleObject(), $Heap))
    returns ($_reverifyPost: bool);
+  free requires Set#IsMember(readReferrers($ReferrersHeap, t#0), 
+    $Box(#_System._tuple#2._#Make2($Box(locals), $Box(local_field(_module.__default.ReferrersMethodCall.t, depth)))));
   modifies $Heap, $ReferrersHeap;
   // frame condition: object granularity
   free ensures (forall $o: ref :: 
@@ -3304,12 +3314,6 @@ procedure {:verboseName "ReferrersMethodCall (correctness)"} Impl$$_module.__def
   free ensures $HeapSucc(old($Heap), $Heap);
 
 
-
-const unique _module.__default.ReferrersMethodCall.t: FieldFamily;
-
-axiom (forall depth: int :: 
-  { local_field(_module.__default.ReferrersMethodCall.t, depth) } 
-  _System.field.IsGhost(local_field(_module.__default.ReferrersMethodCall.t, depth)));
 
 implementation {:smt_option "smt.arith.solver", "2"} {:verboseName "ReferrersMethodCall (correctness)"} Impl$$_module.__default.ReferrersMethodCall(depth: int, t#0: ref) returns ($_reverifyPost: bool)
 {
@@ -3328,10 +3332,19 @@ implementation {:smt_option "smt.arith.solver", "2"} {:verboseName "ReferrersMet
 
 
 
+const unique _module.__default.EnsuresReferrersUnchanged.t2: FieldFamily;
+
+axiom (forall depth: int :: 
+  { local_field(_module.__default.EnsuresReferrersUnchanged.t2, depth) } 
+  _System.field.IsGhost(local_field(_module.__default.EnsuresReferrersUnchanged.t2, depth)));
+
 procedure {:verboseName "EnsuresReferrersUnchanged (well-formedness)"} CheckWellFormed$$_module.__default.EnsuresReferrersUnchanged(depth: int, 
     t2#0: ref
        where $Is(t2#0, Tclass._module.SimpleObject())
          && $IsAlloc(t2#0, Tclass._module.SimpleObject(), $Heap));
+  free requires Set#IsMember(readReferrers($ReferrersHeap, t2#0), 
+    $Box(#_System._tuple#2._#Make2($Box(locals), 
+        $Box(local_field(_module.__default.EnsuresReferrersUnchanged.t2, depth)))));
   modifies $Heap, $ReferrersHeap;
 
 
@@ -3359,6 +3372,9 @@ procedure {:verboseName "EnsuresReferrersUnchanged (correctness)"} Impl$$_module
        where $Is(t2#0, Tclass._module.SimpleObject())
          && $IsAlloc(t2#0, Tclass._module.SimpleObject(), $Heap))
    returns ($_reverifyPost: bool);
+  free requires Set#IsMember(readReferrers($ReferrersHeap, t2#0), 
+    $Box(#_System._tuple#2._#Make2($Box(locals), 
+        $Box(local_field(_module.__default.EnsuresReferrersUnchanged.t2, depth)))));
   modifies $Heap, $ReferrersHeap;
   // user-defined postconditions
   free ensures {:always_assume} true;
@@ -5010,11 +5026,20 @@ axiom (forall $h: Heap, $o: ref ::
        && $Unbox(read($h, $o, alloc)): bool
      ==> $IsAlloc(_module.ChainingObject.tail($o), Tclass._module.ChainingObject?(), $h));
 
+const unique _module.ChainingObject.__ctor.chained__test: FieldFamily;
+
+axiom (forall depth: int :: 
+  { local_field(_module.ChainingObject.__ctor.chained__test, depth) } 
+  _System.field.IsGhost(local_field(_module.ChainingObject.__ctor.chained__test, depth)));
+
 procedure {:verboseName "ChainingObject._ctor (well-formedness)"} CheckWellFormed$$_module.ChainingObject.__ctor(depth: int, 
     chained_test#0: ref
        where $Is(chained_test#0, Tclass._module.ChainingObject?())
          && $IsAlloc(chained_test#0, Tclass._module.ChainingObject?(), $Heap))
    returns (this: ref);
+  free requires Set#IsMember(readReferrers($ReferrersHeap, chained_test#0), 
+    $Box(#_System._tuple#2._#Make2($Box(locals), 
+        $Box(local_field(_module.ChainingObject.__ctor.chained__test, depth)))));
   modifies $Heap, $ReferrersHeap;
 
 
@@ -5071,6 +5096,9 @@ procedure {:verboseName "ChainingObject._ctor (correctness)"} Impl$$_module.Chai
        where $Is(chained_test#0, Tclass._module.ChainingObject?())
          && $IsAlloc(chained_test#0, Tclass._module.ChainingObject?(), $Heap))
    returns (this: ref, $_reverifyPost: bool);
+  free requires Set#IsMember(readReferrers($ReferrersHeap, chained_test#0), 
+    $Box(#_System._tuple#2._#Make2($Box(locals), 
+        $Box(local_field(_module.ChainingObject.__ctor.chained__test, depth)))));
   modifies $Heap, $ReferrersHeap;
   // user-defined postconditions
   free ensures {:always_assume} true;

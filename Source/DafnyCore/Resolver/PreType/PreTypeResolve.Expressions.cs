@@ -460,6 +460,11 @@ namespace Microsoft.Dafny {
                 expr.PreType = ConstrainResultToBoolFamily(expr.Origin, "assigned", "boolean literal used as if it had type {0}");
                 break;
               case UnaryOpExpr.Opcode.Referrers:
+                // Verify that the context is a method or a constructor, not a function
+                if (resolutionContext.CodeContext is not MethodOrConstructor) {
+                  ReportError(opExpr, "referrers are not yet supported in contexts other than methods or constructors (instead got {0})", resolutionContext.CodeContext);
+                }
+                
                 // Verify that the expression is a unique object
                 AddConfirmation(PreTypeConstraints.CommonConfirmationBag.IsNullableRefType, e.E.PreType, opExpr.Origin, "referrers expects a instance of an class or an array (instead got {0})");
 
