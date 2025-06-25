@@ -164,11 +164,6 @@ namespace Microsoft.Dafny {
             CheckMember(function.ByMethodDecl);
           }
         }
-      } else if (member is Invariant invariant) {
-        // NB: cannot check CheckInvariants here
-        foreach (var clause in invariant.Body) {
-          CheckAttributedExpression(clause, context);
-        }
       }
     }
 

@@ -52,7 +52,7 @@ public static class RewriterCollection {
     }
 
     if (reporter.Options.Get(CommonOptionBag.CheckInvariants)) {
-      result.Add(new InvariantRewriter(reporter));
+      result.Add(new InvariantRewriter(program, reporter));
     }
 
     foreach (var plugin in reporter.Options.Plugins) {

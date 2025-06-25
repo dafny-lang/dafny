@@ -59,7 +59,7 @@ interface ICodeContainer {
 }
 
 /// <summary>
-/// An ICallable is a Function, Method, IteratorDecl, or (less fitting for the name ICallable) RedirectingTypeDecl or DatatypeDecl or ClassLikeDecl.
+/// An ICallable is a Function, Method, IteratorDecl, or (less fitting for the name ICallable) RedirectingTypeDecl or DatatypeDecl.
 /// </summary>
 public interface ICallable : ICodeContext, ISymbol, IFrameScope {
   string WhatKind { get; }

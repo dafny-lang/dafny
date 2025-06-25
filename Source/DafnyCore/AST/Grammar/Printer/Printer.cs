@@ -738,6 +738,12 @@ NoGhost - disable printing of functions, ghost methods, and proof
           if (state == 2) { wr.WriteLine(); }
           PrintField((Field)m, indent);
           state = 1;
+        } else if (m is Invariant invariant) {
+          Indent(indent);
+          wr.Write("invariant ");
+          PrintExpression(invariant.Body, false, indent);
+          wr.WriteLine();
+          state = 2;
         } else if (m is Function) {
           if (state != 0) {
             wr.WriteLine();
@@ -753,13 +759,6 @@ NoGhost - disable printing of functions, ghost methods, and proof
           }
 
           state = 2;
-        } else if (m is Invariant invariant) {
-          foreach (var clause in invariant.Body) {
-            Indent(indent);
-            wr.Write("invariant ");
-            PrintAttributedExpression(clause);
-            wr.WriteLine();
-          }
         } else {
           Contract.Assert(false); throw new cce.UnreachableException();  // unexpected member
         }

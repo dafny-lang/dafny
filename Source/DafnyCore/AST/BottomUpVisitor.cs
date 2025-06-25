@@ -32,8 +32,6 @@ public class BottomUpVisitor {
       Visit(tsd);
     } else if (decl is NewtypeDecl ntd) {
       Visit(ntd);
-    } else if (decl is Invariant invariant) {
-      Visit(invariant);
     }
     //TODO More?
   }
@@ -73,11 +71,6 @@ public class BottomUpVisitor {
     if (function.Body != null) { Visit(function.Body); }
     if (function.ByMethodBody != null) { Visit(function.ByMethodBody); }
     //TODO More?
-  }
-  public void Visit(Invariant invariant) {
-    foreach (var clause in invariant.Body) {
-      Visit(clause);
-    }
   }
   public void Visit(Expression expr) {
     Contract.Requires(expr != null);

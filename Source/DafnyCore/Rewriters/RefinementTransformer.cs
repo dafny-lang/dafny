@@ -656,7 +656,13 @@ namespace Microsoft.Dafny {
               Error(ErrorId.ref_refinement_field_must_add_ghost, nwMember, "a field re-declaration ({0}) must be to add 'ghost' to the field declaration", nwMember.Name);
             }
             nwMember.RefinementBase = member;
-
+          } else if (nwMember.TryCastToInvariant(Options, Reporter, MessageSource.Rewriter, out var nwInvariant)) {
+            if (member is Invariant invariant) {
+              // Paste them together, original invariants first
+              nwInvariant.Body = Expression.CreateAnd(refinementCloner.CloneExpr(invariant.Body), nwInvariant.Body);
+            } else {
+              Error(ErrorId.ref_invariant_refines_invariant, nwInvariant, "an invariant can only refine an invariant");
+            }
           } else if (nwMember is Function) {
             var f = (Function)nwMember;
             bool isPredicate = f is Predicate;
@@ -736,13 +742,6 @@ namespace Microsoft.Dafny {
                 f.Attributes);
               newF.RefinementBase = member;
               nw.Members[index] = newF;
-            }
-          } else if (nwMember.TryCastToInvariant(Options, Reporter, MessageSource.Rewriter, out var nwInvariant)) {
-            if (member is Invariant invariant) {
-              // Paste them together, original invariants first
-              nwInvariant.Body.InsertRange(0, invariant.Body.Select(refinementCloner.CloneAttributedExpr));
-            } else {
-              Error(ErrorId.ref_invariant_refines_invariant, nwInvariant, "an invariant can only refine an invariant");
             }
           } else {
             var m = (MethodOrConstructor)nwMember;

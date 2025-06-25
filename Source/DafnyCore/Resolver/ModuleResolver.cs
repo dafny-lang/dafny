@@ -2492,6 +2492,11 @@ namespace Microsoft.Dafny {
           // The class is not allowed to do anything with the field other than silently inherit it.
           reporter.Error(MessageSource.Resolver, member.Origin,
             $"{traitMember.WhatKindAndName} is inherited from trait '{trait.Name}' and is not allowed to be re-declared");
+        } else if (traitMember.TryCastToInvariant(Options, reporter, MessageSource.Resolver, out var invariant)) {
+          if (invariant.Body is not LiteralExpr { Value: true }) {
+            // TODO(somayyas) eventually implement overriding invariant
+            reporter.Error(MessageSource.Resolver, invariant.Origin, "overriding trait invariant is not yet supported");
+          }
         } else if ((traitMember as Function)?.Body != null || (traitMember as MethodOrConstructor)?.Body != null) {
           // the overridden member is a fully defined function or method, so the class is not allowed to do anything with it other than silently inherit it
           reporter.Error(MessageSource.Resolver, member.Origin,
@@ -2533,19 +2538,12 @@ namespace Microsoft.Dafny {
               reporter.Error(MessageSource.Resolver, classMethod.Origin,
                 $"not allowed to override a terminating method with a possibly non-terminating method ('{classMethod.Name}')");
             }
-
           } else if (traitMember is Function) {
             var classFunction = (Function)member;
             var traitFunction = (Function)traitMember;
             classFunction.OverriddenFunction = traitFunction;
 
             CheckOverride_FunctionParameters(classFunction, traitFunction, cl.ParentFormalTypeParametersToActuals);
-          } else if (traitMember.TryCastToInvariant(Options, reporter, MessageSource.Resolver, out var invariant)) {
-            if (invariant.Body.Any()) {
-              // TODO(somayyas) eventually implement overriding invariant
-              reporter.Error(MessageSource.Resolver, invariant.Origin, "overriding trait invariant is not yet supported");
-            }
-
           } else if (traitMember is Constructor) {
             throw new Exception("traits can not contain constructors");
           } else {

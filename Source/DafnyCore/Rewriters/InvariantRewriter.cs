@@ -1,48 +1,47 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 
 namespace Microsoft.Dafny;
 
-public class InvariantRewriter(ErrorReporter reporter) : IRewriter(reporter) {
-  internal override void PreVerify(ModuleDefinition module) {
+public class InvariantRewriter(Program program, ErrorReporter reporter) : IRewriter(reporter) {
+  private static readonly string invariantName = "invariant";
+
+  internal override void PostResolve(ModuleDefinition module) {
     foreach (var decl in module.TopLevelDecls) {
       if (decl is TopLevelDeclWithMembers cl) {
-        ProcessTopLevelDecl(cl);
+        PostResolveTopLevelDecl(cl);
       }
     }
   }
+  
+  // Add invariants as pre- and post-conditions
+  void PostResolveTopLevelDecl(TopLevelDeclWithMembers cl) {
+    var invariantMember = (Invariant)cl.Members.Find(member => member is Invariant);
 
-  void ProcessTopLevelDecl(TopLevelDeclWithMembers cl) {
-    // First, we need to grab the invariant
-    Invariant invariant;
-    try {
-      invariant = (Invariant)cl.Members.First(member => member is Invariant);
-    } catch (InvalidOperationException) {
+    if (invariantMember is null) {
       // No invariant, nothing to be done
       return;
     }
+
+    var thisExpr = new ThisExpr(cl);
     
     foreach (var member in cl.Members) {
       // TODO(somayyas): can we give better error messages here?
-      // e.g., instead of "postcondition could not be proved" => "an invariant clause could not be proved"
-      // "related location: this is the postcondition" => "this is the invariant clause"
+      AttributedExpression invariant =
+        new(invariantMember.ResolvedCall(member.Origin, thisExpr, program.SystemModuleManager));
       switch (member) {
-        // Constructors have the invariant as additional ensures clauses
-        case Constructor ctor:
-          // See below why invariant clauses are added last
-          ctor.Ens.AddRange(invariant.Body);
+        case Constructor ctor: // Constructors have the invariant as additional ensures clauses
+          ctor.Ens.Add(invariant); // See below why invariant clauses are added last
           break;
-        // Currently, we assume that each method is public and, as such, needs to require/ensure the invariant
-        case Method method:
-          // Have to add the invariant at the front of the requires clauses, in case subsequent clauses depend on them
-          // to be well-formed
-          method.Req.InsertRange(0, invariant.Body);
-          // Dually, the invariant is ensured last
-          method.Ens.AddRange(invariant.Body);
+        case Method method: // Currently, we assume that each method is public and, as such, needs to require/ensure the invariant
+          // Have to add the invariant at the front of the requires clauses, in case subsequent clauses depend on them to be well-formed
+          //method.Req.Insert(0, invariant); // todo needs to be free and for all invariant bearing objects
+          method.Ens.Add(invariant); // Dually, the invariant is ensured last
           break;
-        // Functions need only assume the invariant
-        case Function function:
-          function.Req.InsertRange(0, invariant.Body);
+        case Invariant: break;
+        case Function function: // Functions need only assume the invariant
+          //function.Req.Insert(0, CallInvariant(function.Origin)); // TODO needs to be free, and for all invariant bearing objects
           break;
       }
     }

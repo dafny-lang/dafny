@@ -207,9 +207,6 @@ namespace Microsoft.Dafny {
           return CloneField(field);
         } else if (member is Function function) {
           return CloneFunction(function);
-        } else if (member is Invariant invariant) {
-          // NB: cannot check CheckInvariants here
-          return new Invariant(this, invariant);
         } else {
           var m = (MethodOrConstructor)member;
           return CloneMethod(m);
@@ -512,8 +509,9 @@ namespace Microsoft.Dafny {
       }
 
       var newNameNode = new Name(Origin(f.NameNode.Origin), newName);
-
-      if (f is Predicate) {
+      if (f is Invariant invariant) {
+        return new Invariant(invariant.Origin, [new(invariant.Body)]);
+      } else if (f is Predicate) {
         return new Predicate(Origin(f.Origin), newNameNode, f.HasStaticKeyword, f.IsGhost, f.IsOpaque, tps, formals,
           result,
           req, reads, ens, decreases, body, Predicate.BodyOriginKind.OriginalOrInherited,
