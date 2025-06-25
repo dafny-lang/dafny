@@ -4287,6 +4287,7 @@ implementation {:smt_option "smt.arith.solver", "2"} {:verboseName "ObjectFields
   var $nw: ref;
   var chained_test##0: ref;
   var newtype$check#0: ref;
+  var $oldRhs: ref;
   var $rhs#0: ref;
   var $rhs#1: ref;
   var $rhs#2: ref;
@@ -4317,7 +4318,6 @@ implementation {:smt_option "smt.arith.solver", "2"} {:verboseName "ObjectFields
   var i#0: int;
   var $_Frame#l0: [ref,Field]bool;
   var lambdaResult#0: ref;
-  var $oldRhs#0: ref;
   var r#0: DatatypeType;
 
     // AddMethodImpl: ObjectFields, Impl$$_module.__default.ObjectFields
@@ -4375,21 +4375,30 @@ implementation {:smt_option "smt.arith.solver", "2"} {:verboseName "ObjectFields
     assume true;
     assume true;
     assert {:id "id82"} $_ModifiesFrame[t#0, _module.ChainingObject.x];
-    assert {:id "id83"} defass#t#0;
-    assume true;
-    $oldRhs#0 := $Unbox(read($Heap, t#0, _module.ChainingObject.x)): ref;
-    $rhs#0 := t#0;
-    $Heap := update($Heap, t#0, _module.ChainingObject.x, $Box($rhs#0));
-    if ($oldRhs#0 != null) {
-      $ReferrersHeap := updateReferrers($ReferrersHeap, $oldRhs#0, Set#Difference(readReferrers($ReferrersHeap, $oldRhs#0), Set#UnionOne(Set#Empty(), $Box(#_System._tuple#2._#Make2($Box(t#0), $Box(_module.ChainingObject.x))))
-      ));
-    }
-    if ($rhs#0 != null) {
-      $ReferrersHeap := updateReferrers($ReferrersHeap, $rhs#0, Set#UnionOne(readReferrers($ReferrersHeap, $rhs#0),
-        $Box(#_System._tuple#2._#Make2($Box(t#0), $Box(_module.ChainingObject.x)))
-      ));
+    $oldRhs := $Unbox(read($Heap, t#0, _module.ChainingObject.x)): ref;
+    if ($oldRhs != null)
+    {
+        $ReferrersHeap := updateReferrers($ReferrersHeap,
+          $oldRhs,
+          Set#Difference(readReferrers($ReferrersHeap, $oldRhs),
+            Set#UnionOne(Set#Empty(): Set,
+              $Box(#_System._tuple#2._#Make2($Box(t#0), $Box(_module.ChainingObject.x))))));
     }
 
+    assert {:id "id83"} defass#t#0;
+    assume true;
+    $rhs#0 := t#0;
+    if ($rhs#0 != null)
+    {
+      assume !Set#IsMember(readReferrers($ReferrersHeap, $rhs#0), 
+        $Box(#_System._tuple#2._#Make2($Box(t#0), $Box(_module.ChainingObject.x))));
+      $ReferrersHeap := updateReferrers($ReferrersHeap,
+        $rhs#0,
+        Set#UnionOne(readReferrers($ReferrersHeap, $rhs#0),
+          $Box(#_System._tuple#2._#Make2($Box(t#0), $Box(_module.ChainingObject.x)))));
+    }
+
+    $Heap := update($Heap, t#0, _module.ChainingObject.x, $Box($rhs#0));
     assume $IsGoodHeap($Heap);
     assume {:captureState "referrers.dfy(118,10)"} true;
     // ----- assert statement ----- C:\Users\mimayere\Documents\dafny\Source\IntegrationTests\TestFiles\LitTests\LitTest\referrers\referrers.dfy(119,3)
@@ -4406,20 +4415,30 @@ implementation {:smt_option "smt.arith.solver", "2"} {:verboseName "ObjectFields
     assume true;
     assume true;
     assert {:id "id91"} $_ModifiesFrame[t#0, _module.ChainingObject.y];
+    $oldRhs := $Unbox(read($Heap, t#0, _module.ChainingObject.y)): ref;
+    if ($oldRhs != null)
+    {
+        $ReferrersHeap := updateReferrers($ReferrersHeap, 
+          $oldRhs, 
+          Set#Difference(readReferrers($ReferrersHeap, $oldRhs), 
+            Set#UnionOne(Set#Empty(): Set, 
+              $Box(#_System._tuple#2._#Make2($Box(t#0), $Box(_module.ChainingObject.y))))));
+    }
+
     assert {:id "id92"} defass#t#0;
     assume true;
-    $oldRhs#0 := $Unbox(read($Heap, t#0, _module.ChainingObject.y)): ref;
     $rhs#1 := t#0;
+    if ($rhs#1 != null)
+    {
+        assume !Set#IsMember(readReferrers($ReferrersHeap, $rhs#1), 
+          $Box(#_System._tuple#2._#Make2($Box(t#0), $Box(_module.ChainingObject.y))));
+        $ReferrersHeap := updateReferrers($ReferrersHeap, 
+          $rhs#1, 
+          Set#UnionOne(readReferrers($ReferrersHeap, $rhs#1), 
+            $Box(#_System._tuple#2._#Make2($Box(t#0), $Box(_module.ChainingObject.y)))));
+    }
+
     $Heap := update($Heap, t#0, _module.ChainingObject.y, $Box($rhs#1));
-    if ($oldRhs#0 != null) {
-      $ReferrersHeap := updateReferrers($ReferrersHeap, $oldRhs#0, Set#Difference(readReferrers($ReferrersHeap, $oldRhs#0), Set#UnionOne(Set#Empty(), $Box(#_System._tuple#2._#Make2($Box(t#0), $Box(_module.ChainingObject.y))))
-      ));
-    }
-    if ($rhs#1 != null) {
-      $ReferrersHeap := updateReferrers($ReferrersHeap, $rhs#1, Set#UnionOne(readReferrers($ReferrersHeap, $rhs#1),
-        $Box(#_System._tuple#2._#Make2($Box(t#0), $Box(_module.ChainingObject.y)))
-      ));
-    }
     assume $IsGoodHeap($Heap);
     assume {:captureState "referrers.dfy(120,10)"} true;
     // ----- assert statement ----- C:\Users\mimayere\Documents\dafny\Source\IntegrationTests\TestFiles\LitTests\LitTest\referrers\referrers.dfy(121,3)
@@ -4438,20 +4457,30 @@ implementation {:smt_option "smt.arith.solver", "2"} {:verboseName "ObjectFields
     assume true;
     assume true;
     assert {:id "id101"} $_ModifiesFrame[t#0, _module.ChainingObject.x];
+    $oldRhs := $Unbox(read($Heap, t#0, _module.ChainingObject.x)): ref;
+    if ($oldRhs != null)
+    {
+        $ReferrersHeap := updateReferrers($ReferrersHeap, 
+          $oldRhs, 
+          Set#Difference(readReferrers($ReferrersHeap, $oldRhs), 
+            Set#UnionOne(Set#Empty(): Set, 
+              $Box(#_System._tuple#2._#Make2($Box(t#0), $Box(_module.ChainingObject.x))))));
+    }
+
     newtype$check#1 := null;
     assume true;
-    $oldRhs#0 := $Unbox(read($Heap, t#0, _module.ChainingObject.x)): ref;
     $rhs#2 := null;
+    if ($rhs#2 != null)
+    {
+        assume !Set#IsMember(readReferrers($ReferrersHeap, $rhs#2), 
+          $Box(#_System._tuple#2._#Make2($Box(t#0), $Box(_module.ChainingObject.x))));
+        $ReferrersHeap := updateReferrers($ReferrersHeap, 
+          $rhs#2, 
+          Set#UnionOne(readReferrers($ReferrersHeap, $rhs#2), 
+            $Box(#_System._tuple#2._#Make2($Box(t#0), $Box(_module.ChainingObject.x)))));
+    }
+
     $Heap := update($Heap, t#0, _module.ChainingObject.x, $Box($rhs#2));
-    if ($oldRhs#0 != null) {
-      $ReferrersHeap := updateReferrers($ReferrersHeap, $oldRhs#0, Set#Difference(readReferrers($ReferrersHeap, $oldRhs#0), Set#UnionOne(Set#Empty(), $Box(#_System._tuple#2._#Make2($Box(t#0), $Box(_module.ChainingObject.x))))
-      ));
-    }
-    if ($rhs#2 != null) {
-      $ReferrersHeap := updateReferrers($ReferrersHeap, $rhs#2, Set#UnionOne(readReferrers($ReferrersHeap, $rhs#2),
-        $Box(#_System._tuple#2._#Make2($Box(t#0), $Box(_module.ChainingObject.x)))
-      ));
-    }
     assume $IsGoodHeap($Heap);
     assume {:captureState "referrers.dfy(122,13)"} true;
     // ----- assert statement ----- C:\Users\mimayere\Documents\dafny\Source\IntegrationTests\TestFiles\LitTests\LitTest\referrers\referrers.dfy(123,3)
@@ -4468,20 +4497,30 @@ implementation {:smt_option "smt.arith.solver", "2"} {:verboseName "ObjectFields
     assume true;
     assume true;
     assert {:id "id109"} $_ModifiesFrame[t#0, _module.ChainingObject.y];
+    $oldRhs := $Unbox(read($Heap, t#0, _module.ChainingObject.y)): ref;
+    if ($oldRhs != null)
+    {
+        $ReferrersHeap := updateReferrers($ReferrersHeap, 
+          $oldRhs, 
+          Set#Difference(readReferrers($ReferrersHeap, $oldRhs), 
+            Set#UnionOne(Set#Empty(): Set, 
+              $Box(#_System._tuple#2._#Make2($Box(t#0), $Box(_module.ChainingObject.y))))));
+    }
+
     newtype$check#2 := null;
     assume true;
-    $oldRhs#0 := $Unbox(read($Heap, t#0, _module.ChainingObject.y)): ref;
     $rhs#3 := null;
+    if ($rhs#3 != null)
+    {
+        assume !Set#IsMember(readReferrers($ReferrersHeap, $rhs#3), 
+          $Box(#_System._tuple#2._#Make2($Box(t#0), $Box(_module.ChainingObject.y))));
+        $ReferrersHeap := updateReferrers($ReferrersHeap, 
+          $rhs#3, 
+          Set#UnionOne(readReferrers($ReferrersHeap, $rhs#3), 
+            $Box(#_System._tuple#2._#Make2($Box(t#0), $Box(_module.ChainingObject.y)))));
+    }
+
     $Heap := update($Heap, t#0, _module.ChainingObject.y, $Box($rhs#3));
-    if ($oldRhs#0 != null) {
-      $ReferrersHeap := updateReferrers($ReferrersHeap, $oldRhs#0, Set#Difference(readReferrers($ReferrersHeap, $oldRhs#0), Set#UnionOne(Set#Empty(), $Box(#_System._tuple#2._#Make2($Box(t#0), $Box(_module.ChainingObject.y))))
-      ));
-    }
-    if ($rhs#3 != null) {
-      $ReferrersHeap := updateReferrers($ReferrersHeap, $rhs#3, Set#UnionOne(readReferrers($ReferrersHeap, $rhs#3),
-        $Box(#_System._tuple#2._#Make2($Box(t#0), $Box(_module.ChainingObject.y)))
-      ));
-    }
     assume $IsGoodHeap($Heap);
     assume {:captureState "referrers.dfy(124,13)"} true;
     // ----- assert statement ----- C:\Users\mimayere\Documents\dafny\Source\IntegrationTests\TestFiles\LitTests\LitTest\referrers\referrers.dfy(125,3)
@@ -4496,19 +4535,29 @@ implementation {:smt_option "smt.arith.solver", "2"} {:verboseName "ObjectFields
     assume true;
     assume true;
     assert {:id "id116"} $_ModifiesFrame[t#0, _module.ChainingObject.tracking];
+    $oldRhs := $Unbox(read($Heap, t#0, _module.ChainingObject.tracking)): ref;
+    if ($oldRhs != null)
+    {
+        $ReferrersHeap := updateReferrers($ReferrersHeap, 
+          $oldRhs, 
+          Set#Difference(readReferrers($ReferrersHeap, $oldRhs), 
+            Set#UnionOne(Set#Empty(): Set, 
+              $Box(#_System._tuple#2._#Make2($Box(t#0), $Box(_module.ChainingObject.tracking))))));
+    }
+
     assert {:id "id117"} defass#t#0;
     assume true;
     $rhs#4 := t#0;
-    $oldRhs#0 := $Unbox(read($Heap, t#0, _module.ChainingObject.tracking)): ref;
-    if ($oldRhs#0 != null) {
-      $ReferrersHeap := updateReferrers($ReferrersHeap, $oldRhs#0, Set#Difference(readReferrers($ReferrersHeap, $oldRhs#0), Set#UnionOne(Set#Empty(), $Box(#_System._tuple#2._#Make2($Box(t#0), $Box(_module.ChainingObject.tracking))))
-      ));
+    if ($rhs#4 != null)
+    {
+        assume !Set#IsMember(readReferrers($ReferrersHeap, $rhs#4), 
+          $Box(#_System._tuple#2._#Make2($Box(t#0), $Box(_module.ChainingObject.tracking))));
+        $ReferrersHeap := updateReferrers($ReferrersHeap, 
+          $rhs#4, 
+          Set#UnionOne(readReferrers($ReferrersHeap, $rhs#4), 
+            $Box(#_System._tuple#2._#Make2($Box(t#0), $Box(_module.ChainingObject.tracking)))));
     }
-    if ($rhs#4 != null) {
-      $ReferrersHeap := updateReferrers($ReferrersHeap, $rhs#4, Set#UnionOne(readReferrers($ReferrersHeap, $rhs#4),
-        $Box(#_System._tuple#2._#Make2($Box(t#0), $Box(_module.ChainingObject.tracking)))
-      ));
-    }
+
     $Heap := update($Heap, t#0, _module.ChainingObject.tracking, $Box($rhs#4));
     assume $IsGoodHeap($Heap);
     assume {:captureState "referrers.dfy(126,17)"} true;
@@ -4526,19 +4575,29 @@ implementation {:smt_option "smt.arith.solver", "2"} {:verboseName "ObjectFields
     assume true;
     assume true;
     assert {:id "id125"} $_ModifiesFrame[t#0, _module.ChainingObject.tracking];
+    $oldRhs := $Unbox(read($Heap, t#0, _module.ChainingObject.tracking)): ref;
+    if ($oldRhs != null)
+    {
+        $ReferrersHeap := updateReferrers($ReferrersHeap, 
+          $oldRhs, 
+          Set#Difference(readReferrers($ReferrersHeap, $oldRhs), 
+            Set#UnionOne(Set#Empty(): Set, 
+              $Box(#_System._tuple#2._#Make2($Box(t#0), $Box(_module.ChainingObject.tracking))))));
+    }
+
     newtype$check#3 := null;
     assume true;
     $rhs#5 := null;
-    $oldRhs#0 := $Unbox(read($Heap, t#0, _module.ChainingObject.tracking)) :ref;
-    if ($oldRhs#0 != null) {
-      $ReferrersHeap := updateReferrers($ReferrersHeap, $oldRhs#0, Set#Difference(readReferrers($ReferrersHeap, $oldRhs#0), Set#UnionOne(Set#Empty(), $Box(#_System._tuple#2._#Make2($Box(t#0), $Box(_module.ChainingObject.tracking))))
-      ));
+    if ($rhs#5 != null)
+    {
+        assume !Set#IsMember(readReferrers($ReferrersHeap, $rhs#5), 
+          $Box(#_System._tuple#2._#Make2($Box(t#0), $Box(_module.ChainingObject.tracking))));
+        $ReferrersHeap := updateReferrers($ReferrersHeap, 
+          $rhs#5, 
+          Set#UnionOne(readReferrers($ReferrersHeap, $rhs#5), 
+            $Box(#_System._tuple#2._#Make2($Box(t#0), $Box(_module.ChainingObject.tracking)))));
     }
-    if ($rhs#5 != null) {
-      $ReferrersHeap := updateReferrers($ReferrersHeap, $rhs#5, Set#UnionOne(readReferrers($ReferrersHeap, $rhs#5),
-        $Box(#_System._tuple#2._#Make2($Box(t#0), $Box(_module.ChainingObject.tracking)))
-      ));
-    }
+
     $Heap := update($Heap, t#0, _module.ChainingObject.tracking, $Box($rhs#5));
     assume $IsGoodHeap($Heap);
     assume {:captureState "referrers.dfy(128,20)"} true;
@@ -4636,20 +4695,29 @@ implementation {:smt_option "smt.arith.solver", "2"} {:verboseName "ObjectFields
     assume true;
     assume true;
     assert {:id "id150"} $_ModifiesFrame[u#0, _module.ChainingObject.x];
+    $oldRhs := $Unbox(read($Heap, u#0, _module.ChainingObject.x)): ref;
+    if ($oldRhs != null)
+    {
+        $ReferrersHeap := updateReferrers($ReferrersHeap, 
+          $oldRhs, 
+          Set#Difference(readReferrers($ReferrersHeap, $oldRhs), 
+            Set#UnionOne(Set#Empty(): Set, 
+              $Box(#_System._tuple#2._#Make2($Box(u#0), $Box(_module.ChainingObject.x))))));
+    }
+
     assert {:id "id151"} defass#t#0;
     assume true;
     $rhs#7 := t#0;
-    $oldRhs#0 := $Unbox(read($Heap, u#0, _module.ChainingObject.x)): ref;
-    if ($rhs#7 != null) {
-      $ReferrersHeap := updateReferrers($ReferrersHeap, $rhs#7, Set#UnionOne(readReferrers($ReferrersHeap, $rhs#7),
-        $Box(#_System._tuple#2._#Make2($Box(u#0), $Box(_module.ChainingObject.x)))
-      ));
+    if ($rhs#7 != null)
+    {
+        assume !Set#IsMember(readReferrers($ReferrersHeap, $rhs#7), 
+          $Box(#_System._tuple#2._#Make2($Box(u#0), $Box(_module.ChainingObject.x))));
+        $ReferrersHeap := updateReferrers($ReferrersHeap, 
+          $rhs#7, 
+          Set#UnionOne(readReferrers($ReferrersHeap, $rhs#7), 
+            $Box(#_System._tuple#2._#Make2($Box(u#0), $Box(_module.ChainingObject.x)))));
     }
-    if ($oldRhs#0 != null) {
-      $ReferrersHeap := updateReferrers($ReferrersHeap, $oldRhs#0, Set#Difference(readReferrers($ReferrersHeap, $oldRhs#0),
-        Set#UnionOne(Set#Empty(): Set, $Box(#_System._tuple#2._#Make2($Box(u#0), $Box(_module.ChainingObject.x))))
-      ));
-    }
+
     $Heap := update($Heap, u#0, _module.ChainingObject.x, $Box($rhs#7));
     assume $IsGoodHeap($Heap);
     assume {:captureState "referrers.dfy(137,10)"} true;
@@ -4675,20 +4743,29 @@ implementation {:smt_option "smt.arith.solver", "2"} {:verboseName "ObjectFields
     assume true;
     assume true;
     assert {:id "id162"} $_ModifiesFrame[u#0, _module.ChainingObject.x];
+    $oldRhs := $Unbox(read($Heap, u#0, _module.ChainingObject.x)): ref;
+    if ($oldRhs != null)
+    {
+        $ReferrersHeap := updateReferrers($ReferrersHeap, 
+          $oldRhs, 
+          Set#Difference(readReferrers($ReferrersHeap, $oldRhs), 
+            Set#UnionOne(Set#Empty(): Set, 
+              $Box(#_System._tuple#2._#Make2($Box(u#0), $Box(_module.ChainingObject.x))))));
+    }
+
     assert {:id "id163"} defass#u#0;
     assume true;
     $rhs#8 := u#0;
-    $oldRhs#0 := $Unbox(read($Heap, u#0, _module.ChainingObject.x)): ref;
-    if ($rhs#8 != null) {
-      $ReferrersHeap := updateReferrers($ReferrersHeap, $rhs#8, Set#UnionOne(readReferrers($ReferrersHeap, $rhs#8),
-        $Box(#_System._tuple#2._#Make2($Box(u#0), $Box(_module.ChainingObject.x)))
-      ));
+    if ($rhs#8 != null)
+    {
+        assume !Set#IsMember(readReferrers($ReferrersHeap, $rhs#8), 
+          $Box(#_System._tuple#2._#Make2($Box(u#0), $Box(_module.ChainingObject.x))));
+        $ReferrersHeap := updateReferrers($ReferrersHeap, 
+          $rhs#8, 
+          Set#UnionOne(readReferrers($ReferrersHeap, $rhs#8), 
+            $Box(#_System._tuple#2._#Make2($Box(u#0), $Box(_module.ChainingObject.x)))));
     }
-    if ($oldRhs#0 != null) {
-      $ReferrersHeap := updateReferrers($ReferrersHeap, $oldRhs#0, Set#Difference(readReferrers($ReferrersHeap, $oldRhs#0),
-        Set#UnionOne(Set#Empty(): Set, $Box(#_System._tuple#2._#Make2($Box(u#0), $Box(_module.ChainingObject.x))))
-      ));
-    }
+
     $Heap := update($Heap, u#0, _module.ChainingObject.x, $Box($rhs#8));
     assume $IsGoodHeap($Heap);
     assume {:captureState "referrers.dfy(140,10)"} true;
@@ -5296,15 +5373,27 @@ procedure {:verboseName "ChainingObject._ctor (correctness)"} Impl$$_module.Chai
 implementation {:smt_option "smt.arith.solver", "2"} {:verboseName "ChainingObject._ctor (correctness)"} Impl$$_module.ChainingObject.__ctor(depth: int, chained_test#0: ref) returns (this: ref, $_reverifyPost: bool)
 {
   var $_ModifiesFrame: [ref,Field]bool;
+  var defass#this.x: bool;
   var this.x: ref;
+  var defass#this.y: bool;
   var this.y: ref;
+  var defass#this.nontracking: bool;
   var this.nontracking: ref;
+  var defass#this.tracking: bool;
   var this.tracking: ref;
+  var defass#this.tail: bool;
   var this.tail: ref;
+  var $oldRhs: ref;
   var newtype$check#2: ref;
   var newtype$check#3: ref;
   var newtype$check#4: ref;
   var newtype$check#5: ref;
+  defass#this.x := false;
+  defass#this.y := false;
+  defass#this.nontracking := false;
+  defass#this.tracking := false;
+  defass#this.tail := false;
+  
   assume readReferrers($ReferrersHeap, this) ==  Set#UnionOne(Set#Empty(),
     $Box(#_System._tuple#2._#Make2($Box(locals), $Box(local_field(_module.ChainingObject.__ctor.this, depth))))
   );
@@ -5318,23 +5407,86 @@ implementation {:smt_option "smt.arith.solver", "2"} {:verboseName "ChainingObje
     // ----- assignment statement ----- C:\Users\mimayere\Documents\dafny\Source\IntegrationTests\TestFiles\LitTests\LitTest\referrers\referrers.dfy(103,7)
     assume true;
     assume true;
+    $oldRhs := $Unbox(read($Heap, this, _module.ChainingObject.x)): ref;
+    if (defass#this.x && $oldRhs != null)
+    {
+        $ReferrersHeap := updateReferrers($ReferrersHeap, 
+          $oldRhs, 
+          Set#Difference(readReferrers($ReferrersHeap, $oldRhs), 
+            Set#UnionOne(Set#Empty(): Set, 
+              $Box(#_System._tuple#2._#Make2($Box(this), $Box(_module.ChainingObject.x))))));
+    }
+
     newtype$check#2 := null;
     assume true;
     this.x := null;
+    defass#this.x := true;
+    if (this.x != null)
+    {
+        assume !Set#IsMember(readReferrers($ReferrersHeap, this.x), 
+          $Box(#_System._tuple#2._#Make2($Box(this), $Box(_module.ChainingObject.x))));
+        $ReferrersHeap := updateReferrers($ReferrersHeap, 
+          this.x, 
+          Set#UnionOne(readReferrers($ReferrersHeap, this.x), 
+            $Box(#_System._tuple#2._#Make2($Box(this), $Box(_module.ChainingObject.x)))));
+    }
+
     assume {:captureState "referrers.dfy(103,13)"} true;
     // ----- assignment statement ----- C:\Users\mimayere\Documents\dafny\Source\IntegrationTests\TestFiles\LitTests\LitTest\referrers\referrers.dfy(104,7)
     assume true;
     assume true;
+    $oldRhs := $Unbox(read($Heap, this, _module.ChainingObject.y)): ref;
+    if (defass#this.y && $oldRhs != null)
+    {
+        $ReferrersHeap := updateReferrers($ReferrersHeap, 
+          $oldRhs, 
+          Set#Difference(readReferrers($ReferrersHeap, $oldRhs), 
+            Set#UnionOne(Set#Empty(): Set, 
+              $Box(#_System._tuple#2._#Make2($Box(this), $Box(_module.ChainingObject.y))))));
+    }
+
     newtype$check#3 := null;
     assume true;
     this.y := null;
+    defass#this.y := true;
+    if (this.y != null)
+    {
+        assume !Set#IsMember(readReferrers($ReferrersHeap, this.y), 
+          $Box(#_System._tuple#2._#Make2($Box(this), $Box(_module.ChainingObject.y))));
+        $ReferrersHeap := updateReferrers($ReferrersHeap, 
+          this.y, 
+          Set#UnionOne(readReferrers($ReferrersHeap, this.y), 
+            $Box(#_System._tuple#2._#Make2($Box(this), $Box(_module.ChainingObject.y)))));
+    }
+
     assume {:captureState "referrers.dfy(104,13)"} true;
     // ----- assignment statement ----- C:\Users\mimayere\Documents\dafny\Source\IntegrationTests\TestFiles\LitTests\LitTest\referrers\referrers.dfy(105,14)
     assume true;
     assume true;
+    $oldRhs := $Unbox(read($Heap, this, _module.ChainingObject.tracking)): ref;
+    if (defass#this.tracking && $oldRhs != null)
+    {
+        $ReferrersHeap := updateReferrers($ReferrersHeap, 
+          $oldRhs, 
+          Set#Difference(readReferrers($ReferrersHeap, $oldRhs), 
+            Set#UnionOne(Set#Empty(): Set, 
+              $Box(#_System._tuple#2._#Make2($Box(this), $Box(_module.ChainingObject.tracking))))));
+    }
+
     newtype$check#4 := null;
     assume true;
     this.tracking := null;
+    defass#this.tracking := true;
+    if (this.tracking != null)
+    {
+        assume !Set#IsMember(readReferrers($ReferrersHeap, this.tracking), 
+          $Box(#_System._tuple#2._#Make2($Box(this), $Box(_module.ChainingObject.tracking))));
+        $ReferrersHeap := updateReferrers($ReferrersHeap, 
+          this.tracking, 
+          Set#UnionOne(readReferrers($ReferrersHeap, this.tracking), 
+            $Box(#_System._tuple#2._#Make2($Box(this), $Box(_module.ChainingObject.tracking)))));
+    }
+
     assume {:captureState "referrers.dfy(105,20)"} true;
     // ----- assignment statement ----- C:\Users\mimayere\Documents\dafny\Source\IntegrationTests\TestFiles\LitTests\LitTest\referrers\referrers.dfy(106,17)
     assume true;
@@ -5346,13 +5498,28 @@ implementation {:smt_option "smt.arith.solver", "2"} {:verboseName "ChainingObje
     // ----- assignment statement ----- C:\Users\mimayere\Documents\dafny\Source\IntegrationTests\TestFiles\LitTests\LitTest\referrers\referrers.dfy(107,10)
     assume true;
     assume true;
+    $oldRhs := $Unbox(read($Heap, this, _module.ChainingObject.tail)): ref;
+    if (defass#this.tail && $oldRhs != null)
+    {
+        $ReferrersHeap := updateReferrers($ReferrersHeap, 
+          $oldRhs, 
+          Set#Difference(readReferrers($ReferrersHeap, $oldRhs), 
+            Set#UnionOne(Set#Empty(): Set, 
+              $Box(#_System._tuple#2._#Make2($Box(this), $Box(_module.ChainingObject.tail))))));
+    }
+
     assume true;
     this.tail := chained_test#0;
-    if (chained_test#0 != null) {
-      $ReferrersHeap := updateReferrers($ReferrersHeap, chained_test#0, Set#UnionOne(readReferrers($ReferrersHeap, chained_test#0),
-        $Box(#_System._tuple#2._#Make2($Box(this), $Box(_module.ChainingObject.tail)))
-      ));
+    if (this.tail != null)
+    {
+        assume !Set#IsMember(readReferrers($ReferrersHeap, this.tail), 
+          $Box(#_System._tuple#2._#Make2($Box(this), $Box(_module.ChainingObject.tail))));
+        $ReferrersHeap := updateReferrers($ReferrersHeap, 
+          this.tail, 
+          Set#UnionOne(readReferrers($ReferrersHeap, this.tail), 
+            $Box(#_System._tuple#2._#Make2($Box(this), $Box(_module.ChainingObject.tail)))));
     }
+
     assume {:captureState "referrers.dfy(107,24)"} true;
     // ----- new; ----- C:\Users\mimayere\Documents\dafny\Source\IntegrationTests\TestFiles\LitTests\LitTest\referrers\referrers.dfy(102,3)
     assume this != null && $Is(this, Tclass._module.ChainingObject?());

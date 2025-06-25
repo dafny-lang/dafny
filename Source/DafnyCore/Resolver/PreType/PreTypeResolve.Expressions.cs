@@ -827,22 +827,32 @@ namespace Microsoft.Dafny {
               // We resolve the field as a local variable like for identifiers and name segments
               var v = scope.Find(name.Value);
               if (v == null) {
-                var f = EnclosingInputParameterFormals.Find(name.Value);
-                var hint = "";
-                if (f != null) {
-                  hint = DidYouMeanOneOf([$"{EnclosingMethodCall!.Name}`{name.Value}"]);
+                if (name.Value == "this" && method.EnclosingClass is not DefaultClassDecl) {
+                  // Special case: 'this' gets a special field as if it was an output variable.
+                  if (method.ThisFormal == null) {
+                    method.ThisFormal = new Formal(method.StartToken, "this",
+                      ModuleResolver.GetThisType(expr.Origin, currentClass), method is not Constructor, method.IsGhost,
+                      null);
+                  }
+                  v = method.ThisFormal;
                 } else {
-                  // We only suggest variables in scope.
-                  var hints = new List<string>();
-                  hints.AddRange(Scope.Names
-                    .Where(n => n != null).Select(n => $"locals`{n}"));
-                  hints.AddRange(EnclosingInputParameterFormals.Names
-                    .Where(n => n != null).Select(n => $"{EnclosingMethodCall!.Name}`{n}"));
-                  hint = DidYouMeanOneOf(hints);
+                  var f = EnclosingInputParameterFormals.Find(name.Value);
+                  var hint = "";
+                  if (f != null) {
+                    hint = DidYouMeanOneOf([$"{EnclosingMethodCall!.Name}`{name.Value}"]);
+                  } else {
+                    // We only suggest variables in scope.
+                    var hints = new List<string>();
+                    hints.AddRange(Scope.Names
+                      .Where(n => n != null).Select(n => $"locals`{n}"));
+                    hints.AddRange(EnclosingInputParameterFormals.Names
+                      .Where(n => n != null).Select(n => $"{EnclosingMethodCall!.Name}`{n}"));
+                    hint = DidYouMeanOneOf(hints);
+                  }
+                  ReportError(fieldLocation, "variable '{0}' is not declared{1}", name, hint);
+                  fieldLocation.PreType = CreatePreTypeProxy("field-location");
+                  return;
                 }
-                ReportError(fieldLocation, "variable '{0}' is not declared{1}", name, hint);
-                fieldLocation.PreType = CreatePreTypeProxy("field-location");
-                return;
               }
               if (v is not LocalVariable local) {
                 if (v is not Formal formal) {

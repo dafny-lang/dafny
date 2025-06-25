@@ -3338,7 +3338,7 @@ namespace Microsoft.Dafny {
           }
         }
         // return "Box(e)"
-        return FunctionCall(tok, BuiltinFunction.Box, null, e);
+        return ApplyBox(tok, e);
       } else {
         return e;
       }

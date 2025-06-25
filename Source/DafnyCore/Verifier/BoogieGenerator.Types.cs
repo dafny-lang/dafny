@@ -210,7 +210,7 @@ public partial class BoogieGenerator {
               // Note, the MkIsAlloc conjunct of "isness" implies that everything in the reads frame is allocated in "h0", which by HeapSucc(h0,h1) also implies the frame is allocated in "h1"
               IsSetMember(tok,
                 FunctionCall(tok, Reads(ad.Arity), objset_ty, Concat(types, Cons(hN, Cons(f, boxes)))),
-                FunctionCall(tok, BuiltinFunction.Box, null, o),
+                ApplyBox(tok, o),
                 true)
             ),
             Bpl.Expr.Eq(ReadHeap(tok, h0, o, fld), ReadHeap(tok, h1, o, fld))));
@@ -418,7 +418,7 @@ public partial class BoogieGenerator {
         var r = BplBoundVar("r", Predef.RefType, bvarsR);
         var rNonNull = Bpl.Expr.Neq(r, Predef.Null);
         var reads = FunctionCall(tok, Reads(ad.Arity), Predef.BoxType, Concat(types, Cons(h, Cons<Bpl.Expr>(f, boxes))));
-        var rInReads = IsSetMember(tok, reads, FunctionCall(tok, BuiltinFunction.Box, null, r), true);
+        var rInReads = IsSetMember(tok, reads, ApplyBox(tok, r), true);
         var rAlloc = IsAlloced(tok, h, r);
         var isAllocReads = BplForall(bvarsR, BplTrigger(rInReads), BplImp(BplAnd(rNonNull, rInReads), rAlloc));
 
@@ -615,7 +615,7 @@ public partial class BoogieGenerator {
     var unbox = FunctionCall(tok, BuiltinFunction.Unbox, tyRepr, bx);
     var box_is = MkIs(bx, typeTerm, true);
     var unbox_is = MkIs(unbox, typeTerm, false);
-    var box_unbox = FunctionCall(tok, BuiltinFunction.Box, null, unbox);
+    var box_unbox = ApplyBox(tok, unbox);
     sink.AddTopLevelDeclaration(
       new Axiom(tok,
         BplForall(Snoc(args, bxVar), BplTrigger(box_is),
