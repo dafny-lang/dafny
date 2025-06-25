@@ -171,7 +171,7 @@ public partial class BoogieGenerator {
     {
       var funcID = new Bpl.IdentifierExpr(f.Origin, f.FullSanitizedName, TrType(f.ResultType));
       var funcArgs = new List<Bpl.Expr>();
-      //funcArgs.AddRange(tyargs);
+      funcArgs.AddRange(tyargs);
       if (layer != null) {
         funcArgs.Add(new Bpl.IdentifierExpr(f.Origin, layer));
       }
@@ -185,7 +185,7 @@ public partial class BoogieGenerator {
     }
 
     var canCallFuncID = new Bpl.IdentifierExpr(f.Origin, f.FullSanitizedName + "#canCall", Bpl.Type.Bool);
-    var canCall = new Bpl.NAryExpr(f.Origin, new Bpl.FunctionCall(canCallFuncID), args);
+    var canCall = new Bpl.NAryExpr(f.Origin, new Bpl.FunctionCall(canCallFuncID), Concat(tyargs, args));
 
     Bpl.Expr post = Bpl.Expr.True;
     // substitute function return value with the function call.
@@ -309,7 +309,7 @@ public partial class BoogieGenerator {
     List<Bpl.Expr> tyargs = GetTypeArguments(f, null).ConvertAll(TypeToTy);
 
     var forallFormals = MkTyParamBinders(GetTypeParams(f), out _);
-    List<Variable> funcFormals = [];
+    var funcFormals = MkTyParamBinders(GetTypeParams(f), out _);
     var reqFuncArguments = new List<Bpl.Expr>(tyargs);
 
     Bpl.BoundVariable layer;
@@ -589,10 +589,9 @@ public partial class BoogieGenerator {
     } else {
       name = f.FullSanitizedName + "#Handle";
       functionHandles[f] = name;
-      List<Expr> args = [];
-      List<Variable> vars = [];
-      List<Expr> argsRequires = []; // Requires don't have reveal parameters
-      List<Variable> formals = [];
+      var vars = MkTyParamBinders(GetTypeParams(f), out var args);
+      var argsRequires = new List<Bpl.Expr>(args); // Requires don't have reveal parameters
+      var formals = MkTyParamFormals(GetTypeParams(f), false, true);
       var tyargs = new List<Bpl.Expr>();
       foreach (var fm in f.Ins) {
         tyargs.Add(TypeToTy(fm.Type));

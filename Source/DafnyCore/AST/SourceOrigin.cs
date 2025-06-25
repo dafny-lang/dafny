@@ -95,8 +95,4 @@ public class SourceOrigin(TokenRange entireRange, TokenRange? reportingRange = n
   public int CompareTo(SourceOrigin? other) {
     throw new NotImplementedException();
   }
-
-  public override string ToString() {
-    return ReportingRange.ToString();
-  }
 }

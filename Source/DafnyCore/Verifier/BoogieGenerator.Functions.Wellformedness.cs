@@ -30,7 +30,7 @@ public partial class BoogieGenerator {
       var etran = GetExpressionTranslator(f, ordinaryEtran, out var additionalRequires, out var heapParameters);
 
       // parameters of the procedure
-      List<Variable> typeInParams = generator.MkTyParamFormals(GetTypeParams(f), true);
+      var typeInParams = generator.MkTyParamFormals(GetTypeParams(f), true);
       var procedureParameters = GetParameters(f, etran);
       var outParams = GetWellformednessProcedureOutParameters(f, etran);
       var requires = GetWellformednessProcedureRequires(f, etran);

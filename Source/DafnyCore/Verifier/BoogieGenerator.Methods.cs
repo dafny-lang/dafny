@@ -969,7 +969,7 @@ namespace Microsoft.Dafny {
       }
 
       // parameters of the procedure
-      List<Variable> typeInParams = MkTyParamFormals(GetTypeParams(f), true);
+      var typeInParams = MkTyParamFormals(GetTypeParams(f), true);
       var inParams = new List<Variable>();
       var outParams = new List<Boogie.Variable>();
       if (!f.IsStatic) {
