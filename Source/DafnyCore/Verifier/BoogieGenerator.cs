@@ -1628,8 +1628,8 @@ namespace Microsoft.Dafny {
       //       { f(Succ(s), $Heap, formals) }
       //       f(Succ(s), $Heap, formals) == f(s, $Heap, formals));
 
-      List<Bpl.Expr> tyargs;
-      var formals = MkTyParamBinders(GetTypeParams(f), out tyargs);
+      List<Bpl.Expr> tyargs = [];
+      List<Variable> formals = [];
       var args1 = new List<Bpl.Expr>(tyargs);
       var args0 = new List<Bpl.Expr>(tyargs);
 
@@ -1697,8 +1697,8 @@ namespace Microsoft.Dafny {
       Contract.Requires(f.IsFuelAware());
       Contract.Requires(sink != null && Predef != null);
 
-      List<Bpl.Expr> tyargs;
-      var formals = MkTyParamBinders(GetTypeParams(f), out tyargs);
+      List<Bpl.Expr> tyargs = [];
+      List<Variable> formals = [];
       var args2 = new List<Bpl.Expr>(tyargs);
       var args1 = new List<Bpl.Expr>(tyargs);
       var args0 = new List<Bpl.Expr>(tyargs);
@@ -2795,43 +2795,39 @@ namespace Microsoft.Dafny {
     }
 
     private Bpl.Function GetFunctionBoogieDefinition(Function f) {
-      Bpl.Function func;
-      {
-        var formals = new List<Variable>();
-        formals.AddRange(MkTyParamFormals(GetTypeParams(f), false));
-        if (f.IsFuelAware()) {
-          formals.Add(new Bpl.Formal(f.Origin, new Bpl.TypedIdent(f.Origin, "$ly", Predef.LayerType), true));
-        }
-
-        if (f.IsOpaque || f.IsMadeImplicitlyOpaque(options)) {
-          formals.Add(new Bpl.Formal(f.Origin, new Bpl.TypedIdent(f.Origin, "$reveal", Boogie.Type.Bool), true));
-        }
-        if (f is TwoStateFunction) {
-          formals.Add(new Bpl.Formal(f.Origin, new Bpl.TypedIdent(f.Origin, "$prevHeap", Predef.HeapType), true));
-        }
-        if (f.ReadsHeap) {
-          formals.Add(new Bpl.Formal(f.Origin, new Bpl.TypedIdent(f.Origin, "$heap", Predef.HeapType), true));
-        }
-        if (!f.IsStatic) {
-          formals.Add(new Bpl.Formal(f.Origin, new Bpl.TypedIdent(f.Origin, "this", TrReceiverType(f)), true));
-        }
-        foreach (var p in f.Ins) {
-          formals.Add(new Bpl.Formal(p.Origin, new Bpl.TypedIdent(p.Origin, p.AssignUniqueName(f.IdGenerator), TrType(p.Type)), true));
-        }
-        var res = new Bpl.Formal(f.Origin, new Bpl.TypedIdent(f.Origin, Bpl.TypedIdent.NoName, TrType(f.ResultType)), false);
-        func = new Bpl.Function(new FromDafnyNode(f), f.FullSanitizedName, [], formals, res, "function declaration for " + f.FullName);
-        if (InsertChecksums) {
-          InsertChecksum(f, func);
-        }
+      var formals = new List<Variable>();
+      if (f.IsFuelAware()) {
+        formals.Add(new Bpl.Formal(f.Origin, new Bpl.TypedIdent(f.Origin, "$ly", Predef.LayerType), true));
       }
+
+      if (f.IsOpaque || f.IsMadeImplicitlyOpaque(options)) {
+        formals.Add(new Bpl.Formal(f.Origin, new Bpl.TypedIdent(f.Origin, "$reveal", Boogie.Type.Bool), true));
+      }
+      if (f is TwoStateFunction) {
+        formals.Add(new Bpl.Formal(f.Origin, new Bpl.TypedIdent(f.Origin, "$prevHeap", Predef.HeapType), true));
+      }
+      if (f.ReadsHeap) {
+        formals.Add(new Bpl.Formal(f.Origin, new Bpl.TypedIdent(f.Origin, "$heap", Predef.HeapType), true));
+      }
+      if (!f.IsStatic) {
+        formals.Add(new Bpl.Formal(f.Origin, new Bpl.TypedIdent(f.Origin, "this", TrReceiverType(f)), true));
+      }
+      foreach (var p in f.Ins) {
+        formals.Add(new Bpl.Formal(p.Origin, new Bpl.TypedIdent(p.Origin, p.AssignUniqueName(f.IdGenerator), TrType(p.Type)), true));
+      }
+      var res = new Bpl.Formal(f.Origin, new Bpl.TypedIdent(f.Origin, Bpl.TypedIdent.NoName, TrType(f.ResultType)), false);
+      var func = new Bpl.Function(new FromDafnyNode(f), f.FullSanitizedName, [], formals, res, "function declaration for " + f.FullName);
+      if (InsertChecksums) {
+        InsertChecksum(f, func);
+      }
+
       return func;
     }
 
     private Bpl.Function GetCanCallFunction(Function f) {
       Bpl.Function canCallF;
       {
-        var formals = new List<Variable>();
-        formals.AddRange(MkTyParamFormals(GetTypeParams(f), false));
+        List<Variable> formals = [];
         if (f is TwoStateFunction) {
           formals.Add(new Bpl.Formal(f.Origin, new Bpl.TypedIdent(f.Origin, "$prevHeap", Predef.HeapType), true));
         }
