@@ -131,10 +131,10 @@ namespace Microsoft.Dafny {
             //generating $o == null || implements$J(dtype(x), typeArgs)
             var t = (TraitDecl)c;
             var dtypeFunc = FunctionCall(o.tok, BuiltinFunction.DynamicType, null, o);
-            var implementsJ_Arguments = new List<Expr> { dtypeFunc }; // TODO: also needs type parameters
-            implementsJ_Arguments.AddRange(tyexprs);
+            var implementsJArguments = new List<Expr> { dtypeFunc }; // TODO: also needs type parameters
+            implementsJArguments.AddRange(tyexprs);
             Bpl.Expr implementsFunc =
-              FunctionCall(t.Origin, "implements$" + t.FullSanitizedName, Bpl.Type.Bool, implementsJ_Arguments);
+              FunctionCall(t.Origin, "implements$" + t.FullSanitizedName, Bpl.Type.Bool, implementsJArguments);
             rhs = BplOr(o_null, implementsFunc);
           } else {
             rhs = BplOr(o_null, DType(o, o_ty));
