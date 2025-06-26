@@ -63,7 +63,7 @@ public partial class BoogieGenerator {
     AddFrameAxiom(ad, arity, tok, objsetTy);
     AddEmptyReadsPropertyForReadsAxiom(ad, arity, tok, objsetTy);
     AddEmptyReadsPropertyForRequiresAxiom(ad, arity, tok, objsetTy);
-    AddIsBoxAxiom(ad, arity, tok);
+    AddIsBoxApplyAxiom(ad, arity, tok);
     AddIsAxiom(ad, arity, tok);
     AddIsAllocAxiom(ad, arity, tok);
     AddAllocatednessConsequenceAxiom(ad, arity, tok);
@@ -105,7 +105,7 @@ public partial class BoogieGenerator {
 
       var boxes = Map(Enumerable.Range(0, arity), i => BplBoundVar("bx" + i, Predef.BoxType, bvars));
 
-      var lhsargs = /*Concat(types,*/ Cons(heap, Cons(FunctionCall(tok, Handle(arity), Predef.HandleType, handleargs), boxes)); //);
+      var lhsargs = Cons(heap, Cons(FunctionCall(tok, Handle(arity), Predef.HandleType, handleargs), boxes));
       Bpl.Expr lhs = FunctionCall(tok, selector, selectorTy, lhsargs);
       Func<Bpl.Expr, Bpl.Expr> pre = x => x;
       if (precond != null) {
@@ -273,7 +273,7 @@ public partial class BoogieGenerator {
     }
   }
 
-  private void AddIsBoxAxiom(ArrowTypeDecl ad, int arity, IOrigin tok)
+  private void AddIsBoxApplyAxiom(ArrowTypeDecl ad, int arity, IOrigin tok)
   {
     // $Is and $IsAlloc axioms
     /*
@@ -297,15 +297,15 @@ public partial class BoogieGenerator {
       var boxes = Map(Enumerable.Range(0, arity), i => BplBoundVar("bx" + i, Predef.BoxType, bvarsInner));
       var goodHeap = FunctionCall(tok, BuiltinFunction.IsGoodHeap, null, h);
       var isBoxes = BplAnd(Map(Enumerable.Range(0, arity), i => MkIs(boxes[i], types[i], true)));
-      var pre = FunctionCall(tok, Requires(ad.Arity), Predef.BoxType, Concat(types, Cons(h, Cons<Bpl.Expr>(f, boxes))));
-      var applied = FunctionCall(tok, Apply(ad.Arity), Predef.BoxType, Concat(types, Cons(h, Cons<Bpl.Expr>(f, boxes))));
-      var applied_is = MkIs(applied, types[ad.Arity], true);
+      var pre = FunctionCall(tok, Requires(ad.Arity), Predef.BoxType, Cons(h, Cons(f, boxes)));
+      var applied = FunctionCall(tok, Apply(ad.Arity), Predef.BoxType, Cons(h, Cons(f, boxes)));
+      var appliedIs = MkIs(applied, types[ad.Arity], true);
 
       sink.AddTopLevelDeclaration(new Axiom(tok,
         BplForall(bvarsOuter, BplTrigger(Is),
           BplIff(Is,
             BplForall(bvarsInner, BplTrigger(applied),
-              BplImp(BplAnd(BplAnd(goodHeap, isBoxes), pre), applied_is))))));
+              BplImp(BplAnd(BplAnd(goodHeap, isBoxes), pre), appliedIs))))));
     }
   }
 
@@ -383,14 +383,14 @@ public partial class BoogieGenerator {
       var boxes = Map(Enumerable.Range(0, arity), i => BplBoundVar("bx" + i, Predef.BoxType, bvarsInner));
       var isAllocBoxes = BplAnd(Map(Enumerable.Range(0, arity), i =>
         BplAnd(MkIs(boxes[i], types[i], true), MkIsAlloc(boxes[i], types[i], h, true))));
-      var pre = FunctionCall(tok, Requires(ad.Arity), Predef.BoxType, Concat(types, Cons(h, Cons<Bpl.Expr>(f, boxes))));
-      var applied = FunctionCall(tok, Apply(ad.Arity), Predef.BoxType, Concat(types, Cons(h, Cons<Bpl.Expr>(f, boxes))));
+      var pre = FunctionCall(tok, Requires(ad.Arity), Predef.BoxType, Cons(h, Cons<Bpl.Expr>(f, boxes)));
+      var applied = FunctionCall(tok, Apply(ad.Arity), Predef.BoxType, Cons(h, Cons<Bpl.Expr>(f, boxes)));
 
       // (forall r: ref :: {Reads1(t0, t1, f, h, bx0)[$Box(r)]}  r != null && Reads1(t0, t1, f, h, bx0)[$Box(r)] ==> h[r, alloc])
       var bvarsR = new List<Bpl.Variable>();
       var r = BplBoundVar("r", Predef.RefType, bvarsR);
       var rNonNull = Bpl.Expr.Neq(r, Predef.Null);
-      var reads = FunctionCall(tok, Reads(ad.Arity), Predef.BoxType, Concat(types, Cons(h, Cons<Bpl.Expr>(f, boxes))));
+      var reads = FunctionCall(tok, Reads(ad.Arity), Predef.BoxType, Cons(h, Cons<Bpl.Expr>(f, boxes)));
       var rInReads = IsSetMember(tok, reads, FunctionCall(tok, BuiltinFunction.Box, null, r), true);
       var rAlloc = IsAlloced(tok, h, r);
       var isAllocReads = BplForall(bvarsR, BplTrigger(rInReads), BplImp(BplAnd(rNonNull, rInReads), rAlloc));
@@ -432,15 +432,15 @@ public partial class BoogieGenerator {
       var bvarsInner = new List<Bpl.Variable>();
       var boxes = Map(Enumerable.Range(0, arity), i => BplBoundVar("bx" + i, Predef.BoxType, bvarsInner));
       var isAllocBoxes = BplAnd(Map(Enumerable.Range(0, arity), i => MkIsAlloc(boxes[i], types[i], h, true)));
-      var pre = FunctionCall(tok, Requires(ad.Arity), Predef.BoxType, Concat(types, Cons(h, Cons<Bpl.Expr>(f, boxes))));
-      var applied = FunctionCall(tok, Apply(ad.Arity), Predef.BoxType, Concat(types, Cons(h, Cons<Bpl.Expr>(f, boxes))));
-      var applied_isAlloc = MkIsAlloc(applied, types[ad.Arity], h, true);
+      var pre = FunctionCall(tok, Requires(ad.Arity), Predef.BoxType, Cons(h, Cons<Bpl.Expr>(f, boxes)));
+      var applied = FunctionCall(tok, Apply(ad.Arity), Predef.BoxType, Cons(h, Cons<Bpl.Expr>(f, boxes)));
+      var appliedIsAlloc = MkIsAlloc(applied, types[ad.Arity], h, true);
 
       sink.AddTopLevelDeclaration(new Axiom(tok,
         BplForall(bvarsOuter, BplTrigger(isAlloc),
           BplImp(BplAnd(goodHeap, isAlloc),
             BplForall(bvarsInner, BplTrigger(applied),
-              BplImp(BplAnd(isAllocBoxes, pre), applied_isAlloc))))));
+              BplImp(BplAnd(isAllocBoxes, pre), appliedIsAlloc))))));
     }
   }
 
@@ -470,7 +470,7 @@ public partial class BoogieGenerator {
             BplAnd(MkIs(boxes[i], types[i], true), Bpl.Expr.True)),
           BplAnd(mkIs, Bpl.Expr.True)));
 
-      var readsOne = FunctionCall(tok, Reads(arity), objsetTy, Concat(types, Cons(oneheap, Cons(f, boxes))));
+      var readsOne = FunctionCall(tok, Reads(arity), objsetTy, Cons(oneheap, Cons(f, boxes)));
       var empty = FunctionCall(tok, BuiltinFunction.SetEmpty, Predef.BoxType);
       var readsNothingOne = FunctionCall(tok, BuiltinFunction.SetEqual, null, readsOne, empty);
 
