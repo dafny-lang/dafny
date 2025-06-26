@@ -60,6 +60,9 @@ namespace Microsoft.Dafny.LanguageServer.Language {
           var moduleCount = BoogieGenerator.VerifiableModules(program).Count();
           var fileName = moduleCount > 1 ? DafnyMain.BoogieProgramSuffix(engine.Options.PrintFile, suffix) : engine.Options.PrintFile;
           ExecutionEngine.PrintBplFile(engine.Options, fileName, boogieProgram, false, false, engine.Options.PrettyPrint);
+
+          var fileNames = new List<string> { fileName };
+          boogieProgram = engine.ParseBoogieProgram(fileNames, true);
         }
 
         return await engine.GetVerificationTasks(boogieProgram, cancellationToken);
