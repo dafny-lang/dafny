@@ -45,7 +45,7 @@ public class ConstantField : Field, ICallable, ICanAutoRevealDependencies, ICanV
   public List<Formal> Ins { get { return []; } }
   public ModuleDefinition EnclosingModule { get { return this.EnclosingClass.EnclosingModuleDefinition; } }
   public bool MustReverify { get { return false; } }
-  public bool AllowsNontermination { get { throw new cce.UnreachableException(); } }
+  public bool AllowsNontermination { get { throw new Cce.UnreachableException(); } }
   CodeGenIdGenerator ICodeContext.CodeGenIdGenerator => CodeGenIdGenerator;
 
   public string NameRelativeToModule {
@@ -57,10 +57,10 @@ public class ConstantField : Field, ICallable, ICanAutoRevealDependencies, ICanV
       }
     }
   }
-  public Specification<Expression> Decreases { get { throw new cce.UnreachableException(); } }
+  public Specification<Expression> Decreases { get { throw new Cce.UnreachableException(); } }
   public bool InferredDecreases {
-    get { throw new cce.UnreachableException(); }
-    set { throw new cce.UnreachableException(); }
+    get { throw new Cce.UnreachableException(); }
+    set { throw new Cce.UnreachableException(); }
   }
   public bool AllowsAllocation => true;
 

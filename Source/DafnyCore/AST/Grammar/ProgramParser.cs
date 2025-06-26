@@ -321,7 +321,7 @@ public class ProgramParser {
     Contract.Requires(uri != null);
     System.Runtime.CompilerServices.RuntimeHelpers.RunClassConstructor(typeof(ParseErrors).TypeHandle);
     System.Runtime.CompilerServices.RuntimeHelpers.RunClassConstructor(typeof(ResolutionErrors).TypeHandle);
-    byte[] /*!*/ buffer = cce.NonNull(Encoding.Default.GetBytes(s));
+    byte[] /*!*/ buffer = Cce.NonNull(Encoding.Default.GetBytes(s));
     var ms = new MemoryStream(buffer, false);
     var firstToken = new Token {
       Uri = uri

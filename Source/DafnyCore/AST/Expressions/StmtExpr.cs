@@ -71,7 +71,7 @@ public class StmtExpr : Expression, ICanFormat, ICloneable<StmtExpr> {
       case BlockByProofStmt stmt:
         return GetStatementConclusion(stmt.Body);
       default:
-        Contract.Assert(false); throw new cce.UnreachableException();  // unexpected statement
+        Contract.Assert(false); throw new Cce.UnreachableException();  // unexpected statement
     }
   }
 

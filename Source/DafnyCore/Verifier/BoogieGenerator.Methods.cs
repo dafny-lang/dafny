@@ -86,7 +86,7 @@ namespace Microsoft.Dafny {
         } else if (member is MethodOrConstructor method) {
           AddMethod_Top(method, false, includeAllMethods);
         } else {
-          Contract.Assert(false); throw new cce.UnreachableException();  // unexpected member
+          Contract.Assert(false); throw new Cce.UnreachableException();  // unexpected member
         }
         ResetAssertionOnlyFilter();
       }

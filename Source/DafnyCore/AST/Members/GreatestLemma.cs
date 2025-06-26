@@ -22,12 +22,12 @@ public class GreatestLemma : ExtremeLemma {
     : base(origin, nameNode, hasStaticKeyword, typeOfK, typeArgs, ins, outs, req, reads, mod, ens, decreases, body, attributes, signatureEllipsis) {
     Contract.Requires(origin != null);
     Contract.Requires(nameNode != null);
-    Contract.Requires(cce.NonNullElements(typeArgs));
-    Contract.Requires(cce.NonNullElements(ins));
-    Contract.Requires(cce.NonNullElements(outs));
-    Contract.Requires(cce.NonNullElements(req));
+    Contract.Requires(Cce.NonNullElements(typeArgs));
+    Contract.Requires(Cce.NonNullElements(ins));
+    Contract.Requires(Cce.NonNullElements(outs));
+    Contract.Requires(Cce.NonNullElements(req));
     Contract.Requires(mod != null);
-    Contract.Requires(cce.NonNullElements(ens));
+    Contract.Requires(Cce.NonNullElements(ens));
     Contract.Requires(decreases != null);
   }
 
