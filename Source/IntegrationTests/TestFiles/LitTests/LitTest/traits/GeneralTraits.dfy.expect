@@ -24,6 +24,6 @@ GeneralTraits.dfy(104,15): Error: == can only be applied to expressions of types
 GeneralTraits.dfy(105,15): Error: == can only be applied to expressions of types that support equality (got TraitB)
 GeneralTraits.dfy(107,9): Error: == can only be applied to expressions of types that support equality (got TraitA)
 GeneralTraits.dfy(108,17): Error: == can only be applied to expressions of types that support equality (got TraitA)
-GeneralTraits.dfy(159,10): Error: field 'Floor' is inherited from type 'real' and is not allowed to be re-declared in newtype 'SmallReal'
-GeneralTraits.dfy(164,10): Error: const field 'Floor' is inherited from newtype 'SmallReal' and is not allowed to be re-declared in newtype 'AnotherReal'
+GeneralTraits.dfy(159,10): Error: field 'Floor' is inherited from type 'real' and is not allowed to be re-declared
+GeneralTraits.dfy(164,10): Error: const field 'Floor' is inherited from newtype 'SmallReal' and is not allowed to be re-declared
 27 resolution/type errors detected in GeneralTraits.dfy

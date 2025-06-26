@@ -47,10 +47,6 @@ TraitResolution1.dfy(256,26): Error: static function 'csf2' is inherited from tr
 TraitResolution1.dfy(257,26): Error: static function 'gsf2' is inherited from trait 'Tr' and is not allowed to be re-declared
 TraitResolution1.dfy(258,26): Error: static function 'csf3' is inherited from trait 'Tr' and is not allowed to be re-declared
 TraitResolution1.dfy(259,26): Error: static function 'gsf3' is inherited from trait 'Tr' and is not allowed to be re-declared
-TraitResolution1.dfy(265,11): Error: fully defined method 'cim2' is inherited from trait 'Tr' and is not allowed to be re-declared
-TraitResolution1.dfy(266,17): Error: fully defined method 'gim2' is inherited from trait 'Tr' and is not allowed to be re-declared
-TraitResolution1.dfy(267,11): Error: fully defined method 'cim3' is inherited from trait 'Tr' and is not allowed to be re-declared
-TraitResolution1.dfy(268,17): Error: fully defined method 'gim3' is inherited from trait 'Tr' and is not allowed to be re-declared
 TraitResolution1.dfy(270,18): Error: static method 'csm0' is inherited from trait 'Tr' and is not allowed to be re-declared
 TraitResolution1.dfy(271,24): Error: static method 'gsm0' is inherited from trait 'Tr' and is not allowed to be re-declared
 TraitResolution1.dfy(272,18): Error: static method 'csm1' is inherited from trait 'Tr' and is not allowed to be re-declared
@@ -63,20 +59,20 @@ TraitResolution1.dfy(299,19): Error: overridden function 'F' in 'SwitchGhostStat
 TraitResolution1.dfy(300,13): Error: overridden function 'G' in 'SwitchGhostStatus' has different ghost/compiled status than in trait 'AAA'
 TraitResolution1.dfy(303,17): Error: overridden method 'M' in 'SwitchGhostStatus' has different ghost/compiled status than in trait 'AAA'
 TraitResolution1.dfy(304,11): Error: overridden method 'N' in 'SwitchGhostStatus' has different ghost/compiled status than in trait 'AAA'
-TraitResolution1.dfy(320,10): Error: method 'N' in 'AAA' can only be overridden by a method (got lemma)
-TraitResolution1.dfy(321,17): Error: lemma 'L' in 'AAA' can only be overridden by a lemma (got method)
-TraitResolution1.dfy(336,19): Error: method 'N' in 'AAA' can only be overridden by a method (got twostate lemma)
-TraitResolution1.dfy(337,19): Error: lemma 'L' in 'AAA' can only be overridden by a lemma (got twostate lemma)
-TraitResolution1.dfy(338,10): Error: twostate lemma 'K' in 'AAA' can only be overridden by a twostate lemma (got lemma)
-TraitResolution1.dfy(356,23): Error: least predicate 'P' in 'AAA' can only be overridden by a least predicate (got greatest predicate)
-TraitResolution1.dfy(357,20): Error: greatest predicate 'Q' in 'AAA' can only be overridden by a greatest predicate (got least predicate)
-TraitResolution1.dfy(358,19): Error: least lemma 'R' in 'AAA' can only be overridden by a least lemma (got greatest lemma)
-TraitResolution1.dfy(359,16): Error: greatest lemma 'S' in 'AAA' can only be overridden by a greatest lemma (got least lemma)
-TraitResolution1.dfy(369,16): Error: lemma 'L' in 'AAA' can only be overridden by a lemma (got least lemma)
-TraitResolution1.dfy(372,20): Error: least predicate 'P' in 'AAA' can only be overridden by a least predicate (got predicate)
-TraitResolution1.dfy(373,20): Error: greatest predicate 'Q' in 'AAA' can only be overridden by a greatest predicate (got predicate)
-TraitResolution1.dfy(374,10): Error: least lemma 'R' in 'AAA' can only be overridden by a least lemma (got lemma)
-TraitResolution1.dfy(375,10): Error: greatest lemma 'S' in 'AAA' can only be overridden by a greatest lemma (got lemma)
+TraitResolution1.dfy(320,10): Error: method 'N' in trait 'AAA' can only be overridden by a method (got lemma)
+TraitResolution1.dfy(321,17): Error: lemma 'L' in trait 'AAA' can only be overridden by a lemma (got method)
+TraitResolution1.dfy(336,19): Error: method 'N' in trait 'AAA' can only be overridden by a method (got twostate lemma)
+TraitResolution1.dfy(337,19): Error: lemma 'L' in trait 'AAA' can only be overridden by a lemma (got twostate lemma)
+TraitResolution1.dfy(338,10): Error: twostate lemma 'K' in trait 'AAA' can only be overridden by a twostate lemma (got lemma)
+TraitResolution1.dfy(356,23): Error: least predicate 'P' in trait 'AAA' can only be overridden by a least predicate (got greatest predicate)
+TraitResolution1.dfy(357,20): Error: greatest predicate 'Q' in trait 'AAA' can only be overridden by a greatest predicate (got least predicate)
+TraitResolution1.dfy(358,19): Error: least lemma 'R' in trait 'AAA' can only be overridden by a least lemma (got greatest lemma)
+TraitResolution1.dfy(359,16): Error: greatest lemma 'S' in trait 'AAA' can only be overridden by a greatest lemma (got least lemma)
+TraitResolution1.dfy(369,16): Error: lemma 'L' in trait 'AAA' can only be overridden by a lemma (got least lemma)
+TraitResolution1.dfy(372,20): Error: least predicate 'P' in trait 'AAA' can only be overridden by a least predicate (got predicate)
+TraitResolution1.dfy(373,20): Error: greatest predicate 'Q' in trait 'AAA' can only be overridden by a greatest predicate (got predicate)
+TraitResolution1.dfy(374,10): Error: least lemma 'R' in trait 'AAA' can only be overridden by a least lemma (got lemma)
+TraitResolution1.dfy(375,10): Error: greatest lemma 'S' in trait 'AAA' can only be overridden by a greatest lemma (got lemma)
 TraitResolution1.dfy(408,20): Error: the type of special parameter '_k' of least predicate 'Q' (ORDINAL) must be the same as in the overridden least predicate (nat)
 TraitResolution1.dfy(412,16): Error: the type of special parameter '_k' of least lemma 'L' (ORDINAL) must be the same as in the overridden least lemma (nat)
 TraitResolution1.dfy(416,20): Error: the type of special parameter '_k' of least predicate 'P' (nat) must be the same as in the overridden least predicate (ORDINAL)
@@ -115,4 +111,4 @@ TraitResolution1.dfy(562,13): Error: type parameter 'R' is not allowed to change
 TraitResolution1.dfy(562,20): Error: type parameter 'S' is not allowed to change the requirement of supporting auto-initialization
 TraitResolution1.dfy(563,21): Error: type parameter 'R' is not allowed to change the requirement of being nonempty
 TraitResolution1.dfy(563,28): Error: type parameter 'S' is not allowed to change the requirement of supporting auto-initialization
-117 resolution/type errors detected in TraitResolution1.dfy
+113 resolution/type errors detected in TraitResolution1.dfy

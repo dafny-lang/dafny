@@ -37,10 +37,6 @@ TraitResolution2.dfy(201,26): Error: static function 'csf2' is inherited from tr
 TraitResolution2.dfy(202,26): Error: static function 'gsf2' is inherited from trait 'Tr' and is not allowed to be re-declared
 TraitResolution2.dfy(203,26): Error: static function 'csf3' is inherited from trait 'Tr' and is not allowed to be re-declared
 TraitResolution2.dfy(204,26): Error: static function 'gsf3' is inherited from trait 'Tr' and is not allowed to be re-declared
-TraitResolution2.dfy(210,11): Error: fully defined method 'cim2' is inherited from trait 'Tr' and is not allowed to be re-declared
-TraitResolution2.dfy(211,17): Error: fully defined method 'gim2' is inherited from trait 'Tr' and is not allowed to be re-declared
-TraitResolution2.dfy(212,11): Error: fully defined method 'cim3' is inherited from trait 'Tr' and is not allowed to be re-declared
-TraitResolution2.dfy(213,17): Error: fully defined method 'gim3' is inherited from trait 'Tr' and is not allowed to be re-declared
 TraitResolution2.dfy(215,18): Error: static method 'csm0' is inherited from trait 'Tr' and is not allowed to be re-declared
 TraitResolution2.dfy(216,24): Error: static method 'gsm0' is inherited from trait 'Tr' and is not allowed to be re-declared
 TraitResolution2.dfy(217,18): Error: static method 'csm1' is inherited from trait 'Tr' and is not allowed to be re-declared
@@ -53,20 +49,20 @@ TraitResolution2.dfy(245,19): Error: overridden function 'F' in 'SwitchGhostStat
 TraitResolution2.dfy(246,13): Error: overridden function 'G' in 'SwitchGhostStatus' has different ghost/compiled status than in trait 'AAA'
 TraitResolution2.dfy(249,17): Error: overridden method 'M' in 'SwitchGhostStatus' has different ghost/compiled status than in trait 'AAA'
 TraitResolution2.dfy(250,11): Error: overridden method 'N' in 'SwitchGhostStatus' has different ghost/compiled status than in trait 'AAA'
-TraitResolution2.dfy(266,10): Error: method 'N' in 'AAA' can only be overridden by a method (got lemma)
-TraitResolution2.dfy(267,17): Error: lemma 'L' in 'AAA' can only be overridden by a lemma (got method)
-TraitResolution2.dfy(282,19): Error: method 'N' in 'AAA' can only be overridden by a method (got twostate lemma)
-TraitResolution2.dfy(283,19): Error: lemma 'L' in 'AAA' can only be overridden by a lemma (got twostate lemma)
-TraitResolution2.dfy(284,10): Error: twostate lemma 'K' in 'AAA' can only be overridden by a twostate lemma (got lemma)
-TraitResolution2.dfy(302,23): Error: least predicate 'P' in 'AAA' can only be overridden by a least predicate (got greatest predicate)
-TraitResolution2.dfy(303,20): Error: greatest predicate 'Q' in 'AAA' can only be overridden by a greatest predicate (got least predicate)
-TraitResolution2.dfy(304,19): Error: least lemma 'R' in 'AAA' can only be overridden by a least lemma (got greatest lemma)
-TraitResolution2.dfy(305,16): Error: greatest lemma 'S' in 'AAA' can only be overridden by a greatest lemma (got least lemma)
-TraitResolution2.dfy(315,16): Error: lemma 'L' in 'AAA' can only be overridden by a lemma (got least lemma)
-TraitResolution2.dfy(318,20): Error: least predicate 'P' in 'AAA' can only be overridden by a least predicate (got predicate)
-TraitResolution2.dfy(319,20): Error: greatest predicate 'Q' in 'AAA' can only be overridden by a greatest predicate (got predicate)
-TraitResolution2.dfy(320,10): Error: least lemma 'R' in 'AAA' can only be overridden by a least lemma (got lemma)
-TraitResolution2.dfy(321,10): Error: greatest lemma 'S' in 'AAA' can only be overridden by a greatest lemma (got lemma)
+TraitResolution2.dfy(266,10): Error: method 'N' in trait 'AAA' can only be overridden by a method (got lemma)
+TraitResolution2.dfy(267,17): Error: lemma 'L' in trait 'AAA' can only be overridden by a lemma (got method)
+TraitResolution2.dfy(282,19): Error: method 'N' in trait 'AAA' can only be overridden by a method (got twostate lemma)
+TraitResolution2.dfy(283,19): Error: lemma 'L' in trait 'AAA' can only be overridden by a lemma (got twostate lemma)
+TraitResolution2.dfy(284,10): Error: twostate lemma 'K' in trait 'AAA' can only be overridden by a twostate lemma (got lemma)
+TraitResolution2.dfy(302,23): Error: least predicate 'P' in trait 'AAA' can only be overridden by a least predicate (got greatest predicate)
+TraitResolution2.dfy(303,20): Error: greatest predicate 'Q' in trait 'AAA' can only be overridden by a greatest predicate (got least predicate)
+TraitResolution2.dfy(304,19): Error: least lemma 'R' in trait 'AAA' can only be overridden by a least lemma (got greatest lemma)
+TraitResolution2.dfy(305,16): Error: greatest lemma 'S' in trait 'AAA' can only be overridden by a greatest lemma (got least lemma)
+TraitResolution2.dfy(315,16): Error: lemma 'L' in trait 'AAA' can only be overridden by a lemma (got least lemma)
+TraitResolution2.dfy(318,20): Error: least predicate 'P' in trait 'AAA' can only be overridden by a least predicate (got predicate)
+TraitResolution2.dfy(319,20): Error: greatest predicate 'Q' in trait 'AAA' can only be overridden by a greatest predicate (got predicate)
+TraitResolution2.dfy(320,10): Error: least lemma 'R' in trait 'AAA' can only be overridden by a least lemma (got lemma)
+TraitResolution2.dfy(321,10): Error: greatest lemma 'S' in trait 'AAA' can only be overridden by a greatest lemma (got lemma)
 TraitResolution2.dfy(357,20): Error: the type of special parameter '_k' of least predicate 'Q' (ORDINAL) must be the same as in the overridden least predicate (nat)
 TraitResolution2.dfy(361,16): Error: the type of special parameter '_k' of least lemma 'L' (ORDINAL) must be the same as in the overridden least lemma (nat)
 TraitResolution2.dfy(365,20): Error: the type of special parameter '_k' of least predicate 'P' (nat) must be the same as in the overridden least predicate (ORDINAL)
@@ -75,4 +71,4 @@ TraitResolution2.dfy(369,16): Error: the type of special parameter '_k' of least
 TraitResolution2.dfy(371,16): Error: the type of special parameter '_k' of least lemma 'M' (nat) must be the same as in the overridden least lemma (ORDINAL)
 TraitResolution2.dfy(375,20): Error: the type of special parameter '_k' of least predicate 'Q' (ORDINAL) must be the same as in the overridden least predicate (nat)
 TraitResolution2.dfy(379,16): Error: the type of special parameter '_k' of least lemma 'L' (ORDINAL) must be the same as in the overridden least lemma (nat)
-77 resolution/type errors detected in TraitResolution2.dfy
+73 resolution/type errors detected in TraitResolution2.dfy
