@@ -71,16 +71,16 @@ public partial class BoogieGenerator {
 
     ExpressionTranslator etranHeap;
     ExpressionTranslator etran;
-    Bpl.BoundVariable bvPrevHeap = null;
+    BoundVariable bvPrevHeap = null;
     if (f is TwoStateFunction) {
-      bvPrevHeap = new Bpl.BoundVariable(f.Origin, new Bpl.TypedIdent(f.Origin, "$prevHeap", Predef.HeapType));
+      bvPrevHeap = new BoundVariable(f.Origin, new TypedIdent(f.Origin, "$prevHeap", Predef.HeapType));
       etran = new ExpressionTranslator(this, Predef,
         f.ReadsHeap ? new Bpl.IdentifierExpr(f.Origin, Predef.HeapVarName, Predef.HeapType) : null,
         new Bpl.IdentifierExpr(f.Origin, bvPrevHeap), f);
       etranHeap = etran;
     } else {
       etranHeap = new ExpressionTranslator(this, Predef, f.Origin, f);
-      etran = readsHeap ? etranHeap : new ExpressionTranslator(this, Predef, (Bpl.Expr)null, f);
+      etran = readsHeap ? etranHeap : new ExpressionTranslator(this, Predef, (Expr)null, f);
     }
 
     // This method generates the Consequence Axiom, which has information about the function's
@@ -104,13 +104,13 @@ public partial class BoogieGenerator {
     // allocation statement changes only an allocation bit and then re-assumes $IsGoodHeap; so if it is
     // sound after that, then it would also have been sound just before the allocation.
     //
-    List<Bpl.Expr> tyargs;
+    List<Expr> tyargs;
     var formals = MkTyParamBinders(GetTypeParamsIncludingType(f), out tyargs);
-    var args = new List<Bpl.Expr>();
-    var olderInParams = new List<Bpl.Variable>(); // for use with older-condition
-    Bpl.BoundVariable layer;
+    var args = new List<Expr>();
+    var olderInParams = new List<Variable>(); // for use with older-condition
+    BoundVariable layer;
     if (f.IsFuelAware()) {
-      layer = new Bpl.BoundVariable(f.Origin, new Bpl.TypedIdent(f.Origin, "$ly", Predef.LayerType));
+      layer = new BoundVariable(f.Origin, new TypedIdent(f.Origin, "$ly", Predef.LayerType));
       formals.Add(layer);
       etran = etran.WithCustomFuelSetting(new CustomFuelSettings { { f, new FuelSetting(this, 0, new Bpl.IdentifierExpr(f.Origin, layer)) } });
       //etran = etran.WithLayer(new Bpl.IdentifierExpr(f.Tok, layer));
@@ -119,9 +119,9 @@ public partial class BoogieGenerator {
       layer = null;
     }
 
-    Bpl.BoundVariable reveal;
+    BoundVariable reveal;
     if (f.IsOpaque || f.IsMadeImplicitlyOpaque(options)) {
-      reveal = new Bpl.BoundVariable(f.Origin, new Bpl.TypedIdent(f.Origin, "$reveal", Boogie.Type.Bool));
+      reveal = new BoundVariable(f.Origin, new TypedIdent(f.Origin, "$reveal", Boogie.Type.Bool));
       formals.Add(reveal);
     } else {
       reveal = null;
@@ -132,7 +132,7 @@ public partial class BoogieGenerator {
       formals.Add(bvPrevHeap);
       args.Add(etran.Old.HeapExpr);
     }
-    var bvHeap = new Bpl.BoundVariable(f.Origin, new Bpl.TypedIdent(f.Origin, Predef.HeapVarName, Predef.HeapType));
+    var bvHeap = new BoundVariable(f.Origin, new TypedIdent(f.Origin, Predef.HeapVarName, Predef.HeapType));
     if (f.ReadsHeap) {
       args.Add(new Bpl.IdentifierExpr(f.Origin, bvHeap));
     }
@@ -141,23 +141,30 @@ public partial class BoogieGenerator {
       formals.Add(bvHeap);
     }
 
-    Bpl.Expr parametersIsAlloc = Bpl.Expr.True;
+
+    Expr parametersIsAlloc = Expr.True;
+    Expr isExpr = null;
     if (!f.IsStatic) {
-      var bvThis = new Bpl.BoundVariable(f.Origin, new Bpl.TypedIdent(f.Origin, etran.This, TrReceiverType(f)));
+      var bvThis = new BoundVariable(f.Origin, new TypedIdent(f.Origin, etran.This, TrReceiverType(f)));
       formals.Add(bvThis);
       olderInParams.Add(bvThis);
       var bvThisIdExpr = new Bpl.IdentifierExpr(f.Origin, bvThis);
       args.Add(bvThisIdExpr);
       // add well-typedness conjunct to antecedent
       Type thisType = ModuleResolver.GetReceiverType(f.Origin, f);
-      Bpl.Expr wh = GetWhereClause(f.Origin, bvThisIdExpr, thisType, f is TwoStateFunction ? etranHeap.Old : etranHeap, ISALLOC, true);
-      if (wh != null) {
-        parametersIsAlloc = BplAnd(parametersIsAlloc, wh);
+
+      var expressionTranslator = f is TwoStateFunction ? etranHeap.Old : etranHeap;
+      isExpr = GetWhereClause(f.Origin, bvThisIdExpr, thisType, expressionTranslator, IsAllocType.NOALLOC);
+
+      var thisWhereClause = GetWhereClause(f.Origin, bvThisIdExpr, thisType, expressionTranslator,
+        IsAllocType.ISALLOC, true);
+      if (thisWhereClause != null) {
+        parametersIsAlloc = BplAnd(parametersIsAlloc, thisWhereClause);
       }
     }
     foreach (Formal p in f.Ins) {
-      var bv = new Bpl.BoundVariable(p.Origin, new Bpl.TypedIdent(p.Origin, p.AssignUniqueName(CurrentDeclaration.IdGenerator), TrType(p.Type)));
-      Bpl.Expr formal = new Bpl.IdentifierExpr(p.Origin, bv);
+      var bv = new BoundVariable(p.Origin, new TypedIdent(p.Origin, p.AssignUniqueName(CurrentDeclaration.IdGenerator), TrType(p.Type)));
+      Expr formal = new Bpl.IdentifierExpr(p.Origin, bv);
       formals.Add(bv);
       olderInParams.Add(bv);
       args.Add(formal);
@@ -167,9 +174,8 @@ public partial class BoogieGenerator {
       }
     }
 
-    var funcID = new Bpl.IdentifierExpr(f.Origin, f.FullSanitizedName, TrType(f.ResultType));
-    var funcArgs = new List<Bpl.Expr>();
-    funcArgs.AddRange(tyargs);
+    var funcId = new Bpl.IdentifierExpr(f.Origin, f.FullSanitizedName, TrType(f.ResultType));
+    var funcArgs = new List<Expr>();
     if (layer != null) {
       funcArgs.Add(new Bpl.IdentifierExpr(f.Origin, layer));
     }
@@ -179,12 +185,12 @@ public partial class BoogieGenerator {
     }
 
     funcArgs.AddRange(args);
-    Bpl.Expr funcAppl = new Bpl.NAryExpr(f.Origin, new Bpl.FunctionCall(funcID), funcArgs);
+    Expr funcAppl = new NAryExpr(f.Origin, new FunctionCall(funcId), funcArgs);
 
-    var canCallFuncID = new Bpl.IdentifierExpr(f.Origin, f.FullSanitizedName + "#canCall", Bpl.Type.Bool);
-    var canCall = new Bpl.NAryExpr(f.Origin, new Bpl.FunctionCall(canCallFuncID), Concat(tyargs, args));
+    var canCallFuncId = new Bpl.IdentifierExpr(f.Origin, f.FullSanitizedName + "#canCall", Bpl.Type.Bool);
+    var canCall = new NAryExpr(f.Origin, new FunctionCall(canCallFuncId), args);
 
-    Bpl.Expr post = Bpl.Expr.True;
+    Expr post = Expr.True;
     // substitute function return value with the function call.
     var substMap = new Dictionary<IVariable, Expression>();
     if (f.Result != null) {
@@ -201,21 +207,24 @@ public partial class BoogieGenerator {
     if (olderParameterCount != 0) {
       post = BplAnd(post, olderCondition);
     }
-    Bpl.Expr whr = GetWhereClause(f.Origin, funcAppl, f.ResultType, etran, NOALLOC);
+    Expr whr = GetWhereClause(f.Origin, funcAppl, f.ResultType, etran, NOALLOC);
     if (whr != null) { post = BplAnd(post, whr); }
 
-    if (RemoveLit(post) != Bpl.Expr.True) {
-      var axBody = BplImp(canCall, post);
-      var tr = BplTriggerHeap(this, f.Origin, funcAppl, readsHeap && !f.ReadsHeap ? etran.HeapExpr : null);
+    if (RemoveLit(post) != Expr.True) {
+
+      var axBody = BplImp(BplAnd(canCall, isExpr ?? Expr.True), post);
+      Expr optionalHeap = readsHeap && !f.ReadsHeap ? etran.HeapExpr : null;
+
+      var tr = BplTriggerHeap(this, f.Origin, funcAppl, optionalHeap, isExpr);
       var ax = BplForall(f.Origin, [], formals, null, tr, axBody);
-      AddOtherDefinition(boogieFunction, new Bpl.Axiom(f.Origin, ax, "consequence axiom for " + f.FullSanitizedName));
+      AddOtherDefinition(boogieFunction, new Axiom(f.Origin, ax, "consequence axiom for " + f.FullSanitizedName));
     }
 
     if (f.ResultType.MayInvolveReferences) {
       whr = GetWhereClause(f.Origin, funcAppl, f.ResultType, etranHeap, ISALLOC, true);
       Contract.Assert(whr != null); // since f.ResultType involves references, there should be an ISALLOC where clause
       if (whr != null) {
-        Bpl.Expr ante = canCall;
+        Expr ante = canCall;
         if (readsHeap) {
           // all parameters are included in the CanCall, so that's the only antecedent we need
           Contract.Assert(formals.Contains(bvHeap));
@@ -224,14 +233,14 @@ public partial class BoogieGenerator {
           // make sure the other parameters are connected to that heap
           Contract.Assert(f is not TwoStateFunction);
           ante = BplAnd(ante, parametersIsAlloc);
-          formals = Util.Cons(bvHeap, formals);
+          formals = Cons(bvHeap, formals);
           var goodHeap = FunctionCall(f.Origin, BuiltinFunction.IsGoodHeap, null, etranHeap.HeapExpr);
           ante = BplAnd(ante, goodHeap);
         }
 
         var axBody = BplImp(ante, whr);
         var ax = BplForall(f.Origin, [], formals, null, BplTrigger(whr), axBody);
-        var allocConsequenceAxiom = new Bpl.Axiom(f.Origin, ax, "alloc consequence axiom for " + f.FullSanitizedName);
+        var allocConsequenceAxiom = new Axiom(f.Origin, ax, "alloc consequence axiom for " + f.FullSanitizedName);
         AddOtherDefinition(boogieFunction, allocConsequenceAxiom);
       }
     }
@@ -289,9 +298,9 @@ public partial class BoogieGenerator {
     }
 
     ExpressionTranslator etran;
-    Bpl.BoundVariable bvPrevHeap = null;
+    BoundVariable bvPrevHeap = null;
     if (f is TwoStateFunction) {
-      bvPrevHeap = new Bpl.BoundVariable(f.Origin, new Bpl.TypedIdent(f.Origin, "$prevHeap", Predef.HeapType));
+      bvPrevHeap = new BoundVariable(f.Origin, new TypedIdent(f.Origin, "$prevHeap", Predef.HeapType));
       etran = new ExpressionTranslator(this, Predef,
         f.ReadsHeap ? new Bpl.IdentifierExpr(f.Origin, Predef.HeapVarName, Predef.HeapType) : null,
         new Bpl.IdentifierExpr(f.Origin, bvPrevHeap), f);
@@ -302,18 +311,20 @@ public partial class BoogieGenerator {
     }
 
     // quantify over the type arguments, and add them first to the arguments
-    List<Bpl.Expr> args = [];
-    List<Bpl.Expr> tyargs = GetTypeArguments(f, null).ConvertAll(TypeToTy);
+    List<Expr> args = [];
+    List<Expr> tyargs = GetTypeArguments(f, null).ConvertAll(TypeToTy);
 
     var forallFormals = MkTyParamBinders(GetTypeParamsIncludingType(f), out _);
+    var smallerForallFormals = MkTyParamBinders(f.TypeArgs, out _);
     var funcFormals = MkTyParamBinders(f.TypeArgs, out _);
-    var reqFuncArguments = new List<Bpl.Expr>(tyargs);
+    var reqFuncArguments = new List<Expr>();
 
-    Bpl.BoundVariable layer;
-    Bpl.BoundVariable reveal;
+    BoundVariable layer;
+    BoundVariable reveal;
     if (f.IsFuelAware()) {
-      layer = new Bpl.BoundVariable(f.Origin, new Bpl.TypedIdent(f.Origin, "$ly", Predef.LayerType));
+      layer = new BoundVariable(f.Origin, new TypedIdent(f.Origin, "$ly", Predef.LayerType));
       forallFormals.Add(layer);
+      smallerForallFormals.Add(layer);
       funcFormals.Add(layer);
       reqFuncArguments.Add(new Bpl.IdentifierExpr(f.Origin, layer));
       // Note, "layer" is not added to "args" here; rather, that's done below, as needed
@@ -322,7 +333,7 @@ public partial class BoogieGenerator {
     }
 
     if (f.IsOpaque || f.IsMadeImplicitlyOpaque(options)) {
-      reveal = new Bpl.BoundVariable(f.Origin, new Bpl.TypedIdent(f.Origin, "$reveal", Boogie.Type.Bool));
+      reveal = new BoundVariable(f.Origin, new TypedIdent(f.Origin, "$reveal", Boogie.Type.Bool));
       //funcFormals.Add(reveal);
       //reqFuncArguments.Add(new Bpl.IdentifierExpr(f.Tok, reveal));
       // Note, "reveal" is not added to "args" here; rather, that's done below, as needed
@@ -330,10 +341,11 @@ public partial class BoogieGenerator {
       reveal = null;
     }
 
-    Bpl.Expr ante = Bpl.Expr.True;
+    Expr ante = Expr.True;
     if (f is TwoStateFunction) {
       Contract.Assert(bvPrevHeap != null);
       forallFormals.Add(bvPrevHeap);
+      smallerForallFormals.Add(bvPrevHeap);
       funcFormals.Add(bvPrevHeap);
       args.Add(etran.Old.HeapExpr);
       reqFuncArguments.Add(new Bpl.IdentifierExpr(f.Origin, bvPrevHeap));
@@ -342,13 +354,14 @@ public partial class BoogieGenerator {
     }
 
     if (f.ReadsHeap) {
-      var bv = new Bpl.BoundVariable(f.Origin, new Bpl.TypedIdent(f.Origin, Predef.HeapVarName, Predef.HeapType));
+      var bv = new BoundVariable(f.Origin, new TypedIdent(f.Origin, Predef.HeapVarName, Predef.HeapType));
       funcFormals.Add(bv);
       args.Add(new Bpl.IdentifierExpr(f.Origin, bv));
       reqFuncArguments.Add(new Bpl.IdentifierExpr(f.Origin, bv));
 
       // ante:  $IsGoodHeap($Heap) && $HeapSucc($prevHeap, $Heap) && this != null && formals-have-the-expected-types &&
       forallFormals.Add(bv);
+      smallerForallFormals.Add(bv);
       var goodHeap = FunctionCall(f.Origin, BuiltinFunction.IsGoodHeap, null, etran.HeapExpr);
       ante = BplAnd(ante, goodHeap);
       if (f is TwoStateFunction) {
@@ -361,10 +374,12 @@ public partial class BoogieGenerator {
       ante = BplAnd(ante, typeBoundAxiom);
     }
 
+    Expr isType = null;
     Expression receiverReplacement = null;
     if (!f.IsStatic) {
-      var bvThis = new Bpl.BoundVariable(f.Origin, new Bpl.TypedIdent(f.Origin, etran.This, TrReceiverType(f)));
+      var bvThis = new BoundVariable(f.Origin, new TypedIdent(f.Origin, etran.This, TrReceiverType(f)));
       forallFormals.Add(bvThis);
+      smallerForallFormals.Add(bvThis);
       funcFormals.Add(bvThis);
       reqFuncArguments.Add(new Bpl.IdentifierExpr(f.Origin, bvThis));
       var bvThisIdExpr = new Bpl.IdentifierExpr(f.Origin, bvThis);
@@ -381,9 +396,11 @@ public partial class BoogieGenerator {
 
       // add well-typedness conjunct to antecedent
       Type thisType = ModuleResolver.GetReceiverType(f.Origin, f);
-      Bpl.Expr wh = BplAnd(
+      var expressionTranslator = (f is TwoStateFunction ? etran.Old : etran);
+      isType = GetWhereClause(f.Origin, bvThisIdExpr, thisType, expressionTranslator, NOALLOC);
+      Expr wh = BplAnd(
         ReceiverNotNull(bvThisIdExpr),
-        (f is TwoStateFunction ? etran.Old : etran).GoodRef(f.Origin, bvThisIdExpr, thisType));
+        expressionTranslator.GoodRef(f.Origin, bvThisIdExpr, thisType));
       ante = BplAnd(ante, wh);
     }
 
@@ -392,12 +409,13 @@ public partial class BoogieGenerator {
     var substMap = new Dictionary<IVariable, Expression>();
     foreach (Formal p in f.Ins) {
       var pType = p.Type.Subst(typeMap);
-      var bv = new Bpl.BoundVariable(p.Origin,
-        new Bpl.TypedIdent(p.Origin, p.AssignUniqueName(CurrentDeclaration.IdGenerator), TrType(pType)));
+      var bv = new BoundVariable(p.Origin,
+        new TypedIdent(p.Origin, p.AssignUniqueName(CurrentDeclaration.IdGenerator), TrType(pType)));
       forallFormals.Add(bv);
+      smallerForallFormals.Add(bv);
       funcFormals.Add(bv);
       reqFuncArguments.Add(new Bpl.IdentifierExpr(f.Origin, bv));
-      Bpl.Expr formal = new Bpl.IdentifierExpr(p.Origin, bv);
+      Expr formal = new Bpl.IdentifierExpr(p.Origin, bv);
       if (lits != null && lits.Contains(p) && !substMap.ContainsKey(p)) {
         args.Add(Lit(formal));
         var ie = new IdentifierExpr(p.Origin, p.AssignUniqueName(f.IdGenerator));
@@ -411,7 +429,7 @@ public partial class BoogieGenerator {
       }
 
       // add well-typedness conjunct to antecedent
-      Bpl.Expr wh = GetWhereClause(p.Origin, formal, pType, p.IsOld ? etran.Old : etran, NOALLOC);
+      Expr wh = GetWhereClause(p.Origin, formal, pType, p.IsOld ? etran.Old : etran, NOALLOC);
       if (wh != null) {
         ante = BplAnd(ante, wh);
       }
@@ -422,7 +440,7 @@ public partial class BoogieGenerator {
       }
     }
 
-    Bpl.Expr pre = Bpl.Expr.True;
+    Expr pre = Expr.True;
     foreach (AttributedExpression req in ConjunctsOf(f.Req)) {
       pre = BplAnd(pre, etran.TrExpr(Substitute(req.E, receiverReplacement, substMap)));
     }
@@ -431,39 +449,40 @@ public partial class BoogieGenerator {
     if (f is TwoStateFunction) {
       // Checked preconditions that old parameters really existed in previous state
       var index = 0;
-      Bpl.Expr preRA = Bpl.Expr.True;
+      Expr preRa = Expr.True;
       foreach (var formal in f.Ins) {
         if (formal.IsOld) {
           var dafnyFormalIdExpr = new IdentifierExpr(formal.Origin, formal);
-          preRA = BplAnd(preRA, MkIsAlloc(etran.TrExpr(dafnyFormalIdExpr), formal.Type, etran.Old.HeapExpr));
+          preRa = BplAnd(preRa, MkIsAlloc(etran.TrExpr(dafnyFormalIdExpr), formal.Type, etran.Old.HeapExpr));
         }
 
         index++;
       }
 
-      preReqAxiom = BplAnd(preRA, pre);
+      preReqAxiom = BplAnd(preRa, pre);
     }
 
-    var canCallFuncID = new Bpl.IdentifierExpr(f.Origin, f.FullSanitizedName + "#canCall", Bpl.Type.Bool);
-    var useViaCanCall = new Bpl.NAryExpr(f.Origin, new Bpl.FunctionCall(canCallFuncID), Concat(tyargs, args));
+    var canCallFuncId = new Bpl.IdentifierExpr(f.Origin, f.FullSanitizedName + "#canCall", Bpl.Type.Bool);
+    var useViaCanCall = new NAryExpr(f.Origin, new FunctionCall(canCallFuncId), args);
 
     // Add the precondition function and its axiom (which is equivalent to the anteReqAxiom)
     if (body == null || (RevealedInScope(f) && lits == null)) {
       var precondF = new Bpl.Function(f.Origin,
         RequiresName(f), [],
-        funcFormals.ConvertAll(v => (Bpl.Variable)BplFormalVar(null, v.TypedIdent.Type, true)),
+        funcFormals.ConvertAll(v => (Variable)BplFormalVar(null, v.TypedIdent.Type, true)),
         BplFormalVar(null, Bpl.Type.Bool, false));
       sink.AddTopLevelDeclaration(precondF);
 
       var appl = FunctionCall(f.Origin, RequiresName(f), Bpl.Type.Bool, reqFuncArguments);
-      Bpl.Trigger trig = BplTriggerHeap(this, f.Origin, appl, f.ReadsHeap ? etran.HeapExpr : null);
+      Trigger trig1 = BplTriggerHeap(this, f.Origin, appl, f.ReadsHeap ? etran.HeapExpr : null, isType);
       // axiom (forall params :: { f#requires(params) }  ante ==> f#requires(params) == pre);
       AddOtherDefinition(precondF, new Axiom(f.Origin,
-        BplForall(forallFormals, trig, BplImp(anteReqAxiom, Bpl.Expr.Eq(appl, preReqAxiom))),
+        BplForall(forallFormals, trig1, BplImp(anteReqAxiom, Expr.Eq(appl, preReqAxiom))),
         "#requires axiom for " + f.FullSanitizedName));
 
-      AddOtherDefinition(precondF, new Bpl.Axiom(f.Origin,
-        BplForall(f.Origin, [], forallFormals, null, trig, Bpl.Expr.Imp(appl, useViaCanCall)),
+      Trigger trig2 = BplTriggerHeap(this, f.Origin, appl, f.ReadsHeap ? etran.HeapExpr : null, null);
+      AddOtherDefinition(precondF, new Axiom(f.Origin,
+        BplForall(f.Origin, [], smallerForallFormals, null, trig2, Expr.Imp(appl, useViaCanCall)),
         "#requires ==> #canCall for " + f.FullSanitizedName));
     }
 
@@ -474,32 +493,28 @@ public partial class BoogieGenerator {
     // useViaCanCall: f#canCall(args)
     ante = useViaCanCall;
 
-    Bpl.Expr funcAppl;
-    {
-      var funcID = new Bpl.IdentifierExpr(f.Origin, f.FullSanitizedName, TrType(f.ResultType));
-      var funcArgs = new List<Bpl.Expr>();
-      funcArgs.AddRange(tyargs);
-      if (layer != null) {
-        var ly = new Bpl.IdentifierExpr(f.Origin, layer);
-        //if (lits == null) {
-        funcArgs.Add(LayerSucc(ly));
-        //} else {
-        //  funcArgs.Add(ly);
-        //}
-      }
-
-      if (reveal != null) {
-        funcArgs.Add(new Bpl.LiteralExpr(f.Origin, true));
-      }
-
-      funcArgs.AddRange(args);
-      funcAppl = new Bpl.NAryExpr(f.Origin, new Bpl.FunctionCall(funcID), funcArgs);
+    var funcId = new Bpl.IdentifierExpr(f.Origin, f.FullSanitizedName, TrType(f.ResultType));
+    var funcArgs = new List<Expr>();
+    if (layer != null) {
+      var ly = new Bpl.IdentifierExpr(f.Origin, layer);
+      //if (lits == null) {
+      funcArgs.Add(LayerSucc(ly));
+      //} else {
+      //  funcArgs.Add(ly);
+      //}
     }
 
-    Bpl.Trigger tr = BplTriggerHeap(this, f.Origin, funcAppl, f.ReadsHeap ? etran.HeapExpr : null);
-    Bpl.Expr tastyVegetarianOption; // a.k.a. the "meat" of the operation :)
+    if (reveal != null) {
+      funcArgs.Add(new Bpl.LiteralExpr(f.Origin, true));
+    }
+
+    funcArgs.AddRange(args);
+    Expr funcAppl = new NAryExpr(f.Origin, new FunctionCall(funcId), funcArgs);
+
+    Trigger tr = BplTriggerHeap(this, f.Origin, funcAppl, f.ReadsHeap ? etran.HeapExpr : null);
+    Expr tastyVegetarianOption; // a.k.a. the "meat" of the operation :)
     if (!RevealedInScope(f)) {
-      tastyVegetarianOption = Bpl.Expr.True;
+      tastyVegetarianOption = Expr.True;
     } else {
       var bodyWithSubst = Substitute(body, receiverReplacement, substMap);
       if (f is PrefixPredicate) {
@@ -507,7 +522,7 @@ public partial class BoogieGenerator {
         bodyWithSubst = PrefixSubstitution(pp, bodyWithSubst);
       }
 
-      Bpl.Expr ly = null;
+      Expr ly = null;
       if (layer != null) {
         ly = new Bpl.IdentifierExpr(f.Origin, layer);
         if (lits != null) {
@@ -519,18 +534,17 @@ public partial class BoogieGenerator {
       var etranBody = layer == null ? etran : etran.LimitedFunctions(f, ly);
       var trbody = AdaptBoxing(f.Origin, etranBody.TrExpr(bodyWithSubst), f.Body.Type, f.ResultType);
       tastyVegetarianOption = BplAnd(etranBody.CanCallAssumption(bodyWithSubst),
-        BplAnd(TrFunctionSideEffect(bodyWithSubst, etranBody), Bpl.Expr.Eq(funcAppl, trbody)));
+        BplAnd(TrFunctionSideEffect(bodyWithSubst, etranBody), Expr.Eq(funcAppl, trbody)));
     }
 
     QKeyValue kv = null;
     if (lits != null) {
-      kv = new QKeyValue(f.Origin, "weight", new List<object>() { Bpl.Expr.Literal(3) }, null);
+      kv = new QKeyValue(f.Origin, "weight", new List<object>() { Expr.Literal(3) }, null);
     }
 
-    Bpl.Expr ax = BplForall(f.Origin, [], forallFormals, kv, tr,
+    Expr ax = BplForall(f.Origin, [], smallerForallFormals, kv, tr,
       BplImp(ante, tastyVegetarianOption));
-    string comment;
-    comment = "definition axiom for " + f.FullSanitizedName;
+    var comment = "definition axiom for " + f.FullSanitizedName;
     if (lits != null) {
       if (lits.Count == f.Ins.Count + (f.IsStatic ? 0 : 1)) {
         comment += " for all literals";
@@ -558,7 +572,7 @@ public partial class BoogieGenerator {
 
 
   Expr TrFunctionSideEffect(Expression expr, ExpressionTranslator etran) {
-    Expr e = Bpl.Expr.True;
+    Expr e = Expr.True;
     if (expr is StmtExpr) {
       // if there is a call to reveal_ lemma, we need to record its side effect.
       var stmt = ((StmtExpr)expr).S;
@@ -568,7 +582,7 @@ public partial class BoogieGenerator {
   }
 
   Expr TrFunctionSideEffect(Statement stmt, ExpressionTranslator etran) {
-    Expr e = Bpl.Expr.True;
+    Expr e = Expr.True;
     e = TrStmtSideEffect(e, stmt, etran);
     foreach (var ss in stmt.SubStatements) {
       e = TrStmtSideEffect(e, ss, etran);
@@ -587,9 +601,9 @@ public partial class BoogieGenerator {
       name = f.FullSanitizedName + "#Handle";
       functionHandles[f] = name;
       var formalVars = MkTyParamBinders(GetTypeParamsIncludingType(f), out var args);
-      var argsRequires = new List<Bpl.Expr>(args); // Requires don't have reveal parameters
+      var argsRequires = new List<Expr>(args); // Requires don't have reveal parameters
       var formals = MkTyParamFormals(f.TypeArgs, false, true);
-      var tyargs = new List<Bpl.Expr>();
+      var tyargs = new List<Expr>();
       foreach (var fm in f.Ins) {
         tyargs.Add(TypeToTy(fm.Type));
       }
@@ -607,8 +621,8 @@ public partial class BoogieGenerator {
         formals.Add(BplFormalVar("$reveal", Boogie.Type.Bool, true));
       }
 
-      Func<List<Bpl.Expr>, List<Bpl.Expr>> SnocSelf = x => x;
-      Func<List<Bpl.Expr>, List<Bpl.Expr>> SnocPrevH = x => x;
+      Func<List<Expr>, List<Expr>> SnocSelf = x => x;
+      Func<List<Expr>, List<Expr>> SnocPrevH = x => x;
       Expression selfExpr;
       Dictionary<IVariable, Expression> rhs_dict = new Dictionary<IVariable, Expression>();
       if (f is TwoStateFunction) {
@@ -632,12 +646,12 @@ public partial class BoogieGenerator {
       sink.AddTopLevelDeclaration(
         new Bpl.Function(f.Origin, name, formals, BplFormalVar(null, Predef.HandleType, false)));
 
-      var bvars = new List<Bpl.Variable>();
-      var lhs_args = new List<Bpl.Expr>();
-      var rhs_args = new List<Bpl.Expr>();
-      var func_vars = new List<Bpl.Variable>();
-      var func_args = new List<Bpl.Expr>();
-      var boxed_func_args = new List<Bpl.Expr>();
+      var bvars = new List<Variable>();
+      var lhs_args = new List<Expr>();
+      var rhs_args = new List<Expr>();
+      var func_vars = new List<Variable>();
+      var func_args = new List<Expr>();
+      var boxed_func_args = new List<Expr>();
 
       var idGen = f.IdGenerator.NestedFreshIdGenerator("$fh$");
       foreach (var fm in f.Ins) {
@@ -672,7 +686,7 @@ public partial class BoogieGenerator {
         var rhs_boxed = BoxIfNotNormallyBoxed(rhs.tok, rhs, f.ResultType);
 
         AddOtherDefinition(GetOrCreateFunction(f), (new Axiom(f.Origin,
-          BplForall(Concat(formalVars, bvars), BplTrigger(lhs), Bpl.Expr.Eq(lhs, rhs_boxed)))));
+          BplForall(Concat(formalVars, bvars), BplTrigger(lhs), Expr.Eq(lhs, rhs_boxed)))));
       }
 
       {
@@ -686,20 +700,20 @@ public partial class BoogieGenerator {
 
         var fhandle = FunctionCall(f.Origin, name, Predef.HandleType, SnocSelf(SnocPrevH(args)));
         var lhs = FunctionCall(f.Origin, Requires(arity), Bpl.Type.Bool, Concat(tyargs, Cons(h, Cons(fhandle, lhs_args))));
-        Bpl.Expr rhs;
+        Expr rhs;
         if (f.EnclosingClass is ArrowTypeDecl && f.Name == "requires") {
           AddOtherDefinition(GetOrCreateFunction(f), new Axiom(f.Origin,
-              BplForall(Concat(formalVars, bvars), BplTrigger(lhs), Bpl.Expr.Eq(lhs, Bpl.Expr.True))));
+              BplForall(Concat(formalVars, bvars), BplTrigger(lhs), Expr.Eq(lhs, Expr.True))));
         } else if (f.EnclosingClass is ArrowTypeDecl && f.Name == "reads") {
           var args_h = f.ReadsHeap ? Snoc(SnocPrevH(argsRequires), h) : argsRequires;
           var pre = FunctionCall(f.Origin, Requires(arity), Bpl.Type.Bool, Concat(SnocSelf(args_h), lhs_args));
           AddOtherDefinition(GetOrCreateFunction(f), (new Axiom(f.Origin,
-            BplForall(Concat(formalVars, bvars), BplTrigger(lhs), Bpl.Expr.Eq(lhs, pre)))));
+            BplForall(Concat(formalVars, bvars), BplTrigger(lhs), Expr.Eq(lhs, pre)))));
         } else {
           var args_h = f.ReadsHeap ? Snoc(SnocPrevH(argsRequires), h) : argsRequires;
           rhs = FunctionCall(f.Origin, RequiresName(f), Bpl.Type.Bool, Concat(SnocSelf(args_h), rhs_args));
           AddOtherDefinition(GetOrCreateFunction(f), new Axiom(f.Origin,
-            BplForall(Concat(formalVars, bvars), BplTrigger(lhs), Bpl.Expr.Eq(lhs, rhs))));
+            BplForall(Concat(formalVars, bvars), BplTrigger(lhs), Expr.Eq(lhs, rhs))));
         }
 
 
@@ -715,11 +729,11 @@ public partial class BoogieGenerator {
         // be referred to.
 
         var fhandle = FunctionCall(f.Origin, name, Predef.HandleType, SnocSelf(SnocPrevH(args)));
-        Bpl.Expr lhs_inner = FunctionCall(f.Origin, Reads(arity), TrType(program.SystemModuleManager.ObjectSetType()), Concat(tyargs, Cons(h, Cons(fhandle, lhs_args))));
+        Expr lhs_inner = FunctionCall(f.Origin, Reads(arity), TrType(program.SystemModuleManager.ObjectSetType()), Concat(tyargs, Cons(h, Cons(fhandle, lhs_args))));
 
-        Bpl.Expr bx; var bxVar = BplBoundVar("$bx", Predef.BoxType, out bx);
-        Bpl.Expr unboxBx = FunctionCall(f.Origin, BuiltinFunction.Unbox, Predef.RefType, bx);
-        Bpl.Expr lhs = IsSetMember(f.Origin, lhs_inner, bx, true);
+        Expr bx; var bxVar = BplBoundVar("$bx", Predef.BoxType, out bx);
+        Expr unboxBx = FunctionCall(f.Origin, BuiltinFunction.Unbox, Predef.RefType, bx);
+        Expr lhs = IsSetMember(f.Origin, lhs_inner, bx, true);
 
         var et = new ExpressionTranslator(this, Predef, h, f);
         var rhs = InRWClause_Aux(f.Origin, unboxBx, bx, null, f.Reads.Expressions, false, et, selfExpr, rhs_dict);
@@ -728,10 +742,10 @@ public partial class BoogieGenerator {
           var args_h = f.ReadsHeap ? Snoc(SnocPrevH(argsRequires), h) : argsRequires;
           var precondition = FunctionCall(f.Origin, Requires(arity), Bpl.Type.Bool, Concat(SnocSelf(args_h), lhs_args));
           sink.AddTopLevelDeclaration(new Axiom(f.Origin,
-            BplForall(Cons(bxVar, Concat(formalVars, bvars)), BplTrigger(lhs), BplImp(precondition, Bpl.Expr.Eq(lhs, rhs)))));
+            BplForall(Cons(bxVar, Concat(formalVars, bvars)), BplTrigger(lhs), BplImp(precondition, Expr.Eq(lhs, rhs)))));
         } else {
           sink.AddTopLevelDeclaration(new Axiom(f.Origin,
-            BplForall(Cons(bxVar, Concat(formalVars, bvars)), BplTrigger(lhs), Bpl.Expr.Eq(lhs, rhs))));
+            BplForall(Cons(bxVar, Concat(formalVars, bvars)), BplTrigger(lhs), Expr.Eq(lhs, rhs))));
         }
       }
 
@@ -747,7 +761,7 @@ public partial class BoogieGenerator {
         var tr = BplTriggerHeap(this, f.Origin, lhs, f.ReadsHeap ? null : h);
 
         AddOtherDefinition(GetOrCreateFunction(f), (new Axiom(f.Origin,
-          BplForall(Concat(formalVars, func_vars), tr, Bpl.Expr.Eq(lhs, rhs_unboxed)))));
+          BplForall(Concat(formalVars, func_vars), tr, Expr.Eq(lhs, rhs_unboxed)))));
       }
     }
     return name;
@@ -782,10 +796,10 @@ public partial class BoogieGenerator {
 
     var comment = "frame axiom for " + f.FullSanitizedName;
     // This is the general case
-    Bpl.Expr prevH = null;
-    Bpl.BoundVariable prevHVar = null;
-    Bpl.Expr reveal = null;
-    Bpl.BoundVariable revealVar = null;
+    Expr prevH = null;
+    BoundVariable prevHVar = null;
+    Expr reveal = null;
+    BoundVariable revealVar = null;
     if (f.IsOpaque || f.IsMadeImplicitlyOpaque(options)) {
       revealVar = BplBoundVar("$reveal", Bpl.Type.Bool, out reveal);
     }
@@ -794,72 +808,73 @@ public partial class BoogieGenerator {
       // the frame axiom says nothing about functions invoked with different previous heaps.
       prevHVar = BplBoundVar("$prevHeap", Predef.HeapType, out prevH);
     }
-    Bpl.Expr h0; var h0Var = BplBoundVar("$h0", Predef.HeapType, out h0);
-    Bpl.Expr h1; var h1Var = BplBoundVar("$h1", Predef.HeapType, out h1);
+    Expr h0; var h0Var = BplBoundVar("$h0", Predef.HeapType, out h0);
+    Expr h1; var h1Var = BplBoundVar("$h1", Predef.HeapType, out h1);
 
     var etran0 = new ExpressionTranslator(this, Predef, h0, f);
     var etran1 = new ExpressionTranslator(this, Predef, h1, f);
 
-    Bpl.Expr wellFormed = BplAnd(
+    Expr wellFormed = BplAnd(
       FunctionCall(f.Origin, BuiltinFunction.IsGoodHeap, null, etran0.HeapExpr),
       FunctionCall(f.Origin, BuiltinFunction.IsGoodHeap, null, etran1.HeapExpr));
 
-    Bpl.Expr o; var oVar = BplBoundVar("$o", Predef.RefType, out o);
-    Bpl.Expr field; var fieldVar = BplBoundVar("$f", Predef.FieldName(f.Origin), out field);
-    Bpl.Expr oNotNull = Bpl.Expr.Neq(o, Predef.Null);
-    Bpl.Expr oNotNullAlloced = oNotNull;
-    Bpl.Expr unchanged = Bpl.Expr.Eq(ReadHeap(f.Origin, h0, o, field), ReadHeap(f.Origin, h1, o, field));
+    Expr o; var oVar = BplBoundVar("$o", Predef.RefType, out o);
+    Expr field; var fieldVar = BplBoundVar("$f", Predef.FieldName(f.Origin), out field);
+    Expr oNotNull = Expr.Neq(o, Predef.Null);
+    Expr oNotNullAlloced = oNotNull;
+    Expr unchanged = Expr.Eq(ReadHeap(f.Origin, h0, o, field), ReadHeap(f.Origin, h1, o, field));
 
-    Bpl.Expr h0IsHeapAnchor = FunctionCall(h0.tok, BuiltinFunction.IsHeapAnchor, null, h0);
-    Bpl.Expr heapSucc = HeapSucc(h0, h1);
-    Bpl.Expr r0 = InRWClause(f.Origin, o, field, f.Reads.Expressions, etran0, null, null);
-    Bpl.Expr q0 = new Bpl.ForallExpr(f.Origin, [], [oVar, fieldVar],
+    Expr h0IsHeapAnchor = FunctionCall(h0.tok, BuiltinFunction.IsHeapAnchor, null, h0);
+    Expr heapSucc = HeapSucc(h0, h1);
+    Expr r0 = InRWClause(f.Origin, o, field, f.Reads.Expressions, etran0, null, null);
+    Expr q0 = new Bpl.ForallExpr(f.Origin, [], [oVar, fieldVar],
       BplImp(BplAnd(oNotNullAlloced, r0), unchanged));
 
-    List<Bpl.Expr> tyexprs;
-    var bForallVars = MkTyParamBinders(GetTypeParamsIncludingType(f), out tyexprs);
-    var f0args = new List<Bpl.Expr>(tyexprs);
-    var f1args = new List<Bpl.Expr>(tyexprs);
-    var f0argsCanCall = new List<Bpl.Expr>(tyexprs);
-    var f1argsCanCall = new List<Bpl.Expr>(tyexprs);
+    var bForallVars = MkTyParamBinders(GetTypeParamsIncludingType(f), out _);
+    var f0Args = new List<Expr>();
+    var f1Args = new List<Expr>();
+    var f0ArgsCanCall = new List<Expr>();
+    var f1ArgsCanCall = new List<Expr>();
     if (f.IsFuelAware()) {
-      Bpl.Expr s; var sV = BplBoundVar("$ly", Predef.LayerType, out s);
+      Expr s; var sV = BplBoundVar("$ly", Predef.LayerType, out s);
       bForallVars.Add(sV);
-      f0args.Add(s); f1args.Add(s);  // but don't add to f0argsCanCall or f1argsCanCall
+      f0Args.Add(s); f1Args.Add(s);  // but don't add to f0argsCanCall or f1argsCanCall
     }
 
     if (reveal != null) {
       bForallVars.Add(revealVar);
-      f0args.Add(reveal); f1args.Add(reveal);
+      f0Args.Add(reveal); f1Args.Add(reveal);
     }
 
     if (prevH != null) {
       bForallVars.Add(prevHVar);
-      f0args.Add(prevH); f1args.Add(prevH); f0argsCanCall.Add(prevH); f1argsCanCall.Add(prevH);
+      f0Args.Add(prevH); f1Args.Add(prevH); f0ArgsCanCall.Add(prevH); f1ArgsCanCall.Add(prevH);
     }
     bForallVars.Add(h0Var); bForallVars.Add(h1Var);
-    f0args.Add(h0); f1args.Add(h1); f0argsCanCall.Add(h0); f1argsCanCall.Add(h1);
+    f0Args.Add(h0); f1Args.Add(h1); f0ArgsCanCall.Add(h0); f1ArgsCanCall.Add(h1);
 
+    Expr whereClause = null;
     var useAlloc = f.Reads.Expressions.Exists(fe => fe.E is WildcardExpr) ? ISALLOC : NOALLOC;
     if (!f.IsStatic) {
-      Bpl.Expr th; var thVar = BplBoundVar("this", TrReceiverType(f), out th);
+      var thVar = BplBoundVar("this", TrReceiverType(f), out var th);
       bForallVars.Add(thVar);
-      f0args.Add(th); f1args.Add(th); f0argsCanCall.Add(th); f1argsCanCall.Add(th);
+      f0Args.Add(th); f1Args.Add(th); f0ArgsCanCall.Add(th); f1ArgsCanCall.Add(th);
 
       Type thisType = ModuleResolver.GetReceiverType(f.Origin, f);
-      Bpl.Expr wh = BplAnd(ReceiverNotNull(th), GetWhereClause(f.Origin, th, thisType, etran0, useAlloc));
+      whereClause = GetWhereClause(f.Origin, th, thisType, etran0, useAlloc);
+      Expr wh = BplAnd(ReceiverNotNull(th), whereClause);
       wellFormed = BplAnd(wellFormed, wh);
     }
 
     // (formalsAreWellFormed[h0] || canCallF(h0,...)) && (formalsAreWellFormed[h1] || canCallF(h1,...))
-    Bpl.Expr fwf0 = Bpl.Expr.True;
-    Bpl.Expr fwf1 = Bpl.Expr.True;
+    Expr fwf0 = Expr.True;
+    Expr fwf1 = Expr.True;
     foreach (Formal p in f.Ins) {
-      Bpl.BoundVariable bv = new Bpl.BoundVariable(p.Origin, new Bpl.TypedIdent(p.Origin, p.AssignUniqueName(f.IdGenerator), TrType(p.Type)));
+      BoundVariable bv = new BoundVariable(p.Origin, new TypedIdent(p.Origin, p.AssignUniqueName(f.IdGenerator), TrType(p.Type)));
       bForallVars.Add(bv);
-      Bpl.Expr formal = new Bpl.IdentifierExpr(p.Origin, bv);
-      f0args.Add(formal); f1args.Add(formal); f0argsCanCall.Add(formal); f1argsCanCall.Add(formal);
-      Bpl.Expr wh = GetWhereClause(p.Origin, formal, p.Type, etran0, useAlloc);
+      Expr formal = new Bpl.IdentifierExpr(p.Origin, bv);
+      f0Args.Add(formal); f1Args.Add(formal); f0ArgsCanCall.Add(formal); f1ArgsCanCall.Add(formal);
+      Expr wh = GetWhereClause(p.Origin, formal, p.Type, etran0, useAlloc);
       if (wh != null) {
         fwf0 = BplAnd(fwf0, wh);
       }
@@ -868,12 +883,12 @@ public partial class BoogieGenerator {
         fwf1 = BplAnd(fwf1, wh);
       }
     }
-    var canCall = new Bpl.FunctionCall(new Bpl.IdentifierExpr(f.Origin, f.FullSanitizedName + "#canCall", Bpl.Type.Bool));
-    var f0canCall = new Bpl.NAryExpr(f.Origin, canCall, f0argsCanCall);
-    var f1canCall = new Bpl.NAryExpr(f.Origin, canCall, f1argsCanCall);
-    wellFormed = BplAnd(wellFormed, Bpl.Expr.Or(
-      BplOr(f0canCall, fwf0),
-      BplOr(f1canCall, fwf1)));
+    var canCall = new FunctionCall(new Bpl.IdentifierExpr(f.Origin, f.FullSanitizedName + "#canCall", Bpl.Type.Bool));
+    var f0CanCall = new NAryExpr(f.Origin, canCall, f0ArgsCanCall);
+    var f1CanCall = new NAryExpr(f.Origin, canCall, f1ArgsCanCall);
+    wellFormed = BplAnd(wellFormed, Expr.Or(
+      BplOr(f0CanCall, fwf0),
+      BplOr(f1CanCall, fwf1)));
     /*
     JA: I conjecture that we don't need fwf0 or fwf1 here. But, we
         will need both can calls,
@@ -888,15 +903,16 @@ public partial class BoogieGenerator {
       BplOr(new Bpl.NAryExpr(f.Tok, canCall, f0argsCanCall), fwf0));
     */
 
-    var fn = new Bpl.FunctionCall(new Bpl.IdentifierExpr(f.Origin, f.FullSanitizedName, TrType(f.ResultType)));
-    var F0 = new Bpl.NAryExpr(f.Origin, fn, f0args);
-    var F1 = new Bpl.NAryExpr(f.Origin, fn, f1args);
-    var eq = BplAnd(Bpl.Expr.Eq(F0, F1), Bpl.Expr.Eq(f0canCall, f1canCall));
-    var tr = new Bpl.Trigger(f.Origin, true, new List<Bpl.Expr> { h0IsHeapAnchor, heapSucc, F1 });
+    var fn = new FunctionCall(new Bpl.IdentifierExpr(f.Origin, f.FullSanitizedName, TrType(f.ResultType)));
+    var f0 = new NAryExpr(f.Origin, fn, f0Args);
+    var f1 = new NAryExpr(f.Origin, fn, f1Args);
+    var eq = BplAnd(Expr.Eq(f0, f1), Expr.Eq(f0CanCall, f1CanCall));
+    var tr = new Trigger(f.Origin, true,
+      new List<Expr> { h0IsHeapAnchor, heapSucc, f1, whereClause }.Where(t => t != null));
 
     var ax = new Bpl.ForallExpr(f.Origin, [], bForallVars, null, tr,
       BplImp(BplAnd(wellFormed, BplAnd(h0IsHeapAnchor, heapSucc)),
       BplImp(q0, eq)));
-    sink.AddTopLevelDeclaration(new Bpl.Axiom(f.Origin, ax, comment));
+    sink.AddTopLevelDeclaration(new Axiom(f.Origin, ax, comment));
   }
 }

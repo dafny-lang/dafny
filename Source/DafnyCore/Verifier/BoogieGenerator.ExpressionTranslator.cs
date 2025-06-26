@@ -364,7 +364,7 @@ namespace Microsoft.Dafny {
               } else {
                 Contract.Assert(false); throw new Cce.UnreachableException();  // unexpected literal
               }
-          }
+            }
           case ThisExpr:
             return new Boogie.IdentifierExpr(GetToken(expr), This, BoogieGenerator.TrType(expr.Type));
           case IdentifierExpr identifierExpr: {

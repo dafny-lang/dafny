@@ -69,7 +69,7 @@ public partial class BoogieGenerator {
     AddAllocatednessConsequenceAxiom(ad, arity, tok);
 
     return;
-    
+
     // function {:inline true}
     //   FuncN._requires#canCall(G...G G: Ty, H:Heap, f:Handle, x ... x :Box): bool
     //   { true }
@@ -143,8 +143,7 @@ public partial class BoogieGenerator {
     }
   }
 
-  private void AddFunctionDeclaration(Bpl.MapType applyTy, Bpl.MapType requiresTy, Bpl.MapType readsTy, int arity)
-  {
+  private void AddFunctionDeclaration(Bpl.MapType applyTy, Bpl.MapType requiresTy, Bpl.MapType readsTy, int arity) {
     // function HandleN([Heap, Box, ..., Box] Box, [Heap, Box, ..., Box] Bool) : HandleType
     var res = BplFormalVar(null, Predef.HandleType, true);
     var arg = new List<Bpl.Variable> {
@@ -156,8 +155,7 @@ public partial class BoogieGenerator {
     sink.AddTopLevelDeclaration(declaration);
   }
 
-  private void AddFrameAxiom(ArrowTypeDecl ad, int arity, IOrigin tok, Bpl.Type objsetTy)
-  {
+  private void AddFrameAxiom(ArrowTypeDecl ad, int arity, IOrigin tok, Bpl.Type objsetTy) {
     // frame axiom
     /*
 
@@ -220,12 +218,12 @@ public partial class BoogieGenerator {
 
         var innerForall = new Bpl.ForallExpr(tok, [], ivars, BplImp(BplAnd(Bpl.Expr.Neq(o, Predef.Null),
             // Note, the MkIsAlloc conjunct of "isness" implies that everything in the reads frame is allocated in "h0", which by HeapSucc(h0,h1) also implies the frame is allocated in "h1"
-            IsSetMember(tok, FunctionCall(tok, Reads(ad.Arity), objsetTy, Cons(hN, Cons(f, boxes))), 
-              FunctionCall(tok, BuiltinFunction.Box, null, o), true)), 
+            IsSetMember(tok, FunctionCall(tok, Reads(ad.Arity), objsetTy, Cons(hN, Cons(f, boxes))),
+              FunctionCall(tok, BuiltinFunction.Box, null, o), true)),
           Bpl.Expr.Eq(ReadHeap(tok, h0, o, fld), ReadHeap(tok, h1, o, fld))));
 
-        sink.AddTopLevelDeclaration(new Axiom(tok, 
-          BplForall(bvars, new Bpl.Trigger(tok, true, new List<Bpl.Expr> { heapSucc, Fn(h1), mkIs }), 
+        sink.AddTopLevelDeclaration(new Axiom(tok,
+          BplForall(bvars, new Bpl.Trigger(tok, true, new List<Bpl.Expr> { heapSucc, Fn(h1), mkIs }),
             BplImp(BplAnd(BplAnd(BplAnd(heapSucc, goodHeaps), isness), innerForall), Bpl.Expr.Eq(Fn(h0), Fn(h1)))), "frame axiom for " + fname));
 
         Expr Fn(Expr h) => FunctionCall(tok, fname, Bpl.Type.Bool, Cons(h, Cons<Bpl.Expr>(f, boxes)));
@@ -233,8 +231,7 @@ public partial class BoogieGenerator {
     }
   }
 
-  private void AddEmptyReadsPropertyForReadsAxiom(ArrowTypeDecl ad, int arity, IOrigin tok, Bpl.Type objsetTy)
-  {
+  private void AddEmptyReadsPropertyForReadsAxiom(ArrowTypeDecl ad, int arity, IOrigin tok, Bpl.Type objsetTy) {
     /* axiom (forall T..: Ty, heap: Heap, f: HandleType, bx..: Box ::
        *   { ReadsN(T.., $OneHeap, f, bx..), $IsGoodHeap(heap) }
        *   { ReadsN(T.., heap, f, bx..) }
@@ -258,7 +255,7 @@ public partial class BoogieGenerator {
           BplAnd(mkIs, Bpl.Expr.True)));
 
       var readsOne = FunctionCall(tok, Reads(arity), objsetTy, Cons(oneheap, Cons(f, boxes)));
-      var readsH = FunctionCall(tok, Reads(arity), objsetTy,Cons(h, Cons(f, boxes)));
+      var readsH = FunctionCall(tok, Reads(arity), objsetTy, Cons(h, Cons(f, boxes)));
       var empty = FunctionCall(tok, BuiltinFunction.SetEmpty, Predef.BoxType);
       var readsNothingOne = FunctionCall(tok, BuiltinFunction.SetEqual, null, readsOne, empty);
       var readsNothingH = FunctionCall(tok, BuiltinFunction.SetEqual, null, readsH, empty);
@@ -273,8 +270,7 @@ public partial class BoogieGenerator {
     }
   }
 
-  private void AddIsBoxApplyAxiom(ArrowTypeDecl ad, int arity, IOrigin tok)
-  {
+  private void AddIsBoxApplyAxiom(ArrowTypeDecl ad, int arity, IOrigin tok) {
     // $Is and $IsAlloc axioms
     /*
         axiom (forall f: HandleType, t0: Ty, t1: Ty ::
@@ -309,8 +305,7 @@ public partial class BoogieGenerator {
     }
   }
 
-  private void AddIsAxiom(ArrowTypeDecl ad, int arity, IOrigin tok)
-  {
+  private void AddIsAxiom(ArrowTypeDecl ad, int arity, IOrigin tok) {
     /*
          axiom (forall f: HandleType, t0: Ty, t1: Ty, u0: Ty, u1: Ty ::
            { $Is(f, Tclass._System.___hFunc1(t0, t1)), $Is(f, Tclass._System.___hFunc1(u0, u1)) }
@@ -351,8 +346,7 @@ public partial class BoogieGenerator {
     }
   }
 
-  private void AddIsAllocAxiom(ArrowTypeDecl ad, int arity, IOrigin tok)
-  {
+  private void AddIsAllocAxiom(ArrowTypeDecl ad, int arity, IOrigin tok) {
     /*  This is the definition of $IsAlloc function the arrow type:
         axiom (forall f: HandleType, t0: Ty, t1: Ty, h: Heap ::
           { $IsAlloc(f, Tclass._System.___hFunc1(t0, t1), h) }
@@ -405,8 +399,7 @@ public partial class BoogieGenerator {
     }
   }
 
-  private void AddAllocatednessConsequenceAxiom(ArrowTypeDecl ad, int arity, IOrigin tok)
-  {
+  private void AddAllocatednessConsequenceAxiom(ArrowTypeDecl ad, int arity, IOrigin tok) {
     /*  This is the allocatedness consequence axiom of arrow types:
         axiom (forall f: HandleType, t0: Ty, t1: Ty, h: Heap ::
           { $IsAlloc(f, Tclass._System.___hFunc1(t0, t1), h) }
@@ -444,8 +437,7 @@ public partial class BoogieGenerator {
     }
   }
 
-  private void AddEmptyReadsPropertyForRequiresAxiom(ArrowTypeDecl ad, int arity, IOrigin tok, Bpl.Type objsetTy)
-  {
+  private void AddEmptyReadsPropertyForRequiresAxiom(ArrowTypeDecl ad, int arity, IOrigin tok, Bpl.Type objsetTy) {
     /* axiom (forall T..: Ty, heap: Heap, f: HandleType, bx..: Box ::
        *   { RequiresN(T.., OneHeap, f, bx..), $IsGoodHeap(heap) }
        *   { RequiresN(T.., heap, f, bx..) }
