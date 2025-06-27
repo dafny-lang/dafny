@@ -656,14 +656,16 @@ namespace Microsoft.Dafny {
                 }
               }
 
-              Func<Expression, Boogie.Expr> TrArg = arg => BoogieGenerator.BoxIfNotNormallyBoxed(arg.Origin, TrExpr(arg), arg.Type);
-
               var applied = FunctionCall(GetToken(applyExpr), BoogieGenerator.Apply(arity), Predef.BoxType,
-                Concat(Map(tt.TypeArgs, BoogieGenerator.TypeToTy),
-                  Cons(HeapExprForArrow(e.Function.Type), Cons(TrExpr(e.Function), e.Args.ConvertAll(arg => TrArg(arg))))));
+                  Cons(HeapExprForArrow(e.Function.Type), 
+                    Cons(
+                      TrExpr(e.Function), 
+                      e.Args.ConvertAll(arg => TrArg(arg)))));
 
               return BoogieGenerator.UnboxUnlessInherentlyBoxed(applied, tt.Result);
-            }
+
+              Expr TrArg(Expression arg) => BoogieGenerator.BoxIfNotNormallyBoxed(arg.Origin, TrExpr(arg), arg.Type);
+          }
           case FunctionCallExpr callExpr: {
               FunctionCallExpr e = callExpr;
               if (e.Function is SpecialFunction) {
