@@ -2798,7 +2798,6 @@ namespace Microsoft.Dafny {
       Bpl.Function func;
       {
         var formals = new List<Variable>();
-        formals.AddRange(MkTyParamFormals(f.TypeArgs, false));
         if (f.IsFuelAware()) {
           formals.Add(new Bpl.Formal(f.Origin, new Bpl.TypedIdent(f.Origin, "$ly", Predef.LayerType), true));
         }
@@ -2829,7 +2828,6 @@ namespace Microsoft.Dafny {
 
     private Bpl.Function GetCanCallFunction(Function f) {
       var formals = new List<Variable>();
-      formals.AddRange(MkTyParamFormals(f.TypeArgs, false));
       if (f is TwoStateFunction) {
         formals.Add(new Bpl.Formal(f.Origin, new Bpl.TypedIdent(f.Origin, "$prevHeap", Predef.HeapType), true));
       }

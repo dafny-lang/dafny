@@ -315,8 +315,7 @@ public partial class BoogieGenerator {
     List<Expr> tyargs = GetTypeArguments(f, null).ConvertAll(TypeToTy);
 
     var forallFormals = MkTyParamBinders(GetTypeParamsIncludingType(f), out _);
-    var smallerForallFormals = MkTyParamBinders(f.TypeArgs, out _);
-    var funcFormals = MkTyParamBinders(f.TypeArgs, out _);
+    List<Variable> funcFormals = [];
     var reqFuncArguments = new List<Expr>();
 
     BoundVariable layer;
@@ -324,7 +323,6 @@ public partial class BoogieGenerator {
     if (f.IsFuelAware()) {
       layer = new BoundVariable(f.Origin, new TypedIdent(f.Origin, "$ly", Predef.LayerType));
       forallFormals.Add(layer);
-      smallerForallFormals.Add(layer);
       funcFormals.Add(layer);
       reqFuncArguments.Add(new Bpl.IdentifierExpr(f.Origin, layer));
       // Note, "layer" is not added to "args" here; rather, that's done below, as needed
@@ -345,7 +343,6 @@ public partial class BoogieGenerator {
     if (f is TwoStateFunction) {
       Contract.Assert(bvPrevHeap != null);
       forallFormals.Add(bvPrevHeap);
-      smallerForallFormals.Add(bvPrevHeap);
       funcFormals.Add(bvPrevHeap);
       args.Add(etran.Old.HeapExpr);
       reqFuncArguments.Add(new Bpl.IdentifierExpr(f.Origin, bvPrevHeap));
@@ -361,7 +358,6 @@ public partial class BoogieGenerator {
 
       // ante:  $IsGoodHeap($Heap) && $HeapSucc($prevHeap, $Heap) && this != null && formals-have-the-expected-types &&
       forallFormals.Add(bv);
-      smallerForallFormals.Add(bv);
       var goodHeap = FunctionCall(f.Origin, BuiltinFunction.IsGoodHeap, null, etran.HeapExpr);
       ante = BplAnd(ante, goodHeap);
       if (f is TwoStateFunction) {
@@ -379,7 +375,6 @@ public partial class BoogieGenerator {
     if (!f.IsStatic) {
       var bvThis = new BoundVariable(f.Origin, new TypedIdent(f.Origin, etran.This, TrReceiverType(f)));
       forallFormals.Add(bvThis);
-      smallerForallFormals.Add(bvThis);
       funcFormals.Add(bvThis);
       reqFuncArguments.Add(new Bpl.IdentifierExpr(f.Origin, bvThis));
       var bvThisIdExpr = new Bpl.IdentifierExpr(f.Origin, bvThis);
@@ -412,7 +407,6 @@ public partial class BoogieGenerator {
       var bv = new BoundVariable(p.Origin,
         new TypedIdent(p.Origin, p.AssignUniqueName(CurrentDeclaration.IdGenerator), TrType(pType)));
       forallFormals.Add(bv);
-      smallerForallFormals.Add(bv);
       funcFormals.Add(bv);
       reqFuncArguments.Add(new Bpl.IdentifierExpr(f.Origin, bv));
       Expr formal = new Bpl.IdentifierExpr(p.Origin, bv);
@@ -482,7 +476,7 @@ public partial class BoogieGenerator {
 
       Trigger trig2 = BplTriggerHeap(this, f.Origin, appl, f.ReadsHeap ? etran.HeapExpr : null, null);
       AddOtherDefinition(precondF, new Axiom(f.Origin,
-        BplForall(f.Origin, [], smallerForallFormals, null, trig2, Expr.Imp(appl, useViaCanCall)),
+        BplForall(f.Origin, [], forallFormals, null, trig2, Expr.Imp(appl, useViaCanCall)),
         "#requires ==> #canCall for " + f.FullSanitizedName));
     }
 
@@ -542,7 +536,7 @@ public partial class BoogieGenerator {
       kv = new QKeyValue(f.Origin, "weight", new List<object>() { Expr.Literal(3) }, null);
     }
 
-    Expr ax = BplForall(f.Origin, [], smallerForallFormals, kv, tr,
+    Expr ax = BplForall(f.Origin, [], forallFormals, kv, tr,
       BplImp(ante, tastyVegetarianOption));
     var comment = "definition axiom for " + f.FullSanitizedName;
     if (lits != null) {

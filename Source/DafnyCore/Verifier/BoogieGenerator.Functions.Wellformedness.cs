@@ -249,10 +249,6 @@ public partial class BoogieGenerator {
     private Expr GetSelfCall(Function f, ExpressionTranslator etran, List<Variable> parameters) {
       var funcId = new FunctionCall(new Bpl.IdentifierExpr(f.Origin, f.FullSanitizedName, generator.TrType(f.ResultType)));
       var args = new List<Expr>();
-      foreach (var p in GetTypeParamsIncludingType(f)) {
-        args.Add(generator.TrTypeParameter(p));
-      }
-
       if (f.IsFuelAware()) {
         args.Add(etran.layerInterCluster.GetFunctionFuel(f));
       }
@@ -284,10 +280,6 @@ public partial class BoogieGenerator {
 
       // Assume the type returned by the call itself respects its type (this matters if the type is "nat", for example)
       var args = new List<Expr>();
-      foreach (var p in GetTypeParamsIncludingType(f)) {
-        args.Add(generator.TrTypeParameter(p));
-      }
-
       if (f.IsFuelAware()) {
         args.Add(etran.layerInterCluster.GetFunctionFuel(f));
       }
