@@ -83,26 +83,6 @@ namespace Microsoft.Dafny {
           AddAllocationAxiom(fieldDeclaration, f, c);
         } else if (member is Function function) {
           AddFunction_Top(function, includeAllMethods);
-          if (member.TryCastToInvariant(program.Options, program.Reporter, MessageSource.Verifier, out var invariant)) {
-            var heap = BplBoundVar(Predef.HeapVarName, Predef.HeapType, out var heapExpr);
-            var oldHeap = BplBoundVar($"old{Predef.HeapVarName}", Predef.HeapType, out var oldHeapExpr);
-            var etran = new ExpressionTranslator(this, Predef, heapExpr, oldHeapExpr, invariant);
-            // axiom: forall o : `c` | old(o.invariant()) :: o.invariant()
-            var origin = invariant.Origin;
-            var thisBv = new BoundVar(origin, "this", UserDefinedType.FromTopLevelDecl(origin, c is ClassLikeDecl cd ? cd.NonNullTypeDecl : c));
-            var thisExpr = new IdentifierExpr(origin, thisBv);
-            var callInvariant = invariant.ResolvedCall(origin, thisExpr, program.SystemModuleManager);
-            var range = new OldExpr(origin, callInvariant);
-            var axiom = etran.TrExpr(new ForallExpr(origin, [thisBv], range, callInvariant)
-            {
-              Bounds = [new ExactBoundedPool(range)] // Resolve here
-            });
-            sink.AddTopLevelDeclaration(new Bpl.Axiom(origin, BplForall(MkTyParamBinders(GetTypeParams(c), out _).Concat([oldHeap, heap]), BplImp(BplAnd([
-                FunctionCall(origin, BuiltinFunction.IsGoodHeap, null, oldHeapExpr),
-                FunctionCall(origin, BuiltinFunction.IsGoodHeap, null, heapExpr),
-                FunctionCall(origin, BuiltinFunction.HeapSucc, null, oldHeapExpr, heapExpr) // todo: is oldHeapExpr a heap anchor?
-            ]), axiom)), $"{c.FullSanitizedName}: invariant monotonicity axiom"));
-          }
         } else if (member is MethodOrConstructor method) {
           AddMethod_Top(method, false, includeAllMethods);
         } else {
@@ -535,7 +515,6 @@ namespace Microsoft.Dafny {
       // for a function in a class C that overrides a function in a trait J, add an axiom that connects J.F and C.F
       if (f.OverriddenFunction != null) {
         sink.AddTopLevelDeclaration(FunctionOverrideAxiom(f.OverriddenFunction, f));
-        // TODO(somayyas) in case that a function was an invariant
       }
 
       // supply the connection between least/greatest predicates and prefix predicates
