@@ -370,7 +370,7 @@ public partial class BoogieGenerator {
       ante = BplAnd(ante, typeBoundAxiom);
     }
 
-    Expr isType = null;
+    // Expr isType = null;
     Expression receiverReplacement = null;
     if (!f.IsStatic) {
       var bvThis = new BoundVariable(f.Origin, new TypedIdent(f.Origin, etran.This, TrReceiverType(f)));
@@ -392,7 +392,7 @@ public partial class BoogieGenerator {
       // add well-typedness conjunct to antecedent
       Type thisType = ModuleResolver.GetReceiverType(f.Origin, f);
       var expressionTranslator = (f is TwoStateFunction ? etran.Old : etran);
-      isType = GetWhereClause(f.Origin, bvThisIdExpr, thisType, expressionTranslator, NOALLOC);
+      // isType = GetWhereClause(f.Origin, bvThisIdExpr, thisType, expressionTranslator, NOALLOC);
       Expr wh = BplAnd(
         ReceiverNotNull(bvThisIdExpr),
         expressionTranslator.GoodRef(f.Origin, bvThisIdExpr, thisType));
@@ -468,7 +468,7 @@ public partial class BoogieGenerator {
       sink.AddTopLevelDeclaration(precondF);
 
       var appl = FunctionCall(f.Origin, RequiresName(f), Bpl.Type.Bool, reqFuncArguments);
-      Trigger trig1 = BplTriggerHeap(this, f.Origin, appl, f.ReadsHeap ? etran.HeapExpr : null, isType);
+      Trigger trig1 = BplTriggerHeap(this, f.Origin, appl, f.ReadsHeap ? etran.HeapExpr : null/*, isType*/);
       // axiom (forall params :: { f#requires(params) }  ante ==> f#requires(params) == pre);
       AddOtherDefinition(precondF, new Axiom(f.Origin,
         BplForall(forallFormals, trig1, BplImp(anteReqAxiom, Expr.Eq(appl, preReqAxiom))),
@@ -583,184 +583,6 @@ public partial class BoogieGenerator {
     }
     return e;
   }
-
-
-
-  public string FunctionHandle(Function f) {
-    Contract.Requires(f != null);
-    string name;
-    if (functionHandles.TryGetValue(f, out name)) {
-      Contract.Assert(name != null);
-    } else {
-      name = f.FullSanitizedName + "#Handle";
-      functionHandles[f] = name;
-      var formalVars = MkTyParamBinders(GetTypeParamsIncludingType(f), out var args);
-      var argsRequires = new List<Expr>(args); // Requires don't have reveal parameters
-      var formals = MkTyParamFormals(f.TypeArgs, false, true);
-      var tyargs = new List<Expr>();
-      foreach (var fm in f.Ins) {
-        tyargs.Add(TypeToTy(fm.Type));
-      }
-      tyargs.Add(TypeToTy(f.ResultType));
-      if (f.IsFuelAware()) {
-        formalVars.Add(BplBoundVar("$ly", Predef.LayerType, out var ly));
-        args.Add(ly);
-        argsRequires.Add(ly);
-        formals.Add(BplFormalVar("$fuel", Predef.LayerType, true));
-        AddFuelSuccSynonymAxiom(f, true);
-      }
-      if (f.IsOpaque || f.IsMadeImplicitlyOpaque(options)) {
-        formalVars.Add(BplBoundVar("$reveal", Boogie.Type.Bool, out var reveal));
-        args.Add(reveal);
-        formals.Add(BplFormalVar("$reveal", Boogie.Type.Bool, true));
-      }
-
-      Func<List<Expr>, List<Expr>> SnocSelf = x => x;
-      Func<List<Expr>, List<Expr>> SnocPrevH = x => x;
-      Expression selfExpr;
-      Dictionary<IVariable, Expression> rhs_dict = new Dictionary<IVariable, Expression>();
-      if (f is TwoStateFunction) {
-        // also add previous-heap to the list of fixed arguments of the handle
-        var prevH = BplBoundVar("$prevHeap", Predef.HeapType, formalVars);
-        formals.Add(BplFormalVar("h", Predef.HeapType, true));
-        SnocPrevH = xs => Snoc(xs, prevH);
-      }
-      if (f.IsStatic) {
-        selfExpr = null;
-      } else {
-        var selfTy = TrType(UserDefinedType.FromTopLevelDecl(f.Origin, f.EnclosingClass));
-        var self = BplBoundVar("$self", selfTy, formalVars);
-        formals.Add(BplFormalVar("self", selfTy, true));
-        SnocSelf = xs => Snoc(xs, self);
-        var wrapperType = UserDefinedType.FromTopLevelDecl(f.Origin, f.EnclosingClass);
-        selfExpr = new BoogieWrapper(self, wrapperType);
-      }
-
-      // F#Handle(Ty, .., Ty, LayerType, ref) : HandleType
-      sink.AddTopLevelDeclaration(
-        new Bpl.Function(f.Origin, name, formals, BplFormalVar(null, Predef.HandleType, false)));
-
-      var bvars = new List<Variable>();
-      var lhs_args = new List<Expr>();
-      var rhs_args = new List<Expr>();
-      var func_vars = new List<Variable>();
-      var func_args = new List<Expr>();
-      var boxed_func_args = new List<Expr>();
-
-      var idGen = f.IdGenerator.NestedFreshIdGenerator("$fh$");
-      foreach (var fm in f.Ins) {
-        string fm_name = idGen.FreshId("x#");
-        // Box and its [Unbox]args
-        var fe = BplBoundVar(fm_name, Predef.BoxType, bvars);
-        lhs_args.Add(fe);
-        var be = UnboxUnlessInherentlyBoxed(fe, fm.Type);
-        rhs_args.Add(be);
-
-        rhs_dict[fm] = new BoogieWrapper(be, fm.Type);
-        // args and its [Box]args
-        var arg = BplBoundVar(fm_name, TrType(fm.Type), func_vars);
-        func_args.Add(arg);
-        var boxed = BoxIfNotNormallyBoxed(arg.tok, arg, fm.Type);
-        boxed_func_args.Add(boxed);
-      }
-
-      var h = BplBoundVar("$heap", Predef.HeapType, formalVars);
-
-      int arity = f.Ins.Count;
-
-      {
-        // Apply(Ty.., F#Handle( Ty1, ..., TyN, Layer, self), Heap, arg1, ..., argN)
-        //   = [Box] F(Ty1, .., TyN, Layer, Heap, self, [Unbox] arg1, .., [Unbox] argN)
-
-        var fhandle = FunctionCall(f.Origin, name, Predef.HandleType, SnocSelf(SnocPrevH(args)));
-        var lhs = FunctionCall(f.Origin, Apply(arity), TrType(f.ResultType),
-          Concat(tyargs, Cons(h, Cons(fhandle, lhs_args))));
-        var args_h = f.ReadsHeap ? Snoc(SnocPrevH(args), h) : args;
-        var rhs = FunctionCall(f.Origin, f.FullSanitizedName, TrType(f.ResultType), Concat(SnocSelf(args_h), rhs_args));
-        var rhs_boxed = BoxIfNotNormallyBoxed(rhs.tok, rhs, f.ResultType);
-
-        AddOtherDefinition(GetOrCreateFunction(f), (new Axiom(f.Origin,
-          BplForall(Concat(formalVars, bvars), BplTrigger(lhs), Expr.Eq(lhs, rhs_boxed)))));
-      }
-
-      {
-        // As a first approximation, the following axiom is of the form:
-        // Requires(Ty.., F#Handle( Ty1, ..., TyN, Layer, reveal, self), Heap, arg1, ..., argN)
-        //   = F#Requires(Ty1, .., TyN, Layer, Heap, self, [Unbox] arg1, .., [Unbox] argN)
-        // However, .reads ands .requires functions require special attention.
-        // To understand the rationale for these axioms, refer to the section on arrow types of the reference manual.
-        // The requires clause of the .requires function is simply true.
-        // The requires clause of the .reads function checks that the precondition of the receiving function holds.
-
-        var fhandle = FunctionCall(f.Origin, name, Predef.HandleType, SnocSelf(SnocPrevH(args)));
-        var lhs = FunctionCall(f.Origin, Requires(arity), Bpl.Type.Bool, Concat(tyargs, Cons(h, Cons(fhandle, lhs_args))));
-        Expr rhs;
-        if (f.EnclosingClass is ArrowTypeDecl && f.Name == "requires") {
-          AddOtherDefinition(GetOrCreateFunction(f), new Axiom(f.Origin,
-              BplForall(Concat(formalVars, bvars), BplTrigger(lhs), Expr.Eq(lhs, Expr.True))));
-        } else if (f.EnclosingClass is ArrowTypeDecl && f.Name == "reads") {
-          var args_h = f.ReadsHeap ? Snoc(SnocPrevH(argsRequires), h) : argsRequires;
-          var pre = FunctionCall(f.Origin, Requires(arity), Bpl.Type.Bool, Concat(SnocSelf(args_h), lhs_args));
-          AddOtherDefinition(GetOrCreateFunction(f), (new Axiom(f.Origin,
-            BplForall(Concat(formalVars, bvars), BplTrigger(lhs), Expr.Eq(lhs, pre)))));
-        } else {
-          var args_h = f.ReadsHeap ? Snoc(SnocPrevH(argsRequires), h) : argsRequires;
-          rhs = FunctionCall(f.Origin, RequiresName(f), Bpl.Type.Bool, Concat(SnocSelf(args_h), rhs_args));
-          AddOtherDefinition(GetOrCreateFunction(f), new Axiom(f.Origin,
-            BplForall(Concat(formalVars, bvars), BplTrigger(lhs), Expr.Eq(lhs, rhs))));
-        }
-
-
-      }
-
-      {
-        // As a first approximation, the following axiom is of the form:
-        // Reads(Ty.., F#Handle( Ty1, ..., TyN, Layer, self), Heap, arg1, ..., argN)
-        //   =  $Frame_F(args...)
-        // However, .reads ands .requires functions require special attention.
-        // To understand the rationale for these axioms, refer to the section on arrow types of the reference manual.
-        // In both cases, the precondition of the receiving function must be checked before its reads clause can
-        // be referred to.
-
-        var fhandle = FunctionCall(f.Origin, name, Predef.HandleType, SnocSelf(SnocPrevH(args)));
-        Expr lhs_inner = FunctionCall(f.Origin, Reads(arity), TrType(program.SystemModuleManager.ObjectSetType()), Concat(tyargs, Cons(h, Cons(fhandle, lhs_args))));
-
-        Expr bx; var bxVar = BplBoundVar("$bx", Predef.BoxType, out bx);
-        Expr unboxBx = FunctionCall(f.Origin, BuiltinFunction.Unbox, Predef.RefType, bx);
-        Expr lhs = IsSetMember(f.Origin, lhs_inner, bx, true);
-
-        var et = new ExpressionTranslator(this, Predef, h, f);
-        var rhs = InRWClause_Aux(f.Origin, unboxBx, bx, null, f.Reads.Expressions, false, et, selfExpr, rhs_dict);
-
-        if (f.EnclosingClass is ArrowTypeDecl) {
-          var args_h = f.ReadsHeap ? Snoc(SnocPrevH(argsRequires), h) : argsRequires;
-          var precondition = FunctionCall(f.Origin, Requires(arity), Bpl.Type.Bool, Concat(SnocSelf(args_h), lhs_args));
-          sink.AddTopLevelDeclaration(new Axiom(f.Origin,
-            BplForall(Cons(bxVar, Concat(formalVars, bvars)), BplTrigger(lhs), BplImp(precondition, Expr.Eq(lhs, rhs)))));
-        } else {
-          sink.AddTopLevelDeclaration(new Axiom(f.Origin,
-            BplForall(Cons(bxVar, Concat(formalVars, bvars)), BplTrigger(lhs), Expr.Eq(lhs, rhs))));
-        }
-      }
-
-      {
-        // F(Ty1, .., TyN, Layer, Heap, self, arg1, .., argN)
-        // = [Unbox]Apply1(Ty.., F#Handle( Ty1, ..., TyN, Layer, self), Heap, [Box]arg1, ..., [Box]argN)
-
-        var fhandle = FunctionCall(f.Origin, name, Predef.HandleType, SnocSelf(SnocPrevH(args)));
-        var args_h = f.ReadsHeap ? Snoc(SnocPrevH(args), h) : args;
-        var lhs = FunctionCall(f.Origin, f.FullSanitizedName, TrType(f.ResultType), Concat(SnocSelf(args_h), func_args));
-        var rhs = FunctionCall(f.Origin, Apply(arity), TrType(f.ResultType), Concat(tyargs, Cons(h, Cons(fhandle, boxed_func_args))));
-        var rhs_unboxed = UnboxUnlessInherentlyBoxed(rhs, f.ResultType);
-        var tr = BplTriggerHeap(this, f.Origin, lhs, f.ReadsHeap ? null : h);
-
-        AddOtherDefinition(GetOrCreateFunction(f), (new Axiom(f.Origin,
-          BplForall(Concat(formalVars, func_vars), tr, Expr.Eq(lhs, rhs_unboxed)))));
-      }
-    }
-    return name;
-  }
-
 
   /// <summary>
   /// Generates:

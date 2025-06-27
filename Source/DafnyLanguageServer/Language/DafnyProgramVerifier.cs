@@ -65,7 +65,7 @@ namespace Microsoft.Dafny.LanguageServer.Language {
 
         try {
           return await engine.GetVerificationTasks(boogieProgram, cancellationToken);
-        } catch (Exception e) {
+        } catch (Exception) {
           // Boogie resolution error
           if (fileName != null) {
             // If a Boogie file was printed, parse that so errors use source locations from there
