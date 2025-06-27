@@ -23,7 +23,7 @@ public partial class BoogieGenerator {
       var formalVars = MkTyParamBinders(GetTypeParamsIncludingType(f), out _);
       List<Expr> args = [];
       var argsRequires = new List<Expr>(); // Requires don't have reveal parameters
-      var formals = MkTyParamFormals(f.TypeArgs, false, true);
+      List<Variable> formals = [];
       var tyargs = new List<Expr>();
       foreach (var fm in f.Ins) {
         tyargs.Add(TypeToTy(fm.Type));
