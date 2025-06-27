@@ -76,7 +76,7 @@ public partial class BoogieGenerator {
         rhsTypeConstraint = e.Array.Type.NormalizeExpand().TypeArgs[0];
       }
 
-      RemoveReferrersPreAssign(stmt.Origin, lhs, builder, locals, etran);
+      Referrers.RemovePreAssign(stmt.Origin, lhs, builder, locals, etran);
       var bRhs = TrAssignmentRhs(rhss[i].Origin, bLhss[i], null, lhsType, rhss[i], rhsTypeConstraint, builder, locals, etran, stmt);
       if (bLhss[i] != null) {
         Contract.Assert(bRhs == bLhss[i]);  // this is what the postcondition of TrAssignmentRhs promises
@@ -87,264 +87,22 @@ public partial class BoogieGenerator {
         finalRhss.Add(bRhs);
       }
 
-      AddReferrersPostAssign(stmt.Origin, lhs, bRhs, builder, etran);
+      Referrers.AddPostAssign(stmt.Origin, lhs, bRhs, builder, etran);
     }
     for (int i = 0; i < lhss.Count; i++) {
       lhsBuilder[i](finalRhss[i], rhss[i] is HavocRhs, builder, etran);
     }
   }
-  
-  private void RemoveReferrersPreAssign(IOrigin tok, Expression lhs, BoogieStmtListBuilder builder, Variables locals,
-    ExpressionTranslator etran) {
-    if (!VerifyReferrers || !lhs.Type.MayInvolveReferences || CurrentDeclaration is Lemma) {
-      return;
+
+  private ReferrersHelper referrers;
+  private ReferrersHelper Referrers {
+    get {
+      if (referrers == null) {
+        referrers = new ReferrersHelper(this);
+      }
+
+      return referrers;
     }
-    
-    // Havoc the referrersHeap by default, unless we know what to do.
-    if (lhs.Resolved is IdentifierExpr { Type.IsRefType: true, Var: LocalVariable localVariable }
-        && CurrentDeclaration is MethodOrConstructor m) {
-      RemoveReferrersPreAssignLocalVar(tok, lhs, localVariable, m, builder, etran);
-      return;
-    }
-
-    if (lhs.Resolved is MemberSelectExpr { Type.IsRefType: true, Obj: var memberObj, Member: Field memberField}) {
-      RemoveReferrersPreAssignMemberSelect(builder, locals, etran, tok, memberObj, memberField);
-      return;
-    }
-    ReferrersNotSupported(builder, etran, tok);
-  }
-
-  private void RemoveReferrersPreAssignLocalVar(IOrigin tok, Expression lhs,
-    LocalVariable localVariable, MethodOrConstructor m, BoogieStmtListBuilder builder,
-    ExpressionTranslator etran) {
-    if (!VerifyReferrers || !CountsAsReferrer(localVariable) || m is Lemma) {
-      return;
-    }
-    var tracker =
-      DefiniteAssignmentTrackers.TryGetValue(localVariable.AssignUniqueName(CurrentDeclaration.IdGenerator), out var assignmentTracker)
-      ? assignmentTracker.tracker : null;
-    RemoveReferrersPreAssignField(tok, lhs, localVariable.GetLocalField(m), tracker, builder, etran);
-  }
-
-  private void RemoveReferrersPreAssignField(IOrigin tok,
-    Expression lhs,
-    Field field, Bpl.IdentifierExpr tracker,
-    BoogieStmtListBuilder builder, ExpressionTranslator etran)
-  {
-    var bField = GetField(field);
-    var fieldExpr = FunctionCall(tok, BuiltinFunction.LocalField, Predef.FieldType,
-      Id(tok, bField), Id(tok, "depth"));
-    Expr bLhs = etran.TrExpr(lhs);
-    var objExpr = Predef.Locals;
-    RemoveReferrersUnassignAux(tok, bLhs, objExpr, fieldExpr, tracker, builder, etran);
-  }
-  
-  private void RemoveReferrersPostCallFormal(IOrigin tok, Expression lhs, Bpl.Expr bLhs, Formal formal, MethodOrConstructor method,
-    BoogieStmtListBuilder builder, ExpressionTranslator etran) {
-    if (!VerifyReferrers || !lhs.Type.MayInvolveReferences || !CountsAsReferrer(formal) || method is Lemma) {
-      return;
-    }
-    
-    var field = formal.GetLocalField(method);
-    var bField = GetField(field);
-    var fieldExpr = FunctionCall(tok, BuiltinFunction.LocalField, Predef.FieldType,
-      Id(tok, bField),  Bpl.Expr.Add(Id(tok, "depth"), One(tok)));
-    var objExpr = Predef.Locals;
-    RemoveReferrersUnassignAux(tok, bLhs, objExpr, fieldExpr, null, builder, etran);
-  }
-
-  private void RemoveReferrersPreAssignMemberSelect(BoogieStmtListBuilder builder, Variables locals,
-    ExpressionTranslator etran, IOrigin tok, Expression memberObj, Field memberField)
-  {
-    var oldRhs = locals.GetOrCreate("$oldRhs", () => new Bpl.LocalVariable(tok, new Bpl.TypedIdent(tok, "$oldRhs", Predef.RefType)));
-
-    var bLhs = new Bpl.IdentifierExpr(tok, oldRhs);
-    var heapRead = ReadHeap(tok, etran.HeapExpr, etran.TrExpr(memberObj), Id(tok, GetField(memberField).Name));
-    var unboxedHeapRead = FunctionCall(tok, BuiltinFunction.Unbox, Predef.RefType, heapRead);
-    builder.Add(Bpl.Cmd.SimpleAssign(tok, bLhs, unboxedHeapRead));
-
-    var fieldId = Id(tok, GetField(memberField).Name);
-    var objExpr = etran.TrExpr(memberObj);
-    RemoveReferrersUnassignAux(tok, bLhs, objExpr, fieldId, null, builder, etran);
-  }
-
-  /// <summary>
-  /// Generates boogie code like the following. The initialization tracker, if null, assumes the variable to be already initialized.
-  /// 
-  /// if (lhs != null && assignTracker) {
-  ///   assume Set#IsMember(readReferrers($ReferrersHeap, bLhs), $Box(#_System._tuple#2._#Make2($Box(objExpr), $Box(fieldId))));
-  ///   $ReferrersHeap := updateReferrers($ReferrersHeap, lhs, Set#Difference(readReferrers($ReferrersHeap, bLhs), Set#UnionOne(Set#Empty(), $Box(#_System._tuple#2._#Make2($Box(objExpr),  /// $Box(fieldId))))
-  ///   ));
-  /// }
-  /// </summary>
-  private void RemoveReferrersUnassignAux(IOrigin tok, Expr lhs, Expr objExpr, Expr fieldExpr,
-    Bpl.IdentifierExpr assignTracker, BoogieStmtListBuilder builder, ExpressionTranslator etran)
-  {
-    var obj = ApplyBox(tok, objExpr);
-    var f = ApplyBox(tok, fieldExpr);
-    var memlocExpr = FunctionCall(tok, Predef.Tuple2Constructor.Name, Predef.DatatypeType, obj, f);
-    var tupleBoxObjAndField = ApplyBox(tok, memlocExpr);
-    var referrersHeapRhs = UpdateReferrersHeap(tok, etran.ReferrersHeapExpr,
-      lhs, FunctionCall(
-        tok, BuiltinFunction.SetDifference,
-        Predef.SetType,
-        ReadReferrersHeap(tok, etran.ReferrersHeapExpr, lhs),
-        FunctionCall(tok, BuiltinFunction.SetUnionOne, Predef.SetType,
-          FunctionCall(tok, BuiltinFunction.SetEmpty, Predef.SetType),
-          tupleBoxObjAndField
-        )));
-    var preReferrerHeapUpdate =
-      Cmd.SimpleAssign(tok, etran.ReferrerrsHeapCastToIdentifierExpr, referrersHeapRhs);
-    var b = new StmtListBuilder();
-    b.Add(new AssumeCmd(tok,
-      FunctionCall(tok, BuiltinFunction.SetIsMember, Predef.BoxType,
-        ReadReferrersHeap(tok, etran.ReferrersHeapExpr, lhs),
-        tupleBoxObjAndField
-      )
-    ));
-    b.Add(preReferrerHeapUpdate);
-    Expr bCond = Bpl.Expr.Neq(lhs, Predef.Null);
-    if (assignTracker != null) {
-      bCond = BplAnd(bCond, assignTracker);
-    }
-
-    var ifCmd = new Bpl.IfCmd(tok,
-      bCond,
-      b.Collect(tok),
-      null, null);
-    builder.Add(ifCmd);
-  }
-
-  private void AddReferrersPostAssign(IOrigin tok, Expression memloc, Expr rhsVariable, BoogieStmtListBuilder builder,
-    ExpressionTranslator etran) {
-    if (!VerifyReferrers || !memloc.Type.MayInvolveReferences) {
-      return;
-    }
-
-    // Havoc the referrersHeap by default, unless we know what to do.
-    if (memloc.Resolved is IdentifierExpr { Type.IsRefType: true, Var: LocalVariable { } localVariable }
-        && CurrentDeclaration is MethodOrConstructor m) {
-      AddReferrersPostAssignLocalVar(tok, etran.TrExpr(memloc), builder, etran, localVariable, m, false);
-      return;
-    }
-    
-    if (memloc.Resolved is MemberSelectExpr { Type.IsRefType: true, Obj: var memberObj, Member: Field memberField}) {
-      AddReferrersPostAssignMemberSelect(tok, rhsVariable, builder, etran, memberObj, memberField);
-      return;
-    }
-    
-    ReferrersNotSupported(builder, etran, tok);
-  }
-
-  private void AddReferrersPostAssignLocalVar(IOrigin tok, Expr bRhs, BoogieStmtListBuilder builder,
-    ExpressionTranslator etran, LocalVariable localVariable, MethodOrConstructor m, bool deeperLevel) {
-    if (!VerifyReferrers || !CountsAsReferrer(localVariable) || m is Lemma) {
-      return;
-    }
-
-    AddReferrersPostAssignField(tok, bRhs, builder, etran, localVariable.GetLocalField(m), deeperLevel);
-  }
-  
-  private void AddReferrersPreCallFormal(IOrigin tok, Expr bRhs, BoogieStmtListBuilder builder,
-    ExpressionTranslator etran, Formal formal, MethodOrConstructor m) {
-    if (!VerifyReferrers || !CountsAsReferrer(formal) || m is Lemma) {
-      return;
-    }
-
-    AddReferrersPostAssignField(tok, bRhs, builder, etran, formal.GetLocalField(m), true);
-  }
-
-  private void AddReferrersPostAssignField(IOrigin tok, Expr bRhs, BoogieStmtListBuilder builder,
-    ExpressionTranslator etran, Field field, bool deeperLevel)
-  {
-    if (!VerifyReferrers || !CountsAsReferrer(field)) {
-      return;
-    }
-
-    var bField = GetField(field);
-    var depth = Id(tok, "depth");
-    if (deeperLevel) {
-      depth = Bpl.Expr.Add(depth, One(tok));
-    }
-
-    var fieldExpr = FunctionCall(tok, BuiltinFunction.LocalField, Predef.FieldType,
-      Id(tok, bField), depth);
-    AddReferrersPostAssignAux(tok, bRhs, Predef.Locals, fieldExpr, builder, etran);
-  }
-  
-  private void AddReferrersPostAssignMemberSelect(IOrigin tok, Expr bRhs, BoogieStmtListBuilder builder,
-    ExpressionTranslator etran, Expression memberObj, Field memberField)
-  {
-    if (!VerifyReferrers || !CountsAsReferrer(memberField)) {
-      return;
-    }
-
-    var objExpr = etran.TrExpr(memberObj);
-    var fieldId = Id(tok, GetField(memberField).Name);
-                              
-    AddReferrersPostAssignAux(tok, bRhs, objExpr, fieldId, builder, etran);
-  }
-
-  
-  /// <summary>
-  /// Adds the following Boogie code to the builder
-  ///
-  ///     if (bRhs != null) {
-  ///       assume !Set#IsMember(readReferrers($ReferrersHeap, bRhs), $Box(#_System._tuple#2._#Make2($Box(objExpr), $Box(fieldExpr))));
-  ///       $ReferrersHeap := updateReferrers($ReferrersHeap, bRhs, Set#UnionOne(readReferrers($ReferrersHeap, bRhs),
-  ///         $Box(#_System._tuple#2._#Make2($Box(objExpr), $Box(fieldExpr)))
-  ///       ));
-  ///     }
-  /// </summary>
-  private void AddReferrersPostAssignAux(IOrigin tok, Expr bRhs, Expr objExpr, Expr fieldExpr,
-    BoogieStmtListBuilder builder, ExpressionTranslator etran)
-  {
-    var obj = ApplyBox(tok, objExpr);
-    var f = ApplyBox(tok, fieldExpr);
-    var memLocExpr = FunctionCall(tok, Predef.Tuple2Constructor.Name, Predef.DatatypeType, obj, f);
-    var memLocExprBox = ApplyBox(tok, memLocExpr);
-    var referrersHeapRhs = UpdateReferrersHeap(tok, etran.ReferrersHeapExpr,
-      bRhs, FunctionCall(
-        tok, BuiltinFunction.SetUnionOne,
-        Predef.SetType,
-        ReadReferrersHeap(tok, etran.ReferrersHeapExpr, bRhs),
-        memLocExprBox
-      ));
-    var postReferrersHeapUpdate =
-      Bpl.Cmd.SimpleAssign(tok, etran.ReferrerrsHeapCastToIdentifierExpr, referrersHeapRhs);
-    var b = new StmtListBuilder();
-    b.Add(new AssumeCmd(tok,
-      Expr.Not(
-        FunctionCall(tok, BuiltinFunction.SetIsMember, Predef.BoxType,
-          ReadReferrersHeap(tok, etran.ReferrersHeapExpr, bRhs),
-          memLocExprBox
-        )
-      )
-    ));
-    b.Add(postReferrersHeapUpdate);
-    var ifCmd = new IfCmd(tok,
-      Expr.Neq(bRhs, Predef.Null),
-      b.Collect(tok),
-      null, null);
-    builder.Add(ifCmd);
-  }
-
-  private static bool CountsAsReferrer(LocalVariable localVariable) {
-    return !localVariable.IsGhost || localVariable.HasUserAttribute(TrackingAttribute, out _);
-  }
-
-  private static bool CountsAsReferrer(Formal formal) {
-    return !formal.IsGhost;
-  }
-
-  private static bool CountsAsReferrer(Field field) {
-    return !field.IsGhost || field.HasUserAttribute(TrackingAttribute, out _);
-  }
-
-  private void ReferrersNotSupported(BoogieStmtListBuilder builder, ExpressionTranslator etran, IOrigin tok) {
-    program.Reporter.Warning(MessageSource.Verifier, "Unknown referrers action", tok,
-      "This update statement is not yet supported by referrers..");
-    builder.Add(new HavocCmd(tok, [etran.ReferrerrsHeapCastToIdentifierExpr]));
   }
 
   List<Bpl.Expr> ProcessUpdateAssignRhss(List<Expression> lhss, List<AssignmentRhs> rhss,
@@ -713,6 +471,7 @@ public partial class BoogieGenerator {
       var callsConstructor = allocateClass.InitCall is { Method: Constructor };
       Bpl.IdentifierExpr nw = GetNewVar_IdExpr(tok, locals);
       if (!callsConstructor) {
+        Contract.Assert(allocateClass.InitCall == null);
         SelectAllocateObject(tok, nw, allocateClass.Type, true, builder, etran);
         Bpl.Cmd heapAllocationRecorder = null;
         if (codeContext is IteratorDecl iter) {
@@ -725,9 +484,8 @@ public partial class BoogieGenerator {
           heapAllocationRecorder = Bpl.Cmd.SimpleAssign(tok, etran.HeapCastToIdentifierExpr, heapRhs);
         }
         CommitAllocatedObject(tok, nw, heapAllocationRecorder, builder, etran);
-        AssumeEmptyReferrersFor(nw, tok, builder, etran);
-      }
-      if (allocateClass.InitCall != null) {
+        Referrers.AssumeEmptyFor(nw, tok, builder, etran);
+      } else {
         AddComment(builder, allocateClass.InitCall, "init call statement");
         TrCallStmt(allocateClass.InitCall, builder, locals, etran, nw);
       }
@@ -769,7 +527,7 @@ public partial class BoogieGenerator {
       Bpl.IdentifierExpr nw = GetNewVar_IdExpr(tok, locals);
 
       SelectAllocateObject(tok, nw, allocateArray.Type, true, builder, etran);
-      AssumeEmptyReferrersFor(nw, tok, builder, etran);
+      Referrers.AssumeEmptyFor(nw, tok, builder, etran);
       int i = 0;
       foreach (Expression dim in allocateArray.ArrayDimensions) {
         // assume Array#Length($nw, i) == arraySize;
@@ -808,22 +566,6 @@ public partial class BoogieGenerator {
       return HandleGivenLhs(tok, bGivenLhs, lhsType, builder, stmt, bLhs, nw, allocateArray);
     } else {
       throw new UnreachableException();
-    }
-  }
-
-  private void AssumeEmptyReferrersFor(Bpl.IdentifierExpr nw, IOrigin tok, BoogieStmtListBuilder builder,
-    ExpressionTranslator etran)
-  {
-    if (Options.Get(CommonOptionBag.Referrers)) {
-      // Add assume readReferrers($ReferrersHeap, nw) == Set#Empty()
-
-      builder.Add(
-        new AssumeCmd(tok,
-          Bpl.Expr.Eq(
-            ReadReferrersHeap(tok, etran.ReferrersHeapExpr, nw),
-            FunctionCall(tok, BuiltinFunction.SetEmpty, Predef.SetType)
-          )
-        ));
     }
   }
 

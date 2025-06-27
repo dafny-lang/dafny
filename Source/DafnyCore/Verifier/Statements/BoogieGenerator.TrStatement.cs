@@ -74,7 +74,7 @@ public partial class BoogieGenerator {
               if (localVar is LocalVariable l) {
                 // Need to unassign
                 var lhs = new IdentifierExpr(stmt.Origin, l);
-                RemoveReferrersPreAssign(stmt.Origin, lhs, builder, locals, etran);
+                Referrers.RemovePreAssign(stmt.Origin, lhs, builder, locals, etran);
               }
               /*
                Example:

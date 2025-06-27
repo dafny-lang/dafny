@@ -231,8 +231,11 @@ public partial class BoogieGenerator {
       directSubstMap.Add(formal, dActual);
       Bpl.Cmd cmd = Bpl.Cmd.SimpleAssign(formal.Origin, param, bActual);
       builder.Add(cmd);
-      AddReferrersPreCallFormal(cs.Origin, param, builder, etran, formal, method);
+      Referrers.AddAssignPreCallFormal(cs.Origin, param, builder, etran, formal, method);
       ins.Add(AdaptBoxing(ToDafnyToken(param.tok), param, formal.Type.Subst(tySubst), formal.Type));
+    }
+    if (!method.IsStatic && method is not Constructor && bReceiver != null) {
+      Referrers.AddAssignPreCallFormal(cs.Origin, bReceiver, builder, etran, method.ThisFormal, method);
     }
 
     // Check that every parameter is available in the state in which the method is invoked; this means checking that it has
@@ -370,7 +373,10 @@ public partial class BoogieGenerator {
     foreach (var formal in callee.Ins) {
       var ie = substMap[formal];
       var dActual = etran.TrExpr(ie);
-      RemoveReferrersPostCallFormal(cs.Origin, ie, dActual, formal, method, builder, etran);
+      Referrers.RemovePostCallFormal(cs.Origin, dActual, formal, method, builder, etran);
+    }
+    if (!method.IsStatic) {
+      Referrers.RemovePostCallFormal(cs.Origin, bReceiver, method.ThisFormal, method, builder, etran);
     }
 
     // Unbox results as needed

@@ -4295,6 +4295,12 @@ axiom (forall depth: int ::
   { local_field(_module.ChainingObject.__ctor.chained__test, depth) } 
   !_System.field.IsGhost(local_field(_module.ChainingObject.__ctor.chained__test, depth)));
 
+const unique _module.ChainingObject.__ctor.this: FieldFamily;
+
+axiom (forall depth: int :: 
+  { local_field(_module.ChainingObject.__ctor.this, depth) } 
+  !_System.field.IsGhost(local_field(_module.ChainingObject.__ctor.this, depth)));
+
 const unique _module.__default.ObjectFields.u: FieldFamily;
 
 axiom (forall depth: int :: 
@@ -4400,6 +4406,17 @@ implementation {:smt_option "smt.arith.solver", "2"} {:verboseName "ObjectFields
             Set#UnionOne(Set#Empty(): Set, 
               $Box(#_System._tuple#2._#Make2($Box(locals), 
                   $Box(local_field(_module.ChainingObject.__ctor.chained__test, depth + 1)))))));
+    }
+
+    if ($nw != null)
+    {
+        assume Set#IsMember(readReferrers($ReferrersHeap, $nw), 
+          $Box(#_System._tuple#2._#Make2($Box(locals), $Box(local_field(_module.ChainingObject.__ctor.this, depth + 1)))));
+        $ReferrersHeap := updateReferrers($ReferrersHeap, 
+          $nw, 
+          Set#Difference(readReferrers($ReferrersHeap, $nw), 
+            Set#UnionOne(Set#Empty(): Set, 
+              $Box(#_System._tuple#2._#Make2($Box(locals), $Box(local_field(_module.ChainingObject.__ctor.this, depth + 1)))))));
     }
 
     // TrCallStmt: After ProcessCallStmt
@@ -4759,6 +4776,17 @@ implementation {:smt_option "smt.arith.solver", "2"} {:verboseName "ObjectFields
             Set#UnionOne(Set#Empty(): Set, 
               $Box(#_System._tuple#2._#Make2($Box(locals), 
                   $Box(local_field(_module.ChainingObject.__ctor.chained__test, depth + 1)))))));
+    }
+
+    if ($nw != null)
+    {
+        assume Set#IsMember(readReferrers($ReferrersHeap, $nw), 
+          $Box(#_System._tuple#2._#Make2($Box(locals), $Box(local_field(_module.ChainingObject.__ctor.this, depth + 1)))));
+        $ReferrersHeap := updateReferrers($ReferrersHeap, 
+          $nw, 
+          Set#Difference(readReferrers($ReferrersHeap, $nw), 
+            Set#UnionOne(Set#Empty(): Set, 
+              $Box(#_System._tuple#2._#Make2($Box(locals), $Box(local_field(_module.ChainingObject.__ctor.this, depth + 1)))))));
     }
 
     // TrCallStmt: After ProcessCallStmt
@@ -5304,12 +5332,6 @@ procedure {:verboseName "ChainingObject._ctor (well-formedness)"} CheckWellForme
   modifies $Heap, $ReferrersHeap;
 
 
-
-const unique _module.ChainingObject.__ctor.this: FieldFamily;
-
-axiom (forall depth: int :: 
-  { local_field(_module.ChainingObject.__ctor.this, depth) } 
-  !_System.field.IsGhost(local_field(_module.ChainingObject.__ctor.this, depth)));
 
 procedure {:verboseName "ChainingObject._ctor (call)"} Call$$_module.ChainingObject.__ctor(depth: int, 
     chained_test#0: ref

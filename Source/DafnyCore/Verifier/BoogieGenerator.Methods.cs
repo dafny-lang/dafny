@@ -1790,25 +1790,9 @@ namespace Microsoft.Dafny {
             req.Add(Requires(m.Origin, true, null, typeBoundAxiom, null, null, null));
           }
 
-          if (VerifyReferrers && m is not Lemma) {
-            foreach (var i in m.Ins.Where(i => i.Type.IsRefType && CountsAsReferrer(i))) {
-              /* 
-              free requires Set#IsMember(readReferrers($ReferrersHeap, t#0), 
-                  $Box(#_System._tuple#2._#Make2($Box(locals), $Box(local_field(_module.__default.ReferrersMethodCall.t, depth)))));  */
-              var localField = i.GetLocalField(m);
-              var field = GetField(localField); // Make sure definition is added.
-              var tuple = FunctionCall(i.Origin, Predef.Tuple2Constructor.Name, null, 
-                FunctionCall(i.Origin, BuiltinFunction.Box, null, Id(i.Origin, "locals")),
-                FunctionCall(i.Origin, BuiltinFunction.Box, null, 
-                  FunctionCall(i.Origin, BuiltinFunction.LocalField, Predef.FieldType,
-                    Id(i.Origin, field.Name),
-                    Id(i.Origin, "depth"))));
-              var boxedTuple = FunctionCall(i.Origin, BuiltinFunction.Box, null, tuple);
-              var isMember = FunctionCall(i.Origin, BuiltinFunction.SetIsMember, null,
-                FunctionCall(i.Origin, BuiltinFunction.ReadReferrers, null,
-                  ordinaryEtran.ReferrersHeapExpr, Id(i.Origin, i.AssignUniqueName(m.IdGenerator))),
-                boxedTuple);
-              req.Add(FreeRequires(i.Origin, isMember, null));
+          if (VerifyReferrers) {
+            foreach (var i in m.Ins) {
+              Referrers.AddFreeRequires(i, m, ordinaryEtran, req);
             }
           }
         }
