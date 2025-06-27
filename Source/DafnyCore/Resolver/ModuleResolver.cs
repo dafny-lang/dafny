@@ -163,8 +163,6 @@ namespace Microsoft.Dafny {
               prefixPred.IsRecursive = true;
             }
           }
-        } else if (clbl is MemberDecl member && member.TryCastToInvariant(Options, reporter, MessageSource.Resolver, out _)) {
-          // Invariants aren't recursive!
         } else {
           var m = (MethodOrConstructor)clbl;
           if (!m.IsRecursive) {
@@ -2422,8 +2420,6 @@ namespace Microsoft.Dafny {
             ResolveMethodSignature(mm);
             allTypeParameters.PopMarker();
           }
-        } else if (member.TryCastToInvariant(Options, reporter, MessageSource.Resolver, out _)) {
-          // Nothing to do for invariants
         } else {
           Contract.Assert(false); throw new cce.UnreachableException();  // unexpected member type
         }

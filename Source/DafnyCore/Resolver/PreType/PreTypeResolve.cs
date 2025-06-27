@@ -935,8 +935,6 @@ namespace Microsoft.Dafny {
         if (method is ExtremeLemma { PrefixLemma: { } prefixLemma }) {
           ComputePreTypeMethod(prefixLemma);
         }
-      } else if (declaration is MemberDecl member && member.TryCastToInvariant(Options, Reporter, MessageSource.Resolver, out _)) {
-        // Nothing to be done for invariants
       } else {
         Contract.Assert(false); // unexpected declaration
       }
