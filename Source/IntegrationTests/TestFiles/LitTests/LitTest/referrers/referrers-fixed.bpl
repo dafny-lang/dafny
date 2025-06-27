@@ -5527,7 +5527,7 @@ implementation {:smt_option "smt.arith.solver", "2"} {:verboseName "ChainingObje
     assume true;
     assume true;
     $oldRhs := $Unbox(read($Heap, this, _module.ChainingObject.x)): ref;
-    if (defass#this.x && $oldRhs != null)
+    if ($oldRhs != null && defass#this.x)
     {
         assume Set#IsMember(readReferrers($ReferrersHeap, $oldRhs), 
           $Box(#_System._tuple#2._#Make2($Box(this), $Box(_module.ChainingObject.x))));
@@ -5557,7 +5557,7 @@ implementation {:smt_option "smt.arith.solver", "2"} {:verboseName "ChainingObje
     assume true;
     assume true;
     $oldRhs := $Unbox(read($Heap, this, _module.ChainingObject.y)): ref;
-    if (defass#this.y && $oldRhs != null)
+    if ($oldRhs != null && defass#this.y)
     {
         assume Set#IsMember(readReferrers($ReferrersHeap, $oldRhs), 
           $Box(#_System._tuple#2._#Make2($Box(this), $Box(_module.ChainingObject.y))));
@@ -5587,7 +5587,7 @@ implementation {:smt_option "smt.arith.solver", "2"} {:verboseName "ChainingObje
     assume true;
     assume true;
     $oldRhs := $Unbox(read($Heap, this, _module.ChainingObject.tracking)): ref;
-    if (defass#this.tracking && $oldRhs != null)
+    if ($oldRhs != null && defass#this.tracking)
     {
         assume Set#IsMember(readReferrers($ReferrersHeap, $oldRhs), 
           $Box(#_System._tuple#2._#Make2($Box(this), $Box(_module.ChainingObject.tracking))));
@@ -5636,7 +5636,7 @@ implementation {:smt_option "smt.arith.solver", "2"} {:verboseName "ChainingObje
     assume true;
     assume true;
     $oldRhs := $Unbox(read($Heap, this, _module.ChainingObject.tail)): ref;
-    if (defass#this.tail && $oldRhs != null)
+    if ($oldRhs != null && defass#this.tail)
     {
         assume Set#IsMember(readReferrers($ReferrersHeap, $oldRhs), 
           $Box(#_System._tuple#2._#Make2($Box(this), $Box(_module.ChainingObject.tail))));

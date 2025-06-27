@@ -136,7 +136,10 @@ public partial class BoogieGenerator
 
       var fieldId = Id(tok, BG.GetField(memberField).Name);
       var objExpr = etran.TrExpr(memberObj);
-      RemoveUnassignAux(tok, bLhs, objExpr, fieldId, null, builder, etran);
+      var useSurrogateLocal = BG.inBodyInitContext && Expression.AsThis(memberObj) != null;
+      var nm = BG.SurrogateName(memberField);
+      var tracker = BG.DefiniteAssignmentTrackers.TryGetValue(nm, out var trackedTracker) ? trackedTracker.tracker : null;
+      RemoveUnassignAux(tok, bLhs, objExpr, fieldId, tracker, builder, etran);
     }
 
     /// <summary>
