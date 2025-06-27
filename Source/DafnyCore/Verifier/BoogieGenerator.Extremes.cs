@@ -53,10 +53,10 @@ public partial class BoogieGenerator {
     var tyvars = MkTyParamBinders(GetTypeParamsIncludingType(pp), out var tyexprs);
 
     var bvs = new List<Variable>(tyvars);
-    var coArgs = new List<Bpl.Expr>(tyexprs);
-    var prefixArgs = new List<Bpl.Expr>(tyexprs);
-    var prefixArgsLimited = new List<Bpl.Expr>(tyexprs);
-    var prefixArgsLimitedM = new List<Bpl.Expr>(tyexprs);
+    var coArgs = new List<Bpl.Expr>();
+    var prefixArgs = new List<Bpl.Expr>();
+    var prefixArgsLimited = new List<Bpl.Expr>();
+    var prefixArgsLimitedM = new List<Bpl.Expr>();
     if (pp.IsFuelAware()) {
       var sV = new Bpl.BoundVariable(tok, new Bpl.TypedIdent(tok, "$ly", Predef.LayerType));
       var s = new Bpl.IdentifierExpr(tok, sV);
@@ -152,10 +152,10 @@ public partial class BoogieGenerator {
 
     // forall args :: { P(args) } args-have-appropriate-values && P(args) ==> QQQ k { P#[k](args) } :: 0 ATMOST k HHH P#[k](args)
     var tr = BplTrigger(prefixAppl);
-    var qqqK = pp.ExtremePred is GreatestPredicate
-      ? (Bpl.Expr)new Bpl.ForallExpr(tok, [k], tr,
+    Expr qqqK = pp.ExtremePred is GreatestPredicate
+      ? new Bpl.ForallExpr(tok, [k], tr,
         kWhere == null ? prefixAppl : BplImp(kWhere, prefixAppl))
-      : (Bpl.Expr)new Bpl.ExistsExpr(tok, [k], tr,
+      : new Bpl.ExistsExpr(tok, [k], tr,
         kWhere == null ? prefixAppl : BplAnd(kWhere, prefixAppl));
     tr = BplTriggerHeap(this, tok, coAppl, pp.ReadsHeap ? null : h);
     var allS = new Bpl.ForallExpr(tok, bvs, tr, BplImp(BplAnd(ante, coAppl), qqqK));

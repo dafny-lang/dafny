@@ -104,8 +104,7 @@ public partial class BoogieGenerator {
     // allocation statement changes only an allocation bit and then re-assumes $IsGoodHeap; so if it is
     // sound after that, then it would also have been sound just before the allocation.
     //
-    List<Expr> tyargs;
-    var formals = MkTyParamBinders(GetTypeParamsIncludingType(f), out tyargs);
+    var formals = MkTyParamBinders(GetTypeParamsIncludingType(f), out _);
     var args = new List<Expr>();
     var olderInParams = new List<Variable>(); // for use with older-condition
     BoundVariable layer;

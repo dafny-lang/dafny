@@ -20,8 +20,9 @@ public partial class BoogieGenerator {
     } else {
       name = f.FullSanitizedName + "#Handle";
       functionHandles[f] = name;
-      var formalVars = MkTyParamBinders(GetTypeParamsIncludingType(f), out var args);
-      var argsRequires = new List<Expr>(args); // Requires don't have reveal parameters
+      var formalVars = MkTyParamBinders(GetTypeParamsIncludingType(f), out _);
+      List<Expr> args = [];
+      var argsRequires = new List<Expr>(); // Requires don't have reveal parameters
       var formals = MkTyParamFormals(f.TypeArgs, false, true);
       var tyargs = new List<Expr>();
       foreach (var fm in f.Ins) {
