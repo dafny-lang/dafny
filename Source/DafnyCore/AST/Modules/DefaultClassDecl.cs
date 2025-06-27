@@ -23,7 +23,7 @@ public class DefaultClassDecl : TopLevelDeclWithMembers, RevealableTypeDecl {
   public DefaultClassDecl(ModuleDefinition enclosingModule, [Captured] List<MemberDecl> members)
     : base(SourceOrigin.NoToken, new Name("_default"), enclosingModule, [], members, null, []) {
     Contract.Requires(enclosingModule != null);
-    Contract.Requires(cce.NonNullElements(members));
+    Contract.Requires(Cce.NonNullElements(members));
     this.NewSelfSynonym();
   }
 }

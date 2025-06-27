@@ -46,7 +46,7 @@ public static class SourcePreprocessor {
   // "arg" is assumed to be trimmed
   private static bool IfdefConditionSaysToInclude(string arg, List<string> /*!*/ defines) {
     Contract.Requires(arg != null);
-    Contract.Requires(cce.NonNullElements(defines));
+    Contract.Requires(Cce.NonNullElements(defines));
     bool sense = true;
     while (arg.StartsWith("!")) {
       sense = !sense;
@@ -58,7 +58,7 @@ public static class SourcePreprocessor {
 
   public static string ProcessDirectives(TextReader reader, List<string> /*!*/ defines) {
     Contract.Requires(reader != null);
-    Contract.Requires(cce.NonNullElements(defines));
+    Contract.Requires(Cce.NonNullElements(defines));
     Contract.Ensures(Contract.Result<string>() != null);
     string newline = null;
     StringBuilder sb = new StringBuilder();

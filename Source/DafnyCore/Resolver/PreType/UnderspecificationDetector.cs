@@ -523,7 +523,7 @@ namespace Microsoft.Dafny {
           return BinaryExpr.ResolvedOpcode.BitwiseXor;
         default:
           Contract.Assert(false);
-          throw new cce.UnreachableException();  // unexpected operator
+          throw new Cce.UnreachableException();  // unexpected operator
       }
     }
 

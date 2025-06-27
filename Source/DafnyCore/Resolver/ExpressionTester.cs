@@ -484,7 +484,7 @@ public class ExpressionTester {
       return false;
     } else if (expr is IdentifierExpr) {
       IdentifierExpr e = (IdentifierExpr)expr;
-      return cce.NonNull(e.Var).IsGhost;
+      return Cce.NonNull(e.Var).IsGhost;
     } else if (expr is DatatypeValue) {
       var e = (DatatypeValue)expr;
       if (e.Ctor.IsGhost) {
@@ -653,7 +653,7 @@ public class ExpressionTester {
     } else if (expr is LocalsObjectExpression) {
       return true;
     } else {
-      Contract.Assert(false); throw new cce.UnreachableException();  // unexpected expression
+      Contract.Assert(false); throw new Cce.UnreachableException();  // unexpected expression
     }
   }
   static void MakeGhostAsNeeded(List<CasePattern<BoundVar>> lhss) {

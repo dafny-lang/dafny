@@ -40,9 +40,9 @@ public class IndDatatypeDecl : DatatypeDecl {
     Contract.Requires(origin != null);
     Contract.Requires(nameNode != null);
     Contract.Requires(enclosingModuleDefinition != null);
-    Contract.Requires(cce.NonNullElements(typeArgs));
-    Contract.Requires(cce.NonNullElements(ctors));
-    Contract.Requires(cce.NonNullElements(members));
+    Contract.Requires(Cce.NonNullElements(typeArgs));
+    Contract.Requires(Cce.NonNullElements(ctors));
+    Contract.Requires(Cce.NonNullElements(members));
     Contract.Requires((isRefining && ctors.Count == 0) || (!isRefining && 1 <= ctors.Count));
   }
 

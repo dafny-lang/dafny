@@ -78,7 +78,7 @@ public abstract class ExtendedPattern : NodeWithOrigin {
         /* =[2]= */
         return;
       } else {
-        Contract.Assert(false); throw new cce.UnreachableException();
+        Contract.Assert(false); throw new Cce.UnreachableException();
       }
     } else if (type.AsDatatype is TupleTypeDecl tupleTypeDecl) {
       if (!(this is IdPattern)) {
@@ -126,7 +126,7 @@ public abstract class ExtendedPattern : NodeWithOrigin {
       var dtd = type.AsDatatype;
       Dictionary<string, DatatypeCtor> ctors = dtd.ConstructorsByName;
       if (ctors == null) {
-        Contract.Assert(false); throw new cce.UnreachableException();  // Datatype not found
+        Contract.Assert(false); throw new Cce.UnreachableException();  // Datatype not found
       }
       // Check if the head of the pattern is a constructor or a variable
       if (ctors.TryGetValue(idpat.Id, out var ctor)) {

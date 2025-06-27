@@ -828,7 +828,7 @@ namespace Microsoft.Dafny.Compilers {
     protected virtual ConcreteSyntaxTree EmitSign(Type type, ConcreteSyntaxTree wr) {
       // Currently, this should only be called when CompareZeroUsingSign is true
       Contract.Assert(false);
-      throw new cce.UnreachableException();
+      throw new Cce.UnreachableException();
     }
     protected abstract void EmitEmptyTupleList(string tupleTypeArgs, ConcreteSyntaxTree wr);
     protected abstract ConcreteSyntaxTree EmitAddTupleToList(string ingredients, string tupleTypeArgs, ConcreteSyntaxTree wr);
@@ -1412,7 +1412,7 @@ namespace Microsoft.Dafny.Compilers {
 
         default:
           // The operator is one that needs to be handled in the specific compilers.
-          Contract.Assert(false); throw new cce.UnreachableException();  // unexpected binary expression
+          Contract.Assert(false); throw new Cce.UnreachableException();  // unexpected binary expression
       }
 
       if (dualOp != BinaryExpr.ResolvedOpcode.Add) {  // remember from above that Add stands for "there is no dual"
@@ -2408,7 +2408,7 @@ namespace Microsoft.Dafny.Compilers {
           }
           v.Visit(m);
         } else {
-          Contract.Assert(false); throw new cce.UnreachableException();  // unexpected member
+          Contract.Assert(false); throw new Cce.UnreachableException();  // unexpected member
         }
 
         thisContext = null;
@@ -2805,7 +2805,7 @@ namespace Microsoft.Dafny.Compilers {
               unit.Type = f.ResultType;
             } else {
               Contract.Assert(false);  // unexpected type
-              throw new cce.UnreachableException();
+              throw new Cce.UnreachableException();
             }
             DeclareLocalVar(IdName(accVar), accVar.Type, f.Origin, unit, false, w);
           }
@@ -3161,7 +3161,7 @@ namespace Microsoft.Dafny.Compilers {
               break;
             default:
               Contract.Assert(false); // unexpected TailStatus
-              throw new cce.UnreachableException();
+              throw new Cce.UnreachableException();
           }
         } else {
           Contract.Assert(accumulatorVar == null);
@@ -3234,7 +3234,7 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected string/*!*/ TypeNames(List<Type/*!*/>/*!*/ types, ConcreteSyntaxTree wr, IOrigin tok) {
-      Contract.Requires(cce.NonNullElements(types));
+      Contract.Requires(Cce.NonNullElements(types));
       Contract.Ensures(Contract.Result<string>() != null);
       return Util.Comma(types, ty => TypeName(ty, wr, tok));
     }
@@ -3532,7 +3532,7 @@ namespace Microsoft.Dafny.Compilers {
           ResolvedClass = b.Decl
         };
       } else {
-        Contract.Assert(false); throw new cce.UnreachableException();  // unexpected BoundedPool type
+        Contract.Assert(false); throw new Cce.UnreachableException();  // unexpected BoundedPool type
       }
     }
 
@@ -4694,7 +4694,7 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected virtual void TrStmtList(IReadOnlyList<Statement> stmts, ConcreteSyntaxTree writer) {
-      Contract.Requires(cce.NonNullElements(stmts));
+      Contract.Requires(Cce.NonNullElements(stmts));
       Contract.Requires(writer != null);
       foreach (Statement ss in stmts) {
         // label:        // if any
@@ -4735,7 +4735,7 @@ namespace Microsoft.Dafny.Compilers {
       Contract.Requires(source != null);
       Contract.Requires(sourceType != null);
       Contract.Requires(ctor != null);
-      Contract.Requires(cce.NonNullElements(arguments));
+      Contract.Requires(Cce.NonNullElements(arguments));
       Contract.Requires(0 <= caseIndex && caseIndex < caseCount);
       // if (source.is_Ctor0) {
       //   FormalType f0 = ((Dt_Ctor0)source._D).a0;
@@ -4799,7 +4799,7 @@ namespace Microsoft.Dafny.Compilers {
     /// </summary>
     protected void TrExprList(List<Expression> exprs, ConcreteSyntaxTree wr, bool inLetExprBody, ConcreteSyntaxTree wStmts,
         Func<int, Type> typeAt = null, bool parens = true) {
-      Contract.Requires(cce.NonNullElements(exprs));
+      Contract.Requires(Cce.NonNullElements(exprs));
       if (parens) { wr = wr.ForkInParens(); }
 
       wr.Comma(exprs, (e, index) => {

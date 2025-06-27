@@ -11,7 +11,7 @@ public class DatatypeCtor : Declaration, TypeParameter.ParentType, IHasDocstring
   public List<Formal> Formals;
   [ContractInvariantMethod]
   void ObjectInvariant() {
-    Contract.Invariant(cce.NonNullElements(Formals));
+    Contract.Invariant(Cce.NonNullElements(Formals));
     Contract.Invariant(
       Destructors.Count == 0 || // this is until resolution
       Destructors.Count == Formals.Count);  // after resolution
@@ -28,7 +28,7 @@ public class DatatypeCtor : Declaration, TypeParameter.ParentType, IHasDocstring
     : base(origin, nameNode, attributes) {
     Contract.Requires(origin != null);
     Contract.Requires(nameNode != null);
-    Contract.Requires(cce.NonNullElements(formals));
+    Contract.Requires(Cce.NonNullElements(formals));
     this.Formals = formals;
     this.IsGhost = isGhost;
   }

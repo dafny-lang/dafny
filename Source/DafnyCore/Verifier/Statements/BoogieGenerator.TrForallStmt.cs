@@ -323,7 +323,7 @@ public partial class BoogieGenerator {
       MemberSelectExpr e => (e.Obj, e.Member as Field),
       SeqSelectExpr e => (e.Seq, null),
       MultiSelectExpr e => (e.Array, null),
-      _ => throw new cce.UnreachableException()
+      _ => throw new Cce.UnreachableException()
     };
     var desc = new Modifiable(description, GetContextModifiesFrames(), lhsObj, lhsField);
     definedness.Add(Assert(lhs.Origin, Bpl.Expr.SelectTok(lhs.Origin, etran.ModifiesFrame(lhs.Origin), obj, F),

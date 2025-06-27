@@ -531,7 +531,7 @@ class GhostInterestVisitor {
         Visit(blockByProofStmt.Proof, true, "a by block");
         break;
       default:
-        Contract.Assert(false); throw new cce.UnreachableException();
+        Contract.Assert(false); throw new Cce.UnreachableException();
     }
   }
 

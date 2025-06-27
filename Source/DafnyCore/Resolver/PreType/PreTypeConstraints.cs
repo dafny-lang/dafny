@@ -806,7 +806,7 @@ namespace Microsoft.Dafny {
           return true;
         default:
           Contract.Assert(false); // unexpected case
-          throw new cce.UnreachableException();
+          throw new Cce.UnreachableException();
       }
     }
 

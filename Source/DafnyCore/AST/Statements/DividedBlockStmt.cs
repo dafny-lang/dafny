@@ -24,8 +24,8 @@ public class DividedBlockStmt : BlockLikeStmt, ICloneable<DividedBlockStmt> {
     IOrigin? separatorTok, List<Statement> bodyProper, List<Label> labels, Attributes? attributes = null)
     : base(origin, labels, attributes) {
     Contract.Requires(origin != null);
-    Contract.Requires(cce.NonNullElements(bodyInit));
-    Contract.Requires(cce.NonNullElements(bodyProper));
+    Contract.Requires(Cce.NonNullElements(bodyInit));
+    Contract.Requires(Cce.NonNullElements(bodyProper));
     this.BodyInit = bodyInit;
     this.SeparatorTok = separatorTok;
     this.BodyProper = bodyProper;

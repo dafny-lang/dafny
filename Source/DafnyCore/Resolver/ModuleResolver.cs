@@ -1129,8 +1129,8 @@ namespace Microsoft.Dafny {
       string moduleDescription, bool isAnExport) {
 
       Contract.Requires(declarations != null);
-      Contract.Requires(cce.NonNullElements(datatypeDependencies.GetVertices()));
-      Contract.Requires(cce.NonNullElements(codatatypeDependencies.GetVertices()));
+      Contract.Requires(Cce.NonNullElements(datatypeDependencies.GetVertices()));
+      Contract.Requires(Cce.NonNullElements(codatatypeDependencies.GetVertices()));
       Contract.Requires(AllTypeConstraints.Count == 0);
 
       Contract.Ensures(AllTypeConstraints.Count == 0);
@@ -2415,7 +2415,7 @@ namespace Microsoft.Dafny {
           }
 
         } else {
-          Contract.Assert(false); throw new cce.UnreachableException();  // unexpected member type
+          Contract.Assert(false); throw new Cce.UnreachableException();  // unexpected member type
         }
       }
 
@@ -2733,7 +2733,7 @@ namespace Microsoft.Dafny {
     /// </summary>
     void SccStratosphereCheck(IndDatatypeDecl startingPoint, Graph<IndDatatypeDecl/*!*/>/*!*/ dependencies) {
       Contract.Requires(startingPoint != null);
-      Contract.Requires(dependencies != null);  // more expensive check: Contract.Requires(cce.NonNullElements(dependencies));
+      Contract.Requires(dependencies != null);  // more expensive check: Contract.Requires(Cce.NonNullElements(dependencies));
 
       var scc = dependencies.GetSCC(startingPoint);
       int totalCleared = 0;
@@ -2881,7 +2881,7 @@ namespace Microsoft.Dafny {
 
     void DetermineEqualitySupport(IndDatatypeDecl startingPoint, Graph<IndDatatypeDecl/*!*/>/*!*/ dependencies) {
       Contract.Requires(startingPoint != null);
-      Contract.Requires(dependencies != null);  // more expensive check: Contract.Requires(cce.NonNullElements(dependencies));
+      Contract.Requires(dependencies != null);  // more expensive check: Contract.Requires(Cce.NonNullElements(dependencies));
 
       var scc = dependencies.GetSCC(startingPoint);
 
@@ -3977,7 +3977,7 @@ namespace Microsoft.Dafny {
         case BinaryExpr.Opcode.BitwiseOr: return BinaryExpr.ResolvedOpcode.BitwiseOr;
         case BinaryExpr.Opcode.BitwiseXor: return BinaryExpr.ResolvedOpcode.BitwiseXor;
         default:
-          Contract.Assert(false); throw new cce.UnreachableException();  // unexpected operator
+          Contract.Assert(false); throw new Cce.UnreachableException();  // unexpected operator
       }
     }
 

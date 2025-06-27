@@ -40,7 +40,7 @@ namespace Microsoft.Dafny {
         // OR:
         //       !$IsGhostField(f);    // if the field is not a ghost field
         Bpl.Expr fdim = Bpl.Expr.Eq(FunctionCall(f.Origin, BuiltinFunction.FDim, ty, Bpl.Expr.Ident(fc)), Bpl.Expr.Literal(0));
-        Bpl.Expr declType = Bpl.Expr.Eq(FunctionCall(f.Origin, BuiltinFunction.FieldOfDecl, ty, new Bpl.IdentifierExpr(f.Origin, GetClass(cce.NonNull(f.EnclosingClass))), new Bpl.IdentifierExpr(f.Origin, GetFieldNameFamily(f.Name))), Bpl.Expr.Ident(fc));
+        Bpl.Expr declType = Bpl.Expr.Eq(FunctionCall(f.Origin, BuiltinFunction.FieldOfDecl, ty, new Bpl.IdentifierExpr(f.Origin, GetClass(Cce.NonNull(f.EnclosingClass))), new Bpl.IdentifierExpr(f.Origin, GetFieldNameFamily(f.Name))), Bpl.Expr.Ident(fc));
         Bpl.Expr cond = BplAnd(fdim, declType);
         var ig = FunctionCall(f.Origin, BuiltinFunction.IsGhostField, ty, Bpl.Expr.Ident(fc));
         cond = BplAnd(cond, f.IsGhost ? ig : Bpl.Expr.Not(ig));

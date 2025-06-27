@@ -295,10 +295,10 @@ namespace Microsoft.Dafny {
     /// </summary>
     public bool BaseParse(string[] args, bool allowFile) {
       Environment = Environment + "Command Line Options: " + string.Join(" ", args);
-      args = cce.NonNull<string[]>((string[])args.Clone());
+      args = Cce.NonNull<string[]>((string[])args.Clone());
       Bpl.CommandLineParseState state;
       for (state = InitializeCommandLineParseState(args); state.i < args.Length; state.i = state.nextIndex) {
-        cce.LoopInvariant(state.args == args);
+        Cce.LoopInvariant(state.args == args);
         string file = args[state.i];
         state.s = file.Trim();
         bool flag = state.s.StartsWith("-") || state.s.StartsWith("/");

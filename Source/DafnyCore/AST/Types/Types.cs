@@ -446,7 +446,7 @@ public abstract class Type : NodeWithOrigin {
         case SubsetTypeDecl.WKind.Special:
         default:
           Contract.Assert(false); // unexpected case
-          throw new cce.UnreachableException();
+          throw new Cce.UnreachableException();
       }
     } else if (cl is SubsetTypeDecl) {
       var td = (SubsetTypeDecl)cl;
@@ -476,7 +476,7 @@ public abstract class Type : NodeWithOrigin {
           }
         default:
           Contract.Assert(false); // unexpected case
-          throw new cce.UnreachableException();
+          throw new Cce.UnreachableException();
       }
     } else if (cl is TraitDecl traitDecl) {
       return traitDecl.IsReferenceTypeDecl ? AutoInitInfo.CompilableValue : AutoInitInfo.MaybeEmpty;
@@ -518,7 +518,7 @@ public abstract class Type : NodeWithOrigin {
       return r;
     } else {
       Contract.Assert(false); // unexpected type
-      throw new cce.UnreachableException();
+      throw new Cce.UnreachableException();
     }
   }
 
@@ -1998,7 +1998,7 @@ public class SelfType : NonProxyType {
       // SelfType's are used only in certain restricted situations. In those situations, we need to be able
       // to substitute for the the SelfType's TypeArg. That's the only case in which we expect to see a
       // SelfType being part of a substitution operation at all.
-      Contract.Assert(false); throw new cce.UnreachableException();
+      Contract.Assert(false); throw new Cce.UnreachableException();
     }
   }
 

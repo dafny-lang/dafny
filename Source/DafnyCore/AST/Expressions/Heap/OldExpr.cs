@@ -33,7 +33,7 @@ public class OldExpr : Expression, ICloneable<OldExpr>, ICanFormat {
   public OldExpr(IOrigin origin, Expression expr, string? at = null)
     : base(origin) {
     Contract.Requires(origin != null);
-    cce.Owner.AssignSame(this, expr);
+    Cce.Owner.AssignSame(this, expr);
     Expr = expr;
     At = at;
   }

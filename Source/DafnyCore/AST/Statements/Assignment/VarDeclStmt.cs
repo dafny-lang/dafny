@@ -10,7 +10,7 @@ public class VarDeclStmt : Statement, ICloneable<VarDeclStmt>, ICanFormat {
   public ConcreteAssignStatement? Assign;
   [ContractInvariantMethod]
   void ObjectInvariant() {
-    Contract.Invariant(cce.NonNullElements(Locals));
+    Contract.Invariant(Cce.NonNullElements(Locals));
     Contract.Invariant(Locals.Count != 0);
   }
 

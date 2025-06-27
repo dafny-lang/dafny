@@ -764,7 +764,7 @@ namespace Microsoft.Dafny.Compilers {
       }
 
       public void InitializeField(Field field, Type instantiatedFieldType, TopLevelDeclWithMembers enclosingClass) {
-        throw new cce.UnreachableException();
+        throw new Cce.UnreachableException();
       }
 
       public ConcreteSyntaxTree ErrorWriter() => null;
@@ -1683,7 +1683,7 @@ namespace Microsoft.Dafny.Compilers {
                 break;
               default:
                 // TODO: This may not be exhaustive
-                throw new cce.UnreachableException();
+                throw new Cce.UnreachableException();
             }
             break;
         }

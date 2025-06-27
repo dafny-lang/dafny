@@ -54,7 +54,7 @@ namespace DafnyTestGeneration {
       program.Typecheck(options);
       using (var engine = ExecutionEngine.CreateWithoutSharedCache(options)) {
         engine.EliminateDeadVariables(program);
-        engine.CollectModSets(program);
+        engine.CollectModifies(program);
         engine.Inline(program);
       }
       program.RemoveTopLevelDeclarations(declaration => declaration is Implementation or Procedure && Utils.DeclarationHasAttribute(declaration, "inline"));

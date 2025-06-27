@@ -117,7 +117,7 @@ Generate module names in the older A_mB_mC style instead of the current A.B.C sc
 
   [ContractInvariantMethod]
   void ObjectInvariant() {
-    Contract.Invariant(cce.NonNullElements(TopLevelDecls));
+    Contract.Invariant(Cce.NonNullElements(TopLevelDecls));
     Contract.Invariant(CallGraph != null);
   }
 
