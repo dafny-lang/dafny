@@ -484,47 +484,6 @@ namespace Microsoft.Dafny {
       }
     }
 
-    private void AddClassMember_Function(Function f) {
-      Contract.Ensures(currentModule == null && codeContext == null);
-      Contract.Ensures(currentModule == null && codeContext == null);
-
-      currentModule = f.EnclosingClass.EnclosingModuleDefinition;
-      codeContext = f;
-
-      // declare function
-      var boogieFunction = GetOrCreateFunction(f);
-      // add synonym axiom
-      if (f.IsFuelAware()) {
-        AddFuelSuccSynonymAxiom(f);
-        AddFuelZeroSynonymAxiom(f);
-      }
-      // add frame axiom
-      if (f.ReadsHeap) {
-        AddFrameAxiom(f);
-      }
-      // add consequence axiom
-      AddFunctionConsequenceAxiom(boogieFunction, f, f.Ens);
-      // add definition axioms, suitably specialized for literals
-      if (f.Body != null && RevealedInScope(f)) {
-        AddFunctionAxiom(boogieFunction, f, f.Body.Resolved);
-      } else {
-        // for body-less functions, at least generate its #requires function
-        var b = GetFunctionAxiom(f, null, null);
-        Contract.Assert(b == null);
-      }
-      // for a function in a class C that overrides a function in a trait J, add an axiom that connects J.F and C.F
-      if (f.OverriddenFunction != null) {
-        sink.AddTopLevelDeclaration(FunctionOverrideAxiom(f.OverriddenFunction, f));
-      }
-
-      // supply the connection between least/greatest predicates and prefix predicates
-      if (f is ExtremePredicate) {
-        AddPrefixPredicateAxioms(((ExtremePredicate)f).PrefixPredicate);
-      }
-
-      Reset();
-    }
-
     private void AddMethodImpl(MethodOrConstructor m, Bpl.Procedure proc, bool wellformednessProc) {
       Contract.Requires(m != null);
       Contract.Requires(proc != null);

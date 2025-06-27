@@ -731,4 +731,186 @@ public partial class BoogieGenerator {
       BplImp(q0, eq)));
     sink.AddTopLevelDeclaration(new Axiom(f.Origin, ax, comment));
   }
+
+  private void AddClassMember_Function(Function f) {
+    Contract.Ensures(currentModule == null && codeContext == null);
+    Contract.Ensures(currentModule == null && codeContext == null);
+
+    currentModule = f.EnclosingClass.EnclosingModuleDefinition;
+    codeContext = f;
+
+    // declare function
+    var boogieFunction = GetOrCreateFunction(f);
+    // add synonym axiom
+    if (f.IsFuelAware()) {
+      AddFuelSuccSynonymAxiom(f);
+      AddFuelZeroSynonymAxiom(f);
+    }
+    // add frame axiom
+    if (f.ReadsHeap) {
+      AddFrameAxiom(f);
+    }
+    // add consequence axiom
+    AddFunctionConsequenceAxiom(boogieFunction, f, f.Ens);
+    // add definition axioms, suitably specialized for literals
+    if (f.Body != null && RevealedInScope(f)) {
+      AddFunctionAxiom(boogieFunction, f, f.Body.Resolved);
+    } else {
+      // for body-less functions, at least generate its #requires function
+      var b = GetFunctionAxiom(f, null, null);
+      Contract.Assert(b == null);
+    }
+    // for a function in a class C that overrides a function in a trait J, add an axiom that connects J.F and C.F
+    if (f.OverriddenFunction != null) {
+      sink.AddTopLevelDeclaration(FunctionOverrideAxiom(f.OverriddenFunction, f));
+    }
+
+    // supply the connection between least/greatest predicates and prefix predicates
+    if (f is ExtremePredicate) {
+      AddPrefixPredicateAxioms(((ExtremePredicate)f).PrefixPredicate);
+    }
+
+    Reset();
+  }
+  
+    void AddFuelSuccSynonymAxiom(Function f, bool forHandle = false) {
+      Contract.Requires(f != null);
+      Contract.Requires(f.IsFuelAware());
+      Contract.Requires(sink != null && Predef != null);
+      // axiom  // layer synonym axiom
+      //   (forall s, $Heap, formals ::
+      //       { f(Succ(s), $Heap, formals) }
+      //       f(Succ(s), $Heap, formals) == f(s, $Heap, formals));
+
+      var forallFormals = MkTyParamBinders(GetTypeParamsIncludingType(f), out _);
+      var args1 = new List<Bpl.Expr>();
+      var args0 = new List<Bpl.Expr>();
+
+      var bv = new Bpl.BoundVariable(f.Origin, new Bpl.TypedIdent(f.Origin, "$ly", Predef.LayerType));
+      forallFormals.Add(bv);
+      var s = new Bpl.IdentifierExpr(f.Origin, bv);
+      args1.Add(FunctionCall(f.Origin, BuiltinFunction.LayerSucc, null, s));
+      args0.Add(s);
+      if (f.IsOpaque || f.IsMadeImplicitlyOpaque(options)) {
+        var bvReveal = new Bpl.BoundVariable(f.Origin, new Bpl.TypedIdent(f.Origin, "$reveal", Boogie.Type.Bool));
+        forallFormals.Add(bvReveal);
+        var sReveal = new Bpl.IdentifierExpr(f.Origin, bvReveal);
+        args1.Add(sReveal);
+        args0.Add(sReveal);
+      }
+
+      if (f is TwoStateFunction) {
+        bv = new Bpl.BoundVariable(f.Origin, new Bpl.TypedIdent(f.Origin, "$prevHeap", Predef.HeapType));
+        forallFormals.Add(bv);
+        s = new Bpl.IdentifierExpr(f.Origin, bv);
+        args1.Add(s);
+        args0.Add(s);
+      }
+      if (!forHandle && f.ReadsHeap) {
+        bv = new Bpl.BoundVariable(f.Origin, new Bpl.TypedIdent(f.Origin, Predef.HeapVarName, Predef.HeapType));
+        forallFormals.Add(bv);
+        s = new Bpl.IdentifierExpr(f.Origin, bv);
+        args1.Add(s);
+        args0.Add(s);
+      }
+
+      if (!f.IsStatic) {
+        bv = new Bpl.BoundVariable(f.Origin, new Bpl.TypedIdent(f.Origin, "this", TrReceiverType(f)));
+        forallFormals.Add(bv);
+        s = new Bpl.IdentifierExpr(f.Origin, bv);
+        args1.Add(s);
+        args0.Add(s);
+      }
+      if (!forHandle) {
+        foreach (var p in f.Ins) {
+          bv = new Bpl.BoundVariable(p.Origin, new Bpl.TypedIdent(p.Origin, p.AssignUniqueName(f.IdGenerator), TrType(p.Type)));
+          forallFormals.Add(bv);
+          s = new Bpl.IdentifierExpr(f.Origin, bv);
+          args1.Add(s);
+          args0.Add(s);
+        }
+      }
+
+      var name = forHandle ? f.FullSanitizedName + "#Handle" : f.FullSanitizedName;
+      var funcID = new Bpl.FunctionCall(new Bpl.IdentifierExpr(f.Origin, name, TrType(f.ResultType)));
+      var funcAppl1 = new Bpl.NAryExpr(f.Origin, funcID, args1);
+      var funcAppl0 = new Bpl.NAryExpr(f.Origin, funcID, args0);
+
+      Bpl.Trigger tr = new Bpl.Trigger(f.Origin, true, new List<Bpl.Expr> { funcAppl1 });
+      Bpl.Expr ax = new Bpl.ForallExpr(f.Origin, [], forallFormals, null, tr, Bpl.Expr.Eq(funcAppl1, funcAppl0));
+      AddOtherDefinition(GetOrCreateFunction(f), new Bpl.Axiom(f.Origin, ax, "layer synonym axiom"));
+    }
+
+    void AddFuelZeroSynonymAxiom(Function f) {
+      // axiom  // fuel axiom
+      //   (forall s, $Heap, formals ::
+      //       { f(AsFuelBottom(s), $Heap, formals) }
+      //       f(s, $Heap, formals) == f($LZ, $Heap, formals));
+      Contract.Requires(f != null);
+      Contract.Requires(f.IsFuelAware());
+      Contract.Requires(sink != null && Predef != null);
+
+      var forallFormals = MkTyParamBinders(GetTypeParamsIncludingType(f), out _);
+      var args2 = new List<Bpl.Expr>();
+      var args1 = new List<Bpl.Expr>();
+      var args0 = new List<Bpl.Expr>();
+
+      var bv = new Bpl.BoundVariable(f.Origin, new Bpl.TypedIdent(f.Origin, "$ly", Predef.LayerType));
+      forallFormals.Add(bv);
+      var s = new Bpl.IdentifierExpr(f.Origin, bv);
+      args2.Add(FunctionCall(f.Origin, BuiltinFunction.AsFuelBottom, null, s));
+      args1.Add(s);
+      args0.Add(new Bpl.IdentifierExpr(f.Origin, "$LZ", Predef.LayerType)); // $LZ
+      if (f.IsOpaque || f.IsMadeImplicitlyOpaque(options)) {
+        var bvReveal = new Bpl.BoundVariable(f.Origin, new Bpl.TypedIdent(f.Origin, "$reveal", Boogie.Type.Bool));
+        forallFormals.Add(bvReveal);
+        var sReveal = new Bpl.IdentifierExpr(f.Origin, bvReveal);
+        args2.Add(sReveal);
+        args1.Add(sReveal);
+        args0.Add(sReveal);
+      }
+
+      if (f is TwoStateFunction) {
+        bv = new Bpl.BoundVariable(f.Origin, new Bpl.TypedIdent(f.Origin, "$prevHeap", Predef.HeapType));
+        forallFormals.Add(bv);
+        s = new Bpl.IdentifierExpr(f.Origin, bv);
+        args2.Add(s);
+        args1.Add(s);
+        args0.Add(s);
+      }
+      if (f.ReadsHeap) {
+        bv = new Bpl.BoundVariable(f.Origin, new Bpl.TypedIdent(f.Origin, Predef.HeapVarName, Predef.HeapType));
+        forallFormals.Add(bv);
+        s = new Bpl.IdentifierExpr(f.Origin, bv);
+        args2.Add(s);
+        args1.Add(s);
+        args0.Add(s);
+      }
+
+      if (!f.IsStatic) {
+        bv = new Bpl.BoundVariable(f.Origin, new Bpl.TypedIdent(f.Origin, "this", TrReceiverType(f)));
+        forallFormals.Add(bv);
+        s = new Bpl.IdentifierExpr(f.Origin, bv);
+        args2.Add(s);
+        args1.Add(s);
+        args0.Add(s);
+      }
+      foreach (var p in f.Ins) {
+        bv = new Bpl.BoundVariable(p.Origin, new Bpl.TypedIdent(p.Origin, p.AssignUniqueName(f.IdGenerator), TrType(p.Type)));
+        forallFormals.Add(bv);
+        s = new Bpl.IdentifierExpr(f.Origin, bv);
+        args2.Add(s);
+        args1.Add(s);
+        args0.Add(s);
+      }
+
+      var funcID = new Bpl.FunctionCall(new Bpl.IdentifierExpr(f.Origin, f.FullSanitizedName, TrType(f.ResultType)));
+      var funcAppl2 = new Bpl.NAryExpr(f.Origin, funcID, args2);
+      var funcAppl1 = new Bpl.NAryExpr(f.Origin, funcID, args1);
+      var funcAppl0 = new Bpl.NAryExpr(f.Origin, funcID, args0);
+
+      Bpl.Trigger tr = new Bpl.Trigger(f.Origin, true, new List<Bpl.Expr> { funcAppl2 });
+      Bpl.Expr ax = new Bpl.ForallExpr(f.Origin, [], forallFormals, null, tr, Bpl.Expr.Eq(funcAppl1, funcAppl0));
+      AddOtherDefinition(GetOrCreateFunction(f), (new Bpl.Axiom(f.Origin, ax, "fuel synonym axiom")));
+    }
 }
