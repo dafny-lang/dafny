@@ -568,11 +568,9 @@ namespace Microsoft.Dafny {
               }
             };
 
-            var args = Concat(
-              Map(tt.TypeArgs, TypeToTy),
-              Cons(etran.HeapExpr,
+            var args = Cons(etran.HeapExpr,
                 Cons(etran.TrExpr(e.Function),
-                  e.Args.ConvertAll(arg => TrArg(arg)))));
+                  e.Args.ConvertAll(arg => TrArg(arg))));
 
             // Because type inference often gravitates towards inferring non-constrained types, we'll
             // do some digging on our own to see if we can discover a more precise type.
@@ -1660,12 +1658,13 @@ namespace Microsoft.Dafny {
 
       var sourceType = init.Type.AsArrowType;
       Contract.Assert(sourceType.Args.Count == dims.Count);
-      var args = Concat(
-        Map(Enumerable.Range(0, dims.Count), ii => TypeToTy(sourceType.Args[ii])),
-        Cons(TypeToTy(sourceType.Result),
+      var args = //Concat(
+                 // Map(Enumerable.Range(0, dims.Count), ii => TypeToTy(sourceType.Args[ii])),
+                 // Cons(TypeToTy(sourceType.Result),
           Cons(etran.HeapExpr,
             Cons(etran.TrExpr(init),
-              indices.ConvertAll(idx => (Bpl.Expr)FunctionCall(tok, BuiltinFunction.Box, null, idx))))));
+              indices.ConvertAll(idx => (Bpl.Expr)FunctionCall(tok, BuiltinFunction.Box, null, idx))));
+      //));
       // check precond
       var pre = FunctionCall(tok, Requires(dims.Count), Bpl.Type.Bool, args);
       var q = new Bpl.ForallExpr(tok, bvs, BplImp(ante, pre));

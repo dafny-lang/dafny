@@ -72,7 +72,7 @@ namespace Microsoft.Dafny.LanguageServer.Language {
             var fileNames = new List<string> { fileName };
             boogieProgram = engine.ParseBoogieProgram(fileNames, true);
             await engine.GetVerificationTasks(boogieProgram, cancellationToken);
-            
+
             // If the new call did not throw, throw the original exception.
             throw;
           }

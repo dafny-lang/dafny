@@ -12,7 +12,7 @@ using static Microsoft.Dafny.GenericErrors;
 namespace Microsoft.Dafny;
 
 public partial class BoogieGenerator {
-  
+
   public string FunctionHandle(Function f) {
     Contract.Requires(f != null);
     if (functionHandles.TryGetValue(f, out var name)) {
@@ -103,8 +103,7 @@ public partial class BoogieGenerator {
   }
 
   private void AddApplyUnboxAxiomForFunctionHandle(Function f, string name, Func<List<Expr>, List<Expr>> snocSelf, Func<List<Expr>, List<Expr>> snocPrevH, List<Expr> args,
-    Expr h, List<Expr> funcArgs, int arity, List<Expr> boxedFuncArgs, List<Variable> formalVars, List<Variable> funcVars)
-  {
+    Expr h, List<Expr> funcArgs, int arity, List<Expr> boxedFuncArgs, List<Variable> formalVars, List<Variable> funcVars) {
     // F(Layer, Heap, self, arg1, .., argN)
     // = [Unbox]Apply1(Ty.., F#Handle(Layer, self), Heap, [Box]arg1, ..., [Box]argN)
 
@@ -121,8 +120,7 @@ public partial class BoogieGenerator {
 
   private void AddIsMemberAxiomForFunctionHandle(Function f, string name, Func<List<Expr>, List<Expr>> snocSelf, Func<List<Expr>, List<Expr>> snocPrevH, List<Expr> args,
     int arity, Expr h, List<Expr> lhsArgs, Expression selfExpr, Dictionary<IVariable, Expression> rhsDict, List<Expr> argsRequires,
-    List<Variable> formalVars, List<Variable> bvars)
-  {
+    List<Variable> formalVars, List<Variable> bvars) {
     // As a first approximation, the following axiom is of the form:
     // Reads(Ty.., F#Handle( Ty1, ..., TyN, Layer, self), Heap, arg1, ..., argN)
     //   =  $Frame_F(args...)
@@ -153,8 +151,7 @@ public partial class BoogieGenerator {
   }
 
   private void AddRequiresAxiomForFunctionHandle(Function f, string name, Func<List<Expr>, List<Expr>> snocSelf, Func<List<Expr>, List<Expr>> snocPrevH, List<Expr> args,
-    int arity, List<Expr> tyargs, Expr h, List<Expr> lhsArgs, List<Variable> formalVars, List<Variable> bvars, List<Expr> argsRequires, List<Expr> rhsArgs)
-  {
+    int arity, List<Expr> tyargs, Expr h, List<Expr> lhsArgs, List<Variable> formalVars, List<Variable> bvars, List<Expr> argsRequires, List<Expr> rhsArgs) {
     // As a first approximation, the following axiom is of the form:
     // Requires(Ty.., F#Handle( Ty1, ..., TyN, Layer, reveal, self), Heap, arg1, ..., argN)
     //   = F#Requires(Ty1, .., TyN, Layer, Heap, self, [Unbox] arg1, .., [Unbox] argN)
@@ -183,8 +180,7 @@ public partial class BoogieGenerator {
   }
 
   private void AddApplyBoxAxiomForFunctionHandle(Function f, string name, Func<List<Expr>, List<Expr>> snocSelf, Func<List<Expr>, List<Expr>> snocPrevH, List<Expr> args,
-    int arity, Expr h, List<Expr> lhsArgs, List<Expr> rhsArgs, List<Variable> formalVars, List<Variable> bvars)
-  {
+    int arity, Expr h, List<Expr> lhsArgs, List<Expr> rhsArgs, List<Variable> formalVars, List<Variable> bvars) {
     // Apply(Ty.., F#Handle( Ty1, ..., TyN, Layer, self), Heap, arg1, ..., argN)
     //   = [Box] F(Ty1, .., TyN, Layer, Heap, self, [Unbox] arg1, .., [Unbox] argN)
 
