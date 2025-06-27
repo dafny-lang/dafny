@@ -1,5 +1,6 @@
 ﻿using System.Collections.Generic;
 using System.Collections.Immutable;
+using System.Diagnostics.Contracts;
 using Microsoft.Boogie;
 
 namespace Microsoft.Dafny;
@@ -46,18 +47,23 @@ public partial class BoogieGenerator
       }
       var localField = i.GetLocalField(m);
       var field = BG.GetField(localField); // Make sure definition is added.
-      var tuple = FunctionCall(i.Origin, BG.Predef.Tuple2Constructor.Name, null, 
-        BG.FunctionCall(i.Origin, BuiltinFunction.Box, null, Id(i.Origin, "locals")),
-        BG.FunctionCall(i.Origin, BuiltinFunction.Box, null, 
-          BG.FunctionCall(i.Origin, BuiltinFunction.LocalField, BG.Predef.FieldType,
-            Id(i.Origin, field.Name),
-            Id(i.Origin, "depth"))));
-      var boxedTuple = BG.FunctionCall(i.Origin, BuiltinFunction.Box, null, tuple);
+      var tok = i.Origin;
+      var boxedTuple = BoxedLocalVariableAtCurrentDepth(tok, field);
       var isMember = BG.FunctionCall(i.Origin, BuiltinFunction.SetIsMember, null,
         BG.FunctionCall(i.Origin, BuiltinFunction.ReadReferrers, null,
           ordinaryEtran.ReferrersHeapExpr, Id(i.Origin, i.AssignUniqueName(m.IdGenerator))),
         boxedTuple);
       req.Add(BG.FreeRequires(i.Origin, isMember, null));
+    }
+
+    private NAryExpr BoxedLocalVariableAtCurrentDepth(IOrigin tok, Constant field)
+    {
+      return BG.Box(tok, FunctionCall(tok, BG.Predef.Tuple2Constructor.Name, null, 
+        BG.FunctionCall(tok, BuiltinFunction.Box, null, Id(tok, "locals")),
+        BG.Box(tok, 
+          BG.FunctionCall(tok, BuiltinFunction.LocalField, BG.Predef.FieldType,
+            Id(tok, field.Name),
+            Id(tok, "depth")))));
     }
 
     public void RemovePreAssign(IOrigin tok, Expression lhs, BoogieStmtListBuilder builder, Variables locals,
@@ -318,6 +324,45 @@ public partial class BoogieGenerator
       BG.program.Reporter.Warning(MessageSource.Verifier, "Unknown referrers action", tok,
         "This update statement is not yet supported by referrers..");
       builder.Add(new HavocCmd(tok, [etran.ReferrerrsHeapCastToIdentifierExpr]));
+    }
+
+    /// <summary>
+    /// Generates the equivalent of
+    /// <code>
+    /// assume readReferrers($ReferrersHeap, this) ==  Set#UnionOne(Set#Empty(),
+    /// $Box(#_System._tuple#2._#Make2($Box(locals), $Box(local_field(constructorName.this, depth))))
+    /// );
+    /// </code>
+    /// </summary>
+    public void AssumeThisFresh(Constructor constructor, BoogieStmtListBuilder builder, ExpressionTranslator etran) {
+      Contract.Assume(constructor.ThisFormal != null);
+      if (!VerifyReferrers) {
+        return;
+      }
+
+      var tok = constructor.Origin;
+      var thisField = BG.GetField(constructor.ThisFormal.GetLocalField(constructor));
+      var assumeCmd = new AssumeCmd(
+        tok,
+        BG.FunctionCall(
+          tok,
+          BuiltinFunction.SetEqual,
+          null,
+          BG.ReadReferrersHeap(tok, etran.ReferrersHeapExpr, Id(tok, "this")),
+          BG.FunctionCall(
+            tok,
+            BuiltinFunction.SetUnionOne,
+            BG.Predef.SetType,
+            BG.FunctionCall(
+              tok,
+              BuiltinFunction.SetEmpty,
+              BG.Predef.SetType
+            ),
+            BoxedLocalVariableAtCurrentDepth(tok, thisField)
+          )
+        )
+      );
+      builder.Add(assumeCmd);
     }
   }
 }

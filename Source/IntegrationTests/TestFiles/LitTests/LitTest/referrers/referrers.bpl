@@ -5460,6 +5460,9 @@ implementation {:smt_option "smt.arith.solver", "2"} {:verboseName "ChainingObje
     defass#this.y := false;
     defass#this.tracking := false;
     defass#this.tail := false;
+    assume Set#Equal(readReferrers($ReferrersHeap, this), 
+      Set#UnionOne(Set#Empty(): Set, 
+        $Box(#_System._tuple#2._#Make2($Box(locals), $Box(local_field(_module.ChainingObject.__ctor.this, depth))))));
     // ----- assignment statement ----- C:\Users\mimayere\Documents\dafny\Source\IntegrationTests\TestFiles\LitTests\LitTest\referrers\referrers.dfy(103,7)
     assume true;
     assume true;

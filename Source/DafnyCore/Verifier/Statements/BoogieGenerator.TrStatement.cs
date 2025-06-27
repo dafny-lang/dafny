@@ -299,8 +299,9 @@ public partial class BoogieGenerator {
           AddComment(builder, blockStmt1, "divided block before new;");
           var previousTrackers = DefiniteAssignmentTrackers;
           var tok = s.SeparatorTok ?? s.Origin;
+          var constructor = (Constructor)codeContext;
           // a DividedBlockStmt occurs only inside a Constructor body of a class
-          var cl = (ClassDecl)((Constructor)codeContext).EnclosingClass;
+          var cl = (ClassDecl)(constructor).EnclosingClass;
           var fields = Concat(cl.InheritedMembers, cl.Members).ConvertAll(member =>
             member is Field && !member.IsStatic && !member.IsInstanceIndependentConstant ? (Field)member : null);
           fields.RemoveAll(f => f == null);
@@ -313,6 +314,7 @@ public partial class BoogieGenerator {
 
           Contract.Assert(!inBodyInitContext);
           inBodyInitContext = true;
+          Referrers.AssumeThisFresh(constructor, builder, etran);
           TrStmtList(s.BodyInit, builder, locals, etran);
           Contract.Assert(inBodyInitContext);
           inBodyInitContext = false;
