@@ -65,16 +65,19 @@ namespace Microsoft.Dafny.LanguageServer.Language {
 
         try {
           return await engine.GetVerificationTasks(boogieProgram, cancellationToken);
-        } catch (Exception) {
+        } catch (Exception e) {
           // Boogie resolution error
           if (fileName != null) {
             // If a Boogie file was printed, parse that so errors use source locations from there
             var fileNames = new List<string> { fileName };
             boogieProgram = engine.ParseBoogieProgram(fileNames, true);
-            return await engine.GetVerificationTasks(boogieProgram, cancellationToken);
-          } else {
+            await engine.GetVerificationTasks(boogieProgram, cancellationToken);
+            
+            // If the new call did not throw, throw the original exception.
             throw;
           }
+
+          throw;
         }
       }
       finally {
