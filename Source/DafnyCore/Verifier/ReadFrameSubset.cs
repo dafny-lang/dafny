@@ -27,8 +27,17 @@ public class ReadFrameSubset : ProofObligationDescription {
         obj = Printer.ExprToString(DafnyOptions.DefaultImmutableOptions, m.Array,
           new PrintFlags(UseOriginalDafnyNames: true));
       }
-
-      if (scope is Function { CoClusterTarget: var x } && x != Function.CoCallClusterInvolvement.None) {
+      if (scope is Invariant) {
+        message = "invariants are currently restricted to only read 'this'";
+        if (readExpression is MemberSelectExpr { MemberName: var member }) {
+          message += " and therefore cannot read {1}`{2}";
+          parts.Add(obj);
+          parts.Add(member);
+        }
+        parts.Insert(0, message);
+        return parts;
+      }
+      else if (scope is Function { CoClusterTarget: var x } && x != Function.CoCallClusterInvolvement.None) {
       } else {
         message += "; Consider ";
 
