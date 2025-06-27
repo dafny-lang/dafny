@@ -1584,7 +1584,7 @@ namespace Microsoft.Dafny {
             var tok = GetToken(expr);
             if (fieldLocation.Field is SpecialField { EnclosingMethod: not null }) {
               Expr depthExpr = fieldLocation.AtCallSite ?
-                FunctionCall(tok, "+", Boogie.Type.Int, Id(tok, "depth"), One(tok))
+                Bpl.Expr.Add(Id(tok, "depth"), One(tok))
                 : Id(tok, "depth");
               return FunctionCall(tok, "local_field", Predef.FieldName(tok),
                 Id(tok, BoogieGenerator.GetField(fieldLocation.Field)),

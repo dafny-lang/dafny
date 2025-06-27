@@ -70,13 +70,11 @@ public partial class BoogieGenerator {
 
           if (VerifyReferrers && codeContext is MethodOrConstructor) {
             foreach (var trackedLocalVariable in DefiniteAssignmentTrackers) {
-              var localVarName = trackedLocalVariable.Key;
               var localVar = trackedLocalVariable.Value.tracked;
-              var localVarDefAssTracker = trackedLocalVariable.Value.tracker;
               if (localVar is LocalVariable l) {
                 // Need to unassign
                 var lhs = new IdentifierExpr(stmt.Origin, l);
-                RemoveReferrersPreAssign(lhs, stmt, builder, locals, etran);
+                RemoveReferrersPreAssign(stmt.Origin, lhs, builder, locals, etran);
               }
               /*
                Example:

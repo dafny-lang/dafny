@@ -3270,7 +3270,7 @@ const unique _module.__default.ReferrersMethodCall.t: FieldFamily;
 
 axiom (forall depth: int :: 
   { local_field(_module.__default.ReferrersMethodCall.t, depth) } 
-  _System.field.IsGhost(local_field(_module.__default.ReferrersMethodCall.t, depth)));
+  !_System.field.IsGhost(local_field(_module.__default.ReferrersMethodCall.t, depth)));
 
 procedure {:verboseName "ReferrersMethodCall (well-formedness)"} CheckWellFormed$$_module.__default.ReferrersMethodCall(depth: int, 
     t#0: ref
@@ -3336,7 +3336,7 @@ const unique _module.__default.EnsuresReferrersUnchanged.t2: FieldFamily;
 
 axiom (forall depth: int :: 
   { local_field(_module.__default.EnsuresReferrersUnchanged.t2, depth) } 
-  _System.field.IsGhost(local_field(_module.__default.EnsuresReferrersUnchanged.t2, depth)));
+  !_System.field.IsGhost(local_field(_module.__default.EnsuresReferrersUnchanged.t2, depth)));
 
 procedure {:verboseName "EnsuresReferrersUnchanged (well-formedness)"} CheckWellFormed$$_module.__default.EnsuresReferrersUnchanged(depth: int, 
     t2#0: ref
@@ -3574,7 +3574,32 @@ implementation {:smt_option "smt.arith.solver", "2"} {:verboseName "CallReferrer
     assume true;
     // ProcessCallStmt: CheckSubrange
     t2##0 := t#0;
+    if (t2##0 != null)
+    {
+        assume !Set#IsMember(readReferrers($ReferrersHeap, t2##0), 
+          $Box(#_System._tuple#2._#Make2($Box(locals), 
+              $Box(local_field(_module.__default.EnsuresReferrersUnchanged.t2, depth + 1)))));
+        $ReferrersHeap := updateReferrers($ReferrersHeap, 
+          t2##0, 
+          Set#UnionOne(readReferrers($ReferrersHeap, t2##0), 
+            $Box(#_System._tuple#2._#Make2($Box(locals), 
+                $Box(local_field(_module.__default.EnsuresReferrersUnchanged.t2, depth + 1))))));
+    }
+
     call {:id "id24"} Call$$_module.__default.EnsuresReferrersUnchanged(depth + 1, t2##0);
+    if (t2##0 != null)
+    {
+        assume Set#IsMember(readReferrers($ReferrersHeap, t2##0), 
+          $Box(#_System._tuple#2._#Make2($Box(locals), 
+              $Box(local_field(_module.__default.EnsuresReferrersUnchanged.t2, depth + 1)))));
+        $ReferrersHeap := updateReferrers($ReferrersHeap, 
+          t2##0, 
+          Set#Difference(readReferrers($ReferrersHeap, t2##0), 
+            Set#UnionOne(Set#Empty(): Set, 
+              $Box(#_System._tuple#2._#Make2($Box(locals), 
+                  $Box(local_field(_module.__default.EnsuresReferrersUnchanged.t2, depth + 1)))))));
+    }
+
     // TrCallStmt: After ProcessCallStmt
     assume {:captureState "referrers.dfy(44,30)"} true;
     // ----- assert statement ----- C:\Users\mimayere\Documents\dafny\Source\IntegrationTests\TestFiles\LitTests\LitTest\referrers\referrers.dfy(45,3)
@@ -4264,6 +4289,12 @@ axiom (forall depth: int ::
   { local_field(_module.__default.ObjectFields.t, depth) } 
   !_System.field.IsGhost(local_field(_module.__default.ObjectFields.t, depth)));
 
+const unique _module.ChainingObject.__ctor.chained__test: FieldFamily;
+
+axiom (forall depth: int :: 
+  { local_field(_module.ChainingObject.__ctor.chained__test, depth) } 
+  !_System.field.IsGhost(local_field(_module.ChainingObject.__ctor.chained__test, depth)));
+
 const unique _module.__default.ObjectFields.u: FieldFamily;
 
 axiom (forall depth: int :: 
@@ -4345,7 +4376,32 @@ implementation {:smt_option "smt.arith.solver", "2"} {:verboseName "ObjectFields
     assume true;
     // ProcessCallStmt: CheckSubrange
     chained_test##0 := null;
+    if (chained_test##0 != null)
+    {
+        assume !Set#IsMember(readReferrers($ReferrersHeap, chained_test##0), 
+          $Box(#_System._tuple#2._#Make2($Box(locals), 
+              $Box(local_field(_module.ChainingObject.__ctor.chained__test, depth + 1)))));
+        $ReferrersHeap := updateReferrers($ReferrersHeap, 
+          chained_test##0, 
+          Set#UnionOne(readReferrers($ReferrersHeap, chained_test##0), 
+            $Box(#_System._tuple#2._#Make2($Box(locals), 
+                $Box(local_field(_module.ChainingObject.__ctor.chained__test, depth + 1))))));
+    }
+
     call {:id "id76"} $nw := Call$$_module.ChainingObject.__ctor(depth + 1, chained_test##0);
+    if (chained_test##0 != null)
+    {
+        assume Set#IsMember(readReferrers($ReferrersHeap, chained_test##0), 
+          $Box(#_System._tuple#2._#Make2($Box(locals), 
+              $Box(local_field(_module.ChainingObject.__ctor.chained__test, depth + 1)))));
+        $ReferrersHeap := updateReferrers($ReferrersHeap, 
+          chained_test##0, 
+          Set#Difference(readReferrers($ReferrersHeap, chained_test##0), 
+            Set#UnionOne(Set#Empty(): Set, 
+              $Box(#_System._tuple#2._#Make2($Box(locals), 
+                  $Box(local_field(_module.ChainingObject.__ctor.chained__test, depth + 1)))))));
+    }
+
     // TrCallStmt: After ProcessCallStmt
     assume {:captureState "referrers.dfy(116,35)"} true;
     t#0 := $nw;
@@ -4376,6 +4432,8 @@ implementation {:smt_option "smt.arith.solver", "2"} {:verboseName "ObjectFields
     $oldRhs := $Unbox(read($Heap, t#0, _module.ChainingObject.x)): ref;
     if ($oldRhs != null)
     {
+        assume Set#IsMember(readReferrers($ReferrersHeap, $oldRhs), 
+          $Box(#_System._tuple#2._#Make2($Box(t#0), $Box(_module.ChainingObject.x))));
         $ReferrersHeap := updateReferrers($ReferrersHeap, 
           $oldRhs, 
           Set#Difference(readReferrers($ReferrersHeap, $oldRhs), 
@@ -4416,6 +4474,8 @@ implementation {:smt_option "smt.arith.solver", "2"} {:verboseName "ObjectFields
     $oldRhs := $Unbox(read($Heap, t#0, _module.ChainingObject.y)): ref;
     if ($oldRhs != null)
     {
+        assume Set#IsMember(readReferrers($ReferrersHeap, $oldRhs), 
+          $Box(#_System._tuple#2._#Make2($Box(t#0), $Box(_module.ChainingObject.y))));
         $ReferrersHeap := updateReferrers($ReferrersHeap, 
           $oldRhs, 
           Set#Difference(readReferrers($ReferrersHeap, $oldRhs), 
@@ -4458,6 +4518,8 @@ implementation {:smt_option "smt.arith.solver", "2"} {:verboseName "ObjectFields
     $oldRhs := $Unbox(read($Heap, t#0, _module.ChainingObject.x)): ref;
     if ($oldRhs != null)
     {
+        assume Set#IsMember(readReferrers($ReferrersHeap, $oldRhs), 
+          $Box(#_System._tuple#2._#Make2($Box(t#0), $Box(_module.ChainingObject.x))));
         $ReferrersHeap := updateReferrers($ReferrersHeap, 
           $oldRhs, 
           Set#Difference(readReferrers($ReferrersHeap, $oldRhs), 
@@ -4498,6 +4560,8 @@ implementation {:smt_option "smt.arith.solver", "2"} {:verboseName "ObjectFields
     $oldRhs := $Unbox(read($Heap, t#0, _module.ChainingObject.y)): ref;
     if ($oldRhs != null)
     {
+        assume Set#IsMember(readReferrers($ReferrersHeap, $oldRhs), 
+          $Box(#_System._tuple#2._#Make2($Box(t#0), $Box(_module.ChainingObject.y))));
         $ReferrersHeap := updateReferrers($ReferrersHeap, 
           $oldRhs, 
           Set#Difference(readReferrers($ReferrersHeap, $oldRhs), 
@@ -4536,6 +4600,8 @@ implementation {:smt_option "smt.arith.solver", "2"} {:verboseName "ObjectFields
     $oldRhs := $Unbox(read($Heap, t#0, _module.ChainingObject.tracking)): ref;
     if ($oldRhs != null)
     {
+        assume Set#IsMember(readReferrers($ReferrersHeap, $oldRhs), 
+          $Box(#_System._tuple#2._#Make2($Box(t#0), $Box(_module.ChainingObject.tracking))));
         $ReferrersHeap := updateReferrers($ReferrersHeap, 
           $oldRhs, 
           Set#Difference(readReferrers($ReferrersHeap, $oldRhs), 
@@ -4576,6 +4642,8 @@ implementation {:smt_option "smt.arith.solver", "2"} {:verboseName "ObjectFields
     $oldRhs := $Unbox(read($Heap, t#0, _module.ChainingObject.tracking)): ref;
     if ($oldRhs != null)
     {
+        assume Set#IsMember(readReferrers($ReferrersHeap, $oldRhs), 
+          $Box(#_System._tuple#2._#Make2($Box(t#0), $Box(_module.ChainingObject.tracking))));
         $ReferrersHeap := updateReferrers($ReferrersHeap, 
           $oldRhs, 
           Set#Difference(readReferrers($ReferrersHeap, $oldRhs), 
@@ -4614,6 +4682,8 @@ implementation {:smt_option "smt.arith.solver", "2"} {:verboseName "ObjectFields
     $oldRhs := $Unbox(read($Heap, t#0, _module.ChainingObject.nontracking)): ref;
     if ($oldRhs != null)
     {
+        assume Set#IsMember(readReferrers($ReferrersHeap, $oldRhs), 
+          $Box(#_System._tuple#2._#Make2($Box(t#0), $Box(_module.ChainingObject.nontracking))));
         $ReferrersHeap := updateReferrers($ReferrersHeap, 
           $oldRhs, 
           Set#Difference(readReferrers($ReferrersHeap, $oldRhs), 
@@ -4665,7 +4735,32 @@ implementation {:smt_option "smt.arith.solver", "2"} {:verboseName "ObjectFields
     assume true;
     // ProcessCallStmt: CheckSubrange
     chained_test##1 := t#0;
+    if (chained_test##1 != null)
+    {
+        assume !Set#IsMember(readReferrers($ReferrersHeap, chained_test##1), 
+          $Box(#_System._tuple#2._#Make2($Box(locals), 
+              $Box(local_field(_module.ChainingObject.__ctor.chained__test, depth + 1)))));
+        $ReferrersHeap := updateReferrers($ReferrersHeap, 
+          chained_test##1, 
+          Set#UnionOne(readReferrers($ReferrersHeap, chained_test##1), 
+            $Box(#_System._tuple#2._#Make2($Box(locals), 
+                $Box(local_field(_module.ChainingObject.__ctor.chained__test, depth + 1))))));
+    }
+
     call {:id "id141"} $nw := Call$$_module.ChainingObject.__ctor(depth + 1, chained_test##1);
+    if (chained_test##1 != null)
+    {
+        assume Set#IsMember(readReferrers($ReferrersHeap, chained_test##1), 
+          $Box(#_System._tuple#2._#Make2($Box(locals), 
+              $Box(local_field(_module.ChainingObject.__ctor.chained__test, depth + 1)))));
+        $ReferrersHeap := updateReferrers($ReferrersHeap, 
+          chained_test##1, 
+          Set#Difference(readReferrers($ReferrersHeap, chained_test##1), 
+            Set#UnionOne(Set#Empty(): Set, 
+              $Box(#_System._tuple#2._#Make2($Box(locals), 
+                  $Box(local_field(_module.ChainingObject.__ctor.chained__test, depth + 1)))))));
+    }
+
     // TrCallStmt: After ProcessCallStmt
     assume {:captureState "referrers.dfy(134,32)"} true;
     u#0 := $nw;
@@ -4704,6 +4799,8 @@ implementation {:smt_option "smt.arith.solver", "2"} {:verboseName "ObjectFields
     $oldRhs := $Unbox(read($Heap, u#0, _module.ChainingObject.x)): ref;
     if ($oldRhs != null)
     {
+        assume Set#IsMember(readReferrers($ReferrersHeap, $oldRhs), 
+          $Box(#_System._tuple#2._#Make2($Box(u#0), $Box(_module.ChainingObject.x))));
         $ReferrersHeap := updateReferrers($ReferrersHeap, 
           $oldRhs, 
           Set#Difference(readReferrers($ReferrersHeap, $oldRhs), 
@@ -4752,6 +4849,8 @@ implementation {:smt_option "smt.arith.solver", "2"} {:verboseName "ObjectFields
     $oldRhs := $Unbox(read($Heap, u#0, _module.ChainingObject.x)): ref;
     if ($oldRhs != null)
     {
+        assume Set#IsMember(readReferrers($ReferrersHeap, $oldRhs), 
+          $Box(#_System._tuple#2._#Make2($Box(u#0), $Box(_module.ChainingObject.x))));
         $ReferrersHeap := updateReferrers($ReferrersHeap, 
           $oldRhs, 
           Set#Difference(readReferrers($ReferrersHeap, $oldRhs), 
@@ -5194,12 +5293,6 @@ axiom (forall $h: Heap, $o: ref ::
        && $Unbox(read($h, $o, alloc)): bool
      ==> $IsAlloc(_module.ChainingObject.tail($o), Tclass._module.ChainingObject?(), $h));
 
-const unique _module.ChainingObject.__ctor.chained__test: FieldFamily;
-
-axiom (forall depth: int :: 
-  { local_field(_module.ChainingObject.__ctor.chained__test, depth) } 
-  _System.field.IsGhost(local_field(_module.ChainingObject.__ctor.chained__test, depth)));
-
 procedure {:verboseName "ChainingObject._ctor (well-formedness)"} CheckWellFormed$$_module.ChainingObject.__ctor(depth: int, 
     chained_test#0: ref
        where $Is(chained_test#0, Tclass._module.ChainingObject?())
@@ -5216,7 +5309,7 @@ const unique _module.ChainingObject.__ctor.this: FieldFamily;
 
 axiom (forall depth: int :: 
   { local_field(_module.ChainingObject.__ctor.this, depth) } 
-  _System.field.IsGhost(local_field(_module.ChainingObject.__ctor.this, depth)));
+  !_System.field.IsGhost(local_field(_module.ChainingObject.__ctor.this, depth)));
 
 procedure {:verboseName "ChainingObject._ctor (call)"} Call$$_module.ChainingObject.__ctor(depth: int, 
     chained_test#0: ref
@@ -5343,6 +5436,8 @@ implementation {:smt_option "smt.arith.solver", "2"} {:verboseName "ChainingObje
     $oldRhs := $Unbox(read($Heap, this, _module.ChainingObject.x)): ref;
     if ($oldRhs != null)
     {
+        assume Set#IsMember(readReferrers($ReferrersHeap, $oldRhs), 
+          $Box(#_System._tuple#2._#Make2($Box(this), $Box(_module.ChainingObject.x))));
         $ReferrersHeap := updateReferrers($ReferrersHeap, 
           $oldRhs, 
           Set#Difference(readReferrers($ReferrersHeap, $oldRhs), 
@@ -5370,6 +5465,8 @@ implementation {:smt_option "smt.arith.solver", "2"} {:verboseName "ChainingObje
     $oldRhs := $Unbox(read($Heap, this, _module.ChainingObject.y)): ref;
     if ($oldRhs != null)
     {
+        assume Set#IsMember(readReferrers($ReferrersHeap, $oldRhs), 
+          $Box(#_System._tuple#2._#Make2($Box(this), $Box(_module.ChainingObject.y))));
         $ReferrersHeap := updateReferrers($ReferrersHeap, 
           $oldRhs, 
           Set#Difference(readReferrers($ReferrersHeap, $oldRhs), 
@@ -5397,6 +5494,8 @@ implementation {:smt_option "smt.arith.solver", "2"} {:verboseName "ChainingObje
     $oldRhs := $Unbox(read($Heap, this, _module.ChainingObject.tracking)): ref;
     if ($oldRhs != null)
     {
+        assume Set#IsMember(readReferrers($ReferrersHeap, $oldRhs), 
+          $Box(#_System._tuple#2._#Make2($Box(this), $Box(_module.ChainingObject.tracking))));
         $ReferrersHeap := updateReferrers($ReferrersHeap, 
           $oldRhs, 
           Set#Difference(readReferrers($ReferrersHeap, $oldRhs), 
@@ -5424,6 +5523,8 @@ implementation {:smt_option "smt.arith.solver", "2"} {:verboseName "ChainingObje
     $oldRhs := $Unbox(read($Heap, this, _module.ChainingObject.nontracking)): ref;
     if ($oldRhs != null)
     {
+        assume Set#IsMember(readReferrers($ReferrersHeap, $oldRhs), 
+          $Box(#_System._tuple#2._#Make2($Box(this), $Box(_module.ChainingObject.nontracking))));
         $ReferrersHeap := updateReferrers($ReferrersHeap, 
           $oldRhs, 
           Set#Difference(readReferrers($ReferrersHeap, $oldRhs), 
@@ -5441,6 +5542,8 @@ implementation {:smt_option "smt.arith.solver", "2"} {:verboseName "ChainingObje
     $oldRhs := $Unbox(read($Heap, this, _module.ChainingObject.tail)): ref;
     if ($oldRhs != null)
     {
+        assume Set#IsMember(readReferrers($ReferrersHeap, $oldRhs), 
+          $Box(#_System._tuple#2._#Make2($Box(this), $Box(_module.ChainingObject.tail))));
         $ReferrersHeap := updateReferrers($ReferrersHeap, 
           $oldRhs, 
           Set#Difference(readReferrers($ReferrersHeap, $oldRhs), 

@@ -152,7 +152,7 @@ public class LocalVariable : NodeWithOrigin, IVariable, IAttributeBearingDeclara
   public Field GetLocalField(MethodOrConstructor methodOrConstructor) {
     if (localField == null) {
       localField = new SpecialField(Origin, Name, SpecialField.ID.UseIdParam, (object)Name, IsGhost,
-        false, false, Type, null) {
+        IsMutable, IsMutable, Type, Attributes) {
         EnclosingClass = methodOrConstructor.EnclosingClass,
         EnclosingMethod = methodOrConstructor
       };
