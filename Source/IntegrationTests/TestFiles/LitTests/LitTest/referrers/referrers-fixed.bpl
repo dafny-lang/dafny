@@ -5494,26 +5494,20 @@ procedure {:verboseName "ChainingObject._ctor (correctness)"} Impl$$_module.Chai
 implementation {:smt_option "smt.arith.solver", "2"} {:verboseName "ChainingObject._ctor (correctness)"} Impl$$_module.ChainingObject.__ctor(depth: int, chained_test#0: ref) returns (this: ref, $_reverifyPost: bool)
 {
   var $_ModifiesFrame: [ref,Field]bool;
-  var defass#this.x: bool;
   var this.x: ref;
-  var defass#this.y: bool;
   var this.y: ref;
-  var defass#this.nontracking: bool;
   var this.nontracking: ref;
-  var defass#this.tracking: bool;
   var this.tracking: ref;
-  var defass#this.tail: bool;
   var this.tail: ref;
+  var defass#this.x: bool;
+  var defass#this.y: bool;
+  var defass#this.tracking: bool;
+  var defass#this.tail: bool;
   var $oldRhs: ref;
   var newtype$check#2: ref;
   var newtype$check#3: ref;
   var newtype$check#4: ref;
   var newtype$check#5: ref;
-  defass#this.x := false;
-  defass#this.y := false;
-  defass#this.nontracking := false;
-  defass#this.tracking := false;
-  defass#this.tail := false;
   
   assume readReferrers($ReferrersHeap, this) ==  Set#UnionOne(Set#Empty(),
     $Box(#_System._tuple#2._#Make2($Box(locals), $Box(local_field(_module.ChainingObject.__ctor.this, depth))))
@@ -5525,6 +5519,10 @@ implementation {:smt_option "smt.arith.solver", "2"} {:verboseName "ChainingObje
     assume {:captureState "referrers.dfy(102,2): initial state"} true;
     $_reverifyPost := false;
     // ----- divided block before new; ----- C:\Users\mimayere\Documents\dafny\Source\IntegrationTests\TestFiles\LitTests\LitTest\referrers\referrers.dfy(102,3)
+    defass#this.x := false;
+    defass#this.y := false;
+    defass#this.tracking := false;
+    defass#this.tail := false;
     // ----- assignment statement ----- C:\Users\mimayere\Documents\dafny\Source\IntegrationTests\TestFiles\LitTests\LitTest\referrers\referrers.dfy(103,7)
     assume true;
     assume true;
@@ -5543,7 +5541,6 @@ implementation {:smt_option "smt.arith.solver", "2"} {:verboseName "ChainingObje
     newtype$check#2 := null;
     assume true;
     this.x := null;
-    defass#this.x := true;
     if (this.x != null)
     {
         assume !Set#IsMember(readReferrers($ReferrersHeap, this.x), 
@@ -5554,6 +5551,7 @@ implementation {:smt_option "smt.arith.solver", "2"} {:verboseName "ChainingObje
             $Box(#_System._tuple#2._#Make2($Box(this), $Box(_module.ChainingObject.x)))));
     }
 
+    defass#this.x := true;
     assume {:captureState "referrers.dfy(103,13)"} true;
     // ----- assignment statement ----- C:\Users\mimayere\Documents\dafny\Source\IntegrationTests\TestFiles\LitTests\LitTest\referrers\referrers.dfy(104,7)
     assume true;
@@ -5573,7 +5571,6 @@ implementation {:smt_option "smt.arith.solver", "2"} {:verboseName "ChainingObje
     newtype$check#3 := null;
     assume true;
     this.y := null;
-    defass#this.y := true;
     if (this.y != null)
     {
         assume !Set#IsMember(readReferrers($ReferrersHeap, this.y), 
@@ -5584,6 +5581,7 @@ implementation {:smt_option "smt.arith.solver", "2"} {:verboseName "ChainingObje
             $Box(#_System._tuple#2._#Make2($Box(this), $Box(_module.ChainingObject.y)))));
     }
 
+    defass#this.y := true;
     assume {:captureState "referrers.dfy(104,13)"} true;
     // ----- assignment statement ----- C:\Users\mimayere\Documents\dafny\Source\IntegrationTests\TestFiles\LitTests\LitTest\referrers\referrers.dfy(105,14)
     assume true;
@@ -5603,7 +5601,6 @@ implementation {:smt_option "smt.arith.solver", "2"} {:verboseName "ChainingObje
     newtype$check#4 := null;
     assume true;
     this.tracking := null;
-    defass#this.tracking := true;
     if (this.tracking != null)
     {
         assume !Set#IsMember(readReferrers($ReferrersHeap, this.tracking), 
@@ -5614,6 +5611,7 @@ implementation {:smt_option "smt.arith.solver", "2"} {:verboseName "ChainingObje
             $Box(#_System._tuple#2._#Make2($Box(this), $Box(_module.ChainingObject.tracking)))));
     }
 
+    defass#this.tracking := true;
     assume {:captureState "referrers.dfy(105,20)"} true;
     // ----- assignment statement ----- C:\Users\mimayere\Documents\dafny\Source\IntegrationTests\TestFiles\LitTests\LitTest\referrers\referrers.dfy(106,17)
     assume true;
@@ -5661,8 +5659,13 @@ implementation {:smt_option "smt.arith.solver", "2"} {:verboseName "ChainingObje
             $Box(#_System._tuple#2._#Make2($Box(this), $Box(_module.ChainingObject.tail)))));
     }
 
+    defass#this.tail := true;
     assume {:captureState "referrers.dfy(107,24)"} true;
     // ----- new; ----- C:\Users\mimayere\Documents\dafny\Source\IntegrationTests\TestFiles\LitTests\LitTest\referrers\referrers.dfy(102,3)
+    assert {:id "id249"} defass#this.x;
+    assert {:id "id250"} defass#this.y;
+    assert {:id "id251"} defass#this.tracking;
+    assert {:id "id252"} defass#this.tail;
     assume this != null && $Is(this, Tclass._module.ChainingObject?());
     assume !$Unbox(read($Heap, this, alloc)): bool;
     assume $Unbox(read($Heap, this, _module.ChainingObject.x)): ref == this.x;

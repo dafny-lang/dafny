@@ -307,7 +307,7 @@ public partial class BoogieGenerator
       return !formal.IsGhost;
     }
 
-    private static bool CountsAsReferrer(Field field) {
+    public bool CountsAsReferrer(Field field) {
       return !field.IsGhost || field.HasUserAttribute(TrackingAttribute, out _);
     }
 

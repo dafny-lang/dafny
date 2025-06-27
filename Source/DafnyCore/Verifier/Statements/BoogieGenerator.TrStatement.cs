@@ -309,7 +309,7 @@ public partial class BoogieGenerator {
           locals.AddRange(localSurrogates);
           var beforeTrackers = DefiniteAssignmentTrackers;
           fields.ForEach(f =>
-            AddDefiniteAssignmentTrackerSurrogate(f, cl, locals, codeContext is Constructor && codeContext.IsGhost));
+            AddDefiniteAssignmentTrackerSurrogate(f, cl, locals, codeContext is Constructor && codeContext.IsGhost, builder));
 
           Contract.Assert(!inBodyInitContext);
           inBodyInitContext = true;

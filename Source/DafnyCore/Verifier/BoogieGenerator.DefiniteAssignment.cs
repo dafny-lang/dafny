@@ -76,12 +76,16 @@ namespace Microsoft.Dafny {
     }
 
     void AddDefiniteAssignmentTrackerSurrogate(Field field, TopLevelDeclWithMembers enclosingClass,
-      Variables localVariables, bool forceGhostVar) {
+      Variables localVariables, bool forceGhostVar, BoogieStmtListBuilder builder) {
       Contract.Requires(field != null);
       Contract.Requires(localVariables != null);
 
       var type = field.Type.Subst(enclosingClass.ParentFormalTypeParametersToActuals);
-      if (!NeedsDefiniteAssignmentTracker(field.IsGhost || forceGhostVar, type, true)) {
+      var ifReferrersNoNeedToTrack =
+        !VerifyReferrers ||
+        !field.Type.MayInvolveReferences ||
+        !Referrers.CountsAsReferrer(field);
+      if (!NeedsDefiniteAssignmentTracker(field.IsGhost || forceGhostVar, type, true) && ifReferrersNoNeedToTrack) {
         return;
       }
 
@@ -91,6 +95,8 @@ namespace Microsoft.Dafny {
       var tracker = localVariables.GetOrAdd(localVariable);
       var ie = new Bpl.IdentifierExpr(field.Origin, tracker);
       DefiniteAssignmentTrackers = DefiniteAssignmentTrackers.Add(nm, (field, ie));
+      builder.Add(
+        new AssignCmd(field.Origin, [new SimpleAssignLhs(field.Origin, ie)],[new Bpl.LiteralExpr(field.Origin, false)]));
     }
 
     void MarkDefiniteAssignmentTracker(IdentifierExpr expr, BoogieStmtListBuilder builder) {
