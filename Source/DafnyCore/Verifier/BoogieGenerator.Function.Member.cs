@@ -235,17 +235,22 @@ public partial class BoogieGenerator {
         etran = new ExpressionTranslator(this, Predef, (Boogie.Expr)null, f);
       }
 
+      
       // "forallFormals" is built to hold the bound variables of the quantification
       // argsJF are the arguments to J.F (the function in the trait)
       // argsCF are the arguments to C.F (the overriding function)
-      var forallFormals = new List<Boogie.Variable>();
-      var argsJf = new List<Boogie.Expr>();
-      var argsJfCanCall = new List<Boogie.Expr>();
-      var argsCf = new List<Boogie.Expr>();
-      var argsCfCanCall = new List<Boogie.Expr>();
+      List<Variable> forallFormals = [];
+      List<Expr> argsJf = [];
+      List<Expr> argsJfCanCall = [];
+      List<Expr> argsCf = [];
+      IReadOnlyList<Expr> argsCfCanCall = new List<Expr>();
 
       // Add type arguments
       forallFormals.AddRange(MkTyParamBinders(GetTypeParamsIncludingType(overridingFunction), out _));
+      var typeArguments = GetTypeArguments(f, overridingFunction).ConvertAll(TypeToTy);
+      argsJfCanCall.AddRange(typeArguments);
+      typeArguments = GetTypeArguments(overridingFunction, null).ConvertAll(TypeToTy);
+      argsCfCanCall = argsCfCanCall.Concat(typeArguments);
 
       var moreArgsJF = new List<Boogie.Expr>(); // non-type-parameters, non-fuel, non-reveal arguments
       var moreArgsCF = new List<Boogie.Expr>(); // non-type-parameters, non-fuel, non-reveal arguments
@@ -326,7 +331,7 @@ public partial class BoogieGenerator {
       argsJf = Concat(argsJf, moreArgsJF);
       argsJfCanCall = Concat(argsJfCanCall, moreArgsJF);
       argsCf = Concat(argsCf, moreArgsCF);
-      argsCfCanCall = Concat(argsCfCanCall, moreArgsCF);
+      argsCfCanCall = argsCfCanCall.Concat(moreArgsCF);
 
       Bpl.Expr canCallFunc, canCallOverridingFunc;
       {

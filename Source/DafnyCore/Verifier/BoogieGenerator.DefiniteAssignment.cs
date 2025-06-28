@@ -165,19 +165,19 @@ namespace Microsoft.Dafny {
           new Bpl.IdentifierExpr(method.Origin, method.FullSanitizedName + "#canCall", Bpl.Type.Bool);
         var etran = new ExpressionTranslator(this, Predef, method.Origin, method);
         List<Bpl.Expr> args = arguments.Select(arg => etran.TrExpr(arg)).ToList();
-        List<Expr> prefixArgs = [];
+        var formals = MkTyParamBinders(GetTypeParams(method), out var typeArgs);
         if (method.FunctionFromWhichThisIsByMethodDecl.ReadsHeap) {
           Contract.Assert(etran.HeapExpr != null);
-          prefixArgs.Add(etran.HeapExpr);
+          typeArgs.Add(etran.HeapExpr);
         }
 
         if (!method.IsStatic) {
-          var thVar = BplBoundVar("this", TrReceiverType(method.FunctionFromWhichThisIsByMethodDecl), out var th);
-          prefixArgs.Add(th);
+          BplBoundVar("this", TrReceiverType(method.FunctionFromWhichThisIsByMethodDecl), out var th);
+          typeArgs.Add(th);
         }
 
         Bpl.Expr boogieAssumeCanCall =
-          new Bpl.NAryExpr(method.Origin, new FunctionCall(canCallFuncId), Concat(prefixArgs, args));
+          new Bpl.NAryExpr(method.Origin, new FunctionCall(canCallFuncId), Concat(typeArgs, args));
         builder.Add(new AssumeCmd(method.Origin, boogieAssumeCanCall));
       } else {
         Contract.Assert(false, "Error in shape of by-method");

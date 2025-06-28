@@ -78,7 +78,7 @@ public partial class BoogieGenerator {
       var formals = new List<Bpl.Variable>();
       var rhsargs = new List<Bpl.Expr>();
 
-      // MapM(Enumerable.Range(0, arity + 1), i => rhsargs.Add(BplFormalVar("t" + i, Predef.Ty, true, formals)));
+      MapM(Enumerable.Range(0, arity + 1), i => rhsargs.Add(BplFormalVar("t" + i, Predef.Ty, true, formals)));
 
       var heap = BplFormalVar("heap", Predef.HeapType, true, formals);
       rhsargs.Add(heap);
@@ -86,7 +86,9 @@ public partial class BoogieGenerator {
 
       MapM(Enumerable.Range(0, arity), i => rhsargs.Add(BplFormalVar("bx" + i, Predef.BoxType, true, formals)));
 
-      sink.AddTopLevelDeclaration(new Bpl.Function(f.Origin, f.FullSanitizedName + "#canCall", [], formals, BplFormalVar(null, Bpl.Type.Bool, false), null, InlineAttribute(f.Origin)) { Body = Bpl.Expr.True });
+      sink.AddTopLevelDeclaration(new Bpl.Function(f.Origin, f.FullSanitizedName + "#canCall", [], formals, 
+        BplFormalVar(null, Bpl.Type.Bool, false), null, 
+        InlineAttribute(f.Origin)) { Body = Bpl.Expr.True });
     }
 
     // forall t1, .., tN+1 : Ty, p: [Heap, Box, ..., Box] Box, heap : Heap, b1, ..., bN : Box

@@ -2685,6 +2685,7 @@ namespace Microsoft.Dafny {
 
     private Bpl.Function GetCanCallFunction(Function f) {
       var formals = new List<Variable>();
+      formals.AddRange(MkTyParamFormals(GetTypeParamsIncludingType(f), false));
       if (f is TwoStateFunction) {
         formals.Add(new Bpl.Formal(f.Origin, new Bpl.TypedIdent(f.Origin, "$prevHeap", Predef.HeapType), true));
       }

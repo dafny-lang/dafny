@@ -512,9 +512,9 @@ namespace Microsoft.Dafny {
           // The checked conjuncts of the body make use of the type-specialized body.
 
           // F#canCall(args)
-          Bpl.IdentifierExpr canCallFuncID = new Bpl.IdentifierExpr(expr.Origin, f.FullSanitizedName + "#canCall", Bpl.Type.Bool);
+          Bpl.IdentifierExpr canCallFuncId = new Bpl.IdentifierExpr(expr.Origin, f.FullSanitizedName + "#canCall", Bpl.Type.Bool);
           List<Bpl.Expr> args = etran.FunctionInvocationArguments(fexp, null, null);
-          Bpl.Expr canCall = new Bpl.NAryExpr(GetToken(expr), new Bpl.FunctionCall(canCallFuncID), args);
+          Bpl.Expr canCall = new Bpl.NAryExpr(GetToken(expr), new Bpl.FunctionCall(canCallFuncId), args);
 
           Bpl.Expr fargs;
           // F(args)

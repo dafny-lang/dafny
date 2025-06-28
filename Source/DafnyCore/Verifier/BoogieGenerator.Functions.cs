@@ -104,7 +104,7 @@ public partial class BoogieGenerator {
     // allocation statement changes only an allocation bit and then re-assumes $IsGoodHeap; so if it is
     // sound after that, then it would also have been sound just before the allocation.
     //
-    var formals = MkTyParamBinders(GetTypeParamsIncludingType(f), out _);
+    var formals = MkTyParamBinders(GetTypeParamsIncludingType(f), out var tyArgs);
     var args = new List<Expr>();
     var olderInParams = new List<Variable>(); // for use with older-condition
     BoundVariable layer;
@@ -187,7 +187,7 @@ public partial class BoogieGenerator {
     Expr funcAppl = new NAryExpr(f.Origin, new FunctionCall(funcId), funcArgs);
 
     var canCallFuncId = new Bpl.IdentifierExpr(f.Origin, f.FullSanitizedName + "#canCall", Bpl.Type.Bool);
-    var canCall = new NAryExpr(f.Origin, new FunctionCall(canCallFuncId), args);
+    var canCall = new NAryExpr(f.Origin, new FunctionCall(canCallFuncId), Concat(tyArgs, args));
 
     Expr post = Expr.True;
     // substitute function return value with the function call.
@@ -456,7 +456,7 @@ public partial class BoogieGenerator {
     }
 
     var canCallFuncId = new Bpl.IdentifierExpr(f.Origin, f.FullSanitizedName + "#canCall", Bpl.Type.Bool);
-    var useViaCanCall = new NAryExpr(f.Origin, new FunctionCall(canCallFuncId), args);
+    var useViaCanCall = new NAryExpr(f.Origin, new FunctionCall(canCallFuncId), Concat(tyargs, args));
 
     // Add the precondition function and its axiom (which is equivalent to the anteReqAxiom)
     if (body == null || (RevealedInScope(f) && lits == null)) {
@@ -645,11 +645,11 @@ public partial class BoogieGenerator {
     Expr q0 = new Bpl.ForallExpr(f.Origin, [], [oVar, fieldVar],
       BplImp(BplAnd(oNotNullAlloced, r0), unchanged));
 
-    var bForallVars = MkTyParamBinders(GetTypeParamsIncludingType(f), out _);
+    var bForallVars = MkTyParamBinders(GetTypeParamsIncludingType(f), out var typeArguments);
     var f0Args = new List<Expr>();
     var f1Args = new List<Expr>();
-    var f0ArgsCanCall = new List<Expr>();
-    var f1ArgsCanCall = new List<Expr>();
+    var f0ArgsCanCall = new List<Expr>(typeArguments);
+    var f1ArgsCanCall = new List<Expr>(typeArguments);
     if (f.IsFuelAware()) {
       Expr s; var sV = BplBoundVar("$ly", Predef.LayerType, out s);
       bForallVars.Add(sV);
