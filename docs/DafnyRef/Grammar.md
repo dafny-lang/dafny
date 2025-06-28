@@ -300,9 +300,12 @@ prefaced by `0x` and
 possibly interspersed with underscores for readability (but not beginning or ending with an underscore).
 Example: `0xffff_ffff`.
 
-A `decimaldigits` token is a decimal fraction constant, possibly interspersed with underscores for readability (but not beginning or ending with an underscore).
-It has digits both before and after a single period (`.`) character. There is no syntax for floating point numbers with exponents.
-Example: `123_456.789_123`.
+A `realnumber` token is a real number literal, possibly interspersed with
+underscores for readability (but not beginning or ending with an underscore).
+It can be a decimal fraction (like `123.456`), scientific notation (like
+`1.23e5` or `123e5`), or convenient shorthand forms with leading or trailing
+dots (like `.5` or `1.`). All forms produce real number values.
+Examples: `123_456.789_123`, `1.23e5`, `123E-2`, `5e+10`, `1.`, `.5`, `5.e2`.
 
 ### 2.6.4. Escaped Character {#sec-escaped-characters}
 
@@ -510,5 +513,5 @@ the `--quantifier-syntax:4` option needs to be provided to enable this feature (
 
 Integer and bitvector literals may be expressed in either decimal or hexadecimal (`digits` or `hexdigits`).
 
-Real number literals are written as decimal fractions (`decimaldigits`).
+Real number literals are written as real number tokens (`realnumber`).
 

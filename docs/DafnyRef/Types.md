@@ -234,20 +234,22 @@ a lower case `x`, but the hexadecimal digits themselves are case
 insensitive).  Leading zeros are allowed.  To form negative literals,
 use the unary minus operator, as in `-12`, but not `-(12)`.
 
-There are also literals for some of the reals.  These are
-written as a decimal point with a nonempty sequence of decimal digits
-on both sides, optionally prefixed by a `-` character.
-For example, `1.0`, `1609.344`, `-12.5`, and `0.5772156649`.
-Real literals using exponents are not supported in Dafny. For now, you'd have to write your own function for that, e.g. 
-<!-- %check-verify -->
-```dafny
-// realExp(2.37, 100) computes 2.37e100
-function realExp(r: real, e: int): real decreases if e > 0 then e else -e {
-  if e == 0 then r
-  else if e < 0 then realExp(r/10.0, e+1)
-  else realExp(r*10.0, e-1)
-}
-```
+There are also **real literals** for some of the reals. Real literals
+can be written in several forms:
+
+**Decimal form**: A decimal point with decimal digits, optionally
+prefixed by a `-` character. The basic form has digits on both sides
+of the decimal point, like `1.0`, `1609.344`, `-12.5`, and `0.5772156649`.
+Convenient shorthand forms are also supported: trailing dots
+(like `1.` for `1.0`) and leading dots (like `.5` for `0.5`).
+
+**Scientific notation**: Uses `e` or `E` to denote the exponent.
+For example, `1.23e5` (which equals `123000.0`), `1.23E-2`
+(which equals `0.0123`), and `5e0` (which equals `5.0`). The exponent
+can be optionally prefixed with `+` or `-`, as in `1.0e+10` or `2.5e-3`.
+Both decimal numbers with optional exponents (like `1.23e5`) and integers
+with mandatory exponents (like `123e5`) are supported. Scientific notation
+can also be combined with dot shorthands, such as `5.e2` or `.5e3`.
 
 For integers (in both decimal and hexadecimal form) and reals,
 any two digits in a literal may be separated by an underscore in order
