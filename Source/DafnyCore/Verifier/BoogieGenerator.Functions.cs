@@ -723,7 +723,7 @@ public partial class BoogieGenerator {
     var f1 = new NAryExpr(f.Origin, fn, f1Args);
     var eq = BplAnd(Expr.Eq(f0, f1), Expr.Eq(f0CanCall, f1CanCall));
     var tr = new Trigger(f.Origin, true,
-      new List<Expr> { h0IsHeapAnchor, heapSucc, f1, whereClause }.Where(t => t != null));
+      new List<Expr> { h0IsHeapAnchor, heapSucc, f1 });
 
     var ax = new Bpl.ForallExpr(f.Origin, [], bForallVars, null, tr,
       BplImp(BplAnd(wellFormed, BplAnd(h0IsHeapAnchor, heapSucc)),
