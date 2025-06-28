@@ -338,7 +338,7 @@ public partial class BoogieGenerator {
         var callName = new Bpl.IdentifierExpr(f.Origin, f.FullSanitizedName + "#canCall", Bpl.Type.Bool);
         canCallFunc = new Bpl.NAryExpr(f.Origin, new Bpl.FunctionCall(callName), argsJfCanCall);
         callName = new Bpl.IdentifierExpr(overridingFunction.Origin, overridingFunction.FullSanitizedName + "#canCall", Bpl.Type.Bool);
-        canCallOverridingFunc = new Bpl.NAryExpr(f.Origin, new Bpl.FunctionCall(callName), argsCfCanCall);
+        canCallOverridingFunc = new Bpl.NAryExpr(f.Origin, new Bpl.FunctionCall(callName), argsCfCanCall.ToList());
       }
 
       // useViaCanCall: C.F#canCall(args)

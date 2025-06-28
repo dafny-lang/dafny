@@ -512,13 +512,12 @@ namespace Microsoft.Dafny {
           // The checked conjuncts of the body make use of the type-specialized body.
 
           // F#canCall(args)
-          Bpl.IdentifierExpr canCallFuncId = new Bpl.IdentifierExpr(expr.Origin, f.FullSanitizedName + "#canCall", Bpl.Type.Bool);
-          List<Bpl.Expr> args = etran.FunctionInvocationArguments(fexp, null, null);
-          Bpl.Expr canCall = new Bpl.NAryExpr(GetToken(expr), new Bpl.FunctionCall(canCallFuncId), args);
+          var canCallFuncId = new Bpl.IdentifierExpr(expr.Origin, f.FullSanitizedName + "#canCall", Bpl.Type.Bool);
+          var args = etran.FunctionInvocationArguments(fexp, null, null, true);
+          var canCall = new Bpl.NAryExpr(GetToken(expr), new Bpl.FunctionCall(canCallFuncId), args);
 
-          Bpl.Expr fargs;
-          // F(args)
-          fargs = etran.TrExpr(fexp);
+          var fargs = // F(args)
+            etran.TrExpr(fexp);
 
           if (!CanSafelyInline(fexp, f)) {
             // Skip inlining, as it would cause arbitrary expressions to pop up in the trigger

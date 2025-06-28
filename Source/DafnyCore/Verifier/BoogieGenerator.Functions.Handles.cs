@@ -20,9 +20,8 @@ public partial class BoogieGenerator {
     } else {
       name = f.FullSanitizedName + "#Handle";
       functionHandles[f] = name;
-      var formalVars = MkTyParamBinders(GetTypeParamsIncludingType(f), out _);
+      var formalVars = MkTyParamBinders(GetTypeParamsIncludingType(f), out var argsRequires);
       List<Expr> args = [];
-      var argsRequires = new List<Expr>(); // Requires don't have reveal parameters
       List<Variable> formals = [];
       var tyargs = new List<Expr>();
       foreach (var fm in f.Ins) {
@@ -173,8 +172,8 @@ public partial class BoogieGenerator {
       AddOtherDefinition(GetOrCreateFunction(f), (new Axiom(f.Origin,
         BplForall(Concat(formalVars, bvars), BplTrigger(lhs), Expr.Eq(lhs, pre)))));
     } else {
-      var args_h = f.ReadsHeap ? Snoc(snocPrevH(argsRequires), h) : argsRequires;
-      rhs = FunctionCall(f.Origin, RequiresName(f), Bpl.Type.Bool, Concat(snocSelf(args_h), rhsArgs));
+      var argsH = f.ReadsHeap ? Snoc(snocPrevH(argsRequires), h) : argsRequires;
+      rhs = FunctionCall(f.Origin, RequiresName(f), Bpl.Type.Bool, Concat(snocSelf(argsH), rhsArgs));
       AddOtherDefinition(GetOrCreateFunction(f), new Axiom(f.Origin,
         BplForall(Concat(formalVars, bvars), BplTrigger(lhs), Expr.Eq(lhs, rhs))));
     }

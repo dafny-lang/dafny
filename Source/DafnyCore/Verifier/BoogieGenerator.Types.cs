@@ -706,7 +706,7 @@ public partial class BoogieGenerator {
       }
       var canCallIsJustTrue = constraintCanCall == Bpl.Expr.True;
       var constraint = etran.TrExpr(condition);
-      var comment = $"$Is axiom{(canCallIsJustTrue ? "" : "s")} for {dd.WhatKind} {fullName}";
+      var comment = $"$Is axiom(s) for {dd.WhatKind} {fullName}";
 
       var rhs = BplAnd(parentConstraint, BplAnd(constraintCanCall, constraint));
       var body = canCallIsJustTrue ? BplIff(isPredicate, rhs) : BplImp(isPredicate, rhs);
