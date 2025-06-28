@@ -236,7 +236,8 @@ public partial class BoogieGenerator {
         }
 
         var axBody = BplImp(ante, whr);
-        var ax = BplForall(f.Origin, [], formals, null, BplTrigger(whr), axBody);
+        var trigger = new Bpl.Trigger(whr.tok, true, new List<Bpl.Expr> { whr, canCall });
+        var ax = BplForall(f.Origin, [], formals, null, trigger, axBody);
         var allocConsequenceAxiom = new Axiom(f.Origin, ax, "alloc consequence axiom for " + f.FullSanitizedName);
         AddOtherDefinition(boogieFunction, allocConsequenceAxiom);
       }
