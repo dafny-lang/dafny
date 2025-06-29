@@ -55,7 +55,7 @@ method TrailingDotLiterals() {
   
   // Trailing dots with scientific notation (works but not recommended - longer than needed)
   var e := 5.e2;       // 500.0 (same as 5e2 but longer)
-  var f := 42.E-1;     // 4.2 (same as 4.2e0 or just 4.2)
+  var f := 42.E-1;     // 4.2 (same as 42e-1 but longer)
   var g := 1.e0;       // 1.0 (same as 1e0 or just 1.0)
   
   // Verify values
