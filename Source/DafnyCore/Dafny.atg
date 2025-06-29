@@ -4902,7 +4902,7 @@ Dec<out BaseTypes.BigDec d>
 = (. d = BaseTypes.BigDec.ZERO; .)
   (realnumber
     (. var S = Util.RemoveUnderscores(t.val);
-       // Convert uppercase E to lowercase e for scientific notation compatibility
+       // Convert uppercase E to lowercase e for exponential notation compatibility
        S = S.Replace('E', 'e');
        // Handle trailing dot case (e.g., "1." -> "1.0", "5.e2" -> "5.0e2")
        int dotIndex = S.IndexOf('.');

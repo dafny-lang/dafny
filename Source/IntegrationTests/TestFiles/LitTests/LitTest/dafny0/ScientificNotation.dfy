@@ -1,9 +1,9 @@
 // RUN: %testDafnyForEachResolver --expect-exit-code=0 "%s"
 // RUN: %diff "%s.expect" "%t"
 
-// Test scientific notation and trailing dot support for real literals
+// Test exponential notation and trailing dot support for real literals
 
-method BasicScientificNotation() {
+method BasicExponentialNotation() {
   // Basic positive exponents
   var a := 1.23e2;     // 123.0
   var b := 1.23E2;     // 123.0 (uppercase E)
@@ -29,8 +29,8 @@ method BasicScientificNotation() {
   assert f == g == h;
 }
 
-method IntegerScientificNotation() {
-  // Integer base with scientific notation
+method IntegerExponentialNotation() {
+  // Integer base with exponential notation
   var a := 5e2;        // 500.0
   var b := 5E2;        // 500.0
   var c := 5e+2;       // 500.0
@@ -50,7 +50,7 @@ method TrailingDotLiterals() {
   var b := 123.;       // 123.0
   var c := 0.;         // 0.0
   
-  // Trailing dots with scientific notation
+  // Trailing dots with exponential notation
   var d := 5.e2;       // 500.0
   var e := 42.E-1;     // 4.2
   var f := 1.e0;       // 1.0
@@ -114,8 +114,8 @@ method LargeExponents() {
   assert d * 1.0e8 == 2.5;
 }
 
-method ScientificNotationArithmetic() {
-  // Arithmetic with scientific notation
+method ExponentialNotationArithmetic() {
+  // Arithmetic with exponential notation
   var a := 1.5e2;      // 150.0
   var b := 3.0e1;      // 30.0
   var c := 2.0e-1;     // 0.2
@@ -155,7 +155,7 @@ method EdgeCases() {
 
 method UnderscoreSupport() {
   // Dafny already supports underscores in decimal literals (e.g., 1_234.567_890)
-  // Test underscores with scientific notation
+  // Test underscores with exponential notation
   var a := 1_2.3_4e1_0;    // 123.4e10 - underscores in base and exponent
   var b := 5_0.0e-4;       // 50.0e-4 = 0.005
   
@@ -177,7 +177,7 @@ method TypeInference() {
 }
 
 method ExpressionContexts() {
-  // Test scientific notation in various expression contexts
+  // Test exponential notation in various expression contexts
   assert 1.0e2 == 100.0;
   assert 5.0e-1 == 0.5;
   assert 1.0e0 == 1.0;
