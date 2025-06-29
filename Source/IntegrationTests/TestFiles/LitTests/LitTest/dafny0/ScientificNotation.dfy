@@ -77,33 +77,33 @@ method TrailingDotLiterals() {
 
 method LeadingDotLiterals() {
   // Basic leading dot literals
-  var a := .1;         // 0.1
+  var a := .10;        // 0.10
   var b := .25;        // 0.25
-  var c := .0;         // 0.0
+  var c := .00;        // 0.00
   
   // Leading dots with scientific notation
-  var d := .5e3;       // 500.0
+  var d := .50e3;      // 500.0
   var e := .75E-2;     // 0.0075
-  var f := .1e0;       // 0.1
+  var f := .10e0;      // 0.1
   
   // Leading dots with underscores
-  var g := .1_2_3;     // 0.123
-  var h := .5_0e2;     // 50.0
+  var g := .12_3;      // 0.123
+  var h := .50e2;      // 50.0
   
   // Verify values
-  assert a == 0.1;
+  assert a == 0.10;
   assert b == 0.25;
-  assert c == 0.0;
+  assert c == 0.00;
   assert d == 500.0;
   assert e == 0.0075;
-  assert f == 0.1;
+  assert f == 0.10;
   assert g == 0.123;
   assert h == 50.0;
   
   // Equivalences with traditional forms
-  assert a == 0.1;
+  assert a == 0.10;
   assert b == 0.25;
-  assert d == 0.5e3;
+  assert d == 0.50e3;
   assert e == 0.75E-2;
 }
 
@@ -113,7 +113,7 @@ method DotLiteralArithmetic() {
   var b := 2.;         // 2.0
   
   // Arithmetic with leading dots
-  var c := .5;         // 0.5
+  var c := .50;        // 0.5
   var d := .25;        // 0.25
   
   // Mixed arithmetic
@@ -131,7 +131,7 @@ method DotLiteralArithmetic() {
   assert a + 1.0 == 6.0;
   assert c * 2.0 == 1.0;
   assert 10. / 2. == 5.0;
-  assert .1 + .9 == 1.0;
+  assert .10 + .90 == 1.0;
 }
 
 method LargeExponents() {
@@ -180,7 +180,7 @@ method EdgeCases() {
   
   // Zero with dot literals
   var c := 0.;         // 0.0
-  var d := .0;         // 0.0
+  var d := .00;        // 0.0
   
   // Very small numbers
   var e := 1e-100;     // Very small positive
@@ -205,7 +205,7 @@ method UnderscoreSupport() {
   
   // Underscores with dot literals
   var c := 1_000.;         // 1000.0 - trailing dot with underscores
-  var d := .1_2_3;         // 0.123 - leading dot with underscores
+  var d := .12_3;      // 0.123 - leading dot with underscores
   
   assert a == 123400000000.0;
   assert b == 0.0001;
@@ -230,9 +230,9 @@ method ComparisonOperations() {
   
   // Equality with dot literals
   assert 1. == 1.0;
-  assert .5 == 0.5;
+  assert .50 == 0.5;
   assert 5.e1 == 50.0;
-  assert .1e1 == 1.0;
+  assert .10e1 == 1.0;
 }
 
 method TypeConversions() {
@@ -247,6 +247,6 @@ method TypeConversions() {
   
   // Floor with dot literals
   assert (5.).Floor == 5;
-  assert (.5e1).Floor == 5;    // 0.5e1 = 5.0
+  assert (.50e1).Floor == 5;    // 0.5e1 = 5.0
   assert (1.9).Floor == 1;
 }
