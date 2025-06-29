@@ -1,6 +1,6 @@
 // RUN: %testDafnyForEachResolver --expect-exit-code=0 "%s"
 
-// Comprehensive test for scientific notation and trailing dot support
+// Comprehensive test for scientific notation, trailing dot, and leading dot support
 
 method BasicScientificNotation() {
   // Basic positive exponents
@@ -52,6 +52,26 @@ method TrailingDotLiterals() {
   assert d == 1000.0;
 }
 
+method LeadingDotLiterals() {
+  // Basic leading dot literals
+  var a := .5;         // 0.5
+  var b := .123;       // 0.123
+  var c := .0;         // 0.0
+  
+  // Leading dot with scientific notation
+  var d := .5e2;       // 50.0
+  var e := .123e-2;    // 0.00123
+  var f := .5E+3;      // 500.0
+  
+  // Verify values
+  assert a == 0.5;
+  assert b == 0.123;
+  assert c == 0.0;
+  assert d == 50.0;
+  assert e == 0.00123;
+  assert f == 500.0;
+}
+
 method ScientificNotationArithmetic() {
   // Arithmetic with scientific notation
   var a := 1.5e2;      // 150.0
@@ -75,15 +95,16 @@ method EdgeCases() {
   var a := 0.0e5;      // 0.0
   var b := 0e-3;       // 0.0
   var c := 0.;         // 0.0
+  var d := .0;         // 0.0 (leading dot)
   
-  assert a == b && b == c && c == 0.0;
+  assert a == b && b == c && c == d && d == 0.0;
   
   // Small values
-  var d := 9.99e-1;    // 0.999
-  var e := 1.01e0;     // 1.01
+  var e := 9.99e-1;    // 0.999
+  var f := 1.01e0;     // 1.01
   
-  assert d < 1.0;
-  assert e > 1.0;
+  assert e < 1.0;
+  assert f > 1.0;
 }
 
 method UnderscoreSupport() {
@@ -103,8 +124,14 @@ method TypeInference() {
   var medium := 1.0e0;     // 1.0
   var large := 1.0e5;      // 100000.0
   
+  // Test with leading dots
+  var leadSmall := .00001; // 0.00001
+  var leadMed := .5;       // 0.5
+  
   // These should all be inferred as real type
   assert small < medium && medium < large;
+  assert leadSmall == small;
+  assert leadMed == 0.5;
 }
 
 method ExpressionContexts() {
@@ -117,8 +144,13 @@ method ExpressionContexts() {
   assert 1. == 1.0;
   assert 100. == 100.0;
   
+  // In assertions with leading dots
+  assert .5 == 0.5;
+  assert .123 == 0.123;
+  
   // Test parenthesized expressions
   assert (1.0e2) == 100.0;
   assert (5.0e0) == 5.0;
   assert (5.) == 5.0;
+  assert (.5) == 0.5;
 }
