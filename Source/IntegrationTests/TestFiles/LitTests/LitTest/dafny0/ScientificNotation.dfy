@@ -45,39 +45,27 @@ method IntegerScientificNotation() {
 }
 
 method TrailingDotLiterals() {
-  // Basic trailing dot literals
+  // Basic trailing dot literals - useful shorthand for whole numbers
   var a := 1.;         // 1.0
   var b := 123.;       // 123.0
   var c := 0.;         // 0.0
   
-  // Trailing dots with scientific notation
-  var d := 5.e2;       // 500.0
-  var e := 42.E-1;     // 4.2
-  var f := 1.e0;       // 1.0
-  
   // Trailing dots with underscores
-  var g := 1_000.;     // 1000.0
-  var h := 1_2.e3;     // 12000.0
+  var d := 1_000.;     // 1000.0
   
   // Verify values
   assert a == 1.0;
   assert b == 123.0;
   assert c == 0.0;
-  assert d == 500.0;
-  assert e == 4.2;
-  assert f == 1.0;
-  assert g == 1000.0;
-  assert h == 12000.0;
+  assert d == 1000.0;
   
   // Equivalences with traditional forms
   assert a == 1.0;
   assert b == 123.0;
-  assert d == 5.0e2;
-  assert e == 42.0E-1;
 }
 
 method TrailingDotArithmetic() {
-  // Arithmetic with trailing dots
+  // Arithmetic with trailing dots - useful for whole number constants
   var a := 5.;         // 5.0
   var b := 2.;         // 2.0
   
@@ -182,9 +170,9 @@ method ExpressionContexts() {
   assert 5.0e-1 == 0.5;
   assert 1.0e0 == 1.0;
   
-  // In assertions with trailing dots
+  // In assertions with trailing dots (useful for whole numbers)
   assert 1. == 1.0;
-  assert 5.e1 == 50.0;
+  assert 100. == 100.0;
   
   // In method calls (using Floor as example)
   var r := 1.23e2;     // 123.0
