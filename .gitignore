@@ -92,3 +92,4 @@ Source/IntegrationTests/TestFiles/LitTests/LitTest/**/*.csproj
 /Source/DafnyCore/Prelude/Sequences.bpl
 /venv
 /Source/DafnyCore/Prelude/Output
+DEVELOPMENT_GUIDE.md
