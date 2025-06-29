@@ -4900,7 +4900,7 @@ Nat<out BigInteger n>
 /*------------------------------------------------------------------------*/
 Dec<out BaseTypes.BigDec d>
 = (. d = BaseTypes.BigDec.ZERO; .)
-  (realnumber
+  ( realnumber
     (. var S = Util.RemoveUnderscores(t.val);
        // Convert uppercase E to lowercase e for scientific notation compatibility
        S = S.Replace('E', 'e');
@@ -4917,6 +4917,15 @@ Dec<out BaseTypes.BigDec d>
            S = S.Substring(0, dotIndex + 1) + "0" + S.Substring(eIndex);
          }
        }
+       try {
+         d = BaseTypes.BigDec.FromString(S);
+       } catch (System.FormatException) {
+         SemErr(ErrorId.p_bad_decimal_number_format, t, "incorrectly formatted number");
+         d = BaseTypes.BigDec.ZERO;
+       }
+    .)
+  | digits "."
+    (. var S = Util.RemoveUnderscores(t.val) + ".0";
        try {
          d = BaseTypes.BigDec.FromString(S);
        } catch (System.FormatException) {
