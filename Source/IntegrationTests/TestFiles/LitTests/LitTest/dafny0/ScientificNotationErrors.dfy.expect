@@ -9,5 +9,4 @@ ScientificNotationErrors.dfy(27,17): Error: this symbol not expected in VarDeclS
 ScientificNotationErrors.dfy(30,15): Error: this symbol not expected in VarDeclStatement
 ScientificNotationErrors.dfy(31,15): Error: this symbol not expected in VarDeclStatement
 ScientificNotationErrors.dfy(32,15): Error: this symbol not expected in VarDeclStatement
-
 11 parse errors detected in ScientificNotationErrors.dfy
