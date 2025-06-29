@@ -4904,10 +4904,6 @@ Dec<out BaseTypes.BigDec d>
     (. var S = Util.RemoveUnderscores(t.val);
        // Convert uppercase E to lowercase e for scientific notation compatibility
        S = S.Replace('E', 'e');
-       // Handle leading dot case (e.g., ".1" -> "0.1", ".5e2" -> "0.5e2")
-       if (S.StartsWith(".")) {
-         S = "0" + S;
-       }
        // Handle trailing dot case (e.g., "1." -> "1.0", "5.e2" -> "5.0e2")
        int dotIndex = S.IndexOf('.');
        int eIndex = S.IndexOf('e');

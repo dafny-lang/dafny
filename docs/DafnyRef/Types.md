@@ -238,18 +238,18 @@ There are also **real literals** for some of the reals. Real literals
 can be written in several forms:
 
 **Decimal form**: A decimal point with decimal digits, optionally
-prefixed by a `-` character. The basic form has digits on both sides
-of the decimal point, like `1.0`, `1609.344`, `-12.5`, and `0.5772156649`.
-A convenient shorthand form is also supported: trailing dots
-(like `1.` for `1.0`).
+prefixed by a `-` character. Examples: `1.0`, `1609.344`, `-12.5`, and `0.5772156649`.
 
 **Scientific notation**: Uses `e` or `E` to denote the exponent.
 For example, `1.23e5` (which equals `123000.0`), `1.23E-2`
 (which equals `0.0123`), and `5e0` (which equals `5.0`). The exponent
 can be optionally prefixed with `+` or `-`, as in `1.0e+10` or `2.5e-3`.
 Both decimal numbers with optional exponents (like `1.23e5`) and integers
-with mandatory exponents (like `123e5`) are supported. Scientific notation
-can also be combined with dot shorthands, such as `5.e2` or `.5e3`.
+with mandatory exponents (like `123e5`) are supported.
+
+**Trailing dot shorthand**: Both decimal and scientific notation forms
+can use a trailing dot as shorthand for `.0`. For example, `1.` means `1.0`,
+`123.` means `123.0`, and `5.e2` means `5.0e2` (which equals `500.0`).
 
 For integers (in both decimal and hexadecimal form) and reals,
 any two digits in a literal may be separated by an underscore in order
