@@ -53,23 +53,35 @@ method TrailingDotLiterals() {
 }
 
 method LeadingDotLiterals() {
-  // Basic leading dot literals
-  var a := .5;         // 0.5
+  // Leading dot literals (restricted to avoid conflicts with member access)
+  var a := .50;        // 0.50 (2+ digits required)
   var b := .123;       // 0.123
-  var c := .0;         // 0.0
+  var c := .00;        // 0.00
   
-  // Leading dot with scientific notation
+  // Leading dot with scientific notation (single digit allowed with exponent)
   var d := .5e2;       // 50.0
-  var e := .123e-2;    // 0.00123
+  var e := .1e-2;      // 0.001
   var f := .5E+3;      // 500.0
   
   // Verify values
-  assert a == 0.5;
+  assert a == 0.50;
   assert b == 0.123;
-  assert c == 0.0;
+  assert c == 0.00;
   assert d == 50.0;
-  assert e == 0.00123;
+  assert e == 0.001;
   assert f == 500.0;
+}
+
+method TupleAccessCompatibility() {
+  // Verify that tuple member access still works (no conflict)
+  var tuple := (1, 2, 3);
+  var first := tuple.0;
+  var second := tuple.1;
+  var third := tuple.2;
+  
+  assert first == 1;
+  assert second == 2;
+  assert third == 3;
 }
 
 method ScientificNotationArithmetic() {
@@ -95,7 +107,7 @@ method EdgeCases() {
   var a := 0.0e5;      // 0.0
   var b := 0e-3;       // 0.0
   var c := 0.;         // 0.0
-  var d := .0;         // 0.0 (leading dot)
+  var d := .00;        // 0.00 (leading dot)
   
   assert a == b && b == c && c == d && d == 0.0;
   
@@ -126,12 +138,12 @@ method TypeInference() {
   
   // Test with leading dots
   var leadSmall := .00001; // 0.00001
-  var leadMed := .5;       // 0.5
+  var leadMed := .50;      // 0.50
   
   // These should all be inferred as real type
   assert small < medium && medium < large;
   assert leadSmall == small;
-  assert leadMed == 0.5;
+  assert leadMed == 0.50;
 }
 
 method ExpressionContexts() {
@@ -145,12 +157,12 @@ method ExpressionContexts() {
   assert 100. == 100.0;
   
   // In assertions with leading dots
-  assert .5 == 0.5;
+  assert .50 == 0.5;
   assert .123 == 0.123;
   
   // Test parenthesized expressions
   assert (1.0e2) == 100.0;
   assert (5.0e0) == 5.0;
   assert (5.) == 5.0;
-  assert (.5) == 0.5;
+  assert (.50) == 0.5;
 }
