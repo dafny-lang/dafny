@@ -245,9 +245,9 @@ can be optionally prefixed with `+` or `-`, as in `1.0e+10` or `2.5e-3`.
 Both decimal numbers with optional exponents (like `1.23e5`) and integers
 with mandatory exponents (like `123e5`) are supported.
 
-As a convenience, **trailing dot shorthand** can be used with regular
-decimal literals, where a trailing dot represents `.0`. For example, 
-`1.` means `1.0` and `123.` means `123.0`.
+As a convenience, **trailing dot shorthand** can be used with real literals,
+where a trailing dot represents `.0`. For example, `1.` means `1.0` and
+`123.` means `123.0`.
 
 For integers (in both decimal and hexadecimal form) and reals,
 any two digits in a literal may be separated by an underscore in order
