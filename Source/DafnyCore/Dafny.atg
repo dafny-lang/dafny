@@ -75,7 +75,9 @@ TOKENS
         .
   digits = digit {['_'] digit}.
   hexdigits = "0x" hexdigit {['_'] hexdigit}.
-  decimaldigits = digit {['_'] digit} '.' digit {['_'] digit}.
+  realnumber = digit {['_'] digit} '.' digit {['_'] digit} [('e'|'E') ['+'|'-'] digit {['_'] digit}]
+             | digit {['_'] digit} ('e'|'E') ['+'|'-'] digit {['_'] digit}
+             | digit {['_'] digit} '.' ('e'|'E') ['+'|'-'] digit {['_'] digit}.
   // NOTE: all alphabetic strings used in the grammar become reserved words automatically
   // The reason to include a definition here is so that a token can be referred to by its 'kind',
   // as in la.kind == _bool
@@ -3776,6 +3778,7 @@ LiteralExpression<out Expression e>
   ( "false"                                    (. e = new LiteralExpr(t, false); .)
   | "true"                                     (. e = new LiteralExpr(t, true); .)
   | "null"                                     (. e = new LiteralExpr(t); .)
+  | IF(la.kind == _digits && scanner.Peek().kind == _dot) Dec<out d> (. e = new LiteralExpr(t, d); .)
   | Nat<out n>                                 (. e = new LiteralExpr(t, n); .)
   | Dec<out d>                                 (. e = new LiteralExpr(t, d); .)
   | charToken                                  (. string s = t.val.Substring(1, t.val.Length - 2);
@@ -4734,11 +4737,11 @@ DotSuffix<out Token x, out Token y>
   .)
   ( Ident<out x>
   | digits         (. x = t; .)
-  | decimaldigits  (. x = t;
+  | realnumber  (. x = t;
                       int exponent = x.val.IndexOf('e');
                       if (0 <= exponent) {
                         // this is not a legal field/destructor name
-                        // Also it is not currently reachable, because decimaldigits does not yet support exponents
+                        // Scientific notation is not allowed in field/destructor names
                         SemErr(ErrorId.p_invalid_name_after_dot, x, "invalid name after a '.'");
                       } else {
                         int dot = x.val.IndexOf('.');
@@ -4899,12 +4902,37 @@ Nat<out BigInteger n>
 /*------------------------------------------------------------------------*/
 Dec<out BaseTypes.BigDec d>
 = (. d = BaseTypes.BigDec.ZERO; .)
-  (decimaldigits
+  ( realnumber
     (. var S = Util.RemoveUnderscores(t.val);
+       // Convert uppercase E to lowercase e for scientific notation compatibility
+       S = S.Replace('E', 'e');
+       // Handle trailing dot case (e.g., "1." -> "1.0", "5.e2" -> "5.0e2")
+       int dotIndex = S.IndexOf('.');
+       int eIndex = S.IndexOf('e');
+       if (dotIndex >= 0 && (eIndex < 0 || dotIndex + 1 == eIndex)) {
+         // Either "1." or "5.e2" case - need to add zero after dot
+         if (eIndex < 0) {
+           // Simple "1." case
+           S += "0";
+         } else {
+           // "5.e2" case - insert "0" between dot and e
+           S = S.Substring(0, dotIndex + 1) + "0" + S.Substring(eIndex);
+         }
+       }
        try {
          d = BaseTypes.BigDec.FromString(S);
        } catch (System.FormatException) {
          SemErr(ErrorId.p_bad_decimal_number_format, t, "incorrectly formatted number");
+         d = BaseTypes.BigDec.ZERO;
+       }
+    .)
+  | digits                                      (. var digitToken = t; .)
+    "."
+    (. var S = Util.RemoveUnderscores(digitToken.val) + ".0";
+       try {
+         d = BaseTypes.BigDec.FromString(S);
+       } catch (System.FormatException) {
+         SemErr(ErrorId.p_bad_decimal_number_format, digitToken, "incorrectly formatted number");
          d = BaseTypes.BigDec.ZERO;
        }
     .)

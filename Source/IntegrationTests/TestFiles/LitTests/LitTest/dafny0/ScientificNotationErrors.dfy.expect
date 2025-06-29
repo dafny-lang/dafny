@@ -1,0 +1,12 @@
+ScientificNotationErrors.dfy(8,15): Error: this symbol not expected in VarDeclStatement
+ScientificNotationErrors.dfy(9,13): Error: this symbol not expected in VarDeclStatement
+ScientificNotationErrors.dfy(12,13): Error: this symbol not expected in VarDeclStatement
+ScientificNotationErrors.dfy(17,12): Error: this symbol not expected in VarDeclStatement
+ScientificNotationErrors.dfy(18,14): Error: this symbol not expected in VarDeclStatement
+ScientificNotationErrors.dfy(21,13): Error: this symbol not expected in VarDeclStatement
+ScientificNotationErrors.dfy(22,15): Error: this symbol not expected in VarDeclStatement
+ScientificNotationErrors.dfy(27,17): Error: this symbol not expected in VarDeclStatement
+ScientificNotationErrors.dfy(30,15): Error: this symbol not expected in VarDeclStatement
+ScientificNotationErrors.dfy(31,15): Error: this symbol not expected in VarDeclStatement
+ScientificNotationErrors.dfy(32,15): Error: this symbol not expected in VarDeclStatement
+11 parse errors detected in ScientificNotationErrors.dfy
