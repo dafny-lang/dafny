@@ -240,7 +240,7 @@ Examples: `1.0`, `1609.344`, `-12.5`, and `0.5772156649`.
 
 Real literals can also be written in **scientific notation** using `e` or `E` 
 to denote the exponent. For example, `1.23e5` (which equals `123000.0`), 
-`1.23E-2` (which equals `0.0123`), and `5e0` (which equals `5.0`). The exponent
+`1.23E-2` (which equals `0.0123`), and `5e2` (which equals `500.0`). The exponent
 can be optionally prefixed with `+` or `-`, as in `1.0e+10` or `2.5e-3`.
 Both decimal numbers with optional exponents (like `1.23e5`) and integers
 with mandatory exponents (like `123e5`) are supported.
