@@ -76,9 +76,7 @@ TOKENS
   digits = digit {['_'] digit}.
   hexdigits = "0x" hexdigit {['_'] hexdigit}.
   realnumber = digit {['_'] digit} '.' {digit {['_'] digit}} [('e'|'E') ['+'|'-'] digit {['_'] digit}]
-             | digit {['_'] digit} ('e'|'E') ['+'|'-'] digit {['_'] digit}
-             | '.' digit digit {['_'] digit} [('e'|'E') ['+'|'-'] digit {['_'] digit}]
-             | '.' digit ('e'|'E') ['+'|'-'] digit {['_'] digit}.
+             | digit {['_'] digit} ('e'|'E') ['+'|'-'] digit {['_'] digit}.
   // NOTE: all alphabetic strings used in the grammar become reserved words automatically
   // The reason to include a definition here is so that a token can be referred to by its 'kind',
   // as in la.kind == _bool

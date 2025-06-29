@@ -240,8 +240,8 @@ can be written in several forms:
 **Decimal form**: A decimal point with decimal digits, optionally
 prefixed by a `-` character. The basic form has digits on both sides
 of the decimal point, like `1.0`, `1609.344`, `-12.5`, and `0.5772156649`.
-Convenient shorthand forms are also supported: trailing dots
-(like `1.` for `1.0`) and leading dots (like `.5` for `0.5`).
+A convenient shorthand form is also supported: trailing dots
+(like `1.` for `1.0`).
 
 **Scientific notation**: Uses `e` or `E` to denote the exponent.
 For example, `1.23e5` (which equals `123000.0`), `1.23E-2`

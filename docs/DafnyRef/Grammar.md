@@ -303,9 +303,9 @@ Example: `0xffff_ffff`.
 A `realnumber` token is a real number literal, possibly interspersed with
 underscores for readability (but not beginning or ending with an underscore).
 It can be a decimal fraction (like `123.456`), scientific notation (like
-`1.23e5` or `123e5`), or convenient shorthand forms with leading or trailing
-dots (like `.5` or `1.`). All forms produce real number values.
-Examples: `123_456.789_123`, `1.23e5`, `123E-2`, `5e+10`, `1.`, `.5`, `5.e2`.
+`1.23e5` or `123e5`), or a convenient shorthand form with trailing
+dots (like `1.` for `1.0`). All forms produce real number values.
+Examples: `123_456.789_123`, `1.23e5`, `123E-2`, `5e+10`, `1.`, `5.e2`.
 
 ### 2.6.4. Escaped Character {#sec-escaped-characters}
 
