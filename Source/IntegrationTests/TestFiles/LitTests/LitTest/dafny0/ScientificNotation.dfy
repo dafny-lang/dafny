@@ -53,15 +53,25 @@ method TrailingDotLiterals() {
   // Trailing dots with underscores
   var d := 1_000.;     // 1000.0
   
+  // Trailing dots with scientific notation (works but not recommended - longer than needed)
+  var e := 5.e2;       // 500.0 (same as 5e2 but longer)
+  var f := 42.E-1;     // 4.2 (same as 4.2e0 or just 4.2)
+  var g := 1.e0;       // 1.0 (same as 1e0 or just 1.0)
+  
   // Verify values
   assert a == 1.0;
   assert b == 123.0;
   assert c == 0.0;
   assert d == 1000.0;
+  assert e == 500.0;
+  assert f == 4.2;
+  assert g == 1.0;
   
   // Equivalences with traditional forms
   assert a == 1.0;
   assert b == 123.0;
+  assert e == 5e2;     // Same value, shorter syntax
+  assert f == 42e-1;   // Same value, shorter syntax
 }
 
 method TrailingDotArithmetic() {
@@ -149,9 +159,14 @@ method UnderscoreSupport() {
   
   var c := 1_000.;         // 1000.0 - trailing dot with underscores
   
+  // Test trailing dot + scientific notation + underscores (works but verbose)
+  var d := 1_2.e3;         // 12000.0 (same as 12e3 but longer)
+  
   assert a == 123400000000.0;
   assert b == 0.005;
   assert c == 1000.0;
+  assert d == 12000.0;
+  assert d == 12e3;        // Same value, shorter syntax
 }
 
 method TypeInference() {
