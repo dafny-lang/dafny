@@ -1944,11 +1944,11 @@ module Std.Producers {
       requires original.Valid()
       requires original.history == []
       requires mapping.Valid()
-      requires mapping.history == []
+      requires |mapping.history| == 0
       requires original.Repr !! mapping.Repr
       reads original, original.Repr, mapping, mapping.Repr
       ensures Valid()
-      ensures history == []
+      ensures |history| == 0
       ensures fresh(Repr - original.Repr - mapping.Repr)
     {
       this.original := original;
