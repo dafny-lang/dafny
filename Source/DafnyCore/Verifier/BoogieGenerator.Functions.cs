@@ -217,7 +217,8 @@ public partial class BoogieGenerator {
       var axBody = BplImp(canCall, post);
       Expr optionalHeap = readsHeap && !f.ReadsHeap ? etran.HeapExpr : null;
 
-      var tr = BplTriggerHeap(this, f.Origin, funcAppl, optionalHeap, wheres.Append(consequenceResultWhere).ToArray());
+      var tr = BplTriggerHeap(this, f.Origin, funcAppl, optionalHeap, wheres.Append(
+        GetWhereClause(f.Origin, funcAppl, f.ResultType, etran, NOALLOC, allowConstraint: false)).ToArray());
       var ax = BplForall(f.Origin, [], formals, null, tr, axBody);
       AddOtherDefinition(boogieFunction, new Axiom(f.Origin, ax, "consequence axiom for " + f.FullSanitizedName));
     }
