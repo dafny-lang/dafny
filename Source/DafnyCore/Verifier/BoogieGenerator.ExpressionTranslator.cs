@@ -1740,7 +1740,7 @@ BplBoundVar(varNameGen.FreshId(string.Format("#{0}#", bv.Name)), Predef.BoxType,
         return typeAntecedent;
       }
 
-      public List<Boogie.Expr> FunctionInvocationArguments(FunctionCallExpr callExpr, Boogie.Expr layerArgument, 
+      public List<Boogie.Expr> FunctionInvocationArguments(FunctionCallExpr callExpr, Boogie.Expr layerArgument,
         Boogie.Expr revealArgument, bool includeTypeParameters) {
         bool dummy;
         return FunctionInvocationArguments(callExpr, layerArgument, revealArgument, false, out dummy, includeTypeParameters);
@@ -1758,7 +1758,7 @@ BplBoundVar(varNameGen.FreshId(string.Format("#{0}#", bv.Name)), Predef.BoxType,
           var tySubst = callExpr.TypeArgumentSubstitutionsWithParents();
           args.AddRange(BoogieGenerator.TrTypeArgs(tySubst, tyParams));
         }
-        
+
         if (layerArgument != null) {
           args.Add(layerArgument);
         }

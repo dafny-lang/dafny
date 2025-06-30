@@ -881,7 +881,7 @@ namespace Microsoft.Dafny {
     static Bpl.Trigger BplTrigger(Bpl.Expr e) {
       return new Bpl.Trigger(e.tok, true, new List<Bpl.Expr> { e });
     }
-    
+
     static Bpl.Trigger BplTrigger(params Bpl.Expr[] expressions) {
       return new Bpl.Trigger(expressions.First().tok, true, expressions.ToList());
     }

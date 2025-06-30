@@ -86,8 +86,8 @@ public partial class BoogieGenerator {
 
       MapM(Enumerable.Range(0, arity), i => rhsargs.Add(BplFormalVar("bx" + i, Predef.BoxType, true, formals)));
 
-      sink.AddTopLevelDeclaration(new Bpl.Function(f.Origin, f.FullSanitizedName + "#canCall", [], formals, 
-        BplFormalVar(null, Bpl.Type.Bool, false), null, 
+      sink.AddTopLevelDeclaration(new Bpl.Function(f.Origin, f.FullSanitizedName + "#canCall", [], formals,
+        BplFormalVar(null, Bpl.Type.Bool, false), null,
         InlineAttribute(f.Origin)) { Body = Bpl.Expr.True });
     }
 

@@ -159,9 +159,9 @@ public partial class BoogieGenerator {
       canCallArguments.RemoveAt(0);
     }
     canCallArguments = tyArgs.Concat(canCallArguments).ToList();
-    
+
     var canCallCall = new NAryExpr(GetToken(co), new Bpl.FunctionCall(canCallFuncId), canCallArguments.ToList());
-      
+
     var tr = BplTrigger(prefixAppl);
     Expr qqqK = pp.ExtremePred is GreatestPredicate
       ? new Bpl.ForallExpr(tok, [k], tr,
