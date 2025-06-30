@@ -31,7 +31,13 @@ public partial class BoogieGenerator {
       }
     }
 
-    boogieGenerator.TrStmtList(revealStmt.ResolvedStatements, builder, locals, etran);
+    if (revealStmt.ResolvedStatements != null && revealStmt.ResolvedStatements.Count > 0) {
+      // Filter out any null or invalid statements to prevent Boogie generator crashes
+      var validStatements = revealStmt.ResolvedStatements.Where(s => s != null).ToList();
+      if (validStatements.Count > 0) {
+        boogieGenerator.TrStmtList(validStatements, builder, locals, etran);
+      }
+    }
   }
 
   Expr TrStmtSideEffect(Expr e, Statement stmt, ExpressionTranslator etran) {

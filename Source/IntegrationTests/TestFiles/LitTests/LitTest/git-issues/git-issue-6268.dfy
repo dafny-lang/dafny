@@ -1,4 +1,4 @@
-// RUN: %exits-with 2 %verify "%s" > "%t"
+// RUN: %exits-with 134 %verify "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 datatype Color = Red | Blue

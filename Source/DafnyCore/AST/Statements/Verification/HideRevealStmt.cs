@@ -80,9 +80,17 @@ public class HideRevealStmt : Statement, ICloneable<HideRevealStmt>, ICanFormat,
 
     foreach (var expr in Exprs!) {
       var name = SingleName(expr);
-      var labeledAssert = name == null ? null : resolver.DominatingStatementLabels.Find(name) as AssertLabel;
-      if (labeledAssert != null) {
-        LabeledAsserts.Add(labeledAssert);
+      var labelFound = resolver.DominatingStatementLabels.Find(name);
+      var labeledAssert = labelFound as AssertLabel;
+      if (labeledAssert != null && labelFound == labeledAssert) {
+        // Defensive check: ensure the label is valid before adding it
+        if (labeledAssert.Tok != null && labeledAssert.Name != null) {
+          LabeledAsserts.Add(labeledAssert);
+        } else {
+          // Invalid label found - report error instead of crashing
+          resolver.Reporter.Error(MessageSource.Resolver, expr.Origin,
+            $"cannot reveal '{name}' because the assert label '{name}' is invalid");
+        }
       } else {
         Expression effectiveExpr = expr;
         if (expr is ApplySuffix applySuffix) {
