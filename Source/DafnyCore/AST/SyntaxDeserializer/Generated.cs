@@ -1909,16 +1909,6 @@ namespace Microsoft.Dafny
             return ReadConstructor();
         }
 
-        public Function ReadFunctionOption()
-        {
-            if (ReadIsNull())
-            {
-                return default;
-            }
-
-            return ReadFunction();
-        }
-
         public Predicate ReadPredicate()
         {
             var parameter0 = ReadAbstract<IOrigin>();
@@ -1935,7 +1925,7 @@ namespace Microsoft.Dafny
             var parameter2 = ReadBoolean();
             var parameter4 = ReadBoolean();
             var parameter7 = ReadFormalOption();
-            var parameter12 = ReadAbstract<Expression>();
+            var parameter12 = ReadAbstractOption<Expression>();
             var parameter13 = ReadPredicateBodyOriginKind();
             var parameter14 = ReadAbstractOption<IOrigin>();
             var parameter15 = ReadBlockStmtOption();
@@ -2159,7 +2149,7 @@ namespace Microsoft.Dafny
             var parameter2 = ReadAttributesOption();
             var parameter3 = ReadList<TypeParameter>(() => ReadTypeParameter());
             var parameter5 = ReadList<MemberDecl>(() => ReadAbstract<MemberDecl>());
-            var parameter6 = ReadListOption<Type>(() => ReadAbstract<Type>());
+            var parameter6 = ReadList<Type>(() => ReadAbstract<Type>());
             return new DefaultClassDecl(parameter0, parameter1, parameter2, parameter3, parameter4, parameter5, parameter6);
         }
 
@@ -2732,11 +2722,6 @@ namespace Microsoft.Dafny
             if (actualType == typeof(Constructor))
             {
                 return ReadConstructor();
-            }
-
-            if (actualType == typeof(Function))
-            {
-                return ReadFunction();
             }
 
             if (actualType == typeof(Predicate))

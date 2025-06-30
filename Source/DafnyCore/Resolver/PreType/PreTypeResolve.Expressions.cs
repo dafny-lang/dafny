@@ -77,15 +77,15 @@ namespace Microsoft.Dafny {
                 e.PreType = CreatePreTypeProxy($"boolean literal '{boolValue.ToString().ToLower()}'");
                 Constraints.AddDefaultAdvice(e.PreType, CommonAdvice.Target.Bool);
                 AddConfirmation(PreTypeConstraints.CommonConfirmationBag.InBoolFamily, e.PreType, e.Origin, "boolean literal used as if it had type {0}");
-              } else if (e is CharLiteralExpr) {
-                e.PreType = CreatePreTypeProxy($"character literal '{e.Value}'");
+              } else if (e is CharLiteralExpr charLiteralExpr) {
+                e.PreType = CreatePreTypeProxy($"character literal '{e.EscapedValue}'");
                 Constraints.AddDefaultAdvice(e.PreType, CommonAdvice.Target.Char);
                 AddConfirmation(PreTypeConstraints.CommonConfirmationBag.InCharFamily, e.PreType, e.Origin, "character literal used as if it had type {0}");
-              } else if (e is StringLiteralExpr) {
+              } else if (e is StringLiteralExpr stringLiteralExpr) {
                 var charPreType = CreatePreTypeProxy($"character in string literal");
                 Constraints.AddDefaultAdvice(charPreType, CommonAdvice.Target.Char);
                 AddConfirmation(PreTypeConstraints.CommonConfirmationBag.InCharFamily, charPreType, e.Origin, "character literal used as if it had type {0}");
-                ResolveCollectionProducingExpr(PreType.TypeNameSeq, $"string literal \"{e.Value}\"", e, charPreType, PreTypeConstraints.CommonConfirmationBag.InSeqFamily, true);
+                ResolveCollectionProducingExpr(PreType.TypeNameSeq, $"string literal \"{e.EscapedValue}\"", e, charPreType, PreTypeConstraints.CommonConfirmationBag.InSeqFamily, true);
               } else {
                 Contract.Assert(false); throw new cce.UnreachableException();  // unexpected literal type
               }
