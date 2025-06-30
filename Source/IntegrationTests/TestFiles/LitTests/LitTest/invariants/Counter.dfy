@@ -11,9 +11,10 @@ class Counter {
   }
   method Increment()
     modifies this
+    ensures this.invariant()
   {
     old_value := value;
-    value     := value + 2;
+    value     := value + 1;
   }
   invariant old_value == value || value == old_value + 1
 }

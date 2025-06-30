@@ -25,6 +25,7 @@ public class Invariant([NotNull] IOrigin origin, [NotNull] List<AttributedExpres
     null,
     null,
     null) {
+  public readonly List<AttributedExpression> Clauses = clauses;
   public Expression ResolvedCall(IOrigin origin, Expression receiver, SystemModuleManager systemModuleManager) =>
     Expression.CreateResolvedCall(origin, receiver, this, [], [], systemModuleManager);
 }
