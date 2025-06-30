@@ -4798,6 +4798,7 @@ DotSuffix<out Token x, out Token y>
                    .)
   | "requires"     (. x = t; .)
   | "reads"        (. x = t; .)
+  | "invariant"    (. x = t; .)
   )
   .
 
