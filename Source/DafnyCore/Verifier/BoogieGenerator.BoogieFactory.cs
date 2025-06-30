@@ -886,14 +886,15 @@ namespace Microsoft.Dafny {
       return new Bpl.Trigger(expressions.First().tok, true, expressions.ToList());
     }
 
-    static Bpl.Trigger BplTriggerHeap(BoogieGenerator boogieGenerator, Bpl.IToken tok, Bpl.Expr e, Bpl.Expr/*?*/ optionalHeap, params Bpl.Expr[] ePrime) {
+    static Bpl.Trigger BplTriggerHeap(BoogieGenerator boogieGenerator, Bpl.IToken tok, Bpl.Expr e, 
+      Bpl.Expr/*?*/ optionalHeap, params Bpl.Expr[] ePrime) {
       Contract.Requires(boogieGenerator != null);
       Contract.Requires(tok != null);
       Contract.Requires(e != null);
 
       var exprs = new List<Bpl.Expr> { e };
       if (ePrime != null) {
-        exprs.AddRange(ePrime);
+        exprs.AddRange(ePrime.Where(e => e != Bpl.Expr.True));
       }
       if (optionalHeap != null) {
         exprs.Add(boogieGenerator.FunctionCall(tok, BuiltinFunction.IsGoodHeap, null, optionalHeap));
