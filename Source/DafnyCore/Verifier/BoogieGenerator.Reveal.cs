@@ -31,7 +31,10 @@ public partial class BoogieGenerator {
       }
     }
 
-    boogieGenerator.TrStmtList(revealStmt.ResolvedStatements, builder, locals, etran);
+    var validStatements = revealStmt.ResolvedStatements?.Where(s => s != null).ToList();
+    if (validStatements != null && validStatements.Count > 0) {
+      boogieGenerator.TrStmtList(validStatements, builder, locals, etran);
+    }
   }
 
   Expr TrStmtSideEffect(Expr e, Statement stmt, ExpressionTranslator etran) {
