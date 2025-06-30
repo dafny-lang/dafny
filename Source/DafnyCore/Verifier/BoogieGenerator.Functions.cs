@@ -141,6 +141,7 @@ public partial class BoogieGenerator {
     }
 
 
+    Expr staticWhere = null;
     Expr parametersIsAlloc = Expr.True;
     if (!f.IsStatic) {
       var bvThis = new BoundVariable(f.Origin, new TypedIdent(f.Origin, etran.This, TrReceiverType(f)));
@@ -156,11 +157,13 @@ public partial class BoogieGenerator {
       var thisWhereClause = GetWhereClause(f.Origin, bvThisIdExpr, thisType, expressionTranslator,
         IsAllocType.ISALLOC, true);
       if (thisWhereClause != null) {
+        staticWhere = GetWhereClause(f.Origin, bvThisIdExpr, thisType, expressionTranslator,
+          IsAllocType.ISALLOC, true, allowConstraint: false);
         parametersIsAlloc = BplAnd(parametersIsAlloc, thisWhereClause);
       }
     }
-
     List<Expr> wheres = [];
+
     foreach (Formal p in f.Ins) {
       var bv = new BoundVariable(p.Origin, new TypedIdent(p.Origin, p.AssignUniqueName(CurrentDeclaration.IdGenerator), TrType(p.Type)));
       Expr formal = new Bpl.IdentifierExpr(p.Origin, bv);
@@ -239,6 +242,10 @@ public partial class BoogieGenerator {
           formals = Cons(bvHeap, formals);
           var goodHeap = FunctionCall(f.Origin, BuiltinFunction.IsGoodHeap, null, etranHeap.HeapExpr);
           ante = BplAnd(ante, goodHeap);
+        }
+
+        if (staticWhere != null) {
+          wheres.Add(staticWhere);
         }
 
         var axBody = BplImp(ante, referencesWhere);
