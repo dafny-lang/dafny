@@ -314,7 +314,7 @@ public partial class BoogieGenerator {
 
     var forallFormals = MkTyParamBinders(GetTypeParamsIncludingType(f), out _);
     var funcFormals = forallFormals.ToList();
-    var reqFuncArguments = new List<Expr>(tyargs);
+    var reqFuncArguments = new List<Expr>();
 
     BoundVariable layer;
     BoundVariable reveal;
