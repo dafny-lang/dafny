@@ -99,7 +99,9 @@ public class HideRevealStmt : Statement, ICloneable<HideRevealStmt>, ICanFormat,
           }
 
           if (effectiveExpr.Resolved == null) {
-            // error from resolving child
+            // error from resolving child - report error for label not found
+            resolver.Reporter.Error(MessageSource.Resolver, effectiveExpr.Origin,
+              $"cannot reveal '{name}' because no revealable constant, function, assert label, or requires label in the current scope is named '{name}'");
           } else if (effectiveExpr.Resolved is not MemberSelectExpr callee) {
             resolver.Reporter.Error(MessageSource.Resolver, effectiveExpr.Origin,
               $"cannot reveal '{name}' because no revealable constant, function, assert label, or requires label in the current scope is named '{name}'");
@@ -118,7 +120,11 @@ public class HideRevealStmt : Statement, ICloneable<HideRevealStmt>, ICanFormat,
                 resolver.ResolveDotSuffix((ExprDotName)exprClone, true, true, null, revealResolutionContext, true);
               }
 
-              var revealCallee = ((MemberSelectExpr)((ConcreteSyntaxExpression)exprClone).ResolvedExpression);
+              MemberSelectExpr revealCallee = null;
+              if (exprClone is ConcreteSyntaxExpression concreteSyntax && 
+                  concreteSyntax.ResolvedExpression is MemberSelectExpr memberSelect) {
+                revealCallee = memberSelect;
+              }
               if (revealCallee != null) {
                 var call = new CallStmt(Origin, [],
                   revealCallee,
