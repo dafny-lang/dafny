@@ -2699,7 +2699,9 @@ namespace Microsoft.Dafny {
         formals.Add(new Bpl.Formal(p.Origin, new Bpl.TypedIdent(p.Origin, p.AssignUniqueName(f.IdGenerator), TrType(p.Type)), true));
       }
       var res = new Bpl.Formal(f.Origin, new Bpl.TypedIdent(f.Origin, Bpl.TypedIdent.NoName, Bpl.Type.Bool), false);
-      return new Bpl.Function(f.Origin, f.FullSanitizedName + "#canCall", [], formals, res);
+      return new Bpl.Function(f.Origin, f.FullSanitizedName + "#canCall", [], formals, res) {
+        AlwaysRevealed = true
+      };
     }
 
     /// <summary>
