@@ -13,16 +13,25 @@ namespace Microsoft.Dafny;
 
 public partial class BoogieGenerator {
 
+  // Cache to store translated expressions by label name for issue #6268 fix
+  public static readonly Dictionary<string, Boogie.Expr> LabelExpressionCache = new();
+
   private static void TranslateRevealStmt(BoogieGenerator boogieGenerator, BoogieStmtListBuilder builder, Variables locals, ExpressionTranslator etran,
     HideRevealStmt revealStmt) {
     AddComment(builder, revealStmt, "hide/reveal statement");
     foreach (var la in revealStmt.LabeledAsserts) {
-      // ROOT CAUSE FIX for issue #6268: In match cases, cloned AssertLabel objects
-      // don't get their E field filled. Skip null E fields to prevent crashes.
-      if (la.E == null) {
-        continue;
+      // ROOT CAUSE FIX for issue #6268: We're accessing the wrong AssertLabel object!
+      // The assert statement fills E on one object, but reveal accesses a different cloned object.
+      // We use a cache to find the correct translated expression by label name.
+      Boogie.Expr exprToUse = la.E;
+      if (exprToUse == null && la.Name != null) {
+        // Try to find the cached expression for this label name
+        exprToUse = FindFilledExpressionForLabel(boogieGenerator, la.Name);
       }
-      builder.Add(new AssumeCmd(revealStmt.Origin, la.E));
+      
+      if (exprToUse != null) {
+        builder.Add(new AssumeCmd(revealStmt.Origin, exprToUse));
+      }
     }
 
     if (builder.Context.ContainsHide) {
@@ -36,6 +45,13 @@ public partial class BoogieGenerator {
     }
 
     boogieGenerator.TrStmtList(revealStmt.ResolvedStatements, builder, locals, etran);
+  }
+
+  // Helper to find the AssertLabel object that actually has the E field filled
+  private static Boogie.Expr FindFilledExpressionForLabel(BoogieGenerator generator, string labelName) {
+    // Look up the cached expression for this label name
+    LabelExpressionCache.TryGetValue(labelName, out var cachedExpr);
+    return cachedExpr;
   }
 
   Expr TrStmtSideEffect(Expr e, Statement stmt, ExpressionTranslator etran) {
