@@ -398,7 +398,7 @@ axiom (forall s: [ref]bool :: { SetRef_to_SetBox(s) }
 
 // Functions ApplyN, RequiresN, and ReadsN are generated on demand by the translator,
 // but Apply1 is referred to in the prelude, so its definition is hardcoded here.
-function Apply1(Heap, HandleType, Box): Box;
+function Apply1(Ty, Ty, Heap, HandleType, Box): Box;
 
 // ---------------------------------------------------------------
 // -- Datatypes --------------------------------------------------
@@ -1326,7 +1326,7 @@ axiom (forall ty: Ty, heap: Heap, len: int, init: HandleType ::
 axiom (forall ty: Ty, heap: Heap, len: int, init: HandleType, i: int ::
   { Seq#Index(Seq#Create(ty, heap, len, init), i) }
   $IsGoodHeap(heap) && 0 <= i && i < len ==>
-  Seq#Index(Seq#Create(ty, heap, len, init), i) == Apply1(heap, init, $Box(i)));
+  Seq#Index(Seq#Create(ty, heap, len, init), i) == Apply1(TInt, ty, heap, init, $Box(i)));
 
 function Seq#FromArray(h: Heap, a: ref): Seq;
 axiom (forall h: Heap, a: ref ::
