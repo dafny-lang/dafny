@@ -78,7 +78,7 @@ public partial class BoogieGenerator {
       var formals = new List<Bpl.Variable>();
       var rhsargs = new List<Bpl.Expr>();
 
-      MapM(Enumerable.Range(0, arity + 1), i => rhsargs.Add(BplFormalVar("t" + i, Predef.Ty, true, formals)));
+      //MapM(Enumerable.Range(0, arity + 1), i => rhsargs.Add(BplFormalVar("t" + i, Predef.Ty, true, formals)));
 
       var heap = BplFormalVar("heap", Predef.HeapType, true, formals);
       rhsargs.Add(heap);

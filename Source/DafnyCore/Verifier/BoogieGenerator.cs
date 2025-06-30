@@ -2691,7 +2691,7 @@ namespace Microsoft.Dafny {
 
     public Bpl.Function GetCanCallFunction(Function f) {
       var formals = new List<Variable>();
-      formals.AddRange(MkTyParamFormals(GetTypeParamsIncludingType(f), false));
+      //formals.AddRange(MkTyParamFormals(GetTypeParamsIncludingType(f), false));
       if (f is TwoStateFunction) {
         formals.Add(new Bpl.Formal(f.Origin, new Bpl.TypedIdent(f.Origin, "$prevHeap", Predef.HeapType), true));
       }
@@ -3775,19 +3775,17 @@ namespace Microsoft.Dafny {
 
       var normType = type.NormalizeExpandKeepConstraints();
       var verificationType = NormalizeToVerificationTypeRepresentation(type);
-      Bpl.Expr isAlloc;
+      Bpl.Expr isAlloc = Expr.True;
       if (type.IsNumericBased() || type.IsBitVectorType || type.IsBoolType || type.IsCharType || type.IsBigOrdinalType) {
-        isAlloc = null;
       } else if (alloc == ISALLOC && etran.HeapExpr != null) {
         isAlloc = MkIsAlloc(x, normType, etran.HeapExpr);
       } else {
-        isAlloc = null;
       }
       if (allocatednessOnly) {
         return isAlloc;
       }
 
-      Bpl.Expr isPred = null;
+      Bpl.Expr isPred = Expr.True;
       if (alwaysUseSymbolicName) {
         // go for the symbolic name
         isPred = MkIs(x, normType);
@@ -3807,7 +3805,7 @@ namespace Microsoft.Dafny {
         // go for the symbolic name
         isPred = MkIs(x, normType);
       }
-      return isAlloc == null ? isPred : isPred == null ? isAlloc : BplAnd(isPred, isAlloc);
+      return BplAnd(isPred, isAlloc);
     }
 
     // Returns expressions, which, if false, means that the two LHS expressions are

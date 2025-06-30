@@ -248,9 +248,9 @@ public partial class BoogieGenerator {
     // Add type arguments
     forallFormals.AddRange(MkTyParamBinders(GetTypeParamsIncludingType(overridingFunction), out _));
     var typeArguments = GetTypeArguments(f, overridingFunction).ConvertAll(TypeToTy);
-    argsJfCanCall.AddRange(typeArguments);
+    // argsJfCanCall.AddRange(typeArguments);
     typeArguments = GetTypeArguments(overridingFunction, null).ConvertAll(TypeToTy);
-    argsCfCanCall = argsCfCanCall.Concat(typeArguments);
+    // argsCfCanCall = argsCfCanCall.Concat(typeArguments);
 
     var moreArgsJF = new List<Boogie.Expr>(); // non-type-parameters, non-fuel, non-reveal arguments
     var moreArgsCF = new List<Boogie.Expr>(); // non-type-parameters, non-fuel, non-reveal arguments
@@ -362,7 +362,7 @@ public partial class BoogieGenerator {
     // { f'(Succ(s), args') }
     Boogie.Trigger tr = BplTriggerHeap(this, overridingFunction.Origin,
       overridingFuncAppl,
-      readsHeap ? etran.HeapExpr : null, canCallOverridingFunc);
+      readsHeap ? etran.HeapExpr : null, isOfSubtype);
     // { f(Succ(s), args), $Is(this, T') }
     var exprs = new List<Boogie.Expr>() { funcAppl, isOfSubtype };
     if (readsHeap) {

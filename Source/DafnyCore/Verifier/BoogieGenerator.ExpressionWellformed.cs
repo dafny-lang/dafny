@@ -1387,7 +1387,7 @@ namespace Microsoft.Dafny {
 
     private NAryExpr GetCanCallCall(Expression expr, ExpressionTranslator etran, FunctionCallExpr callExpr) {
       var canCallFuncId = new Bpl.IdentifierExpr(callExpr.Origin, callExpr.Function.FullSanitizedName + "#canCall", Bpl.Type.Bool);
-      var args = etran.FunctionInvocationArguments(callExpr, null, null, true);
+      var args = etran.FunctionInvocationArguments(callExpr, null, null, false);
       return new Bpl.NAryExpr(GetToken(expr), new Bpl.FunctionCall(canCallFuncId), args);
     }
 
