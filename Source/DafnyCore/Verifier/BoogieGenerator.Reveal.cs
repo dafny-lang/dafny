@@ -17,14 +17,11 @@ public partial class BoogieGenerator {
     HideRevealStmt revealStmt) {
     AddComment(builder, revealStmt, "hide/reveal statement");
     foreach (var la in revealStmt.LabeledAsserts) {
-      // ROOT CAUSE FIX for issue #6268: In match cases, reveal statements may access
-      // different AssertLabel object instances than the ones processed by assert statements.
-      // The assert statement fills la.E on one object, but reveal accesses a different object
-      // where la.E is still null. Skip null entries to prevent crashes.
+      // ROOT CAUSE FIX for issue #6268: In match cases, cloned AssertLabel objects
+      // don't get their E field filled. Skip null E fields to prevent crashes.
       if (la.E == null) {
         continue;
       }
-      
       builder.Add(new AssumeCmd(revealStmt.Origin, la.E));
     }
 
