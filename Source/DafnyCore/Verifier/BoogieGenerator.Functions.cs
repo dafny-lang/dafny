@@ -159,6 +159,8 @@ public partial class BoogieGenerator {
         parametersIsAlloc = BplAnd(parametersIsAlloc, thisWhereClause);
       }
     }
+
+    List<Expr> wheres = [];
     foreach (Formal p in f.Ins) {
       var bv = new BoundVariable(p.Origin, new TypedIdent(p.Origin, p.AssignUniqueName(CurrentDeclaration.IdGenerator), TrType(p.Type)));
       Expr formal = new Bpl.IdentifierExpr(p.Origin, bv);
@@ -167,6 +169,7 @@ public partial class BoogieGenerator {
       args.Add(formal);
       var wh = GetWhereClause(p.Origin, formal, p.Type, p.IsOld ? etranHeap.Old : etranHeap, ISALLOC);
       if (wh != null) {
+        wheres.Add(GetWhereClause(p.Origin, formal, p.Type, p.IsOld ? etranHeap.Old : etranHeap, NOALLOC, allowConstraint: false));
         parametersIsAlloc = BplAnd(parametersIsAlloc, wh);
       }
     }
@@ -204,23 +207,25 @@ public partial class BoogieGenerator {
     if (olderParameterCount != 0) {
       post = BplAnd(post, olderCondition);
     }
-    Expr whr = GetWhereClause(f.Origin, funcAppl, f.ResultType, etran, NOALLOC);
-    if (whr != null) { post = BplAnd(post, whr); }
+    Expr consequenceResultWhere = GetWhereClause(f.Origin, funcAppl, f.ResultType, etran, NOALLOC);
+    if (consequenceResultWhere != null) {
+      post = BplAnd(post, consequenceResultWhere);
+    }
 
     if (RemoveLit(post) != Expr.True) {
 
       var axBody = BplImp(canCall, post);
       Expr optionalHeap = readsHeap && !f.ReadsHeap ? etran.HeapExpr : null;
 
-      var tr = BplTriggerHeap(this, f.Origin, funcAppl, optionalHeap, whr);
+      var tr = BplTriggerHeap(this, f.Origin, funcAppl, optionalHeap, wheres.Append(consequenceResultWhere).ToArray());
       var ax = BplForall(f.Origin, [], formals, null, tr, axBody);
       AddOtherDefinition(boogieFunction, new Axiom(f.Origin, ax, "consequence axiom for " + f.FullSanitizedName));
     }
 
     if (f.ResultType.MayInvolveReferences) {
-      whr = GetWhereClause(f.Origin, funcAppl, f.ResultType, etranHeap, ISALLOC, true);
-      Contract.Assert(whr != null); // since f.ResultType involves references, there should be an ISALLOC where clause
-      if (whr != null) {
+      var referencesWhere = GetWhereClause(f.Origin, funcAppl, f.ResultType, etranHeap, ISALLOC, true);
+      Contract.Assert(referencesWhere != null); // since f.ResultType involves references, there should be an ISALLOC where clause
+      if (referencesWhere != null) {
         Expr ante = canCall;
         if (readsHeap) {
           // all parameters are included in the CanCall, so that's the only antecedent we need
@@ -235,8 +240,8 @@ public partial class BoogieGenerator {
           ante = BplAnd(ante, goodHeap);
         }
 
-        var axBody = BplImp(ante, whr);
-        var trigger = new Bpl.Trigger(whr.tok, true, new List<Bpl.Expr> { whr });
+        var axBody = BplImp(ante, referencesWhere);
+        var trigger = new Bpl.Trigger(referencesWhere.tok, true, wheres.Append(referencesWhere));
         var ax = BplForall(f.Origin, [], formals, null, trigger, axBody);
         var allocConsequenceAxiom = new Axiom(f.Origin, ax, "alloc consequence axiom for " + f.FullSanitizedName);
         AddOtherDefinition(boogieFunction, allocConsequenceAxiom);
@@ -390,7 +395,7 @@ public partial class BoogieGenerator {
       // add well-typedness conjunct to antecedent
       Type thisType = ModuleResolver.GetReceiverType(f.Origin, f);
       var expressionTranslator = (f is TwoStateFunction ? etran.Old : etran);
-      typeClauses.Add(GetWhereClause(f.Origin, bvThisIdExpr, thisType, expressionTranslator, NOALLOC));
+      typeClauses.Add(GetWhereClause(f.Origin, bvThisIdExpr, thisType, expressionTranslator, NOALLOC, allowConstraint: false));
       Expr wh = BplAnd(
         ReceiverNotNull(bvThisIdExpr),
         expressionTranslator.GoodRef(f.Origin, bvThisIdExpr, thisType));
@@ -422,8 +427,8 @@ public partial class BoogieGenerator {
 
       // add well-typedness conjunct to antecedent
       Expr wh = GetWhereClause(p.Origin, formal, pType, p.IsOld ? etran.Old : etran, NOALLOC);
-      typeClauses.Add(wh);
       if (wh != null) {
+        typeClauses.Add(GetWhereClause(p.Origin, formal, pType, p.IsOld ? etran.Old : etran, NOALLOC, allowConstraint: false));
         ante = BplAnd(ante, wh);
       }
 

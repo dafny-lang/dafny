@@ -3759,7 +3759,7 @@ namespace Microsoft.Dafny {
     /// already has to do it).
     /// </summary>
     public Bpl.Expr GetWhereClause(IOrigin tok, Bpl.Expr x, Type type, ExpressionTranslator etran, IsAllocType alloc,
-      bool allocatednessOnly = false, bool alwaysUseSymbolicName = false) {
+      bool allocatednessOnly = false, bool alwaysUseSymbolicName = false, bool allowConstraint = true) {
       Contract.Requires(tok != null);
       Contract.Requires(x != null);
       Contract.Requires(type != null);
@@ -3800,7 +3800,9 @@ namespace Microsoft.Dafny {
       } else if ((normType.AsTypeSynonym != null || normType.AsNewtype != null) &&
         (verificationType.IsNumericBased() || verificationType.IsBitVectorType || verificationType.IsBoolType)) {
         var constraint = ModuleResolver.GetImpliedTypeConstraint(new BoogieWrapper(x, normType), normType);
-        isPred = etran.TrExpr(constraint);
+        if (allowConstraint) {
+          isPred = etran.TrExpr(constraint);
+        }
       } else {
         // go for the symbolic name
         isPred = MkIs(x, normType);
