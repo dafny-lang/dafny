@@ -161,18 +161,19 @@ public partial class BoogieGenerator {
     // The requires clause of the .reads function checks that the precondition of the receiving function holds.
 
     var fhandle = FunctionCall(f.Origin, name, Predef.HandleType, snocSelf(snocPrevH(args)));
-    var lhs = FunctionCall(f.Origin, Requires(arity), Bpl.Type.Bool, Concat(tyargs, Cons(h, Cons(fhandle, lhsArgs))));
+    var lhs = FunctionCall(f.Origin, Requires(arity), Bpl.Type.Bool, Cons(h, Cons(fhandle, lhsArgs)));
+    Expr rhs;
     if (f.EnclosingClass is ArrowTypeDecl && f.Name == "requires") {
       AddOtherDefinition(GetOrCreateFunction(f), new Axiom(f.Origin,
         BplForall(Concat(formalVars, bvars), BplTrigger(lhs), Expr.Eq(lhs, Expr.True))));
     } else if (f.EnclosingClass is ArrowTypeDecl && f.Name == "reads") {
-      var argsH = f.ReadsHeap ? Snoc(snocPrevH(argsRequires), h) : argsRequires;
-      var pre = FunctionCall(f.Origin, Requires(arity), Bpl.Type.Bool, Concat(tyargs, Concat(snocSelf(argsH), lhsArgs)));
+      var args_h = f.ReadsHeap ? Snoc(snocPrevH(argsRequires), h) : argsRequires;
+      var pre = FunctionCall(f.Origin, Requires(arity), Bpl.Type.Bool, Concat(snocSelf(args_h), lhsArgs));
       AddOtherDefinition(GetOrCreateFunction(f), (new Axiom(f.Origin,
         BplForall(Concat(formalVars, bvars), BplTrigger(lhs), Expr.Eq(lhs, pre)))));
     } else {
       var argsH = f.ReadsHeap ? Snoc(snocPrevH(argsRequires), h) : argsRequires;
-      Expr rhs = FunctionCall(f.Origin, RequiresName(f), Bpl.Type.Bool, Concat(tyargs, Concat(snocSelf(argsH), rhsArgs)));
+      rhs = FunctionCall(f.Origin, RequiresName(f), Bpl.Type.Bool, Concat(snocSelf(argsH), rhsArgs));
       AddOtherDefinition(GetOrCreateFunction(f), new Axiom(f.Origin,
         BplForall(Concat(formalVars, bvars), BplTrigger(lhs), Expr.Eq(lhs, rhs))));
     }
