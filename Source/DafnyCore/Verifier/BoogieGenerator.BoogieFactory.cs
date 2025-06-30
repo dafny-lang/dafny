@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 using System.IO;
+using System.Linq;
 using DafnyCore.Verifier;
 using Microsoft.BaseTypes;
 using Bpl = Microsoft.Boogie;
@@ -879,6 +880,10 @@ namespace Microsoft.Dafny {
     /// Makes a simple trigger
     static Bpl.Trigger BplTrigger(Bpl.Expr e) {
       return new Bpl.Trigger(e.tok, true, new List<Bpl.Expr> { e });
+    }
+    
+    static Bpl.Trigger BplTrigger(params Bpl.Expr[] expressions) {
+      return new Bpl.Trigger(expressions.First().tok, true, expressions.ToList());
     }
 
     static Bpl.Trigger BplTriggerHeap(BoogieGenerator boogieGenerator, Bpl.IToken tok, Bpl.Expr e, Bpl.Expr/*?*/ optionalHeap, Bpl.Expr/*?*/ ePrime = null) {

@@ -1740,22 +1740,22 @@ BplBoundVar(varNameGen.FreshId(string.Format("#{0}#", bv.Name)), Predef.BoxType,
         return typeAntecedent;
       }
 
-      public List<Boogie.Expr> FunctionInvocationArguments(FunctionCallExpr e, Boogie.Expr layerArgument, 
+      public List<Boogie.Expr> FunctionInvocationArguments(FunctionCallExpr callExpr, Boogie.Expr layerArgument, 
         Boogie.Expr revealArgument, bool includeTypeParameters) {
         bool dummy;
-        return FunctionInvocationArguments(e, layerArgument, revealArgument, false, out dummy, includeTypeParameters);
+        return FunctionInvocationArguments(callExpr, layerArgument, revealArgument, false, out dummy, includeTypeParameters);
       }
 
-      public List<Expr> FunctionInvocationArguments(FunctionCallExpr e, Expr layerArgument,
+      public List<Expr> FunctionInvocationArguments(FunctionCallExpr callExpr, Expr layerArgument,
         Expr revealArgument, bool omitHeapArgument, out bool argsAreLit, bool includeTypeParameters) {
-        Contract.Requires(e != null);
+        Contract.Requires(callExpr != null);
         Contract.Ensures(Contract.Result<List<Boogie.Expr>>() != null);
 
         var args = new List<Boogie.Expr>();
 
         if (includeTypeParameters) {
-          var tyParams = GetTypeParamsIncludingType(e.Function);
-          var tySubst = e.TypeArgumentSubstitutionsWithParents();
+          var tyParams = GetTypeParamsIncludingType(callExpr.Function);
+          var tySubst = callExpr.TypeArgumentSubstitutionsWithParents();
           args.AddRange(BoogieGenerator.TrTypeArgs(tySubst, tyParams));
         }
         
@@ -1765,32 +1765,32 @@ BplBoundVar(varNameGen.FreshId(string.Format("#{0}#", bv.Name)), Predef.BoxType,
         if (revealArgument != null) {
           args.Add(revealArgument);
         }
-        if (e.Function is TwoStateFunction) {
-          args.Add(OldAt(e.AtLabel).HeapExpr);
+        if (callExpr.Function is TwoStateFunction) {
+          args.Add(OldAt(callExpr.AtLabel).HeapExpr);
         }
-        if (!omitHeapArgument && e.Function.ReadsHeap) {
+        if (!omitHeapArgument && callExpr.Function.ReadsHeap) {
           Contract.Assert(HeapExpr != null);
           args.Add(HeapExpr);
           // If the function doesn't use the heap, but global settings say to use it,
           // then we want to quantify over the heap so that heap in the trigger can match over
           // heap modifying operations. (see Test/dafny4/Bug144.dfy)
-          bool usesHeap = e.Function.ReadsHeap || e.Function.Ins.Any(f => f.Type.IsRefType);
+          bool usesHeap = callExpr.Function.ReadsHeap || callExpr.Function.Ins.Any(f => f.Type.IsRefType);
           if (!usesHeap) {
             Statistics_HeapAsQuantifierCount++;
           }
         }
         argsAreLit = true;
-        if (!e.Function.IsStatic) {
-          var tr_ee = BoogieGenerator.BoxifyForTraitParent(e.Origin, TrExpr(e.Receiver), e.Function, e.Receiver.Type);
+        if (!callExpr.Function.IsStatic) {
+          var tr_ee = BoogieGenerator.BoxifyForTraitParent(callExpr.Origin, TrExpr(callExpr.Receiver), callExpr.Function, callExpr.Receiver.Type);
           argsAreLit = argsAreLit && BoogieGenerator.IsLit(tr_ee);
           args.Add(tr_ee);
         }
-        for (int i = 0; i < e.Args.Count; i++) {
-          Expression ee = e.Args[i];
-          Type t = e.Function.Ins[i].Type;
+        for (int i = 0; i < callExpr.Args.Count; i++) {
+          Expression ee = callExpr.Args[i];
+          Type t = callExpr.Function.Ins[i].Type;
           Expr tr_ee = TrExpr(ee);
           argsAreLit = argsAreLit && BoogieGenerator.IsLit(tr_ee);
-          args.Add(BoogieGenerator.AdaptBoxing(GetToken(e), tr_ee, Cce.NonNull(ee.Type), t));
+          args.Add(BoogieGenerator.AdaptBoxing(GetToken(callExpr), tr_ee, Cce.NonNull(ee.Type), t));
         }
         return args;
       }
@@ -2260,9 +2260,7 @@ BplBoundVar(varNameGen.FreshId(string.Format("#{0}#", bv.Name)), Predef.BoxType,
               Boogie.Expr r = CanCallAssumption(callExpr.Receiver, cco);
               r = BplAnd(r, CanCallAssumption(callExpr.Args, cco));
               if (!(callExpr.Function is SpecialFunction)) {
-                var canCallFuncId = new Boogie.IdentifierExpr(callExpr.Origin, callExpr.Function.FullSanitizedName + "#canCall", Boogie.Type.Bool);
-                var args = FunctionInvocationArguments(callExpr, null, null, true);
-                var canCallFuncAppl = new Boogie.NAryExpr(BoogieGenerator.GetToken(expr), new Boogie.FunctionCall(canCallFuncId), args);
+                var canCallFuncAppl = BoogieGenerator.GetCanCallCall(expr, this, callExpr);
                 var add = cco != null && cco.MakeAllowance(callExpr.Function) ? Boogie.Expr.Or(TrExpr(MakeAllowance(callExpr, cco)), canCallFuncAppl) : canCallFuncAppl;
                 r = BplAnd(r, add);
               }

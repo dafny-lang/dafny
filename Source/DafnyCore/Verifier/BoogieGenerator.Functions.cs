@@ -667,7 +667,6 @@ public partial class BoogieGenerator {
     bForallVars.Add(h0Var); bForallVars.Add(h1Var);
     f0Args.Add(h0); f1Args.Add(h1); f0ArgsCanCall.Add(h0); f1ArgsCanCall.Add(h1);
 
-    Expr whereClause = null;
     var useAlloc = f.Reads.Expressions.Exists(fe => fe.E is WildcardExpr) ? ISALLOC : NOALLOC;
     if (!f.IsStatic) {
       var thVar = BplBoundVar("this", TrReceiverType(f), out var th);
@@ -675,7 +674,7 @@ public partial class BoogieGenerator {
       f0Args.Add(th); f1Args.Add(th); f0ArgsCanCall.Add(th); f1ArgsCanCall.Add(th);
 
       Type thisType = ModuleResolver.GetReceiverType(f.Origin, f);
-      whereClause = GetWhereClause(f.Origin, th, thisType, etran0, useAlloc);
+      var whereClause = GetWhereClause(f.Origin, th, thisType, etran0, useAlloc);
       Expr wh = BplAnd(ReceiverNotNull(th), whereClause);
       wellFormed = BplAnd(wellFormed, wh);
     }

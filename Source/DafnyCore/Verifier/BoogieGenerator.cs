@@ -2683,7 +2683,7 @@ namespace Microsoft.Dafny {
       return func;
     }
 
-    private Bpl.Function GetCanCallFunction(Function f) {
+    public Bpl.Function GetCanCallFunction(Function f) {
       var formals = new List<Variable>();
       formals.AddRange(MkTyParamFormals(GetTypeParamsIncludingType(f), false));
       if (f is TwoStateFunction) {
