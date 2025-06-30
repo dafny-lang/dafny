@@ -362,7 +362,7 @@ public partial class BoogieGenerator {
     // { f'(Succ(s), args') }
     Boogie.Trigger tr = BplTriggerHeap(this, overridingFunction.Origin,
       overridingFuncAppl,
-      readsHeap ? etran.HeapExpr : null);
+      readsHeap ? etran.HeapExpr : null, canCallOverridingFunc);
     // { f(Succ(s), args), $Is(this, T') }
     var exprs = new List<Boogie.Expr>() { funcAppl, isOfSubtype };
     if (readsHeap) {

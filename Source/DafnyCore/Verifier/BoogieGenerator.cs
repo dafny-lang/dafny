@@ -2453,6 +2453,9 @@ namespace Microsoft.Dafny {
       return "Apply" + arity;
     }
 
+    /// <summary>
+    /// Given a function handle for a specific arity, returns the requires clause
+    /// </summary>
     public static string Requires(int arity) {
       return "Requires" + arity;
     }
@@ -2461,6 +2464,9 @@ namespace Microsoft.Dafny {
       return "Reads" + arity;
     }
 
+    /// <summary>
+    /// The requires clause of a specific function
+    /// </summary>
     public string RequiresName(Function f) {
       return f.FullSanitizedName + "#requires";
     }
