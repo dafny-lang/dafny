@@ -80,18 +80,12 @@ public class HideRevealStmt : Statement, ICloneable<HideRevealStmt>, ICanFormat,
 
     foreach (var expr in Exprs!) {
       var name = SingleName(expr);
-      var labelFound = resolver.DominatingStatementLabels.Find(name);
-      var labeledAssert = labelFound as AssertLabel;
-      if (labeledAssert != null && labelFound == labeledAssert) {
-        // Defensive check: ensure the label is valid before adding it
-        if (labeledAssert.Tok != null && labeledAssert.Name != null) {
-          LabeledAsserts.Add(labeledAssert);
-        } else {
-          // Invalid label found - report error instead of crashing
-          resolver.Reporter.Error(MessageSource.Resolver, expr.Origin,
-            $"cannot reveal '{name}' because the assert label '{name}' is invalid");
-        }
+      var labeledAssert = name == null ? null : resolver.DominatingStatementLabels.Find(name) as AssertLabel;
+      if (labeledAssert != null) {
+        LabeledAsserts.Add(labeledAssert);
       } else {
+        // DEBUG: Label not found, trying as function/constant
+        System.Console.WriteLine($"DEBUG: Label '{name}' not found in dominating labels, trying as function/constant");
         Expression effectiveExpr = expr;
         if (expr is ApplySuffix applySuffix) {
           if (applySuffix.AtTok != null) {
@@ -107,9 +101,7 @@ public class HideRevealStmt : Statement, ICloneable<HideRevealStmt>, ICanFormat,
           }
 
           if (effectiveExpr.Resolved == null) {
-            // error from resolving child - report error for label not found
-            resolver.Reporter.Error(MessageSource.Resolver, effectiveExpr.Origin,
-              $"cannot reveal '{name}' because no revealable constant, function, assert label, or requires label in the current scope is named '{name}'");
+            // error from resolving child
           } else if (effectiveExpr.Resolved is not MemberSelectExpr callee) {
             resolver.Reporter.Error(MessageSource.Resolver, effectiveExpr.Origin,
               $"cannot reveal '{name}' because no revealable constant, function, assert label, or requires label in the current scope is named '{name}'");
@@ -128,11 +120,7 @@ public class HideRevealStmt : Statement, ICloneable<HideRevealStmt>, ICanFormat,
                 resolver.ResolveDotSuffix((ExprDotName)exprClone, true, true, null, revealResolutionContext, true);
               }
 
-              MemberSelectExpr revealCallee = null;
-              if (exprClone is ConcreteSyntaxExpression concreteSyntax && 
-                  concreteSyntax.ResolvedExpression is MemberSelectExpr memberSelect) {
-                revealCallee = memberSelect;
-              }
+              var revealCallee = ((MemberSelectExpr)((ConcreteSyntaxExpression)exprClone).ResolvedExpression);
               if (revealCallee != null) {
                 var call = new CallStmt(Origin, [],
                   revealCallee,

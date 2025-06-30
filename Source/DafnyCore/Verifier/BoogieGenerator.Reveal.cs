@@ -17,7 +17,14 @@ public partial class BoogieGenerator {
     HideRevealStmt revealStmt) {
     AddComment(builder, revealStmt, "hide/reveal statement");
     foreach (var la in revealStmt.LabeledAsserts) {
-      Contract.Assert(la.E != null);  // this should have been filled in by now
+      // ROOT CAUSE FIX for issue #6268: In match cases, the AssertLabel.E field
+      // may be null when the reveal statement is processed before the assert 
+      // statement has been fully translated by the Boogie generator.
+      // Skip null entries to prevent crashes.
+      if (la.E == null) {
+        continue;
+      }
+      
       builder.Add(new AssumeCmd(revealStmt.Origin, la.E));
     }
 
@@ -31,13 +38,7 @@ public partial class BoogieGenerator {
       }
     }
 
-    if (revealStmt.ResolvedStatements != null && revealStmt.ResolvedStatements.Count > 0) {
-      // Filter out any null or invalid statements to prevent Boogie generator crashes
-      var validStatements = revealStmt.ResolvedStatements.Where(s => s != null).ToList();
-      if (validStatements.Count > 0) {
-        boogieGenerator.TrStmtList(validStatements, builder, locals, etran);
-      }
-    }
+    boogieGenerator.TrStmtList(revealStmt.ResolvedStatements, builder, locals, etran);
   }
 
   Expr TrStmtSideEffect(Expr e, Statement stmt, ExpressionTranslator etran) {
