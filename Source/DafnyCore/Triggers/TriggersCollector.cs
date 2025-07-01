@@ -115,7 +115,7 @@ internal class TriggersCollector {
       }
     } else if (expr is UnaryOpExpr) {
       var e = (UnaryOpExpr)expr;
-      return e.Op == UnaryOpExpr.Opcode.Cardinality;  // FIXME || e.Op == UnaryOpExpr.Opcode.Fresh doesn't work, as fresh is a pretty tricky predicate when it's not about datatypes. See translator.cs:10944
+      return e.Op is UnaryOpExpr.Opcode.Cardinality or UnaryOpExpr.Opcode.Referrers;  // FIXME || e.Op == UnaryOpExpr.Opcode.Fresh doesn't work, as fresh is a pretty tricky predicate when it's not about datatypes. See translator.cs:10944
     } else if (expr is ConversionExpr) {
       var e = (ConversionExpr)expr;
       return e.ToType.IsBigOrdinalType;

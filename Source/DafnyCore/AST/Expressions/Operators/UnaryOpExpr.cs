@@ -10,6 +10,7 @@ public class UnaryOpExpr : UnaryExpr, ICloneable<UnaryOpExpr> {
     Allocated,
     Lit,  // there is no syntax for this operator, but it is sometimes introduced during translation
     Assigned,
+    Referrers,
   }
   public Opcode Op;
 
@@ -25,6 +26,7 @@ public class UnaryOpExpr : UnaryExpr, ICloneable<UnaryOpExpr> {
     Allocated,
     Lit,
     Assigned,
+    Referrers,
   }
 
   private ResolvedOpcode _ResolvedOp = ResolvedOpcode.YetUndetermined;
@@ -45,6 +47,7 @@ public class UnaryOpExpr : UnaryExpr, ICloneable<UnaryOpExpr> {
         (Opcode.Allocated, _) => ResolvedOpcode.Allocated,
         (Opcode.Lit, _) => ResolvedOpcode.Lit,
         (Opcode.Assigned, _) => ResolvedOpcode.Assigned,
+        (Opcode.Referrers, _) => ResolvedOpcode.Referrers,
         _ => ResolvedOpcode.YetUndetermined // Unreachable
       };
       Contract.Assert(_ResolvedOp != ResolvedOpcode.YetUndetermined);

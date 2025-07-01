@@ -1,0 +1,2 @@
+referrers-unsupported.dfy(9,2): Error: referrers are currently supported only in methods or constructors (instead got predicate)
+1 resolution/type errors detected in referrers-unsupported.dfy

@@ -375,6 +375,7 @@ namespace Microsoft.Dafny {
             (UnaryOpExpr.Opcode.Allocated, _) => UnaryOpExpr.ResolvedOpcode.Allocated,
             (UnaryOpExpr.Opcode.Lit, _) => UnaryOpExpr.ResolvedOpcode.Lit,
             (UnaryOpExpr.Opcode.Assigned, _) => UnaryOpExpr.ResolvedOpcode.Assigned,
+            (UnaryOpExpr.Opcode.Referrers, _) => UnaryOpExpr.ResolvedOpcode.Referrers,
             _ => UnaryOpExpr.ResolvedOpcode.YetUndetermined // Unreachable
           };
           Contract.Assert(resolvedOp != UnaryOpExpr.ResolvedOpcode.YetUndetermined);

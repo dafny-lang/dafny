@@ -341,7 +341,7 @@ namespace Microsoft.Dafny {
       ErrorTrace = 0;
       Prune = true;
       TypeEncodingMethod = Bpl.CoreOptions.TypeEncoding.Arguments;
-      NormalizeNames = true;
+      NormalizeNames = false;
       EmitDebugInformation = false;
       Backend = new CsharpBackend(this);
       Printer = new NullPrinter();

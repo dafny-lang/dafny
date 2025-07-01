@@ -531,6 +531,7 @@ function IndexField(int): Field;
 axiom (forall i: int :: { IndexField(i) } FDim(IndexField(i)) == 1);
 function IndexField_Inverse(Field): int;
 axiom (forall i: int :: { IndexField(i) } IndexField_Inverse(IndexField(i)) == i);
+axiom (forall f: Field :: { IndexField_Inverse(f) } IndexField(IndexField_Inverse(f)) == f);
 
 function MultiIndexField(Field, int): Field;
 axiom (forall f: Field, i: int :: { MultiIndexField(f,i) } FDim(MultiIndexField(f,i)) == FDim(f) + 1);
@@ -554,6 +555,7 @@ axiom (forall cl : ClassName, nm: NameFamily ::
 function $IsGhostField(Field): bool uses {
    axiom $IsGhostField(alloc); // treat as ghost field, since it is allowed to be changed by ghost code
 }
+
 axiom (forall h: Heap, k: Heap :: { $HeapSuccGhost(h,k) }
   $HeapSuccGhost(h,k) ==>
     $HeapSucc(h,k) &&
@@ -628,12 +630,27 @@ axiom (forall h: Heap, k: Heap :: { $HeapSucc(h,k) }
 function $HeapSuccGhost(Heap, Heap): bool;
 
 // ---------------------------------------------------------------
+// -- Referrers --------------------------------------------------
+// ---------------------------------------------------------------
+
+type ReferrersHeap = [ref]Set;
+function {:inline} readReferrers(H: ReferrersHeap, r: ref) : Set { H[r] }
+function {:inline} updateReferrers(H: ReferrersHeap, r:ref, v: Set) : ReferrersHeap { H[r := v] }
+
+var $ReferrersHeap: ReferrersHeap;
+
+// The following is used as a reference heap in places where the translation needs a heap
+// but the expression generated is really one that is (at least in a correct program)
+// independent of the ReferrersHeap.
+const $OneReferrersHeap: ReferrersHeap;
+
+// ---------------------------------------------------------------
 // -- Useful macros ----------------------------------------------
 // ---------------------------------------------------------------
 
 // havoc everything in $Heap, except {this}+rds+nw
 procedure $YieldHavoc(this: ref, rds: Set, nw: Set);
-  modifies $Heap;
+  modifies $Heap, $ReferrersHeap;
   ensures (forall $o: ref, $f: Field :: { read($Heap, $o, $f) }
             $o != null && $Unbox(read(old($Heap), $o, alloc)) ==>
             $o == this || Set#IsMember(rds, $Box($o)) || Set#IsMember(nw, $Box($o)) ==>
@@ -642,7 +659,7 @@ procedure $YieldHavoc(this: ref, rds: Set, nw: Set);
 
 // havoc everything in $Heap, except rds-modi-{this}
 procedure $IterHavoc0(this: ref, rds: Set, modi: Set);
-  modifies $Heap;
+  modifies $Heap, $ReferrersHeap;
   ensures (forall $o: ref, $f: Field :: { read($Heap, $o, $f) }
             $o != null && $Unbox(read(old($Heap), $o, alloc)) ==>
             Set#IsMember(rds, $Box($o)) && !Set#IsMember(modi, $Box($o)) && $o != this ==>
@@ -651,7 +668,7 @@ procedure $IterHavoc0(this: ref, rds: Set, modi: Set);
 
 // havoc $Heap at {this}+modi+nw
 procedure $IterHavoc1(this: ref, modi: Set, nw: Set);
-  modifies $Heap;
+  modifies $Heap, $ReferrersHeap;
   ensures (forall $o: ref, $f: Field :: { read($Heap, $o, $f) }
             $o != null && $Unbox(read(old($Heap), $o, alloc)) ==>
               read($Heap, $o, $f) == read(old($Heap), $o, $f) ||

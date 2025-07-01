@@ -14,6 +14,10 @@ public abstract class MethodOrConstructor : MethodOrFunction, TypeParameter.Pare
   IMethodCodeContext, ICanFormat, IHasDocstring, IHasSymbolChildren, ICanAutoRevealDependencies, ICanVerify {
   public abstract List<Formal> Outs { get; }
 
+  // Used for referrers
+  [FilledInDuringResolution]
+  public Formal? ThisFormal; // In a method, it's an input parameter; in a constructor, it's an output parameter
+
   public static readonly Option<bool> ReadsClausesOnMethods = new("--reads-clauses-on-methods",
     "Allows reads clauses on methods (with a default of 'reads *') as well as functions."
   );

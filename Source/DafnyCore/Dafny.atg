@@ -3762,6 +3762,9 @@ ConstAtomExpression<out Expression e>
     "|"
   | "assigned"                                 (. x = t; .)
     "(" NameSegment<out e> ")"                 (. e = new UnaryOpExpr(x, UnaryOpExpr.Opcode.Assigned, e); .)
+  | IF(AcceptReferrers() && la.val == "referrers")
+    "referrers"                                (. x = t; .)
+    "(" Expression<out e, true, true> ")"      (. e = new UnaryOpExpr(x, UnaryOpExpr.Opcode.Referrers, e); .)
   | IF(AcceptReferrersAndBacktick())           (. e = new ImplicitThisExpr(la); .)
     FieldLocationSuffix<ref e>
   | ParensExpression<out e>
@@ -4506,10 +4509,16 @@ Suffix<ref Expression e>
 
 FieldLocationSuffix<ref Expression e>
 = "`"                                    (. Token backtick = t; .)
-  ( IF(IsIdentifier(la.kind))            (. Name name = null; .)
+  ( IF(IsIdentifier(la.kind))
+    (. Name name = null; .)
     NoDigitName<out name>
     (.
       e = new FieldLocationExpression(e, backtick, name);
+    .)
+  | IF(e is LocalsObjectExpression && la.val == "this")
+    "this"
+    (.
+      e = new FieldLocationExpression(e, backtick, new Name(t, "this"));
     .)
   | "["               (. Token openParen = t;
                          var multipleIndices = new List<Expression>();

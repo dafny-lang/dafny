@@ -127,6 +127,9 @@ format-standard-libraries:
 update-standard-libraries:
 	(cd "${DIR}"; cd Source/DafnyStandardLibraries; make update-binary)
 
+prelude:
+	(cd "${DIR}"; cd Source/DafnyCore/Prelude; make update)
+
 # `make pr` will bring you in a state suitable for submitting a PR
 # - Builds the Dafny executable
 # - Use the build to generate the standard libraries

@@ -127,6 +127,7 @@ public class SystemModuleManager {
       new ValuetypeDecl("char", SystemModule, t => t.IsCharType, typeArgs => Type.Char),
       new ValuetypeDecl("int", SystemModule, t => t.IsNumericBased(Type.NumericPersuasion.Int), typeArgs => Type.Int),
       new ValuetypeDecl("real", SystemModule, t => t.IsNumericBased(Type.NumericPersuasion.Real), typeArgs => Type.Real),
+      new ValuetypeDecl("field", SystemModule, t => t.IsFieldType, typeArgs => Type.Field),
       new ValuetypeDecl("ORDINAL", SystemModule, t => t.IsBigOrdinalType, typeArgs => Type.BigOrdinal),
       new ValuetypeDecl("_bv", SystemModule, t => t.IsBitVectorType && !Options.Get(CommonOptionBag.TypeSystemRefresh),
         null), // "_bv" represents a family of classes, so no typeTester or type creator is supplied (it's used only in the legacy resolver)
@@ -177,6 +178,9 @@ public class SystemModuleManager {
 
     var isNat = new SpecialField(SourceOrigin.NoToken, "IsNat", SpecialField.ID.IsNat, null, false, false, false, Type.Bool, null);
     AddMember(isNat, ValuetypeVariety.BigOrdinal);
+
+    var isGhost = new SpecialField(SourceOrigin.NoToken, "IsGhost", SpecialField.ID.IsGhost, null, false, false, false, Type.Bool, null);
+    AddMember(isGhost, ValuetypeVariety.Field);
 
     // Add "Keys", "Values", and "Items" to map, imap
     foreach (var typeVariety in new[] { ValuetypeVariety.Map, ValuetypeVariety.IMap }) {
@@ -543,6 +547,7 @@ enum ValuetypeVariety {
   Char,
   Int,
   Real,
+  Field,
   BigOrdinal,
   Bitvector,
   Set,
