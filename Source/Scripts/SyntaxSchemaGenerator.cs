@@ -1,6 +1,5 @@
 using System.Collections.Frozen;
 using System.CommandLine;
-using System.Diagnostics;
 using System.Numerics;
 using System.Reflection;
 using System.Text.RegularExpressions;
@@ -106,16 +105,16 @@ public class SyntaxSchemaGenerator : SyntaxAstVisitor {
     List<MemberDeclarationSyntax> newFields = [];
 
     var baseType = GetBaseType(type);
-    VisitParameters(type, (_, parameter, memberInfo) => {
+    VisitParameters(type, (_, parameter) => {
       if (ExcludedTypes.Contains(parameter.ParameterType)) {
         return;
       }
 
-      if (memberInfo.GetCustomAttribute<BackEdge>() != null) {
+      if (parameter.GetCustomAttribute<BackEdge>() != null) {
         return;
       }
 
-      if (DoesMemberBelongToBase(type, memberInfo, baseType)) {
+      if (DoesMemberBelongToBase(type, parameter, baseType)) {
         return;
       }
 

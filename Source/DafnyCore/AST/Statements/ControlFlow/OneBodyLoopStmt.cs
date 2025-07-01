@@ -89,7 +89,7 @@ public abstract class OneBodyLoopStmt : LoopStmt {
       text += text.Length == 0 ? "$Heap" : ", $Heap";
     }
     text = $"this loop has no body{(text.Length == 0 ? "" : " (loop frame: " + text + ")")}";
-    reporter.Warning(MessageSource.Resolver, ErrorRegistry.NoneId, Origin, text);
+    reporter.Warning(MessageSource.Resolver, "", Origin, text);
   }
 
 }

@@ -6,8 +6,9 @@ git-issue-4939a.dfy(25,32): Error: cannot prove termination; try supplying a dec
 git-issue-4939a.dfy(68,21): Error: cannot prove termination; try supplying a decreases clause
 git-issue-4939a.dfy(68,21): Error: decreases expression must be bounded below by 0
 git-issue-4939a.dfy(67,23): Related location: this decreases clause was not satisfied
+git-issue-4939a.dfy(99,22): Error: insufficient reads clause to read field; Consider adding 'reads this' or 'reads this`interface' in the enclosing function specification for resolution
 git-issue-4939a.dfy(105,36): Error: cannot prove termination; try supplying a decreases clause
 git-issue-4939a.dfy(105,36): Error: decreases expression must be bounded below by 0
 git-issue-4939a.dfy(104,23): Related location: this decreases clause was not satisfied
 
-Dafny program verifier finished with 12 verified, 5 errors
+Dafny program verifier finished with 11 verified, 6 errors

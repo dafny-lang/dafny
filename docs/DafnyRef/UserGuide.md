@@ -158,7 +158,7 @@ A later version of Dafny will also require `.dtr` files that cover all modules
 that are defined in `--library` options,
 to support checking that all relevant options are compatible.
 
-## 13.4. Dafny Standard Libraries
+## 13.4. Dafny Standard Libraries {#sec-dafny-standard-libraries}
 
 As of Dafny 4.4, the `dafny` tool includes standard libraries that any Dafny code base can depend on.
 For now they are only available when the `--standard-libraries` option is provided,

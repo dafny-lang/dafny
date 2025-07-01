@@ -15,23 +15,26 @@ namespace Scripts;
 
 public class SourceToBinary {
 
-  public static Command GetCommand() {
+  public static Command GetCommand(TextWriter outputWriter) {
     var result = new Command("source-to-binary", "");
     var inputArgument = new Argument<FileInfo>("input", "Dafny source file");
     result.AddArgument(inputArgument);
-    var outputArgument = new Argument<FileInfo>("output", "File to write binary output to");
-    result.AddArgument(outputArgument);
-    result.SetHandler((file1, file2) => Handle(file1.FullName,
-      new StreamWriter(file2.FullName)),
-      inputArgument, outputArgument);
+
+    var deleteSourcesOption = new Option<bool>("--delete-source-locations", "Useful for checking whether source-locations are used by certain Dafny commands");
+    result.AddOption(deleteSourcesOption);
+    result.SetHandler((file1, deleteSources) => Handle(file1.FullName, deleteSources, outputWriter),
+      inputArgument, deleteSourcesOption);
     return result;
   }
 
-  public static async Task Handle(string inputFile, TextWriter outputFile) {
+  public static async Task Handle(string inputFile, bool deleteSources, TextWriter outputFile) {
     var options = DafnyOptions.Default;
     var errorReporter = new BatchErrorReporter(options);
     var input = await File.ReadAllTextAsync(inputFile);
     var parseResult = await ProgramParser.Parse(input, new Uri(Path.GetFullPath(inputFile)), errorReporter);
+    if (deleteSources) {
+      DeleteSources(parseResult);
+    }
     if (errorReporter.HasErrors) {
       var errors = errorReporter.AllMessagesByLevel[ErrorLevel.Error];
       var exceptions = errors.Select(diagnostic =>
@@ -67,12 +70,31 @@ public class SourceToBinary {
     await outputFile.WriteAsync(output);
     await outputFile.FlushAsync();
   }
+
+  private static void DeleteSources(ProgramParseResult parseResult) {
+    var toVisit = new Stack<INode>();
+    toVisit.Push(parseResult.Program);
+    while (toVisit.Any()) {
+      var current = toVisit.Pop();
+      foreach (var child in current.Children) {
+        if (child == null) {
+          throw new Exception();
+        }
+        toVisit.Push(child);
+      }
+
+      if (current is NodeWithOrigin withOrigin && withOrigin.Origin != Token.NoToken) {
+        var token = new Token(-1, -1) { Uri = withOrigin.Origin.Uri };
+        withOrigin.SetOrigin(new SourceOrigin(token, token));
+      }
+    }
+  }
 }
 
 
 
 public class Serializer(IEncoder encoder, IReadOnlyList<INamedTypeSymbol> parsedAstTypes) {
-  private readonly Dictionary<string, List<string>> fieldsPerType =
+  private readonly Dictionary<string, List<string>> schemaFieldPerType =
     parsedAstTypes.ToDictionary(t => t.Name, t =>
       GetAllMembers(t).OfType<IFieldSymbol>().Select(f => f.Name.ToLower()).ToList());
 
@@ -214,7 +236,7 @@ public class Serializer(IEncoder encoder, IReadOnlyList<INamedTypeSymbol> parsed
   private void SerializeObject(object obj) {
     var instanceType = obj.GetType();
     Type? foundType = instanceType;
-    while (foundType != null && !fieldsPerType.ContainsKey(
+    while (foundType != null && !schemaFieldPerType.ContainsKey(
              SyntaxAstVisitor.CutOffGenericSuffixPartOfName(foundType.Name))) {
       foundType = foundType.BaseType;
     }
@@ -223,51 +245,26 @@ public class Serializer(IEncoder encoder, IReadOnlyList<INamedTypeSymbol> parsed
       throw new Exception($"Could not find schema type for {instanceType}");
     }
 
-    var fieldNames = fieldsPerType[SyntaxAstVisitor.CutOffGenericSuffixPartOfName(foundType.Name)];
-    var fieldsPerName = new Dictionary<string, FieldInfo>();
-    foreach (var fieldInfo in GetSerializableFields(foundType)) {
-      var fieldName = fieldInfo.Name;
-      if (fieldName.StartsWith("<") && fieldName.EndsWith("k__BackingField")) {
-        // Support auto properties
-        fieldName = fieldName.Substring(1, fieldName.IndexOf(">", StringComparison.Ordinal) - 1);
-      } else if (fieldName.StartsWith("<") && fieldName.EndsWith(">P")) {
-        // Support fields from a primary constructor
-        fieldName = fieldName.Substring(1, fieldName.Length - 3);
-      }
+    foreach (var fieldName in schemaFieldPerType[SyntaxAstVisitor.CutOffGenericSuffixPartOfName(foundType.Name)]) {
+      var memberInfo = foundType.GetMember(fieldName,
+        BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.IgnoreCase).FirstOrDefault();
 
-      // If this is an overridden field, overwrite the entry
-      fieldsPerName[fieldName.ToLower()] = fieldInfo;
-    }
-
-    foreach (var fieldName in fieldNames) {
-      var field = fieldsPerName.GetValueOrDefault(fieldName);
-      if (field == null) {
-        continue;
-      }
-
-      try {
-        object? value = field.GetValue(obj);
-
-        var nullabilityContext = new NullabilityInfoContext();
-        var nullabilityInfo = nullabilityContext.Create(field);
-        bool isNullable = nullabilityInfo.ReadState == NullabilityState.Nullable;
-        SerializeValue(value, field.FieldType, isNullable);
-      } catch (Exception e) {
-        throw new InvalidOperationException($"Failed to serialize field: {field.Name}", e);
+      if (memberInfo is PropertyInfo propertyInfo) {
+        var value = propertyInfo.GetValue(obj);
+        var propType = propertyInfo.PropertyType;
+        var context = new NullabilityInfoContext();
+        var nullability = context.Create(propertyInfo);
+        bool isNullable = nullability.ReadState == NullabilityState.Nullable;
+        SerializeValue(value, propType, isNullable);
+      } else {
+        var fieldInfo = (FieldInfo)memberInfo!;
+        var value = fieldInfo.GetValue(obj);
+        var propType = fieldInfo.FieldType;
+        var context = new NullabilityInfoContext();
+        var nullability = context.Create(fieldInfo);
+        bool isNullable = nullability.ReadState == NullabilityState.Nullable;
+        SerializeValue(value, propType, isNullable);
       }
     }
-  }
-
-  private static IEnumerable<FieldInfo> GetSerializableFields(Type type) {
-    var fields = new List<FieldInfo>();
-    Type? result = type;
-    while (result != null && result != typeof(object)) {
-      fields.InsertRange(0, result.GetFields(BindingFlags.DeclaredOnly |
-                                             BindingFlags.Instance |
-                                             BindingFlags.Public |
-                                             BindingFlags.NonPublic));
-      result = result.BaseType;
-    }
-    return fields;
   }
 }

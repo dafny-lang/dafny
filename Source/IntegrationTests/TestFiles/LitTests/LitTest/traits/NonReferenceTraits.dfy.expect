@@ -2,8 +2,10 @@ NonReferenceTraits.dfy(52,8): Error: mutable fields are allowed only in referenc
 NonReferenceTraits.dfy(56,8): Error: mutable fields are allowed only in reference types (consider declaring the field as a 'const')
 NonReferenceTraits.dfy(60,8): Error: mutable fields are allowed only in reference types (consider declaring the field as a 'const')
 NonReferenceTraits.dfy(63,8): Error: mutable fields are allowed only in reference types (consider declaring the field as a 'const')
-NonReferenceTraits.dfy(89,24): Error: Raised while checking export set BadLibrary: a class can only extend traits (found 'Trait')
-NonReferenceTraits.dfy(92,27): Error: Raised while checking export set BadLibrary: a trait can only extend traits (found 'Trait')
+NonReferenceTraits.dfy(89,24): Error: a class can only extend traits (found 'Trait')
+NonReferenceTraits.dfy(81,4): Related location: raised while checking export set BadLibrary
+NonReferenceTraits.dfy(92,27): Error: a trait can only extend traits (found 'Trait')
+NonReferenceTraits.dfy(81,4): Related location: raised while checking export set BadLibrary
 NonReferenceTraits.dfy(81,4): Error: This export set is not consistent: BadLibrary
 NonReferenceTraits.dfy(119,28): Error: a class can only extend traits (found 'G.Trait')
 NonReferenceTraits.dfy(120,28): Error: a trait can only extend traits (found 'G.Trait')
@@ -55,8 +57,10 @@ NonReferenceTraits.dfy(56,8): Error: mutable fields are allowed only in referenc
 NonReferenceTraits.dfy(60,8): Error: mutable fields are allowed only in reference types (consider declaring the field as a 'const')
 NonReferenceTraits.dfy(63,8): Error: mutable fields are allowed only in reference types (consider declaring the field as a 'const')
 NonReferenceTraits.dfy(69,8): Error: mutable fields are allowed only in reference types (consider declaring the field as a 'const' or declaring the trait with 'extends object')
-NonReferenceTraits.dfy(89,24): Error: Raised while checking export set BadLibrary: a class can only extend traits (found 'Trait')
-NonReferenceTraits.dfy(92,27): Error: Raised while checking export set BadLibrary: a trait can only extend traits (found 'Trait')
+NonReferenceTraits.dfy(89,24): Error: a class can only extend traits (found 'Trait')
+NonReferenceTraits.dfy(81,4): Related location: raised while checking export set BadLibrary
+NonReferenceTraits.dfy(92,27): Error: a trait can only extend traits (found 'Trait')
+NonReferenceTraits.dfy(81,4): Related location: raised while checking export set BadLibrary
 NonReferenceTraits.dfy(81,4): Error: This export set is not consistent: BadLibrary
 NonReferenceTraits.dfy(119,28): Error: a class can only extend traits (found 'G.Trait')
 NonReferenceTraits.dfy(120,28): Error: a trait can only extend traits (found 'G.Trait')
