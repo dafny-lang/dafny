@@ -13,8 +13,6 @@ public class AssertStmt : PredicateStmt, ICloneable<AssertStmt>, ICanFormat {
   }
 
   public AssertStmt(Cloner cloner, AssertStmt original) : base(cloner, original) {
-    // PROPER FIX for issue #6268: Use shared AssertLabel cloning to ensure that
-    // both AssertStmt and HideRevealStmt reference the same cloned AssertLabel objects
     Label = original.Label?.Clone(cloner);
   }
 

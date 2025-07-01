@@ -13,9 +13,7 @@ public class AssertLabel : Label, ICloneable<AssertLabel> {
     Contract.Requires(name != null);
   }
 
-  // Proper cloning implementation for issue #6268
   public AssertLabel Clone(Cloner cloner) {
-    // Uses standard cloning pattern consistent with other clone dictionaries
     return cloner.CloneAssertLabel(this);
   }
 }
