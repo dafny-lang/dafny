@@ -647,6 +647,9 @@ namespace Microsoft.Dafny {
     static Bpl.Expr Id(Bpl.IToken tok, Boogie.Constant constant) {
       return new Boogie.IdentifierExpr(tok, constant);
     }
+    static Bpl.Expr Id(Bpl.IToken tok, Boogie.Variable constant) {
+      return new Boogie.IdentifierExpr(tok, constant);
+    }
     static Bpl.Expr One(Bpl.IToken tok) {
       return new Boogie.LiteralExpr(tok, BigNum.ONE);
     }

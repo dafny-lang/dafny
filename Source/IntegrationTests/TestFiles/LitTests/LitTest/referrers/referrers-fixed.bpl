@@ -3024,6 +3024,7 @@ implementation {:smt_option "smt.arith.solver", "2"} {:verboseName "ReferrersLoc
   var $_Frame#l0: [ref,Field]bool;
   var lambdaResult#0: ref;
   var newtype$check#1: ref;
+  var $OldReferrersHeap: ReferrersHeap;
 
     // AddMethodImpl: ReferrersLocal, Impl$$_module.__default.ReferrersLocal
     $_ModifiesFrame := (lambda $o: ref, $f: Field :: 
@@ -3226,6 +3227,47 @@ implementation {:smt_option "smt.arith.solver", "2"} {:verboseName "ReferrersLoc
                           SetRef_to_SetBox((lambda $l#1#o#0: ref :: false))))), 
                     $LS($LZ))), 
                 $Box(arrayinit#0#i0#0))): ref);
+    $OldReferrersHeap := $ReferrersHeap;
+    havoc $ReferrersHeap;
+    assume (forall $o: ref :: 
+      { readReferrers($ReferrersHeap, $o) } 
+      (forall arrayinit#0#i0#0: int :: 
+          { read($Heap, $nw, IndexField(arrayinit#0#i0#0)) } 
+          0 <= arrayinit#0#i0#0 && arrayinit#0#i0#0 < LitInt(1)
+             ==> $o != $Unbox(read($Heap, $nw, IndexField(arrayinit#0#i0#0))): ref)
+         ==> readReferrers($ReferrersHeap, $o) == readReferrers($OldReferrersHeap, $o));
+    assume (forall arrayinit#0#i0#0: int :: 
+      { read($Heap, $nw, IndexField(arrayinit#0#i0#0)) } 
+      0 <= arrayinit#0#i0#0 && arrayinit#0#i0#0 < LitInt(1)
+         ==> Set#Subset(readReferrers($OldReferrersHeap, $Unbox(read($Heap, $nw, IndexField(arrayinit#0#i0#0))): ref), 
+          readReferrers($ReferrersHeap, $Unbox(read($Heap, $nw, IndexField(arrayinit#0#i0#0))): ref)));
+    assume (forall arrayinit#0#i0#0: int :: 
+      { read($Heap, $nw, IndexField(arrayinit#0#i0#0)) } 
+        { #_System._tuple#2._#Make2($Box($nw), $Box(IndexField(arrayinit#0#i0#0))) } 
+      0 <= arrayinit#0#i0#0 && arrayinit#0#i0#0 < LitInt(1)
+         ==> Set#IsMember(Set#Difference(readReferrers($ReferrersHeap, $Unbox(read($Heap, $nw, IndexField(arrayinit#0#i0#0))): ref), 
+            readReferrers($OldReferrersHeap, $Unbox(read($Heap, $nw, IndexField(arrayinit#0#i0#0))): ref)), 
+          $Box(#_System._tuple#2._#Make2($Box($nw), $Box(IndexField(arrayinit#0#i0#0))))));
+    assume (forall arrayinit#0#i0#0: int, $r: Box :: 
+      { Set#IsMember(Set#Difference(readReferrers($ReferrersHeap, $Unbox(read($Heap, $nw, IndexField(arrayinit#0#i0#0))): ref), 
+            readReferrers($OldReferrersHeap, $Unbox(read($Heap, $nw, IndexField(arrayinit#0#i0#0))): ref)), 
+          $r) } 
+      0 <= arrayinit#0#i0#0
+           && arrayinit#0#i0#0 < LitInt(1)
+           && Set#IsMember(Set#Difference(readReferrers($ReferrersHeap, $Unbox(read($Heap, $nw, IndexField(arrayinit#0#i0#0))): ref), 
+              readReferrers($OldReferrersHeap, $Unbox(read($Heap, $nw, IndexField(arrayinit#0#i0#0))): ref)), 
+            $r)
+         ==> $Unbox(_System.Tuple2._0($Unbox($r): DatatypeType)): ref == $nw
+           && 
+          0
+             <= IndexField_Inverse($Unbox(_System.Tuple2._1($Unbox($r): DatatypeType)): Field)
+           && 
+          IndexField_Inverse($Unbox(_System.Tuple2._1($Unbox($r): DatatypeType)): Field)
+             < LitInt(1)
+           && read($Heap, 
+              $nw, 
+              IndexField(IndexField_Inverse($Unbox(_System.Tuple2._1($Unbox($r): DatatypeType)): Field)))
+             == read($Heap, $nw, IndexField(arrayinit#0#i0#0)));
     $Heap := update($Heap, $nw, alloc, $Box(true));
     assume $IsGoodHeap($Heap);
     assume $IsHeapAnchor($Heap);
@@ -4355,6 +4397,7 @@ implementation {:smt_option "smt.arith.solver", "2"} {:verboseName "ObjectFields
   var i#0: int;
   var $_Frame#l0: [ref,Field]bool;
   var lambdaResult#0: ref;
+  var $OldReferrersHeap: ReferrersHeap;
   var r#0: DatatypeType;
 
     // AddMethodImpl: ObjectFields, Impl$$_module.__default.ObjectFields
@@ -5014,66 +5057,48 @@ implementation {:smt_option "smt.arith.solver", "2"} {:verboseName "ObjectFields
                           SetRef_to_SetBox((lambda $l#1#o#0: ref :: false))))), 
                     $LS($LZ))), 
                 $Box(arrayinit#0#i0#0))): ref);
-    $Heap := update($Heap, $nw, alloc, $Box(true));
+    $OldReferrersHeap := $ReferrersHeap;
     havoc $ReferrersHeap;
-    assume (forall $o: ref ::
-      { readReferrers($ReferrersHeap, $o) }
-      (forall i: int :: 
-        0 <= i && i < LitInt(3) ==> $o != $Unbox(read($Heap, $nw, IndexField(i))): ref)
-      ==> 
-      readReferrers($ReferrersHeap, $o) == readReferrers($ReferrersHeap_at_0, $o));
-
-    // For all objects in the array, the referrers before is a subset of the referrers after
-    assume (forall i: int ::
-      { read($Heap, $nw, IndexField(i)) }
-      0 <= i && i < LitInt(3)
-      ==> 
-      Set#Subset(
-        readReferrers($ReferrersHeap_at_0, $Unbox(read($Heap, $nw, IndexField(i))): ref),
-        readReferrers($ReferrersHeap, $Unbox(read($Heap, $nw, IndexField(i))): ref)
-      )
-    );
-
-    // For all objects in the array at index i, the difference of its referrers after minus referrers before contains (nw, i)
-    assume (forall i: int ::
-      { read($Heap, $nw, IndexField(i)) }
-      { #_System._tuple#2._#Make2($Box($nw), $Box(IndexField(i))) }
-      0 <= i && i < LitInt(3)
-      ==> 
-      Set#IsMember(
-        Set#Difference(
-          readReferrers($ReferrersHeap, $Unbox(read($Heap, $nw, IndexField(i))): ref),
-          readReferrers($ReferrersHeap_at_0, $Unbox(read($Heap, $nw, IndexField(i))): ref)
-        ),
-        $Box(#_System._tuple#2._#Make2($Box($nw), $Box(IndexField(i))))
-      )
-    );
-    // Set#IsMember(Set#Difference(readReferrers($ReferrersHeap, t#0), readReferrers($ReferrersHeap_at_0, t#0)), $Box(r#1))
-    // $Unbox(read($Heap, a#0, IndexField(LitInt(0)))): ref == t#0;
-    assume (forall i: int, $r: Box ::
-      { Set#IsMember(
-          Set#Difference(
-            readReferrers($ReferrersHeap, $Unbox(read($Heap, $nw, IndexField(i))): ref),
-            readReferrers($ReferrersHeap_at_0, $Unbox(read($Heap, $nw, IndexField(i))): ref)
-          ),
-          $r
-        )
-      }
-      0 <= i && i < LitInt(3) &&
-      Set#IsMember(
-        Set#Difference(
-          readReferrers($ReferrersHeap, $Unbox(read($Heap, $nw, IndexField(i))): ref),
-          readReferrers($ReferrersHeap_at_0, $Unbox(read($Heap, $nw, IndexField(i))): ref)
-        ),
-        $r
-      )
-      ==>
-      $Unbox(_System.Tuple2._0($Unbox($r): DatatypeType)): ref == $nw
-      && 0 <= IndexField_Inverse($Unbox(_System.Tuple2._1($Unbox($r): DatatypeType)): Field)
-      && IndexField_Inverse($Unbox(_System.Tuple2._1($Unbox($r): DatatypeType)): Field) < LitInt(3)
-      && read($Heap, $nw, IndexField(IndexField_Inverse($Unbox(_System.Tuple2._1($Unbox($r): DatatypeType)): Field)))
-         == read($Heap, $nw, IndexField(i))
-    );
+    assume (forall $o: ref :: 
+      { readReferrers($ReferrersHeap, $o) } 
+      (forall arrayinit#0#i0#0: int :: 
+          { read($Heap, $nw, IndexField(arrayinit#0#i0#0)) } 
+          0 <= arrayinit#0#i0#0 && arrayinit#0#i0#0 < LitInt(3)
+             ==> $o != $Unbox(read($Heap, $nw, IndexField(arrayinit#0#i0#0))): ref)
+         ==> readReferrers($ReferrersHeap, $o) == readReferrers($OldReferrersHeap, $o));
+    assume (forall arrayinit#0#i0#0: int :: 
+      { read($Heap, $nw, IndexField(arrayinit#0#i0#0)) } 
+      0 <= arrayinit#0#i0#0 && arrayinit#0#i0#0 < LitInt(3)
+         ==> Set#Subset(readReferrers($OldReferrersHeap, $Unbox(read($Heap, $nw, IndexField(arrayinit#0#i0#0))): ref), 
+          readReferrers($ReferrersHeap, $Unbox(read($Heap, $nw, IndexField(arrayinit#0#i0#0))): ref)));
+    assume (forall arrayinit#0#i0#0: int :: 
+      { read($Heap, $nw, IndexField(arrayinit#0#i0#0)) } 
+        { #_System._tuple#2._#Make2($Box($nw), $Box(IndexField(arrayinit#0#i0#0))) } 
+      0 <= arrayinit#0#i0#0 && arrayinit#0#i0#0 < LitInt(3)
+         ==> Set#IsMember(Set#Difference(readReferrers($ReferrersHeap, $Unbox(read($Heap, $nw, IndexField(arrayinit#0#i0#0))): ref), 
+            readReferrers($OldReferrersHeap, $Unbox(read($Heap, $nw, IndexField(arrayinit#0#i0#0))): ref)), 
+          $Box(#_System._tuple#2._#Make2($Box($nw), $Box(IndexField(arrayinit#0#i0#0))))));
+    assume (forall arrayinit#0#i0#0: int, $r: Box :: 
+      { Set#IsMember(Set#Difference(readReferrers($ReferrersHeap, $Unbox(read($Heap, $nw, IndexField(arrayinit#0#i0#0))): ref), 
+            readReferrers($OldReferrersHeap, $Unbox(read($Heap, $nw, IndexField(arrayinit#0#i0#0))): ref)), 
+          $r) } 
+      0 <= arrayinit#0#i0#0
+           && arrayinit#0#i0#0 < LitInt(3)
+           && Set#IsMember(Set#Difference(readReferrers($ReferrersHeap, $Unbox(read($Heap, $nw, IndexField(arrayinit#0#i0#0))): ref), 
+              readReferrers($OldReferrersHeap, $Unbox(read($Heap, $nw, IndexField(arrayinit#0#i0#0))): ref)), 
+            $r)
+         ==> $Unbox(_System.Tuple2._0($Unbox($r): DatatypeType)): ref == $nw
+           && 
+          0
+             <= IndexField_Inverse($Unbox(_System.Tuple2._1($Unbox($r): DatatypeType)): Field)
+           && 
+          IndexField_Inverse($Unbox(_System.Tuple2._1($Unbox($r): DatatypeType)): Field)
+             < LitInt(3)
+           && read($Heap, 
+              $nw, 
+              IndexField(IndexField_Inverse($Unbox(_System.Tuple2._1($Unbox($r): DatatypeType)): Field)))
+             == read($Heap, $nw, IndexField(arrayinit#0#i0#0)));
+    $Heap := update($Heap, $nw, alloc, $Box(true));
     assume $IsGoodHeap($Heap);
     assume $IsHeapAnchor($Heap);
     a#0 := $nw;
