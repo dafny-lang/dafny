@@ -75,9 +75,9 @@ TOKENS
         .
   digits = digit {['_'] digit}.
   hexdigits = "0x" hexdigit {['_'] hexdigit}.
-  realnumber = digit {['_'] digit} '.' digit {['_'] digit} [('e'|'E') ['+'|'-'] digit {['_'] digit}]
-             | digit {['_'] digit} ('e'|'E') ['+'|'-'] digit {['_'] digit}
-             | digit {['_'] digit} '.' ('e'|'E') ['+'|'-'] digit {['_'] digit}.
+  realnumber = digit {['_'] digit} '.' digit {['_'] digit} ['e' ['-'] digit {['_'] digit}]
+             | digit {['_'] digit} 'e' ['-'] digit {['_'] digit}
+             | digit {['_'] digit} '.' 'e' ['-'] digit {['_'] digit}.
   // NOTE: all alphabetic strings used in the grammar become reserved words automatically
   // The reason to include a definition here is so that a token can be referred to by its 'kind',
   // as in la.kind == _bool
@@ -4904,8 +4904,6 @@ Dec<out BaseTypes.BigDec d>
 = (. d = BaseTypes.BigDec.ZERO; .)
   ( realnumber
     (. var S = Util.RemoveUnderscores(t.val);
-       // Convert uppercase E to lowercase e for scientific notation compatibility
-       S = S.Replace('E', 'e');
        // Handle trailing dot case (e.g., "1." -> "1.0", "5.e2" -> "5.0e2")
        int dotIndex = S.IndexOf('.');
        int eIndex = S.IndexOf('e');

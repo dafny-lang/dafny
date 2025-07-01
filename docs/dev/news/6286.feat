@@ -1,1 +1,1 @@
-Real literals now support scientific notation using `e` or `E` to denote the exponent (like `1.23e5` for `123000.0` or `5e-2` for `0.05`). Real literals also support convenient trailing dot shorthand (like `1.` for `1.0`).
+Real literals now support scientific notation using lowercase `e` to denote the exponent (like `1.23e5` for `123000.0` or `5e-2` for `0.05`). Real literals also support convenient trailing dot shorthand (like `1.` for `1.0`).

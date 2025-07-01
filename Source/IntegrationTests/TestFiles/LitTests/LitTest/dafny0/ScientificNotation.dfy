@@ -5,16 +5,16 @@
 method BasicScientificNotation() {
   // Basic positive exponents
   var a := 1.23e2;     // 123.0
-  var b := 1.23E2;     // 123.0 (uppercase E)
-  var c := 1.23e+2;    // 123.0 (explicit +)
+  var b := 1.23e2;     // 123.0 (only lowercase e supported)
+  var c := 1.23e2;     // 123.0 (no explicit + needed)
   
   // Basic negative exponents  
   var d := 1.23e-2;    // 0.0123
-  var e := 1.23E-2;    // 0.0123 (uppercase E)
+  var e := 1.23e-2;    // 0.0123 (only lowercase e supported)
   
   // Zero exponent
   var f := 1.23e0;     // 1.23
-  var g := 1.23e+0;    // 1.23
+  var g := 1.23e0;     // 1.23 (no + needed)
   var h := 1.23e-0;    // 1.23
   
   // Verify basic equivalences
@@ -26,8 +26,8 @@ method BasicScientificNotation() {
 method IntegerScientificNotation() {
   // Integer base with scientific notation
   var a := 5e2;        // 500.0
-  var b := 5E2;        // 500.0
-  var c := 5e+2;       // 500.0
+  var b := 5e2;        // 500.0 (only lowercase e)
+  var c := 5e2;        // 500.0 (no + needed)
   var d := 5e-1;       // 0.5
   var e := 5e0;        // 5.0
   
@@ -55,8 +55,8 @@ method TrailingDotLiterals() {
 method TrailingDotWithScientificNotation() {
   // Trailing dot combined with scientific notation
   var a := 1.e2;       // 100.0
-  var b := 5.E-1;      // 0.5
-  var c := 2.e+3;      // 2000.0
+  var b := 5.e-1;      // 0.5 (only lowercase e)
+  var c := 2.e3;       // 2000.0 (no + needed)
   
   // With underscores
   var d := 1_000.e2;   // 100000.0
