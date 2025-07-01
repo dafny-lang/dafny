@@ -38,8 +38,11 @@ public class HideRevealStmt : Statement, ICloneable<HideRevealStmt>, ICanFormat,
     Wildcard = original.Wildcard;
     if (cloner.CloneResolvedFields) {
       OffsetMembers = original.OffsetMembers.ToList();
-      // PROPER FIX for issue #6268: Use proper AssertLabel cloning instead of creating new objects
-      LabeledAsserts = original.LabeledAsserts.Select(a => a.Clone(cloner)).ToList();
+      // PROPER FIX for issue #6268: Don't create new AssertLabel objects during cloning.
+      // Instead, preserve the original AssertLabel objects that are in DominatingStatementLabels.
+      // The cloned HideRevealStmt should reference the same AssertLabel objects that will
+      // have their E fields filled during Boogie generation.
+      LabeledAsserts = original.LabeledAsserts.ToList();
       ResolvedStatements = original.ResolvedStatements.Select(stmt => cloner.CloneStmt(stmt, false)).ToList();
     }
   }
