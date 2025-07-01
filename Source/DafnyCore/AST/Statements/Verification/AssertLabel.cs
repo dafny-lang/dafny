@@ -13,11 +13,10 @@ public class AssertLabel : Label, ICloneable<AssertLabel> {
     Contract.Requires(name != null);
   }
 
-  // Simplest approach for issue #6268: Don't clone AssertLabel objects at all
+  // Proper cloning implementation for issue #6268
   public AssertLabel Clone(Cloner cloner) {
-    // AssertLabel objects should maintain their identity across cloning
-    // The E field gets filled during Boogie generation, so we need the same object
-    // to be accessible from both AssertStmt and HideRevealStmt
-    return this;  // Return the same object, don't create a new one
+    // Respects clone contract by creating new objects, but ensures that
+    // multiple references to the same original AssertLabel get the same clone
+    return cloner.GetOrCreateAssertLabelClone(this);
   }
 }
