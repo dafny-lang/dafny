@@ -30,16 +30,9 @@ namespace Microsoft.Dafny {
       return typeParameterClones.GetOrDefault(topLevelDecl, () => topLevelDecl);
     }
 
-    // FIX for issue #6268: Proper AssertLabel cloning that respects clone contract
-    // but ensures same original AssertLabel gets same cloned AssertLabel
-    public AssertLabel GetOrCreateAssertLabelClone(AssertLabel original) {
-      if (assertLabelClones.TryGetValue(original, out var existingClone)) {
-        return existingClone;
-      }
-      
-      var newClone = new AssertLabel(Origin(original.Tok), original.Name);
-      assertLabelClones[original] = newClone;
-      return newClone;
+    // FIX for issue #6268: Use standard GetOrCreate pattern like other clone dictionaries
+    public AssertLabel CloneAssertLabel(AssertLabel original) {
+      return assertLabelClones.GetOrCreate(original, () => new AssertLabel(Origin(original.Tok), original.Name));
     }
 
     public Cloner(bool cloneLiteralModuleDefinition = false, bool cloneResolvedFields = false) {

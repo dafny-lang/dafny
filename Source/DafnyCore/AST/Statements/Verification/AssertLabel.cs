@@ -15,8 +15,7 @@ public class AssertLabel : Label, ICloneable<AssertLabel> {
 
   // Proper cloning implementation for issue #6268
   public AssertLabel Clone(Cloner cloner) {
-    // Respects clone contract by creating new objects, but ensures that
-    // multiple references to the same original AssertLabel get the same clone
-    return cloner.GetOrCreateAssertLabelClone(this);
+    // Uses standard cloning pattern consistent with other clone dictionaries
+    return cloner.CloneAssertLabel(this);
   }
 }
