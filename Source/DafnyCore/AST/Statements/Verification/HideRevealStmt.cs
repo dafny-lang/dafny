@@ -86,8 +86,6 @@ public class HideRevealStmt : Statement, ICloneable<HideRevealStmt>, ICanFormat,
       if (labeledAssert != null) {
         LabeledAsserts.Add(labeledAssert);
       } else {
-        // DEBUG: Label not found, trying as function/constant
-        System.Console.WriteLine($"DEBUG: Label '{name}' not found in dominating labels, trying as function/constant");
         Expression effectiveExpr = expr;
         if (expr is ApplySuffix applySuffix) {
           if (applySuffix.AtTok != null) {
