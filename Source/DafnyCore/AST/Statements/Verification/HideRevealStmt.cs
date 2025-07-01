@@ -38,7 +38,9 @@ public class HideRevealStmt : Statement, ICloneable<HideRevealStmt>, ICanFormat,
     Wildcard = original.Wildcard;
     if (cloner.CloneResolvedFields) {
       OffsetMembers = original.OffsetMembers.ToList();
-      LabeledAsserts = original.LabeledAsserts.Select(a => new AssertLabel(cloner.Origin(a.Tok), a.Name)).ToList();
+      // PROPER FIX for issue #6268: Use shared AssertLabel cloning to ensure that
+      // both AssertStmt and HideRevealStmt reference the same cloned AssertLabel objects
+      LabeledAsserts = original.LabeledAsserts.Select(a => a.Clone(cloner)).ToList();
       ResolvedStatements = original.ResolvedStatements.Select(stmt => cloner.CloneStmt(stmt, false)).ToList();
     }
   }

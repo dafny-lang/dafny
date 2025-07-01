@@ -13,7 +13,9 @@ public class AssertStmt : PredicateStmt, ICloneable<AssertStmt>, ICanFormat {
   }
 
   public AssertStmt(Cloner cloner, AssertStmt original) : base(cloner, original) {
-    Label = original.Label == null ? null : new AssertLabel(cloner.Origin(original.Label.Tok), original.Label.Name);
+    // PROPER FIX for issue #6268: Use shared AssertLabel cloning to ensure that
+    // both AssertStmt and HideRevealStmt reference the same cloned AssertLabel objects
+    Label = original.Label?.Clone(cloner);
   }
 
   public static AssertStmt CreateErrorAssert(INode node, string message, Expression? guard = null) {
