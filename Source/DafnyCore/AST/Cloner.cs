@@ -18,8 +18,6 @@ namespace Microsoft.Dafny {
     private readonly Dictionary<IVariable, IVariable> clones = new();
     private readonly Dictionary<MemberDecl, MemberDecl> memberClones = new();
     private readonly Dictionary<TopLevelDecl, TopLevelDecl> typeParameterClones = new();
-    // FIX for issue #6268: Track AssertLabel clones by name to ensure shared references
-    private readonly Dictionary<string, AssertLabel> assertLabelClones = new();
     public bool CloneLiteralModuleDefinition { get; }
 
     public void AddStatementClone(Statement original, Statement clone) {
@@ -28,22 +26,6 @@ namespace Microsoft.Dafny {
 
     public TopLevelDecl GetCloneIfAvailable(TopLevelDecl topLevelDecl) {
       return typeParameterClones.GetOrDefault(topLevelDecl, () => topLevelDecl);
-    }
-
-    // FIX for issue #6268: Get or create AssertLabel clone by name to ensure shared references
-    public AssertLabel GetOrCreateAssertLabelClone(AssertLabel original) {
-      if (original.Name == null) {
-        // If no name, create a new clone each time (shouldn't happen for labeled asserts)
-        return new AssertLabel(Origin(original.Tok), original.Name);
-      }
-      
-      if (assertLabelClones.TryGetValue(original.Name, out var existingClone)) {
-        return existingClone;
-      }
-      
-      var newClone = new AssertLabel(Origin(original.Tok), original.Name);
-      assertLabelClones[original.Name] = newClone;
-      return newClone;
     }
 
     public Cloner(bool cloneLiteralModuleDefinition = false, bool cloneResolvedFields = false) {
