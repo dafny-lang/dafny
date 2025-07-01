@@ -1,0 +1,1 @@
+Fix crash when using reveal statements inside match cases. Previously, reveal statements in match case bodies would cause Boogie assertion failures due to incorrect cloning of AssertLabel objects during match case flattening.

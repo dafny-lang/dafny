@@ -41,7 +41,6 @@ public class HideRevealStmt : Statement, ICloneable<HideRevealStmt>, ICanFormat,
       LabeledAsserts = original.LabeledAsserts.Select(a => a.Clone(cloner)).ToList();
       ResolvedStatements = original.ResolvedStatements.Select(stmt => cloner.CloneStmt(stmt, false)).ToList();
     }
-    }
   }
 
   public HideRevealStmt(IOrigin origin, HideRevealCmd.Modes mode)
