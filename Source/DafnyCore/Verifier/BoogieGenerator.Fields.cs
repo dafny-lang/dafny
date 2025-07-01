@@ -30,9 +30,9 @@ namespace Microsoft.Dafny {
           /* axiom
             (forall depth: int ::
             { local_field(constant_field_family_name, depth) }
-                   _System.field.IsGhost(local_field(constant_field_family_name, depth))) // if the field is a ghost field
+                   $IsGhostField(local_field(constant_field_family_name, depth))) // if the field is a ghost field
             OR
-                   !_System.field.IsGhost(local_field(constant_field_family_name, depth))) // if the field is a ghost field
+                   !$IsGhostField(local_field(constant_field_family_name, depth))) // if the field is a ghost field
             ; 
           */
           // Create the axiom for ghost field status
@@ -58,9 +58,9 @@ namespace Microsoft.Dafny {
         fc = new Bpl.Constant(f.Origin, new Bpl.TypedIdent(f.Origin, f.FullSanitizedName, ty), requireUnicityOfFields);
         fields.Add(f, fc);
         // axiom FDim(f) == 0 && FieldOfDecl(C, name) == f &&
-        //       _System.field.IsGhost(f);    // if the field is a ghost field
+        //       $IsGhostField(f);    // if the field is a ghost field
         // OR:
-        //       !_System.field.IsGhost(f);    // if the field is not a ghost field
+        //       !$IsGhostField(f);    // if the field is not a ghost field
         Bpl.Expr fdim = Bpl.Expr.Eq(FunctionCall(f.Origin, BuiltinFunction.FDim, ty, Bpl.Expr.Ident(fc)), Bpl.Expr.Literal(0));
         Bpl.Expr declType = Bpl.Expr.Eq(FunctionCall(f.Origin, BuiltinFunction.FieldOfDecl, ty, new Bpl.IdentifierExpr(f.Origin, GetClass(cce.NonNull(f.EnclosingClass))), new Bpl.IdentifierExpr(f.Origin, GetFieldNameFamily(f.Name))), Bpl.Expr.Ident(fc));
         Bpl.Expr cond = BplAnd(fdim, declType);
@@ -117,6 +117,8 @@ namespace Microsoft.Dafny {
             return Predef.ORDINAL_Offset;
           } else if (f.Name == "IsNat") {
             return Predef.ORDINAL_IsNat;
+          } else if (f.Name == "IsGhost") {
+            return Predef.IsGhostField;
           }
         } else if (f.FullSanitizedName == "_System.Tuple2._0") {
           return Predef.Tuple2Destructors0;

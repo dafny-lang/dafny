@@ -9,6 +9,8 @@ namespace Microsoft.Dafny;
 public partial class BoogieGenerator
 {
   private class ReferrersHelper {
+    private const string IndexfieldInverse = "IndexField_Inverse";
+    private const string Indexfield = "IndexField";
     public BoogieGenerator BG { get; }
     public bool VerifyReferrers => BG.VerifyReferrers;
     public Declaration CurrentDeclaration => BG.CurrentDeclaration;
@@ -27,7 +29,7 @@ public partial class BoogieGenerator
 
         builder.Add(
           new AssumeCmd(tok,
-            Boogie.Expr.Eq(
+            Expr.Eq(
               BG.ReadReferrersHeap(tok, etran.ReferrersHeapExpr, nw),
               BG.FunctionCall(tok, BuiltinFunction.SetEmpty, BG.Predef.SetType)
             )
@@ -140,7 +142,7 @@ public partial class BoogieGenerator
       var field = formal.GetLocalField(method);
       var bField = BG.GetField(field);
       var fieldExpr = BG.FunctionCall(tok, BuiltinFunction.LocalField, BG.Predef.FieldType,
-        Id(tok, bField), Boogie.Expr.Add(Id(tok, "depth"), One(tok)));
+        Id(tok, bField), Expr.Add(Id(tok, "depth"), One(tok)));
       var objExpr = BG.Predef.Locals;
       RemoveUnassignAux(tok, bLhs, objExpr, fieldExpr, null, builder, etran);
     }
@@ -148,12 +150,12 @@ public partial class BoogieGenerator
     private void RemovePreAssignMemberSelect(BoogieStmtListBuilder builder, Variables locals,
       ExpressionTranslator etran, IOrigin tok, Expression memberObj, Field memberField) {
       var oldRhs = locals.GetOrCreate("$oldRhs",
-        () => new Boogie.LocalVariable(tok, new Boogie.TypedIdent(tok, "$oldRhs", BG.Predef.RefType)));
+        () => new Boogie.LocalVariable(tok, new TypedIdent(tok, "$oldRhs", BG.Predef.RefType)));
 
       var bLhs = new Boogie.IdentifierExpr(tok, oldRhs);
       var heapRead = BG.ReadHeap(tok, etran.HeapExpr, etran.TrExpr(memberObj), Id(tok, BG.GetField(memberField).Name));
       var unboxedHeapRead = BG.FunctionCall(tok, BuiltinFunction.Unbox, BG.Predef.RefType, heapRead);
-      builder.Add(Boogie.Cmd.SimpleAssign(tok, bLhs, unboxedHeapRead));
+      builder.Add(Cmd.SimpleAssign(tok, bLhs, unboxedHeapRead));
 
       var fieldId = Id(tok, BG.GetField(memberField).Name);
       var objExpr = etran.TrExpr(memberObj);
@@ -198,12 +200,12 @@ public partial class BoogieGenerator
         )
       ));
       b.Add(preReferrerHeapUpdate);
-      Expr bCond = Boogie.Expr.Neq(lhs, BG.Predef.Null);
+      Expr bCond = Expr.Neq(lhs, BG.Predef.Null);
       if (assignTracker != null) {
         bCond = BplAnd(bCond, assignTracker);
       }
 
-      var ifCmd = new Boogie.IfCmd(tok,
+      var ifCmd = new IfCmd(tok,
         bCond,
         b.Collect(tok),
         null, null);
@@ -264,7 +266,7 @@ public partial class BoogieGenerator
       var bField = BG.GetField(field);
       var depth = Id(tok, "depth");
       if (deeperLevel) {
-        depth = Boogie.Expr.Add(depth, One(tok));
+        depth = Expr.Add(depth, One(tok));
       }
 
       var fieldExpr = BG.FunctionCall(tok, BuiltinFunction.LocalField, BG.Predef.FieldType,
@@ -311,7 +313,7 @@ public partial class BoogieGenerator
           memLocExprBox
         ));
       var postReferrersHeapUpdate =
-        Boogie.Cmd.SimpleAssign(tok, etran.ReferrerrsHeapCastToIdentifierExpr, referrersHeapRhs);
+        Cmd.SimpleAssign(tok, etran.ReferrerrsHeapCastToIdentifierExpr, referrersHeapRhs);
       var b = new StmtListBuilder();
       b.Add(new AssumeCmd(tok,
         Expr.Not(
@@ -426,8 +428,8 @@ public partial class BoogieGenerator
       /*$OldReferrersHeap := $ReferrersHeap;
         havoc $ReferrersHeap; */
       var oldReferrersHeap = locals.GetOrCreate("$OldReferrersHeap",
-        () => new Boogie.LocalVariable(tok, new Boogie.TypedIdent(tok, "$OldReferrersHeap", BG.Predef.ReferrersHeapType)));
-      builder.Add(Boogie.Cmd.SimpleAssign(tok, 
+        () => new Boogie.LocalVariable(tok, new TypedIdent(tok, "$OldReferrersHeap", BG.Predef.ReferrersHeapType)));
+      builder.Add(Cmd.SimpleAssign(tok, 
         new Boogie.IdentifierExpr(tok, oldReferrersHeap), 
         etran.ReferrersHeapExpr));
       builder.Add(new HavocCmd(tok, [etran.ReferrerrsHeapCastToIdentifierExpr]));
@@ -445,11 +447,11 @@ public partial class BoogieGenerator
       var trigger = new Trigger(tok, true, [BG.ReadReferrersHeap(tok, etran.ReferrersHeapExpr, Id(tok, "$o"))]);
 
       var innerForall = new Boogie.ForallExpr(tok, bvs, tr, 
-        Boogie.Expr.Imp(ante, 
-          Boogie.Expr.Neq(Id(tok, "$o"), BG.FunctionCall(tok, BuiltinFunction.Unbox, BG.Predef.RefType, 
+        Expr.Imp(ante, 
+          Expr.Neq(Id(tok, "$o"), BG.FunctionCall(tok, BuiltinFunction.Unbox, BG.Predef.RefType, 
             BG.ReadHeap(tok, etran.HeapExpr, nw, arrayIndexFieldName)))));
 
-      var equality = Boogie.Expr.Eq(
+      var equality = Expr.Eq(
         BG.ReadReferrersHeap(tok, etran.ReferrersHeapExpr, Id(tok, "$o")),
         BG.ReadReferrersHeap(tok, new Boogie.IdentifierExpr(tok, oldReferrersHeap), Id(tok, "$o")));
 
@@ -470,7 +472,7 @@ public partial class BoogieGenerator
         )
       );*/
       var forallExpr = new Boogie.ForallExpr(tok, bvs, tr,
-        Boogie.Expr.Imp(ante,
+        Expr.Imp(ante,
           BG.FunctionCall(tok, BuiltinFunction.SetSubset, null,
             BG.ReadReferrersHeap(tok, new Boogie.IdentifierExpr(tok, oldReferrersHeap),
               BG.FunctionCall(tok, BuiltinFunction.Unbox, BG.Predef.RefType, 
@@ -502,7 +504,7 @@ public partial class BoogieGenerator
         new Trigger(tok, true, [
           BG.ReadHeap(tok, etran.HeapExpr, nw, arrayIndexFieldName),
         ], new Trigger(tok, true, [tuple2 ])),
-        Boogie.Expr.Imp(ante,
+        Expr.Imp(ante,
           BG.FunctionCall(tok, BuiltinFunction.SetIsMember, null,
             BG.FunctionCall(tok, BuiltinFunction.SetDifference, null,
               BG.ReadReferrersHeap(tok, etran.ReferrersHeapExpr,
@@ -570,17 +572,17 @@ public partial class BoogieGenerator
         Expr.Eq(BG.ApplyUnbox(tok, tuple0, BG.Predef.RefType), nw),
         Expr.And(
           Expr.Le(Expr.Literal(0), 
-            FunctionCall(tok, "IndexField_Inverse", null, BG.ApplyUnbox(tok, tuple1, BG.Predef.FieldType))),
+            FunctionCall(tok, IndexfieldInverse, null, BG.ApplyUnbox(tok, tuple1, BG.Predef.FieldType))),
           Expr.And(
             Expr.Lt(
-              FunctionCall(tok, "IndexField_Inverse", null, BG.ApplyUnbox(tok, tuple1, BG.Predef.FieldType)),
+              FunctionCall(tok, IndexfieldInverse, null, BG.ApplyUnbox(tok, tuple1, BG.Predef.FieldType)),
               bDims[0]),
             Expr.Eq(
               BG.ReadHeap(tok, 
                 etran.HeapExpr,
                 nw,
-                FunctionCall(tok, "IndexField", null, 
-                  FunctionCall(tok, "IndexField_Inverse", null, BG.ApplyUnbox(tok, tuple1, BG.Predef.FieldType)))),
+                FunctionCall(tok, Indexfield, null, 
+                  FunctionCall(tok, IndexfieldInverse, null, BG.ApplyUnbox(tok, tuple1, BG.Predef.FieldType)))),
               BG.ReadHeap(tok, etran.HeapExpr, nw, arrayIndexFieldName))
           )
         )

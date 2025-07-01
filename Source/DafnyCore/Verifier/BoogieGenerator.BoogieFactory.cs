@@ -572,7 +572,7 @@ namespace Microsoft.Dafny {
         case BuiltinFunction.IsGhostField:
           Contract.Assert(args.Length == 1);
           Contract.Assert(typeInstantiation != null);
-          return FunctionCall(tok, "_System.field.IsGhost", Bpl.Type.Bool, args);
+          return FunctionCall(tok, "$IsGhostField", Bpl.Type.Bool, args);
 
         case BuiltinFunction.DatatypeCtorId:
           Contract.Assert(args.Length == 1);

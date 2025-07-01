@@ -556,7 +556,7 @@ namespace Microsoft.Dafny {
             arrayLength = f;
           } else if (f.Name == "_System.real.Floor") {
             realFloor = f;
-          } else if (f.Name == "_System.field.IsGhost") {
+          } else if (f.Name == "$IsGhostField") {
             isGhostField = f;
           } else if (f.Name == "ORD#IsLimit") {
             ORDINAL_isLimit = f;
@@ -608,7 +608,7 @@ namespace Microsoft.Dafny {
       } else if (realFloor == null) {
         options.OutputWriter.Exception("Dafny prelude is missing declaration of function _System.real.Floor");
       } else if (isGhostField == null) {
-        options.OutputWriter.Exception("Error: Dafny prelude is missing declaration of function _System.field.IsGhost");
+        options.OutputWriter.Exception("Error: Dafny prelude is missing declaration of function $IsGhostField");
       } else if (ORDINAL_isLimit == null) {
         options.OutputWriter.Exception("Dafny prelude is missing declaration of function ORD#IsLimit");
       } else if (ORDINAL_isSucc == null) {

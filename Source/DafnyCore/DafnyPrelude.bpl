@@ -552,15 +552,15 @@ axiom (forall cl : ClassName, nm: NameFamily ::
    {FieldOfDecl(cl, nm): Field}
    DeclType(FieldOfDecl(cl, nm): Field) == cl && DeclName(FieldOfDecl(cl, nm): Field) == nm);
 
-function _System.field.IsGhost(Field): bool uses {
-   axiom _System.field.IsGhost(alloc); // treat as ghost field, since it is allowed to be changed by ghost code
+function $IsGhostField(Field): bool uses {
+   axiom $IsGhostField(alloc); // treat as ghost field, since it is allowed to be changed by ghost code
 }
 
 axiom (forall h: Heap, k: Heap :: { $HeapSuccGhost(h,k) }
   $HeapSuccGhost(h,k) ==>
     $HeapSucc(h,k) &&
     (forall o: ref, f: Field :: { read(k, o, f) }
-      !_System.field.IsGhost(f) ==> read(h, o, f) == read(k, o, f)));
+      !$IsGhostField(f) ==> read(h, o, f) == read(k, o, f)));
 
 // ---------------------------------------------------------------
 // -- Allocatedness and Heap Succession --------------------------
