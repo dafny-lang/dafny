@@ -462,9 +462,9 @@ namespace Microsoft.Dafny {
               case UnaryOpExpr.Opcode.Referrers:
                 // Verify that the context is a method or a constructor, not a function
                 if (resolutionContext.CodeContext is not MethodOrConstructor) {
-                  ReportError(opExpr, "referrers are not yet supported in contexts other than methods or constructors (instead got {0})", resolutionContext.CodeContext);
+                  ReportError(opExpr, "referrers are currently supported only in methods or constructors (instead got {0})", resolutionContext.CodeContext is MemberDecl d ? d.WhatKind : "unknown");
                 }
-                
+
                 // Verify that the expression is a unique object
                 AddConfirmation(PreTypeConstraints.CommonConfirmationBag.IsNullableRefType, e.E.PreType, opExpr.Origin, "referrers expects a instance of an class or an array (instead got {0})");
 

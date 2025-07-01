@@ -38,16 +38,16 @@ namespace Microsoft.Dafny {
           // Create the axiom for ghost field status
           var depthVar = new Bpl.BoundVariable(f.Origin, new Bpl.TypedIdent(f.Origin, "depth", Bpl.Type.Int));
           var depth = new Bpl.IdentifierExpr(f.Origin, depthVar);
-          var localFieldCall = FunctionCall(f.Origin, BuiltinFunction.LocalField, Predef.FieldName(f.Origin), 
+          var localFieldCall = FunctionCall(f.Origin, BuiltinFunction.LocalField, Predef.FieldName(f.Origin),
             Bpl.Expr.Ident(fc), depth);
           var isGhostCall = FunctionCall(f.Origin, BuiltinFunction.IsGhostField, Predef.FieldName(f.Origin), localFieldCall);
-          
+
           var body = f.IsGhost ? isGhostCall : Bpl.Expr.Not(isGhostCall);
           var trigger = BplTrigger(localFieldCall);
           var forall = new Bpl.ForallExpr(f.Origin, [depthVar], trigger, body);
           var axFieldFamily = new Bpl.Axiom(f.Origin, forall);
           AddOtherDefinition(fc, axFieldFamily);
-          
+
           return fc;
         }
 

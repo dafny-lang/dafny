@@ -96,7 +96,7 @@ namespace Microsoft.Dafny {
       var ie = new Bpl.IdentifierExpr(field.Origin, tracker);
       DefiniteAssignmentTrackers = DefiniteAssignmentTrackers.Add(nm, (field, ie));
       builder.Add(
-        new AssignCmd(field.Origin, [new SimpleAssignLhs(field.Origin, ie)],[new Bpl.LiteralExpr(field.Origin, false)]));
+        new AssignCmd(field.Origin, [new SimpleAssignLhs(field.Origin, ie)], [new Bpl.LiteralExpr(field.Origin, false)]));
     }
 
     void MarkDefiniteAssignmentTracker(IdentifierExpr expr, BoogieStmtListBuilder builder) {
