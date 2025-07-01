@@ -5,35 +5,42 @@
 method BasicScientificNotation() {
   // Basic positive exponents
   var a := 1.23e2;     // 123.0
-  var b := 1.23e2;     // 123.0 (only lowercase e supported)
-  var c := 1.23e2;     // 123.0 (no explicit + needed)
+  var b := 2.5e1;      // 25.0
+  var c := 1.0e3;      // 1000.0
   
   // Basic negative exponents  
   var d := 1.23e-2;    // 0.0123
-  var e := 1.23e-2;    // 0.0123 (only lowercase e supported)
+  var e := 5.0e-1;     // 0.5
   
   // Zero exponent
   var f := 1.23e0;     // 1.23
-  var g := 1.23e0;     // 1.23 (no + needed)
-  var h := 1.23e-0;    // 1.23
+  var g := 42.0e0;     // 42.0
+  var h := 1.23e-0;    // 1.23 (same as e0)
   
-  // Verify basic equivalences
-  assert a == b && b == c && c == 123.0;
-  assert d == e && e == 0.0123;
-  assert f == g && g == h && h == 1.23;
+  // Verify values
+  assert a == 123.0;
+  assert b == 25.0;
+  assert c == 1000.0;
+  assert d == 0.0123;
+  assert e == 0.5;
+  assert f == 1.23;
+  assert g == 42.0;
+  assert h == 1.23;
 }
 
 method IntegerScientificNotation() {
   // Integer base with scientific notation
   var a := 5e2;        // 500.0
-  var b := 5e2;        // 500.0 (only lowercase e)
-  var c := 5e2;        // 500.0 (no + needed)
+  var b := 3e1;        // 30.0
+  var c := 7e0;        // 7.0
   var d := 5e-1;       // 0.5
-  var e := 5e0;        // 5.0
+  var e := 2e-2;       // 0.02
   
-  assert a == b && b == c && c == 500.0;
+  assert a == 500.0;
+  assert b == 30.0;
+  assert c == 7.0;
   assert d == 0.5;
-  assert e == 5.0;
+  assert e == 0.02;
 }
 
 method TrailingDotLiterals() {
@@ -55,17 +62,21 @@ method TrailingDotLiterals() {
 method TrailingDotWithScientificNotation() {
   // Trailing dot combined with scientific notation
   var a := 1.e2;       // 100.0
-  var b := 5.e-1;      // 0.5 (only lowercase e)
-  var c := 2.e3;       // 2000.0 (no + needed)
+  var b := 5.e-1;      // 0.5
+  var c := 2.e3;       // 2000.0
+  var d := 3.e0;       // 3.0
   
   // With underscores
-  var d := 1_000.e2;   // 100000.0
+  var e := 1_000.e2;   // 100000.0
+  var f := 5_0.e-1;    // 5.0
   
   // Verify values
   assert a == 100.0;
   assert b == 0.5;
   assert c == 2000.0;
-  assert d == 100000.0;
+  assert d == 3.0;
+  assert e == 100000.0;
+  assert f == 5.0;
 }
 
 method TupleAccessCompatibility() {
