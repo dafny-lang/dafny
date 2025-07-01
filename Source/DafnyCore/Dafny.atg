@@ -4934,6 +4934,23 @@ Dec<out BaseTypes.BigDec d>
          d = BaseTypes.BigDec.ZERO;
        }
     .)
+  | /* Leading dot numbers like ".5" parsed as "." followed by digits */
+    "."                                         (. var dotToken = t; .)
+    digits                                      (. var digitToken = t; .)
+    (. if (digitToken.pos != dotToken.pos + 1) {
+         SemErr(ErrorId.p_bad_decimal_number_format, new SourceOrigin(dotToken, digitToken), 
+                "invalid decimal number (perhaps you intended a leading-dot number with no intervening whitespace?)");
+         d = BaseTypes.BigDec.ZERO;
+       } else {
+         var S = "0." + Util.RemoveUnderscores(digitToken.val);
+         try {
+           d = BaseTypes.BigDec.FromString(S);
+         } catch (System.FormatException) {
+           SemErr(ErrorId.p_bad_decimal_number_format, dotToken, "incorrectly formatted number");
+           d = BaseTypes.BigDec.ZERO;
+         }
+       }
+    .)
   )
   .
 
