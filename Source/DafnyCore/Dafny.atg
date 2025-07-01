@@ -4934,7 +4934,7 @@ Dec<out BaseTypes.BigDec d>
          d = BaseTypes.BigDec.ZERO;
        }
     .)
-  | /* Leading dot numbers like ".5" parsed as "." followed by digits */
+  | /* Leading dot numbers like ".5" parsed as "." followed by digits (Rustan's approach) */
     "."                                         (. var dotToken = t; .)
     digits                                      (. var digitToken = t; .)
     (. if (digitToken.pos != dotToken.pos + 1) {
