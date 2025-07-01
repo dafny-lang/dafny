@@ -117,7 +117,12 @@ namespace Microsoft.Dafny {
 
           var exprToBeRevealed = Substitute(assertStmt.Expr, null, substMap);
           var etr = new ExpressionTranslator(etran, heapReference);
-          assertStmt.Label.E = etr.TrExpr(exprToBeRevealed);
+          var translatedExpr = etr.TrExpr(exprToBeRevealed);
+          assertStmt.Label.E = translatedExpr;
+          
+          // ROOT CAUSE FIX for issue #6268: Store the translated expression in cache
+          // so that reveal statements can find it even if they access different AssertLabel objects
+          BoogieGenerator.LabelExpressionCache[assertStmt.Label.Name] = translatedExpr;
         } else if (!defineFuel) {
           // Adding the assume stmt, resetting the stmtContext
           stmtContext = StmtType.ASSUME;
