@@ -1,8 +1,8 @@
-git-issue-1227.dfy(9,9): Error: function 'F' in 'T' can only be overridden by a function (got method)
+git-issue-1227.dfy(9,9): Error: function 'F' in trait 'T' can only be overridden by a function (got method)
 git-issue-1227.dfy(15,17): Error: overridden function 'F' in 'C'' has different ghost/compiled status than in trait 'T'
 git-issue-1227.dfy(19,24): Error: static member 'F' overrides non-static member in trait 'T'
-git-issue-1227.dfy(27,11): Error: method 'M' in 'U' can only be overridden by a method (got function)
+git-issue-1227.dfy(27,11): Error: method 'M' in trait 'U' can only be overridden by a method (got function)
 git-issue-1227.dfy(33,15): Error: overridden method 'M' in 'D'' has different ghost/compiled status than in trait 'U'
-git-issue-1227.dfy(39,8): Error: method 'M' in 'U' can only be overridden by a method (got lemma)
+git-issue-1227.dfy(39,8): Error: method 'M' in trait 'U' can only be overridden by a method (got lemma)
 git-issue-1227.dfy(45,16): Error: static member 'M' overrides non-static member in trait 'U'
 7 resolution/type errors detected in git-issue-1227.dfy

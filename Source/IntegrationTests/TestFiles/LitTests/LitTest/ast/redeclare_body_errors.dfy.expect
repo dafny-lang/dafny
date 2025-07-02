@@ -1,0 +1,3 @@
+redeclare_body_errors.dfy(13,9): Error: the method must provide an equal or more detailed postcondition than in its parent trait
+
+Dafny program verifier finished with 4 verified, 1 error
