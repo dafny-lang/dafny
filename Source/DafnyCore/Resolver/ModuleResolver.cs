@@ -1493,12 +1493,12 @@ namespace Microsoft.Dafny {
       }
 
       foreach (var member in declarations.OfType<TopLevelDeclWithMembers>().SelectMany(d => d.Members)) {
-        if (member.HasUserAttribute("only", out var attribute)) {
+        if (Attributes.Find(member.Attributes, "only") is {} attribute) {
           reporter.Warning(MessageSource.Verifier, ResolutionErrors.ErrorId.r_member_only_assumes_other.ToString(), attribute.Origin,
-            "Members with {:only} temporarily disable the verification of other members in the entire file");
+            "Members with @VerifyOnly temporarily disable the verification of other members in the entire file");
           if (attribute.Args.Count >= 1) {
             reporter.Warning(MessageSource.Verifier, ResolutionErrors.ErrorId.r_member_only_has_no_before_after.ToString(), attribute.Args[0].Origin,
-              "{:only} on members does not support arguments");
+              "@VerifyOnly on members does not support arguments");
           }
         }
       }
