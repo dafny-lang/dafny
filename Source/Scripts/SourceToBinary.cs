@@ -65,7 +65,7 @@ public class SourceToBinary {
     var types = typeDeclarations.Select(t => semanticModel.GetDeclaredSymbol(t)!).ToList();
 
     var filesContainer = new FilesContainer(parseResult.Program.Files.Select(f =>
-      new FileStart(f.Origin.Uri.LocalPath, f.TopLevelDecls.ToList())).ToList());
+      new FileHeader(f.Origin.Uri.LocalPath, false, f.TopLevelDecls.ToList())).ToList());
     new Serializer(textEncoder, types).Serialize(filesContainer);
     await outputFile.WriteAsync(output);
     await outputFile.FlushAsync();
