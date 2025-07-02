@@ -75,9 +75,10 @@ TOKENS
         .
   digits = digit {['_'] digit}.
   hexdigits = "0x" hexdigit {['_'] hexdigit}.
-  realnumber = digit {['_'] digit} '.' digit {['_'] digit} ['e' ['-'] digit {['_'] digit}]
-             | digit {['_'] digit} 'e' ['-'] digit {['_'] digit}
-             | digit {['_'] digit} '.' 'e' ['-'] digit {['_'] digit}.
+  realnumber = digit {['_'] digit}
+               ( '.' digit {['_'] digit} ['e' ['-'] digit {['_'] digit}]
+               | 'e' ['-'] digit {['_'] digit}
+               ).
   // NOTE: all alphabetic strings used in the grammar become reserved words automatically
   // The reason to include a definition here is so that a token can be referred to by its 'kind',
   // as in la.kind == _bool
@@ -4901,57 +4902,19 @@ Nat<out BigInteger n>
 
 /*------------------------------------------------------------------------*/
 Dec<out BaseTypes.BigDec d>
-= (. d = BaseTypes.BigDec.ZERO; .)
-  ( realnumber
-    (. var S = Util.RemoveUnderscores(t.val);
-       // Handle trailing dot case (e.g., "1." -> "1.0", "5.e2" -> "5.0e2")
-       int dotIndex = S.IndexOf('.');
-       int eIndex = S.IndexOf('e');
-       if (dotIndex >= 0 && (eIndex < 0 || dotIndex + 1 == eIndex)) {
-         // Either "1." or "5.e2" case - need to add zero after dot
-         if (eIndex < 0) {
-           // Simple "1." case
-           S += "0";
-         } else {
-           // "5.e2" case - insert "0" between dot and e
-           S = S.Substring(0, dotIndex + 1) + "0" + S.Substring(eIndex);
-         }
-       }
-       try {
-         d = BaseTypes.BigDec.FromString(S);
-       } catch (System.FormatException) {
-         SemErr(ErrorId.p_bad_decimal_number_format, t, "incorrectly formatted number");
-         d = BaseTypes.BigDec.ZERO;
-       }
-    .)
-  | digits                                      (. var digitToken = t; .)
-    "."
-    (. var S = Util.RemoveUnderscores(digitToken.val) + ".0";
-       try {
-         d = BaseTypes.BigDec.FromString(S);
-       } catch (System.FormatException) {
-         SemErr(ErrorId.p_bad_decimal_number_format, digitToken, "incorrectly formatted number");
-         d = BaseTypes.BigDec.ZERO;
-       }
-    .)
-  | /* Leading dot numbers like ".5" parsed as "." followed by digits (Rustan's approach) */
-    "."                                         (. var dotToken = t; .)
-    digits                                      (. var digitToken = t; .)
-    (. if (digitToken.pos != dotToken.pos + 1) {
-         SemErr(ErrorId.p_bad_decimal_number_format, new SourceOrigin(dotToken, digitToken), 
-                "invalid decimal number (perhaps you intended a leading-dot number with no intervening whitespace?)");
-         d = BaseTypes.BigDec.ZERO;
-       } else {
-         var S = "0." + Util.RemoveUnderscores(digitToken.val);
-         try {
-           d = BaseTypes.BigDec.FromString(S);
-         } catch (System.FormatException) {
-           SemErr(ErrorId.p_bad_decimal_number_format, dotToken, "incorrectly formatted number");
-           d = BaseTypes.BigDec.ZERO;
-         }
-       }
-    .)
+= (. d = BaseTypes.BigDec.ZERO; string S = ""; .)
+  ( realnumber                              (. S = Util.RemoveUnderscores(t.val); .)
+  | digits                                  (. var digitToken = t; .)
+    "."                                     (. S = Util.RemoveUnderscores(digitToken.val) + ".0"; .)
+  | "." ( digits | realnumber )             (. S = "0." + Util.RemoveUnderscores(t.val); .)
   )
+  (. try {
+       d = BaseTypes.BigDec.FromString(S);
+     } catch (System.FormatException) {
+       SemErr(ErrorId.p_bad_decimal_number_format, t, "incorrectly formatted number");
+       d = BaseTypes.BigDec.ZERO;
+     }
+  .)
   .
 
 /*------------------------------------------------------------------------*/

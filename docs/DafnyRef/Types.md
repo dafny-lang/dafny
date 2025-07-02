@@ -238,16 +238,20 @@ There are also **real literals** for some of the reals. Real literals
 are written as decimal numbers, optionally prefixed by a `-` character.
 Examples: `1.0`, `1609.344`, `-12.5`, and `0.5772156649`.
 
-Real literals can also be written in **scientific notation** using `e` or `E` 
+Real literals can also be written in **scientific notation** using lowercase `e`
 to denote the exponent. For example, `1.23e5` (which equals `123000.0`), 
-`1.23E-2` (which equals `0.0123`), and `5e2` (which equals `500.0`). The exponent
-can be optionally prefixed with `+` or `-`, as in `1.0e+10` or `2.5e-3`.
+`1.23e-2` (which equals `0.0123`), and `5e2` (which equals `500.0`).
 Both decimal numbers with optional exponents (like `1.23e5`) and integers
 with mandatory exponents (like `123e5`) are supported.
 
-As a convenience, **trailing dot shorthand** can be used with real literals,
-where a trailing dot represents `.0`. For example, `1.` means `1.0` and
+As a convenience, **trailing-dot shorthand** can be used with real literals,
+where a trailing-dot represents `.0`. For example, `1.` means `1.0` and
 `123.` means `123.0`.
+
+Real literals also support **leading-dot shorthand** for decimal values less than 1.
+For example, `.5` means `0.5`, `.25` means `0.25`, and leading-dot shorthand can be
+combined with scientific notation like `.5e2` (which equals `50.0`) or `.123e-4`
+(which equals `0.0000123`).
 
 For integers (in both decimal and hexadecimal form) and reals,
 any two digits in a literal may be separated by an underscore in order
