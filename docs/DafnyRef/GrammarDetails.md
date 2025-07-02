@@ -129,7 +129,10 @@ digits = digit {["_"] digit}
 
 hexdigits = "0x" hexdigit {["_"] hexdigit}
 
-decimaldigits = digit {["_"] digit} '.' digit {["_"] digit}
+realnumber = digit {["_"] digit}
+             ( '.' digit {["_"] digit} ['e' ['-'] digit {["_"] digit}]
+             | 'e' ['-'] digit {["_"] digit}
+             )
 
 escapedChar =
     ( "\'" | "\"" | "\\" | "\0" | "\n" | "\r" | "\t"
@@ -1414,7 +1417,7 @@ LiteralExpression =
 
 Nat = ( digits | hexdigits )
 
-Dec = decimaldigits
+Dec = ( realnumber | digits "." | "." ( digits | realnumber ) )
 ````
 
 #### 17.2.7.21. This expression {#g-this-expression}
