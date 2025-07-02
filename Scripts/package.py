@@ -287,9 +287,9 @@ def main():
 
     # Z3
     flush("* Downloading Z3 releases")
-    releases = [ Release("macos-11",       "x64", args.version, args.out),
-                 Release("macos-11",     "arm64", args.version, args.out),
-                 Release("ubuntu-20.04",   "x64", args.version, args.out),
+    releases = [ Release("macos-13",       "x64", args.version, args.out),
+                 Release("macos-13",     "arm64", args.version, args.out),
+                 Release("ubuntu-22.04",   "x64", args.version, args.out),
                  Release("windows-2022",   "x64", args.version, args.out) ]
     if args.os:
         releases = list(filter(lambda release: release.os_name == args.os, releases))
