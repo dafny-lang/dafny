@@ -767,31 +767,38 @@ namespace Microsoft.Dafny {
           case UnaryOpExpr opExpr: {
               var e = opExpr;
               Boogie.Expr arg = TrExpr(e.E);
+              Boogie.Expr argWithoutLit = BoogieGenerator.GetLit(arg) ?? arg;
+              var wrapInLit = BoogieGenerator.IsLit(arg);
+              Boogie.Expr result;
               switch (e.ResolvedOp) {
                 case UnaryOpExpr.ResolvedOpcode.Lit:
-                  return MaybeLit(arg);
+                  result = arg;
+                  wrapInLit = true;
+                  break;
                 case UnaryOpExpr.ResolvedOpcode.BVNot:
                   var bvWidth = opExpr.Type.NormalizeToAncestorType().AsBitVectorType.Width;
                   var bvType = BoogieGenerator.BplBvType(bvWidth);
-                  Boogie.Expr r = FunctionCall(GetToken(opExpr), "not_bv" + bvWidth, bvType, arg);
-                  if (BoogieGenerator.IsLit(arg)) {
-                    r = MaybeLit(r, bvType);
-                  }
-                  return r;
+                  result = FunctionCall(GetToken(opExpr), "not_bv" + bvWidth, bvType, argWithoutLit);
+                  break;
                 case UnaryOpExpr.ResolvedOpcode.BoolNot:
-                  return Boogie.Expr.Unary(GetToken(opExpr), UnaryOperator.Opcode.Not, arg);
+                  result = Boogie.Expr.Unary(GetToken(opExpr), UnaryOperator.Opcode.Not, argWithoutLit);
+                  break;
                 case UnaryOpExpr.ResolvedOpcode.SeqLength:
                   Contract.Assert(e.E.Type.NormalizeToAncestorType() is SeqType);
-                  return BoogieGenerator.FunctionCall(GetToken(opExpr), BuiltinFunction.SeqLength, null, arg);
+                  result = BoogieGenerator.FunctionCall(GetToken(opExpr), BuiltinFunction.SeqLength, null, argWithoutLit);
+                  break;
                 case UnaryOpExpr.ResolvedOpcode.SetCard:
                   Contract.Assert(e.E.Type.NormalizeToAncestorType() is SetType { Finite: true });
-                  return BoogieGenerator.FunctionCall(GetToken(opExpr), BuiltinFunction.SetCard, null, arg);
+                  result = BoogieGenerator.FunctionCall(GetToken(opExpr), BuiltinFunction.SetCard, null, argWithoutLit);
+                  break;
                 case UnaryOpExpr.ResolvedOpcode.MultiSetCard:
                   Contract.Assert(e.E.Type.NormalizeToAncestorType() is MultiSetType);
-                  return BoogieGenerator.FunctionCall(GetToken(opExpr), BuiltinFunction.MultiSetCard, null, arg);
+                  result = BoogieGenerator.FunctionCall(GetToken(opExpr), BuiltinFunction.MultiSetCard, null, argWithoutLit);
+                  break;
                 case UnaryOpExpr.ResolvedOpcode.MapCard:
                   Contract.Assert(e.E.Type.NormalizeToAncestorType() is MapType { Finite: true });
-                  return BoogieGenerator.FunctionCall(GetToken(opExpr), BuiltinFunction.MapCard, null, arg);
+                  result = BoogieGenerator.FunctionCall(GetToken(opExpr), BuiltinFunction.MapCard, null, argWithoutLit);
+                  break;
                 case UnaryOpExpr.ResolvedOpcode.Fresh:
                   var freshLabel = ((FreshExpr)e).AtLabel;
                   var eeType = e.E.Type.NormalizeToAncestorType();
@@ -859,6 +866,8 @@ namespace Microsoft.Dafny {
                 default:
                   Contract.Assert(false); throw new cce.UnreachableException();  // unexpected unary expression
               }
+
+              return wrapInLit ? MaybeLit(result, BoogieGenerator.TrType(expr.Type)) : result;
             }
           case ConversionExpr conversionExpr: {
               var e = conversionExpr;

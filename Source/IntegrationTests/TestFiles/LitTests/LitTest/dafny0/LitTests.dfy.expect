@@ -1,0 +1,3 @@
+LitTests.dfy(52,34): Error: assertion might not hold
+
+Dafny program verifier finished with 7 verified, 1 error
