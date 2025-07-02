@@ -358,13 +358,12 @@ public partial class BoogieGenerator {
     /// </code>
     /// </summary>
     public void AssumeThisFresh(Constructor constructor, BoogieStmtListBuilder builder, ExpressionTranslator etran) {
-      Contract.Assume(constructor.ThisFormal != null);
       if (!VerifyReferrers) {
         return;
       }
 
       var tok = constructor.Origin;
-      var thisField = BG.GetField(constructor.ThisFormal.GetLocalField(constructor));
+      var thisField = BG.GetField(constructor.GetThisFormal().GetLocalField(constructor));
       var assumeCmd = new AssumeCmd(
         tok,
         BG.FunctionCall(

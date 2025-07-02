@@ -38,6 +38,15 @@ method EnsuresReferrersUnchanged(t2: SimpleObject)
   return; // Here t_local is unassigned.
 }
 
+method EnsuresReferrersUnchanged2(t2: SimpleObject)
+  ensures old(referrers(t2)) == referrers(t2)
+{
+  var t_local := t2;
+  assert old(referrers(t2)) == old(referrers(t_local)); // Local variables don't depend on any heap so they can be used in old expressions
+  assert referrers(t2) == old(referrers(t2)) + {locals`t_local};
+  // Same without return
+}
+
 method CallReferrersMethodCall() {
   var t := new SimpleObject;
   assert referrers(t) == {locals`t};

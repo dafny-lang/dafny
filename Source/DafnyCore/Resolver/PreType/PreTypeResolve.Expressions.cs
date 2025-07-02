@@ -777,18 +777,8 @@ namespace Microsoft.Dafny {
             MethodOrConstructor innerCallEnclosingMethod = null;
             if (fieldLocation.Lhs is NameSegment nameSegment && currentClass != null &&
                 resolver.GetClassMembers(currentClass) is { } members &&
-                members.TryGetValue(nameSegment.Name, out var member)) {
-              if (EnclosingMethodCall == member) {
-                innerCallEnclosingMethod = EnclosingMethodCall;
-              } else if (EnclosingMethodCall != null) {
-                ReportError(fieldLocation.Lhs, "Expected 'locals' or the explicit name of the enclosing method call '{0}' as the left-hand-side of the memory location expression, got '{1}'", EnclosingMethodCall.Name, nameSegment.Name);
-                fieldLocation.PreType = CreatePreTypeProxy("field-location");
-                return;
-              } else {
-                ReportError(fieldLocation.Lhs, "Expected 'locals', got unrelated method name '{0}'", nameSegment.Name);
-                fieldLocation.PreType = CreatePreTypeProxy("field-location");
-                return;
-              }
+                members.TryGetValue(nameSegment.Name, out var member) && member is MethodOrConstructor methodOrConstructor) {
+              innerCallEnclosingMethod = methodOrConstructor;
               nameSegment.PreType = CreatePreTypeProxy(); // Never used, just in case.
             } else {
               ResolveExpression(fieldLocation.Lhs, resolutionContext);
@@ -798,12 +788,12 @@ namespace Microsoft.Dafny {
             Field localField;
 
             if (innerCallEnclosingMethod != null) {
-              var formal = EnclosingInputParameterFormals.Find(name.Value);
+              var availableFormals = innerCallEnclosingMethod.Ins.Concat(innerCallEnclosingMethod.Outs);
+              var formal = availableFormals.FirstOrDefault(formal => formal.Name == name.Value);
               if (formal == null) {
                 // Let's give an hint about declared input parameters
                 var hints = new List<string>();
-                hints.AddRange(EnclosingInputParameterFormals.Names
-                  .Where(n => n != null).Select(n => $"{EnclosingMethodCall!.Name}`{n}"));
+                hints.AddRange(availableFormals.Select(n => $"{innerCallEnclosingMethod!.Name}`{n.Name}"));
                 hints.AddRange(Scope.Names
                   .Where(n => n != null).Select(n => $"locals`{n}"));
                 ReportError(fieldLocation, "input parameter '{0}' is not declared{1}", name, DidYouMeanOneOf(hints));
@@ -829,12 +819,7 @@ namespace Microsoft.Dafny {
               if (v == null) {
                 if (name.Value == "this" && method.EnclosingClass is not DefaultClassDecl) {
                   // Special case: 'this' gets a special field as if it was an output variable.
-                  if (method.ThisFormal == null) {
-                    method.ThisFormal = new Formal(method.StartToken, "this",
-                      ModuleResolver.GetThisType(expr.Origin, currentClass), method is not Constructor, method.IsGhost,
-                      null);
-                  }
-                  v = method.ThisFormal;
+                  v = method.GetThisFormal();
                 } else {
                   var f = EnclosingInputParameterFormals.Find(name.Value);
                   var hint = "";

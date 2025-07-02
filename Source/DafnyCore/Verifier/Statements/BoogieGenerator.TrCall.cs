@@ -235,7 +235,7 @@ public partial class BoogieGenerator {
       ins.Add(AdaptBoxing(ToDafnyToken(param.tok), param, formal.Type.Subst(tySubst), formal.Type));
     }
     if (!method.IsStatic && method is not Constructor && bReceiver != null) {
-      Referrers.AddAssignPreCallFormal(cs.Origin, bReceiver, builder, etran, method.ThisFormal, method);
+      Referrers.AddAssignPreCallFormal(cs.Origin, bReceiver, builder, etran, method.GetThisFormal(), method);
     }
 
     // Check that every parameter is available in the state in which the method is invoked; this means checking that it has
@@ -376,7 +376,7 @@ public partial class BoogieGenerator {
       Referrers.RemovePostCallFormal(cs.Origin, dActual, formal, method, builder, etran);
     }
     if (!method.IsStatic) {
-      Referrers.RemovePostCallFormal(cs.Origin, bReceiver, method.ThisFormal, method, builder, etran);
+      Referrers.RemovePostCallFormal(cs.Origin, bReceiver, method.GetThisFormal(), method, builder, etran);
     }
 
     // Unbox results as needed

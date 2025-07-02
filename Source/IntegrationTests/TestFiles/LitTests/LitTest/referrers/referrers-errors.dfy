@@ -4,12 +4,16 @@
 class Test {
   var x: Test?
   var y: Test?
-  const z: Test? := null;
+  const z: Test? := null
+  constructor() {
+    this.x := null;
+    this.y := null;
+  }
 }
 
 method MethodMightNotRestoreReferrers() {
-  var t = new Test();
-  assert referrers(t) == {locals`t};
+  var t := new Test();
+  assert referrers(t) == {locals`t}; // Error, we don't know since it was a constructor
   CallSubMethod(t);
   assert referrers(t) == {locals`t}; // Error: Cannot prove this
 }
@@ -17,13 +21,6 @@ method MethodMightNotRestoreReferrers() {
 // No referrers clause means we don't know what happens to any object.
 method CallSubMethod(t: Test)
 {
-}
-
-method EnsuresReferrersUnchanged(t2: Test)
-  ensures old(referrers(t2)) == referrers(t2)
-{
-  var t_local := t2;
-  assert referrers(t_local) == old(referrers(t_local)) + {locals`t_local}; // Error, t_local was not assigned
 }
 
 class ChainingObjectError {
@@ -44,12 +41,17 @@ class ChainingObjectError {
   }
 }
 
-
+@ResourceLimit("1e6")
+@IsolateAssertions
 method ObjectFields() {
-  var t := new ChainingObject(null);
-  var u := new ChainingObject(t);
+  var t := new ChainingObjectError(null);
+  var u := new ChainingObjectError(t);
+  assert ChainingObjectError.constructor`this !in referrers(u);
   // Assignment of array
-  var a := new ChainingObject[3](i => if i == 0 then t else u);
+  var a := new ChainingObjectError[3](i => if i == 0 then t else u);
+  assert locals`t in referrers(t);
+  assert u`tail in referrers(t);
+  assert a`[0] in referrers(t);
   assert referrers(t) == {locals`t, u`tail, a`[0]};
   assert referrers(u) == {locals`t, u`x, a`[1], a`[2]};
 

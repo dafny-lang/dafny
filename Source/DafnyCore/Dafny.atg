@@ -4515,7 +4515,7 @@ FieldLocationSuffix<ref Expression e>
     (.
       e = new FieldLocationExpression(e, backtick, name);
     .)
-  | IF(e is LocalsObjectExpression && la.val == "this")
+  | IF(la.val == "this")
     "this"
     (.
       e = new FieldLocationExpression(e, backtick, new Name(t, "this"));
@@ -4796,6 +4796,7 @@ DotSuffix<out Token x, out Token y>
                    .)
   | "requires"     (. x = t; .)
   | "reads"        (. x = t; .)
+  | "constructor"  (. x = t; .)
   )
   .
 
