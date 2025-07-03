@@ -22,12 +22,14 @@ public class SourceToBinary {
 
     var deleteSourcesOption = new Option<bool>("--delete-source-locations", "Useful for checking whether source-locations are used by certain Dafny commands");
     result.AddOption(deleteSourcesOption);
-    result.SetHandler((file1, deleteSources) => Handle(file1.FullName, deleteSources, outputWriter),
-      inputArgument, deleteSourcesOption);
+    var libraryOption = new Option<bool>("--library");
+    result.AddOption(libraryOption);
+    result.SetHandler((file1, deleteSources, isLibrary) => Handle(file1.FullName, deleteSources, isLibrary, outputWriter),
+      inputArgument, deleteSourcesOption, libraryOption);
     return result;
   }
 
-  public static async Task Handle(string inputFile, bool deleteSources, TextWriter outputFile) {
+  public static async Task Handle(string inputFile, bool deleteSources, bool isLibrary, TextWriter outputFile) {
     var options = DafnyOptions.Default;
     var errorReporter = new BatchErrorReporter(options);
     var input = await File.ReadAllTextAsync(inputFile);
@@ -65,7 +67,7 @@ public class SourceToBinary {
     var types = typeDeclarations.Select(t => semanticModel.GetDeclaredSymbol(t)!).ToList();
 
     var filesContainer = new FilesContainer(parseResult.Program.Files.Select(f =>
-      new FileHeader(f.Origin.Uri.LocalPath, false, f.TopLevelDecls.ToList())).ToList());
+      new FileHeader(f.Origin.Uri.LocalPath, isLibrary, f.TopLevelDecls.ToList())).ToList());
     new Serializer(textEncoder, types).Serialize(filesContainer);
     await outputFile.WriteAsync(output);
     await outputFile.FlushAsync();
