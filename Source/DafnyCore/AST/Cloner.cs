@@ -18,6 +18,7 @@ namespace Microsoft.Dafny {
     private readonly Dictionary<IVariable, IVariable> clones = new();
     private readonly Dictionary<MemberDecl, MemberDecl> memberClones = new();
     private readonly Dictionary<TopLevelDecl, TopLevelDecl> typeParameterClones = new();
+    private readonly Dictionary<AssertLabel, AssertLabel> assertLabelClones = new();
     public bool CloneLiteralModuleDefinition { get; }
 
     public void AddStatementClone(Statement original, Statement clone) {
@@ -26,6 +27,10 @@ namespace Microsoft.Dafny {
 
     public TopLevelDecl GetCloneIfAvailable(TopLevelDecl topLevelDecl) {
       return typeParameterClones.GetOrDefault(topLevelDecl, () => topLevelDecl);
+    }
+
+    public AssertLabel CloneAssertLabel(AssertLabel original) {
+      return assertLabelClones.GetOrCreate(original, () => new AssertLabel(Origin(original.Tok), original.Name));
     }
 
     public Cloner(bool cloneLiteralModuleDefinition = false, bool cloneResolvedFields = false) {
