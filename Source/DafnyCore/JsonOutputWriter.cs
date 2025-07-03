@@ -84,7 +84,7 @@ record DiagnosticMessageData(MessageSource Source, ErrorLevel Level, TokenRange 
     return new JsonObject {
       ["filename"] = range.StartToken.filename,
       ["filePath"] = TokenExtensions.GetRelativeFilename(options, range.StartToken),
-      ["uri"] = range.Uri!.AbsoluteUri,
+      ["uri"] = range.Uri?.AbsoluteUri ?? "file:///unknown",
       ["range"] = SerializeRange(range)
     };
   }
