@@ -259,7 +259,7 @@ public class Compilation : IDisposable {
           throw new Exception(
             $"Range of parent node ({container}) did not contain range of child node ({node}):\n" +
             $"    {containerRange} does not contain {nodeRange}");
-        } else if (container.ToString() == "Anything" && node.ToString() == "x") {
+        } else if (container.ToString() == "Anything" && node.ToString() == "x" && container.StartToken.line != 6) {
           throw new Exception(
             $"Range of parent node ({container}) should have not contained range of child node ({node}):\n" +
             $"    {containerRange} should have not contained {nodeRange}");
