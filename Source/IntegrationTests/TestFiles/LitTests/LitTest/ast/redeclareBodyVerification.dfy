@@ -25,6 +25,11 @@ class Better extends Bad {
   }
 }
 
+method useBetter(better: Better) {
+  var r := better.foo();
+  assert r >= 2;
+}
+
 // Termination
 
 trait Termination extends object {

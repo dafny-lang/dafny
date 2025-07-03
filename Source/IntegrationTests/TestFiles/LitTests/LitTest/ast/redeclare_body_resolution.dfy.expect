@@ -1,3 +1,0 @@
-redeclare_body_resolution.dfy(9,6): Error: trait 'Both' inherits a member named 'M' from both trait 'Left' and trait 'Right'
-redeclare_body_resolution.dfy(11,6): Error: trait 'BothRedeclare' inherits a member named 'M' from both trait 'Left' and trait 'Right'
-2 resolution/type errors detected in redeclare_body_resolution.dfy
