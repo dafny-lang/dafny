@@ -297,7 +297,7 @@ public class ProgramParser {
       filesContainer.Files.SelectMany(f => f.TopLevelDecls));
 
     return new DfyParseFileResult(null, uri,
-      filesContainer.Files.Select(f => new Uri(f.Uri)).ToList(),
+      filesContainer.Files.Select(f => DafnyFile.CreateCrossPlatformUri(f.Uri)).ToList(),
       new BatchErrorReporter(options), filesModule, syntaxDeserializer.SystemModuleModifiers);
   }
 

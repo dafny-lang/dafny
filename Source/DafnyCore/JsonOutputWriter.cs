@@ -36,7 +36,7 @@ class JsonOutputWriter(DafnyOptions options) : IDafnyOutputWriter {
   private Task WriteMessage(string message, string type) {
     return options.BaseOutputWriter.WriteLineAsync(new JsonObject() {
       ["type"] = type,
-      ["value"] = message
+      ["value"] = message.Replace("\r\n", "\n")
     }.ToJsonString());
   }
 
