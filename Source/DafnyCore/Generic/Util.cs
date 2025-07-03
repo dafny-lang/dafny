@@ -152,6 +152,7 @@ namespace Microsoft.Dafny {
       return n == 1 ? "" : "s";
     }
 
+    // TODO should be deleted.
     public static List<B> Map<A, B>(IEnumerable<A> xs, Func<A, B> f) {
       List<B> ys = [];
       foreach (A x in xs) {
@@ -160,26 +161,32 @@ namespace Microsoft.Dafny {
       return ys;
     }
 
+    // TODO should be deleted.
     public static List<A> Nil<A>() {
       return [];
     }
 
+    // TODO should be deleted.
     public static List<A> Singleton<A>(A x) {
       return [x];
     }
 
+    // TODO should be deleted.
     public static List<A> List<A>(params A[] xs) {
       return xs.ToList();
     }
 
+    // TODO should be deleted.
     public static List<A> Cons<A>(A x, List<A> xs) {
       return Concat(Singleton(x), xs);
     }
 
+    // TODO should be deleted.
     public static List<A> Snoc<A>(List<A> xs, A x) {
       return Concat(xs, Singleton(x));
     }
 
+    // TODO should be deleted.
     public static List<A> Concat<A>(List<A> xs, List<A> ys) {
       List<A> cpy = [.. xs];
       cpy.AddRange(ys);

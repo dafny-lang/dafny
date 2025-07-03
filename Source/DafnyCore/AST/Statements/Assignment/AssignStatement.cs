@@ -30,8 +30,8 @@ public class AssignStatement : ConcreteAssignStatement, ICloneable<AssignStateme
 
   [ContractInvariantMethod]
   void ObjectInvariant() {
-    Contract.Invariant(cce.NonNullElements(Lhss));
-    Contract.Invariant(cce.NonNullElements(Rhss));
+    Contract.Invariant(Cce.NonNullElements(Lhss));
+    Contract.Invariant(Cce.NonNullElements(Rhss));
   }
 
   public AssignStatement Clone(Cloner cloner) {
@@ -48,8 +48,8 @@ public class AssignStatement : ConcreteAssignStatement, ICloneable<AssignStateme
 
   public AssignStatement(IOrigin origin, List<Expression> lhss, List<AssignmentRhs> rhss)
     : base(origin, lhss) {
-    Contract.Requires(cce.NonNullElements(lhss));
-    Contract.Requires(cce.NonNullElements(rhss));
+    Contract.Requires(Cce.NonNullElements(lhss));
+    Contract.Requires(Cce.NonNullElements(rhss));
     Contract.Requires(lhss.Count != 0 || rhss.Count == 1);
     Rhss = rhss;
     CanMutateKnownState = false;
@@ -59,8 +59,8 @@ public class AssignStatement : ConcreteAssignStatement, ICloneable<AssignStateme
   public AssignStatement(IOrigin origin, List<Expression> lhss, List<AssignmentRhs> rhss, bool canMutateKnownState,
     Attributes? attributes = null)
     : base(origin, lhss, attributes) {
-    Contract.Requires(cce.NonNullElements(lhss));
-    Contract.Requires(cce.NonNullElements(rhss));
+    Contract.Requires(Cce.NonNullElements(lhss));
+    Contract.Requires(Cce.NonNullElements(rhss));
     Contract.Requires(lhss.Count != 0 || rhss.Count == 1);
     Rhss = rhss;
     CanMutateKnownState = canMutateKnownState;

@@ -568,7 +568,7 @@ namespace Microsoft.Dafny.Compilers {
           // content already handled
           break;
         default:
-          Contract.Assert(false); throw new cce.UnreachableException();  // unexpected statement
+          Contract.Assert(false); throw new Cce.UnreachableException();  // unexpected statement
       }
     }
 
@@ -590,7 +590,7 @@ namespace Microsoft.Dafny.Compilers {
         int i = 0;
         var sourceType = (UserDefinedType)s.Source.Type.NormalizeExpand();
         foreach (MatchCaseStmt mc in s.Cases) {
-          var w = MatchCasePrelude(source, sourceType, cce.NonNull(mc.Ctor), mc.Arguments, i, s.Cases.Count, wr);
+          var w = MatchCasePrelude(source, sourceType, Cce.NonNull(mc.Ctor), mc.Arguments, i, s.Cases.Count, wr);
           TrStmtList(mc.Body, w);
           i++;
         }

@@ -15,15 +15,15 @@ public class MatchExpr : Expression, IMatch, ICloneable<MatchExpr> {  // a Match
   [ContractInvariantMethod]
   void ObjectInvariant() {
     Contract.Invariant(Source != null);
-    Contract.Invariant(cce.NonNullElements(Cases));
-    Contract.Invariant(cce.NonNullElements(MissingCases));
+    Contract.Invariant(Cce.NonNullElements(Cases));
+    Contract.Invariant(Cce.NonNullElements(MissingCases));
   }
 
   public MatchExpr(IOrigin origin, Expression source, [Captured] List<MatchCaseExpr> cases, bool usesOptionalBraces, MatchingContext context = null)
     : base(origin) {
     Contract.Requires(origin != null);
     Contract.Requires(source != null);
-    Contract.Requires(cce.NonNullElements(cases));
+    Contract.Requires(Cce.NonNullElements(cases));
     this.source = source;
     this.cases = cases;
     UsesOptionalBraces = usesOptionalBraces;
@@ -89,13 +89,13 @@ public abstract class MatchCase : NodeWithOrigin, IHasReferences {
   void ObjectInvariant() {
     Contract.Invariant(Origin != null);
     Contract.Invariant(Ctor != null);
-    Contract.Invariant(cce.NonNullElements(Arguments));
+    Contract.Invariant(Cce.NonNullElements(Arguments));
   }
 
   public MatchCase(IOrigin origin, DatatypeCtor ctor, [Captured] List<BoundVar> arguments) : base(origin) {
     Contract.Requires(origin != null);
     Contract.Requires(ctor != null);
-    Contract.Requires(cce.NonNullElements(arguments));
+    Contract.Requires(Cce.NonNullElements(arguments));
     Ctor = ctor;
     Arguments = arguments;
   }
@@ -115,8 +115,8 @@ public class MatchStmt : Statement, IMatch, ICloneable<MatchStmt> {
   [ContractInvariantMethod]
   void ObjectInvariant() {
     Contract.Invariant(Source != null);
-    Contract.Invariant(cce.NonNullElements(Cases));
-    Contract.Invariant(cce.NonNullElements(MissingCases));
+    Contract.Invariant(Cce.NonNullElements(Cases));
+    Contract.Invariant(Cce.NonNullElements(MissingCases));
   }
 
   private Expression source;
@@ -145,7 +145,7 @@ public class MatchStmt : Statement, IMatch, ICloneable<MatchStmt> {
     : base(origin) {
     Contract.Requires(origin != null);
     Contract.Requires(source != null);
-    Contract.Requires(cce.NonNullElements(cases));
+    Contract.Requires(Cce.NonNullElements(cases));
     this.source = source;
     this.cases = cases;
     UsesOptionalBraces = usesOptionalBraces;
@@ -157,7 +157,7 @@ public class MatchStmt : Statement, IMatch, ICloneable<MatchStmt> {
     : base(origin, attributes) {
     Contract.Requires(origin != null);
     Contract.Requires(source != null);
-    Contract.Requires(cce.NonNullElements(cases));
+    Contract.Requires(Cce.NonNullElements(cases));
     this.source = source;
     this.cases = cases;
     UsesOptionalBraces = usesOptionalBraces;
@@ -242,7 +242,7 @@ public class MatchCaseStmt : MatchCase {
 
   [ContractInvariantMethod]
   void ObjectInvariant() {
-    Contract.Invariant(cce.NonNullElements(Body));
+    Contract.Invariant(Cce.NonNullElements(Body));
   }
 
   public override IEnumerable<INode> Children => body;
@@ -251,8 +251,8 @@ public class MatchCaseStmt : MatchCase {
   public MatchCaseStmt(IOrigin rangeOrigin, DatatypeCtor ctor, bool fromBoundVar, [Captured] List<BoundVar> arguments, [Captured] List<Statement> body, Attributes attrs = null)
     : base(rangeOrigin, ctor, arguments) {
     Contract.Requires(ctor != null);
-    Contract.Requires(cce.NonNullElements(arguments));
-    Contract.Requires(cce.NonNullElements(body));
+    Contract.Requires(Cce.NonNullElements(arguments));
+    Contract.Requires(Cce.NonNullElements(body));
     this.body = body;
     Attributes = attrs;
     FromBoundVar = fromBoundVar;
@@ -284,7 +284,7 @@ public class MatchCaseExpr : MatchCase {
     : base(origin, ctor, arguments) {
     Contract.Requires(origin != null);
     Contract.Requires(ctor != null);
-    Contract.Requires(cce.NonNullElements(arguments));
+    Contract.Requires(Cce.NonNullElements(arguments));
     Contract.Requires(body != null);
     this.body = body;
     Attributes = attrs;

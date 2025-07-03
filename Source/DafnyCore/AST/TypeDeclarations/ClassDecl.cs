@@ -12,7 +12,7 @@ public class ClassDecl : ClassLikeDecl {
   [FilledInDuringResolution] public bool HasConstructor;  // filled in (early) during resolution; true iff there exists a member that is a Constructor
   [ContractInvariantMethod]
   void ObjectInvariant() {
-    Contract.Invariant(cce.NonNullElements(Members));
+    Contract.Invariant(Cce.NonNullElements(Members));
     Contract.Invariant(Traits != null);
   }
 
@@ -24,8 +24,8 @@ public class ClassDecl : ClassLikeDecl {
     Contract.Requires(origin != null);
     Contract.Requires(nameNode != null);
     Contract.Requires(enclosingModuleDefinition != null);
-    Contract.Requires(cce.NonNullElements(typeArgs));
-    Contract.Requires(cce.NonNullElements(members));
+    Contract.Requires(Cce.NonNullElements(typeArgs));
+    Contract.Requires(Cce.NonNullElements(members));
     NonNullTypeDecl = new NonNullTypeDecl(this);
     IsRefining = isRefining;
     this.NewSelfSynonym();

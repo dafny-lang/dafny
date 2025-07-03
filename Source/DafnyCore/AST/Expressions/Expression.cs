@@ -180,7 +180,7 @@ public abstract class Expression : NodeWithOrigin {
   public static IEnumerable<Expression> Conjuncts(Expression expr) {
     Contract.Requires(expr != null);
     Contract.Requires(expr.Type.IsBoolType);
-    Contract.Ensures(cce.NonNullElements(Contract.Result<IEnumerable<Expression>>()));
+    Contract.Ensures(Cce.NonNullElements(Contract.Result<IEnumerable<Expression>>()));
 
     expr = StripParens(expr);
     if (expr is UnaryOpExpr { Op: UnaryOpExpr.Opcode.Not } unary) {
@@ -207,7 +207,7 @@ public abstract class Expression : NodeWithOrigin {
   public static IEnumerable<Expression> Disjuncts(Expression expr) {
     Contract.Requires(expr != null);
     Contract.Requires(expr.Type.IsBoolType);
-    Contract.Ensures(cce.NonNullElements(Contract.Result<IEnumerable<Expression>>()));
+    Contract.Ensures(Cce.NonNullElements(Contract.Result<IEnumerable<Expression>>()));
 
     expr = StripParens(expr);
     if (expr is UnaryOpExpr { Op: UnaryOpExpr.Opcode.Not } unary) {

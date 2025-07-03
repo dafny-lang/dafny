@@ -95,7 +95,7 @@ public class HumanReadableOutputWriter(DafnyOptions options) : IDafnyOutputWrite
       case ErrorLevel.Info:
         return ConsoleColor.Green;
       default:
-        throw new cce.UnreachableException();
+        throw new Cce.UnreachableException();
     }
   }
 }

@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 using System.IO;
+using System.Linq;
 using DafnyCore.Verifier;
 using Microsoft.BaseTypes;
 using Bpl = Microsoft.Boogie;
@@ -610,7 +611,7 @@ namespace Microsoft.Dafny {
           return FunctionCall(tok, "local_field", Predef.FieldName(tok), args);
 
         default:
-          Contract.Assert(false); throw new cce.UnreachableException();  // unexpected built-in function
+          Contract.Assert(false); throw new Cce.UnreachableException();  // unexpected built-in function
       }
     }
 
@@ -663,7 +664,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(tok != null);
       Contract.Requires(function != null);
       Contract.Requires(returnType != null);
-      Contract.Requires(cce.NonNullElements(args));
+      Contract.Requires(Cce.NonNullElements(args));
       Contract.Ensures(Contract.Result<Bpl.NAryExpr>() != null);
 
       List<Bpl.Expr> aa = [];
@@ -881,14 +882,19 @@ namespace Microsoft.Dafny {
       return new Bpl.Trigger(e.tok, true, new List<Bpl.Expr> { e });
     }
 
-    static Bpl.Trigger BplTriggerHeap(BoogieGenerator boogieGenerator, Bpl.IToken tok, Bpl.Expr e, Bpl.Expr/*?*/ optionalHeap, Bpl.Expr/*?*/ ePrime = null) {
+    static Bpl.Trigger BplTrigger(params Bpl.Expr[] expressions) {
+      return new Bpl.Trigger(expressions.First().tok, true, expressions.ToList());
+    }
+
+    static Bpl.Trigger BplTriggerHeap(BoogieGenerator boogieGenerator, Bpl.IToken tok, Bpl.Expr e, 
+      Bpl.Expr/*?*/ optionalHeap, params Bpl.Expr[] ePrime) {
       Contract.Requires(boogieGenerator != null);
       Contract.Requires(tok != null);
       Contract.Requires(e != null);
 
       var exprs = new List<Bpl.Expr> { e };
       if (ePrime != null) {
-        exprs.Add(ePrime);
+        exprs.AddRange(ePrime.Where(e => e != Bpl.Expr.True));
       }
       if (optionalHeap != null) {
         exprs.Add(boogieGenerator.FunctionCall(tok, BuiltinFunction.IsGoodHeap, null, optionalHeap));

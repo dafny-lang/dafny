@@ -58,7 +58,7 @@ namespace Microsoft.Dafny.Compilers {
           case SimplifyTypeExpandMode.ExpandSynonymsAndSubsetTypesAndNewtypesExceptNativeTypes: return typ.GetRuntimeType();
           default:
             Contract.Assert(false); // unexpected case
-            throw new cce.UnreachableException();
+            throw new Cce.UnreachableException();
         }
       }
 

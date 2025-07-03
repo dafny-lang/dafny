@@ -1,4 +1,4 @@
-// RUN: ! %verify --type-system-refresh --allow-axioms --show-hints --isolate-assertions %s --bprint=%t.bpl > %t
+// RUN: ! %verify --type-system-refresh --allow-axioms --show-hints --isolate-assertions %s > %t
 // RUN: %diff "%s.expect" "%t"
 
 function P(x: int): bool {

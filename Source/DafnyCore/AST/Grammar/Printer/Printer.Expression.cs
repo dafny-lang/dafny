@@ -890,7 +890,7 @@ namespace Microsoft.Dafny {
               break;
             default:
               Contract.Assert(false);
-              throw new cce.UnreachableException(); // unexpected unary opcode
+              throw new Cce.UnreachableException(); // unexpected unary opcode
           }
 
           bool parensNeeded = ParensNeeded(opBindingStrength, contextBindingStrength, fragileContext);
@@ -993,7 +993,7 @@ namespace Microsoft.Dafny {
             opBindingStrength = BindingStrengthEquiv; break;
           default:
             Contract.Assert(false);
-            throw new cce.UnreachableException(); // unexpected binary operator
+            throw new Cce.UnreachableException(); // unexpected binary operator
         }
 
         bool parensNeeded = ParensNeeded(opBindingStrength, contextBindingStrength, fragileContext);
@@ -1535,7 +1535,7 @@ namespace Microsoft.Dafny {
         wr.Write("locals");
       } else {
         Contract.Assert(false);
-        throw new cce.UnreachableException(); // unexpected expression
+        throw new Cce.UnreachableException(); // unexpected expression
       }
     }
 

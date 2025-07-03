@@ -268,7 +268,7 @@ class PreTypeToTypeVisitor : ASTVisitor<IASTVisitorContext> {
         var rhsMaybeNullType = new UserDefinedType(stmt.Origin, arrayTypeDecl.Name, arrayTypeDecl, [allocateArray.ElementType]);
         rhsType = UserDefinedType.CreateNonNullType(rhsMaybeNullType);
       } else {
-        throw new cce.UnreachableException();
+        throw new Cce.UnreachableException();
       }
       tRhs.Type = rhsType;
 

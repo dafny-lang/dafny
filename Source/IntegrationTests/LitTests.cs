@@ -79,6 +79,7 @@ namespace IntegrationTests {
         "--show-snippets:false",
         "--standard-libraries:false",
         "--cores:2",
+        $"--bprint={RepositoryRoot}Binaries/temp.bpl",
         "--verification-time-limit:300",
         "--resource-limit:50e6"
       ];

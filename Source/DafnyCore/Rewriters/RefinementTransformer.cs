@@ -1249,7 +1249,7 @@ namespace Microsoft.Dafny {
             }
             if (doMerge) {
               // Go ahead with the merge:
-              Contract.Assert(cce.NonNullElements(stmtGenerated));
+              Contract.Assert(Cce.NonNullElements(stmtGenerated));
               body.AddRange(stmtGenerated);
               i++; j++;
             } else {
