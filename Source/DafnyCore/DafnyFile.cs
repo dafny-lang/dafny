@@ -7,6 +7,7 @@ using System.IO;
 using System.Reflection;
 using System.Reflection.Metadata;
 using System.Reflection.PortableExecutable;
+using System.Runtime.InteropServices;
 using System.Threading.Tasks;
 using DafnyAssembly;
 using DafnyCore;
@@ -320,4 +321,11 @@ public class DafnyFile {
     return null;
   }
 
+  public static Uri CreateCrossPlatformUri(string path) {
+    // Only fixes Unix paths on Windows
+    if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows) && path.StartsWith("/")) {
+      return new Uri("file://" + path);
+    }
+    return new Uri(path);
+  }
 }

@@ -82,6 +82,10 @@ public static class TokenExtensions {
   }
 
   public static string GetRelativeFilename(DafnyOptions options, Token token) {
+    if (token.Uri == null) {
+      return token.Filepath ?? "unknown";
+    }
+
     var currentDirectory = Directory.GetCurrentDirectory();
     string filename = token.Uri.Scheme switch {
       "stdin" => "<stdin>",

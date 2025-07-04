@@ -36,7 +36,7 @@ class JsonOutputWriter(DafnyOptions options) : IDafnyOutputWriter {
   private Task WriteMessage(string message, string type) {
     return options.BaseOutputWriter.WriteLineAsync(new JsonObject() {
       ["type"] = type,
-      ["value"] = message
+      ["value"] = message.Replace("\r\n", "\n")
     }.ToJsonString());
   }
 
@@ -84,7 +84,7 @@ record DiagnosticMessageData(MessageSource Source, ErrorLevel Level, TokenRange 
     return new JsonObject {
       ["filename"] = range.StartToken.filename,
       ["filePath"] = TokenExtensions.GetRelativeFilename(options, range.StartToken),
-      ["uri"] = range.Uri!.AbsoluteUri,
+      ["uri"] = range.Uri?.AbsoluteUri ?? "file:///unknown",
       ["range"] = SerializeRange(range)
     };
   }

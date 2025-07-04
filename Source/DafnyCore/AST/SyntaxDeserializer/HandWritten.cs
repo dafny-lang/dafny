@@ -93,7 +93,7 @@ public partial class SyntaxDeserializer(IDecoder decoder) {
   public FileHeader ReadFileStart() {
     var uri = ReadString();
     var isLibrary = ReadBool();
-    this.uri = new Uri(uri);
+    this.uri = DafnyFile.CreateCrossPlatformUri(uri);
     var topLevelDecls = ReadList(ReadAbstract<TopLevelDecl>);
     return new FileHeader(uri, isLibrary, topLevelDecls);
   }
