@@ -94,7 +94,6 @@ method Test(a: int, b: int, c: int)
   assert c > a;
 }
 
-@VerifyOnly
 @Print
 @Priority(2)
 @ResourceLimit("1000")

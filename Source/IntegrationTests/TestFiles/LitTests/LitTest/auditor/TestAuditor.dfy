@@ -151,7 +151,7 @@ method AssertOnly() {
   assert false;
 }
 
-method {:only} MethodOnly() {
+@VerifyOnly method MethodOnly() {
   assert false;
 }
 

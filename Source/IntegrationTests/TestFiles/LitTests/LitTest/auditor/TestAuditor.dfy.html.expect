@@ -53,7 +53,7 @@
 <tr><td>AssumedConcurrentMethod</td><td>False</td><td>False</td><td>False</td><td>Modifies clause has <code>{:assume_concurrent}</code> attribute.</td><td>Manually review and test in a concurrent setting.</td></tr>
 <tr><td>AxiomWithStuffInIt</td><td>True</td><td>True</td><td>False</td><td>Declaration has explicit <code>{:axiom}</code> attribute.</td><td>Provide a proof or test.</td></tr>
 <tr><td>AssertOnly</td><td>True</td><td>False</td><td>False</td><td>Assertion has explicit temporary <code>{:only}</code> attribute.</td><td>Remove the <code>{:only}</code> attribute.</td></tr>
-<tr><td>MethodOnly</td><td>True</td><td>False</td><td>False</td><td>Member has explicit temporary <code>{:only}</code> attribute.</td><td>Remove the <code>{:only}</code> attribute.</td></tr>
+<tr><td>MethodOnly</td><td>True</td><td>False</td><td>False</td><td>Member has explicit temporary <code>@VerifyOnly</code> attribute.</td><td>Remove the <code>@VerifyOnly</code> attribute.</td></tr>
 <tr><td>GenerateBytesWithAxiom</td><td>True</td><td>True</td><td>True</td><td>Declaration has explicit <code>{:axiom}</code> attribute.</td><td>Provide a proof or test.</td></tr>
 <tr><td>ExternFunctionWithAxiom</td><td>True</td><td>True</td><td>True</td><td>Declaration has explicit <code>{:axiom}</code> attribute.</td><td>Provide a proof or test.</td></tr>
 <tr><td>T</td><td>True</td><td>False</td><td>False</td><td>Trait method calls may not terminate (uses <code>{:termination false}</code>).</td><td>Remove if possible.</td></tr>

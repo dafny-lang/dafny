@@ -6,7 +6,7 @@ TestAuditor.dfy(95,4): Warning: this forall statement has no body
 TestAuditor.dfy(102,4): Warning: this loop has no body (loop frame: i)
 TestAuditor.dfy(139,2): Warning: this forall statement has no body
 TestAuditor.dfy(143,2): Warning: this loop has no body (loop frame: i)
-TestAuditor.dfy(154,9): Warning: Members with {:only} temporarily disable the verification of other members in the entire file
+TestAuditor.dfy(154,0): Warning: Members with @VerifyOnly temporarily disable the verification of other members in the entire file
 TestAuditor.dfy(93,10): Warning: Could not find a trigger for this quantifier. Without a trigger, the quantifier may cause brittle verification. To silence this warning, add an explicit trigger using the {:trigger} attribute. For more information, see the section on quantifier instantiation rules in the reference manual.
 TestAuditor.dfy(95,4): Warning: Could not find a trigger for this quantifier. Without a trigger, the quantifier may cause brittle verification. To silence this warning, add an explicit trigger using the {:trigger} attribute. For more information, see the section on quantifier instantiation rules in the reference manual.
 TestAuditor.dfy(139,2): Warning: Could not find a trigger for this quantifier. Without a trigger, the quantifier may cause brittle verification. To silence this warning, add an explicit trigger using the {:trigger} attribute. For more information, see the section on quantifier instantiation rules in the reference manual.
@@ -30,7 +30,7 @@ TestAuditor.dfy(128,27): Warning: AssumedConcurrentMethod: Reads clause has `{:a
 TestAuditor.dfy(128,27): Warning: AssumedConcurrentMethod: Modifies clause has `{:assume_concurrent}` attribute. Possible mitigation: Manually review and test in a concurrent setting.
 TestAuditor.dfy(135,16): Warning: AxiomWithStuffInIt: Declaration has explicit `{:axiom}` attribute. Possible mitigation: Provide a proof or test.
 TestAuditor.dfy(150,2): Warning: AssertOnly: Assertion has explicit temporary `{:only}` attribute. Possible mitigation: Remove the `{:only}` attribute.
-TestAuditor.dfy(154,15): Warning: MethodOnly: Member has explicit temporary `{:only}` attribute. Possible mitigation: Remove the `{:only}` attribute.
+TestAuditor.dfy(154,19): Warning: MethodOnly: Member has explicit temporary `@VerifyOnly` attribute. Possible mitigation: Remove the `@VerifyOnly` attribute.
 TestAuditor.dfy(160,26): Warning: GenerateBytesWithAxiom: Declaration has explicit `{:axiom}` attribute. Possible mitigation: Provide a proof or test.
 TestAuditor.dfy(164,28): Warning: ExternFunctionWithAxiom: Declaration has explicit `{:axiom}` attribute. Possible mitigation: Provide a proof or test.
 TestAuditor.dfy(89,27): Warning: T: Trait method calls may not terminate (uses `{:termination false}`). Possible mitigation: Remove if possible.

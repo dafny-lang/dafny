@@ -105,9 +105,9 @@ public record AssumptionDescription(
   );
 
   public static readonly AssumptionDescription MemberOnly = new(
-    Issue: "Member has explicit temporary [{:only}] attribute.",
-    Mitigation: "Remove the [{:only}] attribute.",
-    MitigationIetf: "MUST remove the [{:only}] attribute.",
+    Issue: "Member has explicit temporary [@VerifyOnly] attribute.",
+    Mitigation: "Remove the [@VerifyOnly] attribute.",
+    MitigationIetf: "MUST remove the [@VerifyOnly] attribute.",
     IsExplicit: true
   );
 }

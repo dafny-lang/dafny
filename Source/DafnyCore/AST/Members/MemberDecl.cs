@@ -115,7 +115,7 @@ public abstract class MemberDecl : Declaration, ISymbol {
     foreach (var a in base.Assumptions(this)) {
       yield return a;
     }
-    if (this.HasUserAttribute("only", out _)) {
+    if (Attributes.Find(this.Attributes, "only") != null) {
       yield return new Assumption(decl, Origin, AssumptionDescription.MemberOnly);
     }
   }

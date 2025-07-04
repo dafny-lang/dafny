@@ -85,7 +85,7 @@
 
 ### Member `MethodOnly`
 
-* Member has explicit temporary `{:only}` attribute. MUST remove the `{:only}` attribute.
+* Member has explicit temporary `@VerifyOnly` attribute. MUST remove the `@VerifyOnly` attribute.
 
 ### Member `GenerateBytesWithAxiom`
 

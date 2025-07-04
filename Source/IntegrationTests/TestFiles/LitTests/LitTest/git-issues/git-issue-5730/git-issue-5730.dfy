@@ -2,7 +2,7 @@
 // RUN: %diff "%s.expect" "%t"
 
 module X {
-  method {:only} VerifyMe() {
+  @VerifyOnly method VerifyMe() {
     assert false; // Should display an error
   }
   method DontVerifyMe() {

@@ -68,7 +68,7 @@ public class AssertStmt : PredicateStmt, ICloneable<AssertStmt>, ICanFormat {
       }
     }
 
-    if (this.HasUserAttribute("only", out var attribute)) {
+    if (Attributes.Find(Attributes, "only") is { } attribute) {
       resolver.Reporter.Warning(MessageSource.Verifier, ResolutionErrors.ErrorId.r_assert_only_assumes_others.ToString(), attribute!.Origin,
         "Assertion with {:only} temporarily transforms other assertions into assumptions");
       if (attribute.Args.Count >= 1

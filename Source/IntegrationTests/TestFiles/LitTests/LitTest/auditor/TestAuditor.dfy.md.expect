@@ -20,7 +20,7 @@
 | AssumedConcurrentMethod | False | False | False | Modifies clause has `{:assume_concurrent}` attribute. | Manually review and test in a concurrent setting. |
 | AxiomWithStuffInIt | True | True | False | Declaration has explicit `{:axiom}` attribute. | Provide a proof or test. |
 | AssertOnly | True | False | False | Assertion has explicit temporary `{:only}` attribute. | Remove the `{:only}` attribute. |
-| MethodOnly | True | False | False | Member has explicit temporary `{:only}` attribute. | Remove the `{:only}` attribute. |
+| MethodOnly | True | False | False | Member has explicit temporary `@VerifyOnly` attribute. | Remove the `@VerifyOnly` attribute. |
 | GenerateBytesWithAxiom | True | True | True | Declaration has explicit `{:axiom}` attribute. | Provide a proof or test. |
 | ExternFunctionWithAxiom | True | True | True | Declaration has explicit `{:axiom}` attribute. | Provide a proof or test. |
 | T | True | False | False | Trait method calls may not terminate (uses `{:termination false}`). | Remove if possible. |

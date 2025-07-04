@@ -29,7 +29,7 @@ public class SimpleLinearVerificationGutterStatusTester : LinearVerificationGutt
  ? :method NotVerified() { // Should not be highlighted in green
  ? :  assert 1 == 0;
  ? :}
- | :method {:only} Verified() { // Verified
+ | :@VerifyOnly method Verified() { // Verified
  | :  assert true;
  | :}
  ? :method NotVerified2() { // Should not be highlighted in green
