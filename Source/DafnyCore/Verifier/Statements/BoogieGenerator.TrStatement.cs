@@ -69,22 +69,7 @@ public partial class BoogieGenerator {
           }
 
           if (VerifyReferrers && codeContext is MethodOrConstructor) {
-            foreach (var trackedLocalVariable in DefiniteAssignmentTrackers) {
-              var localVar = trackedLocalVariable.Value.tracked;
-              if (localVar is LocalVariable l) {
-                // Need to unassign
-                var lhs = new IdentifierExpr(stmt.Origin, l);
-                Referrers.RemovePreAssign(stmt.Origin, lhs, builder, locals, etran);
-              }
-              /*
-               Example:
-               if (defass#t_local#0 && t_local#0 != null) {
-                $ReferrersHeap := updateReferrers($ReferrersHeap, t_local#0, Set#Difference(readReferrers($ReferrersHeap, t_local#0),
-                  Set#UnionOne(Set#Empty(),
-                  $Box(#_System._tuple#2._#Make2($Box(locals), $Box(local_field(_module.__default.EnsuresReferrersUnchanged.t__local, depth))))
-                )));
-              } */
-            }
+            Referrers.UnassignLocalVariables(stmt.Origin, locals, builder, etran, DefiniteAssignmentTrackers);
           }
 
           if (codeContext is MethodOrConstructor { FunctionFromWhichThisIsByMethodDecl: { ByMethodTok: { } } fun } method2) {
@@ -350,6 +335,10 @@ public partial class BoogieGenerator {
       case BlockStmt blockStmt2: {
           var previousTrackers = DefiniteAssignmentTrackers;
           TrStmtList(blockStmt2.Body, builder, locals, etran, blockStmt2.EntireRange);
+          if (VerifyReferrers) {
+            Referrers.UnassignLocalVariables(blockStmt2.EndToken, locals, builder, etran,
+              DefiniteAssignmentTrackers.RemoveRange(previousTrackers.Keys));
+          }
           DefiniteAssignmentTrackers = previousTrackers;
           break;
         }

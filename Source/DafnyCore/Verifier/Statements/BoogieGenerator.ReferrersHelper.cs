@@ -70,6 +70,29 @@ public partial class BoogieGenerator {
             Id(tok, field.Name),
             Id(tok, "depth")))));
     }
+    
+    public void UnassignLocalVariables(IOrigin tok, Variables locals,
+      BoogieStmtListBuilder builder,
+      ExpressionTranslator etran,
+      ImmutableDictionary<string, (object tracked, Boogie.IdentifierExpr tracker)>assignmentTrackers)
+    {
+      foreach (var trackedLocalVariable in assignmentTrackers) {
+        var localVar = trackedLocalVariable.Value.tracked;
+        if (localVar is LocalVariable l) {
+          // Need to unassign
+          var lhs = new IdentifierExpr(tok, l);
+          RemovePreAssign(tok, lhs, builder, locals, etran);
+        }
+        /*
+         Example:
+         if (defass#t_local#0 && t_local#0 != null) {
+          $ReferrersHeap := updateReferrers($ReferrersHeap, t_local#0, Set#Difference(readReferrers($ReferrersHeap, t_local#0),
+            Set#UnionOne(Set#Empty(),
+            $Box(#_System._tuple#2._#Make2($Box(locals), $Box(local_field(_module.__default.EnsuresReferrersUnchanged.t__local, depth))))
+          )));
+        */
+      }
+    }
 
     public void RemovePreAssign(IOrigin tok, Expression lhs, BoogieStmtListBuilder builder, Variables locals,
       ExpressionTranslator etran) {
