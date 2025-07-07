@@ -86,15 +86,16 @@ public partial class SyntaxDeserializer(IDecoder decoder) {
   }
 
   public FilesContainer ReadFilesContainer() {
-    var files = ReadList<FileStart>(() => ReadFileStart());
+    var files = ReadList<FileHeader>(ReadFileStart);
     return new FilesContainer(files);
   }
 
-  public FileStart ReadFileStart() {
+  public FileHeader ReadFileStart() {
     var uri = ReadString();
+    var isLibrary = ReadBool();
     this.uri = new Uri(uri);
-    var topLevelDecls = ReadList<TopLevelDecl>(() => ReadAbstract<TopLevelDecl>());
-    return new FileStart(uri, topLevelDecls);
+    var topLevelDecls = ReadList(ReadAbstract<TopLevelDecl>);
+    return new FileHeader(uri, isLibrary, topLevelDecls);
   }
 
   public Token ReadToken() {
@@ -272,16 +273,13 @@ public partial class SyntaxDeserializer(IDecoder decoder) {
   }
 }
 
-public class FilesContainer(List<FileStart> files) {
-  public List<FileStart> Files { get; } = files;
+public class FilesContainer(List<FileHeader> files) {
+  public List<FileHeader> Files { get; } = files;
 }
 
-public class FileStart {
-  public string Uri { get; }
-  public List<TopLevelDecl> TopLevelDecls { get; }
+public class FileHeader(string uri, bool isLibrary, List<TopLevelDecl> topLevelDecls) {
+  public string Uri { get; } = uri;
+  public bool IsLibrary { get; } = isLibrary;
 
-  public FileStart(string uri, List<TopLevelDecl> topLevelDecls) {
-    Uri = uri;
-    TopLevelDecls = topLevelDecls;
-  }
+  public List<TopLevelDecl> TopLevelDecls { get; } = topLevelDecls;
 }
