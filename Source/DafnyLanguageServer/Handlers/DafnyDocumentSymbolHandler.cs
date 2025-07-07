@@ -10,6 +10,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Dafny.LanguageServer.Language;
+using Range = OmniSharp.Extensions.LanguageServer.Protocol.Models.Range;
 
 namespace Microsoft.Dafny.LanguageServer.Handlers {
   /// <summary>
@@ -60,6 +61,9 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
       }
 
       var range = symbol.ToLspRange();
+      if (!IsValidRange(range)) {
+        return [];
+      }
       return new DocumentSymbol[] {
         new() {
           Children = children,
@@ -70,6 +74,14 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
           SelectionRange = symbol.NavigationRange.StartToken == Token.NoToken ? range : symbol.NavigationRange.ToLspRange()
         }
       };
+    }
+
+    private bool IsValidRange(Range range) {
+      return IsValidPosition(range.Start) && IsValidPosition(range.End);
+    }
+
+    private bool IsValidPosition(Position position) {
+      return position.Line >= 0 && position.Character >= 0;
     }
   }
 }
