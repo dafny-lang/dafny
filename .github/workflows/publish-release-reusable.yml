@@ -132,7 +132,7 @@ jobs:
         make -C dafny/docs/DafnyRef
     - name: Record existing assets
       if: prerelease
-      run: gh api /repos/dafny-lang/dafny/releases/tags/nightly --jq '.assets.[].id' > assets.txt
+      run: gh api /repos/dafny-lang/dafny/releases/tags/nightly --jq '.assets.[].id' | awk 'n>=900 { print a[n%900] } { a[n%900]=$0; n=n+1 }' > assets.txt
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     - name: Create GitHub release
