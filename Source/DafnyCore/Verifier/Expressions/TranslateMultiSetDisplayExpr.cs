@@ -15,22 +15,22 @@ public partial class BoogieGenerator {
   public partial class ExpressionTranslator {
 
     private Expr TranslateMultiSetDisplayExpr(MultiSetDisplayExpr displayExpr) {
-      Bpl.Expr s = BoogieGenerator.FunctionCall(GetToken(displayExpr), BuiltinFunction.MultiSetEmpty, Predef.BoxType);
+      Expr result = BoogieGenerator.FunctionCall(GetToken(displayExpr), BuiltinFunction.MultiSetEmpty, Predef.BoxType);
       var isLit = true;
       foreach (Expression ee in displayExpr.Elements) {
         var rawElement = TrExpr(ee);
         isLit = isLit && BoogieGenerator.IsLit(rawElement);
-        Boogie.Expr ss = BoxIfNecessary(GetToken(displayExpr), rawElement, cce.NonNull(ee.Type));
-        s = BoogieGenerator.FunctionCall(GetToken(displayExpr), BuiltinFunction.MultiSetUnionOne, Predef.BoxType, s,
+        var ss = BoxIfNecessary(GetToken(displayExpr), rawElement, cce.NonNull(ee.Type));
+        result = BoogieGenerator.FunctionCall(GetToken(displayExpr), BuiltinFunction.MultiSetUnionOne, Predef.BoxType, result,
           ss);
       }
 
       if (isLit) {
         // Lit-lifting: All elements are lit, so the multiset is Lit too
-        s = MaybeLit(s, Predef.BoxType);
+        result = MaybeLit(result, Predef.BoxType);
       }
 
-      return s;
+      return result;
     }
   }
 }

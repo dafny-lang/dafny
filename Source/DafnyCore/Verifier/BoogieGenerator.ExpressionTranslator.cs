@@ -325,84 +325,84 @@ namespace Microsoft.Dafny {
         Contract.Requires(Predef != null);
 
         switch (expr) {
-          case LiteralExpr literalExpr: 
-return TranslateLiteralExpr(literalExpr);
+          case LiteralExpr literalExpr:
+            return TranslateLiteralExpr(literalExpr);
           case ThisExpr:
             return new Bpl.IdentifierExpr(GetToken(expr), This, BoogieGenerator.TrType(expr.Type));
-          case IdentifierExpr identifierExpr: 
-return BoogieGenerator.TrVar(GetToken(identifierExpr), identifierExpr.Var);
-          case BoogieWrapper wrapper: 
-return wrapper.Expr;
-          case BoogieFunctionCall call: 
-return TranslateBoogieFunctionCall(call);
-          case SetDisplayExpr displayExpr: 
-return TranslateSetDisplayExpr(displayExpr);
-          case MultiSetDisplayExpr displayExpr: 
-return TranslateMultiSetDisplayExpr(displayExpr);
-          case SeqDisplayExpr displayExpr: 
-return TranslateSeqDisplayExpr(displayExpr);
-          case MapDisplayExpr displayExpr: 
-return TranslateMapDisplayExpr(displayExpr);
-          case MemberSelectExpr selectExpr: 
-return TranslateMemberSelectExpr(selectExpr);
-          case SeqSelectExpr selectExpr: 
-return TranslateSeqSelectExpr(selectExpr);
-          case SeqUpdateExpr updateExpr: 
-return TranslateSeqUpdateExpr(updateExpr);
-          case MultiSelectExpr selectExpr: 
-return TranslateMultiSelectExpr(selectExpr);
-          case ApplyExpr applyExpr: 
+          case IdentifierExpr identifierExpr:
+            return BoogieGenerator.TrVar(GetToken(identifierExpr), identifierExpr.Var);
+          case BoogieWrapper wrapper:
+            return wrapper.Expr;
+          case BoogieFunctionCall call:
+            return TranslateBoogieFunctionCall(call);
+          case SetDisplayExpr displayExpr:
+            return TranslateSetDisplayExpr(displayExpr);
+          case MultiSetDisplayExpr displayExpr:
+            return TranslateMultiSetDisplayExpr(displayExpr);
+          case SeqDisplayExpr displayExpr:
+            return TranslateSeqDisplayExpr(displayExpr);
+          case MapDisplayExpr displayExpr:
+            return TranslateMapDisplayExpr(displayExpr);
+          case MemberSelectExpr selectExpr:
+            return TranslateMemberSelectExpr(selectExpr);
+          case SeqSelectExpr selectExpr:
+            return TranslateSeqSelectExpr(selectExpr);
+          case SeqUpdateExpr updateExpr:
+            return TranslateSeqUpdateExpr(updateExpr);
+          case MultiSelectExpr selectExpr:
+            return TranslateMultiSelectExpr(selectExpr);
+          case ApplyExpr applyExpr:
             return TranslateApplyExpr(applyExpr);
-          case FunctionCallExpr callExpr: 
-return TranslateFunctionCallExpr(callExpr);
-          case DatatypeValue value: 
-return TranslateDatatypeValue(value);
-          case SeqConstructionExpr constructionExpr: 
-return TranslateSeqConstructionExpr(constructionExpr);
-          case MultiSetFormingExpr formingExpr: 
-return TranslateMultisetFormingExpr(formingExpr);
+          case FunctionCallExpr callExpr:
+            return TranslateFunctionCallExpr(callExpr);
+          case DatatypeValue value:
+            return TranslateDatatypeValue(value);
+          case SeqConstructionExpr constructionExpr:
+            return TranslateSeqConstructionExpr(constructionExpr);
+          case MultiSetFormingExpr formingExpr:
+            return TranslateMultisetFormingExpr(formingExpr);
           case OldExpr oldExpr: {
-            return OldAt(oldExpr.AtLabel).TrExpr(oldExpr.Expr);
+              return OldAt(oldExpr.AtLabel).TrExpr(oldExpr.Expr);
             }
           case UnchangedExpr unchangedExpr: {
-            return BoogieGenerator.FrameCondition(GetToken(unchangedExpr), unchangedExpr.Frame, false, FrameExpressionUse.Unchanged, OldAt(unchangedExpr.AtLabel), this, this, true);
+              return BoogieGenerator.FrameCondition(GetToken(unchangedExpr), unchangedExpr.Frame, false, FrameExpressionUse.Unchanged, OldAt(unchangedExpr.AtLabel), this, this, true);
             }
-          case UnaryOpExpr opExpr: 
-return TranslateUnaryOpExpression(opExpr);
+          case UnaryOpExpr opExpr:
+            return TranslateUnaryOpExpression(opExpr);
           case ConversionExpr conversionExpr: {
-            return BoogieGenerator.ConvertExpression(GetToken(conversionExpr), TrExpr(conversionExpr.E), conversionExpr.E.Type, conversionExpr.ToType);
+              return BoogieGenerator.ConvertExpression(GetToken(conversionExpr), TrExpr(conversionExpr.E), conversionExpr.E.Type, conversionExpr.ToType);
             }
           case TypeTestExpr testExpr: {
-            return BoogieGenerator.GetSubrangeCheck(testExpr.Origin, TrExpr(testExpr.E), testExpr.E.Type, testExpr.ToType, testExpr.E, null, out var _) ?? Expr.True;
+              return BoogieGenerator.GetSubrangeCheck(testExpr.Origin, TrExpr(testExpr.E), testExpr.E.Type, testExpr.ToType, testExpr.E, null, out var _) ?? Expr.True;
             }
-          case BinaryExpr binaryExpr: 
-return TranslateBinaryExpr(binaryExpr);
-          case TernaryExpr ternaryExpr: 
-return TranslateTernaryExpr(ternaryExpr);
+          case BinaryExpr binaryExpr:
+            return TranslateBinaryExpr(binaryExpr);
+          case TernaryExpr ternaryExpr:
+            return TranslateTernaryExpr(ternaryExpr);
           case LetExpr letExpr:
             return TrLetExpr(letExpr);
-          case QuantifierExpr quantifierExpr: 
-return TranslateQuantifierExpr(quantifierExpr);
-          case SetComprehension comprehension: 
-return TranslateSetComprehension(comprehension);
-          case MapComprehension comprehension: 
-return TranslateMapComprehension(comprehension);
-          case LambdaExpr lambdaExpr: 
-return TrLambdaExpr(lambdaExpr);
-          case StmtExpr stmtExpr: 
-return TrExpr(stmtExpr.E);
-          case ITEExpr iteExpr: 
-return TranslateIfThenElseExpr(iteExpr);
-          case MatchExpr matchExpr: 
-return TrExpr(DesugarMatchExpr(matchExpr));
-          case ConcreteSyntaxExpression expression: 
-return TrExpr(expression.ResolvedExpression);
+          case QuantifierExpr quantifierExpr:
+            return TranslateQuantifierExpr(quantifierExpr);
+          case SetComprehension comprehension:
+            return TranslateSetComprehension(comprehension);
+          case MapComprehension comprehension:
+            return TranslateMapComprehension(comprehension);
+          case LambdaExpr lambdaExpr:
+            return TrLambdaExpr(lambdaExpr);
+          case StmtExpr stmtExpr:
+            return TrExpr(stmtExpr.E);
+          case ITEExpr iteExpr:
+            return TranslateIfThenElseExpr(iteExpr);
+          case MatchExpr matchExpr:
+            return TrExpr(DesugarMatchExpr(matchExpr));
+          case ConcreteSyntaxExpression expression:
+            return TrExpr(expression.ResolvedExpression);
           case NestedMatchExpr nestedMatchExpr:
             return TrExpr(nestedMatchExpr.Flattened);
-          case BoxingCastExpr castExpr: 
-return BoogieGenerator.CondApplyBox(GetToken(castExpr), TrExpr(castExpr.E), castExpr.FromType, castExpr.ToType);
-          case UnboxingCastExpr castExpr: 
-return BoogieGenerator.CondApplyUnbox(GetToken(castExpr), TrExpr(castExpr.E), castExpr.FromType, castExpr.ToType);
+          case BoxingCastExpr castExpr:
+            return BoogieGenerator.CondApplyBox(GetToken(castExpr), TrExpr(castExpr.E), castExpr.FromType, castExpr.ToType);
+          case UnboxingCastExpr castExpr:
+            return BoogieGenerator.CondApplyUnbox(GetToken(castExpr), TrExpr(castExpr.E), castExpr.FromType, castExpr.ToType);
           case DecreasesToExpr decreasesToExpr:
             return TranslateDecreasesToExpr(decreasesToExpr);
           case FieldLocation fieldLocation:
@@ -416,8 +416,7 @@ return BoogieGenerator.CondApplyUnbox(GetToken(castExpr), TrExpr(castExpr.E), ca
         }
       }
 
-      private Expr TranslateFieldLocation(Expression expr, FieldLocation fieldLocation)
-      {
+      private Expr TranslateFieldLocation(Expression expr, FieldLocation fieldLocation) {
         var tok = GetToken(expr);
         if (fieldLocation.Field is SpecialField { EnclosingMethod: not null }) {
           Expr depthExpr = fieldLocation.AtCallSite ?
@@ -432,16 +431,14 @@ return BoogieGenerator.CondApplyUnbox(GetToken(castExpr), TrExpr(castExpr.E), ca
         }
       }
 
-      private Expr TranslateIfThenElseExpr(ITEExpr iteExpr)
-      {
+      private Expr TranslateIfThenElseExpr(ITEExpr iteExpr) {
         var g = RemoveLit(TrExpr(iteExpr.Test));
         var thn = BoogieGenerator.AdaptBoxing(iteExpr.Thn.Origin, BoogieGenerator.RemoveLit(TrExpr(iteExpr.Thn)), iteExpr.Thn.Type, iteExpr.Type);
         var els = BoogieGenerator.AdaptBoxing(iteExpr.Els.Origin, BoogieGenerator.RemoveLit(TrExpr(iteExpr.Els)), iteExpr.Els.Type, iteExpr.Type);
         return new NAryExpr(GetToken(iteExpr), new IfThenElse(GetToken(iteExpr)), new List<Boogie.Expr> { g, thn, els });
       }
 
-      private Expr TranslateDecreasesToExpr(DecreasesToExpr decreasesToExpr)
-      {
+      private Expr TranslateDecreasesToExpr(DecreasesToExpr decreasesToExpr) {
         var oldArray = decreasesToExpr.OldExpressions.ToArray();
         var newArray = decreasesToExpr.NewExpressions.ToArray();
         List<Expr> newExprs = [];
@@ -469,8 +466,7 @@ return BoogieGenerator.CondApplyUnbox(GetToken(castExpr), TrExpr(castExpr.E), ca
         return decreasesExpr;
       }
 
-      private Expr TranslateMapComprehension(MapComprehension comprehension)
-      {
+      private Expr TranslateMapComprehension(MapComprehension comprehension) {
         var e = comprehension;
         // Translate "map x,y | R(x,y) :: F(x,y) := G(x,y)" into
         // Map#Glue(lambda w: BoxType :: exists x,y :: R(x,y) && unbox(w) == F(x,y),
@@ -551,8 +547,7 @@ return BoogieGenerator.CondApplyUnbox(GetToken(castExpr), TrExpr(castExpr.E), ca
           values, BoogieGenerator.TypeToTy(comprehension.Type));
       }
 
-      private Expr TranslateSetComprehension(SetComprehension comprehension)
-      {
+      private Expr TranslateSetComprehension(SetComprehension comprehension) {
         var e = comprehension;
         List<bool> freeOfAlloc = BoundedPool.HasBounds(e.Bounds, BoundedPool.PoolVirtues.IndependentOfAlloc_or_ExplicitAlloc);
 
@@ -594,8 +589,7 @@ return BoogieGenerator.CondApplyUnbox(GetToken(castExpr), TrExpr(castExpr.E), ca
           : lambda;
       }
 
-      private Expr TranslateQuantifierExpr(QuantifierExpr quantifierExpr)
-      {
+      private Expr TranslateQuantifierExpr(QuantifierExpr quantifierExpr) {
         QuantifierExpr e = quantifierExpr;
 
         if (e.SplitQuantifier != null) {
@@ -637,8 +631,7 @@ return BoogieGenerator.CondApplyUnbox(GetToken(castExpr), TrExpr(castExpr.E), ca
         }
       }
 
-      private Expr TranslateTernaryExpr(TernaryExpr ternaryExpr)
-      {
+      private Expr TranslateTernaryExpr(TernaryExpr ternaryExpr) {
         var e = ternaryExpr;
         var e0 = TrExpr(e.E0);
         if (!e.E0.Type.IsBigOrdinalType) {
@@ -664,415 +657,7 @@ return BoogieGenerator.CondApplyUnbox(GetToken(castExpr), TrExpr(castExpr.E), ca
         }
       }
 
-      private Expr TranslateBinaryExpr(BinaryExpr binaryExpr) {
-        var e0Type = binaryExpr.E0.Type.NormalizeToAncestorType(); // used when making decisions about what Boogie operator/functions to use
-        bool isReal = e0Type.IsNumericBased(Type.NumericPersuasion.Real);
-        int bvWidth = e0Type.IsBitVectorType ? e0Type.AsBitVectorType.Width : -1;  // -1 indicates "not a bitvector type"
-        Boogie.Expr e0 = TrExpr(binaryExpr.E0);
-        if (binaryExpr.ResolvedOp == BinaryExpr.ResolvedOpcode.InSet) {
-          return TrInSet(GetToken(binaryExpr), e0, binaryExpr.E1, binaryExpr.E0.Type, binaryExpr.E1.Type.NormalizeToAncestorType().AsSetType.Finite, false, out var pr);  // let TrInSet translate e.E1
-        } else if (binaryExpr.ResolvedOp == BinaryExpr.ResolvedOpcode.NotInSet) {
-          Boogie.Expr arg = TrInSet(GetToken(binaryExpr), e0, binaryExpr.E1, binaryExpr.E0.Type, binaryExpr.E1.Type.NormalizeToAncestorType().AsSetType.Finite, false, out var pr);  // let TrInSet translate e.E1
-          return Boogie.Expr.Unary(GetToken(binaryExpr), UnaryOperator.Opcode.Not, arg);
-        } else if (binaryExpr.ResolvedOp == BinaryExpr.ResolvedOpcode.InMultiSet) {
-          return TrInMultiSet(GetToken(binaryExpr), e0, binaryExpr.E1, binaryExpr.E0.Type, false); // let TrInMultiSet translate e.E1
-        } else if (binaryExpr.ResolvedOp == BinaryExpr.ResolvedOpcode.NotInMultiSet) {
-          Boogie.Expr arg = TrInMultiSet(GetToken(binaryExpr), e0, binaryExpr.E1, binaryExpr.E0.Type, false);  // let TrInMultiSet translate e.E1
-          return Boogie.Expr.Unary(GetToken(binaryExpr), UnaryOperator.Opcode.Not, arg);
-        }
-        Boogie.Expr e1 = TrExpr(binaryExpr.E1);
-        BinaryOperator.Opcode bOpcode;
-        Boogie.Type typ;
-        var oe0 = e0;
-        var oe1 = e1;
-        var lit0 = BoogieGenerator.GetLit(e0);
-        var lit1 = BoogieGenerator.GetLit(e1);
-        bool liftLit = BoogieGenerator.IsLit(e0) && BoogieGenerator.IsLit(e1);
-        // NOTE(namin): We usually avoid keeping literals, because their presence might mess up triggers that do not expect them.
-        //              Still for equality-related operations, it's useful to keep them instead of lifting them, so that they can be propagated.
-        bool keepLits = false;
-        if (lit0 != null) {
-          e0 = lit0;
-        }
-        if (lit1 != null) {
-          e1 = lit1;
-        }
-        switch (binaryExpr.ResolvedOp) {
-          case BinaryExpr.ResolvedOpcode.Iff:
-            typ = Boogie.Type.Bool;
-            bOpcode = BinaryOperator.Opcode.Iff; break;
-          case BinaryExpr.ResolvedOpcode.Imp:
-            typ = Boogie.Type.Bool;
-            bOpcode = BinaryOperator.Opcode.Imp; break;
-          case BinaryExpr.ResolvedOpcode.And:
-            typ = Boogie.Type.Bool;
-            bOpcode = BinaryOperator.Opcode.And; break;
-          case BinaryExpr.ResolvedOpcode.Or:
-            typ = Boogie.Type.Bool;
-            bOpcode = BinaryOperator.Opcode.Or; break;
-
-          case BinaryExpr.ResolvedOpcode.EqCommon:
-            keepLits = true;
-            if (ModeledAsBoxType(binaryExpr.E0.Type)) {
-              e1 = BoxIfNecessary(binaryExpr.Origin, e1, binaryExpr.E1.Type);
-              oe1 = BoxIfNecessary(binaryExpr.Origin, oe1, binaryExpr.E1.Type);
-            } else if (ModeledAsBoxType(binaryExpr.E1.Type)) {
-              e0 = BoxIfNecessary(binaryExpr.Origin, e0, binaryExpr.E0.Type);
-              oe0 = BoxIfNecessary(binaryExpr.Origin, oe0, binaryExpr.E0.Type);
-            }
-            if (binaryExpr.E0.Type.IsCoDatatype && binaryExpr.E1.Type.IsCoDatatype) {
-              var e0args = binaryExpr.E0.Type.NormalizeExpand().TypeArgs;
-              var e1args = binaryExpr.E1.Type.NormalizeExpand().TypeArgs;
-              return BoogieGenerator.CoEqualCall(binaryExpr.E0.Type.AsCoDatatype, e0args, e1args, null,
-                this.layerInterCluster.LayerN((int)FuelSetting.FuelAmount.HIGH), e0, e1, GetToken(binaryExpr));
-            }
-            if (binaryExpr.E0.Type.IsIndDatatype && binaryExpr.E1.Type.IsIndDatatype) {
-              return BoogieGenerator.TypeSpecificEqual(GetToken(binaryExpr), binaryExpr.E0.Type, e0, e1);
-            }
-            typ = Boogie.Type.Bool;
-            bOpcode = BinaryOperator.Opcode.Eq;
-            break;
-          case BinaryExpr.ResolvedOpcode.NeqCommon:
-            if (ModeledAsBoxType(binaryExpr.E0.Type)) {
-              e1 = BoxIfNecessary(binaryExpr.Origin, e1, binaryExpr.E1.Type);
-              oe1 = BoxIfNecessary(binaryExpr.Origin, oe1, binaryExpr.E1.Type);
-            } else if (ModeledAsBoxType(binaryExpr.E1.Type)) {
-              e0 = BoxIfNecessary(binaryExpr.Origin, e0, binaryExpr.E0.Type);
-              oe0 = BoxIfNecessary(binaryExpr.Origin, oe0, binaryExpr.E0.Type);
-            }
-            if (binaryExpr.E0.Type.IsCoDatatype && binaryExpr.E1.Type.IsCoDatatype) {
-              var e0args = binaryExpr.E0.Type.NormalizeExpand().TypeArgs;
-              var e1args = binaryExpr.E1.Type.NormalizeExpand().TypeArgs;
-              var eq = BoogieGenerator.CoEqualCall(binaryExpr.E0.Type.AsCoDatatype, e0args, e1args, null,
-                this.layerInterCluster.LayerN((int)FuelSetting.FuelAmount.HIGH), e0, e1, GetToken(binaryExpr));
-              return Boogie.Expr.Unary(GetToken(binaryExpr), UnaryOperator.Opcode.Not, eq);
-            }
-            if (binaryExpr.E0.Type.IsIndDatatype && binaryExpr.E1.Type.IsIndDatatype) {
-              var eq = BoogieGenerator.TypeSpecificEqual(GetToken(binaryExpr), binaryExpr.E0.Type, e0, e1);
-              return Boogie.Expr.Unary(GetToken(binaryExpr), UnaryOperator.Opcode.Not, eq);
-            }
-            typ = Boogie.Type.Bool;
-            bOpcode = BinaryOperator.Opcode.Neq;
-            break;
-          case BinaryExpr.ResolvedOpcode.Lt:
-            if (0 <= bvWidth) {
-              return TrToFunctionCall(GetToken(binaryExpr), "lt_bv" + bvWidth, Boogie.Type.Bool, e0, e1, liftLit);
-            } else if (e0Type.IsBigOrdinalType) {
-              return FunctionCall(GetToken(binaryExpr), "ORD#Less", Boogie.Type.Bool, e0, e1);
-            } else if (isReal || !BoogieGenerator.DisableNonLinearArithmetic) {
-              typ = Boogie.Type.Bool;
-              bOpcode = BinaryOperator.Opcode.Lt;
-              break;
-            } else {
-              return TrToFunctionCall(GetToken(binaryExpr), "INTERNAL_lt_boogie", Boogie.Type.Bool, e0, e1, liftLit);
-            }
-          case BinaryExpr.ResolvedOpcode.LessThanLimit:
-            return FunctionCall(GetToken(binaryExpr), "ORD#LessThanLimit", Boogie.Type.Bool, e0, e1);
-          case BinaryExpr.ResolvedOpcode.Le:
-            keepLits = true;
-            if (0 <= bvWidth) {
-              return TrToFunctionCall(GetToken(binaryExpr), "le_bv" + bvWidth, Boogie.Type.Bool, e0, e1, false);
-            } else if (e0Type.IsBigOrdinalType) {
-              var less = FunctionCall(GetToken(binaryExpr), "ORD#Less", Boogie.Type.Bool, e0, e1);
-              var eq = Boogie.Expr.Eq(e0, e1);
-              return BplOr(eq, less);
-            } else if (isReal || !BoogieGenerator.DisableNonLinearArithmetic) {
-              typ = Boogie.Type.Bool;
-              bOpcode = BinaryOperator.Opcode.Le;
-              break;
-            } else {
-              return TrToFunctionCall(GetToken(binaryExpr), "INTERNAL_le_boogie", Boogie.Type.Bool, e0, e1, false);
-            }
-          case BinaryExpr.ResolvedOpcode.Ge:
-            keepLits = true;
-            if (0 <= bvWidth) {
-              return TrToFunctionCall(GetToken(binaryExpr), "ge_bv" + bvWidth, Boogie.Type.Bool, e0, e1, false);
-            } else if (e0Type.IsBigOrdinalType) {
-              var less = FunctionCall(GetToken(binaryExpr), "ORD#Less", Boogie.Type.Bool, e1, e0);
-              var eq = Boogie.Expr.Eq(e1, e0);
-              return BplOr(eq, less);
-            } else if (isReal || !BoogieGenerator.DisableNonLinearArithmetic) {
-              typ = Boogie.Type.Bool;
-              bOpcode = BinaryOperator.Opcode.Ge;
-              break;
-            } else {
-              return TrToFunctionCall(GetToken(binaryExpr), "INTERNAL_ge_boogie", Boogie.Type.Bool, e0, e1, false);
-            }
-          case BinaryExpr.ResolvedOpcode.Gt:
-            if (0 <= bvWidth) {
-              return TrToFunctionCall(GetToken(binaryExpr), "gt_bv" + bvWidth, Boogie.Type.Bool, e0, e1, liftLit);
-            } else if (e0Type.IsBigOrdinalType) {
-              return FunctionCall(GetToken(binaryExpr), "ORD#Less", Boogie.Type.Bool, e1, e0);
-            } else if (isReal || !BoogieGenerator.DisableNonLinearArithmetic) {
-              typ = Boogie.Type.Bool;
-              bOpcode = BinaryOperator.Opcode.Gt;
-              break;
-            } else {
-              return TrToFunctionCall(GetToken(binaryExpr), "INTERNAL_gt_boogie", Boogie.Type.Bool, e0, e1, liftLit);
-            }
-
-          case BinaryExpr.ResolvedOpcode.Add:
-            if (0 <= bvWidth) {
-              return TrToFunctionCall(GetToken(binaryExpr), "add_bv" + bvWidth, BoogieGenerator.BplBvType(bvWidth), e0, e1, liftLit);
-            } else if (e0Type.IsBigOrdinalType) {
-              return TrToFunctionCall(GetToken(binaryExpr), "ORD#Plus", Predef.BigOrdinalType, e0, e1, liftLit);
-            } else if (e0Type.IsCharType) {
-              return TrToFunctionCall(GetToken(binaryExpr), "char#Plus", Predef.CharType, e0, e1, liftLit);
-            } else if (!isReal && BoogieGenerator.DisableNonLinearArithmetic) {
-              return TrToFunctionCall(GetToken(binaryExpr), "INTERNAL_add_boogie", Boogie.Type.Int, e0, e1, liftLit);
-            } else if (!isReal && (options.ArithMode == 2 || 5 <= options.ArithMode)) {
-              return TrToFunctionCall(GetToken(binaryExpr), "Add", Boogie.Type.Int, oe0, oe1, liftLit);
-            } else {
-              typ = isReal ? Boogie.Type.Real : Boogie.Type.Int;
-              bOpcode = BinaryOperator.Opcode.Add;
-              break;
-            }
-          case BinaryExpr.ResolvedOpcode.Sub:
-            if (0 <= bvWidth) {
-              return TrToFunctionCall(GetToken(binaryExpr), "sub_bv" + bvWidth, BoogieGenerator.BplBvType(bvWidth), e0, e1, liftLit);
-            } else if (e0Type.IsBigOrdinalType) {
-              return TrToFunctionCall(GetToken(binaryExpr), "ORD#Minus", Predef.BigOrdinalType, e0, e1, liftLit);
-            } else if (e0Type.IsCharType) {
-              return TrToFunctionCall(GetToken(binaryExpr), "char#Minus", Predef.CharType, e0, e1, liftLit);
-            } else if (!isReal && BoogieGenerator.DisableNonLinearArithmetic) {
-              return TrToFunctionCall(GetToken(binaryExpr), "INTERNAL_sub_boogie", Boogie.Type.Int, e0, e1, liftLit);
-            } else if (!isReal && (options.ArithMode == 2 || 5 <= options.ArithMode)) {
-              return TrToFunctionCall(GetToken(binaryExpr), "Sub", Boogie.Type.Int, oe0, oe1, liftLit);
-            } else {
-              typ = isReal ? Boogie.Type.Real : Boogie.Type.Int;
-              bOpcode = BinaryOperator.Opcode.Sub;
-              break;
-            }
-          case BinaryExpr.ResolvedOpcode.Mul:
-            if (0 <= bvWidth) {
-              return TrToFunctionCall(GetToken(binaryExpr), "mul_bv" + bvWidth, BoogieGenerator.BplBvType(bvWidth), e0, e1, liftLit);
-            } else if (!isReal && BoogieGenerator.DisableNonLinearArithmetic) {
-              return TrToFunctionCall(GetToken(binaryExpr), "INTERNAL_mul_boogie", Boogie.Type.Int, e0, e1, liftLit);
-            } else if (!isReal && options.ArithMode != 0 && options.ArithMode != 3) {
-              return TrToFunctionCall(GetToken(binaryExpr), "Mul", Boogie.Type.Int, oe0, oe1, liftLit);
-            } else {
-              typ = isReal ? Boogie.Type.Real : Boogie.Type.Int;
-              bOpcode = BinaryOperator.Opcode.Mul;
-              break;
-            }
-          case BinaryExpr.ResolvedOpcode.Div:
-            if (0 <= bvWidth) {
-              return TrToFunctionCall(GetToken(binaryExpr), "div_bv" + bvWidth, BoogieGenerator.BplBvType(bvWidth), e0, e1, liftLit);
-            } else if (!isReal && BoogieGenerator.DisableNonLinearArithmetic && !isReal) {
-              return TrToFunctionCall(GetToken(binaryExpr), "INTERNAL_div_boogie", Boogie.Type.Int, e0, e1, liftLit);
-            } else if (!isReal && options.ArithMode != 0 && options.ArithMode != 3) {
-              return TrToFunctionCall(GetToken(binaryExpr), "Div", Boogie.Type.Int, e0, oe1, liftLit);
-            } else if (isReal) {
-              typ = Boogie.Type.Real;
-              bOpcode = BinaryOperator.Opcode.RealDiv;
-              break;
-            } else {
-              typ = Boogie.Type.Int;
-              bOpcode = BinaryOperator.Opcode.Div;
-              break;
-            }
-          case BinaryExpr.ResolvedOpcode.Mod:
-            if (0 <= bvWidth) {
-              return TrToFunctionCall(GetToken(binaryExpr), "mod_bv" + bvWidth, BoogieGenerator.BplBvType(bvWidth), e0, e1, liftLit);
-            } else if (BoogieGenerator.DisableNonLinearArithmetic && !isReal) {
-              return TrToFunctionCall(GetToken(binaryExpr), "INTERNAL_mod_boogie", Boogie.Type.Int, e0, e1, liftLit);
-            } else if (!isReal && options.ArithMode != 0 && options.ArithMode != 3) {
-              return TrToFunctionCall(GetToken(binaryExpr), "Mod", Boogie.Type.Int, e0, oe1, liftLit);
-            } else {
-              typ = isReal ? Boogie.Type.Real : Boogie.Type.Int;
-              bOpcode = BinaryOperator.Opcode.Mod;
-              break;
-            }
-
-          case BinaryExpr.ResolvedOpcode.LeftShift: {
-            Contract.Assert(0 <= bvWidth);
-            return TrToFunctionCall(GetToken(binaryExpr), "LeftShift_bv" + bvWidth, BoogieGenerator.BplBvType(bvWidth), e0, BoogieGenerator.ConvertExpression(GetToken(binaryExpr), e1, binaryExpr.E1.Type, binaryExpr.Type), liftLit);
-          }
-          case BinaryExpr.ResolvedOpcode.RightShift: {
-            Contract.Assert(0 <= bvWidth);
-            return TrToFunctionCall(GetToken(binaryExpr), "RightShift_bv" + bvWidth, BoogieGenerator.BplBvType(bvWidth), e0, BoogieGenerator.ConvertExpression(GetToken(binaryExpr), e1, binaryExpr.E1.Type, binaryExpr.Type), liftLit);
-          }
-          case BinaryExpr.ResolvedOpcode.BitwiseAnd: {
-            Contract.Assert(0 <= bvWidth);
-            return TrToFunctionCall(GetToken(binaryExpr), "and_bv" + bvWidth, BoogieGenerator.BplBvType(bvWidth), e0, e1, liftLit);
-          }
-          case BinaryExpr.ResolvedOpcode.BitwiseOr: {
-            Contract.Assert(0 <= bvWidth);
-            return TrToFunctionCall(GetToken(binaryExpr), "or_bv" + bvWidth, BoogieGenerator.BplBvType(bvWidth), e0, e1, liftLit);
-          }
-          case BinaryExpr.ResolvedOpcode.BitwiseXor: {
-            Contract.Assert(0 <= bvWidth);
-            return TrToFunctionCall(GetToken(binaryExpr), "xor_bv" + bvWidth, BoogieGenerator.BplBvType(bvWidth), e0, e1, liftLit);
-          }
-
-          case BinaryExpr.ResolvedOpcode.LtChar:
-          case BinaryExpr.ResolvedOpcode.LeChar:
-          case BinaryExpr.ResolvedOpcode.GeChar:
-          case BinaryExpr.ResolvedOpcode.GtChar: {
-            // work off the original operands (that is, allow them to be lit-wrapped)
-            var operand0 = BoogieGenerator.FunctionCall(e0.tok, BuiltinFunction.CharToInt, null, oe0);
-            var operand1 = BoogieGenerator.FunctionCall(e0.tok, BuiltinFunction.CharToInt, null, oe1);
-            BinaryOperator.Opcode bOp;
-            switch (binaryExpr.ResolvedOp) {
-              case BinaryExpr.ResolvedOpcode.LtChar: bOp = BinaryOperator.Opcode.Lt; break;
-              case BinaryExpr.ResolvedOpcode.LeChar: bOp = BinaryOperator.Opcode.Le; break;
-              case BinaryExpr.ResolvedOpcode.GeChar: bOp = BinaryOperator.Opcode.Ge; break;
-              case BinaryExpr.ResolvedOpcode.GtChar: bOp = BinaryOperator.Opcode.Gt; break;
-              default:
-                Contract.Assert(false);  // unexpected case
-                throw new cce.UnreachableException();  // to please compiler
-            }
-            return Boogie.Expr.Binary(GetToken(binaryExpr), bOp, operand0, operand1);
-          }
-
-          case BinaryExpr.ResolvedOpcode.SetEq:
-          case BinaryExpr.ResolvedOpcode.MultiSetEq:
-          case BinaryExpr.ResolvedOpcode.SeqEq:
-          case BinaryExpr.ResolvedOpcode.MapEq:
-            return BoogieGenerator.TypeSpecificEqual(GetToken(binaryExpr), binaryExpr.E0.Type, e0, e1);
-          case BinaryExpr.ResolvedOpcode.SetNeq:
-          case BinaryExpr.ResolvedOpcode.MultiSetNeq:
-          case BinaryExpr.ResolvedOpcode.SeqNeq:
-          case BinaryExpr.ResolvedOpcode.MapNeq:
-            return Boogie.Expr.Unary(GetToken(binaryExpr), UnaryOperator.Opcode.Not, BoogieGenerator.TypeSpecificEqual(GetToken(binaryExpr), binaryExpr.E0.Type, e0, e1));
-
-          case BinaryExpr.ResolvedOpcode.ProperSubset: {
-            return BoogieGenerator.ProperSubset(GetToken(binaryExpr), e0, e1, binaryExpr.E0.Type.NormalizeToAncestorType().AsSetType.Finite);
-          }
-          case BinaryExpr.ResolvedOpcode.Subset: {
-            bool finite = binaryExpr.E1.Type.NormalizeToAncestorType().AsSetType.Finite;
-            var f = finite ? BuiltinFunction.SetSubset : BuiltinFunction.ISetSubset;
-            return BoogieGenerator.FunctionCall(GetToken(binaryExpr), f, null, e0, e1);
-          }
-          case BinaryExpr.ResolvedOpcode.Superset: {
-            bool finite = binaryExpr.E1.Type.NormalizeToAncestorType().AsSetType.Finite;
-            var f = finite ? BuiltinFunction.SetSubset : BuiltinFunction.ISetSubset;
-            return BoogieGenerator.FunctionCall(GetToken(binaryExpr), f, null, e1, e0);
-          }
-          case BinaryExpr.ResolvedOpcode.ProperSuperset:
-            return BoogieGenerator.ProperSubset(GetToken(binaryExpr), e1, e0, binaryExpr.E0.Type.NormalizeToAncestorType().AsSetType.Finite);
-          case BinaryExpr.ResolvedOpcode.Disjoint: {
-            bool finite = binaryExpr.E1.Type.NormalizeToAncestorType().AsSetType.Finite;
-            var f = finite ? BuiltinFunction.SetDisjoint : BuiltinFunction.ISetDisjoint;
-            return BoogieGenerator.FunctionCall(GetToken(binaryExpr), f, null, e0, e1);
-          }
-          case BinaryExpr.ResolvedOpcode.InSet:
-            Contract.Assert(false); throw new cce.UnreachableException();  // this case handled above
-          case BinaryExpr.ResolvedOpcode.NotInSet:
-            Contract.Assert(false); throw new cce.UnreachableException();  // this case handled above
-          case BinaryExpr.ResolvedOpcode.Union: {
-            var setType = binaryExpr.Type.NormalizeToAncestorType().AsSetType;
-            bool finite = setType.Finite;
-            var f = finite ? BuiltinFunction.SetUnion : BuiltinFunction.ISetUnion;
-            return BoogieGenerator.FunctionCall(GetToken(binaryExpr), f, BoogieGenerator.TrType(setType.Arg), e0, e1);
-          }
-          case BinaryExpr.ResolvedOpcode.Intersection: {
-            var setType = binaryExpr.Type.NormalizeToAncestorType().AsSetType;
-            bool finite = setType.Finite;
-            var f = finite ? BuiltinFunction.SetIntersection : BuiltinFunction.ISetIntersection;
-            return BoogieGenerator.FunctionCall(GetToken(binaryExpr), f, BoogieGenerator.TrType(setType.Arg), e0, e1);
-          }
-          case BinaryExpr.ResolvedOpcode.SetDifference: {
-            var setType = binaryExpr.Type.NormalizeToAncestorType().AsSetType;
-            bool finite = setType.Finite;
-            var f = finite ? BuiltinFunction.SetDifference : BuiltinFunction.ISetDifference;
-            return BoogieGenerator.FunctionCall(GetToken(binaryExpr), f, BoogieGenerator.TrType(setType.Arg), e0, e1);
-          }
-          case BinaryExpr.ResolvedOpcode.ProperMultiSubset:
-            return BoogieGenerator.ProperMultiset(GetToken(binaryExpr), e0, e1);
-          case BinaryExpr.ResolvedOpcode.MultiSubset:
-            return BoogieGenerator.FunctionCall(GetToken(binaryExpr), BuiltinFunction.MultiSetSubset, null, e0, e1);
-          case BinaryExpr.ResolvedOpcode.MultiSuperset:
-            return BoogieGenerator.FunctionCall(GetToken(binaryExpr), BuiltinFunction.MultiSetSubset, null, e1, e0);
-          case BinaryExpr.ResolvedOpcode.ProperMultiSuperset:
-            return BoogieGenerator.ProperMultiset(GetToken(binaryExpr), e1, e0);
-          case BinaryExpr.ResolvedOpcode.MultiSetDisjoint:
-            return BoogieGenerator.FunctionCall(GetToken(binaryExpr), BuiltinFunction.MultiSetDisjoint, null, e0, e1);
-          case BinaryExpr.ResolvedOpcode.InMultiSet:
-            Contract.Assert(false); throw new cce.UnreachableException();  // this case handled above
-          case BinaryExpr.ResolvedOpcode.NotInMultiSet:
-            Contract.Assert(false); throw new cce.UnreachableException();  // this case handled above
-          case BinaryExpr.ResolvedOpcode.MultiSetUnion:
-            return BoogieGenerator.FunctionCall(GetToken(binaryExpr), BuiltinFunction.MultiSetUnion,
-              BoogieGenerator.TrType(binaryExpr.Type.NormalizeToAncestorType().AsMultiSetType.Arg), e0, e1);
-          case BinaryExpr.ResolvedOpcode.MultiSetIntersection:
-            return BoogieGenerator.FunctionCall(GetToken(binaryExpr), BuiltinFunction.MultiSetIntersection,
-              BoogieGenerator.TrType(binaryExpr.Type.NormalizeToAncestorType().AsMultiSetType.Arg), e0, e1);
-          case BinaryExpr.ResolvedOpcode.MultiSetDifference:
-            return BoogieGenerator.FunctionCall(GetToken(binaryExpr), BuiltinFunction.MultiSetDifference,
-              BoogieGenerator.TrType(binaryExpr.Type.NormalizeToAncestorType().AsMultiSetType.Arg), e0, e1);
-
-          case BinaryExpr.ResolvedOpcode.ProperPrefix:
-            return BoogieGenerator.ProperPrefix(GetToken(binaryExpr), e0, e1);
-          case BinaryExpr.ResolvedOpcode.Prefix: {
-            Boogie.Expr len0 = BoogieGenerator.FunctionCall(GetToken(binaryExpr), BuiltinFunction.SeqLength, null, e0);
-            Boogie.Expr len1 = BoogieGenerator.FunctionCall(GetToken(binaryExpr), BuiltinFunction.SeqLength, null, e1);
-            return Boogie.Expr.Binary(GetToken(binaryExpr), BinaryOperator.Opcode.And,
-              Boogie.Expr.Le(len0, len1),
-              BoogieGenerator.FunctionCall(GetToken(binaryExpr), BuiltinFunction.SeqSameUntil, null, e0, e1, len0));
-          }
-          case BinaryExpr.ResolvedOpcode.Concat:
-            return BoogieGenerator.FunctionCall(GetToken(binaryExpr), BuiltinFunction.SeqAppend,
-              BoogieGenerator.TrType(binaryExpr.Type.NormalizeToAncestorType().AsSeqType.Arg), e0, e1);
-          case BinaryExpr.ResolvedOpcode.InSeq:
-            return BoogieGenerator.FunctionCall(GetToken(binaryExpr), BuiltinFunction.SeqContains, null, e1,
-              BoxIfNecessary(GetToken(binaryExpr), e0, binaryExpr.E0.Type));
-          case BinaryExpr.ResolvedOpcode.NotInSeq:
-            Boogie.Expr arg = BoogieGenerator.FunctionCall(GetToken(binaryExpr), BuiltinFunction.SeqContains, null, e1,
-              BoxIfNecessary(GetToken(binaryExpr), e0, binaryExpr.E0.Type));
-            return Boogie.Expr.Unary(GetToken(binaryExpr), UnaryOperator.Opcode.Not, arg);
-          case BinaryExpr.ResolvedOpcode.InMap: {
-            bool finite = binaryExpr.E1.Type.NormalizeToAncestorType().AsMapType.Finite;
-            var f = finite ? BuiltinFunction.MapDomain : BuiltinFunction.IMapDomain;
-            return BoogieGenerator.IsSetMember(GetToken(binaryExpr),
-              BoogieGenerator.FunctionCall(GetToken(binaryExpr), f, finite ? Predef.MapType : Predef.IMapType, e1),
-              BoxIfNecessary(GetToken(binaryExpr), e0, binaryExpr.E0.Type),
-              finite);
-          }
-          case BinaryExpr.ResolvedOpcode.NotInMap: {
-            bool finite = binaryExpr.E1.Type.NormalizeToAncestorType().AsMapType.Finite;
-            var f = finite ? BuiltinFunction.MapDomain : BuiltinFunction.IMapDomain;
-            Boogie.Expr inMap = BoogieGenerator.IsSetMember(GetToken(binaryExpr),
-              BoogieGenerator.FunctionCall(GetToken(binaryExpr), f, finite ? Predef.MapType : Predef.IMapType, e1),
-              BoxIfNecessary(GetToken(binaryExpr), e0, binaryExpr.E0.Type),
-              finite);
-            return Boogie.Expr.Unary(GetToken(binaryExpr), UnaryOperator.Opcode.Not, inMap);
-          }
-          case BinaryExpr.ResolvedOpcode.MapMerge: {
-            bool finite = e0Type.NormalizeToAncestorType().AsMapType.Finite;
-            var f = finite ? "Map#Merge" : "IMap#Merge";
-            return FunctionCall(GetToken(binaryExpr), f, BoogieGenerator.TrType(binaryExpr.Type), e0, e1);
-          }
-          case BinaryExpr.ResolvedOpcode.MapSubtraction: {
-            bool finite = e0Type.NormalizeToAncestorType().AsMapType.Finite;
-            var f = finite ? "Map#Subtract" : "IMap#Subtract";
-            return FunctionCall(GetToken(binaryExpr), f, BoogieGenerator.TrType(binaryExpr.Type), e0, e1);
-          }
-
-          case BinaryExpr.ResolvedOpcode.RankLt:
-            return Boogie.Expr.Binary(GetToken(binaryExpr), BinaryOperator.Opcode.Lt,
-              BoogieGenerator.FunctionCall(GetToken(binaryExpr), e0Type.IsDatatype ? BuiltinFunction.DtRank : BuiltinFunction.BoxRank, null, e0),
-              BoogieGenerator.FunctionCall(GetToken(binaryExpr), BuiltinFunction.DtRank, null, e1));
-          case BinaryExpr.ResolvedOpcode.RankGt:
-            return Boogie.Expr.Binary(GetToken(binaryExpr), BinaryOperator.Opcode.Gt,
-              BoogieGenerator.FunctionCall(GetToken(binaryExpr), BuiltinFunction.DtRank, null, e0),
-              BoogieGenerator.FunctionCall(GetToken(binaryExpr), binaryExpr.E1.Type.IsDatatype ? BuiltinFunction.DtRank : BuiltinFunction.BoxRank, null, e1));
-
-          default:
-            Contract.Assert(false); throw new cce.UnreachableException();  // unexpected binary expression
-        }
-        liftLit = liftLit && !keepLits;
-        var ae0 = keepLits ? oe0 : e0;
-        var ae1 = keepLits ? oe1 : e1;
-        Boogie.Expr re = Boogie.Expr.Binary(GetToken(binaryExpr), bOpcode, ae0, ae1);
-        if (liftLit) {
-          re = MaybeLit(re, typ);
-        }
-        return re;
-      }
-
-      private Expr TranslateUnaryOpExpression(UnaryOpExpr opExpr)
-      {
+      private Expr TranslateUnaryOpExpression(UnaryOpExpr opExpr) {
         var e = opExpr;
         Boogie.Expr arg = TrExpr(e.E);
         switch (e.ResolvedOp) {
@@ -1169,8 +754,7 @@ return BoogieGenerator.CondApplyUnbox(GetToken(castExpr), TrExpr(castExpr.E), ca
         }
       }
 
-      private Expr TranslateMultisetFormingExpr(MultiSetFormingExpr formingExpr)
-      {
+      private Expr TranslateMultisetFormingExpr(MultiSetFormingExpr formingExpr) {
         MultiSetFormingExpr e = formingExpr;
         var eType = e.E.Type.NormalizeToAncestorType();
         if (eType is SetType setType) {
@@ -1182,8 +766,7 @@ return BoogieGenerator.CondApplyUnbox(GetToken(castExpr), TrExpr(castExpr.E), ca
         }
       }
 
-      private Expr TranslateSeqConstructionExpr(SeqConstructionExpr constructionExpr)
-      {
+      private Expr TranslateSeqConstructionExpr(SeqConstructionExpr constructionExpr) {
         var e = constructionExpr;
         var eType = e.Type.NormalizeToAncestorType().AsSeqType.Arg.NormalizeExpand();
         var initalizerHeap = e.Initializer.Type.IsArrowType ? HeapExprForArrow(e.Initializer.Type) : HeapExpr;
@@ -1194,8 +777,7 @@ return BoogieGenerator.CondApplyUnbox(GetToken(castExpr), TrExpr(castExpr.E), ca
           TrExpr(e.Initializer));
       }
 
-      private Expr TranslateDatatypeValue(DatatypeValue value)
-      {
+      private Expr TranslateDatatypeValue(DatatypeValue value) {
         DatatypeValue dtv = value;
         Contract.Assert(dtv.Ctor != null);  // since dtv has been successfully resolved
         List<Boogie.Expr> args = [];
@@ -1217,8 +799,7 @@ return BoogieGenerator.CondApplyUnbox(GetToken(castExpr), TrExpr(castExpr.E), ca
         return ret;
       }
 
-      private Expr TranslateFunctionCallExpr(FunctionCallExpr callExpr)
-      {
+      private Expr TranslateFunctionCallExpr(FunctionCallExpr callExpr) {
         FunctionCallExpr e = callExpr;
         if (e.Function is SpecialFunction) {
           return TrExprSpecialFunctionCall(e);
@@ -1269,8 +850,7 @@ return BoogieGenerator.CondApplyUnbox(GetToken(castExpr), TrExpr(castExpr.E), ca
         }
       }
 
-      private Expr TranslateLiteralExpr(LiteralExpr literalExpr)
-      {
+      private Expr TranslateLiteralExpr(LiteralExpr literalExpr) {
         LiteralExpr e = literalExpr;
         if (e.Value == null) {
           return Predef.Null;
@@ -1311,8 +891,7 @@ return BoogieGenerator.CondApplyUnbox(GetToken(castExpr), TrExpr(castExpr.E), ca
         }
       }
 
-      private Expr TranslateSeqDisplayExpr(SeqDisplayExpr displayExpr)
-      {
+      private Expr TranslateSeqDisplayExpr(SeqDisplayExpr displayExpr) {
         SeqDisplayExpr e = displayExpr;
         // Note: a LiteralExpr(string) is really another kind of SeqDisplayExpr
         Boogie.Expr s = BoogieGenerator.FunctionCall(GetToken(displayExpr), BuiltinFunction.SeqEmpty, Predef.BoxType);
@@ -1330,8 +909,7 @@ return BoogieGenerator.CondApplyUnbox(GetToken(castExpr), TrExpr(castExpr.E), ca
         return s;
       }
 
-      private Expr TranslateSeqSelectExpr(SeqSelectExpr selectExpr)
-      {
+      private Expr TranslateSeqSelectExpr(SeqSelectExpr selectExpr) {
         SeqSelectExpr e = selectExpr;
         Boogie.Expr seq = TrExpr(e.Seq);
         var seqType = e.Seq.Type.NormalizeToAncestorType();
@@ -1403,8 +981,7 @@ return BoogieGenerator.CondApplyUnbox(GetToken(castExpr), TrExpr(castExpr.E), ca
         }
       }
 
-      private Expr TranslateSeqUpdateExpr(SeqUpdateExpr updateExpr)
-      {
+      private Expr TranslateSeqUpdateExpr(SeqUpdateExpr updateExpr) {
         SeqUpdateExpr e = updateExpr;
         Boogie.Expr seq = TrExpr(e.Seq);
         var seqType = e.Seq.Type.NormalizeToAncestorType();
@@ -1430,8 +1007,7 @@ return BoogieGenerator.CondApplyUnbox(GetToken(castExpr), TrExpr(castExpr.E), ca
         }
       }
 
-      private Expr TranslateMultiSelectExpr(MultiSelectExpr selectExpr)
-      {
+      private Expr TranslateMultiSelectExpr(MultiSelectExpr selectExpr) {
         MultiSelectExpr e = selectExpr;
         Type elmtType = UserDefinedType.ArrayElementType(e.Array.Type); ;
         Boogie.Type elType = BoogieGenerator.TrType(elmtType);
@@ -1444,8 +1020,7 @@ return BoogieGenerator.CondApplyUnbox(GetToken(castExpr), TrExpr(castExpr.E), ca
         return x;
       }
 
-      private Expr TranslateApplyExpr(ApplyExpr applyExpr)
-      {
+      private Expr TranslateApplyExpr(ApplyExpr applyExpr) {
         int arity = applyExpr.Args.Count;
         var tt = applyExpr.Function.Type.AsArrowType;
         Contract.Assert(tt != null);
@@ -1535,8 +1110,7 @@ return BoogieGenerator.CondApplyUnbox(GetToken(castExpr), TrExpr(castExpr.E), ca
           });
       }
 
-      private Expr TranslateMapDisplayExpr(MapDisplayExpr displayExpr)
-      {
+      private Expr TranslateMapDisplayExpr(MapDisplayExpr displayExpr) {
         Boogie.Type maptype = displayExpr.Finite ? Predef.MapType : Predef.IMapType;
         Boogie.Expr s = BoogieGenerator.FunctionCall(GetToken(displayExpr), displayExpr.Finite ? BuiltinFunction.MapEmpty : BuiltinFunction.IMapEmpty, Predef.BoxType);
         var isLit = true;
@@ -1555,8 +1129,7 @@ return BoogieGenerator.CondApplyUnbox(GetToken(castExpr), TrExpr(castExpr.E), ca
         return s;
       }
 
-      private Expr TranslateBoogieFunctionCall(BoogieFunctionCall call)
-      {
+      private Expr TranslateBoogieFunctionCall(BoogieFunctionCall call) {
         var id = new Boogie.IdentifierExpr(GetToken(call), call.FunctionName, BoogieGenerator.TrType(call.Type));
         var args = new List<Boogie.Expr>();
         foreach (var arg in call.TyArgs) {
@@ -1578,8 +1151,7 @@ return BoogieGenerator.CondApplyUnbox(GetToken(castExpr), TrExpr(castExpr.E), ca
         return new Boogie.NAryExpr(GetToken(call), new Boogie.FunctionCall(id), args);
       }
 
-      private Expr TranslateSetDisplayExpr(SetDisplayExpr displayExpr)
-      {
+      private Expr TranslateSetDisplayExpr(SetDisplayExpr displayExpr) {
         Boogie.Expr s = BoogieGenerator.FunctionCall(GetToken(displayExpr), displayExpr.Finite ? BuiltinFunction.SetEmpty : BuiltinFunction.ISetEmpty, Predef.BoxType);
         var isLit = true;
         foreach (Expression ee in displayExpr.Elements) {
@@ -1853,201 +1425,6 @@ BplBoundVar(varNameGen.FreshId(string.Format("#{0}#", bv.Name)), Predef.BoxType,
         Contract.Requires(fromType != null);
         Contract.Ensures(Contract.Result<Boogie.Expr>() != null);
         return BoogieGenerator.BoxIfNecessary(tok, e, fromType);
-      }
-
-      /// <summary>
-      /// Translate like s[Box(elmt)], but try to avoid as many set functions as possible in the
-      /// translation, because such functions can mess up triggering.
-      /// </summary>
-      public Boogie.Expr TrInSet(IOrigin tok, Boogie.Expr elmt, Expression s, Type elmtType, bool isFiniteSet, bool aggressive, out bool performedRewrite) {
-        Contract.Requires(tok != null);
-        Contract.Requires(elmt != null);
-        Contract.Requires(s != null);
-        Contract.Requires(elmtType != null);
-        Contract.Ensures(Contract.Result<Boogie.Expr>() != null);
-
-        var elmtBox = BoxIfNecessary(tok, elmt, elmtType);
-        var r = TrInSet_Aux(tok, elmt, elmtBox, s, isFiniteSet, aggressive, out performedRewrite);
-        Contract.Assert(performedRewrite == RewriteInExpr(s, aggressive)); // sanity check
-        return r;
-      }
-      /// <summary>
-      /// The worker routine for TrInSet.  This method takes both "elmt" and "elmtBox" as parameters,
-      /// using the former when the unboxed form is needed and the latter when the boxed form is needed.
-      /// This gives the caller the flexibility to pass in either "o, Box(o)" or "Unbox(bx), bx".
-      /// Note: This method must be kept in synch with RewriteInExpr.
-      /// </summary>
-      public Expr TrInSet_Aux(IOrigin tok, Expr elmt, Expr elmtBox, Expression s, bool isFiniteSet, bool aggressive,
-        out bool performedRewrite, Func<Expr, Expr> extractObjectFromMemoryLocation = null) {
-        Contract.Requires(tok != null);
-        Contract.Requires(elmt != null);
-        Contract.Requires(elmtBox != null);
-        Contract.Requires(s != null);
-        Contract.Ensures(Contract.Result<Boogie.Expr>() != null);
-
-        performedRewrite = true;  // assume a rewrite will happen
-        s = s.Resolved;
-        bool pr;
-        if (s is BinaryExpr && aggressive) {
-          BinaryExpr bin = (BinaryExpr)s;
-          switch (bin.ResolvedOp) {
-            case BinaryExpr.ResolvedOpcode.Union:
-              return BplOr(
-                TrInSet_Aux(tok, elmt, elmtBox, bin.E0, isFiniteSet, aggressive, out pr, extractObjectFromMemoryLocation),
-                TrInSet_Aux(tok, elmt, elmtBox, bin.E1, isFiniteSet, aggressive, out pr, extractObjectFromMemoryLocation));
-            case BinaryExpr.ResolvedOpcode.Intersection:
-              return BplAnd(
-                TrInSet_Aux(tok, elmt, elmtBox, bin.E0, isFiniteSet, aggressive, out pr, extractObjectFromMemoryLocation),
-                TrInSet_Aux(tok, elmt, elmtBox, bin.E1, isFiniteSet, aggressive, out pr, extractObjectFromMemoryLocation));
-            case BinaryExpr.ResolvedOpcode.SetDifference:
-              return BplAnd(
-                TrInSet_Aux(tok, elmt, elmtBox, bin.E0, isFiniteSet, aggressive, out pr, extractObjectFromMemoryLocation),
-                Boogie.Expr.Not(TrInSet_Aux(tok, elmt, elmtBox, bin.E1, isFiniteSet, aggressive, out pr, extractObjectFromMemoryLocation)));
-            default:
-              break;
-          }
-        } else if (s is SetDisplayExpr) {
-          SetDisplayExpr disp = (SetDisplayExpr)s;
-          Boogie.Expr disjunction = null;
-          foreach (Expression a in disp.Elements) {
-            var oneElem = TrExpr(a);
-            oneElem = extractObjectFromMemoryLocation != null ? extractObjectFromMemoryLocation(oneElem) : oneElem;
-            Boogie.Expr disjunct = Boogie.Expr.Eq(elmt, oneElem);
-            if (disjunction == null) {
-              disjunction = disjunct;
-            } else {
-              disjunction = BplOr(disjunction, disjunct);
-            }
-          }
-          if (disjunction == null) {
-            return Boogie.Expr.False;
-          } else {
-            return disjunction;
-          }
-        } else if (s is SetComprehension) {
-          var compr = (SetComprehension)s;
-          // Translate "elmt in set xs | R :: T[xs]" into:
-          //     exists xs :: CorrectType(xs) && R && elmt==T[xs]
-          // or if "T[xs]" is "xs", then:
-          //     CorrectType(elmt) && R[xs := elmt]
-          if (compr.TermIsSimple && extractObjectFromMemoryLocation == null) {
-            // CorrectType(elmt) && R[xs := elmt]
-            // Note, we can always use NOALLOC here.
-            Boogie.Expr typeAntecedent = BoogieGenerator.GetWhereClause(GetToken(compr), elmt, compr.BoundVars[0].Type, this, NOALLOC) ?? Boogie.Expr.True;
-            var range = BoogieGenerator.Substitute(compr.Range, compr.BoundVars[0], new BoogieWrapper(elmt, compr.BoundVars[0].Type));
-            return BplAnd(typeAntecedent, TrExpr(range));
-          } else {
-            // exists xs :: CorrectType(xs) && R && elmt==T[xs]
-            List<bool> freeOfAlloc = BoundedPool.HasBounds(compr.Bounds, BoundedPool.PoolVirtues.IndependentOfAlloc_or_ExplicitAlloc);
-            var bvars = new List<Variable>();
-            Boogie.Expr typeAntecedent = TrBoundVariables(compr.BoundVars, bvars, false, freeOfAlloc) ?? Boogie.Expr.True;
-            var eq = Boogie.Expr.Eq(elmtBox, BoxIfNecessary(GetToken(compr), extractObjectFromMemoryLocation != null ? extractObjectFromMemoryLocation(TrExpr(compr.Term)) : TrExpr(compr.Term), compr.Term.Type));
-            var ebody = BplAnd(BplAnd(typeAntecedent, TrExpr(compr.Range)), eq);
-            var triggers = BoogieGenerator.TrTrigger(this, compr.Attributes, GetToken(compr));
-            return new Boogie.ExistsExpr(GetToken(compr), bvars, triggers, ebody);
-          }
-        }
-
-        if (extractObjectFromMemoryLocation != null) {
-          // Translate "elmt in s" into "exists xs :: xs in s && elem == xs.0"
-          // with extractObjectFromMemoryLocation = (xs) => xs.0
-          var xs = new Bpl.BoundVariable(GetToken(s), new TypedIdent(tok, "xs", BoogieGenerator.TrType(s.Type.AsSetType.Arg)));
-          var xsExpr = new Bpl.IdentifierExpr(xs.tok, xs);
-          var xsExprBoxExtract = extractObjectFromMemoryLocation(xsExpr);
-          // Create the trigger Set#IsMember(xs, s)
-          var trigger = new Trigger(tok, false, [
-            BoogieGenerator.FunctionCall(tok, BuiltinFunction.SetIsMember, Bpl.Type.Bool, xsExpr, TrExpr(s))
-          ]);
-          var ebody = Boogie.Expr.Eq(elmt, xsExprBoxExtract);
-          return new Boogie.ExistsExpr(GetToken(s), new List<Variable>() { xs }, trigger, ebody);
-        }
-        performedRewrite = false;
-
-        return BoogieGenerator.IsSetMember(tok, TrExpr(s), elmtBox, isFiniteSet);
-      }
-
-      /// <summary>
-      /// Translate like 0 < s[Box(elmt)], but try to avoid as many set functions as possible in the
-      /// translation, because such functions can mess up triggering.
-      /// Note: This method must be kept in synch with RewriteInExpr.
-      /// </summary>
-      public Boogie.Expr TrInMultiSet(IOrigin tok, Boogie.Expr elmt, Expression s, Type elmtType, bool aggressive) {
-        Contract.Requires(tok != null);
-        Contract.Requires(elmt != null);
-        Contract.Requires(s != null);
-        Contract.Requires(elmtType != null);
-
-        Contract.Ensures(Contract.Result<Boogie.Expr>() != null);
-        var elmtBox = BoxIfNecessary(tok, elmt, elmtType);
-        return TrInMultiSet_Aux(tok, elmt, elmtBox, s, aggressive);
-      }
-      public Boogie.Expr TrInMultiSet_Aux(IOrigin tok, Boogie.Expr elmt, Boogie.Expr elmtBox, Expression s, bool aggressive) {
-        Contract.Requires(tok != null);
-        Contract.Requires(elmt != null);
-        Contract.Requires(s != null);
-        Contract.Requires(elmtBox != null);
-
-        Contract.Ensures(Contract.Result<Boogie.Expr>() != null);
-
-        s = s.Resolved;
-        if (s is BinaryExpr && aggressive) {
-          BinaryExpr bin = (BinaryExpr)s;
-          switch (bin.ResolvedOp) {
-            case BinaryExpr.ResolvedOpcode.MultiSetUnion:
-              return Boogie.Expr.Binary(tok, BinaryOperator.Opcode.Or, TrInMultiSet_Aux(tok, elmt, elmtBox, bin.E0, aggressive), TrInMultiSet_Aux(tok, elmt, elmtBox, bin.E1, aggressive));
-            case BinaryExpr.ResolvedOpcode.MultiSetIntersection:
-              return Boogie.Expr.Binary(tok, BinaryOperator.Opcode.And, TrInMultiSet_Aux(tok, elmt, elmtBox, bin.E0, aggressive), TrInMultiSet_Aux(tok, elmt, elmtBox, bin.E1, aggressive));
-            default:
-              break;
-          }
-        } else if (s is MultiSetDisplayExpr) {
-          MultiSetDisplayExpr disp = (MultiSetDisplayExpr)s;
-          Boogie.Expr disjunction = null;
-          foreach (Expression a in disp.Elements) {
-            Boogie.Expr disjunct = Boogie.Expr.Eq(elmt, TrExpr(a));
-            if (disjunction == null) {
-              disjunction = disjunct;
-            } else {
-              disjunction = BplOr(disjunction, disjunct);
-            }
-          }
-          if (disjunction == null) {
-            return Boogie.Expr.False;
-          } else {
-            return disjunction;
-          }
-        }
-        var result = Boogie.Expr.Gt(BoogieGenerator.MultisetMultiplicity(tok, TrExpr(s), elmtBox), Boogie.Expr.Literal(0));
-        result.tok = tok;
-        return result;
-      }
-
-      /// <summary>
-      /// This method returns "true" iff TrInSet_Aux/TrInMultiSet_Aux will rewrite an expression "x in s".
-      /// Note: This method must be kept in synch with TrInSet_Aux/TrInMultiSet_Aux.
-      /// </summary>
-      public static bool RewriteInExpr(Expression s, bool aggressive) {
-        Contract.Requires(s != null);
-
-        s = s.Resolved;
-        if (s is BinaryExpr && aggressive) {
-          BinaryExpr bin = (BinaryExpr)s;
-          switch (bin.ResolvedOp) {
-            case BinaryExpr.ResolvedOpcode.Union:
-            case BinaryExpr.ResolvedOpcode.Intersection:
-            case BinaryExpr.ResolvedOpcode.SetDifference:
-            case BinaryExpr.ResolvedOpcode.MultiSetUnion:
-            case BinaryExpr.ResolvedOpcode.MultiSetIntersection:
-              return true;
-            default:
-              break;
-          }
-        } else if (s is SetDisplayExpr || s is MultiSetDisplayExpr) {
-          return true;
-        } else if (s is SetComprehension) {
-          return true;
-        }
-        return false;
       }
 
       private static readonly Dictionary<string, string> NullaryAttributesToTranslate;
@@ -2371,71 +1748,8 @@ BplBoundVar(varNameGen.FreshId(string.Format("#{0}#", bv.Name)), Predef.BoxType,
         } else if (expr is UnaryExpr) {
           var e = (UnaryExpr)expr;
           return CanCallAssumption(e.E, cco);
-        } else if (expr is BinaryExpr) {
-          // The short-circuiting boolean operators &&, ||, and ==> end up duplicating their
-          // left argument. Therefore, we first try to re-associate the expression to make
-          // left arguments smaller.
-          if (BoogieGenerator.ReAssociateToTheRight(ref expr)) {
-            return CanCallAssumption(expr, cco);
-          }
-          var e = (BinaryExpr)expr;
-
-          Boogie.Expr t0 = CanCallAssumption(e.E0, cco);
-          Boogie.Expr t1 = CanCallAssumption(e.E1, cco);
-          switch (e.ResolvedOp) {
-            case BinaryExpr.ResolvedOpcode.And:
-            case BinaryExpr.ResolvedOpcode.Imp:
-              t1 = BplImp(TrExpr(e.E0), t1);
-              break;
-            case BinaryExpr.ResolvedOpcode.Or:
-              t1 = BplImp(Boogie.Expr.Not(TrExpr(e.E0)), t1);
-              break;
-            case BinaryExpr.ResolvedOpcode.EqCommon:
-            case BinaryExpr.ResolvedOpcode.NeqCommon: {
-                Boogie.Expr r = Boogie.Expr.True;
-                if (cco is not { SkipIsA: true }) {
-                  if (e.E0 is { Type: { AsDatatype: { } dt0 }, Resolved: not DatatypeValue }) {
-                    var funcID = new Boogie.FunctionCall(new Boogie.IdentifierExpr(expr.Origin, "$IsA#" + dt0.FullSanitizedName, Boogie.Type.Bool));
-                    r = BplAnd(r, new Boogie.NAryExpr(expr.Origin, funcID, new List<Boogie.Expr> { TrExpr(e.E0) }));
-                  }
-                  if (e.E1 is { Type: { AsDatatype: { } dt1 }, Resolved: not DatatypeValue }) {
-                    var funcID = new Boogie.FunctionCall(new Boogie.IdentifierExpr(expr.Origin, "$IsA#" + dt1.FullSanitizedName, Boogie.Type.Bool));
-                    r = BplAnd(r, new Boogie.NAryExpr(expr.Origin, funcID, new List<Boogie.Expr> { TrExpr(e.E1) }));
-                  }
-                }
-                return BplAnd(r, BplAnd(t0, t1));
-              }
-            case BinaryExpr.ResolvedOpcode.Mul:
-              if (7 <= BoogieGenerator.options.ArithMode) {
-                if (e.E0.Type.IsNumericBased(Type.NumericPersuasion.Int) && !BoogieGenerator.DisableNonLinearArithmetic) {
-                  // Produce a useful fact about the associativity of multiplication. It is a bit dicey to do as an axiom.
-                  // Change (k*A)*B or (A*k)*B into (A*B)*k, where k is a numeric literal
-                  var left = e.E0.Resolved as BinaryExpr;
-                  if (left != null && left.ResolvedOp == BinaryExpr.ResolvedOpcode.Mul) {
-                    Boogie.Expr r = Boogie.Expr.True;
-                    if (left.E0.Resolved is LiteralExpr) {
-                      // (K*A)*B == (A*B)*k
-                      var y = Expression.CreateMul(Expression.CreateMul(left.E1, e.E1), left.E0);
-                      var eq = Expression.CreateEq(e, y, e.E0.Type);
-                      r = BplAnd(r, TrExpr(eq));
-                    }
-                    if (left.E1.Resolved is LiteralExpr) {
-                      // (A*k)*B == (A*B)*k
-                      var y = Expression.CreateMul(Expression.CreateMul(left.E0, e.E1), left.E1);
-                      var eq = Expression.CreateEq(e, y, e.E0.Type);
-                      r = BplAnd(r, TrExpr(eq));
-                    }
-                    if (r != Boogie.Expr.True) {
-                      return BplAnd(BplAnd(t0, t1), r);
-                    }
-                  }
-                }
-              }
-              break;
-            default:
-              break;
-          }
-          return BplAnd(t0, t1);
+        } else if (expr is BinaryExpr binaryExpr) {
+          return BinaryExprCanCallAssumption(binaryExpr, cco);
         } else if (expr is TernaryExpr) {
           var e = (TernaryExpr)expr;
           return BplAnd(CanCallAssumption(e.E0, cco), BplAnd(CanCallAssumption(e.E1, cco), CanCallAssumption(e.E2, cco)));
