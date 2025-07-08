@@ -1,0 +1,5 @@
+git-issue-2959a.dfy(6,5): Error: variable 'b', which is subject to definite-assignment rules, might be uninitialized here
+git-issue-2959a.dfy(15,7): Error: variable 'y', which is subject to definite-assignment rules, might be uninitialized here
+git-issue-2959a.dfy(19,11): Error: unless an initializer is provided for the array elements, a new array of 'int' must have empty size
+
+Dafny program verifier finished with 0 verified, 3 errors

@@ -1,0 +1,4 @@
+git-issue-697c.dfy(21,7): Error: set comprehensions in non-ghost contexts must be compilable, but Dafny's heuristics can't figure out how to produce or compile a bounded set of values for 'c'
+git-issue-697c.dfy(22,7): Error: map comprehensions in non-ghost contexts must be compilable, but Dafny's heuristics can't figure out how to produce or compile a bounded set of values for 'c'
+git-issue-697c.dfy(26,7): Error: quantifiers in non-ghost contexts must be compilable, but Dafny's heuristics can't figure out how to produce or compile a bounded set of values for 'c'
+3 resolution/type errors detected in git-issue-697c.dfy

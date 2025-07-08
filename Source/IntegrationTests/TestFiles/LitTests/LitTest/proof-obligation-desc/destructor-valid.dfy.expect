@@ -1,0 +1,4 @@
+destructor-valid.dfy(7,13): Error: destructor 'n' can only be applied to datatype values constructed by 'D0' or 'D2'
+ Asserted expression: d.D0? || d.D2?
+
+Dafny program verifier finished with 0 verified, 1 error

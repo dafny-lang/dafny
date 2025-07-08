@@ -1,19 +1,20 @@
 ﻿using System.Text;
 using DiffPlex.DiffBuilder;
 using DiffPlex.DiffBuilder.Model;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
+using Xunit;
+using XunitAssertMessages;
 
 namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Util;
 
 public class AssertWithDiff {
-  public static void Equal(string expected, string actual) {
+  public static void Equal(string expected, string actual, string contextMessage) {
     var diff = InlineDiffBuilder.Instance.BuildDiffModel(expected, actual);
     if (!diff.HasDifferences) {
       return;
     }
 
     var message = new StringBuilder();
-    message.AppendLine("AssertEqualWithDiff() Failure");
+    message.AppendLine($"For {contextMessage}, AssertEqualWithDiff() Failure");
     message.AppendLine("Diff (changing expected into actual):");
     foreach (var line in diff.Lines) {
       var prefix = line.Type switch {
@@ -25,6 +26,6 @@ public class AssertWithDiff {
       message.AppendLine(line.Text);
     }
 
-    Assert.AreEqual(expected, actual, message.ToString());
+    AssertM.Equal(expected, actual, message.ToString());
   }
 }

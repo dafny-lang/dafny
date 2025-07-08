@@ -1,1 +1,0 @@
-For the command `translate`, renamed the option `--target` into `language` and turned it into a mandatory argument.

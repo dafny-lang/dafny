@@ -1,0 +1,8 @@
+CanCall.dfy(113,22): Error: function precondition could not be proved
+CanCall.dfy(100,13): Related location: this proposition could not be proved
+CanCall.dfy(127,4): Error: a postcondition could not be proved on this return path
+CanCall.dfy(126,14): Related location: this is the postcondition that could not be proved
+CanCall.dfy(142,24): Error: function precondition could not be proved
+CanCall.dfy(131,15): Related location: this proposition could not be proved
+
+Dafny program verifier finished with 34 verified, 3 errors

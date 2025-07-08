@@ -1,0 +1,21 @@
+ResolutionErrors1.dfy(20,7): Error: RHS (of type List<A>) not assignable to LHS (of type List<B>) (covariant type parameter would require A <: B)
+ResolutionErrors1.dfy(25,7): Error: RHS (of type List<A>) not assignable to LHS (of type List<B>) (covariant type parameter would require A <: B)
+ResolutionErrors1.dfy(39,23): Error: type of case bodies do not agree (found Tree<_T1, _T0>, previous types Tree<_T0, _T1>) (covariant type parameter 0 would require _T1 <: _T0)
+ResolutionErrors1.dfy(51,30): Error: Wrong number of type arguments (0 instead of 2) passed to datatype: Tree
+ResolutionErrors1.dfy(66,20): Error: unresolved identifier: w
+ResolutionErrors1.dfy(85,8): Error: the type of this local variable is underspecified
+ResolutionErrors1.dfy(86,25): Error: the type of this variable is underspecified
+ResolutionErrors1.dfy(86,24): Error: type parameter 'T' (inferred to be '?') in the function call to 'P' could not be determined
+ResolutionErrors1.dfy(86,18): Error: type of bound variable 'z' could not be determined; please specify the type explicitly
+ResolutionErrors1.dfy(99,13): Error: a lemma is not allowed to use 'new'
+ResolutionErrors1.dfy(100,9): Error: a lemma is not allowed to use 'new'
+ResolutionErrors1.dfy(109,16): Error: only ghost methods can be called from this context
+ResolutionErrors1.dfy(116,15): Error: only ghost methods can be called from this context
+ResolutionErrors1.dfy(126,17): Error: a hint is not allowed to use 'new'
+ResolutionErrors1.dfy(141,14): Error: new allocation not supported in aggregate assignments
+ResolutionErrors1.dfy(148,14): Error: a forall statement is not allowed to use 'new'
+ResolutionErrors1.dfy(148,11): Error: assignment to array element is not allowed in this context, because the statement is in a ghost context; e.g., it may be guarded by a specification-only expression
+ResolutionErrors1.dfy(164,26): Error: second argument to "in" must be a set, multiset, or sequence with elements of type int, or a map with domain int (instead got bool)
+ResolutionErrors1.dfy(171,18): Error: second argument to "in" must be a set, multiset, or sequence with elements of type int, or a map with domain int (instead got ?)
+ResolutionErrors1.dfy(183,13): Error: lemmas are not allowed to have modifies clauses
+20 resolution/type errors detected in ResolutionErrors1.dfy

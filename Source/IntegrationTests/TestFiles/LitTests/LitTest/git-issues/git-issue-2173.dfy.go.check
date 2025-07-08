@@ -1,0 +1,3 @@
+// https://github.com/dafny-lang/dafny/issues/4120
+// CHECK: T.* is not a type
+

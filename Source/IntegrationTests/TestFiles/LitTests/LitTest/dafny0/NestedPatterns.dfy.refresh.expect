@@ -1,0 +1,6 @@
+NestedPatterns.dfy(75,23): Error: Duplicate parameter name: h
+NestedPatterns.dfy(83,20): Error: Duplicate parameter name: h
+NestedPatterns.dfy(91,23): Error: Duplicate parameter name: e
+NestedPatterns.dfy(107,7): Error: tuple type does not match type '(?156, ?157, ?158)'
+NestedPatterns.dfy(120,21): Error: constructor nameDoesNotExist does not exist in datatype Tree
+5 resolution/type errors detected in NestedPatterns.dfy

@@ -1,0 +1,2 @@
+// https://github.com/dafny-lang/dafny/issues/3055
+// CHECK: error: incompatible types: Object\[\] cannot be converted to boolean\[\]\[\]

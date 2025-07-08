@@ -1,7 +1,8 @@
 using System.IO;
+using System.Threading.Tasks;
 using Xunit.Abstractions;
 
-namespace XUnitExtensions.Lit; 
+namespace XUnitExtensions.Lit;
 
 public class NotCommand : ILitCommand {
   private readonly ILitCommand operand;
@@ -10,9 +11,10 @@ public class NotCommand : ILitCommand {
     this.operand = operand;
   }
 
-  public (int, string, string) Execute(ITestOutputHelper? outputHelper, TextReader? inputReader, TextWriter? outputWriter, TextWriter? errorWriter) {
-    var (exitCode, output, error) = operand.Execute(outputHelper, inputReader, outputWriter, errorWriter);
-    return (exitCode == 0 ? 1 : 0, output, error);
+  public async Task<int> Execute(TextReader inputReader,
+    TextWriter outputWriter, TextWriter errorWriter) {
+    var exitCode = await operand.Execute(inputReader, outputWriter, errorWriter);
+    return exitCode == 0 ? 1 : 0;
   }
 
   public override string ToString() {

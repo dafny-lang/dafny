@@ -7,33 +7,36 @@ using System.IO;
 using System.Linq;
 using System.Runtime.Serialization;
 using System.Text.RegularExpressions;
-using DafnyServer.CounterexampleGeneration;
 using Microsoft.Boogie;
+using Microsoft.Dafny;
 
 namespace DafnyServer {
-  public class CounterExampleProvider {
-    private const int maximumCounterexampleDepth = 5;
-    public const string ModelBvd = "./model.bvd";
+  public sealed class CounterExampleProvider {
+    public readonly string ModelBvd;
 
-    public CounterExample LoadCounterModel() {
+    public CounterExampleProvider() {
+      ModelBvd = $"./model{GetHashCode()}.bvd";
+    }
+
+    public CounterExample LoadCounterModel(DafnyOptions options) {
       try {
-        var models = LoadModelFromFile();
+        var models = LoadModelFromFile(options);
         return ConvertModels(models);
       } catch (Exception) {
         return new CounterExample();
       }
     }
 
-    private static List<DafnyModel> LoadModelFromFile() {
+    private List<DafnyModel> LoadModelFromFile(DafnyOptions options) {
       using var wr = new StreamReader(ModelBvd);
       var output = wr.ReadToEnd();
       var models = ExtractModels(output);
-      var dafnyModels = BuildModels(models).ToList();
+      var dafnyModels = BuildModels(options, models).ToList();
       return dafnyModels;
     }
 
-    private static IEnumerable<DafnyModel> BuildModels(IEnumerable<Model> modelList) {
-      return modelList.Select(model => new DafnyModel(model));
+    private static IEnumerable<DafnyModel> BuildModels(DafnyOptions options, IEnumerable<Model> modelList) {
+      return modelList.Select(model => new DafnyModel(model, options));
     }
 
     private static List<Model> ExtractModels(string output) {
@@ -42,7 +45,7 @@ namespace DafnyServer {
       var beginIndex = output.IndexOf(begin, StringComparison.Ordinal);
       var endIndex = output.IndexOf(end, StringComparison.Ordinal);
       if (beginIndex == -1 || endIndex == -1) {
-        return new List<Model>();
+        return [];
       }
 
       var modelString = output.Substring(beginIndex, endIndex + end.Length - beginIndex);
@@ -64,14 +67,14 @@ namespace DafnyServer {
           };
           AddLineInformation(counterExampleState, state.FullStateName);
 
-          var vars = state.ExpandedVariableSet(maximumCounterexampleDepth);
+          var vars = state.ExpandedVariableSet();
 
           foreach (var variableNode in vars) {
             counterExampleState.Variables.Add(new CounterExampleVariable {
-              Name = variableNode.ShortName,
-              Value = variableNode.Value,
-              // CanonicalName is same as Value now but keeping this for legacy
-              CanonicalName = variableNode.Value
+              Name = "",
+              Value = variableNode.ToString(),
+              // DatatypeConstructorName is same as Value now but keeping this for legacy
+              CanonicalName = variableNode.ToString()
             });
           }
           var index = counterExample.States.FindIndex(c => c.Column == counterExampleState.Column && c.Line == counterExampleState.Line);
@@ -112,7 +115,7 @@ namespace DafnyServer {
       public List<CounterExampleState> States { get; set; }
 
       public CounterExample() {
-        States = new List<CounterExampleState>();
+        States = [];
       }
     }
 
@@ -128,7 +131,7 @@ namespace DafnyServer {
       [DataMember]
       public int Column { get; set; }
       public CounterExampleState() {
-        Variables = new List<CounterExampleVariable>();
+        Variables = [];
       }
     }
 

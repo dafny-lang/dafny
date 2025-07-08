@@ -2,13 +2,13 @@ using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 using System.Linq;
 
-namespace Microsoft.Dafny; 
+namespace Microsoft.Dafny;
 
-public class MatchExpr : Expression, Match, ICloneable<MatchExpr> {  // a MatchExpr is an "extended expression" and is only allowed in certain places
+public class MatchExpr : Expression, IMatch, ICloneable<MatchExpr> {  // a MatchExpr is an "extended expression" and is only allowed in certain places
   private Expression source;
   private List<MatchCaseExpr> cases;
   public readonly MatchingContext Context;
-  [FilledInDuringResolution] public List<DatatypeCtor> MissingCases { get; } = new();
+  [FilledInDuringResolution] public List<DatatypeCtor> MissingCases { get; } = [];
   public readonly bool UsesOptionalBraces;
   public MatchExpr OrigUnresolved;  // the resolver makes this clone of the MatchExpr before it starts desugaring it
 
@@ -19,15 +19,15 @@ public class MatchExpr : Expression, Match, ICloneable<MatchExpr> {  // a MatchE
     Contract.Invariant(cce.NonNullElements(MissingCases));
   }
 
-  public MatchExpr(IToken tok, Expression source, [Captured] List<MatchCaseExpr> cases, bool usesOptionalBraces, MatchingContext context = null)
-    : base(tok) {
-    Contract.Requires(tok != null);
+  public MatchExpr(IOrigin origin, Expression source, [Captured] List<MatchCaseExpr> cases, bool usesOptionalBraces, MatchingContext context = null)
+    : base(origin) {
+    Contract.Requires(origin != null);
     Contract.Requires(source != null);
     Contract.Requires(cce.NonNullElements(cases));
     this.source = source;
     this.cases = cases;
-    this.UsesOptionalBraces = usesOptionalBraces;
-    this.Context = context ?? new HoleCtx();
+    UsesOptionalBraces = usesOptionalBraces;
+    Context = context ?? new HoleCtx();
   }
   public MatchExpr(Cloner cloner, MatchExpr original)
     : base(cloner, original) {
@@ -48,7 +48,7 @@ public class MatchExpr : Expression, Match, ICloneable<MatchExpr> {  // a MatchE
 
   public List<MatchCaseExpr> Cases => cases;
 
-  IEnumerable<MatchCase> Match.Cases => Cases;
+  IEnumerable<MatchCase> IMatch.Cases => Cases;
 
   // should only be used in desugar in resolve to change the source and cases of the matchexpr
   public void UpdateSource(Expression source) {
@@ -59,7 +59,7 @@ public class MatchExpr : Expression, Match, ICloneable<MatchExpr> {  // a MatchE
     this.cases = cases;
   }
 
-  public override IEnumerable<INode> Children => new[] { source }.Concat<INode>(cases);
+  public override IEnumerable<INode> Children => new[] { source }.Concat<Node>(cases);
 
   public override IEnumerable<Expression> SubExpressions {
     get {
@@ -81,40 +81,37 @@ public class MatchExpr : Expression, Match, ICloneable<MatchExpr> {  // a MatchE
   }
 }
 
-public abstract class MatchCase : INode, IHasUsages {
+public abstract class MatchCase : NodeWithOrigin, IHasReferences {
   public DatatypeCtor Ctor;
   public List<BoundVar> Arguments;
 
   [ContractInvariantMethod]
   void ObjectInvariant() {
-    Contract.Invariant(tok != null);
+    Contract.Invariant(Origin != null);
     Contract.Invariant(Ctor != null);
     Contract.Invariant(cce.NonNullElements(Arguments));
   }
 
-  public MatchCase(IToken tok, DatatypeCtor ctor, [Captured] List<BoundVar> arguments) {
-    Contract.Requires(tok != null);
+  public MatchCase(IOrigin origin, DatatypeCtor ctor, [Captured] List<BoundVar> arguments) : base(origin) {
+    Contract.Requires(origin != null);
     Contract.Requires(ctor != null);
     Contract.Requires(cce.NonNullElements(arguments));
-    this.tok = tok;
-    this.Ctor = ctor;
-    this.Arguments = arguments;
+    Ctor = ctor;
+    Arguments = arguments;
   }
 
-  public IToken NameToken => tok;
-  public IEnumerable<IDeclarationOrUsage> GetResolvedDeclarations() {
-    return new[] { Ctor };
+  public IEnumerable<Reference> GetReferences() {
+    return new[] { new Reference(ReportingRange, Ctor) };
   }
 }
 
-interface Match {
+public interface IMatch {
   IEnumerable<MatchCase> Cases { get; }
   Expression Source { get; }
-
   List<DatatypeCtor> MissingCases { get; }
 }
 
-public class MatchStmt : Statement, Match, ICloneable<MatchStmt> {
+public class MatchStmt : Statement, IMatch, ICloneable<MatchStmt> {
   [ContractInvariantMethod]
   void ObjectInvariant() {
     Contract.Invariant(Source != null);
@@ -125,7 +122,7 @@ public class MatchStmt : Statement, Match, ICloneable<MatchStmt> {
   private Expression source;
   private List<MatchCaseStmt> cases;
   public readonly MatchingContext Context;
-  [FilledInDuringResolution] public List<DatatypeCtor> MissingCases { get; } = new();
+  [FilledInDuringResolution] public List<DatatypeCtor> MissingCases { get; } = [];
   public readonly bool UsesOptionalBraces;
 
   public MatchStmt Clone(Cloner cloner) {
@@ -143,38 +140,54 @@ public class MatchStmt : Statement, Match, ICloneable<MatchStmt> {
     }
   }
 
-  public MatchStmt(IToken tok, IToken endTok, Expression source, [Captured] List<MatchCaseStmt> cases,
+  public MatchStmt(IOrigin origin, Expression source, [Captured] List<MatchCaseStmt> cases,
     bool usesOptionalBraces, MatchingContext context = null)
-    : base(tok, endTok) {
-    Contract.Requires(tok != null);
-    Contract.Requires(endTok != null);
+    : base(origin) {
+    Contract.Requires(origin != null);
     Contract.Requires(source != null);
     Contract.Requires(cce.NonNullElements(cases));
     this.source = source;
     this.cases = cases;
-    this.UsesOptionalBraces = usesOptionalBraces;
-    this.Context = context is null ? new HoleCtx() : context;
+    UsesOptionalBraces = usesOptionalBraces;
+    Context = context is null ? new HoleCtx() : context;
   }
 
-  public MatchStmt(IToken tok, IToken endTok, Expression source, [Captured] List<MatchCaseStmt> cases,
-    bool usesOptionalBraces, Attributes attrs, MatchingContext context = null)
-    : base(tok, endTok, attrs) {
-    Contract.Requires(tok != null);
-    Contract.Requires(endTok != null);
+  public MatchStmt(IOrigin origin, Expression source, [Captured] List<MatchCaseStmt> cases,
+    bool usesOptionalBraces, Attributes attributes, MatchingContext context = null)
+    : base(origin, attributes) {
+    Contract.Requires(origin != null);
     Contract.Requires(source != null);
     Contract.Requires(cce.NonNullElements(cases));
     this.source = source;
     this.cases = cases;
-    this.UsesOptionalBraces = usesOptionalBraces;
-    this.Context = context is null ? new HoleCtx() : context;
+    UsesOptionalBraces = usesOptionalBraces;
+    Context = context is null ? new HoleCtx() : context;
   }
 
   public Expression Source => source;
 
   public List<MatchCaseStmt> Cases => cases;
-  IEnumerable<MatchCase> Match.Cases => Cases;
+  IEnumerable<MatchCase> IMatch.Cases => Cases;
 
-  public override IEnumerable<INode> Children => new[] { Source }.Concat<INode>(Cases);
+  public override IEnumerable<INode> Children => new[] { Source }.Concat<Node>(Cases);
+
+  public override void ResolveGhostness(ModuleResolver resolver, ErrorReporter reporter, bool mustBeErasable,
+    ICodeContext codeContext, string proofContext,
+    bool allowAssumptionVariables, bool inConstructorInitializationPhase) {
+    IsGhost = mustBeErasable || ExpressionTester.UsesSpecFeatures(Source) || ExpressionTester.FirstCaseThatDependsOnGhostCtor(Cases) != null;
+    if (!mustBeErasable && IsGhost) {
+      reporter.Info(MessageSource.Resolver, Origin, "ghost match");
+    }
+
+    Cases.ForEach(kase => kase.Body.ForEach(ss => ss.ResolveGhostness(resolver, reporter, IsGhost, codeContext,
+      proofContext, allowAssumptionVariables, inConstructorInitializationPhase)));
+    IsGhost = IsGhost || Cases.All(kase => kase.Body.All(ss => ss.IsGhost));
+    if (!IsGhost) {
+      // If there were features in the source expression that are treated differently in ghost and non-ghost
+      // contexts, make sure they get treated for non-ghost use.
+      ExpressionTester.CheckIsCompilable(resolver, reporter, Source, codeContext);
+    }
+  }
 
   // should only be used in desugar in resolve to change the cases of the matchexpr
   public void UpdateSource(Expression source) {
@@ -233,16 +246,16 @@ public class MatchCaseStmt : MatchCase {
   }
 
   public override IEnumerable<INode> Children => body;
+  public override IEnumerable<INode> PreResolveChildren => Children;
 
-  public MatchCaseStmt(IToken tok, DatatypeCtor ctor, bool fromBoundVar, [Captured] List<BoundVar> arguments, [Captured] List<Statement> body, Attributes attrs = null)
-    : base(tok, ctor, arguments) {
-    Contract.Requires(tok != null);
+  public MatchCaseStmt(IOrigin rangeOrigin, DatatypeCtor ctor, bool fromBoundVar, [Captured] List<BoundVar> arguments, [Captured] List<Statement> body, Attributes attrs = null)
+    : base(rangeOrigin, ctor, arguments) {
     Contract.Requires(ctor != null);
     Contract.Requires(cce.NonNullElements(arguments));
     Contract.Requires(cce.NonNullElements(body));
     this.body = body;
-    this.Attributes = attrs;
-    this.FromBoundVar = fromBoundVar;
+    Attributes = attrs;
+    FromBoundVar = fromBoundVar;
   }
 
   public List<Statement> Body {
@@ -264,16 +277,17 @@ public class MatchCaseExpr : MatchCase {
     Contract.Invariant(body != null);
   }
 
-  public override IEnumerable<INode> Children => Arguments.Concat<INode>(new[] { body });
+  public override IEnumerable<INode> Children => Arguments.Concat<Node>(new[] { body });
+  public override IEnumerable<INode> PreResolveChildren => Children;
 
-  public MatchCaseExpr(IToken tok, DatatypeCtor ctor, bool FromBoundVar, [Captured] List<BoundVar> arguments, Expression body, Attributes attrs = null)
-    : base(tok, ctor, arguments) {
-    Contract.Requires(tok != null);
+  public MatchCaseExpr(IOrigin origin, DatatypeCtor ctor, bool FromBoundVar, [Captured] List<BoundVar> arguments, Expression body, Attributes attrs = null)
+    : base(origin, ctor, arguments) {
+    Contract.Requires(origin != null);
     Contract.Requires(ctor != null);
     Contract.Requires(cce.NonNullElements(arguments));
     Contract.Requires(body != null);
     this.body = body;
-    this.Attributes = attrs;
+    Attributes = attrs;
     this.FromBoundVar = FromBoundVar;
   }
 
@@ -307,7 +321,7 @@ public abstract class MatchingContext {
   }
 
   public MatchingContext AbstractHole() {
-    return this.FillHole(new ForallCtx());
+    return FillHole(new ForallCtx());
   }
 
   public virtual MatchingContext FillHole(MatchingContext curr) {
@@ -320,11 +334,11 @@ public class LitCtx : MatchingContext {
 
   public LitCtx(LiteralExpr lit) {
     Contract.Requires(lit != null);
-    this.Lit = lit;
+    Lit = lit;
   }
 
   public override string ToString() {
-    return Printer.ExprToString(Lit);
+    return Printer.ExprToString(DafnyOptions.DefaultImmutableOptions, Lit);
   }
 }
 
@@ -359,14 +373,14 @@ public class IdCtx : MatchingContext {
   public IdCtx(string id, List<MatchingContext> arguments) {
     Contract.Requires(id != null);
     Contract.Requires(arguments != null); // Arguments can be empty, but shouldn't be null
-    this.Id = id;
-    this.Arguments = arguments;
+    Id = id;
+    Arguments = arguments;
   }
 
   public IdCtx(DatatypeCtor ctor) {
     List<MatchingContext> arguments = Enumerable.Repeat((MatchingContext)new HoleCtx(), ctor.Formals.Count).ToList();
-    this.Id = ctor.Name;
-    this.Arguments = arguments;
+    Id = ctor.Name;
+    Arguments = arguments;
   }
 
   public override string ToString() {
@@ -379,7 +393,7 @@ public class IdCtx : MatchingContext {
   }
 
   public override MatchingContext AbstractAllHoles() {
-    return new IdCtx(this.Id, this.Arguments.ConvertAll<MatchingContext>(x => x.AbstractAllHoles()));
+    return new IdCtx(Id, Arguments.ConvertAll<MatchingContext>(x => x.AbstractAllHoles()));
   }
 
   // Find the first (leftmost) occurrence of HoleCtx and replace it with curr
@@ -389,16 +403,15 @@ public class IdCtx : MatchingContext {
     bool foundHole = false;
     int currArgIndex = 0;
 
-    while (!foundHole && currArgIndex < this.Arguments.Count) {
-      var arg = this.Arguments.ElementAt(currArgIndex);
+    while (!foundHole && currArgIndex < Arguments.Count) {
+      var arg = Arguments.ElementAt(currArgIndex);
       switch (arg) {
         case HoleCtx _:
           foundHole = true;
           newArguments.Add(curr);
           break;
         case IdCtx argId:
-          MatchingContext newarg;
-          foundHole = argId.ReplaceLeftmost(curr, out newarg);
+          foundHole = argId.ReplaceLeftmost(curr, out var newarg);
           newArguments.Add(newarg);
           break;
         default:
@@ -409,19 +422,18 @@ public class IdCtx : MatchingContext {
     }
 
     if (foundHole) {
-      while (currArgIndex < this.Arguments.Count) {
-        newArguments.Add(this.Arguments.ElementAt(currArgIndex));
+      while (currArgIndex < Arguments.Count) {
+        newArguments.Add(Arguments.ElementAt(currArgIndex));
         currArgIndex++;
       }
     }
 
-    newContext = new IdCtx(this.Id, newArguments);
+    newContext = new IdCtx(Id, newArguments);
     return foundHole;
   }
 
   public override MatchingContext FillHole(MatchingContext curr) {
-    MatchingContext newContext;
-    ReplaceLeftmost(curr, out newContext);
+    ReplaceLeftmost(curr, out var newContext);
     return newContext;
   }
 }

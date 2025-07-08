@@ -1,0 +1,3 @@
+includes = ["../src/input.dfy"]
+[options]
+print-mode = NoIncludes

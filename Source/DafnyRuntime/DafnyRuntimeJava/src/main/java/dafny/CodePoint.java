@@ -1,5 +1,7 @@
 package dafny;
 
+import java.math.BigInteger;
+
 /**
  * An int wrapper type just like java.lang.Integer,
  * but used as a more type-safe reference to a Unicode scalar value
@@ -39,6 +41,12 @@ public final class CodePoint {
         this.value = value;
     }
 
+     public static boolean isCodePoint(BigInteger i) {
+        return
+            (i.signum() != -1 && i.compareTo(BigInteger.valueOf(0xD800)) < 0) ||
+            (i.compareTo(BigInteger.valueOf(0xE000)) >= 0 && i.compareTo(BigInteger.valueOf(0x11_0000)) < 0);
+    }
+
     @Override
     public boolean equals(Object obj) {
         if (obj == null || !(obj instanceof CodePoint)) {
@@ -48,9 +56,13 @@ public final class CodePoint {
         return value == ((CodePoint)obj).value;
     }
 
+    public static int hashCode(int value) {
+        return Integer.hashCode(value);
+    }
+
     @Override
     public int hashCode() {
-        return Integer.hashCode(value);
+        return hashCode(value);
     }
 
     public int value() {

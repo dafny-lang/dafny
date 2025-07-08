@@ -1,0 +1,1 @@
+// CHECK-L: error[E0631]: type mismatch in closure arguments

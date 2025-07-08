@@ -1,0 +1,4 @@
+prefix-equality-limit.dfy(7,19): Error: prefix-equality limit must be at least 0
+ Asserted expression: 0 <= i
+
+Dafny program verifier finished with 0 verified, 1 error

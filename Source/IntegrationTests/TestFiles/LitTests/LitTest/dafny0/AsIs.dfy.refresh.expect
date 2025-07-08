@@ -1,0 +1,6 @@
+AsIs.dfy(17,5): Error: RHS (of type object?) not assignable to LHS (of type A<W>)
+AsIs.dfy(20,5): Error: RHS (of type object?) not assignable to LHS (of type B<int, W>)
+AsIs.dfy(23,5): Error: RHS (of type object?) not assignable to LHS (of type C<W>)
+AsIs.dfy(26,5): Error: RHS (of type object?) not assignable to LHS (of type K<W>)
+AsIs.dfy(29,5): Error: RHS (of type object?) not assignable to LHS (of type L<W>)
+5 resolution/type errors detected in AsIs.dfy

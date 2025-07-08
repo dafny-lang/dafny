@@ -1,0 +1,4 @@
+assignment-shrinks.dfy(18,11): Error: an assignment to _new is only allowed to shrink the set
+ Asserted expression: old(allocated(repeat)) && repeat._new <= old(repeat._new)
+
+Dafny program verifier finished with 2 verified, 1 error

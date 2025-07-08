@@ -1,4 +1,4 @@
-text.dfy(10,25): Error: source of datatype update must be constructed by 'MyOtherConstructor'
-text.dfy(20,17): Error: source of datatype update must be constructed by 'MyNumericConstructor'
+text.dfy(11,25): Error: source of datatype update must be constructed by 'MyOtherConstructor'
+text.dfy(21,17): Error: source of datatype update must be constructed by 'MyNumericConstructor'
 
 Dafny program verifier finished with 0 verified, 2 errors

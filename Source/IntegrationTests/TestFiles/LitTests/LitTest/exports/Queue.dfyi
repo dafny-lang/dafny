@@ -1,0 +1,22 @@
+// Queue.dfyi
+
+abstract module Queue {
+    type Item
+    type Queue = seq<Item>
+
+    method Init() returns (q: Queue)
+        ensures |q| == 0
+
+    method Push(item: Item, q: Queue) returns (q': Queue)
+        ensures |q'| == |q| + 1
+
+    method Pop(q: Queue) returns (item: Item, q': Queue)
+        requires |q| > 0
+        ensures item in q
+        ensures |q'| == |q| - 1
+}
+
+abstract module MainSpec {
+    import Q : Queue
+}
+

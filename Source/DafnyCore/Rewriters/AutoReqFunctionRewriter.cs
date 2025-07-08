@@ -11,9 +11,11 @@ namespace Microsoft.Dafny;
 public class AutoReqFunctionRewriter : IRewriter {
   Function parentFunction;
   bool containsMatch; // TODO: Track this per-requirement, rather than per-function
+  private readonly SystemModuleManager systemModuleManager;
 
-  public AutoReqFunctionRewriter(ErrorReporter reporter)
+  public AutoReqFunctionRewriter(Program program, ErrorReporter reporter)
     : base(reporter) {
+    systemModuleManager = program.SystemModuleManager;
     Contract.Requires(reporter != null);
   }
 
@@ -27,7 +29,7 @@ public class AutoReqFunctionRewriter : IRewriter {
           parentFunction = fn;  // Remember where the recursion started
           containsMatch = false;  // Assume no match statements are involved
 
-          List<AttributedExpression> auto_reqs = new List<AttributedExpression>();
+          List<AttributedExpression> auto_reqs = [];
 
           // First handle all of the requirements' preconditions
           foreach (AttributedExpression req in fn.Req) {
@@ -40,7 +42,7 @@ public class AutoReqFunctionRewriter : IRewriter {
 
           // Then the body itself, if any
           if (fn.Body != null) {
-            auto_reqs = new List<AttributedExpression>();
+            auto_reqs = [];
             foreach (Expression e in GenerateAutoReqs(fn.Body)) {
               auto_reqs.Add(CreateAutoAttributedExpression(e));
             }
@@ -48,21 +50,20 @@ public class AutoReqFunctionRewriter : IRewriter {
             addAutoReqToolTipInfoToFunction("post", fn, auto_reqs);
           }
         }
-      } else if (scComponent is Method) {
-        Method method = (Method)scComponent;
+      } else if (scComponent is MethodOrConstructor method) {
         if (Attributes.ContainsBoolAtAnyLevel(method, "autoReq")) {
           parentFunction = null;
           containsMatch = false; // Assume no match statements are involved
 
-          List<AttributedExpression> auto_reqs = new List<AttributedExpression>();
+          List<AttributedExpression> autoReqs = [];
           foreach (AttributedExpression req in method.Req) {
-            List<Expression> local_auto_reqs = GenerateAutoReqs(req.E);
-            foreach (Expression local_auto_req in local_auto_reqs) {
-              auto_reqs.Add(CreateAutoAttributedExpression(local_auto_req));
+            List<Expression> localAutoReqs = GenerateAutoReqs(req.E);
+            foreach (Expression localAutoReq in localAutoReqs) {
+              autoReqs.Add(CreateAutoAttributedExpression(localAutoReq));
             }
           }
-          method.Req.InsertRange(0, auto_reqs); // Need to come before the actual requires
-          addAutoReqToolTipInfoToMethod("pre", method, auto_reqs);
+          method.Req.InsertRange(0, autoReqs); // Need to come before the actual requires
+          AddAutoReqToolTipInfoToMethod("pre", method, autoReqs);
         }
       }
     }
@@ -75,17 +76,17 @@ public class AutoReqFunctionRewriter : IRewriter {
     string sep = "";
     foreach (var req in reqs) {
       if (containsMatch) {  // Pretty print the requirements
-        tip += sep + prefix + Printer.ExtendedExprToString(req.E) + ";";
+        tip += sep + prefix + Printer.ExtendedExprToString(Reporter.Options, req.E) + ";";
       } else {
-        tip += sep + prefix + Printer.ExprToString(req.E) + ";";
+        tip += sep + prefix + Printer.ExprToString(Reporter.Options, req.E) + ";";
       }
       sep = "\n";
     }
 
     if (!tip.Equals("")) {
-      Reporter.Info(MessageSource.Rewriter, f.tok, tip);
-      if (DafnyOptions.O.AutoReqPrintFile != null) {
-        using (System.IO.TextWriter writer = new System.IO.StreamWriter(DafnyOptions.O.AutoReqPrintFile, true)) {
+      Reporter.Info(MessageSource.Rewriter, f.Origin, tip);
+      if (Reporter.Options.AutoReqPrintFile != null) {
+        using (System.IO.TextWriter writer = new System.IO.StreamWriter(Reporter.Options.AutoReqPrintFile, true)) {
           writer.WriteLine(f.Name);
           writer.WriteLine("\t" + tip);
         }
@@ -93,33 +94,32 @@ public class AutoReqFunctionRewriter : IRewriter {
     }
   }
 
-  public void addAutoReqToolTipInfoToMethod(string label, Method method, List<AttributedExpression> reqs) {
+  public void AddAutoReqToolTipInfoToMethod(string label, MethodOrConstructor method, List<AttributedExpression> reqs) {
     string tip = "";
 
     foreach (var req in reqs) {
       string prefix = "auto ";
       prefix += " requires " + label + " ";
       if (containsMatch) {  // Pretty print the requirements
-        tip += prefix + Printer.ExtendedExprToString(req.E) + ";\n";
+        tip += prefix + Printer.ExtendedExprToString(Reporter.Options, req.E) + ";\n";
       } else {
-        tip += prefix + Printer.ExprToString(req.E) + ";\n";
+        tip += prefix + Printer.ExprToString(Reporter.Options, req.E) + ";\n";
       }
     }
 
     if (!tip.Equals("")) {
-      Reporter.Info(MessageSource.Rewriter, method.tok, tip);
-      if (DafnyOptions.O.AutoReqPrintFile != null) {
-        using (System.IO.TextWriter writer = new System.IO.StreamWriter(DafnyOptions.O.AutoReqPrintFile, true)) {
-          writer.WriteLine(method.Name);
-          writer.WriteLine("\t" + tip);
-        }
+      Reporter.Info(MessageSource.Rewriter, method.Origin, tip);
+      if (Reporter.Options.AutoReqPrintFile != null) {
+        using System.IO.TextWriter writer = new System.IO.StreamWriter(Reporter.Options.AutoReqPrintFile, true);
+        writer.WriteLine(method.Name);
+        writer.WriteLine("\t" + tip);
       }
     }
   }
 
   // Stitch a list of expressions together with logical ands
-  Expression Andify(IToken tok, List<Expression> exprs) {
-    Expression ret = Expression.CreateBoolLiteral(new AutoGeneratedToken(tok), true);
+  Expression Andify(IOrigin tok, List<Expression> exprs) {
+    Expression ret = Expression.CreateBoolLiteral(new AutoGeneratedOrigin(tok), true);
 
     foreach (var expr in exprs) {
       ret = Expression.CreateAnd(ret, expr);
@@ -129,22 +129,22 @@ public class AutoReqFunctionRewriter : IRewriter {
   }
 
   static AttributedExpression CreateAutoAttributedExpression(Expression e, Attributes attrs = null) {
-    return new AttributedExpression(AutoGeneratedToken.WrapExpression(e), attrs);
+    return new AttributedExpression(AutoGeneratedOrigin.WrapExpression(e), attrs);
   }
 
-  List<Expression> gatherReqs(Function f, List<Expression> args, Expression f_this) {
-    List<Expression> translated_f_reqs = new List<Expression>();
+  List<Expression> gatherReqs(Function f, List<Expression> args, List<Type> typeArguments, Expression f_this) {
+    List<Expression> translated_f_reqs = [];
 
     if (f.Req.Count > 0) {
       Dictionary<IVariable, Expression/*!*/> substMap = new Dictionary<IVariable, Expression>();
-      Dictionary<TypeParameter, Type> typeMap = new Dictionary<TypeParameter, Type>();
+      Dictionary<TypeParameter, Type> typeMap = TypeParameter.SubstitutionMap(f.TypeArgs, typeArguments);
 
-      for (int i = 0; i < f.Formals.Count; i++) {
-        substMap.Add(f.Formals[i], args[i]);
+      for (int i = 0; i < f.Ins.Count; i++) {
+        substMap.Add(f.Ins[i], args[i]);
       }
 
       foreach (var req in f.Req) {
-        Substituter sub = new Substituter(f_this, substMap, typeMap);
+        var sub = new AutoReqSubstituter(f_this, substMap, typeMap, systemModuleManager);
         translated_f_reqs.Add(sub.Substitute(req.E));
       }
     }
@@ -152,8 +152,25 @@ public class AutoReqFunctionRewriter : IRewriter {
     return translated_f_reqs;
   }
 
+  class AutoReqSubstituter : Substituter {
+    public AutoReqSubstituter(Expression receiverReplacement, Dictionary<IVariable, Expression> substMap, Dictionary<TypeParameter, Type> typeMap,
+      SystemModuleManager systemModuleManager)
+      : base(receiverReplacement, substMap, typeMap, null, systemModuleManager) {
+    }
+
+    public override Expression Substitute(Expression expr) {
+      var r = base.Substitute(expr);
+      if (r is MemberSelectExpr memberSelectExpr) {
+        return Expression.WrapResolvedMemberSelect(memberSelectExpr);
+      } else if (r is FunctionCallExpr functionCallExpr) {
+        return Expression.WrapResolvedCall(functionCallExpr, SystemModuleManager);
+      }
+      return r;
+    }
+  }
+
   List<Expression> GenerateAutoReqs(Expression expr) {
-    List<Expression> reqs = new List<Expression>();
+    List<Expression> reqs = [];
 
     if (expr is LiteralExpr) {
     } else if (expr is ThisExpr) {
@@ -177,7 +194,7 @@ public class AutoReqFunctionRewriter : IRewriter {
     } else if (expr is MapDisplayExpr) {
       MapDisplayExpr e = (MapDisplayExpr)expr;
 
-      foreach (ExpressionPair p in e.Elements) {
+      foreach (MapDisplayEntry p in e.Elements) {
         reqs.AddRange(GenerateAutoReqs(p.A));
         reqs.AddRange(GenerateAutoReqs(p.B));
       }
@@ -217,7 +234,7 @@ public class AutoReqFunctionRewriter : IRewriter {
       if (parentFunction != null && ModuleDefinition.InSameSCC(e.Function, parentFunction)) {
         // We're making a call within the same SCC, so don't descend into this function
       } else {
-        reqs.AddRange(gatherReqs(e.Function, e.Args, e.Receiver));
+        reqs.AddRange(gatherReqs(e.Function, e.Args, e.TypeApplication_JustFunction, e.Receiver));
       }
     } else if (expr is DatatypeValue) {
       DatatypeValue dtv = (DatatypeValue)expr;
@@ -232,15 +249,15 @@ public class AutoReqFunctionRewriter : IRewriter {
       containsMatch = true;
       reqs.AddRange(GenerateAutoReqs(e.Source));
 
-      List<MatchCaseExpr> newMatches = new List<MatchCaseExpr>();
+      List<MatchCaseExpr> newMatches = [];
       foreach (MatchCaseExpr caseExpr in e.Cases) {
-        //MatchCaseExpr c = new MatchCaseExpr(caseExpr.tok, caseExpr.Id, caseExpr.Arguments, andify(caseExpr.tok, generateAutoReqs(caseExpr.Body)));
+        //MatchCaseExpr c = new MatchCaseExpr(caseExpr.Tok, caseExpr.Id, caseExpr.Arguments, andify(caseExpr.Tok, generateAutoReqs(caseExpr.Body)));
         //c.Ctor = caseExpr.Ctor; // resolve here
-        MatchCaseExpr c = Expression.CreateMatchCase(caseExpr, Andify(caseExpr.tok, GenerateAutoReqs(caseExpr.Body)));
+        MatchCaseExpr c = Expression.CreateMatchCase(caseExpr, Andify(caseExpr.Origin, GenerateAutoReqs(caseExpr.Body)));
         newMatches.Add(c);
       }
 
-      reqs.Add(Expression.CreateMatch(e.tok, e.Source, newMatches, e.Type));
+      reqs.Add(Expression.CreateMatch(e.Origin, e.Source, newMatches, e.Type));
     } else if (expr is SeqConstructionExpr) {
       var e = (SeqConstructionExpr)expr;
       reqs.AddRange(GenerateAutoReqs(e.N));
@@ -261,7 +278,9 @@ public class AutoReqFunctionRewriter : IRewriter {
           reqs.AddRange(GenerateAutoReqs(e.E0));
           foreach (var req in GenerateAutoReqs(e.E1)) {
             // We only care about this req if E0 is true, since And short-circuits
-            reqs.Add(Expression.CreateImplies(e.E0, req));
+            var cloner = new Cloner(false, true);
+            var e0 = cloner.CloneExpr(e.E0);
+            reqs.Add(Expression.CreateImplies(e0, req));
           }
           break;
 
@@ -269,7 +288,9 @@ public class AutoReqFunctionRewriter : IRewriter {
           reqs.AddRange(GenerateAutoReqs(e.E0));
           foreach (var req in GenerateAutoReqs(e.E1)) {
             // We only care about this req if E0 is false, since Or short-circuits
-            reqs.Add(Expression.CreateImplies(Expression.CreateNot(e.E1.tok, e.E0), req));
+            var cloner = new Cloner(false, true);
+            var e0 = cloner.CloneExpr(e.E0);
+            reqs.Add(Expression.CreateImplies(Expression.CreateNot(e.E1.Origin, e0), req));
           }
           break;
 
@@ -293,7 +314,7 @@ public class AutoReqFunctionRewriter : IRewriter {
         }
         var new_reqs = GenerateAutoReqs(e.Body);
         if (new_reqs.Count > 0) {
-          reqs.Add(Expression.CreateLet(e.tok, e.LHSs, e.RHSs, Andify(e.tok, new_reqs), e.Exact));
+          reqs.Add(Expression.CreateLet(e.Origin, e.LHSs, e.RHSs, Andify(e.Origin, new_reqs), e.Exact));
         }
       } else {
         // TODO: Still need to figure out what the right choice is here:
@@ -309,10 +330,10 @@ public class AutoReqFunctionRewriter : IRewriter {
 
       var auto_reqs = GenerateAutoReqs(e.Term);
       if (auto_reqs.Count > 0) {
-        Expression allReqsSatisfied = Andify(e.Term.tok, auto_reqs);
+        Expression allReqsSatisfied = Andify(e.Term.Origin, auto_reqs);
         Expression allReqsSatisfiedAndTerm = Expression.CreateAnd(allReqsSatisfied, e.Term);
         e.Term = allReqsSatisfiedAndTerm;
-        Reporter.Info(MessageSource.Rewriter, e.tok, "autoreq added (" + Printer.ExtendedExprToString(allReqsSatisfied) + ") &&");
+        Reporter.Info(MessageSource.Rewriter, e.Origin, "autoreq added (" + Printer.ExtendedExprToString(Reporter.Options, allReqsSatisfied) + ") &&");
       }
     } else if (expr is SetComprehension) {
       var e = (SetComprehension)expr;
@@ -322,7 +343,7 @@ public class AutoReqFunctionRewriter : IRewriter {
       //reqs.AddRange(generateAutoReqs(e.Range));
       var auto_reqs = GenerateAutoReqs(e.Term);
       if (auto_reqs.Count > 0) {
-        reqs.Add(Expression.CreateQuantifier(new ForallExpr(e.tok, e.BodyEndTok, e.BoundVars, e.Range, Andify(e.Term.tok, auto_reqs), e.Attributes), true));
+        reqs.Add(Expression.CreateQuantifier(new ForallExpr(e.Origin, e.BoundVars, e.Range, Andify(e.Term.Origin, auto_reqs), e.Attributes), true));
       }
     } else if (expr is MapComprehension) {
       var e = (MapComprehension)expr;
@@ -335,7 +356,7 @@ public class AutoReqFunctionRewriter : IRewriter {
       }
       auto_reqs.AddRange(GenerateAutoReqs(e.Term));
       if (auto_reqs.Count > 0) {
-        reqs.Add(Expression.CreateQuantifier(new ForallExpr(e.tok, e.BodyEndTok, e.BoundVars, e.Range, Andify(e.Term.tok, auto_reqs), e.Attributes), true));
+        reqs.Add(Expression.CreateQuantifier(new ForallExpr(e.Origin, e.BoundVars, e.Range, Andify(e.Term.Origin, auto_reqs), e.Attributes), true));
       }
     } else if (expr is StmtExpr) {
       var e = (StmtExpr)expr;
@@ -343,7 +364,7 @@ public class AutoReqFunctionRewriter : IRewriter {
     } else if (expr is ITEExpr) {
       ITEExpr e = (ITEExpr)expr;
       reqs.AddRange(GenerateAutoReqs(e.Test));
-      reqs.Add(Expression.CreateITE(e.Test, Andify(e.Thn.tok, GenerateAutoReqs(e.Thn)), Andify(e.Els.tok, GenerateAutoReqs(e.Els))));
+      reqs.Add(Expression.CreateITE(e.Test, Andify(e.Thn.Origin, GenerateAutoReqs(e.Thn)), Andify(e.Els.Origin, GenerateAutoReqs(e.Els))));
     } else if (expr is NestedMatchExpr) {
       containsMatch = true;
 
@@ -351,8 +372,8 @@ public class AutoReqFunctionRewriter : IRewriter {
       reqs.AddRange(GenerateAutoReqs(e.Source));
 
       var newCases = e.Cases.Select(cas =>
-        new NestedMatchCaseExpr(cas.Tok, cas.Pat, Andify(cas.Body.tok, GenerateAutoReqs(cas.Body)), cas.Attributes)).ToList();
-      var nestedMatchExpr = new NestedMatchExpr(e.tok, e.Source, newCases, e.UsesOptionalBraces);
+        new NestedMatchCaseExpr(cas.Origin, cas.Pat, Andify(cas.Body.Origin, GenerateAutoReqs(cas.Body)), cas.Attributes)).ToList();
+      var nestedMatchExpr = new NestedMatchExpr(e.Origin, e.Source, newCases, e.UsesOptionalBraces);
       nestedMatchExpr.Type = Type.Bool;
       reqs.Add(nestedMatchExpr);
     } else if (expr is ConcreteSyntaxExpression) {

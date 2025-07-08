@@ -1,4 +1,6 @@
-﻿namespace Microsoft.Dafny.LanguageServer.Language {
+﻿using Microsoft.Boogie;
+
+namespace Microsoft.Dafny.LanguageServer.Language {
   /// <summary>
   /// Base syntax tree visitor implementation that visits all nodes,
   /// except auto-generated expressions and attributes.
@@ -12,9 +14,9 @@
     /// </summary>
     /// <param name="node">The unknown node that is being visited.</param>
     /// <param name="token">The token associated with the unknown node.</param>
-    public abstract void VisitUnknown(object node, IToken token);
+    public abstract void VisitUnknown(object node, IOrigin token);
 
-    public virtual void Visit(Dafny.Program program) {
+    public virtual void Visit(Program program) {
       foreach (var module in program.Modules()) {
         Visit(module);
       }
@@ -28,24 +30,30 @@
 
     public virtual void Visit(TopLevelDecl topLevelDeclaration) {
       switch (topLevelDeclaration) {
-        case ClassDecl classDeclaration:
+        case ClassLikeDecl classDeclaration:
           Visit(classDeclaration);
+          break;
+        case DefaultClassDecl defaultClassDecl:
+          Visit(defaultClassDecl);
           break;
         case DatatypeDecl dataTypeDeclaration:
           Visit(dataTypeDeclaration);
           break;
+        case AliasModuleDecl aliasModuleDeclaration:
+          Visit(aliasModuleDeclaration);
+          break;
         case ModuleDecl moduleDeclaration:
         case ValuetypeDecl valueTypeDeclaration:
-        case OpaqueTypeDecl opaqueTypeDeclaration:
+        case AbstractTypeDecl opaqueTypeDeclaration:
         case NewtypeDecl newTypeDeclaration:
         case TypeSynonymDecl typeSynonymDeclaration:
         default:
-          VisitUnknown(topLevelDeclaration, topLevelDeclaration.tok);
+          VisitUnknown(topLevelDeclaration, topLevelDeclaration.Origin);
           break;
       }
     }
 
-    public virtual void Visit(ClassDecl classDeclaration) {
+    public virtual void Visit(TopLevelDeclWithMembers classDeclaration) {
       foreach (var member in classDeclaration.Members) {
         Visit(member);
       }
@@ -69,7 +77,7 @@
           Visit(method);
           break;
         default:
-          VisitUnknown(memberDeclaration, memberDeclaration.tok);
+          VisitUnknown(memberDeclaration, memberDeclaration.Origin);
           break;
       }
     }
@@ -80,7 +88,7 @@
       }
     }
 
-    public virtual void Visit(Method method) {
+    public virtual void Visit(MethodOrConstructor method) {
       foreach (var typeArgument in method.TypeArgs) {
         Visit(typeArgument);
       }
@@ -98,6 +106,7 @@
         Visit(ensurement);
       }
       Visit(method.Decreases);
+      Visit(method.Reads);
       Visit(method.Mod);
       VisitNullableBlock(method.Body);
     }
@@ -113,15 +122,13 @@
       foreach (var typeArgument in function.TypeArgs) {
         Visit(typeArgument);
       }
-      foreach (var formal in function.Formals) {
+      foreach (var formal in function.Ins) {
         Visit(formal);
       }
       if (function.Result != null) {
         Visit(function.Result);
       }
-      foreach (var read in function.Reads) {
-        Visit(read);
-      }
+      Visit(function.Reads);
       foreach (var requirement in function.Req) {
         Visit(requirement);
       }
@@ -178,7 +185,7 @@
         case VarDeclStmt variableDeclarationStatement:
           Visit(variableDeclarationStatement);
           break;
-        case UpdateStmt updateStatement:
+        case AssignStatement updateStatement:
           Visit(updateStatement);
           break;
         case AssertStmt assertStatement:
@@ -203,7 +210,7 @@
           Visit(printStatement);
           break;
         default:
-          VisitUnknown(statement, statement.Tok);
+          VisitUnknown(statement, statement.Origin);
           break;
       }
     }
@@ -228,31 +235,35 @@
           Visit(typeRhs);
           break;
         default:
-          VisitUnknown(assignmentRhs, assignmentRhs.Tok);
+          VisitUnknown(assignmentRhs, assignmentRhs.Origin);
           break;
       }
     }
 
     public virtual void Visit(TypeRhs typeRhs) {
       VisitNullableAttributes(typeRhs.Attributes);
-      if (typeRhs.Bindings != null) {
-        Visit(typeRhs.Bindings);
-      }
-      if (typeRhs.ArrayDimensions != null) {
-        foreach (var dimension in typeRhs.ArrayDimensions) {
+      if (typeRhs is AllocateArray allocateArray) {
+        foreach (var dimension in allocateArray.ArrayDimensions) {
           Visit(dimension);
         }
       }
+
+      if (typeRhs is AllocateClass allocateClass) {
+        if (allocateClass.Bindings != null) {
+          Visit(allocateClass.Bindings);
+        }
+
+      }
     }
 
-    public virtual void Visit(BlockStmt blockStatement) {
+    public virtual void Visit(BlockLikeStmt blockStatement) {
       VisitNullableAttributes(blockStatement.Attributes);
       foreach (var statement in blockStatement.Body) {
         Visit(statement);
       }
     }
 
-    private void VisitNullableBlock(BlockStmt? blockStatement) {
+    private void VisitNullableBlock(BlockLikeStmt? blockStatement) {
       if (blockStatement != null) {
         Visit(blockStatement);
       }
@@ -322,12 +333,12 @@
       foreach (var localVariable in variableDeclarationStatement.Locals) {
         Visit(localVariable);
       }
-      if (variableDeclarationStatement.Update != null) {
-        Visit(variableDeclarationStatement.Update);
+      if (variableDeclarationStatement.Assign != null) {
+        Visit(variableDeclarationStatement.Assign);
       }
     }
 
-    public virtual void Visit(UpdateStmt updateStatement) {
+    public virtual void Visit(AssignStatement updateStatement) {
       VisitNullableAttributes(updateStatement.Attributes);
       foreach (var leftHandSide in updateStatement.Lhss) {
         Visit(leftHandSide);
@@ -340,7 +351,6 @@
     public virtual void Visit(AssertStmt assertStatement) {
       VisitNullableAttributes(assertStatement.Attributes);
       Visit(assertStatement.Expr);
-      VisitNullableStatement(assertStatement.Proof);
     }
 
     public virtual void Visit(ReturnStmt returnStatement) {
@@ -388,6 +398,7 @@
 
     public virtual void Visit(ForallStmt forAllStatement) {
       VisitNullableAttributes(forAllStatement.Attributes);
+      forAllStatement.BoundVars.ForEach(Visit);
       VisitNullableStatement(forAllStatement.Body);
     }
 
@@ -488,9 +499,12 @@
         case LetExpr letExpression:
           Visit(letExpression);
           break;
+        case DecreasesToExpr decreasesToExpr:
+          Visit(decreasesToExpr);
+          break;
         default:
           if (expression != null) {
-            VisitUnknown(expression, expression.tok);
+            VisitUnknown(expression, expression.Origin);
           }
 
           break;
@@ -618,7 +632,7 @@
     }
 
     public virtual void Visit(OldExpr oldExpression) {
-      Visit(oldExpression.E);
+      Visit(oldExpression.Expr);
     }
 
     public virtual void Visit(ITEExpr ifThenElseExpression) {
@@ -692,8 +706,13 @@
       foreach (var rhs in letExpression.RHSs) {
         VisitNullableExpression(rhs);
       }
+
       VisitNullableAttributes(letExpression.Attributes);
       Visit(letExpression.Body);
+    }
+
+    public virtual void Visit(DecreasesToExpr decreasesToExpr) {
+      decreasesToExpr.SubExpressions.ForEach(Visit);
     }
   }
 }

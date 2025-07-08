@@ -1,35 +1,36 @@
+#nullable enable
 using System.Collections.Generic;
-using System.Diagnostics.Contracts;
 using System.Linq;
 
 namespace Microsoft.Dafny;
 
-public class BlockStmt : Statement, IRegion, ICloneable<BlockStmt> {
-  public readonly List<Statement> Body;
+public class BlockStmt : BlockLikeStmt, ICloneable<BlockStmt> {
 
-  IToken IRegion.BodyStartTok => Tok;
-  IToken IRegion.BodyEndTok => EndTok;
+  public override List<Statement> Body { get; }
 
-  public BlockStmt Clone(Cloner cloner) {
-    return new BlockStmt(cloner, this);
+  public BlockStmt(Cloner cloner, BlockLikeStmt original) : base(cloner, original) {
+    Body = original.Body.Select(stmt => cloner.CloneStmt(stmt, false)).ToList();
   }
 
-  public BlockStmt(Cloner cloner, BlockStmt original) : base(cloner, original) {
-    Body = original.Body.Select(cloner.CloneStmt).ToList();
+  public BlockStmt(IOrigin origin, List<Statement> body, Attributes? attributes = null)
+    : this(origin, body, [], attributes) {
   }
 
-  public BlockStmt(IToken tok, IToken endTok, [Captured] List<Statement> body)
-    : base(tok, endTok) {
-    Contract.Requires(tok != null);
-    Contract.Requires(endTok != null);
-    Contract.Requires(cce.NonNullElements(body));
-    this.Body = body;
+  [SyntaxConstructor]
+  public BlockStmt(IOrigin origin, List<Statement> body, List<Label> labels, Attributes? attributes = null)
+    : base(origin, labels, attributes) {
+    Body = body;
   }
 
-  public override IEnumerable<Statement> SubStatements => Body;
-
-  public virtual void AppendStmt(Statement s) {
-    Contract.Requires(s != null);
+  public override void AppendStmt(Statement s) {
     Body.Add(s);
+  }
+
+  public override void Prepend(Statement s) {
+    Body.Insert(0, s);
+  }
+
+  public new BlockStmt Clone(Cloner cloner) {
+    return new BlockStmt(cloner, this);
   }
 }

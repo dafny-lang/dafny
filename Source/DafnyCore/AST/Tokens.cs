@@ -1,245 +1,137 @@
-
+#nullable enable
 using System;
 using System.Diagnostics.Contracts;
+using System.IO;
 
 namespace Microsoft.Dafny;
 
-public interface IToken : Microsoft.Boogie.IToken {
-  /*
-  int kind { get; set; }
-  int pos { get; set; }
-  int col { get; set; }
-  int line { get; set; }
-  string val { get; set; }
-  bool IsValid { get; }*/
-  string Boogie.IToken.filename {
-    get => Filename;
-    set => Filename = value;
-  }
+public static class TokenExtensions {
 
-  public string ActualFilename { get; }
-  string Filename { get; set; }
 
-  /// <summary>
-  /// TrailingTrivia contains everything after the token,
-  /// until and including two newlines between which there is no commment
-  /// All the remaining trivia is for the LeadingTrivia of the next token
-  ///
-  /// ```
-  /// const /*for const*/ x /*for x*/ := /* for := */ 1/* for 1 */
-  /// // for 1 again
-  /// // for 1 again
-  ///
-  /// // Two newlines, now all the trivia is for var y
-  /// // this line as well.
-  /// var y := 2
-  /// ```
-  /// </summary>
-  string TrailingTrivia { get; set; }
-  string LeadingTrivia { get; set; }
-  IToken Next { get; set; } // The next token
-  IToken Prev { get; set; } // The previous token
-}
 
-/// <summary>
-/// Has one-indexed line and column fields
-/// </summary>
-public class Token : IToken {
-
-  public Token peekedTokens; // Used only internally by Coco when the scanner "peeks" tokens. Normallly null at the end of parsing
-  public static readonly IToken NoToken = (IToken)new Token();
-
-  public Token() : this(0, 0) { }
-
-  public Token(int linenum, int colnum) {
-    this.line = linenum;
-    this.col = colnum;
-    this.val = "";
-  }
-
-  public int kind { get; set; } // Used by coco, so we can't rename it to Kind
-
-  public string ActualFilename => Filename;
-  public string Filename { get; set; }
-
-  public int pos { get; set; } // Used by coco, so we can't rename it to Pos
-
-  /// <summary>
-  /// One-indexed
-  /// </summary>
-  public int col { get; set; } // Used by coco, so we can't rename it to Col
-
-  /// <summary>
-  /// One-indexed
-  /// </summary>
-  public int line { get; set; } // Used by coco, so we can't rename it to Line
-
-  public string val { get; set; } // Used by coco, so we can't rename it to Val
-
-  public string LeadingTrivia { get; set; }
-
-  public string TrailingTrivia { get; set; }
-
-  public IToken Next { get; set; } // The next token
-
-  public IToken Prev { get; set; } // The previous token
-
-  public bool IsValid => this.ActualFilename != null;
-
-  public override int GetHashCode() {
-    return pos;
-  }
-}
-
-public abstract class TokenWrapper : IToken {
-
-  public readonly IToken WrappedToken;
-  protected TokenWrapper(IToken wrappedToken) {
-    Contract.Requires(wrappedToken != null);
-    WrappedToken = wrappedToken;
-  }
-
-  public int col {
-    get { return WrappedToken.col; }
-    set { WrappedToken.col = value; }
-  }
-
-  public string ActualFilename => WrappedToken.ActualFilename;
-
-  public virtual string Filename {
-    get { return WrappedToken.Filename; }
-    set { WrappedToken.filename = value; }
-  }
-
-  public bool IsValid {
-    get { return WrappedToken.IsValid; }
-  }
-  public int kind {
-    get { return WrappedToken.kind; }
-    set { throw new NotSupportedException(); }
-  }
-  public int line {
-    get { return WrappedToken.line; }
-    set { throw new NotSupportedException(); }
-  }
-  public int pos {
-    get { return WrappedToken.pos; }
-    set { WrappedToken.pos = value; }
-  }
-  public virtual string val {
-    get { return WrappedToken.val; }
-    set { WrappedToken.val = value; }
-  }
-  public virtual string LeadingTrivia {
-    get { return WrappedToken.LeadingTrivia; }
-    set { throw new NotSupportedException(); }
-  }
-  public virtual string TrailingTrivia {
-    get { return WrappedToken.TrailingTrivia; }
-    set { throw new NotSupportedException(); }
-  }
-  public virtual IToken Next {
-    get { return WrappedToken.Next; }
-    set { throw new NotSupportedException(); }
-  }
-  public virtual IToken Prev {
-    get { return WrappedToken.Prev; }
-    set { throw new NotSupportedException(); }
-  }
-
-}
-
-public class RangeToken : TokenWrapper {
-  // The wrapped token is the startTok
-  private IToken endTok;
-  public IToken StartToken => WrappedToken;
-  public IToken EndToken => endTok;
-
-  // Used for range reporting
-  public override string val => new string(' ', endTok.pos + endTok.val.Length - pos);
-
-  public RangeToken(IToken startTok, IToken endTok) : base(
-    endTok.pos < startTok.pos && startTok is RangeToken startRange ?
-        startRange.StartToken : startTok) {
-    if (endTok.pos < startTok.pos && startTok is RangeToken startRange2) {
-      this.endTok = startRange2.EndToken;
-    } else {
-      this.endTok = endTok;
+  public static DafnyRange ToDafnyRange(this INode node, bool includeTrailingWhitespace = false) {
+    var startLine = node.StartToken.line - 1;
+    var startColumn = node.StartToken.col - 1;
+    var endLine = node.EndToken.line - 1;
+    int whitespaceOffset = 0;
+    if (includeTrailingWhitespace) {
+      string trivia = node.EndToken.TrailingTrivia;
+      // Don't want to remove newlines or comments -- just spaces and tabs
+      while (whitespaceOffset < trivia.Length && (trivia[whitespaceOffset] == ' ' || trivia[whitespaceOffset] == '\t')) {
+        whitespaceOffset++;
+      }
     }
-  }
-}
 
-public class NestedToken : TokenWrapper {
-  public NestedToken(IToken outer, IToken inner, string message = null)
-    : base(outer) {
-    Contract.Requires(outer != null);
-    Contract.Requires(inner != null);
-    Inner = inner;
-    this.Message = message;
-  }
-  public IToken Outer { get { return WrappedToken; } }
-  public readonly IToken Inner;
-  public readonly string Message;
-}
-
-/// <summary>
-/// An IncludeToken is a wrapper that indicates that the function/method was
-/// declared in a file that was included. Any proof obligations from such an
-/// included file are to be ignored.
-/// </summary>
-public class IncludeToken : TokenWrapper {
-  public Include Include;
-  public IncludeToken(Include include, IToken wrappedToken)
-    : base(wrappedToken) {
-    Contract.Requires(wrappedToken != null);
-    this.Include = include;
+    var inclusiveEnd = true; // node.InclusiveEnd
+    var endColumn = node.EndToken.col + (inclusiveEnd ? node.EndToken.val.Length : 0) + whitespaceOffset - 1;
+    return new DafnyRange(
+      new DafnyPosition(startLine, startColumn),
+      new DafnyPosition(endLine, endColumn));
   }
 
-  public override string val {
-    get { return WrappedToken.val; }
-    set { WrappedToken.val = value; }
+  public static IOrigin MakeAutoGenerated(this IOrigin origin) {
+    return new AutoGeneratedOrigin(origin);
   }
 
-  public override IToken Prev {
-    get { return WrappedToken.Prev; }
-    set { WrappedToken.Prev = value; }
+  public static IOrigin MakeRefined(this IOrigin origin, ModuleDefinition module) {
+    return new RefinementOrigin(origin, module);
   }
 
-  public override IToken Next {
-    get { return WrappedToken.Next; }
-    set { WrappedToken.Next = value; }
+  public static bool Contains(this TokenRange container, Token otherToken) {
+    return container.StartToken.Uri == otherToken.Uri &&
+           container.StartToken.pos <= otherToken.pos &&
+           (container.EndToken == null || otherToken.pos <= container.EndToken.pos);
   }
 
+  public static bool Intersects(this TokenRange origin, TokenRange other) {
+    return !(other.EndToken.pos + other.EndToken.val.Length <= origin.StartToken.pos
+             || origin.EndToken.pos + origin.EndToken.val.Length <= other.StartToken.pos);
+  }
+
+  public static bool IsSet(this IOrigin token) => token.Uri != null;
+
+  public static string OriginToString(this IOrigin origin, DafnyOptions options) {
+    return (origin.ReportingRange.StartToken == Token.Cli ? null : origin.ReportingRange).ToFileRangeString(options);
+  }
+
+  public static string ToRangeString(this TokenRange range) {
+    var start = range.StartToken;
+    var end = range.EndToken;
+    return $"({start.line}:{start.col - 1}-{end.line}:{end.col - 1 + range.EndLength})";
+  }
+
+  public static string ToFileRangeString(this TokenRange? range, DafnyOptions options) {
+    if (range == null) {
+      return "CLI";
+    }
+
+    var start = range.StartToken;
+    if (start.Uri == null) {
+      if (options.Get(CommonOptionBag.PrintDiagnosticsRanges)) {
+        return range.ToRangeString();
+      }
+      return $"({start.line},{start.col - 1})";
+    }
+
+    var filename = GetRelativeFilename(options, start);
+
+    if (options.Get(CommonOptionBag.PrintDiagnosticsRanges)) {
+      return $"{filename}{range.ToRangeString()}";
+    }
+    return $"{filename}({start.line},{start.col - 1})";
+  }
+
+  public static string GetRelativeFilename(DafnyOptions options, Token token) {
+    if (token.Uri == null) {
+      return token.Filepath ?? "unknown";
+    }
+
+    var currentDirectory = Directory.GetCurrentDirectory();
+    string filename = token.Uri.Scheme switch {
+      "stdin" => "<stdin>",
+      "transcript" => Path.GetFileName(token.Filepath),
+      _ => options.UseBaseNameForFileName
+        ? Path.GetFileName(token.Filepath)
+        : (token.Filepath.StartsWith(currentDirectory) ? Path.GetRelativePath(currentDirectory, token.Filepath) : token.Filepath).Replace('\\', '/')
+    };
+    return filename;
+  }
+
+  public static string RangeToFileString(this TokenRange range) {
+    var start = range.StartToken;
+    var end = range.EndToken;
+    return $"({start.line}:{start.col - 1}-{end.line}:{end.col - 1 + range.EndLength})";
+  }
 }
 
 /// <summary>
 /// A token wrapper used to produce better type checking errors
-/// for quantified variables. See QuantifierVar.ExtractSingleRange()
+/// for quantified variables. See <see cref="QuantifiedVar.ExtractSingleRange"/>.
 /// </summary>
-public class QuantifiedVariableDomainToken : TokenWrapper {
-  public QuantifiedVariableDomainToken(IToken wrappedToken)
-    : base(wrappedToken) {
-    Contract.Requires(wrappedToken != null);
+public class QuantifiedVariableDomainOrigin : OriginWrapper {
+  public QuantifiedVariableDomainOrigin(IOrigin wrappedOrigin)
+    : base(wrappedOrigin) {
+    Contract.Requires(wrappedOrigin != null);
   }
 
   public override string val {
-    get { return WrappedToken.val; }
-    set { WrappedToken.val = value; }
+    get { return WrappedOrigin.val; }
+    set { WrappedOrigin.val = value; }
   }
 }
 
 /// <summary>
 /// A token wrapper used to produce better type checking errors
-/// for quantified variables. See QuantifierVar.ExtractSingleRange()
+/// for quantified variables. See <see cref="QuantifiedVar.ExtractSingleRange"/>.
 /// </summary>
-public class QuantifiedVariableRangeToken : TokenWrapper {
-  public QuantifiedVariableRangeToken(IToken wrappedToken)
-    : base(wrappedToken) {
-    Contract.Requires(wrappedToken != null);
+public class QuantifiedVariableRangeOrigin : OriginWrapper {
+  public QuantifiedVariableRangeOrigin(IOrigin wrappedOrigin)
+    : base(wrappedOrigin) {
+    Contract.Requires(wrappedOrigin != null);
   }
 
   public override string val {
-    get { return WrappedToken.val; }
-    set { WrappedToken.val = value; }
+    get { return WrappedOrigin.val; }
+    set { WrappedOrigin.val = value; }
   }
 }

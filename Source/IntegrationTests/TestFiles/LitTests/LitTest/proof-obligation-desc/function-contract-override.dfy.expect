@@ -1,0 +1,10 @@
+function-contract-override.dfy(14,11): Error: the function must provide an equal or more detailed postcondition than in its parent trait
+ Asserted expression: F(i') < 10 ==> this.F(i') < 5
+function-contract-override.dfy(14,11): Error: the function must provide an equal or more detailed postcondition than in its parent trait
+ Asserted expression: F(i') < 10 ==> P(this.F(i'))
+function-contract-override.dfy(14,11): Error: the function must provide an equal or more permissive precondition than in its parent trait
+ Asserted expression: i' < 10 ==> P(i')
+function-contract-override.dfy(14,11): Error: the function must provide an equal or more permissive precondition than in its parent trait
+ Asserted expression: i' < 10 ==> i' < 5
+
+Dafny program verifier finished with 2 verified, 4 errors

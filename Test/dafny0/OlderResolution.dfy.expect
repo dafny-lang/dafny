@@ -1,3 +1,0 @@
-OlderResolution.dfy(4,18): Error: only predicates and two-state predicates are allowed 'older' parameters
-OlderResolution.dfy(5,27): Error: only predicates and two-state predicates are allowed 'older' parameters
-2 resolution/type errors detected in OlderResolution.dfy

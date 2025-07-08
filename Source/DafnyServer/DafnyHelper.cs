@@ -3,12 +3,16 @@
 
 using System;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.IO;
 using System.Linq;
 using System.Runtime.Serialization.Json;
 using System.Text;
+using System.Threading;
+using System.Threading.Tasks;
 using Microsoft.Boogie;
 using DafnyServer;
+using Microsoft.Extensions.Logging.Abstractions;
 using Bpl = Microsoft.Boogie;
 
 namespace Microsoft.Dafny {
@@ -16,58 +20,66 @@ namespace Microsoft.Dafny {
   class DafnyHelper {
     private string fname;
     private string source;
+    private readonly DafnyOptions options;
     private readonly ExecutionEngine engine;
     private string[] args;
 
-    private readonly Dafny.ErrorReporter reporter;
-    private Dafny.Program dafnyProgram;
+    private ErrorReporter reporter;
+    private Program dafnyProgram;
     private IEnumerable<Tuple<string, Bpl.Program>> boogiePrograms;
+    private readonly CounterExampleProvider counterExampleProvider = new();
 
-    public DafnyHelper(ExecutionEngine engine, string[] args, string fname, string source) {
+    public DafnyHelper(DafnyOptions options, ExecutionEngine engine, string[] args, string fname, string source) {
+      this.options = options;
       this.engine = engine;
       this.args = args;
       this.fname = fname;
       this.source = source;
-      this.reporter = new Dafny.ConsoleErrorReporter();
     }
 
-    public bool Verify() {
-      ServerUtils.ApplyArgs(args, DafnyOptions.O);
-      return Parse() && Resolve() && Translate() && Boogie();
+    public async Task<bool> Verify() {
+      ServerUtils.ApplyArgs(args, options);
+      return await Parse() && Resolve() && Translate() && Boogie();
     }
 
-    private bool Parse() {
-      Dafny.ModuleDecl module = new Dafny.LiteralModuleDecl(new Dafny.DefaultModuleDecl(), null);
-      Dafny.BuiltIns builtIns = new Dafny.BuiltIns();
-      var success = (Dafny.Parser.Parse(source, fname, fname, null, module, builtIns, new Dafny.Errors(reporter)) == 0 &&
-                     Dafny.Main.ParseIncludesDepthFirstNotCompiledFirst(module, builtIns, new HashSet<string>(), new Dafny.Errors(reporter)) == null);
+    private async Task<bool> Parse() {
+      var uri = new Uri("transcript:///" + fname);
+      reporter = new ConsoleErrorReporter(options);
+      var fs = new InMemoryFileSystem(ImmutableDictionary<Uri, string>.Empty.Add(uri, source));
+      var file = DafnyFile.HandleDafnyFile(fs, reporter, reporter.Options, uri, Token.NoToken, false);
+      var parseResult = await new ProgramParser(NullLogger<ProgramParser>.Instance, OnDiskFileSystem.Instance).ParseFiles(fname, new[] { file },
+        reporter, CancellationToken.None);
+
+      var success = !reporter.HasErrors;
       if (success) {
-        dafnyProgram = new Dafny.Program(fname, module, builtIns, reporter);
+        dafnyProgram = parseResult.Program;
       }
       return success;
     }
 
     private bool Resolve() {
-      var resolver = new Dafny.Resolver(dafnyProgram);
-      resolver.ResolveProgram(dafnyProgram);
+      var resolver = new ProgramResolver(dafnyProgram);
+#pragma warning disable VSTHRD002
+      resolver.Resolve(CancellationToken.None).Wait();
+#pragma warning restore VSTHRD002
       return reporter.Count(ErrorLevel.Error) == 0;
     }
 
     private bool Translate() {
-      boogiePrograms = Translator.Translate(dafnyProgram, reporter,
-          new Translator.TranslatorFlags() { InsertChecksums = true, UniqueIdPrefix = fname }); // FIXME how are translation errors reported?
+      boogiePrograms = BoogieGenerator.Translate(dafnyProgram, reporter,
+          new BoogieGenerator.TranslatorFlags(options) { InsertChecksums = true, UniqueIdPrefix = fname }).ToList(); // FIXME how are translation errors reported?
       return true;
     }
 
     private bool BoogieOnce(string moduleName, Bpl.Program boogieProgram) {
-      if (boogieProgram.Resolve(DafnyOptions.O) == 0 && boogieProgram.Typecheck(DafnyOptions.O) == 0) { //FIXME ResolveAndTypecheck?
+      if (boogieProgram.Resolve(options) == 0 && boogieProgram.Typecheck(options) == 0) { //FIXME ResolveAndTypecheck?
         engine.EliminateDeadVariables(boogieProgram);
         engine.CollectModSets(boogieProgram);
         engine.CoalesceBlocks(boogieProgram);
         engine.Inline(boogieProgram);
 
         //NOTE: We could capture errors instead of printing them (pass a delegate instead of null)
-        switch (engine.InferAndVerify(Console.Out, boogieProgram, new PipelineStatistics(),
+        switch (engine.InferAndVerify(options.BaseOutputWriter, boogieProgram, new PipelineStatistics(),
 #pragma warning disable VSTHRD002
                   "ServerProgram_" + moduleName, null, DateTime.UtcNow.Ticks.ToString()).Result) {
 #pragma warning restore VSTHRD002
@@ -88,53 +100,51 @@ namespace Microsoft.Dafny {
       return isVerified;
     }
 
-    public void Symbols() {
-      ServerUtils.ApplyArgs(args, DafnyOptions.O);
-      if (Parse() && Resolve()) {
-        var symbolTable = new LegacySymbolTable(dafnyProgram);
+    public async Task Symbols() {
+      ServerUtils.ApplyArgs(args, options);
+      if (await Parse() && Resolve()) {
+        var symbolTable = new SuperLegacySymbolTable(dafnyProgram);
         var symbols = symbolTable.CalculateSymbols();
-        Console.WriteLine("SYMBOLS_START " + ConvertToJson(symbols) + " SYMBOLS_END");
+        await options.BaseOutputWriter.WriteLineAsync("SYMBOLS_START " + ConvertToJson(symbols) + " SYMBOLS_END");
       } else {
-        Console.WriteLine("SYMBOLS_START [] SYMBOLS_END");
+        await options.BaseOutputWriter.WriteLineAsync("SYMBOLS_START [] SYMBOLS_END");
       }
     }
 
-    public void CounterExample() {
+    public async Task CounterExample() {
       var listArgs = args.ToList();
-      listArgs.Add("/mv:" + CounterExampleProvider.ModelBvd);
-      ServerUtils.ApplyArgs(listArgs.ToArray(), DafnyOptions.O);
+      listArgs.Add("/mv:" + counterExampleProvider.ModelBvd);
+      ServerUtils.ApplyArgs(listArgs.ToArray(), options);
       try {
-        if (Parse() && Resolve() && Translate()) {
-          var counterExampleProvider = new CounterExampleProvider();
+        if (await Parse() && Resolve() && Translate()) {
           foreach (var boogieProgram in boogiePrograms) {
             RemoveExistingModel();
             BoogieOnce(boogieProgram.Item1, boogieProgram.Item2);
-            var model = counterExampleProvider.LoadCounterModel();
-            Console.WriteLine("COUNTEREXAMPLE_START " + ConvertToJson(model) + " COUNTEREXAMPLE_END");
+            var model = counterExampleProvider.LoadCounterModel(options);
+            await options.BaseOutputWriter.WriteLineAsync("COUNTEREXAMPLE_START " + ConvertToJson(model) + " COUNTEREXAMPLE_END");
           }
         }
       } catch (Exception e) {
-        Console.WriteLine("Error collection models: " + e.Message);
+        await options.BaseOutputWriter.WriteLineAsync("Error collection models: " + e.Message);
       }
     }
 
     private void RemoveExistingModel() {
-      if (File.Exists(CounterExampleProvider.ModelBvd)) {
-        File.Delete(CounterExampleProvider.ModelBvd);
+      if (File.Exists(counterExampleProvider.ModelBvd)) {
+        File.Delete(counterExampleProvider.ModelBvd);
       }
     }
 
-    public void DotGraph() {
-      ServerUtils.ApplyArgs(args, DafnyOptions.O);
+    public async Task DotGraph() {
+      ServerUtils.ApplyArgs(args, options);
 
-      if (Parse() && Resolve() && Translate()) {
+      if (await Parse() && Resolve() && Translate()) {
         foreach (var boogieProgram in boogiePrograms) {
           BoogieOnce(boogieProgram.Item1, boogieProgram.Item2);
 
           foreach (var impl in boogieProgram.Item2.Implementations) {
-            using (StreamWriter sw = new StreamWriter(fname + impl.Name + ".dot")) {
-              sw.Write(boogieProgram.Item2.ProcessLoops(engine.Options, impl).ToDot());
-            }
+            await using var sw = new StreamWriter(fname + impl.Name + ".dot");
+            await sw.WriteAsync(boogieProgram.Item2.ProcessLoops(engine.Options, impl).ToDot());
           }
         }
       }

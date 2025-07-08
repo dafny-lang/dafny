@@ -1,0 +1,4 @@
+constructorCaseWithoutParentheses.dfy(30,11): Error: constructor 'ShadesOfGray' of arity 1 is applied without any arguments
+constructorCaseWithoutParentheses.dfy(36,11): Error: constructor 'ShadesOfGray' of arity 1 is applied without any arguments
+constructorCaseWithoutParentheses.dfy(45,14): Error: constructor 'ShadesOfGray' of arity 1 is applied without any arguments
+3 resolution/type errors detected in constructorCaseWithoutParentheses.dfy

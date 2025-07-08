@@ -1,0 +1,2 @@
+// CHECK-L: Arrays.dfy(540,22): Error: Unsupported Invalid Operation: Creation of object of type MyClass requires a constructor
+

@@ -1,0 +1,115 @@
+
+
+.topheading {
+  width: 100%;
+  height: 50px;
+  left: 0;
+}
+
+.rightside {
+  top: 50px; /* Same as the height of topheading */
+  padding-top: 0;
+  margin-top: 20px;
+  margin-left: 300px; /* Same as the width of the sidenav */
+  height: 100%;
+  overflow-y: hidden;
+}
+
+.sidenav {
+  height: 100%;
+  width: 300px;
+  position: fixed;
+  z-index: 1;
+  top: 50px; /* Same as the height of topheading */
+  left: 0;
+  background-color: #ffffff;
+  overflow-x: hidden;
+  padding-top: 30px;
+  margin-top: 20px;
+  margin-left: 6px;
+}
+
+.sidenav a {
+  padding: 6px 8px 6px 16px;
+  text-decoration: none;
+  font-size: 16px;
+}
+
+.sidenav a:hover {
+  color: #0000ff;
+}
+
+
+@media screen and (max-height: 450px) {
+  .sidenav {padding-top: 15px;}
+  .sidenav a {font-size: 18px;}
+}
+
+body {
+  background-color: white;
+  font-family: 'Arial', sanserif;
+}
+
+h1 {
+  color: black;
+  font-weight: bold;
+  text-align: center;
+}
+h2 {
+  color: black;
+  font-weight: bold;
+  text-align: left;
+}
+h3 {
+  color: black;
+  text-align: left;
+}
+
+frame {
+  width: 100%;
+  height: 100%;
+  border: none;
+  background-color: #ffffa0;
+}
+
+p {
+  font-size: 16px;
+}
+
+span.doctext {
+   font-family: 'Arial';
+}
+
+span.code {
+   font-family: 'Courier New', monospace;
+}
+
+span.from-file {
+  font-style: italic;
+  opacity: 50%;
+}
+
+table {
+  //border: 1px solid #d2d2d2;
+  //width: 100%;
+  //border-collapse: collapse;
+  //table-layout: left;
+  //font-size: .875rem;
+  //margin-top: 1rem;
+  vertical-align: top;
+}
+
+tr {
+  vertical-align: top;
+}
+
+td {
+  word-wrap: break-word;
+  //border-top: 1px solid #d2d2d2;
+  vertical-align: top;
+  //padding-top: 1rem;
+  //padding-right: 1.25rem;
+  //line-height: 1.0;
+  //display: table-cell;
+}
+

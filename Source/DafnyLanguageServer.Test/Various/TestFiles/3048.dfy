@@ -87,6 +87,6 @@ predicate Write(c: Constants, s: State, s': State, lba: uint64, val: Block)
 
 lemma WritePreservesValid(c: Constants, s: State, s': State, lba: uint64, val: Block)
   requires Valid(c, s)
-  requires Write(c, s, s', lba, val);
+  requires Write(c, s, s', lba, val)
   ensures Valid(c, s')
 {}

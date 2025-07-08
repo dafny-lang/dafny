@@ -26,7 +26,7 @@ namespace Microsoft.Dafny {
     /// statement and expression using "visitor".
     /// </summary>
     public void VisitDeclarations(List<TopLevelDecl> declarations) {
-      declarations.Iter(VisitOneDeclaration);
+      declarations.ForEach(VisitOneDeclaration);
     }
 
     protected virtual void VisitOneDeclaration(TopLevelDecl decl) {
@@ -57,7 +57,7 @@ namespace Microsoft.Dafny {
       }
 
       if (decl is TopLevelDeclWithMembers cl) {
-        cl.Members.Iter(VisitMember);
+        cl.Members.ForEach(VisitMember);
       }
     }
 
@@ -68,21 +68,21 @@ namespace Microsoft.Dafny {
 
       VisitDefaultParameterValues(iteratorDecl.Ins, context);
 
-      iteratorDecl.Requires.Iter(aexpr => VisitAttributedExpression(aexpr, context));
+      iteratorDecl.Requires.ForEach(aexpr => VisitAttributedExpression(aexpr, context));
 
       VisitAttributes(iteratorDecl.Modifies, iteratorDecl.EnclosingModuleDefinition);
-      iteratorDecl.Modifies.Expressions.Iter(frameExpr => VisitExpression(frameExpr.E, context));
+      iteratorDecl.Modifies.Expressions.ForEach(frameExpr => VisitTopLevelFrameExpression(frameExpr, context));
 
-      iteratorDecl.YieldRequires.Iter(aexpr => VisitAttributedExpression(aexpr, context));
+      iteratorDecl.YieldRequires.ForEach(aexpr => VisitAttributedExpression(aexpr, context));
 
-      iteratorDecl.Reads.Expressions.Iter(frameExpr => VisitExpression(frameExpr.E, context));
+      iteratorDecl.Reads.Expressions.ForEach(frameExpr => VisitTopLevelFrameExpression(frameExpr, context));
 
-      iteratorDecl.YieldEnsures.Iter(frameExpr => VisitExpression(frameExpr.E, context));
+      iteratorDecl.YieldEnsures.ForEach(aexpr => VisitExpression(aexpr.E, context));
 
-      iteratorDecl.Ensures.Iter(frameExpr => VisitExpression(frameExpr.E, context));
+      iteratorDecl.Ensures.ForEach(aexpr => VisitExpression(aexpr.E, context));
 
       VisitAttributes(iteratorDecl.Decreases, iteratorDecl.EnclosingModuleDefinition);
-      iteratorDecl.Decreases.Expressions.Iter(expr => VisitExpression(expr, context));
+      iteratorDecl.Decreases.Expressions.ForEach(expr => VisitExpression(expr, context));
 
       if (iteratorDecl.Body != null) {
         VisitStatement(iteratorDecl.Body, context);
@@ -105,7 +105,7 @@ namespace Microsoft.Dafny {
           VisitMethod(function.ByMethodDecl);
         }
 
-      } else if (member is Method method) {
+      } else if (member is MethodOrConstructor method) {
         VisitMethod(method);
 
         var prefixLemma = (method as ExtremeLemma)?.PrefixLemma;
@@ -136,28 +136,29 @@ namespace Microsoft.Dafny {
 
       VisitAttributes(function, function.EnclosingClass.EnclosingModuleDefinition);
 
-      foreach (var formal in function.Formals) {
+      foreach (var formal in function.Ins) {
         VisitUserProvidedType(formal.Type, context);
       }
       VisitUserProvidedType(function.ResultType, context);
 
-      VisitDefaultParameterValues(function.Formals, context);
+      VisitDefaultParameterValues(function.Ins, context);
 
-      function.Req.Iter(aexpr => VisitAttributedExpression(aexpr, context));
+      function.Req.ForEach(aexpr => VisitAttributedExpression(aexpr, context));
 
-      function.Reads.Iter(frameExpression => VisitExpression(frameExpression.E, context));
+      VisitAttributes(function.Reads, function.EnclosingClass.EnclosingModuleDefinition);
+      function.Reads.Expressions.ForEach(frameExpression => VisitTopLevelFrameExpression(frameExpression, context));
 
-      function.Ens.Iter(aexpr => VisitAttributedExpression(aexpr, GetContext(function, true)));
+      function.Ens.ForEach(aexpr => VisitAttributedExpression(aexpr, GetContext(function, true)));
 
       VisitAttributes(function.Decreases, function.EnclosingClass.EnclosingModuleDefinition);
-      function.Decreases.Expressions.Iter(expr => VisitExpression(expr, context));
+      function.Decreases.Expressions.ForEach(expr => VisitExpression(expr, context));
 
       if (function.Body != null) {
         VisitExpression(function.Body, context);
       }
     }
 
-    public virtual void VisitMethod(Method method) {
+    public virtual void VisitMethod(MethodOrConstructor method) {
       var context = GetContext(method, false);
 
       VisitAttributes(method, method.EnclosingClass.EnclosingModuleDefinition);
@@ -171,15 +172,17 @@ namespace Microsoft.Dafny {
 
       VisitDefaultParameterValues(method.Ins, context);
 
-      method.Req.Iter(aexpr => VisitAttributedExpression(aexpr, context));
+      method.Req.ForEach(aexpr => VisitAttributedExpression(aexpr, context));
+
+      method.Reads.Expressions.ForEach(frameExpression => VisitTopLevelFrameExpression(frameExpression, context));
 
       VisitAttributes(method.Mod, method.EnclosingClass.EnclosingModuleDefinition);
-      method.Mod.Expressions.Iter(frameExpression => VisitExpression(frameExpression.E, context));
+      method.Mod.Expressions.ForEach(frameExpression => VisitTopLevelFrameExpression(frameExpression, context));
 
       VisitAttributes(method.Decreases, method.EnclosingClass.EnclosingModuleDefinition);
-      method.Decreases.Expressions.Iter(expr => VisitExpression(expr, context));
+      method.Decreases.Expressions.ForEach(expr => VisitExpression(expr, context));
 
-      method.Ens.Iter(aexpr => VisitAttributedExpression(aexpr, context));
+      method.Ens.ForEach(aexpr => VisitAttributedExpression(aexpr, context));
 
       if (method.Body != null) {
         VisitStatement(method.Body, context);
@@ -189,7 +192,7 @@ namespace Microsoft.Dafny {
     private void VisitDefaultParameterValues(List<Formal> formals, VisitorContext context) {
       formals
         .Where(formal => formal.DefaultValue != null)
-        .Iter(formal => VisitExpression(formal.DefaultValue, context));
+        .ForEach(formal => VisitExpression(formal.DefaultValue, context));
     }
 
     private void VisitAttributedExpression(AttributedExpression attributedExpression, VisitorContext context) {
@@ -223,7 +226,7 @@ namespace Microsoft.Dafny {
         } else if (expr is LetExpr letExpr) {
           foreach (var lhs in letExpr.LHSs) {
             foreach (var v in lhs.Vars) {
-              VisitUserProvidedType(v.SyntacticType, context);
+              VisitUserProvidedType(v.SafeSyntacticType, context);
             }
           }
 
@@ -254,9 +257,8 @@ namespace Microsoft.Dafny {
             }
           }
         } else if (expr is NestedMatchExpr nestedMatchExpr) {
-          foreach (IdPattern mc in nestedMatchExpr.Cases.SelectMany(c => c.Pat.DescendantsAndSelf).OfType<IdPattern>()
-                     .Where(id => id.BoundVar != null)) {
-            VisitUserProvidedType(mc.BoundVar.Type, context);
+          foreach (var mc in nestedMatchExpr.Cases) {
+            VisitExtendedPattern(mc.Pat, context);
           }
         }
 
@@ -266,10 +268,45 @@ namespace Microsoft.Dafny {
         }
 
         // Visit subexpressions
-        expr.SubExpressions.Iter(ee => VisitExpression(ee, context));
+        expr.SubExpressions.ForEach(ee => VisitExpression(ee, context));
 
         PostVisitOneExpression(expr, context);
       }
+    }
+
+    protected virtual void VisitExtendedPattern(ExtendedPattern pattern, VisitorContext context) {
+      switch (pattern) {
+        case DisjunctivePattern disjunctivePattern:
+          foreach (var alternative in disjunctivePattern.Alternatives) {
+            VisitExtendedPattern(alternative, context);
+          }
+          break;
+        case LitPattern:
+          break;
+        case IdPattern idPattern:
+          if (idPattern.BoundVar != null) {
+            VisitUserProvidedType(idPattern.BoundVar.Type, context);
+          }
+          if (idPattern.Arguments != null) {
+            foreach (var argument in idPattern.Arguments) {
+              VisitExtendedPattern(argument, context);
+            }
+          }
+          break;
+        default:
+          Contract.Assert(false); // unexpected case
+          break;
+      }
+    }
+
+    /// <summary>
+    /// This method is called only for FrameExpression's that are part of top-level or member declarations.
+    /// Some statements (modifies clauses of loops) and expressions (reads clauses of lambda expressions, unchanged expressions)
+    /// also have FrameExpression's, but the ASTVisitor does not automatically call VisitTopLevelFrameExpression on those, only
+    /// VisitExpression.
+    /// </summary>
+    public virtual void VisitTopLevelFrameExpression(FrameExpression frameExpression, VisitorContext context) {
+      VisitExpression(frameExpression.E, context);
     }
 
     /// <summary>
@@ -291,19 +328,17 @@ namespace Microsoft.Dafny {
         // Visit user-provided types
         if (stmt is VarDeclStmt varDeclStmt) {
           foreach (var local in varDeclStmt.Locals) {
-            VisitUserProvidedType(local.OptionalType, context);
+            VisitUserProvidedType(local.SafeSyntacticType, context);
           }
 
         } else if (stmt is VarDeclPattern varDeclPattern) {
           foreach (var local in varDeclPattern.LocalVars) {
-            VisitUserProvidedType(local.OptionalType, context);
+            VisitUserProvidedType(local.SafeSyntacticType, context);
           }
 
-        } else if (stmt is AssignStmt assignStmt) {
-          if (assignStmt.Rhs is TypeRhs typeRhs) {
-            if (typeRhs.EType != null) {
-              VisitUserProvidedType(typeRhs.EType, context);
-            }
+        } else if (stmt is SingleAssignStmt assignStmt) {
+          if (assignStmt.Rhs is AllocateArray typeRhs) {
+            VisitUserProvidedType(typeRhs.ElementType, context);
           }
 
         } else if (stmt is OneBodyLoopStmt oneBodyLoopStmt) {
@@ -314,6 +349,11 @@ namespace Microsoft.Dafny {
         } else if (stmt is ForallStmt forallStmt) {
           foreach (BoundVar v in forallStmt.BoundVars) {
             VisitUserProvidedType(v.Type, context);
+          }
+
+        } else if (stmt is NestedMatchStmt nestedMatchStmt) {
+          foreach (var mc in nestedMatchStmt.Cases) {
+            VisitExtendedPattern(mc.Pat, context);
           }
 
         } else if (stmt is MatchStmt matchStmt) {
@@ -327,10 +367,10 @@ namespace Microsoft.Dafny {
         }
 
         // Visit subexpressions
-        stmt.SubExpressions.Iter(ee => VisitExpression(ee, context));
+        stmt.SubExpressions.ForEach(ee => VisitExpression(ee, context));
 
         // Visit substatements
-        stmt.SubStatements.Iter(ss => VisitStatement(ss, context));
+        stmt.SubStatements.ForEach(ss => VisitStatement(ss, context));
 
         PostVisitOneStatement(stmt, context);
       }

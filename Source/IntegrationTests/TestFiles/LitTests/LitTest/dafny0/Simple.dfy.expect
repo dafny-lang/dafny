@@ -1,0 +1,112 @@
+Simple.dfy(98,7): Warning: the ... refinement feature in statements is deprecated
+Simple.dfy(101,7): Warning: the ... refinement feature in statements is deprecated
+// Simple.dfy
+
+lemma M(x: int)
+  ensures x < 8
+{
+}
+
+greatest lemma M'(x': int)
+  ensures true
+{
+}
+
+class MyClass<T, U> {
+  var x: int
+
+  method M(s: bool, lotsaObjects: set<object>)
+      returns (t: object, u: set<int>, v: seq<MyClass?<bool, U>>)
+    requires s
+    modifies this, lotsaObjects
+    ensures t == t
+    ensures old(null) != this
+  {
+    x := 12;
+    while x < 100
+      invariant x <= 100
+    {
+      x := x + 17;
+      if x % 20 == 3 {
+        x := this.x + 1;
+      } else {
+        this.x := x + 0;
+      }
+      t, u, v := M(true, lotsaObjects);
+      var to: MyClass<T, U>;
+      t, u, v := this.M(true, lotsaObjects);
+      t, u, v := to.M(true, lotsaObjects);
+      assert v[x] != null ==> null !in v[2 .. x][1..][5 := v[this.x]][..10];
+    }
+  }
+
+  ghost function F(x: int, y: int, h: WildData, k: WildData): WildData
+  {
+    if x < 0 then
+      h
+    else if x == 0 then
+      if if h == k then true else false then
+        h
+      else if y == 0 then
+        k
+      else
+        h
+    else
+      k
+  }
+}
+
+datatype List<T> = Nil | Cons(T, List<T>)
+
+datatype WildData = Something | JustAboutAnything(bool, myName: set<int>, int, WildData) | More(List<int>)
+
+class C {
+  var w: WildData
+  var list: List<bool>
+}
+
+class CF {
+  static ghost function F(): int
+
+  predicate G()
+
+  greatest predicate Co()
+
+  ghost function H(): int
+
+  static ghost function I(): real
+
+  static ghost predicate J()
+}
+
+module A {
+  method P(x: int, y: int)
+  {
+    if x == 2 {
+    } else if * {
+    }
+    if x == 10 {
+    }
+    if y == 0 {
+    } else if y == 1 {
+    } else if * {
+    } else if y == 2 {
+    } else if * {
+    } else if y == 3 {
+    } else {
+    }
+  }
+}
+
+module B refines A {
+  method P ...
+  {
+    if ... {
+    } else if x == 3 {
+    }
+    ...;
+  }
+}
+Simple.dfy(14,12): Warning: Argument to 'old' does not dereference the mutable heap, so this use of 'old' has no effect
+
+Dafny program verifier did not attempt verification

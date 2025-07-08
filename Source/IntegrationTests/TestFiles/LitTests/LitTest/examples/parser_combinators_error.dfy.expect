@@ -1,0 +1,2 @@
+parser_combinators_error.dfy(6,27): Error: cannot use naked function in recursive setting. Possible solution: eta expansion.
+1 resolution/type errors detected in parser_combinators_error.dfy

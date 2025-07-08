@@ -1,5 +1,6 @@
 ﻿// SPDX-License-Identifier: MIT
 using System;
+using OmniSharp.Extensions.LanguageServer.Server;
 
 namespace Microsoft.Dafny.LanguageServer.Plugins;
 
@@ -19,6 +20,14 @@ public abstract class PluginConfiguration : Dafny.Plugins.PluginConfiguration {
   /// </summary>
   /// <returns>An array of quick fixers implemented by this plugin</returns>
   public virtual DafnyCodeActionProvider[] GetDafnyCodeActionProviders() {
-    return Array.Empty<DafnyCodeActionProvider>();
+    return [];
+  }
+
+  /// <summary>
+  /// Override this method to provide additional language server handlers
+  /// </summary>
+  /// <returns>The provided LanguageServerOptions with the additional handlers applied</returns>
+  public virtual LanguageServerOptions WithPluginHandlers(LanguageServerOptions options) {
+    return options;
   }
 }

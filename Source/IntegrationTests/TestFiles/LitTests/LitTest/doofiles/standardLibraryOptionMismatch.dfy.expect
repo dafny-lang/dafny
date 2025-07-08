@@ -1,0 +1,4 @@
+CLI: Error: cannot load DafnyStandardLibraries-cs.doo: --unicode-char is set locally to False, but the library was built with True
+CLI: Error: cannot load DafnyStandardLibraries.doo: --unicode-char is set locally to False, but the library was built with True
+
+Dafny program verifier finished with 0 verified, 0 errors

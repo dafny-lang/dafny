@@ -1,0 +1,1046 @@
+abstract class IOrigin
+{
+}
+
+class TokenRangeOrigin : IOrigin
+{
+    Token startToken;
+    Token endToken;
+}
+
+class Token
+{
+    Int32 line;
+    Int32 col;
+}
+
+class SourceOrigin : IOrigin
+{
+    TokenRange entireRange;
+    TokenRange? reportingRange;
+}
+
+class TokenRange
+{
+    Token startToken;
+    Token? endToken;
+}
+
+class FilesContainer
+{
+    List<FileHeader> files;
+}
+
+class FileHeader
+{
+    String uri;
+    Boolean isLibrary;
+    List<TopLevelDecl> topLevelDecls;
+}
+
+abstract class Node
+{
+}
+
+abstract class NodeWithOrigin : Node
+{
+    IOrigin? origin;
+}
+
+abstract class Type : NodeWithOrigin
+{
+}
+
+abstract class NonProxyType : Type
+{
+}
+
+class UserDefinedType : NonProxyType
+{
+    Expression namePath;
+}
+
+abstract class Expression : NodeWithOrigin
+{
+}
+
+class LetExpr : Expression
+{
+    List<CasePattern<BoundVar>> lhss;
+    List<Expression> rhss;
+    Expression body;
+    Boolean exact;
+    Attributes? attributes;
+}
+
+class Attributes : NodeWithOrigin
+{
+    String name;
+    List<Expression> args;
+    Attributes? prev;
+}
+
+class CasePattern<VT> : NodeWithOrigin
+{
+    String id;
+    VT? var;
+    List<CasePattern<VT>>? arguments;
+}
+
+class IdentifierExpr : Expression
+{
+    String name;
+}
+
+class AutoGhostIdentifierExpr : IdentifierExpr
+{
+}
+
+abstract class UnaryExpr : Expression
+{
+    Expression e;
+}
+
+abstract class TypeUnaryExpr : UnaryExpr
+{
+    Type toType;
+}
+
+class TypeTestExpr : TypeUnaryExpr
+{
+}
+
+class ConversionExpr : TypeUnaryExpr
+{
+    String messagePrefix;
+}
+
+class UnaryOpExpr : UnaryExpr
+{
+    UnaryOpExprOpcode op;
+}
+
+enum UnaryOpExprOpcode
+{
+    Not,
+    Cardinality,
+    Fresh,
+    Allocated,
+    Lit,
+    Assigned
+}
+
+class FreshExpr : UnaryExpr
+{
+    String? at;
+}
+
+class BinaryExpr : Expression
+{
+    BinaryExprOpcode op;
+    Expression e0;
+    Expression e1;
+}
+
+enum BinaryExprOpcode
+{
+    Iff,
+    Imp,
+    Exp,
+    And,
+    Or,
+    Eq,
+    Neq,
+    Lt,
+    Le,
+    Ge,
+    Gt,
+    Disjoint,
+    In,
+    NotIn,
+    LeftShift,
+    RightShift,
+    Add,
+    Sub,
+    Mul,
+    Div,
+    Mod,
+    BitwiseAnd,
+    BitwiseOr,
+    BitwiseXor
+}
+
+class LiteralExpr : Expression
+{
+    Object? value;
+}
+
+class StringLiteralExpr : LiteralExpr
+{
+    Boolean isVerbatim;
+}
+
+class CharLiteralExpr : LiteralExpr
+{
+}
+
+class UnchangedExpr : Expression
+{
+    List<FrameExpression> frame;
+    String? at;
+}
+
+class FrameExpression : NodeWithOrigin
+{
+    Expression originalExpression;
+    String? fieldName;
+}
+
+class OldExpr : Expression
+{
+    Expression expr;
+    String? at;
+}
+
+class DatatypeValue : Expression
+{
+    String datatypeName;
+    String memberName;
+    ActualBindings bindings;
+}
+
+abstract class NodeWithoutOrigin : Node
+{
+}
+
+class ModuleQualifiedId : NodeWithoutOrigin
+{
+    List<Name> path;
+}
+
+class Name : Node
+{
+    IOrigin origin;
+    String value;
+}
+
+class Specification<T> : NodeWithoutOrigin where T : Node
+{
+    List<T>? expressions;
+    Attributes? attributes;
+}
+
+class ActualBinding : NodeWithoutOrigin
+{
+    IOrigin? formalParameterName;
+    Expression actual;
+    Boolean isGhost;
+}
+
+class ActualBindings : NodeWithoutOrigin
+{
+    List<ActualBinding> argumentBindings;
+}
+
+class TernaryExpr : Expression
+{
+    TernaryExprOpcode op;
+    Expression e0;
+    Expression e1;
+    Expression e2;
+}
+
+enum TernaryExprOpcode
+{
+    PrefixEqOp,
+    PrefixNeqOp
+}
+
+class NestedMatchExpr : Expression
+{
+    Expression source;
+    List<NestedMatchCaseExpr> cases;
+    Boolean usesOptionalBraces;
+    Attributes? attributes;
+}
+
+abstract class NestedMatchCase : NodeWithOrigin
+{
+    ExtendedPattern pat;
+}
+
+abstract class ExtendedPattern : NodeWithOrigin
+{
+    Boolean isGhost;
+}
+
+class LitPattern : ExtendedPattern
+{
+    Expression origLit;
+}
+
+class IdPattern : ExtendedPattern
+{
+    String id;
+    Type? syntacticType;
+    List<ExtendedPattern>? arguments;
+    Boolean hasParenthesis;
+}
+
+class DisjunctivePattern : ExtendedPattern
+{
+    List<ExtendedPattern> alternatives;
+}
+
+class NestedMatchCaseStmt : NestedMatchCase
+{
+    List<Statement> body;
+    Attributes? attributes;
+}
+
+abstract class Statement : NodeWithOrigin
+{
+    Attributes? attributes;
+}
+
+abstract class PredicateStmt : Statement
+{
+    Expression expr;
+}
+
+class ExpectStmt : PredicateStmt
+{
+    Expression? message;
+}
+
+class AssertStmt : PredicateStmt
+{
+    AssertLabel? label;
+}
+
+class Label
+{
+    IOrigin tok;
+    String name;
+}
+
+class AssertLabel : Label
+{
+}
+
+class HideRevealStmt : Statement
+{
+    List<Expression>? exprs;
+    HideRevealCmdModes mode;
+}
+
+enum HideRevealCmdModes
+{
+    Hide,
+    Reveal
+}
+
+abstract class ProduceStmt : Statement
+{
+    List<AssignmentRhs>? rhss;
+}
+
+abstract class AssignmentRhs : NodeWithOrigin
+{
+    Attributes? attributes;
+}
+
+abstract class TypeRhs : AssignmentRhs
+{
+}
+
+class AllocateClass : TypeRhs
+{
+    Type path;
+    ActualBindings? bindings;
+}
+
+class AllocateArray : TypeRhs
+{
+    Type? explicitType;
+    List<Expression> arrayDimensions;
+    Expression? elementInit;
+}
+
+class ExprRhs : AssignmentRhs
+{
+    Expression expr;
+}
+
+class ReturnStmt : ProduceStmt
+{
+}
+
+class PrintStmt : Statement
+{
+    List<Expression> args;
+}
+
+class LabeledStatement : Statement
+{
+    List<Label> labels;
+}
+
+abstract class LoopStmt : LabeledStatement
+{
+    List<AttributedExpression> invariants;
+    Specification<Expression> decreases;
+    Specification<FrameExpression> mod;
+}
+
+class AttributedExpression
+{
+    Expression e;
+    AssertLabel? label;
+    Attributes? attributes;
+}
+
+abstract class OneBodyLoopStmt : LoopStmt
+{
+    BlockStmt? body;
+}
+
+abstract class BlockLikeStmt : LabeledStatement
+{
+}
+
+class DividedBlockStmt : BlockLikeStmt
+{
+    List<Statement> bodyInit;
+    IOrigin? separatorTok;
+    List<Statement> bodyProper;
+}
+
+class BlockStmt : BlockLikeStmt
+{
+    List<Statement> body;
+}
+
+class OpaqueBlock : BlockStmt
+{
+    List<AttributedExpression> ensures;
+    Specification<FrameExpression> modifies;
+}
+
+class WhileStmt : OneBodyLoopStmt
+{
+    Expression guard;
+}
+
+class IfStmt : LabeledStatement
+{
+    Boolean isBindingGuard;
+    Expression? guard;
+    BlockStmt thn;
+    Statement? els;
+}
+
+class BreakOrContinueStmt : Statement
+{
+    Name? targetLabel;
+    Int32 breakAndContinueCount;
+    Boolean isContinue;
+}
+
+class BlockByProofStmt : Statement
+{
+    BlockStmt proof;
+    Statement body;
+}
+
+class VarDeclStmt : Statement
+{
+    List<LocalVariable> locals;
+    ConcreteAssignStatement? assign;
+}
+
+abstract class ConcreteAssignStatement : Statement
+{
+    List<Expression> lhss;
+}
+
+class AssignStatement : ConcreteAssignStatement
+{
+    List<AssignmentRhs> rhss;
+    Boolean canMutateKnownState;
+}
+
+class LocalVariable : NodeWithOrigin
+{
+    String name;
+    Type? syntacticType;
+    Boolean isGhost;
+}
+
+class NestedMatchStmt : Statement
+{
+    Expression source;
+    List<NestedMatchCaseStmt> cases;
+    Boolean usesOptionalBraces;
+}
+
+class NestedMatchCaseExpr : NestedMatchCase
+{
+    Expression body;
+    Attributes? attributes;
+}
+
+class ITEExpr : Expression
+{
+    Boolean isBindingGuard;
+    Expression test;
+    Expression thn;
+    Expression els;
+}
+
+abstract class ConcreteSyntaxExpression : Expression
+{
+}
+
+class LetOrFailExpr : ConcreteSyntaxExpression
+{
+    CasePattern<BoundVar>? lhs;
+    Expression rhs;
+    Expression body;
+}
+
+abstract class NonglobalVariable : NodeWithOrigin
+{
+    Name nameNode;
+    Type? syntacticType;
+    Boolean isGhost;
+}
+
+class Formal : NonglobalVariable
+{
+    Boolean inParam;
+    Expression? defaultValue;
+    Attributes? attributes;
+    Boolean isOld;
+    Boolean isNameOnly;
+    Boolean isOlder;
+    String? nameForCompilation;
+}
+
+class BoundVar : NonglobalVariable
+{
+}
+
+class QuantifiedVar : NodeWithOrigin
+{
+    Name nameNode;
+    Type? syntacticType;
+    Expression? domain;
+    Expression? range;
+}
+
+class ParensExpression : ConcreteSyntaxExpression
+{
+    Expression e;
+}
+
+class ChainingExpression : ConcreteSyntaxExpression
+{
+    List<Expression> operands;
+    List<BinaryExprOpcode> operators;
+    List<IOrigin> operatorLocs;
+    List<Expression> prefixLimits;
+}
+
+class NegationExpression : ConcreteSyntaxExpression
+{
+    Expression e;
+}
+
+abstract class SuffixExpr : ConcreteSyntaxExpression
+{
+    Expression lhs;
+}
+
+class ExprDotName : SuffixExpr
+{
+    Name suffixNameNode;
+    List<Type>? optTypeArguments;
+}
+
+class ApplySuffix : SuffixExpr
+{
+    IOrigin? atTok;
+    ActualBindings bindings;
+    Token? closeParen;
+}
+
+class NameSegment : ConcreteSyntaxExpression
+{
+    String name;
+    List<Type>? optTypeArguments;
+}
+
+abstract class ComprehensionExpr : Expression
+{
+    List<BoundVar> boundVars;
+    Expression? range;
+    Expression term;
+    Attributes? attributes;
+}
+
+class SetComprehension : ComprehensionExpr
+{
+    Boolean finite;
+}
+
+abstract class QuantifierExpr : ComprehensionExpr
+{
+}
+
+class ForallExpr : QuantifierExpr
+{
+}
+
+class ExistsExpr : QuantifierExpr
+{
+}
+
+class MapComprehension : ComprehensionExpr
+{
+    Boolean finite;
+    Expression? termLeft;
+}
+
+class LambdaExpr : ComprehensionExpr
+{
+    Specification<FrameExpression> reads;
+}
+
+class SeqUpdateExpr : Expression
+{
+    Expression seq;
+    Expression index;
+    Expression value;
+}
+
+class SeqConstructionExpr : Expression
+{
+    Type? explicitElementType;
+    Expression n;
+    Expression initializer;
+}
+
+class MultiSetFormingExpr : Expression
+{
+    Expression e;
+}
+
+class MapDisplayExpr : Expression
+{
+    Boolean finite;
+    List<MapDisplayEntry> elements;
+}
+
+class MapDisplayEntry
+{
+    Expression a;
+    Expression b;
+}
+
+abstract class DisplayExpression : Expression
+{
+    List<Expression> elements;
+}
+
+class SetDisplayExpr : DisplayExpression
+{
+    Boolean finite;
+}
+
+class SeqDisplayExpr : DisplayExpression
+{
+}
+
+class MultiSetDisplayExpr : DisplayExpression
+{
+}
+
+class ThisExpr : Expression
+{
+}
+
+class SeqSelectExpr : Expression
+{
+    Boolean selectOne;
+    Expression seq;
+    Expression? e0;
+    Expression? e1;
+    Token? closeParen;
+}
+
+class MultiSelectExpr : Expression
+{
+    Expression array;
+    List<Expression> indices;
+}
+
+abstract class BasicType : NonProxyType
+{
+}
+
+class FieldType : BasicType
+{
+}
+
+class BitvectorType : BasicType
+{
+    Int32 width;
+}
+
+class BigOrdinalType : BasicType
+{
+}
+
+class RealType : BasicType
+{
+}
+
+class IntType : BasicType
+{
+}
+
+class CharType : BasicType
+{
+}
+
+class BoolType : BasicType
+{
+}
+
+abstract class CollectionType : NonProxyType
+{
+    List<Type> typeArgs;
+}
+
+class SetType : CollectionType
+{
+    Boolean finite;
+}
+
+class SeqType : CollectionType
+{
+}
+
+class MultiSetType : CollectionType
+{
+}
+
+class MapType : CollectionType
+{
+    Boolean finite;
+}
+
+abstract class Declaration : NodeWithOrigin
+{
+    Name nameNode;
+    Attributes? attributes;
+}
+
+abstract class TopLevelDecl : Declaration
+{
+    List<TypeParameter> typeArgs;
+}
+
+class TypeParameter : Declaration
+{
+    TPVarianceSyntax varianceSyntax;
+    TypeParameterCharacteristics characteristics;
+    List<Type> typeBounds;
+}
+
+class TypeParameterCharacteristics
+{
+    TypeParameterEqualitySupportValue equalitySupport;
+    TypeAutoInitInfo autoInit;
+    Boolean containsNoReferenceTypes;
+}
+
+enum TypeAutoInitInfo
+{
+    MaybeEmpty,
+    Nonempty,
+    CompilableValue
+}
+
+enum TypeParameterEqualitySupportValue
+{
+    Required,
+    InferredRequired,
+    Unspecified
+}
+
+enum TPVarianceSyntax
+{
+    NonVariant_Strict,
+    NonVariant_Permissive,
+    Covariant_Strict,
+    Covariant_Permissive,
+    Contravariance
+}
+
+abstract class TypeSynonymDeclBase : TopLevelDecl
+{
+    TypeParameterCharacteristics characteristics;
+}
+
+abstract class TypeSynonymDecl : TypeSynonymDeclBase
+{
+}
+
+class SubsetTypeDecl : TypeSynonymDecl
+{
+    BoundVar var;
+    Expression constraint;
+    SubsetTypeDeclWKind witnessKind;
+    Expression? witness;
+}
+
+enum SubsetTypeDeclWKind
+{
+    CompiledZero,
+    Compiled,
+    Ghost,
+    OptOut,
+    Special
+}
+
+abstract class TopLevelDeclWithMembers : TopLevelDecl
+{
+    List<MemberDecl> members;
+    List<Type> traits;
+}
+
+abstract class MemberDecl : Declaration
+{
+    Boolean isGhost;
+}
+
+abstract class MethodOrFunction : MemberDecl
+{
+    IOrigin? signatureEllipsis;
+    List<TypeParameter> typeArgs;
+    List<Formal> ins;
+    List<AttributedExpression> req;
+    List<AttributedExpression> ens;
+    Specification<FrameExpression> reads;
+    Specification<Expression> decreases;
+}
+
+abstract class MethodOrConstructor : MethodOrFunction
+{
+    Specification<FrameExpression> mod;
+}
+
+class Method : MethodOrConstructor
+{
+    Boolean hasStaticKeyword;
+    List<Formal> outs;
+    BlockStmt? body;
+    Boolean isByMethod;
+}
+
+class Lemma : Declaration
+{
+    Boolean hasStaticKeyword;
+    List<TypeParameter> typeArgs;
+    List<Formal> ins;
+    List<Formal> outs;
+    List<AttributedExpression> req;
+    Specification<FrameExpression> reads;
+    Specification<FrameExpression> mod;
+    List<AttributedExpression> ens;
+    Specification<Expression> decreases;
+    BlockStmt body;
+    IOrigin? signatureEllipsis;
+}
+
+abstract class ExtremeLemma : Declaration
+{
+    Boolean hasStaticKeyword;
+    ExtremePredicateKType typeOfK;
+    List<TypeParameter> typeArgs;
+    List<Formal> ins;
+    List<Formal> outs;
+    List<AttributedExpression> req;
+    Specification<FrameExpression> reads;
+    Specification<FrameExpression> mod;
+    List<AttributedExpression> ens;
+    Specification<Expression> decreases;
+    BlockStmt body;
+    IOrigin? signatureEllipsis;
+}
+
+enum ExtremePredicateKType
+{
+    Unspecified,
+    Nat,
+    ORDINAL
+}
+
+class GreatestLemma : ExtremeLemma
+{
+}
+
+class Constructor : MethodOrConstructor
+{
+    DividedBlockStmt? body;
+}
+
+class Function : MethodOrFunction
+{
+    Boolean hasStaticKeyword;
+    Boolean isOpaque;
+    Formal? result;
+    Type resultType;
+    Expression? body;
+    IOrigin? byMethodTok;
+    BlockStmt? byMethodBody;
+}
+
+class Predicate : MethodOrFunction
+{
+    Boolean hasStaticKeyword;
+    Boolean isOpaque;
+    Formal? result;
+    Expression? body;
+    PredicateBodyOriginKind bodyOrigin;
+    IOrigin? byMethodTok;
+    BlockStmt? byMethodBody;
+}
+
+enum PredicateBodyOriginKind
+{
+    OriginalOrInherited,
+    DelayedDefinition,
+    Extension
+}
+
+abstract class ExtremePredicate : Declaration
+{
+    Boolean hasStaticKeyword;
+    Boolean isOpaque;
+    ExtremePredicateKType typeOfK;
+    List<TypeParameter> typeArgs;
+    List<Formal> ins;
+    Formal? result;
+    List<AttributedExpression> req;
+    Specification<FrameExpression> reads;
+    List<AttributedExpression> ens;
+    Expression body;
+    IOrigin? signatureEllipsis;
+}
+
+class GreatestPredicate : ExtremePredicate
+{
+}
+
+class Field : MemberDecl
+{
+    Type? explicitType;
+}
+
+class ConstantField : Field
+{
+    Expression? rhs;
+    Boolean hasStaticKeyword;
+    Boolean isOpaque;
+}
+
+abstract class DatatypeDecl : TopLevelDeclWithMembers
+{
+    List<DatatypeCtor> ctors;
+    Boolean isRefining;
+}
+
+class DatatypeCtor : Declaration
+{
+    Boolean isGhost;
+    List<Formal> formals;
+}
+
+class IndDatatypeDecl : DatatypeDecl
+{
+}
+
+abstract class ClassLikeDecl : TopLevelDeclWithMembers
+{
+}
+
+class TraitDecl : ClassLikeDecl
+{
+    Boolean isRefining;
+}
+
+class ClassDecl : ClassLikeDecl
+{
+    Boolean isRefining;
+}
+
+class IteratorDecl : TopLevelDecl
+{
+    List<Formal> ins;
+    List<Formal> outs;
+    Specification<FrameExpression> reads;
+    Specification<FrameExpression> modifies;
+    Specification<Expression> decreases;
+    List<AttributedExpression> requires;
+    List<AttributedExpression> ensures;
+    List<AttributedExpression> yieldRequires;
+    List<AttributedExpression> yieldEnsures;
+    BlockStmt body;
+    IOrigin? signatureEllipsis;
+}
+
+class DefaultClassDecl : TopLevelDeclWithMembers
+{
+}
+
+abstract class ModuleDecl : Declaration
+{
+    String cloneId;
+}
+
+class LiteralModuleDecl : ModuleDecl
+{
+    ModuleDefinition moduleDef;
+}
+
+class ModuleDefinition : NodeWithOrigin
+{
+    Name nameNode;
+    List<IOrigin> prefixIds;
+    ModuleKindEnum moduleKind;
+    Implements? implements;
+    Attributes? attributes;
+    List<TopLevelDecl> sourceDecls;
+}
+
+class Implements
+{
+    ImplementationKind Kind;
+    ModuleQualifiedId Target;
+}
+
+enum ImplementationKind
+{
+    Refinement,
+    Replacement
+}
+
+enum ModuleKindEnum
+{
+    Concrete,
+    Abstract,
+    Replaceable
+}

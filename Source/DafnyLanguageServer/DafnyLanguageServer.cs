@@ -1,11 +1,9 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Diagnostics;
 using System.Text.RegularExpressions;
 using Microsoft.Dafny.LanguageServer.Handlers;
 using Microsoft.Dafny.LanguageServer.Language;
 using Microsoft.Dafny.LanguageServer.Workspace;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using OmniSharp.Extensions.LanguageServer.Protocol.Models;
@@ -14,7 +12,6 @@ using OmniSharp.Extensions.LanguageServer.Server;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Boogie.SMTLib;
-using Microsoft.Extensions.Options;
 using Action = System.Action;
 
 namespace Microsoft.Dafny.LanguageServer {
@@ -26,7 +23,7 @@ namespace Microsoft.Dafny.LanguageServer {
       }
     }
 
-    public static LanguageServerOptions WithDafnyLanguageServer(this LanguageServerOptions options, Action killLanguageServer) {
+    public static LanguageServerOptions WithDafnyLanguageServer(this LanguageServerOptions options, DafnyOptions dafnyOptions, Action killLanguageServer) {
       options.ServerInfo = new ServerInfo {
         Name = "Dafny",
         Version = DafnyVersion
@@ -34,15 +31,14 @@ namespace Microsoft.Dafny.LanguageServer {
       return options
         .WithDafnyLanguage()
         .WithDafnyWorkspace()
-        .WithDafnyHandlers()
+        .WithDafnyHandlers(dafnyOptions)
         .OnInitialize((server, @params, token) => InitializeAsync(server, @params, token, killLanguageServer))
         .OnStarted(StartedAsync);
     }
 
     private static Task InitializeAsync(ILanguageServer server, InitializeParams request, CancellationToken cancelRequestToken,
         Action killLanguageServer) {
-      var logger = server.GetRequiredService<ILogger<Server>>();
-      logger.LogTrace("initializing service");
+      var logger = server.GetRequiredService<ILogger<LanguageServer>>();
 
       KillLanguageServerIfParentDies(logger, request, killLanguageServer);
 
@@ -54,14 +50,18 @@ namespace Microsoft.Dafny.LanguageServer {
     private static readonly Regex Z3VersionRegex = new Regex(@"Z3 version (?<major>\d+)\.(?<minor>\d+)\.(?<patch>\d+)");
 
     private static void PublishSolverPath(ILanguageServer server) {
-      var telemetryPublisher = server.GetRequiredService<ITelemetryPublisher>();
+      var telemetryPublisher = server.GetRequiredService<TelemetryPublisherBase>();
       var options = server.GetRequiredService<DafnyOptions>();
       string solverPath;
       try {
         var proverOptions = new SMTLibSolverOptions(options);
         proverOptions.Parse(options.ProverOptions);
+        if (proverOptions.ProverName == "noop") {
+          telemetryPublisher.PublishSolverPath("noop solver");
+          return;
+        }
         solverPath = proverOptions.ExecutablePath();
-        HandleZ3Version(telemetryPublisher, proverOptions);
+        HandleZ3Version(telemetryPublisher, solverPath);
       } catch (Exception e) {
         solverPath = $"Error while determining solver path: {e}";
       }
@@ -69,35 +69,20 @@ namespace Microsoft.Dafny.LanguageServer {
       telemetryPublisher.PublishSolverPath(solverPath);
     }
 
-    private static void HandleZ3Version(ITelemetryPublisher telemetryPublisher, SMTLibSolverOptions proverOptions) {
-      var z3Version = DafnyOptions.GetZ3Version(proverOptions.ProverPath);
+    private static void HandleZ3Version(TelemetryPublisherBase telemetryPublisher, string solverPath) {
+      var z3Version = DafnyOptions.GetZ3Version(solverPath);
       if (z3Version is null) {
         return;
       }
-      var major = z3Version.Major;
-      var minor = z3Version.Minor;
-      var patch = z3Version.Build;
-      if (major <= 4 && (major < 4 || minor <= 8) && (minor < 8 || patch <= 6)) {
-        return;
-      }
 
-      telemetryPublisher.PublishZ3Version("Z3 version {major}.{minor}.{patch}");
-
-      var toReplace = "O:model_compress=false";
-      var i = DafnyOptions.O.ProverOptions.IndexOf(toReplace);
-      if (i == -1) {
-        telemetryPublisher.PublishUnhandledException(new Exception($"Z3 version is > 4.8.6 but I did not find {toReplace} in the prover options:" + string.Join(" ", DafnyOptions.O.ProverOptions)));
-        return;
-      }
-
-      DafnyOptions.O.ProverOptions[i] = "O:model.compact=false";
+      telemetryPublisher.PublishZ3Version($"Z3 version {z3Version}");
     }
 
     /// <summary>
     /// As part of the LSP spec, a language server must kill itself if its parent process dies
     /// https://github.com/microsoft/language-server-protocol/blob/gh-pages/_specifications/specification-3-16.md?plain=1#L1713
     /// </summary>
-    private static void KillLanguageServerIfParentDies(ILogger<Server> logger, InitializeParams request,
+    private static void KillLanguageServerIfParentDies(ILogger<LanguageServer> logger, InitializeParams request,
         Action killLanguageServer) {
       if (!(request.ProcessId >= 0)) {
         return;
@@ -120,8 +105,8 @@ namespace Microsoft.Dafny.LanguageServer {
 
     private static Task StartedAsync(ILanguageServer server, CancellationToken cancellationToken) {
       // TODO this currently only sent to get rid of the "Server answer pending" of the VSCode plugin.
-      server.SendNotification("serverStarted", DafnyVersion);
-      server.SendNotification("dafnyLanguageServerVersionReceived", DafnyVersion);
+      server.SendNotification("serverStarted", new[] { DafnyVersion });
+      server.SendNotification("dafnyLanguageServerVersionReceived", new[] { DafnyVersion });
       return Task.CompletedTask;
     }
   }

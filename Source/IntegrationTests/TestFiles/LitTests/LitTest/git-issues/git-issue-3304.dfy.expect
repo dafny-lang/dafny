@@ -1,0 +1,6 @@
+git-issue-3304.dfy(5,9): Error: the type of this expression is underspecified
+  |
+5 |   assert [] == [[]];
+  |          ^
+
+1 resolution/type errors detected in git-issue-3304.dfy

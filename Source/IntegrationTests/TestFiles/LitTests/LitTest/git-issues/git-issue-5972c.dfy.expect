@@ -1,0 +1,2 @@
+git-issue-5972c.dfy(13,14): Error: type parameter (T) passed to method Test must support equality (got A<int>)
+1 resolution/type errors detected in git-issue-5972c.dfy

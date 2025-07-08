@@ -29,7 +29,7 @@ namespace PluginsAdvancedTest {
     public override void PostResolve(Program program) {
       foreach (var moduleDefinition in program.Modules()) {
         foreach (var topLevelDecl in moduleDefinition.TopLevelDecls) {
-          if (topLevelDecl is ClassDecl cd) {
+          if (topLevelDecl is TopLevelDeclWithMembers cd) {
             foreach (var member in cd.Members) {
               if (member is Method methodExtern) {
                 if (Attributes.Contains(member.Attributes, "extern")) {
@@ -58,8 +58,8 @@ namespace PluginsAdvancedTest {
                   if (!tested) {
                     var forceMessage = configuration.ForceName ? $" named {methodExtern.Name}_test" : "";
                     var token = configuration.ForceName && candidate != null
-                      ? new NestedToken(methodExtern.tok, candidate.tok, "You might want to just rename this method")
-                      : methodExtern.tok;
+                      ? new NestedOrigin(methodExtern.Center, candidate.Center, "You might want to just rename this method")
+                      : (IOrigin)methodExtern.Center;
                     Reporter.Error(MessageSource.Resolver, token,
                       $"Please declare a method {{:test}}{forceMessage} that will call {methodExtern.Name}{configuration.PluginUser}");
                   }

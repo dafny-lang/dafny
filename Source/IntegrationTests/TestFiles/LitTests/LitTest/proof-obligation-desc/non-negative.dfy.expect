@@ -1,0 +1,4 @@
+non-negative.dfy(6,8): Error: sequence size might be negative
+ Asserted expression: 0 <= -1
+
+Dafny program verifier finished with 0 verified, 1 error

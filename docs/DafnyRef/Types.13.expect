@@ -1,2 +1,2 @@
-text.dfy(4,2): Error: a exists expression involved in a predicate definition is not allowed to depend on the set of allocated references, but values of 'p' may contain references (see documentation for 'older' parameters)
+text.dfy(4,2): Error: a exists expression involved in a predicate definition is not allowed to depend on the set of allocated references, but values of 'p' (of type 'Path') may contain references (see documentation for 'older' parameters)
 1 resolution/type errors detected in text.dfy

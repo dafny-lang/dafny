@@ -1,11 +1,11 @@
 ﻿using System.Threading;
-using AstNode = System.Object;
+using AstNode = Microsoft.Dafny.INode;
 
 namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
   /// <summary>
   /// Represents a symbol that can be localized within the document.
   /// </summary>
-  public interface ILocalizableSymbol : ISymbol {
+  public interface ILocalizableSymbol : ILegacySymbol {
     // TODO get rid of this type.
 
     /// <summary>
@@ -16,10 +16,11 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
     /// <summary>
     /// Gets the text representation of the symbol.
     /// </summary>
+    /// <param name="options"></param>
     /// <param name="cancellationToken">A token to cancel the update operation before its completion.</param>
     /// <returns>The detail text of the symbol.</returns>
     /// <exception cref="System.OperationCanceledException">Thrown when the cancellation was requested before completion.</exception>
     /// <exception cref="System.ObjectDisposedException">Thrown if the cancellation token was disposed before the completion.</exception>
-    string GetDetailText(CancellationToken cancellationToken);
+    string GetDetailText(DafnyOptions options, CancellationToken cancellationToken);
   }
 }

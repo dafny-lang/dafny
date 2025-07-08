@@ -1,0 +1,1 @@
+Fix C#, Java and Go generated code when a datatype contains a method named 'Default'

@@ -14,7 +14,8 @@ public record LegacyUiForOption(Option Option, Action<Boogie.CommandLineParseSta
     var regex = new Regex(@"---- ([^-]+) -+\r?\n *\r?\n");
     var categories = regex.Matches(template).ToArray();
 
-    var optionsByCategory = options.GroupBy(option => option.Category).
+    var optionsByCategory = options.Where(o => !o.Option.IsHidden).
+      GroupBy(option => option.Category).
       ToDictionary(g => g.Key, g => g as IEnumerable<LegacyUiForOption>);
 
     var output = new StringBuilder();
@@ -26,7 +27,7 @@ public record LegacyUiForOption(Option Option, Action<Boogie.CommandLineParseSta
       outputIndex = category.Index + category.Length;
       var categoryName = category.Groups[1].Value;
       output.Append(category.Value);
-      var optionsForCategory = optionsByCategory.GetValueOrDefault(categoryName, Enumerable.Empty<LegacyUiForOption>());
+      var optionsForCategory = optionsByCategory.GetValueOrDefault(categoryName, []);
 
       foreach (var option in optionsForCategory.OrderBy(o => o.Name)) {
         var prefix = oldStyle ? "/" : "--";

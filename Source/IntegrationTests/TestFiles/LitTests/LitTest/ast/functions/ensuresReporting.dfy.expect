@@ -1,0 +1,10 @@
+ensuresReporting.dfy(10,4): Error: a postcondition could not be proved on this return path
+ensuresReporting.dfy(5,23): Related location: this is the postcondition that could not be proved
+ensuresReporting.dfy(16,4): Error: a postcondition could not be proved on this return path
+ensuresReporting.dfy(13,23): Related location: this is the postcondition that could not be proved
+ensuresReporting.dfy(26,14): Error: a postcondition could not be proved on this return path
+ensuresReporting.dfy(22,23): Related location: this is the postcondition that could not be proved
+ensuresReporting.dfy(35,2): Error: a postcondition could not be proved on this return path
+ensuresReporting.dfy(32,22): Related location: this is the postcondition that could not be proved
+
+Dafny program verifier finished with 0 verified, 4 errors

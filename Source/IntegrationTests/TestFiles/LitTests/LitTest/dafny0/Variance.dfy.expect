@@ -1,0 +1,184 @@
+// Variance.dfy
+
+
+module VarianceChecks {
+  datatype MyData<+A, *B, !C, D, -E> = MakeA(A) | MakeB(B) | MakeC(C) | MakeD(D) | MakeE(E)
+
+  type Syn<X, -Y, Z> = MyData<X, Y, Z, Z, Z>
+
+  type Cyn<M, -N> = MyData<int -> M, M, N -> int, N, N -> int>
+
+  class MyClass<!Inv> { }
+
+  datatype CheckIt<+A, *B, !C, D, -E> = Cons(A, MyData<int, int, int, int, int>) | Fn(int ~> A) | Nf(A ~> int) | Double((A ~> int) ~> int) | ToSet(real -> set<A>) | FromSet(set<A> ~> real) | Classy(MyClass<A>) | MakeA(MyData<A, int, int, int, int>) | MakeB(MyData<int, A, int, int, int>) | MakeC(MyData<int, int, A, int, int>) | MakeD(MyData<int, int, int, A, int>) | MakeE(MyData<int, int, int, int, A>) | CreateA(MyData<B, int, int, int, int>) | CreateB(MyData<int, B, int, int, int>) | CreateC(MyData<int, int, B, int, int>) | CreateD(MyData<int, int, int, B, int>) | CreateE(MyData<int, int, int, int, B>) | DoA(MyData<C, int, int, int, int>) | DoB(MyData<int, C, int, int, int>) | DoC(MyData<int, int, C, int, int>) | DoD(MyData<int, int, int, C, int>) | DoE(MyData<int, int, int, int, C>) | FabricateA(MyData<D, int, int, int, int>) | FabricateB(MyData<int, D, int, int, int>) | FabricateC(MyData<int, int, D, int, int>) | FabricateD(MyData<int, int, int, D, int>) | FabricateE(MyData<int, int, int, int, D>) | BorrowA(MyData<E, int, int, int, int>) | BorrowB(MyData<int, E, int, int, int>) | BorrowC(MyData<int, int, E, int, int>) | BorrowD(MyData<int, int, int, E, int>) | BorrowE(MyData<int, int, int, int, E>) | ISetA(iset<A>) | ISetB(iset<B>) | ISetC(iset<C>) | ISetD(iset<D>) | ISetE(iset<E>) | SetA(set<A>) | SetB(set<B>) | SetC(set<C>) | SetD(set<D>) | SetE(set<E>) | IMapAB(imap<A, B>) | IMapAE(imap<B, E>) | IMapBD(imap<B, D>) | IMapDB(imap<D, B>)
+
+  type {:extern} abs<+A, *B, !C, D, -E>
+
+  datatype CheckRec = IMapD(imap<CheckRec, int>) | IMapR(imap<int, CheckRec>) | ISet(iset<CheckRec>) | Set(set<CheckRec>) | CheckA(abs<CheckRec, int, int, int, int>) | CheckB(abs<int, CheckRec, int, int, int>) | CheckC(abs<int, int, CheckRec, int, int>) | CheckD(abs<int, int, int, CheckRec, int>) | CheckE(abs<int, int, int, int, CheckRec>)
+
+  datatype CheckRec2 = ArrowD(CheckRec2 -> int) | ArrowR(int -> CheckRec2)
+
+  class VaryingClass<A, B, C, +HotDog, D, -Whale> {
+    var f: HotDog -> Whale
+
+    method M()
+    {
+      var g: HotDog -> Whale;
+    }
+  }
+
+  iterator VaryingIter<A, B, C, +HotDog, D, -Whale>()
+  {
+  }
+
+  datatype Dt = Ctor(Dt -> int)
+
+  datatype U0<!A> = U0(A -> bool)
+
+  type U1<!A> = U0<A>
+
+  datatype U2 = MakeU2(U1<U2>)
+
+  datatype R0 = Ctor(R2 ~> bool)
+
+  type R1<X> = X
+
+  datatype R2 = Ctor(R1<R0>)
+}
+
+module Cycles {
+  type W0 = W1
+
+  datatype W1 = Ctor(W0 --> bool)
+
+  datatype Z0 = Ctor(Z2 ~> bool)
+
+  type Z1 = Z0
+
+  datatype Z2 = Ctor(Z1)
+}
+
+module Depen {
+  type V0 = x: V2
+    | true
+
+  type V1 = V0
+
+  datatype V2 = Ctor(V1 --> bool)
+}
+
+module DependencyChecks {
+  ghost predicate F(y: int)
+  {
+    var i: A := 5;
+    i < 32
+  }
+
+  ghost predicate G(y: int)
+  {
+    var q: Q :| true;
+    q.x < 32
+  }
+
+  type A = x: B
+    | true
+
+  type B = y: int
+    | F(y)
+
+  datatype Q = Q(x: R)
+
+  type R = x: S
+    | true
+
+  type S = y: int
+    | G(y)
+}
+
+module Cycle0 {
+  type B = x: B
+    | true
+}
+
+module Cycle1 {
+  ghost predicate P(x: int)
+
+  type A = x: int
+    | var a: A :| true; P(x)
+}
+
+module Cycle2 {
+  ghost function f(x: int): C
+
+  type C = x: int
+    | f(x) == f(x)
+}
+
+module MoreDependencyCycles0 {
+  type MeAndMyself = x: int
+    | var m: MeAndMyself := 5; m < 10
+}
+
+module MoreDependencyCycles1 {
+  type MeAndMyself'' = MeAndMyself'
+
+  type MeAndMyself' = x: int
+    | var m: MeAndMyself'' := 5; m < 10
+}
+Variance.dfy(10,12): Error: formal type parameter 'E' is not used according to its variance specification
+Variance.dfy(12,33): Error: formal type parameter 'Y' is not used according to its variance specification
+Variance.dfy(12,36): Error: formal type parameter 'Z' is not used according to its variance specification (it is used left of an arrow) (perhaps try declaring 'Z' as '-Z' or '!Z')
+Variance.dfy(12,42): Error: formal type parameter 'Z' is not used according to its variance specification (it is used left of an arrow) (perhaps try declaring 'Z' as '-Z' or '!Z')
+Variance.dfy(13,37): Error: formal type parameter 'M' is not used according to its variance specification (it is used left of an arrow) (perhaps try declaring 'M' as '-M' or '!M')
+Variance.dfy(13,40): Error: formal type parameter 'N' is not used according to its variance specification
+Variance.dfy(13,50): Error: formal type parameter 'N' is not used according to its variance specification
+Variance.dfy(13,53): Error: formal type parameter 'N' is not used according to its variance specification
+Variance.dfy(21,9): Error: formal type parameter 'A' is not used according to its variance specification
+Variance.dfy(22,14): Error: formal type parameter 'A' is not used according to its variance specification (it is used left of an arrow) (perhaps try changing the declaration from '+A' to '*A')
+Variance.dfy(24,18): Error: formal type parameter 'A' is not used according to its variance specification
+Variance.dfy(25,21): Error: formal type parameter 'A' is not used according to its variance specification
+Variance.dfy(27,23): Error: formal type parameter 'A' is not used according to its variance specification (it is used left of an arrow) (perhaps try changing the declaration from '+A' to '*A')
+Variance.dfy(28,27): Error: formal type parameter 'A' is not used according to its variance specification
+Variance.dfy(29,31): Error: formal type parameter 'A' is not used according to its variance specification
+Variance.dfy(30,35): Error: formal type parameter 'A' is not used according to its variance specification
+Variance.dfy(33,29): Error: formal type parameter 'B' is not used according to its variance specification
+Variance.dfy(34,33): Error: formal type parameter 'B' is not used according to its variance specification
+Variance.dfy(35,37): Error: formal type parameter 'B' is not used according to its variance specification
+Variance.dfy(42,28): Error: formal type parameter 'D' is not used according to its variance specification (it is used left of an arrow) (perhaps try declaring 'D' as '-D' or '!D')
+Variance.dfy(43,32): Error: formal type parameter 'D' is not used according to its variance specification (it is used left of an arrow) (perhaps try declaring 'D' as '-D' or '!D')
+Variance.dfy(45,40): Error: formal type parameter 'D' is not used according to its variance specification (it is used left of an arrow) (perhaps try declaring 'D' as '-D' or '!D')
+Variance.dfy(46,21): Error: formal type parameter 'E' is not used according to its variance specification
+Variance.dfy(47,25): Error: formal type parameter 'E' is not used according to its variance specification
+Variance.dfy(48,29): Error: formal type parameter 'E' is not used according to its variance specification
+Variance.dfy(49,33): Error: formal type parameter 'E' is not used according to its variance specification
+Variance.dfy(51,17): Error: formal type parameter 'A' is not used according to its variance specification (it is used left of an arrow) (perhaps try changing the declaration from '+A' to '*A')
+Variance.dfy(54,17): Error: formal type parameter 'D' is not used according to its variance specification (it is used left of an arrow) (perhaps try declaring 'D' as '-D' or '!D')
+Variance.dfy(55,17): Error: formal type parameter 'E' is not used according to its variance specification
+Variance.dfy(60,15): Error: formal type parameter 'E' is not used according to its variance specification
+Variance.dfy(61,18): Error: formal type parameter 'A' is not used according to its variance specification (it is used left of an arrow) (perhaps try changing the declaration from '+A' to '*A')
+Variance.dfy(62,21): Error: formal type parameter 'E' is not used according to its variance specification
+Variance.dfy(64,18): Error: formal type parameter 'D' is not used according to its variance specification (it is used left of an arrow) (perhaps try declaring 'D' as '-D' or '!D')
+Variance.dfy(69,17): Error: using the type being defined ('CheckRec') here would cause a logical inconsistency by defining a type whose cardinality exceeds itself (like the Continuum Transfunctioner, you might say its power would then be exceeded only by its mystery)
+Variance.dfy(71,16): Error: using the type being defined ('CheckRec') here would cause a logical inconsistency by defining a type whose cardinality exceeds itself (like the Continuum Transfunctioner, you might say its power would then be exceeded only by its mystery)
+Variance.dfy(74,22): Error: using the type being defined ('CheckRec') here would cause a logical inconsistency by defining a type whose cardinality exceeds itself (like the Continuum Transfunctioner, you might say its power would then be exceeded only by its mystery)
+Variance.dfy(75,27): Error: using the type being defined ('CheckRec') here would cause a logical inconsistency by defining a type whose cardinality exceeds itself (like the Continuum Transfunctioner, you might say its power would then be exceeded only by its mystery)
+Variance.dfy(77,37): Error: using the type being defined ('CheckRec') here would cause a logical inconsistency by defining a type whose cardinality exceeds itself (like the Continuum Transfunctioner, you might say its power would then be exceeded only by its mystery)
+Variance.dfy(80,13): Error: using the type being defined ('CheckRec2') here would cause a logical inconsistency by defining a type whose cardinality exceeds itself (like the Continuum Transfunctioner, you might say its power would then be exceeded only by its mystery)
+Variance.dfy(83,28): Error: class declarations only support non-variant type parameters
+Variance.dfy(83,38): Error: class declarations only support non-variant type parameters
+Variance.dfy(91,30): Error: iterator declarations only support non-variant type parameters
+Variance.dfy(91,40): Error: iterator declarations only support non-variant type parameters
+Variance.dfy(95,21): Error: using the type being defined ('Dt') here would cause a logical inconsistency by defining a type whose cardinality exceeds itself (like the Continuum Transfunctioner, you might say its power would then be exceeded only by its mystery)
+Variance.dfy(99,26): Error: using the type being defined ('U2') here would cause a logical inconsistency by defining a type whose cardinality exceeds itself (like the Continuum Transfunctioner, you might say its power would then be exceeded only by its mystery)
+Variance.dfy(101,21): Error: using the type being defined ('R2') here would cause a logical inconsistency by defining a type whose cardinality exceeds itself (like the Continuum Transfunctioner, you might say its power would then be exceeded only by its mystery)
+Variance.dfy(108,21): Error: using the type being defined ('W0') here would cause a logical inconsistency by defining a type whose cardinality exceeds itself (like the Continuum Transfunctioner, you might say its power would then be exceeded only by its mystery)
+Variance.dfy(110,21): Error: using the type being defined ('Z2') here would cause a logical inconsistency by defining a type whose cardinality exceeds itself (like the Continuum Transfunctioner, you might say its power would then be exceeded only by its mystery)
+Variance.dfy(116,7): Error: recursive constraint dependency involving a subset type: V0 -> V2 -> V1 -> V0
+Variance.dfy(122,7): Error: recursive constraint dependency involving a subset type: A -> B -> F -> A
+Variance.dfy(130,7): Error: recursive constraint dependency involving a subset type: R -> S -> G -> Q -> R
+Variance.dfy(139,7): Error: recursive constraint dependency involving a subset type: B -> B
+Variance.dfy(143,7): Error: recursive constraint dependency involving a subset type: A -> A
+Variance.dfy(148,7): Error: recursive constraint dependency involving a subset type: C -> f -> C
+Variance.dfy(153,7): Error: recursive constraint dependency involving a subset type: MeAndMyself -> MeAndMyself
+Variance.dfy(158,7): Error: recursive constraint dependency involving a subset type: MeAndMyself' -> MeAndMyself'' -> MeAndMyself'
+56 resolution/type errors detected in Variance.dfy

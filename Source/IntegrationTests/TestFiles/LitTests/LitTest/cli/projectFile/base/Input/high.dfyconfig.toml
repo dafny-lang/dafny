@@ -1,0 +1,6 @@
+base = "./mid.dfyconfig.toml"
+
+includes = ["../included.dfy"]
+
+[options]
+warn-shadowing = true

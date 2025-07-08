@@ -1,0 +1,7 @@
+GhostITEResolution.dfy(18,10): Error: ghost variables such as y are allowed only in specification contexts. y was inferred to be ghost based on its declaration or initialization.
+GhostITEResolution.dfy(66,12): Error: ghost variables such as y are allowed only in specification contexts. y was inferred to be ghost based on its declaration or initialization.
+GhostITEResolution.dfy(120,15): Error: ghost variables such as y are allowed only in specification contexts. y was inferred to be ghost based on its declaration or initialization.
+GhostITEResolution.dfy(125,7): Error: ghost variables such as y are allowed only in specification contexts. y was inferred to be ghost based on its declaration or initialization.
+GhostITEResolution.dfy(133,12): Error: ghost variables such as u are allowed only in specification contexts. u was inferred to be ghost based on its declaration or initialization.
+GhostITEResolution.dfy(174,12): Error: ghost variables such as u are allowed only in specification contexts. u was inferred to be ghost based on its declaration or initialization.
+6 resolution/type errors detected in GhostITEResolution.dfy

@@ -1,0 +1,4 @@
+git-issue-748a.dfy(17,9): Error: Type or type parameter is not declared in this scope: array0 (did you forget to qualify a name or declare a module import 'opened'?) (note that names in outer modules are not visible in contained modules)
+git-issue-748a.dfy(18,9): Error: Type or type parameter is not declared in this scope: array1 (did you forget to qualify a name or declare a module import 'opened'?) (note that names in outer modules are not visible in contained modules)
+git-issue-748a.dfy(19,9): Error: Type or type parameter is not declared in this scope: array1? (did you forget to qualify a name or declare a module import 'opened'?) (note that names in outer modules are not visible in contained modules)
+3 resolution/type errors detected in git-issue-748a.dfy

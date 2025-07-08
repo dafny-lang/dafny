@@ -1,0 +1,3 @@
+GeneralNewtypeMemberVerify.dfy(16,4): Error: assertion might not hold
+
+Dafny program verifier finished with 19 verified, 1 error

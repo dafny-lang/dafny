@@ -1,0 +1,6 @@
+includes = ["src/**/*"]
+excludes = ["**/excluded.dfy"]
+
+[options]
+warn-shadowing = true
+show-snippets = false

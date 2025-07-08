@@ -1,0 +1,3 @@
+git-issue-3607.dfy(14,7): Error: a set comprehension involved in a lambda expression is not allowed to depend on the set of allocated references, but values of 'c' (of type 'Cell') may contain references (see documentation for 'older' parameters)
+git-issue-3607.dfy(13,12): Error: a set comprehension involved in a lambda expression is not allowed to depend on the set of allocated references, but values of 'c' (of type 'Cell') may contain references (see documentation for 'older' parameters)
+2 resolution/type errors detected in git-issue-3607.dfy

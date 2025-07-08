@@ -1,0 +1,2 @@
+defaultParameterResolution.dfy(6,23): Error: function parameter 'end' at index 2 requires an argument of type nat
+1 resolution/type errors detected in defaultParameterResolution.dfy

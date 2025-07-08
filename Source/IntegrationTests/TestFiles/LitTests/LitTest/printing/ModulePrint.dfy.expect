@@ -1,0 +1,99 @@
+
+Dafny program verifier did not attempt verification
+
+Dafny program verifier did not attempt verification
+
+Dafny program verifier finished with 2 verified, 0 errors
+
+Dafny program verifier did not attempt verification
+
+Dafny program verifier did not attempt verification
+AssertEqualWithDiff() Failure
+Diff (changing expected into actual):
+ // ModulePrint.dfy
+ 
+ method Main()
+ {
+   var c := new T.C();
+   c.m();
+ }
+ 
+-method Foo()
+-{
+-}
+-
+ abstract module S {
+   class C {
+     var f: int
+     ghost var g: int
+     var h: int
+ 
+     method m()
+       modifies this
+   }
+ }
+ 
+ module T refines S {
+   class C ... {
+     ghost var h: int
+     ghost var j: int
+     var k: int
+ 
+     constructor ()
+     {
+     }
+ 
+     method m()
+-      ensures h == h
+-      ensures j == j
+     {
+-      assert k == k;
++      
+     }
+   }
+ }
+ 
+AssertEqualWithDiff() Failure
+Diff (changing expected into actual):
+ // ModulePrint.dfy
+ 
+ method Main()
+ {
+   var c := new T.C();
+   c.m();
+ }
+ 
+-method Foo()
+-{
+-}
+-
+ abstract module S {
+   class C {
+     var f: int
+     ghost var g: int
+     var h: int
+ 
+     method m()
+       modifies this
+   }
+ }
+ 
+ module T refines S {
+   class C ... {
+     ghost var h: int
+     ghost var j: int
+     var k: int
+ 
+     constructor ()
+     {
+     }
+ 
+     method m()
+       ensures h == h
+       ensures j == j
+     {
+       assert k == k;
+     }
+   }
+ }
+ 

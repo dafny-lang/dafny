@@ -1,0 +1,7 @@
+// RUN: ! %run --target cs --allow-deprecation --unicode-char false "%s" > "%t"
+// RUN: ! %run --target go --allow-deprecation --unicode-char false "%s" >> "%t"
+// RUN: ! %run --target java --allow-deprecation --unicode-char false "%s" >> "%t"
+// RUN: ! %run --target js --allow-deprecation --unicode-char false "%s" >> "%t"
+// RUN: ! %run --target py --allow-deprecation --unicode-char false "%s" >> "%t"
+// RUN: %diff "%s.expect" "%t"
+include "../../expectations/ExpectWithMessage.dfy"

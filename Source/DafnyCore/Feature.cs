@@ -1,9 +1,8 @@
 using System;
 using System.Diagnostics.Contracts;
 using System.Linq;
-using Microsoft.Boogie;
 
-namespace Microsoft.Dafny; 
+namespace Microsoft.Dafny;
 
 public class FeatureDescriptionAttribute : Attribute {
   public readonly string Description;
@@ -98,11 +97,10 @@ public enum Feature {
     with the statement's body directly inside. The alternative, default compilation strategy
     is to calculate the quantified variable bindings separately as a collection of tuples,
     and then execute the statement's body for each tuple.
-    Not all `forall` statements can be sequentialized; See [the implementation](https://github.com/dafny-lang/dafny/blob/master/Source/Dafny/Compilers/SinglePassCompiler.cs#L3493-L3528)
-    for details.")]
+    Not all `forall` statements can be sequentialized.")]
   NonSequentializableForallStatements,
 
-  [FeatureDescription("Taking an array's length", "sec-array-types")]
+  [FeatureDescription("Taking an array's length", "sec-array-type")]
   ArrayLength,
 
   [FeatureDescription("`m.Items` when `m` is a map", "sec-maps")]
@@ -121,10 +119,10 @@ public enum Feature {
     "compiler-sequence-display-of-characters-note", "This refers to an expression such as `['H', 'e', 'l', 'l', 'o']`, as opposed to a string literal such as `\"Hello\"`.")]
   SequenceDisplaysOfCharacters,
 
-  [FeatureDescription("Type test expressions (`x is T`)", "sec-as-expression")]
+  [FeatureDescription("Type test expressions (`x is T`)", "sec-as-is-expression")]
   TypeTests,
 
-  [FeatureDescription("Type test expressions on subset types", "sec-as-expression")]
+  [FeatureDescription("Type test expressions on subset types", "sec-as-is-expression")]
   SubsetTypeTests,
 
   [FeatureDescription("Quantifiers", "sec-quantifier-expression")]
@@ -133,10 +131,10 @@ public enum Feature {
   [FeatureDescription("Bitvector RotateLeft/RotateRight functions", "sec-bit-vector-types")]
   BitvectorRotateFunctions,
 
-  [FeatureDescription("`for` loops", "sec-for-loops")]
+  [FeatureDescription("`for` loops", "sec-for-statement")]
   ForLoops,
 
-  [FeatureDescription("`continue` statements", "sec-break-continue")]
+  [FeatureDescription("`continue` statements", "sec-break-continue-statement")]
   ContinueStatements,
 
   [FeatureDescription("Assign-such-that statements with potentially infinite bounds", "sec-update-and-call-statement",
@@ -163,14 +161,39 @@ public enum Feature {
   [FeatureDescription("Subtype constraints in quantifiers", "sec-quantifier-expression")]
   SubtypeConstraintsInQuantifiers,
 
-  [FeatureDescription("Tuples with more than 20 arguments", "sec-tuple-types")]
+  [FeatureDescription("Tuples with more than 20 arguments", "#sec-compilation-built-ins")]
   TuplesWiderThan20,
+
+  [FeatureDescription("Arrays with more than 16 dimensions", "#sec-compilation-built-ins")]
+  ArraysWithMoreThan16Dims,
+
+  [FeatureDescription("Arrow types with more than 16 arguments", "#sec-compilation-built-ins")]
+  ArrowsWithMoreThan16Arguments,
 
   [FeatureDescription("Unicode chars", "#sec-characters")]
   UnicodeChars,
 
-  [FeatureDescription("Converting values to strings", "#sec-print-statement")]
-  ConvertingValuesToStrings
+  [FeatureDescription("Converting values to strings", "sec-print-statement")]
+  ConvertingValuesToStrings,
+
+  // Only used internally for the DooBackend to skip legacy CLI tests
+  [FeatureDescription("Legacy CLI without commands", "sec-dafny-commands")]
+  LegacyCLI,
+
+  [FeatureDescription("Separate compilation", "sec-compilation")]
+  SeparateCompilation,
+
+  [FeatureDescription("All built-in types in runtime library", "sec-compilation-built-ins")]
+  BuiltinsInRuntime,
+
+  [FeatureDescription("Execution coverage report", "sec-dafny-test")]
+  RuntimeCoverageReport,
+
+  [FeatureDescription("Standard libraries", "sec-dafny-standard-libraries")]
+  StandardLibraries,
+
+  [FeatureDescription("Standard library ActionsExterns", "sec-dafny-standard-libraries")]
+  StandardLibrariesActionsExterns
 }
 
 public class UnsupportedFeatureException : Exception {
@@ -178,16 +201,36 @@ public class UnsupportedFeatureException : Exception {
   public const string MessagePrefix =
     "Feature not supported for this compilation target: ";
 
-  public readonly IToken Token;
+  public readonly IOrigin Token;
   public readonly Feature Feature;
 
-  public UnsupportedFeatureException(IToken token, Feature feature)
+  public UnsupportedFeatureException(IOrigin token, Feature feature)
     : this(token, feature, MessagePrefix + FeatureDescriptionAttribute.GetDescription(feature).Description) {
 
   }
 
-  public UnsupportedFeatureException(IToken token, Feature feature, string message) : base(message) {
+  public UnsupportedFeatureException(IOrigin token, Feature feature, string message) : base(message) {
     Token = token;
     Feature = feature;
+  }
+}
+
+
+
+public class RecoverableUnsupportedFeatureException : UnsupportedFeatureException {
+
+  public static readonly string MessageSuffix = ". To continue despite this issue, you can compile with the option --" +
+                                       CommonOptionBag.EmitUncompilableCode.Name;
+  public RecoverableUnsupportedFeatureException(IOrigin token, Feature feature)
+    : base(token, feature, MessagePrefix + FeatureDescriptionAttribute.GetDescription(feature).Description + MessageSuffix) {
+  }
+}
+
+public class UnsupportedInvalidOperationException : Exception {
+
+  public readonly IOrigin Token;
+
+  public UnsupportedInvalidOperationException(IOrigin token, string why) : base("Unsupported Invalid Operation: " + why) {
+    Token = token;
   }
 }

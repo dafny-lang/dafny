@@ -1,23 +1,40 @@
+using System.ComponentModel;
 using System.IO;
-using Xunit.Abstractions;
+using System.Threading.Tasks;
 
-namespace XUnitExtensions.Lit; 
+namespace XUnitExtensions.Lit;
+
 
 public class ExitCommand : ILitCommand {
-  private readonly int expectedExitCode;
+  private readonly string expectedExitCode;
   private readonly ILitCommand operand;
 
-  public ExitCommand(int exitCode, ILitCommand operand) {
+  public ExitCommand(string exitCode, ILitCommand operand) {
     this.expectedExitCode = exitCode;
     this.operand = operand;
   }
 
-  public (int, string, string) Execute(ITestOutputHelper? outputHelper, TextReader? inputReader, TextWriter? outputWriter, TextWriter? errorWriter) {
-    var (exitCode, output, error) = operand.Execute(outputHelper, inputReader, outputWriter, errorWriter);
-    return (exitCode != expectedExitCode ? 1 : 0, output, error);
+  public async Task<int> Execute(TextReader inputReader,
+    TextWriter outputWriter, TextWriter errorWriter) {
+    var exitCode = 1;
+    try {
+      exitCode = await operand.Execute(inputReader, outputWriter, errorWriter);
+    } catch (Win32Exception) {
+      if (expectedExitCode == "-any") {
+      } else {
+        throw;
+      }
+    }
+
+    if (expectedExitCode == "-any" || exitCode.ToString() == expectedExitCode) {
+      return 0;
+    }
+
+    await errorWriter.WriteLineAsync($"Moreover the expected exit code was {expectedExitCode} but got {exitCode}");
+    return 1;
   }
 
   public override string ToString() {
-    return $"%exit {expectedExitCode}  {operand}";
+    return $"%exits-with {expectedExitCode}  {operand}";
   }
 }

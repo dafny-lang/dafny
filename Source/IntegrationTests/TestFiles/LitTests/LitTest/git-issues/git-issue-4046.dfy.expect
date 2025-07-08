@@ -1,0 +1,9 @@
+git-issue-4046.dfy(23,22): Error: a class can only extend traits (found 'Lib.WhoKnows')
+git-issue-4046.dfy(24,22): Error: a class can only extend traits (found 'Lib.TraitX')
+git-issue-4046.dfy(25,22): Error: a class can only extend traits (found 'Lib.TraitY')
+git-issue-4046.dfy(26,22): Error: a class can only extend traits (found 'Lib.ClassX')
+git-issue-4046.dfy(27,22): Error: a class can only extend traits (found 'Lib.ClassY')
+git-issue-4046.dfy(28,22): Error: a class can only extend traits (found 'Lib.ClassZ')
+git-issue-4046.dfy(30,22): Error: a trait can only extend traits (found 'Lib.TraitX')
+git-issue-4046.dfy(31,22): Error: a trait can only extend traits (found 'Lib.TraitY')
+8 resolution/type errors detected in git-issue-4046.dfy

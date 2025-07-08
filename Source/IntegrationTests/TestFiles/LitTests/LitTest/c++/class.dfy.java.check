@@ -1,0 +1,3 @@
+// https://github.com/dafny-lang/dafny/issues/4104
+// CHECK: error: <identifier> expected
+// CHECK-NEXT: public class class {

@@ -1,0 +1,3 @@
+at-attributes-typos0.dfy(5,1): Error: unresolved identifier: Option
+at-attributes-typos0.dfy(6,7): Error: not resolving module '_module' because there were errors in resolving its nested module 'SimpleLinearModule'
+2 resolution/type errors detected in at-attributes-typos0.dfy

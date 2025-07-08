@@ -14,11 +14,11 @@ public class ProvideRevealAllRewriter : IRewriter {
 
     foreach (var d in declarations) {
       if (d is ModuleExportDecl me) {
-        var revealAll = me.RevealAll || DafnyOptions.O.DisableScopes;
+        var revealAll = me.RevealAll || Reporter.Options.DisableScopes;
 
         HashSet<string> explicitlyRevealedTopLevelIDs = null;
         if (!revealAll) {
-          explicitlyRevealedTopLevelIDs = new HashSet<string>();
+          explicitlyRevealedTopLevelIDs = [];
           foreach (var esig in me.Exports) {
             if (esig.ClassId == null && !esig.Opaque) {
               explicitlyRevealedTopLevelIDs.Add(esig.Id);
@@ -32,25 +32,24 @@ public class ProvideRevealAllRewriter : IRewriter {
               continue;
             }
 
-            if (!(newt is DefaultClassDecl)) {
-              me.Exports.Add(new ExportSignature(newt.tok, newt.Name, !revealAll || !newt.CanBeRevealed()));
+            if (newt is not DefaultClassDecl) {
+              me.Exports.Add(new ExportSignature(newt.Origin, newt.Name, !revealAll || !newt.CanBeRevealed()));
             }
 
-            if (newt is TopLevelDeclWithMembers) {
-              var cl = (TopLevelDeclWithMembers)newt;
+            if (newt is TopLevelDeclWithMembers cl) {
               var newtIsRevealed = revealAll || explicitlyRevealedTopLevelIDs.Contains(newt.Name);
 
               foreach (var mem in cl.Members) {
                 var opaque = !revealAll || !mem.CanBeRevealed();
                 if (newt is DefaultClassDecl) {
                   // add everything from the default class
-                  me.Exports.Add(new ExportSignature(mem.tok, mem.Name, opaque));
+                  me.Exports.Add(new ExportSignature(mem.Origin, mem.Name, opaque));
                 } else if (mem is Constructor && !newtIsRevealed) {
                   // "provides *" does not pick up class constructors, unless the class is to be revealed
                 } else if (opaque && mem is Field field && !(mem is ConstantField) && !newtIsRevealed) {
                   // "provides *" does not pick up mutable fields, unless the class is to be revealed
                 } else {
-                  me.Exports.Add(new ExportSignature(cl.tok, cl.Name, mem.tok, mem.Name, opaque));
+                  me.Exports.Add(new ExportSignature(cl.Origin, cl.Name, mem.Origin, mem.Name, opaque));
                 }
               }
             }

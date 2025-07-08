@@ -1,0 +1,7 @@
+// RUN: ! %baredafny run --target=cs --allow-deprecation --unicode-char false %args "%s" > "%t"
+// RUN: ! %baredafny run --target=go --allow-deprecation --unicode-char false %args "%s" >> "%t"
+// RUN: ! %baredafny run --target=java --allow-deprecation --unicode-char false %args "%s" >> "%t"
+// RUN: ! %baredafny run --target=js --allow-deprecation --unicode-char false %args "%s" >> "%t"
+// RUN: ! %baredafny run --target=py --allow-deprecation --unicode-char false %args "%s" >> "%t"
+// RUN: %diff "%s.expect" "%t"
+include "../../expectations/Expect.dfy"

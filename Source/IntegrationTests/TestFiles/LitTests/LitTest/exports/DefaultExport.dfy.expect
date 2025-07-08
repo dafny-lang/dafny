@@ -1,0 +1,5 @@
+DefaultExport.dfy(13,19): Error: boolean literal used as if it had type T
+DefaultExport.dfy(25,19): Error: boolean literal used as if it had type T
+DefaultExport.dfy(33,2): Error: duplicate name of export set: E
+DefaultExport.dfy(31,7): Error: more than one default export set declared in module E
+4 resolution/type errors detected in DefaultExport.dfy

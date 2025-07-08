@@ -1,36 +1,52 @@
 #define TI_DEBUG_PRINT
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Diagnostics.Contracts;
 using System.Linq;
 using System.Threading;
 
 namespace Microsoft.Dafny;
 
-public abstract class Type : INode {
-  public static readonly BoolType Bool = new BoolType();
-  public static readonly CharType Char = new CharType();
-  public static readonly IntType Int = new IntType();
-  public static readonly RealType Real = new RealType();
-  public override IEnumerable<INode> Children { get; } = new List<INode>();
+public abstract class Type : NodeWithOrigin {
+  public static BoolType Bool = new BoolType();
+  public static CharType Char = new CharType();
+  public static IntType Int = new IntType();
+  public static RealType Real = new RealType();
+  public static FieldType Field = new FieldType();
+
+  [SyntaxConstructor]
+  protected Type(IOrigin origin = null) : base(origin) {
+  }
+
+  protected Type(Cloner cloner, Type original) : base(cloner, original) {
+  }
+
+  public override IEnumerable<INode> Children => TypeArgs;
+  public override IEnumerable<INode> PreResolveChildren => TypeArgs.OfType<Node>();
   public static Type Nat() { return new UserDefinedType(Token.NoToken, "nat", null); }  // note, this returns an unresolved type
   public static Type String() { return new UserDefinedType(Token.NoToken, "string", null); }  // note, this returns an unresolved type
-  public static readonly BigOrdinalType BigOrdinal = new BigOrdinalType();
 
-  private static AsyncLocal<List<VisibilityScope>> _scopes = new();
-  private static List<VisibilityScope> Scopes => _scopes.Value ??= new();
+  public static Type ResolvedString() {
+    return new SeqType(new CharType());
+  }
+
+  public static BigOrdinalType BigOrdinal = new();
+
+  private static ThreadLocal<List<VisibilityScope>> _scopes = new();
+  private static List<VisibilityScope> Scopes => _scopes.Value ??= [];
 
   [ThreadStatic]
-  private static bool scopesEnabled = false;
+  private static bool scopesEnabled;
 
-  public virtual IEnumerable<INode> Nodes => Enumerable.Empty<INode>();
+  public virtual IEnumerable<Node> Nodes => [];
 
   public static void PushScope(VisibilityScope scope) {
     Scopes.Add(scope);
   }
 
   public static void ResetScopes() {
-    _scopes.Value = new();
+    _scopes.Value = [];
     scopesEnabled = false;
   }
 
@@ -62,29 +78,29 @@ public abstract class Type : INode {
     scopesEnabled = false;
   }
 
-  public static string TypeArgsToString(ModuleDefinition/*?*/ context, List<Type> typeArgs, bool parseAble = false) {
+  public static string TypeArgsToString(DafnyOptions options, ModuleDefinition/*?*/ context, List<Type> typeArgs, bool parseAble = false) {
     Contract.Requires(typeArgs == null ||
-                      (typeArgs.All(ty => ty != null && ty.TypeName(context, parseAble) != null) &&
-                       (typeArgs.All(ty => ty.TypeName(context, parseAble).StartsWith("_")) ||
-                        typeArgs.All(ty => !ty.TypeName(context, parseAble).StartsWith("_")))));
+                      (typeArgs.All(ty => ty != null && ty.TypeName(options, context, parseAble) != null) &&
+                       (typeArgs.All(ty => ty.TypeName(options, context, parseAble).StartsWith("_")) ||
+                        typeArgs.All(ty => !ty.TypeName(options, context, parseAble).StartsWith("_")))));
 
     if (typeArgs != null && typeArgs.Count > 0 &&
-        (!parseAble || !typeArgs[0].TypeName(context, parseAble).StartsWith("_"))) {
-      return string.Format("<{0}>", Util.Comma(typeArgs, ty => ty.TypeName(context, parseAble)));
+        (!parseAble || !typeArgs[0].TypeName(options, context, parseAble).StartsWith("_"))) {
+      return string.Format("<{0}>", Util.Comma(typeArgs, ty => ty.TypeName(options, context, parseAble)));
     }
     return "";
   }
 
-  public static string TypeArgsToString(List<Type> typeArgs, bool parseAble = false) {
-    return TypeArgsToString(null, typeArgs, parseAble);
+  public static string TypeArgsToString(DafnyOptions options, List<Type> typeArgs, bool parseAble = false) {
+    return TypeArgsToString(options, null, typeArgs, parseAble);
   }
 
-  public string TypeArgsToString(ModuleDefinition/*?*/ context, bool parseAble = false) {
-    return Type.TypeArgsToString(context, this.TypeArgs, parseAble);
+  public string TypeArgsToString(DafnyOptions options, ModuleDefinition/*?*/ context, bool parseAble = false) {
+    return Type.TypeArgsToString(options, context, this.TypeArgs, parseAble);
   }
 
   // Type arguments to the type
-  public List<Type> TypeArgs = new List<Type>();
+  public virtual List<Type> TypeArgs { get; set; } = [];
 
   /// <summary>
   /// Add to "tps" the free type parameters in "this".
@@ -93,8 +109,7 @@ public abstract class Type : INode {
   public void AddFreeTypeParameters(ISet<TypeParameter> tps) {
     Contract.Requires(tps != null);
     var ty = this.NormalizeExpandKeepConstraints();
-    var tp = ty.AsTypeParameter;
-    if (tp != null) {
+    if (ty.AsTypeParameter is { } tp) {
       tps.Add(tp);
     }
     foreach (var ta in ty.TypeArgs) {
@@ -102,11 +117,12 @@ public abstract class Type : INode {
     }
   }
 
-  [Pure]
-  public abstract string TypeName(ModuleDefinition/*?*/ context, bool parseAble = false);
-  [Pure]
+  [System.Diagnostics.Contracts.Pure]
+  public abstract string TypeName(DafnyOptions options, ModuleDefinition/*?*/ context, bool parseAble = false);
+
+  [System.Diagnostics.Contracts.Pure]
   public override string ToString() {
-    return TypeName(null, false);
+    return TypeName(DafnyOptions.DefaultImmutableOptions, null, false);
   }
 
   /// <summary>
@@ -132,9 +148,8 @@ public abstract class Type : INode {
     Contract.Ensures(Contract.Result<Type>() != null);
     Type type = this;
     while (true) {
-      var pt = type as TypeProxy;
-      if (pt != null && pt.T != null) {
-        type = pt.T;
+      if (type is TypeProxy { T: { } proxyTarget }) {
+        type = proxyTarget;
       } else {
         return type;
       }
@@ -142,19 +157,74 @@ public abstract class Type : INode {
   }
 
   /// <summary>
+  /// Return the type that "this" stands for, getting to the bottom of proxies, and then using an InternalTypeSynonym if
+  /// the type is not in scope.
+  ///
+  /// For more documentation, see method Normalize().
+  /// </summary>
+  [System.Diagnostics.Contracts.Pure]
+  public Type NormalizeAndAdjustForScope() {
+    return NormalizeExpand(ExpandMode.DontExpandJustAdjustForScopes);
+  }
+
+  /// <summary>
+  /// Call NormalizeExpand() repeatedly, also on the base type of newtype's.
+  /// </summary>
+  public Type NormalizeToAncestorType() {
+    Type result = this;
+    while (true) {
+      result = result.NormalizeExpand();
+      if (result.AsNewtype is { } newtypeDecl) {
+        result = newtypeDecl.ConcreteBaseType(result.TypeArgs);
+      } else {
+        return result;
+      }
+    }
+  }
+
+  /// <summary>
+  /// Return the type that "this" stands for, getting to the bottom of proxies and following type synonyms, but does
+  /// not follow subset types.
+  ///
+  /// For more documentation, see method Normalize().
+  /// </summary>
+  [System.Diagnostics.Contracts.Pure]
+  public Type NormalizeExpandKeepConstraints() {
+    return NormalizeExpand(ExpandMode.ExpandSynonymsOnly);
+  }
+
+  public Type NormalizeExpand(bool keepConstraints) {
+    return NormalizeExpand(keepConstraints ? ExpandMode.ExpandSynonymsOnly : ExpandMode.ExpandSynonymsAndSubsetTypes);
+  }
+
+  public enum ExpandMode {
+    DontExpandJustAdjustForScopes,
+    ExpandSynonymsOnly,
+    ExpandSynonymsAndSubsetTypes
+  }
+
+  public NativeType AsNativeType() {
+    if (AsNewtype != null) {
+      return AsNewtype.NativeType;
+    } else if (IsBitVectorType) {
+      return AsBitVectorType.NativeType;
+    }
+    return null;
+  }
+
+  /// <summary>
   /// Return the type that "this" stands for, getting to the bottom of proxies and following type synonyms.
   ///
   /// For more documentation, see method Normalize().
   /// </summary>
-  [Pure]
-  public Type NormalizeExpand(bool keepConstraints = false) {
+  [System.Diagnostics.Contracts.Pure]
+  public Type NormalizeExpand(ExpandMode expandMode = ExpandMode.ExpandSynonymsAndSubsetTypes) {
     Contract.Ensures(Contract.Result<Type>() != null);
     Contract.Ensures(!(Contract.Result<Type>() is TypeProxy) || ((TypeProxy)Contract.Result<Type>()).T == null);  // return a proxy only if .T == null
+
     Type type = this;
     while (true) {
-
-      var pt = type as TypeProxy;
-      if (pt != null && pt.T != null) {
+      if (type is TypeProxy { T: not null } pt) {
         type = pt.T;
         continue;
       }
@@ -167,21 +237,22 @@ public abstract class Type : INode {
         if (!rtd.AsTopLevelDecl.IsVisibleInScope(scope)) {
           // This can only mean "rtd" is a class/trait that is only provided, not revealed. For a provided class/trait,
           // it is the non-null type declaration that is visible, not the class/trait declaration itself.
-          if (rtd is ClassDecl cl) {
+          if (rtd is ClassLikeDecl cl) {
             Contract.Assert(cl.NonNullTypeDecl != null);
             Contract.Assert(cl.NonNullTypeDecl.IsVisibleInScope(scope));
           } else {
-            Contract.Assert(rtd is OpaqueTypeDecl);
+            Contract.Assert(rtd is AbstractTypeDecl);
           }
         }
 
         if (rtd.IsRevealedInScope(scope)) {
-          if (rtd is TypeSynonymDecl && (!(rtd is SubsetTypeDecl) || !keepConstraints)) {
-            type = ((TypeSynonymDecl)rtd).RhsWithArgumentIgnoringScope(udt.TypeArgs);
-            continue;
-          } else {
-            return type;
+          if (expandMode != ExpandMode.DontExpandJustAdjustForScopes && rtd is TypeSynonymDecl typeSynonymDecl) {
+            if (typeSynonymDecl is not SubsetTypeDecl || expandMode == ExpandMode.ExpandSynonymsAndSubsetTypes) {
+              type = typeSynonymDecl.RhsWithArgumentIgnoringScope(udt.TypeArgs);
+              continue;
+            }
           }
+          return type;
         } else { // type is hidden, no more normalization is possible
           return rtd.SelfSynonym(type.TypeArgs);
         }
@@ -197,8 +268,8 @@ public abstract class Type : INode {
           // it is the non-null type declaration that is visible, not the class/trait declaration itself.
           var rhs = isyn.RhsWithArgumentIgnoringScope(udt.TypeArgs);
           Contract.Assert(rhs is UserDefinedType);
-          var cl = ((UserDefinedType)rhs).ResolvedClass as ClassDecl;
-          Contract.Assert(cl != null && cl.NonNullTypeDecl != null);
+          var cl = ((UserDefinedType)rhs).ResolvedClass as ClassLikeDecl;
+          Contract.Assert(cl != null && cl.NonNullTypeDecl != null, rhs.ToString());
           Contract.Assert(cl.NonNullTypeDecl.IsVisibleInScope(scope));
         }
 
@@ -212,17 +283,6 @@ public abstract class Type : INode {
 
       return type;
     }
-  }
-
-  /// <summary>
-  /// Return the type that "this" stands for, getting to the bottom of proxies and following type synonyms, but does
-  /// not follow subset types.
-  ///
-  /// For more documentation, see method Normalize().
-  /// </summary>
-  [Pure]
-  public Type NormalizeExpandKeepConstraints() {
-    return NormalizeExpand(true);
   }
 
   /// <summary>
@@ -240,7 +300,7 @@ public abstract class Type : INode {
       if (!rtd.AsTopLevelDecl.IsVisibleInScope(scope)) {
         // This can only mean "rtd" is a class/trait that is only provided, not revealed. For a provided class/trait,
         // it is the non-null type declaration that is visible, not the class/trait declaration itself.
-        var cl = rtd as ClassDecl;
+        var cl = rtd as ClassLikeDecl;
         Contract.Assert(cl != null && cl.NonNullTypeDecl != null);
         Contract.Assert(cl.NonNullTypeDecl.IsVisibleInScope(scope));
       }
@@ -265,23 +325,24 @@ public abstract class Type : INode {
   /// <summary>
   /// Returns whether or not "this" and "that" denote the same type, modulo proxies and type synonyms and subset types.
   /// </summary>
-  [Pure]
+  [System.Diagnostics.Contracts.Pure]
   public abstract bool Equals(Type that, bool keepConstraints = false);
 
-  public bool IsBoolType { get { return NormalizeExpand() is BoolType; } }
-  public bool IsCharType { get { return NormalizeExpand() is CharType; } }
-  public bool IsIntegerType { get { return NormalizeExpand() is IntType; } }
-  public bool IsRealType { get { return NormalizeExpand() is RealType; } }
-  public bool IsBigOrdinalType { get { return NormalizeExpand() is BigOrdinalType; } }
-  public bool IsBitVectorType { get { return AsBitVectorType != null; } }
-  public bool IsStringType { get { return AsSeqType?.Arg.IsCharType == true; } }
-  public BitvectorType AsBitVectorType { get { return NormalizeExpand() as BitvectorType; } }
+  public bool IsBoolType => NormalizeExpand() is BoolType;
+  public bool IsCharType => NormalizeExpand() is CharType;
+  public bool IsIntegerType => NormalizeExpand() is IntType;
+  public bool IsRealType => NormalizeExpand() is RealType;
+  public bool IsBigOrdinalType => NormalizeExpand() is BigOrdinalType;
+  public bool IsBitVectorType => AsBitVectorType != null;
+  public bool IsStringType => AsSeqType?.Arg.IsCharType == true;
+  public BitvectorType AsBitVectorType => NormalizeExpand() as BitvectorType;
+
   public bool IsNumericBased() {
     var t = NormalizeExpand();
-    return t.IsIntegerType || t.IsRealType || t.AsNewtype != null;
+    return t.IsIntegerType || t.IsRealType || t.AsNewtype?.BaseType.IsNumericBased() == true;
   }
   public enum NumericPersuasion { Int, Real }
-  [Pure]
+  [System.Diagnostics.Contracts.Pure]
   public bool IsNumericBased(NumericPersuasion p) {
     Type t = this;
     while (true) {
@@ -291,13 +352,18 @@ public abstract class Type : INode {
       } else if (t.IsRealType) {
         return p == NumericPersuasion.Real;
       }
-      var d = t.AsNewtype;
-      if (d == null) {
+      if (t.AsNewtype is not { } newtypeDecl) {
         return false;
       }
-      t = d.BaseType;
+      t = newtypeDecl.RhsWithArgument(t.TypeArgs);
     }
   }
+
+  /// <summary>
+  /// Returns true if the type has two representations at run time, the ordinary representation and a
+  /// "fat pointer" representation (which is a boxing of the ordinary representation, plus a vtable pointer).
+  /// </summary>
+  public bool HasFatPointer => NormalizeExpand() is UserDefinedType { ResolvedClass: NewtypeDecl { Traits: { Count: > 0 } } };
 
   /// <summary>
   /// This property returns true if the type is known to be nonempty.
@@ -321,6 +387,10 @@ public abstract class Type : INode {
 
   public enum AutoInitInfo { MaybeEmpty, Nonempty, CompilableValue }
 
+  public bool HavocCountsAsDefiniteAssignment(bool inGhostContext) {
+    return inGhostContext ? IsNonempty : HasCompilableValue;
+  }
+
   /// <summary>
   /// This property returns
   ///     - CompilableValue, if the type has a known compilable value
@@ -333,7 +403,7 @@ public abstract class Type : INode {
     var t = NormalizeExpandKeepConstraints();
     Contract.Assume(t is NonProxyType); // precondition
 
-    AutoInitInfo CharacteristicToAutoInitInfo(TypeParameter.TypeParameterCharacteristics c) {
+    AutoInitInfo CharacteristicToAutoInitInfo(TypeParameterCharacteristics c) {
       if (c.HasCompiledValue) {
         return AutoInitInfo.CompilableValue;
       } else if (c.IsNonempty) {
@@ -347,13 +417,15 @@ public abstract class Type : INode {
       return AutoInitInfo.CompilableValue;
     } else if (t is CollectionType) {
       return AutoInitInfo.CompilableValue;
+    } else if (t is FieldType) {
+      return AutoInitInfo.MaybeEmpty;
     }
 
     var udt = (UserDefinedType)t;
     var cl = udt.ResolvedClass;
     Contract.Assert(cl != null);
-    if (cl is OpaqueTypeDecl) {
-      var otd = (OpaqueTypeDecl)cl;
+    if (cl is AbstractTypeDecl) {
+      var otd = (AbstractTypeDecl)cl;
       return CharacteristicToAutoInitInfo(otd.Characteristics);
     } else if (cl is TypeParameter) {
       var tp = (TypeParameter)cl;
@@ -406,8 +478,12 @@ public abstract class Type : INode {
           Contract.Assert(false); // unexpected case
           throw new cce.UnreachableException();
       }
+    } else if (cl is TraitDecl traitDecl) {
+      return traitDecl.IsReferenceTypeDecl ? AutoInitInfo.CompilableValue : AutoInitInfo.MaybeEmpty;
     } else if (cl is ClassDecl) {
       return AutoInitInfo.CompilableValue; // null is a value of this type
+    } else if (cl is ArrowTypeDecl) {
+      return AutoInitInfo.CompilableValue;
     } else if (cl is DatatypeDecl) {
       var dt = (DatatypeDecl)cl;
       var subst = TypeParameter.SubstitutionMap(dt.TypeArgs, udt.TypeArgs);
@@ -421,9 +497,9 @@ public abstract class Type : INode {
             // This requires more recursion and bookkeeping than we care to try out
             return AutoInitInfo.MaybeEmpty;
           }
-          coDatatypesBeingVisited = new List<UserDefinedType>(coDatatypesBeingVisited);
+          coDatatypesBeingVisited = [.. coDatatypesBeingVisited];
         } else {
-          coDatatypesBeingVisited = new List<UserDefinedType>();
+          coDatatypesBeingVisited = [];
         }
         coDatatypesBeingVisited.Add(udt);
       }
@@ -475,8 +551,17 @@ public abstract class Type : INode {
 
   public bool IsRefType {
     get {
-      var udt = NormalizeExpand() as UserDefinedType;
-      return udt != null && udt.ResolvedClass is ClassDecl && !(udt.ResolvedClass is ArrowTypeDecl);
+      return NormalizeExpand() is UserDefinedType { ResolvedClass: ClassLikeDecl { IsReferenceTypeDecl: true } };
+    }
+  }
+
+  public bool IsMemoryLocationType {
+    get {
+      return NormalizeExpand() is UserDefinedType {
+        ResolvedClass: TupleTypeDecl { Dims: 2 },
+        TypeArgs: var typeArgs,
+      }
+             && typeArgs.Count == 2 && typeArgs[0].IsRefType && typeArgs[1] is FieldType;
     }
   }
 
@@ -508,8 +593,7 @@ public abstract class Type : INode {
   /// </summary>
   public bool IsObjectQ {
     get {
-      var udt = NormalizeExpandKeepConstraints() as UserDefinedType;
-      return udt != null && udt.ResolvedClass is ClassDecl && ((ClassDecl)udt.ResolvedClass).IsObjectTrait;
+      return NormalizeExpandKeepConstraints() is UserDefinedType { ResolvedClass: TraitDecl { IsObjectTrait: true } };
     }
   }
   /// <summary>
@@ -520,7 +604,7 @@ public abstract class Type : INode {
       var nn = AsNonNullRefType;
       if (nn != null) {
         var nonNullRefDecl = (NonNullTypeDecl)nn.ResolvedClass;
-        return nonNullRefDecl.Class.IsObjectTrait;
+        return nonNullRefDecl.Class is TraitDecl { IsObjectTrait: true };
       }
       return false;
     }
@@ -542,15 +626,13 @@ public abstract class Type : INode {
     get {
       var t = this;
       while (true) {
-        var udt = t.NormalizeExpandKeepConstraints() as UserDefinedType;
-        if (udt == null) {
+        if (t.NormalizeExpandKeepConstraints() is not UserDefinedType udt) {
           return null;
         }
         if (udt.ResolvedClass is NonNullTypeDecl) {
           return udt;
         }
-        var sst = udt.ResolvedClass as SubsetTypeDecl;
-        if (sst != null) {
+        if (udt.ResolvedClass is SubsetTypeDecl sst) {
           t = sst.RhsWithArgument(udt.TypeArgs);  // continue the search up the chain of subset types
         } else {
           return null;
@@ -567,7 +649,7 @@ public abstract class Type : INode {
 
     var udt = (UserDefinedType)NormalizeExpand();
     if (udt.ResolvedClass is InternalTypeSynonymDecl isyn) {
-      udt = isyn.RhsWithArgumentIgnoringScope(udt.TypeArgs) as UserDefinedType;
+      udt = (UserDefinedType)isyn.RhsWithArgumentIgnoringScope(udt.TypeArgs);
     }
     TopLevelDeclWithMembers cl;
     if (udt.ResolvedClass is NonNullTypeDecl nntd) {
@@ -581,13 +663,10 @@ public abstract class Type : INode {
     var typeMapParents = cl.ParentFormalTypeParametersToActuals;
     var typeMapUdt = TypeParameter.SubstitutionMap(cl.TypeArgs, udt.TypeArgs);
     var typeArgs = parent.TypeArgs.ConvertAll(tp => typeMapParents[tp].Subst(typeMapUdt));
-    return new UserDefinedType(udt.tok, parent.Name, parent, typeArgs);
+    return new UserDefinedType(udt.Origin, parent.Name, parent, typeArgs);
   }
-  public bool IsTraitType {
-    get {
-      return AsTraitType != null;
-    }
-  }
+
+  public bool IsTraitType => AsTraitType != null;
   public TraitDecl/*?*/ AsTraitType {
     get {
       var udt = NormalizeExpand() as UserDefinedType;
@@ -609,8 +688,7 @@ public abstract class Type : INode {
   }
   public ArrayClassDecl/*?*/ AsArrayType {
     get {
-      var t = NormalizeExpand();
-      var udt = UserDefinedType.DenotesClass(t);
+      var udt = UserDefinedType.DenotesClass(this);
       return udt?.ResolvedClass as ArrayClassDecl;
     }
   }
@@ -671,58 +749,32 @@ public abstract class Type : INode {
       }
     }
   }
-  public bool IsArrowType {
-    get { return AsArrowType != null; }
-  }
-  public ArrowType AsArrowType {
-    get {
-      var t = NormalizeExpand();
-      return t as ArrowType;
-    }
-  }
+  public bool IsArrowType => AsArrowType != null;
 
-  public bool IsMapType {
-    get {
-      var t = NormalizeExpand() as MapType;
-      return t != null && t.Finite;
-    }
-  }
-  public bool IsIMapType {
-    get {
-      var t = NormalizeExpand() as MapType;
-      return t != null && !t.Finite;
-    }
-  }
-  public bool IsISetType {
-    get {
-      var t = NormalizeExpand() as SetType;
-      return t != null && !t.Finite;
-    }
-  }
+  public ArrowType AsArrowType => NormalizeExpand() as ArrowType;
+
+  public bool IsMapType => NormalizeExpand() is MapType { Finite: true };
+
+  public bool IsIMapType => NormalizeExpand() is MapType { Finite: false };
+
+  public bool IsISetType => NormalizeExpand() is SetType { Finite: false };
+
   public NewtypeDecl AsNewtype {
     get {
       var udt = NormalizeExpand() as UserDefinedType;
-      return udt == null ? null : udt.ResolvedClass as NewtypeDecl;
+      return udt?.ResolvedClass as NewtypeDecl;
     }
   }
   public TypeSynonymDecl AsTypeSynonym {
     get {
       var udt = this as UserDefinedType;  // note, it is important to use 'this' here, not 'this.NormalizeExpand()'
-      if (udt == null) {
-        return null;
-      } else {
-        return udt.ResolvedClass as TypeSynonymDecl;
-      }
+      return udt?.ResolvedClass as TypeSynonymDecl;
     }
   }
   public InternalTypeSynonymDecl AsInternalTypeSynonym {
     get {
       var udt = this as UserDefinedType;  // note, it is important to use 'this' here, not 'this.NormalizeExpand()'
-      if (udt == null) {
-        return null;
-      } else {
-        return udt.ResolvedClass as InternalTypeSynonymDecl;
-      }
+      return udt?.ResolvedClass as InternalTypeSynonymDecl;
     }
   }
   public RedirectingTypeDecl AsRedirectingType {
@@ -738,59 +790,33 @@ public abstract class Type : INode {
   public RevealableTypeDecl AsRevealableType {
     get {
       var udt = this as UserDefinedType;
-      if (udt == null) {
-        return null;
-      } else {
-        return (udt.ResolvedClass as RevealableTypeDecl);
-      }
+      return udt?.ResolvedClass as RevealableTypeDecl;
     }
   }
-  public bool IsRevealableType {
-    get { return AsRevealableType != null; }
-  }
-  public bool IsDatatype {
-    get {
-      return AsDatatype != null;
-    }
-  }
+  public bool IsRevealableType => AsRevealableType != null;
+
+  public bool IsDatatype => AsDatatype != null;
+
   public DatatypeDecl AsDatatype {
     get {
       var udt = NormalizeExpand() as UserDefinedType;
-      if (udt == null) {
-        return null;
-      } else {
-        return udt.ResolvedClass as DatatypeDecl;
-      }
+      return udt?.ResolvedClass as DatatypeDecl;
     }
   }
-  public bool IsIndDatatype {
-    get {
-      return AsIndDatatype != null;
-    }
-  }
+  public bool IsIndDatatype => AsIndDatatype != null;
+
   public IndDatatypeDecl AsIndDatatype {
     get {
       var udt = NormalizeExpand() as UserDefinedType;
-      if (udt == null) {
-        return null;
-      } else {
-        return udt.ResolvedClass as IndDatatypeDecl;
-      }
+      return udt?.ResolvedClass as IndDatatypeDecl;
     }
   }
-  public bool IsCoDatatype {
-    get {
-      return AsCoDatatype != null;
-    }
-  }
+  public bool IsCoDatatype => AsCoDatatype != null;
+
   public CoDatatypeDecl AsCoDatatype {
     get {
       var udt = NormalizeExpand() as UserDefinedType;
-      if (udt == null) {
-        return null;
-      } else {
-        return udt.ResolvedClass as CoDatatypeDecl;
-      }
+      return udt?.ResolvedClass as CoDatatypeDecl;
     }
   }
   public bool InvolvesCoDatatype {
@@ -798,27 +824,22 @@ public abstract class Type : INode {
       return IsCoDatatype;  // TODO: should really check structure of the type recursively
     }
   }
-  public bool IsTypeParameter {
-    get {
-      return AsTypeParameter != null;
-    }
-  }
-  public bool IsInternalTypeSynonym {
-    get { return AsInternalTypeSynonym != null; }
-  }
+  public bool IsTypeParameter => AsTypeParameter != null;
+
+  public bool IsInternalTypeSynonym => AsInternalTypeSynonym != null;
+
   public TypeParameter AsTypeParameter {
     get {
       var ct = NormalizeExpandKeepConstraints() as UserDefinedType;
       return ct?.ResolvedClass as TypeParameter;
     }
   }
-  public bool IsOpaqueType {
-    get { return AsOpaqueType != null; }
-  }
-  public OpaqueTypeDecl AsOpaqueType {
+  public bool IsAbstractType => AsAbstractType != null;
+
+  public AbstractTypeDecl AsAbstractType {
     get {
       var udt = this.Normalize() as UserDefinedType;  // note, it is important to use 'this.Normalize()' here, not 'this.NormalizeExpand()'
-      return udt?.ResolvedClass as OpaqueTypeDecl;
+      return udt?.ResolvedClass as AbstractTypeDecl;
     }
   }
 
@@ -867,46 +888,11 @@ public abstract class Type : INode {
   public bool IsOrdered {
     get {
       var ct = NormalizeExpand();
-      return !ct.IsTypeParameter && !ct.IsOpaqueType && !ct.IsInternalTypeSynonym && !ct.IsCoDatatype && !ct.IsArrowType && !ct.IsIMapType && !ct.IsISetType;
-    }
-  }
-
-  /// <summary>
-  /// Returns "true" if:  Given a value of type "this", can we determine at run time if the
-  /// value is a member of type "target"?
-  /// </summary>
-  public bool IsTestableToBe(Type target) {
-    Contract.Requires(target != null);
-
-    // First up, we know how to check for null, so let's expand "target" and "source"
-    // past any type synonyms and also past any (built-in) non-null constraint.
-    var source = this.NormalizeExpandKeepConstraints();
-    if (source is UserDefinedType && ((UserDefinedType)source).ResolvedClass is NonNullTypeDecl) {
-      source = source.NormalizeExpand(); // also lop off non-null constraint
-    }
-    target = target.NormalizeExpandKeepConstraints();
-    if (target is UserDefinedType && ((UserDefinedType)target).ResolvedClass is NonNullTypeDecl) {
-      target = target.NormalizeExpand(); // also lop off non-null constraint
-    }
-
-    if (source.IsSubtypeOf(target, false, true)) {
-      // Every value of "source" (except possibly "null") is also a member of type "target",
-      // so no run-time test is needed (except possibly a null check).
-      return true;
-#if SOON  // include in a coming PR that sorts this one in the compilers
-      } else if (target is UserDefinedType udt && (udt.ResolvedClass is SubsetTypeDecl || udt.ResolvedClass is NewtypeDecl)) {
-        // The type of the bound variable has a constraint. Such a constraint is a ghost expression, so it cannot
-        // (in general) by checked at run time. (A possible enhancement here would be to look at the type constraint
-        // to if it is compilable after all.)
-        var constraints = target.GetTypeConstraints();
+      if (ct.IsTypeParameter || ct.IsAbstractType || ct.IsInternalTypeSynonym || ct.IsCoDatatype || ct.IsArrowType || ct.IsIMapType || ct.IsISetType ||
+          ct is UserDefinedType { ResolvedClass: TraitDecl { IsReferenceTypeDecl: false } }) {
         return false;
-#endif
-    } else if (target.TypeArgs.Count == 0) {
-      // No type parameters. So, we just need to check the run-time class/interface type.
+      }
       return true;
-    } else {
-      // We give up.
-      return false;
     }
   }
 
@@ -927,15 +913,15 @@ public abstract class Type : INode {
     Contract.Requires(type != null);
     if (type is BasicType || type is ArtificialType) {
       // there are no type parameters
-      return new List<TypeParameter.TPVariance>();
+      return [];
     } else if (type is MapType) {
-      return new List<TypeParameter.TPVariance> { TypeParameter.TPVariance.Co, TypeParameter.TPVariance.Co };
+      return [TypeParameter.TPVariance.Co, TypeParameter.TPVariance.Co];
     } else if (type is CollectionType) {
-      return new List<TypeParameter.TPVariance> { TypeParameter.TPVariance.Co };
+      return [TypeParameter.TPVariance.Co];
     } else {
       var udf = (UserDefinedType)type;
       if (udf.TypeArgs.Count == 0) {
-        return new List<TypeParameter.TPVariance>();
+        return [];
       }
       // look up the declaration of the formal type parameters
       var cl = udf.ResolvedClass;
@@ -959,8 +945,8 @@ public abstract class Type : INode {
         a = b = u;
         return true;
       }
-      var tt = ((UserDefinedType)t).ResolvedClass as ClassDecl;
-      var uu = ((UserDefinedType)u).ResolvedClass as ClassDecl;
+      var tt = ((UserDefinedType)t).ResolvedClass as ClassLikeDecl;
+      var uu = ((UserDefinedType)u).ResolvedClass as ClassLikeDecl;
       if (uu.HeadDerivesFrom(tt)) {
         a = b = t;
         return true;
@@ -1073,8 +1059,7 @@ public abstract class Type : INode {
       var asub = sub as ArrowType;
       return asub != null && asuper.Arity == asub.Arity;
     } else if (super.IsObjectQ) {
-      var clSub = sub as UserDefinedType;
-      return sub.IsObjectQ || (clSub != null && clSub.ResolvedClass is ClassDecl);
+      return sub.IsObjectQ || (sub is UserDefinedType { ResolvedClass: ClassLikeDecl cl } && cl.IsReferenceTypeDecl);
     } else if (super is UserDefinedType) {
       var udtSuper = (UserDefinedType)super;
       Contract.Assert(udtSuper.ResolvedClass != null);
@@ -1099,8 +1084,8 @@ public abstract class Type : INode {
                 return true;
               }
             }
-          } else if (udtSub.ResolvedClass is ClassDecl) {
-            var cl = (ClassDecl)udtSub.ResolvedClass;
+          } else if (udtSub.ResolvedClass is ClassLikeDecl) {
+            var cl = (TopLevelDeclWithMembers)udtSub.ResolvedClass;
             return cl.HeadDerivesFrom(udtSuper.ResolvedClass);
           } else {
             return false;
@@ -1116,14 +1101,17 @@ public abstract class Type : INode {
   /// <summary>
   /// Returns "true" iff "a" and "b" denote the same type, expanding type synonyms (but treating types with
   /// constraints as being separate types).
-  /// Expects that neither "a" nor "b" is or contains an unresolved proxy type.
+  /// Any unresolved proxy type contained in either "a" or "b" is compared with reference equality; in other
+  /// words, the proxy itself is compared, not what the proxy will eventually stand for.
   /// </summary>
   public static bool Equal_Improved(Type a, Type b) {
     Contract.Requires(a != null);
     Contract.Requires(b != null);
     a = a.NormalizeExpandKeepConstraints();  // expand type synonyms
     b = b.NormalizeExpandKeepConstraints();  // expand type synonyms
-    if (a is BoolType) {
+    if (object.ReferenceEquals(a, b)) {
+      return true;
+    } else if (a is BoolType) {
       return b is BoolType;
     } else if (a is CharType) {
       return b is CharType;
@@ -1131,6 +1119,8 @@ public abstract class Type : INode {
       return b is IntType;
     } else if (a is RealType) {
       return b is RealType;
+    } else if (a is FieldType) {
+      return b is FieldType;
     } else if (a is BitvectorType) {
       var bitvectorSuper = (BitvectorType)a;
       var bitvectorSub = b as BitvectorType;
@@ -1171,10 +1161,10 @@ public abstract class Type : INode {
           return true;
         }
       }
-    } else if (a is Resolver_IdentifierExpr.ResolverType_Module) {
-      return b is Resolver_IdentifierExpr.ResolverType_Module;
-    } else if (a is Resolver_IdentifierExpr.ResolverType_Type) {
-      return b is Resolver_IdentifierExpr.ResolverType_Type;
+    } else if (a is ResolverIdentifierExpr.ResolverTypeModule) {
+      return b is ResolverIdentifierExpr.ResolverTypeModule;
+    } else if (a is ResolverIdentifierExpr.ResolverTypeType) {
+      return b is ResolverIdentifierExpr.ResolverTypeType;
     } else {
       // this is an unexpected type; however, it may be that we get here during the resolution of an erroneous
       // program, so we'll just return false
@@ -1200,16 +1190,18 @@ public abstract class Type : INode {
     } else if (t is ArrowType) {
       var s = (ArrowType)t;
       var args = s.TypeArgs.ConvertAll(_ => (Type)new InferredTypeProxy());
-      return new ArrowType(s.tok, (ArrowTypeDecl)s.ResolvedClass, args);
+      return new ArrowType(s.Origin, (ArrowTypeDecl)s.ResolvedClass, args);
     } else {
       var s = (UserDefinedType)t;
       var args = s.TypeArgs.ConvertAll(_ => (Type)new InferredTypeProxy());
-      return new UserDefinedType(s.tok, s.Name, s.ResolvedClass, args);
+      return new UserDefinedType(s.Origin, s.Name, s.ResolvedClass, args);
     }
   }
 
   /// <summary>
-  /// Returns a stack of base types leading to "type".  More precisely, of the tower returned,
+  /// Returns a stack of base types leading to "type".  More precisely:
+  ///
+  /// With "typeSynonymsAreSignificant" being "false", then, of the tower returned,
   ///     tower[0] == type.NormalizeExpand()
   ///     tower.Last == type.NormalizeExpandKeepConstraints()
   /// In between, for consecutive indices i and i+1:
@@ -1217,16 +1209,25 @@ public abstract class Type : INode {
   /// The tower thus has the property that:
   ///     tower[0] is not a UserDefinedType with .ResolvedClass being a SubsetTypeDecl,
   ///     but all other tower[i] (for i > 0) are.
+  ///
+  /// With "typeSynonymsAreSignificant" being "true", then, of the tower returned,
+  ///     tower[0] == type.Normalize()
+  ///     tower.Last == type.NormalizeExpandKeepConstraints()
+  /// In between, for consecutive indices i and i+1:
+  ///     tower[i] is the base type (that is, .Rhs) of the subset type or type synonym tower[i+1]
+  /// The tower thus has the property that:
+  ///     tower[0] is not a UserDefinedType with .ResolvedClass being a TypeSynonymDecl,
+  ///     but all other tower[i] (for i > 0) are.
   /// </summary>
-  public static List<Type> GetTowerOfSubsetTypes(Type type) {
+  public static List<Type> GetTowerOfSubsetTypes(Type type, bool typeSynonymsAreSignificant = false) {
     Contract.Requires(type != null);
-    type = type.NormalizeExpandKeepConstraints();
+    type = typeSynonymsAreSignificant ? type.NormalizeAndAdjustForScope() : type.NormalizeExpandKeepConstraints();
     List<Type> tower;
-    if (type is UserDefinedType { ResolvedClass: SubsetTypeDecl sst }) {
+    if (type is UserDefinedType { ResolvedClass: TypeSynonymDecl sst } && (typeSynonymsAreSignificant || sst is SubsetTypeDecl)) {
       var parent = sst.RhsWithArgument(type.TypeArgs);
-      tower = GetTowerOfSubsetTypes(parent);
+      tower = GetTowerOfSubsetTypes(parent, typeSynonymsAreSignificant);
     } else {
-      tower = new List<Type>();
+      tower = [];
     }
     tower.Add(type);
     return tower;
@@ -1239,13 +1240,13 @@ public abstract class Type : INode {
   /// For a positive direction (Co), computes Meet(a[i], b[i]), provided this meet exists.
   /// Returns null if any operation fails.
   /// </summary>
-  public static List<Type> ComputeExtrema(List<TypeParameter.TPVariance> directions, List<Type> a, List<Type> b, BuiltIns builtIns) {
+  public static List<Type> ComputeExtrema(List<TypeParameter.TPVariance> directions, List<Type> a, List<Type> b, SystemModuleManager systemModuleManager) {
     Contract.Requires(directions != null);
     Contract.Requires(a != null);
     Contract.Requires(b != null);
     Contract.Requires(directions.Count == a.Count);
     Contract.Requires(directions.Count == b.Count);
-    Contract.Requires(builtIns != null);
+    Contract.Requires(systemModuleManager != null);
     var n = directions.Count;
     var r = new List<Type>(n);
     for (int i = 0; i < n; i++) {
@@ -1260,7 +1261,7 @@ public abstract class Type : INode {
           return null;
         }
       } else {
-        var t = directions[i] == TypeParameter.TPVariance.Contra ? Join(a[i], b[i], builtIns) : Meet(a[i], b[i], builtIns);
+        var t = directions[i] == TypeParameter.TPVariance.Contra ? Join(a[i], b[i], systemModuleManager) : Meet(a[i], b[i], systemModuleManager);
         if (t == null) {
           return null;
         }
@@ -1277,20 +1278,20 @@ public abstract class Type : INode {
   /// really a join, so the caller should set up additional constraints that the result is
   /// assignable to both a and b.
   /// </summary>
-  public static Type Join(Type a, Type b, BuiltIns builtIns) {
+  public static Type Join(Type a, Type b, SystemModuleManager systemModuleManager) {
     Contract.Requires(a != null);
     Contract.Requires(b != null);
-    Contract.Requires(builtIns != null);
-    var j = JoinX(a, b, builtIns);
-    if (DafnyOptions.O.TypeInferenceDebug) {
-      Console.WriteLine("DEBUG: Join( {0}, {1} ) = {2}", a, b, j);
+    Contract.Requires(systemModuleManager != null);
+    var j = JoinX(a, b, systemModuleManager);
+    if (systemModuleManager.Options.Get(CommonOptionBag.TypeInferenceDebug)) {
+      systemModuleManager.Options.OutputWriter.Debug($"Join( {a}, {b} ) = {j}");
     }
     return j;
   }
-  public static Type JoinX(Type a, Type b, BuiltIns builtIns) {
+  public static Type JoinX(Type a, Type b, SystemModuleManager systemModuleManager) {
     Contract.Requires(a != null);
     Contract.Requires(b != null);
-    Contract.Requires(builtIns != null);
+    Contract.Requires(systemModuleManager != null);
 
     // As a special-case optimization, check for equality here, which will better preserve un-expanded type synonyms
     if (a.Equals(b, true)) {
@@ -1314,11 +1315,11 @@ public abstract class Type : INode {
         }
         Contract.Assert(a.TypeArgs.Count == b.TypeArgs.Count);
         var directions = udtA.ResolvedClass.TypeArgs.ConvertAll(tp => TypeParameter.Negate(tp.Variance));
-        var typeArgs = ComputeExtrema(directions, a.TypeArgs, b.TypeArgs, builtIns);
+        var typeArgs = ComputeExtrema(directions, a.TypeArgs, b.TypeArgs, systemModuleManager);
         if (typeArgs == null) {
           return null;
         }
-        return new UserDefinedType(udtA.tok, udtA.Name, udtA.ResolvedClass, typeArgs);
+        return new UserDefinedType(udtA.Origin, udtA.Name, udtA.ResolvedClass, typeArgs);
       }
     }
     // We exhausted all possibilities of subset types being equal, so use the base-most types.
@@ -1347,7 +1348,7 @@ public abstract class Type : INode {
         return null;
       }
       // sets are co-variant in their argument type
-      var typeArg = Join(a.TypeArgs[0], b.TypeArgs[0], builtIns);
+      var typeArg = Join(a.TypeArgs[0], b.TypeArgs[0], systemModuleManager);
       return typeArg == null ? null : new SetType(aa.Finite, typeArg);
     } else if (a is MultiSetType) {
       var aa = (MultiSetType)a;
@@ -1356,7 +1357,7 @@ public abstract class Type : INode {
         return null;
       }
       // multisets are co-variant in their argument type
-      var typeArg = Join(a.TypeArgs[0], b.TypeArgs[0], builtIns);
+      var typeArg = Join(a.TypeArgs[0], b.TypeArgs[0], systemModuleManager);
       return typeArg == null ? null : new MultiSetType(typeArg);
     } else if (a is SeqType) {
       var aa = (SeqType)a;
@@ -1365,7 +1366,7 @@ public abstract class Type : INode {
         return null;
       }
       // sequences are co-variant in their argument type
-      var typeArg = Join(a.TypeArgs[0], b.TypeArgs[0], builtIns);
+      var typeArg = Join(a.TypeArgs[0], b.TypeArgs[0], systemModuleManager);
       return typeArg == null ? null : new SeqType(typeArg);
     } else if (a is MapType) {
       var aa = (MapType)a;
@@ -1374,8 +1375,8 @@ public abstract class Type : INode {
         return null;
       }
       // maps are co-variant in both argument types
-      var typeArgDomain = Join(a.TypeArgs[0], b.TypeArgs[0], builtIns);
-      var typeArgRange = Join(a.TypeArgs[1], b.TypeArgs[1], builtIns);
+      var typeArgDomain = Join(a.TypeArgs[0], b.TypeArgs[0], systemModuleManager);
+      var typeArgRange = Join(a.TypeArgs[1], b.TypeArgs[1], systemModuleManager);
       return typeArgDomain == null || typeArgRange == null ? null : new MapType(aa.Finite, typeArgDomain, typeArgRange);
     } else if (a.IsDatatype) {
       var aa = a.AsDatatype;
@@ -1387,12 +1388,12 @@ public abstract class Type : INode {
       }
       Contract.Assert(a.TypeArgs.Count == b.TypeArgs.Count);
       var directions = aa.TypeArgs.ConvertAll(tp => TypeParameter.Negate(tp.Variance));
-      var typeArgs = ComputeExtrema(directions, a.TypeArgs, b.TypeArgs, builtIns);
+      var typeArgs = ComputeExtrema(directions, a.TypeArgs, b.TypeArgs, systemModuleManager);
       if (typeArgs == null) {
         return null;
       }
       var udt = (UserDefinedType)a;
-      return new UserDefinedType(udt.tok, udt.Name, aa, typeArgs);
+      return new UserDefinedType(udt.Origin, udt.Name, aa, typeArgs);
     } else if (a.AsArrowType != null) {
       var aa = a.AsArrowType;
       var bb = b.AsArrowType;
@@ -1408,12 +1409,12 @@ public abstract class Type : INode {
         directions.Add(TypeParameter.Negate(TypeParameter.TPVariance.Contra));  // arrow types are contra-variant in the argument types, so compute joins of these
       }
       directions.Add(TypeParameter.Negate(TypeParameter.TPVariance.Co));  // arrow types are co-variant in the result type, so compute the meet of these
-      var typeArgs = ComputeExtrema(directions, a.TypeArgs, b.TypeArgs, builtIns);
+      var typeArgs = ComputeExtrema(directions, a.TypeArgs, b.TypeArgs, systemModuleManager);
       if (typeArgs == null) {
         return null;
       }
       var arr = (ArrowType)aa;
-      return new ArrowType(arr.tok, (ArrowTypeDecl)arr.ResolvedClass, typeArgs);
+      return new ArrowType(arr.Origin, (ArrowTypeDecl)arr.ResolvedClass, typeArgs);
     } else if (b.IsObjectQ) {
       var udtB = (UserDefinedType)b;
       return !a.IsRefType ? null : abNonNullTypes ? UserDefinedType.CreateNonNullType(udtB) : udtB;
@@ -1421,7 +1422,7 @@ public abstract class Type : INode {
       var udtA = (UserDefinedType)a;
       return !b.IsRefType ? null : abNonNullTypes ? UserDefinedType.CreateNonNullType(udtA) : udtA;
     } else {
-      // "a" is a class, trait, or opaque type
+      // "a" is a class, trait, or abstract type
       var aa = ((UserDefinedType)a).ResolvedClass;
       Contract.Assert(aa != null);
       if (!(b is UserDefinedType)) {
@@ -1433,16 +1434,16 @@ public abstract class Type : INode {
       } else if (aa == bb) {
         Contract.Assert(a.TypeArgs.Count == b.TypeArgs.Count);
         var directions = aa.TypeArgs.ConvertAll(tp => TypeParameter.Negate(tp.Variance));
-        var typeArgs = ComputeExtrema(directions, a.TypeArgs, b.TypeArgs, builtIns);
+        var typeArgs = ComputeExtrema(directions, a.TypeArgs, b.TypeArgs, systemModuleManager);
         if (typeArgs == null) {
           return null;
         }
         var udt = (UserDefinedType)a;
-        var xx = new UserDefinedType(udt.tok, udt.Name, aa, typeArgs);
+        var xx = new UserDefinedType(udt.Origin, udt.Name, aa, typeArgs);
         return abNonNullTypes ? UserDefinedType.CreateNonNullType(xx) : xx;
-      } else if (aa is ClassDecl && bb is ClassDecl) {
-        var A = (ClassDecl)aa;
-        var B = (ClassDecl)bb;
+      } else if (aa is ClassLikeDecl && bb is ClassLikeDecl) {
+        var A = (TopLevelDeclWithMembers)aa;
+        var B = (TopLevelDeclWithMembers)bb;
         if (A.HeadDerivesFrom(B)) {
           var udtB = (UserDefinedType)b;
           return abNonNullTypes ? UserDefinedType.CreateNonNullType(udtB) : udtB;
@@ -1459,7 +1460,7 @@ public abstract class Type : INode {
           return abNonNullTypes ? UserDefinedType.CreateNonNullType(r) : r;
         } else {
           // the unfortunate part is when commonTraits.Count > 1 here :(
-          return abNonNullTypes ? UserDefinedType.CreateNonNullType(builtIns.ObjectQ()) : builtIns.ObjectQ();
+          return abNonNullTypes ? UserDefinedType.CreateNonNullType(systemModuleManager.ObjectQ()) : systemModuleManager.ObjectQ();
         }
       } else {
         return null;
@@ -1474,10 +1475,10 @@ public abstract class Type : INode {
   /// really a meet, so the caller should set up additional constraints that the result is
   /// assignable to both a and b.
   /// </summary>
-  public static Type Meet(Type a, Type b, BuiltIns builtIns) {
+  public static Type Meet(Type a, Type b, SystemModuleManager systemModuleManager) {
     Contract.Requires(a != null);
     Contract.Requires(b != null);
-    Contract.Requires(builtIns != null);
+    Contract.Requires(systemModuleManager != null);
     a = a.NormalizeExpandKeepConstraints();
     b = b.NormalizeExpandKeepConstraints();
 
@@ -1485,17 +1486,17 @@ public abstract class Type : INode {
     Type j;
     if (a is UserDefinedType { ResolvedClass: NonNullTypeDecl aClass }) {
       joinNeedsNonNullConstraint = true;
-      j = MeetX(aClass.RhsWithArgument(a.TypeArgs), b, builtIns);
+      j = MeetX(aClass.RhsWithArgument(a.TypeArgs), b, systemModuleManager);
     } else if (b is UserDefinedType { ResolvedClass: NonNullTypeDecl bClass }) {
       joinNeedsNonNullConstraint = true;
-      j = MeetX(a, bClass.RhsWithArgument(b.TypeArgs), builtIns);
+      j = MeetX(a, bClass.RhsWithArgument(b.TypeArgs), systemModuleManager);
     } else {
-      j = MeetX(a, b, builtIns);
+      j = MeetX(a, b, systemModuleManager);
     }
     if (j != null && joinNeedsNonNullConstraint && !j.IsNonNullRefType) {
       // try to make j into a non-null type; if that's not possible, then there is no meet
       var udt = j as UserDefinedType;
-      if (udt != null && udt.ResolvedClass is ClassDecl) {
+      if (udt != null && udt.ResolvedClass is ClassLikeDecl { IsReferenceTypeDecl: true }) {
         // add the non-null constraint back in
         j = UserDefinedType.CreateNonNullType(udt);
       } else {
@@ -1503,15 +1504,15 @@ public abstract class Type : INode {
         j = null;
       }
     }
-    if (DafnyOptions.O.TypeInferenceDebug) {
-      Console.WriteLine("DEBUG: Meet( {0}, {1} ) = {2}", a, b, j);
+    if (systemModuleManager.Options.Get(CommonOptionBag.TypeInferenceDebug)) {
+      systemModuleManager.Options.OutputWriter.Debug($"Meet( {a}, {b} ) = {j}");
     }
     return j;
   }
-  public static Type MeetX(Type a, Type b, BuiltIns builtIns) {
+  public static Type MeetX(Type a, Type b, SystemModuleManager systemModuleManager) {
     Contract.Requires(a != null);
     Contract.Requires(b != null);
-    Contract.Requires(builtIns != null);
+    Contract.Requires(systemModuleManager != null);
 
     a = a.NormalizeExpandKeepConstraints();
     b = b.NormalizeExpandKeepConstraints();
@@ -1552,11 +1553,11 @@ public abstract class Type : INode {
         }
         Contract.Assert(a.TypeArgs.Count == b.TypeArgs.Count);
         var directions = udtA.ResolvedClass.TypeArgs.ConvertAll(tp => tp.Variance);
-        var typeArgs = ComputeExtrema(directions, a.TypeArgs, b.TypeArgs, builtIns);
+        var typeArgs = ComputeExtrema(directions, a.TypeArgs, b.TypeArgs, systemModuleManager);
         if (typeArgs == null) {
           return null;
         }
-        return new UserDefinedType(udtA.tok, udtA.Name, udtA.ResolvedClass, typeArgs);
+        return new UserDefinedType(udtA.Origin, udtA.Name, udtA.ResolvedClass, typeArgs);
       } else {
         // The two subset types do not have the same head, so there is no meet
         return null;
@@ -1573,7 +1574,7 @@ public abstract class Type : INode {
         return null;
       }
       // sets are co-variant in their argument type
-      var typeArg = Meet(a.TypeArgs[0], b.TypeArgs[0], builtIns);
+      var typeArg = Meet(a.TypeArgs[0], b.TypeArgs[0], systemModuleManager);
       return typeArg == null ? null : new SetType(aa.Finite, typeArg);
     } else if (a is MultiSetType) {
       var aa = (MultiSetType)a;
@@ -1582,7 +1583,7 @@ public abstract class Type : INode {
         return null;
       }
       // multisets are co-variant in their argument type
-      var typeArg = Meet(a.TypeArgs[0], b.TypeArgs[0], builtIns);
+      var typeArg = Meet(a.TypeArgs[0], b.TypeArgs[0], systemModuleManager);
       return typeArg == null ? null : new MultiSetType(typeArg);
     } else if (a is SeqType) {
       var aa = (SeqType)a;
@@ -1591,7 +1592,7 @@ public abstract class Type : INode {
         return null;
       }
       // sequences are co-variant in their argument type
-      var typeArg = Meet(a.TypeArgs[0], b.TypeArgs[0], builtIns);
+      var typeArg = Meet(a.TypeArgs[0], b.TypeArgs[0], systemModuleManager);
       return typeArg == null ? null : new SeqType(typeArg);
     } else if (a is MapType) {
       var aa = (MapType)a;
@@ -1600,8 +1601,8 @@ public abstract class Type : INode {
         return null;
       }
       // maps are co-variant in both argument types
-      var typeArgDomain = Meet(a.TypeArgs[0], b.TypeArgs[0], builtIns);
-      var typeArgRange = Meet(a.TypeArgs[1], b.TypeArgs[1], builtIns);
+      var typeArgDomain = Meet(a.TypeArgs[0], b.TypeArgs[0], systemModuleManager);
+      var typeArgRange = Meet(a.TypeArgs[1], b.TypeArgs[1], systemModuleManager);
       return typeArgDomain == null || typeArgRange == null ? null : new MapType(aa.Finite, typeArgDomain, typeArgRange);
     } else if (a.IsDatatype) {
       var aa = a.AsDatatype;
@@ -1613,12 +1614,12 @@ public abstract class Type : INode {
       }
       Contract.Assert(a.TypeArgs.Count == b.TypeArgs.Count);
       var directions = aa.TypeArgs.ConvertAll(tp => tp.Variance);
-      var typeArgs = ComputeExtrema(directions, a.TypeArgs, b.TypeArgs, builtIns);
+      var typeArgs = ComputeExtrema(directions, a.TypeArgs, b.TypeArgs, systemModuleManager);
       if (typeArgs == null) {
         return null;
       }
       var udt = (UserDefinedType)a;
-      return new UserDefinedType(udt.tok, udt.Name, aa, typeArgs);
+      return new UserDefinedType(udt.Origin, udt.Name, aa, typeArgs);
     } else if (a.AsArrowType != null) {
       var aa = a.AsArrowType;
       var bb = b.AsArrowType;
@@ -1634,18 +1635,18 @@ public abstract class Type : INode {
         directions.Add(TypeParameter.TPVariance.Contra);  // arrow types are contra-variant in the argument types, so compute joins of these
       }
       directions.Add(TypeParameter.TPVariance.Co);  // arrow types are co-variant in the result type, so compute the meet of these
-      var typeArgs = ComputeExtrema(directions, a.TypeArgs, b.TypeArgs, builtIns);
+      var typeArgs = ComputeExtrema(directions, a.TypeArgs, b.TypeArgs, systemModuleManager);
       if (typeArgs == null) {
         return null;
       }
       var arr = (ArrowType)aa;
-      return new ArrowType(arr.tok, (ArrowTypeDecl)arr.ResolvedClass, typeArgs);
+      return new ArrowType(arr.Origin, (ArrowTypeDecl)arr.ResolvedClass, typeArgs);
     } else if (b.IsObjectQ) {
       return a.IsRefType ? a : null;
     } else if (a.IsObjectQ) {
       return b.IsRefType ? b : null;
     } else {
-      // "a" is a class, trait, or opaque type
+      // "a" is a class, trait, or abstract type
       var aa = ((UserDefinedType)a).ResolvedClass;
       Contract.Assert(aa != null);
       if (!(b is UserDefinedType)) {
@@ -1657,13 +1658,13 @@ public abstract class Type : INode {
       } else if (aa == bb) {
         Contract.Assert(a.TypeArgs.Count == b.TypeArgs.Count);
         var directions = aa.TypeArgs.ConvertAll(tp => tp.Variance);
-        var typeArgs = ComputeExtrema(directions, a.TypeArgs, b.TypeArgs, builtIns);
+        var typeArgs = ComputeExtrema(directions, a.TypeArgs, b.TypeArgs, systemModuleManager);
         if (typeArgs == null) {
           return null;
         }
         var udt = (UserDefinedType)a;
-        return new UserDefinedType(udt.tok, udt.Name, aa, typeArgs);
-      } else if (aa is ClassDecl && bb is ClassDecl) {
+        return new UserDefinedType(udt.Origin, udt.Name, aa, typeArgs);
+      } else if (aa is ClassLikeDecl && bb is ClassLikeDecl) {
         if (a.IsSubtypeOf(b, false, false)) {
           return a;
         } else if (b.IsSubtypeOf(a, false, false)) {
@@ -1691,8 +1692,8 @@ public abstract class Type : INode {
     }
   }
 
-  public virtual List<Type> ParentTypes() {
-    return new List<Type>();
+  public virtual List<Type> ParentTypes(bool includeTypeBounds) {
+    return [];
   }
 
   /// <summary>
@@ -1718,7 +1719,13 @@ public abstract class Type : INode {
       return ignoreTypeArguments || CompatibleTypeArgs(super, sub);
     }
 
-    return sub.ParentTypes().Any(parentType => parentType.IsSubtypeOf(super, ignoreTypeArguments, ignoreNullity));
+    // There is a special case, namely when super is the non-null "object". Since "sub.ParentTypes()" only gives
+    // back the explicitly declared parent traits, the general case below may miss it.
+    if (super.IsObject) {
+      return sub.IsNonNullRefType;
+    }
+
+    return sub.ParentTypes(true).Any(parentType => parentType.IsSubtypeOf(super, ignoreTypeArguments, ignoreNullity));
   }
 
   public static bool CompatibleTypeArgs(Type super, Type sub) {
@@ -1768,8 +1775,8 @@ public abstract class ArtificialType : Type {
 /// or a bitvector type.
 /// </summary>
 public class IntVarietiesSupertype : ArtificialType {
-  [Pure]
-  public override string TypeName(ModuleDefinition context, bool parseAble) {
+  [System.Diagnostics.Contracts.Pure]
+  public override string TypeName(DafnyOptions options, ModuleDefinition context, bool parseAble) {
     return "int";
   }
   public override bool Equals(Type that, bool keepConstraints = false) {
@@ -1777,8 +1784,8 @@ public class IntVarietiesSupertype : ArtificialType {
   }
 }
 public class RealVarietiesSupertype : ArtificialType {
-  [Pure]
-  public override string TypeName(ModuleDefinition context, bool parseAble) {
+  [System.Diagnostics.Contracts.Pure]
+  public override string TypeName(DafnyOptions options, ModuleDefinition context, bool parseAble) {
     return "real";
   }
   public override bool Equals(Type that, bool keepConstraints = false) {
@@ -1790,10 +1797,27 @@ public class RealVarietiesSupertype : ArtificialType {
 /// A NonProxy type is a fully constrained type.  It may contain members.
 /// </summary>
 public abstract class NonProxyType : Type {
+  [SyntaxConstructor]
+  protected NonProxyType(IOrigin origin = null) : base(origin) {
+  }
+
+  protected NonProxyType(Cloner cloner, NonProxyType original) : base(cloner, original) {
+  }
 }
 
 public abstract class BasicType : NonProxyType {
-  public override IEnumerable<INode> Children => Enumerable.Empty<INode>();
+
+  protected BasicType() : base(null) {
+  }
+
+  [SyntaxConstructor]
+  protected BasicType(IOrigin origin) : base(origin) {
+  }
+
+  protected BasicType(Cloner cloner, NonProxyType original) : base(cloner, original) {
+  }
+
+  public override IEnumerable<INode> Children => Enumerable.Empty<Node>();
   public override bool ComputeMayInvolveReferences(ISet<DatatypeDecl>/*?*/ visitedDatatypes) {
     return false;
   }
@@ -1808,8 +1832,13 @@ public abstract class BasicType : NonProxyType {
 }
 
 public class BoolType : BasicType {
+  [SyntaxConstructor]
+  public BoolType(IOrigin origin) : base(origin) { }
+
+  public BoolType() { }
+
   [Pure]
-  public override string TypeName(ModuleDefinition context, bool parseAble) {
+  public override string TypeName(DafnyOptions options, ModuleDefinition context, bool parseAble) {
     return "bool";
   }
   public override bool Equals(Type that, bool keepConstraints = false) {
@@ -1820,8 +1849,14 @@ public class BoolType : BasicType {
 public class CharType : BasicType {
   public const char DefaultValue = 'D';
   public const string DefaultValueAsString = "'D'";
-  [Pure]
-  public override string TypeName(ModuleDefinition context, bool parseAble) {
+
+  [SyntaxConstructor]
+  public CharType(IOrigin origin) : base(origin) { }
+
+  public CharType() { }
+
+  [System.Diagnostics.Contracts.Pure]
+  public override string TypeName(DafnyOptions options, ModuleDefinition context, bool parseAble) {
     return "char";
   }
   public override bool Equals(Type that, bool keepConstraints = false) {
@@ -1830,8 +1865,16 @@ public class CharType : BasicType {
 }
 
 public class IntType : BasicType {
+
+  [SyntaxConstructor]
+  public IntType(IOrigin origin) : base(origin) {
+  }
+
+  public IntType() {
+  }
+
   [Pure]
-  public override string TypeName(ModuleDefinition context, bool parseAble) {
+  public override string TypeName(DafnyOptions options, ModuleDefinition context, bool parseAble) {
     return "int";
   }
   public override bool Equals(Type that, bool keepConstraints = false) {
@@ -1846,8 +1889,14 @@ public class IntType : BasicType {
 }
 
 public class RealType : BasicType {
-  [Pure]
-  public override string TypeName(ModuleDefinition context, bool parseAble) {
+  [SyntaxConstructor]
+  public RealType(IOrigin origin) : base(origin) {
+  }
+
+  public RealType() {
+  }
+  [System.Diagnostics.Contracts.Pure]
+  public override string TypeName(DafnyOptions options, ModuleDefinition context, bool parseAble) {
     return "real";
   }
   public override bool Equals(Type that, bool keepConstraints = false) {
@@ -1862,8 +1911,15 @@ public class RealType : BasicType {
 }
 
 public class BigOrdinalType : BasicType {
-  [Pure]
-  public override string TypeName(ModuleDefinition context, bool parseAble) {
+  [SyntaxConstructor]
+  public BigOrdinalType(IOrigin origin) : base(origin) {
+  }
+
+  public BigOrdinalType() {
+  }
+
+  [System.Diagnostics.Contracts.Pure]
+  public override string TypeName(DafnyOptions options, ModuleDefinition context, bool parseAble) {
     return "ORDINAL";
   }
   public override bool Equals(Type that, bool keepConstraints = false) {
@@ -1878,23 +1934,35 @@ public class BigOrdinalType : BasicType {
 }
 
 public class BitvectorType : BasicType {
-  public readonly int Width;
-  public readonly NativeType NativeType;
-  public BitvectorType(int width)
+  public int Width;
+  public NativeType NativeType;
+
+  [SyntaxConstructor]
+  public BitvectorType(IOrigin origin, int width) : base(origin) {
+    Contract.Requires(0 <= width);
+    Width = width;
+  }
+
+  public BitvectorType() {
+  }
+
+  public BitvectorType(DafnyOptions options, int width)
     : base() {
     Contract.Requires(0 <= width);
     Width = width;
-    foreach (var nativeType in Resolver.NativeTypes) {
-      if (DafnyOptions.O.Compiler.SupportedNativeTypes.Contains(nativeType.Name) && width <= nativeType.Bitwidth) {
+    foreach (var nativeType in ModuleResolver.NativeTypes) {
+      if (options.Backend.SupportedNativeTypes.Contains(nativeType.Name) && width <= nativeType.Bitwidth) {
         NativeType = nativeType;
         break;
       }
     }
   }
 
-  [Pure]
-  public override string TypeName(ModuleDefinition context, bool parseAble) {
-    return "bv" + Width;
+  public string Name => "bv" + Width;
+
+  [System.Diagnostics.Contracts.Pure]
+  public override string TypeName(DafnyOptions options, ModuleDefinition context, bool parseAble) {
+    return Name;
   }
   public override bool Equals(Type that, bool keepConstraints = false) {
     var bv = that.NormalizeExpand(keepConstraints) as BitvectorType;
@@ -1912,11 +1980,11 @@ public class SelfType : NonProxyType {
   public TypeParameter TypeArg;
   public Type ResolvedType;
   public SelfType() : base() {
-    TypeArg = new TypeParameter(Token.NoToken, "selfType", TypeParameter.TPVarianceSyntax.NonVariant_Strict);
+    TypeArg = new TypeParameter(SourceOrigin.NoToken, new Name("selfType"), TPVarianceSyntax.NonVariant_Strict);
   }
 
-  [Pure]
-  public override string TypeName(ModuleDefinition context, bool parseAble) {
+  [System.Diagnostics.Contracts.Pure]
+  public override string TypeName(DafnyOptions options, ModuleDefinition context, bool parseAble) {
     return "selftype";
   }
   public override bool Equals(Type that, bool keepConstraints = false) {
@@ -1944,700 +2012,33 @@ public class SelfType : NonProxyType {
   }
 }
 
-public abstract class CollectionType : NonProxyType {
-  public abstract string CollectionTypeName { get; }
-  public override IEnumerable<INode> Nodes => TypeArgs.SelectMany(ta => ta.Nodes);
-
-  public override string TypeName(ModuleDefinition context, bool parseAble) {
-    Contract.Ensures(Contract.Result<string>() != null);
-    var targs = HasTypeArg() ? this.TypeArgsToString(context, parseAble) : "";
-    return CollectionTypeName + targs;
-  }
-  public Type Arg {
-    get {
-      Contract.Ensures(Contract.Result<Type>() != null);  // this is true only after "arg" has really been set (i.e., it follows from the precondition)
-      Contract.Assume(arg != null);  // This is really a precondition.  Don't call Arg until "arg" has been set.
-      return arg;
-    }
-  }  // denotes the Domain type for a Map
-  private Type arg;
-  // The following methods, HasTypeArg and SetTypeArg/SetTypeArgs, are to be called during resolution to make sure that "arg" becomes set.
-  public bool HasTypeArg() {
-    return arg != null;
-  }
-  public void SetTypeArg(Type arg) {
-    Contract.Requires(arg != null);
-    Contract.Requires(1 <= this.TypeArgs.Count);  // this is actually an invariant of all collection types
-    Contract.Assume(this.arg == null);  // Can only set it once.  This is really a precondition.
-    this.arg = arg;
-    this.TypeArgs[0] = arg;
-  }
-  public virtual void SetTypeArgs(Type arg, Type other) {
-    Contract.Requires(arg != null);
-    Contract.Requires(other != null);
-    Contract.Requires(this.TypeArgs.Count == 2);
-    Contract.Assume(this.arg == null);  // Can only set it once.  This is really a precondition.
-    this.arg = arg;
-    this.TypeArgs[0] = arg;
-    this.TypeArgs[1] = other;
-  }
-  [ContractInvariantMethod]
-  void ObjectInvariant() {
-    // Contract.Invariant(Contract.ForAll(TypeArgs, tp => tp != null));
-    // After resolution, the following is invariant:  Contract.Invariant(Arg != null);
-    // However, it may not be true until then.
-  }
-  /// <summary>
-  /// This constructor is a collection types with 1 type argument
-  /// </summary>
-  protected CollectionType(Type arg) {
-    this.arg = arg;
-    this.TypeArgs = new List<Type> { arg };
-  }
-  /// <summary>
-  /// This constructor is a collection types with 2 type arguments
-  /// </summary>
-  protected CollectionType(Type arg, Type other) {
-    this.arg = arg;
-    this.TypeArgs = new List<Type> { arg, other };
+public class FieldType : BasicType {
+  [SyntaxConstructor]
+  public FieldType(IOrigin origin) : base(origin) {
   }
 
-  public override bool ComputeMayInvolveReferences(ISet<DatatypeDecl> visitedDatatypes) {
-    return Arg.ComputeMayInvolveReferences(visitedDatatypes);
+  public FieldType() {
   }
-}
-
-public class SetType : CollectionType {
-  private bool finite;
-
-  public bool Finite {
-    get { return finite; }
-    set { finite = value; }
-  }
-
-  public SetType(bool finite, Type arg) : base(arg) {
-    this.finite = finite;
-  }
-  public override string CollectionTypeName { get { return finite ? "set" : "iset"; } }
-  [Pure]
-  public override bool Equals(Type that, bool keepConstraints = false) {
-    var t = that.NormalizeExpand(keepConstraints) as SetType;
-    return t != null && Finite == t.Finite && Arg.Equals(t.Arg, keepConstraints);
-  }
-
-  public override Type Subst(IDictionary<TypeParameter, Type> subst) {
-    var arg = Arg.Subst(subst);
-    if (arg is InferredTypeProxy) {
-      ((InferredTypeProxy)arg).KeepConstraints = true;
-    }
-    return arg == Arg ? this : new SetType(Finite, arg);
-  }
-
-  public override Type ReplaceTypeArguments(List<Type> arguments) {
-    return new SetType(Finite, arguments[0]);
-  }
-
-  public override bool SupportsEquality {
-    get {
-      // Sets always support equality, because there is a check that the set element type always does.
-      return true;
-    }
-  }
-}
-
-public class MultiSetType : CollectionType {
-  public MultiSetType(Type arg) : base(arg) {
-  }
-  public override string CollectionTypeName { get { return "multiset"; } }
-  public override bool Equals(Type that, bool keepConstraints = false) {
-    var t = that.NormalizeExpand(keepConstraints) as MultiSetType;
-    return t != null && Arg.Equals(t.Arg, keepConstraints);
-  }
-
-  public override Type Subst(IDictionary<TypeParameter, Type> subst) {
-    var arg = Arg.Subst(subst);
-    if (arg is InferredTypeProxy) {
-      ((InferredTypeProxy)arg).KeepConstraints = true;
-    }
-    return arg == Arg ? this : new MultiSetType(arg);
-  }
-
-  public override Type ReplaceTypeArguments(List<Type> arguments) {
-    return new MultiSetType(arguments[0]);
-  }
-
-  public override bool SupportsEquality {
-    get {
-      // Multisets always support equality, because there is a check that the set element type always does.
-      return true;
-    }
-  }
-}
-
-public class SeqType : CollectionType {
-  public SeqType(Type arg) : base(arg) {
-  }
-  public override string CollectionTypeName { get { return "seq"; } }
-  public override bool Equals(Type that, bool keepConstraints = false) {
-    var t = that.NormalizeExpand(keepConstraints) as SeqType;
-    return t != null && Arg.Equals(t.Arg, keepConstraints);
-  }
-
-  public override Type Subst(IDictionary<TypeParameter, Type> subst) {
-    var arg = Arg.Subst(subst);
-    if (arg is InferredTypeProxy) {
-      ((InferredTypeProxy)arg).KeepConstraints = true;
-    }
-    return arg == Arg ? this : new SeqType(arg);
-  }
-
-  public override Type ReplaceTypeArguments(List<Type> arguments) {
-    return new SeqType(arguments[0]);
-  }
-
-  public override bool SupportsEquality {
-    get {
-      // The sequence type supports equality if its element type does
-      return Arg.SupportsEquality;
-    }
-  }
-}
-public class MapType : CollectionType {
-  public bool Finite {
-    get { return finite; }
-    set { finite = value; }
-  }
-  private bool finite;
-  public Type Range {
-    get { return range; }
-  }
-  private Type range;
-  public override void SetTypeArgs(Type domain, Type range) {
-    base.SetTypeArgs(domain, range);
-    Contract.Assume(this.range == null);  // Can only set once.  This is really a precondition.
-    this.range = range;
-  }
-  public MapType(bool finite, Type domain, Type range) : base(domain, range) {
-    Contract.Requires((domain == null && range == null) || (domain != null && range != null));
-    this.finite = finite;
-    this.range = range;
-  }
-  public Type Domain {
-    get { return Arg; }
-  }
-  public override string CollectionTypeName { get { return finite ? "map" : "imap"; } }
-  [Pure]
-  public override string TypeName(ModuleDefinition context, bool parseAble) {
-    Contract.Ensures(Contract.Result<string>() != null);
-    var targs = HasTypeArg() ? this.TypeArgsToString(context, parseAble) : "";
-    return CollectionTypeName + targs;
+  [System.Diagnostics.Contracts.Pure]
+  public override string TypeName(DafnyOptions options, ModuleDefinition context, bool parseAble) {
+    return "field";
   }
   public override bool Equals(Type that, bool keepConstraints = false) {
-    var t = that.NormalizeExpand(keepConstraints) as MapType;
-    return t != null && Finite == t.Finite && Arg.Equals(t.Arg, keepConstraints) && Range.Equals(t.Range, keepConstraints);
+    return that.NormalizeExpand(keepConstraints) is FieldType;
   }
-
-  public override Type Subst(IDictionary<TypeParameter, Type> subst) {
-    var dom = Domain.Subst(subst);
-    if (dom is InferredTypeProxy) {
-      ((InferredTypeProxy)dom).KeepConstraints = true;
-    }
-    var ran = Range.Subst(subst);
-    if (ran is InferredTypeProxy) {
-      ((InferredTypeProxy)ran).KeepConstraints = true;
-    }
-    if (dom == Domain && ran == Range) {
-      return this;
-    } else {
-      return new MapType(Finite, dom, ran);
-    }
-  }
-
-  public override Type ReplaceTypeArguments(List<Type> arguments) {
-    return new MapType(Finite, arguments[0], arguments[1]);
-  }
-
-  public override bool SupportsEquality {
-    get {
-      // A map type supports equality if both its Keys type and Values type does.  It is checked
-      // that the Keys type always supports equality, so we only need to check the Values type here.
-      return range.SupportsEquality;
-    }
-  }
-  public override bool ComputeMayInvolveReferences(ISet<DatatypeDecl> visitedDatatypes) {
-    return Domain.ComputeMayInvolveReferences(visitedDatatypes) || Range.ComputeMayInvolveReferences(visitedDatatypes);
-  }
-}
-
-public class UserDefinedType : NonProxyType {
-  [ContractInvariantMethod]
-  void ObjectInvariant() {
-    Contract.Invariant(tok != null);
-    Contract.Invariant(Name != null);
-    Contract.Invariant(cce.NonNullElements(TypeArgs));
-    Contract.Invariant(NamePath is NameSegment || NamePath is ExprDotName);
-    Contract.Invariant(!ArrowType.IsArrowTypeName(Name) || this is ArrowType);
-  }
-
-  public readonly Expression NamePath;  // either NameSegment or ExprDotName (with the inner expression satisfying this same constraint)
-  public readonly string Name;
-  [Rep]
-
-  public string FullName {
-    get {
-      if (ResolvedClass?.EnclosingModuleDefinition?.IsDefaultModule == false) {
-        return ResolvedClass.EnclosingModuleDefinition.Name + "." + Name;
-      } else {
-        return Name;
-      }
-    }
-  }
-
-  string compileName;
-  public string CompileName => compileName ??= ResolvedClass.CompileName;
-
-  public string FullCompanionCompileName {
-    get {
-      Contract.Requires(ResolvedClass is TraitDecl || (ResolvedClass is NonNullTypeDecl nntd && nntd.Class is TraitDecl));
-      var m = ResolvedClass.EnclosingModuleDefinition;
-      var s = m.IsDefaultModule ? "" : m.CompileName + ".";
-      return s + "_Companion_" + ResolvedClass.CompileName;
-    }
-  }
-
-  [FilledInDuringResolution] public TopLevelDecl ResolvedClass;  // if Name denotes a class/datatype/iterator and TypeArgs match the type parameters of that class/datatype/iterator
-
-  public UserDefinedType(IToken tok, string name, List<Type> optTypeArgs)
-    : this(tok, new NameSegment(tok, name, optTypeArgs)) {
-    Contract.Requires(tok != null);
-    Contract.Requires(name != null);
-    Contract.Requires(optTypeArgs == null || optTypeArgs.Count > 0);  // this is what it means to be syntactically optional
-  }
-
-  public UserDefinedType(IToken tok, Expression namePath) {
-    Contract.Requires(tok != null);
-    Contract.Requires(namePath is NameSegment || namePath is ExprDotName);
-    this.tok = tok;
-    if (namePath is NameSegment) {
-      var n = (NameSegment)namePath;
-      this.Name = n.Name;
-      this.TypeArgs = n.OptTypeArguments;
-    } else {
-      var n = (ExprDotName)namePath;
-      this.Name = n.SuffixName;
-      this.TypeArgs = n.OptTypeArguments;
-    }
-    if (this.TypeArgs == null) {
-      this.TypeArgs = new List<Type>();  // TODO: is this really the thing to do?
-    }
-    this.NamePath = namePath;
-  }
-  public UserDefinedType(Cloner cloner, UserDefinedType original)
-    : this(cloner.Tok(original.tok), cloner.CloneExpr(original.NamePath)) {
-    if (cloner.CloneResolvedFields) {
-      ResolvedClass = original.ResolvedClass;
-      TypeArgs = original.TypeArgs.Select(cloner.CloneType).ToList();
-    }
-  }
-
-  /// <summary>
-  /// Constructs a Type (in particular, a UserDefinedType) from a TopLevelDecl denoting a type declaration.  If
-  /// the given declaration takes type parameters, these are filled as references to the formal type parameters
-  /// themselves.  (Usually, this method is called when the type parameters in the result don't matter, other
-  /// than that they need to be filled in, so as to make a properly resolved UserDefinedType.)
-  /// If "typeArgs" is non-null, then its type parameters are used in constructing the returned type.
-  /// If "typeArgs" is null, then the formal type parameters of "cd" are used.
-  /// </summary>
-  public static UserDefinedType FromTopLevelDecl(IToken tok, TopLevelDecl cd, List<TypeParameter> typeArgs = null) {
-    Contract.Requires(tok != null);
-    Contract.Requires(cd != null);
-    Contract.Assert((cd is ArrowTypeDecl) == ArrowType.IsArrowTypeName(cd.Name));
-    var args = (typeArgs ?? cd.TypeArgs).ConvertAll(tp => (Type)new UserDefinedType(tp));
-    if (cd is ArrowTypeDecl) {
-      return new ArrowType(tok, (ArrowTypeDecl)cd, args);
-    } else if (cd is ClassDecl && !(cd is DefaultClassDecl)) {
-      return new UserDefinedType(tok, cd.Name + "?", cd, args);
-    } else {
-      return new UserDefinedType(tok, cd.Name, cd, args);
-    }
-  }
-
-  public static UserDefinedType FromTopLevelDeclWithAllBooleanTypeParameters(TopLevelDecl cd) {
-    Contract.Requires(cd != null);
-    Contract.Requires(!(cd is ArrowTypeDecl));
-
-    var typeArgs = cd.TypeArgs.ConvertAll(tp => (Type)Type.Bool);
-    return new UserDefinedType(cd.tok, cd.Name, cd, typeArgs);
-  }
-
-  /// <summary>
-  /// If "member" is non-null, then:
-  ///   Return the upcast of "receiverType" that has base type "member.EnclosingClass".
-  ///   Assumes that "receiverType" normalizes to a UserDefinedFunction with a .ResolveClass that is a subtype
-  ///   of "member.EnclosingClass".
-  /// Otherwise:
-  ///   Return "receiverType" (expanded).
-  /// </summary>
-  public static Type UpcastToMemberEnclosingType(Type receiverType, MemberDecl/*?*/ member) {
-    Contract.Requires(receiverType != null);
-    if (member != null && member.EnclosingClass != null && !(member.EnclosingClass is ValuetypeDecl)) {
-      return receiverType.AsParentType(member.EnclosingClass);
-    }
-    return receiverType.NormalizeExpandKeepConstraints();
-  }
-
-  /// <summary>
-  /// This constructor constructs a resolved class/datatype/iterator/subset-type/newtype type
-  /// </summary>
-  public UserDefinedType(IToken tok, string name, TopLevelDecl cd, [Captured] List<Type> typeArgs, Expression/*?*/ namePath = null) {
-    Contract.Requires(tok != null);
-    Contract.Requires(name != null);
-    Contract.Requires(cd != null);
-    Contract.Requires(cce.NonNullElements(typeArgs));
-    Contract.Requires(cd.TypeArgs.Count == typeArgs.Count);
-    Contract.Requires(namePath == null || namePath is NameSegment || namePath is ExprDotName);
-    // The following is almost a precondition. In a few places, the source program names a class, not a type,
-    // and in then name==cd.Name for a ClassDecl.
-    //Contract.Requires(!(cd is ClassDecl) || cd is DefaultClassDecl || cd is ArrowTypeDecl || name == cd.Name + "?");
-    Contract.Requires(!(cd is ArrowTypeDecl) || name == cd.Name);
-    Contract.Requires(!(cd is DefaultClassDecl) || name == cd.Name);
-    this.tok = tok;
-    this.Name = name;
-    this.ResolvedClass = cd;
-    this.TypeArgs = typeArgs;
-    if (namePath == null) {
-      var ns = new NameSegment(tok, name, typeArgs.Count == 0 ? null : typeArgs);
-      var r = new Resolver_IdentifierExpr(tok, cd, typeArgs);
-      ns.ResolvedExpression = r;
-      ns.Type = r.Type;
-      this.NamePath = ns;
-    } else {
-      this.NamePath = namePath;
-    }
-  }
-
-  public static UserDefinedType CreateNonNullType(UserDefinedType udtNullableType) {
-    Contract.Requires(udtNullableType != null);
-    Contract.Requires(udtNullableType.ResolvedClass is ClassDecl);
-    var cl = (ClassDecl)udtNullableType.ResolvedClass;
-    return new UserDefinedType(udtNullableType.tok, cl.NonNullTypeDecl.Name, cl.NonNullTypeDecl, udtNullableType.TypeArgs);
-  }
-
-  public static UserDefinedType CreateNullableType(UserDefinedType udtNonNullType) {
-    Contract.Requires(udtNonNullType != null);
-    Contract.Requires(udtNonNullType.ResolvedClass is NonNullTypeDecl);
-    var nntd = (NonNullTypeDecl)udtNonNullType.ResolvedClass;
-    return new UserDefinedType(udtNonNullType.tok, nntd.Class.Name + "?", nntd.Class, udtNonNullType.TypeArgs);
-  }
-
-  /// <summary>
-  /// This constructor constructs a resolved type parameter
-  /// </summary>
-  public UserDefinedType(TypeParameter tp)
-    : this(tp.tok, tp) {
-    Contract.Requires(tp != null);
-  }
-
-  /// <summary>
-  /// This constructor constructs a resolved type parameter (but shouldn't be called if "tp" denotes
-  /// the .TheType of an opaque type -- use the (OpaqueType_AsParameter, OpaqueTypeDecl, List(Type))
-  /// constructor for that).
-  /// </summary>
-  public UserDefinedType(IToken tok, TypeParameter tp) {
-    Contract.Requires(tok != null);
-    Contract.Requires(tp != null);
-    this.tok = tok;
-    this.Name = tp.Name;
-    this.TypeArgs = new List<Type>();
-    this.ResolvedClass = tp;
-    var ns = new NameSegment(tok, tp.Name, null);
-    var r = new Resolver_IdentifierExpr(tok, tp);
-    ns.ResolvedExpression = r;
-    ns.Type = r.Type;
-    this.NamePath = ns;
-  }
-
-  public override bool Equals(Type that, bool keepConstraints = false) {
-    var i = NormalizeExpand(keepConstraints);
-    if (i is UserDefinedType) {
-      var ii = (UserDefinedType)i;
-      var t = that.NormalizeExpand(keepConstraints) as UserDefinedType;
-      if (t == null || ii.ResolvedClass != t.ResolvedClass || ii.TypeArgs.Count != t.TypeArgs.Count) {
-        return false;
-      } else {
-        for (int j = 0; j < ii.TypeArgs.Count; j++) {
-          if (!ii.TypeArgs[j].Equals(t.TypeArgs[j], keepConstraints)) {
-            return false;
-          }
-        }
-        return true;
-      }
-    } else {
-      // TODO?: return i.Equals(that.NormalizeExpand());
-      return i.Equals(that, keepConstraints);
-    }
-  }
-
-  public override Type Subst(IDictionary<TypeParameter, Type> subst) {
-    if (ResolvedClass is TypeParameter tp) {
-      if (subst.TryGetValue(tp, out var s)) {
-        Contract.Assert(TypeArgs.Count == 0);
-        return s;
-      } else {
-        return this;
-      }
-    } else if (ResolvedClass != null) {
-      List<Type> newArgs = null;  // allocate it lazily
-      var resolvedClass = ResolvedClass;
-      var isArrowType = ArrowType.IsPartialArrowTypeName(resolvedClass.Name) || ArrowType.IsTotalArrowTypeName(resolvedClass.Name);
-      for (int i = 0; i < TypeArgs.Count; i++) {
-        Type p = TypeArgs[i];
-        Type s = p.Subst(subst);
-        if (s is InferredTypeProxy && !isArrowType) {
-          ((InferredTypeProxy)s).KeepConstraints = true;
-        }
-        if (s != p && newArgs == null) {
-          // lazily construct newArgs
-          newArgs = new List<Type>();
-          for (int j = 0; j < i; j++) {
-            newArgs.Add(TypeArgs[j]);
-          }
-        }
-        if (newArgs != null) {
-          newArgs.Add(s);
-        }
-      }
-      if (newArgs == null) {
-        // there were no substitutions
-        return this;
-      } else {
-        // Note, even if t.NamePath is non-null, we don't care to keep that syntactic part of the expression in what we return here
-        return new UserDefinedType(tok, Name, resolvedClass, newArgs);
-      }
-    } else {
-      // there's neither a resolved param nor a resolved class, which means the UserDefinedType wasn't
-      // properly resolved; just return it
-      return this;
-    }
-  }
-
-  public override Type ReplaceTypeArguments(List<Type> arguments) {
-    return new UserDefinedType(tok, Name, ResolvedClass, arguments);
-  }
-
-  /// <summary>
-  /// If type denotes a resolved class type, then return that class type.
-  /// Otherwise, return null.
-  /// </summary>
-  public static UserDefinedType DenotesClass(Type type) {
-    Contract.Requires(type != null);
-    Contract.Ensures(Contract.Result<UserDefinedType>() == null || Contract.Result<UserDefinedType>().ResolvedClass is ClassDecl);
-    type = type.NormalizeExpand();
-    UserDefinedType ct = type as UserDefinedType;
-    if (ct != null && ct.ResolvedClass is ClassDecl) {
-      return ct;
-    } else {
-      return null;
-    }
-  }
-
-  public static Type ArrayElementType(Type type) {
-    Contract.Requires(type != null);
-    Contract.Requires(type.IsArrayType);
-    Contract.Ensures(Contract.Result<Type>() != null);
-
-    UserDefinedType udt = DenotesClass(type);
-    Contract.Assert(udt != null);
-    Contract.Assert(udt.TypeArgs.Count == 1);  // holds true of all array types
-    return udt.TypeArgs[0];
-  }
-
-  public override IEnumerable<INode> Nodes => new[] { this }.Concat(TypeArgs.SelectMany(t => t.Nodes));
-
-  [Pure]
-  public override string TypeName(ModuleDefinition context, bool parseAble) {
-    Contract.Ensures(Contract.Result<string>() != null);
-    if (BuiltIns.IsTupleTypeName(Name)) {
-      // Unfortunately, ResolveClass may be null, so Name is all we have.  Reverse-engineer the string name.
-      IEnumerable<bool> argumentGhostness = BuiltIns.ArgumentGhostnessFromString(Name, TypeArgs.Count);
-      return "(" + Util.Comma(System.Linq.Enumerable.Zip(TypeArgs, argumentGhostness),
-        (ty_u) => Resolver.GhostPrefix(ty_u.Item2) + ty_u.Item1.TypeName(context, parseAble)) + ")";
-    } else if (ArrowType.IsPartialArrowTypeName(Name)) {
-      return ArrowType.PrettyArrowTypeName(ArrowType.PARTIAL_ARROW, TypeArgs, null, context, parseAble);
-    } else if (ArrowType.IsTotalArrowTypeName(Name)) {
-      return ArrowType.PrettyArrowTypeName(ArrowType.TOTAL_ARROW, TypeArgs, null, context, parseAble);
-    } else {
-#if TEST_TYPE_SYNONYM_TRANSPARENCY
-        if (Name == "type#synonym#transparency#test" && ResolvedClass is TypeSynonymDecl) {
-          return ((TypeSynonymDecl)ResolvedClass).Rhs.TypeName(context);
-        }
-#endif
-      var s = Printer.ExprToString(NamePath);
-      if (ResolvedClass != null) {
-        var optionalTypeArgs = NamePath is NameSegment ? ((NameSegment)NamePath).OptTypeArguments : ((ExprDotName)NamePath).OptTypeArguments;
-        if (optionalTypeArgs == null && TypeArgs != null && TypeArgs.Count != 0) {
-          s += this.TypeArgsToString(context, parseAble);
-        }
-      }
-      return s;
-    }
-  }
-
-  public override bool SupportsEquality {
-    get {
-      if (ResolvedClass is ClassDecl || ResolvedClass is NewtypeDecl) {
-        return ResolvedClass.IsRevealedInScope(Type.GetScope());
-      } else if (ResolvedClass is CoDatatypeDecl) {
-        return false;
-      } else if (ResolvedClass is IndDatatypeDecl) {
-        var dt = (IndDatatypeDecl)ResolvedClass;
-        Contract.Assume(dt.EqualitySupport != IndDatatypeDecl.ES.NotYetComputed);
-        if (!dt.IsRevealedInScope(Type.GetScope())) {
-          return false;
-        }
-        if (dt.EqualitySupport == IndDatatypeDecl.ES.Never) {
-          return false;
-        }
-        Contract.Assert(dt.TypeArgs.Count == TypeArgs.Count);
-        var i = 0;
-        foreach (var tp in dt.TypeArgs) {
-          if (tp.NecessaryForEqualitySupportOfSurroundingInductiveDatatype && !TypeArgs[i].SupportsEquality) {
-            return false;
-          }
-          i++;
-        }
-        return true;
-      } else if (ResolvedClass is TypeSynonymDeclBase) {
-        var t = (TypeSynonymDeclBase)ResolvedClass;
-        if (t.SupportsEquality) {
-          return true;
-        } else if (t.IsRevealedInScope(Type.GetScope())) {
-          return t.RhsWithArgument(TypeArgs).SupportsEquality;
-        } else {
-          return false;
-        }
-      } else if (ResolvedClass is TypeParameter) {
-        return ((TypeParameter)ResolvedClass).SupportsEquality;
-      } else if (ResolvedClass is OpaqueTypeDecl) {
-        return ((OpaqueTypeDecl)ResolvedClass).SupportsEquality;
-      }
-      Contract.Assume(false);  // the SupportsEquality getter requires the Type to have been successfully resolved
-      return true;
-    }
-  }
-
-  public override bool PartiallySupportsEquality {
-    get {
-      var totalEqualitySupport = SupportsEquality;
-      if (!totalEqualitySupport && ResolvedClass is TypeSynonymDeclBase synonymBase) {
-        return synonymBase.IsRevealedInScope(Type.GetScope()) && synonymBase.RhsWithArgument(TypeArgs).PartiallySupportsEquality;
-      } else if (!totalEqualitySupport && ResolvedClass is IndDatatypeDecl dt && dt.IsRevealedInScope(Type.GetScope())) {
-        // Equality is partially supported (at run time) for a datatype that
-        //   * is inductive (because codatatypes never support equality), and
-        //   * has at least one non-ghost constructor (because if all constructors are ghost, then equality is never supported), and
-        //   * for each non-ghost constructor, every argument totally supports equality (an argument totally supports equality
-        //       if it is non-ghost (because ghost arguments are not available at run time) and has a type that supports equality).
-        var hasNonGhostConstructor = false;
-        foreach (var ctor in dt.Ctors.Where(ctor => !ctor.IsGhost)) {
-          hasNonGhostConstructor = true;
-          if (!ctor.Formals.All(formal => !formal.IsGhost && formal.Type.SupportsEquality)) {
-            return false;
-          }
-        }
-        Contract.Assert(dt.HasGhostVariant); // sanity check (if the types of all formals support equality, then either .SupportsEquality or there is a ghost constructor)
-        return hasNonGhostConstructor;
-      }
-      return totalEqualitySupport;
-    }
-  }
-
-  public override bool ComputeMayInvolveReferences(ISet<DatatypeDecl> visitedDatatypes) {
-    if (ResolvedClass is ArrowTypeDecl) {
-      return TypeArgs.Any(ta => ta.ComputeMayInvolveReferences(visitedDatatypes));
-    } else if (ResolvedClass is ClassDecl) {
-      return true;
-    } else if (ResolvedClass is NewtypeDecl) {
-      return false;
-    } else if (ResolvedClass is DatatypeDecl) {
-      // Datatype declarations do not support explicit (!new) annotations. Instead, whether or not
-      // a datatype involves references depends on the definition and parametrization of the type.
-      // See ComputeMayInvolveReferences in class Type for more information.
-      // In particular, if one of the datatype's constructors mentions a type that involves
-      // references, then so does the datatype. And if one of the datatype's type arguments involves
-      // references, then we consider the datatype to do so as well (without regard to whether or
-      // not the type parameter is actually used in the definition of the datatype).
-      var dt = (DatatypeDecl)ResolvedClass;
-      if (!dt.IsRevealedInScope(Type.GetScope())) {
-        // The type's definition is hidden from the current scope, so we
-        // have to assume the type may involve references.
-        return true;
-      } else if (TypeArgs.Any(ta => ta.ComputeMayInvolveReferences(visitedDatatypes))) {
-        return true;
-      } else if (visitedDatatypes != null && visitedDatatypes.Contains(dt)) {
-        // we're in the middle of looking through the types involved in dt's definition
-        return false;
-      } else {
-        visitedDatatypes ??= new HashSet<DatatypeDecl>();
-        visitedDatatypes.Add(dt);
-        return dt.Ctors.Any(ctor => ctor.Formals.Any(f => f.Type.ComputeMayInvolveReferences(visitedDatatypes)));
-      }
-    } else if (ResolvedClass is TypeSynonymDeclBase) {
-      var t = (TypeSynonymDeclBase)ResolvedClass;
-      if (t.Characteristics.ContainsNoReferenceTypes) {
-        // There's an explicit "(!new)" annotation on the type.
-        return false;
-      } else if (t.IsRevealedInScope(Type.GetScope())) {
-        // The type's definition is available in the scope, so consult the RHS type
-        return t.RhsWithArgument(TypeArgs).ComputeMayInvolveReferences(visitedDatatypes);
-      } else {
-        // The type's definition is hidden from the current scope and there's no explicit "(!new)", so we
-        // have to assume the type may involve references.
-        return true;
-      }
-    } else if (ResolvedClass is TypeParameter typeParameter) {
-      if (visitedDatatypes != null) {
-        // Datatypes look at the type arguments passed in, so we ignore their formal type parameters.
-        // See comment above and in Type.ComputeMayInvolveReferences.
-        Contract.Assert(typeParameter.Parent is DatatypeDecl);
-        return false;
-      } else {
-        return !typeParameter.Characteristics.ContainsNoReferenceTypes;
-      }
-    } else if (ResolvedClass is OpaqueTypeDecl opaqueTypeDecl) {
-      return !opaqueTypeDecl.Characteristics.ContainsNoReferenceTypes;
-    }
-    Contract.Assume(false);  // unexpected or not successfully resolved Type
-    return true;
-  }
-
-  public override List<Type> ParentTypes() {
-    return ResolvedClass != null ? ResolvedClass.ParentTypes(TypeArgs) : base.ParentTypes();
-  }
-
   public override bool IsSubtypeOf(Type super, bool ignoreTypeArguments, bool ignoreNullity) {
-    super = super.NormalizeExpandKeepConstraints();
-
-    // Specifically handle object as the implicit supertype of classes and traits.
-    // "object?" is handled by Builtins rather than the Type hierarchy, so unfortunately
-    // it can't be returned in ParentTypes().
-    if (super.IsObjectQ) {
-      return IsRefType;
-    } else if (super.IsObject) {
-      return ignoreNullity ? IsRefType : IsNonNullRefType;
+    if (super is FieldType) {
+      return true;
     }
-
     return base.IsSubtypeOf(super, ignoreTypeArguments, ignoreNullity);
   }
-
-  public IToken NameToken => tok;
-  public override IEnumerable<INode> Children => base.Children.Concat(new[] { NamePath });
 }
 
 public abstract class TypeProxy : Type {
-  public override IEnumerable<INode> Children => Enumerable.Empty<INode>();
+  public override IEnumerable<INode> Children => Enumerable.Empty<Node>();
   [FilledInDuringResolution] public Type T;
-  public readonly List<TypeConstraint> SupertypeConstraints = new List<TypeConstraint>();
-  public readonly List<TypeConstraint> SubtypeConstraints = new List<TypeConstraint>();
+  public List<TypeConstraint> SupertypeConstraints = [];
+  public List<TypeConstraint> SubtypeConstraints = [];
 
   public override Type Subst(IDictionary<TypeParameter, Type> subst) {
     if (T == null) {
@@ -2696,7 +2097,7 @@ public abstract class TypeProxy : Type {
     }
   }
 
-  public IEnumerable<Type> SubtypesKeepConstraints_WithAssignable(List<Resolver.XConstraint> allXConstraints) {
+  public IEnumerable<Type> SubtypesKeepConstraints_WithAssignable(List<XConstraint> allXConstraints) {
     Contract.Requires(allXConstraints != null);
     foreach (var c in SubtypeConstraints) {
       yield return c.Sub.NormalizeExpandKeepConstraints();
@@ -2719,7 +2120,7 @@ public abstract class TypeProxy : Type {
   public enum Family { Unknown, Bool, Char, IntLike, RealLike, Ordinal, BitVector, ValueType, Ref, Opaque }
   public Family family = Family.Unknown;
   public static Family GetFamily(Type t) {
-    Contract.Ensures(Contract.Result<Family>() != Family.Unknown || t is TypeProxy || t is Resolver_IdentifierExpr.ResolverType);  // return Unknown ==> t is TypeProxy || t is ResolverType
+    Contract.Ensures(Contract.Result<Family>() != Family.Unknown || t is TypeProxy || t is ResolverIdentifierExpr.ResolverType);  // return Unknown ==> t is TypeProxy || t is ResolverType
     if (t.IsBoolType) {
       return Family.Bool;
     } else if (t.IsCharType) {
@@ -2736,7 +2137,7 @@ public abstract class TypeProxy : Type {
       return Family.ValueType;
     } else if (t.IsRefType) {
       return Family.Ref;
-    } else if (t.IsTypeParameter || t.IsOpaqueType || t.IsInternalTypeSynonym) {
+    } else if (t.IsTypeParameter || t.IsAbstractType || t.IsInternalTypeSynonym) {
       return Family.Opaque;
     } else if (t is TypeProxy) {
       return ((TypeProxy)t).family;
@@ -2745,22 +2146,22 @@ public abstract class TypeProxy : Type {
     }
   }
 
-  internal TypeProxy() {
+  internal TypeProxy(IOrigin origin = null) : base() {
   }
 
 #if TI_DEBUG_PRINT
   static int _id = 0;
   int id = _id++;
 #endif
-  [Pure]
-  public override string TypeName(ModuleDefinition context, bool parseAble) {
+  [System.Diagnostics.Contracts.Pure]
+  public override string TypeName(DafnyOptions options, ModuleDefinition context, bool parseAble) {
     Contract.Ensures(Contract.Result<string>() != null);
 #if TI_DEBUG_PRINT
-    if (DafnyOptions.O.TypeInferenceDebug) {
-      return T == null ? "?" + id : T.TypeName(context);
+    if (options.Get(CommonOptionBag.TypeInferenceDebug)) {
+      return T == null ? "?" + id : T.TypeName(options, context);
     }
 #endif
-    return T == null ? "?" : T.TypeName(context, parseAble);
+    return T == null ? "?" : T.TypeName(options, context, parseAble);
   }
   public override bool SupportsEquality {
     get {
@@ -2788,16 +2189,16 @@ public abstract class TypeProxy : Type {
     }
   }
 
-  [Pure]
+  [System.Diagnostics.Contracts.Pure]
   internal static bool IsSupertypeOfLiteral(Type t) {
     Contract.Requires(t != null);
     return t is ArtificialType;
   }
-  internal Type InClusterOfArtificial(List<Resolver.XConstraint> allXConstraints) {
+  internal Type InClusterOfArtificial(List<XConstraint> allXConstraints) {
     Contract.Requires(allXConstraints != null);
     return InClusterOfArtificial_aux(new HashSet<TypeProxy>(), allXConstraints);
   }
-  private Type InClusterOfArtificial_aux(ISet<TypeProxy> visitedProxies, List<Resolver.XConstraint> allXConstraints) {
+  private Type InClusterOfArtificial_aux(ISet<TypeProxy> visitedProxies, List<XConstraint> allXConstraints) {
     Contract.Requires(visitedProxies != null);
     Contract.Requires(allXConstraints != null);
     if (visitedProxies.Contains(this)) {
@@ -2834,9 +2235,10 @@ public abstract class TypeProxy : Type {
 /// This proxy stands for any type.
 /// </summary>
 public class InferredTypeProxy : TypeProxy {
-  public bool KeepConstraints;
-  public InferredTypeProxy() : base() {
-    KeepConstraints = false; // whether the typeProxy should be inferred to base type or as subset type
+  /// Whether the typeProxy should be inferred to base type or as subset type
+  public bool KeepConstraints = false;
+
+  public InferredTypeProxy(IOrigin origin = null) : base(origin) {
   }
 }
 
@@ -2844,7 +2246,7 @@ public class InferredTypeProxy : TypeProxy {
 /// This proxy stands for any type, but it originates from an instantiated type parameter.
 /// </summary>
 public class ParamTypeProxy : TypeProxy {
-  public override IEnumerable<INode> Children => Enumerable.Empty<INode>();
+  public override IEnumerable<INode> Children => Enumerable.Empty<Node>();
   public TypeParameter orig;
   [ContractInvariantMethod]
   void ObjectInvariant() {

@@ -1,17 +1,17 @@
 using System;
 using System.Collections.Generic;
-using System.ComponentModel;
 using System.Threading;
 using System.Threading.Tasks;
 using Xunit;
 using Xunit.Abstractions;
 using Xunit.Sdk;
+using SkipException = Xunit.SkipException;
 
 namespace XUnitExtensions {
   public class FileTestCase : LongLivedMarshalByRefObject, IXunitTestCase {
     // This could use SkippableFactDiscoverer.GetSkippableExceptionNames(IAttributeInfo)
     // but it doesn't seem to be worth the complexity here yet.
-    private static readonly string[] skippingExceptionNames = { typeof(SkipException).FullName! };
+    private static readonly string[] skippingExceptionNames = [typeof(SkipException).FullName!];
 
     // Only nullable for the sake of the deserialization constructor
     private XunitTestCase? innerTestCase;

@@ -2,17 +2,18 @@
 // SPDX-License-Identifier: MIT
 
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.CommandLine;
 using System.CommandLine.Binding;
-using System.CommandLine.Parsing;
 using System.Diagnostics;
+using System.Globalization;
 using System.Linq;
-using System.Diagnostics.Contracts;
 using System.IO;
 using System.Reflection;
 using System.Text.RegularExpressions;
+using System.Threading.Tasks;
 using JetBrains.Annotations;
 using Microsoft.Dafny;
 using Microsoft.Dafny.Compilers;
@@ -34,72 +35,87 @@ namespace Microsoft.Dafny {
     Version4,
   }
 
-  public record Options(IDictionary<Option, object> OptionArguments);
+  public interface IDafnyOutputWriter {
+
+    /// <summary>
+    /// Provide debugging information that's useful to a Dafny language developer
+    /// </summary>
+    void Debug(string message);
+
+    /// <summary>
+    /// Provide debugging information that's useful to a Dafny language developer
+    /// </summary>
+    [StringFormatMethod(nameof(message))]
+    void Debug(string message, params object[] arguments) {
+      Debug(string.Format(message, arguments));
+    }
+
+    /// <summary>
+    /// When Dafny reaches a bad state, this can be used to provide debugging information.  
+    /// </summary>
+    void Exception(string message);
+
+    /// <summary>
+    /// Provide progress updates and summary information
+    /// </summary>
+    Task Status(string message);
+
+    /// <summary>
+    /// Output a piece of Dafny code
+    /// </summary>
+    Task Code(string message);
+
+    /// <summary>
+    /// Closing the writer will print a status message
+    /// </summary>
+    TextWriter StatusWriter();
+
+    /// <summary>
+    /// Closing the writer will print an error message
+    /// </summary>
+    TextWriter ErrorWriter();
+
+    /// <summary>
+    /// Emit a diagnostic
+    /// </summary>
+    void WriteDiagnostic(DafnyDiagnostic diagnostic);
+
+    /// <summary>
+    /// Like Status, but uses stderr if possible
+    /// </summary>
+    /// <param name="message"></param>
+    /// <returns></returns>
+    Task Error(string message);
+  }
+
+  public record Options(Dictionary<Option, object> OptionArguments, Dictionary<Argument, object> Arguments);
 
   public class DafnyOptions : Bpl.CommandLineOptions {
 
-    static DafnyOptions() {
-      RegisterLegacyUi(CommonOptionBag.Target, ParseString, "Compilation options", "compileTarget", @"
-cs (default) - Compile to .NET via C#.
-go - Compile to Go.
-js - Compile to JavaScript.
-java - Compile to Java.
-py - Compile to Python.
-cpp - Compile to C++.
+    public TextWriter BaseOutputWriter => base.OutputWriter;
 
-Note that the C++ backend has various limitations (see
-Docs/Compilation/Cpp.md). This includes lack of support for
-BigIntegers (aka int), most higher order functions, and advanced
-features like traits or co-inductive types.".TrimStart(), "cs");
+    public new IDafnyOutputWriter OutputWriter =>
+      Get(CommonOptionBag.JsonOutput) ? new JsonOutputWriter(this) : new HumanReadableOutputWriter(this);
 
-      RegisterLegacyUi(CommonOptionBag.OptimizeErasableDatatypeWrapper, ParseBoolean, "Compilation options", "optimizeErasableDatatypeWrapper", @"
-0 - Include all non-ghost datatype constructors in the compiled code
-1 (default) - In the compiled target code, transform any non-extern
-    datatype with a single non-ghost constructor that has a single
-    non-ghost parameter into just that parameter. For example, the type
-        datatype Record = Record(x: int)
-    is transformed into just 'int' in the target code.".TrimStart(), defaultValue: true);
+    public string GetPrintPath(string path) => UseBaseNameForFileName ? Path.GetFileName(path) : path;
+    public TextWriter ErrorWriter { get; set; }
+    public TextReader Input { get; }
+    public static readonly DafnyOptions Default = new(TextReader.Null, TextWriter.Null, TextWriter.Null);
 
-      RegisterLegacyUi(CommonOptionBag.Output, ParseFileInfo, "Compilation options", "out");
-      RegisterLegacyUi(CommonOptionBag.UnicodeCharacters, ParseBoolean, "Language feature selection", "unicodeChar", @"
-0 (default) - The char type represents any UTF-16 code unit.
-1 - The char type represents any Unicode scalar value.".TrimStart());
-      RegisterLegacyUi(CommonOptionBag.Plugin, ParseStringElement, "Plugins", defaultValue: new List<string>());
-      RegisterLegacyUi(CommonOptionBag.Prelude, ParseFileInfo, "Input configuration", "dprelude");
+    public IList<Uri> CliRootSourceUris = new List<Uri>();
 
-      RegisterLegacyUi(CommonOptionBag.Libraries, ParseStringElement, "Compilation options", defaultValue: new List<string>());
-      RegisterLegacyUi(DeveloperOptionBag.ResolvedPrint, ParseString, "Overall reporting and printing", "rprint");
-      RegisterLegacyUi(DeveloperOptionBag.Print, ParseString, "Overall reporting and printing", "dprint");
+    public DafnyProject DafnyProject { get; set; }
 
-      RegisterLegacyUi(DafnyConsolePrinter.ShowSnippets, ParseBoolean, "Overall reporting and printing", "showSnippets", @"
-0 (default) - Don't show source code snippets for Dafny messages.
-1 - Show a source code snippet for each Dafny message.".TrimStart());
-
-      RegisterLegacyUi(Microsoft.Dafny.Printer.PrintMode, ParsePrintMode, "Overall reporting and printing", "printMode", legacyDescription: @"
-Everything (default) - Print everything listed below.
-DllEmbed - print the source that will be included in a compiled dll.
-NoIncludes - disable printing of {:verify false} methods
-    incorporated via the include mechanism, as well as datatypes and
-    fields included from other files.
-NoGhost - disable printing of functions, ghost methods, and proof
-    statements in implementation methods. It also disables anything
-    NoIncludes disables.".TrimStart(),
-        argumentName: "Everything|DllEmbed|NoIncludes|NoGhost",
-        defaultValue: PrintModes.Everything);
-
-      void ParsePrintMode(Option<PrintModes> option, Bpl.CommandLineParseState ps, DafnyOptions options) {
-        if (ps.ConfirmArgumentCount(1)) {
-          if (ps.args[ps.i].Equals("Everything")) {
-            options.Set(option, PrintModes.Everything);
-          } else if (ps.args[ps.i].Equals("NoIncludes")) {
-            options.Set(option, PrintModes.NoIncludes);
-          } else if (ps.args[ps.i].Equals("NoGhost")) {
-            options.Set(option, PrintModes.NoGhost);
-          } else if (ps.args[ps.i].Equals("DllEmbed")) {
-            options.Set(option, PrintModes.DllEmbed);
-          } else {
-            ps.Error("Invalid argument \"{0}\" to option {1}", ps.args[ps.i], option.Name);
-          }
+    public static void ParseDefaultFunctionOpacity(Option<CommonOptionBag.DefaultFunctionOpacityOptions> option, Bpl.CommandLineParseState ps, DafnyOptions options) {
+      if (ps.ConfirmArgumentCount(1)) {
+        if (ps.args[ps.i].Equals("transparent")) {
+          options.Set(option, CommonOptionBag.DefaultFunctionOpacityOptions.Transparent);
+        } else if (ps.args[ps.i].Equals("autoRevealDependencies")) {
+          options.Set(option, CommonOptionBag.DefaultFunctionOpacityOptions.AutoRevealDependencies);
+        } else if (ps.args[ps.i].Equals("opaque")) {
+          options.Set(option, CommonOptionBag.DefaultFunctionOpacityOptions.Opaque);
+        } else {
+          InvalidArgumentError(option.Name, ps);
         }
       }
     }
@@ -110,8 +126,24 @@ NoGhost - disable printing of functions, ghost methods, and proof
       }
     }
 
+    public T Get<T>(Argument<T> argument) {
+      return (T)Options.Arguments.GetOrDefault(argument, () => (object)default(T));
+    }
+
+
     public T Get<T>(Option<T> option) {
-      return (T)Options.OptionArguments.GetOrCreate(option, () => default(T));
+      return (T)Options.OptionArguments.GetOrDefault(option, () => (object)default(T));
+    }
+
+
+    public T GetOrOptionDefault<T>(Option<T> option) {
+      return (T)Options.OptionArguments.GetOrDefault(option, () =>
+       ((IValueDescriptor<T>)option) is {
+         HasDefaultValue: true
+       } valueDescriptor
+          ? valueDescriptor.GetDefaultValue()
+          : (object)default(T)
+      );
     }
 
     public object Get(Option option) {
@@ -126,7 +158,10 @@ NoGhost - disable printing of functions, ghost methods, and proof
       Options.OptionArguments[option] = value;
     }
 
-    public void AddFile(string file) => base.AddFile(file, null);
+    protected override void AddFile(string file, Bpl.CommandLineParseState ps) {
+      CliRootSourceUris.Add(new Uri(Path.GetFullPath(file)));
+      base.AddFile(file, ps);
+    }
 
     private static Dictionary<Option, Action<DafnyOptions, object>> legacyBindings = new();
     public static void RegisterLegacyBinding<T>(Option<T> option, Action<DafnyOptions, T> bind) {
@@ -136,6 +171,13 @@ NoGhost - disable printing of functions, ghost methods, and proof
     public static void ParseFileInfo(Option<FileInfo> option, Bpl.CommandLineParseState ps, DafnyOptions options) {
       if (ps.ConfirmArgumentCount(1)) {
         options.Set(option, new FileInfo(ps.args[ps.i]));
+      }
+    }
+
+    public static void ParseFileInfoElement(Option<IList<FileInfo>> option, Bpl.CommandLineParseState ps, DafnyOptions options) {
+      var value = (IList<FileInfo>)options.Options.OptionArguments.GetOrCreate(option, () => new List<FileInfo>());
+      if (ps.ConfirmArgumentCount(1)) {
+        value.Add(new FileInfo(ps.args[ps.i]));
       }
     }
 
@@ -152,6 +194,10 @@ NoGhost - disable printing of functions, ghost methods, and proof
       }
     }
 
+    public static void ParseImplicitEnable(Option<bool> option, Bpl.CommandLineParseState ps, DafnyOptions options) {
+      options.Set(option, true);
+    }
+
     public static void ParseBoolean(Option<bool> option, Bpl.CommandLineParseState ps, DafnyOptions options) {
       int result = 0;
       if (ps.GetIntArgument(ref result, 2)) {
@@ -159,12 +205,31 @@ NoGhost - disable printing of functions, ghost methods, and proof
       }
     }
 
-    private static readonly List<LegacyUiForOption> legacyUis = new();
+    public static void ParseGeneralTraitsOption(Option<CommonOptionBag.GeneralTraitsOptions> option, Bpl.CommandLineParseState ps, DafnyOptions options) {
+      if (ps.ConfirmArgumentCount(1)) {
+        switch (ps.args[ps.i]) {
+          case "legacy":
+            options.Set(option, CommonOptionBag.GeneralTraitsOptions.Legacy);
+            break;
+          case "datatype":
+            options.Set(option, CommonOptionBag.GeneralTraitsOptions.Datatype);
+            break;
+          case "full":
+            options.Set(option, CommonOptionBag.GeneralTraitsOptions.Full);
+            break;
+          default:
+            InvalidArgumentError(option.Name, ps);
+            break;
+        }
+      }
+    }
+
+    private static readonly List<LegacyUiForOption> LegacyUis = [];
 
     public static void RegisterLegacyUi<T>(Option<T> option,
       Action<Option<T>, Bpl.CommandLineParseState, DafnyOptions> parse,
       string category, string legacyName = null, string legacyDescription = null, T defaultValue = default(T), string argumentName = null) {
-      legacyUis.Add(new LegacyUiForOption(
+      LegacyUis.Add(new LegacyUiForOption(
         option,
         (state, options) => parse(option, state, options),
         category,
@@ -174,8 +239,12 @@ NoGhost - disable printing of functions, ghost methods, and proof
         defaultValue));
     }
 
-    public static DafnyOptions Create(params string[] arguments) {
-      var result = new DafnyOptions();
+    private static DafnyOptions defaultImmutableOptions;
+    public static DafnyOptions DefaultImmutableOptions => defaultImmutableOptions ??= CreateUsingOldParser(Console.Out, Console.In);
+
+    public static DafnyOptions CreateUsingOldParser(TextWriter outputWriter, TextReader input = null, params string[] arguments) {
+      input ??= TextReader.Null;
+      var result = new DafnyOptions(input, outputWriter, outputWriter);
       result.Parse(arguments);
       return result;
     }
@@ -188,30 +257,104 @@ NoGhost - disable printing of functions, ghost methods, and proof
         }
       }
 
-      if (i >= arguments.Length) {
-        return base.Parse(arguments);
+      try {
+        if (i >= arguments.Length) {
+          return BaseParse(arguments, true);
+        }
+        MainArgs = arguments.Skip(i + 1).ToList();
+        return BaseParse(arguments.Take(i).ToArray(), true);
+      } catch (Exception e) {
+        ErrorWriter.WriteLine("Invalid filename: " + e.Message);
+        return false;
       }
-      MainArgs = arguments.Skip(i + 1).ToList();
-      return base.Parse(arguments.Take(i).ToArray());
     }
 
-    public DafnyOptions()
-      : base("dafny", "Dafny program verifier", new DafnyConsolePrinter()) {
+    protected override Bpl.CommandLineParseState InitializeCommandLineParseState(string[] args) {
+      return new TextWriterParseState(args, ToolName, ErrorWriter);
+    }
+
+    /// <summary>
+    /// Needed because the Boogie version writes to Console.Error
+    /// </summary>
+    class TextWriterParseState : Bpl.CommandLineParseState {
+      private readonly TextWriter errorWriter;
+
+      public TextWriterParseState(string[] args, string toolName, TextWriter errorWriter) : base(args, toolName) {
+        this.errorWriter = errorWriter;
+      }
+
+      public override void Error(string message, params string[] args) {
+        errorWriter.WriteLine("{0}: Error: {1}", ToolName, string.Format(message, args));
+        EncounteredErrors = true;
+      }
+    }
+
+    /// <summary>
+    /// Customized version of Microsoft.Boogie.CommandLineOptions.Parse
+    /// Needed because the Boogie version writes to Console.Error
+    /// </summary>
+    public bool BaseParse(string[] args, bool allowFile) {
+      Environment = Environment + "Command Line Options: " + string.Join(" ", args);
+      args = cce.NonNull<string[]>((string[])args.Clone());
+      Bpl.CommandLineParseState state;
+      for (state = InitializeCommandLineParseState(args); state.i < args.Length; state.i = state.nextIndex) {
+        cce.LoopInvariant(state.args == args);
+        string file = args[state.i];
+        state.s = file.Trim();
+        bool flag = state.s.StartsWith("-") || state.s.StartsWith("/");
+        int length = state.s.IndexOf(':');
+        if (0 <= length & flag) {
+          state.hasColonArgument = true;
+          args[state.i] = state.s.Substring(length + 1);
+          state.s = state.s.Substring(0, length);
+        } else {
+          ++state.i;
+          state.hasColonArgument = false;
+        }
+        state.nextIndex = state.i;
+        if (flag) {
+          if (!ParseOption(state.s.Substring(1), state)) {
+            if (Path.DirectorySeparatorChar == '/' && state.s.StartsWith("/")) {
+              AddFile(file, state);
+            } else {
+              UnknownSwitch(state);
+            }
+          }
+        } else if (allowFile) {
+          AddFile(file, state);
+        } else {
+          state.Error($"Boogie option '{state.s}' must start with - or /");
+        }
+      }
+      if (state.EncounteredErrors) {
+        ErrorWriter.WriteLine("Use /help for available options");
+        return false;
+      }
+      ApplyDefaultOptions();
+      return true;
+    }
+
+    public DafnyOptions(TextReader inputReader, TextWriter outputWriter, TextWriter errorWriter)
+      : base(outputWriter, "dafny", "Dafny program verifier", new Bpl.ConsolePrinter()) {
+      Input = inputReader;
+      ErrorWriter = errorWriter;
       ErrorTrace = 0;
       Prune = true;
+      TypeEncodingMethod = Bpl.CoreOptions.TypeEncoding.Arguments;
       NormalizeNames = true;
       EmitDebugInformation = false;
-      Compiler = new CsharpCompiler();
+      Backend = new CsharpBackend(this);
+      Printer = new NullPrinter();
     }
 
     public override string VersionNumber {
       get {
-        return System.Diagnostics.FileVersionInfo
+        return FileVersionInfo
           .GetVersionInfo(Assembly.GetExecutingAssembly().Location).FileVersion;
       }
     }
 
-    public Options Options { get; set; } = new(new Dictionary<Option, object>());
+    public Options Options { get; set; } = new(new Dictionary<Option, object>(), new Dictionary<Argument, object>());
 
     public override string Version {
       get { return ToolName + VersionSuffix; }
@@ -223,30 +366,21 @@ NoGhost - disable printing of functions, ghost methods, and proof
 
     public bool RunLanguageServer { get; set; }
 
-    private static DafnyOptions clo;
-
-    public static DafnyOptions O {
-      get { return clo; }
-    }
-
-    public static void Install(DafnyOptions options) {
-      Contract.Requires(options != null);
-      clo = options;
-    }
-
     public enum DiagnosticsFormats {
       PlainText,
       JSON,
     }
 
+    public bool UsingNewCli = false;
     public bool UnicodeOutput = false;
     public DiagnosticsFormats DiagnosticsFormat = DiagnosticsFormats.PlainText;
     public bool DisallowSoundnessCheating = false;
     public int Induction = 4;
     public int InductionHeuristic = 6;
-    public bool TypeInferenceDebug = false;
     public string DafnyPrelude = null;
     public string DafnyPrintFile = null;
+    public bool AllowSourceFolders = false;
+    public List<string> SourceFolders { get; } = []; // list of folders, for those commands that permit processing all source files in folders
 
     public enum ContractTestingMode {
       None,
@@ -257,41 +391,42 @@ NoGhost - disable printing of functions, ghost methods, and proof
     public PrintModes PrintMode = PrintModes.Everything; // Default to printing everything
     public bool DafnyVerify = true;
     public string DafnyPrintResolvedFile = null;
-    public List<string> DafnyPrintExportedViews = new List<string>();
+    public List<string> DafnyPrintExportedViews = [];
     public bool Compile = true;
-    public List<string> MainArgs = new List<string>();
+    public List<string> MainArgs = [];
+    public bool FormatCheck = false;
 
     public string CompilerName;
-    public Compiler Compiler;
-    public bool CompileVerbose = true;
+    public IExecutableBackend Backend;
+    public bool Verbose = true;
     public bool EnforcePrintEffects = false;
     public string DafnyPrintCompiledFile = null;
     public string CoverageLegendFile = null;
     public string MainMethod = null;
-    public bool RunAllTests = false;
     public bool ForceCompile = false;
     public bool RunAfterCompile = false;
     public uint SpillTargetCode = 0; // [0..4]
     public bool DisallowIncludes = false;
     public bool DisallowExterns = false;
+    public bool AllowExterns => !DisallowExterns;
     public bool DisableNLarith = false;
     public int ArithMode = 1; // [0..10]
     public string AutoReqPrintFile = null;
     public bool ignoreAutoReq = false;
-    public bool AllowGlobals = false;
-    public bool CountVerificationErrors = true;
     public bool Optimize = false;
     public bool AutoTriggers = true;
     public bool RewriteFocalPredicates = true;
     public bool PrintTooltips = false;
     public bool PrintStats = false;
+    public string MethodsToTest = null;
     public bool DisallowConstructorCaseWithoutParentheses = false;
     public bool PrintFunctionCallGraph = false;
     public bool WarnShadowing = false;
-    public int DefiniteAssignmentLevel = 1; // [0..2] 2 and 3 have the same effect, 4 turns off an array initialisation check, unless --enforce-determinism is used.
-    public FunctionSyntaxOptions FunctionSyntax = FunctionSyntaxOptions.Version3;
-    public QuantifierSyntaxOptions QuantifierSyntax = QuantifierSyntaxOptions.Version3;
-    public HashSet<string> LibraryFiles { get; set; } = new();
+    public FunctionSyntaxOptions FunctionSyntax = FunctionSyntaxOptions.Version4;
+    public QuantifierSyntaxOptions QuantifierSyntax = QuantifierSyntaxOptions.Version4;
+
+    public int DefiniteAssignmentLevel { get; set; } = 1;
+    public HashSet<string> LibraryFiles { get; set; } = [];
     public ContractTestingMode TestContracts = ContractTestingMode.None;
 
     public bool ForbidNondeterminism { get; set; }
@@ -308,26 +443,34 @@ NoGhost - disable printing of functions, ghost methods, and proof
 
     public IncludesModes PrintIncludesMode = IncludesModes.None;
     public int OptimizeResolution = 2;
-    public bool UseRuntimeLib = false;
+    public bool IncludeRuntime = true;
+    public CommonOptionBag.SystemModuleMode SystemModuleTranslationMode = CommonOptionBag.SystemModuleMode.Omit;
+    public bool UseJavadocLikeDocstringRewriter = false;
     public bool DisableScopes = false;
-    public int Allocated = 3;
     public bool UseStdin = false;
-    public bool WarningsAsErrors = false;
+    public bool FailOnWarnings = false;
     [CanBeNull] private TestGenerationOptions testGenOptions = null;
     public bool ExtractCounterexample = false;
-    public List<string> VerificationLoggerConfigs = new();
+
+    public bool ShowProofObligationExpressions = false;
 
     public bool AuditProgram = false;
 
-    public static readonly ReadOnlyCollection<Plugin> DefaultPlugins = new(new[] { SinglePassCompiler.Plugin });
+    public static string DefaultZ3Version = "4.12.1";
+    // Not directly user-configurable, only recorded once we discover it
+    public string SolverIdentifier { get; private set; }
+    public Version SolverVersion { get; set; }
+
+    public static readonly ReadOnlyCollection<Plugin> DefaultPlugins =
+      new(new[] { SinglePassCodeGenerator.Plugin, InternalDocstringRewritersPluginConfiguration.Plugin });
     private IList<Plugin> cliPluginCache;
-    public IList<Plugin> Plugins => cliPluginCache ??= ComputePlugins();
-    public List<Plugin> AdditionalPlugins = new();
+    public IList<Plugin> Plugins => cliPluginCache ??= ComputePlugins(AdditionalPlugins, AdditionalPluginArguments);
+    public List<Plugin> AdditionalPlugins = [];
     public IList<string> AdditionalPluginArguments = new List<string>();
 
-    IList<Plugin> ComputePlugins() {
-      var result = new List<Plugin>(DefaultPlugins.Concat(AdditionalPlugins));
-      foreach (var pluginAndArgument in AdditionalPluginArguments) {
+    public static IList<Plugin> ComputePlugins(List<Plugin> additionalPlugins, IList<string> allArguments) {
+      var result = new List<Plugin>(DefaultPlugins.Concat(additionalPlugins));
+      foreach (var pluginAndArgument in allArguments) {
         try {
           var pluginArray = pluginAndArgument.Split(',');
           var pluginPath = pluginArray[0];
@@ -360,19 +503,34 @@ NoGhost - disable printing of functions, ghost methods, and proof
       ).ToArray();
     }
 
+    public static bool TryParseResourceCount(string value, out uint result) {
+      return uint.TryParse(value, NumberStyles.AllowExponent, null, out result);
+    }
+
     /// <summary>
     /// Automatic shallow-copy constructor
     /// </summary>
-    public DafnyOptions(DafnyOptions src) : this() {
-      src.CopyTo(this);
+    public DafnyOptions(DafnyOptions src, bool useNullWriters = false) : this(
+      src.Input, src.BaseOutputWriter, src.ErrorWriter) {
+      src.CopyTo(this, useNullWriters);
+      CliRootSourceUris = new List<Uri>(src.CliRootSourceUris);
+      ProverOptions = [.. src.ProverOptions];
+      Options = new Options(
+        src.Options.OptionArguments.ToDictionary(kv => kv.Key, kv => kv.Value),
+        src.Options.Arguments.ToDictionary(kv => kv.Key, kv => kv.Value));
     }
 
-    public void CopyTo(DafnyOptions dst) {
+    private void CopyTo(DafnyOptions dst, bool useNullWriters) {
       var type = typeof(DafnyOptions);
       while (type != null) {
         var fields = type.GetFields(BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Instance);
         foreach (var fi in fields) {
-          fi.SetValue(dst, fi.GetValue(this));
+          var value = fi.GetValue(this);
+          // This hacky code is necessary until we switch to a Boogie version that implements https://github.com/boogie-org/boogie/pull/788
+          if (useNullWriters && fi.Name is "<ErrorWriter>k__BackingField" or "<OutputWriter>k__BackingField") {
+            value = TextWriter.Null;
+          }
+          fi.SetValue(dst, value);
         }
         type = type.BaseType;
       }
@@ -386,7 +544,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
         return true;
       }
 
-      foreach (var option in legacyUis.Where(o => o.Name == name)) {
+      foreach (var option in LegacyUis.Where(o => o.Name == name)) {
         option.Parse(ps, this);
         return true;
       }
@@ -394,12 +552,12 @@ NoGhost - disable printing of functions, ghost methods, and proof
       return ParseBoogieOption(name, ps);
     }
 
-    protected bool ParseBoogieOption(string name, Bpl.CommandLineParseState ps) {
+    private bool ParseBoogieOption(string name, Bpl.CommandLineParseState ps) {
       return base.ParseOption(name, ps);
     }
 
-    public override string Help => "Use 'dafny --help' to see help for a newer Dafny CLI format.\n" +
-      LegacyUiForOption.GenerateHelp(base.Help, legacyUis, true);
+    public override string Help => "Use 'dafny --help' to see help for the new Dafny CLI format.\n" +
+      LegacyUiForOption.GenerateHelp(base.Help, LegacyUis, true);
 
     protected bool ParseDafnySpecificOption(string name, Bpl.CommandLineParseState ps) {
       var args = ps.args; // convenient synonym
@@ -427,7 +585,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
         case "compileVerbose": {
             int verbosity = 0;
             if (ps.GetIntArgument(ref verbosity, 2)) {
-              CompileVerbose = verbosity == 1;
+              Verbose = verbosity == 1;
             }
 
             return true;
@@ -451,10 +609,9 @@ NoGhost - disable printing of functions, ghost methods, and proof
             return true;
           }
 
-        case "runAllTests": {
-            int runAllTests = 0;
-            if (ps.GetIntArgument(ref runAllTests, 2)) {
-              RunAllTests = runAllTests != 0; // convert to boolean
+        case "check": {
+            if (!ps.hasColonArgument || ps.ConfirmArgumentCount(1)) {
+              FormatCheck = !ps.hasColonArgument || args[ps.i] == "1";
             }
 
             return true;
@@ -473,11 +630,11 @@ NoGhost - disable printing of functions, ghost methods, and proof
             if (ps.ConfirmArgumentCount(1)) {
               switch (args[ps.i]) {
                 case "json":
-                  Printer = new DafnyJsonConsolePrinter { Options = this };
+                  Printer = new DafnyJsonConsolePrinter(this);
                   DiagnosticsFormat = DiagnosticsFormats.JSON;
                   break;
                 case "text":
-                  Printer = new DafnyConsolePrinter { Options = this };
+                  Printer = new DafnyConsolePrinter(this);
                   DiagnosticsFormat = DiagnosticsFormats.PlainText;
                   break;
                 case var df:
@@ -515,10 +672,6 @@ NoGhost - disable printing of functions, ghost methods, and proof
             return true;
           }
 
-        case "titrace":
-          TypeInferenceDebug = true;
-          return true;
-
         case "induction":
           ps.GetIntArgument(ref Induction, 5);
           return true;
@@ -544,37 +697,17 @@ NoGhost - disable printing of functions, ghost methods, and proof
             if (ps.GetIntArgument(ref a, 11)) {
               ArithMode = a;
             }
-
             return true;
           }
-
-        case "mimicVerificationOf":
-          if (ps.ConfirmArgumentCount(1)) {
-            if (args[ps.i] == "3.3") {
-              Prune = false;
-              NormalizeNames = false;
-              EmitDebugInformation = true;
-              NormalizeDeclarationOrder = false;
-            } else {
-              ps.Error("Mimic verification is not supported for Dafny version {0}", ps.args[ps.i]);
-            }
-          }
-
-          return true;
 
         case "autoReqPrint":
           if (ps.ConfirmArgumentCount(1)) {
             AutoReqPrintFile = args[ps.i];
           }
-
           return true;
 
         case "noAutoReq":
           ignoreAutoReq = true;
-          return true;
-
-        case "allowGlobals":
-          AllowGlobals = true;
           return true;
 
         case "stats":
@@ -591,6 +724,10 @@ NoGhost - disable printing of functions, ghost methods, and proof
 
         case "verifyAllModules":
           VerifyAllModules = true;
+          return true;
+
+        case "emitUncompilableCode":
+          this.Set(CommonOptionBag.EmitUncompilableCode, true);
           return true;
 
         case "separateModuleOutput":
@@ -640,15 +777,6 @@ NoGhost - disable printing of functions, ghost methods, and proof
 
           return true;
 
-        case "countVerificationErrors": {
-            int countErrors = 1; // defaults to reporting verification errors
-            if (ps.GetIntArgument(ref countErrors, 2)) {
-              CountVerificationErrors = countErrors == 1;
-            }
-
-            return true;
-          }
-
         case "printTooltips":
           PrintTooltips = true;
           return true;
@@ -680,11 +808,6 @@ NoGhost - disable printing of functions, ghost methods, and proof
             return true;
           }
 
-        case "allocated": {
-            ps.GetIntArgument(ref Allocated, 5);
-            return true;
-          }
-
         case "optimizeResolution": {
             int d = 2;
             if (ps.GetIntArgument(ref d, 3)) {
@@ -696,7 +819,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
 
         case "definiteAssignment": {
             int da = 0;
-            if (ps.GetIntArgument(ref da, 4)) {
+            if (ps.GetIntArgument(ref da, 5)) {
               DefiniteAssignmentLevel = da;
             }
 
@@ -708,7 +831,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
           }
 
         case "useRuntimeLib": {
-            UseRuntimeLib = true;
+            IncludeRuntime = false;
             return true;
           }
 
@@ -743,21 +866,16 @@ NoGhost - disable printing of functions, ghost methods, and proof
           }
 
         case "warningsAsErrors":
-          WarningsAsErrors = true;
+          FailOnWarnings = true;
           return true;
 
         case "extractCounterexample":
           ExtractCounterexample = true;
+          EnhancedErrorMessages = 1;
           return true;
 
-        case "verificationLogger":
-          if (ps.ConfirmArgumentCount(1)) {
-            if (args[ps.i].StartsWith("trx") || args[ps.i].StartsWith("csv") || args[ps.i].StartsWith("text")) {
-              VerificationLoggerConfigs.Add(args[ps.i]);
-            } else {
-              InvalidArgumentError(name, ps);
-            }
-          }
+        case "showProofObligationExpressions":
+          ShowProofObligationExpressions = true;
           return true;
 
         case "testContracts":
@@ -773,8 +891,8 @@ NoGhost - disable printing of functions, ghost methods, and proof
           return true;
       }
 
-      // Unless this is an option for test generation, defer to superclass
-      return TestGenOptions.ParseOption(name, ps) || base.ParseOption(name, ps);
+      // Defer to superclass
+      return base.ParseOption(name, ps);
     }
 
     private static string[] ParseInnerArguments(string argumentsString) {
@@ -789,12 +907,12 @@ NoGhost - disable printing of functions, ghost methods, and proof
       ).ToArray();
     }
 
-    protected void InvalidArgumentError(string name, Bpl.CommandLineParseState ps) {
+    public static void InvalidArgumentError(string name, Bpl.CommandLineParseState ps) {
       ps.Error("Invalid argument \"{0}\" to option {1}", ps.args[ps.i], name);
     }
 
     public override void ApplyDefaultOptions() {
-      foreach (var legacyUiOption in legacyUis) {
+      foreach (var legacyUiOption in LegacyUis) {
         if (!Options.OptionArguments.ContainsKey(legacyUiOption.Option)) {
           Options.OptionArguments[legacyUiOption.Option] = legacyUiOption.DefaultValue;
         }
@@ -810,18 +928,21 @@ NoGhost - disable printing of functions, ghost methods, and proof
     public void ApplyDefaultOptionsWithoutSettingsDefault() {
       base.ApplyDefaultOptions();
 
-      Compiler ??= new CsharpCompiler();
-
-      // expand macros in filenames, now that LogPrefix is fully determined
-
-      if (!ProverOptions.Any(x => x.StartsWith("SOLVER=") && !x.EndsWith("=z3"))) {
-        var z3Version = SetZ3ExecutablePath();
-        SetZ3Options(z3Version);
-      }
-
+      Backend ??= new CsharpBackend(this);
       // Ask Boogie to perform abstract interpretation
       UseAbstractInterpretation = true;
       Ai.J_Intervals = true;
+    }
+
+    public bool IsUsingZ3() {
+      return !ProverOptions.Any(x => x.StartsWith("SOLVER=") && !x.EndsWith("=z3"));
+    }
+
+    public void ProcessSolverOptions(ErrorReporter errorReporter, IOrigin token) {
+      if (IsUsingZ3()) {
+        var z3Version = SetZ3ExecutablePath(errorReporter, token);
+        SetZ3Options(z3Version);
+      }
     }
 
     public override string AttributeHelp =>
@@ -836,7 +957,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
       The extern modifier is used
         * to alter the CompileName of entities such as modules, classes, methods, etc.,
         * to alter the ReferenceName of the entities,
-        * to decide how to define external opaque types,
+        * to decide how to define external abstract types,
         * to decide whether to emit target code or not, and
         * to decide whether a declaration is allowed not to have a body.
       The CompileName is the name for the entity when translating to one of the target languages.
@@ -846,18 +967,12 @@ NoGhost - disable printing of functions, ghost methods, and proof
       :extern takes 0, 1, or 2 (possibly empty) string arguments:
         - 0: Dafny will use the Dafny name as the CompileName and not affect the ReferenceName
         - 1: Dafny will use s1 as the CompileName, and replaces the last portion of the ReferenceName by s1.
-             When used on an opaque type, s1 is used as a hint as to how to declare that type when compiling.
+             When used on an abstract type, s1 is used as a hint as to how to declare that type when compiling.
         - 2: Dafny will use s2 as the CompileName.
              Dafny will use a combination of s1 and s2 such as for example s1.s2 as the ReferenceName
              It may also be the case that one of the arguments is simply ignored.
       Dafny does not perform sanity checks on the arguments---it is the user's responsibility not to generate
       malformed target code.
-
-    {:handle}
-      TODO
-
-    {:dllimport}
-      TODO
 
     {:compile}
       The {:compile} attribute takes a boolean argument. It may be applied to any top-level declaration.
@@ -1058,13 +1173,15 @@ NoGhost - disable printing of functions, ghost methods, and proof
       TODO".Replace("%SUPPORTED_OPTIONS%",
         string.Join(", ", DafnyAttributeOptions.KnownOptions));
 
+    private static ConcurrentDictionary<string, Version> z3VersionPerPath = new();
     /// <summary>
     /// Dafny releases come with their own copy of Z3, to save users the trouble of having to install extra dependencies.
     /// For this to work, Dafny first tries any prover path explicitly provided by the user, then looks for for the copy
     /// distributed with Dafny, and finally looks in any directory in the system PATH environment variable.
     /// </summary>
-    private Version SetZ3ExecutablePath() {
+    private Version SetZ3ExecutablePath(ErrorReporter errorReporter, IOrigin token) {
       string confirmedProverPath = null;
+      string nextStepsMessage = $"Please either provide a path to the `z3` executable using the `--solver-path <path>` option, manually place the `z3` directory next to the `dafny` executable you are using (this directory should contain `bin/z3-{DefaultZ3Version}` or `bin/z3-{DefaultZ3Version}.exe`), or set the PATH environment variable to also include a directory containing the `z3` executable.";
 
       // Try an explicitly provided prover path, if there is one.
       var pp = "PROVER_PATH=";
@@ -1075,6 +1192,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
         // However, by at least checking if the file exists, we can produce a better error message in common scenarios.
         // Unfortunately, there doesn't seem to be a portable way of checking whether it's executable.
         if (!File.Exists(proverPath)) {
+          errorReporter.Error(MessageSource.Verifier, token, $"Z3 not found at {proverPath}. " + nextStepsMessage);
           return null;
         }
 
@@ -1083,12 +1201,14 @@ NoGhost - disable printing of functions, ghost methods, and proof
 
       var platform = System.Environment.OSVersion.Platform;
       var isUnix = platform == PlatformID.Unix || platform == PlatformID.MacOSX;
-      var z3binName = isUnix ? "z3" : "z3.exe";
 
       // Next, try looking in a directory relative to Dafny itself.
       if (confirmedProverPath is null) {
         var dafnyBinDir = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
-        var z3BinPath = Path.Combine(dafnyBinDir, "z3", "bin", z3binName);
+        var z3LocalBinName = isUnix
+          ? $"z3-{DefaultZ3Version}"
+          : $"z3-{DefaultZ3Version}.exe";
+        var z3BinPath = Path.Combine(dafnyBinDir, "z3", "bin", z3LocalBinName);
 
         if (File.Exists(z3BinPath)) {
           confirmedProverPath = z3BinPath;
@@ -1096,19 +1216,21 @@ NoGhost - disable printing of functions, ghost methods, and proof
       }
 
       // Finally, try looking in the system PATH variable.
+      var z3GlobalBinName = isUnix ? "z3" : "z3.exe";
       if (confirmedProverPath is null) {
         confirmedProverPath = System.Environment
           .GetEnvironmentVariable("PATH")?
           .Split(isUnix ? ':' : ';')
-          .Select(s => Path.Combine(s, z3binName))
+          .Select(s => Path.Combine(s, z3GlobalBinName))
           .FirstOrDefault(File.Exists);
       }
 
       if (confirmedProverPath is not null) {
         ProverOptions.Add($"{pp}{confirmedProverPath}");
-        return GetZ3Version(confirmedProverPath);
+        return z3VersionPerPath.GetOrAdd(confirmedProverPath, GetZ3Version);
       }
 
+      errorReporter.Error(MessageSource.Verifier, DafnyProject.StartingToken, "Z3 is not found. " + nextStepsMessage);
       return null;
     }
 
@@ -1148,7 +1270,16 @@ NoGhost - disable printing of functions, ghost methods, and proof
       }
     }
 
-    private void SetZ3Options(Version z3Version) {
+    public void SetZ3Options(Version z3Version) {
+      // Don't allow changing this once set, just in case:
+      // a DooFile will record this and will get confused if it changes.
+      if ((SolverIdentifier != null && SolverIdentifier != "Z3")
+          || (SolverVersion != null && SolverVersion != z3Version)) {
+        throw new Exception("Attempted to set Z3 options more than once");
+      }
+      SolverIdentifier = "Z3";
+      SolverVersion = z3Version;
+
       // Boogie sets the following Z3 options by default:
       // smt.mbqi = false
       // model.compact = false
@@ -1158,16 +1289,21 @@ NoGhost - disable printing of functions, ghost methods, and proof
       // Boogie also used to set the following options, but does not anymore.
       SetZ3Option("auto_config", "false");
       SetZ3Option("type_check", "true");
-      SetZ3Option("smt.qi.eager_threshold", "100"); // TODO: try lowering
+      SetZ3Option("smt.qi.eager_threshold", "44");
       SetZ3Option("smt.delay_units", "true");
-
-      if (z3Version is not null && z3Version.CompareTo(new Version(4, 8, 5)) <= 0) {
-        // These options tend to help with Z3 4.8.5 but hurt with newer versions of Z3.
-        SetZ3Option("smt.case_split", "3");
-        SetZ3Option("smt.arith.solver", "2");
+      SetZ3Option("model_evaluator.completion", "true");
+      SetZ3Option("model.completion", "true");
+      if (z3Version is null || z3Version < new Version(4, 8, 6)) {
+        SetZ3Option("model_compress", "false");
+      } else {
+        SetZ3Option("model.compact", "false");
       }
 
-      if (DisableNLarith || 3 <= ArithMode) {
+      // This option helps avoid "time travelling triggers".
+      // See: https://github.com/dafny-lang/dafny/discussions/3362
+      SetZ3Option("smt.case_split", "3");
+
+      if (3 <= ArithMode) {
         SetZ3Option("smt.arith.nl", "false");
       }
     }
@@ -1215,9 +1351,6 @@ Exit code: 0 -- success; 1 -- invalid command-line; 2 -- parse or type errors;
 /pmtrace
     Print pattern-match compiler debug info.
 
-/titrace
-    Print type-inference debug info.
-
 /printTooltips
     Dump additional positional information (displayed as mouse-over
     tooltips by the VS Code plugin) to stdout as 'Info' messages.
@@ -1233,17 +1366,17 @@ Exit code: 0 -- success; 1 -- invalid command-line; 2 -- parse or type errors;
     Ignore include directives.
 
 /noExterns
-    Ignore extern and dllimport attributes.
+    Ignore extern attributes.
 
 /functionSyntax:<version>
     The syntax for functions is changing from Dafny version 3 to version
     4. This switch gives early access to the new syntax, and also
     provides a mode to help with migration.
 
-    3 (default) - Compiled functions are written `function method` and
+    3 - Compiled functions are written `function method` and
         `predicate method`. Ghost functions are written `function` and
         `predicate`.
-    4 - Compiled functions are written `function` and `predicate`. Ghost
+    4 (default) - Compiled functions are written `function` and `predicate`. Ghost
         functions are written `ghost function` and `ghost predicate`.
     migration3to4 - Compiled functions are written `function method` and
         `predicate method`. Ghost functions are written `ghost function`
@@ -1273,10 +1406,10 @@ Exit code: 0 -- success; 1 -- invalid command-line; 2 -- parse or type errors;
     <Range>) are allowed. This switch gives early access to the new
     syntax.
 
-    3 (default) - Ranges are only allowed after all quantified variables
+    3 - Ranges are only allowed after all quantified variables
         are declared. (e.g. set x, y | 0 <= x < |s| && y in s[x] && 0 <=
         y :: y)
-    4 - Ranges are allowed after each quantified variable declaration.
+    4 (default) - Ranges are allowed after each quantified variable declaration.
         (e.g. set x | 0 <= x < |s|, y <- s[x] | 0 <= y :: y)
 
     Note that quantifier variable domains (<- <Domain>) are available in
@@ -1285,15 +1418,6 @@ Exit code: 0 -- success; 1 -- invalid command-line; 2 -- parse or type errors;
 /disableScopes
     Treat all export sets as 'export reveal *'. i.e. don't hide function
     bodies or type definitions during translation.
-
-/allowGlobals
-    Allow the implicit class '_default' to contain fields, instance
-    functions, and instance methods. These class members are declared at
-    the module scope, outside of explicit classes. This command-line
-    option is provided to simplify a transition from the behavior in the
-    language prior to version 1.9.3, from which point onward all
-    functions and methods declared at the module scope are implicitly
-    static and fields declarations are not allowed at the module scope.
 
 ---- Warning selection -----------------------------------------------------
 
@@ -1308,7 +1432,6 @@ Exit code: 0 -- success; 1 -- invalid command-line; 2 -- parse or type errors;
 /deprecation:<n>
     0 - Don't give any warnings about deprecated features.
     1 (default) - Show warnings about deprecated features.
-    2 - Also point out where there's new simpler syntax.
 
 /warningsAsErrors
     Treat warnings as errors.
@@ -1322,44 +1445,14 @@ Exit code: 0 -- success; 1 -- invalid command-line; 2 -- parse or type errors;
 /verifyAllModules
     Verify modules that come from an include directive.
 
+/emitUncompilableCode
+    Allow compilers to emit uncompilable code that usually contain useful
+    information about what feature is missing, rather than
+    stopping on the first problem
+
 /separateModuleOutput
     Output verification results for each module separately, rather than
     aggregating them after they are all finished.
-
-/verificationLogger:<configuration string>
-    Logs verification results to the given test result logger. The
-    currently supported loggers are `trx`, `csv`, and `text`. These are
-    the XML-based format commonly used for test results for .NET
-    languages, a custom CSV schema, and a textual format meant for human
-    consumption. You can provide configuration using the same string
-    format as when using the --logger option for dotnet test, such as:
-
-        /verificationLogger:trx;LogFileName=<...>.
-
-    The exact mapping of verification concepts to these formats is
-    experimental and subject to change!
-
-    The `trx` and `csv` loggers automatically choose an output file name
-    by default, and print the name of this file to the console. The
-    `text` logger prints its output to the console by default, but can
-    send output to a file given the `LogFileName` option.
-
-    The `text` logger also includes a more detailed breakdown of what
-    assertions appear in each assertion batch. When combined with the
-    `/vcsSplitOnEveryAssert` option, it will provide approximate time
-    and resource use costs for each assertion, allowing identification
-    of especially expensive assertions.
-
-/mimicVerificationOf:<Dafny version>
-    Let Dafny attempt to mimic the verification as it was in a previous
-    version of Dafny. Useful during migration to a newer version of
-    Dafny when a Dafny program has proofs, such as methods or lemmas,
-    that are unstable in the sense that their verification may become
-    slower or fail altogether after logically irrelevant changes are
-    made in the verification input.
-
-    Accepted versions are: 3.3 (note that this turns off features that
-    prevent classes of verification instability)
 
 /noCheating:<n>
     0 (default) - Allow assume statements and free invariants.
@@ -1388,35 +1481,12 @@ Exit code: 0 -- success; 1 -- invalid command-line; 2 -- parse or type errors;
     1 - A compiled method, constructor, or iterator is allowed to have
        print effects only if it is marked with {{:print}}.
 
-/allocated:<n>
-    Specify defaults for where Dafny should assert and assume
-    allocated(x) for various parameters x, local variables x, bound
-    variables x, etc. Lower <n> may require more manual allocated(x)
-    annotations and thus may be more difficult to use. Warning: this
-    option should be chosen consistently across an entire project; it
-    would be unsound to use different defaults for different files or
-    modules within a project. And even so, modes /allocated:0 and
-    /allocated:1 let functions depend on the allocation state, which is
-    not sound in general.
-
-    0 - Nowhere (never assume/assert allocated(x) by default).
-    1 - Assume allocated(x) only for non-ghost variables and fields
-        (these assumptions are free, since non-ghost variables always
-        contain allocated values at run-time). This option may speed up
-        verification relative to /allocated:2.
-    2 - Assert/assume allocated(x) on all variables, even bound
-        variables in quantifiers. This option is the easiest to use for
-        heapful code.
-    3 - (default) Frugal use of heap parameters.
-    4 - Mode 3 but with alloc antecedents when ranges don't imply
-        allocatedness.
-
 /definiteAssignment:<n>
     0 - Ignores definite-assignment rules. This mode is for testing
         only--it is not sound.
     1 (default) - Enforces definite-assignment rules for compiled
         variables and fields whose types do not support
-        auto-initialization and for ghost variables and fields whose
+        auto-initialization, and for ghost variables and fields whose
         type is possibly empty.
     2 - Enforces definite-assignment for all non-yield-parameter
         variables and fields, regardless of their types.
@@ -1425,6 +1495,10 @@ Exit code: 0 -- success; 1 -- invalid command-line; 2 -- parse or type errors;
         passes at this level 3 is one that the language guarantees that
         values seen during execution will be the same in every run of
         the program.
+    4 - Like 1, but enforces definite assignment for all local variables
+        and out-parameters, regardless of their types. (Whether or not
+        fields and new arrays are subject to definite assignments depends
+        on their types.)
 
 /noAutoReq
     Ignore autoReq attributes.
@@ -1471,13 +1545,8 @@ Exit code: 0 -- success; 1 -- invalid command-line; 2 -- parse or type errors;
 
 /extractCounterexample
     If verification fails, report a detailed counterexample for the
-    first failing assertion. Requires specifying the /mv:<file> option as well
-    as /proverOpt:O:model_compress=false (for z3 version < 4.8.7) or
-    /proverOpt:O:model.compact=false (for z3 version >= 4.8.7), and
-    /proverOpt:O:model.completion=true.
+    first failing assertion (experimental).
 
----- Test generation options -----------------------------------------------
-{TestGenOptions.Help}
 ---- Compilation options ---------------------------------------------------
 
 /compile:<n>
@@ -1500,15 +1569,6 @@ Exit code: 0 -- success; 1 -- invalid command-line; 2 -- parse or type errors;
     When running a Dafny file through /compile:3 or /compile:4, '--args' provides
     all arguments after it to the Main function, at index starting at 1.
     Index 0 is used to store the executable's name if it exists.
-/runAllTests:<n> (experimental)
-    0 (default) - Annotates compiled methods with the {{:test}}
-        attribute such that they can be tested using a testing framework
-        in the target language (e.g. xUnit for C#).
-    1 - Emits a main method in the target language that will execute
-        every method in the program with the {{:test}} attribute. Cannot
-        be used if the program already contains a main method. Note that
-        /compile:3 or 4 must be provided as well to actually execute
-        this main method!
 
 /compileVerbose:<n>
     0 - Don't print status of compilation to the console.
@@ -1570,23 +1630,21 @@ However, some Boogie options, like /loopUnroll, may not be sound for
 Dafny or may not have the same meaning for a Dafny program as it would
 for a similar Boogie program.
 ".Replace("\n", "\n  ");
-
   }
-
 }
 
 class ErrorReportingCommandLineParseState : Bpl.CommandLineParseState {
   private readonly Errors errors;
-  private IToken token;
+  private IOrigin token;
 
-  public ErrorReportingCommandLineParseState(string[] args, string toolName, Errors errors, IToken token)
+  public ErrorReportingCommandLineParseState(string[] args, string toolName, Errors errors, IOrigin token)
     : base(args, toolName) {
     this.errors = errors;
     this.token = token;
   }
 
   public override void Error(string message, params string[] args) {
-    errors.SemErr(token, string.Format(message, args));
+    errors.SemErr(GenericErrors.ErrorId.g_option_error, token, string.Format(message, args));
     EncounteredErrors = true;
   }
 }
@@ -1596,13 +1654,13 @@ class ErrorReportingCommandLineParseState : Bpl.CommandLineParseState {
 /// Used by the parser to parse <c>:options</c> strings.
 /// </summary>
 class DafnyAttributeOptions : DafnyOptions {
-  public static readonly HashSet<string> KnownOptions = new() {
+  public static readonly HashSet<string> KnownOptions = [
     "functionSyntax",
     "quantifierSyntax"
-  };
+  ];
 
   private readonly Errors errors;
-  public IToken Token { get; set; }
+  public IOrigin Token { get; set; }
 
   public DafnyAttributeOptions(DafnyOptions opts, Errors errors) : base(opts) {
     this.errors = errors;

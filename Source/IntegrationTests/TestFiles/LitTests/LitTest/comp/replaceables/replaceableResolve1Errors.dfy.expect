@@ -1,0 +1,4 @@
+replaceableResolve1Errors.dfy(10,32): Error: module DoesNotExist named as refinement base does not exist
+replaceableResolve1Errors.dfy(12,34): Error: module DoesNotExist named as replacement base does not exist
+replaceableResolve1Errors.dfy(4,19): Error: module definition contains a cycle (note: parent modules implicitly depend on submodules): module Cycle1 -> module Cycle2 -> module Cycle1
+3 resolution/type errors detected in replaceableResolve1Errors.dfy

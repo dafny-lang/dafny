@@ -10,9 +10,14 @@ using Microsoft.VisualStudio.TestPlatform.ObjectModel.Logging;
 namespace Microsoft.Dafny {
   public class CSVTestLogger : ITestLoggerWithParameters {
 
-    private readonly ConcurrentBag<TestResult> results = new();
+    private readonly ConcurrentBag<TestResult> results = [];
     private TextWriter writer;
+    private readonly IDafnyOutputWriter logWriter;
     private string writerFilename;
+
+    public CSVTestLogger(IDafnyOutputWriter logWriter) {
+      this.logWriter = logWriter;
+    }
 
     public void Initialize(TestLoggerEvents events, string testRunDirectory) {
     }
@@ -65,14 +70,15 @@ namespace Microsoft.Dafny {
     }
 
     private void TestRunCompleteHandler(object sender, TestRunCompleteEventArgs e) {
-      writer.WriteLine("TestResult.DisplayName,TestResult.Outcome,TestResult.Duration,TestResult.ResourceCount");
+      writer.WriteLine("TestResult.DisplayName,TestResult.Outcome,TestResult.Duration,TestResult.ResourceCount,RandomSeed");
       foreach (var result in results.OrderByDescending(r => r.Duration)) {
-        var resCount = result.GetPropertyValue(VerificationResultLogger.ResourceCountProperty);
-        writer.WriteLine($"{result.TestCase.DisplayName},{result.Outcome},{result.Duration},{resCount}");
+        var resourceCount = result.GetPropertyValue(VerificationResultLogger.ResourceCountProperty);
+        var randomSeed = result.GetPropertyValue(VerificationResultLogger.RandomSeedProperty) ?? "unknown";
+        writer.WriteLine($"{result.TestCase.DisplayName},{result.Outcome},{result.Duration},{resourceCount},{randomSeed}");
       }
 
-      writer.Close();
-      Console.Out.WriteLine("Results File: " + Path.GetFullPath(writerFilename));
+      writer.Flush();
+      _ = logWriter.Status("Results File: " + Path.GetFullPath(writerFilename));
     }
   }
 }

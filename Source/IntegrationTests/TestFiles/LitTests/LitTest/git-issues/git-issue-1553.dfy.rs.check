@@ -1,0 +1,1 @@
+// CHECK-L: error[E0277]: the trait bound `_R: Default` is not satisfied

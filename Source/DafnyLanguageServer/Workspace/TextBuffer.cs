@@ -57,7 +57,15 @@ public class TextBuffer {
   }
 
   private BufferLine IndexToLine(int index) {
-    return indexToLineTree.Query(index).Single();
+    try {
+      return indexToLineTree.Query(index).Single();
+    } catch (InvalidOperationException) {
+      try {// Just in case we are on Windows and we happen to query an index between "\r" and "\n"
+        return indexToLineTree.Query(index - 1).Single();
+      } catch (InvalidOperationException) {
+        throw new ArgumentException($"index {index} is outside of the text buffer");
+      }
+    }
   }
 
   public int ToIndex(Position position) {
@@ -99,7 +107,7 @@ public class TextBuffer {
     if (end < start) {
       throw new ArgumentException();
     }
-    if (start < 0 || end >= Text.Length) {
+    if (start < 0 || end > Text.Length) {
       throw new ArgumentOutOfRangeException();
     }
 

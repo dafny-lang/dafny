@@ -4,16 +4,16 @@ title: "Error: possible violation of function precondition for op(v)"
 
 Here is code that provoked this error (though the error message as been made more specific in later releases):
 ```dafny
-function Eval(): string -> bool {
+ghost function Eval(): string -> bool {
    EvalOperator(Dummy)
 }
 
-function EvalOperator(op: string -> bool): string -> bool 
+ghost function EvalOperator(op: string -> bool): string -> bool 
 {
   (v: string) => op(v)
 }
 
-function method Dummy(str: string): bool
+function Dummy(str: string): bool
   requires str == []
 ```
 

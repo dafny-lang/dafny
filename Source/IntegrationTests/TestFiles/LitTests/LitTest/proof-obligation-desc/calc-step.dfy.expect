@@ -1,0 +1,9 @@
+calc-step.dfy(29,5): Error: the calculation step between the previous line and this line could not be proved
+ Asserted expression: f(x, c) == f(x, x)
+   asserted after the following statements:
+     assert c <= x;
+     Monotonicity(c, x);
+calc-step.dfy(38,6): Error: the calculation step between the previous line and this line could not be proved
+ Asserted expression: x - 1 + 1 == x + 1
+
+Dafny program verifier finished with 0 verified, 2 errors

@@ -6,6 +6,7 @@
       <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
       <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
       <DefineConstants>TRACE;ISDAFNYRUNTIMELIB</DefineConstants>
+      <TargetFramework></TargetFramework>
       <TargetFrameworks>netstandard2.0;net452</TargetFrameworks>
       <OutputPath>..\..\Binaries\</OutputPath>
       <LangVersion>7.3</LangVersion>
@@ -18,17 +19,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Compile Update="DafnyRuntime.cs">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </Compile>
-    <Content Include="DafnyRuntime.js" CopyToOutputDirectory="PreserveNewest" />
-    <Content Include="DafnyRuntime.go" CopyToOutputDirectory="PreserveNewest" />
-    <Content Include="DafnyRuntime.h" CopyToOutputDirectory="PreserveNewest" />
-    <Content Include="DafnyRuntime.py" CopyToOutputDirectory="PreserveNewest" />
-    <Content Include="DafnyRuntimeJava\build\libs\DafnyRuntime.jar" Link="DafnyRuntime.jar" CopyToOutputDirectory="PreserveNewest" />
-  </ItemGroup>
-
-  <ItemGroup>
     <DafnyRuntimeJavaInputFile Include="./DafnyRuntimeJava/**/*.*" />
     <DafnyRuntimeJavaInputFile Remove="./DafnyRuntimeJava/build/**/*.*" />
   </ItemGroup>
@@ -36,8 +26,28 @@
   <ItemGroup>
     <Folder Include="DafnyRuntimeJava\build\libs" />
   </ItemGroup>
+   <ItemGroup>
+    <InternalsVisibleTo Include="$(MSBuildProjectName).Tests" />
+  </ItemGroup>
+  <ItemGroup>
+    <Content Update="DafnyRuntimeGo-gomod\dafny\dafny.go">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Update="DafnyRuntimeGo-gomod\dafny\dafny_test.go">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Update="DafnyRuntimeGo-gomod\dafny\dafnyFromDafny.go">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Update="DafnyRuntimeGo-gomod\System_\System_.go">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Update="DafnyRuntimeGo-gomod\go.mod">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup>
   <PropertyGroup>
-    <DafnyRuntimeJar>DafnyRuntimeJava/build/libs/DafnyRuntime.jar</DafnyRuntimeJar>
+    <DafnyRuntimeJar>DafnyRuntimeJava/build/libs/DafnyRuntime-4.10.1.jar</DafnyRuntimeJar>
   </PropertyGroup>
   <Target Name="BuildDafnyRuntimeJar" AfterTargets="ResolveReferences" BeforeTargets="CoreCompile" Inputs="$(MSBuildProjectFile);@(DafnyRuntimeJavaInputFile)" Outputs="$(DafnyRuntimeJar)">
     

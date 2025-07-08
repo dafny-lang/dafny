@@ -6,7 +6,7 @@
       "Override": {
         "Microsoft.Dafny": "Information"
       }
-    },
+    },  
     "WriteTo": [
       {
         "Name": "Debug",

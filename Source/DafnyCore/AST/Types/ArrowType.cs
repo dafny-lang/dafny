@@ -6,45 +6,16 @@ namespace Microsoft.Dafny;
 
 public class ArrowType : UserDefinedType {
 
-  public static Expression FrameArrowToObjectSet(Expression e, FreshIdGenerator idGen, BuiltIns builtIns) {
-    Contract.Requires(e != null);
-    Contract.Requires(idGen != null);
-    Contract.Requires(builtIns != null);
-    var arrTy = e.Type.AsArrowType;
-    if (arrTy != null) {
-      var bvars = new List<BoundVar>();
-      var bexprs = new List<Expression>();
-      foreach (var t in arrTy.Args) {
-        var bv = new BoundVar(e.tok, idGen.FreshId("_x"), t);
-        bvars.Add(bv);
-        bexprs.Add(new IdentifierExpr(e.tok, bv.Name) { Type = bv.Type, Var = bv });
-      }
-
-      var oVar = new BoundVar(e.tok, idGen.FreshId("_o"), builtIns.ObjectQ());
-      var obj = new IdentifierExpr(e.tok, oVar.Name) { Type = oVar.Type, Var = oVar };
-      bvars.Add(oVar);
-
-      return
-        new SetComprehension(e.tok, e.tok, true, bvars,
-          new BinaryExpr(e.tok, BinaryExpr.Opcode.In, obj,
-            new ApplyExpr(e.tok, e, bexprs, e.tok) {
-              Type = new SetType(true, builtIns.ObjectQ())
-            }) {
-            ResolvedOp =
-              arrTy.Result.AsMultiSetType != null ? BinaryExpr.ResolvedOpcode.InMultiSet :
-              arrTy.Result.AsSeqType != null ? BinaryExpr.ResolvedOpcode.InSeq :
-              BinaryExpr.ResolvedOpcode.InSet,
-            Type = Type.Bool
-          }, obj, null) {
-          Type = new SetType(true, builtIns.ObjectQ())
-        };
-    } else {
-      return e;
-    }
-  }
-
   public List<Type> Args {
     get { return TypeArgs.GetRange(0, Arity); }
+  }
+
+  public List<TypeParameter.TPVariance> Variances(bool negate = false) {
+    if (negate) {
+      return Enumerable.Range(0, Arity + 1).Select(i => i == Arity ? TypeParameter.TPVariance.Contra : TypeParameter.TPVariance.Co).ToList();
+    } else {
+      return Enumerable.Range(0, Arity + 1).Select(i => i == Arity ? TypeParameter.TPVariance.Co : TypeParameter.TPVariance.Contra).ToList();
+    }
   }
 
   public Type Result {
@@ -58,18 +29,18 @@ public class ArrowType : UserDefinedType {
   /// <summary>
   /// Constructs a(n unresolved) arrow type.
   /// </summary>
-  public ArrowType(IToken tok, List<Type> args, Type result)
-    : base(tok, ArrowTypeName(args.Count), Util.Snoc(args, result)) {
-    Contract.Requires(tok != null);
+  public ArrowType(IOrigin origin, List<Type> args, Type result)
+    : base(origin, ArrowTypeName(args.Count), Util.Snoc(args, result)) {
+    Contract.Requires(origin != null);
     Contract.Requires(args != null);
     Contract.Requires(result != null);
   }
   /// <summary>
   /// Constructs and returns a resolved arrow type.
   /// </summary>
-  public ArrowType(IToken tok, ArrowTypeDecl atd, List<Type> typeArgsAndResult)
-    : base(tok, ArrowTypeName(atd.Arity), atd, typeArgsAndResult) {
-    Contract.Requires(tok != null);
+  public ArrowType(IOrigin origin, ArrowTypeDecl atd, List<Type> typeArgsAndResult)
+    : base(origin, ArrowTypeName(atd.Arity), atd, typeArgsAndResult) {
+    Contract.Requires(origin != null);
     Contract.Requires(atd != null);
     Contract.Requires(typeArgsAndResult != null);
     Contract.Requires(typeArgsAndResult.Count == atd.Arity + 1);
@@ -77,9 +48,9 @@ public class ArrowType : UserDefinedType {
   /// <summary>
   /// Constructs and returns a resolved arrow type.
   /// </summary>
-  public ArrowType(IToken tok, ArrowTypeDecl atd, List<Type> typeArgs, Type result)
-    : this(tok, atd, Util.Snoc(typeArgs, result)) {
-    Contract.Requires(tok != null);
+  public ArrowType(IOrigin origin, ArrowTypeDecl atd, List<Type> typeArgs, Type result)
+    : this(origin, atd, Util.Snoc(typeArgs, result)) {
+    Contract.Requires(origin != null);
     Contract.Requires(atd != null);
     Contract.Requires(typeArgs != null);
     Contract.Requires(typeArgs.Count == atd.Arity);
@@ -119,15 +90,15 @@ public class ArrowType : UserDefinedType {
   public const string PARTIAL_ARROW = "-->";
   public const string TOTAL_ARROW = "->";
 
-  public override string TypeName(ModuleDefinition context, bool parseAble) {
-    return PrettyArrowTypeName(ANY_ARROW, Args, Result, context, parseAble);
+  public override string TypeName(DafnyOptions options, ModuleDefinition context, bool parseAble) {
+    return PrettyArrowTypeName(options, ANY_ARROW, Args, Result, context, parseAble);
   }
 
   /// <summary>
   /// Pretty prints an arrow type.  If "result" is null, then all arguments, including the result type are expected in "typeArgs".
   /// If "result" is non-null, then only the in-arguments are in "typeArgs".
   /// </summary>
-  public static string PrettyArrowTypeName(string arrow, List<Type> typeArgs, Type result, ModuleDefinition context, bool parseAble) {
+  public static string PrettyArrowTypeName(DafnyOptions options, string arrow, List<Type> typeArgs, Type result, ModuleDefinition context, bool parseAble) {
     Contract.Requires(arrow != null);
     Contract.Requires(typeArgs != null);
     Contract.Requires(result != null || 1 <= typeArgs.Count);
@@ -144,17 +115,17 @@ public class ArrowType : UserDefinedType {
       // if the domain type consists of a single tuple type, then an extra set of parentheses is needed
       // Note, we do NOT call .AsDatatype or .AsIndDatatype here, because those calls will do a NormalizeExpand().  Instead, we do the check manually.
       var udt = typeArgs[0].Normalize() as UserDefinedType;  // note, we do Normalize(), not NormalizeExpand(), since the TypeName will use any synonym
-      if (udt != null && ((udt.FullName != null && BuiltIns.IsTupleTypeName(udt.FullName)) || udt.ResolvedClass is TupleTypeDecl)) {
+      if (udt != null && ((udt.FullName != null && SystemModuleManager.IsTupleTypeName(udt.FullName)) || udt.ResolvedClass is TupleTypeDecl)) {
         domainNeedsParens = true;
       }
     }
     string s = "";
     if (domainNeedsParens) { s += "("; }
-    s += Util.Comma(typeArgs.Take(arity), arg => arg.TypeName(context, parseAble));
+    s += Util.Comma(typeArgs.Take(arity), arg => arg.TypeName(options, context, parseAble));
     if (domainNeedsParens) { s += ")"; }
     s += " " + arrow + " ";
     if (result != null || typeArgs.Count >= 1) {
-      s += (result ?? typeArgs.Last()).TypeName(context, parseAble);
+      s += (result ?? typeArgs.Last()).TypeName(options, context, parseAble);
     } else {
       s += "<unable to infer result type>";
     }
@@ -162,11 +133,11 @@ public class ArrowType : UserDefinedType {
   }
 
   public override Type Subst(IDictionary<TypeParameter, Type> subst) {
-    return new ArrowType(tok, (ArrowTypeDecl)ResolvedClass, Args.ConvertAll(u => u.Subst(subst)), Result.Subst(subst));
+    return new ArrowType(Origin, (ArrowTypeDecl)ResolvedClass, Args.ConvertAll(u => u.Subst(subst)), Result.Subst(subst));
   }
 
   public override Type ReplaceTypeArguments(List<Type> arguments) {
-    return new ArrowType(tok, (ArrowTypeDecl)ResolvedClass, arguments);
+    return new ArrowType(Origin, (ArrowTypeDecl)ResolvedClass, arguments);
   }
 
   public override bool SupportsEquality {
@@ -175,5 +146,6 @@ public class ArrowType : UserDefinedType {
     }
   }
 
-  public override IEnumerable<INode> Children => Args.Concat(new List<INode>() { Result });
+  public override IEnumerable<INode> Children => Args.Concat(new List<Node>() { Result });
+  public override IEnumerable<INode> PreResolveChildren => Args.Concat(new List<Node>() { Result });
 }

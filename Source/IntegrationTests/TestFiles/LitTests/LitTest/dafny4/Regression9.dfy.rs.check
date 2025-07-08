@@ -1,0 +1,1 @@
+// CHECK-L: error[E0277]: the trait bound `dyn for<'a> Fn(&'a DafnyInt) -> DafnyChar: Default` is not satisfied

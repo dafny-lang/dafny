@@ -1,0 +1,22 @@
+﻿<?xml version="1.0" encoding="UTF-8"?>
+<RunSettings>
+  <DataCollectionRunSettings>
+    <DataCollectors>
+      <DataCollector friendlyName="XPlat Code Coverage">
+        <Configuration>
+          <Exclude>[*]DAST.*,[*]DCOMP.*</Exclude>
+        </Configuration>
+      </DataCollector>
+    </DataCollectors>
+  </DataCollectionRunSettings>
+  <xUnit>
+    <!-- 
+    Important to disable the reporter auto-discovery
+    because we have a ton of classes in this project,
+    especially those generated from Dafny,
+    which can cause close to an hour delay before starting any tests!
+    See https://github.com/xunit/xunit/issues/2549.
+    -->
+    <NoAutoReporters>true</NoAutoReporters>
+  </xUnit>
+</RunSettings>

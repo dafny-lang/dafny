@@ -6,10 +6,8 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Boogie;
 using Microsoft.Dafny.LanguageServer.Language;
-using Microsoft.Dafny.LanguageServer.Workspace;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Options;
-using OmniSharp.Extensions.LanguageServer.Protocol.Models;
+using VC;
 
 namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various;
 
@@ -17,19 +15,20 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various;
 /// this verifier will return a task that only completes when cancelled
 /// which can be useful to test against race conditions
 class SlowVerifier : IProgramVerifier {
-  public SlowVerifier(ILogger<DafnyProgramVerifier> logger, DafnyOptions options) {
-    verifier = new DafnyProgramVerifier(logger, options);
+  public SlowVerifier(ILogger<DafnyProgramVerifier> logger) {
+    verifier = new DafnyProgramVerifier(logger);
   }
 
   private readonly DafnyProgramVerifier verifier;
 
-  public async Task<IReadOnlyList<IImplementationTask>> GetVerificationTasksAsync(DocumentAfterResolution document, CancellationToken cancellationToken) {
-    var program = document.Program;
+  public async Task<IReadOnlyList<IVerificationTask>> GetVerificationTasksAsync(ExecutionEngine engine,
+    ResolutionResult resolution, ModuleDefinition moduleDefinition, CancellationToken cancellationToken) {
+    var program = resolution.ResolvedProgram;
     var attributes = program.Modules().SelectMany(m => {
       return m.TopLevelDecls.OfType<TopLevelDeclWithMembers>().SelectMany(d => d.Members.Select(member => member.Attributes));
     }).ToList();
 
-    var tasks = await verifier.GetVerificationTasksAsync(document, cancellationToken);
+    var tasks = await verifier.GetVerificationTasksAsync(engine, resolution, moduleDefinition, cancellationToken);
     if (attributes.Any(a => Attributes.Contains(a, "neverVerify"))) {
       tasks = tasks.Select(t => new NeverVerifiesImplementationTask(t)).ToList();
     }
@@ -37,20 +36,24 @@ class SlowVerifier : IProgramVerifier {
     return tasks;
   }
 
-  public IObservable<AssertionBatchResult> BatchCompletions => verifier.BatchCompletions;
-
-  class NeverVerifiesImplementationTask : IImplementationTask {
-    private readonly IImplementationTask original;
+  class NeverVerifiesImplementationTask : IVerificationTask {
+    private readonly IVerificationTask original;
     private readonly Subject<IVerificationStatus> source;
 
-    public NeverVerifiesImplementationTask(IImplementationTask original) {
+    public NeverVerifiesImplementationTask(IVerificationTask original) {
       this.original = original;
       source = new();
     }
 
+    public IVerificationTask FromSeed(int newSeed) {
+      return this;
+    }
+
     public IVerificationStatus CacheStatus => new Stale();
-    public ProcessedProgram ProcessedProgram => original.ProcessedProgram;
-    public Implementation Implementation => original.Implementation;
+    public ManualSplit Split => original.Split;
+    public Boogie.IToken ScopeToken => original.ScopeToken;
+    public string ScopeId => original.ScopeId;
+    public Boogie.IToken Token => original.Token;
 
     public IObservable<IVerificationStatus> TryRun() {
       return source;

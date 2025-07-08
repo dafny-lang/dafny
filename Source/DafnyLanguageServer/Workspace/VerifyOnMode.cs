@@ -5,6 +5,7 @@
   public enum VerifyOnMode {
     Never,
     Change,
+    ChangeProject,
     Save
   }
 

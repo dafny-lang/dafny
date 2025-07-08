@@ -1,0 +1,1 @@
+Made the language server compliant with the LSP protocol so that it can be used with other editors, such as Helix

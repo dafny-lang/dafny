@@ -1,1 +1,0 @@
-Any `(==)` inferred for a type parameter of an iterator is now also inferred for the corresponding non-null iterator type.

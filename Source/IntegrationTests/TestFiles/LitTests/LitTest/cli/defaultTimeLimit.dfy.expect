@@ -1,0 +1,7 @@
+defaultTimeLimit.dfy(5,7): Error: Verification of 'Foo' timed out after <redacted> seconds. (the limit can be increased using --verification-time-limit)
+  |
+5 | method Foo() {
+  |        ^^^
+
+
+Dafny program verifier finished with 1 verified, 0 errors, 1 time out

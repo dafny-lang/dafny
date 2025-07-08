@@ -15,6 +15,12 @@ namespace Microsoft.Dafny {
     NewlineBrace
   }
 
+  public static class CanRenderExtensions {
+    public static ConcreteSyntaxTree InParens(this ICanRender canRender) {
+      return ConcreteSyntaxTree.Create($"({canRender})");
+    }
+  }
+
   public class ConcreteSyntaxTree : ICanRender {
     public ConcreteSyntaxTree(int relativeIndent = 0) {
       RelativeIndentLevel = relativeIndent;
@@ -25,8 +31,9 @@ namespace Microsoft.Dafny {
     private readonly IList<ICanRender> _nodes = new List<ICanRender>();
 
     public IEnumerable<ICanRender> Nodes => _nodes;
+    public IEnumerable<ICanRender> Descendants => Nodes.Concat(Nodes.OfType<ConcreteSyntaxTree>().SelectMany(n => n.Descendants));
 
-    public ConcreteSyntaxTree Fork(int relativeIndent = 0) {
+    public virtual ConcreteSyntaxTree Fork(int relativeIndent = 0) {
       var result = new ConcreteSyntaxTree(relativeIndent);
       _nodes.Add(result);
       return result;
@@ -73,6 +80,31 @@ namespace Microsoft.Dafny {
       return this;
     }
 
+    public ConcreteSyntaxTree Comma<T>(IEnumerable<T> elements, Action<T> a) {
+      return Comma(", ", elements, (element, _) => a(element));
+    }
+
+    public ConcreteSyntaxTree Comma<T>(IEnumerable<T> elements, Action<T, int> a) {
+      return Comma(", ", elements, a);
+    }
+
+    public ConcreteSyntaxTree Comma<T>(string comma, IEnumerable<T> elements, Action<T> a) {
+      return Comma(comma, elements, (element, _) => a(element));
+    }
+
+    public ConcreteSyntaxTree Comma<T>(string comma, IEnumerable<T> elements, Action<T, int> a) {
+      var sep = "";
+      var index = 0;
+      foreach (var element in elements) {
+        Write(sep);
+        a(element, index);
+        sep = comma;
+        index++;
+      }
+
+      return this;
+    }
+
     [StringFormatMethod("format")]
     public ConcreteSyntaxTree Write(string format, params object[] args) {
       Write(string.Format(format, args));
@@ -86,15 +118,19 @@ namespace Microsoft.Dafny {
 
     static string anchorUUID = "20e34a49-f40b-4547-ba7a-3a1955826af2";
 
+    public static ConcreteSyntaxTree Create(FormattableString input) {
+      return new ConcreteSyntaxTree().Format(input);
+    }
+
     public ConcreteSyntaxTree Format(FormattableString input) {
-      var anchorValues = new List<ConcreteSyntaxTree>();
+      var anchorValues = new List<ICanRender>();
       // Because template strings are difficult to process, we use the existing string.Format to do the processing
       // and we insert anchors to identify where the ConcreteSyntaxTree values are.
       // Template string processing logic can be found here: https://github.com/dotnet/runtime/blob/ae5ee8f02d6fc99469e1f194be45b5f649c2da1a/src/libraries/System.Private.CoreLib/src/System/Text/ValueStringBuilder.AppendFormat.cs#L60
       var formatArguments = Enumerable.Range(0, input.ArgumentCount).
         Select(index => {
           object argument = input.GetArgument(index)!;
-          if (argument is ConcreteSyntaxTree treeArg) {
+          if (argument is ICanRender treeArg) {
             anchorValues.Add(treeArg);
             return $"{anchorUUID}{anchorValues.Count - 1}";
           }
@@ -124,7 +160,7 @@ namespace Microsoft.Dafny {
 
     // ----- Nested blocks ------------------------------
 
-    public ConcreteSyntaxTree ForkInParens() {
+    public virtual ConcreteSyntaxTree ForkInParens() {
       var result = new ConcreteSyntaxTree();
       Write("(");
       Append(result);
@@ -132,7 +168,7 @@ namespace Microsoft.Dafny {
       return result;
     }
 
-    public ConcreteSyntaxTree NewBlock(string header = "", string footer = "",
+    public virtual ConcreteSyntaxTree NewBlock(string header = "", string footer = "",
       BlockStyle open = BlockStyle.SpaceBrace,
       BlockStyle close = BlockStyle.NewlineBrace) {
       Contract.Requires(header != null);
@@ -166,13 +202,17 @@ namespace Microsoft.Dafny {
     // ----- Collection ------------------------------
 
     public override string ToString() {
+      return MakeString();
+    }
+
+    public string MakeString(int indentSize = 2) {
       var sw = new StringWriter();
       var files = new Queue<FileSyntax>();
-      Render(sw, 0, new WriterState(), files);
+      Render(sw, 0, new WriterState(), files, indentSize);
       while (files.Count != 0) {
         var ftw = files.Dequeue();
         sw.WriteLine("#file {0}", ftw.Filename);
-        ftw.Render(sw, 0, new WriterState(), files);
+        ftw.Render(sw, 0, new WriterState(), files, indentSize);
       }
 
       return sw.ToString();

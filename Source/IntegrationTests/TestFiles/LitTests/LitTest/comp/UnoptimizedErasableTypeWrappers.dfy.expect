@@ -1,0 +1,4 @@
+SingletonRecord.SingletonRecord(15) WithGhost.WithGhost(20)
+() (30) (31) (30, 32)
+15 20
+30 31 30 32

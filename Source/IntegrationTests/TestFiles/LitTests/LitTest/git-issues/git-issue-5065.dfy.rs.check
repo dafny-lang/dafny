@@ -1,0 +1,1 @@
+// CHECK-L: error[E0107]: method takes 0 generic arguments but 1 generic argument was supplied

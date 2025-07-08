@@ -1,101 +1,101 @@
 using Microsoft.Dafny.LanguageServer.IntegrationTest.Extensions;
 using Microsoft.Dafny.LanguageServer.Workspace;
-using Microsoft.Extensions.Configuration;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
-using OmniSharp.Extensions.LanguageServer.Protocol.Client;
-using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.Dafny.LanguageServer.IntegrationTest.Util;
+using Xunit;
+using Xunit.Abstractions;
 
 namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Synchronization {
-  [TestClass]
   public class SaveDocumentTest : ClientBasedLanguageServerTest {
 
-    [TestMethod]
+    [Fact]
     public async Task LeavesDocumentUnchangedIfVerifyOnChange() {
       var source = @"
 function GetConstant(): int {
   1
 }".Trim();
-      var documentItem = CreateTestDocument(source);
+      var documentItem = CreateTestDocument(source, "LeavesDocumentUnchangedIfVerifyOnChange.dfy");
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
-      await GetLastDiagnostics(documentItem, CancellationToken);
+      await AssertNoDiagnosticsAreComing(CancellationToken);
       await client.SaveDocumentAndWaitAsync(documentItem, CancellationToken);
       await AssertNoDiagnosticsAreComing(CancellationToken);
     }
 
-    [TestMethod]
+    [Fact]
     public async Task LeavesDocumentUnchangedIfVerifyNever() {
       var source = @"
 function GetConstant(): int {
   1
 }".Trim();
-      await SetUp(options => options.Set(ServerCommand.Verification, VerifyOnMode.Never));
-      var documentItem = CreateTestDocument(source);
+      await SetUp(options => options.Set(ProjectManager.Verification, VerifyOnMode.Never));
+      var documentItem = CreateTestDocument(source, "LeavesDocumentUnchangedIfVerifyNever.dfy");
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
-      await GetLastDiagnostics(documentItem, CancellationToken);
+      await AssertNoDiagnosticsAreComing(CancellationToken);
       await client.SaveDocumentAndWaitAsync(documentItem, CancellationToken);
       await AssertNoDiagnosticsAreComing(CancellationToken);
     }
 
-    [TestMethod]
+    [Fact]
     public async Task LeavesDocumentUnchangedIfDocumentContainsSyntaxErrorsIfVerifyOnSave() {
       var source = @"
 function GetConstant() int {
   1
 }".Trim();
-      await SetUp(options => options.Set(ServerCommand.Verification, VerifyOnMode.Save));
-      var documentItem = CreateTestDocument(source);
+      await SetUp(options => options.Set(ProjectManager.Verification, VerifyOnMode.Save));
+      var documentItem = CreateTestDocument(source, "LeavesDocumentUnchangedIfDocumentContainsSyntaxErrorsIfVerifyOnSave.dfy");
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
-      await GetLastDiagnostics(documentItem, CancellationToken);
+      await GetLastDiagnostics(documentItem);
       await client.SaveDocumentAndWaitAsync(documentItem, CancellationToken);
       await AssertNoDiagnosticsAreComing(CancellationToken);
     }
 
-    [TestMethod]
+    [Fact]
     public async Task LeavesDocumentUnchangedIfDocumentContainsSemanticErrorsIfVerifyOnSave() {
       var source = @"
 function GetConstant(): int {
   d
 }".Trim();
-      await SetUp(options => options.Set(ServerCommand.Verification, VerifyOnMode.Save));
-      var documentItem = CreateTestDocument(source);
+      await SetUp(options => options.Set(ProjectManager.Verification, VerifyOnMode.Save));
+      var documentItem = CreateTestDocument(source, "LeavesDocumentUnchangedIfDocumentContainsSemanticErrorsIfVerifyOnSave.dfy");
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
-      await GetLastDiagnostics(documentItem, CancellationToken);
+      await GetLastDiagnostics(documentItem);
       await client.SaveDocumentAndWaitAsync(documentItem, CancellationToken);
       await AssertNoDiagnosticsAreComing(CancellationToken);
     }
 
-    [TestMethod]
+    [Fact]
     public async Task UpdatesFlawlessDocumentIfVerifyOnSave() {
       var source = @"
 function GetConstant(): int {
   1
 }".Trim();
-      await SetUp(options => options.Set(ServerCommand.Verification, VerifyOnMode.Save));
-      var documentItem = CreateTestDocument(source);
+      await SetUp(options => options.Set(ProjectManager.Verification, VerifyOnMode.Save));
+      var documentItem = CreateTestDocument(source, "UpdatesFlawlessDocumentIfVerifyOnSave.dfy");
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
-      await GetLastDiagnostics(documentItem, CancellationToken);
+      await AssertNoDiagnosticsAreComing(CancellationToken);
       await client.SaveDocumentAndWaitAsync(documentItem, CancellationToken);
       await AssertNoDiagnosticsAreComing(CancellationToken);
     }
 
-    [TestMethod]
+    [Fact]
     public async Task VerificationErrorsAreCapturedIfVerifyOnSave() {
       var source = @"
 method DoIt() {
   assert false;
 }".Trim();
-      await SetUp(options => options.Set(ServerCommand.Verification, VerifyOnMode.Save));
-      var documentItem = CreateTestDocument(source);
+      await SetUp(options => options.Set(ProjectManager.Verification, VerifyOnMode.Save));
+      var documentItem = CreateTestDocument(source, "VerificationErrorsAreCapturedIfVerifyOnSave.dfy");
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
-      await GetLastDiagnostics(documentItem, CancellationToken);
+      await AssertNoDiagnosticsAreComing(CancellationToken);
       await client.SaveDocumentAndWaitAsync(documentItem, CancellationToken);
-      var afterSaveDiagnostics = await GetLastDiagnostics(documentItem, CancellationToken);
-      Assert.AreEqual(1, afterSaveDiagnostics.Count());
+      var afterSaveDiagnostics = await GetLastDiagnostics(documentItem);
+      Assert.Single(afterSaveDiagnostics);
       var message = afterSaveDiagnostics.First();
-      Assert.AreEqual(MessageSource.Verifier.ToString(), message.Source);
+      Assert.Equal(MessageSource.Verifier.ToString(), message.Source);
+    }
+
+    public SaveDocumentTest(ITestOutputHelper output) : base(output) {
     }
   }
 }

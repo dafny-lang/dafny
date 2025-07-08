@@ -1,0 +1,3 @@
+git-issue-4844.dfy(8,29): Error: argument for parameter 'o' could not be proved to be allocated in the two-state function's previous state -- if you add 'new' before the parameter declaration, like 'new o: O', arguments can refer to expressions possibly unallocated in the previous state
+
+Dafny program verifier finished with 1 verified, 1 error

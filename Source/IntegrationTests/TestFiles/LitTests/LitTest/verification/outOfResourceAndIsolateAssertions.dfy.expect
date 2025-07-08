@@ -1,0 +1,24 @@
+Verified 0/2 symbols. Waiting for f to verify.
+Verified 1/10 of f: assertion at line 5 - verified successfully <redacted>
+Verified 2/10 of f: assertion at line 5 - verified successfully <redacted>
+Verified 3/10 of f: assertion at line 5 - verified successfully <redacted>
+Verified 4/10 of f: assertion at line 5 - verified successfully <redacted>
+Verified 5/10 of f: assertion at line 5 - verified successfully <redacted>
+Verified 6/10 of f: assertion at line 5 - verified successfully <redacted>
+Verified 7/10 of f: assertion at line 5 - verified successfully <redacted>
+Verified 8/10 of f: assertion at line 5 - verified successfully <redacted>
+Verified 9/10 of f: assertion at line 5 - verified successfully <redacted>
+Verified 10/10 of f: assertion at line 5 - verified successfully <redacted>
+Verified 1/2 symbols. Waiting for L to verify.
+Verified 1/8 of L: assertion at line 9 - verified successfully <redacted>
+Verified 2/8 of L: assertion at line 10 - verified successfully <redacted>
+Verified 3/8 of L: assertion at line 10 - verified successfully <redacted>
+Verified 4/8 of L: assertion at line 10 - ran out of resources <redacted>
+Verified 5/8 of L: assertion at line 11 - verified successfully <redacted>
+Verified 6/8 of L: assertion at line 12 - verified successfully <redacted>
+Verified 7/8 of L: assertion at line 12 - verified successfully <redacted>
+Verified 8/8 of L: assertion at line 12 - ran out of resources <redacted>
+outOfResourceAndIsolateAssertions.dfy(10,18): Error: Verification out of resource (L)
+outOfResourceAndIsolateAssertions.dfy(12,18): Error: Verification out of resource (L)
+
+Dafny program verifier finished with 16 verified, 0 errors, 2 out of resource

@@ -21,7 +21,7 @@ using System.Threading.Tasks;
 namespace Microsoft.Dafny.LanguageServer.Handlers {
   /// <summary>
   /// LSP Synchronization handler for document based events, such as change, open, close and save.
-  /// The documents are managed using an implementation of <see cref="IDocumentDatabase"/>.
+  /// The documents are managed using an implementation of <see cref="IProjectDatabase"/>.
   /// </summary>
   /// <remarks>
   /// The <see cref="CancellationToken"/> of all requests is not used here. The reason for this is because document changes are applied in the
@@ -31,83 +31,84 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
   /// break the background processing if used.
   /// </remarks>
   public class DafnyTextDocumentHandler : TextDocumentSyncHandlerBase {
-    private const string LanguageId = "dafny";
+    private const string DafnyLanguage = "dafny";
 
     private readonly ILogger logger;
-    private readonly IDocumentDatabase documents;
-    private readonly ITelemetryPublisher telemetryPublisher;
+    private readonly IProjectDatabase projects;
+    private readonly TelemetryPublisherBase telemetryPublisher;
     private readonly INotificationPublisher notificationPublisher;
 
     public DafnyTextDocumentHandler(
-      ILogger<DafnyTextDocumentHandler> logger, IDocumentDatabase documents,
-      ITelemetryPublisher telemetryPublisher, INotificationPublisher notificationPublisher
+      ILogger<DafnyTextDocumentHandler> logger, IProjectDatabase projects,
+      TelemetryPublisherBase telemetryPublisher, INotificationPublisher notificationPublisher
     ) {
       this.logger = logger;
-      this.documents = documents;
+      this.projects = projects;
       this.telemetryPublisher = telemetryPublisher;
       this.notificationPublisher = notificationPublisher;
     }
 
     protected override TextDocumentSyncRegistrationOptions CreateRegistrationOptions(SynchronizationCapability capability, ClientCapabilities clientCapabilities) {
       return new TextDocumentSyncRegistrationOptions {
-        DocumentSelector = DocumentSelector.ForLanguage(LanguageId),
+        DocumentSelector = new DocumentSelector(DocumentFilter.ForLanguage(DafnyLanguage), DocumentFilter.ForPattern("**/*dfyconfig.toml")),
         Change = TextDocumentSyncKind.Incremental
       };
     }
 
     public override TextDocumentAttributes GetTextDocumentAttributes(DocumentUri uri) {
-      return new TextDocumentAttributes(uri, LanguageId);
+      return new TextDocumentAttributes(uri, uri.Path.EndsWith(DafnyProject.FileName) ? "toml" : DafnyLanguage);
     }
 
-    public override Task<Unit> Handle(DidOpenTextDocumentParams notification, CancellationToken cancellationToken) {
-      logger.LogTrace("received open notification {DocumentUri}", notification.TextDocument.Uri);
+    public override async Task<Unit> Handle(DidOpenTextDocumentParams notification, CancellationToken cancellationToken) {
+      logger.LogDebug("received open notification {DocumentUri}", notification.TextDocument.Uri);
       try {
-        documents.OpenDocument(new DocumentTextBuffer(notification.TextDocument));
+        await projects.OpenDocument(notification.TextDocument);
+      } catch (InvalidOperationException e) {
+        if (!e.Message.Contains("because it is already open")) {
+          telemetryPublisher.PublishUnhandledException(e);
+        }
+        throw;
       } catch (Exception e) {
         telemetryPublisher.PublishUnhandledException(e);
+        throw;
       }
-      return Unit.Task;
+
+      logger.LogDebug($"Finished opening document {notification.TextDocument.Uri}");
+      return Unit.Value;
     }
 
+    /// <summary>
+    /// Can be called in parallel
+    /// </summary>
     public override Task<Unit> Handle(DidCloseTextDocumentParams notification, CancellationToken cancellationToken) {
-      logger.LogTrace("received close notification {DocumentUri}", notification.TextDocument.Uri);
+      logger.LogDebug("received close notification {DocumentUri}", notification.TextDocument.Uri);
       try {
-        CloseDocumentAndHideDiagnosticsAsync(notification.TextDocument);
+        projects.CloseDocument(notification.TextDocument);
       } catch (Exception e) {
         telemetryPublisher.PublishUnhandledException(e);
       }
-      return Unit.Task;
+      return Task.FromResult(Unit.Value);
     }
 
-    public override Task<Unit> Handle(DidChangeTextDocumentParams notification, CancellationToken cancellationToken) {
-      logger.LogDebug("received change notification {DocumentUri}", notification.TextDocument.Uri);
+    public override async Task<Unit> Handle(DidChangeTextDocumentParams notification, CancellationToken cancellationToken) {
+      logger.LogDebug($"Received change notification {notification.TextDocument.Uri} version {notification.TextDocument.Version}");
       try {
-        documents.UpdateDocument(notification);
+        await projects.UpdateDocument(notification);
       } catch (Exception e) {
         telemetryPublisher.PublishUnhandledException(e);
       }
-      return Unit.Task;
+      return Unit.Value;
     }
 
     public override Task<Unit> Handle(DidSaveTextDocumentParams notification, CancellationToken cancellationToken) {
-      logger.LogTrace("received save notification {DocumentUri}", notification.TextDocument.Uri);
+      logger.LogDebug("received save notification {DocumentUri}", notification.TextDocument.Uri);
       try {
-        documents.SaveDocument(notification.TextDocument);
+        projects.SaveDocument(notification.TextDocument);
       } catch (Exception e) {
         telemetryPublisher.PublishUnhandledException(e);
       }
 
       return Unit.Task;
-    }
-
-    private async Task CloseDocumentAndHideDiagnosticsAsync(TextDocumentIdentifier documentId) {
-      try {
-        await documents.CloseDocumentAsync(documentId);
-        notificationPublisher.HideDiagnostics(documentId);
-      } catch (Exception e) {
-        telemetryPublisher.PublishUnhandledException(e);
-      }
-
     }
   }
 }

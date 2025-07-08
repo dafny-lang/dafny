@@ -1,0 +1,10 @@
+ReadsOnMethods-Resolution.dfy(7,28): Error: reads clauses on methods are forbidden without the command-line flag `--reads-clauses-on-methods`
+ReadsOnMethods-Resolution.dfy(11,31): Error: reads clauses on methods are forbidden without the command-line flag `--reads-clauses-on-methods`
+ReadsOnMethods-Resolution.dfy(15,19): Error: reads clauses on methods are forbidden without the command-line flag `--reads-clauses-on-methods`
+ReadsOnMethods-Resolution.dfy(17,43): Error: reads clauses on methods are forbidden without the command-line flag `--reads-clauses-on-methods`
+ReadsOnMethods-Resolution.dfy(19,34): Error: reads clauses on methods are forbidden without the command-line flag `--reads-clauses-on-methods`
+ReadsOnMethods-Resolution.dfy(21,22): Error: lemmas are not allowed to have reads clauses (they are allowed to read all memory locations)
+ReadsOnMethods-Resolution.dfy(23,39): Error: twostate lemmas are not allowed to have reads clauses (they are allowed to read all memory locations)
+ReadsOnMethods-Resolution.dfy(25,43): Error: greatest lemmas are not allowed to have reads clauses (they are allowed to read all memory locations)
+ReadsOnMethods-Resolution.dfy(27,42): Error: least lemmas are not allowed to have reads clauses (they are allowed to read all memory locations)
+9 resolution/type errors detected in ReadsOnMethods-Resolution.dfy

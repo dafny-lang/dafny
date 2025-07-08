@@ -1,3 +1,3 @@
-text.dfy(3,2): Error: a forall expression involved in a predicate definition is not allowed to depend on the set of allocated references, but values of 'x' may contain references (perhaps declare its type, 'X', as 'X(!new)') (see documentation for 'older' parameters)
-text.dfy(3,2): Error: a forall expression involved in a predicate definition is not allowed to depend on the set of allocated references, but values of 'y' may contain references (perhaps declare its type, 'X', as 'X(!new)') (see documentation for 'older' parameters)
+text.dfy(3,2): Error: a forall expression involved in a predicate definition is not allowed to depend on the set of allocated references, but values of 'x' (of type 'X') may contain references (perhaps declare its type as 'X(!new)') (see documentation for 'older' parameters)
+text.dfy(3,2): Error: a forall expression involved in a predicate definition is not allowed to depend on the set of allocated references, but values of 'y' (of type 'X') may contain references (perhaps declare its type as 'X(!new)') (see documentation for 'older' parameters)
 2 resolution/type errors detected in text.dfy

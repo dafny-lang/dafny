@@ -28,14 +28,33 @@ public abstract class PluginConfiguration {
   /// </summary>
   /// <returns>a list of Rewriter that are going to be used in the resolution pipeline</returns>
   public virtual Rewriter[] GetRewriters(ErrorReporter errorReporter) {
-    return Array.Empty<Rewriter>();
+    return [];
   }
 
   /// <summary>
   /// Override this method to provide compilers
   /// </summary>
+  /// <param name="options"></param>
   /// <returns>A list of compilers implemented by this plugin</returns>
-  public virtual Compiler[] GetCompilers() {
-    return Array.Empty<Compiler>();
+  public virtual IExecutableBackend[] GetCompilers(DafnyOptions options) {
+    return [];
+  }
+
+  /// <summary>
+  /// Override this method to provide docstring converters
+  /// </summary>
+  /// <param name="options"></param>
+  /// <returns>A list of docstring converters implemented by this plugin, applied from left to right</returns>
+  public virtual DocstringRewriter[] GetDocstringRewriters(DafnyOptions options) {
+    return [];
+  }
+
+  /// <summary>
+  /// Override this method to provide compiler instrumenters
+  /// </summary>
+  /// <param name="options"></param>
+  /// <returns>A list of compiler instrumenters implemented by this plugin</returns>
+  public virtual CompilerInstrumenter[] GetCompilerInstrumenters(ErrorReporter reporter) {
+    return [];
   }
 }

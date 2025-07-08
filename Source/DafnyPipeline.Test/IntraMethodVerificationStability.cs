@@ -1,21 +1,23 @@
-using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Threading;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
+using DafnyCore.Test;
+using DafnyTestGeneration;
 using Microsoft.Boogie;
 using Microsoft.Dafny;
 using Xunit;
 using Xunit.Abstractions;
 using BoogieProgram = Microsoft.Boogie.Program;
-using Parser = Microsoft.Dafny.Parser;
+using Token = Microsoft.Boogie.Token;
 
 namespace DafnyPipeline.Test {
   // Main.Resolve has static shared state (TypeConstraint.ErrorsToBeReported for example)
   // so we can't execute tests that use it in parallel.
   [Collection("Singleton Test Collection - Resolution")]
   public class IntraMethodVerificationStability {
+
     private readonly ITestOutputHelper testOutputHelper;
 
     // All types of top level declarations.
@@ -47,7 +49,7 @@ class FooClass {
 
 datatype Friends = Agnes | Agatha | Jermaine
 
-function method SomeFunc(funcFormal: int): nat { 3 }
+function SomeFunc(funcFormal: int): nat { 3 }
 
 method SomeMethod(methodFormal: int) returns (result: bool)
   requires methodFormal == 2
@@ -89,7 +91,7 @@ class FooClass2 {
 
 datatype Friends2 = Agnes2 | Agatha2 | Jermaine2
 
-function method SomeFunc2(funcFormal: int): nat { 3 }
+function SomeFunc2(funcFormal: int): nat { 3 }
 
 method SomeMethod2(methodFormal2: int) returns (result2: bool) 
   requires methodFormal2 == 2
@@ -113,7 +115,7 @@ method SomeMethod(methodFormal: int) returns (result: bool)
   result := methodFormal == SomeFunc(42);
 }
 
-function method SomeFunc(funcFormal: int): nat { 3 }
+function SomeFunc(funcFormal: int): nat { 3 }
 
 datatype Friends = Agnes | Agatha | Jermaine
 
@@ -148,16 +150,16 @@ module SomeModule {
     }
 
     [Fact]
-    public void NoUniqueLinesWhenConcatenatingUnrelatedPrograms() {
-      var options = DafnyOptions.Create();
-      DafnyOptions.Install(options);
+    public async Task NoUniqueLinesWhenConcatenatingUnrelatedPrograms() {
+      var options = DafnyOptions.CreateUsingOldParser((TextWriter)new WriterFromOutputHelper(testOutputHelper));
+      Regex idAttributeRegex = new Regex("{:id \".*\"}");
 
-      var regularBoogie = GetBoogie(originalProgram).ToList();
-      var renamedBoogie = GetBoogie(renamedProgram).ToList();
-      var regularBoogieText = GetBoogieText(options, regularBoogie);
-      var renamedBoogieText = GetBoogieText(options, renamedBoogie);
+      var regularBoogie = await GetBoogie(options, originalProgram);
+      var renamedBoogie = await GetBoogie(options, renamedProgram);
+      var regularBoogieText = idAttributeRegex.Replace(GetBoogieText(options, regularBoogie), "");
+      var renamedBoogieText = idAttributeRegex.Replace(GetBoogieText(options, renamedBoogie), "");
       var separate = UniqueNonCommentLines(regularBoogieText + renamedBoogieText);
-      var combinedBoogie = GetBoogieText(options, GetBoogie(originalProgram + renamedProgram));
+      var combinedBoogie = idAttributeRegex.Replace(GetBoogieText(options, await GetBoogie(options, originalProgram + renamedProgram)), "");
       var together = UniqueNonCommentLines(combinedBoogie);
 
       var uniqueLines = separate.Union(together).Except(separate.Intersect(together)).ToList();
@@ -166,60 +168,60 @@ module SomeModule {
 
     [Fact]
     public async Task EqualProverLogWhenReorderingProgram() {
-      var options = DafnyOptions.Create();
+      var options = DafnyOptions.CreateUsingOldParser((TextWriter)new WriterFromOutputHelper(testOutputHelper));
       options.ProcsToCheck.Add("SomeMethod*");
-      DafnyOptions.Install(options);
 
-      var reorderedProverLog = await GetProverLogForProgramAsync(options, GetBoogie(reorderedProgram));
-      var regularProverLog = await GetProverLogForProgramAsync(options, GetBoogie(originalProgram));
+      var reorderedProverLog = await GetProverLogForProgramAsync(options, await GetBoogie(options, reorderedProgram));
+      var regularProverLog = await GetProverLogForProgramAsync(options, await GetBoogie(options, originalProgram));
       Assert.Equal(regularProverLog, reorderedProverLog);
     }
 
     [Fact]
     public async Task EqualProverLogWhenRenamingProgram() {
-      var options = DafnyOptions.Create();
+      var options = DafnyOptions.CreateUsingOldParser((TextWriter)new WriterFromOutputHelper(testOutputHelper));
       options.ProcsToCheck.Add("*SomeMethod*");
-      DafnyOptions.Install(options);
 
-      var renamedProverLog = await GetProverLogForProgramAsync(options, GetBoogie(renamedProgram));
-      var regularProverLog = await GetProverLogForProgramAsync(options, GetBoogie(originalProgram));
+      var renamedProverLog = await GetProverLogForProgramAsync(options, await GetBoogie(options, renamedProgram));
+      var regularProverLog = await GetProverLogForProgramAsync(options, await GetBoogie(options, originalProgram));
       Assert.Equal(regularProverLog, renamedProverLog);
     }
 
     [Fact]
     public async Task EqualProverLogWhenAddingUnrelatedProgram() {
 
-      var options = DafnyOptions.Create();
+      var options = DafnyOptions.CreateUsingOldParser((TextWriter)new WriterFromOutputHelper(testOutputHelper));
       options.ProcsToCheck.Add("*SomeMethod *");
-      DafnyOptions.Install(options);
 
-      var renamedProverLog = await GetProverLogForProgramAsync(options, GetBoogie(renamedProgram + originalProgram));
-      var regularProverLog = await GetProverLogForProgramAsync(options, GetBoogie(originalProgram));
+      var renamedProverLog = await GetProverLogForProgramAsync(options, await GetBoogie(options, renamedProgram + originalProgram));
+      var regularProverLog = await GetProverLogForProgramAsync(options, await GetBoogie(options, originalProgram));
       Assert.Equal(regularProverLog, renamedProverLog);
     }
 
-    private async Task<string> GetProverLogForProgramAsync(ExecutionEngineOptions options, IEnumerable<Microsoft.Boogie.Program> boogiePrograms) {
+    private async Task<string> GetProverLogForProgramAsync(DafnyOptions options, IEnumerable<Microsoft.Boogie.Program> boogiePrograms) {
       var logs = await GetProverLogsForProgramAsync(options, boogiePrograms).ToListAsync();
       Assert.Single(logs);
       return logs[0];
     }
 
-    private async IAsyncEnumerable<string> GetProverLogsForProgramAsync(ExecutionEngineOptions options,
+    private async IAsyncEnumerable<string> GetProverLogsForProgramAsync(DafnyOptions options,
       IEnumerable<BoogieProgram> boogiePrograms) {
       string directory = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
       Directory.CreateDirectory(directory);
       var temp1 = directory + "/proverLog";
       testOutputHelper.WriteLine("proverLog: " + temp1);
       options.ProverLogFilePath = temp1;
+      options.ProcessSolverOptions(new ErrorReporterSink(options), Microsoft.Dafny.Token.NoToken);
       using (var engine = ExecutionEngine.CreateWithoutSharedCache(options)) {
         foreach (var boogieProgram in boogiePrograms) {
-          var (outcome, _) = await Main.BoogieOnce(Console.Out, engine, "", "", boogieProgram, "programId");
+          var (outcome, _) = await DafnyMain.BoogieOnce(new ErrorReporterSink(options),
+            options, new StringWriter(), engine, "", "", boogieProgram, "programId");
           testOutputHelper.WriteLine("outcome: " + outcome);
         }
       }
       foreach (var proverFile in Directory.GetFiles(directory)) {
         yield return await File.ReadAllTextAsync(proverFile);
       }
+      Directory.Delete(directory, true);
     }
 
     ISet<string> UniqueNonCommentLines(string input) {
@@ -237,20 +239,13 @@ module SomeModule {
       return string.Join('\n', boogieProgram.Select(x => PrintBoogie(options, x)));
     }
 
-    IEnumerable<BoogieProgram> GetBoogie(string dafnyProgramText) {
-      var module = new LiteralModuleDecl(new DefaultModuleDecl(), null);
-      var fullFilePath = "foo";
-      Microsoft.Dafny.Type.ResetScopes();
-      var builtIns = new BuiltIns();
-      var errorReporter = new ConsoleErrorReporter();
-      var parseResult = Parser.Parse(dafnyProgramText, fullFilePath, "foo", module, builtIns, errorReporter);
-      Assert.Equal(0, parseResult);
-      var dafnyProgram = new Microsoft.Dafny.Program(fullFilePath, module, builtIns, errorReporter);
-      Main.Resolve(dafnyProgram, errorReporter);
-      Assert.Equal(0, errorReporter.ErrorCount);
-      return Translator.Translate(dafnyProgram, errorReporter).Select(t => t.Item2).ToList();
+    async Task<IReadOnlyList<BoogieProgram>> GetBoogie(DafnyOptions options, string dafnyProgramText) {
+      var reporter = new BatchErrorReporter(options);
+      var dafnyProgram = await Utils.Parse(reporter, dafnyProgramText, false);
+      Assert.NotNull(dafnyProgram);
+      DafnyMain.Resolve(dafnyProgram);
+      Assert.Equal(0, reporter.ErrorCount);
+      return BoogieGenerator.Translate(dafnyProgram, reporter).Select(t => t.Item2).ToList();
     }
   }
-
-
 }

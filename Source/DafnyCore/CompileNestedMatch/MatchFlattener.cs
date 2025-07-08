@@ -1,9 +1,11 @@
 using System;
 using System.Collections.Generic;
+using System.Configuration;
 using System.Diagnostics.Contracts;
 using System.Linq;
+using static Microsoft.Dafny.ErrorRegistry;
 
-namespace Microsoft.Dafny; 
+namespace Microsoft.Dafny;
 
 /// <summary>
 /// Removes nesting from matching patterns, such as case Cons(head1, Cons(head2, tail))
@@ -38,31 +40,21 @@ namespace Microsoft.Dafny;
 /// 
 /// </summary>
 public class MatchFlattener : IRewriter {
-  private readonly FreshIdGenerator idGenerator;
+  private const string NoCasesMessage = "match has no cases and this is only allowed when the verifier can prove the match is unreachable";
   private ResolutionContext resolutionContext;
 
-  public MatchFlattener(ErrorReporter reporter, FreshIdGenerator idGenerator)
+  public MatchFlattener(ErrorReporter reporter)
     : base(reporter) {
-    this.idGenerator = idGenerator;
   }
 
-  internal override void PostResolve(Program program) {
-    foreach (var compileModule in program.RawModules()) {
-      FlattenNode(compileModule);
-    }
-    foreach (var compileModule in program.CompileModules) {
-      var reporter = Reporter;
-      Reporter = new ErrorReporterSink();
-      FlattenNode(compileModule);
-      Reporter = reporter;
-    }
+  internal override void PostResolve(ModuleDefinition module) {
+    FlattenNode(module);
   }
 
-  private void FlattenNode(INode moduleDefinition) {
-    moduleDefinition.Visit(node => {
-      if (node != moduleDefinition && node is ModuleDefinition) {
-        // The resolver clones module definitions for compilation, but also the top level module which also contains the uncloned definitions,
-        // so this is to prevent recursion into the uncloned definitions. 
+  private void FlattenNode(Node root) {
+    root.Visit(node => {
+      if (node != root && node is ModuleDefinition) {
+        // The default module contains all the other modules, prevent visiting them since they're already visited as roots. 
         return false;
       }
 
@@ -86,42 +78,6 @@ public class MatchFlattener : IRewriter {
     });
   }
 
-  void FillMissingCases(Match s) {
-    Contract.Requires(s != null);
-    Contract.Requires(resolutionContext != null);
-
-    var dtd = s.Source.Type.AsDatatype;
-    Dictionary<string, DatatypeCtor> ctors = dtd.ConstructorsByName;
-
-    ISet<string> memberNamesUsed = new HashSet<string>();
-
-    foreach (var matchCase in s.Cases) {
-      if (ctors != null) {
-        Contract.Assert(dtd != null);
-        var ctorId = matchCase.Ctor.Name;
-        if (s.Source.Type.AsDatatype is TupleTypeDecl) {
-          var tuple = (TupleTypeDecl)s.Source.Type.AsDatatype;
-          ctorId = BuiltIns.TupleTypeCtorName(tuple.Dims);
-        }
-
-        if (ctors.ContainsKey(ctorId)) {
-          memberNamesUsed.Add(ctorId); // add mc.Id to the set of names used
-        }
-      }
-    }
-    if (dtd != null && memberNamesUsed.Count != dtd.Ctors.Count) {
-      // We could complain about the syntactic omission of constructors:
-      //   Reporter.Error(MessageSource.Resolver, stmt, "match statement does not cover all constructors");
-      // but instead we let the verifier do a semantic check.
-      // So, for now, record the missing constructors:
-      foreach (var ctr in dtd.Ctors) {
-        if (!memberNamesUsed.Contains(ctr.Name)) {
-          s.MissingCases.Add(ctr);
-        }
-      }
-      Contract.Assert(memberNamesUsed.Count + s.MissingCases.Count == dtd.Ctors.Count);
-    }
-  }
 
   private Expression CompileNestedMatchExpr(NestedMatchExpr nestedMatchExpr) {
     var cases = nestedMatchExpr.Cases.SelectMany(FlattenNestedMatchCaseExpr).ToList();
@@ -131,55 +87,68 @@ public class MatchFlattener : IRewriter {
 
     CaseBody compiledMatch = CompilePatternPaths(state, new HoleCtx(), LinkedLists.Create(nestedMatchExpr.Source), paths);
     if (compiledMatch is null) {
-      // Happens only if the match has no cases, create a Match with no cases as resolved expression and let ResolveMatchExpr handle it.
-      var result = new MatchExpr(nestedMatchExpr.tok, nestedMatchExpr.Source, new List<MatchCaseExpr>(), nestedMatchExpr.UsesOptionalBraces);
-      result.Type = nestedMatchExpr.Type;
-      FillMissingCases(result);
-      return result;
-    } else if (compiledMatch.Node is Expression expression) {
+      if (nestedMatchExpr.Source.Type.AsDatatype == null) {
+        var havoc = LetExpr.Havoc(nestedMatchExpr.Origin, nestedMatchExpr.Type);
+        return new StmtExpr(nestedMatchExpr.Origin, AssertStmt.CreateErrorAssert(nestedMatchExpr, NoCasesMessage), havoc) {
+          Type = nestedMatchExpr.Type
+        };
+      }
+
+      return new MatchExpr(nestedMatchExpr.Origin, nestedMatchExpr.Source, [],
+        nestedMatchExpr.UsesOptionalBraces) {
+        Type = nestedMatchExpr.Type
+      };
+    }
+
+    if (compiledMatch.Node is Expression expression) {
       for (int id = 0; id < state.CaseCopyCount.Length; id++) {
         if (state.CaseCopyCount[id] <= 0) {
-          Reporter.Warning(MessageSource.Resolver, state.CaseTok[id], "this branch is redundant");
+          Reporter.Warning(MessageSource.Resolver, "RedundantBranch", state.CaseTok[id], "this branch is redundant");
         }
       }
       return expression;
-    } else {
-      Contract.Assert(false); throw new cce.UnreachableException(); // Returned container should be a CExpr
     }
+    Contract.Assert(false); throw new cce.UnreachableException(); // Returned container should be a CExpr
   }
 
   private Statement CompileNestedMatchStmt(NestedMatchStmt nestedMatchStmt) {
-    var cases = nestedMatchStmt.Cases.SelectMany(FlattenNestedMatchCaseStmt).ToList();
+    var cases = nestedMatchStmt.Cases.SelectMany(FlattenNestedMatchCaseStmt)
+      .Select(nms => nms.Clone(new Cloner(false, true)))
+      .ToList();
     var state = new MatchCompilationState(nestedMatchStmt, cases, resolutionContext.WithGhost(nestedMatchStmt.IsGhost), nestedMatchStmt.Attributes);
 
     var paths = cases.Select((@case, index) => (PatternPath)new StmtPatternPath(index, @case, @case.Attributes)).ToList();
 
     var compiledMatch = CompilePatternPaths(state, new HoleCtx(), LinkedLists.Create(nestedMatchStmt.Source), paths);
     if (compiledMatch is null) {
-      // Happens only if the nested match has no cases, create a MatchStmt with no paths.
-      var result = new MatchStmt(nestedMatchStmt.Tok, nestedMatchStmt.EndTok, nestedMatchStmt.Source, new List<MatchCaseStmt>(), nestedMatchStmt.UsesOptionalBraces, nestedMatchStmt.Attributes);
-      FillMissingCases(result);
-      return result;
-    } else if (compiledMatch.Node is Statement statement) {
+      // Happens only if the nested match has no cases
+      if (nestedMatchStmt.Source.Type.AsDatatype == null) {
+        return AssertStmt.CreateErrorAssert(nestedMatchStmt, NoCasesMessage);
+      }
+
+      return new MatchStmt(nestedMatchStmt.Origin, nestedMatchStmt.Source, [], nestedMatchStmt.UsesOptionalBraces, nestedMatchStmt.Attributes);
+    }
+
+    if (compiledMatch.Node is Statement statement) {
       var result = statement;
       result.Attributes = (new ClonerKeepParensExpressions()).CloneAttributes(nestedMatchStmt.Attributes);
       for (int id = 0; id < state.CaseCopyCount.Length; id++) {
         if (state.CaseCopyCount[id] <= 0) {
-          Reporter.Warning(MessageSource.Resolver, state.CaseTok[id], "this branch is redundant");
+          Reporter.Warning(MessageSource.Resolver, "RedundantBranch", state.CaseTok[id], "this branch is redundant");
         }
       }
 
-      new GhostInterestVisitor(resolutionContext.WithGhost(nestedMatchStmt.IsGhost).CodeContext, null, Reporter, false).
-        Visit(result, nestedMatchStmt.IsGhost, null);
+      var context = resolutionContext.WithGhost(nestedMatchStmt.IsGhost).CodeContext;
+      result.ResolveGhostness(null, Reporter, nestedMatchStmt.IsGhost, context,
+        null, false, false);
       return result;
-    } else {
-      Contract.Assert(false); throw new cce.UnreachableException(); // Returned container should be a StmtContainer
     }
+    Contract.Assert(false); throw new cce.UnreachableException(); // Returned container should be a StmtContainer
   }
 
   private IEnumerable<NestedMatchCaseStmt> FlattenNestedMatchCaseStmt(NestedMatchCaseStmt c) {
     foreach (var pat in FlattenDisjunctivePatterns(c.Pat)) {
-      yield return new NestedMatchCaseStmt(c.Tok, pat,
+      yield return new NestedMatchCaseStmt(c.Origin, pat,
         c.Body,
         c.Attributes);
     }
@@ -191,12 +160,12 @@ public class MatchFlattener : IRewriter {
         return pat;
       case IdPattern p:
         if (inDisjunctivePattern && p.ResolvedLit == null && p.Arguments == null && !p.IsWildcardPattern) {
-          return new IdPattern(p.Tok, FreshTempVarName("_", null), null, p.IsGhost);
+          return new IdPattern(p.Origin, "_", null, p.IsGhost);
         }
         var args = p.Arguments?.ConvertAll(a => RemoveIllegalSubpatterns(a, inDisjunctivePattern));
-        return new IdPattern(p.Tok, p.Id, p.Type, args, p.IsGhost) { ResolvedLit = p.ResolvedLit, BoundVar = p.BoundVar };
+        return new IdPattern(p.Origin, p.Id, p.Type, args, p.IsGhost) { ResolvedLit = p.ResolvedLit, BoundVar = p.BoundVar };
       case DisjunctivePattern p:
-        return new IdPattern(p.Tok, FreshTempVarName("_", null), null, p.IsGhost);
+        return new IdPattern(p.Origin, "_", null, p.IsGhost);
       default:
         Contract.Assert(false);
         return null;
@@ -204,7 +173,7 @@ public class MatchFlattener : IRewriter {
   }
 
   string FreshTempVarName(string prefix, ICodeContext context) {
-    var gen = context is Declaration decl ? decl.IdGenerator : idGenerator;
+    var gen = context.CodeGenIdGenerator;
     var freshTempVarName = gen.FreshId(prefix);
     return freshTempVarName;
   }
@@ -220,7 +189,7 @@ public class MatchFlattener : IRewriter {
 
   private IEnumerable<NestedMatchCaseExpr> FlattenNestedMatchCaseExpr(NestedMatchCaseExpr c) {
     foreach (var pat in FlattenDisjunctivePatterns(c.Pat)) {
-      yield return new NestedMatchCaseExpr(c.Tok, pat, c.Body, c.Attributes);
+      yield return new NestedMatchCaseExpr(c.Origin, pat, c.Body, c.Attributes);
     }
   }
 
@@ -311,7 +280,7 @@ public class MatchFlattener : IRewriter {
             Contract.Assert(false);
             throw new cce.UnreachableException(); // non-nullary constructors of a non-datatype;
           } else {
-            Reporter.Error(MessageSource.Resolver, currPattern.Tok,
+            Reporter.Error(MessageSource.Resolver, currPattern.Origin,
               "Type mismatch: expected constructor of type {0}.  Got {1}.", dtd.Name, currPattern.Id);
           }
         }
@@ -348,9 +317,9 @@ public class MatchFlattener : IRewriter {
       var constructorPaths = new List<PatternPath>();
 
       // create a bound variable for each formal to use in the MatchCase for this constructor
-      // using the currMatchee.tok to get a location closer to the error if something goes wrong
+      // using the currMatchee.Tok to get a location closer to the error if something goes wrong
       var freshPatBV = ctor.Formals.ConvertAll(
-        x => CreateBoundVariable(headMatchee.tok, x.Type.Subst(subst), mti.CodeContext.CodeContext));
+        x => CreateBoundVariable(headMatchee.Origin, x.Type.Subst(subst), mti.CodeContext.CodeContext));
 
       // rhs to bind to head-patterns that are bound variables
       var rhsExpr = headMatchee;
@@ -360,11 +329,11 @@ public class MatchFlattener : IRewriter {
       foreach (var path in paths) {
         var (head, tail) = SplitPath(path);
         if (head is IdPattern idPattern) {
-          if (ctor.Name.Equals(idPattern.Id) && idPattern.Arguments != null) {
+          if (ctor.Name == idPattern.Id && idPattern.Arguments != null) {
             // ==[3.1]== If pattern is same constructor, push the arguments as patterns and add that path to new match
             // After making sure the constructor is applied to the right number of arguments
 
-            if (!(idPattern.Arguments.Count.Equals(ctor.Formals.Count))) {
+            if (idPattern.Arguments.Count != ctor.Formals.Count) {
               Reporter.Error(MessageSource.Resolver, mti.CaseTok[tail.CaseId], "constructor {0} of arity {1} is applied to {2} argument(s)", ctor.Name, ctor.Formals.Count, idPattern.Arguments.Count);
             }
             for (int j = 0; j < idPattern.Arguments.Count; j++) {
@@ -389,7 +358,7 @@ public class MatchFlattener : IRewriter {
             }
 
             var freshArgs = ctor.Formals.ConvertAll(x =>
-              CreateFreshBindingPattern(idPattern.Tok, x.Type.Subst(subst), mti.CodeContext.CodeContext, x.IsGhost));
+              CreateFreshBindingPattern(idPattern.Origin, x.Type.Subst(subst), mti.CodeContext.CodeContext, x.IsGhost));
 
             tail.Patterns.InsertRange(0, freshArgs);
             var newPath = LetBindNonWildCard(idPattern, rhsExpr, tail);
@@ -401,17 +370,17 @@ public class MatchFlattener : IRewriter {
         }
       }
       // Add variables corresponding to the arguments of the current constructor (ctor) to the matchees
-      var freshMatchees = freshPatBV.ConvertAll(x => new IdentifierExpr(x.tok, x));
+      var freshMatchees = freshPatBV.ConvertAll(x => new IdentifierExpr(x.Origin, x));
       // Update the current context
       var newContext = context.FillHole(new IdCtx(ctor));
-      var body = CompilePatternPaths(mti, newContext, LinkedLists.Concat(freshMatchees, remainingMatchees), constructorPaths);
+      var body = CompilePatternPaths(mti, newContext, LinkedLists.FromList(freshMatchees, remainingMatchees), constructorPaths);
       if (body is null) {
         // If no path matches this constructor, drop the case
         continue;
       }
 
       // Otherwise, add the case the new match created at [3]
-      var tok = body.Tok ?? new AutoGeneratedToken(headMatchee.tok);
+      var tok = body.Tok ?? new AutoGeneratedOrigin(headMatchee.Origin);
       var fromBoundVar = ctorToFromBoundVar.Contains(ctor.Name);
       var newMatchCase = CreateMatchCase(tok, ctor, freshPatBV, body, fromBoundVar);
       newMatchCases.Add(newMatchCase);
@@ -426,28 +395,25 @@ public class MatchFlattener : IRewriter {
         }
 
         var args = new List<Expression>();
-        var literalExpr = new LiteralExpr(mti.Tok, false);
-        literalExpr.Type = Type.Bool;
+        var literalExpr = Expression.CreateBoolLiteral(mti.Tok, false);
         args.Add(literalExpr);
         c.Attributes = new Attributes("split", args, c.Attributes);
       }
-      var newMatchStmt = new MatchStmt(mti.Tok, nestedMatchStmt.EndTok, headMatchee, newMatchCaseStmts, true, mti.Attributes, context);
+      var newMatchStmt = new MatchStmt(nestedMatchStmt.Origin, headMatchee, newMatchCaseStmts, true, mti.Attributes, context);
       newMatchStmt.IsGhost |= mti.CodeContext.IsGhost;
-      FillMissingCases(newMatchStmt);
       return new CaseBody(null, newMatchStmt);
-    } else {
-      var newMatchExpr = new MatchExpr(mti.Tok, headMatchee, newMatchCases.ConvertAll(x => (MatchCaseExpr)x), true, context);
-      newMatchExpr.Type = ((NestedMatchExpr)mti.Match).Type;
-      FillMissingCases(newMatchExpr);
-      return new CaseBody(null, newMatchExpr);
     }
+
+    var newMatchExpr = new MatchExpr(mti.Tok, headMatchee, newMatchCases.ConvertAll(x => (MatchCaseExpr)x), true, context);
+    newMatchExpr.Type = ((NestedMatchExpr)mti.Match).Type;
+    return new CaseBody(null, newMatchExpr);
   }
 
-  private MatchCase CreateMatchCase(IToken tok, DatatypeCtor ctor, List<BoundVar> freshPatBV, CaseBody bodyContainer, bool fromBoundVar) {
+  private MatchCase CreateMatchCase(IOrigin tok, DatatypeCtor ctor, List<BoundVar> freshPatBV, CaseBody bodyContainer, bool fromBoundVar) {
     MatchCase newMatchCase;
-    var cloner = new Cloner(true);
+    var cloner = new Cloner(false, true);
     if (bodyContainer.Node is Statement statement) {
-      var body = UnboxStmt(statement).Select(cloner.CloneStmt).ToList();
+      var body = UnboxStmt(statement).Select(stmt => cloner.CloneStmt(stmt, false)).ToList();
       newMatchCase = new MatchCaseStmt(tok, ctor, fromBoundVar, freshPatBV, body, bodyContainer.Attributes);
     } else {
       var body = (Expression)(bodyContainer.Node);
@@ -458,14 +424,14 @@ public class MatchFlattener : IRewriter {
     return newMatchCase;
   }
 
-  private BoundVar CreateBoundVariable(IToken tok, Type type, ICodeContext codeContext) {
+  private BoundVar CreateBoundVariable(IOrigin tok, Type type, ICodeContext codeContext) {
     var name = FreshTempVarName("_mcc#", codeContext);
-    return new BoundVar(new AutoGeneratedToken(tok), name, type);
+    return new BoundVar(new AutoGeneratedOrigin(tok), name, type);
   }
 
-  private IdPattern CreateFreshBindingPattern(IToken tok, Type type, ICodeContext codeContext, bool isGhost = false) {
+  private IdPattern CreateFreshBindingPattern(IOrigin tok, Type type, ICodeContext codeContext, bool isGhost = false) {
     var name = FreshTempVarName("_mcc#", codeContext);
-    return new IdPattern(new AutoGeneratedToken(tok), name, type, null, isGhost);
+    return new IdPattern(new AutoGeneratedOrigin(tok), name, type, null, isGhost);
   }
 
   /*
@@ -478,7 +444,7 @@ public class MatchFlattener : IRewriter {
     }
 
     // Create a list of alternatives
-    List<LiteralExpr> ifBlockLiterals = new List<LiteralExpr>();
+    List<LiteralExpr> ifBlockLiterals = [];
     foreach (var path in paths) {
       var head = GetPatternHead(path);
       var lit = GetLiteralExpressionFromPattern(head);
@@ -539,12 +505,12 @@ public class MatchFlattener : IRewriter {
     return CreateIfElseIfChain(mti, context, matchees.Head, ifBlocks, defaultBlock);
   }
 
-  private static LiteralExpr GetLiteralExpressionFromPattern(ExtendedPattern head) {
+  public static LiteralExpr GetLiteralExpressionFromPattern(ExtendedPattern head) {
     LiteralExpr lit = null;
     if (head is LitPattern litPattern) {
       lit = litPattern.OptimisticallyDesugaredLit;
-    } else if (head is IdPattern id && id.ResolvedLit != null) {
-      lit = id.ResolvedLit;
+    } else if (head is IdPattern { ResolvedLit: { } resolvedLit }) {
+      lit = resolvedLit;
     }
 
     return lit;
@@ -557,7 +523,7 @@ public class MatchFlattener : IRewriter {
     if (blocks.Count == 0) {
       if (defaultBlock?.Node is Statement stmt) {
         // Ensures the statements are wrapped in braces
-        return new CaseBody(null, BlockStmtOfCStmt(stmt.Tok, stmt.EndTok, stmt));
+        return new CaseBody(null, BlockStmtOfCStmt(stmt.Origin, stmt));
       }
 
       return defaultBlock;
@@ -566,62 +532,59 @@ public class MatchFlattener : IRewriter {
     var currBlock = blocks.First();
     blocks = blocks.Skip(1).ToList();
 
-    IToken tok = matchee.tok;
-    IToken endtok = matchee.tok;
-    BinaryExpr guard = new BinaryExpr(tok, BinaryExpr.Opcode.Eq, matchee, currBlock.Item1);
-    guard.ResolvedOp = BinaryExpr.ResolvedOpcode.EqCommon;
-    guard.Type = Type.Bool;
+    var tok = matchee.Origin;
+    var range = matchee.Origin;
+    var guard = new BinaryExpr(mti.Match.Origin, BinaryExpr.Opcode.Eq, matchee, currBlock.Item1) {
+      ResolvedOp = BinaryExpr.ResolvedOpcode.EqCommon,
+      Type = Type.Bool
+    };
 
-    var elsC = CreateIfElseIfChain(mti, context, matchee, blocks, defaultBlock);
+    var contextStr = context.FillHole(new IdCtx($"c: {matchee.Type}", [])).AbstractAllHoles().ToString();
+    var errorMessage = mti.Match.Source.Type.AsDatatype == null
+      ? $"missing case in match {mti.Match.MatchTypeName}: not all possibilities for selector of type {matchee.Type} have been covered"
+      : $"missing case in match {mti.Match.MatchTypeName}: {contextStr} (not all possibilities for constant 'c' have been covered)";
+
+    var assertGuard = AssertStmt.CreateErrorAssert(mti.Match, errorMessage, guard);
+    var elseCase = CreateIfElseIfChain(mti, context, matchee, blocks, defaultBlock);
 
     if (currBlock.Item2.Node is Expression expression) {
-      if (elsC is null) {
+      if (elseCase is null) {
         // handle an empty default
         // assert guard; item2.Body
-        var contextStr = context.FillHole(new IdCtx($"c: {matchee.Type.ToString()}", new List<MatchingContext>())).AbstractAllHoles().ToString();
-        var errorMessage = new StringLiteralExpr(mti.Tok,
-          $"missing case in match expression: {contextStr} (not all possibilities for constant 'c' in context have been covered)", true);
-        errorMessage.Type = new SeqType(Type.Char);
-        var attr = new Attributes("error", new List<Expression>() { errorMessage }, null);
-        var ag = new AssertStmt(mti.Tok, endtok, AutoGeneratedExpression.Create(guard, mti.Tok), null, null, attr);
-        var result = new StmtExpr(tok, ag, expression);
+        var result = new StmtExpr(tok, assertGuard, expression);
         result.Type = ((NestedMatchExpr)mti.Match).Type;
         return new CaseBody(null, result);
       } else {
-        var els = (Expression)elsC.Node;
+        var els = (Expression)elseCase.Node;
         var result = new ITEExpr(tok, false, guard, expression, els);
         result.Type = ((NestedMatchExpr)mti.Match).Type;
         return new CaseBody(null, result);
       }
-    } else if (currBlock.Item2.Node is Statement statement) {
-      var item2 = BlockStmtOfCStmt(tok, endtok, statement);
-      if (elsC is null) {
+    }
+
+    if (currBlock.Item2.Node is Statement statement) {
+      var item2 = BlockStmtOfCStmt(range, statement);
+      if (elseCase is null) {
         // handle an empty default
         // assert guard; item2.Body
-        var contextStr = context.FillHole(new IdCtx(string.Format("c: {0}", matchee.Type.ToString()), new List<MatchingContext>())).AbstractAllHoles().ToString();
-        var errorMessage = new StringLiteralExpr(mti.Tok, string.Format("missing case in match statement: {0} (not all possibilities for constant 'c' have been covered)", contextStr), true);
-        errorMessage.Type = new SeqType(Type.Char);
-        var attr = new Attributes("error", new List<Expression>() { errorMessage }, null);
-        var ag = new AssertStmt(mti.Tok, endtok, AutoGeneratedExpression.Create(guard, mti.Tok), null, null, attr);
-        ag.IsGhost = true;
         var body = new List<Statement>();
-        body.Add(ag);
+        body.Add(assertGuard);
         body.AddRange(item2.Body);
-        return new CaseBody(null, new BlockStmt(tok, endtok, body));
+        return new CaseBody(null, new BlockStmt(range, body));
       } else {
-        var els = (Statement)elsC.Node;
-        return new CaseBody(null, new IfStmt(tok, endtok, false, guard, item2, els));
+        var els = (Statement)elseCase.Node;
+        return new CaseBody(null, new IfStmt(range, false, guard, item2, els));
       }
-    } else {
-      throw new cce.UnreachableException();
     }
+
+    throw new cce.UnreachableException();
   }
 
-  record CaseBody(IToken Tok, INode Node, Attributes Attributes = null);
+  record CaseBody(IOrigin Tok, Node Node, Attributes Attributes = null);
 
-  private CaseBody PackBody(IToken tok, PatternPath path) {
+  private CaseBody PackBody(IOrigin tok, PatternPath path) {
     if (path is StmtPatternPath br) {
-      return new CaseBody(tok, new BlockStmt(tok, tok, br.Body.ToList()), br.Attributes);
+      return new CaseBody(tok, new BlockStmt(tok, br.Body.ToList()), br.Attributes);
     }
 
     if (path is ExprPatternPath) {
@@ -636,37 +599,37 @@ public class MatchFlattener : IRewriter {
       return block.Body;
     }
 
-    return new List<Statement>() { statement };
+    return [statement];
   }
 
-  private BlockStmt BlockStmtOfCStmt(IToken tok, IToken endTok, Statement stmt) {
+  private BlockStmt BlockStmtOfCStmt(IOrigin rangeOrigin, Statement stmt) {
     if (stmt is BlockStmt) {
       return (BlockStmt)stmt;
     }
 
     var stmts = new List<Statement>();
     stmts.Add(stmt);
-    return new BlockStmt(tok, endTok, stmts);
+    return new BlockStmt(rangeOrigin, stmts);
   }
 
   private class MatchCompilationState {
-    public INode Match { get; }
-    public readonly IToken[] CaseTok;
+    public INestedMatch Match { get; }
+    public readonly IOrigin[] CaseTok;
     public readonly int[] CaseCopyCount;
 
-    public IToken Tok => Match switch {
-      NestedMatchExpr matchExpr => matchExpr.tok,
-      NestedMatchStmt matchStmt => matchStmt.Tok,
+    public IOrigin Tok => Match switch {
+      NestedMatchExpr matchExpr => matchExpr.Origin,
+      NestedMatchStmt matchStmt => matchStmt.Origin,
       _ => throw new ArgumentOutOfRangeException(nameof(Match))
     };
 
     public readonly ResolutionContext CodeContext;
     public Attributes Attributes;
 
-    public MatchCompilationState(INode match, IReadOnlyList<NestedMatchCase> flattenedCases, ResolutionContext codeContext,
+    public MatchCompilationState(INestedMatch match, IReadOnlyList<NestedMatchCase> flattenedCases, ResolutionContext codeContext,
       Attributes attrs = null) {
       this.Match = match;
-      this.CaseTok = flattenedCases.Select(c => c.Tok).ToArray();
+      this.CaseTok = flattenedCases.Select(c => c.Origin).ToArray();
       this.CaseCopyCount = new int[flattenedCases.Count];
       Array.Fill(CaseCopyCount, 1);
       this.CodeContext = codeContext;
@@ -678,14 +641,14 @@ public class MatchFlattener : IRewriter {
     }
   }
 
-  private abstract record PatternPath(IToken Tok, int CaseId, List<ExtendedPattern> Patterns) {
+  private abstract record PatternPath(IOrigin Tok, int CaseId, List<ExtendedPattern> Patterns) {
   }
 
-  private record StmtPatternPath(IToken Tok, int CaseId, List<ExtendedPattern> Patterns,
+  private record StmtPatternPath(IOrigin Tok, int CaseId, List<ExtendedPattern> Patterns,
     IReadOnlyList<Statement> Body, Attributes Attributes) : PatternPath(Tok, CaseId, Patterns) {
 
     public StmtPatternPath(int caseId, NestedMatchCaseStmt x, Attributes attrs = null) :
-      this(x.Tok, caseId, new List<ExtendedPattern>() { x.Pat },
+      this(x.Origin, caseId, [x.Pat],
       new List<Statement>(x.Body), attrs) {
       Contract.Requires(!(x.Pat is DisjunctivePattern)); // No nested or patterns
     }
@@ -693,22 +656,22 @@ public class MatchFlattener : IRewriter {
     public override string ToString() {
       var bodyStr = "";
       foreach (var stmt in this.Body) {
-        bodyStr += string.Format("{1}{0};\n", Printer.StatementToString(stmt), "\t");
+        bodyStr += string.Format("{1}{0};\n", Printer.StatementToString(DafnyOptions.DefaultImmutableOptions, stmt), "\t");
       }
       return string.Format("\t> id: {0}\n\t> patterns: <{1}>\n\t-> body:\n{2} \n", this.CaseId, String.Join(",", this.Patterns.ConvertAll(x => x.ToString())), bodyStr);
     }
   }
 
-  private record ExprPatternPath(IToken Tok, int CaseId, List<ExtendedPattern> Patterns,
+  private record ExprPatternPath(IOrigin Tok, int CaseId, List<ExtendedPattern> Patterns,
     Expression Body, Attributes Attributes) : PatternPath(Tok, CaseId, Patterns) {
 
-    public ExprPatternPath(int caseId, NestedMatchCaseExpr x, Attributes attrs = null) : this(x.Tok, caseId,
-      new List<ExtendedPattern>() { x.Pat }, x.Body, attrs) {
+    public ExprPatternPath(int caseId, NestedMatchCaseExpr x, Attributes attrs = null) : this(x.Origin, caseId,
+      [x.Pat], x.Body, attrs) {
     }
 
     public override string ToString() {
       return
-        $"\t> id: {this.CaseId}\n\t-> patterns: <{String.Join(",", this.Patterns.ConvertAll(x => x.ToString()))}>\n\t-> body: {Printer.ExprToString(this.Body)}";
+        $"\t> id: {this.CaseId}\n\t-> patterns: <{String.Join(",", this.Patterns.ConvertAll(x => x.ToString()))}>\n\t-> body: {Printer.ExprToString(DafnyOptions.DefaultImmutableOptions, this.Body)}";
     }
   }
 
@@ -736,31 +699,32 @@ public class MatchFlattener : IRewriter {
     var type = var.Type ?? new InferredTypeProxy();
     var isGhost = var.IsGhost;
 
-    // if the expression is a generated IdentifierExpr, replace its token by the path's
+    // if the expression is a generated IdentifierExpr, replace its token by the path's; this causes any sub-range error message
+    // to point at the bound variable, not at the source expression
     Expression expr = genExpr;
-    if (genExpr is IdentifierExpr idExpr) {
-      if (idExpr.Name.StartsWith("_")) {
-        expr = new IdentifierExpr(var.Tok, idExpr.Var);
-      }
+    if (genExpr.Resolved is IdentifierExpr idExpr) {
+      expr = new IdentifierExpr(var.Origin, idExpr.Var);
     }
     if (bodyPath is StmtPatternPath stmtPath) {
-      if (stmtPath.Body.Count <= 0) {
+      if (stmtPath.Body.Count <= 0 && var.Type is TypeProxy) {
         return stmtPath;
       }
 
-      var caseLocal = new LocalVariable(var.Tok, var.Tok, name, type, isGhost);
-      caseLocal.type = type;
-      var casePattern = new CasePattern<LocalVariable>(caseLocal.EndTok, caseLocal);
-      casePattern.AssembleExpr(new List<Type>());
-      var caseLet = new VarDeclPattern(caseLocal.Tok, caseLocal.Tok, casePattern, expr, false);
-      caseLet.IsGhost = isGhost;
+      var caseLocal = new LocalVariable(var.Origin, name, type, isGhost) {
+        type = type
+      };
+      var casePattern = new CasePattern<LocalVariable>(caseLocal.EndToken, caseLocal);
+      casePattern.AssembleExpr([]);
+      var caseLet = new VarDeclPattern(caseLocal.Origin, casePattern, expr, false) {
+        IsGhost = isGhost
+      };
 
-      var substitutions = new Dictionary<IVariable, Expression>() {
-        { var.BoundVar, new IdentifierExpr(var.BoundVar.Tok, caseLocal)}
+      var substitutions = new Dictionary<IVariable, IVariable>() {
+        { var.BoundVar, caseLocal }
       };
 
       var cloner = new SubstitutingCloner(substitutions, true);
-      var clonedBody = stmtPath.Body.Select(s => cloner.CloneStmt(s)).ToList();
+      var clonedBody = stmtPath.Body.Select(s => cloner.CloneStmt(s, false)).ToList();
 
       return new StmtPatternPath(stmtPath.Tok, stmtPath.CaseId, stmtPath.Patterns, new[] { caseLet }.Concat(clonedBody).ToList(), stmtPath.Attributes);
     }
@@ -768,14 +732,14 @@ public class MatchFlattener : IRewriter {
     if (bodyPath is ExprPatternPath exprPath) {
       var cBVar = (BoundVar)var.BoundVar;
       cBVar.IsGhost = isGhost;
-      var cPat = new CasePattern<BoundVar>(cBVar.Tok, cBVar);
-      cPat.AssembleExpr(new List<Type>());
+      var cPat = new CasePattern<BoundVar>(cBVar.Origin, cBVar);
+      cPat.AssembleExpr([]);
       var cPats = new List<CasePattern<BoundVar>>();
       cPats.Add(cPat);
       var exprs = new List<Expression>();
       exprs.Add(expr);
 
-      var letExpr = new LetExpr(cBVar.tok, cPats, exprs, exprPath.Body, true);
+      var letExpr = new LetExpr(cBVar.Origin, cPats, exprs, exprPath.Body, true);
       letExpr.Type = exprPath.Body.Type;
       return new ExprPatternPath(exprPath.Tok, exprPath.CaseId, exprPath.Patterns, letExpr, exprPath.Attributes);
     } else {
@@ -783,13 +747,13 @@ public class MatchFlattener : IRewriter {
     }
   }
 
-  // If cp is not a wildcard, replace path.Body with let cp = expr in path.Body
+  // If cp is not a literal or wildcard, replace path.Body with let cp = expr in path.Body
   // Otherwise do nothing
-  private PatternPath LetBindNonWildCard(IdPattern var, Expression expr, PatternPath bodyPath) {
-    if (!var.IsWildcardPattern) {
-      return LetBind(var, expr, bodyPath);
+  private PatternPath LetBindNonWildCard(IdPattern idPattern, Expression expr, PatternPath bodyPath) {
+    Contract.Assert(idPattern.Ctor == null);
+    if (idPattern.ResolvedLit != null || (idPattern.IsWildcardPattern && (idPattern.Id.Contains('#') || idPattern.Type is TypeProxy))) {
+      return bodyPath;
     }
-
-    return bodyPath;
+    return LetBind(idPattern, expr, bodyPath);
   }
 }

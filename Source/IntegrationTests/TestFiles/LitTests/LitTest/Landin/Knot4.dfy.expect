@@ -1,0 +1,2 @@
+Knot4.dfy(9,11): Error: To prevent the creation of non-terminating functions, storing functions into an object's fields that reads the object is disallowed
+1 resolution/type errors detected in Knot4.dfy

@@ -1,0 +1,1 @@
+// CHECK-L: Unhandled exception: System.InvalidOperationException: Cannot declare local var outside of a statement container: 

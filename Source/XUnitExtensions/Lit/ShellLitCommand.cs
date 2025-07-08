@@ -4,25 +4,33 @@ using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Text;
+using System.Threading.Tasks;
 using Xunit.Abstractions;
 
 namespace XUnitExtensions.Lit {
   public class ShellLitCommand : ILitCommand {
     private string shellCommand;
-    private string[] arguments;
+    public string[] Arguments { get; }
     private string[] passthroughEnvironmentVariables;
 
     public ShellLitCommand(string shellCommand, IEnumerable<string> arguments, IEnumerable<string> passthroughEnvironmentVariables) {
       this.shellCommand = shellCommand;
-      this.arguments = arguments.ToArray();
+      this.Arguments = arguments.ToArray();
       this.passthroughEnvironmentVariables = passthroughEnvironmentVariables.ToArray();
     }
 
-    public (int, string, string) Execute(ITestOutputHelper? outputHelper, TextReader? inputReader, TextWriter? outputWriter, TextWriter? errorWriter) {
+    public async Task<int> Execute(TextReader inputReader,
+      TextWriter outputWriter, TextWriter errorWriter) {
       using var process = new Process();
 
+      if (shellCommand.Contains('/') && Path.GetFileName(shellCommand) is var command and ("python3" or "cargo")) {
+        var workingDir = Path.GetDirectoryName(shellCommand);
+        process.StartInfo.WorkingDirectory = workingDir;
+        shellCommand = command;
+      }
+
       process.StartInfo.FileName = shellCommand;
-      foreach (var argument in arguments) {
+      foreach (var argument in Arguments) {
         process.StartInfo.ArgumentList.Add(argument);
       }
 
@@ -102,30 +110,28 @@ namespace XUnitExtensions.Lit {
       // needed because that is also what C# will use to decode the output of `process`.
 
       process.Start();
-      if (inputReader != null) {
-        string input = inputReader.ReadToEnd();
-        inputReader.Close();
-        process.StandardInput.Write(input);
-        process.StandardInput.Close();
-      }
+      string input = await inputReader.ReadToEndAsync();
+      inputReader.Close();
+      await process.StandardInput.WriteAsync(input);
+      process.StandardInput.Close();
 
       // FIXME the code below will deadlock if process fills the stderr buffer.
-      string output = process.StandardOutput.ReadToEnd();
-      outputWriter?.Write(output);
-      outputWriter?.Close();
-      string error = process.StandardError.ReadToEnd();
-      errorWriter?.Write(error);
-      errorWriter?.Close();
-      process.WaitForExit();
+      string output = await process.StandardOutput.ReadToEndAsync();
+      await outputWriter.WriteAsync(output);
+      outputWriter.Close();
+      string error = await process.StandardError.ReadToEndAsync();
+      await errorWriter.WriteAsync(error);
+      errorWriter.Close();
+      await process.WaitForExitAsync();
 
-      return (process.ExitCode, output, error);
+      return process.ExitCode;
     }
 
     public override string ToString() {
       var builder = new StringBuilder();
       builder.Append(shellCommand);
       builder.Append(' ');
-      builder.AppendJoin(" ", arguments);
+      builder.AppendJoin(" ", Arguments);
       return builder.ToString();
     }
   }

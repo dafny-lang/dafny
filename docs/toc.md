@@ -6,12 +6,6 @@ layout: default
 ---
 
 <link rel="stylesheet" href="assets/main.css">
-<script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
-<script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
-<script type="text/x-mathjax-config">
-        MathJax.Hub.Config({tex2jax: {inlineMath: [['$','$'], ["\\(","\\)"]], displayMath: [ ["$$","$$"], ["\\[","\\]"] ]
-        }});
-</script>
 
 <font size="+4"><p style="text-align: center;">Dafny Documentation</p></font>
 
@@ -24,18 +18,21 @@ This page contains links to Dafny documentation.
 [Project site for releases, issues, installation instructions, and source code](https://github.com/dafny-lang/dafny)
 
 * Quick start material:
-   * [Installation](https://github.com/dafny-lang/dafny/wiki/INSTALL) and [Releases](https://github.com/dafny-lang/dafny/releases)
+   * [Installation](./Installation) and [Releases](https://github.com/dafny-lang/dafny/releases)
    * [Cheatsheet](DafnyCheatsheet.pdf)
    * Dafny [Quick Reference](./QuickReference)
    * [Getting started tutorial](./OnlineTutorial/guide), focusing mostly on simple imperative programs
+   * [Dafny blog](https://dafny.org/blog)
 * Detailed documents for programmers
    * [**Dafny Reference Manual**](DafnyRef/DafnyRef)
    * [FAQs](HowToFAQ/index)
    * [Explanations of Error and Warning messages](HowToFAQ/Errors)
+   * [Verification optimization guide](VerificationOptimization/VerificationOptimization)
    * [**Style Guide for Dafny programs**](StyleGuide/Style-Guide)
    * Language reference for the [Dafny type system](http://leino.science/papers/krml243.html), which also describes available expressions for each type
    * [Miscellaneous Examples of Dafny programs](examples/README)
 * Dafny Tutorials
+   * [Cheat sheet appendix from Leino's book](Dafny-cheat-sheet.pdf)
    * [Introduction to Dafny](OnlineTutorial/guide)
    * [Value Types](OnlineTutorial/ValueTypes)
    * [Sets](OnlineTutorial/Sets)
@@ -61,8 +58,8 @@ There are also publications and lecture notes:
 * Videos at [Verification Corner](https://www.youtube.com/channel/UCP2eLEql4tROYmIYm5mA27A)
 
 And some books:
-* K. Rustan M. Leino, 2023, [_Program Proofs_](https://mitpress.mit.edu/9780262546232/program-proofs/), to be available in 2023.
-* K. Rustan M. Leino and Kaleb Leino, 2020, [_Program Proofs_](https://www.lulu.com/shop/k-rustan-m-leino-and-kaleb-leino/program-proofs/paperback/product-wqy8w5.html). Draft version of the book being published by MIT Press in 2023 (see previous item).
+* K. Rustan M. Leino, 2023, [_Program Proofs_](https://mitpress.mit.edu/9780262546232/program-proofs/), available March, 2023.
+* K. Rustan M. Leino and Kaleb Leino, 2020, [_Program Proofs_](https://www.lulu.com/shop/k-rustan-m-leino-and-kaleb-leino/program-proofs/paperback/product-wqy8w5.html). Draft version of the book being published by MIT Press, available only until its release in March 2023. 
 * Boro Sitnovski, 2022, [_Introducing Software Verification with Dafny Language_](https://link.springer.com/book/10.1007/978-1-4842-7978-6_)
 * Jason Koenig, K. Rustan M. Leino, 2016, [_Getting Started with Dafny: A Guide_](https://www.microsoft.com/en-us/research/wp-content/uploads/2016/12/krml220.pdf)
 

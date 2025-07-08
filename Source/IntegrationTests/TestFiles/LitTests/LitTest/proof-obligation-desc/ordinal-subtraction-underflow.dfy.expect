@@ -1,0 +1,4 @@
+ordinal-subtraction-underflow.dfy(7,7): Error: ORDINAL subtraction might underflow a limit ordinal (that is, RHS might be too large)
+ Asserted expression: o1.Offset <= o0.Offset
+
+Dafny program verifier finished with 0 verified, 1 error
