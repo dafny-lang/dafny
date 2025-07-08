@@ -4905,8 +4905,15 @@ Dec<out BaseTypes.BigDec d>
 = (. d = BaseTypes.BigDec.ZERO; string S = ""; .)
   ( realnumber                              (. S = Util.RemoveUnderscores(t.val); .)
   | digits                                  (. var digitToken = t; .)
-    "."                                     (. S = Util.RemoveUnderscores(digitToken.val) + ".0"; .)
-  | "." ( digits | realnumber )             (. S = "0." + Util.RemoveUnderscores(t.val); .)
+    "."                                     (. if (t.pos != digitToken.pos + digitToken.val.Length) {
+                                                 SemErr(ErrorId.p_bad_decimal_number_format, new SourceOrigin(digitToken, t), "invalid real literal (no whitespace allowed before trailing dot)");
+                                               }
+                                               S = Util.RemoveUnderscores(digitToken.val) + ".0"; .)
+  | "."                                     (. var dotToken = t; .)
+    ( digits | realnumber )                 (. if (t.pos != dotToken.pos + 1) {
+                                                 SemErr(ErrorId.p_bad_decimal_number_format, new SourceOrigin(dotToken, t), "invalid real literal (no whitespace allowed after leading dot)");
+                                               }
+                                               S = "0." + Util.RemoveUnderscores(t.val); .)
   )
   (. try {
        d = BaseTypes.BigDec.FromString(S);

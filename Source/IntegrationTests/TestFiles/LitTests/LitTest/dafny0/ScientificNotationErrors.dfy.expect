@@ -9,7 +9,16 @@ ScientificNotationErrors.dfy(23,17): Error: this symbol not expected in VarDeclS
 ScientificNotationErrors.dfy(28,17): Error: this symbol not expected in VarDeclStatement
 ScientificNotationErrors.dfy(31,15): Error: this symbol not expected in VarDeclStatement
 ScientificNotationErrors.dfy(32,15): Error: this symbol not expected in VarDeclStatement
+ScientificNotationErrors.dfy(37,11): Error: invalid real literal (no whitespace allowed after leading dot)
+ScientificNotationErrors.dfy(38,11): Error: invalid real literal (no whitespace allowed after leading dot)
 ScientificNotationErrors.dfy(41,11): Error: invalid Rhs
 ScientificNotationErrors.dfy(42,12): Error: invalid Dec
+ScientificNotationErrors.dfy(42,11): Error: invalid real literal (no whitespace allowed after leading dot)
 ScientificNotationErrors.dfy(42,11): Error: incorrectly formatted number
-14 parse errors detected in ScientificNotationErrors.dfy
+ScientificNotationErrors.dfy(47,11): Error: invalid real literal (no whitespace allowed before trailing dot)
+ScientificNotationErrors.dfy(48,11): Error: invalid real literal (no whitespace allowed before trailing dot)
+ScientificNotationErrors.dfy(51,11): Error: invalid real literal (no whitespace allowed after leading dot)
+ScientificNotationErrors.dfy(52,11): Error: invalid real literal (no whitespace allowed after leading dot)
+ScientificNotationErrors.dfy(55,11): Error: invalid real literal (no whitespace allowed before trailing dot)
+ScientificNotationErrors.dfy(55,15): Error: this symbol not expected in VarDeclStatement
+23 parse errors detected in ScientificNotationErrors.dfy

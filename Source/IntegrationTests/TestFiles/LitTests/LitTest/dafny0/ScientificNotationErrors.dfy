@@ -41,3 +41,16 @@ method InvalidLeadingDotShorthand() {
   var c := ..5;        // Error: double dot
   var d := .e2;        // Error: no digits after dot before e
 }
+
+method InvalidWhitespaceAroundDots() {
+  // Whitespace before trailing dot (should be error)
+  var a := 1 .;        // Error: space before trailing dot
+  var b := 123 .;      // Error: space before trailing dot
+
+  // Whitespace after leading dot (should be error) 
+  var c := . 5;        // Error: space after leading dot
+  var d := . 25;       // Error: space after leading dot
+
+  // Whitespace around normal decimal dot (should be error)
+  var e := 1 . 5;      // Error: spaces around decimal dot
+}
