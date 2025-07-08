@@ -1,8 +1,8 @@
-git-issue-283a.dfy(15,21): Error: tuple type does not match type 'string'
-git-issue-283a.dfy(22,21): Error: type 'C' does not contain a datatype constructor 'D'
-git-issue-283a.dfy(29,21): Error: constructor 'C2' of arity 1 is applied to 0 argument(s)
-git-issue-283a.dfy(52,29): Error: LHS of assignment must denote a mutable variable
-git-issue-283a.dfy(70,29): Error: LHS of assignment must denote a mutable variable
-git-issue-283a.dfy(80,21): Error: constructor 'C2' of arity 1 is applied without any arguments
-git-issue-283a.dfy(86,19): Error: constructor 'C2' of arity 1 is applied without any arguments
+git-issue-283a.dfy(15:21-15:21): Error: tuple type does not match type 'string'
+git-issue-283a.dfy(22:21-22:21): Error: type 'C' does not contain a datatype constructor 'D'
+git-issue-283a.dfy(29:21-29:21): Error: constructor 'C2' of arity 1 is applied to 0 argument(s)
+git-issue-283a.dfy(52:29-52:29): Error: LHS of assignment must denote a mutable variable
+git-issue-283a.dfy(70:29-70:29): Error: LHS of assignment must denote a mutable variable
+git-issue-283a.dfy(80:21-80:21): Error: constructor 'C2' of arity 1 is applied without any arguments
+git-issue-283a.dfy(86:19-86:19): Error: constructor 'C2' of arity 1 is applied without any arguments
 7 resolution/type errors detected in git-issue-283a.dfy

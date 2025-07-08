@@ -1,36 +1,36 @@
-git-issue-1207.dfy(17,9): Warning: Could not find a trigger for this quantifier. Without a trigger, the quantifier may cause brittle verification. To silence this warning, add an explicit trigger using the {:trigger} attribute. For more information, see the section on quantifier instantiation rules in the reference manual.
-git-issue-1207.dfy(29,9): Warning: Could not find a trigger for this quantifier. Without a trigger, the quantifier may cause brittle verification. To silence this warning, add an explicit trigger using the {:trigger} attribute. For more information, see the section on quantifier instantiation rules in the reference manual.
-git-issue-1207.dfy(41,9): Warning: Could not find a trigger for this quantifier. Without a trigger, the quantifier may cause brittle verification. To silence this warning, add an explicit trigger using the {:trigger} attribute. For more information, see the section on quantifier instantiation rules in the reference manual.
-git-issue-1207.dfy(47,9): Warning: Could not find a trigger for this quantifier. Without a trigger, the quantifier may cause brittle verification. To silence this warning, add an explicit trigger using the {:trigger} attribute. For more information, see the section on quantifier instantiation rules in the reference manual.
-git-issue-1207.dfy(48,9): Warning: Could not find a trigger for this quantifier. Without a trigger, the quantifier may cause brittle verification. To silence this warning, add an explicit trigger using the {:trigger} attribute. For more information, see the section on quantifier instantiation rules in the reference manual.
-git-issue-1207.dfy(10,2): Error: assertion might not hold
-git-issue-1207.dfy(11,2): Error: assertion might not hold
-git-issue-1207.dfy(14,2): Error: assertion might not hold
-git-issue-1207.dfy(15,2): Error: assertion might not hold
-git-issue-1207.dfy(16,2): Error: assertion might not hold
-git-issue-1207.dfy(17,2): Error: assertion might not hold
-git-issue-1207.dfy(18,2): Error: assertion might not hold
-git-issue-1207.dfy(22,2): Error: assertion might not hold
-git-issue-1207.dfy(23,2): Error: assertion might not hold
-git-issue-1207.dfy(26,2): Error: assertion might not hold
-git-issue-1207.dfy(27,2): Error: assertion might not hold
-git-issue-1207.dfy(28,2): Error: assertion might not hold
-git-issue-1207.dfy(29,2): Error: assertion might not hold
-git-issue-1207.dfy(30,2): Error: assertion might not hold
-git-issue-1207.dfy(34,2): Error: assertion might not hold
-git-issue-1207.dfy(35,2): Error: assertion might not hold
-git-issue-1207.dfy(38,2): Error: assertion might not hold
-git-issue-1207.dfy(39,2): Error: assertion might not hold
-git-issue-1207.dfy(40,2): Error: assertion might not hold
-git-issue-1207.dfy(41,2): Error: assertion might not hold
-git-issue-1207.dfy(42,2): Error: assertion might not hold
-git-issue-1207.dfy(43,2): Error: assertion might not hold
-git-issue-1207.dfy(47,2): Error: assertion might not hold
-git-issue-1207.dfy(48,2): Error: assertion might not hold
-git-issue-1207.dfy(49,2): Error: assertion might not hold
-git-issue-1207.dfy(50,2): Error: assertion might not hold
-git-issue-1207.dfy(50,49): Error: index out of range
-git-issue-1207.dfy(50,57): Error: index out of range
-git-issue-1207.dfy(51,2): Error: assertion might not hold
+git-issue-1207.dfy(17:9-17:9): Warning: Could not find a trigger for this quantifier. Without a trigger, the quantifier may cause brittle verification. To silence this warning, add an explicit trigger using the {:trigger} attribute. For more information, see the section on quantifier instantiation rules in the reference manual.
+git-issue-1207.dfy(29:9-29:9): Warning: Could not find a trigger for this quantifier. Without a trigger, the quantifier may cause brittle verification. To silence this warning, add an explicit trigger using the {:trigger} attribute. For more information, see the section on quantifier instantiation rules in the reference manual.
+git-issue-1207.dfy(41:9-41:9): Warning: Could not find a trigger for this quantifier. Without a trigger, the quantifier may cause brittle verification. To silence this warning, add an explicit trigger using the {:trigger} attribute. For more information, see the section on quantifier instantiation rules in the reference manual.
+git-issue-1207.dfy(47:9-47:9): Warning: Could not find a trigger for this quantifier. Without a trigger, the quantifier may cause brittle verification. To silence this warning, add an explicit trigger using the {:trigger} attribute. For more information, see the section on quantifier instantiation rules in the reference manual.
+git-issue-1207.dfy(48:9-48:9): Warning: Could not find a trigger for this quantifier. Without a trigger, the quantifier may cause brittle verification. To silence this warning, add an explicit trigger using the {:trigger} attribute. For more information, see the section on quantifier instantiation rules in the reference manual.
+git-issue-1207.dfy(10:2-10:2): Error: assertion could not be proved
+git-issue-1207.dfy(11:2-11:2): Error: assertion could not be proved
+git-issue-1207.dfy(14:2-14:2): Error: assertion could not be proved
+git-issue-1207.dfy(15:2-15:2): Error: assertion could not be proved
+git-issue-1207.dfy(16:2-16:2): Error: assertion could not be proved
+git-issue-1207.dfy(17:2-17:2): Error: assertion could not be proved
+git-issue-1207.dfy(18:2-18:2): Error: assertion could not be proved
+git-issue-1207.dfy(22:2-22:2): Error: assertion could not be proved
+git-issue-1207.dfy(23:2-23:2): Error: assertion could not be proved
+git-issue-1207.dfy(26:2-26:2): Error: assertion could not be proved
+git-issue-1207.dfy(27:2-27:2): Error: assertion could not be proved
+git-issue-1207.dfy(28:2-28:2): Error: assertion could not be proved
+git-issue-1207.dfy(29:2-29:2): Error: assertion could not be proved
+git-issue-1207.dfy(30:2-30:2): Error: assertion could not be proved
+git-issue-1207.dfy(34:2-34:2): Error: assertion could not be proved
+git-issue-1207.dfy(35:2-35:2): Error: assertion could not be proved
+git-issue-1207.dfy(38:2-38:2): Error: assertion could not be proved
+git-issue-1207.dfy(39:2-39:2): Error: assertion could not be proved
+git-issue-1207.dfy(40:2-40:2): Error: assertion could not be proved
+git-issue-1207.dfy(41:2-41:2): Error: assertion could not be proved
+git-issue-1207.dfy(42:2-42:2): Error: assertion could not be proved
+git-issue-1207.dfy(43:2-43:2): Error: assertion could not be proved
+git-issue-1207.dfy(47:2-47:2): Error: assertion could not be proved
+git-issue-1207.dfy(48:2-48:2): Error: assertion could not be proved
+git-issue-1207.dfy(49:2-49:2): Error: assertion could not be proved
+git-issue-1207.dfy(50:2-50:2): Error: assertion could not be proved
+git-issue-1207.dfy(50:49-50:49): Error: index out of range
+git-issue-1207.dfy(50:57-50:57): Error: index out of range
+git-issue-1207.dfy(51:2-51:2): Error: assertion could not be proved
 
 Dafny program verifier finished with 0 verified, 29 errors

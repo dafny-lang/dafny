@@ -1,10 +1,10 @@
-Char.dfy(48,8): Error: assertion might not hold
-Char.dfy(52,8): Error: assertion might not hold
-Char.dfy(63,6): Error: assertion might not hold
-Char.dfy(81,7): Error: char subtraction might underflow
-Char.dfy(81,13): Error: char addition might overflow
-Char.dfy(89,7): Error: char subtraction might underflow
-Char.dfy(97,13): Error: char addition might overflow
-Char.dfy(105,7): Error: char subtraction might underflow
+Char.dfy(48:8-48:8): Error: assertion could not be proved
+Char.dfy(52:8-52:8): Error: assertion could not be proved
+Char.dfy(63:6-63:6): Error: assertion could not be proved
+Char.dfy(81:7-81:7): Error: char subtraction might underflow
+Char.dfy(81:13-81:13): Error: char addition might overflow
+Char.dfy(89:7-89:7): Error: char subtraction might underflow
+Char.dfy(97:13-97:13): Error: char addition might overflow
+Char.dfy(105:7-105:7): Error: char subtraction might underflow
 
 Dafny program verifier finished with 8 verified, 8 errors

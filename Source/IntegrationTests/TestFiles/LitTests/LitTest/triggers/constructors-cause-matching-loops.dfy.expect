@@ -1,4 +1,4 @@
-constructors-cause-matching-loops.dfy(10,9): Info: Selected triggers: {Succ(s)}
+constructors-cause-matching-loops.dfy(10:9-10:9): Info: Selected triggers: {Succ(s)}
  Rejected triggers:
    {f(s)} (may loop with "f(Succ(s))")
    {f(Succ(s))} (more specific than {Succ(s)})

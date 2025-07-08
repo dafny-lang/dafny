@@ -1,2 +1,2 @@
-git-issue-2828.dfy(6,9): Error: unresolved identifier: arr
+git-issue-2828.dfy(6:9-6:9): Error: unresolved identifier: arr
 1 resolution/type errors detected in git-issue-2828.dfy

@@ -1,2 +1,2 @@
-git-issue-2019.dfy(17,9): Error: Duplicate member name: f
+git-issue-2019.dfy(17:9-17:9): Error: Duplicate member name: f
 1 resolution/type errors detected in git-issue-2019.dfy

@@ -1,2 +1,2 @@
-git-issue-845-comments.dfy(11,0): Error: rbrace expected
+git-issue-845-comments.dfy(11:0-11:0): Error: rbrace expected
 1 parse errors detected in git-issue-845-comments.dfy

@@ -1,5 +1,5 @@
-PrettyPrinting.dfy(20,10): Warning: the ... refinement feature in statements is deprecated
-PrettyPrinting.dfy(22,6): Warning: the ... refinement feature in statements is deprecated
+PrettyPrinting.dfy(20:10-20:10): Warning: the ... refinement feature in statements is deprecated
+PrettyPrinting.dfy(22:6-22:6): Warning: the ... refinement feature in statements is deprecated
 // PrettyPrinting.dfy
 
 
@@ -283,7 +283,7 @@ module DecreasesTo {
 
   datatype Record = R
 }
-PrettyPrinting.dfy(20,4): Error: skeleton statements are allowed only in refining methods
-PrettyPrinting.dfy(21,4): Error: skeleton statements are allowed only in refining methods
-PrettyPrinting.dfy(75,16): Error: a possibly infinite loop is allowed only if the enclosing method is declared (with 'decreases *') to be possibly non-terminating
+PrettyPrinting.dfy(20:4-20:4): Error: skeleton statements are allowed only in refining methods
+PrettyPrinting.dfy(21:4-21:4): Error: skeleton statements are allowed only in refining methods
+PrettyPrinting.dfy(75:16-75:16): Error: a possibly infinite loop is allowed only if the enclosing method is declared (with 'decreases *') to be possibly non-terminating
 3 resolution/type errors detected in PrettyPrinting.dfy

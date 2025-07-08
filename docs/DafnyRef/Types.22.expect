@@ -1,2 +1,2 @@
-text.dfy(5,27): Error: name of type synonym (IntPair) is used as a function
+text.dfy(5:27-5:27): Error: name of type synonym (IntPair) is used as a function
 1 resolution/type errors detected in text.dfy
