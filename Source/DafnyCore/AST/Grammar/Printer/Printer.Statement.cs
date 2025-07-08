@@ -454,7 +454,7 @@ namespace Microsoft.Dafny {
               PrintModifyStmt(indent, (ModifyStmt)s.S, true);
             } else {
               Contract.Assert(false);
-              throw new cce.UnreachableException(); // unexpected skeleton statement
+              throw new Cce.UnreachableException(); // unexpected skeleton statement
             }
 
             break;
@@ -479,7 +479,7 @@ namespace Microsoft.Dafny {
           // content already handled earlier
           break;
         default:
-          Contract.Assert(false); throw new cce.UnreachableException();  // unexpected statement
+          Contract.Assert(false); throw new Cce.UnreachableException();  // unexpected statement
       }
     }
 
@@ -813,7 +813,7 @@ namespace Microsoft.Dafny {
           }
         }
       } else {
-        Contract.Assert(false); throw new cce.UnreachableException();  // unexpected RHS
+        Contract.Assert(false); throw new Cce.UnreachableException();  // unexpected RHS
       }
 
       if (rhs.HasAttributes()) {

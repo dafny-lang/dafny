@@ -15,7 +15,7 @@ public abstract class TopLevelDecl : Declaration, TypeParameter.ParentType {
   public List<TypeParameter> TypeArgs;
   [ContractInvariantMethod]
   void ObjectInvariant() {
-    Contract.Invariant(cce.NonNullElements(TypeArgs));
+    Contract.Invariant(Cce.NonNullElements(TypeArgs));
   }
 
   protected TopLevelDecl(Cloner cloner, TopLevelDecl original, ModuleDefinition enclosingModule) : base(cloner, original) {

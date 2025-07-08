@@ -50,15 +50,15 @@ public partial class BoogieGenerator {
     var tok = pp.Origin;
     var etran = new ExpressionTranslator(this, Predef, tok, pp);
 
-    var tyvars = MkTyParamBinders(GetTypeParams(pp), out var tyexprs);
+    var tyvars = MkTyParamBinders(GetTypeParamsIncludingType(pp), out var tyexprs);
 
     var bvs = new List<Variable>(tyvars);
-    var coArgs = new List<Bpl.Expr>(tyexprs);
-    var prefixArgs = new List<Bpl.Expr>(tyexprs);
-    var prefixArgsLimited = new List<Bpl.Expr>(tyexprs);
-    var prefixArgsLimitedM = new List<Bpl.Expr>(tyexprs);
+    var coArgs = new List<Expr>();
+    var prefixArgs = new List<Expr>();
+    var prefixArgsLimited = new List<Expr>();
+    var prefixArgsLimitedM = new List<Expr>();
     if (pp.IsFuelAware()) {
-      var sV = new Bpl.BoundVariable(tok, new Bpl.TypedIdent(tok, "$ly", Predef.LayerType));
+      var sV = new BoundVariable(tok, new TypedIdent(tok, "$ly", Predef.LayerType));
       var s = new Bpl.IdentifierExpr(tok, sV);
       var succS = FunctionCall(tok, BuiltinFunction.LayerSucc, null, s);
       bvs.Add(sV);
@@ -68,10 +68,10 @@ public partial class BoogieGenerator {
       prefixArgsLimitedM.Add(s);
     }
 
-    Bpl.Expr h;
+    Expr h;
     if (pp.ReadsHeap) {
-      var heapIdent = new Bpl.TypedIdent(tok, Predef.HeapVarName, Predef.HeapType);
-      var bv = new Bpl.BoundVariable(tok, heapIdent);
+      var heapIdent = new TypedIdent(tok, Predef.HeapVarName, Predef.HeapType);
+      var bv = new BoundVariable(tok, heapIdent);
       h = new Bpl.IdentifierExpr(tok, bv);
       bvs.Add(bv);
       coArgs.Add(h);
@@ -83,12 +83,12 @@ public partial class BoogieGenerator {
     }
 
     // ante:  $IsGoodHeap($Heap) && this != null && formals-have-the-expected-types &&
-    Bpl.Expr ante = h != null
+    Expr ante = h != null
       ? FunctionCall(tok, BuiltinFunction.IsGoodHeap, null, etran.HeapExpr)
-      : (Bpl.Expr)Bpl.Expr.True;
+      : (Expr)Expr.True;
 
     if (!pp.IsStatic) {
-      var bvThis = new Bpl.BoundVariable(tok, new Bpl.TypedIdent(tok, etran.This, TrReceiverType(pp)));
+      var bvThis = new BoundVariable(tok, new TypedIdent(tok, etran.This, TrReceiverType(pp)));
       bvs.Add(bvThis);
       var bvThisIdExpr = new Bpl.IdentifierExpr(tok, bvThis);
       coArgs.Add(bvThisIdExpr);
@@ -97,31 +97,31 @@ public partial class BoogieGenerator {
       prefixArgsLimitedM.Add(bvThisIdExpr);
       // add well-typedness conjunct to antecedent
       Type thisType = ModuleResolver.GetReceiverType(tok, pp);
-      Bpl.Expr wh = BplAnd(
+      Expr wh = BplAnd(
         ReceiverNotNull(bvThisIdExpr),
         GetWhereClause(tok, bvThisIdExpr, thisType, etran, NOALLOC));
       ante = BplAnd(ante, wh);
     }
 
-    Bpl.Expr kWhere = null, kId = null, mId = null;
-    Bpl.Variable k = null;
-    Bpl.Variable m = null;
+    Expr kWhere = null, kId = null, mId = null;
+    Variable k = null;
+    Variable m = null;
 
     // DR: Changed to add the pp formals instead of co (since types would otherwise be wrong)
     //     Note that k is not added to bvs or coArgs.
     foreach (var p in pp.Ins) {
-      bool is_k = p == pp.Ins[0];
-      var bv = new Bpl.BoundVariable(p.Origin,
-        new Bpl.TypedIdent(p.Origin, p.AssignUniqueName(pp.IdGenerator), TrType(p.Type)));
+      bool isK = p == pp.Ins[0];
+      var bv = new BoundVariable(p.Origin,
+        new TypedIdent(p.Origin, p.AssignUniqueName(pp.IdGenerator), TrType(p.Type)));
       var formal = new Bpl.IdentifierExpr(p.Origin, bv);
-      if (!is_k) {
+      if (!isK) {
         coArgs.Add(formal);
       }
 
       prefixArgs.Add(formal);
       prefixArgsLimited.Add(formal);
-      if (is_k) {
-        m = new Bpl.BoundVariable(p.Origin, new Bpl.TypedIdent(p.Origin, "_m", TrType(p.Type)));
+      if (isK) {
+        m = new BoundVariable(p.Origin, new TypedIdent(p.Origin, "_m", TrType(p.Type)));
         mId = new Bpl.IdentifierExpr(m.tok, m);
         prefixArgsLimitedM.Add(mId);
       } else {
@@ -129,7 +129,7 @@ public partial class BoogieGenerator {
       }
 
       var wh = GetWhereClause(p.Origin, formal, p.Type, etran, NOALLOC);
-      if (is_k) {
+      if (isK) {
         // add the formal _k
         k = bv;
         kId = formal;
@@ -145,41 +145,52 @@ public partial class BoogieGenerator {
 
     Contract.Assert(k != null && m != null); // the loop should have filled these in
 
-    var funcID = new Bpl.IdentifierExpr(tok, co.FullSanitizedName, TrType(co.ResultType));
-    var coAppl = new Bpl.NAryExpr(tok, new Bpl.FunctionCall(funcID), coArgs);
-    funcID = new Bpl.IdentifierExpr(tok, pp.FullSanitizedName, TrType(pp.ResultType));
-    var prefixAppl = new Bpl.NAryExpr(tok, new Bpl.FunctionCall(funcID), prefixArgs);
+    var funcId = new Bpl.IdentifierExpr(tok, co.FullSanitizedName, TrType(co.ResultType));
+    var coAppl = new NAryExpr(tok, new FunctionCall(funcId), coArgs);
+    funcId = new Bpl.IdentifierExpr(tok, pp.FullSanitizedName, TrType(pp.ResultType));
+    var prefixAppl = new NAryExpr(tok, new FunctionCall(funcId), prefixArgs);
 
     // forall args :: { P(args) } args-have-appropriate-values && P(args) ==> QQQ k { P#[k](args) } :: 0 ATMOST k HHH P#[k](args)
+
+    MkTyParamBinders(GetTypeParamsIncludingType(pp), out var tyArgs);
+    var canCallFuncId = new Bpl.IdentifierExpr(co.Origin, co.FullSanitizedName + "#canCall", Bpl.Type.Bool);
+    var canCallArguments = coArgs.ToList();
+    if (pp.IsFuelAware()) {
+      canCallArguments.RemoveAt(0);
+    }
+    canCallArguments = tyArgs.Concat(canCallArguments).ToList();
+
+    var canCallCall = new NAryExpr(GetToken(co), new Bpl.FunctionCall(canCallFuncId), canCallArguments.ToList());
+
     var tr = BplTrigger(prefixAppl);
-    var qqqK = pp.ExtremePred is GreatestPredicate
-      ? (Bpl.Expr)new Bpl.ForallExpr(tok, [k], tr,
+    Expr qqqK = pp.ExtremePred is GreatestPredicate
+      ? new Bpl.ForallExpr(tok, [k], tr,
         kWhere == null ? prefixAppl : BplImp(kWhere, prefixAppl))
-      : (Bpl.Expr)new Bpl.ExistsExpr(tok, [k], tr,
+      : new Bpl.ExistsExpr(tok, [k], tr,
         kWhere == null ? prefixAppl : BplAnd(kWhere, prefixAppl));
-    tr = BplTriggerHeap(this, tok, coAppl, pp.ReadsHeap ? null : h);
-    var allS = new Bpl.ForallExpr(tok, bvs, tr, BplImp(BplAnd(ante, coAppl), qqqK));
-    sink.AddTopLevelDeclaration(new Bpl.Axiom(tok, allS, "1st prefix predicate axiom for " + pp.FullSanitizedName));
+    var outerTrigger = BplTriggerHeap(this, tok, coAppl, pp.ReadsHeap ? null : h, canCallCall);
+    var allS = new Bpl.ForallExpr(tok, bvs, outerTrigger, BplImp(BplAnd(ante, coAppl), qqqK));
+    sink.AddTopLevelDeclaration(new Axiom(tok, allS, "1st prefix predicate axiom for " + pp.FullSanitizedName));
 
     // forall args :: { P(args) } args-have-appropriate-values && (QQQ k :: 0 ATMOST k HHH P#[k](args)) ==> P(args)
-    allS = new Bpl.ForallExpr(tok, bvs, tr, BplImp(BplAnd(ante, qqqK), coAppl));
-    sink.AddTopLevelDeclaration(new Bpl.Axiom(tok, allS, "2nd prefix predicate axiom"));
+    var secondPrefixAxiomBody = new Bpl.ForallExpr(tok, bvs, outerTrigger, BplImp(BplAnd(ante, qqqK), coAppl));
+    sink.AddTopLevelDeclaration(new Axiom(tok, secondPrefixAxiomBody, "2nd prefix predicate axiom"));
 
     // forall args,k :: args-have-appropriate-values && k == 0 ==> NNN P#0#[k](args)
     var moreBvs = new List<Variable>();
     moreBvs.AddRange(bvs);
     moreBvs.Add(k);
-    var z = Bpl.Expr.Eq(kId,
+    var z = Expr.Eq(kId,
       pp.Ins[0].Type.IsBigOrdinalType
-        ? (Bpl.Expr)FunctionCall(tok, "ORD#FromNat", Predef.BigOrdinalType, Bpl.Expr.Literal(0))
-        : Bpl.Expr.Literal(0));
-    funcID = new Bpl.IdentifierExpr(tok, pp.FullSanitizedName, TrType(pp.ResultType));
-    Bpl.Expr prefixLimitedBody = new Bpl.NAryExpr(tok, new Bpl.FunctionCall(funcID), prefixArgsLimited);
-    Bpl.Expr prefixLimited = pp.ExtremePred is LeastPredicate ? Bpl.Expr.Not(prefixLimitedBody) : prefixLimitedBody;
+        ? FunctionCall(tok, "ORD#FromNat", Predef.BigOrdinalType, Expr.Literal(0))
+        : Expr.Literal(0));
+    funcId = new Bpl.IdentifierExpr(tok, pp.FullSanitizedName, TrType(pp.ResultType));
+    Expr prefixLimitedBody = new NAryExpr(tok, new FunctionCall(funcId), prefixArgsLimited);
+    Expr prefixLimited = pp.ExtremePred is LeastPredicate ? Expr.Not(prefixLimitedBody) : prefixLimitedBody;
 
-    var trigger = BplTriggerHeap(this, prefixLimitedBody.tok, prefixLimitedBody, pp.ReadsHeap ? null : h);
+    var trigger = BplTriggerHeap(this, prefixLimitedBody.tok, prefixLimitedBody, pp.ReadsHeap ? null : h, canCallCall);
     var trueAtZero = new Bpl.ForallExpr(tok, moreBvs, trigger, BplImp(BplAnd(ante, z), prefixLimited));
-    sink.AddTopLevelDeclaration(new Bpl.Axiom(tok, trueAtZero, "3rd prefix predicate axiom"));
+    sink.AddTopLevelDeclaration(new Axiom(tok, trueAtZero, "3rd prefix predicate axiom"));
 
 #if WILLING_TO_TAKE_THE_PERFORMANCE_HIT
       // forall args,k,m :: args-have-appropriate-values && 0 <= k <= m ==> (P#[k](args) EEE P#[m](args))
@@ -209,7 +220,7 @@ public partial class BoogieGenerator {
       // forall args,k,m,limit ::
       //   { P#[k](args), ORD#LessThanLimit(k,limit), ORD#LessThanLimit(m,limit) }
       //   args-have-appropriate-values && k < m && P#[k](args) ==> P#[m](args))
-      var limit = new Bpl.BoundVariable(tok, new Bpl.TypedIdent(tok, "_limit", TrType(Type.BigOrdinal)));
+      var limit = new BoundVariable(tok, new TypedIdent(tok, "_limit", TrType(Type.BigOrdinal)));
       var limitId = new Bpl.IdentifierExpr(limit.tok, limit);
       moreBvs = [];
       moreBvs.AddRange(bvs);
@@ -219,14 +230,14 @@ public partial class BoogieGenerator {
       var kLessLimit = FunctionCall(tok, "ORD#LessThanLimit", Bpl.Type.Bool, kId, limitId);
       var mLessLimit = FunctionCall(tok, "ORD#LessThanLimit", Bpl.Type.Bool, mId, limitId);
       var kLessM = FunctionCall(tok, "ORD#Less", Bpl.Type.Bool, kId, mId);
-      funcID = new Bpl.IdentifierExpr(tok, pp.FullSanitizedName, TrType(pp.ResultType));
-      var prefixPred_K = new Bpl.NAryExpr(tok, new Bpl.FunctionCall(funcID), prefixArgsLimited);
-      var prefixPred_M = new Bpl.NAryExpr(tok, new Bpl.FunctionCall(funcID), prefixArgsLimitedM);
+      funcId = new Bpl.IdentifierExpr(tok, pp.FullSanitizedName, TrType(pp.ResultType));
+      var prefixPred_K = new NAryExpr(tok, new FunctionCall(funcId), prefixArgsLimited);
+      var prefixPred_M = new NAryExpr(tok, new FunctionCall(funcId), prefixArgsLimitedM);
       var direction = BplImp(prefixPred_K, prefixPred_M);
 
-      var trigger3 = new Bpl.Trigger(tok, true, new List<Bpl.Expr> { prefixPred_K, kLessLimit, mLessLimit });
+      var trigger3 = new Trigger(tok, true, new List<Expr> { prefixPred_K, kLessLimit, mLessLimit });
       var monotonicity = new Bpl.ForallExpr(tok, moreBvs, trigger3, BplImp(kLessM, direction));
-      sink.AddTopLevelDeclaration(new Bpl.Axiom(tok, monotonicity, "targeted prefix predicate monotonicity axiom"));
+      sink.AddTopLevelDeclaration(new Axiom(tok, monotonicity, "targeted prefix predicate monotonicity axiom"));
     }
   }
 
@@ -249,7 +260,7 @@ public partial class BoogieGenerator {
   Expression PrefixSubstitution(PrefixPredicate pp, Expression body) {
     Contract.Requires(pp != null);
 
-    var typeMap = Util.Dict<TypeParameter, Type>(pp.ExtremePred.TypeArgs, Map(pp.TypeArgs, x => new UserDefinedType(x)));
+    var typeMap = Dict<TypeParameter, Type>(pp.ExtremePred.TypeArgs, Map(pp.TypeArgs, x => new UserDefinedType(x)));
 
     var paramMap = new Dictionary<IVariable, Expression>();
     for (int i = 0; i < pp.ExtremePred.Ins.Count; i++) {

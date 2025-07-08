@@ -512,13 +512,12 @@ namespace Microsoft.Dafny {
           // The checked conjuncts of the body make use of the type-specialized body.
 
           // F#canCall(args)
-          Bpl.IdentifierExpr canCallFuncID = new Bpl.IdentifierExpr(expr.Origin, f.FullSanitizedName + "#canCall", Bpl.Type.Bool);
-          List<Bpl.Expr> args = etran.FunctionInvocationArguments(fexp, null, null);
-          Bpl.Expr canCall = new Bpl.NAryExpr(GetToken(expr), new Bpl.FunctionCall(canCallFuncID), args);
+          var canCallFuncId = new Bpl.IdentifierExpr(expr.Origin, f.FullSanitizedName + "#canCall", Bpl.Type.Bool);
+          var args = etran.FunctionInvocationArguments(fexp, null, null, false);
+          var canCall = new Bpl.NAryExpr(GetToken(expr), new Bpl.FunctionCall(canCallFuncId), args);
 
-          Bpl.Expr fargs;
-          // F(args)
-          fargs = etran.TrExpr(fexp);
+          var fargs = // F(args)
+            etran.TrExpr(fexp);
 
           if (!CanSafelyInline(fexp, f)) {
             // Skip inlining, as it would cause arbitrary expressions to pop up in the trigger
@@ -558,7 +557,7 @@ namespace Microsoft.Dafny {
                 Expression ee = e.Args[i];
                 Type t = e.Function.Ins[i].Type;
                 Expr tr_ee = etran.TrExpr(ee);
-                Bpl.Expr wh = GetWhereClause(e.Origin, tr_ee, cce.NonNull(ee.Type), etran, NOALLOC);
+                Bpl.Expr wh = GetWhereClause(e.Origin, tr_ee, Cce.NonNull(ee.Type), etran, NOALLOC);
                 if (wh != null) {
                   fargs = BplAnd(fargs, wh);
                 }
@@ -629,7 +628,7 @@ namespace Microsoft.Dafny {
         Formal p = f.Ins[i];
         var formalType = p.Type.Subst(fexp.GetTypeArgumentSubstitutions());
         Expression arg = fexp.Args[i];
-        arg = new BoxingCastExpr(arg, cce.NonNull(arg.Type), formalType);
+        arg = new BoxingCastExpr(arg, Cce.NonNull(arg.Type), formalType);
         arg.Type = formalType;  // resolve here
         substMap.Add(p, arg);
       }

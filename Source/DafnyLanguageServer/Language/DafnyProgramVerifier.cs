@@ -56,13 +56,29 @@ namespace Microsoft.Dafny.LanguageServer.Language {
 
         cancellationToken.ThrowIfCancellationRequested();
 
+        string? fileName = null;
         if (engine.Options.PrintFile != null) {
           var moduleCount = BoogieGenerator.VerifiableModules(program).Count();
-          var fileName = moduleCount > 1 ? DafnyMain.BoogieProgramSuffix(engine.Options.PrintFile, suffix) : engine.Options.PrintFile;
+          fileName = moduleCount > 1 ? DafnyMain.BoogieProgramSuffix(engine.Options.PrintFile, suffix) : engine.Options.PrintFile;
           ExecutionEngine.PrintBplFile(engine.Options, fileName, boogieProgram, false, false, engine.Options.PrettyPrint);
         }
 
-        return await engine.GetVerificationTasks(boogieProgram, cancellationToken);
+        try {
+          return await engine.GetVerificationTasks(boogieProgram, cancellationToken);
+        } catch (Exception) {
+          // Boogie resolution error
+          if (fileName != null) {
+            // If a Boogie file was printed, parse that so errors use source locations from there
+            var fileNames = new List<string> { fileName };
+            boogieProgram = engine.ParseBoogieProgram(fileNames, true);
+            await engine.GetVerificationTasks(boogieProgram, cancellationToken);
+
+            // If the new call did not throw, throw the original exception.
+            throw;
+          }
+
+          throw;
+        }
       }
       finally {
         mutex.Release();

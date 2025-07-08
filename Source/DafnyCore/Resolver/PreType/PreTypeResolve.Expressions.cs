@@ -87,7 +87,7 @@ namespace Microsoft.Dafny {
                 AddConfirmation(PreTypeConstraints.CommonConfirmationBag.InCharFamily, charPreType, e.Origin, "character literal used as if it had type {0}");
                 ResolveCollectionProducingExpr(PreType.TypeNameSeq, $"string literal \"{e.EscapedValue}\"", e, charPreType, PreTypeConstraints.CommonConfirmationBag.InSeqFamily, true);
               } else {
-                Contract.Assert(false); throw new cce.UnreachableException();  // unexpected literal type
+                Contract.Assert(false); throw new Cce.UnreachableException();  // unexpected literal type
               }
             }
 
@@ -460,7 +460,7 @@ namespace Microsoft.Dafny {
                 expr.PreType = ConstrainResultToBoolFamily(expr.Origin, "assigned", "boolean literal used as if it had type {0}");
                 break;
               default:
-                Contract.Assert(false); throw new cce.UnreachableException();  // unexpected unary operator
+                Contract.Assert(false); throw new Cce.UnreachableException();  // unexpected unary operator
             }
 
             break;
@@ -971,7 +971,7 @@ namespace Microsoft.Dafny {
           locals.Type = localsType;
           break;
         default:
-          Contract.Assert(false); throw new cce.UnreachableException();  // unexpected expression
+          Contract.Assert(false); throw new Cce.UnreachableException();  // unexpected expression
       }
 
       if (expr.PreType == null) {
@@ -1296,7 +1296,7 @@ namespace Microsoft.Dafny {
 
         default:
           Contract.Assert(false);
-          throw new cce.UnreachableException(); // unexpected operator
+          throw new Cce.UnreachableException(); // unexpected operator
       }
       // We should also fill in e.ResolvedOp, but we may not have enough information for that yet.  So, instead, delay
       // setting e.ResolvedOp until inside CheckTypeInference.
