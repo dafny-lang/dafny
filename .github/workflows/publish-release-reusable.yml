@@ -145,6 +145,9 @@ jobs:
         eval "$(/usr/libexec/path_helper)"
         make -C dafny/docs/DafnyRef
 
+    - name: Clean Dafny
+      run: ls dafny/Package
+
     - name: Create GitHub release (release)
       if: ${{ !inputs.prerelease }}
       uses: softprops/action-gh-release@v2
