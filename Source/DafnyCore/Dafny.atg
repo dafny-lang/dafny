@@ -3765,8 +3765,12 @@ ConstAtomExpression<out Expression e>
     "|"
   | "assigned"                                 (. x = t; .)
     "(" NameSegment<out e> ")"                 (. e = new UnaryOpExpr(x, UnaryOpExpr.Opcode.Assigned, e); .)
-  | IF(AcceptReferrersAndBacktick())           (. e = new ImplicitThisExpr(la); .)
-    FieldLocationSuffix<ref e>
+  | "`"                                        (. if (!AcceptReferrers()) {
+                                                 SemErr(ErrorId.p_needs_referrers, t, "To use field location expressions, you need --referrers");
+                                               }
+                                               Token backtick = t;
+                                               e = new ImplicitThisExpr(t); .)
+    FieldLocationBody<ref e, backtick>
   | ParensExpression<out e>
   ) (. if(x!= null) { e.SetOrigin(new SourceOrigin(x, t, e.Center)); } .)
   .
@@ -4510,7 +4514,11 @@ Suffix<ref Expression e>
 
 FieldLocationSuffix<ref Expression e>
 = "`"                                    (. Token backtick = t; .)
-  ( IF(IsIdentifier(la.kind))            (. Name name = null; .)
+  FieldLocationBody<ref e, backtick>
+  .
+
+FieldLocationBody<ref Expression e, Token backtick>
+= ( (. Name name = null; .)
     NoDigitName<out name>
     (.
       e = new FieldLocationExpression(e, backtick, name);

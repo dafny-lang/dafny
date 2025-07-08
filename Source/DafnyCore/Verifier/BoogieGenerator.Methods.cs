@@ -45,7 +45,7 @@ namespace Microsoft.Dafny {
         CurrentDeclaration = member;
         var ignored =
           filesWhereOnlyMembersAreVerified.Contains(member.Origin.Uri) &&
-          !member.HasUserAttribute("only", out _);
+          Attributes.Find(member.Attributes, "only") is null;
         if (ignored) {
           assertionOnlyFilter = _ => false;
         } else {
