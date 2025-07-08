@@ -13,6 +13,31 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Lookup {
   public class DocumentSymbolTest : ClientBasedLanguageServerTest {
 
     [Fact]
+    public async Task BadReturnSyntax() {
+      var source = @"method FindZero(a: array<int>) returns (index)  // note lack of type annotation";
+      var documentItem = CreateAndOpenTestDocument(source);
+      var symbols = (await RequestDocumentSymbol(documentItem)).ToList();
+      CheckValidSymbols(symbols);
+    }
+
+    private void CheckValidSymbols(IEnumerable<DocumentSymbol> symbols) {
+      foreach (var symbol in symbols) {
+        CheckValidRange(symbol.SelectionRange);
+        CheckValidRange(symbol.Range);
+        CheckValidSymbols(symbol.Children);
+      }
+    }
+
+    private void CheckValidRange(Range range) {
+      ValidPosition(range.Start);
+      ValidPosition(range.End);
+    }
+
+    private void ValidPosition(Position position) {
+      Assert.True(position.Line >= 0 && position.Character >= 0);
+    }
+
+    [Fact]
     public async Task ExportImport() {
       var source = @"
 module Low {
