@@ -5,7 +5,7 @@ Array.dfy(318:64-318:65): Warning: deprecated style: a semi-colon is not needed 
 Array.dfy(13:7-13:8): Error: assignment might update an array element not in the enclosing context's modifies clause
 Array.dfy(20:15-20:21): Error: target object might be null
 Array.dfy(26:5-26:6): Error: index out of range
-Array.dfy(50:4-50:10): Error: assertion might not hold
+Array.dfy(50:4-50:10): Error: assertion could not be proved
 Array.dfy(58:7-58:8): Error: assignment might update an array element not in the enclosing context's modifies clause
 Array.dfy(65:7-65:8): Error: assignment might update an array element not in the enclosing context's modifies clause
 Array.dfy(108:20-108:21): Error: upper bound below lower bound or above length of array
@@ -30,7 +30,7 @@ Array.dfy(258:6-258:7): Error: value does not satisfy the subset constraints of 
 Array.dfy(260:4-260:5): Error: value does not satisfy the subset constraints of 'nat'
 Array.dfy(332:4-332:5): Error: assignment might update an object not in the enclosing context's modifies clause
 Array.dfy(338:5-338:6): Error: assignment might update an array element not in the enclosing context's modifies clause
-Array.dfy(353:4-353:10): Error: assertion might not hold
+Array.dfy(353:4-353:10): Error: assertion could not be proved
 Array.dfy(358:17-358:18): Error: left-hand sides that.x and this.x might refer to the same location
 
 Dafny program verifier finished with 41 verified, 27 errors
