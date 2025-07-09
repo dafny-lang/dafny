@@ -182,7 +182,7 @@ jobs:
       if: prerelease
       run: |
         while read ASSET_ID; do
-          gh api --method DELETE /repos/dafny-lang/dafny/releases/assets/$ASSET_ID
+          gh api --method DELETE /repos/dafny-lang/dafny/releases/assets/$ASSET_ID > /dev/null 2>&1
         done < assets.txt
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
