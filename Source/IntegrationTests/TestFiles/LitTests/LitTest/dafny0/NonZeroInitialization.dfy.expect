@@ -1,4 +1,4 @@
-NonZeroInitialization.dfy(4,36): Error: the given witness expression might not satisfy constraint
+NonZeroInitialization.dfy(4,36): Error: the given witness expression could not be proved to satisfy constraint
 NonZeroInitialization.dfy(11,5): Error: trying witness 0: result of operation might violate subset type constraint for 'Six'
 NonZeroInitialization.dfy(12,45): Error: result of operation might violate subset type constraint for 'Six'
 NonZeroInitialization.dfy(13,5): Error: trying witness 0: result of operation might violate subset type constraint for 'Six'
