@@ -18,9 +18,9 @@ ForLoops.dfy(272,8): Error: entire range must be assignable to index variable, b
 ForLoops.dfy(275,8): Error: entire range must be assignable to index variable, but some value does not satisfy the subset constraints of 'nat'
 ForLoops.dfy(287,8): Error: entire range must be assignable to index variable, but some value does not satisfy the subset constraints of 'NotSeven'
 ForLoops.dfy(290,8): Error: entire range must be assignable to index variable, but some value does not satisfy the subset constraints of 'NotSeven'
-ForLoops.dfy(298,22): Error: result of operation might violate newtype constraint for 'byte'
-ForLoops.dfy(306,17): Error: result of operation might violate newtype constraint for 'byte'
-ForLoops.dfy(311,16): Error: result of operation might violate newtype constraint for 'byte'
+ForLoops.dfy(298,22): Error: result of operation could not be proved to satisfy newtype constraint for 'byte'
+ForLoops.dfy(306,17): Error: result of operation could not be proved to satisfy newtype constraint for 'byte'
+ForLoops.dfy(311,16): Error: result of operation could not be proved to satisfy newtype constraint for 'byte'
 ForLoops.dfy(344,2): Error: assertion could not be proved
 ForLoops.dfy(362,2): Error: assertion could not be proved
 ForLoops.dfy(372,2): Error: assertion could not be proved

@@ -17,6 +17,6 @@ Basics.dfy(273,9): Error: when left-hand sides d.x and c.x refer to the same loc
 Basics.dfy(463,2): Error: assertion could not be proved
 Basics.dfy(474,4): Error: assertion could not be proved
 Basics.dfy(476,2): Error: assertion could not be proved
-Basics.dfy(623,17): Error: result of operation might violate newtype constraint for 'int8'
+Basics.dfy(623,17): Error: result of operation could not be proved to satisfy newtype constraint for 'int8'
 
 Dafny program verifier finished with 53 verified, 20 errors
