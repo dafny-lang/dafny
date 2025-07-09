@@ -1,2 +1,3 @@
+SchorrWaite-stages.dfy(36,9): Error: Verification out of resource (M0.SchorrWaite)
 
-Dafny program verifier finished with 7 verified, 0 errors
+Dafny program verifier finished with 6 verified, 0 errors, 1 out of resource
