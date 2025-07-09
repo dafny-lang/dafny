@@ -166,7 +166,7 @@ public class ConversionSatisfiesConstraints : ProofObligationDescription {
     $"{prefix}result of operation never violates {kind} constraints for '{name}'";
 
   public override string FailureDescription =>
-    $"{prefix}result of operation might violate {kind} constraint for '{name}'";
+    $"{prefix}result of operation could not be proved to satisfy {kind} constraint for '{name}'";
 
   public override string ShortDescription => "conversion satisfies type constraints";
 
@@ -1384,7 +1384,7 @@ public class DefiniteAssignment : ProofObligationDescription {
     $"{kind} '{name}', which is subject to definite-assignment rules, is always initialized {where}";
 
   public override string FailureDescription =>
-    $"{kind} '{name}', which is subject to definite-assignment rules, might be uninitialized {where}";
+    $"{kind} '{name}', which is subject to definite-assignment rules, could not be proved to be initialized {where}";
 
   public override string ShortDescription => "definite assignment";
 
