@@ -186,7 +186,7 @@ method Test(j: int) returns (i: int)
   ensures i > 0
 {
   i := j;
-}","testfile.dfy", false);
+}", "testfile.dfy", false);
       await AssertVerificationHoverMatches(documentItem, (3, 0),
         @"**Error:**???return value should be even  
 Could not prove: `i % 2 == 0`"
