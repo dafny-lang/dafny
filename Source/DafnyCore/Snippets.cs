@@ -18,10 +18,10 @@ public class Snippets {
     OptionRegistry.RegisterOption(ShowSnippets, OptionScope.Cli);
   }
 
-  public static void WriteSourceCodeSnippet(DafnyOptions options, IOrigin tok, TextWriter tw) {
-    var start = tok.StartToken;
-    var end = tok.EndToken;
-    string line = GetFileLine(options, tok.Uri, start.line - 1);
+  public static void WriteSourceCodeSnippet(DafnyOptions options, TokenRange range, TextWriter tw) {
+    var start = range.StartToken;
+    var end = range.EndToken;
+    string line = GetFileLine(options, range.Uri, start.line - 1);
     if (line == null) {
       return;
     }
@@ -52,7 +52,7 @@ public class Snippets {
         using var reader = file.GetContent().Reader;
         lines = Util.Lines(reader).ToList();
       } catch (Exception) {
-        lines = new List<string>();
+        lines = [];
       }
       return lines;
     });

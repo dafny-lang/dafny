@@ -5,14 +5,14 @@ using System.Linq;
 namespace Microsoft.Dafny;
 
 public class AlternativeLoopStmt : LoopStmt, ICloneable<AlternativeLoopStmt>, ICanFormat {
-  public readonly bool UsesOptionalBraces;
-  public readonly List<GuardedAlternative> Alternatives;
+  public bool UsesOptionalBraces;
+  public List<GuardedAlternative> Alternatives;
   [ContractInvariantMethod]
   void ObjectInvariant() {
     Contract.Invariant(Alternatives != null);
   }
 
-  public AlternativeLoopStmt Clone(Cloner cloner) {
+  public new AlternativeLoopStmt Clone(Cloner cloner) {
     return new AlternativeLoopStmt(cloner, this);
   }
 
@@ -31,8 +31,8 @@ public class AlternativeLoopStmt : LoopStmt, ICloneable<AlternativeLoopStmt>, IC
   }
   public AlternativeLoopStmt(IOrigin origin,
     List<AttributedExpression> invariants, Specification<Expression> decreases, Specification<FrameExpression> mod,
-    List<GuardedAlternative> alternatives, bool usesOptionalBraces, Attributes attrs)
-    : base(origin, invariants, decreases, mod, attrs) {
+    List<GuardedAlternative> alternatives, bool usesOptionalBraces, List<Label> labels, Attributes attributes)
+    : base(origin, invariants, decreases, mod, labels, attributes) {
     Contract.Requires(origin != null);
     Contract.Requires(alternatives != null);
     this.Alternatives = alternatives;

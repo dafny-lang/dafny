@@ -1,0 +1,3 @@
+With `--standard-libraries` you can now read an UTF-8 text files from the disk using `Std.FileIO.ReadUTF8FromFile(path: string): Result<string, string>`.
+To write some content to the disk, use `Std.FileIO.WriteUTF8ToFile(path: string, content: string): Outcome<string>`.
+**Standard library breaking change**: All `UnicodeEncodingForm` versions of `FromUTF8Checked`, `FromUTF16Checked` and `DecodeCodeUnitSequenceChecked` now return a `Result` instead of an `Option` so that the error message is clearer. Migration is easy: Use `.ToOption()` if you really prefer an option. Affected refining modules: `Utf8EncodingForm` and `Utf16EncodingForm`

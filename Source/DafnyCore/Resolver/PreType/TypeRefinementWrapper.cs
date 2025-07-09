@@ -12,8 +12,8 @@ namespace Microsoft.Dafny;
 public class TypeRefinementWrapper : TypeProxy {
   private static int count = 0;
   public readonly int UniqueId = count++;
-  public TypeRefinementWrapper(Type type) : base() {
-    T = type;
+  public TypeRefinementWrapper(Type t) : base() {
+    T = t;
   }
 
   public bool IsBottomType => T is BottomTypePlaceholder;
@@ -122,8 +122,8 @@ public class TypeRefinementWrapper : TypeProxy {
 }
 
 public class BottomTypePlaceholder : TypeProxy {
-  public BottomTypePlaceholder(Type baseType) {
-    T = baseType;
+  public BottomTypePlaceholder(Type t) {
+    T = t;
   }
 
   public override string TypeName(DafnyOptions options, ModuleDefinition context, bool parseAble) {

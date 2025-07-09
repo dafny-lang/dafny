@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
+using JetBrains.Annotations;
 
 namespace Microsoft.Dafny;
 
@@ -20,25 +21,36 @@ public class SpecialField : Field {
     Modifies,
     New,
   }
-  public readonly ID SpecialId;
-  public readonly object IdParam;
+  public ID SpecialId;
+  public object IdParam;
 
-  public SpecialField(IOrigin origin, string name, ID specialId, object idParam,
-    bool isGhost, bool isMutable, bool isUserMutable, Type type, Attributes attributes)
-    : this(origin, new Name(origin, name), specialId, idParam, false, isGhost, isMutable, isUserMutable, type, attributes) {
+  public SpecialField(Cloner cloner, SpecialField original) : base(cloner, original) {
+    IsMutable = original.IsMutable;
+    IsUserMutable = original.IsUserMutable;
+    SpecialId = original.SpecialId;
+    IdParam = original.IdParam;
   }
 
-  public SpecialField(IOrigin origin, Name name, ID specialId, object idParam,
-    bool hasStaticKeyword, bool isGhost, bool isMutable, bool isUserMutable, Type type, Attributes attributes)
-    : base(origin, name, hasStaticKeyword, isGhost, isMutable, isUserMutable, type, attributes) {
-    Contract.Requires(origin != null);
-    Contract.Requires(name != null);
-    Contract.Requires(!isUserMutable || isMutable);
-    Contract.Requires(type != null);
+  public SpecialField(IOrigin origin, string name, ID specialId, object idParam,
+    bool isGhost, bool isMutable, bool isUserMutable, Type explicitType, Attributes attributes)
+    : this(origin, new Name(origin, name), specialId, idParam, isGhost, isMutable, isUserMutable, explicitType, attributes) {
+  }
 
+  public SpecialField(IOrigin origin, Name nameNode, ID specialId, object idParam,
+    bool isGhost, bool isMutable, bool isUserMutable, Type explicitType, Attributes attributes)
+    : base(origin, nameNode, isGhost, explicitType, attributes) {
+    Contract.Requires(origin != null);
+    Contract.Requires(nameNode != null);
+    Contract.Requires(!isUserMutable || isMutable);
+
+    IsMutable = isMutable;
+    IsUserMutable = isUserMutable;
     SpecialId = specialId;
     IdParam = idParam;
   }
+
+  public override bool IsMutable { get; }
+  public override bool IsUserMutable { get; }
 
   public override string FullName {
     get {
@@ -47,12 +59,17 @@ public class SpecialField : Field {
     }
   }
 
-  public override string FullSanitizedName { // Override beacuse EnclosingClass may be null
+  public override string FullSanitizedName { // Override because EnclosingClass may be null
     get {
       Contract.Ensures(Contract.Result<string>() != null);
-      return EnclosingClass != null ? EnclosingClass.FullSanitizedName + "." + SanitizedName : SanitizedName;
+      return EnclosingMethod != null ? EnclosingMethod.FullSanitizedName + "." + SanitizedName
+        : EnclosingClass != null ? EnclosingClass.FullSanitizedName + "." + SanitizedName : SanitizedName;
     }
   }
+
+  // Used by referrers to designate the memory location of local variables and method parameters
+  [FilledInDuringResolution]
+  [CanBeNull] public MethodOrConstructor EnclosingMethod { get; set; }
 
   public override string GetCompileName(DafnyOptions options) {
     Contract.Ensures(Contract.Result<string>() != null);
@@ -65,14 +82,14 @@ public class DatatypeDiscriminator : SpecialField {
     get { return "discriminator"; }
   }
 
-  public DatatypeDiscriminator(IOrigin origin, Name name, ID specialId, object idParam, bool isGhost, Type type, Attributes attributes)
-    : base(origin, name, specialId, idParam, false, isGhost, false, false, type, attributes) {
+  public DatatypeDiscriminator(IOrigin origin, Name nameNode, ID specialId, object idParam, bool isGhost, Type type, Attributes attributes)
+    : base(origin, nameNode, specialId, idParam, isGhost, false, false, type, attributes) {
   }
 }
 
 public class DatatypeDestructor : SpecialField {
-  public readonly List<DatatypeCtor> EnclosingCtors = new List<DatatypeCtor>();  // is always a nonempty list
-  public readonly List<Formal> CorrespondingFormals = new List<Formal>();  // is always a nonempty list
+  public List<DatatypeCtor> EnclosingCtors = [];  // is always a nonempty list
+  public List<Formal> CorrespondingFormals = [];  // is always a nonempty list
   [ContractInvariantMethod]
   void ObjectInvariant() {
     Contract.Invariant(EnclosingCtors != null);
@@ -81,12 +98,12 @@ public class DatatypeDestructor : SpecialField {
     Contract.Invariant(EnclosingCtors.Count == CorrespondingFormals.Count);
   }
 
-  public DatatypeDestructor(IOrigin origin, DatatypeCtor enclosingCtor, Formal correspondingFormal, Name name, string compiledName, bool isGhost, Type type, Attributes attributes)
-    : base(origin, name, SpecialField.ID.UseIdParam, compiledName, false, isGhost, false, false, type, attributes) {
+  public DatatypeDestructor(IOrigin origin, DatatypeCtor enclosingCtor, Formal correspondingFormal, Name nameNode, string compiledName, bool isGhost, Type type, Attributes attributes)
+    : base(origin, nameNode, SpecialField.ID.UseIdParam, compiledName, isGhost, false, false, type, attributes) {
     Contract.Requires(origin != null);
     Contract.Requires(enclosingCtor != null);
     Contract.Requires(correspondingFormal != null);
-    Contract.Requires(name != null);
+    Contract.Requires(nameNode != null);
     Contract.Requires(type != null);
     EnclosingCtors.Add(enclosingCtor);  // more enclosing constructors may be added later during resolution
     CorrespondingFormals.Add(correspondingFormal);  // more corresponding formals may be added later during resolution
@@ -108,7 +125,7 @@ public class DatatypeDestructor : SpecialField {
     return PrintableCtorNameList(EnclosingCtors, grammaticalConjunction);
   }
 
-  static internal string PrintableCtorNameList(List<DatatypeCtor> ctors, string grammaticalConjunction) {
+  internal static string PrintableCtorNameList(List<DatatypeCtor> ctors, string grammaticalConjunction) {
     Contract.Requires(ctors != null);
     Contract.Requires(grammaticalConjunction != null);
     return Util.PrintableNameList(ctors.ConvertAll(ctor => ctor.Name), grammaticalConjunction);

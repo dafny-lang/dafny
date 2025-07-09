@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Diagnostics.Contracts;
 using DafnyCore.Verifier;
 using Microsoft.Boogie;
@@ -203,8 +204,8 @@ public partial class BoogieGenerator {
     rhsCanAffectPreviouslyKnownExpressions = rhsCanAffectPreviouslyKnownExpressions || lhss.Count != 1;
 
     // for each Dafny LHS, build a protected Boogie LHS for the eventual assignment
-    lhsBuilders = new List<AssignToLhs>();
-    bLhss = new List<Bpl.IdentifierExpr>();
+    lhsBuilders = [];
+    bLhss = [];
     prevObj = new Bpl.Expr[lhss.Count];
     prevIndex = new Bpl.Expr[lhss.Count];
     prevNames = new string[lhss.Count];
@@ -447,79 +448,15 @@ public partial class BoogieGenerator {
       }
 
     } else if (rhs is HavocRhs) {
-      builder.Add(new Bpl.HavocCmd(tok, new List<Bpl.IdentifierExpr> { bLhs }));
+      builder.Add(new Bpl.HavocCmd(tok, [bLhs]));
       return CondApplyBox(tok, bLhs, rhsTypeConstraint, lhsType);
-    } else {
-      // x := new Something
-      Contract.Assert(rhs is TypeRhs);  // otherwise, an unexpected AssignmentRhs
-      TypeRhs tRhs = (TypeRhs)rhs;
-
-      var callsConstructor = tRhs.InitCall != null && tRhs.InitCall.Method is Constructor;
-
-      if (tRhs.ArrayDimensions == null) {
-        Contract.Assert(tRhs.ElementInit == null && tRhs.InitDisplay == null);
-      } else {
-        int i = 0;
-        foreach (Expression dim in tRhs.ArrayDimensions) {
-          CheckWellformed(dim, new WFOptions(), locals, builder, etran);
-          var desc = new NonNegative(tRhs.ArrayDimensions.Count == 1
-            ? "array size" : $"array size (dimension {i})", dim);
-          builder.Add(Assert(GetToken(dim), Bpl.Expr.Le(Bpl.Expr.Literal(0), etran.TrExpr(dim)), desc, builder.Context));
-          i++;
-        }
-        if (tRhs.ElementInit != null) {
-          CheckWellformed(tRhs.ElementInit, new WFOptions(), locals, builder, etran);
-        } else if (tRhs.InitDisplay != null) {
-          var dim = tRhs.ArrayDimensions[0];
-          var desc = new ArrayInitSizeValid(tRhs, dim);
-          builder.Add(Assert(GetToken(dim), Bpl.Expr.Eq(etran.TrExpr(dim), Bpl.Expr.Literal(tRhs.InitDisplay.Count)), desc, builder.Context));
-          foreach (var v in tRhs.InitDisplay) {
-            CheckWellformed(v, new WFOptions(), locals, builder, etran);
-          }
-        } else if (options.DefiniteAssignmentLevel == 0) {
-          // cool
-        } else if ((2 <= options.DefiniteAssignmentLevel && options.DefiniteAssignmentLevel != 4) ||
-                   options.Get(CommonOptionBag.EnforceDeterminism) ||
-                   !tRhs.EType.HasCompilableValue) {
-          // this is allowed only if the array size is such that it has no elements
-          Bpl.Expr zeroSize = Bpl.Expr.False;
-          foreach (Expression dim in tRhs.ArrayDimensions) {
-            zeroSize = BplOr(zeroSize, Bpl.Expr.Eq(Bpl.Expr.Literal(0), etran.TrExpr(dim)));
-          }
-          var desc = new ArrayInitEmpty(tRhs.EType.ToString(), tRhs.ArrayDimensions);
-          builder.Add(Assert(tRhs.Origin, zeroSize, desc, builder.Context));
-        }
-      }
-
+    } else if (rhs is AllocateClass allocateClass) {
+      var callsConstructor = allocateClass.InitCall is { Method: Constructor };
       Bpl.IdentifierExpr nw = GetNewVar_IdExpr(tok, locals);
       if (!callsConstructor) {
-        SelectAllocateObject(tok, nw, tRhs.Type, true, builder, etran);
-        if (tRhs.ArrayDimensions != null) {
-          int i = 0;
-          foreach (Expression dim in tRhs.ArrayDimensions) {
-            // assume Array#Length($nw, i) == arraySize;
-            Bpl.Expr arrayLength = ArrayLength(tok, nw, tRhs.ArrayDimensions.Count, i);
-            builder.Add(TrAssumeCmd(tok, Bpl.Expr.Eq(arrayLength, etran.TrExpr(dim))));
-            i++;
-          }
-          if (tRhs.ElementInit != null) {
-            CheckElementInit(tok, true, tRhs.ArrayDimensions, tRhs.EType, tRhs.ElementInit, nw, builder, etran, new WFOptions());
-          } else if (tRhs.InitDisplay != null) {
-            int ii = 0;
-            foreach (var v in tRhs.InitDisplay) {
-              var EE_ii = etran.TrExpr(v);
-              // assert EE_ii satisfies any subset-type constraints;
-              CheckSubrange(v.Origin, EE_ii, v.Type, tRhs.EType, v, builder);
-              // assume nw[ii] == EE_ii;
-              var ai = ReadHeap(tok, etran.HeapExpr, nw, GetArrayIndexFieldName(tok, new List<Bpl.Expr> { Bpl.Expr.Literal(ii) }));
-              builder.Add(new Bpl.AssumeCmd(tok, Bpl.Expr.Eq(UnboxUnlessInherentlyBoxed(ai, tRhs.EType), AdaptBoxing(tok, EE_ii, v.Type, tRhs.EType))));
-              ii++;
-            }
-          }
-        }
+        SelectAllocateObject(tok, nw, allocateClass.Type, true, builder, etran);
         Bpl.Cmd heapAllocationRecorder = null;
-        if (codeContext is IteratorDecl) {
-          var iter = (IteratorDecl)codeContext;
+        if (codeContext is IteratorDecl iter) {
           // $Heap[this, _new] := Set#UnionOne($Heap[this, _new], $Box($nw));
           var th = new Bpl.IdentifierExpr(tok, etran.This, Predef.RefType);
           var nwField = new Bpl.IdentifierExpr(tok, GetField(iter.Member_New));
@@ -530,26 +467,104 @@ public partial class BoogieGenerator {
         }
         CommitAllocatedObject(tok, nw, heapAllocationRecorder, builder, etran);
       }
-      if (tRhs.InitCall != null) {
-        AddComment(builder, tRhs.InitCall, "init call statement");
-        TrCallStmt(tRhs.InitCall, builder, locals, etran, nw);
+      if (allocateClass.InitCall != null) {
+        AddComment(builder, allocateClass.InitCall, "init call statement");
+        TrCallStmt(allocateClass.InitCall, builder, locals, etran, nw);
       }
       // bLhs := $nw;
-      CheckSubrange(tok, nw, tRhs.Type, rhsTypeConstraint, null, builder);
-      if (bGivenLhs != null) {
-        Contract.Assert(bGivenLhs == bLhs);
-        // box the RHS, then do the assignment
-        var cmd = Bpl.Cmd.SimpleAssign(tok, bGivenLhs, CondApplyBox(tok, nw, tRhs.Type, lhsType));
-        proofDependencies?.AddProofDependencyId(cmd, tok, new AssignmentDependency(stmt.Origin));
-        builder.Add(cmd);
-        return bGivenLhs;
-      } else {
-        // do the assignment, then box the result
-        var cmd = Bpl.Cmd.SimpleAssign(tok, bLhs, nw);
-        proofDependencies?.AddProofDependencyId(cmd, tok, new AssignmentDependency(stmt.Origin));
-        builder.Add(cmd);
-        return CondApplyBox(tok, bLhs, tRhs.Type, lhsType);
+      CheckSubrange(tok, nw, allocateClass.Type, rhsTypeConstraint, null, builder);
+      return HandleGivenLhs(tok, bGivenLhs, lhsType, builder, stmt, bLhs, nw, allocateClass);
+    } else if (rhs is AllocateArray allocateArray) {
+      int j = 0;
+      foreach (Expression dim in allocateArray.ArrayDimensions) {
+        CheckWellformed(dim, new WFOptions(), locals, builder, etran);
+        var desc = new NonNegative(allocateArray.ArrayDimensions.Count == 1
+          ? "array size" : $"array size (dimension {j})", dim);
+        builder.Add(Assert(GetToken(dim), Bpl.Expr.Le(Bpl.Expr.Literal(0), etran.TrExpr(dim)), desc, builder.Context));
+        j++;
       }
+      if (allocateArray.ElementInit != null) {
+        CheckWellformed(allocateArray.ElementInit, new WFOptions(), locals, builder, etran);
+      } else if (allocateArray.InitDisplay != null) {
+        var dim = allocateArray.ArrayDimensions[0];
+        var desc = new ArrayInitSizeValid(allocateArray, dim);
+        builder.Add(Assert(GetToken(dim), Bpl.Expr.Eq(etran.TrExpr(dim), Bpl.Expr.Literal(allocateArray.InitDisplay.Count)), desc, builder.Context));
+        foreach (var v in allocateArray.InitDisplay) {
+          CheckWellformed(v, new WFOptions(), locals, builder, etran);
+        }
+      } else if (options.DefiniteAssignmentLevel == 0) {
+        // cool
+      } else if ((2 <= options.DefiniteAssignmentLevel && options.DefiniteAssignmentLevel != 4) ||
+                 options.Get(CommonOptionBag.EnforceDeterminism) ||
+                 !allocateArray.ElementType.HasCompilableValue) {
+        // this is allowed only if the array size is such that it has no elements
+        Bpl.Expr zeroSize = Bpl.Expr.False;
+        foreach (Expression dim in allocateArray.ArrayDimensions) {
+          zeroSize = BplOr(zeroSize, Bpl.Expr.Eq(Bpl.Expr.Literal(0), etran.TrExpr(dim)));
+        }
+        var desc = new ArrayInitEmpty(allocateArray.ElementType.ToString(), allocateArray.ArrayDimensions);
+        builder.Add(Assert(allocateArray.Origin, zeroSize, desc, builder.Context));
+      }
+
+      Bpl.IdentifierExpr nw = GetNewVar_IdExpr(tok, locals);
+
+      SelectAllocateObject(tok, nw, allocateArray.Type, true, builder, etran);
+      int i = 0;
+      foreach (Expression dim in allocateArray.ArrayDimensions) {
+        // assume Array#Length($nw, i) == arraySize;
+        Bpl.Expr arrayLength = ArrayLength(tok, nw, allocateArray.ArrayDimensions.Count, i);
+        builder.Add(TrAssumeCmd(tok, Bpl.Expr.Eq(arrayLength, etran.TrExpr(dim))));
+        i++;
+      }
+      if (allocateArray.ElementInit != null) {
+        CheckElementInit(tok, true, allocateArray.ArrayDimensions, allocateArray.ElementType, allocateArray.ElementInit, nw, builder, etran, new WFOptions());
+      } else if (allocateArray.InitDisplay != null) {
+        int ii = 0;
+        foreach (var v in allocateArray.InitDisplay) {
+          var EE_ii = etran.TrExpr(v);
+          // assert EE_ii satisfies any subset-type constraints;
+          CheckSubrange(v.Origin, EE_ii, v.Type, allocateArray.ElementType, v, builder);
+          // assume nw[ii] == EE_ii;
+          var ai = ReadHeap(tok, etran.HeapExpr, nw, GetArrayIndexFieldName(tok, [Bpl.Expr.Literal(ii)]));
+          builder.Add(new Bpl.AssumeCmd(tok, Bpl.Expr.Eq(UnboxUnlessInherentlyBoxed(ai, allocateArray.ElementType), AdaptBoxing(tok, EE_ii, v.Type, allocateArray.ElementType))));
+          ii++;
+        }
+      }
+      Bpl.Cmd heapAllocationRecorder = null;
+      if (codeContext is IteratorDecl) {
+        var iter = (IteratorDecl)codeContext;
+        // $Heap[this, _new] := Set#UnionOne($Heap[this, _new], $Box($nw));
+        var th = new Bpl.IdentifierExpr(tok, etran.This, Predef.RefType);
+        var nwField = new Bpl.IdentifierExpr(tok, GetField(iter.Member_New));
+        var thisDotNew = ApplyUnbox(tok, ReadHeap(tok, etran.HeapExpr, th, nwField), Predef.SetType);
+        var unionOne = FunctionCall(tok, BuiltinFunction.SetUnionOne, Predef.BoxType, thisDotNew, ApplyBox(tok, nw));
+        var heapRhs = UpdateHeap(tok, etran.HeapExpr, th, nwField, unionOne);
+        heapAllocationRecorder = Bpl.Cmd.SimpleAssign(tok, etran.HeapCastToIdentifierExpr, heapRhs);
+      }
+      CommitAllocatedObject(tok, nw, heapAllocationRecorder, builder, etran);
+      // bLhs := $nw;
+      CheckSubrange(tok, nw, allocateArray.Type, rhsTypeConstraint, null, builder);
+      return HandleGivenLhs(tok, bGivenLhs, lhsType, builder, stmt, bLhs, nw, allocateArray);
+    } else {
+      throw new UnreachableException();
+    }
+  }
+
+  private Expr HandleGivenLhs(IOrigin tok, Bpl.IdentifierExpr bGivenLhs, Type lhsType, BoogieStmtListBuilder builder,
+    Statement stmt, Bpl.IdentifierExpr bLhs, Bpl.IdentifierExpr nw, TypeRhs typeRhs) {
+    if (bGivenLhs != null) {
+      Contract.Assert(bGivenLhs == bLhs);
+      // box the RHS, then do the assignment
+      var cmd = Bpl.Cmd.SimpleAssign(tok, bGivenLhs, CondApplyBox(tok, nw, typeRhs.Type, lhsType));
+      proofDependencies?.AddProofDependencyId(cmd, tok, new AssignmentDependency(stmt.Origin));
+      builder.Add(cmd);
+      return bGivenLhs;
+    } else {
+      // do the assignment, then box the result
+      var cmd = Bpl.Cmd.SimpleAssign(tok, bLhs, nw);
+      proofDependencies?.AddProofDependencyId(cmd, tok, new AssignmentDependency(stmt.Origin));
+      builder.Add(cmd);
+      return CondApplyBox(tok, bLhs, typeRhs.Type, lhsType);
     }
   }
 }

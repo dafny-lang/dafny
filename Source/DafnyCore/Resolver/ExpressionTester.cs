@@ -43,12 +43,12 @@ public class ExpressionTester {
     new ExpressionTester(resolver, reporter, reporter.Options).CheckIsCompilable(expr, codeContext, true);
   }
 
-  private void ReportError(ErrorId errorId, Expression e, string msg, params object[] args) {
-    reporter?.Error(MessageSource.Resolver, errorId, e, msg, args);
+  private void ReportError(ErrorId errorId, Expression e, params object[] messageParts) {
+    reporter?.Error(MessageSource.Resolver, errorId, e, messageParts);
   }
 
-  private void ReportError(ErrorId errorId, IOrigin t, string msg, params object[] args) {
-    reporter?.Error(MessageSource.Resolver, errorId, t, msg, args);
+  private void ReportError(ErrorId errorId, IOrigin t, params object[] messageParts) {
+    reporter?.Error(MessageSource.Resolver, errorId, t, messageParts);
   }
 
   /// <summary>
@@ -135,23 +135,23 @@ public class ExpressionTester {
           }
 
           string msg;
-          ErrorId eid;
+          ErrorId errorId;
           if (callExpr.Function is TwoStateFunction || callExpr.Function is ExtremePredicate || callExpr.Function is PrefixPredicate) {
             msg = $"a call to a {callExpr.Function.WhatKind} is allowed only in specification contexts";
-            eid = ErrorId.r_ghost_call_only_in_specification;
+            errorId = ErrorId.r_ghost_call_only_in_specification;
           } else {
             var what = callExpr.Function.WhatKind;
             string compiledDeclHint;
             if (options.FunctionSyntax == FunctionSyntaxOptions.Version4) {
               compiledDeclHint = "without the 'ghost' keyword";
-              eid = ErrorId.r_ghost_call_only_in_specification_function_4;
+              errorId = ErrorId.r_ghost_call_only_in_specification_function_4;
             } else {
               compiledDeclHint = $"with '{what} method'";
-              eid = ErrorId.r_ghost_call_only_in_specification_function_3;
+              errorId = ErrorId.r_ghost_call_only_in_specification_function_3;
             }
             msg = $"a call to a ghost {what} is allowed only in specification contexts (consider declaring the {what} {compiledDeclHint})";
           }
-          ReportError(eid, callExpr, msg);
+          ReportError(errorId, callExpr, msg);
           return false;
         }
         if (callExpr.Function.ByMethodBody != null) {
@@ -648,6 +648,10 @@ public class ExpressionTester {
     } else if (expr is MultiSetFormingExpr) {
       var e = (MultiSetFormingExpr)expr;
       return UsesSpecFeatures(e.E);
+    } else if (expr is IndexFieldLocation or FieldLocation) {
+      return true;
+    } else if (expr is LocalsObjectExpression) {
+      return true;
     } else {
       Contract.Assert(false); throw new cce.UnreachableException();  // unexpected expression
     }

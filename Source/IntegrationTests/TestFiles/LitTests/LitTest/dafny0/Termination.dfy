@@ -832,10 +832,14 @@ method MultisetsST5<Y>(S: multiset, y: Y, P: multiset)
   while s != t
     invariant s * P <= t <= s && s[y] <= t[y]
   {
+    ghost var u :| u in s - t;
+
     var z :| z in P;
     s, t := s + multiset{z}, t + multiset{z};
 
-    var x :| x in s && t[x] < s[x];
+    var x :| x in s && t[x] < s[x] by {
+      assert u in s && t[u] < s[u];
+    }
     s := s - multiset{x};
   }
 }

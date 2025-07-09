@@ -142,6 +142,102 @@ module {:extern "DAST"} DAST {
         case _ => false
       }
     }
+
+    function GetGeneralTraitType(): (r: Type)
+      requires IsGeneralTrait()
+      ensures r.UserDefined? && r.resolved.kind == ResolvedTypeBase.Trait(GeneralTrait)
+    {
+      match this {
+        case UserDefined(ResolvedType(_, _, typeKind, _, _, _)) =>
+          match typeKind {
+            case SynonymType(typ) =>
+              typ.GetGeneralTraitType()
+            case _ => this
+          }
+      }
+    }
+
+    predicate IsClassOrObjectTrait() {
+      match this {
+        case UserDefined(ResolvedType(_, _, base, _, _, _)) =>
+          base.Class? || (base.Trait? && base.traitType.ObjectTrait?)
+        case _ => false
+      }
+    }
+
+    predicate IsDatatype() {
+      match this {
+        case UserDefined(ResolvedType(_, _, typeKind, _, _, _)) =>
+          match typeKind {
+            case SynonymType(typ) =>
+              typ.IsDatatype()
+            case Datatype(_, _) => true
+            case _ => false
+          }
+        case _ => false
+      }
+    }
+
+    function GetDatatypeType(): (r: Type)
+      requires IsDatatype()
+      ensures r.UserDefined? && r.resolved.kind.Datatype?
+    {
+      match this {
+        case UserDefined(ResolvedType(_, _, typeKind, _, _, _)) =>
+          match typeKind {
+            case SynonymType(typ) =>
+              typ.GetDatatypeType()
+            case _ => this
+          }
+      }
+    }
+
+    // Works well without diamond inheritance. If the case arise, we will need to memoize this function
+    // or ensure extendedTypes contains all supertypes.
+    predicate Extends(other: Type)
+      ensures this.Extends(other) ==> other < this
+    {
+      match this {
+        case UserDefined(ResolvedType(_, _, _, _, _, extendedTypes)) =>
+          other in extendedTypes || exists i | 0 <= i < |extendedTypes| :: extendedTypes[i].Extends(other)
+        case _ => false
+      }
+    }
+
+    function RemoveSynonyms(): Type {
+      match this {
+        case UserDefined(ResolvedType(path, typeArgs, typeKind, attributes, properMethods, extendedTypes)) =>
+          match typeKind {
+            case SynonymType(typ) =>
+              typ.RemoveSynonyms()
+            case _ =>
+              var newtypeArgs := seq(|typeArgs|, i requires 0 <= i < |typeArgs| => typeArgs[i].RemoveSynonyms());
+              UserDefined(ResolvedType(path, newtypeArgs, typeKind, attributes, properMethods, extendedTypes))
+          }
+        case Tuple(arguments) =>
+          Type.Tuple(Std.Collections.Seq.Map(
+                       t requires t in arguments => t.RemoveSynonyms(), arguments))
+        case Array(element, dims) =>
+          Type.Array(element.RemoveSynonyms(), dims)
+        case Seq(element) =>
+          Type.Seq(element.RemoveSynonyms())
+        case Set(element) =>
+          Type.Set(element.RemoveSynonyms())
+        case Multiset(element) =>
+          Type.Multiset(element.RemoveSynonyms())
+        case Map(key, value) =>
+          Type.Map(key.RemoveSynonyms(), value.RemoveSynonyms())
+        case SetBuilder(element) =>
+          Type.SetBuilder(element.RemoveSynonyms())
+        case MapBuilder(key, value) =>
+          Type.MapBuilder(key.RemoveSynonyms(), value.RemoveSynonyms())
+        case Arrow(args: seq<Type>, result: Type) =>
+          Type.Arrow(Std.Collections.Seq.Map(
+                       t requires t in args => t.RemoveSynonyms(), args), result.RemoveSynonyms())
+        case Primitive(_) | Passthrough(_) | Object() | TypeArg(_) =>
+          this
+      }
+    }
   }
 
   datatype Variance =
@@ -149,11 +245,15 @@ module {:extern "DAST"} DAST {
     | Covariant
     | Contravariant
 
-  datatype TypeArgDecl = TypeArgDecl(name: Ident, bounds: seq<TypeArgBound>, variance: Variance)
+  datatype TypeArgDecl = TypeArgDecl(
+    name: Ident,
+    bounds: seq<TypeArgBound>,
+    info: TypeParameterInfo)
 
   datatype TypeArgBound =
     | SupportsEquality
     | SupportsDefault
+    | TraitBound(typ: Type)
 
   datatype Primitive = Int | Real | String | Bool | Char | Native
 
@@ -172,13 +272,15 @@ module {:extern "DAST"} DAST {
     | NativeArrayIndex
     | BigInt
     | Bool
+    | Sequence
+    | Map
     | NoRange
   {
     predicate CanOverflow() {
       (U8? || I8? || U16? || I16? || U32? || I32? || U64? || I64? || U128? || I128?) && overflow
     }
     predicate HasArithmeticOperations() {
-      !Bool?// To change when newtypes will have sequences and sets as ranges.
+      !Bool? && !Map? && !Sequence?
     }
   }
 
@@ -190,9 +292,14 @@ module {:extern "DAST"} DAST {
     | ObjectTrait()     // Traits that extend objects with --type-system-refresh, all traits otherwise
     | GeneralTrait()  // Traits that don't necessarily extend objects with --type-system-refresh
 
+  datatype TypeParameterInfo =
+    TypeParameterInfo(variance: Variance, necessaryForEqualitySupportOfSurroundingInductiveDatatype: bool)
+
+  datatype EqualitySupport = Never | ConsultTypeArguments
+
   datatype ResolvedTypeBase =
     | Class()
-    | Datatype(variances: seq<Variance>)
+    | Datatype(equalitySupport: EqualitySupport, info: seq<TypeParameterInfo>)
     | Trait(traitType: TraitType)
     | SynonymType(baseType: Type)
     | Newtype(baseType: Type, range: NewtypeRange, erase: bool)
@@ -240,6 +347,7 @@ module {:extern "DAST"} DAST {
     typeParams: seq<TypeArgDecl>,
     traitType: TraitType,
     parents: seq<Type>,
+    downcastableTraits: seq<Type>,
     body: seq<ClassItem>,
     attributes: seq<Attribute>)
 
@@ -251,8 +359,11 @@ module {:extern "DAST"} DAST {
     ctors: seq<DatatypeCtor>,
     body: seq<ClassItem>,
     isCo: bool,
+    equalitySupport: EqualitySupport,
     attributes: seq<Attribute>,
-    superTraitTypes: seq<Type>)
+    superTraitTypes: seq<Type>,
+    superTraitNegativeTypes: seq<Type> // Traits that one or more superTraits know they can downcast to, but the datatype does not.
+  )
 
   datatype DatatypeDtor = DatatypeDtor(
     formal: Formal,
@@ -270,7 +381,9 @@ module {:extern "DAST"} DAST {
       docString: string,
       typeParams: seq<TypeArgDecl>, base: Type,
       range: NewtypeRange, constraint: Option<NewtypeConstraint>,
-      witnessStmts: seq<Statement>, witnessExpr: Option<Expression>, attributes: seq<Attribute>,
+      witnessStmts: seq<Statement>, witnessExpr: Option<Expression>,
+      equalitySupport: EqualitySupport,
+      attributes: seq<Attribute>,
       classItems: seq<ClassItem>)
 
   datatype NewtypeConstraint = NewtypeConstraint(variable: Formal, constraintStmts: seq<Statement>)
@@ -303,11 +416,12 @@ module {:extern "DAST"} DAST {
     name: Name,
     typeParams: seq<TypeArgDecl>,
     params: seq<Formal>,
+    inheritedParams: seq<Formal>,
     body: seq<Statement>,
     outTypes: seq<Type>,
     outVars: Option<seq<VarName>>)
 
-  datatype CallSignature = CallSignature(parameters: seq<Formal>)
+  datatype CallSignature = CallSignature(parameters: seq<Formal>, inheritedParams: seq<Formal>)
 
   datatype CallName =
     CallName(name: Name, onType: Option<Type>, receiverArg: Option<Formal>, receiverAsArgument: bool, signature: CallSignature) |
@@ -362,6 +476,9 @@ module {:extern "DAST"} DAST {
     Concat() |
     Passthrough(string)
 
+  datatype SelectContext =
+    SelectContextDatatype | SelectContextGeneralTrait | SelectContextClassOrObjectTrait
+
   datatype Expression =
     Literal(Literal) |
     Ident(name: VarName) |
@@ -378,10 +495,10 @@ module {:extern "DAST"} DAST {
     SeqValue(elements: seq<Expression>, typ: Type) |
     SetValue(elements: seq<Expression>) |
     MultisetValue(elements: seq<Expression>) |
-    MapValue(mapElems: seq<(Expression, Expression)>) |
+    MapValue(mapElems: seq<(Expression, Expression)>, domainType: Type, rangeType: Type) |
     MapBuilder(keyType: Type, valueType: Type) |
-    SeqUpdate(expr: Expression, indexExpr: Expression, value: Expression) |
-    MapUpdate(expr: Expression, indexExpr: Expression, value: Expression) |
+    SeqUpdate(expr: Expression, indexExpr: Expression, value: Expression, collectionType: Type, exprType: Type) |
+    MapUpdate(expr: Expression, indexExpr: Expression, value: Expression, collectionType: Type, exprType: Type) |
     SetBuilder(elemType: Type) |
     ToMultiset(Expression) |
     This() |
@@ -392,7 +509,7 @@ module {:extern "DAST"} DAST {
     MapKeys(expr: Expression) |
     MapValues(expr: Expression) |
     MapItems(expr: Expression) |
-    Select(expr: Expression, field: VarName, fieldMutability: FieldMutability, isDatatype: bool, fieldType: Type) |
+    Select(expr: Expression, field: VarName, fieldMutability: FieldMutability, selectContext: SelectContext, isfieldType: Type) |
     SelectFn(expr: Expression, field: VarName, onDatatype: bool, isStatic: bool, isConstant: bool, arguments: seq<Type>) |
     Index(expr: Expression, collKind: CollKind, indices: seq<Expression>) |
     IndexRange(expr: Expression, isArray: bool, low: Option<Expression>, high: Option<Expression>) |
@@ -413,7 +530,11 @@ module {:extern "DAST"} DAST {
     ExactBoundedPool(of: Expression) |
     IntRange(elemType: Type, lo: Expression, hi: Expression, up: bool) |
     UnboundedIntRange(start: Expression, up: bool) |
-    Quantifier(elemType: Type, collection: Expression, is_forall: bool, lambda: Expression)
+    Quantifier(elemType: Type, collection: Expression, is_forall: bool, lambda: Expression) {
+    predicate IsThisUpcast() {
+      Convert? && value.This? && from.Extends(typ)
+    }
+  }
 
   // Since constant fields need to be set up in the constructor,
   // accessing constant fields is done in two ways:

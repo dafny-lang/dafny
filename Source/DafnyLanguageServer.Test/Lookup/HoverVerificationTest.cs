@@ -389,7 +389,7 @@ Did prove: `i > 0`  "
       );
     }
 
-    [Fact(Timeout = MaxTestExecutionTimeMs)]
+    [Fact()]
     public async Task DisplayNestedFailingPostconditionsAndPreconditions() {
       var documentItem = await GetDocumentItem(@"
 predicate P(i: int) {

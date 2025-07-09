@@ -1,3 +1,4 @@
+#nullable enable
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Diagnostics.Contracts;
@@ -8,23 +9,22 @@ using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 namespace Microsoft.Dafny;
 
 public abstract class TopLevelDeclWithMembers : TopLevelDecl, IHasSymbolChildren {
-  public readonly List<MemberDecl> Members;
+  public List<MemberDecl> Members;
 
   // TODO remove this and instead clone the AST after parsing.
-  public ImmutableList<MemberDecl> MembersBeforeResolution;
+  public ImmutableList<MemberDecl>? MembersBeforeResolution;
 
   // The following fields keep track of parent traits
-  public readonly List<MemberDecl> InheritedMembers = new();  // these are instance members declared in parent traits
-  public readonly List<Type> ParentTraits;  // these are the types that are parsed after the keyword 'extends'; note, for a successfully resolved program, these are UserDefinedType's where .ResolvedClass is NonNullTypeDecl
-  public readonly Dictionary<TypeParameter, Type> ParentFormalTypeParametersToActuals = new Dictionary<TypeParameter, Type>();  // maps parent traits' type parameters to actuals
+  public List<MemberDecl> InheritedMembers = [];  // these are instance members declared in parent traits
+  public List<Type> Traits;  // these are the types that are parsed after the keyword 'extends'; note, for a successfully resolved program, these are UserDefinedType's where .ResolvedClass is NonNullTypeDecl
+  public Dictionary<TypeParameter, Type> ParentFormalTypeParametersToActuals = new Dictionary<TypeParameter, Type>();  // maps parent traits' type parameters to actuals
 
   /// <summary>
   /// TraitParentHeads contains the head of each distinct trait parent. It is initialized during resolution.
   /// </summary>
-  public readonly List<TraitDecl> ParentTraitHeads = new List<TraitDecl>();
+  public List<TraitDecl> ParentTraitHeads = [];
 
   internal bool HeadDerivesFrom(TopLevelDecl b) {
-    Contract.Requires(b != null);
     return this == b || this.ParentTraitHeads.Exists(tr => tr.HeadDerivesFrom(b));
   }
 
@@ -35,9 +35,9 @@ public abstract class TopLevelDeclWithMembers : TopLevelDecl, IHasSymbolChildren
     }
   }
 
-  [FilledInDuringResolution] public InheritanceInformationClass ParentTypeInformation;
+  [FilledInDuringResolution] public InheritanceInformationClass? ParentTypeInformation;
   public class InheritanceInformationClass {
-    private readonly Dictionary<TraitDecl, List<(Type, List<TraitDecl> /*via this parent path*/)>> info = new Dictionary<TraitDecl, List<(Type, List<TraitDecl>)>>();
+    private Dictionary<TraitDecl, List<(Type, List<TraitDecl> /*via this parent path*/)>> info = new Dictionary<TraitDecl, List<(Type, List<TraitDecl>)>>();
 
     /// <summary>
     /// Returns a subset of the trait's ParentTraits, but not repeating any head type.
@@ -48,26 +48,21 @@ public abstract class TopLevelDeclWithMembers : TopLevelDecl, IHasSymbolChildren
     }
 
     public void Record(TraitDecl traitHead, UserDefinedType parentType) {
-      Contract.Requires(traitHead != null);
-      Contract.Requires(parentType != null);
       Contract.Requires(parentType.ResolvedClass is NonNullTypeDecl nntd && nntd.ViewAsClass == traitHead);
 
       if (!info.TryGetValue(traitHead, out var list)) {
-        list = new List<(Type, List<TraitDecl>)>();
+        list = [];
         info.Add(traitHead, list);
       }
-      list.Add((parentType, new List<TraitDecl>()));
+      list.Add((parentType, []));
     }
 
     public void Extend(TraitDecl parent, InheritanceInformationClass parentInfo, Dictionary<TypeParameter, Type> typeMap) {
-      Contract.Requires(parent != null);
-      Contract.Requires(parentInfo != null);
-      Contract.Requires(typeMap != null);
 
       foreach (var entry in parentInfo.info) {
         var traitHead = entry.Key;
         if (!info.TryGetValue(traitHead, out var list)) {
-          list = new List<(Type, List<TraitDecl>)>();
+          list = [];
           info.Add(traitHead, list);
         }
         foreach (var pair in entry.Value) {
@@ -87,16 +82,13 @@ public abstract class TopLevelDeclWithMembers : TopLevelDecl, IHasSymbolChildren
     }
   }
 
-  protected TopLevelDeclWithMembers(IOrigin origin, Name name, ModuleDefinition module,
-    List<TypeParameter> typeArgs, List<MemberDecl> members, Attributes attributes,
-    bool isRefining, List<Type>/*?*/ traits = null)
-    : base(origin, name, module, typeArgs, attributes, isRefining) {
-    Contract.Requires(origin != null);
-    Contract.Requires(name != null);
-    Contract.Requires(cce.NonNullElements(typeArgs));
-    Contract.Requires(cce.NonNullElements(members));
+  [SyntaxConstructor]
+  protected TopLevelDeclWithMembers(IOrigin origin, Name nameNode, ModuleDefinition enclosingModuleDefinition,
+    List<TypeParameter> typeArgs, List<MemberDecl> members, Attributes? attributes,
+    List<Type> traits)
+    : base(origin, nameNode, enclosingModuleDefinition, typeArgs, attributes) {
     Members = members;
-    ParentTraits = traits ?? new List<Type>();
+    Traits = traits;
     SetMembersBeforeResolution();
   }
 
@@ -105,13 +97,13 @@ public abstract class TopLevelDeclWithMembers : TopLevelDecl, IHasSymbolChildren
   }
 
   public List<Type> RawTraitsWithArgument(List<Type> typeArgs) {
-    Contract.Requires(typeArgs != null);
     Contract.Requires(typeArgs.Count == TypeArgs.Count);
+
     // Instantiate with the actual type arguments
     var subst = TypeParameter.SubstitutionMap(TypeArgs, typeArgs);
     var isReferenceType = this is ClassLikeDecl { IsReferenceTypeDecl: true };
     var results = new List<Type>();
-    foreach (var traitType in ParentTraits) {
+    foreach (var traitType in Traits) {
       var ty = (UserDefinedType)traitType.Subst(subst);
       Contract.Assert(isReferenceType || !ty.IsRefType);
       results.Add(UserDefinedType.CreateNullableTypeIfReferenceType(ty));
@@ -124,8 +116,6 @@ public abstract class TopLevelDeclWithMembers : TopLevelDecl, IHasSymbolChildren
   }
 
   public static List<UserDefinedType> CommonTraits(TopLevelDeclWithMembers a, TopLevelDeclWithMembers b) {
-    Contract.Requires(a != null);
-    Contract.Requires(b != null);
     var aa = a.TraitAncestors();
     var bb = b.TraitAncestors();
     aa.IntersectWith(bb);
@@ -138,9 +128,9 @@ public abstract class TopLevelDeclWithMembers : TopLevelDecl, IHasSymbolChildren
     return types;
   }
 
-  public override IEnumerable<INode> Children => ParentTraits.Concat<Node>(Members);
+  public override IEnumerable<INode> Children => Traits.Concat<Node>(Members);
 
-  public override IEnumerable<INode> PreResolveChildren => ParentTraits.Concat<Node>(MembersBeforeResolution);
+  public override IEnumerable<INode> PreResolveChildren => Traits.Concat<Node>(MembersBeforeResolution);
 
   /// <summary>
   /// Returns the set of transitive parent traits (not including "this" itself).
@@ -156,8 +146,7 @@ public abstract class TopLevelDeclWithMembers : TopLevelDecl, IHasSymbolChildren
   /// This method assumes the .ParentTraits fields have been checked for various cycle restrictions.
   /// </summary>
   private void AddTraitAncestors(ISet<TraitDecl> s) {
-    Contract.Requires(s != null);
-    foreach (var parent in ParentTraits) {
+    foreach (var parent in Traits) {
       var udt = (UserDefinedType)parent;  // in a successfully resolved program, we expect all .ParentTraits to be a UserDefinedType
       TraitDecl tr;
       if (udt.ResolvedClass is NonNullTypeDecl nntd) {
@@ -175,7 +164,7 @@ public abstract class TopLevelDeclWithMembers : TopLevelDecl, IHasSymbolChildren
   public abstract bool AcceptThis { get; }
 
   public override bool IsEssentiallyEmpty() {
-    if (Members.Count != 0 || ParentTraits.Count != 0) {
+    if (Members.Count != 0 || Traits.Count != 0) {
       return false;
     }
     return base.IsEssentiallyEmpty();
@@ -196,85 +185,88 @@ public abstract class TopLevelDeclWithMembers : TopLevelDecl, IHasSymbolChildren
   }
 
   public void RegisterMembers(ModuleResolver resolver, Dictionary<string, MemberDecl> members) {
-    Contract.Requires(this != null);
-    Contract.Requires(members != null);
-
     foreach (MemberDecl m in Members) {
-      if (!members.ContainsKey(m.Name)) {
-        members.Add(m.Name, m);
-        if (m is Constructor) {
-          Contract.Assert(this is ClassLikeDecl); // the parser ensures this condition
-          if (this is TraitDecl) {
-            resolver.reporter.Error(MessageSource.Resolver, m.Origin, "a trait is not allowed to declare a constructor");
-          } else {
-            ((ClassDecl)this).HasConstructor = true;
-          }
-        } else if (m is ExtremePredicate || m is ExtremeLemma) {
-          var extraName = m.NameNode.Append("#");
-          MemberDecl extraMember;
-          var cloner = new Cloner();
-          var formals = new List<Formal>();
-          Type typeOfK;
-          if ((m is ExtremePredicate && ((ExtremePredicate)m).KNat) ||
-              (m is ExtremeLemma && ((ExtremeLemma)m).KNat)) {
-            typeOfK = new UserDefinedType(m.Origin, "nat", (List<Type>)null);
-          } else {
-            typeOfK = new BigOrdinalType();
-          }
+      if (members.TryAdd(m.Name, m)) {
+        switch (m) {
+          case Constructor: {
+              Contract.Assert(this is ClassLikeDecl); // the parser ensures this condition
+              if (this is TraitDecl) {
+                resolver.reporter.Error(MessageSource.Resolver, m.Origin, "a trait is not allowed to declare a constructor");
+              } else {
+                ((ClassDecl)this).HasConstructor = true;
+              }
 
-          var k = new ImplicitFormal(m.Origin, "_k", typeOfK, true, false);
-          resolver.reporter.Info(MessageSource.Resolver, m.Origin, string.Format("_k: {0}", k.Type));
-          formals.Add(k);
-          if (m is ExtremePredicate extremePredicate) {
-            formals.AddRange(extremePredicate.Ins.ConvertAll(f => cloner.CloneFormal(f, false)));
+              break;
+            }
+          case ExtremePredicate or ExtremeLemma: {
+              var extraName = m.NameNode.Append("#");
+              MemberDecl extraMember;
+              var cloner = new Cloner();
+              var formals = new List<Formal>();
+              Type typeOfK;
+              if ((m is ExtremePredicate && ((ExtremePredicate)m).KNat) ||
+                  (m is ExtremeLemma && ((ExtremeLemma)m).KNat)) {
+                typeOfK = new UserDefinedType(m.Origin, "nat", null);
+              } else {
+                typeOfK = new BigOrdinalType();
+              }
 
-            List<TypeParameter> tyvars = extremePredicate.TypeArgs.ConvertAll(cloner.CloneTypeParam);
+              var k = new ImplicitFormal(m.Origin, "_k", typeOfK, true, false);
+              resolver.reporter.Info(MessageSource.Resolver, m.Origin, string.Format("_k: {0}", k.Type));
+              formals.Add(k);
+              if (m is ExtremePredicate extremePredicate) {
+                formals.AddRange(extremePredicate.Ins.ConvertAll(f => cloner.CloneFormal(f, false)));
 
-            // create prefix predicate
-            extremePredicate.PrefixPredicate = new PrefixPredicate(extremePredicate.Origin, extraName, extremePredicate.HasStaticKeyword,
-              tyvars, k, formals,
-              extremePredicate.Req.ConvertAll(cloner.CloneAttributedExpr),
-              cloner.CloneSpecFrameExpr(extremePredicate.Reads),
-              extremePredicate.Ens.ConvertAll(cloner.CloneAttributedExpr),
-              new Specification<Expression>(new List<Expression>() { new IdentifierExpr(extremePredicate.Origin, k.Name) }, null),
-              cloner.CloneExpr(extremePredicate.Body),
-              SystemModuleManager.AxiomAttribute(),
-              extremePredicate);
-            extraMember = extremePredicate.PrefixPredicate;
-          } else {
-            var extremeLemma = (ExtremeLemma)m;
-            // _k has already been added to 'formals', so append the original formals
-            formals.AddRange(extremeLemma.Ins.ConvertAll(f => cloner.CloneFormal(f, false)));
-            // prepend _k to the given decreases clause
-            var decr = new List<Expression>();
-            decr.Add(new IdentifierExpr(extremeLemma.Origin, k.Name));
-            decr.AddRange(extremeLemma.Decreases.Expressions.ConvertAll(cloner.CloneExpr));
-            // Create prefix lemma.  Note that the body is not cloned, but simply shared.
-            // For a greatest lemma, the postconditions are filled in after the greatest lemma's postconditions have been resolved.
-            // For a least lemma, the preconditions are filled in after the least lemma's preconditions have been resolved.
-            var req = extremeLemma is GreatestLemma
-              ? extremeLemma.Req.ConvertAll(cloner.CloneAttributedExpr)
-              : new List<AttributedExpression>();
-            var ens = extremeLemma is GreatestLemma
-              ? new List<AttributedExpression>()
-              : extremeLemma.Ens.ConvertAll(cloner.CloneAttributedExpr);
-            extremeLemma.PrefixLemma = new PrefixLemma(extremeLemma.Origin, extraName, extremeLemma.HasStaticKeyword,
-              extremeLemma.TypeArgs.ConvertAll(cloner.CloneTypeParam), k, formals, extremeLemma.Outs.ConvertAll(f => cloner.CloneFormal(f, false)),
-              req, cloner.CloneSpecFrameExpr(extremeLemma.Reads),
-              cloner.CloneSpecFrameExpr(extremeLemma.Mod), ens,
-              new Specification<Expression>(decr, null),
-              null, // Note, the body for the prefix method will be created once the call graph has been computed and the SCC for the greatest lemma is known
-              SystemModuleManager.AxiomAttribute(cloner.CloneAttributes(extremeLemma.Attributes)), extremeLemma);
-            extraMember = extremeLemma.PrefixLemma;
-          }
+                List<TypeParameter> tyvars = extremePredicate.TypeArgs.ConvertAll(cloner.CloneTypeParam);
 
-          extraMember.InheritVisibility(m, false);
-          members.Add(extraName.Value, extraMember);
-        } else if (m is Function f && f.ByMethodBody != null) {
-          resolver.RegisterByMethod(f, this);
+                // create prefix predicate
+                extremePredicate.PrefixPredicate = new PrefixPredicate(extremePredicate.Origin, extraName, extremePredicate.HasStaticKeyword,
+                  tyvars, k, formals,
+                  extremePredicate.Req.ConvertAll(cloner.CloneAttributedExpr),
+                  cloner.CloneSpecFrameExpr(extremePredicate.Reads),
+                  extremePredicate.Ens.ConvertAll(cloner.CloneAttributedExpr),
+                  new Specification<Expression>([new IdentifierExpr(extremePredicate.Origin, k.Name)], null),
+                  cloner.CloneExpr(extremePredicate.Body),
+                  SystemModuleManager.AxiomAttribute(),
+                  extremePredicate);
+                extraMember = extremePredicate.PrefixPredicate;
+              } else {
+                var extremeLemma = (ExtremeLemma)m;
+                // _k has already been added to 'formals', so append the original formals
+                formals.AddRange(extremeLemma.Ins.ConvertAll(f => cloner.CloneFormal(f, false)));
+                // prepend _k to the given decreases clause
+                var decr = new List<Expression>();
+                decr.Add(new IdentifierExpr(extremeLemma.Origin, k.Name));
+                decr.AddRange(extremeLemma.Decreases.Expressions!.ConvertAll(cloner.CloneExpr));
+                // Create prefix lemma.  Note that the body is not cloned, but simply shared.
+                // For a greatest lemma, the postconditions are filled in after the greatest lemma's postconditions have been resolved.
+                // For a least lemma, the preconditions are filled in after the least lemma's preconditions have been resolved.
+                var req = extremeLemma is GreatestLemma
+                  ? extremeLemma.Req.ConvertAll(cloner.CloneAttributedExpr)
+                  : new List<AttributedExpression>();
+                var ens = extremeLemma is GreatestLemma
+                  ? new List<AttributedExpression>()
+                  : extremeLemma.Ens.ConvertAll(cloner.CloneAttributedExpr);
+                extremeLemma.PrefixLemma = new PrefixLemma(new CanVerifyOrigin(extremeLemma), extraName, extremeLemma.HasStaticKeyword,
+                  extremeLemma.TypeArgs.ConvertAll(cloner.CloneTypeParam), k, formals, extremeLemma.Outs.ConvertAll(f => cloner.CloneFormal(f, false)),
+                  req, cloner.CloneSpecFrameExpr(extremeLemma.Reads),
+                  cloner.CloneSpecFrameExpr(extremeLemma.Mod), ens,
+                  new Specification<Expression>(decr, null),
+                  null, // Note, the body for the prefix method will be created once the call graph has been computed and the SCC for the greatest lemma is known
+                  SystemModuleManager.AxiomAttribute(cloner.CloneAttributes(extremeLemma.Attributes)), extremeLemma);
+                extraMember = extremeLemma.PrefixLemma;
+              }
+
+              extraMember.InheritVisibility(m, false);
+              members.Add(extraName.Value, extraMember);
+              break;
+            }
+          case Function { ByMethodBody: not null } f:
+            resolver.RegisterByMethod(f, this);
+            break;
         }
-      } else if (m is Constructor && !((Constructor)m).HasName) {
-        resolver.reporter.Error(MessageSource.Resolver, m, "More than one anonymous constructor");
+      } else if (m is Constructor { HasName: false } constructor) {
+        resolver.reporter.Error(MessageSource.Resolver, constructor, "More than one anonymous constructor");
       } else {
         resolver.reporter.Error(MessageSource.Resolver, m, "Duplicate member name: {0}", m.Name);
       }
@@ -291,7 +283,7 @@ public static class RevealableTypeDeclHelper {
   public static InternalTypeSynonymDecl SelfSynonymDecl(this RevealableTypeDecl rtd) =>
     rtd.SynonymInfo.SelfSynonymDecl;
 
-  public static UserDefinedType SelfSynonym(this RevealableTypeDecl rtd, List<Type> args, Expression /*?*/ namePath = null) =>
+  public static UserDefinedType SelfSynonym(this RevealableTypeDecl rtd, List<Type> args, Expression? namePath = null) =>
     rtd.SynonymInfo.SelfSynonym(args, namePath);
 
   //Internal implementations are called before extensions, so this is safe

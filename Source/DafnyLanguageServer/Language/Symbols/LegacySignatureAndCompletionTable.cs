@@ -66,7 +66,7 @@ namespace Microsoft.Dafny.LanguageServer.Language.Symbols {
     public static Program GetEmptyProgram(DafnyOptions options, Uri uri) {
       var outerModule = new DefaultModuleDefinition();
       var errorReporter = new ObservableErrorReporter(options, uri);
-      var compilation = new CompilationData(errorReporter, new List<Include>(), new List<Uri>(), Sets.Empty<Uri>(),
+      var compilation = new CompilationData(errorReporter, [], new List<Uri>(), Sets.Empty<Uri>(),
         Sets.Empty<Uri>());
 
       SystemModuleManager manager;

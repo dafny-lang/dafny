@@ -1,3 +1,4 @@
+#nullable enable
 using System;
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
@@ -5,20 +6,51 @@ using System.Linq;
 using System.Text.RegularExpressions;
 using Microsoft.Dafny.Auditor;
 using Action = System.Action;
+using Range = OmniSharp.Extensions.LanguageServer.Protocol.Models.Range;
 
 namespace Microsoft.Dafny;
+
+/// <summary>
+/// Indicates that this constructor is used to define an AST type corresponding to the syntax of Dafny
+///
+/// These constructors are invoked by the Dafny parser defined in Dafny.atg
+/// and by the Dafny deserializer.
+///
+/// The attribute is used by DeserializerGenerator.
+/// </summary>
+[AttributeUsage(AttributeTargets.Constructor)]
+public class SyntaxConstructorAttribute : Attribute { }
+
+/// <summary>
+/// Used by the command '--generate-parsed-ast'. This attribute will cause the field to be ignored.
+/// Some constructors used during parsing also have a parameter whose value that points to the container of the object that is
+/// to be constructed. This parameters should not end up in the generated 'parsed AST', so their related fields
+/// are annotated with this attribute.
+/// </summary>
+[AttributeUsage(AttributeTargets.Parameter | AttributeTargets.Field)]
+public class BackEdge : Attribute { }
+
+/// <summary>
+/// Indicates that in the syntax schema, this type has a different base type than in the C# types
+/// </summary>
+[AttributeUsage(AttributeTargets.Class, Inherited = false)]
+public class SyntaxBaseType(System.Type? newBase) : Attribute {
+  public readonly System.Type? NewBase = newBase;
+}
 
 public abstract class Node : INode {
   private static readonly Regex StartDocstringExtractor =
     new Regex($@"/\*\*(?<multilinecontent>{TriviaFormatterHelper.MultilineCommentContent})\*/");
 
-  protected IReadOnlyList<IOrigin> OwnedTokensCache;
+  protected IReadOnlyList<Token>? OwnedTokensCache;
 
   public virtual bool SingleFileToken => true;
-  public Token StartToken => Origin?.StartToken;
 
-  public Token EndToken => Origin?.EndToken;
-  public Token Center => Origin?.Center;
+  public abstract IOrigin Origin { get; }
+
+  public abstract TokenRange EntireRange { get; }
+  public TokenRange ReportingRange => Origin.ReportingRange;
+  public Token Center => ReportingRange.StartToken;
 
   /// <summary>
   /// These children should be such that they contain information produced by resolution such as inferred types
@@ -37,22 +69,25 @@ public abstract class Node : INode {
 
   public IEnumerable<Token> CoveredTokens {
     get {
-      var token = StartToken;
+      var token = EntireRange.StartToken;
       if (token == Token.NoToken) {
         yield break;
       }
-      while (token.Prev != EndToken) {
+      while (token.Prev != EntireRange.EndToken) {
         yield return token;
         token = token.Next;
       }
     }
   }
 
+  public Token StartToken => EntireRange.StartToken;
+  public Token EndToken => EntireRange.EndToken;
+
   /// <summary>
   /// A token is owned by a node if it was used to parse this node,
   /// but is not owned by any of this Node's children
   /// </summary>
-  public IEnumerable<IOrigin> OwnedTokens {
+  public IEnumerable<Token> OwnedTokens {
     get {
       if (OwnedTokensCache != null) {
         return OwnedTokensCache;
@@ -66,10 +101,10 @@ public abstract class Node : INode {
         // We need to filter these out to prevent an infinite loop
         Where(c => c.StartToken.pos <= c.EndToken.pos).
         GroupBy(child => child.StartToken.pos).
-        ToDictionary(g => g.Key, g => g.MaxBy(child => child.EndToken.pos).EndToken
+        ToDictionary(g => g.Key, g => g.MaxBy(child => child.EndToken.pos)!.EndToken
       );
 
-      var result = new List<IOrigin>();
+      var result = new List<Token>();
       if (StartToken == null) {
         Contract.Assume(EndToken == null);
       } else {
@@ -109,8 +144,6 @@ public abstract class Node : INode {
     }
   }
 
-  public abstract IOrigin Origin { get; }
-
   // <summary>
   // Returns all assumptions contained in this node or its descendants.
   // For each one, the decl field will be set to the closest containing declaration.
@@ -118,10 +151,12 @@ public abstract class Node : INode {
   // containing this node, or null if it is not contained in any.
   // </summary>
   public virtual IEnumerable<Assumption> Assumptions(Declaration decl) {
-    return Enumerable.Empty<Assumption>();
+    return [];
   }
 
-  public ISet<INode> Visit(Func<INode, bool> beforeChildren = null, Action<INode> afterChildren = null, Action<Exception> reportError = null) {
+  public ISet<INode> Visit(Func<INode, bool>? beforeChildren = null,
+    Action<INode>? afterChildren = null,
+    Action<Exception>? reportError = null) {
     reportError ??= _ => { };
     beforeChildren ??= node => true;
 
@@ -168,7 +203,7 @@ public abstract class Node : INode {
   }
 
   // Docstring from start token is extracted only if using "/** ... */" syntax, and only the last one is considered
-  protected bool GetStartTriviaDocstring(out string trivia) {
+  protected bool GetStartTriviaDocstring(out string? trivia) {
     var matches = StartDocstringExtractor.Matches(StartToken.LeadingTrivia);
     trivia = null;
     if (matches.Count > 0) {

@@ -69,8 +69,8 @@ public class DafnyProject : IEquatable<DafnyProject> {
         var directory = Path.GetDirectoryName(uri.LocalPath)!;
 
         result = new DafnyProject(fileSnapshot.Version, uri, model.Base == null ? null : new Uri(Path.GetFullPath(model.Base, directory!)),
-          model.Includes?.Select(p => Path.GetFullPath(p, directory)).ToHashSet() ?? new HashSet<string>(),
-          model.Excludes?.Select(p => Path.GetFullPath(p, directory)).ToHashSet() ?? new HashSet<string>(),
+          model.Includes?.Select(p => Path.GetFullPath(p, directory)).ToHashSet() ?? [],
+          model.Excludes?.Select(p => Path.GetFullPath(p, directory)).ToHashSet() ?? [],
           model.Options ?? new Dictionary<string, object>());
 
         if (result.Base != null) {
@@ -213,11 +213,11 @@ public class DafnyProject : IEquatable<DafnyProject> {
     return commonPrefix;
   }
 
-  public void Validate(TextWriter outputWriter, IEnumerable<Option> possibleOptions) {
+  public async Task Validate(IDafnyOutputWriter outputWriter, IEnumerable<Option> possibleOptions) {
 
     var possibleNames = possibleOptions.Select(o => o.Name).ToHashSet();
     foreach (var optionThatDoesNotExist in Options.Where(option => !possibleNames.Contains(option.Key))) {
-      outputWriter.WriteLine(
+      await outputWriter.Status(
         $"Warning: option '{optionThatDoesNotExist.Key}' that was specified in the project file, is not a valid Dafny option.");
     }
   }

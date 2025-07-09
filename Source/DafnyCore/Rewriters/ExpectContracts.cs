@@ -38,7 +38,7 @@ public class ExpectContracts : IRewriter {
   /// <returns>The newly-created expect statement.</returns>
   private Statement CreateContractExpectStatement(AttributedExpression expr, string exprType) {
     var tok = expr.E.Origin;
-    var msg = $"Runtime failure of {exprType} clause from {tok.TokenToString(Reporter.Options)}";
+    var msg = $"Runtime failure of {exprType} clause from {tok.OriginToString(Reporter.Options)}";
     var exprToCheck = expr.E;
     if (ExpressionTester.UsesSpecFeatures(exprToCheck)) {
       ReportWarning(ErrorId.rw_clause_cannot_be_compiled, tok,
@@ -88,7 +88,7 @@ public class ExpectContracts : IRewriter {
     var newName = decl.Name + "__dafny_checked";
     MemberDecl newDecl = null;
 
-    if (decl is Method origMethod) {
+    if (decl is MethodOrConstructor origMethod) {
       newDecl = GenerateMethodWrapper(parent, decl, origMethod, newName);
     } else if (decl is Function origFunc) {
       newDecl = GenerateFunctionWrapper(parent, decl, origFunc, newName, tok);
@@ -134,7 +134,7 @@ public class ExpectContracts : IRewriter {
     return newFunc;
   }
 
-  private MemberDecl GenerateMethodWrapper(TopLevelDeclWithMembers parent, MemberDecl decl, Method origMethod,
+  private MemberDecl GenerateMethodWrapper(TopLevelDeclWithMembers parent, MemberDecl decl, MethodOrConstructor origMethod,
     string newName) {
     var newMethod = cloner.CloneMethod(origMethod);
     newMethod.NameNode.Value = newName;
@@ -151,7 +151,7 @@ public class ExpectContracts : IRewriter {
     var callStmt = new CallStmt(decl.Origin, outs, memberSelectExpr, args);
 
     var body = MakeContractCheckingBody(origMethod.Req, origMethod.Ens, callStmt);
-    newMethod.Body = body;
+    newMethod.SetBody(body);
     return newMethod;
   }
 
@@ -177,13 +177,12 @@ public class ExpectContracts : IRewriter {
     var reads = f.Reads;
     if (!reads.Expressions.Any()) {
       reads = new Specification<FrameExpression>();
-      var emptySet = new SetDisplayExpr(tok, true, new List<Expression>());
+      var emptySet = new SetDisplayExpr(tok, true, []);
       reads.Expressions.Add(new FrameExpression(tok, emptySet, null));
     }
-    var method = new Method(f.Origin, f.NameNode, f.HasStaticKeyword, false, f.TypeArgs,
-      f.Ins, new List<Formal>() { resultVar },
-      f.Req, reads, new Specification<FrameExpression>(new List<FrameExpression>(), null), new List<AttributedExpression>() { post }, f.Decreases,
-      f.ByMethodBody, f.Attributes, null, true);
+    var method = new Method(f.Origin, f.NameNode, f.Attributes, f.HasStaticKeyword, false, f.TypeArgs,
+        f.Ins, f.Req, [post], reads, f.Decreases, [resultVar],
+        new Specification<FrameExpression>([], null), f.ByMethodBody, null, true);
     Contract.Assert(f.ByMethodDecl == null);
     method.InheritVisibility(f);
     method.FunctionFromWhichThisIsByMethodDecl = f;
@@ -207,7 +206,7 @@ public class ExpectContracts : IRewriter {
     foreach (var moduleDefinition in program.Modules()) {
 
       // Keep a list of members to wrap so that we don't modify the collection we're iterating over.
-      List<(TopLevelDeclWithMembers, MemberDecl)> membersToWrap = new();
+      List<(TopLevelDeclWithMembers, MemberDecl)> membersToWrap = [];
 
       moduleDefinition.CallRedirector = new(Reporter);
 
@@ -270,7 +269,7 @@ public class CallRedirector : TopDownVisitor<MemberDecl> {
   public Dictionary<MemberDecl, MemberDecl> NewRedirections { get; set; } = new();
   private readonly Dictionary<MemberDecl, string> newFullNames = new();
   private readonly ErrorReporter reporter;
-  public HashSet<MemberDecl> CalledWrappers { get; } = new();
+  public HashSet<MemberDecl> CalledWrappers { get; } = [];
 
   public CallRedirector(ErrorReporter reporter) {
     this.reporter = reporter;
@@ -294,7 +293,7 @@ public class CallRedirector : TopDownVisitor<MemberDecl> {
     }
     // If there's no wrapper for the callee, don't try to call it, but warn.
     if (!NewRedirections.ContainsKey(callee)) {
-      reporter.Warning(MessageSource.Rewriter, ErrorId.rw_no_wrapper, caller.Origin, $"Internal: no wrapper for {callee.FullDafnyName}");
+      reporter.Warning(MessageSource.Rewriter, ErrorId.rw_no_wrapper.ToString(), caller.Origin, $"Internal: no wrapper for {callee.FullDafnyName}");
       return false;
     }
 

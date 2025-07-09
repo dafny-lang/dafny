@@ -88,23 +88,19 @@ TAIL_CALL_START:
 		_ = _0_concat
 		_0_concat = e.(*ConcatSequence)
 		if !(Companion_Default___.SizeAdditionInRange(stack.Size, Companion_Default___.ONE__SIZE())) {
-			panic("dafnyRuntime.dfy[DafnyGo](766,6): " + (SeqOfString("expectation violation")).String())
+			panic("dafnyRuntime.dfy(754,6): " + (SeqOfString("expectation violation")).String())
 		}
 		(stack).AddLast((_0_concat).Right())
-		{
-			var _in0 *Vector = builder
-			_ = _in0
-			var _in1 Sequence = (_0_concat).Left()
-			_ = _in1
-			var _in2 *Vector = stack
-			_ = _in2
-			builder = _in0
-			e = _in1
-			stack = _in2
-			goto TAIL_CALL_START
-			goto L0_0
-		}
-	L0_0:
+		var _in0 *Vector = builder
+		_ = _in0
+		var _in1 Sequence = (_0_concat).Left()
+		_ = _in1
+		var _in2 *Vector = stack
+		_ = _in2
+		builder = _in0
+		e = _in1
+		stack = _in2
+		goto TAIL_CALL_START
 	} else if func(_is_3 Sequence) bool {
 		return InstanceOf(_is_3, (*LazySequence)(nil))
 	}(e) {
@@ -141,24 +137,20 @@ TAIL_CALL_START:
 			_ = _out1
 			_out1 = (stack).RemoveLast()
 			_4_next = Companion_Sequence_.CastTo_(Companion_Sequence_.CastTo_(_out1))
-			{
-				var _in6 *Vector = builder
-				_ = _in6
-				var _in7 Sequence = _4_next
-				_ = _in7
-				var _in8 *Vector = stack
-				_ = _in8
-				builder = _in6
-				e = _in7
-				stack = _in8
-				goto TAIL_CALL_START
-				goto L1_1_0_0_0
-			}
-		L1_1_0_0_0:
+			var _in6 *Vector = builder
+			_ = _in6
+			var _in7 Sequence = _4_next
+			_ = _in7
+			var _in8 *Vector = stack
+			_ = _in8
+			builder = _in6
+			e = _in7
+			stack = _in8
+			goto TAIL_CALL_START
 		}
 	} else {
 		if !(false) {
-			panic("dafnyRuntime.dfy[DafnyGo](789,6): " + (SeqOfString("Unsupported Sequence implementation")).String())
+			panic("dafnyRuntime.dfy(777,6): " + (SeqOfString("Unsupported Sequence implementation")).String())
 		}
 	}
 }
@@ -302,33 +294,6 @@ func (_static *CompanionStruct_Sequence_) Create(cardinality uint32, initFn func
 	ret = _nw0
 	return ret
 }
-func (_static *CompanionStruct_Sequence_) EqualUpTo(left Sequence, right Sequence, index uint32) bool {
-	var ret bool = false
-	_ = ret
-	var _hi0 uint32 = index
-	_ = _hi0
-	for _0_i := uint32(0); _0_i < _hi0; _0_i++ {
-		var _1_leftElement interface{}
-		_ = _1_leftElement
-		var _out0 interface{}
-		_ = _out0
-		_out0 = (left).Select(_0_i)
-		_1_leftElement = _out0
-		var _2_rightElement interface{}
-		_ = _2_rightElement
-		var _out1 interface{}
-		_ = _out1
-		_out1 = (right).Select(_0_i)
-		_2_rightElement = _out1
-		if !AreEqual(_1_leftElement, _2_rightElement) {
-			ret = false
-			return ret
-		}
-	}
-	ret = true
-	return ret
-	return ret
-}
 func (_static *CompanionStruct_Sequence_) Equal(left Sequence, right Sequence) bool {
 	var ret bool = false
 	_ = ret
@@ -421,7 +386,7 @@ func (_static *CompanionStruct_Sequence_) Concatenate(left Sequence, right Seque
 	var ret Sequence = (Sequence)(nil)
 	_ = ret
 	if !(Companion_Default___.SizeAdditionInRange((left).Cardinality(), (right).Cardinality())) {
-		panic("dafnyRuntime.dfy[DafnyGo](594,6): " + (Companion_Sequence_.Concatenate(Companion_Sequence_.Concatenate(SeqOfString("Concatenation result cardinality would be larger than the maximum ("), Companion_Helpers_.DafnyValueToDafnyString(Companion_Default___.SIZE__T__MAX())), SeqOfString(")"))).String())
+		panic("dafnyRuntime.dfy(582,6): " + (Companion_Sequence_.Concatenate(Companion_Sequence_.Concatenate(SeqOfString("Concatenation result cardinality would be larger than the maximum ("), Companion_Helpers_.DafnyValueToDafnyString(Companion_Default___.SIZE__T__MAX())), SeqOfString(")"))).String())
 	}
 	var _0_left_k Sequence
 	_ = _0_left_k
@@ -1259,6 +1224,12 @@ func (_this *LazySequence) ToArray() ImmutableArray {
 		_ = _out0
 		_out0 = ((_this).Box()).Get()
 		_0_expr = Companion_Sequence_.CastTo_(Companion_Sequence_.CastTo_(_out0))
+		if func(_is_7 Sequence) bool {
+			return InstanceOf(_is_7, (*ArraySequence)(nil))
+		}(_0_expr) {
+			ret = (_0_expr.(*ArraySequence)).Values()
+			return ret
+		}
 		var _out1 ImmutableArray
 		_ = _out1
 		_out1 = Companion_ImmutableArray_.CastTo_((_0_expr).ToArray())

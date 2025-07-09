@@ -62,7 +62,7 @@ class DafnyDoc {
     var folderFiles = dafnyFolders.Select(folderPath =>
       FormatCommand.GetFilesForFolder(options, folderPath)).SelectMany(x => x);
     dafnyFiles = dafnyFiles.Concat(folderFiles).ToList();
-    await options.OutputWriter.WriteAsync($"Documenting {dafnyFiles.Count} files from {dafnyFolders.Count} folders\n");
+    await options.OutputWriter.Status($"Documenting {dafnyFiles.Count} files from {dafnyFolders.Count} folders");
     if (dafnyFiles.Count == 0) {
       return exitValue;
     }
@@ -75,12 +75,12 @@ class DafnyDoc {
     } catch (Exception e) {
       err = "Exception while parsing -- please report the error (use --verbose to see the call stack)";
       if (options.Verbose) {
-        await options.OutputWriter.WriteLineAsync(e.ToString()).ConfigureAwait(false);
+        options.OutputWriter.Exception(e.ToString());
       }
     }
     if (err != null) {
       exitValue = ExitValue.DAFNY_ERROR;
-      await options.OutputWriter.WriteLineAsync(err);
+      await options.OutputWriter.Status(err);
     } else {
       Contract.Assert(dafnyProgram != null);
 
@@ -93,11 +93,11 @@ class DafnyDoc {
       try {
         await File.Create(outputDir + "/index.html").DisposeAsync();
       } catch (Exception) {
-        await options.OutputWriter.WriteLineAsync("Insufficient permission to create output files in " + outputDir);
+        await options.OutputWriter.Status("Insufficient permission to create output files in " + outputDir);
         return ExitValue.DAFNY_ERROR;
       }
       // Generate all the documentation
-      exitValue = new DafnyDoc(dafnyProgram, options, outputDir).GenerateDocs(dafnyFiles);
+      exitValue = await new DafnyDoc(dafnyProgram, options, outputDir).GenerateDocs(dafnyFiles);
     }
     return exitValue;
   }
@@ -112,7 +112,7 @@ class DafnyDoc {
   public ErrorReporter Reporter;
   public DafnyOptions Options;
   public string Outputdir;
-  List<Info> AllInfo = new List<Info>();
+  List<Info> AllInfo = [];
   public StringBuilder sidebar = new StringBuilder();
   public StringBuilder script = new StringBuilder().Append(ScriptStart());
 
@@ -123,7 +123,7 @@ class DafnyDoc {
     this.Outputdir = outputdir;
   }
 
-  public ExitValue GenerateDocs(IReadOnlyList<DafnyFile> dafnyFiles) {
+  public async Task<ExitValue> GenerateDocs(IReadOnlyList<DafnyFile> dafnyFiles) {
     try {
       var modDecls = new List<LiteralModuleDecl>();
       var rootModule = DafnyProgram.DefaultModule;
@@ -133,9 +133,9 @@ class DafnyDoc {
       script.Append(ScriptEnd());
       // Call the following to geneate pages after all the Info structures have been generated
       AddSideBarEntry(info, sidebar, true);
-      WriteTOC();
-      WritePages();
-      WriteStyle();
+      await WriteTOC();
+      await WritePages();
+      await WriteStyle();
       return ExitValue.SUCCESS;
     } catch (Exception e) {
       // This is a fail-safe backstop so that dafny itself does not crash
@@ -167,21 +167,21 @@ class DafnyDoc {
     }
   }
 
-  public void WritePages() {
+  public async Task WritePages() {
     foreach (var info in AllInfo) {
       var filename = Outputdir + "/" + info.Link;
-      using StreamWriter file = new(filename);
-      file.Write(HtmlStart($"Dafny Documentation{ProgramHeader()}"));
-      file.Write(BodyStart());
-      file.Write(LocalHeading(info.Kind, info.FullName));
+      await using StreamWriter file = new(filename);
+      await file.WriteAsync(HtmlStart($"Dafny Documentation{ProgramHeader()}"));
+      await file.WriteAsync(BodyStart());
+      await file.WriteAsync(LocalHeading(info.Kind, info.FullName));
       if (!String.IsNullOrEmpty(info.Source)) {
-        file.WriteLine(br);
-        file.Write(info.Source);
+        await file.WriteLineAsync(br);
+        await file.WriteAsync(info.Source);
       }
-      file.WriteLine(br);
-      file.Write(info.HtmlDetail);
-      file.Write(BodyAndHtmlEnd());
-      AnnounceFile(filename);
+      await file.WriteLineAsync(br);
+      await file.WriteAsync(info.HtmlDetail);
+      await file.WriteAsync(BodyAndHtmlEnd());
+      await AnnounceFile(filename);
     }
   }
 
@@ -206,7 +206,7 @@ class DafnyDoc {
     var defaultClass = moduleDef.TopLevelDecls.First(d => d is DefaultClassDecl cd) as DefaultClassDecl;
 
     var info = new Info(register, this, "module", module == null ? null : module.Origin, moduleDef.IsDefaultModule ? "_" : moduleDef.Name, fullName);
-    info.Contents = new List<Info>();
+    info.Contents = [];
 
     if (moduleDef.IsDefaultModule) {
       if (dafnyFiles == null) {
@@ -565,7 +565,7 @@ class DafnyDoc {
         if (f.IsOpaque) {
           details.Append(br).Append(space4).Append("Function body is opaque").Append(br).Append(eol);
         }
-        var brackets = new SourceOrigin(body.StartToken.Prev, body.EndToken.Next);
+        var brackets = new TokenRange(body.StartToken.Prev!, body.EndToken.Next);
         int column = brackets.StartToken.line != brackets.EndToken.line ? brackets.EndToken.col : 0;
         var offset = column <= 1 ? "" : new StringBuilder().Insert(0, " ", column - 1).ToString();
         details.Append(Pre(offset + brackets.PrintOriginal()));
@@ -579,7 +579,7 @@ class DafnyDoc {
   }
 
   public string ExpressionAsSource(Expression e) {
-    return e.Origin.PrintOriginal();
+    return e.EntireRange.PrintOriginal();
   }
 
   public Info TypeInfo(bool register, TopLevelDecl t, ModuleDefinition module, Info owner) {
@@ -610,8 +610,8 @@ class DafnyDoc {
     decl.Append(typeparams);
 
     if (t is ClassLikeDecl cd) { // Class, Trait, Iterator
-      if (cd.ParentTraits.Count > 0) {
-        var extends = String.Join(", ", cd.ParentTraits.Select(t => TypeLink(t)));
+      if (cd.Traits.Count > 0) {
+        var extends = String.Join(", ", cd.Traits.Select(t => TypeLink(t)));
         if (!String.IsNullOrEmpty(extends)) {
           decl.Append(" ").Append("extends").Append(" ").Append(extends);
         }
@@ -642,7 +642,7 @@ class DafnyDoc {
       decl.Append(" = ");
       // datatype constructors are written out several lines down
     } else {
-      Reporter.Warning(MessageSource.Documentation, ParseErrors.ErrorId.none, t.Origin, "Kind of type not handled in dafny doc");
+      Reporter.Warning(MessageSource.Documentation, "", t.Origin, "Kind of type not handled in dafny doc");
     }
     decl.Append(br).Append(eol);
     details.Append(AttrString(t.Attributes));
@@ -672,7 +672,7 @@ class DafnyDoc {
     }
 
     if (t is TopLevelDeclWithMembers tm) {
-      info.Contents = tm.Members.Count == 0 ? null : new List<Info>();
+      info.Contents = tm.Members.Count == 0 ? null : [];
 
       if (tm is ClassDecl) {
         AddConstructorSummaries(tm, details, info.Contents, register);
@@ -727,13 +727,13 @@ class DafnyDoc {
   }
 
   public void AddMethodSummaries(TopLevelDeclWithMembers decl, StringBuilder summaries, List<Info> ownerInfoList, bool register) {
-    var methods = decl.Members.Where(m => m is Method && !(m as Method).IsLemmaLike && !(m is Constructor) && !IsGeneratedName(m.Name)).Select(m => m as MemberDecl).ToList();
+    var methods = decl.Members.Where(m => m is Method method && !method.IsLemmaLike && !IsGeneratedName(method.Name)).ToList();
     methods.Sort((f, ff) => f.Name.CompareTo(ff.Name));
     AddExecutableSummaries("Methods", methods, decl, summaries, ownerInfoList, register);
   }
 
   public void AddLemmaSummaries(TopLevelDeclWithMembers decl, StringBuilder summaries, List<Info> ownerInfoList, bool register) {
-    var methods = decl.Members.Where(m => m is Method && (m as Method).IsLemmaLike && !IsGeneratedName(m.Name)).Select(m => m as MemberDecl).ToList();
+    var methods = decl.Members.Where(m => m is Method && (m as Method).IsLemmaLike && !IsGeneratedName(m.Name)).ToList();
     methods.Sort((f, ff) => f.Name.CompareTo(ff.Name));
     AddExecutableSummaries("Lemmas", methods, decl, summaries, ownerInfoList, register);
   }
@@ -745,13 +745,12 @@ class DafnyDoc {
   }
 
   string MethodSig(MemberDecl m) {
-    if (m is Method) {
-      var mth = m as Method;
-      var typeparams = TypeFormals(mth.TypeArgs);
-      var formals = String.Join(", ", mth.Ins.Select(f => (FormalAsString(f, false))));
-      var outformals = mth.Outs.Count == 0 ? "" :
-        " " + Keyword("returns") + " (" + String.Join(", ", mth.Outs.Select(f => (FormalAsString(f, false)))) + ")";
-      return (Bold(m.Name) + typeparams) + "(" + formals + ")" + outformals;
+    if (m is MethodOrConstructor methodOrConstructor) {
+      var typeparams = TypeFormals(methodOrConstructor.TypeArgs);
+      var formals = String.Join(", ", methodOrConstructor.Ins.Select(f => (FormalAsString(f, false))));
+      var outformals = methodOrConstructor.Outs.Count == 0 ? "" :
+        " " + Keyword("returns") + " (" + String.Join(", ", methodOrConstructor.Outs.Select(f => (FormalAsString(f, false)))) + ")";
+      return (Bold(methodOrConstructor.Name) + typeparams) + "(" + formals + ")" + outformals;
     } else if (m is Function) {
       var f = m as Function;
       var typeparams = TypeFormals(f.TypeArgs);
@@ -822,28 +821,27 @@ class DafnyDoc {
   // returns true iff some specs were appended to the StringBuilder
   public bool AppendSpecs(StringBuilder details, MemberDecl d) {
     bool some = false;
-    if (d is Method) {
-      var m = d as Method;
-      foreach (var req in m.Req) {
+    if (d is MethodOrConstructor method) {
+      foreach (var req in method.Req) {
         details.Append(space4).Append(Keyword("requires")).Append(" ").Append(Code(req.E.ToString())).Append(br).Append(eol);
         some = true;
       }
-      if (m.Reads.Expressions.Count > 0) {
-        var list = String.Join(", ", m.Reads.Expressions.Select(e => Code(e.OriginalExpression.ToString() + (e.FieldName != null ? "`" + e.FieldName : ""))));
+      if (method.Reads.Expressions.Count > 0) {
+        var list = String.Join(", ", method.Reads.Expressions.Select(e => Code(e.OriginalExpression.ToString() + (e.FieldName != null ? "`" + e.FieldName : ""))));
         details.Append(space4).Append(Keyword("reads")).Append(" ").Append(list).Append(br).Append(eol);
         some = true;
       }
-      if (m.Mod != null && m.Mod.Expressions.Count > 0) {
-        var list = String.Join(", ", m.Mod.Expressions.Select(e => Code(e.OriginalExpression.ToString() + (e.FieldName != null ? "`" + e.FieldName : ""))));
+      if (method.Mod != null && method.Mod.Expressions.Count > 0) {
+        var list = String.Join(", ", method.Mod.Expressions.Select(e => Code(e.OriginalExpression.ToString() + (e.FieldName != null ? "`" + e.FieldName : ""))));
         details.Append(space4).Append(Keyword("modifies")).Append(" ").Append(list).Append(br).Append(eol);
         some = true;
       }
-      foreach (var en in m.Ens) {
+      foreach (var en in method.Ens) {
         details.Append(space4).Append(Keyword("ensures")).Append(" ").Append(Code(en.E.ToString())).Append(br).Append(eol);
         some = true;
       }
-      if (m.Decreases != null && m.Decreases.Expressions.Count > 0) {
-        var dec = String.Join(", ", m.Decreases.Expressions.Select(e => Code(e.ToString())));
+      if (method.Decreases != null && method.Decreases.Expressions.Count > 0) {
+        var dec = String.Join(", ", method.Decreases.Expressions.Select(e => Code(e.ToString())));
         details.Append(space4).Append(Keyword("decreases")).Append(" ").Append(dec).Append(br).Append(eol);
         some = true;
       }
@@ -871,26 +869,26 @@ class DafnyDoc {
     return some;
   }
 
-  public void WriteTOC() {
+  public async Task WriteTOC() {
     string filename = Outputdir + "/index.html";
-    using StreamWriter file = new(filename);
-    file.Write(HtmlStart($"Dafny Documentation{ProgramHeader()}", script.ToString()));
+    await using StreamWriter file = new(filename);
+    await file.WriteAsync(HtmlStart($"Dafny Documentation{ProgramHeader()}", script.ToString()));
 
-    file.Write(Heading1($"Dafny Documentation{ProgramHeader()}"));
-    file.Write(BodyStart());
-    file.Write(MainStart());
-    file.WriteLine(MainEnd());
-    file.Write(SideBar(sidebar.ToString()));
-    file.Write(BodyAndHtmlEnd());
-    AnnounceFile(filename);
+    await file.WriteAsync(Heading1($"Dafny Documentation{ProgramHeader()}"));
+    await file.WriteAsync(BodyStart());
+    await file.WriteAsync(MainStart());
+    await file.WriteLineAsync(MainEnd());
+    await file.WriteAsync(SideBar(sidebar.ToString()));
+    await file.WriteAsync(BodyAndHtmlEnd());
+    await AnnounceFile(filename);
   }
 
 
-  public void WriteStyle() {
+  public async Task WriteStyle() {
     string filename = Outputdir + "/styles.css";
-    using StreamWriter file = new(filename);
-    file.WriteLine(Style);
-    AnnounceFile(filename);
+    await using StreamWriter file = new(filename);
+    await file.WriteLineAsync(Style);
+    await AnnounceFile(filename);
   }
 
   public string ProgramHeader() {
@@ -947,7 +945,7 @@ class DafnyDoc {
         return Code(s);
       }
     }
-    Reporter.Warning(MessageSource.Documentation, ParseErrors.ErrorId.none, t.Origin, "Implementation missing for type " + t.GetType() + " " + t.ToString());
+    Reporter.Warning(MessageSource.Documentation, "", t.Origin, "Implementation missing for type " + t.GetType() + " " + t.ToString());
     return Code(t.ToString());
   }
 
@@ -1038,9 +1036,9 @@ class DafnyDoc {
     return s;
   }
 
-  public void AnnounceFile(string filename) {
+  public async Task AnnounceFile(string filename) {
     if (Options.Verbose) {
-      Options.OutputWriter.WriteLine("Writing " + filename);
+      await Options.OutputWriter.Status("Writing " + filename);
     }
   }
 

@@ -12,7 +12,7 @@ namespace Microsoft.Dafny {
     public enum VisitedStatus { Unvisited, OnStack, Visited }
     public class Vertex {
       public readonly Node N;
-      public readonly List<Vertex/*!*/>/*!*/ Successors = new List<Vertex/*!*/>();
+      public readonly List<Vertex/*!*/>/*!*/ Successors = [];
       public List<Vertex/*!*/> SccMembers;  // non-null only for the representative of the SCC
       [ContractInvariantMethod]
       void ObjectInvariant() {
@@ -106,8 +106,9 @@ namespace Microsoft.Dafny {
         if (sccComputed) {
           Contract.Assert(topologicallySortedRepresentatives != null);  // follows from object invariant
           v.SccRepresentative = v;
-          v.SccMembers = new List<Vertex>();
-          v.SccMembers.Add(v);
+          v.SccMembers = [
+            v
+          ];
           v.SccId = topologicallySortedRepresentatives.Count;
           v.SccPredecessorCount = 0;
           topologicallySortedRepresentatives.Add(v);
@@ -191,7 +192,7 @@ namespace Microsoft.Dafny {
       ComputeSCCs();
       Vertex repr = v.SccRepresentative;
       Contract.Assert(repr != null && repr.SccMembers != null);  // follows from postcondition of ComputeSCCs
-      List<Node> nn = new List<Node>();
+      List<Node> nn = [];
       foreach (Vertex w in repr.SccMembers) {
         nn.Add(w.N);
       }
@@ -225,7 +226,7 @@ namespace Microsoft.Dafny {
       if (sccComputed) { return; }  // check if already computed
 
       // reset all SCC information
-      topologicallySortedRepresentatives = new List<Vertex>();
+      topologicallySortedRepresentatives = [];
       foreach (Vertex v in vertices.Values) {
         v.Visited = VisitedStatus.Unvisited;
         v.SccMembers = null;
@@ -274,7 +275,7 @@ namespace Microsoft.Dafny {
         // The SCC containing 'v' has now been computed.
         v.SccId = topologicallySortedRepresentatives.Count;
         topologicallySortedRepresentatives.Add(v);
-        v.SccMembers = new List<Vertex>();
+        v.SccMembers = [];
         while (true) {
           Vertex x = stack.Pop();
           x.Visited = VisitedStatus.Visited;
@@ -369,7 +370,7 @@ namespace Microsoft.Dafny {
         if (v.Visited == VisitedStatus.Unvisited) {
           List<Vertex> cycle = CycleSearch(v);
           if (cycle != null) {
-            List<Node> nodes = new List<Node>();
+            List<Node> nodes = [];
             foreach (Vertex v_ in cycle) {
               nodes.Add(v_.N);
             }
@@ -402,8 +403,9 @@ namespace Microsoft.Dafny {
           // there is no cycle in the subtree rooted at succ, hence this path does not give rise to any cycles
         } else if (succ.Visited == VisitedStatus.OnStack) {
           // we found a cycle!
-          List<Vertex> cycle = new List<Vertex>();
-          cycle.Add(succ);
+          List<Vertex> cycle = [
+            succ
+          ];
           if (v == succ) {
             // entire cycle has been found
             v.Visited = VisitedStatus.Visited;

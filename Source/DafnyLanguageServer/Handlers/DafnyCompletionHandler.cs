@@ -108,7 +108,7 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
 
       private bool IsDotExpression() {
         var node = state.Program.FindNode<INode>(request.TextDocument.Uri.ToUri(), request.Position.ToDafnyPosition());
-        return node?.Origin.EndToken.val == ".";
+        return node?.EndToken.val == ".";
       }
 
       private bool IsAtAttribute() {
@@ -143,7 +143,7 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
             throw new InvalidOperationException($"received a type symbol of type {typeSymbol.GetType()}, but expected a ClassSymbol");
           }
         } else {
-          members = Enumerable.Empty<ILegacySymbol>();
+          members = [];
         }
         return CreateCompletionListFromSymbols(members);
       }

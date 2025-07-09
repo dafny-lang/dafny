@@ -97,7 +97,7 @@ namespace Microsoft.Dafny {
               // split into a number of UnchangeExpr's, one for each FrameExpression
               foreach (var fe in e.Frame) {
                 var tok = new NestedOrigin(GetToken(e), fe.Origin);
-                Expression ee = new UnchangedExpr(tok, new List<FrameExpression> { fe }, e.At) { AtLabel = e.AtLabel };
+                Expression ee = new UnchangedExpr(tok, [fe], e.At) { AtLabel = e.AtLabel };
                 ee.Type = Type.Bool;  // resolve here
                 TrSplitExpr(context, ee, splits, position, heightLimit, applyInduction, etran);
               }
@@ -267,7 +267,7 @@ namespace Microsoft.Dafny {
           }
         case OldExpr oldExpr: {
             var e = oldExpr;
-            return TrSplitExpr(context, e.E, splits, position, heightLimit, applyInduction, etran.OldAt(e.AtLabel));
+            return TrSplitExpr(context, e.Expr, splits, position, heightLimit, applyInduction, etran.OldAt(e.AtLabel));
           }
         case FunctionCallExpr callExpr when position: {
             var fexp = callExpr;
@@ -323,7 +323,7 @@ namespace Microsoft.Dafny {
                 }
                 ihBody = BplAnd(etran.CanCallAssumption(bodyK), ihBody);
                 ihBody = BplImp(less, ihBody);
-                List<Variable> bvars = new List<Variable>();
+                List<Variable> bvars = [];
                 Bpl.Expr typeAntecedent = etran.TrBoundVariables(kvars, bvars);  // no need to use allocation antecedent here, because the well-founded less-than ordering assures kk are allocated
                 Bpl.Expr ih;
                 var tr = TrTrigger(etran, e.Attributes, expr.Origin, substMap);
@@ -343,7 +343,10 @@ namespace Microsoft.Dafny {
                   foreach (var kase in InductionCases(n.Type, nn[i], etran)) {
                     foreach (var cs in caseProduct) {
                       if (kase != Bpl.Expr.True) {  // if there's no case, don't add anything to the token
-                        newCases.Add(Bpl.Expr.Binary(new NestedOrigin(ToDafnyToken(flags.ReportRanges, cs.tok), ToDafnyToken(flags.ReportRanges, kase.tok)), Bpl.BinaryOperator.Opcode.And, cs, kase));
+                        newCases.Add(Bpl.Expr.Binary(new NestedOrigin(
+                            ToDafnyToken(cs.tok),
+                            ToDafnyToken(kase.tok), "datatype constructor"),
+                          Bpl.BinaryOperator.Opcode.And, cs, kase));
                       } else {
                         newCases.Add(cs);
                       }
@@ -353,7 +356,7 @@ namespace Microsoft.Dafny {
                   i++;
                 }
                 List<bool> freeOfAlloc = BoundedPool.HasBounds(e.Bounds, BoundedPool.PoolVirtues.IndependentOfAlloc_or_ExplicitAlloc);
-                bvars = new List<Variable>();
+                bvars = [];
                 typeAntecedent = etran.TrBoundVariables(e.BoundVars, bvars, false, freeOfAlloc);
                 foreach (var kase in caseProduct) {
                   var ante = BplAnd(BplAnd(typeAntecedent, ih), kase);
@@ -542,7 +545,7 @@ namespace Microsoft.Dafny {
                 var bodyOrConjunct = BplOr(fargs, unboxedConjunct);
                 var tok = needsTokenAdjust
                   ? (IOrigin)new ForceCheckOrigin(typeSpecializedBody.Origin)
-                  : (IOrigin)new NestedOrigin(GetToken(fexp), s.Tok);
+                  : new NestedOrigin(GetToken(fexp), s.Tok, "this proposition could not be proved");
                 var p = Bpl.Expr.Binary(tok, BinaryOperator.Opcode.Imp, canCall, bodyOrConjunct);
                 splits.Add(ToSplitExprInfo(SplitExprInfo.K.Checked, p));
               }
@@ -657,7 +660,7 @@ namespace Microsoft.Dafny {
         // TODO:  Contract.Requires(kind == K.Free || e.Tok.IsValid);
         Kind = kind;
         E = e;
-        Tok = ToDafnyToken(reportRanges, e.tok);
+        Tok = ToDafnyToken(e.tok);
       }
     }
   }

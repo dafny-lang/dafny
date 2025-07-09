@@ -1,0 +1,4 @@
+AsIs-Verify.dfy(9,24): Error: value of expression (of type 'bool ~> nat') is not known to be an instance of type 'bool ~> pos'
+AsIs-Verify.dfy(14,13): Error: value of expression (of type 'bool ~> nat') is not known to be an instance of type 'bool ~> pos'
+
+Dafny program verifier finished with 1 verified, 2 errors

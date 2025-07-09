@@ -156,7 +156,7 @@ module A {
     if (editList != null) {
       return editList.ToList();
     } else {
-      return new List<TextEdit>();
+      return [];
     }
   }
 

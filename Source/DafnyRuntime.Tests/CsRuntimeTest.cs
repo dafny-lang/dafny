@@ -21,7 +21,7 @@ public class RuntimeTest {
     Thread t = new Thread(delegate () {
       left.right = null;
       Thread.Sleep(100); // Ensure ComputeElements() does not work immediately
-      left.elmts = new List<int>() { 1, 2 }.ToImmutableArray();
+      left.elmts = [1, 2];
     });
     t.Start();
     var result = tree.ComputeElements(); // Without the thread, will loop forever

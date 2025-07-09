@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 using System.Linq;
-using System.Security.AccessControl;
 
 namespace Microsoft.Dafny;
 
@@ -10,21 +9,21 @@ namespace Microsoft.Dafny;
 /// Represents the exports of a module.
 /// </summary>
 public class ModuleExportDecl : ModuleDecl, ICanFormat {
-  public readonly bool IsDefault;
+  public bool IsDefault;
   public List<ExportSignature> Exports; // list of TopLevelDecl that are included in the export
   public List<IOrigin> Extends; // list of exports that are extended
-  [FilledInDuringResolution] public readonly List<ModuleExportDecl> ExtendDecls = new();
+  [FilledInDuringResolution] public List<ModuleExportDecl> ExtendDecls = [];
   public bool RevealAll; // only kept for initial rewriting, then discarded
   public bool ProvideAll;
   public override IEnumerable<INode> Children => Exports;
   public override IEnumerable<INode> PreResolveChildren => Exports;
 
-  public readonly VisibilityScope ThisScope;
+  public VisibilityScope ThisScope;
 
   public ModuleDefinition EffectiveModule = null;
 
-  public ModuleExportDecl(Cloner cloner, ModuleExportDecl original, ModuleDefinition parent)
-    : base(cloner, original, parent) {
+  public ModuleExportDecl(Cloner cloner, ModuleExportDecl original, ModuleDefinition enclosingModule)
+    : base(cloner, original, enclosingModule) {
     Exports = original.Exports.Select(s => new ExportSignature(cloner, s)).ToList();
     Extends = original.Extends.Select(cloner.Origin).ToList();
     ProvideAll = original.ProvideAll;
@@ -35,15 +34,18 @@ public class ModuleExportDecl : ModuleDecl, ICanFormat {
     SetupDefaultSignature();
   }
 
-  public ModuleExportDecl(DafnyOptions options, IOrigin origin, Name name, ModuleDefinition parent,
+  public override bool IsRefining { get; }
+
+  public ModuleExportDecl(DafnyOptions options, IOrigin origin, Name name, Attributes attributes, ModuleDefinition enclosingModule,
     List<ExportSignature> exports, List<IOrigin> extends,
     bool provideAll, bool revealAll, bool isDefault, bool isRefining, Guid cloneId)
-    : base(options, origin, name, parent, false, isRefining, cloneId) {
+    : base(options, origin, name, attributes, enclosingModule, cloneId) {
     Contract.Requires(exports != null);
     IsDefault = isDefault;
     Exports = exports;
     Extends = extends;
     ProvideAll = provideAll;
+    IsRefining = isRefining;
     RevealAll = revealAll;
     ThisScope = new VisibilityScope(this.FullSanitizedName);
     SetupDefaultSignature();
@@ -103,10 +105,10 @@ public class ModuleExportDecl : ModuleDecl, ICanFormat {
     }
 
     var tentativeTrivia = "";
-    if (Center.pos < EndToken.pos) {
-      tentativeTrivia = (Center.TrailingTrivia + Center.Next?.LeadingTrivia).Trim();
+    if (NameNode.EndToken.pos < EndToken.pos) {
+      tentativeTrivia = (NameNode.EndToken.TrailingTrivia + NameNode.EndToken.Next?.LeadingTrivia).Trim();
     } else {
-      tentativeTrivia = Center.TrailingTrivia.Trim();
+      tentativeTrivia = NameNode.EndToken.TrailingTrivia.Trim();
     }
     if (tentativeTrivia != "") {
       return tentativeTrivia;

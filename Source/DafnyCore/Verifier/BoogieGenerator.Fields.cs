@@ -10,9 +10,6 @@ using PODesc = Microsoft.Dafny.ProofObligationDescription;
 
 namespace Microsoft.Dafny {
   public partial class BoogieGenerator {
-
-
-
     Bpl.Constant GetField(Field f) {
       Contract.Requires(f != null && f.IsMutable);
       Contract.Requires(sink != null && Predef != null);
@@ -24,9 +21,19 @@ namespace Microsoft.Dafny {
       if (fields.TryGetValue(f, out fc)) {
         Contract.Assert(fc != null);
       } else {
-        // const f: Field ty;
+        if (f is SpecialField { EnclosingMethod: not null }) {
+          // We declare a FieldFamily, not a single field. Fields are obtained through local_field(fieldFamily, depth)
+          fc = new Constant(f.Origin, new TypedIdent(f.Origin, f.FullSanitizedName, Predef.FieldNameFamily(f.Origin)), true);
+          fields.Add(f, fc);
+          sink.AddTopLevelDeclaration(fc);
+          // No axiom necessary, they are added in the prelude
+          return fc;
+        }
+        // If 
+        // const f: Field;
         Bpl.Type ty = Predef.FieldName(f.Origin);
-        fc = new Bpl.Constant(f.Origin, new Bpl.TypedIdent(f.Origin, f.FullSanitizedName, ty), false);
+        var requireUnicityOfFields = Options.Get(CommonOptionBag.Referrers);
+        fc = new Bpl.Constant(f.Origin, new Bpl.TypedIdent(f.Origin, f.FullSanitizedName, ty), requireUnicityOfFields);
         fields.Add(f, fc);
         // axiom FDim(f) == 0 && FieldOfDecl(C, name) == f &&
         //       $IsGhostField(f);    // if the field is a ghost field
@@ -37,6 +44,15 @@ namespace Microsoft.Dafny {
         Bpl.Expr cond = BplAnd(fdim, declType);
         var ig = FunctionCall(f.Origin, BuiltinFunction.IsGhostField, ty, Bpl.Expr.Ident(fc));
         cond = BplAnd(cond, f.IsGhost ? ig : Bpl.Expr.Not(ig));
+        if (Options.Get(CommonOptionBag.Referrers)) {
+          // We emit the axiom that field_family(_module.Test.x) == object_field;
+          // so that local fields can be determined to be different from object fields
+          // (which are not visible in the current scope)
+          // object_field is an identifier
+          var fieldFamily = FunctionCall(f.Origin, BuiltinFunction.FieldFamily, ty, Bpl.Expr.Ident(fc));
+          var objectField = Id(f.Origin, "object_field");
+          cond = BplAnd(cond, Bpl.Expr.Eq(fieldFamily, objectField));
+        }
         Bpl.Axiom ax = new Bpl.Axiom(f.Origin, cond);
         AddOtherDefinition(fc, ax);
       }
@@ -88,7 +104,7 @@ namespace Microsoft.Dafny {
 
         // Create a new function
         // function f(Ref): ty;
-        List<Variable> formals = new List<Variable>();
+        List<Variable> formals = [];
         if (f is ConstantField) {
           formals.AddRange(MkTyParamFormals(GetTypeParams(f.EnclosingClass), false));
         }
@@ -98,7 +114,7 @@ namespace Microsoft.Dafny {
           formals.Add(new Bpl.Formal(f.Origin, new Bpl.TypedIdent(f.Origin, f is ConstantField ? "this" : Bpl.TypedIdent.NoName, receiverType), true));
         }
         Bpl.Formal result = new Bpl.Formal(f.Origin, new Bpl.TypedIdent(f.Origin, Bpl.TypedIdent.NoName, TrType(f.Type)), false);
-        ff = new Bpl.Function(f.Origin, f.FullSanitizedName, new List<TypeVariable>(), formals, result, null, null);
+        ff = new Bpl.Function(f.Origin, f.FullSanitizedName, [], formals, result, null, null);
 
         if (InsertChecksums) {
           var dt = f.EnclosingClass as DatatypeDecl;
@@ -134,7 +150,7 @@ namespace Microsoft.Dafny {
           var rhs = new Bpl.NAryExpr(f.Origin, new Bpl.FunctionCall(ff), new List<Bpl.Expr> { o });
           Bpl.Expr body = Bpl.Expr.Le(Bpl.Expr.Literal(0), rhs);
           var trigger = BplTrigger(rhs);
-          Bpl.Expr qq = new Bpl.ForallExpr(f.Origin, new List<Variable> { oVar }, trigger, body);
+          Bpl.Expr qq = new Bpl.ForallExpr(f.Origin, [oVar], trigger, body);
           sink.AddTopLevelDeclaration(new Bpl.Axiom(f.Origin, qq));
         }
       }
@@ -195,9 +211,9 @@ namespace Microsoft.Dafny {
       var heapVar = new Bpl.IdentifierExpr(decl.Origin, "$Heap", false);
       var varlist = new List<Bpl.IdentifierExpr> { heapVar };
       var name = MethodName(decl, MethodTranslationKind.SpecWellformedness);
-      var proc = new Bpl.Procedure(decl.Origin, name, new List<Bpl.TypeVariable>(),
-        inParams, new List<Variable>(),
-        false, req, varlist, new List<Bpl.Ensures>(), etran.TrAttributes(decl.Attributes, null));
+      var proc = new Bpl.Procedure(decl.Origin, name, [],
+        inParams, [],
+        false, req, varlist, [], etran.TrAttributes(decl.Attributes, null));
       AddVerboseNameAttribute(proc, decl.FullDafnyName, MethodTranslationKind.SpecWellformedness);
       sink.AddTopLevelDeclaration(proc);
 
@@ -208,7 +224,7 @@ namespace Microsoft.Dafny {
       builder.AddCaptureState(decl.Origin, false, "initial state");
       IsAllocContext = new IsAllocContext(options, true);
 
-      DefineFrame(decl.Origin, etran.ReadsFrame(decl.Origin), new List<FrameExpression>(), builder, locals, null);
+      DefineFrame(decl.Origin, etran.ReadsFrame(decl.Origin), [], builder, locals, null);
 
       // check well-formedness of the RHS expression
       CheckWellformed(decl.Rhs, new WFOptions(null, true), locals, builder, etran);
@@ -221,7 +237,7 @@ namespace Microsoft.Dafny {
         var implBody = builder.Collect(decl.Origin);
 
         AddImplementationWithAttributes(GetToken(decl), proc, implInParams,
-          new List<Variable>(), locals, implBody, kv);
+          [], locals, implBody, kv);
       }
 
       Contract.Assert(currentModule == decl.EnclosingModule);

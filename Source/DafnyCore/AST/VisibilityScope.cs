@@ -10,10 +10,10 @@ namespace Microsoft.Dafny {
   public class VisibilityScope {
     private static uint maxScopeId;
 
-    private readonly SortedSet<uint> scopeTokens = new();
+    private readonly SortedSet<uint> scopeTokens = [];
 
     // Only for debugging
-    private readonly SortedSet<string> scopeIds = new();
+    private readonly SortedSet<string> scopeIds = [];
 
     private static bool Overlaps(SortedSet<uint> set1, SortedSet<uint> set2) {
       // This conditional implements a performance optimization,

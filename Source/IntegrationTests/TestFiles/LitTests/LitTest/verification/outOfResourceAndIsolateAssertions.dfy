@@ -1,4 +1,4 @@
-// RUN: ! %verify --isolate-assertions --cores=1 --progress VerificationJobs "%s" &> %t.raw
+// RUN: ! %verify --isolate-assertions --cores=1 --progress Batch "%s" &> %t.raw
 // RUN: %sed 's#\(time.*\)#<redacted>#g' %t.raw > %t
 // RUN: %diff "%s.expect" "%t"
 ghost function f(i:nat, j:nat):int {

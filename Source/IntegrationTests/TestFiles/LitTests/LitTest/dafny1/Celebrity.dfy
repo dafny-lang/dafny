@@ -32,8 +32,9 @@ method FindCelebrity1<W>(people: set<W>, ghost c: W) returns (r: W)
     invariant x in Q
     decreases Q
   {
+    assert |Q - {x}| + 1 == |Q|;
     var y :| y in Q - {x};
-    if (Knows(x, y)) {
+    if Knows(x, y) {
       Q := Q - {x};  // remove_1
     } else {
       Q := Q - {y};  assert x in Q;  // remove_2

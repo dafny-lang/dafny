@@ -1,8 +1,11 @@
-// NONUNIFORM: Rust-specific tests
-// RUN: %baredafny run --target=rs --input "%S/externalclasses.rs" "%s" > "%t"
+// NONUNIFORM: Rust-specific tests. Extern abstract types only compile with the Rust compiler for now.
+// RUN: %baredafny run --target=rs --general-traits=legacy --enforce-determinism --input "%S/externalclasses.rs" "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 module {:extern "External.Class.Container"} ExternalClassContainer {
+  @NativeUInt64
+  newtype u64 = x : int | 0 <= x <= 0xFFFF_FFFF_FFFF_FFFF
+
   class {:extern} ExternalClass {
     constructor {:extern} (i: int)
   }
@@ -26,6 +29,13 @@ module {:extern "External.Class.Container"} ExternalClassContainer {
     method Print() {
       print GetValue();
     }
+  }
+  
+  type {:extern "StringWrapper"} RustString {
+    ghost const s: string
+    static function from_char(s: char): RustString
+    function concat(other: RustString): RustString
+    function length_bytes(): u64
   }
 }
 
@@ -99,5 +109,9 @@ method Main() {
   n.Put("x");
   expect n.Get() == "x";
   expect n.GetOpt() == "Some(x)";
+  var a := ExternalClassContainer.RustString.from_char('a');
+  expect a.length_bytes() == 1;
+  a := a.concat(a);
+  expect a.length_bytes() == 2;
   print message;
 }

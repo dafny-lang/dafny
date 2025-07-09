@@ -62,7 +62,7 @@ public static class InductionHeuristic {
       // For recursive functions:  arguments are "prominent"
       // For non-recursive function:  arguments are "prominent" if the call is
       var rec = e.Function.IsRecursive && e.CoCall != FunctionCallExpr.CoCallResolution.Yes;
-      var decr = e.Function.Decreases.Expressions;
+      var decr = e.Function.Decreases.Expressions!;
       bool variantArgument;
       if (options.InductionHeuristic < 6) {
         variantArgument = rec;
@@ -112,10 +112,9 @@ public static class InductionHeuristic {
         default:
           Contract.Assert(false); throw new cce.UnreachableException();  // unexpected ternary expression
       }
-    } else if (expr is DatatypeValue) {
-      var e = (DatatypeValue)expr;
+    } else if (expr is DatatypeValue value) {
       var q = n != null && n.Type.IsDatatype ? exprIsProminent : subExprIsProminent;  // prominent status continues, if we're looking for a variable whose type is a datatype
-      return e.Arguments.Exists(exp => VarOccursInArgumentToRecursiveFunction(options, exp, n, q));
+      return value.Arguments.Exists(exp => VarOccursInArgumentToRecursiveFunction(options, exp, n, q));
     } else if (expr is UnaryExpr) {
       var e = (UnaryExpr)expr;
       // both Not and SeqLength preserve prominence

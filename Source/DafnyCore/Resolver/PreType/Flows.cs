@@ -13,7 +13,6 @@ using JetBrains.Annotations;
 namespace Microsoft.Dafny;
 
 record FlowContext(SystemModuleManager SystemModuleManager, ErrorReporter Reporter, bool DebugPrint) {
-  public TextWriter OutputWriter => SystemModuleManager.Options.OutputWriter;
 }
 
 /// <summary>
@@ -66,7 +65,7 @@ abstract class Flow {
       return false;
     }
     if (context.DebugPrint) {
-      context.OutputWriter.WriteLine($"DEBUG: refining {previousLhs} to {TypeRefinementWrapper.ToStringAsBottom(sink)} ({joinArguments})");
+      context.Reporter.Options.OutputWriter.Debug($"refining {previousLhs} to {TypeRefinementWrapper.ToStringAsBottom(sink)} ({joinArguments})");
     }
     return true;
   }
@@ -308,6 +307,12 @@ class FlowIntoVariable : Flow {
     this.source = source;
   }
 
+  public FlowIntoVariable(ConstantField field, Expression source, IOrigin tok, string description = ":=")
+    : base(tok, description) {
+    this.sink = TypeRefinementWrapper.NormalizeSansRefinementWrappers(field.Type);
+    this.source = source;
+  }
+
   public override bool Update(FlowContext context) {
     return UpdateTypeHeldByRefinementWrapper(sink, TypeRefinementWrapper.NormalizeSansBottom(source), context);
   }
@@ -415,6 +420,13 @@ class FlowFromTypeArgument : FlowIntoExpr {
 
   public FlowFromTypeArgument(Expression sink, Type source, int argumentIndex)
     : base(sink, sink.Origin) {
+    Contract.Requires(0 <= argumentIndex);
+    this.source = source;
+    this.argumentIndex = argumentIndex;
+  }
+
+  public FlowFromTypeArgument(Type sink, Type source, int argumentIndex, IOrigin tok)
+    : base(sink, tok) {
     Contract.Requires(0 <= argumentIndex);
     this.source = source;
     this.argumentIndex = argumentIndex;

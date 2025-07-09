@@ -1,7 +1,7 @@
 // NONUNIFORM: Tests that type tests work in the Rust backend
-// RUN: %baredafny run --target=rs "%s" > "%t"
+// RUN: %baredafny run --target=rs --general-traits=legacy --enforce-determinism "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
-// RUN: %baredafny run --target=rs --raw-pointers "%s" > "%t"
+// RUN: %baredafny run --target=rs --general-traits=legacy --enforce-determinism --raw-pointers "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 trait T { }

@@ -1,3 +1,5 @@
+#nullable enable
+
 using System;
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
@@ -8,15 +10,20 @@ namespace Microsoft.Dafny;
 public class IdPattern : ExtendedPattern, IHasReferences {
   public bool HasParenthesis { get; }
   public String Id;
-  public PreType PreType;
-  public Type Type; // This is the syntactic type, ExtendedPatterns disappear during resolution.
 
-  public IVariable BoundVar { get; set; } // Only set if there are no arguments
+  public Type? SyntacticType { get; }
 
-  public List<ExtendedPattern> Arguments; // null if just an identifier; possibly empty argument list if a constructor call
-  public LiteralExpr ResolvedLit; // null if just an identifier
+  private Type? type;
+  public Type Type => type ??= SyntacticType ?? new InferredTypeProxy();
+
+  public IVariable? BoundVar { get; set; } // Only set if there are no arguments
+
+  public List<ExtendedPattern>? Arguments; // null if just an identifier; possibly empty argument list if a constructor call
+
+  public LiteralExpr? ResolvedLit; // null if just an identifier
+
   [FilledInDuringResolution]
-  public DatatypeCtor Ctor;
+  public DatatypeCtor? Ctor;
 
   public bool IsWildcardPattern =>
     Arguments == null && Id.StartsWith(WildcardString);
@@ -27,42 +34,43 @@ public class IdPattern : ExtendedPattern, IHasReferences {
   public const string WildcardString = "_";
 
   public void MakeAConstructor() {
-    this.Arguments = new List<ExtendedPattern>();
+    this.Arguments = [];
   }
 
   public IdPattern(Cloner cloner, IdPattern original) : base(cloner.Origin(original.Origin), original.IsGhost) {
     Id = original.Id;
     Arguments = original.Arguments?.Select(cloner.CloneExtendedPattern).ToList();
     HasParenthesis = original.HasParenthesis;
-    Type = cloner.CloneType(original.Type);
+    SyntacticType = original.SyntacticType;
     if (cloner.CloneResolvedFields) {
+      type = cloner.CloneType(original.type);
       BoundVar = cloner.CloneIVariable(original.BoundVar, false);
     }
   }
 
-  public IdPattern(IOrigin origin, String id, List<ExtendedPattern> arguments, bool isGhost = false, bool hasParenthesis = false) : base(origin, isGhost) {
-    Contract.Requires(id != null);
-    Contract.Requires(arguments != null); // Arguments can be empty, but shouldn't be null
+  public IdPattern(IOrigin origin, String id, List<ExtendedPattern>? arguments,
+    bool isGhost = false, bool hasParenthesis = false)
+    : this(origin, id, null, arguments, isGhost, hasParenthesis) {
+    Id = id;
+    Arguments = arguments;
     HasParenthesis = hasParenthesis;
-    this.Id = id;
-    this.Type = new InferredTypeProxy();
-    this.Arguments = arguments;
   }
 
-  public IdPattern(IOrigin origin, String id, Type type, List<ExtendedPattern> arguments, bool isGhost = false) : base(origin, isGhost) {
-    Contract.Requires(id != null);
-    Contract.Requires(arguments != null); // Arguments can be empty, but shouldn't be null
-    this.Id = id;
-    this.Type = type ?? new InferredTypeProxy();
-    this.Arguments = arguments;
-    this.IsGhost = isGhost;
+  [SyntaxConstructor]
+  public IdPattern(IOrigin origin, String id, Type? syntacticType, List<ExtendedPattern>? arguments,
+    bool isGhost = false, bool hasParenthesis = false)
+    : base(origin, isGhost) {
+    Id = id;
+    SyntacticType = syntacticType;
+    Arguments = arguments;
+    HasParenthesis = hasParenthesis;
   }
 
   public override string ToString() {
     if (Arguments == null || Arguments.Count == 0) {
       return Id;
     } else {
-      List<string> cps = Arguments.ConvertAll<string>(x => x.ToString());
+      List<string> cps = Arguments.ConvertAll<string>(x => x.ToString()!);
       return string.Format("{0}({1})", Id, String.Join(", ", cps));
     }
   }
@@ -131,7 +139,7 @@ public class IdPattern : ExtendedPattern, IHasReferences {
   }
 
   public IEnumerable<Reference> GetReferences() {
-    return Ctor == null ? Enumerable.Empty<Reference>() : new[] { new Reference(StartToken, Ctor) };
+    return Ctor == null ? Enumerable.Empty<Reference>() : new[] { new Reference(ReportingRange, Ctor) };
   }
 
   public void CheckLinearVarPattern(Type type, ResolutionContext resolutionContext, ModuleResolver resolver) {
@@ -139,7 +147,7 @@ public class IdPattern : ExtendedPattern, IHasReferences {
       if (Id == SystemModuleManager.TupleTypeCtorName(1)) {
         resolver.reporter.Error(MessageSource.Resolver, this.Origin, "parentheses are not allowed around a pattern");
       } else {
-        resolver.reporter.Error(MessageSource.Resolver, this.Origin, "member {0} does not exist in type {1}", this.Id, type);
+        resolver.reporter.Error(MessageSource.Resolver, "MemberDoesNotExist", this.Origin, "member {0} does not exist in type {1}", this.Id, type.ToString());
       }
       return;
     }
@@ -158,7 +166,7 @@ public class IdPattern : ExtendedPattern, IHasReferences {
         // finds in full scope, not just current scope
         if (e.Resolved is MemberSelectExpr mse) {
           if (mse.Member.IsStatic && mse.Member is ConstantField cf) {
-            Expression c = cf.Rhs;
+            Expression? c = cf.Rhs;
             if (c is LiteralExpr lit) {
               this.ResolvedLit = lit;
               if (type.Equals(e.ResolvedExpression.Type)) {

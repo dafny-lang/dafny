@@ -8,8 +8,8 @@ public interface INewOrOldResolver {
   ErrorReporter Reporter { get; }
   Scope<IVariable> Scope { get; }
   Scope<Label> DominatingStatementLabels { get; }
-  Scope<Statement> EnclosingStatementLabels { get; set; }
-  List<Statement> LoopStack { get; set; }
+  Scope<LabeledStatement> EnclosingStatementLabels { get; set; }
+  List<LabeledStatement> LoopStack { get; set; }
   void ResolveAttributes(IAttributeBearingDeclaration attributedToken, ResolutionContext resolutionContext, bool solveConstraints = false);
   MethodCallInformation ResolveApplySuffix(ApplySuffix applySuffix, ResolutionContext resolutionContext, bool allowMethodCall);
   void ResolveExpression(Expression expression, ResolutionContext resolutionContext);
@@ -17,7 +17,7 @@ public interface INewOrOldResolver {
   void ConstrainTypeExprBool(Expression expression, string message);
   void ResolveStatement(Statement statement, ResolutionContext resolutionContext);
   void ResolveTypeRhs(TypeRhs typeRhs, Statement statement, ResolutionContext resolutionContext);
-  void ResolveBlockStatement(BlockStmt blockS, ResolutionContext resolutionContext);
+  void ResolveBlockStatement(BlockLikeStmt blockS, ResolutionContext resolutionContext);
 
   Scope<Thing>.PushResult ScopePushAndReport<Thing>(Scope<Thing> scope, string name, Thing thing, IOrigin tok,
     string kind) where Thing : class;

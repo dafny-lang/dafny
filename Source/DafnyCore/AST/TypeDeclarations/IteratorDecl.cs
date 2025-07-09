@@ -1,61 +1,53 @@
+#nullable enable
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 using System.Linq;
+using JetBrains.Annotations;
 using Microsoft.Dafny.Compilers;
 
 namespace Microsoft.Dafny;
 
+[SyntaxBaseType(typeof(TopLevelDecl))]
 public class IteratorDecl : ClassDecl, IMethodCodeContext, ICanVerify, ICodeContainer {
-  public override string WhatKind { get { return "iterator"; } }
-  public readonly List<Formal> Ins;
-  public readonly List<Formal> Outs;
-  public readonly Specification<FrameExpression> Reads;
-  public readonly Specification<FrameExpression> Modifies;
-  public readonly Specification<Expression> Decreases;
-  public readonly List<AttributedExpression> Requires;
-  public readonly List<AttributedExpression> Ensures;
-  public readonly List<AttributedExpression> YieldRequires;
-  public readonly List<AttributedExpression> YieldEnsures;
-  public readonly BlockStmt Body;
-  public bool SignatureIsOmitted { get { return SignatureEllipsis != null; } }
-  public readonly IOrigin SignatureEllipsis;
-  public readonly List<Field> OutsFields;
-  public readonly List<Field> OutsHistoryFields;  // these are the 'xs' variables
-  [FilledInDuringResolution] public readonly List<Field> DecreasesFields;
-  [FilledInDuringResolution] public SpecialField Member_Modifies;
-  [FilledInDuringResolution] public SpecialField Member_Reads;
-  [FilledInDuringResolution] public SpecialField Member_New;
-  [FilledInDuringResolution] public Constructor Member_Init;  // created during registration phase of resolution;
-  [FilledInDuringResolution] public Predicate Member_Valid;  // created during registration phase of resolution;
-  [FilledInDuringResolution] public Method Member_MoveNext;  // created during registration phase of resolution;
-  public readonly LocalVariable YieldCountVariable;
+  public override string WhatKind => "iterator";
 
-  public IteratorDecl(IOrigin origin, Name name, ModuleDefinition module, List<TypeParameter> typeArgs,
+  public List<Formal> Ins;
+  public List<Formal> Outs;
+  public Specification<FrameExpression> Reads;
+  public Specification<FrameExpression> Modifies;
+  public Specification<Expression> Decreases;
+  public List<AttributedExpression> Requires;
+  public List<AttributedExpression> Ensures;
+  public List<AttributedExpression> YieldRequires;
+  public List<AttributedExpression> YieldEnsures;
+  public BlockStmt Body;
+  public bool SignatureIsOmitted => SignatureEllipsis != null;
+  public IOrigin? SignatureEllipsis;
+  public List<Field> OutsFields;
+  public List<Field> OutsHistoryFields;  // these are the 'xs' variables
+  [FilledInDuringResolution] public List<Field> DecreasesFields = null!;
+  [FilledInDuringResolution] public SpecialField Member_Modifies = null!;
+  [FilledInDuringResolution] public SpecialField Member_Reads = null!;
+  [FilledInDuringResolution] public SpecialField Member_New = null!;
+  [FilledInDuringResolution] public Constructor Member_Init = null!;  // created during registration phase of resolution;
+  [FilledInDuringResolution] public Predicate Member_Valid = null!;  // created during registration phase of resolution;
+  [FilledInDuringResolution] public Method Member_MoveNext = null!;  // created during registration phase of resolution;
+  public LocalVariable YieldCountVariable;
+
+  [SyntaxConstructor]
+  public IteratorDecl(IOrigin origin, Name nameNode, ModuleDefinition enclosingModuleDefinition, List<TypeParameter> typeArgs,
     List<Formal> ins, List<Formal> outs,
-    Specification<FrameExpression> reads, Specification<FrameExpression> mod, Specification<Expression> decreases,
+    Specification<FrameExpression> reads, Specification<FrameExpression> modifies, Specification<Expression> decreases,
     List<AttributedExpression> requires,
     List<AttributedExpression> ensures,
     List<AttributedExpression> yieldRequires,
     List<AttributedExpression> yieldEnsures,
-    BlockStmt body, Attributes attributes, IOrigin signatureEllipsis)
-    : base(origin, name, module, typeArgs, new List<MemberDecl>(), attributes, signatureEllipsis != null, null) {
-    Contract.Requires(origin != null);
-    Contract.Requires(name != null);
-    Contract.Requires(module != null);
-    Contract.Requires(typeArgs != null);
-    Contract.Requires(ins != null);
-    Contract.Requires(outs != null);
-    Contract.Requires(reads != null);
-    Contract.Requires(mod != null);
-    Contract.Requires(decreases != null);
-    Contract.Requires(requires != null);
-    Contract.Requires(ensures != null);
-    Contract.Requires(yieldRequires != null);
-    Contract.Requires(yieldEnsures != null);
+    BlockStmt body, Attributes? attributes, IOrigin? signatureEllipsis)
+    : base(origin, nameNode, attributes, typeArgs, enclosingModuleDefinition, [], [], signatureEllipsis != null) {
     Ins = ins;
     Outs = outs;
     Reads = reads;
-    Modifies = mod;
+    Modifies = modifies;
     Decreases = decreases;
     Requires = requires;
     Ensures = ensures;
@@ -64,12 +56,12 @@ public class IteratorDecl : ClassDecl, IMethodCodeContext, ICanVerify, ICodeCont
     Body = body;
     SignatureEllipsis = signatureEllipsis;
 
-    OutsFields = new List<Field>();
-    OutsHistoryFields = new List<Field>();
-    DecreasesFields = new List<Field>();
+    OutsFields = [];
+    OutsHistoryFields = [];
+    DecreasesFields = [];
 
     YieldCountVariable = new LocalVariable(origin, "_yieldCount", new EverIncreasingType(), true);
-    YieldCountVariable.type = YieldCountVariable.SyntacticType;  // resolve YieldCountVariable here
+    YieldCountVariable.type = YieldCountVariable.SafeSyntacticType;  // resolve YieldCountVariable here
   }
 
   /// <summary>
@@ -84,19 +76,19 @@ public class IteratorDecl : ClassDecl, IMethodCodeContext, ICanVerify, ICodeCont
       foreach (var e in Attributes.SubExpressions(Reads.Attributes)) {
         yield return e;
       }
-      foreach (var e in Reads.Expressions) {
+      foreach (var e in Reads.Expressions!) {
         yield return e.E;
       }
       foreach (var e in Attributes.SubExpressions(Modifies.Attributes)) {
         yield return e;
       }
-      foreach (var e in Modifies.Expressions) {
+      foreach (var e in Modifies.Expressions!) {
         yield return e.E;
       }
       foreach (var e in Attributes.SubExpressions(Decreases.Attributes)) {
         yield return e;
       }
-      foreach (var e in Decreases.Expressions) {
+      foreach (var e in Decreases.Expressions!) {
         yield return e;
       }
       foreach (var e in Requires) {
@@ -121,7 +113,7 @@ public class IteratorDecl : ClassDecl, IMethodCodeContext, ICanVerify, ICodeCont
   /// not the usual (\lambda x,y :: x LESS y AND 0 ATMOST y).
   /// </summary>
   public class EverIncreasingType : BasicType {
-    [Pure]
+    [System.Diagnostics.Contracts.Pure]
     public override string TypeName(DafnyOptions options, ModuleDefinition context, bool parseAble) {
       Contract.Assert(parseAble == false);
 
@@ -149,7 +141,7 @@ public class IteratorDecl : ClassDecl, IMethodCodeContext, ICanVerify, ICodeCont
   bool ICodeContext.MustReverify { get { return false; } }
   public bool AllowsNontermination {
     get {
-      return Contract.Exists(Decreases.Expressions, e => e is WildcardExpr);
+      return Contract.Exists(Decreases.Expressions!, e => e is WildcardExpr);
     }
   }
 
@@ -207,7 +199,7 @@ public class IteratorDecl : ClassDecl, IMethodCodeContext, ICanVerify, ICodeCont
     foreach (var p in OutsHistoryFields) {
       // ensures this.ys == [];
       ens.Add(new AttributedExpression(new BinaryExpr(p.Origin, BinaryExpr.Opcode.Eq,
-        new ExprDotName(p.Origin, new ThisExpr(p.Origin), p.NameNode, null), new SeqDisplayExpr(p.Origin, new List<Expression>()))));
+        new ExprDotName(p.Origin, new ThisExpr(p.Origin), p.NameNode, null), new SeqDisplayExpr(p.Origin, []))));
     }
     // ensures this.Valid();
     var valid_call = AutoContractsRewriter.CreateUnresolvedValidCall(tok);
@@ -216,9 +208,9 @@ public class IteratorDecl : ClassDecl, IMethodCodeContext, ICanVerify, ICodeCont
     // ensures this._new == {};
     ens.Add(new AttributedExpression(new BinaryExpr(tok, BinaryExpr.Opcode.Eq,
       new ExprDotName(tok, new ThisExpr(tok), new Name("_new"), null),
-      new SetDisplayExpr(tok, true, new List<Expression>()))));
+      new SetDisplayExpr(tok, true, []))));
     // ensures this._decreases0 == old(DecreasesClause[0]) && ...;
-    Contract.Assert(Decreases.Expressions.Count == DecreasesFields.Count);
+    Contract.Assert(Decreases.Expressions!.Count == DecreasesFields.Count);
     for (int i = 0; i < Decreases.Expressions.Count; i++) {
       var p = Decreases.Expressions[i];
       ens.Add(new AttributedExpression(new BinaryExpr(tok, BinaryExpr.Opcode.Eq,
@@ -228,7 +220,7 @@ public class IteratorDecl : ClassDecl, IMethodCodeContext, ICanVerify, ICodeCont
 
     // ---------- here comes predicate Valid() ----------
     var reads = Member_Valid.Reads;
-    reads.Expressions.Add(new FrameExpression(tok, new ThisExpr(tok), null));  // reads this;
+    reads.Expressions!.Add(new FrameExpression(tok, new ThisExpr(tok), null));  // reads this;
     reads.Expressions.Add(new FrameExpression(tok, new ExprDotName(tok, new ThisExpr(tok), new Name("_reads"), null), null));  // reads this._reads;
     reads.Expressions.Add(new FrameExpression(tok, new ExprDotName(tok, new ThisExpr(tok), new Name("_new"), null), null));  // reads this._new;
 
@@ -240,7 +232,7 @@ public class IteratorDecl : ClassDecl, IMethodCodeContext, ICanVerify, ICodeCont
     // requires YieldRequires;
     req.AddRange(YieldRequires);
     // modifies this, this._modifies, this._new;
-    var mod = Member_MoveNext.Mod.Expressions;
+    var mod = Member_MoveNext.Mod.Expressions!;
     mod.Add(new FrameExpression(tok, new ThisExpr(tok), null));
     mod.Add(new FrameExpression(tok, new ExprDotName(tok, new ThisExpr(tok), new Name("_modifies"), null), null));
     mod.Add(new FrameExpression(tok, new ExprDotName(tok, new ThisExpr(tok), new Name("_new"), null), null));
@@ -267,7 +259,7 @@ public class IteratorDecl : ClassDecl, IMethodCodeContext, ICanVerify, ICodeCont
       var ite = new ITEExpr(tok, false, new IdentifierExpr(tok, "more"),
         new BinaryExpr(tok, BinaryExpr.Opcode.Add,
           new OldExpr(tok, new ExprDotName(tok, new ThisExpr(tok), ys.NameNode, null)),
-          new SeqDisplayExpr(tok, new List<Expression>() { new ExprDotName(tok, new ThisExpr(tok), y.NameNode, null) })),
+          new SeqDisplayExpr(tok, [new ExprDotName(tok, new ThisExpr(tok), y.NameNode, null)])),
         new OldExpr(tok, new ExprDotName(tok, new ThisExpr(tok), ys.NameNode, null)));
       var eq = new BinaryExpr(tok, BinaryExpr.Opcode.Eq, new ExprDotName(tok, new ThisExpr(tok), ys.NameNode, null), ite);
       ens.Add(new AttributedExpression(eq));
@@ -289,7 +281,7 @@ public class IteratorDecl : ClassDecl, IMethodCodeContext, ICanVerify, ICodeCont
     Contract.Assert(Decreases.Expressions.Count == DecreasesFields.Count);
     for (int i = 0; i < Decreases.Expressions.Count; i++) {
       var p = Decreases.Expressions[i];
-      Member_MoveNext.Decreases.Expressions.Add(new ExprDotName(p.Origin, new ThisExpr(p.Origin), DecreasesFields[i].NameNode, null));
+      Member_MoveNext.Decreases.Expressions!.Add(new ExprDotName(p.Origin, new ThisExpr(p.Origin), DecreasesFields[i].NameNode, null));
     }
     Member_MoveNext.Decreases.Attributes = Decreases.Attributes;
   }
@@ -304,7 +296,7 @@ public class IteratorDecl : ClassDecl, IMethodCodeContext, ICanVerify, ICodeCont
     // ensures this._reads == old(ReadsClause)
     var modSetSingletons = new List<Expression>();
     Expression frameSet = new SetDisplayExpr(tok, true, modSetSingletons);
-    foreach (var fr in Reads.Expressions) {
+    foreach (var fr in Reads.Expressions!) {
       if (fr.FieldName != null) {
         resolver.reporter.Error(MessageSource.Resolver, fr.Origin,
           "sorry, a reads clause for an iterator is not allowed to designate specific fields");
@@ -319,9 +311,9 @@ public class IteratorDecl : ClassDecl, IMethodCodeContext, ICanVerify, ICodeCont
       new OldExpr(tok, frameSet))));
 
     // ensures this._modifies == old(ModifiesClause)
-    modSetSingletons = new List<Expression>();
+    modSetSingletons = [];
     frameSet = new SetDisplayExpr(tok, true, modSetSingletons);
-    foreach (var fr in Modifies.Expressions) {
+    foreach (var fr in Modifies.Expressions!) {
       if (fr.FieldName != null) {
         resolver.reporter.Error(MessageSource.Resolver, fr.Origin,
           "sorry, a modifies clause for an iterator is not allowed to designate specific fields");
@@ -337,19 +329,19 @@ public class IteratorDecl : ClassDecl, IMethodCodeContext, ICanVerify, ICodeCont
   }
 
   public void Resolve(ModuleResolver resolver) {
-    var rangeToken = Origin.MakeAutoGenerated();
+    var rangeToken = new CanVerifyOrigin(this);
 
     // register the names of the implicit members
     var members = new Dictionary<string, MemberDecl>();
     resolver.AddClassMembers(this, members);
 
-    // First, register the iterator's in- and out-parameters as readonly fields
+    // First, register the iterator's in- and out-parameters as fields
     foreach (var p in Ins) {
       if (members.ContainsKey(p.Name)) {
         resolver.reporter.Error(MessageSource.Resolver, p,
           "Name of in-parameter is used by another member of the iterator: {0}", p.Name);
       } else {
-        var field = new SpecialField(p.Origin, p.NameNode, SpecialField.ID.UseIdParam, p.CompileName, false, p.IsGhost, false,
+        var field = new SpecialField(p.Origin, p.NameNode, SpecialField.ID.UseIdParam, p.CompileName, p.IsGhost, false,
           false, p.Type, null);
         field.EnclosingClass = this; // resolve here
         field.InheritVisibility(this);
@@ -365,7 +357,7 @@ public class IteratorDecl : ClassDecl, IMethodCodeContext, ICanVerify, ICodeCont
           "Name of yield-parameter is used by another member of the iterator: {0}", p.Name);
       } else {
         nonDuplicateOuts.Add(p);
-        var field = new SpecialField(p.Origin, p.NameNode, SpecialField.ID.UseIdParam, p.CompileName, false, p.IsGhost, true,
+        var field = new SpecialField(p.Origin, p.NameNode, SpecialField.ID.UseIdParam, p.CompileName, p.IsGhost, true,
           true, p.Type, null);
         field.EnclosingClass = this; // resolve here
         field.InheritVisibility(this);
@@ -386,7 +378,7 @@ public class IteratorDecl : ClassDecl, IMethodCodeContext, ICanVerify, ICodeCont
 
       // we add some field to OutsHistoryFields, even if there was an error; the name of the field, in case of error, is not so important
       var tp = new SeqType(p.Type.NormalizeExpand());
-      var field = new SpecialField(p.Origin, nm, SpecialField.ID.UseIdParam, nm, false, true, true, false, tp, null);
+      var field = new SpecialField(p.Origin, nm, SpecialField.ID.UseIdParam, nm, true, true, false, tp, null);
       field.EnclosingClass = this; // resolve here
       field.InheritVisibility(this);
       OutsHistoryFields
@@ -419,7 +411,7 @@ public class IteratorDecl : ClassDecl, IMethodCodeContext, ICanVerify, ICodeCont
     new InferDecreasesClause(resolver).FillInDefaultDecreases(this, false);
     // create the fields; unfortunately, we don't know their types yet, so we'll just insert type proxies for now
     var i = 0;
-    foreach (var p in Decreases.Expressions) {
+    foreach (var p in Decreases.Expressions!) {
       var nm = "_decreases" + i;
       var field = new SpecialField(p.Origin, nm, SpecialField.ID.UseIdParam, nm, true, false, false,
         new InferredTypeProxy(), null);
@@ -436,33 +428,32 @@ public class IteratorDecl : ClassDecl, IMethodCodeContext, ICanVerify, ICodeCont
     // iterator type) does.
     // --- here comes the constructor
     var init = new Constructor(rangeToken, new Name(NameNode.Origin, "_ctor"), false,
-      new List<TypeParameter>(), Ins,
-      new List<AttributedExpression>(),
+      [], Ins,
+      [],
       new Specification<FrameExpression>(),
-      new Specification<FrameExpression>(new List<FrameExpression>(), null),
-      new List<AttributedExpression>(),
-      new Specification<Expression>(new List<Expression>(), null),
+      new Specification<FrameExpression>([], null),
+      [],
+      new Specification<Expression>([], null),
       null, SystemModuleManager.AxiomAttribute(), null);
     // --- here comes predicate Valid()
     var valid = new Predicate(rangeToken, new Name(NameNode.Origin, "Valid"), false, true, false,
-      new List<TypeParameter>(),
-      new List<Formal>(),
+      [],
+      [],
       null,
-      new List<AttributedExpression>(),
+      [],
       new Specification<FrameExpression>(),
-      new List<AttributedExpression>(),
-      new Specification<Expression>(new List<Expression>(), null),
+      [],
+      new Specification<Expression>([], null),
       null, Predicate.BodyOriginKind.OriginalOrInherited, null, null, SystemModuleManager.AxiomAttribute(), null);
     // --- here comes method MoveNext
-    var moveNext = new Method(rangeToken, new Name(NameNode.Origin, "MoveNext"), false, false,
-      new List<TypeParameter>(),
-      new List<Formal>(), new List<Formal>() { new Formal(Origin, "more", Type.Bool, false, false, null) },
-      new List<AttributedExpression>(),
-      new Specification<FrameExpression>(),
-      new Specification<FrameExpression>(new List<FrameExpression>(), null),
-      new List<AttributedExpression>(),
-      new Specification<Expression>(new List<Expression>(), null),
-      null, SystemModuleManager.AxiomAttribute(Attributes.Find(Attributes, "print")), null);
+    var moveNext = new Method(rangeToken, new Name(NameNode.Origin, "MoveNext"),
+      SystemModuleManager.AxiomAttribute(Attributes.Find(Attributes, "print")), false,
+      false,
+      [], [], [], [], new Specification<FrameExpression>(),
+      new Specification<Expression>([], null),
+      [new Formal(Origin, "more", Type.Bool, false, false, null)],
+      new Specification<FrameExpression>([], null), null, null);
+
     // add these implicit members to the class
     init.EnclosingClass = this;
     init.InheritVisibility(this);
@@ -501,12 +492,12 @@ public class IteratorDecl : ClassDecl, IMethodCodeContext, ICanVerify, ICodeCont
     }
   }
 
-  public override string GetTriviaContainingDocstring() {
+  public override string? GetTriviaContainingDocstring() {
     if (GetStartTriviaDocstring(out var triviaFound)) {
       return triviaFound;
     }
 
-    IOrigin lastClosingParenthesis = null;
+    Token? lastClosingParenthesis = null;
     foreach (var token in OwnedTokens) {
       if (token.val == ")") {
         lastClosingParenthesis = token;

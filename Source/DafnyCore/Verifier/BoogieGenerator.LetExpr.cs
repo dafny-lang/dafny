@@ -111,8 +111,8 @@ namespace Microsoft.Dafny {
           rhs = BoogieGenerator.CondApplyBox(rhs.tok, rhs, let.RHSs[i].Type, toType);
           BoogieGenerator.AddCasePatternVarSubstitutions(let.LHSs[i], rhs, substMap);
         }
-        lhss = new List<Boogie.Variable>();
-        rhss = new List<Boogie.Expr>();
+        lhss = [];
+        rhss = [];
         foreach (var v in let.BoundVars) {
           var rhs = substMap[v];  // this should succeed (that is, "v" is in "substMap"), because the AddCasePatternVarSubstitutions calls above should have added a mapping for each bound variable in let.BoundVars
           var bv = BplBoundVar(v.AssignUniqueName(BoogieGenerator.CurrentDeclaration.IdGenerator), BoogieGenerator.TrType(v.Type), out var bvIde);
@@ -306,7 +306,7 @@ namespace Microsoft.Dafny {
         FTVs = freeTypeVars;
         FTV_Types = Map(freeTypeVars, tt => (Type)new UserDefinedType(tt));
         FVs = freeVariables;
-        FV_Exprs = new List<Expression>();
+        FV_Exprs = [];
         foreach (var v in FVs) {
           var idExpr = new IdentifierExpr(v.Origin, v.AssignUniqueName(currentDeclaration.IdGenerator));
           idExpr.Var = v;
@@ -317,7 +317,7 @@ namespace Microsoft.Dafny {
         UsesHeap = usesHeap;
         UsesOldHeap = usesOldHeap;
         // we convert the set of heap-at variables to a list here, once and for all; the order itself is not material, what matters is that we always use the same order
-        UsesHeapAt = new List<Label>(usesHeapAt);
+        UsesHeapAt = [.. usesHeapAt];
         ThisType = thisType;
       }
 

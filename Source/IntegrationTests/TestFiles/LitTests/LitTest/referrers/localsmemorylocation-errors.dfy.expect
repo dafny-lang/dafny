@@ -1,0 +1,4 @@
+localsmemorylocation-errors.dfy(20,12): Error: a precondition for this call could not be proved
+localsmemorylocation-errors.dfy(12,17): Related location: this is the precondition that could not be proved
+
+Dafny program verifier finished with 0 verified, 1 error

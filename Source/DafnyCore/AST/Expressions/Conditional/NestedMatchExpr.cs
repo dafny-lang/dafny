@@ -1,6 +1,6 @@
-using System;
+#nullable enable
+
 using System.Collections.Generic;
-using System.Diagnostics.Contracts;
 using System.Linq;
 
 namespace Microsoft.Dafny;
@@ -18,29 +18,29 @@ public class NestedMatchExpr : Expression, ICloneable<NestedMatchExpr>, ICanForm
 
   IReadOnlyList<NestedMatchCase> INestedMatch.Cases => Cases;
 
-  public readonly bool UsesOptionalBraces;
-  public Attributes Attributes;
+  public bool UsesOptionalBraces;
+  public Attributes? Attributes;
 
-  [FilledInDuringResolution]
-  public Expression Flattened { get; set; }
+  [FilledInDuringResolution] public Expression Flattened { get; set; } = null!;
 
   public NestedMatchExpr(Cloner cloner, NestedMatchExpr original) : base(cloner, original) {
-    this.Source = cloner.CloneExpr(original.Source);
-    this.Cases = original.Cases.Select(cloner.CloneNestedMatchCaseExpr).ToList();
-    this.UsesOptionalBraces = original.UsesOptionalBraces;
+    Source = cloner.CloneExpr(original.Source);
+    Cases = original.Cases.Select(cloner.CloneNestedMatchCaseExpr).ToList();
+    UsesOptionalBraces = original.UsesOptionalBraces;
 
     if (cloner.CloneResolvedFields) {
       Flattened = cloner.CloneExpr(original.Flattened);
     }
   }
 
-  public NestedMatchExpr(IOrigin origin, Expression source, [Captured] List<NestedMatchCaseExpr> cases, bool usesOptionalBraces, Attributes attrs = null) : base(origin) {
-    Contract.Requires(source != null);
-    Contract.Requires(cce.NonNullElements(cases));
-    this.Source = source;
-    this.Cases = cases;
-    this.UsesOptionalBraces = usesOptionalBraces;
-    this.Attributes = attrs;
+  [SyntaxConstructor]
+  public NestedMatchExpr(IOrigin origin, Expression source, [Captured] List<NestedMatchCaseExpr> cases,
+    bool usesOptionalBraces, Attributes? attributes = null)
+    : base(origin) {
+    Source = source;
+    Cases = cases;
+    UsesOptionalBraces = usesOptionalBraces;
+    Attributes = attributes;
   }
 
   public override IEnumerable<Expression> SubExpressions {

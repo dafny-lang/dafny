@@ -6,12 +6,14 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.CommandLine;
+using System.CommandLine.Binding;
 using System.Diagnostics;
 using System.Globalization;
 using System.Linq;
 using System.IO;
 using System.Reflection;
 using System.Text.RegularExpressions;
+using System.Threading.Tasks;
 using JetBrains.Annotations;
 using Microsoft.Dafny;
 using Microsoft.Dafny.Compilers;
@@ -33,9 +35,67 @@ namespace Microsoft.Dafny {
     Version4,
   }
 
+  public interface IDafnyOutputWriter {
+
+    /// <summary>
+    /// Provide debugging information that's useful to a Dafny language developer
+    /// </summary>
+    void Debug(string message);
+
+    /// <summary>
+    /// Provide debugging information that's useful to a Dafny language developer
+    /// </summary>
+    [StringFormatMethod(nameof(message))]
+    void Debug(string message, params object[] arguments) {
+      Debug(string.Format(message, arguments));
+    }
+
+    /// <summary>
+    /// When Dafny reaches a bad state, this can be used to provide debugging information.  
+    /// </summary>
+    void Exception(string message);
+
+    /// <summary>
+    /// Provide progress updates and summary information
+    /// </summary>
+    Task Status(string message);
+
+    /// <summary>
+    /// Output a piece of Dafny code
+    /// </summary>
+    Task Code(string message);
+
+    /// <summary>
+    /// Closing the writer will print a status message
+    /// </summary>
+    TextWriter StatusWriter();
+
+    /// <summary>
+    /// Closing the writer will print an error message
+    /// </summary>
+    TextWriter ErrorWriter();
+
+    /// <summary>
+    /// Emit a diagnostic
+    /// </summary>
+    void WriteDiagnostic(DafnyDiagnostic diagnostic);
+
+    /// <summary>
+    /// Like Status, but uses stderr if possible
+    /// </summary>
+    /// <param name="message"></param>
+    /// <returns></returns>
+    Task Error(string message);
+  }
+
   public record Options(Dictionary<Option, object> OptionArguments, Dictionary<Argument, object> Arguments);
 
   public class DafnyOptions : Bpl.CommandLineOptions {
+
+    public TextWriter BaseOutputWriter => base.OutputWriter;
+
+    public new IDafnyOutputWriter OutputWriter =>
+      Get(CommonOptionBag.JsonOutput) ? new JsonOutputWriter(this) : new HumanReadableOutputWriter(this);
 
     public string GetPrintPath(string path) => UseBaseNameForFileName ? Path.GetFileName(path) : path;
     public TextWriter ErrorWriter { get; set; }
@@ -73,6 +133,17 @@ namespace Microsoft.Dafny {
 
     public T Get<T>(Option<T> option) {
       return (T)Options.OptionArguments.GetOrDefault(option, () => (object)default(T));
+    }
+
+
+    public T GetOrOptionDefault<T>(Option<T> option) {
+      return (T)Options.OptionArguments.GetOrDefault(option, () =>
+       ((IValueDescriptor<T>)option) is {
+         HasDefaultValue: true
+       } valueDescriptor
+          ? valueDescriptor.GetDefaultValue()
+          : (object)default(T)
+      );
     }
 
     public object Get(Option option) {
@@ -153,7 +224,7 @@ namespace Microsoft.Dafny {
       }
     }
 
-    private static readonly List<LegacyUiForOption> LegacyUis = new();
+    private static readonly List<LegacyUiForOption> LegacyUis = [];
 
     public static void RegisterLegacyUi<T>(Option<T> option,
       Action<Option<T>, Bpl.CommandLineParseState, DafnyOptions> parse,
@@ -309,7 +380,7 @@ namespace Microsoft.Dafny {
     public string DafnyPrelude = null;
     public string DafnyPrintFile = null;
     public bool AllowSourceFolders = false;
-    public List<string> SourceFolders { get; } = new(); // list of folders, for those commands that permit processing all source files in folders
+    public List<string> SourceFolders { get; } = []; // list of folders, for those commands that permit processing all source files in folders
 
     public enum ContractTestingMode {
       None,
@@ -320,9 +391,9 @@ namespace Microsoft.Dafny {
     public PrintModes PrintMode = PrintModes.Everything; // Default to printing everything
     public bool DafnyVerify = true;
     public string DafnyPrintResolvedFile = null;
-    public List<string> DafnyPrintExportedViews = new List<string>();
+    public List<string> DafnyPrintExportedViews = [];
     public bool Compile = true;
-    public List<string> MainArgs = new List<string>();
+    public List<string> MainArgs = [];
     public bool FormatCheck = false;
 
     public string CompilerName;
@@ -355,7 +426,7 @@ namespace Microsoft.Dafny {
     public QuantifierSyntaxOptions QuantifierSyntax = QuantifierSyntaxOptions.Version4;
 
     public int DefiniteAssignmentLevel { get; set; } = 1;
-    public HashSet<string> LibraryFiles { get; set; } = new();
+    public HashSet<string> LibraryFiles { get; set; } = [];
     public ContractTestingMode TestContracts = ContractTestingMode.None;
 
     public bool ForbidNondeterminism { get; set; }
@@ -394,7 +465,7 @@ namespace Microsoft.Dafny {
       new(new[] { SinglePassCodeGenerator.Plugin, InternalDocstringRewritersPluginConfiguration.Plugin });
     private IList<Plugin> cliPluginCache;
     public IList<Plugin> Plugins => cliPluginCache ??= ComputePlugins(AdditionalPlugins, AdditionalPluginArguments);
-    public List<Plugin> AdditionalPlugins = new();
+    public List<Plugin> AdditionalPlugins = [];
     public IList<string> AdditionalPluginArguments = new List<string>();
 
     public static IList<Plugin> ComputePlugins(List<Plugin> additionalPlugins, IList<string> allArguments) {
@@ -440,10 +511,10 @@ namespace Microsoft.Dafny {
     /// Automatic shallow-copy constructor
     /// </summary>
     public DafnyOptions(DafnyOptions src, bool useNullWriters = false) : this(
-      src.Input, src.OutputWriter, src.ErrorWriter) {
+      src.Input, src.BaseOutputWriter, src.ErrorWriter) {
       src.CopyTo(this, useNullWriters);
       CliRootSourceUris = new List<Uri>(src.CliRootSourceUris);
-      ProverOptions = new List<string>(src.ProverOptions);
+      ProverOptions = [.. src.ProverOptions];
       Options = new Options(
         src.Options.OptionArguments.ToDictionary(kv => kv.Key, kv => kv.Value),
         src.Options.Arguments.ToDictionary(kv => kv.Key, kv => kv.Value));
@@ -1218,7 +1289,7 @@ namespace Microsoft.Dafny {
       // Boogie also used to set the following options, but does not anymore.
       SetZ3Option("auto_config", "false");
       SetZ3Option("type_check", "true");
-      SetZ3Option("smt.qi.eager_threshold", "100"); // TODO: try lowering
+      SetZ3Option("smt.qi.eager_threshold", "44");
       SetZ3Option("smt.delay_units", "true");
       SetZ3Option("model_evaluator.completion", "true");
       SetZ3Option("model.completion", "true");
@@ -1583,10 +1654,10 @@ class ErrorReportingCommandLineParseState : Bpl.CommandLineParseState {
 /// Used by the parser to parse <c>:options</c> strings.
 /// </summary>
 class DafnyAttributeOptions : DafnyOptions {
-  public static readonly HashSet<string> KnownOptions = new() {
+  public static readonly HashSet<string> KnownOptions = [
     "functionSyntax",
     "quantifierSyntax"
-  };
+  ];
 
   private readonly Errors errors;
   public IOrigin Token { get; set; }

@@ -4,10 +4,10 @@ using System.Diagnostics.Contracts;
 namespace Microsoft.Dafny;
 
 public class ITEExpr : Expression, ICanFormat, ICloneable<ITEExpr> {
-  public readonly bool IsBindingGuard;
-  public readonly Expression Test;
-  public readonly Expression Thn;
-  public readonly Expression Els;
+  public bool IsBindingGuard;
+  public Expression Test;
+  public Expression Thn;
+  public Expression Els;
 
   public ITEExpr(Cloner cloner, ITEExpr original) : base(cloner, original) {
     IsBindingGuard = original.IsBindingGuard;
@@ -30,6 +30,7 @@ public class ITEExpr : Expression, ICanFormat, ICloneable<ITEExpr> {
     Contract.Invariant(Els != null);
   }
 
+  [SyntaxConstructor]
   public ITEExpr(IOrigin origin, bool isBindingGuard, Expression test, Expression thn, Expression els)
     : base(origin) {
     Contract.Requires(origin != null);
@@ -64,7 +65,7 @@ public class ITEExpr : Expression, ICanFormat, ICloneable<ITEExpr> {
   public bool SetIndent(int indentBefore, TokenNewIndentCollector formatter) {
     var lineThen = 0;
     var colThen = 0;
-    IOrigin thenToken = null;
+    Token thenToken = null;
     foreach (var token in OwnedTokens) {
       switch (token.val) {
         case "if": {

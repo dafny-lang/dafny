@@ -8,7 +8,7 @@ namespace Microsoft.Dafny;
 
 public abstract class DatatypeDecl : TopLevelDeclWithMembers, RevealableTypeDecl, ICallable, ICanFormat, IHasDocstring, ICanAutoRevealDependencies {
   public override bool CanBeRevealed() { return true; }
-  public readonly List<DatatypeCtor> Ctors;
+  public List<DatatypeCtor> Ctors;
 
   [FilledInDuringResolution] public Dictionary<string, DatatypeCtor> ConstructorsByName { get; set; }
   [ContractInvariantMethod]
@@ -21,19 +21,24 @@ public abstract class DatatypeDecl : TopLevelDeclWithMembers, RevealableTypeDecl
 
   public override IEnumerable<INode> PreResolveChildren => Ctors.Concat(base.PreResolveChildren);
 
-  public DatatypeDecl(IOrigin origin, Name name, ModuleDefinition module, List<TypeParameter> typeArgs,
-    [Captured] List<DatatypeCtor> ctors, List<Type> parentTraits, List<MemberDecl> members, Attributes attributes, bool isRefining)
-    : base(origin, name, module, typeArgs, members, attributes, isRefining, parentTraits) {
+  [SyntaxConstructor]
+  protected DatatypeDecl(IOrigin origin, Name nameNode, ModuleDefinition enclosingModuleDefinition, List<TypeParameter> typeArgs,
+    [Captured] List<DatatypeCtor> ctors, List<Type> traits, List<MemberDecl> members, Attributes attributes, bool isRefining)
+    : base(origin, nameNode, enclosingModuleDefinition, typeArgs, members, attributes, traits) {
     Contract.Requires(origin != null);
-    Contract.Requires(name != null);
-    Contract.Requires(module != null);
+    Contract.Requires(nameNode != null);
+    Contract.Requires(enclosingModuleDefinition != null);
     Contract.Requires(cce.NonNullElements(typeArgs));
     Contract.Requires(cce.NonNullElements(ctors));
     Contract.Requires(cce.NonNullElements(members));
     Contract.Requires((isRefining && ctors.Count == 0) || (!isRefining && 1 <= ctors.Count));
     Ctors = ctors;
     this.NewSelfSynonym();
+    IsRefining = isRefining;
   }
+
+  public override bool IsRefining { get; }
+
   public bool HasFinitePossibleValues {
     get {
       // Note, to determine finiteness, it doesn't matter if the constructors are ghost or non-ghost.
@@ -57,7 +62,7 @@ public abstract class DatatypeDecl : TopLevelDeclWithMembers, RevealableTypeDecl
 
   bool ICodeContext.IsGhost { get { return true; } }
   List<TypeParameter> ICodeContext.TypeArgs { get { return TypeArgs; } }
-  List<Formal> ICodeContext.Ins { get { return new List<Formal>(); } }
+  List<Formal> ICodeContext.Ins { get { return []; } }
   ModuleDefinition IASTVisitorContext.EnclosingModule { get { return EnclosingModuleDefinition; } }
   bool ICodeContext.MustReverify { get { return false; } }
   bool ICodeContext.AllowsNontermination { get { return false; } }

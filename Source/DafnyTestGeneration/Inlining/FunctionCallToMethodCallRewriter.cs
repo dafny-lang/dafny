@@ -41,17 +41,14 @@ public class FunctionCallToMethodCallRewriter : Cloner {
   private void Visit(Function function) {
     if (function.ByMethodBody != null) {
       function.ByMethodBody = CloneBlockStmt(function.ByMethodBody);
-      function.ByMethodDecl.Body = function.ByMethodBody;
+      function.ByMethodDecl.SetBody(function.ByMethodBody);
     }
   }
 
+
   private void Visit(Method method) {
     if (method.Body != null) {
-      if (method.Body is DividedBlockStmt dividedBlockStmt) {
-        method.Body = CloneDividedBlockStmt(dividedBlockStmt);
-      } else {
-        method.Body = CloneBlockStmt(method.Body);
-      }
+      method.SetBody(CloneBlockStmt(method.Body));
     }
   }
 
@@ -73,7 +70,8 @@ public class FunctionCallToMethodCallRewriter : Cloner {
         memberSelectExpr.TypeApplicationJustMember = funcCallExpr.TypeApplication_JustFunction;
         newResolvedStmts.Add(new CallStmt(stmt.Origin,
           updateStmt.Lhss.Select(lhs => CloneExpr(lhs.Resolved)).ToList(), memberSelectExpr,
-          funcCallExpr.Args.ConvertAll(e => CloneExpr(e.Resolved))));
+          funcCallExpr.Args.ConvertAll(e => CloneExpr(e.Resolved)),
+          memberSelectExpr.EndToken.Next.ReportingRange));
       } else {
         newResolvedStmts.Add(resolvedStmt);
       }

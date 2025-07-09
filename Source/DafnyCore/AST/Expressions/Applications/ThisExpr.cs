@@ -6,6 +6,7 @@ public class ThisExpr : Expression, ICloneable<ThisExpr> {
   public ThisExpr(Cloner cloner, ThisExpr original) : base(cloner, original) {
   }
 
+  [SyntaxConstructor]
   public ThisExpr(IOrigin origin)
     : base(origin) {
     Contract.Requires(origin != null);

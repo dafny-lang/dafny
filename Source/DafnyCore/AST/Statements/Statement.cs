@@ -1,3 +1,4 @@
+#nullable enable
 using System;
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
@@ -5,13 +6,11 @@ using System.Linq;
 
 namespace Microsoft.Dafny;
 
-public abstract class Statement : RangeNode, IAttributeBearingDeclaration {
-  public Token PostLabelToken { get; set; }
+public abstract class Statement : NodeWithOrigin, IAttributeBearingDeclaration {
 
   public int ScopeDepth { get; set; }
-  public LList<Label> Labels;  // mutable during resolution
 
-  public Attributes Attributes { get; set; }
+  public Attributes? Attributes { get; set; }
   string IAttributeBearingDeclaration.WhatKind => "statement";
 
   [ContractInvariantMethod]
@@ -31,12 +30,12 @@ public abstract class Statement : RangeNode, IAttributeBearingDeclaration {
 
     if (cloner.CloneResolvedFields) {
       IsGhost = original.IsGhost;
-      Labels = original.Labels;
     }
   }
 
-  protected Statement(IOrigin origin, Attributes attrs) : base(origin) {
-    this.Attributes = attrs;
+  [SyntaxConstructor]
+  protected Statement(IOrigin origin, Attributes? attributes) : base(origin) {
+    this.Attributes = attributes;
   }
 
   protected Statement(IOrigin origin)
@@ -72,7 +71,7 @@ public abstract class Statement : RangeNode, IAttributeBearingDeclaration {
   public IEnumerable<Statement> DescendantsAndSelf {
     get {
       Stack<Statement> todo = new();
-      List<Statement> result = new();
+      List<Statement> result = [];
       todo.Push(this);
       while (todo.Any()) {
         var current = todo.Pop();
@@ -135,12 +134,20 @@ public abstract class Statement : RangeNode, IAttributeBearingDeclaration {
   }
 
   /// <summary>
+  /// Returns "stmt", but with all outer layers of by-blocks removed.
+  /// This method can be called before resolution.
+  /// </summary>
+  public static Statement StripByBlocks(Statement stmt) {
+    while (stmt is BlockByProofStmt blockByProofStmt) {
+      stmt = blockByProofStmt.Body;
+    }
+    return stmt;
+  }
+
+  /// <summary>
   /// Create a resolved statement for an uninitialized local variable.
   /// </summary>
   public static VarDeclStmt CreateLocalVariable(IOrigin tok, string name, Type type) {
-    Contract.Requires(tok != null);
-    Contract.Requires(name != null);
-    Contract.Requires(type != null);
     var variable = new LocalVariable(tok, name, type, false);
     variable.type = type;
     return new VarDeclStmt(tok, Util.Singleton(variable), null);
@@ -150,16 +157,13 @@ public abstract class Statement : RangeNode, IAttributeBearingDeclaration {
   /// Create a resolved statement for a local variable with an initial value.
   /// </summary>
   public static VarDeclStmt CreateLocalVariable(IOrigin tok, string name, Expression value) {
-    Contract.Requires(tok != null);
-    Contract.Requires(name != null);
-    Contract.Requires(value != null);
     var variable = new LocalVariable(tok, name, value.Type, false);
     variable.type = value.Type;
     Expression variableExpr = new IdentifierExpr(tok, variable);
     var variableUpdateStmt = new AssignStatement(tok, Util.Singleton(variableExpr),
       Util.Singleton<AssignmentRhs>(new ExprRhs(value)));
     var variableAssignStmt = new SingleAssignStmt(tok, variableUpdateStmt.Lhss[0], variableUpdateStmt.Rhss[0]);
-    variableUpdateStmt.ResolvedStatements = new List<Statement>() { variableAssignStmt };
+    variableUpdateStmt.ResolvedStatements = [variableAssignStmt];
     return new VarDeclStmt(tok, Util.Singleton(variable), variableUpdateStmt);
   }
 
@@ -185,7 +189,10 @@ public abstract class Statement : RangeNode, IAttributeBearingDeclaration {
       Concat<Node>(
       PreResolveSubStatements).Concat(PreResolveSubExpressions);
 
-  public virtual IEnumerable<IdentifierExpr> GetAssignedLocals() => Enumerable.Empty<IdentifierExpr>();
+  /// <summary>
+  /// GetAssignedLocals should only be called after successful resolution
+  /// </summary>
+  public virtual IEnumerable<IdentifierExpr> GetAssignedLocals() => [];
 
 
   /// <summary>
@@ -221,5 +228,5 @@ public abstract class Statement : RangeNode, IAttributeBearingDeclaration {
   /// </summary>
   public abstract void ResolveGhostness(ModuleResolver resolver, ErrorReporter reporter, bool mustBeErasable,
     ICodeContext codeContext,
-    string proofContext, bool allowAssumptionVariables, bool inConstructorInitializationPhase);
+    string? proofContext, bool allowAssumptionVariables, bool inConstructorInitializationPhase);
 }

@@ -81,7 +81,7 @@ public class ForallStmtRewriter : IRewriter {
         Type = Type.Bool, // resolve here
         Bounds = s.Bounds
       };
-      s.EffectiveEnsuresClauses = new List<Expression> { expr };
+      s.EffectiveEnsuresClauses = [expr];
     }
 
     private void VisitAssign(ForallStmt stmt) {
@@ -94,7 +94,7 @@ public class ForallStmtRewriter : IRewriter {
         return;
       }
 
-      List<Expression> exprList = new List<Expression>();
+      List<Expression> exprList = [];
       Expression Fi = null;
       Func<Expression, Expression> lhsBuilder = null;
       var lhs = s0.Lhs.Resolved;
@@ -156,7 +156,7 @@ public class ForallStmtRewriter : IRewriter {
         if (vals != null) {
           foreach (var val in vals) {
             lhs = lhsBuilder(jj);
-            Attributes attributes = new Attributes("trigger", new List<Expression>() { lhs }, stmt.Attributes);
+            Attributes attributes = new Attributes("trigger", [lhs], stmt.Attributes);
             var newRhs = Substitute(rhs, i, val.FInverse);
             var newBounds = SubstituteBoundedPoolList(stmt.Bounds, i, val.FInverse);
 
@@ -201,12 +201,12 @@ public class ForallStmtRewriter : IRewriter {
         term = new BinaryExpr(s.Ens[i].Origin, BinaryExpr.ResolvedOpcode.And, term, s.Ens[i].E);
       }
 
-      s.EffectiveEnsuresClauses = new List<Expression> {
+      s.EffectiveEnsuresClauses = [
         new ForallExpr(s.Origin, s.BoundVars, s.Range, term, s.Attributes) {
           Type = Type.Bool, // resolve here
           Bounds = s.Bounds
         }
-      };
+      ];
     }
 
     internal class ForallStmtTranslationValues {

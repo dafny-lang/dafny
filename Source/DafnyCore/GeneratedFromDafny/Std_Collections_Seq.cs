@@ -354,36 +354,6 @@ namespace Std.Collections.Seq {
         return Dafny.Helpers.Id<Func<__T, __A, __A>>(f)((xs).Select(BigInteger.Zero), Std.Collections.Seq.__default.FoldRight<__A, __T>(f, (xs).Drop(BigInteger.One), init));
       }
     }
-    public static Dafny.ISequence<__T> SetToSeq<__T>(Dafny.ISet<__T> s)
-    {
-      Dafny.ISequence<__T> xs = Dafny.Sequence<__T>.Empty;
-      xs = Dafny.Sequence<__T>.FromElements();
-      Dafny.ISet<__T> _0_left;
-      _0_left = s;
-      while (!(_0_left).Equals(Dafny.Set<__T>.FromElements())) {
-        __T _1_x;
-        foreach (__T _assign_such_that_0 in (_0_left).Elements) {
-          _1_x = (__T)_assign_such_that_0;
-          if ((_0_left).Contains(_1_x)) {
-            goto after__ASSIGN_SUCH_THAT_0;
-          }
-        }
-        throw new System.Exception("assign-such-that search produced no value");
-      after__ASSIGN_SUCH_THAT_0: ;
-        _0_left = Dafny.Set<__T>.Difference(_0_left, Dafny.Set<__T>.FromElements(_1_x));
-        xs = Dafny.Sequence<__T>.Concat(xs, Dafny.Sequence<__T>.FromElements(_1_x));
-      }
-      return xs;
-    }
-    public static Dafny.ISequence<__T> SetToSortedSeq<__T>(Dafny.ISet<__T> s, Func<__T, __T, bool> R)
-    {
-      Dafny.ISequence<__T> xs = Dafny.Sequence<__T>.Empty;
-      Dafny.ISequence<__T> _out0;
-      _out0 = Std.Collections.Seq.__default.SetToSeq<__T>(s);
-      xs = _out0;
-      xs = Std.Collections.Seq.__default.MergeSortBy<__T>(R, xs);
-      return xs;
-    }
     public static Dafny.ISequence<__T> MergeSortBy<__T>(Func<__T, __T, bool> lessThanOrEq, Dafny.ISequence<__T> a)
     {
       if ((new BigInteger((a).Count)) <= (BigInteger.One)) {
@@ -424,6 +394,129 @@ namespace Std.Collections.Seq {
         lessThanOrEq = _in5;
         goto TAIL_CALL_START;
       }
+    }
+    public static bool All<__T>(Dafny.ISequence<__T> s, Func<__T, bool> p)
+    {
+      return Dafny.Helpers.Id<Func<Dafny.ISequence<__T>, Func<__T, bool>, bool>>((_0_s, _1_p) => Dafny.Helpers.Quantifier<BigInteger>(Dafny.Helpers.IntegerRange(BigInteger.Zero, new BigInteger((_0_s).Count)), true, (((_forall_var_0) => {
+        BigInteger _2_i = (BigInteger)_forall_var_0;
+        return !(((_2_i).Sign != -1) && ((_2_i) < (new BigInteger((_0_s).Count)))) || (Dafny.Helpers.Id<Func<__T, bool>>(_1_p)((_0_s).Select(_2_i)));
+      }))))(s, p);
+    }
+    public static bool AllNot<__T>(Dafny.ISequence<__T> s, Func<__T, bool> p)
+    {
+      return Dafny.Helpers.Id<Func<Dafny.ISequence<__T>, Func<__T, bool>, bool>>((_0_s, _1_p) => Dafny.Helpers.Quantifier<BigInteger>(Dafny.Helpers.IntegerRange(BigInteger.Zero, new BigInteger((_0_s).Count)), true, (((_forall_var_0) => {
+        BigInteger _2_i = (BigInteger)_forall_var_0;
+        return !(((_2_i).Sign != -1) && ((_2_i) < (new BigInteger((_0_s).Count)))) || (!(Dafny.Helpers.Id<Func<__T, bool>>(_1_p)((_0_s).Select(_2_i))));
+      }))))(s, p);
+    }
+    public static bool Partitioned<__T>(Dafny.ISequence<__T> s, Func<__T, bool> p)
+    {
+    TAIL_CALL_START: ;
+      if ((s).Equals(Dafny.Sequence<__T>.FromElements())) {
+        return true;
+      } else if (Dafny.Helpers.Id<Func<__T, bool>>(p)((s).Select(BigInteger.Zero))) {
+        Dafny.ISequence<__T> _in0 = (s).Drop(BigInteger.One);
+        Func<__T, bool> _in1 = p;
+        s = _in0;
+        p = _in1;
+        goto TAIL_CALL_START;
+      } else {
+        return Std.Collections.Seq.__default.AllNot<__T>((s).Drop(BigInteger.One), p);
+      }
+    }
+  }
+
+  public interface _ISlice<T> {
+    bool is_Slice { get; }
+    Dafny.ISequence<T> dtor_data { get; }
+    BigInteger dtor_start { get; }
+    BigInteger dtor_end { get; }
+    _ISlice<__T> DowncastClone<__T>(Func<T, __T> converter0);
+    Dafny.ISequence<T> View();
+    BigInteger Length();
+    T At(BigInteger i);
+    Std.Collections.Seq._ISlice<T> Drop(BigInteger firstIncludedIndex);
+    Std.Collections.Seq._ISlice<T> Sub(BigInteger firstIncludedIndex, BigInteger lastExcludedIndex);
+  }
+  public class Slice<T> : _ISlice<T> {
+    public readonly Dafny.ISequence<T> _data;
+    public readonly BigInteger _start;
+    public readonly BigInteger _end;
+    public Slice(Dafny.ISequence<T> data, BigInteger start, BigInteger end) {
+      this._data = data;
+      this._start = start;
+      this._end = end;
+    }
+    public _ISlice<__T> DowncastClone<__T>(Func<T, __T> converter0) {
+      if (this is _ISlice<__T> dt) { return dt; }
+      return new Slice<__T>((_data).DowncastClone<__T>(Dafny.Helpers.CastConverter<T, __T>), _start, _end);
+    }
+    public override bool Equals(object other) {
+      var oth = other as Std.Collections.Seq.Slice<T>;
+      return oth != null && object.Equals(this._data, oth._data) && this._start == oth._start && this._end == oth._end;
+    }
+    public override int GetHashCode() {
+      ulong hash = 5381;
+      hash = ((hash << 5) + hash) + 0;
+      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._data));
+      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._start));
+      hash = ((hash << 5) + hash) + ((ulong)Dafny.Helpers.GetHashCode(this._end));
+      return (int) hash;
+    }
+    public override string ToString() {
+      string s = "Seq.Slice.Slice";
+      s += "(";
+      s += Dafny.Helpers.ToString(this._data);
+      s += ", ";
+      s += Dafny.Helpers.ToString(this._start);
+      s += ", ";
+      s += Dafny.Helpers.ToString(this._end);
+      s += ")";
+      return s;
+    }
+    public static Std.Collections.Seq._ISlice<T> Default() {
+      return create(Dafny.Sequence<T>.Empty, BigInteger.Zero, BigInteger.Zero);
+    }
+    public static Dafny.TypeDescriptor<Std.Collections.Seq._ISlice<T>> _TypeDescriptor() {
+      return new Dafny.TypeDescriptor<Std.Collections.Seq._ISlice<T>>(Std.Collections.Seq.Slice<T>.Default());
+    }
+    public static _ISlice<T> create(Dafny.ISequence<T> data, BigInteger start, BigInteger end) {
+      return new Slice<T>(data, start, end);
+    }
+    public static _ISlice<T> create_Slice(Dafny.ISequence<T> data, BigInteger start, BigInteger end) {
+      return create(data, start, end);
+    }
+    public bool is_Slice { get { return true; } }
+    public Dafny.ISequence<T> dtor_data {
+      get {
+        return this._data;
+      }
+    }
+    public BigInteger dtor_start {
+      get {
+        return this._start;
+      }
+    }
+    public BigInteger dtor_end {
+      get {
+        return this._end;
+      }
+    }
+    public Dafny.ISequence<T> View() {
+      return ((this).dtor_data).Subsequence((this).dtor_start, (this).dtor_end);
+    }
+    public BigInteger Length() {
+      return ((this).dtor_end) - ((this).dtor_start);
+    }
+    public T At(BigInteger i) {
+      return ((this).dtor_data).Select(((this).dtor_start) + (i));
+    }
+    public Std.Collections.Seq._ISlice<T> Drop(BigInteger firstIncludedIndex) {
+      return Std.Collections.Seq.Slice<T>.create((this).dtor_data, ((this).dtor_start) + (firstIncludedIndex), (this).dtor_end);
+    }
+    public Std.Collections.Seq._ISlice<T> Sub(BigInteger firstIncludedIndex, BigInteger lastExcludedIndex)
+    {
+      return Std.Collections.Seq.Slice<T>.create((this).dtor_data, ((this).dtor_start) + (firstIncludedIndex), ((this).dtor_start) + (lastExcludedIndex));
     }
   }
 } // end of namespace Std.Collections.Seq

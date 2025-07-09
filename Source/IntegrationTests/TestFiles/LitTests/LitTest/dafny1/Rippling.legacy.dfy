@@ -324,6 +324,7 @@ lemma P5()
     add(Suc(Zero), count(n, xs)) == count(n, Cons(x, xs))
     ==> n == x;
 {
+  assert forall n :: Suc(n) > n;
 }
 
 lemma P6()
@@ -357,7 +358,7 @@ lemma P11()
 }
 
 lemma P12()
-  ensures forall n, xs, f :: drop(n, apply(f, xs)) == apply(f, drop(n, xs));
+  ensures forall n, xs, f: Nat -> Nat :: drop(n, apply(f, xs)) == apply(f, drop(n, xs));
 {
 }
 
@@ -367,7 +368,7 @@ lemma P13()
 }
 
 lemma P14()
-  ensures forall xs, ys, p :: filter(p, concat(xs, ys)) == concat(filter(p, xs), filter(p, ys));
+  ensures forall xs, ys, p: Nat -> Nat :: filter(p, concat(xs, ys)) == concat(filter(p, xs), filter(p, ys));
 {
 }
 
@@ -505,7 +506,7 @@ lemma P40()
 }
 
 lemma P41()
-  ensures forall n, xs, f :: take(n, apply(f, xs)) == apply(f, take(n, xs));
+  ensures forall n, xs, f: Nat -> Nat :: take(n, apply(f, xs)) == apply(f, take(n, xs));
 {
 }
 

@@ -7,6 +7,7 @@ using System.IO;
 using System.Reflection;
 using System.Reflection.Metadata;
 using System.Reflection.PortableExecutable;
+using System.Runtime.InteropServices;
 using System.Threading.Tasks;
 using DafnyAssembly;
 using DafnyCore;
@@ -16,6 +17,7 @@ namespace Microsoft.Dafny;
 
 public class DafnyFile {
   public const string DafnyFileExtension = ".dfy";
+  public const string DafnyBinaryExtension = ".dbin";
   public string FilePath => CanonicalPath;
   public string Extension { get; private set; }
   public string CanonicalPath { get; }
@@ -74,7 +76,7 @@ public class DafnyFile {
       extension = DafnyFileExtension;
     }
 
-    if (uri.Scheme == "untitled" || extension == DafnyFileExtension || extension == ".dfyi") {
+    if (uri.Scheme == "untitled" || extension == DafnyFileExtension || extension == ".dfyi" || extension == DafnyBinaryExtension) {
       var file = HandleDafnyFile(fileSystem, reporter, options, uri, uriOrigin, asLibrary);
       if (file != null) {
         yield return file;
@@ -112,10 +114,16 @@ public class DafnyFile {
   public static readonly Option<bool> DoNotVerifyDependencies = new("--dont-verify-dependencies",
     "Allows Dafny to accept dependencies that may not have been previously verified, which can be useful during development.");
 
+  public static readonly Uri StdInUri = new Uri("stdin:///");
+
   public static DafnyFile? HandleDafnyFile(IFileSystem fileSystem,
     ErrorReporter reporter,
     DafnyOptions options,
     Uri uri, IOrigin origin, bool asLibrary = false, bool warnLibrary = true) {
+    if (uri == StdInUri) {
+      return HandleStandardInput(options, origin);
+    }
+
     string canonicalPath;
     string baseName;
     if (uri.IsFile) {
@@ -143,10 +151,9 @@ public class DafnyFile {
     }
 
     if (!options.Get(DoNotVerifyDependencies) && asLibrary && warnLibrary) {
-      reporter.Warning(MessageSource.Project, "", origin,
-        $"The file '{options.GetPrintPath(filePath)}' was passed to --library. " +
-        $"Verification for that file might have used options incompatible with the current ones, or might have been skipped entirely. " +
-        $"Use a .doo file to enable Dafny to check that compatible options were used");
+      reporter.Warning(MessageSource.Project, "UnverifiedLibrary", origin,
+        "The file '{0}' was passed to --library. Verification for that file might have used options incompatible with the current ones, or might have been skipped entirely. Use a .doo file to enable Dafny to check that compatible options were used",
+        options.GetPrintPath(filePath));
     }
 
     return new DafnyFile(DafnyFileExtension, canonicalPath, baseName, () => fileSystem.ReadFile(uri), uri, origin, options) {
@@ -157,7 +164,7 @@ public class DafnyFile {
 
   public static DafnyFile HandleStandardInput(DafnyOptions options, IOrigin origin) {
     return new DafnyFile(DafnyFileExtension, "<stdin>", "<stdin>",
-      () => new FileSnapshot(options.Input, null), new Uri("stdin:///"), origin, options) {
+      () => new FileSnapshot(options.Input, null), StdInUri, origin, options) {
       ShouldNotCompile = false,
       ShouldNotVerify = false,
     };
@@ -314,4 +321,11 @@ public class DafnyFile {
     return null;
   }
 
+  public static Uri CreateCrossPlatformUri(string path) {
+    // Only fixes Unix paths on Windows
+    if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows) && path.StartsWith("/")) {
+      return new Uri("file://" + path);
+    }
+    return new Uri(path);
+  }
 }

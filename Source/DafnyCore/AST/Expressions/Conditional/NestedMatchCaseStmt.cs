@@ -1,28 +1,25 @@
-using System;
+#nullable enable
+
 using System.Collections.Generic;
-using System.Diagnostics.Contracts;
 using System.Linq;
 
 namespace Microsoft.Dafny;
 
 public class NestedMatchCaseStmt : NestedMatchCase, IAttributeBearingDeclaration, ICloneable<NestedMatchCaseStmt> {
-  public readonly List<Statement> Body;
-  public Attributes Attributes { get; set; }
+  public List<Statement> Body;
+  public Attributes? Attributes { get; set; }
   string IAttributeBearingDeclaration.WhatKind => "match statement case";
-  public NestedMatchCaseStmt(IOrigin rangeOrigin, ExtendedPattern pat, List<Statement> body) : base(rangeOrigin, pat) {
-    Contract.Requires(body != null);
-    this.Body = body;
-    this.Attributes = null;
-  }
-  public NestedMatchCaseStmt(IOrigin origin, ExtendedPattern pat, List<Statement> body, Attributes attrs) : base(origin, pat) {
-    Contract.Requires(body != null);
-    this.Body = body;
-    this.Attributes = attrs;
+
+  [SyntaxConstructor]
+  public NestedMatchCaseStmt(IOrigin origin, ExtendedPattern pat, List<Statement> body, Attributes? attributes = null)
+    : base(origin, pat) {
+    Body = body;
+    Attributes = attributes;
   }
 
   private NestedMatchCaseStmt(Cloner cloner, NestedMatchCaseStmt original) : base(original.Origin, original.Pat) {
-    this.Body = original.Body.Select(stmt => cloner.CloneStmt(stmt, false)).ToList();
-    this.Attributes = cloner.CloneAttributes(original.Attributes);
+    Body = original.Body.Select(stmt => cloner.CloneStmt(stmt, false)).ToList();
+    Attributes = cloner.CloneAttributes(original.Attributes);
   }
 
   public NestedMatchCaseStmt Clone(Cloner cloner) {

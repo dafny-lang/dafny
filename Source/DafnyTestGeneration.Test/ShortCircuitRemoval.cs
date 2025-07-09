@@ -31,19 +31,20 @@ public class ShortCircuitRemoval : Setup {
   /// <summary>
   /// Perform shared checks and return the target method for further testing on a case by case basis
   /// </summary>
-  private async Task<Method> ShortCircuitRemovalTest(string source, string expected, bool isByMethod = true) {
+  private async Task<MethodOrConstructor> ShortCircuitRemovalTest(string source, string expected, bool isByMethod = true) {
     // If the following assertion fails, rename the corresponding variables in expected output of each test
     Assert.Equal(RemoveShortCircuitingRewriter.TmpVarPrefix, "#tmp");
-    var options = GetDafnyOptions(new List<Action<DafnyOptions>>(), output);
+    var options = GetDafnyOptions([], output);
     var program = await Parse(new BatchErrorReporter(options), source, false);
     var success = InliningTranslator.TranslateForFutureInlining(program, options, out var boogieProgram);
     Assert.True(success);
     var method = program.DefaultModuleDef.Children
       .OfType<TopLevelDeclWithMembers>()
-      .Select(classDef => classDef.Members.Where(member => member is Method && member.HasUserAttribute(TestGenerationOptions.TestEntryAttribute, out var _)))?
-      .Where(members => members.Count() != 0).FirstOrDefault()?.First() as Method;
+      .Select(classDef => classDef.Members.Where(member => member is MethodOrConstructor &&
+        member.HasUserAttribute(TestGenerationOptions.TestEntryAttribute, out var _)))?
+      .Where(members => members.Count() != 0).FirstOrDefault()?.First() as MethodOrConstructor;
     Assert.NotNull(method);
-    Assert.Equal(isByMethod, method.IsByMethod);
+    Assert.Equal(isByMethod, (method is Method { IsByMethod: true }));
     var writer = new StringWriter();
     new Printer(writer, options).PrintStatement(method.Body, 0);
     var result = RemoveSpaces(writer.ToString());

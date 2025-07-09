@@ -27,6 +27,9 @@ const unique TChar : Ty uses {
 const unique TInt  : Ty uses {
   axiom Tag(TInt) == TagInt;
 }
+const unique TField: Ty uses {
+  axiom Tag(TField) == TagField;
+}
 const unique TReal : Ty uses {
   axiom Tag(TReal) == TagReal;
 }
@@ -83,6 +86,7 @@ function Tag(Ty) : TyTag;
 const unique TagBool     : TyTag;
 const unique TagChar     : TyTag;
 const unique TagInt      : TyTag;
+const unique TagField    : TyTag;
 const unique TagReal     : TyTag;
 const unique TagORDINAL  : TyTag;
 const unique TagSet      : TyTag;
@@ -153,7 +157,26 @@ axiom (forall a: char, b: char ::
 // ---------------------------------------------------------------
 
 type ref;
+
 const null: ref;
+const locals: ref;
+
+type FieldFamily;
+const unique object_field: FieldFamily;
+
+// local_field keeps the information about the depth and the field family
+
+function field_depth(f: Field): int;
+function field_family(f: Field): FieldFamily;
+
+function local_field(ff: FieldFamily, depth: int): Field
+uses {
+  axiom (forall ff: FieldFamily, depth: int ::
+    {:trigger local_field(ff, depth)}
+    field_depth(local_field(ff, depth)) == depth
+    && field_family(local_field(ff, depth)) == ff
+  );
+}
 
 // ---------------------------------------------------------------
 // -- Boxing and unboxing ----------------------------------------
@@ -164,8 +187,8 @@ const $ArbitraryBoxValue: Box;
 
 function $Box<T>(T): Box;
 function $Unbox<T>(Box): T;
-axiom (forall<T> x : T   :: { $Box(x) } $Unbox($Box(x)) == x);
-axiom (forall<T> x : Box :: { $Unbox(x): T} $Box($Unbox(x): T) == x);
+axiom (forall<T> x : T   :: { $Box(x) } {:weight 3} $Unbox($Box(x)) == x);
+axiom (forall<T> x : Box :: { $Unbox(x): T}      $Box($Unbox(x): T) == x);
 
 
 // Corresponding entries for boxes...
@@ -229,6 +252,7 @@ axiom(forall v : int  :: { $Is(v,TInt) }  $Is(v,TInt));
 axiom(forall v : real :: { $Is(v,TReal) } $Is(v,TReal));
 axiom(forall v : bool :: { $Is(v,TBool) } $Is(v,TBool));
 axiom(forall v : char :: { $Is(v,TChar) } $Is(v,TChar));
+axiom(forall v : Field :: { $Is(v,TField) } $Is(v,TField));
 axiom(forall v : ORDINAL :: { $Is(v,TORDINAL) } $Is(v,TORDINAL));
 
 // Since every bitvector type is a separate type in Boogie, the $Is/$IsAlloc axioms
@@ -462,7 +486,7 @@ axiom (forall o: ORDINAL, m,n: int ::
   { ORD#Plus(ORD#Plus(o, ORD#FromNat(m)), ORD#FromNat(n)) }
   0 <= m && 0 <= n ==>
   ORD#Plus(ORD#Plus(o, ORD#FromNat(m)), ORD#FromNat(n)) == ORD#Plus(o, ORD#FromNat(m+n)));
-// o-m-n == o+(m+n)
+// o-m-n == o-(m+n)
 axiom (forall o: ORDINAL, m,n: int ::
   { ORD#Minus(ORD#Minus(o, ORD#FromNat(m)), ORD#FromNat(n)) }
   0 <= m && 0 <= n && m+n <= ORD#Offset(o) ==>
@@ -553,6 +577,7 @@ axiom (forall h, k : Heap, bx : Box, t : Ty ::
 // No axioms for $Is and $IsBox since they don't talk about the heap.
 
 const unique alloc: Field;
+
 const unique allocName: NameFamily;
 
 // ---------------------------------------------------------------

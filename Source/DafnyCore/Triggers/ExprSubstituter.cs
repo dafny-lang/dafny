@@ -10,7 +10,7 @@ namespace Microsoft.Dafny {
     public ExprSubstituter(List<Tuple<Expression, IdentifierExpr>> exprSubstMap)
       : base(null, new Dictionary<IVariable, Expression>(), new Dictionary<TypeParameter, Type>()) {
       this.exprSubstMap = exprSubstMap;
-      this.usedSubstMap = new List<Tuple<Expression, IdentifierExpr>>();
+      this.usedSubstMap = [];
     }
 
     public bool TryGetExprSubst(Expression expr, out IdentifierExpr ie) {
@@ -46,10 +46,10 @@ namespace Microsoft.Dafny {
 
         var newBoundVars = new List<BoundVar>(e.BoundVars);
         if (newBounds == null) {
-          newBounds = new List<BoundedPool>();
+          newBounds = [];
         } else if (newBounds == e.Bounds) {
           // create a new list with the same elements, since the .Add operations below would otherwise add elements to the original e.Bounds
-          newBounds = new List<BoundedPool>(newBounds);
+          newBounds = [.. newBounds];
         }
 
         // conjoin all the new equalities to the range of the quantifier

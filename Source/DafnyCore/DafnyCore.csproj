@@ -1,6 +1,6 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
-  <Target Name="RunCoco" BeforeTargets="PreBuildEvent" Outputs="$(ProjectDir)Parser.cs;$(ProjectDir)Scanner.cs" Inputs="$(ProjectDir)Dafny.atg;$(ProjectDir)/CoCo/Parser.frame;$(ProjectDir)/CoCo/Scanner.frame">
+  <Target Name="RunCoco" BeforeTargets="PreBuildEvent" Outputs="$(ProjectDir)Parser.cs;$(ProjectDir)Scanner.cs" Inputs="$(ProjectDir)Dafny.atg;$(ProjectDir)/CoCo/Parser.frame;$(ProjectDir)/CoCo/Scanner.frame;$(ProjectDir)/Coco/Copyright.frame">
     <Exec Command="dotnet tool restore" />
     <Exec Command="dotnet --info" />
     <Exec Command="dotnet tool run coco &quot;$(ProjectDir)Dafny.atg&quot; -namespace Microsoft.Dafny -frames &quot;$(ProjectDir)Coco&quot;" />
@@ -30,7 +30,10 @@
       <PackageReference Include="JetBrains.Annotations" Version="2021.1.0" />
       <PackageReference Include="Microsoft.Extensions.FileSystemGlobbing" Version="5.0.0" />
       <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="5.0.0" />
+      <PackageReference Include="NJsonSchema" Version="11.1.0" />
+      <PackageReference Include="NJsonSchema.Annotations" Version="11.1.0" />
       <PackageReference Include="OmniSharp.Extensions.LanguageServer" Version="0.19.5" />
+      <PackageReference Include="RangeTree" Version="3.0.1" />
       <PackageReference Include="Serilog" Version="2.12.0" />
       <PackageReference Include="System.CommandLine" Version="2.0.0-beta4.22272.1" />
       <PackageReference Include="System.Runtime.Numerics" Version="4.3.0" />
@@ -47,6 +50,8 @@
     <EmbeddedResource Include="assets\audit_template.html">
       <LogicalName>audit_template.html</LogicalName>
     </EmbeddedResource>
+    <None Remove="assets\messages.txt" />
+    <EmbeddedResource Include="assets\messages.txt" />
   </ItemGroup>
 
   <ItemGroup>

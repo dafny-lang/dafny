@@ -36,7 +36,7 @@ public class PartialValue {
   private PartialValue(Model.Element element, PartialState state) {
     Element = element;
     this.state = state;
-    Constraints = new();
+    Constraints = [];
     haveExpanded = false;
     state.AllPartialValues[element] = this;
     type = state.Model.GetFormattedDafnyType(element);

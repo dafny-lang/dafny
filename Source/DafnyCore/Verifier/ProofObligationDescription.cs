@@ -11,6 +11,8 @@ using Microsoft.Boogie;
 namespace Microsoft.Dafny;
 
 public abstract class ProofObligationDescription : Boogie.ProofObligationDescription {
+  public virtual DafnyDiagnostic GetDiagnostic(TokenRange range) => null;
+
   public virtual bool IsImplicit => true;
 
   // An expression that, if verified, would trigger a success for this ProofObligationDescription
@@ -820,80 +822,6 @@ public class TraitDecreases : ProofObligationDescription {
   }
 }
 
-public class ReadFrameSubset : ProofObligationDescription {
-  public override string SuccessDescription =>
-    $"sufficient reads clause to {whatKind}";
-
-  public override string FailureDescription =>
-    $"insufficient reads clause to {whatKind}" + ExtendedFailureHint();
-
-  public string ExtendedFailureHint() {
-    if (readExpression is null) {
-      return "";
-    }
-    if (scope is { Designator: var designator }) {
-      var lambdaScope = scope as LambdaExpr;
-      var extraHint = "";
-      var obj = "object";
-      if (readExpression is MemberSelectExpr e) {
-        obj = Printer.ExprToString(DafnyOptions.DefaultImmutableOptions, e.Obj, new PrintFlags(UseOriginalDafnyNames: true));
-      } else if (readExpression is SeqSelectExpr s) {
-        obj = Printer.ExprToString(DafnyOptions.DefaultImmutableOptions, s.Seq, new PrintFlags(UseOriginalDafnyNames: true));
-      } else if (readExpression is MultiSelectExpr m) {
-        obj = Printer.ExprToString(DafnyOptions.DefaultImmutableOptions, m.Array,
-          new PrintFlags(UseOriginalDafnyNames: true));
-      }
-
-      if (scope is Function { CoClusterTarget: var x } && x != Function.CoCallClusterInvolvement.None) {
-      } else {
-        if (lambdaScope == null && readExpression is MemberSelectExpr { MemberName: var field }) {
-          extraHint = $" or 'reads {obj}`{field}'";
-        }
-        var hint = $"adding 'reads {obj}'{extraHint} in the enclosing {designator} specification for resolution";
-        if (lambdaScope != null && lambdaScope.Reads.Expressions.Count == 0) {
-          hint = $"extracting {readExpression} to a local variable before the lambda expression, or {hint}";
-        }
-
-        return $"; Consider {hint}";
-      }
-    }
-
-    string whyNotWhat = "Memory locations";
-
-    if (whatKind == "read field") {
-      whyNotWhat = "Mutable fields";
-    } else if (whatKind is "read array element" or "read the indicated range of array elements") {
-      whyNotWhat = "Array elements";
-    }
-    return $"; {whyNotWhat} cannot be accessed within certain scopes, such as default values, the right-hand side of constants, or co-recursive calls";
-
-  }
-
-  public override string ShortDescription => "read frame subset";
-
-  private readonly string whatKind;
-  private readonly Expression assertedExpr;
-  private readonly Expression readExpression;
-  [CanBeNull] private readonly IFrameScope scope;
-
-  public ReadFrameSubset(string whatKind, FrameExpression subsetFrame, List<FrameExpression> supersetFrames, Expression readExpression = null, [CanBeNull] IFrameScope scope = null)
-    : this(whatKind, new List<FrameExpression> { subsetFrame }, supersetFrames, readExpression, scope) { }
-
-  public ReadFrameSubset(string whatKind, List<FrameExpression> subsetFrames, List<FrameExpression> supersetFrames, Expression readExpression = null, [CanBeNull] IFrameScope scope = null)
-    : this(whatKind, Utils.MakeDafnyMultiFrameCheck(supersetFrames, subsetFrames), readExpression, scope) { }
-
-  public ReadFrameSubset(string whatKind, Expression assertedExpr, Expression readExpression = null, [CanBeNull] IFrameScope scope = null) {
-    this.whatKind = whatKind;
-    this.assertedExpr = assertedExpr;
-    this.readExpression = readExpression;
-    this.scope = scope;
-  }
-
-  public override Expression GetAssertedExpr(DafnyOptions options) {
-    return assertedExpr;
-  }
-}
-
 public class ModifyFrameSubset : ProofObligationDescription {
   public override string SuccessDescription =>
       $"{whatKind} is allowed by context's modifies clause";
@@ -986,7 +914,9 @@ public class Terminates : ProofObligationDescription {
     return null;
   }
 
-  public Terminates(bool inferredDescreases, List<VarDeclStmt> prevGhostLocals, Expression allowance, List<Expression> oldExpressions, List<Expression> newExpressions, bool allowNoChange, string hint = null) {
+  public Terminates(bool inferredDescreases, List<VarDeclStmt> prevGhostLocals,
+    Expression allowance, List<Expression> oldExpressions, List<Expression> newExpressions,
+    bool allowNoChange, string hint = null) {
     this.inferredDescreases = inferredDescreases;
     this.prevGhostLocals = prevGhostLocals;
     this.allowance = allowance;
@@ -1137,7 +1067,7 @@ public class AlternativeIsComplete : ProofObligationDescription {
     $"alternative cases cover all possibilities";
 
   public override string FailureDescription =>
-    $"alternative cases fail to cover all possibilities";
+    $"alternative cases may not cover all possibilities";
 
   public override string ShortDescription => "alternative complete";
 
@@ -1285,48 +1215,6 @@ public class IndicesInDomain : ProofObligationDescription {
     Utils.MakeQuantifierVarsForDims(dims, out var indexVars, out var indexVarExprs, out var indicesRange);
     var precond = new FunctionCallExpr("requires", init, Token.NoToken, Token.NoToken, new ActualBindings(indexVarExprs));
     return new ForallExpr(Token.NoToken, indexVars, indicesRange, precond, null);
-  }
-}
-
-public class SubrangeCheck : ProofObligationDescription {
-  public override string SuccessDescription =>
-    isSubset
-      ? $"value always satisfies the subset constraints of '{targetType}'"
-      : $"value of expression (of type '{sourceType}') is always an instance of type '{targetType}'";
-
-  public override string FailureDescription => BaseFailureDescription + (isCertain ? "" : cause);
-
-  public override string ShortDescription => "subrange check";
-
-  private string BaseFailureDescription =>
-    isSubset
-      ? $"{prefix}value does not satisfy the subset constraints of '{targetType}'"
-      : $"{prefix}value of expression (of type '{sourceType}') is not known to be an instance of type '{targetType}'" +
-        (isCertain ? ", because it might be null" : "");
-
-  private readonly string prefix;
-  private readonly string sourceType;
-  private readonly string targetType;
-  private readonly bool isSubset;
-  private readonly bool isCertain;
-  private readonly string cause;
-  private readonly Expression check;
-
-  public SubrangeCheck(
-    string prefix, string sourceType, string targetType,
-    bool isSubset, bool isCertain, [CanBeNull] string cause, [CanBeNull] Expression check
-  ) {
-    this.prefix = prefix;
-    this.sourceType = sourceType;
-    this.targetType = targetType;
-    this.isSubset = isSubset;
-    this.isCertain = isCertain;
-    this.cause = cause is null ? "" : $" (possible cause: {cause})";
-    this.check = check;
-  }
-
-  public override Expression GetAssertedExpr(DafnyOptions options) {
-    return check;
   }
 }
 
@@ -1539,15 +1427,15 @@ public class InRange : ProofObligationDescription {
       Expression bound = sequence.Type.IsArrayType ?
           new MemberSelectExpr(sequence.Origin, sequence, new Name("Length" + (dimension >= 0 ? "" + dimension : "")))
         : new UnaryOpExpr(sequence.Origin, UnaryOpExpr.Opcode.Cardinality, sequence);
-      return new ChainingExpression(sequence.Origin, new List<Expression>() {
-        new LiteralExpr(sequence.Origin, 0),
+      return new ChainingExpression(sequence.Origin, [
+          new LiteralExpr(sequence.Origin, 0),
         index,
         bound
-      }, new List<BinaryExpr.Opcode>() {
-        BinaryExpr.Opcode.Le,
-        upperExcluded ? BinaryExpr.Opcode.Lt : BinaryExpr.Opcode.Le
-      }, new List<IOrigin>() { Token.NoToken, Token.NoToken },
-        new List<Expression>() { null, null });
+        ], [
+          BinaryExpr.Opcode.Le,
+          upperExcluded ? BinaryExpr.Opcode.Lt : BinaryExpr.Opcode.Le
+        ], [Token.NoToken, Token.NoToken],
+        [null, null]);
     }
 
     return new BinaryExpr(sequence.Origin, BinaryExpr.Opcode.In,
@@ -1579,14 +1467,14 @@ public class SequenceSelectRangeValid : ProofObligationDescription {
   }
 
   public override Expression GetAssertedExpr(DafnyOptions options) {
-    return new ChainingExpression(sequence.Origin, new List<Expression>() {
+    return new ChainingExpression(sequence.Origin, [
       lowerBound,
       upperBound,
       new UnaryOpExpr(sequence.Origin, UnaryOpExpr.Opcode.Cardinality, sequence)
-    }, new List<BinaryExpr.Opcode>() {
+    ], [
       BinaryExpr.Opcode.Le,
       BinaryExpr.Opcode.Le
-    }, new List<IOrigin>() { Token.NoToken, Token.NoToken }, new List<Expression>() { null, null });
+    ], [Token.NoToken, Token.NoToken], [null, null]);
   }
 }
 
@@ -1661,11 +1549,11 @@ public class ArrayInitSizeValid : ProofObligationDescription {
 
   public override string ShortDescription => "array initializer size";
 
-  private readonly TypeRhs rhs;
+  private readonly AllocateArray rhs;
   private readonly Expression dim;
   private int size => rhs.InitDisplay.Count;
 
-  public ArrayInitSizeValid(TypeRhs rhs, Expression dim) {
+  public ArrayInitSizeValid(AllocateArray rhs, Expression dim) {
     this.rhs = rhs;
     this.dim = dim;
   }
@@ -1745,18 +1633,25 @@ public class LetSuchThatUnique : ProofObligationDescription {
 public class LetSuchThatExists : ProofObligationDescription {
   private readonly Expression condition;
   private readonly List<BoundVar> bvars;
+  private bool autoTriggerSearchFailed;
 
   public override string SuccessDescription =>
     "a value exists that satisfies this let-such-that expression";
 
   public override string FailureDescription =>
-    "cannot establish the existence of LHS values that satisfy the such-that predicate";
+    "cannot establish the existence of LHS values that satisfy the such-that predicate" +
+    (autoTriggerSearchFailed
+      ? ". Note, no trigger was found for the such-that predicate, which may be the reason the proof failed. " +
+        "To give a trigger explicitly, use the {:trigger} attribute. " +
+        "For more information, see the section on quantifier instantiation rules in the reference manual."
+      : "");
 
   public override string ShortDescription => "let-such-that exists";
 
-  public LetSuchThatExists(List<BoundVar> bvars, Expression condition) {
+  public LetSuchThatExists(List<BoundVar> bvars, Expression condition, bool autoTriggerSearchFailed) {
     this.condition = condition;
     this.bvars = bvars;
+    this.autoTriggerSearchFailed = autoTriggerSearchFailed;
   }
   public override Expression GetAssertedExpr(DafnyOptions options) {
     return new ExistsExpr(bvars[0].Origin, bvars,
@@ -1817,7 +1712,7 @@ public class ConcurrentFrameEmpty : ProofObligationDescription {
     var args = bvars.Select(bvar => new IdentifierExpr(Token.NoToken, bvar) as Expression).ToList();
     var call = new ApplyExpr(Token.NoToken, func, args, Token.NoToken);
     var isEmpty = new BinaryExpr(Token.NoToken, BinaryExpr.Opcode.Eq, call,
-      new SetDisplayExpr(Token.NoToken, true, new()));
+      new SetDisplayExpr(Token.NoToken, true, []));
     return new ForallExpr(Token.NoToken, bvars, null, isEmpty, null);
   }
 }
@@ -1871,16 +1766,16 @@ internal class Utils {
 
   public static void MakeQuantifierVarsForDims(List<Expression> dims, out List<BoundVar> vars, out List<Expression> varExprs, out Expression range) {
     var zero = new LiteralExpr(Token.NoToken, 0);
-    vars = dims.Select((_, i) => new BoundVar("i" + i, Type.Int)).ToList();
+    vars = dims.Select((dim, i) => new BoundVar(dim.Origin, "i" + i, Type.Int)).ToList();
 
     // can't assign to out-param immediately, since it's accessed in the lambda below
     var tempVarExprs = vars.Select(var => new IdentifierExpr(Token.NoToken, var) as Expression).ToList();
     var indexRanges = dims.Select((dim, i) => new ChainingExpression(
       Token.NoToken,
-      new() { zero, tempVarExprs[i], dim },
-      new() { BinaryExpr.Opcode.Le, BinaryExpr.Opcode.Lt },
-      new() { Token.NoToken, Token.NoToken },
-      new() { null, null }
+      [zero, tempVarExprs[i], dim],
+      [BinaryExpr.Opcode.Le, BinaryExpr.Opcode.Lt],
+      [Token.NoToken, Token.NoToken],
+      [null, null]
     ) as Expression).ToList();
     varExprs = tempVarExprs;
 
@@ -1952,7 +1847,7 @@ internal class Utils {
     }
 
     if (disjuncts.Count == 0) {
-      var emptySet = new SetDisplayExpr(Token.NoToken, true, new());
+      var emptySet = new SetDisplayExpr(Token.NoToken, true, []);
       disjuncts.Add(new BinaryExpr(Token.NoToken, BinaryExpr.Opcode.In, objOperand, emptySet));
     }
 
@@ -1964,7 +1859,7 @@ internal class Utils {
 
     return new ForallExpr(
       Token.NoToken,
-      new() { objVar },
+      [objVar],
       new BinaryExpr(Token.NoToken, BinaryExpr.Opcode.In, objOperand, objOrObjSet),
       check,
       null

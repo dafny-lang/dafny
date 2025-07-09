@@ -5,32 +5,31 @@ namespace Microsoft.Dafny;
 
 public class BatchErrorReporter : ErrorReporter {
   public Dictionary<ErrorLevel, List<DafnyDiagnostic>> AllMessagesByLevel;
-  public readonly List<DafnyDiagnostic> AllMessages = new();
+  public readonly List<DafnyDiagnostic> AllMessages = [];
 
   public void CopyDiagnostics(ErrorReporter intoReporter) {
     foreach (var diagnostic in AllMessages) {
-      intoReporter.Message(diagnostic.Source, diagnostic.Level, diagnostic.ErrorId, diagnostic.Token, diagnostic.Message);
+      intoReporter.MessageCore(diagnostic);
     }
   }
 
   public BatchErrorReporter(DafnyOptions options) : base(options) {
     ErrorsOnly = false;
     AllMessagesByLevel = new Dictionary<ErrorLevel, List<DafnyDiagnostic>> {
-      [ErrorLevel.Error] = new(),
-      [ErrorLevel.Warning] = new(),
-      [ErrorLevel.Info] = new()
+      [ErrorLevel.Error] = [],
+      [ErrorLevel.Warning] = [],
+      [ErrorLevel.Info] = []
     };
   }
 
-  protected override bool MessageCore(MessageSource source, ErrorLevel level, string errorId, IOrigin tok, string msg) {
-    if (ErrorsOnly && level != ErrorLevel.Error) {
+  public override bool MessageCore(DafnyDiagnostic dafnyDiagnostic) {
+    if (ErrorsOnly && dafnyDiagnostic.Level != ErrorLevel.Error) {
       // discard the message
       return false;
     }
 
-    var dafnyDiagnostic = new DafnyDiagnostic(source, errorId, tok, msg, level, new List<DafnyRelatedInformation>());
     AllMessages.Add(dafnyDiagnostic);
-    AllMessagesByLevel[level].Add(dafnyDiagnostic);
+    AllMessagesByLevel[dafnyDiagnostic.Level].Add(dafnyDiagnostic);
     return true;
   }
 

@@ -14,12 +14,32 @@ public class CommonOptionBag {
 
   public static void EnsureStaticConstructorHasRun() { }
 
-  public enum ProgressLevel { None, Symbol, VerificationJobs }
+  public static readonly Option<bool> CheckSourceLocationConsistency =
+    new("--check-source-location-consistency", "Check that parent nodes contain their children") {
+      IsHidden = true
+    };
+
+  public enum ProgressLevel { None, Symbol, Batch }
   public static readonly Option<ProgressLevel> ProgressOption =
     new("--progress", $"While verifying, output information that helps track progress. " +
                       $"Use '{ProgressLevel.Symbol}' to show progress across symbols such as methods and functions. " +
-                      $"Verification of a symbol is usually split across several jobs. " +
-                      $"Use {ProgressLevel.VerificationJobs} to additionally show progress across jobs.");
+                      $"Verification of a symbol may be split across several assertion batches. " +
+                      $"Use {ProgressLevel.Batch} to additionally show progress across batches.");
+
+  public static readonly Option<bool> IgnoreIndentation =
+    new("--ignore-indentation", "Do not report warnings for suspicious indentation") {
+      IsHidden = true
+    };
+
+  public static readonly Option<bool> WaitForDebugger =
+    new("--wait-for-debugger", "Lets the C# compiler block until a .NET debugger is attached") {
+      IsHidden = true
+    };
+
+  public static readonly Option<bool> PrintDiagnosticsRanges =
+    new("--print-ranges", "Prints not just the center, but also the start and end of diagnostics") {
+      IsHidden = true
+    };
 
   public static readonly Option<string> LogLocation =
     new("--log-location", "Sets the directory where to store log files") {
@@ -98,8 +118,9 @@ The `text` format also includes a more detailed breakdown of what assertions app
   public static readonly Option<bool> JsonDiagnostics = new("--json-diagnostics", @"Deprecated. Return diagnostics in a JSON format.") {
     IsHidden = true
   };
+  public static readonly Option<bool> JsonOutput = new("--json-output", @"Return output in a JSON format.");
 
-  public static readonly Option<IList<FileInfo>> Libraries = new("--library",
+  public static readonly Option<IList<FileInfo>> Libraries = new("--library", () => new List<FileInfo>(),
     @"
 The contents of this file and any files it includes can be referenced from other files as if they were included. 
 However, these contents are skipped during code generation and verification.
@@ -124,18 +145,18 @@ The value may be a comma-separated list of files and folders.".TrimStart());
     return result;
   }
 
-  public static readonly Option<FileInfo> BuildFile = new(new[] { "--build", "-b" },
+  public static readonly Option<FileInfo> BuildFile = new(["--build", "-b"],
     "Specify the filepath that determines where to place and how to name build files.") {
     ArgumentHelpName = "file",
     IsHidden = true
   };
 
-  public static readonly Option<FileInfo> Output = new(new[] { "--output", "-o" },
+  public static readonly Option<FileInfo> Output = new(["--output", "-o"],
     "Specify the filename and location for the generated target language files.") {
     ArgumentHelpName = "file",
   };
 
-  public static readonly Option<IList<string>> PluginOption = new(new[] { "--plugin" },
+  public static readonly Option<IList<string>> PluginOption = new(["--plugin"],
     @"
 (experimental) One path to an assembly that contains at least one
 instantiatable class extending Microsoft.Dafny.Plugin.Rewriter. It
@@ -179,7 +200,7 @@ Note that quantifier variable domains (<- <Domain>) are available in both syntax
     ArgumentHelpName = "version",
   };
 
-  public static readonly Option<string> Target = new(new[] { "--target", "-t" }, () => "cs", @"
+  public static readonly Option<string> Target = new(["--target", "-t"], () => "cs", @"
 cs - Compile to .NET via C#.
 go - Compile to Go.
 js - Compile to JavaScript.
@@ -225,7 +246,7 @@ true - Use an updated type-inference engine.".TrimStart()) {
 
   public static readonly Option<GeneralTraitsOptions> GeneralTraits = new("--general-traits", () => GeneralTraitsOptions.Legacy,
     @"
-legacy - Every trait implicitly extends 'object', and thus is a reference type. Only traits and reference types can extend traits.
+legacy (default) - Every trait implicitly extends 'object', and thus is a reference type. Only traits and reference types can extend traits.
 datatype - A trait is a reference type only if it or one of its ancestor traits is 'object'. Any non-'newtype' type with members can extend traits.
 full - (don't use; not yet completely supported) A trait is a reference type only if it or one of its ancestor traits is 'object'. Any type with members can extend traits.".TrimStart()) {
     IsHidden = true
@@ -262,11 +283,25 @@ true - Print debug information for the new type system.".TrimStart()) {
     "not compilable instead of regular code. Useful when developing compilers or to document for each test what " +
     "compiler feature is missing") {
   };
+  public static readonly Option<bool> Referrers = new("--referrers", () => false,
+    "Enables the modeling of backreferences in Dafny, so that one can reason about memory locations at " +
+    "which objects are being stored.") {
+    IsHidden = true
+  };
   public static readonly Option<bool> SpillTranslation = new("--spill-translation",
     @"In case the Dafny source code is translated to another language, emit that translation.") {
   };
 
   public static readonly Option<bool> WarnAsErrors = new("--warn-as-errors", () => true, "(Deprecated). Please use --allow-warnings instead") {
+    IsHidden = true
+  };
+
+  public enum InputTypeEnum {
+    Source,
+    Binary
+  }
+
+  public static readonly Option<InputTypeEnum> InputType = new("--input-format", () => InputTypeEnum.Source) {
     IsHidden = true
   };
 
@@ -435,11 +470,12 @@ features like traits or co-inductive types.".TrimStart(), "cs");
 1 (default) - The char type represents any Unicode scalar value.".TrimStart(), defaultValue: true);
     DafnyOptions.RegisterLegacyUi(TypeSystemRefresh, DafnyOptions.ParseBoolean, "Language feature selection", "typeSystemRefresh", @"
 0 (default) - The type-inference engine and supported types are those of Dafny 4.0.
-1 - Use an updated type-inference engine. Warning: This mode is under construction and probably won't work at this time.".TrimStart(), defaultValue: false);
+1 - Use an updated type-inference engine.".TrimStart(), defaultValue: false);
     DafnyOptions.RegisterLegacyUi(GeneralTraits, DafnyOptions.ParseGeneralTraitsOption, "Language feature selection", "generalTraits", @"
 legacy (default) - Every trait implicitly extends 'object', and thus is a reference type. Only traits and reference types can extend traits.
 datatype - A trait is a reference type only if it or one of its ancestor traits is 'object'. Any non-'newtype' type with members can extend traits.
-full - (don't use; not yet completely supported) A trait is a reference type only if it or one of its ancestor traits is 'object'. Any type with members can extend traits.".TrimStart());
+full - (don't use; not yet completely supported) A trait is a reference type only if it or one of its ancestor traits is 'object'. Any type with members can extend traits.".TrimStart(),
+      defaultValue: GeneralTraitsOptions.Legacy);
     DafnyOptions.RegisterLegacyUi(GeneralNewtypes, DafnyOptions.ParseBoolean, "Language feature selection", "generalNewtypes", @"
 0 (default) - A newtype can only be based on numeric types or another newtype.
 1 - (requires /typeSystemRefresh:1) A newtype case be based on any non-reference, non-trait, non-arrow, non-ORDINAL type.".TrimStart(), false);
@@ -614,6 +650,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
     OptionRegistry.RegisterGlobalOption(AllowDeprecation, OptionCompatibility.OptionLibraryImpliesLocalWarning);
     OptionRegistry.RegisterGlobalOption(WarnShadowing, OptionCompatibility.OptionLibraryImpliesLocalWarning);
     OptionRegistry.RegisterGlobalOption(UseStandardLibraries, OptionCompatibility.OptionLibraryImpliesLocalError);
+    OptionRegistry.RegisterGlobalOption(Referrers, OptionCompatibility.CheckOptionMatches);
     OptionRegistry.RegisterOption(TranslateStandardLibrary, OptionScope.Cli);
     OptionRegistry.RegisterOption(WarnAsErrors, OptionScope.Cli);
     OptionRegistry.RegisterOption(ProgressOption, OptionScope.Cli);
@@ -627,6 +664,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
     OptionRegistry.RegisterOption(Prelude, OptionScope.Cli);
     OptionRegistry.RegisterOption(Target, OptionScope.Cli);
     OptionRegistry.RegisterOption(Verbose, OptionScope.Cli);
+    OptionRegistry.RegisterOption(JsonOutput, OptionScope.Cli);
     OptionRegistry.RegisterOption(JsonDiagnostics, OptionScope.Cli);
     OptionRegistry.RegisterOption(QuantifierSyntax, OptionScope.Module);
     OptionRegistry.RegisterOption(SpillTranslation, OptionScope.Cli);
@@ -660,6 +698,11 @@ NoGhost - disable printing of functions, ghost methods, and proof
     OptionRegistry.RegisterOption(ExecutionCoverageReport, OptionScope.Cli);
     OptionRegistry.RegisterOption(ExtractCounterexample, OptionScope.Cli);
     OptionRegistry.RegisterOption(ShowProofObligationExpressions, OptionScope.Cli);
+    OptionRegistry.RegisterOption(InputType, OptionScope.Cli);
+    OptionRegistry.RegisterOption(PrintDiagnosticsRanges, OptionScope.Cli);
+    OptionRegistry.RegisterOption(WaitForDebugger, OptionScope.Cli);
+    OptionRegistry.RegisterOption(IgnoreIndentation, OptionScope.Cli);
+    OptionRegistry.RegisterOption(CheckSourceLocationConsistency, OptionScope.Cli);
   }
 }
 

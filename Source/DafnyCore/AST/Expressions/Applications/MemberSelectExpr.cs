@@ -5,7 +5,7 @@ using System.Diagnostics.Contracts;
 namespace Microsoft.Dafny;
 
 public class MemberSelectExpr : Expression, IHasReferences, ICloneable<MemberSelectExpr> {
-  public readonly Expression Obj;
+  public Expression Obj;
   public Name MemberNameNode;
   public string MemberName => MemberNameNode.Value;
   [FilledInDuringResolution] public MemberDecl Member;    // will be a Field or Function
@@ -238,7 +238,7 @@ public class MemberSelectExpr : Expression, IHasReferences, ICloneable<MemberSel
 
     var receiverType = obj.Type.NormalizeExpand();
     this.TypeApplicationAtEnclosingClass = receiverType.TypeArgs;
-    this.TypeApplicationJustMember = new List<Type>();
+    this.TypeApplicationJustMember = [];
 
     var typeMap = new Dictionary<TypeParameter, Type>();
     if (receiverType is UserDefinedType udt) {
@@ -295,6 +295,6 @@ public class MemberSelectExpr : Expression, IHasReferences, ICloneable<MemberSel
   [FilledInDuringResolution] public List<Type> ResolvedOutparameterTypes;
 
   public IEnumerable<Reference> GetReferences() {
-    return new[] { new Reference(Center, Member) };
+    return new[] { new Reference(ReportingRange, Member) };
   }
 }

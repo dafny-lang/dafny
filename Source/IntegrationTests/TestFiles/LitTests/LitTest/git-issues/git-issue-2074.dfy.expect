@@ -1,4 +1,4 @@
-git-issue-2074.dfy(5,6): Error: the type of this variable is underspecified
+git-issue-2074.dfy(5,6): Error: the type ('?5 ~> set<?1>') of this variable is underspecified
 git-issue-2074.dfy(5,25): Error: the type of this variable is underspecified
 git-issue-2074.dfy(5,21): Error: type of bound variable 'x' could not be determined; please specify the type explicitly
 git-issue-2074.dfy(5,11): Error: type of bound variable 'st' could not be determined; please specify the type explicitly

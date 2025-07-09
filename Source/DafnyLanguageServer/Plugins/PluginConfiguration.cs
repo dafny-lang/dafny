@@ -20,7 +20,7 @@ public abstract class PluginConfiguration : Dafny.Plugins.PluginConfiguration {
   /// </summary>
   /// <returns>An array of quick fixers implemented by this plugin</returns>
   public virtual DafnyCodeActionProvider[] GetDafnyCodeActionProviders() {
-    return Array.Empty<DafnyCodeActionProvider>();
+    return [];
   }
 
   /// <summary>

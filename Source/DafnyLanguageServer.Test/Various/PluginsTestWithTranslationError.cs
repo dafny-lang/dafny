@@ -16,7 +16,7 @@ public class PluginsTestWithTranslationError : PluginsTestBase {
     "PluginsTestTranslationError";
 
   protected override string[] CommandLineArgument =>
-    new[] { $@"{LibraryPath},""because\\ \""whatever""" };
+    [$@"{LibraryPath},""because\\ \""whatever"""];
 
   [Fact]
   public async Task EnsureTranslationErrorsAreReportedEvenWithoutResolutionErrors() {

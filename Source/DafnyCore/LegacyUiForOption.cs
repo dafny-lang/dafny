@@ -27,7 +27,7 @@ public record LegacyUiForOption(Option Option, Action<Boogie.CommandLineParseSta
       outputIndex = category.Index + category.Length;
       var categoryName = category.Groups[1].Value;
       output.Append(category.Value);
-      var optionsForCategory = optionsByCategory.GetValueOrDefault(categoryName, Enumerable.Empty<LegacyUiForOption>());
+      var optionsForCategory = optionsByCategory.GetValueOrDefault(categoryName, []);
 
       foreach (var option in optionsForCategory.OrderBy(o => o.Name)) {
         var prefix = oldStyle ? "/" : "--";

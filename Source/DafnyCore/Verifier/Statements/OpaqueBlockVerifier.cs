@@ -14,13 +14,13 @@ public static class OpaqueBlockVerifier {
 
     var bodyTranslator = GetBodyTranslator(generator, block, locals, etran, blockBuilder);
     var prevDefiniteAssignmentTrackers = generator.DefiniteAssignmentTrackers;
-    generator.TrStmtList(block.Body, blockBuilder, locals, bodyTranslator, block.Origin);
+    generator.TrStmtList(block.Body, blockBuilder, locals, bodyTranslator, block.EntireRange);
     generator.DefiniteAssignmentTrackers = prevDefiniteAssignmentTrackers;
 
     var assignedVariables = block.DescendantsAndSelf.
       SelectMany(s => s.GetAssignedLocals()).Select(ie => ie.Var)
       .ToHashSet();
-    List<AttributedExpression> totalEnsures = new();
+    List<AttributedExpression> totalEnsures = [];
 
     var variablesUsedInEnsures = block.Ensures.SelectMany(ae => ae.E.DescendantsAndSelf).
       OfType<DafnyIdentifierExpr>().DistinctBy(ie => ie.Var);
@@ -42,6 +42,7 @@ public static class OpaqueBlockVerifier {
         etran.TrAttributes(ensure.Attributes, null)));
     }
 
+    BoogieGenerator.ExpressionTranslator beforeBlockExpressionTranslator;
     if (block.Modifies.Expressions.Any()) {
       var context = new OpaqueBlockContext(codeContext, block);
       if (context is IMethodCodeContext methodCodeContext) {
@@ -53,16 +54,21 @@ public static class OpaqueBlockVerifier {
             methodCodeContext.Modifies.Expressions
           ), null);
       }
+
+      var uniqueId = generator.CurrentIdGenerator.FreshId("$Heap_before_opaque");
+      var heapAtVariable = locals.GetOrAdd(new Boogie.LocalVariable(block.Origin,
+        new TypedIdent(block.Origin, uniqueId, generator.Predef.HeapType)));
+      builder.Add(Cmd.SimpleAssign(block.Origin, new Boogie.IdentifierExpr(block.Origin, heapAtVariable), etran.HeapExpr));
+
+      beforeBlockExpressionTranslator = etran.WithHeapVariable(uniqueId);
+    } else {
+      beforeBlockExpressionTranslator = etran;
     }
 
     generator.PathAsideBlock(block.Origin, blockBuilder, builder);
-    builder.Add(new HavocCmd(Token.NoToken, assignedVariables.Select(v => new BoogieIdentifierExpr(v.Origin, v.UniqueName)).ToList()));
 
-    var effectiveModifies = block.Modifies.Expressions.Any() ? block.Modifies : codeContext.Modifies;
-    var emptyModifies = BoogieGenerator.ModifiesClauseIsEmpty(effectiveModifies);
-    if (!emptyModifies) {
-      generator.ApplyModifiesEffect(block, etran, builder, block.Modifies, true, block.IsGhost);
-    }
+    generator.ApplyModifiesEffect(block, beforeBlockExpressionTranslator, etran, builder, block.Modifies, true, block.IsGhost);
+    builder.Add(new HavocCmd(Token.NoToken, assignedVariables.Select(v => new BoogieIdentifierExpr(v.Origin, v.UniqueName)).ToList()));
 
     foreach (var ensure in totalEnsures) {
       generator.CheckWellformedAndAssume(ensure.E, new WFOptions(null, false),

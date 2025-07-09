@@ -77,7 +77,7 @@ Determine when to automatically verify the program. Choose from: Never, OnChange
   private VerifyOnMode AutomaticVerificationMode => options.Get(Verification);
 
   private bool VerifyOnSave => options.Get(Verification) == VerifyOnMode.Save;
-  public List<Location> RecentChanges { get; set; } = new();
+  public List<Location> RecentChanges { get; set; } = [];
 
   private readonly DafnyOptions options;
   private readonly DafnyOptions serverOptions;
@@ -298,13 +298,16 @@ Determine when to automatically verify the program. Choose from: Never, OnChange
   public async Task VerifyEverythingAsync(Uri? uri) {
     var compilation = Compilation;
     var resolution = await compilation.Resolution;
-    var canVerifies = resolution?.CanVerifies?.ToList();
-    if (canVerifies == null) {
+
+    if (resolution?.CanVerifies == null) {
       return;
     }
 
-    if (uri != null) {
-      canVerifies = canVerifies.Where(d => d.Origin.Uri == uri).ToList();
+    IReadOnlyList<ICanVerify> canVerifies;
+    if (uri != null && resolution.CanVerifies.TryGetValue(uri, out var tree)) {
+      canVerifies = tree.Values.ToList();
+    } else {
+      canVerifies = resolution.CanVerifies.Values.SelectMany(t => t.Values).ToList();
     }
 
     List<FilePosition> changedVerifiables;
@@ -315,7 +318,7 @@ Determine when to automatically verify the program. Choose from: Never, OnChange
     int GetPriorityAttribute(ISymbol symbol) {
       if (symbol is IAttributeBearingDeclaration hasAttributes &&
           hasAttributes.HasUserAttribute("priority", out var attribute) &&
-          attribute.Args.Count >= 1 && attribute.Args[0] is LiteralExpr { Value: BigInteger priority }) {
+          attribute!.Args.Count >= 1 && attribute.Args[0] is LiteralExpr { Value: BigInteger priority }) {
         return (int)priority;
       }
       return 0;
@@ -329,9 +332,9 @@ Determine when to automatically verify the program. Choose from: Never, OnChange
       .OrderByDescending(GetPriorityAttribute)
       .ThenBy(t => implementationOrder.GetOrDefault(t.Origin.GetFilePosition(), () => int.MaxValue))
       .ThenBy(TopToBottomPriority).ToList();
-    logger.LogDebug($"Ordered verifiables: {string.Join(", ", orderedVerifiables.Select(v => v.NavigationToken.val))}");
+    logger.LogDebug($"Ordered verifiables: {string.Join(", ", orderedVerifiables.Select(v => v.NavigationRange.StartToken.val))}");
 
-    var orderedVerifiableLocations = orderedVerifiables.Select(v => v.NavigationToken.GetFilePosition()).ToList();
+    var orderedVerifiableLocations = orderedVerifiables.Select(v => v.NavigationRange.StartToken.GetFilePosition()).ToList();
     if (GutterIconTesting) {
       foreach (var canVerify in orderedVerifiableLocations) {
         await compilation.VerifyLocation(canVerify, onlyPrepareVerificationForGutterTests: true);
@@ -352,9 +355,9 @@ Determine when to automatically verify the program. Choose from: Never, OnChange
       foreach (var canVerify in verifiables) {
         if (canVerify.Origin.Uri == uri) {
           intervalTree.Add(
-            canVerify.Origin.StartToken.GetLspPosition(),
-            canVerify.Origin.EndToken.GetLspPosition(true),
-            canVerify.NavigationToken.GetLspPosition());
+            canVerify.StartToken.GetLspPosition(),
+            canVerify.EndToken.GetLspPosition(true),
+            canVerify.NavigationRange.StartToken.GetLspPosition());
         }
       }
       return intervalTree;

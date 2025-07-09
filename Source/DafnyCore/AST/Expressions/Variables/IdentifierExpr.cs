@@ -10,11 +10,12 @@ public class IdentifierExpr : Expression, IHasReferences, ICloneable<IdentifierE
     Contract.Invariant(Name != null);
   }
 
-  public readonly string Name;
+  public string Name;
   [FilledInDuringResolution] public IVariable Var;
 
-  public string DafnyName => Origin.line > 0 ? Origin.PrintOriginal() : Name;
+  public string DafnyName => Origin.line > 0 ? EntireRange.PrintOriginal() : Name;
 
+  [SyntaxConstructor]
   public IdentifierExpr(IOrigin origin, string name)
     : base(origin) {
     Contract.Requires(origin != null);
@@ -52,8 +53,8 @@ public class IdentifierExpr : Expression, IHasReferences, ICloneable<IdentifierE
     return expr.Resolved is IdentifierExpr identifierExpr && identifierExpr.Var == variable;
   }
 
-  public IEnumerable<Reference> GetReferences() {
-    return Enumerable.Repeat(new Reference(Origin, Var), 1);
+  public virtual IEnumerable<Reference> GetReferences() {
+    return Enumerable.Repeat(new Reference(ReportingRange, Var), 1);
   }
 
   public override IEnumerable<INode> Children { get; } = Enumerable.Empty<Node>();

@@ -10,6 +10,12 @@ all: exe refman
 exe:
 	(cd "${DIR}" ; dotnet build Source/Dafny.sln ) ## includes parser
 
+exe-2:
+	(cd "${DIR}" ; dotnet build Source/Dafny.sln ) ## includes parser
+
+exe-3:
+	(cd "${DIR}" ; dotnet build Source/Dafny.sln ) ## includes parser
+
 format-dfy:
 	(cd "${DIR}"/Source/DafnyCore ; make format)
 	(cd "${DIR}"/Source/DafnyStandardLibraries ; make format)
@@ -17,8 +23,7 @@ format-dfy:
 dfy-to-cs: 
 	(cd "${DIR}"/Source/DafnyCore ; bash DafnyGeneratedFromDafny.sh)
 
-dfy-to-cs-exe: dfy-to-cs
-	(cd "${DIR}" ; dotnet build Source/Dafny.sln )
+dfy-to-cs-exe: dfy-to-cs exe-3
 
 dfy-to-cs-noverify:
 	(cd "${DIR}"/Source/DafnyCore ; bash DafnyGeneratedFromDafny.sh --no-verify)
@@ -55,39 +60,39 @@ refman-release: exe
 
 z3-mac:
 	mkdir -p "${DIR}"/Binaries/z3/bin
-	wget https://github.com/dafny-lang/solver-builds/releases/download/snapshot-2023-08-02/z3-4.12.1-x64-macos-11-bin.zip
-	unzip z3-4.12.1-x64-macos-11-bin.zip
-	rm z3-4.12.1-x64-macos-11-bin.zip
-	wget https://github.com/dafny-lang/solver-builds/releases/download/snapshot-2023-08-02/z3-4.8.5-x64-macos-11-bin.zip
-	unzip z3-4.8.5-x64-macos-11-bin.zip
-	rm z3-4.8.5-x64-macos-11-bin.zip
+	wget https://github.com/dafny-lang/solver-builds/releases/download/snapshot-2025-07-02/z3-4.14.1-x64-macos-13-bin.zip
+	unzip z3-4.14.1-x64-macos-13-bin.zip
+	rm z3-4.14.1-x64-macos-13-bin.zip
+	wget https://github.com/dafny-lang/solver-builds/releases/download/snapshot-2025-07-02/z3-4.12.1-x64-macos-13-bin.zip
+	unzip z3-4.12.1-x64-macos-13-bin.zip
+	rm z3-4.12.1-x64-macos-13-bin.zip
 	mv z3-* "${DIR}"/Binaries/z3/bin/
 	chmod +x "${DIR}"/Binaries/z3/bin/z3-*
 
 z3-mac-arm:
 	mkdir -p "${DIR}"/Binaries/z3/bin
-	wget https://github.com/dafny-lang/solver-builds/releases/download/snapshot-2023-08-02/z3-4.12.1-arm64-macos-11-bin.zip
-	unzip z3-4.12.1-arm64-macos-11-bin.zip
-	rm z3-4.12.1-arm64-macos-11-bin.zip
-	wget https://github.com/dafny-lang/solver-builds/releases/download/snapshot-2023-08-02/z3-4.8.5-x64-macos-11-bin.zip
-	unzip z3-4.8.5-x64-macos-11-bin.zip
-	rm z3-4.8.5-x64-macos-11-bin.zip
+	wget https://github.com/dafny-lang/solver-builds/releases/download/snapshot-2025-07-02/z3-4.14.1-arm64-macos-13-bin.zip
+	unzip z3-4.14.1-arm64-macos-13-bin.zip
+	rm z3-4.14.1-arm64-macos-13-bin.zip
+	wget https://github.com/dafny-lang/solver-builds/releases/download/snapshot-2025-07-02/z3-4.12.1-arm64-macos-13-bin.zip
+	unzip z3-4.12.1-arm64-macos-13-bin.zip
+	rm z3-4.12.1-arm64-macos-13-bin.zip
 	mv z3-* "${DIR}"/Binaries/z3/bin/
 	chmod +x "${DIR}"/Binaries/z3/bin/z3-*
 
 z3-ubuntu:
 	mkdir -p "${DIR}"/Binaries/z3/bin
-	wget https://github.com/dafny-lang/solver-builds/releases/download/snapshot-2023-08-02/z3-4.12.1-x64-ubuntu-20.04-bin.zip
-	unzip z3-4.12.1-x64-ubuntu-20.04-bin.zip
-	rm z3-4.12.1-x64-ubuntu-20.04-bin.zip
-	wget https://github.com/dafny-lang/solver-builds/releases/download/snapshot-2023-08-02/z3-4.8.5-x64-ubuntu-20.04-bin.zip
-	unzip z3-4.8.5-x64-ubuntu-20.04-bin.zip
-	rm z3-4.8.5-x64-ubuntu-20.04-bin.zip
+	wget https://github.com/dafny-lang/solver-builds/releases/download/snapshot-2025-07-02/z3-4.14.1-x64-ubuntu-22.04-bin.zip
+	unzip z3-4.14.1-x64-ubuntu-22.04-bin.zip
+	rm z3-4.14.1-x64-ubuntu-22.04-bin.zip
+	wget https://github.com/dafny-lang/solver-builds/releases/download/snapshot-2025-07-02/z3-4.12.1-x64-ubuntu-22.04-bin.zip
+	unzip z3-4.12.1-x64-ubuntu-22.04-bin.zip
+	rm z3-4.12.1-x64-ubuntu-22.04-bin.zip
 	mv z3-* "${DIR}"/Binaries/z3/bin/
 	chmod +x "${DIR}"/Binaries/z3/bin/z3-*
 
 format:
-	dotnet format whitespace Source/Dafny.sln --exclude Source/DafnyCore/Scanner.cs --exclude Source/DafnyCore/Parser.cs --exclude boogie --exclude Source/DafnyCore/GeneratedFromDafny/* --exclude Source/DafnyCore.Test/GeneratedFromDafny/* --exclude Source/DafnyRuntime/DafnyRuntimeSystemModule.cs
+	dotnet format whitespace Source/Dafny.sln --exclude boogie --exclude Source/DafnyCore/GeneratedFromDafny/* --exclude Source/DafnyCore.Test/GeneratedFromDafny/* --exclude Source/DafnyRuntime/DafnyRuntimeSystemModule.cs
 
 clean:
 	(cd "${DIR}"; cd Source; rm -rf Dafny/bin Dafny/obj DafnyDriver/bin DafnyDriver/obj DafnyRuntime/obj DafnyRuntime/bin DafnyServer/bin DafnyServer/obj DafnyPipeline/obj DafnyPipeline/bin DafnyCore/obj DafnyCore/bin)
@@ -109,24 +114,42 @@ update-rs-module:
 	(cd "${DIR}"; cd Source/DafnyRuntime/DafnyRuntimeRust; make update-system-module)
 
 update-go-module:
-	(cd "${DIR}"; cd Source/DafnyRuntime/DafnyRuntimeGo; make update-system-module)
+	(cd "${DIR}"; cd Source/DafnyRuntime/DafnyRuntimeGo; make update-system-module update-from-dafny)
 
 update-runtime-dafny:
-	(cd "${DIR}"; cd Source/DafnyRuntime/DafnyRuntimeDafny; make update-go)
+	(cd "${DIR}"; cd Source/DafnyRuntime/DafnyRuntimeGo; make update-from-dafny)
 
 pr-nogeneration: format-dfy format update-runtime-dafny update-cs-module update-rs-module update-go-module
+
+format-standard-libraries:
+	(cd "${DIR}"; cd Source/DafnyStandardLibraries; make format)
 
 update-standard-libraries:
 	(cd "${DIR}"; cd Source/DafnyStandardLibraries; make update-binary)
 
 # `make pr` will bring you in a state suitable for submitting a PR
 # - Builds the Dafny executable
-# - Use the build to convert core .dfy files to .cs
+# - Use the build to generate the standard libraries
+# - Rebuild the Dafny executable so that it embeds the generated C# for standard libraries
+# - Use that executable to convert .dfy files to .cs (especially FuncExtensions)
 # - Rebuilds the Dafny executable with this .cs files
 # - Apply dafny format on all dfy files
 # - Apply dotnet format on all cs files except the generated ones
 # - Rebuild the Go and C# runtime modules as needed.
-pr: exe dfy-to-cs-exe pr-nogeneration
+pr: exe format-standard-libraries update-standard-libraries exe-2 dfy-to-cs-exe pr-nogeneration
 
 # Same as `make pr` but useful when resolving conflicts, to take the last compiled version of Dafny first
 pr-conflict: dfy-to-cs-exe dfy-to-cs-exe pr-nogeneration
+
+gen-integration: gen-schema gen-deserializer
+
+PARSED_AST_FILE=Source/Scripts/Syntax.cs-schema
+gen-schema:
+	./script.sh generate-syntax-schema $(PARSED_AST_FILE)
+  
+GENERATED_DESERIALIZER_FILE=Source/DafnyCore/AST/SyntaxDeserializer/generated.cs
+gen-deserializer:
+	./script.sh generate-syntax-deserializer ${GENERATED_DESERIALIZER_FILE}
+
+test-integration: gen-integration
+	(git status --porcelain || (echo 'Consider running `make gen-integration`'; exit 1; ))

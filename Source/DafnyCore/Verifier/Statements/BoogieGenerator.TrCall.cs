@@ -147,6 +147,9 @@ public partial class BoogieGenerator {
     }
 
     var ins = new List<Bpl.Expr>();
+    if (Options.Get(CommonOptionBag.Referrers) && callee is not Lemma) {
+      ins.Add(FunctionCall(tok, "+", Boogie.Type.Int, Id(tok, "depth"), One(tok)));
+    }
     if (callee is TwoStateLemma) {
       ins.Add(etran.OldAt(atLabel).HeapExpr);
       ins.Add(etran.HeapExpr);
@@ -183,7 +186,7 @@ public partial class BoogieGenerator {
     for (int i = 0; i < callee.Ins.Count; i++) {
       var formal = callee.Ins[i];
       var local = new LocalVariable(formal.Origin, formal.Name + "#", formal.Type.Subst(tySubst), formal.IsGhost);
-      local.type = local.SyntacticType;  // resolve local here
+      local.type = local.SafeSyntacticType;  // resolve local here
       var localName = local.AssignUniqueName(CurrentDeclaration.IdGenerator);
       var ie = new IdentifierExpr(local.Origin, localName);
       ie.Var = local; ie.Type = ie.Var.Type;  // resolve ie here
@@ -212,7 +215,10 @@ public partial class BoogieGenerator {
         } else {
           actual = Args[i];
         }
-        if (!(actual is DefaultValueExpression)) {
+
+        if (actual is DefaultValueExpression) {
+          builder.Add(TrAssumeCmd(actual.Origin, etran.CanCallAssumption(actual)));
+        } else {
           TrStmt_CheckWellformed(actual, builder, locals, etran, true);
         }
         builder.Add(new CommentCmd("ProcessCallStmt: CheckSubrange"));
@@ -225,7 +231,7 @@ public partial class BoogieGenerator {
       directSubstMap.Add(formal, dActual);
       Bpl.Cmd cmd = Bpl.Cmd.SimpleAssign(formal.Origin, param, bActual);
       builder.Add(cmd);
-      ins.Add(AdaptBoxing(ToDafnyToken(flags.ReportRanges, param.tok), param, formal.Type.Subst(tySubst), formal.Type));
+      ins.Add(AdaptBoxing(ToDafnyToken(param.tok), param, formal.Type.Subst(tySubst), formal.Type));
     }
 
     // Check that every parameter is available in the state in which the method is invoked; this means checking that it has
@@ -349,7 +355,7 @@ public partial class BoogieGenerator {
     var call = Call(builder.Context, tok, calleeName, ins, outs);
     proofDependencies?.AddProofDependencyId(call, tok, new CallDependency(cs));
     if (
-      (assertionOnlyFilter != null && !assertionOnlyFilter(tok)) ||
+      (assertionOnlyFilter != null && !assertionOnlyFilter(tok.ReportingRange.StartToken)) ||
       (module != currentModule && tok.IsInherited(currentModule) && (codeContext == null || !codeContext.MustReverify))) {
       // The call statement is inherited, so the refined module already checked that the precondition holds.  Note,
       // preconditions are not allowed to be strengthened, except if they use a predicate whose body has been strengthened.
@@ -371,7 +377,7 @@ public partial class BoogieGenerator {
         //    havoc e; assume e == UnBox(tmpVar);
         // because that will reap the benefits of e's where clause, so that some additional type information will be known about
         // the out-parameter.
-        Bpl.Cmd cmd = new Bpl.HavocCmd(bLhs.tok, new List<Bpl.IdentifierExpr> { bLhs });
+        Bpl.Cmd cmd = new Bpl.HavocCmd(bLhs.tok, [bLhs]);
         builder.Add(cmd);
         cmd = TrAssumeCmd(bLhs.tok, Bpl.Expr.Eq(bLhs, FunctionCall(bLhs.tok, BuiltinFunction.Unbox, TrType(LhsTypes[i]), tmpVarIdE)));
         builder.Add(cmd);

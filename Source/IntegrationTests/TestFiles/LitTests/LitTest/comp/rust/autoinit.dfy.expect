@@ -1,3 +1,2 @@
-
-Dafny program verifier finished with 2 verified, 0 errors
-(0,-1): Error: Microsoft.Dafny.UnsupportedInvalidOperationException: Creation of object of type Test<Positive> requires a constructor
+autoinit.dfy(5,6): Error: since fields are initialized arbitrarily, constructor-less classes are forbidden by the --enforce-determinism option
+1 resolution/type errors detected in autoinit.dfy

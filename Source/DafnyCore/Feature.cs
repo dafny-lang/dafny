@@ -187,7 +187,13 @@ public enum Feature {
   BuiltinsInRuntime,
 
   [FeatureDescription("Execution coverage report", "sec-dafny-test")]
-  RuntimeCoverageReport
+  RuntimeCoverageReport,
+
+  [FeatureDescription("Standard libraries", "sec-dafny-standard-libraries")]
+  StandardLibraries,
+
+  [FeatureDescription("Standard library ActionsExterns", "sec-dafny-standard-libraries")]
+  StandardLibrariesActionsExterns
 }
 
 public class UnsupportedFeatureException : Exception {
@@ -220,7 +226,11 @@ public class RecoverableUnsupportedFeatureException : UnsupportedFeatureExceptio
   }
 }
 
-public class UnsupportedInvalidOperationException : InvalidOperationException {
-  public UnsupportedInvalidOperationException(string why) : base(typeof(UnsupportedInvalidOperationException).FullName! + ": " + why) {
+public class UnsupportedInvalidOperationException : Exception {
+
+  public readonly IOrigin Token;
+
+  public UnsupportedInvalidOperationException(IOrigin token, string why) : base("Unsupported Invalid Operation: " + why) {
+    Token = token;
   }
 }

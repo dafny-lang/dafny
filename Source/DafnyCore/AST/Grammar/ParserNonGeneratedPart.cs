@@ -18,7 +18,7 @@ public partial class Parser {
     dummyRhs = new ExprRhs(dummyExpr);
     dummyFrameExpr = new FrameExpression(dummyExpr.Origin, dummyExpr, null);
     dummyStmt = new ReturnStmt(Token.NoToken, null);
-    var dummyBlockStmt = new BlockStmt(Token.NoToken, new List<Statement>());
+    var dummyBlockStmt = new BlockStmt(Token.NoToken, [], []);
     dummyIfStmt = new IfStmt(Token.NoToken, false, null, dummyBlockStmt, null);
 
     theOptions = new DafnyOptions(options);
@@ -36,7 +36,8 @@ public partial class Parser {
   bool IsReveal(IOrigin nextToken) => la.kind == _reveal || (la.kind == _hide && nextToken.kind is _star or _ident);
 
   bool IsIdentifier(int kind) {
-    return kind == _ident || kind == _least || kind == _greatest || kind == _older || kind == _opaque;
+    return kind == _ident || kind == _least || kind == _greatest || kind == _older || kind == _opaque
+      || (!AcceptReferrers() && kind is _field or _locals);
   }
 
   bool IsQuantifierVariableDecl(QuantifiedVar previousVar) {
@@ -304,8 +305,20 @@ public partial class Parser {
     return false;
   }
 
+  bool AcceptReferrers() {
+    return theOptions.Get(CommonOptionBag.Referrers);
+  }
+
+  bool AcceptReferrersAndBacktick() {
+    return AcceptReferrers() && la.kind is _backtick;
+  }
+
+  bool AcceptReferrersAndLocals() {
+    return AcceptReferrers() && la.kind is _locals;
+  }
+
   bool IsSuffix() {
-    return la.kind == _dot || la.kind == _lbracket || la.kind == _openparen;
+    return la.kind is _dot or _lbracket or _openparen || AcceptReferrersAndBacktick();
   }
 
   string UnwildIdent(IOrigin x, bool allowWildcardId) {
@@ -485,7 +498,7 @@ public partial class Parser {
   // Indeed 'name' could be the last expression of an ensures clause, and the attribute
   // could belong to the next method declaration otherwise.
   bool IsAtCall() {
-    IOrigin pt = la;
+    Token pt = la;
     if (pt.val != "@") {
       return false;
     }
@@ -601,6 +614,10 @@ public partial class Parser {
         }
         return IsTypeSequence(ref pt, _closeparen);
       default:
+        if (AcceptReferrers() && pt.val == "field") {
+          pt = scanner.Peek();
+          return true;
+        }
         return false;
     }
   }
@@ -646,7 +663,7 @@ public partial class Parser {
   readonly Statement/*!*/ dummyStmt;
   readonly Statement/*!*/ dummyIfStmt;
   public readonly FileModuleDefinition theModule;
-  public readonly List<Action<SystemModuleManager>> SystemModuleModifiers = new();
+  public readonly List<Action<SystemModuleManager>> SystemModuleModifiers = [];
   DafnyOptions theOptions;
   int anonymousIds = 0;
 

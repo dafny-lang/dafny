@@ -9,7 +9,7 @@ DefiniteAssignment.dfy(61,15): Error: variable 'j', which is subject to definite
 DefiniteAssignment.dfy(64,4): Error: out-parameter 'y', which is subject to definite-assignment rules, might be uninitialized at this return point
 DefiniteAssignment.dfy(68,0): Error: out-parameter 'z', which is subject to definite-assignment rules, might be uninitialized at this return point
 DefiniteAssignment.dfy(90,9): Error: variable 'y', which is subject to definite-assignment rules, might be uninitialized here
-DefiniteAssignment.dfy(99,5): Error: cannot establish the existence of LHS values that satisfy the such-that predicate
+DefiniteAssignment.dfy(99,5): Error: cannot establish the existence of LHS values that satisfy the such-that predicate. Note, no trigger was found for the such-that predicate, which may be the reason the proof failed. To give a trigger explicitly, use the {:trigger} attribute. For more information, see the section on quantifier instantiation rules in the reference manual.
 DefiniteAssignment.dfy(99,14): Error: variable 'e1', which is subject to definite-assignment rules, might be uninitialized here
 DefiniteAssignment.dfy(132,7): Error: variable 'b', which is subject to definite-assignment rules, might be uninitialized here
 DefiniteAssignment.dfy(133,0): Error: out-parameter 'g', which is subject to definite-assignment rules, might be uninitialized at this return point
@@ -19,13 +19,13 @@ DefiniteAssignment.dfy(243,12): Error: variable 'b', which is subject to definit
 DefiniteAssignment.dfy(281,13): Error: variable 'f', which is subject to definite-assignment rules, might be uninitialized here
 DefiniteAssignment.dfy(286,13): Error: variable 'f', which is subject to definite-assignment rules, might be uninitialized here
 DefiniteAssignment.dfy(294,13): Error: variable 'f', which is subject to definite-assignment rules, might be uninitialized here
-DefiniteAssignment.dfy(305,13): Error: cannot establish the existence of LHS values that satisfy the such-that predicate
-DefiniteAssignment.dfy(310,13): Error: cannot establish the existence of LHS values that satisfy the such-that predicate
-DefiniteAssignment.dfy(315,6): Error: cannot establish the existence of LHS values that satisfy the such-that predicate
-DefiniteAssignment.dfy(321,6): Error: cannot establish the existence of LHS values that satisfy the such-that predicate
-DefiniteAssignment.dfy(334,13): Error: cannot establish the existence of LHS values that satisfy the such-that predicate
-DefiniteAssignment.dfy(341,6): Error: cannot establish the existence of LHS values that satisfy the such-that predicate
-DefiniteAssignment.dfy(356,4): Error: cannot establish the existence of LHS values that satisfy the such-that predicate
+DefiniteAssignment.dfy(305,13): Error: cannot establish the existence of LHS values that satisfy the such-that predicate. Note, no trigger was found for the such-that predicate, which may be the reason the proof failed. To give a trigger explicitly, use the {:trigger} attribute. For more information, see the section on quantifier instantiation rules in the reference manual.
+DefiniteAssignment.dfy(310,13): Error: cannot establish the existence of LHS values that satisfy the such-that predicate. Note, no trigger was found for the such-that predicate, which may be the reason the proof failed. To give a trigger explicitly, use the {:trigger} attribute. For more information, see the section on quantifier instantiation rules in the reference manual.
+DefiniteAssignment.dfy(315,6): Error: cannot establish the existence of LHS values that satisfy the such-that predicate. Note, no trigger was found for the such-that predicate, which may be the reason the proof failed. To give a trigger explicitly, use the {:trigger} attribute. For more information, see the section on quantifier instantiation rules in the reference manual.
+DefiniteAssignment.dfy(321,6): Error: cannot establish the existence of LHS values that satisfy the such-that predicate. Note, no trigger was found for the such-that predicate, which may be the reason the proof failed. To give a trigger explicitly, use the {:trigger} attribute. For more information, see the section on quantifier instantiation rules in the reference manual.
+DefiniteAssignment.dfy(333,13): Error: cannot establish the existence of LHS values that satisfy the such-that predicate
+DefiniteAssignment.dfy(339,6): Error: cannot establish the existence of LHS values that satisfy the such-that predicate
+DefiniteAssignment.dfy(356,4): Error: cannot establish the existence of LHS values that satisfy the such-that predicate. Note, no trigger was found for the such-that predicate, which may be the reason the proof failed. To give a trigger explicitly, use the {:trigger} attribute. For more information, see the section on quantifier instantiation rules in the reference manual.
 DefiniteAssignment.dfy(375,11): Error: field 'y', which is subject to definite-assignment rules, might be uninitialized here
 DefiniteAssignment.dfy(382,6): Error: field 'y', which is subject to definite-assignment rules, might be uninitialized at this point in the constructor body
 DefiniteAssignment.dfy(387,4): Error: field 'y', which is subject to definite-assignment rules, might be uninitialized at this point in the constructor body

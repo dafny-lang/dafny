@@ -12,7 +12,7 @@ namespace DafnyCore.Options;
 /// https://github.com/dotnet/runtime/issues/88135
 /// </summary>
 public class InMemoryDirectoryInfoFromDotNet8 : DirectoryInfoBase {
-  private static readonly char[] DirectorySeparators = new[] { Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar };
+  private static readonly char[] DirectorySeparators = [Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar];
   private readonly IEnumerable<string> _files;
 
   /// <summary>
@@ -76,7 +76,7 @@ public class InMemoryDirectoryInfoFromDotNet8 : DirectoryInfoBase {
       } else {
         string name = file.Substring(0, endSegment);
         if (!dict.TryGetValue(name, out List<string>? list)) {
-          dict[name] = new List<string> { file };
+          dict[name] = [file];
         } else {
           list.Add(file);
         }

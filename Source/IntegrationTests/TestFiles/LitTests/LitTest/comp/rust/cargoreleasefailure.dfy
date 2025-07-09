@@ -1,5 +1,5 @@
 // NONUNIFORM: Rust-specific tests
-// RUN: %baredafny build --target=rs "%s"
+// RUN: %baredafny build --target=rs --enforce-determinism --general-traits=legacy "%s"
 // If there is no '#[inline(never)]' in front of ::dafny_runtime::increment_strong_count
 // then the release will think it's safe to remove the strong count increment, resulting ins a segfault
 // RUN: "%S/cargoreleasefailure-rust/cargo" run --release

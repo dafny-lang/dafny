@@ -4,7 +4,9 @@ ResolutionErrors1.dfy(39,23): Error: type of case bodies do not agree (found Tre
 ResolutionErrors1.dfy(39,23): Error: type of case bodies do not agree (found Tree<_T1, _T0>, previous types Tree<_T0, _T1>) (covariant type parameter 'B' would require _T1 :> _T0)
 ResolutionErrors1.dfy(51,30): Error: Wrong number of type arguments (0 instead of 2) passed to datatype: Tree
 ResolutionErrors1.dfy(66,20): Error: unresolved identifier: w
-ResolutionErrors1.dfy(86,33): Error: arguments must have comparable types (got ?8 and ?7)
+ResolutionErrors1.dfy(85,8): Error: the type of this local variable is underspecified
+ResolutionErrors1.dfy(86,24): Error: type parameter 'T' (inferred to be '?7') in the function call to 'P' could not be determined
+ResolutionErrors1.dfy(86,18): Error: type of bound variable 'z' could not be determined; please specify the type explicitly
 ResolutionErrors1.dfy(99,13): Error: a lemma is not allowed to use 'new'
 ResolutionErrors1.dfy(100,9): Error: a lemma is not allowed to use 'new'
 ResolutionErrors1.dfy(109,16): Error: only ghost methods can be called from this context
@@ -16,4 +18,4 @@ ResolutionErrors1.dfy(148,11): Error: assignment to array element is not allowed
 ResolutionErrors1.dfy(164,26): Error: second argument to 'in' must be a set, a multiset, a sequence with elements of type ?43, or a map with domain ?43 (instead got bool)
 ResolutionErrors1.dfy(171,21): Error: the type of this variable is underspecified
 ResolutionErrors1.dfy(183,13): Error: lemmas are not allowed to have modifies clauses
-18 resolution/type errors detected in ResolutionErrors1.dfy
+20 resolution/type errors detected in ResolutionErrors1.dfy

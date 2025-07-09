@@ -48,7 +48,8 @@ namespace Microsoft.Dafny.Compilers {
       Feature.ExternalConstructors,
       Feature.SubsetTypeTests,
       Feature.AllUnderscoreExternalModuleNames,
-      Feature.RuntimeCoverageReport
+      Feature.RuntimeCoverageReport,
+      Feature.StandardLibrariesActionsExterns
     };
 
     public override string ModuleSeparator => "_";
@@ -60,17 +61,16 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     private readonly Dictionary<ModuleDefinition, Import> ModuleImports = new();
-    private readonly List<Import> ImportsNotFromDafnyModules = new(StandardImports);
+    private readonly List<Import> ImportsNotFromDafnyModules = [.. StandardImports];
     private string ModuleName;
     private ModuleDefinition CurrentModule;
     private ConcreteSyntaxTree RootImportWriter;
     private ConcreteSyntaxTree RootImportDummyWriter;
 
     private string MainModuleName;
-    private static List<Import> StandardImports =
-      new List<Import> {
-        new Import { Name = "os", Path = "os" },
-      };
+    private static List<Import> StandardImports = [
+      new Import { Name = "os", Path = "os" }
+    ];
     private static string DummyTypeName = "Dummy__";
 
     private static string ImportPrefix = "m_";
@@ -391,7 +391,7 @@ namespace Microsoft.Dafny.Compilers {
       w.WriteLine();
       CreateInitializer(classContext, name, w, out var instanceFieldInitWriter, out var traitInitWriter, out var rtdParamWriter);
 
-      var isNewtypeWithTraits = classContext is NewtypeDecl { ParentTraits: { Count: > 0 } };
+      var isNewtypeWithTraits = classContext is NewtypeDecl { Traits: { Count: > 0 } };
 
       var rtdCount = 0;
       if (typeParameters != null) {
@@ -529,7 +529,7 @@ namespace Microsoft.Dafny.Compilers {
       wr.Write("func {0}(", FormatInitializerName(name));
       rtdParamWriter = wr.Fork();
       var w = wr.NewNamedBlock(") *{0}", name);
-      var parameters = classContext is NewtypeDecl { ParentTraits: { Count: > 0 } } ? "value" : "";
+      var parameters = classContext is NewtypeDecl { Traits: { Count: > 0 } } ? "value" : "";
       w.WriteLine($"_this := {name}{{{parameters}}}");
 
       w.WriteLine();
@@ -1077,7 +1077,7 @@ namespace Microsoft.Dafny.Compilers {
         wDefault.WriteLine($"return {TypeName_Companion(dt, wr, dt.Origin)}.Default({typeDescriptorUses}{sep}{arguments});");
       }
 
-      EmitParentTraits(dt.Origin, name, false, dt.ParentTraits, wr);
+      EmitParentTraits(dt.Origin, name, false, dt.Traits, wr);
 
       return new ClassWriter(this, dt, false, name, dt.IsExtern(Options, out _, out _), null,
         wr, wr, wr, wr, staticFieldWriter, staticFieldInitWriter);
@@ -1122,7 +1122,7 @@ namespace Microsoft.Dafny.Compilers {
 
       GenerateIsMethod(nt, wr);
 
-      if (nt.ParentTraits.Count != 0) {
+      if (nt.Traits.Count != 0) {
         cw.InstanceFieldWriter.WriteLine($"_value {TypeName(udt, cw.InstanceFieldWriter, nt.Origin)}");
       }
 
@@ -1264,7 +1264,7 @@ namespace Microsoft.Dafny.Compilers {
         return isStatic ? StaticFieldInitWriter : InstanceFieldInitWriter;
       }
 
-      public ConcreteSyntaxTree/*?*/ CreateMethod(Method m, List<TypeArgumentInstantiation> typeArgs, bool createBody, bool forBodyInheritance, bool lookasideBody) {
+      public ConcreteSyntaxTree/*?*/ CreateMethod(MethodOrConstructor m, List<TypeArgumentInstantiation> typeArgs, bool createBody, bool forBodyInheritance, bool lookasideBody) {
         return CodeGenerator.CreateMethod(m, typeArgs, createBody, ClassContext, ClassName, AbstractMethodWriter, ConcreteMethodWriter, forBodyInheritance, lookasideBody);
       }
 
@@ -1294,7 +1294,7 @@ namespace Microsoft.Dafny.Compilers {
       public void InitializeField(Field field, Type instantiatedFieldType, TopLevelDeclWithMembers enclosingClass) {
         var tok = field.Origin;
         var lvalue = CodeGenerator.EmitMemberSelect(w => w.Write("_this"), UserDefinedType.FromTopLevelDecl(tok, enclosingClass), field,
-        new List<TypeArgumentInstantiation>(), enclosingClass.ParentFormalTypeParametersToActuals, instantiatedFieldType);
+          [], enclosingClass.ParentFormalTypeParametersToActuals, instantiatedFieldType);
         var wRHS = lvalue.EmitWrite(FieldInitWriter(false));
         CodeGenerator.EmitCoercionIfNecessary(instantiatedFieldType, field.Type, tok, wRHS);
         wRHS.Write(CodeGenerator.PlaceboValue(instantiatedFieldType, ErrorWriter(), tok));
@@ -1307,7 +1307,7 @@ namespace Microsoft.Dafny.Compilers {
       }
     }
 
-    protected ConcreteSyntaxTree/*?*/ CreateMethod(Method m, List<TypeArgumentInstantiation> typeArgs, bool createBody,
+    protected ConcreteSyntaxTree/*?*/ CreateMethod(MethodOrConstructor m, List<TypeArgumentInstantiation> typeArgs, bool createBody,
       TopLevelDecl ownerContext, string ownerName,
       ConcreteSyntaxTree abstractWriter, ConcreteSyntaxTree concreteWriter, bool forBodyInheritance, bool lookasideBody) {
       var overriddenIns = m.EnclosingClass is TraitDecl && !forBodyInheritance ? null : m.OverriddenMethod?.Original.Ins;
@@ -1322,8 +1322,8 @@ namespace Microsoft.Dafny.Compilers {
       ConcreteSyntaxTree abstractWriter, ConcreteSyntaxTree concreteWriter, bool forBodyInheritance, bool lookasideBody) {
 
       var fnOverridden = (member as Function)?.OverriddenFunction?.Original;
-      return CreateSubroutine(name, typeArgs, formals, new List<Formal>(), resultType,
-        fnOverridden?.Ins, fnOverridden == null ? null : new List<Formal>(), fnOverridden?.ResultType,
+      return CreateSubroutine(name, typeArgs, formals, [], resultType,
+        fnOverridden?.Ins, fnOverridden == null ? null : [], fnOverridden?.ResultType,
         tok, isStatic, createBody, ownerContext, ownerName, member, abstractWriter, concreteWriter, forBodyInheritance, lookasideBody);
     }
 
@@ -1558,7 +1558,7 @@ namespace Microsoft.Dafny.Compilers {
     protected ConcreteSyntaxTree/*?*/ CreateGetter(string name, Type resultType, IOrigin tok, bool isStatic, bool createBody,
       MemberDecl/*?*/ member, TopLevelDecl ownerContext, string ownerName,
       ConcreteSyntaxTree abstractWriter, ConcreteSyntaxTree concreteWriter, bool forBodyInheritance) {
-      return CreateFunction(name, new List<TypeArgumentInstantiation>(), new List<Formal>(), resultType,
+      return CreateFunction(name, [], [], resultType,
         tok, isStatic, createBody, member, ownerContext, ownerName, abstractWriter, concreteWriter, forBodyInheritance, false);
     }
 
@@ -1569,8 +1569,8 @@ namespace Microsoft.Dafny.Compilers {
       var getterWriter = CreateGetter(name, resultType, tok, false, createBody, member, ownerContext, ownerName, abstractWriter, concreteWriter, forBodyInheritance);
 
       var valueParam = new Formal(tok, "value", resultType, true, false, null);
-      setterWriter = CreateSubroutine(name + "_set_", new List<TypeArgumentInstantiation>(), new List<Formal>() { valueParam }, new List<Formal>(), null,
-        new List<Formal>() { valueParam }, new List<Formal>(), null,
+      setterWriter = CreateSubroutine(name + "_set_", [], [valueParam], [], null,
+        [valueParam], [], null,
         tok, false, createBody, ownerContext, ownerName, member,
         abstractWriter, concreteWriter, forBodyInheritance, false);
       return getterWriter;
@@ -1895,7 +1895,7 @@ namespace Microsoft.Dafny.Compilers {
 
     protected void DeclareField(string name, bool isExtern, bool isStatic, bool isConst, Type type, IOrigin tok, string/*?*/ rhs, string className, ConcreteSyntaxTree wr, ConcreteSyntaxTree initWriter, ConcreteSyntaxTree concreteMethodWriter) {
       if (isExtern) {
-        Error(GeneratorErrors.ErrorId.c_Go_unsupported_field, tok, "Unsupported field {0} in extern trait", wr, name);
+        Error(GeneratorErrors.ErrorId.c_Go_unsupported_field, tok, wr, "Unsupported field {0} in extern trait", name);
       }
 
       if (isConst && rhs != null) {
@@ -1966,7 +1966,7 @@ namespace Microsoft.Dafny.Compilers {
       return DeclareLocalVar(name, type, tok, includeRhs: true, leaveRoomForRhs: false, wr: wr);
     }
 
-    protected override bool UseReturnStyleOuts(Method m, int nonGhostOutCount) => true;
+    protected override bool UseReturnStyleOuts(MethodOrConstructor m, int nonGhostOutCount) => true;
 
     protected override bool NeedsCastFromTypeParameter => true;
     protected override bool SupportsMultipleReturns => true;
@@ -2084,7 +2084,7 @@ namespace Microsoft.Dafny.Compilers {
       var wStmts = wr.Fork();
       wr.Write("panic(");
       if (tok != null) {
-        wr.Write("\"" + tok.TokenToString(Options) + ": \" + ");
+        wr.Write("\"" + tok.OriginToString(Options) + ": \" + ");
       }
 
       TrParenExpr(messageExpr, wr, false, wStmts);
@@ -2102,8 +2102,9 @@ namespace Microsoft.Dafny.Compilers {
       return wBody;
     }
 
-    protected override ConcreteSyntaxTree EmitForStmt(IOrigin tok, IVariable loopIndex, bool goingUp, string /*?*/ endVarName,
-      List<Statement> body, LList<Label> labels, ConcreteSyntaxTree wr) {
+    protected override ConcreteSyntaxTree EmitForStmt(IOrigin tok, IVariable loopIndex, bool goingUp,
+      string/*?*/ endVarName,
+      List<Statement> body, List<Label> labels, ConcreteSyntaxTree wr) {
 
       wr.Write($"for {loopIndex.GetOrCreateCompileName(currentIdGenerator)} := ");
       var startWr = wr.Fork();
@@ -2624,7 +2625,7 @@ namespace Microsoft.Dafny.Compilers {
         return res;
     }).join(""))
      */
-    public readonly HashSet<string> ReservedModuleNames = new() {
+    public readonly HashSet<string> ReservedModuleNames = [
       "c",
       "archive",
       "bufio",
@@ -2672,7 +2673,7 @@ namespace Microsoft.Dafny.Compilers {
       "time",
       "unicode",
       "unsafe"
-    };
+    ];
 
     public string PublicModuleIdProtect(string name) {
       if (ReservedModuleNames.Contains(name.ToLower())) {
@@ -2879,7 +2880,7 @@ namespace Microsoft.Dafny.Compilers {
             // this member selection is handled by some kind of enclosing function call, so nothing to do here
           }
         });
-      } else if (member is SpecialField sf2 && sf2.SpecialId == SpecialField.ID.UseIdParam && sf2.IdParam is string fieldName && fieldName.StartsWith("is_")) {
+      } else if (member is DatatypeDiscriminator sf2 && sf2.IdParam is string fieldName && fieldName.StartsWith("is_")) {
         // sf2 is needed here only because the scope rules for these pattern matches are asinine: sf is *still in scope* but it's useless because it may not have been assigned to!
         return SimpleLvalue(wr => {
           wr = EmitCoercionIfNecessary(sf2.Type, expectedType, Token.NoToken, wr);
@@ -3258,8 +3259,9 @@ namespace Microsoft.Dafny.Compilers {
       wr.Write(", ");
       var fromType = (ArrowType)expr.Initializer.Type.NormalizeExpand();
       var atd = (ArrowTypeDecl)fromType.ResolvedClass;
-      var tParam = new UserDefinedType(expr.Origin, new TypeParameter(expr.Origin, new Name("X"), TypeParameter.TPVarianceSyntax.NonVariant_Strict));
-      var toType = new ArrowType(expr.Origin, atd, new List<Type>() { Type.Int }, tParam);
+      var tParam = new UserDefinedType(expr.Origin,
+        new TypeParameter(expr.Origin, new Name("X"), TPVarianceSyntax.NonVariant_Strict));
+      var toType = new ArrowType(expr.Origin, atd, [Type.Int], tParam);
       var initWr = EmitCoercionIfNecessary(fromType, toType, expr.Origin, wr);
       initWr.Append(Expr(expr.Initializer, inLetExprBody, wStmts));
       wr.Write(")");
@@ -3794,7 +3796,8 @@ namespace Microsoft.Dafny.Compilers {
       } else if (fromType.Equals(toType) || fromType.AsNewtype != null || toType.AsNewtype != null) {
         wr.Append(Expr(fromExpr, inLetExprBody, wStmts));
       } else {
-        Contract.Assert(false, $"not implemented for go: {fromType} -> {toType}");
+        wr = EmitCoercionIfNecessary(fromType, toType, fromExpr.Origin, wr);
+        EmitExpr(fromExpr, inLetExprBody, wr, wStmts);
       }
     }
 
@@ -3965,7 +3968,7 @@ namespace Microsoft.Dafny.Compilers {
       } else {
         // It's unclear to me whether it's possible to hit this case with a valid Dafny program,
         // so I'm not using UnsupportedFeatureError for now.
-        Error(GeneratorErrors.ErrorId.c_Go_infeasible_conversion, tok, "Cannot convert from {0} to {1}", wr, from, to);
+        Error(GeneratorErrors.ErrorId.c_Go_infeasible_conversion, tok, wr, "Cannot convert from {0} to {1}", from, to);
         return wr;
       }
     }
@@ -4009,10 +4012,10 @@ namespace Microsoft.Dafny.Compilers {
       TrExprList(elements, wr, inLetExprBody, wStmts, typeAt: _ => ct.Arg);
     }
 
-    protected override void EmitMapDisplay(MapType mt, IOrigin tok, List<ExpressionPair> elements,
+    protected override void EmitMapDisplay(MapType mt, IOrigin tok, List<MapDisplayEntry> elements,
         bool inLetExprBody, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
       wr.Write("_dafny.NewMapBuilder().ToMap()");
-      foreach (ExpressionPair p in elements) {
+      foreach (MapDisplayEntry p in elements) {
         wr.Write(".UpdateUnsafe(");
         wr.Append(Expr(p.A, inLetExprBody, wStmts));
         wr.Write(", ");

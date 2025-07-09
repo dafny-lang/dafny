@@ -153,9 +153,9 @@ public partial class BoogieGenerator {
     // forall args :: { P(args) } args-have-appropriate-values && P(args) ==> QQQ k { P#[k](args) } :: 0 ATMOST k HHH P#[k](args)
     var tr = BplTrigger(prefixAppl);
     var qqqK = pp.ExtremePred is GreatestPredicate
-      ? (Bpl.Expr)new Bpl.ForallExpr(tok, new List<Variable> { k }, tr,
+      ? (Bpl.Expr)new Bpl.ForallExpr(tok, [k], tr,
         kWhere == null ? prefixAppl : BplImp(kWhere, prefixAppl))
-      : (Bpl.Expr)new Bpl.ExistsExpr(tok, new List<Variable> { k }, tr,
+      : (Bpl.Expr)new Bpl.ExistsExpr(tok, [k], tr,
         kWhere == null ? prefixAppl : BplAnd(kWhere, prefixAppl));
     tr = BplTriggerHeap(this, tok, coAppl, pp.ReadsHeap ? null : h);
     var allS = new Bpl.ForallExpr(tok, bvs, tr, BplImp(BplAnd(ante, coAppl), qqqK));
@@ -211,7 +211,7 @@ public partial class BoogieGenerator {
       //   args-have-appropriate-values && k < m && P#[k](args) ==> P#[m](args))
       var limit = new Bpl.BoundVariable(tok, new Bpl.TypedIdent(tok, "_limit", TrType(Type.BigOrdinal)));
       var limitId = new Bpl.IdentifierExpr(limit.tok, limit);
-      moreBvs = new List<Variable>();
+      moreBvs = [];
       moreBvs.AddRange(bvs);
       moreBvs.Add(k);
       moreBvs.Add(m);
@@ -288,14 +288,14 @@ public partial class BoogieGenerator {
       ppCall.TypeApplication_AtEnclosingClass = pp.EnclosingClass.TypeArgs.ConvertAll(tp => (Type)new UserDefinedType(tp));
       ppCall.TypeApplication_JustFunction = pp.TypeArgs.ConvertAll(tp => (Type)new UserDefinedType(tp));
 
-      Attributes triggerAttr = new Attributes("trigger", new List<Expression> { ppCall }, null);
+      Attributes triggerAttr = new Attributes("trigger", [ppCall], null);
       Expression limitCalls;
       if (pp.ExtremePred is GreatestPredicate) {
         // forall k':ORDINAL | _k' LESS _k :: pp(_k', args)
         var smaller = Expression.CreateLess(kprime, k);
-        limitCalls = new ForallExpr(pp.Origin, new List<BoundVar> { kprimeVar }, smaller, ppCall, triggerAttr) {
+        limitCalls = new ForallExpr(pp.Origin, [kprimeVar], smaller, ppCall, triggerAttr) {
           Type = Type.Bool,
-          Bounds = new List<BoundedPool>() { new AllocFreeBoundedPool(kprimeVar.Type) }
+          Bounds = [new AllocFreeBoundedPool(kprimeVar.Type)]
         };
       } else {
         // exists k':ORDINAL | _k' LESS _k :: pp(_k', args)
@@ -306,9 +306,9 @@ public partial class BoogieGenerator {
           ResolvedOp = BinaryExpr.ResolvedOpcode.LessThanLimit,
           Type = Type.Bool
         };
-        limitCalls = new ExistsExpr(pp.Origin, new List<BoundVar> { kprimeVar }, smaller, ppCall, triggerAttr) {
+        limitCalls = new ExistsExpr(pp.Origin, [kprimeVar], smaller, ppCall, triggerAttr) {
           Type = Type.Bool,
-          Bounds = new List<BoundedPool>() { new AllocFreeBoundedPool(kprimeVar.Type) }
+          Bounds = [new AllocFreeBoundedPool(kprimeVar.Type)]
         };
       }
       var a = Expression.CreateImplies(kIsPositive, body);

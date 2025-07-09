@@ -26,7 +26,7 @@ internal class TriggersCollector {
   }
 
   private List<TriggerTerm> CollectExportedCandidates(Expression expr) {
-    return ReduceAnnotatedSubExpressions(expr, new List<TriggerTerm>(), a => a.ExportedTerms, TriggerUtils.MergeAlterFirst);
+    return ReduceAnnotatedSubExpressions(expr, [], a => a.ExportedTerms, TriggerUtils.MergeAlterFirst);
   }
 
   private ISet<IVariable> CollectVariables(Expression expr) {
@@ -48,12 +48,9 @@ internal class TriggersCollector {
 
     TriggerAnnotation annotation = null; // TODO: Using ApplySuffix fixes the unresolved members problem in GenericSort
 
-    if (expr is LetExpr) {
-      var le = (LetExpr)expr;
-      if (le.LHSs.All(p => p.Var != null) && le.Exact) {
-        // Inline the let expression before doing trigger selection.
-        annotation = Annotate(BoogieGenerator.InlineLet(le));
-      }
+    if (expr is LetExpr { Exact: true } letExpr && letExpr.LHSs.All(p => p.Var != null)) {
+      // Inline the let expression before doing trigger selection.
+      annotation = Annotate(BoogieGenerator.InlineLet(letExpr));
     }
 
     if (annotation == null) {

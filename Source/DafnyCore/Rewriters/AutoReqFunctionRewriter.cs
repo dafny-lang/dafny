@@ -29,7 +29,7 @@ public class AutoReqFunctionRewriter : IRewriter {
           parentFunction = fn;  // Remember where the recursion started
           containsMatch = false;  // Assume no match statements are involved
 
-          List<AttributedExpression> auto_reqs = new List<AttributedExpression>();
+          List<AttributedExpression> auto_reqs = [];
 
           // First handle all of the requirements' preconditions
           foreach (AttributedExpression req in fn.Req) {
@@ -42,7 +42,7 @@ public class AutoReqFunctionRewriter : IRewriter {
 
           // Then the body itself, if any
           if (fn.Body != null) {
-            auto_reqs = new List<AttributedExpression>();
+            auto_reqs = [];
             foreach (Expression e in GenerateAutoReqs(fn.Body)) {
               auto_reqs.Add(CreateAutoAttributedExpression(e));
             }
@@ -50,21 +50,20 @@ public class AutoReqFunctionRewriter : IRewriter {
             addAutoReqToolTipInfoToFunction("post", fn, auto_reqs);
           }
         }
-      } else if (scComponent is Method) {
-        Method method = (Method)scComponent;
+      } else if (scComponent is MethodOrConstructor method) {
         if (Attributes.ContainsBoolAtAnyLevel(method, "autoReq")) {
           parentFunction = null;
           containsMatch = false; // Assume no match statements are involved
 
-          List<AttributedExpression> auto_reqs = new List<AttributedExpression>();
+          List<AttributedExpression> autoReqs = [];
           foreach (AttributedExpression req in method.Req) {
-            List<Expression> local_auto_reqs = GenerateAutoReqs(req.E);
-            foreach (Expression local_auto_req in local_auto_reqs) {
-              auto_reqs.Add(CreateAutoAttributedExpression(local_auto_req));
+            List<Expression> localAutoReqs = GenerateAutoReqs(req.E);
+            foreach (Expression localAutoReq in localAutoReqs) {
+              autoReqs.Add(CreateAutoAttributedExpression(localAutoReq));
             }
           }
-          method.Req.InsertRange(0, auto_reqs); // Need to come before the actual requires
-          addAutoReqToolTipInfoToMethod("pre", method, auto_reqs);
+          method.Req.InsertRange(0, autoReqs); // Need to come before the actual requires
+          AddAutoReqToolTipInfoToMethod("pre", method, autoReqs);
         }
       }
     }
@@ -95,7 +94,7 @@ public class AutoReqFunctionRewriter : IRewriter {
     }
   }
 
-  public void addAutoReqToolTipInfoToMethod(string label, Method method, List<AttributedExpression> reqs) {
+  public void AddAutoReqToolTipInfoToMethod(string label, MethodOrConstructor method, List<AttributedExpression> reqs) {
     string tip = "";
 
     foreach (var req in reqs) {
@@ -134,7 +133,7 @@ public class AutoReqFunctionRewriter : IRewriter {
   }
 
   List<Expression> gatherReqs(Function f, List<Expression> args, List<Type> typeArguments, Expression f_this) {
-    List<Expression> translated_f_reqs = new List<Expression>();
+    List<Expression> translated_f_reqs = [];
 
     if (f.Req.Count > 0) {
       Dictionary<IVariable, Expression/*!*/> substMap = new Dictionary<IVariable, Expression>();
@@ -171,7 +170,7 @@ public class AutoReqFunctionRewriter : IRewriter {
   }
 
   List<Expression> GenerateAutoReqs(Expression expr) {
-    List<Expression> reqs = new List<Expression>();
+    List<Expression> reqs = [];
 
     if (expr is LiteralExpr) {
     } else if (expr is ThisExpr) {
@@ -195,7 +194,7 @@ public class AutoReqFunctionRewriter : IRewriter {
     } else if (expr is MapDisplayExpr) {
       MapDisplayExpr e = (MapDisplayExpr)expr;
 
-      foreach (ExpressionPair p in e.Elements) {
+      foreach (MapDisplayEntry p in e.Elements) {
         reqs.AddRange(GenerateAutoReqs(p.A));
         reqs.AddRange(GenerateAutoReqs(p.B));
       }
@@ -250,7 +249,7 @@ public class AutoReqFunctionRewriter : IRewriter {
       containsMatch = true;
       reqs.AddRange(GenerateAutoReqs(e.Source));
 
-      List<MatchCaseExpr> newMatches = new List<MatchCaseExpr>();
+      List<MatchCaseExpr> newMatches = [];
       foreach (MatchCaseExpr caseExpr in e.Cases) {
         //MatchCaseExpr c = new MatchCaseExpr(caseExpr.Tok, caseExpr.Id, caseExpr.Arguments, andify(caseExpr.Tok, generateAutoReqs(caseExpr.Body)));
         //c.Ctor = caseExpr.Ctor; // resolve here

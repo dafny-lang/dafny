@@ -13,7 +13,6 @@ public class GeneratorErrors {
     c_process_exit,
     c_process_failed_to_start,
     c_unsupported_feature,
-    c_abstract_type_needs_hint,
     c_abstract_type_cannot_be_compiled,
     c_iterators_are_not_deterministic,
     c_iterator_has_no_body,
@@ -87,11 +86,6 @@ so the program will need to be revised to avoid this feature;
 - the feature is not listed in the in-tool list of unsupported features.
 The latter is an omission in the in-tool documentation. Please report this error message and the part of the
 program provoking it to the Dafny team's [issue tracker](https://github.com/dafny-lang/dafny/issues).
-".TrimStart());
-
-    Add(ErrorId.c_abstract_type_needs_hint,
-    @"
-The type needs a name given to know which type in the target language it is associated with.
 ".TrimStart());
 
     Add(ErrorId.c_abstract_type_cannot_be_compiled,

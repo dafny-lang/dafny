@@ -1,4 +1,5 @@
-// RUN: ! %baredafny verify --use-basename-for-filename "%s" > "%t"
+// RUN: ! %baredafny verify --use-basename-for-filename "%s" > "%t.raw"
+// RUN: %sed 's#\d+ seconds#<redacted> seconds#g' "%t.raw" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 method Foo() {

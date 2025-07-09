@@ -106,7 +106,7 @@ class NativeTypeAnalysis {
         nativeTypeChoices ?? ModuleResolver.NativeTypes, nativeTypeChoices != null, out detectedRange);
     } else {
       // No native type available
-      return new List<(NativeType, bool coversEntireIntegerRange)>();
+      return [];
     }
   }
 

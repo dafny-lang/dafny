@@ -217,3 +217,36 @@ method ImplicitModifiesClause(w: Wrapper)
   }
   assert w.x == 2;
 }
+
+method FreshEnsures() {
+  var c: object;
+  opaque
+    ensures fresh(c) // !old(allocated(c)) && allocated(c)
+  {
+    c := new object;
+  }
+  assert false;
+}
+
+class GranularModifies
+{
+  var x : int
+  var y : int
+  var objects: set<GranularModifies>
+
+  method foo()
+    modifies this
+    ensures x == 1
+    ensures y == 1
+  {
+    x := 1;
+    objects := {this};
+    opaque
+      modifies objects`y
+      ensures y == 1
+      // ensures x == 1
+    {
+      y := 1;
+    }
+  }
+}

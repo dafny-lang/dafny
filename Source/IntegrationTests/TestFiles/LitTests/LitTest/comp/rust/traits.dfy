@@ -1,5 +1,5 @@
 // NONUNIFORM: Rust-specific tests
-// RUN: %baredafny run --target=rs "%s" > "%t"
+// RUN: %baredafny run --target=rs --enforce-determinism --general-traits=legacy "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 module InterfaceHolder {
@@ -76,6 +76,7 @@ module All {
     const d: int := 2
     constructor(c: int) {
       this.c := c;
+      this.z := 3;
     }
     method AddZ()
       modifies this
@@ -195,8 +196,8 @@ module All {
     var aOwned := a;
     var o: TraitNoArgs := a as TraitNoArgs;
     expect o is ClassNoArgs;
-    ConsumeClassNoArgs(o);
-    ConsumeClassNoArgs(o);
+    ConsumeClassNoArgs(o as ClassNoArgs);
+    ConsumeClassNoArgs(o as ClassNoArgs);
     var oo: object := o as object;
     expect oo is ClassNoArgs;
     ConsumeClassNoArgs(oo as ClassNoArgs);

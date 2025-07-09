@@ -65,7 +65,7 @@ public class GhostStateDiagnosticCollectorTest {
     var rootUri = new Uri(Directory.GetCurrentDirectory());
     var dummyModuleDecl = new DummyModuleDecl(options);
     var reporter = new CollectingErrorReporter(options);
-    var compilation = new CompilationData(reporter, new List<Include>(), new List<Uri>(), Sets.Empty<Uri>(),
+    var compilation = new CompilationData(reporter, [], new List<Uri>(), Sets.Empty<Uri>(),
       Sets.Empty<Uri>());
     var program = new Dafny.Program("dummy", dummyModuleDecl, null, reporter, compilation);
     var source = new CancellationTokenSource();

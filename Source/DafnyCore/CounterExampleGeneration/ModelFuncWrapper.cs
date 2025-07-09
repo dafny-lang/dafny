@@ -111,7 +111,7 @@ class ModelFuncWrapper {
 
   public class ModelFuncTupleWrapper {
 
-    static readonly Model.Element[] EmptyArgs = Array.Empty<Model.Element>();
+    static readonly Model.Element[] EmptyArgs = [];
 
     public readonly Model.Element Result;
     public readonly Model.Element[] Args;

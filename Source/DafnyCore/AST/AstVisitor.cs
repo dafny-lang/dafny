@@ -105,7 +105,7 @@ namespace Microsoft.Dafny {
           VisitMethod(function.ByMethodDecl);
         }
 
-      } else if (member is Method method) {
+      } else if (member is MethodOrConstructor method) {
         VisitMethod(method);
 
         var prefixLemma = (method as ExtremeLemma)?.PrefixLemma;
@@ -158,7 +158,7 @@ namespace Microsoft.Dafny {
       }
     }
 
-    public virtual void VisitMethod(Method method) {
+    public virtual void VisitMethod(MethodOrConstructor method) {
       var context = GetContext(method, false);
 
       VisitAttributes(method, method.EnclosingClass.EnclosingModuleDefinition);
@@ -226,7 +226,7 @@ namespace Microsoft.Dafny {
         } else if (expr is LetExpr letExpr) {
           foreach (var lhs in letExpr.LHSs) {
             foreach (var v in lhs.Vars) {
-              VisitUserProvidedType(v.SyntacticType, context);
+              VisitUserProvidedType(v.SafeSyntacticType, context);
             }
           }
 
@@ -328,19 +328,17 @@ namespace Microsoft.Dafny {
         // Visit user-provided types
         if (stmt is VarDeclStmt varDeclStmt) {
           foreach (var local in varDeclStmt.Locals) {
-            VisitUserProvidedType(local.SyntacticType, context);
+            VisitUserProvidedType(local.SafeSyntacticType, context);
           }
 
         } else if (stmt is VarDeclPattern varDeclPattern) {
           foreach (var local in varDeclPattern.LocalVars) {
-            VisitUserProvidedType(local.SyntacticType, context);
+            VisitUserProvidedType(local.SafeSyntacticType, context);
           }
 
         } else if (stmt is SingleAssignStmt assignStmt) {
-          if (assignStmt.Rhs is TypeRhs typeRhs) {
-            if (typeRhs.EType != null) {
-              VisitUserProvidedType(typeRhs.EType, context);
-            }
+          if (assignStmt.Rhs is AllocateArray typeRhs) {
+            VisitUserProvidedType(typeRhs.ElementType, context);
           }
 
         } else if (stmt is OneBodyLoopStmt oneBodyLoopStmt) {

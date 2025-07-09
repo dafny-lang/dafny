@@ -24,15 +24,6 @@
 
 <!-- INSERT-TEXT -->
 
-## **Error: Abstract type ('_type_') with extern attribute requires a compile hint. Expected {:extern _hint_}** {#c_abstract_type_needs_hint}
-
-<!-- %check-run -->
-```dafny
-type {:extern } T
-```
-
-<!-- INSERT-TEXT -->
-
 ## **Error: Abstract type (_name_) cannot be compiled; perhaps make it a type synonym or use :extern.** {#c_abstract_type_cannot_be_compiled}
 
 <!-- %check-run -->

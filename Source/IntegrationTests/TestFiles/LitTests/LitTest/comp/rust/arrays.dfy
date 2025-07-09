@@ -1,5 +1,5 @@
 // NONUNIFORM: Rust-specific tests
-// RUN: %baredafny run --target=rs "%s" > "%t"
+// RUN: %baredafny run --target=rs --enforce-determinism --general-traits=legacy "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 module Origin.Imported {

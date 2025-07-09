@@ -66,7 +66,7 @@ public static class InliningTranslator {
     foreach (var declaration in program.TopLevelDeclarations) {
       var typeName = declaration.GetType().Name;
       if (!declarations.ContainsKey(typeName)) {
-        declarations[typeName] = new();
+        declarations[typeName] = [];
       }
       var declarationAsString = declaration.ToString();
       if (declarationAsString != null &&

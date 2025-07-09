@@ -3,12 +3,12 @@ using System.Diagnostics.Contracts;
 
 namespace Microsoft.Dafny;
 
-public abstract class LoopStmt : Statement, IHasNavigationToken {
-  public readonly List<AttributedExpression> Invariants;
-  public readonly Specification<Expression> Decreases;
+public abstract class LoopStmt : LabeledStatement, IHasNavigationToken {
+  public List<AttributedExpression> Invariants;
+  public Specification<Expression> Decreases;
 
   [FilledInDuringResolution] public bool InferredDecreases;  // says that no explicit "decreases" clause was given and an attempt was made to find one automatically (which may or may not have produced anything)
-  public readonly Specification<FrameExpression> Mod;
+  public Specification<FrameExpression> Mod;
   [ContractInvariantMethod]
   void ObjectInvariant() {
     Contract.Invariant(cce.NonNullElements(Invariants));
@@ -26,8 +26,8 @@ public abstract class LoopStmt : Statement, IHasNavigationToken {
     }
   }
 
-  public LoopStmt(IOrigin origin, List<AttributedExpression> invariants, Specification<Expression> decreases, Specification<FrameExpression> mod)
-    : base(origin) {
+  protected LoopStmt(IOrigin origin, List<AttributedExpression> invariants, Specification<Expression> decreases, Specification<FrameExpression> mod)
+    : base(origin, [], null) {
     Contract.Requires(origin != null);
     Contract.Requires(cce.NonNullElements(invariants));
     Contract.Requires(decreases != null);
@@ -37,8 +37,11 @@ public abstract class LoopStmt : Statement, IHasNavigationToken {
     this.Decreases = decreases;
     this.Mod = mod;
   }
-  public LoopStmt(IOrigin origin, List<AttributedExpression> invariants, Specification<Expression> decreases, Specification<FrameExpression> mod, Attributes attrs)
-    : base(origin, attrs) {
+
+  [SyntaxConstructor]
+  protected LoopStmt(IOrigin origin, List<AttributedExpression> invariants, Specification<Expression> decreases,
+    Specification<FrameExpression> mod, List<Label> labels, Attributes attributes)
+    : base(origin, labels, attributes) {
     Contract.Requires(origin != null);
     Contract.Requires(cce.NonNullElements(invariants));
     Contract.Requires(decreases != null);
@@ -85,5 +88,5 @@ public abstract class LoopStmt : Statement, IHasNavigationToken {
     }
   }
 
-  public IOrigin NavigationToken => StartToken;
+  public TokenRange NavigationRange => ReportingRange;
 }

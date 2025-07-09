@@ -1,4 +1,5 @@
 Bug117.dfy(28,7): Error: AM1 in ConcreteModule2 must be imported with "opened"  to match the corresponding import in its refinement base AbstractModule2.
-Bug117.dfy[ConcreteModule2](13,42): Error: Type or type parameter is not declared in this scope: AbstractType1 (did you forget to qualify a name or declare a module import 'opened'?) (note that names in outer modules are not visible in contained modules)
+Bug117.dfy(13,42): Error: Type or type parameter is not declared in this scope: AbstractType1 (did you forget to qualify a name or declare a module import 'opened'?) (note that names in outer modules are not visible in contained modules)
+Bug117.dfy(28,7): Related location: refining module
 Bug117.dfy(33,7): Error: AM1 in ConcreteModule3 cannot be imported with "opened" because it does not match the corresponding import in the refinement base AbstractModule3.
 3 resolution/type errors detected in Bug117.dfy

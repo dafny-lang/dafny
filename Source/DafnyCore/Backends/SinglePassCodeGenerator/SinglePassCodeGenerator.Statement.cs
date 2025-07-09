@@ -43,6 +43,8 @@ namespace Microsoft.Dafny.Compilers {
       if (stmt.IsGhost) {
         return;
       }
+
+      stmt = Statement.StripByBlocks(stmt);
       switch (stmt) {
         case PrintStmt printStmt: {
             var s = printStmt;
@@ -54,7 +56,7 @@ namespace Microsoft.Dafny.Compilers {
           }
         case BreakOrContinueStmt breakStmt: {
             var s = breakStmt;
-            var label = s.TargetStmt.Labels.Data.AssignUniqueId(idGenerator);
+            var label = s.TargetStmt.Labels.First().AssignUniqueId(idGenerator);
             if (s.IsContinue) {
               EmitContinue(label, wr);
             } else {
@@ -154,7 +156,8 @@ namespace Microsoft.Dafny.Compilers {
             var missingBounds = BoundedPool.MissingBounds(lhss, s.Bounds, BoundedPool.PoolVirtues.Enumerable);
             if (missingBounds.Count != 0) {
               foreach (var bv in missingBounds) {
-                Error(ErrorId.c_assign_such_that_is_too_complex, s.Origin, "this assign-such-that statement is too advanced for the current compiler; Dafny's heuristics cannot find any bound for variable '{0}'", wr, bv.Name);
+                Error(ErrorId.c_assign_such_that_is_too_complex, s.Origin, wr,
+                  "this assign-such-that statement is too advanced for the current compiler; Dafny's heuristics cannot find any bound for variable '{0}'", bv.Name);
               }
             } else {
               Contract.Assert(s.Bounds != null);
@@ -172,7 +175,7 @@ namespace Microsoft.Dafny.Compilers {
               // Wrap this UpdateStmt with a VarDecl containing this Local that we haven't emitted yet.
               stmts[innerExtractIndex] =
                 new VarDeclStmt(enclosingVarDecl.Origin,
-                  new List<LocalVariable>() { locals[0] },
+                  [locals[0]],
                   (AssignStatement)stmts[innerExtractIndex]);
             }
             TrStmtList(stmts, wr);
@@ -271,7 +274,7 @@ namespace Microsoft.Dafny.Compilers {
                 Coverage.Instrument(s.Origin, "implicit else branch", wr);
                 thenWriter = EmitIf(out guardWriter, false, thenWriter);
                 EmitUnaryExpr(ResolvedUnaryOp.BoolNot, notFalse.E, false, guardWriter, wStmts);
-                TrStmtList(new List<Statement>(), thenWriter);
+                TrStmtList([], thenWriter);
               } else {
                 // let's compile the "then" branch
                 wr = EmitIf(out guardWriter, false, wr);
@@ -441,22 +444,22 @@ namespace Microsoft.Dafny.Compilers {
                 var lhs = (MemberSelectExpr)s0.Lhs;
                 L = 2;
                 tupleTypeArgs = TypeArgumentName(lhs.Obj.Type, wr, lhs.Origin);
-                tupleTypeArgsList = new List<Type> { lhs.Obj.Type };
+                tupleTypeArgsList = [lhs.Obj.Type];
               } else if (s0.Lhs is SeqSelectExpr) {
                 var lhs = (SeqSelectExpr)s0.Lhs;
                 L = 3;
                 // note, we might as well do the BigInteger-to-int cast for array indices here, before putting things into the Tuple rather than when they are extracted from the Tuple
                 tupleTypeArgs = TypeArgumentName(lhs.Seq.Type, wr, lhs.Origin) + IntSelect;
-                tupleTypeArgsList = new List<Type> { lhs.Seq.Type, null };
+                tupleTypeArgsList = [lhs.Seq.Type, null];
               } else {
                 var lhs = (MultiSelectExpr)s0.Lhs;
                 L = 2 + lhs.Indices.Count;
                 if (8 < L) {
-                  Error(ErrorId.c_no_assignments_to_seven_d_arrays, lhs.Origin, "compiler currently does not support assignments to more-than-6-dimensional arrays in forall statements", wr);
+                  Error(ErrorId.c_no_assignments_to_seven_d_arrays, lhs.Origin, wr, "compiler currently does not support assignments to more-than-6-dimensional arrays in forall statements");
                   return;
                 }
                 tupleTypeArgs = TypeArgumentName(lhs.Array.Type, wr, lhs.Origin);
-                tupleTypeArgsList = new List<Type> { lhs.Array.Type };
+                tupleTypeArgsList = [lhs.Array.Type];
                 for (int i = 0; i < lhs.Indices.Count; i++) {
                   // note, we might as well do the BigInteger-to-int cast for array indices here, before putting things into the Tuple rather than when they are extracted from the Tuple
                   tupleTypeArgs += IntSelect;
@@ -560,6 +563,9 @@ namespace Microsoft.Dafny.Compilers {
           break;
         case BlockByProofStmt blockByProofStmt:
           TrStmt(blockByProofStmt.Body, wr, wStmts);
+          break;
+        case LabeledStatement:
+          // content already handled
           break;
         default:
           Contract.Assert(false); throw new cce.UnreachableException();  // unexpected statement

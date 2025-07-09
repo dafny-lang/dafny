@@ -6,6 +6,7 @@
 //
 //-----------------------------------------------------------------------------
 
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Diagnostics.Contracts;
@@ -24,7 +25,7 @@ namespace Microsoft.Dafny {
       bool reported;
       public void FlagAsError(ModuleResolver resolver) {
         if (resolver.Options.Get(CommonOptionBag.TypeInferenceDebug)) {
-          resolver.Options.OutputWriter.WriteLine($"DEBUG: flagging error: {ApproximateErrorMessage()}");
+          resolver.Options.OutputWriter.Debug($"flagging error: {ApproximateErrorMessage()}");
         }
         resolver.TypeConstraintErrorsToBeReported.Add(this);
       }
@@ -41,7 +42,7 @@ namespace Microsoft.Dafny {
         if (this is ErrorMsgWithToken) {
           var err = (ErrorMsgWithToken)this;
           Contract.Assert(err.Tok != null);
-          reporter.Error(MessageSource.Resolver, err.Tok, err.Msg + suffix, RemoveAmbiguity(err.MsgArgs));
+          reporter.Error(MessageSource.Resolver, err.Tok, new object[] { err.Msg + suffix }.Concat(RemoveAmbiguity(err.MsgArgs)).ToArray());
         } else {
           var err = (ErrorMsgWithBase)this;
           if (!err.BaseMsg.reported) {

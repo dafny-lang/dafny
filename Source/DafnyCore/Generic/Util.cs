@@ -1,6 +1,5 @@
 // Copyright by the contributors to the Dafny Project
 // SPDX-License-Identifier: MIT
-
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -26,6 +25,16 @@ namespace Microsoft.Dafny {
 
   public static class Util {
 
+    public static IEnumerable<T> IgnoreNulls<T>(params T[] values) {
+      var result = new List<T>();
+      foreach (var value in values) {
+        if (value != null) {
+          result.Add(value);
+        }
+      }
+
+      return result;
+    }
     public static Task WaitForComplete<T>(this IObservable<T> observable) {
       var result = new TaskCompletionSource();
       observable.Subscribe(_ => { }, e => result.SetException(e), () => result.SetResult());
@@ -144,7 +153,7 @@ namespace Microsoft.Dafny {
     }
 
     public static List<B> Map<A, B>(IEnumerable<A> xs, Func<A, B> f) {
-      List<B> ys = new List<B>();
+      List<B> ys = [];
       foreach (A x in xs) {
         ys.Add(f(x));
       }
@@ -152,11 +161,11 @@ namespace Microsoft.Dafny {
     }
 
     public static List<A> Nil<A>() {
-      return new List<A>();
+      return [];
     }
 
     public static List<A> Singleton<A>(A x) {
-      return new List<A> { x };
+      return [x];
     }
 
     public static List<A> List<A>(params A[] xs) {
@@ -172,7 +181,7 @@ namespace Microsoft.Dafny {
     }
 
     public static List<A> Concat<A>(List<A> xs, List<A> ys) {
-      List<A> cpy = new List<A>(xs);
+      List<A> cpy = [.. xs];
       cpy.AddRange(ys);
       return cpy;
     }
@@ -495,7 +504,7 @@ namespace Microsoft.Dafny {
           if (decl is TopLevelDeclWithMembers c) {
             foreach (var member in c.Members) {
               if (member is Function f) {
-                List<Function> calls = new List<Function>();
+                List<Function> calls = [];
                 foreach (var e in f.Reads.Expressions) { if (e != null && e.E != null) { callFinder.Visit(e.E, calls); } }
                 foreach (var e in f.Req) { if (e != null) { callFinder.Visit(e, calls); } }
                 foreach (var e in f.Ens) { if (e != null) { callFinder.Visit(e, calls); } }
@@ -518,17 +527,19 @@ namespace Microsoft.Dafny {
     /// <summary>
     /// Prints the program's function call graph in a format suitable for consumption in other tools
     /// </summary>
-    public static void PrintFunctionCallGraph(Dafny.Program program) {
+    public static async Task PrintFunctionCallGraph(Dafny.Program program) {
       var functionCallGraph = BuildFunctionCallGraph(program);
 
+      var sb = new StringBuilder();
       foreach (var vertex in functionCallGraph.GetVertices()) {
         var func = vertex.N;
-        program.Options.OutputWriter.Write("{0},{1}=", func.SanitizedName, func.EnclosingClass.EnclosingModuleDefinition.SanitizedName);
+        sb.Append($"{func.SanitizedName},{func.EnclosingClass.EnclosingModuleDefinition.SanitizedName}=");
         foreach (var callee in vertex.Successors) {
-          program.Options.OutputWriter.Write("{0} ", callee.N.SanitizedName);
+          sb.Append($"{callee.N.SanitizedName} ");
         }
-        program.Options.OutputWriter.Write("\n");
+        sb.Append("\n");
       }
+      await program.Options.OutputWriter.Status(sb.ToString());
     }
 
     public static V GetOrDefault<K, V, V2>(this IReadOnlyDictionary<K, V2> dictionary, K key, Func<V> createValue)
@@ -595,15 +606,15 @@ namespace Microsoft.Dafny {
     /// <summary>
     /// Compute various interesting statistics about the Dafny program
     /// </summary>
-    public static void PrintStats(Dafny.Program program) {
+    public static async Task PrintStats(Dafny.Program program) {
       SortedDictionary<string, ulong> stats = new SortedDictionary<string, ulong>();
 
       foreach (var module in program.Modules()) {
         IncrementStat(stats, "Modules");
         UpdateMax(stats, "Module height (max)", (ulong)module.Height);
 
-        ulong num_scc = (ulong)module.CallGraph.TopologicallySortedComponents().Count;
-        UpdateMax(stats, "Call graph width (max)", num_scc);
+        ulong numScc = (ulong)module.CallGraph.TopologicallySortedComponents().Count;
+        UpdateMax(stats, "Call graph width (max)", numScc);
 
         foreach (var decl in module.TopLevelDecls) {
           if (decl is DatatypeDecl) {
@@ -621,9 +632,9 @@ namespace Microsoft.Dafny {
                 if (f.IsRecursive) {
                   IncrementStat(stats, "Functions recursive");
                 }
-              } else if (member is Method) {
+              } else if (member is MethodOrConstructor) {
                 IncrementStat(stats, "Methods (total)");
-                var method = (Method)member;
+                var method = (MethodOrConstructor)member;
                 if (method.IsRecursive) {
                   IncrementStat(stats, "Methods recursive");
                 }
@@ -637,21 +648,24 @@ namespace Microsoft.Dafny {
       }
 
       // Print out the results, with some nice formatting
-      program.Options.OutputWriter.WriteLine("");
-      program.Options.OutputWriter.WriteLine("Statistics");
-      program.Options.OutputWriter.WriteLine("----------");
+      var sb = new StringBuilder();
+      sb.AppendLine("");
+      sb.AppendLine("Statistics");
+      sb.AppendLine("----------");
 
-      int max_key_length = 0;
+      int maxKeyLength = 0;
       foreach (var key in stats.Keys) {
-        if (key.Length > max_key_length) {
-          max_key_length = key.Length;
+        if (key.Length > maxKeyLength) {
+          maxKeyLength = key.Length;
         }
       }
 
       foreach (var keypair in stats) {
-        string keyString = keypair.Key.PadRight(max_key_length + 2);
-        program.Options.OutputWriter.WriteLine("{0} {1,4}", keyString, keypair.Value);
+        string keyString = keypair.Key.PadRight(maxKeyLength + 2);
+        sb.AppendLine($"{keyString} {keypair.Value,4}");
       }
+
+      await program.Options.OutputWriter.Status(sb.ToString());
     }
 
     public static IEnumerable<string> Lines(TextReader reader) {
@@ -673,7 +687,7 @@ namespace Microsoft.Dafny {
       if (found) {
         existingDependencies.Add(include.CanonicalPath);
       } else {
-        dependencies[key] = new SortedSet<string>() { include.CanonicalPath };
+        dependencies[key] = [include.CanonicalPath];
       }
     }
 
@@ -685,21 +699,24 @@ namespace Microsoft.Dafny {
       }
     }
 
-    public void PrintMap(DafnyOptions options) {
-      SortedSet<string> leaves = new SortedSet<string>(); // Files that don't themselves include any files
+    public Task PrintMap(DafnyOptions options) {
+      SortedSet<string> leaves = []; // Files that don't themselves include any files
+      var sb = new StringBuilder();
       foreach (string target in dependencies.Keys) {
-        options.OutputWriter.Write(target);
+        sb.Append(target);
         foreach (string dependency in dependencies[target]) {
-          options.OutputWriter.Write(";" + dependency);
+          sb.Append(";" + dependency);
           if (!dependencies.ContainsKey(dependency)) {
             leaves.Add(dependency);
           }
         }
-        options.OutputWriter.WriteLine();
+        sb.AppendLine();
       }
       foreach (string leaf in leaves) {
-        options.OutputWriter.WriteLine(leaf);
+        sb.AppendLine(leaf);
       }
+
+      return options.OutputWriter.Status(sb.ToString());
     }
   }
 

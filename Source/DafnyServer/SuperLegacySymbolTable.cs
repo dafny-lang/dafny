@@ -13,7 +13,7 @@ using Program = Microsoft.Dafny.Program;
 namespace DafnyServer {
   public class SuperLegacySymbolTable {
     private readonly Program _dafnyProgram;
-    private readonly List<SymbolInformation> _information = new();
+    private readonly List<SymbolInformation> _information = [];
 
     public SuperLegacySymbolTable(Program dafnyProgram) {
       _dafnyProgram = dafnyProgram;
@@ -59,8 +59,8 @@ namespace DafnyServer {
           };
           information.Add(functionSymbol);
         } else {
-          var m = (Method)clbl;
-          if (m.Body != null && m.Body.Body != null) {
+          var m = (MethodOrConstructor)clbl;
+          if (m.Body is { Body: not null }) {
             information.AddRange(ResolveCallStatements(m.Body.Body));
             information.AddRange(ResolveLocalDefinitions(m.Body.Body, m));
           }
@@ -130,7 +130,7 @@ namespace DafnyServer {
       return requires;
     }
 
-    private static IEnumerable<SymbolInformation> ResolveLocalDefinitions(IEnumerable<Statement> statements, Method method) {
+    private static IEnumerable<SymbolInformation> ResolveLocalDefinitions(IEnumerable<Statement> statements, MethodOrConstructor method) {
       var information = new List<SymbolInformation>();
 
       foreach (var statement in statements) {
@@ -138,11 +138,9 @@ namespace DafnyServer {
           var declarations = (VarDeclStmt)statement;
           {
             Type type = null;
-            var rightSide = declarations.Assign as AssignStatement;
-            if (rightSide != null) {
+            if (declarations.Assign is AssignStatement rightSide) {
               var definition = rightSide.Rhss.First();
-              var typeDef = definition as TypeRhs;
-              if (typeDef != null) {
+              if (definition is TypeRhs typeDef) {
                 type = typeDef.Type;
               }
             }
@@ -254,13 +252,12 @@ namespace DafnyServer {
       foreach (var module in _dafnyProgram.Modules()) {
         foreach (var clbl in ModuleDefinition.AllCallables(module.TopLevelDecls).
                    Where(e => !e.Origin.FromIncludeDirective(_dafnyProgram))) {
-          if (!(clbl is Method)) {
+          if (!(clbl is MethodOrConstructor method)) {
             continue;
           }
 
-          var m = (Method)clbl;
-          if (m.Body != null) {
-            information.AddRange(ParseBodyForFieldReferences(m.Body.SubStatements, fieldName, className, moduleName));
+          if (method.Body != null) {
+            information.AddRange(ParseBodyForFieldReferences(method.Body.SubStatements, fieldName, className, moduleName));
           }
         }
       }
@@ -273,13 +270,12 @@ namespace DafnyServer {
       foreach (var module in _dafnyProgram.Modules()) {
         foreach (var clbl in ModuleDefinition.AllCallables(module.TopLevelDecls).
                    Where(e => !e.Origin.FromIncludeDirective(_dafnyProgram))) {
-          if (!(clbl is Method)) {
+          if (!(clbl is MethodOrConstructor methodOrConstructor)) {
             continue;
           }
 
-          var m = (Method)clbl;
-          if (m.Body != null) {
-            information.AddRange(ParseBodyForMethodReferences(m.Body.SubStatements, methodToFind, m.Name));
+          if (methodOrConstructor.Body != null) {
+            information.AddRange(ParseBodyForMethodReferences(methodOrConstructor.Body.SubStatements, methodToFind, methodOrConstructor.Name));
           }
         }
       }

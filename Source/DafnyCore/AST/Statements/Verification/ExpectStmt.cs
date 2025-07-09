@@ -1,10 +1,12 @@
+#nullable enable
+
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 
 namespace Microsoft.Dafny;
 
 public class ExpectStmt : PredicateStmt, ICloneable<ExpectStmt>, ICanFormat {
-  public Expression Message;
+  public Expression? Message;
 
   public ExpectStmt Clone(Cloner cloner) {
     return new ExpectStmt(cloner, this);
@@ -14,11 +16,10 @@ public class ExpectStmt : PredicateStmt, ICloneable<ExpectStmt>, ICanFormat {
     Message = cloner.CloneExpr(original.Message);
   }
 
-  public ExpectStmt(IOrigin origin, Expression expr, Expression message, Attributes attrs)
-    : base(origin, expr, attrs) {
-    Contract.Requires(origin != null);
-    Contract.Requires(expr != null);
-    this.Message = message;
+  [SyntaxConstructor]
+  public ExpectStmt(IOrigin origin, Expression expr, Expression? message, Attributes? attributes = null)
+    : base(origin, expr, attributes) {
+    Message = message;
   }
 
   public override IEnumerable<Expression> NonSpecificationSubExpressions {
@@ -45,7 +46,7 @@ public class ExpectStmt : PredicateStmt, ICloneable<ExpectStmt>, ICanFormat {
 
   public override void ResolveGhostness(ModuleResolver resolver, ErrorReporter reporter, bool mustBeErasable,
     ICodeContext codeContext,
-    string proofContext, bool allowAssumptionVariables, bool inConstructorInitializationPhase) {
+    string? proofContext, bool allowAssumptionVariables, bool inConstructorInitializationPhase) {
     IsGhost = false;
     if (mustBeErasable) {
       reporter.Error(MessageSource.Resolver, ResolutionErrors.ErrorId.r_expect_statement_is_not_ghost, this,

@@ -55,7 +55,7 @@ public class ProjectManagerDatabaseTest : ClientBasedLanguageServerTest {
       loadingDocuments.Add(documentItem);
     }
 
-    List<Task> tasks = new();
+    List<Task> tasks = [];
     foreach (var loadingDocument in loadingDocuments) {
       // Mix regular and close requests, both can be handled in parallel, although the hover might fail for a closed document.
       tasks.Add(client.RequestHover(new HoverParams { Position = (0, 0), TextDocument = loadingDocument.Uri }, CancellationToken));
@@ -82,7 +82,7 @@ public class ProjectManagerDatabaseTest : ClientBasedLanguageServerTest {
     }
 
     // Concurrently migrate projects
-    List<Task> tasks = new();
+    List<Task> tasks = [];
     foreach (var loadingDocument in loadingDocuments) {
       // By doing a regular request, learn that the file's project has changed.
       tasks.Add(client.RequestHover(new HoverParams { Position = (0, 0), TextDocument = loadingDocument.Uri }, CancellationToken));
@@ -105,7 +105,7 @@ public class ProjectManagerDatabaseTest : ClientBasedLanguageServerTest {
       loadingDocuments.Add(documentItem);
     }
 
-    List<Task> tasks = new();
+    List<Task> tasks = [];
     foreach (var loadingDocument in loadingDocuments) {
       tasks.Add(client.RequestHover(new HoverParams { Position = (0, 0), TextDocument = loadingDocument.Uri }, CancellationToken));
       client.CloseDocument(loadingDocument);

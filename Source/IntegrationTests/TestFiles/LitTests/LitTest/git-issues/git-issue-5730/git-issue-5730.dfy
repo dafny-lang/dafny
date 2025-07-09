@@ -1,8 +1,8 @@
-// RUN: %exits-with -any %baredafny verify %args "%S/dfyconfig.toml" > "%t"
+// RUN: %exits-with -any %verify "%S/dfyconfig.toml" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 module X {
-  method {:only} VerifyMe() {
+  @VerifyOnly method VerifyMe() {
     assert false; // Should display an error
   }
   method DontVerifyMe() {

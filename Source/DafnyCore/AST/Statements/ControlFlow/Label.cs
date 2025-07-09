@@ -3,8 +3,8 @@ using System.Diagnostics.Contracts;
 namespace Microsoft.Dafny;
 
 public class Label {
-  public readonly IOrigin Tok;
-  public readonly string Name;
+  public IOrigin Tok;
+  public string Name;
   string uniqueId = null;
 
   public string AssignUniqueId(FreshIdGenerator idGen) {
@@ -13,9 +13,9 @@ public class Label {
     }
     return uniqueId;
   }
-  public Label(IOrigin tok, string/*?*/ label) {
+  public Label(IOrigin tok, string/*?*/ name) {
     Contract.Requires(tok != null);
     Tok = tok;
-    Name = label;
+    Name = name;
   }
 }

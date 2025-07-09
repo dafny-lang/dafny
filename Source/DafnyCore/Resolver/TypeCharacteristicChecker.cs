@@ -40,16 +40,13 @@ namespace Microsoft.Dafny {
           } else if (d is DatatypeDecl dt) {
             foreach (var tp in dt.TypeArgs) {
               if (tp.Characteristics.EqualitySupport == TypeParameter.EqualitySupportValue.Unspecified) {
-                // here's our chance to infer the need for equality support
-                foreach (var ctor in dt.Ctors) {
-                  foreach (var arg in ctor.Formals) {
-                    if (InferAndSetEqualitySupport(tp, arg.Type, reporter)) {
-                      inferredSomething = true;
-                      goto DONE_DT; // break out of the doubly-nested loop
-                    }
-                  }
-                }
-              DONE_DT:;
+                inferredSomething = inferredSomething || dt.Ctors.Any(ctor =>
+                  ctor.Formals.Any(arg =>
+                    InferAndSetEqualitySupport(tp, arg.Type, reporter)
+                  )
+                ) || dt.Traits.Any(parentType =>
+                  InferAndSetEqualitySupport(tp, parentType, reporter)
+                );
               }
             }
           } else if (d is TypeSynonymDecl syn) {
@@ -124,7 +121,7 @@ namespace Microsoft.Dafny {
                   }
                 }
               }
-            } else if (member is Method method) {
+            } else if (member is MethodOrConstructor method) {
               memberTypeArguments = method.TypeArgs;
               bool done = false;
               foreach (var tp in method.TypeArgs) {
@@ -225,7 +222,7 @@ namespace Microsoft.Dafny {
             visitor.Visit(iter.Body, false);
           }
         } else if (d is ClassLikeDecl cl) {
-          foreach (var parentTrait in cl.ParentTraits) {
+          foreach (var parentTrait in cl.Traits) {
             visitor.VisitType(cl.Origin, parentTrait, false);
           }
         } else if (d is DatatypeDecl dt) {
@@ -285,7 +282,7 @@ namespace Microsoft.Dafny {
               if (function.Body != null) {
                 visitor.Visit(function.Body, function.IsGhost);
               }
-            } else if (member is Method method) {
+            } else if (member is MethodOrConstructor method) {
               CheckFormals(method.Ins, method.IsGhost, visitor);
               CheckFormals(method.Outs, method.IsGhost, visitor);
               CheckSpecification(method.Req, method.Mod, method.Ens, method.Decreases, visitor);

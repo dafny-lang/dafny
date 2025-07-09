@@ -5,13 +5,13 @@ using System.Linq;
 namespace Microsoft.Dafny;
 
 public class DefaultModuleDefinition : ModuleDefinition, ICloneable<DefaultModuleDefinition> {
-  public List<Include> Includes { get; } = new();
+  public List<Include> Includes { get; } = [];
 
   public DefaultModuleDefinition(Cloner cloner, DefaultModuleDefinition original) : base(cloner, original, original.NameNode) {
   }
 
   public DefaultModuleDefinition()
-    : base(SourceOrigin.NoToken, new Name("_module"), new List<IOrigin>(), ModuleKindEnum.Concrete, false,
+    : base(SourceOrigin.NoToken, new Name("_module"), [], ModuleKindEnum.Concrete, false,
       null, null, null) {
   }
 

@@ -8,7 +8,7 @@ public class MatchExpr : Expression, IMatch, ICloneable<MatchExpr> {  // a Match
   private Expression source;
   private List<MatchCaseExpr> cases;
   public readonly MatchingContext Context;
-  [FilledInDuringResolution] public List<DatatypeCtor> MissingCases { get; } = new();
+  [FilledInDuringResolution] public List<DatatypeCtor> MissingCases { get; } = [];
   public readonly bool UsesOptionalBraces;
   public MatchExpr OrigUnresolved;  // the resolver makes this clone of the MatchExpr before it starts desugaring it
 
@@ -81,7 +81,7 @@ public class MatchExpr : Expression, IMatch, ICloneable<MatchExpr> {  // a Match
   }
 }
 
-public abstract class MatchCase : NodeWithComputedRange, IHasReferences {
+public abstract class MatchCase : NodeWithOrigin, IHasReferences {
   public DatatypeCtor Ctor;
   public List<BoundVar> Arguments;
 
@@ -101,7 +101,7 @@ public abstract class MatchCase : NodeWithComputedRange, IHasReferences {
   }
 
   public IEnumerable<Reference> GetReferences() {
-    return new[] { new Reference(Origin, Ctor) };
+    return new[] { new Reference(ReportingRange, Ctor) };
   }
 }
 
@@ -122,7 +122,7 @@ public class MatchStmt : Statement, IMatch, ICloneable<MatchStmt> {
   private Expression source;
   private List<MatchCaseStmt> cases;
   public readonly MatchingContext Context;
-  [FilledInDuringResolution] public List<DatatypeCtor> MissingCases { get; } = new();
+  [FilledInDuringResolution] public List<DatatypeCtor> MissingCases { get; } = [];
   public readonly bool UsesOptionalBraces;
 
   public MatchStmt Clone(Cloner cloner) {
@@ -153,8 +153,8 @@ public class MatchStmt : Statement, IMatch, ICloneable<MatchStmt> {
   }
 
   public MatchStmt(IOrigin origin, Expression source, [Captured] List<MatchCaseStmt> cases,
-    bool usesOptionalBraces, Attributes attrs, MatchingContext context = null)
-    : base(origin, attrs) {
+    bool usesOptionalBraces, Attributes attributes, MatchingContext context = null)
+    : base(origin, attributes) {
     Contract.Requires(origin != null);
     Contract.Requires(source != null);
     Contract.Requires(cce.NonNullElements(cases));

@@ -1,3 +1,8 @@
+excludes = [
+  "**/nondeterministic/*.dfy",
+  "**/TargetSpecific/*.dfy"
+]
+
 [options]
 standard-libraries = true
 # This needs to be set because the examples themselves
@@ -5,6 +10,12 @@ standard-libraries = true
 # but consumers don't have to have this option set
 # to use the standard libraries in general.
 reads-clauses-on-methods = true
+enforce-determinism = true
 resource-limit = 1000000
-warn-redundant-assumptions = true
+type-system-refresh = true
+general-traits = "datatype"
+general-newtypes = true
+
+# This gives too many false positives right now, but should be enabled in the future
+warn-redundant-assumptions = false
 warn-contradictory-assumptions = true

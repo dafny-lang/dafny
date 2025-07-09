@@ -629,12 +629,12 @@ module {:extract_boogie} Sequences {
 
   // boogie:
   // axiom (forall s: Seq, n: int, j: int ::
-  //   {:weight 25}
+  //   {:weight 11}
   //   { Seq#Index(Seq#Take(s,n), j) }
   //   { Seq#Index(s, j), Seq#Take(s,n) }
   //   0 <= j && j < n && j < Seq#Length(s) ==>
   //     Seq#Index(Seq#Take(s,n), j) == Seq#Index(s, j));
-  lemma {:extract_attribute "weight", 25} {:extract_pattern Index(Take(s, n), j)} {:extract_pattern Index(s, j), Take(s, n)}
+  lemma {:extract_attribute "weight", 11} {:extract_pattern Index(Take(s, n), j)} {:extract_pattern Index(s, j), Take(s, n)}
     IndexTake(s: Seq, n: int, j: int)
     requires 0 <= j < n && j < Length(s)
     ensures Index(Take(s, n), j) == Index(s, j)
@@ -664,11 +664,11 @@ module {:extract_boogie} Sequences {
 
   // boogie:
   // axiom (forall s: Seq, n: int, j: int ::
-  //   {:weight 25}
+  //   {:weight 11}
   //   { Seq#Index(Seq#Drop(s,n), j) }
   //   0 <= n && 0 <= j && j < Seq#Length(s)-n ==>
   //     Seq#Index(Seq#Drop(s,n), j) == Seq#Index(s, j+n));
-  lemma {:extract_attribute "weight", 25} {:extract_pattern Index(Drop(s, n), j)} IndexDrop0(s: Seq, n: int, j: int)
+  lemma {:extract_attribute "weight", 11} {:extract_pattern Index(Drop(s, n), j)} IndexDrop0(s: Seq, n: int, j: int)
     requires 0 <= n && 0 <= j < Length(s) - n
     ensures Index(Drop(s, n), j) == Index(s, j + n)
   {
@@ -677,11 +677,11 @@ module {:extract_boogie} Sequences {
 
   // boogie:
   // axiom (forall s: Seq, n: int, k: int ::
-  //   {:weight 25}
+  //   {:weight 11}
   //   { Seq#Index(s, k), Seq#Drop(s,n) }
   //   0 <= n && n <= k && k < Seq#Length(s) ==>
   //     Seq#Index(Seq#Drop(s,n), k-n) == Seq#Index(s, k));
-  lemma {:extract_attribute "weight", 25} {:extract_pattern Index(s, k), Drop(s, n)} IndexDrop1(s: Seq, n: int, k: int)
+  lemma {:extract_attribute "weight", 11} {:extract_pattern Index(s, k), Drop(s, n)} IndexDrop1(s: Seq, n: int, k: int)
     requires 0 <= n <= k < Length(s)
     ensures Index(Drop(s, n), k - n) == Index(s, k)
   {

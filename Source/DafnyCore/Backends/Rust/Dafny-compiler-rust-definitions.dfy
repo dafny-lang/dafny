@@ -15,19 +15,23 @@ module {:extern "Defs"} DafnyToRustCompilerDefinitions {
   type Formal = DAST.Formal
 
   // List taken from https://doc.rust-lang.org/book/appendix-01-keywords.html
-  const reserved_rust := {
+  const reserved_rust_1 := {
     "as","async","await","break","const","continue",
     "crate","dyn","else","enum","extern","false","fn","for","if","impl",
-    "in","let","loop","match","mod","move","mut","pub","ref","return",
+    "in","let","loop","match","mod","move","mut","pub","ref","return"}
+
+  const reserved_rust_2 := {
     "static","struct","super","trait","true","type","union",
     "unsafe","use","where","while","Keywords","The","abstract","become",
     "box","do","final","macro","override","priv","try","typeof","unsized",
     "virtual","yield"}
 
+  const reserved_rust := reserved_rust_1 + reserved_rust_2
+
   // Method names that would automatically resolve to trait methods instead of inherent methods
   // Hence, full name is always required for these methods
   const builtin_trait_preferred_methods := {
-    "le", "eq", "lt", "ge", "gt"
+    "le", "eq", "lt", "ge", "gt", "hash"
   }
 
 
@@ -190,12 +194,22 @@ module {:extern "Defs"} DafnyToRustCompilerDefinitions {
     {
       Environment(names + [name], types[name := tpe], assignmentStatusKnown - {name})
     }
-    function merge(other: Environment): Environment
+    // Merges a current environment with a new one
+    function Merge(other: Environment): Environment
     {
       Environment(
         names + other.names,
         types + other.types,
         assignmentStatusKnown + other.assignmentStatusKnown
+      )
+    }
+    // When exiting If-then-else, we can remove variables that were unassigned in both branches
+    function Join(thenBranch: Environment, elseBranch: Environment): Environment {
+      var removed := types.Keys - (thenBranch.types.Keys + elseBranch.types.Keys);
+      Environment(
+        Std.Collections.Seq.Filter(name => name !in removed, names),
+        types - removed,
+        assignmentStatusKnown - removed
       )
     }
     // Used to removed from the environment the "_is_assigned" vars used to initialize fields
@@ -236,6 +250,7 @@ module {:extern "Defs"} DafnyToRustCompilerDefinitions {
   datatype PointerType = Raw | RcMut
   datatype CharType = UTF16 | UTF32
   datatype RootType = RootCrate | RootPath(moduleName: string)
+  datatype SyncType = NoSync | Sync
 
   datatype GenTypeContext =
     GenTypeContext(forTraitParents: bool)
@@ -255,6 +270,7 @@ module {:extern "Defs"} DafnyToRustCompilerDefinitions {
     else
       var res := match rs[0] {
         case UserDefined(resolvedType) =>
+          assert resolvedType < rs[0];
           TraitTypeContainingMethod(resolvedType, dafnyName)
         case _ =>
           None
@@ -291,6 +307,31 @@ module {:extern "Defs"} DafnyToRustCompilerDefinitions {
     predicate IsSelf() {
       ThisTyped? && rSelfName == "self"
     }
+    predicate IsGeneralTrait() {
+      ThisTyped? && dafnyType.IsGeneralTrait()
+    }
+    predicate IsClassOrObjectTrait() {
+      ThisTyped? && dafnyType.IsClassOrObjectTrait()
+    }
+    predicate IsRcWrappedDatatype() {
+      ThisTyped? && IsRcWrappedDatatypeRec(dafnyType)
+    }
+  }
+
+  predicate IsRcWrappedDatatypeRec(dafnyType: Type) {
+    match dafnyType {
+      case UserDefined(ResolvedType(_, _, Datatype(_, _), attributes, _, _)) =>
+        IsRcWrapped(attributes)
+      case UserDefined(ResolvedType(_, _, SynonymType(tpe), attributes, _, _)) =>
+        IsRcWrappedDatatypeRec(tpe)
+      case _ => false
+    }
+  }
+
+  predicate IsRcWrapped(attributes: seq<Attribute>) {
+    (Attribute("auto-nongrowing-size", []) !in attributes &&
+     Attribute("rust_rc", ["false"]) !in attributes) ||
+    Attribute("rust_rc", ["true"]) in attributes
   }
 
   datatype ExternAttribute =
@@ -493,13 +534,18 @@ module {:extern "Defs"} DafnyToRustCompilerDefinitions {
     ensures BecomesLeftCallsRight(op) ==> !BecomesRightCallsLeft(op)
   {}
 
-  function UnreachablePanicIfVerified(pointerType: PointerType, optText: string := ""): R.Expr {
-    if pointerType.Raw? then
-      R.Unsafe(R.Block(R.std.MSel("hint").AsExpr().FSel("unreachable_unchecked").Apply0()))
-    else if optText == "" then
+  function Panic(optText: string := ""): R.Expr {
+    if optText == "" then
       R.Identifier("panic!").Apply0()
     else
       R.Identifier("panic!").Apply1(R.LiteralString(optText, binary := false, verbatim := false))
+  }
+
+  function UnreachablePanicIfVerified(pointerType: PointerType, optText: string := ""): R.Expr {
+    if pointerType.Raw? then
+      R.Unsafe(R.Block(R.std.MSel("hint").AsExpr().FSel("unreachable_unchecked").Apply0()))
+    else
+      Panic(optText)
   }
 
   function DefaultDatatypeImpl(
@@ -593,7 +639,36 @@ module {:extern "Defs"} DafnyToRustCompilerDefinitions {
       ))
   }
 
+  function EqImpl(rTypeParamsDeclsWithEq: seq<R.TypeParamDecl>, datatypeType: R.Type, rTypeParams: seq<R.Type>, eqImplBody: R.Expr): seq<R.ModDecl> {
+    [ R.ImplDecl(
+        R.ImplFor(
+          rTypeParamsDeclsWithEq,
+          R.PartialEq,
+          datatypeType,
+          [ R.FnDecl(
+              R.NoDoc, R.NoAttr, R.PRIV,
+              R.Fn(
+                "eq",
+                [],
+                [R.Formal.selfBorrowed, R.Formal("other", R.SelfBorrowed)],
+                Some(R.Bool),
+                Some(eqImplBody)
+              )
+            )])),
+      R.ImplDecl(
+        R.ImplFor(
+          rTypeParamsDeclsWithEq,
+          R.Eq,
+          datatypeType,
+          []
+        )
+      )
+    ]
+  }
+
   function CoerceImpl(
+    rc: R.Type -> R.Type,
+    rcNew: R.Expr -> R.Expr,
     rTypeParamsDecls: seq<R.TypeParamDecl>,
     datatypeName: string,
     datatypeType: R.Type,
@@ -602,7 +677,6 @@ module {:extern "Defs"} DafnyToRustCompilerDefinitions {
     coerceTypes: seq<R.Type>,
     coerceImplBody: R.Expr
   ): R.ModDecl {
-
     R.ImplDecl(
       R.Impl(
         rTypeParamsDecls,
@@ -614,15 +688,15 @@ module {:extern "Defs"} DafnyToRustCompilerDefinitions {
              "coerce", rCoerceTypeParams,
              coerceArguments,
              Some(
-               R.Rc(
+               rc(
                  R.ImplType(
                    R.FnType(
                      [datatypeType],
                      R.TypeApp(R.TIdentifier(datatypeName), coerceTypes))))),
              Some(
-               R.RcNew(R.Lambda([R.Formal("this", R.SelfOwned)],
-                                Some(R.TypeApp(R.TIdentifier(datatypeName), coerceTypes)),
-                                coerceImplBody)))))]
+               rcNew(R.Lambda([R.Formal("this", R.SelfOwned)],
+                              Some(R.TypeApp(R.TIdentifier(datatypeName), coerceTypes)),
+                              coerceImplBody)))))]
       ))
   }
 
@@ -662,13 +736,96 @@ module {:extern "Defs"} DafnyToRustCompilerDefinitions {
            R.NoDoc, R.NoAttr,
            R.PRIV,
            R.Fn(
-             "hash", [R.TypeParamDecl("_H", [R.std.MSel("hash").MSel("Hasher").AsType()])],
-             [R.Formal.selfBorrowed,
-              R.Formal("_state", R.BorrowedMut(R.TIdentifier("_H")))],
+             "hash", hash_type_parameters,
+             hash_parameters,
              None,
              Some(hashImplBody)))]
       ))
   }
+  const hash_type_parameters := [R.TypeParamDecl("_H", [R.std.MSel("hash").MSel("Hasher").AsType()])]
+  const hash_parameters := [
+    R.Formal.selfBorrowed,
+    R.Formal("_state", R.BorrowedMut(R.TIdentifier("_H")))]
+  const hash_function := R.std.MSel("hash").MSel("Hash").AsExpr().FSel("hash")
+  /**
+    fn _hash(&self) -> u64 {
+      let mut hasher = ::std::hash::DefaultHasher::new();
+      self.hash(&mut hasher);
+      hasher.finish()
+    } */
+  function hasher_trait(supportsEquality: bool, pointerType: PointerType): R.ImplMember {
+    R.FnDecl(
+      R.NoDoc, R.NoAttr,
+      R.PRIV,
+      R.Fn(
+        "_hash", [], [R.Formal.selfBorrowed], Some(R.Type.U64),
+        Some(
+          if supportsEquality then
+            R.DeclareVar(R.MUT, "hasher", None, Some(R.std.MSel("hash").MSel("DefaultHasher").AsExpr().FSel("new").Apply0())).Then(
+              R.self.Sel("hash").Apply1(R.UnaryOp("&mut", R.Identifier("hasher"), Format.UnaryOpFormat.NoFormat)).Then(
+                R.Identifier("hasher").Sel("finish").Apply0()
+              )
+            )
+          else
+            UnreachablePanicIfVerified(pointerType, "The type does not support equality")
+        )))
+  }
+
+  /** 
+    fn _eq(&self, other: &Box<dyn Test>) -> bool {
+      Test::_as_any(other.as_ref()).downcast_ref::<ADatatype>().map_or(false, |x| self == x)
+    } */
+  function eq_trait(fullTraitPath: R.Type, fullTraitExpr: R.Expr, supportsEquality: bool, pointerType: PointerType): R.ImplMember {
+    R.FnDecl(
+      R.NoDoc, R.NoAttr,
+      R.PRIV,
+      R.Fn(
+        "_eq", [], [R.Formal.selfBorrowed, R.Formal("other", R.Borrowed(R.Box(R.DynType(fullTraitPath))))], Some(R.Type.Bool),
+        Some(
+          if supportsEquality then
+            fullTraitExpr.FSel("_as_any").Apply1(R.Identifier("other").Sel("as_ref").Apply0()).Sel("downcast_ref").ApplyType([R.SelfOwned]).Apply0().Sel("map_or").Apply(
+              [
+                R.LiteralBool(false),
+                R.Lambda([R.Formal("x", R.RawType("_"))], None, R.BinaryOp("==", R.self, R.Identifier("x"), Format.BinaryOpFormat.NoFormat))
+              ]
+            )
+          else
+            UnreachablePanicIfVerified(pointerType, "The type does not support equality")
+        )))
+  }
+
+  function clone_trait(fullTraitPath: R.Type): R.ImplMember {
+    R.FnDecl(
+      R.NoDoc, R.NoAttr,
+      R.PRIV,
+      R.Fn(
+        "_clone", [], [R.Formal.selfBorrowed], Some(R.Box(R.DynType(fullTraitPath))),
+        Some(R.BoxNew(R.self.Sel("clone").Apply0()))))
+  }
+
+  /**
+    fn _fmt_print(&self, f: &mut Formatter<'_>, in_seq: bool) -> std::fmt::Result {
+      self.fmt_print(f, in_seq)
+    } */
+  const print_trait :=
+    R.FnDecl(
+      R.NoDoc, R.NoAttr,
+      R.PRIV,
+      R.Fn(
+        "_fmt_print", [], fmt_print_parameters, Some(fmt_print_result),
+        Some(R.self.Sel("fmt_print").Apply([R.Identifier("_formatter"), R.Identifier("in_seq")]))))
+
+  /**
+    fn _as_any(&self) -> &dyn ::std::any::Any {
+      self
+    } */
+  const as_any_trait :=
+    R.FnDecl(
+      R.NoDoc, R.NoAttr,
+      R.PRIV,
+      R.Fn(
+        "_as_any", [], [R.Formal.selfBorrowed], Some(R.Borrowed(R.DynType(R.AnyTrait))),
+        Some(R.self)))
 
   function UnaryOpsImpl(
     op: char,
@@ -761,11 +918,196 @@ module {:extern "Defs"} DafnyToRustCompilerDefinitions {
                R.Formal("other", R.SelfBorrowed)],
               Some(R.std.MSel("option").MSel("Option").AsType().Apply1(R.std.MSel("cmp").MSel("Ordering").AsType())),
               Some(
-                R.std.MSel("cmp").MSel("PartialOrd").AsExpr().FSel("partial_cmp").Apply([
-                                                                                          R.Borrow(R.self.Sel("0")),
-                                                                                          R.Borrow(R.Identifier("other").Sel("0"))
-                                                                                        ]))
+                R.std.MSel("cmp").MSel("PartialOrd").AsExpr().FSel("partial_cmp").Apply(
+                  [
+                    R.Borrow(R.self.Sel("0")),
+                    R.Borrow(R.Identifier("other").Sel("0"))
+                  ]))
             ))
+        ]))
+  }
+
+  const fmt_print_parameters := [
+    R.Formal.selfBorrowed,
+    R.Formal("_formatter", R.BorrowedMut(R.std.MSel("fmt").MSel("Formatter").AsType())),
+    R.Formal("in_seq", R.Type.Bool)]
+
+  const fmt_print_result := R.std.MSel("fmt").MSel("Result").AsType()
+
+  /*   
+  pub trait _Downcast_BDatatype<T> {
+    fn _is(&self) -> bool;
+    fn _as(&self) -> Rc<BDatatype<T>> or ADatatype<T> or Box<dyn SuperTrait>;
+  } */
+  function DowncastTraitDeclFor(
+    rTypeParamsDecls: seq<R.TypeParamDecl>,
+    fullType: R.Type
+  ): Option<R.ModDecl> {
+    var downcast_type :- fullType.ToDowncast();
+    Some(
+      R.TraitDecl(
+        R.Trait(
+          R.NoDoc, R.NoAttr,
+          rTypeParamsDecls,
+          downcast_type,
+          [],
+          [ R.FnDecl(
+              R.NoDoc, R.NoAttr,
+              R.PRIV,
+              R.Fn(
+                "_is", [],
+                [R.Formal.selfBorrowed],
+                Some(R.Bool),
+                None)),
+            R.FnDecl(
+              R.NoDoc, R.NoAttr,
+              R.PRIV,
+              R.Fn(
+                "_as", [],
+                [R.Formal.selfBorrowed],
+                Some(fullType),
+                None))
+          ])))
+  }
+
+  /*
+    impl _Downcast_TypeToDowncastTo for dyn Any {
+    fn _is(&self) -> bool {
+        self.downcast_ref::<TypeToDowncastTo>().is_some()
+    }
+    fn _as(&self) -> TypeToDowncastTo { // Possibly wrapped with rc
+        self.downcast_ref::<TypeToDowncastTo>().unwrap().clone() // Optimization: Could be unwrap_unchecked
+    }
+  } */
+  function DowncastImplFor(
+    rcNew: R.Expr -> R.Expr,
+    rTypeParamsDecls: seq<R.TypeParamDecl>,
+    datatypeType: R.Type
+  ): Option<R.ModDecl> {
+    var downcast_type :- datatypeType.ToDowncast();
+    var isRc := datatypeType.IsRc();
+    var datatypeTypeRaw := if isRc then datatypeType.RcUnderlying() else datatypeType;
+    var isBody :=
+      R.self.Sel("downcast_ref").ApplyType([datatypeTypeRaw]).Apply0().Sel("is_some").Apply0();
+    var asBody :=
+      R.self.Sel("downcast_ref").ApplyType([datatypeTypeRaw]).Apply0().Sel("unwrap").Apply0().Sel("clone").Apply0();
+    var asBody := if isRc then rcNew(asBody) else asBody;
+    Some(
+      R.ImplDecl(
+        R.ImplFor(
+          rTypeParamsDecls,
+          downcast_type,
+          R.DynType(R.AnyTrait),
+          [ R.FnDecl(
+              R.NoDoc, R.NoAttr,
+              R.PRIV,
+              R.Fn("_is", [], [R.Formal.selfBorrowed], Some(R.Bool), Some(isBody))),
+            R.FnDecl(
+              R.NoDoc, R.NoAttr,
+              R.PRIV,
+              R.Fn("_as", [], [R.Formal.selfBorrowed], Some(datatypeType), Some(asBody)))
+          ]))
+    )
+  }
+
+  /*
+    impl  _Downcast_TraitNotImplemented
+    for CDatatype {
+      fn _is(&self) -> bool { false }
+      fn _as(&self) -> Box<dyn TraitNotImplemented> { panic!(); }
+    }
+   */
+  function DowncastNotImplFor(
+    rTypeParamsDecls: seq<R.TypeParamDecl>,
+    traitType: R.Type,
+    datatypeType: R.Type
+  ): Option<R.ModDecl> {
+    var downcast_type :- traitType.ToDowncast();
+    var isRc := datatypeType.IsRc();
+    var datatypeTypeRaw := if isRc then datatypeType.RcUnderlying() else datatypeType;
+    var isBody := R.LiteralBool(false);
+    var asBody := R.Identifier("panic!").Apply0();
+    Some(
+      R.ImplDecl(
+        R.ImplFor(
+          rTypeParamsDecls,
+          downcast_type,
+          datatypeTypeRaw,
+          [ R.FnDecl(
+              datatypeTypeRaw.ToString("") + " does not implement that trait", R.NoAttr,
+              R.PRIV,
+              R.Fn("_is", [], [R.Formal.selfBorrowed], Some(R.Bool), Some(isBody))),
+            R.FnDecl(
+              R.NoDoc, R.NoAttr,
+              R.PRIV,
+              R.Fn("_as", [], [R.Formal.selfBorrowed], Some(traitType), Some(asBody)))
+          ]))
+    )
+  }
+
+  /* 
+  impl _Downcast_SuperSubTrait for ADatatype {
+    fn _is(&self) -> bool {
+      true
+    }
+    fn _as(&self) -> Box<dyn SuperSubTrait> {
+      Box::new(self.clone())
+    }
+  }
+ */
+  function DowncastImplTraitFor(
+    rTypeParamsDecls: seq<R.TypeParamDecl>,
+    traitType: R.Type,
+    implementsTrait: bool,
+    datatypeType: R.Type
+  ): Option<R.ModDecl> {
+    var downcast_type :- traitType.ToDowncast();
+    var isRc := datatypeType.IsRc();
+    var forType := if isRc then datatypeType.RcUnderlying() else datatypeType;
+    var resultType := traitType;
+    var isBody := R.LiteralBool(implementsTrait);
+    var asBody := R.BoxNew(R.self.Clone());
+    Some(
+      R.ImplDecl(
+        R.ImplFor(
+          rTypeParamsDecls,
+          downcast_type,
+          forType,
+          [ R.FnDecl(
+              R.NoDoc, R.NoAttr,
+              R.PRIV,
+              R.Fn("_is", [], [R.Formal.selfBorrowed], Some(R.Bool), Some(isBody))),
+            R.FnDecl(
+              R.NoDoc, R.NoAttr,
+              R.PRIV,
+              R.Fn("_as", [], [R.Formal.selfBorrowed], Some(resultType), Some(asBody)))
+          ]))
+    )
+  }
+
+  /* 
+  impl UpcastBox<dyn SuperTrait> for Box<dyn SubTrait> {
+    fn upcast(&self) -> Box<dyn SuperTrait> {
+      SuperTrait::_clone(self.as_ref())
+    }
+  }
+   */
+  function UpcastDynTraitFor(
+    rTypeParamsDecls: seq<R.TypeParamDecl>,
+    forBoxedTraitType: R.Type,
+    superTraitType: R.Type,
+    superTraitExpr: R.Expr
+  ): R.ModDecl {
+    var superBoxedTraitType := R.Box(R.DynType(superTraitType));
+    var body := superTraitExpr.FSel("_clone").Apply1(R.self.Sel("as_ref").Apply0());
+    R.ImplDecl(
+      R.ImplFor(
+        rTypeParamsDecls,
+        R.dafny_runtime.MSel("UpcastBox").AsType().Apply([R.DynType(superTraitType)]),
+        forBoxedTraitType,
+        [ R.FnDecl(
+            R.NoDoc, R.NoAttr, R.PRIV,
+            R.Fn("upcast", [], [R.Formal.selfBorrowed], Some(superBoxedTraitType), Some(body)))
         ]))
   }
 
@@ -842,5 +1184,12 @@ module {:extern "Defs"} DafnyToRustCompilerDefinitions {
       assert DetectAssignmentStatus(stmts_remainder[i..][1..], dafny_name) == DetectAssignmentStatus(stmts_remainder[i+1..], dafny_name);
     }
     return NotAssigned;
+  }
+
+  function prefixWith2(s: string): string {
+    if |s| >= 2 && s[..2] == "r#" then
+      "_2_" + s[2..]
+    else
+      "_2_" + s
   }
 }

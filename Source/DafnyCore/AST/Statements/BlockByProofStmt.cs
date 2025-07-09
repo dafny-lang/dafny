@@ -1,3 +1,4 @@
+#nullable enable
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -9,7 +10,10 @@ public class BlockByProofStmt : Statement, ICanResolveNewAndOld, ICanPrint,
 
   public Statement Body { get; }
   public BlockStmt Proof { get; }
-  public BlockByProofStmt(IOrigin range, BlockStmt proof, Statement body) : base(range) {
+
+  [SyntaxConstructor]
+  public BlockByProofStmt(IOrigin origin, BlockStmt proof, Statement body, Attributes? attributes = null)
+    : base(origin, attributes) {
     Proof = proof;
     Body = body;
   }
@@ -26,7 +30,7 @@ public class BlockByProofStmt : Statement, ICanResolveNewAndOld, ICanPrint,
     base.GenResolve(resolver, resolutionContext);
   }
 
-  internal static void ResolveByProof(INewOrOldResolver resolver, BlockStmt proof, ResolutionContext resolutionContext) {
+  internal static void ResolveByProof(INewOrOldResolver resolver, BlockStmt? proof, ResolutionContext resolutionContext) {
     if (proof == null) {
       return;
     }
@@ -34,8 +38,8 @@ public class BlockByProofStmt : Statement, ICanResolveNewAndOld, ICanPrint,
     // clear the labels for the duration of checking the proof body, because break statements are not allowed to leave the proof body
     var prevLblStmts = resolver.EnclosingStatementLabels;
     var prevLoopStack = resolver.LoopStack;
-    resolver.EnclosingStatementLabels = new Scope<Statement>(resolver.Options);
-    resolver.LoopStack = new List<Statement>();
+    resolver.EnclosingStatementLabels = new Scope<LabeledStatement>(resolver.Options);
+    resolver.LoopStack = [];
     resolver.ResolveStatement(proof, resolutionContext);
     resolver.EnclosingStatementLabels = prevLblStmts;
     resolver.LoopStack = prevLoopStack;
@@ -52,7 +56,7 @@ public class BlockByProofStmt : Statement, ICanResolveNewAndOld, ICanPrint,
   }
 
   public override void ResolveGhostness(ModuleResolver resolver, ErrorReporter reporter, bool mustBeErasable,
-    ICodeContext codeContext, string proofContext,
+    ICodeContext codeContext, string? proofContext,
     bool allowAssumptionVariables, bool inConstructorInitializationPhase) {
     IsGhost = mustBeErasable;  // set .IsGhost before descending into substatements (since substatements may do a 'break' out of this block)
     Body.ResolveGhostness(resolver, reporter, mustBeErasable, codeContext, proofContext, allowAssumptionVariables, inConstructorInitializationPhase);

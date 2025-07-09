@@ -49,7 +49,7 @@ class ScopeCloner : DeepModuleSignatureCloner {
       }
 
       if (!declmap.ContainsKey(def)) {
-        declmap.Add(def, new List<AliasModuleDecl>());
+        declmap.Add(def, []);
         sigmap.Add(def, new ModuleSignature());
         vismap.Add(def, new VisibilityScope());
       }
@@ -93,10 +93,10 @@ class ScopeCloner : DeepModuleSignatureCloner {
     if (d is (RevealableTypeDecl or TopLevelDeclWithMembers) and not DefaultClassDecl && !RevealedInScope(d)) {
       var tps = d.TypeArgs.ConvertAll(CloneTypeParam);
       var characteristics = TypeParameter.GetExplicitCharacteristics(d);
-      var members = based is TopLevelDeclWithMembers tm ? tm.Members : new List<MemberDecl>();
+      var members = based is TopLevelDeclWithMembers tm ? tm.Members : [];
       // copy the newParent traits only if "d" is already an AbstractTypeDecl and is being export-revealed
       var otd = new AbstractTypeDecl(Origin(d.Origin), d.NameNode.Clone(this), newParent, characteristics, tps,
-        new List<Type>(), // omit the newParent traits
+        [], // omit the newParent traits
         members, CloneAttributes(d.Attributes), d.IsRefining);
       based = otd;
       if (d is ClassLikeDecl { IsReferenceTypeDecl: true } cl) {
@@ -126,7 +126,7 @@ class ScopeCloner : DeepModuleSignatureCloner {
       Contract.Assert(basef.Body != null); // a function-by-method has a nonempty .Body
       if (RevealedInScope(f)) {
         // For an "export reveals", use an empty (but not absent) by-method part.
-        basef.ByMethodBody = new BlockStmt(basef.ByMethodBody.Origin, new List<Statement>());
+        basef.ByMethodBody = new BlockStmt(basef.ByMethodBody.Origin, []);
       } else {
         // For an "export provides", remove the by-method part altogether.
         basef.ByMethodTok = null;
@@ -139,9 +139,9 @@ class ScopeCloner : DeepModuleSignatureCloner {
     return basef;
   }
 
-  public override Method CloneMethod(Method m) {
+  public override MethodOrConstructor CloneMethod(MethodOrConstructor m) {
     var basem = base.CloneMethod(m);
-    basem.Body = null; //exports never reveal method bodies
+    basem.SetBody(null); //exports never reveal method bodies
     return basem;
   }
 

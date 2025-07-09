@@ -109,7 +109,7 @@ public class MultiBackendTest {
   private async Task<int> ForEachCompiler(ForEachCompilerOptions options) {
     var pluginParseResult = CommonOptionBag.PluginOption.Parse(options.OtherArgs.ToArray());
     var pluginArguments = pluginParseResult.GetValueForOption(CommonOptionBag.PluginOption);
-    var plugins = DafnyOptions.ComputePlugins(new List<Plugin>(), pluginArguments ?? new List<string>());
+    var plugins = DafnyOptions.ComputePlugins([], pluginArguments ?? new List<string>());
 
     string rawCompilerFilter = options.Compilers ??
                                Environment.GetEnvironmentVariable("DAFNY_INTEGRATION_TESTS_ONLY_COMPILERS")
@@ -143,16 +143,16 @@ public class MultiBackendTest {
     var resolutionOptions = new List<ResolutionSetting>() {
       new ResolutionSetting(
         "legacy",
-        new string[] { "--type-system-refresh=false", "--general-traits=legacy", "--general-newtypes=false" },
-        new string[] { ".verifier.expect" },
+        ["--type-system-refresh=false", "--general-traits=legacy", "--general-newtypes=false"],
+        [".verifier.expect"],
         0)
     };
     if (options.RefreshExitCode != null) {
       resolutionOptions.Add(
         new ResolutionSetting(
           "refresh",
-          new string[] { "--type-system-refresh" },
-          new string[] { ".refresh.expect", ".verifier.expect" },
+          ["--type-system-refresh", "--general-traits=datatype", "--general-newtypes"],
+          [".refresh.expect", ".verifier.expect"],
           (int)options.RefreshExitCode)
       );
     }
@@ -205,7 +205,7 @@ public class MultiBackendTest {
     var success = true;
     foreach (var plugin in plugins) {
       foreach (var compiler in plugin.GetCompilers(DafnyOptions.Default)) {
-        if (!compiler.IsStable || compilerFilter.Any() && !compilerFilter.Contains(compiler.TargetId)) {
+        if (!compiler.IsStable || (compilerFilter.Any() && !compilerFilter.Contains(compiler.TargetId))) {
           continue;
         }
 
@@ -287,11 +287,11 @@ public class MultiBackendTest {
     }.Concat(DafnyCliTests.NewDefaultArgumentsForTesting).ToArray();
 
     var resolutionOptions = new List<ResolutionSetting>() {
-      new("legacy", new string[] { "--type-system-refresh=false", "--general-traits=legacy", "--general-newtypes=false" },
-        new string[] { ".expect" },
+      new("legacy", ["--type-system-refresh=false", "--general-traits=legacy", "--general-newtypes=false"],
+        [".expect"],
         options.ExpectExitCode ?? 0),
-      new("refresh", new string[] { "--type-system-refresh" },
-        new string[] { ".refresh.expect", ".expect" },
+      new("refresh", ["--type-system-refresh", "--general-traits=datatype", "--general-newtypes"],
+        [".refresh.expect", ".expect"],
         options.RefreshExitCode ?? options.ExpectExitCode ?? 0)
     };
 
@@ -507,7 +507,7 @@ public class MultiBackendTest {
     }
     await output.WriteLineAsync("Execution failed, for reasons other than known unsupported features. Output:");
     await output.WriteLineAsync(outputString);
-    await output.WriteLineAsync("Error:");
+    await output.WriteLineAsync($"Error (code={exitCode}):");
     await output.WriteLineAsync(error);
     return exitCode;
   }

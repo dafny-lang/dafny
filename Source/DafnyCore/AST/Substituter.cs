@@ -100,12 +100,12 @@ namespace Microsoft.Dafny {
         }
       } else if (expr is MapDisplayExpr) {
         var e = (MapDisplayExpr)expr;
-        var elmts = new List<ExpressionPair>();
+        var elmts = new List<MapDisplayEntry>();
         var anyChanges = false;
         foreach (var ep in e.Elements) {
           var a = Substitute(ep.A);
           var b = Substitute(ep.B);
-          elmts.Add(new ExpressionPair(a, b));
+          elmts.Add(new MapDisplayEntry(a, b));
           if (a != ep.A || b != ep.B) {
             anyChanges = true;
           }
@@ -204,8 +204,8 @@ namespace Microsoft.Dafny {
         // problem, since variables have unique declarations.  However, it is an issue if the substitution
         // takes place inside an OldExpr.  In those cases (see LetExpr), the caller can use a
         // BoogieWrapper before calling Substitute.
-        Expression se = Substitute(e.E);
-        if (se != e.E) {
+        Expression se = Substitute(e.Expr);
+        if (se != e.Expr) {
           newExpr = new OldExpr(expr.Origin, se, e.At) {
             AtLabel = e.AtLabel ?? oldHeapLabel,
             Useless = e.Useless
@@ -304,7 +304,7 @@ namespace Microsoft.Dafny {
         var cases = new List<NestedMatchCaseExpr>();
         foreach (var mc in nestedMatchExpr.Cases) {
 
-          List<BoundVar> discoveredBvs = new();
+          List<BoundVar> discoveredBvs = [];
           ExtendedPattern SubstituteForPattern(ExtendedPattern pattern) {
             switch (pattern) {
               case DisjunctivePattern disjunctivePattern:
@@ -432,6 +432,15 @@ namespace Microsoft.Dafny {
           Type = decreasesToExpr.Type
         };
 
+      } else if (expr is FieldLocation fieldLocation) {
+        newExpr = null;
+      } else if (expr is IndexFieldLocation indexFieldLocation) {
+        var exprList = indexFieldLocation.Indices;
+        List<Expression> newArgs = SubstituteExprList(exprList);
+        var resolvedArrayCopy = Substitute(indexFieldLocation.ResolvedArrayCopy);
+        newExpr = new IndexFieldLocation(resolvedArrayCopy, indexFieldLocation.OpenParen, newArgs, indexFieldLocation.CloseParen);
+      } else if (expr is LocalsObjectExpression) {
+        newExpr = null;
       } else {
         Contract.Assume(false); // unexpected Expression
       }
@@ -494,7 +503,7 @@ namespace Microsoft.Dafny {
         // keep copies of the substitution maps so we can reuse them at desugaring time
         var newSubstMap = new Dictionary<IVariable, Expression>(substMap);
         var newTypeMap = new Dictionary<TypeParameter, Type>(typeMap);
-        return new BoogieGenerator.SubstLetExpr(letExpr.Origin, newLHSs, new List<Expression> { rhs }, body, letExpr.Exact, letExpr, newSubstMap, newTypeMap, newBounds);
+        return new BoogieGenerator.SubstLetExpr(letExpr.Origin, newLHSs, [rhs], body, letExpr.Exact, letExpr, newSubstMap, newTypeMap, newBounds);
       }
     }
 
@@ -585,7 +594,7 @@ namespace Microsoft.Dafny {
           var newBv = new BoundVar(bv.Origin, bv.Name, tt);
           newBoundVars.Add(newBv);
           // update substMap to reflect the new BoundVar substitutions
-          var ie = new IdentifierExpr(newBv.Origin, newBv.Name) { Var = newBv, Type = newBv.Type };
+          var ie = new IdentifierExpr(newBv.Origin, newBv);
           substMap.Add(bv, ie);
         }
       }
@@ -602,8 +611,8 @@ namespace Microsoft.Dafny {
       bool anythingChanged = false;
       var newVars = new List<LocalVariable>();
       foreach (var v in vars) {
-        var tt = v.SyntacticType.Subst(typeMap);
-        if (!forceSubstitutionOfVars && tt == v.SyntacticType) {
+        var tt = v.SafeSyntacticType.Subst(typeMap);
+        if (!forceSubstitutionOfVars && tt == v.SafeSyntacticType) {
           newVars.Add(v);
         } else {
           anythingChanged = true;
@@ -683,7 +692,7 @@ namespace Microsoft.Dafny {
 
         Expression substE = Substitute(elist[i]);
         if (substE != elist[i] && newElist == null) {
-          newElist = new List<Expression>();
+          newElist = [];
           for (int j = 0; j < i; j++) {
             newElist.Add(elist[j]);
           }
@@ -775,14 +784,14 @@ namespace Microsoft.Dafny {
         var s = (BreakOrContinueStmt)stmt;
         BreakOrContinueStmt rr;
         if (s.TargetLabel != null) {
-          rr = new BreakOrContinueStmt(s.Origin, s.TargetLabel, s.IsContinue);
+          rr = new BreakOrContinueStmt(s.Origin, s.TargetLabel, 0, s.IsContinue);
         } else {
           rr = new BreakOrContinueStmt(s.Origin, s.BreakAndContinueCount, s.IsContinue);
         }
         // r.TargetStmt will be filled in as later
-        if (!BreaksToBeResolved.TryGetValue(s, out var breaks)) {
-          breaks = new List<BreakOrContinueStmt>();
-          BreaksToBeResolved.Add(s, breaks);
+        if (!breaksToBeResolved.TryGetValue(s, out var breaks)) {
+          breaks = [];
+          breaksToBeResolved.Add(s, breaks);
         }
         breaks.Add(rr);
         r = rr;
@@ -884,37 +893,34 @@ namespace Microsoft.Dafny {
           (BlockStmt)SubstStmt(blockByProofStmt.Proof),
           SubstStmt(blockByProofStmt.Body));
         r = rr;
+      } else if (stmt is LabeledStatement labelledStatement) {
+        var rr = new LabeledStatement(labelledStatement.Origin,
+          labelledStatement.Labels, null);
+        r = rr;
       } else {
         Contract.Assert(false); throw new cce.UnreachableException();  // unexpected statement
       }
 
-      // add labels to the cloned statement
-      AddStmtLabels(r, stmt.Labels);
       r.Attributes = SubstAttributes(stmt.Attributes);
       r.IsGhost = stmt.IsGhost;
-      if (stmt.Labels != null || stmt is WhileStmt) {
-        if (BreaksToBeResolved.TryGetValue(stmt, out var breaks)) {
+      if (stmt is LabeledStatement labelledStatement2) {
+        ((LabeledStatement)r).Labels = labelledStatement2.Labels.ToList();
+        if (breaksToBeResolved.TryGetValue(stmt, out var breaks)) {
           foreach (var b in breaks) {
-            b.TargetStmt = r;
+            b.TargetStmt = (LabeledStatement)r;
           }
-          BreaksToBeResolved.Remove(stmt);
+          breaksToBeResolved.Remove(stmt);
         }
       }
 
       return r;
     }
 
-    Dictionary<Statement, List<BreakOrContinueStmt>> BreaksToBeResolved = new Dictionary<Statement, List<BreakOrContinueStmt>>();  // old-target -> new-breaks
-
-    protected void AddStmtLabels(Statement s, LList<Label> node) {
-      if (node != null) {
-        AddStmtLabels(s, node.Next);
-        s.Labels = new LList<Label>(node.Data, s.Labels);
-      }
-    }
+    private readonly Dictionary<Statement, List<BreakOrContinueStmt>> breaksToBeResolved = new();  // old-target -> new-breaks
 
     protected virtual DividedBlockStmt SubstDividedBlockStmt(DividedBlockStmt stmt) {
-      return stmt == null ? null : new DividedBlockStmt(stmt.Origin, stmt.BodyInit.ConvertAll(SubstStmt), stmt.SeparatorTok, stmt.BodyProper.ConvertAll(SubstStmt));
+      return stmt == null ? null : new DividedBlockStmt(stmt.Origin, stmt.BodyInit.ConvertAll(SubstStmt),
+        stmt.SeparatorTok, stmt.BodyProper.ConvertAll(SubstStmt), stmt.Labels);
     }
 
     protected virtual BlockStmt SubstBlockStmt(BlockStmt stmt) {
@@ -1048,16 +1054,15 @@ namespace Microsoft.Dafny {
       // For quantifiers and setComprehesion we want to make sure that we don't introduce name clashes with
       // the enclosing scopes.
 
-      var q = e as QuantifierExpr;
-      if (q != null && q.SplitQuantifier != null) {
+      if (e is QuantifierExpr { SplitQuantifier: not null } quantifierExpr) {
         if (forceSubstituteOfBoundVars) {
-          return Substitute(q.SplitQuantifierExpression);
+          return Substitute(quantifierExpr.SplitQuantifierExpression);
         } else {
-          return SubstituteComprehensionExpr((ComprehensionExpr)q.SplitQuantifierExpression, false);
+          return SubstituteComprehensionExpr((ComprehensionExpr)quantifierExpr.SplitQuantifierExpression, false);
         }
       }
 
-      var newBoundVars = CreateBoundVarSubstitutions(e.BoundVars, forceSubstituteOfBoundVars && (expr is ForallExpr || expr is ExistsExpr || expr is SetComprehension));
+      var newBoundVars = CreateBoundVarSubstitutions(e.BoundVars, forceSubstituteOfBoundVars && expr is ForallExpr or ExistsExpr or SetComprehension);
       var newRange = e.Range == null ? null : Substitute(e.Range);
       var newTerm = Substitute(e.Term);
       var newAttrs = SubstAttributes(e.Attributes);

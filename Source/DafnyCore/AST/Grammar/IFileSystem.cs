@@ -39,7 +39,7 @@ public class InMemoryFileSystem : IFileSystem {
   public DirectoryInfoBase GetDirectoryInfoBase(string root) {
     var inMemoryFiles = files.Keys.Select(openFileUri => openFileUri.LocalPath);
     var inMemory = new InMemoryDirectoryInfoFromDotNet8(root, inMemoryFiles);
-    return new CombinedDirectoryInfo(new[] { inMemory, OnDiskFileSystem.Instance.GetDirectoryInfoBase(root) });
+    return new CombinedDirectoryInfo([inMemory, OnDiskFileSystem.Instance.GetDirectoryInfoBase(root)]);
   }
 }
 

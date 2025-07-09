@@ -8,7 +8,7 @@
 // the verifier chooses to do first. Thus, if something changes in the verifier, then the CHECK lines below
 // may need to be permuted.
 // RUN: %OutputCheck --file-to-check "%t" "%s"
-// CHECK: .*Dafny program verifier finished with 4 verified, 0 errors*
+// CHECK: .*Dafny program verifier finished with 5 verified, 0 errors*
 // CHECK: .*Evaluating the position: checked=yes, checkmate=yes, pawn is attacking*
 // CHECK: .*Evaluating the position: checked=yes, checkmate=no, pawn is attacking*
 // CHECK: .*Evaluating the position: checked=no, checkmate=no*

@@ -14,7 +14,7 @@ using DafnyCore.Generic;
 namespace Microsoft.Dafny.Triggers {
   internal static class DeduplicateExtension {
     public static List<T> Deduplicate<T>(this IEnumerable<T> seq, Func<T, T, bool> eq) {
-      List<T> deduplicated = new List<T>();
+      List<T> deduplicated = [];
 
       foreach (var elem in seq) {
         if (!deduplicated.Any(other => eq(elem, other))) {

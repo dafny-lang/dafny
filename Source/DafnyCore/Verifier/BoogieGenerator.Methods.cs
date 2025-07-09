@@ -45,7 +45,7 @@ namespace Microsoft.Dafny {
         CurrentDeclaration = member;
         var ignored =
           filesWhereOnlyMembersAreVerified.Contains(member.Origin.Uri) &&
-          !member.HasUserAttribute("only", out _);
+          Attributes.Find(member.Attributes, "only") is null;
         if (ignored) {
           assertionOnlyFilter = _ => false;
         } else {
@@ -64,6 +64,11 @@ namespace Microsoft.Dafny {
             fieldDeclaration = GetReadonlyField(f);
             fuelContext = oldFuelContext;
             currentModule = null;
+            if (Options.Get(CommonOptionBag.Referrers)) {
+              // A constant is also treated as a memory location
+              fieldDeclaration = GetField(f);
+              sink.AddTopLevelDeclaration(fieldDeclaration);
+            }
           } else {
             if (f.IsMutable) {
               fieldDeclaration = GetField(f);
@@ -78,7 +83,7 @@ namespace Microsoft.Dafny {
           AddAllocationAxiom(fieldDeclaration, f, c);
         } else if (member is Function function) {
           AddFunction_Top(function, includeAllMethods);
-        } else if (member is Method method) {
+        } else if (member is MethodOrConstructor method) {
           AddMethod_Top(method, false, includeAllMethods);
         } else {
           Contract.Assert(false); throw new cce.UnreachableException();  // unexpected member
@@ -167,7 +172,7 @@ namespace Microsoft.Dafny {
       IsAllocContext = null;
     }
 
-    void AddMethod_Top(Method m, bool isByMethod, bool includeAllMethods) {
+    void AddMethod_Top(MethodOrConstructor m, bool isByMethod, bool includeAllMethods) {
       if (!includeAllMethods && !InVerificationScope(m) && !referencedMembers.Contains(m)) {
         // do nothing
         return;
@@ -387,8 +392,9 @@ namespace Microsoft.Dafny {
         ante = BplAnd(ante, isalloc_o);
 
         // compute a different trigger
-        t_es = new List<Bpl.Expr>();
-        t_es.Add(oDotF);
+        t_es = [
+          oDotF
+        ];
         if (!is_array && !f.IsMutable) {
           // since "h" is not part of oDotF, we add a separate term that mentions "h"
           t_es.Add(isalloc_o);
@@ -464,7 +470,7 @@ namespace Microsoft.Dafny {
       //this adds: axiom implements$J(class.C, typeInstantiations);
       var vars = MkTyParamBinders(GetTypeParams(c), out var tyexprs);
 
-      foreach (var parent in c.ParentTraits) {
+      foreach (var parent in c.Traits) {
         var trait = ((UserDefinedType)parent).AsParentTraitDecl();
         Contract.Assert(trait != null);
         var arg = ClassTyCon(c, tyexprs);
@@ -519,7 +525,7 @@ namespace Microsoft.Dafny {
       Reset();
     }
 
-    private void AddMethodImpl(Method m, Bpl.Procedure proc, bool wellformednessProc) {
+    private void AddMethodImpl(MethodOrConstructor m, Bpl.Procedure proc, bool wellformednessProc) {
       Contract.Requires(m != null);
       Contract.Requires(proc != null);
       Contract.Requires(sink != null && Predef != null);
@@ -538,13 +544,13 @@ namespace Microsoft.Dafny {
       var builder = new BoogieStmtListBuilder(this, options, new BodyTranslationContext(m.ContainsHide));
       builder.Add(new CommentCmd("AddMethodImpl: " + m + ", " + proc));
       var etran = new ExpressionTranslator(this, Predef, m.Origin,
-        m.IsByMethod ? m.FunctionFromWhichThisIsByMethodDecl : m);
+        m is Method { IsByMethod: true } ? m.FunctionFromWhichThisIsByMethodDecl : m);
       // Only do reads checks for methods, not lemmas
       // (which aren't allowed to declare frames and don't check reads and writes against them).
       // Also don't do any reads checks if the reads clause is *,
       // since all the checks will be trivially true
       // and we don't need to cause additional verification cost for existing code.
-      if (!options.Get(Method.ReadsClausesOnMethods) || m.IsLemmaLike || m.Reads.Expressions.Exists(e => e.E is WildcardExpr)) {
+      if (!options.Get(MethodOrConstructor.ReadsClausesOnMethods) || m.IsLemmaLike || m.Reads.Expressions.Exists(e => e.E is WildcardExpr)) {
         etran = etran.WithReadsFrame(null);
       }
       InitializeFuelConstant(m.Origin, builder, etran);
@@ -579,7 +585,7 @@ namespace Microsoft.Dafny {
       Reset();
     }
 
-    private StmtList TrMethodContractWellformednessCheck(Method m, ExpressionTranslator etran, Variables localVariables,
+    private StmtList TrMethodContractWellformednessCheck(MethodOrConstructor m, ExpressionTranslator etran, Variables localVariables,
       BoogieStmtListBuilder builder, List<Variable> outParams) {
       var builderInitializationArea = new BoogieStmtListBuilder(this, options, builder.Context);
       StmtList stmts;
@@ -650,12 +656,12 @@ namespace Microsoft.Dafny {
         var modifies = m.Mod;
         var allowsAllocation = m.AllowsAllocation;
 
-        ApplyModifiesEffect(m, etran, builder, modifies, allowsAllocation, m.IsGhost);
+        ApplyModifiesEffect(m, etran.Old, etran, builder, modifies, allowsAllocation, m.IsGhost);
       }
 
       // also play havoc with the out parameters
       if (outParams.Count != 0) {  // don't create an empty havoc statement
-        List<Boogie.IdentifierExpr> outH = new List<Boogie.IdentifierExpr>();
+        List<Boogie.IdentifierExpr> outH = [];
         foreach (Boogie.Variable b in outParams) {
           Contract.Assert(b != null);
           outH.Add(new Boogie.IdentifierExpr(b.tok, b));
@@ -687,19 +693,21 @@ namespace Microsoft.Dafny {
       return stmts;
     }
 
-    public void ApplyModifiesEffect(INode node, ExpressionTranslator etran, BoogieStmtListBuilder builder,
+    public void ApplyModifiesEffect(INode node, ExpressionTranslator beforeBlockExpressionTranslator,
+      ExpressionTranslator etran, BoogieStmtListBuilder builder,
       Specification<FrameExpression> modifies, bool allowsAllocation, bool isGhostContext) {
       // play havoc with the heap according to the modifies clause
-      builder.Add(new Boogie.HavocCmd(node.Origin, new List<Boogie.IdentifierExpr> { etran.HeapCastToIdentifierExpr }));
+      builder.Add(new Boogie.HavocCmd(node.Origin, [etran.HeapCastToIdentifierExpr]));
       // assume the usual two-state boilerplate information
-      foreach (BoilerplateTriple tri in GetTwoStateBoilerplate(node.Origin, modifies.Expressions, isGhostContext, allowsAllocation, etran.Old, etran, etran.Old)) {
+      foreach (BoilerplateTriple tri in GetTwoStateBoilerplate(node.Origin, modifies.Expressions, isGhostContext,
+                 allowsAllocation, beforeBlockExpressionTranslator, etran, beforeBlockExpressionTranslator)) {
         if (tri.IsFree) {
           builder.Add(TrAssumeCmd(node.Origin, tri.Expr));
         }
       }
     }
 
-    private StmtList TrMethodBody(Method m, BoogieStmtListBuilder builder, Variables localVariables,
+    private StmtList TrMethodBody(MethodOrConstructor m, BoogieStmtListBuilder builder, Variables localVariables,
       ExpressionTranslator etran) {
       var inductionVars = ApplyInduction(m.Ins, m.Attributes);
       if (inductionVars.Count != 0) {
@@ -755,7 +763,7 @@ namespace Microsoft.Dafny {
           TypeApplicationJustMember = m.TypeArgs.ConvertAll(tp => (Type)new UserDefinedType(tp.Origin, tp)),
           Type = new InferredTypeProxy()
         };
-        var recursiveCall = new CallStmt(m.Origin, new List<Expression>(), methodSel, recursiveCallArgs) {
+        var recursiveCall = new CallStmt(m.Origin, [], methodSel, recursiveCallArgs) {
           IsGhost = m.IsGhost
         };
 
@@ -816,16 +824,16 @@ namespace Microsoft.Dafny {
       m.Outs.ForEach(p => AddExistingDefiniteAssignmentTracker(p, m.IsGhost));
       // translate the body
       TrStmt(m.Body, builder, localVariables, etran);
-      m.Outs.ForEach(p => CheckDefiniteAssignmentReturn(m.Body.Origin.EndToken, p, builder));
+      m.Outs.ForEach(p => CheckDefiniteAssignmentReturn(m.Body.EndToken, p, builder));
       if (m is { FunctionFromWhichThisIsByMethodDecl: { ByMethodTok: { } } fun }) {
         AssumeCanCallForByMethodDecl(m, builder);
       }
-      var stmts = builder.Collect(m.Body.Origin.StartToken); // EndToken might make more sense, but it requires updating most of the regression tests.
+      var stmts = builder.Collect(m.Body.StartToken); // EndToken might make more sense, but it requires updating most of the regression tests.
       DefiniteAssignmentTrackers = beforeOutTrackers;
       return stmts;
     }
 
-    private void AddMethodOverrideCheckImpl(Method m, Boogie.Procedure proc) {
+    private void AddMethodOverrideCheckImpl(MethodOrConstructor m, Boogie.Procedure proc) {
       Contract.Requires(m != null);
       Contract.Requires(proc != null);
       Contract.Requires(sink != null && Predef != null);
@@ -911,12 +919,12 @@ namespace Microsoft.Dafny {
       Reset();
     }
 
-    private void HavocMethodFrameLocations(Method m, BoogieStmtListBuilder builder, ExpressionTranslator etran, Variables localVariables) {
+    private void HavocMethodFrameLocations(MethodOrConstructor m, BoogieStmtListBuilder builder, ExpressionTranslator etran, Variables localVariables) {
       Contract.Requires(m != null);
       Contract.Requires(m.EnclosingClass != null && m.EnclosingClass is ClassLikeDecl);
 
       // play havoc with the heap according to the modifies clause
-      builder.Add(new Bpl.HavocCmd(m.Origin, new List<Bpl.IdentifierExpr> { etran.HeapCastToIdentifierExpr }));
+      builder.Add(new Bpl.HavocCmd(m.Origin, [etran.HeapCastToIdentifierExpr]));
       // assume the usual two-state boilerplate information
       foreach (BoilerplateTriple tri in GetTwoStateBoilerplate(m.Origin, m.Mod.Expressions, m.IsGhost, m.AllowsAllocation, etran.Old, etran, etran.Old)) {
         if (tri.IsFree) {
@@ -1013,7 +1021,7 @@ namespace Microsoft.Dafny {
 
       var name = MethodName(f, MethodTranslationKind.OverrideCheck);
       var implicitParameters = Util.Concat(typeInParams, inParams_Heap);
-      var proc = new Boogie.Procedure(f.Origin, name, new List<Boogie.TypeVariable>(),
+      var proc = new Boogie.Procedure(f.Origin, name, [],
         Util.Concat(implicitParameters, inParams), outParams,
         false, req, mod, ens, etran.TrAttributes(f.Attributes, null));
       AddVerboseNameAttribute(proc, f.FullDafnyName, MethodTranslationKind.OverrideCheck);
@@ -1087,10 +1095,8 @@ namespace Microsoft.Dafny {
 
 
     private void AddFunctionOverrideEnsChk(Function f, BoogieStmtListBuilder builder, ExpressionTranslator etran,
-      Dictionary<IVariable, Expression> substMap,
-      Dictionary<TypeParameter, Type> typeMap,
-      List<Bpl.Variable> implInParams,
-      Bpl.Variable/*?*/ resultVariable) {
+      Dictionary<IVariable, Expression> substMap, Dictionary<TypeParameter, Type> typeMap,
+      List<Bpl.Variable> implInParams, Bpl.Variable/*?*/ resultVariable) {
       Contract.Requires(f.Ins.Count <= implInParams.Count);
 
       var cco = new CanCallOptions(true, f);
@@ -1133,27 +1139,25 @@ namespace Microsoft.Dafny {
       }
 
       // conjunction of class post-conditions
-      var allOverrideEns = f.Ens.Count == 0 ? null : f.Ens
+      var allOverrideEns = f.Ens
         .Select(e => e.E)
-        .Aggregate((e0, e1) => new BinaryExpr(Token.NoToken, BinaryExpr.Opcode.And, e0, e1));
+        .Aggregate((Expression)Expression.CreateBoolLiteral(f.Origin, true), (e0, e1) => Expression.CreateAnd(e0, e1));
       //generating trait post-conditions with class variables
       cco = new CanCallOptions(true, f, true);
-      FunctionCallSubstituter sub = null;
+      FunctionCallSubstituter sub = new FunctionCallSubstituter(substMap, typeMap,
+        (TraitDecl)f.OverriddenFunction.EnclosingClass, (TopLevelDeclWithMembers)f.EnclosingClass);
       foreach (var en in ConjunctsOf(f.OverriddenFunction.Ens)) {
-        sub ??= new FunctionCallSubstituter(substMap, typeMap, (TraitDecl)f.OverriddenFunction.EnclosingClass, (TopLevelDeclWithMembers)f.EnclosingClass);
         var subEn = sub.Substitute(en.E);
         foreach (var s in TrSplitExpr(new BodyTranslationContext(false), subEn, etran, false, out _).Where(s => s.IsChecked)) {
           builder.Add(TrAssumeCmd(f.Origin, etran.CanCallAssumption(subEn, cco)));
-          var constraint = allOverrideEns == null
-            ? null
-            : new BinaryExpr(Token.NoToken, BinaryExpr.Opcode.Imp, allOverrideEns, subEn);
+          var constraint = Expression.CreateImplies(allOverrideEns, subEn);
           builder.Add(Assert(f.Origin, s.E, new FunctionContractOverride(true, constraint), builder.Context));
         }
       }
     }
 
     private void AddOverrideCheckTypeArgumentInstantiations(MemberDecl member, BoogieStmtListBuilder builder, Variables localVariables) {
-      Contract.Requires(member is Function || member is Method);
+      Contract.Requires(member is Function or MethodOrConstructor);
       Contract.Requires(member.EnclosingClass is TopLevelDeclWithMembers);
       Contract.Requires(builder != null);
       Contract.Requires(localVariables != null);
@@ -1165,7 +1169,7 @@ namespace Microsoft.Dafny {
         overriddenMember = o;
         overriddenTypeParameters = o.TypeArgs;
       } else {
-        var o = ((Method)member).OverriddenMethod;
+        var o = ((MethodOrConstructor)member).OverriddenMethod;
         overriddenMember = o;
         overriddenTypeParameters = o.TypeArgs;
       }
@@ -1179,13 +1183,12 @@ namespace Microsoft.Dafny {
 
 
     private void AddFunctionOverrideSubsetChk(Function func, BoogieStmtListBuilder builder, ExpressionTranslator etran, Variables localVariables,
-      Dictionary<IVariable, Expression> substMap,
-      Dictionary<TypeParameter, Type> typeMap) {
+      Dictionary<IVariable, Expression> substMap, Dictionary<TypeParameter, Type> typeMap) {
       //getting framePrime
-      List<FrameExpression> traitFrameExps = new List<FrameExpression>();
-      FunctionCallSubstituter sub = null;
+      List<FrameExpression> traitFrameExps = [];
+      FunctionCallSubstituter sub = new FunctionCallSubstituter(substMap, typeMap,
+        (TraitDecl)func.OverriddenFunction.EnclosingClass, (TopLevelDeclWithMembers)func.EnclosingClass);
       foreach (var e in func.OverriddenFunction.Reads.Expressions) {
-        sub ??= new FunctionCallSubstituter(substMap, typeMap, (TraitDecl)func.OverriddenFunction.EnclosingClass, (TopLevelDeclWithMembers)func.EnclosingClass);
         var newE = sub.Substitute(e.E);
         FrameExpression fe = new FrameExpression(e.Origin, newE, e.FieldName);
         traitFrameExps.Add(fe);
@@ -1200,13 +1203,13 @@ namespace Microsoft.Dafny {
       Contract.Assert(traitFrame.Type != null);  // follows from the postcondition of ReadsFrame
       var frame = localVariables.GetOrAdd(new Bpl.LocalVariable(tok, new Bpl.TypedIdent(tok, null ?? traitFrame.Name, traitFrame.Type)));
       // $_ReadsFrame := (lambda $o: ref, $f: Field :: $o != null && $Heap[$o,alloc] ==> ($o,$f) in Modifies/Reads-Clause);
-      Bpl.BoundVariable oVar = new Bpl.BoundVariable(tok, new Bpl.TypedIdent(tok, "$o", Predef.RefType));
-      Bpl.IdentifierExpr o = new Bpl.IdentifierExpr(tok, oVar);
-      Bpl.BoundVariable fVar = new Bpl.BoundVariable(tok, new Bpl.TypedIdent(tok, "$f", Predef.FieldName(tok)));
-      Bpl.IdentifierExpr f = new Bpl.IdentifierExpr(tok, fVar);
+      var oVar = new Bpl.BoundVariable(tok, new Bpl.TypedIdent(tok, "$o", Predef.RefType));
+      var o = new Bpl.IdentifierExpr(tok, oVar);
+      var fVar = new Bpl.BoundVariable(tok, new Bpl.TypedIdent(tok, "$f", Predef.FieldName(tok)));
+      var f = new Bpl.IdentifierExpr(tok, fVar);
       Bpl.Expr ante = BplAnd(Bpl.Expr.Neq(o, Predef.Null), etran.IsAlloced(tok, o));
       Bpl.Expr consequent = InRWClause(tok, o, f, traitFrameExps, etran, null, null);
-      Bpl.Expr lambda = new Bpl.LambdaExpr(tok, new List<TypeVariable>(), new List<Variable> { oVar, fVar }, null,
+      Bpl.Expr lambda = new Bpl.LambdaExpr(tok, [], [oVar, fVar], null,
                                            BplImp(ante, consequent));
 
       //to initialize $_ReadsFrame variable to Frame'
@@ -1215,40 +1218,37 @@ namespace Microsoft.Dafny {
       // emit: assert (forall o: ref, f: Field :: o != null && $Heap[o,alloc] && (o,f) in subFrame ==> $_ReadsFrame[o,f]);
       Bpl.Expr oInCallee = InRWClause(tok, o, f, func.Reads.Expressions, etran, null, null);
       Bpl.Expr consequent2 = InRWClause(tok, o, f, traitFrameExps, etran, null, null);
-      Bpl.Expr q = new Bpl.ForallExpr(tok, new List<TypeVariable>(), new List<Variable> { oVar, fVar },
+      Bpl.Expr q = new Bpl.ForallExpr(tok, [], [oVar, fVar],
                                       BplImp(BplAnd(ante, oInCallee), consequent2));
       var description = new TraitFrame(func.WhatKind, false, func.Reads.Expressions, traitFrameExps);
       builder.Add(Assert(tok, q, description, builder.Context, kv));
     }
 
     private void AddFunctionOverrideReqsChk(Function f, BoogieStmtListBuilder builder, ExpressionTranslator etran,
-      Dictionary<IVariable, Expression> substMap,
-      Dictionary<TypeParameter, Type> typeMap) {
+      Dictionary<IVariable, Expression> substMap, Dictionary<TypeParameter, Type> typeMap) {
       Contract.Requires(f != null);
       Contract.Requires(builder != null);
       Contract.Requires(etran != null);
       Contract.Requires(substMap != null);
       //generating trait pre-conditions with class variables
       var cco = new CanCallOptions(true, f, true);
-      FunctionCallSubstituter sub = null;
+      FunctionCallSubstituter sub = new FunctionCallSubstituter(substMap, typeMap,
+        (TraitDecl)f.OverriddenFunction.EnclosingClass, (TopLevelDeclWithMembers)f.EnclosingClass);
       var subReqs = new List<Expression>();
       foreach (var req in ConjunctsOf(f.OverriddenFunction.Req)) {
-        sub ??= new FunctionCallSubstituter(substMap, typeMap, (TraitDecl)f.OverriddenFunction.EnclosingClass, (TopLevelDeclWithMembers)f.EnclosingClass);
         var subReq = sub.Substitute(req.E);
         builder.Add(TrAssumeCmd(f.Origin, etran.CanCallAssumption(subReq, cco)));
         builder.Add(TrAssumeCmdWithDependencies(etran, f.Origin, subReq, "overridden function requires clause"));
         subReqs.Add(subReq);
       }
-      var allTraitReqs = subReqs.Count == 0 ? null : subReqs
-        .Aggregate((e0, e1) => new BinaryExpr(Token.NoToken, BinaryExpr.Opcode.And, e0, e1));
+
+      var allTraitReqs = subReqs.Aggregate((Expression)Expression.CreateBoolLiteral(f.Origin, true), (e0, e1) => Expression.CreateAnd(e0, e1));
       //generating class pre-conditions
       cco = new CanCallOptions(true, f);
       foreach (var req in ConjunctsOf(f.Req)) {
         foreach (var s in TrSplitExpr(new BodyTranslationContext(false), req.E, etran, false, out _).Where(s => s.IsChecked)) {
           builder.Add(TrAssumeCmd(f.Origin, etran.CanCallAssumption(req.E, cco)));
-          var constraint = allTraitReqs == null
-            ? null
-            : new BinaryExpr(Token.NoToken, BinaryExpr.Opcode.Imp, allTraitReqs, req.E);
+          var constraint = Expression.CreateImplies(allTraitReqs, req.E);
           builder.Add(Assert(f.Origin, s.E, new FunctionContractOverride(false, constraint), builder.Context));
         }
       }
@@ -1439,7 +1439,7 @@ namespace Microsoft.Dafny {
       var canCallImp = BplImp(canCallFunc, canCallOverridingFunc);
 
       // The axiom
-      Boogie.Expr ax = BplForall(f.Origin, new List<Boogie.TypeVariable>(), forallFormals, null, tr,
+      Boogie.Expr ax = BplForall(f.Origin, [], forallFormals, null, tr,
         BplImp(ante, BplAnd(canCallImp, synonyms)));
       var comment = $"override axiom for {f.FullSanitizedName} in {overridingFunction.EnclosingClass.WhatKind} {overridingFunction.EnclosingClass.FullSanitizedName}";
       return new Boogie.Axiom(f.Origin, ax, comment);
@@ -1465,8 +1465,8 @@ namespace Microsoft.Dafny {
     /// See also GetTypeArguments.
     /// </summary>
     private static Dictionary<TypeParameter, Type> GetTypeArgumentSubstitutionMap(MemberDecl member, MemberDecl overridingMember) {
-      Contract.Requires(member is Function || member is Method);
-      Contract.Requires(overridingMember is Function || overridingMember is Method);
+      Contract.Requires(member is Function || member is MethodOrConstructor);
+      Contract.Requires(overridingMember is Function || overridingMember is MethodOrConstructor);
       Contract.Requires(overridingMember.EnclosingClass is TopLevelDeclWithMembers);
       Contract.Requires(((ICallable)member).TypeArgs.Count == ((ICallable)overridingMember).TypeArgs.Count);
 
@@ -1486,7 +1486,7 @@ namespace Microsoft.Dafny {
       return typeMap;
     }
 
-    private void AddMethodOverrideEnsChk(Method m, BoogieStmtListBuilder builder, ExpressionTranslator etran,
+    private void AddMethodOverrideEnsChk(MethodOrConstructor m, BoogieStmtListBuilder builder, ExpressionTranslator etran,
       Dictionary<IVariable, Expression> substMap,
       Dictionary<TypeParameter, Type> typeMap) {
       Contract.Requires(m != null);
@@ -1499,25 +1499,23 @@ namespace Microsoft.Dafny {
         builder.Add(TrAssumeCmdWithDependencies(etran, m.Origin, en.E, "overridden ensures clause"));
       }
       // conjunction of class post-conditions
-      var allOverrideEns = m.Ens.Count == 0 ? null : m.Ens
+      var allOverrideEns = m.Ens
         .Select(e => e.E)
-        .Aggregate((e0, e1) => new BinaryExpr(Token.NoToken, BinaryExpr.Opcode.And, e0, e1));
+        .Aggregate((Expression)Expression.CreateBoolLiteral(m.Origin, true), (e0, e1) => Expression.CreateAnd(e0, e1));
       //generating trait post-conditions with class variables
-      FunctionCallSubstituter sub = null;
+      FunctionCallSubstituter sub = new FunctionCallSubstituter(substMap, typeMap,
+        (TraitDecl)m.OverriddenMethod.EnclosingClass, (TopLevelDeclWithMembers)m.EnclosingClass);
       foreach (var en in ConjunctsOf(m.OverriddenMethod.Ens)) {
-        sub ??= new FunctionCallSubstituter(substMap, typeMap, (TraitDecl)m.OverriddenMethod.EnclosingClass, (TopLevelDeclWithMembers)m.EnclosingClass);
         var subEn = sub.Substitute(en.E);
         foreach (var s in TrSplitExpr(new BodyTranslationContext(false), subEn, etran, false, out _).Where(s => s.IsChecked)) {
           builder.Add(TrAssumeCmd(m.OverriddenMethod.Origin, etran.CanCallAssumption(subEn)));
-          var constraint = allOverrideEns == null
-            ? null
-            : new BinaryExpr(Token.NoToken, BinaryExpr.Opcode.Imp, allOverrideEns, subEn);
+          var constraint = Expression.CreateImplies(allOverrideEns, subEn);
           builder.Add(Assert(m.Origin, s.E, new EnsuresStronger(constraint), builder.Context));
         }
       }
     }
 
-    private void AddMethodOverrideReqsChk(Method m, BoogieStmtListBuilder builder, ExpressionTranslator etran,
+    private void AddMethodOverrideReqsChk(MethodOrConstructor m, BoogieStmtListBuilder builder, ExpressionTranslator etran,
       Dictionary<IVariable, Expression> substMap,
       Dictionary<TypeParameter, Type> typeMap) {
       Contract.Requires(m != null);
@@ -1525,32 +1523,29 @@ namespace Microsoft.Dafny {
       Contract.Requires(etran != null);
       Contract.Requires(substMap != null);
       //generating trait pre-conditions with class variables
-      FunctionCallSubstituter sub = null;
+      FunctionCallSubstituter sub = new FunctionCallSubstituter(substMap, typeMap,
+        (TraitDecl)m.OverriddenMethod.EnclosingClass, (TopLevelDeclWithMembers)m.EnclosingClass);
       var subReqs = new List<Expression>();
       foreach (var req in ConjunctsOf(m.OverriddenMethod.Req)) {
-        sub ??= new FunctionCallSubstituter(substMap, typeMap, (TraitDecl)m.OverriddenMethod.EnclosingClass, (TopLevelDeclWithMembers)m.EnclosingClass);
         var subReq = sub.Substitute(req.E);
         builder.Add(TrAssumeCmd(m.OverriddenMethod.Origin, etran.CanCallAssumption(subReq)));
         builder.Add(TrAssumeCmdWithDependencies(etran, m.Origin, subReq, "overridden requires clause"));
         subReqs.Add(subReq);
       }
-      var allTraitReqs = subReqs.Count == 0 ? null : subReqs
-        .Aggregate((e0, e1) => new BinaryExpr(Token.NoToken, BinaryExpr.Opcode.And, e0, e1));
-      //generating class pre-conditions
+      var allTraitReqs = subReqs.Aggregate((Expression)Expression.CreateBoolLiteral(m.Origin, true), (e0, e1) => Expression.CreateAnd(e0, e1));
+
+      // generating class pre-conditions
       foreach (var req in ConjunctsOf(m.Req)) {
         foreach (var s in TrSplitExpr(new BodyTranslationContext(false), req.E, etran, false, out _).Where(s => s.IsChecked)) {
           builder.Add(TrAssumeCmd(m.Origin, etran.CanCallAssumption(req.E)));
-          var constraint = allTraitReqs == null
-            ? null
-            : new BinaryExpr(Token.NoToken, BinaryExpr.Opcode.Imp, allTraitReqs, req.E);
+          var constraint = Expression.CreateImplies(allTraitReqs, req.E);
           builder.Add(Assert(m.Origin, s.E, new RequiresWeaker(constraint), builder.Context));
         }
       }
     }
 
     private void AddOverrideTerminationChk(ICallable original, ICallable overryd, BoogieStmtListBuilder builder, ExpressionTranslator etran,
-      Dictionary<IVariable, Expression> substMap,
-      Dictionary<TypeParameter, Type> typeMap) {
+      Dictionary<IVariable, Expression> substMap, Dictionary<TypeParameter, Type> typeMap) {
       Contract.Requires(original != null);
       Contract.Requires(overryd != null);
       Contract.Requires(builder != null);
@@ -1583,7 +1578,7 @@ namespace Microsoft.Dafny {
           N = i;
           break;
         }
-        toks.Add(new NestedOrigin(original.Origin.StartToken, e1.Origin));
+        toks.Add(new NestedOrigin(original.StartToken, e1.Origin));
         calleeDafny.Add(e0);
         callerDafny.Add(e1);
         callee.Add(etran.TrExpr(e0));
@@ -1628,17 +1623,17 @@ namespace Microsoft.Dafny {
       builder.Add(Assert(original.Origin, decrChk, desc, builder.Context));
     }
 
-    private void AddMethodOverrideFrameSubsetChk(Method m, bool isModifies, BoogieStmtListBuilder builder, ExpressionTranslator etran, Variables localVariables,
+    private void AddMethodOverrideFrameSubsetChk(MethodOrConstructor m, bool isModifies, BoogieStmtListBuilder builder, ExpressionTranslator etran, Variables localVariables,
       Dictionary<IVariable, Expression> substMap,
       Dictionary<TypeParameter, Type> typeMap) {
 
       List<FrameExpression> classFrameExps;
       List<FrameExpression> originalTraitFrameExps;
       if (isModifies) {
-        classFrameExps = m.Mod != null ? m.Mod.Expressions : new List<FrameExpression>();
+        classFrameExps = m.Mod != null ? m.Mod.Expressions : [];
         originalTraitFrameExps = m.OverriddenMethod.Mod?.Expressions;
       } else {
-        classFrameExps = m.Reads != null ? m.Reads.Expressions : new List<FrameExpression>();
+        classFrameExps = m.Reads != null ? m.Reads.Expressions : [];
         originalTraitFrameExps = m.OverriddenMethod.Reads?.Expressions;
       }
 
@@ -1649,20 +1644,21 @@ namespace Microsoft.Dafny {
           // Trivially true
           return;
         }
+
+        var sub = new FunctionCallSubstituter(substMap, typeMap, (TraitDecl)m.OverriddenMethod.EnclosingClass, (TopLevelDeclWithMembers)m.EnclosingClass);
         foreach (var e in originalTraitFrameExps) {
-          var newE = Substitute(e.E, null, substMap, typeMap);
+          var newE = sub.Substitute(e.E);
           var fe = new FrameExpression(e.Origin, newE, e.FieldName);
           traitFrameExps.Add(fe);
         }
       }
 
-
-      var kv = etran.TrAttributes(m.Attributes, null);
       var tok = m.Origin;
       var canCalls = traitFrameExps.Concat(classFrameExps)
         .Select(e => etran.CanCallAssumption(e.E))
         .Aggregate((Bpl.Expr)Bpl.Expr.True, BplAnd);
       builder.Add(TrAssumeCmd(tok, canCalls));
+
       var oVar = new Boogie.BoundVariable(tok, new Boogie.TypedIdent(tok, "$o", Predef.RefType));
       var o = new Boogie.IdentifierExpr(tok, oVar);
       var fVar = new Boogie.BoundVariable(tok, new Boogie.TypedIdent(tok, "$f", Predef.FieldName(tok)));
@@ -1672,22 +1668,23 @@ namespace Microsoft.Dafny {
       // emit: assert (forall o: ref, f: Field :: o != null && $Heap[o,alloc] && (o,f) in subFrame ==> $_Frame[o,f]);
       var oInCallee = InRWClause(tok, o, f, classFrameExps, etran, null, null);
       var consequent2 = InRWClause(tok, o, f, traitFrameExps, etran, null, null);
-      var q = new Boogie.ForallExpr(tok, new List<TypeVariable>(), new List<Variable> { oVar, fVar },
+      var q = new Boogie.ForallExpr(tok, [], [oVar, fVar],
         BplImp(BplAnd(ante, oInCallee), consequent2));
       var description = new TraitFrame(m.WhatKind, isModifies, classFrameExps, traitFrameExps);
+      var kv = etran.TrAttributes(m.Attributes, null);
       builder.Add(Assert(m.Origin, q, description, builder.Context, kv));
     }
 
     // Return a way to know if an assertion should be converted to an assumption
     private void SetAssertionOnlyFilter(Node m) {
-      List<IOrigin> rangesOnly = new List<IOrigin>();
+      List<TokenRange> rangesOnly = [];
       m.Visit(node => {
         if (node is AssertStmt assertStmt &&
             assertStmt.HasAssertOnlyAttribute(out var assertOnlyKind)) {
           var ifAfterLastToken = m.EndToken;
           if (rangesOnly.FindIndex(r => r.Contains(node.StartToken)) is var x && x >= 0) {
             if (assertOnlyKind == AssertStmt.AssertOnlyKind.Before) {// Just shorten the previous range
-              rangesOnly[x] = new SourceOrigin(rangesOnly[x].StartToken, node.EndToken);
+              rangesOnly[x] = new TokenRange(rangesOnly[x].StartToken, node.EndToken);
               return true;
             }
 
@@ -1697,10 +1694,10 @@ namespace Microsoft.Dafny {
 
           var rangeToAdd =
             assertOnlyKind == AssertStmt.AssertOnlyKind.Before ?
-              new SourceOrigin(m.StartToken, assertStmt.EndToken) :
+              new TokenRange(m.StartToken, assertStmt.EndToken) :
               assertOnlyKind == AssertStmt.AssertOnlyKind.After ?
-              new SourceOrigin(assertStmt.StartToken, ifAfterLastToken)
-              : assertStmt.Origin;
+              new TokenRange(assertStmt.StartToken, ifAfterLastToken)
+              : assertStmt.EntireRange;
           if (assertOnlyKind == AssertStmt.AssertOnlyKind.Before && rangesOnly.Any(other => rangeToAdd.Intersects(other))) {
             // There are more precise ranges so we don't add this one
             return true;
@@ -1723,7 +1720,7 @@ namespace Microsoft.Dafny {
     /// This method is expected to be called at most once for each parameter combination, and in particular
     /// at most once for each value of "kind".
     /// </summary>
-    private Boogie.Procedure AddMethod(Method m, MethodTranslationKind kind) {
+    private Boogie.Procedure AddMethod(MethodOrConstructor m, MethodTranslationKind kind) {
       Contract.Requires(m != null);
       Contract.Requires(m.EnclosingClass != null);
       Contract.Requires(Predef != null);
@@ -1741,6 +1738,10 @@ namespace Microsoft.Dafny {
       var ordinaryEtran = new ExpressionTranslator(this, Predef, m.Origin, m);
       ExpressionTranslator etran;
       var inParams = new List<Boogie.Variable>();
+      if (Options.Get(CommonOptionBag.Referrers) && m is not Lemma) {
+        inParams.Add(new Boogie.Formal(Token.NoToken, new TypedIdent(m.Origin, "depth", Bpl.Type.Int), true));
+      }
+
       var bodyKind = kind == MethodTranslationKind.SpecWellformedness || kind == MethodTranslationKind.Implementation;
       if (m is TwoStateLemma) {
         var prevHeapVar = new Boogie.Formal(m.Origin, new Boogie.TypedIdent(m.Origin, "previous$Heap", Predef.HeapType), true);
@@ -1761,7 +1762,7 @@ namespace Microsoft.Dafny {
       var req = GetRequires();
       var mod = new List<Bpl.IdentifierExpr> { ordinaryEtran.HeapCastToIdentifierExpr };
       var ens = GetEnsures();
-      var proc = new Bpl.Procedure(m.Origin, name, new List<Bpl.TypeVariable>(),
+      var proc = new Bpl.Procedure(m.Origin, name, [],
         inParams, outParams.Values.ToList(), false, req, mod, ens, etran.TrAttributes(m.Attributes, null));
       AddVerboseNameAttribute(proc, m.FullDafnyName, kind);
 
@@ -1905,7 +1906,7 @@ namespace Microsoft.Dafny {
       return modifiesClause.Expressions.All(e => e.E is SetDisplayExpr setDisplayExpr && !setDisplayExpr.Elements.Any());
     }
 
-    private void InsertChecksum(Method m, Boogie.Declaration decl, bool specificationOnly = false) {
+    private void InsertChecksum(MethodOrConstructor m, Boogie.Declaration decl, bool specificationOnly = false) {
       Contract.Requires(VisibleInScope(m));
       byte[] data;
       using (var writer = new System.IO.StringWriter()) {
@@ -1932,7 +1933,7 @@ namespace Microsoft.Dafny {
 
     internal IEnumerable<Bpl.Expr> TypeBoundAxioms(IOrigin tok, List<TypeParameter> typeParameters) {
       foreach (var typeParameter in typeParameters.Where(typeParameter => typeParameter.TypeBounds.Any())) {
-        TypeBoundAxiomExpressions(tok, new List<Variable>(), new UserDefinedType(typeParameter), typeParameter.TypeBounds,
+        TypeBoundAxiomExpressions(tok, [], new UserDefinedType(typeParameter), typeParameter.TypeBounds,
           out var isBoxExpr, out var isAllocBoxExpr);
         yield return isBoxExpr;
         yield return isAllocBoxExpr;

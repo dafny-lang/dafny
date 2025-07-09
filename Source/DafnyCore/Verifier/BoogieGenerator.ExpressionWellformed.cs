@@ -55,7 +55,7 @@ namespace Microsoft.Dafny {
       DoOnlyCoarseGrainedTerminationChecks = doOnlyCoarseGrainedTerminationChecks;
       if (saveReadsChecks) {
         Locals = new Variables();
-        CreateAsserts = new();
+        CreateAsserts = [];
       }
     }
 
@@ -289,6 +289,14 @@ namespace Microsoft.Dafny {
           }
         case LiteralExpr:
           CheckResultToBeInType(expr.Origin, expr, expr.Type, locals, builder, etran);
+          if (expr is StringLiteralExpr stringLiteralExpr) {
+            var ancestorSeqType = (SeqType)expr.Type.NormalizeToAncestorType();
+            var elementType = ancestorSeqType.Arg;
+            foreach (var ch in Util.UnescapedCharacters(options, (string)stringLiteralExpr.Value, stringLiteralExpr.IsVerbatim)) {
+              var rawElement = FunctionCall(GetToken(stringLiteralExpr), BuiltinFunction.CharFromInt, null, Boogie.Expr.Literal(ch));
+              CheckSubrange(expr.Origin, rawElement, Type.Char, elementType, expr, builder);
+            }
+          }
           break;
         case ThisExpr:
         case WildcardExpr:
@@ -321,7 +329,7 @@ namespace Microsoft.Dafny {
             Contract.Assert(type is MapType);
             var keyType = ((MapType)type).Domain;
             var valType = ((MapType)type).Range;
-            foreach (ExpressionPair p in e.Elements) {
+            foreach (MapDisplayEntry p in e.Elements) {
               CheckWellformed(p.A, wfOptions, locals, builder, etran);
               CheckSubrange(p.A.Origin, etran.TrExpr(p.A), p.A.Type, keyType, p.A, builder);
               CheckWellformed(p.B, wfOptions, locals, builder, etran);
@@ -454,7 +462,7 @@ namespace Microsoft.Dafny {
                 var fieldName = FunctionCall(e.Origin, BuiltinFunction.IndexField, null, i);
                 var allowedToRead = Bpl.Expr.SelectTok(e.Origin, etran.ReadsFrame(e.Origin), seq, fieldName);
                 var trigger = BplTrigger(allowedToRead); // Note, the assertion we're about to produce only seems useful in the check-only mode (that is, with subsumption 0), but if it were to be assumed, we'll use this entire RHS as the trigger
-                var qq = new Bpl.ForallExpr(e.Origin, new List<Variable> { iVar }, trigger, BplImp(range, allowedToRead));
+                var qq = new Bpl.ForallExpr(e.Origin, [iVar], trigger, BplImp(range, allowedToRead));
                 var requiredFrame = new FrameExpression(Token.NoToken, e.Seq, null);
                 var desc = new ReadFrameSubset("read the indicated range of array elements", requiredFrame, readFrames, e, etran.scope);
                 wfOptions.AssertSink(this, builder)(selectExpr.Origin, qq, desc, wfOptions.AssertKv);
@@ -469,29 +477,11 @@ namespace Microsoft.Dafny {
         case MultiSelectExpr selectExpr: {
             MultiSelectExpr e = selectExpr;
             CheckWellformed(e.Array, wfOptions, locals, builder, etran);
-            Bpl.Expr array = etran.TrExpr(e.Array);
-            builder.Add(Assert(GetToken(e.Array), Bpl.Expr.Neq(array, Predef.Null),
-              new NonNull("array", e.Array), builder.Context));
-            if (etran.UsesOldHeap) {
-              builder.Add(Assert(GetToken(e.Array), MkIsAlloc(array, e.Array.Type, etran.HeapExpr),
-                new IsAllocated("array", null, e.Array), builder.Context));
-            }
-            for (int idxId = 0; idxId < e.Indices.Count; idxId++) {
-              var idx = e.Indices[idxId];
-              CheckWellformed(idx, wfOptions, locals, builder, etran);
-
-              var index = etran.TrExpr(idx);
-              index = ConvertExpression(idx.Origin, index, idx.Type, Type.Int);
-              var lower = Bpl.Expr.Le(Bpl.Expr.Literal(0), index);
-              var length = ArrayLength(idx.Origin, array, e.Indices.Count, idxId);
-              var upper = Bpl.Expr.Lt(index, length);
-              var tok = idx is IdentifierExpr ? e.Origin : idx.Origin; // TODO: Reusing the token of an identifier expression would underline its definition. but this is still not perfect.
-
-              var desc = new InRange(e.Array, e.Indices[idxId], true, $"index {idxId}", idxId);
-              builder.Add(Assert(tok, BplAnd(lower, upper), desc, builder.Context, wfOptions.AssertKv));
-            }
+            var array = CheckNonNullAndAllocated(builder, etran, e.Array);
+            var indices = e.Indices;
+            CheckWellFormednessOfIndexList(wfOptions, locals, builder, etran, indices, array, e.Array, e);
             if (wfOptions.DoReadsChecks) {
-              Bpl.Expr fieldName = etran.GetArrayIndexFieldName(e.Origin, e.Indices);
+              Bpl.Expr fieldName = etran.GetArrayIndexFieldName(e.Origin, indices);
               var requiredFrame = new FrameExpression(Token.NoToken, e.Array, null);
               var desc = new ReadFrameSubset("read array element", requiredFrame, readFrames, selectExpr, etran.scope);
               wfOptions.AssertSink(this, builder)(selectExpr.Origin, Bpl.Expr.SelectTok(selectExpr.Origin, etran.ReadsFrame(selectExpr.Origin), array, fieldName),
@@ -645,7 +635,7 @@ namespace Microsoft.Dafny {
               var requiredFrame = new FrameExpression(Token.NoToken, readsCall, null);
               var desc = new ReadFrameSubset("invoke function", requiredFrame, readFrames);
 
-              CheckFrameSubset(applyExpr.Origin, new List<FrameExpression> { wrappedReads }, null, null,
+              CheckFrameSubset(applyExpr.Origin, [wrappedReads], null, null,
                 etran, etran.ReadsFrame(applyExpr.Origin), wfOptions.AssertSink(this, builder), (ta, qa) => builder.Add(new Bpl.AssumeCmd(ta, qa)), desc, wfOptions.AssertKv);
             }
 
@@ -696,7 +686,7 @@ namespace Microsoft.Dafny {
                 // to BVD what this variable stands for and display it as such to the user.
                 Type et = p.Type.Subst(e.GetTypeArgumentSubstitutions());
                 LocalVariable local = new LocalVariable(p.Origin, "##" + p.Name, et, p.IsGhost);
-                local.type = local.SyntacticType;  // resolve local here
+                local.type = local.SafeSyntacticType;  // resolve local here
                 var ie = new IdentifierExpr(local.Origin, local.AssignUniqueName(CurrentDeclaration.IdGenerator)) {
                   Var = local
                 };
@@ -804,11 +794,11 @@ namespace Microsoft.Dafny {
                         Token.NoToken
                       );
                       readsCall.Type = objset;
-                      requiredFrames = new() { new FrameExpression(Token.NoToken, readsCall, null) };
+                      requiredFrames = [new FrameExpression(Token.NoToken, readsCall, null)];
                       break;
                   }
                   var desc = new ReadFrameSubset("invoke function", requiredFrames, readFrames);
-                  CheckFrameSubset(expr.Origin, new List<FrameExpression> { reads }, null, null,
+                  CheckFrameSubset(expr.Origin, [reads], null, null,
                     etran, etran.ReadsFrame(expr.Origin), wfOptions.AssertSink(this, builder), (ta, qa) => builder.Add(new Bpl.AssumeCmd(ta, qa)), desc, wfOptions.AssertKv);
                 }
 
@@ -825,7 +815,7 @@ namespace Microsoft.Dafny {
                   var (errorMessage, successMessage) = CustomErrorMessage(p.Attributes);
                   foreach (var ss in TrSplitExpr(builder.Context, precond, etran, true, out _)) {
                     if (ss.IsChecked) {
-                      var tok = new NestedOrigin(GetToken(expr), ss.Tok);
+                      var tok = new NestedOrigin(GetToken(expr), ss.Tok, "this proposition could not be proved");
                       var desc = new PreconditionSatisfied(directPrecond, errorMessage, successMessage);
                       if (wfOptions.AssertKv != null) {
                         // use the given assert attribute only
@@ -936,7 +926,7 @@ namespace Microsoft.Dafny {
 
             CheckWellformed(e.Initializer, wfOptions, locals, builder, etran);
             var eType = e.Type.NormalizeToAncestorType().AsSeqType.Arg;
-            CheckElementInit(e.Origin, false, new List<Expression>() { e.N }, eType, e.Initializer, null, builder, etran, wfOptions);
+            CheckElementInit(e.Origin, false, [e.N], eType, e.Initializer, null, builder, etran, wfOptions);
             break;
           }
         case MultiSetFormingExpr formingExpr: {
@@ -950,7 +940,7 @@ namespace Microsoft.Dafny {
             // Anything read inside the 'old' expressions depends only on the old heap, which isn't included in the
             // frame axiom.  In other words, 'old' expressions have no dependencies on the current heap.  Therefore,
             // we turn off any reads checks for "e.E".
-            CheckWellformed(e.E, wfOptions.WithReadsChecks(false), locals, builder, etran.OldAt(e.AtLabel));
+            CheckWellformed(e.Expr, wfOptions.WithReadsChecks(false), locals, builder, etran.OldAt(e.AtLabel));
             break;
           }
         case UnchangedExpr unchangedExpr: {
@@ -980,7 +970,7 @@ namespace Microsoft.Dafny {
               if (wfOptions.DoReadsChecks) {
                 var desc = new ReadFrameSubset($"read state of 'unchanged' {description}", fe, contextReadsFrames);
                 CheckFrameSubset(fe.E.Origin,
-                  new List<FrameExpression>() { fe },
+                  [fe],
                   null, new Dictionary<IVariable, Expression>(), etran, etran.ReadsFrame(fe.E.Origin), wfOptions.AssertSink(this, builder),
                   (ta, qa) => builder.Add(new Bpl.AssumeCmd(ta, qa)),
                   desc, wfOptions.AssertKv);
@@ -1375,11 +1365,59 @@ namespace Microsoft.Dafny {
             }
             break;
           }
+        case FieldLocation: {
+            // Nothing to verify
+            break;
+          }
+        case LocalsObjectExpression: {
+            // Nothing to verify
+            break;
+          }
+        case IndexFieldLocation ifl: {
+            // Verify similar to MultiSelectExpr, except we don't actually read the location
+            // The well-formedness of the array should already have been established.
+            // However, we also need the array to be non-null and allocated
+            var array = CheckNonNullAndAllocated(builder, etran, ifl.ResolvedArrayCopy);
+            CheckWellFormednessOfIndexList(wfOptions, locals, builder, etran,
+              ifl.Indices, array, ifl.ResolvedArrayCopy, ifl);
+            // We don't do reads checks as we are not reading the heap
+            break;
+          }
         default:
           Contract.Assert(false); throw new cce.UnreachableException();  // unexpected expression
       }
 
       addResultCommands?.Invoke(builder, expr);
+    }
+
+    private void CheckWellFormednessOfIndexList(WFOptions wfOptions, Variables locals, BoogieStmtListBuilder builder,
+      ExpressionTranslator etran, List<Expression> indices, Expr array, Expression arrayExpression, Expression e) {
+      for (int idxId = 0; idxId < indices.Count; idxId++) {
+        var idx = indices[idxId];
+        CheckWellformed(idx, wfOptions, locals, builder, etran);
+
+        var index = etran.TrExpr(idx);
+        index = ConvertExpression(idx.Origin, index, idx.Type, Type.Int);
+        var lower = Bpl.Expr.Le(Bpl.Expr.Literal(0), index);
+        var length = ArrayLength(idx.Origin, array, indices.Count, idxId);
+        var upper = Bpl.Expr.Lt(index, length);
+        var tok = idx is IdentifierExpr ? e.Origin : idx.Origin; // TODO: Reusing the token of an identifier expression would underline its definition. but this is still not perfect.
+
+        var desc = new InRange(arrayExpression, indices[idxId], true, $"index {idxId}", idxId);
+        builder.Add(Assert(tok, BplAnd(lower, upper), desc, builder.Context, wfOptions.AssertKv));
+      }
+    }
+
+    private Expr CheckNonNullAndAllocated(BoogieStmtListBuilder builder, ExpressionTranslator etran, Expression obj) {
+      Bpl.Expr array = etran.TrExpr(obj);
+      builder.Add(Assert(GetToken(obj), Bpl.Expr.Neq(array, Predef.Null),
+        new NonNull("array", obj), builder.Context));
+
+      if (etran.UsesOldHeap) {
+        builder.Add(Assert(GetToken(obj), MkIsAlloc(array, obj.Type, etran.HeapExpr),
+          new IsAllocated("array", null, obj), builder.Context));
+      }
+      return array;
     }
 
     public void CheckSubsetType(ExpressionTranslator etran, Expression expr, Bpl.Expr selfCall, Type resultType,
@@ -1453,7 +1491,7 @@ namespace Microsoft.Dafny {
 
     private void CheckNotGhostVariant(MemberSelectExpr expr, string whatKind, List<DatatypeCtor> candidateCtors,
       BoogieStmtListBuilder builder, ExpressionTranslator etran) {
-      CheckNotGhostVariant(expr.InCompiledContext, expr, expr.Obj, whatKind, new List<MemberDecl>() { expr.Member },
+      CheckNotGhostVariant(expr.InCompiledContext, expr, expr.Obj, whatKind, [expr.Member],
         candidateCtors, builder, etran);
     }
 
@@ -1544,7 +1582,8 @@ namespace Microsoft.Dafny {
           builder.Add(ifCmd);
 
           var bounds = lhsVars.ConvertAll(_ => (BoundedPool)new SpecialAllocIndependenceAllocatedBoundedPool());  // indicate "no alloc" (is this what we want?)
-          GenerateAndCheckGuesses(e.Origin, lhsVars, bounds, e.RHSs[0], TrTrigger(etran, e.Attributes, e.Origin), builder, etran);
+          GenerateAndCheckGuesses(e.Origin, lhsVars, bounds, e.RHSs[0], e.Attributes, Attributes.Contains(e.Attributes, "_noAutoTriggerFound"),
+            builder, etran);
         }
         // assume typeAntecedent(b);
         builder.Add(TrAssumeCmd(e.Origin, typeAntecedent));
@@ -1669,7 +1708,7 @@ namespace Microsoft.Dafny {
           null
         );
         var readsDesc = new ReadFrameSubset("invoke the function passed as an argument to the sequence constructor", readsDescExpr);
-        CheckFrameSubset(tok, new List<FrameExpression> { reads }, null, null,
+        CheckFrameSubset(tok, [reads], null, null,
           etran, etran.ReadsFrame(tok), maker, (ta, qa) => builder.Add(new Bpl.AssumeCmd(ta, qa)), readsDesc, options.AssertKv);
       }
       // Check that the values coming out of the function satisfy any appropriate subset-type constraints

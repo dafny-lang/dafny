@@ -2,6 +2,28 @@
 
 See [docs/dev/news/](docs/dev/news/).
 
+# 4.10.0
+
+## New features
+
+- Support for code actions in the language server to:
+  - Insert failing implicit assertions in a "by" clause by preference.
+  - Insert forall statement for any forall expressions that could not be proved
+  - Insert calc statement for any equality that cannot be proved.
+  (https://github.com/dafny-lang/dafny/pull/6044)
+
+- Besides `--filter-position :<line>`, also support `--filter-position :<start>-<end>`, `--filter-position :<start>-` and `--filter-position :-<end>` (https://github.com/dafny-lang/dafny/pull/6077)
+
+- The options --iterations from the command `measure-complexity`, has been renamed to `--mutations`. The option `--progress VerificationJob` has been renamed to `--progress Batch`. (https://github.com/dafny-lang/dafny/pull/6078)
+
+## Bug fixes
+
+- By clauses for assign-such-that statements (:|), are now never ignored. (https://github.com/dafny-lang/dafny/pull/6024)
+
+- The code action for assertion no longer suggests asserting the same assertion. (https://github.com/dafny-lang/dafny/pull/6025)
+
+- Fix a bug that caused a crash when translating by blocks (https://github.com/dafny-lang/dafny/pull/6050)
+
 # 4.9.1
 
 ## New features

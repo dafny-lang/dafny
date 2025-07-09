@@ -119,8 +119,8 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
             .ToList();
 
         // Put errors in the front. Put assertions with the highest resource count first
-        List<(string content, long resources)> errors = new();
-        List<(string content, long resources)> other = new();
+        List<(string content, long resources)> errors = [];
+        List<(string content, long resources)> other = [];
 
         foreach (var assertionBatch in orderedAssertionBatches) {
           if (!assertionBatch.Range.Contains(position)) {
@@ -293,13 +293,19 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
           } else {
             token = null;
           }
-          var dafnyToken = BoogieGenerator.ToDafnyToken(true, errorToken);
+          var dafnyToken = BoogieGenerator.ToDafnyToken(errorToken);
 
           // It's not necessary to restate the postcondition itself if the user is already hovering it
           // however, nested postconditions should be displayed
 
           if (dafnyToken.IncludesRange && !hoveringPostcondition) {
-            var originalText = dafnyToken.PrintOriginal();
+            string originalText;
+            if (dafnyToken.EntireRange != null) {
+              originalText = dafnyToken.EntireRange.PrintOriginal();
+            } else {
+              var tokenNode = ideState.Program.FindNode<Node>(dafnyToken.Uri, dafnyToken.ToDafnyPosition());
+              originalText = tokenNode.EntireRange.PrintOriginal();
+            }
             deltaInformation += "  \n" + (token == null ? couldProveOrNotPrefix : "Inside ") + "`" + originalText + "`";
           }
 

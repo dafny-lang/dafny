@@ -23,7 +23,7 @@ public class CalcStmt : Statement, ICloneable<CalcStmt>, ICanFormat {
   }
 
   public class BinaryCalcOp : CalcOp {
-    public readonly BinaryExpr.Opcode Op;
+    public BinaryExpr.Opcode Op;
 
     [ContractInvariantMethod]
     void ObjectInvariant() {
@@ -115,7 +115,7 @@ public class CalcStmt : Statement, ICloneable<CalcStmt>, ICanFormat {
   }
 
   public class TernaryCalcOp : CalcOp {
-    public readonly Expression Index; // the only allowed ternary operator is ==#, so we only store the index
+    public Expression Index; // the only allowed ternary operator is ==#, so we only store the index
 
     [ContractInvariantMethod]
     void ObjectInvariant() {
@@ -196,18 +196,18 @@ public class CalcStmt : Statement, ICloneable<CalcStmt>, ICanFormat {
     return alternativeOp;
   }
 
-  public readonly List<Expression> Lines;    // Last line is dummy, in order to form a proper step with the dangling hint
-  public readonly List<BlockStmt> Hints;     // Hints[i] comes after line i; block statement is used as a container for multiple sub-hints
-  public readonly CalcOp UserSuppliedOp;     // may be null, if omitted by the user
-  public readonly List<CalcOp/*?*/> StepOps; // StepOps[i] comes after line i
+  public List<Expression> Lines;    // Last line is dummy, in order to form a proper step with the dangling hint
+  public List<BlockStmt> Hints;     // Hints[i] comes after line i; block statement is used as a container for multiple sub-hints
+  public CalcOp UserSuppliedOp;     // may be null, if omitted by the user
+  public List<CalcOp/*?*/> StepOps; // StepOps[i] comes after line i
   [FilledInDuringResolution]
   public CalcOp Op;                          // main operator of the calculation (either UserSuppliedOp or (after resolution) an inferred CalcOp)
-  [FilledInDuringResolution] public readonly List<Expression> Steps;    // expressions li op l<i + 1> (last step is dummy)
+  [FilledInDuringResolution] public List<Expression> Steps;    // expressions li op l<i + 1> (last step is dummy)
   [FilledInDuringResolution] public Expression Result;                  // expression l0 ResultOp ln
 
-  public static readonly CalcOp DefaultOp = new BinaryCalcOp(BinaryExpr.Opcode.Eq);
+  public static CalcOp DefaultOp = new BinaryCalcOp(BinaryExpr.Opcode.Eq);
 
-  public override IEnumerable<INode> Children => Steps.Concat(Result != null ? new Node[] { Result } : new Node[] { }).Concat(Hints);
+  public override IEnumerable<INode> Children => Steps.Concat(Result != null ? [Result] : new Node[] { }).Concat(Hints);
   public override IEnumerable<INode> PreResolveChildren => Lines.Take(Lines.Count > 0 ? Lines.Count - 1 : 0).Concat<Node>(Hints.Where(hintBatch => hintBatch.Body.Count() != 0));
 
   [ContractInvariantMethod]
@@ -236,7 +236,7 @@ public class CalcStmt : Statement, ICloneable<CalcStmt>, ICanFormat {
     UserSuppliedOp = userSuppliedOp;
     Lines = lines;
     Hints = hints;
-    Steps = new List<Expression>();
+    Steps = [];
     StepOps = stepOps;
     Result = null;
     Attributes = attrs;
@@ -264,7 +264,7 @@ public class CalcStmt : Statement, ICloneable<CalcStmt>, ICanFormat {
       Result = cloner.CloneExpr(original.Result);
       Op = original.Op;
     } else {
-      Steps = new List<Expression>();
+      Steps = [];
     }
   }
 

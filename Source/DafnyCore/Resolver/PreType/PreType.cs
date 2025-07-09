@@ -40,6 +40,8 @@ namespace Microsoft.Dafny {
     public const string TypeNameImap = "imap";
     public const string TypeNameObjectQ = "object?";
     public const string TypeNameArray = "array";
+    public const string TypeNameString = "string";
+    public const string TypeNameField = "field";
 
     public static string SetTypeName(bool finite) => finite ? TypeNameSet : TypeNameIset;
     public static string MapTypeName(bool finite) => finite ? TypeNameMap : TypeNameImap;
@@ -128,6 +130,9 @@ namespace Microsoft.Dafny {
     }
 
     public bool IsRefType => Normalize() is DPreType { Decl: ClassLikeDecl { IsReferenceTypeDecl: true } };
+
+    public bool IsFieldType =>
+      Normalize() is DPreType { Decl: Declaration { Name: TypeNameField } };
 
     /// <summary>
     /// Returns "true" if "proxy" is among the free variables of "this".
@@ -333,6 +338,12 @@ namespace Microsoft.Dafny {
       return decl is ClassLikeDecl { IsReferenceTypeDecl: true };
     }
 
+    public static bool IsFieldLocationType(DPreType dp) {
+      return dp.Decl is TupleTypeDecl { Dims: 2 }
+             && dp.Arguments[0].Normalize().IsRefType
+             && dp.Arguments[1].Normalize().IsFieldType;
+    }
+
     public static bool IsArrowType(TopLevelDecl decl) {
       Contract.Requires(decl != null);
       return ArrowType.IsArrowTypeName(decl.Name);
@@ -385,7 +396,7 @@ namespace Microsoft.Dafny {
         var pt = arg.Substitute(subst);
         if (pt != arg && newArguments == null) {
           // lazily construct newArguments
-          newArguments = new();
+          newArguments = [];
           // copy all previous items, all of which were unaffected by substitution
           for (var j = 0; j < i; j++) {
             newArguments.Add(Arguments[j]);
@@ -400,6 +411,17 @@ namespace Microsoft.Dafny {
         return this;
       }
       return new DPreType(Decl, newArguments ?? Arguments, printablePreType);
+    }
+
+    public TopLevelDecl DeclWithMembersBypassInternalSynonym() {
+      if (Decl is InternalTypeSynonymDecl isyn) {
+        var udt = UserDefinedType.FromTopLevelDecl(isyn.Origin, isyn);
+        if (isyn.RhsWithArgumentIgnoringScope(udt.TypeArgs) is UserDefinedType { ResolvedClass: { } decl }) {
+          return decl is NonNullTypeDecl nntd ? nntd.Class : decl;
+        }
+      }
+
+      return Decl;
     }
 
     /// <summary>
@@ -426,7 +448,6 @@ namespace Microsoft.Dafny {
         Contract.Assert(isyn.TypeArgs.Count == cl.TypeArgs.Count);
         for (var i = 0; i < isyn.TypeArgs.Count; i++) {
           var typeParameter = isyn.TypeArgs[i];
-          Contract.Assert(typeParameter == cl.TypeArgs[i]);
           Contract.Assert(rhsType.TypeArgs[i] is UserDefinedType { ResolvedClass: var tpDecl } && tpDecl == typeParameter);
         }
 

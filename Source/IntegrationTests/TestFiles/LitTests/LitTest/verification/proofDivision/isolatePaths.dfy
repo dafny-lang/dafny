@@ -1,4 +1,4 @@
-// RUN: ! %verify --progress VerificationJobs --cores=1 %s &> %t.raw
+// RUN: ! %verify --progress Batch --cores=1 %s &> %t.raw
 // RUN: %sed 's#\(time.*\)#<redacted>#g' %t.raw > %t
 // RUN: %diff "%s.expect" "%t"
 

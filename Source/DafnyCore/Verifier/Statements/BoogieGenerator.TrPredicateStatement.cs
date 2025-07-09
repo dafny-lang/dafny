@@ -102,7 +102,7 @@ namespace Microsoft.Dafny {
             if (v is LocalVariable) {
               var vcopy = new LocalVariable(stmt.Origin, string.Format("##{0}#{1}", name, v.Name), v.Type,
                 v.IsGhost);
-              vcopy.type = vcopy.SyntacticType; // resolve local here
+              vcopy.type = vcopy.SafeSyntacticType; // resolve local here
               IdentifierExpr ie = new IdentifierExpr(vcopy.Origin,
                 vcopy.AssignUniqueName(CurrentDeclaration.IdGenerator));
               ie.Var = vcopy;
@@ -157,7 +157,7 @@ namespace Microsoft.Dafny {
           if (split.IsChecked) {
             var tok = split.E.tok;
             var desc = new AssertStatementDescription(stmt, errorMessage, successMessage);
-            proofBuilder.Add(AssertAndForget(proofBuilder.Context, ToDafnyToken(flags.ReportRanges, tok), split.E, desc, stmt.Origin,
+            proofBuilder.Add(AssertAndForget(proofBuilder.Context, ToDafnyToken(tok), split.E, desc, stmt.Origin,
               etran.TrAttributes(stmt.Attributes, null))); // attributes go on every split
           }
         }

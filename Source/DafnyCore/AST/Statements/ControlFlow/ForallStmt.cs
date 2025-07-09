@@ -6,10 +6,10 @@ using Microsoft.Dafny.Auditor;
 namespace Microsoft.Dafny;
 
 public class ForallStmt : Statement, ICloneable<ForallStmt>, ICanFormat {
-  public readonly List<BoundVar> BoundVars;  // note, can be the empty list, in which case Range denotes "true"
+  public List<BoundVar> BoundVars;  // note, can be the empty list, in which case Range denotes "true"
   public Expression Range;  // mostly readonly, except that it may in some cases be updated during resolution to conjoin the precondition of the call in the body
-  public readonly List<AttributedExpression> Ens;
-  public readonly Statement Body;
+  public List<AttributedExpression> Ens;
+  public Statement Body;
   [FilledInDuringResolution]
   public List<Expression> EffectiveEnsuresClauses;   // fill in by rewriter.
   public bool CanConvert = true; //  can convert to ForallExpressions
@@ -57,14 +57,14 @@ public class ForallStmt : Statement, ICloneable<ForallStmt>, ICanFormat {
     Attributes = cloner.CloneAttributes(original.Attributes);
 
     if (cloner.CloneResolvedFields) {
-      Bounds = original.Bounds.ConvertAll(bp => bp.Clone(cloner));
+      Bounds = original.Bounds.ConvertAll(bp => bp?.Clone(cloner));
       Kind = original.Kind;
       EffectiveEnsuresClauses = original.EffectiveEnsuresClauses?.Select(cloner.CloneExpr).ToList();
     }
   }
 
-  public ForallStmt(IOrigin origin, List<BoundVar> boundVars, Attributes attrs, Expression range, List<AttributedExpression> ens, Statement body)
-    : base(origin, attrs) {
+  public ForallStmt(IOrigin origin, List<BoundVar> boundVars, Attributes attributes, Expression range, List<AttributedExpression> ens, Statement body)
+    : base(origin, attributes) {
     Contract.Requires(origin != null);
     Contract.Requires(cce.NonNullElements(boundVars));
     Contract.Requires(range != null);
@@ -81,12 +81,10 @@ public class ForallStmt : Statement, ICloneable<ForallStmt>, ICanFormat {
       // dig into Body to find a single statement
       Statement s = Body;
       while (true) {
-        var block = s as BlockStmt;
-        if (block != null && block.Body.Count == 1) {
+        if (s is BlockStmt { Body: { Count: 1 } } block) {
           s = block.Body[0];
           // dig further into s
-        } else if (s is AssignStatement) {
-          var update = (AssignStatement)s;
+        } else if (s is AssignStatement update) {
           if (update.ResolvedStatements?.Count == 1) {
             s = update.ResolvedStatements[0];
             // dig further into s

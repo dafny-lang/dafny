@@ -1,12 +1,13 @@
+#nullable enable
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 
 namespace Microsoft.Dafny;
 
 public class UnchangedExpr : Expression, ICloneable<UnchangedExpr>, ICanFormat {
-  public readonly List<FrameExpression> Frame;
-  public readonly string/*?*/ At;
-  [FilledInDuringResolution] public Label/*?*/ AtLabel;  // after that, At==null iff AtLabel==null
+  public List<FrameExpression> Frame;
+  public string? At;
+  [FilledInDuringResolution] public Label? AtLabel;  // after that, At==null iff AtLabel==null
   [ContractInvariantMethod]
   void ObjectInvariant() {
     Contract.Invariant(Frame != null);
@@ -24,10 +25,10 @@ public class UnchangedExpr : Expression, ICloneable<UnchangedExpr>, ICanFormat {
     }
   }
 
-  public UnchangedExpr(IOrigin origin, List<FrameExpression> frame, string/*?*/ at)
+  [SyntaxConstructor]
+  public UnchangedExpr(IOrigin origin, List<FrameExpression> frame, string? at)
     : base(origin) {
     Contract.Requires(origin != null);
-    Contract.Requires(frame != null);
     this.Frame = frame;
     this.At = at;
   }

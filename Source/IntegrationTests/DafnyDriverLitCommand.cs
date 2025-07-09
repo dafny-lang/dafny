@@ -7,6 +7,7 @@ using XUnitExtensions.Lit;
 namespace IntegrationTests;
 
 delegate Task<int> MainWithWriters(TextWriter outputWriter, TextWriter errorWriter, TextReader inputReader, string[] args);
+
 class MainWithWritersCommand : ILitCommand {
   private readonly string name;
   private readonly MainWithWriters main;

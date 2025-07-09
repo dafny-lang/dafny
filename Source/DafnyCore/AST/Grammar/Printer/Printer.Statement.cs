@@ -37,10 +37,16 @@ namespace Microsoft.Dafny {
         return;
       }
 
-      for (LList<Label> label = stmt.Labels; label != null; label = label.Next) {
-        if (label.Data.Name != null) {
-          wr.WriteLine("label {0}:", label.Data.Name);
-          Indent(indent);
+      if (stmt is LabeledStatement labelledStatement) {
+        for (var index = 0; index < labelledStatement.Labels.Count; index++) {
+          var label = labelledStatement.Labels[index];
+          if (label.Name != null) {
+            wr.Write("label {0}:", label.Name);
+            if (labelledStatement.GetType() != typeof(LabeledStatement) || index != labelledStatement.Labels.Count - 1) {
+              wr.WriteLine();
+              Indent(indent);
+            }
+          }
         }
       }
 
@@ -49,388 +55,431 @@ namespace Microsoft.Dafny {
         return;
       }
 
-      if (stmt is PredicateStmt) {
-        PrintPredicateStmt(stmt, includeSemicolon);
-      } else if (stmt is PrintStmt) {
-        PrintStmt s = (PrintStmt)stmt;
-        wr.Write("print");
-        PrintAttributeArgs(s.Args, true);
-        wr.Write(";");
-
-      } else if (stmt is HideRevealStmt revealStmt) {
-        PrintHideReveal(revealStmt);
-      } else if (stmt is BreakOrContinueStmt) {
-        var s = (BreakOrContinueStmt)stmt;
-        if (s.TargetLabel != null) {
-          wr.Write($"{s.Kind} {s.TargetLabel.val};");
-        } else {
-          for (int i = 0; i < s.BreakAndContinueCount - 1; i++) {
-            wr.Write("break ");
-          }
-          wr.Write($"{s.Kind};");
-        }
-
-      } else if (stmt is ProduceStmt) {
-        var s = (ProduceStmt)stmt;
-        wr.Write(s is YieldStmt ? "yield" : "return");
-        if (s.Rhss != null) {
-          var sep = " ";
-          foreach (var rhs in s.Rhss) {
-            wr.Write(sep);
-            PrintRhs(rhs);
-            sep = ", ";
-          }
-        }
-        wr.Write(";");
-
-      } else if (stmt is SingleAssignStmt) {
-        SingleAssignStmt s = (SingleAssignStmt)stmt;
-        PrintExpression(s.Lhs, true);
-        wr.Write(" := ");
-        PrintRhs(s.Rhs);
-        wr.Write(";");
-
-      } else if (stmt is DividedBlockStmt) {
-        var sbs = (DividedBlockStmt)stmt;
-        wr.WriteLine("{");
-        int ind = indent + IndentAmount;
-        foreach (Statement s in sbs.BodyInit) {
-          Indent(ind);
-          PrintStatement(s, ind);
-          wr.WriteLine();
-        }
-        if (sbs.BodyProper.Count != 0 || sbs.SeparatorTok != null) {
-          Indent(indent + IndentAmount);
-          wr.WriteLine("new;");
-          foreach (Statement s in sbs.BodyProper) {
-            Indent(ind);
-            PrintStatement(s, ind);
-            wr.WriteLine();
-          }
-        }
-        Indent(indent);
-        wr.Write("}");
-
-      } else if (stmt is BlockStmt blockStmt) {
-        PrintBlockStmt(blockStmt, indent);
-      } else if (stmt is IfStmt) {
-        IfStmt s = (IfStmt)stmt;
-        PrintIfStatement(indent, s, false);
-
-      } else if (stmt is AlternativeStmt) {
-        var s = (AlternativeStmt)stmt;
-        PrintAttributes(s.Attributes, indent, () => {
-          wr.Write("if");
-        });
-        if (s.UsesOptionalBraces) {
-          wr.Write(" {");
-        }
-        PrintAlternatives(indent + (s.UsesOptionalBraces ? IndentAmount : 0), s.Alternatives);
-        if (s.UsesOptionalBraces) {
-          wr.WriteLine();
-          Indent(indent);
-          wr.Write("}");
-        }
-      } else if (stmt is WhileStmt) {
-        var s = (WhileStmt)stmt;
-        PrintWhileStatement(indent, s, false, false);
-      } else if (stmt is AlternativeLoopStmt) {
-        var s = (AlternativeLoopStmt)stmt;
-        PrintAttributes(s.Attributes, indent, () => {
-          wr.Write("while");
-        });
-        PrintSpec("invariant", s.Invariants, indent + IndentAmount);
-        PrintDecreasesSpec(s.Decreases, indent + IndentAmount);
-        PrintFrameSpecLine("modifies", s.Mod, indent + IndentAmount);
-        bool hasSpecs = s.Invariants.Count != 0 ||
-                        (s.Decreases.Expressions != null && s.Decreases.Expressions.Count != 0) ||
-                        s.Mod.Expressions != null;
-        if (s.UsesOptionalBraces) {
-          if (hasSpecs) {
-            wr.WriteLine();
-            Indent(indent);
-          } else {
-            wr.Write(" ");
-          }
-          wr.Write("{");
-        }
-        Contract.Assert(s.Alternatives.Count != 0);
-        PrintAlternatives(indent + (s.UsesOptionalBraces ? IndentAmount : 0), s.Alternatives);
-        if (s.UsesOptionalBraces) {
-          wr.WriteLine();
-          Indent(indent);
-          wr.Write("}");
-        }
-
-      } else if (stmt is ForLoopStmt) {
-        var s = (ForLoopStmt)stmt;
-        PrintForLoopStatement(indent, s);
-
-      } else if (stmt is ForallStmt) {
-        var s = (ForallStmt)stmt;
-        if (options.DafnyPrintResolvedFile != null && s.EffectiveEnsuresClauses != null) {
-          foreach (var expr in s.EffectiveEnsuresClauses) {
-            PrintExpression(expr, false, new string(' ', indent + IndentAmount) + "ensures ");
-          }
-          if (s.Body != null) {
-            wr.WriteLine();
-            Indent(indent);
-          }
-        } else {
-          wr.Write("forall");
-          if (s.BoundVars.Count != 0) {
-            wr.Write(" ");
-            PrintQuantifierDomain(s.BoundVars, s.Attributes, s.Range);
-          }
-          PrintSpec("ensures", s.Ens, indent + IndentAmount);
-          if (s.Body != null) {
-            if (s.Ens.Count == 0) {
-              wr.Write(" ");
-            } else {
-              wr.WriteLine();
-              Indent(indent);
-            }
-          }
-        }
-        if (s.Body != null) {
-          PrintStatement(s.Body, indent);
-        }
-
-      } else if (stmt is ModifyStmt) {
-        var s = (ModifyStmt)stmt;
-        PrintModifyStmt(indent, s, false);
-
-      } else if (stmt is CalcStmt) {
-        CalcStmt s = (CalcStmt)stmt;
-        if (printMode == PrintModes.NoGhostOrIncludes) { return; }   // Calcs don't get a "ghost" attribute, but they are.
-        PrintAttributes(stmt.Attributes, indent, () => {
-          wr.Write("calc");
-        });
-        wr.Write(" ");
-        if (s.UserSuppliedOp != null) {
-          PrintCalcOp(s.UserSuppliedOp);
-          wr.Write(" ");
-        } else if (options.DafnyPrintResolvedFile != null && s.Op != null) {
-          PrintCalcOp(s.Op);
-          wr.Write(" ");
-        }
-        wr.WriteLine("{");
-        int lineInd = indent + IndentAmount;
-        int lineCount = s.Lines.Count == 0 ? 0 : s.Lines.Count - 1;  // if nonempty, .Lines always contains a duplicated last line
-        // The number of op/hints is commonly one less than the number of lines, but
-        // it can also equal the number of lines for empty calc's and for calc's with
-        // a dangling hint.
-        int hintCount = s.Lines.Count != 0 && s.Hints.Last().Body.Count == 0 ? lineCount - 1 : lineCount;
-        for (var i = 0; i < lineCount; i++) {
-          var e = s.Lines[i];
-          var op = s.StepOps[i];
-          var h = s.Hints[i];
-          // print the line
-          Indent(lineInd);
-          PrintExpression(e, true, lineInd);
-          wr.WriteLine(";");
-          if (i == hintCount) {
+      switch (stmt) {
+        case PredicateStmt:
+          PrintPredicateStmt(stmt, includeSemicolon);
+          break;
+        case PrintStmt printStmt: {
+            PrintStmt s = printStmt;
+            wr.Write("print");
+            PrintAttributeArgs(s.Args, true);
+            wr.Write(";");
             break;
           }
-          // print the operator, if any
-          if (op != null || (options.DafnyPrintResolvedFile != null && s.Op != null)) {
-            Indent(indent); // this lines up with the "calc"
-            PrintCalcOp(op ?? s.Op);
-            wr.WriteLine();
-          }
-          // print the hints
-          foreach (var st in h.Body) {
-            Indent(lineInd);
-            PrintStatement(st, lineInd);
-            wr.WriteLine();
-          }
-        }
-        Indent(indent);
-        wr.Write("}");
-      } else if (stmt is NestedMatchStmt) {
-        // Print ResolvedStatement, if present, as comment
-        var s = (NestedMatchStmt)stmt;
-
-        if (s.Flattened != null && options.DafnyPrintResolvedFile != null) {
-          wr.WriteLine();
-          if (!printingDesugared) {
-            Indent(indent); wr.WriteLine("/*---------- flattened ----------");
-          }
-
-          var savedDesugarMode = printingDesugared;
-          printingDesugared = true;
-          Indent(indent); PrintStatement(s.Flattened, indent);
-          wr.WriteLine();
-          printingDesugared = savedDesugarMode;
-
-          if (!printingDesugared) {
-            Indent(indent); wr.WriteLine("---------- end flattened ----------*/");
-          }
-          Indent(indent);
-        }
-
-        if (!printingDesugared) {
-          PrintAttributes(s.Attributes, indent, () => {
-            wr.Write("match");
-          });
-          wr.Write(" ");
-          PrintExpression(s.Source, false);
-          if (s.UsesOptionalBraces) {
-            wr.Write(" {");
-          }
-          int caseInd = indent + (s.UsesOptionalBraces ? IndentAmount : 0);
-          foreach (NestedMatchCaseStmt mc in s.Cases) {
-            wr.WriteLine();
-            Indent(caseInd);
-            PrintAttributes(mc.Attributes, indent, () => {
-              wr.Write("case");
-            });
-            wr.Write(" ");
-            PrintExtendedPattern(mc.Pat);
-            wr.Write(" =>");
-            foreach (Statement bs in mc.Body) {
-              wr.WriteLine();
-              Indent(caseInd + IndentAmount);
-              PrintStatement(bs, caseInd + IndentAmount);
+        case HideRevealStmt revealStmt:
+          PrintHideReveal(revealStmt);
+          break;
+        case BreakOrContinueStmt continueStmt: {
+            var s = continueStmt;
+            if (s.TargetLabel != null) {
+              wr.Write($"{s.Kind} {s.TargetLabel.Value};");
+            } else {
+              for (int i = 0; i < s.BreakAndContinueCount - 1; i++) {
+                wr.Write("break ");
+              }
+              wr.Write($"{s.Kind};");
             }
+
+            break;
           }
-          if (s.UsesOptionalBraces) {
-            wr.WriteLine();
+        case ProduceStmt produceStmt: {
+            var s = produceStmt;
+            wr.Write(s is YieldStmt ? "yield" : "return");
+            if (s.Rhss != null) {
+              var sep = " ";
+              foreach (var rhs in s.Rhss) {
+                wr.Write(sep);
+                PrintRhs(rhs);
+                sep = ", ";
+              }
+            }
+            wr.Write(";");
+            break;
+          }
+        case SingleAssignStmt assignStmt: {
+            SingleAssignStmt s = assignStmt;
+            PrintExpression(s.Lhs, true);
+            wr.Write(" := ");
+            PrintRhs(s.Rhs);
+            wr.Write(";");
+            break;
+          }
+        case DividedBlockStmt blockStmt: {
+            var sbs = blockStmt;
+            wr.WriteLine("{");
+            int ind = indent + IndentAmount;
+            foreach (Statement s in sbs.BodyInit) {
+              Indent(ind);
+              PrintStatement(s, ind);
+              wr.WriteLine();
+            }
+            if (sbs.BodyProper.Count != 0 || sbs.SeparatorTok != null) {
+              Indent(indent + IndentAmount);
+              wr.WriteLine("new;");
+              foreach (Statement s in sbs.BodyProper) {
+                Indent(ind);
+                PrintStatement(s, ind);
+                wr.WriteLine();
+              }
+            }
             Indent(indent);
             wr.Write("}");
+            break;
           }
-        }
-      } else if (stmt is MatchStmt) {
-        var s = (MatchStmt)stmt;
-        PrintAttributes(s.Attributes, indent, () => {
-          wr.Write("match");
-        });
-        wr.Write(" ");
-        PrintExpression(s.Source, false);
-        if (s.UsesOptionalBraces) {
-          wr.Write(" {");
-        }
-
-        int caseInd = indent + (s.UsesOptionalBraces ? IndentAmount : 0);
-        foreach (MatchCaseStmt mc in s.Cases) {
-          wr.WriteLine();
-          Indent(caseInd);
-          PrintAttributes(mc.Attributes, indent, () => {
-            wr.Write("case");
-          });
-          wr.Write(" ");
-          if (!mc.Ctor.Name.StartsWith(SystemModuleManager.TupleTypeCtorNamePrefix)) {
-            wr.Write(mc.Ctor.Name);
+        case BlockStmt blockStmt:
+          PrintBlockStmt(blockStmt, indent);
+          break;
+        case IfStmt ifStmt: {
+            IfStmt s = ifStmt;
+            PrintIfStatement(indent, s, false);
+            break;
           }
+        case AlternativeStmt alternativeStmt: {
+            var s = alternativeStmt;
+            PrintAttributes(s.Attributes, indent, () => {
+              wr.Write("if");
+            });
+            if (s.UsesOptionalBraces) {
+              wr.Write(" {");
+            }
+            PrintAlternatives(indent + (s.UsesOptionalBraces ? IndentAmount : 0), s.Alternatives);
+            if (s.UsesOptionalBraces) {
+              wr.WriteLine();
+              Indent(indent);
+              wr.Write("}");
+            }
 
-          PrintMatchCaseArgument(mc);
-          wr.Write(" =>");
-          foreach (Statement bs in mc.Body) {
+            break;
+          }
+        case WhileStmt whileStmt: {
+            var s = whileStmt;
+            PrintWhileStatement(indent, s, false, false);
+            break;
+          }
+        case AlternativeLoopStmt loopStmt: {
+            var s = loopStmt;
+            PrintAttributes(s.Attributes, indent, () => {
+              wr.Write("while");
+            });
+            PrintSpec("invariant", s.Invariants, indent + IndentAmount);
+            PrintDecreasesSpec(s.Decreases, indent + IndentAmount);
+            PrintFrameSpecLine("modifies", s.Mod, indent + IndentAmount);
+            bool hasSpecs = s.Invariants.Count != 0 ||
+                            (s.Decreases.Expressions != null && s.Decreases.Expressions.Count != 0) ||
+                            s.Mod.Expressions != null;
+            if (s.UsesOptionalBraces) {
+              if (hasSpecs) {
+                wr.WriteLine();
+                Indent(indent);
+              } else {
+                wr.Write(" ");
+              }
+              wr.Write("{");
+            }
+            Contract.Assert(s.Alternatives.Count != 0);
+            PrintAlternatives(indent + (s.UsesOptionalBraces ? IndentAmount : 0), s.Alternatives);
+            if (s.UsesOptionalBraces) {
+              wr.WriteLine();
+              Indent(indent);
+              wr.Write("}");
+            }
+
+            break;
+          }
+        case ForLoopStmt loopStmt: {
+            var s = loopStmt;
+            PrintForLoopStatement(indent, s);
+            break;
+          }
+        case ForallStmt forallStmt: {
+            var s = forallStmt;
+            if (options.DafnyPrintResolvedFile != null && s.EffectiveEnsuresClauses != null) {
+              foreach (var expr in s.EffectiveEnsuresClauses) {
+                PrintExpression(expr, false, new string(' ', indent + IndentAmount) + "ensures ");
+              }
+              if (s.Body != null) {
+                wr.WriteLine();
+                Indent(indent);
+              }
+            } else {
+              wr.Write("forall");
+              if (s.BoundVars.Count != 0) {
+                wr.Write(" ");
+                PrintQuantifierDomain(s.BoundVars, s.Attributes, s.Range);
+              }
+              PrintSpec("ensures", s.Ens, indent + IndentAmount);
+              if (s.Body != null) {
+                if (s.Ens.Count == 0) {
+                  wr.Write(" ");
+                } else {
+                  wr.WriteLine();
+                  Indent(indent);
+                }
+              }
+            }
+            if (s.Body != null) {
+              PrintStatement(s.Body, indent);
+            }
+
+            break;
+          }
+        case ModifyStmt modifyStmt: {
+            var s = modifyStmt;
+            PrintModifyStmt(indent, s, false);
+            break;
+          }
+        case CalcStmt calcStmt: {
+            CalcStmt s = calcStmt;
+            if (printMode == PrintModes.NoGhostOrIncludes) { return; }   // Calcs don't get a "ghost" attribute, but they are.
+            PrintAttributes(calcStmt.Attributes, indent, () => {
+              wr.Write("calc");
+            });
+            wr.Write(" ");
+            if (s.UserSuppliedOp != null) {
+              PrintCalcOp(s.UserSuppliedOp);
+              wr.Write(" ");
+            } else if (options.DafnyPrintResolvedFile != null && s.Op != null) {
+              PrintCalcOp(s.Op);
+              wr.Write(" ");
+            }
+            wr.WriteLine("{");
+            int lineInd = indent + IndentAmount;
+            int lineCount = s.Lines.Count == 0 ? 0 : s.Lines.Count - 1;  // if nonempty, .Lines always contains a duplicated last line
+                                                                         // The number of op/hints is commonly one less than the number of lines, but
+                                                                         // it can also equal the number of lines for empty calc's and for calc's with
+                                                                         // a dangling hint.
+            int hintCount = s.Lines.Count != 0 && s.Hints.Last().Body.Count == 0 ? lineCount - 1 : lineCount;
+            for (var i = 0; i < lineCount; i++) {
+              var e = s.Lines[i];
+              var op = s.StepOps[i];
+              var h = s.Hints[i];
+              // print the line
+              Indent(lineInd);
+              PrintExpression(e, true, lineInd);
+              wr.WriteLine(";");
+              if (i == hintCount) {
+                break;
+              }
+              // print the operator, if any
+              if (op != null || (options.DafnyPrintResolvedFile != null && s.Op != null)) {
+                Indent(indent); // this lines up with the "calc"
+                PrintCalcOp(op ?? s.Op);
+                wr.WriteLine();
+              }
+              // print the hints
+              foreach (var st in h.Body) {
+                Indent(lineInd);
+                PrintStatement(st, lineInd);
+                wr.WriteLine();
+              }
+            }
+            Indent(indent);
+            wr.Write("}");
+            break;
+          }
+        case NestedMatchStmt matchStmt: {
+            // Print ResolvedStatement, if present, as comment
+            var s = matchStmt;
+
+            if (s.Flattened != null && options.DafnyPrintResolvedFile != null) {
+              wr.WriteLine();
+              if (!printingDesugared) {
+                Indent(indent); wr.WriteLine("/*---------- flattened ----------");
+              }
+
+              var savedDesugarMode = printingDesugared;
+              printingDesugared = true;
+              Indent(indent); PrintStatement(s.Flattened, indent);
+              wr.WriteLine();
+              printingDesugared = savedDesugarMode;
+
+              if (!printingDesugared) {
+                Indent(indent); wr.WriteLine("---------- end flattened ----------*/");
+              }
+              Indent(indent);
+            }
+
+            if (!printingDesugared) {
+              PrintAttributes(s.Attributes, indent, () => {
+                wr.Write("match");
+              });
+              wr.Write(" ");
+              PrintExpression(s.Source, false);
+              if (s.UsesOptionalBraces) {
+                wr.Write(" {");
+              }
+              int caseInd = indent + (s.UsesOptionalBraces ? IndentAmount : 0);
+              foreach (NestedMatchCaseStmt mc in s.Cases) {
+                wr.WriteLine();
+                Indent(caseInd);
+                PrintAttributes(mc.Attributes, indent, () => {
+                  wr.Write("case");
+                });
+                wr.Write(" ");
+                PrintExtendedPattern(mc.Pat);
+                wr.Write(" =>");
+                foreach (Statement bs in mc.Body) {
+                  wr.WriteLine();
+                  Indent(caseInd + IndentAmount);
+                  PrintStatement(bs, caseInd + IndentAmount);
+                }
+              }
+              if (s.UsesOptionalBraces) {
+                wr.WriteLine();
+                Indent(indent);
+                wr.Write("}");
+              }
+            }
+
+            break;
+          }
+        case MatchStmt matchStmt: {
+            var s = matchStmt;
+            PrintAttributes(s.Attributes, indent, () => {
+              wr.Write("match");
+            });
+            wr.Write(" ");
+            PrintExpression(s.Source, false);
+            if (s.UsesOptionalBraces) {
+              wr.Write(" {");
+            }
+
+            int caseInd = indent + (s.UsesOptionalBraces ? IndentAmount : 0);
+            foreach (MatchCaseStmt mc in s.Cases) {
+              wr.WriteLine();
+              Indent(caseInd);
+              PrintAttributes(mc.Attributes, indent, () => {
+                wr.Write("case");
+              });
+              wr.Write(" ");
+              if (!mc.Ctor.Name.StartsWith(SystemModuleManager.TupleTypeCtorNamePrefix)) {
+                wr.Write(mc.Ctor.Name);
+              }
+
+              PrintMatchCaseArgument(mc);
+              wr.Write(" =>");
+              foreach (Statement bs in mc.Body) {
+                wr.WriteLine();
+                Indent(caseInd + IndentAmount);
+                PrintStatement(bs, caseInd + IndentAmount);
+              }
+            }
+
+            if (s.UsesOptionalBraces) {
+              wr.WriteLine();
+              Indent(indent);
+              wr.Write("}");
+            }
+
+            break;
+          }
+        case ConcreteAssignStatement concreteAssignStatement:
+          PrintConcreteUpdateStatement(concreteAssignStatement, indent, includeSemicolon);
+          break;
+        case CallStmt callStmt: {
+            // Most calls are printed from their concrete syntax given in the input. However, recursive calls to
+            // prefix lemmas end up as CallStmt's by the end of resolution and they may need to be printed here.
+            var s = callStmt;
+            PrintExpression(s.MethodSelect, false);
+            PrintActualArguments(s.Bindings, s.Method.Name, null);
+            break;
+          }
+        case VarDeclStmt declStmt: {
+            var s = declStmt;
+            if (s.Locals.Exists(v => v.IsGhost) && printMode == PrintModes.NoGhostOrIncludes) { return; }
+            if (s.Locals.TrueForAll((v => v.IsGhost))) {
+              // Emit the "ghost" modifier if all of the variables are ghost. If some are ghost, but not others,
+              // then some of these ghosts are auto-converted to ghost, so we should not emit the "ghost" keyword.
+              wr.Write("ghost ");
+            }
+            wr.Write("var");
+            string sep = "";
+            foreach (var local in s.Locals) {
+              wr.Write(sep);
+              if (local.Attributes != null) {
+                PrintAttributes(local.Attributes, AtAttributesOnSameLineIndent, () => { });
+              }
+              wr.Write(" {0}", local.DisplayName);
+              PrintType(": ", local.SafeSyntacticType);
+              sep = ",";
+            }
+            if (s.Assign != null) {
+              wr.Write(" ");
+              PrintUpdateRHS(s.Assign, indent);
+            }
+
+            if (includeSemicolon) {
+              wr.Write(";");
+            }
+
+            break;
+          }
+        case VarDeclPattern pattern: {
+            var s = pattern;
+            if (s.Origin is AutoGeneratedOrigin) {
+              wr.Write("/* ");
+            }
+            if (s.HasGhostModifier) {
+              wr.Write("ghost ");
+            }
+            wr.Write("var ");
+            PrintCasePattern(s.LHS);
+            wr.Write(" := ");
+            PrintExpression(s.RHS, true);
+            wr.Write(";");
+            if (s.Origin is AutoGeneratedOrigin) {
+              wr.Write(" */");
+            }
+
+            break;
+          }
+        case SkeletonStatement statement: {
+            var s = statement;
+            if (s.S == null) {
+              wr.Write("...;");
+            } else if (s.S is AssertStmt) {
+              Contract.Assert(s.ConditionOmitted);
+              wr.Write("assert ...;");
+            } else if (s.S is ExpectStmt) {
+              Contract.Assert(s.ConditionOmitted);
+              wr.Write("expect ...;");
+            } else if (s.S is AssumeStmt) {
+              Contract.Assert(s.ConditionOmitted);
+              wr.Write("assume ...;");
+            } else if (s.S is IfStmt) {
+              PrintIfStatement(indent, (IfStmt)s.S, s.ConditionOmitted);
+            } else if (s.S is WhileStmt) {
+              PrintWhileStatement(indent, (WhileStmt)s.S, s.ConditionOmitted, s.BodyOmitted);
+            } else if (s.S is ModifyStmt) {
+              PrintModifyStmt(indent, (ModifyStmt)s.S, true);
+            } else {
+              Contract.Assert(false);
+              throw new cce.UnreachableException(); // unexpected skeleton statement
+            }
+
+            break;
+          }
+        case TryRecoverStatement haltRecoveryStatement: {
+            // These have no actual syntax for Dafny user code, so emit something
+            // clearly not parsable.
+            int ind = indent + IndentAmount;
+
+            Indent(indent);
+            wr.WriteLine("[[ try { ]]");
+            PrintStatement(haltRecoveryStatement.TryBody, ind);
             wr.WriteLine();
-            Indent(caseInd + IndentAmount);
-            PrintStatement(bs, caseInd + IndentAmount);
+
+            Indent(indent);
+            wr.WriteLine($"[[ }} recover ({haltRecoveryStatement.HaltMessageVar.Name}) {{ ]]");
+            PrintStatement(haltRecoveryStatement.RecoverBody, ind);
+            wr.Write("[[ } ]]");
+            break;
           }
-        }
-
-        if (s.UsesOptionalBraces) {
-          wr.WriteLine();
-          Indent(indent);
-          wr.Write("}");
-        }
-
-      } else if (stmt is ConcreteAssignStatement concreteAssignStatement) {
-        PrintConcreteUpdateStatement(concreteAssignStatement, indent, includeSemicolon);
-      } else if (stmt is CallStmt) {
-        // Most calls are printed from their concrete syntax given in the input. However, recursive calls to
-        // prefix lemmas end up as CallStmt's by the end of resolution and they may need to be printed here.
-        var s = (CallStmt)stmt;
-        PrintExpression(s.MethodSelect, false);
-        PrintActualArguments(s.Bindings, s.Method.Name, null);
-
-      } else if (stmt is VarDeclStmt) {
-        var s = (VarDeclStmt)stmt;
-        if (s.Locals.Exists(v => v.IsGhost) && printMode == PrintModes.NoGhostOrIncludes) { return; }
-        if (s.Locals.TrueForAll((v => v.IsGhost))) {
-          // Emit the "ghost" modifier if all of the variables are ghost. If some are ghost, but not others,
-          // then some of these ghosts are auto-converted to ghost, so we should not emit the "ghost" keyword.
-          wr.Write("ghost ");
-        }
-        wr.Write("var");
-        string sep = "";
-        foreach (var local in s.Locals) {
-          wr.Write(sep);
-          if (local.Attributes != null) {
-            PrintAttributes(local.Attributes, AtAttributesOnSameLineIndent, () => { });
-          }
-          wr.Write(" {0}", local.DisplayName);
-          PrintType(": ", local.SyntacticType);
-          sep = ",";
-        }
-        if (s.Assign != null) {
-          wr.Write(" ");
-          PrintUpdateRHS(s.Assign, indent);
-        }
-
-        if (includeSemicolon) {
-          wr.Write(";");
-        }
-      } else if (stmt is VarDeclPattern) {
-        var s = (VarDeclPattern)stmt;
-        if (s.Origin is AutoGeneratedOrigin) {
-          wr.Write("/* ");
-        }
-        if (s.HasGhostModifier) {
-          wr.Write("ghost ");
-        }
-        wr.Write("var ");
-        PrintCasePattern(s.LHS);
-        wr.Write(" := ");
-        PrintExpression(s.RHS, true);
-        wr.Write(";");
-        if (s.Origin is AutoGeneratedOrigin) {
-          wr.Write(" */");
-        }
-
-      } else if (stmt is SkeletonStatement) {
-        var s = (SkeletonStatement)stmt;
-        if (s.S == null) {
-          wr.Write("...;");
-        } else if (s.S is AssertStmt) {
-          Contract.Assert(s.ConditionOmitted);
-          wr.Write("assert ...;");
-        } else if (s.S is ExpectStmt) {
-          Contract.Assert(s.ConditionOmitted);
-          wr.Write("expect ...;");
-        } else if (s.S is AssumeStmt) {
-          Contract.Assert(s.ConditionOmitted);
-          wr.Write("assume ...;");
-        } else if (s.S is IfStmt) {
-          PrintIfStatement(indent, (IfStmt)s.S, s.ConditionOmitted);
-        } else if (s.S is WhileStmt) {
-          PrintWhileStatement(indent, (WhileStmt)s.S, s.ConditionOmitted, s.BodyOmitted);
-        } else if (s.S is ModifyStmt) {
-          PrintModifyStmt(indent, (ModifyStmt)s.S, true);
-        } else {
-          Contract.Assert(false);
-          throw new cce.UnreachableException(); // unexpected skeleton statement
-        }
-
-      } else if (stmt is TryRecoverStatement haltRecoveryStatement) {
-        // These have no actual syntax for Dafny user code, so emit something
-        // clearly not parsable.
-        int ind = indent + IndentAmount;
-
-        Indent(indent);
-        wr.WriteLine("[[ try { ]]");
-        PrintStatement(haltRecoveryStatement.TryBody, ind);
-        wr.WriteLine();
-
-        Indent(indent);
-        wr.WriteLine($"[[ }} recover ({haltRecoveryStatement.HaltMessageVar.Name}) {{ ]]");
-        PrintStatement(haltRecoveryStatement.RecoverBody, ind);
-        wr.Write("[[ } ]]");
-      } else {
-        Contract.Assert(false); throw new cce.UnreachableException();  // unexpected statement
+        case LabeledStatement labeledStatement:
+          // content already handled earlier
+          break;
+        default:
+          Contract.Assert(false); throw new cce.UnreachableException();  // unexpected statement
       }
     }
 
@@ -724,18 +773,18 @@ namespace Microsoft.Dafny {
       } else if (rhs is TypeRhs) {
         TypeRhs t = (TypeRhs)rhs;
         wr.Write("new ");
-        if (t.ArrayDimensions != null) {
-          if (ShowType(t.EType)) {
-            PrintType(t.EType);
+        if (t is AllocateArray allocateArray) {
+          if (ShowType(allocateArray.ElementType)) {
+            PrintType(allocateArray.ElementType);
           }
           if (options.DafnyPrintResolvedFile == null &&
-            t.InitDisplay != null && t.ArrayDimensions.Count == 1 &&
-            AutoGeneratedOrigin.Is(t.ArrayDimensions[0].Origin)) {
+              allocateArray.InitDisplay != null && allocateArray.ArrayDimensions.Count == 1 &&
+            AutoGeneratedOrigin.Is(allocateArray.ArrayDimensions[0].Origin)) {
             // elide the size
             wr.Write("[]");
           } else {
             string s = "[";
-            foreach (Expression dim in t.ArrayDimensions) {
+            foreach (Expression dim in allocateArray.ArrayDimensions) {
               Contract.Assume(dim != null);
               wr.Write(s);
               PrintExpression(dim, false);
@@ -743,22 +792,25 @@ namespace Microsoft.Dafny {
             }
             wr.Write("]");
           }
-          if (t.ElementInit != null) {
+          if (allocateArray.ElementInit != null) {
             wr.Write(" (");
-            PrintExpression(t.ElementInit, false);
+            PrintExpression(allocateArray.ElementInit, false);
             wr.Write(")");
-          } else if (t.InitDisplay != null) {
+          } else if (allocateArray.InitDisplay != null) {
             wr.Write(" [");
-            PrintExpressionList(t.InitDisplay, false);
+            PrintExpressionList(allocateArray.InitDisplay, false);
             wr.Write("]");
           }
-        } else if (t.Bindings == null) {
-          PrintType(t.EType);
-        } else {
-          PrintType(t.Path);
-          wr.Write("(");
-          PrintBindings(t.Bindings, false);
-          wr.Write(")");
+        } else if (t is AllocateClass allocateClass) {
+          if (allocateClass.Bindings == null) {
+            PrintType(allocateClass.Path);
+          } else {
+            PrintType(allocateClass.Path);
+            wr.Write("(");
+            PrintBindings(allocateClass.Bindings, false);
+            wr.Write(")");
+
+          }
         }
       } else {
         Contract.Assert(false); throw new cce.UnreachableException();  // unexpected RHS

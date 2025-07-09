@@ -107,8 +107,15 @@ namespace Microsoft.Dafny {
       }
     }
 
+    internal CanVerifyOrigin GetToken(ICanVerify node) {
+      if (node.Origin is CanVerifyOrigin canVerifyOrigin) {
+        return canVerifyOrigin;
+      }
+      return new CanVerifyOrigin(node);
+    }
+
     internal IOrigin GetToken(INode node) {
-      return node is IHasNavigationToken hasNavigationToken ? hasNavigationToken.NavigationToken : node.Origin;
+      return node.Origin.EntireRange == null ? new WithRange(node.Origin, node.EntireRange) : node.Origin;
     }
 
     void CheckDefiniteAssignment(IdentifierExpr expr, BoogieStmtListBuilder builder) {
@@ -147,14 +154,14 @@ namespace Microsoft.Dafny {
       }
     }
 
-    void AssumeCanCallForByMethodDecl(Method method, BoogieStmtListBuilder builder) {
+    void AssumeCanCallForByMethodDecl(MethodOrConstructor method, BoogieStmtListBuilder builder) {
       if (method?.FunctionFromWhichThisIsByMethodDecl?.ByMethodTok != null && // Otherwise nothing is checked anyway
           method.Ens.Count == 1 &&
           method.Ens[0].E is BinaryExpr { E1: var e1 } &&
           e1.Resolved is FunctionCallExpr { Args: var arguments } fnCall) {
         // fnCall == (m.Ens[0].E as BinaryExpr).E1;
         // fn == new FunctionCallExpr(tok, f.Name, receiver, tok, tok, f.Formals.ConvertAll(Expression.CreateIdentExpr));
-        Bpl.IdentifierExpr canCallFuncID =
+        Bpl.IdentifierExpr canCallFuncId =
           new Bpl.IdentifierExpr(method.Origin, method.FullSanitizedName + "#canCall", Bpl.Type.Bool);
         var etran = new ExpressionTranslator(this, Predef, method.Origin, method);
         List<Bpl.Expr> args = arguments.Select(arg => etran.TrExpr(arg)).ToList();
@@ -170,7 +177,7 @@ namespace Microsoft.Dafny {
         }
 
         Bpl.Expr boogieAssumeCanCall =
-          new Bpl.NAryExpr(method.Origin, new FunctionCall(canCallFuncID), Concat(tyargs, args));
+          new Bpl.NAryExpr(method.Origin, new FunctionCall(canCallFuncId), Concat(tyargs, args));
         builder.Add(new AssumeCmd(method.Origin, boogieAssumeCanCall));
       } else {
         Contract.Assert(false, "Error in shape of by-method");

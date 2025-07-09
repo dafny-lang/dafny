@@ -8,23 +8,20 @@ namespace Microsoft.Dafny;
 /// Common superclass of UpdateStmt, AssignSuchThatStmt and AssignOrReturnStmt
 /// </summary>
 public abstract class ConcreteAssignStatement : Statement, ICanFormat {
-  public readonly List<Expression> Lhss;
+  public List<Expression> Lhss;
 
   protected ConcreteAssignStatement(Cloner cloner, ConcreteAssignStatement original) : base(cloner, original) {
     Lhss = original.Lhss.Select(cloner.CloneExpr).ToList();
   }
 
-  public ConcreteAssignStatement(IOrigin origin, List<Expression> lhss, Attributes attrs = null)
-    : base(origin, attrs) {
+  public ConcreteAssignStatement(IOrigin origin, List<Expression> lhss, Attributes attributes = null)
+    : base(origin, attributes) {
     Contract.Requires(cce.NonNullElements(lhss));
     Lhss = lhss;
   }
 
   public override IEnumerable<INode> Children => Lhss;
   public override IEnumerable<INode> PreResolveChildren => Lhss;
-  public override IEnumerable<IdentifierExpr> GetAssignedLocals() {
-    return Lhss.Select(lhs => lhs.Resolved).OfType<IdentifierExpr>();
-  }
 
   public bool SetIndent(int indentBefore, TokenNewIndentCollector formatter) {
     return formatter.SetIndentUpdateStmt(this, indentBefore, false);

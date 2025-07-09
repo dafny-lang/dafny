@@ -71,7 +71,7 @@ Send notifications that indicate which lines are ghost.".TrimStart());
       public override void Visit(Statement statement) {
         cancellationToken.ThrowIfCancellationRequested();
         if (IsGhostStatementToMark(statement)) {
-          var list = GhostDiagnostics.GetOrCreate(statement.Origin.Uri, () => new List<Range>());
+          var list = GhostDiagnostics.GetOrCreate(statement.Origin.Uri, () => []);
           list.Add(GetRange(statement));
         } else {
           base.Visit(statement);
@@ -85,7 +85,7 @@ Send notifications that indicate which lines are ghost.".TrimStart());
       private static Range GetRange(Statement statement) {
         return statement switch {
           AssignStatement updateStatement => GetRange(updateStatement),
-          _ => CreateRange(statement.Origin.StartToken, statement.Origin.EndToken)
+          _ => CreateRange(statement.StartToken, statement.EndToken)
         };
       }
 
@@ -93,14 +93,14 @@ Send notifications that indicate which lines are ghost.".TrimStart());
         IOrigin startToken;
         if (updateStatement.Lhss.Count > 0) {
           startToken = updateStatement.Lhss[0].Origin;
-        } else if (updateStatement.ResolvedStatements.Count > 0) {
+        } else if (updateStatement.ResolvedStatements!.Count > 0) {
           // This branch handles the case where the UpdateStmt consists of an CallStmt without of left hand side.
           // otherwise, we'd only mark parentheses and the semi-colon of the CallStmt. 
           startToken = GetStartTokenFromResolvedStatement(updateStatement.ResolvedStatements[0]);
         } else {
           startToken = updateStatement.Origin;
         }
-        return CreateRange(startToken, updateStatement.Origin.EndToken);
+        return CreateRange(startToken, updateStatement.EndToken);
       }
 
       private static IOrigin GetStartTokenFromResolvedStatement(Statement resolvedStatement) {

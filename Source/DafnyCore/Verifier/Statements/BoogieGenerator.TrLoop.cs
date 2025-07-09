@@ -91,9 +91,9 @@ public partial class BoogieGenerator {
 
       if (cre != null) {
         locals.GetOrCreate(name, () => new Bpl.LocalVariable(tok, new Bpl.TypedIdent(tok, name, Bpl.Type.Int)));
-        builder.Add(new Bpl.HavocCmd(tok, new List<Bpl.IdentifierExpr>() { x }));
+        builder.Add(new Bpl.HavocCmd(tok, [x]));
         builder.Add(new Bpl.AssumeCmd(tok, ForLoopBounds(x, bLo, bHi)));
-        List<Expression> dafnyRangeBounds = new();
+        List<Expression> dafnyRangeBounds = [];
         if (lo != null) {
           dafnyRangeBounds.Add(new BinaryExpr(stmt.Origin, BinaryExpr.Opcode.Le, lo, dIndex));
         }
@@ -104,7 +104,7 @@ public partial class BoogieGenerator {
         Expression dafnyRange = dafnyRangeBounds.Count == 1
           ? dafnyRangeBounds[0]
           : new BinaryExpr(stmt.Origin, BinaryExpr.Opcode.And, dafnyRangeBounds[0], dafnyRangeBounds[1]);
-        var dafnyAssertion = new ForallExpr(stmt.Origin, new List<BoundVar> { indexVar },
+        var dafnyAssertion = new ForallExpr(stmt.Origin, [indexVar],
           dafnyRange, new TypeTestExpr(indexVar.Origin, dIndex, indexVar.Type), null);
         builder.Add(Assert(tok, cre, new ForRangeAssignable(desc, dafnyAssertion), builder.Context));
       }
@@ -226,9 +226,9 @@ public partial class BoogieGenerator {
     var wVar = locals.GetOrAdd(new Bpl.LocalVariable(loop.Origin, new Bpl.TypedIdent(loop.Origin, "$w$" + suffix, Bpl.Type.Bool)));
     Bpl.IdentifierExpr w = new Bpl.IdentifierExpr(loop.Origin, wVar);
     // havoc w;
-    builder.Add(new Bpl.HavocCmd(loop.Origin, new List<Bpl.IdentifierExpr> { w }));
+    builder.Add(new Bpl.HavocCmd(loop.Origin, [w]));
 
-    List<Bpl.PredicateCmd> invariants = new List<Bpl.PredicateCmd>();
+    List<Bpl.PredicateCmd> invariants = [];
     if (freeInvariant != null) {
       invariants.Add(new Bpl.AssumeCmd(freeInvariant.tok, freeInvariant));
     }
@@ -267,8 +267,9 @@ public partial class BoogieGenerator {
       if (codeContext is IteratorDecl) {
         // add "this" to the explicit modifies clause
         var explicitModifies = modifiesClause;
-        modifiesClause = new List<FrameExpression>();
-        modifiesClause.Add(new FrameExpression(loop.Origin, new ThisExpr((IteratorDecl)codeContext), null));
+        modifiesClause = [
+          new FrameExpression(loop.Origin, new ThisExpr((IteratorDecl)codeContext), null)
+        ];
         modifiesClause.AddRange(explicitModifies);
       }
       // include boilerplate invariants
@@ -381,7 +382,7 @@ public partial class BoogieGenerator {
             loopBodyBuilder, " at end of loop iteration", false, false);
           var description = new
             Terminates(loop.InferredDecreases, prevGhostLocals, null, initDecrsDafny, theDecreases, false);
-          loopBodyBuilder.Add(Assert(loop.NavigationToken, decrCheck, description, builder.Context));
+          loopBodyBuilder.Add(Assert(loop.Origin, decrCheck, description, builder.Context));
         }
       }
     } else if (isBodyLessLoop) {
@@ -405,7 +406,7 @@ public partial class BoogieGenerator {
     }
 
     Bpl.StmtList body = loopBodyBuilder.Collect(loop.Origin);
-    builder.Add(new Bpl.WhileCmd(loop.Origin, Bpl.Expr.True, invariants, new List<CallCmd>(), body));
+    builder.Add(new Bpl.WhileCmd(loop.Origin, Bpl.Expr.True, invariants, [], body));
   }
 
   // Return the version of e that holds at the beginnging of the loop,
@@ -438,8 +439,8 @@ public partial class BoogieGenerator {
   void InsertContinueTarget(LoopStmt loop, BoogieStmtListBuilder builder) {
     Contract.Requires(loop != null);
     Contract.Requires(builder != null);
-    if (loop.Labels != null) {
-      builder.AddLabelCmd(loop.Origin, "continue_" + loop.Labels.Data.AssignUniqueId(CurrentIdGenerator));
+    if (loop.Labels.Any()) {
+      builder.AddLabelCmd(loop.Origin, "continue_" + loop.Labels.First().AssignUniqueId(CurrentIdGenerator));
     }
   }
 }

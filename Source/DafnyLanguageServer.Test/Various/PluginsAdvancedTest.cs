@@ -14,7 +14,7 @@ public class PluginsAdvancedTest : PluginsTestBase {
     "PluginsAdvancedTest";
 
   protected override string[] CommandLineArgument =>
-    new[] { $"{LibraryPath},force you" };
+    [$"{LibraryPath},force you"];
 
   [Fact]
   public async Task EnsureErrorMessageCanBeComplexAndTakeIntoAccountConfiguration() {

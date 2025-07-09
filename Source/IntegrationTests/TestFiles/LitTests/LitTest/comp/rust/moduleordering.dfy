@@ -1,5 +1,5 @@
 // NONUNIFORM: Test of the Rust compiler to ensure it emits modules in a deterministic order.
-// RUN: %baredafny translate rs "%s" > "%t"
+// RUN: %baredafny translate rs --enforce-determinism "%s" > "%t"
 // RUN: %OutputCheck --file-to-check "%S/moduleordering-rust/src/moduleordering.rs" "%s"
 // CHECK-L: pub mod A {
 // CHECK-L: pub mod B {

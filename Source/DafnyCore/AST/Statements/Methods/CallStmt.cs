@@ -5,80 +5,13 @@ using System.Linq;
 namespace Microsoft.Dafny;
 
 /// <summary>
-/// This class temporarily exists to retain old behavior
-/// When it comes to where errors are reported.
-///
-/// For function calls, the following location is used to report precondition failures:
-/// 
-/// someFunction(x, y);
-/// ^           ^
-/// old     future
-///
-/// For assertions, when the condition does not hold
-/// assert P(x)
-/// ^       ^
-/// future  old
-/// </summary>
-class OverrideCenter : OriginWrapper {
-  public OverrideCenter(IOrigin wrappedToken, Token newCenter) : base(wrappedToken) {
-    this.Center = newCenter;
-  }
-
-  public override Token Center { get; }
-
-  public override IOrigin WithVal(string newVal) {
-    throw new System.NotImplementedException();
-  }
-
-  public override int col {
-    get => Center.col;
-    set => throw new System.NotImplementedException();
-  }
-
-  public override int line {
-    get => Center.line;
-    set => throw new System.NotImplementedException();
-  }
-
-  public override int pos {
-    get => Center.pos;
-    set => throw new System.NotImplementedException();
-  }
-
-  public override string val {
-    get => Center.val;
-    set => throw new System.NotImplementedException();
-  }
-
-  public override string LeadingTrivia {
-    get => Center.LeadingTrivia;
-    set => throw new System.NotImplementedException();
-  }
-
-  public override string TrailingTrivia {
-    get => Center.TrailingTrivia;
-    set => throw new System.NotImplementedException();
-  }
-
-  public override Token Next {
-    get => Center.Next;
-    set => throw new System.NotImplementedException();
-  }
-
-  public override Token Prev {
-    get => Center.Prev;
-    set => throw new System.NotImplementedException();
-  }
-}
-
-/// <summary>
 /// A CallStmt is always resolved.  It is typically produced as a resolved counterpart of the syntactic AST note ApplySuffix.
 /// </summary>
 public class CallStmt : Statement, ICloneable<CallStmt> {
 
   [ContractInvariantMethod]
   void ObjectInvariant() {
-    Contract.Invariant(MethodSelect.Member is Method);
+    Contract.Invariant(MethodSelect.Member is MethodOrConstructor);
     Contract.Invariant(cce.NonNullElements(Lhs));
     Contract.Invariant(cce.NonNullElements(Args));
   }
@@ -88,24 +21,22 @@ public class CallStmt : Statement, ICloneable<CallStmt> {
     return Lhs.Select(lhs => lhs.Resolved).OfType<IdentifierExpr>();
   }
 
-  public readonly List<Expression> Lhs;
-  public readonly MemberSelectExpr MethodSelect;
-  public readonly ActualBindings Bindings;
+  public List<Expression> Lhs;
+  public MemberSelectExpr MethodSelect;
+  public ActualBindings Bindings;
   public List<Expression> Args => Bindings.Arguments;
   public Expression OriginalInitialLhs = null;
 
   public Expression Receiver => MethodSelect.Obj;
-  public Method Method => (Method)MethodSelect.Member;
+  public MethodOrConstructor Method => (MethodOrConstructor)MethodSelect.Member;
 
-  public CallStmt(IOrigin rangeOrigin, List<Expression> lhs, MemberSelectExpr memSel, List<ActualBinding> args, Token overrideToken = null)
-    : base(
-      /* it would be better if the correct rangeOrigin was passed in,
-       then the parameter overrideToken would become obsolete */
-      new OverrideCenter(rangeOrigin, overrideToken ?? memSel.EndToken.Next)) {
+  public CallStmt(IOrigin rangeOrigin, List<Expression> lhs, MemberSelectExpr memSel, List<ActualBinding> args,
+      TokenRange overrideToken = null)
+    : base(overrideToken == null ? rangeOrigin : new OverrideCenter(rangeOrigin, overrideToken)) {
     Contract.Requires(rangeOrigin != null);
     Contract.Requires(cce.NonNullElements(lhs));
     Contract.Requires(memSel != null);
-    Contract.Requires(memSel.Member is Method);
+    Contract.Requires(memSel.Member is MethodOrConstructor);
     Contract.Requires(cce.NonNullElements(args));
 
     this.Lhs = lhs;
@@ -128,8 +59,8 @@ public class CallStmt : Statement, ICloneable<CallStmt> {
   /// This constructor is intended to be used when constructing a resolved CallStmt. The "args" are expected
   /// to be already resolved, and are all given positionally.
   /// </summary>
-  public CallStmt(IOrigin rangeOrigin, List<Expression> lhs, MemberSelectExpr memSel, List<Expression> args)
-    : this(rangeOrigin, lhs, memSel, args.ConvertAll(e => new ActualBinding(null, e))) {
+  public CallStmt(IOrigin rangeOrigin, List<Expression> lhs, MemberSelectExpr memSel, List<Expression> args, TokenRange overrideToken = null)
+    : this(rangeOrigin, lhs, memSel, args.ConvertAll(e => new ActualBinding(null, e)), overrideToken) {
     Bindings.AcceptArgumentExpressionsAsExactParameterList();
   }
 

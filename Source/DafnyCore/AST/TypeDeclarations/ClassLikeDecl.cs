@@ -1,3 +1,4 @@
+#nullable enable
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 using System.Linq;
@@ -5,7 +6,7 @@ using System.Linq;
 namespace Microsoft.Dafny;
 
 public abstract class ClassLikeDecl : TopLevelDeclWithMembers, RevealableTypeDecl, ICanFormat, IHasDocstring {
-  public NonNullTypeDecl NonNullTypeDecl; // returns non-null value iff IsReferenceTypeDecl
+  public NonNullTypeDecl? NonNullTypeDecl; // returns non-null value iff IsReferenceTypeDecl
 
   public override bool CanBeRevealed() { return true; }
 
@@ -22,20 +23,22 @@ public abstract class ClassLikeDecl : TopLevelDeclWithMembers, RevealableTypeDec
   public abstract bool IsReferenceTypeDecl { get; }
 
   public TopLevelDecl AsTopLevelDecl => this;
-  public TypeDeclSynonymInfo SynonymInfo { get; set; }
+  public TypeDeclSynonymInfo SynonymInfo { get; set; } = null!;
 
-  public ClassLikeDecl(IOrigin origin, Name name, ModuleDefinition module,
-    List<TypeParameter> typeArgs, [Captured] List<MemberDecl> members, Attributes attributes, bool isRefining, List<Type>/*?*/ traits)
-    : base(origin, name, module, typeArgs, members, attributes, isRefining, traits) {
+  [SyntaxConstructor]
+  protected ClassLikeDecl(IOrigin origin, Name nameNode, Attributes? attributes,
+    List<TypeParameter> typeArgs, ModuleDefinition enclosingModuleDefinition,
+    [Captured] List<MemberDecl> members, List<Type> traits)
+    : base(origin, nameNode, enclosingModuleDefinition, typeArgs, members, attributes, traits) {
     Contract.Requires(origin != null);
-    Contract.Requires(name != null);
-    Contract.Requires(module != null);
+    Contract.Requires(nameNode != null);
+    Contract.Requires(enclosingModuleDefinition != null);
     Contract.Requires(cce.NonNullElements(typeArgs));
     Contract.Requires(cce.NonNullElements(members));
   }
 
   public virtual bool SetIndent(int indentBefore, TokenNewIndentCollector formatter) {
-    IOrigin classToken = null;
+    IOrigin? classToken = null;
     var parentTraitIndent = indentBefore + formatter.SpaceTab;
     var commaIndent = indentBefore;
     var extraIndent = 0;
@@ -70,14 +73,14 @@ public abstract class ClassLikeDecl : TopLevelDeclWithMembers, RevealableTypeDec
 
     Attributes.SetIndents(Attributes, indentBefore, formatter);
 
-    foreach (var parent in ParentTraits) {
+    foreach (var parent in Traits) {
       formatter.SetTypeIndentation(parent);
     }
 
     return true;
   }
 
-  public virtual string GetTriviaContainingDocstring() {
+  public virtual string? GetTriviaContainingDocstring() {
     if (GetStartTriviaDocstring(out var triviaFound)) {
       return triviaFound;
     }
@@ -96,4 +99,6 @@ public abstract class ClassLikeDecl : TopLevelDeclWithMembers, RevealableTypeDec
 
     return null;
   }
+
+  public override string ReferenceName => base.ReferenceName + (IsReferenceTypeDecl ? "?" : "");
 }

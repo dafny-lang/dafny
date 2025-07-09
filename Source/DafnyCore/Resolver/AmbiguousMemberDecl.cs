@@ -27,6 +27,8 @@ class AmbiguousMemberDecl : MemberDecl, IAmbiguousThing<MemberDecl> // only used
     get { return pool.First().WhatKind; }
   }
 
+  public override bool HasStaticKeyword => true;
+
   public override SymbolKind? Kind => null;
   public override string GetDescription(DafnyOptions options) {
     return null;
@@ -37,7 +39,7 @@ class AmbiguousMemberDecl : MemberDecl, IAmbiguousThing<MemberDecl> // only used
   ISet<MemberDecl> IAmbiguousThing<MemberDecl>.Pool => pool;
 
   private AmbiguousMemberDecl(ModuleDefinition m, string name, ISet<MemberDecl> pool)
-    : base(pool.First().Origin, new Name(pool.First().Origin, name), true, pool.First().IsGhost, null, false) {
+    : base(pool.First().Origin, new Name(pool.First().Origin, name), pool.First().IsGhost, null) {
     Contract.Requires(name != null);
     Contract.Requires(pool != null && 2 <= pool.Count);
     this.pool = pool;

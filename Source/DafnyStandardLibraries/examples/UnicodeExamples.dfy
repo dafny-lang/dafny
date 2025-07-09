@@ -60,7 +60,7 @@ module UnicodeExamples {
         var pair := TEST_SCALAR_VALUES[i];
         AssertAndExpect(EncodeScalarValue(pair.0) == pair.1);
         AssertAndExpect(DecodeCodeUnitSequence(pair.1) == [pair.0]);
-        AssertAndExpect(DecodeCodeUnitSequenceChecked(pair.1) == Some([pair.0]));
+        AssertAndExpect(DecodeCodeUnitSequenceChecked(pair.1) == Success([pair.0]));
       }
     }
 
@@ -89,7 +89,8 @@ module UnicodeExamples {
     method TestDecodeIllFormedSequence() {
       for i := 0 to |TEST_ILL_FORMED_SEQUENCES| {
         var s := TEST_ILL_FORMED_SEQUENCES[i];
-        AssertAndExpect(DecodeCodeUnitSequenceChecked(s).None?);
+        AssertAndExpect(DecodeCodeUnitSequenceChecked(s).Failure?);
+        expect DecodeCodeUnitSequenceChecked(s).error == "Could not decode byte at index 0";
       }
     }
   }
@@ -118,7 +119,7 @@ module UnicodeExamples {
         var pair := TEST_SCALAR_VALUES[i];
         AssertAndExpect(EncodeScalarValue(pair.0) == pair.1);
         AssertAndExpect(DecodeCodeUnitSequence(pair.1) == [pair.0]);
-        AssertAndExpect(DecodeCodeUnitSequenceChecked(pair.1) == Some([pair.0]));
+        AssertAndExpect(DecodeCodeUnitSequenceChecked(pair.1) == Success([pair.0]));
       }
     }
 
@@ -147,7 +148,8 @@ module UnicodeExamples {
     method TestDecodeIllFormedSequence() {
       for i := 0 to |TEST_ILL_FORMED_SEQUENCES| {
         var s := TEST_ILL_FORMED_SEQUENCES[i];
-        AssertAndExpect(DecodeCodeUnitSequenceChecked(s).None?);
+        AssertAndExpect(DecodeCodeUnitSequenceChecked(s).Failure?);
+        expect DecodeCodeUnitSequenceChecked(s).error == "Could not decode byte at index 0";
       }
     }
   }
@@ -171,8 +173,8 @@ module UnicodeExamples {
 
     @Test
     method TestFromUTF8Checked() {
-      expect UnicodeStrings.FromUTF8Checked(currenciesUtf8) == Some(currenciesStr);
-      expect UnicodeStrings.FromUTF8Checked(currenciesUtf8[2..]) == None;
+      expect UnicodeStrings.FromUTF8Checked(currenciesUtf8).ToOption() == Some(currenciesStr);
+      expect UnicodeStrings.FromUTF8Checked(currenciesUtf8[2..]).ToOption() == None;
     }
 
     @Test
@@ -182,8 +184,8 @@ module UnicodeExamples {
 
     @Test
     method TestFromUTF16Checked() {
-      expect UnicodeStrings.FromUTF16Checked(currenciesUtf16) == Some(currenciesStr);
-      expect UnicodeStrings.FromUTF16Checked(currenciesUtf16[..|currenciesUtf16| - 1]) == None;
+      expect UnicodeStrings.FromUTF16Checked(currenciesUtf16) == Success(currenciesStr);
+      expect UnicodeStrings.FromUTF16Checked(currenciesUtf16[..|currenciesUtf16| - 1]).Failure?;
     }
 
     @Test

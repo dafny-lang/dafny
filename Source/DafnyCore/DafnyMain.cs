@@ -12,6 +12,7 @@ using System.Diagnostics.Contracts;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Boogie;
+using Microsoft.Extensions.Logging.Abstractions;
 
 namespace Microsoft.Dafny {
 
@@ -32,12 +33,9 @@ namespace Microsoft.Dafny {
         return;
       }
 
-      var tw = filename == "-" ? program.Options.OutputWriter : new StreamWriter(filename);
+      using var tw = filename == "-" ? program.Options.OutputWriter.StatusWriter() : new StreamWriter(filename);
       var pr = new Printer(tw, program.Options, program.Options.PrintMode);
       pr.PrintProgramLargeStack(program, afterResolver);
-      if (filename != "-") {
-        tw.Dispose();
-      }
     }
 
     /// <summary>
@@ -67,7 +65,8 @@ namespace Microsoft.Dafny {
         _ => throw new ArgumentOutOfRangeException()
       };
 
-      var parseResult = await new ProgramParser().ParseFiles(programName, files, reporter, CancellationToken.None);
+      var parseResult = await new ProgramParser(NullLogger<ProgramParser>.Instance, OnDiskFileSystem.Instance).
+        ParseFiles(programName, files, reporter, CancellationToken.None);
       var program = parseResult.Program;
       var errorCount = program.Reporter.ErrorCount;
       if (errorCount != 0) {
@@ -85,10 +84,6 @@ namespace Microsoft.Dafny {
     public static string Resolve(Program program) {
       if (program.Options.NoResolve || program.Options.NoTypecheck) {
         return null;
-      }
-
-      if (program.Options.Get(CommonOptionBag.GeneralNewtypes) && !program.Options.Get(CommonOptionBag.TypeSystemRefresh)) {
-        return "use of --general-newtypes requires --type-system-refresh";
       }
 
       var programResolver = new ProgramResolver(program);
@@ -170,10 +165,8 @@ namespace Microsoft.Dafny {
         case PipelineOutcome.ResolutionError:
         case PipelineOutcome.TypeCheckingError:
           engine.PrintBplFile(bplFileName, program, false, false, options.PrettyPrint);
-          await options.OutputWriter.WriteLineAsync();
-          await options.OutputWriter.WriteLineAsync(
+          options.OutputWriter.Exception(
             "*** Encountered internal translation error - re-running Boogie to get better debug information");
-          await options.OutputWriter.WriteLineAsync();
 
           var /*!*/
             fileNames = new List<string /*!*/> { bplFileName };

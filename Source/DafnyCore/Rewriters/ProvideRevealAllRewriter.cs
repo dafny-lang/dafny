@@ -18,7 +18,7 @@ public class ProvideRevealAllRewriter : IRewriter {
 
         HashSet<string> explicitlyRevealedTopLevelIDs = null;
         if (!revealAll) {
-          explicitlyRevealedTopLevelIDs = new HashSet<string>();
+          explicitlyRevealedTopLevelIDs = [];
           foreach (var esig in me.Exports) {
             if (esig.ClassId == null && !esig.Opaque) {
               explicitlyRevealedTopLevelIDs.Add(esig.Id);

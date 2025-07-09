@@ -1,3 +1,4 @@
+#nullable enable
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 using System.Linq;
@@ -6,13 +7,13 @@ namespace Microsoft.Dafny;
 
 public class IndDatatypeDecl : DatatypeDecl {
   public override string WhatKind { get { return "datatype"; } }
-  [FilledInDuringResolution] public DatatypeCtor GroundingCtor; // set during resolution (possibly to null)
+  [FilledInDuringResolution] public DatatypeCtor? GroundingCtor; // set during resolution (possibly to null)
 
   public override DatatypeCtor GetGroundingCtor() {
     return GroundingCtor ?? Ctors.FirstOrDefault(ctor => ctor.IsGhost, Ctors[0]);
   }
 
-  private bool[] typeParametersUsedInConstructionByGroundingCtor;
+  private bool[]? typeParametersUsedInConstructionByGroundingCtor;
 
   public bool[] TypeParametersUsedInConstructionByGroundingCtor {
     get {
@@ -32,12 +33,13 @@ public class IndDatatypeDecl : DatatypeDecl {
   public enum ES { NotYetComputed, Never, ConsultTypeArguments }
   public ES EqualitySupport = ES.NotYetComputed;
 
-  public IndDatatypeDecl(IOrigin origin, Name name, ModuleDefinition module, List<TypeParameter> typeArgs,
-    [Captured] List<DatatypeCtor> ctors, List<Type> parentTraits, List<MemberDecl> members, Attributes attributes, bool isRefining)
-    : base(origin, name, module, typeArgs, ctors, parentTraits, members, attributes, isRefining) {
+  [SyntaxConstructor]
+  public IndDatatypeDecl(IOrigin origin, Name nameNode, ModuleDefinition enclosingModuleDefinition, List<TypeParameter> typeArgs,
+    [Captured] List<DatatypeCtor> ctors, List<Type> traits, List<MemberDecl> members, Attributes? attributes, bool isRefining)
+    : base(origin, nameNode, enclosingModuleDefinition, typeArgs, ctors, traits, members, attributes, isRefining) {
     Contract.Requires(origin != null);
-    Contract.Requires(name != null);
-    Contract.Requires(module != null);
+    Contract.Requires(nameNode != null);
+    Contract.Requires(enclosingModuleDefinition != null);
     Contract.Requires(cce.NonNullElements(typeArgs));
     Contract.Requires(cce.NonNullElements(ctors));
     Contract.Requires(cce.NonNullElements(members));

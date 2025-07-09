@@ -77,7 +77,7 @@ module FactorPathsOptimizationTest {
                 "dummy", std_any_Any.AsType(),
                 StmtExpr(
                   DeclareVar(
-                    MUT, "doit", Some(std_rc_Rc.AsType().Apply1(TIdentifier("unknown"))),
+                    MUT, "doit", Some(RcType.Apply1(TIdentifier("unknown"))),
                     Some(
                       Identifier("something").ApplyType(
                         [ DynType(std_default_Default.AsType())
@@ -95,7 +95,7 @@ module FactorPathsOptimizationTest {
         NoDoc, NoAttr,
         "onemodule", [
           UseDecl(Use(PUB, std_any_Any)),
-          UseDecl(Use(PUB, std_rc_Rc)),
+          UseDecl(Use(PUB, RcPath)),
           UseDecl(Use(PUB, std_default_Default)),
           UseDecl(Use(PUB, dafny_runtime.MSel("rd"))),
           UseDecl(Use(PUB, dafny_runtime.MSel("DafnyString"))),

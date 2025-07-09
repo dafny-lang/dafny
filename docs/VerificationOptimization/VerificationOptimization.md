@@ -608,6 +608,27 @@ As a general rule, designing a program from the start so that it can be broken i
 
 * Break methods up into smaller pieces, as well. Because methods are always opaque, this will, in many cases, require adding a contract to each broken-out method. To make this more tractable, consider abstracting the concepts used in those contracts into separate functions, some of which may be opaque.
 
+# Verification fine-tuning
+
+## Conjunction vs. Nested ifs
+
+We have witnessed cases where the following code:
+```dafny
+    if (a && b) {
+        assert true;
+    }
+```
+verifies slower than
+```dafny
+    if (a) {
+        if (b) {
+            assert true;
+        }
+    }
+```
+This is because the well-formedness of `&& b` adds an extra proof obligation, which is empty in this case but not trimmed, so there is an extra `if (a) {}` in the encoding.
+Therefore, for verification performance, the nested ifs _could_ verify faster, and we have witnessed one case where it does. In other cases, this difference in translation might trigger butterfly effects and uncover brittleness.
+
 # Summary
 
 When you're dealing with a program that exhibits high verification variability, or simply slow or unsuccessful verification, careful encapsulation and information hiding combined with hints to add information in the context of difficult constructs is frequently the best solution. Breaking one large definition with extensive contracts down into several, smaller definitions, each with simpler contracts, can be very valuable. Within each smaller definition, a few internal, locally-encapsulated hints can help the prover make effective progress on goals it might be unable to prove in conjunction with other code.

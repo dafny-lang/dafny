@@ -1,5 +1,5 @@
 // NONUNIFORM: Rust-specific tests
-// RUN: %exits-with 3 %baredafny run --target=rs --input "%S/externalclasses.rs" "%s" > "%t"
+// RUN: %exits-with 3 %baredafny run --target=rs --enforce-determinism --input "%S/externalclasses.rs" "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 module {:extern} ExternalClassContainer {

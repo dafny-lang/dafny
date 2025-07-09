@@ -4,15 +4,15 @@ using System.Linq;
 
 namespace Microsoft.Dafny;
 
-public class AlternativeStmt : Statement, ICloneable<AlternativeStmt>, ICanFormat {
-  public readonly bool UsesOptionalBraces;
-  public readonly List<GuardedAlternative> Alternatives;
+public class AlternativeStmt : LabeledStatement, ICloneable<AlternativeStmt>, ICanFormat {
+  public bool UsesOptionalBraces;
+  public List<GuardedAlternative> Alternatives;
   [ContractInvariantMethod]
   void ObjectInvariant() {
     Contract.Invariant(Alternatives != null);
   }
 
-  public AlternativeStmt Clone(Cloner cloner) {
+  public new AlternativeStmt Clone(Cloner cloner) {
     return new AlternativeStmt(cloner, this);
   }
 
@@ -22,13 +22,11 @@ public class AlternativeStmt : Statement, ICloneable<AlternativeStmt>, ICanForma
   }
 
   public AlternativeStmt(IOrigin origin, List<GuardedAlternative> alternatives, bool usesOptionalBraces)
-    : base(origin) {
-    Contract.Requires(alternatives != null);
-    Alternatives = alternatives;
-    UsesOptionalBraces = usesOptionalBraces;
+    : this(origin, [], alternatives, usesOptionalBraces, null) {
   }
-  public AlternativeStmt(IOrigin origin, List<GuardedAlternative> alternatives, bool usesOptionalBraces, Attributes attrs)
-    : base(origin, attrs) {
+
+  public AlternativeStmt(IOrigin origin, List<Label> labels, List<GuardedAlternative> alternatives, bool usesOptionalBraces, Attributes attributes)
+    : base(origin, labels, attributes) {
     Contract.Requires(alternatives != null);
     Alternatives = alternatives;
     UsesOptionalBraces = usesOptionalBraces;

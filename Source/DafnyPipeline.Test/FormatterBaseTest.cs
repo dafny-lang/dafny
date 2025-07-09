@@ -62,12 +62,12 @@ namespace DafnyPipeline.Test {
         var reporter = new BatchErrorReporter(options);
         Microsoft.Dafny.Type.ResetScopes();
 
-        var parseResult = await new ProgramParser().Parse(programNotIndented, uri, reporter);
+        var parseResult = await ProgramParser.Parse(programNotIndented, uri, reporter);
         var dafnyProgram = parseResult.Program;
 
         if (reporter.HasErrors) {
           var error = reporter.AllMessagesByLevel[ErrorLevel.Error][0];
-          Assert.False(true, $"{error.Message}: line {error.Token.line} col {error.Token.col}");
+          Assert.False(true, $"{error.Message}: line {error.Range.StartToken.line} col {error.Range.StartToken.col}");
         }
 
         var firstToken = dafnyProgram.GetFirstTokenForUri(uri);
@@ -90,7 +90,7 @@ namespace DafnyPipeline.Test {
         dafnyProgram.Visit((INode n) => {
           if (n is TopLevelDeclWithMembers nWithMembers) {
             var newMembers = new List<MemberDecl>();
-            foreach (var member in nWithMembers.MembersBeforeResolution) {
+            foreach (var member in nWithMembers.MembersBeforeResolution!) {
               newMembers.Add(clone.CloneMember(member, false));
             }
 
@@ -126,7 +126,7 @@ namespace DafnyPipeline.Test {
         // Verify that the formatting is stable.
         Microsoft.Dafny.Type.ResetScopes();
         var newReporter = new BatchErrorReporter(options);
-        dafnyProgram = (await new ProgramParser().Parse(reprinted, uri, newReporter)).Program;
+        dafnyProgram = (await ProgramParser.Parse(reprinted, uri, newReporter)).Program;
 
         Assert.Equal(initErrorCount, reporter.ErrorCount + newReporter.ErrorCount);
         firstToken = dafnyProgram.GetFirstTokenForUri(uri);
@@ -162,7 +162,7 @@ namespace DafnyPipeline.Test {
       ReportNotOwnedToken(programNotIndented, notOwnedToken, posToOwnerNode);
     }
 
-    private static void ReportNotOwnedToken(string programNotIndented, IOrigin notOwnedToken,
+    private static void ReportNotOwnedToken(string programNotIndented, Token notOwnedToken,
       Dictionary<int, List<INode>> posToOwnerNode) {
       var nextOwnedToken = notOwnedToken.Next;
       while (nextOwnedToken != null && !posToOwnerNode.ContainsKey(nextOwnedToken.pos)) {
@@ -183,8 +183,8 @@ namespace DafnyPipeline.Test {
       );
     }
 
-    private static IOrigin? GetFirstNotOwnedToken(IOrigin firstToken, HashSet<int> tokensWithoutOwner) {
-      IOrigin? notOwnedToken = firstToken;
+    private static Token? GetFirstNotOwnedToken(Token firstToken, HashSet<int> tokensWithoutOwner) {
+      Token? notOwnedToken = firstToken;
       while (notOwnedToken != null && !tokensWithoutOwner.Contains(notOwnedToken.pos)) {
         notOwnedToken = notOwnedToken.Next;
       }
@@ -192,9 +192,9 @@ namespace DafnyPipeline.Test {
       return notOwnedToken;
     }
 
-    private static HashSet<int> CollectTokensWithoutOwner(Program dafnyProgram, IOrigin firstToken,
+    private static HashSet<int> CollectTokensWithoutOwner(Program dafnyProgram, Token firstToken,
       out Dictionary<int, List<INode>> posToOwnerNode) {
-      HashSet<int> tokensWithoutOwner = new HashSet<int>();
+      HashSet<int> tokensWithoutOwner = [];
       var posToOwnerNodeInner = new Dictionary<int, List<INode>>();
 
       var t = firstToken;
@@ -210,7 +210,7 @@ namespace DafnyPipeline.Test {
         var ownedTokens = node.OwnedTokens;
         foreach (var token in ownedTokens) {
           tokensWithoutOwner.Remove(token.pos);
-          posToOwnerNodeInner.GetOrCreate(token.pos, () => new List<INode>()).Add(node);
+          posToOwnerNodeInner.GetOrCreate(token.pos, () => []).Add(node);
         }
       }
 

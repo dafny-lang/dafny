@@ -70,7 +70,7 @@ namespace XUnitExtensions.Lit {
     public async Task Execute(ITestOutputHelper outputHelper) {
       Directory.CreateDirectory(Path.Join(Path.GetDirectoryName(FilePath), "Output"));
       // For debugging. Only printed on failure in case the true cause is buried in an earlier command.
-      List<(string, string)> results = new();
+      List<(string, string)> results = [];
 
 
       foreach (var command in Commands) {

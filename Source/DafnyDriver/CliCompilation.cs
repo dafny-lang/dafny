@@ -7,6 +7,7 @@ using System.Linq;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
+using IntervalTree;
 using Microsoft.Boogie;
 using Microsoft.Dafny;
 using Microsoft.Dafny.Compilers;
@@ -21,6 +22,7 @@ using Token = Microsoft.Dafny.Token;
 namespace DafnyDriver.Commands;
 
 public record CanVerifyResult(ICanVerify CanVerify, IReadOnlyList<VerificationTaskResult> Results);
+
 
 public class CliCompilation {
   public Compilation Compilation { get; }
@@ -68,7 +70,7 @@ public class CliCompilation {
     }
 
     if (warningCount > 0 && !Options.Get(CommonOptionBag.AllowWarnings)) {
-      await Options.OutputWriter.WriteLineAsync(
+      await Options.OutputWriter.Status(
         "Compilation failed because warnings were found and --allow-warnings is false");
       return ExitValue.DAFNY_ERROR;
     }
@@ -122,24 +124,23 @@ public class CliCompilation {
         if (newDiagnostic.Diagnostic.Level == ErrorLevel.Warning) {
           Interlocked.Increment(ref warningCount);
         }
-        var dafnyDiagnostic = newDiagnostic.Diagnostic;
-        consoleReporter.Message(dafnyDiagnostic.Source, dafnyDiagnostic.Level,
-          dafnyDiagnostic.ErrorId, dafnyDiagnostic.Token, dafnyDiagnostic.Message);
+
+        consoleReporter.MessageCore(newDiagnostic.Diagnostic);
       } else if (ev is FinishedParsing finishedParsing) {
         if (errorCount > 0) {
           var programName = finishedParsing.ParseResult.Program.Name;
-          Options.OutputWriter.WriteLine($"{errorCount} parse errors detected in {programName}");
+          _ = Options.OutputWriter.Status($"{errorCount} parse errors detected in {programName}");
         }
       } else if (ev is FinishedResolution finishedResolution) {
         DafnyMain.MaybePrintProgram(finishedResolution.Result.ResolvedProgram, Options.DafnyPrintResolvedFile, true);
 
         if (errorCount > 0) {
           var programName = finishedResolution.Result.ResolvedProgram.Name;
-          Options.OutputWriter.WriteLine($"{errorCount} resolution/type errors detected in {programName}");
+          _ = Options.OutputWriter.Status($"{errorCount} resolution/type errors detected in {programName}");
         }
       } else if (ev is InternalCompilationException internalCompilationException) {
         if (Interlocked.Increment(ref internalExceptionsFound) == 1) {
-          Options.OutputWriter.WriteLine($"Encountered internal compilation exception: {internalCompilationException.Exception.Message}");
+          _ = Options.OutputWriter.Status($"Encountered internal compilation exception: {internalCompilationException.Exception.Message}");
         }
       }
 
@@ -186,7 +187,7 @@ public class CliCompilation {
         canVerifyResult.CompletedParts.Enqueue((boogieUpdate.VerificationTask, completed));
         var completedPartsCount = Interlocked.Increment(ref canVerifyResult.CompletedCount);
 
-        if (Options.Get(CommonOptionBag.ProgressOption) == CommonOptionBag.ProgressLevel.VerificationJobs) {
+        if (Options.Get(CommonOptionBag.ProgressOption) == CommonOptionBag.ProgressLevel.Batch) {
           var partOrigin = boogieUpdate.VerificationTask.Split.Token;
 
           var wellFormedness = boogieUpdate.VerificationTask.Split.Implementation.Name.Contains("CheckWellFormed$");
@@ -217,7 +218,7 @@ public class CliCompilation {
 
           var runResult = completed.Result;
           var timeString = runResult.RunTime.ToString("g");
-          Options.OutputWriter.WriteLine(
+          _ = Options.OutputWriter.Status(
             $"Verified {completedPartsCount}/{canVerifyResult.TaskCount} of {boogieUpdate.CanVerify.FullDafnyName}: " +
             $"{OriginDescription(partOrigin, true)} - " +
             $"{DescribeOutcome(Compilation.GetOutcome(runResult.Outcome))}" +
@@ -234,16 +235,14 @@ public class CliCompilation {
       yield break;
     }
 
-    var canVerifies = resolution.CanVerifies?.ToList();
-
-    if (canVerifies == null) {
+    if (resolution.CanVerifies == null) {
       yield break;
     }
 
     DidVerification = true;
 
-    canVerifies = FilterCanVerifies(canVerifies, out var line);
-    VerifiedAssertions = line != null;
+    var canVerifies = FilterCanVerifies(resolution.CanVerifies, out var filterRange);
+    VerifiedAssertions = filterRange.Filters;
 
     int done = 0;
 
@@ -254,11 +253,11 @@ public class CliCompilation {
       foreach (var canVerify in canVerifiesForModule.OrderBy(v => v.Origin.pos)) {
         var results = new CliCanVerifyState();
         canVerifyResults[canVerify] = results;
-        if (line != null) {
-          results.TaskFilter = t => KeepVerificationTask(t, line.Value);
+        if (VerifiedAssertions) {
+          results.TaskFilter = t => KeepVerificationTask(t, filterRange);
         }
 
-        var shouldVerify = await Compilation.VerifyLocation(canVerify.Origin.GetFilePosition(), results.TaskFilter, randomSeed);
+        var shouldVerify = await Compilation.VerifyCanVerify(canVerify, results.TaskFilter, randomSeed);
         if (shouldVerify) {
           toAwait.Add(canVerify);
         }
@@ -268,7 +267,7 @@ public class CliCompilation {
         var results = canVerifyResults[canVerify];
         try {
           if (Options.Get(CommonOptionBag.ProgressOption) > CommonOptionBag.ProgressLevel.None) {
-            await Options.OutputWriter.WriteLineAsync(
+            await Options.OutputWriter.Status(
               $"Verified {done}/{canVerifies.ToList().Count} symbols. Waiting for {canVerify.FullDafnyName} to verify.");
           }
 
@@ -312,46 +311,72 @@ public class CliCompilation {
     };
   }
 
-  private List<ICanVerify> FilterCanVerifies(List<ICanVerify> canVerifies, out int? line) {
+  class LineRange(int start, int end) {
+    public int Start { get; } = start;
+    public int End { get; } = end;
+
+    public bool Contains(int value) {
+      return Start <= value && value <= End;
+    }
+    public bool Filters => Start != int.MinValue || End != int.MaxValue;
+  }
+
+  private IReadOnlyList<ICanVerify> FilterCanVerifies(IDictionary<Uri, IIntervalTree<DafnyPosition, ICanVerify>> canVerifies, out LineRange range) {
+    int start = int.MinValue;
+    int end = int.MaxValue;
+    var filterPosition = Options.Get(VerifyCommand.FilterPosition);
+    IEnumerable<ICanVerify> result;
+    if (filterPosition == null) {
+      range = new LineRange(start, end);
+      result = canVerifies.SelectMany(x => x.Value.Values);
+    } else {
+      var regex = new Regex(@"(.*)(?::(\d*)(-?)(\d*))?", RegexOptions.RightToLeft);
+      var regexResult = regex.Match(filterPosition);
+      if (regexResult.Length != filterPosition.Length || !regexResult.Success) {
+        Compilation.Reporter.Error(MessageSource.Project, Token.Cli, "Could not parse value passed to --filter-position");
+        range = new LineRange(start, end);
+        return [];
+      }
+      var filePart = regexResult.Groups[1].Value;
+      string? lineStart = regexResult.Groups[2].Value;
+      bool hasRange = regexResult.Groups[3].Value == "-";
+      string lineEnd = regexResult.Groups[4].Value;
+      var validFiles = canVerifies.Keys.Where(u => u.ToString().EndsWith(filePart));
+      result = validFiles.SelectMany(k => canVerifies[k].Values);
+      if (string.IsNullOrEmpty(lineStart) && string.IsNullOrEmpty(lineEnd)) {
+        range = new LineRange(start, end);
+      } else {
+        if (!string.IsNullOrEmpty(lineEnd)) {
+          end = int.Parse(lineEnd);
+          if (!hasRange) {
+            start = end;
+          }
+        }
+        if (!string.IsNullOrEmpty(lineStart)) {
+          start = int.Parse(lineStart);
+        }
+
+        range = new LineRange(start, end);
+        result = result.Where(c => c.StartToken.line <= end && start <= c.EndToken.line);
+      }
+    }
+
     var symbolFilter = Options.Get(VerifyCommand.FilterSymbol);
     if (symbolFilter != null) {
       if (symbolFilter.EndsWith(".")) {
         var withoutDot = new string(symbolFilter.SkipLast(1).ToArray());
-        canVerifies = canVerifies.Where(canVerify => canVerify.FullDafnyName.EndsWith(withoutDot)).ToList();
+        result = result.Where(canVerify => canVerify.FullDafnyName.EndsWith(withoutDot));
       } else {
-        canVerifies = canVerifies.Where(canVerify => canVerify.FullDafnyName.Contains(symbolFilter)).ToList();
+        result = result.Where(canVerify => canVerify.FullDafnyName.Contains(symbolFilter));
       }
     }
 
-    var filterPosition = Options.Get(VerifyCommand.FilterPosition);
-    if (filterPosition == null) {
-      line = null;
-      return canVerifies;
-    }
+    return result.ToList();
 
-    var regex = new Regex(@"(.*)(?::(\d+))?", RegexOptions.RightToLeft);
-    var result = regex.Match(filterPosition);
-    if (result.Length != filterPosition.Length || !result.Success) {
-      Compilation.Reporter.Error(MessageSource.Project, Token.Cli, "Could not parse value passed to --filter-position");
-      line = null;
-      return new List<ICanVerify>();
-    }
-    var filePart = result.Groups[1].Value;
-    string? linePart = result.Groups.Count > 2 ? result.Groups[2].Value : null;
-    var fileFiltered = canVerifies.Where(c => c.Origin.Uri.ToString().EndsWith(filePart)).ToList();
-    if (string.IsNullOrEmpty(linePart)) {
-      line = null;
-      return fileFiltered;
-    }
-
-    var parsedLine = int.Parse(linePart);
-    line = parsedLine;
-    return fileFiltered.Where(c =>
-        c.Origin.StartToken.line <= parsedLine && parsedLine <= c.Origin.EndToken.line).ToList();
   }
 
-  private bool KeepVerificationTask(IVerificationTask task, int line) {
-    return task.ScopeToken.line == line || task.Token.line == line;
+  private bool KeepVerificationTask(IVerificationTask task, LineRange range) {
+    return range.Contains(task.ScopeToken.line) || range.Contains(task.Token.line);
   }
 }
 

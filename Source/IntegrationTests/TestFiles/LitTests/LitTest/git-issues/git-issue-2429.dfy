@@ -1,9 +1,9 @@
-// RUN: %verify --allow-axioms "%s" > "%t"
+// RUN: %verify --allow-axioms --type-system-refresh=false --general-newtypes=false "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 ghost predicate P<A>(s: seq<A>)
 
-trait T<A> {
+trait T<A> extends object {
   method M(a: A)
     requires Q([a][0 := a])
     modifies if P([a][0 := a]) then {} else {this}

@@ -144,6 +144,7 @@ public class ParseErrors {
     p_decreases_without_to,
     p_binding_in_decreases_to,
     p_ghost_in_decreases_to,
+    p_needs_referrers
   }
 
   static ParseErrors() {
@@ -230,9 +231,7 @@ This attribute is obsolete and unmaintained. It will be removed from dafny in th
     Add(ErrorId.p_literal_string_required,
     @"
 The value of an options attribute cannot be a computed expression. It must be a literal string.
-".TrimStart(), range => new List<DafnyAction> {
-    OneAction("enclose in quotes", range, "\"" + range.PrintOriginal() + "\"")
-});
+".TrimStart(), range => [OneAction("enclose in quotes", range, "\"" + range.PrintOriginal() + "\"")]);
 
     // TODO - what about multiple leading underscores
     Add(ErrorId.p_no_leading_underscore,
@@ -241,9 +240,7 @@ User-declared identifiers may not begin with an underscore;
 such identifiers are reserved for internal use.
 In match statements and expressions, an identifier
 that is a single underscore is used as a wild-card match.
-".TrimStart(), range => new List<DafnyAction> {
-    OneAction("remove underscore", range, range.PrintOriginal().Substring(1))
-  });
+".TrimStart(), range => [OneAction("remove underscore", range, range.PrintOriginal().Substring(1))]);
 
     Add(ErrorId.p_no_leading_underscore_2,
     @"
@@ -251,9 +248,7 @@ User-declared identifiers may not begin with an underscore;
 such identifiers are reserved for internal use.
 In match statements and expressions, an identifier
 that is a single underscore is used as a wild-card match.
-".TrimStart(), range => new List<DafnyAction> {
-    OneAction("remove underscore", range, range.PrintOriginal().Substring(1))
-  });
+".TrimStart(), range => [OneAction("remove underscore", range, range.PrintOriginal().Substring(1))]);
 
     Add(ErrorId.p_bitvector_too_large,
     @"
@@ -283,10 +278,10 @@ If the implicit module cannot be imported, there is no point to any export decla
 The [syntax for a module declaration](https://dafny.org/latest/DafnyRef/DafnyRef#sec-modules) is either `module M { ... }` or
 `module M refines N { ... }` with optional attributes after the `module` keyword.
 This error message often occurs if the `refines` keyword is misspelled.
-".TrimStart(), range => new List<DafnyAction> {
-    OneAction("replace '" + range.PrintOriginal() + "' with 'refines'", range, "refines"),
-    OneAction("remove '" + range.PrintOriginal() + "'", range, "", true)
-  });
+".TrimStart(), range => [
+      OneAction("replace '" + range.PrintOriginal() + "' with 'refines'", range, "refines"),
+      OneAction("remove '" + range.PrintOriginal() + "'", range, "", true)
+    ]);
 
     Add(ErrorId.p_misplaced_least_or_greatest,
     @"
@@ -387,10 +382,10 @@ The `older` modifier only applies to input parameters.
     @"
 Because a mutable field does not have initializer, it must have a type (as in `var f: int`).
 `const` declarations may have initializers; if they do they do not need an explicit type.
-".TrimStart(), range => new List<DafnyAction> {
-    OneAction("insert ': bool'", range, range.PrintOriginal() + ": bool"),
-    OneAction("insert ': int'", range, range.PrintOriginal() + ": int")
-  });
+".TrimStart(), range => [
+      OneAction("insert ': bool'", range, range.PrintOriginal() + ": bool"),
+      OneAction("insert ': int'", range, range.PrintOriginal() + ": int")
+    ]);
 
     Add(ErrorId.p_no_init_for_var_field,
     @"
@@ -414,10 +409,10 @@ However, if `nameonly` is used, meaning the constructor can be called using name
 then the name must be given, as in `datatype D = D (i: int, nameonly j: int) {}`
 
 More detail is given [here](https://dafny.org/latest/DafnyRef/DafnyRef#sec-parameter-bindings).
-".TrimStart(), range => new List<DafnyAction> {
-    OneAction("remove 'nameonly'", range, "", true),
-    OneAction("insert '_:'", range, range.PrintOriginal() + " _:")
-  });
+".TrimStart(), range => [
+      OneAction("remove 'nameonly'", range, "", true),
+      OneAction("insert '_:'", range, range.PrintOriginal() + " _:")
+    ]);
 
     Add(ErrorId.p_should_be_yields_instead_of_returns,
     @"
@@ -455,19 +450,19 @@ They are given in a parentheses-enclosed, comma-separated list after the type na
 The currently defined type characteristics are designated by `==` (equality - supporting),
 `0` (auto - initializable), `00` (non - empty), and `!new` (non - reference).
 ".TrimStart(), range =>
-    range.Prev.val == "," ?
-      new List<DafnyAction> {
-      OneAction("remove comma", range.Prev, ""),
-      OneAction("insert '=='", range, "==" + range.PrintOriginal()),
-      OneAction("insert '0'", range, "0" + range.PrintOriginal()),
-      OneAction("insert '00'", range, "00" + range.PrintOriginal()),
-      OneAction("insert '!new'", range, "!new" + range.PrintOriginal()) }
-   : new List<DafnyAction> {
+    range.Prev!.val == "," ? [
+        OneAction("remove comma", new TokenRange(range.Prev, range.Prev), ""),
       OneAction("insert '=='", range, "==" + range.PrintOriginal()),
       OneAction("insert '0'", range, "0" + range.PrintOriginal()),
       OneAction("insert '00'", range, "00" + range.PrintOriginal()),
       OneAction("insert '!new'", range, "!new" + range.PrintOriginal())
-  });
+      ]
+      : [
+        OneAction("insert '=='", range, "==" + range.PrintOriginal()),
+        OneAction("insert '0'", range, "0" + range.PrintOriginal()),
+        OneAction("insert '00'", range, "00" + range.PrintOriginal()),
+        OneAction("insert '!new'", range, "!new" + range.PrintOriginal())
+      ]);
 
     Add(ErrorId.p_illegal_type_characteristic,
     @"
@@ -533,9 +528,7 @@ containing such objects). `reads *` means the function may read anything.
 So it does not make sense to list `*` along with something more specific.
 If you mean that the function should be able to read anything, just list `*`.
 Otherwise, omit the `*` and list expressions containing all the objects that are read.
-".TrimStart(), range => new List<DafnyAction> {
-    OneAction("remove *", IncludeComma(range), "", true)
-});
+".TrimStart(), range => [OneAction("remove *", IncludeComma(range), "", true)]);
 
     Add(ErrorId.p_no_defaults_for_out_parameters,
     @"
@@ -656,9 +649,9 @@ From Dafny 4 on, the phrases `function method` and `predicate method` are no
 longer accepted. Use `function` for compiled, non-ghost functions and
 `ghost function` for non-compiled, ghost functions, and similarly for predicates.
 See [the documentation here](https://dafny.org/latest/DafnyRef/DafnyRef#sec-function-syntax).
-".TrimStart(), range => new List<DafnyAction> {
-    OneAction("remove 'method'", range, "predicate", false),
-});
+".TrimStart(), range => [
+      OneAction("remove 'method'", range, "predicate", false)
+    ]);
 
     Add(ErrorId.p_deprecating_function_method,
     @"
@@ -666,9 +659,9 @@ From Dafny 4 on, the phrases `function method` and `predicate method` are no
 longer accepted. Use `function` for compiled, non-ghost functions and
 `ghost function` for non-compiled, ghost functions, and similarly for predicates.
 See [the documentation here](https://dafny.org/latest/DafnyRef/DafnyRef#sec-function-syntax).
-".TrimStart(), range => new List<DafnyAction> {
-    OneAction("remove 'method'", range, "function", false),
-});
+".TrimStart(), range => [
+      OneAction("remove 'method'", range, "function", false)
+    ]);
 
     Add(ErrorId.p_no_ghost_function_method,
     @"
@@ -681,9 +674,9 @@ From Dafny 4 on, a ghost function is declared `ghost function` and a non-ghost f
 and there is no longer any declaration of the form `function method`, and similarly for predicates. 
 
 See [the documentation here](../DafnyRef/DafnyRef#sec-function-syntax).
-".TrimStart(), range => new List<DafnyAction> {
-    OneAction("remove 'method'", range, "function", false),
-});
+".TrimStart(), range => [
+      OneAction("remove 'method'", range, "function", false)
+    ]);
 
     Add(ErrorId.p_no_ghost_predicate_method,
     @"
@@ -696,26 +689,25 @@ From Dafny 4 on, a ghost function is declared `ghost function` and a non-ghost f
 and there is no longer any declaration of the form `function method`, and similarly for predicates. 
 
 See [the documentation here](../DafnyRef/DafnyRef#sec-function-syntax).
-".TrimStart(), range => new List<DafnyAction> {
-    OneAction("remove 'method'", range, "predicate", false),
-});
+".TrimStart(), range => [
+      OneAction("remove 'method'", range, "predicate", false)
+    ]);
 
     Add(ErrorId.p_migration_syntax,
     @"
 This error occurs only when using `migration3to4`. With this option, ghost functions are declared using `ghost function` and compiled functions using `function method`.
 Change `function` in the declaration to one of these.
-".TrimStart(), range => new List<DafnyAction> {
-    OneAction("add 'ghost'", range, "ghost function", false),
-    OneAction("add 'method'", range, "function method", false),
-});
+".TrimStart(), range => [
+      OneAction("add 'ghost'", range, "ghost function", false),
+      OneAction("add 'method'", range, "function method", false)
+    ]);
 
     Add(ErrorId.p_no_ghost_formal,
     @"
 A ghost predicate or function effectively has all ghost formal parameters, so they cannot be declared ghost in addition.
-".TrimStart(), range => range.PrintOriginal() != "ghost" ?
-    new List<DafnyAction> { }
-    : new List<DafnyAction> { OneAction("remove 'ghost'", range, "", true) }
-);
+".TrimStart(), range => range.PrintOriginal() != "ghost" ? []
+      : [OneAction("remove 'ghost'", range, "", true)]
+    );
 
     Add(ErrorId.p_no_decreases_for_extreme_predicates,
     @"
@@ -727,19 +719,20 @@ Hence `decreases` clauses are inappropriate and not allowed.
     @"
 A predicate is a function that returns `bool`. The return type here is something else.
 If you mean to have a non-`bool` return type, use `function` instead of `predicate`.
-".TrimStart(), range => new List<DafnyAction> {
-    OneAction("remove type", new SourceOrigin(range.StartToken.Prev, range.EndToken), "", true),
-    OneAction("replace type with 'bool'", range, "bool", true) }
-);
+".TrimStart(), range => [
+      OneAction("remove type", new TokenRange(range.Prev, range.EndToken), "", true),
+      OneAction("replace type with 'bool'", range, "bool", true)
+    ]
+    );
 
     Add(ErrorId.p_no_return_type_for_predicate,
     @"
 A `predicate` is simply a `function` that returns a `bool` value.
 Accordingly, the type is (required to be) omitted, unless the result is being named.
 So `predicate p(): (res: bool) { true }` is permitted.
-".TrimStart(), range => new List<DafnyAction> {
-    OneAction("remove type", new SourceOrigin(range.StartToken.Prev, range.EndToken), "", true),
-  });
+".TrimStart(), range => [
+      OneAction("remove type", new TokenRange(range.Prev!, range.EndToken), "", true)
+    ]);
 
     Add(ErrorId.p_no_wild_expression,
     @"
@@ -762,12 +755,12 @@ This is not a legal start to a statement. Most commonly either
 * a `var` or `const` keyword is missing, and the `x:` is the beginning of a declaration, or
 * a `label` keyword is missing and the identifier is the label for the statement that follows.
 (The second error is somewhat common because in C/C++ and Java, there is no keyword introducing a label, just the identifier and the colon.)
-".TrimStart(), range => new List<DafnyAction> {
-    OneAction("insert 'label'", range, "label " + range.PrintOriginal(), false),
-    OneAction("insert 'var'", range, "var " + range.PrintOriginal(), false),
-    OneAction("insert 'const'", range, "const " + range.PrintOriginal(), false),
-    OneAction("change ':' to ':='", range, range.PrintOriginal() + "=", false),
-  });
+".TrimStart(), range => [
+      OneAction("insert 'label'", range, "label " + range.PrintOriginal(), false),
+      OneAction("insert 'var'", range, "var " + range.PrintOriginal(), false),
+      OneAction("insert 'const'", range, "const " + range.PrintOriginal(), false),
+      OneAction("change ':' to ':='", range, range.PrintOriginal() + "=", false)
+    ]);
 
     Add(ErrorId.p_initializing_display_only_for_1D_arrays,
     @"
@@ -777,13 +770,11 @@ in a loop after it is allocated, or to initialize with a function, as in
 `var a:= new int[2,2]((i: int, j: int)=>i+j)`.
 ".TrimStart());
 
-    ActionSignature sharedLambda = delegate (SourceOrigin range) {
-      return new List<DafnyAction> {
-        OneAction("replace with ':='", range, ":=", false),
-        OneAction("replace with ':-", range, ":-", false),
-        OneAction("replace with ':|'", range, ":|", false),
-    };
-    };
+    ActionSignature sharedLambda = range => [
+      OneAction("replace with ':='", range, ":=", false),
+      OneAction("replace with ':-", range, ":-", false),
+      OneAction("replace with ':|'", range, ":|", false)
+    ];
 
     Add(ErrorId.p_no_equal_for_initializing,
     @"
@@ -825,10 +816,10 @@ method m() {
 }
 ```
 is legal, but not at all recommended.
-".TrimStart(), range => new List<DafnyAction> {
-    OneAction("replace with 'to'", range, "to", false),
-    OneAction("replace with 'downto'", range, "downto", false),
-  });
+".TrimStart(), range => [
+      OneAction("replace with 'to'", range, "to", false),
+      OneAction("replace with 'downto'", range, "downto", false)
+    ]);
 
     Add(ErrorId.p_no_decreases_expressions_with_star,
     @"
@@ -866,13 +857,13 @@ This default operator is the implicit operator between each consecutive pair of 
 in the body of the calc statement.
 
 But the operator has to be transitive: `!=` is not allowed; `==`, `<`, `<=`, '>' and '>=' are allowed.
-".TrimStart(), range => new List<DafnyAction> {
-    OneAction("replace with '=='", range, "==", false),
-    OneAction("replace with '<'", range, "<", false),
-    OneAction("replace with '<='", range, "<=", false),
-    OneAction("replace with '>='", range, ">=", false),
-    OneAction("replace with '>'", range, ">", false),
-  });
+".TrimStart(), range => [
+      OneAction("replace with '=='", range, "==", false),
+      OneAction("replace with '<'", range, "<", false),
+      OneAction("replace with '<='", range, "<=", false),
+      OneAction("replace with '>='", range, ">=", false),
+      OneAction("replace with '>'", range, ">", false)
+    ]);
 
     Add(ErrorId.p_invalid_calc_op_combination,
     @"
@@ -1009,10 +1000,10 @@ The parser is expecting a relational expression, that is, two expressions separa
 (one of `==`, `!=`, `>`, `>=`, `<`, `<=`, `!!`, `in`, `!in`). But the parser saw just a `!` ,
 which could be the beginning of `!=`, `!!`, or `!in`, but is not continued as such.
 So perhaps there is extraneous white space or something else entirely is intended.
-".TrimStart(), range => new List<DafnyAction> {
-    OneAction("replace with `!=`", range, "!=", false),
-    OneAction("replace with `!!`", range, "!!", false),
-});
+".TrimStart(), range => [
+      OneAction("replace with `!=`", range, "!=", false),
+      OneAction("replace with `!!`", range, "!!", false)
+    ]);
 
     Add(ErrorId.p_invalid_relational_op,
     @"
@@ -1046,10 +1037,10 @@ More detail is given [here](../DafnyRef/DafnyRef#sec-character-constant-token) a
     @"
 Bindings of the form `x := y` are used in map-display expressions, in which case they are enclosed in square brackets,
 not parentheses. `var c := ( 4 := 5 )` should be `var c := map[ 4 := 5 ]`.
-".TrimStart(), range => new List<DafnyAction> {
-    OneAction("replace `( )` with `map[ ]`", range, "map[" + range.PrintOriginal()[1..^1] + "]", false),
-    OneAction("replace `( )` with `imap[ ]`", range, "imap[" + range.PrintOriginal()[1..^1] + "]", false),
-});
+".TrimStart(), range => [
+      OneAction("replace `( )` with `map[ ]`", range, "map[" + range.PrintOriginal()[1..^1] + "]", false),
+      OneAction("replace `( )` with `imap[ ]`", range, "imap[" + range.PrintOriginal()[1..^1] + "]", false)
+    ]);
 
     Add(ErrorId.p_must_be_multiset,
     @"
@@ -1231,6 +1222,9 @@ the word `opaque` is being converted to a reserved keyword, whereas it used to b
 Please rename your use of opaque as an identifier to some other name.
 ".TrimStart());
 
+    Add(ErrorId.p_needs_referrers,
+      @"
+Array memory locations are supported only with --referrers here".TrimStart());
   }
 
   public static void RunStaticConstructor() {

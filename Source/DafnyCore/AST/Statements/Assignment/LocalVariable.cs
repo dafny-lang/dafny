@@ -1,3 +1,4 @@
+#nullable enable
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 using System.Linq;
@@ -5,11 +6,11 @@ using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 
 namespace Microsoft.Dafny;
 
-public class LocalVariable : RangeNode, IVariable, IAttributeBearingDeclaration {
-  readonly string name;
+public class LocalVariable : NodeWithOrigin, IVariable, IAttributeBearingDeclaration {
+  string name;
   public string DafnyName => Name;
-  public Attributes Attributes;
-  Attributes IAttributeBearingDeclaration.Attributes {
+  public Attributes? Attributes;
+  Attributes? IAttributeBearingDeclaration.Attributes {
     get => Attributes;
     set => Attributes = value;
   }
@@ -26,26 +27,21 @@ public class LocalVariable : RangeNode, IVariable, IAttributeBearingDeclaration 
     : base(cloner, original) {
     name = original.Name;
     SyntacticType = cloner.CloneType(original.SyntacticType);
-    IsTypeExplicit = original.IsTypeExplicit;
     IsGhost = original.IsGhost;
+    localField = localField != null ? cloner.CloneField(localField) : null;
 
     if (cloner.CloneResolvedFields) {
       type = original.type;
     }
   }
 
-  public LocalVariable(IOrigin origin, string name, Type type, bool isGhost)
+  [SyntaxConstructor]
+  public LocalVariable(IOrigin origin, string name, Type? syntacticType, bool isGhost)
     : base(origin) {
-    Contract.Requires(name != null);
-    Contract.Requires(type != null);  // can be a proxy, though
 
     this.name = name;
-    IsTypeExplicit = type != null;
-    this.SyntacticType = type ?? new InferredTypeProxy();
-    if (type is InferredTypeProxy) {
-      ((InferredTypeProxy)type).KeepConstraints = true;
-    }
-    this.IsGhost = isGhost;
+    SyntacticType = syntacticType;
+    IsGhost = isGhost;
   }
 
   public string Name {
@@ -55,40 +51,44 @@ public class LocalVariable : RangeNode, IVariable, IAttributeBearingDeclaration 
     }
   }
   public static bool HasWildcardName(IVariable v) {
-    Contract.Requires(v != null);
     return v.Name.StartsWith("_v");
   }
   public static string DisplayNameHelper(IVariable v) {
-    Contract.Requires(v != null);
     return HasWildcardName(v) ? $"_ /* {v.Name} */" : v.Name;
   }
   public string DisplayName {
     get { return DisplayNameHelper(this); }
   }
-  private string uniqueName;
-  public string UniqueName => uniqueName;
+  private string? uniqueName;
+  public string? UniqueName => uniqueName;
   public bool HasBeenAssignedUniqueName => uniqueName != null;
   public string AssignUniqueName(VerificationIdGenerator generator) {
     return uniqueName ??= generator.FreshId(Name + "#");
   }
 
-  private string sanitizedNameShadowable;
+  private string? sanitizedNameShadowable;
 
   public string CompileNameShadowable =>
     sanitizedNameShadowable ??= NonglobalVariable.SanitizeName(Name);
 
-  string compileName;
+  string? compileName;
 
   public string GetOrCreateCompileName(CodeGenIdGenerator generator) {
     return compileName ??= $"_{generator.FreshNumericId()}_{CompileNameShadowable}";
   }
 
-  // TODO rename and update comment? Or make it nullable?
-  public readonly Type SyntacticType;  // this is the type mentioned in the declaration, if any
-  Type IVariable.OptionalType => SyntacticType;
+  public Type? SyntacticType;
+
+  private Type? safeSyntacticType;
+  public Type SafeSyntacticType =>
+    safeSyntacticType ??= SyntacticType ?? new InferredTypeProxy {
+      KeepConstraints = true
+    };
+
+  Type? IVariable.OptionalType => SafeSyntacticType;
 
   [FilledInDuringResolution]
-  internal Type type;  // this is the declared or inferred type of the variable; it is non-null after resolution (even if resolution fails)
+  internal Type? type;  // this is the declared or inferred type of the variable; it is non-null after resolution (even if resolution fails)
   public Type Type {
     get {
       Contract.Ensures(Contract.Result<Type>() != null);
@@ -110,7 +110,7 @@ public class LocalVariable : RangeNode, IVariable, IAttributeBearingDeclaration 
     }
   }
 
-  public PreType PreType { get; set; }
+  public PreType? PreType { get; set; }
 
   public bool IsMutable {
     get {
@@ -129,20 +129,36 @@ public class LocalVariable : RangeNode, IVariable, IAttributeBearingDeclaration 
     this.IsGhost = true;
   }
 
-  public IOrigin NavigationToken => Origin.StartToken;
-  public bool IsTypeExplicit { get; }
+  public TokenRange NavigationRange => ReportingRange;
+
+  public bool IsTypeExplicit => SyntacticType != null;
   public override IEnumerable<INode> Children =>
     Attributes.AsEnumerable().
       Concat<Node>(
-      IsTypeExplicit ? new List<Node>() { type } : Enumerable.Empty<Node>());
+      IsTypeExplicit ? new List<Node>() { type! } : Enumerable.Empty<Node>());
 
   public override IEnumerable<INode> PreResolveChildren =>
     Attributes.AsEnumerable().
       Concat<Node>(
-      IsTypeExplicit ? new List<Node>() { SyntacticType ?? type } : Enumerable.Empty<Node>());
+      IsTypeExplicit ? new List<Node>() { SyntacticType! } : Enumerable.Empty<Node>());
 
   public SymbolKind? Kind => SymbolKind.Variable;
   public string GetDescription(DafnyOptions options) {
     return this.AsText();
+  }
+
+  private Field? localField;
+
+  public Field GetLocalField(MethodOrConstructor methodOrConstructor) {
+    if (localField == null) {
+      localField = new SpecialField(Origin, Name, SpecialField.ID.UseIdParam, (object)Name, true,
+        false, false, Type, null) {
+        EnclosingClass = methodOrConstructor.EnclosingClass,
+        EnclosingMethod = methodOrConstructor
+      };
+      localField.InheritVisibility(methodOrConstructor);
+    }
+
+    return localField;
   }
 }

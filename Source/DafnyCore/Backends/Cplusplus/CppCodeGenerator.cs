@@ -57,11 +57,13 @@ namespace Microsoft.Dafny.Compilers {
       Feature.UnicodeChars,
       Feature.ConvertingValuesToStrings,
       Feature.BuiltinsInRuntime,
-      Feature.RuntimeCoverageReport
+      Feature.RuntimeCoverageReport,
+      Feature.StandardLibraries,
+      Feature.StandardLibrariesActionsExterns
     };
 
-    private List<DatatypeDecl> datatypeDecls = new();
-    private List<string> classDefaults = new();
+    private List<DatatypeDecl> datatypeDecls = [];
+    private List<string> classDefaults = [];
 
     /*
      * Unlike other Dafny and Dafny's other backends, C++ cares about
@@ -641,7 +643,7 @@ namespace Microsoft.Dafny.Compilers {
 
       GetNativeInfo(nt.NativeType.Sel, out var nt_name, out var literalSuffice, out var needsCastAfterArithmetic);
       var wDefault = w.NewBlock(string.Format("static {0} get_Default()", nt_name));
-      var udt = new UserDefinedType(nt.Origin, nt.Name, nt, new List<Type>());
+      var udt = new UserDefinedType(nt.Origin, nt.Name, nt, []);
       var d = TypeInitializationValue(udt, wr, nt.Origin, false, false);
       wDefault.WriteLine("return {0};", d);
 
@@ -735,7 +737,7 @@ namespace Microsoft.Dafny.Compilers {
         this.Finisher = finisher;
       }
 
-      public ConcreteSyntaxTree/*?*/ CreateMethod(Method m, List<TypeArgumentInstantiation> typeArgs, bool createBody, bool forBodyInheritance, bool lookasideBody) {
+      public ConcreteSyntaxTree/*?*/ CreateMethod(MethodOrConstructor m, List<TypeArgumentInstantiation> typeArgs, bool createBody, bool forBodyInheritance, bool lookasideBody) {
         return CodeGenerator.CreateMethod(m, typeArgs, createBody, MethodDeclWriter, MethodWriter, lookasideBody);
       }
 
@@ -765,7 +767,7 @@ namespace Microsoft.Dafny.Compilers {
       public void Finish() { }
     }
 
-    protected ConcreteSyntaxTree/*?*/ CreateMethod(Method m, List<TypeArgumentInstantiation> typeArgs, bool createBody, ConcreteSyntaxTree wdr, ConcreteSyntaxTree wr, bool lookasideBody) {
+    protected ConcreteSyntaxTree/*?*/ CreateMethod(MethodOrConstructor m, List<TypeArgumentInstantiation> typeArgs, bool createBody, ConcreteSyntaxTree wdr, ConcreteSyntaxTree wr, bool lookasideBody) {
       List<Formal> nonGhostOuts = m.Outs.Where(o => !o.IsGhost).ToList();
       string targetReturnTypeReplacement = null;
       if (nonGhostOuts.Count == 1) {
@@ -971,26 +973,26 @@ namespace Microsoft.Dafny.Compilers {
       } else if (xType is SetType) {
         Type argType = ((SetType)xType).Arg;
         if (ComplicatedTypeParameterForCompilation(TypeParameter.TPVariance.Co, argType)) {
-          UnsupportedFeatureError(tok, Feature.CollectionsOfTraits, "compilation of set<TRAIT> is not supported; consider introducing a ghost", wr);
+          UnsupportedFeatureError(tok, Feature.CollectionsOfTraits, wr, "compilation of set<TRAIT> is not supported; consider introducing a ghost");
         }
         return DafnySetClass + "<" + TypeName(argType, wr, tok) + ">";
       } else if (xType is SeqType) {
         Type argType = ((SeqType)xType).Arg;
         if (ComplicatedTypeParameterForCompilation(TypeParameter.TPVariance.Co, argType)) {
-          UnsupportedFeatureError(tok, Feature.CollectionsOfTraits, "compilation of seq<TRAIT> is not supported; consider introducing a ghost", wr);
+          UnsupportedFeatureError(tok, Feature.CollectionsOfTraits, wr, "compilation of seq<TRAIT> is not supported; consider introducing a ghost");
         }
         return DafnySeqClass + "<" + TypeName(argType, wr, tok) + ">";
       } else if (xType is MultiSetType) {
         Type argType = ((MultiSetType)xType).Arg;
         if (ComplicatedTypeParameterForCompilation(TypeParameter.TPVariance.Co, argType)) {
-          UnsupportedFeatureError(tok, Feature.CollectionsOfTraits, "compilation of multiset<TRAIT> is not supported; consider introducing a ghost", wr);
+          UnsupportedFeatureError(tok, Feature.CollectionsOfTraits, wr, "compilation of multiset<TRAIT> is not supported; consider introducing a ghost");
         }
         return DafnyMultiSetClass + "<" + TypeName(argType, wr, tok) + ">";
       } else if (xType is MapType) {
         Type domType = ((MapType)xType).Domain;
         Type ranType = ((MapType)xType).Range;
         if (ComplicatedTypeParameterForCompilation(TypeParameter.TPVariance.Co, domType) || ComplicatedTypeParameterForCompilation(TypeParameter.TPVariance.Co, ranType)) {
-          UnsupportedFeatureError(tok, Feature.CollectionsOfTraits, "compilation of map<TRAIT, _> or map<_, TRAIT> is not supported; consider introducing a ghost", wr);
+          UnsupportedFeatureError(tok, Feature.CollectionsOfTraits, wr, "compilation of map<TRAIT, _> or map<_, TRAIT> is not supported; consider introducing a ghost");
         }
         return DafnyMapClass + "<" + TypeName(domType, wr, tok) + "," + TypeName(ranType, wr, tok) + ">";
       } else {
@@ -1137,7 +1139,8 @@ namespace Microsoft.Dafny.Compilers {
       if (compileTypeHint.AsStringLiteral() == "struct") {
         modDeclWr.WriteLine("// Extern declaration of {1}\n{0} struct {1};", DeclareTemplate(d.TypeArgs), d.Name);
       } else {
-        Error(GeneratorErrors.ErrorId.c_abstract_type_cannot_be_compiled_extern, d.Origin, "Abstract type ('{0}') with unrecognized extern attribute {1} cannot be compiled.  Expected {{:extern compile_type_hint}}, e.g., 'struct'.", wr, d.FullName, compileTypeHint.AsStringLiteral());
+        Error(GeneratorErrors.ErrorId.c_abstract_type_cannot_be_compiled_extern, d.Origin, wr,
+          "Abstract type ('{0}') with unrecognized extern attribute {1} cannot be compiled.  Expected {{:extern compile_type_hint}}, e.g., 'struct'.", d.FullName, compileTypeHint.AsStringLiteral());
       }
     }
 
@@ -1221,7 +1224,7 @@ namespace Microsoft.Dafny.Compilers {
       return w;
     }
 
-    protected override bool UseReturnStyleOuts(Method m, int nonGhostOutCount) => true;
+    protected override bool UseReturnStyleOuts(MethodOrConstructor m, int nonGhostOutCount) => true;
 
     protected override void DeclareOutCollector(string collectorVarName, ConcreteSyntaxTree wr) {
       wr.Write("auto {0} = ", collectorVarName);
@@ -1319,7 +1322,7 @@ namespace Microsoft.Dafny.Compilers {
       var wStmts = wr.Fork();
       wr.Write("throw DafnyHaltException(");
       if (tok != null) {
-        wr.Write("\"" + tok.TokenToString(Options) + ": \" + ");
+        wr.Write("\"" + tok.OriginToString(Options) + ": \" + ");
       }
 
       if (messageExpr.Type.IsStringType) {
@@ -1333,8 +1336,9 @@ namespace Microsoft.Dafny.Compilers {
       wr.WriteLine(");");
     }
 
-    protected override ConcreteSyntaxTree EmitForStmt(IOrigin tok, IVariable loopIndex, bool goingUp, string /*?*/ endVarName,
-      List<Statement> body, LList<Label> labels, ConcreteSyntaxTree wr) {
+    protected override ConcreteSyntaxTree EmitForStmt(IOrigin tok, IVariable loopIndex, bool goingUp,
+      string/*?*/ endVarName,
+      List<Statement> body, List<Label> labels, ConcreteSyntaxTree wr) {
       throw new UnsupportedFeatureException(tok, Feature.ForLoops, "for loops have not yet been implemented");
     }
 
@@ -1775,19 +1779,18 @@ namespace Microsoft.Dafny.Compilers {
         });
       } else if (member is DatatypeDestructor dtor && dtor.EnclosingClass is TupleTypeDecl) {
         return SuffixLvalue(obj, ".get<{0}>()", dtor.Name);
-      } else if (member is SpecialField sf2 && sf2.SpecialId == SpecialField.ID.UseIdParam && sf2.IdParam is string fieldName
-                 && fieldName.StartsWith("is_")) {
+      } else if (member is DatatypeDiscriminator { IdParam: string fieldName } discriminator && fieldName.StartsWith("is_")) {
         // Ugly hack of a check to figure out if this is a datatype query: f.Constructor?
-        return SuffixLvalue(obj, ".is_{0}_{1}()", IdProtect(sf2.EnclosingClass.GetCompileName(Options)), fieldName.Substring(3));
+        return SuffixLvalue(obj, ".is_{0}_{1}()", IdProtect(discriminator.EnclosingClass.GetCompileName(Options)), fieldName.Substring(3));
       } else if (member is SpecialField sf) {
         GetSpecialFieldInfo(sf.SpecialId, sf.IdParam, objType, out var compiledName, out var preStr, out var postStr);
         if (sf.SpecialId == SpecialField.ID.Keys || sf.SpecialId == SpecialField.ID.Values) {
           return SuffixLvalue(obj, ".{0}", compiledName);
         } else if (sf is DatatypeDestructor dtor2) {
           if (!(dtor2.EnclosingClass is IndDatatypeDecl)) {
-            UnsupportedFeatureError(dtor2.Origin, Feature.Codatatypes,
-              String.Format("Unexpected use of a destructor {0} that isn't for an inductive datatype.  Panic!",
-                member.Name));
+            UnsupportedFeatureError(dtor2.Origin, Feature.Codatatypes, null,
+              "Unexpected use of a destructor {0} that isn't for an inductive datatype.  Panic!",
+                member.Name);
           }
 
           var dt = dtor2.EnclosingClass as IndDatatypeDecl;
@@ -2423,13 +2426,13 @@ namespace Microsoft.Dafny.Compilers {
       }
     }
 
-    protected override void EmitMapDisplay(MapType mt, IOrigin tok, List<ExpressionPair> elements,
+    protected override void EmitMapDisplay(MapType mt, IOrigin tok, List<MapDisplayEntry> elements,
       bool inLetExprBody, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
       wr.Write("DafnyMap<{0},{1}>::Create({{",
                TypeName(mt.TypeArgs[0], wr, tok, null, false),
                TypeName(mt.TypeArgs[1], wr, tok, null, false));
       string sep = "";
-      foreach (ExpressionPair p in elements) {
+      foreach (MapDisplayEntry p in elements) {
         wr.Write(sep);
         wr.Write("{");
         wr.Append(Expr(p.A, inLetExprBody, wStmts));

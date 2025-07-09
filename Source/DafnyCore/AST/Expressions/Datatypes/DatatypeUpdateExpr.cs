@@ -6,8 +6,8 @@ using System.Linq;
 namespace Microsoft.Dafny;
 
 public class DatatypeUpdateExpr : ConcreteSyntaxExpression, IHasReferences, ICloneable<DatatypeUpdateExpr> {
-  public readonly Expression Root;
-  public readonly List<Tuple<IOrigin, string, Expression>> Updates;
+  public Expression Root;
+  public List<Tuple<Token, string, Expression>> Updates;
   [FilledInDuringResolution] public List<MemberDecl> Members;
   [FilledInDuringResolution] public List<DatatypeCtor> LegalSourceConstructors;
   [FilledInDuringResolution] public bool InCompiledContext;
@@ -19,7 +19,7 @@ public class DatatypeUpdateExpr : ConcreteSyntaxExpression, IHasReferences, IClo
 
   public DatatypeUpdateExpr(Cloner cloner, DatatypeUpdateExpr original) : base(cloner, original) {
     Root = cloner.CloneExpr(original.Root);
-    Updates = original.Updates.Select(t => Tuple.Create(cloner.Origin(t.Item1), t.Item2, cloner.CloneExpr(t.Item3)))
+    Updates = original.Updates.Select(t => Tuple.Create(t.Item1, t.Item2, cloner.CloneExpr(t.Item3)))
       .ToList();
 
     if (cloner.CloneResolvedFields) {
@@ -34,7 +34,7 @@ public class DatatypeUpdateExpr : ConcreteSyntaxExpression, IHasReferences, IClo
     }
   }
 
-  public DatatypeUpdateExpr(IOrigin origin, Expression root, List<Tuple<IOrigin, string, Expression>> updates)
+  public DatatypeUpdateExpr(IOrigin origin, Expression root, List<Tuple<Token, string, Expression>> updates)
     : base(origin) {
     Contract.Requires(origin != null);
     Contract.Requires(root != null);
@@ -63,9 +63,10 @@ public class DatatypeUpdateExpr : ConcreteSyntaxExpression, IHasReferences, IClo
   }
 
   public IEnumerable<Reference> GetReferences() {
-    return LegalSourceConstructors == null ? Enumerable.Empty<Reference>()
+    return LegalSourceConstructors == null ? []
       : Updates.Zip(LegalSourceConstructors).Select(t =>
-        new Reference(t.First.Item1, t.Second.Formals.Find(f => f.Name == t.First.Item2)));
+        new Reference(new TokenRange(t.First.Item1, t.First.Item1),
+          t.Second.Formals.Find(f => f.Name == t.First.Item2)));
   }
 
   public override IEnumerable<Expression> PreResolveSubExpressions {

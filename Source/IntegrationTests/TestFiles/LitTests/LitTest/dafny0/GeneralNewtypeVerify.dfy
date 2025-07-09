@@ -561,6 +561,71 @@ module SimpleNewtypeWitness {
   newtype H = A ghost witness 13 // error: 13 does not satisfy constraint
 }
 
+module StringLiterals {
+  newtype LowerCase = ch: char | 'a' <= ch <= 'z' witness 'a'
+  newtype MyChar = ch: char | 'a' <= ch <= 'z' || ch == '\n' witness 'a'
+  newtype MyString = s: seq<MyChar> | |s| < 5
+
+  method BadCharacters() {
+    if
+    case true =>
+      var w0: MyString := "";
+    case true =>
+      var w1: MyString := "rs";
+    case true =>
+      var w2: MyString := ['r', 's'];
+    case true =>
+      var w3: MyString := ['r', 'A']; // error: 'A' is not a MyChar
+    case true =>
+      var w4: MyString := "rB"; // error: 'B' is not a MyChar
+    case true =>
+      var w5: seq<MyChar> := ['r', 'C']; // error: 'C' is not a MyChar
+    case true =>
+      var w6: seq<MyChar> := "rD";  // error: 'D' is not a MyChar
+  }
+
+  method BadVerbatim() {
+    if
+    case true =>
+      var w0: seq<LowerCase> := @"r
+s"; // error (on previous line): the newline is not a LowerCase
+//    case true =>
+//      var w1: seq<MyChar> := @"r
+//s";
+//   case true =>
+//      var w2: MyString := @"r
+//Xs"; // error (on previous line): 'X' is not a MyChar
+   case true =>
+      var w3: MyString := @"r
+stuvxyz"; // error (on previous line): too long to be a MyString
+    case true =>
+      var w4: seq<char> := @"
+abcdeABCDE";
+  }
+
+  method BadStringLength() {
+    if
+    case true =>
+      var w0: MyString := "abcde"; // error: too long to be a MyString
+    case true =>
+      var w1: MyString := ['r', 's', 't', 'u', 'v']; // error: too long to be a MyString
+  }
+
+  method BadChar() {
+    if
+    case true =>
+      var ch0: char := 'a';
+      var ch1: LowerCase := 'a';
+      var ch2: MyChar := 'a';
+    case true =>
+      var ch3: char := 'X';
+    case true =>
+      var ch4: LowerCase := 'Y'; // error: not a LowerCase
+    case true =>
+      var ch5: MyChar := 'Z'; // error: not a MyChar
+  }
+}
+
 /*
 module RealConversions {
   method TestRealIsInt0(r: real)

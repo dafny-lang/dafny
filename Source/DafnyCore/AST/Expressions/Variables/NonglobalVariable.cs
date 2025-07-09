@@ -1,3 +1,5 @@
+#nullable enable
+
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 using System.Linq;
@@ -5,42 +7,39 @@ using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 
 namespace Microsoft.Dafny;
 
-public abstract class NonglobalVariable : NodeWithComputedRange, IVariable {
+public abstract class NonglobalVariable : NodeWithOrigin, IVariable {
   public Name NameNode { get; }
 
-  protected NonglobalVariable(IOrigin origin, Name nameNode, Type type, bool isGhost) : base(origin) {
-    Contract.Requires(origin != null);
-    Contract.Requires(nameNode != null);
-    Contract.Requires(type != null);
-    this.NameNode = nameNode;
-    IsTypeExplicit = type != null;
-    this.type = type ?? new InferredTypeProxy();
-    this.isGhost = isGhost;
+  [SyntaxConstructor]
+  protected NonglobalVariable(IOrigin? origin, Name nameNode, Type? syntacticType, bool isGhost) : base(origin) {
+    NameNode = nameNode;
+    SyntacticType = syntacticType;
+    IsGhost = isGhost;
   }
 
-  [ContractInvariantMethod]
-  void ObjectInvariant() {
-    Contract.Invariant(type != null);
-  }
-
-  public string Name {
-    get {
-      Contract.Ensures(Contract.Result<string>() != null);
-      return NameNode.Value;
+  public NonglobalVariable(Cloner cloner, NonglobalVariable original) : base(cloner, original) {
+    NameNode = new Name(cloner, original.NameNode);
+    SyntacticType = cloner.CloneType(original.SyntacticType);
+    IsGhost = original.IsGhost;
+    if (cloner.CloneResolvedFields) {
+      safeSyntacticType = cloner.CloneType(original.safeSyntacticType);
     }
   }
-  public string DafnyName => Origin == null || Origin.line == 0 ? Name : Origin.PrintOriginal();
+
+  public string Name => NameNode.Value;
+
+  public string DafnyName => Origin.line == 0 ? Name : EntireRange.PrintOriginal();
   public string DisplayName =>
     LocalVariable.DisplayNameHelper(this);
 
-  private string uniqueName;
-  public string UniqueName => uniqueName;
+  private string? uniqueName;
+  public string? UniqueName => uniqueName;
   public bool HasBeenAssignedUniqueName => uniqueName != null;
   public string AssignUniqueName(VerificationIdGenerator generator) {
     return uniqueName ??= generator.FreshId(Name + "#");
   }
 
-  static char[] specialChars = { '\'', '_', '?', '\\', '#' };
+  static char[] specialChars = ['\'', '_', '?', '\\', '#'];
   /// <summary>
   /// Mangle name <c>nm</c> by replacing and escaping characters most likely to cause issues when compiling and
   /// when translating to Boogie.  This transformation is injective.
@@ -52,7 +51,7 @@ public abstract class NonglobalVariable : NodeWithComputedRange, IVariable {
       // the identifier is one that consists of just digits
       return "_" + nm;
     }
-    string name = null;
+    string? name = null;
     int i = 0;
     while (true) {
       int j = nm.IndexOfAny(specialChars, i);
@@ -83,58 +82,47 @@ public abstract class NonglobalVariable : NodeWithComputedRange, IVariable {
     }
   }
 
-  private string sanitizedNameShadowable;
+  private string? sanitizedNameShadowable;
 
   public virtual string CompileNameShadowable =>
     sanitizedNameShadowable ??= SanitizeName(Name);
 
-  protected string compileName;
+  protected string? compileName;
 
   public virtual string GetOrCreateCompileName(CodeGenIdGenerator generator) {
     return compileName ??= $"_{generator.FreshNumericId()}_{CompileNameShadowable}";
   }
 
-  Type type;
-  public bool IsTypeExplicit { get; set; }
-  public Type SyntacticType { get { return type; } }  // returns the non-normalized type
-  public PreType PreType { get; set; }
+  public Type? SyntacticType;
 
-  public Type Type {
-    get {
-      Contract.Ensures(Contract.Result<Type>() != null);
-      return type.Normalize();
-    }
-  }
+  private Type? safeSyntacticType;
+  public Type SafeSyntacticType => safeSyntacticType ??= SyntacticType ?? new InferredTypeProxy();
+
+  public bool IsTypeExplicit => SyntacticType != null;
+
+  public Type Type => SafeSyntacticType.Normalize();
 
   /// <summary>
   /// For a description of the difference between .Type and .UnnormalizedType, see Expression.UnnormalizedType.
   /// </summary>
-  public Type UnnormalizedType {
-    get {
-      Contract.Ensures(Contract.Result<Type>() != null);
-      return type;
-    }
-  }
+  public Type UnnormalizedType => SafeSyntacticType;
+
+  public PreType? PreType { get; set; }
+
   Type IVariable.OptionalType {
     get { return Type; }  // same as Type for NonglobalVariable
   }
   public abstract bool IsMutable {
     get;
   }
-  bool isGhost;  // readonly after resolution
-  public bool IsGhost {
-    get {
-      return isGhost;
-    }
-    set {
-      isGhost = value;
-    }
-  }
+
+  public bool IsGhost { get; set; }
+
   public void MakeGhost() {
     IsGhost = true;
   }
 
-  public IOrigin NavigationToken => NameNode.Origin;
+  public TokenRange NavigationRange => NameNode.ReportingRange;
   public override IEnumerable<INode> Children => IsTypeExplicit ? new List<Node> { Type } : Enumerable.Empty<Node>();
   public override IEnumerable<INode> PreResolveChildren => IsTypeExplicit ? new List<Node>() { Type } : Enumerable.Empty<Node>();
   public SymbolKind? Kind => SymbolKind.Variable;

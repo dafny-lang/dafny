@@ -67,7 +67,7 @@ public partial class BoogieGenerator {
       }
 
       var proc = new Procedure(f.Origin, "CheckWellformed" + NameSeparator + f.FullSanitizedName,
-        new List<TypeVariable>(),
+        [],
         Concat(Concat(typeInParams, heapParameters), procedureParameters), outParams,
         false, requires, mod, ens, etran.TrAttributes(f.Attributes, null));
       AddVerboseNameAttribute(proc, f.FullDafnyName, MethodTranslationKind.SpecWellformedness);
@@ -191,8 +191,11 @@ public partial class BoogieGenerator {
       //     check well-formedness of body
       //     // fall through to check the postconditions themselves
       //   }
-      // Here go the postconditions (termination checks included, but no reads checks)
-      var postCheckBuilder = GetPostCheckBuilder(f, etran, locals);
+      // Here go the postconditions (termination checks included)
+      // We perform reads checks only for bodiless functions
+      var emptyBody = f.Body == null || !generator.RevealedInScope(f);
+      var doReadsChecks = emptyBody && etran.readsFrame != null;
+      var postCheckBuilder = GetPostCheckBuilder(f, etran, locals, doReadsChecks);
 
       // Here goes the body (and include both termination checks and reads checks)
       var bodyCheckBuilder = GetBodyCheckBuilder(f, etran, inParams, locals, builderInitializationArea);
@@ -274,7 +277,7 @@ public partial class BoogieGenerator {
       return funcAppl;
     }
 
-    private BoogieStmtListBuilder GetPostCheckBuilder(Function f, ExpressionTranslator etran, Variables locals) {
+    private BoogieStmtListBuilder GetPostCheckBuilder(Function f, ExpressionTranslator etran, Variables locals, bool doReadsChecks = false) {
       var context = new BodyTranslationContext(f.ContainsHide);
       var postCheckBuilder = new BoogieStmtListBuilder(generator, generator.options, context);
       postCheckBuilder.Add(new CommentCmd("Check well-formedness of postcondition and assume false"));
@@ -324,7 +327,7 @@ public partial class BoogieGenerator {
       // Now for the ensures clauses
       foreach (AttributedExpression p in f.Ens) {
         // assume the postcondition for the benefit of checking the remaining postconditions
-        generator.CheckWellformedAndAssume(p.E, new WFOptions(f, false), locals, postCheckBuilder, etran, "ensures clause");
+        generator.CheckWellformedAndAssume(p.E, new WFOptions(f, doReadsChecks), locals, postCheckBuilder, etran, "ensures clause");
       }
 
       postCheckBuilder.Add(TrAssumeCmd(f.Origin, Expr.False));
@@ -334,8 +337,8 @@ public partial class BoogieGenerator {
     private ExpressionTranslator GetExpressionTranslator(Function f, ExpressionTranslator ordinaryEtran,
       out List<Bpl.Requires> additionalRequires, out List<Variable> inParams_Heap) {
       ExpressionTranslator etran;
-      additionalRequires = new();
-      inParams_Heap = new List<Variable>();
+      additionalRequires = [];
+      inParams_Heap = [];
       if (f is TwoStateFunction) {
         var prevHeapVar = new Bpl.Formal(f.Origin, new TypedIdent(f.Origin, "previous$Heap", generator.Predef.HeapType), true);
         var currHeapVar = new Bpl.Formal(f.Origin, new TypedIdent(f.Origin, "current$Heap", generator.Predef.HeapType), true);

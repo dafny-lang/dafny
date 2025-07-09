@@ -172,7 +172,7 @@ public class IdentifierExprConstraint : DefinitionConstraint {
   private readonly string name;
 
   public IdentifierExprConstraint(PartialValue definedValue, string name)
-    : base(new List<PartialValue>(), definedValue, new List<Constraint>()) {
+    : base(new List<PartialValue>(), definedValue, []) {
     this.name = name;
   }
 
@@ -187,7 +187,7 @@ public class ArraySelectionConstraint : DefinitionConstraint {
 
   public ArraySelectionConstraint(PartialValue definedValue, PartialValue array, List<LiteralExpr> indices)
     : base(new List<PartialValue>() { array }, definedValue,
-      new List<Constraint>() { new ArrayLengthConstraint(array, indices) }) {
+      [new ArrayLengthConstraint(array, indices)]) {
     Array = array;
     this.indices = indices;
   }
@@ -204,7 +204,7 @@ public class LiteralExprConstraint : DefinitionConstraint {
 
   public readonly Expression LiteralExpr;
   public LiteralExprConstraint(PartialValue definedValue, Expression literalExpr)
-    : base(new List<PartialValue>(), definedValue, new List<Constraint>()) {
+    : base(new List<PartialValue>(), definedValue, []) {
     LiteralExpr = literalExpr;
   }
 
@@ -234,12 +234,12 @@ public abstract class MemberSelectExprConstraint : DefinitionConstraint {
 
 public class MemberSelectExprDatatypeConstraint : MemberSelectExprConstraint {
   public MemberSelectExprDatatypeConstraint(PartialValue definedValue, PartialValue obj, string memberName)
-    : base(definedValue, obj, memberName, new List<Constraint>()) { }
+    : base(definedValue, obj, memberName, []) { }
 }
 
 public class MemberSelectExprClassConstraint : MemberSelectExprConstraint {
   public MemberSelectExprClassConstraint(PartialValue definedValue, PartialValue obj, string memberName)
-    : base(definedValue, obj, memberName, new List<Constraint> { new NotNullConstraint(obj) }) {
+    : base(definedValue, obj, memberName, [new NotNullConstraint(obj)]) {
   }
 }
 
@@ -254,7 +254,7 @@ public class DatatypeValueConstraint : DefinitionConstraint {
     string datatypeName,
     string constructorName,
     IReadOnlyCollection<PartialValue> unnamedDestructors)
-    : base(unnamedDestructors, definedValue, new List<Constraint>()) {
+    : base(unnamedDestructors, definedValue, []) {
     UnnamedDestructors = unnamedDestructors;
     this.constructorName = constructorName;
     this.datatypeName = datatypeName;
@@ -275,7 +275,7 @@ public class SeqSelectExprConstraint : DefinitionConstraint {
 
   public SeqSelectExprConstraint(PartialValue definedValue, PartialValue seq, PartialValue index) : base(
     new List<PartialValue> { seq, index }, definedValue,
-    new List<Constraint> { new CardinalityGtThanConstraint(seq, index) }) {
+    [new CardinalityGtThanConstraint(seq, index)]) {
     Seq = seq;
     Index = index;
   }
@@ -298,9 +298,7 @@ public class MapSelectExprConstraint : DefinitionConstraint {
 
 
   public MapSelectExprConstraint(PartialValue definedValue, PartialValue map, PartialValue key) : base(
-    new List<PartialValue> { map, key }, definedValue, new List<Constraint> {
-      new ContainmentConstraint(key, map, true)
-    }) {
+    new List<PartialValue> { map, key }, definedValue, [new ContainmentConstraint(key, map, true)]) {
     Map = map;
     Key = key;
   }
@@ -318,7 +316,7 @@ public class SeqSelectExprWithLiteralConstraint : DefinitionConstraint {
 
   public SeqSelectExprWithLiteralConstraint(PartialValue definedValue, PartialValue seq, LiteralExpr index) : base(
     new List<PartialValue> { seq }, definedValue,
-    new List<Constraint> { new CardinalityGtThanLiteralConstraint(seq, index) }) {
+    [new CardinalityGtThanLiteralConstraint(seq, index)]) {
     Seq = seq;
     Index = index;
   }
@@ -334,7 +332,7 @@ public class CardinalityConstraint : DefinitionConstraint {
 
 
   public CardinalityConstraint(PartialValue definedValue, PartialValue collection) : base(
-    new List<PartialValue> { collection }, definedValue, new List<Constraint>()) {
+    new List<PartialValue> { collection }, definedValue, []) {
     Collection = collection;
   }
 
@@ -348,7 +346,7 @@ public class SeqDisplayConstraint : DefinitionConstraint {
 
 
   public SeqDisplayConstraint(PartialValue definedValue, List<PartialValue> elements) : base(elements, definedValue,
-    new List<Constraint>()) {
+    []) {
     this.elements = elements;
   }
 
@@ -406,9 +404,8 @@ public class FunctionCallConstraint : DefinitionConstraint {
     string functionName,
     bool receiverIsReferenceType) : base(args.Append(receiver), definedValue,
     receiverIsReferenceType
-      ? new List<Constraint>
-        { new NotNullConstraint(receiver), new FunctionCallRequiresConstraint(receiver, args, functionName) }
-      : new List<Constraint> { new FunctionCallRequiresConstraint(receiver, args, functionName) }) {
+      ? [new NotNullConstraint(receiver), new FunctionCallRequiresConstraint(receiver, args, functionName)]
+      : [new FunctionCallRequiresConstraint(receiver, args, functionName)]) {
     this.args = args;
     this.receiver = receiver;
     this.functionName = functionName;

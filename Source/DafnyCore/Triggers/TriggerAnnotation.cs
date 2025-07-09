@@ -16,8 +16,8 @@ internal class TriggerAnnotation {
     IEnumerable<TriggerTerm> privateTerms = null) {
     this.IsTriggerKiller = isTriggerKiller;
     this.Variables = new HashSet<IVariable>(variables);
-    this.PrivateTerms = new List<TriggerTerm>(privateTerms ?? Enumerable.Empty<TriggerTerm>());
-    this.ExportedTerms = new List<TriggerTerm>(allTerms == null ? Enumerable.Empty<TriggerTerm>() : allTerms.Except(this.PrivateTerms));
+    this.PrivateTerms = [.. privateTerms ?? []];
+    this.ExportedTerms = [.. allTerms == null ? [] : allTerms.Except(this.PrivateTerms)];
   }
 
   public override string ToString() {

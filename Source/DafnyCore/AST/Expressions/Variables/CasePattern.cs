@@ -1,3 +1,5 @@
+#nullable enable
+
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 using System.Linq;
@@ -13,20 +15,20 @@ namespace Microsoft.Dafny;
 /// which it is; in this case, Var is non-null, because this is the only place where Var.IsGhost
 /// is recorded by the parser.
 /// </summary>
-public class CasePattern<VT> : NodeWithComputedRange
-  where VT : class, IVariable {
-  public readonly string Id;
+public class CasePattern<VT> : NodeWithOrigin
+  where VT : IVariable {
+  public string Id;
   // After successful resolution, exactly one of the following two fields is non-null.
 
   [FilledInDuringResolution]
-  public DatatypeCtor Ctor;  // finalized by resolution (null if the pattern is a bound variable)
-  public VT Var;  // finalized by resolution (null if the pattern is a constructor)  Invariant:  Var != null ==> Arguments == null
-  public List<CasePattern<VT>> Arguments;
+  public DatatypeCtor? Ctor;  // finalized by resolution (null if the pattern is a bound variable)
+  public VT? Var;  // finalized by resolution (null if the pattern is a constructor)  Invariant:  Var != null ==> Arguments == null
+  public List<CasePattern<VT>>? Arguments;
 
-  [FilledInDuringResolution] public Expression Expr;  // an r-value version of the CasePattern;
+  [FilledInDuringResolution] public Expression Expr = null!;  // an r-value version of the CasePattern;
 
   public void MakeAConstructor() {
-    this.Arguments = new List<CasePattern<VT>>();
+    Arguments = [];
   }
 
   public CasePattern(Cloner cloner, CasePattern<VT> original) : base(cloner, original) {
@@ -36,7 +38,7 @@ public class CasePattern<VT> : NodeWithComputedRange
     }
 
     if (original.Arguments != null) {
-      Arguments = original.Arguments.Select(cloner.CloneCasePattern<VT>).ToList();
+      Arguments = original.Arguments.Select(cloner.CloneCasePattern).ToList();
     }
 
     // In this case, tt is important to resolve the resolved fields AFTER the Arguments above.
@@ -50,34 +52,38 @@ public class CasePattern<VT> : NodeWithComputedRange
     }
   }
 
-  public CasePattern(IOrigin origin, string id, [Captured] List<CasePattern<VT>> arguments) : base(origin) {
-    Contract.Requires(origin != null);
-    Contract.Requires(id != null);
+  public CasePattern(IOrigin origin, string id, [Captured] List<CasePattern<VT>>? arguments) : base(origin) {
     Id = id;
     Arguments = arguments;
   }
 
   public CasePattern(IOrigin origin, VT bv) : base(origin) {
-    Contract.Requires(origin != null);
-    Contract.Requires(bv != null);
     Id = bv.Name;
     Var = bv;
+  }
+
+  [SyntaxConstructor]
+  public CasePattern(IOrigin origin, string id, VT? var, List<CasePattern<VT>>? arguments) : base(origin) {
+    Contract.Requires((var == null) != (arguments == null));
+    Id = id;
+    Var = var;
+    Arguments = arguments;
   }
 
   /// <summary>
   /// Sets the Expr field.  Assumes the CasePattern and its arguments to have been successfully resolved, except for assigning
   /// to Expr.
   /// </summary>
-  public void AssembleExpr(List<Type> dtvTypeArgs) {
+  public void AssembleExpr(List<Type>? dtvTypeArgs) {
     Contract.Requires(Var != null || dtvTypeArgs != null);
     if (Var != null) {
       Contract.Assert(this.Id == this.Var.Name);
       this.Expr = new IdentifierExpr(this.Origin, this.Var);
     } else {
-      var dtValue = new DatatypeValue(this.Origin, this.Ctor.EnclosingDatatype.Name, this.Id,
-        this.Arguments == null ? new List<Expression>() : this.Arguments.ConvertAll(arg => arg.Expr));
+      var dtValue = new DatatypeValue(this.Origin, this.Ctor!.EnclosingDatatype!.Name, this.Id,
+        this.Arguments == null ? [] : this.Arguments.ConvertAll(arg => arg.Expr));
       dtValue.Ctor = this.Ctor;  // resolve here
-      dtValue.InferredTypeArgs.AddRange(dtvTypeArgs);  // resolve here
+      dtValue.InferredTypeArgs.AddRange(dtvTypeArgs!);  // resolve here
       dtValue.Type = new UserDefinedType(this.Origin, this.Ctor.EnclosingDatatype.Name, this.Ctor.EnclosingDatatype, dtvTypeArgs);
       this.Expr = dtValue;
     }
@@ -87,7 +93,7 @@ public class CasePattern<VT> : NodeWithComputedRange
   /// Sets the Expr field.  Assumes the CasePattern and its arguments to have been successfully resolved, except for assigning
   /// to Expr.
   /// </summary>
-  public void AssembleExprPreType(List<PreType> dtvPreTypeArgs) {
+  public void AssembleExprPreType(List<PreType>? dtvPreTypeArgs) {
     Contract.Requires(Var != null || dtvPreTypeArgs != null);
     if (Var != null) {
       Contract.Assert(this.Id == this.Var.Name);
@@ -95,12 +101,12 @@ public class CasePattern<VT> : NodeWithComputedRange
         PreType = this.Var.PreType
       };
     } else {
-      var dtValue = new DatatypeValue(this.Origin, this.Ctor.EnclosingDatatype.Name, this.Id,
-        this.Arguments == null ? new List<Expression>() : this.Arguments.ConvertAll(arg => arg.Expr)) {
+      var dtValue = new DatatypeValue(this.Origin, this.Ctor!.EnclosingDatatype!.Name, this.Id,
+        this.Arguments == null ? [] : this.Arguments.ConvertAll(arg => arg.Expr)) {
         Ctor = this.Ctor,
         PreType = new DPreType(this.Ctor.EnclosingDatatype, dtvPreTypeArgs)
       };
-      dtValue.InferredPreTypeArgs.AddRange(dtvPreTypeArgs); // resolve here
+      dtValue.InferredPreTypeArgs.AddRange(dtvPreTypeArgs!); // resolve here
       this.Expr = dtValue;
     }
   }
@@ -121,6 +127,6 @@ public class CasePattern<VT> : NodeWithComputedRange
     }
   }
 
-  public override IEnumerable<INode> Children => Var == null ? (Arguments ?? Enumerable.Empty<Node>()) : new[] { Var };
+  public override IEnumerable<INode> Children => Var == null ? (Arguments ?? Enumerable.Empty<Node>()) : new[] { (INode)Var };
   public override IEnumerable<INode> PreResolveChildren => Children;
 }

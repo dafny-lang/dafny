@@ -21,11 +21,11 @@ public class InternalDocstringRewritersPluginConfiguration : Plugins.PluginConfi
 
   public override DocstringRewriter[] GetDocstringRewriters(DafnyOptions options) {
     if (options.UseJavadocLikeDocstringRewriter) {
-      return new DocstringRewriter[] {
+      return [
         new JavadocLikeDocstringRewriter()
-      };
+      ];
     } else {
-      return new DocstringRewriter[] { };
+      return [];
     }
   }
 }

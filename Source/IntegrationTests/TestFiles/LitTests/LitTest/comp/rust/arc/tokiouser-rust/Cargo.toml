@@ -1,0 +1,11 @@
+[package]
+name = "tokiouser"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+dafny_runtime = { path = "runtime", features = ["sync"] }
+
+[[bin]]
+name = "tokiouser-rust"
+path = "src/main.rs"

@@ -1,5 +1,7 @@
 // NONUNIFORM: Rust-specific tests
-// RUN: %baredafny run --target=rs "%s" > "%t"
+// RUN: %baredafny run --target=rs --enforce-determinism --type-system-refresh "%s" > "%t"
+// RUN: %diff "%s.expect" "%t"
+// RUN: %baredafny run --target=rs --enforce-determinism "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 newtype Uint8 = x: int | 0 <= x < 256
@@ -27,10 +29,12 @@ method TestCompile(input: Option<Uint8>) returns (output: Option<Uint8>) {
   return None;
 }
 
+type CustomBv16 = bv16
+
 method Main() {
   var x: Uint8 := 2;
   // Correct rendering of expressions that can interpret the first '<' as a generic argument
-  var y: bv16 := (x as bv16) << 2;
+  var y: bv16 := (x as CustomBv16) << 2;
   expect y == 8;
   expect (x as bv16) < 3;
   expect (x as bv16) <= 3;

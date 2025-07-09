@@ -49,8 +49,8 @@ public class LargeFilesTest : ClientBasedLanguageServerTest {
     var source = contentBuilder.ToString();
 
     Exception lastException = null;
-    List<double> timeToScheduleHistory = new();
-    List<double> divisionHistory = new();
+    List<double> timeToScheduleHistory = [];
+    List<double> divisionHistory = [];
     try {
       for (int attempt = 0; attempt < 10; attempt++) {
         var threadPoolSchedulingCancellationToken = new CancellationTokenSource();

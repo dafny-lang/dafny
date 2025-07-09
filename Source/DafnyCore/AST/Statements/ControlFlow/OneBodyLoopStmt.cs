@@ -1,3 +1,4 @@
+#nullable enable
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 using System.Linq;
@@ -6,9 +7,10 @@ using Microsoft.Dafny.Auditor;
 namespace Microsoft.Dafny;
 
 public abstract class OneBodyLoopStmt : LoopStmt {
-  public readonly BlockStmt/*?*/ Body;
+  public BlockStmt? Body;
+
   [FilledInDuringResolution]
-  public WhileStmt.LoopBodySurrogate/*?*/ BodySurrogate;  // set by Resolver; remains null unless Body==null
+  public WhileStmt.LoopBodySurrogate? BodySurrogate;  // set by Resolver; remains null unless Body==null
 
   protected OneBodyLoopStmt(Cloner cloner, OneBodyLoopStmt original) : base(cloner, original) {
     Body = (BlockStmt)cloner.CloneStmt(original.Body, false);
@@ -21,10 +23,11 @@ public abstract class OneBodyLoopStmt : LoopStmt {
     }
   }
 
+  [SyntaxConstructor]
   protected OneBodyLoopStmt(IOrigin origin,
     List<AttributedExpression> invariants, Specification<Expression> decreases, Specification<FrameExpression> mod,
-    BlockStmt /*?*/ body, Attributes/*?*/ attrs)
-    : base(origin, invariants, decreases, mod, attrs) {
+    BlockStmt? body, List<Label> labels, Attributes? attributes)
+    : base(origin, invariants, decreases, mod, labels, attributes) {
     Body = body;
   }
 
@@ -67,7 +70,7 @@ public abstract class OneBodyLoopStmt : LoopStmt {
     foreach (AttributedExpression inv in Invariants) {
       FreeVariablesUtil.ComputeFreeVariables(reporter.Options, inv.E, fvs, ref usesHeap);
     }
-    foreach (Expression e in Decreases.Expressions) {
+    foreach (Expression e in Decreases.Expressions!) {
       FreeVariablesUtil.ComputeFreeVariables(reporter.Options, e, fvs, ref usesHeap);
     }
     if (Mod.Expressions != null) {
@@ -86,7 +89,7 @@ public abstract class OneBodyLoopStmt : LoopStmt {
       text += text.Length == 0 ? "$Heap" : ", $Heap";
     }
     text = $"this loop has no body{(text.Length == 0 ? "" : " (loop frame: " + text + ")")}";
-    reporter.Warning(MessageSource.Resolver, ErrorRegistry.NoneId, Origin, text);
+    reporter.Warning(MessageSource.Resolver, "", Origin, text);
   }
 
 }

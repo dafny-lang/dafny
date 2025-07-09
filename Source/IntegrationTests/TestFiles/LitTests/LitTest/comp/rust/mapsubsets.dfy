@@ -1,5 +1,5 @@
 // NONUNIFORM: Rust-specific tests
-// RUN: %baredafny run --target=rs --unicode-char=false "%s" > "%t"
+// RUN: %baredafny run --target=rs --enforce-determinism --unicode-char=false --type-system-refresh=false --general-newtypes=false "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 function Map<T, U>(m: map<T, U>): map<T, U> {

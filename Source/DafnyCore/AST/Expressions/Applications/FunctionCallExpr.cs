@@ -7,11 +7,11 @@ namespace Microsoft.Dafny;
 public class FunctionCallExpr : Expression, IHasReferences, ICloneable<FunctionCallExpr> {
   public Name NameNode;
   public string Name => NameNode.Value;
-  public readonly Expression Receiver;
-  public readonly IOrigin OpenParen;  // can be null if Args.Count == 0
-  public readonly Token CloseParen;
-  public readonly Label/*?*/ AtLabel;
-  public readonly ActualBindings Bindings;
+  public Expression Receiver;
+  public IOrigin OpenParen;  // can be null if Args.Count == 0
+  public Token CloseParen;
+  public Label/*?*/ AtLabel;
+  public ActualBindings Bindings;
   public List<Expression> Args => Bindings.Arguments;
   [FilledInDuringResolution] public List<PreType> PreTypeApplication_AtEnclosingClass;
   [FilledInDuringResolution] public List<PreType> PreTypeApplication_JustFunction;
@@ -106,7 +106,6 @@ public class FunctionCallExpr : Expression, IHasReferences, ICloneable<FunctionC
     this.CloseParen = closeParen;
     this.AtLabel = atLabel;
     this.Bindings = bindings;
-    this.FormatTokens = closeParen != null ? new[] { closeParen } : null;
   }
 
   /// <summary>
@@ -152,6 +151,6 @@ public class FunctionCallExpr : Expression, IHasReferences, ICloneable<FunctionC
 
   public override IEnumerable<Type> ComponentTypes => Util.Concat(TypeApplication_AtEnclosingClass, TypeApplication_JustFunction);
   public IEnumerable<Reference> GetReferences() {
-    return Enumerable.Repeat(new Reference(NameNode.Origin, Function), 1);
+    return Enumerable.Repeat(new Reference(NameNode.ReportingRange, Function), 1);
   }
 }

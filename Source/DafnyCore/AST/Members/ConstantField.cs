@@ -1,3 +1,5 @@
+#nullable enable
+
 using System;
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
@@ -6,30 +8,41 @@ using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 
 namespace Microsoft.Dafny;
 
-public class ConstantField : SpecialField, ICallable, ICanAutoRevealDependencies, ICanVerify {
+public class ConstantField : Field, ICallable, ICanAutoRevealDependencies, ICanVerify {
   public override string WhatKind => "const field";
-  public Expression Rhs;
+  public Expression? Rhs;
 
   public override bool IsOpaque { get; }
 
-  public ConstantField(IOrigin origin, Name name, Expression/*?*/ rhs, bool hasStaticKeyword, bool isGhost, bool isOpaque, Type type, Attributes attributes)
-    : base(origin, name, ID.UseIdParam, NonglobalVariable.SanitizeName(name.Value), hasStaticKeyword, isGhost, false, false, type, attributes) {
-    Contract.Requires(Origin != null);
-    Contract.Requires(name != null);
-    Contract.Requires(type != null);
+  public override bool IsMutable => false;
+  public override bool IsUserMutable => false;
+
+  public override bool HasStaticKeyword { get; }
+
+  public ConstantField(Cloner cloner, ConstantField original) : base(cloner, original) {
+    Rhs = cloner.CloneExpr(original.Rhs);
+    HasStaticKeyword = original.HasStaticKeyword;
+    IsOpaque = original.IsOpaque;
+  }
+
+  [FilledInDuringResolution]
+  public bool ContainsHide { get; set; }
+
+  [SyntaxConstructor]
+  public ConstantField(IOrigin origin, Name nameNode, Expression? rhs, bool hasStaticKeyword,
+    bool isGhost, bool isOpaque, Type? explicitType, Attributes? attributes)
+    : base(origin, nameNode, isGhost, explicitType, attributes) {
+    Contract.Requires(nameNode != null);
     this.Rhs = rhs;
     this.IsOpaque = isOpaque;
+    HasStaticKeyword = hasStaticKeyword;
   }
 
   public override bool CanBeRevealed() {
     return true;
   }
-
-  public bool ContainsHide { get; set; }
-
-  public new bool IsGhost { get { return this.isGhost; } }
-  public List<TypeParameter> TypeArgs { get { return new List<TypeParameter>(); } }
-  public List<Formal> Ins { get { return new List<Formal>(); } }
+  public List<TypeParameter> TypeArgs { get { return []; } }
+  public List<Formal> Ins { get { return []; } }
   public ModuleDefinition EnclosingModule { get { return this.EnclosingClass.EnclosingModuleDefinition; } }
   public bool MustReverify { get { return false; } }
   public bool AllowsNontermination { get { throw new cce.UnreachableException(); } }
@@ -51,8 +64,8 @@ public class ConstantField : SpecialField, ICallable, ICanAutoRevealDependencies
   }
   public bool AllowsAllocation => true;
 
-  public override IEnumerable<INode> Children =>
-    base.Children.Concat(new[] { Rhs }.Where(x => x != null));
+  public override IEnumerable<INode> Children => base.Children.Concat(Rhs == null ? [] : [Rhs]);
+
   public override SymbolKind? Kind => SymbolKind.Constant;
 
   public override IEnumerable<INode> PreResolveChildren => Children;

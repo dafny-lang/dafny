@@ -148,16 +148,16 @@ method Test(m: map<int, int>, x: int) {
     options = options ?? new DafnyOptions(TextReader.Null, TextWriter.Null, TextWriter.Null);
     var uri = new Uri("virtual:///virtual");
     BatchErrorReporter reporter = new BatchErrorReporter(options);
-    var parseResult = await new ProgramParser().Parse(program, uri, reporter);
+    var parseResult = await ProgramParser.Parse(program, uri, reporter);
     var dafnyProgram = parseResult.Program;
     if (reporter.HasErrors) {
       var error = reporter.AllMessagesByLevel[ErrorLevel.Error][0];
-      Assert.False(true, $"{error.Message}: line {error.Token.line} col {error.Token.col}");
+      Assert.False(true, $"{error.Message}: line {error.Range.StartToken.line} col {error.Range.StartToken.col}");
     }
     DafnyMain.Resolve(dafnyProgram);
     if (reporter.HasErrors) {
       var error = reporter.AllMessagesByLevel[ErrorLevel.Error][0];
-      Assert.False(true, $"{error.Message}: line {error.Token.line} col {error.Token.col}");
+      Assert.False(true, $"{error.Message}: line {error.Range.StartToken.line} col {error.Range.StartToken.col}");
     }
 
     var boogiePrograms = SynchronousCliCompilation.Translate(options, dafnyProgram).ToList();
