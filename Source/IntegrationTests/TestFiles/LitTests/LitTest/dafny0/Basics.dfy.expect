@@ -1,4 +1,4 @@
-Basics.dfy(13,13): Error: variable 'g', which is subject to definite-assignment rules, might be uninitialized here
+Basics.dfy(13,13): Error: variable 'g', which is subject to definite-assignment rules, could not be proved to be initialized here
 Basics.dfy(45,4): Error: assertion could not be proved
 Basics.dfy(69,41): Error: assertion could not be proved
 Basics.dfy(93,4): Error: assertion could not be proved
