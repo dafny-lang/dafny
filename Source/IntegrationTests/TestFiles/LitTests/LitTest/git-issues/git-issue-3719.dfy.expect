@@ -1,4 +1,4 @@
-git-issue-3719.dfy(12,18): Error: assertion might not hold
+git-issue-3719.dfy(12,18): Error: assertion could not be proved
 git-issue-3719.dfy(7,37): Related location: this proposition could not be proved
 
 Dafny program verifier finished with 3 verified, 1 error

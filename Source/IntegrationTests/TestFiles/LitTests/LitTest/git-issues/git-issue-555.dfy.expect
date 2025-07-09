@@ -1,4 +1,4 @@
-git-issue-555.dfy(17,2): Error: assertion might not hold
+git-issue-555.dfy(17,2): Error: assertion could not be proved
 
 Dafny program verifier finished with 2 verified, 1 error
 
@@ -9,7 +9,8 @@ Dafny program verifier did not attempt verification
 [Program halted] git-issue-555.dfy(22,2): expectation violation
 
 Dafny program verifier did not attempt verification
-[Program halted] git-issue-555.dfy(22,2): expectation violation
+Error occurred while invoking goimports:Error: Unable to start goimports: An error occurred trying to start process 'goimports' with working directory '/local/home/mimayere/dafny/Source/IntegrationTests/bin/Debug/net8.0'. No such file or directory
+
 
 Dafny program verifier did not attempt verification
 [Program halted] git-issue-555.dfy(22,2): expectation violation

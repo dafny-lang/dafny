@@ -7,15 +7,15 @@ git-issue-2026.dfy(19,18): Error: this invariant could not be proved to be maint
  git-issue-2026.dfy(12,0): initial state:
  assume 2 == n;
  git-issue-2026.dfy(13,24):
- assume ret != null && ret.Length > 0 && 2 == n && 2 == ret.Length && ['o', 'd', 'd'] == ret[0];
+ assume ret != null && ret.Length > 2283 && ret.Length > 0 && 2 == n && 2 == ret.Length && ['o', 'd', 'd'] == ret[2283] && ['o', 'd', 'd'] == ret[0];
  git-issue-2026.dfy(15,14):
- assume ret != null && ret.Length > 0 && 2 == n && 2 == ret.Length && ['o', 'd', 'd'] == ret[0] && 0 == i;
+ assume ret != null && ret.Length > 2283 && ret.Length > 0 && 2 == n && 2 == ret.Length && ['o', 'd', 'd'] == ret[2283] && ['o', 'd', 'd'] == ret[0] && 0 == i;
  git-issue-2026.dfy(16,4): after some loop iterations:
- counterexampleLoopGuard0 := ret != null && 2 == n && 2 == ret.Length && 0 == i;
+ counterexampleLoopGuard0 := ret != null && ret.Length > 2283 && 2 == n && 2 == ret.Length && ['o', 'd', 'd'] == ret[2283] && 0 == i;
  git-issue-2026.dfy(22,27):
- assume counterexampleLoopGuard0 ==> ret != null && ret.Length > 0 && 2 == n && 2 == ret.Length && ['o', 'd', 'd'] == ret[0] && 0 == i;
+ assume counterexampleLoopGuard0 ==> ret != null && ret.Length > 2283 && ret.Length > 0 && 2 == n && 2 == ret.Length && ['o', 'd', 'd'] == ret[2283] && ['o', 'd', 'd'] == ret[0] && 0 == i;
  git-issue-2026.dfy(26,18):
- assume counterexampleLoopGuard0 ==> ret != null && ret.Length > 0 && 2 == n && 2 == ret.Length && ['o', 'd', 'd'] == ret[0] && 1 == i;
+ assume counterexampleLoopGuard0 ==> ret != null && ret.Length > 2283 && ret.Length > 0 && 2 == n && 2 == ret.Length && ['o', 'd', 'd'] == ret[2283] && ['o', 'd', 'd'] == ret[0] && 1 == i;
  
 
 Dafny program verifier finished with 0 verified, 1 error

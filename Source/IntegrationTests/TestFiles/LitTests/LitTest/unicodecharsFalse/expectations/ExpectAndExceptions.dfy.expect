@@ -3,7 +3,8 @@ Dafny program verifier finished with 0 verified, 0 errors
 [Program halted] ExpectAndExceptions.dfy(19,22): NatOutcome.NatFailure(Kaboom!)
 
 Dafny program verifier finished with 0 verified, 0 errors
-[Program halted] ExpectAndExceptions.dfy(19,22): NatOutcome.NatFailure(Kaboom!)
+Error occurred while invoking goimports:Error: Unable to start goimports: An error occurred trying to start process 'goimports' with working directory '/local/home/mimayere/dafny/Source/IntegrationTests/bin/Debug/net8.0'. No such file or directory
+
 
 Dafny program verifier finished with 0 verified, 0 errors
 [Program halted] ExpectAndExceptions.dfy(19,22): NatOutcome.NatFailure(Kaboom!)
