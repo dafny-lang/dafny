@@ -11,7 +11,7 @@ opaqueBlock.dfy(127,12): Error: variable 'y', which is subject to definite-assig
 opaqueBlock.dfy(130,17): Error: variable 'z', which is subject to definite-assignment rules, might be uninitialized here
 opaqueBlock.dfy(142,12): Error: ensures might not hold
 opaqueBlock.dfy(206,6): Error: assignment might update an object not in the enclosing context's modifies clause
-opaqueBlock.dfy(218,2): Error: assertion might not hold
-opaqueBlock.dfy(228,2): Error: assertion might not hold
+opaqueBlock.dfy(218,2): Error: assertion could not be proved
+opaqueBlock.dfy(228,2): Error: assertion could not be proved
 
 Dafny program verifier finished with 4 verified, 15 errors
