@@ -46,6 +46,17 @@ public partial class BoogieGenerator {
     Contract.Requires(etran != null);
     Contract.Requires(Predef != null);
 
+    // For havoc assignments to identifier variables with definite assignment tracking,
+    // mark the definite assignment tracker BEFORE processing the RHS so that the
+    // where clause is properly assumed during the havoc
+    for (int i = 0; i < lhss.Count; i++) {
+      if (rhss[i] is HavocRhs && lhss[i] is IdentifierExpr ie) {
+        if (ie.Type.HavocCountsAsDefiniteAssignment(ie.Var.IsGhost)) {
+          MarkDefiniteAssignmentTracker(ie, builder);
+        }
+      }
+    }
+
     var finalRhss = new List<Bpl.Expr>();
     for (int i = 0; i < lhss.Count; i++) {
       var lhs = lhss[i];
@@ -97,6 +108,17 @@ public partial class BoogieGenerator {
     Contract.Requires(etran != null);
     Contract.Requires(Predef != null);
     Contract.Ensures(Contract.ForAll(Contract.Result<List<Bpl.Expr>>(), i => i != null));
+
+    // For havoc assignments to identifier variables with definite assignment tracking,
+    // mark the definite assignment tracker BEFORE processing the RHS so that the
+    // where clause is properly assumed during the havoc
+    for (int i = 0; i < lhss.Count; i++) {
+      if (rhss[i] is HavocRhs && lhss[i] is IdentifierExpr ie) {
+        if (ie.Type.HavocCountsAsDefiniteAssignment(ie.Var.IsGhost)) {
+          MarkDefiniteAssignmentTracker(ie, builder);
+        }
+      }
+    }
 
     var finalRhss = new List<Bpl.Expr>();
     for (int i = 0; i < lhss.Count; i++) {
@@ -246,9 +268,18 @@ public partial class BoogieGenerator {
             bldr.Add(cmd);
           }
 
-          if (!origRhsIsHavoc || ie.Type.HavocCountsAsDefiniteAssignment(ie.Var.IsGhost)) {
+          // Mark definite assignment tracker:
+          // - For non-havoc assignments: always mark after assignment
+          // - For havoc assignments that don't count as definite assignment: mark after havoc
+          // - For havoc assignments that count as definite assignment: already marked before havoc, don't mark again
+          if (!origRhsIsHavoc) {
+            // Non-havoc assignment: always mark
+            MarkDefiniteAssignmentTracker(ie, bldr);
+          } else if (!ie.Type.HavocCountsAsDefiniteAssignment(ie.Var.IsGhost)) {
+            // Havoc assignment that doesn't count as definite assignment: mark after havoc
             MarkDefiniteAssignmentTracker(ie, bldr);
           }
+          // For havoc assignments that count as definite assignment: don't mark here (already marked before havoc)
         });
 
       } else if (lhs is MemberSelectExpr) {
