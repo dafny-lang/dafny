@@ -27,6 +27,23 @@ using PODesc = Microsoft.Dafny.ProofObligationDescription;
 using static Microsoft.Dafny.GenericErrors;
 
 namespace Microsoft.Dafny {
+
+  /// <summary>
+  /// Used as an origin for Boogie implementations, to track which Dafny ICanVerify the implementation originated from
+  /// When Dafny generates ICanVerify nodes from other ones, this should be used so we can backtrack to the original one.
+  /// </summary>
+  class CanVerifyOrigin : OriginWrapper {
+    /// <summary>
+    /// Used as an origin for Boogie implementations, to track which Dafny ICanVerify the implementation originated from
+    /// When Dafny generates ICanVerify nodes from other ones, this should be used so we can backtrack to the original one.
+    /// </summary>
+    public CanVerifyOrigin(ICanVerify canVerify) : base(canVerify.Origin) {
+      CanVerify = canVerify;
+    }
+
+    public ICanVerify CanVerify { get; }
+  }
+
   public partial class BoogieGenerator {
     private DafnyOptions options;
     public DafnyOptions Options => options;
@@ -1428,7 +1445,7 @@ namespace Microsoft.Dafny {
       }
     }
 
-    private Implementation AddImplementationWithAttributes(IOrigin tok, Procedure proc, List<Variable> inParams,
+    private Implementation AddImplementationWithAttributes(CanVerifyOrigin tok, Procedure proc, List<Variable> inParams,
       List<Variable> outParams, Variables localVariables, StmtList stmts, QKeyValue kv) {
       Bpl.Implementation impl = new Bpl.Implementation(tok, proc.Name,
         [], inParams, outParams,
@@ -2431,41 +2448,6 @@ namespace Microsoft.Dafny {
           AddCasePatternVarSubstitutions(arg, de, substMap);
         }
       }
-    }
-
-    /// <summary>
-    /// If "expr" is a binary boolean operation, then try to re-associate it to make the left argument smaller.
-    /// If it is possible, then "true" is returned and "expr" returns as the re-associated expression (no boolean simplifications are performed).
-    /// If not, then "false" is returned and "expr" is unchanged.
-    /// </summary>
-    bool ReAssociateToTheRight(ref Expression expr) {
-      if (expr is BinaryExpr top && Expression.StripParens(top.E0) is BinaryExpr left) {
-        // We have an expression of the form "(A oo B) pp C"
-        var A = left.E0;
-        var oo = left.ResolvedOp;
-        var B = left.E1;
-        var pp = top.ResolvedOp;
-        var C = top.E1;
-
-        if (oo == BinaryExpr.ResolvedOpcode.And && pp == BinaryExpr.ResolvedOpcode.And) {
-          // rewrite    (A && B) && C    into    A && (B && C)
-          expr = Expression.CreateAnd(A, Expression.CreateAnd(B, C, false), false);
-          return true;
-        } else if (oo == BinaryExpr.ResolvedOpcode.And && pp == BinaryExpr.ResolvedOpcode.Imp) {
-          // rewrite    (A && B) ==> C    into    A ==> (B ==> C)
-          expr = Expression.CreateImplies(A, Expression.CreateImplies(B, C, false), false);
-          return true;
-        } else if (oo == BinaryExpr.ResolvedOpcode.Or && pp == BinaryExpr.ResolvedOpcode.Or) {
-          // rewrite    (A || B) || C    into    A || (B || C)
-          expr = Expression.CreateOr(A, Expression.CreateOr(B, C, false), false);
-          return true;
-        } else if (oo == BinaryExpr.ResolvedOpcode.Imp && pp == BinaryExpr.ResolvedOpcode.Or) {
-          // rewrite    (A ==> B) || C    into    A ==> (B || C)
-          expr = Expression.CreateImplies(A, Expression.CreateOr(B, C, false), false);
-          return true;
-        }
-      }
-      return false;
     }
 
     void CheckCasePatternShape<VT>(CasePattern<VT> pat, Expression dRhs, Bpl.Expr rhs, IOrigin rhsTok, Type rhsType, BoogieStmtListBuilder builder)

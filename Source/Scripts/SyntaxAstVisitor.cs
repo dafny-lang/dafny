@@ -96,15 +96,15 @@ public abstract class SyntaxAstVisitor {
       }
     }
 
-    VisitParameters(type, (_, parameter, field) => {
+    VisitParameters(type, (_, parameter) => {
       if (ExcludedTypes.Contains(parameter.ParameterType)) {
         return;
       }
-      if (field.GetCustomAttribute<BackEdge>() != null) {
+      if (parameter.GetCustomAttribute<BackEdge>() != null) {
         return;
       }
 
-      if (field.DeclaringType != type) {
+      if (DoesMemberBelongToBase(type, parameter, baseType)) {
         return;
       }
 
@@ -116,28 +116,16 @@ public abstract class SyntaxAstVisitor {
     });
   }
 
-  protected void VisitParameters(Type type, Action<int, ParameterInfo, MemberInfo> handle) {
+  protected void VisitParameters(Type type, Action<int, ParameterInfo> handle) {
     var constructor = GetParseConstructor(type);
     if (constructor == null) {
       return;
     }
 
-    var fields = type.GetFields().ToDictionary(f => f.Name.ToLower(), f => f);
-    var properties = type.GetProperties().
-      DistinctBy(p => p.Name).
-      ToDictionary(p => p.Name.ToLower(), p => p);
-
     var parameters = constructor.GetParameters();
     for (var index = 0; index < parameters.Length; index++) {
       var parameter = constructor.GetParameters()[index];
-
-      var memberInfo = fields.GetValueOrDefault(parameter.Name!.ToLower()) ??
-                       (MemberInfo)properties.GetValueOrDefault(parameter.Name.ToLower())!;
-
-      if (memberInfo == null) {
-        throw new Exception($"Could not find field or property corresponding to parameter {parameter.Name} in constructor of {type.Name}");
-      }
-      handle(index, parameter, memberInfo);
+      handle(index, parameter);
     }
   }
 
@@ -150,7 +138,7 @@ public abstract class SyntaxAstVisitor {
     toVisit.Push(type);
   }
 
-  protected static ConstructorInfo? GetParseConstructor(Type type) {
+  public static ConstructorInfo? GetParseConstructor(Type type) {
     var constructors = type.GetConstructors(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
     return constructors.Where(c => !c.IsPrivate &&
                                    !c.GetParameters().Any(p => p.ParameterType.IsAssignableTo(typeof(Cloner)))).MaxBy(c =>
@@ -205,19 +193,15 @@ public abstract class SyntaxAstVisitor {
     return tildeLocation >= 0 ? genericTypeName.Substring(0, tildeLocation) : genericTypeName;
   }
 
-  protected static bool DoesMemberBelongToBase(Type type, MemberInfo memberInfo, Type? baseType) {
-    var memberBelongsToBase = false;
-    if (memberInfo.DeclaringType != type && baseType != null) {
-      var baseMembers = baseType.GetMember(
-        memberInfo.Name,
-        MemberTypes.Field | MemberTypes.Property,
-        BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
-      if (baseMembers.Length != 0) {
-        memberBelongsToBase = true;
-      }
+  protected static bool DoesMemberBelongToBase(Type type, ParameterInfo parameterInfo, Type? baseType) {
+    if (baseType == null) {
+      return false;
     }
-
-    return memberBelongsToBase;
+    var baseConstructor = GetParseConstructor(baseType);
+    if (baseConstructor == null) {
+      return false;
+    }
+    return baseConstructor.GetParameters().Any(p => p.Name == parameterInfo.Name);
   }
 }
 

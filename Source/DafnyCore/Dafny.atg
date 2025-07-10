@@ -75,7 +75,10 @@ TOKENS
         .
   digits = digit {['_'] digit}.
   hexdigits = "0x" hexdigit {['_'] hexdigit}.
-  decimaldigits = digit {['_'] digit} '.' digit {['_'] digit}.
+  realnumber = digit {['_'] digit}
+               ( '.' digit {['_'] digit} ['e' ['-'] digit {['_'] digit}]
+               | 'e' ['-'] digit {['_'] digit}
+               ).
   // NOTE: all alphabetic strings used in the grammar become reserved words automatically
   // The reason to include a definition here is so that a token can be referred to by its 'kind',
   // as in la.kind == _bool
@@ -3762,8 +3765,12 @@ ConstAtomExpression<out Expression e>
     "|"
   | "assigned"                                 (. x = t; .)
     "(" NameSegment<out e> ")"                 (. e = new UnaryOpExpr(x, UnaryOpExpr.Opcode.Assigned, e); .)
-  | IF(AcceptReferrersAndBacktick())           (. e = new ImplicitThisExpr(la); .)
-    FieldLocationSuffix<ref e>
+  | "`"                                        (. if (!AcceptReferrers()) {
+                                                 SemErr(ErrorId.p_needs_referrers, t, "To use field location expressions, you need --referrers");
+                                               }
+                                               Token backtick = t;
+                                               e = new ImplicitThisExpr(t); .)
+    FieldLocationBody<ref e, backtick>
   | ParensExpression<out e>
   ) (. if(x!= null) { e.SetOrigin(new SourceOrigin(x, t, e.Center)); } .)
   .
@@ -3776,6 +3783,7 @@ LiteralExpression<out Expression e>
   ( "false"                                    (. e = new LiteralExpr(t, false); .)
   | "true"                                     (. e = new LiteralExpr(t, true); .)
   | "null"                                     (. e = new LiteralExpr(t); .)
+  | IF(la.kind == _digits && scanner.Peek().kind == _dot) Dec<out d> (. e = new LiteralExpr(t, d); .)
   | Nat<out n>                                 (. e = new LiteralExpr(t, n); .)
   | Dec<out d>                                 (. e = new LiteralExpr(t, d); .)
   | charToken                                  (. string s = t.val.Substring(1, t.val.Length - 2);
@@ -4506,7 +4514,11 @@ Suffix<ref Expression e>
 
 FieldLocationSuffix<ref Expression e>
 = "`"                                    (. Token backtick = t; .)
-  ( IF(IsIdentifier(la.kind))            (. Name name = null; .)
+  FieldLocationBody<ref e, backtick>
+  .
+
+FieldLocationBody<ref Expression e, Token backtick>
+= ( (. Name name = null; .)
     NoDigitName<out name>
     (.
       e = new FieldLocationExpression(e, backtick, name);
@@ -4734,11 +4746,11 @@ DotSuffix<out Token x, out Token y>
   .)
   ( Ident<out x>
   | digits         (. x = t; .)
-  | decimaldigits  (. x = t;
+  | realnumber  (. x = t;
                       int exponent = x.val.IndexOf('e');
                       if (0 <= exponent) {
                         // this is not a legal field/destructor name
-                        // Also it is not currently reachable, because decimaldigits does not yet support exponents
+                        // Scientific notation is not allowed in field/destructor names
                         SemErr(ErrorId.p_invalid_name_after_dot, x, "invalid name after a '.'");
                       } else {
                         int dot = x.val.IndexOf('.');
@@ -4898,17 +4910,26 @@ Nat<out BigInteger n>
 
 /*------------------------------------------------------------------------*/
 Dec<out BaseTypes.BigDec d>
-= (. d = BaseTypes.BigDec.ZERO; .)
-  (decimaldigits
-    (. var S = Util.RemoveUnderscores(t.val);
-       try {
-         d = BaseTypes.BigDec.FromString(S);
-       } catch (System.FormatException) {
-         SemErr(ErrorId.p_bad_decimal_number_format, t, "incorrectly formatted number");
-         d = BaseTypes.BigDec.ZERO;
-       }
-    .)
+= (. d = BaseTypes.BigDec.ZERO; string S = ""; .)
+  ( realnumber                              (. S = Util.RemoveUnderscores(t.val); .)
+  | digits                                  (. var digitToken = t; .)
+    "."                                     (. if (t.pos != digitToken.pos + digitToken.val.Length) {
+                                                 SemErr(ErrorId.p_bad_decimal_number_format, new SourceOrigin(digitToken, t), "invalid real literal (no whitespace allowed before trailing dot)");
+                                               }
+                                               S = Util.RemoveUnderscores(digitToken.val) + ".0"; .)
+  | "."                                     (. var dotToken = t; .)
+    ( digits | realnumber )                 (. if (t.pos != dotToken.pos + 1) {
+                                                 SemErr(ErrorId.p_bad_decimal_number_format, new SourceOrigin(dotToken, t), "invalid real literal (no whitespace allowed after leading dot)");
+                                               }
+                                               S = "0." + Util.RemoveUnderscores(t.val); .)
   )
+  (. try {
+       d = BaseTypes.BigDec.FromString(S);
+     } catch (System.FormatException) {
+       SemErr(ErrorId.p_bad_decimal_number_format, t, "incorrectly formatted number");
+       d = BaseTypes.BigDec.ZERO;
+     }
+  .)
   .
 
 /*------------------------------------------------------------------------*/

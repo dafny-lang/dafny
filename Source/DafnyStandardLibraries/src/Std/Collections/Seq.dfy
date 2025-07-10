@@ -831,7 +831,7 @@ module Std.Collections.Seq {
   opaque function Filter<T>(f: (T ~> bool), xs: seq<T>): (result: seq<T>)
     requires forall i :: 0 <= i < |xs| ==> f.requires(xs[i])
     ensures |result| <= |xs|
-    ensures forall i: nat :: i < |result| && f.requires(result[i]) ==> f(result[i])
+    ensures forall i: nat | i < |result| :: f.requires(result[i]) && f(result[i])
     reads set i, o | 0 <= i < |xs| && o in f.reads(xs[i]) :: o
   {
     if |xs| == 0 then []

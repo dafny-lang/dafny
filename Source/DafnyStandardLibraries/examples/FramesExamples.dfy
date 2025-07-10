@@ -40,6 +40,20 @@ module FramesExamples {
       && this in Repr
     }
 
+    twostate predicate ValidChange()
+      reads this, Repr
+      ensures ValidChange() ==>
+                old(Valid()) && Valid() && fresh(Repr - old(Repr))
+    {
+      old(Valid()) && Valid() && fresh(Repr - old(Repr))
+    }
+
+    twostate lemma ValidImpliesValidChange()
+      requires old(Valid())
+      requires unchanged(old(Repr))
+      ensures ValidChange()
+    {}
+
     function Elements(): seq<T>
       requires Valid()
       reads this, Repr
@@ -87,6 +101,20 @@ module FramesExamples {
       && nodeCount == left.nodeCount + right.nodeCount + 1
     }
 
+    twostate predicate ValidChange()
+      reads this, Repr
+      ensures ValidChange() ==>
+                old(Valid()) && Valid() && fresh(Repr - old(Repr))
+    {
+      old(Valid()) && Valid() && fresh(Repr - old(Repr))
+    }
+
+    twostate lemma ValidImpliesValidChange()
+      requires old(Valid())
+      requires unchanged(old(Repr))
+      ensures ValidChange()
+    {}
+
     function Elements(): seq<T>
       requires Valid()
       reads this, Repr
@@ -108,7 +136,7 @@ module FramesExamples {
       requires Valid()
       modifies Repr
       decreases nodeCount
-      ensures ValidAndDisjoint()
+      ensures ValidChange()
     {
       if left is Node<T> {
         var leftAsNode := left as Node<T>;

@@ -28,12 +28,13 @@ class TokenRange
 
 class FilesContainer
 {
-    List<FileStart> files;
+    List<FileHeader> files;
 }
 
-class FileStart
+class FileHeader
 {
     String uri;
+    Boolean isLibrary;
     List<TopLevelDecl> topLevelDecls;
 }
 
@@ -327,6 +328,18 @@ class AssertLabel : Label
 {
 }
 
+class HideRevealStmt : Statement
+{
+    List<Expression>? exprs;
+    HideRevealCmdModes mode;
+}
+
+enum HideRevealCmdModes
+{
+    Hide,
+    Reveal
+}
+
 abstract class ProduceStmt : Statement
 {
     List<AssignmentRhs>? rhss;
@@ -432,6 +445,12 @@ class BreakOrContinueStmt : Statement
     Name? targetLabel;
     Int32 breakAndContinueCount;
     Boolean isContinue;
+}
+
+class BlockByProofStmt : Statement
+{
+    BlockStmt proof;
+    Statement body;
 }
 
 class VarDeclStmt : Statement
@@ -670,6 +689,10 @@ abstract class BasicType : NonProxyType
 {
 }
 
+class FieldType : BasicType
+{
+}
+
 class BitvectorType : BasicType
 {
     Int32 width;
@@ -795,7 +818,7 @@ enum SubsetTypeDeclWKind
 abstract class TopLevelDeclWithMembers : TopLevelDecl
 {
     List<MemberDecl> members;
-    List<Type>? traits;
+    List<Type> traits;
 }
 
 abstract class MemberDecl : Declaration
@@ -827,6 +850,48 @@ class Method : MethodOrConstructor
     Boolean isByMethod;
 }
 
+class Lemma : Declaration
+{
+    Boolean hasStaticKeyword;
+    List<TypeParameter> typeArgs;
+    List<Formal> ins;
+    List<Formal> outs;
+    List<AttributedExpression> req;
+    Specification<FrameExpression> reads;
+    Specification<FrameExpression> mod;
+    List<AttributedExpression> ens;
+    Specification<Expression> decreases;
+    BlockStmt body;
+    IOrigin? signatureEllipsis;
+}
+
+abstract class ExtremeLemma : Declaration
+{
+    Boolean hasStaticKeyword;
+    ExtremePredicateKType typeOfK;
+    List<TypeParameter> typeArgs;
+    List<Formal> ins;
+    List<Formal> outs;
+    List<AttributedExpression> req;
+    Specification<FrameExpression> reads;
+    Specification<FrameExpression> mod;
+    List<AttributedExpression> ens;
+    Specification<Expression> decreases;
+    BlockStmt body;
+    IOrigin? signatureEllipsis;
+}
+
+enum ExtremePredicateKType
+{
+    Unspecified,
+    Nat,
+    ORDINAL
+}
+
+class GreatestLemma : ExtremeLemma
+{
+}
+
 class Constructor : MethodOrConstructor
 {
     DividedBlockStmt? body;
@@ -841,6 +906,43 @@ class Function : MethodOrFunction
     Expression? body;
     IOrigin? byMethodTok;
     BlockStmt? byMethodBody;
+}
+
+class Predicate : MethodOrFunction
+{
+    Boolean hasStaticKeyword;
+    Boolean isOpaque;
+    Formal? result;
+    Expression? body;
+    PredicateBodyOriginKind bodyOrigin;
+    IOrigin? byMethodTok;
+    BlockStmt? byMethodBody;
+}
+
+enum PredicateBodyOriginKind
+{
+    OriginalOrInherited,
+    DelayedDefinition,
+    Extension
+}
+
+abstract class ExtremePredicate : Declaration
+{
+    Boolean hasStaticKeyword;
+    Boolean isOpaque;
+    ExtremePredicateKType typeOfK;
+    List<TypeParameter> typeArgs;
+    List<Formal> ins;
+    Formal? result;
+    List<AttributedExpression> req;
+    Specification<FrameExpression> reads;
+    List<AttributedExpression> ens;
+    Expression body;
+    IOrigin? signatureEllipsis;
+}
+
+class GreatestPredicate : ExtremePredicate
+{
 }
 
 class Field : MemberDecl
@@ -883,6 +985,21 @@ class TraitDecl : ClassLikeDecl
 class ClassDecl : ClassLikeDecl
 {
     Boolean isRefining;
+}
+
+class IteratorDecl : TopLevelDecl
+{
+    List<Formal> ins;
+    List<Formal> outs;
+    Specification<FrameExpression> reads;
+    Specification<FrameExpression> modifies;
+    Specification<Expression> decreases;
+    List<AttributedExpression> requires;
+    List<AttributedExpression> ensures;
+    List<AttributedExpression> yieldRequires;
+    List<AttributedExpression> yieldEnsures;
+    BlockStmt body;
+    IOrigin? signatureEllipsis;
 }
 
 class DefaultClassDecl : TopLevelDeclWithMembers

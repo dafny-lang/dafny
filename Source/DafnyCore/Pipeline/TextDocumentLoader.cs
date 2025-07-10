@@ -1,9 +1,12 @@
 ﻿#nullable enable
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using IntervalTree;
 using Microsoft.Extensions.Logging;
+using OmniSharp.Extensions.LanguageServer.Protocol.Models;
 
 namespace Microsoft.Dafny {
   /// <summary>
@@ -56,15 +59,26 @@ namespace Microsoft.Dafny {
         compilation.Options.ProcessSolverOptions(compilation.Reporter, compilation.Options.DafnyProject.StartingToken);
       }
 
-      List<ICanVerify>? verifiables;
+      IDictionary<Uri, IIntervalTree<DafnyPosition, ICanVerify>>? verifiables;
       if (compilation.HasErrors) {
         verifiables = null;
       } else {
         var symbols = SymbolExtensions.GetSymbolDescendants(program.DefaultModule);
-        verifiables = symbols.OfType<ICanVerify>().Where(v => !v.Origin.IsCopy &&
-                                                              v.ContainingModule.ShouldVerify(program.Compilation) &&
-                                                              v.ShouldVerify(program.Compilation) &&
-                                                              v.ShouldVerify).ToList();
+        verifiables = new Dictionary<Uri, IIntervalTree<DafnyPosition, ICanVerify>>();
+        foreach (var canVerify in symbols.OfType<ICanVerify>().Where(v =>
+                   !v.Origin.IsCopy &&
+                   v.ShouldVerify &&
+                  v.ContainingModule.ShouldVerify(program.Compilation) &&
+                  v.ShouldVerify(program.Compilation)
+                  ).ToList()) {
+          var forUri =
+            verifiables.GetOrCreate(canVerify.Origin.Uri, () => new IntervalTree<DafnyPosition, ICanVerify>());
+          var range = canVerify.ReportingRange.ToDafnyRange();
+          forUri.Add(
+            range.Start,
+            range.ExclusiveEnd,
+            canVerify);
+        }
       }
 
       return new ResolutionResult(
