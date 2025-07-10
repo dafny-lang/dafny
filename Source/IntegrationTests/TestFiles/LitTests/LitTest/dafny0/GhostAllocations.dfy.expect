@@ -7,12 +7,12 @@ GhostAllocations.dfy(76,2): Error: assertion could not be proved
 GhostAllocations.dfy(82,2): Error: assertion could not be proved
 GhostAllocations.dfy(93,2): Error: assertion could not be proved
 GhostAllocations.dfy(105,2): Error: assertion could not be proved
-GhostAllocations.dfy(138,2): Error: field 'g', which is subject to definite-assignment rules, might be uninitialized at this point in the constructor body
-GhostAllocations.dfy(177,2): Error: field 'h', which is subject to definite-assignment rules, might be uninitialized at this point in the constructor body
-GhostAllocations.dfy(180,2): Error: field 'g', which is subject to definite-assignment rules, might be uninitialized at this point in the constructor body
-GhostAllocations.dfy(180,2): Error: field 'h', which is subject to definite-assignment rules, might be uninitialized at this point in the constructor body
-GhostAllocations.dfy(184,2): Error: field 'h', which is subject to definite-assignment rules, might be uninitialized at this point in the constructor body
-GhostAllocations.dfy(187,2): Error: field 'g', which is subject to definite-assignment rules, might be uninitialized at this point in the constructor body
-GhostAllocations.dfy(187,2): Error: field 'h', which is subject to definite-assignment rules, might be uninitialized at this point in the constructor body
+GhostAllocations.dfy(138,2): Error: field 'g', which is subject to definite-assignment rules, could not be proved to be initialized at this point in the constructor body
+GhostAllocations.dfy(177,2): Error: field 'h', which is subject to definite-assignment rules, could not be proved to be initialized at this point in the constructor body
+GhostAllocations.dfy(180,2): Error: field 'g', which is subject to definite-assignment rules, could not be proved to be initialized at this point in the constructor body
+GhostAllocations.dfy(180,2): Error: field 'h', which is subject to definite-assignment rules, could not be proved to be initialized at this point in the constructor body
+GhostAllocations.dfy(184,2): Error: field 'h', which is subject to definite-assignment rules, could not be proved to be initialized at this point in the constructor body
+GhostAllocations.dfy(187,2): Error: field 'g', which is subject to definite-assignment rules, could not be proved to be initialized at this point in the constructor body
+GhostAllocations.dfy(187,2): Error: field 'h', which is subject to definite-assignment rules, could not be proved to be initialized at this point in the constructor body
 
 Dafny program verifier finished with 6 verified, 14 errors
