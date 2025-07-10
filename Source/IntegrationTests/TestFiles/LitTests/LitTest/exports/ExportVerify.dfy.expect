@@ -1,5 +1,5 @@
-ExportVerify.dfy(40,13): Error: variable 'd', which is subject to definite-assignment rules, might be uninitialized here
-ExportVerify.dfy(44,4): Error: variable 'd', which is subject to definite-assignment rules, might be uninitialized here
+ExportVerify.dfy(40,13): Error: variable 'd', which is subject to definite-assignment rules, could not be proved to be initialized here
+ExportVerify.dfy(44,4): Error: variable 'd', which is subject to definite-assignment rules, could not be proved to be initialized here
 ExportVerify.dfy(52,4): Error: assertion could not be proved
 ExportVerify.dfy(54,4): Error: assertion could not be proved
 ExportVerify.dfy(55,4): Error: assertion could not be proved
