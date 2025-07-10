@@ -60,10 +60,10 @@ refman-release: exe
 
 z3-mac:
 	mkdir -p "${DIR}"/Binaries/z3/bin
-	wget https://github.com/dafny-lang/solver-builds/releases/download/snapshot-2025-07-02/z3-4.14.1-x64-macos-13-bin.zip
+	curl -L -O https://github.com/dafny-lang/solver-builds/releases/download/snapshot-2025-07-02/z3-4.14.1-x64-macos-13-bin.zip
 	unzip z3-4.14.1-x64-macos-13-bin.zip
 	rm z3-4.14.1-x64-macos-13-bin.zip
-	wget https://github.com/dafny-lang/solver-builds/releases/download/snapshot-2025-07-02/z3-4.12.1-x64-macos-13-bin.zip
+	curl -L -O https://github.com/dafny-lang/solver-builds/releases/download/snapshot-2025-07-02/z3-4.12.1-x64-macos-13-bin.zip
 	unzip z3-4.12.1-x64-macos-13-bin.zip
 	rm z3-4.12.1-x64-macos-13-bin.zip
 	mv z3-* "${DIR}"/Binaries/z3/bin/
@@ -71,10 +71,10 @@ z3-mac:
 
 z3-mac-arm:
 	mkdir -p "${DIR}"/Binaries/z3/bin
-	wget https://github.com/dafny-lang/solver-builds/releases/download/snapshot-2025-07-02/z3-4.14.1-arm64-macos-13-bin.zip
+	curl -L -O https://github.com/dafny-lang/solver-builds/releases/download/snapshot-2025-07-02/z3-4.14.1-arm64-macos-13-bin.zip
 	unzip z3-4.14.1-arm64-macos-13-bin.zip
 	rm z3-4.14.1-arm64-macos-13-bin.zip
-	wget https://github.com/dafny-lang/solver-builds/releases/download/snapshot-2025-07-02/z3-4.12.1-arm64-macos-13-bin.zip
+	curl -L -O https://github.com/dafny-lang/solver-builds/releases/download/snapshot-2025-07-02/z3-4.12.1-arm64-macos-13-bin.zip
 	unzip z3-4.12.1-arm64-macos-13-bin.zip
 	rm z3-4.12.1-arm64-macos-13-bin.zip
 	mv z3-* "${DIR}"/Binaries/z3/bin/
