@@ -22,7 +22,7 @@ namespace Microsoft.Dafny {
       new("dllresource://DafnyPipeline/DafnyStandardLibraries.doo"));
 
     static DafnyMain() {
-      foreach (var target in new[] { "cs", "java", "go", "py", "js", "notarget" }) {
+      foreach (var target in new[] { "cs", "java", "go", "py", "js", "rs", "notarget" }) {
         StandardLibrariesDooUriTarget[target] = DafnyFile.ExposeInternalUri($"DafnyStandardLibraries-{target}.dfy",
           new($"dllresource://DafnyPipeline/DafnyStandardLibraries-{target}.doo"));
       }
