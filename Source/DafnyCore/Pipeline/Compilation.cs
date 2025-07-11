@@ -187,7 +187,7 @@ public class Compilation : IDisposable {
       // This creates issues with separate compilation and will be addressed in https://github.com/dafny-lang/dafny/pull/4877
       var asLibrary = !Options.Get(CommonOptionBag.TranslateStandardLibrary);
 
-      if (Options.CompilerName is null or "cs" or "java" or "go" or "py" or "js") {
+      if (Options.CompilerName is null or "cs" or "java" or "go" or "py" or "js" or "rs") {
         var targetName = Options.CompilerName ?? "notarget";
         var stdlibDooUri = DafnyMain.StandardLibrariesDooUriTarget[targetName];
         await foreach (var targetSpecificFile in DafnyFile.CreateAndValidate(OnDiskFileSystem.Instance, errorReporter,
