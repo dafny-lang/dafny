@@ -173,7 +173,9 @@ namespace Microsoft.Dafny {
     }
 
     void AddMethod_Top(MethodOrConstructor m, bool isByMethod, bool includeAllMethods) {
-      if (!includeAllMethods && !InVerificationScope(m) && !referencedMembers.Contains(m)) {
+      if (!includeAllMethods &&
+          m.EnclosingClass.EnclosingModuleDefinition != forModule &&
+          !referencedMembers.Contains(m)) {
         // do nothing
         return;
       }
