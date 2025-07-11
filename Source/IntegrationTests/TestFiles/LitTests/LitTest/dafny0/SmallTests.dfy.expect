@@ -15,7 +15,7 @@ SmallTests.dfy(86,23): Error: target object could not be proved to be non-null
 SmallTests.dfy(120,5): Error: call could not be proved to respect context's modifies clause
 SmallTests.dfy(132,9): Error: call could not be proved to respect context's modifies clause
 SmallTests.dfy(134,9): Error: call could not be proved to respect context's modifies clause
-SmallTests.dfy(174,8): Error: assignment could not be proved to respect the enclosing context's modifies clause
+SmallTests.dfy(174,8): Error: modified field could not be proved to be in the current modifies clause
 SmallTests.dfy(196,18): Error: assertion could not be proved
 SmallTests.dfy(197,18): Error: assertion could not be proved
 SmallTests.dfy(199,18): Error: assertion could not be proved

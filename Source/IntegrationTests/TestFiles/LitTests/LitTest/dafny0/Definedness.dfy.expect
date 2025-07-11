@@ -16,7 +16,7 @@ Definedness.dfy(67,21): Related location: this is the postcondition that could n
 Definedness.dfy(88,6): Error: target object could not be proved to be non-null
 Definedness.dfy(89,5): Error: function precondition could not be proved
 Definedness.dfy(79,15): Related location: this proposition could not be proved
-Definedness.dfy(89,9): Error: assignment could not be proved to respect the enclosing context's modifies clause
+Definedness.dfy(89,9): Error: modified field could not be proved to be in the current modifies clause
 Definedness.dfy(89,9): Error: target object could not be proved to be non-null
 Definedness.dfy(90,10): Error: function precondition could not be proved
 Definedness.dfy(79,15): Related location: this proposition could not be proved
