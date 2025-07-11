@@ -775,8 +775,8 @@ public class TraitFrame : ProofObligationDescription {
 
   public override string FailureDescription =>
     isModify
-      ? $"{whatKind} could not be proved to respect the parent trait context's modifies clause"
-      : $"{whatKind} could not be proved to respect the parent trait context's reads clause";
+      ? $"modified object in {whatKind} could not be proved to be in the parent trait's modifies clause"
+      : $"accessed object in {whatKind} could not be proved to be in the parent trait's reads clause";
 
   public override string ShortDescription =>
     isModify ? "trait modifies" : "trait reads";
@@ -827,7 +827,7 @@ public class ModifyFrameSubset : ProofObligationDescription {
       $"{whatKind} is allowed by context's modifies clause";
 
   public override string FailureDescription =>
-      $"{whatKind} could not be proved to respect context's modifies clause";
+      $"modified object in {whatKind} could not be proved to be in the current modifies clause";
 
   public override string ShortDescription => "modify frame subset";
 
@@ -981,7 +981,7 @@ public class Modifiable : ProofObligationDescription {
     $"{description} is in the enclosing context's modifies clause";
 
   public override string FailureDescription =>
-    $"assignment could not be proved to respect the enclosing context's modifies clause";
+    $"modified field could not be proved to be in the current modifies clause";
 
   public override string ShortDescription => "modifiable";
 
