@@ -144,7 +144,7 @@ public class ConversionIsNatural : ProofObligationDescription {
     $"{prefix}value to be converted is always a natural number";
 
   public override string FailureDescription =>
-    $"{prefix}value to be converted might be bigger than every natural number";
+    $"{prefix}value to be converted could not be proved to be a natural number";
 
   public override string ShortDescription => "converted value is natural";
 
@@ -192,7 +192,7 @@ public class OrdinalSubtractionIsNatural : ProofObligationDescription {
     "RHS of ORDINAL subtraction is always a natural number";
 
   public override string FailureDescription =>
-    "RHS of ORDINAL subtraction must be a natural number, but the given RHS might be larger";
+    "RHS of ORDINAL subtraction must be a natural number, but the given RHS could not be proved to be a natural number";
 
   public override string ShortDescription => "ordinal subtraction is natural";
 
@@ -212,7 +212,7 @@ public class OrdinalSubtractionUnderflow : ProofObligationDescription {
     "ORDINAL subtraction will never go below limit ordinal";
 
   public override string FailureDescription =>
-    "ORDINAL subtraction might underflow a limit ordinal (that is, RHS might be too large)";
+    "ORDINAL subtraction could not be proved to not underflow a limit ordinal (that is, RHS might be too large)";
 
   public override string ShortDescription => "ordinal subtraction underflow";
 
@@ -239,7 +239,7 @@ public class CharOverflow : ProofObligationDescription {
     "char addition will not overflow";
 
   public override string FailureDescription =>
-    "char addition might overflow";
+    "char addition could not be proved to not overflow";
 
   public override string ShortDescription => "char overflow";
 
@@ -267,7 +267,7 @@ public class CharUnderflow : ProofObligationDescription {
     "char subtraction will not underflow";
 
   public override string FailureDescription =>
-    "char subtraction might underflow";
+    "char subtraction could not be proved to not underflow";
 
   public override string ShortDescription => "char underflow";
 
@@ -321,7 +321,7 @@ public class NonNegative : ProofObligationDescription {
     $"{what} is never negative";
 
   public override string FailureDescription =>
-    $"{what} might be negative";
+    $"{what} could not be proved to be non-negative";
 
   public override string ShortDescription => "non-negative";
 
@@ -408,7 +408,7 @@ public class NonNull : ProofObligationDescription {
     $"{PluralSuccess}{what} is never null";
 
   public override string FailureDescription =>
-    $"{PluralFailure}{what} might be null";
+    $"{PluralFailure}{what} could not be proved to be non-null";
 
   public override string ShortDescription => $"{what} non-null";
   private readonly string what;
@@ -775,8 +775,8 @@ public class TraitFrame : ProofObligationDescription {
 
   public override string FailureDescription =>
     isModify
-      ? $"{whatKind} might modify an object not in the parent trait context's modifies clause"
-      : $"{whatKind} might read an object not in the parent trait context's reads clause";
+      ? $"{whatKind} could not be proved to respect the parent trait context's modifies clause"
+      : $"{whatKind} could not be proved to respect the parent trait context's reads clause";
 
   public override string ShortDescription =>
     isModify ? "trait modifies" : "trait reads";
@@ -827,7 +827,7 @@ public class ModifyFrameSubset : ProofObligationDescription {
       $"{whatKind} is allowed by context's modifies clause";
 
   public override string FailureDescription =>
-      $"{whatKind} might violate context's modifies clause";
+      $"{whatKind} could not be proved to respect context's modifies clause";
 
   public override string ShortDescription => "modify frame subset";
 
@@ -851,7 +851,7 @@ public class FrameDereferenceNonNull : ProofObligationDescription {
     "frame expression does not dereference null";
 
   public override string FailureDescription =>
-    "frame expression might dereference null";
+    "frame expression could not be proved to be non-null";
 
   public override string ShortDescription => "frame dereference";
 
@@ -981,7 +981,7 @@ public class Modifiable : ProofObligationDescription {
     $"{description} is in the enclosing context's modifies clause";
 
   public override string FailureDescription =>
-    $"assignment might update {description} not in the enclosing context's modifies clause";
+    $"assignment could not be proved to respect the enclosing context's modifies clause";
 
   public override string ShortDescription => "modifiable";
 
@@ -1326,7 +1326,7 @@ public class ForallLHSUnique : ProofObligationDescription {
     "left-hand sides of forall-statement bound variables are unique (or right-hand sides are equivalent)";
 
   public override string FailureDescription =>
-    "left-hand sides for different forall-statement bound variables might refer to the same location (and right-hand sides might not be equivalent)";
+    "left-hand sides for different forall-statement bound variables could not be proved to refer to different locations (and right-hand sides might not be equivalent)";
 
   public override string ShortDescription => "forall bound unique";
 
@@ -1483,7 +1483,7 @@ public class ComprehensionNoAlias : ProofObligationDescription {
     "key expressions refer to unique values";
 
   public override string FailureDescription =>
-    "key expressions might be referring to the same value";
+    "key expressions could not be proved to refer to different values";
 
   public override string ShortDescription => "unique key expressions";
 
