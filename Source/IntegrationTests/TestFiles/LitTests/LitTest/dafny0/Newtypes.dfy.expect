@@ -7,7 +7,7 @@ Newtypes.dfy(104,15): Error: result of operation could not be proved to satisfy 
 Newtypes.dfy(177,13): Error: result of operation could not be proved to satisfy newtype constraint for 'Even'
 Newtypes.dfy(193,67): Error: index 0 out of range
 Newtypes.dfy(194,70): Error: index 1 out of range
-Newtypes.dfy(223,21): Error: new number of occurrences might be negative
+Newtypes.dfy(223,21): Error: new number of occurrences could not be proved to be non-negative
 Newtypes.dfy(226,39): Error: result of operation could not be proved to satisfy newtype constraint for 'Even'
 Newtypes.dfy(238,18): Error: result of operation could not be proved to satisfy newtype constraint for 'N'
 Newtypes.dfy(278,18): Error: result of operation could not be proved to satisfy newtype constraint for 'R'

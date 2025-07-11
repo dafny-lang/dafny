@@ -84,10 +84,10 @@ DirtyLoops.dfy(369,2): Error: assertion could not be proved
 DirtyLoops.dfy(380,2): Error: assertion could not be proved
 DirtyLoops.dfy(401,18): Error: this loop invariant could not be proved on entry
  Related message: loop invariant violation
-DirtyLoops.dfy(414,16): Error: target object might be null
-DirtyLoops.dfy(452,6): Error: loop modifies clause might violate context's modifies clause
-DirtyLoops.dfy(468,6): Error: loop modifies clause might violate context's modifies clause
-DirtyLoops.dfy(485,6): Error: loop modifies clause might violate context's modifies clause
+DirtyLoops.dfy(414,16): Error: target object could not be proved to be non-null
+DirtyLoops.dfy(452,6): Error: loop modifies clause could not be proved to respect context's modifies clause
+DirtyLoops.dfy(468,6): Error: loop modifies clause could not be proved to respect context's modifies clause
+DirtyLoops.dfy(485,6): Error: loop modifies clause could not be proved to respect context's modifies clause
 DirtyLoops.dfy(506,22): Error: assertion could not be proved
 DirtyLoops.dfy(533,2): Error: assertion could not be proved
 
