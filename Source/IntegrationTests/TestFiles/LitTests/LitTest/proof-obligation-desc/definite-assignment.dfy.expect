@@ -1,32 +1,32 @@
-definite-assignment.dfy(16,4): Error: field 'y', which is subject to definite-assignment rules, might be uninitialized at this point in the constructor body
+definite-assignment.dfy(16,4): Error: field 'y', which is subject to definite-assignment rules, could not be proved to be initialized at this point in the constructor body
  Asserted expression: assigned(y)
-definite-assignment.dfy(16,4): Error: field 'x', which is subject to definite-assignment rules, might be uninitialized at this point in the constructor body
+definite-assignment.dfy(16,4): Error: field 'x', which is subject to definite-assignment rules, could not be proved to be initialized at this point in the constructor body
  Asserted expression: assigned(x)
-definite-assignment.dfy(33,9): Error: variable 'y', which is subject to definite-assignment rules, might be uninitialized here
+definite-assignment.dfy(33,9): Error: variable 'y', which is subject to definite-assignment rules, could not be proved to be initialized here
  Asserted expression: assigned(y)
-definite-assignment.dfy(36,0): Error: out-parameter 'x', which is subject to definite-assignment rules, might be uninitialized at this return point
+definite-assignment.dfy(36,0): Error: out-parameter 'x', which is subject to definite-assignment rules, could not be proved to be initialized at this return point
  Asserted expression: assigned(x)
-definite-assignment.dfy(36,0): Error: out-parameter 'y', which is subject to definite-assignment rules, might be uninitialized at this return point
+definite-assignment.dfy(36,0): Error: out-parameter 'y', which is subject to definite-assignment rules, could not be proved to be initialized at this return point
  Asserted expression: assigned(y)
-definite-assignment.dfy(41,11): Error: variable 'x', which is subject to definite-assignment rules, might be uninitialized here
+definite-assignment.dfy(41,11): Error: variable 'x', which is subject to definite-assignment rules, could not be proved to be initialized here
  Asserted expression: assigned(x)
-definite-assignment.dfy(41,14): Error: variable 'y', which is subject to definite-assignment rules, might be uninitialized here
+definite-assignment.dfy(41,14): Error: variable 'y', which is subject to definite-assignment rules, could not be proved to be initialized here
  Asserted expression: assigned(y)
-definite-assignment.dfy(50,14): Error: variable 'y', which is subject to definite-assignment rules, might be uninitialized here
+definite-assignment.dfy(50,14): Error: variable 'y', which is subject to definite-assignment rules, could not be proved to be initialized here
  Asserted expression: assigned(y)
-definite-assignment.dfy(58,9): Error: variable 'y', which is subject to definite-assignment rules, might be uninitialized here
+definite-assignment.dfy(58,9): Error: variable 'y', which is subject to definite-assignment rules, could not be proved to be initialized here
  Asserted expression: assigned(y)
-definite-assignment.dfy(59,17): Error: variable 'z', which is subject to definite-assignment rules, might be uninitialized here
+definite-assignment.dfy(59,17): Error: variable 'z', which is subject to definite-assignment rules, could not be proved to be initialized here
  Asserted expression: assigned(z)
-definite-assignment.dfy(68,4): Error: out-parameter 'y', which is subject to definite-assignment rules, might be uninitialized at this return point
+definite-assignment.dfy(68,4): Error: out-parameter 'y', which is subject to definite-assignment rules, could not be proved to be initialized at this return point
  Asserted expression: assigned(y)
-definite-assignment.dfy(76,9): Error: variable 'y', which is subject to definite-assignment rules, might be uninitialized here
+definite-assignment.dfy(76,9): Error: variable 'y', which is subject to definite-assignment rules, could not be proved to be initialized here
  Asserted expression: assigned(y)
-definite-assignment.dfy(77,4): Error: out-parameter 'z', which is subject to definite-assignment rules, might be uninitialized at this return point
+definite-assignment.dfy(77,4): Error: out-parameter 'z', which is subject to definite-assignment rules, could not be proved to be initialized at this return point
  Asserted expression: assigned(z)
-definite-assignment.dfy(85,12): Error: variable 'y', which is subject to definite-assignment rules, might be uninitialized here
+definite-assignment.dfy(85,12): Error: variable 'y', which is subject to definite-assignment rules, could not be proved to be initialized here
  Asserted expression: assigned(y)
-definite-assignment.dfy(85,15): Error: variable 'x', which is subject to definite-assignment rules, might be uninitialized here
+definite-assignment.dfy(85,15): Error: variable 'x', which is subject to definite-assignment rules, could not be proved to be initialized here
  Asserted expression: assigned(x)
 
 Dafny program verifier finished with 0 verified, 15 errors

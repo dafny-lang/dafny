@@ -1,38 +1,38 @@
-OpaqueFunctions.dfy(214,2): Error: assertion might not hold
-OpaqueFunctions.dfy(229,2): Error: assertion might not hold
-OpaqueFunctions.dfy(38,6): Error: assertion might not hold
+OpaqueFunctions.dfy(214,2): Error: assertion could not be proved
+OpaqueFunctions.dfy(229,2): Error: assertion could not be proved
+OpaqueFunctions.dfy(38,6): Error: assertion could not be proved
 OpaqueFunctions.dfy(69,7): Error: a precondition for this call could not be proved
 OpaqueFunctions.dfy(35,20): Related location: this is the precondition that could not be proved
-OpaqueFunctions.dfy(75,4): Error: assertion might not hold
-OpaqueFunctions.dfy(77,6): Error: assertion might not hold
-OpaqueFunctions.dfy(80,6): Error: assertion might not hold
-OpaqueFunctions.dfy(96,8): Error: assertion might not hold
+OpaqueFunctions.dfy(75,4): Error: assertion could not be proved
+OpaqueFunctions.dfy(77,6): Error: assertion could not be proved
+OpaqueFunctions.dfy(80,6): Error: assertion could not be proved
+OpaqueFunctions.dfy(96,8): Error: assertion could not be proved
 OpaqueFunctions.dfy(98,11): Error: a precondition for this call could not be proved
 OpaqueFunctions.dfy(35,20): Related location: this is the precondition that could not be proved
 OpaqueFunctions.dfy(43,7): Related location: refining module
-OpaqueFunctions.dfy(102,6): Error: assertion might not hold
-OpaqueFunctions.dfy(109,4): Error: assertion might not hold
-OpaqueFunctions.dfy(111,6): Error: assertion might not hold
-OpaqueFunctions.dfy(114,6): Error: assertion might not hold
-OpaqueFunctions.dfy(123,31): Error: assertion might not hold
-OpaqueFunctions.dfy(146,6): Error: assertion might not hold
+OpaqueFunctions.dfy(102,6): Error: assertion could not be proved
+OpaqueFunctions.dfy(109,4): Error: assertion could not be proved
+OpaqueFunctions.dfy(111,6): Error: assertion could not be proved
+OpaqueFunctions.dfy(114,6): Error: assertion could not be proved
+OpaqueFunctions.dfy(123,31): Error: assertion could not be proved
+OpaqueFunctions.dfy(146,6): Error: assertion could not be proved
 OpaqueFunctions.dfy(148,9): Error: a precondition for this call could not be proved
 OpaqueFunctions.dfy(35,20): Related location: this is the precondition that could not be proved
 OpaqueFunctions.dfy(43,7): Related location: refining module
-OpaqueFunctions.dfy(155,4): Error: assertion might not hold
-OpaqueFunctions.dfy(157,6): Error: assertion might not hold
-OpaqueFunctions.dfy(160,6): Error: assertion might not hold
-OpaqueFunctions.dfy(165,31): Error: assertion might not hold
-OpaqueFunctions.dfy(181,4): Error: assertion might not hold
-OpaqueFunctions.dfy(246,12): Error: assertion might not hold
-OpaqueFunctions.dfy(261,12): Error: assertion might not hold
-OpaqueFunctions.dfy(326,6): Error: assertion might not hold
-OpaqueFunctions.dfy(328,6): Error: assertion might not hold
-OpaqueFunctions.dfy(330,6): Error: assertion might not hold
-OpaqueFunctions.dfy(343,8): Error: assertion might not hold
-OpaqueFunctions.dfy(350,6): Error: assertion might not hold
-OpaqueFunctions.dfy(352,6): Error: assertion might not hold
-OpaqueFunctions.dfy(354,6): Error: assertion might not hold
-OpaqueFunctions.dfy(367,8): Error: assertion might not hold
+OpaqueFunctions.dfy(155,4): Error: assertion could not be proved
+OpaqueFunctions.dfy(157,6): Error: assertion could not be proved
+OpaqueFunctions.dfy(160,6): Error: assertion could not be proved
+OpaqueFunctions.dfy(165,31): Error: assertion could not be proved
+OpaqueFunctions.dfy(181,4): Error: assertion could not be proved
+OpaqueFunctions.dfy(246,12): Error: assertion could not be proved
+OpaqueFunctions.dfy(261,12): Error: assertion could not be proved
+OpaqueFunctions.dfy(326,6): Error: assertion could not be proved
+OpaqueFunctions.dfy(328,6): Error: assertion could not be proved
+OpaqueFunctions.dfy(330,6): Error: assertion could not be proved
+OpaqueFunctions.dfy(343,8): Error: assertion could not be proved
+OpaqueFunctions.dfy(350,6): Error: assertion could not be proved
+OpaqueFunctions.dfy(352,6): Error: assertion could not be proved
+OpaqueFunctions.dfy(354,6): Error: assertion could not be proved
+OpaqueFunctions.dfy(367,8): Error: assertion could not be proved
 
 Dafny program verifier finished with 18 verified, 31 errors

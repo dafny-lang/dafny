@@ -1,5 +1,5 @@
-git-issue-816.dfy(7,2): Error: assertion might not hold
-git-issue-816.dfy(20,2): Error: assertion might not hold
-git-issue-816.dfy(26,2): Error: assertion might not hold
+git-issue-816.dfy(7,2): Error: assertion could not be proved
+git-issue-816.dfy(20,2): Error: assertion could not be proved
+git-issue-816.dfy(26,2): Error: assertion could not be proved
 
 Dafny program verifier finished with 1 verified, 3 errors

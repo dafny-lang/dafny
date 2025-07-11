@@ -1,4 +1,4 @@
-ReadPreconditionBypass3.dfy(26,2): Error: assertion might not hold
-ReadPreconditionBypass3.dfy(31,2): Error: assertion might not hold
+ReadPreconditionBypass3.dfy(26,2): Error: assertion could not be proved
+ReadPreconditionBypass3.dfy(31,2): Error: assertion could not be proved
 
 Dafny program verifier finished with 1 verified, 2 errors

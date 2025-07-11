@@ -1,5 +1,5 @@
 git-issue-604.dfy(6,2): Warning: this loop has no body (loop frame: x)
-git-issue-604.dfy(8,2): Error: assertion might not hold
-git-issue-604.dfy(20,2): Error: assertion might not hold
+git-issue-604.dfy(8,2): Error: assertion could not be proved
+git-issue-604.dfy(20,2): Error: assertion could not be proved
 
 Dafny program verifier finished with 0 verified, 2 errors

@@ -3,6 +3,6 @@ QuantificationNewSyntax.dfy(12,13): Warning: Could not find a trigger for this q
 QuantificationNewSyntax.dfy(11,42): Error: possible division by zero
 QuantificationNewSyntax.dfy(13,37): Error: function precondition could not be proved
 QuantificationNewSyntax.dfy(19,48): Related location: this proposition could not be proved
-QuantificationNewSyntax.dfy(15,54): Error: result of operation might violate subset type constraint for 'nat'
+QuantificationNewSyntax.dfy(15,54): Error: result of operation could not be proved to satisfy subset type constraint for 'nat'
 
 Dafny program verifier finished with 0 verified, 3 errors

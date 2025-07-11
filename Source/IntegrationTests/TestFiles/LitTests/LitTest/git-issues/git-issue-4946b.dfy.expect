@@ -1,4 +1,4 @@
-git-issue-4946b.dfy(6,5): Error: trying witness null: value of expression (of type 'GeneralTrait?') is not known to be an instance of type 'GeneralTrait', because it might be null
-git-issue-4946b.dfy(7,5): Error: trying witness null: value of expression (of type 'ReferenceTrait?') is not known to be an instance of type 'ReferenceTrait', because it might be null
+git-issue-4946b.dfy(6,5): Error: trying witness null: value of expression (of type 'GeneralTrait?') is not known to be an instance of type 'GeneralTrait', because it could not be proved to be non-null
+git-issue-4946b.dfy(7,5): Error: trying witness null: value of expression (of type 'ReferenceTrait?') is not known to be an instance of type 'ReferenceTrait', because it could not be proved to be non-null
 
 Dafny program verifier finished with 0 verified, 2 errors

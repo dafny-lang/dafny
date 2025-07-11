@@ -6,9 +6,9 @@ git-issue-2597-verification.dfy(46,16): Error: a precondition for this call coul
 git-issue-2597-verification.dfy(8,18): Related location: this is the precondition that could not be proved
 git-issue-2597-verification.dfy(54,16): Error: a precondition for this call could not be proved
 git-issue-2597-verification.dfy(8,18): Related location: this is the precondition that could not be proved
-git-issue-2597-verification.dfy(61,4): Error: assertion might not hold
-git-issue-2597-verification.dfy(77,6): Error: assertion might not hold
-git-issue-2597-verification.dfy(84,6): Error: assertion might not hold
+git-issue-2597-verification.dfy(61,4): Error: assertion could not be proved
+git-issue-2597-verification.dfy(77,6): Error: assertion could not be proved
+git-issue-2597-verification.dfy(84,6): Error: assertion could not be proved
 git-issue-2597-verification.dfy(97,18): Error: a precondition for this call could not be proved
 git-issue-2597-verification.dfy(8,18): Related location: this is the precondition that could not be proved
 git-issue-2597-verification.dfy(111,20): Error: a precondition for this call could not be proved

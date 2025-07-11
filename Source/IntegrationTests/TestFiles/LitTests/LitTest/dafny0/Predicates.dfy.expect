@@ -1,5 +1,5 @@
-Predicates.dfy(62,4): Error: assertion might not hold
-Predicates.dfy(66,4): Error: assertion might not hold
+Predicates.dfy(62,4): Error: assertion could not be proved
+Predicates.dfy(66,4): Error: assertion could not be proved
 Predicates.dfy(105,4): Error: a postcondition could not be proved on this return path
 Predicates.dfy(104,14): Related location: this is the postcondition that could not be proved
 

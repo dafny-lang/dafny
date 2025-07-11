@@ -1,7 +1,7 @@
 Include.dfy(32,7): Warning: the ... refinement feature in statements is deprecated
 Include.dfy(22,6): Error: a postcondition could not be proved on this return path
 Includee.dfy(17,19): Related location: this is the postcondition that could not be proved
-Includee.dfy(22,15): Error: assertion might not hold
+Includee.dfy(22,15): Error: assertion could not be proved
 Include.dfy(18,7): Related location: refining module
 Include.dfy(28,6): Error: a postcondition could not be proved on this return path
 Includee.dfy(20,14): Related location: this is the postcondition that could not be proved
@@ -11,13 +11,13 @@ Dafny program verifier finished with 1 verified, 3 errors
 Include.dfy(32,7): Warning: the ... refinement feature in statements is deprecated
 Includee.dfy(6,0): Error: a postcondition could not be proved on this return path
 Includee.dfy(5,12): Related location: this is the postcondition that could not be proved
-Includee.dfy(7,0): Error: out-parameter 'y', which is subject to definite-assignment rules, might be uninitialized at this return point
+Includee.dfy(7,0): Error: out-parameter 'y', which is subject to definite-assignment rules, could not be proved to be initialized at this return point
 Includee.dfy(21,2): Error: a postcondition could not be proved on this return path
 Includee.dfy(20,14): Related location: this is the postcondition that could not be proved
-Includee.dfy(24,4): Error: assertion might not hold
+Includee.dfy(24,4): Error: assertion could not be proved
 Include.dfy(22,6): Error: a postcondition could not be proved on this return path
 Includee.dfy(17,19): Related location: this is the postcondition that could not be proved
-Includee.dfy(22,15): Error: assertion might not hold
+Includee.dfy(22,15): Error: assertion could not be proved
 Include.dfy(18,7): Related location: refining module
 Include.dfy(28,6): Error: a postcondition could not be proved on this return path
 Includee.dfy(20,14): Related location: this is the postcondition that could not be proved
