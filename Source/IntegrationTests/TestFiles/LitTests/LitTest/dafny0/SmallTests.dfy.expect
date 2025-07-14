@@ -12,9 +12,9 @@ SmallTests.dfy(65,35): Error: possible division by zero
 SmallTests.dfy(66,50): Error: possible division by zero
 SmallTests.dfy(67,21): Error: target object could not be proved to be non-null
 SmallTests.dfy(86,23): Error: target object could not be proved to be non-null
-SmallTests.dfy(120,5): Error: call could not be proved to respect context's modifies clause
-SmallTests.dfy(132,9): Error: call could not be proved to respect context's modifies clause
-SmallTests.dfy(134,9): Error: call could not be proved to respect context's modifies clause
+SmallTests.dfy(120,5): Error: modified object in call could not be proved to be in the current modifies clause
+SmallTests.dfy(132,9): Error: modified object in call could not be proved to be in the current modifies clause
+SmallTests.dfy(134,9): Error: modified object in call could not be proved to be in the current modifies clause
 SmallTests.dfy(174,8): Error: modified field could not be proved to be in the current modifies clause
 SmallTests.dfy(196,18): Error: assertion could not be proved
 SmallTests.dfy(197,18): Error: assertion could not be proved

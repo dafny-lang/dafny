@@ -2,7 +2,7 @@ LoopModifies.dfy(8,4): Error: modified field could not be proved to be in the cu
 LoopModifies.dfy(19,7): Error: modified field could not be proved to be in the current modifies clause
 LoopModifies.dfy(48,7): Error: modified field could not be proved to be in the current modifies clause
 LoopModifies.dfy(63,7): Error: modified field could not be proved to be in the current modifies clause
-LoopModifies.dfy(76,3): Error: loop modifies clause could not be proved to respect context's modifies clause
+LoopModifies.dfy(76,3): Error: modified object in loop modifies clause could not be proved to be in the current modifies clause
 LoopModifies.dfy(100,7): Error: modified field could not be proved to be in the current modifies clause
 LoopModifies.dfy(148,10): Error: modified field could not be proved to be in the current modifies clause
 LoopModifies.dfy(199,9): Error: modified field could not be proved to be in the current modifies clause
