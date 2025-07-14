@@ -14,15 +14,15 @@ Maps.dfy(264,54): Error: assertion could not be proved
 Maps.dfy(309,11): Error: index out of range
 Maps.dfy(311,16): Error: value does not satisfy the subset constraints of 'nat'
 Maps.dfy(317,11): Error: value does not satisfy the subset constraints of 'nat'
-Maps.dfy(319,16): Error: new number of occurrences might be negative
+Maps.dfy(319,16): Error: new number of occurrences could not be proved to be non-negative
 Maps.dfy(328,11): Error: value does not satisfy the subset constraints of 'nat'
 Maps.dfy(330,17): Error: value does not satisfy the subset constraints of 'nat'
 Maps.dfy(339,11): Error: index out of range
-Maps.dfy(341,16): Error: value of expression (of type 'Elem?') is not known to be an instance of type 'Elem', because it might be null
-Maps.dfy(347,11): Error: value of expression (of type 'Elem?') is not known to be an instance of type 'Elem', because it might be null
-Maps.dfy(349,16): Error: new number of occurrences might be negative
-Maps.dfy(358,11): Error: value of expression (of type 'Elem?') is not known to be an instance of type 'Elem', because it might be null
-Maps.dfy(360,16): Error: value of expression (of type 'Elem?') is not known to be an instance of type 'Elem', because it might be null
+Maps.dfy(341,16): Error: value of expression (of type 'Elem?') is not known to be an instance of type 'Elem', because it could not be proved to be non-null
+Maps.dfy(347,11): Error: value of expression (of type 'Elem?') is not known to be an instance of type 'Elem', because it could not be proved to be non-null
+Maps.dfy(349,16): Error: new number of occurrences could not be proved to be non-negative
+Maps.dfy(358,11): Error: value of expression (of type 'Elem?') is not known to be an instance of type 'Elem', because it could not be proved to be non-null
+Maps.dfy(360,16): Error: value of expression (of type 'Elem?') is not known to be an instance of type 'Elem', because it could not be proved to be non-null
 Maps.dfy(424,4): Error: assertion could not be proved
 Maps.dfy(429,4): Error: assertion could not be proved
 Maps.dfy(430,4): Error: assertion could not be proved
