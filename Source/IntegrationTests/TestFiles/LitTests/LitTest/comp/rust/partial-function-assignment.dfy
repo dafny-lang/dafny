@@ -15,6 +15,7 @@ class TestPartialFunction<I, O> {
 
   method TestMethod(input: I) returns (output: O)
     requires f.requires(input)
+    ensures output == f(input)
   {
     output := f(input);
   }
@@ -27,5 +28,10 @@ method Main() {
   
   var result := testObj.TestMethod(5);
   print "Result: ", result, "\n";
-  assert result == 10;
+  
+  // The assertion should hold because doubleFunc(5) = 5 * 2 = 10
+  assert doubleFunc.requires(5);  // Total functions are defined everywhere
+  assert doubleFunc(5) == 10;     // 5 * 2 = 10
+  assert testObj.f == doubleFunc;  // From constructor postcondition
+  assert result == 10;             // Therefore result should be 10
 }
