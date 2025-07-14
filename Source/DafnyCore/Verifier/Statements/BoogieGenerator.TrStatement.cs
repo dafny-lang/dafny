@@ -553,6 +553,17 @@ public partial class BoogieGenerator {
       }
     }
     if (varDeclStmt.Assign != null) {
+      // For variable declarations with havoc assignments, mark the definite assignment tracker
+      // BEFORE processing the assignment so that the where clause is properly assumed during the havoc
+      if (varDeclStmt.Assign is AssignStatement assignStmt) {
+        for (int j = 0; j < Math.Min(assignStmt.Lhss.Count, assignStmt.Rhss.Count); j++) {
+          if (assignStmt.Rhss[j] is HavocRhs && assignStmt.Lhss[j].Resolved is IdentifierExpr ie) {
+            if (ie.Type.HavocCountsAsDefiniteAssignment(ie.Var.IsGhost)) {
+              MarkDefiniteAssignmentTracker(ie, builder);
+            }
+          }
+        }
+      }
       TrStmt(varDeclStmt.Assign, builder, locals, etran);
     }
   }
