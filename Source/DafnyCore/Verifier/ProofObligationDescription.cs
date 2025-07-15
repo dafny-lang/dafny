@@ -1326,7 +1326,7 @@ public class ForallLHSUnique : ProofObligationDescription {
     "left-hand sides of forall-statement bound variables are unique (or right-hand sides are equivalent)";
 
   public override string FailureDescription =>
-    "left-hand sides for different forall-statement bound variables could not be proved to refer to different locations (and right-hand sides might not be equivalent)";
+    "left-hand sides for different forall-statement bound variables could not be proved to refer to different locations (and right-hand sides could not be proven to be equivalent)";
 
   public override string ShortDescription => "forall bound unique";
 
