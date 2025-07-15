@@ -8,5 +8,5 @@
 
 module {:extern} Std.OrdinalExclusion {
   // Exclude ORDINAL type from Rust compilation
-  type {:compile false} ORDINAL = ORDINAL
+  type {:compile false} BigOrdinal = int
 }
