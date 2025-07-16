@@ -1,5 +1,5 @@
 git-issue-4939b.dfy(24,11): Warning: because of cyclic dependencies among constructor argument types, no instances of datatype 'BadList' can be constructed
-git-issue-4939b.dfy(16,12): Error: variable 'a', which is subject to definite-assignment rules, might be uninitialized here
-git-issue-4939b.dfy(18,12): Error: variable 'b', which is subject to definite-assignment rules, might be uninitialized here
+git-issue-4939b.dfy(16,12): Error: variable 'a', which is subject to definite-assignment rules, could not be proved to be initialized here
+git-issue-4939b.dfy(18,12): Error: variable 'b', which is subject to definite-assignment rules, could not be proved to be initialized here
 
 Dafny program verifier finished with 1 verified, 2 errors

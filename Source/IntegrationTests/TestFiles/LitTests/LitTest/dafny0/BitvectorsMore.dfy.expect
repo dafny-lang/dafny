@@ -457,39 +457,39 @@ BitvectorsMore.dfy(21,13): Error: possible division by zero
 BitvectorsMore.dfy(25,13): Error: possible division by zero
 BitvectorsMore.dfy(30,15): Error: possible division by zero
 BitvectorsMore.dfy(32,15): Error: possible division by zero
-BitvectorsMore.dfy(104,37): Error: when converting shift amount to a bit vector, the value to be converted might not fit in bv7
+BitvectorsMore.dfy(104,37): Error: when converting shift amount to a bit vector, the value to be converted could not be proved to fit in bv7
 BitvectorsMore.dfy(105,35): Error: shift amount must not exceed the width of the result (67)
-BitvectorsMore.dfy(105,38): Error: when converting shift amount to a bit vector, the value to be converted might not fit in bv7
+BitvectorsMore.dfy(105,38): Error: when converting shift amount to a bit vector, the value to be converted could not be proved to fit in bv7
 BitvectorsMore.dfy(107,34): Error: shift amount must not exceed the width of the result (67)
-BitvectorsMore.dfy(107,37): Error: when converting shift amount to a bit vector, the value to be converted might not fit in bv7
+BitvectorsMore.dfy(107,37): Error: when converting shift amount to a bit vector, the value to be converted could not be proved to fit in bv7
 BitvectorsMore.dfy(108,34): Error: shift amount must not exceed the width of the result (67)
-BitvectorsMore.dfy(115,42): Error: when converting shift amount to a bit vector, the value to be converted might not fit in bv7
+BitvectorsMore.dfy(115,42): Error: when converting shift amount to a bit vector, the value to be converted could not be proved to fit in bv7
 BitvectorsMore.dfy(116,39): Error: shift amount must not exceed the width of the result (67)
-BitvectorsMore.dfy(116,42): Error: when converting shift amount to a bit vector, the value to be converted might not fit in bv7
+BitvectorsMore.dfy(116,42): Error: when converting shift amount to a bit vector, the value to be converted could not be proved to fit in bv7
 BitvectorsMore.dfy(124,28): Error: shift amount must not exceed the width of the result (67)
-BitvectorsMore.dfy(124,31): Error: when converting shift amount to a bit vector, the value to be converted might not fit in bv7
+BitvectorsMore.dfy(124,31): Error: when converting shift amount to a bit vector, the value to be converted could not be proved to fit in bv7
 BitvectorsMore.dfy(125,28): Error: shift amount must not exceed the width of the result (67)
-BitvectorsMore.dfy(125,31): Error: when converting shift amount to a bit vector, the value to be converted might not fit in bv7
+BitvectorsMore.dfy(125,31): Error: when converting shift amount to a bit vector, the value to be converted could not be proved to fit in bv7
 BitvectorsMore.dfy(135,24): Error: shift amount must not exceed the width of the result (32)
-BitvectorsMore.dfy(135,27): Error: when converting shift amount to a bit vector, the value to be converted might not fit in bv6
+BitvectorsMore.dfy(135,27): Error: when converting shift amount to a bit vector, the value to be converted could not be proved to fit in bv6
 BitvectorsMore.dfy(136,24): Error: shift amount must not exceed the width of the result (32)
-BitvectorsMore.dfy(136,27): Error: when converting shift amount to a bit vector, the value to be converted might not fit in bv6
+BitvectorsMore.dfy(136,27): Error: when converting shift amount to a bit vector, the value to be converted could not be proved to fit in bv6
 BitvectorsMore.dfy(137,24): Error: shift amount must not exceed the width of the result (32)
-BitvectorsMore.dfy(137,27): Error: when converting shift amount to a bit vector, the value to be converted might not fit in bv6
-BitvectorsMore.dfy(146,35): Error: when converting shift amount to a bit vector, the value to be converted might not fit in bv3
-BitvectorsMore.dfy(147,35): Error: when converting shift amount to a bit vector, the value to be converted might not fit in bv3
-BitvectorsMore.dfy(148,35): Error: when converting shift amount to a bit vector, the value to be converted might not fit in bv3
+BitvectorsMore.dfy(137,27): Error: when converting shift amount to a bit vector, the value to be converted could not be proved to fit in bv6
+BitvectorsMore.dfy(146,35): Error: when converting shift amount to a bit vector, the value to be converted could not be proved to fit in bv3
+BitvectorsMore.dfy(147,35): Error: when converting shift amount to a bit vector, the value to be converted could not be proved to fit in bv3
+BitvectorsMore.dfy(148,35): Error: when converting shift amount to a bit vector, the value to be converted could not be proved to fit in bv3
 BitvectorsMore.dfy(157,26): Error: shift amount must not exceed the width of the result (2)
-BitvectorsMore.dfy(157,29): Error: when converting shift amount to a bit vector, the value to be converted might not fit in bv2
+BitvectorsMore.dfy(157,29): Error: when converting shift amount to a bit vector, the value to be converted could not be proved to fit in bv2
 BitvectorsMore.dfy(158,26): Error: shift amount must not exceed the width of the result (2)
-BitvectorsMore.dfy(158,29): Error: when converting shift amount to a bit vector, the value to be converted might not fit in bv2
+BitvectorsMore.dfy(158,29): Error: when converting shift amount to a bit vector, the value to be converted could not be proved to fit in bv2
 BitvectorsMore.dfy(159,26): Error: shift amount must not exceed the width of the result (2)
-BitvectorsMore.dfy(159,29): Error: when converting shift amount to a bit vector, the value to be converted might not fit in bv2
+BitvectorsMore.dfy(159,29): Error: when converting shift amount to a bit vector, the value to be converted could not be proved to fit in bv2
 BitvectorsMore.dfy(160,26): Error: shift amount must not exceed the width of the result (2)
-BitvectorsMore.dfy(168,33): Error: when converting shift amount to a bit vector, the value to be converted might not fit in bv0
-BitvectorsMore.dfy(169,33): Error: when converting shift amount to a bit vector, the value to be converted might not fit in bv0
-BitvectorsMore.dfy(170,33): Error: when converting shift amount to a bit vector, the value to be converted might not fit in bv0
-BitvectorsMore.dfy(171,33): Error: when converting shift amount to a bit vector, the value to be converted might not fit in bv0
+BitvectorsMore.dfy(168,33): Error: when converting shift amount to a bit vector, the value to be converted could not be proved to fit in bv0
+BitvectorsMore.dfy(169,33): Error: when converting shift amount to a bit vector, the value to be converted could not be proved to fit in bv0
+BitvectorsMore.dfy(170,33): Error: when converting shift amount to a bit vector, the value to be converted could not be proved to fit in bv0
+BitvectorsMore.dfy(171,33): Error: when converting shift amount to a bit vector, the value to be converted could not be proved to fit in bv0
 BitvectorsMore.dfy(193,36): Error: rotate amount must not exceed the width of the result (5)
 BitvectorsMore.dfy(194,37): Error: rotate amount must not exceed the width of the result (5)
 

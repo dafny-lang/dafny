@@ -1,24 +1,24 @@
 TypeAdjustments.dfy(588,14): Warning: This ensures clause is part of a bodyless function. Add the {:axiom} attribute to it or the enclosing function to suppress this warning
 TypeAdjustments.dfy(616,14): Warning: This ensures clause is part of a bodyless function. Add the {:axiom} attribute to it or the enclosing function to suppress this warning
-TypeAdjustments.dfy(23,4): Error: assertion might not hold
-TypeAdjustments.dfy(25,4): Error: assertion might not hold
-TypeAdjustments.dfy(27,4): Error: assertion might not hold
-TypeAdjustments.dfy(40,2): Error: assertion might not hold
-TypeAdjustments.dfy(105,6): Error: assertion might not hold
-TypeAdjustments.dfy(107,6): Error: assertion might not hold
-TypeAdjustments.dfy(133,6): Error: assertion might not hold
-TypeAdjustments.dfy(135,6): Error: assertion might not hold
-TypeAdjustments.dfy(137,6): Error: assertion might not hold
-TypeAdjustments.dfy(154,6): Error: assertion might not hold
-TypeAdjustments.dfy(156,6): Error: assertion might not hold
-TypeAdjustments.dfy(158,6): Error: assertion might not hold
-TypeAdjustments.dfy(203,2): Error: assertion might not hold
-TypeAdjustments.dfy(228,2): Error: assertion might not hold
-TypeAdjustments.dfy(243,4): Error: assertion might not hold
+TypeAdjustments.dfy(23,4): Error: assertion could not be proved
+TypeAdjustments.dfy(25,4): Error: assertion could not be proved
+TypeAdjustments.dfy(27,4): Error: assertion could not be proved
+TypeAdjustments.dfy(40,2): Error: assertion could not be proved
+TypeAdjustments.dfy(105,6): Error: assertion could not be proved
+TypeAdjustments.dfy(107,6): Error: assertion could not be proved
+TypeAdjustments.dfy(133,6): Error: assertion could not be proved
+TypeAdjustments.dfy(135,6): Error: assertion could not be proved
+TypeAdjustments.dfy(137,6): Error: assertion could not be proved
+TypeAdjustments.dfy(154,6): Error: assertion could not be proved
+TypeAdjustments.dfy(156,6): Error: assertion could not be proved
+TypeAdjustments.dfy(158,6): Error: assertion could not be proved
+TypeAdjustments.dfy(203,2): Error: assertion could not be proved
+TypeAdjustments.dfy(228,2): Error: assertion could not be proved
+TypeAdjustments.dfy(243,4): Error: assertion could not be proved
 TypeAdjustments.dfy(247,10): Error: value of expression (of type 'CellX<int>') is not known to be an instance of type 'CellX<nat>'
 TypeAdjustments.dfy(251,10): Error: value of expression (of type 'CellX<nat>') is not known to be an instance of type 'CellX<int>'
-TypeAdjustments.dfy(294,4): Error: assertion might not hold
-TypeAdjustments.dfy(316,4): Error: assertion might not hold
+TypeAdjustments.dfy(294,4): Error: assertion could not be proved
+TypeAdjustments.dfy(316,4): Error: assertion could not be proved
 TypeAdjustments.dfy(376,13): Error: value of expression (of type 'set<int>') is not known to be an instance of type 'set<nat>'
 TypeAdjustments.dfy(376,17): Error: value of expression (of type 'iset<int>') is not known to be an instance of type 'iset<nat>'
 TypeAdjustments.dfy(376,21): Error: value of expression (of type 'multiset<int>') is not known to be an instance of type 'multiset<nat>'

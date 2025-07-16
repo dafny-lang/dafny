@@ -1,3 +1,3 @@
-errorReporting.dfy(5,2): Error: the given witness expression might not satisfy constraint
+errorReporting.dfy(5,2): Error: the given witness expression could not be proved to satisfy constraint
 
 Dafny program verifier finished with 0 verified, 1 error

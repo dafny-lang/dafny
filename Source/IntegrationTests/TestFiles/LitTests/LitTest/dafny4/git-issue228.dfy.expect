@@ -53,8 +53,8 @@ type Subset_NegIsOdd = x
 
 type Subset_Byte = x
   | 0 <= x < 256
-git-issue228.dfy(42,15): Error: result of operation might violate newtype constraint for 'NegIsOdd'
-git-issue228.dfy(48,15): Error: result of operation might violate newtype constraint for 'Byte'
+git-issue228.dfy(42,15): Error: result of operation could not be proved to satisfy newtype constraint for 'NegIsOdd'
+git-issue228.dfy(48,15): Error: result of operation could not be proved to satisfy newtype constraint for 'Byte'
 
 Dafny program verifier finished with 8 verified, 2 errors
 // git-issue228.dfy
@@ -261,7 +261,7 @@ type Subset_NegIsOdd = x: int
 
 type Subset_Byte = x: int
   | 0 <= x < 256
-git-issue228.dfy(42,15): Error: result of operation might violate newtype constraint for 'NegIsOdd'
-git-issue228.dfy(48,15): Error: result of operation might violate newtype constraint for 'Byte'
+git-issue228.dfy(42,15): Error: result of operation could not be proved to satisfy newtype constraint for 'NegIsOdd'
+git-issue228.dfy(48,15): Error: result of operation could not be proved to satisfy newtype constraint for 'Byte'
 
 Dafny program verifier finished with 8 verified, 2 errors

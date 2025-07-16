@@ -39,12 +39,12 @@ tests:
 # make test name=<integration test filter> update=true                to update the test
 # make test name=<integration test filter>              build=false   don't build the solution
 test:
-	@DIR="$(DIR)" name="$(name)" update="$(update)" build="$(build)" bash scripts/test.sh
+	@DIR="$(DIR)" name="$(name)" update="$(update)" build="$(build)" bash Scripts/test.sh
 
 # Run Dafny on an integration test case directly in the folder itself.
 # make test-dafny name=<part of the path> action="run ..." [build=false]
 test-dafny:
-	@name="$(name)" DIR="$(DIR)" action="$(action)" NO_BUILD=$$( [ "${build}" = "false" ] && echo "true" || echo "false" ) bash scripts/test-dafny.sh
+	@name="$(name)" DIR="$(DIR)" action="$(action)" NO_BUILD=$$( [ "${build}" = "false" ] && echo "true" || echo "false" ) bash Scripts/test-dafny.sh
 
 tests-verbose:
 	(cd "${DIR}"; dotnet test --logger "console;verbosity=normal" Source/IntegrationTests )
