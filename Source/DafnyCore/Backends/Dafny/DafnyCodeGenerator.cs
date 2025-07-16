@@ -2224,7 +2224,7 @@ namespace Microsoft.Dafny.Compilers {
             member.IsStatic,
             member.IsInstanceIndependentConstant,
             Sequence<DAST.Type>.FromElements(expectedType.AsArrowType.Args.Select(GenType).ToArray())
-          ), null, this);
+          ), (DAST.AssignLhs)DAST.AssignLhs.create_Select(objExpr, Sequence<Rune>.UnicodeFromString(member.GetCompileName(Options)), member is ConstantField), this);
         } else if (internalAccess && (member is ConstantField || member.EnclosingClass is TraitDecl)) {
           return new ExprLvalue((DAST.Expression)DAST.Expression.create_Select(
             objExpr,
