@@ -59,7 +59,8 @@
     <EmbeddedResource Include="..\DafnyStandardLibraries\binaries\DafnyStandardLibraries-rs.doo">
       <LogicalName>DafnyStandardLibraries-rs.doo</LogicalName>
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </EmbeddedResource>    <EmbeddedResource Include="..\DafnyStandardLibraries\src\Std\*Externs\**\*.cs">
+    </EmbeddedResource>
+    <EmbeddedResource Include="..\DafnyStandardLibraries\src\Std\*Externs\**\*.cs">
       <LinkBase>DafnyStandardLibraries_cs</LinkBase>
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </EmbeddedResource>
