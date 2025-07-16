@@ -25,12 +25,6 @@ java {
     withSourcesJar()
 }
 
-javadoc {
-    options.addStringOption('Xdoclint:none', '-quiet')
-    // Add source packages to fix "No modules, packages or classes specified" error
-    source = sourceSets.main.allJava
-}
-
 sourceSets["main"].java {
     srcDir("src/main/dafny-generated")
 }
