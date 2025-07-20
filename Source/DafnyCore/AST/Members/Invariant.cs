@@ -25,7 +25,20 @@ public class Invariant([NotNull] IOrigin origin, [NotNull] List<AttributedExpres
     null,
     null,
     null) {
+  
+  // We use the clauses of the invariant during the rewriting phase (to insert the invariant at the top and bottom of each method) to preserve its attributes
   public readonly List<AttributedExpression> Clauses = clauses;
-  public Expression ResolvedCall(IOrigin origin, Expression receiver, SystemModuleManager systemModuleManager) =>
+  
+  // A *mention* of the invariant is an ordinary reference to it
+  public Expression Mention(IOrigin origin, Expression receiver, SystemModuleManager systemModuleManager) =>
     Expression.CreateResolvedCall(origin, receiver, this, [], [], systemModuleManager);
+  
+  // A *use* of the invariant (i.e., to assume or assert it) consists of determining whether the receiver is/is not in the open set OR the mention of its invariant is actually true
+  public Expression Use(IOrigin origin, Expression receiver, SystemModuleManager systemModuleManager, BoogieGenerator.ExpressionTranslator etran) {
+    etran.OpenFormal(origin, out _, out var openExprDafny);
+    return new BinaryExpr(origin, BinaryExpr.ResolvedOpcode.Or,
+      new BinaryExpr(origin, BinaryExpr.ResolvedOpcode.InSet, receiver, openExprDafny),
+      Mention(origin, receiver, systemModuleManager)
+    );
+  }
 }

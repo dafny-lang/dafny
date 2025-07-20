@@ -5,12 +5,33 @@
 // and not refer to any inherited fields, invariants must at
 // most and at least accommodate any this-reading predicate
 // over a set of non-reference-typed fields
-trait Wrapper<A(!new)> extends object {
-  var value: A
-  predicate I() reads this
-  invariant I()
-  function Read(): A
-    reads this
-  { value }
-  method Mutate() modifies this
+
+type A(!new)
+
+predicate {:axiom} P(x: A)
+
+type Subset = x : A | P(x) witness *
+
+trait UseOfSubset {
+  var x: Subset
+  method Modify()
+    modifies this
+  {
+    var oldX := x;
+    x :| assume {:axiom} !P(x); // error: subset constraint not satisfied
+    x := oldX;
+  }
+}
+
+trait UseOfInvariant {
+  var x: A
+  invariant P(x)
+  
+  method Modify()
+    modifies this
+  {
+    var oldX := x;
+    x :| assume {:axiom} !P(x); // no problem!
+    x := oldX;
+  }
 }

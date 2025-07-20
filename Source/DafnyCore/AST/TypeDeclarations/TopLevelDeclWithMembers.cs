@@ -277,6 +277,9 @@ public abstract class TopLevelDeclWithMembers : TopLevelDecl, IHasSymbolChildren
   public override string GetDescription(DafnyOptions options) {
     return $"{WhatKind} {Name}";
   }
+
+  public Invariant? Invariant =>
+    (Invariant?)Members.FirstOrDefault(member => member is Invariant, InheritedMembers.FirstOrDefault(member => member is Invariant, null));
 }
 
 public static class RevealableTypeDeclHelper {

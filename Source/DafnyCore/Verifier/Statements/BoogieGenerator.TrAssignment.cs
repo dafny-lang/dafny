@@ -32,6 +32,27 @@ public partial class BoogieGenerator {
 
     var rhss = new List<AssignmentRhs>() { rhs };
     ProcessRhss(lhsBuilder, bLhss, lhss, rhss, builder, locals, etran, stmt);
+    
+    // If fse is being assigned externally and it has an invariant, it better be true after the fact
+    if (options.Get(CommonOptionBag.CheckInvariants) && lhs is MemberSelectExpr fse && fse.Member.EnclosingClass is TopLevelDeclWithMembers decl) {
+      var tok = fse.Origin;
+      var invariant = decl.Invariant;
+      if (invariant is not null) {
+        // fse.Obj in $Open || fse.Obj.invariant()
+        var assertion = invariant.Use(tok, fse.Obj, program.SystemModuleManager, etran);
+        if (codeContext is Constructor ctor && ctor.EnclosingClass.Equals(decl)) {
+          // In case we're in the fse's constructor, we don't actually want to check the invariant
+          assertion = new BinaryExpr(tok, BinaryExpr.ResolvedOpcode.Or,
+            new BinaryExpr(tok, BinaryExpr.ResolvedOpcode.EqCommon, fse.Obj, new ThisExpr(ctor)),
+            assertion);
+        }
+
+        var translatedAssertion = etran.TrExpr(assertion);
+        builder.Add(TrAssertCmdDesc(tok, translatedAssertion,
+          new ObjectInvariant(Dafny.ObjectInvariant.Kind.Assignment, assertion))
+        );
+      }
+    }
     builder.AddCaptureState(stmt);
   }
 

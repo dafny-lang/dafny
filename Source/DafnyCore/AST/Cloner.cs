@@ -510,7 +510,7 @@ namespace Microsoft.Dafny {
 
       var newNameNode = new Name(Origin(f.NameNode.Origin), newName);
       if (f is Invariant invariant) {
-        return new Invariant(invariant.Origin, [new(invariant.Body)]);
+        return new Invariant(Origin(invariant.Origin), invariant.Clauses.Select(CloneAttributedExpr).ToList());
       } else if (f is Predicate) {
         return new Predicate(Origin(f.Origin), newNameNode, f.HasStaticKeyword, f.IsGhost, f.IsOpaque, tps, formals,
           result,

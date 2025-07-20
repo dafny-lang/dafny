@@ -83,6 +83,9 @@ namespace Microsoft.Dafny {
           AddAllocationAxiom(fieldDeclaration, f, c);
         } else if (member is Function function) {
           AddFunction_Top(function, includeAllMethods);
+          if (member.TryCastToInvariant(Options, reporter, MessageSource.Verifier, out var invariant)) {
+            AddConditionalInvariantAxiom(invariant);
+          }
         } else if (member is MethodOrConstructor method) {
           AddMethod_Top(method, false, includeAllMethods);
         } else {
@@ -482,6 +485,30 @@ namespace Microsoft.Dafny {
         var implements_axiom = new Bpl.Axiom(c.Origin, BplForall(vars, null, expr));
         AddOtherDefinition(GetOrCreateTypeConstructor(c), implements_axiom);
       }
+    }
+
+    private void AddConditionalInvariantAxiom(Invariant invariant) {
+      var c = invariant.EnclosingClass;
+      var heap = BplBoundVar("$heap", Predef.HeapType, out var heapExpr);
+      var etran = new ExpressionTranslator(this, Predef, heapExpr, invariant);
+      // axiom: forall $heap : Heap, $open : Set, this : `c` | $OpenHeapRelated($open, $heap) :: this !in $open ==> this.invariant($heap)
+      var origin = invariant.Origin;
+      var thisBv = new BoundVar(origin, "this", UserDefinedType.FromTopLevelDecl(origin, c is ClassLikeDecl cd ? cd.NonNullTypeDecl : c));
+      var thisExpr = Expression.CreateIdentExpr(thisBv);
+      var openBv = etran.OpenFormal(origin, out var openExprBoogie, out var openExprDafny);
+      var callInvariant = invariant.Use(origin, thisExpr, program.SystemModuleManager, etran);
+      var trigger = new BinaryExpr(origin, BinaryExpr.ResolvedOpcode.InSet, thisExpr, openExprDafny);
+      var thisNotInOpen = new BinaryExpr(origin, BinaryExpr.ResolvedOpcode.NotInSet, thisExpr, openExprDafny);
+      var axiom = new ForallExpr(origin, [thisBv], null, callInvariant,
+        new Attributes(origin, "trigger", [trigger], new(origin, "trigger", [invariant.Mention(origin, thisExpr, program.SystemModuleManager)], null)))
+        {
+          Bounds = [new SetBoundedPool(openExprDafny, UserDefinedType.FromTopLevelDecl(origin, c), UserDefinedType.FromTopLevelDecl(origin, program.SystemModuleManager.ObjectDecl), true)]
+        };
+      var tyParams = MkTyParamBinders(GetTypeParams(c), out var tyParamTriggers);
+      var bvs = tyParams.Concat([heap, openBv]);
+      var ante = FunctionCall(origin, BuiltinFunction.OpenHeapRelated, null, openExprBoogie, heapExpr);
+      sink.AddTopLevelDeclaration(new Bpl.Axiom(origin, BplForall(bvs, new(origin, true, [ante]/*, tyParams.Any() ? new Trigger(origin, true, tyParamTriggers) : null*/),
+          BplImp(ante, etran.TrExpr(axiom))), $"{c.FullSanitizedName}: conditional invariant axiom"));
     }
 
     private void AddClassMember_Function(Function f) {
@@ -1235,7 +1262,12 @@ namespace Microsoft.Dafny {
       FunctionCallSubstituter sub = new FunctionCallSubstituter(substMap, typeMap,
         (TraitDecl)f.OverriddenFunction.EnclosingClass, (TopLevelDeclWithMembers)f.EnclosingClass);
       var subReqs = new List<Expression>();
-      foreach (var req in ConjunctsOf(f.OverriddenFunction.Req)) {
+      var reqs = f.OverriddenFunction.Req;
+      // If the overriding class has an invariant, then we need to bypass the override check modulo the invariant
+      if (options.Get(CommonOptionBag.CheckInvariants) && f.EnclosingClass is TopLevelDeclWithMembers { Invariant: { } invariant } @class) {
+        reqs.Add(new(invariant.Mention(f.Origin, new ThisExpr(@class), program.SystemModuleManager)));
+      }
+      foreach (var req in ConjunctsOf(reqs)) {
         var subReq = sub.Substitute(req.E);
         builder.Add(TrAssumeCmd(f.Origin, etran.CanCallAssumption(subReq, cco)));
         builder.Add(TrAssumeCmdWithDependencies(etran, f.Origin, subReq, "overridden function requires clause"));
@@ -1526,7 +1558,12 @@ namespace Microsoft.Dafny {
       FunctionCallSubstituter sub = new FunctionCallSubstituter(substMap, typeMap,
         (TraitDecl)m.OverriddenMethod.EnclosingClass, (TopLevelDeclWithMembers)m.EnclosingClass);
       var subReqs = new List<Expression>();
-      foreach (var req in ConjunctsOf(m.OverriddenMethod.Req)) {
+      var reqs = m.OverriddenMethod.Req;
+      // If the overriding class has an invariant, then we need to bypass the override check modulo the invariant
+      if (options.Get(CommonOptionBag.CheckInvariants) && m.EnclosingClass is TopLevelDeclWithMembers { Invariant: { } invariant } @class) {
+        reqs.Add(new(invariant.Mention(m.Origin, new ThisExpr(@class), program.SystemModuleManager)));
+      }
+      foreach (var req in ConjunctsOf(reqs)) {
         var subReq = sub.Substitute(req.E);
         builder.Add(TrAssumeCmd(m.OverriddenMethod.Origin, etran.CanCallAssumption(subReq)));
         builder.Add(TrAssumeCmdWithDependencies(etran, m.Origin, subReq, "overridden requires clause"));
@@ -1742,6 +1779,10 @@ namespace Microsoft.Dafny {
         inParams.Add(new Boogie.Formal(Token.NoToken, new TypedIdent(m.Origin, "depth", Bpl.Type.Int), true));
       }
 
+      if (Options.Get(CommonOptionBag.CheckInvariants)) {
+        inParams.Add(ordinaryEtran.OpenFormal(Token.NoToken, out _, out _));
+      }
+
       var bodyKind = kind == MethodTranslationKind.SpecWellformedness || kind == MethodTranslationKind.Implementation;
       if (m is TwoStateLemma) {
         var prevHeapVar = new Boogie.Formal(m.Origin, new Boogie.TypedIdent(m.Origin, "previous$Heap", Predef.HeapType), true);
@@ -1845,6 +1886,18 @@ namespace Microsoft.Dafny {
         foreach (var frameExpression in m.Mod.Expressions) {
           req.Add(FreeRequires(frameExpression.Origin, etran.CanCallAssumption(frameExpression.E), comment, true));
           comment = null;
+        }
+
+        if (options.Get(CommonOptionBag.CheckInvariants)) {
+          // free requires $Open == {this}
+          etran.OpenFormal(m.Origin, out var openExpr, out var openExprDafny);
+          if (m is not Constructor) {
+            req.Add(FreeRequires(m.Origin, etran.TrExpr(new BinaryExpr(m.Origin, BinaryExpr.ResolvedOpcode.SetEq,
+              new SetDisplayExpr(m.Origin, true, m.IsStatic ? [] : [new ThisExpr(m)]) { Type = program.SystemModuleManager.NonNullObjectSetType(m.Origin) },
+              openExprDafny)), "frame condition for open set"));
+          }
+          // free requires OpenHeapRelated($Open, $Heap)
+          req.Add(FreeRequires(m.Origin, FunctionCall(m.Origin, BuiltinFunction.OpenHeapRelated, null, openExpr, etran.HeapExpr), "open lockstep condition"));
         }
 
         return req;
