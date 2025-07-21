@@ -21,8 +21,8 @@ method WellFormedness(x: int)
     assume x == 3;
   }
 }
-AssertBy.dfy(6,2): Error: assertion could not be proved
-AssertBy.dfy(7,2): Error: assertion could not be proved
-AssertBy.dfy(16,2): Error: assertion could not be proved
+AssertBy.dfy(6,2): Error: assertion could not be proven
+AssertBy.dfy(7,2): Error: assertion could not be proven
+AssertBy.dfy(16,2): Error: assertion could not be proven
 
 Dafny program verifier finished with 1 verified, 3 errors

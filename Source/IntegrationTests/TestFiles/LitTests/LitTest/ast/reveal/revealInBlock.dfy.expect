@@ -1,12 +1,12 @@
-revealInBlock.dfy(20,2): Error: assertion could not be proved
-revealInBlock.dfy(30,6): Error: assertion could not be proved
-revealInBlock.dfy(33,2): Error: assertion could not be proved
-revealInBlock.dfy(43,2): Error: assertion could not be proved
-revealInBlock.dfy(56,2): Error: assertion could not be proved
-revealInBlock.dfy(67,2): Error: assertion could not be proved
-revealInBlock.dfy(78,6): Error: assertion could not be proved
-revealInBlock.dfy(81,2): Error: assertion could not be proved
-revealInBlock.dfy(91,6): Error: assertion could not be proved
-revealInBlock.dfy(94,2): Error: assertion could not be proved
+revealInBlock.dfy(20,2): Error: assertion could not be proven
+revealInBlock.dfy(30,6): Error: assertion could not be proven
+revealInBlock.dfy(33,2): Error: assertion could not be proven
+revealInBlock.dfy(43,2): Error: assertion could not be proven
+revealInBlock.dfy(56,2): Error: assertion could not be proven
+revealInBlock.dfy(67,2): Error: assertion could not be proven
+revealInBlock.dfy(78,6): Error: assertion could not be proven
+revealInBlock.dfy(81,2): Error: assertion could not be proven
+revealInBlock.dfy(91,6): Error: assertion could not be proven
+revealInBlock.dfy(94,2): Error: assertion could not be proven
 
 Dafny program verifier finished with 20 verified, 10 errors

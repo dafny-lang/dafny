@@ -1,4 +1,4 @@
-constructorFresh.dfy(14,15): Error: function precondition could not be proved
-constructorFresh.dfy(21,11): Related location: this proposition could not be proved
+constructorFresh.dfy(14,15): Error: function precondition could not be proven
+constructorFresh.dfy(21,11): Related location: this proposition could not be proven
 
 Dafny program verifier finished with 3 verified, 1 error
