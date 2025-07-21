@@ -120,7 +120,7 @@ public class SingleAssignStmt : Statement, ICloneable<SingleAssignStmt> {
       }
     } else {
       // LHS denotes an array element, which is always non-ghost
-      return NonGhostKind.ArrayElement;
+      return NonGhostKind.IsGhost;
     }
     return NonGhostKind.IsGhost;
   }
