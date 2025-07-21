@@ -1,0 +1,12 @@
+[package]
+name = "test_custom_std_lib"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+dafny_runtime = { path = "runtime" }
+
+[[bin]]
+name = "test_custom_std_lib"
+path = "src/test_custom_std_lib.rs"
+

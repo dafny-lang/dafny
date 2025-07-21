@@ -1,0 +1,814 @@
+build	Set up job	﻿2025-07-15T20:09:42.5980540Z Current runner version: '2.326.0'
+build	Set up job	2025-07-15T20:09:42.6010680Z ##[group]Operating System
+build	Set up job	2025-07-15T20:09:42.6011550Z macOS
+build	Set up job	2025-07-15T20:09:42.6012040Z 13.7.6
+build	Set up job	2025-07-15T20:09:42.6012520Z 22H625
+build	Set up job	2025-07-15T20:09:42.6013010Z ##[endgroup]
+build	Set up job	2025-07-15T20:09:42.6013540Z ##[group]Runner Image
+build	Set up job	2025-07-15T20:09:42.6014130Z Image: macos-13
+build	Set up job	2025-07-15T20:09:42.6014670Z Version: 20250709.1318
+build	Set up job	2025-07-15T20:09:42.6015930Z Included Software: https://github.com/actions/runner-images/blob/macos-13/20250709.1318/images/macos/macos-13-Readme.md
+build	Set up job	2025-07-15T20:09:42.6017760Z Image Release: https://github.com/actions/runner-images/releases/tag/macos-13%2F20250709.1318
+build	Set up job	2025-07-15T20:09:42.6018890Z ##[endgroup]
+build	Set up job	2025-07-15T20:09:42.6019420Z ##[group]Runner Image Provisioner
+build	Set up job	2025-07-15T20:09:42.6020130Z 2.0.449.1+6d46f4794670abc677653e70ad733fc4b7478209
+build	Set up job	2025-07-15T20:09:42.6020870Z ##[endgroup]
+build	Set up job	2025-07-15T20:09:42.6024100Z ##[group]GITHUB_TOKEN Permissions
+build	Set up job	2025-07-15T20:09:42.6026360Z Actions: write
+build	Set up job	2025-07-15T20:09:42.6026940Z Attestations: write
+build	Set up job	2025-07-15T20:09:42.6027620Z Checks: write
+build	Set up job	2025-07-15T20:09:42.6028140Z Contents: write
+build	Set up job	2025-07-15T20:09:42.6028670Z Deployments: write
+build	Set up job	2025-07-15T20:09:42.6029220Z Discussions: write
+build	Set up job	2025-07-15T20:09:42.6029750Z Issues: write
+build	Set up job	2025-07-15T20:09:42.6030260Z Metadata: read
+build	Set up job	2025-07-15T20:09:42.6030770Z Models: read
+build	Set up job	2025-07-15T20:09:42.6031280Z Packages: write
+build	Set up job	2025-07-15T20:09:42.6031800Z Pages: write
+build	Set up job	2025-07-15T20:09:42.6032320Z PullRequests: write
+build	Set up job	2025-07-15T20:09:42.6032890Z RepositoryProjects: write
+build	Set up job	2025-07-15T20:09:42.6033510Z SecurityEvents: write
+build	Set up job	2025-07-15T20:09:42.6034070Z Statuses: write
+build	Set up job	2025-07-15T20:09:42.6034580Z ##[endgroup]
+build	Set up job	2025-07-15T20:09:42.6036800Z Secret source: Actions
+build	Set up job	2025-07-15T20:09:42.6037760Z Prepare workflow directory
+build	Set up job	2025-07-15T20:09:42.6430770Z Prepare all required actions
+build	Set up job	2025-07-15T20:09:42.6473730Z Getting action download info
+build	Set up job	2025-07-15T20:09:43.0059670Z ##[group]Download immutable action package 'actions/checkout@v4'
+build	Set up job	2025-07-15T20:09:43.0061100Z Version: 4.2.2
+build	Set up job	2025-07-15T20:09:43.0062520Z Digest: sha256:ccb2698953eaebd21c7bf6268a94f9c26518a7e38e27e0b83c1fe1ad049819b1
+build	Set up job	2025-07-15T20:09:43.0064260Z Source commit SHA: 11bd71901bbe5b1630ceea73d27597364c9af683
+build	Set up job	2025-07-15T20:09:43.0065250Z ##[endgroup]
+build	Set up job	2025-07-15T20:09:43.3161260Z ##[group]Download immutable action package 'actions/setup-java@v4'
+build	Set up job	2025-07-15T20:09:43.3162510Z Version: 4.7.1
+build	Set up job	2025-07-15T20:09:43.3164500Z Digest: sha256:23223d64943473efb4336f60463c0429cd4f422cd5fc6c48a5cf0d5907c1aeac
+build	Set up job	2025-07-15T20:09:43.3168600Z Source commit SHA: c5195efecf7bdfc987ee8bae7a71cb8b11521c00
+build	Set up job	2025-07-15T20:09:43.3172080Z ##[endgroup]
+build	Set up job	2025-07-15T20:09:44.0578710Z ##[group]Download immutable action package 'actions/setup-go@v5'
+build	Set up job	2025-07-15T20:09:44.0579920Z Version: 5.5.0
+build	Set up job	2025-07-15T20:09:44.0580900Z Digest: sha256:f5eeb2233d0c6714b5236de9b44ad0b935014e15eeab3c28d73dc44c1c641ebb
+build	Set up job	2025-07-15T20:09:44.0582300Z Source commit SHA: d35c59abb061a4a6fb18e82ac0862c26744d6ab5
+build	Set up job	2025-07-15T20:09:44.0583260Z ##[endgroup]
+build	Set up job	2025-07-15T20:09:44.8497590Z Complete job name: build
+build	Checkout Dafny	﻿2025-07-15T20:09:44.9886760Z ##[group]Run actions/checkout@v4
+build	Checkout Dafny	2025-07-15T20:09:44.9888870Z with:
+build	Checkout Dafny	2025-07-15T20:09:44.9890050Z   submodules: true
+build	Checkout Dafny	2025-07-15T20:09:44.9891400Z   repository: dafny-lang/dafny
+build	Checkout Dafny	2025-07-15T20:09:44.9893310Z   token: ***
+build	Checkout Dafny	2025-07-15T20:09:44.9894520Z   ssh-strict: true
+build	Checkout Dafny	2025-07-15T20:09:44.9895790Z   ssh-user: git
+build	Checkout Dafny	2025-07-15T20:09:44.9897100Z   persist-credentials: true
+build	Checkout Dafny	2025-07-15T20:09:44.9898560Z   clean: true
+build	Checkout Dafny	2025-07-15T20:09:44.9899870Z   sparse-checkout-cone-mode: true
+build	Checkout Dafny	2025-07-15T20:09:44.9901490Z   fetch-depth: 1
+build	Checkout Dafny	2025-07-15T20:09:44.9902760Z   fetch-tags: false
+build	Checkout Dafny	2025-07-15T20:09:44.9904060Z   show-progress: true
+build	Checkout Dafny	2025-07-15T20:09:44.9905420Z   lfs: false
+build	Checkout Dafny	2025-07-15T20:09:44.9906690Z   set-safe-directory: true
+build	Checkout Dafny	2025-07-15T20:09:44.9908460Z ##[endgroup]
+build	Checkout Dafny	2025-07-15T20:09:45.3549650Z Syncing repository: dafny-lang/dafny
+build	Checkout Dafny	2025-07-15T20:09:45.3553620Z ##[group]Getting Git version info
+build	Checkout Dafny	2025-07-15T20:09:45.3555890Z Working directory is '/Users/runner/work/dafny/dafny'
+build	Checkout Dafny	2025-07-15T20:09:45.3560010Z [command]/usr/local/bin/git version
+build	Checkout Dafny	2025-07-15T20:09:45.3836060Z git version 2.50.1
+build	Checkout Dafny	2025-07-15T20:09:45.3876700Z ##[endgroup]
+build	Checkout Dafny	2025-07-15T20:09:45.3889270Z Copying '/Users/runner/.gitconfig' to '/Users/runner/work/_temp/868532a0-6983-4185-b386-3f105f87f672/.gitconfig'
+build	Checkout Dafny	2025-07-15T20:09:45.3903720Z Temporarily overriding HOME='/Users/runner/work/_temp/868532a0-6983-4185-b386-3f105f87f672' before making global git config changes
+build	Checkout Dafny	2025-07-15T20:09:45.3908650Z Adding repository directory to the temporary git global config as a safe directory
+build	Checkout Dafny	2025-07-15T20:09:45.3912550Z [command]/usr/local/bin/git config --global --add safe.directory /Users/runner/work/dafny/dafny
+build	Checkout Dafny	2025-07-15T20:09:45.4010990Z Deleting the contents of '/Users/runner/work/dafny/dafny'
+build	Checkout Dafny	2025-07-15T20:09:45.4016170Z ##[group]Initializing the repository
+build	Checkout Dafny	2025-07-15T20:09:45.4021590Z [command]/usr/local/bin/git init /Users/runner/work/dafny/dafny
+build	Checkout Dafny	2025-07-15T20:09:45.4257530Z hint: Using 'master' as the name for the initial branch. This default branch name
+build	Checkout Dafny	2025-07-15T20:09:45.4261460Z hint: is subject to change. To configure the initial branch name to use in all
+build	Checkout Dafny	2025-07-15T20:09:45.4264910Z hint: of your new repositories, which will suppress this warning, call:
+build	Checkout Dafny	2025-07-15T20:09:45.4267330Z hint:
+build	Checkout Dafny	2025-07-15T20:09:45.4268850Z hint: 	git config --global init.defaultBranch <name>
+build	Checkout Dafny	2025-07-15T20:09:45.4270800Z hint:
+build	Checkout Dafny	2025-07-15T20:09:45.4272670Z hint: Names commonly chosen instead of 'master' are 'main', 'trunk' and
+build	Checkout Dafny	2025-07-15T20:09:45.4275950Z hint: 'development'. The just-created branch can be renamed via this command:
+build	Checkout Dafny	2025-07-15T20:09:45.4278510Z hint:
+build	Checkout Dafny	2025-07-15T20:09:45.4279780Z hint: 	git branch -m <name>
+build	Checkout Dafny	2025-07-15T20:09:45.4281250Z hint:
+build	Checkout Dafny	2025-07-15T20:09:45.4283280Z hint: Disable this message with "git config set advice.defaultBranchName false"
+build	Checkout Dafny	2025-07-15T20:09:45.4286640Z Initialized empty Git repository in /Users/runner/work/dafny/dafny/.git/
+build	Checkout Dafny	2025-07-15T20:09:45.4292040Z [command]/usr/local/bin/git remote add origin https://github.com/dafny-lang/dafny
+build	Checkout Dafny	2025-07-15T20:09:45.4368660Z ##[endgroup]
+build	Checkout Dafny	2025-07-15T20:09:45.4371150Z ##[group]Disabling automatic garbage collection
+build	Checkout Dafny	2025-07-15T20:09:45.4373560Z [command]/usr/local/bin/git config --local gc.auto 0
+build	Checkout Dafny	2025-07-15T20:09:45.4443920Z ##[endgroup]
+build	Checkout Dafny	2025-07-15T20:09:45.4446150Z ##[group]Setting up auth
+build	Checkout Dafny	2025-07-15T20:09:45.4451800Z [command]/usr/local/bin/git config --local --name-only --get-regexp core\.sshCommand
+build	Checkout Dafny	2025-07-15T20:09:45.4523300Z [command]/usr/local/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+build	Checkout Dafny	2025-07-15T20:09:45.5538490Z [command]/usr/local/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+build	Checkout Dafny	2025-07-15T20:09:45.5616480Z [command]/usr/local/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+build	Checkout Dafny	2025-07-15T20:09:45.6497010Z [command]/usr/local/bin/git config --local http.https://github.com/.extraheader AUTHORIZATION: basic ***
+build	Checkout Dafny	2025-07-15T20:09:45.6581650Z ##[endgroup]
+build	Checkout Dafny	2025-07-15T20:09:45.6583990Z ##[group]Fetching the repository
+build	Checkout Dafny	2025-07-15T20:09:45.6593340Z [command]/usr/local/bin/git -c protocol.version=2 fetch --no-tags --prune --no-recurse-submodules --depth=1 origin +d04cc29eb1307263b6e86efa5fe2960e0a4769f0:refs/remotes/pull/6307/merge
+build	Checkout Dafny	2025-07-15T20:09:47.3597960Z From https://github.com/dafny-lang/dafny
+build	Checkout Dafny	2025-07-15T20:09:47.3599950Z  * [new ref]         d04cc29eb1307263b6e86efa5fe2960e0a4769f0 -> pull/6307/merge
+build	Checkout Dafny	2025-07-15T20:09:47.3676920Z ##[endgroup]
+build	Checkout Dafny	2025-07-15T20:09:47.3677810Z ##[group]Determining the checkout info
+build	Checkout Dafny	2025-07-15T20:09:47.3678810Z ##[endgroup]
+build	Checkout Dafny	2025-07-15T20:09:47.3683220Z [command]/usr/local/bin/git sparse-checkout disable
+build	Checkout Dafny	2025-07-15T20:09:47.3772460Z [command]/usr/local/bin/git config --local --unset-all extensions.worktreeConfig
+build	Checkout Dafny	2025-07-15T20:09:47.3840920Z ##[group]Checking out the ref
+build	Checkout Dafny	2025-07-15T20:09:47.3846450Z [command]/usr/local/bin/git checkout --progress --force refs/remotes/pull/6307/merge
+build	Checkout Dafny	2025-07-15T20:09:48.6040950Z Updating files:  61% (3857/6258)
+build	Checkout Dafny	2025-07-15T20:09:48.6342930Z Updating files:  62% (3880/6258)
+build	Checkout Dafny	2025-07-15T20:09:48.6348210Z Updating files:  63% (3943/6258)
+build	Checkout Dafny	2025-07-15T20:09:48.6532750Z Updating files:  64% (4006/6258)
+build	Checkout Dafny	2025-07-15T20:09:48.6652650Z Updating files:  65% (4068/6258)
+build	Checkout Dafny	2025-07-15T20:09:48.6718230Z Updating files:  66% (4131/6258)
+build	Checkout Dafny	2025-07-15T20:09:48.6722470Z Updating files:  67% (4193/6258)
+build	Checkout Dafny	2025-07-15T20:09:48.6729810Z Updating files:  68% (4256/6258)
+build	Checkout Dafny	2025-07-15T20:09:48.6731580Z Updating files:  69% (4319/6258)
+build	Checkout Dafny	2025-07-15T20:09:48.6798330Z Updating files:  70% (4381/6258)
+build	Checkout Dafny	2025-07-15T20:09:48.6974680Z Updating files:  71% (4444/6258)
+build	Checkout Dafny	2025-07-15T20:09:48.7145050Z Updating files:  72% (4506/6258)
+build	Checkout Dafny	2025-07-15T20:09:48.7300980Z Updating files:  73% (4569/6258)
+build	Checkout Dafny	2025-07-15T20:09:48.7439390Z Updating files:  74% (4631/6258)
+build	Checkout Dafny	2025-07-15T20:09:48.7670240Z Updating files:  75% (4694/6258)
+build	Checkout Dafny	2025-07-15T20:09:48.7966220Z Updating files:  76% (4757/6258)
+build	Checkout Dafny	2025-07-15T20:09:48.8096340Z Updating files:  77% (4819/6258)
+build	Checkout Dafny	2025-07-15T20:09:48.8225750Z Updating files:  78% (4882/6258)
+build	Checkout Dafny	2025-07-15T20:09:48.8361670Z Updating files:  79% (4944/6258)
+build	Checkout Dafny	2025-07-15T20:09:48.8491100Z Updating files:  80% (5007/6258)
+build	Checkout Dafny	2025-07-15T20:09:48.8612530Z Updating files:  81% (5069/6258)
+build	Checkout Dafny	2025-07-15T20:09:48.8747440Z Updating files:  82% (5132/6258)
+build	Checkout Dafny	2025-07-15T20:09:48.8881240Z Updating files:  83% (5195/6258)
+build	Checkout Dafny	2025-07-15T20:09:48.9012530Z Updating files:  84% (5257/6258)
+build	Checkout Dafny	2025-07-15T20:09:48.9142010Z Updating files:  85% (5320/6258)
+build	Checkout Dafny	2025-07-15T20:09:48.9296330Z Updating files:  86% (5382/6258)
+build	Checkout Dafny	2025-07-15T20:09:48.9442370Z Updating files:  87% (5445/6258)
+build	Checkout Dafny	2025-07-15T20:09:48.9575220Z Updating files:  88% (5508/6258)
+build	Checkout Dafny	2025-07-15T20:09:48.9707140Z Updating files:  89% (5570/6258)
+build	Checkout Dafny	2025-07-15T20:09:48.9840930Z Updating files:  90% (5633/6258)
+build	Checkout Dafny	2025-07-15T20:09:48.9986570Z Updating files:  91% (5695/6258)
+build	Checkout Dafny	2025-07-15T20:09:49.0129880Z Updating files:  92% (5758/6258)
+build	Checkout Dafny	2025-07-15T20:09:49.0281500Z Updating files:  93% (5820/6258)
+build	Checkout Dafny	2025-07-15T20:09:49.0480460Z Updating files:  94% (5883/6258)
+build	Checkout Dafny	2025-07-15T20:09:49.0613000Z Updating files:  95% (5946/6258)
+build	Checkout Dafny	2025-07-15T20:09:49.0846390Z Updating files:  96% (6008/6258)
+build	Checkout Dafny	2025-07-15T20:09:49.1104170Z Updating files:  97% (6071/6258)
+build	Checkout Dafny	2025-07-15T20:09:49.1244050Z Updating files:  98% (6133/6258)
+build	Checkout Dafny	2025-07-15T20:09:49.1414950Z Updating files:  99% (6196/6258)
+build	Checkout Dafny	2025-07-15T20:09:49.1415500Z Updating files: 100% (6258/6258)
+build	Checkout Dafny	2025-07-15T20:09:49.1415990Z Updating files: 100% (6258/6258), done.
+build	Checkout Dafny	2025-07-15T20:09:49.1517810Z HEAD is now at d04cc29 Merge 5c198d853f201a6bbb9d9e744fa594b9ae891791 into 220fdecb25920d2f72ceb4c57af6cb032fdd337d
+build	Checkout Dafny	2025-07-15T20:09:49.1534640Z ##[endgroup]
+build	Checkout Dafny	2025-07-15T20:09:49.1535270Z ##[group]Setting up auth for fetching submodules
+build	Checkout Dafny	2025-07-15T20:09:49.1539320Z [command]/usr/local/bin/git config --global http.https://github.com/.extraheader AUTHORIZATION: basic ***
+build	Checkout Dafny	2025-07-15T20:09:49.1624000Z [command]/usr/local/bin/git config --global --unset-all url.https://github.com/.insteadOf
+build	Checkout Dafny	2025-07-15T20:09:49.1691630Z [command]/usr/local/bin/git config --global --add url.https://github.com/.insteadOf git@github.com:
+build	Checkout Dafny	2025-07-15T20:09:49.1765840Z [command]/usr/local/bin/git config --global --add url.https://github.com/.insteadOf org-52358127@github.com:
+build	Checkout Dafny	2025-07-15T20:09:49.1831980Z ##[endgroup]
+build	Checkout Dafny	2025-07-15T20:09:49.1832580Z ##[group]Fetching submodules
+build	Checkout Dafny	2025-07-15T20:09:49.1838680Z [command]/usr/local/bin/git submodule sync
+build	Checkout Dafny	2025-07-15T20:09:49.2728430Z [command]/usr/local/bin/git -c protocol.version=2 submodule update --init --force --depth=1
+build	Checkout Dafny	2025-07-15T20:09:49.5531490Z [command]/usr/local/bin/git submodule foreach git config --local gc.auto 0
+build	Checkout Dafny	2025-07-15T20:09:49.5778060Z ##[endgroup]
+build	Checkout Dafny	2025-07-15T20:09:49.5810990Z ##[group]Persisting credentials for submodules
+build	Checkout Dafny	2025-07-15T20:09:49.5821240Z [command]/usr/local/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'url\.https\:\/\/github\.com\/\.insteadOf' && git config --local --unset-all 'url.https://github.com/.insteadOf' || :"
+build	Checkout Dafny	2025-07-15T20:09:49.9239130Z [command]/usr/local/bin/git submodule foreach sh -c "git config --local 'http.https://github.com/.extraheader' 'AUTHORIZATION: basic ***' && git config --local --show-origin --name-only --get-regexp remote.origin.url"
+build	Checkout Dafny	2025-07-15T20:09:50.1544920Z [command]/usr/local/bin/git submodule foreach git config --local --add 'url.https://github.com/.insteadOf' 'git@github.com:'
+build	Checkout Dafny	2025-07-15T20:09:50.1774760Z [command]/usr/local/bin/git submodule foreach git config --local --add 'url.https://github.com/.insteadOf' 'org-52358127@github.com:'
+build	Checkout Dafny	2025-07-15T20:09:50.2408550Z ##[endgroup]
+build	Checkout Dafny	2025-07-15T20:09:50.2506660Z [command]/usr/local/bin/git log -1 --format=%H
+build	Checkout Dafny	2025-07-15T20:09:50.2536750Z d04cc29eb1307263b6e86efa5fe2960e0a4769f0
+build	Set up JDK 18	﻿2025-07-15T20:09:50.2829830Z ##[group]Run actions/setup-java@v4
+build	Set up JDK 18	2025-07-15T20:09:50.2830290Z with:
+build	Set up JDK 18	2025-07-15T20:09:50.2830610Z   java-version: 18
+build	Set up JDK 18	2025-07-15T20:09:50.2830940Z   distribution: corretto
+build	Set up JDK 18	2025-07-15T20:09:50.2831300Z   java-package: jdk
+build	Set up JDK 18	2025-07-15T20:09:50.2831620Z   check-latest: false
+build	Set up JDK 18	2025-07-15T20:09:50.2831960Z   server-id: github
+build	Set up JDK 18	2025-07-15T20:09:50.2832300Z   server-username: GITHUB_ACTOR
+build	Set up JDK 18	2025-07-15T20:09:50.2832730Z   server-password: GITHUB_TOKEN
+build	Set up JDK 18	2025-07-15T20:09:50.2833150Z   overwrite-settings: true
+build	Set up JDK 18	2025-07-15T20:09:50.2833520Z   job-status: success
+build	Set up JDK 18	2025-07-15T20:09:50.2834030Z   token: ***
+build	Set up JDK 18	2025-07-15T20:09:50.2834330Z ##[endgroup]
+build	Set up JDK 18	2025-07-15T20:09:50.5723230Z ##[group]Installed distributions
+build	Set up JDK 18	2025-07-15T20:09:50.5921310Z Trying to resolve the latest version from remote
+build	Set up JDK 18	2025-07-15T20:09:50.7302720Z Resolved latest version as 18.0.2+9.1
+build	Set up JDK 18	2025-07-15T20:09:50.7342500Z Trying to download...
+build	Set up JDK 18	2025-07-15T20:09:50.7357430Z Downloading Java 18.0.2+9.1 (Corretto) from https://corretto.aws/downloads/resources/18.0.2.9.1/amazon-corretto-18.0.2.9.1-macosx-x64.tar.gz ...
+build	Set up JDK 18	2025-07-15T20:09:53.3436410Z Extracting Java archive...
+build	Set up JDK 18	2025-07-15T20:09:53.5327990Z [command]/usr/bin/tar xz -C /Users/runner/work/_temp/6e7bc99b-6f0d-4f91-8669-a43cddb30574 -f /Users/runner/work/_temp/57674605-4bfa-4b24-b102-c1358a48e4b1
+build	Set up JDK 18	2025-07-15T20:09:56.5438360Z Java 18.0.2+9.1 was downloaded
+build	Set up JDK 18	2025-07-15T20:09:56.5438850Z Setting Java 18.0.2+9.1 as the default
+build	Set up JDK 18	2025-07-15T20:09:56.5458690Z Creating toolchains.xml for JDK version 18 from corretto
+build	Set up JDK 18	2025-07-15T20:09:56.5535740Z Writing to /Users/runner/.m2/toolchains.xml
+build	Set up JDK 18	2025-07-15T20:09:56.5536860Z 
+build	Set up JDK 18	2025-07-15T20:09:56.5537430Z Java configuration:
+build	Set up JDK 18	2025-07-15T20:09:56.5538010Z   Distribution: corretto
+build	Set up JDK 18	2025-07-15T20:09:56.5538430Z   Version: 18.0.2+9.1
+build	Set up JDK 18	2025-07-15T20:09:56.5539100Z   Path: /Users/runner/hostedtoolcache/Java_Corretto_jdk/18.0.2-9.1/x64/Contents/Home
+build	Set up JDK 18	2025-07-15T20:09:56.5539730Z 
+build	Set up JDK 18	2025-07-15T20:09:56.5540210Z ##[endgroup]
+build	Set up JDK 18	2025-07-15T20:09:56.5559800Z Creating settings.xml with server-id: github
+build	Set up JDK 18	2025-07-15T20:09:56.5560380Z Writing to /Users/runner/.m2/settings.xml
+build	Set up Go	﻿2025-07-15T20:09:56.5773430Z ##[group]Run actions/setup-go@v5
+build	Set up Go	2025-07-15T20:09:56.5773880Z with:
+build	Set up Go	2025-07-15T20:09:56.5774200Z   go-version: 1.21
+build	Set up Go	2025-07-15T20:09:56.5774520Z   cache: false
+build	Set up Go	2025-07-15T20:09:56.5774870Z   check-latest: false
+build	Set up Go	2025-07-15T20:09:56.5775410Z   token: ***
+build	Set up Go	2025-07-15T20:09:56.5775700Z env:
+build	Set up Go	2025-07-15T20:09:56.5776320Z   JAVA_HOME: /Users/runner/hostedtoolcache/Java_Corretto_jdk/18.0.2-9.1/x64/Contents/Home
+build	Set up Go	2025-07-15T20:09:56.5777430Z   JAVA_HOME_18_X64: /Users/runner/hostedtoolcache/Java_Corretto_jdk/18.0.2-9.1/x64/Contents/Home
+build	Set up Go	2025-07-15T20:09:56.5778360Z ##[endgroup]
+build	Set up Go	2025-07-15T20:09:56.7652930Z Setup go version spec 1.21
+build	Set up Go	2025-07-15T20:09:56.7750410Z Attempting to download 1.21...
+build	Set up Go	2025-07-15T20:09:57.6370030Z matching 1.21...
+build	Set up Go	2025-07-15T20:09:57.6768950Z Acquiring 1.21.13 from https://github.com/actions/go-versions/releases/download/1.21.13-10277905115/go-1.21.13-darwin-x64.tar.gz
+build	Set up Go	2025-07-15T20:09:58.8312880Z Extracting Go...
+build	Set up Go	2025-07-15T20:09:58.8443800Z [command]/usr/bin/tar xz -C /Users/runner/work/_temp/d14111aa-28bc-4f0f-ad9d-c1abf132f0be -f /Users/runner/work/_temp/5924dd17-97d6-4927-9afa-9513df804d53
+build	Set up Go	2025-07-15T20:10:04.8117420Z Successfully extracted go to /Users/runner/work/_temp/d14111aa-28bc-4f0f-ad9d-c1abf132f0be
+build	Set up Go	2025-07-15T20:10:04.8145490Z Adding to the cache ...
+build	Set up Go	2025-07-15T20:10:15.1879910Z Successfully cached go to /Users/runner/hostedtoolcache/go/1.21.13/x64
+build	Set up Go	2025-07-15T20:10:15.1924830Z Added go to the path
+build	Set up Go	2025-07-15T20:10:15.1927670Z Successfully set up Go version 1.21
+build	Set up Go	2025-07-15T20:10:15.2391710Z go version go1.21.13 darwin/amd64
+build	Set up Go	2025-07-15T20:10:15.2392080Z 
+build	Set up Go	2025-07-15T20:10:15.2392500Z ##[group]go env
+build	Set up Go	2025-07-15T20:10:18.9782230Z GO111MODULE=''
+build	Set up Go	2025-07-15T20:10:18.9782720Z GOARCH='amd64'
+build	Set up Go	2025-07-15T20:10:18.9784320Z GOBIN=''
+build	Set up Go	2025-07-15T20:10:18.9784950Z GOCACHE='/Users/runner/Library/Caches/go-build'
+build	Set up Go	2025-07-15T20:10:18.9785820Z GOENV='/Users/runner/Library/Application Support/go/env'
+build	Set up Go	2025-07-15T20:10:18.9786380Z GOEXE=''
+build	Set up Go	2025-07-15T20:10:18.9786730Z GOEXPERIMENT=''
+build	Set up Go	2025-07-15T20:10:18.9787100Z GOFLAGS=''
+build	Set up Go	2025-07-15T20:10:18.9787450Z GOHOSTARCH='amd64'
+build	Set up Go	2025-07-15T20:10:18.9787800Z GOHOSTOS='darwin'
+build	Set up Go	2025-07-15T20:10:18.9788170Z GOINSECURE=''
+build	Set up Go	2025-07-15T20:10:18.9788730Z GOMODCACHE='/Users/runner/go/pkg/mod'
+build	Set up Go	2025-07-15T20:10:18.9789220Z GONOPROXY=''
+build	Set up Go	2025-07-15T20:10:18.9789570Z GONOSUMDB=''
+build	Set up Go	2025-07-15T20:10:18.9789900Z GOOS='darwin'
+build	Set up Go	2025-07-15T20:10:18.9790300Z GOPATH='/Users/runner/go'
+build	Set up Go	2025-07-15T20:10:18.9790720Z GOPRIVATE=''
+build	Set up Go	2025-07-15T20:10:18.9791340Z GOPROXY='https://proxy.golang.org,direct'
+build	Set up Go	2025-07-15T20:10:18.9791980Z GOROOT='/Users/runner/hostedtoolcache/go/1.21.13/x64'
+build	Set up Go	2025-07-15T20:10:18.9792570Z GOSUMDB='sum.golang.org'
+build	Set up Go	2025-07-15T20:10:18.9793110Z GOTMPDIR=''
+build	Set up Go	2025-07-15T20:10:18.9793490Z GOTOOLCHAIN='auto'
+build	Set up Go	2025-07-15T20:10:18.9794170Z GOTOOLDIR='/Users/runner/hostedtoolcache/go/1.21.13/x64/pkg/tool/darwin_amd64'
+build	Set up Go	2025-07-15T20:10:18.9794890Z GOVCS=''
+build	Set up Go	2025-07-15T20:10:18.9795230Z GOVERSION='go1.21.13'
+build	Set up Go	2025-07-15T20:10:18.9795590Z GCCGO='gccgo'
+build	Set up Go	2025-07-15T20:10:18.9795930Z GOAMD64='v1'
+build	Set up Go	2025-07-15T20:10:18.9796280Z AR='ar'
+build	Set up Go	2025-07-15T20:10:18.9796590Z CC='clang'
+build	Set up Go	2025-07-15T20:10:18.9796900Z CXX='clang++'
+build	Set up Go	2025-07-15T20:10:18.9797260Z CGO_ENABLED='1'
+build	Set up Go	2025-07-15T20:10:18.9797590Z GOMOD='/dev/null'
+build	Set up Go	2025-07-15T20:10:18.9797940Z GOWORK=''
+build	Set up Go	2025-07-15T20:10:18.9798300Z CGO_CFLAGS='-O2 -g'
+build	Set up Go	2025-07-15T20:10:18.9798650Z CGO_CPPFLAGS=''
+build	Set up Go	2025-07-15T20:10:18.9799030Z CGO_CXXFLAGS='-O2 -g'
+build	Set up Go	2025-07-15T20:10:18.9799400Z CGO_FFLAGS='-O2 -g'
+build	Set up Go	2025-07-15T20:10:18.9799780Z CGO_LDFLAGS='-O2 -g'
+build	Set up Go	2025-07-15T20:10:18.9800340Z PKG_CONFIG='pkg-config'
+build	Set up Go	2025-07-15T20:10:18.9802350Z GOGCCFLAGS='-fPIC -arch x86_64 -m64 -pthread -fno-caret-diagnostics -Qunused-arguments -fmessage-length=0 -ffile-prefix-map=/var/folders/vk/nx37ffx50hv5djclhltc26vw0000gn/T/go-build2402912119=/tmp/go-build -gno-record-gcc-switches -fno-common'
+build	Set up Go	2025-07-15T20:10:18.9804150Z 
+build	Set up Go	2025-07-15T20:10:18.9804630Z ##[endgroup]
+build	Set up goimports	﻿2025-07-15T20:10:18.9979100Z ##[group]Run go install golang.org/x/tools/cmd/goimports@latest
+build	Set up goimports	2025-07-15T20:10:18.9979980Z [36;1mgo install golang.org/x/tools/cmd/goimports@latest[0m
+build	Set up goimports	2025-07-15T20:10:19.0168330Z shell: /bin/bash -e {0}
+build	Set up goimports	2025-07-15T20:10:19.0168750Z env:
+build	Set up goimports	2025-07-15T20:10:19.0169370Z   JAVA_HOME: /Users/runner/hostedtoolcache/Java_Corretto_jdk/18.0.2-9.1/x64/Contents/Home
+build	Set up goimports	2025-07-15T20:10:19.0170510Z   JAVA_HOME_18_X64: /Users/runner/hostedtoolcache/Java_Corretto_jdk/18.0.2-9.1/x64/Contents/Home
+build	Set up goimports	2025-07-15T20:10:19.0171300Z   GO111MODULE: on
+build	Set up goimports	2025-07-15T20:10:19.0171660Z ##[endgroup]
+build	Set up goimports	2025-07-15T20:10:19.7011480Z go: downloading golang.org/x/tools v0.35.0
+build	Set up goimports	2025-07-15T20:10:20.9815490Z go: golang.org/x/tools@v0.35.0 requires go >= 1.23.0; switching to go1.23.11
+build	Set up goimports	2025-07-15T20:10:20.9816870Z go: downloading go1.23.11 (darwin/amd64)
+build	Set up goimports	2025-07-15T20:10:29.5481970Z go: downloading golang.org/x/mod v0.26.0
+build	Set up goimports	2025-07-15T20:10:29.5590120Z go: downloading golang.org/x/sync v0.16.0
+build	Build Dafny	﻿2025-07-15T20:10:39.9536300Z ##[group]Run dotnet build Source/Dafny.sln
+build	Build Dafny	2025-07-15T20:10:39.9536940Z [36;1mdotnet build Source/Dafny.sln[0m
+build	Build Dafny	2025-07-15T20:10:39.9676770Z shell: /bin/bash -e {0}
+build	Build Dafny	2025-07-15T20:10:39.9677170Z env:
+build	Build Dafny	2025-07-15T20:10:39.9677810Z   JAVA_HOME: /Users/runner/hostedtoolcache/Java_Corretto_jdk/18.0.2-9.1/x64/Contents/Home
+build	Build Dafny	2025-07-15T20:10:39.9678940Z   JAVA_HOME_18_X64: /Users/runner/hostedtoolcache/Java_Corretto_jdk/18.0.2-9.1/x64/Contents/Home
+build	Build Dafny	2025-07-15T20:10:39.9679850Z ##[endgroup]
+build	Build Dafny	2025-07-15T20:10:40.4306750Z 
+build	Build Dafny	2025-07-15T20:10:40.4363300Z Welcome to .NET 8.0!
+build	Build Dafny	2025-07-15T20:10:40.4364370Z ---------------------
+build	Build Dafny	2025-07-15T20:10:40.4365770Z SDK Version: 8.0.412
+build	Build Dafny	2025-07-15T20:10:40.4367230Z 
+build	Build Dafny	2025-07-15T20:10:40.4368750Z Telemetry
+build	Build Dafny	2025-07-15T20:10:40.4370400Z ---------
+build	Build Dafny	2025-07-15T20:10:40.4373700Z The .NET tools collect usage data in order to help us improve your experience. It is collected by Microsoft and shared with the community. You can opt-out of telemetry by setting the DOTNET_CLI_TELEMETRY_OPTOUT environment variable to '1' or 'true' using your favorite shell.
+build	Build Dafny	2025-07-15T20:10:40.4377290Z 
+build	Build Dafny	2025-07-15T20:10:40.4378030Z Read more about .NET CLI Tools telemetry: https://aka.ms/dotnet-cli-telemetry
+build	Build Dafny	2025-07-15T20:10:41.2040880Z 
+build	Build Dafny	2025-07-15T20:10:41.2068930Z ----------------
+build	Build Dafny	2025-07-15T20:10:41.2105290Z Installed an ASP.NET Core HTTPS development certificate.
+build	Build Dafny	2025-07-15T20:10:41.2110340Z To trust the certificate, run 'dotnet dev-certs https --trust'
+build	Build Dafny	2025-07-15T20:10:41.2122720Z Learn about HTTPS: https://aka.ms/dotnet-https
+build	Build Dafny	2025-07-15T20:10:41.2126090Z 
+build	Build Dafny	2025-07-15T20:10:41.2127470Z ----------------
+build	Build Dafny	2025-07-15T20:10:41.2131400Z Write your first app: https://aka.ms/dotnet-hello-world
+build	Build Dafny	2025-07-15T20:10:41.2133380Z Find out what's new: https://aka.ms/dotnet-whats-new
+build	Build Dafny	2025-07-15T20:10:41.2136980Z Explore documentation: https://aka.ms/dotnet-docs
+build	Build Dafny	2025-07-15T20:10:41.2142230Z Report issues and find source on GitHub: https://github.com/dotnet/core
+build	Build Dafny	2025-07-15T20:10:41.2147280Z Use 'dotnet --help' to see available commands or visit: https://aka.ms/dotnet-cli
+build	Build Dafny	2025-07-15T20:10:41.2151370Z --------------------------------------------------------------------------------------
+build	Build Dafny	2025-07-15T20:10:43.5995590Z   Determining projects to restore...
+build	Build Dafny	2025-07-15T20:10:53.2331670Z   Restored /Users/runner/work/dafny/dafny/Source/DafnyTestGeneration/DafnyTestGeneration.csproj (in 8.34 sec).
+build	Build Dafny	2025-07-15T20:10:53.2376960Z   Restored /Users/runner/work/dafny/dafny/Source/Scripts/Scripts.csproj (in 8.34 sec).
+build	Build Dafny	2025-07-15T20:10:55.0867140Z   Restored /Users/runner/work/dafny/dafny/Source/DafnyLanguageServer/DafnyLanguageServer.csproj (in 1.77 sec).
+build	Build Dafny	2025-07-15T20:10:56.8116570Z   Restored /Users/runner/work/dafny/dafny/Source/TestDafny/TestDafny.csproj (in 11.9 sec).
+build	Build Dafny	2025-07-15T20:10:56.9153780Z   Restored /Users/runner/work/dafny/dafny/Source/IntegrationTests/IntegrationTests.csproj (in 11.9 sec).
+build	Build Dafny	2025-07-15T20:10:57.0157730Z   Restored /Users/runner/work/dafny/dafny/Source/DafnyDriver/DafnyDriver.csproj (in 47 ms).
+build	Build Dafny	2025-07-15T20:10:57.0452350Z   Restored /Users/runner/work/dafny/dafny/Source/DafnyCore/DafnyCore.csproj (in 30 ms).
+build	Build Dafny	2025-07-15T20:10:57.1092230Z   Restored /Users/runner/work/dafny/dafny/Source/Dafny/Dafny.csproj (in 82 ms).
+build	Build Dafny	2025-07-15T20:10:57.7928910Z   Restored /Users/runner/work/dafny/dafny/Source/DafnyTestGeneration.Test/DafnyTestGeneration.Test.csproj (in 4.41 sec).
+build	Build Dafny	2025-07-15T20:10:58.2643620Z   Restored /Users/runner/work/dafny/dafny/Source/DafnyDriver.Test/DafnyDriver.Test.csproj (in 1.4 sec).
+build	Build Dafny	2025-07-15T20:10:58.6089590Z   Restored /Users/runner/work/dafny/dafny/Source/DafnyCore.Test/DafnyCore.Test.csproj (in 235 ms).
+build	Build Dafny	2025-07-15T20:10:58.6148030Z   Restored /Users/runner/work/dafny/dafny/Source/DafnyBenchmarkingPlugin/DafnyBenchmarkingPlugin.csproj (in 14 ms).
+build	Build Dafny	2025-07-15T20:10:58.7241380Z   Restored /Users/runner/work/dafny/dafny/Source/XUnitExtensions/XUnitExtensions.csproj (in 78 ms).
+build	Build Dafny	2025-07-15T20:10:58.7673790Z   Restored /Users/runner/work/dafny/dafny/Source/DafnyServer/DafnyServer.csproj (in 28 ms).
+build	Build Dafny	2025-07-15T20:11:01.1929640Z   Restored /Users/runner/work/dafny/dafny/Source/DafnyRuntime/DafnyRuntime.csproj (in 2.41 sec).
+build	Build Dafny	2025-07-15T20:11:01.4231360Z   Restored /Users/runner/work/dafny/dafny/Source/DafnyRuntime.Tests/DafnyRuntime.Tests.csproj (in 87 ms).
+build	Build Dafny	2025-07-15T20:11:01.5267390Z   Restored /Users/runner/work/dafny/dafny/Source/DafnyPipeline/DafnyPipeline.csproj (in 20 ms).
+build	Build Dafny	2025-07-15T20:11:01.6188690Z   Restored /Users/runner/work/dafny/dafny/Source/DafnyLanguageServer.Test/DafnyLanguageServer.Test.csproj (in 5.83 sec).
+build	Build Dafny	2025-07-15T20:11:01.6284740Z   Restored /Users/runner/work/dafny/dafny/Source/DafnyPipeline.Test/DafnyPipeline.Test.csproj (in 61 ms).
+build	Build Dafny	2025-07-15T20:11:01.6318610Z   Restored /Users/runner/work/dafny/dafny/Source/AutoExtern/AutoExtern.csproj (in 4.46 sec).
+build	Build Dafny	2025-07-15T20:11:01.6354640Z   Restored /Users/runner/work/dafny/dafny/Source/AutoExtern.Test/AutoExtern.Test.csproj (in 3.77 sec).
+build	Build Dafny	2025-07-15T20:11:03.0060290Z   Compiling DafnyRuntimeJava to DafnyRuntimeJava/build/libs/DafnyRuntime-4.10.1.jar...
+build	Build Dafny	2025-07-15T20:11:03.3909210Z   Compiling DafnyRuntimeJava to DafnyRuntimeJava/build/libs/DafnyRuntime-4.10.1.jar...
+build	Build Dafny	2025-07-15T20:11:03.8386830Z   Downloading https://services.gradle.org/distributions/gradle-8.14-bin.zip
+build	Build Dafny	2025-07-15T20:11:04.6279450Z   Tool 'cocor' (version '2014.12.25') was restored. Available commands: coco
+build	Build Dafny	2025-07-15T20:11:04.6484800Z   Tool 'boogie' (version '3.2.5') was restored. Available commands: boogie
+build	Build Dafny	2025-07-15T20:11:04.7488020Z   
+build	Build Dafny	2025-07-15T20:11:04.7841600Z   Restore was successful.
+build	Build Dafny	2025-07-15T20:11:04.9242000Z   .NET SDK:
+build	Build Dafny	2025-07-15T20:11:04.9335400Z    Version:           8.0.412
+build	Build Dafny	2025-07-15T20:11:04.9377700Z    Commit:            819e1a9566
+build	Build Dafny	2025-07-15T20:11:05.1844410Z    Workload version:  8.0.400-manifests.97a98937
+build	Build Dafny	2025-07-15T20:11:05.2045850Z    MSBuild version:   17.11.31+933b72e36
+build	Build Dafny	2025-07-15T20:11:05.2540370Z   
+build	Build Dafny	2025-07-15T20:11:05.2696880Z   Runtime Environment:
+build	Build Dafny	2025-07-15T20:11:05.6013720Z    OS Name:     Mac OS X
+build	Build Dafny	2025-07-15T20:11:05.6242910Z    OS Version:  13.7
+build	Build Dafny	2025-07-15T20:11:05.6410290Z    OS Platform: Darwin
+build	Build Dafny	2025-07-15T20:11:05.6444950Z    RID:         osx-x64
+build	Build Dafny	2025-07-15T20:11:05.6473880Z    Base Path:   /Users/runner/.dotnet/sdk/8.0.412/
+build	Build Dafny	2025-07-15T20:11:05.6507380Z   
+build	Build Dafny	2025-07-15T20:11:05.6520400Z   .NET workloads installed:
+build	Build Dafny	2025-07-15T20:11:05.6563490Z   Configured to use loose manifests when installing new manifests.
+build	Build Dafny	2025-07-15T20:11:05.6583920Z   There are no installed workloads to display.
+build	Build Dafny	2025-07-15T20:11:05.6628380Z   
+build	Build Dafny	2025-07-15T20:11:05.6673200Z   Host:
+build	Build Dafny	2025-07-15T20:11:05.6766450Z     Version:      9.0.7
+build	Build Dafny	2025-07-15T20:11:05.6867740Z     Architecture: x64
+build	Build Dafny	2025-07-15T20:11:05.6900950Z     Commit:       3c298d9f00
+build	Build Dafny	2025-07-15T20:11:05.6930540Z   
+build	Build Dafny	2025-07-15T20:11:05.6960040Z   .NET SDKs installed:
+build	Build Dafny	2025-07-15T20:11:05.6971430Z     8.0.101 [/Users/runner/.dotnet/sdk]
+build	Build Dafny	2025-07-15T20:11:05.7027350Z     8.0.204 [/Users/runner/.dotnet/sdk]
+build	Build Dafny	2025-07-15T20:11:05.7047180Z     8.0.303 [/Users/runner/.dotnet/sdk]
+build	Build Dafny	2025-07-15T20:11:05.7074990Z     8.0.412 [/Users/runner/.dotnet/sdk]
+build	Build Dafny	2025-07-15T20:11:05.7094580Z     9.0.102 [/Users/runner/.dotnet/sdk]
+build	Build Dafny	2025-07-15T20:11:05.7109120Z     9.0.203 [/Users/runner/.dotnet/sdk]
+build	Build Dafny	2025-07-15T20:11:05.7141100Z     9.0.302 [/Users/runner/.dotnet/sdk]
+build	Build Dafny	2025-07-15T20:11:05.7157070Z   
+build	Build Dafny	2025-07-15T20:11:05.7195170Z   .NET runtimes installed:
+build	Build Dafny	2025-07-15T20:11:05.7199620Z     Microsoft.AspNetCore.App 8.0.1 [/Users/runner/.dotnet/shared/Microsoft.AspNetCore.App]
+build	Build Dafny	2025-07-15T20:11:05.7218640Z     Microsoft.AspNetCore.App 8.0.4 [/Users/runner/.dotnet/shared/Microsoft.AspNetCore.App]
+build	Build Dafny	2025-07-15T20:11:05.7258330Z     Microsoft.AspNetCore.App 8.0.7 [/Users/runner/.dotnet/shared/Microsoft.AspNetCore.App]
+build	Build Dafny	2025-07-15T20:11:05.7264760Z     Microsoft.AspNetCore.App 8.0.18 [/Users/runner/.dotnet/shared/Microsoft.AspNetCore.App]
+build	Build Dafny	2025-07-15T20:11:05.7311460Z     Microsoft.AspNetCore.App 9.0.1 [/Users/runner/.dotnet/shared/Microsoft.AspNetCore.App]
+build	Build Dafny	2025-07-15T20:11:05.7357610Z     Microsoft.AspNetCore.App 9.0.4 [/Users/runner/.dotnet/shared/Microsoft.AspNetCore.App]
+build	Build Dafny	2025-07-15T20:11:05.7394970Z     Microsoft.AspNetCore.App 9.0.7 [/Users/runner/.dotnet/shared/Microsoft.AspNetCore.App]
+build	Build Dafny	2025-07-15T20:11:05.7446480Z     Microsoft.NETCore.App 8.0.1 [/Users/runner/.dotnet/shared/Microsoft.NETCore.App]
+build	Build Dafny	2025-07-15T20:11:05.7447880Z     Microsoft.NETCore.App 8.0.4 [/Users/runner/.dotnet/shared/Microsoft.NETCore.App]
+build	Build Dafny	2025-07-15T20:11:05.7495600Z     Microsoft.NETCore.App 8.0.7 [/Users/runner/.dotnet/shared/Microsoft.NETCore.App]
+build	Build Dafny	2025-07-15T20:11:05.7545870Z     Microsoft.NETCore.App 8.0.18 [/Users/runner/.dotnet/shared/Microsoft.NETCore.App]
+build	Build Dafny	2025-07-15T20:11:05.7557840Z     Microsoft.NETCore.App 9.0.1 [/Users/runner/.dotnet/shared/Microsoft.NETCore.App]
+build	Build Dafny	2025-07-15T20:11:05.7593800Z     Microsoft.NETCore.App 9.0.4 [/Users/runner/.dotnet/shared/Microsoft.NETCore.App]
+build	Build Dafny	2025-07-15T20:11:05.7617020Z     Microsoft.NETCore.App 9.0.7 [/Users/runner/.dotnet/shared/Microsoft.NETCore.App]
+build	Build Dafny	2025-07-15T20:11:05.7698730Z   
+build	Build Dafny	2025-07-15T20:11:05.7724830Z   Other architectures found:
+build	Build Dafny	2025-07-15T20:11:05.7924000Z     None
+build	Build Dafny	2025-07-15T20:11:05.7983650Z   
+build	Build Dafny	2025-07-15T20:11:05.8078190Z   Environment variables:
+build	Build Dafny	2025-07-15T20:11:05.8110590Z     DOTNET_ROOT       [/Users/runner/.dotnet]
+build	Build Dafny	2025-07-15T20:11:05.8170590Z   
+build	Build Dafny	2025-07-15T20:11:05.8246550Z   global.json file:
+build	Build Dafny	2025-07-15T20:11:05.8547770Z     /Users/runner/work/dafny/dafny/global.json
+build	Build Dafny	2025-07-15T20:11:05.8657330Z   
+build	Build Dafny	2025-07-15T20:11:05.8785930Z   Learn more:
+build	Build Dafny	2025-07-15T20:11:05.8871010Z     https://aka.ms/dotnet/info
+build	Build Dafny	2025-07-15T20:11:05.9061340Z   
+build	Build Dafny	2025-07-15T20:11:05.9172190Z   Download .NET:
+build	Build Dafny	2025-07-15T20:11:05.9225370Z     https://aka.ms/dotnet/download
+build	Build Dafny	2025-07-15T20:11:05.9911670Z   Coco/R (Apr 19, 2011)
+build	Build Dafny	2025-07-15T20:11:06.0956410Z   checking
+build	Build Dafny	2025-07-15T20:11:06.1034780Z     AtAttributes deletable
+build	Build Dafny	2025-07-15T20:11:06.1124060Z     OldSemi deletable
+build	Build Dafny	2025-07-15T20:11:06.1349880Z     WitnessClause deletable
+build	Build Dafny	2025-07-15T20:11:06.2352290Z     ParameterDefaultValue deletable
+build	Build Dafny	2025-07-15T20:11:06.2648730Z     IteratorSpec deletable
+build	Build Dafny	2025-07-15T20:11:06.3057630Z     MethodSpec deletable
+build	Build Dafny	2025-07-15T20:11:06.3149880Z     OptGenericInstantiation deletable
+build	Build Dafny	2025-07-15T20:11:06.3272170Z     FunctionSpec deletable
+build	Build Dafny	2025-07-15T20:11:06.3575850Z     LoopSpec deletable
+build	Build Dafny	2025-07-15T20:11:06.3821500Z     ForallStatementEnsuresAndBody deletable
+build	Build Dafny	2025-07-15T20:11:06.4064800Z     LambdaSpec deletable
+build	Build Dafny	2025-07-15T20:11:06.4675500Z     DecreasesToExpressionList deletable
+build	Build Dafny	2025-07-15T20:11:06.4806810Z     LL1 warning in FrameExpression: backtick is start of several alternatives
+build	Build Dafny	2025-07-15T20:11:06.5128640Z     LL1 warning in FrameExpression: backtick is start & successor of deletable structure
+build	Build Dafny	2025-07-15T20:11:06.5636270Z     LL1 warning in NamedType: dot is start & successor of deletable structure
+build	Build Dafny	2025-07-15T20:11:06.5786970Z     LL1 warning in OneStmt: opaque is start of several alternatives
+build	Build Dafny	2025-07-15T20:11:06.5933880Z     LL1 warning in AssignStatement: lbracecolon is start of several alternatives
+build	Build Dafny	2025-07-15T20:11:06.6058240Z     LL1 warning in AssignStatement: ":-" is start of several alternatives
+build	Build Dafny	2025-07-15T20:11:06.6248670Z     LL1 warning in LabeledStmt: "label" is start & successor of deletable structure
+build	Build Dafny	2025-07-15T20:11:06.6911150Z     LL1 warning in LabeledStmt: opaque is start of several alternatives
+build	Build Dafny	2025-07-15T20:11:06.7201270Z     LL1 warning in LabeledStmt: lbrace is start of several alternatives
+build	Build Dafny	2025-07-15T20:11:06.7275200Z     LL1 warning in LabeledStmt: "if" is start of several alternatives
+build	Build Dafny	2025-07-15T20:11:06.7350620Z     LL1 warning in LabeledStmt: "while" is start of several alternatives
+build	Build Dafny	2025-07-15T20:11:06.7570290Z     LL1 warning in LabeledStmt: "for" is start of several alternatives
+build	Build Dafny	2025-07-15T20:11:06.7683560Z     LL1 warning in Lhs: dot is start & successor of deletable structure
+build	Build Dafny	2025-07-15T20:11:06.7819350Z     LL1 warning in Lhs: backtick is start & successor of deletable structure
+build	Build Dafny	2025-07-15T20:11:06.7956200Z     LL1 warning in Lhs: openparen is start & successor of deletable structure
+build	Build Dafny	2025-07-15T20:11:06.8512320Z     LL1 warning in Lhs: dot is start & successor of deletable structure
+build	Build Dafny	2025-07-15T20:11:06.8724270Z     LL1 warning in Lhs: backtick is start & successor of deletable structure
+build	Build Dafny	2025-07-15T20:11:06.8879710Z     LL1 warning in Lhs: openparen is start & successor of deletable structure
+build	Build Dafny	2025-07-15T20:11:06.8925290Z     LL1 warning in PossiblyNegatedLiteralExpr: digits is start of several alternatives
+build	Build Dafny	2025-07-15T20:11:06.9052380Z     LL1 warning in PrimaryExpression: reveal is start of several alternatives
+build	Build Dafny	2025-07-15T20:11:06.9133400Z     LL1 warning in PrimaryExpression: hide is start of several alternatives
+build	Build Dafny	2025-07-15T20:11:06.9863370Z     LL1 warning in LiteralExpression: digits is start of several alternatives
+build	Build Dafny	2025-07-15T20:11:07.0112350Z   parser + scanner generated
+build	Build Dafny	2025-07-15T20:11:07.0269220Z   0 errors detected
+build	Build Dafny	2025-07-15T20:11:08.0106130Z   .............10%.............20%.............30%.............40%.............50%.............60%.............70%.............80%.............90%..............100%
+build	Build Dafny	2025-07-15T20:11:11.7213730Z   
+build	Build Dafny	2025-07-15T20:11:11.7253950Z   Welcome to Gradle 8.14!
+build	Build Dafny	2025-07-15T20:11:11.7267880Z   
+build	Build Dafny	2025-07-15T20:11:11.7337450Z   Here are the highlights of this release:
+build	Build Dafny	2025-07-15T20:11:11.7532720Z    - Java 24 support
+build	Build Dafny	2025-07-15T20:11:11.7541280Z    - GraalVM Native Image toolchain selection
+build	Build Dafny	2025-07-15T20:11:11.7561210Z    - Enhancements to test reporting
+build	Build Dafny	2025-07-15T20:11:11.7571700Z    - Build Authoring improvements
+build	Build Dafny	2025-07-15T20:11:11.7613690Z   
+build	Build Dafny	2025-07-15T20:11:11.7628510Z   For more details see https://docs.gradle.org/8.14/release-notes.html
+build	Build Dafny	2025-07-15T20:11:11.7635050Z   
+build	Build Dafny	2025-07-15T20:11:11.9268520Z   XUnitExtensions -> /Users/runner/work/dafny/dafny/Source/XUnitExtensions/bin/Debug/net8.0/XUnitExtensions.dll
+build	Build Dafny	2025-07-15T20:11:12.0483780Z   Starting a Gradle Daemon (subsequent builds will be faster)
+build	Build Dafny	2025-07-15T20:11:12.0753340Z   AutoExtern -> /Users/runner/work/dafny/dafny/Source/AutoExtern/bin/Debug/net8.0/AutoExtern.dll
+build	Build Dafny	2025-07-15T20:11:12.4078510Z   Starting a Gradle Daemon (subsequent builds will be faster)
+build	Build Dafny	2025-07-15T20:11:39.5967660Z   > Task :compileJava
+build	Build Dafny	2025-07-15T20:11:39.6969810Z   > Task :processResources NO-SOURCE
+build	Build Dafny	2025-07-15T20:11:39.7972010Z   > Task :classes
+build	Build Dafny	2025-07-15T20:11:39.8974490Z   > Task :jar
+build	Build Dafny	2025-07-15T20:11:40.3003290Z   > Task :compileJava
+build	Build Dafny	2025-07-15T20:11:40.3073510Z   > Task :processResources NO-SOURCE
+build	Build Dafny	2025-07-15T20:11:40.3241880Z   > Task :classes
+build	Build Dafny	2025-07-15T20:11:40.3341740Z   > Task :jar UP-TO-DATE
+build	Build Dafny	2025-07-15T20:11:47.4643260Z   > Task :javadoc
+build	Build Dafny	2025-07-15T20:11:47.4677050Z   > Task :javadocJar
+build	Build Dafny	2025-07-15T20:11:47.4678720Z   > Task :sourcesJar
+build	Build Dafny	2025-07-15T20:11:47.4679990Z   > Task :assemble
+build	Build Dafny	2025-07-15T20:11:47.7174540Z   > Task :javadoc
+build	Build Dafny	2025-07-15T20:11:47.7176640Z   > Task :javadocJar UP-TO-DATE
+build	Build Dafny	2025-07-15T20:11:47.7178470Z   > Task :sourcesJar UP-TO-DATE
+build	Build Dafny	2025-07-15T20:11:47.7180440Z   > Task :assemble
+build	Build Dafny	2025-07-15T20:11:49.8915440Z   > Task :compileTestJava
+build	Build Dafny	2025-07-15T20:11:49.9918240Z   > Task :processTestResources NO-SOURCE
+build	Build Dafny	2025-07-15T20:11:50.0923150Z   > Task :testClasses
+build	Build Dafny	2025-07-15T20:11:50.3759730Z   > Task :compileTestJava
+build	Build Dafny	2025-07-15T20:11:50.3826030Z   > Task :processTestResources NO-SOURCE
+build	Build Dafny	2025-07-15T20:11:50.4174530Z   > Task :testClasses
+build	Build Dafny	2025-07-15T20:11:52.7586890Z   > Task :test
+build	Build Dafny	2025-07-15T20:11:52.7902820Z   > Task :check
+build	Build Dafny	2025-07-15T20:11:52.8010620Z   > Task :build
+build	Build Dafny	2025-07-15T20:11:52.8057330Z   
+build	Build Dafny	2025-07-15T20:11:52.9061130Z   [Incubating] Problems report is available at: file:///Users/runner/work/dafny/dafny/Source/DafnyRuntime/DafnyRuntimeJava/build/reports/problems/problems-report.html
+build	Build Dafny	2025-07-15T20:11:52.9804550Z   
+build	Build Dafny	2025-07-15T20:11:52.9940880Z   Deprecated Gradle features were used in this build, making it incompatible with Gradle 9.0.
+build	Build Dafny	2025-07-15T20:11:53.0012240Z   
+build	Build Dafny	2025-07-15T20:11:53.0355150Z   You can use '--warning-mode all' to show the individual deprecation warnings and determine if they come from your own scripts or plugins.
+build	Build Dafny	2025-07-15T20:11:53.0382380Z   
+build	Build Dafny	2025-07-15T20:11:53.0397470Z   For more on this, please refer to https://docs.gradle.org/8.14/userguide/command_line_interface.html#sec:command_line_warnings in the Gradle documentation.
+build	Build Dafny	2025-07-15T20:11:53.0414970Z   
+build	Build Dafny	2025-07-15T20:11:53.0427110Z   BUILD SUCCESSFUL in 49s
+build	Build Dafny	2025-07-15T20:11:53.0444610Z   7 actionable tasks: 6 executed, 1 up-to-date
+build	Build Dafny	2025-07-15T20:11:53.0446930Z   > Task :test
+build	Build Dafny	2025-07-15T20:11:53.0456920Z   > Task :check
+build	Build Dafny	2025-07-15T20:11:53.0472110Z   > Task :build
+build	Build Dafny	2025-07-15T20:11:53.0476160Z   
+build	Build Dafny	2025-07-15T20:11:53.0487410Z   [Incubating] Problems report is available at: file:///Users/runner/work/dafny/dafny/Source/DafnyRuntime/DafnyRuntimeJava/build/reports/problems/problems-report.html
+build	Build Dafny	2025-07-15T20:11:53.0499200Z   
+build	Build Dafny	2025-07-15T20:11:53.0506410Z   Deprecated Gradle features were used in this build, making it incompatible with Gradle 9.0.
+build	Build Dafny	2025-07-15T20:11:53.0517940Z   
+build	Build Dafny	2025-07-15T20:11:53.0528280Z   You can use '--warning-mode all' to show the individual deprecation warnings and determine if they come from your own scripts or plugins.
+build	Build Dafny	2025-07-15T20:11:53.0537400Z   
+build	Build Dafny	2025-07-15T20:11:53.0553090Z   For more on this, please refer to https://docs.gradle.org/8.14/userguide/command_line_interface.html#sec:command_line_warnings in the Gradle documentation.
+build	Build Dafny	2025-07-15T20:11:53.0558920Z   
+build	Build Dafny	2025-07-15T20:11:53.0573880Z   BUILD SUCCESSFUL in 49s
+build	Build Dafny	2025-07-15T20:11:53.0707160Z   7 actionable tasks: 5 executed, 2 up-to-date
+build	Build Dafny	2025-07-15T20:11:54.8784040Z   DafnyRuntime -> /Users/runner/work/dafny/dafny/Binaries/netstandard2.0/DafnyRuntime.dll
+build	Build Dafny	2025-07-15T20:11:55.2730940Z   DafnyRuntime -> /Users/runner/work/dafny/dafny/Binaries/net452/DafnyRuntime.dll
+build	Build Dafny	2025-07-15T20:11:56.4537130Z   Compiling DafnyRuntimeJava to DafnyRuntimeJava/build/libs/DafnyRuntime-4.10.1.jar...
+build	Build Dafny	2025-07-15T20:11:59.8636900Z   > Task :compileJava UP-TO-DATE
+build	Build Dafny	2025-07-15T20:11:59.8849000Z   > Task :processResources NO-SOURCE
+build	Build Dafny	2025-07-15T20:11:59.9031490Z   > Task :classes UP-TO-DATE
+build	Build Dafny	2025-07-15T20:11:59.9079960Z   > Task :jar UP-TO-DATE
+build	Build Dafny	2025-07-15T20:11:59.9100740Z   > Task :javadoc UP-TO-DATE
+build	Build Dafny	2025-07-15T20:11:59.9143510Z   > Task :javadocJar UP-TO-DATE
+build	Build Dafny	2025-07-15T20:12:00.0146890Z   > Task :sourcesJar UP-TO-DATE
+build	Build Dafny	2025-07-15T20:12:00.1149340Z   > Task :assemble UP-TO-DATE
+build	Build Dafny	2025-07-15T20:12:01.7635890Z   > Task :compileTestJava
+build	Build Dafny	2025-07-15T20:12:01.8640120Z   > Task :processTestResources NO-SOURCE
+build	Build Dafny	2025-07-15T20:12:01.8642480Z   > Task :testClasses
+build	Build Dafny	2025-07-15T20:12:01.9646270Z   > Task :test UP-TO-DATE
+build	Build Dafny	2025-07-15T20:12:02.0158240Z   > Task :check UP-TO-DATE
+build	Build Dafny	2025-07-15T20:12:02.1160370Z   > Task :build UP-TO-DATE
+build	Build Dafny	2025-07-15T20:12:02.2163040Z   
+build	Build Dafny	2025-07-15T20:12:02.2787600Z   [Incubating] Problems report is available at: file:///Users/runner/work/dafny/dafny/Source/DafnyRuntime/DafnyRuntimeJava/build/reports/problems/problems-report.html
+build	Build Dafny	2025-07-15T20:12:02.3732130Z   
+build	Build Dafny	2025-07-15T20:12:02.3881470Z   Deprecated Gradle features were used in this build, making it incompatible with Gradle 9.0.
+build	Build Dafny	2025-07-15T20:12:02.4883980Z   
+build	Build Dafny	2025-07-15T20:12:02.5652050Z   You can use '--warning-mode all' to show the individual deprecation warnings and determine if they come from your own scripts or plugins.
+build	Build Dafny	2025-07-15T20:12:02.5862130Z   
+build	Build Dafny	2025-07-15T20:12:02.5989430Z   For more on this, please refer to https://docs.gradle.org/8.14/userguide/command_line_interface.html#sec:command_line_warnings in the Gradle documentation.
+build	Build Dafny	2025-07-15T20:12:02.6208740Z   
+build	Build Dafny	2025-07-15T20:12:02.6587770Z   BUILD SUCCESSFUL in 5s
+build	Build Dafny	2025-07-15T20:12:02.7005750Z   7 actionable tasks: 1 executed, 6 up-to-date
+build	Build Dafny	2025-07-15T20:12:02.7098600Z   Compiling DafnyRuntimeJava to DafnyRuntimeJava/build/libs/DafnyRuntime-4.10.1.jar...
+build	Build Dafny	2025-07-15T20:12:04.6577830Z   > Task :compileJava UP-TO-DATE
+build	Build Dafny	2025-07-15T20:12:04.6599030Z   > Task :processResources NO-SOURCE
+build	Build Dafny	2025-07-15T20:12:04.6640510Z   > Task :classes UP-TO-DATE
+build	Build Dafny	2025-07-15T20:12:04.6668810Z   > Task :jar UP-TO-DATE
+build	Build Dafny	2025-07-15T20:12:04.7024450Z   > Task :javadoc UP-TO-DATE
+build	Build Dafny	2025-07-15T20:12:04.7128100Z   > Task :javadocJar UP-TO-DATE
+build	Build Dafny	2025-07-15T20:12:04.7178950Z   > Task :sourcesJar UP-TO-DATE
+build	Build Dafny	2025-07-15T20:12:04.7251850Z   > Task :assemble UP-TO-DATE
+build	Build Dafny	2025-07-15T20:12:04.7295670Z   > Task :compileTestJava UP-TO-DATE
+build	Build Dafny	2025-07-15T20:12:04.7340170Z   > Task :processTestResources NO-SOURCE
+build	Build Dafny	2025-07-15T20:12:04.7384360Z   > Task :testClasses UP-TO-DATE
+build	Build Dafny	2025-07-15T20:12:04.7418220Z   > Task :test UP-TO-DATE
+build	Build Dafny	2025-07-15T20:12:04.7475770Z   > Task :check UP-TO-DATE
+build	Build Dafny	2025-07-15T20:12:04.7507320Z   > Task :build UP-TO-DATE
+build	Build Dafny	2025-07-15T20:12:04.7537990Z   
+build	Build Dafny	2025-07-15T20:12:04.7583760Z   [Incubating] Problems report is available at: file:///Users/runner/work/dafny/dafny/Source/DafnyRuntime/DafnyRuntimeJava/build/reports/problems/problems-report.html
+build	Build Dafny	2025-07-15T20:12:04.7636460Z   
+build	Build Dafny	2025-07-15T20:12:04.7713200Z   Deprecated Gradle features were used in this build, making it incompatible with Gradle 9.0.
+build	Build Dafny	2025-07-15T20:12:04.7795420Z   
+build	Build Dafny	2025-07-15T20:12:04.7844850Z   You can use '--warning-mode all' to show the individual deprecation warnings and determine if they come from your own scripts or plugins.
+build	Build Dafny	2025-07-15T20:12:04.7934460Z   
+build	Build Dafny	2025-07-15T20:12:04.8938260Z   For more on this, please refer to https://docs.gradle.org/8.14/userguide/command_line_interface.html#sec:command_line_warnings in the Gradle documentation.
+build	Build Dafny	2025-07-15T20:12:04.9808590Z   
+build	Build Dafny	2025-07-15T20:12:04.9953900Z   BUILD SUCCESSFUL in 1s
+build	Build Dafny	2025-07-15T20:12:05.0195500Z   7 actionable tasks: 7 up-to-date
+build	Build Dafny	2025-07-15T20:12:05.4804340Z   The package DafnyRuntime.4.10.1 is missing a readme. Go to https://aka.ms/nuget/authoring-best-practices/readme to learn why package readmes are important.
+build	Build Dafny	2025-07-15T20:12:05.4849930Z   Successfully created package '/Users/runner/work/dafny/dafny/Binaries/DafnyRuntime.4.10.1.nupkg'.
+build	Build Dafny	2025-07-15T20:12:05.7559640Z   DafnyRuntime.Tests -> /Users/runner/work/dafny/dafny/Source/DafnyRuntime.Tests/bin/Debug/net8.0/DafnyRuntime.Tests.dll
+build	Build Dafny	2025-07-15T20:13:04.6956070Z   DafnyCore -> /Users/runner/work/dafny/dafny/Binaries/net8.0/DafnyCore.dll
+build	Build Dafny	2025-07-15T20:13:05.2656690Z   The package DafnyCore.4.10.1 is missing a readme. Go to https://aka.ms/nuget/authoring-best-practices/readme to learn why package readmes are important.
+build	Build Dafny	2025-07-15T20:13:05.2661200Z   Successfully created package '/Users/runner/work/dafny/dafny/Binaries/DafnyCore.4.10.1.nupkg'.
+build	Build Dafny	2025-07-15T20:13:05.5811930Z   DafnyPipeline -> /Users/runner/work/dafny/dafny/Binaries/DafnyPipeline.dll
+build	Build Dafny	2025-07-15T20:13:07.0428680Z   Scripts -> /Users/runner/work/dafny/dafny/Source/Scripts/bin/Debug/net8.0/Scripts.dll
+build	Build Dafny	2025-07-15T20:13:09.2679720Z   DafnyCore.Test -> /Users/runner/work/dafny/dafny/Source/DafnyCore.Test/bin/Debug/net8.0/DafnyCore.Test.dll
+build	Build Dafny	2025-07-15T20:13:09.5930400Z   The package DafnyPipeline.4.10.1 is missing a readme. Go to https://aka.ms/nuget/authoring-best-practices/readme to learn why package readmes are important.
+build	Build Dafny	2025-07-15T20:13:09.6378310Z   Successfully created package '/Users/runner/work/dafny/dafny/Binaries/DafnyPipeline.4.10.1.nupkg'.
+build	Build Dafny	2025-07-15T20:13:10.1744680Z   DafnyBenchmarkingPlugin -> /Users/runner/work/dafny/dafny/Binaries/net8.0/DafnyBenchmarkingPlugin.dll
+build	Build Dafny	2025-07-15T20:13:13.8628520Z   DafnyLanguageServer -> /Users/runner/work/dafny/dafny/Binaries/DafnyLanguageServer.dll
+build	Build Dafny	2025-07-15T20:13:16.1288840Z   DafnyServer -> /Users/runner/work/dafny/dafny/Binaries/net8.0/DafnyServer.dll
+build	Build Dafny	2025-07-15T20:13:16.2351060Z   DafnyTestGeneration -> /Users/runner/work/dafny/dafny/Binaries/net8.0/DafnyTestGeneration.dll
+build	Build Dafny	2025-07-15T20:13:18.6455430Z   DafnyDriver -> /Users/runner/work/dafny/dafny/Binaries/net8.0/DafnyDriver.dll
+build	Build Dafny	2025-07-15T20:13:19.7056280Z   Dafny -> /Users/runner/work/dafny/dafny/Binaries/Dafny.dll
+build	Build Dafny	2025-07-15T20:13:20.6559960Z   DafnyDriver.Test -> /Users/runner/work/dafny/dafny/Source/DafnyDriver.Test/bin/Debug/net8.0/DafnyDriver.Test.dll
+build	Build Dafny	2025-07-15T20:13:21.7098060Z   TestDafny -> /Users/runner/work/dafny/dafny/Source/TestDafny/bin/Debug/net8.0/TestDafny.dll
+build	Build Dafny	2025-07-15T20:13:22.0813480Z   AutoExtern.Test -> /Users/runner/work/dafny/dafny/Source/AutoExtern.Test/bin/Debug/net8.0/AutoExtern.Test.dll
+build	Build Dafny	2025-07-15T20:13:24.1805210Z   IntegrationTests -> /Users/runner/work/dafny/dafny/Source/IntegrationTests/bin/Debug/net8.0/IntegrationTests.dll
+build	Build Dafny	2025-07-15T20:13:26.6534450Z   DafnyTestGeneration.Test -> /Users/runner/work/dafny/dafny/Source/DafnyTestGeneration.Test/bin/Debug/net8.0/DafnyTestGeneration.Test.dll
+build	Build Dafny	2025-07-15T20:13:30.9038700Z   DafnyLanguageServer.Test -> /Users/runner/work/dafny/dafny/Source/DafnyLanguageServer.Test/bin/Debug/net8.0/DafnyLanguageServer.Test.dll
+build	Build Dafny	2025-07-15T20:13:32.3294070Z   DafnyPipeline.Test -> /Users/runner/work/dafny/dafny/Source/DafnyPipeline.Test/bin/Debug/net8.0/DafnyPipeline.Test.dll
+build	Build Dafny	2025-07-15T20:13:32.4042260Z 
+build	Build Dafny	2025-07-15T20:13:32.4072780Z Build succeeded.
+build	Build Dafny	2025-07-15T20:13:32.4101800Z     0 Warning(s)
+build	Build Dafny	2025-07-15T20:13:32.4133580Z     0 Error(s)
+build	Build Dafny	2025-07-15T20:13:32.4227720Z 
+build	Build Dafny	2025-07-15T20:13:32.4263530Z Time Elapsed 00:02:50.98
+build	Get Z3	﻿2025-07-15T20:13:32.4623170Z ##[group]Run make z3-mac
+build	Get Z3	2025-07-15T20:13:32.4623660Z [36;1mmake z3-mac[0m
+build	Get Z3	2025-07-15T20:13:32.4776450Z shell: /bin/bash -e {0}
+build	Get Z3	2025-07-15T20:13:32.4776840Z env:
+build	Get Z3	2025-07-15T20:13:32.4777500Z   JAVA_HOME: /Users/runner/hostedtoolcache/Java_Corretto_jdk/18.0.2-9.1/x64/Contents/Home
+build	Get Z3	2025-07-15T20:13:32.4778710Z   JAVA_HOME_18_X64: /Users/runner/hostedtoolcache/Java_Corretto_jdk/18.0.2-9.1/x64/Contents/Home
+build	Get Z3	2025-07-15T20:13:32.4779580Z ##[endgroup]
+build	Get Z3	2025-07-15T20:13:33.9619340Z mkdir -p "/Users/runner/work/dafny/dafny"/Binaries/z3/bin
+build	Get Z3	2025-07-15T20:13:33.9708490Z curl -L -O https://github.com/dafny-lang/solver-builds/releases/download/snapshot-2025-07-02/z3-4.14.1-x64-macos-13-bin.zip
+build	Get Z3	2025-07-15T20:13:34.0572310Z   % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
+build	Get Z3	2025-07-15T20:13:34.0584130Z                                  Dload  Upload   Total   Spent    Left  Speed
+build	Get Z3	2025-07-15T20:13:34.0609690Z 
+build	Get Z3	2025-07-15T20:13:34.4273070Z   0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0
+build	Get Z3	2025-07-15T20:13:34.4311770Z   0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0
+build	Get Z3	2025-07-15T20:13:34.6048680Z 
+build	Get Z3	2025-07-15T20:13:34.6049170Z unzip z3-4.14.1-x64-macos-13-bin.zip
+build	Get Z3	2025-07-15T20:13:34.6123080Z 100 9751k  100 9751k    0     0  17.9M      0 --:--:-- --:--:-- --:--:-- 17.9M
+build	Get Z3	2025-07-15T20:13:34.6463130Z Archive:  z3-4.14.1-x64-macos-13-bin.zip
+build	Get Z3	2025-07-15T20:13:34.8303110Z   inflating: z3-4.14.1               
+build	Get Z3	2025-07-15T20:13:34.8303800Z rm z3-4.14.1-x64-macos-13-bin.zip
+build	Get Z3	2025-07-15T20:13:34.8413250Z curl -L -O https://github.com/dafny-lang/solver-builds/releases/download/snapshot-2025-07-02/z3-4.12.1-x64-macos-13-bin.zip
+build	Get Z3	2025-07-15T20:13:34.8653990Z   % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
+build	Get Z3	2025-07-15T20:13:34.8667390Z                                  Dload  Upload   Total   Spent    Left  Speed
+build	Get Z3	2025-07-15T20:13:34.8686730Z 
+build	Get Z3	2025-07-15T20:13:35.2151430Z   0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0
+build	Get Z3	2025-07-15T20:13:35.2152370Z   0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0
+build	Get Z3	2025-07-15T20:13:35.3643400Z 
+build	Get Z3	2025-07-15T20:13:35.3692880Z unzip z3-4.12.1-x64-macos-13-bin.zip
+build	Get Z3	2025-07-15T20:13:35.3694770Z 100 8999k  100 8999k    0     0  17.6M      0 --:--:-- --:--:-- --:--:-- 17.6M
+build	Get Z3	2025-07-15T20:13:35.3944070Z Archive:  z3-4.12.1-x64-macos-13-bin.zip
+build	Get Z3	2025-07-15T20:13:35.6054870Z   inflating: z3-4.12.1               
+build	Get Z3	2025-07-15T20:13:35.6326420Z rm z3-4.12.1-x64-macos-13-bin.zip
+build	Get Z3	2025-07-15T20:13:35.6349220Z mv z3-* "/Users/runner/work/dafny/dafny"/Binaries/z3/bin/
+build	Get Z3	2025-07-15T20:13:35.6364770Z chmod +x "/Users/runner/work/dafny/dafny"/Binaries/z3/bin/z3-*
+build	Run npm install bignumber.js	﻿2025-07-15T20:13:35.6430020Z ##[group]Run npm install bignumber.js
+build	Run npm install bignumber.js	2025-07-15T20:13:35.6430690Z [36;1mnpm install bignumber.js[0m
+build	Run npm install bignumber.js	2025-07-15T20:13:35.6562460Z shell: /bin/bash -e {0}
+build	Run npm install bignumber.js	2025-07-15T20:13:35.6562910Z env:
+build	Run npm install bignumber.js	2025-07-15T20:13:35.6563650Z   JAVA_HOME: /Users/runner/hostedtoolcache/Java_Corretto_jdk/18.0.2-9.1/x64/Contents/Home
+build	Run npm install bignumber.js	2025-07-15T20:13:35.6564950Z   JAVA_HOME_18_X64: /Users/runner/hostedtoolcache/Java_Corretto_jdk/18.0.2-9.1/x64/Contents/Home
+build	Run npm install bignumber.js	2025-07-15T20:13:35.6565870Z ##[endgroup]
+build	Run npm install bignumber.js	2025-07-15T20:13:36.9591640Z 
+build	Run npm install bignumber.js	2025-07-15T20:13:37.0015500Z added 1 package in 936ms
+build	Test DafnyStandardLibraries	﻿2025-07-15T20:13:37.0094950Z ##[group]Run make -C Source/DafnyStandardLibraries all
+build	Test DafnyStandardLibraries	2025-07-15T20:13:37.0095810Z [36;1mmake -C Source/DafnyStandardLibraries all[0m
+build	Test DafnyStandardLibraries	2025-07-15T20:13:37.0227990Z shell: /bin/bash -e {0}
+build	Test DafnyStandardLibraries	2025-07-15T20:13:37.0228440Z env:
+build	Test DafnyStandardLibraries	2025-07-15T20:13:37.0229200Z   JAVA_HOME: /Users/runner/hostedtoolcache/Java_Corretto_jdk/18.0.2-9.1/x64/Contents/Home
+build	Test DafnyStandardLibraries	2025-07-15T20:13:37.0230460Z   JAVA_HOME_18_X64: /Users/runner/hostedtoolcache/Java_Corretto_jdk/18.0.2-9.1/x64/Contents/Home
+build	Test DafnyStandardLibraries	2025-07-15T20:13:37.0231380Z ##[endgroup]
+build	Test DafnyStandardLibraries	2025-07-15T20:13:37.0668800Z dotnet run --project ../Dafny --no-build --roll-forward LatestMajor -- build -t:lib --hidden-no-verify=false  src/Std/dfyconfig.toml --output:build/DafnyStandardLibraries.doo
+build	Test DafnyStandardLibraries	2025-07-15T20:23:00.7356630Z 
+build	Test DafnyStandardLibraries	2025-07-15T20:23:00.7357760Z Dafny program verifier finished with 2305 verified, 0 errors
+build	Test DafnyStandardLibraries	2025-07-15T20:23:01.2982000Z unzip -o build/DafnyStandardLibraries.doo -d build/current
+build	Test DafnyStandardLibraries	2025-07-15T20:23:01.3033000Z Archive:  build/DafnyStandardLibraries.doo
+build	Test DafnyStandardLibraries	2025-07-15T20:23:01.3042980Z   inflating: build/current/manifest.toml  
+build	Test DafnyStandardLibraries	2025-07-15T20:23:01.3069720Z   inflating: build/current/program   
+build	Test DafnyStandardLibraries	2025-07-15T20:23:01.3073910Z unzip -o binaries/DafnyStandardLibraries.doo -d build/previous
+build	Test DafnyStandardLibraries	2025-07-15T20:23:01.3115600Z Archive:  binaries/DafnyStandardLibraries.doo
+build	Test DafnyStandardLibraries	2025-07-15T20:23:01.3127140Z   inflating: build/previous/manifest.toml  
+build	Test DafnyStandardLibraries	2025-07-15T20:23:01.3153450Z   inflating: build/previous/program  
+build	Test DafnyStandardLibraries	2025-07-15T20:23:01.3158070Z diff build/previous build/current
+build	Test DafnyStandardLibraries	2025-07-15T20:23:01.3250260Z grep "hidden-no-verify = false" build/current/manifest.toml || \
+build	Test DafnyStandardLibraries	2025-07-15T20:23:01.3251810Z 		(echo "ERROR: doo file built with --hidden-no-verify, rebuild without this option" && exit 1)
+build	Test DafnyStandardLibraries	2025-07-15T20:23:01.3320250Z hidden-no-verify = false
+build	Test DafnyStandardLibraries	2025-07-15T20:23:01.3323540Z make -C src/Std/TargetSpecific check-binary-all
+build	Test DafnyStandardLibraries	2025-07-15T20:23:01.3456240Z make check-binary TARGETLANG=notarget
+build	Test DafnyStandardLibraries	2025-07-15T20:23:01.3559030Z dotnet run --project ../../../../Dafny --no-build --roll-forward LatestMajor -- build -t:lib --hidden-no-verify=false dfyconfig.toml \
+build	Test DafnyStandardLibraries	2025-07-15T20:23:01.3560270Z 		`find . -name '*-notarget*.dfy' | sort` \
+build	Test DafnyStandardLibraries	2025-07-15T20:23:01.3561030Z 		--output:../../../build/DafnyStandardLibraries-notarget.doo
+build	Test DafnyStandardLibraries	2025-07-15T20:23:14.3122330Z 
+build	Test DafnyStandardLibraries	2025-07-15T20:23:14.3123450Z Dafny program verifier finished with 10 verified, 0 errors
+build	Test DafnyStandardLibraries	2025-07-15T20:23:14.4248310Z unzip -o ../../../build/DafnyStandardLibraries-notarget.doo -d ../../../build/current-notarget
+build	Test DafnyStandardLibraries	2025-07-15T20:23:14.4290140Z Archive:  ../../../build/DafnyStandardLibraries-notarget.doo
+build	Test DafnyStandardLibraries	2025-07-15T20:23:14.4300380Z   inflating: ../../../build/current-notarget/manifest.toml  
+build	Test DafnyStandardLibraries	2025-07-15T20:23:14.4302860Z   inflating: ../../../build/current-notarget/program  
+build	Test DafnyStandardLibraries	2025-07-15T20:23:14.4306710Z unzip -o ../../../binaries/DafnyStandardLibraries-notarget.doo -d ../../../build/rebuilt-notarget
+build	Test DafnyStandardLibraries	2025-07-15T20:23:14.4342660Z Archive:  ../../../binaries/DafnyStandardLibraries-notarget.doo
+build	Test DafnyStandardLibraries	2025-07-15T20:23:14.4352790Z   inflating: ../../../build/rebuilt-notarget/manifest.toml  
+build	Test DafnyStandardLibraries	2025-07-15T20:23:14.4358310Z   inflating: ../../../build/rebuilt-notarget/program  
+build	Test DafnyStandardLibraries	2025-07-15T20:23:14.4359980Z diff ../../../build/current-notarget ../../../build/rebuilt-notarget
+build	Test DafnyStandardLibraries	2025-07-15T20:23:14.4395430Z grep "hidden-no-verify = false" ../../../build/current-notarget/manifest.toml || \
+build	Test DafnyStandardLibraries	2025-07-15T20:23:14.4397010Z 		(echo "ERROR: doo file built with --hidden-no-verify, rebuild without this option" && exit 1)
+build	Test DafnyStandardLibraries	2025-07-15T20:23:14.4457310Z hidden-no-verify = false
+build	Test DafnyStandardLibraries	2025-07-15T20:23:14.4463900Z make check-binary TARGETLANG=cs
+build	Test DafnyStandardLibraries	2025-07-15T20:23:14.4571240Z dotnet run --project ../../../../Dafny --no-build --roll-forward LatestMajor -- build -t:lib --hidden-no-verify=false dfyconfig.toml \
+build	Test DafnyStandardLibraries	2025-07-15T20:23:14.4572420Z 		`find . -name '*-cs*.dfy' | sort` \
+build	Test DafnyStandardLibraries	2025-07-15T20:23:14.4573030Z 		--output:../../../build/DafnyStandardLibraries-cs.doo
+build	Test DafnyStandardLibraries	2025-07-15T20:23:27.5886280Z 
+build	Test DafnyStandardLibraries	2025-07-15T20:23:27.5888230Z Dafny program verifier finished with 10 verified, 0 errors
+build	Test DafnyStandardLibraries	2025-07-15T20:23:27.7029070Z unzip -o ../../../build/DafnyStandardLibraries-cs.doo -d ../../../build/current-cs
+build	Test DafnyStandardLibraries	2025-07-15T20:23:27.7067730Z Archive:  ../../../build/DafnyStandardLibraries-cs.doo
+build	Test DafnyStandardLibraries	2025-07-15T20:23:27.7078870Z   inflating: ../../../build/current-cs/manifest.toml  
+build	Test DafnyStandardLibraries	2025-07-15T20:23:27.7082560Z   inflating: ../../../build/current-cs/program  
+build	Test DafnyStandardLibraries	2025-07-15T20:23:27.7086840Z unzip -o ../../../binaries/DafnyStandardLibraries-cs.doo -d ../../../build/rebuilt-cs
+build	Test DafnyStandardLibraries	2025-07-15T20:23:27.7128540Z Archive:  ../../../binaries/DafnyStandardLibraries-cs.doo
+build	Test DafnyStandardLibraries	2025-07-15T20:23:27.7139000Z   inflating: ../../../build/rebuilt-cs/manifest.toml  
+build	Test DafnyStandardLibraries	2025-07-15T20:23:27.7142580Z   inflating: ../../../build/rebuilt-cs/program  
+build	Test DafnyStandardLibraries	2025-07-15T20:23:27.7144280Z diff ../../../build/current-cs ../../../build/rebuilt-cs
+build	Test DafnyStandardLibraries	2025-07-15T20:23:27.7182750Z grep "hidden-no-verify = false" ../../../build/current-cs/manifest.toml || \
+build	Test DafnyStandardLibraries	2025-07-15T20:23:27.7183900Z 		(echo "ERROR: doo file built with --hidden-no-verify, rebuild without this option" && exit 1)
+build	Test DafnyStandardLibraries	2025-07-15T20:23:27.7241140Z hidden-no-verify = false
+build	Test DafnyStandardLibraries	2025-07-15T20:23:27.7248160Z make check-binary TARGETLANG=java
+build	Test DafnyStandardLibraries	2025-07-15T20:23:27.7353520Z dotnet run --project ../../../../Dafny --no-build --roll-forward LatestMajor -- build -t:lib --hidden-no-verify=false dfyconfig.toml \
+build	Test DafnyStandardLibraries	2025-07-15T20:23:27.7354740Z 		`find . -name '*-java*.dfy' | sort` \
+build	Test DafnyStandardLibraries	2025-07-15T20:23:27.7355380Z 		--output:../../../build/DafnyStandardLibraries-java.doo
+build	Test DafnyStandardLibraries	2025-07-15T20:23:40.6386130Z 
+build	Test DafnyStandardLibraries	2025-07-15T20:23:40.6387190Z Dafny program verifier finished with 10 verified, 0 errors
+build	Test DafnyStandardLibraries	2025-07-15T20:23:40.7524160Z unzip -o ../../../build/DafnyStandardLibraries-java.doo -d ../../../build/current-java
+build	Test DafnyStandardLibraries	2025-07-15T20:23:40.7571170Z Archive:  ../../../build/DafnyStandardLibraries-java.doo
+build	Test DafnyStandardLibraries	2025-07-15T20:23:40.7584600Z   inflating: ../../../build/current-java/manifest.toml  
+build	Test DafnyStandardLibraries	2025-07-15T20:23:40.7589220Z   inflating: ../../../build/current-java/program  
+build	Test DafnyStandardLibraries	2025-07-15T20:23:40.7590170Z unzip -o ../../../binaries/DafnyStandardLibraries-java.doo -d ../../../build/rebuilt-java
+build	Test DafnyStandardLibraries	2025-07-15T20:23:40.7630100Z Archive:  ../../../binaries/DafnyStandardLibraries-java.doo
+build	Test DafnyStandardLibraries	2025-07-15T20:23:40.7641240Z   inflating: ../../../build/rebuilt-java/manifest.toml  
+build	Test DafnyStandardLibraries	2025-07-15T20:23:40.7644610Z   inflating: ../../../build/rebuilt-java/program  
+build	Test DafnyStandardLibraries	2025-07-15T20:23:40.7648960Z diff ../../../build/current-java ../../../build/rebuilt-java
+build	Test DafnyStandardLibraries	2025-07-15T20:23:40.7681180Z grep "hidden-no-verify = false" ../../../build/current-java/manifest.toml || \
+build	Test DafnyStandardLibraries	2025-07-15T20:23:40.7682380Z 		(echo "ERROR: doo file built with --hidden-no-verify, rebuild without this option" && exit 1)
+build	Test DafnyStandardLibraries	2025-07-15T20:23:40.7740190Z hidden-no-verify = false
+build	Test DafnyStandardLibraries	2025-07-15T20:23:40.7749010Z make check-binary TARGETLANG=js
+build	Test DafnyStandardLibraries	2025-07-15T20:23:40.7865910Z dotnet run --project ../../../../Dafny --no-build --roll-forward LatestMajor -- build -t:lib --hidden-no-verify=false dfyconfig.toml \
+build	Test DafnyStandardLibraries	2025-07-15T20:23:40.7867280Z 		`find . -name '*-js*.dfy' | sort` \
+build	Test DafnyStandardLibraries	2025-07-15T20:23:40.7867910Z 		--output:../../../build/DafnyStandardLibraries-js.doo
+build	Test DafnyStandardLibraries	2025-07-15T20:23:54.2415520Z 
+build	Test DafnyStandardLibraries	2025-07-15T20:23:54.2416140Z Dafny program verifier finished with 30 verified, 0 errors
+build	Test DafnyStandardLibraries	2025-07-15T20:23:54.3600040Z unzip -o ../../../build/DafnyStandardLibraries-js.doo -d ../../../build/current-js
+build	Test DafnyStandardLibraries	2025-07-15T20:23:54.3643360Z Archive:  ../../../build/DafnyStandardLibraries-js.doo
+build	Test DafnyStandardLibraries	2025-07-15T20:23:54.3655890Z   inflating: ../../../build/current-js/manifest.toml  
+build	Test DafnyStandardLibraries	2025-07-15T20:23:54.3657650Z   inflating: ../../../build/current-js/program  
+build	Test DafnyStandardLibraries	2025-07-15T20:23:54.3661460Z unzip -o ../../../binaries/DafnyStandardLibraries-js.doo -d ../../../build/rebuilt-js
+build	Test DafnyStandardLibraries	2025-07-15T20:23:54.3699880Z Archive:  ../../../binaries/DafnyStandardLibraries-js.doo
+build	Test DafnyStandardLibraries	2025-07-15T20:23:54.3709520Z   inflating: ../../../build/rebuilt-js/manifest.toml  
+build	Test DafnyStandardLibraries	2025-07-15T20:23:54.3712970Z   inflating: ../../../build/rebuilt-js/program  
+build	Test DafnyStandardLibraries	2025-07-15T20:23:54.3714900Z diff ../../../build/current-js ../../../build/rebuilt-js
+build	Test DafnyStandardLibraries	2025-07-15T20:23:54.3750740Z grep "hidden-no-verify = false" ../../../build/current-js/manifest.toml || \
+build	Test DafnyStandardLibraries	2025-07-15T20:23:54.3752300Z 		(echo "ERROR: doo file built with --hidden-no-verify, rebuild without this option" && exit 1)
+build	Test DafnyStandardLibraries	2025-07-15T20:23:54.3810520Z hidden-no-verify = false
+build	Test DafnyStandardLibraries	2025-07-15T20:23:54.3818890Z make check-binary TARGETLANG=go
+build	Test DafnyStandardLibraries	2025-07-15T20:23:54.3941220Z dotnet run --project ../../../../Dafny --no-build --roll-forward LatestMajor -- build -t:lib --hidden-no-verify=false dfyconfig.toml \
+build	Test DafnyStandardLibraries	2025-07-15T20:23:54.3942830Z 		`find . -name '*-go*.dfy' | sort` \
+build	Test DafnyStandardLibraries	2025-07-15T20:23:54.3943470Z 		--output:../../../build/DafnyStandardLibraries-go.doo
+build	Test DafnyStandardLibraries	2025-07-15T20:24:07.1716780Z 
+build	Test DafnyStandardLibraries	2025-07-15T20:24:07.1717760Z Dafny program verifier finished with 11 verified, 0 errors
+build	Test DafnyStandardLibraries	2025-07-15T20:24:07.2880700Z unzip -o ../../../build/DafnyStandardLibraries-go.doo -d ../../../build/current-go
+build	Test DafnyStandardLibraries	2025-07-15T20:24:07.2921650Z Archive:  ../../../build/DafnyStandardLibraries-go.doo
+build	Test DafnyStandardLibraries	2025-07-15T20:24:07.2933850Z   inflating: ../../../build/current-go/manifest.toml  
+build	Test DafnyStandardLibraries	2025-07-15T20:24:07.2938360Z   inflating: ../../../build/current-go/program  
+build	Test DafnyStandardLibraries	2025-07-15T20:24:07.2942190Z unzip -o ../../../binaries/DafnyStandardLibraries-go.doo -d ../../../build/rebuilt-go
+build	Test DafnyStandardLibraries	2025-07-15T20:24:07.2982520Z Archive:  ../../../binaries/DafnyStandardLibraries-go.doo
+build	Test DafnyStandardLibraries	2025-07-15T20:24:07.2992800Z   inflating: ../../../build/rebuilt-go/manifest.toml  
+build	Test DafnyStandardLibraries	2025-07-15T20:24:07.2997300Z   inflating: ../../../build/rebuilt-go/program  
+build	Test DafnyStandardLibraries	2025-07-15T20:24:07.2999850Z diff ../../../build/current-go ../../../build/rebuilt-go
+build	Test DafnyStandardLibraries	2025-07-15T20:24:07.3032320Z grep "hidden-no-verify = false" ../../../build/current-go/manifest.toml || \
+build	Test DafnyStandardLibraries	2025-07-15T20:24:07.3033440Z 		(echo "ERROR: doo file built with --hidden-no-verify, rebuild without this option" && exit 1)
+build	Test DafnyStandardLibraries	2025-07-15T20:24:07.3092170Z hidden-no-verify = false
+build	Test DafnyStandardLibraries	2025-07-15T20:24:07.3099420Z make check-binary TARGETLANG=py
+build	Test DafnyStandardLibraries	2025-07-15T20:24:07.3204340Z dotnet run --project ../../../../Dafny --no-build --roll-forward LatestMajor -- build -t:lib --hidden-no-verify=false dfyconfig.toml \
+build	Test DafnyStandardLibraries	2025-07-15T20:24:07.3205580Z 		`find . -name '*-py*.dfy' | sort` \
+build	Test DafnyStandardLibraries	2025-07-15T20:24:07.3206200Z 		--output:../../../build/DafnyStandardLibraries-py.doo
+build	Test DafnyStandardLibraries	2025-07-15T20:24:20.1916220Z 
+build	Test DafnyStandardLibraries	2025-07-15T20:24:20.1916980Z Dafny program verifier finished with 11 verified, 0 errors
+build	Test DafnyStandardLibraries	2025-07-15T20:24:20.3041430Z unzip -o ../../../build/DafnyStandardLibraries-py.doo -d ../../../build/current-py
+build	Test DafnyStandardLibraries	2025-07-15T20:24:20.3079930Z Archive:  ../../../build/DafnyStandardLibraries-py.doo
+build	Test DafnyStandardLibraries	2025-07-15T20:24:20.3092130Z   inflating: ../../../build/current-py/manifest.toml  
+build	Test DafnyStandardLibraries	2025-07-15T20:24:20.3093860Z   inflating: ../../../build/current-py/program  
+build	Test DafnyStandardLibraries	2025-07-15T20:24:20.3098780Z unzip -o ../../../binaries/DafnyStandardLibraries-py.doo -d ../../../build/rebuilt-py
+build	Test DafnyStandardLibraries	2025-07-15T20:24:20.3137870Z Archive:  ../../../binaries/DafnyStandardLibraries-py.doo
+build	Test DafnyStandardLibraries	2025-07-15T20:24:20.3147680Z   inflating: ../../../build/rebuilt-py/manifest.toml  
+build	Test DafnyStandardLibraries	2025-07-15T20:24:20.3150610Z   inflating: ../../../build/rebuilt-py/program  
+build	Test DafnyStandardLibraries	2025-07-15T20:24:20.3152260Z diff ../../../build/current-py ../../../build/rebuilt-py
+build	Test DafnyStandardLibraries	2025-07-15T20:24:20.3186060Z grep "hidden-no-verify = false" ../../../build/current-py/manifest.toml || \
+build	Test DafnyStandardLibraries	2025-07-15T20:24:20.3187210Z 		(echo "ERROR: doo file built with --hidden-no-verify, rebuild without this option" && exit 1)
+build	Test DafnyStandardLibraries	2025-07-15T20:24:20.3243910Z hidden-no-verify = false
+build	Test DafnyStandardLibraries	2025-07-15T20:24:20.3250970Z make check-binary TARGETLANG=rs
+build	Test DafnyStandardLibraries	2025-07-15T20:24:20.3354360Z dotnet run --project ../../../../Dafny --no-build --roll-forward LatestMajor -- build -t:lib --hidden-no-verify=false dfyconfig.toml \
+build	Test DafnyStandardLibraries	2025-07-15T20:24:20.3355430Z 		`find . -name '*-rs*.dfy' | sort` \
+build	Test DafnyStandardLibraries	2025-07-15T20:24:20.3356000Z 		--output:../../../build/DafnyStandardLibraries-rs.doo
+build	Test DafnyStandardLibraries	2025-07-15T20:24:33.7554490Z 
+build	Test DafnyStandardLibraries	2025-07-15T20:24:33.7555180Z Dafny program verifier finished with 11 verified, 0 errors
+build	Test DafnyStandardLibraries	2025-07-15T20:24:33.8680510Z unzip -o ../../../build/DafnyStandardLibraries-rs.doo -d ../../../build/current-rs
+build	Test DafnyStandardLibraries	2025-07-15T20:24:33.8723520Z Archive:  ../../../build/DafnyStandardLibraries-rs.doo
+build	Test DafnyStandardLibraries	2025-07-15T20:24:33.8734200Z   inflating: ../../../build/current-rs/manifest.toml  
+build	Test DafnyStandardLibraries	2025-07-15T20:24:33.8736350Z   inflating: ../../../build/current-rs/program  
+build	Test DafnyStandardLibraries	2025-07-15T20:24:33.8738900Z unzip -o ../../../binaries/DafnyStandardLibraries-rs.doo -d ../../../build/rebuilt-rs
+build	Test DafnyStandardLibraries	2025-07-15T20:24:33.8773980Z Archive:  ../../../binaries/DafnyStandardLibraries-rs.doo
+build	Test DafnyStandardLibraries	2025-07-15T20:24:33.8778450Z   inflating: ../../../build/rebuilt-rs/program  
+build	Test DafnyStandardLibraries	2025-07-15T20:24:33.8781060Z   inflating: ../../../build/rebuilt-rs/manifest.toml  
+build	Test DafnyStandardLibraries	2025-07-15T20:24:33.8783790Z diff ../../../build/current-rs ../../../build/rebuilt-rs
+build	Test DafnyStandardLibraries	2025-07-15T20:24:33.8827770Z diff ../../../build/current-rs/program ../../../build/rebuilt-rs/program
+build	Test DafnyStandardLibraries	2025-07-15T20:24:33.8828520Z make[2]: *** [check-binary] Error 1
+build	Test DafnyStandardLibraries	2025-07-15T20:24:33.8828910Z 216,219d215
+build	Test DafnyStandardLibraries	2025-07-15T20:24:33.8829250Z < module {:extern} Std.OrdinalExclusion {
+build	Test DafnyStandardLibraries	2025-07-15T20:24:33.8829730Z <   type {:compile false} BigOrdinal = int
+build	Test DafnyStandardLibraries	2025-07-15T20:24:33.8830150Z < }
+build	Test DafnyStandardLibraries	2025-07-15T20:24:33.8830380Z < 
+build	Test DafnyStandardLibraries	2025-07-15T20:24:33.8830720Z make[1]: *** [check-binary-all] Error 2
+build	Test DafnyStandardLibraries	2025-07-15T20:24:33.8833650Z make: *** [check-binary] Error 2
+build	Test DafnyStandardLibraries	2025-07-15T20:24:33.8853570Z ##[error]Process completed with exit code 2.
+build	Post Set up JDK 18	﻿2025-07-15T20:24:33.8977520Z Post job cleanup.
+build	Post Checkout Dafny	﻿2025-07-15T20:24:34.1037260Z Post job cleanup.
+build	Post Checkout Dafny	2025-07-15T20:24:34.2319710Z [command]/usr/local/bin/git version
+build	Post Checkout Dafny	2025-07-15T20:24:34.2423210Z git version 2.50.1
+build	Post Checkout Dafny	2025-07-15T20:24:34.2464080Z Copying '/Users/runner/.gitconfig' to '/Users/runner/work/_temp/368d0f75-e6dd-41ab-baff-d4088584c97e/.gitconfig'
+build	Post Checkout Dafny	2025-07-15T20:24:34.2895430Z Temporarily overriding HOME='/Users/runner/work/_temp/368d0f75-e6dd-41ab-baff-d4088584c97e' before making global git config changes
+build	Post Checkout Dafny	2025-07-15T20:24:34.2897310Z Adding repository directory to the temporary git global config as a safe directory
+build	Post Checkout Dafny	2025-07-15T20:24:34.2903340Z [command]/usr/local/bin/git config --global --add safe.directory /Users/runner/work/dafny/dafny
+build	Post Checkout Dafny	2025-07-15T20:24:34.2983740Z [command]/usr/local/bin/git config --local --name-only --get-regexp core\.sshCommand
+build	Post Checkout Dafny	2025-07-15T20:24:34.3058230Z [command]/usr/local/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+build	Post Checkout Dafny	2025-07-15T20:24:34.4466470Z [command]/usr/local/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+build	Post Checkout Dafny	2025-07-15T20:24:34.4536500Z http.https://github.com/.extraheader
+build	Post Checkout Dafny	2025-07-15T20:24:34.4551550Z [command]/usr/local/bin/git config --local --unset-all http.https://github.com/.extraheader
+build	Post Checkout Dafny	2025-07-15T20:24:34.4652770Z [command]/usr/local/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+build	Complete job	﻿2025-07-15T20:24:34.5786060Z Cleaning up orphan processes
+build	Complete job	2025-07-15T20:24:34.6912790Z Terminate orphan process: pid (5351) (java)

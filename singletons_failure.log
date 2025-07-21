@@ -1,0 +1,199 @@
+singletons	Set up job	﻿2025-07-16T10:38:23.6794757Z Current runner version: '2.326.0'
+singletons	Set up job	2025-07-16T10:38:23.6818918Z ##[group]Runner Image Provisioner
+singletons	Set up job	2025-07-16T10:38:23.6819726Z Hosted Compute Agent
+singletons	Set up job	2025-07-16T10:38:23.6820261Z Version: 20250711.363
+singletons	Set up job	2025-07-16T10:38:23.6820913Z Commit: 6785254374ce925a23743850c1cb91912ce5c14c
+singletons	Set up job	2025-07-16T10:38:23.6821584Z Build Date: 2025-07-11T20:04:25Z
+singletons	Set up job	2025-07-16T10:38:23.6822177Z ##[endgroup]
+singletons	Set up job	2025-07-16T10:38:23.6822647Z ##[group]Operating System
+singletons	Set up job	2025-07-16T10:38:23.6823296Z Ubuntu
+singletons	Set up job	2025-07-16T10:38:23.6823729Z 22.04.5
+singletons	Set up job	2025-07-16T10:38:23.6824218Z LTS
+singletons	Set up job	2025-07-16T10:38:23.6825126Z ##[endgroup]
+singletons	Set up job	2025-07-16T10:38:23.6825628Z ##[group]Runner Image
+singletons	Set up job	2025-07-16T10:38:23.6826150Z Image: ubuntu-22.04
+singletons	Set up job	2025-07-16T10:38:23.6826715Z Version: 20250710.1.0
+singletons	Set up job	2025-07-16T10:38:23.6827727Z Included Software: https://github.com/actions/runner-images/blob/ubuntu22/20250710.1/images/ubuntu/Ubuntu2204-Readme.md
+singletons	Set up job	2025-07-16T10:38:23.6829052Z Image Release: https://github.com/actions/runner-images/releases/tag/ubuntu22%2F20250710.1
+singletons	Set up job	2025-07-16T10:38:23.6830264Z ##[endgroup]
+singletons	Set up job	2025-07-16T10:38:23.6832851Z ##[group]GITHUB_TOKEN Permissions
+singletons	Set up job	2025-07-16T10:38:23.6835612Z Actions: write
+singletons	Set up job	2025-07-16T10:38:23.6836170Z Attestations: write
+singletons	Set up job	2025-07-16T10:38:23.6836783Z Checks: write
+singletons	Set up job	2025-07-16T10:38:23.6837251Z Contents: write
+singletons	Set up job	2025-07-16T10:38:23.6837733Z Deployments: write
+singletons	Set up job	2025-07-16T10:38:23.6838247Z Discussions: write
+singletons	Set up job	2025-07-16T10:38:23.6838808Z Issues: write
+singletons	Set up job	2025-07-16T10:38:23.6839249Z Metadata: read
+singletons	Set up job	2025-07-16T10:38:23.6839777Z Models: read
+singletons	Set up job	2025-07-16T10:38:23.6840259Z Packages: write
+singletons	Set up job	2025-07-16T10:38:23.6840780Z Pages: write
+singletons	Set up job	2025-07-16T10:38:23.6841273Z PullRequests: write
+singletons	Set up job	2025-07-16T10:38:23.6841831Z RepositoryProjects: write
+singletons	Set up job	2025-07-16T10:38:23.6842384Z SecurityEvents: write
+singletons	Set up job	2025-07-16T10:38:23.6843003Z Statuses: write
+singletons	Set up job	2025-07-16T10:38:23.6843531Z ##[endgroup]
+singletons	Set up job	2025-07-16T10:38:23.6845636Z Secret source: Actions
+singletons	Set up job	2025-07-16T10:38:23.6846415Z Prepare workflow directory
+singletons	Set up job	2025-07-16T10:38:23.7218961Z Prepare all required actions
+singletons	Set up job	2025-07-16T10:38:23.7255839Z Getting action download info
+singletons	Set up job	2025-07-16T10:38:24.0009409Z ##[group]Download immutable action package 'actions/setup-dotnet@v4'
+singletons	Set up job	2025-07-16T10:38:24.0010411Z Version: 4.3.1
+singletons	Set up job	2025-07-16T10:38:24.0011805Z Digest: sha256:c7f3f729e5ef5b59af173c4efb4b30240ef30b219a7c12a6fae9f099415f688c
+singletons	Set up job	2025-07-16T10:38:24.0012987Z Source commit SHA: 67a3573c9a986a3f9c594539f4ab511d57bb3ce9
+singletons	Set up job	2025-07-16T10:38:24.0013693Z ##[endgroup]
+singletons	Set up job	2025-07-16T10:38:24.2685531Z ##[group]Download immutable action package 'actions/checkout@v4'
+singletons	Set up job	2025-07-16T10:38:24.2686373Z Version: 4.2.2
+singletons	Set up job	2025-07-16T10:38:24.2687222Z Digest: sha256:ccb2698953eaebd21c7bf6268a94f9c26518a7e38e27e0b83c1fe1ad049819b1
+singletons	Set up job	2025-07-16T10:38:24.2688130Z Source commit SHA: 11bd71901bbe5b1630ceea73d27597364c9af683
+singletons	Set up job	2025-07-16T10:38:24.2688802Z ##[endgroup]
+singletons	Set up job	2025-07-16T10:38:24.3803983Z Complete job name: singletons
+singletons	Setup dotnet	﻿2025-07-16T10:38:24.4454622Z ##[group]Run actions/setup-dotnet@v4
+singletons	Setup dotnet	2025-07-16T10:38:24.4455482Z with:
+singletons	Setup dotnet	2025-07-16T10:38:24.4455865Z   dotnet-version: 8.0.x
+singletons	Setup dotnet	2025-07-16T10:38:24.4456286Z   cache: false
+singletons	Setup dotnet	2025-07-16T10:38:24.4456831Z env:
+singletons	Setup dotnet	2025-07-16T10:38:24.4457186Z   dotnet-version: 8.0.x
+singletons	Setup dotnet	2025-07-16T10:38:24.4457648Z ##[endgroup]
+singletons	Setup dotnet	2025-07-16T10:38:24.6336311Z [command]/home/runner/work/_actions/actions/setup-dotnet/v4/externals/install-dotnet.sh --skip-non-versioned-files --runtime dotnet --channel LTS
+singletons	Setup dotnet	2025-07-16T10:38:25.3996040Z dotnet-install: .NET Core Runtime with version '8.0.18' is already installed.
+singletons	Setup dotnet	2025-07-16T10:38:25.4041505Z [command]/home/runner/work/_actions/actions/setup-dotnet/v4/externals/install-dotnet.sh --skip-non-versioned-files --channel 8.0
+singletons	Setup dotnet	2025-07-16T10:38:26.0436127Z dotnet-install: .NET Core SDK with version '8.0.412' is already installed.
+singletons	Checkout Dafny	﻿2025-07-16T10:38:26.0732099Z ##[group]Run actions/checkout@v4
+singletons	Checkout Dafny	2025-07-16T10:38:26.0732466Z with:
+singletons	Checkout Dafny	2025-07-16T10:38:26.0732673Z   path: dafny
+singletons	Checkout Dafny	2025-07-16T10:38:26.0732901Z   submodules: recursive
+singletons	Checkout Dafny	2025-07-16T10:38:26.0733145Z   repository: dafny-lang/dafny
+singletons	Checkout Dafny	2025-07-16T10:38:26.0733551Z   token: ***
+singletons	Checkout Dafny	2025-07-16T10:38:26.0733769Z   ssh-strict: true
+singletons	Checkout Dafny	2025-07-16T10:38:26.0734254Z   ssh-user: git
+singletons	Checkout Dafny	2025-07-16T10:38:26.0734662Z   persist-credentials: true
+singletons	Checkout Dafny	2025-07-16T10:38:26.0734922Z   clean: true
+singletons	Checkout Dafny	2025-07-16T10:38:26.0735163Z   sparse-checkout-cone-mode: true
+singletons	Checkout Dafny	2025-07-16T10:38:26.0735489Z   fetch-depth: 1
+singletons	Checkout Dafny	2025-07-16T10:38:26.0735718Z   fetch-tags: false
+singletons	Checkout Dafny	2025-07-16T10:38:26.0735940Z   show-progress: true
+singletons	Checkout Dafny	2025-07-16T10:38:26.0736169Z   lfs: false
+singletons	Checkout Dafny	2025-07-16T10:38:26.0736384Z   set-safe-directory: true
+singletons	Checkout Dafny	2025-07-16T10:38:26.0736643Z env:
+singletons	Checkout Dafny	2025-07-16T10:38:26.0736848Z   dotnet-version: 8.0.x
+singletons	Checkout Dafny	2025-07-16T10:38:26.0737111Z   DOTNET_ROOT: /usr/share/dotnet
+singletons	Checkout Dafny	2025-07-16T10:38:26.0737364Z ##[endgroup]
+singletons	Checkout Dafny	2025-07-16T10:38:26.1670519Z Syncing repository: dafny-lang/dafny
+singletons	Checkout Dafny	2025-07-16T10:38:26.1672459Z ##[group]Getting Git version info
+singletons	Checkout Dafny	2025-07-16T10:38:26.1673278Z Working directory is '/home/runner/work/dafny/dafny/dafny'
+singletons	Checkout Dafny	2025-07-16T10:38:26.1718903Z [command]/usr/bin/git version
+singletons	Checkout Dafny	2025-07-16T10:38:26.1785192Z git version 2.50.1
+singletons	Checkout Dafny	2025-07-16T10:38:26.1810429Z ##[endgroup]
+singletons	Checkout Dafny	2025-07-16T10:38:26.1823220Z Temporarily overriding HOME='/home/runner/work/_temp/413a41e1-c2a9-43e4-b0cb-45f328d16c6c' before making global git config changes
+singletons	Checkout Dafny	2025-07-16T10:38:26.1824842Z Adding repository directory to the temporary git global config as a safe directory
+singletons	Checkout Dafny	2025-07-16T10:38:26.1828629Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/dafny/dafny/dafny
+singletons	Checkout Dafny	2025-07-16T10:38:26.1858459Z ##[group]Initializing the repository
+singletons	Checkout Dafny	2025-07-16T10:38:26.1862965Z [command]/usr/bin/git init /home/runner/work/dafny/dafny/dafny
+singletons	Checkout Dafny	2025-07-16T10:38:26.1921485Z hint: Using 'master' as the name for the initial branch. This default branch name
+singletons	Checkout Dafny	2025-07-16T10:38:26.1922726Z hint: is subject to change. To configure the initial branch name to use in all
+singletons	Checkout Dafny	2025-07-16T10:38:26.1924027Z hint: of your new repositories, which will suppress this warning, call:
+singletons	Checkout Dafny	2025-07-16T10:38:26.1924953Z hint:
+singletons	Checkout Dafny	2025-07-16T10:38:26.1925608Z hint: 	git config --global init.defaultBranch <name>
+singletons	Checkout Dafny	2025-07-16T10:38:26.1926171Z hint:
+singletons	Checkout Dafny	2025-07-16T10:38:26.1926620Z hint: Names commonly chosen instead of 'master' are 'main', 'trunk' and
+singletons	Checkout Dafny	2025-07-16T10:38:26.1927295Z hint: 'development'. The just-created branch can be renamed via this command:
+singletons	Checkout Dafny	2025-07-16T10:38:26.1927755Z hint:
+singletons	Checkout Dafny	2025-07-16T10:38:26.1928031Z hint: 	git branch -m <name>
+singletons	Checkout Dafny	2025-07-16T10:38:26.1928313Z hint:
+singletons	Checkout Dafny	2025-07-16T10:38:26.1928770Z hint: Disable this message with "git config set advice.defaultBranchName false"
+singletons	Checkout Dafny	2025-07-16T10:38:26.1929495Z Initialized empty Git repository in /home/runner/work/dafny/dafny/dafny/.git/
+singletons	Checkout Dafny	2025-07-16T10:38:26.1934753Z [command]/usr/bin/git remote add origin https://github.com/dafny-lang/dafny
+singletons	Checkout Dafny	2025-07-16T10:38:26.1965170Z ##[endgroup]
+singletons	Checkout Dafny	2025-07-16T10:38:26.1965703Z ##[group]Disabling automatic garbage collection
+singletons	Checkout Dafny	2025-07-16T10:38:26.1969508Z [command]/usr/bin/git config --local gc.auto 0
+singletons	Checkout Dafny	2025-07-16T10:38:26.1996855Z ##[endgroup]
+singletons	Checkout Dafny	2025-07-16T10:38:26.1997517Z ##[group]Setting up auth
+singletons	Checkout Dafny	2025-07-16T10:38:26.2002812Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+singletons	Checkout Dafny	2025-07-16T10:38:26.2031529Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+singletons	Checkout Dafny	2025-07-16T10:38:26.2301067Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+singletons	Checkout Dafny	2025-07-16T10:38:26.2329445Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+singletons	Checkout Dafny	2025-07-16T10:38:26.2558134Z [command]/usr/bin/git config --local http.https://github.com/.extraheader AUTHORIZATION: basic ***
+singletons	Checkout Dafny	2025-07-16T10:38:26.2590600Z ##[endgroup]
+singletons	Checkout Dafny	2025-07-16T10:38:26.2591289Z ##[group]Fetching the repository
+singletons	Checkout Dafny	2025-07-16T10:38:26.2599360Z [command]/usr/bin/git -c protocol.version=2 fetch --no-tags --prune --no-recurse-submodules --depth=1 origin +8894549724367f2c692bf274b77f8440fc5eb6e7:refs/remotes/pull/6307/merge
+singletons	Checkout Dafny	2025-07-16T10:38:26.6650745Z From https://github.com/dafny-lang/dafny
+singletons	Checkout Dafny	2025-07-16T10:38:26.6651494Z  * [new ref]         8894549724367f2c692bf274b77f8440fc5eb6e7 -> pull/6307/merge
+singletons	Checkout Dafny	2025-07-16T10:38:26.6675025Z ##[endgroup]
+singletons	Checkout Dafny	2025-07-16T10:38:26.6675579Z ##[group]Determining the checkout info
+singletons	Checkout Dafny	2025-07-16T10:38:26.6677497Z ##[endgroup]
+singletons	Checkout Dafny	2025-07-16T10:38:26.6682327Z [command]/usr/bin/git sparse-checkout disable
+singletons	Checkout Dafny	2025-07-16T10:38:26.6719035Z [command]/usr/bin/git config --local --unset-all extensions.worktreeConfig
+singletons	Checkout Dafny	2025-07-16T10:38:26.6745330Z ##[group]Checking out the ref
+singletons	Checkout Dafny	2025-07-16T10:38:26.6748963Z [command]/usr/bin/git checkout --progress --force refs/remotes/pull/6307/merge
+singletons	Checkout Dafny	2025-07-16T10:38:26.9950307Z Note: switching to 'refs/remotes/pull/6307/merge'.
+singletons	Checkout Dafny	2025-07-16T10:38:26.9951014Z 
+singletons	Checkout Dafny	2025-07-16T10:38:26.9951603Z You are in 'detached HEAD' state. You can look around, make experimental
+singletons	Checkout Dafny	2025-07-16T10:38:26.9952505Z changes and commit them, and you can discard any commits you make in this
+singletons	Checkout Dafny	2025-07-16T10:38:26.9953390Z state without impacting any branches by switching back to a branch.
+singletons	Checkout Dafny	2025-07-16T10:38:26.9953808Z 
+singletons	Checkout Dafny	2025-07-16T10:38:26.9954540Z If you want to create a new branch to retain commits you create, you may
+singletons	Checkout Dafny	2025-07-16T10:38:26.9955316Z do so (now or later) by using -c with the switch command. Example:
+singletons	Checkout Dafny	2025-07-16T10:38:26.9955660Z 
+singletons	Checkout Dafny	2025-07-16T10:38:26.9955888Z   git switch -c <new-branch-name>
+singletons	Checkout Dafny	2025-07-16T10:38:26.9956262Z 
+singletons	Checkout Dafny	2025-07-16T10:38:26.9956511Z Or undo this operation with:
+singletons	Checkout Dafny	2025-07-16T10:38:26.9956843Z 
+singletons	Checkout Dafny	2025-07-16T10:38:26.9957005Z   git switch -
+singletons	Checkout Dafny	2025-07-16T10:38:26.9957206Z 
+singletons	Checkout Dafny	2025-07-16T10:38:26.9957550Z Turn off this advice by setting config variable advice.detachedHead to false
+singletons	Checkout Dafny	2025-07-16T10:38:26.9957968Z 
+singletons	Checkout Dafny	2025-07-16T10:38:26.9958543Z HEAD is now at 8894549 Merge 19c42995ffaaa3dc319ec1253ab10c1b0850fa49 into 220fdecb25920d2f72ceb4c57af6cb032fdd337d
+singletons	Checkout Dafny	2025-07-16T10:38:26.9963090Z ##[endgroup]
+singletons	Checkout Dafny	2025-07-16T10:38:26.9963601Z ##[group]Setting up auth for fetching submodules
+singletons	Checkout Dafny	2025-07-16T10:38:26.9969078Z [command]/usr/bin/git config --global http.https://github.com/.extraheader AUTHORIZATION: basic ***
+singletons	Checkout Dafny	2025-07-16T10:38:27.0004651Z [command]/usr/bin/git config --global --unset-all url.https://github.com/.insteadOf
+singletons	Checkout Dafny	2025-07-16T10:38:27.0032113Z [command]/usr/bin/git config --global --add url.https://github.com/.insteadOf git@github.com:
+singletons	Checkout Dafny	2025-07-16T10:38:27.0060205Z [command]/usr/bin/git config --global --add url.https://github.com/.insteadOf org-52358127@github.com:
+singletons	Checkout Dafny	2025-07-16T10:38:27.0084130Z ##[endgroup]
+singletons	Checkout Dafny	2025-07-16T10:38:27.0084750Z ##[group]Fetching submodules
+singletons	Checkout Dafny	2025-07-16T10:38:27.0088312Z [command]/usr/bin/git submodule sync --recursive
+singletons	Checkout Dafny	2025-07-16T10:38:27.0315394Z [command]/usr/bin/git -c protocol.version=2 submodule update --init --force --depth=1 --recursive
+singletons	Checkout Dafny	2025-07-16T10:38:27.0543985Z [command]/usr/bin/git submodule foreach --recursive git config --local gc.auto 0
+singletons	Checkout Dafny	2025-07-16T10:38:27.0768809Z ##[endgroup]
+singletons	Checkout Dafny	2025-07-16T10:38:27.0769609Z ##[group]Persisting credentials for submodules
+singletons	Checkout Dafny	2025-07-16T10:38:27.0776461Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'url\.https\:\/\/github\.com\/\.insteadOf' && git config --local --unset-all 'url.https://github.com/.insteadOf' || :"
+singletons	Checkout Dafny	2025-07-16T10:38:27.1004176Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local 'http.https://github.com/.extraheader' 'AUTHORIZATION: basic ***' && git config --local --show-origin --name-only --get-regexp remote.origin.url"
+singletons	Checkout Dafny	2025-07-16T10:38:27.1229450Z [command]/usr/bin/git submodule foreach --recursive git config --local --add 'url.https://github.com/.insteadOf' 'git@github.com:'
+singletons	Checkout Dafny	2025-07-16T10:38:27.1459102Z [command]/usr/bin/git submodule foreach --recursive git config --local --add 'url.https://github.com/.insteadOf' 'org-52358127@github.com:'
+singletons	Checkout Dafny	2025-07-16T10:38:27.1681953Z ##[endgroup]
+singletons	Checkout Dafny	2025-07-16T10:38:27.1717153Z [command]/usr/bin/git log -1 --format=%H
+singletons	Checkout Dafny	2025-07-16T10:38:27.1738735Z 8894549724367f2c692bf274b77f8440fc5eb6e7
+singletons	Restore tools	﻿2025-07-16T10:38:27.1935949Z ##[group]Run dotnet tool restore
+singletons	Restore tools	2025-07-16T10:38:27.1936317Z [36;1mdotnet tool restore[0m
+singletons	Restore tools	2025-07-16T10:38:27.1966789Z shell: /usr/bin/bash -e {0}
+singletons	Restore tools	2025-07-16T10:38:27.1967055Z env:
+singletons	Restore tools	2025-07-16T10:38:27.1967259Z   dotnet-version: 8.0.x
+singletons	Restore tools	2025-07-16T10:38:27.1967490Z   DOTNET_ROOT: /usr/share/dotnet
+singletons	Restore tools	2025-07-16T10:38:27.1967718Z ##[endgroup]
+singletons	Restore tools	2025-07-16T10:38:52.0852732Z Tool 'cocor' (version '2014.12.25') was restored. Available commands: coco
+singletons	Restore tools	2025-07-16T10:38:52.0853432Z Tool 'boogie' (version '3.2.5') was restored. Available commands: boogie
+singletons	Restore tools	2025-07-16T10:38:52.0853829Z 
+singletons	Restore tools	2025-07-16T10:38:52.0853940Z Restore was successful.
+singletons	Check whitespace and style	﻿2025-07-16T10:38:52.8699430Z ##[group]Run dotnet format whitespace Source/Dafny.sln --verify-no-changes --exclude Source/DafnyCore/GeneratedFromDafny/* --exclude Source/DafnyCore.Test/GeneratedFromDafny/* --exclude Source/DafnyRuntime/DafnyRuntimeSystemModule.cs
+singletons	Check whitespace and style	2025-07-16T10:38:52.8701043Z [36;1mdotnet format whitespace Source/Dafny.sln --verify-no-changes --exclude Source/DafnyCore/GeneratedFromDafny/* --exclude Source/DafnyCore.Test/GeneratedFromDafny/* --exclude Source/DafnyRuntime/DafnyRuntimeSystemModule.cs[0m
+singletons	Check whitespace and style	2025-07-16T10:38:52.8729628Z shell: /usr/bin/bash -e {0}
+singletons	Check whitespace and style	2025-07-16T10:38:52.8729841Z env:
+singletons	Check whitespace and style	2025-07-16T10:38:52.8729999Z   dotnet-version: 8.0.x
+singletons	Check whitespace and style	2025-07-16T10:38:52.8730199Z   DOTNET_ROOT: /usr/share/dotnet
+singletons	Check whitespace and style	2025-07-16T10:38:52.8730408Z ##[endgroup]
+singletons	Check whitespace and style	2025-07-16T10:39:05.1659887Z Unable to locate dotnet CLI. Ensure that it is on the PATH.
+singletons	Check whitespace and style	2025-07-16T10:39:05.2420019Z ##[error]Process completed with exit code 4.
+singletons	Post Checkout Dafny	﻿2025-07-16T10:39:05.2529545Z Post job cleanup.
+singletons	Post Checkout Dafny	2025-07-16T10:39:05.3473885Z [command]/usr/bin/git version
+singletons	Post Checkout Dafny	2025-07-16T10:39:05.3518342Z git version 2.50.1
+singletons	Post Checkout Dafny	2025-07-16T10:39:05.3562331Z Temporarily overriding HOME='/home/runner/work/_temp/a5b234a1-c8d9-4b3e-b873-8013fdd7e6b3' before making global git config changes
+singletons	Post Checkout Dafny	2025-07-16T10:39:05.3563765Z Adding repository directory to the temporary git global config as a safe directory
+singletons	Post Checkout Dafny	2025-07-16T10:39:05.3568527Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/dafny/dafny/dafny
+singletons	Post Checkout Dafny	2025-07-16T10:39:05.3602163Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+singletons	Post Checkout Dafny	2025-07-16T10:39:05.3634923Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+singletons	Post Checkout Dafny	2025-07-16T10:39:05.3865761Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+singletons	Post Checkout Dafny	2025-07-16T10:39:05.3885780Z http.https://github.com/.extraheader
+singletons	Post Checkout Dafny	2025-07-16T10:39:05.3897929Z [command]/usr/bin/git config --local --unset-all http.https://github.com/.extraheader
+singletons	Post Checkout Dafny	2025-07-16T10:39:05.3927709Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+singletons	Complete job	﻿2025-07-16T10:39:05.4266436Z Cleaning up orphan processes
