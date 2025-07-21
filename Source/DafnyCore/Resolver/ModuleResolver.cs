@@ -1872,8 +1872,8 @@ namespace Microsoft.Dafny {
       var statik = f.IsStatic ? "static " : "";
 
       if (f.IsGhost && !f.Type.IsNonempty) {
-        reporter.Error(MessageSource.Resolver, f.Origin,
-          $"{statik}ghost const field '{f.Name}' of type '{f.Type}' (which may be empty) must give a defining value{hint}");
+        // reporter.Error(MessageSource.Resolver, f.Origin,
+        //   $"{statik}ghost const field '{f.Name}' of type '{f.Type}' (which may be empty) must give a defining value{hint}");
       } else if (!f.IsGhost && !f.Type.HasCompilableValue) {
         reporter.Error(MessageSource.Resolver, f.Origin,
           $"{statik}non-ghost const field '{f.Name}' of type '{f.Type}' (which does not have a default compiled value) must give a defining value{hint}");
