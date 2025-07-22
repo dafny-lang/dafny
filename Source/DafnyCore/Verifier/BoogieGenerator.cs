@@ -147,7 +147,12 @@ namespace Microsoft.Dafny {
 
     private ProofDependencyManager proofDependencies;
 
-    // optimizing translation
+    /**
+     * The behavior around this field assumes that usages are visited before declarations
+     * which is only the case when the usage is in a different module than the declaration.
+     * However, we alleviate this problem by saying that any declaration must be kept
+     * if any code in that module is verified.
+     */
     readonly ISet<MemberDecl> referencedMembers = new HashSet<MemberDecl>();
 
     public void AddReferencedMember(MemberDecl m) {
