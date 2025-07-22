@@ -59,7 +59,7 @@ method Abs(x: int) returns (y: int)
 ", "testFile.dfy", true);
       // When hovering the postcondition, it should display the position of the failing path
       await AssertVerificationHoverMatches(documentItem, (2, 15),
-        @"[**Error:**](???) this postcondition could not be proved on a return path  
+        @"[**Error:**](???) this postcondition could not be proven on a return path  
 This is assertion #??? of 4 in method `Abs`  
 Resource usage: ??? RU  
 Return path: testFile.dfy(6, 5)"
@@ -67,13 +67,13 @@ Return path: testFile.dfy(6, 5)"
       // When hovering the failing path, it does not display the position of the failing postcondition
       // because the IDE extension already does it.
       await AssertVerificationHoverMatches(documentItem, (5, 4),
-        @"[**Error:**](???) a postcondition could not be proved on this return path  
+        @"[**Error:**](???) a postcondition could not be proven on this return path  
 Could not prove: `y >= 0`  
 This is assertion #??? of 4 in method `Abs`  
 Resource usage: ??? RU"
       );
       await AssertVerificationHoverMatches(documentItem, (7, 11),
-        @"[**Error:**](???) assertion could not be proved  
+        @"[**Error:**](???) assertion could not be proven  
 This is assertion #??? of 4 in method `Abs`  
 Resource usage: ??? RU"
       );
@@ -102,7 +102,7 @@ method DoIt() returns (x: int)
 }", Path.Combine(Directory.GetCurrentDirectory(), "Lookup/TestFiles/test.dfy"), false);
       // When hovering the failing path, it should extract text from the included file
       await AssertVerificationHoverMatches(documentItem, (9, 4),
-        @"[**Error:**](???) a postcondition could not be proved on this return path  
+        @"[**Error:**](???) a postcondition could not be proven on this return path  
 Inside `Q(x)`  
 Inside `P(i)`  
 Could not prove: `i >= 0`  
@@ -124,7 +124,7 @@ method {:isolate_assertions} f(x: int) {
 }
 ", "testfile.dfy", true);
       await AssertVerificationHoverMatches(documentItem, (1, 12),
-        @"[**Error:**](???) assertion could not be proved  
+        @"[**Error:**](???) assertion could not be proven  
 This is the only assertion in [batch](???) #??? of ??? in method `f`  
 [Batch](???) #??? resource usage: ??? RU"
       );
@@ -173,7 +173,7 @@ Did prove: `i > 0`"
 Could not prove: `i % 2 == 0`"
       );
       await AssertVerificationHoverMatches(documentItem, (7, 6),
-        @"**Error:**???this is the precondition that could not be proved  
+        @"**Error:**???this is the precondition that could not be proven  
 Could not prove: `i > 0`"
       );
     }
@@ -193,7 +193,7 @@ Could not prove: `i % 2 == 0`"
       );
 
       await AssertVerificationHoverMatches(documentItem, (3, 0),
-        @"**Error:**???a postcondition could not be proved on this return path  
+        @"**Error:**???a postcondition could not be proven on this return path  
 Could not prove: `i > 0`"
       );
     }
@@ -215,7 +215,7 @@ This is assertion #2 of 2 in [batch](???) #1 of 2 in function `f`
 [Batch](???) #1 resource usage: ??? RU"
       );
       await AssertVerificationHoverMatches(documentItem, (3, 26),
-        @"[**Error:**](???) assertion could not be proved  
+        @"[**Error:**](???) assertion could not be proven  
 This is assertion #1 of 2 in [batch](???) #2 of 2 in function `f`  
 [Batch](???) #2 resource usage: ??? RU"
       );
@@ -311,11 +311,11 @@ datatype Test = Test(i: int)
 }
 ", "testfile2.dfy", true);
       await AssertVerificationHoverMatches(documentItem, (4, 20),
-        @"**Error:**???assertion could not be proved???
+        @"**Error:**???assertion could not be proven???
 Could not prove: `t.i > 0`  "
       );
       await AssertVerificationHoverMatches(documentItem, (5, 20),
-        @"**Error:**???assertion could not be proved???
+        @"**Error:**???assertion could not be proven???
 Could not prove: `t.i > 1`  "
       );
       await AssertVerificationHoverMatches(documentItem, (5, 20),
@@ -349,7 +349,7 @@ datatype ValidTester2 = MoreTest(i: int, next: ValidTester2) | End {
 }
 ", "testfile2.dfy", false);
       await AssertVerificationHoverMatches(documentItem, (10, 16),
-        @"**Error:**???function precondition could not be proved???
+        @"**Error:**???function precondition could not be proven???
 Inside `Valid()`  
 Could not prove: `((this.Tester? || this.Tester2?) && this.next.Valid()) || (this.Test3? && !this.next.Valid())`  "
       );
@@ -375,11 +375,11 @@ function Id<T>(t: T): T { t }
 
 ", "testfile2.dfy", true);
       await AssertVerificationHoverMatches(documentItem, (9, 20),
-        @"**Error:**???assertion could not be proved???
+        @"**Error:**???assertion could not be proven???
 Could not prove: `i > 0`  "
       );
       await AssertVerificationHoverMatches(documentItem, (10, 20),
-      @"**Error:**???assertion could not be proved???
+      @"**Error:**???assertion could not be proven???
 Could not prove: `i > 1`  "
     );
       await AssertVerificationHoverMatches(documentItem, (10, 20),
@@ -414,17 +414,17 @@ method Test(i: int) returns (j: nat)
 }
 ", "testfile2.dfy", false);
       await AssertVerificationHoverMatches(documentItem, (12, 11),
-        @"**Error:**???this postcondition could not be proved on a return path???
+        @"**Error:**???this postcondition could not be proven on a return path???
 Could not prove: `i == j || -i == j`???
 Return path: testfile2.dfy(18, 5)"
       );
       await AssertVerificationHoverMatches(documentItem, (17, 6),
-        @"**Error:**???a postcondition could not be proved on this return path???
+        @"**Error:**???a postcondition could not be proven on this return path???
 Inside `Q(i, j)`???
 Could not prove: `i == j || -i == j`"
       );
       await AssertVerificationHoverMatches(documentItem, (17, 13),
-        @"**Error:**???function precondition could not be proved???
+        @"**Error:**???function precondition could not be proven???
 Inside `P(i)`???
 Could not prove: `i <= 0`"
       );
@@ -451,7 +451,7 @@ method Test() returns (j: int)
 }
 ", "testfile2.dfy", true);
       await AssertVerificationHoverMatches(documentItem, (14, 5),
-        @"**Error:**???a postcondition could not be proved on this return path???
+        @"**Error:**???a postcondition could not be proven on this return path???
 Could not prove: `j == 1`"
       );
     }
@@ -469,7 +469,7 @@ method Test(i: int)
 }
 ", "testfile2.dfy", false);
       await AssertVerificationHoverMatches(documentItem, (6, 11),
-        @"**Error:**???assertion could not be proved  
+        @"**Error:**???assertion could not be proven  
 Inside `P(1)`  
 Inside `P(1)`  
 Could not prove: `i <= 0`"

@@ -34,13 +34,13 @@ method Main() {
     var diagnostics = await GetLastDiagnostics(document);
     Assert.Single(diagnostics);
     var diagnostic = diagnostics[0];
-    Assert.Contains("a precondition for this call could not be proved", diagnostic.Message);
+    Assert.Contains("a precondition for this call could not be proven", diagnostic.Message);
     Assert.NotNull(diagnostic.RelatedInformation);
     var relatedInformation = diagnostic.RelatedInformation.ToList();
     Assert.Equal(3, relatedInformation.Count);
-    Assert.Contains("this is the precondition that could not be proved", relatedInformation[0].Message);
-    Assert.Contains("this proposition could not be proved", relatedInformation[1].Message);
-    Assert.Contains("this proposition could not be proved", relatedInformation[2].Message);
+    Assert.Contains("this is the precondition that could not be proven", relatedInformation[0].Message);
+    Assert.Contains("this proposition could not be proven", relatedInformation[1].Message);
+    Assert.Contains("this proposition could not be proven", relatedInformation[2].Message);
   }
 
   [Fact]
