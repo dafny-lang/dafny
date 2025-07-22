@@ -1543,6 +1543,21 @@ namespace Microsoft.Dafny {
                   CheckIsOkayWithoutRHS(f, false);
                 }
               }
+              foreach (var member in cl.InheritedMembers) {
+                if (member is ConstantField f && f.Rhs == null && !f.IsExtern(Options, out _, out _)) {
+                  if (f.IsGhost && !f.Type.IsNonempty) {
+                    reporter.Error(MessageSource.Resolver, cl.Origin,
+                      $"{cl.WhatKindAndName} must not inherit a ghost const field '{f.Name}' of type '{f.Type}' (which may be empty) without a defining value");
+                    break;
+                  }
+
+                  if (!f.IsGhost && !f.Type.HasCompilableValue) {
+                    reporter.Error(MessageSource.Resolver, cl.Origin,
+                      $"{cl.WhatKindAndName} must not inherit a non-ghost const field '{f.Name}' of type '{f.Type}' (which does not have a default compiled value) without a defining value");
+                    break;
+                  }
+                }
+              }
             }
             continue;
           }
@@ -1553,8 +1568,6 @@ namespace Microsoft.Dafny {
                 if (member is ConstantField f && f.Rhs == null && !f.IsExtern(Options, out _, out _)) {
                   if (f.IsStatic) {
                     CheckIsOkayWithoutRHS(f, false);
-                  } else if (!traitDecl.IsReferenceTypeDecl) {
-                    CheckIsOkayWithoutRHS(f, true);
                   }
                 }
               }
@@ -1872,8 +1885,8 @@ namespace Microsoft.Dafny {
       var statik = f.IsStatic ? "static " : "";
 
       if (f.IsGhost && !f.Type.IsNonempty) {
-        // reporter.Error(MessageSource.Resolver, f.Origin,
-        //   $"{statik}ghost const field '{f.Name}' of type '{f.Type}' (which may be empty) must give a defining value{hint}");
+        reporter.Error(MessageSource.Resolver, f.Origin,
+          $"{statik}ghost const field '{f.Name}' of type '{f.Type}' (which may be empty) must give a defining value{hint}");
       } else if (!f.IsGhost && !f.Type.HasCompilableValue) {
         reporter.Error(MessageSource.Resolver, f.Origin,
           $"{statik}non-ghost const field '{f.Name}' of type '{f.Type}' (which does not have a default compiled value) must give a defining value{hint}");
