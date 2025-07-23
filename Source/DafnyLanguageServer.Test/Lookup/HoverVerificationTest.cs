@@ -471,8 +471,8 @@ method Test(i: int)
       await AssertVerificationHoverMatches(documentItem, (6, 11),
         @"**Error:**???assertion could not be proved  
 Inside `P(1)`  
-Inside `P(1)`  
-Could not prove: `i <= 0`"
+Could not prove: `i <= 0`  
+This is the only assertion in method `Test`"
       );
       await ApplyChangesAndWaitCompletionAsync(
         ref documentItem,
