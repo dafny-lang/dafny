@@ -46,7 +46,7 @@ class Test
       var diagnostics1 = await GetLastDiagnostics(documentItem, DiagnosticSeverity.Error);
       var startOrdered = diagnostics1.OrderBy(r => r.Range.Start).ToList();
       Assert.Equal(new Range(5, 19, 5, 24), startOrdered[0].Range);
-      Assert.Equal("ensures could not be proven", startOrdered[0].Message);
+      Assert.Equal("ensures could not be proved", startOrdered[0].Message);
 
     }
     [Fact]
@@ -83,10 +83,10 @@ module B refines A {
       var diagnostics1 = await GetLastDiagnostics(documentItem, DiagnosticSeverity.Error);
       var startOrdered = diagnostics1.OrderBy(r => r.Range.Start).ToList();
       Assert.Equal(new Range(6, 4, 6, 5), startOrdered[0].Range);
-      Assert.Equal("a postcondition could not be proven on this return path", startOrdered[0].Message);
-      Assert.Equal("this is the postcondition that could not be proven", startOrdered[0].RelatedInformation!.ElementAt(0).Message);
+      Assert.Equal("a postcondition could not be proved on this return path", startOrdered[0].Message);
+      Assert.Equal("this is the postcondition that could not be proved", startOrdered[0].RelatedInformation!.ElementAt(0).Message);
       Assert.Equal(new Range(12, 7, 12, 8), startOrdered[1].Range);
-      Assert.Equal("decreases clause could not be proven to decrease", startOrdered[1].Message);
+      Assert.Equal("decreases clause could not be proved to decrease", startOrdered[1].Message);
       Assert.Equal(new Range(17, 7, 17, 8), startOrdered[1].RelatedInformation!.ElementAt(0).Location.Range);
       Assert.Equal("refining module", startOrdered[1].RelatedInformation.ElementAt(0).Message);
     }
@@ -410,7 +410,7 @@ method Test(i: int) returns (j: int)
       var relatedInformation =
         diagnostics[0].RelatedInformation.ToArray();
       Assert.Equal(2, relatedInformation.Length);
-      Assert.Equal("this proposition could not be proven", relatedInformation[0].Message);
+      Assert.Equal("this proposition could not be proved", relatedInformation[0].Message);
     }
 
     [Fact]
@@ -652,7 +652,7 @@ method Multiply(x: int, y: int) returns (product: int)
       Assert.Equal(DiagnosticSeverity.Error, diagnostics[1].Severity);
       Assert.Single(diagnostics[0].RelatedInformation);
       var relatedInformation = diagnostics[0].RelatedInformation.First();
-      Assert.Equal("this is the postcondition that could not be proven", relatedInformation.Message);
+      Assert.Equal("this is the postcondition that could not be proved", relatedInformation.Message);
       Assert.Equal(new Range(new Position(2, 38), new Position(2, 40)), relatedInformation.Location.Range);
       await AssertNoDiagnosticsAreComing(CancellationToken);
     }
@@ -974,9 +974,9 @@ class Test {
       Assert.Equal(DiagnosticSeverity.Error, diagnostics[0].Severity);
       var relatedInformation = diagnostics[0].RelatedInformation.ToArray();
       Assert.Equal(2, relatedInformation.Length);
-      Assert.Equal("this is the postcondition that could not be proven", relatedInformation[0].Message);
+      Assert.Equal("this is the postcondition that could not be proved", relatedInformation[0].Message);
       Assert.Equal(new Range((14, 21), (14, 22)), relatedInformation[0].Location.Range);
-      Assert.Equal("this proposition could not be proven", relatedInformation[1].Message);
+      Assert.Equal("this proposition could not be proved", relatedInformation[1].Message);
       Assert.Equal(new Range((9, 13), (9, 14)), relatedInformation[1].Location.Range);
       await AssertNoDiagnosticsAreComing(CancellationToken);
     }

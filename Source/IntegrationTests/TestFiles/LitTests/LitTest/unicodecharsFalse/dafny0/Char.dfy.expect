@@ -1,7 +1,7 @@
-Char.dfy(48,8): Error: assertion could not be proven
-Char.dfy(52,8): Error: assertion could not be proven
-Char.dfy(63,6): Error: assertion could not be proven
-Char.dfy(81,13): Error: char addition could not be proven to not overflow
-Char.dfy(89,7): Error: char subtraction could not be proven to not underflow
+Char.dfy(48,8): Error: assertion could not be proved
+Char.dfy(52,8): Error: assertion could not be proved
+Char.dfy(63,6): Error: assertion could not be proved
+Char.dfy(81,13): Error: char addition could not be proved to not overflow
+Char.dfy(89,7): Error: char subtraction could not be proved to not underflow
 
 Dafny program verifier finished with 8 verified, 5 errors

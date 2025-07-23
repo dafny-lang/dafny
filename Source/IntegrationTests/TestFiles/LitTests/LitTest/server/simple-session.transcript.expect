@@ -2,25 +2,25 @@
 
 Verifying A (correctness) ...
   [1 proof obligation]  error
-transcript(3,9): Error: assertion could not be proven
+transcript(3,9): Error: assertion could not be proved
 Verification completed successfully!
 [SUCCESS] [[DAFNY-SERVER: EOM]]
 
 Verifying A (correctness) ...
   [0 proof obligations]  error
-transcript(3,9): Error: assertion could not be proven
+transcript(3,9): Error: assertion could not be proved
 Verification completed successfully!
 [SUCCESS] [[DAFNY-SERVER: EOM]]
 
 Verifying A (correctness) ...
   [0 proof obligations]  error
-transcript(3,9): Error: assertion could not be proven
+transcript(3,9): Error: assertion could not be proved
 Verification completed successfully!
 [SUCCESS] [[DAFNY-SERVER: EOM]]
 
 Verifying A (correctness) ...
   [0 proof obligations]  error
-transcript(3,9): Error: assertion could not be proven
+transcript(3,9): Error: assertion could not be proved
 Verification completed successfully!
 [SUCCESS] [[DAFNY-SERVER: EOM]]
 Verification completed successfully!
@@ -121,7 +121,7 @@ transcript(10,9): Info: Selected triggers: {x' * x'}
 
 Verifying M' (correctness) ...
   [1 proof obligation]  error
-transcript(10,9): Error: assertion could not be proven
+transcript(10,9): Error: assertion could not be proved
 Verification completed successfully!
 [SUCCESS] [[DAFNY-SERVER: EOM]]
 transcript(5,0): Warning: module-level methods are always non-instance, so the 'static' keyword is not allowed here
@@ -263,7 +263,7 @@ Retrieving cached verification result for implementation M1 (correctness)...
 
 Verifying M2 (correctness) ...
   [2 proof obligations]  error
-transcript(38,9): Error: assertion could not be proven
+transcript(38,9): Error: assertion could not be proved
 Verification completed successfully!
 [SUCCESS] [[DAFNY-SERVER: EOM]]
 transcript(5,0): Warning: module-level methods are always non-instance, so the 'static' keyword is not allowed here
@@ -290,7 +290,7 @@ Retrieving cached verification result for implementation M1 (correctness)...
 
 Verifying M2 (correctness) ...
   [2 proof obligations]  error
-transcript(38,9): Error: assertion could not be proven
+transcript(38,9): Error: assertion could not be proved
 Verification completed successfully!
 [SUCCESS] [[DAFNY-SERVER: EOM]]
 transcript(5,0): Warning: module-level methods are always non-instance, so the 'static' keyword is not allowed here

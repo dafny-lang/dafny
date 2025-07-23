@@ -8,7 +8,7 @@ ReadsOnMethods.dfy(29,29): Error: insufficient reads clause to read field; Consi
 ReadsOnMethods.dfy(44,32): Error: insufficient reads clause to read field; Consider adding 'reads xs[0]' or 'reads xs[0]`u' in the enclosing method specification for resolution
 ReadsOnMethods.dfy(54,29): Error: insufficient reads clause to read field; Consider adding 'reads c' or 'reads c`u' in the enclosing method specification for resolution
 ReadsOnMethods.dfy(73,29): Error: insufficient reads clause to read field; Consider adding 'reads r' or 'reads r`r' in the enclosing method specification for resolution
-ReadsOnMethods.dfy(147,35): Error: function precondition could not be proven
+ReadsOnMethods.dfy(147,35): Error: function precondition could not be proved
 ReadsOnMethods.dfy(147,35): Error: insufficient reads clause to invoke function
 ReadsOnMethods.dfy(151,45): Error: insufficient reads clause to invoke function
 ReadsOnMethods.dfy(162,33): Error: insufficient reads clause to invoke function
@@ -26,13 +26,13 @@ ReadsOnMethods.dfy(411,13): Error: insufficient reads clause to read field; Cons
 ReadsOnMethods.dfy(413,4): Error: insufficient reads clause to read field; Consider adding 'reads b' or 'reads b`x' in the enclosing method specification for resolution
 ReadsOnMethods.dfy(427,10): Error: insufficient reads clause to read array element; Consider adding 'reads a' in the enclosing method specification for resolution
 ReadsOnMethods.dfy(436,10): Error: insufficient reads clause to read array element; Consider adding 'reads a' in the enclosing method specification for resolution
-ReadsOnMethods.dfy(469,9): Error: accessed object in method could not be proven to be in the parent trait's reads clause
+ReadsOnMethods.dfy(469,9): Error: accessed object in method could not be proved to be in the parent trait's reads clause
 ReadsOnMethods.dfy(479,26): Error: insufficient reads clause to call
 ReadsOnMethods.dfy(484,24): Error: insufficient reads clause to call
 ReadsOnMethods.dfy(494,35): Error: insufficient reads clause to call
 ReadsOnMethods.dfy(499,18): Error: insufficient reads clause to invoke function
-ReadsOnMethods.dfy(505,14): Error: assertion could not be proven
-ReadsOnMethods.dfy(516,11): Related location: this proposition could not be proven
+ReadsOnMethods.dfy(505,14): Error: assertion could not be proved
+ReadsOnMethods.dfy(516,11): Related location: this proposition could not be proved
 ReadsOnMethods.dfy(523,13): Error: insufficient reads clause to read field; Consider adding 'reads b' or 'reads b`x' in the enclosing method specification for resolution
 ReadsOnMethods.dfy(530,50): Error: insufficient reads clause to read field; Mutable fields cannot be accessed within certain scopes, such as default values, the right-hand side of constants, or co-recursive calls
 

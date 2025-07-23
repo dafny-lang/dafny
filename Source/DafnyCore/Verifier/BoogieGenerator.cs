@@ -1269,7 +1269,7 @@ namespace Microsoft.Dafny {
         }
         if (conjuncts) {
           yield return Bpl.Expr.Binary(
-            new NestedOrigin(tok, ctor.Origin, "this proposition could not be proven"),
+            new NestedOrigin(tok, ctor.Origin, "this proposition could not be proved"),
             BinaryOperator.Opcode.Imp, aq, BplAnd(bq, chunk));
         } else {
           yield return BplAnd(BplAnd(aq, bq), BplImp(BplAnd(aq, bq), chunk));

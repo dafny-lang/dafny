@@ -144,7 +144,7 @@ public class ConversionIsNatural : ProofObligationDescription {
     $"{prefix}value to be converted is always a natural number";
 
   public override string FailureDescription =>
-    $"{prefix}value to be converted could not be proven to be a natural number";
+    $"{prefix}value to be converted could not be proved to be a natural number";
 
   public override string ShortDescription => "converted value is natural";
 
@@ -166,7 +166,7 @@ public class ConversionSatisfiesConstraints : ProofObligationDescription {
     $"{prefix}result of operation never violates {kind} constraints for '{name}'";
 
   public override string FailureDescription =>
-    $"{prefix}result of operation could not be proven to satisfy {kind} constraint for '{name}'";
+    $"{prefix}result of operation could not be proved to satisfy {kind} constraint for '{name}'";
 
   public override string ShortDescription => "conversion satisfies type constraints";
 
@@ -192,7 +192,7 @@ public class OrdinalSubtractionIsNatural : ProofObligationDescription {
     "RHS of ORDINAL subtraction is always a natural number";
 
   public override string FailureDescription =>
-    "RHS of ORDINAL subtraction must be a natural number, but the given RHS could not be proven to be a natural number";
+    "RHS of ORDINAL subtraction must be a natural number, but the given RHS could not be proved to be a natural number";
 
   public override string ShortDescription => "ordinal subtraction is natural";
 
@@ -212,7 +212,7 @@ public class OrdinalSubtractionUnderflow : ProofObligationDescription {
     "ORDINAL subtraction will never go below limit ordinal";
 
   public override string FailureDescription =>
-    "ORDINAL subtraction could not be proven to not underflow a limit ordinal (that is, RHS might be too large)";
+    "ORDINAL subtraction could not be proved to not underflow a limit ordinal (that is, RHS could not be proved to not be too large)";
 
   public override string ShortDescription => "ordinal subtraction underflow";
 
@@ -239,7 +239,7 @@ public class CharOverflow : ProofObligationDescription {
     "char addition will not overflow";
 
   public override string FailureDescription =>
-    "char addition could not be proven to not overflow";
+    "char addition could not be proved to not overflow";
 
   public override string ShortDescription => "char overflow";
 
@@ -267,7 +267,7 @@ public class CharUnderflow : ProofObligationDescription {
     "char subtraction will not underflow";
 
   public override string FailureDescription =>
-    "char subtraction could not be proven to not underflow";
+    "char subtraction could not be proved to not underflow";
 
   public override string ShortDescription => "char underflow";
 
@@ -295,7 +295,7 @@ public class ConversionFit : ProofObligationDescription {
     $"{prefix}{what} to be converted will always fit in {toType}";
 
   public override string FailureDescription =>
-    $"{prefix}{what} to be converted could not be proven to fit in {toType}";
+    $"{prefix}{what} to be converted could not be proved to fit in {toType}";
 
   public override string ShortDescription => "conversion fit";
 
@@ -321,7 +321,7 @@ public class NonNegative : ProofObligationDescription {
     $"{what} is never negative";
 
   public override string FailureDescription =>
-    $"{what} could not be proven to be non-negative";
+    $"{what} could not be proved to be non-negative";
 
   public override string ShortDescription => "non-negative";
 
@@ -408,7 +408,7 @@ public class NonNull : ProofObligationDescription {
     $"{PluralSuccess}{what} is never null";
 
   public override string FailureDescription =>
-    $"{PluralFailure}{what} could not be proven to be non-null";
+    $"{PluralFailure}{what} could not be proved to be non-null";
 
   public override string ShortDescription => $"{what} non-null";
   private readonly string what;
@@ -433,7 +433,7 @@ public class IsAllocated : ProofObligationDescription {
     $"{PluralSuccess}{what} is always allocated{WhenSuffix}";
 
   public override string FailureDescription =>
-    $"{PluralFailure}{what} could not be proven to be allocated{WhenSuffix}";
+    $"{PluralFailure}{what} could not be proved to be allocated{WhenSuffix}";
 
   public override string ShortDescription => $"{what} allocated";
 
@@ -521,7 +521,7 @@ public class PreconditionSatisfied : ProofObligationDescriptionCustomMessages {
     "function precondition satisfied";
 
   public override string DefaultFailureDescription =>
-    "function precondition could not be proven";
+    "function precondition could not be proved";
 
   public override string ShortDescription => "precondition";
 
@@ -542,7 +542,7 @@ public class AssertStatementDescription : ProofObligationDescriptionCustomMessag
     "assertion always holds";
 
   public override string DefaultFailureDescription =>
-    "assertion could not be proven";
+    "assertion could not be proved";
 
   public override string ShortDescription => "assert statement";
 
@@ -572,7 +572,7 @@ public class RequiresDescription : ProofObligationDescriptionCustomMessages {
     "the precondition always holds";
 
   public override string DefaultFailureDescription =>
-    "this is the precondition that could not be proven";
+    "this is the precondition that could not be proved";
 
   public override string ShortDescription => "requires";
 
@@ -594,11 +594,11 @@ public class EnsuresDescription : ProofObligationDescriptionCustomMessages {
     "this postcondition holds";
 
   public override string DefaultFailureDescription =>
-    "this is the postcondition that could not be proven";
+    "this is the postcondition that could not be proved";
 
   // Same as FailureDescription but used not as a "related" error, but as an error by itself
   public string FailureDescriptionSingle =>
-    customErrMsg ?? "this postcondition could not be proven on a return path";
+    customErrMsg ?? "this postcondition could not be proved on a return path";
 
   public string FailureAtPathDescription =>
     customErrMsg ?? new PostconditionDescription().FailureDescription;
@@ -645,7 +645,7 @@ public class CalculationStep : ProofObligationDescription {
     "the calculation step between the previous line and this line always holds";
 
   public override string FailureDescription =>
-    "the calculation step between the previous line and this line could not be proven";
+    "the calculation step between the previous line and this line could not be proved";
 
   public override string ShortDescription => "calc step";
 
@@ -775,8 +775,8 @@ public class TraitFrame : ProofObligationDescription {
 
   public override string FailureDescription =>
     isModify
-      ? $"modified object in {whatKind} could not be proven to be in the parent trait's modifies clause"
-      : $"accessed object in {whatKind} could not be proven to be in the parent trait's reads clause";
+      ? $"modified object in {whatKind} could not be proved to be in the parent trait's modifies clause"
+      : $"accessed object in {whatKind} could not be proved to be in the parent trait's reads clause";
 
   public override string ShortDescription =>
     isModify ? "trait modifies" : "trait reads";
@@ -827,7 +827,7 @@ public class ModifyFrameSubset : ProofObligationDescription {
       $"{whatKind} is allowed by context's modifies clause";
 
   public override string FailureDescription =>
-      $"modified object in {whatKind} could not be proven to be in the current modifies clause";
+      $"modified object in {whatKind} could not be proved to be in the current modifies clause";
 
   public override string ShortDescription => "modify frame subset";
 
@@ -851,7 +851,7 @@ public class FrameDereferenceNonNull : ProofObligationDescription {
     "frame expression does not dereference null";
 
   public override string FailureDescription =>
-    "frame expression could not be proven to be non-null";
+    "frame expression could not be proved to be non-null";
 
   public override string ShortDescription => "frame dereference";
 
@@ -873,7 +873,7 @@ public class Terminates : ProofObligationDescription {
   public override string FailureDescription =>
     (inferredDescreases
       ? ("cannot prove termination; try supplying a decreases clause" + (isLoop ? " for the loop" : ""))
-      : $"decreases {FormDescription} could not be proven to decrease") +
+      : $"decreases {FormDescription} could not be proved to decrease") +
     (hint is null ? "" : $" ({hint})");
 
   public override string ShortDescription => "termination";
@@ -981,7 +981,7 @@ public class Modifiable : ProofObligationDescription {
     $"{description} is in the enclosing context's modifies clause";
 
   public override string FailureDescription =>
-    $"modified field could not be proven to be in the current modifies clause";
+    $"modified field could not be proved to be in the current modifies clause";
 
   public override string ShortDescription => "modifiable";
 
@@ -1224,7 +1224,7 @@ public class WitnessCheck : ProofObligationDescription {
 
   public override string FailureDescription =>
     witnessString is null
-      ? "the given witness expression could not be proven to satisfy constraint"
+      ? "the given witness expression could not be proved to satisfy constraint"
       : (witnessString == "" ? $"{errMsg}{hintMsg}" : $"{errMsg} (only tried {witnessString}){hintMsg}");
 
   public override string ShortDescription => "witness check";
@@ -1326,7 +1326,7 @@ public class ForallLHSUnique : ProofObligationDescription {
     "left-hand sides of forall-statement bound variables are unique (or right-hand sides are equivalent)";
 
   public override string FailureDescription =>
-    "left-hand sides for different forall-statement bound variables could not be proven to refer to different locations (and right-hand sides could not be proven to be equivalent)";
+    "left-hand sides for different forall-statement bound variables could not be proved to refer to different locations (and right-hand sides could not be proved to be equivalent)";
 
   public override string ShortDescription => "forall bound unique";
 
@@ -1363,7 +1363,7 @@ public class ElementInDomain : ProofObligationDescription {
     "element is in domain";
 
   public override string FailureDescription =>
-    "element could not be proven to be in domain";
+    "element could not be proved to be in domain";
 
   public override string ShortDescription => "element in domain";
 
@@ -1384,7 +1384,7 @@ public class DefiniteAssignment : ProofObligationDescription {
     $"{kind} '{name}', which is subject to definite-assignment rules, is always initialized {where}";
 
   public override string FailureDescription =>
-    $"{kind} '{name}', which is subject to definite-assignment rules, could not be proven to be initialized {where}";
+    $"{kind} '{name}', which is subject to definite-assignment rules, could not be proved to be initialized {where}";
 
   public override string ShortDescription => "definite assignment";
 
@@ -1483,7 +1483,7 @@ public class ComprehensionNoAlias : ProofObligationDescription {
     "key expressions refer to unique values";
 
   public override string FailureDescription =>
-    "key expressions could not be proven to refer to different values";
+    "key expressions could not be proved to refer to different values";
 
   public override string ShortDescription => "unique key expressions";
 
@@ -1515,7 +1515,7 @@ public class DistinctLHS : ProofObligationDescription {
     $"left-hand sides {lhsa} and {lhsb} are distinct";
 
   public override string FailureDescription =>
-    $"{when}left-hand sides {lhsa} and {lhsb} could not be proven to refer to different locations{whenSuffix}";
+    $"{when}left-hand sides {lhsa} and {lhsb} could not be proved to refer to different locations{whenSuffix}";
 
   public override string ShortDescription => "distinct lhs";
 
@@ -1692,7 +1692,7 @@ public class ConcurrentFrameEmpty : ProofObligationDescription {
     $"{frameName} clause is empty ({{:concurrent}} restriction)";
 
   public override string FailureDescription =>
-    $"{frameName} clause could not be proven to be empty ({{:concurrent}} restriction)";
+    $"{frameName} clause could not be proved to be empty ({{:concurrent}} restriction)";
 
   public override string ShortDescription => "concurrency safety";
 

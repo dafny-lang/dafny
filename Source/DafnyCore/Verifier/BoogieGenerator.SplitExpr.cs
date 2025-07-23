@@ -545,7 +545,7 @@ namespace Microsoft.Dafny {
                 var bodyOrConjunct = BplOr(fargs, unboxedConjunct);
                 var tok = needsTokenAdjust
                   ? (IOrigin)new ForceCheckOrigin(typeSpecializedBody.Origin)
-                  : new NestedOrigin(GetToken(fexp), s.Tok, "this proposition could not be proven");
+                  : new NestedOrigin(GetToken(fexp), s.Tok, "this proposition could not be proved");
                 var p = Bpl.Expr.Binary(tok, BinaryOperator.Opcode.Imp, canCall, bodyOrConjunct);
                 splits.Add(ToSplitExprInfo(SplitExprInfo.K.Checked, p));
               }

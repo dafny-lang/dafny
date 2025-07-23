@@ -6,13 +6,13 @@ Verifying M0.C.M (correctness) ...
 
 Verifying M0.C.Q (well-formedness) ...
   [3 proof obligations]  error
-Superposition.legacy.dfy(23,6): Error: a postcondition could not be proven on this return path
-Superposition.legacy.dfy(21,25): Related location: this is the postcondition that could not be proven
+Superposition.legacy.dfy(23,6): Error: a postcondition could not be proved on this return path
+Superposition.legacy.dfy(21,25): Related location: this is the postcondition that could not be proved
 
 Verifying M0.C.R (well-formedness) ...
   [3 proof obligations]  error
-Superposition.legacy.dfy(29,6): Error: a postcondition could not be proven on this return path
-Superposition.legacy.dfy(27,25): Related location: this is the postcondition that could not be proven
+Superposition.legacy.dfy(29,6): Error: a postcondition could not be proved on this return path
+Superposition.legacy.dfy(27,25): Related location: this is the postcondition that could not be proved
 
 Verifying M1.C.M (correctness) ...
   [1 proof obligation]  verified
