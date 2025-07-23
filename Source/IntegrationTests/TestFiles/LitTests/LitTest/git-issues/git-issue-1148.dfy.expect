@@ -10,7 +10,7 @@ git-issue-1148.dfy(37,10): Error: non-ghost const field 'Instance' of type 'Y' (
 git-issue-1148.dfy(42,17): Error: static non-ghost const field 'Static' of type 'Y' (which does not have a default compiled value) must give a defining value
 git-issue-1148.dfy(43,10): Error: non-ghost const field 'Instance' of type 'Y' (which does not have a default compiled value) must give a defining value
 git-issue-1148.dfy(47,17): Error: static non-ghost const field 'StaticField' of type 'Y' (which does not have a default compiled value) must give a defining value
-git-issue-1148.dfy(51,11): Error: datatype 'PossiblyDatatypeTraitImpl' may not inherit a non-ghost const field 'InstanceField' of type 'Y' (which does not have a default compiled value) without a defining value
+git-issue-1148.dfy(51,11): Error: datatype 'PossiblyDatatypeTraitImpl' must not inherit a non-ghost const field 'InstanceField' of type 'Y' (which does not have a default compiled value) without a defining value
 git-issue-1148.dfy(63,14): Error: static ghost const field 'Global' of type 'Y' (which may be empty) must give a defining value
 git-issue-1148.dfy(59,23): Error: static ghost const field 'Static' of type 'Y' (which may be empty) must give a defining value
 git-issue-1148.dfy(60,16): Error: ghost const field 'Instance' of type 'Y' (which may be empty) must give a defining value
