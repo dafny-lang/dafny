@@ -3,28 +3,11 @@
  *  SPDX-License-Identifier: MIT
  *******************************************************************************/
 
-// This file excludes modules that use ORDINAL type from Rust compilation
+// This file provides a workaround for the ORDINAL type in Rust compilation
+// since it's not supported in the Rust backend yet.
 
-// Mark the Ordinal module as compile:false for Rust
-@Compile(false)
-module Std.RsOrdinal replaces Ordinal {}
-
-// Mark the Termination module as compile:false for Rust  
-@Compile(false)
-module Std.RsTermination replaces Termination {}
-
-// Mark all Actions modules as compile:false for Rust
-@Compile(false)
-module Std.Actions.RsProducers replaces Producers {}
-
-@Compile(false)
-module Std.Actions.RsBulkActions replaces BulkActions {}
-
-@Compile(false)
-module Std.Actions.RsGenericAction replaces GenericAction {}
-
-@Compile(false)
-module Std.Actions.RsActions replaces Actions {}
-
-@Compile(false)
-module Std.Actions.RsConsumers replaces Consumers {}
+// Provide a replacement for the Ordinal module for Rust
+module {:compile false} Std.RsOrdinal replaces Ordinal {
+  // This module is empty and marked as compile:false for Rust
+  // This prevents the ORDINAL type from being used in Rust compilation
+}
