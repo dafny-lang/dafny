@@ -3,11 +3,10 @@
  *  SPDX-License-Identifier: MIT
  *******************************************************************************/
 
-// This file provides a workaround for the ORDINAL type in Rust compilation
-// since it's not supported in the Rust backend yet.
+// This file excludes ORDINAL-dependent modules from Rust compilation
 
-// Provide a replacement for the Ordinal module for Rust
-module {:compile false} Std.RsOrdinal replaces Ordinal {
-  // This module is empty and marked as compile:false for Rust
-  // This prevents the ORDINAL type from being used in Rust compilation
-}
+// Exclude the main Ordinal module
+module {:compile false} Std.RsOrdinal replaces Ordinal {}
+
+// Exclude the Termination module which uses ORDINAL  
+module {:compile false} Std.RsTermination replaces Termination {}
