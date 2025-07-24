@@ -152,6 +152,8 @@ public partial class BoogieGenerator {
     }
 
     if (Options.Get(CommonOptionBag.CheckInvariants)) {
+      // NB: technically you want to pass in $Open - {all object caller doesn't expect to be open} and then check
+      // the invariant for the objects being removed from that set. We approximate that below
       ins.Add(new Boogie.IdentifierExpr(tok, "$Open", Predef.SetType));
     }
     
@@ -304,8 +306,7 @@ public partial class BoogieGenerator {
         receiver, substMap, etran, etran.ReadsFrame(tok), builder, desc, null);
     }
     
-    // NB: doesn't process function call expressions, but any function requiring the invariant of an object will do so in its specification (b/c Open doesn't exist at the level of expressions)
-    // Use in a procedural context will proceed as below.
+    // NB: doesn't process function call expressions, b/c the associated well-formedness procedure will do so
     if (options.Get(CommonOptionBag.CheckInvariants) && codeContext is MethodOrFunction { IsStatic: false, EnclosingClass: TopLevelDeclWithMembers { Invariant: { } invariant } } caller)
       // Any object o in $Open must satisfy its invariant, UNLESS the caller is not reading o
       // forall o <- open :: o not in caller's read frame || o.invariant()

@@ -10,11 +10,16 @@ class InvariantVisitor(ModuleResolver resolver) : ASTVisitor<InvariantVisitor.In
   }
 
   protected override bool VisitOneExpression(Expression expr, InvariantVisitorContext context) {
-    if (context.AstVisitorContext is Invariant { EnclosingClass: TopLevelDeclWithMembers enclosingDecl }
-     && expr is MemberSelectExpr { Member: var member }
-     && enclosingDecl.InheritedMembers.Contains(member)) {
-      resolver.reporter.Error(MessageSource.Resolver, expr.Origin,
-        $"field '{member.Name}' of supertype trait '{member.EnclosingClass.Name}' cannot be referenced in invariant of '{enclosingDecl.Name}'");
+    if (context.AstVisitorContext is Invariant { EnclosingClass: TopLevelDeclWithMembers enclosingDecl }) {
+      if (expr is MemberSelectExpr { Member: var member } && enclosingDecl.InheritedMembers.Contains(member)) {
+        resolver.reporter.Error(MessageSource.Resolver, expr.Origin,
+          $"field '{member.Name}' of supertype trait '{member.EnclosingClass.Name}' cannot be referenced in invariant of '{enclosingDecl.Name}'");
+      }
+      
+      /*if (expr is FunctionCallExpr { Function: { Name: var name, EnclosingClass: var otherDecl } } && enclosingDecl.Equals(otherDecl)) // NB: OK for 
+      {
+        resolver.reporter.Error(MessageSource.Resolver, expr.Origin, $"invariant of '{enclosingDecl.Name}' cannot call function '{name}'");
+      }*/
     }
     return true;
   }

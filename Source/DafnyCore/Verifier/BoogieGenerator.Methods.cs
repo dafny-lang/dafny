@@ -488,6 +488,8 @@ namespace Microsoft.Dafny {
     }
 
     private void AddConditionalInvariantAxiom(Invariant invariant) {
+      var oldFuelContext = fuelContext;
+      fuelContext = FuelSetting.NewFuelContext(invariant);
       var c = invariant.EnclosingClass;
       var heap = BplBoundVar("$heap", Predef.HeapType, out var heapExpr);
       var etran = new ExpressionTranslator(this, Predef, heapExpr, null);
@@ -509,6 +511,7 @@ namespace Microsoft.Dafny {
       var ante = FunctionCall(origin, BuiltinFunction.OpenHeapRelated, null, openExprBoogie, heapExpr);
       sink.AddTopLevelDeclaration(new Bpl.Axiom(origin, BplForall(bvs, new(origin, true, [ante]/*, tyParams.Any() ? new Trigger(origin, true, tyParamTriggers) : null*/),
           BplImp(ante, etran.TrExpr(axiom))), $"{c.FullSanitizedName}: conditional invariant axiom"));
+      fuelContext = oldFuelContext;
     }
 
     private void AddClassMember_Function(Function f) {

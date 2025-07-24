@@ -16,7 +16,7 @@ class Ext extends Base {
   function FooSpec(): int
     reads this
   {
-    1 / y
+    assert this.invariant(); 1 / y
   }
   method Foo() returns (r: int)
     ensures r == FooSpec()
@@ -30,7 +30,7 @@ trait Base2 extends object {
   function FooSpec(): int
     reads this
   {
-    1 / x
+    assert this.invariant(); 1 / x
   }
   method Foo() returns (r: int)
     ensures r == FooSpec()

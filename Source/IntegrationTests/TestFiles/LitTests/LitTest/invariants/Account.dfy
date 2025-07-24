@@ -6,10 +6,11 @@ class Account {
   var debit: nat
   // NB: can't use Balance() here b/c it would be recursive
   invariant credit - debit >= 0
-  function Balance(): nat // NB: uses the invariant to be well-defined
+  function Balance(): nat
     reads this
   {
-    credit - debit
+    // NB: uses the invariant to be well-defined
+    assert this.invariant(); credit - debit
   }
   method Withdraw(amount: nat)
     requires Balance() - amount >= 0
