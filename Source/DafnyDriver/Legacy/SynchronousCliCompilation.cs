@@ -213,18 +213,24 @@ namespace Microsoft.Dafny {
         var asLibrary = !options.Get(CommonOptionBag.TranslateStandardLibrary);
 
         var reporter = new ConsoleErrorReporter(options);
+        bool targetSpecificLibraryLoaded = false;
         if (options.CompilerName is null or "cs" or "java" or "go" or "py" or "js" or "rs") {
           var targetName = options.CompilerName ?? "notarget";
           var stdlibDooUri = DafnyMain.StandardLibrariesDooUriTarget[targetName];
           options.CliRootSourceUris.Add(stdlibDooUri);
           await foreach (var targetSpecificFile in DafnyFile.CreateAndValidate(OnDiskFileSystem.Instance, reporter, options, stdlibDooUri, Token.Cli, asLibrary)) {
             dafnyFiles.Add(targetSpecificFile);
+            targetSpecificLibraryLoaded = true;
           }
         }
 
-        options.CliRootSourceUris.Add(DafnyMain.StandardLibrariesDooUri);
-        await foreach (var targetAgnosticFile in DafnyFile.CreateAndValidate(OnDiskFileSystem.Instance, reporter, options, DafnyMain.StandardLibrariesDooUri, Token.Cli, asLibrary)) {
-          dafnyFiles.Add(targetAgnosticFile);
+        // Only load the main standard library if no target-specific library was loaded
+        // This prevents duplicate module conflicts when target-specific libraries replace modules
+        if (!targetSpecificLibraryLoaded) {
+          options.CliRootSourceUris.Add(DafnyMain.StandardLibrariesDooUri);
+          await foreach (var targetAgnosticFile in DafnyFile.CreateAndValidate(OnDiskFileSystem.Instance, reporter, options, DafnyMain.StandardLibrariesDooUri, Token.Cli, asLibrary)) {
+            dafnyFiles.Add(targetAgnosticFile);
+          }
         }
       }
 
