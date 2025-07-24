@@ -15,11 +15,6 @@ class InvariantVisitor(ModuleResolver resolver) : ASTVisitor<InvariantVisitor.In
         resolver.reporter.Error(MessageSource.Resolver, expr.Origin,
           $"field '{member.Name}' of supertype trait '{member.EnclosingClass.Name}' cannot be referenced in invariant of '{enclosingDecl.Name}'");
       }
-      
-      /*if (expr is FunctionCallExpr { Function: { Name: var name, EnclosingClass: var otherDecl } } && enclosingDecl.Equals(otherDecl)) // NB: OK for 
-      {
-        resolver.reporter.Error(MessageSource.Resolver, expr.Origin, $"invariant of '{enclosingDecl.Name}' cannot call function '{name}'");
-      }*/
     }
     return true;
   }
