@@ -1,0 +1,2 @@
+DerivedInvariantOverrideError.dfy(14,0): Error: overriding the invariant of a trait is not supported
+1 resolution/type errors detected in DerivedInvariantOverrideError.dfy

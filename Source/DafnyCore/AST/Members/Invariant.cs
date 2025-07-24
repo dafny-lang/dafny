@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using JetBrains.Annotations;
+using Microsoft.Boogie;
 
 namespace Microsoft.Dafny;
 
@@ -34,8 +35,13 @@ public class Invariant([NotNull] IOrigin origin, [NotNull] List<AttributedExpres
     Expression.CreateResolvedCall(origin, receiver, this, [], [], systemModuleManager);
   
   // A *use* of the invariant (i.e., to assume or assert it) consists of determining whether the receiver is/is not in the open set OR the mention of its invariant is actually true
-  public Expression Use(IOrigin origin, Expression receiver, SystemModuleManager systemModuleManager, BoogieGenerator.ExpressionTranslator etran) {
-    etran.OpenFormal(origin, out _, out var openExprDafny);
+  public Expression Use(IOrigin origin, Expression receiver, SystemModuleManager systemModuleManager, BoogieGenerator.ExpressionTranslator etran, BoundVariable bv = null) {
+    Expression openExprDafny;
+    if (bv is null) {
+      etran.OpenFormal(origin, out _, out openExprDafny);
+    } else {
+      openExprDafny = new BoogieGenerator.BoogieWrapper(new Boogie.IdentifierExpr(origin, bv), systemModuleManager.NonNullObjectSetType(origin));
+    }
     return new BinaryExpr(origin, BinaryExpr.ResolvedOpcode.Or,
       new BinaryExpr(origin, BinaryExpr.ResolvedOpcode.InSet, receiver, openExprDafny),
       Mention(origin, receiver, systemModuleManager)

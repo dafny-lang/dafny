@@ -41,11 +41,16 @@ namespace Microsoft.Dafny {
           return (Boogie.IdentifierExpr)HeapExpr;
         }
       }
-      
+
+      private Bpl.Formal memoizedOpenFormal;
       public Bpl.Formal OpenFormal(IOrigin tok, out Expr openExpr, out Expression openExprDafny) {
-        var ret = BplFormalVar("$Open", Predef.SetType, true, out openExpr); // formal b/c 
+        if (memoizedOpenFormal is null) {
+          memoizedOpenFormal = BplFormalVar("$Open", Predef.SetType, true, out openExpr);
+        } else {
+          openExpr = new Bpl.IdentifierExpr(tok, memoizedOpenFormal);
+        }
         openExprDafny = new BoogieWrapper(openExpr, BoogieGenerator.program.SystemModuleManager.NonNullObjectSetType(tok));
-        return ret;
+        return memoizedOpenFormal;
       }
 
       public readonly PredefinedDecls Predef;

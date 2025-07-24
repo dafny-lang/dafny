@@ -304,12 +304,12 @@ public partial class BoogieGenerator {
         receiver, substMap, etran, etran.ReadsFrame(tok), builder, desc, null);
     }
     
-    // NB: doesn't process function call expressions, but any function requiring the invariant of an object will do so in its specification.
+    // NB: doesn't process function call expressions, but any function requiring the invariant of an object will do so in its specification (b/c Open doesn't exist at the level of expressions)
     // Use in a procedural context will proceed as below.
     if (options.Get(CommonOptionBag.CheckInvariants) && codeContext is MethodOrFunction { IsStatic: false, EnclosingClass: TopLevelDeclWithMembers { Invariant: { } invariant } } caller)
       // Any object o in $Open must satisfy its invariant, UNLESS the caller is not reading o
       // forall o <- open :: o not in caller's read frame || o.invariant()
-      // TODO(somayyas) problem: what is the type of o, so we may get its invariant? assuming $Open = {this} for now
+      // TODO(somayyas): assuming open == {this} for now
     {
       var thisExpr = new ThisExpr(caller);
         
@@ -317,13 +317,13 @@ public partial class BoogieGenerator {
       var calleeFrame = callee.Reads.Expressions.ConvertAll(readsSubst.SubstFrameExpr);
 
       var assertion = invariant.Mention(tok, thisExpr, program.SystemModuleManager);
-        
+      
       if (caller is Function || options.Get(MethodOrConstructor.ReadsClausesOnMethods)) {
         assertion = new BinaryExpr(tok, BinaryExpr.ResolvedOpcode.Or, new BoogieWrapper(
             CheckFrameExcludes(tok, calleeFrame, receiver, substMap, etran, etran.TrExpr(thisExpr)), Type.Bool), 
           assertion);
       }
-        
+      
       // Somewhat disturbing that we have to explicitly add the CanCall assumption
       builder.Add(TrAssumeCmd(tok, etran.CanCallAssumption(assertion)));
       builder.Add(TrAssertCmdDesc(tok, etran.TrExpr(assertion),

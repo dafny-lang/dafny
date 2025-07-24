@@ -41,7 +41,7 @@ public partial class BoogieGenerator {
         // fse.Obj in $Open || fse.Obj.invariant()
         var assertion = invariant.Use(tok, fse.Obj, program.SystemModuleManager, etran);
         if (codeContext is Constructor ctor && ctor.EnclosingClass.Equals(decl)) {
-          // In case we're in the fse's constructor, we don't actually want to check the invariant
+          // In case we're in the fse's constructor, we don't actually want to check the invariant (equivalent to having open += {this} at the top of the constructor)
           assertion = new BinaryExpr(tok, BinaryExpr.ResolvedOpcode.Or,
             new BinaryExpr(tok, BinaryExpr.ResolvedOpcode.EqCommon, fse.Obj, new ThisExpr(ctor)),
             assertion);

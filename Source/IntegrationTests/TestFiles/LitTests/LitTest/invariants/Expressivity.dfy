@@ -1,4 +1,4 @@
-// RUN: %verify --type-system-refresh --check-invariants "%s" > "%t"
+// RUN: %exits-with 4 %verify --type-system-refresh --check-invariants "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 // Under the assumption that invariants can only read "this"
@@ -6,32 +6,26 @@
 // most and at least accommodate any this-reading predicate
 // over a set of non-reference-typed fields
 
-type A(!new)
-
-predicate {:axiom} P(x: A)
-
-type Subset = x : A | P(x) witness *
-
-trait UseOfSubset {
-  var x: Subset
+trait UseOfSubset extends object {
+  var x: nat
   method Modify()
     modifies this
   {
     var oldX := x;
-    x :| assume {:axiom} !P(x); // error: subset constraint not satisfied
+    x := -1; // error: subset constraint not satisfied
     x := oldX;
   }
 }
 
-trait UseOfInvariant {
-  var x: A
-  invariant P(x)
+trait UseOfInvariant extends object {
+  var x: int
+  invariant x >= 0
   
   method Modify()
     modifies this
   {
     var oldX := x;
-    x :| assume {:axiom} !P(x); // no problem!
+    x := -1; // no problem!
     x := oldX;
   }
 }

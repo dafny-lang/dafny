@@ -1,4 +1,4 @@
-// RUN: %verify --type-system-refresh --check-invariants "%s" > "%t"
+// RUN: %exits-with 4 %verify --type-system-refresh --check-invariants "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 class C {
@@ -6,7 +6,6 @@ class C {
   invariant valid
 
   constructor SinglePhase() {
-    //assert valid; // error
     valid := true;
   }
 
@@ -20,7 +19,7 @@ class C {
 
   constructor TwoPhaseBad() {
     new;
-    //foo(this); // error
+    foo(this); // error
     valid := true;
   }
 

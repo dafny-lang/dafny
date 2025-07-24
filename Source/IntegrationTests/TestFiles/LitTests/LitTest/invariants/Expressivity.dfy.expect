@@ -1,2 +1,3 @@
+Expressivity.dfy(15,9): Error: value does not satisfy the subset constraints of 'nat'
 
-Dafny program verifier finished with 2 verified, 0 errors
+Dafny program verifier finished with 2 verified, 1 error

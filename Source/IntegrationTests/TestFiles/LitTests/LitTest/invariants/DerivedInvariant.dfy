@@ -1,4 +1,7 @@
-trait Base {
+// RUN: %verify --type-system-refresh --check-invariants "%s" > "%t"
+// RUN: %diff "%s.expect" "%t"
+
+trait Base extends object {
    var x: int
    function FooSpec(): int
      reads this
@@ -22,10 +25,38 @@ class Ext extends Base {
   }
 }
 
+trait Base2 extends object {
+  var x: int
+  function FooSpec(): int
+    reads this
+  {
+    1 / x
+  }
+  method Foo() returns (r: int)
+    ensures r == FooSpec()
+  invariant x != 0
+}
+
+class Ext2 extends Base2 {
+  method Foo() returns (r: int)
+    ensures r == FooSpec()
+  {
+    r := 1 / x;
+  }
+}
+
 method Upcast(e: Ext)
   modifies e
 {
   var b := e as Base;
   b.x := 0; // no problem;
   e.y := 1; // checks invariant, no problem
+}
+
+method Upcast2(e: Ext2)
+  modifies e
+{
+  var b := e as Base2;
+  b.x := 10; // checks invariant
+  e.x := 2; // checks invariant
 }
