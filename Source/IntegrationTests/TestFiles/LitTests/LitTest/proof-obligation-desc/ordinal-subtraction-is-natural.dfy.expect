@@ -1,4 +1,4 @@
-ordinal-subtraction-is-natural.dfy(7,7): Error: RHS of ORDINAL subtraction must be a natural number, but the given RHS might be larger
+ordinal-subtraction-is-natural.dfy(7,7): Error: RHS of ORDINAL subtraction must be a natural number, but the given RHS could not be proved to be a natural number
  Asserted expression: o1.IsNat
 
 Dafny program verifier finished with 0 verified, 1 error

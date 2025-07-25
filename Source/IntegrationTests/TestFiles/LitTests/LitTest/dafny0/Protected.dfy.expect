@@ -1,7 +1,7 @@
-Protected.dfy(21,8): Error: assertion might not hold
-Protected.dfy(35,6): Error: assertion might not hold
-Protected.dfy(39,4): Error: assertion might not hold
-Protected.dfy(52,4): Error: assertion might not hold
-Protected.dfy(59,4): Error: assertion might not hold
+Protected.dfy(21,8): Error: assertion could not be proved
+Protected.dfy(35,6): Error: assertion could not be proved
+Protected.dfy(39,4): Error: assertion could not be proved
+Protected.dfy(52,4): Error: assertion could not be proved
+Protected.dfy(59,4): Error: assertion could not be proved
 
 Dafny program verifier finished with 3 verified, 5 errors

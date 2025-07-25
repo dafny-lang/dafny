@@ -45,13 +45,13 @@ git-issue-977.dfy(71,4): Info: ensures RicochetOrd(m, num)
 git-issue-977.dfy(110,28): Info: Some instances of this call are not inlined.
 git-issue-977.dfy(143,26): Info: Some instances of this call are not inlined.
 git-issue-977.dfy(162,21): Info: Some instances of this call are not inlined.
-git-issue-977.dfy(39,25): Error: assertion might not hold
+git-issue-977.dfy(39,25): Error: assertion could not be proved
 git-issue-977.dfy(14,29): Related location: this proposition could not be proved
 git-issue-977.dfy(9,7): Related location: this proposition could not be proved
-git-issue-977.dfy(41,31): Error: assertion might not hold
+git-issue-977.dfy(41,31): Error: assertion could not be proved
 git-issue-977.dfy(22,13): Related location: this proposition could not be proved
 git-issue-977.dfy(9,7): Related location: this proposition could not be proved
-git-issue-977.dfy(43,26): Error: assertion might not hold
+git-issue-977.dfy(43,26): Error: assertion could not be proved
 git-issue-977.dfy(30,29): Related location: this proposition could not be proved
 git-issue-977.dfy(9,7): Related location: this proposition could not be proved
 git-issue-977.dfy(220,18): Info: Some instances of this call are not inlined.

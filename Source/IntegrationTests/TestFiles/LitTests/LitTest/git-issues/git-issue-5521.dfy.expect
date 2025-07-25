@@ -1,7 +1,7 @@
-git-issue-5521.dfy(6,10): Error: trying witness 0: result of operation might violate subset type constraint for 'Empty'
-git-issue-5521.dfy(24,35): Error: result of operation might violate subset type constraint for 'Empty'
-git-issue-5521.dfy(42,41): Error: result of operation might violate subset type constraint for 'Empty'
-git-issue-5521.dfy(52,22): Error: variable 'x', which is subject to definite-assignment rules, might be uninitialized here
-git-issue-5521.dfy(70,22): Error: variable 'x', which is subject to definite-assignment rules, might be uninitialized here
+git-issue-5521.dfy(6,10): Error: trying witness 0: result of operation could not be proved to satisfy subset type constraint for 'Empty'
+git-issue-5521.dfy(24,35): Error: result of operation could not be proved to satisfy subset type constraint for 'Empty'
+git-issue-5521.dfy(42,41): Error: result of operation could not be proved to satisfy subset type constraint for 'Empty'
+git-issue-5521.dfy(52,22): Error: variable 'x', which is subject to definite-assignment rules, could not be proved to be initialized here
+git-issue-5521.dfy(70,22): Error: variable 'x', which is subject to definite-assignment rules, could not be proved to be initialized here
 
 Dafny program verifier finished with 6 verified, 5 errors

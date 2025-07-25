@@ -1,8 +1,8 @@
-distinct-lhs.dfy(9,9): Error: when left-hand sides a[j] and a[i] refer to the same location, they must be assigned the same value
+distinct-lhs.dfy(9,9): Error: when left-hand sides a[j] and a[i] could not be proved to refer to different locations, they must be assigned the same value
  Asserted expression: a != a || j != i
-distinct-lhs.dfy(19,17): Error: when left-hand sides a[j0, j1] and a[i0, i1] refer to the same location, they must be assigned the same value
+distinct-lhs.dfy(19,17): Error: when left-hand sides a[j0, j1] and a[i0, i1] could not be proved to refer to different locations, they must be assigned the same value
  Asserted expression: a != a || j0 != i0 || j1 != i1
-distinct-lhs.dfy(26,11): Error: when left-hand sides c.f and c.f refer to the same location, they must be assigned the same value
+distinct-lhs.dfy(26,11): Error: when left-hand sides c.f and c.f could not be proved to refer to different locations, they must be assigned the same value
  Asserted expression: c != c
 
 Dafny program verifier finished with 2 verified, 3 errors

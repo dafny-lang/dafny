@@ -9,7 +9,7 @@ Processing command (at Snapshots4.v1.dfy(9,5)) assert {:id "id2"} LitInt(0) == L
   >>> MarkAsFullyVerified
 Processing command (at Snapshots4.v1.dfy(10,5)) assert {:id "id3"} Lit(2 != 2);
   >>> DoNothingToAssert
-Snapshots4.v1.dfy(5,4): Error: assertion might not hold
-Snapshots4.v1.dfy(10,4): Error: assertion might not hold
+Snapshots4.v1.dfy(5,4): Error: assertion could not be proved
+Snapshots4.v1.dfy(10,4): Error: assertion could not be proved
 
 Dafny program verifier finished with 0 verified, 2 errors

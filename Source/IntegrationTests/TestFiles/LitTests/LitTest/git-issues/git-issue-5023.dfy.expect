@@ -1,11 +1,11 @@
-git-issue-5023.dfy(13,4): Error: field 'five', which is subject to definite-assignment rules, might be uninitialized at this point in the constructor body
-git-issue-5023.dfy(22,12): Error: variable 'five', which is subject to definite-assignment rules, might be uninitialized here
-git-issue-5023.dfy(25,23): Error: variable 'five', which is subject to definite-assignment rules, might be uninitialized here
-git-issue-5023.dfy(69,4): Error: field 'five', which is subject to definite-assignment rules, might be uninitialized at this point in the constructor body
-git-issue-5023.dfy(78,12): Error: variable 'five', which is subject to definite-assignment rules, might be uninitialized here
-git-issue-5023.dfy(81,23): Error: variable 'five', which is subject to definite-assignment rules, might be uninitialized here
-git-issue-5023.dfy(157,4): Error: field 'five', which is subject to definite-assignment rules, might be uninitialized at this point in the constructor body
-git-issue-5023.dfy(167,11): Error: variable 'five', which is subject to definite-assignment rules, might be uninitialized here
-git-issue-5023.dfy(170,23): Error: variable 'five', which is subject to definite-assignment rules, might be uninitialized here
+git-issue-5023.dfy(13,4): Error: field 'five', which is subject to definite-assignment rules, could not be proved to be initialized at this point in the constructor body
+git-issue-5023.dfy(22,12): Error: variable 'five', which is subject to definite-assignment rules, could not be proved to be initialized here
+git-issue-5023.dfy(25,23): Error: variable 'five', which is subject to definite-assignment rules, could not be proved to be initialized here
+git-issue-5023.dfy(69,4): Error: field 'five', which is subject to definite-assignment rules, could not be proved to be initialized at this point in the constructor body
+git-issue-5023.dfy(78,12): Error: variable 'five', which is subject to definite-assignment rules, could not be proved to be initialized here
+git-issue-5023.dfy(81,23): Error: variable 'five', which is subject to definite-assignment rules, could not be proved to be initialized here
+git-issue-5023.dfy(157,4): Error: field 'five', which is subject to definite-assignment rules, could not be proved to be initialized at this point in the constructor body
+git-issue-5023.dfy(167,11): Error: variable 'five', which is subject to definite-assignment rules, could not be proved to be initialized here
+git-issue-5023.dfy(170,23): Error: variable 'five', which is subject to definite-assignment rules, could not be proved to be initialized here
 
 Dafny program verifier finished with 7 verified, 9 errors

@@ -1,4 +1,4 @@
-conversion-fit.dfy(6,6): Error: value to be converted might not fit in bv8
+conversion-fit.dfy(6,6): Error: value to be converted could not be proved to fit in bv8
  Asserted expression: 0 < i && i <= 1 << 8
 
 Dafny program verifier finished with 0 verified, 1 error

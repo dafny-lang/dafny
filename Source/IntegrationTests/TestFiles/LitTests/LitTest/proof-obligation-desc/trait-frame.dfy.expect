@@ -1,6 +1,6 @@
-trait-frame.dfy(10,9): Error: method might modify an object not in the parent trait context's modifies clause
+trait-frame.dfy(10,9): Error: modified object in method could not be proved to be in the parent trait's modifies clause
  Asserted expression: this in {}
-trait-frame.dfy(11,11): Error: function might read an object not in the parent trait context's reads clause
+trait-frame.dfy(11,11): Error: accessed object in function could not be proved to be in the parent trait's reads clause
  Asserted expression: this in {}
 
 Dafny program verifier finished with 0 verified, 2 errors
