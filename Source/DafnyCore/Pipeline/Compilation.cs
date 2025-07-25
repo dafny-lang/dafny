@@ -187,24 +187,18 @@ public class Compilation : IDisposable {
       // This creates issues with separate compilation and will be addressed in https://github.com/dafny-lang/dafny/pull/4877
       var asLibrary = !Options.Get(CommonOptionBag.TranslateStandardLibrary);
 
-      bool targetSpecificLibraryLoaded = false;
-      if (Options.CompilerName is null or "cs" or "java" or "go" or "py" or "js" or "rs") {
+      if (Options.CompilerName is null or "cs" or "java" or "go" or "py" or "js") {
         var targetName = Options.CompilerName ?? "notarget";
         var stdlibDooUri = DafnyMain.StandardLibrariesDooUriTarget[targetName];
         await foreach (var targetSpecificFile in DafnyFile.CreateAndValidate(OnDiskFileSystem.Instance, errorReporter,
                          Options, stdlibDooUri, Project.StartingToken, asLibrary)) {
           result.Add(targetSpecificFile);
-          targetSpecificLibraryLoaded = true;
         }
       }
 
-      // Only load the main standard library if no target-specific library was loaded
-      // This prevents duplicate module conflicts when target-specific libraries replace modules
-      if (!targetSpecificLibraryLoaded) {
-        await foreach (var file in DafnyFile.CreateAndValidate(fileSystem, errorReporter, Options,
-                         DafnyMain.StandardLibrariesDooUri, Project.StartingToken, asLibrary)) {
-          result.Add(file);
-        }
+      await foreach (var file in DafnyFile.CreateAndValidate(fileSystem, errorReporter, Options,
+                       DafnyMain.StandardLibrariesDooUri, Project.StartingToken, asLibrary)) {
+        result.Add(file);
       }
     }
 
