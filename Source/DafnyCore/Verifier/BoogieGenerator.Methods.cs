@@ -492,25 +492,26 @@ namespace Microsoft.Dafny {
       fuelContext = FuelSetting.NewFuelContext(invariant);
       var c = invariant.EnclosingClass;
       var heap = BplBoundVar("$heap", Predef.HeapType, out var heapExpr);
-      var etran = new ExpressionTranslator(this, Predef, heapExpr, null);
-      // axiom: forall $heap : Heap, $open : Set, this : `c` | $OpenHeapRelated($open, $heap) :: this !in $open ==> this.invariant($heap)
+      var etran = new ExpressionTranslator(this, Predef, heapExpr, invariant);
+      // axiom: forall $heap : Heap, $open : Set, this : `c` | $OpenHeapRelated($open, $heap) :: this in $open || this.invariant($heap)
       var origin = invariant.Origin;
-      var thisBv = new BoundVar(origin, "this", UserDefinedType.FromTopLevelDecl(origin, c is ClassLikeDecl cd ? cd.NonNullTypeDecl : c));
-      var thisExpr = Expression.CreateIdentExpr(thisBv);
-      var openBv = BplBoundVar("$Open", Predef.SetType, out var openExprBoogie);
-      var openExprDafny = new BoogieWrapper(openExprBoogie, program.SystemModuleManager.NonNullObjectSetType(origin));
-      var callInvariant = invariant.Use(origin, thisExpr, program.SystemModuleManager, etran, bv: openBv);
-      var trigger = new BinaryExpr(origin, BinaryExpr.ResolvedOpcode.InSet, thisExpr, openExprDafny);
-      var axiom = new ForallExpr(origin, [thisBv], null, callInvariant,
-        new Attributes(origin, "trigger", [trigger], new(origin, "trigger", [invariant.Mention(origin, thisExpr, program.SystemModuleManager)], null)))
-        {
-          Bounds = [null]
-        };
+      var thisType = UserDefinedType.FromTopLevelDecl(origin, c is ClassLikeDecl cd ? cd.NonNullTypeDecl : c);
+      var @this = BplBoundVar("o", TrType(thisType), out var thisExpr);
+      var thisExprDafny = new BoogieWrapper(thisExpr, thisType);
+      var @is = MkIs(thisExpr, thisType);
+      var isAlloc = MkIsAlloc(thisExpr, thisType, heapExpr);
+      var open = BplBoundVar("$Open", Predef.SetType, out var openExpr);
+      var openExprDafny = new BoogieWrapper(openExpr, program.SystemModuleManager.NonNullObjectSetType(origin));
       var tyParams = MkTyParamBinders(GetTypeParams(c), out var tyParamTriggers);
-      var bvs = tyParams.Concat([heap, openBv]);
-      var ante = FunctionCall(origin, BuiltinFunction.OpenHeapRelated, null, openExprBoogie, heapExpr);
-      sink.AddTopLevelDeclaration(new Bpl.Axiom(origin, BplForall(bvs, new(origin, true, [ante]/*, tyParams.Any() ? new Trigger(origin, true, tyParamTriggers) : null*/),
-          BplImp(ante, etran.TrExpr(axiom))), $"{c.FullSanitizedName}: conditional invariant axiom"));
+      var openHeapRelated = FunctionCall(origin, BuiltinFunction.OpenHeapRelated, null, openExpr, heapExpr);
+      var thisInOpen = etran.TrExpr(new BinaryExpr(origin, BinaryExpr.ResolvedOpcode.InSet, thisExprDafny, openExprDafny));
+      Trigger trigger = new(origin, true, [@is, openHeapRelated, thisInOpen],
+        new(origin, true, [@is, openHeapRelated, etran.TrExpr(invariant.Mention(origin, thisExprDafny, program.SystemModuleManager))]));
+      var axiom = BplForall(tyParams.Concat([heap, open, @this]), trigger, BplImp(
+          BplAnd([@is, isAlloc, openHeapRelated]),
+          etran.TrExpr(invariant.Use(origin, thisExprDafny, program.SystemModuleManager, etran, bv: open)))
+      );
+      sink.AddTopLevelDeclaration(new Axiom(origin, axiom, $"conditional invariant axiom for {c.FullSanitizedName}"));
       fuelContext = oldFuelContext;
     }
 

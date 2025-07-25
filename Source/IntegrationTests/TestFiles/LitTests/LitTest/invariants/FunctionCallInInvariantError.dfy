@@ -1,4 +1,4 @@
-// RUN: %exits-with 2 %resolve --type-system-refresh --check-invariants "%s" > "%t"
+// RUN: %exits-with 4 %verify --type-system-refresh --check-invariants "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 class Account {
