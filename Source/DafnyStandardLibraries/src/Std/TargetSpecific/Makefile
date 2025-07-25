@@ -20,14 +20,14 @@ verify-all: update-binary-all
 build-binary:
 ifeq ($(TARGETLANG),rs)
 	$(DAFNY) build -t:lib --hidden-no-verify=$(NO_VERIFY) --standard-libraries=false \
+		--reads-clauses-on-methods --track-print-effects --enforce-determinism \
+		--type-system-refresh --general-traits=datatype \
 		Concurrent-rs.dfy \
 		FileIO1InternalExterns-rs.dfy \
-		OrdinalExclusion-rs.dfy \
-		ActionsExterns-js-go-py-rs.dfy \
 		Concurrent-notarget-java-cs-js-go-py-rs.dfy \
 		FileIO3InternalExterns-notarget-java-cs-js-go-py-rs.dfy \
 		FileIO5-notarget-java-cs-js-go-py-rs.dfy \
-		`find .. -name "*.dfy" -not -path "../Actions/*" -not -name "Ordinal.dfy" -not -name "Termination.dfy" | sort` \
+		`find .. -name "*.dfy" -not -path "../Actions/*" -not -path "../TargetSpecific/*" -not -name "Ordinal.dfy" -not -name "Termination.dfy" -not -name "Frames.dfy" | sort` \
 		--output:${DOO_FILE_SOURCE}
 else
 	$(DAFNY) build -t:lib --hidden-no-verify=$(NO_VERIFY) dfyconfig.toml \
