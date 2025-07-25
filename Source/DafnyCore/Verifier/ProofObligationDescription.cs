@@ -209,10 +209,10 @@ public class OrdinalSubtractionIsNatural : ProofObligationDescription {
 
 public class OrdinalSubtractionUnderflow : ProofObligationDescription {
   public override string SuccessDescription =>
-    "ORDINAL subtraction will never go below limit ordinal";
+    "ORDINAL subtraction will remain above limit ordinal";
 
   public override string FailureDescription =>
-    "ORDINAL subtraction could not be proved to not underflow a limit ordinal (that is, RHS could not be proved to not be too large)";
+    "ORDINAL subtraction could not be proved to remain above limit ordinal (that is, RHS could not be proved to be sufficiently small)";
 
   public override string ShortDescription => "ordinal subtraction underflow";
 
@@ -236,10 +236,10 @@ public class OrdinalSubtractionUnderflow : ProofObligationDescription {
 
 public class CharOverflow : ProofObligationDescription {
   public override string SuccessDescription =>
-    "char addition will not overflow";
+    "char addition will remain below maximum";
 
   public override string FailureDescription =>
-    "char addition could not be proved to not overflow";
+    "char addition could not be proved to remain below maximum";
 
   public override string ShortDescription => "char overflow";
 
@@ -264,10 +264,10 @@ public class CharOverflow : ProofObligationDescription {
 
 public class CharUnderflow : ProofObligationDescription {
   public override string SuccessDescription =>
-    "char subtraction will not underflow";
+    "char subtraction will remain above minimum";
 
   public override string FailureDescription =>
-    "char subtraction could not be proved to not underflow";
+    "char subtraction could not be proved to remain above minimum";
 
   public override string ShortDescription => "char underflow";
 

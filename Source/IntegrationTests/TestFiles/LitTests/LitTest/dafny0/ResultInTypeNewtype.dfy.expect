@@ -47,7 +47,7 @@ ResultInTypeNewtype.dfy(153,10): Error: cannot find witness that shows type is i
 ResultInTypeNewtype.dfy(153,31): Related location: this proposition could not be proved
 ResultInTypeNewtype.dfy(156,9): Error: result of operation could not be proved to satisfy newtype constraint for 'Char'
 ResultInTypeNewtype.dfy(162,13): Error: result of operation could not be proved to satisfy newtype constraint for 'Char'
-ResultInTypeNewtype.dfy(164,13): Error: char subtraction could not be proved to be safe from underflow
+ResultInTypeNewtype.dfy(164,13): Error: char subtraction could not be proved to remain above minimum
 ResultInTypeNewtype.dfy(164,13): Error: result of operation could not be proved to satisfy newtype constraint for 'Char'
 ResultInTypeNewtype.dfy(168,11): Error: result of operation could not be proved to satisfy newtype constraint for 'Char'
 ResultInTypeNewtype.dfy(173,10): Error: cannot find witness that shows type is inhabited (only tried {}); try giving a hint through a 'witness' or 'ghost witness' clause, or use 'witness *' to treat as a possibly empty type

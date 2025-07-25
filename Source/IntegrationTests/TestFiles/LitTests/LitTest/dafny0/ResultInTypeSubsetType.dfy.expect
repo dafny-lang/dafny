@@ -47,7 +47,7 @@ ResultInTypeSubsetType.dfy(153,7): Error: cannot find witness that shows type is
 ResultInTypeSubsetType.dfy(153,28): Related location: this proposition could not be proved
 ResultInTypeSubsetType.dfy(156,9): Error: value does not satisfy the subset constraints of 'Char'
 ResultInTypeSubsetType.dfy(162,13): Error: value does not satisfy the subset constraints of 'Char'
-ResultInTypeSubsetType.dfy(164,13): Error: char subtraction could not be proved to be safe from underflow
+ResultInTypeSubsetType.dfy(164,13): Error: char subtraction could not be proved to remain above minimum
 ResultInTypeSubsetType.dfy(164,13): Error: value does not satisfy the subset constraints of 'Char'
 ResultInTypeSubsetType.dfy(168,11): Error: result of operation could not be proved to satisfy subset type constraint for 'Char'
 ResultInTypeSubsetType.dfy(173,7): Error: cannot find witness that shows type is inhabited (only tried {}); try giving a hint through a 'witness' or 'ghost witness' clause, or use 'witness *' to treat as a possibly empty type
