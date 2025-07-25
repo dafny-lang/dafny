@@ -17,8 +17,8 @@ git-issue-356-errors.dfy(153,14): Error: value to be converted could not be prov
 git-issue-356-errors.dfy(170,14): Error: ORDINAL value to be converted could not be proved to fit in char
 git-issue-356-errors.dfy(170,14): Error: value to be converted could not be proved to be a natural number
 git-issue-356-errors.dfy(176,14): Error: ORDINAL value to be converted could not be proved to fit in char
-git-issue-356-errors.dfy(189,13): Error: value to be converted could not be proved to fit in bv8
 git-issue-356-errors.dfy(189,13): Error: value to be converted could not be proved to be a natural number
+git-issue-356-errors.dfy(189,13): Error: value to be converted could not be proved to fit in bv8
 git-issue-356-errors.dfy(195,13): Error: value to be converted could not be proved to fit in bv8
 git-issue-356-errors.dfy(207,14): Error: bit-vector value to be converted could not be proved to fit in char
 
