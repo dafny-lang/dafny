@@ -23,7 +23,7 @@ ifeq ($(TARGETLANG),rs)
 		Concurrent-rs.dfy \
 		FileIO1InternalExterns-rs.dfy \
 		OrdinalExclusion-rs.dfy \
-		ActionsExterns-notarget-java-cs-js-go-py-rs.dfy \
+		ActionsExterns-js-go-py-rs.dfy \
 		Concurrent-notarget-java-cs-js-go-py-rs.dfy \
 		FileIO3InternalExterns-notarget-java-cs-js-go-py-rs.dfy \
 		FileIO5-notarget-java-cs-js-go-py-rs.dfy \
