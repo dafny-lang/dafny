@@ -28,12 +28,13 @@ class TokenRange
 
 class FilesContainer
 {
-    List<FileStart> files;
+    List<FileHeader> files;
 }
 
-class FileStart
+class FileHeader
 {
     String uri;
+    Boolean isLibrary;
     List<TopLevelDecl> topLevelDecls;
 }
 

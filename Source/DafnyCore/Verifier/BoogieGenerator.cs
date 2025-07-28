@@ -147,7 +147,12 @@ namespace Microsoft.Dafny {
 
     private ProofDependencyManager proofDependencies;
 
-    // optimizing translation
+    /**
+     * The behavior around this field assumes that usages are visited before declarations
+     * which is only the case when the usage is in a different module than the declaration.
+     * However, we alleviate this problem by saying that any declaration must be kept
+     * if any code in that module is verified.
+     */
     readonly ISet<MemberDecl> referencedMembers = new HashSet<MemberDecl>();
 
     public void AddReferencedMember(MemberDecl m) {
@@ -2480,41 +2485,6 @@ namespace Microsoft.Dafny {
           AddCasePatternVarSubstitutions(arg, de, substMap);
         }
       }
-    }
-
-    /// <summary>
-    /// If "expr" is a binary boolean operation, then try to re-associate it to make the left argument smaller.
-    /// If it is possible, then "true" is returned and "expr" returns as the re-associated expression (no boolean simplifications are performed).
-    /// If not, then "false" is returned and "expr" is unchanged.
-    /// </summary>
-    bool ReAssociateToTheRight(ref Expression expr) {
-      if (expr is BinaryExpr top && Expression.StripParens(top.E0) is BinaryExpr left) {
-        // We have an expression of the form "(A oo B) pp C"
-        var A = left.E0;
-        var oo = left.ResolvedOp;
-        var B = left.E1;
-        var pp = top.ResolvedOp;
-        var C = top.E1;
-
-        if (oo == BinaryExpr.ResolvedOpcode.And && pp == BinaryExpr.ResolvedOpcode.And) {
-          // rewrite    (A && B) && C    into    A && (B && C)
-          expr = Expression.CreateAnd(A, Expression.CreateAnd(B, C, false), false);
-          return true;
-        } else if (oo == BinaryExpr.ResolvedOpcode.And && pp == BinaryExpr.ResolvedOpcode.Imp) {
-          // rewrite    (A && B) ==> C    into    A ==> (B ==> C)
-          expr = Expression.CreateImplies(A, Expression.CreateImplies(B, C, false), false);
-          return true;
-        } else if (oo == BinaryExpr.ResolvedOpcode.Or && pp == BinaryExpr.ResolvedOpcode.Or) {
-          // rewrite    (A || B) || C    into    A || (B || C)
-          expr = Expression.CreateOr(A, Expression.CreateOr(B, C, false), false);
-          return true;
-        } else if (oo == BinaryExpr.ResolvedOpcode.Imp && pp == BinaryExpr.ResolvedOpcode.Or) {
-          // rewrite    (A ==> B) || C    into    A ==> (B || C)
-          expr = Expression.CreateImplies(A, Expression.CreateOr(B, C, false), false);
-          return true;
-        }
-      }
-      return false;
     }
 
     void CheckCasePatternShape<VT>(CasePattern<VT> pat, Expression dRhs, Bpl.Expr rhs, IOrigin rhsTok, Type rhsType, BoogieStmtListBuilder builder)
