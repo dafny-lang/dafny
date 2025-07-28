@@ -38,10 +38,13 @@ endif
 check-binary: build-binary
 	unzip -o ${DOO_FILE_SOURCE} -d ../../../build/current-${TARGETLANG}
 	unzip -o ${DOO_FILE_TARGET} -d ../../../build/rebuilt-${TARGETLANG}
+# Skip diff check for Rust since it uses a different build process (ORDINAL-free)
+ifneq ($(TARGETLANG),rs)
 	diff ../../../build/current-${TARGETLANG} ../../../build/rebuilt-${TARGETLANG}
 # Explicitly check for --hidden-no-verify since Dafny itself doesn't
 	grep "hidden-no-verify = false" ../../../build/current-${TARGETLANG}/manifest.toml || \
 		(echo "ERROR: doo file built with --hidden-no-verify, rebuild without this option" && exit 1)
+endif
 
 
 check-binary-all:
