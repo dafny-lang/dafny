@@ -28,7 +28,7 @@ public class ReadFrameSubset : ProofObligationDescription {
           new PrintFlags(UseOriginalDafnyNames: true));
       }
       if (scope is Invariant) {
-        message = "invariants are currently restricted to only read 'this'";
+        message = "invariants are restricted to only read 'this'";
         if (readExpression is MemberSelectExpr { MemberName: var member }) {
           message += " and therefore cannot read {1}`{2}";
           parts.Add(obj);
