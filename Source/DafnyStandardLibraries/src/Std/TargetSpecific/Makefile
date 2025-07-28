@@ -19,7 +19,7 @@ verify-all: update-binary-all
 
 build-binary:
 ifeq ($(TARGETLANG),rs)
-	$(DAFNY) build -t:lib --hidden-no-verify=$(NO_VERIFY) --standard-libraries=false \
+	$(DAFNY) build -t:lib --hidden-no-verify=true --standard-libraries=false \
 		--reads-clauses-on-methods --track-print-effects --enforce-determinism \
 		--type-system-refresh --general-traits=datatype \
 		Concurrent-rs.dfy \
