@@ -1,0 +1,5 @@
+ValidIdiomError.dfy(9,29): Error: value does not satisfy the subset constraints of 'nat'
+ValidIdiomError.dfy(14,25): Error: cannot prove termination; try supplying a decreases clause
+ValidIdiomError.dfy(17,17): Error: decreases clause might not decrease
+
+Dafny program verifier finished with 0 verified, 3 errors
