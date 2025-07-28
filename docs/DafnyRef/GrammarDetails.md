@@ -452,6 +452,7 @@ ClassMemberDecl(modifiers, allowConstructors, isValueType, moduleLevelDecl) =
   | ConstantFieldDecl(moduleLevelDecl)
   | FunctionDecl(isWithinAbstractModule)
   | MethodDecl(modifiers, allowConstructors)
+  | InvariantClause_
   )
 ````
 
@@ -1800,7 +1801,7 @@ QuantifierVarDecl(allowLemma, allowLambda) =
 ````grammar
 Ident = ident
 
-DotSuffix = ( ident | digits | "requires" | "reads" )
+DotSuffix = ( ident | digits | "requires" | "reads" | "invariant" )
 
 NoUSIdent = ident - "_" { idchar }
 
