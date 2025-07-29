@@ -1,0 +1,71 @@
+name: Test that libraries verify
+
+## Tests various aspects of documentation
+##  -- Examples are well-formed and verify when expected
+##  (Building the pdf is separately tested, in refman.yml)
+##
+## The tests only need to run on one OS -- Linux is used because the test scripts are bash
+
+on:
+  workflow_dispatch:
+  pull_request:
+    branches: [ master, main-* ]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check-deep-tests:
+     uses: ./.github/workflows/check-deep-tests-reusable.yml
+     with:
+       branch: master
+
+  librarytests:
+    needs: check-deep-tests
+    if: always() && (( github.event_name == 'pull_request' && (needs.check-deep-tests.result == 'success' || contains(github.event.pull_request.labels.*.name, 'run-deep-tests'))) || ( github.event_name == 'push' && ( github.ref_name == 'master' || vars.TEST_ON_FORK == 'true' )))
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Setup dotnet
+      uses: actions/setup-dotnet@v3
+      with:
+        dotnet-version: 6.0.x
+    - name: Checkout Dafny
+      uses: actions/checkout@v3
+      with:
+        submodules: recursive
+        path: dafny
+    - name: Load Z3
+      run: |
+        sudo apt-get install -qq libarchive-tools
+        mkdir -p dafny/Binaries/z3/bin
+        wget -qO- https://github.com/dafny-lang/solver-builds/releases/download/snapshot-2023-02-17/z3-4.12.1-ubuntu-20.04-bin.zip | bsdtar -xf -
+        mv z3-* dafny/Binaries/z3/bin/
+        chmod +x dafny/Binaries/z3/bin/z3-*
+    - name: Build Dafny
+      run: dotnet build dafny/Source/Dafny.sln
+    - name: Checkout library
+      uses: actions/checkout@v3
+      with:
+        repository: 'dafny-lang/libraries'
+        path: libraries
+    - name: Version information
+      run: |
+        ( cd dafny; echo -n "dafny: " ; git rev-parse HEAD )
+        ( cd libraries; echo -n "libraries: " ; git rev-parse HEAD )
+        dafny/Scripts/dafny --version
+
+    - name: Upgrade outdated pip
+      run: python -m pip install --upgrade pip
+
+    - name: Install lit
+      run: pip install lit OutputCheck
+
+    - name: Set up JS dependencies
+      run: npm install bignumber.js
+
+    - name: Verify Code and Examples
+      run: |
+        cd libraries
+        PATH=../dafny/Scripts:$PATH lit -v src
