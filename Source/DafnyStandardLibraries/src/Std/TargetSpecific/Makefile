@@ -69,8 +69,15 @@ update-binary-all:
 	make update-binary TARGETLANG=rs
 
 test:
+ifeq ($(TARGETLANG),rs)
+	$(DAFNY) test -t:${TARGETLANG} --standard-libraries=false --library:../../../binaries/DafnyStandardLibraries-rs.doo \
+		--enforce-determinism --reads-clauses-on-methods --type-system-refresh --general-traits=datatype \
+		--output:../../../build/stdlibexamples_targetspecific \
+		`find ../../../examples/TargetSpecific -name '*-${TARGETLANG}*.dfy' | sort`
+else
 	$(DAFNY) test -t:${TARGETLANG} ../../../examples/TargetSpecific/dfyconfig.toml --output:../../../build/stdlibexamples_targetspecific \
 		`find ../../../examples/TargetSpecific -name '*-${TARGETLANG}*.dfy' | sort`
+endif
 
 test-all:
 	make test TARGETLANG=cs
