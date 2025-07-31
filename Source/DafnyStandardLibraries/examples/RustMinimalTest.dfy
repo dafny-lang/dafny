@@ -13,11 +13,11 @@ module RustMinimalTest {
     var result: Result<int, string> := Success(42);
     expect result.Success?;
     expect result.value == 42;
-    
+
     var failure: Result<int, string> := Failure("error");
     expect failure.Failure?;
     expect failure.error == "error";
-    
+
     print "Rust standard library basic test: PASSED\n";
   }
 }

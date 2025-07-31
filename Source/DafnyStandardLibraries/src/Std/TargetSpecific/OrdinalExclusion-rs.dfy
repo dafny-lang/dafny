@@ -8,5 +8,5 @@
 // Exclude the main Ordinal module
 module {:compile false} Std.RsOrdinal replaces Ordinal {}
 
-// Exclude the Termination module which uses ORDINAL  
+// Exclude the Termination module which uses ORDINAL
 module {:compile false} Std.RsTermination replaces Termination {}
