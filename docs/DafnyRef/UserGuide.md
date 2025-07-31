@@ -882,7 +882,7 @@ In this section, we suggest a methodology to figure out [why Dafny cannot prove 
 
 ### 13.7.1. Verification debugging when verification fails {#sec-verification-debugging}
 
-Let's assume one assertion is failing ("assertion could not be proven" or "postcondition could not be proven"). What should you do next?
+Let's assume one assertion is failing ("assertion could not be proved" or "postcondition could not be proved"). What should you do next?
 First, it's good to know that if an assertion is failing, it means that the assertion might not hold or that Dafny would requires more proof hints, which can be found in a mechanical way.
 
 The following section is textual description of the animation below, which illustrates the principle of debugging an assertion by computing the weakest precondition:  
@@ -898,7 +898,7 @@ method FailingPostcondition(b: bool) returns (i: int)
   var j := if !b then 3 else 1;
   if b {
     return j;
-  }//^^^^^^^ a postcondition could not be proven on this return path
+  }//^^^^^^^ a postcondition could not be proved on this return path
   i := 2;
 }
 ```
@@ -912,7 +912,7 @@ method FailingPostcondition(b: bool) returns (i: int)
   if b {
     i := j;
     return;
-  }//^^^^^^^ a postcondition could not be proven on this return path
+  }//^^^^^^^ a postcondition could not be proved on this return path
   i := 2;
 }
 ```
