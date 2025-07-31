@@ -12,7 +12,7 @@ FOCUS_AREAS=${3:-"general"}
 if [ -z "$PR_NUMBER" ]; then
     echo "Dafny PR Review Script v1.0.0"
     echo ""
-    echo "Optional suggested focus areas:"
+    echo "Optional suggested focus areas:"z
     echo "  - general"
     echo "  - performance"
     echo "  - security"
@@ -370,7 +370,7 @@ Check for:
 Respond with either:
 <pass>Changes look good</pass>
 OR
-<fail>filename.ext: brief description of issues</fail>
+<fail>brief description of issues</fail>
 EOF
         
         # Invoke AI tool for this chunk with timeout
@@ -459,16 +459,6 @@ EOF
     elif grep -q "<fail>" "output_$files_processed.txt"; then
         # Extract failure reason from the fail tag
         fail_content=$(grep -o '<fail>.*</fail>' "output_$files_processed.txt" | sed 's/<fail>\(.*\)<\/fail>/\1/')
-        
-        # If fail_content is empty, show the full AI response
-        if [ -z "$fail_content" ]; then
-            fail_content="$(cat "output_$files_processed.txt" | head -3 | tr '\n' ' ')"
-        fi
-        
-        # Remove filename prefix if it's already in the fail content
-        if [[ "$fail_content" == "$file:"* ]]; then
-            fail_content="${fail_content#$file: }"
-        fi
         
         # Add to failed files list
         failed_file_list+=("$file")
