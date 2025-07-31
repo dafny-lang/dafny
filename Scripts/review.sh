@@ -457,8 +457,9 @@ EOF
     if grep -q "<pass>" "output_$files_processed.txt"; then
         passed_files=$((passed_files + 1))
     elif grep -q "<fail>" "output_$files_processed.txt"; then
-        # Extract failure reason from the fail tag
-        fail_content=$(grep -o '<fail>.*</fail>' "output_$files_processed.txt" | sed 's/<fail>\(.*\)<\/fail>/\1/')
+        # Extract failure reason from the fail tag (handle multiline)
+        fail_content=$(sed -n '/<fail>/,/<\/fail>/p' "output_$files_processed.txt" | sed 's/<fail>//' | sed 's/<\/fail>//' | tr '\n' ' ' | sed 's/^[[:space:]]*//' | sed 's/[[:space:]]*$//')
+
         
         # Add to failed files list
         failed_file_list+=("$file")
