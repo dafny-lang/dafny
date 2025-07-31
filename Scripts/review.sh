@@ -10,7 +10,7 @@ FOCUS_AREAS=${3:-"general"}
 
 # Interactive PR number input if not provided
 if [ -z "$PR_NUMBER" ]; then
-    echo "Dafny PR Review Script v1.2.0"
+    echo "Dafny PR Review Script v1.0.0"
     echo ""
     echo "Optional suggested focus areas:"
     echo "  - general"
@@ -382,11 +382,17 @@ EOF
             ai_exit_code=$?
         fi
         
-        # Check if AI tool timed out or failed
+        # Check if AI tool timed out or failed, but preserve any output it generated
         if [ $ai_exit_code -eq 124 ]; then
-            echo "<fail>$file: AI tool timed out after 5 minutes</fail>" > "output_${chunk_id}.txt"
+            # Timeout - check if we got any output
+            if [ ! -s "output_${chunk_id}.txt" ]; then
+                echo "<fail>$file: AI tool timed out after 5 minutes</fail>" > "output_${chunk_id}.txt"
+            fi
         elif [ $ai_exit_code -ne 0 ]; then
-            echo "<fail>$file: AI tool failed with exit code $ai_exit_code</fail>" > "output_${chunk_id}.txt"
+            # Non-zero exit - check if we got any output with proper tags
+            if [ ! -s "output_${chunk_id}.txt" ] || ! grep -q -E '<(pass|fail)>' "output_${chunk_id}.txt"; then
+                echo "<fail>$file: AI tool failed with exit code $ai_exit_code</fail>" > "output_${chunk_id}.txt"
+            fi
         fi
         
         # Return the output file path for processing
@@ -454,6 +460,16 @@ EOF
         # Extract failure reason from the fail tag
         fail_content=$(grep -o '<fail>.*</fail>' "output_$files_processed.txt" | sed 's/<fail>\(.*\)<\/fail>/\1/')
         
+        # If fail_content is empty, show the full AI response
+        if [ -z "$fail_content" ]; then
+            fail_content="$(cat "output_$files_processed.txt" | head -3 | tr '\n' ' ')"
+        fi
+        
+        # Remove filename prefix if it's already in the fail content
+        if [[ "$fail_content" == "$file:"* ]]; then
+            fail_content="${fail_content#$file: }"
+        fi
+        
         # Add to failed files list
         failed_file_list+=("$file")
         failed_reason_list+=("$fail_content")
@@ -464,9 +480,14 @@ EOF
         # Update status display
         show_status_view $files_processed $total_files "$file"
     else
-        # Missing XML tag
+        # Missing XML tag - show actual AI response
+        ai_response=$(cat "output_$files_processed.txt" | head -3 | tr '\n' ' ' | cut -c1-100)
+        if [ -z "$ai_response" ]; then
+            ai_response="No response from AI tool"
+        fi
+        
         failed_file_list+=("$file")
-        failed_reason_list+=("Missing XML tag in AI response")
+        failed_reason_list+=("$ai_response")
         
         violations=$((violations + 1))
         failed_files=$((failed_files + 1))
@@ -511,7 +532,26 @@ else
         echo "  ${failed_file_list[$i]}: ${failed_reason_list[$i]}"
     done
     echo ""
+    echo "💡 To see full AI responses for failed files, check the output_*.txt files in:"
+    echo "   $TEMP_DIR"
+    echo ""
     echo "❌ Consider addressing these concerns before merging"
+    
+    # Copy failed file outputs to current directory for inspection
+    if [ ${#failed_file_list[@]} -gt 0 ]; then
+        echo ""
+        echo "📋 Copying failed file details to current directory..."
+        for i in "${!failed_file_list[@]}"; do
+            file_num=$((i + 1))
+            if [ -f "$TEMP_DIR/output_${file_num}.txt" ]; then
+                cp "$TEMP_DIR/output_${file_num}.txt" "./review_failed_${file_num}_$(basename "${failed_file_list[$i]}").txt"
+                echo "   → review_failed_${file_num}_$(basename "${failed_file_list[$i]}").txt"
+            fi
+        done
+        echo ""
+        echo "💡 Review these files for detailed AI feedback on the issues found"
+    fi
+    
     exit_code=1
 fi
 
