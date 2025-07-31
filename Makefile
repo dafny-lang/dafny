@@ -1,8 +1,6 @@
 # Run these tasks even if eponymous files or folders exist
 .PHONY: test-dafny exe
 
-DIR=$(realpath $(dir $(firstword $(MAKEFILE_LIST))))
-
 default: exe
 
 all: exe refman
