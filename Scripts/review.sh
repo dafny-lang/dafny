@@ -12,7 +12,7 @@ FOCUS_AREAS=${3:-"general"}
 if [ -z "$PR_NUMBER" ]; then
     echo "Dafny PR Review Script v1.0.0"
     echo ""
-    echo "Optional suggested focus areas:"z
+    echo "Optional suggested focus areas:"
     echo "  - general"
     echo "  - performance"
     echo "  - security"
