@@ -273,7 +273,7 @@ The options relevant to this command are
    - `--show-snippets` --- emit a line or so of source code along with an error message
    - `--library` --- include this file in the program, but do not verify or compile it (multiple such library files can be listed using multiple instances of the `--library` option)
    - `--stdin` -- read from standard input
-- those that affect the syntax of dafny, such as
+- those that affect the syntax of Dafny, such as
    - `--prelude`
    - `--unicode-char`
    - `--function-syntax`
