@@ -495,7 +495,6 @@ EOF
 
     
     # Small delay to avoid overwhelming the API
-    echo "Hello, can you respond?" | q chat
     sleep $SLEEP_BETWEEN_FILES
     
 done < changed_files.txt
