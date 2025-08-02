@@ -3,6 +3,6 @@ git-issue-2693.dfy(10,10): Warning: Support for member 'Extract' in type 'EvenGo
 git-issue-2693.dfy(10,10): Error: a postcondition could not be proved on this return path
 git-issue-2693.dfy(6,46): Related location: this is the postcondition that could not be proved
 git-issue-2693.dfy(21,12): Related location: this proposition could not be proved
-git-issue-2693.dfy(11,4): Error: assertion might not hold
+git-issue-2693.dfy(11,4): Error: assertion could not be proved
 
 Dafny program verifier finished with 6 verified, 2 errors

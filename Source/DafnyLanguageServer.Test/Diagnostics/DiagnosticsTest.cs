@@ -46,7 +46,7 @@ class Test
       var diagnostics1 = await GetLastDiagnostics(documentItem, DiagnosticSeverity.Error);
       var startOrdered = diagnostics1.OrderBy(r => r.Range.Start).ToList();
       Assert.Equal(new Range(5, 19, 5, 24), startOrdered[0].Range);
-      Assert.Equal("ensures might not hold", startOrdered[0].Message);
+      Assert.Equal("ensures could not be proved", startOrdered[0].Message);
 
     }
     [Fact]
@@ -86,7 +86,7 @@ module B refines A {
       Assert.Equal("a postcondition could not be proved on this return path", startOrdered[0].Message);
       Assert.Equal("this is the postcondition that could not be proved", startOrdered[0].RelatedInformation!.ElementAt(0).Message);
       Assert.Equal(new Range(12, 7, 12, 8), startOrdered[1].Range);
-      Assert.Equal("decreases clause might not decrease", startOrdered[1].Message);
+      Assert.Equal("decreases clause could not be proved to decrease", startOrdered[1].Message);
       Assert.Equal(new Range(17, 7, 17, 8), startOrdered[1].RelatedInformation!.ElementAt(0).Location.Range);
       Assert.Equal("refining module", startOrdered[1].RelatedInformation.ElementAt(0).Message);
     }

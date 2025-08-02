@@ -3,8 +3,8 @@ DefaultParameters.dfy(63,42): Error: default value could not be proved to be all
 DefaultParameters.dfy(67,38): Error: default value could not be proved to be allocated in the two-state lemma's previous state
 DefaultParameters.dfy(92,2): Error: a postcondition could not be proved on this return path
 DefaultParameters.dfy(91,16): Related location: this is the postcondition that could not be proved
-DefaultParameters.dfy(102,6): Error: assertion might not hold
-DefaultParameters.dfy(110,6): Error: assertion might not hold
+DefaultParameters.dfy(102,6): Error: assertion could not be proved
+DefaultParameters.dfy(110,6): Error: assertion could not be proved
 DefaultParameters.dfy(124,37): Error: insufficient reads clause to read field; Mutable fields cannot be accessed within certain scopes, such as default values, the right-hand side of constants, or co-recursive calls
 DefaultParameters.dfy(131,40): Error: insufficient reads clause to read field; Mutable fields cannot be accessed within certain scopes, such as default values, the right-hand side of constants, or co-recursive calls
 DefaultParameters.dfy(135,49): Error: possible division by zero
@@ -34,10 +34,10 @@ DefaultParameters.dfy(200,42): Error: default-value expression is not allowed to
 DefaultParameters.dfy(211,63): Error: default-value expression is not allowed to involve recursive or mutually recursive calls
 DefaultParameters.dfy(219,30): Error: default-value expression is not allowed to involve recursive or mutually recursive calls
 DefaultParameters.dfy(220,30): Error: default-value expression is not allowed to involve recursive or mutually recursive calls
-DefaultParameters.dfy(229,9): Error: decreases clause might not decrease
-DefaultParameters.dfy(235,5): Error: decreases clause might not decrease
-DefaultParameters.dfy(235,7): Error: decreases clause might not decrease
-DefaultParameters.dfy(241,5): Error: decreases clause might not decrease
+DefaultParameters.dfy(229,9): Error: decreases clause could not be proved to decrease
+DefaultParameters.dfy(235,5): Error: decreases clause could not be proved to decrease
+DefaultParameters.dfy(235,7): Error: decreases clause could not be proved to decrease
+DefaultParameters.dfy(241,5): Error: decreases clause could not be proved to decrease
 DefaultParameters.dfy(251,31): Error: insufficient reads clause to read field; Mutable fields cannot be accessed within certain scopes, such as default values, the right-hand side of constants, or co-recursive calls
 DefaultParameters.dfy(258,42): Error: default-value expression is not allowed to involve recursive or mutually recursive calls
 DefaultParameters.dfy(267,41): Error: possible division by zero
@@ -74,7 +74,7 @@ DefaultParameters.dfy(520,38): Error: insufficient reads clause to read field; M
 DefaultParameters.dfy(521,40): Error: insufficient reads clause to read field; Mutable fields cannot be accessed within certain scopes, such as default values, the right-hand side of constants, or co-recursive calls
 DefaultParameters.dfy(524,49): Error: insufficient reads clause to read field; Mutable fields cannot be accessed within certain scopes, such as default values, the right-hand side of constants, or co-recursive calls
 DefaultParameters.dfy(548,38): Error: insufficient reads clause to read field; Mutable fields cannot be accessed within certain scopes, such as default values, the right-hand side of constants, or co-recursive calls
-DefaultParameters.dfy(601,16): Error: assertion might not hold
+DefaultParameters.dfy(601,16): Error: assertion could not be proved
 DefaultParameters.dfy(582,18): Related location: this proposition could not be proved
 
 Dafny program verifier finished with 72 verified, 74 errors

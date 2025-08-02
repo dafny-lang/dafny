@@ -1,15 +1,15 @@
 Modules1.dfy(131,14): Warning: This ensures clause is part of a bodyless method. Add the {:axiom} attribute to it or the enclosing method to suppress this warning
 Modules1.dfy(56,8): Error: decreases expression must be bounded below by 0
 Modules1.dfy(54,12): Related location: this decreases clause was not satisfied
-Modules1.dfy(62,8): Error: decreases clause might not decrease
-Modules1.dfy(82,6): Error: assertion might not hold
-Modules1.dfy(95,6): Error: assertion might not hold
-Modules1.dfy(97,6): Error: assertion might not hold
-Modules1.dfy(211,4): Error: assertion might not hold
-Modules1.dfy(212,4): Error: assertion might not hold
-Modules1.dfy(213,4): Error: assertion might not hold
-Modules1.dfy(219,4): Error: assertion might not hold
-Modules1.dfy(220,4): Error: assertion might not hold
-Modules1.dfy(221,4): Error: assertion might not hold
+Modules1.dfy(62,8): Error: decreases clause could not be proved to decrease
+Modules1.dfy(82,6): Error: assertion could not be proved
+Modules1.dfy(95,6): Error: assertion could not be proved
+Modules1.dfy(97,6): Error: assertion could not be proved
+Modules1.dfy(211,4): Error: assertion could not be proved
+Modules1.dfy(212,4): Error: assertion could not be proved
+Modules1.dfy(213,4): Error: assertion could not be proved
+Modules1.dfy(219,4): Error: assertion could not be proved
+Modules1.dfy(220,4): Error: assertion could not be proved
+Modules1.dfy(221,4): Error: assertion could not be proved
 
 Dafny program verifier finished with 9 verified, 11 errors

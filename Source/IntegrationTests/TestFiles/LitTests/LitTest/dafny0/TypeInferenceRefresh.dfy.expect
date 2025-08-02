@@ -1,7 +1,7 @@
 TypeInferenceRefresh.dfy(445,11): Warning: the modify statement with a block statement is deprecated
 TypeInferenceRefresh.dfy(807,4): Warning: this branch is redundant
-TypeInferenceRefresh.dfy(145,30): Error: element might not be in domain
-TypeInferenceRefresh.dfy(216,26): Error: result of operation might violate newtype constraint for 'int8'
+TypeInferenceRefresh.dfy(145,30): Error: element could not be proved to be in domain
+TypeInferenceRefresh.dfy(216,26): Error: result of operation could not be proved to satisfy newtype constraint for 'int8'
 TypeInferenceRefresh.dfy(102,31): Error: value does not satisfy the subset constraints of 'SubsetType'
 TypeInferenceRefresh.dfy(107,31): Error: value does not satisfy the subset constraints of 'SubsetType'
 TypeInferenceRefresh.dfy(630,40): Error: value does not satisfy the subset constraints of 'nat'
