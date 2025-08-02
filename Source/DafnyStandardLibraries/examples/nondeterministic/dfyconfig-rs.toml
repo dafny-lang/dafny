@@ -1,0 +1,11 @@
+[options]
+standard-libraries = false
+enforce-determinism = false
+reads-clauses-on-methods = true
+type-system-refresh = true
+general-traits = "datatype"
+general-newtypes = true
+
+resource-limit = 1000000
+warn-redundant-assumptions = false
+warn-contradictory-assumptions = true

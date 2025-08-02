@@ -59,7 +59,13 @@ test-js:
 	$(DAFNY) test $(VERIFY_OPTIONS) -t:js examples/nondeterministic/dfyconfig.toml --output:build/stdlibexamples_nondeterministic
 	TARGETLANG=js make -C src/Std/TargetSpecific test
 
-test: test-cs test-java test-go test-py test-js
+test-rs:
+	$(DAFNY) test $(VERIFY_OPTIONS) -t:rs --enforce-determinism --standard-libraries=false --output:build/stdlibexamples \
+		src/Std/Wrappers.dfy examples/RustMinimalTest.dfy
+	# Skip other tests for Rust due to ORDINAL-related module exclusions
+	# TARGETLANG=rs make -C src/Std/TargetSpecific test
+
+test: test-cs test-java test-go test-py test-js test-rs
 
 # We only generate coverage from the C# tests
 coverage: test-cs
