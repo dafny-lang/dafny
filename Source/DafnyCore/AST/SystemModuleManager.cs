@@ -86,6 +86,10 @@ public class SystemModuleManager {
   public Type ObjectSetType() {
     return new SetType(true, ObjectQ());
   }
+  
+  public Type NonNullObjectSetType(IOrigin origin) {
+    return new SetType(true, UserDefinedType.FromTopLevelDecl(origin, ObjectDecl));
+  }
 
   public SystemModuleManager(DafnyOptions options) {
     SystemModule = new(SourceOrigin.NoToken, new Name("_System"), [],

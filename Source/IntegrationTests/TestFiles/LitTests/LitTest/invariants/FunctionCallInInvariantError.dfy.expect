@@ -1,0 +1,4 @@
+FunctionCallInInvariantError.dfy(11,25): Error: cannot prove termination; try supplying a decreases clause
+FunctionCallInInvariantError.dfy(7,19): Error: decreases clause might not decrease
+
+Dafny program verifier finished with 0 verified, 2 errors

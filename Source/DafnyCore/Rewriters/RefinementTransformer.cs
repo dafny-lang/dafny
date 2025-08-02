@@ -656,51 +656,76 @@ namespace Microsoft.Dafny {
               Error(ErrorId.ref_refinement_field_must_add_ghost, nwMember, "a field re-declaration ({0}) must be to add 'ghost' to the field declaration", nwMember.Name);
             }
             nwMember.RefinementBase = member;
-
+          } else if (nwMember.TryCastToInvariant(Options, Reporter, MessageSource.Rewriter, out var nwInvariant)) {
+            if (member is Invariant invariant) {
+              // Paste them together, original invariants first
+              nwInvariant.Body = Expression.CreateAnd(refinementCloner.CloneExpr(invariant.Body), nwInvariant.Body);
+            } else {
+              Error(ErrorId.ref_invariant_refines_invariant, nwInvariant, "an invariant can only refine an invariant");
+            }
           } else if (nwMember is Function) {
             var f = (Function)nwMember;
             bool isPredicate = f is Predicate;
             bool isLeastPredicate = f is LeastPredicate;
             bool isGreatestPredicate = f is GreatestPredicate;
             if (!(member is Function) ||
-              isPredicate != (member is Predicate) ||
-              (f is LeastPredicate) != (member is LeastPredicate) ||
-              (f is GreatestPredicate) != (member is GreatestPredicate) ||
-              (f is TwoStatePredicate) != (member is TwoStatePredicate) ||
-              (f is TwoStateFunction) != (member is TwoStateFunction)) {
-              Error(ErrorId.ref_mismatched_refinement_kind, nwMember, "a {0} declaration ({1}) can only refine a {0}", f.WhatKind, nwMember.Name);
+                isPredicate != (member is Predicate) ||
+                (f is LeastPredicate) != (member is LeastPredicate) ||
+                (f is GreatestPredicate) != (member is GreatestPredicate) ||
+                (f is TwoStatePredicate) != (member is TwoStatePredicate) ||
+                (f is TwoStateFunction) != (member is TwoStateFunction)) {
+              Error(ErrorId.ref_mismatched_refinement_kind, nwMember, "a {0} declaration ({1}) can only refine a {0}",
+                f.WhatKind, nwMember.Name);
             } else {
               var prevFunction = (Function)member;
               if (f.Req.Count != 0) {
-                Error(ErrorId.ref_refinement_no_new_preconditions, f.Req[0].E.Origin, "a refining {0} is not allowed to add preconditions", f.WhatKind);
+                Error(ErrorId.ref_refinement_no_new_preconditions, f.Req[0].E.Origin,
+                  "a refining {0} is not allowed to add preconditions", f.WhatKind);
               }
+
               if (f.Reads.Expressions.Count != 0) {
-                Error(ErrorId.ref_refinement_no_new_reads, f.Reads.Expressions[0].E.Origin, "a refining {0} is not allowed to extend the reads clause", f.WhatKind);
+                Error(ErrorId.ref_refinement_no_new_reads, f.Reads.Expressions[0].E.Origin,
+                  "a refining {0} is not allowed to extend the reads clause", f.WhatKind);
               }
+
               if (f.Decreases.Expressions.Count != 0) {
-                Error(ErrorId.ref_no_new_decreases, f.Decreases.Expressions[0].Origin, "decreases clause on refining {0} not supported", f.WhatKind);
+                Error(ErrorId.ref_no_new_decreases, f.Decreases.Expressions[0].Origin,
+                  "decreases clause on refining {0} not supported", f.WhatKind);
               }
 
               if (prevFunction.HasStaticKeyword != f.HasStaticKeyword) {
-                Error(ErrorId.ref_mismatched_function_static, f, "a function in a refining module cannot be changed from static to non-static or vice versa: {0}", f.Name);
+                Error(ErrorId.ref_mismatched_function_static, f,
+                  "a function in a refining module cannot be changed from static to non-static or vice versa: {0}",
+                  f.Name);
               }
+
               if (!prevFunction.IsGhost && f.IsGhost) {
-                Error(ErrorId.ref_mismatched_function_compile, f, "a compiled function cannot be changed into a ghost function in a refining module: {0}", f.Name);
+                Error(ErrorId.ref_mismatched_function_compile, f,
+                  "a compiled function cannot be changed into a ghost function in a refining module: {0}", f.Name);
               } else if (prevFunction.IsGhost && !f.IsGhost && prevFunction.Body != null) {
-                Error(ErrorId.ref_no_refinement_function_with_body, f, "a ghost function can be changed into a compiled function in a refining module only if the function has not yet been given a body: {0}", f.Name);
+                Error(ErrorId.ref_no_refinement_function_with_body, f,
+                  "a ghost function can be changed into a compiled function in a refining module only if the function has not yet been given a body: {0}",
+                  f.Name);
               }
+
               if (f.SignatureIsOmitted) {
                 Contract.Assert(f.TypeArgs.Count == 0);
                 Contract.Assert(f.Ins.Count == 0);
-                Reporter.Info(MessageSource.RefinementTransformer, f.SignatureEllipsis, Printer.FunctionSignatureToString(Reporter.Options, prevFunction));
+                Reporter.Info(MessageSource.RefinementTransformer, f.SignatureEllipsis,
+                  Printer.FunctionSignatureToString(Reporter.Options, prevFunction));
               } else {
                 CheckAgreement_TypeParameters(f.Origin, prevFunction.TypeArgs, f.TypeArgs, f.Name, "function");
                 CheckAgreement_Parameters(f.Origin, prevFunction.Ins, f.Ins, f.Name, "function", "parameter");
                 if (prevFunction.Result != null && f.Result != null && prevFunction.Result.Name != f.Result.Name) {
-                  Error(ErrorId.ref_mismatched_function_return_name, f, "the name of function return value '{0}'({1}) differs from the name of corresponding function return value in the module it refines ({2})", f.Name, f.Result.Name, prevFunction.Result.Name);
+                  Error(ErrorId.ref_mismatched_function_return_name, f,
+                    "the name of function return value '{0}'({1}) differs from the name of corresponding function return value in the module it refines ({2})",
+                    f.Name, f.Result.Name, prevFunction.Result.Name);
                 }
+
                 if (!TypesAreSyntacticallyEqual(prevFunction.ResultType, f.ResultType)) {
-                  Error(ErrorId.ref_mismatched_function_return_type, f, "the result type of function '{0}' ({1}) differs from the result type of the corresponding function in the module it refines ({2})", f.Name, f.ResultType, prevFunction.ResultType);
+                  Error(ErrorId.ref_mismatched_function_return_type, f,
+                    "the result type of function '{0}' ({1}) differs from the result type of the corresponding function in the module it refines ({2})",
+                    f.Name, f.ResultType, prevFunction.ResultType);
                 }
               }
 
@@ -709,13 +734,15 @@ namespace Microsoft.Dafny {
               if (prevFunction.Body == null) {
                 replacementBody = f.Body;
               } else if (f.Body != null) {
-                Error(ErrorId.ref_mismatched_refinement_body, nwMember, $"a refining {f.WhatKind} is not allowed to extend/change the body");
+                Error(ErrorId.ref_mismatched_refinement_body, nwMember,
+                  $"a refining {f.WhatKind} is not allowed to extend/change the body");
               }
-              var newF = CloneFunction(f, prevFunction, moreBody, replacementBody, prevFunction.Body == null, f.Attributes);
+
+              var newF = CloneFunction(f, prevFunction, moreBody, replacementBody, prevFunction.Body == null,
+                f.Attributes);
               newF.RefinementBase = member;
               nw.Members[index] = newF;
             }
-
           } else {
             var m = (MethodOrConstructor)nwMember;
             if (!(member is MethodOrConstructor prevMethod)) {

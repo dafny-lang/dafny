@@ -42,6 +42,17 @@ namespace Microsoft.Dafny {
         }
       }
 
+      private Bpl.Formal memoizedOpenFormal;
+      public Bpl.Formal OpenFormal(IOrigin tok, out Expr openExpr, out Expression openExprDafny) {
+        if (memoizedOpenFormal is null) {
+          memoizedOpenFormal = BplFormalVar("$Open", Predef.SetType, true, out openExpr);
+        } else {
+          openExpr = new Bpl.IdentifierExpr(tok, memoizedOpenFormal);
+        }
+        openExprDafny = new BoogieWrapper(openExpr, BoogieGenerator.program.SystemModuleManager.NonNullObjectSetType(tok));
+        return memoizedOpenFormal;
+      }
+
       public readonly PredefinedDecls Predef;
       public readonly BoogieGenerator BoogieGenerator;
       public readonly string This;

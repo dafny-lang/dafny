@@ -150,6 +150,13 @@ public partial class BoogieGenerator {
     if (Options.Get(CommonOptionBag.Referrers) && callee is not Lemma) {
       ins.Add(FunctionCall(tok, "+", Boogie.Type.Int, Id(tok, "depth"), One(tok)));
     }
+
+    if (Options.Get(CommonOptionBag.CheckInvariants)) {
+      // NB: technically you want to pass in $Open - {all object caller doesn't expect to be open} and then check
+      // the invariant for the objects being removed from that set. We approximate that below
+      ins.Add(new Boogie.IdentifierExpr(tok, "$Open", Predef.SetType));
+    }
+    
     if (callee is TwoStateLemma) {
       ins.Add(etran.OldAt(atLabel).HeapExpr);
       ins.Add(etran.HeapExpr);
@@ -294,8 +301,35 @@ public partial class BoogieGenerator {
 
       // ... but that substitution isn't needed for frames passed to CheckFrameSubset
       var readsSubst = new Substituter(null, new Dictionary<IVariable, Expression>(), tySubst);
-      CheckFrameSubset(tok, callee.Reads.Expressions.ConvertAll(readsSubst.SubstFrameExpr),
+      var calleeFrame = callee.Reads.Expressions.ConvertAll(readsSubst.SubstFrameExpr);
+      CheckFrameSubset(tok, calleeFrame,
         receiver, substMap, etran, etran.ReadsFrame(tok), builder, desc, null);
+    }
+    
+    // NB: doesn't process function call expressions, b/c the associated well-formedness procedure will do so
+    if (options.Get(CommonOptionBag.CheckInvariants) && codeContext is MethodOrFunction { IsStatic: false, EnclosingClass: TopLevelDeclWithMembers { Invariant: { } invariant } } caller)
+      // Any object o in $Open must satisfy its invariant, UNLESS the caller is not reading o
+      // forall o <- open :: o not in caller's read frame || o.invariant()
+      // TODO(somayyas): assuming open == {this} for now
+    {
+      var thisExpr = new ThisExpr(caller);
+        
+      var readsSubst = new Substituter(null, new Dictionary<IVariable, Expression>(), tySubst);
+      var calleeFrame = callee.Reads.Expressions.ConvertAll(readsSubst.SubstFrameExpr);
+
+      var assertion = invariant.Mention(tok, thisExpr, program.SystemModuleManager);
+      
+      if (caller is Function || options.Get(MethodOrConstructor.ReadsClausesOnMethods)) {
+        assertion = new BinaryExpr(tok, BinaryExpr.ResolvedOpcode.Or, new BoogieWrapper(
+            CheckFrameExcludes(tok, calleeFrame, receiver, substMap, etran, etran.TrExpr(thisExpr)), Type.Bool), 
+          assertion);
+      }
+      
+      // Somewhat disturbing that we have to explicitly add the CanCall assumption
+      builder.Add(TrAssumeCmd(tok, etran.CanCallAssumption(assertion)));
+      builder.Add(TrAssertCmdDesc(tok, etran.TrExpr(assertion),
+        new ObjectInvariant(Dafny.ObjectInvariant.Kind.Call, assertion))
+      );
     }
 
     // substitute actual args for parameters in description expression frames...
@@ -310,9 +344,11 @@ public partial class BoogieGenerator {
       );
       // ... but that substitution isn't needed for frames passed to CheckFrameSubset
       var modifiesSubst = new Substituter(null, new(), tySubst);
-      CheckFrameSubset(
-        tok, callee.Mod.Expressions.ConvertAll(modifiesSubst.SubstFrameExpr),
-        receiver, substMap, etran, etran.ModifiesFrame(tok), builder, desc, null);
+      var calleeFrame = callee.Mod.Expressions.ConvertAll(modifiesSubst.SubstFrameExpr);
+      CheckFrameSubset(tok, calleeFrame, receiver, substMap, etran, etran.ModifiesFrame(tok), builder, desc, null);
+      
+      // NB: it is not necessary to check exclude calls that modify an object in the open set, since we conservatively
+      // check that all objects in the open set satisfy their invariant by the time the call is made
     }
 
     // Check termination
