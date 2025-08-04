@@ -74,13 +74,10 @@ build-rs-lib:
 	$(DAFNY) build $(VERIFY_OPTIONS) -t:lib build/rust-stdlib/src/Std/dfyconfig.toml --output:binaries/DafnyStandardLibraries-rs.doo || true
 	# Note: Build may have verification issues but should produce usable library
 
-test-rs: build-rs-lib
-	# Test using the Rust-specific standard library
-	$(DAFNY) test $(VERIFY_OPTIONS) -t:rs --enforce-determinism --standard-libraries=false \
-		--library:binaries/DafnyStandardLibraries-rs.doo --output:build/stdlibexamples \
-		examples/RustMinimalTest.dfy || \
-	$(DAFNY) test $(VERIFY_OPTIONS) -t:rs --enforce-determinism --standard-libraries=false --output:build/stdlibexamples \
-		src/Std/Wrappers.dfy examples/RustMinimalTest.dfy
+test-rs:
+	# Test default --standard-libraries behavior with Rust (ORDINAL issue resolved)
+	$(DAFNY) test $(VERIFY_OPTIONS) -t:rs --enforce-determinism --standard-libraries --output:build/stdlibexamples \
+		examples/RustMinimalTest.dfy
 
 test: test-cs test-java test-go test-py test-js test-rs
 
