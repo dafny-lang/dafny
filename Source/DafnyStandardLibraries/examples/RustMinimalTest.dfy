@@ -8,7 +8,7 @@ module RustMinimalTest {
   import opened Std.Wrappers
 
   @Test
-  method TestBasicFunctionality() {
+  method {:print} TestBasicFunctionality() {
     // Test basic wrapper functionality
     var result: Result<int, string> := Success(42);
     expect result.Success?;
