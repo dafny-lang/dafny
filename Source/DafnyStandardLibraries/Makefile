@@ -60,10 +60,9 @@ test-js:
 	TARGETLANG=js make -C src/Std/TargetSpecific test
 
 test-rs:
-	$(DAFNY) test $(VERIFY_OPTIONS) -t:rs --enforce-determinism --standard-libraries=false --output:build/stdlibexamples \
-		src/Std/Wrappers.dfy examples/RustMinimalTest.dfy
-	# Skip other tests for Rust due to ORDINAL-related module exclusions
-	# TARGETLANG=rs make -C src/Std/TargetSpecific test
+	$(DAFNY) test $(VERIFY_OPTIONS) -t:rs --enforce-determinism --standard-libraries --output:build/stdlibexamples \
+		examples/RustMinimalTest.dfy
+	# This should now reproduce the ORDINAL error that needs to be fixed
 
 test: test-cs test-java test-go test-py test-js test-rs
 
