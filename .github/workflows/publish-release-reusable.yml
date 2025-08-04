@@ -145,7 +145,7 @@ jobs:
         eval "$(/usr/libexec/path_helper)"
         make -C dafny/docs/DafnyRef
     - name: Record existing assets
-      if: prerelease
+      if: ${{ inputs.prerelease }}
       run: gh api /repos/dafny-lang/dafny/releases/tags/nightly --jq '.assets.[].id' | awk 'n>=900 { print a[n%900] } { a[n%900]=$0; n=n+1 }' > assets.txt
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -179,7 +179,7 @@ jobs:
         fail_on_unmatched_files: true
 
     - name: Delete outdated assets
-      if: prerelease
+      if: ${{ inputs.prerelease }}
       run: |
         while read ASSET_ID; do
           gh api --method DELETE /repos/dafny-lang/dafny/releases/assets/$ASSET_ID > /dev/null 2>&1
