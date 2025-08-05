@@ -10,7 +10,7 @@ class Account {
     reads this
   {
     // NB: uses the invariant to be well-defined
-    assert this.invariant(); credit - debit
+    credit - debit
   }
   method Withdraw(amount: nat)
     requires Balance() - amount >= 0
