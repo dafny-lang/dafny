@@ -1,0 +1,12 @@
+[package]
+name = "RustMinimalTest"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+dafny_runtime = { path = "runtime" }
+
+[[bin]]
+name = "RustMinimalTest"
+path = "src/RustMinimalTest.rs"
+

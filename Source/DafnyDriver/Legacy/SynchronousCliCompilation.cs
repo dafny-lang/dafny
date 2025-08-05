@@ -213,7 +213,7 @@ namespace Microsoft.Dafny {
         var asLibrary = !options.Get(CommonOptionBag.TranslateStandardLibrary);
 
         var reporter = new ConsoleErrorReporter(options);
-        if (options.CompilerName is null or "cs" or "java" or "go" or "py" or "js") {
+        if (options.CompilerName is null or "cs" or "java" or "go" or "py" or "js" or "rs") {
           var targetName = options.CompilerName ?? "notarget";
           var stdlibDooUri = DafnyMain.StandardLibrariesDooUriTarget[targetName];
           options.CliRootSourceUris.Add(stdlibDooUri);
@@ -223,8 +223,11 @@ namespace Microsoft.Dafny {
         }
 
         options.CliRootSourceUris.Add(DafnyMain.StandardLibrariesDooUri);
-        await foreach (var targetAgnosticFile in DafnyFile.CreateAndValidate(OnDiskFileSystem.Instance, reporter, options, DafnyMain.StandardLibrariesDooUri, Token.Cli, asLibrary)) {
-          dafnyFiles.Add(targetAgnosticFile);
+        // For Rust, use only the target-specific library to avoid ORDINAL issues
+        if (options.CompilerName != "rs") {
+          await foreach (var targetAgnosticFile in DafnyFile.CreateAndValidate(OnDiskFileSystem.Instance, reporter, options, DafnyMain.StandardLibrariesDooUri, Token.Cli, asLibrary)) {
+            dafnyFiles.Add(targetAgnosticFile);
+          }
         }
       }
 
