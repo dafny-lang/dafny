@@ -223,7 +223,9 @@ abstract class Flow {
     var aDecl = ((UserDefinedType)a).ResolvedClass;
     var bDecl = ((UserDefinedType)b).ResolvedClass;
     var commonSupertypeDecl = PreTypeConstraints.JoinHeads(aDecl, bDecl, context.SystemModuleManager);
-    Contract.Assert(commonSupertypeDecl != null);
+    if (commonSupertypeDecl == null) {
+      return null; // join does not exist (e.g., it is not unique)
+    }
     var aTypeSubstMap = TypeParameter.SubstitutionMap(aDecl.TypeArgs, a.TypeArgs);
     (aDecl as TopLevelDeclWithMembers)?.AddParentTypeParameterSubstitutions(aTypeSubstMap);
     var bTypeSubstMap = TypeParameter.SubstitutionMap(bDecl.TypeArgs, b.TypeArgs);
