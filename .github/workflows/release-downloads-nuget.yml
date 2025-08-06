@@ -18,7 +18,7 @@ on:
 
 env:
   dotnet-version: 8.0.x # SDK Version for running Dafny (TODO: should this be an older version?)
-  z3BaseUri: https://github.com/dafny-lang/solver-builds/releases/download/snapshot-2023-08-02
+  z3BaseUri: https://github.com/dafny-lang/solver-builds/releases/download/snapshot-2025-07-02
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -31,8 +31,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        # This workflow breaks on windows-2022: https://github.com/dafny-lang/dafny/issues/1906
-        os: [ ubuntu-22.04, macos-13, windows-2019 ]
+        os: [ ubuntu-22.04, macos-13, windows-2022 ]
 
     steps:
     - name: OS
@@ -110,8 +109,7 @@ jobs:
         # Hopefully we can automatically populate this list in the future,
         # but note we need to skip Dafny since nuget install doesn't work for dotnet tools.
         library-name: [ DafnyPipeline, DafnyServer, DafnyLanguageServer, DafnyRuntime, DafnyCore, DafnyDriver ]
-        # This workflow breaks on windows-2022: https://github.com/dafny-lang/dafny/issues/1906
-        os: [ ubuntu-latest, ubuntu-22.04, macos-13, windows-2019 ]
+        os: [ ubuntu-latest, ubuntu-22.04, macos-13, windows-2022 ]
 
     steps:
     # Verify that the dependencies of the libraries we publish (e.g. DafnyLanguageServer)

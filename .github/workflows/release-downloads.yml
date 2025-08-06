@@ -17,8 +17,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        # This workflow breaks on windows-2022: https://github.com/dafny-lang/dafny/issues/1906
-        os: [ ubuntu-latest, ubuntu-22.04, macos-13, windows-2019 ]
+        os: [ ubuntu-latest, ubuntu-22.04, macos-13, windows-2022 ]
         include:
         - os:  'ubuntu-latest'
           osn: 'ubuntu-22.04'
@@ -26,8 +25,8 @@ jobs:
           osn: 'ubuntu-22.04'
         - os:  'macos-13'
           osn: 'x64-macos-13'
-        - os:  'windows-2019'
-          osn: 'windows-2019'
+        - os:  'windows-2022'
+          osn: 'windows-2022'
     # There is no hosted environment for Ubuntu 14.04 or for debian
 
     # Java is installed by default, but we need to select 18
@@ -60,8 +59,8 @@ jobs:
     ## Record versions, checking that dafny runs
     - name: Versions
       run: |
-        dafny/z3/bin/z3-4.8.5 -version
         dafny/z3/bin/z3-4.12.1 -version
+        dafny/z3/bin/z3-4.14.1 -version
         dafny/dafny -version
     
     ## Check that a simple program compiles and runs on each supported platform
