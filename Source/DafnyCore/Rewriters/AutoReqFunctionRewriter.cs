@@ -380,7 +380,7 @@ public class AutoReqFunctionRewriter : IRewriter {
       var e = (ConcreteSyntaxExpression)expr;
       reqs.AddRange(GenerateAutoReqs(e.ResolvedExpression));
     } else {
-      //Contract.Assert(false); throw new cce.UnreachableException();  // unexpected expression
+      //Contract.Assert(false); throw new Cce.UnreachableException();  // unexpected expression
     }
 
     return reqs;
