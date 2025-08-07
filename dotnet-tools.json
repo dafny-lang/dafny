@@ -9,7 +9,7 @@
       ]
     },
     "boogie": {
-      "version": "3.2.5",
+      "version": "3.5.5",
       "commands": [
         "boogie"
       ]

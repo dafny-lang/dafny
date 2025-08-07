@@ -603,7 +603,7 @@ TraitDecl<DeclModifierData dmodIn, ModuleDefinition/*!*/ module, out TraitDecl/*
 
 /*------------------------------------------------------------------------*/
 ClassMemberDecl<. DeclModifierData dmod, List<MemberDecl> mm, bool allowConstructors, bool moduleLevelDecl.>
-= (. Contract.Requires(cce.NonNullElements(mm));
+= (. Contract.Requires(Cce.NonNullElements(mm));
      MethodOrConstructor/*!*/ m;
      Function/*!*/ f;
   .)
@@ -677,7 +677,7 @@ DatatypeDecl<DeclModifierData dmod, ModuleDefinition/*!*/ module, out DatatypeDe
 DatatypeMemberName<out Token id> = NoUSIdentOrDigits<out id> .
 
 DatatypeMemberDecl<.List<DatatypeCtor/*!*/>/*!*/ ctors.>
-= (. Contract.Requires(cce.NonNullElements(ctors));
+= (. Contract.Requires(Cce.NonNullElements(ctors));
      Attributes attrs = null;
      Token/*!*/ id;
      List<Formal/*!*/> formals = new List<Formal/*!*/>();
@@ -710,7 +710,7 @@ TypeMembers<. ModuleDefinition/*!*/ module, List<MemberDecl> members .>
 
 /*------------------------------------------------------------------------*/
 FieldDecl<.DeclModifierData dmod, List<MemberDecl> mm.>
-= (. Contract.Requires(cce.NonNullElements(mm));
+= (. Contract.Requires(Cce.NonNullElements(mm));
      Attributes attrs = null;
      Type/*!*/ ty;
      Name name;
@@ -733,7 +733,7 @@ FieldDecl<.DeclModifierData dmod, List<MemberDecl> mm.>
 
 /*------------------------------------------------------------------------*/
 ConstantFieldDecl<.DeclModifierData dmod, List<MemberDecl/*!*/>/*!*/ mm, bool moduleLevelDecl.>
-= (. Contract.Requires(cce.NonNullElements(mm));
+= (. Contract.Requires(Cce.NonNullElements(mm));
      Type/*!*/ ty;
      Expression e = null;
      if (moduleLevelDecl && dmod.StaticToken != null) {
@@ -1071,7 +1071,7 @@ IteratorDecl<DeclModifierData dmod, ModuleDefinition module, out IteratorDecl/*!
 TypeVariableName<out Name name> = Name<out name> .
 
 GenericParameters<.List<TypeParameter> typeParameters, bool allowVariance.>
-= (. Contract.Requires(cce.NonNullElements(typeParameters)); .)
+= (. Contract.Requires(Cce.NonNullElements(typeParameters)); .)
   // If a "<" combined with a Variance symbol could be a new token, then the parser here will need to be more complex,
   // since, for example, a < followed immediately by a Variance symbol would scan as the wrong token.
   // Fortunately that is not currently the case.
@@ -1367,11 +1367,11 @@ InvariantClause<. List<AttributedExpression> invariants.> =
 /*------------------------------------------------------------------------*/
 MethodSpec<.bool isGhost, List<AttributedExpression> req, List<FrameExpression> reads, List<FrameExpression> mod, List<AttributedExpression> ens,
             List<Expression> decreases, ref Attributes decAttrs, ref Attributes modAttrs, ref Attributes readsAttrs, string caption, bool performThisDeprecatedCheck.>
-= (. Contract.Requires(cce.NonNullElements(req));
-     Contract.Requires(cce.NonNullElements(reads));
-     Contract.Requires(cce.NonNullElements(mod));
-     Contract.Requires(cce.NonNullElements(ens));
-     Contract.Requires(cce.NonNullElements(decreases));
+= (. Contract.Requires(Cce.NonNullElements(req));
+     Contract.Requires(Cce.NonNullElements(reads));
+     Contract.Requires(Cce.NonNullElements(mod));
+     Contract.Requires(Cce.NonNullElements(ens));
+     Contract.Requires(Cce.NonNullElements(decreases));
   .)
   SYNC
   { ReadsClause<reads, ref readsAttrs, false, false, true>
@@ -1403,7 +1403,7 @@ IteratorSpec<.List<FrameExpression/*!*/>/*!*/ reads, List<FrameExpression/*!*/>/
 
 /*------------------------------------------------------------------------*/
 Formals<.bool incoming, bool allowGhostKeyword, bool allowNewKeyword, bool allowOlderKeyword, List<Formal> formals.>
-= (. Contract.Requires(cce.NonNullElements(formals));
+= (. Contract.Requires(Cce.NonNullElements(formals));
      Type ty;
      bool isGhost;
      bool isOld;
@@ -1452,7 +1452,7 @@ ParameterDefaultValue<bool incoming, out Expression defaultValue>
 
 /*------------------------------------------------------------------------*/
 FormalsOptionalIds<.List<Formal/*!*/>/*!*/ formals.>
-= (. Contract.Requires(cce.NonNullElements(formals));
+= (. Contract.Requires(Cce.NonNullElements(formals));
      SourceOrigin/*!*/ range;  Type/*!*/ ty;  Name/*!*/ name;  bool isGhost;  Expression/*?*/ defaultValue;
      bool isNameOnly;
      Attributes attributes;
@@ -1670,7 +1670,7 @@ OptGenericInstantiation<.out List<Type> gt, bool inExpressionContext.>  /* NOTE:
 
 /*------------------------------------------------------------------------*/
 GenericInstantiation<.List<Type> gt.>
-= (. Contract.Requires(cce.NonNullElements(gt)); Type/*!*/ ty; .)
+= (. Contract.Requires(Cce.NonNullElements(gt)); Type/*!*/ ty; .)
   "<"
   (
     ">" (. SemErr(ErrorId.p_no_empty_type_parameter_list, t, "empty type parameter lists are not permitted"); .)
@@ -2026,9 +2026,9 @@ FunctionDecl<DeclModifierData dmod, out Function/*!*/ f>
 
 /*------------------------------------------------------------------------*/
 FunctionSpec<.List<AttributedExpression> reqs, List<FrameExpression> reads, List<AttributedExpression> ens, List<Expression> decreases, ref Attributes decAttrs, ref Attributes readsAttrs.>
-= (. Contract.Requires(cce.NonNullElements(reqs));
-     Contract.Requires(cce.NonNullElements(reads));
-     Contract.Requires(decreases == null || cce.NonNullElements(decreases));
+= (. Contract.Requires(Cce.NonNullElements(reqs));
+     Contract.Requires(Cce.NonNullElements(reads));
+     Contract.Requires(decreases == null || Cce.NonNullElements(decreases));
   .)
   SYNC
   { RequiresClause<reqs, true>
@@ -2130,7 +2130,7 @@ FrameExpression<out FrameExpression fe, bool allowLemma, bool allowLambda>
       FrameField<out id> 
       (. 
         if(AcceptReferrers()) {
-          throw new cce.UnreachableException();
+          throw new Cce.UnreachableException();
         }
         fieldName = id.val;
         feTok = id;
@@ -2765,7 +2765,7 @@ WhileStmt<out Statement stmt>
                                       alternatives, usesOptionalBraces, [], attrs);
        .)
   |
-    ( Guard<out guard>           (. Contract.Assume(guard == null || cce.Owner.None(guard)); .)
+    ( Guard<out guard>           (. Contract.Assume(guard == null || Cce.Owner.None(guard)); .)
     | ellipsis                   (. guardEllipsis = t; 
                                     errors.Deprecated(ErrorId.p_deprecated_statement_refinement, t, "the ... refinement feature in statements is deprecated");
                                  .)

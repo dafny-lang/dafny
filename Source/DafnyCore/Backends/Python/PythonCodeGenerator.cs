@@ -528,7 +528,7 @@ namespace Microsoft.Dafny.Compilers {
           name = "int"; break;
         default:
           Contract.Assert(false); // unexpected native type
-          throw new cce.UnreachableException(); // to please the compiler
+          throw new Cce.UnreachableException(); // to please the compiler
       }
     }
 
@@ -578,7 +578,7 @@ namespace Microsoft.Dafny.Compilers {
       }
 
       public void InitializeField(Field field, Type instantiatedFieldType, TopLevelDeclWithMembers enclosingClass) {
-        throw new cce.UnreachableException();
+        throw new Cce.UnreachableException();
       }
 
       public ConcreteSyntaxTree ErrorWriter() => MethodWriter;
@@ -699,9 +699,9 @@ namespace Microsoft.Dafny.Compilers {
           ClassLikeDecl or NonNullTypeDecl => $"{DafnyDefaults}.pointer",
           DatatypeDecl => DatatypeDescriptor(udt, udt.TypeArgs, udt.Origin),
           NewtypeDecl or SubsetTypeDecl => CustomDescriptor(udt),
-          _ => throw new cce.UnreachableException()
+          _ => throw new Cce.UnreachableException()
         },
-        _ => throw new cce.UnreachableException()
+        _ => throw new Cce.UnreachableException()
       };
 
       string TypeParameterDescriptor(TypeParameter typeParameter) {
@@ -790,7 +790,7 @@ namespace Microsoft.Dafny.Compilers {
 
       // TODO: I'm not 100% sure this is exhaustive yet
       Contract.Assert(false);
-      throw new cce.UnreachableException();
+      throw new Cce.UnreachableException();
     }
 
     private string FullName(TopLevelDecl decl) {
@@ -891,7 +891,7 @@ namespace Microsoft.Dafny.Compilers {
       }
 
       Contract.Assert(false);
-      throw new cce.UnreachableException();  // unexpected type
+      throw new Cce.UnreachableException();  // unexpected type
     }
 
     protected override string TypeName_UDT(string fullCompileName, List<TypeParameter.TPVariance> variance,
@@ -1165,7 +1165,7 @@ namespace Microsoft.Dafny.Compilers {
               break;
             default:
               // TODO: This may not be exhaustive
-              throw new cce.UnreachableException();
+              throw new Cce.UnreachableException();
           }
           break;
       }
@@ -1637,7 +1637,7 @@ namespace Microsoft.Dafny.Compilers {
           TrParenExpr("not", expr, wr, inLetExprBody, wStmts);
           break;
         default:
-          Contract.Assert(false); throw new cce.UnreachableException();  // unexpected unary expression
+          Contract.Assert(false); throw new Cce.UnreachableException();  // unexpected unary expression
       }
     }
 
@@ -1792,7 +1792,7 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected override void TrStmtList(IReadOnlyList<Statement> stmts, ConcreteSyntaxTree writer) {
-      Contract.Requires(cce.NonNullElements(stmts));
+      Contract.Requires(Cce.NonNullElements(stmts));
       Contract.Requires(writer != null);
       var listWriter = new ConcreteSyntaxTree();
       base.TrStmtList(stmts, listWriter);
