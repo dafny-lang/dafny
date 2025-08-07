@@ -54,7 +54,7 @@ public class AssignSuchThatStmt : ConcreteAssignStatement, ICloneable<AssignSuch
   public AssignSuchThatStmt(IOrigin origin, List<Expression> lhss, Expression expr, AttributedToken assumeToken, Attributes attributes)
     : base(origin, lhss, attributes) {
     Contract.Requires(origin != null);
-    Contract.Requires(cce.NonNullElements(lhss));
+    Contract.Requires(Cce.NonNullElements(lhss));
     Contract.Requires(lhss.Count != 0);
     Contract.Requires(expr != null);
     Expr = expr;
