@@ -33,6 +33,9 @@ const unique TField: Ty uses {
 const unique TReal : Ty uses {
   axiom Tag(TReal) == TagReal;
 }
+const unique TFp64 : Ty uses {
+  axiom Tag(TFp64) == TagFp64;
+}
 const unique TORDINAL  : Ty uses {
   axiom Tag(TORDINAL) == TagORDINAL;
 }
@@ -88,6 +91,7 @@ const unique TagChar     : TyTag;
 const unique TagInt      : TyTag;
 const unique TagField    : TyTag;
 const unique TagReal     : TyTag;
+const unique TagFp64     : TyTag;
 const unique TagORDINAL  : TyTag;
 const unique TagSet      : TyTag;
 const unique TagISet     : TyTag;
@@ -114,6 +118,65 @@ axiom (forall x: int :: { $Box(LitInt(x)) } $Box(LitInt(x)) == Lit($Box(x)) );
 
 function {:identity} LitReal(x: real): real { x }
 axiom (forall x: real :: { $Box(LitReal(x)) } $Box(LitReal(x)) == Lit($Box(x)) );
+
+function {:identity} LitFp64(x: float53e11): float53e11 { x }
+axiom (forall x: float53e11 :: { $Box(LitFp64(x)) } $Box(LitFp64(x)) == Lit($Box(x)) );
+
+// fp64 classification predicates using Boogie's built-in floating-point theory
+function {:builtin "fp.isNaN"} Fp64_IsNaN(x: float53e11) returns(bool);
+function {:builtin "fp.isInfinite"} Fp64_IsInfinite(x: float53e11) returns(bool);
+function {:builtin "fp.isZero"} Fp64_IsZero(x: float53e11) returns(bool);
+function {:builtin "fp.isNormal"} Fp64_IsNormal(x: float53e11) returns(bool);
+function {:builtin "fp.isSubnormal"} Fp64_IsSubnormal(x: float53e11) returns(bool);
+function {:builtin "fp.isPositive"} Fp64_IsPositive(x: float53e11) returns(bool);
+function {:builtin "fp.isNegative"} Fp64_IsNegative(x: float53e11) returns(bool);
+
+// Derived predicate for IsFinite (not directly available in SMT-LIB)
+function Fp64_IsFinite(x: float53e11): bool { !Fp64_IsNaN(x) && !Fp64_IsInfinite(x) }
+
+// fp64 IEEE 754 equality function
+function {:builtin "fp.eq"} Fp64_Equal(x: float53e11, y: float53e11) returns(bool);
+
+// fp64 conversion functions
+function {:builtin "fp.to_real"} fp.to_real(x: float53e11) returns(real);
+// For now, we'll create a wrapper function for real to fp64 conversion
+// This uses SMT-LIB's to_fp operation with RNE (Round to Nearest Even) mode
+function {:builtin "(_ to_fp 11 53) RNE"} real_to_fp64_RNE(x: real) returns(float53e11);
+
+// fp64 mathematical functions
+function {:builtin "fp.min"} fp64_min(x: float53e11, y: float53e11) returns(float53e11);
+function {:builtin "fp.max"} fp64_max(x: float53e11, y: float53e11) returns(float53e11);
+function {:builtin "fp.abs"} fp64_abs(x: float53e11) returns(float53e11);
+function {:builtin "fp.roundToIntegral RTN"} fp64_floor(x: float53e11) returns(float53e11);
+function {:builtin "fp.roundToIntegral RTP"} fp64_ceiling(x: float53e11) returns(float53e11);
+function {:builtin "fp.roundToIntegral RNE"} fp64_round(x: float53e11) returns(float53e11);
+function {:builtin "fp.sqrt RNE"} fp64_sqrt(x: float53e11) returns(float53e11);
+// For now, we'll create a direct mapping without exposing rounding modes
+// This function converts fp64 to a 64-bit signed bit vector using round-toward-zero
+function fp.to_sbv64_RTZ(x: float53e11) returns(bv64);
+
+// For verification purposes, we need to axiomatize the relationship between
+// fp.to_sbv64_RTZ and fp.to_real for exact integers
+axiom (forall x: float53e11 :: 
+  { fp.to_sbv64_RTZ(x) }
+  Fp64_IsFinite(x) &&
+  -9223372036854775808.0 <= fp.to_real(x) && fp.to_real(x) < 9223372036854775808.0 &&
+  Real(Int(fp.to_real(x))) == fp.to_real(x) ==>
+  nat_from_bv64(fp.to_sbv64_RTZ(x)) == Int(fp.to_real(x))
+);
+
+// Bitvector to int conversion for fp64
+function {:bvbuiltin "bv2int"} smt_nat_from_bv64(x: bv64) : int;
+function nat_from_bv64(x: bv64) : int;
+axiom (forall b: bv64 :: { nat_from_bv64(b) }
+         0 <= nat_from_bv64(b) && nat_from_bv64(b) < 18446744073709551616 &&
+         nat_from_bv64(b) == smt_nat_from_bv64(b));
+
+// No axioms needed! The built-in predicates automatically work with the concrete literals:
+// - Fp64_IsNaN(0NaN53e11) is automatically true
+// - Fp64_IsInfinite(0+oo53e11) is automatically true  
+// - Fp64_IsInfinite(0-oo53e11) is automatically true
+// This is the power of using Boogie's built-in floating-point theory!
 
 // ---------------------------------------------------------------
 // -- Characters -------------------------------------------------
@@ -203,6 +266,9 @@ axiom (forall bx : Box ::
     { $IsBox(bx, TReal) }
     ( $IsBox(bx, TReal) ==> $Box($Unbox(bx) : real) == bx && $Is($Unbox(bx) : real, TReal)));
 axiom (forall bx : Box ::
+    { $IsBox(bx, TFp64) }
+    ( $IsBox(bx, TFp64) ==> $Box($Unbox(bx) : float53e11) == bx && $Is($Unbox(bx) : float53e11, TFp64)));
+axiom (forall bx : Box ::
     { $IsBox(bx, TBool) }
     ( $IsBox(bx, TBool) ==> $Box($Unbox(bx) : bool) == bx && $Is($Unbox(bx) : bool, TBool)));
 axiom (forall bx : Box ::
@@ -250,6 +316,7 @@ axiom (forall<T> v : T, t : Ty, h : Heap ::
 function $Is<T>(T,Ty): bool;           // no heap for now
 axiom(forall v : int  :: { $Is(v,TInt) }  $Is(v,TInt));
 axiom(forall v : real :: { $Is(v,TReal) } $Is(v,TReal));
+axiom(forall v : float53e11 :: { $Is(v,TFp64) } $Is(v,TFp64));
 axiom(forall v : bool :: { $Is(v,TBool) } $Is(v,TBool));
 axiom(forall v : char :: { $Is(v,TChar) } $Is(v,TChar));
 axiom(forall v : Field :: { $Is(v,TField) } $Is(v,TField));
@@ -312,6 +379,7 @@ axiom (forall v: IMap, t0: Ty, t1: Ty ::
 function $IsAlloc<T>(T,Ty,Heap): bool;
 axiom(forall h : Heap, v : int  :: { $IsAlloc(v,TInt,h) }  $IsAlloc(v,TInt,h));
 axiom(forall h : Heap, v : real :: { $IsAlloc(v,TReal,h) } $IsAlloc(v,TReal,h));
+axiom(forall h : Heap, v : float53e11 :: { $IsAlloc(v,TFp64,h) } $IsAlloc(v,TFp64,h));
 axiom(forall h : Heap, v : bool :: { $IsAlloc(v,TBool,h) } $IsAlloc(v,TBool,h));
 axiom(forall h : Heap, v : char :: { $IsAlloc(v,TChar,h) } $IsAlloc(v,TChar,h));
 axiom(forall h : Heap, v : ORDINAL :: { $IsAlloc(v,TORDINAL,h) } $IsAlloc(v,TORDINAL,h));

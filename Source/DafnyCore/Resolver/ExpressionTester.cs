@@ -357,7 +357,10 @@ public class ExpressionTester {
       return false;
 
     } else if (expr is ConcreteSyntaxExpression concreteSyntaxExpression) {
-      return CheckIsCompilable(concreteSyntaxExpression.ResolvedExpression, codeContext, insideBranchesOnly);
+      if (concreteSyntaxExpression.ResolvedExpression != null) {
+        return CheckIsCompilable(concreteSyntaxExpression.ResolvedExpression, codeContext, insideBranchesOnly);
+      }
+      // If ResolvedExpression is null (e.g., for ApproximateExpr), check SubExpressions below
     }
 
     foreach (var ee in expr.SubExpressions) {
@@ -484,7 +487,7 @@ public class ExpressionTester {
       return false;
     } else if (expr is IdentifierExpr) {
       IdentifierExpr e = (IdentifierExpr)expr;
-      return cce.NonNull(e.Var).IsGhost;
+      return Cce.NonNull(e.Var).IsGhost;
     } else if (expr is DatatypeValue) {
       var e = (DatatypeValue)expr;
       if (e.Ctor.IsGhost) {
@@ -653,7 +656,7 @@ public class ExpressionTester {
     } else if (expr is LocalsObjectExpression) {
       return true;
     } else {
-      Contract.Assert(false); throw new cce.UnreachableException();  // unexpected expression
+      Contract.Assert(false); throw new Cce.UnreachableException();  // unexpected expression
     }
   }
   static void MakeGhostAsNeeded(List<CasePattern<BoundVar>> lhss) {

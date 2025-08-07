@@ -9,6 +9,8 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 using System.Linq;
+using System.Numerics;
+using Microsoft.BaseTypes;
 
 namespace Microsoft.Dafny;
 
@@ -30,9 +32,11 @@ class PreTypeToTypeVisitor : ASTVisitor<IASTVisitorContext> {
   }
 
   private readonly SystemModuleManager systemModuleManager;
+  private readonly ErrorReporter reporter;
 
-  public PreTypeToTypeVisitor(SystemModuleManager systemModuleManager) {
+  public PreTypeToTypeVisitor(SystemModuleManager systemModuleManager, ErrorReporter reporter = null) {
     this.systemModuleManager = systemModuleManager;
+    this.reporter = reporter;
   }
 
   /// <summary>
@@ -108,6 +112,10 @@ class PreTypeToTypeVisitor : ASTVisitor<IASTVisitorContext> {
       // to get the non-null type. The .PreType of these two distinguish between those cases, because the latter has a .PrintablePreType
       // field that gives the non-null type.
       expr.Type = PreType2TypeUtil.PreType2FixedType(expr.PreType);
+      
+      // Note: Exactness checking for fp64 literals is handled by CheckTypeInferenceVisitor
+      // which runs before this visitor and uses the ResolvedFloatValue marker pattern.
+      
       return;
     } else if (expr is FunctionCallExpr functionCallExpr) {
       functionCallExpr.TypeApplication_AtEnclosingClass = functionCallExpr.PreTypeApplication_AtEnclosingClass.ConvertAll(PreType2TypeUtil.PreType2FixedType);
@@ -175,7 +183,25 @@ class PreTypeToTypeVisitor : ASTVisitor<IASTVisitorContext> {
     //     declaration will later flow).
 
     // Case: fuse the type
+    // Note: ApproximateExpr is a ConcreteSyntaxExpression, so this handles it correctly
     if (expr is ConcreteSyntaxExpression { ResolvedExpression: { } resolvedExpression }) {
+      // Special check for ApproximateExpr - ensure both have types
+      if (expr is ApproximateExpr) {
+        // Ensure the resolved expression has a type
+        if (resolvedExpression.UnnormalizedType == null) {
+          if (resolvedExpression.PreType != null) {
+            resolvedExpression.Type = PreType2TypeUtil.PreType2FixedType(resolvedExpression.PreType);
+          } else {
+            // Fallback - set it to fp64 directly
+            resolvedExpression.Type = new Fp64Type();
+          }
+        }
+        // Also ensure the ApproximateExpr itself has a PreType-based type if needed
+        if (expr.PreType != null && resolvedExpression.UnnormalizedType == null) {
+          expr.Type = PreType2TypeUtil.PreType2FixedType(expr.PreType);
+          return;
+        }
+      }
       expr.UnnormalizedType = resolvedExpression.UnnormalizedType;
       return;
     } else if (expr is StmtExpr stmtExpr) {
@@ -268,7 +294,7 @@ class PreTypeToTypeVisitor : ASTVisitor<IASTVisitorContext> {
         var rhsMaybeNullType = new UserDefinedType(stmt.Origin, arrayTypeDecl.Name, arrayTypeDecl, [allocateArray.ElementType]);
         rhsType = UserDefinedType.CreateNonNullType(rhsMaybeNullType);
       } else {
-        throw new cce.UnreachableException();
+        throw new Cce.UnreachableException();
       }
       tRhs.Type = rhsType;
 

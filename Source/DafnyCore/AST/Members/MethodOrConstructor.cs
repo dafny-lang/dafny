@@ -108,13 +108,13 @@ public abstract class MethodOrConstructor : MethodOrFunction, TypeParameter.Pare
 
   [ContractInvariantMethod]
   void ObjectInvariant() {
-    Contract.Invariant(cce.NonNullElements(TypeArgs));
-    Contract.Invariant(cce.NonNullElements(Ins));
-    Contract.Invariant(cce.NonNullElements(Outs));
-    Contract.Invariant(cce.NonNullElements(Req));
+    Contract.Invariant(Cce.NonNullElements(TypeArgs));
+    Contract.Invariant(Cce.NonNullElements(Ins));
+    Contract.Invariant(Cce.NonNullElements(Outs));
+    Contract.Invariant(Cce.NonNullElements(Req));
     Contract.Invariant(Reads != null);
     Contract.Invariant(Mod != null);
-    Contract.Invariant(cce.NonNullElements(Ens));
+    Contract.Invariant(Cce.NonNullElements(Ens));
     Contract.Invariant(Decreases != null);
   }
 
@@ -137,11 +137,11 @@ public abstract class MethodOrConstructor : MethodOrFunction, TypeParameter.Pare
     : base(origin, nameNode, isGhost, attributes, signatureEllipsis, typeArgs, ins, req, ens, reads, decreases) {
     Contract.Requires(origin != null);
     Contract.Requires(nameNode != null);
-    Contract.Requires(cce.NonNullElements(typeArgs));
-    Contract.Requires(cce.NonNullElements(ins));
-    Contract.Requires(cce.NonNullElements(req));
+    Contract.Requires(Cce.NonNullElements(typeArgs));
+    Contract.Requires(Cce.NonNullElements(ins));
+    Contract.Requires(Cce.NonNullElements(req));
     Contract.Requires(reads != null);
-    Contract.Requires(cce.NonNullElements(ens));
+    Contract.Requires(Cce.NonNullElements(ens));
     Contract.Requires(decreases != null);
     this.Mod = mod;
     MustReverify = false;

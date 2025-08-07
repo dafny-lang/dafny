@@ -168,7 +168,7 @@ public partial class BoogieGenerator {
           } else if (!isReal && (options.ArithMode == 2 || 5 <= options.ArithMode)) {
             return TrToFunctionCall(GetToken(binaryExpr), "Add", Boogie.Type.Int, oe0, oe1, liftLit);
           } else {
-            typ = isReal ? Boogie.Type.Real : Boogie.Type.Int;
+            typ = binaryExpr.Type is Fp64Type ? new Boogie.FloatType(53, 11) : (isReal ? Boogie.Type.Real : Boogie.Type.Int);
             bOpcode = BinaryOperator.Opcode.Add;
             break;
           }
@@ -184,7 +184,7 @@ public partial class BoogieGenerator {
           } else if (!isReal && (options.ArithMode == 2 || 5 <= options.ArithMode)) {
             return TrToFunctionCall(GetToken(binaryExpr), "Sub", Boogie.Type.Int, oe0, oe1, liftLit);
           } else {
-            typ = isReal ? Boogie.Type.Real : Boogie.Type.Int;
+            typ = binaryExpr.Type is Fp64Type ? new Boogie.FloatType(53, 11) : (isReal ? Boogie.Type.Real : Boogie.Type.Int);
             bOpcode = BinaryOperator.Opcode.Sub;
             break;
           }
@@ -196,7 +196,7 @@ public partial class BoogieGenerator {
           } else if (!isReal && options.ArithMode != 0 && options.ArithMode != 3) {
             return TrToFunctionCall(GetToken(binaryExpr), "Mul", Boogie.Type.Int, oe0, oe1, liftLit);
           } else {
-            typ = isReal ? Boogie.Type.Real : Boogie.Type.Int;
+            typ = binaryExpr.Type is Fp64Type ? new Boogie.FloatType(53, 11) : (isReal ? Boogie.Type.Real : Boogie.Type.Int);
             bOpcode = BinaryOperator.Opcode.Mul;
             break;
           }
@@ -208,7 +208,7 @@ public partial class BoogieGenerator {
           } else if (!isReal && options.ArithMode != 0 && options.ArithMode != 3) {
             return TrToFunctionCall(GetToken(binaryExpr), "Div", Boogie.Type.Int, e0, oe1, liftLit);
           } else if (isReal) {
-            typ = Boogie.Type.Real;
+            typ = binaryExpr.Type is Fp64Type ? new Boogie.FloatType(53, 11) : Boogie.Type.Real;
             bOpcode = BinaryOperator.Opcode.RealDiv;
             break;
           } else {
@@ -224,7 +224,7 @@ public partial class BoogieGenerator {
           } else if (!isReal && options.ArithMode != 0 && options.ArithMode != 3) {
             return TrToFunctionCall(GetToken(binaryExpr), "Mod", Boogie.Type.Int, e0, oe1, liftLit);
           } else {
-            typ = isReal ? Boogie.Type.Real : Boogie.Type.Int;
+            typ = binaryExpr.Type is Fp64Type ? new Boogie.FloatType(53, 11) : (isReal ? Boogie.Type.Real : Boogie.Type.Int);
             bOpcode = BinaryOperator.Opcode.Mod;
             break;
           }
@@ -265,7 +265,7 @@ public partial class BoogieGenerator {
               case BinaryExpr.ResolvedOpcode.GtChar: bOp = BinaryOperator.Opcode.Gt; break;
               default:
                 Contract.Assert(false);  // unexpected case
-                throw new cce.UnreachableException();  // to please compiler
+                throw new Cce.UnreachableException();  // to please compiler
             }
             return Expr.Binary(GetToken(binaryExpr), bOp, operand0, operand1);
           }
@@ -302,9 +302,9 @@ public partial class BoogieGenerator {
             return BoogieGenerator.FunctionCall(GetToken(binaryExpr), f, null, e0, e1);
           }
         case BinaryExpr.ResolvedOpcode.InSet:
-          Contract.Assert(false); throw new cce.UnreachableException();  // this case handled above
+          Contract.Assert(false); throw new Cce.UnreachableException();  // this case handled above
         case BinaryExpr.ResolvedOpcode.NotInSet:
-          Contract.Assert(false); throw new cce.UnreachableException();  // this case handled above
+          Contract.Assert(false); throw new Cce.UnreachableException();  // this case handled above
         case BinaryExpr.ResolvedOpcode.Union: {
             var setType = binaryExpr.Type.NormalizeToAncestorType().AsSetType;
             bool finite = setType.Finite;
@@ -334,9 +334,9 @@ public partial class BoogieGenerator {
         case BinaryExpr.ResolvedOpcode.MultiSetDisjoint:
           return BoogieGenerator.FunctionCall(GetToken(binaryExpr), BuiltinFunction.MultiSetDisjoint, null, e0, e1);
         case BinaryExpr.ResolvedOpcode.InMultiSet:
-          Contract.Assert(false); throw new cce.UnreachableException();  // this case handled above
+          Contract.Assert(false); throw new Cce.UnreachableException();  // this case handled above
         case BinaryExpr.ResolvedOpcode.NotInMultiSet:
-          Contract.Assert(false); throw new cce.UnreachableException();  // this case handled above
+          Contract.Assert(false); throw new Cce.UnreachableException();  // this case handled above
         case BinaryExpr.ResolvedOpcode.MultiSetUnion:
           return BoogieGenerator.FunctionCall(GetToken(binaryExpr), BuiltinFunction.MultiSetUnion,
             BoogieGenerator.TrType(binaryExpr.Type.NormalizeToAncestorType().AsMultiSetType.Arg), e0, e1);
@@ -404,7 +404,7 @@ public partial class BoogieGenerator {
             BoogieGenerator.FunctionCall(GetToken(binaryExpr), binaryExpr.E1.Type.IsDatatype ? BuiltinFunction.DtRank : BuiltinFunction.BoxRank, null, e1));
 
         default:
-          Contract.Assert(false); throw new cce.UnreachableException();  // unexpected binary expression
+          Contract.Assert(false); throw new Cce.UnreachableException();  // unexpected binary expression
       }
       liftLit = liftLit && !keepLits;
       var ae0 = keepLits ? oe0 : e0;

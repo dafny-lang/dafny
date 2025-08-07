@@ -22,7 +22,7 @@ namespace Microsoft.Dafny {
   /// </summary>
   public class PreTypeConstraints {
     public readonly PreTypeResolver PreTypeResolver;
-    private readonly DafnyOptions options;
+    public readonly DafnyOptions Options;
 
     private List<SubtypeConstraint> unnormalizedSubtypeConstraints = [];
     private Queue<EqualityConstraint> equalityConstraints = new();
@@ -33,8 +33,9 @@ namespace Microsoft.Dafny {
 
     public PreTypeConstraints(PreTypeResolver preTypeResolver) {
       this.PreTypeResolver = preTypeResolver;
-      this.options = preTypeResolver.resolver.Options;
+      this.Options = preTypeResolver.resolver.Options;
     }
+
 
     /// <summary>
     /// Try to find the receiver pre-type that corresponds to "preType".
@@ -57,7 +58,7 @@ namespace Microsoft.Dafny {
         // preType could be a PreTypePlaceholder, resulting from an error somewhere
         return null;
       }
-
+      
       var approximateReceiverType = ApproximateReceiverTypeViaBounds(proxy, memberName, out var subProxies);
       if (approximateReceiverType != null) {
         return approximateReceiverType;
@@ -209,7 +210,7 @@ namespace Microsoft.Dafny {
     }
 
     public void PrintTypeInferenceState(string/*?*/ header = null) {
-      if (!options.Get(CommonOptionBag.NewTypeInferenceDebug)) {
+      if (!Options.Get(CommonOptionBag.NewTypeInferenceDebug)) {
         return;
       }
 
@@ -221,11 +222,11 @@ namespace Microsoft.Dafny {
       stringWriter.WriteLine($"    Guarded constraints: {guardedConstraints.Count}");
       PrintList(stringWriter, "Default-type advice", defaultAdvice, advice => $"{advice.PreType} ~-~-> {advice.WhatString}");
       PrintList(stringWriter, "Post-inference confirmations", confirmations, confirmationInfo => confirmationInfo.DebugInformation());
-      options.OutputWriter.Debug(stringWriter.ToString());
+      Options.OutputWriter.Debug(stringWriter.ToString());
     }
 
     void PrintLegend() {
-      if (!options.Get(CommonOptionBag.NewTypeInferenceDebug)) {
+      if (!Options.Get(CommonOptionBag.NewTypeInferenceDebug)) {
         return;
       }
       var sw = new StringWriter();
@@ -233,11 +234,11 @@ namespace Microsoft.Dafny {
         var s = Pad($"?{pair.Item1.UniqueId}", 4) + pair.Item1;
         return pair.Item2 == null ? s : $"{Pad(s, 20)}  {pair.Item2}";
       });
-      options.OutputWriter.Debug(sw.ToString());
+      Options.OutputWriter.Debug(sw.ToString());
     }
 
     void PrintList<T>(TextWriter writer, string rubric, IEnumerable<T> list, Func<T, string> formatter) {
-      if (!options.Get(CommonOptionBag.NewTypeInferenceDebug)) {
+      if (!Options.Get(CommonOptionBag.NewTypeInferenceDebug)) {
         return;
       }
       writer.WriteLine($"    {rubric}:");
@@ -668,7 +669,7 @@ namespace Microsoft.Dafny {
         case CommonConfirmationBag.InIntFamily:
           return familyDeclName == PreType.TypeNameInt;
         case CommonConfirmationBag.InRealFamily:
-          return familyDeclName == PreType.TypeNameReal;
+          return familyDeclName == PreType.TypeNameReal || familyDeclName == PreType.TypeNameFp64;
         case CommonConfirmationBag.InBoolFamily:
           return familyDeclName == PreType.TypeNameBool;
         case CommonConfirmationBag.InCharFamily:
@@ -692,9 +693,9 @@ namespace Microsoft.Dafny {
         case CommonConfirmationBag.IntLikeOrBitvector:
           return familyDeclName == PreType.TypeNameInt || PreTypeResolver.IsBitvectorName(familyDeclName);
         case CommonConfirmationBag.NumericOrBitvector:
-          return familyDeclName is PreType.TypeNameInt or PreType.TypeNameReal || PreTypeResolver.IsBitvectorName(familyDeclName);
+          return familyDeclName is PreType.TypeNameInt or PreType.TypeNameReal or PreType.TypeNameFp64 || PreTypeResolver.IsBitvectorName(familyDeclName);
         case CommonConfirmationBag.NumericOrBitvectorOrCharOrORDINALOrSuchTrait:
-          if (familyDeclName is PreType.TypeNameInt or PreType.TypeNameReal or PreType.TypeNameChar or PreType.TypeNameORDINAL ||
+          if (familyDeclName is PreType.TypeNameInt or PreType.TypeNameReal or PreType.TypeNameFp64 or PreType.TypeNameChar or PreType.TypeNameORDINAL ||
               PreTypeResolver.IsBitvectorName(familyDeclName)) {
             return true;
           }
@@ -709,6 +710,7 @@ namespace Microsoft.Dafny {
           switch (familyDeclName) {
             case PreType.TypeNameInt:
             case PreType.TypeNameReal:
+            case PreType.TypeNameFp64:
             case PreType.TypeNameORDINAL:
             case PreType.TypeNameChar:
             case PreType.TypeNameSeq:
@@ -725,6 +727,7 @@ namespace Microsoft.Dafny {
           switch (familyDeclName) {
             case PreType.TypeNameInt:
             case PreType.TypeNameReal:
+            case PreType.TypeNameFp64:
             case PreType.TypeNameORDINAL:
             case PreType.TypeNameChar:
             case PreType.TypeNameSet:
@@ -740,6 +743,7 @@ namespace Microsoft.Dafny {
           switch (familyDeclName) {
             case PreType.TypeNameInt:
             case PreType.TypeNameReal:
+            case PreType.TypeNameFp64:
             case PreType.TypeNameSet:
             case PreType.TypeNameIset:
             case PreType.TypeNameMultiset:
@@ -754,6 +758,7 @@ namespace Microsoft.Dafny {
           switch (familyDeclName) {
             case PreType.TypeNameInt:
             case PreType.TypeNameReal:
+            case "fp64":
             case PreType.TypeNameORDINAL:
             case PreType.TypeNameChar:
             case PreType.TypeNameSet:
@@ -806,7 +811,7 @@ namespace Microsoft.Dafny {
           return true;
         default:
           Contract.Assert(false); // unexpected case
-          throw new cce.UnreachableException();
+          throw new Cce.UnreachableException();
       }
     }
 
@@ -885,8 +890,8 @@ namespace Microsoft.Dafny {
     }
 
     public void DebugPrint(string message) {
-      if (options.Get(CommonOptionBag.NewTypeInferenceDebug)) {
-        options.OutputWriter.Debug(message);
+      if (Options.Get(CommonOptionBag.NewTypeInferenceDebug)) {
+        Options.OutputWriter.Debug(message);
       }
     }
   }

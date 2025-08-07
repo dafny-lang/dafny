@@ -228,6 +228,8 @@ namespace Microsoft.Dafny {
         decl = BuiltInTypeDecl(PreType.TypeNameInt);
       } else if (type is RealType) {
         decl = BuiltInTypeDecl(PreType.TypeNameReal);
+      } else if (type is Fp64Type) {
+        decl = BuiltInTypeDecl(PreType.TypeNameFp64);
       } else if (type is FieldType) {
         decl = BuiltInTypeDecl(PreType.TypeNameField);
       } else if (type is BigOrdinalType) {
@@ -246,7 +248,7 @@ namespace Microsoft.Dafny {
       } else if (type is UserDefinedType udt) {
         decl = udt.ResolvedClass;
       } else {
-        Contract.Assert(false); throw new cce.UnreachableException();  // unexpected type
+        Contract.Assert(false); throw new Cce.UnreachableException();  // unexpected type
       }
       return decl;
     }
@@ -614,6 +616,16 @@ namespace Microsoft.Dafny {
             (toFamily is PreType.TypeNameInt or PreType.TypeNameReal or PreType.TypeNameChar or PreType.TypeNameORDINAL)) {
           return true;
         }
+      }
+
+      // fp64 conversions
+      if (toFamily == PreType.TypeNameFp64) {
+        // Conversions TO fp64 are allowed from numeric types
+        return fromFamily is PreType.TypeNameInt or PreType.TypeNameReal || IsBitvectorName(fromFamily);
+      }
+      if (fromFamily == PreType.TypeNameFp64) {
+        // Conversions FROM fp64 are allowed to numeric types
+        return toFamily is PreType.TypeNameInt or PreType.TypeNameReal || IsBitvectorName(toFamily);
       }
 
       return false;
@@ -1214,7 +1226,7 @@ namespace Microsoft.Dafny {
         }
 
       } else {
-        Contract.Assert(false); throw new cce.UnreachableException();  // unexpected member type
+        Contract.Assert(false); throw new Cce.UnreachableException();  // unexpected member type
       }
     }
 

@@ -20,6 +20,28 @@ public class SpecialField : Field {
     Reads,
     Modifies,
     New,
+    // fp64 classification predicates
+    IsNaN,
+    IsFinite,
+    IsInfinite,
+    IsNormal,
+    IsSubnormal,
+    IsZero,
+    IsNegative,
+    IsPositive,
+    // fp64 special values
+    NaN,
+    PositiveInfinity,
+    NegativeInfinity,
+    PositiveZero,
+    NegativeZero,
+    MaxValue,
+    MinValue,
+    MinNormal,
+    MinSubnormal,
+    Epsilon,
+    Pi,
+    E,
   }
   public ID SpecialId;
   public object IdParam;

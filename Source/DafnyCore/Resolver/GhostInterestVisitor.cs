@@ -151,8 +151,27 @@ class GhostInterestVisitor {
         }
       case AssignStatement statement: {
           var s = statement;
-          s.ResolvedStatements.ForEach(ss => Visit(ss, mustBeErasable, proofContext));
-          s.IsGhost = s.ResolvedStatements.All(ss => ss.IsGhost);
+          if (s.ResolvedStatements != null) {
+            s.ResolvedStatements.ForEach(ss => Visit(ss, mustBeErasable, proofContext));
+            s.IsGhost = s.ResolvedStatements.All(ss => ss.IsGhost);
+          } else {
+            // SOUNDNESS FIX: ResolvedStatements might not be populated yet during ghost checking.
+            // For variable declarations with initializers, we need to ensure proper checking.
+            // Check each RHS for compilability if assigned to non-ghost LHS.
+            if (!mustBeErasable) {
+              for (int i = 0; i < s.Lhss.Count && i < s.Rhss.Count; i++) {
+                var lhs = s.Lhss[i];
+                var rhs = s.Rhss[i];
+                // Check if this is being assigned to a non-ghost variable
+                var isToGhost = SingleAssignStmt.LhsIsToGhost(lhs);
+                if (rhs is ExprRhs exprRhs && !isToGhost) {
+                  ExpressionTester.CheckIsCompilable(resolver, reporter, exprRhs.Expr, codeContext);
+                }
+              }
+            }
+            // Conservatively mark as ghost if we can't determine
+            s.IsGhost = false;
+          }
           break;
         }
       case AssignOrReturnStmt returnStmt: {
@@ -531,7 +550,7 @@ class GhostInterestVisitor {
         Visit(blockByProofStmt.Proof, true, "a by block");
         break;
       default:
-        Contract.Assert(false); throw new cce.UnreachableException();
+        Contract.Assert(false); throw new Cce.UnreachableException();
     }
   }
 

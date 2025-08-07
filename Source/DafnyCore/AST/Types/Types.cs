@@ -13,6 +13,7 @@ public abstract class Type : NodeWithOrigin {
   public static CharType Char = new CharType();
   public static IntType Int = new IntType();
   public static RealType Real = new RealType();
+  public static Fp64Type Fp64 = new Fp64Type();
   public static FieldType Field = new FieldType();
 
   [SyntaxConstructor]
@@ -281,8 +282,20 @@ public abstract class Type : NodeWithOrigin {
         }
       }
 
+      // Handle built-in types: convert UserDefinedType to actual basic type
+      if (type is UserDefinedType builtinUdt && builtinUdt.ResolvedClass is ValuetypeDecl vtd) {
+        // Only convert specific built-in types to avoid breaking other ValuetypeDecls
+        if (vtd.Name == "fp64" || vtd.Name == "int" || vtd.Name == "real" || vtd.Name == "bool" || vtd.Name == "char" || vtd.Name == "ORDINAL") {
+          return vtd.CreateType(builtinUdt.TypeArgs);
+        }
+      }
+
       return type;
     }
+  }
+
+  private static bool IsBuiltinTypeName(string name) {
+    return name == "fp64" || name == "int" || name == "real" || name == "bool" || name == "char" || name == "ORDINAL";
   }
 
   /// <summary>
@@ -334,12 +347,13 @@ public abstract class Type : NodeWithOrigin {
   public bool IsRealType => NormalizeExpand() is RealType;
   public bool IsBigOrdinalType => NormalizeExpand() is BigOrdinalType;
   public bool IsBitVectorType => AsBitVectorType != null;
+  public bool IsFp64Type => NormalizeExpand() is Fp64Type;
   public bool IsStringType => AsSeqType?.Arg.IsCharType == true;
   public BitvectorType AsBitVectorType => NormalizeExpand() as BitvectorType;
 
   public bool IsNumericBased() {
     var t = NormalizeExpand();
-    return t.IsIntegerType || t.IsRealType || t.AsNewtype?.BaseType.IsNumericBased() == true;
+    return t.IsIntegerType || t.IsRealType || t is Fp64Type || t.AsNewtype?.BaseType.IsNumericBased() == true;
   }
   public enum NumericPersuasion { Int, Real }
   [System.Diagnostics.Contracts.Pure]
@@ -349,7 +363,7 @@ public abstract class Type : NodeWithOrigin {
       t = t.NormalizeExpand();
       if (t.IsIntegerType) {
         return p == NumericPersuasion.Int;
-      } else if (t.IsRealType) {
+      } else if (t.IsRealType || t is Fp64Type) {
         return p == NumericPersuasion.Real;
       }
       if (t.AsNewtype is not { } newtypeDecl) {
@@ -413,7 +427,7 @@ public abstract class Type : NodeWithOrigin {
       }
     }
 
-    if (t is BoolType || t is CharType || t is IntType || t is BigOrdinalType || t is RealType || t is BitvectorType) {
+    if (t is BoolType || t is CharType || t is IntType || t is BigOrdinalType || t is RealType || t is BitvectorType || t is Fp64Type) {
       return AutoInitInfo.CompilableValue;
     } else if (t is CollectionType) {
       return AutoInitInfo.CompilableValue;
@@ -446,7 +460,7 @@ public abstract class Type : NodeWithOrigin {
         case SubsetTypeDecl.WKind.Special:
         default:
           Contract.Assert(false); // unexpected case
-          throw new cce.UnreachableException();
+          throw new Cce.UnreachableException();
       }
     } else if (cl is SubsetTypeDecl) {
       var td = (SubsetTypeDecl)cl;
@@ -476,7 +490,7 @@ public abstract class Type : NodeWithOrigin {
           }
         default:
           Contract.Assert(false); // unexpected case
-          throw new cce.UnreachableException();
+          throw new Cce.UnreachableException();
       }
     } else if (cl is TraitDecl traitDecl) {
       return traitDecl.IsReferenceTypeDecl ? AutoInitInfo.CompilableValue : AutoInitInfo.MaybeEmpty;
@@ -518,7 +532,7 @@ public abstract class Type : NodeWithOrigin {
       return r;
     } else {
       Contract.Assert(false); // unexpected type
-      throw new cce.UnreachableException();
+      throw new Cce.UnreachableException();
     }
   }
 
@@ -585,6 +599,13 @@ public abstract class Type : NodeWithOrigin {
           return nntd.Class;
         }
       }
+      
+      // Handle built-in types that normalize to non-UserDefinedType instances
+      // Only apply this for UserDefinedType instances that normalize to built-in types
+      if (udt == null && this is UserDefinedType originalUdt && originalUdt.ResolvedClass is ValuetypeDecl) {
+        return originalUdt.ResolvedClass as TopLevelDeclWithMembers;
+      }
+      
       return udt?.ResolvedClass as TopLevelDeclWithMembers;
     }
   }
@@ -1030,6 +1051,8 @@ public abstract class Type : NodeWithOrigin {
       return sub is IntType;
     } else if (super is RealType) {
       return sub is RealType;
+    } else if (super is Fp64Type) {
+      return sub is Fp64Type;
     } else if (super is BitvectorType) {
       var bitvectorSuper = (BitvectorType)super;
       var bitvectorSub = sub as BitvectorType;
@@ -1043,7 +1066,7 @@ public abstract class Type : NodeWithOrigin {
       while (sub.AsNewtype != null) {
         sub = sub.AsNewtype.BaseType.NormalizeExpand();
       }
-      return sub is RealType;
+      return sub is RealType || sub is Fp64Type;
     } else if (super is BigOrdinalType) {
       return sub is BigOrdinalType;
     } else if (super is SetType) {
@@ -1119,6 +1142,8 @@ public abstract class Type : NodeWithOrigin {
       return b is IntType;
     } else if (a is RealType) {
       return b is RealType;
+    } else if (a is Fp64Type) {
+      return b is Fp64Type;
     } else if (a is FieldType) {
       return b is FieldType;
     } else if (a is BitvectorType) {
@@ -1910,6 +1935,41 @@ public class RealType : BasicType {
   }
 }
 
+public class Fp64Type : BasicType {
+  [SyntaxConstructor]
+  public Fp64Type(IOrigin origin) : base(origin) {
+  }
+
+  public Fp64Type() {
+  }
+  
+  [System.Diagnostics.Contracts.Pure]
+  public override string TypeName(DafnyOptions options, ModuleDefinition context, bool parseAble) {
+    return "fp64";
+  }
+  
+  public override bool Equals(Type that, bool keepConstraints = false) {
+    return that.NormalizeExpand(keepConstraints) is Fp64Type;
+  }
+  
+  // Key implementation: fp64 supports equality with preconditions (per spec section 5.3)
+  // In ghost contexts, equality is reflexive (x == x always true)
+  // In compiled contexts, equality requires preconditions !x.IsNaN && !y.IsNaN
+  public override bool SupportsEquality => true;
+  public override bool PartiallySupportsEquality => true;
+  
+  // Allow real literals to be assigned to fp64 (for now, simple approach)
+  public override bool IsSubtypeOf(Type super, bool ignoreTypeArguments, bool ignoreNullity) {
+    if (super is RealVarietiesSupertype) {
+      return true;
+    }
+    if (super is Fp64Type) {
+      return true;
+    }
+    return base.IsSubtypeOf(super, ignoreTypeArguments, ignoreNullity);
+  }
+}
+
 public class BigOrdinalType : BasicType {
   [SyntaxConstructor]
   public BigOrdinalType(IOrigin origin) : base(origin) {
@@ -1998,7 +2058,7 @@ public class SelfType : NonProxyType {
       // SelfType's are used only in certain restricted situations. In those situations, we need to be able
       // to substitute for the the SelfType's TypeArg. That's the only case in which we expect to see a
       // SelfType being part of a substitution operation at all.
-      Contract.Assert(false); throw new cce.UnreachableException();
+      Contract.Assert(false); throw new Cce.UnreachableException();
     }
   }
 

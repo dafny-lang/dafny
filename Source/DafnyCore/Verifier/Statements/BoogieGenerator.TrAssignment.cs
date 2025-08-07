@@ -40,8 +40,8 @@ public partial class BoogieGenerator {
     BoogieStmtListBuilder builder, Variables locals, ExpressionTranslator etran, Statement stmt) {
     Contract.Requires(lhsBuilder != null);
     Contract.Requires(bLhss != null);
-    Contract.Requires(cce.NonNullElements(lhss));
-    Contract.Requires(cce.NonNullElements(rhss));
+    Contract.Requires(Cce.NonNullElements(lhss));
+    Contract.Requires(Cce.NonNullElements(rhss));
     Contract.Requires(builder != null);
     Contract.Requires(etran != null);
     Contract.Requires(Predef != null);
@@ -91,8 +91,8 @@ public partial class BoogieGenerator {
   List<Bpl.Expr> ProcessUpdateAssignRhss(List<Expression> lhss, List<AssignmentRhs> rhss,
     BoogieStmtListBuilder builder, Variables locals, ExpressionTranslator etran,
     Statement stmt) {
-    Contract.Requires(cce.NonNullElements(lhss));
-    Contract.Requires(cce.NonNullElements(rhss));
+    Contract.Requires(Cce.NonNullElements(lhss));
+    Contract.Requires(Cce.NonNullElements(rhss));
     Contract.Requires(builder != null);
     Contract.Requires(etran != null);
     Contract.Requires(Predef != null);
@@ -194,7 +194,7 @@ public partial class BoogieGenerator {
     out List<AssignToLhs> lhsBuilders, out List<Bpl.IdentifierExpr/*may be null*/> bLhss,
     out Bpl.Expr[] prevObj, out Bpl.Expr[] prevIndex, out string[] prevNames, Expression originalInitialLhs = null) {
 
-    Contract.Requires(cce.NonNullElements(lhss));
+    Contract.Requires(Cce.NonNullElements(lhss));
     Contract.Requires(builder != null);
     Contract.Requires(etran != null);
     Contract.Requires(Predef != null);
@@ -424,7 +424,9 @@ public partial class BoogieGenerator {
       var e = (ExprRhs)rhs;
 
       var bRhs = etran.TrExpr(e.Expr);
-      var cre = GetSubrangeCheck(tok, bRhs, e.Expr.Type, rhsTypeConstraint, e.Expr, null, out var desc, "");
+      // If the expression is a ConversionExpr, its type is already the target type
+      var exprType = e.Expr.Type;
+      var cre = GetSubrangeCheck(tok, bRhs, exprType, rhsTypeConstraint, e.Expr, null, out var desc, "");
       TrStmt_CheckWellformed(e.Expr, builder, locals, etran, true, addResultCommands:
         (returnBuilder, result) => {
           if (cre != null) {

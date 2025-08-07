@@ -91,13 +91,14 @@ namespace Microsoft.Dafny {
       Char,
       Int,
       Real,
+      Fp64,
       String,
       Object
     }
 
     private readonly Target what;
 
-    public override string WhatString => what == Target.Object ? PreType.TypeNameObjectQ : what.ToString().ToLower();
+    public override string WhatString => what == Target.Object ? PreType.TypeNameObjectQ : (what == Target.Fp64 ? PreType.TypeNameFp64 : what.ToString().ToLower());
 
     public CommonAdvice(PreType preType, Target advice)
       : base(preType) {
@@ -115,9 +116,10 @@ namespace Microsoft.Dafny {
         Target.Char => preTypeResolver.Type2PreType(Type.Char),
         Target.Int => preTypeResolver.Type2PreType(Type.Int),
         Target.Real => preTypeResolver.Type2PreType(Type.Real),
+        Target.Fp64 => preTypeResolver.Type2PreType(Type.Fp64),
         Target.String => preTypeResolver.Type2PreType(StringDecl()),
         Target.Object => preTypeResolver.Type2PreType(preTypeResolver.resolver.SystemModuleManager.ObjectQ()),
-        _ => throw new cce.UnreachableException() // unexpected case
+        _ => throw new Cce.UnreachableException() // unexpected case
       };
       return target;
     }

@@ -103,17 +103,30 @@ namespace Microsoft.Dafny.Compilers {
                 var tas = TypeArgumentInstantiation.ListFromClass(field.EnclosingClass, typeArgs);
                 EmitTypeDescriptorsActuals(tas, e.Origin, wr.ForkInParens());
               } else {
-                void WriteObj(ConcreteSyntaxTree w) {
-                  //Contract.Assert(!sf.IsStatic);
-                  w = EmitCoercionIfNecessary(e.Obj.Type, UserDefinedType.UpcastToMemberEnclosingType(e.Obj.Type, e.Member),
-                    e.Origin, w);
-                  TrParenExpr(e.Obj, w, inLetExprBody, wStmts);
-                }
+                // For static fields, we should not write the object
+                if (field.IsStatic) {
+                  // Static field access - special handling for built-in types
+                  if (field is StaticSpecialField ssf && e.Obj.Type is Fp64Type) {
+                    // These are handled by GetSpecialFieldInfo above with preStr/postStr
+                    // The preStr already contains the complete reference (e.g., "double.NaN")
+                    // so we don't need to do anything else here
+                  } else {
+                    // Other static fields
+                    wr.Write("{0}.{1}", TypeName_Companion(e.Obj.Type, wr, e.Origin, field), IdName(field));
+                  }
+                } else {
+                  // Instance field access
+                  void WriteObj(ConcreteSyntaxTree w) {
+                    w = EmitCoercionIfNecessary(e.Obj.Type, UserDefinedType.UpcastToMemberEnclosingType(e.Obj.Type, e.Member),
+                      e.Origin, w);
+                    TrParenExpr(e.Obj, w, inLetExprBody, wStmts);
+                  }
 
-                var typeArgs = CombineAllTypeArguments(e.Member, e.TypeApplicationAtEnclosingClass,
-                  e.TypeApplicationJustMember);
-                EmitMemberSelect(WriteObj, e.Obj.Type, e.Member, typeArgs, e.TypeArgumentSubstitutionsWithParents(),
-                  selectExpr.Type).EmitRead(wr);
+                  var typeArgs = CombineAllTypeArguments(e.Member, e.TypeApplicationAtEnclosingClass,
+                    e.TypeApplicationJustMember);
+                  EmitMemberSelect(WriteObj, e.Obj.Type, e.Member, typeArgs, e.TypeArgumentSubstitutionsWithParents(),
+                    selectExpr.Type).EmitRead(wr);
+                }
               }
 
               wr.Write(postStr);
@@ -284,7 +297,7 @@ namespace Microsoft.Dafny.Compilers {
           }
         case OldExpr:
           Contract.Assert(false);
-          throw new cce.UnreachableException(); // 'old' is always a ghost
+          throw new Cce.UnreachableException(); // 'old' is always a ghost
         case UnaryOpExpr opExpr: {
             var e = opExpr;
             if (e.ResolvedOp == UnaryOpExpr.ResolvedOpcode.BVNot) {
@@ -301,7 +314,9 @@ namespace Microsoft.Dafny.Compilers {
             var toType = GetRuntimeType(e.ToType);
             Contract.Assert(Options.Get(CommonOptionBag.GeneralTraits) != CommonOptionBag.GeneralTraitsOptions.Legacy ||
                             toType.IsRefType == fromType.IsRefType ||
-                            (fromType.IsTypeParameter && toType.IsTraitType));
+                            (fromType.IsTypeParameter && toType.IsTraitType) ||
+                            (fromType is RealType && toType is Fp64Type) ||
+                            (fromType is Fp64Type && toType is RealType));
             if (toType.IsRefType || toType.IsTraitType || fromType.IsTraitType) {
               var w = EmitCoercionIfNecessary(e.E.Type, e.ToType, e.Origin, wr);
               w = EmitDowncastIfNecessary(e.E.Type, e.ToType, e.Origin, w);
@@ -594,7 +609,7 @@ namespace Microsoft.Dafny.Compilers {
           }
         default:
           Contract.Assert(false);
-          throw new cce.UnreachableException(); // unexpected expression
+          throw new Cce.UnreachableException(); // unexpected expression
       }
 
       ConcreteSyntaxTree EmitGuardFragment(List<(Expression conj, ISet<IVariable> frees)> unusedConjuncts,

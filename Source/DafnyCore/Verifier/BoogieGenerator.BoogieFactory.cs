@@ -21,6 +21,8 @@ namespace Microsoft.Dafny {
         return Bpl.Type.GetBvType(width);
       }
     }
+    
+    public Bpl.Type BplFp64Type => new Bpl.FloatType(Token.NoToken, 11, 53);
 
     internal Bpl.Expr BplBvLiteralExpr(Bpl.IToken tok, BaseTypes.BigNum n, BitvectorType bitvectorType) {
       Contract.Requires(tok != null);
@@ -173,6 +175,10 @@ namespace Microsoft.Dafny {
         return FunctionCall(expr.tok, BuiltinFunction.LitInt, null, expr);
       } else if (typ.IsReal) {
         return FunctionCall(expr.tok, BuiltinFunction.LitReal, null, expr);
+      } else if (typ is Bpl.FloatType) {
+        // For floating-point types, we don't need a Lit wrapper since Boogie handles them natively
+        // This avoids issues with constant folding and SMT translation
+        return expr;
       } else {
         return FunctionCall(expr.tok, BuiltinFunction.Lit, typ, expr);
       }
@@ -193,6 +199,9 @@ namespace Microsoft.Dafny {
           default:
             break;
         }
+      } else if (expr is Bpl.LiteralExpr literalExpr && literalExpr.Val is BigFloat) {
+        // Floating-point literals don't have a Lit wrapper, so they are already "lit"
+        return expr;
       }
       return null;
     }
@@ -229,6 +238,10 @@ namespace Microsoft.Dafny {
     }
 
     static Bpl.Expr RemoveLit(Bpl.Expr expr) {
+      if (expr is Bpl.LiteralExpr literalExpr && literalExpr.Val is BigFloat) {
+        // Floating-point literals don't have a Lit wrapper, so return as-is
+        return expr;
+      }
       return GetLit(expr) ?? expr;
     }
 
@@ -237,6 +250,10 @@ namespace Microsoft.Dafny {
     bool IsLit(Bpl.Expr expr) {
       if (expr is Bpl.IdentifierExpr ie) {
         return letBoundVariablesWithLitRHS.Contains(ie.Name);
+      }
+      if (expr is Bpl.LiteralExpr literalExpr && literalExpr.Val is BigFloat) {
+        // Floating-point literals are always considered "lit"
+        return true;
       }
       return GetLit(expr) != null;
     }
@@ -610,7 +627,7 @@ namespace Microsoft.Dafny {
           return FunctionCall(tok, "local_field", Predef.FieldName(tok), args);
 
         default:
-          Contract.Assert(false); throw new cce.UnreachableException();  // unexpected built-in function
+          Contract.Assert(false); throw new Cce.UnreachableException();  // unexpected built-in function
       }
     }
 
@@ -663,7 +680,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(tok != null);
       Contract.Requires(function != null);
       Contract.Requires(returnType != null);
-      Contract.Requires(cce.NonNullElements(args));
+      Contract.Requires(Cce.NonNullElements(args));
       Contract.Ensures(Contract.Result<Bpl.NAryExpr>() != null);
 
       List<Bpl.Expr> aa = [];
