@@ -10,4 +10,4 @@ ForallStmt.dfy(182,11): Error: left-hand sides for different forall-statement bo
 ForallStmt.dfy(303,14): Error: assertion might not hold
 ForallStmt.dfy(290,32): Related location: this proposition could not be proved
 
-Dafny program verifier finished with 17 verified, 9 errors
+Dafny program verifier finished with 19 verified, 9 errors
