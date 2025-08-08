@@ -84,7 +84,7 @@ namespace Microsoft.Dafny {
       } else {
         decl = null;
         foreach (var valueTypeDecl in resolver.ProgramResolver.SystemModuleManager.valuetypeDecls) {
-          if (valueTypeDecl.Name == name) {
+          if (valueTypeDecl != null && valueTypeDecl.Name == name) {
             // bool, int, real, ORDINAL, map, imap
             decl = valueTypeDecl;
             break;
@@ -530,7 +530,7 @@ namespace Microsoft.Dafny {
     }
 
     private void AddComparableTypesDefault(PreType a, PreType b) {
-      // The "comparable types" constraint may be useful as a bound if nothing else is known about a proxy. 
+      // The "comparable types" constraint may be useful as a bound if nothing else is known about a proxy.
       if (a.Normalize() is PreTypeProxy aPreTypeProxy) {
         Constraints.AddCompatibleBounds(aPreTypeProxy, b);
       }
