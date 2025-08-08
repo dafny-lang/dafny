@@ -599,13 +599,13 @@ public abstract class Type : NodeWithOrigin {
           return nntd.Class;
         }
       }
-      
+
       // Handle built-in types that normalize to non-UserDefinedType instances
       // Only apply this for UserDefinedType instances that normalize to built-in types
       if (udt == null && this is UserDefinedType originalUdt && originalUdt.ResolvedClass is ValuetypeDecl) {
         return originalUdt.ResolvedClass as TopLevelDeclWithMembers;
       }
-      
+
       return udt?.ResolvedClass as TopLevelDeclWithMembers;
     }
   }
@@ -1942,22 +1942,22 @@ public class Fp64Type : BasicType {
 
   public Fp64Type() {
   }
-  
+
   [System.Diagnostics.Contracts.Pure]
   public override string TypeName(DafnyOptions options, ModuleDefinition context, bool parseAble) {
     return "fp64";
   }
-  
+
   public override bool Equals(Type that, bool keepConstraints = false) {
     return that.NormalizeExpand(keepConstraints) is Fp64Type;
   }
-  
+
   // Key implementation: fp64 supports equality with preconditions (per spec section 5.3)
   // In ghost contexts, equality is reflexive (x == x always true)
   // In compiled contexts, equality requires preconditions !x.IsNaN && !y.IsNaN
   public override bool SupportsEquality => true;
   public override bool PartiallySupportsEquality => true;
-  
+
   // Allow real literals to be assigned to fp64 (for now, simple approach)
   public override bool IsSubtypeOf(Type super, bool ignoreTypeArguments, bool ignoreNullity) {
     if (super is RealVarietiesSupertype) {

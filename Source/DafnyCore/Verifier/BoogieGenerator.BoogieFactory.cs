@@ -21,7 +21,7 @@ namespace Microsoft.Dafny {
         return Bpl.Type.GetBvType(width);
       }
     }
-    
+
     public Bpl.Type BplFp64Type => new Bpl.FloatType(Token.NoToken, 11, 53);
 
     internal Bpl.Expr BplBvLiteralExpr(Bpl.IToken tok, BaseTypes.BigNum n, BitvectorType bitvectorType) {

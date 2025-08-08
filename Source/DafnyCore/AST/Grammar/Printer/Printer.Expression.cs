@@ -1377,7 +1377,7 @@ namespace Microsoft.Dafny {
         if (parensNeeded) {
           wr.Write(")");
         }
-        
+
       } else if (expr is ApproximateExpr) {
         var e = (ApproximateExpr)expr;
         string op = "~";

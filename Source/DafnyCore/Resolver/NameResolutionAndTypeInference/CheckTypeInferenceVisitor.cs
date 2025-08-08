@@ -144,7 +144,7 @@ class CheckTypeInferenceVisitor : ASTVisitor<TypeInferenceCheckingContext> {
           // Special case for fp64 negative zero
           if (d.IsZero && e.E.Type is Fp64Type) {
             // For -0.0 in fp64, create a DecimalLiteralExpr with negative zero
-            var negZeroLiteral = new DecimalLiteralExpr(e.Origin, BigDec.ZERO) { 
+            var negZeroLiteral = new DecimalLiteralExpr(e.Origin, BigDec.ZERO) {
               Type = e.E.Type,
               ResolvedFloatValue = BigFloat.CreateZero(true, 53, 11) // negative zero
             };
@@ -184,7 +184,7 @@ class CheckTypeInferenceVisitor : ASTVisitor<TypeInferenceCheckingContext> {
           e.ResolvedExpression = e.Expr;
         }
       }
-      
+
       // Compute and store the fp64 value for any DecimalLiteralExpr we're wrapping
       // This handles both direct literals and consolidated negations
       Expression toCheck = e.ResolvedExpression ?? e.Expr;
@@ -209,7 +209,7 @@ class CheckTypeInferenceVisitor : ASTVisitor<TypeInferenceCheckingContext> {
           resolver.ReportError(ResolutionErrors.ErrorId.r_no_unary_minus_in_case_patterns, e.Origin, "unary minus (-{0}, type {1}) not allowed in case pattern", absN, e.Type);
         }
       }
-      
+
       // Check decimal literals assigned to fp64
       // Note: Literals inside ApproximateExpr will already have ResolvedFloatValue set by the ApproximateExpr case
       // Here we only check non-approximate literals for exactness
@@ -221,10 +221,10 @@ class CheckTypeInferenceVisitor : ASTVisitor<TypeInferenceCheckingContext> {
           // Use BigFloat.FromBigDec to check if the decimal is exactly representable as fp64
           // fp64 has 53-bit significand and 11-bit exponent
           var isExact = BigFloat.FromBigDec(decValue, 53, 11, out var floatValue);
-          
+
           // Store the computed BigFloat value for later use
           decimalLiteral.ResolvedFloatValue = floatValue;
-          
+
           if (!isExact) {
             // Inexact literal without ~ prefix - this is an error
             resolver.ReportError(ResolutionErrors.ErrorId.r_inexact_fp64_literal_without_prefix, e.Origin,

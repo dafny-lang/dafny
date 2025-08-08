@@ -694,7 +694,7 @@ namespace Microsoft.Dafny {
         var fp64NaN = new Bpl.LiteralExpr(Token.NoToken, Microsoft.BaseTypes.BigFloat.FromString("0NaN53e11"));
         var fp64PositiveInfinity = new Bpl.LiteralExpr(Token.NoToken, Microsoft.BaseTypes.BigFloat.FromString("0+oo53e11"));
         var fp64NegativeInfinity = new Bpl.LiteralExpr(Token.NoToken, Microsoft.BaseTypes.BigFloat.FromString("0-oo53e11"));
-        
+
         return new PredefinedDecls(charType, refType, boxType,
                                    setTypeCtor, isetTypeCtor, multiSetTypeCtor,
                                    mapTypeCtor, imapTypeCtor,
@@ -3260,7 +3260,7 @@ namespace Microsoft.Dafny {
         var origin = tok as IOrigin ?? Token.NoToken;
         e = ConvertExpression(origin, e, fromType, toType);
       }
-      
+
       // Then handle boxing/unboxing
       if (fromType.IsTypeParameter) {
         return CondApplyUnbox(tok, e, fromType, toType);

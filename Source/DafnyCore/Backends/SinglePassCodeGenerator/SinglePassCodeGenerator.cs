@@ -5338,7 +5338,7 @@ namespace Microsoft.Dafny.Compilers {
         compileName = IdName(f);
       }
       var typeArgs = CombineAllTypeArguments(f, e.TypeApplication_AtEnclosingClass, e.TypeApplication_JustFunction);
-      
+
       EmitNameAndActualTypeArgs(compileName, TypeArgumentInstantiation.ToActuals(ForTypeParameters(typeArgs, f, false)),
         f.Origin, e.Receiver, customReceiver, wr);
       wr.Write("(");

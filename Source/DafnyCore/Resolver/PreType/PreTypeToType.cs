@@ -112,10 +112,10 @@ class PreTypeToTypeVisitor : ASTVisitor<IASTVisitorContext> {
       // to get the non-null type. The .PreType of these two distinguish between those cases, because the latter has a .PrintablePreType
       // field that gives the non-null type.
       expr.Type = PreType2TypeUtil.PreType2FixedType(expr.PreType);
-      
+
       // Note: Exactness checking for fp64 literals is handled by CheckTypeInferenceVisitor
       // which runs before this visitor and uses the ResolvedFloatValue marker pattern.
-      
+
       return;
     } else if (expr is FunctionCallExpr functionCallExpr) {
       functionCallExpr.TypeApplication_AtEnclosingClass = functionCallExpr.PreTypeApplication_AtEnclosingClass.ConvertAll(PreType2TypeUtil.PreType2FixedType);

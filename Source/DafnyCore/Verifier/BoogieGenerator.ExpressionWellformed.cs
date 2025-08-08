@@ -132,13 +132,13 @@ namespace Microsoft.Dafny {
   }
 
   public partial class BoogieGenerator {
-  
-  private void GenerateFp64CollectionWellformednessCheck(BinaryExpr expr, BoogieStmtListBuilder builder, ExpressionTranslator etran, WFOptions wfOptions) {
-    // In compiled contexts, reject all collection/datatype equality containing fp64
-    // This is because ensuring well-formedness for all element comparisons is complex
-    builder.Add(Assert(GetToken(expr), Bpl.Expr.False,
-      new Fp64CollectionEqualityWellformedness(expr.E0.Type), builder.Context, wfOptions.AssertKv));
-  }
+
+    private void GenerateFp64CollectionWellformednessCheck(BinaryExpr expr, BoogieStmtListBuilder builder, ExpressionTranslator etran, WFOptions wfOptions) {
+      // In compiled contexts, reject all collection/datatype equality containing fp64
+      // This is because ensuring well-formedness for all element comparisons is complex
+      builder.Add(Assert(GetToken(expr), Bpl.Expr.False,
+        new Fp64CollectionEqualityWellformedness(expr.E0.Type), builder.Context, wfOptions.AssertKv));
+    }
 
     public void CheckWellformedAndAssume(Expression expr, WFOptions wfOptions, Variables locals, BoogieStmtListBuilder builder, ExpressionTranslator etran, string comment) {
       Contract.Requires(expr != null);
@@ -1111,7 +1111,7 @@ namespace Microsoft.Dafny {
               case BinaryExpr.ResolvedOpcode.MapEq:
               case BinaryExpr.ResolvedOpcode.MapNeq:
                 CheckWellformed(e.E1, wfOptions, locals, builder, etran);
-                
+
                 if (e.InCompiledContext) {
                   // Helper to check if a type contains fp64 (directly or indirectly)
                   bool ContainsFp64(Type type) {
@@ -1134,59 +1134,59 @@ namespace Microsoft.Dafny {
                     }
                     return false;
                   }
-                  
+
                   // Check for fp64 equality first, as it requires special preconditions
                   if (e.E0.Type is Fp64Type || e.E1.Type is Fp64Type) {
                     // fp64 supports equality with preconditions per spec section 5.3
                     // Well-formedness: !x.IsNaN && !y.IsNaN && !(x.IsZero && y.IsZero && x.IsNegative != y.IsNegative)
-                    
+
                     // Helper to generate IsNaN check for fp64
                     Bpl.Expr GenerateIsNaNCheck(Expression operand) {
                       var value = etran.TrExpr(operand);
                       // Use the Fp64_IsNaN function that's defined in our Boogie prelude
                       return FunctionCall(operand.Origin, "Fp64_IsNaN", Bpl.Type.Bool, value);
                     }
-                    
+
                     // Helper to generate IsZero check for fp64
                     Bpl.Expr GenerateIsZeroCheck(Expression operand) {
                       var value = etran.TrExpr(operand);
                       // Use the Fp64_IsZero function that's defined in our Boogie prelude
                       return FunctionCall(operand.Origin, "Fp64_IsZero", Bpl.Type.Bool, value);
                     }
-                    
+
                     // Helper to generate IsNegative check for fp64
                     Bpl.Expr GenerateIsNegativeCheck(Expression operand) {
                       var value = etran.TrExpr(operand);
                       // Use the Fp64_IsNegative function that's defined in our Boogie prelude
                       return FunctionCall(operand.Origin, "Fp64_IsNegative", Bpl.Type.Bool, value);
                     }
-                    
+
                     // Check NaN preconditions
                     if (e.E0.Type is Fp64Type) {
                       var isNaN = GenerateIsNaNCheck(e.E0);
                       builder.Add(Assert(GetToken(e.E0), Bpl.Expr.Not(isNaN),
                         new Fp64EqualityPrecondition(e.E0), builder.Context, wfOptions.AssertKv));
                     }
-                    
+
                     if (e.E1.Type is Fp64Type) {
                       var isNaN = GenerateIsNaNCheck(e.E1);
                       builder.Add(Assert(GetToken(e.E1), Bpl.Expr.Not(isNaN),
                         new Fp64EqualityPrecondition(e.E1), builder.Context, wfOptions.AssertKv));
                     }
-                    
+
                     // Check signed zero precondition: !(x.IsZero && y.IsZero && x.IsNegative != y.IsNegative)
                     if (e.E0.Type is Fp64Type && e.E1.Type is Fp64Type) {
                       var e0IsZero = GenerateIsZeroCheck(e.E0);
                       var e1IsZero = GenerateIsZeroCheck(e.E1);
                       var e0IsNegative = GenerateIsNegativeCheck(e.E0);
                       var e1IsNegative = GenerateIsNegativeCheck(e.E1);
-                      
+
                       // x.IsZero && y.IsZero && x.IsNegative != y.IsNegative
                       var bothZerosDifferentSign = Bpl.Expr.And(
                         Bpl.Expr.And(e0IsZero, e1IsZero),
                         Bpl.Expr.Neq(e0IsNegative, e1IsNegative)
                       );
-                      
+
                       // The precondition is that the above condition is false
                       builder.Add(Assert(GetToken(expr), Bpl.Expr.Not(bothZerosDifferentSign),
                         new Fp64SignedZeroEqualityPrecondition(e.E0, e.E1), builder.Context, wfOptions.AssertKv));

@@ -2769,7 +2769,7 @@ namespace Microsoft.Dafny.Compilers {
 
     protected override void CompileFunctionCallExpr(FunctionCallExpr e, ConcreteSyntaxTree wr, bool inLetExprBody,
         ConcreteSyntaxTree wStmts, FCE_Arg_Translator tr, bool alreadyCoerced = false) {
-      
+
       // Handle fp64 special functions
       if (e.Function is SpecialFunction && e.Function.Name == "Equal" && e.Function.EnclosingClass?.Name == "fp64") {
         // Handle fp64.Equal(x, y) -> IEEE 754 equality
@@ -3343,7 +3343,7 @@ namespace Microsoft.Dafny.Compilers {
               opString = "==";
               break;
             }
-            
+
             var eqType = DatatypeWrapperEraser.SimplifyType(Options, e0Type);
             // Check if this is fp64 (either as Fp64Type or as a UserDefinedType referring to fp64)
             if (eqType is UserDefinedType udtEq && (udtEq.Name == "fp64" || udtEq.ResolvedClass is ValuetypeDecl vd && vd.Name == "fp64")) {
@@ -3368,7 +3368,7 @@ namespace Microsoft.Dafny.Compilers {
               opString = "!=";
               break;
             }
-            
+
             var eqType = DatatypeWrapperEraser.SimplifyType(Options, e0Type);
             // Check if this is fp64 (either as Fp64Type or as a UserDefinedType referring to fp64)
             if (eqType is UserDefinedType udtEq && (udtEq.Name == "fp64" || udtEq.ResolvedClass is ValuetypeDecl vd && vd.Name == "fp64")) {

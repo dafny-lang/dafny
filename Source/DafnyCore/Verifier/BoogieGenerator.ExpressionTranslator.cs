@@ -1069,132 +1069,132 @@ namespace Microsoft.Dafny {
       private Expr TranslateMemberSelectExpr(MemberSelectExpr selectExpr) {
         return selectExpr.MemberSelectCase(
           field => {
-          // Special handling for fp64 static constants
-          if (field is StaticSpecialField && field.EnclosingClass is ValuetypeDecl { Name: "fp64" }) {
-            Boogie.Expr result;
-            switch (field.Name) {
-              case "NaN":
-                result = BoogieGenerator.Predef.Fp64NaN;
-                break;
-              case "PositiveInfinity":
-                result = BoogieGenerator.Predef.Fp64PositiveInfinity;
-                break;
-              case "NegativeInfinity":
-                result = BoogieGenerator.Predef.Fp64NegativeInfinity;
-                break;
-              case "PositiveZero":
-                result = Boogie.Expr.Literal(BigFloat.CreateZero(false, 53, 11));
-                break;
-              case "NegativeZero":
-                result = Boogie.Expr.Literal(BigFloat.CreateZero(true, 53, 11));
-                break;
-              case "Pi":
-                // IEEE 754 double precision Pi
-                if (BigFloat.FromRational(
-                  BigInteger.Parse("7074237752028440"),  // Exact representation of Pi in double precision
-                  BigInteger.Parse("2251799813685248"),   // 2^51
-                  53, 11,
-                  out var piFloat)) {
-                  result = Boogie.Expr.Literal(piFloat);
-                } else {
-                  throw new System.Exception("Failed to create Pi constant");
-                }
-                break;
-              case "E":
-                // IEEE 754 double precision E (Euler's number)
-                if (BigFloat.FromRational(
-                  BigInteger.Parse("6121026514868073"),  // Exact representation of E in double precision
-                  BigInteger.Parse("2251799813685248"),   // 2^51
-                  53, 11,
-                  out var eFloat)) {
-                  result = Boogie.Expr.Literal(eFloat);
-                } else {
-                  throw new System.Exception("Failed to create E constant");
-                }
-                break;
-              case "MaxValue":
-                // IEEE 754 double precision max value
-                if (BigFloat.FromRational(
-                  BigInteger.Parse("179769313486231570814527423731704356798070567525844996598917476803157260780028538760589558632766878171540458953514382464234321326889464182768467546703537516986049910576551282076245490090389328944075868508455133942304583236903222948165808559332123348274797826204144723168738177180919299881250404026184124858368"),
-                  BigInteger.One,
-                  53, 11,
-                  out var maxValueFloat)) {
-                  result = Boogie.Expr.Literal(maxValueFloat);
-                } else {
-                  throw new InvalidOperationException("Failed to create MaxValue");
-                }
-                break;
-              case "MinValue":
-                // IEEE 754 double precision min value (most negative)
-                if (BigFloat.FromRational(
-                  BigInteger.Parse("-179769313486231570814527423731704356798070567525844996598917476803157260780028538760589558632766878171540458953514382464234321326889464182768467546703537516986049910576551282076245490090389328944075868508455133942304583236903222948165808559332123348274797826204144723168738177180919299881250404026184124858368"),
-                  BigInteger.One,
-                  53, 11,
-                  out var minValueFloat)) {
-                  result = Boogie.Expr.Literal(minValueFloat);
-                } else {
-                  throw new InvalidOperationException("Failed to create MinValue");
-                }
-                break;
-              case "MinNormal":
-                // Smallest normal positive value: 2^-1022
-                if (BigFloat.FromRational(
-                  BigInteger.One,
-                  BigInteger.Pow(2, 1022),
-                  53, 11,
-                  out var minNormalFloat)) {
-                  result = Boogie.Expr.Literal(minNormalFloat);
-                } else {
-                  throw new InvalidOperationException("Failed to create MinNormal");
-                }
-                break;
-              case "MinSubnormal":
-                // Smallest positive value: 2^-1074
-                if (BigFloat.FromRational(
-                  BigInteger.One,
-                  BigInteger.Pow(2, 1074),
-                  53, 11,
-                  out var minSubnormalFloat)) {
-                  result = Boogie.Expr.Literal(minSubnormalFloat);
-                } else {
-                  throw new InvalidOperationException("Failed to create MinSubnormal");
-                }
-                break;
-              case "Epsilon":
-                // Machine epsilon: 2^-52
-                if (BigFloat.FromRational(
-                  BigInteger.One,
-                  BigInteger.Pow(2, 52),
-                  53, 11,
-                  out var epsilonFloat)) {
-                  result = Boogie.Expr.Literal(epsilonFloat);
-                } else {
-                  throw new InvalidOperationException("Failed to create Epsilon");
-                }
-                break;
-              default:
-                throw new NotImplementedException($"fp64 static member {field.Name} not implemented");
+            // Special handling for fp64 static constants
+            if (field is StaticSpecialField && field.EnclosingClass is ValuetypeDecl { Name: "fp64" }) {
+              Boogie.Expr result;
+              switch (field.Name) {
+                case "NaN":
+                  result = BoogieGenerator.Predef.Fp64NaN;
+                  break;
+                case "PositiveInfinity":
+                  result = BoogieGenerator.Predef.Fp64PositiveInfinity;
+                  break;
+                case "NegativeInfinity":
+                  result = BoogieGenerator.Predef.Fp64NegativeInfinity;
+                  break;
+                case "PositiveZero":
+                  result = Boogie.Expr.Literal(BigFloat.CreateZero(false, 53, 11));
+                  break;
+                case "NegativeZero":
+                  result = Boogie.Expr.Literal(BigFloat.CreateZero(true, 53, 11));
+                  break;
+                case "Pi":
+                  // IEEE 754 double precision Pi
+                  if (BigFloat.FromRational(
+                    BigInteger.Parse("7074237752028440"),  // Exact representation of Pi in double precision
+                    BigInteger.Parse("2251799813685248"),   // 2^51
+                    53, 11,
+                    out var piFloat)) {
+                    result = Boogie.Expr.Literal(piFloat);
+                  } else {
+                    throw new System.Exception("Failed to create Pi constant");
+                  }
+                  break;
+                case "E":
+                  // IEEE 754 double precision E (Euler's number)
+                  if (BigFloat.FromRational(
+                    BigInteger.Parse("6121026514868073"),  // Exact representation of E in double precision
+                    BigInteger.Parse("2251799813685248"),   // 2^51
+                    53, 11,
+                    out var eFloat)) {
+                    result = Boogie.Expr.Literal(eFloat);
+                  } else {
+                    throw new System.Exception("Failed to create E constant");
+                  }
+                  break;
+                case "MaxValue":
+                  // IEEE 754 double precision max value
+                  if (BigFloat.FromRational(
+                    BigInteger.Parse("179769313486231570814527423731704356798070567525844996598917476803157260780028538760589558632766878171540458953514382464234321326889464182768467546703537516986049910576551282076245490090389328944075868508455133942304583236903222948165808559332123348274797826204144723168738177180919299881250404026184124858368"),
+                    BigInteger.One,
+                    53, 11,
+                    out var maxValueFloat)) {
+                    result = Boogie.Expr.Literal(maxValueFloat);
+                  } else {
+                    throw new InvalidOperationException("Failed to create MaxValue");
+                  }
+                  break;
+                case "MinValue":
+                  // IEEE 754 double precision min value (most negative)
+                  if (BigFloat.FromRational(
+                    BigInteger.Parse("-179769313486231570814527423731704356798070567525844996598917476803157260780028538760589558632766878171540458953514382464234321326889464182768467546703537516986049910576551282076245490090389328944075868508455133942304583236903222948165808559332123348274797826204144723168738177180919299881250404026184124858368"),
+                    BigInteger.One,
+                    53, 11,
+                    out var minValueFloat)) {
+                    result = Boogie.Expr.Literal(minValueFloat);
+                  } else {
+                    throw new InvalidOperationException("Failed to create MinValue");
+                  }
+                  break;
+                case "MinNormal":
+                  // Smallest normal positive value: 2^-1022
+                  if (BigFloat.FromRational(
+                    BigInteger.One,
+                    BigInteger.Pow(2, 1022),
+                    53, 11,
+                    out var minNormalFloat)) {
+                    result = Boogie.Expr.Literal(minNormalFloat);
+                  } else {
+                    throw new InvalidOperationException("Failed to create MinNormal");
+                  }
+                  break;
+                case "MinSubnormal":
+                  // Smallest positive value: 2^-1074
+                  if (BigFloat.FromRational(
+                    BigInteger.One,
+                    BigInteger.Pow(2, 1074),
+                    53, 11,
+                    out var minSubnormalFloat)) {
+                    result = Boogie.Expr.Literal(minSubnormalFloat);
+                  } else {
+                    throw new InvalidOperationException("Failed to create MinSubnormal");
+                  }
+                  break;
+                case "Epsilon":
+                  // Machine epsilon: 2^-52
+                  if (BigFloat.FromRational(
+                    BigInteger.One,
+                    BigInteger.Pow(2, 52),
+                    53, 11,
+                    out var epsilonFloat)) {
+                    result = Boogie.Expr.Literal(epsilonFloat);
+                  } else {
+                    throw new InvalidOperationException("Failed to create Epsilon");
+                  }
+                  break;
+                default:
+                  throw new NotImplementedException($"fp64 static member {field.Name} not implemented");
+              }
+              // The result should already have the correct type from the Boogie literal
+              return result;
             }
-            // The result should already have the correct type from the Boogie literal
-            return result;
-          }
 
-          // Special handling for fp64 classification predicates
-          if (field is SpecialField && field.EnclosingClass is ValuetypeDecl { Name: "fp64" }) {
-            var obj = TrExpr(selectExpr.Obj);
-            var result = field.Name switch {
-              "IsNaN" => FunctionCall(GetToken(selectExpr), "Fp64_IsNaN", Boogie.Type.Bool, obj),
-              "IsFinite" => FunctionCall(GetToken(selectExpr), "Fp64_IsFinite", Boogie.Type.Bool, obj),
-              "IsInfinite" => FunctionCall(GetToken(selectExpr), "Fp64_IsInfinite", Boogie.Type.Bool, obj),
-              "IsNormal" => FunctionCall(GetToken(selectExpr), "Fp64_IsNormal", Boogie.Type.Bool, obj),
-              "IsSubnormal" => FunctionCall(GetToken(selectExpr), "Fp64_IsSubnormal", Boogie.Type.Bool, obj),
-              "IsZero" => FunctionCall(GetToken(selectExpr), "Fp64_IsZero", Boogie.Type.Bool, obj),
-              "IsPositive" => FunctionCall(GetToken(selectExpr), "Fp64_IsPositive", Boogie.Type.Bool, obj),
-              "IsNegative" => FunctionCall(GetToken(selectExpr), "Fp64_IsNegative", Boogie.Type.Bool, obj),
-              _ => throw new NotImplementedException($"fp64 predicate {field.Name} not implemented")
-            };
-            return result;
-          }
+            // Special handling for fp64 classification predicates
+            if (field is SpecialField && field.EnclosingClass is ValuetypeDecl { Name: "fp64" }) {
+              var obj = TrExpr(selectExpr.Obj);
+              var result = field.Name switch {
+                "IsNaN" => FunctionCall(GetToken(selectExpr), "Fp64_IsNaN", Boogie.Type.Bool, obj),
+                "IsFinite" => FunctionCall(GetToken(selectExpr), "Fp64_IsFinite", Boogie.Type.Bool, obj),
+                "IsInfinite" => FunctionCall(GetToken(selectExpr), "Fp64_IsInfinite", Boogie.Type.Bool, obj),
+                "IsNormal" => FunctionCall(GetToken(selectExpr), "Fp64_IsNormal", Boogie.Type.Bool, obj),
+                "IsSubnormal" => FunctionCall(GetToken(selectExpr), "Fp64_IsSubnormal", Boogie.Type.Bool, obj),
+                "IsZero" => FunctionCall(GetToken(selectExpr), "Fp64_IsZero", Boogie.Type.Bool, obj),
+                "IsPositive" => FunctionCall(GetToken(selectExpr), "Fp64_IsPositive", Boogie.Type.Bool, obj),
+                "IsNegative" => FunctionCall(GetToken(selectExpr), "Fp64_IsNegative", Boogie.Type.Bool, obj),
+                _ => throw new NotImplementedException($"fp64 predicate {field.Name} not implemented")
+              };
+              return result;
+            }
 
             var useSurrogateLocal = BoogieGenerator.inBodyInitContext && Expression.AsThis(selectExpr.Obj) != null && !field.IsInstanceIndependentConstant;
             var fType = BoogieGenerator.TrType(field.Type);

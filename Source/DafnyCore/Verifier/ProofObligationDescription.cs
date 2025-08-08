@@ -93,18 +93,18 @@ public class DivisorNonZero : ProofObligationDescription {
 public class Fp64EqualityPrecondition : ProofObligationDescription {
   public override string SuccessDescription =>
     "fp64 operand is never NaN for equality comparison";
-  
+
   public override string FailureDescription =>
     "fp64 equality comparison requires that operands are not NaN";
-  
+
   public override string ShortDescription => "fp64 equality precondition";
-  
+
   private readonly Expression operand;
-  
+
   public Fp64EqualityPrecondition(Expression operand) {
     this.operand = operand;
   }
-  
+
   public override Expression GetAssertedExpr(DafnyOptions options) {
     // For now, return a simple true expression since we can't easily construct
     // the proper !operand.IsNaN expression here without more context
@@ -115,20 +115,20 @@ public class Fp64EqualityPrecondition : ProofObligationDescription {
 public class Fp64SignedZeroEqualityPrecondition : ProofObligationDescription {
   public override string SuccessDescription =>
     "fp64 equality comparison never compares +0.0 with -0.0";
-  
+
   public override string FailureDescription =>
     "fp64 equality comparison requires that signed zeros have the same sign";
-  
+
   public override string ShortDescription => "fp64 signed zero equality precondition";
-  
+
   private readonly Expression operand0;
   private readonly Expression operand1;
-  
+
   public Fp64SignedZeroEqualityPrecondition(Expression operand0, Expression operand1) {
     this.operand0 = operand0;
     this.operand1 = operand1;
   }
-  
+
   public override Expression GetAssertedExpr(DafnyOptions options) {
     // For now, return a simple true expression since we can't easily construct
     // the proper !(x.IsZero && y.IsZero && x.IsNegative != y.IsNegative) expression here
@@ -139,22 +139,22 @@ public class Fp64SignedZeroEqualityPrecondition : ProofObligationDescription {
 public class Fp64CollectionEqualityWellformedness : ProofObligationDescription {
   public override string SuccessDescription =>
     "equality comparison is supported for this type";
-  
+
   public override string FailureDescription {
     get {
       string typeName = GetTypeName();
       return $"equality comparison of {typeName} is not supported in compiled code (use ghost context or compare elements individually)";
     }
   }
-  
+
   public override string ShortDescription => "fp64 collection equality";
-  
+
   private readonly Type collectionType;
-  
+
   public Fp64CollectionEqualityWellformedness(Type collectionType) {
     this.collectionType = collectionType;
   }
-  
+
   private string GetTypeName() {
     if (collectionType is SetType) {
       return "set<fp64>";
@@ -164,7 +164,7 @@ public class Fp64CollectionEqualityWellformedness : ProofObligationDescription {
       return "multiset<fp64>";
     } else if (collectionType is MapType mapType) {
       // Be more specific about map types
-      return mapType.Domain is Fp64Type ? 
+      return mapType.Domain is Fp64Type ?
         (mapType.Range is Fp64Type ? "map<fp64, fp64>" : "map<fp64, _>") :
         "map<_, fp64>";
     } else if (collectionType is UserDefinedType udt && udt.ResolvedClass != null) {
@@ -175,7 +175,7 @@ public class Fp64CollectionEqualityWellformedness : ProofObligationDescription {
     }
     return "type containing fp64";
   }
-  
+
   public override Expression GetAssertedExpr(DafnyOptions options) {
     // Return a simple false expression since this is always rejected
     return new LiteralExpr(collectionType?.Origin ?? Microsoft.Dafny.Token.NoToken, false);

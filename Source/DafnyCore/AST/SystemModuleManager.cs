@@ -254,7 +254,7 @@ public class SystemModuleManager {
   public void AddFp64SpecialValues(ValuetypeDecl enclosingType) {
     // Create static special fields for special fp64 values
     // These are handled specially by the backends via SpecialField.ID
-    
+
     // Helper to add a static special field
     void AddStaticSpecialField(string name, SpecialField.ID id) {
       var field = new StaticSpecialField(SourceOrigin.NoToken, name, id, null, false, false, false, new Fp64Type(), null);
@@ -262,7 +262,7 @@ public class SystemModuleManager {
       field.AddVisibilityScope(SystemModule.VisibilityScope, false);
       enclosingType.Members.Add(field);
     }
-    
+
     // Add all special values
     AddStaticSpecialField("NaN", SpecialField.ID.NaN);
     AddStaticSpecialField("PositiveInfinity", SpecialField.ID.PositiveInfinity);
@@ -281,7 +281,7 @@ public class SystemModuleManager {
   public void AddFp64EqualMethod(ValuetypeDecl enclosingType) {
     // Create formals for Equal(x: fp64, y: fp64): bool
     // Use explicit Fp64Type to ensure compatibility with both resolvers
-    var formals = new List<Formal> { 
+    var formals = new List<Formal> {
       new Formal(Token.NoToken, "x", new Fp64Type(), true, false, null),
       new Formal(Token.NoToken, "y", new Fp64Type(), true, false, null)
     };
@@ -292,17 +292,17 @@ public class SystemModuleManager {
     equalMethod.EnclosingClass = enclosingType;
     equalMethod.AddVisibilityScope(SystemModule.VisibilityScope, false);
     enclosingType.Members.Add(equalMethod);
-    
+
     // Add mathematical functions
     AddFp64MathematicalFunctions(enclosingType);
-    
+
     // Add inexact conversion methods
     AddFp64InexactConversionMethods(enclosingType);
   }
-  
+
   public void AddFp64MathematicalFunctions(ValuetypeDecl enclosingType) {
     // Add Min(x: fp64, y: fp64): fp64
-    var minFormals = new List<Formal> { 
+    var minFormals = new List<Formal> {
       new Formal(Token.NoToken, "x", new Fp64Type(), true, false, null),
       new Formal(Token.NoToken, "y", new Fp64Type(), true, false, null)
     };
@@ -313,9 +313,9 @@ public class SystemModuleManager {
     minMethod.EnclosingClass = enclosingType;
     minMethod.AddVisibilityScope(SystemModule.VisibilityScope, false);
     enclosingType.Members.Add(minMethod);
-    
+
     // Add Max(x: fp64, y: fp64): fp64
-    var maxFormals = new List<Formal> { 
+    var maxFormals = new List<Formal> {
       new Formal(Token.NoToken, "x", new Fp64Type(), true, false, null),
       new Formal(Token.NoToken, "y", new Fp64Type(), true, false, null)
     };
@@ -326,9 +326,9 @@ public class SystemModuleManager {
     maxMethod.EnclosingClass = enclosingType;
     maxMethod.AddVisibilityScope(SystemModule.VisibilityScope, false);
     enclosingType.Members.Add(maxMethod);
-    
+
     // Add Abs(x: fp64): fp64
-    var absFormals = new List<Formal> { 
+    var absFormals = new List<Formal> {
       new Formal(Token.NoToken, "x", new Fp64Type(), true, false, null)
     };
     var absMethod = new SpecialFunction(SourceOrigin.NoToken, "Abs", SystemModule, true, false,
@@ -338,9 +338,9 @@ public class SystemModuleManager {
     absMethod.EnclosingClass = enclosingType;
     absMethod.AddVisibilityScope(SystemModule.VisibilityScope, false);
     enclosingType.Members.Add(absMethod);
-    
+
     // Add Floor(x: fp64): fp64
-    var floorFormals = new List<Formal> { 
+    var floorFormals = new List<Formal> {
       new Formal(Token.NoToken, "x", new Fp64Type(), true, false, null)
     };
     var floorMethod = new SpecialFunction(SourceOrigin.NoToken, "Floor", SystemModule, true, false,
@@ -350,9 +350,9 @@ public class SystemModuleManager {
     floorMethod.EnclosingClass = enclosingType;
     floorMethod.AddVisibilityScope(SystemModule.VisibilityScope, false);
     enclosingType.Members.Add(floorMethod);
-    
+
     // Add Ceiling(x: fp64): fp64
-    var ceilingFormals = new List<Formal> { 
+    var ceilingFormals = new List<Formal> {
       new Formal(Token.NoToken, "x", new Fp64Type(), true, false, null)
     };
     var ceilingMethod = new SpecialFunction(SourceOrigin.NoToken, "Ceiling", SystemModule, true, false,
@@ -362,9 +362,9 @@ public class SystemModuleManager {
     ceilingMethod.EnclosingClass = enclosingType;
     ceilingMethod.AddVisibilityScope(SystemModule.VisibilityScope, false);
     enclosingType.Members.Add(ceilingMethod);
-    
+
     // Add Round(x: fp64): fp64
-    var roundFormals = new List<Formal> { 
+    var roundFormals = new List<Formal> {
       new Formal(Token.NoToken, "x", new Fp64Type(), true, false, null)
     };
     var roundMethod = new SpecialFunction(SourceOrigin.NoToken, "Round", SystemModule, true, false,
@@ -374,9 +374,9 @@ public class SystemModuleManager {
     roundMethod.EnclosingClass = enclosingType;
     roundMethod.AddVisibilityScope(SystemModule.VisibilityScope, false);
     enclosingType.Members.Add(roundMethod);
-    
+
     // Add Sqrt(x: fp64): fp64
-    var sqrtFormals = new List<Formal> { 
+    var sqrtFormals = new List<Formal> {
       new Formal(Token.NoToken, "x", new Fp64Type(), true, false, null)
     };
     var sqrtMethod = new SpecialFunction(SourceOrigin.NoToken, "Sqrt", SystemModule, true, false,
@@ -387,10 +387,10 @@ public class SystemModuleManager {
     sqrtMethod.AddVisibilityScope(SystemModule.VisibilityScope, false);
     enclosingType.Members.Add(sqrtMethod);
   }
-  
+
   public void AddFp64InexactConversionMethods(ValuetypeDecl enclosingType) {
     // Add FromReal method for inexact real to fp64 conversion
-    var fromRealFormals = new List<Formal> { 
+    var fromRealFormals = new List<Formal> {
       new Formal(Token.NoToken, "r", Type.Real, true, false, null)
     };
     var fromRealMethod = new SpecialFunction(SourceOrigin.NoToken, "FromReal", SystemModule, true, false,
@@ -400,9 +400,9 @@ public class SystemModuleManager {
     fromRealMethod.EnclosingClass = enclosingType;
     fromRealMethod.AddVisibilityScope(SystemModule.VisibilityScope, false);
     enclosingType.Members.Add(fromRealMethod);
-    
+
     // Add ToInt method for inexact fp64 to int conversion (truncating towards zero)
-    var toIntFormals = new List<Formal> { 
+    var toIntFormals = new List<Formal> {
       new Formal(Token.NoToken, "f", new Fp64Type(), true, false, null)
     };
     var toIntMethod = new SpecialFunction(SourceOrigin.NoToken, "ToInt", SystemModule, true, false,
@@ -698,7 +698,7 @@ public class SystemModuleManager {
           CallGraphBuilder.VisitMethod(method, programResolver.Reporter);
         }
       }
-      
+
       // Add ValuetypeDecl members to the classMembers dictionary for member resolution
       var memberDictionary = valueTypeDecl.Members.ToDictionary(member => member.Name, member => member);
       programResolver.AddSystemClass(valueTypeDecl, memberDictionary);

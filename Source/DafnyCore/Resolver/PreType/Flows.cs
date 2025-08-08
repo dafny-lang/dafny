@@ -56,8 +56,8 @@ abstract class Flow {
     }
 
     var previousSink = (TypeRefinementWrapper.NormalizeSansRefinementWrappers(sink) as TypeRefinementWrapper)?.T ?? sink;
-    
-    
+
+
     var join = JoinAndUpdate(sink, sourceType, context);
     if (join == null) {
       HasError = true;
@@ -81,7 +81,7 @@ abstract class Flow {
 
   [CanBeNull]
   public static Type JoinAndUpdate(Type a, Type b, FlowContext context) {
-    
+
     var wrapperA = TypeRefinementWrapper.NormalizeSansRefinementWrappers(a) as TypeRefinementWrapper;
     var wrapperB = TypeRefinementWrapper.NormalizeSansRefinementWrappers(b) as TypeRefinementWrapper;
     var join = Join(wrapperA?.T ?? a, wrapperB?.T ?? b, context);
@@ -136,7 +136,7 @@ abstract class Flow {
   public static Type Join(Type a, Type b, FlowContext context) {
     Contract.Requires(a != null);
     Contract.Requires(b != null);
-    
+
 
     [CanBeNull]
     Type JoinChildren(UserDefinedType udtA, UserDefinedType udtB) {
@@ -181,14 +181,14 @@ abstract class Flow {
 
     if (a is BasicType) {
       Contract.Assert(b is BasicType);
-      
+
       // Handle the case where two different BasicTypes need to be joined
       // This can happen with fp64 and real - they don't have a common supertype
       if (!a.Equals(b, true)) {
         // No join exists between different basic types
         return null;
       }
-      
+
       return a;
 
     } else if (a is CollectionType) {
