@@ -8,6 +8,28 @@ PR_NUMBER=${1}
 REPO=${2:-"dafny-lang/dafny"}
 FOCUS_AREAS=${3:-"general"}
 
+# Check if we're in a Dafny repository (Scripts folder or root)
+IN_DAFNY_REPO=false
+if [[ "$(pwd)" =~ /Scripts$ ]] && [ -d "../Source" ] && [ -f "../Source/Dafny/Dafny.csproj" ]; then
+    IN_DAFNY_REPO=true
+    echo "🔍 Detected Dafny repository Scripts folder"
+elif [ -d "Scripts" ] && [ -d "Source" ] && [ -f "Source/Dafny/Dafny.csproj" ]; then
+    IN_DAFNY_REPO=true
+    echo "🔍 Detected Dafny repository root folder"
+fi
+
+# Auto-detect PR number from current branch if in Dafny repo
+if [ -z "$PR_NUMBER" ] && [ "$IN_DAFNY_REPO" = true ]; then
+    current_branch=$(git branch --show-current 2>/dev/null)
+    if [ -n "$current_branch" ]; then
+        detected_pr=$(gh pr list --head "$current_branch" --json number --jq '.[0].number' 2>/dev/null)
+        if [ -n "$detected_pr" ] && [ "$detected_pr" != "null" ]; then
+            PR_NUMBER="$detected_pr"
+            echo "🎯 Auto-detected PR number from branch: $PR_NUMBER"
+        fi
+    fi
+fi
+
 # Interactive PR number input if not provided
 if [ -z "$PR_NUMBER" ]; then
     echo "Dafny PR Review Script v1.0.0"
@@ -48,6 +70,7 @@ fi
 # Configuration
 MAX_DIFF_LINES=500
 SLEEP_BETWEEN_FILES=1
+MAX_RETRIES=5
 
 # Check for required dependencies
 echo "🔧 Checking dependencies..."
@@ -104,22 +127,44 @@ echo "✅ All dependencies satisfied"
 echo "🔍 Reviewing PR #$PR_NUMBER from $REPO..."
 echo "📋 Focus areas: $FOCUS_AREAS"
 
-# Create temporary directory
-TEMP_DIR=$(mktemp -d)
-cd "$TEMP_DIR"
+# Create temporary directory or use current directory if in Dafny repo
+if [ "$IN_DAFNY_REPO" = true ]; then
+    if [[ "$(pwd)" =~ /Scripts$ ]]; then
+        TEMP_DIR="$(pwd)/../"
+        cd "$TEMP_DIR"
+    else
+        TEMP_DIR="$(pwd)"
+    fi
+    echo "📁 Using existing Dafny repository"
+    
+    # Switch to PR branch
+    echo "📥 Switching to PR branch..."
+    gh pr checkout "$PR_NUMBER"
+else
+    TEMP_DIR=$(mktemp -d)
+    cd "$TEMP_DIR"
+    
+    # Clone the repository and get PR info
+    echo "📥 Fetching PR information..."
+    gh repo clone "$REPO" .
+    gh pr checkout "$PR_NUMBER"
+fi
 
-# Clone the repository and get PR info
-echo "📥 Fetching PR information..."
-gh repo clone "$REPO" .
-gh pr checkout "$PR_NUMBER"
-
-# Get PR description
-echo "📋 Fetching PR description..."
+# Get PR title and description
+echo "📋 Fetching PR details..."
+PR_TITLE=$(gh pr view "$PR_NUMBER" --json title -q .title)
 gh pr view "$PR_NUMBER" --json body -q .body > pr_description.txt
+echo "📝 PR Title: $PR_TITLE"
 
 # Get the base branch for comparison
 BASE_BRANCH=$(gh pr view "$PR_NUMBER" --json baseRefName -q .baseRefName)
 echo "📊 Comparing against base branch: $BASE_BRANCH"
+
+# Update base branch if using existing repo
+if [ "$IN_DAFNY_REPO" = true ]; then
+    echo "🔄 Updating base branch..."
+    git fetch origin "$BASE_BRANCH:$BASE_BRANCH" 2>/dev/null || git fetch origin "$BASE_BRANCH"
+fi
 
 # Use local git to get changed files, filtering out delete/add pairs
 echo "📋 Getting list of changed files using local git..."
@@ -354,7 +399,11 @@ while IFS= read -r file; do
         local chunk_id="${files_processed}_${chunk_num}"
         
         cat > "prompt_${chunk_id}.txt" << EOF
-Review this Dafny PR change. Focus: $focus
+Review this Dafny PR change.
+
+PR Title: $PR_TITLE
+PR Description: $(cat pr_description.txt)
+Focus: $focus
 
 FILE: $file $([ $total_chunks -gt 1 ] && echo "(Part $chunk_num of $total_chunks)")
 
@@ -373,25 +422,38 @@ OR
 <fail>brief description of issues</fail>
 EOF
         
-        # Invoke AI tool for this chunk with timeout
-        if [ "$AI_TOOL" = "q" ]; then
-            timeout 300 bash -c "cat 'prompt_${chunk_id}.txt' | q chat --no-interactive" > "output_${chunk_id}.txt" 2>&1
-            ai_exit_code=$?
-        elif [ "$AI_TOOL" = "claude" ]; then
-            timeout 300 bash -c "cat 'prompt_${chunk_id}.txt' | $AI_COMMAND" > "output_${chunk_id}.txt" 2>&1
-            ai_exit_code=$?
-        fi
+        # Retry logic for AI tool invocation
+        local attempt=1
+        local success=false
         
-        # Check if AI tool timed out or failed, but preserve any output it generated
-        if [ $ai_exit_code -eq 124 ]; then
-            # Timeout - check if we got any output
-            if [ ! -s "output_${chunk_id}.txt" ]; then
-                echo "<fail>$file: AI tool timed out after 5 minutes</fail>" > "output_${chunk_id}.txt"
+        while [ $attempt -le $MAX_RETRIES ] && [ "$success" = false ]; do
+            # Invoke AI tool for this chunk with timeout
+            if [ "$AI_TOOL" = "q" ]; then
+                timeout 300 bash -c "cat 'prompt_${chunk_id}.txt' | q chat --no-interactive" > "output_${chunk_id}.txt" 2>&1
+                ai_exit_code=$?
+            elif [ "$AI_TOOL" = "claude" ]; then
+                timeout 300 bash -c "cat 'prompt_${chunk_id}.txt' | $AI_COMMAND" > "output_${chunk_id}.txt" 2>&1
+                ai_exit_code=$?
             fi
-        elif [ $ai_exit_code -ne 0 ]; then
-            # Non-zero exit - check if we got any output with proper tags
-            if [ ! -s "output_${chunk_id}.txt" ] || ! grep -q -E '<(pass|fail)>' "output_${chunk_id}.txt"; then
-                echo "<fail>$file: AI tool failed with exit code $ai_exit_code</fail>" > "output_${chunk_id}.txt"
+            
+            # Check if AI tool succeeded
+            if [ $ai_exit_code -eq 0 ] && [ -s "output_${chunk_id}.txt" ] && grep -q -E '<(pass|fail)>' "output_${chunk_id}.txt"; then
+                success=true
+            else
+                if [ $attempt -lt $MAX_RETRIES ]; then
+                    echo "⚠️ Attempt $attempt failed for $file, retrying..." >&2
+                    sleep 2
+                fi
+                attempt=$((attempt + 1))
+            fi
+        done
+        
+        # Handle final failure after all retries
+        if [ "$success" = false ]; then
+            if [ $ai_exit_code -eq 124 ]; then
+                echo "<fail>$file: AI tool timed out after 5 minutes (tried $MAX_RETRIES times)</fail>" > "output_${chunk_id}.txt"
+            else
+                echo "<fail>$file: AI tool failed after $MAX_RETRIES attempts (last exit code: $ai_exit_code)</fail>" > "output_${chunk_id}.txt"
             fi
         fi
         
@@ -516,6 +578,12 @@ if [ $violations -eq 0 ]; then
     echo "✅ All analyzed files passed code review!"
     echo "✅ PR #$PR_NUMBER looks good to merge"
     exit_code=0
+    
+    # Clean up temp directory only on success
+    if [ "$IN_DAFNY_REPO" = false ]; then
+        cd /
+        rm -rf "$TEMP_DIR"
+    fi
 else
     echo "❌ Issues found in $violations file(s):"
     echo ""
@@ -523,32 +591,56 @@ else
         echo "  ${failed_file_list[$i]}: ${failed_reason_list[$i]}"
     done
     echo ""
-    echo "💡 To see full AI responses for failed files, check the output_*.txt files in:"
-    echo "   $TEMP_DIR"
-    echo ""
-    echo "❌ Consider addressing these concerns before merging"
     
-    # Copy failed file outputs to current directory for inspection
-    if [ ${#failed_file_list[@]} -gt 0 ]; then
-        echo ""
-        echo "📋 Copying failed file details to current directory..."
-        for i in "${!failed_file_list[@]}"; do
-            file_num=$((i + 1))
-            if [ -f "$TEMP_DIR/output_${file_num}.txt" ]; then
-                cp "$TEMP_DIR/output_${file_num}.txt" "./review_failed_${file_num}_$(basename "${failed_file_list[$i]}").txt"
-                echo "   → review_failed_${file_num}_$(basename "${failed_file_list[$i]}").txt"
+    # Clean up successful file outputs, keep only failed ones
+    echo "🧹 Cleaning up successful review files..."
+    for ((i=1; i<=files_processed; i++)); do
+        if [ -f "output_${i}.txt" ]; then
+            # Check if this file passed (not in failed list)
+            file_failed=false
+            for failed_idx in "${!failed_file_list[@]}"; do
+                if [ $((failed_idx + 1)) -eq $i ]; then
+                    file_failed=true
+                    break
+                fi
+            done
+            
+            if [ "$file_failed" = false ]; then
+                rm -f "output_${i}.txt" "prompt_${i}_1.txt" "file_diff_${i}.txt"
             fi
-        done
+        fi
+    done
+    
+    if [ "$IN_DAFNY_REPO" = false ]; then
+        echo "💡 To see full AI responses for failed files, check the output_*.txt files in:"
+        echo "   $TEMP_DIR"
+        echo "   (Temp folder preserved due to failures)"
         echo ""
-        echo "💡 Review these files for detailed AI feedback on the issues found"
+        
+        # Copy failed file outputs to current directory for inspection
+        if [ ${#failed_file_list[@]} -gt 0 ]; then
+            echo "📋 Copying failed file details to current directory..."
+            for i in "${!failed_file_list[@]}"; do
+                file_num=$((i + 1))
+                if [ -f "$TEMP_DIR/output_${file_num}.txt" ]; then
+                    cp "$TEMP_DIR/output_${file_num}.txt" "./review_failed_${file_num}_$(basename "${failed_file_list[$i]}").txt"
+                    echo "   → review_failed_${file_num}_$(basename "${failed_file_list[$i]}").txt"
+                fi
+            done
+            echo ""
+        fi
+    else
+        echo "💡 Review output files for failed files are available in the current directory"
     fi
     
+    echo "❌ Consider addressing these concerns before merging"
     exit_code=1
 fi
 
-# Cleanup
-cd /
-rm -rf "$TEMP_DIR"
-
 echo "🎉 Code review complete!"
+echo ""
+echo "⚠️  IMPORTANT: This AI review is a tool to assist human reviewers."
+echo "   You are ultimately responsible for the actual quality of the review."
+echo "   Just because the AI doesn't flag anything doesn't mean the PR is"
+echo "   actually free of issues. Always apply your own judgment and expertise."
 exit $exit_code
