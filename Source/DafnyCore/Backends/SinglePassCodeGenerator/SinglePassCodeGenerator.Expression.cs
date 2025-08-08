@@ -103,23 +103,21 @@ namespace Microsoft.Dafny.Compilers {
                 var tas = TypeArgumentInstantiation.ListFromClass(field.EnclosingClass, typeArgs);
                 EmitTypeDescriptorsActuals(tas, e.Origin, wr.ForkInParens());
               } else {
-                // For static fields, we should not write the object
-                if (field.IsStatic) {
-                  // Static field access - special handling for built-in types
-                  if (field is StaticSpecialField ssf && e.Obj.Type is Fp64Type) {
-                    // These are handled by GetSpecialFieldInfo above with preStr/postStr
-                    // The preStr already contains the complete reference (e.g., "double.NaN")
-                    // so we don't need to do anything else here
-                  } else {
-                    // Other static fields
-                    wr.Write("{0}.{1}", TypeName_Companion(e.Obj.Type, wr, e.Origin, field), IdName(field));
-                  }
+                // Special handling for static special fields (like fp64.NaN)
+                if (field.IsStatic && field is SpecialField && preStr != "") {
+                  // GetSpecialFieldInfo already provided the complete reference in preStr
+                  // so we don't need to write anything else
                 } else {
-                  // Instance field access
                   void WriteObj(ConcreteSyntaxTree w) {
-                    w = EmitCoercionIfNecessary(e.Obj.Type, UserDefinedType.UpcastToMemberEnclosingType(e.Obj.Type, e.Member),
-                      e.Origin, w);
-                    TrParenExpr(e.Obj, w, inLetExprBody, wStmts);
+                    if (field.IsStatic) {
+                      // For static fields, write the companion class instead of the object
+                      w.Write("{0}", TypeName_Companion(e.Obj.Type, w, e.Origin, field));
+                    } else {
+                      // For instance fields, write the object
+                      w = EmitCoercionIfNecessary(e.Obj.Type, UserDefinedType.UpcastToMemberEnclosingType(e.Obj.Type, e.Member),
+                        e.Origin, w);
+                      TrParenExpr(e.Obj, w, inLetExprBody, wStmts);
+                    }
                   }
 
                   var typeArgs = CombineAllTypeArguments(e.Member, e.TypeApplicationAtEnclosingClass,

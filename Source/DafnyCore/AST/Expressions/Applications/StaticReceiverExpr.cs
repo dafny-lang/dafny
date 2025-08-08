@@ -1,4 +1,3 @@
-using System;
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 using System.Linq;
@@ -44,21 +43,10 @@ public class StaticReceiverExpr : LiteralExpr, ICloneable<StaticReceiverExpr> {
     Contract.Requires(origin != null);
     Contract.Requires(cl != null);
     var typeArgs = cl.TypeArgs.ConvertAll(tp => (Type)new UserDefinedType(tp));
-
-    // For built-in types like fp64, use the basic type instead of UserDefinedType
-    if (cl is ValuetypeDecl vtd && IsBuiltinTypeName(vtd.Name)) {
-      Type = vtd.CreateType([]);
-    } else {
-      Type = new UserDefinedType(origin, cl is DefaultClassDecl ? cl.Name : cl.Name + "?", cl, typeArgs);
-    }
-
+    Type = new UserDefinedType(origin, cl is DefaultClassDecl ? cl.Name : cl.Name + "?", cl, typeArgs);
     UnresolvedType = Type;
     IsImplicit = isImplicit;
     ObjectToDiscard = lhs;
-  }
-
-  private static bool IsBuiltinTypeName(string name) {
-    return name == "fp64" || name == "int" || name == "real" || name == "bool" || name == "char" || name == "ORDINAL";
   }
 
   /// <summary>
@@ -91,12 +79,6 @@ public class StaticReceiverExpr : LiteralExpr, ICloneable<StaticReceiverExpr> {
     } else {
       Type = t;
     }
-
-    // For built-in types like fp64, override with the basic type instead of UserDefinedType
-    if (cl is ValuetypeDecl vtd && IsBuiltinTypeName(vtd.Name)) {
-      Type = vtd.CreateType([]);
-    }
-
     UnresolvedType = Type;
     IsImplicit = isImplicit;
     ObjectToDiscard = lhs;
