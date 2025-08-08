@@ -1645,7 +1645,7 @@ namespace Microsoft.Dafny.Compilers {
     private string CharTypeDescriptorName => DafnyHelpersClass + (UnicodeCharEnabled ? ".RUNE" : ".CHAR");
 
     private void ConvertFromChar(Expression e, ConcreteSyntaxTree wr, bool inLetExprBody, ConcreteSyntaxTree wStmts) {
-      if (e.Type.IsCharType && UnicodeCharEnabled) {
+      if (GetRuntimeType(e.Type).IsCharType && UnicodeCharEnabled) {
         wr.Write("(");
         TrParenExpr(e, wr, inLetExprBody, wStmts);
         wr.Write(".Value)");
