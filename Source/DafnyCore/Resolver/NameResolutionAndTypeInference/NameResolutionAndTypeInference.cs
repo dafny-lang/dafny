@@ -700,7 +700,9 @@ namespace Microsoft.Dafny {
         }
 
         // TODO: the following should be replaced by a type-class constraint that constrains the types of e.Function, e.Args[*], and e.Type
-        var fnType = e.Function.Type.AsArrowType;
+        // Normalize the function type to handle type proxies properly
+        var normalizedFunctionType = e.Function.Type?.NormalizeExpand();
+        var fnType = normalizedFunctionType?.AsArrowType;
         if (fnType == null) {
           reporter.Error(MessageSource.Resolver, e.Origin,
             "non-function expression (of type {0}) is called with parameters", e.Function.Type);
@@ -2390,15 +2392,29 @@ namespace Microsoft.Dafny {
     }
 
     void HandleFp64ArithmeticConstraints(BinaryExpr e, Expression expr) {
+      // Only apply fp64 constraints if both operands are numeric or type proxies
+      // This avoids interfering with error messages when non-numeric types are involved
+      var leftType = e.E0.Type?.NormalizeExpand();
+      var rightType = e.E1.Type?.NormalizeExpand();
+
+      bool leftIsNumericOrProxy = leftType == null || leftType is TypeProxy ||
+                                   leftType.IsNumericBased() || leftType is Fp64Type;
+      bool rightIsNumericOrProxy = rightType == null || rightType is TypeProxy ||
+                                    rightType.IsNumericBased() || rightType is Fp64Type;
+
+      if (!leftIsNumericOrProxy || !rightIsNumericOrProxy) {
+        // Don't apply fp64 constraints if we have non-numeric types
+        // This prevents masking other type errors
+        return;
+      }
+
       // Check if either operand has fp64 type
       bool hasFp64Operand = false;
 
-      var leftType = e.E0.Type?.NormalizeExpand();
       if (leftType is Fp64Type || (e.E0 is IdentifierExpr idLeft && idLeft.Var?.Type?.NormalizeExpand() is Fp64Type)) {
         hasFp64Operand = true;
       }
 
-      var rightType = e.E1.Type?.NormalizeExpand();
       if (rightType is Fp64Type || (e.E1 is IdentifierExpr idRight && idRight.Var?.Type?.NormalizeExpand() is Fp64Type)) {
         hasFp64Operand = true;
       }
@@ -6375,8 +6391,8 @@ namespace Microsoft.Dafny {
               Contract.Assert(callee.Ins.Count == rr.Args.Count);  // this should have been checked already
             }
             r = rr;
-          } else if (mse != null && mse.Member is Field && e.Bindings.ArgumentBindings.Count == 0) {
-            // This is a field access with no arguments - just return the MemberSelectExpr
+          } else if (mse != null && mse.Member is Field && e.Bindings.ArgumentBindings.Count == 0 && fnType == null) {
+            // This is a field access with no arguments AND the field is not of function type - just return the MemberSelectExpr
             r = mse;
           } else {
             List<Formal> formals;
