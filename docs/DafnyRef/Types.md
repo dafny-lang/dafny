@@ -351,7 +351,7 @@ Dafny supports the `fp64` type, which represents IEEE 754 double-precision (64-b
 floating-point numbers. This type provides hardware-compatible floating-point arithmetic
 with the expected precision and rounding behavior.
 
-#### Literals
+#### 5.2.3.1. Literals
 
 Floating-point literals use the same notation as real literals, but the type system distinguishes between
 exact and approximate representations:
@@ -379,7 +379,7 @@ The `~` prefix must encompass the entire literal including the sign:
 - Correct: `~-0.1` (approximate negative one-tenth)
 - Incorrect: `-~0.1` (not allowed)
 
-#### Special Values
+#### 5.2.3.2. Special Values
 
 The `fp64` type includes IEEE 754 special values as static members:
 
@@ -394,7 +394,7 @@ Additional constants include:
 - `fp64.MinNormal` - Smallest positive normal number
 - `fp64.MinSubnormal` - Smallest positive subnormal number
 
-#### Classification Predicates
+#### 5.2.3.3. Classification Predicates
 
 Values of type `fp64` support classification predicates to test for special values:
 
@@ -422,7 +422,7 @@ method ClassificationExample() {
 }
 ```
 
-#### Arithmetic Operations
+#### 5.2.3.4. Arithmetic Operations
 
 The `fp64` type supports standard arithmetic operations following IEEE 754 semantics:
 
@@ -447,7 +447,7 @@ method FloatingPointArithmetic() {
 }
 ```
 
-#### Equality
+#### 5.2.3.5. Equality
 
 The `fp64` type has equality semantics that differ from IEEE 754. It's defined based on the bit representation:
 
@@ -498,7 +498,7 @@ method EqualityExample(x: fp64, y: fp64) {
 }
 ```
 
-#### Mathematical Functions
+#### 5.2.3.6. Mathematical Functions
 
 The `fp64` type provides static methods for common mathematical operations:
 
@@ -677,7 +677,7 @@ But `11` is not a valid `bv3` literal.
 
 [^binding]: The binding power of shift and bit-wise operations is different than in C-like languages.
 
-### 5.2.4. Ordinal type ([grammar](#g-basic-type)) {#sec-ordinals}
+### 5.2.5. Ordinal type ([grammar](#g-basic-type)) {#sec-ordinals}
 
 Values of type `ORDINAL` behave like `nat`s in many ways, with one important difference:
 there are `ORDINAL` values that are larger than any `nat`. The smallest of these non-nat ordinals is
@@ -706,7 +706,7 @@ In addition,
 
 In Dafny, `ORDINAL`s are used primarily in conjunction with [extreme functions and lemmas](#sec-extreme).
 
-### 5.2.5. Characters ([grammar](#g-basic-type)) {#sec-characters}
+### 5.2.6. Characters ([grammar](#g-basic-type)) {#sec-characters}
 
 Dafny supports a type `char` of _characters_.
 Its exact meaning is controlled by the command-line switch `--unicode-char:true|false`.
@@ -1346,7 +1346,7 @@ String literals of the standard form are enclosed in double quotes, as
 in `"Dafny"`.  To include a double quote in such a string literal,
 it is necessary to use an escape sequence.  Escape sequences can also
 be used to include other characters.  The supported escape sequences
-are the same as those for character literals ([Section 5.2.5](#sec-characters)).
+are the same as those for character literals ([Section 5.2.6](#sec-characters)).
 For example, the Dafny expression `"say \"yes\""` represents the
 string `'say "yes"'`.
 The escape sequence for a single quote is redundant, because

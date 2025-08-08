@@ -392,9 +392,9 @@ Examples:
 A unary expression applies 
 
 - logical complement (`!` -- [Section 5.2.1](#sec-booleans)),
-- bit-wise complement (`!` -- [Section 5.2.3](#sec-bit-vector-types)),
+- bit-wise complement (`!` -- [Section 5.2.4](#sec-bit-vector-types)),
 - numeric negation (`-` -- [Section 5.2.2](#sec-numeric-types)), or
-- bit-vector negation (`-` -- [Section 5.2.3](#sec-bit-vector-types))
+- bit-vector negation (`-` -- [Section 5.2.4](#sec-bit-vector-types))
 
 to its operand.
 
