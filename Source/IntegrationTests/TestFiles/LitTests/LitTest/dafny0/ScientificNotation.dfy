@@ -117,20 +117,6 @@ method TupleAccessCompatibility() {
   assert fifteenth == 15;
 }
 
-method TupleAccessCompatibility() {
-  // Verify that tuple member access still works (no conflict)
-  var tuple := (1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15);
-  var first := tuple.0;
-  var fifth := tuple.5;
-  var tenth := tuple.10;
-  var fifteenth := tuple.14;
-
-  assert first == 1;
-  assert fifth == 6;
-  assert tenth == 11;
-  assert fifteenth == 15;
-}
-
 method ScientificNotationArithmetic() {
   // Arithmetic with scientific notation
   var a := 1.5e2;      // 150.0
