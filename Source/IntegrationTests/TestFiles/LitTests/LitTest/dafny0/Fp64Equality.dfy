@@ -1,4 +1,5 @@
 // RUN: %testDafnyForEachResolver "%s"
+// NONUNIFORM: Only C# for now
 // RUN: %run --no-verify "%s" > "%t"
 // RUN: %diff "%s.expect_run" "%t"
 
