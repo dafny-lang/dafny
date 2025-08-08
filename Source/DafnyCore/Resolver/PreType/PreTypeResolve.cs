@@ -82,6 +82,10 @@ namespace Microsoft.Dafny {
         }
         return bvDecl;
       } else {
+        // If looking for fp64, ensure it's added to the module
+        if (name == "fp64") {
+          resolver.ProgramResolver.SystemModuleManager.EnsureFp64TypeInitialized();
+        }
         decl = null;
         foreach (var valueTypeDecl in resolver.ProgramResolver.SystemModuleManager.valuetypeDecls) {
           if (valueTypeDecl != null && valueTypeDecl.Name == name) {

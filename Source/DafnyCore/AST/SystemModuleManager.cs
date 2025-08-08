@@ -76,8 +76,7 @@ public class SystemModuleManager {
   public readonly SubsetTypeDecl NatDecl;
   public UserDefinedType Nat() { return new UserDefinedType(Token.NoToken, "nat", NatDecl, []); }
   public readonly TraitDecl ObjectDecl;
-  private bool fp64Initialized = false;
-  private ValuetypeDecl fp64TypeDecl = null;
+  private bool fp64AddedToModule = false;
   public UserDefinedType ObjectQ() {
     Contract.Assume(ObjectDecl != null);
     return new UserDefinedType(Token.NoToken, "object?", null) { ResolvedClass = ObjectDecl };
@@ -130,7 +129,9 @@ public class SystemModuleManager {
       new ValuetypeDecl("char", SystemModule, t => t.IsCharType, typeArgs => Type.Char),
       new ValuetypeDecl("int", SystemModule, t => t.IsNumericBased(Type.NumericPersuasion.Int), typeArgs => Type.Int),
       new ValuetypeDecl("real", SystemModule, t => t.NormalizeExpand().IsRealType, typeArgs => Type.Real),
-      null, // fp64 placeholder - will be created lazily
+      new ValuetypeDecl("fp64", SystemModule,
+        t => t.NormalizeExpand() is Fp64Type || (t is UserDefinedType udt && udt.Name == "fp64"),
+        typeArgs => new Fp64Type()),
       new ValuetypeDecl("ORDINAL", SystemModule, t => t.IsBigOrdinalType, typeArgs => Type.BigOrdinal),
       new ValuetypeDecl("_bv", SystemModule, t => t.IsBitVectorType && !Options.Get(CommonOptionBag.TypeSystemRefresh),
         null), // "_bv" represents a family of classes, so no typeTester or type creator is supplied (it's used only in the legacy resolver)
@@ -155,7 +156,7 @@ public class SystemModuleManager {
     ];
     // Add all valuetype decls except fp64 (which is at index 4)
     for (int i = 0; i < valuetypeDecls.Length; i++) {
-      if (i != (int)ValuetypeVariety.Fp64 && valuetypeDecls[i] != null) {
+      if (i != (int)ValuetypeVariety.Fp64) {
         SystemModule.SourceDecls.Add(valuetypeDecls[i]);
       }
     }
@@ -187,7 +188,7 @@ public class SystemModuleManager {
     var isNat = new SpecialField(SourceOrigin.NoToken, "IsNat", SpecialField.ID.IsNat, null, false, false, false, Type.Bool, null);
     AddMember(isNat, ValuetypeVariety.BigOrdinal);
 
-    // fp64 members will be added lazily when the type is first used
+    // fp64 members are not added here, they will be added when the type is first used
 
     // Add "Keys", "Values", and "Items" to map, imap
     foreach (var typeVariety in new[] { ValuetypeVariety.Map, ValuetypeVariety.IMap }) {
@@ -418,17 +419,16 @@ public class SystemModuleManager {
   }
 
   public void EnsureFp64TypeInitialized() {
-    if (fp64Initialized) {
+    if (fp64AddedToModule) {
       return;
     }
 
-    fp64Initialized = true;
+    fp64AddedToModule = true;
 
-    // Create the fp64 type declaration
-    fp64TypeDecl = new ValuetypeDecl("fp64", SystemModule,
-      t => t.NormalizeExpand() is Fp64Type || (t is UserDefinedType udt && udt.Name == "fp64"),
-      typeArgs => new Fp64Type());
-    valuetypeDecls[(int)ValuetypeVariety.Fp64] = fp64TypeDecl;
+    // Get the fp64 type declaration (already created in constructor)
+    var fp64TypeDecl = valuetypeDecls[(int)ValuetypeVariety.Fp64];
+
+    // Add it to the System module now that it's being used
     SystemModule.SourceDecls.Add(fp64TypeDecl);
 
     // Add fp64 classification predicates
@@ -713,6 +713,10 @@ public class SystemModuleManager {
 
   public ValuetypeDecl AsValuetypeDecl(Type t) {
     Contract.Requires(t != null);
+    // If looking for fp64 type, ensure it's initialized
+    if (t is Fp64Type || (t is UserDefinedType udt && udt.Name == "fp64")) {
+      EnsureFp64TypeInitialized();
+    }
     foreach (var vtd in valuetypeDecls) {
       if (vtd.IsThisType(t)) {
         return vtd;
@@ -725,9 +729,6 @@ public class SystemModuleManager {
     var moduleResolver = new ModuleResolver(programResolver, programResolver.Options);
     moduleResolver.moduleInfo = systemNameInfo;
     foreach (var valueTypeDecl in valuetypeDecls) {
-      if (valueTypeDecl == null) {
-        continue; // Skip uninitialized fp64 type
-      }
       foreach (var member in valueTypeDecl.Members) {
         if (member is Function function) {
           moduleResolver.ResolveFunctionSignature(function);
