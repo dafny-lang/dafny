@@ -16,7 +16,7 @@ public class MultiSetFormingExpr : Expression, ICloneable<MultiSetFormingExpr> {
   [Captured]
   public MultiSetFormingExpr(IOrigin origin, Expression e)
     : base(origin) {
-    cce.Owner.AssignSame(this, e);
+    Cce.Owner.AssignSame(this, e);
     E = e;
   }
 

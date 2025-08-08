@@ -1504,7 +1504,7 @@ public partial class BoogieGenerator {
         be = FunctionCall(expr.Origin, "ORD#Offset", Bpl.Type.Int, o);
         be = ConvertExpression(expr.Origin, be, Dafny.Type.Int, toType);
       } else {
-        be = o;
+        be = ConvertExpression(expr.Origin, o, fromType, toTypeFamily);
       }
       CheckResultToBeInType_Aux(tok, new BoogieWrapper(be, toTypeFamily), expr, toType.NormalizeExpandKeepConstraints(), builder, etran, errorMsgPrefix);
     }

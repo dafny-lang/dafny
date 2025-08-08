@@ -13,7 +13,7 @@ public abstract class DatatypeDecl : TopLevelDeclWithMembers, RevealableTypeDecl
   [FilledInDuringResolution] public Dictionary<string, DatatypeCtor> ConstructorsByName { get; set; }
   [ContractInvariantMethod]
   void ObjectInvariant() {
-    Contract.Invariant(cce.NonNullElements(Ctors));
+    Contract.Invariant(Cce.NonNullElements(Ctors));
     Contract.Invariant(1 <= Ctors.Count);
   }
 
@@ -28,9 +28,9 @@ public abstract class DatatypeDecl : TopLevelDeclWithMembers, RevealableTypeDecl
     Contract.Requires(origin != null);
     Contract.Requires(nameNode != null);
     Contract.Requires(enclosingModuleDefinition != null);
-    Contract.Requires(cce.NonNullElements(typeArgs));
-    Contract.Requires(cce.NonNullElements(ctors));
-    Contract.Requires(cce.NonNullElements(members));
+    Contract.Requires(Cce.NonNullElements(typeArgs));
+    Contract.Requires(Cce.NonNullElements(ctors));
+    Contract.Requires(Cce.NonNullElements(members));
     Contract.Requires((isRefining && ctors.Count == 0) || (!isRefining && 1 <= ctors.Count));
     Ctors = ctors;
     this.NewSelfSynonym();
@@ -72,12 +72,12 @@ public abstract class DatatypeDecl : TopLevelDeclWithMembers, RevealableTypeDecl
     get {
       // The resolver checks that a NewtypeDecl sits in its own SSC in the call graph.  Therefore,
       // the question of what its Decreases clause is should never arise.
-      throw new cce.UnreachableException();
+      throw new Cce.UnreachableException();
     }
   }
   bool ICallable.InferredDecreases {
-    get { throw new cce.UnreachableException(); }  // see comment above about ICallable.Decreases
-    set { throw new cce.UnreachableException(); }  // see comment above about ICallable.Decreases
+    get { throw new Cce.UnreachableException(); }  // see comment above about ICallable.Decreases
+    set { throw new Cce.UnreachableException(); }  // see comment above about ICallable.Decreases
   }
 
   /// <summary>

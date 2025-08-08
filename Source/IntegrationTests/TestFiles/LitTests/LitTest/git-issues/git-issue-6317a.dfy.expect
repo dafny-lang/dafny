@@ -1,0 +1,4 @@
+git-issue-6317a.dfy(14,12): Error: the two branches of an if-then-else expression must have the same type (got D1 and D2)
+git-issue-6317a.dfy(15,13): Error: the two branches of an if-then-else expression must have the same type (got D1 and D2)
+git-issue-6317a.dfy(16,13): Error: the two branches of an if-then-else expression must have the same type (got D1 and D2)
+3 resolution/type errors detected in git-issue-6317a.dfy

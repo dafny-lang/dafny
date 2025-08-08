@@ -15,6 +15,7 @@ method Main() {
   AutoInit.Test();
   RefinementB.Test(2.0, 3.0);
   SimpleNewtypeWitness.Test();
+  CharToInt.Test();
 }
 
 module Numerics {
@@ -657,5 +658,17 @@ module SimpleNewtypeWitness {
     var b: B := *;
     var c: C := *;
     print a, " ", b, " ", c, "\n"; // 102 103 104
+  }
+}
+
+module CharToInt {
+  newtype char16 = c: char | c as int < 65536
+
+  method Test() {
+    var c: char := 'c';
+    var d: char16 := 'd';
+
+    print c, " (", c as int, ", ", c as char as int, "), ";
+    print d, " (", d as int, ", ", d as char as int, ")\n";
   }
 }
