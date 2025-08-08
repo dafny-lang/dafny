@@ -3254,14 +3254,6 @@ namespace Microsoft.Dafny {
     }
 
     public Bpl.Expr AdaptBoxing(Bpl.IToken tok, Bpl.Expr e, Type fromType, Type toType) {
-      // First handle type conversions if needed
-      if (!Type.SameHead(fromType, toType) && !fromType.IsSubtypeOf(toType, false, false)) {
-        // This is a type conversion, not just boxing/unboxing
-        var origin = tok as IOrigin ?? Token.NoToken;
-        e = ConvertExpression(origin, e, fromType, toType);
-      }
-
-      // Then handle boxing/unboxing
       if (fromType.IsTypeParameter) {
         return CondApplyUnbox(tok, e, fromType, toType);
       } else {
