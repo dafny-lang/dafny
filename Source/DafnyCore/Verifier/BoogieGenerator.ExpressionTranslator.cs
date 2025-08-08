@@ -886,7 +886,21 @@ namespace Microsoft.Dafny {
             return MaybeLit(Boogie.Expr.Literal(n));
           }
         } else if (e.Value is BaseTypes.BigDec) {
-          return MaybeLit(Boogie.Expr.Literal((BaseTypes.BigDec)e.Value));
+          if (e.Type is Fp64Type) {
+            // For DecimalLiteralExpr with fp64 type, use the precomputed float value if available
+            if (e is DecimalLiteralExpr decLit && decLit.ResolvedFloatValue.HasValue) {
+              return MaybeLit(new Bpl.LiteralExpr(GetToken(e), decLit.ResolvedFloatValue.Value), BoogieGenerator.TrType(e.Type));
+            }
+
+            // Fallback: This should not happen if resolution is working correctly
+            // All DecimalLiteralExpr with fp64 type should have ResolvedFloatValue set
+            var decValue = (BaseTypes.BigDec)e.Value;
+            BigFloat.FromBigDec(decValue, 53, 11, out var fp64Value);
+
+            return MaybeLit(new Bpl.LiteralExpr(GetToken(e), fp64Value), BoogieGenerator.TrType(e.Type));
+          } else {
+            return MaybeLit(Boogie.Expr.Literal((BaseTypes.BigDec)e.Value));
+          }
         } else {
           Contract.Assert(false); throw new Cce.UnreachableException();  // unexpected literal
         }
