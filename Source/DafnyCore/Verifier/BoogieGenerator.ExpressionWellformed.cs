@@ -849,7 +849,7 @@ namespace Microsoft.Dafny {
                 // check that the decreases measure goes down
                 var calleeSCCLookup = e.IsByMethodCall ? (ICallable)e.Function.ByMethodDecl : e.Function;
                 Contract.Assert(calleeSCCLookup != null);
-                if (ModuleDefinition.InSameSCC(calleeSCCLookup, codeContext)) {
+                if (ModuleDefinition.InSameSCC(calleeSCCLookup, codeContext) || (codeContext is Invariant invariant && !e.Function.IsStatic && e.Function.EnclosingClass.Equals(invariant.EnclosingClass))) {
                   if (wfOptions.DoOnlyCoarseGrainedTerminationChecks) {
                     builder.Add(Assert(GetToken(expr), Bpl.Expr.False, new IsNonRecursive(), builder.Context));
                   } else {

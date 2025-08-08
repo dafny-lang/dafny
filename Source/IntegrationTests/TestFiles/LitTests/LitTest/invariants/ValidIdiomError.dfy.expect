@@ -1,0 +1,3 @@
+ValidIdiomError.dfy(16,17): Error: decreases clause might not decrease
+
+Dafny program verifier finished with 2 verified, 1 error

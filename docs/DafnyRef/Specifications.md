@@ -702,6 +702,126 @@ holds at the end of that iteration of the loop.
 
 An invariant can have [custom error and success messages](#sec-error-attribute).
 
+#### 7.1.7.1 Class and Trait Invariant Clauses
+
+With the `--check-invariants` flag enabled, Dafny supports invariant clauses within class and trait declarations.
+Such clauses constitute an _object invariant_ for the instances of such a declaration. As a result, it (almost) always
+holds of an object. For example,
+
+```dafny
+<!-- %check-verify %options --type-system-refresh --check-invariants -->
+class Account {
+  var credit: nat
+  var debit: nat
+  invariant credit - debit >= 0 // Note: can't use Balance() here as it asserts this.invariant()
+  // ^ can be referred to as this.invariant()
+  function Balance(): nat
+    reads this
+  {
+    // uses the invariant to be well-defined (i.e., to be of type nat)
+    assert this.invariant(); credit - debit
+  }
+  method Withdraw(amount: nat)
+    requires Balance() - amount >= 0
+    ensures Balance() == old(Balance()) - amount
+    modifies this
+  {
+    // invariant holds before
+    debit := debit + amount;
+    // invariant holds after
+  }
+  method Deposit(amount: nat)
+    ensures Balance() == old(Balance()) + amount
+    modifies this
+  {
+    credit := credit + amount; // same as above
+  }
+}
+```
+
+However, invariant checking is disabled within the body of an instance method until exit _unless_ it makes a call to
+another function or method. For example,
+
+```dafny
+class C {
+  var x: int
+  invariant x != 0
+  constructor() {
+     x := 1; 
+     x := 0; // breaking the invariant here is fine, as long as
+     x := 1; // it is satisfied at the end of the constructor
+  }
+  method TemporarilyBreakInvariant()
+    modifies this
+  {
+     x := 0; // temporarily breaking the invariant here is allowed...
+     UseInvariant(this); // error: invariant does not hold before call
+     x := 1;
+  }
+  static method UseInvariant(c: C) {
+    var y := 1 / c.x by {
+      assert c.invariant();
+    }
+  }
+}
+```
+
+Conversely, methods that are static or defined outside of the class/trait can never mutate an object in a way that
+violates its invariant. For example,
+
+```dafny
+(static) method Invalidate(a: Account)
+  modifies a
+{
+  a.credit := 0; // error: invariant may not hold after assignment
+}
+```
+
+At the moment, a class extending a trait that has an invariant cannot declare its own invariant and, vice versa,
+a class extending an ordinary trait _can_ declare its own invariant, _but not_ referring to fields declared in the trait.
+As a result, upcasting an instance of that class to its supertype is sound, because any modifications made to it
+are not read by the class’s invariant. For example,
+
+```dafny
+<!-- %check-verify %options --type-system-refresh --check-invariants -->
+trait Base {
+  var x: int
+  function FooSpec(): int
+    reads this
+  method Foo() returns (r: int)
+    ensures r == FooSpec()
+  // If Base declared an invariant, then Derived couldn't
+}
+
+class Derived extends Base {
+  var y: int
+  invariant y != 0 // note: invariant can't refer to x
+  function FooSpec(): int
+    reads this
+  {
+    1 / y
+  }
+  method Foo() returns (r: int)
+    ensures r == FooSpec()
+  {
+    r := FooSpec();
+  }
+}
+
+method Upcast(e: Ext)
+  modifies e
+{
+  var b := e as Base;
+  b.x := 0; // e's invariant is preserved here
+  e.y := 1; // and here
+}
+```
+
+Invariants are related to the `Valid()` idiom (e.g., of `{:autocontracts}`); however, invariants need not be made
+explicit in specifications nor can they be invalidated except according to the rules
+above. Lastly, they are (currently) restricted to `reads this`. Invariants are also related to the constraints of subset
+types, except that they can read from the heap.
+
 ## 7.2. Method Specification ([grammar](#g-method-specification)) {#sec-method-specification}
 
 Examples:
