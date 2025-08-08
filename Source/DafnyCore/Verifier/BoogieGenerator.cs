@@ -1043,6 +1043,12 @@ namespace Microsoft.Dafny {
           null, attr);
         func.Body = Bpl.Expr.Literal(0);
         sink.AddTopLevelDeclaration(func);
+      } else if (w == 64) {
+        // Skip bv64 conversion functions as they are defined in DafnyPrelude.bpl for fp64 support
+        // The prelude defines:
+        //   function {:bvbuiltin "bv2int"} smt_nat_from_bv64(x: bv64) : int;
+        //   function nat_from_bv64(x: bv64) : int;
+        //   axiom (forall b: bv64 :: { nat_from_bv64(b) } ...);
       } else {
         // function {:bvbuiltin "bv2int"} smt_nat_from_bv67(bv67) : int;
         attr = new Bpl.QKeyValue(tok, "bvbuiltin", new List<object>() { "bv2int" }, null);  // SMT-LIB 2 calls this function bv2nat, but Z3 apparently calls it bv2int

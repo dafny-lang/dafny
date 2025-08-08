@@ -28,13 +28,11 @@ public class ApproximateExpr : ConcreteSyntaxExpression, ICloneable<ApproximateE
 
   public override IEnumerable<Expression> SubExpressions {
     get {
-      if (ResolvedExpression == null) {
+      if (ResolvedExpression != null) {
+        yield return ResolvedExpression;
+      } else {
         // the expression hasn't yet been turned into a resolved expression, so use .Expr as the subexpression
         yield return Expr;
-      } else {
-        foreach (var ee in base.SubExpressions) {
-          yield return ee;
-        }
       }
     }
   }
