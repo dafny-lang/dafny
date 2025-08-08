@@ -1,6 +1,6 @@
-git-issue-5520.dfy(12,12): Error: result of operation might violate subset type constraint for 'Empty'
-git-issue-5520.dfy(25,12): Error: result of operation might violate subset type constraint for 'Empty'
-git-issue-5520.dfy(48,12): Error: result of operation might violate subset type constraint for 'Empty'
-git-issue-5520.dfy(61,12): Error: result of operation might violate subset type constraint for 'Empty'
+git-issue-5520.dfy(12,12): Error: result of operation could not be proved to satisfy subset type constraint for 'Empty'
+git-issue-5520.dfy(25,12): Error: result of operation could not be proved to satisfy subset type constraint for 'Empty'
+git-issue-5520.dfy(48,12): Error: result of operation could not be proved to satisfy subset type constraint for 'Empty'
+git-issue-5520.dfy(61,12): Error: result of operation could not be proved to satisfy subset type constraint for 'Empty'
 
 Dafny program verifier finished with 8 verified, 4 errors

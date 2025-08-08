@@ -1,6 +1,6 @@
-FunctionEquality.dfy(11,4): Error: assertion might not hold
-FunctionEquality.dfy(13,4): Error: assertion might not hold
-FunctionEquality.dfy(15,4): Error: assertion might not hold
-FunctionEquality.dfy(19,4): Error: assertion might not hold
+FunctionEquality.dfy(11,4): Error: assertion could not be proved
+FunctionEquality.dfy(13,4): Error: assertion could not be proved
+FunctionEquality.dfy(15,4): Error: assertion could not be proved
+FunctionEquality.dfy(19,4): Error: assertion could not be proved
 
 Dafny program verifier finished with 0 verified, 4 errors

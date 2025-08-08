@@ -1,3 +1,3 @@
-BinarySearch.dfy(43,19): Error: result of operation might violate newtype constraint for 'int32'
+BinarySearch.dfy(43,19): Error: result of operation could not be proved to satisfy newtype constraint for 'int32'
 
 Dafny program verifier finished with 6 verified, 1 error

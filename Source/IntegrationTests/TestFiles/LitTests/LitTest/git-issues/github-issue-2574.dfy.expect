@@ -1,4 +1,4 @@
-github-issue-2574.dfy(12,2): Error: out-parameter 'i', which is subject to definite-assignment rules, might be uninitialized at this return point
+github-issue-2574.dfy(12,2): Error: out-parameter 'i', which is subject to definite-assignment rules, could not be proved to be initialized at this return point
    |
 12 |   }
    |   ^

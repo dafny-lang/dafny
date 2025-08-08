@@ -1,4 +1,4 @@
-git-issue-3804c.dfy(15,8): Error: assertion might not hold
-git-issue-3804c.dfy(20,8): Error: assertion might not hold
+git-issue-3804c.dfy(15,8): Error: assertion could not be proved
+git-issue-3804c.dfy(20,8): Error: assertion could not be proved
 
 Dafny program verifier finished with 0 verified, 2 errors

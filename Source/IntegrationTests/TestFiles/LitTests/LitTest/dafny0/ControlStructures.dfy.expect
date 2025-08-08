@@ -4,10 +4,10 @@ ControlStructures.dfy(17,2): Error: missing case in match statement: Purple
 ControlStructures.dfy(46,4): Error: missing case in match statement: Red
 ControlStructures.dfy(54,2): Error: missing case in match expression: Red
 ControlStructures.dfy(75,2): Error: alternative cases may not cover all possibilities
-ControlStructures.dfy(218,8): Error: assertion might not hold
-ControlStructures.dfy(235,6): Error: assertion might not hold
-ControlStructures.dfy(238,4): Error: assertion might not hold
-ControlStructures.dfy(241,2): Error: assertion might not hold
+ControlStructures.dfy(218,8): Error: assertion could not be proved
+ControlStructures.dfy(235,6): Error: assertion could not be proved
+ControlStructures.dfy(238,4): Error: assertion could not be proved
+ControlStructures.dfy(241,2): Error: assertion could not be proved
 ControlStructures.dfy(350,2): Error: cannot prove termination; try supplying a decreases clause for the loop
 ControlStructures.dfy(381,2): Error: cannot prove termination; try supplying a decreases clause for the loop
 ControlStructures.dfy(448,16): Error: this invariant could not be proved to be maintained by the loop

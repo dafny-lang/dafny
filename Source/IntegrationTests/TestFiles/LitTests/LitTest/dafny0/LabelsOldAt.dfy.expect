@@ -1,15 +1,15 @@
 LabelsOldAt.dfy(429,9): Warning: Argument to 'old' does not dereference the mutable heap, so this use of 'old' has no effect
 LabelsOldAt.dfy(430,9): Warning: Argument to 'old' does not dereference the mutable heap, so this use of 'old' has no effect
 LabelsOldAt.dfy(160,13): Warning: Argument to 'old' does not dereference the mutable heap, so this use of 'old' has no effect
-LabelsOldAt.dfy(34,4): Error: assertion might not hold
-LabelsOldAt.dfy(56,4): Error: assertion might not hold
-LabelsOldAt.dfy(78,6): Error: assertion might not hold
-LabelsOldAt.dfy(110,6): Error: assertion might not hold
-LabelsOldAt.dfy(112,6): Error: assertion might not hold
-LabelsOldAt.dfy(116,6): Error: assertion might not hold
-LabelsOldAt.dfy(118,6): Error: assertion might not hold
-LabelsOldAt.dfy(140,6): Error: assertion might not hold
-LabelsOldAt.dfy(142,6): Error: assertion might not hold
+LabelsOldAt.dfy(34,4): Error: assertion could not be proved
+LabelsOldAt.dfy(56,4): Error: assertion could not be proved
+LabelsOldAt.dfy(78,6): Error: assertion could not be proved
+LabelsOldAt.dfy(110,6): Error: assertion could not be proved
+LabelsOldAt.dfy(112,6): Error: assertion could not be proved
+LabelsOldAt.dfy(116,6): Error: assertion could not be proved
+LabelsOldAt.dfy(118,6): Error: assertion could not be proved
+LabelsOldAt.dfy(140,6): Error: assertion could not be proved
+LabelsOldAt.dfy(142,6): Error: assertion could not be proved
 LabelsOldAt.dfy(164,21): Error: receiver could not be proved to be allocated in the state in which its fields are accessed
 LabelsOldAt.dfy(166,27): Error: receiver could not be proved to be allocated in the state in which its fields are accessed
 LabelsOldAt.dfy(175,19): Error: array could not be proved to be allocated
@@ -20,21 +20,21 @@ LabelsOldAt.dfy(207,31): Error: some set element could not be proved to be alloc
 LabelsOldAt.dfy(236,14): Error: receiver could not be proved to be allocated in the state in which its fields are accessed
 LabelsOldAt.dfy(244,29): Error: object could not be proved to be allocated in the old-state of the 'unchanged' predicate
 LabelsOldAt.dfy(246,29): Error: some set element could not be proved to be allocated in the old-state of the 'unchanged' predicate
-LabelsOldAt.dfy(266,15): Error: object might be null
-LabelsOldAt.dfy(267,15): Error: some set element might be null
-LabelsOldAt.dfy(268,15): Error: some sequence element might be null
+LabelsOldAt.dfy(266,15): Error: object could not be proved to be non-null
+LabelsOldAt.dfy(267,15): Error: some set element could not be proved to be non-null
+LabelsOldAt.dfy(268,15): Error: some sequence element could not be proved to be non-null
 LabelsOldAt.dfy(274,15): Error: object could not be proved to be allocated in the old-state of the 'unchanged' predicate
 LabelsOldAt.dfy(275,15): Error: some set element could not be proved to be allocated in the old-state of the 'unchanged' predicate
 LabelsOldAt.dfy(276,15): Error: some sequence element could not be proved to be allocated in the old-state of the 'unchanged' predicate
 LabelsOldAt.dfy(281,15): Error: object could not be proved to be allocated in the old-state of the 'unchanged' predicate
-LabelsOldAt.dfy(281,15): Error: object might be null
+LabelsOldAt.dfy(281,15): Error: object could not be proved to be non-null
 LabelsOldAt.dfy(286,15): Error: some set element could not be proved to be allocated in the old-state of the 'unchanged' predicate
-LabelsOldAt.dfy(286,15): Error: some set element might be null
+LabelsOldAt.dfy(286,15): Error: some set element could not be proved to be non-null
 LabelsOldAt.dfy(291,15): Error: some sequence element could not be proved to be allocated in the old-state of the 'unchanged' predicate
-LabelsOldAt.dfy(291,15): Error: some sequence element might be null
-LabelsOldAt.dfy(358,4): Error: assertion might not hold
-LabelsOldAt.dfy(367,4): Error: assertion might not hold
-LabelsOldAt.dfy(376,4): Error: assertion might not hold
-LabelsOldAt.dfy(385,4): Error: assertion might not hold
+LabelsOldAt.dfy(291,15): Error: some sequence element could not be proved to be non-null
+LabelsOldAt.dfy(358,4): Error: assertion could not be proved
+LabelsOldAt.dfy(367,4): Error: assertion could not be proved
+LabelsOldAt.dfy(376,4): Error: assertion could not be proved
+LabelsOldAt.dfy(385,4): Error: assertion could not be proved
 
 Dafny program verifier finished with 28 verified, 35 errors

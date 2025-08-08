@@ -6,6 +6,6 @@ Processing call to procedure N (call) in implementation M (correctness) (at Snap
   >>> added after: a##cached##0 := a##cached##0 && false;
 Processing command (at Snapshots1.v1.dfy(4,3)) assert {:id "id8"} Lit(false);
   >>> DoNothingToAssert
-Snapshots1.v1.dfy(4,2): Error: assertion might not hold
+Snapshots1.v1.dfy(4,2): Error: assertion could not be proved
 
 Dafny program verifier finished with 0 verified, 1 error

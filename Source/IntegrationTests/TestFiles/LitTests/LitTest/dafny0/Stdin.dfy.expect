@@ -1,6 +1,6 @@
 
 Dafny program verifier finished with 0 verified, 0 errors
-<stdin>(1,13): Error: assertion might not hold
+<stdin>(1,13): Error: assertion could not be proved
 
 Dafny program verifier finished with 0 verified, 1 error
 

@@ -1,12 +1,12 @@
 ResultInTypeSubsetType.dfy(9,7): Error: cannot find witness that shows type is inhabited (only tried false); try giving a hint through a 'witness' or 'ghost witness' clause, or use 'witness *' to treat as a possibly empty type
 ResultInTypeSubsetType.dfy(12,9): Error: value does not satisfy the subset constraints of 'False'
-ResultInTypeSubsetType.dfy(18,11): Error: result of operation might violate subset type constraint for 'False'
+ResultInTypeSubsetType.dfy(18,11): Error: result of operation could not be proved to satisfy subset type constraint for 'False'
 ResultInTypeSubsetType.dfy(20,13): Error: value does not satisfy the subset constraints of 'False'
 ResultInTypeSubsetType.dfy(22,13): Error: value does not satisfy the subset constraints of 'False'
 ResultInTypeSubsetType.dfy(24,13): Error: value does not satisfy the subset constraints of 'False'
 ResultInTypeSubsetType.dfy(26,13): Error: value does not satisfy the subset constraints of 'False'
 ResultInTypeSubsetType.dfy(31,11): Error: value does not satisfy the subset constraints of 'False'
-ResultInTypeSubsetType.dfy(35,11): Error: result of operation might violate subset type constraint for 'False'
+ResultInTypeSubsetType.dfy(35,11): Error: result of operation could not be proved to satisfy subset type constraint for 'False'
 ResultInTypeSubsetType.dfy(40,9): Error: value does not satisfy the subset constraints of 'False'
 ResultInTypeSubsetType.dfy(44,9): Error: value does not satisfy the subset constraints of 'False'
 ResultInTypeSubsetType.dfy(50,9): Error: value does not satisfy the subset constraints of 'False'
@@ -18,7 +18,7 @@ ResultInTypeSubsetType.dfy(66,13): Error: value does not satisfy the subset cons
 ResultInTypeSubsetType.dfy(68,13): Error: value does not satisfy the subset constraints of 'Int'
 ResultInTypeSubsetType.dfy(70,13): Error: value does not satisfy the subset constraints of 'Int'
 ResultInTypeSubsetType.dfy(72,13): Error: value does not satisfy the subset constraints of 'Int'
-ResultInTypeSubsetType.dfy(76,11): Error: result of operation might violate subset type constraint for 'Int'
+ResultInTypeSubsetType.dfy(76,11): Error: result of operation could not be proved to satisfy subset type constraint for 'Int'
 ResultInTypeSubsetType.dfy(81,7): Error: cannot find witness that shows type is inhabited (only tried 0.0); try giving a hint through a 'witness' or 'ghost witness' clause, or use 'witness *' to treat as a possibly empty type
 ResultInTypeSubsetType.dfy(81,28): Related location: this proposition could not be proved
 ResultInTypeSubsetType.dfy(84,9): Error: value does not satisfy the subset constraints of 'Real'
@@ -27,7 +27,7 @@ ResultInTypeSubsetType.dfy(92,13): Error: value does not satisfy the subset cons
 ResultInTypeSubsetType.dfy(94,13): Error: value does not satisfy the subset constraints of 'Real'
 ResultInTypeSubsetType.dfy(96,13): Error: value does not satisfy the subset constraints of 'Real'
 ResultInTypeSubsetType.dfy(98,13): Error: value does not satisfy the subset constraints of 'Real'
-ResultInTypeSubsetType.dfy(102,11): Error: result of operation might violate subset type constraint for 'Real'
+ResultInTypeSubsetType.dfy(102,11): Error: result of operation could not be proved to satisfy subset type constraint for 'Real'
 ResultInTypeSubsetType.dfy(107,7): Error: cannot find witness that shows type is inhabited (only tried 0); try giving a hint through a 'witness' or 'ghost witness' clause, or use 'witness *' to treat as a possibly empty type
 ResultInTypeSubsetType.dfy(107,23): Related location: this proposition could not be proved
 ResultInTypeSubsetType.dfy(110,9): Error: value does not satisfy the subset constraints of 'Bv'
@@ -36,20 +36,20 @@ ResultInTypeSubsetType.dfy(118,13): Error: value does not satisfy the subset con
 ResultInTypeSubsetType.dfy(120,13): Error: value does not satisfy the subset constraints of 'Bv'
 ResultInTypeSubsetType.dfy(122,13): Error: value does not satisfy the subset constraints of 'Bv'
 ResultInTypeSubsetType.dfy(124,13): Error: value does not satisfy the subset constraints of 'Bv'
-ResultInTypeSubsetType.dfy(130,11): Error: result of operation might violate subset type constraint for 'Bv'
+ResultInTypeSubsetType.dfy(130,11): Error: result of operation could not be proved to satisfy subset type constraint for 'Bv'
 ResultInTypeSubsetType.dfy(132,13): Error: value does not satisfy the subset constraints of 'Bv'
 ResultInTypeSubsetType.dfy(134,13): Error: value does not satisfy the subset constraints of 'Bv'
 ResultInTypeSubsetType.dfy(136,13): Error: value does not satisfy the subset constraints of 'Bv'
 ResultInTypeSubsetType.dfy(142,13): Error: value does not satisfy the subset constraints of 'Bv'
 ResultInTypeSubsetType.dfy(144,13): Error: value does not satisfy the subset constraints of 'Bv'
-ResultInTypeSubsetType.dfy(148,11): Error: result of operation might violate subset type constraint for 'Bv'
+ResultInTypeSubsetType.dfy(148,11): Error: result of operation could not be proved to satisfy subset type constraint for 'Bv'
 ResultInTypeSubsetType.dfy(153,7): Error: cannot find witness that shows type is inhabited (only tried 'D'); try giving a hint through a 'witness' or 'ghost witness' clause, or use 'witness *' to treat as a possibly empty type
 ResultInTypeSubsetType.dfy(153,28): Related location: this proposition could not be proved
 ResultInTypeSubsetType.dfy(156,9): Error: value does not satisfy the subset constraints of 'Char'
 ResultInTypeSubsetType.dfy(162,13): Error: value does not satisfy the subset constraints of 'Char'
-ResultInTypeSubsetType.dfy(164,13): Error: char subtraction might underflow
+ResultInTypeSubsetType.dfy(164,13): Error: char subtraction could not be proved to remain above minimum
 ResultInTypeSubsetType.dfy(164,13): Error: value does not satisfy the subset constraints of 'Char'
-ResultInTypeSubsetType.dfy(168,11): Error: result of operation might violate subset type constraint for 'Char'
+ResultInTypeSubsetType.dfy(168,11): Error: result of operation could not be proved to satisfy subset type constraint for 'Char'
 ResultInTypeSubsetType.dfy(173,7): Error: cannot find witness that shows type is inhabited (only tried {}); try giving a hint through a 'witness' or 'ghost witness' clause, or use 'witness *' to treat as a possibly empty type
 ResultInTypeSubsetType.dfy(178,11): Error: value does not satisfy the subset constraints of 'IntSet'
 ResultInTypeSubsetType.dfy(180,11): Error: value does not satisfy the subset constraints of 'IntSet'
@@ -58,7 +58,7 @@ ResultInTypeSubsetType.dfy(186,11): Error: value does not satisfy the subset con
 ResultInTypeSubsetType.dfy(192,13): Error: value does not satisfy the subset constraints of 'IntSet'
 ResultInTypeSubsetType.dfy(194,13): Error: value does not satisfy the subset constraints of 'IntSet'
 ResultInTypeSubsetType.dfy(196,13): Error: value does not satisfy the subset constraints of 'IntSet'
-ResultInTypeSubsetType.dfy(198,13): Error: result of operation might violate subset type constraint for 'IntSet'
+ResultInTypeSubsetType.dfy(198,13): Error: result of operation could not be proved to satisfy subset type constraint for 'IntSet'
 ResultInTypeSubsetType.dfy(203,7): Error: cannot find witness that shows type is inhabited (only tried iset{}); try giving a hint through a 'witness' or 'ghost witness' clause, or use 'witness *' to treat as a possibly empty type
 ResultInTypeSubsetType.dfy(208,11): Error: value does not satisfy the subset constraints of 'IntIset'
 ResultInTypeSubsetType.dfy(210,11): Error: value does not satisfy the subset constraints of 'IntIset'
@@ -67,21 +67,21 @@ ResultInTypeSubsetType.dfy(216,11): Error: value does not satisfy the subset con
 ResultInTypeSubsetType.dfy(222,13): Error: value does not satisfy the subset constraints of 'IntIset'
 ResultInTypeSubsetType.dfy(224,13): Error: value does not satisfy the subset constraints of 'IntIset'
 ResultInTypeSubsetType.dfy(226,13): Error: value does not satisfy the subset constraints of 'IntIset'
-ResultInTypeSubsetType.dfy(228,13): Error: result of operation might violate subset type constraint for 'IntIset'
+ResultInTypeSubsetType.dfy(228,13): Error: result of operation could not be proved to satisfy subset type constraint for 'IntIset'
 ResultInTypeSubsetType.dfy(233,7): Error: cannot find witness that shows type is inhabited (only tried multiset{}); try giving a hint through a 'witness' or 'ghost witness' clause, or use 'witness *' to treat as a possibly empty type
 ResultInTypeSubsetType.dfy(238,11): Error: value does not satisfy the subset constraints of 'Multiset'
 ResultInTypeSubsetType.dfy(240,11): Error: value does not satisfy the subset constraints of 'Multiset'
 ResultInTypeSubsetType.dfy(248,13): Error: value does not satisfy the subset constraints of 'Multiset'
 ResultInTypeSubsetType.dfy(250,13): Error: value does not satisfy the subset constraints of 'Multiset'
 ResultInTypeSubsetType.dfy(252,13): Error: value does not satisfy the subset constraints of 'Multiset'
-ResultInTypeSubsetType.dfy(254,13): Error: result of operation might violate subset type constraint for 'Multiset'
+ResultInTypeSubsetType.dfy(254,13): Error: result of operation could not be proved to satisfy subset type constraint for 'Multiset'
 ResultInTypeSubsetType.dfy(260,19): Error: value does not satisfy the subset constraints of 'Multiset'
 ResultInTypeSubsetType.dfy(262,19): Error: value does not satisfy the subset constraints of 'Multiset'
 ResultInTypeSubsetType.dfy(269,7): Error: cannot find witness that shows type is inhabited (only tried []); try giving a hint through a 'witness' or 'ghost witness' clause, or use 'witness *' to treat as a possibly empty type
 ResultInTypeSubsetType.dfy(276,11): Error: value does not satisfy the subset constraints of 'Seq'
 ResultInTypeSubsetType.dfy(282,11): Error: value does not satisfy the subset constraints of 'String'
 ResultInTypeSubsetType.dfy(288,13): Error: value does not satisfy the subset constraints of 'Seq'
-ResultInTypeSubsetType.dfy(290,13): Error: result of operation might violate subset type constraint for 'Seq'
+ResultInTypeSubsetType.dfy(290,13): Error: result of operation could not be proved to satisfy subset type constraint for 'Seq'
 ResultInTypeSubsetType.dfy(296,12): Error: value does not satisfy the subset constraints of 'Seq'
 ResultInTypeSubsetType.dfy(298,12): Error: value does not satisfy the subset constraints of 'Seq'
 ResultInTypeSubsetType.dfy(300,12): Error: value does not satisfy the subset constraints of 'Seq'
