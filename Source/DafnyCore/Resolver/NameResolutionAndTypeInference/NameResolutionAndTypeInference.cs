@@ -4789,7 +4789,7 @@ namespace Microsoft.Dafny {
               }
             }
           }
-          
+
           if (memberName == "_ctor") {
             reporter.Error(MessageSource.Resolver, tok, "{0} {1} does not have an anonymous constructor", cd.WhatKind, cd.Name);
           } else {
