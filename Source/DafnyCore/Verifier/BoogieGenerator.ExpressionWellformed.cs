@@ -1114,23 +1114,32 @@ namespace Microsoft.Dafny {
 
                 if (e.InCompiledContext) {
                   // Helper to check if a type contains fp64 (directly or indirectly)
-                  bool ContainsFp64(Type type) {
+                  // Following the same pattern as ComputeMayInvolveReferences to handle recursive types
+                  bool ContainsFp64(Type type, ISet<DatatypeDecl> visitedDatatypes) {
                     type = type.NormalizeExpand();
+
                     if (type is Fp64Type) {
                       return true;
                     } else if (type is CollectionType collType) {
-                      return ContainsFp64(collType.Arg);
+                      return ContainsFp64(collType.Arg, visitedDatatypes);
                     } else if (type is SeqType seqType) {
-                      return ContainsFp64(seqType.Arg);
+                      return ContainsFp64(seqType.Arg, visitedDatatypes);
                     } else if (type is SetType setType) {
-                      return ContainsFp64(setType.Arg);
+                      return ContainsFp64(setType.Arg, visitedDatatypes);
                     } else if (type is MultiSetType multiSetType) {
-                      return ContainsFp64(multiSetType.Arg);
+                      return ContainsFp64(multiSetType.Arg, visitedDatatypes);
                     } else if (type is MapType mapType) {
-                      return ContainsFp64(mapType.Domain) || ContainsFp64(mapType.Range);
+                      return ContainsFp64(mapType.Domain, visitedDatatypes) || ContainsFp64(mapType.Range, visitedDatatypes);
                     } else if (type is UserDefinedType udt && udt.ResolvedClass is DatatypeDecl dt) {
+                      // Handle recursive datatypes by tracking what we've visited
+                      if (visitedDatatypes != null && visitedDatatypes.Contains(dt)) {
+                        // We're already visiting this datatype - stop recursion
+                        return false;
+                      }
+                      visitedDatatypes ??= new HashSet<DatatypeDecl>();
+                      visitedDatatypes.Add(dt);
                       // Check if any field of any constructor contains fp64
-                      return dt.Ctors.Any(ctor => ctor.Formals.Any(f => !f.IsGhost && ContainsFp64(f.Type)));
+                      return dt.Ctors.Any(ctor => ctor.Formals.Any(f => !f.IsGhost && ContainsFp64(f.Type, visitedDatatypes)));
                     }
                     return false;
                   }
@@ -1191,7 +1200,7 @@ namespace Microsoft.Dafny {
                       builder.Add(Assert(GetToken(expr), Bpl.Expr.Not(bothZerosDifferentSign),
                         new Fp64SignedZeroEqualityPrecondition(e.E0, e.E1), builder.Context, wfOptions.AssertKv));
                     }
-                  } else if (ContainsFp64(e.E0.Type) || ContainsFp64(e.E1.Type)) {
+                  } else if (ContainsFp64(e.E0.Type, null) || ContainsFp64(e.E1.Type, null)) {
                     // Collections or datatypes containing fp64 need well-formedness checks
                     GenerateFp64CollectionWellformednessCheck(e, builder, etran, wfOptions);
                   } else if (CheckTypeCharacteristicsVisitor.CanCompareWith(e.E0) || CheckTypeCharacteristicsVisitor.CanCompareWith(e.E1)) {
