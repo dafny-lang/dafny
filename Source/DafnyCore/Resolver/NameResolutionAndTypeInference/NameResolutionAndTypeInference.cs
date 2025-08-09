@@ -2122,43 +2122,9 @@ namespace Microsoft.Dafny {
                     if (c.Super is IntVarietiesSupertype) {
                       AssignProxyAndHandleItsConstraints(proxy, Type.Int);
                     } else if (c.Super is RealVarietiesSupertype) {
-                      // Check if this proxy is involved with fp64 types through constraints
-                      var preferFp64 = false;
-
-                      // Helper to check if a type is transitively connected to fp64
-                      Func<Type, HashSet<Type>, bool> CheckTransitiveFp64Connection = null;
-                      CheckTransitiveFp64Connection = (t, visited) => {
-                        if (t == null || visited.Contains(t)) return false;
-                        visited.Add(t);
-
-                        var norm = t.NormalizeExpand();
-                        if (norm is Fp64Type) return true;
-
-                        // Check all constraints involving this type
-                        foreach (var tc in AllTypeConstraints.Concat(allTypeConstraints)) {
-                          if (tc.Super == t) {
-                            if (CheckTransitiveFp64Connection(tc.Sub, visited)) return true;
-                          } else if (tc.Sub == t) {
-                            if (CheckTransitiveFp64Connection(tc.Super, visited)) return true;
-                          }
-                        }
-                        return false;
-                      };
-
-                      // Check if this proxy is transitively connected to fp64
-                      preferFp64 = CheckTransitiveFp64Connection(proxy, new HashSet<Type>());
-
-                      if (Options.Get(CommonOptionBag.TypeInferenceDebug)) {
-                        Options.OutputWriter.Debug($"RealVarietiesSupertype proxy resolution: preferFp64={preferFp64}, proxy={proxy}");
-                        Options.OutputWriter.Debug($"  AllTypeConstraints.Count={AllTypeConstraints.Count}, allTypeConstraints.Count={allTypeConstraints.Count}");
-                        foreach (var tc in AllTypeConstraints.Concat(allTypeConstraints).Take(10)) {
-                          if (tc.Super == proxy || tc.Sub == proxy) {
-                            Options.OutputWriter.Debug($"  Constraint involving proxy: {tc.Super} :> {tc.Sub}");
-                          }
-                        }
-                      }
-
-                      AssignProxyAndHandleItsConstraints(proxy, preferFp64 ? Type.Fp64 : Type.Real);
+                      // For RealVarietiesSupertype, default to real
+                      // The PartiallyResolveTypeForMemberSelection will handle specific cases where fp64 is needed
+                      AssignProxyAndHandleItsConstraints(proxy, Type.Real);
                     } else {
                       AssignProxyAndHandleItsConstraints(proxy, Type.Real);
                     }
@@ -2388,7 +2354,8 @@ namespace Microsoft.Dafny {
       // List of fp64-specific members
       return memberName == "IsInfinite" || memberName == "IsFinite" || memberName == "IsNaN" ||
              memberName == "IsZero" || memberName == "IsPositive" || memberName == "IsNegative" ||
-             memberName == "Equal" || memberName == "Sqrt" || memberName == "Floor" || memberName == "Ceiling";
+             memberName == "IsNormal" || memberName == "IsSubnormal" ||
+             memberName == "Equal" || memberName == "Sqrt";
     }
 
     void HandleFp64ArithmeticConstraints(BinaryExpr e, Expression expr) {
@@ -4865,11 +4832,17 @@ namespace Microsoft.Dafny {
 
       var typeProxy = (TypeProxy)t;
 
-      // Special handling for fp64 member access
-      // Check if the proxy has fp64 constraints that haven't been resolved yet
+      // Special handling for real-specific members
+      // Floor exists on real as a member field, so if we see .Floor, resolve to real
+      if (memberName == "Floor") {
+        AssignProxyAndHandleItsConstraints((TypeProxy)t, Type.Real, true);
+        return Type.Real;
+      }
+
+      // Special handling for fp64-only member access
       if (memberName != null && IsFp64Member(memberName)) {
         if (Options.Get(CommonOptionBag.TypeInferenceDebug)) {
-          Options.OutputWriter.Debug("PartiallyResolveTypeForMemberSelection: checking fp64 member {0} on type {1}", memberName, t);
+          Options.OutputWriter.Debug("PartiallyResolveTypeForMemberSelection: checking fp64-only member {0} on type {1}", memberName, t);
         }
 
         // First, run a partial constraint solve to see if we can determine the type
