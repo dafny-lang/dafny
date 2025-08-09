@@ -357,7 +357,10 @@ public class ExpressionTester {
       return false;
 
     } else if (expr is ConcreteSyntaxExpression concreteSyntaxExpression) {
-      return CheckIsCompilable(concreteSyntaxExpression.ResolvedExpression, codeContext, insideBranchesOnly);
+      if (concreteSyntaxExpression.ResolvedExpression != null) {
+        return CheckIsCompilable(concreteSyntaxExpression.ResolvedExpression, codeContext, insideBranchesOnly);
+      }
+      // If ResolvedExpression is null (e.g., for ApproximateExpr), check SubExpressions below
     }
 
     foreach (var ee in expr.SubExpressions) {

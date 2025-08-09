@@ -2,7 +2,8 @@
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 using System.Numerics;
-
+using Microsoft.BaseTypes;
+using Microsoft.Boogie;
 
 namespace Microsoft.Dafny;
 
@@ -143,6 +144,37 @@ public class CharLiteralExpr : LiteralExpr, ICloneable<CharLiteralExpr> {
 
   public new CharLiteralExpr Clone(Cloner cloner) {
     return new CharLiteralExpr(cloner, this);
+  }
+}
+
+public class DecimalLiteralExpr : LiteralExpr, ICloneable<DecimalLiteralExpr> {
+  /// <summary>
+  /// If this literal is assigned to a floating-point type during resolution,
+  /// this field stores the computed BigFloat value to avoid recomputation.
+  /// Null if not yet resolved or if assigned to a real type.
+  /// </summary>
+  public BigFloat? ResolvedFloatValue { get; set; }
+
+  [SyntaxConstructor]
+  public DecimalLiteralExpr(IOrigin origin, object value)
+    : base(origin, value) {
+    Contract.Requires(value is BaseTypes.BigDec);
+  }
+
+  public DecimalLiteralExpr(IOrigin origin, BaseTypes.BigDec value)
+    : base(origin, value) {
+  }
+
+  public DecimalLiteralExpr(Cloner cloner, DecimalLiteralExpr original) : base(cloner, original) {
+    ResolvedFloatValue = original.ResolvedFloatValue;
+  }
+
+  public new DecimalLiteralExpr Clone(Cloner cloner) {
+    return new DecimalLiteralExpr(cloner, this);
+  }
+
+  public override string ToString() {
+    return Value?.ToString() ?? "null";
   }
 }
 

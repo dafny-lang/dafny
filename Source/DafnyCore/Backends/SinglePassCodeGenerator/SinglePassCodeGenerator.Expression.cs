@@ -103,17 +103,28 @@ namespace Microsoft.Dafny.Compilers {
                 var tas = TypeArgumentInstantiation.ListFromClass(field.EnclosingClass, typeArgs);
                 EmitTypeDescriptorsActuals(tas, e.Origin, wr.ForkInParens());
               } else {
-                void WriteObj(ConcreteSyntaxTree w) {
-                  //Contract.Assert(!sf.IsStatic);
-                  w = EmitCoercionIfNecessary(e.Obj.Type, UserDefinedType.UpcastToMemberEnclosingType(e.Obj.Type, e.Member),
-                    e.Origin, w);
-                  TrParenExpr(e.Obj, w, inLetExprBody, wStmts);
-                }
+                // Special handling for static special fields (like fp64.NaN)
+                if (field.IsStatic && field is SpecialField && preStr != "") {
+                  // GetSpecialFieldInfo already provided the complete reference in preStr
+                  // so we don't need to write anything else
+                } else {
+                  void WriteObj(ConcreteSyntaxTree w) {
+                    if (field.IsStatic) {
+                      // For static fields, write the companion class instead of the object
+                      w.Write("{0}", TypeName_Companion(e.Obj.Type, w, e.Origin, field));
+                    } else {
+                      // For instance fields, write the object
+                      w = EmitCoercionIfNecessary(e.Obj.Type, UserDefinedType.UpcastToMemberEnclosingType(e.Obj.Type, e.Member),
+                        e.Origin, w);
+                      TrParenExpr(e.Obj, w, inLetExprBody, wStmts);
+                    }
+                  }
 
-                var typeArgs = CombineAllTypeArguments(e.Member, e.TypeApplicationAtEnclosingClass,
-                  e.TypeApplicationJustMember);
-                EmitMemberSelect(WriteObj, e.Obj.Type, e.Member, typeArgs, e.TypeArgumentSubstitutionsWithParents(),
-                  selectExpr.Type).EmitRead(wr);
+                  var typeArgs = CombineAllTypeArguments(e.Member, e.TypeApplicationAtEnclosingClass,
+                    e.TypeApplicationJustMember);
+                  EmitMemberSelect(WriteObj, e.Obj.Type, e.Member, typeArgs, e.TypeArgumentSubstitutionsWithParents(),
+                    selectExpr.Type).EmitRead(wr);
+                }
               }
 
               wr.Write(postStr);
@@ -301,7 +312,9 @@ namespace Microsoft.Dafny.Compilers {
             var toType = GetRuntimeType(e.ToType);
             Contract.Assert(Options.Get(CommonOptionBag.GeneralTraits) != CommonOptionBag.GeneralTraitsOptions.Legacy ||
                             toType.IsRefType == fromType.IsRefType ||
-                            (fromType.IsTypeParameter && toType.IsTraitType));
+                            (fromType.IsTypeParameter && toType.IsTraitType) ||
+                            (fromType is RealType && toType is Fp64Type) ||
+                            (fromType is Fp64Type && toType is RealType));
             if (toType.IsRefType || toType.IsTraitType || fromType.IsTraitType) {
               var w = EmitCoercionIfNecessary(e.E.Type, e.ToType, e.Origin, wr);
               w = EmitDowncastIfNecessary(e.E.Type, e.ToType, e.Origin, w);

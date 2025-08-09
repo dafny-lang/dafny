@@ -791,9 +791,22 @@ public abstract class Expression : NodeWithOrigin {
   /// </summary>
   public static Expression WrapResolvedCall(FunctionCallExpr call, SystemModuleManager systemModuleManager) {
     // Wrap the resolved call in the usual unresolved structure, in case the expression is cloned and re-resolved.
-    var receiverType = (UserDefinedType)call.Receiver.Type.NormalizeExpand();
-    var subst = TypeParameter.SubstitutionMap(receiverType.ResolvedClass.TypeArgs, receiverType.TypeArgs);
-    subst = ModuleResolver.AddParentTypeParameterSubstitutions(subst, receiverType);
+    if (call?.Receiver?.Type == null) {
+      var msg = $"WrapResolvedCall called with null receiver or type. Receiver: {call?.Receiver}, ReceiverType: {call?.Receiver?.GetType()}";
+      throw new InvalidOperationException(msg);
+    }
+
+    var normalizedType = call.Receiver.Type.NormalizeExpand();
+    Dictionary<TypeParameter, Type> subst;
+
+    if (normalizedType is UserDefinedType receiverType) {
+      subst = TypeParameter.SubstitutionMap(receiverType.ResolvedClass.TypeArgs, receiverType.TypeArgs);
+      subst = ModuleResolver.AddParentTypeParameterSubstitutions(subst, receiverType);
+    } else {
+      // For basic types like Fp64Type, there are no type parameters
+      subst = new Dictionary<TypeParameter, Type>();
+    }
+
     var exprDotName = new ExprDotName(call.Origin, call.Receiver, call.Function.NameNode, call.TypeApplication_JustFunction) {
       Type = ModuleResolver.SelectAppropriateArrowTypeForFunction(call.Function, subst, systemModuleManager)
     };

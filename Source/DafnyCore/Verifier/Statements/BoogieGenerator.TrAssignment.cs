@@ -424,7 +424,9 @@ public partial class BoogieGenerator {
       var e = (ExprRhs)rhs;
 
       var bRhs = etran.TrExpr(e.Expr);
-      var cre = GetSubrangeCheck(tok, bRhs, e.Expr.Type, rhsTypeConstraint, e.Expr, null, out var desc, "");
+      // If the expression is a ConversionExpr, its type is already the target type
+      var exprType = e.Expr.Type;
+      var cre = GetSubrangeCheck(tok, bRhs, exprType, rhsTypeConstraint, e.Expr, null, out var desc, "");
       TrStmt_CheckWellformed(e.Expr, builder, locals, etran, true, addResultCommands:
         (returnBuilder, result) => {
           if (cre != null) {

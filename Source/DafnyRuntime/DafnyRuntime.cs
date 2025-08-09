@@ -1857,6 +1857,19 @@ namespace Dafny {
       return this == floored;
     }
 
+    public static BigRational FromDouble(double n) {
+      return new BigRational(n);
+    }
+
+    public double ToDouble() {
+      if (num.IsZero) {
+        return 0.0;
+      }
+      // Convert numerator and denominator to double
+      // This may lose precision for very large values
+      return (double)num / (double)den;
+    }
+
     /// <summary>
     /// Returns values such that aa/dd == a and bb/dd == b.
     /// </summary>

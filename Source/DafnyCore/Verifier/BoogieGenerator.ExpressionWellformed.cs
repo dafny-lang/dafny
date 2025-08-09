@@ -133,6 +133,13 @@ namespace Microsoft.Dafny {
 
   public partial class BoogieGenerator {
 
+    private void GenerateFp64CollectionWellformednessCheck(BinaryExpr expr, BoogieStmtListBuilder builder, ExpressionTranslator etran, WFOptions wfOptions) {
+      // In compiled contexts, reject all collection/datatype equality containing fp64
+      // This is because ensuring well-formedness for all element comparisons is complex
+      builder.Add(Assert(GetToken(expr), Bpl.Expr.False,
+        new Fp64CollectionEqualityWellformedness(expr.E0.Type), builder.Context, wfOptions.AssertKv));
+    }
+
     public void CheckWellformedAndAssume(Expression expr, WFOptions wfOptions, Variables locals, BoogieStmtListBuilder builder, ExpressionTranslator etran, string comment) {
       Contract.Requires(expr != null);
       Contract.Requires(expr.Type != null && expr.Type.IsBoolType);
@@ -1045,6 +1052,10 @@ namespace Microsoft.Dafny {
                   Bpl.Expr zero;
                   if (e.E1.Type.NormalizeToAncestorType() is BitvectorType bitvectorType) {
                     zero = BplBvLiteralExpr(e.Origin, BaseTypes.BigNum.ZERO, bitvectorType);
+                  } else if (e.E1.Type.NormalizeToAncestorType() is Fp64Type) {
+                    // For fp64, create a float53e11 zero to match the translated expression type
+                    // Use the same format as other fp64 literals but with zero value
+                    zero = new Bpl.LiteralExpr(e.Origin, Microsoft.BaseTypes.BigFloat.FromString("0x0.0e0f53e11"));
                   } else if (e.E1.Type.IsNumericBased(Type.NumericPersuasion.Real)) {
                     zero = Bpl.Expr.Literal(BaseTypes.BigDec.ZERO);
                   } else {
@@ -1091,9 +1102,108 @@ namespace Microsoft.Dafny {
                 break;
               case BinaryExpr.ResolvedOpcode.EqCommon:
               case BinaryExpr.ResolvedOpcode.NeqCommon:
+              case BinaryExpr.ResolvedOpcode.SetEq:
+              case BinaryExpr.ResolvedOpcode.SetNeq:
+              case BinaryExpr.ResolvedOpcode.SeqEq:
+              case BinaryExpr.ResolvedOpcode.SeqNeq:
+              case BinaryExpr.ResolvedOpcode.MultiSetEq:
+              case BinaryExpr.ResolvedOpcode.MultiSetNeq:
+              case BinaryExpr.ResolvedOpcode.MapEq:
+              case BinaryExpr.ResolvedOpcode.MapNeq:
                 CheckWellformed(e.E1, wfOptions, locals, builder, etran);
+
                 if (e.InCompiledContext) {
-                  if (CheckTypeCharacteristicsVisitor.CanCompareWith(e.E0) || CheckTypeCharacteristicsVisitor.CanCompareWith(e.E1)) {
+                  // Helper to check if a type contains fp64 (directly or indirectly)
+                  // Following the same pattern as ComputeMayInvolveReferences to handle recursive types
+                  bool ContainsFp64(Type type, ISet<DatatypeDecl> visitedDatatypes) {
+                    type = type.NormalizeExpand();
+
+                    if (type is Fp64Type) {
+                      return true;
+                    } else if (type is CollectionType collType) {
+                      return ContainsFp64(collType.Arg, visitedDatatypes);
+                    } else if (type is SeqType seqType) {
+                      return ContainsFp64(seqType.Arg, visitedDatatypes);
+                    } else if (type is SetType setType) {
+                      return ContainsFp64(setType.Arg, visitedDatatypes);
+                    } else if (type is MultiSetType multiSetType) {
+                      return ContainsFp64(multiSetType.Arg, visitedDatatypes);
+                    } else if (type is MapType mapType) {
+                      return ContainsFp64(mapType.Domain, visitedDatatypes) || ContainsFp64(mapType.Range, visitedDatatypes);
+                    } else if (type is UserDefinedType udt && udt.ResolvedClass is DatatypeDecl dt) {
+                      // Handle recursive datatypes by tracking what we've visited
+                      if (visitedDatatypes != null && visitedDatatypes.Contains(dt)) {
+                        // We're already visiting this datatype - stop recursion
+                        return false;
+                      }
+                      visitedDatatypes ??= new HashSet<DatatypeDecl>();
+                      visitedDatatypes.Add(dt);
+                      // Check if any field of any constructor contains fp64
+                      return dt.Ctors.Any(ctor => ctor.Formals.Any(f => !f.IsGhost && ContainsFp64(f.Type, visitedDatatypes)));
+                    }
+                    return false;
+                  }
+
+                  // Check for fp64 equality first, as it requires special preconditions
+                  if (e.E0.Type is Fp64Type || e.E1.Type is Fp64Type) {
+                    // fp64 supports equality with preconditions per spec section 5.3
+                    // Well-formedness: !x.IsNaN && !y.IsNaN && !(x.IsZero && y.IsZero && x.IsNegative != y.IsNegative)
+
+                    // Helper to generate IsNaN check for fp64
+                    Bpl.Expr GenerateIsNaNCheck(Expression operand) {
+                      var value = etran.TrExpr(operand);
+                      // Use the Fp64_IsNaN function that's defined in our Boogie prelude
+                      return FunctionCall(operand.Origin, "Fp64_IsNaN", Bpl.Type.Bool, value);
+                    }
+
+                    // Helper to generate IsZero check for fp64
+                    Bpl.Expr GenerateIsZeroCheck(Expression operand) {
+                      var value = etran.TrExpr(operand);
+                      // Use the Fp64_IsZero function that's defined in our Boogie prelude
+                      return FunctionCall(operand.Origin, "Fp64_IsZero", Bpl.Type.Bool, value);
+                    }
+
+                    // Helper to generate IsNegative check for fp64
+                    Bpl.Expr GenerateIsNegativeCheck(Expression operand) {
+                      var value = etran.TrExpr(operand);
+                      // Use the Fp64_IsNegative function that's defined in our Boogie prelude
+                      return FunctionCall(operand.Origin, "Fp64_IsNegative", Bpl.Type.Bool, value);
+                    }
+
+                    // Check NaN preconditions
+                    if (e.E0.Type is Fp64Type) {
+                      var isNaN = GenerateIsNaNCheck(e.E0);
+                      builder.Add(Assert(GetToken(e.E0), Bpl.Expr.Not(isNaN),
+                        new Fp64EqualityPrecondition(e.E0), builder.Context, wfOptions.AssertKv));
+                    }
+
+                    if (e.E1.Type is Fp64Type) {
+                      var isNaN = GenerateIsNaNCheck(e.E1);
+                      builder.Add(Assert(GetToken(e.E1), Bpl.Expr.Not(isNaN),
+                        new Fp64EqualityPrecondition(e.E1), builder.Context, wfOptions.AssertKv));
+                    }
+
+                    // Check signed zero precondition: !(x.IsZero && y.IsZero && x.IsNegative != y.IsNegative)
+                    if (e.E0.Type is Fp64Type && e.E1.Type is Fp64Type) {
+                      var e0IsZero = GenerateIsZeroCheck(e.E0);
+                      var e1IsZero = GenerateIsZeroCheck(e.E1);
+                      var e0IsNegative = GenerateIsNegativeCheck(e.E0);
+                      var e1IsNegative = GenerateIsNegativeCheck(e.E1);
+
+                      // x.IsZero && y.IsZero && x.IsNegative != y.IsNegative
+                      var bothZerosDifferentSign = Bpl.Expr.And(
+                        Bpl.Expr.And(e0IsZero, e1IsZero),
+                        Bpl.Expr.Neq(e0IsNegative, e1IsNegative)
+                      );
+
+                      // The precondition is that the above condition is false
+                      builder.Add(Assert(GetToken(expr), Bpl.Expr.Not(bothZerosDifferentSign),
+                        new Fp64SignedZeroEqualityPrecondition(e.E0, e.E1), builder.Context, wfOptions.AssertKv));
+                    }
+                  } else if (ContainsFp64(e.E0.Type, null) || ContainsFp64(e.E1.Type, null)) {
+                    // Collections or datatypes containing fp64 need well-formedness checks
+                    GenerateFp64CollectionWellformednessCheck(e, builder, etran, wfOptions);
+                  } else if (CheckTypeCharacteristicsVisitor.CanCompareWith(e.E0) || CheckTypeCharacteristicsVisitor.CanCompareWith(e.E1)) {
                     // everything's fine
                   } else {
                     Contract.Assert(!e.E0.Type.SupportsEquality); // otherwise, CanCompareWith would have returned "true" above
