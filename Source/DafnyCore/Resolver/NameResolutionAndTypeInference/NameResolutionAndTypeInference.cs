@@ -4777,6 +4777,19 @@ namespace Microsoft.Dafny {
       if (cd != null) {
         Contract.Assert(ctype.TypeArgs.Count == cd.TypeArgs.Count);  // follows from the fact that ctype was resolved
         if (!GetClassMembers(cd).TryGetValue(memberName, out var member)) {
+          // If this is a newtype and the member wasn't found, try looking in the base type
+          if (cd is NewtypeDecl newtypeDecl && newtypeDecl.BaseType != null) {
+            var baseType = newtypeDecl.BaseType.NormalizeExpand();
+            // Check if the base type is real (which has the Floor member)
+            if (baseType is RealType) {
+              var realDecl = ProgramResolver.SystemModuleManager.valuetypeDecls[(int)ValuetypeVariety.Real];
+              if (GetClassMembers(realDecl)?.TryGetValue(memberName, out member) == true) {
+                tentativeReceiverType = ctype;
+                return member;
+              }
+            }
+          }
+          
           if (memberName == "_ctor") {
             reporter.Error(MessageSource.Resolver, tok, "{0} {1} does not have an anonymous constructor", cd.WhatKind, cd.Name);
           } else {
