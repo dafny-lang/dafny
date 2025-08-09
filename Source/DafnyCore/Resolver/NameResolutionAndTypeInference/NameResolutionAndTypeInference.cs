@@ -3659,6 +3659,10 @@ namespace Microsoft.Dafny {
 
     private TopLevelDecl CreateBuiltinTypeDecl(string name, IOrigin origin) {
       // For built-in types, we need to return the corresponding ValuetypeDecl from the system module
+      // If looking for fp64, ensure it's initialized first
+      if (name == "fp64") {
+        ProgramResolver.SystemModuleManager.EnsureFp64TypeInitialized(ProgramResolver);
+      }
       foreach (var vtd in ProgramResolver.SystemModuleManager.valuetypeDecls) {
         if (vtd.Name == name) {
           return vtd;
@@ -4741,6 +4745,11 @@ namespace Microsoft.Dafny {
         return null;
       }
       Contract.Assert(receiverType is NonProxyType);  // there are only two kinds of types: proxies and non-proxies
+
+      // Check if this is fp64 and ensure it's initialized before looking for members
+      if (receiverType is Fp64Type || (receiverType is UserDefinedType udt && udt.Name == "fp64")) {
+        ProgramResolver.SystemModuleManager.EnsureFp64TypeInitialized(ProgramResolver);
+      }
 
       foreach (var valuet in ProgramResolver.SystemModuleManager.valuetypeDecls) {
         if (valuet.IsThisType(receiverType)) {
@@ -6133,6 +6142,10 @@ namespace Microsoft.Dafny {
         }
       } else if (lhs != null) {
         // ----- 4. Look up name in the type of the Lhs
+        // If looking for static members on fp64, ensure it's initialized
+        if (expr.Lhs.Type is Fp64Type || (expr.Lhs.Type is UserDefinedType udt && udt.Name == "fp64")) {
+          ProgramResolver.SystemModuleManager.EnsureFp64TypeInitialized(ProgramResolver);
+        }
         member = ResolveMember(expr.Origin, expr.Lhs.Type, name, out var tentativeReceiverType);
         if (member != null) {
           Expression receiver;

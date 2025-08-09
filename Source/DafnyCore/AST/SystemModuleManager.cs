@@ -76,7 +76,6 @@ public class SystemModuleManager {
   public readonly SubsetTypeDecl NatDecl;
   public UserDefinedType Nat() { return new UserDefinedType(Token.NoToken, "nat", NatDecl, []); }
   public readonly TraitDecl ObjectDecl;
-  private bool fp64AddedToModule = false;
   public UserDefinedType ObjectQ() {
     Contract.Assume(ObjectDecl != null);
     return new UserDefinedType(Token.NoToken, "object?", null) { ResolvedClass = ObjectDecl };
@@ -216,6 +215,13 @@ public class SystemModuleManager {
     // a family of types rolled up in one ValuetypeDecl. Therefore, we use the special SelfType as the result type.
     AddRotateMember(valuetypeDecls[(int)ValuetypeVariety.Bitvector], "RotateLeft", new SelfType());
     AddRotateMember(valuetypeDecls[(int)ValuetypeVariety.Bitvector], "RotateRight", new SelfType());
+
+    // Create 2-argument arrow types early to avoid circular dependency when fp64 is initialized
+    // fp64.Equal method needs these arrow types, so create them now rather than lazily
+    CreateArrowTypeDecl(2);
+
+    // Note: fp64 members are NOT initialized here - they're initialized lazily via EnsureFp64TypeInitialized
+    // This avoids adding fp64 overhead to programs that don't use it
   }
 
   public void AddRotateMember(ValuetypeDecl enclosingType, string name, Type resultType) {
@@ -257,8 +263,7 @@ public class SystemModuleManager {
   }
 
   public void AddFp64EqualMethod(ValuetypeDecl enclosingType) {
-    // Ensure 2-argument arrow types exist for fp64.Equal
-    CreateArrowTypeDecl(2);
+    // 2-argument arrow types are created early in the constructor to avoid circular dependencies
 
     // Create formals for Equal(x: fp64, y: fp64): bool
     // Use explicit Fp64Type to ensure compatibility with both resolvers
@@ -418,56 +423,201 @@ public class SystemModuleManager {
     return result;
   }
 
-  public void EnsureFp64TypeInitialized() {
-    if (fp64AddedToModule) {
-      return;
+  // Ensures fp64 type is initialized and added to the system module when first referenced
+  public void EnsureFp64TypeInitialized(ProgramResolver programResolver) {
+    var fp64TypeDecl = valuetypeDecls[(int)ValuetypeVariety.Fp64];
+
+    // Check if already initialized by looking for a known member
+    if (fp64TypeDecl.Members.Any(m => m.Name == "IsFinite")) {
+      return; // Already initialized
     }
 
-    fp64AddedToModule = true;
+    // Initialize fp64 members now (lazy initialization)
+    InitializeFp64Members();
 
+    // Add fp64 to the system module if not already there
+    if (!SystemModule.SourceDecls.Contains(fp64TypeDecl)) {
+      SystemModule.SourceDecls.Add(fp64TypeDecl);
+    }
+
+    // Register fp64 in systemNameInfo.TopLevels for name resolution
+    // This is critical for making fp64 members accessible
+    if (!systemNameInfo.TopLevels.ContainsKey("fp64")) {
+      systemNameInfo.TopLevels["fp64"] = fp64TypeDecl;
+    }
+
+    // Add fp64 members to the classMembers dictionary for member resolution
+    var memberDictionary = fp64TypeDecl.Members.ToDictionary(member => member.Name, member => member);
+    programResolver.AddSystemClass(fp64TypeDecl, memberDictionary);
+
+    // PreTypes for fp64 members will be filled in during regular resolution
+  }
+
+  // Overload for backward compatibility (called from AsValuetypeDecl)
+  private void EnsureFp64TypeInitialized() {
+    var fp64TypeDecl = valuetypeDecls[(int)ValuetypeVariety.Fp64];
+
+    // Check if already initialized by looking for a known member
+    if (fp64TypeDecl.Members.Any(m => m.Name == "IsFinite")) {
+      return; // Already initialized
+    }
+
+    // Initialize fp64 members now (lazy initialization)
+    InitializeFp64Members();
+
+    // Add fp64 to the system module if not already there
+    if (!SystemModule.SourceDecls.Contains(fp64TypeDecl)) {
+      SystemModule.SourceDecls.Add(fp64TypeDecl);
+    }
+  }
+
+  // Helper method to add a member to a valuetype with proper initialization
+  private void AddMemberToValuetype(MemberDecl member, ValuetypeVariety valuetypeVariety) {
+    var enclosingType = valuetypeDecls[(int)valuetypeVariety];
+    member.EnclosingClass = enclosingType;
+    member.AddVisibilityScope(SystemModule.VisibilityScope, false);
+    enclosingType.Members.Add(member);
+  }
+
+  // Add fp64 instance members (predicates like IsFinite, IsNaN, etc.)
+  private void AddFp64InstanceMembers() {
+    var isFinite = new SpecialField(SourceOrigin.NoToken, "IsFinite", SpecialField.ID.IsFinite, null,
+      false, false, false, Type.Bool, null);
+    AddMemberToValuetype(isFinite, ValuetypeVariety.Fp64);
+
+    var isNaN = new SpecialField(SourceOrigin.NoToken, "IsNaN", SpecialField.ID.IsNaN, null,
+      false, false, false, Type.Bool, null);
+    AddMemberToValuetype(isNaN, ValuetypeVariety.Fp64);
+
+    var isInfinite = new SpecialField(SourceOrigin.NoToken, "IsInfinite", SpecialField.ID.IsInfinite, null,
+      false, false, false, Type.Bool, null);
+    AddMemberToValuetype(isInfinite, ValuetypeVariety.Fp64);
+
+    var isNormal = new SpecialField(SourceOrigin.NoToken, "IsNormal", SpecialField.ID.IsNormal, null,
+      false, false, false, Type.Bool, null);
+    AddMemberToValuetype(isNormal, ValuetypeVariety.Fp64);
+
+    var isSubnormal = new SpecialField(SourceOrigin.NoToken, "IsSubnormal", SpecialField.ID.IsSubnormal, null,
+      false, false, false, Type.Bool, null);
+    AddMemberToValuetype(isSubnormal, ValuetypeVariety.Fp64);
+
+    var isZero = new SpecialField(SourceOrigin.NoToken, "IsZero", SpecialField.ID.IsZero, null,
+      false, false, false, Type.Bool, null);
+    AddMemberToValuetype(isZero, ValuetypeVariety.Fp64);
+
+    var isNegative = new SpecialField(SourceOrigin.NoToken, "IsNegative", SpecialField.ID.IsNegative, null,
+      false, false, false, Type.Bool, null);
+    AddMemberToValuetype(isNegative, ValuetypeVariety.Fp64);
+
+    var isPositive = new SpecialField(SourceOrigin.NoToken, "IsPositive", SpecialField.ID.IsPositive, null,
+      false, false, false, Type.Bool, null);
+    AddMemberToValuetype(isPositive, ValuetypeVariety.Fp64);
+  }
+
+  private void InitializeFp64Members() {
     // Get the fp64 type declaration (already created in constructor)
     var fp64TypeDecl = valuetypeDecls[(int)ValuetypeVariety.Fp64];
 
-    // Add it to the System module now that it's being used
-    SystemModule.SourceDecls.Add(fp64TypeDecl);
+    // Add instance predicates
+    AddFp64InstanceMembers();
 
-    // Add fp64 classification predicates
-    var isNaN = new SpecialField(SourceOrigin.NoToken, "IsNaN", SpecialField.ID.IsNaN, null, false, false, false, Type.Bool, null);
-    AddMember(isNaN, ValuetypeVariety.Fp64);
+    // Add static constants (like NaN, PositiveInfinity, etc.)
+    AddFp64SpecialValues();
+  }
 
-    var fp64IsFinite = new SpecialField(SourceOrigin.NoToken, "IsFinite", SpecialField.ID.IsFinite, null, false, false, false, Type.Bool, null);
-    AddMember(fp64IsFinite, ValuetypeVariety.Fp64);
+  // Add fp64 static special values
+  private void AddFp64SpecialValues() {
+    var fp64Type = new Fp64Type();
+    var fp64TypeDecl = valuetypeDecls[4]; // Get the fp64 ValuetypeDecl
 
-    var fp64IsInfinite = new SpecialField(SourceOrigin.NoToken, "IsInfinite", SpecialField.ID.IsInfinite, null, false, false, false, Type.Bool, null);
-    AddMember(fp64IsInfinite, ValuetypeVariety.Fp64);
+    var nanConst = new StaticSpecialField(SourceOrigin.NoToken, "NaN", SpecialField.ID.NaN, null,
+      false, false, false, fp64Type, null);
+    AddMemberToValuetype(nanConst, ValuetypeVariety.Fp64);
 
-    var fp64IsNormal = new SpecialField(SourceOrigin.NoToken, "IsNormal", SpecialField.ID.IsNormal, null, false, false, false, Type.Bool, null);
-    AddMember(fp64IsNormal, ValuetypeVariety.Fp64);
+    var posInfConst = new StaticSpecialField(SourceOrigin.NoToken, "PositiveInfinity", SpecialField.ID.PositiveInfinity, null,
+      false, false, false, fp64Type, null);
+    AddMemberToValuetype(posInfConst, ValuetypeVariety.Fp64);
 
-    var fp64IsSubnormal = new SpecialField(SourceOrigin.NoToken, "IsSubnormal", SpecialField.ID.IsSubnormal, null, false, false, false, Type.Bool, null);
-    AddMember(fp64IsSubnormal, ValuetypeVariety.Fp64);
+    var negInfConst = new StaticSpecialField(SourceOrigin.NoToken, "NegativeInfinity", SpecialField.ID.NegativeInfinity, null,
+      false, false, false, fp64Type, null);
+    AddMemberToValuetype(negInfConst, ValuetypeVariety.Fp64);
 
-    var fp64IsZero = new SpecialField(SourceOrigin.NoToken, "IsZero", SpecialField.ID.IsZero, null, false, false, false, Type.Bool, null);
-    AddMember(fp64IsZero, ValuetypeVariety.Fp64);
+    var posZeroConst = new StaticSpecialField(SourceOrigin.NoToken, "PositiveZero", SpecialField.ID.PositiveZero, null,
+      false, false, false, fp64Type, null);
+    AddMemberToValuetype(posZeroConst, ValuetypeVariety.Fp64);
 
-    var fp64IsNegative = new SpecialField(SourceOrigin.NoToken, "IsNegative", SpecialField.ID.IsNegative, null, false, false, false, Type.Bool, null);
-    AddMember(fp64IsNegative, ValuetypeVariety.Fp64);
+    var negZeroConst = new StaticSpecialField(SourceOrigin.NoToken, "NegativeZero", SpecialField.ID.NegativeZero, null,
+      false, false, false, fp64Type, null);
+    AddMemberToValuetype(negZeroConst, ValuetypeVariety.Fp64);
 
-    var fp64IsPositive = new SpecialField(SourceOrigin.NoToken, "IsPositive", SpecialField.ID.IsPositive, null, false, false, false, Type.Bool, null);
-    AddMember(fp64IsPositive, ValuetypeVariety.Fp64);
+    var maxValueConst = new StaticSpecialField(SourceOrigin.NoToken, "MaxValue", SpecialField.ID.MaxValue, null,
+      false, false, false, fp64Type, null);
+    AddMemberToValuetype(maxValueConst, ValuetypeVariety.Fp64);
 
-    // Add fp64 static special values
-    AddFp64SpecialValues(fp64TypeDecl);
+    var minValueConst = new StaticSpecialField(SourceOrigin.NoToken, "MinValue", SpecialField.ID.MinValue, null,
+      false, false, false, fp64Type, null);
+    AddMemberToValuetype(minValueConst, ValuetypeVariety.Fp64);
 
-    // Add fp64 static methods
-    AddFp64EqualMethod(fp64TypeDecl);
+    var epsilonConst = new StaticSpecialField(SourceOrigin.NoToken, "Epsilon", SpecialField.ID.Epsilon, null,
+      false, false, false, fp64Type, null);
+    AddMemberToValuetype(epsilonConst, ValuetypeVariety.Fp64);
 
-    void AddMember(MemberDecl member, ValuetypeVariety valuetypeVariety) {
-      var enclosingType = valuetypeDecls[(int)valuetypeVariety];
-      member.EnclosingClass = enclosingType;
-      member.AddVisibilityScope(SystemModule.VisibilityScope, false);
-      enclosingType.Members.Add(member);
-    }
+    var minNormalConst = new StaticSpecialField(SourceOrigin.NoToken, "MinNormal", SpecialField.ID.MinNormal, null,
+      false, false, false, fp64Type, null);
+    AddMemberToValuetype(minNormalConst, ValuetypeVariety.Fp64);
+
+    var minSubnormalConst = new StaticSpecialField(SourceOrigin.NoToken, "MinSubnormal", SpecialField.ID.MinSubnormal, null,
+      false, false, false, fp64Type, null);
+    AddMemberToValuetype(minSubnormalConst, ValuetypeVariety.Fp64);
+
+    var piConst = new StaticSpecialField(SourceOrigin.NoToken, "Pi", SpecialField.ID.Pi, null,
+      false, false, false, fp64Type, null);
+    AddMemberToValuetype(piConst, ValuetypeVariety.Fp64);
+
+    var eConst = new StaticSpecialField(SourceOrigin.NoToken, "E", SpecialField.ID.E, null,
+      false, false, false, fp64Type, null);
+    AddMemberToValuetype(eConst, ValuetypeVariety.Fp64);
+
+    // Add static Equal method
+    var equalFormals = new List<Formal> {
+      new Formal(Token.NoToken, "a", fp64Type, true, false, null),
+      new Formal(Token.NoToken, "b", fp64Type, true, false, null)
+    };
+    var equalMethod = new SpecialFunction(SourceOrigin.NoToken, "Equal", SystemModule, true, false,
+      [], equalFormals, Type.Bool, [],
+      new Specification<FrameExpression>([], null), [],
+      new Specification<Expression>([], null), null, null, null);
+    equalMethod.EnclosingClass = fp64TypeDecl;
+    equalMethod.AddVisibilityScope(SystemModule.VisibilityScope, false);
+    // Note: SpecialFunction inherits HasStaticKeyword from Function which returns !IsGhost
+    // Since equalMethod has IsGhost=false, it will be treated as static
+    fp64TypeDecl.Members.Add(equalMethod);
+
+    // Add Abs method (static method)
+    var absFormals = new List<Formal> {
+      new Formal(Token.NoToken, "x", fp64Type, true, false, null)
+    };
+    var absMethod = new SpecialFunction(SourceOrigin.NoToken, "Abs", SystemModule, true, false,
+      [], absFormals, fp64Type, [],
+      new Specification<FrameExpression>([], null), [],
+      new Specification<Expression>([], null), null, null, null);
+    absMethod.EnclosingClass = fp64TypeDecl;
+    absMethod.AddVisibilityScope(SystemModule.VisibilityScope, false);
+    fp64TypeDecl.Members.Add(absMethod);
+
+    // Add Sqrt method (static method)
+    var sqrtFormals = new List<Formal> {
+      new Formal(Token.NoToken, "x", fp64Type, true, false, null)
+    };
+    var sqrtMethod = new SpecialFunction(SourceOrigin.NoToken, "Sqrt", SystemModule, true, false,
+      [], sqrtFormals, fp64Type, [],
+      new Specification<FrameExpression>([], null), [],
+      new Specification<Expression>([], null), null, null, null);
+    sqrtMethod.EnclosingClass = fp64TypeDecl;
+    sqrtMethod.AddVisibilityScope(SystemModule.VisibilityScope, false);
+    fp64TypeDecl.Members.Add(sqrtMethod);
+
+    // Note: We don't add fp64TypeDecl to SystemModule.SourceDecls here to avoid adding it to programs that don't use it
   }
 
   public static (UserDefinedType type, Action<SystemModuleManager> ModifyBuiltins) ArrayType(IOrigin tok, int dims, List<Type> optTypeArgs, bool allowCreationOfNewClass, bool useClassNameType = false) {
@@ -598,6 +748,7 @@ public class SystemModuleManager {
     Contract.Requires(member != null);
     Contract.Requires(tps != null && 1 <= tps.Count);
     var f = new IdentifierExpr(tok, id);
+    f.Type = id.Type;  // Set the type of the identifier expression
     // forall x0,x1,x2 :: f.reads(x0,x1,x2) == {}
     // OR
     // forall x0,x1,x2 :: f.requires(x0,x1,x2)

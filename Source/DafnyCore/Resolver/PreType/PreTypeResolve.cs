@@ -82,9 +82,19 @@ namespace Microsoft.Dafny {
         }
         return bvDecl;
       } else {
-        // If looking for fp64, ensure it's added to the module
+        // If looking for fp64, ensure it's in the preTypeBuiltins cache
         if (name == "fp64") {
-          resolver.ProgramResolver.SystemModuleManager.EnsureFp64TypeInitialized();
+          if (!preTypeInferenceModuleState.PreTypeBuiltins.ContainsKey("fp64")) {
+            var fp64Decl = resolver.ProgramResolver.SystemModuleManager.valuetypeDecls[4]; // fp64 is at index 4
+            resolver.ProgramResolver.SystemModuleManager.EnsureFp64TypeInitialized(resolver.ProgramResolver);
+
+            preTypeInferenceModuleState.PreTypeBuiltins.Add("fp64", fp64Decl);
+            FillInPreTypesInSignature(fp64Decl);
+            foreach (var member in fp64Decl.Members) {
+              FillInPreTypesInSignature(member);
+            }
+          }
+          return preTypeInferenceModuleState.PreTypeBuiltins.GetValueOrDefault("fp64");
         }
         decl = null;
         foreach (var valueTypeDecl in resolver.ProgramResolver.SystemModuleManager.valuetypeDecls) {
@@ -110,7 +120,9 @@ namespace Microsoft.Dafny {
           }
         }
       }
-      preTypeInferenceModuleState.PreTypeBuiltins.Add(name, decl);
+      if (decl != null && !preTypeInferenceModuleState.PreTypeBuiltins.ContainsKey(name)) {
+        preTypeInferenceModuleState.PreTypeBuiltins.Add(name, decl);
+      }
       return decl;
     }
 
