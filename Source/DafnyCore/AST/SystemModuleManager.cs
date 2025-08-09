@@ -262,7 +262,7 @@ public class SystemModuleManager {
     AddStaticSpecialField("Epsilon", SpecialField.ID.Epsilon);
   }
 
-  public void AddFp64EqualMethod(ValuetypeDecl enclosingType) {
+  public void AddFp64StaticMethods(ValuetypeDecl enclosingType) {
     // 2-argument arrow types are created early in the constructor to avoid circular dependencies
 
     // Create formals for Equal(x: fp64, y: fp64): bool
@@ -428,7 +428,8 @@ public class SystemModuleManager {
     var fp64TypeDecl = valuetypeDecls[(int)ValuetypeVariety.Fp64];
 
     // Check if already initialized by looking for a known member
-    if (fp64TypeDecl.Members.Any(m => m.Name == "IsFinite")) {
+    // Check for "Min" since it's added in AddFp64MathematicalFunctions which is called from AddFp64StaticMethods
+    if (fp64TypeDecl.Members.Any(m => m.Name == "Min")) {
       return; // Already initialized
     }
 
@@ -447,7 +448,10 @@ public class SystemModuleManager {
     }
 
     // Add fp64 members to the classMembers dictionary for member resolution
-    var memberDictionary = fp64TypeDecl.Members.ToDictionary(member => member.Name, member => member);
+    // Use GroupBy to handle any potential duplicates gracefully (though there shouldn't be any)
+    var memberDictionary = fp64TypeDecl.Members
+      .GroupBy(member => member.Name)
+      .ToDictionary(g => g.Key, g => g.First());
     programResolver.AddSystemClass(fp64TypeDecl, memberDictionary);
 
     // PreTypes for fp64 members will be filled in during regular resolution
@@ -458,7 +462,8 @@ public class SystemModuleManager {
     var fp64TypeDecl = valuetypeDecls[(int)ValuetypeVariety.Fp64];
 
     // Check if already initialized by looking for a known member
-    if (fp64TypeDecl.Members.Any(m => m.Name == "IsFinite")) {
+    // Check for "Min" since it's added in AddFp64MathematicalFunctions which is called from AddFp64StaticMethods
+    if (fp64TypeDecl.Members.Any(m => m.Name == "Min")) {
       return; // Already initialized
     }
 
@@ -523,6 +528,9 @@ public class SystemModuleManager {
 
     // Add static constants (like NaN, PositiveInfinity, etc.)
     AddFp64SpecialValues();
+
+    // Add static methods (Equal, Min, Max, Abs, Sqrt, etc.)
+    AddFp64StaticMethods(fp64TypeDecl);
   }
 
   // Add fp64 static special values
