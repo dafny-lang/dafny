@@ -1,2 +1,4 @@
-DerivedInvariantOverrideError.dfy(14,0): Error: overriding the invariant of a trait is not supported
-1 resolution/type errors detected in DerivedInvariantOverrideError.dfy
+DerivedInvariantOverrideError.dfy(35,6): Error: invariant for receiver of assignment could not be checked afterward
+DerivedInvariantOverrideError.dfy(37,6): Error: invariant for receiver of assignment could not be checked afterward
+
+Dafny program verifier finished with 8 verified, 2 errors

@@ -4144,15 +4144,12 @@ namespace Microsoft.Dafny {
       Contract.Requires(tok != null);
       Contract.Requires(etran != null);
       Contract.Ensures(Contract.Result<AssumeCmd>() != null);
-      
-      Expr expr = FunctionCall(tok, BuiltinFunction.IsGoodHeap, null, etran.HeapExpr);
-      
-      if (options.Get(CommonOptionBag.CheckInvariants)) {
-        etran.OpenFormal(tok, out var openExpr, out _);
-        expr = BplAnd(expr, FunctionCall(tok, BuiltinFunction.OpenHeapRelated, null, openExpr, etran.HeapExpr));
-      }
+      return TrAssumeCmd(tok, FunctionCall(tok, BuiltinFunction.IsGoodHeap, null, etran.HeapExpr));
+    }
 
-      return TrAssumeCmd(tok, expr);
+    Bpl.AssumeCmd AssumeOpenHeapRelated(IOrigin tok, ExpressionTranslator etran) {
+      etran.OpenFormal(tok, out var openExpr, out _);
+      return TrAssumeCmd(tok, FunctionCall(tok, BuiltinFunction.OpenHeapRelated, null, openExpr, etran.HeapExpr));
     }
 
     /// <summary>

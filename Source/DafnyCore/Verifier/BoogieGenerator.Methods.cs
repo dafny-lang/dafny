@@ -547,7 +547,10 @@ namespace Microsoft.Dafny {
       }
       // for a function in a class C that overrides a function in a trait J, add an axiom that connects J.F and C.F
       if (f.OverriddenFunction != null) {
-        sink.AddTopLevelDeclaration(FunctionOverrideAxiom(f.OverriddenFunction, f));
+        // You don't want the function override axiom for an invariant, since the overridden member may be unequal
+        if (!f.OverriddenFunction.TryCastToInvariant(options, reporter, MessageSource.Verifier, out _)) {
+          sink.AddTopLevelDeclaration(FunctionOverrideAxiom(f.OverriddenFunction, f));
+        }
       }
 
       // supply the connection between least/greatest predicates and prefix predicates

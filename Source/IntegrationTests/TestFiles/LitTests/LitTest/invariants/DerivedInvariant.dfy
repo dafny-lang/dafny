@@ -7,7 +7,7 @@ trait Base extends object {
      reads this
    method Foo() returns (r: int)
      ensures r == FooSpec()
-   //invariant x != 0 // ok, but subclasses cannot then declare an invariant
+   invariant x != 0
 }
 
 class Ext extends Base {
@@ -16,7 +16,7 @@ class Ext extends Base {
   function FooSpec(): int
     reads this
   {
-    assert this.invariant(); 1 / y
+    1 / y
   }
   method Foo() returns (r: int)
     ensures r == FooSpec()
@@ -30,7 +30,7 @@ trait Base2 extends object {
   function FooSpec(): int
     reads this
   {
-    assert this.invariant(); 1 / x
+    1 / x
   }
   method Foo() returns (r: int)
     ensures r == FooSpec()
@@ -49,14 +49,15 @@ method Upcast(e: Ext)
   modifies e
 {
   var b := e as Base;
-  b.x := 0; // no problem;
-  e.y := 1; // checks invariant, no problem
+  b.x := 1; // checks trait invariant
+  e.x := 1; // checks inherited invariant
+  e.y := 1; // checks derived invariant
 }
 
 method Upcast2(e: Ext2)
   modifies e
 {
   var b := e as Base2;
-  b.x := 10; // checks invariant
-  e.x := 2; // checks invariant
+  b.x := 10; // checks original invariant
+  e.x := 2; // checks derived invariant
 }
