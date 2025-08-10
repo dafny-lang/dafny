@@ -28,5 +28,4 @@ lemma ReasonAboutCounter(c: Counter)
   requires !c.stuttering
   ensures c.value == c.old_value + 1
 {
-  assert c.invariant(); // fire the axiom!
 }

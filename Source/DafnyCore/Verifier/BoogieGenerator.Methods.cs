@@ -4,6 +4,7 @@ using System.Diagnostics.Contracts;
 using System.Linq;
 using System.Text;
 using Microsoft.Boogie;
+using Microsoft.Dafny.Triggers;
 using Bpl = Microsoft.Boogie;
 using static Microsoft.Dafny.Util;
 using PODesc = Microsoft.Dafny.ProofObligationDescription;
@@ -493,6 +494,8 @@ namespace Microsoft.Dafny {
       var oldFuelContext = fuelContext;
       fuelContext = FuelSetting.NewFuelContext(invariant);
       var c = invariant.EnclosingClass;
+      Contract.Assert(currentModule == null);
+      currentModule = c.EnclosingModuleDefinition;
       var heap = BplBoundVar("$heap", Predef.HeapType, out var heapExpr);
       var etran = new ExpressionTranslator(this, Predef, heapExpr, invariant);
       // axiom: forall $heap : Heap, $open : Set, this : `c` | $OpenHeapRelated($open, $heap) :: this in $open || this.invariant($heap)
@@ -507,14 +510,36 @@ namespace Microsoft.Dafny {
       var tyParams = MkTyParamBinders(GetTypeParams(c), out var tyParamTriggers);
       var openHeapRelated = FunctionCall(origin, BuiltinFunction.OpenHeapRelated, null, openExpr, heapExpr);
       var thisInOpen = etran.TrExpr(new BinaryExpr(origin, BinaryExpr.ResolvedOpcode.InSet, thisExprDafny, openExprDafny));
+      
+      // Mine the body of the invariant for triggers
+      var finder = new Triggers.QuantifierCollector(reporter);
+      BoundVar triggerBv = new(origin, "o", thisType);
+      var triggerMiningExpression = new ForallExpr(origin, [triggerBv], null,
+        Substitute(invariant.Body, new IdentifierExpr(origin, triggerBv), [])) { Type = Type.Bool /* resolve */ };
+      finder.Visit(triggerMiningExpression, null);
+      var _triggersCollector = new Triggers.TriggersCollector(finder.exprsInOldContext, reporter.Options, currentModule);
+      foreach (var quantifierCollection in finder.quantifierCollections) {
+        quantifierCollection.ComputeTriggers(_triggersCollector);
+        quantifierCollection.CommitTriggers(program.SystemModuleManager);
+      }
+      finder.ApplyPostActions();
+      var bodyTriggers = triggerMiningExpression.Attributes.AsEnumerable()
+        .Where(attr => attr.Name == "trigger")
+        .Select(attr => etran.TrExpr(Substitute(attr.Args[0], triggerBv, thisExprDafny)));
       Trigger trigger = new(origin, true, [@is, openHeapRelated, thisInOpen],
         new(origin, true, [@is, openHeapRelated, etran.TrExpr(invariant.Mention(origin, thisExprDafny, program.SystemModuleManager))]));
+      foreach (var bodyTrigger in bodyTriggers) {
+        trigger = new(origin, true, [@is, openHeapRelated, bodyTrigger], trigger);
+      }
+
+      var axiomBody = invariant.Use(origin, thisExprDafny, program.SystemModuleManager, etran, bv: open);
       var axiom = BplForall(tyParams.Concat([heap, open, @this]), trigger, BplImp(
           BplAnd([@is, isAlloc, openHeapRelated]),
-          etran.TrExpr(invariant.Use(origin, thisExprDafny, program.SystemModuleManager, etran, bv: open)))
-      );
+          BplAnd(etran.CanCallAssumption(axiomBody), etran.TrExpr(axiomBody))
+      ));
       sink.AddTopLevelDeclaration(new Axiom(origin, axiom, $"conditional invariant axiom for {c.FullSanitizedName}"));
       fuelContext = oldFuelContext;
+      currentModule = null;
     }
 
     private void AddClassMember_Function(Function f) {

@@ -24,6 +24,6 @@ class C {
   }
 
   static method foo(c: C) {
-    assert c.valid by { assert c.invariant(); } // pass
+    assert c.valid; // pass
   }
 }

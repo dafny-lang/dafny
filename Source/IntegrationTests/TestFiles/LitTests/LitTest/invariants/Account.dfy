@@ -30,7 +30,7 @@ class Account {
 method Use(a: Account)
   modifies a
 {
-  a.Deposit(100) by { assert a.invariant(); } // need this for the following call to be well-formed
+  a.Deposit(100);
   a.Withdraw(50);
   a.Withdraw(50);
   assert a.Balance() >= 0;

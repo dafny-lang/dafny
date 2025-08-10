@@ -24,7 +24,7 @@ class C {
  
   static method UseInvariant(c: C) 
   {
-    var y := 3 / c.x by { assert c.invariant(); }
+    var y := 3 / c.x;
   }
 
   static method External(c: C)
