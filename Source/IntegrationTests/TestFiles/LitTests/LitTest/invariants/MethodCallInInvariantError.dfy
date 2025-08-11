@@ -5,7 +5,6 @@ class Account {
   var credit: nat
   var debit: nat
   lemma Call()
-    ensures this.invariant()
   {
   }
   invariant (Call(); credit - debit >= 0)

@@ -127,6 +127,11 @@ namespace Microsoft.Dafny {
           AddCallGraphEdgeRaw(prefixPredicate, prefixPredicate.ExtremePred);
         }
 
+        if (!f.IsStatic && f.EnclosingClass is TopLevelDeclWithMembers { Invariant: { } invariant }) {
+          // add an edge from f to the enclosing class's invariant, since it is implicitly required by f
+          AddCallGraphEdgeRaw(f, invariant);
+        }
+
         base.VisitFunction(f);
       }
 
@@ -139,6 +144,11 @@ namespace Microsoft.Dafny {
         if (method is PrefixLemma prefixLemma) {
           // add an edge from M# to M, since this will have the desired effect of detecting unwanted cycles.
           AddCallGraphEdgeRaw(prefixLemma, prefixLemma.ExtremeLemma);
+        }
+        
+        if (!method.IsStatic && method.EnclosingClass is TopLevelDeclWithMembers { Invariant: { } invariant }) {
+          // add an edge from method to the enclosing class's invariant, since it is implicitly required and ensured by method
+          AddCallGraphEdgeRaw(method, invariant);
         }
 
         base.VisitMethod(method);
