@@ -790,16 +790,9 @@ public abstract class Expression : NodeWithOrigin {
   /// Wrap the resolved call in the usual unresolved structure, in case the expression is cloned and re-resolved.
   /// </summary>
   public static Expression WrapResolvedCall(FunctionCallExpr call, SystemModuleManager systemModuleManager) {
-    // Wrap the resolved call in the usual unresolved structure, in case the expression is cloned and re-resolved.
-    if (call?.Receiver?.Type == null) {
-      var msg = $"WrapResolvedCall called with null receiver or type. Receiver: {call?.Receiver}, ReceiverType: {call?.Receiver?.GetType()}";
-      throw new InvalidOperationException(msg);
-    }
-
-    var normalizedType = call.Receiver.Type.NormalizeExpand();
     Dictionary<TypeParameter, Type> subst;
 
-    if (normalizedType is UserDefinedType receiverType) {
+    if (call.Receiver.Type.NormalizeExpand() is UserDefinedType receiverType) {
       subst = TypeParameter.SubstitutionMap(receiverType.ResolvedClass.TypeArgs, receiverType.TypeArgs);
       subst = ModuleResolver.AddParentTypeParameterSubstitutions(subst, receiverType);
     } else {
