@@ -261,7 +261,9 @@ method TestSpecialValueCreation() {
 
   // Create NaN through invalid operations
   var zero: fp64 := 0.0;
-  // TODO: Add wellformedness checks!
+  // These operations create NaN following IEEE 754 semantics
+  // Dafny currently allows NaN creation (no preconditions prevent it)
+  // Note: NaN values cannot be compared for equality in compiled contexts
   var nan_created1 := fp64.PositiveInfinity - fp64.PositiveInfinity;
   var nan_created2 := fp64.Sqrt(-1.0);
   assert nan_created1.IsNaN;
