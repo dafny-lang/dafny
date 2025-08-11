@@ -1814,11 +1814,11 @@ namespace Dafny {
       const ulong exptMask = 0x7FF0000000000000;
       const ulong mantMask = 0x000FFFFFFFFFFFFF;
       const int mantBits = 52;
-      ulong bits = BitConverter.ToUInt64(BitConverter.GetBytes(n), 0);
+      var bits = BitConverter.ToUInt64(BitConverter.GetBytes(n), 0);
 
       // Generic conversion
-      bool isNeg = (bits & signMask) != 0;
-      int expt = ((int)((bits & exptMask) >> mantBits)) - exptBias;
+      var isNeg = (bits & signMask) != 0;
+      var expt = ((int)((bits & exptMask) >> mantBits)) - exptBias;
       var mant = (bits & mantMask);
 
       if (expt == -exptBias && mant != 0) {
@@ -1866,29 +1866,29 @@ namespace Dafny {
     }
 
     public float ToSingle() {
-      double result = ToFloatingPointImpl(24, 8);
+      var result = ToFloatingPointImpl(24, 8);
       return (float)result;
     }
 
     // Convert rational to IEEE 754 floating-point with proper rounding
     private double ToFloatingPointImpl(int significandSize, int exponentSize) {
-      int bias = (1 << (exponentSize - 1)) - 1;
-      int significandFieldBits = significandSize - 1;
+      var bias = (1 << (exponentSize - 1)) - 1;
+      var significandFieldBits = significandSize - 1;
       if (num.IsZero) {
         return (den.Sign < 0) ? -0.0 : 0.0;
       }
 
-      bool isNegative = num.Sign < 0;
-      BigInteger absNum = BigInteger.Abs(num);
-      BigInteger absDen = BigInteger.Abs(den);
+      var isNegative = num.Sign < 0;
+      var absNum = BigInteger.Abs(num);
+      var absDen = BigInteger.Abs(den);
 
       // Scale for precision (extra bits for accurate rounding)
-      int numBits = GetBitLength(absNum);
-      int denBits = GetBitLength(absDen);
-      int scaleBits = significandSize + 3 + Math.Max(0, denBits - numBits);
+      var numBits = GetBitLength(absNum);
+      var denBits = GetBitLength(absDen);
+      var scaleBits = significandSize + 3 + Math.Max(0, denBits - numBits);
 
-      BigInteger scaledNum = absNum << scaleBits;
-      BigInteger quotient = BigInteger.DivRem(scaledNum, absDen, out BigInteger remainder);
+      var scaledNum = absNum << scaleBits;
+      var quotient = BigInteger.DivRem(scaledNum, absDen, out var remainder);
 
       // Round to nearest even
       if (remainder * 2 > absDen || (remainder * 2 == absDen && !quotient.IsEven)) {
@@ -1898,10 +1898,10 @@ namespace Dafny {
       if (quotient.IsZero) {
         return isNegative ? -0.0 : 0.0;
       }
-      int quotientBits = GetBitLength(quotient);
-      int unbiasedExponent = quotientBits - scaleBits - 1;
-      int biasedExponent = unbiasedExponent + bias;
-      int maxExponent = (1 << exponentSize) - 1;
+      var quotientBits = GetBitLength(quotient);
+      var unbiasedExponent = quotientBits - scaleBits - 1;
+      var biasedExponent = unbiasedExponent + bias;
+      var maxExponent = (1 << exponentSize) - 1;
 
       // Handle overflow to infinity
       if (biasedExponent >= maxExponent) {
@@ -1910,7 +1910,7 @@ namespace Dafny {
 
       // Handle underflow and subnormals
       if (biasedExponent <= 0) {
-        int minBiasedExp = 2 - significandSize;
+        var minBiasedExp = 2 - significandSize;
         if (biasedExponent < minBiasedExp) {
           // Special case: exactly at the halfway point
           if (biasedExponent == minBiasedExp - 1 && quotient == BigInteger.One << (quotientBits - 1)) {
@@ -1919,14 +1919,14 @@ namespace Dafny {
           }
 
           // Otherwise, check if rounding brings us to smallest subnormal
-          BigInteger rounded = ApplyRoundedRightShift(quotient, quotientBits);
+          var rounded = ApplyRoundedRightShift(quotient, quotientBits);
           if (rounded > 0) {
             // Rounds up to smallest subnormal
             return ConvertSubnormalToDouble(1, significandSize, bias, significandFieldBits, isNegative);
           }
           return isNegative ? -0.0 : 0.0;
         }
-        int shiftAmount = quotientBits - significandSize - biasedExponent + 1;
+        var shiftAmount = quotientBits - significandSize - biasedExponent + 1;
         if (shiftAmount > 0) {
           quotient = ApplyRoundedRightShift(quotient, shiftAmount);
         }
@@ -1949,24 +1949,24 @@ namespace Dafny {
           }
         }
       }
-      ulong significandField = (ulong)(quotient & ((1L << significandFieldBits) - 1));
+      var significandField = (ulong)(quotient & ((1L << significandFieldBits) - 1));
 
       // Convert to 64-bit double format
       const int DOUBLE_SIGNIFICAND_FIELD_BITS = 52;
       const int DOUBLE_EXPONENT_SIZE = 11;
       const int DOUBLE_BIAS = 1023;
 
-      ulong significandField64 = significandField << (DOUBLE_SIGNIFICAND_FIELD_BITS - significandFieldBits);
+      var significandField64 = significandField << (DOUBLE_SIGNIFICAND_FIELD_BITS - significandFieldBits);
 
       int adjustedExponent;
-      int maxExponentValue = (1 << exponentSize) - 1;
+      var maxExponentValue = (1 << exponentSize) - 1;
 
       if (biasedExponent == 0) {
         adjustedExponent = 0;
       } else if (biasedExponent == maxExponentValue) {
         adjustedExponent = (1 << DOUBLE_EXPONENT_SIZE) - 1;
       } else {
-        int unbias = biasedExponent - bias;
+        var unbias = biasedExponent - bias;
         adjustedExponent = unbias + DOUBLE_BIAS;
 
         if (adjustedExponent <= 0) {
@@ -1977,9 +1977,9 @@ namespace Dafny {
         }
       }
 
-      ulong expBits64 = (ulong)adjustedExponent << DOUBLE_SIGNIFICAND_FIELD_BITS;
-      ulong signBit64 = isNegative ? 0x8000000000000000UL : 0;
-      ulong doubleBits = signBit64 | expBits64 | significandField64;
+      var expBits64 = (ulong)adjustedExponent << DOUBLE_SIGNIFICAND_FIELD_BITS;
+      var signBit64 = isNegative ? 0x8000000000000000UL : 0;
+      var doubleBits = signBit64 | expBits64 | significandField64;
       return BitConverter.Int64BitsToDouble((long)doubleBits);
     }
 
@@ -1987,32 +1987,40 @@ namespace Dafny {
     private static double ConvertSubnormalToDouble(BigInteger quotient, int significandSize, int bias, int significandFieldBits, bool isNegative) {
       if (significandSize < 53) {
         // Calculate actual exponent for this subnormal value
-        int actualExponent = 1 - bias - significandFieldBits + GetBitLength(quotient) - 1;
-        int doubleExponent = actualExponent + 1023;
+        var actualExponent = 1 - bias - significandFieldBits + GetBitLength(quotient) - 1;
+        var doubleExponent = actualExponent + 1023;
 
         if (doubleExponent > 0) {
           // Smaller format subnormal becomes normal double
-          ulong floatAsDoubleBits = (ulong)doubleExponent << 52;
+          var floatAsDoubleBits = (ulong)doubleExponent << 52;
           if (quotient > 1) {
-            ulong sig = (ulong)((quotient - (BigInteger.One << (GetBitLength(quotient) - 1))) << (52 - (GetBitLength(quotient) - 1)));
+            var sig = (ulong)((quotient - (BigInteger.One << (GetBitLength(quotient) - 1))) << (52 - (GetBitLength(quotient) - 1)));
             floatAsDoubleBits |= sig;
           }
-          if (isNegative) floatAsDoubleBits |= 0x8000000000000000UL;
+          if (isNegative) {
+            floatAsDoubleBits |= 0x8000000000000000UL;
+          }
+
           return BitConverter.Int64BitsToDouble((long)floatAsDoubleBits);
         }
       }
       // Double format subnormal - store directly
-      ulong subnormalBits = (ulong)quotient;
-      if (isNegative) subnormalBits |= 0x8000000000000000UL;
+      var subnormalBits = (ulong)quotient;
+      if (isNegative) {
+        subnormalBits |= 0x8000000000000000UL;
+      }
+
       return BitConverter.Int64BitsToDouble((long)subnormalBits);
     }
 
     private static BigInteger ApplyRoundedRightShift(BigInteger value, int shift) {
-      if (shift <= 0) return value << -shift;
+      if (shift <= 0) {
+        return value << -shift;
+      }
 
-      BigInteger shifted = value >> shift;
-      BigInteger remainder = value & ((BigInteger.One << shift) - 1);
-      BigInteger halfPoint = BigInteger.One << (shift - 1);
+      var shifted = value >> shift;
+      var remainder = value & ((BigInteger.One << shift) - 1);
+      var halfPoint = BigInteger.One << (shift - 1);
 
       if (remainder > halfPoint || (remainder == halfPoint && !shifted.IsEven)) {
         shifted++;
@@ -2021,16 +2029,29 @@ namespace Dafny {
       return shifted;
     }
     private static int GetBitLength(BigInteger value) {
-      if (value.IsZero) return 0;
-      if (value.Sign < 0) value = -value;
+      if (value.IsZero) {
+        return 0;
+      }
 
-      int bits = 0;
-      BigInteger temp = value;
+      if (value.Sign < 0) {
+        value = -value;
+      }
+
+#if NET5_0_OR_GREATER || NET6_0_OR_GREATER
+      // Use built-in GetBitLength() method (available in .NET 5.0+)
+      // This is O(1) instead of O(n) for n-bit numbers
+      return (int)value.GetBitLength();
+#else
+      // Fallback for older .NET versions - O(n) algorithm
+      // Consider using a binary search approach for better performance on large numbers
+      var bits = 0;
+      var temp = value;
       while (temp > 0) {
         bits++;
         temp >>= 1;
       }
       return bits;
+#endif
     }
 
     /// <summary>
@@ -2057,8 +2078,8 @@ namespace Dafny {
     }
     public int CompareTo(BigRational that) {
       // simple things first
-      int asign = this.num.Sign;
-      int bsign = that.num.Sign;
+      var asign = this.num.Sign;
+      var bsign = that.num.Sign;
       if (asign < 0 && 0 <= bsign) {
         return -1;
       } else if (asign <= 0 && 0 < bsign) {

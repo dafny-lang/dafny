@@ -892,8 +892,9 @@ namespace Microsoft.Dafny {
               return MaybeLit(new Bpl.LiteralExpr(GetToken(e), decLit.ResolvedFloatValue.Value), BoogieGenerator.TrType(e.Type));
             }
 
-            // Fallback: This should not happen if resolution is working correctly
-            // All DecimalLiteralExpr with fp64 type should have ResolvedFloatValue set
+            // Fallback for literals created programmatically
+            // This can happen when literals are created during optimization, deserialization,
+            // or other compiler transformations that bypass the normal resolution path
             var decValue = (BaseTypes.BigDec)e.Value;
             BigFloat.FromBigDec(decValue, 53, 11, out var fp64Value);
 

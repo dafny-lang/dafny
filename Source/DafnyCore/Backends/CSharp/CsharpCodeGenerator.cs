@@ -2278,8 +2278,9 @@ namespace Microsoft.Dafny.Compilers {
             // C# requires 'd' or 'D' suffix for double literals to distinguish from float
             wr.Write(decimalStr + "d");
           } else {
-            // Fallback: convert BigDec directly
-            // This should only happen for literals created outside normal parsing
+            // Fallback for literals created programmatically
+            // This can happen when literals are created during optimization, deserialization,
+            // or other compiler transformations that bypass the normal resolution path
             BigFloat.FromBigDec(n, 53, 11, out var fp64Value);
             var decimalStr = fp64Value.ToDecimalString();
             wr.Write(decimalStr + "d");
@@ -3336,19 +3337,14 @@ namespace Microsoft.Dafny.Compilers {
 
       switch (op) {
         case BinaryExpr.ResolvedOpcode.EqCommon: {
-            // Check if original type is fp64 before simplification
-            var normalizedType = e0Type.NormalizeExpand();
-            if (normalizedType is Fp64Type || e0Type.IsFp64Type || (e0Type is UserDefinedType udt0 && udt0.Name == "fp64")) {
+            // Use direct comparison for fp64
+            if (e0Type.NormalizeExpand() is Fp64Type) {
               opString = "==";
               break;
             }
 
             var eqType = DatatypeWrapperEraser.SimplifyType(Options, e0Type);
-            // Check if this is fp64 (either as Fp64Type or as a UserDefinedType referring to fp64)
-            if (eqType is UserDefinedType udtEq && (udtEq.Name == "fp64" || udtEq.ResolvedClass is ValuetypeDecl vd && vd.Name == "fp64")) {
-              // Force direct comparison for fp64
-              opString = "==";
-            } else if (eqType.IsRefType) {
+            if (eqType.IsRefType) {
               // Dafny's type rules are slightly different C#, so we may need a cast here.
               // For example, Dafny allows x==y if x:array<T> and y:array<int> and T is some
               // type parameter.
@@ -3361,19 +3357,14 @@ namespace Microsoft.Dafny.Compilers {
             break;
           }
         case BinaryExpr.ResolvedOpcode.NeqCommon: {
-            // Check if original type is fp64 before simplification
-            var normalizedType = e0Type.NormalizeExpand();
-            if (normalizedType is Fp64Type || e0Type.IsFp64Type || (e0Type is UserDefinedType udt0 && udt0.Name == "fp64")) {
+            // Use direct comparison for fp64
+            if (e0Type.NormalizeExpand() is Fp64Type) {
               opString = "!=";
               break;
             }
 
             var eqType = DatatypeWrapperEraser.SimplifyType(Options, e0Type);
-            // Check if this is fp64 (either as Fp64Type or as a UserDefinedType referring to fp64)
-            if (eqType is UserDefinedType udtEq && (udtEq.Name == "fp64" || udtEq.ResolvedClass is ValuetypeDecl vd && vd.Name == "fp64")) {
-              // Force direct comparison for fp64
-              opString = "!=";
-            } else if (eqType.IsRefType) {
+            if (eqType.IsRefType) {
               // Dafny's type rules are slightly different C#, so we may need a cast here.
               // For example, Dafny allows x==y if x:array<T> and y:array<int> and T is some
               // type parameter.

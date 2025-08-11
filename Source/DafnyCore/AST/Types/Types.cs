@@ -1952,21 +1952,17 @@ public class Fp64Type : BasicType {
     return that.NormalizeExpand(keepConstraints) is Fp64Type;
   }
 
-  // Key implementation: fp64 supports equality with preconditions (per spec section 5.3)
-  // In ghost contexts, equality is reflexive (x == x always true)
+  // Key implementation: fp64 supports equality with preconditions
+  // In ghost contexts, equality is reflexive
   // In compiled contexts, equality requires preconditions !x.IsNaN && !y.IsNaN
   public override bool SupportsEquality => true;
   public override bool PartiallySupportsEquality => true;
 
-  // Allow real literals to be assigned to fp64 (for now, simple approach)
   public override bool IsSubtypeOf(Type super, bool ignoreTypeArguments, bool ignoreNullity) {
-    if (super is RealVarietiesSupertype) {
-      return true;
-    }
-    if (super is Fp64Type) {
-      return true;
-    }
-    return base.IsSubtypeOf(super, ignoreTypeArguments, ignoreNullity);
+    return super switch {
+      RealVarietiesSupertype or Fp64Type => true,
+      _ => base.IsSubtypeOf(super, ignoreTypeArguments, ignoreNullity)
+    };
   }
 }
 
