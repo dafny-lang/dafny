@@ -2781,11 +2781,10 @@ namespace Microsoft.Dafny.Compilers {
         wr.Write(")");
       } else if (e.Function is SpecialFunction && e.Function.Name == "FromReal" && e.Function.EnclosingClass?.Name == "fp64") {
         // Handle fp64.FromReal(r) -> inexact conversion from real to double
-        // BigRational doesn't have ToDouble, so we compute it as num/den
-        var tmpVar = ProtectedFreshId("_fromRealTmp");
-        wr.Write("((System.Func<double>)(() => {{ var {0} = ", tmpVar);
+        // Use BigRational.ToDouble() which properly handles IEEE 754 rounding
+        wr.Write("(");
         tr(e.Args[0], wr, inLetExprBody, wStmts);
-        wr.Write("; return ((double){0}.num) / ((double){0}.den); }}))()", tmpVar);
+        wr.Write(").ToDouble()");
       } else if (e.Function is SpecialFunction && e.Function.Name == "ToInt" && e.Function.EnclosingClass?.Name == "fp64") {
         // Handle fp64.ToInt(f) -> truncating conversion from fp64 to int
         wr.Write("((System.Numerics.BigInteger)Math.Truncate(");

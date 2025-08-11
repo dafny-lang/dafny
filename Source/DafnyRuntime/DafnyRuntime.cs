@@ -1862,12 +1862,175 @@ namespace Dafny {
     }
 
     public double ToDouble() {
+      return ToFloatingPointImpl(53, 11);
+    }
+
+    public float ToSingle() {
+      double result = ToFloatingPointImpl(24, 8);
+      return (float)result;
+    }
+
+    // Convert rational to IEEE 754 floating-point with proper rounding
+    private double ToFloatingPointImpl(int significandSize, int exponentSize) {
+      int bias = (1 << (exponentSize - 1)) - 1;
+      int significandFieldBits = significandSize - 1;
       if (num.IsZero) {
-        return 0.0;
+        return (den.Sign < 0) ? -0.0 : 0.0;
       }
-      // Convert numerator and denominator to double
-      // This may lose precision for very large values
-      return (double)num / (double)den;
+
+      bool isNegative = num.Sign < 0;
+      BigInteger absNum = BigInteger.Abs(num);
+      BigInteger absDen = BigInteger.Abs(den);
+
+      // Scale for precision (extra bits for accurate rounding)
+      int numBits = GetBitLength(absNum);
+      int denBits = GetBitLength(absDen);
+      int scaleBits = significandSize + 3 + Math.Max(0, denBits - numBits);
+
+      BigInteger scaledNum = absNum << scaleBits;
+      BigInteger quotient = BigInteger.DivRem(scaledNum, absDen, out BigInteger remainder);
+
+      // Round to nearest even
+      if (remainder * 2 > absDen || (remainder * 2 == absDen && !quotient.IsEven)) {
+        quotient++;
+      }
+
+      if (quotient.IsZero) {
+        return isNegative ? -0.0 : 0.0;
+      }
+      int quotientBits = GetBitLength(quotient);
+      int unbiasedExponent = quotientBits - scaleBits - 1;
+      int biasedExponent = unbiasedExponent + bias;
+      int maxExponent = (1 << exponentSize) - 1;
+
+      // Handle overflow to infinity
+      if (biasedExponent >= maxExponent) {
+        return isNegative ? double.NegativeInfinity : double.PositiveInfinity;
+      }
+
+      // Handle underflow and subnormals
+      if (biasedExponent <= 0) {
+        int minBiasedExp = 2 - significandSize;
+        if (biasedExponent < minBiasedExp) {
+          // Special case: exactly at the halfway point
+          if (biasedExponent == minBiasedExp - 1 && quotient == BigInteger.One << (quotientBits - 1)) {
+            // Exactly halfway between 0 and smallest subnormal - round to even (0)
+            return isNegative ? -0.0 : 0.0;
+          }
+
+          // Otherwise, check if rounding brings us to smallest subnormal
+          BigInteger rounded = ApplyRoundedRightShift(quotient, quotientBits);
+          if (rounded > 0) {
+            // Rounds up to smallest subnormal
+            return ConvertSubnormalToDouble(1, significandSize, bias, significandFieldBits, isNegative);
+          }
+          return isNegative ? -0.0 : 0.0;
+        }
+        int shiftAmount = quotientBits - significandSize - biasedExponent + 1;
+        if (shiftAmount > 0) {
+          quotient = ApplyRoundedRightShift(quotient, shiftAmount);
+        }
+
+        if (quotient.IsZero) {
+          return isNegative ? -0.0 : 0.0;
+        }
+
+        return ConvertSubnormalToDouble(quotient, significandSize, bias, significandFieldBits, isNegative);
+      }
+
+      // Normalize significand
+      if (quotientBits > significandSize) {
+        quotient = ApplyRoundedRightShift(quotient, quotientBits - significandSize);
+        if (GetBitLength(quotient) > significandSize) {
+          quotient >>= 1;
+          biasedExponent++;
+          if (biasedExponent >= maxExponent) {
+            return isNegative ? double.NegativeInfinity : double.PositiveInfinity;
+          }
+        }
+      }
+      ulong significandField = (ulong)(quotient & ((1L << significandFieldBits) - 1));
+
+      // Convert to 64-bit double format
+      const int DOUBLE_SIGNIFICAND_FIELD_BITS = 52;
+      const int DOUBLE_EXPONENT_SIZE = 11;
+      const int DOUBLE_BIAS = 1023;
+
+      ulong significandField64 = significandField << (DOUBLE_SIGNIFICAND_FIELD_BITS - significandFieldBits);
+
+      int adjustedExponent;
+      int maxExponentValue = (1 << exponentSize) - 1;
+
+      if (biasedExponent == 0) {
+        adjustedExponent = 0;
+      } else if (biasedExponent == maxExponentValue) {
+        adjustedExponent = (1 << DOUBLE_EXPONENT_SIZE) - 1;
+      } else {
+        int unbias = biasedExponent - bias;
+        adjustedExponent = unbias + DOUBLE_BIAS;
+
+        if (adjustedExponent <= 0) {
+          adjustedExponent = 0;
+        } else if (adjustedExponent >= ((1 << DOUBLE_EXPONENT_SIZE) - 1)) {
+          adjustedExponent = (1 << DOUBLE_EXPONENT_SIZE) - 1;
+          significandField64 = 0;
+        }
+      }
+
+      ulong expBits64 = (ulong)adjustedExponent << DOUBLE_SIGNIFICAND_FIELD_BITS;
+      ulong signBit64 = isNegative ? 0x8000000000000000UL : 0;
+      ulong doubleBits = signBit64 | expBits64 | significandField64;
+      return BitConverter.Int64BitsToDouble((long)doubleBits);
+    }
+
+    // Helper to convert subnormal value from smaller format to double representation
+    private static double ConvertSubnormalToDouble(BigInteger quotient, int significandSize, int bias, int significandFieldBits, bool isNegative) {
+      if (significandSize < 53) {
+        // Calculate actual exponent for this subnormal value
+        int actualExponent = 1 - bias - significandFieldBits + GetBitLength(quotient) - 1;
+        int doubleExponent = actualExponent + 1023;
+
+        if (doubleExponent > 0) {
+          // Smaller format subnormal becomes normal double
+          ulong floatAsDoubleBits = (ulong)doubleExponent << 52;
+          if (quotient > 1) {
+            ulong sig = (ulong)((quotient - (BigInteger.One << (GetBitLength(quotient) - 1))) << (52 - (GetBitLength(quotient) - 1)));
+            floatAsDoubleBits |= sig;
+          }
+          if (isNegative) floatAsDoubleBits |= 0x8000000000000000UL;
+          return BitConverter.Int64BitsToDouble((long)floatAsDoubleBits);
+        }
+      }
+      // Double format subnormal - store directly
+      ulong subnormalBits = (ulong)quotient;
+      if (isNegative) subnormalBits |= 0x8000000000000000UL;
+      return BitConverter.Int64BitsToDouble((long)subnormalBits);
+    }
+
+    private static BigInteger ApplyRoundedRightShift(BigInteger value, int shift) {
+      if (shift <= 0) return value << -shift;
+
+      BigInteger shifted = value >> shift;
+      BigInteger remainder = value & ((BigInteger.One << shift) - 1);
+      BigInteger halfPoint = BigInteger.One << (shift - 1);
+
+      if (remainder > halfPoint || (remainder == halfPoint && !shifted.IsEven)) {
+        shifted++;
+      }
+
+      return shifted;
+    }
+    private static int GetBitLength(BigInteger value) {
+      if (value.IsZero) return 0;
+      if (value.Sign < 0) value = -value;
+
+      int bits = 0;
+      BigInteger temp = value;
+      while (temp > 0) {
+        bits++;
+        temp >>= 1;
+      }
+      return bits;
     }
 
     /// <summary>
