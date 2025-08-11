@@ -1441,58 +1441,24 @@ namespace Microsoft.Dafny {
         }
       }
 
-      super = super.NormalizeExpand(keepConstraints);
-      sub = sub.NormalizeExpand(keepConstraints);
-
-      // Handle TypeProxy objects that point to built-in types from static function calls
-      // This is a valid case for the new static function functionality on built-in types
-      if (sub is TypeProxy subProxy && subProxy.T != null) {
-        var normalizedSub = subProxy.T.NormalizeExpand(keepConstraints);
-        if (normalizedSub != null && !(normalizedSub is TypeProxy)) {
-          // Replace the proxy with the normalized type to avoid assertion failures
-          sub = normalizedSub;
-        }
-      }
-      if (super is TypeProxy superProxy && superProxy.T != null) {
-        var normalizedSuper = superProxy.T.NormalizeExpand(keepConstraints);
-        if (normalizedSuper != null && !(normalizedSuper is TypeProxy)) {
-          // Replace the proxy with the normalized type to avoid assertion failures
-          super = normalizedSuper;
-        }
-      }
-
+      // Normalization will be done in ConstrainSubtypeRelation_Aux to ensure consistency
       var c = new TypeConstraint(super, sub, errMsg, keepConstraints);
       AllTypeConstraints.Add(c);
       return ConstrainSubtypeRelation_Aux(super, sub, c, keepConstraints, allowDecisions);
     }
     private bool ConstrainSubtypeRelation_Aux(Type super, Type sub, TypeConstraint c, bool keepConstraints, bool allowDecisions) {
       Contract.Requires(sub != null);
-      if (sub is TypeProxy subProxy && subProxy.T != null) {
-        Console.WriteLine($"DEBUG ASSERTION FAILURE: Found TypeProxy with non-null T in ConstrainSubtypeRelation_Aux:");
-        Console.WriteLine($"  sub = {sub}");
-        Console.WriteLine($"  subProxy.T = {subProxy.T}");
-        Console.WriteLine($"  subProxy.T.GetType() = {subProxy.T.GetType()}");
-        Console.WriteLine($"  super = {super}");
-
-        // Print stack trace to see where this comes from
-        var stackTrace = new System.Diagnostics.StackTrace(true);
-        Console.WriteLine($"  Stack trace:");
-        for (int i = 0; i < Math.Min(10, stackTrace.FrameCount); i++) {
-          var frame = stackTrace.GetFrame(i);
-          Console.WriteLine($"    {i}: {frame?.GetMethod()?.Name} in {System.IO.Path.GetFileName(frame?.GetFileName())}:{frame?.GetFileLineNumber()}");
-        }
-
-        // Use the normalized type to avoid assertion failure
-        var normalizedSub = subProxy.T.NormalizeExpand();
-        if (normalizedSub != null && !(normalizedSub is TypeProxy)) {
-          Console.WriteLine($"  Using normalized type: {normalizedSub}");
-          return ConstrainSubtypeRelation_Aux(super, normalizedSub, c, keepConstraints, allowDecisions);
-        }
-      }
-
-      Contract.Requires(!(sub is TypeProxy) || ((TypeProxy)sub).T == null);  // caller is expected to have Normalized away proxies
       Contract.Requires(super != null);
-      Contract.Requires(!(super is TypeProxy) || ((TypeProxy)super).T == null);  // caller is expected to have Normalized away proxies
+
+      // Normalize both types to handle intermediate TypeProxy states
+      // This can occur with arrow types from static functions on built-in types like fp64.Equal
+      // During type resolution, arrow types may temporarily be wrapped in TypeProxy
+      sub = sub.NormalizeExpand(keepConstraints);
+      super = super.NormalizeExpand(keepConstraints);
+
+      // After normalization, neither should be a TypeProxy with non-null T
+      Contract.Assert(!(sub is TypeProxy) || ((TypeProxy)sub).T == null);
+      Contract.Assert(!(super is TypeProxy) || ((TypeProxy)super).T == null);
       Contract.Requires(c != null);
 
       if (object.ReferenceEquals(super, sub)) {
@@ -1627,15 +1593,8 @@ namespace Microsoft.Dafny {
       Contract.Requires(proxy.T == null);
       Contract.Requires(t != null);
 
-      // Handle the case where t is a TypeProxy pointing to a built-in type
-      // This can happen with static function calls on built-in types like fp64.Equal
-      if (t is TypeProxy tProxy && tProxy.T != null) {
-        var normalizedT = tProxy.T.NormalizeExpand();
-        if (normalizedT != null && !(normalizedT is TypeProxy)) {
-          // Use the normalized built-in type instead of the proxy
-          t = normalizedT;
-        }
-      }
+      // Normalize t to ensure it's not a TypeProxy with non-null T
+      t = t.NormalizeExpand(keepConstraints);
 
       Contract.Requires(!(t is TypeProxy));
       Contract.Requires(!(t is ArtificialType));
