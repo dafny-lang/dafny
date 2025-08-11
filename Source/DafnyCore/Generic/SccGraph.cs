@@ -16,8 +16,8 @@ namespace Microsoft.Dafny {
       public List<Vertex/*!*/> SccMembers;  // non-null only for the representative of the SCC
       [ContractInvariantMethod]
       void ObjectInvariant() {
-        Contract.Invariant(cce.NonNullElements(Successors));
-        Contract.Invariant(SccMembers == null || cce.NonNullElements(SccMembers));
+        Contract.Invariant(Cce.NonNullElements(Successors));
+        Contract.Invariant(SccMembers == null || Cce.NonNullElements(SccMembers));
       }
 
       public Vertex SccRepresentative;  // null if not computed
@@ -60,8 +60,8 @@ namespace Microsoft.Dafny {
     [ContractInvariantMethod]
     void ObjectInvariant() {
       Contract.Invariant(vertices != null);
-      Contract.Invariant(cce.NonNullElements(vertices.Values));
-      Contract.Invariant(topologicallySortedRepresentatives == null || cce.NonNullElements(topologicallySortedRepresentatives));
+      Contract.Invariant(Cce.NonNullElements(vertices.Values));
+      Contract.Invariant(topologicallySortedRepresentatives == null || Cce.NonNullElements(topologicallySortedRepresentatives));
       Contract.Invariant(!sccComputed || topologicallySortedRepresentatives != null);
     }
 
@@ -176,7 +176,7 @@ namespace Microsoft.Dafny {
     /// Returns a list of the topologically sorted SCCs, each represented in the list by its representative node.
     /// </summary>
     public List<Node> TopologicallySortedComponents() {
-      Contract.Ensures(cce.NonNullElements(Contract.Result<List<Node>>()));
+      Contract.Ensures(Cce.NonNullElements(Contract.Result<List<Node>>()));
       ComputeSCCs();
       Contract.Assert(topologicallySortedRepresentatives != null);  // follows from object invariant
       return topologicallySortedRepresentatives.ConvertAll(v => v.N);
@@ -187,7 +187,7 @@ namespace Microsoft.Dafny {
     /// that contains 'n'.
     /// </summary>
     public List<Node> GetSCC(Node n) {
-      Contract.Ensures(cce.NonNullElements(Contract.Result<List<Node>>()));
+      Contract.Ensures(Cce.NonNullElements(Contract.Result<List<Node>>()));
       Vertex v = GetVertex(n);
       ComputeSCCs();
       Vertex repr = v.SccRepresentative;
@@ -250,7 +250,7 @@ namespace Microsoft.Dafny {
     /// </summary>
     void SearchC(Vertex/*!*/ v, Stack<Vertex/*!*/>/*!*/ stack, ref int cnt) {
       Contract.Requires(v != null);
-      Contract.Requires(cce.NonNullElements(stack));
+      Contract.Requires(Cce.NonNullElements(stack));
       Contract.Requires(v.Visited == VisitedStatus.Unvisited);
       Contract.Requires(topologicallySortedRepresentatives != null);
       Contract.Ensures(v.Visited != VisitedStatus.Unvisited);

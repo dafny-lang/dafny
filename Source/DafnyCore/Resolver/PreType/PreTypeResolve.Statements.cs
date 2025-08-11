@@ -255,7 +255,7 @@ namespace Microsoft.Dafny {
         } else if (s.Rhs is HavocRhs havocRhs) {
           havocRhs.Resolve(this, resolutionContext);
         } else {
-          Contract.Assert(false); throw new cce.UnreachableException();  // unexpected RHS
+          Contract.Assert(false); throw new Cce.UnreachableException();  // unexpected RHS
         }
 
       } else if (stmt is CallStmt callStmt) {
@@ -411,7 +411,7 @@ namespace Microsoft.Dafny {
       } else if (stmt is LabeledStatement) {
         // content already handled 
       } else {
-        Contract.Assert(false); throw new cce.UnreachableException();
+        Contract.Assert(false); throw new Cce.UnreachableException();
       }
     }
 

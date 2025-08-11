@@ -39,9 +39,9 @@ public partial class BoogieGenerator {
                             Dictionary<TypeParameter, Type> typeMap,
                             ExpressionTranslator etranCurrent, bool oldCaller, BoogieStmtListBuilder builder, bool inferredDecreases, string hint) {
     Contract.Requires(tok != null);
-    Contract.Requires(cce.NonNullElements(contextDecreases));
-    Contract.Requires(cce.NonNullElements(calleeDecreases));
-    Contract.Requires(cce.NonNullDictionaryAndValues(substMap));
+    Contract.Requires(Cce.NonNullElements(contextDecreases));
+    Contract.Requires(Cce.NonNullElements(calleeDecreases));
+    Contract.Requires(Cce.NonNullDictionaryAndValues(substMap));
     Contract.Requires(etranCurrent != null);
     Contract.Requires(builder != null);
 
@@ -109,11 +109,11 @@ public partial class BoogieGenerator {
   Bpl.Expr DecreasesCheck(List<IOrigin> toks, List<VarDeclStmt> prevGhostLocals,
                           List<Expression> dafny0, List<Expression> dafny1, List<Bpl.Expr> ee0, List<Bpl.Expr> ee1,
                           BoogieStmtListBuilder builder, string suffixMsg, bool allowNoChange, bool includeLowerBound) {
-    Contract.Requires(cce.NonNullElements(toks));
-    Contract.Requires(cce.NonNullElements(dafny0));
-    Contract.Requires(cce.NonNullElements(dafny1));
-    Contract.Requires(cce.NonNullElements(ee0));
-    Contract.Requires(cce.NonNullElements(ee1));
+    Contract.Requires(Cce.NonNullElements(toks));
+    Contract.Requires(Cce.NonNullElements(dafny0));
+    Contract.Requires(Cce.NonNullElements(dafny1));
+    Contract.Requires(Cce.NonNullElements(ee0));
+    Contract.Requires(Cce.NonNullElements(ee1));
     Contract.Requires(Predef != null);
     Contract.Requires(dafny0.Count == dafny1.Count && dafny0.Count == ee0.Count && ee0.Count == ee1.Count);
     Contract.Requires(builder == null || suffixMsg != null);
@@ -287,7 +287,7 @@ public partial class BoogieGenerator {
         b0 = FunctionCall(tok, BuiltinFunction.DtRank, null, e0);
         b1 = FunctionCall(tok, BuiltinFunction.DtRank, null, e1);
       } else {
-        Contract.Assert(false); throw new cce.UnreachableException();
+        Contract.Assert(false); throw new Cce.UnreachableException();
       }
       eq = Bpl.Expr.Eq(b0, b1);
       less = Bpl.Expr.Lt(b0, b1);
