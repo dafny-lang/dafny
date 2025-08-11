@@ -1441,24 +1441,18 @@ namespace Microsoft.Dafny {
         }
       }
 
-      // Normalization will be done in ConstrainSubtypeRelation_Aux to ensure consistency
+      super = super.NormalizeExpand(keepConstraints);
+      sub = sub.NormalizeExpand(keepConstraints);
+
       var c = new TypeConstraint(super, sub, errMsg, keepConstraints);
       AllTypeConstraints.Add(c);
       return ConstrainSubtypeRelation_Aux(super, sub, c, keepConstraints, allowDecisions);
     }
     private bool ConstrainSubtypeRelation_Aux(Type super, Type sub, TypeConstraint c, bool keepConstraints, bool allowDecisions) {
       Contract.Requires(sub != null);
+      Contract.Requires(!(sub is TypeProxy) || ((TypeProxy)sub).T == null);  // caller is expected to have Normalized away proxies
       Contract.Requires(super != null);
-
-      // Normalize both types to handle intermediate TypeProxy states
-      // This can occur with arrow types from static functions on built-in types like fp64.Equal
-      // During type resolution, arrow types may temporarily be wrapped in TypeProxy
-      sub = sub.NormalizeExpand(keepConstraints);
-      super = super.NormalizeExpand(keepConstraints);
-
-      // After normalization, neither should be a TypeProxy with non-null T
-      Contract.Assert(!(sub is TypeProxy) || ((TypeProxy)sub).T == null);
-      Contract.Assert(!(super is TypeProxy) || ((TypeProxy)super).T == null);
+      Contract.Requires(!(super is TypeProxy) || ((TypeProxy)super).T == null);  // caller is expected to have Normalized away proxies
       Contract.Requires(c != null);
 
       if (object.ReferenceEquals(super, sub)) {
@@ -1592,10 +1586,6 @@ namespace Microsoft.Dafny {
       Contract.Requires(proxy != null);
       Contract.Requires(proxy.T == null);
       Contract.Requires(t != null);
-
-      // Normalize t to ensure it's not a TypeProxy with non-null T
-      t = t.NormalizeExpand(keepConstraints);
-
       Contract.Requires(!(t is TypeProxy));
       Contract.Requires(!(t is ArtificialType));
       if (_recursionDepth == 20000) {
