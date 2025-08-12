@@ -1220,7 +1220,7 @@ namespace Microsoft.Dafny {
           Constraints.AddGuardedConstraint(() => {
             var left = e0.PreType.NormalizeWrtScope() as DPreType;
             var right = e1.PreType.NormalizeWrtScope() as DPreType;
-            if (left != null && left.Decl is IndDatatypeDecl) {
+            if (left is { Decl: IndDatatypeDecl }) {
               AddConfirmation(PreTypeConstraints.CommonConfirmationBag.RankOrderableOrTypeParameter, e1.PreType, tok,
                 $"arguments to rank comparison must be datatypes (got {e0.PreType} and {{0}})");
               return true;
@@ -1253,12 +1253,12 @@ namespace Microsoft.Dafny {
 
 
           // Check if operands have fp64 type (either resolved or declared)
-          bool e0IsFp64 = e0Normalized is DPreType { Decl.Name: PreType.TypeNameFp64 } ||
-                          (e0 is IdentifierExpr { Var: LocalVariable lv0 } && lv0.SyntacticType is Fp64Type) ||
-                          (e0 is IdentifierExpr { Var: BoundVar bv0 } && bv0.SyntacticType is Fp64Type);
-          bool e1IsFp64 = e1Normalized is DPreType { Decl.Name: PreType.TypeNameFp64 } ||
-                          (e1 is IdentifierExpr { Var: LocalVariable lv1 } && lv1.SyntacticType is Fp64Type) ||
-                          (e1 is IdentifierExpr { Var: BoundVar bv1 } && bv1.SyntacticType is Fp64Type);
+          var e0IsFp64 = e0Normalized is DPreType { Decl.Name: PreType.TypeNameFp64 } ||
+                         e0 is IdentifierExpr { Var: LocalVariable { SyntacticType: Fp64Type } } ||
+                         e0 is IdentifierExpr { Var: BoundVar { SyntacticType: Fp64Type } };
+          var e1IsFp64 = e1Normalized is DPreType { Decl.Name: PreType.TypeNameFp64 } ||
+                         e1 is IdentifierExpr { Var: LocalVariable { SyntacticType: Fp64Type } } ||
+                         e1 is IdentifierExpr { Var: BoundVar { SyntacticType: Fp64Type } };
 
           if (e0IsFp64 || e1IsFp64) {
             // One operand is fp64, so result should be fp64
@@ -1303,14 +1303,14 @@ namespace Microsoft.Dafny {
 
             // Also check declared types for fp64
             if (familyDeclNameLeft == null && e0 is IdentifierExpr id0) {
-              if ((id0.Var is LocalVariable lv && lv.SyntacticType is Fp64Type) ||
-                  (id0.Var is BoundVar bv && bv.SyntacticType is Fp64Type)) {
+              if (id0.Var is LocalVariable { SyntacticType: Fp64Type } ||
+                  id0.Var is BoundVar { SyntacticType: Fp64Type }) {
                 familyDeclNameLeft = PreType.TypeNameFp64;
               }
             }
             if (familyDeclNameRight == null && e1 is IdentifierExpr id1) {
-              if ((id1.Var is LocalVariable lv && lv.SyntacticType is Fp64Type) ||
-                  (id1.Var is BoundVar bv && bv.SyntacticType is Fp64Type)) {
+              if (id1.Var is LocalVariable { SyntacticType: Fp64Type } ||
+                  id1.Var is BoundVar { SyntacticType: Fp64Type }) {
                 familyDeclNameRight = PreType.TypeNameFp64;
               }
             }
@@ -1370,11 +1370,11 @@ namespace Microsoft.Dafny {
 
           // Check if operands have fp64 type (either resolved or declared)
           e0IsFp64 = e0Normalized is DPreType { Decl.Name: PreType.TypeNameFp64 } ||
-                      (e0 is IdentifierExpr { Var: LocalVariable lv0m } && lv0m.SyntacticType is Fp64Type) ||
-                      (e0 is IdentifierExpr { Var: BoundVar bv0m } && bv0m.SyntacticType is Fp64Type);
+                      e0 is IdentifierExpr { Var: LocalVariable { SyntacticType: Fp64Type } } ||
+                      e0 is IdentifierExpr { Var: BoundVar { SyntacticType: Fp64Type } };
           e1IsFp64 = e1Normalized is DPreType { Decl.Name: PreType.TypeNameFp64 } ||
-                      (e1 is IdentifierExpr { Var: LocalVariable lv1m } && lv1m.SyntacticType is Fp64Type) ||
-                      (e1 is IdentifierExpr { Var: BoundVar bv1m } && bv1m.SyntacticType is Fp64Type);
+                      e1 is IdentifierExpr { Var: LocalVariable { SyntacticType: Fp64Type } } ||
+                      e1 is IdentifierExpr { Var: BoundVar { SyntacticType: Fp64Type } };
 
           if (e0IsFp64 || e1IsFp64) {
             Constraints.DebugPrint($"    Detected fp64 operand in multiplication (resolved or declared), setting result to fp64");
@@ -1424,11 +1424,11 @@ namespace Microsoft.Dafny {
 
           // Check if operands have fp64 type (either resolved or declared)
           e0IsFp64 = e0Normalized is DPreType { Decl.Name: PreType.TypeNameFp64 } ||
-                      (e0 is IdentifierExpr { Var: LocalVariable lv0d } && lv0d.SyntacticType is Fp64Type) ||
-                      (e0 is IdentifierExpr { Var: BoundVar bv0d } && bv0d.SyntacticType is Fp64Type);
+                      e0 is IdentifierExpr { Var: LocalVariable { SyntacticType: Fp64Type } } ||
+                      e0 is IdentifierExpr { Var: BoundVar { SyntacticType: Fp64Type } };
           e1IsFp64 = e1Normalized is DPreType { Decl.Name: PreType.TypeNameFp64 } ||
-                      (e1 is IdentifierExpr { Var: LocalVariable lv1d } && lv1d.SyntacticType is Fp64Type) ||
-                      (e1 is IdentifierExpr { Var: BoundVar bv1d } && bv1d.SyntacticType is Fp64Type);
+                      e1 is IdentifierExpr { Var: LocalVariable { SyntacticType: Fp64Type } } ||
+                      e1 is IdentifierExpr { Var: BoundVar { SyntacticType: Fp64Type } };
 
           if (e0IsFp64 || e1IsFp64) {
             // One operand is fp64, so result should be fp64
@@ -2049,7 +2049,7 @@ namespace Microsoft.Dafny {
         var cd = r == null ? ty.AsTopLevelTypeWithMembersBypassInternalSynonym : null;
 
         // Special handling for built-in types like fp64
-        if (cd == null && ty is Fp64Type && ri.Decl is ValuetypeDecl valuetypeDecl) {
+        if (cd == null && ty.IsFp64Type && ri.Decl is ValuetypeDecl valuetypeDecl) {
           cd = valuetypeDecl;
         }
 
@@ -2065,7 +2065,7 @@ namespace Microsoft.Dafny {
             }
             // Create the appropriate type for the StaticReceiverExpr
             UserDefinedType receiverType;
-            if (ty is Fp64Type && ri.Decl is ValuetypeDecl vtDecl) {
+            if (ty.IsFp64Type && ri.Decl is ValuetypeDecl vtDecl) {
               // For built-in types like fp64, create a UserDefinedType from the ValuetypeDecl
               receiverType = new UserDefinedType(expr.Origin, vtDecl.Name, vtDecl, ri.TypeArgs);
             } else {

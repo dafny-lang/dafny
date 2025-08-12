@@ -1052,10 +1052,8 @@ namespace Microsoft.Dafny {
                   Bpl.Expr zero;
                   if (e.E1.Type.NormalizeToAncestorType() is BitvectorType bitvectorType) {
                     zero = BplBvLiteralExpr(e.Origin, BaseTypes.BigNum.ZERO, bitvectorType);
-                  } else if (e.E1.Type.NormalizeToAncestorType() is Fp64Type) {
-                    // For fp64, create a float53e11 zero to match the translated expression type
-                    // Use the same format as other fp64 literals but with zero value
-                    zero = new Bpl.LiteralExpr(e.Origin, Microsoft.BaseTypes.BigFloat.FromString("0x0.0e0f53e11"));
+                  } else if (e.E1.Type.IsFp64Type) {
+                    zero = Bpl.Expr.Literal(BaseTypes.BigFloat.FromString("0x0.0e0f53e11"));
                   } else if (e.E1.Type.IsNumericBased(Type.NumericPersuasion.Real)) {
                     zero = Bpl.Expr.Literal(BaseTypes.BigDec.ZERO);
                   } else {
@@ -1145,7 +1143,7 @@ namespace Microsoft.Dafny {
                   }
 
                   // Check for fp64 equality first, as it requires special preconditions
-                  if (e.E0.Type is Fp64Type || e.E1.Type is Fp64Type) {
+                  if (e.E0.Type.IsFp64Type || e.E1.Type.IsFp64Type) {
                     // fp64 supports equality with preconditions per spec section 5.3
                     // Well-formedness: !x.IsNaN && !y.IsNaN && !(x.IsZero && y.IsZero && x.IsNegative != y.IsNegative)
 
@@ -1171,20 +1169,20 @@ namespace Microsoft.Dafny {
                     }
 
                     // Check NaN preconditions
-                    if (e.E0.Type is Fp64Type) {
+                    if (e.E0.Type.IsFp64Type) {
                       var isNaN = GenerateIsNaNCheck(e.E0);
                       builder.Add(Assert(GetToken(e.E0), Bpl.Expr.Not(isNaN),
                         new Fp64EqualityPrecondition(e.E0), builder.Context, wfOptions.AssertKv));
                     }
 
-                    if (e.E1.Type is Fp64Type) {
+                    if (e.E1.Type.IsFp64Type) {
                       var isNaN = GenerateIsNaNCheck(e.E1);
                       builder.Add(Assert(GetToken(e.E1), Bpl.Expr.Not(isNaN),
                         new Fp64EqualityPrecondition(e.E1), builder.Context, wfOptions.AssertKv));
                     }
 
                     // Check signed zero precondition: !(x.IsZero && y.IsZero && x.IsNegative != y.IsNegative)
-                    if (e.E0.Type is Fp64Type && e.E1.Type is Fp64Type) {
+                    if (e.E0.Type.IsFp64Type && e.E1.Type.IsFp64Type) {
                       var e0IsZero = GenerateIsZeroCheck(e.E0);
                       var e1IsZero = GenerateIsZeroCheck(e.E1);
                       var e0IsNegative = GenerateIsNegativeCheck(e.E0);

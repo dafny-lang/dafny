@@ -152,7 +152,7 @@ public class Fp64CollectionEqualityWellformedness : ProofObligationDescription {
   private readonly Type collectionType;
 
   public Fp64CollectionEqualityWellformedness(Type collectionType) {
-    this.collectionType = collectionType;
+    this.collectionType = collectionType.NormalizeExpand();
   }
 
   private string GetTypeName() {

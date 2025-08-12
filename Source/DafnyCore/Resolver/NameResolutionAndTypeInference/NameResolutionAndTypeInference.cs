@@ -853,7 +853,7 @@ namespace Microsoft.Dafny {
             AddXConstraint(expr.Origin, "NumericOrBitvectorOrCharOrORDINAL", e.E.Type, "type conversion to an int-based type is allowed only from numeric and bitvector types, char, and ORDINAL (got {0})");
           } else if (e.ToType.IsNumericBased(Type.NumericPersuasion.Real)) {
             AddXConstraint(expr.Origin, "NumericOrBitvectorOrCharOrORDINAL", e.E.Type, "type conversion to a real-based type is allowed only from numeric and bitvector types, char, and ORDINAL (got {0})");
-          } else if (e.ToType is Fp64Type) {
+          } else if (e.ToType.IsFp64Type) {
             AddXConstraint(expr.Origin, "NumericOrBitvectorOrCharOrORDINAL", e.E.Type, "type conversion to fp64 is allowed only from numeric and bitvector types, char, and ORDINAL (got {0})");
           } else if (e.ToType.IsBitVectorType) {
             AddXConstraint(expr.Origin, "NumericOrBitvectorOrCharOrORDINAL", e.E.Type, "type conversion to a bitvector-based type is allowed only from numeric and bitvector types, char, and ORDINAL (got {0})");
@@ -2353,8 +2353,7 @@ namespace Microsoft.Dafny {
       if (t == null || visited.Contains(t)) return false;
       visited.Add(t);
 
-      var norm = t.NormalizeExpand();
-      if (norm is Fp64Type) {
+      if (t.IsFp64Type) {
         if (Options.Get(CommonOptionBag.TypeInferenceDebug)) {
           Options.OutputWriter.Debug("    TraceFp64Connection: Found fp64 type directly");
         }
@@ -4696,7 +4695,7 @@ namespace Microsoft.Dafny {
       Contract.Assert(receiverType is NonProxyType);  // there are only two kinds of types: proxies and non-proxies
 
       // Check if this is fp64 and ensure it's initialized before looking for members
-      if (receiverType is Fp64Type || (receiverType is UserDefinedType udt && udt.Name == "fp64")) {
+      if (receiverType.IsFp64Type) {
         ProgramResolver.SystemModuleManager.EnsureFp64TypeInitialized(ProgramResolver);
       }
 
@@ -4848,7 +4847,7 @@ namespace Microsoft.Dafny {
             if ((xc.ConstraintName == "Mullable" || xc.ConstraintName == "Plussable") && xc.Types.Contains(t)) {
               // Check if any type in this constraint is already resolved to fp64
               foreach (var constraintType in xc.Types) {
-                if (constraintType.NormalizeExpand() is Fp64Type) {
+                if (constraintType.IsFp64Type) {
                   AssignProxyAndHandleItsConstraints(tProxy, Type.Fp64, true);
                   return Type.Fp64;
                 }
@@ -6105,7 +6104,7 @@ namespace Microsoft.Dafny {
       } else if (lhs != null) {
         // ----- 4. Look up name in the type of the Lhs
         // If looking for static members on fp64, ensure it's initialized
-        if (expr.Lhs.Type is Fp64Type || (expr.Lhs.Type is UserDefinedType udt && udt.Name == "fp64")) {
+        if (expr.Lhs.Type.IsFp64Type) {
           ProgramResolver.SystemModuleManager.EnsureFp64TypeInitialized(ProgramResolver);
         }
         member = ResolveMember(expr.Origin, expr.Lhs.Type, name, out var tentativeReceiverType);
@@ -6117,7 +6116,7 @@ namespace Microsoft.Dafny {
             r = ResolveExprDotCall(expr.Origin, expr.SuffixNameNode, receiver, tentativeReceiverType, member, expr.OptTypeArguments, resolutionContext, allowMethodCall);
           } else {
             // Handle built-in types (like fp64) which have ValuetypeDecl
-            if (tentativeReceiverType is Fp64Type && member.EnclosingClass is ValuetypeDecl vtd) {
+            if (tentativeReceiverType.IsFp64Type && member.EnclosingClass is ValuetypeDecl vtd) {
               receiver = new StaticReceiverExpr(expr.Origin, vtd, false, lhs);
             } else {
               receiver = new StaticReceiverExpr(expr.Origin, (UserDefinedType)tentativeReceiverType, (TopLevelDeclWithMembers)member.EnclosingClass, false, lhs);

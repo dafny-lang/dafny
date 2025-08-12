@@ -1593,7 +1593,7 @@ namespace Microsoft.Dafny.Compilers {
         return "BigInteger";
       } else if (xType is RealType) {
         return "Dafny.BigRational";
-      } else if (xType is Fp64Type) {
+      } else if (xType.IsFp64Type) {
         return "double";
       } else if (xType is BitvectorType) {
         var t = (BitvectorType)xType;
@@ -1702,7 +1702,7 @@ namespace Microsoft.Dafny.Compilers {
         return "BigInteger.Zero";
       } else if (xType is RealType) {
         return "Dafny.BigRational.ZERO";
-      } else if (xType is Fp64Type) {
+      } else if (xType.IsFp64Type) {
         return "0.0";
       } else if (xType is BitvectorType) {
         var t = (BitvectorType)xType;
@@ -2214,10 +2214,8 @@ namespace Microsoft.Dafny.Compilers {
         // Okay, so '\0' _is_ a value of type "char", but it's so unpleasant to deal with in test files, etc.
         // By returning false here, a different value will be chosen.
         return false;
-      } else if (t is BoolType || t is IntType || t is BigOrdinalType || t is RealType || t is BitvectorType) {
+      } else if (t is BoolType or IntType or BigOrdinalType or RealType or BitvectorType or Fp64Type) {
         return true;
-      } else if (t is Fp64Type) {
-        return true;  // fp64 has a simple zero initializer: 0.0
       } else if (t is CollectionType) {
         return false;
       }
@@ -2268,9 +2266,9 @@ namespace Microsoft.Dafny.Compilers {
       } else if (e.Value is BigInteger bigInteger) {
         EmitIntegerLiteral(bigInteger, wr);
       } else if (e.Value is BigDec n) {
-        if (e.Type is Fp64Type) {
+        if (e.Type.IsFp64Type) {
           // For DecimalLiteralExpr with fp64 type, use the precomputed float value if available
-          if (e is DecimalLiteralExpr decLit && decLit.ResolvedFloatValue.HasValue) {
+          if (e is DecimalLiteralExpr { ResolvedFloatValue: not null } decLit) {
             // Use the exact IEEE 754 value computed during resolution
             var bigFloat = decLit.ResolvedFloatValue.Value;
             // Convert to decimal string and ensure it's a valid C# double literal
@@ -3307,9 +3305,7 @@ namespace Microsoft.Dafny.Compilers {
 
     static bool IsDirectlyComparable(Type t) {
       Contract.Requires(t != null);
-      // Check for fp64 as UserDefinedType as well
-      var isFp64 = t.IsFp64Type || (t is UserDefinedType udt && udt.Name == "fp64");
-      return t.IsBoolType || t.IsCharType || t.IsIntegerType || t.IsRealType || isFp64 || t.AsNewtype != null || t.IsBitVectorType || t.IsBigOrdinalType || t.IsRefType;
+      return t.IsBoolType || t.IsCharType || t.IsIntegerType || t.IsRealType || t.IsFp64Type || t.AsNewtype != null || t.IsBitVectorType || t.IsBigOrdinalType || t.IsRefType;
     }
 
     protected override void CompileBinOp(BinaryExpr.ResolvedOpcode op,
@@ -3337,12 +3333,6 @@ namespace Microsoft.Dafny.Compilers {
 
       switch (op) {
         case BinaryExpr.ResolvedOpcode.EqCommon: {
-            // Use direct comparison for fp64
-            if (e0Type.NormalizeExpand() is Fp64Type) {
-              opString = "==";
-              break;
-            }
-
             var eqType = DatatypeWrapperEraser.SimplifyType(Options, e0Type);
             if (eqType.IsRefType) {
               // Dafny's type rules are slightly different C#, so we may need a cast here.
@@ -3357,12 +3347,6 @@ namespace Microsoft.Dafny.Compilers {
             break;
           }
         case BinaryExpr.ResolvedOpcode.NeqCommon: {
-            // Use direct comparison for fp64
-            if (e0Type.NormalizeExpand() is Fp64Type) {
-              opString = "!=";
-              break;
-            }
-
             var eqType = DatatypeWrapperEraser.SimplifyType(Options, e0Type);
             if (eqType.IsRefType) {
               // Dafny's type rules are slightly different C#, so we may need a cast here.

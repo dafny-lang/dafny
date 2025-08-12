@@ -126,11 +126,9 @@ public class SystemModuleManager {
     valuetypeDecls = [
       new ValuetypeDecl("bool", SystemModule, t => t.IsBoolType, typeArgs => Type.Bool),
       new ValuetypeDecl("char", SystemModule, t => t.IsCharType, typeArgs => Type.Char),
-      new ValuetypeDecl("int", SystemModule, t => t.IsNumericBased(Type.NumericPersuasion.Int), typeArgs => Type.Int),
-      new ValuetypeDecl("real", SystemModule, t => t.NormalizeExpand().IsRealType, typeArgs => Type.Real),
-      new ValuetypeDecl("fp64", SystemModule,
-        t => t.NormalizeExpand() is Fp64Type || (t is UserDefinedType udt && udt.Name == "fp64"),
-        typeArgs => new Fp64Type()),
+      new ValuetypeDecl("int", SystemModule, t => t.IsNumericBased(Type.NumericPersuasion.Int), _ => Type.Int),
+      new ValuetypeDecl("real", SystemModule, t => t.IsRealType, _ => Type.Real),
+      new ValuetypeDecl("fp64", SystemModule, t => t.IsFp64Type, _ => Type.Fp64),
       new ValuetypeDecl("ORDINAL", SystemModule, t => t.IsBigOrdinalType, typeArgs => Type.BigOrdinal),
       new ValuetypeDecl("_bv", SystemModule, t => t.IsBitVectorType && !Options.Get(CommonOptionBag.TypeSystemRefresh),
         null), // "_bv" represents a family of classes, so no typeTester or type creator is supplied (it's used only in the legacy resolver)
@@ -872,16 +870,11 @@ public class SystemModuleManager {
 
   public ValuetypeDecl AsValuetypeDecl(Type t) {
     Contract.Requires(t != null);
-    // If looking for fp64 type, ensure it's initialized
-    if (t is Fp64Type || (t is UserDefinedType udt && udt.Name == "fp64")) {
+    if (t.IsFp64Type) {
       EnsureFp64TypeInitialized();
     }
-    foreach (var vtd in valuetypeDecls) {
-      if (vtd.IsThisType(t)) {
-        return vtd;
-      }
-    }
-    return null;
+
+    return valuetypeDecls.FirstOrDefault(vtd => vtd.IsThisType(t));
   }
 
   public void ResolveValueTypeDecls(ProgramResolver programResolver) {

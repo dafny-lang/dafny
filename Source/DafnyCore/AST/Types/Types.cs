@@ -283,19 +283,14 @@ public abstract class Type : NodeWithOrigin {
       }
 
       // Handle built-in types: convert UserDefinedType to actual basic type
-      if (type is UserDefinedType builtinUdt && builtinUdt.ResolvedClass is ValuetypeDecl vtd) {
+      if (type is UserDefinedType { ResolvedClass: ValuetypeDecl { Name: "fp64" or "int" or "real" or "bool" or "char" or "ORDINAL" } vtd } builtinUdt)
         // Only convert specific built-in types to avoid breaking other ValuetypeDecls
-        if (vtd.Name == "fp64" || vtd.Name == "int" || vtd.Name == "real" || vtd.Name == "bool" || vtd.Name == "char" || vtd.Name == "ORDINAL") {
-          return vtd.CreateType(builtinUdt.TypeArgs);
-        }
+      {
+        return vtd.CreateType(builtinUdt.TypeArgs);
       }
 
       return type;
     }
-  }
-
-  private static bool IsBuiltinTypeName(string name) {
-    return name == "fp64" || name == "int" || name == "real" || name == "bool" || name == "char" || name == "ORDINAL";
   }
 
   /// <summary>
@@ -353,17 +348,18 @@ public abstract class Type : NodeWithOrigin {
 
   public bool IsNumericBased() {
     var t = NormalizeExpand();
-    return t.IsIntegerType || t.IsRealType || t is Fp64Type || t.AsNewtype?.BaseType.IsNumericBased() == true;
+    return t.IsIntegerType || t.IsRealType || t.IsFp64Type || t.AsNewtype?.BaseType.IsNumericBased() == true;
   }
   public enum NumericPersuasion { Int, Real }
   [System.Diagnostics.Contracts.Pure]
   public bool IsNumericBased(NumericPersuasion p) {
-    Type t = this;
+    var t = this;
     while (true) {
       t = t.NormalizeExpand();
       if (t.IsIntegerType) {
         return p == NumericPersuasion.Int;
-      } else if (t.IsRealType || t is Fp64Type) {
+      }
+      if (t.IsRealType || t.IsFp64Type) {
         return p == NumericPersuasion.Real;
       }
       if (t.AsNewtype is not { } newtypeDecl) {
@@ -427,12 +423,13 @@ public abstract class Type : NodeWithOrigin {
       }
     }
 
-    if (t is BoolType || t is CharType || t is IntType || t is BigOrdinalType || t is RealType || t is BitvectorType || t is Fp64Type) {
-      return AutoInitInfo.CompilableValue;
-    } else if (t is CollectionType) {
-      return AutoInitInfo.CompilableValue;
-    } else if (t is FieldType) {
-      return AutoInitInfo.MaybeEmpty;
+    switch (t)
+    {
+      case BoolType or CharType or IntType or BigOrdinalType or RealType or BitvectorType or Fp64Type:
+      case CollectionType:
+        return AutoInitInfo.CompilableValue;
+      case FieldType:
+        return AutoInitInfo.MaybeEmpty;
     }
 
     var udt = (UserDefinedType)t;
@@ -1066,7 +1063,7 @@ public abstract class Type : NodeWithOrigin {
       while (sub.AsNewtype != null) {
         sub = sub.AsNewtype.BaseType.NormalizeExpand();
       }
-      return sub is RealType || sub is Fp64Type;
+      return sub is RealType or Fp64Type;
     } else if (super is BigOrdinalType) {
       return sub is BigOrdinalType;
     } else if (super is SetType) {

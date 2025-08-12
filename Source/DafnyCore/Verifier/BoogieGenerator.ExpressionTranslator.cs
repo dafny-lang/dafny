@@ -885,8 +885,8 @@ namespace Microsoft.Dafny {
           } else {
             return MaybeLit(Boogie.Expr.Literal(n));
           }
-        } else if (e.Value is BaseTypes.BigDec) {
-          if (e.Type is Fp64Type) {
+        } else if (e.Value is BigDec) {
+          if (e.Type.IsFp64Type) {
             // For DecimalLiteralExpr with fp64 type, use the precomputed float value if available
             if (e is DecimalLiteralExpr decLit && decLit.ResolvedFloatValue.HasValue) {
               return MaybeLit(new Bpl.LiteralExpr(GetToken(e), decLit.ResolvedFloatValue.Value), BoogieGenerator.TrType(e.Type));
@@ -895,12 +895,12 @@ namespace Microsoft.Dafny {
             // Fallback for literals created programmatically
             // This can happen when literals are created during optimization, deserialization,
             // or other compiler transformations that bypass the normal resolution path
-            var decValue = (BaseTypes.BigDec)e.Value;
+            var decValue = (BigDec)e.Value;
             BigFloat.FromBigDec(decValue, 53, 11, out var fp64Value);
 
             return MaybeLit(new Bpl.LiteralExpr(GetToken(e), fp64Value), BoogieGenerator.TrType(e.Type));
           } else {
-            return MaybeLit(Boogie.Expr.Literal((BaseTypes.BigDec)e.Value));
+            return MaybeLit(Expr.Literal((BigDec)e.Value));
           }
         } else {
           Contract.Assert(false); throw new Cce.UnreachableException();  // unexpected literal

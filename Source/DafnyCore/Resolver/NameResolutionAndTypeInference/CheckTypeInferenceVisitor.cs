@@ -115,7 +115,7 @@ class CheckTypeInferenceVisitor : ASTVisitor<TypeInferenceCheckingContext> {
       // Pre-compute ResolvedFloatValue for any decimal literals inside ApproximateExpr
       // This marks them as "already processed" so the literal checking will skip them
       void MarkLiteralsProcessed(Expression e) {
-        if (e is DecimalLiteralExpr decLit && decLit.Type is Fp64Type && decLit.Value is BigDec decValue) {
+        if (e is DecimalLiteralExpr decLit && decLit.Type.IsFp64Type && decLit.Value is BigDec decValue) {
           if (decLit.ResolvedFloatValue == null) {
             BigFloat.FromBigDec(decValue, 53, 11, out var floatValue);
             decLit.ResolvedFloatValue = floatValue;
@@ -139,10 +139,10 @@ class CheckTypeInferenceVisitor : ASTVisitor<TypeInferenceCheckingContext> {
         // For real-based types, integer-based types, and bi (but not bitvectors), "-" followed by a literal is
         // just a literal expression with a negative value
         if (e.E.Type.IsNumericBased(Type.NumericPersuasion.Real)) {
-          var d = (BaseTypes.BigDec)lit.Value;
+          var d = (BigDec)lit.Value;
           Contract.Assert(!d.IsNegative);
           // Special case for fp64 negative zero
-          if (d.IsZero && e.E.Type is Fp64Type) {
+          if (d.IsZero && e.E.Type.IsFp64Type) {
             // For -0.0 in fp64, create a DecimalLiteralExpr with negative zero
             var negZeroLiteral = new DecimalLiteralExpr(e.Origin, BigDec.ZERO) {
               Type = e.E.Type,
@@ -188,8 +188,8 @@ class CheckTypeInferenceVisitor : ASTVisitor<TypeInferenceCheckingContext> {
       // Compute and store the fp64 value for any DecimalLiteralExpr we're wrapping
       // This handles both direct literals and consolidated negations
       Expression toCheck = e.ResolvedExpression ?? e.Expr;
-      if (toCheck is DecimalLiteralExpr decLit && decLit.Type is Fp64Type && decLit.ResolvedFloatValue == null) {
-        var decValue = (BaseTypes.BigDec)decLit.Value;
+      if (toCheck is DecimalLiteralExpr decLit && decLit.Type.IsFp64Type && decLit.ResolvedFloatValue == null) {
+        var decValue = (BigDec)decLit.Value;
         BigFloat.FromBigDec(decValue, 53, 11, out var floatValue);
         decLit.ResolvedFloatValue = floatValue;
       }
@@ -213,7 +213,7 @@ class CheckTypeInferenceVisitor : ASTVisitor<TypeInferenceCheckingContext> {
       // Check decimal literals assigned to fp64
       // Note: Literals inside ApproximateExpr will already have ResolvedFloatValue set by the ApproximateExpr case
       // Here we only check non-approximate literals for exactness
-      if (e is DecimalLiteralExpr decimalLiteral && e.Type is Fp64Type && e.Value is BigDec decValue) {
+      if (e is DecimalLiteralExpr decimalLiteral && e.Type.IsFp64Type && e.Value is BigDec decValue) {
         // If ResolvedFloatValue is already set, this literal was processed by ApproximateExpr
         // and we should skip exactness checking
         if (decimalLiteral.ResolvedFloatValue == null) {

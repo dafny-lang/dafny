@@ -313,8 +313,8 @@ namespace Microsoft.Dafny.Compilers {
             Contract.Assert(Options.Get(CommonOptionBag.GeneralTraits) != CommonOptionBag.GeneralTraitsOptions.Legacy ||
                             toType.IsRefType == fromType.IsRefType ||
                             (fromType.IsTypeParameter && toType.IsTraitType) ||
-                            (fromType is RealType && toType is Fp64Type) ||
-                            (fromType is Fp64Type && toType is RealType));
+                            (fromType is RealType && toType.IsFp64Type) ||
+                            (fromType.IsFp64Type && toType is RealType));
             if (toType.IsRefType || toType.IsTraitType || fromType.IsTraitType) {
               var w = EmitCoercionIfNecessary(e.E.Type, e.ToType, e.Origin, wr);
               w = EmitDowncastIfNecessary(e.E.Type, e.ToType, e.Origin, w);
