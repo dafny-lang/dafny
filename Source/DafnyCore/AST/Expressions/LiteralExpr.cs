@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 using System.Numerics;
 using Microsoft.BaseTypes;
-using Microsoft.Boogie;
 
 namespace Microsoft.Dafny;
 
@@ -158,23 +157,19 @@ public class DecimalLiteralExpr : LiteralExpr, ICloneable<DecimalLiteralExpr> {
   [SyntaxConstructor]
   public DecimalLiteralExpr(IOrigin origin, object value)
     : base(origin, value) {
-    Contract.Requires(value is BaseTypes.BigDec);
+    Contract.Requires(value is BigDec);
   }
 
-  public DecimalLiteralExpr(IOrigin origin, BaseTypes.BigDec value)
+  public DecimalLiteralExpr(IOrigin origin, BigDec value)
     : base(origin, value) {
   }
 
-  public DecimalLiteralExpr(Cloner cloner, DecimalLiteralExpr original) : base(cloner, original) {
+  private DecimalLiteralExpr(Cloner cloner, DecimalLiteralExpr original) : base(cloner, original) {
     ResolvedFloatValue = original.ResolvedFloatValue;
   }
 
   public new DecimalLiteralExpr Clone(Cloner cloner) {
     return new DecimalLiteralExpr(cloner, this);
-  }
-
-  public override string ToString() {
-    return Value?.ToString() ?? "null";
   }
 }
 

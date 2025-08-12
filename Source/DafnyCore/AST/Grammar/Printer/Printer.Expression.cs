@@ -1380,16 +1380,14 @@ namespace Microsoft.Dafny {
 
       } else if (expr is ApproximateExpr) {
         var e = (ApproximateExpr)expr;
-        string op = "~";
-        int opBindingStrength = BindingStrengthUnaryPrefix;
-        bool parensNeeded = ParensNeeded(opBindingStrength, contextBindingStrength, fragileContext);
+        var parensNeeded = ParensNeeded(BindingStrengthUnaryPrefix, contextBindingStrength, fragileContext);
 
         if (parensNeeded) {
           wr.Write("(");
         }
 
-        wr.Write(op);
-        PrintExpr(e.Expr, opBindingStrength, false, parensNeeded || isRightmost, !parensNeeded && isFollowedBySemicolon,
+        wr.Write("~");
+        PrintExpr(e.Expr, BindingStrengthUnaryPrefix, false, parensNeeded || isRightmost, !parensNeeded && isFollowedBySemicolon,
           -1, keyword);
         if (parensNeeded) {
           wr.Write(")");
