@@ -493,6 +493,36 @@ public class IsInteger : ProofObligationDescription {
   }
 }
 
+public class IsExactlyRepresentableAsFp64 : ProofObligationDescription {
+  public override string SuccessDescription =>
+    $"{prefix}the real value is exactly representable as fp64";
+
+  public override string FailureDescription =>
+    $"{prefix}the real value must be exactly representable as fp64 (if you want rounding, use the approximation operator ~)";
+
+  public override string ShortDescription => "is exactly representable as fp64";
+
+  private readonly string prefix;
+  private readonly Expression expr;
+
+  public IsExactlyRepresentableAsFp64(Expression expr, string prefix = "") {
+    this.expr = expr;
+    this.prefix = prefix;
+  }
+
+  public override Expression GetAssertedExpr(DafnyOptions options) {
+    // Express as: expr == (expr as fp64) as real
+    return new BinaryExpr(
+      expr.Origin,
+      BinaryExpr.Opcode.Eq,
+      expr,
+      new ConversionExpr(expr.Origin,
+        new ConversionExpr(expr.Origin, expr, new Fp64Type()),
+        Type.Real)
+    );
+  }
+}
+
 //// Object properties
 
 public class NonNull : ProofObligationDescription {

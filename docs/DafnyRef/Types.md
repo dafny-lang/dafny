@@ -220,9 +220,10 @@ exists), described in [Section 9.31.4](#sec-quantifier-expression).
 
 Dafny supports _numeric types_ of two kinds, _integer-based_, which
 includes the basic type `int` of all integers, and _real-based_, which
-includes the basic type `real` of all real numbers.  User-defined
-numeric types based on `int` and `real`, either _subset types_ or _newtypes_,
-are described in [Section 5.6.3](#sec-subset-types) and [Section 5.7](#sec-newtypes).
+includes the basic type `real` of all real numbers and the floating-point
+type `fp64`.  User-defined numeric types based on `int` and `real`, either
+_subset types_ or _newtypes_, are described in [Section 5.6.3](#sec-subset-types)
+and [Section 5.7](#sec-newtypes).
 
 There is one built-in [_subset type_](#sec-subset-types),
 `nat`, representing the non-negative subrange of `int`.
@@ -349,7 +350,8 @@ function `as real` from `int` to `real`, as described in
 
 Dafny supports the `fp64` type, which represents IEEE 754 double-precision (64-bit)
 floating-point numbers. This type provides hardware-compatible floating-point arithmetic
-with the expected precision and rounding behavior.
+with the expected precision and rounding behavior. The `fp64` type is considered a
+real-based numeric type in Dafny's type system.
 
 #### 5.2.3.1. Literals
 
@@ -522,6 +524,57 @@ method MathFunctions() {
   assert minimum == x;
 }
 ```
+
+#### 5.2.3.7. Type Conversions
+
+The `fp64` type supports conversions to and from other numeric types:
+
+- **From `real` to `fp64`**: Requires the real value to be exactly representable in fp64.
+  Values that cannot be represented exactly must use the approximation operator `~` on literals,
+  or will cause a verification error on non-literal expressions.
+
+- **From `fp64` to `real`**: Always allowed, produces the exact real number represented by the fp64 value.
+
+- **From `int` to `fp64`**: Allowed for integers that can be exactly represented (up to ±2^53).
+
+- **From `fp64` to `int`**: Requires the fp64 value to be finite and represent an exact integer.
+
+<!-- %check-verify -->
+```dafny
+method ConversionExamples() {
+  // Real to fp64
+  var r1: real := 0.5;
+  var f1: fp64 := r1 as fp64;  // OK: 0.5 is exactly representable
+
+  var r2: real := 0.1;
+  // var f2: fp64 := r2 as fp64;  // ERROR: 0.1 is not exactly representable
+
+  // fp64 to real
+  var f3: fp64 := 3.14;
+  var r3: real := f3 as real;  // Always OK
+
+  // int to fp64
+  var i1: int := 42;
+  var f4: fp64 := i1 as fp64;  // OK: 42 is exactly representable
+
+  // fp64 to int
+  var f5: fp64 := 3.0;
+  var i2: int := f5 as int;  // OK: 3.0 is an exact integer
+
+  var f6: fp64 := 3.14;
+  // var i3: int := f6 as int;  // ERROR: 3.14 is not an integer
+}
+```
+
+#### 5.2.3.8. Comparison of Numeric Types
+
+| Aspect | int | real | fp64 |
+|--------|-----|------|------|
+| Numeric kind | integer-based | real-based | real-based |
+| Precision | Unlimited | Exact | ~15-17 decimal digits |
+| Special values | None | None | NaN, ±∞ |
+| Modulus operator | Yes | No | No |
+| Hardware mapping | BigInteger | BigRational | IEEE 754 double |
 
 ### 5.2.4. Bit-vector Types ([grammar](#g-basic-type)) {#sec-bit-vector-types}
 

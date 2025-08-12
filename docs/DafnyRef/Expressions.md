@@ -323,7 +323,7 @@ with the result being of the given type. The following combinations
 of conversions are permitted:
 
 * Any type to itself
-* Any int, real, or fp64 based numeric type or bit-vector type to another int, real, or fp64 based numeric type or bit-vector type
+* Any int-based or real-based numeric type or bit-vector type to another int-based or real-based numeric type or bit-vector type
 * Any base type to a subset or newtype with that base
 * Any subset or newtype to its base type or a subset or newtype of the same base
 * Any type to a subset or newtype that has the type as its base

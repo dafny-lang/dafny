@@ -672,30 +672,30 @@ public partial class BoogieGenerator {
   /// In substitutionMappings, a mapping "x := null" says for the caller to quantify over "x".
   /// Any non-null mappings, say "x := e0, y := e1" say that "x" and "y" have been replaced by "e0" and "e1" in "expression"
   /// to form "expressionWithSubstitutions".
-  /// 
+  ///
   /// The reason for returning substitutionMappings rather than just a list of variables is so that the caller can
   /// apply these substitutions in triggers that were computed for the entire "expression". Therefore, each non-null
-  /// mapping "x := e" is one where "e" is acceptable in a trigger. 
+  /// mapping "x := e" is one where "e" is acceptable in a trigger.
   ///
   /// Here is an example. Assuming that the types of a,b,c are nonempty and that we obtain
   ///
   ///   GuessWitnesses(c):  0, a, b
   ///   GuessWitnesses(b):  10
   ///   GuessWitnesses(a):  88
-  ///  
+  ///
   /// then GeneratePartialGuesses works as follows:
   ///
   ///   GeneratePartialGuesses([a, b, c], X || Y(a) || Z(a, c)) {
   ///     yield ([], X) // since X does not mention a or b or c
-  /// 
+  ///
   ///     GeneratePartialGuesses([b, c], Y(a) || Z(a, c)) {
   ///       yield ([], Y(a)) // since Y(a) does not mention b or c
-  /// 
+  ///
   ///       GeneratePartialGuesses([c], Z(a, c)) {
   ///         GeneratePartialGuesses([], Z(a, c)) {
   ///           yield ([], Z(a, c)) // no vars
   ///         }
-  /// 
+  ///
   ///         yield ([c:=null], Z(a, c)) // quantify over c
   ///         yield ([c:=0], Z(a, 0)) // guess c := 0
   ///         yield ([c:=a], Z(a, a)) // guess c := a
@@ -711,7 +711,7 @@ public partial class BoogieGenerator {
   ///
   ///     yield ([a:=null], Y(a)) // quantify over a
   ///     yield ([a:=88], Y(88)) // guess a := 88
-  ///  
+  ///
   ///     yield ([a:=null, c:=null], Z(a, c)) // quantify over a
   ///     yield ([a:=88, c:=null], Z(88, c)) // guess a := 88
   ///
@@ -729,15 +729,15 @@ public partial class BoogieGenerator {
   ///   }
   ///
   /// From these yields, the caller (GenerateAndCheckGuesses) will then emit the following disjuncts:
-  /// 
+  ///
   ///   XCallCall ==> X
-  /// 
+  ///
   ///   exists a :: Is(a, A) && (YCanCall(a) ==> Y(a))
   ///   YCanCall(88) ==> Y(88)
-  /// 
+  ///
   ///   exists a, c :: Is(a, A) && Is(c, C) && (ZCanCall(a, b) ==> Z(a, c))
   ///   exists c :: Is(c, C) && (ZCanCall(88, c) ==> Z(88, c))
-  /// 
+  ///
   ///   exists a :: Is(a, A) && (ZCanCall(a, 0) ==> Z(a, 0))
   ///   ZCanCall(88, 0) ==> Z(88, 0)
   ///
@@ -802,7 +802,7 @@ public partial class BoogieGenerator {
       return (a, expression);
     }
 
-    // Place the left-most var-independent disjuncts into "a" and the rest into "b". 
+    // Place the left-most var-independent disjuncts into "a" and the rest into "b".
     // The loop below has the effect of:
     //         var d: List<Expression> := Expression.Disjuncts(expression);
     //         var (prefix, rest) :|
@@ -1059,7 +1059,7 @@ public partial class BoogieGenerator {
   /// <summary>
   /// Generate $Is (if "!generateIsAlloc") or $IsAlloc (if "generateIsAlloc") axioms for the newtype/subset-type "dd",
   /// whose printable name is "fullName".
-  /// 
+  ///
   /// Given that the type "dd" is
   ///
   ///     (new)type dd<X> = x: Base<Y> | constraint
@@ -1074,7 +1074,7 @@ public partial class BoogieGenerator {
   ///         { $Is(o, Tclass.dd) }
   ///         $Is(o, Tclass.Base) && (constraintCanCall ==> constraint) ==>
   ///             $Is(o, Tclass.dd));
-  /// 
+  ///
   /// and the $IsAlloc axiom has the form
   ///
   ///     axiom (forall o: dd, $h: Heap ::
@@ -1429,6 +1429,22 @@ public partial class BoogieGenerator {
       Bpl.Expr e = FunctionCall(tok, BuiltinFunction.IntToReal, null, from);
       e = Bpl.Expr.Binary(tok, Bpl.BinaryOperator.Opcode.Eq, e, o);
       builder.Add(Assert(tok, e, new IsInteger(expr, errorMsgPrefix), builder.Context));
+    }
+
+    if (fromType.IsNumericBased(Type.NumericPersuasion.Real) && !fromType.IsFp64Type && toType.IsFp64Type) {
+      // real to fp64 conversion is well-formed only if the real value is exactly representable in fp64
+      //   assert fp.to_real(real_to_fp64_RNE(o)) == o;
+      // TODO: This well-formedness check can cause verification timeouts due to a Z3 issue.
+      // The problem occurs when Z3's auto_config is disabled and case_split=3 is set (Dafny's default options).
+      // The interaction between the LitReal identity function's quantifier axiom and floating-point
+      // round-trip reasoning causes Z3 to fail to find a proof. Until this is resolved in Z3 or
+      // Dafny's solver configuration is adjusted, users may experience timeouts when converting
+      // real literals to fp64.
+      PutSourceIntoLocal();
+      Bpl.Expr asFp64 = FunctionCall(tok, "real_to_fp64_RNE", BplFp64Type, o);
+      Bpl.Expr backToReal = FunctionCall(tok, "fp.to_real", Bpl.Type.Real, asFp64);
+      Bpl.Expr isExact = Bpl.Expr.Binary(tok, Bpl.BinaryOperator.Opcode.Eq, backToReal, o);
+      builder.Add(Assert(tok, isExact, new IsExactlyRepresentableAsFp64(expr, errorMsgPrefix), builder.Context));
     }
 
     if (fromType.IsFp64Type && toType.IsNumericBased(Type.NumericPersuasion.Int)) {
