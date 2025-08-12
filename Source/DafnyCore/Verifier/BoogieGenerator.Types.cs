@@ -1209,7 +1209,7 @@ public partial class BoogieGenerator {
         // fp64 to real: use SMT-LIB fp.to_real
         r = FunctionCall(tok, "fp.to_real", Bpl.Type.Real, r);
       } else if (toType.IsBitVectorType) {
-        // fp64 to bitvector: convert to int first
+        // fp64 to bitvector: convert to int first via signed bit-vector
         r = FunctionCall(tok, "fp.to_sbv64_RTZ", BplBvType(64), r);
         r = FunctionCall(tok, "nat_from_bv64", Bpl.Type.Int, r);
         r = IntToBV(tok, r, toType);
@@ -1252,6 +1252,11 @@ public partial class BoogieGenerator {
         }
       } else if (toType.IsNumericBased(Type.NumericPersuasion.Int)) {
         r = FunctionCall(tok, "nat_from_bv" + fromWidth, Bpl.Type.Int, r);
+      } else if (toType.IsFp64Type) {
+        // bv to fp64 conversion: bv -> int -> real -> fp64
+        r = FunctionCall(tok, "nat_from_bv" + fromWidth, Bpl.Type.Int, r);
+        r = FunctionCall(tok, BuiltinFunction.IntToReal, null, r);
+        r = FunctionCall(tok, "real_to_fp64_RNE", BplFp64Type, r);
       } else if (toType.IsNumericBased(Type.NumericPersuasion.Real)) {
         r = FunctionCall(tok, "nat_from_bv" + fromWidth, Bpl.Type.Int, r);
         r = FunctionCall(tok, BuiltinFunction.IntToReal, null, r);
@@ -1468,6 +1473,24 @@ public partial class BoogieGenerator {
       builder.Add(Assert(tok, boundsCheck, new ConversionIsNatural(errorMsgPrefix, expr), builder.Context));
     }
 
+    if (fromType.IsBitVectorType && toType.IsFp64Type) {
+      // bv to fp64 conversion is well-formed only if the bit-vector value is exactly representable in fp64
+      // For IEEE 754 binary64, integers up to 2^53 can be exactly represented
+      // We check: fp.to_real(real_to_fp64_RNE(Int(Real(nat_from_bv(o))))) == Int(Real(nat_from_bv(o)))
+      // TODO: This well-formedness check causes verification timeouts due to the same Z3 issue
+      // as real-to-fp64 conversion. The round-trip check with floating-point operations
+      // causes Z3 to fail when auto_config is disabled and case_split=3 is set.
+      // For now, we include the check but users may experience timeouts.
+      PutSourceIntoLocal();
+      var fromWidth = fromType.AsBitVectorType.Width;
+      var asInt = FunctionCall(tok, "nat_from_bv" + fromWidth, Bpl.Type.Int, o);
+      var asReal = FunctionCall(tok, BuiltinFunction.IntToReal, null, asInt);
+      var asFp64 = FunctionCall(tok, "real_to_fp64_RNE", BplFp64Type, asReal);
+      var backToReal = FunctionCall(tok, "fp.to_real", Bpl.Type.Real, asFp64);
+      var isExact = Bpl.Expr.Binary(tok, Bpl.BinaryOperator.Opcode.Eq, backToReal, asReal);
+      builder.Add(Assert(tok, isExact, new IsExactlyRepresentableAsFp64(expr, errorMsgPrefix), builder.Context));
+    }
+
     if (toTypeFamily.IsBitVectorType) {
       var toWidth = toTypeFamily.AsBitVectorType.Width;
       var toBound = BaseTypes.BigNum.FromBigInt(BigInteger.One << toWidth);  // 1 << toWidth
@@ -1494,8 +1517,29 @@ public partial class BoogieGenerator {
         dafnyBoundsCheck = Expression.CreateAnd(
           Expression.CreateLess(Expression.CreateIntLiteral(expr.Origin, 0), expr),
           Expression.CreateAtMost(expr, dafnyBound));
-      } else if (fromType.IsNumericBased(Type.NumericPersuasion.Real)) {
-        // Check "Int(expr) < (1 << toWidth)" in type "int"
+      } else if (fromType.IsFp64Type) {
+        // Check that fp64 value can fit in target bit-vector
+        // First check it's a finite value that represents an integer
+        PutSourceIntoLocal();
+        var isFinite = FunctionCall(tok, "Fp64_IsFinite", Bpl.Type.Bool, o);
+        var toReal = FunctionCall(tok, "fp.to_real", Bpl.Type.Real, o);
+        var toInt = FunctionCall(tok, BuiltinFunction.RealToInt, null, toReal);
+        var backToReal = FunctionCall(tok, BuiltinFunction.IntToReal, null, toInt);
+        var isInteger = Bpl.Expr.Eq(backToReal, toReal);
+
+        // Then check the integer value is in bounds for the target bit-vector
+        var bound = Bpl.Expr.Literal(toBound);
+        var inBounds = BplAnd(Bpl.Expr.Le(Bpl.Expr.Literal(0), toInt), Bpl.Expr.Lt(toInt, bound));
+        boundsCheck = BplAnd(isFinite, BplAnd(isInteger, inBounds));
+
+        // For Dafny error reporting, we can't use Floor since fp64 doesn't have it
+        // Just check the fp64 value is in the right range
+        dafnyBoundsCheck = new BinaryExpr(expr.Origin, BinaryExpr.Opcode.And,
+          new BinaryExpr(expr.Origin, BinaryExpr.Opcode.Le, new LiteralExpr(expr.Origin, 0), expr),
+          new BinaryExpr(expr.Origin, BinaryExpr.Opcode.Lt, expr, dafnyBound)
+        );
+      } else if (fromType.IsNumericBased(Type.NumericPersuasion.Real) && !fromType.IsFp64Type) {
+        // Check "Int(expr) < (1 << toWidth)" in type "int" for real (not fp64)
         PutSourceIntoLocal();
         var bound = Bpl.Expr.Literal(toBound);
         var oi = FunctionCall(tok, BuiltinFunction.RealToInt, null, o);
