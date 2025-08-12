@@ -59,25 +59,10 @@ test-js:
 	$(DAFNY) test $(VERIFY_OPTIONS) -t:js examples/nondeterministic/dfyconfig.toml --output:build/stdlibexamples_nondeterministic
 	TARGETLANG=js make -C src/Std/TargetSpecific test
 
-# Build Rust-specific standard library that excludes ORDINAL-dependent modules
-build-rs: build-rs-lib
-
-build-rs-lib:
-	mkdir -p build/rust-stdlib/src/Std
-	cp -r src/Std/* build/rust-stdlib/src/Std/
-	# Remove ORDINAL-dependent modules that can't compile to Rust
-	rm -f build/rust-stdlib/src/Std/Ordinal.dfy
-	rm -f build/rust-stdlib/src/Std/Termination.dfy  
-	rm -f build/rust-stdlib/src/Std/Frames.dfy
-	rm -rf build/rust-stdlib/src/Std/Actions/
-	# Build the Rust-compatible library
-	$(DAFNY) build $(VERIFY_OPTIONS) -t:lib build/rust-stdlib/src/Std/dfyconfig.toml --output:binaries/DafnyStandardLibraries-rs.doo || true
-	# Note: Build may have verification issues but should produce usable library
-
 test-rs:
-	# Test default --standard-libraries behavior with Rust (ORDINAL issue resolved)
-	$(DAFNY) test $(VERIFY_OPTIONS) -t:rs --enforce-determinism --standard-libraries --output:build/stdlibexamples \
-		examples/RustMinimalTest.dfy
+	$(DAFNY) test $(VERIFY_OPTIONS) -t:rs examples/dfyconfig.toml examples/BoundedInts/NonDefault.cs --output:build/stdlibexamples --coverage-report:build/testcoverage
+# Iterators not supported on Rust
+	TARGETLANG=rs make -C src/Std/TargetSpecific test
 
 test: test-cs test-java test-go test-py test-js test-rs
 
