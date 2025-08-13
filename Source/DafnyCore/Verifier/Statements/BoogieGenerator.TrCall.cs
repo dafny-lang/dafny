@@ -294,7 +294,7 @@ public partial class BoogieGenerator {
 
     // Check that the reads clause of a subcall is a subset of the current reads frame,
     // but support the optimization that we don't define a reads frame at all if it's `reads *`. 
-    if (etran.readsFrame != null) {
+    if (etran.readsFrame != null || options.Get(CommonOptionBag.CheckInvariants)) {
       // substitute actual args for parameters in description expression frames...
       var requiredFrames = callee.Reads.Expressions.ConvertAll(directSub.SubstFrameExpr);
       var desc = new ReadFrameSubset("call", requiredFrames, GetContextReadsFrames());
@@ -302,34 +302,19 @@ public partial class BoogieGenerator {
       // ... but that substitution isn't needed for frames passed to CheckFrameSubset
       var readsSubst = new Substituter(null, new Dictionary<IVariable, Expression>(), tySubst);
       var calleeFrame = callee.Reads.Expressions.ConvertAll(readsSubst.SubstFrameExpr);
-      CheckFrameSubset(tok, calleeFrame,
-        receiver, substMap, etran, etran.ReadsFrame(tok), builder, desc, null);
-    }
-    
-    // NB: doesn't process function call expressions, b/c the associated well-formedness procedure will do so
-    if (options.Get(CommonOptionBag.CheckInvariants) && codeContext is MethodOrFunction { IsStatic: false, EnclosingClass: TopLevelDeclWithMembers { Invariant: { } invariant } } caller)
-      // Any object o in $Open must satisfy its invariant, UNLESS the caller is not reading o
-      // forall o <- open :: o not in caller's read frame || o.invariant()
-      // TODO(somayyas): assuming open == {this} for now
-    {
-      var thisExpr = new ThisExpr(caller);
-        
-      var readsSubst = new Substituter(null, new Dictionary<IVariable, Expression>(), tySubst);
-      var calleeFrame = callee.Reads.Expressions.ConvertAll(readsSubst.SubstFrameExpr);
-
-      var assertion = invariant.Mention(tok, thisExpr, program.SystemModuleManager);
-      
-      if (caller is Function || options.Get(MethodOrConstructor.ReadsClausesOnMethods)) {
-        assertion = new BinaryExpr(tok, BinaryExpr.ResolvedOpcode.Or, new BoogieWrapper(
-            CheckFrameExcludes(tok, calleeFrame, receiver, substMap, etran, etran.TrExpr(thisExpr)), Type.Bool), 
-          assertion);
+      if (etran.readsFrame != null) {
+        CheckFrameSubset(tok, calleeFrame,
+          receiver, substMap, etran, etran.ReadsFrame(tok), builder, desc, null);
       }
       
-      // Somewhat disturbing that we have to explicitly add the CanCall assumption
-      builder.Add(TrAssumeCmd(tok, etran.CanCallAssumption(assertion)));
-      builder.Add(TrAssertCmdDesc(tok, etran.TrExpr(assertion),
-        new ObjectInvariant(Dafny.ObjectInvariant.Kind.Call, assertion))
-      );
+      // NB: doesn't process function call expressions (see BoogieGenerator.ExpressionWellformed.cs in the case of FunctionCallExpr)
+      if (options.Get(CommonOptionBag.CheckInvariants) && codeContext is MethodOrFunction caller)
+      {
+        // Any object o in $Open must satisfy its invariant, UNLESS the caller is not reading o
+        // forall o <- open :: o not in caller's read frame || o.invariant()
+        // TODO(somayyas): assuming open == {this} for now
+        CheckInvariantAtCall(caller, callee, tok, calleeFrame, receiver, substMap, etran, builder);
+      }
     }
 
     // substitute actual args for parameters in description expression frames...

@@ -365,9 +365,8 @@ Use the `{:contradiction}` attribute to mark any `assert` statement intended to 
     IsHidden = true
   };
   
-  // TODO is this a good message?
   public static readonly Option<bool> CheckInvariants = new("--check-invariants", () => false,
-    "Enable resolution and verification of class invariants.") {
+    "Enable resolution and verification of class and trait invariants.") {
     IsHidden = true
   };
 

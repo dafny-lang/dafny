@@ -121,11 +121,11 @@ public partial class BoogieGenerator {
       // of them), do the postponed reads checks.
       delayer.DoWithDelayedReadsChecks(false, wfo => {
         builder.Add(new CommentCmd("Check well-formedness of preconditions, and then assume them"));
-        // If the object has an invariant and f is an instance function, then it can be assumed to check the well-formedness of its preconditions (see well-formedness check for methods for the general principle)
-        if (generator.options.Get(CommonOptionBag.CheckInvariants) && f is not Invariant and { IsStatic: false, EnclosingClass: TopLevelDeclWithMembers { Invariant: { } invariant } }) {
-          var assertion = invariant.Mention(f.Origin, new ThisExpr(f), generator.program.SystemModuleManager);
-          generator.CheckWellformedAndAssume(assertion, wfo, locals, builder, etran, "object invariant as precondition");
+        // If the object has an invariant and f is a (non-invariant) instance function, then it can be assumed to check the well-formedness of its preconditions (see well-formedness check for methods for the general principle)
+        if (f is not Invariant) {
+          generator.AddInvariantBoilerplate(f, new Assumption(wfo, locals), builder, etran);
         }
+
         foreach (AttributedExpression require in ConjunctsOf(f.Req)) {
           if (require.Label != null) {
             require.Label.E = (f is TwoStateFunction ? ordinaryEtran : etran.Old).TrExpr(require.E);

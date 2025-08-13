@@ -673,10 +673,9 @@ namespace Microsoft.Dafny {
       // check well-formedness of the preconditions, and then assume each one of them
       readsCheckDelayer.DoWithDelayedReadsChecks(false, wfo => {
         // The check below may depend on the assumption that forall o :: o in open || o.invariant()
-        // Since we come in with the assumption that `this in open` (really, this is only true *after* well-formedness checking), we have to explicitly require this.invariant()
-        if (options.Get(CommonOptionBag.CheckInvariants) && m is not Constructor and { IsStatic: false, EnclosingClass: TopLevelDeclWithMembers { Invariant: { } invariant } }) {
-          var assertion = invariant.Mention(m.Origin, new ThisExpr(m), program.SystemModuleManager);
-          CheckWellformedAndAssume(assertion, wfo, localVariables, builder, etran, "object invariant as precondition");
+        // Since we come in with the assumption that `this in open` (really, this is only true *after* well-formedness checking), we have to explicitly require this.invariant() if m is not a constructor
+        if (m is not Constructor) {
+          AddInvariantBoilerplate(m, new Assumption(wfo, localVariables), builder, etran);
         }
         foreach (AttributedExpression p in ConjunctsOf(m.Req)) {
           CheckWellformedAndAssume(p.E, wfo, localVariables, builder, etran, "method requires clause");
@@ -750,10 +749,8 @@ namespace Microsoft.Dafny {
       }
       
       // After simulating execution of the method body, the invariant for all objects temporarily added to the open set (namely, this) has been re-established
-      // So we assume them to check well-formedness of the postconditions
-      if (options.Get(CommonOptionBag.CheckInvariants) && m is { IsStatic: false, EnclosingClass: TopLevelDeclWithMembers { Invariant: { } invariant2 } }) {
-        builder.Add(TrAssumeCmd(m.Origin, etran.TrExpr(invariant2.Mention(m.Origin, new ThisExpr(m), program.SystemModuleManager))));
-      }
+      // So we assume them to check well-formedness of the postconditions (EVEN if m is a constructor)
+      AddInvariantBoilerplate(m, new Assumption(wfOptions, localVariables), builder, etran);
 
       // check wellformedness of postconditions
       foreach (AttributedExpression p in ConjunctsOf(m.Ens)) {
@@ -896,16 +893,9 @@ namespace Microsoft.Dafny {
       var beforeOutTrackers = DefiniteAssignmentTrackers;
       m.Outs.ForEach(p => AddExistingDefiniteAssignmentTracker(p, m.IsGhost));
       
-      if (options.Get(CommonOptionBag.CheckInvariants)) {
-        if (m is { IsStatic: false }) {
-          // See method well-formedness check as to why; assume this's invariant if m is not the constructor
-          if (m is not Constructor and { EnclosingClass: TopLevelDeclWithMembers { Invariant: { } invariant } }) {
-            var assertion = invariant.Mention(m.Origin, new ThisExpr(m), program.SystemModuleManager);
-            builder.Add(TrAssumeCmd(m.Origin, etran.CanCallAssumption(assertion)));
-            builder.Add(TrAssumeCmd(m.Origin, etran.TrExpr(assertion)));
-          }
-          // If open were mutable, we'd add {this} to it over here
-        }
+      // See method well-formedness check as to why; assume this's invariant if m is not the constructor
+      if (m is not Constructor) {
+        AddInvariantBoilerplate(m, new Assumption(new WFOptions(), localVariables), builder, etran);
       }
       
       // translate the body
@@ -916,12 +906,8 @@ namespace Microsoft.Dafny {
       }
       // Technically, we want to check forall o <- open - old(open) :: o.invariant()
       // Under the assumption that old(open) = {} and open = {this}, it's easy enough to just check this.invariant()
-      // TODO(somayyas): when the time comes and we do need to quantify over open/old(open), we need a "vtable" to grab the actual invariant member of each `object`
-      if (options.Get(CommonOptionBag.CheckInvariants) && m is { IsStatic: false, EnclosingClass: TopLevelDeclWithMembers { Invariant: { } invariant2 } }) {
-        var assertion = invariant2.Mention(m.Origin, new ThisExpr(m), program.SystemModuleManager);
-        builder.Add(TrAssumeCmd(m.Origin, etran.CanCallAssumption(assertion)));
-        builder.Add(TrAssertCmd(m.Origin, etran.TrExpr(assertion)));
-      }
+      // TODO(somayyas): when the time comes and we do need to quantify over open/old(open), we need to grab the actual invariant member of each `object`
+      AddInvariantBoilerplate(m, new Assertion(Dafny.ObjectInvariant.Kind.EndOfMethod), builder, etran);
       var stmts = builder.Collect(m.Body.StartToken); // EndToken might make more sense, but it requires updating most of the regression tests.
       DefiniteAssignmentTrackers = beforeOutTrackers;
       return stmts;

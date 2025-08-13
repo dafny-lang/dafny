@@ -37,27 +37,27 @@ public partial class BoogieGenerator {
     if (options.Get(CommonOptionBag.CheckInvariants)) {
       var tok = lhs.Origin;
       // If fse is being assigned externally and it has an invariant, it better be true after the fact
-      if (lhs is MemberSelectExpr fse && fse.Member.EnclosingClass is TopLevelDeclWithMembers decl) {
-        var invariant = decl.Invariant;
-        if (invariant is not null) {
-          // NB: if fse.Member is an inherited member, then decl is already the supertype => invariant is already the overridden member (if at all, which is what we want)
-          etran.OpenFormal(tok, out _, out var openExprDafny);
-          // NB: need to write out the Use here to avoid a malformed Boogie AST
-          Expression assertion = new BinaryExpr(tok, BinaryExpr.ResolvedOpcode.Or,
-            new BinaryExpr(tok, BinaryExpr.ResolvedOpcode.InSet, fse.Obj,
-              new BoogieWrapper(new Bpl.IdentifierExpr(tok, "$Open", Predef.SetType),
-                program.SystemModuleManager.NonNullObjectSetType(tok))),
-            invariant.Mention(tok, fse.Obj, program.SystemModuleManager));
-          // fse.Obj in $Open || fse.Obj.invariant()
-          if (codeContext is Constructor ctor && ctor.EnclosingClass.Equals(decl)) {
-            // In case we're in the fse.Obj's constructor, we don't actually want to check the invariant (equivalent to having open += {this} at the top of the constructor)
-            assertion = new BinaryExpr(tok, BinaryExpr.ResolvedOpcode.Or,
-              new BinaryExpr(tok, BinaryExpr.ResolvedOpcode.EqCommon, fse.Obj, new ThisExpr(ctor)),
-              assertion);
-          }
-          builder.Add(TrAssumeCmd(tok, etran.CanCallAssumption(assertion)));
-          builder.Add(TrAssertCmdDesc(tok, etran.TrExpr(assertion), new ObjectInvariant(Dafny.ObjectInvariant.Kind.Assignment, assertion)));
+      // NB: for somayyas@: logic here is different enough to be separate from AddInvariantBoilerPlate()
+      if (lhs is MemberSelectExpr fse && fse.Member.EnclosingClass is TopLevelDeclWithMembers { Invariant: { } invariant } decl) {
+        // NB: if fse.Member is an inherited member, then decl is already the supertype => invariant is already the overridden member (if at all, which is what we want)
+        etran.OpenFormal(tok, out _, out var openExprDafny);
+        // NB: need to write out the Use here to avoid a malformed Boogie AST
+        Expression assertion = new BinaryExpr(tok, BinaryExpr.ResolvedOpcode.Or,
+          new BinaryExpr(tok, BinaryExpr.ResolvedOpcode.InSet, fse.Obj,
+            new BoogieWrapper(new Bpl.IdentifierExpr(tok, "$Open", Predef.SetType),
+              program.SystemModuleManager.NonNullObjectSetType(tok))),
+          invariant.Mention(tok, fse.Obj, program.SystemModuleManager));
+        // fse.Obj in $Open || fse.Obj.invariant()
+        if (codeContext is Constructor ctor && ctor.EnclosingClass.Equals(decl)) {
+          // In case we're in the fse.Obj's constructor, we don't actually want to check the invariant (equivalent to having open += {this} at the top of the constructor)
+          assertion = new BinaryExpr(tok, BinaryExpr.ResolvedOpcode.Or,
+            new BinaryExpr(tok, BinaryExpr.ResolvedOpcode.EqCommon, fse.Obj, new ThisExpr(ctor)),
+            assertion);
         }
+        
+        builder.Add(TrAssumeCmd(tok, etran.CanCallAssumption(assertion)));
+        builder.Add(TrAssertCmdDesc(tok, etran.TrExpr(assertion),
+          new ObjectInvariant(Dafny.ObjectInvariant.Kind.Assignment, assertion)));
       }
       // NB: assume OpenHeapRelated *after* checking the above invariant, otherwise it'll trigger the invariant axiom and render the proof state inconsistent
       builder.Add(AssumeOpenHeapRelated(tok, etran));

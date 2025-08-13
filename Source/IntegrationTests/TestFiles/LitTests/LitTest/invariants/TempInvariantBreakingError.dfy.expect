@@ -1,4 +1,5 @@
-TempInvariantBreakingError.dfy(19,17): Error: invariant for receiver of the caller could not be checked before method or function call
-TempInvariantBreakingError.dfy(38,7): Error: invariant for receiver of assignment could not be checked afterward
+TempInvariantBreakingError.dfy(20,19): Error: invariant for receiver of the caller could not be proved before method or function call
+TempInvariantBreakingError.dfy(25,40): Error: invariant for receiver of the caller could not be proved before method or function call
+TempInvariantBreakingError.dfy(52,7): Error: invariant for receiver of assignment could not be proved afterward
 
-Dafny program verifier finished with 4 verified, 2 errors
+Dafny program verifier finished with 6 verified, 3 errors

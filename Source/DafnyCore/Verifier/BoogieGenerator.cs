@@ -2144,26 +2144,25 @@ namespace Microsoft.Dafny {
         desc, kv);
     }
     
-    public Expr CheckFrameExcludes(IOrigin tok, List<FrameExpression> calleeFrame,
+    public Expr CheckFrameExcludesOpen(IOrigin tok, List<FrameExpression> calleeFrame,
       Expression receiverReplacement, Dictionary<IVariable, Expression /*!*/> substMap,
-      ExpressionTranslator /*!*/ etran, Boogie.Expr /*!*/ excluded) {
+      ExpressionTranslator /*!*/ etran) {
       Contract.Requires(tok != null);
       Contract.Requires(calleeFrame != null);
       Contract.Requires(receiverReplacement == null || substMap != null);
       Contract.Requires(etran != null);
       Contract.Requires(Predef != null);
 
-      // emit: assert (forall o: ref, f: Field :: o != null && $Heap[o,alloc] && (o,f) in subFrame && o in $Open ==> o != excluded);
+      // emit: assert (forall o: ref, f: Field :: o != null && $Heap[o,alloc] && (o,f) in calleeFrame ==> o !in Open);
       var oVar = new Bpl.BoundVariable(tok, new Bpl.TypedIdent(tok, "$o", Predef.RefType));
       var o = new Bpl.IdentifierExpr(tok, oVar);
       var fVar = new Bpl.BoundVariable(tok, new Bpl.TypedIdent(tok, "$f", Predef.FieldName(tok)));
       var f = new Bpl.IdentifierExpr(tok, fVar);
       var ante = Bpl.Expr.And(Bpl.Expr.Neq(o, Predef.Null), etran.IsAlloced(tok, o));
       var oInCallee = InRWClause(tok, o, f, calleeFrame, etran, receiverReplacement, substMap);
-      var isExcluded = Bpl.Expr.Neq(o, excluded);
       etran.OpenFormal(tok, out _, out var openExprDafny);
       var q = new Bpl.ForallExpr(tok, [], [oVar, fVar],
-        BplImp(BplAnd([ante, oInCallee, etran.TrExpr(new BinaryExpr(tok, BinaryExpr.ResolvedOpcode.NotInSet, receiverReplacement, openExprDafny))]), isExcluded));
+        BplImp(BplAnd([ante, oInCallee]), etran.TrExpr(new BinaryExpr(tok, BinaryExpr.ResolvedOpcode.NotInSet, new BoogieWrapper(o, UserDefinedType.FromTopLevelDecl(tok, program.SystemModuleManager.ObjectDecl)), openExprDafny))));
       return q;
     }
 
@@ -2228,6 +2227,51 @@ namespace Microsoft.Dafny {
         return;
       }
       builder.Add(Assert(tok, q, desc, builder.Context, kv));
+    }
+
+    interface InvariantBoilerplateMode { }
+    record Assumption(WFOptions wfo, Variables locals) : InvariantBoilerplateMode {}
+    record Assertion(ObjectInvariant.Kind kind) : InvariantBoilerplateMode {}
+    
+    void AddInvariantBoilerplate(MethodOrFunction methodOrFunction, InvariantBoilerplateMode mode, BoogieStmtListBuilder builder, ExpressionTranslator etran) {
+      if (options.Get(CommonOptionBag.CheckInvariants)
+       && !methodOrFunction.IsStatic
+       && methodOrFunction.EnclosingClass is TopLevelDeclWithMembers { Invariant: { } invariant }) {
+        var @this = new ThisExpr(methodOrFunction);
+        IOrigin origin = mode is Assumption ? methodOrFunction.BodyStartTok : methodOrFunction.EndToken;
+        
+        var fVar = new Bpl.BoundVariable(origin, new Bpl.TypedIdent(origin, "$f", Predef.FieldName(origin)));
+        var f = new Bpl.IdentifierExpr(origin, fVar);
+        // todo this is wrong it should be like below, also substMap needs to be something probably
+        var thisInReadsFrame = BplForall([fVar], InRWClause(origin, etran.TrExpr(@this), f, methodOrFunction.Reads.Expressions, etran, @this, null));
+        
+        // forall o | o in readFrame :: o in open ==> o.invariant()
+        Expression assertion = new BinaryExpr(origin, BinaryExpr.ResolvedOpcode.Imp,
+          new BoogieWrapper(thisInReadsFrame, Type.Bool),
+          invariant.Mention(origin, @this, program.SystemModuleManager)
+        );
+        
+        builder.Add(TrAssumeCmd(origin, etran.CanCallAssumption(assertion)));
+        if (mode is Assumption assume) {
+          CheckWellformedAndAssume(assertion, assume.wfo, assume.locals, builder, etran, "object invariant");
+        } else if (mode is Assertion assert) {
+          builder.Add(TrAssertCmdDesc(origin, etran.TrExpr(assertion), new ObjectInvariant(assert.kind, assertion)));
+        }
+      }
+    }
+
+    void CheckInvariantAtCall(MethodOrFunction caller, MethodOrFunction callee, IOrigin tok, List<FrameExpression> calleeFrame, Expression receiver, Dictionary<IVariable, Expression> substMap, ExpressionTranslator etran, BoogieStmtListBuilder builder) {
+      if (options.Get(CommonOptionBag.CheckInvariants) && caller is { IsStatic: false, EnclosingClass: TopLevelDeclWithMembers { Invariant: { } invariant } } && !callee.Equals(invariant)) {
+        var thisExpr = new ThisExpr(caller);
+        var assertion = invariant.Mention(tok, thisExpr, program.SystemModuleManager);
+        if (callee is Function || options.Get(MethodOrConstructor.ReadsClausesOnMethods)) {
+          assertion = new BinaryExpr(tok, BinaryExpr.ResolvedOpcode.Or, new BoogieWrapper(
+              CheckFrameExcludesOpen(tok, calleeFrame, receiver, substMap, etran), Type.Bool), 
+            assertion);
+        }
+        builder.Add(TrAssumeCmd(tok, etran.CanCallAssumption(assertion)));
+        builder.Add(TrAssertCmdDesc(tok, etran.TrExpr(assertion), new ObjectInvariant(Dafny.ObjectInvariant.Kind.Call, assertion)));
+      }
     }
 
     /// <summary>

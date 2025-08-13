@@ -1733,12 +1733,14 @@ public class BoilerplateTriple : ProofObligationDescriptionCustomMessages {
 public class ObjectInvariant(ObjectInvariant.Kind kind, Expression assertion) : ProofObligationDescription {
   public enum Kind {
     Call,
-    Assignment
+    Assignment,
+    EndOfMethod
   }
 
   string KindToString(bool success) => kind switch {
-    Kind.Call => $"for receiver of the caller {(success ? "successfully" : "could not be")} checked before method or function call",
-    Kind.Assignment => $"for receiver of assignment {(success ? "successfully" : "could not be")} checked afterward"
+    Kind.Call => $"for receiver of the caller {(success ? "successfully" : "could not be")} proved before method or function call",
+    Kind.Assignment => $"for receiver of assignment {(success ? "successfully" : "could not be")} proved afterward",
+    Kind.EndOfMethod => $"invariant of enclosing class or trait declaration {(success ? "successfully" : "could not be")} proved at end of this method"
   };
   
   public override string SuccessDescription => $"invariant {KindToString(true)}";
