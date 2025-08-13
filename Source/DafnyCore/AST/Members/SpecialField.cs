@@ -33,8 +33,6 @@ public class SpecialField : Field {
     NaN,
     PositiveInfinity,
     NegativeInfinity,
-    PositiveZero,
-    NegativeZero,
     MaxValue,
     MinValue,
     MinNormal,

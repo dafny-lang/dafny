@@ -5,8 +5,8 @@
 
 method TestZeroValues() {
   // Test positive and negative zero constants
-  var pos_zero := fp64.PositiveZero;
-  var neg_zero := fp64.NegativeZero;
+  var pos_zero: fp64 := 0.0;
+  var neg_zero: fp64 := -0.0;
 
   // Test literal zeros
   var lit_pos_zero: fp64 := 0.0;
@@ -110,8 +110,8 @@ method TestSpecialValueArithmetic() {
   var neg_inf := fp64.NegativeInfinity;
   var max_val := fp64.MaxValue;
   var min_val := fp64.MinValue;
-  var pos_zero := fp64.PositiveZero;
-  var neg_zero := fp64.NegativeZero;
+  var pos_zero: fp64 := 0.0;
+  var neg_zero: fp64 := -0.0;
 
   // NaN arithmetic
   var nan_sum := nan + 1.0;
@@ -262,12 +262,13 @@ method TestSpecialValueCreation() {
   // Create NaN through invalid operations
   var zero: fp64 := 0.0;
   // These operations create NaN following IEEE 754 semantics
-  // Dafny currently allows NaN creation (no preconditions prevent it)
+  // Some operations create NaN, but Sqrt now has a precondition to prevent it
   // Note: NaN values cannot be compared for equality in compiled contexts
   var nan_created1 := fp64.PositiveInfinity - fp64.PositiveInfinity;
-  var nan_created2 := fp64.Sqrt(-1.0);
+  // var nan_created2 := fp64.Sqrt(-1.0);  // ERROR: precondition prevents negative input
+  var nan_propagated := fp64.Sqrt(fp64.NaN);  // OK: NaN propagation is allowed
   assert nan_created1.IsNaN;
-  assert nan_created2.IsNaN;
+  assert nan_propagated.IsNaN;
 
   // Create negative zero
   var neg_zero_created: fp64 := -0.0;  // Explicit type needed for .IsZero/.IsNegative

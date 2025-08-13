@@ -138,7 +138,7 @@ function Fp64_IsFinite(x: float53e11): bool { !Fp64_IsNaN(x) && !Fp64_IsInfinite
 function {:builtin "fp.eq"} Fp64_Equal(x: float53e11, y: float53e11) returns(bool);
 
 // fp64 conversion functions
-function {:builtin "fp.to_real"} fp.to_real(x: float53e11) returns(real);
+function {:builtin "fp.to_real"} fp_to_real(x: float53e11) returns(real);
 // For now, we'll create a wrapper function for real to fp64 conversion
 // This uses SMT-LIB's to_fp operation with RNE (Round to Nearest Even) mode
 function {:builtin "(_ to_fp 11 53) RNE"} real_to_fp64_RNE(x: real) returns(float53e11);
@@ -150,20 +150,11 @@ function {:builtin "fp.abs"} fp64_abs(x: float53e11) returns(float53e11);
 function {:builtin "fp.roundToIntegral RTN"} fp64_floor(x: float53e11) returns(float53e11);
 function {:builtin "fp.roundToIntegral RTP"} fp64_ceiling(x: float53e11) returns(float53e11);
 function {:builtin "fp.roundToIntegral RNE"} fp64_round(x: float53e11) returns(float53e11);
+function {:builtin "fp.roundToIntegral RTZ"} fp64_truncate(x: float53e11) returns(float53e11);
 function {:builtin "fp.sqrt RNE"} fp64_sqrt(x: float53e11) returns(float53e11);
-// For now, we'll create a direct mapping without exposing rounding modes
-// This function converts fp64 to a 64-bit signed bit vector using round-toward-zero
-function fp.to_sbv64_RTZ(x: float53e11) returns(bv64);
-
-// For verification purposes, we need to axiomatize the relationship between
-// fp.to_sbv64_RTZ and fp.to_real for exact integers
-axiom (forall x: float53e11 :: 
-  { fp.to_sbv64_RTZ(x) }
-  Fp64_IsFinite(x) &&
-  -9223372036854775808.0 <= fp.to_real(x) && fp.to_real(x) < 9223372036854775808.0 &&
-  Real(Int(fp.to_real(x))) == fp.to_real(x) ==>
-  nat_from_bv64(fp.to_sbv64_RTZ(x)) == Int(fp.to_real(x))
-);
+// SMT-LIB provides fp.to_sbv for converting floating-point to signed bit-vector
+// We use the RTZ (Round Toward Zero) rounding mode
+function {:builtin "(_ fp.to_sbv 64) RTZ"} fp.to_sbv64_RTZ(x: float53e11) returns(bv64);
 
 // Bitvector to int conversion for fp64
 function {:bvbuiltin "bv2int"} smt_nat_from_bv64(x: bv64) : int;

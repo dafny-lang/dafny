@@ -124,8 +124,8 @@ ghost method TestCollectionsGhost() {
   assert s3 == s3;  // OK: reflexive in ghost
   
   // But +0 and -0 are different values
-  var s4 := {fp64.PositiveZero};
-  var s5 := {fp64.NegativeZero};
+  var s4: set<fp64> := {0.0};
+  var s5: set<fp64> := {-0.0};
   assert s4 != s5;  // Different sets
 }
 
@@ -199,8 +199,8 @@ method TestNestedDatatype() {
 
 // IEEE special values
 method TestIEEESpecialCases() {
-  var pos_zero := fp64.PositiveZero;
-  var neg_zero := fp64.NegativeZero;
+  var pos_zero: fp64 := 0.0;
+  var neg_zero: fp64 := -0.0;
   var pos_inf := fp64.PositiveInfinity;
   var neg_inf := fp64.NegativeInfinity;
   var nan := fp64.NaN;
@@ -224,16 +224,16 @@ method TestMixedContexts(x: fp64, y: fp64) {
 
 // Practical examples
 method TestMainIEEE() {
-  var pos_zero := fp64.PositiveZero;
-  var neg_zero := fp64.NegativeZero;
+  var pos_zero: fp64 := 0.0;
+  var neg_zero: fp64 := -0.0;
   
   var ieee_eq := fp64.Equal(pos_zero, neg_zero);
   print "IEEE: +0.0 == -0.0 is ", ieee_eq, "\n";  // prints true
 }
 
 method TestMainBitwise() {
-  var pos_zero := fp64.PositiveZero;
-  var neg_zero := fp64.NegativeZero;
+  var pos_zero: fp64 := 0.0;
+  var neg_zero: fp64 := -0.0;
   
   var bitwise_eq := pos_zero == neg_zero;  // ERROR: ±0 check fails
 }

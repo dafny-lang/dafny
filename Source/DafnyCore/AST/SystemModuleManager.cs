@@ -249,10 +249,8 @@ public class SystemModuleManager {
     AddStaticSpecialField("NaN", SpecialField.ID.NaN);
     AddStaticSpecialField("PositiveInfinity", SpecialField.ID.PositiveInfinity);
     AddStaticSpecialField("NegativeInfinity", SpecialField.ID.NegativeInfinity);
-    AddStaticSpecialField("PositiveZero", SpecialField.ID.PositiveZero);
     AddStaticSpecialField("Pi", SpecialField.ID.Pi);
     AddStaticSpecialField("E", SpecialField.ID.E);
-    AddStaticSpecialField("NegativeZero", SpecialField.ID.NegativeZero);
     AddStaticSpecialField("MaxValue", SpecialField.ID.MaxValue);
     AddStaticSpecialField("MinValue", SpecialField.ID.MinValue);
     AddStaticSpecialField("MinNormal", SpecialField.ID.MinNormal);
@@ -547,14 +545,6 @@ public class SystemModuleManager {
     var negInfConst = new StaticSpecialField(SourceOrigin.NoToken, "NegativeInfinity", SpecialField.ID.NegativeInfinity, null,
       false, false, false, fp64Type, null);
     AddMemberToValuetype(negInfConst, ValuetypeVariety.Fp64);
-
-    var posZeroConst = new StaticSpecialField(SourceOrigin.NoToken, "PositiveZero", SpecialField.ID.PositiveZero, null,
-      false, false, false, fp64Type, null);
-    AddMemberToValuetype(posZeroConst, ValuetypeVariety.Fp64);
-
-    var negZeroConst = new StaticSpecialField(SourceOrigin.NoToken, "NegativeZero", SpecialField.ID.NegativeZero, null,
-      false, false, false, fp64Type, null);
-    AddMemberToValuetype(negZeroConst, ValuetypeVariety.Fp64);
 
     var maxValueConst = new StaticSpecialField(SourceOrigin.NoToken, "MaxValue", SpecialField.ID.MaxValue, null,
       false, false, false, fp64Type, null);

@@ -348,7 +348,7 @@ function `as real` from `int` to `real`, as described in
 
 ### 5.2.3. Floating-point Type (fp64) {#sec-floating-point-type}
 
-Dafny supports the `fp64` type, which represents IEEE 754 double-precision (64-bit)
+Dafny supports the `fp64` type, which represents IEEE 754 binary64
 floating-point numbers. This type provides hardware-compatible floating-point arithmetic
 with the expected precision and rounding behavior. The `fp64` type is considered a
 real-based numeric type in Dafny's type system.
@@ -395,6 +395,8 @@ Additional constants include:
 - `fp64.Epsilon` - Smallest positive value such that `1.0 + Epsilon != 1.0`
 - `fp64.MinNormal` - Smallest positive normal number
 - `fp64.MinSubnormal` - Smallest positive subnormal number
+- `fp64.Pi` - The mathematical constant π (pi)
+- `fp64.E` - The mathematical constant e (Euler's number)
 
 #### 5.2.3.3. Classification Predicates
 
@@ -502,12 +504,17 @@ method EqualityExample(x: fp64, y: fp64) {
 
 #### 5.2.3.6. Mathematical Functions
 
-The `fp64` type provides static methods for common mathematical operations:
+The `fp64` type provides static methods for common mathematical operations. Most functions
+follow IEEE 754 semantics and gracefully handle special values, but some have preconditions
+to prevent NaN results:
 
-- `fp64.Abs(x)` - Absolute value
-- `fp64.Sqrt(x)` - Square root
-- `fp64.Min(x, y)` - Minimum of two values
-- `fp64.Max(x, y)` - Maximum of two values
+- `fp64.Abs(x)` - Absolute value (preserves NaN, converts -∞ to +∞). No preconditions.
+- `fp64.Sqrt(x)` - Square root. **Requires**: x ≥ 0.0 (non-negative) to prevent NaN result. Returns √x for finite x ≥ 0, returns +∞ for x = +∞.
+- `fp64.Min(x, y)` - Minimum of two values (propagates NaN)
+- `fp64.Max(x, y)` - Maximum of two values (propagates NaN)
+- `fp64.Floor(x)` - Round down to nearest integer (preserves NaN and infinities)
+- `fp64.Ceiling(x)` - Round up to nearest integer (preserves NaN and infinities)
+- `fp64.Round(x)` - Round to nearest integer, ties to even (preserves NaN and infinities)
 
 <!-- %check-verify -->
 ```dafny
@@ -518,26 +525,55 @@ method MathFunctions() {
   var absX := fp64.Abs(x);
   var sqrtY := fp64.Sqrt(y);
   var minimum := fp64.Min(x, y);
+  var floored := fp64.Floor(x);
+  var ceiled := fp64.Ceiling(x);
+  var rounded := fp64.Round(2.5);  // Rounds to 2.0 (nearest even)
 
   assert absX == 3.5;
   assert sqrtY == ~1.4142135623730951;  // Approximate √2
   assert minimum == x;
+  assert floored == -4.0;
+  assert ceiled == -3.0;
+  assert rounded == 2.0;
+}
+```
+
+Special value behavior:
+<!-- %check-verify -->
+```dafny
+method SpecialValueBehavior() {
+  var nan := fp64.NaN;
+  var inf := fp64.PositiveInfinity;
+  var neg: fp64 := -1.0;
+
+  // Sqrt has a precondition: requires non-negative input
+  // var sqrtNeg := fp64.Sqrt(neg);   // ERROR: negative input not allowed
+  var sqrtInf := fp64.Sqrt(inf);   // Returns positive infinity
+  var floorNaN := fp64.Floor(nan); // Returns NaN
+  var absNegInf := fp64.Abs(fp64.NegativeInfinity); // Returns positive infinity
+
+  assert sqrtInf == fp64.PositiveInfinity;
+  assert floorNaN.IsNaN;
+  assert absNegInf == fp64.PositiveInfinity;
 }
 ```
 
 #### 5.2.3.7. Type Conversions
 
-The `fp64` type supports conversions to and from other numeric types:
+The `fp64` type supports conversions to and from other numeric types using the `as` operator:
 
 - **From `real` to `fp64`**: Requires the real value to be exactly representable in fp64.
-  Values that cannot be represented exactly must use the approximation operator `~` on literals,
-  or will cause a verification error on non-literal expressions.
 
-- **From `fp64` to `real`**: Always allowed, produces the exact real number represented by the fp64 value.
+- **From `fp64` to `real`**: Requires the fp64 value to be finite (not NaN or infinity).
 
-- **From `int` to `fp64`**: Allowed for integers that can be exactly represented (up to ±2^53).
+- **From `int` to `fp64`**: Requires the integer to be exactly representable in fp64.
 
 - **From `fp64` to `int`**: Requires the fp64 value to be finite and represent an exact integer.
+
+- **From `bv` to `fp64`**: Requires the bit-vector value to be exactly representable in fp64.
+
+- **From `fp64` to `bv`**: Requires the fp64 value to be finite and represent an exact non-negative
+  integer that fits in the target bit-vector width.
 
 <!-- %check-verify -->
 ```dafny
@@ -550,23 +586,80 @@ method ConversionExamples() {
   // var f2: fp64 := r2 as fp64;  // ERROR: 0.1 is not exactly representable
 
   // fp64 to real
-  var f3: fp64 := 3.14;
-  var r3: real := f3 as real;  // Always OK
+  var f3: fp64 := 42.5;
+  var r3: real := f3 as real;  // OK: finite value
 
   // int to fp64
   var i1: int := 42;
   var f4: fp64 := i1 as fp64;  // OK: 42 is exactly representable
+  var i2: int := 9007199254740992;  // 2^53
+  var f5: fp64 := i2 as fp64;  // OK: 2^53 is exactly representable
+  var i3: int := 9007199254740993;  // 2^53 + 1
+  // var f6: fp64 := i3 as fp64;  // ERROR: 2^53 + 1 is not exactly representable
 
   // fp64 to int
-  var f5: fp64 := 3.0;
-  var i2: int := f5 as int;  // OK: 3.0 is an exact integer
+  var f7: fp64 := 3.0;
+  var i4: int := f7 as int;  // OK: 3 is an integer
 
-  var f6: fp64 := 3.14;
-  // var i3: int := f6 as int;  // ERROR: 3.14 is not an integer
+  var f8: fp64 := 3.14;
+  // var i5: int := f8 as int;  // ERROR: 3.14 is not an integer
 }
 ```
 
-#### 5.2.3.8. Comparison of Numeric Types
+**Note**: There is a known issue with Z3 that may cause verification timeouts when converting
+integers or reals to `fp64` using the `as` operator. This is due to the interaction between
+the exactness check and Z3's floating-point reasoning. The issue occurs with Dafny's default
+solver configuration and may be resolved in future Z3 or Dafny updates.
+
+#### 5.2.3.8. Inexact Conversion Methods
+
+In addition to the exact conversions using the `as` operator, `fp64` provides static methods
+for conversions that may involve rounding or truncation:
+
+- `fp64.FromReal(r)` - Converts a real value to fp64 with rounding. Values outside the
+  representable range become ±infinity. No preconditions.
+
+- `fp64.ToInt(x)` - Converts an fp64 value to unbounded int by truncating towards zero (like C cast).
+  Requires x to be finite (not NaN or infinity). This precondition is inspired by IEEE 754 which specifies
+  that implementations shall signal invalid operation for NaN/infinity to integer conversions.
+
+<!-- %check-verify -->
+```dafny
+method InexactConversions() {
+  // FromReal allows any real value and rounds as needed
+  var r1: real := 0.1;
+  var f1 := fp64.FromReal(r1);  // OK: rounds to nearest representable value
+
+  var huge: real := 1e400;
+  var f2 := fp64.FromReal(huge);  // Becomes positive infinity
+  assert f2 == fp64.PositiveInfinity;
+
+  // ToInt truncates towards zero (Round Toward Zero - RTZ)
+  var f3: fp64 := 3.75;  // Exactly representable
+  var i1 := fp64.ToInt(f3);  // Returns 3
+  assert i1 == 3;
+
+  var f4: fp64 := -3.75;  // Exactly representable
+  var i2 := fp64.ToInt(f4);  // Returns -3 (truncates toward zero, not -4)
+  assert i2 == -3;
+}
+
+// This method demonstrates the precondition check
+method ToIntPreconditionExamples() {
+  var finite: fp64 := 42.5;
+  var i := fp64.ToInt(finite);  // OK: finite value
+  assert i == 42;
+
+  // The following would fail verification:
+  // var inf := fp64.PositiveInfinity;
+  // var i_inf := fp64.ToInt(inf);  // Error: requires finite argument
+
+  // var nan := fp64.NaN;
+  // var i_nan := fp64.ToInt(nan);  // Error: requires finite argument
+}
+```
+
+#### 5.2.3.9. Comparison of Numeric Types
 
 | Aspect | int | real | fp64 |
 |--------|-----|------|------|
@@ -574,7 +667,7 @@ method ConversionExamples() {
 | Precision | Unlimited | Exact | ~15-17 decimal digits |
 | Special values | None | None | NaN, ±∞ |
 | Modulus operator | Yes | No | No |
-| Hardware mapping | BigInteger | BigRational | IEEE 754 double |
+| Hardware mapping | BigInteger | BigRational | IEEE 754 binary64 |
 
 ### 5.2.4. Bit-vector Types ([grammar](#g-basic-type)) {#sec-bit-vector-types}
 

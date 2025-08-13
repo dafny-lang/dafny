@@ -523,6 +523,48 @@ public class IsExactlyRepresentableAsFp64 : ProofObligationDescription {
   }
 }
 
+public class Fp64SqrtNonNegativePrecondition : ProofObligationDescription {
+  public override string SuccessDescription =>
+    "fp64.Sqrt argument is always non-negative";
+
+  public override string FailureDescription =>
+    "fp64.Sqrt requires a non-negative argument (negative values produce NaN)";
+
+  public override string ShortDescription => "fp64.Sqrt non-negative precondition";
+
+  private readonly Expression expr;
+
+  public Fp64SqrtNonNegativePrecondition(Expression expr) {
+    this.expr = expr;
+  }
+
+  public override Expression GetAssertedExpr(DafnyOptions options) {
+    var zero = Expression.CreateRealLiteral(expr.Origin, BaseTypes.BigDec.ZERO);
+    return new BinaryExpr(expr.Origin, BinaryExpr.Opcode.Ge, expr, zero);
+  }
+}
+
+public class Fp64ToIntFinitePrecondition : ProofObligationDescription {
+  public override string SuccessDescription =>
+    "fp64.ToInt argument is always finite";
+
+  public override string FailureDescription =>
+    "fp64.ToInt requires a finite argument (not NaN or infinity)";
+
+  public override string ShortDescription => "fp64.ToInt finite precondition";
+
+  private readonly Expression operand;
+
+  public Fp64ToIntFinitePrecondition(Expression operand) {
+    this.operand = operand;
+  }
+
+  public override Expression GetAssertedExpr(DafnyOptions options) {
+    // Express as: operand.IsFinite
+    return new ExprDotName(operand.Origin, operand, new Name("IsFinite"), null);
+  }
+}
+
 //// Object properties
 
 public class NonNull : ProofObligationDescription {
@@ -1849,6 +1891,35 @@ public class BoilerplateTriple : ProofObligationDescriptionCustomMessages {
     : base(errorMessage, successMessage) {
     this.DefaultSuccessDescription = comment;
     this.DefaultFailureDescription = comment;
+  }
+}
+
+public class IntToFp64ExactnessCheck : ProofObligationDescription {
+  public override string SuccessDescription =>
+    $"{prefix}the integer value is exactly representable as fp64";
+
+  public override string FailureDescription =>
+    $"{prefix}the integer value must be exactly representable as fp64 (integers outside ±2^53 cannot be exactly represented)";
+
+  public override string ShortDescription => "int to fp64 exactness check";
+
+  private readonly string prefix;
+  private readonly Expression expr;
+
+  public IntToFp64ExactnessCheck(Expression expr, string prefix = "") {
+    this.expr = expr;
+    this.prefix = prefix;
+  }
+
+  public override Expression GetAssertedExpr(DafnyOptions options) {
+    // The exactness check is: converting to fp64 and back to int preserves the value
+    // This properly handles all exactly representable integers, including:
+    // - All integers from -2^53 to 2^53
+    // - Even integers from ±2^53 to ±2^54
+    // - Multiples of 4 from ±2^54 to ±2^55
+    // - And so on up to about ±1.8e308
+    // The actual Boogie check performs the round-trip test, this is just for display
+    return Expression.CreateBoolLiteral(expr.Origin, true);
   }
 }
 

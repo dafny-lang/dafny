@@ -1083,12 +1083,6 @@ namespace Microsoft.Dafny {
                 case "NegativeInfinity":
                   result = BoogieGenerator.Predef.Fp64NegativeInfinity;
                   break;
-                case "PositiveZero":
-                  result = Boogie.Expr.Literal(BigFloat.CreateZero(false, 53, 11));
-                  break;
-                case "NegativeZero":
-                  result = Boogie.Expr.Literal(BigFloat.CreateZero(true, 53, 11));
-                  break;
                 case "Pi":
                   // IEEE 754 double precision Pi
                   if (BigFloat.FromRational(
@@ -1375,11 +1369,17 @@ namespace Microsoft.Dafny {
           return FunctionCall(GetToken(expr), "real_to_fp64_RNE", BoogieGenerator.BplFp64Type, arg);
         } else if (name == "ToInt" && expr.Function.EnclosingClass is ValuetypeDecl { Name: "fp64" }) {
           // Handle fp64.ToInt - inexact conversion from fp64 to int (truncating towards zero)
+          // Precondition: the argument must be finite (checked in well-formedness)
           Contract.Assert(expr.Args.Count == 1);
           var arg = TrExpr(expr.Args[0]);
-          // First convert to real, then truncate
-          var toReal = FunctionCall(GetToken(expr), "fp.to_real", Boogie.Type.Real, arg);
-          return BoogieGenerator.FunctionCall(GetToken(expr), BuiltinFunction.RealToInt, Boogie.Type.Int, toReal);
+
+          // Use fp.roundToIntegral with RTZ (Round Toward Zero) mode followed by fp_to_real
+          // This gives us proper truncation toward zero
+          var truncatedFp = FunctionCall(GetToken(expr), "fp64_truncate", BoogieGenerator.BplFp64Type, arg);
+          var toReal = FunctionCall(GetToken(expr), "fp_to_real", Boogie.Type.Real, truncatedFp);
+          var toInt = BoogieGenerator.FunctionCall(GetToken(expr), BuiltinFunction.RealToInt, null, toReal);
+
+          return toInt;
         } else {
           bool argsAreLitDummy;
           var args = FunctionInvocationArguments(expr, null, null, true, out argsAreLitDummy);

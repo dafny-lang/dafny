@@ -2724,14 +2724,6 @@ namespace Microsoft.Dafny.Compilers {
           preString = "double.NegativeInfinity";
           postString = "";
           break;
-        case SpecialField.ID.PositiveZero:
-          preString = "0.0";
-          postString = "";
-          break;
-        case SpecialField.ID.NegativeZero:
-          preString = "-0.0";
-          postString = "";
-          break;
         case SpecialField.ID.Pi:
           preString = "Math.PI";
           postString = "";
@@ -2840,12 +2832,6 @@ namespace Microsoft.Dafny.Compilers {
               return;
             case "NegativeInfinity":
               wr.Write("double.NegativeInfinity");
-              return;
-            case "PositiveZero":
-              wr.Write("0.0");
-              return;
-            case "NegativeZero":
-              wr.Write("-0.0");
               return;
             case "Pi":
               wr.Write("Math.PI");

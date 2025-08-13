@@ -1636,6 +1636,25 @@ namespace Microsoft.Dafny {
           new ShiftLowerBound(false, arg), builder.Context, options.AssertKv));
         builder.Add(Assert(GetToken(expr), Bpl.Expr.Le(etran.TrExpr(arg), Bpl.Expr.Literal(w)),
           new ShiftUpperBound(w, false, arg), builder.Context, options.AssertKv));
+      } else if (expr.Function.Name == "ToInt" && expr.Function.EnclosingClass is ValuetypeDecl { Name: "fp64" }) {
+        // fp64.ToInt requires the argument to be finite (not NaN or infinity)
+        // IEEE 754 requires signaling invalid operation for NaN/infinity to integer conversion
+        Contract.Assert(expr.Args.Count == 1);
+        var arg = etran.TrExpr(expr.Args[0]);
+        var isFinite = FunctionCall(GetToken(expr), "Fp64_IsFinite", Bpl.Type.Bool, arg);
+        builder.Add(Assert(GetToken(expr), isFinite,
+          new Fp64ToIntFinitePrecondition(expr.Args[0]), builder.Context, options.AssertKv));
+      } else if (expr.Function.Name == "Sqrt" && expr.Function.EnclosingClass is ValuetypeDecl { Name: "fp64" }) {
+        // fp64.Sqrt requires the argument to be non-negative to avoid NaN result
+        // IEEE 754 specifies that sqrt of negative numbers produces NaN
+        Contract.Assert(expr.Args.Count == 1);
+        var arg = etran.TrExpr(expr.Args[0]);
+        // Check that the argument is not negative (note: +0.0 and -0.0 are both allowed)
+        // NaN is neither positive nor negative, so !IsNegative allows NaN, but that's ok
+        // because sqrt(NaN) = NaN which is well-defined
+        var isNotNegative = Bpl.Expr.Not(FunctionCall(GetToken(expr), "Fp64_IsNegative", Bpl.Type.Bool, arg));
+        builder.Add(Assert(GetToken(expr), isNotNegative,
+          new Fp64SqrtNonNegativePrecondition(expr.Args[0]), builder.Context, options.AssertKv));
       }
     }
 
