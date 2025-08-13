@@ -284,7 +284,7 @@ public abstract class Type : NodeWithOrigin {
 
       // Handle built-in types: convert UserDefinedType to actual basic type
       if (type is UserDefinedType { ResolvedClass: ValuetypeDecl { Name: "fp64" or "int" or "real" or "bool" or "char" or "ORDINAL" } vtd } builtinUdt)
-        // Only convert specific built-in types to avoid breaking other ValuetypeDecls
+      // Only convert specific built-in types to avoid breaking other ValuetypeDecls
       {
         return vtd.CreateType(builtinUdt.TypeArgs);
       }
@@ -423,8 +423,7 @@ public abstract class Type : NodeWithOrigin {
       }
     }
 
-    switch (t)
-    {
+    switch (t) {
       case BoolType or CharType or IntType or BigOrdinalType or RealType or BitvectorType or Fp64Type:
       case CollectionType:
         return AutoInitInfo.CompilableValue;
