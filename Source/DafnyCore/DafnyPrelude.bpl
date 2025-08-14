@@ -644,6 +644,14 @@ var $ReferrersHeap: ReferrersHeap;
 // independent of the ReferrersHeap.
 const $OneReferrersHeap: ReferrersHeap;
 
+axiom (forall H: ReferrersHeap, r: ref ::
+ { readReferrers(H, r) } 
+  $Is(readReferrers(H, r), TSet(Tclass._System.Tuple2(Tclass._System.object?(), TField))));
+
+axiom (forall a: Set, b: Set, t: Ty ::
+  { $Is(Set#Difference(a, b), TSet(t)) }
+  $Is(a, TSet(t)) ==> $Is(Set#Difference(a, b), TSet(t)));
+
 // ---------------------------------------------------------------
 // -- Useful macros ----------------------------------------------
 // ---------------------------------------------------------------

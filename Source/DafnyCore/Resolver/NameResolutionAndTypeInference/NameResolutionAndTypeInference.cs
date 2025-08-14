@@ -4421,7 +4421,7 @@ namespace Microsoft.Dafny {
               // Either rr.Path resolved correctly as a type or there was no way to drop a last component to make it into something that looked
               // like a type.  In either case, set EType,initCallName to Path,"_ctor" and continue.
               allocateClass.Type = allocateClass.Path;
-              initCallName = "_ctor";
+              initCallName = "constructor";
               initCallTok = allocateClass.Origin;
             }
             var cl = (allocateClass.Type as UserDefinedType)?.ResolvedClass as NonNullTypeDecl;
@@ -4504,7 +4504,7 @@ namespace Microsoft.Dafny {
       if (cd != null) {
         Contract.Assert(ctype.TypeArgs.Count == cd.TypeArgs.Count);  // follows from the fact that ctype was resolved
         if (!GetClassMembers(cd).TryGetValue(memberName, out var member)) {
-          if (memberName == "_ctor") {
+          if (memberName == "constructor") {
             reporter.Error(MessageSource.Resolver, tok, "{0} {1} does not have an anonymous constructor", cd.WhatKind, cd.Name);
           } else {
             ReportMemberNotFoundError(tok, memberName, cd);

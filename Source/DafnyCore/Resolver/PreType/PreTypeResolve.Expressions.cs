@@ -780,6 +780,21 @@ namespace Microsoft.Dafny {
                 members.TryGetValue(nameSegment.Name, out var member) && member is MethodOrConstructor methodOrConstructor) {
               innerCallEnclosingMethod = methodOrConstructor;
               nameSegment.PreType = CreatePreTypeProxy(); // Never used, just in case.
+            } else if (fieldLocation.Lhs is ExprDotName e) {
+              ResolveDotSuffix(e, true, true, null, resolutionContext, true);
+              if (e.Resolved is not MemberSelectExpr mse) {
+                ReportError(fieldLocation.Lhs, "The only expr dot name allowed here is a method or constructor, but got something else", name);
+                fieldLocation.PreType = CreatePreTypeProxy("field-location");
+                return;
+              }
+
+              if (mse.Member is not MethodOrConstructor methodOrConstructor2) {
+                ReportError(fieldLocation.Lhs, "Expected method or constructor, got {0}", name, mse.Member.WhatKind);
+                fieldLocation.PreType = CreatePreTypeProxy("field-location");
+                return;
+              }
+              innerCallEnclosingMethod = methodOrConstructor2;
+              fieldLocation.Lhs.PreType ??= CreatePreTypeProxy(); // Never used, just in case.
             } else {
               ResolveExpression(fieldLocation.Lhs, resolutionContext);
             }
@@ -790,6 +805,9 @@ namespace Microsoft.Dafny {
             if (innerCallEnclosingMethod != null) {
               var availableFormals = innerCallEnclosingMethod.Ins.Concat(innerCallEnclosingMethod.Outs);
               var formal = availableFormals.FirstOrDefault(formal => formal.Name == name.Value);
+              if (formal == null && name.Value == "this" && innerCallEnclosingMethod is {IsStatic: false}) {
+                formal = innerCallEnclosingMethod.GetThisFormal();
+              }
               if (formal == null) {
                 // Let's give an hint about declared input parameters
                 var hints = new List<string>();
@@ -1407,7 +1425,7 @@ namespace Microsoft.Dafny {
         if (members == null || !members.TryGetValue(memberName, out var member)) {
           if (!reportErrorOnMissingMember) {
             // don't report any error
-          } else if (memberName == "_ctor") {
+          } else if (memberName == "constructor") {
             ReportError(tok, $"{receiverDecl.WhatKind} '{receiverDecl.Name}' does not have an anonymous constructor");
           } else {
             ReportMemberNotFoundError(tok, memberName, members, receiverDecl, resolutionContext);

@@ -427,7 +427,7 @@ public class IteratorDecl : ClassDecl, IMethodCodeContext, ICanVerify, ICodeCont
     // saying is that the Method/Predicate does not take any type parameters over and beyond what the enclosing type (namely, the
     // iterator type) does.
     // --- here comes the constructor
-    var init = new Constructor(rangeToken, new Name(NameNode.Origin, "_ctor"), false,
+    var init = new Constructor(rangeToken, new Name(NameNode.Origin, "constructor"), false,
       [], Ins,
       [],
       new Specification<FrameExpression>(),

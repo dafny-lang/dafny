@@ -1195,7 +1195,7 @@ namespace Microsoft.Dafny {
             // like a type.  In either case, set EType,initCallName to Path,"_ctor" and continue.
             rr.PreType = Type2PreType(allocateClass.Path);
             rr.Type = allocateClass.Path;
-            initCallName = "_ctor";
+            initCallName = "constructor";
             initCallTok = rr.Origin;
           }
 

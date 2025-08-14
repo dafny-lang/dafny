@@ -43,7 +43,7 @@ public partial class BoogieGenerator {
     /// </code>
     /// </summary>
     public void AddFreeRequires(Formal i, MethodOrConstructor m, ExpressionTranslator ordinaryEtran, List<Boogie.Requires> req) {
-      if (!VerifyReferrers || m is Lemma || !CountsAsReferrer(i) || !i.Type.MayInvolveReferences) {
+      if (!VerifyReferrers || m.IsGhost || !CountsAsReferrer(i) || !i.Type.MayInvolveReferences) {
         return;
       }
 
@@ -51,7 +51,8 @@ public partial class BoogieGenerator {
       var field = BG.GetField(localField); // Make sure definition is added.
       var tok = i.Origin;
       if (!i.Type.IsRefType) {
-        WarningReferrersNotSupport(tok, $"formal {i} might contain references but is not a reference itself");
+        BG.program.Reporter.Warning(MessageSource.Verifier, "Unknown formal referrers", tok,
+          $"This formal is not supported yet in --referrers because it might contain references but is not a reference itself.");
         return;
       }
       var boxedTuple = BoxedLocalVariableAtCurrentDepth(tok, field);
@@ -96,26 +97,21 @@ public partial class BoogieGenerator {
 
     public void RemovePreAssign(IOrigin tok, Expression lhs, BoogieStmtListBuilder builder, Variables locals,
       ExpressionTranslator etran) {
-      if (!VerifyReferrers || !lhs.Type.MayInvolveReferences || CurrentDeclaration is Lemma) {
-        return;
-      }
-
-      if (!lhs.Type.IsRefType) {
-        ReferrersNotSupportedHavocFallback(builder, etran, tok, $"{lhs} might involve references but is not a reference type");
+      if (!VerifyReferrers || !lhs.Type.MayInvolveReferences || CurrentDeclaration is Lemma or MethodOrConstructor {IsGhost: true}) {
         return;
       }
 
       switch (lhs.Resolved) {
         // Havoc the referrersHeap by default, unless we know what to do.
-        case IdentifierExpr { Type.IsRefType: true, Var: LocalVariable localVariable }
+        case IdentifierExpr { Var: LocalVariable localVariable }
           when CurrentDeclaration is MethodOrConstructor m:
           RemovePreAssignLocalVar(tok, lhs, localVariable, m, builder, etran);
           return;
-        case MemberSelectExpr { Type.IsRefType: true, Obj: var memberObj, Member: Field memberField }:
+        case MemberSelectExpr { Obj: var memberObj, Member: Field memberField }:
           RemovePreAssignMemberSelect(builder, locals, etran, tok, memberObj, memberField);
           return;
         default:
-          ReferrersNotSupportedHavocFallback(builder, etran, tok, $"{lhs} is not a variable or member assignment");
+          ReferrersNotSupportedHavocFallback(builder, etran, tok, $"{lhs} is not a variable or member assignment of a reference type");
           break;
       }
     }
@@ -123,7 +119,11 @@ public partial class BoogieGenerator {
     private void RemovePreAssignLocalVar(IOrigin tok, Expression lhs,
       LocalVariable localVariable, MethodOrConstructor m, BoogieStmtListBuilder builder,
       ExpressionTranslator etran) {
-      if (!CountsAsReferrer(localVariable) || m is Lemma) {
+      if (!CountsAsReferrer(localVariable) || m.IsGhost) {
+        return;
+      }
+      if (!lhs.Type.IsRefType) {
+        ReferrersNotSupportedHavocFallback(builder, etran, tok, $"{lhs} might involve references but is not a reference type");
         return;
       }
 
@@ -150,7 +150,7 @@ public partial class BoogieGenerator {
     public void RemovePostCallFormal(IOrigin tok, Expr bLhs, Formal formal,
       MethodOrConstructor method,
       BoogieStmtListBuilder builder, ExpressionTranslator etran) {
-      if (!VerifyReferrers || !formal.Type.MayInvolveReferences || !CountsAsReferrer(formal) || method is Lemma) {
+      if (!VerifyReferrers || !formal.Type.MayInvolveReferences || !CountsAsReferrer(formal) || method.IsGhost) {
         return;
       }
       if (!formal.Type.IsRefType) {
@@ -168,6 +168,10 @@ public partial class BoogieGenerator {
 
     private void RemovePreAssignMemberSelect(BoogieStmtListBuilder builder, Variables locals,
       ExpressionTranslator etran, IOrigin tok, Expression memberObj, Field memberField) {
+      if (!memberField.Type.IsRefType) {
+        ReferrersNotSupportedHavocFallback(builder, etran, tok, $"{memberField} might involve references but is not a reference type");
+        return;
+      }
       var oldRhs = locals.GetOrCreate("$oldRhs",
         () => new Boogie.LocalVariable(tok, new TypedIdent(tok, "$oldRhs", BG.Predef.RefType)));
 
@@ -233,33 +237,29 @@ public partial class BoogieGenerator {
 
     public void AddPostAssign(IOrigin tok, Expression memloc, Expr rhsVariable, BoogieStmtListBuilder builder,
       ExpressionTranslator etran) {
-      if (!VerifyReferrers || !memloc.Type.MayInvolveReferences || BG.CurrentDeclaration is Lemma) {
-        return;
-      }
-      if (!memloc.Type.IsRefType) {
-        ReferrersNotSupportedHavocFallback(builder, etran, tok, $"{memloc} might involve references but is not a reference type");
+      if (!VerifyReferrers || !memloc.Type.MayInvolveReferences || BG.CurrentDeclaration is Lemma or MethodOrConstructor {IsGhost: true}) {
         return;
       }
 
-
-      // Havoc the referrersHeap by default, unless we know what to do.
-      if (memloc.Resolved is IdentifierExpr { Type.IsRefType: true, Var: LocalVariable { } localVariable }
-          && CurrentDeclaration is MethodOrConstructor m) {
-        AddPostAssignLocalVar(tok, etran.TrExpr(memloc), builder, etran, localVariable, m, false);
-        return;
+      switch (memloc.Resolved)
+      {
+        // Havoc the referrersHeap by default, unless we know what to do.
+        case IdentifierExpr { Var: LocalVariable { } localVariable }
+          when CurrentDeclaration is MethodOrConstructor m:
+          AddPostAssignLocalVar(tok, etran.TrExpr(memloc), builder, etran, localVariable, m, false);
+          return;
+        case MemberSelectExpr { Obj: var memberObj, Member: Field memberField }:
+          AddPostAssignMemberSelect(tok, rhsVariable, builder, etran, memberObj, memberField);
+          return;
+        default:
+          ReferrersNotSupportedHavocFallback(builder, etran, tok, "the lhs is not a simple a := ... or a.b := ...");
+          break;
       }
-
-      if (memloc.Resolved is MemberSelectExpr { Type.IsRefType: true, Obj: var memberObj, Member: Field memberField }) {
-        AddPostAssignMemberSelect(tok, rhsVariable, builder, etran, memberObj, memberField);
-        return;
-      }
-
-      ReferrersNotSupportedHavocFallback(builder, etran, tok, "the lhs is not a simple a := ... or a.b := ...");
     }
 
     private void AddPostAssignLocalVar(IOrigin tok, Expr bRhs, BoogieStmtListBuilder builder,
       ExpressionTranslator etran, LocalVariable localVariable, MethodOrConstructor m, bool deeperLevel) {
-      if (!CountsAsReferrer(localVariable) || m is Lemma) {
+      if (!CountsAsReferrer(localVariable) || m.IsGhost) {
         return;
       }
 
@@ -268,7 +268,7 @@ public partial class BoogieGenerator {
 
     public void AddAssignPreCallFormal(IOrigin tok, Expr bRhs, BoogieStmtListBuilder builder,
       ExpressionTranslator etran, Formal formal, MethodOrConstructor m) {
-      if (!VerifyReferrers || !CountsAsReferrer(formal) || !formal.Type.MayInvolveReferences || m is Lemma) {
+      if (!VerifyReferrers || !CountsAsReferrer(formal) || !formal.Type.MayInvolveReferences || m.IsGhost) {
         return;
       }
 
@@ -282,6 +282,11 @@ public partial class BoogieGenerator {
 
     private void AddPostAssignField(IOrigin tok, Expr bRhs, BoogieStmtListBuilder builder,
       ExpressionTranslator etran, Field field, bool deeperLevel) {
+      if (!field.Type.IsRefType) {
+        ReferrersNotSupportedHavocFallback(builder, etran, tok, $"{field} might involve references but is not a reference type");
+        return;
+      }
+
       var bField = BG.GetField(field);
       var depth = Id(tok, "depth");
       if (deeperLevel) {
@@ -296,6 +301,10 @@ public partial class BoogieGenerator {
     private void AddPostAssignMemberSelect(IOrigin tok, Expr bRhs, BoogieStmtListBuilder builder,
       ExpressionTranslator etran, Expression memberObj, Field memberField) {
       if (!CountsAsReferrer(memberField)) {
+        return;
+      }
+      if (!memberField.Type.IsRefType) {
+        ReferrersNotSupportedHavocFallback(builder, etran, tok, $"{memberField} might involve references but is not a reference type");
         return;
       }
 
@@ -363,11 +372,11 @@ public partial class BoogieGenerator {
     }
 
     private void ReferrersNotSupportedHavocFallback(BoogieStmtListBuilder builder, ExpressionTranslator etran, IOrigin tok, string reason) {
-      WarningReferrersNotSupport(tok, reason);
+      WarningReferrersNotSupportOnUpdateStmt(tok, reason);
       builder.Add(new HavocCmd(tok, [etran.ReferrerrsHeapCastToIdentifierExpr]));
     }
 
-    private void WarningReferrersNotSupport(IOrigin tok, string reason) {
+    private void WarningReferrersNotSupportOnUpdateStmt(IOrigin tok, string reason) {
       BG.program.Reporter.Warning(MessageSource.Verifier, "Unknown referrers action", tok,
         $"This update statement is not yet supported by referrers because {reason}.");
     }
@@ -484,8 +493,8 @@ public partial class BoogieGenerator {
         ante
         ==>
         Set#Subset(
-          readReferrers($OldReferrersHeap, $Unbox(read($Heap, $nw, IndexField(arrayinit#0#i0#0))): ref),
-          readReferrers($ReferrersHeap, $Unbox(read($Heap, $nw, IndexField(arrayinit#0#i0#0))): ref)
+          readReferrers($OldReferrersHeap, $Unbox(read($Heap, $nw, arrayIndexFieldName)): ref),
+          readReferrers($ReferrersHeap, $Unbox(read($Heap, $nw, arrayIndexFieldName)): ref)
         )
       );*/
       var forallExpr = new Boogie.ForallExpr(tok, bvs, tr,
@@ -499,6 +508,43 @@ public partial class BoogieGenerator {
                 BG.ReadHeap(tok, etran.HeapExpr, nw, arrayIndexFieldName))))));
 
       builder.Add(new AssumeCmd(tok, forallExpr));
+      
+      // For all objects in the array post-state, their referrers previously did not contain any memory locations from the new array. That makes it possible to consider all memory locations
+      // as fresh
+      /*
+        assume (forall bvs, $r: Box :: 
+      { Set#IsMember(readReferrers($OldReferrersHeap, $Unbox(read($Heap, $nw, arrayIndexFieldName)): ref),
+         $r) } 
+      ante
+      && Set#IsMember(readReferrers($OldReferrersHeap, $Unbox(read($Heap, $nw, arrayIndexFieldName)): ref),
+         $r)
+         ==> $Unbox(_System.Tuple2._0($Unbox($r): DatatypeType)): ref != $nw);*/
+      var rVar = new BoundVariable(tok, new TypedIdent(tok, "$r", BG.Predef.BoxType));
+      forallVars = [.. bvs, rVar];
+      var setIsMember = BG.FunctionCall(tok, BuiltinFunction.SetIsMember, null,
+        BG.ReadReferrersHeap(tok, new Boogie.IdentifierExpr(tok, oldReferrersHeap),
+          BG.FunctionCall(tok, BuiltinFunction.Unbox, BG.Predef.RefType,
+            BG.ReadHeap(tok, etran.HeapExpr, nw, arrayIndexFieldName))),
+        Id(tok, "$r"));
+      // _System.Tuple2._0($Unbox($r): DatatypeType)
+      var objectOfR = FunctionCall(tok, BG.Predef.Tuple2Destructors0.Name, BG.Predef.DatatypeType,
+        BG.FunctionCall(tok, BuiltinFunction.Unbox, BG.Predef.DatatypeType, Id(tok, "$r")));
+      var forallExpr1 = new Boogie.ForallExpr(tok, forallVars,
+        new Trigger(tok, true, [
+          setIsMember
+        ]),
+        Expr.Imp(
+          Expr.And(
+            ante,
+            setIsMember),
+            Expr.Neq(
+              BG.FunctionCall(tok, BuiltinFunction.Unbox, BG.Predef.RefType,
+                objectOfR),
+              nw
+            )
+          )
+        );
+      builder.Add(new AssumeCmd(tok, forallExpr1));
 
       // For all objects in the array at index i, the difference of its referrers after minus referrers before contains (nw, i)
       /*assume (forall bvs ::
@@ -532,18 +578,11 @@ public partial class BoogieGenerator {
 
       builder.Add(new AssumeCmd(tok, forallExpr2));
 
-      // Any new referrer's object must be the array
+// Any new referrer's object must be the array
       // and any new referrer's field must be an index that is equal to the object.
       // That works only for one dimensional arrays though
       /*assume (forall bvs, $r: Box ::
-        { Set#IsMember(
-            Set#Difference(
-              readReferrers($ReferrersHeap, $Unbox(arrayIndexAt): ref),
-              readReferrers($OldReferrersHeap, $Unbox(arrayIndexAt): ref)
-            ),
-            $r
-          )
-        }
+        { Set#IsMember(readReferrers($ReferrersHeap, $Unbox(arrayIndexAt): ref), $r) }
         ante &&
         Set#IsMember(
           Set#Difference(
@@ -556,22 +595,22 @@ public partial class BoogieGenerator {
         $Unbox(_System.Tuple2._0($Unbox($r): DatatypeType)): ref == $nw
         && 0 <= IndexField_Inverse($Unbox(_System.Tuple2._1($Unbox($r): DatatypeType)): Field)
         && IndexField_Inverse($Unbox(_System.Tuple2._1($Unbox($r): DatatypeType)): Field) < bDim[1]
-        && read($Heap, $nw, IndexField(IndexField_Inverse($Unbox(_System.Tuple2._1($Unbox($r): DatatypeType)): Field)))
+        && $nw == $Unbox(_System.Tuple2._0($Unbox($r): DatatypeType)): ref
+        && read($Heap, $nw, $Unbox(_System.Tuple2._1($Unbox($r): DatatypeType)): Field))
            == read($Heap, $nw, IndexField(arrayinit#0#i0#0))
       );
          */
-      var rVar = new BoundVariable(tok, new TypedIdent(tok, "$r", BG.Predef.BoxType));
-      forallVars = [.. bvs, rVar];
-
+      var newReferrers = BG.ReadReferrersHeap(tok, etran.ReferrersHeapExpr, arrayAtIndex);
       var setDiff = BG.FunctionCall(tok, BuiltinFunction.SetDifference, null,
-        BG.ReadReferrersHeap(tok, etran.ReferrersHeapExpr, arrayAtIndex),
+        newReferrers,
         BG.ReadReferrersHeap(tok, Id(tok, oldReferrersHeap), arrayAtIndex));
 
       var rId = Id(tok, rVar);
       var setMember = BG.FunctionCall(tok, BuiltinFunction.SetIsMember, null,
         setDiff, rId);
+      var setMemberTrigger = BG.FunctionCall(tok, BuiltinFunction.SetIsMember, null, newReferrers, rId);
 
-      trigger = new Trigger(tok, true, [setMember]);
+      trigger = new Trigger(tok, true, [setMemberTrigger]);
 
       var tuple2Type = BG.Predef.DatatypeType; // Assuming this is the correct type for tuples
 
@@ -594,13 +633,12 @@ public partial class BoogieGenerator {
             Expr.Lt(
               FunctionCall(tok, IndexfieldInverse, null, BG.ApplyUnbox(tok, tuple1, BG.Predef.FieldType)),
               bDims[0]),
-            Expr.Eq(
-              BG.ReadHeap(tok,
-                etran.HeapExpr,
-                nw,
-                FunctionCall(tok, Indexfield, null,
-                  FunctionCall(tok, IndexfieldInverse, null, BG.ApplyUnbox(tok, tuple1, BG.Predef.FieldType)))),
-              BG.ReadHeap(tok, etran.HeapExpr, nw, arrayIndexFieldName))
+            Expr.And(
+              Expr.Eq(nw, BG.ApplyUnbox(tok, tuple0, BG.Predef.RefType)),
+              Expr.Eq(
+                BG.ReadHeap(tok, etran.HeapExpr, nw, BG.ApplyUnbox(tok, tuple1, BG.Predef.FieldType)),
+                BG.ReadHeap(tok, etran.HeapExpr, nw, arrayIndexFieldName))
+            )
           )
         )
       );

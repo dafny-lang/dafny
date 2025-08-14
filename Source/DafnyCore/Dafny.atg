@@ -1251,7 +1251,7 @@ MethodDecl<DeclModifierData dmod, bool allowConstructor, out MethodOrConstructor
   ]
   (. var range = new SourceOrigin(dmod.FirstToken, t, hasName ? name.ReportingRange : null);
      if (isConstructor) {
-       m = new Constructor(range, hasName ? name : new Name(dmod.FirstToken, "_ctor"), dmod.IsGhost, typeArgs, ins,
+       m = new Constructor(range, hasName ? name : new Name(dmod.FirstToken, "constructor"), dmod.IsGhost, typeArgs, ins,
                            req, new Specification<FrameExpression>(reads, readsAttrs), 
                            new Specification<FrameExpression>(mod, modAttrs), ens, 
                            new Specification<Expression>(dec, decAttrs), 

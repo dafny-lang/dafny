@@ -158,8 +158,8 @@ axiom (forall a: char, b: char ::
 
 type ref;
 
-const null: ref;
-const locals: ref;
+const unique null: ref;
+const unique locals: ref;
 
 type FieldFamily;
 const unique object_field: FieldFamily;
@@ -263,6 +263,15 @@ axiom (forall v: Set, t0: Ty :: { $Is(v, TSet(t0)) }
   $Is(v, TSet(t0)) <==>
   (forall bx: Box :: { Set#IsMember(v, bx) }
     Set#IsMember(v, bx) ==> $IsBox(bx, t0)));
+axiom (forall a: Set, b: Set, t: Ty ::
+  { $Is(Set#Difference(a, b), TSet(t)) }
+  $Is(a, TSet(t)) ==> $Is(Set#Difference(a, b), TSet(t)));
+axiom (forall a: Set, b: Set, t: Ty ::
+  { $Is(Set#Intersection(a, b), TSet(t)) }
+  $Is(a, TSet(t)) || $Is(b, TSet(t)) ==> $Is(Set#Intersection(a, b), TSet(t)));
+axiom (forall a: Set, b: Set, t: Ty ::
+  { $Is(Set#Union(a, b), TSet(t)) }
+  $Is(a, TSet(t)) && $Is(b, TSet(t)) ==> $Is(Set#Union(a, b), TSet(t)));
 axiom (forall v: ISet, t0: Ty :: { $Is(v, TISet(t0)) }
   $Is(v, TISet(t0)) <==>
   (forall bx: Box :: { v[bx] }
@@ -528,7 +537,6 @@ function FDim(Field): int uses {
 }
 
 function IndexField(int): Field;
-axiom (forall i: int :: { IndexField(i) } FDim(IndexField(i)) == 1);
 function IndexField_Inverse(Field): int;
 axiom (forall i: int :: { IndexField(i) } IndexField_Inverse(IndexField(i)) == i);
 axiom (forall f: Field :: { IndexField_Inverse(f) } IndexField(IndexField_Inverse(f)) == f);
@@ -635,7 +643,9 @@ function $HeapSuccGhost(Heap, Heap): bool;
 type ReferrersHeap = [ref]Set;
 function {:inline} readReferrers(H: ReferrersHeap, r: ref) : Set { H[r] }
 function {:inline} updateReferrers(H: ReferrersHeap, r:ref, v: Set) : ReferrersHeap { H[r := v] }
-
+axiom (forall H: ReferrersHeap, r: ref ::
+ { readReferrers(H, r) } 
+  $Is(readReferrers(H, r), TSet(Tclass._System.Tuple2(Tclass._System.object?(), TField))));
 var $ReferrersHeap: ReferrersHeap;
 
 // The following is used as a reference heap in places where the translation needs a heap
