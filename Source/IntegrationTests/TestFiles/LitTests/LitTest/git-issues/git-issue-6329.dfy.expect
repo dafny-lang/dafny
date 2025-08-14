@@ -1,0 +1,6 @@
+Source/IntegrationTests/TestFiles/LitTests/LitTest/git-issues/git-issue-6329.dfy(9,13): Error: Type or type parameter is not declared in this scope: field (did you forget to qualify a name or declare a module import 'opened'?) (note that names in outer modules are not visible in contained modules)
+  |
+9 |   var x: seq<field>;
+  |              ^^^^^
+
+1 resolution/type errors detected in git-issue-6329.dfy
