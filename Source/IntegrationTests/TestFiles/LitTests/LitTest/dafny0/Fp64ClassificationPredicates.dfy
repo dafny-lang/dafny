@@ -76,7 +76,7 @@ method ChainedPredicateTests() {
                        else if x.IsNormal then "Normal"
                        else if x.IsSubnormal then "Subnormal"
                        else "Unknown";
-  
+
   assert classification == "Normal";  // 42.0 is a normal number
 }
 
@@ -108,7 +108,7 @@ method PredicateWithVariables() {
     // Test predicates work in loop context
     assert val.IsFinite || val.IsInfinite || val.IsNaN;
     assert !(val.IsNormal && val.IsSubnormal);  // Mutually exclusive
-    
+
     i := i + 1;
   }
 }
@@ -129,7 +129,7 @@ method PredicateTypeInference() {
   // Test in boolean operations
   var combined := x.IsNaN || x.IsFinite || x.IsInfinite;
   assert combined;  // At least one must be true
-  
+
   var allFalse := !x.IsNaN && !x.IsFinite && !x.IsInfinite;
   assert !allFalse;  // Can't all be false
 }
@@ -274,6 +274,51 @@ method TestSpecialValues() {
   // Special values test completed
 }
 
+method TestPredicatesWithStaticMethods() {
+  // Test that static methods work alongside instance predicates
+  var x: fp64 := ~3.14;
+
+  // Test instance predicates work correctly
+  assert !x.IsNaN;
+  assert x.IsFinite;
+  assert !x.IsInfinite;
+  assert x.IsNormal;  // ~3.14 is in normal range
+  assert !x.IsSubnormal;
+  assert !x.IsZero;
+  assert !x.IsNegative;  // ~3.14 is positive
+  assert x.IsPositive;
+
+  // Test static members work alongside instance members
+  var nan := fp64.NaN;
+  assert nan.IsNaN;  // Static constant with instance predicate
+
+  // Verify static Equal method works with values tested by predicates
+  assert fp64.Equal(x, x);  // Self-equality (except for NaN)
+  assert !fp64.Equal(x, nan);  // Normal number != NaN
+
+  // Verify arithmetic operations produce expected results based on predicates
+  assert x + 1.0 > x;  // Adding positive increases value
+  assert x - 1.0 < x;  // Subtracting positive decreases value
+  assert x * 2.0 > x;  // Multiplying by >1 increases positive value
+  assert x / 2.0 < x;  // Dividing by >1 decreases positive value
+  assert -x < 0.0;     // Negation of positive is negative
+
+  // Verify comparison operations work with predicate-tested values
+  assert x < 5.0;   // ~3.14 < 5.0
+  assert x <= 5.0;  // ~3.14 <= 5.0
+  assert x > 1.0;   // ~3.14 > 1.0
+  assert x >= 1.0;  // ~3.14 >= 1.0
+
+  // Test predicates with special constants
+  var pos_inf := fp64.PositiveInfinity;
+  assert pos_inf.IsInfinite && pos_inf.IsPositive;
+  assert fp64.Equal(pos_inf, pos_inf);
+
+  var abs_result := fp64.Abs(-4.0);
+  assert abs_result == 4.0;
+  assert abs_result.IsFinite && abs_result.IsPositive;
+}
+
 method Main() {
   BasicClassificationTests();
   NegativeValueTests();
@@ -284,6 +329,7 @@ method Main() {
   TestMethodParameterPredicates();
   ComprehensivePredicateTest();
   TestSpecialValues();
+  TestPredicatesWithStaticMethods();
 
   // All tests verify classification predicates through assertions
 }

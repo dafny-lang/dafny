@@ -522,6 +522,34 @@ method TestRoundingBehavior() {
   ghost var diff := (a + b) - c;       // Should be very small but non-zero
 }
 
+method TestStaticConstantConsistency() {
+  // Verify that multiple accesses to static constants return consistent values
+  var nan1 := fp64.NaN;
+  var nan2 := fp64.NaN;
+  // Can't use Equal or == for NaN, but both should be NaN
+  assert nan1.IsNaN;
+  assert nan2.IsNaN;
+
+  var pos_inf1 := fp64.PositiveInfinity;
+  var pos_inf2 := fp64.PositiveInfinity;
+  assert fp64.Equal(pos_inf1, pos_inf2);
+  assert pos_inf1 == pos_inf2;  // Infinities can use bitwise equality
+
+  var neg_inf1 := fp64.NegativeInfinity;
+  var neg_inf2 := fp64.NegativeInfinity;
+  assert fp64.Equal(neg_inf1, neg_inf2);
+  assert neg_inf1 == neg_inf2;
+
+  // Test other constants for consistency
+  var max1 := fp64.MaxValue;
+  var max2 := fp64.MaxValue;
+  assert max1 == max2;
+
+  var pi1 := fp64.Pi;
+  var pi2 := fp64.Pi;
+  assert pi1 == pi2;
+}
+
 method Main() {
   TestZeroValues();
   TestBoundaryValues();
@@ -538,4 +566,5 @@ method Main() {
   TestNaNBehavior();
   TestInfinityBehavior();
   TestRoundingBehavior();
+  TestStaticConstantConsistency();
 }
