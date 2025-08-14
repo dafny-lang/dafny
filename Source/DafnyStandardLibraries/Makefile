@@ -15,6 +15,12 @@ verify:
 build-binary:
 	$(DAFNY) build -t:lib --hidden-no-verify=$(NO_VERIFY) src/Std/dfyconfig.toml --output:${DOO_FILE_SOURCE}
 
+build-binary-rs:
+	$(DAFNY) build -t:lib --hidden-no-verify=$(NO_VERIFY) --enforce-determinism \
+		src/Std-rs/Wrappers.dfy \
+		src/Std/TargetSpecific/FileIO1InternalExterns-rs-direct.dfy \
+		--output:build/DafnyStandardLibraries-rs.doo
+
 check-binary: build-binary
 	unzip -o ${DOO_FILE_SOURCE} -d build/current
 	unzip -o ${DOO_FILE_TARGET} -d build/previous
@@ -59,8 +65,8 @@ test-js:
 	$(DAFNY) test $(VERIFY_OPTIONS) -t:js examples/nondeterministic/dfyconfig.toml --output:build/stdlibexamples_nondeterministic
 	TARGETLANG=js make -C src/Std/TargetSpecific test
 
-test-rs:
-	$(DAFNY) test $(VERIFY_OPTIONS) -t:rs examples/dfyconfig.toml --output:build/stdlibexamples
+test-rs: build-binary-rs
+	$(DAFNY) test $(VERIFY_OPTIONS) -t:rs examples-rs/dfyconfig.toml --output:build/stdlibexamples
 
 test: test-cs test-java test-go test-py test-js test-rs
 

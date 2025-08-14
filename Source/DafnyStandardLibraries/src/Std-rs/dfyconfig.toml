@@ -1,0 +1,23 @@
+excludes = [
+  # Built per-target language instead
+  "**/TargetSpecific/*.dfy",
+  # Exclude ORDINAL-dependent modules for Rust compatibility
+  "Ordinal.dfy",
+  "Termination.dfy", 
+  "Frames.dfy",
+  "Actions/*.dfy",
+  # Exclude JSON modules due to Rust code generation issues with Bracketed datatype
+  "JSON/**/*.dfy",
+]
+
+[options]
+track-print-effects = true
+enforce-determinism = true
+reads-clauses-on-methods = true
+type-system-refresh = true
+general-traits = "datatype"
+general-newtypes = true
+resource-limit = 1000000
+verification-time-limit = 300
+warn-redundant-assumptions = false
+warn-contradictory-assumptions = false
