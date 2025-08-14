@@ -184,6 +184,8 @@ public class RustBackend : DafnyExecutableBackend {
     Directory.CreateDirectory(runtimeDirectory);
 
     var assembly = System.Reflection.Assembly.Load("DafnyPipeline");
+    
+    // Copy DafnyRuntimeRust files
     assembly.GetManifestResourceNames().Where(f => f.StartsWith("DafnyPipeline.DafnyRuntimeRust")).ToList().ForEach(f => {
       var stream = assembly.GetManifestResourceStream(f);
       var dotToSlashPath = "";
@@ -205,6 +207,36 @@ public class RustBackend : DafnyExecutableBackend {
       }
 
       using var outFile = new FileStream(Path.Combine(runtimeDirectory, dotToSlashPath), FileMode.Create, FileAccess.Write);
+      stream.CopyTo(outFile);
+    });
+
+    // Copy DafnyStandardLibraries_rs extern files
+    var srcDirectory = Path.Combine(targetDirectory, "src");
+    if (!Directory.Exists(srcDirectory)) {
+      Directory.CreateDirectory(srcDirectory);
+    }
+
+    assembly.GetManifestResourceNames().Where(f => f.StartsWith("DafnyPipeline.DafnyStandardLibraries_rs")).ToList().ForEach(f => {
+      var stream = assembly.GetManifestResourceStream(f);
+      var dotToSlashPath = "";
+      var parts = f.Replace("DafnyPipeline.DafnyStandardLibraries_rs.", "").Split('.');
+      for (var i = 0; i < parts.Length; i++) {
+        dotToSlashPath += parts[i];
+
+        if (i < parts.Length - 2) {
+          dotToSlashPath += "/";
+        } else if (i == parts.Length - 2) {
+          // extension
+          dotToSlashPath += ".";
+        }
+      }
+
+      var containingDirectory = Path.Combine(srcDirectory, Path.GetDirectoryName(dotToSlashPath));
+      if (!Directory.Exists(containingDirectory)) {
+        Directory.CreateDirectory(containingDirectory);
+      }
+
+      using var outFile = new FileStream(Path.Combine(srcDirectory, dotToSlashPath), FileMode.Create, FileAccess.Write);
       stream.CopyTo(outFile);
     });
   }
