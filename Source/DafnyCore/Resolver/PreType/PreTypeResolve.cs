@@ -636,12 +636,12 @@ namespace Microsoft.Dafny {
 
       // fp64 conversions
       if (toFamily == PreType.TypeNameFp64) {
-        // Conversions TO fp64 are allowed from numeric types
-        return fromFamily is PreType.TypeNameInt or PreType.TypeNameReal || IsBitvectorName(fromFamily);
+        // Conversions TO fp64 are allowed only from int and real
+        return fromFamily is PreType.TypeNameInt or PreType.TypeNameReal;
       }
       if (fromFamily == PreType.TypeNameFp64) {
-        // Conversions FROM fp64 are allowed to numeric types
-        return toFamily is PreType.TypeNameInt or PreType.TypeNameReal || IsBitvectorName(toFamily);
+        // Conversions FROM fp64 are allowed only to int and real
+        return toFamily is PreType.TypeNameInt or PreType.TypeNameReal;
       }
 
       return false;

@@ -507,8 +507,23 @@ namespace Microsoft.Dafny {
             }
 
             if (innerExpr is LiteralExpr lit) {
-              if (lit.Value is BaseTypes.BigDec) {
+              if (lit.Value is BaseTypes.BigDec decValue) {
                 // This is a decimal literal, which is allowed with ~
+                // But we should only allow ~ on inexact values
+                
+                // Check if the decimal is exactly representable as fp64
+                // fp64 has 53-bit significand and 11-bit exponent
+                var isExact = BigFloat.FromBigDec(decValue, 53, 11, out var floatValue);
+                if (isExact) {
+                  // The value is exactly representable, so ~ should not be allowed
+                  ReportError(e, $"The approximate literal prefix ~ is not allowed on the exactly representable value {decValue}. Remove the ~ prefix.");
+                }
+                
+                // Store the computed BigFloat value to avoid recomputing it later
+                if (lit is DecimalLiteralExpr decLit) {
+                  decLit.ResolvedFloatValue = floatValue;
+                }
+                
                 // The ~ prefix forces the type to fp64
                 e.PreType = new DPreType(BuiltInTypeDecl(PreType.TypeNameFp64), []);
                 // Just set the resolved expression to the inner expression (could be NegationExpression)
@@ -564,7 +579,7 @@ namespace Microsoft.Dafny {
                       errorMessageFormat = "type conversion to a real-based type is allowed only from real (got {1})";
                     }
                   } else if (familyDeclName == PreType.TypeNameFp64) {
-                    errorMessageFormat = "type conversion to fp64 is allowed only from numeric-based types (got {1})";
+                    errorMessageFormat = "type conversion to fp64 is allowed only from int and real types (got {1})";
                   } else if (IsBitvectorName(familyDeclName)) {
                     errorMessageFormat = "type conversion to a bitvector-based type is allowed only from numeric and bitvector types, char, and ORDINAL (got {1})";
                   } else if (familyDeclName == PreType.TypeNameChar) {

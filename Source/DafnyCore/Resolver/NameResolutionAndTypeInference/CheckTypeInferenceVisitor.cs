@@ -159,16 +159,23 @@ class CheckTypeInferenceVisitor : ASTVisitor<TypeInferenceCheckingContext> {
         }
       }
       if (resolved == null) {
-        // Treat all other expressions "-e" as "0 - e"
-        Expression zero;
-        if (e.E.Type.IsNumericBased(Type.NumericPersuasion.Real)) {
-          zero = new LiteralExpr(e.Origin, BaseTypes.BigDec.ZERO);
+        // For fp64, use UnaryOpExpr with Negate opcode for IEEE 754 compliance
+        if (e.E.Type.IsFp64Type) {
+          resolved = new UnaryOpExpr(e.Origin, UnaryOpExpr.Opcode.Negate, e.E);
         } else {
-          Contract.Assert(e.E.Type.IsNumericBased(Type.NumericPersuasion.Int) || e.E.Type.NormalizeToAncestorType().IsBitVectorType);
-          zero = new LiteralExpr(e.Origin, 0);
+          // Treat all other expressions "-e" as "0 - e"
+          Expression zero;
+          if (e.E.Type.IsNumericBased(Type.NumericPersuasion.Real)) {
+            zero = new LiteralExpr(e.Origin, BaseTypes.BigDec.ZERO);
+          } else {
+            Contract.Assert(e.E.Type.IsNumericBased(Type.NumericPersuasion.Int) || e.E.Type.NormalizeToAncestorType().IsBitVectorType);
+            zero = new LiteralExpr(e.Origin, 0);
+          }
+          zero.Type = expr.Type;
+          resolved = new BinaryExpr(e.Origin, BinaryExpr.Opcode.Sub, zero, e.E) { 
+            ResolvedOp = BinaryExpr.ResolvedOpcode.Sub
+          };
         }
-        zero.Type = expr.Type;
-        resolved = new BinaryExpr(e.Origin, BinaryExpr.Opcode.Sub, zero, e.E) { ResolvedOp = BinaryExpr.ResolvedOpcode.Sub };
       }
       resolved.Type = expr.Type;
       e.ResolvedExpression = resolved;
@@ -190,7 +197,14 @@ class CheckTypeInferenceVisitor : ASTVisitor<TypeInferenceCheckingContext> {
       Expression toCheck = e.ResolvedExpression ?? e.Expr;
       if (toCheck is DecimalLiteralExpr decLit && decLit.Type.IsFp64Type && decLit.ResolvedFloatValue == null) {
         var decValue = (BigDec)decLit.Value;
-        BigFloat.FromBigDec(decValue, 53, 11, out var floatValue);
+        var isExact = BigFloat.FromBigDec(decValue, 53, 11, out var floatValue);
+        
+        // Check that ~ is only used on inexact values
+        if (isExact) {
+          resolver.ReportError(ResolutionErrors.ErrorId.r_approximate_prefix_on_exact_fp64_literal, expr.Origin,
+            $"The approximate literal prefix ~ is not allowed on the exactly representable value {decValue}. Remove the ~ prefix.");
+        }
+        
         decLit.ResolvedFloatValue = floatValue;
       }
     } else if (expr is LiteralExpr) {

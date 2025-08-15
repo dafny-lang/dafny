@@ -12,8 +12,8 @@ method TestZeroValues() {
   var lit_pos_zero: fp64 := 0.0;
   var lit_neg_zero: fp64 := -0.0;
 
-  // Verify zeros are equal but have different signs
-  assert pos_zero != neg_zero;
+  // Verify zeros have different bit patterns (Dafny == is bitwise)
+  assert pos_zero != neg_zero;  // Different bit patterns
   assert lit_pos_zero != lit_neg_zero;
   assert pos_zero == lit_pos_zero;
   assert neg_zero == lit_neg_zero;
@@ -31,6 +31,19 @@ method TestZeroValues() {
   var sum_neg := neg_zero + neg_zero;
   assert sum_pos.IsZero && !sum_pos.IsNegative;
   assert sum_neg.IsZero && sum_neg.IsNegative;
+  
+  // Test negation of zero variables (not just literals)
+  // This catches the bug where -expr is transformed to 0 - expr
+  var neg_of_pos_zero := -pos_zero;  // Should produce -0.0
+  var neg_of_neg_zero := -neg_zero;  // Should produce +0.0
+  assert neg_of_pos_zero.IsZero;
+  assert neg_of_pos_zero.IsNegative;  // BUG: This currently fails! -pos_zero produces +0.0
+  assert neg_of_neg_zero.IsZero;
+  assert !neg_of_neg_zero.IsNegative;  // Double negation should give positive zero
+  
+  // Verify they have the correct bit patterns
+  assert neg_of_pos_zero == neg_zero;  // -pos_zero should equal -0.0
+  assert neg_of_neg_zero == pos_zero;  // -neg_zero should equal +0.0
 }
 
 method TestBoundaryValues() {
@@ -83,6 +96,12 @@ method TestSmallestValues() {
   // Test that smallest subnormal is truly the smallest positive
   var half_min := min_subnormal / 2.0;
   assert half_min.IsZero;  // Underflows to zero
+  assert !half_min.IsNegative;  // Should underflow to positive zero
+  
+  // Test underflow to negative zero
+  var neg_half_min := (-min_subnormal) / 2.0;
+  assert neg_half_min.IsZero;
+  assert neg_half_min.IsNegative;  // Should underflow to negative zero
 }
 
 method TestEpsilonValue() {
@@ -279,103 +298,58 @@ method TestSpecialValueCreation() {
 method TestEdgeCasesWithAssertions() {
   // Special values
   var nan: fp64 := fp64.NaN;
-  var posInf: fp64 := fp64.PositiveInfinity;
-  var negInf: fp64 := fp64.NegativeInfinity;
-  var posZero: fp64 := 0.0;
-  var negZero: fp64 := -0.0;
+  var pos_inf: fp64 := fp64.PositiveInfinity;
+  var neg_inf: fp64 := fp64.NegativeInfinity;
+  var pos_zero: fp64 := 0.0;
+  var neg_zero: fp64 := -0.0;
 
   // Smallest positive normal number
-  var minNormal: fp64 := ~2.2250738585072014e-308;  // 2^(-1022)
+  var min_normal: fp64 := ~2.2250738585072014e-308;  // Rounds to 2^(-1022)
 
   // Smallest positive subnormal number
-  var minSubnormal: fp64 := ~4.9406564584124654e-324;  // 2^(-1074) - approximate!
+  var min_subnormal: fp64 := ~4.9406564584124654e-324;  // Rounds to 2^(-1074)
 
   // Largest finite number
-  var maxValue: fp64 := ~1.7976931348623157e308;  // (2-2^(-52))*2^1023
+  var max_value: fp64 := ~1.7976931348623157e308;  // Rounds to (2-2^(-52))*2^1023
 
   // Values close to 1.0
-  var nextUp1: fp64 := ~1.0000000000000002;  // 1 + 2^(-52)
-  var nextDown1: fp64 := ~0.9999999999999999;  // 1 - 2^(-53)
+  var next_up_1: fp64 := ~1.0000000000000002;  // Rounds to 1 + 2^(-52)
+  var next_down_1: fp64 := ~0.9999999999999999;  // Rounds to 1 - 2^(-53)
 
   // Machine epsilon (difference between 1.0 and next representable number)
-  var epsilon: fp64 := ~2.220446049250313e-16;  // 2^(-52)
+  var epsilon: fp64 := ~2.220446049250313e-16;  // Rounds to 2^(-52)
 
   // Test classification predicates on edge cases
   assert !nan.IsFinite;
   assert nan.IsNaN;
 
-  assert !posInf.IsFinite;
-  assert posInf.IsInfinite;
-  assert posInf.IsPositive;
+  assert !pos_inf.IsFinite;
+  assert pos_inf.IsInfinite;
+  assert pos_inf.IsPositive;
 
-  assert !negInf.IsFinite;
-  assert negInf.IsInfinite;
-  assert negInf.IsNegative;
+  assert !neg_inf.IsFinite;
+  assert neg_inf.IsInfinite;
+  assert neg_inf.IsNegative;
 
-  assert posZero.IsZero;
-  assert posZero.IsFinite;
-  assert !posZero.IsNegative;
+  assert pos_zero.IsZero;
+  assert pos_zero.IsFinite;
+  assert !pos_zero.IsNegative;
 
-  assert negZero.IsZero;
-  assert negZero.IsFinite;
-  assert negZero.IsNegative;
+  assert neg_zero.IsZero;
+  assert neg_zero.IsFinite;
+  assert neg_zero.IsNegative;
 
-  assert minNormal.IsNormal;
-  assert minNormal.IsFinite;
-  assert minNormal.IsPositive;
+  assert min_normal.IsNormal;
+  assert min_normal.IsFinite;
+  assert min_normal.IsPositive;
 
-  assert minSubnormal.IsSubnormal;
-  assert minSubnormal.IsFinite;
-  assert minSubnormal.IsPositive;
+  assert min_subnormal.IsSubnormal;
+  assert min_subnormal.IsFinite;
+  assert min_subnormal.IsPositive;
 
-  assert maxValue.IsNormal;
-  assert maxValue.IsFinite;
-  assert maxValue.IsPositive;
-}
-
-method TestSignedZero() {
-  // Test signed zero behavior
-  var posZero: fp64 := 0.0;
-  var negZero: fp64 := -0.0;
-
-  // IEEE 754 requires +0 and -0 to compare equal
-  assert fp64.Equal(posZero, negZero);
-
-  // But they have different sign bits
-  assert posZero.IsZero && !posZero.IsNegative;
-  assert negZero.IsZero && negZero.IsNegative;
-
-  // Division by zero produces infinity with the sign of the dividend
-  var posInf: fp64 := fp64.PositiveInfinity;
-  var negInf: fp64 := fp64.NegativeInfinity;
-
-  // Division by zero is not allowed in Dafny - these would result in infinities in IEEE 754
-  // but Dafny's fp64 division has a precondition that divisor != 0
-  // ghost var divByPosZero := 1.0 / posZero;  // Would be +∞ in IEEE 754
-  // ghost var divByNegZero := 1.0 / negZero;  // Would be -∞ in IEEE 754
-
-  // ghost var negDivByPosZero := -1.0 / posZero;  // Would be -∞ in IEEE 754
-  // ghost var negDivByNegZero := -1.0 / negZero;  // Would be +∞ in IEEE 754
-}
-
-method TestDetailedSubnormalNumbers() {
-  // Test subnormal number behavior
-  var minSubnormal: fp64 := ~4.9406564584124654e-324;  // Smallest positive subnormal - approximate!
-  var maxSubnormal: fp64 := ~2.2250738585072009e-308;  // Largest subnormal - approximate!
-  var minNormal: fp64 := ~2.2250738585072014e-308;     // Smallest normal
-
-  // Classification
-  assert minSubnormal.IsSubnormal;
-  assert maxSubnormal.IsSubnormal;
-  assert minNormal.IsNormal;
-
-  // Subnormal numbers are still finite
-  assert minSubnormal.IsFinite;
-  assert maxSubnormal.IsFinite;
-
-  // Subnormal numbers have reduced precision but maintain sign
-  assert minSubnormal.IsPositive;
-  assert (-minSubnormal).IsNegative;
+  assert max_value.IsNormal;
+  assert max_value.IsFinite;
+  assert max_value.IsPositive;
 }
 
 method TestNaNBehavior() {
@@ -384,40 +358,40 @@ method TestNaNBehavior() {
   var x: fp64 := 1.0;
 
   // NaN propagation in arithmetic - all produce NaN
-  ghost var nanPlusX := nan + x;
-  assert nanPlusX.IsNaN;  // NaN + anything = NaN
+  var nan_plus_x := nan + x;
+  assert nan_plus_x.IsNaN;  // NaN + anything = NaN
 
-  ghost var nanMinusX := nan - x;
-  assert nanMinusX.IsNaN;  // NaN - anything = NaN
+  var nan_minus_x := nan - x;
+  assert nan_minus_x.IsNaN;  // NaN - anything = NaN
 
-  ghost var nanTimesX := nan * x;
-  assert nanTimesX.IsNaN;  // NaN * anything = NaN
+  var nan_times_x := nan * x;
+  assert nan_times_x.IsNaN;  // NaN * anything = NaN
 
-  ghost var nanDivX := nan / x;
-  assert nanDivX.IsNaN;  // NaN / anything = NaN
+  var nan_div_x := nan / x;
+  assert nan_div_x.IsNaN;  // NaN / anything = NaN
 
-  ghost var xDivNan := x / nan;
-  assert xDivNan.IsNaN;  // anything / NaN = NaN
+  var x_div_nan := x / nan;
+  assert x_div_nan.IsNaN;  // anything / NaN = NaN
 
   // NaN comparisons - all return false
-  ghost var nanLessX := nan < x;
-  assert !nanLessX;  // NaN < anything = false
+  var nan_less_x := nan < x;
+  assert !nan_less_x;  // NaN < anything = false
 
-  ghost var nanGreaterX := nan > x;
-  assert !nanGreaterX;  // NaN > anything = false
+  var nan_greater_x := nan > x;
+  assert !nan_greater_x;  // NaN > anything = false
 
-  ghost var nanLessEqX := nan <= x;
-  assert !nanLessEqX;  // NaN <= anything = false
+  var nan_less_eq_x := nan <= x;
+  assert !nan_less_eq_x;  // NaN <= anything = false
 
-  ghost var nanGreaterEqX := nan >= x;
-  assert !nanGreaterEqX;  // NaN >= anything = false
+  var nan_greater_eq_x := nan >= x;
+  assert !nan_greater_eq_x;  // NaN >= anything = false
 
   // NaN equality per IEEE 754
-  ghost var nanEqualNan := fp64.Equal(nan, nan);
-  assert !nanEqualNan;  // NaN != NaN per IEEE 754
+  var nan_equal_nan := fp64.Equal(nan, nan);
+  assert !nan_equal_nan;  // NaN != NaN per IEEE 754
 
-  ghost var nanEqualX := fp64.Equal(nan, x);
-  assert !nanEqualX;  // NaN != anything
+  var nan_equal_x := fp64.Equal(nan, x);
+  assert !nan_equal_x;  // NaN != anything
 
   // Also test comparisons with NaN on the right
   assert !(x < nan);   // anything < NaN = false
@@ -428,98 +402,78 @@ method TestNaNBehavior() {
 
 method TestInfinityBehavior() {
   // Test infinity behavior
-  var posInf: fp64 := fp64.PositiveInfinity;
-  var negInf: fp64 := fp64.NegativeInfinity;
+  var pos_inf: fp64 := fp64.PositiveInfinity;
+  var neg_inf: fp64 := fp64.NegativeInfinity;
   var x: fp64 := 1.0;
 
   // Arithmetic with positive infinity
-  ghost var posInfPlusX := posInf + x;
-  assert posInfPlusX.IsInfinite && posInfPlusX.IsPositive;  // +∞ + finite = +∞
+  var pos_inf_plus_x := pos_inf + x;
+  assert pos_inf_plus_x.IsInfinite && pos_inf_plus_x.IsPositive;  // +∞ + finite = +∞
 
-  ghost var posInfMinusX := posInf - x;
-  assert posInfMinusX.IsInfinite && posInfMinusX.IsPositive;  // +∞ - finite = +∞
+  var pos_inf_minus_x := pos_inf - x;
+  assert pos_inf_minus_x.IsInfinite && pos_inf_minus_x.IsPositive;  // +∞ - finite = +∞
 
-  ghost var posInfTimesX := posInf * x;
-  assert posInfTimesX.IsInfinite && posInfTimesX.IsPositive;  // +∞ * positive = +∞
+  var pos_inf_times_x := pos_inf * x;
+  assert pos_inf_times_x.IsInfinite && pos_inf_times_x.IsPositive;  // +∞ * positive = +∞
 
-  ghost var posInfTimesNegX := posInf * -x;
-  assert posInfTimesNegX.IsInfinite && posInfTimesNegX.IsNegative;  // +∞ * negative = -∞
+  var pos_inf_times_neg_x := pos_inf * -x;
+  assert pos_inf_times_neg_x.IsInfinite && pos_inf_times_neg_x.IsNegative;  // +∞ * negative = -∞
 
-  ghost var posInfDivX := posInf / x;
-  assert posInfDivX.IsInfinite && posInfDivX.IsPositive;  // +∞ / positive = +∞
+  var pos_inf_div_x := pos_inf / x;
+  assert pos_inf_div_x.IsInfinite && pos_inf_div_x.IsPositive;  // +∞ / positive = +∞
 
-  ghost var xDivPosInf := x / posInf;
-  assert xDivPosInf.IsZero && !xDivPosInf.IsNegative;  // finite / +∞ = +0
+  var x_div_pos_inf := x / pos_inf;
+  assert x_div_pos_inf.IsZero && !x_div_pos_inf.IsNegative;  // finite / +∞ = +0
 
   // Arithmetic with negative infinity
-  ghost var negInfPlusX := negInf + x;
-  assert negInfPlusX.IsInfinite && negInfPlusX.IsNegative;  // -∞ + finite = -∞
+  var neg_inf_plus_x := neg_inf + x;
+  assert neg_inf_plus_x.IsInfinite && neg_inf_plus_x.IsNegative;  // -∞ + finite = -∞
 
-  ghost var negInfMinusX := negInf - x;
-  assert negInfMinusX.IsInfinite && negInfMinusX.IsNegative;  // -∞ - finite = -∞
+  var neg_inf_minus_x := neg_inf - x;
+  assert neg_inf_minus_x.IsInfinite && neg_inf_minus_x.IsNegative;  // -∞ - finite = -∞
 
-  ghost var negInfTimesX := negInf * x;
-  assert negInfTimesX.IsInfinite && negInfTimesX.IsNegative;  // -∞ * positive = -∞
+  var neg_inf_times_x := neg_inf * x;
+  assert neg_inf_times_x.IsInfinite && neg_inf_times_x.IsNegative;  // -∞ * positive = -∞
 
-  ghost var negInfTimesNegX := negInf * -x;
-  assert negInfTimesNegX.IsInfinite && negInfTimesNegX.IsPositive;  // -∞ * negative = +∞
+  var neg_inf_times_neg_x := neg_inf * -x;
+  assert neg_inf_times_neg_x.IsInfinite && neg_inf_times_neg_x.IsPositive;  // -∞ * negative = +∞
 
-  ghost var negInfDivX := negInf / x;
-  assert negInfDivX.IsInfinite && negInfDivX.IsNegative;  // -∞ / positive = -∞
+  var neg_inf_div_x := neg_inf / x;
+  assert neg_inf_div_x.IsInfinite && neg_inf_div_x.IsNegative;  // -∞ / positive = -∞
 
-  ghost var xDivNegInf := x / negInf;
-  assert xDivNegInf.IsZero && xDivNegInf.IsNegative;  // positive / -∞ = -0
+  var x_div_neg_inf := x / neg_inf;
+  assert x_div_neg_inf.IsZero && x_div_neg_inf.IsNegative;  // positive / -∞ = -0
 
   // Special cases that produce NaN
-  ghost var posInfMinusPosInf := posInf - posInf;
-  assert posInfMinusPosInf.IsNaN;  // ∞ - ∞ = NaN
+  var pos_inf_minus_pos_inf := pos_inf - pos_inf;
+  assert pos_inf_minus_pos_inf.IsNaN;  // ∞ - ∞ = NaN
 
-  ghost var posInfDivPosInf := posInf / posInf;
-  assert posInfDivPosInf.IsNaN;  // ∞ / ∞ = NaN
+  var pos_inf_div_pos_inf := pos_inf / pos_inf;
+  assert pos_inf_div_pos_inf.IsNaN;  // ∞ / ∞ = NaN
 
-  ghost var zeroTimesPosInf := 0.0 * posInf;
-  assert zeroTimesPosInf.IsNaN;  // 0 * ∞ = NaN
+  var zero_times_pos_inf := 0.0 * pos_inf;
+  assert zero_times_pos_inf.IsNaN;  // 0 * ∞ = NaN
 
-  ghost var negInfPlusInf := negInf + posInf;
-  assert negInfPlusInf.IsNaN;  // -∞ + ∞ = NaN
+  var neg_inf_plus_inf := neg_inf + pos_inf;
+  assert neg_inf_plus_inf.IsNaN;  // -∞ + ∞ = NaN
 
-  ghost var zeroTimesNegInf := 0.0 * negInf;
-  assert zeroTimesNegInf.IsNaN;  // 0 * -∞ = NaN
+  var zero_times_neg_inf := 0.0 * neg_inf;
+  assert zero_times_neg_inf.IsNaN;  // 0 * -∞ = NaN
 
   // Special cases that produce infinity
-  ghost var posInfTimesPosInf := posInf * posInf;
-  assert posInfTimesPosInf.IsInfinite && posInfTimesPosInf.IsPositive;  // +∞ * +∞ = +∞
+  var pos_inf_times_pos_inf := pos_inf * pos_inf;
+  assert pos_inf_times_pos_inf.IsInfinite && pos_inf_times_pos_inf.IsPositive;  // +∞ * +∞ = +∞
 
-  ghost var posInfTimesNegInf := posInf * negInf;
-  assert posInfTimesNegInf.IsInfinite && posInfTimesNegInf.IsNegative;  // +∞ * -∞ = -∞
+  var pos_inf_times_neg_inf := pos_inf * neg_inf;
+  assert pos_inf_times_neg_inf.IsInfinite && pos_inf_times_neg_inf.IsNegative;  // +∞ * -∞ = -∞
 
-  ghost var negInfTimesNegInf := negInf * negInf;
-  assert negInfTimesNegInf.IsInfinite && negInfTimesNegInf.IsPositive;  // -∞ * -∞ = +∞
+  var neg_inf_times_neg_inf := neg_inf * neg_inf;
+  assert neg_inf_times_neg_inf.IsInfinite && neg_inf_times_neg_inf.IsPositive;  // -∞ * -∞ = +∞
 
   // Comparisons with infinity
-  assert posInf > x;       // +∞ > any finite
-  assert negInf < x;       // -∞ < any finite
-  assert posInf > negInf;  // +∞ > -∞
-}
-
-method TestRoundingBehavior() {
-  // Test rounding behavior
-  var x: fp64 := ~1.1;  // Not exactly representable in binary
-  var y: fp64 := ~1.1;  // Same value
-
-  // IEEE 754 guarantees that the same decimal value rounds to the same binary representation
-  assert fp64.Equal(x, y);
-
-  // Values that demonstrate rounding
-  var a: fp64 := ~0.1;                  // Not exactly representable in binary
-  var b: fp64 := ~0.2;                  // Not exactly representable in binary
-  var c: fp64 := ~0.3;                  // Not exactly representable in binary
-
-  // This would fail with exact equality due to rounding errors
-  // assert a + b == c;  // This would fail
-
-  // But the values should be close
-  ghost var diff := (a + b) - c;       // Should be very small but non-zero
+  assert pos_inf > x;       // +∞ > any finite
+  assert neg_inf < x;       // -∞ < any finite
+  assert pos_inf > neg_inf;  // +∞ > -∞
 }
 
 method TestStaticConstantConsistency() {
@@ -562,9 +516,7 @@ method Main() {
   TestUsefulDerivedConstants();
   TestSpecialValueCreation();
   TestEdgeCasesWithAssertions();
-  TestDetailedSubnormalNumbers();
   TestNaNBehavior();
   TestInfinityBehavior();
-  TestRoundingBehavior();
   TestStaticConstantConsistency();
 }

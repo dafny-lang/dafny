@@ -3284,6 +3284,9 @@ namespace Microsoft.Dafny.Compilers {
             wr.Write(".Count)");
           }
           break;
+        case ResolvedUnaryOp.Fp64Negate:
+          TrParenExpr("-", expr, wr, inLetExprBody, wStmts);
+          break;
         default:
           Contract.Assert(false); throw new Cce.UnreachableException();  // unexpected unary expression
       }
@@ -3476,9 +3479,14 @@ namespace Microsoft.Dafny.Compilers {
       if (fromType.IsNumericBased(Type.NumericPersuasion.Int) || fromType.NormalizeToAncestorType().IsBitVectorType || fromType.IsCharType) {
         if (toType.IsFp64Type) {
           // Handle fp64 BEFORE real since fp64 has NumericPersuasion.Real
-          // (int or bv or char) -> fp64
-          wr.Write("(double)");
-          ConvertFromChar(fromExpr, wr, inLetExprBody, wStmts);
+          // Only int -> fp64 conversions are allowed (no direct bv or char to fp64)
+          if (fromType.IsNumericBased(Type.NumericPersuasion.Int)) {
+            wr.Write("(double)");
+            EmitExpr(fromExpr, inLetExprBody, wr, wStmts);
+          } else {
+            // This should be prevented by the type checker
+            Contract.Assert(false, $"Direct conversion from {fromType} to fp64 is not allowed");
+          }
         } else if (toType.IsNumericBased(Type.NumericPersuasion.Real)) {
           // (int or bv or char) -> real
           Contract.Assert(AsNativeType(toType) == null);

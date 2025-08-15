@@ -147,6 +147,7 @@ function {:builtin "(_ to_fp 11 53) RNE"} real_to_fp64_RNE(x: real) returns(floa
 function {:builtin "fp.min"} fp64_min(x: float53e11, y: float53e11) returns(float53e11);
 function {:builtin "fp.max"} fp64_max(x: float53e11, y: float53e11) returns(float53e11);
 function {:builtin "fp.abs"} fp64_abs(x: float53e11) returns(float53e11);
+function {:builtin "fp.neg"} fp64_neg(x: float53e11) returns(float53e11);
 function {:builtin "fp.roundToIntegral RTN"} fp64_floor(x: float53e11) returns(float53e11);
 function {:builtin "fp.roundToIntegral RTP"} fp64_ceiling(x: float53e11) returns(float53e11);
 function {:builtin "fp.roundToIntegral RNE"} fp64_round(x: float53e11) returns(float53e11);

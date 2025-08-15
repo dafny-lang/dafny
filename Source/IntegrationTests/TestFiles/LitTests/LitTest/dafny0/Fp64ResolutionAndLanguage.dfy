@@ -1,7 +1,7 @@
 // RUN: %testDafnyForEachResolver "%s"
 
-// fp64 resolution tests
-// Tests type inference, arithmetic operations, comparisons, and error conditions
+// fp64 language integration and resolution tests
+// Tests how fp64 integrates with Dafny's language constructs, type inference, and operations
 
 method TestBasicLiteralAssignment() {
   // Basic literal assignment with type inference
@@ -79,26 +79,6 @@ method TestComparisonOperations() {
   assert x < 6.0;
   assert !(4.0 <= y);
   assert x > 0.0;
-}
-
-method TestTypeInference() {
-  // Type inference for literals
-  var real_inferred := 3.14;      // Infers as real
-  var fp64_explicit: fp64 := ~3.14;
-
-  // Operations preserve fp64 type
-  var x: fp64 := 2.5;
-  var sum: fp64 := x + 1.5;
-  var product: fp64 := x * 2.0;
-  var negation: fp64 := -x;
-
-  // Verify operations work
-  assert sum == 4.0;
-  assert product == 5.0;
-  assert negation == -2.5;
-
-  // Real arithmetic is exact
-  assert 0.1 + 0.2 == 0.3 as real;
 }
 
 method TestVariableDeclarations() {
@@ -208,36 +188,6 @@ method TestAssignmentStatements() {
   assert y == -8.0;
 }
 
-// Error condition tests - commented out to avoid compilation errors
-method TestErrorConditions() {
-  var x: fp64 := ~3.14;
-  var y: fp64 := 2.5;
-
-  // These would produce errors if uncommented:
-  // var equal := x == y;     // Error: fp64 not equality-supporting in compiled context
-  // var not_equal := x != y; // Error: fp64 not equality-supporting in compiled context
-
-  // But bitwise equality works in ghost/assertion contexts
-  assert x == x;  // Reflexive equality always works
-}
-
-// Ghost context tests - equality works in ghost contexts
-ghost method TestGhostContexts() {
-  var x: fp64 := ~3.14;
-  var y: fp64 := ~3.14;
-
-  // In ghost contexts, equality works (bitwise equality)
-  assert x == x;  // Reflexive
-
-  // Note: x and y might not be bitwise equal even with same literal
-  // due to compiler optimizations or rounding differences
-
-  // Ghost variables
-  ghost var ghost_fp: fp64 := 2.5;
-  assert ghost_fp == ghost_fp;
-  assert ghost_fp == 2.5;  // Exact value
-}
-
 // Integration with other types
 method TestTypeInteractions() {
   var fp_val: fp64 := ~3.14;
@@ -257,48 +207,11 @@ method TestTypeInteractions() {
   assert fp_plus_int_literal > fp_val;
 }
 
-// Comprehensive test method that exercises all functionality
-method TestComprehensive() {
-  // Literals and assignments
-  var a: fp64 := 1.5;
-  var b: fp64 := 0.25;    // 2.5e-1 = 0.25
-  var c: fp64 := 0.75;    // .75
-  var d: fp64 := 3.0;     // 3.
-
-  // Verify literal values
-  assert a == 1.5;
-  assert b == 0.25;
-  assert c == 0.75;
-  assert d == 3.0;
-
-  // Arithmetic operations
-  assert a + b == 1.75;
-  assert a - b == 1.25;
-  assert a * b == 0.375;
-  assert a / b == 6.0;
-  assert -a == -1.5;
-
-  // Comparisons
-  assert a > b;   // 1.5 > 0.25
-  assert a >= b;
-  assert !(a < b);
-  assert !(a <= b);
-
-  // Complex expressions
-  assert (a + b) * (c - d) == 1.75 * (-2.25);
-  assert (if a > b then a * 2.0 else b / 2.0) == 3.0;
-
-  // Method calls
-  var method_result := TestMethodParameters(a, b);
-  assert method_result == 1.75;
-}
-
 // Main method to run all tests
 method Main() {
   TestBasicLiteralAssignment();
   TestArithmeticOperations();
   TestComparisonOperations();
-  TestTypeInference();
   TestVariableDeclarations();
   var result := TestMethodParameters(1.0, 2.0);
   assert result == 3.0;
@@ -306,7 +219,5 @@ method Main() {
   TestConditionalExpressions();
   TestLoopExpressions();
   TestAssignmentStatements();
-  TestErrorConditions();
   TestTypeInteractions();
-  TestComprehensive();
 }

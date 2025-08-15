@@ -8,7 +8,7 @@
 // - For collections/datatypes with fp64: == not allowed in compiled code
 // - For IEEE 754 behavior: use fp64.Equal() instead
 //
-// Expecting 13 errors (marked with ERROR in comments)
+// Expecting 17 errors (marked with ERROR in comments)
 
 // PART 1: Ghost vs Compiled Contexts
 
@@ -63,8 +63,11 @@ method TestIEEEEqualityMethod() {
   var neg_zero: fp64 := -0.0;
   var nan := fp64.NaN;
   
-  var ieee_zeros := fp64.Equal(pos_zero, neg_zero);  // true (IEEE)
-  var ieee_nan := fp64.Equal(nan, nan);              // false (IEEE)
+  var ieee_zeros := fp64.Equal(pos_zero, neg_zero);
+  var ieee_nan := fp64.Equal(nan, nan);
+  
+  assert ieee_zeros == true;   // IEEE: +0 == -0
+  assert ieee_nan == false;     // IEEE: NaN != NaN
 }
 
 // Why +0 == -0 isn't allowed with ==
@@ -84,12 +87,22 @@ method TestNaNEquality() {
   var bad_nan_eq := nan == nan;  // ERROR: NaN not allowed
 }
 
+// Assertions also need preconditions in compiled methods
+method TestAssertionError(x: fp64, y: fp64) {
+  assert x == y;  // ERROR: needs preconditions even in assert
+}
+
 // Inequality needs same preconditions
 method TestInequality(x: fp64, y: fp64) returns (result: bool)
   requires !x.IsNaN && !y.IsNaN
   requires !(x.IsZero && y.IsZero && x.IsNegative != y.IsNegative)
 {
   result := x != y;  // OK: same rules as ==
+}
+
+// Inequality without preconditions also fails
+method TestInequalityError(x: fp64, y: fp64) returns (result: bool) {
+  result := x != y;  // ERROR: needs same preconditions as ==
 }
 
 // PART 3: Collections and Datatypes
@@ -249,7 +262,7 @@ method TestVariableDeclarationSoundness() {
 }
 
 // Assignments are checked too
-method TestExplicitAssignmentWorks() {
+method TestExplicitAssignmentError() {
   var s1: set<fp64> := {1.0, 2.0};
   var s2: set<fp64> := {1.0, 2.0};
   var eq: bool;

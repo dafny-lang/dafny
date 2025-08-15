@@ -180,8 +180,7 @@ method TestDafnyVsIEEE754() {
 
   print "+0.0 == +0.0             | ";
   print fp64.Equal(pos_zero, pos_zero), "                | ";
-  if !pos_zero.IsNaN && !pos_zero.IsNaN &&
-     !(pos_zero.IsZero && pos_zero.IsZero && pos_zero.IsNegative != pos_zero.IsNegative) {
+  if !pos_zero.IsNaN {  // Self-comparison only needs NaN check
     print (pos_zero == pos_zero), "                | ";
   }
   ghost var ghost_pzero_eq := pos_zero == pos_zero;
@@ -220,7 +219,7 @@ ghost method TestGhostReflexiveEquality() {
   assert nan == nan;  // Reflexive even for NaN in ghost!
   assert inf == inf;
 
-  // But non-reflexive comparisons still follow IEEE 754
+  // But non-reflexive comparisons still use bitwise equality (not IEEE 754)
   var y: fp64 := 2.0;
   assert !(x == y);  // Different values
 
@@ -321,6 +320,95 @@ method TestConditionalEquality() {
   }
 }
 
+// Test 13: Signed zeros from arithmetic operations
+method TestArithmeticSignedZeros() {
+  // Arithmetic that produces positive zero
+  // Note: Explicit fp64 type needed for new resolver type inference
+  var pos_zero_computed: fp64 := 1.0 - 1.0;
+  
+  // Arithmetic that produces negative zero  
+  var neg_zero_computed: fp64 := -0.0 * 1.0;  // Preserves sign of zero
+  
+  print "Computed +0: IsNegative = ", pos_zero_computed.IsNegative, "\n";
+  print "Computed -0: IsNegative = ", neg_zero_computed.IsNegative, "\n";
+  
+  // These have different bit patterns, so can't use ==
+  print "Can compare with ==? No (different signed zeros)\n";
+  
+  // But they are equal per IEEE 754
+  var ieee_equal := fp64.Equal(pos_zero_computed, neg_zero_computed);
+  assert ieee_equal;
+  print "IEEE 754 equal: ", ieee_equal, "\n";
+}
+
+// Test 14: Preconditions must be maintained through derived values
+method TestDerivedValuePreconditions() {
+  var x: fp64 := 1.0;
+  var y: fp64 := 1.0;
+  
+  // x and y satisfy preconditions for ==
+  if !x.IsNaN && !y.IsNaN {
+    var eq1 := x == y;
+    assert eq1;
+    print "Direct comparison: x == y is ", eq1, "\n";
+  }
+  
+  // But (x - y) might produce signed zero!
+  var diff := x - y;  // This is +0.0
+  var neg_diff := -(x - y);  // Now correctly produces -0.0 (negation bug fixed!)
+  
+  print "diff IsZero: ", diff.IsZero, ", IsNegative: ", diff.IsNegative, "\n";
+  print "neg_diff IsZero: ", neg_diff.IsZero, ", IsNegative: ", neg_diff.IsNegative, "\n";
+  
+  // These are both zero but with different signs - can't use == without precondition check!
+  // var bad := diff == neg_diff;  // ERROR: Would violate precondition (different signed zeros)
+  
+  // Check if the precondition for == is satisfied
+  var no_nan := !diff.IsNaN && !neg_diff.IsNaN;
+  var no_diff_signed_zeros := !(diff.IsZero && neg_diff.IsZero && diff.IsNegative != neg_diff.IsNegative);
+  
+  if no_nan && no_diff_signed_zeros {
+    print "Precondition for == is satisfied? Yes (but shouldn't be!)\n";
+  } else {
+    print "Precondition for == is satisfied? No - different signed zeros detected\n";
+  }
+  
+  // Or just use fp64.Equal for safety (handles all special cases)
+  var safe := fp64.Equal(diff, neg_diff);
+  print "fp64.Equal(diff, neg_diff): ", safe, " (IEEE 754: +0 == -0)\n";
+}
+
+// Test 15: fp64 in collections
+method TestFp64InCollections() {
+  var nan := fp64.NaN;
+  var pos_zero: fp64 := 0.0;
+  var neg_zero: fp64 := -0.0;
+  
+  // Sequences work fine (no equality comparison needed)
+  var s := [1.0, nan, pos_zero, neg_zero];
+  print "Sequence with special values created: length = ", |s|, "\n";
+  
+  // Arrays also work
+  var arr := new fp64[4];
+  arr[0] := 1.0;
+  arr[1] := nan;
+  arr[2] := pos_zero;
+  arr[3] := neg_zero;
+  
+  // But be careful with element comparisons
+  for i := 0 to |s| {
+    for j := 0 to |s| {
+      // Must use fp64.Equal for safe comparison
+      var equal := fp64.Equal(s[i], s[j]);
+      if i == j && !s[i].IsNaN {
+        // Reflexive for non-NaN
+        assert equal == (i == j && !s[i].IsNaN);
+      }
+    }
+  }
+  print "Collection element comparisons completed safely with fp64.Equal\n";
+}
+
 method Main() {
   print "=== Test 1: Compiled Equality Preconditions ===\n";
   TestCompiledEqualityPreconditions();
@@ -344,6 +432,15 @@ method Main() {
 
   print "\n=== Test 12: Conditional Equality ===\n";
   TestConditionalEquality();
+
+  print "\n=== Test 13: Arithmetic Signed Zeros ===\n";
+  TestArithmeticSignedZeros();
+  
+  print "\n=== Test 14: Derived Value Preconditions ===\n";
+  TestDerivedValuePreconditions();
+  
+  print "\n=== Test 15: Collections ===\n";
+  TestFp64InCollections();
 
   print "\nAll tests passed!\n";
 }

@@ -1215,21 +1215,6 @@ public partial class BoogieGenerator {
         var finiteConversion = FunctionCall(tok, "fp_to_real", Bpl.Type.Real, r);
         var zero = Bpl.Expr.Literal(BaseTypes.BigDec.ZERO);
         r = new NAryExpr(tok, new IfThenElse(tok), new List<Bpl.Expr> { isFinite, finiteConversion, zero });
-      } else if (toType.IsBitVectorType) {
-        // fp64 to bitvector: convert to int first via signed bit-vector
-        r = FunctionCall(tok, "fp.to_sbv64_RTZ", BplBvType(64), r);
-        r = FunctionCall(tok, "nat_from_bv64", Bpl.Type.Int, r);
-        r = IntToBV(tok, r, toType);
-      } else if (toType.IsCharType) {
-        // fp64 to char: convert to int first
-        r = FunctionCall(tok, "fp.to_sbv64_RTZ", BplBvType(64), r);
-        r = FunctionCall(tok, "nat_from_bv64", Bpl.Type.Int, r);
-        r = FunctionCall(tok, BuiltinFunction.CharFromInt, null, r);
-      } else if (toType.IsBigOrdinalType) {
-        // fp64 to ordinal: convert to int first
-        r = FunctionCall(tok, "fp.to_sbv64_RTZ", BplBvType(64), r);
-        r = FunctionCall(tok, "nat_from_bv64", Bpl.Type.Int, r);
-        r = FunctionCall(tok, "ORD#FromNat", Predef.BigOrdinalType, r);
       } else {
         Contract.Assert(false, $"No translation implemented from {fromType} to {toType}");
       }
@@ -1259,11 +1244,6 @@ public partial class BoogieGenerator {
         }
       } else if (toType.IsNumericBased(Type.NumericPersuasion.Int)) {
         r = FunctionCall(tok, "nat_from_bv" + fromWidth, Bpl.Type.Int, r);
-      } else if (toType.IsFp64Type) {
-        // bv to fp64 conversion: bv -> int -> real -> fp64
-        r = FunctionCall(tok, "nat_from_bv" + fromWidth, Bpl.Type.Int, r);
-        r = FunctionCall(tok, BuiltinFunction.IntToReal, null, r);
-        r = FunctionCall(tok, "real_to_fp64_RNE", BplFp64Type, r);
       } else if (toType.IsNumericBased(Type.NumericPersuasion.Real)) {
         r = FunctionCall(tok, "nat_from_bv" + fromWidth, Bpl.Type.Int, r);
         r = FunctionCall(tok, BuiltinFunction.IntToReal, null, r);
@@ -1513,23 +1493,6 @@ public partial class BoogieGenerator {
       builder.Add(Assert(tok, boundsCheck, new ConversionIsNatural(errorMsgPrefix, expr), builder.Context));
     }
 
-    if (fromType.IsBitVectorType && toType.IsFp64Type) {
-      // bv to fp64 conversion is well-formed only if the bit-vector value is exactly representable in fp64
-      // For IEEE 754 binary64, integers up to 2^53 can be exactly represented
-      // We check: fp.to_real(real_to_fp64_RNE(Int(Real(nat_from_bv(o))))) == Int(Real(nat_from_bv(o)))
-      // TODO: This well-formedness check causes verification timeouts due to the same Z3 issue
-      // as real-to-fp64 conversion. The round-trip check with floating-point operations
-      // causes Z3 to fail when auto_config is disabled and case_split=3 is set.
-      // For now, we include the check but users may experience timeouts.
-      PutSourceIntoLocal();
-      var fromWidth = fromType.AsBitVectorType.Width;
-      var asInt = FunctionCall(tok, "nat_from_bv" + fromWidth, Bpl.Type.Int, o);
-      var asReal = FunctionCall(tok, BuiltinFunction.IntToReal, null, asInt);
-      var asFp64 = FunctionCall(tok, "real_to_fp64_RNE", BplFp64Type, asReal);
-      var backToReal = FunctionCall(tok, "fp_to_real", Bpl.Type.Real, asFp64);
-      var isExact = Bpl.Expr.Binary(tok, Bpl.BinaryOperator.Opcode.Eq, backToReal, asReal);
-      builder.Add(Assert(tok, isExact, new IsExactlyRepresentableAsFp64(expr, errorMsgPrefix), builder.Context));
-    }
 
     if (toTypeFamily.IsBitVectorType) {
       var toWidth = toTypeFamily.AsBitVectorType.Width;

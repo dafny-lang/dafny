@@ -6,11 +6,11 @@
 
 method TestInexactLiteralsRequireTilde() {
   // Common inexact decimal values
-  var bad1: fp64 := 0.1;   // Error: literal 0.1 is not exactly representable in fp64, use ~0.1
-  var bad2: fp64 := 0.2;   // Error: literal 0.2 is not exactly representable in fp64, use ~0.2
-  var bad3: fp64 := 0.3;   // Error: literal 0.3 is not exactly representable in fp64, use ~0.3
-  var bad4: fp64 := 0.7;   // Error: literal 0.7 is not exactly representable in fp64, use ~0.7
-  var bad5: fp64 := 0.9;   // Error: literal 0.9 is not exactly representable in fp64, use ~0.9
+  var bad_d1: fp64 := 0.1;   // Error: literal 0.1 is not exactly representable in fp64, use ~0.1
+  var bad_d2: fp64 := 0.2;   // Error: literal 0.2 is not exactly representable in fp64, use ~0.2
+  var bad_d3: fp64 := 0.3;   // Error: literal 0.3 is not exactly representable in fp64, use ~0.3
+  var bad_d7: fp64 := 0.7;   // Error: literal 0.7 is not exactly representable in fp64, use ~0.7
+  var bad_d9: fp64 := 0.9;   // Error: literal 0.9 is not exactly representable in fp64, use ~0.9
 
   // Mathematical constants
   var bad_pi: fp64 := 3.14159;   // Error: literal 3.14159 is not exactly representable in fp64, use ~3.14159
@@ -32,11 +32,11 @@ method TestInexactLiteralsRequireTilde() {
   var bad_neg3: fp64 := -3.14; // Error: literal -3.14 is not exactly representable in fp64, use ~-3.14
 
   // Very high precision literals
-  var inexact1: fp64 := 0.10000000000000000000000001;  // Error: Not exactly representable
-  var inexact2: fp64 := 3.1415926535897932384626433832795028841971693993751058209749445923078164062862089986280348253421170679;  // Error: Not exactly representable
-  var inexact3: fp64 := 1.23456789012345678901234567890e100;  // Error: Not exactly representable
-  var inexact4: fp64 := 9007199254740992.000000000001;  // Error: Not exactly representable
-  var inexact5: fp64 := 0.5000000000000000000000001;  // Error: Not exactly representable
+  var bad_prec1: fp64 := 0.10000000000000000000000001;  // Error: Not exactly representable
+  var bad_prec2: fp64 := 3.1415926535897932384626433832795028841971693993751058209749445923078164062862089986280348253421170679;  // Error: Not exactly representable
+  var bad_prec3: fp64 := 1.23456789012345678901234567890e100;  // Error: Not exactly representable
+  var bad_prec4: fp64 := 9007199254740992.000000000001;  // Error: Not exactly representable
+  var bad_prec5: fp64 := 0.5000000000000000000000001;  // Error: Not exactly representable
 }
 
 method TestInexactLiteralsInExpressions() {

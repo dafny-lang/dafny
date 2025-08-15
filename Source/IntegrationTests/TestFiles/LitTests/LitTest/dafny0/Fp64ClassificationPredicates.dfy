@@ -24,8 +24,10 @@ method BasicClassificationTests() {
   assert zero.IsZero;
   assert zero.IsFinite;
   assert !zero.IsNormal;
-  assert zero.IsPositive || !zero.IsPositive;  // Implementation-defined for +0
-  assert !zero.IsNegative;  // Positive zero is not negative
+  // Note: IsPositive/IsNegative behavior for zeros may differ between runtime and verification
+  // Runtime: +0.0 has IsPositive=false, IsNegative=false
+  // SMT-LIB spec suggests IsPositive(+0) could be true, but Dafny runtime returns false
+  assert !zero.IsNegative;  // +0.0 is not negative
 
   assert negZero.IsZero;
   assert negZero.IsNegative;  // Negative zero has negative sign bit
@@ -84,8 +86,10 @@ method PredicateInAssertions() {
   var x: fp64 := 1.5;
 
   // Test predicates in assertions (ghost context)
-  assert x.IsFinite || x.IsInfinite || x.IsNaN;  // Should always be true
-  assert x.IsPositive || x.IsNegative || x.IsZero;  // Should always be true
+  assert x.IsFinite || x.IsInfinite || x.IsNaN;  // Exhaustive for all fp64 values
+  // WARNING: The following is FALSE for NaN! NaN is neither positive, negative, nor zero
+  // This only passes because x=1.5 here. For general fp64, this would fail.
+  assert x.IsPositive || x.IsNegative || x.IsZero;  // Only true for non-NaN values
   assert !(x.IsNormal && x.IsSubnormal);  // Should never both be true
   assert !(x.IsPositive && x.IsNegative);  // Should never both be true
 
@@ -185,24 +189,18 @@ method ComprehensivePredicateTest() {
   testValues[1] := -0.0;     // Negative zero
   testValues[2] := 1.0;      // Normal positive
   testValues[3] := -1.0;     // Normal negative
-  testValues[4] := ~1.0e-200; // Potentially subnormal
+  testValues[4] := ~1.0e-200; // Normal value (subnormal boundary is ~2.225e-308)
   testValues[5] := ~1.0e200;  // Large normal
 
   var i := 0;
   while i < testValues.Length {
     var val := testValues[i];
 
-    // Test all predicates
-    var predicates := [
-      val.IsNaN,
-      val.IsFinite,
-      val.IsInfinite,
-      val.IsNormal,
-      val.IsSubnormal,
-      val.IsZero,
-      val.IsNegative,
-      val.IsPositive
-    ];
+    // Verify classification completeness and mutual exclusivity
+    assert val.IsNaN || val.IsFinite || val.IsInfinite;  // Exactly one must be true
+    if val.IsFinite && !val.IsZero {
+      assert val.IsNormal || val.IsSubnormal;  // Finite non-zero must be one of these
+    }
 
     // Verify mutual exclusivity where appropriate
     assert !(val.IsNormal && val.IsSubnormal);
@@ -310,13 +308,71 @@ method TestPredicatesWithStaticMethods() {
   assert x >= 1.0;  // ~3.14 >= 1.0
 
   // Test predicates with special constants
-  var pos_inf := fp64.PositiveInfinity;
-  assert pos_inf.IsInfinite && pos_inf.IsPositive;
-  assert fp64.Equal(pos_inf, pos_inf);
+  var posInf := fp64.PositiveInfinity;
+  assert posInf.IsInfinite && posInf.IsPositive;
+  assert fp64.Equal(posInf, posInf);
 
-  var abs_result := fp64.Abs(-4.0);
-  assert abs_result == 4.0;
-  assert abs_result.IsFinite && abs_result.IsPositive;
+  var absResult := fp64.Abs(-4.0);
+  assert absResult == 4.0;
+  assert absResult.IsFinite && absResult.IsPositive;
+}
+
+method TestBoundaryValues() {
+  // Test maximum and minimum values
+  var maxVal := fp64.MaxValue;
+  assert maxVal.IsFinite;
+  assert maxVal.IsNormal;
+  assert maxVal.IsPositive;
+  assert !maxVal.IsNegative;
+  
+  var minVal := fp64.MinValue;  // Most negative finite value
+  assert minVal.IsFinite;
+  assert minVal.IsNormal;
+  assert minVal.IsNegative;
+  assert !minVal.IsPositive;
+  
+  // Test smallest positive normal (epsilon)
+  var epsilon := fp64.Epsilon;
+  assert epsilon.IsFinite;
+  assert epsilon.IsNormal;  // Epsilon is the smallest normal, not subnormal
+  assert epsilon.IsPositive;
+  assert !epsilon.IsNegative;
+  
+  // Test value near normal/subnormal boundary
+  var nearBoundary: fp64 := ~2.225e-308;  // Close to smallest normal
+  assert nearBoundary.IsFinite;
+  // Can't assert IsNormal vs IsSubnormal without knowing exact value after rounding
+  
+  // Test largest subnormal (just below smallest normal)
+  var largestSubnormal: fp64 := ~2.225073858507201e-308;  // Just below 2^-1022
+  assert largestSubnormal.IsFinite;
+  // Exact classification depends on rounding
+}
+
+method TestMutualExclusivity() {
+  // Systematically test that classifications are mutually exclusive
+  var testVals := [fp64.NaN, fp64.PositiveInfinity, 0.0, 1.0, ~4.94e-324];
+  
+  var i := 0;
+  while i < |testVals| {
+    var v := testVals[i];
+    
+    // NaN, Finite, and Infinite are mutually exclusive
+    var count1 := (if v.IsNaN then 1 else 0) + 
+                  (if v.IsFinite then 1 else 0) + 
+                  (if v.IsInfinite then 1 else 0);
+    assert count1 == 1;  // Exactly one must be true
+    
+    // For finite values, Normal, Subnormal, and Zero are mutually exclusive
+    if v.IsFinite {
+      var count2 := (if v.IsNormal then 1 else 0) + 
+                    (if v.IsSubnormal then 1 else 0) + 
+                    (if v.IsZero then 1 else 0);
+      assert count2 == 1;  // Exactly one must be true
+    }
+    
+    i := i + 1;
+  }
 }
 
 method Main() {
@@ -330,6 +386,8 @@ method Main() {
   ComprehensivePredicateTest();
   TestSpecialValues();
   TestPredicatesWithStaticMethods();
+  TestBoundaryValues();
+  TestMutualExclusivity();
 
   // All tests verify classification predicates through assertions
 }

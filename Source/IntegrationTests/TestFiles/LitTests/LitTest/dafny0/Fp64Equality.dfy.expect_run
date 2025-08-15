@@ -51,4 +51,21 @@ Array element NaN self-comparison: false
 === Test 12: Conditional Equality ===
 x equals target: true
 
+=== Test 13: Arithmetic Signed Zeros ===
+Computed +0: IsNegative = false
+Computed -0: IsNegative = true
+Can compare with ==? No (different signed zeros)
+IEEE 754 equal: true
+
+=== Test 14: Derived Value Preconditions ===
+Direct comparison: x == y is true
+diff IsZero: true, IsNegative: false
+neg_diff IsZero: true, IsNegative: true
+Precondition for == is satisfied? No - different signed zeros detected
+fp64.Equal(diff, neg_diff): true (IEEE 754: +0 == -0)
+
+=== Test 15: Collections ===
+Sequence with special values created: length = 4
+Collection element comparisons completed safely with fp64.Equal
+
 All tests passed!

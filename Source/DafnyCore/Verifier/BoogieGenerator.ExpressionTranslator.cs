@@ -664,6 +664,10 @@ namespace Microsoft.Dafny {
         switch (e.ResolvedOp) {
           case UnaryOpExpr.ResolvedOpcode.Lit:
             return MaybeLit(arg);
+          case UnaryOpExpr.ResolvedOpcode.Fp64Negate:
+            // Use fp64_neg for IEEE 754 compliant negation
+            var negResult = FunctionCall(GetToken(opExpr), "fp64_neg", new FloatType(53, 11), arg);
+            return BoogieGenerator.IsLit(arg) ? MaybeLit(negResult, new FloatType(53, 11)) : negResult;
           case UnaryOpExpr.ResolvedOpcode.BVNot:
             var bvWidth = opExpr.Type.NormalizeToAncestorType().AsBitVectorType.Width;
             var bvType = BoogieGenerator.BplBvType(bvWidth);
