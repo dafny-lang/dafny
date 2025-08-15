@@ -1,0 +1,5 @@
+file_format_version = "1.0"
+dafny_version = "4.10.1.0"
+[options_by_module.StandaloneFileIO]
+legacy-module-names = false
+rust-sync = false

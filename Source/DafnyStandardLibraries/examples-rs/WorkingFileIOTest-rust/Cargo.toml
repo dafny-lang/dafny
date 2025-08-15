@@ -1,0 +1,12 @@
+[package]
+name = "WorkingFileIOTest"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+dafny_runtime = { path = "runtime" }
+
+[[bin]]
+name = "WorkingFileIOTest"
+path = "src/WorkingFileIOTest.rs"
+

@@ -1,0 +1,155 @@
+file_format_version = "1.0"
+dafny_version = "4.10.1.0"
+[options_by_module."Std.Wrappers"]
+legacy-module-names = false
+rust-sync = false
+[options_by_module."Std.Concurrent"]
+legacy-module-names = false
+rust-sync = false
+[options_by_module."Std.FileIOInternalExterns"]
+legacy-module-names = false
+rust-sync = false
+[options_by_module."Std.Unicode.Base"]
+legacy-module-names = false
+rust-sync = false
+[options_by_module."Std.Arithmetic.GeneralInternals"]
+legacy-module-names = false
+rust-sync = false
+[options_by_module."Std.Arithmetic.MulInternalsNonlinear"]
+legacy-module-names = false
+rust-sync = false
+[options_by_module."Std.Arithmetic.MulInternals"]
+legacy-module-names = false
+rust-sync = false
+[options_by_module."Std.Arithmetic.Mul"]
+legacy-module-names = false
+rust-sync = false
+[options_by_module."Std.Arithmetic.ModInternalsNonlinear"]
+legacy-module-names = false
+rust-sync = false
+[options_by_module."Std.Arithmetic.DivInternalsNonlinear"]
+legacy-module-names = false
+rust-sync = false
+[options_by_module."Std.Arithmetic.ModInternals"]
+legacy-module-names = false
+rust-sync = false
+[options_by_module."Std.Arithmetic.DivInternals"]
+legacy-module-names = false
+rust-sync = false
+[options_by_module."Std.Arithmetic.DivMod"]
+legacy-module-names = false
+rust-sync = false
+[options_by_module."Std.Arithmetic.Power"]
+legacy-module-names = false
+rust-sync = false
+[options_by_module."Std.Relations"]
+legacy-module-names = false
+rust-sync = false
+[options_by_module."Std.Math"]
+legacy-module-names = false
+rust-sync = false
+[options_by_module."Std.Collections.Seq"]
+legacy-module-names = false
+rust-sync = false
+[options_by_module."Std.Collections.Array"]
+legacy-module-names = false
+rust-sync = false
+[options_by_module."Std.Collections.Imap"]
+legacy-module-names = false
+rust-sync = false
+[options_by_module."Std.Functions"]
+legacy-module-names = false
+rust-sync = false
+[options_by_module."Std.Collections.Iset"]
+legacy-module-names = false
+rust-sync = false
+[options_by_module."Std.Collections.Map"]
+legacy-module-names = false
+rust-sync = false
+[options_by_module."Std.Collections.Multiset"]
+legacy-module-names = false
+rust-sync = false
+[options_by_module."Std.Collections.Set"]
+legacy-module-names = false
+rust-sync = false
+[options_by_module."Std.Collections.Tuple"]
+legacy-module-names = false
+rust-sync = false
+[options_by_module."Std.Arithmetic.Logarithm"]
+legacy-module-names = false
+rust-sync = false
+[options_by_module."Std.Arithmetic.LittleEndianNat"]
+legacy-module-names = false
+rust-sync = false
+[options_by_module."Std.Arithmetic.Power2"]
+legacy-module-names = false
+rust-sync = false
+[options_by_module."Std.Strings.ParametricConversion"]
+legacy-module-names = false
+rust-sync = false
+[options_by_module."Std.Strings.ParametricEscaping"]
+legacy-module-names = false
+rust-sync = false
+[options_by_module."Std.Strings.HexConversion"]
+legacy-module-names = false
+rust-sync = false
+[options_by_module."Std.Strings.DecimalConversion"]
+legacy-module-names = false
+rust-sync = false
+[options_by_module."Std.Strings.CharStrEscaping"]
+legacy-module-names = false
+rust-sync = false
+[options_by_module."Std.Strings"]
+legacy-module-names = false
+rust-sync = false
+[options_by_module."Std.Unicode.UnicodeEncodingForm"]
+legacy-module-names = false
+rust-sync = false
+[options_by_module."Std.BoundedInts"]
+legacy-module-names = false
+rust-sync = false
+[options_by_module."Std.Unicode.AbstractUnicodeStrings"]
+legacy-module-names = false
+rust-sync = false
+[options_by_module."Std.Unicode.Utf8EncodingForm"]
+legacy-module-names = false
+rust-sync = false
+[options_by_module."Std.Unicode.Utf16EncodingForm"]
+legacy-module-names = false
+rust-sync = false
+[options_by_module."Std.Unicode.UnicodeStringsWithUnicodeChar"]
+legacy-module-names = false
+rust-sync = false
+[options_by_module."Std.Unicode.Utf8EncodingScheme"]
+legacy-module-names = false
+rust-sync = false
+[options_by_module."Std.FileIO"]
+legacy-module-names = false
+rust-sync = false
+[options_by_module."Std.Base64"]
+legacy-module-names = false
+rust-sync = false
+[options_by_module."Std.DynamicArray"]
+legacy-module-names = false
+rust-sync = false
+[options_by_module."Std.Parsers.AbstractInput"]
+legacy-module-names = false
+rust-sync = false
+[options_by_module."Std.Parsers.Core"]
+legacy-module-names = false
+rust-sync = false
+[options_by_module."Std.Parsers.Builders"]
+legacy-module-names = false
+rust-sync = false
+[options_by_module."Std.Parsers.Theorems"]
+legacy-module-names = false
+rust-sync = false
+[options_by_module."Std.Parsers.InputString"]
+legacy-module-names = false
+rust-sync = false
+[options_by_module."Std.Parsers.StringParsers"]
+legacy-module-names = false
+rust-sync = false
+[options_by_module."Std.Parsers.StringBuilders"]
+legacy-module-names = false
+rust-sync = false

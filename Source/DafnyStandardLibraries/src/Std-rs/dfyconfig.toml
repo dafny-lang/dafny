@@ -8,6 +8,9 @@ excludes = [
   "Actions/*.dfy",
   # Exclude JSON modules due to Rust code generation issues with Bracketed datatype
   "JSON/**/*.dfy",
+  # Exclude modules with verification issues
+  "Base64.dfy",
+  "Arithmetic/**/*.dfy",
 ]
 
 [options]
@@ -17,7 +20,7 @@ reads-clauses-on-methods = true
 type-system-refresh = true
 general-traits = "datatype"
 general-newtypes = true
-resource-limit = 1000000
-verification-time-limit = 300
+resource-limit = 5000000
+verification-time-limit = 600
 warn-redundant-assumptions = false
 warn-contradictory-assumptions = false

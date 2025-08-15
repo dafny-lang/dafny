@@ -1,0 +1,12 @@
+[package]
+name = "SimpleTest"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+dafny_runtime = { path = "runtime" }
+
+[[bin]]
+name = "SimpleTest"
+path = "src/SimpleTest.rs"
+

@@ -1,0 +1,12 @@
+[package]
+name = "rust_stdlib_smoke_test"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+dafny_runtime = { path = "runtime" }
+
+[[bin]]
+name = "rust_stdlib_smoke_test"
+path = "src/rust_stdlib_smoke_test.rs"
+
