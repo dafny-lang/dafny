@@ -184,6 +184,10 @@ class CharLiteralExpr : LiteralExpr
 {
 }
 
+class WildcardExpr : Expression
+{
+}
+
 class UnchangedExpr : Expression
 {
     List<FrameExpression> frame;
@@ -200,46 +204,6 @@ class OldExpr : Expression
 {
     Expression expr;
     String? at;
-}
-
-class DatatypeValue : Expression
-{
-    String datatypeName;
-    String memberName;
-    ActualBindings bindings;
-}
-
-abstract class NodeWithoutOrigin : Node
-{
-}
-
-class ModuleQualifiedId : NodeWithoutOrigin
-{
-    List<Name> path;
-}
-
-class Name : Node
-{
-    IOrigin origin;
-    String value;
-}
-
-class Specification<T> : NodeWithoutOrigin where T : Node
-{
-    List<T>? expressions;
-    Attributes? attributes;
-}
-
-class ActualBinding : NodeWithoutOrigin
-{
-    IOrigin? formalParameterName;
-    Expression actual;
-    Boolean isGhost;
-}
-
-class ActualBindings : NodeWithoutOrigin
-{
-    List<ActualBinding> argumentBindings;
 }
 
 class TernaryExpr : Expression
@@ -358,6 +322,39 @@ class AllocateClass : TypeRhs
 {
     Type path;
     ActualBindings? bindings;
+}
+
+abstract class NodeWithoutOrigin : Node
+{
+}
+
+class ModuleQualifiedId : NodeWithoutOrigin
+{
+    List<Name> path;
+}
+
+class Name : Node
+{
+    IOrigin origin;
+    String value;
+}
+
+class Specification<T> : NodeWithoutOrigin where T : Node
+{
+    List<T>? expressions;
+    Attributes? attributes;
+}
+
+class ActualBinding : NodeWithoutOrigin
+{
+    IOrigin? formalParameterName;
+    Expression actual;
+    Boolean isGhost;
+}
+
+class ActualBindings : NodeWithoutOrigin
+{
+    List<ActualBinding> argumentBindings;
 }
 
 class AllocateArray : TypeRhs
