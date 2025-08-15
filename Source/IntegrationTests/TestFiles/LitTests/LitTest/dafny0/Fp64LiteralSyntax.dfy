@@ -63,7 +63,7 @@ method TestApproximateFp64Literals() {
 
   // These are NOT exactly equal due to rounding
   assert tenth + fifth != three_tenths || tenth + fifth == three_tenths; // One must be true
-  
+
   // Verify they're in reasonable ranges
   assert tenth > ~0.09 && tenth < ~0.11;
   assert fifth > ~0.19 && fifth < ~0.21;

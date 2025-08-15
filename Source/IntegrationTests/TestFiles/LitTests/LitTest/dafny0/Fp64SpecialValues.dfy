@@ -31,7 +31,7 @@ method TestZeroValues() {
   var sum_neg := neg_zero + neg_zero;
   assert sum_pos.IsZero && !sum_pos.IsNegative;
   assert sum_neg.IsZero && sum_neg.IsNegative;
-  
+
   // Test negation of zero variables (not just literals)
   // This catches the bug where -expr is transformed to 0 - expr
   var neg_of_pos_zero := -pos_zero;  // Should produce -0.0
@@ -40,7 +40,7 @@ method TestZeroValues() {
   assert neg_of_pos_zero.IsNegative;  // BUG: This currently fails! -pos_zero produces +0.0
   assert neg_of_neg_zero.IsZero;
   assert !neg_of_neg_zero.IsNegative;  // Double negation should give positive zero
-  
+
   // Verify they have the correct bit patterns
   assert neg_of_pos_zero == neg_zero;  // -pos_zero should equal -0.0
   assert neg_of_neg_zero == pos_zero;  // -neg_zero should equal +0.0
@@ -97,7 +97,7 @@ method TestSmallestValues() {
   var half_min := min_subnormal / 2.0;
   assert half_min.IsZero;  // Underflows to zero
   assert !half_min.IsNegative;  // Should underflow to positive zero
-  
+
   // Test underflow to negative zero
   var neg_half_min := (-min_subnormal) / 2.0;
   assert neg_half_min.IsZero;

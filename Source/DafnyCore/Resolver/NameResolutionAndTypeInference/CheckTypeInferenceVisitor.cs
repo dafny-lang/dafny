@@ -172,7 +172,7 @@ class CheckTypeInferenceVisitor : ASTVisitor<TypeInferenceCheckingContext> {
             zero = new LiteralExpr(e.Origin, 0);
           }
           zero.Type = expr.Type;
-          resolved = new BinaryExpr(e.Origin, BinaryExpr.Opcode.Sub, zero, e.E) { 
+          resolved = new BinaryExpr(e.Origin, BinaryExpr.Opcode.Sub, zero, e.E) {
             ResolvedOp = BinaryExpr.ResolvedOpcode.Sub
           };
         }
@@ -198,13 +198,13 @@ class CheckTypeInferenceVisitor : ASTVisitor<TypeInferenceCheckingContext> {
       if (toCheck is DecimalLiteralExpr decLit && decLit.Type.IsFp64Type && decLit.ResolvedFloatValue == null) {
         var decValue = (BigDec)decLit.Value;
         var isExact = BigFloat.FromBigDec(decValue, 53, 11, out var floatValue);
-        
+
         // Check that ~ is only used on inexact values
         if (isExact) {
           resolver.ReportError(ResolutionErrors.ErrorId.r_approximate_prefix_on_exact_fp64_literal, expr.Origin,
             $"The approximate literal prefix ~ is not allowed on the exactly representable value {decValue}. Remove the ~ prefix.");
         }
-        
+
         decLit.ResolvedFloatValue = floatValue;
       }
     } else if (expr is LiteralExpr) {

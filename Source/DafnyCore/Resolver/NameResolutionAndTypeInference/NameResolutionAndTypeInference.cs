@@ -819,7 +819,7 @@ namespace Microsoft.Dafny {
           if (lit.Value is BaseTypes.BigDec decValue) {
             // This is a decimal literal, which is allowed with ~
             // But we should only allow ~ on inexact values
-            
+
             // Check if the decimal is exactly representable as fp64
             // fp64 has 53-bit significand and 11-bit exponent
             var isExact = BigFloat.FromBigDec(decValue, 53, 11, out var floatValue);
@@ -827,12 +827,12 @@ namespace Microsoft.Dafny {
               // The value is exactly representable, so ~ should not be allowed
               reporter.Error(MessageSource.Resolver, expr, $"The approximate literal prefix ~ is not allowed on the exactly representable value {decValue}. Remove the ~ prefix.");
             }
-            
+
             // Store the computed BigFloat value to avoid recomputing it later
             if (lit is DecimalLiteralExpr decLit) {
               decLit.ResolvedFloatValue = floatValue;
             }
-            
+
             // The ~ prefix forces the type to fp64
             expr.Type = Type.Fp64;  // Set the ApproximateExpr type to fp64
             // Just set the resolved expression to the inner expression (could be NegationExpression)

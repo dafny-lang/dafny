@@ -324,25 +324,25 @@ method TestBoundaryValues() {
   assert maxVal.IsNormal;
   assert maxVal.IsPositive;
   assert !maxVal.IsNegative;
-  
+
   var minVal := fp64.MinValue;  // Most negative finite value
   assert minVal.IsFinite;
   assert minVal.IsNormal;
   assert minVal.IsNegative;
   assert !minVal.IsPositive;
-  
+
   // Test smallest positive normal (epsilon)
   var epsilon := fp64.Epsilon;
   assert epsilon.IsFinite;
   assert epsilon.IsNormal;  // Epsilon is the smallest normal, not subnormal
   assert epsilon.IsPositive;
   assert !epsilon.IsNegative;
-  
+
   // Test value near normal/subnormal boundary
   var nearBoundary: fp64 := ~2.225e-308;  // Close to smallest normal
   assert nearBoundary.IsFinite;
   // Can't assert IsNormal vs IsSubnormal without knowing exact value after rounding
-  
+
   // Test largest subnormal (just below smallest normal)
   var largestSubnormal: fp64 := ~2.225073858507201e-308;  // Just below 2^-1022
   assert largestSubnormal.IsFinite;
@@ -352,25 +352,25 @@ method TestBoundaryValues() {
 method TestMutualExclusivity() {
   // Systematically test that classifications are mutually exclusive
   var testVals := [fp64.NaN, fp64.PositiveInfinity, 0.0, 1.0, ~4.94e-324];
-  
+
   var i := 0;
   while i < |testVals| {
     var v := testVals[i];
-    
+
     // NaN, Finite, and Infinite are mutually exclusive
-    var count1 := (if v.IsNaN then 1 else 0) + 
-                  (if v.IsFinite then 1 else 0) + 
+    var count1 := (if v.IsNaN then 1 else 0) +
+                  (if v.IsFinite then 1 else 0) +
                   (if v.IsInfinite then 1 else 0);
     assert count1 == 1;  // Exactly one must be true
-    
+
     // For finite values, Normal, Subnormal, and Zero are mutually exclusive
     if v.IsFinite {
-      var count2 := (if v.IsNormal then 1 else 0) + 
-                    (if v.IsSubnormal then 1 else 0) + 
+      var count2 := (if v.IsNormal then 1 else 0) +
+                    (if v.IsSubnormal then 1 else 0) +
                     (if v.IsZero then 1 else 0);
       assert count2 == 1;  // Exactly one must be true
     }
-    
+
     i := i + 1;
   }
 }

@@ -1,7 +1,7 @@
 // RUN: %testDafnyForEachResolver --expect-exit-code=4 "%s"
 
 // fp64 equality tests - verifies that == works correctly for floating-point
-// 
+//
 // Key rules:
 // - In ghost code: == always works (mathematical equality)
 // - In compiled code: == requires excluding NaN and different-signed zeros
@@ -44,7 +44,7 @@ method TestControlFlow(x: fp64, y: fp64) returns (result: bool) {
     return false;
   }
   if x.IsZero && y.IsZero && x.IsNegative != y.IsNegative {
-    return false; 
+    return false;
   }
   result := x == y;  // OK: conditions checked above
 }
@@ -62,10 +62,10 @@ method TestIEEEEqualityMethod() {
   var pos_zero: fp64 := 0.0;
   var neg_zero: fp64 := -0.0;
   var nan := fp64.NaN;
-  
+
   var ieee_zeros := fp64.Equal(pos_zero, neg_zero);
   var ieee_nan := fp64.Equal(nan, nan);
-  
+
   assert ieee_zeros == true;   // IEEE: +0 == -0
   assert ieee_nan == false;     // IEEE: NaN != NaN
 }
@@ -74,8 +74,8 @@ method TestIEEEEqualityMethod() {
 method TestBitwiseWithPreconditions() {
   var pos_zero: fp64 := 0.0;
   var neg_zero: fp64 := -0.0;
-  
-  if !pos_zero.IsNaN && !neg_zero.IsNaN && 
+
+  if !pos_zero.IsNaN && !neg_zero.IsNaN &&
      !(pos_zero.IsZero && neg_zero.IsZero && pos_zero.IsNegative != neg_zero.IsNegative) {
     var bitwise_zeros := pos_zero == neg_zero;  // Unreachable
   }
@@ -123,19 +123,19 @@ method TestSequenceEquality() {
 
 // But collections work fine in ghost code
 ghost method TestCollectionsGhost() {
-  var s1 := {1.0, 2.0, 3.0};  
+  var s1 := {1.0, 2.0, 3.0};
   var s2 := {1.0, 2.0, 3.0};
   assert s1 == s2;  // OK in ghost
-  
+
   var seq1 := [1.0, 2.0];
   var seq2 := [1.0, 2.0];
   assert seq1 == seq2;  // OK in ghost
-  
+
   // Even with NaN
   var nan := fp64.NaN;
   var s3 := {nan};
   assert s3 == s3;  // OK: reflexive in ghost
-  
+
   // But +0 and -0 are different values
   var s4: set<fp64> := {0.0};
   var s5: set<fp64> := {-0.0};
@@ -146,7 +146,7 @@ ghost method TestCollectionsGhost() {
 method TestGhostSetEquality() {
   var s1 := {1.0, 2.0};
   var s2 := {1.0, 2.0};
-  
+
   ghost var ghost_eq := s1 == s2;  // OK: ghost variable
   assert ghost_eq;
 }
@@ -155,7 +155,7 @@ method TestGhostSetEquality() {
 method TestCompiledSetEquality() {
   var s1: set<fp64> := {1.0, 2.0};
   var s2: set<fp64> := {1.0, 2.0};
-  
+
   var compiled_eq := s1 == s2;  // ERROR: compiled variable
 }
 
@@ -196,7 +196,7 @@ ghost method TestDatatypeGhost() {
   var c1 := Container(1.0);
   var c2 := Container(1.0);
   assert c1 == c2;  // OK in ghost
-  
+
   var c3 := Container(fp64.NaN);
   assert c3 == c3;  // OK: reflexive
 }
@@ -217,7 +217,7 @@ method TestIEEESpecialCases() {
   var pos_inf := fp64.PositiveInfinity;
   var neg_inf := fp64.NegativeInfinity;
   var nan := fp64.NaN;
-  
+
   assert fp64.Equal(pos_zero, neg_zero);  // +0 == -0 (IEEE)
   assert !fp64.Equal(nan, nan);           // NaN != NaN (IEEE)
   assert fp64.Equal(pos_inf, pos_inf);    // +∞ == +∞
@@ -227,7 +227,7 @@ method TestIEEESpecialCases() {
 // Ghost vs compiled can differ
 method TestMixedContexts(x: fp64, y: fp64) {
   ghost var ghost_eq := x == y;  // Always defined
-  
+
   if !x.IsNaN && !y.IsNaN && !(x.IsZero && y.IsZero && x.IsNegative != y.IsNegative) {
     var compiled_eq := x == y;  // Needs preconditions
     // When both defined, they agree
@@ -239,7 +239,7 @@ method TestMixedContexts(x: fp64, y: fp64) {
 method TestMainIEEE() {
   var pos_zero: fp64 := 0.0;
   var neg_zero: fp64 := -0.0;
-  
+
   var ieee_eq := fp64.Equal(pos_zero, neg_zero);
   print "IEEE: +0.0 == -0.0 is ", ieee_eq, "\n";  // prints true
 }
@@ -247,7 +247,7 @@ method TestMainIEEE() {
 method TestMainBitwise() {
   var pos_zero: fp64 := 0.0;
   var neg_zero: fp64 := -0.0;
-  
+
   var bitwise_eq := pos_zero == neg_zero;  // ERROR: ±0 check fails
 }
 

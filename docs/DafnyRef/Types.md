@@ -570,8 +570,8 @@ The `fp64` type supports conversions to and from other numeric types using the `
 
 - **From `fp64` to `int`**: Requires the fp64 value to be finite and represent an exact integer.
 
-**Note**: Direct conversions between `bv` and `fp64` types are not supported. To convert between 
-these types, use `int` as an intermediate type (e.g., `bv_value as int as fp64` or 
+**Note**: Direct conversions between `bv` and `fp64` types are not supported. To convert between
+these types, use `int` as an intermediate type (e.g., `bv_value as int as fp64` or
 `fp64_value as int as bv32`).
 
 <!-- %check-verify -->
