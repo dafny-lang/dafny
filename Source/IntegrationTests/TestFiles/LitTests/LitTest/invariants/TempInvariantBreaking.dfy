@@ -31,7 +31,7 @@ class C {
   
   // NB: invariant is not assumed/asserted in these
   static method MethodReadsNothing() reads {} {}
-  opaque predicate FunctionReadsNothing() reads {} { true }
+  opaque static predicate FunctionReadsNothing() reads {} { true }
  
   static method UseInvariant(c: C)
   {

@@ -1,4 +1,4 @@
-DerivedInvariantOverrideError.dfy(35,6): Error: invariant for receiver of assignment could not be checked afterward
-DerivedInvariantOverrideError.dfy(37,6): Error: invariant for receiver of assignment could not be checked afterward
+DerivedInvariantOverrideError.dfy(35,6): Error: invariant for receiver of assignment could not be proved afterward
+DerivedInvariantOverrideError.dfy(37,6): Error: invariant for receiver of assignment could not be proved afterward
 
-Dafny program verifier finished with 8 verified, 2 errors
+Dafny program verifier finished with 10 verified, 2 errors

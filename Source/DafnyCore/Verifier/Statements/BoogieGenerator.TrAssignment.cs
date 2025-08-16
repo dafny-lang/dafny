@@ -40,7 +40,6 @@ public partial class BoogieGenerator {
       // NB: for somayyas@: logic here is different enough to be separate from AddInvariantBoilerPlate()
       if (lhs is MemberSelectExpr fse && fse.Member.EnclosingClass is TopLevelDeclWithMembers { Invariant: { } invariant } decl) {
         // NB: if fse.Member is an inherited member, then decl is already the supertype => invariant is already the overridden member (if at all, which is what we want)
-        etran.OpenFormal(tok, out _, out var openExprDafny);
         // NB: need to write out the Use here to avoid a malformed Boogie AST
         Expression assertion = new BinaryExpr(tok, BinaryExpr.ResolvedOpcode.Or,
           new BinaryExpr(tok, BinaryExpr.ResolvedOpcode.InSet, fse.Obj,
