@@ -5,13 +5,13 @@
 // ========================================
 
 method TestTildeNotAllowedOnReal() {
-  // ERROR: Real literals should NOT allow ~ prefix
-  // The real type represents exact mathematical values
+  // ERROR: Using ~ creates an fp64 literal, which cannot be assigned to real type
+  // The ~ prefix makes these fp64 literals, not real literals
 
-  var r1: real := ~0.1;   // Error: ~ prefix not allowed on real literals
-  var r2: real := ~3.14;  // Error: ~ prefix not allowed on real literals
-  var r3: real := ~-0.5;  // Error: ~ prefix not allowed on real literals
-  var r4: real := ~0.123456789012345678901234567890;  // Error: ~ prefix not allowed on real literals
+  var r1: real := ~0.1;   // Error: fp64 literal cannot be assigned to real (type mismatch)
+  var r2: real := ~3.14;  // Error: fp64 literal cannot be assigned to real (type mismatch)
+  var r3: real := ~-0.5;  // Error: fp64 literal cannot be assigned to real (type mismatch) + exact value error
+  var r4: real := ~0.123456789012345678901234567890;  // Error: fp64 literal cannot be assigned to real (type mismatch)
 }
 
 method TestNegationWithApproximatePrefix() {
@@ -62,9 +62,9 @@ method TestTildeOnNonFloatingPointTypes() {
 method TestTildeTypeInferenceAmbiguity() {
   // Test how ~ affects type inference
 
-  // Without type annotation, what happens?
-  var inferred1 := ~0.1;   // Error: ambiguous - is this fp32, fp64, fp128?
-  var inferred2 := ~3.14;  // Error: ambiguous - needs type context
+  // Without type annotation, Dafny defaults to fp64
+  var inferred1 := ~0.1;   // OK: Dafny infers fp64 as the default floating-point type
+  var inferred2 := ~3.14;  // OK: Also defaults to fp64
 
   // With context
   var x: fp64 := 1.0;

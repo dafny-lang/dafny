@@ -10,7 +10,7 @@ public class UnaryOpExpr : UnaryExpr, ICloneable<UnaryOpExpr> {
     Allocated,
     Lit,  // there is no syntax for this operator, but it is sometimes introduced during translation
     Assigned,
-    Negate,  // fp64 negation (preserves IEEE 754 semantics for -0.0)
+    Negate,  // replaced by 0 - x during resolution in most cases (preserves IEEE 754 semantics for -0.0)
   }
   public Opcode Op;
 
