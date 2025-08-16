@@ -61,10 +61,34 @@ namespace Microsoft.Dafny.Compilers {
     protected override string True { get => "True"; }
     protected override string False { get => "False"; }
     protected override string Conj { get => "and"; }
-    private static readonly IEnumerable<string> Keywords = new HashSet<string> { "False", "None", "True", "and", "as"
+    private static readonly IEnumerable<string> ReservedNames = new HashSet<string> {
+      // Keywords
+        "False", "None", "True", "and", "as"
       , "assert", "async", "await", "break", "class", "continue", "def", "del", "enum", "elif", "else", "except"
       , "finally", "for", "from", "global", "if", "import", "in", "is", "lambda", "nonlocal", "not", "or", "pass"
-      , "raise", "return", "try", "while", "with", "yield" };
+      , "raise", "return", "try", "while", "with", "yield"
+      ,
+     // Built-in functions
+        "abs", "aiter", "all", "anext", "any", "ascii"
+      , "bin", "bool", "breakpoint", "bytearray", "bytes"
+      , "callable", "chr", "classmethod", "compile", "complex"
+      , "delattr", "dict", "dir", "divmod"
+      , "enumerate", "eval", "exec"
+      , "filter", "float", "format", "frozenset"
+      , "getattr", "globals"
+      , "hasattr", "hash", "help", "hex"
+      , "id", "input", "int", "isinstance", "issubclass", "iter"
+      , "len", "list", "locals"
+      , "map", "max", "memoryview", "min"
+      , "next"
+      , "object", "oct", "open", "ord"
+      , "pow", "print", "property"
+      , "range", "repr", "reversed", "round"
+      , "set", "setattr", "slice", "sorted", "staticmethod", "str", "sum", "super"
+      , "tuple", "type"
+      , "vars"
+      , "zip"
+    };
     protected override void EmitHeader(Program program, ConcreteSyntaxTree wr) {
       wr.WriteLine($"# Dafny program {program.Name} compiled into Python");
       if (Options.IncludeRuntime) {
@@ -219,7 +243,7 @@ namespace Microsoft.Dafny.Compilers {
     protected override string GetHelperModuleName() => DafnyRuntimeModule;
 
     private static string MangleName(string name) {
-      if (Keywords.Contains(name)) {
+      if (ReservedNames.Contains(name)) {
         name = $"{name}_";
       } else {
         while (name.StartsWith("_")) {
