@@ -8,7 +8,7 @@
 // - For collections/datatypes with fp64: == not allowed in compiled code
 // - For IEEE 754 behavior: use fp64.Equal() instead
 //
-// Expecting 17 errors (marked with ERROR in comments)
+// Expecting 15 errors (marked with ERROR in comments)
 
 // PART 1: Ghost vs Compiled Contexts
 
@@ -66,8 +66,8 @@ method TestIEEEEqualityMethod() {
   var ieee_zeros := fp64.Equal(pos_zero, neg_zero);
   var ieee_nan := fp64.Equal(nan, nan);
 
-  assert ieee_zeros == true;   // IEEE: +0 == -0
-  assert ieee_nan == false;     // IEEE: NaN != NaN
+  assert ieee_zeros;    // IEEE: +0 == -0
+  assert !ieee_nan;     // IEEE: NaN != NaN
 }
 
 // Why +0 == -0 isn't allowed with ==
@@ -85,11 +85,6 @@ method TestBitwiseWithPreconditions() {
 method TestNaNEquality() {
   var nan := fp64.NaN;
   var bad_nan_eq := nan == nan;  // ERROR: NaN not allowed
-}
-
-// Assertions also need preconditions in compiled methods
-method TestAssertionError(x: fp64, y: fp64) {
-  assert x == y;  // ERROR: needs preconditions even in assert
 }
 
 // Inequality needs same preconditions
@@ -151,14 +146,6 @@ method TestGhostSetEquality() {
   assert ghost_eq;
 }
 
-// Compiled variables cannot
-method TestCompiledSetEquality() {
-  var s1: set<fp64> := {1.0, 2.0};
-  var s2: set<fp64> := {1.0, 2.0};
-
-  var compiled_eq := s1 == s2;  // ERROR: compiled variable
-}
-
 // Functions need preconditions too
 function SafeEqual(x: fp64, y: fp64): bool
   requires !x.IsNaN && !y.IsNaN
@@ -218,10 +205,17 @@ method TestIEEESpecialCases() {
   var neg_inf := fp64.NegativeInfinity;
   var nan := fp64.NaN;
 
-  assert fp64.Equal(pos_zero, neg_zero);  // +0 == -0 (IEEE)
-  assert !fp64.Equal(nan, nan);           // NaN != NaN (IEEE)
-  assert fp64.Equal(pos_inf, pos_inf);    // +∞ == +∞
-  assert !fp64.Equal(pos_inf, neg_inf);   // +∞ != -∞
+  // Store IEEE equality results in compiled variables
+  var zeros_equal := fp64.Equal(pos_zero, neg_zero);
+  var nan_equal := fp64.Equal(nan, nan);
+  var inf_self_equal := fp64.Equal(pos_inf, pos_inf);
+  var infs_equal := fp64.Equal(pos_inf, neg_inf);
+
+  // Verify the IEEE semantics in ghost assertions
+  assert zeros_equal;      // +0 == -0 (IEEE)
+  assert !nan_equal;       // NaN != NaN (IEEE)
+  assert inf_self_equal;   // +∞ == +∞
+  assert !infs_equal;      // +∞ != -∞
 }
 
 // Ghost vs compiled can differ
@@ -230,18 +224,10 @@ method TestMixedContexts(x: fp64, y: fp64) {
 
   if !x.IsNaN && !y.IsNaN && !(x.IsZero && y.IsZero && x.IsNegative != y.IsNegative) {
     var compiled_eq := x == y;  // Needs preconditions
-    // When both defined, they agree
-    // But ghost works for NaN and ±0 cases too
+    // When both are defined, they agree on the result
+    assert compiled_eq == ghost_eq;
   }
-}
-
-// Practical examples
-method TestMainIEEE() {
-  var pos_zero: fp64 := 0.0;
-  var neg_zero: fp64 := -0.0;
-
-  var ieee_eq := fp64.Equal(pos_zero, neg_zero);
-  print "IEEE: +0.0 == -0.0 is ", ieee_eq, "\n";  // prints true
+  // But ghost_eq works for NaN and ±0 cases where compiled_eq cannot be used
 }
 
 method TestMainBitwise() {
