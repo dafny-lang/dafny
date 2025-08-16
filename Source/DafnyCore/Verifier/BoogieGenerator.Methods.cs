@@ -1932,11 +1932,11 @@ namespace Microsoft.Dafny {
         }
 
         if (options.Get(CommonOptionBag.CheckInvariants)) {
-          // frame condition: free requires $Open == {} (technically, we add {this} in spec position because in-parameters aren't mutable)
+          // frame condition: free requires $Open == {}
           etran.OpenFormal(m.Origin, out var openExpr, out var openExprDafny);
           if (m is not Constructor) {
             req.Add(FreeRequires(m.Origin, etran.TrExpr(new BinaryExpr(m.Origin, BinaryExpr.ResolvedOpcode.SetEq,
-              new SetDisplayExpr(m.Origin, true, m.IsStatic ? [] : [new ThisExpr(m)]) { Type = program.SystemModuleManager.NonNullObjectSetType(m.Origin) },
+              new SetDisplayExpr(m.Origin, true, []) { Type = program.SystemModuleManager.NonNullObjectSetType(m.Origin) },
               openExprDafny)), "frame condition for open set"));
           }
           // lockstep condition: free requires OpenHeapRelated($Open, $Heap)

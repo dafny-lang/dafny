@@ -15,14 +15,14 @@ class C {
   method TemporarilyBreakInvariant()
     modifies this
   {
-     x := 0; // temporarily breaking the invariant outside the constructor is allowed
+     x := 0; // temporarily breaking the invariant outside the constructor is NOT allowed
      if * {
-       UseInvariant(this); // error: invariant doesn't hold here (force checked, since this is open)
+       UseInvariant(this);
      } else {
        var me := this;
        MethodReadsNothing();
        var _ := FunctionReadsNothing();
-       var _ := me.InstanceUsesInvariant() + 2; //  error: same as above (this can be copied as much as you want)
+       var _ := me.InstanceUsesInvariant() + 2;
      }
      x := 1;
   }

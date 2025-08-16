@@ -18,9 +18,7 @@ class Counter {
   method Increment()
     modifies this
   {
-    stuttering := false;
-    old_value := value;
-    value     := value + 1;
+    stuttering, old_value, value := false, value, value + 1;
   }
 }
 
