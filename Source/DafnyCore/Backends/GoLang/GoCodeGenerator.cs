@@ -3393,9 +3393,6 @@ namespace Microsoft.Dafny.Compilers {
           }
 
           break;
-        case ResolvedUnaryOp.Fp64Negate:
-          TrParenExpr("-", expr, wr, inLetExprBody, wStmts);
-          break;
         default:
           Contract.Assert(false); throw new Cce.UnreachableException();  // unexpected unary expression
       }

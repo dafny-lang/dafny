@@ -1636,9 +1636,6 @@ namespace Microsoft.Dafny.Compilers {
         case ResolvedUnaryOp.BoolNot:
           TrParenExpr("not", expr, wr, inLetExprBody, wStmts);
           break;
-        case ResolvedUnaryOp.Fp64Negate:
-          TrParenExpr("-", expr, wr, inLetExprBody, wStmts);
-          break;
         default:
           Contract.Assert(false); throw new Cce.UnreachableException();  // unexpected unary expression
       }

@@ -2769,12 +2769,6 @@ namespace Microsoft.Dafny.Compilers {
               ));
               break;
             }
-          case ResolvedUnaryOp.Fp64Negate: {
-              // TODO: DAST doesn't have a Negate operation yet, so we emit an error for now
-              // The proper fix would be to add UnaryOp.Negate to DAST
-              AddUnsupported(expr.Origin, "fp64 negation not yet supported in Dafny backend");
-              break;
-            }
         }
       } else {
         AddUnsupported(expr.Origin, "<i>UnaryExpr " + op + " without expr container</i>");
