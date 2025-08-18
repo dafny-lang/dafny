@@ -74,7 +74,7 @@ namespace Microsoft.Dafny {
     private bool BoogieOnce(string moduleName, Bpl.Program boogieProgram) {
       if (boogieProgram.Resolve(options) == 0 && boogieProgram.Typecheck(options) == 0) { //FIXME ResolveAndTypecheck?
         engine.EliminateDeadVariables(boogieProgram);
-        engine.CollectModSets(boogieProgram);
+        engine.CollectModifies(boogieProgram);
         engine.CoalesceBlocks(boogieProgram);
         engine.Inline(boogieProgram);
 

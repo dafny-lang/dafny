@@ -108,7 +108,7 @@ public class MatchFlattener : IRewriter {
       }
       return expression;
     }
-    Contract.Assert(false); throw new cce.UnreachableException(); // Returned container should be a CExpr
+    Contract.Assert(false); throw new Cce.UnreachableException(); // Returned container should be a CExpr
   }
 
   private Statement CompileNestedMatchStmt(NestedMatchStmt nestedMatchStmt) {
@@ -143,7 +143,7 @@ public class MatchFlattener : IRewriter {
         null, false, false);
       return result;
     }
-    Contract.Assert(false); throw new cce.UnreachableException(); // Returned container should be a StmtContainer
+    Contract.Assert(false); throw new Cce.UnreachableException(); // Returned container should be a StmtContainer
   }
 
   private IEnumerable<NestedMatchCaseStmt> FlattenNestedMatchCaseStmt(NestedMatchCaseStmt c) {
@@ -270,7 +270,7 @@ public class MatchFlattener : IRewriter {
         var (head, tail) = SplitPath(path);
         if (!(head is IdPattern)) {
           Contract.Assert(false);
-          throw new cce.UnreachableException(); // in Variable case with a constant pattern
+          throw new Cce.UnreachableException(); // in Variable case with a constant pattern
         }
 
         var currPattern = (IdPattern)head;
@@ -278,7 +278,7 @@ public class MatchFlattener : IRewriter {
         if (currPattern.Arguments != null) {
           if (dtd == null) {
             Contract.Assert(false);
-            throw new cce.UnreachableException(); // non-nullary constructors of a non-datatype;
+            throw new Cce.UnreachableException(); // non-nullary constructors of a non-datatype;
           } else {
             Reporter.Error(MessageSource.Resolver, currPattern.Origin,
               "Type mismatch: expected constructor of type {0}.  Got {1}.", dtd.Name, currPattern.Id);
@@ -366,7 +366,7 @@ public class MatchFlattener : IRewriter {
             ctorToFromBoundVar.Add(ctor.Name);
           }
         } else {
-          Contract.Assert(false); throw new cce.UnreachableException();
+          Contract.Assert(false); throw new Cce.UnreachableException();
         }
       }
       // Add variables corresponding to the arguments of the current constructor (ctor) to the matchees
@@ -481,7 +481,7 @@ public class MatchFlattener : IRewriter {
           mti.UpdateCaseCopyCount(tail.CaseId, 1);
           pathsForLiteral.Add(newPath);
         } else {
-          Contract.Assert(false); throw new cce.UnreachableException();
+          Contract.Assert(false); throw new Cce.UnreachableException();
         }
       }
       var blockContext = context.FillHole(new LitCtx(ifBlockLiteral));
@@ -577,7 +577,7 @@ public class MatchFlattener : IRewriter {
       }
     }
 
-    throw new cce.UnreachableException();
+    throw new Cce.UnreachableException();
   }
 
   record CaseBody(IOrigin Tok, Node Node, Attributes Attributes = null);
@@ -591,7 +591,7 @@ public class MatchFlattener : IRewriter {
       return new CaseBody(tok, ((ExprPatternPath)path).Body, ((ExprPatternPath)path).Attributes);
     }
 
-    Contract.Assert(false); throw new cce.UnreachableException();
+    Contract.Assert(false); throw new Cce.UnreachableException();
   }
 
   private List<Statement> UnboxStmt(Statement statement) {

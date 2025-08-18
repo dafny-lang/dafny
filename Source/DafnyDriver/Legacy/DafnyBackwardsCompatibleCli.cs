@@ -42,7 +42,7 @@ public static class DafnyBackwardsCompatibleCli {
   }
 
   private static async Task<int> ThreadMain(TextWriter outputWriter, TextWriter errorWriter, TextReader inputReader, string[] args) {
-    Contract.Requires(cce.NonNullElements(args));
+    Contract.Requires(Cce.NonNullElements(args));
 
     var legacyResult = await TryLegacyArgumentParser(inputReader, outputWriter, errorWriter, args);
     if (legacyResult == null) {

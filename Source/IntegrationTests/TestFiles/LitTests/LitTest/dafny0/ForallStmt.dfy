@@ -302,3 +302,26 @@ method Bogus(c: C)
   }
   assert False(10);  // error: does not follow from the "forall" statement
 }
+
+// ------------------------------------------------------------------------
+
+module RegressionInliningExpressionWithForallStmt {
+  type Term
+
+  method M(t: Term) {
+    assert Q(t); // this will cause the verifier to inline Q(t)
+  }
+
+  predicate Q(t: Term) {
+    // ... and the inlining of Q will encounter a StmtExpr where the Stmt component
+    // is a forall statement. This once caused the verifier to crash.
+    forall u: Term
+      ensures P(u)
+    {}
+    true
+  }
+
+  predicate P(t: Term) {
+    true
+  }
+}

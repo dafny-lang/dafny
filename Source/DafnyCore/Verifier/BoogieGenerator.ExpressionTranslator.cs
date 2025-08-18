@@ -412,7 +412,7 @@ namespace Microsoft.Dafny {
           case LocalsObjectExpression:
             return Predef.Locals;
           default:
-            Contract.Assert(false); throw new cce.UnreachableException();  // unexpected expression
+            Contract.Assert(false); throw new Cce.UnreachableException();  // unexpected expression
         }
       }
 
@@ -653,7 +653,7 @@ namespace Microsoft.Dafny {
               return Boogie.Expr.Unary(GetToken(ternaryExpr), UnaryOperator.Opcode.Not, r);
             }
           default:
-            Contract.Assert(false); throw new cce.UnreachableException();  // unexpected ternary expression
+            Contract.Assert(false); throw new Cce.UnreachableException();  // unexpected ternary expression
         }
       }
 
@@ -750,7 +750,7 @@ namespace Microsoft.Dafny {
             BoogieGenerator.DefiniteAssignmentTrackers.TryGetValue(name, out var defass);
             return defass;
           default:
-            Contract.Assert(false); throw new cce.UnreachableException();  // unexpected unary expression
+            Contract.Assert(false); throw new Cce.UnreachableException();  // unexpected unary expression
         }
       }
 
@@ -762,7 +762,7 @@ namespace Microsoft.Dafny {
         } else if (eType is SeqType seqType) {
           return BoogieGenerator.FunctionCall(GetToken(formingExpr), BuiltinFunction.MultiSetFromSeq, BoogieGenerator.TrType(seqType.Arg), TrExpr(e.E));
         } else {
-          Contract.Assert(false); throw new cce.UnreachableException();
+          Contract.Assert(false); throw new Cce.UnreachableException();
         }
       }
 
@@ -788,7 +788,7 @@ namespace Microsoft.Dafny {
           Type t = dtv.Ctor.Formals[i].Type;
           var bArg = TrExpr(arg);
           argsAreLit = argsAreLit && BoogieGenerator.IsLit(bArg);
-          args.Add(BoogieGenerator.AdaptBoxing(GetToken(value), bArg, cce.NonNull(arg.Type), t));
+          args.Add(BoogieGenerator.AdaptBoxing(GetToken(value), bArg, Cce.NonNull(arg.Type), t));
         }
         Boogie.IdentifierExpr id = new Boogie.IdentifierExpr(GetToken(dtv), dtv.Ctor.FullName, Predef.DatatypeType);
         Boogie.Expr ret = new Boogie.NAryExpr(GetToken(dtv), new Boogie.FunctionCall(id), args);
@@ -887,7 +887,7 @@ namespace Microsoft.Dafny {
         } else if (e.Value is BaseTypes.BigDec) {
           return MaybeLit(Boogie.Expr.Literal((BaseTypes.BigDec)e.Value));
         } else {
-          Contract.Assert(false); throw new cce.UnreachableException();  // unexpected literal
+          Contract.Assert(false); throw new Cce.UnreachableException();  // unexpected literal
         }
       }
 
@@ -997,13 +997,13 @@ namespace Microsoft.Dafny {
           Boogie.Expr val = BoxIfNecessary(GetToken(updateExpr), TrExpr(e.Value), mt.Range);
           return FunctionCall(GetToken(updateExpr), mt.Finite ? "Map#Build" : "IMap#Build", maptype, seq, index, val);
         } else if (seqType is MultiSetType) {
-          Type elmtType = cce.NonNull((MultiSetType)seqType).Arg;
+          Type elmtType = Cce.NonNull((MultiSetType)seqType).Arg;
           Boogie.Expr index = BoxIfNecessary(GetToken(updateExpr), TrExpr(e.Index), elmtType);
           Boogie.Expr val = TrExpr(e.Value);
           return BoogieGenerator.UpdateMultisetMultiplicity(GetToken(updateExpr), seq, index, val);
         } else {
           Contract.Assert(false);
-          throw new cce.UnreachableException();
+          throw new Cce.UnreachableException();
         }
       }
 
@@ -1118,8 +1118,8 @@ namespace Microsoft.Dafny {
           var rawA = TrExpr(p.A);
           var rawB = TrExpr(p.B);
           isLit = isLit && BoogieGenerator.IsLit(rawA) && BoogieGenerator.IsLit(rawB);
-          Boogie.Expr elt = BoxIfNecessary(GetToken(displayExpr), rawA, cce.NonNull(p.A.Type));
-          Boogie.Expr elt2 = BoxIfNecessary(GetToken(displayExpr), rawB, cce.NonNull(p.B.Type));
+          Boogie.Expr elt = BoxIfNecessary(GetToken(displayExpr), rawA, Cce.NonNull(p.A.Type));
+          Boogie.Expr elt2 = BoxIfNecessary(GetToken(displayExpr), rawB, Cce.NonNull(p.B.Type));
           s = FunctionCall(GetToken(displayExpr), displayExpr.Finite ? "Map#Build" : "IMap#Build", maptype, s, elt, elt2);
         }
         if (isLit) {
@@ -1157,7 +1157,7 @@ namespace Microsoft.Dafny {
         foreach (Expression ee in displayExpr.Elements) {
           var rawElement = TrExpr(ee);
           isLit = isLit && BoogieGenerator.IsLit(rawElement);
-          Boogie.Expr ss = BoxIfNecessary(GetToken(displayExpr), rawElement, cce.NonNull(ee.Type));
+          Boogie.Expr ss = BoxIfNecessary(GetToken(displayExpr), rawElement, Cce.NonNull(ee.Type));
           s = BoogieGenerator.FunctionCall(GetToken(displayExpr), displayExpr.Finite ? BuiltinFunction.SetUnionOne : BuiltinFunction.ISetUnionOne, Predef.BoxType, s, ss);
         }
         if (isLit) {
@@ -1407,7 +1407,7 @@ BplBoundVar(varNameGen.FreshId(string.Format("#{0}#", bv.Name)), Predef.BoxType,
           Type t = e.Function.Ins[i].Type;
           Expr tr_ee = TrExpr(ee);
           argsAreLit = argsAreLit && BoogieGenerator.IsLit(tr_ee);
-          args.Add(BoogieGenerator.AdaptBoxing(GetToken(e), tr_ee, cce.NonNull(ee.Type), t));
+          args.Add(BoogieGenerator.AdaptBoxing(GetToken(e), tr_ee, Cce.NonNull(ee.Type), t));
         }
         return args;
       }
@@ -1881,7 +1881,7 @@ BplBoundVar(varNameGen.FreshId(string.Format("#{0}#", bv.Name)), Predef.BoxType,
         } else if (expr is LocalsObjectExpression) {
           return Expr.True;
         } else {
-          Contract.Assert(false); throw new cce.UnreachableException();  // unexpected expression
+          Contract.Assert(false); throw new Cce.UnreachableException();  // unexpected expression
         }
       }
 
