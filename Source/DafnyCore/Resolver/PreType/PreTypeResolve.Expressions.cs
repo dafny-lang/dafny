@@ -2075,7 +2075,7 @@ namespace Microsoft.Dafny {
               ReportError(expr.Origin, $"member '{name}' has not been imported in this scope and cannot be accessed here");
             }
             if (!member.IsStatic && !allowStaticReferenceToInstance) {
-              ReportError(expr.Origin, $"accessing member '{name}' requires an instance expression"); //TODO Unify with similar error messages
+              ReportError(expr.Origin, $"accessing member '{name}' requires an instance expression");
               // nevertheless, continue creating an expression that approximates a correct one
             }
             // Create the appropriate type for the StaticReceiverExpr

@@ -572,7 +572,7 @@ namespace Microsoft.Dafny {
         return bound;  // nothing to substitute
       } else {
         Contract.Assume(false);  // unexpected BoundedPool
-        throw new Cce.UnreachableException();  // to please compiler
+        throw new Cce.UnreachableException();
       }
     }
 

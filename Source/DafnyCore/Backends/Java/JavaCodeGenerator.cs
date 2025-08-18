@@ -781,7 +781,7 @@ namespace Microsoft.Dafny.Compilers {
         return DafnyMapClass;
       } else {
         Contract.Assert(false);  // unexpected collection type
-        throw new Cce.UnreachableException();  // to please the compiler
+        throw new Cce.UnreachableException();
       }
     }
 
@@ -1203,7 +1203,7 @@ namespace Microsoft.Dafny.Compilers {
         case JavaNativeType.Long: return "0L";
         default:
           Contract.Assert(false);  // unexpected native type
-          throw new Cce.UnreachableException();  // to please the compiler
+          throw new Cce.UnreachableException();
       }
     }
 
@@ -1218,7 +1218,7 @@ namespace Microsoft.Dafny.Compilers {
         case JavaNativeType.Long: name = "long"; literalSuffix = "L"; break;
         default:
           Contract.Assert(false);  // unexpected native type
-          throw new Cce.UnreachableException();  // to please the compiler
+          throw new Cce.UnreachableException();
       }
     }
 
@@ -1234,7 +1234,7 @@ namespace Microsoft.Dafny.Compilers {
         case JavaNativeType.Long: return "java.lang.Long";
         default:
           Contract.Assert(false);  // unexpected native type
-          throw new Cce.UnreachableException();  // to please the compiler
+          throw new Cce.UnreachableException();
       }
     }
 

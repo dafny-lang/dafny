@@ -296,7 +296,7 @@ public class BinaryExpr : Expression, ICloneable<BinaryExpr>, ICanFormat {
         return "^";
       default:
         Contract.Assert(false);
-        throw new Cce.UnreachableException();  // unexpected operator
+        throw new Cce.UnreachableException();
     }
   }
   public Expression E0;

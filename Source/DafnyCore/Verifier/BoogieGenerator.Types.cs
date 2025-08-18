@@ -1178,9 +1178,7 @@ public partial class BoogieGenerator {
       if (toType.IsNumericBased(Type.NumericPersuasion.Int)) {
         // do nothing
       } else if (toType.IsFp64Type) {
-        // Handle fp64 BEFORE real since fp64 has NumericPersuasion.Real
         // int to fp64: use SMT-LIB to_fp operation
-        // For exact conversion, we assume the int is in the representable range
         r = FunctionCall(tok, BuiltinFunction.IntToReal, null, r);
         r = FunctionCall(tok, "real_to_fp64_RNE", BplFp64Type, r);
       } else if (toType.IsNumericBased(Type.NumericPersuasion.Real)) {
@@ -1196,21 +1194,15 @@ public partial class BoogieGenerator {
       }
       return r;
     } else if (fromType.IsFp64Type) {
-      // Handle fp64 conversions before real conversions since fp64 has NumericPersuasion.Real
       if (toType.IsFp64Type) {
         // do nothing
         return r;
       } else if (toType.IsNumericBased(Type.NumericPersuasion.Int)) {
-        // fp64 to int: must be exact integer
-        // Use SMT-LIB fp.to_sbv (signed bit vector) then convert to int
+        // fp64 to int: use SMT-LIB fp.to_sbv then convert to int
         r = FunctionCall(tok, "fp.to_sbv64_RTZ", BplBvType(64), r);
         r = FunctionCall(tok, "nat_from_bv64", Bpl.Type.Int, r);
       } else if (toType.IsNumericBased(Type.NumericPersuasion.Real)) {
-        // fp64 to real: use SMT-LIB fp.to_real
-        // Note: fp.to_real is only defined for finite values in SMT-LIB.
-        // The well-formedness check ensures finiteness, but to avoid SMT solver errors
-        // when the check fails, we use a conditional expression that returns an arbitrary
-        // value (0.0) for non-finite inputs. The well-formedness check will catch the error.
+        // fp64 to real: use SMT-LIB fp.to_real (only defined for finite values)
         var isFinite = FunctionCall(tok, "Fp64_IsFinite", Bpl.Type.Bool, r);
         var finiteConversion = FunctionCall(tok, "fp_to_real", Bpl.Type.Real, r);
         var zero = Bpl.Expr.Literal(BaseTypes.BigDec.ZERO);
@@ -1279,7 +1271,6 @@ public partial class BoogieGenerator {
       // Handle real conversions but exclude fp64 (which has NumericPersuasion.Real)
       if (toType.IsFp64Type) {
         // real to fp64: use SMT-LIB to_fp operation
-        // For exact conversion, we assume the real is exactly representable
         r = FunctionCall(tok, "real_to_fp64_RNE", BplFp64Type, r);
       } else if (toType.IsNumericBased(Type.NumericPersuasion.Real)) {
         // do nothing
@@ -1321,16 +1312,11 @@ public partial class BoogieGenerator {
       if (toType.IsFp64Type) {
         // do nothing
       } else if (toType.IsNumericBased(Type.NumericPersuasion.Int)) {
-        // fp64 to int: must be exact integer
-        // Use SMT-LIB fp.to_sbv (signed bit vector) then convert to int
+        // fp64 to int: use SMT-LIB fp.to_sbv then convert to int
         r = FunctionCall(tok, "fp.to_sbv64_RTZ", BplBvType(64), r);
         r = FunctionCall(tok, "nat_from_bv64", Bpl.Type.Int, r);
       } else if (toType.IsNumericBased(Type.NumericPersuasion.Real)) {
-        // fp64 to real: use SMT-LIB fp.to_real
-        // Note: fp.to_real is only defined for finite values in SMT-LIB.
-        // The well-formedness check ensures finiteness, but to avoid SMT solver errors
-        // when the check fails, we use a conditional expression that returns an arbitrary
-        // value (0.0) for non-finite inputs. The well-formedness check will catch the error.
+        // fp64 to real: use SMT-LIB fp.to_real (only defined for finite values)
         var isFinite = FunctionCall(tok, "Fp64_IsFinite", Bpl.Type.Bool, r);
         var finiteConversion = FunctionCall(tok, "fp_to_real", Bpl.Type.Real, r);
         var zero = Bpl.Expr.Literal(BaseTypes.BigDec.ZERO);
@@ -1432,8 +1418,7 @@ public partial class BoogieGenerator {
     }
 
     if (fromType.IsNumericBased(Type.NumericPersuasion.Real) && !fromType.IsFp64Type && toType.IsFp64Type) {
-      // real to fp64 conversion is well-formed only if the real value is exactly representable in fp64
-      //   assert fp.to_real(real_to_fp64_RNE(o)) == o;
+      // real to fp64: check exact representability
       // TODO: This well-formedness check can cause verification timeouts due to a Z3 issue.
       // The problem occurs when Z3's auto_config is disabled and case_split=3 is set (Dafny's default options).
       // The interaction between the LitReal identity function's quantifier axiom and floating-point
@@ -1448,8 +1433,7 @@ public partial class BoogieGenerator {
     }
 
     if (fromType.IsNumericBased(Type.NumericPersuasion.Int) && toType.IsFp64Type) {
-      // int to fp64 conversion is well-formed only if the integer is exactly representable in fp64
-      // We check: fp.to_real(real_to_fp64_RNE(IntToReal(o))) == IntToReal(o)
+      // int to fp64: check exact representability
       // TODO: This well-formedness check causes verification timeouts due to the same Z3 issue
       // as real-to-fp64 conversion. The interaction between integer-to-real conversion and
       // floating-point round-trip reasoning causes Z3 to fail when auto_config is disabled
@@ -1465,16 +1449,14 @@ public partial class BoogieGenerator {
     }
 
     if (fromType.IsFp64Type && toType.IsNumericBased(Type.NumericPersuasion.Real) && !toType.IsFp64Type) {
-      // fp64 to real conversion requires the value to be finite (not NaN or infinity)
-      // SMT-LIB's fp.to_real is only defined for finite values
+      // fp64 to real: require finite value
       PutSourceIntoLocal();
       var isFinite = FunctionCall(tok, "Fp64_IsFinite", Bpl.Type.Bool, o);
       builder.Add(Assert(tok, isFinite, new ConversionFit("fp64 value", toType, expr, errorMsgPrefix), builder.Context));
     }
 
     if (fromType.IsFp64Type && toType.IsNumericBased(Type.NumericPersuasion.Int)) {
-      // fp64 to int conversion requires the value to be an exact integer
-      // We need to check that the fp64 value is finite and has no fractional part
+      // fp64 to int: require exact integer value
       PutSourceIntoLocal();
       // First convert to real, then check if it's an integer
       var asReal = FunctionCall(tok, "fp_to_real", Bpl.Type.Real, o);
@@ -1535,8 +1517,7 @@ public partial class BoogieGenerator {
         var inBounds = BplAnd(Bpl.Expr.Le(Bpl.Expr.Literal(0), toInt), Bpl.Expr.Lt(toInt, bound));
         boundsCheck = BplAnd(isFinite, BplAnd(isInteger, inBounds));
 
-        // For Dafny error reporting, we can't use Floor since fp64 doesn't have it
-        // Just check the fp64 value is in the right range
+        // Check fp64 value is in range
         dafnyBoundsCheck = new BinaryExpr(expr.Origin, BinaryExpr.Opcode.And,
           new BinaryExpr(expr.Origin, BinaryExpr.Opcode.Le, new LiteralExpr(expr.Origin, 0), expr),
           new BinaryExpr(expr.Origin, BinaryExpr.Opcode.Lt, expr, dafnyBound)

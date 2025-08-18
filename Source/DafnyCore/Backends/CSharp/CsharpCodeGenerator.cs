@@ -1386,7 +1386,7 @@ namespace Microsoft.Dafny.Compilers {
           break;
         default:
           Contract.Assert(false); // unexpected native type
-          throw new Cce.UnreachableException(); // to please the compiler
+          throw new Cce.UnreachableException();
       }
     }
 
@@ -2267,18 +2267,15 @@ namespace Microsoft.Dafny.Compilers {
         EmitIntegerLiteral(bigInteger, wr);
       } else if (e.Value is BigDec n) {
         if (e.Type.IsFp64Type) {
-          // For DecimalLiteralExpr with fp64 type, use the precomputed float value if available
+          // Use precomputed float value for fp64 decimal literals
           if (e is DecimalLiteralExpr { ResolvedFloatValue: not null } decLit) {
-            // Use the exact IEEE 754 value computed during resolution
+            // Use exact IEEE 754 value from resolution
             var bigFloat = decLit.ResolvedFloatValue.Value;
-            // Convert to decimal string and ensure it's a valid C# double literal
             var decimalStr = bigFloat.ToDecimalString();
-            // C# requires 'd' or 'D' suffix for double literals to distinguish from float
+            // C# requires 'd' suffix for double literals
             wr.Write(decimalStr + "d");
           } else {
-            // Fallback for literals created programmatically
-            // This can happen when literals are created during optimization, deserialization,
-            // or other compiler transformations that bypass the normal resolution path
+            // Fallback for programmatically created literals
             BigFloat.FromBigDec(n, 53, 11, out var fp64Value);
             var decimalStr = fp64Value.ToDecimalString();
             wr.Write(decimalStr + "d");
@@ -2407,16 +2404,15 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected override ConcreteSyntaxTree EmitCoercionIfNecessary(Type from, Type to, IOrigin tok, ConcreteSyntaxTree wr, Type toOrig = null) {
-      // Handle numeric conversions
       if (from != null && to != null) {
         if (from.IsNumericBased(Type.NumericPersuasion.Real) && !from.IsFp64Type && to.IsFp64Type) {
-          // real -> fp64
+          // real to fp64
           wr.Write("(");
           var w = wr.Fork();
           wr.Write(").ToDouble()");
           return w;
         } else if (from.IsFp64Type && to.IsNumericBased(Type.NumericPersuasion.Real) && !to.IsFp64Type) {
-          // fp64 -> real  
+          // fp64 to real
           wr.Write("Dafny.BigRational.FromDouble(");
           var w = wr.Fork();
           wr.Write(")");
@@ -2677,7 +2673,6 @@ namespace Microsoft.Dafny.Compilers {
         case SpecialField.ID.New:
           compiledName = "_new";
           break;
-        // fp64 classification predicates
         case SpecialField.ID.IsNaN:
           preString = "double.IsNaN(";
           postString = ")";
@@ -2707,11 +2702,10 @@ namespace Microsoft.Dafny.Compilers {
           postString = ")";
           break;
         case SpecialField.ID.IsPositive:
-          // For now, use a simple approach: positive means >= 0 and not NaN
+          // Positive: >= 0 and not NaN
           preString = "(";
           postString = " > 0.0)";
           break;
-        // fp64 static special values
         case SpecialField.ID.NaN:
           preString = "double.NaN";
           postString = "";
@@ -2741,15 +2735,15 @@ namespace Microsoft.Dafny.Compilers {
           postString = "";
           break;
         case SpecialField.ID.MinNormal:
-          preString = "2.2250738585072014e-308";  // Smallest normal positive double
+          preString = "2.2250738585072014e-308";
           postString = "";
           break;
         case SpecialField.ID.MinSubnormal:
-          preString = "double.Epsilon";  // Smallest positive double (subnormal)
+          preString = "double.Epsilon";
           postString = "";
           break;
         case SpecialField.ID.Epsilon:
-          preString = "Math.Pow(2, -52)";  // Machine epsilon for double (2^-52)
+          preString = "Math.Pow(2, -52)";
           postString = "";
           break;
         default:
@@ -2761,67 +2755,64 @@ namespace Microsoft.Dafny.Compilers {
     protected override void CompileFunctionCallExpr(FunctionCallExpr e, ConcreteSyntaxTree wr, bool inLetExprBody,
         ConcreteSyntaxTree wStmts, FCE_Arg_Translator tr, bool alreadyCoerced = false) {
 
-      // Handle fp64 special functions
       if (e.Function is SpecialFunction && e.Function.Name == "Equal" && e.Function.EnclosingClass?.Name == "fp64") {
-        // Handle fp64.Equal(x, y) -> IEEE 754 equality
-        // For IEEE 754 equality: NaN != NaN, so Equal(NaN, NaN) returns false
+        // fp64.Equal: IEEE 754 equality (NaN != NaN)
         wr.Write("(");
         tr(e.Args[0], wr, inLetExprBody, wStmts);
         wr.Write(" == ");
         tr(e.Args[1], wr, inLetExprBody, wStmts);
         wr.Write(")");
       } else if (e.Function is SpecialFunction && e.Function.Name == "FromReal" && e.Function.EnclosingClass?.Name == "fp64") {
-        // Handle fp64.FromReal(r) -> inexact conversion from real to double
-        // Use BigRational.ToDouble() which properly handles IEEE 754 rounding
+        // fp64.FromReal: inexact real to double conversion
         wr.Write("(");
         tr(e.Args[0], wr, inLetExprBody, wStmts);
         wr.Write(").ToDouble()");
       } else if (e.Function is SpecialFunction && e.Function.Name == "ToInt" && e.Function.EnclosingClass?.Name == "fp64") {
-        // Handle fp64.ToInt(f) -> truncating conversion from fp64 to int
+        // fp64.ToInt: truncating fp64 to int
         wr.Write("((System.Numerics.BigInteger)Math.Truncate(");
         tr(e.Args[0], wr, inLetExprBody, wStmts);
         wr.Write("))");
       } else if (e.Function is SpecialFunction && e.Function.Name == "Min" && e.Function.EnclosingClass?.Name == "fp64") {
-        // Handle fp64.Min(x, y) -> Math.Min
+        // fp64.Min
         wr.Write("Math.Min(");
         tr(e.Args[0], wr, inLetExprBody, wStmts);
         wr.Write(", ");
         tr(e.Args[1], wr, inLetExprBody, wStmts);
         wr.Write(")");
       } else if (e.Function is SpecialFunction && e.Function.Name == "Max" && e.Function.EnclosingClass?.Name == "fp64") {
-        // Handle fp64.Max(x, y) -> Math.Max
+        // fp64.Max
         wr.Write("Math.Max(");
         tr(e.Args[0], wr, inLetExprBody, wStmts);
         wr.Write(", ");
         tr(e.Args[1], wr, inLetExprBody, wStmts);
         wr.Write(")");
       } else if (e.Function is SpecialFunction && e.Function.Name == "Abs" && e.Function.EnclosingClass?.Name == "fp64") {
-        // Handle fp64.Abs(x) -> Math.Abs
+        // fp64.Abs
         wr.Write("Math.Abs(");
         tr(e.Args[0], wr, inLetExprBody, wStmts);
         wr.Write(")");
       } else if (e.Function is SpecialFunction && e.Function.Name == "Floor" && e.Function.EnclosingClass?.Name == "fp64") {
-        // Handle fp64.Floor(x) -> Math.Floor
+        // fp64.Floor
         wr.Write("Math.Floor(");
         tr(e.Args[0], wr, inLetExprBody, wStmts);
         wr.Write(")");
       } else if (e.Function is SpecialFunction && e.Function.Name == "Ceiling" && e.Function.EnclosingClass?.Name == "fp64") {
-        // Handle fp64.Ceiling(x) -> Math.Ceiling
+        // fp64.Ceiling
         wr.Write("Math.Ceiling(");
         tr(e.Args[0], wr, inLetExprBody, wStmts);
         wr.Write(")");
       } else if (e.Function is SpecialFunction && e.Function.Name == "Round" && e.Function.EnclosingClass?.Name == "fp64") {
-        // Handle fp64.Round(x) -> Math.Round with banker's rounding
+        // fp64.Round: banker's rounding
         wr.Write("Math.Round(");
         tr(e.Args[0], wr, inLetExprBody, wStmts);
         wr.Write(", MidpointRounding.ToEven)");
       } else if (e.Function is SpecialFunction && e.Function.Name == "Sqrt" && e.Function.EnclosingClass?.Name == "fp64") {
-        // Handle fp64.Sqrt(x) -> Math.Sqrt
+        // fp64.Sqrt
         wr.Write("Math.Sqrt(");
         tr(e.Args[0], wr, inLetExprBody, wStmts);
         wr.Write(")");
       } else {
-        // Handle fp64 static special fields that are being treated as function calls
+        // fp64 static special fields
         if (e.Function.EnclosingClass?.Name == "fp64" && e.Args.Count == 0) {
           switch (e.Function.Name) {
             case "NaN":
@@ -2856,7 +2847,6 @@ namespace Microsoft.Dafny.Compilers {
               return;
           }
         }
-        // Fall back to base implementation for other functions
         base.CompileFunctionCallExpr(e, wr, inLetExprBody, wStmts, tr, alreadyCoerced);
       }
     }
@@ -3478,8 +3468,6 @@ namespace Microsoft.Dafny.Compilers {
     protected override void EmitConversionExpr(Expression fromExpr, Type fromType, Type toType, bool inLetExprBody, ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts) {
       if (fromType.IsNumericBased(Type.NumericPersuasion.Int) || fromType.NormalizeToAncestorType().IsBitVectorType || fromType.IsCharType) {
         if (toType.IsFp64Type) {
-          // Handle fp64 BEFORE real since fp64 has NumericPersuasion.Real
-          // Only int -> fp64 conversions are allowed (no direct bv or char to fp64)
           if (fromType.IsNumericBased(Type.NumericPersuasion.Int)) {
             wr.Write("(double)");
             EmitExpr(fromExpr, inLetExprBody, wr, wStmts);
@@ -3562,7 +3550,7 @@ namespace Microsoft.Dafny.Compilers {
         // Handle real conversions but exclude fp64 (which has NumericPersuasion.Real)
         Contract.Assert(AsNativeType(fromType) == null);
         if (toType.IsFp64Type) {
-          // real -> fp64 (exact conversion only)
+          // real to fp64 (exact conversion only)
           // For exact conversions, we expect simple rationals that can be exactly represented
           wr.Write("(");
           EmitExpr(fromExpr, inLetExprBody, wr, wStmts);

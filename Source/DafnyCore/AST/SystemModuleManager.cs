@@ -121,7 +121,7 @@ public class SystemModuleManager {
     TupleType(Token.NoToken, 2, true);
     // Several methods and fields rely on 1-argument arrow types
     CreateArrowTypeDecl(1);
-    // fp64.Equal method needs 2-argument arrow types, but we create them lazily when needed
+    // 2-argument arrow types created lazily for fp64.Equal
 
     valuetypeDecls = [
       new ValuetypeDecl("bool", SystemModule, t => t.IsBoolType, typeArgs => Type.Bool),
@@ -151,7 +151,7 @@ public class SystemModuleManager {
         [TPVarianceSyntax.Covariant_Permissive, TPVarianceSyntax.Covariant_Strict],
         t => t.IsIMapType, typeArgs => new MapType(false, typeArgs[0], typeArgs[1]))
     ];
-    // Add all valuetype decls except fp64 (which is at index 4)
+    // Add all valuetype decls except fp64 (added lazily)
     for (int i = 0; i < valuetypeDecls.Length; i++) {
       if (i != (int)ValuetypeVariety.Fp64) {
         SystemModule.SourceDecls.Add(valuetypeDecls[i]);
@@ -185,7 +185,7 @@ public class SystemModuleManager {
     var isNat = new SpecialField(SourceOrigin.NoToken, "IsNat", SpecialField.ID.IsNat, null, false, false, false, Type.Bool, null);
     AddMember(isNat, ValuetypeVariety.BigOrdinal);
 
-    // fp64 members are not added here, they will be added when the type is first used
+    // fp64 members added lazily on first use
 
     // Add "Keys", "Values", and "Items" to map, imap
     foreach (var typeVariety in new[] { ValuetypeVariety.Map, ValuetypeVariety.IMap }) {
@@ -214,12 +214,10 @@ public class SystemModuleManager {
     AddRotateMember(valuetypeDecls[(int)ValuetypeVariety.Bitvector], "RotateLeft", new SelfType());
     AddRotateMember(valuetypeDecls[(int)ValuetypeVariety.Bitvector], "RotateRight", new SelfType());
 
-    // Create 2-argument arrow types early to avoid circular dependency when fp64 is initialized
-    // fp64.Equal method needs these arrow types, so create them now rather than lazily
+    // Create 2-argument arrow types early to avoid circular dependency
     CreateArrowTypeDecl(2);
 
-    // Note: fp64 members are NOT initialized here - they're initialized lazily via EnsureFp64TypeInitialized
-    // This avoids adding fp64 overhead to programs that don't use it
+    // fp64 members initialized lazily via EnsureFp64TypeInitialized
   }
 
   public void AddRotateMember(ValuetypeDecl enclosingType, string name, Type resultType) {
@@ -234,9 +232,7 @@ public class SystemModuleManager {
   }
 
   public void AddFp64SpecialValues(ValuetypeDecl enclosingType) {
-    // Create static special fields for special fp64 values
-    // These are handled specially by the backends via SpecialField.ID
-
+    // Create static special fields handled by backends via SpecialField.ID
     // Helper to add a static special field
     void AddStaticSpecialField(string name, SpecialField.ID id) {
       var field = new StaticSpecialField(SourceOrigin.NoToken, name, id, null, false, false, false, new Fp64Type(), null);
@@ -244,7 +240,6 @@ public class SystemModuleManager {
       field.AddVisibilityScope(SystemModule.VisibilityScope, false);
       enclosingType.Members.Add(field);
     }
-
     // Add all special values
     AddStaticSpecialField("NaN", SpecialField.ID.NaN);
     AddStaticSpecialField("PositiveInfinity", SpecialField.ID.PositiveInfinity);
@@ -259,10 +254,9 @@ public class SystemModuleManager {
   }
 
   public void AddFp64StaticMethods(ValuetypeDecl enclosingType) {
-    // 2-argument arrow types are created early in the constructor to avoid circular dependencies
+    // 2-argument arrow types created early to avoid circular dependencies
 
-    // Create formals for Equal(x: fp64, y: fp64): bool
-    // Use explicit Fp64Type to ensure compatibility with both resolvers
+    // Equal(x: fp64, y: fp64): bool
     var formals = new List<Formal> {
       new Formal(Token.NoToken, "x", new Fp64Type(), true, false, null),
       new Formal(Token.NoToken, "y", new Fp64Type(), true, false, null)
@@ -286,7 +280,7 @@ public class SystemModuleManager {
     // Ensure 2-argument arrow types exist for Min and Max
     CreateArrowTypeDecl(2);
 
-    // Add Min(x: fp64, y: fp64): fp64
+    // Min(x: fp64, y: fp64): fp64
     var minFormals = new List<Formal> {
       new Formal(Token.NoToken, "x", new Fp64Type(), true, false, null),
       new Formal(Token.NoToken, "y", new Fp64Type(), true, false, null)
@@ -299,7 +293,7 @@ public class SystemModuleManager {
     minMethod.AddVisibilityScope(SystemModule.VisibilityScope, false);
     enclosingType.Members.Add(minMethod);
 
-    // Add Max(x: fp64, y: fp64): fp64
+    // Max(x: fp64, y: fp64): fp64
     var maxFormals = new List<Formal> {
       new Formal(Token.NoToken, "x", new Fp64Type(), true, false, null),
       new Formal(Token.NoToken, "y", new Fp64Type(), true, false, null)
@@ -312,7 +306,7 @@ public class SystemModuleManager {
     maxMethod.AddVisibilityScope(SystemModule.VisibilityScope, false);
     enclosingType.Members.Add(maxMethod);
 
-    // Add Abs(x: fp64): fp64
+    // Abs(x: fp64): fp64
     var absFormals = new List<Formal> {
       new Formal(Token.NoToken, "x", new Fp64Type(), true, false, null)
     };
@@ -324,7 +318,7 @@ public class SystemModuleManager {
     absMethod.AddVisibilityScope(SystemModule.VisibilityScope, false);
     enclosingType.Members.Add(absMethod);
 
-    // Add Floor(x: fp64): fp64
+    // Floor(x: fp64): fp64
     var floorFormals = new List<Formal> {
       new Formal(Token.NoToken, "x", new Fp64Type(), true, false, null)
     };
@@ -336,7 +330,7 @@ public class SystemModuleManager {
     floorMethod.AddVisibilityScope(SystemModule.VisibilityScope, false);
     enclosingType.Members.Add(floorMethod);
 
-    // Add Ceiling(x: fp64): fp64
+    // Ceiling(x: fp64): fp64
     var ceilingFormals = new List<Formal> {
       new Formal(Token.NoToken, "x", new Fp64Type(), true, false, null)
     };
@@ -348,7 +342,7 @@ public class SystemModuleManager {
     ceilingMethod.AddVisibilityScope(SystemModule.VisibilityScope, false);
     enclosingType.Members.Add(ceilingMethod);
 
-    // Add Round(x: fp64): fp64
+    // Round(x: fp64): fp64
     var roundFormals = new List<Formal> {
       new Formal(Token.NoToken, "x", new Fp64Type(), true, false, null)
     };
@@ -360,7 +354,7 @@ public class SystemModuleManager {
     roundMethod.AddVisibilityScope(SystemModule.VisibilityScope, false);
     enclosingType.Members.Add(roundMethod);
 
-    // Add Sqrt(x: fp64): fp64
+    // Sqrt(x: fp64): fp64
     var sqrtFormals = new List<Formal> {
       new Formal(Token.NoToken, "x", new Fp64Type(), true, false, null)
     };
@@ -374,7 +368,7 @@ public class SystemModuleManager {
   }
 
   public void AddFp64InexactConversionMethods(ValuetypeDecl enclosingType) {
-    // Add FromReal method for inexact real to fp64 conversion
+    // FromReal: inexact real to fp64 conversion
     var fromRealFormals = new List<Formal> {
       new Formal(Token.NoToken, "r", Type.Real, true, false, null)
     };
@@ -386,7 +380,7 @@ public class SystemModuleManager {
     fromRealMethod.AddVisibilityScope(SystemModule.VisibilityScope, false);
     enclosingType.Members.Add(fromRealMethod);
 
-    // Add ToInt method for inexact fp64 to int conversion (truncating towards zero)
+    // ToInt: fp64 to int conversion (truncates towards zero)
     var toIntFormals = new List<Formal> {
       new Formal(Token.NoToken, "f", new Fp64Type(), true, false, null)
     };
@@ -419,54 +413,49 @@ public class SystemModuleManager {
     return result;
   }
 
-  // Ensures fp64 type is initialized and added to the system module when first referenced
+  // Initialize fp64 type and add to system module on first reference
   public void EnsureFp64TypeInitialized(ProgramResolver programResolver) {
     var fp64TypeDecl = valuetypeDecls[(int)ValuetypeVariety.Fp64];
 
-    // Check if already initialized by looking for a known member
-    // Check for "Min" since it's added in AddFp64MathematicalFunctions which is called from AddFp64StaticMethods
+    // Check if already initialized by looking for "Min" member
     if (fp64TypeDecl.Members.Any(m => m.Name == "Min")) {
-      return; // Already initialized
+      return;
     }
 
-    // Initialize fp64 members now (lazy initialization)
+    // Initialize fp64 members
     InitializeFp64Members();
 
-    // Add fp64 to the system module if not already there
+    // Add fp64 to system module
     if (!SystemModule.SourceDecls.Contains(fp64TypeDecl)) {
       SystemModule.SourceDecls.Add(fp64TypeDecl);
     }
 
     // Register fp64 in systemNameInfo.TopLevels for name resolution
-    // This is critical for making fp64 members accessible
     if (!systemNameInfo.TopLevels.ContainsKey("fp64")) {
       systemNameInfo.TopLevels["fp64"] = fp64TypeDecl;
     }
 
-    // Add fp64 members to the classMembers dictionary for member resolution
-    // Use GroupBy to handle any potential duplicates gracefully (though there shouldn't be any)
+    // Add fp64 members to classMembers dictionary
     var memberDictionary = fp64TypeDecl.Members
       .GroupBy(member => member.Name)
       .ToDictionary(g => g.Key, g => g.First());
     programResolver.AddSystemClass(fp64TypeDecl, memberDictionary);
 
-    // PreTypes for fp64 members will be filled in during regular resolution
   }
 
   // Overload for backward compatibility (called from AsValuetypeDecl)
   private void EnsureFp64TypeInitialized() {
     var fp64TypeDecl = valuetypeDecls[(int)ValuetypeVariety.Fp64];
 
-    // Check if already initialized by looking for a known member
-    // Check for "Min" since it's added in AddFp64MathematicalFunctions which is called from AddFp64StaticMethods
+    // Check if already initialized by looking for "Min" member
     if (fp64TypeDecl.Members.Any(m => m.Name == "Min")) {
-      return; // Already initialized
+      return;
     }
 
-    // Initialize fp64 members now (lazy initialization)
+    // Initialize fp64 members
     InitializeFp64Members();
 
-    // Add fp64 to the system module if not already there
+    // Add fp64 to system module
     if (!SystemModule.SourceDecls.Contains(fp64TypeDecl)) {
       SystemModule.SourceDecls.Add(fp64TypeDecl);
     }
@@ -516,7 +505,6 @@ public class SystemModuleManager {
   }
 
   private void InitializeFp64Members() {
-    // Get the fp64 type declaration (already created in constructor)
     var fp64TypeDecl = valuetypeDecls[(int)ValuetypeVariety.Fp64];
 
     // Add instance predicates
@@ -532,7 +520,7 @@ public class SystemModuleManager {
   // Add fp64 static special values
   private void AddFp64SpecialValues() {
     var fp64Type = new Fp64Type();
-    var fp64TypeDecl = valuetypeDecls[4]; // Get the fp64 ValuetypeDecl
+    var fp64TypeDecl = valuetypeDecls[4];
 
     var nanConst = new StaticSpecialField(SourceOrigin.NoToken, "NaN", SpecialField.ID.NaN, null,
       false, false, false, fp64Type, null);
@@ -744,7 +732,7 @@ public class SystemModuleManager {
     Contract.Requires(member != null);
     Contract.Requires(tps != null && 1 <= tps.Count);
     var f = new IdentifierExpr(tok, id);
-    f.Type = id.Type;  // Set the type of the identifier expression
+    f.Type = id.Type;
     // forall x0,x1,x2 :: f.reads(x0,x1,x2) == {}
     // OR
     // forall x0,x1,x2 :: f.requires(x0,x1,x2)

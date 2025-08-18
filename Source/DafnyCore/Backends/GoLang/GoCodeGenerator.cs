@@ -1225,7 +1225,7 @@ namespace Microsoft.Dafny.Compilers {
           break;
         default:
           Contract.Assert(false);  // unexpected native type
-          throw new Cce.UnreachableException();  // to please the compiler
+          throw new Cce.UnreachableException();
       }
     }
     protected class ClassWriter : IClassWriter {

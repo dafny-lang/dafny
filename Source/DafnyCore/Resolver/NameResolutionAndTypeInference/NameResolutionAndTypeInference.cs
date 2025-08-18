@@ -442,9 +442,9 @@ namespace Microsoft.Dafny {
       } else if (expr is NegationExpression) {
         var e = (NegationExpression)expr;
 
-        // Check if the user is trying to do -~0.1, which is not allowed
+        // Disallow -~0.1 syntax
         if (e.E is ApproximateExpr approxExpr) {
-          // Extract the literal value for a better error message
+          // Extract literal value for error message
           string literalStr = "...";
           if (approxExpr.Expr is LiteralExpr lit && lit.Value is BaseTypes.BigDec dec) {
             literalStr = dec.ToString();
@@ -700,7 +700,7 @@ namespace Microsoft.Dafny {
         }
 
         // TODO: the following should be replaced by a type-class constraint that constrains the types of e.Function, e.Args[*], and e.Type
-        // Normalize the function type to handle type proxies properly
+        // Normalize function type to handle type proxies
         var normalizedFunctionType = e.Function.Type?.NormalizeExpand();
         var fnType = normalizedFunctionType?.AsArrowType;
         if (fnType == null) {
@@ -798,44 +798,37 @@ namespace Microsoft.Dafny {
         var e = (ApproximateExpr)expr;
         ResolveExpression(e.Expr, resolutionContext);
 
-        // Check that there's no space between ~ and the literal
-        // The ~ is at the start position, and the literal should be exactly 1 column after
+        // Verify no space between ~ and literal
         var tildePos = e.Origin.EntireRange.StartToken;
         var literalPos = e.Expr.Origin.EntireRange.StartToken;
-        // If they're on the same line and the literal isn't immediately after ~
         if (tildePos.line == literalPos.line && literalPos.col - tildePos.col > 1) {
           reporter.Error(MessageSource.Resolver, expr, "~ prefix must immediately precede the literal with no intervening space");
         }
 
-        // Validate that the inner expression is a numeric literal (or a negation of one)
+        // Validate inner expression is numeric literal or negation
         var innerExpr = e.Expr;
 
-        // Check for a negation - but just validate, don't consolidate yet
+        // Check for negation
         if (innerExpr is NegationExpression neg) {
           innerExpr = neg.E;
         }
 
         if (innerExpr is LiteralExpr lit) {
           if (lit.Value is BaseTypes.BigDec decValue) {
-            // This is a decimal literal, which is allowed with ~
-            // But we should only allow ~ on inexact values
+            // Only allow ~ on inexact decimal values
 
-            // Check if the decimal is exactly representable as fp64
-            // fp64 has 53-bit significand and 11-bit exponent
+            // Check if exactly representable as fp64 (53-bit significand, 11-bit exponent)
             var isExact = BigFloat.FromBigDec(decValue, 53, 11, out var floatValue);
             if (isExact) {
-              // The value is exactly representable, so ~ should not be allowed
               reporter.Error(MessageSource.Resolver, expr, $"The approximate literal prefix ~ is not allowed on the exactly representable value {decValue}. Remove the ~ prefix.");
             }
 
-            // Store the computed BigFloat value to avoid recomputing it later
+            // Store computed BigFloat value
             if (lit is DecimalLiteralExpr decLit) {
               decLit.ResolvedFloatValue = floatValue;
             }
 
-            // The ~ prefix forces the type to fp64
-            expr.Type = Type.Fp64;  // Set the ApproximateExpr type to fp64
-            // Just set the resolved expression to the inner expression (could be NegationExpression)
+            expr.Type = Type.Fp64;
             e.ResolvedExpression = e.Expr;
             e.Expr.Type = Type.Fp64;
           } else if (lit.Value is BigInteger) {
@@ -2086,8 +2079,7 @@ namespace Microsoft.Dafny {
                     if (c.Super is IntVarietiesSupertype) {
                       AssignProxyAndHandleItsConstraints(proxy, Type.Int);
                     } else if (c.Super is RealVarietiesSupertype) {
-                      // For RealVarietiesSupertype, default to real
-                      // The PartiallyResolveTypeForMemberSelection will handle specific cases where fp64 is needed
+                      // Default to real for RealVarietiesSupertype
                       AssignProxyAndHandleItsConstraints(proxy, Type.Real);
                     } else {
                       AssignProxyAndHandleItsConstraints(proxy, Type.Real);
@@ -2315,7 +2307,6 @@ namespace Microsoft.Dafny {
     }
 
     bool IsFp64Member(string memberName) {
-      // List of fp64-specific members
       return memberName == "IsInfinite" || memberName == "IsFinite" || memberName == "IsNaN" ||
              memberName == "IsZero" || memberName == "IsPositive" || memberName == "IsNegative" ||
              memberName == "IsNormal" || memberName == "IsSubnormal" ||
@@ -2323,8 +2314,7 @@ namespace Microsoft.Dafny {
     }
 
     void HandleFp64ArithmeticConstraints(BinaryExpr e, Expression expr) {
-      // Only apply fp64 constraints if both operands are numeric or type proxies
-      // This avoids interfering with error messages when non-numeric types are involved
+      // Apply fp64 constraints only if both operands are numeric or type proxies
       var leftType = e.E0.Type?.NormalizeExpand();
       var rightType = e.E1.Type?.NormalizeExpand();
 
@@ -2334,12 +2324,10 @@ namespace Microsoft.Dafny {
                                     rightType.IsNumericBased() || rightType is Fp64Type;
 
       if (!leftIsNumericOrProxy || !rightIsNumericOrProxy) {
-        // Don't apply fp64 constraints if we have non-numeric types
-        // This prevents masking other type errors
+        // Skip fp64 constraints for non-numeric types
         return;
       }
 
-      // Check if either operand has fp64 type
       bool hasFp64Operand = false;
 
       if (leftType is Fp64Type || (e.E0 is IdentifierExpr idLeft && idLeft.Var?.Type?.NormalizeExpand() is Fp64Type)) {
@@ -2351,7 +2339,7 @@ namespace Microsoft.Dafny {
       }
 
       if (hasFp64Operand) {
-        // If either operand is fp64, add a constraint to prefer fp64 for the result
+        // Prefer fp64 result when either operand is fp64
         ConstrainSubtypeRelation(Type.Fp64, expr.Type, expr.Origin, "fp64 arithmetic produces fp64 result");
 
         // Also constrain literals to be fp64-compatible
@@ -6083,7 +6071,7 @@ namespace Microsoft.Dafny {
               reporter.Error(MessageSource.Resolver, expr.Origin, "member '{0}' has not been imported in this scope and cannot be accessed here", name);
             }
             if (!member.IsStatic && !allowStaticReferenceToInstance) {
-              reporter.Error(MessageSource.Resolver, expr.Origin, "accessing member '{0}' requires an instance expression", name); //TODO Unify with similar error messages
+              reporter.Error(MessageSource.Resolver, expr.Origin, "accessing member '{0}' requires an instance expression", name);
               // nevertheless, continue creating an expression that approximates a correct one
             }
             var receiver = new StaticReceiverExpr(expr.Lhs.Origin, (UserDefinedType)ty.NormalizeExpand(), (TopLevelDeclWithMembers)member.EnclosingClass, false) {
@@ -6100,7 +6088,7 @@ namespace Microsoft.Dafny {
                 reporter.Error(MessageSource.Resolver, expr.Origin, "member '{0}' has not been imported in this scope and cannot be accessed here", name);
               }
               if (!member.IsStatic && !allowStaticReferenceToInstance) {
-                reporter.Error(MessageSource.Resolver, expr.Origin, "accessing member '{0}' requires an instance expression", name); //TODO Unify with similar error messages
+                reporter.Error(MessageSource.Resolver, expr.Origin, "accessing member '{0}' requires an instance expression", name);
                 // nevertheless, continue creating an expression that approximates a correct one
               }
 

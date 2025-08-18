@@ -528,7 +528,7 @@ namespace Microsoft.Dafny.Compilers {
           name = "int"; break;
         default:
           Contract.Assert(false); // unexpected native type
-          throw new Cce.UnreachableException(); // to please the compiler
+          throw new Cce.UnreachableException();
       }
     }
 
