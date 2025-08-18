@@ -43,9 +43,6 @@ async function synchronizeRepositoryWithNewVersionNumber() {
   } else {
     await bumpVersionNumber(version);
   }
-  //# * Compile Dafny to ensure you have the right version number.
-  await execute("make exe");
-
   //# * Update standard library doo files instead of rebuilding to avoid Z3 timeout issues
   const standardLibraryDooFiles = [
     "Source/DafnyStandardLibraries/binaries/DafnyStandardLibraries.doo",
@@ -67,9 +64,6 @@ async function synchronizeRepositoryWithNewVersionNumber() {
   // Verify that binaries have been updated.
   await sanityCheckStandardLibraries(version);
 
-  //# * Recompile Dafny so that standard libraries are in the executable.
-  await execute("make exe");
-  
   //# * In the test directory `Source/IntegrationTests/TestFiles/LitTests/LitTest`,
   //# * Update test doo files instead of rebuilding
   //#   * Update `pythonmodule/multimodule/PythonModule1.doo` version

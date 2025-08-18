@@ -23,9 +23,7 @@ verifies that this file is in sync with that script.
 
 Assuming `<TestDirectory>` to be `Source/IntegrationTests/TestFiles/LitTests/LitTest`,
 perform the following:
-* Compile Dafny to ensure you have the right version number.
 * Update standard library doo files instead of rebuilding to avoid Z3 timeout issues
-* Recompile Dafny so that standard libraries are in the executable.
 * In the test directory `Source/IntegrationTests/TestFiles/LitTests/LitTest`,
 * Update test doo files instead of rebuilding
   * Update `pythonmodule/multimodule/PythonModule1.doo` version
