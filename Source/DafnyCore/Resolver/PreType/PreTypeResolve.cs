@@ -85,7 +85,7 @@ namespace Microsoft.Dafny {
         // If looking for fp64, ensure it's in the preTypeBuiltins cache
         if (name == "fp64") {
           if (!preTypeInferenceModuleState.PreTypeBuiltins.ContainsKey("fp64")) {
-            var fp64Decl = resolver.ProgramResolver.SystemModuleManager.valuetypeDecls[(int)SystemModuleManager.ValuetypeVariety.Fp64];
+            var fp64Decl = resolver.ProgramResolver.SystemModuleManager.valuetypeDecls[4];
             resolver.ProgramResolver.SystemModuleManager.EnsureFp64TypeInitialized(resolver.ProgramResolver);
 
             preTypeInferenceModuleState.PreTypeBuiltins.Add("fp64", fp64Decl);
