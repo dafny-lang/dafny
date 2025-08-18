@@ -1182,14 +1182,14 @@ namespace Microsoft.Dafny {
             if (field is SpecialField && field.EnclosingClass is ValuetypeDecl { Name: "fp64" }) {
               var obj = TrExpr(selectExpr.Obj);
               var result = field.Name switch {
-                "IsNaN" => FunctionCall(GetToken(selectExpr), "Fp64_IsNaN", Boogie.Type.Bool, obj),
-                "IsFinite" => FunctionCall(GetToken(selectExpr), "Fp64_IsFinite", Boogie.Type.Bool, obj),
-                "IsInfinite" => FunctionCall(GetToken(selectExpr), "Fp64_IsInfinite", Boogie.Type.Bool, obj),
-                "IsNormal" => FunctionCall(GetToken(selectExpr), "Fp64_IsNormal", Boogie.Type.Bool, obj),
-                "IsSubnormal" => FunctionCall(GetToken(selectExpr), "Fp64_IsSubnormal", Boogie.Type.Bool, obj),
-                "IsZero" => FunctionCall(GetToken(selectExpr), "Fp64_IsZero", Boogie.Type.Bool, obj),
-                "IsPositive" => FunctionCall(GetToken(selectExpr), "Fp64_IsPositive", Boogie.Type.Bool, obj),
-                "IsNegative" => FunctionCall(GetToken(selectExpr), "Fp64_IsNegative", Boogie.Type.Bool, obj),
+                "IsNaN" => FunctionCall(GetToken(selectExpr), "fp64_is_nan", Boogie.Type.Bool, obj),
+                "IsFinite" => FunctionCall(GetToken(selectExpr), "fp64_is_finite", Boogie.Type.Bool, obj),
+                "IsInfinite" => FunctionCall(GetToken(selectExpr), "fp64_is_infinite", Boogie.Type.Bool, obj),
+                "IsNormal" => FunctionCall(GetToken(selectExpr), "fp64_is_normal", Boogie.Type.Bool, obj),
+                "IsSubnormal" => FunctionCall(GetToken(selectExpr), "fp64_is_subnormal", Boogie.Type.Bool, obj),
+                "IsZero" => FunctionCall(GetToken(selectExpr), "fp64_is_zero", Boogie.Type.Bool, obj),
+                "IsPositive" => FunctionCall(GetToken(selectExpr), "fp64_is_positive", Boogie.Type.Bool, obj),
+                "IsNegative" => FunctionCall(GetToken(selectExpr), "fp64_is_negative", Boogie.Type.Bool, obj),
                 _ => throw new NotImplementedException($"fp64 predicate {field.Name} not implemented")
               };
               return result;
@@ -1327,7 +1327,7 @@ namespace Microsoft.Dafny {
           var arg2 = TrExpr(expr.Args[1]);
 
           // Use Boogie's built-in fp.eq function for IEEE 754 equality
-          return FunctionCall(GetToken(expr), "Fp64_Equal", Boogie.Type.Bool, arg1, arg2);
+          return FunctionCall(GetToken(expr), "fp64_equal", Boogie.Type.Bool, arg1, arg2);
         } else if (name == "Min" && expr.Function.EnclosingClass is ValuetypeDecl { Name: "fp64" }) {
           // Handle fp64.Min using SMT-LIB fp.min
           Contract.Assert(expr.Args.Count == 2);
@@ -1377,10 +1377,10 @@ namespace Microsoft.Dafny {
           Contract.Assert(expr.Args.Count == 1);
           var arg = TrExpr(expr.Args[0]);
 
-          // Use fp.roundToIntegral with RTZ (Round Toward Zero) mode followed by fp_to_real
+          // Use fp.roundToIntegral with RTZ (Round Toward Zero) mode followed by fp64_to_real
           // This gives us proper truncation toward zero
           var truncatedFp = FunctionCall(GetToken(expr), "fp64_truncate", BoogieGenerator.BplFp64Type, arg);
-          var toReal = FunctionCall(GetToken(expr), "fp_to_real", Boogie.Type.Real, truncatedFp);
+          var toReal = FunctionCall(GetToken(expr), "fp64_to_real", Boogie.Type.Real, truncatedFp);
           var toInt = BoogieGenerator.FunctionCall(GetToken(expr), BuiltinFunction.RealToInt, null, toReal);
 
           return toInt;

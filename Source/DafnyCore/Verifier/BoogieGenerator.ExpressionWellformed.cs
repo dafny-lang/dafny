@@ -1150,22 +1150,22 @@ namespace Microsoft.Dafny {
                     // Helper to generate IsNaN check for fp64
                     Bpl.Expr GenerateIsNaNCheck(Expression operand) {
                       var value = etran.TrExpr(operand);
-                      // Use the Fp64_IsNaN function that's defined in our Boogie prelude
-                      return FunctionCall(operand.Origin, "Fp64_IsNaN", Bpl.Type.Bool, value);
+                      // Use the fp64_is_nan function that's defined in our Boogie prelude
+                      return FunctionCall(operand.Origin, "fp64_is_nan", Bpl.Type.Bool, value);
                     }
 
                     // Helper to generate IsZero check for fp64
                     Bpl.Expr GenerateIsZeroCheck(Expression operand) {
                       var value = etran.TrExpr(operand);
-                      // Use the Fp64_IsZero function that's defined in our Boogie prelude
-                      return FunctionCall(operand.Origin, "Fp64_IsZero", Bpl.Type.Bool, value);
+                      // Use the fp64_is_zero function that's defined in our Boogie prelude
+                      return FunctionCall(operand.Origin, "fp64_is_zero", Bpl.Type.Bool, value);
                     }
 
                     // Helper to generate IsNegative check for fp64
                     Bpl.Expr GenerateIsNegativeCheck(Expression operand) {
                       var value = etran.TrExpr(operand);
-                      // Use the Fp64_IsNegative function that's defined in our Boogie prelude
-                      return FunctionCall(operand.Origin, "Fp64_IsNegative", Bpl.Type.Bool, value);
+                      // Use the fp64_is_negative function that's defined in our Boogie prelude
+                      return FunctionCall(operand.Origin, "fp64_is_negative", Bpl.Type.Bool, value);
                     }
 
                     // Check NaN preconditions
@@ -1641,7 +1641,7 @@ namespace Microsoft.Dafny {
         // IEEE 754 requires signaling invalid operation for NaN/infinity to integer conversion
         Contract.Assert(expr.Args.Count == 1);
         var arg = etran.TrExpr(expr.Args[0]);
-        var isFinite = FunctionCall(GetToken(expr), "Fp64_IsFinite", Bpl.Type.Bool, arg);
+        var isFinite = FunctionCall(GetToken(expr), "fp64_is_finite", Bpl.Type.Bool, arg);
         builder.Add(Assert(GetToken(expr), isFinite,
           new Fp64ToIntFinitePrecondition(expr.Args[0]), builder.Context, options.AssertKv));
       } else if (expr.Function.Name == "Sqrt" && expr.Function.EnclosingClass is ValuetypeDecl { Name: "fp64" }) {
@@ -1652,7 +1652,7 @@ namespace Microsoft.Dafny {
         // Check that the argument is not negative (note: +0.0 and -0.0 are both allowed)
         // NaN is neither positive nor negative, so !IsNegative allows NaN, but that's ok
         // because sqrt(NaN) = NaN which is well-defined
-        var isNotNegative = Bpl.Expr.Not(FunctionCall(GetToken(expr), "Fp64_IsNegative", Bpl.Type.Bool, arg));
+        var isNotNegative = Bpl.Expr.Not(FunctionCall(GetToken(expr), "fp64_is_negative", Bpl.Type.Bool, arg));
         builder.Add(Assert(GetToken(expr), isNotNegative,
           new Fp64SqrtNonNegativePrecondition(expr.Args[0]), builder.Context, options.AssertKv));
       }

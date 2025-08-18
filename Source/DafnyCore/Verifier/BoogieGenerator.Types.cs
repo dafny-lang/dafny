@@ -1199,12 +1199,12 @@ public partial class BoogieGenerator {
         return r;
       } else if (toType.IsNumericBased(Type.NumericPersuasion.Int)) {
         // fp64 to int: use SMT-LIB fp.to_sbv then convert to int
-        r = FunctionCall(tok, "fp.to_sbv64_RTZ", BplBvType(64), r);
-        r = FunctionCall(tok, "nat_from_bv64", Bpl.Type.Int, r);
+        r = FunctionCall(tok, "fp64_to_sbv64_RTZ", BplBvType(64), r);
+        r = FunctionCall(tok, "int_from_bv64", Bpl.Type.Int, r);
       } else if (toType.IsNumericBased(Type.NumericPersuasion.Real)) {
         // fp64 to real: use SMT-LIB fp.to_real (only defined for finite values)
-        var isFinite = FunctionCall(tok, "Fp64_IsFinite", Bpl.Type.Bool, r);
-        var finiteConversion = FunctionCall(tok, "fp_to_real", Bpl.Type.Real, r);
+        var isFinite = FunctionCall(tok, "fp64_is_finite", Bpl.Type.Bool, r);
+        var finiteConversion = FunctionCall(tok, "fp64_to_real", Bpl.Type.Real, r);
         var zero = Bpl.Expr.Literal(BaseTypes.BigDec.ZERO);
         r = new NAryExpr(tok, new IfThenElse(tok), new List<Bpl.Expr> { isFinite, finiteConversion, zero });
       } else {
@@ -1313,12 +1313,12 @@ public partial class BoogieGenerator {
         // do nothing
       } else if (toType.IsNumericBased(Type.NumericPersuasion.Int)) {
         // fp64 to int: use SMT-LIB fp.to_sbv then convert to int
-        r = FunctionCall(tok, "fp.to_sbv64_RTZ", BplBvType(64), r);
-        r = FunctionCall(tok, "nat_from_bv64", Bpl.Type.Int, r);
+        r = FunctionCall(tok, "fp64_to_sbv64_RTZ", BplBvType(64), r);
+        r = FunctionCall(tok, "int_from_bv64", Bpl.Type.Int, r);
       } else if (toType.IsNumericBased(Type.NumericPersuasion.Real)) {
         // fp64 to real: use SMT-LIB fp.to_real (only defined for finite values)
-        var isFinite = FunctionCall(tok, "Fp64_IsFinite", Bpl.Type.Bool, r);
-        var finiteConversion = FunctionCall(tok, "fp_to_real", Bpl.Type.Real, r);
+        var isFinite = FunctionCall(tok, "fp64_is_finite", Bpl.Type.Bool, r);
+        var finiteConversion = FunctionCall(tok, "fp64_to_real", Bpl.Type.Real, r);
         var zero = Bpl.Expr.Literal(BaseTypes.BigDec.ZERO);
         r = new NAryExpr(tok, new IfThenElse(tok), new List<Bpl.Expr> { isFinite, finiteConversion, zero });
       } else {
@@ -1427,7 +1427,7 @@ public partial class BoogieGenerator {
       // real literals to fp64.
       PutSourceIntoLocal();
       Bpl.Expr asFp64 = FunctionCall(tok, "real_to_fp64_RNE", BplFp64Type, o);
-      Bpl.Expr backToReal = FunctionCall(tok, "fp_to_real", Bpl.Type.Real, asFp64);
+      Bpl.Expr backToReal = FunctionCall(tok, "fp64_to_real", Bpl.Type.Real, asFp64);
       Bpl.Expr isExact = Bpl.Expr.Binary(tok, Bpl.BinaryOperator.Opcode.Eq, backToReal, o);
       builder.Add(Assert(tok, isExact, new IsExactlyRepresentableAsFp64(expr, errorMsgPrefix), builder.Context));
     }
@@ -1443,7 +1443,7 @@ public partial class BoogieGenerator {
       PutSourceIntoLocal();
       var asReal = FunctionCall(tok, BuiltinFunction.IntToReal, null, o);
       var asFp64 = FunctionCall(tok, "real_to_fp64_RNE", BplFp64Type, asReal);
-      var backToReal = FunctionCall(tok, "fp_to_real", Bpl.Type.Real, asFp64);
+      var backToReal = FunctionCall(tok, "fp64_to_real", Bpl.Type.Real, asFp64);
       var isExact = Bpl.Expr.Binary(tok, Bpl.BinaryOperator.Opcode.Eq, backToReal, asReal);
       builder.Add(Assert(tok, isExact, new IntToFp64ExactnessCheck(expr, errorMsgPrefix), builder.Context));
     }
@@ -1451,7 +1451,7 @@ public partial class BoogieGenerator {
     if (fromType.IsFp64Type && toType.IsNumericBased(Type.NumericPersuasion.Real) && !toType.IsFp64Type) {
       // fp64 to real: require finite value
       PutSourceIntoLocal();
-      var isFinite = FunctionCall(tok, "Fp64_IsFinite", Bpl.Type.Bool, o);
+      var isFinite = FunctionCall(tok, "fp64_is_finite", Bpl.Type.Bool, o);
       builder.Add(Assert(tok, isFinite, new ConversionFit("fp64 value", toType, expr, errorMsgPrefix), builder.Context));
     }
 
@@ -1459,12 +1459,12 @@ public partial class BoogieGenerator {
       // fp64 to int: require exact integer value
       PutSourceIntoLocal();
       // First convert to real, then check if it's an integer
-      var asReal = FunctionCall(tok, "fp_to_real", Bpl.Type.Real, o);
+      var asReal = FunctionCall(tok, "fp64_to_real", Bpl.Type.Real, o);
       var asInt = FunctionCall(tok, BuiltinFunction.RealToInt, null, asReal);
       var backToReal = FunctionCall(tok, BuiltinFunction.IntToReal, null, asInt);
       var isExactInt = Bpl.Expr.Binary(tok, Bpl.BinaryOperator.Opcode.Eq, backToReal, asReal);
       // Also check that it's finite
-      var isFinite = FunctionCall(tok, "Fp64_IsFinite", Bpl.Type.Bool, o);
+      var isFinite = FunctionCall(tok, "fp64_is_finite", Bpl.Type.Bool, o);
       var condition = BplAnd(isFinite, isExactInt);
       builder.Add(Assert(tok, condition, new IsInteger(expr, errorMsgPrefix), builder.Context));
     }
@@ -1506,8 +1506,8 @@ public partial class BoogieGenerator {
         // Check that fp64 value can fit in target bit-vector
         // First check it's a finite value that represents an integer
         PutSourceIntoLocal();
-        var isFinite = FunctionCall(tok, "Fp64_IsFinite", Bpl.Type.Bool, o);
-        var toReal = FunctionCall(tok, "fp_to_real", Bpl.Type.Real, o);
+        var isFinite = FunctionCall(tok, "fp64_is_finite", Bpl.Type.Bool, o);
+        var toReal = FunctionCall(tok, "fp64_to_real", Bpl.Type.Real, o);
         var toInt = FunctionCall(tok, BuiltinFunction.RealToInt, null, toReal);
         var backToReal = FunctionCall(tok, BuiltinFunction.IntToReal, null, toInt);
         var isInteger = Bpl.Expr.Eq(backToReal, toReal);

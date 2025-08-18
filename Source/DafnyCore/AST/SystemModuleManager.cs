@@ -70,6 +70,7 @@ public class SystemModuleManager {
   }
 
   public readonly ISet<int> Bitwidths = new HashSet<int>();
+  public readonly ISet<int> FloatWidths = new HashSet<int>();
   [FilledInDuringResolution] public SpecialField ORDINAL_Offset;  // used by the translator
 
   public readonly TypeSynonymDecl StringDecl;

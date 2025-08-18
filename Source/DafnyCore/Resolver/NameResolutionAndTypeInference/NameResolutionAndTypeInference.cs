@@ -4361,7 +4361,10 @@ namespace Microsoft.Dafny {
         // nothing to resolve, but record the fact that this bitvector width is in use
         SystemModuleManager.Bitwidths.Add(t.Width);
       } else if (type is BasicType) {
-        // nothing to resolve
+        if (type is Fp64Type) {
+          SystemModuleManager.Bitwidths.Add(64); // fp64 needs bv64 for int conversion
+          SystemModuleManager.FloatWidths.Add(64);
+        }
       } else if (type is MapType) {
         var mt = (MapType)type;
         var errorCount = reporter.Count(ErrorLevel.Error);
