@@ -18,6 +18,7 @@ build-binary:
 build-binary-rs:
 	$(DAFNY) build -t:lib --hidden-no-verify=$(NO_VERIFY) --enforce-determinism \
 		src/Std-rs/Wrappers.dfy \
+		src/Std-rs/FileIO.dfy \
 		src/Std/TargetSpecific/FileIO1InternalExterns-rs-direct.dfy \
 		--output:build/DafnyStandardLibraries-rs.doo
 
