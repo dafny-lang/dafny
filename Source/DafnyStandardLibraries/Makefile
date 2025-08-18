@@ -16,7 +16,10 @@ build-binary:
 	$(DAFNY) build -t:lib --hidden-no-verify=$(NO_VERIFY) src/Std/dfyconfig.toml --output:${DOO_FILE_SOURCE}
 
 build-binary-rs:
-	$(DAFNY) build -t:lib --hidden-no-verify=$(NO_VERIFY) --enforce-determinism src/Std-rs/dfyconfig.toml --output:build/DafnyStandardLibraries-rs.doo
+	$(DAFNY) build -t:lib --hidden-no-verify=$(NO_VERIFY) --enforce-determinism \
+		src/Std-rs/Wrappers.dfy \
+		src/Std/TargetSpecific/FileIO1InternalExterns-rs-direct.dfy \
+		--output:build/DafnyStandardLibraries-rs.doo
 
 check-binary: build-binary
 	unzip -o ${DOO_FILE_SOURCE} -d build/current

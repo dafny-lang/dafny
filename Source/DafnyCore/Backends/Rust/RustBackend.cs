@@ -99,7 +99,7 @@ public class RustBackend : DafnyExecutableBackend {
       var expectedRustName = keyValue.Value;
       var targetName = Path.Combine(targetDirectory, expectedRustName);
       if (fullRustExternName == targetName) {
-        return true;
+        continue;
       }
       File.Copy(fullRustExternName, targetName, true);
     }
@@ -107,6 +107,30 @@ public class RustBackend : DafnyExecutableBackend {
     if (Options.IncludeRuntime) {
       ImportRuntimeTo(Path.GetDirectoryName(targetDirectory));
     }
+    
+    // Post-process the main generated file to add module declarations
+    var mainFile = Path.Combine(targetDirectory, "src", $"{dafnyProgramName}.rs");
+    if (File.Exists(mainFile)) {
+      var content = File.ReadAllText(mainFile);
+      var lines = content.Split('\n');
+      
+      // Find the line after the #![cfg_attr...] line
+      for (int i = 0; i < lines.Length; i++) {
+        if (lines[i].Contains("#![cfg_attr(any(), rustfmt::skip)]")) {
+          // Insert module declarations after this line
+          var newLines = new string[lines.Length + 3];
+          Array.Copy(lines, 0, newLines, 0, i + 1);
+          newLines[i + 1] = "";
+          newLines[i + 2] = "mod _dafny_externs;";
+          newLines[i + 3] = "mod FileIOInternalExterns;";
+          Array.Copy(lines, i + 1, newLines, i + 4, lines.Length - i - 1);
+          
+          File.WriteAllText(mainFile, string.Join("\n", newLines));
+          break;
+        }
+      }
+    }
+    
     return await base.OnPostGenerate(dafnyProgramName, targetDirectory, outputWriter);
   }
 
@@ -239,6 +263,27 @@ public class RustBackend : DafnyExecutableBackend {
       using var outFile = new FileStream(Path.Combine(srcDirectory, dotToSlashPath), FileMode.Create, FileAccess.Write);
       stream.CopyTo(outFile);
     });
+
+    // Create _dafny_externs.rs module structure
+    var dafnyExternsPath = Path.Combine(srcDirectory, "_dafny_externs.rs");
+    File.WriteAllText(dafnyExternsPath, @"pub mod FileIOInternalExterns {
+    pub use crate::FileIOInternalExterns::Std_RsFileIOInternalExterns::_default;
+}");
+
+    // Create FileIOInternalExterns/mod.rs
+    var fileIOExternsDir = Path.Combine(srcDirectory, "FileIOInternalExterns");
+    if (Directory.Exists(fileIOExternsDir)) {
+      var modRsPath = Path.Combine(fileIOExternsDir, "mod.rs");
+      File.WriteAllText(modRsPath, @"pub mod Std_RsFileIOInternalExterns;
+pub use Std_RsFileIOInternalExterns::_default;");
+
+      // Create Std_RsFileIOInternalExterns/mod.rs
+      var stdRsDir = Path.Combine(fileIOExternsDir, "Std_RsFileIOInternalExterns");
+      if (Directory.Exists(stdRsDir)) {
+        var stdModRsPath = Path.Combine(stdRsDir, "mod.rs");
+        File.WriteAllText(stdModRsPath, @"include!(""Std_RsFileIOInternalExterns.rs"");");
+      }
+    }
   }
 
   public override Encoding OutputWriterEncoding => Encoding.UTF8;
