@@ -44,21 +44,13 @@ async function synchronizeRepositoryWithNewVersionNumber() {
     await bumpVersionNumber(version);
   }
   //# * Update standard library doo files instead of rebuilding to avoid Z3 timeout issues
-  const standardLibraryDooFiles = [
-    "Source/DafnyStandardLibraries/binaries/DafnyStandardLibraries.doo",
-    "Source/DafnyStandardLibraries/binaries/DafnyStandardLibraries-js.doo",
-    "Source/DafnyStandardLibraries/binaries/DafnyStandardLibraries-cs.doo",
-    "Source/DafnyStandardLibraries/binaries/DafnyStandardLibraries-py.doo",
-    "Source/DafnyStandardLibraries/binaries/DafnyStandardLibraries-notarget.doo",
-    "Source/DafnyStandardLibraries/binaries/DafnyStandardLibraries-java.doo",
-    "Source/DafnyStandardLibraries/binaries/DafnyStandardLibraries-go.doo",
-    "Source/DafnyStandardLibraries/binaries/DafnyStandardLibraries-arithmetic.doo"
-  ];
+  const standardLibraryDir = "Source/DafnyStandardLibraries/binaries";
+  const standardLibraryDooFiles = fs.readdirSync(standardLibraryDir)
+    .filter(file => file.endsWith('.doo'))
+    .map(file => `${standardLibraryDir}/${file}`);
 
   for (const dooFile of standardLibraryDooFiles) {
-    if (fs.existsSync(dooFile)) {
-      await updateDooVersion(dooFile, version);
-    }
+    await updateDooVersion(dooFile, version);
   }
 
   // Verify that binaries have been updated.
