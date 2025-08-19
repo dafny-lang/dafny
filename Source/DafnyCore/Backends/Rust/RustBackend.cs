@@ -108,30 +108,62 @@ public class RustBackend : DafnyExecutableBackend {
       ImportRuntimeTo(Path.GetDirectoryName(targetDirectory));
     }
     
-    // Post-process the main generated file to add module declarations
-    var mainFile = Path.Combine(targetDirectory, "src", $"{dafnyProgramName}.rs");
-    if (File.Exists(mainFile)) {
-      var content = File.ReadAllText(mainFile);
-      var lines = content.Split('\n');
-      
-      // Find the line after the #![cfg_attr...] line
-      for (int i = 0; i < lines.Length; i++) {
-        if (lines[i].Contains("#![cfg_attr(any(), rustfmt::skip)]")) {
-          // Insert module declarations after this line
-          var newLines = new string[lines.Length + 3];
-          Array.Copy(lines, 0, newLines, 0, i + 1);
-          newLines[i + 1] = "";
-          newLines[i + 2] = "mod _dafny_externs;";
-          newLines[i + 3] = "mod FileIOInternalExterns;";
-          Array.Copy(lines, i + 1, newLines, i + 4, lines.Length - i - 1);
-          
-          File.WriteAllText(mainFile, string.Join("\n", newLines));
-          break;
-        }
-      }
+    // Emit standard library resources if requested
+    if (Options.Get(CommonOptionBag.UseStandardLibraries) && Options.Get(CommonOptionBag.TranslateStandardLibrary)) {
+      EmitStandardLibraryResources(targetDirectory);
+      AddModuleDeclarations(dafnyProgramName, targetDirectory);
     }
     
     return await base.OnPostGenerate(dafnyProgramName, targetDirectory, outputWriter);
+  }
+
+  private void AddModuleDeclarations(string dafnyProgramName, string targetDirectory) {
+    // Remove .dfy extension if present
+    var baseName = dafnyProgramName.EndsWith(".dfy") ? dafnyProgramName.Substring(0, dafnyProgramName.Length - 4) : dafnyProgramName;
+    baseName = Path.GetFileName(baseName); // Get just the filename without path
+    var mainFile = Path.Combine(targetDirectory, $"{baseName}.rs");
+    
+    if (File.Exists(mainFile)) {
+      var content = File.ReadAllText(mainFile);
+      
+      // Add module declarations after the #![cfg_attr...] line
+      if (content.Contains("#![cfg_attr(any(), rustfmt::skip)]")) {
+        content = content.Replace(
+          "#![cfg_attr(any(), rustfmt::skip)]", 
+          "#![cfg_attr(any(), rustfmt::skip)]\n\nmod _dafny_externs;\nmod FileIOInternalExterns;"
+        );
+        
+        // Remove any generated duplicate FileIOInternalExterns module
+        var duplicatePattern = @"pub mod FileIOInternalExterns \{\s*pub use crate::_dafny_externs::FileIOInternalExterns::\*;\s*\}";
+        content = System.Text.RegularExpressions.Regex.Replace(content, duplicatePattern, "");
+        
+        File.WriteAllText(mainFile, content);
+      }
+    }
+  }
+
+  private void EmitStandardLibraryResources(string targetDirectory) {
+    var assembly = System.Reflection.Assembly.Load("DafnyPipeline");
+    var files = assembly.GetManifestResourceNames();
+    var header = "DafnyPipeline.DafnyStandardLibraries_rs";
+    
+    foreach (var file in files.Where(f => f.StartsWith(header))) {
+      var parts = file.Split('.');
+      var relativePath = string.Join('/', parts.SkipLast(1).Skip(2)) + "." + parts.Last();
+      var targetPath = Path.Combine(targetDirectory, "src", relativePath);
+      
+      // Create directory if it doesn't exist
+      var directory = Path.GetDirectoryName(targetPath);
+      if (!Directory.Exists(directory)) {
+        Directory.CreateDirectory(directory);
+      }
+      
+      // Extract and write the resource
+      using var stream = assembly.GetManifestResourceStream(file);
+      using var reader = new StreamReader(stream);
+      var content = reader.ReadToEnd();
+      File.WriteAllText(targetPath, content);
+    }
   }
 
   private string ComputeExeName(string targetFilename) {
