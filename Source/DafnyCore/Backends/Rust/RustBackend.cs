@@ -94,9 +94,17 @@ public class RustBackend : DafnyExecutableBackend {
 
 
   public override async Task<bool> OnPostGenerate(string dafnyProgramName, string targetDirectory, IDafnyOutputWriter outputWriter) {
+    var usingStandardLibraries = Options.Get(CommonOptionBag.UseStandardLibraries) && Options.Get(CommonOptionBag.TranslateStandardLibrary);
+    
     foreach (var keyValue in ImportFilesMapping(dafnyProgramName)) {
       var fullRustExternName = keyValue.Key;
       var expectedRustName = keyValue.Value;
+      
+      // Skip FileIOInternalExterns.rs if we're using standard libraries (we generate the module structure instead)
+      if (usingStandardLibraries && expectedRustName.Contains("FileIOInternalExterns")) {
+        continue;
+      }
+      
       var targetName = Path.Combine(targetDirectory, expectedRustName);
       if (fullRustExternName == targetName) {
         continue;
@@ -109,7 +117,7 @@ public class RustBackend : DafnyExecutableBackend {
     }
     
     // Emit standard library resources if requested
-    if (Options.Get(CommonOptionBag.UseStandardLibraries) && Options.Get(CommonOptionBag.TranslateStandardLibrary)) {
+    if (usingStandardLibraries) {
       EmitStandardLibraryResources(targetDirectory);
       AddModuleDeclarations(dafnyProgramName, targetDirectory);
     }
