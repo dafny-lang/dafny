@@ -548,6 +548,7 @@ public class MultiBackendTest {
       "translate",
       backend.TargetId,
       "--go-module-name=testmodule",
+      "--allow-warnings",
       $"--output={Path.Combine(tempOutputDirectory, randomFilename)}",
       options.TestFile!,
     }.Concat(DafnyCliTests.NewDefaultArgumentsForTesting).Concat(translateValidArgs);
