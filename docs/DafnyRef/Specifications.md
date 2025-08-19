@@ -817,7 +817,7 @@ method Upcast(e: Ext)
 }
 ```
 
-Invariants are related to the `Valid()` idiom (e.g., of `{:autocontracts}`); however, invariants need not be made
+Invariants are related to the `Valid()` idiom (e.g., of [`{:autocontracts}`](#sec-attributes-autocontracts)); however, invariants need not be made
 explicit in specifications nor can they be invalidated except according to the rules
 above. Lastly, they are (currently) restricted to `reads this`. Invariants are also related to the constraints of subset
 types, except that they can read from the heap.
