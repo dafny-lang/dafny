@@ -572,7 +572,7 @@ public class MultiBackendTest {
     // and that the expected Go module files were created
     var expectFailure = options.RunShouldFail;
     var exitCodeAsExpected = expectFailure == (exitCode != 0);
-    
+
     // For Go module runtime, we consider successful translation as success
     // since we can't execute without Go runtime installed
     if (exitCodeAsExpected) {
