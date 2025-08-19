@@ -534,29 +534,6 @@ public class MultiBackendTest {
     var goModPath = Path.Combine(tempOutputDirectory, "go.mod");
     await File.WriteAllTextAsync(goModPath, "module testmodule\n\ngo 1.21\n");
 
-    // Filter out arguments that are not valid for the translate command
-    var incompatibleArgs = options.OtherArgs.Where(arg => 
-      arg.StartsWith("--spill-translation") ||
-      arg.StartsWith("--emit-uncompilable-code") ||
-      arg.StartsWith("--target") ||
-      arg.StartsWith("--build") ||
-      arg.StartsWith("--no-verify") ||
-      arg.StartsWith("--include-runtime")).ToList();
-    
-    var translateValidArgs = options.OtherArgs.Where(arg => 
-      !arg.StartsWith("--spill-translation") &&
-      !arg.StartsWith("--emit-uncompilable-code") &&
-      !arg.StartsWith("--target") &&
-      !arg.StartsWith("--build") &&
-      !arg.StartsWith("--no-verify") &&
-      !arg.StartsWith("--include-runtime"));
-
-    // If there are incompatible arguments, the Go module runtime should fail to match the original Go runtime behavior
-    if (incompatibleArgs.Any()) {
-      await output.WriteLineAsync($"Go module runtime skipped due to incompatible arguments: {string.Join(", ", incompatibleArgs)}");
-      return options.RunShouldFail ? 0 : 255; // Return appropriate exit code based on expectation
-    }
-
     // First translate the Dafny code to Go with module support
     IEnumerable<string> translateArgs = new List<string> {
       "translate",
@@ -565,7 +542,7 @@ public class MultiBackendTest {
       "--allow-warnings",
       $"--output={Path.Combine(tempOutputDirectory, randomFilename)}",
       options.TestFile!,
-    }.Concat(DafnyCliTests.NewDefaultArgumentsForTesting).Concat(translateValidArgs);
+    }.Concat(DafnyCliTests.NewDefaultArgumentsForTesting).Concat(options.OtherArgs.Where(arg => !arg.StartsWith("--target")));
 
     int exitCode;
     string outputString;
