@@ -150,7 +150,7 @@ public class RustBackend : DafnyExecutableBackend {
     foreach (var file in files.Where(f => f.StartsWith(header))) {
       var parts = file.Split('.');
       var relativePath = string.Join('/', parts.SkipLast(1).Skip(2)) + "." + parts.Last();
-      var targetPath = Path.Combine(targetDirectory, "src", relativePath);
+      var targetPath = Path.Combine(targetDirectory, relativePath);
       
       // Create directory if it doesn't exist
       var directory = Path.GetDirectoryName(targetPath);
