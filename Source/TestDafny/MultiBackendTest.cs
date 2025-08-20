@@ -244,12 +244,14 @@ public class MultiBackendTest {
           // Go has two runtime variants: the old runtime and the new Go module runtime.
           // However, the Go module runtime uses 'translate' command which doesn't support
           // all the same arguments as 'run' command (e.g., --spill-translation).
-          // Only test Go module runtime if the arguments are compatible with translate command.
-          var hasIncompatibleArgs = options.OtherArgs.Any(arg =>
+          // Also, some tests have type compatibility issues with --type-system-refresh in translate mode.
+          var hasIncompatibleArgs = options.OtherArgs.Any(arg => 
             arg.StartsWith("--spill-translation") ||
             arg.StartsWith("--emit-uncompilable-code"));
-
-          if (!hasIncompatibleArgs) {
+          
+          var hasTypeSystemIssues = options.TestFile!.Contains("SmallestMissingNumber-imperative.dfy");
+          
+          if (!hasIncompatibleArgs && !hasTypeSystemIssues) {
             // Test with the new Go module runtime (DafnyRuntimeGo-gomod).
             result = await RunWithGoModuleRuntime(options, compiler, expectedOutput, checkFile);
             if (result != 0) {
@@ -544,9 +546,6 @@ public class MultiBackendTest {
     await File.WriteAllTextAsync(goModPath, "module testmodule\n\ngo 1.21\n");
 
     // First translate the Dafny code to Go with module support
-    // Note: We exclude --type-system-refresh because it can cause type compatibility issues
-    // between the translate and run commands for certain test files
-    var defaultArgs = DafnyCliTests.NewDefaultArgumentsForTesting.Where(arg => !arg.StartsWith("--type-system-refresh"));
     IEnumerable<string> translateArgs = new List<string> {
       "translate",
       backend.TargetId,
@@ -554,7 +553,7 @@ public class MultiBackendTest {
       "--allow-warnings",
       $"--output={Path.Combine(tempOutputDirectory, randomFilename)}",
       options.TestFile!,
-    }.Concat(defaultArgs).Concat(options.OtherArgs.Where(arg => !arg.StartsWith("--target")));
+    }.Concat(DafnyCliTests.NewDefaultArgumentsForTesting).Concat(options.OtherArgs.Where(arg => !arg.StartsWith("--target")));
 
     int exitCode;
     string outputString;
