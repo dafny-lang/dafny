@@ -320,7 +320,7 @@ class CheckTypeCharacteristicsVisitor : ResolverTopDownVisitor<bool> {
     } else if (type is TypeProxy) {
       // the type was underconstrained; this is checked elsewhere, but it is not in violation of the equality-type test
     } else {
-      Contract.Assert(false); throw new cce.UnreachableException();  // unexpected type
+      Contract.Assert(false); throw new Cce.UnreachableException();  // unexpected type
     }
   }
 

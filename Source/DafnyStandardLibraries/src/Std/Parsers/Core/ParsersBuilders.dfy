@@ -216,9 +216,9 @@ abstract module Std.Parsers.Builders {
       I_I(other)
     }
 
-    /** `a.If(cond)` evaluates `cond` on the input, and then if cond returns a success,  
-        evalutes `a` on the original string and returns the result of `a`.  
-        If cond evaluates to a failure, returns the same failure
+    /** `a.If(cond)` evaluates `cond` on the input, and then:
+        If cond returns a success, evaluates `a` on the original string and returns the result of `a`.
+        If cond evaluates to a failure, returns the same failure.
         
         For example, `a.If(b.??())` is a way to test the parser b as a lookahead without committing anything.
          */
