@@ -245,10 +245,10 @@ public class MultiBackendTest {
           // However, the Go module runtime uses 'translate' command which doesn't support
           // all the same arguments as 'run' command (e.g., --spill-translation).
           // Only test Go module runtime if the arguments are compatible with translate command.
-          var hasIncompatibleArgs = options.OtherArgs.Any(arg => 
+          var hasIncompatibleArgs = options.OtherArgs.Any(arg =>
             arg.StartsWith("--spill-translation") ||
             arg.StartsWith("--emit-uncompilable-code"));
-          
+
           if (!hasIncompatibleArgs) {
             // Test with the new Go module runtime (DafnyRuntimeGo-gomod).
             result = await RunWithGoModuleRuntime(options, compiler, expectedOutput, checkFile);
