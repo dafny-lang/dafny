@@ -1,3 +1,3 @@
-ReadsError.dfy(8,19): Error: invariants are restricted to only read 'this' and therefore cannot read tail`head
+ReadsError.dfy(8,19): Error: insufficient reads clause to read field; Mutable fields cannot be accessed within certain scopes, such as default values, the right-hand side of constants, co-recursive calls, or class/trait invariant clauses if the receiver is not equal to 'this'
 
 Dafny program verifier finished with 0 verified, 1 error

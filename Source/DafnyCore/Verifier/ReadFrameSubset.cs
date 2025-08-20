@@ -26,18 +26,7 @@ public class ReadFrameSubset : ProofObligationDescription {
       } else if (readExpression is MultiSelectExpr m) {
         obj = Printer.ExprToString(DafnyOptions.DefaultImmutableOptions, m.Array,
           new PrintFlags(UseOriginalDafnyNames: true));
-      }
-      if (scope is Invariant) {
-        message = "invariants are restricted to only read 'this'";
-        if (readExpression is MemberSelectExpr { MemberName: var member }) {
-          message += " and therefore cannot read {1}`{2}";
-          parts.Add(obj);
-          parts.Add(member);
-        }
-        parts.Insert(0, message);
-        return parts;
-      }
-      else if (scope is Function { CoClusterTarget: var x } && x != Function.CoCallClusterInvolvement.None) {
+      } else if (scope is Function { CoClusterTarget: var x } && x != Function.CoCallClusterInvolvement.None) {
       } else {
         message += "; Consider ";
 
@@ -69,7 +58,12 @@ public class ReadFrameSubset : ProofObligationDescription {
       whyNotWhat = "Array elements";
     }
 
-    message += "; {1} cannot be accessed within certain scopes, such as default values, the right-hand side of constants, or co-recursive calls";
+    message += "; {1} cannot be accessed within certain scopes, such as default values, the right-hand side of constants";
+    if (scope is Invariant) {
+      message += ", co-recursive calls, or class/trait invariant clauses if the receiver is not equal to 'this'";
+    } else {
+      message += ", or co-recursive calls";
+    }
     parts.Add(whyNotWhat);
     parts.Insert(0, message);
     return parts;

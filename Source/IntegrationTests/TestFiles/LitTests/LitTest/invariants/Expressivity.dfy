@@ -25,7 +25,7 @@ trait UseOfInvariant extends object {
     modifies this
   {
     var oldX := x;
-    x := -1; // no problem!
+    x := -1;
     x := oldX;
   }
 }
