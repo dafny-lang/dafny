@@ -246,6 +246,7 @@ public class MultiBackendTest {
           // all the same arguments as 'run' command (e.g., --spill-translation).
           // Also, some tests have type compatibility issues with --type-system-refresh in translate mode.
           // Additionally, metatests check specific output patterns and shouldn't be modified.
+          // Tests that expect failure (--run-fails) may behave differently between run and translate.
           var hasIncompatibleArgs = options.OtherArgs.Any(arg =>
             arg.StartsWith("--spill-translation") ||
             arg.StartsWith("--emit-uncompilable-code"));
@@ -254,7 +255,9 @@ public class MultiBackendTest {
 
           var isMetatest = options.TestFile!.Contains("/metatests/");
 
-          if (!hasIncompatibleArgs && !hasTypeSystemIssues && !isMetatest) {
+          var expectsFailure = options.RunShouldFail;
+
+          if (!hasIncompatibleArgs && !hasTypeSystemIssues && !isMetatest && !expectsFailure) {
             // Test with the new Go module runtime (DafnyRuntimeGo-gomod).
             result = await RunWithGoModuleRuntime(options, compiler, expectedOutput, checkFile);
             if (result != 0) {
