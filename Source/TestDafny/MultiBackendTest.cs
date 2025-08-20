@@ -544,6 +544,9 @@ public class MultiBackendTest {
     await File.WriteAllTextAsync(goModPath, "module testmodule\n\ngo 1.21\n");
 
     // First translate the Dafny code to Go with module support
+    // Note: We exclude --type-system-refresh because it can cause type compatibility issues
+    // between the translate and run commands for certain test files
+    var defaultArgs = DafnyCliTests.NewDefaultArgumentsForTesting.Where(arg => !arg.StartsWith("--type-system-refresh"));
     IEnumerable<string> translateArgs = new List<string> {
       "translate",
       backend.TargetId,
@@ -551,7 +554,7 @@ public class MultiBackendTest {
       "--allow-warnings",
       $"--output={Path.Combine(tempOutputDirectory, randomFilename)}",
       options.TestFile!,
-    }.Concat(DafnyCliTests.NewDefaultArgumentsForTesting).Concat(options.OtherArgs.Where(arg => !arg.StartsWith("--target")));
+    }.Concat(defaultArgs).Concat(options.OtherArgs.Where(arg => !arg.StartsWith("--target")));
 
     int exitCode;
     string outputString;
