@@ -245,13 +245,16 @@ public class MultiBackendTest {
           // However, the Go module runtime uses 'translate' command which doesn't support
           // all the same arguments as 'run' command (e.g., --spill-translation).
           // Also, some tests have type compatibility issues with --type-system-refresh in translate mode.
+          // Additionally, metatests check specific output patterns and shouldn't be modified.
           var hasIncompatibleArgs = options.OtherArgs.Any(arg =>
             arg.StartsWith("--spill-translation") ||
             arg.StartsWith("--emit-uncompilable-code"));
 
           var hasTypeSystemIssues = options.TestFile!.Contains("SmallestMissingNumber-imperative.dfy");
+          
+          var isMetatest = options.TestFile!.Contains("/metatests/");
 
-          if (!hasIncompatibleArgs && !hasTypeSystemIssues) {
+          if (!hasIncompatibleArgs && !hasTypeSystemIssues && !isMetatest) {
             // Test with the new Go module runtime (DafnyRuntimeGo-gomod).
             result = await RunWithGoModuleRuntime(options, compiler, expectedOutput, checkFile);
             if (result != 0) {
