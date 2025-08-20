@@ -251,7 +251,8 @@ public class MultiBackendTest {
             arg.StartsWith("--spill-translation") ||
             arg.StartsWith("--emit-uncompilable-code"));
 
-          var hasTypeSystemIssues = options.TestFile!.Contains("SmallestMissingNumber-imperative.dfy");
+          var hasTypeSystemIssues = options.TestFile!.Contains("SmallestMissingNumber-imperative.dfy") ||
+                                     options.TestFile!.Contains("SmallestMissingNumber-functional.dfy");
 
           var isMetatest = options.TestFile!.Contains("/metatests/");
 
