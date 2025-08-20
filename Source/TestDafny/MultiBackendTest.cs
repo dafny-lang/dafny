@@ -251,7 +251,7 @@ public class MultiBackendTest {
             arg.StartsWith("--emit-uncompilable-code"));
 
           var hasTypeSystemIssues = options.TestFile!.Contains("SmallestMissingNumber-imperative.dfy");
-          
+
           var isMetatest = options.TestFile!.Contains("/metatests/");
 
           if (!hasIncompatibleArgs && !hasTypeSystemIssues && !isMetatest) {
