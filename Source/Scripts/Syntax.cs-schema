@@ -277,6 +277,10 @@ class ExpectStmt : PredicateStmt
     Expression? message;
 }
 
+class AssumeStmt : PredicateStmt
+{
+}
+
 class AssertStmt : PredicateStmt
 {
     AssertLabel? label;

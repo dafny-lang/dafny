@@ -517,6 +517,24 @@ namespace Microsoft.Dafny
             return ReadExpectStmt();
         }
 
+        public AssumeStmt ReadAssumeStmt()
+        {
+            var parameter0 = ReadAbstract<IOrigin>();
+            var parameter2 = ReadAttributes();
+            var parameter1 = ReadAbstract<Expression>();
+            return new AssumeStmt(parameter0, parameter1, parameter2);
+        }
+
+        public AssumeStmt ReadAssumeStmtOption()
+        {
+            if (ReadIsNull())
+            {
+                return default;
+            }
+
+            return ReadAssumeStmt();
+        }
+
         public AssertStmt ReadAssertStmt()
         {
             var parameter0 = ReadAbstract<IOrigin>();
@@ -2369,6 +2387,11 @@ namespace Microsoft.Dafny
             if (actualType == typeof(ExpectStmt))
             {
                 return ReadExpectStmt();
+            }
+
+            if (actualType == typeof(AssumeStmt))
+            {
+                return ReadAssumeStmt();
             }
 
             if (actualType == typeof(AssertStmt))
