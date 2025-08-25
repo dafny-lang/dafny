@@ -23,9 +23,11 @@ method TestBasicLiteralAssignment() {
   assert large == 12300000000.0;
   assert small > 0.0 && small < ~0.000001;
 
-  // Dot shorthand forms
-  assert .5 == 0.5;
-  assert 42. == 42.0;
+  // Dot shorthand forms with fp64
+  var half: fp64 := .5;
+  var forty_two: fp64 := 42.;
+  assert half == 0.5;
+  assert forty_two == 42.0;
 }
 
 method TestArithmeticOperations() {
@@ -77,8 +79,11 @@ method TestComparisonOperations() {
 
   // Mixed with literals
   assert x < 6.0;
-  assert !(4.0 <= y);
+  assert x <= 6.0;
+  assert 4.0 > y;
+  assert 4.0 >= y;
   assert x > 0.0;
+  assert x >= 0.0;
 }
 
 method TestVariableDeclarations() {
@@ -151,22 +156,31 @@ method TestLoopExpressions() {
   // Loops with fp64 variables
   while i < 3
     invariant 0 <= i <= 3
+    invariant i == 0 ==> x == 1.0
+    invariant i == 1 ==> x == 2.0
+    invariant i == 2 ==> x == 4.0
+    invariant i == 3 ==> x == 8.0
   {
     x := x * 2.0;
     i := i + 1;
   }
-  // x should be 8.0 after loop
+  assert x == 8.0;  // Verify loop result
 
   // Sum in a loop
   var sum: fp64 := 0.0;
   var j := 0;
   while j < 4
     invariant 0 <= j <= 4
+    invariant j == 0 ==> sum == 0.0
+    invariant j == 1 ==> sum == 1.5
+    invariant j == 2 ==> sum == 3.0
+    invariant j == 3 ==> sum == 4.5
+    invariant j == 4 ==> sum == 6.0
   {
     sum := sum + 1.5;
     j := j + 1;
   }
-  // sum should be 6.0 after loop
+  assert sum == 6.0;  // Verify loop result
 }
 
 method TestAssignmentStatements() {
@@ -191,12 +205,6 @@ method TestAssignmentStatements() {
 // Integration with other types
 method TestTypeInteractions() {
   var fp_val: fp64 := ~3.14;
-  var real_val: real := 2.5;
-  var int_val: int := 42;
-
-  // These would require explicit conversions if uncommented:
-  // var mixed1 := fp_val + real_val;  // Error: type mismatch
-  // var mixed2 := fp_val + int_val;   // Error: type mismatch
 
   // But literals work with type inference
   var fp_plus_literal: fp64 := fp_val + 1.0;  // 1.0 inferred as fp64
