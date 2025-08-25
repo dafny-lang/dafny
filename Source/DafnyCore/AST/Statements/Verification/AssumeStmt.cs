@@ -1,3 +1,4 @@
+#nullable enable
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 using Microsoft.Dafny.Auditor;
@@ -13,7 +14,7 @@ public class AssumeStmt : PredicateStmt, ICloneable<AssumeStmt>, ICanFormat {
   }
 
   [SyntaxConstructor]
-  public AssumeStmt(IOrigin origin, Expression expr, Attributes attributes)
+  public AssumeStmt(IOrigin origin, Expression expr, Attributes? attributes)
     : base(origin, expr, attributes) {
     Contract.Requires(origin != null);
     Contract.Requires(expr != null);
@@ -44,7 +45,7 @@ public class AssumeStmt : PredicateStmt, ICloneable<AssumeStmt>, ICanFormat {
 
   public override void ResolveGhostness(ModuleResolver resolver, ErrorReporter reporter, bool mustBeErasable,
     ICodeContext codeContext,
-    string proofContext, bool allowAssumptionVariables, bool inConstructorInitializationPhase) {
+    string? proofContext, bool allowAssumptionVariables, bool inConstructorInitializationPhase) {
     IsGhost = true;
   }
 }

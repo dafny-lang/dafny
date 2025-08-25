@@ -520,7 +520,7 @@ namespace Microsoft.Dafny
         public AssumeStmt ReadAssumeStmt()
         {
             var parameter0 = ReadAbstract<IOrigin>();
-            var parameter2 = ReadAttributes();
+            var parameter2 = ReadAttributesOption();
             var parameter1 = ReadAbstract<Expression>();
             return new AssumeStmt(parameter0, parameter1, parameter2);
         }
