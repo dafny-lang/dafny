@@ -32,10 +32,8 @@ method TestDenormalizedNumbers() {
   assert product == 0.0;  // Underflows to zero (below smallest representable)
 
   // Test that subnormal numbers are positive but very small
-  assert min_subnormal > 0.0;
+  assert min_subnormal.IsPositive;
   assert min_subnormal < min_normal;
-
-  // All assertions verify denormalized number behavior
 }
 
 // Tests overflow to infinity and underflow to zero behaviors.
@@ -70,8 +68,6 @@ method TestOverflowUnderflow() {
 
   ghost var gradual2 := min_positive * 0.25;  // Result ~1.2e-324 < min_positive/2
   assert gradual2 == 0.0;  // Rounds DOWN to zero
-
-  // All assertions verify overflow/underflow behavior
 }
 
 // Tests rounding errors and precision loss in floating-point arithmetic.
@@ -94,8 +90,6 @@ method TestRoundingErrors() {
 
   ghost var diff := large_sum - large;
   assert diff == 0.0;  // Is 0 in fp64 (would be 1 in exact arithmetic)
-
-  // All assertions verify rounding error behavior
 }
 
 // Tests non-associativity of floating-point operations.
@@ -113,8 +107,6 @@ method TestNonAssociativity() {
   assert sum1 == 1.0;  // (1e20 + (-1e20)) + 1 = 0 + 1 = 1
   assert sum2 == 0.0;  // 1e20 + ((-1e20) + 1) = 1e20 + (-1e20) = 0 (1 gets lost)
   assert sum1 != sum2;  // Demonstrates non-associativity
-
-  // All assertions verify non-associativity
 }
 
 // Tests special IEEE 754 operations that produce NaN or infinity.
@@ -164,32 +156,29 @@ method TestSpecialOperations() {
 
   // Special cases: division by zero (skipped to avoid division by zero errors)
   // 1/0 = +∞, -1/0 = -∞, 1/-0 = -∞
-
-  // All assertions verify special operation behavior
 }
 
 // Tests precision limits for integer representation in fp64.
 // After 2^53, not all integers can be exactly represented.
 method TestPrecisionLimits() {
   // Test precision limits of fp64
-  var max_exact_int: fp64 := 4503599627370496.0;  // 2^52, integers up to 2^53 are exactly representable
-  var next_int: fp64 := 4503599627370497.0;      // 2^52 + 1, still exactly representable
+  var max_exact_int: fp64 := 4503599627370496.0;  // 2^52
+  var next_int: fp64 := 4503599627370497.0;       // 2^52 + 1
+  // All integers from -(2^53) to 2^53 are exactly representable
 
   // In fp64, both are exactly representable up to 2^53
   assert max_exact_int != next_int;  // They should be different
 
   // Large integers lose precision after 2^53
-  var large1: fp64 := 9007199254740992.0;   // 2^53
+  var large1: fp64 := 9007199254740992.0;    // 2^53
   var large2: fp64 := ~9007199254740993.0;   // 2^53 + 1, rounds to 2^53
-  var large3: fp64 := 9007199254740994.0;   // 2^53 + 2, exactly representable
+  var large3: fp64 := 9007199254740994.0;    // 2^53 + 2, exactly representable
   var large4: fp64 := ~9007199254740995.0;   // 2^53 + 3, rounds to 2^53 + 4
   var large5: fp64 := 9007199254740996.0;    // 2^53 + 4, exactly representable
 
   assert large1 == large2;    // 2^53 + 1 rounds to 2^53 (nearest even)
   assert large1 != large3;    // 2^53 + 2 is exactly representable (even)
   assert large4 == large5;    // 2^53 + 3 rounds to 2^53 + 4 (nearest even)
-
-  // All assertions verify precision limit behavior
 }
 
 // Tests Unit in Last Place (ULP) and machine epsilon concepts.
@@ -198,7 +187,7 @@ method TestUlpAndMachineEpsilon() {
   // Test Unit in Last Place (ULP) and machine epsilon concepts
   var one: fp64 := 1.0;
   var next_up: fp64 := ~1.00000000000000022204460492503;  // 1 + 2^(-52)
-  var ulp_of_one: fp64 := ~2.220446049250313e-16;          // 2^(-52), machine epsilon for fp64
+  var ulp_of_one: fp64 := ~2.220446049250313e-16;         // 2^(-52), machine epsilon for fp64
 
   // next_up - one should be approximately epsilon
   ghost var diff := next_up - one;
@@ -212,12 +201,7 @@ method TestUlpAndMachineEpsilon() {
   // Test that adding epsilon to 1.0 does change it
   ghost var one_with_epsilon := one + ulp_of_one;
   assert one_with_epsilon == next_up;  // Should equal the next representable value
-  assert one_with_epsilon != one;     // Should be different from 1.0
-
-  // For values near 1.0, the ULP is epsilon
-  // In a full implementation, we would test fp64.Ulp(1.0) == epsilon
-
-  // All assertions verify ULP and epsilon behavior
+  assert one_with_epsilon != one;      // Should be different from 1.0
 }
 
 // Tests signed zero behavior in IEEE 754.
@@ -226,33 +210,33 @@ method TestSignedZeroBehavior() {
   // Test signed zero behavior
   var pos_zero: fp64 := 0.0;
   var neg_zero: fp64 := -0.0;
-  
+
   // Both are zeros
   assert pos_zero.IsZero;
   assert neg_zero.IsZero;
-  
+
   // But have different signs
   assert !pos_zero.IsNegative;
   assert neg_zero.IsNegative;
-  
+
   // IEEE 754 equality treats them as equal
   assert fp64.Equal(pos_zero, neg_zero);
-  
+
   // But bitwise they're different
   assert pos_zero == pos_zero;
   assert neg_zero == neg_zero;
   // Can't assert pos_zero != neg_zero in compiled context
-  
+
   // Arithmetic with signed zeros preserves zero property
   assert (pos_zero + pos_zero).IsZero;
   assert (neg_zero + neg_zero).IsZero;
   assert (pos_zero + neg_zero).IsZero;
   assert (neg_zero + pos_zero).IsZero;
-  
+
   // Negation of zeros produces zeros
   assert (-pos_zero).IsZero;
   assert (-neg_zero).IsZero;
-  
+
   // Division behavior (avoiding div by zero)
   assert (1.0 / fp64.PositiveInfinity).IsZero;
   assert (1.0 / fp64.NegativeInfinity).IsZero;
@@ -267,25 +251,29 @@ method TestExtremePrecisionCases() {
   var tiny1: fp64 := ~1e-300;
   var tiny2: fp64 := ~1e-305;
   var tiny3: fp64 := ~1e-310;
-  
+
   // All should be positive and finite
-  assert tiny1 > 0.0 && tiny1.IsFinite;
-  assert tiny2 > 0.0 && tiny2.IsFinite;
-  assert tiny3 > 0.0 && tiny3.IsFinite;
-  
+  assert tiny1.IsPositive && tiny1.IsFinite;
+  assert tiny2.IsPositive && tiny2.IsFinite;
+  assert tiny3.IsPositive && tiny3.IsFinite;
+
   // Test relative sizes
   assert tiny1 > tiny2;
   assert tiny2 > tiny3;
-  
-  // Test that multiplication of tiny values
-  ghost var product: fp64 := tiny1 * tiny3;
-  assert product == 0.0 || product.IsSubnormal || product.IsNormal;
-  
+
+  // Test that multiplication of tiny values underflows
+  ghost var product: fp64 := tiny1 * tiny3;  // ~1e-300 * ~1e-310 = ~1e-610
+  assert product == 0.0;  // Far below smallest representable (~4.94e-324), underflows to zero
+
   // Test max safe integer boundary
   var max_safe: fp64 := 9007199254740992.0;  // 2^53
   var above_max: fp64 := ~9007199254740993.0;  // 2^53 + 1
-  
+
   // Can't represent odd numbers above 2^53
+  // Both assertions below are true because:
+  // - max_safe + 1.0 produces 2^53 (1.0 gets lost due to precision)
+  // - above_max (with ~) rounds 2^53+1 back to 2^53 (nearest even)
+  // So both expressions evaluate to the same value: 2^53
   assert max_safe + 1.0 == above_max;
   assert above_max == max_safe;  // Rounds to nearest even (2^53)
 }

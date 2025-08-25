@@ -81,14 +81,12 @@ method TestSmallestValues() {
   assert min_normal.IsNormal;
   assert !min_normal.IsSubnormal;
   assert min_normal.IsPositive;
-  assert min_normal > 0.0;
 
   // Test properties of smallest subnormal
   assert min_subnormal.IsFinite;
   assert !min_subnormal.IsNormal;
   assert min_subnormal.IsSubnormal;
   assert min_subnormal.IsPositive;
-  assert min_subnormal > 0.0;
   assert min_subnormal < min_normal;
 
   // Test that smallest subnormal is truly the smallest positive

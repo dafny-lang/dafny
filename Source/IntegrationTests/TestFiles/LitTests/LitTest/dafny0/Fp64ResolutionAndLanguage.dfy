@@ -21,7 +21,7 @@ method TestBasicLiteralAssignment() {
   var small: fp64 := ~4.56e-7;
 
   assert large == 12300000000.0;
-  assert small > 0.0 && small < ~0.000001;
+  assert 0.0 < small < ~0.000001;
 
   // Dot shorthand forms with fp64
   var half: fp64 := .5;
