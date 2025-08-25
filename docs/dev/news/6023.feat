@@ -1,4 +1,0 @@
-Stabilize verifications by automatically computing triggers for the quantified proof obligations associated with `:|` constructs.
-Manually specified triggers and warning-suppressing attributes are also supported (and mentioned in warning messages, as for other quantifiers and comprehensions).
-
-Enhance witness guessing for the proof obligation associated for `:|` assignments.
