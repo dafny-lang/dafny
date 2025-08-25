@@ -4,19 +4,12 @@
 // Tests special constants like PositiveZero, NegativeZero, MaxValue, MinValue, etc.
 
 method TestZeroValues() {
-  // Test positive and negative zero constants
+  // Test positive and negative zero literals
   var pos_zero: fp64 := 0.0;
   var neg_zero: fp64 := -0.0;
 
-  // Test literal zeros
-  var lit_pos_zero: fp64 := 0.0;
-  var lit_neg_zero: fp64 := -0.0;
-
   // Verify zeros have different bit patterns (Dafny == is bitwise)
   assert pos_zero != neg_zero;  // Different bit patterns
-  assert lit_pos_zero != lit_neg_zero;
-  assert pos_zero == lit_pos_zero;
-  assert neg_zero == lit_neg_zero;
 
   // Test classification
   assert pos_zero.IsZero;
@@ -33,11 +26,10 @@ method TestZeroValues() {
   assert sum_neg.IsZero && sum_neg.IsNegative;
 
   // Test negation of zero variables (not just literals)
-  // This catches the bug where -expr is transformed to 0 - expr
   var neg_of_pos_zero := -pos_zero;  // Should produce -0.0
   var neg_of_neg_zero := -neg_zero;  // Should produce +0.0
   assert neg_of_pos_zero.IsZero;
-  assert neg_of_pos_zero.IsNegative;  // BUG: This currently fails! -pos_zero produces +0.0
+  assert neg_of_pos_zero.IsNegative;
   assert neg_of_neg_zero.IsZero;
   assert !neg_of_neg_zero.IsNegative;  // Double negation should give positive zero
 
@@ -67,10 +59,16 @@ method TestBoundaryValues() {
 
   // Test overflow behavior
   var overflow_test := max_val * 2.0;
-  assert overflow_test.IsInfinite;
+  assert overflow_test.IsInfinite && overflow_test.IsPositive;
+  assert overflow_test == fp64.PositiveInfinity;  // Verify overflow creates the constant
 
-  var underflow_test := min_val * 2.0;
-  assert underflow_test.IsInfinite && underflow_test.IsNegative;
+  var negative_overflow_test := min_val * 2.0;
+  assert negative_overflow_test.IsInfinite && negative_overflow_test.IsNegative;
+  assert negative_overflow_test == fp64.NegativeInfinity;  // Verify overflow creates the constant
+
+  // Test that operations on max value can produce finite results
+  var safe_op := max_val / 2.0;
+  assert safe_op.IsFinite;
 }
 
 method TestSmallestValues() {
@@ -96,7 +94,7 @@ method TestSmallestValues() {
   // Test that smallest subnormal is truly the smallest positive
   var half_min := min_subnormal / 2.0;
   assert half_min.IsZero;  // Underflows to zero
-  assert !half_min.IsNegative;  // Should underflow to positive zero
+  assert half_min.IsPositive;  // Should underflow to positive zero
 
   // Test underflow to negative zero
   var neg_half_min := (-min_subnormal) / 2.0;
@@ -122,61 +120,14 @@ method TestEpsilonValue() {
   assert epsilon.IsPositive;
 }
 
-method TestSpecialValueArithmetic() {
-  // Test arithmetic with special values
-  var nan := fp64.NaN;
-  var pos_inf := fp64.PositiveInfinity;
-  var neg_inf := fp64.NegativeInfinity;
-  var max_val := fp64.MaxValue;
-  var min_val := fp64.MinValue;
-  var pos_zero: fp64 := 0.0;
-  var neg_zero: fp64 := -0.0;
-
-  // NaN arithmetic
-  var nan_sum := nan + 1.0;
-  var nan_prod := nan * 2.0;
-  assert nan_sum.IsNaN;
-  assert nan_prod.IsNaN;
-
-  // Infinity arithmetic
-  var inf_sum := pos_inf + 1.0;
-  var inf_diff := neg_inf - 1.0;
-  assert inf_sum.IsInfinite && inf_sum.IsPositive;
-  assert inf_diff.IsInfinite && inf_diff.IsNegative;
-
-  // Special cases producing NaN
-  var inf_minus_inf := pos_inf - pos_inf;
-  var zero_times_inf := pos_zero * pos_inf;
-  var inf_div_inf := pos_inf / pos_inf;
-  assert inf_minus_inf.IsNaN;
-  assert zero_times_inf.IsNaN;
-  assert inf_div_inf.IsNaN;
-
-  // Max value operations
-  var near_overflow := max_val + max_val;
-  assert near_overflow.IsInfinite;
-
-  var safe_op := max_val / 2.0;
-  assert safe_op.IsFinite;
-}
-
 method TestSpecialValueComparisons() {
   // Test comparisons with special values
-  var nan := fp64.NaN;
   var pos_inf := fp64.PositiveInfinity;
   var neg_inf := fp64.NegativeInfinity;
   var max_val := fp64.MaxValue;
   var normal: fp64 := 42.0;
   var pos_zero := 0.0;
   var neg_zero := -0.0;
-
-  // NaN comparisons (all false except inequality)
-  assert !(nan < normal);
-  assert !(nan <= normal);
-  assert !(nan > normal);
-  assert !(nan >= normal);
-  assert nan == nan;               // NaN Dafny-equal to itself
-  assert !(fp64.Equal(nan,nan));  // NaN not IEEE 754 equal to itself
 
   // Infinity comparisons
   assert neg_inf < normal;
@@ -194,25 +145,6 @@ method TestSpecialValueComparisons() {
   assert fp64.MinNormal < 1.0;
   assert 1.0 < fp64.MaxValue;
   assert fp64.MaxValue < pos_inf;
-}
-
-method TestQuietAndSignalingNaN() {
-  // Test different NaN values (if supported)
-  var qnan := fp64.NaN;  // Quiet NaN (default)
-
-  // In IEEE 754, there are quiet and signaling NaNs
-  // Dafny might only support quiet NaN
-  assert qnan.IsNaN;
-  assert !qnan.IsFinite;
-  assert !qnan.IsInfinite;
-
-  // NaN propagation
-  var result1 := qnan + 1.0;
-  var result2 := fp64.Sqrt(qnan);
-  var result3 := fp64.Abs(qnan);
-  assert result1.IsNaN;
-  assert result2.IsNaN;
-  assert result3.IsNaN;
 }
 
 method TestSpecialValueProperties() {
@@ -239,117 +171,47 @@ method TestSpecialValueProperties() {
   assert !neg_inf.IsZero;
   assert !neg_inf.IsNormal;
   assert !neg_inf.IsSubnormal;
-
-  // MaxValue properties
-  var max_val := fp64.MaxValue;
-  assert !max_val.IsInfinite;
-  assert max_val.IsFinite;
-  assert !max_val.IsNaN;
-  assert max_val.IsPositive;
-  assert !max_val.IsNegative;
-  assert !max_val.IsZero;
-  assert max_val.IsNormal;
-  assert !max_val.IsSubnormal;
 }
 
 method TestUsefulDerivedConstants() {
-  // Test other useful constants that might be provided
-
-  // Common mathematical constants (might be provided as static members)
+  // Common mathematical constants
   var pi := fp64.Pi;
   var e := fp64.E;
 
   // Verify some properties
-  assert pi > ~3.14 && pi < ~3.15;
-  assert e > ~2.71 && e < ~2.72;
+  assert ~3.14 < pi < ~3.15;
+  assert ~2.71 < e < ~2.72;
 }
 
-method TestSpecialValueCreation() {
-  // Test creating special values through operations
-
-  // Create positive infinity through overflow
-  var large: fp64 := fp64.MaxValue;
-  var pos_inf_created := large * large;
-  assert pos_inf_created.IsInfinite && pos_inf_created.IsPositive;
-  assert pos_inf_created == fp64.PositiveInfinity;
-
-  // Create negative infinity
-  var neg_inf_created := -large * large;
-  assert neg_inf_created.IsInfinite && neg_inf_created.IsNegative;
-  assert neg_inf_created == fp64.NegativeInfinity;
-
-  // Create NaN through invalid operations
-  var zero: fp64 := 0.0;
-  // These operations create NaN following IEEE 754 semantics
-  // Some operations create NaN, but Sqrt now has a precondition to prevent it
-  // Note: NaN values cannot be compared for equality in compiled contexts
-  var nan_created1 := fp64.PositiveInfinity - fp64.PositiveInfinity;
-  // var nan_created2 := fp64.Sqrt(-1.0);  // ERROR: precondition prevents negative input
-  var nan_propagated := fp64.Sqrt(fp64.NaN);  // OK: NaN propagation is allowed
-  assert nan_created1.IsNaN;
-  assert nan_propagated.IsNaN;
-
-  // Create negative zero
-  var neg_zero_created: fp64 := -0.0;  // Explicit type needed for .IsZero/.IsNegative
-  assert neg_zero_created.IsZero;
-  assert neg_zero_created.IsNegative;
-}
-
-method TestEdgeCasesWithAssertions() {
-  // Special values
-  var nan: fp64 := fp64.NaN;
-  var pos_inf: fp64 := fp64.PositiveInfinity;
-  var neg_inf: fp64 := fp64.NegativeInfinity;
-  var pos_zero: fp64 := 0.0;
-  var neg_zero: fp64 := -0.0;
-
+method TestHardcodedLiterals() {
+  // Test that specific hardcoded literal approximations round to expected fp64 values
+  
   // Smallest positive normal number
-  var min_normal: fp64 := ~2.2250738585072014e-308;  // Rounds to 2^(-1022)
-
-  // Smallest positive subnormal number
-  var min_subnormal: fp64 := ~4.9406564584124654e-324;  // Rounds to 2^(-1074)
-
+  var min_normal_literal: fp64 := ~2.2250738585072014e-308;  // Should round to 2^(-1022)
+  assert min_normal_literal == fp64.MinNormal;
+  
+  // Smallest positive subnormal number  
+  var min_subnormal_literal: fp64 := ~4.9406564584124654e-324;  // Should round to 2^(-1074)
+  assert min_subnormal_literal == fp64.MinSubnormal;
+  
   // Largest finite number
-  var max_value: fp64 := ~1.7976931348623157e308;  // Rounds to (2-2^(-52))*2^1023
-
-  // Values close to 1.0
-  var next_up_1: fp64 := ~1.0000000000000002;  // Rounds to 1 + 2^(-52)
-  var next_down_1: fp64 := ~0.9999999999999999;  // Rounds to 1 - 2^(-53)
-
+  var max_value_literal: fp64 := ~1.7976931348623157e308;  // Should round to (2-2^(-52))*2^1023
+  assert max_value_literal == fp64.MaxValue;
+  
   // Machine epsilon (difference between 1.0 and next representable number)
-  var epsilon: fp64 := ~2.220446049250313e-16;  // Rounds to 2^(-52)
-
-  // Test classification predicates on edge cases
-  assert !nan.IsFinite;
-  assert nan.IsNaN;
-
-  assert !pos_inf.IsFinite;
-  assert pos_inf.IsInfinite;
-  assert pos_inf.IsPositive;
-
-  assert !neg_inf.IsFinite;
-  assert neg_inf.IsInfinite;
-  assert neg_inf.IsNegative;
-
-  assert pos_zero.IsZero;
-  assert pos_zero.IsFinite;
-  assert !pos_zero.IsNegative;
-
-  assert neg_zero.IsZero;
-  assert neg_zero.IsFinite;
-  assert neg_zero.IsNegative;
-
-  assert min_normal.IsNormal;
-  assert min_normal.IsFinite;
-  assert min_normal.IsPositive;
-
-  assert min_subnormal.IsSubnormal;
-  assert min_subnormal.IsFinite;
-  assert min_subnormal.IsPositive;
-
-  assert max_value.IsNormal;
-  assert max_value.IsFinite;
-  assert max_value.IsPositive;
+  var epsilon_literal: fp64 := ~2.220446049250313e-16;  // Should round to 2^(-52)
+  assert epsilon_literal == fp64.Epsilon;
+  
+  // Values close to 1.0
+  var next_up_1: fp64 := ~1.0000000000000002;  // Should round to 1 + 2^(-52)
+  var next_down_1: fp64 := ~0.9999999999999999;  // Should round to 1 - 2^(-53)
+  
+  // Verify next_up_1 is the next representable value after 1.0
+  assert next_up_1 > 1.0;
+  assert next_up_1 == 1.0 + fp64.Epsilon;
+  
+  // Verify next_down_1 is the previous representable value before 1.0
+  assert next_down_1 < 1.0;
 }
 
 method TestNaNBehavior() {
@@ -476,47 +338,15 @@ method TestInfinityBehavior() {
   assert pos_inf > neg_inf;  // +∞ > -∞
 }
 
-method TestStaticConstantConsistency() {
-  // Verify that multiple accesses to static constants return consistent values
-  var nan1 := fp64.NaN;
-  var nan2 := fp64.NaN;
-  // Can't use Equal or == for NaN, but both should be NaN
-  assert nan1.IsNaN;
-  assert nan2.IsNaN;
-
-  var pos_inf1 := fp64.PositiveInfinity;
-  var pos_inf2 := fp64.PositiveInfinity;
-  assert fp64.Equal(pos_inf1, pos_inf2);
-  assert pos_inf1 == pos_inf2;  // Infinities can use bitwise equality
-
-  var neg_inf1 := fp64.NegativeInfinity;
-  var neg_inf2 := fp64.NegativeInfinity;
-  assert fp64.Equal(neg_inf1, neg_inf2);
-  assert neg_inf1 == neg_inf2;
-
-  // Test other constants for consistency
-  var max1 := fp64.MaxValue;
-  var max2 := fp64.MaxValue;
-  assert max1 == max2;
-
-  var pi1 := fp64.Pi;
-  var pi2 := fp64.Pi;
-  assert pi1 == pi2;
-}
-
 method Main() {
   TestZeroValues();
   TestBoundaryValues();
   TestSmallestValues();
   TestEpsilonValue();
-  TestSpecialValueArithmetic();
   TestSpecialValueComparisons();
-  TestQuietAndSignalingNaN();
   TestSpecialValueProperties();
   TestUsefulDerivedConstants();
-  TestSpecialValueCreation();
-  TestEdgeCasesWithAssertions();
+  TestHardcodedLiterals();
   TestNaNBehavior();
   TestInfinityBehavior();
-  TestStaticConstantConsistency();
 }
