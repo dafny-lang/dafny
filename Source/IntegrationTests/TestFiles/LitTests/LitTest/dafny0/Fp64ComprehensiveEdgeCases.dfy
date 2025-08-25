@@ -1,4 +1,4 @@
-// RUN: %testDafnyForEachResolver --expect-exit-code=0 "%s" -- --verification-time-limit:30
+// RUN: %testDafnyForEachResolver "%s"
 
 // Comprehensive edge case tests for fp64
 // This tests the handling of denormalized numbers, overflow, underflow,
