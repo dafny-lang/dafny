@@ -2702,9 +2702,10 @@ namespace Microsoft.Dafny.Compilers {
           postString = ")";
           break;
         case SpecialField.ID.IsPositive:
-          // Positive: >= 0 and not NaN
-          preString = "(";
-          postString = " > 0.0)";
+          // SMT-LIB's fp.isPositive: true for +0.0 and positive values, false for -0.0, negative values, and NaN
+          // Use runtime helper method that matches SMT-LIB semantics
+          preString = "Dafny.Helpers.Fp64IsPositive(";
+          postString = ")";
           break;
         case SpecialField.ID.NaN:
           preString = "double.NaN";

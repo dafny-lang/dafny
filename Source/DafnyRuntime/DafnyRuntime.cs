@@ -1381,6 +1381,14 @@ namespace Dafny {
       return g == null ? 1001 : g.GetHashCode();
     }
 
+    // fp64.IsPositive helper - matches SMT-LIB fp.isPositive semantics
+    // Returns true for positive values including +0.0, false for -0.0, negative values, and NaN
+    public static bool Fp64IsPositive(double value) {
+      // >= 0.0 excludes negatives and NaN but includes both zeros
+      // 1.0/(-0.0) gives -Infinity, allowing us to detect and exclude -0.0
+      return value >= 0.0 && !(value == 0.0 && 1.0 / value < 0.0);
+    }
+
     public static int ToIntChecked(BigInteger i, string msg) {
       if (i > Int32.MaxValue || i < Int32.MinValue) {
         if (msg == null) {

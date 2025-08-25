@@ -1,4 +1,4 @@
-// RUN: %testDafnyForEachResolver --expect-exit-code=0 "%s"
+// RUN: %testDafnyForEachResolver "%s"
 
 // Comprehensive test for fp64 classification predicates
 // Tests all IEEE 754 classification predicates as instance members
@@ -10,7 +10,6 @@ method BasicClassificationTests() {
   var large: fp64 := ~1.23e100;
   var small: fp64 := ~4.56e-100;
 
-  // Test all classification predicates resolve correctly
   assert !x.IsNaN;
   assert x.IsFinite;
   assert !x.IsInfinite;
@@ -24,13 +23,11 @@ method BasicClassificationTests() {
   assert zero.IsZero;
   assert zero.IsFinite;
   assert !zero.IsNormal;
-  // Note: IsPositive/IsNegative behavior for zeros may differ between runtime and verification
-  // Runtime: +0.0 has IsPositive=false, IsNegative=false
-  // SMT-LIB spec suggests IsPositive(+0) could be true, but Dafny runtime returns false
-  assert !zero.IsNegative;  // +0.0 is not negative
+  assert zero.IsPositive;
+  assert !zero.IsNegative;
 
   assert negZero.IsZero;
-  assert negZero.IsNegative;  // Negative zero has negative sign bit
+  assert negZero.IsNegative;
   assert !negZero.IsPositive;
 
   // Test on large values
@@ -92,8 +89,6 @@ method PredicateInAssertions() {
   assert x.IsPositive || x.IsNegative || x.IsZero;  // Only true for non-NaN values
   assert !(x.IsNormal && x.IsSubnormal);  // Should never both be true
   assert !(x.IsPositive && x.IsNegative);  // Should never both be true
-
-  // Predicate assertion tests completed
 }
 
 method PredicateWithVariables() {
@@ -178,8 +173,8 @@ ghost method GhostPredicateTests() {
   ghost var isPositive := x.IsPositive;
 
   // Ghost assertions
-  assert x.IsFinite || x.IsInfinite || x.IsNaN;
-  assert x.IsPositive || x.IsNegative || x.IsZero;
+  assert x.IsFinite || x.IsInfinite || x.IsNaN;  // Exhaustive for all fp64
+  assert x.IsPositive || x.IsNegative || x.IsZero;  // Only true because x=~3.14; would fail for NaN
 }
 
 method ComprehensivePredicateTest() {
@@ -193,7 +188,9 @@ method ComprehensivePredicateTest() {
   testValues[5] := ~1.0e200;  // Large normal
 
   var i := 0;
-  while i < testValues.Length {
+  while i < testValues.Length
+    invariant 0 <= i <= testValues.Length
+  {
     var val := testValues[i];
 
     // Verify classification completeness and mutual exclusivity
@@ -209,8 +206,6 @@ method ComprehensivePredicateTest() {
 
     i := i + 1;
   }
-
-  // Comprehensive predicate test completed
 }
 
 method TestSpecialValues() {
@@ -268,8 +263,6 @@ method TestSpecialValues() {
   assert !negSubnormal.IsZero;
   assert negSubnormal.IsNegative;
   assert !negSubnormal.IsPositive;
-
-  // Special values test completed
 }
 
 method TestPredicatesWithStaticMethods() {
@@ -299,7 +292,7 @@ method TestPredicatesWithStaticMethods() {
   assert x - 1.0 < x;  // Subtracting positive decreases value
   assert x * 2.0 > x;  // Multiplying by >1 increases positive value
   assert x / 2.0 < x;  // Dividing by >1 decreases positive value
-  assert -x < 0.0;     // Negation of positive is negative
+  assert (-x).IsNegative;  // Negation of positive is negative
 
   // Verify comparison operations work with predicate-tested values
   assert x < 5.0;   // ~3.14 < 5.0
@@ -331,10 +324,10 @@ method TestBoundaryValues() {
   assert minVal.IsNegative;
   assert !minVal.IsPositive;
 
-  // Test smallest positive normal (epsilon)
+  // Test machine epsilon (smallest value that changes 1.0 when added)
   var epsilon := fp64.Epsilon;
   assert epsilon.IsFinite;
-  assert epsilon.IsNormal;  // Epsilon is the smallest normal, not subnormal
+  assert epsilon.IsNormal;  // Epsilon (2^-52) is in the normal range
   assert epsilon.IsPositive;
   assert !epsilon.IsNegative;
 
@@ -354,7 +347,9 @@ method TestMutualExclusivity() {
   var testVals := [fp64.NaN, fp64.PositiveInfinity, 0.0, 1.0, ~4.94e-324];
 
   var i := 0;
-  while i < |testVals| {
+  while i < |testVals|
+    invariant 0 <= i <= |testVals|
+  {
     var v := testVals[i];
 
     // NaN, Finite, and Infinite are mutually exclusive
@@ -388,6 +383,4 @@ method Main() {
   TestPredicatesWithStaticMethods();
   TestBoundaryValues();
   TestMutualExclusivity();
-
-  // All tests verify classification predicates through assertions
 }
