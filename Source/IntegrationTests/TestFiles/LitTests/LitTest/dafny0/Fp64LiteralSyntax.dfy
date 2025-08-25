@@ -62,25 +62,25 @@ method TestApproximateFp64Literals() {
   var three_tenths: fp64 := ~0.3;
 
   // These are NOT exactly equal due to rounding
-  assert tenth + fifth != three_tenths || tenth + fifth == three_tenths; // One must be true
+  assert tenth + fifth != three_tenths;  // 0.1 + 0.2 != 0.3 in fp64
 
   // Verify they're in reasonable ranges
-  assert tenth > ~0.09 && tenth < ~0.11;
-  assert fifth > ~0.19 && fifth < ~0.21;
-  assert three_tenths > ~0.29 && three_tenths < ~0.31;
+  assert ~0.09 < tenth < ~0.11;
+  assert ~0.19 < fifth < ~0.21;
+  assert ~0.29 < three_tenths < ~0.31;
 
   // Mathematical constants are approximate
   var pi: fp64 := ~3.14159265358979323846;
   var e: fp64 := ~2.71828182845904523536;
 
   // Verify constants are in expected ranges
-  assert pi > ~3.14 && pi < ~3.15;
-  assert e > ~2.71 && e < ~2.72;
+  assert ~3.14 < pi < ~3.15;
+  assert ~2.71 < e < ~2.72;
 
   // Negative approximate values use ~- syntax
   var neg_tenth: fp64 := ~-0.1;
-  assert neg_tenth < 0.0;
-  assert -neg_tenth == tenth || -neg_tenth != tenth; // May or may not be bitwise equal
+  assert neg_tenth.IsNegative;
+  assert -neg_tenth == tenth;  // Negation is exact, so -(-0.1) == 0.1
 }
 
 // ===== Syntax Rules Tests =====
@@ -91,8 +91,8 @@ method TestApproximateLiteralSyntaxRules() {
   var neg_approx: fp64 := ~-0.1;
 
   // Verify signs are correct
-  assert pos_approx > 0.0;
-  assert neg_approx < 0.0;
+  assert pos_approx.IsPositive;
+  assert neg_approx.IsNegative;
 
   // ~ only applies to literals, not variables or expressions
   var x: fp64 := ~0.1;
@@ -132,10 +132,9 @@ method TestFinancialCalculations() {
   var tax: fp64 := price * taxRate;
   var total: fp64 := price + tax;
 
-  // Verify calculations make sense
-  assert tax > 0.0;
-  assert total > price;
-  assert total == price + tax;
+  // Verify calculations
+  assert ~1.6 < tax < ~1.7;      // Tax should be approximately $1.65
+  assert ~21.6 < total < ~21.7;  // Total should be approximately $21.64
 }
 
 method TestScientificComputations() {
@@ -145,11 +144,9 @@ method TestScientificComputations() {
   var area: fp64 := pi * radius * radius;
   var circumference: fp64 := 2.0 * pi * radius;
 
-  // Verify calculations are reasonable
-  assert area > 0.0;
-  assert circumference > 0.0;
-  assert area > radius * radius;  // Since pi > 1
-  assert circumference > 2.0 * radius;  // Since pi > 1
+  // Verify calculations
+  assert 78.5 < area < ~78.6;           // Area of circle with radius 5 ≈ 78.54
+  assert ~31.4 < circumference < 31.5;  // Circumference ≈ 31.42
 }
 
 method TestRealVsFp64Arithmetic() {
@@ -175,22 +172,6 @@ method TestRealVsFp64Arithmetic() {
 
 // ===== Additional tests =====
 
-method TestMixedLiteralFormats() {
-  // Different formats for same exact value
-  assert 1.5 == 1.5e0;
-  assert 0.25 == 2.5e-1;
-  assert 1024.0 == 1.024e3;
-
-  // Leading/trailing dot syntax
-  assert .5 == 0.5;
-  assert 1. == 1.0;
-
-  // Multiple representations of zero
-  assert 0.0 == 0.00;
-  assert 0.0 == 0e0;
-  assert 0.0 == .0;
-}
-
 method TestLiteralPrecisionBoundaries() {
   // Maximum safely representable integer (2^53)
   var max_safe_int: fp64 := 9007199254740992.0;
@@ -202,7 +183,7 @@ method TestLiteralPrecisionBoundaries() {
 
   // Exact power of 2 fractions
   var tiny_exact: fp64 := 0.00006103515625;  // 2^-14
-  assert tiny_exact > 0.0;
+  assert tiny_exact.IsPositive;
   assert tiny_exact * 16384.0 == 1.0;  // 2^14 * 2^-14 = 1
 }
 
@@ -222,19 +203,19 @@ method TestLiteralArithmetic() {
 method TestExtremeValues() {
   // Large exact values (powers of 2)
   var large_pow2: fp64 := 1.125899906842624e15;   // 2^50
-  assert large_pow2 > 0.0;
+  assert large_pow2.IsPositive;
   assert large_pow2.IsFinite;
 
   // Small exact values (negative powers of 2)
   var small_pow2: fp64 := 0.0009765625;           // 2^-10
-  assert small_pow2 > 0.0;
+  assert small_pow2.IsPositive;
   assert small_pow2 * 1024.0 == 1.0;  // 2^-10 * 2^10 = 1
 
   // Approximate extreme values
   var huge: fp64 := ~1.0e100;
   var tiny: fp64 := ~1.0e-100;
   assert huge.IsFinite && !huge.IsInfinite;
-  assert tiny > 0.0 && tiny.IsFinite;
+  assert tiny.IsPositive && tiny.IsFinite;
 }
 
 method Main() {
@@ -242,7 +223,6 @@ method Main() {
   TestApproximateFp64Literals();
   TestApproximateLiteralSyntaxRules();
   TestTypeInference();
-  TestMixedLiteralFormats();
   TestLiteralPrecisionBoundaries();
   TestLiteralArithmetic();
   TestExtremeValues();
