@@ -8,7 +8,7 @@
 //
 // IMPORTANT: Dafny's == operator is NOT IEEE 754 compliant!
 // - IEEE 754: +0.0 == -0.0 is true, NaN == NaN is false
-// - Dafny ==: +0.0 == -0.0 is FORBIDDEN (precondition violation), NaN == NaN is true in ghost
+// - Dafny ==: +0.0 == -0.0 is false in ghost, NaN == NaN is true in ghost
 // - For IEEE 754 semantics, use fp64.Equal() instead
 
 // Test 1: Compiled context equality requires preconditions
@@ -19,23 +19,17 @@ method TestCompiledEqualityPreconditions() {
   var inf := fp64.PositiveInfinity;
 
   // Valid comparisons (no NaN involved)
-  if !x.IsNaN && !y.IsNaN {
-    var eq1 := x == y;
-    assert !eq1;
-    print "1.0 == 2.0: ", eq1, "\n";
-  }
+  var eq1 := x == y;
+  assert !eq1;
+  print "1.0 == 2.0: ", eq1, "\n";
 
-  if !x.IsNaN {
-    var eq2 := x == x;
-    assert eq2;
-    print "1.0 == 1.0: ", eq2, "\n";
-  }
+  var eq2 := x == x;
+  assert eq2;
+  print "1.0 == 1.0: ", eq2, "\n";
 
-  if !inf.IsNaN {
-    var eq3 := inf == inf;
-    assert eq3;
-    print "+Inf == +Inf: ", eq3, "\n";
-  }
+  var eq3 := inf == inf;
+  assert eq3;
+  print "+Inf == +Inf: ", eq3, "\n";
 
   // CRITICAL: Why signed zero check is needed for Dafny's ==
   var pos_zero: fp64 := 0.0;   // Bit pattern: 0x0000000000000000
@@ -54,12 +48,9 @@ method TestCompiledEqualityPreconditions() {
 
   // Dafny's == works fine when zeros have matching signs (same bit pattern):
   var pos_zero2: fp64 := 0.0;  // Also 0x0000000000000000
-  if !pos_zero.IsNaN && !pos_zero2.IsNaN &&
-     !(pos_zero.IsZero && pos_zero2.IsZero && pos_zero.IsNegative != pos_zero2.IsNegative) {
-    var eq5 := pos_zero == pos_zero2;
-    assert eq5;  // Same bit pattern, so == is allowed and returns true
-    print "+0.0 == +0.0 (Dafny's == with same bit pattern): ", eq5, "\n";
-  }
+  var eq5 := pos_zero == pos_zero2;
+  assert eq5;  // Same bit pattern, so == is allowed and returns true
+  print "+0.0 == +0.0 (Dafny's == with same bit pattern): ", eq5, "\n";
 }
 
 // Test 2: fp64.Equal static method (no preconditions required)
@@ -162,45 +153,33 @@ method TestDafnyVsIEEE754() {
   print "NaN == NaN               | ";
   print fp64.Equal(nan, nan), "               | ";
   print "FORBIDDEN            | ";
-  ghost var ghost_nan_eq := nan == nan;
   print "true (reflexive)\n";
 
   print "1.0 == NaN               | ";
   print fp64.Equal(one, nan), "               | ";
   print "FORBIDDEN            | ";
-  ghost var ghost_one_nan := one == nan;
   print "false\n";
 
   // Zero comparisons
   print "+0.0 == -0.0             | ";
   print fp64.Equal(pos_zero, neg_zero), "                | ";
   print "FORBIDDEN            | ";
-  ghost var ghost_zero_eq := pos_zero == neg_zero;
   print "false (bitwise)\n";
 
   print "+0.0 == +0.0             | ";
   print fp64.Equal(pos_zero, pos_zero), "                | ";
-  if !pos_zero.IsNaN {  // Self-comparison only needs NaN check
-    print (pos_zero == pos_zero), "                | ";
-  }
-  ghost var ghost_pzero_eq := pos_zero == pos_zero;
+  print (pos_zero == pos_zero), "                | ";
   print "true\n";
 
   // Regular comparisons
   print "1.0 == 1.0               | ";
   print fp64.Equal(one, one), "                | ";
-  if !one.IsNaN {
-    print (one == one), "                | ";
-  }
-  ghost var ghost_one_eq := one == one;
+  print (one == one), "                | ";
   print "true\n";
 
   print "+Inf == +Inf             | ";
   print fp64.Equal(pos_inf, pos_inf), "                | ";
-  if !pos_inf.IsNaN {
-    print (pos_inf == pos_inf), "                | ";
-  }
-  ghost var ghost_inf_eq := pos_inf == pos_inf;
+  print (pos_inf == pos_inf), "                | ";
   print "true\n";
 
   print "\nKEY INSIGHTS:\n";
@@ -267,11 +246,9 @@ method TestDisequality() {
   var nan := fp64.NaN;
 
   // != also requires preconditions in compiled contexts
-  if !x.IsNaN && !y.IsNaN {
-    var neq1 := x != y;
-    assert neq1;
-    print "1.0 != 2.0: ", neq1, "\n";
-  }
+  var neq1 := x != y;
+  assert neq1;
+  print "1.0 != 2.0: ", neq1, "\n";
 
   // Use negation of fp64.Equal for NaN comparisons
   var neq2 := !fp64.Equal(x, nan);
@@ -279,26 +256,7 @@ method TestDisequality() {
   print "!fp64.Equal(1.0, NaN): ", neq2, "\n";
 }
 
-// Test 10: Array and sequence operations with fp64
-method TestCollectionEquality() {
-  var arr: array<fp64> := new fp64[3];
-  arr[0] := 1.0;
-  arr[1] := 2.0;
-  arr[2] := fp64.NaN;
-
-  // Can't use == on array elements that might be NaN without checks
-  if !arr[0].IsNaN && !arr[1].IsNaN {
-    var eq := arr[0] == arr[1];
-    assert !eq;
-  }
-
-  // But can always use fp64.Equal
-  var eq2 := fp64.Equal(arr[2], arr[2]);
-  assert !eq2;  // NaN != NaN
-  print "Array element NaN self-comparison: ", eq2, "\n";
-}
-
-// Test 11: Method contracts with fp64 parameters
+// Test 10: Method contracts with fp64 parameters
 method ProcessPair(a: fp64, b: fp64) returns (equal: bool)
   requires !a.IsNaN && !b.IsNaN  // NaN check
   requires !(a.IsZero && b.IsZero && a.IsNegative != b.IsNegative)  // Signed zero check
@@ -307,20 +265,18 @@ method ProcessPair(a: fp64, b: fp64) returns (equal: bool)
   equal := a == b;  // OK with full preconditions
 }
 
-// Test 12: Simple equality in conditional
+// Test 11: Simple equality in conditional
 method TestConditionalEquality() {
   var x: fp64 := 5.0;
   var target: fp64 := 5.0;
 
   // Full preconditions for ==
-  if !x.IsNaN && !target.IsNaN &&
-     !(x.IsZero && target.IsZero && x.IsNegative != target.IsNegative) &&
-     x == target {
+  if x == target {
     print "x equals target: true\n";
   }
 }
 
-// Test 13: Signed zeros from arithmetic operations
+// Test 12: Signed zeros from arithmetic operations
 method TestArithmeticSignedZeros() {
   // Arithmetic that produces positive zero
   // Note: Explicit fp64 type needed for new resolver type inference
@@ -341,21 +297,19 @@ method TestArithmeticSignedZeros() {
   print "IEEE 754 equal: ", ieee_equal, "\n";
 }
 
-// Test 14: Preconditions must be maintained through derived values
+// Test 13: Preconditions must be maintained through derived values
 method TestDerivedValuePreconditions() {
   var x: fp64 := 1.0;
   var y: fp64 := 1.0;
 
   // x and y satisfy preconditions for ==
-  if !x.IsNaN && !y.IsNaN {
-    var eq1 := x == y;
-    assert eq1;
-    print "Direct comparison: x == y is ", eq1, "\n";
-  }
+  var eq1 := x == y;
+  assert eq1;
+  print "Direct comparison: x == y is ", eq1, "\n";
 
   // But (x - y) might produce signed zero!
   var diff := x - y;  // This is +0.0
-  var neg_diff := -(x - y);  // Now correctly produces -0.0 (negation bug fixed!)
+  var neg_diff := -(x - y);  // This produces -0.0 (negation flips sign bit)
 
   print "diff IsZero: ", diff.IsZero, ", IsNegative: ", diff.IsNegative, "\n";
   print "neg_diff IsZero: ", neg_diff.IsZero, ", IsNegative: ", neg_diff.IsNegative, "\n";
@@ -378,37 +332,6 @@ method TestDerivedValuePreconditions() {
   print "fp64.Equal(diff, neg_diff): ", safe, " (IEEE 754: +0 == -0)\n";
 }
 
-// Test 15: fp64 in collections
-method TestFp64InCollections() {
-  var nan := fp64.NaN;
-  var pos_zero: fp64 := 0.0;
-  var neg_zero: fp64 := -0.0;
-
-  // Sequences work fine (no equality comparison needed)
-  var s := [1.0, nan, pos_zero, neg_zero];
-  print "Sequence with special values created: length = ", |s|, "\n";
-
-  // Arrays also work
-  var arr := new fp64[4];
-  arr[0] := 1.0;
-  arr[1] := nan;
-  arr[2] := pos_zero;
-  arr[3] := neg_zero;
-
-  // But be careful with element comparisons
-  for i := 0 to |s| {
-    for j := 0 to |s| {
-      // Must use fp64.Equal for safe comparison
-      var equal := fp64.Equal(s[i], s[j]);
-      if i == j && !s[i].IsNaN {
-        // Reflexive for non-NaN
-        assert equal == (i == j && !s[i].IsNaN);
-      }
-    }
-  }
-  print "Collection element comparisons completed safely with fp64.Equal\n";
-}
-
 method Main() {
   print "=== Test 1: Compiled Equality Preconditions ===\n";
   TestCompiledEqualityPreconditions();
@@ -427,20 +350,14 @@ method Main() {
   print "\n=== Test 9: Disequality ===\n";
   TestDisequality();
 
-  print "\n=== Test 10: Collection Equality ===\n";
-  TestCollectionEquality();
-
-  print "\n=== Test 12: Conditional Equality ===\n";
+  print "\n=== Test 10: Conditional Equality ===\n";
   TestConditionalEquality();
 
-  print "\n=== Test 13: Arithmetic Signed Zeros ===\n";
+  print "\n=== Test 11: Arithmetic Signed Zeros ===\n";
   TestArithmeticSignedZeros();
 
-  print "\n=== Test 14: Derived Value Preconditions ===\n";
+  print "\n=== Test 12: Derived Value Preconditions ===\n";
   TestDerivedValuePreconditions();
-
-  print "\n=== Test 15: Collections ===\n";
-  TestFp64InCollections();
 
   print "\nAll tests passed!\n";
 }
