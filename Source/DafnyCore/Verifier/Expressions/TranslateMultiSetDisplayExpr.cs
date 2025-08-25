@@ -20,7 +20,7 @@ public partial class BoogieGenerator {
       foreach (Expression ee in displayExpr.Elements) {
         var rawElement = TrExpr(ee);
         isLit = isLit && BoogieGenerator.IsLit(rawElement);
-        var ss = BoxIfNecessary(GetToken(displayExpr), rawElement, cce.NonNull(ee.Type));
+        var ss = BoxIfNecessary(GetToken(displayExpr), rawElement, Cce.NonNull(ee.Type));
         result = BoogieGenerator.FunctionCall(GetToken(displayExpr), BuiltinFunction.MultiSetUnionOne, Predef.BoxType, result,
           ss);
       }

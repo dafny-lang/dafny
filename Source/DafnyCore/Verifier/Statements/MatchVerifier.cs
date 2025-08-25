@@ -160,7 +160,7 @@ public class MatchStmtVerifier {
       }
       generator.CheckSubrange(p.Origin, new IdentifierExpr(p.Origin, local), pFormalType, p.Type,
         new Microsoft.Dafny.IdentifierExpr(p.Origin, p), localTypeAssumptions);
-      args.Add(generator.CondApplyBox(mc.Origin, new IdentifierExpr(p.Origin, local), cce.NonNull(p.Type), mc.Ctor.Formals[i].Type));
+      args.Add(generator.CondApplyBox(mc.Origin, new IdentifierExpr(p.Origin, local), Cce.NonNull(p.Type), mc.Ctor.Formals[i].Type));
     }
     IdentifierExpr id = new IdentifierExpr(mc.Origin, mc.Ctor.FullName, generator.Predef.DatatypeType);
     return new NAryExpr(mc.Origin, new FunctionCall(id), args);

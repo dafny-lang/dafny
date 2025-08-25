@@ -456,7 +456,7 @@ public partial class BoogieGenerator {
         break;
       default:
         Contract.Assert(false);
-        throw new cce.UnreachableException(); // unexpected statement
+        throw new Cce.UnreachableException(); // unexpected statement
     }
   }
 

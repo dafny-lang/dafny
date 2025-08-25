@@ -113,8 +113,8 @@ namespace Microsoft.Dafny {
       if (options.PrintFile != null) {
         bplFilename = options.PrintFile;
       } else {
-        string baseName = cce.NonNull(Path.GetFileName(baseFile));
-        baseName = cce.NonNull(Path.ChangeExtension(baseName, "bpl"));
+        string baseName = Cce.NonNull(Path.GetFileName(baseFile));
+        baseName = Cce.NonNull(Path.ChangeExtension(baseName, "bpl"));
         bplFilename = Path.Combine(Path.GetTempPath(), baseName);
       }
 
@@ -179,7 +179,7 @@ namespace Microsoft.Dafny {
 
         case PipelineOutcome.ResolvedAndTypeChecked:
           engine.EliminateDeadVariables(program);
-          engine.CollectModSets(program);
+          engine.CollectModifies(program);
           engine.CoalesceBlocks(program);
           engine.Inline(program);
           var inferAndVerifyOutcome = await engine.InferAndVerify(output, program, stats, programId);
@@ -187,7 +187,7 @@ namespace Microsoft.Dafny {
 
         default:
           Contract.Assert(false);
-          throw new cce.UnreachableException(); // unexpected outcome
+          throw new Cce.UnreachableException(); // unexpected outcome
       }
     }
   }
