@@ -98,7 +98,7 @@ namespace Microsoft.Dafny {
 
     private readonly Target what;
 
-    public override string WhatString => what == Target.Object ? PreType.TypeNameObjectQ : (what == Target.Fp64 ? PreType.TypeNameFp64 : what.ToString().ToLower());
+    public override string WhatString => what == Target.Object ? PreType.TypeNameObjectQ : what.ToString().ToLower();
 
     public CommonAdvice(PreType preType, Target advice)
       : base(preType) {
