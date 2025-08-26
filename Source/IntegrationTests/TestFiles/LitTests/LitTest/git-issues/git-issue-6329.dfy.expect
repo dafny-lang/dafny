@@ -1,0 +1,2 @@
+git-issue-6329.dfy(5,13): Error: Type or type parameter is not declared in this scope: field (did you forget to qualify a name or declare a module import 'opened'?) (note that names in outer modules are not visible in contained modules)
+1 resolution/type errors detected in git-issue-6329.dfy

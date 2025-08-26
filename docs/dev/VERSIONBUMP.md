@@ -23,13 +23,12 @@ verifies that this file is in sync with that script.
 
 Assuming `<TestDirectory>` to be `Source/IntegrationTests/TestFiles/LitTests/LitTest`,
 perform the following:
-* Compile Dafny to ensure you have the right version number.
-* Compile the standard libraries and update their binaries which are checked in
-* Recompile Dafny so that standard libraries are in the executable.
+* Update standard library doo files instead of rebuilding to avoid Z3 timeout issues
 * In the test directory `Source/IntegrationTests/TestFiles/LitTests/LitTest`,
-  * Rebuild `pythonmodule/multimodule/PythonModule1.doo` from `pythonmodule/multimodule/dafnysource/helloworld.dfy`
-  * Rebuild `pythonmodule/nestedmodule/SomeNestedModule.doo` from `pythonmodule/nestedmodule/dafnysource/SomeNestedModule.dfy`
-  * Rebuild `gomodule/multimodule/test.doo` from `gomodule/multimodule/dafnysource/helloworld.dfy`
+* Update test doo files instead of rebuilding
+  * Update `pythonmodule/multimodule/PythonModule1.doo` version
+  * Update `pythonmodule/nestedmodule/SomeNestedModule.doo` version
+  * Update `gomodule/multimodule/test.doo` version
   * Search for `dafny_version = ` in checked-in `.dtr` files of the `<TestDirectory>`
    and update the version number.
     Except for the file NoGood.dtr which is not valid.
