@@ -463,7 +463,7 @@ namespace Microsoft.Dafny.Compilers {
 
       var constructors = iter.Members.OfType<Constructor>().ToList();
 
-      // we're expecting just one constructor 
+      // we're expecting just one constructor
       var enumerable = constructors.ToList();
       Contract.Assert(enumerable.Count == 1);
       Constructor ct = constructors[0];
@@ -2271,14 +2271,17 @@ namespace Microsoft.Dafny.Compilers {
           if (e is DecimalLiteralExpr { ResolvedFloatValue: not null } decLit) {
             // Use exact IEEE 754 value from resolution
             var bigFloat = decLit.ResolvedFloatValue.Value;
-            var decimalStr = bigFloat.ToDecimalString();
-            // C# requires 'd' suffix for double literals
-            wr.Write(decimalStr + "d");
+            var s = "";
+            if (bigFloat.IsInfinity) {
+              s += "double.";
+              s += bigFloat.IsPositive ? "Positive" : "Negative";
+              s += "Infinity";
+            } else {
+              s = bigFloat.ToDecimalString() + 'd';
+            }
+            wr.Write(s);
           } else {
-            // Fallback for programmatically created literals
-            BigFloat.FromBigDec(n, 53, 11, out var fp64Value);
-            var decimalStr = fp64Value.ToDecimalString();
-            wr.Write(decimalStr + "d");
+            Contract.Assert(false, $"fp64 literal without ResolvedFloatValue: {e.Value} (type: {e.GetType().Name})");
           }
         } else if (0 <= n.Exponent) {
           wr.Write("new Dafny.BigRational(BigInteger.Parse(\"{0}", n.Mantissa);
@@ -2702,8 +2705,6 @@ namespace Microsoft.Dafny.Compilers {
           postString = ")";
           break;
         case SpecialField.ID.IsPositive:
-          // SMT-LIB's fp.isPositive: true for +0.0 and positive values, false for -0.0, negative values, and NaN
-          // Use runtime helper method that matches SMT-LIB semantics
           preString = "Dafny.Helpers.Fp64IsPositive(";
           postString = ")";
           break;
@@ -2756,100 +2757,69 @@ namespace Microsoft.Dafny.Compilers {
     protected override void CompileFunctionCallExpr(FunctionCallExpr e, ConcreteSyntaxTree wr, bool inLetExprBody,
         ConcreteSyntaxTree wStmts, FCE_Arg_Translator tr, bool alreadyCoerced = false) {
 
-      if (e.Function is SpecialFunction && e.Function.Name == "Equal" && e.Function.EnclosingClass?.Name == "fp64") {
-        // fp64.Equal: IEEE 754 equality (NaN != NaN)
-        wr.Write("(");
-        tr(e.Args[0], wr, inLetExprBody, wStmts);
-        wr.Write(" == ");
-        tr(e.Args[1], wr, inLetExprBody, wStmts);
-        wr.Write(")");
-      } else if (e.Function is SpecialFunction && e.Function.Name == "FromReal" && e.Function.EnclosingClass?.Name == "fp64") {
-        // fp64.FromReal: inexact real to double conversion
-        wr.Write("(");
-        tr(e.Args[0], wr, inLetExprBody, wStmts);
-        wr.Write(").ToDouble()");
-      } else if (e.Function is SpecialFunction && e.Function.Name == "ToInt" && e.Function.EnclosingClass?.Name == "fp64") {
-        // fp64.ToInt: truncating fp64 to int
-        wr.Write("((System.Numerics.BigInteger)Math.Truncate(");
-        tr(e.Args[0], wr, inLetExprBody, wStmts);
-        wr.Write("))");
-      } else if (e.Function is SpecialFunction && e.Function.Name == "Min" && e.Function.EnclosingClass?.Name == "fp64") {
-        // fp64.Min
-        wr.Write("Math.Min(");
-        tr(e.Args[0], wr, inLetExprBody, wStmts);
-        wr.Write(", ");
-        tr(e.Args[1], wr, inLetExprBody, wStmts);
-        wr.Write(")");
-      } else if (e.Function is SpecialFunction && e.Function.Name == "Max" && e.Function.EnclosingClass?.Name == "fp64") {
-        // fp64.Max
-        wr.Write("Math.Max(");
-        tr(e.Args[0], wr, inLetExprBody, wStmts);
-        wr.Write(", ");
-        tr(e.Args[1], wr, inLetExprBody, wStmts);
-        wr.Write(")");
-      } else if (e.Function is SpecialFunction && e.Function.Name == "Abs" && e.Function.EnclosingClass?.Name == "fp64") {
-        // fp64.Abs
-        wr.Write("Math.Abs(");
-        tr(e.Args[0], wr, inLetExprBody, wStmts);
-        wr.Write(")");
-      } else if (e.Function is SpecialFunction && e.Function.Name == "Floor" && e.Function.EnclosingClass?.Name == "fp64") {
-        // fp64.Floor
-        wr.Write("Math.Floor(");
-        tr(e.Args[0], wr, inLetExprBody, wStmts);
-        wr.Write(")");
-      } else if (e.Function is SpecialFunction && e.Function.Name == "Ceiling" && e.Function.EnclosingClass?.Name == "fp64") {
-        // fp64.Ceiling
-        wr.Write("Math.Ceiling(");
-        tr(e.Args[0], wr, inLetExprBody, wStmts);
-        wr.Write(")");
-      } else if (e.Function is SpecialFunction && e.Function.Name == "Round" && e.Function.EnclosingClass?.Name == "fp64") {
-        // fp64.Round: banker's rounding
-        wr.Write("Math.Round(");
-        tr(e.Args[0], wr, inLetExprBody, wStmts);
-        wr.Write(", MidpointRounding.ToEven)");
-      } else if (e.Function is SpecialFunction && e.Function.Name == "Sqrt" && e.Function.EnclosingClass?.Name == "fp64") {
-        // fp64.Sqrt
-        wr.Write("Math.Sqrt(");
-        tr(e.Args[0], wr, inLetExprBody, wStmts);
-        wr.Write(")");
-      } else {
-        // fp64 static special fields
-        if (e.Function.EnclosingClass?.Name == "fp64" && e.Args.Count == 0) {
-          switch (e.Function.Name) {
-            case "NaN":
-              wr.Write("double.NaN");
-              return;
-            case "PositiveInfinity":
-              wr.Write("double.PositiveInfinity");
-              return;
-            case "NegativeInfinity":
-              wr.Write("double.NegativeInfinity");
-              return;
-            case "Pi":
-              wr.Write("Math.PI");
-              return;
-            case "E":
-              wr.Write("Math.E");
-              return;
-            case "MaxValue":
-              wr.Write("double.MaxValue");
-              return;
-            case "MinValue":
-              wr.Write("double.MinValue");
-              return;
-            case "MinNormal":
-              wr.Write("2.2250738585072014e-308");
-              return;
-            case "MinSubnormal":
-              wr.Write("double.Epsilon");
-              return;
-            case "Epsilon":
-              wr.Write("Math.Pow(2, -52)");
-              return;
-          }
+      // Handle fp64 special functions
+      if (e.Function is SpecialFunction && e.Function.EnclosingClass?.Name == "fp64") {
+        switch (e.Function.Name) {
+          case "Equal":
+            wr.Write("(");
+            tr(e.Args[0], wr, inLetExprBody, wStmts);
+            wr.Write(" == ");
+            tr(e.Args[1], wr, inLetExprBody, wStmts);
+            wr.Write(")");
+            return;
+          case "FromReal":
+            wr.Write("(");
+            tr(e.Args[0], wr, inLetExprBody, wStmts);
+            wr.Write(").ToDouble()");
+            return;
+          case "ToInt":
+            wr.Write("((System.Numerics.BigInteger)Math.Truncate(");
+            tr(e.Args[0], wr, inLetExprBody, wStmts);
+            wr.Write("))");
+            return;
+          case "Min":
+            wr.Write("Math.Min(");
+            tr(e.Args[0], wr, inLetExprBody, wStmts);
+            wr.Write(", ");
+            tr(e.Args[1], wr, inLetExprBody, wStmts);
+            wr.Write(")");
+            return;
+          case "Max":
+            wr.Write("Math.Max(");
+            tr(e.Args[0], wr, inLetExprBody, wStmts);
+            wr.Write(", ");
+            tr(e.Args[1], wr, inLetExprBody, wStmts);
+            wr.Write(")");
+            return;
+          case "Abs":
+            wr.Write("Math.Abs(");
+            tr(e.Args[0], wr, inLetExprBody, wStmts);
+            wr.Write(")");
+            return;
+          case "Floor":
+            wr.Write("Math.Floor(");
+            tr(e.Args[0], wr, inLetExprBody, wStmts);
+            wr.Write(")");
+            return;
+          case "Ceiling":
+            wr.Write("Math.Ceiling(");
+            tr(e.Args[0], wr, inLetExprBody, wStmts);
+            wr.Write(")");
+            return;
+          case "Round":
+            wr.Write("Math.Round(");
+            tr(e.Args[0], wr, inLetExprBody, wStmts);
+            wr.Write(", MidpointRounding.ToEven)");
+            return;
+          case "Sqrt":
+            wr.Write("Math.Sqrt(");
+            tr(e.Args[0], wr, inLetExprBody, wStmts);
+            wr.Write(")");
+            return;
         }
-        base.CompileFunctionCallExpr(e, wr, inLetExprBody, wStmts, tr, alreadyCoerced);
       }
+
+      base.CompileFunctionCallExpr(e, wr, inLetExprBody, wStmts, tr, alreadyCoerced);
     }
 
     protected override ILvalue EmitMemberSelect(Action<ConcreteSyntaxTree> obj, Type objType, MemberDecl member, List<TypeArgumentInstantiation> typeArgs, Dictionary<TypeParameter, Type> typeMap,

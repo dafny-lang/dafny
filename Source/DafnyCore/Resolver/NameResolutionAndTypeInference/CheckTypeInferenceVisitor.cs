@@ -150,7 +150,17 @@ class CheckTypeInferenceVisitor : ASTVisitor<TypeInferenceCheckingContext> {
             };
             resolved = negZeroLiteral;
           } else {
-            resolved = new LiteralExpr(e.Origin, -d);
+            // For fp64 types, preserve ResolvedFloatValue when creating negative literal
+            if (e.Type.IsFp64Type && lit is DecimalLiteralExpr decLit && decLit.ResolvedFloatValue != null) {
+              var negatedFloat = -decLit.ResolvedFloatValue.Value;
+              var negDecLiteral = new DecimalLiteralExpr(e.Origin, -d) {
+                Type = e.Type,
+                ResolvedFloatValue = negatedFloat
+              };
+              resolved = negDecLiteral;
+            } else {
+              resolved = new LiteralExpr(e.Origin, -d);
+            }
           }
         } else if (e.E.Type.IsNumericBased(Type.NumericPersuasion.Int)) {
           var n = (BigInteger)lit.Value;
