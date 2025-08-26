@@ -106,14 +106,11 @@ namespace Microsoft.Dafny.Compilers {
                 // Special handling for static special fields (like fp64.NaN)
                 if (field.IsStatic && field is SpecialField && preStr != "") {
                   // GetSpecialFieldInfo already provided the complete reference in preStr
-                  // so we don't need to write anything else
                 } else {
                   void WriteObj(ConcreteSyntaxTree w) {
                     if (field.IsStatic) {
-                      // For static fields, write the companion class instead of the object
                       w.Write("{0}", TypeName_Companion(e.Obj.Type, w, e.Origin, field));
                     } else {
-                      // For instance fields, write the object
                       w = EmitCoercionIfNecessary(e.Obj.Type, UserDefinedType.UpcastToMemberEnclosingType(e.Obj.Type, e.Member),
                         e.Origin, w);
                       TrParenExpr(e.Obj, w, inLetExprBody, wStmts);
@@ -312,9 +309,7 @@ namespace Microsoft.Dafny.Compilers {
             var toType = GetRuntimeType(e.ToType);
             Contract.Assert(Options.Get(CommonOptionBag.GeneralTraits) != CommonOptionBag.GeneralTraitsOptions.Legacy ||
                             toType.IsRefType == fromType.IsRefType ||
-                            (fromType.IsTypeParameter && toType.IsTraitType) ||
-                            (fromType is RealType && toType.IsFp64Type) ||
-                            (fromType.IsFp64Type && toType is RealType));
+                            (fromType.IsTypeParameter && toType.IsTraitType));
             if (toType.IsRefType || toType.IsTraitType || fromType.IsTraitType) {
               var w = EmitCoercionIfNecessary(e.E.Type, e.ToType, e.Origin, wr);
               w = EmitDowncastIfNecessary(e.E.Type, e.ToType, e.Origin, w);

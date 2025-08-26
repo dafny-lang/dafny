@@ -2710,43 +2710,33 @@ namespace Microsoft.Dafny.Compilers {
           break;
         case SpecialField.ID.NaN:
           preString = "double.NaN";
-          postString = "";
           break;
         case SpecialField.ID.PositiveInfinity:
           preString = "double.PositiveInfinity";
-          postString = "";
           break;
         case SpecialField.ID.NegativeInfinity:
           preString = "double.NegativeInfinity";
-          postString = "";
           break;
         case SpecialField.ID.Pi:
           preString = "Math.PI";
-          postString = "";
           break;
         case SpecialField.ID.E:
           preString = "Math.E";
-          postString = "";
           break;
         case SpecialField.ID.MaxValue:
           preString = "double.MaxValue";
-          postString = "";
           break;
         case SpecialField.ID.MinValue:
           preString = "double.MinValue";
-          postString = "";
           break;
         case SpecialField.ID.MinNormal:
           preString = "2.2250738585072014e-308";
-          postString = "";
           break;
         case SpecialField.ID.MinSubnormal:
           preString = "double.Epsilon";
-          postString = "";
           break;
         case SpecialField.ID.Epsilon:
           preString = "Math.Pow(2, -52)";
-          postString = "";
           break;
         default:
           Contract.Assert(false); // unexpected ID
