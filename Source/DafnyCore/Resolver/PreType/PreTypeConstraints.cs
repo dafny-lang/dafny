@@ -22,7 +22,7 @@ namespace Microsoft.Dafny {
   /// </summary>
   public class PreTypeConstraints {
     public readonly PreTypeResolver PreTypeResolver;
-    public readonly DafnyOptions Options;
+    private readonly DafnyOptions options;
 
     private List<SubtypeConstraint> unnormalizedSubtypeConstraints = [];
     private Queue<EqualityConstraint> equalityConstraints = new();
@@ -33,9 +33,8 @@ namespace Microsoft.Dafny {
 
     public PreTypeConstraints(PreTypeResolver preTypeResolver) {
       this.PreTypeResolver = preTypeResolver;
-      this.Options = preTypeResolver.resolver.Options;
+      this.options = preTypeResolver.resolver.Options;
     }
-
 
     /// <summary>
     /// Try to find the receiver pre-type that corresponds to "preType".
@@ -210,7 +209,7 @@ namespace Microsoft.Dafny {
     }
 
     public void PrintTypeInferenceState(string/*?*/ header = null) {
-      if (!Options.Get(CommonOptionBag.NewTypeInferenceDebug)) {
+      if (!options.Get(CommonOptionBag.NewTypeInferenceDebug)) {
         return;
       }
 
@@ -222,11 +221,11 @@ namespace Microsoft.Dafny {
       stringWriter.WriteLine($"    Guarded constraints: {guardedConstraints.Count}");
       PrintList(stringWriter, "Default-type advice", defaultAdvice, advice => $"{advice.PreType} ~-~-> {advice.WhatString}");
       PrintList(stringWriter, "Post-inference confirmations", confirmations, confirmationInfo => confirmationInfo.DebugInformation());
-      Options.OutputWriter.Debug(stringWriter.ToString());
+      options.OutputWriter.Debug(stringWriter.ToString());
     }
 
     void PrintLegend() {
-      if (!Options.Get(CommonOptionBag.NewTypeInferenceDebug)) {
+      if (!options.Get(CommonOptionBag.NewTypeInferenceDebug)) {
         return;
       }
       var sw = new StringWriter();
@@ -234,11 +233,11 @@ namespace Microsoft.Dafny {
         var s = Pad($"?{pair.Item1.UniqueId}", 4) + pair.Item1;
         return pair.Item2 == null ? s : $"{Pad(s, 20)}  {pair.Item2}";
       });
-      Options.OutputWriter.Debug(sw.ToString());
+      options.OutputWriter.Debug(sw.ToString());
     }
 
     void PrintList<T>(TextWriter writer, string rubric, IEnumerable<T> list, Func<T, string> formatter) {
-      if (!Options.Get(CommonOptionBag.NewTypeInferenceDebug)) {
+      if (!options.Get(CommonOptionBag.NewTypeInferenceDebug)) {
         return;
       }
       writer.WriteLine($"    {rubric}:");
@@ -758,7 +757,7 @@ namespace Microsoft.Dafny {
           switch (familyDeclName) {
             case PreType.TypeNameInt:
             case PreType.TypeNameReal:
-            case "fp64":
+            case PreType.TypeNameFp64:
             case PreType.TypeNameORDINAL:
             case PreType.TypeNameChar:
             case PreType.TypeNameSet:
@@ -890,8 +889,8 @@ namespace Microsoft.Dafny {
     }
 
     public void DebugPrint(string message) {
-      if (Options.Get(CommonOptionBag.NewTypeInferenceDebug)) {
-        Options.OutputWriter.Debug(message);
+      if (options.Get(CommonOptionBag.NewTypeInferenceDebug)) {
+        options.OutputWriter.Debug(message);
       }
     }
   }
