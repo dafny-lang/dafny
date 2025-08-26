@@ -65,7 +65,7 @@ public class StmtExpr : Expression, ICanFormat, ICloneable<StmtExpr> {
       case CalcStmt stmt:
         return stmt.Result;
       case ForallStmt:
-        return CreateBoolLiteral(Origin, true);  // conservative approximation
+        return CreateBoolLiteral(Origin, true);  // one could wrap a `forall` expression around the `ensures` clause, but "true" is conservative and much simpler :)
       case HideRevealStmt:
         return CreateBoolLiteral(Origin, true);  // one could use the definition axiom or the referenced labeled assertions, but "true" is conservative and much simpler :)
       case AssignStatement:

@@ -1005,7 +1005,7 @@ namespace Microsoft.Dafny {
         return new CalcStmt.TernaryCalcOp(Substitute(((CalcStmt.TernaryCalcOp)op).Index));
       } else {
         Contract.Assert(false);
-        throw new Cce.UnreachableException();
+        throw new Cce.UnreachableException();  // to please compiler
       }
     }
 

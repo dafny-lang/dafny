@@ -667,7 +667,7 @@ namespace Microsoft.Dafny.Compilers {
           break;
         default:
           Contract.Assert(false);  // unexpected native type
-          throw new Cce.UnreachableException();
+          throw new Cce.UnreachableException();  // to please the compiler
       }
     }
 
