@@ -67,13 +67,13 @@ public class StmtExpr : Expression, ICanFormat, ICloneable<StmtExpr> {
       case ForallStmt:
         return CreateBoolLiteral(Origin, true);  // conservative approximation
       case HideRevealStmt:
-        return CreateBoolLiteral(Origin, true);  // conservative approximation
+        return CreateBoolLiteral(Origin, true);  // one could use the definition axiom or the referenced labeled assertions, but "true" is conservative and much simpler :)
       case AssignStatement:
-        return CreateBoolLiteral(Origin, true);  // conservative approximation
+        return CreateBoolLiteral(Origin, true);  // one could use the postcondition of the method, suitably instantiated, but "true" is conservative and much simpler :)
       case BlockByProofStmt stmt:
         return GetStatementConclusion(stmt.Body);
       default:
-        Contract.Assert(false); throw new Cce.UnreachableException();
+        Contract.Assert(false); throw new Cce.UnreachableException();  // unexpected statement
     }
   }
 

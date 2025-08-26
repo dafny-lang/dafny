@@ -433,7 +433,7 @@ namespace Microsoft.Dafny {
       }
 
       Contract.Assert(false);
-      throw new Cce.UnreachableException();
+      throw new Cce.UnreachableException(); // unexpected statement TODO, make all statements inherit from ICloneable.
     }
 
     public MatchCaseStmt CloneMatchCaseStmt(MatchCaseStmt c) {

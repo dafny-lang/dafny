@@ -1822,11 +1822,11 @@ namespace Dafny {
       const ulong exptMask = 0x7FF0000000000000;
       const ulong mantMask = 0x000FFFFFFFFFFFFF;
       const int mantBits = 52;
-      var bits = BitConverter.ToUInt64(BitConverter.GetBytes(n), 0);
+      ulong bits = BitConverter.ToUInt64(BitConverter.GetBytes(n), 0);
 
       // Generic conversion
-      var isNeg = (bits & signMask) != 0;
-      var expt = ((int)((bits & exptMask) >> mantBits)) - exptBias;
+      bool isNeg = (bits & signMask) != 0;
+      int expt = ((int)((bits & exptMask) >> mantBits)) - exptBias;
       var mant = (bits & mantMask);
 
       if (expt == -exptBias && mant != 0) {
@@ -2086,8 +2086,8 @@ namespace Dafny {
     }
     public int CompareTo(BigRational that) {
       // simple things first
-      var asign = this.num.Sign;
-      var bsign = that.num.Sign;
+      int asign = this.num.Sign;
+      int bsign = that.num.Sign;
       if (asign < 0 && 0 <= bsign) {
         return -1;
       } else if (asign <= 0 && 0 < bsign) {

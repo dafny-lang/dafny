@@ -353,7 +353,7 @@ public abstract class Type : NodeWithOrigin {
   public enum NumericPersuasion { Int, Real }
   [System.Diagnostics.Contracts.Pure]
   public bool IsNumericBased(NumericPersuasion p) {
-    var t = this;
+    Type t = this;
     while (true) {
       t = t.NormalizeExpand();
       if (t.IsIntegerType) {
