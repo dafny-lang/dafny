@@ -1741,7 +1741,7 @@ namespace Microsoft.Dafny {
       } else if (name == "fp64") {
         // Special handling for fp64 (on-demand initialization)
         resolver.ProgramResolver.SystemModuleManager.EnsureFp64TypeInitialized(resolver.ProgramResolver);
-        var fp64Decl = resolver.ProgramResolver.SystemModuleManager.valuetypeDecls[4];
+        var fp64Decl = resolver.ProgramResolver.SystemModuleManager.valuetypeDecls[(int)ValuetypeVariety.Fp64];
 
         // Add to moduleInfo.TopLevels for future lookups
         if (!resolver.moduleInfo.TopLevels.ContainsKey("fp64")) {

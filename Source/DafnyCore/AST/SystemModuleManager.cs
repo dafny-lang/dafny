@@ -521,7 +521,7 @@ public class SystemModuleManager {
   // Add fp64 static special values
   private void AddFp64SpecialValues() {
     var fp64Type = new Fp64Type();
-    var fp64TypeDecl = valuetypeDecls[4];
+    var fp64TypeDecl = valuetypeDecls[(int)ValuetypeVariety.Fp64];
 
     var nanConst = new StaticSpecialField(SourceOrigin.NoToken, "NaN", SpecialField.ID.NaN, null,
       false, false, false, fp64Type, null);
