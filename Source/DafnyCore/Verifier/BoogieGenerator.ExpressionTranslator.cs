@@ -1269,12 +1269,9 @@ namespace Microsoft.Dafny {
           }
         }
 
-        {
-          bool argsAreLitDummy;
-          var args = FunctionInvocationArguments(expr, null, null, true, out argsAreLitDummy);
-          var id = new Boogie.IdentifierExpr(GetToken(expr), expr.Function.FullSanitizedName, BoogieGenerator.TrType(expr.Type));
-          return new Boogie.NAryExpr(GetToken(expr), new Boogie.FunctionCall(id), args);
-        }
+        var args = FunctionInvocationArguments(expr, null, null, true, out _);
+        var id = new Bpl.IdentifierExpr(GetToken(expr), expr.Function.FullSanitizedName, BoogieGenerator.TrType(expr.Type));
+        return new NAryExpr(GetToken(expr), new FunctionCall(id), args);
       }
       public Expr TrToFunctionCall(Boogie.IToken tok, string function, Boogie.Type returnType, Boogie.Expr e0, Boogie.Expr e1, bool liftLit) {
         Boogie.Expr re = FunctionCall(tok, function, returnType, e0, e1);
