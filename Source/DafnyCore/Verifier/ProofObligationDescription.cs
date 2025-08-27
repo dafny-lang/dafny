@@ -981,7 +981,7 @@ public class Modifiable : ProofObligationDescription {
     $"{description} is in the enclosing context's modifies clause";
 
   public override string FailureDescription =>
-    $"modified field could not be proved to be in the current modifies clause";
+    $"modified {description} could not be proved to be in the current modifies clause";
 
   public override string ShortDescription => "modifiable";
 
