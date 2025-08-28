@@ -18,6 +18,13 @@ build-binary:
 build-binary-rs:
 	$(DAFNY) build -t:lib --hidden-no-verify=$(NO_VERIFY) --enforce-determinism --reads-clauses-on-methods \
 		src/Std/Wrappers.dfy \
+		src/Std/Collections/*.dfy \
+		src/Std/Relations.dfy \
+		src/Std/Functions.dfy \
+		src/Std/Math.dfy \
+		src/Std/BoundedInts.dfy \
+		src/Std/DynamicArray.dfy \
+		src/Std/Unicode/UnicodeBase.dfy \
 		`find src/Std/TargetSpecific -name '*-rs*.dfy' | grep -v FileIO5 | grep -v Concurrent | sort` \
 		--output:build/DafnyStandardLibraries-rs.doo
 
