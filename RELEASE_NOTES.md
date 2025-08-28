@@ -2,6 +2,88 @@
 
 See [docs/dev/news/](docs/dev/news/).
 
+# 4.11.0
+
+## New features
+
+- Stabilize verifications by automatically computing triggers for the quantified proof obligations associated with `:|` constructs.
+  Manually specified triggers and warning-suppressing attributes are also supported (and mentioned in warning messages, as for other quantifiers and comprehensions).
+
+  Enhance witness guessing for the proof obligation associated for `:|` assignments.
+  (https://github.com/dafny-lang/dafny/pull/6023)
+
+- Four new Dafny standard libraries:
+
+  * `Std.Actions` - utilities for abstract imperative actions, including enumerating and streaming values
+  * `Std.Frames` - utilities related to working with dynamic framing, often related to reads and modifies clauses
+  * `Std.Ordinal` - operations and properties of the ORDINAL type
+  * `Std.Termination` - a datatype for representing Dafny decreases clauses and extensions
+  (https://github.com/dafny-lang/dafny/pull/6074)
+
+- Support using `--standard-libraries` with `--enforce-determinism`. Removed `Std.Collections.Seq.SetToSeq` since it was slow and not compatible with this mode. (https://github.com/dafny-lang/dafny/pull/6137)
+
+- With `--standard-libraries` you can now read an UTF-8 text files from the disk using `Std.FileIO.ReadUTF8FromFile(path: string): Result<string, string>`.
+  To write some content to the disk, use `Std.FileIO.WriteUTF8ToFile(path: string, content: string): Outcome<string>`.
+  **Standard library breaking change**: All `UnicodeEncodingForm` versions of `FromUTF8Checked`, `FromUTF16Checked` and `DecodeCodeUnitSequenceChecked` now return a `Result` instead of an `Option` so that the error message is clearer. Migration is easy: Use `.ToOption()` if you really prefer an option. Affected refining modules: `Utf8EncodingForm` and `Utf16EncodingForm`
+  (https://github.com/dafny-lang/dafny/pull/6198)
+
+- The Dafny standard libraries now include a powerful parser combinators framework, available through `Std.Parsers.StringBuilders`. 
+
+  Key Features
+
+  - **Guaranteed Termination**: All parsers, including those built with recursive combinators, are proven to terminate
+  - **Mutual Recursion Support**: Build complex parsers that can reference each other (demonstrated in the Polynomial example)
+  - **Rich Error Reporting**: Failed parsing attempts combine their error messages to provide meaningful feedback
+  - **Developer-Friendly Tools**: Built-in debugging utilities for inspecting parser inputs and outputs
+  - **Memory-Efficient Recursion**: Advanced implementations avoid stack overflow in recursive parsers
+  - **Elegant DSL**: Compact, datatype-based combinators designed for readability and composition
+  - **Flexible Backtracking**: Optional backtracking available through `.??()` (DSL) or `?(...)` (standard syntax)
+  - **Comprehensive Toolkit**: Rich set of combinators including lookahead, negation, folding, and binding operations
+  - The library includes several practical examples, including JSON and SMT parsers, each implemented in about 50 lines of code.
+  (https://github.com/dafny-lang/dafny/pull/6243)
+
+- Dafny classes and traits can now redeclare methods defined by traits they inherit from. (https://github.com/dafny-lang/dafny/pull/6280)
+
+- Real literals now support scientific notation using lowercase `e` to denote the exponent (like `1.23e5` for `123000.0` or `5e-2` for `0.05`). Real literals also support convenient trailing-dot shorthand (like `1.` for `1.0`) and leading-dot shorthand (like `.5` for `0.5` or `.5e2` for `50.0`). Note that explicit `+` signs in exponents are not supported; use `5e2` instead of `5e+2`. (https://github.com/dafny-lang/dafny/pull/6286)
+
+## Bug fixes
+
+- Fix soundness issue that could occur when using an opaque block and old or fresh in its ensures clause (https://github.com/dafny-lang/dafny/pull/6060)
+
+- Correctly display project files errors when using build command (https://github.com/dafny-lang/dafny/pull/6107)
+
+- Fix crash that could occur when a `forall` statement was used inside a `match` `case` (https://github.com/dafny-lang/dafny/pull/6121)
+
+- Fix a case where a forall statement would cause Dafny to crash (https://github.com/dafny-lang/dafny/pull/6129)
+
+- Fix @VerifyOnly and migrated the new code to use it (https://github.com/dafny-lang/dafny/pull/6146)
+
+- Java lambdas now accepting boxing/unboxing (https://github.com/dafny-lang/dafny/pull/6149)
+
+- Fix crash in resolution of structural-inclusion greater-than operator (https://github.com/dafny-lang/dafny/pull/6155)
+
+- Generate alloc consequence axiom only for functions that read the heap (fixes unsoundness) (https://github.com/dafny-lang/dafny/pull/6164)
+
+- Made the language server compliant with the LSP protocol so that it can be used with other editors, such as Helix (https://github.com/dafny-lang/dafny/pull/6172)
+
+- No more compilation issue when using bitvector shifts in Rust with the new resolver (https://github.com/dafny-lang/dafny/pull/6196)
+
+- Fix handling of opaque blocks in the Dafny IDE (https://github.com/dafny-lang/dafny/pull/6203)
+
+- JSON serialization now properly encodes unicode characters with 0 pre-pend instead of space-append.
+  Also, string literals ending with escaped characters are now supported as well.
+  (https://github.com/dafny-lang/dafny/pull/6227)
+
+- Fail more gracefully when reusing names (https://github.com/dafny-lang/dafny/pull/6262)
+
+- Escape user string literals in error messages (https://github.com/dafny-lang/dafny/pull/6273)
+
+- Compilation of type conversion from a `newtype`-based on `char` to `int` (https://github.com/dafny-lang/dafny/pull/6296)
+
+- Fix LSP bug that cause IDE exceptions during invalid parse states (https://github.com/dafny-lang/dafny/pull/6299)
+
+- Fix two resolver crashes involving datatypes and traits (https://github.com/dafny-lang/dafny/pull/6321)
+
 # 4.10.0
 
 ## New features
