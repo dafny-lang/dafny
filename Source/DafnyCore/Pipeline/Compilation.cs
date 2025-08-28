@@ -200,8 +200,8 @@ public class Compilation : IDisposable {
       if (Options.CompilerName != "rs") {
         await foreach (var file in DafnyFile.CreateAndValidate(fileSystem, errorReporter, Options,
                          DafnyMain.StandardLibrariesDooUri, Project.StartingToken, asLibrary)) {
-        result.Add(file);
-      }
+          result.Add(file);
+        }
       }
     }
 

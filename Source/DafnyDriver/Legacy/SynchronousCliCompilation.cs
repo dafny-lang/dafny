@@ -223,7 +223,8 @@ namespace Microsoft.Dafny {
         }
 
         options.CliRootSourceUris.Add(DafnyMain.StandardLibrariesDooUri);
-        // For Rust, use only the target-specific library to avoid ORDINAL issues
+        // Rust uses only target-specific library (DafnyStandardLibraries-rs.doo) because
+        // the full standard library contains ORDINAL types that are incompatible with Rust compilation
         if (options.CompilerName != "rs") {
           await foreach (var targetAgnosticFile in DafnyFile.CreateAndValidate(OnDiskFileSystem.Instance, reporter, options, DafnyMain.StandardLibrariesDooUri, Token.Cli, asLibrary)) {
             dafnyFiles.Add(targetAgnosticFile);
