@@ -3,8 +3,6 @@
  *  SPDX-License-Identifier: MIT
  *******************************************************************************/
 
-include "Wrappers.dfy"
-
 module Std.FileIO {
   import opened Wrappers
   import FileIOInternalExterns
@@ -33,20 +31,17 @@ module Std.FileIO {
   {
     var bytesResult := ReadBytesFromFile(path);
     match bytesResult {
-      case Success(bytes) =>
-        // Simple conversion from bytes to string (assuming UTF-8)
+      case {:split false} Success(bytes) =>
         var chars := seq(|bytes|, i requires 0 <= i < |bytes| => bytes[i] as char);
         res := Success(chars);
-      case Failure(error) =>
+      case {:split false} Failure(error) =>
         res := Failure(error);
     }
   }
 
   method WriteUTF8ToFile(path: string, content: string) returns (res: Result<(), string>)
   {
-    // Simple conversion from string to bytes (only works for ASCII)
-    var bytes := seq(|content|, i requires 0 <= i < |content| => 
-      if content[i] as int <= 255 then content[i] as bv8 else 63 as bv8); // Use '?' for non-ASCII
+    var bytes := seq(|content|, i requires 0 <= i < |content| => if content[i] as int <= 255 then content[i] as bv8 else 63 as bv8);
     res := WriteBytesToFile(path, bytes);
   }
 }

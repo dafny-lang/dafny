@@ -1,5 +1,4 @@
-include "DafnyStandardLibraries-rs.dfy"
-
+// Simple test file
 method Main() {
   print "Hello World\n";
 }
