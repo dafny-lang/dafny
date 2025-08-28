@@ -68,7 +68,7 @@ test-js:
 	TARGETLANG=js make -C src/Std/TargetSpecific test
 
 test-rs:
-	$(DAFNY) test $(VERIFY_OPTIONS) -t:rs examples/dfyconfig.toml --output:build/stdlibexamples
+	$(DAFNY) test $(VERIFY_OPTIONS) -t:rs examples-rs/dfyconfig.toml --enforce-determinism --output:build/stdlibexamples
 
 test: test-cs test-java test-go test-py test-js test-rs
 
