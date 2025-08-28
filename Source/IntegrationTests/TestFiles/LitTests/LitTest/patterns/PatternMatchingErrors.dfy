@@ -53,7 +53,7 @@ function GetNat(dt: Dt): nat {
   case Make(y) => y
 }
 
-// postcondition might not hold on this return path (in least lemma)
+// could not prove postcondition on this return path (in least lemma)
 
 datatype cmd = Inc | Seq(cmd, cmd) | Repeat(cmd)
 type state = int
@@ -90,7 +90,7 @@ least lemma BadMonotonic1(c: cmd, s: state, t: state)
 }
 
 
-// postcondition might not hold on this return path (in method)
+// could not prove postcondition on this return path (in method)
 
 method PostTest(xs: List<int>) returns (r: int)
   ensures r == 0

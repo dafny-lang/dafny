@@ -26,12 +26,12 @@ ReadsOnMethods.dfy(411,13): Error: insufficient reads clause to read field; Cons
 ReadsOnMethods.dfy(413,4): Error: insufficient reads clause to read field; Consider adding 'reads b' or 'reads b`x' in the enclosing method specification for resolution
 ReadsOnMethods.dfy(427,10): Error: insufficient reads clause to read array element; Consider adding 'reads a' in the enclosing method specification for resolution
 ReadsOnMethods.dfy(436,10): Error: insufficient reads clause to read array element; Consider adding 'reads a' in the enclosing method specification for resolution
-ReadsOnMethods.dfy(469,9): Error: method might read an object not in the parent trait context's reads clause
+ReadsOnMethods.dfy(469,9): Error: accessed object in method could not be proved to be in the parent trait's reads clause
 ReadsOnMethods.dfy(479,26): Error: insufficient reads clause to call
 ReadsOnMethods.dfy(484,24): Error: insufficient reads clause to call
 ReadsOnMethods.dfy(494,35): Error: insufficient reads clause to call
 ReadsOnMethods.dfy(499,18): Error: insufficient reads clause to invoke function
-ReadsOnMethods.dfy(505,14): Error: assertion might not hold
+ReadsOnMethods.dfy(505,14): Error: assertion could not be proved
 ReadsOnMethods.dfy(516,11): Related location: this proposition could not be proved
 ReadsOnMethods.dfy(523,13): Error: insufficient reads clause to read field; Consider adding 'reads b' or 'reads b`x' in the enclosing method specification for resolution
 ReadsOnMethods.dfy(530,50): Error: insufficient reads clause to read field; Mutable fields cannot be accessed within certain scopes, such as default values, the right-hand side of constants, or co-recursive calls

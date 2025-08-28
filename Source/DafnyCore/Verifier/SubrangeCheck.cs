@@ -24,7 +24,7 @@ public class SubrangeCheck : ProofObligationDescription {
     isSubset
       ? $"{prefix}value does not satisfy the subset constraints of '{targetType}'"
       : $"{prefix}value of expression (of type '{sourceType}') is not known to be an instance of type '{targetType}'" +
-        (isCertain ? ", because it might be null" : "");
+        (isCertain ? ", because it could not be proved to be non-null" : "");
 
   private readonly string prefix;
   private readonly string sourceType;

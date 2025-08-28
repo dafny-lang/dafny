@@ -1,5 +1,5 @@
 git-issue-4055.dfy(12,11): Warning: Assertion with {:only} temporarily transforms other assertions into assumptions
-git-issue-4055.dfy(7,2): Error: assertion might not hold
-git-issue-4055.dfy(18,2): Error: assertion might not hold
+git-issue-4055.dfy(7,2): Error: assertion could not be proved
+git-issue-4055.dfy(18,2): Error: assertion could not be proved
 
 Dafny program verifier finished with 1 verified, 2 errors

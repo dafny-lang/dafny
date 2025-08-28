@@ -1,4 +1,4 @@
-LambdaEq.dfy(10,2): Error: assertion might not hold
-LambdaEq.dfy(17,2): Error: assertion might not hold
+LambdaEq.dfy(10,2): Error: assertion could not be proved
+LambdaEq.dfy(17,2): Error: assertion could not be proved
 
 Dafny program verifier finished with 0 verified, 2 errors

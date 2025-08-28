@@ -1,22 +1,22 @@
-Basics.dfy(13,13): Error: variable 'g', which is subject to definite-assignment rules, might be uninitialized here
-Basics.dfy(45,4): Error: assertion might not hold
-Basics.dfy(69,41): Error: assertion might not hold
-Basics.dfy(93,4): Error: assertion might not hold
-Basics.dfy(99,4): Error: assertion might not hold
-Basics.dfy(112,27): Error: target object might be null
-Basics.dfy(114,13): Error: target object might be null
-Basics.dfy(148,4): Error: assertion might not hold
-Basics.dfy(167,9): Error: when left-hand sides a[b[18]] and a[4] refer to the same location, they must be assigned the same value
-Basics.dfy(183,9): Error: when left-hand sides x.f and y.f refer to the same location, they must be assigned the same value
-Basics.dfy(195,4): Error: assertion might not hold
-Basics.dfy(197,9): Error: assignment might update an object not in the enclosing context's modifies clause
-Basics.dfy(197,9): Error: target object might be null
-Basics.dfy(202,11): Error: left-hand sides m.x and m.x might refer to the same location
-Basics.dfy(213,4): Error: assertion might not hold
-Basics.dfy(273,9): Error: when left-hand sides d.x and c.x refer to the same location, they must be assigned the same value
-Basics.dfy(463,2): Error: assertion might not hold
-Basics.dfy(474,4): Error: assertion might not hold
-Basics.dfy(476,2): Error: assertion might not hold
-Basics.dfy(623,17): Error: result of operation might violate newtype constraint for 'int8'
+Basics.dfy(13,13): Error: variable 'g', which is subject to definite-assignment rules, could not be proved to be initialized here
+Basics.dfy(45,4): Error: assertion could not be proved
+Basics.dfy(69,41): Error: assertion could not be proved
+Basics.dfy(93,4): Error: assertion could not be proved
+Basics.dfy(99,4): Error: assertion could not be proved
+Basics.dfy(112,27): Error: target object could not be proved to be non-null
+Basics.dfy(114,13): Error: target object could not be proved to be non-null
+Basics.dfy(148,4): Error: assertion could not be proved
+Basics.dfy(167,9): Error: when left-hand sides a[b[18]] and a[4] could not be proved to refer to different locations, they must be assigned the same value
+Basics.dfy(183,9): Error: when left-hand sides x.f and y.f could not be proved to refer to different locations, they must be assigned the same value
+Basics.dfy(195,4): Error: assertion could not be proved
+Basics.dfy(197,9): Error: modified field could not be proved to be in the current modifies clause
+Basics.dfy(197,9): Error: target object could not be proved to be non-null
+Basics.dfy(202,11): Error: left-hand sides m.x and m.x could not be proved to refer to different locations
+Basics.dfy(213,4): Error: assertion could not be proved
+Basics.dfy(273,9): Error: when left-hand sides d.x and c.x could not be proved to refer to different locations, they must be assigned the same value
+Basics.dfy(463,2): Error: assertion could not be proved
+Basics.dfy(474,4): Error: assertion could not be proved
+Basics.dfy(476,2): Error: assertion could not be proved
+Basics.dfy(623,17): Error: result of operation could not be proved to satisfy newtype constraint for 'int8'
 
 Dafny program verifier finished with 53 verified, 20 errors

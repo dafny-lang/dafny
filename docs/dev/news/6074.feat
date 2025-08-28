@@ -1,6 +1,0 @@
-Four new Dafny standard libraries:
-
-* `Std.Actions` - utilities for abstract imperative actions, including enumerating and streaming values
-* `Std.Frames` - utilities related to working with dynamic framing, often related to reads and modifies clauses
-* `Std.Ordinal` - operations and properties of the ORDINAL type
-* `Std.Termination` - a datatype for representing Dafny decreases clauses and extensions

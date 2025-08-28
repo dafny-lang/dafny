@@ -10,56 +10,56 @@ SmallTests.dfy(548,4): Warning: Could not find a trigger for this quantifier. Wi
 SmallTests.dfy(34,11): Error: index out of range
 SmallTests.dfy(65,35): Error: possible division by zero
 SmallTests.dfy(66,50): Error: possible division by zero
-SmallTests.dfy(67,21): Error: target object might be null
-SmallTests.dfy(86,23): Error: target object might be null
-SmallTests.dfy(120,5): Error: call might violate context's modifies clause
-SmallTests.dfy(132,9): Error: call might violate context's modifies clause
-SmallTests.dfy(134,9): Error: call might violate context's modifies clause
-SmallTests.dfy(174,8): Error: assignment might update an object field not in the enclosing context's modifies clause
-SmallTests.dfy(196,18): Error: assertion might not hold
-SmallTests.dfy(197,18): Error: assertion might not hold
-SmallTests.dfy(199,18): Error: assertion might not hold
-SmallTests.dfy(209,18): Error: assertion might not hold
-SmallTests.dfy(211,18): Error: assertion might not hold
-SmallTests.dfy(212,23): Error: assertion might not hold
-SmallTests.dfy(214,23): Error: assertion might not hold
-SmallTests.dfy(223,18): Error: assertion might not hold
-SmallTests.dfy(225,23): Error: assertion might not hold
-SmallTests.dfy(236,18): Error: assertion might not hold
-SmallTests.dfy(239,18): Error: assertion might not hold
-SmallTests.dfy(240,23): Error: assertion might not hold
-SmallTests.dfy(243,23): Error: assertion might not hold
-SmallTests.dfy(253,18): Error: assertion might not hold
-SmallTests.dfy(255,23): Error: assertion might not hold
+SmallTests.dfy(67,21): Error: target object could not be proved to be non-null
+SmallTests.dfy(86,23): Error: target object could not be proved to be non-null
+SmallTests.dfy(120,5): Error: modified object in call could not be proved to be in the current modifies clause
+SmallTests.dfy(132,9): Error: modified object in call could not be proved to be in the current modifies clause
+SmallTests.dfy(134,9): Error: modified object in call could not be proved to be in the current modifies clause
+SmallTests.dfy(174,8): Error: modified field could not be proved to be in the current modifies clause
+SmallTests.dfy(196,18): Error: assertion could not be proved
+SmallTests.dfy(197,18): Error: assertion could not be proved
+SmallTests.dfy(199,18): Error: assertion could not be proved
+SmallTests.dfy(209,18): Error: assertion could not be proved
+SmallTests.dfy(211,18): Error: assertion could not be proved
+SmallTests.dfy(212,23): Error: assertion could not be proved
+SmallTests.dfy(214,23): Error: assertion could not be proved
+SmallTests.dfy(223,18): Error: assertion could not be proved
+SmallTests.dfy(225,23): Error: assertion could not be proved
+SmallTests.dfy(236,18): Error: assertion could not be proved
+SmallTests.dfy(239,18): Error: assertion could not be proved
+SmallTests.dfy(240,23): Error: assertion could not be proved
+SmallTests.dfy(243,23): Error: assertion could not be proved
+SmallTests.dfy(253,18): Error: assertion could not be proved
+SmallTests.dfy(255,23): Error: assertion could not be proved
 SmallTests.dfy(303,23): Error: a precondition for this call could not be proved
 SmallTests.dfy(281,16): Related location: this is the precondition that could not be proved
 SmallTests.dfy(338,2): Error: a postcondition could not be proved on this return path
 SmallTests.dfy(332,10): Related location: this is the postcondition that could not be proved
-SmallTests.dfy(379,2): Error: assertion might not hold
-SmallTests.dfy(386,2): Error: assertion might not hold
+SmallTests.dfy(379,2): Error: assertion could not be proved
+SmallTests.dfy(386,2): Error: assertion could not be proved
 SmallTests.dfy(396,8): Error: cannot prove termination; try supplying a decreases clause
-SmallTests.dfy(408,4): Error: assertion might not hold
-SmallTests.dfy(418,4): Error: assertion might not hold
+SmallTests.dfy(408,4): Error: assertion could not be proved
+SmallTests.dfy(418,4): Error: assertion could not be proved
 SmallTests.dfy(428,10): Error: cannot prove termination; try supplying a decreases clause
 SmallTests.dfy(445,2): Error: a postcondition could not be proved on this return path
 SmallTests.dfy(443,40): Related location: this is the postcondition that could not be proved
-SmallTests.dfy(604,2): Error: assertion might not hold
-SmallTests.dfy(618,19): Error: left-hand sides n.next and n.next.next might refer to the same location
-SmallTests.dfy(620,14): Error: left-hand sides a[j] and a[i] might refer to the same location
-SmallTests.dfy(627,24): Error: target object might be null
-SmallTests.dfy(640,2): Error: assertion might not hold
+SmallTests.dfy(604,2): Error: assertion could not be proved
+SmallTests.dfy(618,19): Error: left-hand sides n.next and n.next.next could not be proved to refer to different locations
+SmallTests.dfy(620,14): Error: left-hand sides a[j] and a[i] could not be proved to refer to different locations
+SmallTests.dfy(627,24): Error: target object could not be proved to be non-null
+SmallTests.dfy(640,2): Error: assertion could not be proved
 SmallTests.dfy(664,4): Error: cannot establish the existence of LHS values that satisfy the such-that predicate
-SmallTests.dfy(687,2): Error: assertion might not hold
+SmallTests.dfy(687,2): Error: assertion could not be proved
 SmallTests.dfy(701,9): Error: cannot establish the existence of LHS values that satisfy the such-that predicate. Note, no trigger was found for the such-that predicate, which may be the reason the proof failed. To give a trigger explicitly, use the {:trigger} attribute. For more information, see the section on quantifier instantiation rules in the reference manual.
 SmallTests.dfy(703,9): Error: cannot establish the existence of LHS values that satisfy the such-that predicate. Note, no trigger was found for the such-that predicate, which may be the reason the proof failed. To give a trigger explicitly, use the {:trigger} attribute. For more information, see the section on quantifier instantiation rules in the reference manual.
 SmallTests.dfy(716,8): Error: cannot establish the existence of LHS values that satisfy the such-that predicate
-SmallTests.dfy(733,4): Error: assertion might not hold
-SmallTests.dfy(754,6): Error: assertion might not hold
-SmallTests.dfy(757,6): Error: assertion might not hold
-SmallTests.dfy(901,14): Error: target object might be null
-SmallTests.dfy(909,14): Error: target object might be null
-SmallTests.dfy(920,4): Error: assertion might not hold
-SmallTests.dfy(926,4): Error: assertion might not hold
+SmallTests.dfy(733,4): Error: assertion could not be proved
+SmallTests.dfy(754,6): Error: assertion could not be proved
+SmallTests.dfy(757,6): Error: assertion could not be proved
+SmallTests.dfy(901,14): Error: target object could not be proved to be non-null
+SmallTests.dfy(909,14): Error: target object could not be proved to be non-null
+SmallTests.dfy(920,4): Error: assertion could not be proved
+SmallTests.dfy(926,4): Error: assertion could not be proved
 
 Dafny program verifier finished with 56 verified, 50 errors
 SmallTests.dfy.tmp.dprint.dfy(65,23): Warning: The {:verify false} attribute should only be used during development. Consider using a bodyless method together with the {:axiom} attribute instead

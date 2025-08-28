@@ -1,26 +1,26 @@
-LegacyConversions.dfy(14,13): Error: result of operation might violate subset type constraint for 'CharSubset'
-LegacyConversions.dfy(16,13): Error: result of operation might violate subset type constraint for 'MyChar'
-LegacyConversions.dfy(20,13): Error: result of operation might violate subset type constraint for 'MyChar'
-LegacyConversions.dfy(34,14): Error: result of operation might violate subset type constraint for 'NotSpace'
-LegacyConversions.dfy(38,15): Error: result of operation might violate subset type constraint for 'NotSpace'
-LegacyConversions.dfy(40,14): Error: result of operation might violate subset type constraint for 'NotSpace'
-LegacyConversions.dfy(42,14): Error: result of operation might violate subset type constraint for 'NotSpace'
-LegacyConversions.dfy(48,13): Error: result of operation might violate subset type constraint for 'BV'
-LegacyConversions.dfy(48,13): Error: value to be converted might not fit in BV
-LegacyConversions.dfy(50,13): Error: result of operation might violate subset type constraint for 'BV'
-LegacyConversions.dfy(52,13): Error: value to be converted might not fit in BV
-LegacyConversions.dfy(60,13): Error: value to be converted might not fit in bv6
-LegacyConversions.dfy(66,13): Error: result of operation might violate subset type constraint for 'BV'
-LegacyConversions.dfy(66,13): Error: value to be converted might not fit in BV
-LegacyConversions.dfy(70,14): Error: result of operation might violate subset type constraint for 'BV'
-LegacyConversions.dfy(82,13): Error: result of operation might violate subset type constraint for 'BV'
-LegacyConversions.dfy(82,13): Error: value to be converted might not fit in BV
-LegacyConversions.dfy(84,13): Error: result of operation might violate subset type constraint for 'BV'
-LegacyConversions.dfy(84,13): Error: value to be converted might not fit in BV
-LegacyConversions.dfy(90,13): Error: value to be converted might not fit in BV
-LegacyConversions.dfy(92,13): Error: result of operation might violate subset type constraint for 'BV'
-LegacyConversions.dfy(109,16): Error: bit-vector value to be converted might not fit in NotSpace
-LegacyConversions.dfy(109,16): Error: result of operation might violate subset type constraint for 'NotSpace'
-LegacyConversions.dfy(111,16): Error: bit-vector value to be converted might not fit in AnyChar
+LegacyConversions.dfy(14,13): Error: result of operation could not be proved to satisfy subset type constraint for 'CharSubset'
+LegacyConversions.dfy(16,13): Error: result of operation could not be proved to satisfy subset type constraint for 'MyChar'
+LegacyConversions.dfy(20,13): Error: result of operation could not be proved to satisfy subset type constraint for 'MyChar'
+LegacyConversions.dfy(34,14): Error: result of operation could not be proved to satisfy subset type constraint for 'NotSpace'
+LegacyConversions.dfy(38,15): Error: result of operation could not be proved to satisfy subset type constraint for 'NotSpace'
+LegacyConversions.dfy(40,14): Error: result of operation could not be proved to satisfy subset type constraint for 'NotSpace'
+LegacyConversions.dfy(42,14): Error: result of operation could not be proved to satisfy subset type constraint for 'NotSpace'
+LegacyConversions.dfy(48,13): Error: result of operation could not be proved to satisfy subset type constraint for 'BV'
+LegacyConversions.dfy(48,13): Error: value to be converted could not be proved to fit in BV
+LegacyConversions.dfy(50,13): Error: result of operation could not be proved to satisfy subset type constraint for 'BV'
+LegacyConversions.dfy(52,13): Error: value to be converted could not be proved to fit in BV
+LegacyConversions.dfy(60,13): Error: value to be converted could not be proved to fit in bv6
+LegacyConversions.dfy(66,13): Error: result of operation could not be proved to satisfy subset type constraint for 'BV'
+LegacyConversions.dfy(66,13): Error: value to be converted could not be proved to fit in BV
+LegacyConversions.dfy(70,14): Error: result of operation could not be proved to satisfy subset type constraint for 'BV'
+LegacyConversions.dfy(82,13): Error: result of operation could not be proved to satisfy subset type constraint for 'BV'
+LegacyConversions.dfy(82,13): Error: value to be converted could not be proved to fit in BV
+LegacyConversions.dfy(84,13): Error: result of operation could not be proved to satisfy subset type constraint for 'BV'
+LegacyConversions.dfy(84,13): Error: value to be converted could not be proved to fit in BV
+LegacyConversions.dfy(90,13): Error: value to be converted could not be proved to fit in BV
+LegacyConversions.dfy(92,13): Error: result of operation could not be proved to satisfy subset type constraint for 'BV'
+LegacyConversions.dfy(109,16): Error: bit-vector value to be converted could not be proved to fit in NotSpace
+LegacyConversions.dfy(109,16): Error: result of operation could not be proved to satisfy subset type constraint for 'NotSpace'
+LegacyConversions.dfy(111,16): Error: bit-vector value to be converted could not be proved to fit in AnyChar
 
 Dafny program verifier finished with 10 verified, 24 errors

@@ -1,12 +1,12 @@
 BigOrdinals.dfy(18,11): Error: a negative integer cannot be converted to an ORDINAL
-BigOrdinals.dfy(20,11): Error: value to be converted might be bigger than every natural number
-BigOrdinals.dfy(35,4): Error: assertion might not hold
-BigOrdinals.dfy(53,4): Error: assertion might not hold
-BigOrdinals.dfy(64,15): Error: ORDINAL subtraction might underflow a limit ordinal (that is, RHS might be too large)
-BigOrdinals.dfy(66,15): Error: ORDINAL subtraction might underflow a limit ordinal (that is, RHS might be too large)
-BigOrdinals.dfy(68,15): Error: ORDINAL subtraction might underflow a limit ordinal (that is, RHS might be too large)
-BigOrdinals.dfy(73,15): Error: ORDINAL subtraction might underflow a limit ordinal (that is, RHS might be too large)
-BigOrdinals.dfy(88,4): Error: assertion might not hold
+BigOrdinals.dfy(20,11): Error: value to be converted could not be proved to be a natural number
+BigOrdinals.dfy(35,4): Error: assertion could not be proved
+BigOrdinals.dfy(53,4): Error: assertion could not be proved
+BigOrdinals.dfy(64,15): Error: ORDINAL subtraction could not be proved to remain above limit ordinal (that is, RHS could not be proved to be sufficiently small)
+BigOrdinals.dfy(66,15): Error: ORDINAL subtraction could not be proved to remain above limit ordinal (that is, RHS could not be proved to be sufficiently small)
+BigOrdinals.dfy(68,15): Error: ORDINAL subtraction could not be proved to remain above limit ordinal (that is, RHS could not be proved to be sufficiently small)
+BigOrdinals.dfy(73,15): Error: ORDINAL subtraction could not be proved to remain above limit ordinal (that is, RHS could not be proved to be sufficiently small)
+BigOrdinals.dfy(88,4): Error: assertion could not be proved
 BigOrdinals.dfy(113,9): Error: value does not satisfy the subset constraints of 'ConstrainedOrdinal'
 BigOrdinals.dfy(120,9): Error: value does not satisfy the subset constraints of 'ConstrainedOrdinal'
 
