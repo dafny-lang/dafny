@@ -127,6 +127,7 @@ method Main() {
   NewtypeWithMethods.Test();
   TestGhostables(70);
   TestInitializationMethods();
+  TestConstructorsWithTypeParameters();
 }
 
 module Module1 {
@@ -236,4 +237,32 @@ method TestInitializationMethods() {
   c := new HasInitializationMethod.Init(c.data); // should pass in c.data, not (new HasInitializationMethod).data
   
   print c.data, "\n"; // 16
+}
+
+// ---------------------------------------------------
+
+class Cell<X> {
+  var data: X
+  constructor (d: X) {
+    data := d;
+  }
+}
+
+class ConstructorsWithTypeParameters {
+  var b: bool
+  constructor Init<X>(c: Cell<X>, d: Cell<X>) {
+    b := c == d;
+  }
+  constructor <X>(c: Cell<X>, d: Cell<X>) {
+    b := c == d;
+  }
+}
+
+method TestConstructorsWithTypeParameters() {
+  var cell0 := new Cell(100);
+  var cell1 := new Cell(200);
+  
+  var c0 := new ConstructorsWithTypeParameters.Init(cell0, cell1);
+  var c1 := new ConstructorsWithTypeParameters(cell0, cell0);
+  print c0.b, " ", c1.b, "\n"; // false true
 }
