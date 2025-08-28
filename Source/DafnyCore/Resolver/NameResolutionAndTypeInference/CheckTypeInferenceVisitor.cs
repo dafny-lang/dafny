@@ -110,26 +110,6 @@ class CheckTypeInferenceVisitor : ASTVisitor<TypeInferenceCheckingContext> {
     base.PostVisitOneStatement(stmt, context);
   }
 
-  protected override bool VisitOneExpression(Expression expr, TypeInferenceCheckingContext context) {
-    if (expr is ApproximateExpr approx) {
-      // Pre-compute ResolvedFloatValue for any decimal literals inside ApproximateExpr
-      // This marks them as "already processed" so the literal checking will skip them
-      void MarkLiteralsProcessed(Expression e) {
-        if (e is DecimalLiteralExpr decLit && decLit.Type.IsFp64Type && decLit.Value is BigDec decValue) {
-          if (decLit.ResolvedFloatValue == null) {
-            BigFloat.FromBigDec(decValue, 53, 11, out var floatValue);
-            decLit.ResolvedFloatValue = floatValue;
-          }
-        } else if (e is NegationExpression neg) {
-          MarkLiteralsProcessed(neg.E);
-        }
-      }
-      MarkLiteralsProcessed(approx.Expr);
-    }
-    // We need to let ApproximateExpr's subexpressions be visited so NegationExpression gets processed
-    return base.VisitOneExpression(expr, context);
-  }
-
   protected override void PostVisitOneExpression(Expression expr, TypeInferenceCheckingContext context) {
     // Handle NegationExpression first, as ApproximateExpr may depend on it
     if (expr is NegationExpression) {
@@ -191,30 +171,20 @@ class CheckTypeInferenceVisitor : ASTVisitor<TypeInferenceCheckingContext> {
       e.ResolvedExpression = resolved;
     } else if (expr is ApproximateExpr) {
       var e = (ApproximateExpr)expr;
-      // Check if the inner expression is a NegationExpression that has been consolidated
+      // Basic ApproximateExpr handling - just set ResolvedFloatValue if needed
       if (e.Expr is NegationExpression neg && neg.ResolvedExpression != null) {
-        // Point directly to the consolidated literal
         e.ResolvedExpression = neg.ResolvedExpression;
       } else {
-        // Use whatever was set during resolution (might be e.Expr or something else)
         if (e.ResolvedExpression == null) {
           e.ResolvedExpression = e.Expr;
         }
       }
 
-      // Compute and store the fp64 value for any DecimalLiteralExpr we're wrapping
-      // This handles both direct literals and consolidated negations
+      // Set ResolvedFloatValue for fp64 literals without validation
       Expression toCheck = e.ResolvedExpression ?? e.Expr;
       if (toCheck is DecimalLiteralExpr decLit && decLit.Type.IsFp64Type && decLit.ResolvedFloatValue == null) {
         var decValue = (BigDec)decLit.Value;
-        var isExact = BigFloat.FromBigDec(decValue, 53, 11, out var floatValue);
-
-        // Check that ~ is only used on inexact values
-        if (isExact) {
-          resolver.ReportError(ResolutionErrors.ErrorId.r_approximate_prefix_on_exact_fp64_literal, expr.Origin,
-            $"The approximate literal prefix ~ is not allowed on the exactly representable value {decValue}. Remove the ~ prefix.");
-        }
-
+        BigFloat.FromBigDec(decValue, 53, 11, out var floatValue);
         decLit.ResolvedFloatValue = floatValue;
       }
     } else if (expr is LiteralExpr) {
