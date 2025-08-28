@@ -1,6 +1,6 @@
-UnfoldingPerformance.dfy(23,2): Error: assertion might not hold
-UnfoldingPerformance.dfy(30,2): Error: assertion might not hold
-UnfoldingPerformance.dfy(51,2): Error: assertion might not hold
-UnfoldingPerformance.dfy(61,2): Error: assertion might not hold
+UnfoldingPerformance.dfy(23,2): Error: assertion could not be proved
+UnfoldingPerformance.dfy(30,2): Error: assertion could not be proved
+UnfoldingPerformance.dfy(51,2): Error: assertion could not be proved
+UnfoldingPerformance.dfy(61,2): Error: assertion could not be proved
 
 Dafny program verifier finished with 4 verified, 4 errors

@@ -4,8 +4,8 @@ Comprehensions.dfy(24,7): Warning: Could not find a trigger for this quantifier.
 Comprehensions.dfy(25,11): Warning: Could not find a trigger for this quantifier. Without a trigger, the quantifier may cause brittle verification. To silence this warning, add an explicit trigger using the {:trigger} attribute. For more information, see the section on quantifier instantiation rules in the reference manual.
 Comprehensions.dfy(32,11): Warning: Could not find a trigger for this quantifier. Without a trigger, the quantifier may cause brittle verification. To silence this warning, add an explicit trigger using the {:trigger} attribute. For more information, see the section on quantifier instantiation rules in the reference manual.
 Comprehensions.dfy(54,11): Warning: Could not find a trigger for this quantifier. Without a trigger, the quantifier may cause brittle verification. To silence this warning, add an explicit trigger using the {:trigger} attribute. For more information, see the section on quantifier instantiation rules in the reference manual.
-Comprehensions.dfy(12,2): Error: assertion might not hold
-Comprehensions.dfy(78,4): Error: assertion might not hold
+Comprehensions.dfy(12,2): Error: assertion could not be proved
+Comprehensions.dfy(78,4): Error: assertion could not be proved
 Comprehensions.dfy(99,4): Error: insufficient reads clause to invoke the function passed as an argument to the sequence constructor
 Comprehensions.dfy(107,4): Error: insufficient reads clause to invoke the function passed as an argument to the sequence constructor
 Comprehensions.dfy(115,40): Error: insufficient reads clause to read field; Consider extracting x to a local variable before the lambda expression, or adding 'reads this' in the enclosing lambda specification for resolution

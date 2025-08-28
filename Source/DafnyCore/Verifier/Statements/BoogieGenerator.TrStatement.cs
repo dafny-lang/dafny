@@ -767,19 +767,19 @@ public partial class BoogieGenerator {
       var fse = (MemberSelectExpr)lhs;
       obj = etran.TrExpr(fse.Obj);
       F = GetField(fse);
-      description = "an object field";
+      description = "field";
     } else if (lhs is SeqSelectExpr) {
       var sel = (SeqSelectExpr)lhs;
       obj = etran.TrExpr(sel.Seq);
       var idx = etran.TrExpr(sel.E0);
       idx = ConvertExpression(sel.E0.Origin, idx, sel.E0.Type, Type.Int);
       F = FunctionCall(sel.Origin, BuiltinFunction.IndexField, null, idx);
-      description = "an array element";
+      description = "array location";
     } else {
       MultiSelectExpr mse = (MultiSelectExpr)lhs;
       obj = etran.TrExpr(mse.Array);
       F = etran.GetArrayIndexFieldName(mse.Origin, mse.Indices);
-      description = "an array element";
+      description = "array location";
     }
     return description;
   }

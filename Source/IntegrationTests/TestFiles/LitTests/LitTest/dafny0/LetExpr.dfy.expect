@@ -1,18 +1,18 @@
 LetExpr.dfy(45,2): Warning: Could not find a trigger for this quantifier. Without a trigger, the quantifier may cause brittle verification. To silence this warning, add an explicit trigger using the {:trigger} attribute. For more information, see the section on quantifier instantiation rules in the reference manual.
 LetExpr.dfy(206,4): Warning: Could not find a trigger for this quantifier. Without a trigger, the quantifier may cause brittle verification. To silence this warning, add an explicit trigger using the {:trigger} attribute. For more information, see the section on quantifier instantiation rules in the reference manual.
-LetExpr.dfy(9,2): Error: assertion might not hold
-LetExpr.dfy(109,6): Error: assertion might not hold
+LetExpr.dfy(9,2): Error: assertion could not be proved
+LetExpr.dfy(109,6): Error: assertion could not be proved
 LetExpr.dfy(260,42): Error: value of expression (of type 'Tuple<int, bool>') is not known to be an instance of type 'Tuple<nat, bool>'
 LetExpr.dfy(263,18): Error: value does not satisfy the subset constraints of 'nat'
 LetExpr.dfy(265,23): Error: value does not satisfy the subset constraints of 'nat'
 LetExpr.dfy(294,13): Error: RHS is not certain to look like the pattern 'Agnes'
 LetExpr.dfy(312,11): Error: value of expression (of type 'Tuple<Tuple<bool, int>, Tuple<Tuple<int, int>, Tuple<bool, bool>>>') is not known to be an instance of type 'Tuple<Tuple<bool, int>, Tuple<Tuple<int, nat>, Tuple<bool, bool>>>'
-LetExpr.dfy(313,2): Error: assertion might not hold
+LetExpr.dfy(313,2): Error: assertion could not be proved
 LetExpr.dfy(323,11): Error: to be compilable, the value of a let-such-that expression must be uniquely determined
 LetExpr.dfy(340,34): Error: value of expression (of type 'Tuple<int, bool>') is not known to be an instance of type 'Tuple<nat, bool>'
 LetExpr.dfy(344,29): Error: value of expression (of type 'Tuple<int, bool>') is not known to be an instance of type 'Tuple<nat, bool>'
-LetExpr.dfy(390,33): Error: assertion might not hold
-LetExpr.dfy(403,24): Error: assertion might not hold
+LetExpr.dfy(390,33): Error: assertion could not be proved
+LetExpr.dfy(403,24): Error: assertion could not be proved
 
 Dafny program verifier finished with 39 verified, 13 errors
 LetExpr.dfy.tmp.print.dfy(44,2): Warning: Could not find a trigger for this quantifier. Without a trigger, the quantifier may cause brittle verification. To silence this warning, add an explicit trigger using the {:trigger} attribute. For more information, see the section on quantifier instantiation rules in the reference manual.

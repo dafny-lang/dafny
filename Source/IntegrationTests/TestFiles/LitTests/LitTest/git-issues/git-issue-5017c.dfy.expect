@@ -1,4 +1,4 @@
-git-issue-5017c.dfy(33,4): Error: assertion might not hold
-git-issue-5017c.dfy(75,4): Error: assertion might not hold
+git-issue-5017c.dfy(33,4): Error: assertion could not be proved
+git-issue-5017c.dfy(75,4): Error: assertion could not be proved
 
 Dafny program verifier finished with 11 verified, 2 errors

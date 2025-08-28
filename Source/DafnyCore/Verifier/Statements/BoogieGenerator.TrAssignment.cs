@@ -264,7 +264,7 @@ public partial class BoogieGenerator {
         prevObj[i] = obj;
         if (!useSurrogateLocal) {
           // check that the enclosing modifies clause allows this object to be written:  assert $_ModifiesFrame[obj]);
-          var desc = new Modifiable("an object", contextModFrames, fse.Obj, field);
+          var desc = new Modifiable("field", contextModFrames, fse.Obj, field);
           builder.Add(Assert(tok, Bpl.Expr.SelectTok(tok, etran.ModifiesFrame(tok), obj, GetField(fse)), desc, builder.Context));
         }
 
@@ -314,7 +314,7 @@ public partial class BoogieGenerator {
         prevObj[i] = obj;
         prevIndex[i] = fieldName;
         // check that the enclosing modifies clause allows this object to be written:  assert $_Frame[obj,index]);
-        var desc = new Modifiable("an array element", contextModFrames, sel.Seq, null);
+        var desc = new Modifiable("array location", contextModFrames, sel.Seq, null);
         builder.Add(Assert(tok, Bpl.Expr.SelectTok(tok, etran.ModifiesFrame(tok), obj, fieldName), desc, builder.Context));
 
         bLhss.Add(null);
@@ -339,7 +339,7 @@ public partial class BoogieGenerator {
           "$index" + i, Predef.FieldName(mse.Origin), builder, locals);
         prevObj[i] = obj;
         prevIndex[i] = fieldName;
-        var desc = new Modifiable("an array element", contextModFrames, mse.Array, null);
+        var desc = new Modifiable("array location", contextModFrames, mse.Array, null);
         builder.Add(Assert(tok, Bpl.Expr.SelectTok(tok, etran.ModifiesFrame(tok), obj, fieldName), desc, builder.Context));
 
         bLhss.Add(null);
