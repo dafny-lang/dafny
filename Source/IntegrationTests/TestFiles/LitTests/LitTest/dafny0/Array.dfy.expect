@@ -28,7 +28,7 @@ Array.dfy(256:5-256:6): Error: value does not satisfy the subset constraints of 
 Array.dfy(257:12-257:13): Error: value does not satisfy the subset constraints of 'nat'
 Array.dfy(258:6-258:7): Error: value does not satisfy the subset constraints of 'nat'
 Array.dfy(260:4-260:5): Error: value does not satisfy the subset constraints of 'nat'
-Array.dfy(332:4-332:5): Error: modified array location could not be proved to be in the current modifies clause
+Array.dfy(332:4-332:5): Error: modified field could not be proved to be in the current modifies clause
 Array.dfy(338:5-338:6): Error: modified array location could not be proved to be in the current modifies clause
 Array.dfy(353:4-353:10): Error: assertion could not be proved
 Array.dfy(358:17-358:18): Error: left-hand sides that.x and this.x could not be proved to refer to different locations
