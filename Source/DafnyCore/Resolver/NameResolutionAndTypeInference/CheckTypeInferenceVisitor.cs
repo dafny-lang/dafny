@@ -171,13 +171,10 @@ class CheckTypeInferenceVisitor : ASTVisitor<TypeInferenceCheckingContext> {
       e.ResolvedExpression = resolved;
     } else if (expr is ApproximateExpr) {
       var e = (ApproximateExpr)expr;
-      // Basic ApproximateExpr handling - just set ResolvedFloatValue if needed
-      if (e.Expr is NegationExpression neg && neg.ResolvedExpression != null) {
+      if (e.Expr is NegationExpression { ResolvedExpression: not null } neg) {
         e.ResolvedExpression = neg.ResolvedExpression;
       } else {
-        if (e.ResolvedExpression == null) {
-          e.ResolvedExpression = e.Expr;
-        }
+        e.ResolvedExpression ??= e.Expr;
       }
 
       // Set ResolvedFloatValue for fp64 literals without validation
@@ -204,23 +201,11 @@ class CheckTypeInferenceVisitor : ASTVisitor<TypeInferenceCheckingContext> {
         }
       }
 
-      // Check decimal literals assigned to fp64
-      // Note: Literals inside ApproximateExpr will already have ResolvedFloatValue set by the ApproximateExpr case
-      // Here we only check non-approximate literals for exactness
       if (e is DecimalLiteralExpr decimalLiteral && e.Type.IsFp64Type && e.Value is BigDec decValue) {
-        // If ResolvedFloatValue is already set, this literal was processed by ApproximateExpr
-        // and we should skip exactness checking
         if (decimalLiteral.ResolvedFloatValue == null) {
-          // This is a direct literal assignment to fp64, not wrapped in ~
-          // Use BigFloat.FromBigDec to check if the decimal is exactly representable as fp64
-          // fp64 has 53-bit significand and 11-bit exponent
           var isExact = BigFloat.FromBigDec(decValue, 53, 11, out var floatValue);
-
-          // Store the computed BigFloat value for later use
           decimalLiteral.ResolvedFloatValue = floatValue;
-
           if (!isExact) {
-            // Inexact literal without ~ prefix - this is an error
             resolver.ReportError(ResolutionErrors.ErrorId.r_inexact_fp64_literal_without_prefix, e.Origin,
               $"The literal {decValue} is not exactly representable as an fp64 value. " +
               $"Use the approximate literal syntax ~{decValue} to explicitly acknowledge rounding.");
