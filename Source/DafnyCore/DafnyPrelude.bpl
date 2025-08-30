@@ -624,6 +624,8 @@ axiom (forall a,b,c: Heap :: { $HeapSucc(a,b), $HeapSucc(b,c) }
   a != c ==> $HeapSucc(a,b) && $HeapSucc(b,c) ==> $HeapSucc(a,c));
 axiom (forall h: Heap, k: Heap :: { $HeapSucc(h,k) }
   $HeapSucc(h,k) ==> (forall o: ref :: { read(k, o, alloc) } $Unbox(read(h, o, alloc)) ==> $Unbox(read(k, o, alloc))));
+axiom (forall h: Heap :: {$HeapSucc(h, h), $IsGoodHeap(h)}
+  $IsGoodHeap(h) ==> $HeapSucc(h, h));
 
 function $HeapSuccGhost(Heap, Heap): bool;
 
