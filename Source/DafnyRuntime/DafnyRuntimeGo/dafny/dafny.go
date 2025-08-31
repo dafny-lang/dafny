@@ -82,15 +82,34 @@ func (_static *CompanionStruct_Sequence_) EqualUpTo(left Sequence, right Sequenc
 		return true
 	}
 
-	l := left.ToArray().(GoNativeArray).contents
-	r := right.ToArray().(GoNativeArray).contents
-	if IsEqualityComparable(l[0]) {
-		return slices.Equal(l[:index], r[:index])
-	} else {
-		for i := uint32(0); i < index; i++ {
-			if !AreEqual(l[i], r[i]) {
-				return false
+	leftArr, rightArr := left.ToArray(), right.ToArray()
+
+	// Fast path for ByteNativeArray
+	if l, ok := leftArr.(ByteNativeArray); ok {
+		if r, ok := rightArr.(ByteNativeArray); ok {
+			return slices.Equal(l.contents[:index], r.contents[:index])
+		}
+	}
+
+	// Fast path for GoNativeArray (preserve original optimization)
+	if l, ok := leftArr.(GoNativeArray); ok {
+		if r, ok := rightArr.(GoNativeArray); ok {
+			if IsEqualityComparable(l.contents[0]) {
+				return slices.Equal(l.contents[:index], r.contents[:index])
 			}
+			for i := uint32(0); i < index; i++ {
+				if !AreEqual(l.contents[i], r.contents[i]) {
+					return false
+				}
+			}
+			return true
+		}
+	}
+
+	// Generic fallback
+	for i := uint32(0); i < index; i++ {
+		if !AreEqual(leftArr.Select(i), rightArr.Select(i)) {
+			return false
 		}
 	}
 	return true
@@ -531,24 +550,28 @@ var EmptySeq = SeqOf()
 // for the compiler to coerce the init function to a
 // func (uint32) interface{}.
 func SeqCreate(n uint32, init func(Int) interface{}) Sequence {
+	if seq, ok := tryByteSeqInit(n, init); ok {
+		return seq
+	}
 	return Companion_Sequence_.Create(n, func(index uint32) interface{} {
 		return init(IntOfUint32(index))
 	})
 }
 
 func SeqFromArray(contents []interface{}, isString bool) Sequence {
-	arr := GoNativeArray{
-		contents: contents,
+	if seq, ok := tryByteSeq(contents); ok && !isString {
+		return seq
 	}
 	result := New_ArraySequence_()
-	result.Ctor__(arr, isString)
+	result.Ctor__(GoNativeArray{contents: contents}, isString)
 	return result
 }
 
 // SeqOf returns a sequence containing the given values.
 func SeqOf(values ...interface{}) Sequence {
-	// Making a defensive copy here because variadic functions can get hinky
-	// if someone says SeqOf(slice...) and then mutates slice.
+	if seq, ok := tryByteSeq(values); ok {
+		return seq
+	}
 	arr := make([]interface{}, len(values))
 	copy(arr, values)
 	return SeqFromArray(arr, false)
@@ -564,11 +587,7 @@ func SeqOfChars(values ...Char) Sequence {
 }
 
 func SeqOfBytes(values []byte) Sequence {
-	arr := make([]interface{}, len(values))
-	for i, v := range values {
-		arr[i] = v
-	}
-	return SeqFromArray(arr, false)
+	return newByteSeq(values)
 }
 
 // SeqOfString converts the given string into a sequence of characters.
@@ -734,17 +753,72 @@ func (seq *LazySequence) ToByteArray() []byte {
 }
 
 func ToByteArray(x Sequence) []byte {
-	nativeArray := x.ToArray().(GoNativeArray)
-	arr := make([]byte, len(nativeArray.contents))
-	for i, v := range nativeArray.contents {
-		arr[i] = v.(byte)
+	if arr, ok := x.ToArray().(ByteNativeArray); ok {
+		return arr.contents
 	}
-	return arr
+	arr := x.ToArray()
+	result := make([]byte, arr.Length())
+	for i := uint32(0); i < arr.Length(); i++ {
+		result[i] = arr.Select(i).(byte)
+	}
+	return result
 }
 
 /******************************************************************************
  * Arrays
  ******************************************************************************/
+
+// ByteNativeArray - optimized for uint8 sequences
+type ByteNativeArray struct{ contents []byte }
+
+func (a ByteNativeArray) Length() uint32                 { return uint32(len(a.contents)) }
+func (a ByteNativeArray) Select(i uint32) interface{}    { return a.contents[i] }
+func (a ByteNativeArray) Update(i uint32, t interface{}) { a.contents[i] = t.(uint8) }
+func (a ByteNativeArray) UpdateSubarray(i uint32, other ImmutableArray) {
+	for j := uint32(0); j < other.Length(); j++ {
+		a.contents[i+j] = other.Select(j).(uint8)
+	}
+}
+func (a ByteNativeArray) Freeze(size uint32) ImmutableArray { return a.Subarray(0, size) }
+func (a ByteNativeArray) Subarray(lo, hi uint32) ImmutableArray {
+	return ByteNativeArray{contents: a.contents[lo:hi]}
+}
+func (a ByteNativeArray) String() string { return "ByteNativeArray" }
+
+// Helper to create byte sequences
+func newByteSeq(data []byte) Sequence {
+	result := New_ArraySequence_()
+	result.Ctor__(ByteNativeArray{contents: data}, false)
+	return result
+}
+
+// Helper to try creating optimized uint8 sequence from slice
+func tryByteSeq(contents []interface{}) (Sequence, bool) {
+	if len(contents) > 0 {
+		if _, ok := contents[0].(uint8); ok {
+			data := make([]byte, len(contents))
+			for i, v := range contents {
+				data[i] = v.(uint8)
+			}
+			return newByteSeq(data), true
+		}
+	}
+	return nil, false
+}
+
+// Helper to try creating optimized uint8 sequence from init function
+func tryByteSeqInit(n uint32, init func(Int) interface{}) (Sequence, bool) {
+	if n > 0 {
+		if _, ok := init(Zero).(uint8); ok {
+			data := make([]byte, n)
+			for i := uint32(0); i < n; i++ {
+				data[i] = init(IntOfUint32(i)).(uint8)
+			}
+			return newByteSeq(data), true
+		}
+	}
+	return nil, false
+}
 
 // A GoNativeArray is a single dimensional Go slice,
 // wrapped up for the benefit of dafnyRuntime.dfy.
@@ -772,12 +846,11 @@ func (CompanionStruct_NativeArray_) MakeWithInit(length uint32, init func(uint32
 }
 
 func (CompanionStruct_NativeArray_) Copy(other ImmutableArray) NativeArray {
-	otherArray := other.(GoNativeArray)
-	contents := make([]interface{}, otherArray.Length())
-	copy(contents, otherArray.contents)
-	return GoNativeArray{
-		contents: contents,
+	contents := make([]interface{}, other.Length())
+	for i := uint32(0); i < other.Length(); i++ {
+		contents[i] = other.Select(i)
 	}
+	return GoNativeArray{contents: contents}
 }
 
 func (array GoNativeArray) Length() uint32 {
@@ -793,8 +866,9 @@ func (array GoNativeArray) Update(i uint32, t interface{}) {
 }
 
 func (array GoNativeArray) UpdateSubarray(i uint32, other ImmutableArray) {
-	otherArray := other.(GoNativeArray)
-	copy(array.contents[i:(i+otherArray.Length())], otherArray.contents)
+	for j := uint32(0); j < other.Length(); j++ {
+		array.contents[i+j] = other.Select(j)
+	}
 }
 
 func (array GoNativeArray) Freeze(size uint32) ImmutableArray {
