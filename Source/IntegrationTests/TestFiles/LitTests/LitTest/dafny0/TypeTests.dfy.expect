@@ -28,7 +28,6 @@ TypeTests.dfy(180,9): Error: cannot assign to non-ghost variable in a ghost cont
 TypeTests.dfy(198,15): Error: incorrect argument type for datatype constructor parameter (expected int -> Dt<int>, found int -> int) (covariant type parameter 1 would require int <: Dt<int>)
 TypeTests.dfy(204,15): Error: incorrect argument type for datatype constructor parameter (expected ? -> Dt<?>, found Dt<?> -> Dt<?>) (contravariance for type parameter at index 0 expects ? <: Dt<?>)
 TypeTests.dfy(211,11): Error: incorrect argument type for function parameter 'x' (expected ?, found set<?>)
-TypeTests.dfy(222,9): Error: assignment to array element is not allowed in this context, because this is a ghost method
 TypeTests.dfy(229,20): Error: using the type being defined ('A') here would cause a logical inconsistency by defining a type whose cardinality exceeds itself (like the Continuum Transfunctioner, you might say its power would then be exceeded only by its mystery)
 TypeTests.dfy(233,7): Error: recursive constraint dependency involving a subset type: Cyc -> Cycle -> Cyc
 TypeTests.dfy(237,20): Error: using the type being defined ('A') here would cause a logical inconsistency by defining a type whose cardinality exceeds itself (like the Continuum Transfunctioner, you might say its power would then be exceeded only by its mystery)
@@ -45,4 +44,4 @@ TypeTests.dfy(279,11): Warning: because of cyclic dependencies among constructor
 TypeTests.dfy(286,11): Warning: because of cyclic dependencies among constructor argument types, no instances of datatype 'C' can be constructed
 TypeTests.dfy(284,20): Error: using the type being defined ('A') here would cause a logical inconsistency by defining a type whose cardinality exceeds itself (like the Continuum Transfunctioner, you might say its power would then be exceeded only by its mystery)
 TypeTests.dfy(288,20): Error: using the type being defined ('E') here would cause a logical inconsistency by defining a type whose cardinality exceeds itself (like the Continuum Transfunctioner, you might say its power would then be exceeded only by its mystery)
-44 resolution/type errors detected in TypeTests.dfy
+43 resolution/type errors detected in TypeTests.dfy

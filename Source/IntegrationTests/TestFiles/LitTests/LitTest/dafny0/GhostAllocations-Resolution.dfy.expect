@@ -92,23 +92,18 @@ GhostAllocations-Resolution.dfy(545,21): Error: a hint is not allowed to use 'ne
 GhostAllocations-Resolution.dfy(545,31): Error: in a hint, calls are allowed only to lemmas
 GhostAllocations-Resolution.dfy(546,27): Error: a hint is not allowed to use 'new'
 GhostAllocations-Resolution.dfy(546,37): Error: in a hint, calls are allowed only to lemmas
-GhostAllocations-Resolution.dfy(575,11): Error: assignment to array element is not allowed in this context, because the statement is in a ghost context; e.g., it may be guarded by a specification-only expression
-GhostAllocations-Resolution.dfy(577,13): Error: assignment to array element is not allowed in this context, because the statement is in a ghost context; e.g., it may be guarded by a specification-only expression
 GhostAllocations-Resolution.dfy(580,16): Error: assignment to non-ghost field is not allowed in this context, because the statement is in a ghost context; e.g., it may be guarded by a specification-only expression
 GhostAllocations-Resolution.dfy(582,15): Error: assignment to non-ghost field is not allowed in this context, because the statement is in a ghost context; e.g., it may be guarded by a specification-only expression
-GhostAllocations-Resolution.dfy(594,13): Error: assignment to array element is not allowed in this context, because the statement is in a ghost context; e.g., it may be guarded by a specification-only expression
 GhostAllocations-Resolution.dfy(595,8): Error: a hint is not allowed to perform an aggregate heap update
 GhostAllocations-Resolution.dfy(599,18): Error: assignment to non-ghost field is not allowed in this context, because the statement is in a ghost context; e.g., it may be guarded by a specification-only expression
 GhostAllocations-Resolution.dfy(600,8): Error: a hint is not allowed to perform an aggregate heap update
 GhostAllocations-Resolution.dfy(604,13): Error: a hint is not allowed to make heap updates
 GhostAllocations-Resolution.dfy(605,8): Error: a hint is not allowed to perform an aggregate heap update
-GhostAllocations-Resolution.dfy(613,11): Error: assignment to array element is not allowed in this context, because the statement is in a ghost context; e.g., it may be guarded by a specification-only expression
 GhostAllocations-Resolution.dfy(614,6): Error: a by block is not allowed to perform an aggregate heap update
 GhostAllocations-Resolution.dfy(618,16): Error: assignment to non-ghost field is not allowed in this context, because the statement is in a ghost context; e.g., it may be guarded by a specification-only expression
 GhostAllocations-Resolution.dfy(619,6): Error: a by block is not allowed to perform an aggregate heap update
 GhostAllocations-Resolution.dfy(623,11): Error: a by block is not allowed to make heap updates
 GhostAllocations-Resolution.dfy(624,6): Error: a by block is not allowed to perform an aggregate heap update
-GhostAllocations-Resolution.dfy(632,11): Error: assignment to array element is not allowed in this context, because the statement is in a ghost context; e.g., it may be guarded by a specification-only expression
 GhostAllocations-Resolution.dfy(633,6): Error: a forall statement is not allowed to perform an aggregate heap update
 GhostAllocations-Resolution.dfy(637,16): Error: assignment to non-ghost field is not allowed in this context, because the statement is in a ghost context; e.g., it may be guarded by a specification-only expression
 GhostAllocations-Resolution.dfy(638,6): Error: a forall statement is not allowed to perform an aggregate heap update
@@ -128,4 +123,4 @@ GhostAllocations-Resolution.dfy(694,21): Error: in a lemma, calls are allowed on
 GhostAllocations-Resolution.dfy(695,11): Error: a lemma is not allowed to use 'new'
 GhostAllocations-Resolution.dfy(696,11): Error: a lemma is not allowed to use 'new'
 GhostAllocations-Resolution.dfy(697,11): Error: a lemma is not allowed to use 'new'
-125 resolution/type errors detected in GhostAllocations-Resolution.dfy
+118 resolution/type errors detected in GhostAllocations-Resolution.dfy
