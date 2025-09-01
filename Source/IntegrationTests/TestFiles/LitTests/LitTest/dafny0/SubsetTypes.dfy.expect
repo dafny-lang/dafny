@@ -42,8 +42,8 @@ SubsetTypes.dfy(157,25): Error: value of expression (of type 'int ~> int') is no
 SubsetTypes.dfy(159,25): Error: value of expression (of type 'nat ~> int') is not known to be an instance of type 'nat ~> nat'
 SubsetTypes.dfy(169,20): Error: cannot establish the existence of LHS values that satisfy the such-that predicate. Note, no trigger was found for the such-that predicate, which may be the reason the proof failed. To give a trigger explicitly, use the {:trigger} attribute. For more information, see the section on quantifier instantiation rules in the reference manual.
 SubsetTypes.dfy(182,11): Error: value of expression (of type 'int -> int') is not known to be an instance of type 'int ~> nat'
-SubsetTypes.dfy(199,25): Error: value of expression (of type 'Person?') is not known to be an instance of type 'Person', because it might be null
-SubsetTypes.dfy(204,23): Error: value of expression (of type 'Person?') is not known to be an instance of type 'Person', because it might be null
+SubsetTypes.dfy(199,25): Error: value of expression (of type 'Person?') is not known to be an instance of type 'Person', because it could not be proved to be non-null
+SubsetTypes.dfy(204,23): Error: value of expression (of type 'Person?') is not known to be an instance of type 'Person', because it could not be proved to be non-null
 SubsetTypes.dfy(213,11): Error: value of expression (of type 'array<Person>') is not known to be an instance of type 'array<Person?>'
 SubsetTypes.dfy(216,11): Error: value of expression (of type 'array<Person?>') is not known to be an instance of type 'array<Person>'
 SubsetTypes.dfy(232,11): Error: value of expression (of type 'seq<Person?>') is not known to be an instance of type 'seq<Person>'
@@ -61,12 +61,12 @@ SubsetTypes.dfy(287,29): Error: value of expression (of type 'multiset<int>') is
 SubsetTypes.dfy(288,29): Error: value of expression (of type 'map<int, int>') is not known to be an instance of type 'map<byte, byte>'
 SubsetTypes.dfy(318,18): Error: value does not satisfy the subset constraints of 'nat'
 SubsetTypes.dfy(323,20): Error: value does not satisfy the subset constraints of 'nat'
-SubsetTypes.dfy(330,20): Error: result of operation might violate newtype constraint for 'Nat'
-SubsetTypes.dfy(337,20): Error: result of operation might violate newtype constraint for 'Nat'
+SubsetTypes.dfy(330,20): Error: result of operation could not be proved to satisfy newtype constraint for 'Nat'
+SubsetTypes.dfy(337,20): Error: result of operation could not be proved to satisfy newtype constraint for 'Nat'
 SubsetTypes.dfy(342,7): Error: cannot find witness that shows type is inhabited (only tried 0); try giving a hint through a 'witness' or 'ghost witness' clause, or use 'witness *' to treat as a possibly empty type
 SubsetTypes.dfy(343,18): Error: value does not satisfy the subset constraints of 'Nat'
 SubsetTypes.dfy(347,10): Error: cannot find witness that shows type is inhabited (only tried 0); try giving a hint through a 'witness' or 'ghost witness' clause, or use 'witness *' to treat as a possibly empty type
-SubsetTypes.dfy(348,18): Error: result of operation might violate newtype constraint for 'Nat'
+SubsetTypes.dfy(348,18): Error: result of operation could not be proved to satisfy newtype constraint for 'Nat'
 SubsetTypes.dfy(352,7): Error: cannot find witness that shows type is inhabited (only tried 0); try giving a hint through a 'witness' or 'ghost witness' clause, or use 'witness *' to treat as a possibly empty type
 SubsetTypes.dfy(360,21): Error: possible division by zero
 SubsetTypes.dfy(365,23): Error: possible division by zero
@@ -74,7 +74,7 @@ SubsetTypes.dfy(377,19): Error: value does not satisfy the subset constraints of
 SubsetTypes.dfy(379,19): Error: value does not satisfy the subset constraints of 'Y'
 SubsetTypes.dfy(381,19): Error: value does not satisfy the subset constraints of 'Y'
 SubsetTypes.dfy(383,19): Error: value does not satisfy the subset constraints of 'Y'
-SubsetTypes.dfy(385,19): Error: value of expression (of type 'C?') is not known to be an instance of type 'C', because it might be null
+SubsetTypes.dfy(385,19): Error: value of expression (of type 'C?') is not known to be an instance of type 'C', because it could not be proved to be non-null
 SubsetTypes.dfy(390,29): Error: value does not satisfy the subset constraints of 'int --> int' (possible cause: it may have read effects)
 SubsetTypes.dfy(392,28): Error: value does not satisfy the subset constraints of 'int -> int' (possible cause: it may be partial or have read effects)
 SubsetTypes.dfy(394,28): Error: value does not satisfy the subset constraints of 'int -> int' (possible cause: it may be partial or have read effects)
@@ -83,12 +83,12 @@ SubsetTypes.dfy(398,26): Error: value of expression (of type 'int ~> int') is no
 SubsetTypes.dfy(401,9): Error: value does not satisfy the subset constraints of 'nat'
 SubsetTypes.dfy(411,7): Error: cannot find witness that shows type is inhabited (only tried 'D'); try giving a hint through a 'witness' or 'ghost witness' clause, or use 'witness *' to treat as a possibly empty type
 SubsetTypes.dfy(413,7): Error: cannot find witness that shows type is inhabited (only tried 'D'); try giving a hint through a 'witness' or 'ghost witness' clause, or use 'witness *' to treat as a possibly empty type
-SubsetTypes.dfy(429,4): Error: assertion might not hold
-SubsetTypes.dfy(436,6): Error: assertion might not hold
-SubsetTypes.dfy(445,6): Error: assertion might not hold
-SubsetTypes.dfy(452,6): Error: assertion might not hold
-SubsetTypes.dfy(459,6): Error: assertion might not hold
-SubsetTypes.dfy(464,4): Error: assertion might not hold
+SubsetTypes.dfy(429,4): Error: assertion could not be proved
+SubsetTypes.dfy(436,6): Error: assertion could not be proved
+SubsetTypes.dfy(445,6): Error: assertion could not be proved
+SubsetTypes.dfy(452,6): Error: assertion could not be proved
+SubsetTypes.dfy(459,6): Error: assertion could not be proved
+SubsetTypes.dfy(464,4): Error: assertion could not be proved
 
 Dafny program verifier finished with 13 verified, 91 errors
 Total resources used is 738400

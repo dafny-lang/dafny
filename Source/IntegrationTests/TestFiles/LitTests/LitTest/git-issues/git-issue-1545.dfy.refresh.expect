@@ -17,8 +17,8 @@ git-issue-1545.dfy(56,11): Warning: Could not find a trigger for this quantifier
 git-issue-1545.dfy(58,11): Warning: Could not find a trigger for this quantifier. Without a trigger, the quantifier may cause brittle verification. To silence this warning, add an explicit trigger using the {:trigger} attribute. For more information, see the section on quantifier instantiation rules in the reference manual.
 git-issue-1545.dfy(60,11): Warning: Could not find a trigger for this quantifier. Without a trigger, the quantifier may cause brittle verification. To silence this warning, add an explicit trigger using the {:trigger} attribute. For more information, see the section on quantifier instantiation rules in the reference manual.
 git-issue-1545.dfy(62,11): Warning: Could not find a trigger for this quantifier. Without a trigger, the quantifier may cause brittle verification. To silence this warning, add an explicit trigger using the {:trigger} attribute. For more information, see the section on quantifier instantiation rules in the reference manual.
-git-issue-1545.dfy(17,4): Error: assertion might not hold
-git-issue-1545.dfy(19,4): Error: assertion might not hold
-git-issue-1545.dfy(60,4): Error: assertion might not hold
+git-issue-1545.dfy(17,4): Error: assertion could not be proved
+git-issue-1545.dfy(19,4): Error: assertion could not be proved
+git-issue-1545.dfy(60,4): Error: assertion could not be proved
 
 Dafny program verifier finished with 5 verified, 3 errors

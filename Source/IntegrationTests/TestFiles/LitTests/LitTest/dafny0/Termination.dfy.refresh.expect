@@ -1,27 +1,27 @@
 Termination.dfy(108,2): Error: cannot prove termination; try supplying a decreases clause for the loop
-Termination.dfy(125,2): Error: decreases expression might not decrease
+Termination.dfy(125,2): Error: decreases expression could not be proved to decrease
 Termination.dfy(126,16): Error: decreases expression must be bounded below by 0 at end of loop iteration
 Termination.dfy(255,41): Error: cannot prove termination; try supplying a decreases clause
-Termination.dfy(296,2): Error: decreases expression might not decrease
-Termination.dfy(361,47): Error: decreases clause might not decrease
-Termination.dfy(534,2): Error: decreases expression might not decrease
-Termination.dfy(542,2): Error: decreases expression might not decrease
-Termination.dfy(549,2): Error: decreases expression might not decrease
-Termination.dfy(556,2): Error: decreases expression might not decrease
-Termination.dfy(563,2): Error: decreases expression might not decrease
-Termination.dfy(571,2): Error: decreases expression might not decrease
+Termination.dfy(296,2): Error: decreases expression could not be proved to decrease
+Termination.dfy(361,47): Error: decreases clause could not be proved to decrease
+Termination.dfy(534,2): Error: decreases expression could not be proved to decrease
+Termination.dfy(542,2): Error: decreases expression could not be proved to decrease
+Termination.dfy(549,2): Error: decreases expression could not be proved to decrease
+Termination.dfy(556,2): Error: decreases expression could not be proved to decrease
+Termination.dfy(563,2): Error: decreases expression could not be proved to decrease
+Termination.dfy(571,2): Error: decreases expression could not be proved to decrease
 Termination.dfy(577,5): Error: cannot find witness that shows type is inhabited; try giving a hint through a 'witness' or 'ghost witness' clause, or use 'witness *' to treat as a possibly empty type
-Termination.dfy(579,2): Error: decreases expression might not decrease
-Termination.dfy(589,2): Error: decreases expression might not decrease
+Termination.dfy(579,2): Error: decreases expression could not be proved to decrease
+Termination.dfy(589,2): Error: decreases expression could not be proved to decrease
 Termination.dfy(674,2): Error: cannot prove termination; try supplying a decreases clause for the loop
 Termination.dfy(714,2): Error: cannot prove termination; try supplying a decreases clause for the loop
 Termination.dfy(722,2): Error: cannot prove termination; try supplying a decreases clause for the loop
-Termination.dfy(730,2): Error: decreases expression might not decrease
+Termination.dfy(730,2): Error: decreases expression could not be proved to decrease
 Termination.dfy(806,2): Error: cannot prove termination; try supplying a decreases clause for the loop
 Termination.dfy(927,2): Error: cannot prove termination; try supplying a decreases clause for the loop
 Termination.dfy(1182,2): Error: cannot prove termination; try supplying a decreases clause for the loop
 Termination.dfy(1198,2): Error: cannot prove termination; try supplying a decreases clause for the loop
-Termination.dfy(441,5): Error: decreases clause might not decrease
+Termination.dfy(441,5): Error: decreases clause could not be proved to decrease
 Termination.dfy(446,7): Related location: refining module
 
 Dafny program verifier finished with 107 verified, 24 errors

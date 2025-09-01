@@ -1,8 +1,8 @@
-modify-frame-subset.dfy(15,2): Error: modify statement might violate context's modifies clause
+modify-frame-subset.dfy(15,2): Error: modified object in modify statement could not be proved to be in the current modifies clause
  Asserted expression: (s[0] == s[3] || s[0] in {s[4]} || s[0] in {s[5]}) && (forall obj: C | obj in {s[1]} :: obj == s[3] || obj in {s[4]}) && forall obj: C | obj in {s[2]} :: obj == s[3] || obj in {s[5]}
-modify-frame-subset.dfy(24,2): Error: loop modifies clause might violate context's modifies clause
+modify-frame-subset.dfy(24,2): Error: modified object in loop modifies clause could not be proved to be in the current modifies clause
  Asserted expression: (s[0] == s[3] || s[0] in {s[4]} || s[0] in {s[5]}) && (forall obj: C | obj in {s[1]} :: obj == s[3] || obj in {s[4]}) && forall obj: C | obj in {s[2]} :: obj == s[3] || obj in {s[5]}
-modify-frame-subset.dfy(39,8): Error: call might violate context's modifies clause
+modify-frame-subset.dfy(39,8): Error: modified object in call could not be proved to be in the current modifies clause
  Asserted expression: (s[0] == s[3] || s[0] in {s[4]} || s[0] in {s[5]}) && (forall obj: C | obj in {s[1]} :: obj == s[3] || obj in {s[4]}) && forall obj: C | obj in {s[2]} :: obj == s[3] || obj in {s[5]}
 
 Dafny program verifier finished with 4 verified, 3 errors

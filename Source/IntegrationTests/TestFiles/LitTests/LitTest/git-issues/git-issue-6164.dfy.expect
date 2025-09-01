@@ -1,4 +1,4 @@
-git-issue-6164.dfy(29,6): Error: assertion might not hold
-git-issue-6164.dfy(69,6): Error: assertion might not hold
+git-issue-6164.dfy(29,6): Error: assertion could not be proved
+git-issue-6164.dfy(69,6): Error: assertion could not be proved
 
 Dafny program verifier finished with 4 verified, 2 errors

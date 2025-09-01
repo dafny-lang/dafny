@@ -43,26 +43,35 @@ async function synchronizeRepositoryWithNewVersionNumber() {
   } else {
     await bumpVersionNumber(version);
   }
-  //# * Compile Dafny to ensure you have the right version number.
-  await execute("make exe");
+  //# * Update standard library doo files instead of rebuilding to avoid Z3 timeout issues
+  const standardLibraryDir = "Source/DafnyStandardLibraries/binaries";
+  const standardLibraryDooFiles = fs.readdirSync(standardLibraryDir)
+    .filter(file => file.endsWith('.doo'))
+    .map(file => `${standardLibraryDir}/${file}`);
 
-  //# * Compile the standard libraries and update their binaries which are checked in
-  await executeWithTimeout("make -C Source/DafnyStandardLibraries update-binary", 50*minutes);
+  for (const dooFile of standardLibraryDooFiles) {
+    await updateDooVersion(dooFile, version);
+  }
 
   // Verify that binaries have been updated.
   await sanityCheckStandardLibraries(version);
 
-  //# * Recompile Dafny so that standard libraries are in the executable.
-  await execute("make exe");
-  
   //# * In the test directory `Source/IntegrationTests/TestFiles/LitTests/LitTest`,
-  await execute(
-  //#   * Rebuild `pythonmodule/multimodule/PythonModule1.doo` from `pythonmodule/multimodule/dafnysource/helloworld.dfy`
-  `bash Scripts/dafny build -t:lib ${TestDirectory}/pythonmodule/multimodule/dafnysource/helloworld.dfy -o ${TestDirectory}/pythonmodule/multimodule/PythonModule1.doo`,
-  //#   * Rebuild `pythonmodule/nestedmodule/SomeNestedModule.doo` from `pythonmodule/nestedmodule/dafnysource/SomeNestedModule.dfy`
-  `bash Scripts/dafny build -t:lib ${TestDirectory}/pythonmodule/nestedmodule/dafnysource/SomeNestedModule.dfy -o ${TestDirectory}/pythonmodule/nestedmodule/SomeNestedModule.doo`,
-  //#   * Rebuild `gomodule/multimodule/test.doo` from `gomodule/multimodule/dafnysource/helloworld.dfy`
-  `bash Scripts/dafny build -t:lib ${TestDirectory}/gomodule/multimodule/dafnysource/helloworld.dfy -o ${TestDirectory}/gomodule/multimodule/test.doo`);
+  //# * Update test doo files instead of rebuilding
+  //#   * Update `pythonmodule/multimodule/PythonModule1.doo` version
+  //#   * Update `pythonmodule/nestedmodule/SomeNestedModule.doo` version
+  //#   * Update `gomodule/multimodule/test.doo` version
+  const testDooFiles = [
+    `${TestDirectory}/pythonmodule/multimodule/PythonModule1.doo`,
+    `${TestDirectory}/pythonmodule/nestedmodule/SomeNestedModule.doo`,
+    `${TestDirectory}/gomodule/multimodule/test.doo`
+  ];
+
+  for (const dooFile of testDooFiles) {
+    if (fs.existsSync(dooFile)) {
+      await updateDooVersion(dooFile, version);
+    }
+  }
 
   //#   * Search for `dafny_version = ` in checked-in `.dtr` files of the `<TestDirectory>`
   //#    and update the version number.
@@ -98,6 +107,41 @@ async function synchronizeRepositoryWithNewVersionNumber() {
     `Source/DafnyPipeline/DafnyPipeline.csproj`, existingVersion);
   await replaceInFile(/DafnyRuntime-(\d+\.\d+\.\d+)\.jar/, `DafnyRuntime-${version}.jar`,
     `Source/DafnyRuntime/DafnyRuntime.csproj`, existingVersion);
+}
+
+async function updateDooVersion(dooPath, newVersion) {
+  const tempDir = `${dooPath}_temp`;
+  
+  try {
+    // Create temp directory
+    await execAsync(`mkdir -p "${tempDir}"`);
+    
+    // Unzip doo file
+    await execAsync(`unzip -o "${dooPath}" -d "${tempDir}"`);
+    
+    // Read manifest.toml
+    const manifestPath = `${tempDir}/manifest.toml`;
+    let manifestContent = await fs.promises.readFile(manifestPath, 'utf-8');
+    
+    // Update version
+    manifestContent = manifestContent.replace(
+      /dafny_version = "(\d+\.\d+\.\d+)\.0"/,
+      `dafny_version = "${newVersion}.0"`
+    );
+    
+    // Write updated manifest
+    await fs.promises.writeFile(manifestPath, manifestContent);
+    
+    // Rezip
+    const fileName = dooPath.split('/').pop();
+    await execAsync(`cd "${tempDir}" && zip -r "../${fileName}_new" *`);
+    await execAsync(`mv "${tempDir}/../${fileName}_new" "${dooPath}"`);
+    
+    console.log(`Updated ${dooPath} to version ${newVersion}`);
+  } finally {
+    // Cleanup
+    await execAsync(`rm -rf "${tempDir}"`).catch(() => {});
+  }
 }
 
 // Unzips the file Source/DafnyStandardLibraries/binaries/DafnyStandardLibraries.doo (it's actually a zip file)

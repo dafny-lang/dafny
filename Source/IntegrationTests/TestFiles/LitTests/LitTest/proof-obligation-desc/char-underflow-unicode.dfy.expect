@@ -1,4 +1,4 @@
-char-underflow-unicode.dfy(5,7): Error: char subtraction might underflow
+char-underflow-unicode.dfy(5,7): Error: char subtraction could not be proved to remain above minimum
  Asserted expression: (0 <= c0 as int - c1 as int && c0 as int - c1 as int < 55296) || (57344 <= c0 as int - c1 as int && c0 as int - c1 as int < 1114112)
 
 Dafny program verifier finished with 0 verified, 1 error

@@ -246,7 +246,7 @@ namespace Microsoft.Dafny {
       } else if (type is UserDefinedType udt) {
         decl = udt.ResolvedClass;
       } else {
-        Contract.Assert(false); throw new cce.UnreachableException();  // unexpected type
+        Contract.Assert(false); throw new Cce.UnreachableException();  // unexpected type
       }
       return decl;
     }
@@ -1214,7 +1214,7 @@ namespace Microsoft.Dafny {
         }
 
       } else {
-        Contract.Assert(false); throw new cce.UnreachableException();  // unexpected member type
+        Contract.Assert(false); throw new Cce.UnreachableException();  // unexpected member type
       }
     }
 

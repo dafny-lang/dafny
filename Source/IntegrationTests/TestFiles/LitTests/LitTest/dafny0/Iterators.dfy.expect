@@ -1,16 +1,16 @@
 Iterators.dfy(40,21): Error: a precondition for this call could not be proved
 Iterators.dfy(4,9): Related location: this is the precondition that could not be proved
-Iterators.dfy(89,2): Error: assertion might not hold
-Iterators.dfy(103,2): Error: assertion might not hold
-Iterators.dfy(106,2): Error: assertion might not hold
-Iterators.dfy(119,4): Error: assertion might not hold
-Iterators.dfy(150,4): Error: assertion might not hold
+Iterators.dfy(89,2): Error: assertion could not be proved
+Iterators.dfy(103,2): Error: assertion could not be proved
+Iterators.dfy(106,2): Error: assertion could not be proved
+Iterators.dfy(119,4): Error: assertion could not be proved
+Iterators.dfy(150,4): Error: assertion could not be proved
 Iterators.dfy(155,23): Error: a precondition for this call could not be proved
 Iterators.dfy(125,9): Related location: this is the precondition that could not be proved
-Iterators.dfy(177,18): Error: assertion might not hold
+Iterators.dfy(177,18): Error: assertion could not be proved
 Iterators.dfy(208,6): Error: an assignment to _new is only allowed to shrink the set
-Iterators.dfy(212,6): Error: assertion might not hold
-Iterators.dfy(234,6): Error: assertion might not hold
+Iterators.dfy(212,6): Error: assertion could not be proved
+Iterators.dfy(234,6): Error: assertion could not be proved
 Iterators.dfy(413,16): Error: this invariant could not be proved to be maintained by the loop
  Related message: loop invariant violation
 Iterators.dfy(414,21): Error: this invariant could not be proved to be maintained by the loop
@@ -31,14 +31,14 @@ Iterators.dfy(461,21): Error: this invariant could not be proved to be maintaine
  Related message: loop invariant violation
 Iterators.dfy(470,4): Error: possible violation of yield-ensures condition
 Iterators.dfy(451,21): Related location: this is the yield ensures that could not be proved
-Iterators.dfy(251,9): Error: decreases clause might not decrease
-Iterators.dfy(274,9): Error: decreases clause might not decrease
-Iterators.dfy(284,31): Error: decreases clause might not decrease
+Iterators.dfy(251,9): Error: decreases clause could not be proved to decrease
+Iterators.dfy(274,9): Error: decreases clause could not be proved to decrease
+Iterators.dfy(284,31): Error: decreases clause could not be proved to decrease
 Iterators.dfy(296,9): Error: cannot prove termination; try supplying a decreases clause
 Iterators.dfy(317,9): Error: cannot prove termination; try supplying a decreases clause
 Iterators.dfy(326,31): Error: cannot prove termination; try supplying a decreases clause
-Iterators.dfy(343,9): Error: decreases clause might not decrease
+Iterators.dfy(343,9): Error: decreases clause could not be proved to decrease
 Iterators.dfy(353,31): Error: cannot prove termination; try supplying a decreases clause
-Iterators.dfy(370,9): Error: decreases clause might not decrease
+Iterators.dfy(370,9): Error: decreases clause could not be proved to decrease
 
 Dafny program verifier finished with 35 verified, 30 errors

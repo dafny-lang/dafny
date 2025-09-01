@@ -117,7 +117,7 @@ namespace Microsoft.Dafny {
         Target.Real => preTypeResolver.Type2PreType(Type.Real),
         Target.String => preTypeResolver.Type2PreType(StringDecl()),
         Target.Object => preTypeResolver.Type2PreType(preTypeResolver.resolver.SystemModuleManager.ObjectQ()),
-        _ => throw new cce.UnreachableException() // unexpected case
+        _ => throw new Cce.UnreachableException() // unexpected case
       };
       return target;
     }

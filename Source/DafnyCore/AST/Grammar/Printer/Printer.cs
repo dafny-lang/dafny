@@ -748,7 +748,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
           }
           state = 2;
         } else {
-          Contract.Assert(false); throw new cce.UnreachableException();  // unexpected member
+          Contract.Assert(false); throw new Cce.UnreachableException();  // unexpected member
         }
       }
     }
@@ -817,7 +817,7 @@ NoGhost - disable printing of functions, ghost methods, and proof
           return "-";
         default:
           Contract.Assert(false);  // unexpected VarianceSyntax
-          throw new cce.UnreachableException();
+          throw new Cce.UnreachableException();
       }
     }
 
