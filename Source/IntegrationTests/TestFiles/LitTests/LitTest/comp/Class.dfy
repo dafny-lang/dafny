@@ -127,6 +127,7 @@ method Main() {
   NewtypeWithMethods.Test();
   TestGhostables(70);
   TestInitializationMethods();
+  ConstructorsWithTypeParameters.Test();
 }
 
 module Module1 {
@@ -236,4 +237,36 @@ method TestInitializationMethods() {
   c := new HasInitializationMethod.Init(c.data); // should pass in c.data, not (new HasInitializationMethod).data
   
   print c.data, "\n"; // 16
+}
+
+// ---------------------------------------------------
+
+module ConstructorsWithTypeParameters {
+  class Cell<X> {
+    var data: X
+    constructor (d: X) {
+      data := d;
+    }
+  }
+
+  class MyClass {
+    var b: bool
+    constructor Init<X>(c: Cell<X>, d: Cell<X>) {
+      b := c == d;
+    }
+    constructor <X>(c: Cell<X>, d: Cell<X>) {
+      b := c == d;
+    }
+  }
+
+  method Test() {
+    var cell0 := new Cell(100);
+    var cell1 := new Cell<int>(200); // here, the type argument is for the class
+
+    var c0 := new MyClass.Init(cell0, cell1);
+    var c1 := new MyClass.Init<int>(cell1, cell1); // here, the type argument is for the constructor
+    var c2 := new MyClass(cell0, cell0);
+    // but syntax does not allow explicit type parameter with anonymous constructor:  new MyClass<int>(cell0, cell0)
+    print c0.b, " ", c1.b, " ", c2.b, "\n"; // false true true
+  }
 }

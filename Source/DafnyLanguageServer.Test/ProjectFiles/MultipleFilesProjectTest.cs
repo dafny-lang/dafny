@@ -72,7 +72,7 @@ method Bar() {
 
     var diagnostics1 = await GetLastDiagnostics(consumer);
     Assert.Single(diagnostics1);
-    Assert.Contains("assertion might not hold", diagnostics1.First().Message);
+    Assert.Contains("assertion could not be proved", diagnostics1.First().Message);
     await AssertNoDiagnosticsAreComing(CancellationToken);
     Directory.Delete(directory, true);
   }
@@ -111,9 +111,9 @@ method Bar() {
     var producerDiagnostics = await GetLastDiagnostics(producer);
 
     Assert.Single(consumerDiagnostics);
-    Assert.Contains("assertion might not hold", consumerDiagnostics.First().Message);
+    Assert.Contains("assertion could not be proved", consumerDiagnostics.First().Message);
     Assert.Single(producerDiagnostics);
-    Assert.Contains("assertion might not hold", producerDiagnostics.First().Message);
+    Assert.Contains("assertion could not be proved", producerDiagnostics.First().Message);
     Directory.Delete(directory, true);
   }
 

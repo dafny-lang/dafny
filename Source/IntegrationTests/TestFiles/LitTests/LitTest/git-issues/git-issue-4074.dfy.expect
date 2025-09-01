@@ -2,8 +2,8 @@ git-issue-4074.dfy(23,11): Warning: Members with @VerifyOnly temporarily disable
 git-issue-4074.dfy(4,9): Warning: Members with @VerifyOnly temporarily disable the verification of other members in the entire file
 git-issue-4074.dfy(4,14): Warning: @VerifyOnly on members does not support arguments
 git-issue-4074.dfy(13,11): Warning: Members with @VerifyOnly temporarily disable the verification of other members in the entire file
-git-issue-4074.dfy(5,2): Error: assertion might not hold
-git-issue-4074.dfy(14,4): Error: assertion might not hold
-git-issue-4074.dfy(24,4): Error: assertion might not hold
+git-issue-4074.dfy(5,2): Error: assertion could not be proved
+git-issue-4074.dfy(14,4): Error: assertion could not be proved
+git-issue-4074.dfy(24,4): Error: assertion could not be proved
 
 Dafny program verifier finished with 0 verified, 3 errors

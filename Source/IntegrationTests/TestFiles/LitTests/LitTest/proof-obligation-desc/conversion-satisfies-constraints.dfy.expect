@@ -1,4 +1,4 @@
-conversion-satisfies-constraints.dfy(8,6): Error: result of operation might violate newtype constraint for 'uint8'
+conversion-satisfies-constraints.dfy(8,6): Error: result of operation could not be proved to satisfy newtype constraint for 'uint8'
  Asserted expression: 0 <= i && i < 256
 
 Dafny program verifier finished with 1 verified, 1 error
