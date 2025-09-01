@@ -1,4 +1,4 @@
-// RUN: %run %s &> "%t"
+// RUN: %verify %s &> "%t"
 // RUN: %diff "%s.expect" "%t"
 
 ghost method foo(arr: array<int>) 
