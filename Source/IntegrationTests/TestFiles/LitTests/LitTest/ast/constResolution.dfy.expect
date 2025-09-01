@@ -1,3 +1,3 @@
-constResolution.dfy(4,5): Error: recursive constraint dependency involving a subset type: LessThanTwoHundred -> twoHundred_2 -> LessThanTwoHundred
-constResolution.dfy(8,5): Error: recursive constraint dependency involving a subset type: LessThanHundredNinetyNine -> hundredNinetyNine -> twoHundred -> LessThanHundredNinetyNine
+constResolution.dfy(7,5): Error: recursive constraint dependency involving a subset type: LessThanTwoHundred -> twoHundred -> LessThanTwoHundred
+constResolution.dfy(11,5): Error: recursive constraint dependency involving a subset type: LessThanHundredNinetyNine -> hundredNinetyNine -> twoHundred_2 -> LessThanHundredNinetyNine
 2 resolution/type errors detected in constResolution.dfy
