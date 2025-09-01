@@ -295,7 +295,7 @@ namespace Microsoft.Dafny.Compilers {
     const string DafnyTypeDescriptor = "Dafny.TypeDescriptor";
 
     internal string TypeParameters(List<TypeParameter>/*?*/ targs, bool addVariance = false, bool uniqueNames = false) {
-      Contract.Requires(targs == null || cce.NonNullElements(targs));
+      Contract.Requires(targs == null || Cce.NonNullElements(targs));
       Contract.Ensures(Contract.Result<string>() != null);
 
       if (targs == null || targs.Count == 0) {
@@ -1386,7 +1386,7 @@ namespace Microsoft.Dafny.Compilers {
           break;
         default:
           Contract.Assert(false); // unexpected native type
-          throw new cce.UnreachableException(); // to please the compiler
+          throw new Cce.UnreachableException(); // to please the compiler
       }
     }
 
@@ -1444,7 +1444,7 @@ namespace Microsoft.Dafny.Compilers {
       }
 
       public void InitializeField(Field field, Type instantiatedFieldType, TopLevelDeclWithMembers enclosingClass) {
-        throw new cce.UnreachableException(); // InitializeField should be called only for those compilers that set ClassesRedeclareInheritedFields to false.
+        throw new Cce.UnreachableException(); // InitializeField should be called only for those compilers that set ClassesRedeclareInheritedFields to false.
       }
 
       public ConcreteSyntaxTree /*?*/ ErrorWriter() => InstanceMemberWriter;
@@ -1633,7 +1633,7 @@ namespace Microsoft.Dafny.Compilers {
         Type ranType = ((MapType)xType).Range;
         return DafnyIMap + "<" + TypeName(domType, wr, tok) + "," + TypeName(ranType, wr, tok) + ">";
       } else {
-        Contract.Assert(false); throw new cce.UnreachableException();  // unexpected type
+        Contract.Assert(false); throw new Cce.UnreachableException();  // unexpected type
       }
     }
 
@@ -1643,7 +1643,7 @@ namespace Microsoft.Dafny.Compilers {
     private string CharTypeDescriptorName => DafnyHelpersClass + (UnicodeCharEnabled ? ".RUNE" : ".CHAR");
 
     private void ConvertFromChar(Expression e, ConcreteSyntaxTree wr, bool inLetExprBody, ConcreteSyntaxTree wStmts) {
-      if (e.Type.IsCharType && UnicodeCharEnabled) {
+      if (GetRuntimeType(e.Type).IsCharType && UnicodeCharEnabled) {
         wr.Write("(");
         TrParenExpr(e, wr, inLetExprBody, wStmts);
         wr.Write(".Value)");
@@ -1774,7 +1774,7 @@ namespace Microsoft.Dafny.Compilers {
         }
         return string.Format($"{s}.Default({wDefaultTypeArguments}{sep}{arguments})");
       } else {
-        Contract.Assert(false); throw new cce.UnreachableException();  // unexpected type
+        Contract.Assert(false); throw new Cce.UnreachableException();  // unexpected type
       }
     }
 
@@ -1869,7 +1869,7 @@ namespace Microsoft.Dafny.Compilers {
 
         return AddTypeDescriptorArgs(FullTypeName(udt, ignoreInterface: true), udt, relevantTypeArgs, wr, tok);
       } else {
-        Contract.Assert(false); throw new cce.UnreachableException();
+        Contract.Assert(false); throw new Cce.UnreachableException();
       }
     }
 
@@ -1894,7 +1894,7 @@ namespace Microsoft.Dafny.Compilers {
           return $"Dafny.Helpers.UINT64";
         default:
           Contract.Assert(false);
-          throw new cce.UnreachableException();
+          throw new Cce.UnreachableException();
       }
     }
 
@@ -2278,7 +2278,7 @@ namespace Microsoft.Dafny.Compilers {
           wr.Write("\"))");
         }
       } else {
-        Contract.Assert(false); throw new cce.UnreachableException();  // unexpected literal
+        Contract.Assert(false); throw new Cce.UnreachableException();  // unexpected literal
       }
     }
 
@@ -2893,7 +2893,7 @@ namespace Microsoft.Dafny.Compilers {
       } else if (eeType is SetType) {
         TrParenExpr(".FromSet", expr.E, wr, inLetExprBody, wStmts);
       } else {
-        Contract.Assert(false); throw new cce.UnreachableException();
+        Contract.Assert(false); throw new Cce.UnreachableException();
       }
     }
 
@@ -3066,7 +3066,7 @@ namespace Microsoft.Dafny.Compilers {
           }
           break;
         default:
-          Contract.Assert(false); throw new cce.UnreachableException();  // unexpected unary expression
+          Contract.Assert(false); throw new Cce.UnreachableException();  // unexpected unary expression
       }
     }
 
@@ -3470,7 +3470,7 @@ namespace Microsoft.Dafny.Compilers {
         wr.Write($"{DafnyMapClass}<{domtypeName},{rantypeName}>.FromCollection({collName})");
       } else {
         Contract.Assume(false);  // unexpected collection type
-        throw new cce.UnreachableException();  // please compiler
+        throw new Cce.UnreachableException();  // please compiler
       }
     }
 

@@ -13,13 +13,13 @@ revealFunctions.dfy(121,2): Info: hidden functions: Outer
 revealFunctions.dfy(131,10): Info: hidden functions: HideInFunction
 revealFunctions.dfy(134,2): Info: hidden functions: P
 revealFunctions.dfy(138,2): Info: hidden functions: P
-revealFunctions.dfy(15,4): Error: assertion might not hold
-revealFunctions.dfy(22,4): Error: assertion might not hold
-revealFunctions.dfy(49,4): Error: assertion might not hold
-revealFunctions.dfy(117,2): Error: assertion might not hold
-revealFunctions.dfy(118,2): Error: assertion might not hold
-revealFunctions.dfy(121,2): Error: assertion might not hold
-revealFunctions.dfy(134,2): Error: assertion might not hold
-revealFunctions.dfy(138,2): Error: assertion might not hold
+revealFunctions.dfy(15,4): Error: assertion could not be proved
+revealFunctions.dfy(22,4): Error: assertion could not be proved
+revealFunctions.dfy(49,4): Error: assertion could not be proved
+revealFunctions.dfy(117,2): Error: assertion could not be proved
+revealFunctions.dfy(118,2): Error: assertion could not be proved
+revealFunctions.dfy(121,2): Error: assertion could not be proved
+revealFunctions.dfy(134,2): Error: assertion could not be proved
+revealFunctions.dfy(138,2): Error: assertion could not be proved
 
 Dafny program verifier finished with 25 verified, 8 errors

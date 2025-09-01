@@ -284,7 +284,7 @@ namespace Microsoft.Dafny.Compilers {
           }
         case OldExpr:
           Contract.Assert(false);
-          throw new cce.UnreachableException(); // 'old' is always a ghost
+          throw new Cce.UnreachableException(); // 'old' is always a ghost
         case UnaryOpExpr opExpr: {
             var e = opExpr;
             if (e.ResolvedOp == UnaryOpExpr.ResolvedOpcode.BVNot) {
@@ -594,7 +594,7 @@ namespace Microsoft.Dafny.Compilers {
           }
         default:
           Contract.Assert(false);
-          throw new cce.UnreachableException(); // unexpected expression
+          throw new Cce.UnreachableException(); // unexpected expression
       }
 
       ConcreteSyntaxTree EmitGuardFragment(List<(Expression conj, ISet<IVariable> frees)> unusedConjuncts,

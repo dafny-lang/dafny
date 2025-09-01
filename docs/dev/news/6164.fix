@@ -1,1 +1,0 @@
-Generate alloc consequence axiom only for functions that read the heap (fixes unsoundness)

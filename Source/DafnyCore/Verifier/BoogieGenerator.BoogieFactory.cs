@@ -610,7 +610,7 @@ namespace Microsoft.Dafny {
           return FunctionCall(tok, "local_field", Predef.FieldName(tok), args);
 
         default:
-          Contract.Assert(false); throw new cce.UnreachableException();  // unexpected built-in function
+          Contract.Assert(false); throw new Cce.UnreachableException();  // unexpected built-in function
       }
     }
 
@@ -663,7 +663,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(tok != null);
       Contract.Requires(function != null);
       Contract.Requires(returnType != null);
-      Contract.Requires(cce.NonNullElements(args));
+      Contract.Requires(Cce.NonNullElements(args));
       Contract.Ensures(Contract.Result<Bpl.NAryExpr>() != null);
 
       List<Bpl.Expr> aa = [];

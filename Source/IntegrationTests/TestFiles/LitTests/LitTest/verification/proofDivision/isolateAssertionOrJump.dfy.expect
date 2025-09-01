@@ -1,7 +1,7 @@
 Verified 0/3 symbols. Waiting for Assertion to verify.
 Verified 1/2 of Assertion: assertion at line 14 - could not be verified <redacted>
 Verified 2/2 of Assertion: assertion at line 22 - verified successfully <redacted>
-isolateAssertionOrJump.dfy(14,2): Error: assertion might not hold
+isolateAssertionOrJump.dfy(14,2): Error: assertion could not be proved
 Verified 1/3 symbols. Waiting for Return to verify.
 Verified 1/3 of Return: remaining assertions - could not be verified <redacted>
 Verified 2/3 of Return: return at line 44 - could not be verified <redacted>

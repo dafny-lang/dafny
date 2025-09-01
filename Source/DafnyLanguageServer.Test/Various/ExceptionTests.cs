@@ -81,7 +81,7 @@ public class ExceptionTests : ClientBasedLanguageServerTest {
     ApplyChange(ref documentItem, new Range(0, 0, 0, 0), " ");
     var recoveredDiagnostics = await GetLastDiagnostics(documentItem);
     Assert.Single(recoveredDiagnostics);
-    Assert.True(recoveredDiagnostics[0].Message.Contains("might not"), recoveredDiagnostics[0].Message);
+    Assert.True(recoveredDiagnostics[0].Message.Contains("not be proved"), recoveredDiagnostics[0].Message);
   }
 
   class CrashingVerifier : IProgramVerifier {

@@ -50,7 +50,7 @@ public class Attributes : NodeWithOrigin, ICanFormat {
   [ContractInvariantMethod]
   void ObjectInvariant() {
     Contract.Invariant(Name != null);
-    Contract.Invariant(cce.NonNullElements(Args));
+    Contract.Invariant(Cce.NonNullElements(Args));
   }
 
   public static readonly string AxiomAttributeName = "axiom";

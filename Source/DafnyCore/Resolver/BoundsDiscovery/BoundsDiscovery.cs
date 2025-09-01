@@ -447,7 +447,7 @@ namespace Microsoft.Dafny {
           case BinaryExpr.ResolvedOpcode.Gt:
           case BinaryExpr.ResolvedOpcode.Ge:
             Contract.Assert(false);
-            throw new cce.UnreachableException(); // promised by postconditions of NormalizedConjunct
+            throw new Cce.UnreachableException(); // promised by postconditions of NormalizedConjunct
           case BinaryExpr.ResolvedOpcode.Lt:
             if (e0.Type.IsNumericBased(Type.NumericPersuasion.Int)) {
               conjunctsQualifyingAsRangeConstraints++;

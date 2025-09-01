@@ -67,13 +67,13 @@ Return path: testFile.dfy(6, 5)"
       // When hovering the failing path, it does not display the position of the failing postcondition
       // because the IDE extension already does it.
       await AssertVerificationHoverMatches(documentItem, (5, 4),
-        @"[**Error:**](???) a postcondition could not be proved on this return path???
+        @"[**Error:**](???) a postcondition could not be proved on this return path  
 Could not prove: `y >= 0`  
 This is assertion #??? of 4 in method `Abs`  
 Resource usage: ??? RU"
       );
       await AssertVerificationHoverMatches(documentItem, (7, 11),
-        @"[**Error:**](???) assertion might not hold  
+        @"[**Error:**](???) assertion could not be proved  
 This is assertion #??? of 4 in method `Abs`  
 Resource usage: ??? RU"
       );
@@ -102,7 +102,7 @@ method DoIt() returns (x: int)
 }", Path.Combine(Directory.GetCurrentDirectory(), "Lookup/TestFiles/test.dfy"), false);
       // When hovering the failing path, it should extract text from the included file
       await AssertVerificationHoverMatches(documentItem, (9, 4),
-        @"[**Error:**](???) a postcondition could not be proved on this return path???
+        @"[**Error:**](???) a postcondition could not be proved on this return path  
 Inside `Q(x)`  
 Inside `P(i)`  
 Could not prove: `i >= 0`  
@@ -124,7 +124,7 @@ method {:isolate_assertions} f(x: int) {
 }
 ", "testfile.dfy", true);
       await AssertVerificationHoverMatches(documentItem, (1, 12),
-        @"[**Error:**](???) assertion might not hold  
+        @"[**Error:**](???) assertion could not be proved  
 This is the only assertion in [batch](???) #??? of ??? in method `f`  
 [Batch](???) #??? resource usage: ??? RU"
       );
@@ -186,7 +186,7 @@ method Test(j: int) returns (i: int)
   ensures i > 0
 {
   i := j;
-}", "testfile.dfy", true);
+}", "testfile.dfy", false);
       await AssertVerificationHoverMatches(documentItem, (3, 0),
         @"**Error:**???return value should be even  
 Could not prove: `i % 2 == 0`"
@@ -215,7 +215,7 @@ This is assertion #2 of 2 in [batch](???) #1 of 2 in function `f`
 [Batch](???) #1 resource usage: ??? RU"
       );
       await AssertVerificationHoverMatches(documentItem, (3, 26),
-        @"[**Error:**](???) assertion might not hold  
+        @"[**Error:**](???) assertion could not be proved  
 This is assertion #1 of 2 in [batch](???) #2 of 2 in function `f`  
 [Batch](???) #2 resource usage: ??? RU"
       );
@@ -311,11 +311,11 @@ datatype Test = Test(i: int)
 }
 ", "testfile2.dfy", true);
       await AssertVerificationHoverMatches(documentItem, (4, 20),
-        @"**Error:**???assertion might not hold???
+        @"**Error:**???assertion could not be proved???
 Could not prove: `t.i > 0`  "
       );
       await AssertVerificationHoverMatches(documentItem, (5, 20),
-        @"**Error:**???assertion might not hold???
+        @"**Error:**???assertion could not be proved???
 Could not prove: `t.i > 1`  "
       );
       await AssertVerificationHoverMatches(documentItem, (5, 20),
@@ -375,11 +375,11 @@ function Id<T>(t: T): T { t }
 
 ", "testfile2.dfy", true);
       await AssertVerificationHoverMatches(documentItem, (9, 20),
-        @"**Error:**???assertion might not hold???
+        @"**Error:**???assertion could not be proved???
 Could not prove: `i > 0`  "
       );
       await AssertVerificationHoverMatches(documentItem, (10, 20),
-      @"**Error:**???assertion might not hold???
+      @"**Error:**???assertion could not be proved???
 Could not prove: `i > 1`  "
     );
       await AssertVerificationHoverMatches(documentItem, (10, 20),
@@ -469,9 +469,10 @@ method Test(i: int)
 }
 ", "testfile2.dfy", false);
       await AssertVerificationHoverMatches(documentItem, (6, 11),
-        @"**Error:**???assertion might not hold  
+        @"**Error:**???assertion could not be proved  
 Inside `P(1)`  
-Could not prove: `i <= 0`"
+Could not prove: `i <= 0`  
+This is the only assertion in method `Test`"
       );
       await ApplyChangesAndWaitCompletionAsync(
         ref documentItem,

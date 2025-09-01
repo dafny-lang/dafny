@@ -93,7 +93,7 @@ public class SingleAssignStmt : Statement, ICloneable<SingleAssignStmt> {
       case NonGhostKind.ArrayElement: return "array element";
       default:
         Contract.Assume(false);  // unexpected NonGhostKind
-        throw new cce.UnreachableException();  // please compiler
+        throw new Cce.UnreachableException();  // please compiler
     }
   }
   /// <summary>

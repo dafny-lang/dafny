@@ -146,12 +146,12 @@ public class NewtypeDecl : TopLevelDeclWithMembers, RevealableTypeDecl, Redirect
     get {
       // The resolver checks that a NewtypeDecl sits in its own SSC in the call graph.  Therefore,
       // the question of what its Decreases clause is should never arise.
-      throw new cce.UnreachableException();
+      throw new Cce.UnreachableException();
     }
   }
   bool ICallable.InferredDecreases {
-    get { throw new cce.UnreachableException(); }  // see comment above about ICallable.Decreases
-    set { throw new cce.UnreachableException(); }  // see comment above about ICallable.Decreases
+    get { throw new Cce.UnreachableException(); }  // see comment above about ICallable.Decreases
+    set { throw new Cce.UnreachableException(); }  // see comment above about ICallable.Decreases
   }
 
   public override bool AcceptThis => true;

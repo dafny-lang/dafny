@@ -412,49 +412,53 @@ Usage: dafny [ option ... ] [ filename ... ]
   Multiple .bpl files supplied on the command line are concatenated into one
   Boogie program.
 
-  /lib:<name>    : Include definitions in library <name>. The file <name>.bpl
-                   must be an included resource in Core.dll. Currently, the
-                   following libraries are supported---base, node.
-  /proc:<p>      : Only check procedures matched by pattern <p>. This option
-                   may be specified multiple times to match multiple patterns.
-                   The pattern <p> matches the whole procedure name and may
-                   contain * wildcards which match any character zero or more
-                   times.
-  /noProc:<p>    : Do not check procedures matched by pattern <p>. Exclusions
-                   with /noProc are applied after inclusions with /proc.
-  /noResolve     : parse only
-  /noTypecheck   : parse and resolve only
-
-  /print:<file>  : print Boogie program after parsing it
-                   (use - as <file> to print to console)
-  /pretty:<n>
-                0 - print each Boogie statement on one line (faster).
+  /lib:<name>   Include definitions in library <name>. The file <name>.bpl
+                must be an included resource in Core.dll. Currently, the
+                following libraries are supported---base, node.
+  /proc:<p>     Only check procedures matched by pattern <p>. This option
+                may be specified multiple times to match multiple patterns.
+                The pattern <p> matches the whole procedure name and may
+                contain * wildcards which match any character zero or more
+                times.
+  /noProc:<p>   Do not check procedures matched by pattern <p>. Exclusions
+                with /noProc are applied after inclusions with /proc.
+  /noResolve    parse only
+  /noTypecheck  parse and resolve only
+  /print:<file>
+                print Boogie program after parsing it
+                (use - as <file> to print to console)
+  /pretty:<n>   0 - print each Boogie statement on one line (faster).
                 1 (default) - pretty-print with some line breaks.
-  /printWithUniqueIds : print augmented information that uniquely
-                   identifies variables
-  /printUnstructured : with /print option, desugars all structured statements
-  /printPassive :  with /print option, prints passive version of program
-  /printDesugared : with /print option, desugars calls
-  /printLambdaLifting : with /print option, desugars lambda lifting
-
-  /freeVarLambdaLifting : Boogie's lambda lifting transforms the bodies of lambda
-                         expressions into templates with holes. By default, holes
-                         are maximally large subexpressions that do not contain
-                         bound variables. This option performs a form of lambda
-                         lifting in which holes are the lambda's free variables.
-
-  /overlookTypeErrors : skip any implementation with resolution or type
-                        checking errors
-
+  /printWithUniqueIds
+                print augmented information that uniquely identifies variables
+  /printUnstructured
+                with /print option, desugars all structured statements
+  /printPassive
+                with /print option, prints passive version of program
+  /printDesugared
+                with /print option, desugars calls
+  /printLambdaLifting
+                with /print option, desugars lambda lifting
+  /freeVarLambdaLifting
+                Boogie's lambda lifting transforms the bodies of lambda
+                expressions into templates with holes. By default, holes
+                are maximally large subexpressions that do not contain
+                bound variables. This option performs a form of lambda
+                lifting in which holes are the lambda's free variables.
+  /overlookTypeErrors
+                skip any implementation with resolution or type checking errors
   /loopUnroll:<n>
                 unroll loops, following up to n back edges (and then some)
                 default is -1, which means loops are not unrolled
   /extractLoops
-                extract reducible loops into recursive procedures and
-                inline irreducible loops using the bound supplied by /loopUnroll:<n>
+                convert all irreducible loops to reducible forms by node splitting
+                and extract all loops into recursive procedures
   /soundLoopUnrolling
                 sound loop unrolling
-  /doModSetAnalysis
+  /kInductionDepth:<k>
+                uses combined-case k-induction to soundly eliminate loops,
+                by unwinding proportional to the supplied parameter
+  /inferModifies
                 automatically infer modifies clauses
   /printModel:<n>
                 0 (default) - do not print Z3's error model
@@ -466,24 +470,19 @@ Usage: dafny [ option ... ] [ filename ... ]
   /enhancedErrorMessages:<n>
                 0 (default) - no enhanced error messages
                 1 - Z3 error model enhanced error messages
-
   /printCFG:<prefix> : print control flow graph of each implementation in
                        Graphviz format to files named:
                          <prefix>.<procedure name>.dot
-
   /useBaseNameForFileName : When parsing use basename of file for tokens instead
                             of the path supplied on the command line
-
   /emitDebugInformation:<n>
                 0 - do not emit debug information
                 1 (default) - emit the debug information :qid, :skolemid and set-info :boogie-vc-id
-
   /normalizeNames:<n>
                 0 (default) - Keep Boogie program names when generating SMT commands
                 1 - Normalize Boogie program names when generating SMT commands. 
                   This keeps SMT solver input, and thus output, 
                   constant when renaming declarations in the input program.
-
   /normalizeDeclarationOrder:<n>
                 0 - Keep order of top-level declarations when generating SMT commands.
                 1 (default) - Normalize order of top-level declarations when generating SMT commands.
@@ -522,6 +521,8 @@ Usage: dafny [ option ... ] [ filename ... ]
   /traceTimes   output timing information at certain points in the pipeline
   /tracePOs     output information about the number of proof obligations
                 (also included in the /trace output)
+  /forceBplErrors
+                show boogie errors even if {:msg ...} attribute is present
   /break        launch and break into debugger
 
   ---- Civl options ----------------------------------------------------------
@@ -650,7 +651,11 @@ Usage: dafny [ option ... ] [ filename ... ]
                 assignments, and calls can be labeled for inclusion in this
                 report. This generalizes and replaces the previous
                 (undocumented) `/printNecessaryAssertions` option.
-
+  /warnVacuousProofs
+                Automatically add missing `{:id ...}` attributes to assumptions,
+                assertions, requires clauses, ensures clauses, and calls; enable the
+                `/trackVerificationCoverage` option; and warn when proof goals are
+                not covered by a proof.
   /keepQuantifier
                 If pool-based quantifier instantiation creates instances of a quantifier
                 then keep the quantifier along with the instances. By default, the quantifier

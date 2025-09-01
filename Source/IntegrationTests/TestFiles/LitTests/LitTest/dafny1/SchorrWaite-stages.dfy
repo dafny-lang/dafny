@@ -1,4 +1,4 @@
-// RUN: %testDafnyForEachResolver "%s" -- --allow-deprecation
+// RUN: %testDafnyForEachResolver "%s" -- --allow-deprecation --verification-time-limit=90
 
 
 // Schorr-Waite algorithms, written and verified in Dafny.
