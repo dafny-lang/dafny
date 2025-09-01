@@ -575,6 +575,8 @@ class GhostInterestVisitor {
       }
     } else if (gk == SingleAssignStmt.NonGhostKind.Variable && codeContext.IsGhost) {
       // cool
+    } else if (gk == SingleAssignStmt.NonGhostKind.ArrayElement) {
+      // cool beans
     } else if (mustBeErasable) {
       if (inConstructorInitializationPhase && codeContext is Constructor && codeContext.IsGhost && lhs is MemberSelectExpr mse &&
           mse.Obj.Resolved is ThisExpr) {
