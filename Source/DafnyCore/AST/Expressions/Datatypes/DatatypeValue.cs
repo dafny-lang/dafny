@@ -44,6 +44,7 @@ public class DatatypeValue : Expression, IHasReferences, ICloneable<DatatypeValu
     : this(origin, datatypeName, memberName, new ActualBindings(arguments)) {
   }
 
+  [SyntaxConstructor]
   public DatatypeValue(IOrigin origin, string datatypeName, string memberName, ActualBindings bindings)
     : base(origin) {
     DatatypeName = datatypeName;

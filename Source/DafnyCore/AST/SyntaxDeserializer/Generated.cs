@@ -376,6 +376,92 @@ namespace Microsoft.Dafny
             return ReadOldExpr();
         }
 
+        public DatatypeValue ReadDatatypeValue()
+        {
+            var parameter0 = ReadAbstract<IOrigin>();
+            var parameter1 = ReadString();
+            var parameter2 = ReadString();
+            var parameter3 = ReadActualBindings();
+            return new DatatypeValue(parameter0, parameter1, parameter2, parameter3);
+        }
+
+        public DatatypeValue ReadDatatypeValueOption()
+        {
+            if (ReadIsNull())
+            {
+                return default;
+            }
+
+            return ReadDatatypeValue();
+        }
+
+        public ModuleQualifiedId ReadModuleQualifiedId()
+        {
+            var parameter0 = ReadList<Name>(() => ReadName());
+            return new ModuleQualifiedId(parameter0);
+        }
+
+        public ModuleQualifiedId ReadModuleQualifiedIdOption()
+        {
+            if (ReadIsNull())
+            {
+                return default;
+            }
+
+            return ReadModuleQualifiedId();
+        }
+
+        public Name ReadName()
+        {
+            var parameter0 = ReadAbstract<IOrigin>();
+            var parameter1 = ReadString();
+            return new Name(parameter0, parameter1);
+        }
+
+        public Name ReadNameOption()
+        {
+            if (ReadIsNull())
+            {
+                return default;
+            }
+
+            return ReadName();
+        }
+
+        public ActualBinding ReadActualBinding()
+        {
+            var parameter0 = ReadAbstractOption<IOrigin>();
+            var parameter1 = ReadAbstract<Expression>();
+            var parameter2 = ReadBoolean();
+            return new ActualBinding(parameter0, parameter1, parameter2);
+        }
+
+        public ActualBinding ReadActualBindingOption()
+        {
+            if (ReadIsNull())
+            {
+                return default;
+            }
+
+            return ReadActualBinding();
+        }
+
+        public ActualBindings ReadActualBindings()
+        {
+            var parameter0 = ReadList<ActualBinding>(() => ReadActualBinding());
+            return new ActualBindings(parameter0);
+        }
+
+        public ActualBindings ReadActualBindingsOption()
+        {
+            if (ReadIsNull())
+            {
+                return default;
+            }
+
+            return ReadActualBindings();
+        }
+
         public TernaryExpr ReadTernaryExpr()
         {
             var parameter0 = ReadAbstract<IOrigin>();
@@ -630,73 +716,6 @@ namespace Microsoft.Dafny
             }
 
             return ReadAllocateClass();
-        }
-
-        public ModuleQualifiedId ReadModuleQualifiedId()
-        {
-            var parameter0 = ReadList<Name>(() => ReadName());
-            return new ModuleQualifiedId(parameter0);
-        }
-
-        public ModuleQualifiedId ReadModuleQualifiedIdOption()
-        {
-            if (ReadIsNull())
-            {
-                return default;
-            }
-
-            return ReadModuleQualifiedId();
-        }
-
-        public Name ReadName()
-        {
-            var parameter0 = ReadAbstract<IOrigin>();
-            var parameter1 = ReadString();
-            return new Name(parameter0, parameter1);
-        }
-
-        public Name ReadNameOption()
-        {
-            if (ReadIsNull())
-            {
-                return default;
-            }
-
-            return ReadName();
-        }
-
-        public ActualBinding ReadActualBinding()
-        {
-            var parameter0 = ReadAbstractOption<IOrigin>();
-            var parameter1 = ReadAbstract<Expression>();
-            var parameter2 = ReadBoolean();
-            return new ActualBinding(parameter0, parameter1, parameter2);
-        }
-
-        public ActualBinding ReadActualBindingOption()
-        {
-            if (ReadIsNull())
-            {
-                return default;
-            }
-
-            return ReadActualBinding();
-        }
-
-        public ActualBindings ReadActualBindings()
-        {
-            var parameter0 = ReadList<ActualBinding>(() => ReadActualBinding());
-            return new ActualBindings(parameter0);
-        }
-
-        public ActualBindings ReadActualBindingsOption()
-        {
-            if (ReadIsNull())
-            {
-                return default;
-            }
-
-            return ReadActualBindings();
         }
 
         public ExprRhs ReadExprRhs()
@@ -2354,6 +2373,31 @@ namespace Microsoft.Dafny
                 return ReadOldExpr();
             }
 
+            if (actualType == typeof(DatatypeValue))
+            {
+                return ReadDatatypeValue();
+            }
+
+            if (actualType == typeof(ModuleQualifiedId))
+            {
+                return ReadModuleQualifiedId();
+            }
+
+            if (actualType == typeof(Name))
+            {
+                return ReadName();
+            }
+
+            if (actualType == typeof(ActualBinding))
+            {
+                return ReadActualBinding();
+            }
+
+            if (actualType == typeof(ActualBindings))
+            {
+                return ReadActualBindings();
+            }
+
             if (actualType == typeof(TernaryExpr))
             {
                 return ReadTernaryExpr();
@@ -2417,26 +2461,6 @@ namespace Microsoft.Dafny
             if (actualType == typeof(AllocateClass))
             {
                 return ReadAllocateClass();
-            }
-
-            if (actualType == typeof(ModuleQualifiedId))
-            {
-                return ReadModuleQualifiedId();
-            }
-
-            if (actualType == typeof(Name))
-            {
-                return ReadName();
-            }
-
-            if (actualType == typeof(ActualBinding))
-            {
-                return ReadActualBinding();
-            }
-
-            if (actualType == typeof(ActualBindings))
-            {
-                return ReadActualBindings();
             }
 
             if (actualType == typeof(ExprRhs))
