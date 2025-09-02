@@ -4222,12 +4222,14 @@ namespace Microsoft.Dafny {
               t.ResolvedClass = d;  // Store the decl, so the compiler will generate the fully qualified name
             } else if (d is RedirectingTypeDecl) {
               var dd = (RedirectingTypeDecl)d;
-              var caller = CodeContextWrapper.Unwrap(resolutionContext.CodeContext) as ICallable;
-              if (caller != null && !(d is SubsetTypeDecl && caller is SpecialFunction)) {
-                if (caller != d) {
-                } else if (d is TypeSynonymDecl && !(d is SubsetTypeDecl)) {
-                  // detect self-loops here, since they don't show up in the graph's SCC methods
-                  reporter.Error(MessageSource.Resolver, d.Origin, "type-synonym cycle: {0} -> {0}", d.Name);
+              var parent = CodeContextWrapper.Unwrap(resolutionContext.CodeContext) as ICallable;
+              if (parent != null && !(d is SubsetTypeDecl && parent is SpecialFunction)) {
+                var cycleFound = parent == d;
+                if (cycleFound) {
+                  if (d is TypeSynonymDecl && !(d is SubsetTypeDecl)) {
+                    // detect self-loops here, since they don't show up in the graph's SCC methods
+                    reporter.Error(MessageSource.Resolver, d.Origin, "type-synonym cycle: {0} -> {0}", d.Name);
+                  }
                 }
               }
               t.ResolvedClass = d;
