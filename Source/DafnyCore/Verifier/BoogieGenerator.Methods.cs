@@ -1895,6 +1895,21 @@ namespace Microsoft.Dafny {
             index++;
           }
         }
+        
+        if (options.Get(CommonOptionBag.CheckInvariants)) {
+          // frame condition: free requires $Open == {}
+          etran.OpenFormal(m.Origin, out var openExpr, out var openExprDafny);
+          req.Add(FreeRequires(m.Origin, etran.TrExpr(new BinaryExpr(m.Origin, BinaryExpr.ResolvedOpcode.SetEq,
+            new SetDisplayExpr(m.Origin, true, []) { Type = program.SystemModuleManager.NonNullObjectSetType(m.Origin) },
+            openExprDafny)), "frame condition for open set"));
+          /*if (m is { IsStatic: false } and not Constructor) {
+            var assertion = new BinaryExpr(m.Origin, BinaryExpr.ResolvedOpcode.NotInSet, new ThisExpr(m),
+              openExprDafny);
+            req.Add(Requires(m.Origin, false, assertion, etran.TrExpr(assertion), null, null, "callable invariant color condition"));
+          }*/
+          // lockstep condition: free requires OpenHeapRelated($Open, $Heap)
+          req.Add(FreeRequires(m.Origin, FunctionCall(m.Origin, BuiltinFunction.OpenHeapRelated, null, openExpr, etran.HeapExpr), "open lockstep condition"));
+        }
 
         if (kind is MethodTranslationKind.SpecWellformedness or MethodTranslationKind.OverrideCheck) {
           return req;
@@ -1929,18 +1944,6 @@ namespace Microsoft.Dafny {
         foreach (var frameExpression in m.Mod.Expressions) {
           req.Add(FreeRequires(frameExpression.Origin, etran.CanCallAssumption(frameExpression.E), comment, true));
           comment = null;
-        }
-
-        if (options.Get(CommonOptionBag.CheckInvariants)) {
-          // frame condition: free requires $Open == {}
-          etran.OpenFormal(m.Origin, out var openExpr, out var openExprDafny);
-          if (m is not Constructor) {
-            req.Add(FreeRequires(m.Origin, etran.TrExpr(new BinaryExpr(m.Origin, BinaryExpr.ResolvedOpcode.SetEq,
-              new SetDisplayExpr(m.Origin, true, []) { Type = program.SystemModuleManager.NonNullObjectSetType(m.Origin) },
-              openExprDafny)), "frame condition for open set"));
-          }
-          // lockstep condition: free requires OpenHeapRelated($Open, $Heap)
-          req.Add(FreeRequires(m.Origin, FunctionCall(m.Origin, BuiltinFunction.OpenHeapRelated, null, openExpr, etran.HeapExpr), "open lockstep condition"));
         }
 
         return req;

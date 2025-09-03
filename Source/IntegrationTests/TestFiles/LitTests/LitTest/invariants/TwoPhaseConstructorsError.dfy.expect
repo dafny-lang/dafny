@@ -1,3 +1,0 @@
-TwoPhaseConstructorsError.dfy(22,7): Error: invariant for receiver of the caller could not be proved before method or function call
-
-Dafny program verifier finished with 4 verified, 1 error

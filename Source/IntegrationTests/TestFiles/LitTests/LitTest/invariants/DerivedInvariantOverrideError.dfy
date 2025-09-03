@@ -23,6 +23,10 @@ class Ext extends Base {
   {
     r := FooSpec();
   }
+  constructor() {
+    x := 0;
+    y := 1;
+  }
 }
 
 method Upcast(e: Ext)

@@ -1,2 +1,4 @@
+TwoPhaseConstructorsError.dfy(12,33): Error: invariant of enclosing class declaration could not be proved at the end of the initialization phase of this constructor
+TwoPhaseConstructorsError.dfy(26,4): Error: invariant of enclosing class declaration could not be proved at the end of the initialization phase of this constructor
 
-Dafny program verifier finished with 5 verified, 0 errors
+Dafny program verifier finished with 4 verified, 2 errors

@@ -18,4 +18,6 @@ class InvariantVisitor(ModuleResolver resolver) : ASTVisitor<InvariantVisitor.In
     }
     return true;
   }
+  
+  // NB: InvariantRewriter checks that invariant-bearing classes have at least one constructor; easier to do it post-resolution
 }

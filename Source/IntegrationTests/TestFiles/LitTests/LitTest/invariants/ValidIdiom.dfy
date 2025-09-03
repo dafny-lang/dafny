@@ -3,13 +3,16 @@
 
 class Nat {
   var value: int
-  function Value(): nat
+  function Value(): int
     reads this
   {
-    value // OK, this !in open
+    value
   }
-  invariant Valid(this)
-  static predicate Valid(self: Nat) reads self {
-    self.value >= 0
+  predicate Valid()
+    reads this
+  {
+    Value() >= 0
   }
+  invariant Valid()
+  constructor() { value := 0; }
 }

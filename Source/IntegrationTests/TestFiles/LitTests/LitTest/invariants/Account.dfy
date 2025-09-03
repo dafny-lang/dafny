@@ -6,6 +6,10 @@ class Account {
   var debit: nat
   // NB: can't use Balance() here b/c it would be recursive
   invariant credit - debit >= 0
+  constructor() {
+    credit := 0;
+    debit := 0;
+  }
   function Balance(): nat
     reads this
   {

@@ -312,7 +312,20 @@ public partial class BoogieGenerator {
             surr = CondApplyUnbox(tok, surr, fields[i].Type, mse.Type);
             builder.Add(new Bpl.AssumeCmd(tok, Bpl.Expr.Eq(etran.TrExpr(mse), surr)));
           }
-
+          
+          if (options.Get(CommonOptionBag.CheckInvariants) && cl is TopLevelDeclWithMembers { Invariant: { } invariant }) {
+            // have to do this check before `this` is committed, otherwise the invariant will trivially hold
+            AddComment(builder, blockStmt1, "checking invariant of this");
+            var assertion = invariant.Mention(tok, th, program.SystemModuleManager);
+            // if the invariant overrides a trait invariant, we have to assert that too
+            if (invariant.OverriddenMember is not null) {
+              assertion = new BinaryExpr(tok, BinaryExpr.ResolvedOpcode.And, assertion,
+                (invariant.OverriddenMember as Invariant).Mention(tok, th, program.SystemModuleManager));
+            }
+            builder.Add(TrAssumeCmd(tok, etran.CanCallAssumption(assertion)));
+            builder.Add(TrAssertCmdDesc(tok, etran.TrExpr(assertion), new ObjectInvariant(Dafny.ObjectInvariant.Kind.EndOfCtorFirstPhase, assertion)));
+          }
+          
           CommitAllocatedObject(tok, bplThis, null, builder, etran);
 
           AddComment(builder, blockStmt1, "divided block after new;");

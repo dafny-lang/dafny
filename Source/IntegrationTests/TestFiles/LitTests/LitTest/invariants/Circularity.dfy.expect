@@ -1,5 +1,4 @@
-Circularity.dfy(5,12): Error: cannot prove termination; try supplying a decreases clause
-Circularity.dfy(8,12): Error: cannot prove termination; try supplying a decreases clause
+Circularity.dfy(12,25): Error: cannot prove termination; try supplying a decreases clause
 Circularity.dfy(6,15): Error: decreases clause might not decrease
 
-Dafny program verifier finished with 0 verified, 3 errors
+Dafny program verifier finished with 1 verified, 2 errors

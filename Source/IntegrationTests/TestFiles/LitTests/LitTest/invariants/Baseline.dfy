@@ -9,5 +9,9 @@ module Baseline {
     var head: int
     var tail: Node?<A>
     invariant head >= 0 && tail != null // OK
+    constructor() {
+      head := 0;
+      tail := this;
+    }
   }
 }

@@ -23,6 +23,10 @@ class Ext extends Base {
   {
     r := FooSpec();
   }
+  constructor() {
+    x := 1;
+    y := 1;
+  }
 }
 
 trait Base2 extends object {
@@ -42,6 +46,9 @@ class Ext2 extends Base2 {
     ensures r == FooSpec()
   {
     r := 1 / x;
+  }
+  constructor() {
+    x := 1;
   }
 }
 

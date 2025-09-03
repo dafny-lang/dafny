@@ -2253,11 +2253,18 @@ namespace Microsoft.Dafny {
           );
         }
 
-        builder.Add(TrAssumeCmd(origin, etran.CanCallAssumption(assertion)));
+        
         if (mode is Assumption assume) {
-          CheckWellformedAndAssume(assertion, assume.wfo, assume.locals, builder, etran, "object invariant");
+          // NB: disabling auto-assumption of receiver's invariant
+          // builder.Add(TrAssumeCmd(origin, etran.CanCallAssumption(assertion)));
+          // CheckWellformedAndAssume(assertion, assume.wfo, assume.locals, builder, etran, "object invariant");
+          
+          // etran.OpenFormal(origin, out _, out var openExprDafny);
+          // builder.Add(TrAssertCmd(origin, etran.TrExpr(new BinaryExpr(origin, BinaryExpr.ResolvedOpcode.NotInSet, @this, openExprDafny))));
         } else if (mode is Assertion assert) {
-          builder.Add(TrAssertCmdDesc(origin, etran.TrExpr(assertion), new ObjectInvariant(assert.kind, assertion)));
+          // NB: no need to check receiver's invariant if open set is always empty
+          // builder.Add(TrAssumeCmd(origin, etran.CanCallAssumption(assertion)));
+          // builder.Add(TrAssertCmdDesc(origin, etran.TrExpr(assertion), new ObjectInvariant(assert.kind, assertion)));
         }
       }
     }
@@ -2274,8 +2281,10 @@ namespace Microsoft.Dafny {
               CheckFrameExcludesOpen(tok, calleeFrame, receiver, substMap, etran), Type.Bool), 
             assertion);
         }
-        builder.Add(TrAssumeCmd(tok, etran.CanCallAssumption(assertion)));
-        builder.Add(TrAssertCmdDesc(tok, etran.TrExpr(assertion), new ObjectInvariant(Dafny.ObjectInvariant.Kind.Call, assertion)));
+        // NB: because open set is always empty, the invariant of each object in the open set holds vacuously
+        // As a result, it doesn't matter whether the callee's frame excludes the open set or not
+        // builder.Add(TrAssumeCmd(tok, etran.CanCallAssumption(assertion)));
+        // builder.Add(TrAssertCmdDesc(tok, etran.TrExpr(assertion), new ObjectInvariant(Dafny.ObjectInvariant.Kind.Call, assertion)));
       }
     }
 

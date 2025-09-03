@@ -1734,13 +1734,15 @@ public class ObjectInvariant(ObjectInvariant.Kind kind, Expression assertion) : 
   public enum Kind {
     Call,
     Assignment,
-    EndOfMethod
+    EndOfMethod,
+    EndOfCtorFirstPhase
   }
 
   string KindToString(bool success) => kind switch {
     Kind.Call => $"for receiver of the caller {(success ? "successfully" : "could not be")} proved before method or function call",
     Kind.Assignment => $"for receiver of assignment {(success ? "successfully" : "could not be")} proved afterward",
-    Kind.EndOfMethod => $"invariant of enclosing class or trait declaration {(success ? "successfully" : "could not be")} proved at end of this method"
+    Kind.EndOfMethod => $"of enclosing class or trait declaration {(success ? "successfully" : "could not be")} proved at end of this method",
+    Kind.EndOfCtorFirstPhase => $"of enclosing class declaration {(success ? "successfully" : "could not be")} proved at the end of the initialization phase of this constructor"
   };
   
   public override string SuccessDescription => $"invariant {KindToString(true)}";

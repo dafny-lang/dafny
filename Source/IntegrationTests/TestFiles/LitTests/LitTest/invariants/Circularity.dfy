@@ -3,7 +3,7 @@
 
 class C {
   predicate P() reads this
-  invariant Foo() || P() // call to Foo should be illegal, because it does not open this
+  invariant Foo() || P()
            // ^ error: decreases clause doesn't decrease
   predicate Foo()
     ensures P()
@@ -12,4 +12,5 @@ class C {
     assert this.invariant(); false
             // ^ error: cannot prove termination
   }
+  constructor() {}
 }

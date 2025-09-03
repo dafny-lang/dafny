@@ -10,4 +10,8 @@ class Account {
   {
     assert this.invariant(); credit - debit
   }
+  constructor() {
+    credit := 0;
+    debit := 0;
+  }
 }
