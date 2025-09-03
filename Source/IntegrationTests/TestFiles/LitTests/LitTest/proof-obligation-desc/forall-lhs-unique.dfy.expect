@@ -1,10 +1,10 @@
 forall-lhs-unique.dfy(7,4): Warning: Could not find a trigger for this quantifier. Without a trigger, the quantifier may cause brittle verification. To silence this warning, add an explicit trigger using the {:trigger} attribute. For more information, see the section on quantifier instantiation rules in the reference manual.
 forall-lhs-unique.dfy(15,4): Warning: Could not find a trigger for this quantifier. Without a trigger, the quantifier may cause brittle verification. To silence this warning, add an explicit trigger using the {:trigger} attribute. For more information, see the section on quantifier instantiation rules in the reference manual.
-forall-lhs-unique.dfy(8,13): Error: left-hand sides for different forall-statement bound variables might refer to the same location (and right-hand sides might not be equivalent)
+forall-lhs-unique.dfy(8,13): Error: left-hand sides for different forall-statement bound variables could not be proved to refer to different locations (and right-hand sides could not be proved to be equivalent)
  Asserted expression: forall i: int, i': int | 0 <= i < a.Length && 0 <= i' && i' < a.Length && i != i' :: a != a || 0 != 0 || i == i'
-forall-lhs-unique.dfy(16,16): Error: left-hand sides for different forall-statement bound variables might refer to the same location (and right-hand sides might not be equivalent)
+forall-lhs-unique.dfy(16,16): Error: left-hand sides for different forall-statement bound variables could not be proved to refer to different locations (and right-hand sides could not be proved to be equivalent)
  Asserted expression: forall i: int, j: int, i': int, j': int | 0 <= i < a.Length0 && 0 <= j < a.Length1 && 0 <= i' && i' < a.Length0 && 0 <= j' && j' < a.Length1 && (i != i' || j != j') :: a != a || 0 != 0 || 0 != 0 || i + j == i' + j'
-forall-lhs-unique.dfy(27,15): Error: left-hand sides for different forall-statement bound variables might refer to the same location (and right-hand sides might not be equivalent)
+forall-lhs-unique.dfy(27,15): Error: left-hand sides for different forall-statement bound variables could not be proved to refer to different locations (and right-hand sides could not be proved to be equivalent)
  Asserted expression: forall i: int, i': int | 0 <= i < a.Length && 0 <= i' && i' < a.Length && i != i' :: a[i] != a[i] || i == i'
 
 Dafny program verifier finished with 1 verified, 3 errors

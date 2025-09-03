@@ -1,4 +1,4 @@
-git-issue-3304b.dfy(5,2): Error: assertion might not hold
+git-issue-3304b.dfy(5,2): Error: assertion could not be proved
   |
 5 |   assert false;
   |   ^^^^^^

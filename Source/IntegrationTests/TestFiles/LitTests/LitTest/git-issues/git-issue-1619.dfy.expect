@@ -2,17 +2,17 @@ git-issue-1619.dfy(17,17): Error: cannot establish the existence of LHS values t
 git-issue-1619.dfy(28,17): Error: cannot establish the existence of LHS values that satisfy the such-that predicate
 git-issue-1619.dfy(38,17): Error: cannot establish the existence of LHS values that satisfy the such-that predicate
 git-issue-1619.dfy(49,17): Error: cannot establish the existence of LHS values that satisfy the such-that predicate
-git-issue-1619.dfy(174,11): Error: variable 'm', which is subject to definite-assignment rules, might be uninitialized here
-git-issue-1619.dfy(176,2): Error: assertion might not hold
-git-issue-1619.dfy(181,11): Error: variable 'm', which is subject to definite-assignment rules, might be uninitialized here
-git-issue-1619.dfy(183,2): Error: assertion might not hold
-git-issue-1619.dfy(188,12): Error: variable 'u', which is subject to definite-assignment rules, might be uninitialized here
-git-issue-1619.dfy(206,11): Error: variable 'p', which is subject to definite-assignment rules, might be uninitialized here
-git-issue-1619.dfy(225,11): Error: variable 'x', which is subject to definite-assignment rules, might be uninitialized here
-git-issue-1619.dfy(226,11): Error: variable 'p', which is subject to definite-assignment rules, might be uninitialized here
-git-issue-1619.dfy(269,27): Error: variable 'p', which is subject to definite-assignment rules, might be uninitialized here
+git-issue-1619.dfy(174,11): Error: variable 'm', which is subject to definite-assignment rules, could not be proved to be initialized here
+git-issue-1619.dfy(176,2): Error: assertion could not be proved
+git-issue-1619.dfy(181,11): Error: variable 'm', which is subject to definite-assignment rules, could not be proved to be initialized here
+git-issue-1619.dfy(183,2): Error: assertion could not be proved
+git-issue-1619.dfy(188,12): Error: variable 'u', which is subject to definite-assignment rules, could not be proved to be initialized here
+git-issue-1619.dfy(206,11): Error: variable 'p', which is subject to definite-assignment rules, could not be proved to be initialized here
+git-issue-1619.dfy(225,11): Error: variable 'x', which is subject to definite-assignment rules, could not be proved to be initialized here
+git-issue-1619.dfy(226,11): Error: variable 'p', which is subject to definite-assignment rules, could not be proved to be initialized here
+git-issue-1619.dfy(269,27): Error: variable 'p', which is subject to definite-assignment rules, could not be proved to be initialized here
 git-issue-1619.dfy(274,6): Error: cannot establish the existence of LHS values that satisfy the such-that predicate. Note, no trigger was found for the such-that predicate, which may be the reason the proof failed. To give a trigger explicitly, use the {:trigger} attribute. For more information, see the section on quantifier instantiation rules in the reference manual.
-git-issue-1619.dfy(287,27): Error: variable 'p', which is subject to definite-assignment rules, might be uninitialized here
+git-issue-1619.dfy(287,27): Error: variable 'p', which is subject to definite-assignment rules, could not be proved to be initialized here
 git-issue-1619.dfy(292,9): Error: cannot establish the existence of LHS values that satisfy the such-that predicate. Note, no trigger was found for the such-that predicate, which may be the reason the proof failed. To give a trigger explicitly, use the {:trigger} attribute. For more information, see the section on quantifier instantiation rules in the reference manual.
 
 Dafny program verifier finished with 18 verified, 16 errors
