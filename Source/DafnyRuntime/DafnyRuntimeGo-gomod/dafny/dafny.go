@@ -84,21 +84,23 @@ func (_static *CompanionStruct_Sequence_) EqualUpTo(left Sequence, right Sequenc
 
 	leftArr, rightArr := left.ToArray(), right.ToArray()
 
-	// Fast path for ByteNativeArray
+	// Fast path for ByteNativeArray (byte sequence optimization)
 	if l, ok := leftArr.(ByteNativeArray); ok {
 		if r, ok := rightArr.(ByteNativeArray); ok {
-			return slices.Equal(l.contents[:index], r.contents[:index])
+			return slices.Equal(l.underlying.contents[:index], r.underlying.contents[:index])
 		}
 	}
 
 	// Fast path for GoNativeArray (preserve original optimization)
 	if l, ok := leftArr.(GoNativeArray); ok {
 		if r, ok := rightArr.(GoNativeArray); ok {
-			if IsEqualityComparable(l.contents[0]) {
-				return slices.Equal(l.contents[:index], r.contents[:index])
+			lSlice := l.underlying.anySlice(Zero, IntOfUint32(index))
+			rSlice := r.underlying.anySlice(Zero, IntOfUint32(index))
+			if len(lSlice) > 0 && IsEqualityComparable(lSlice[0]) {
+				return slices.Equal(lSlice, rSlice)
 			}
 			for i := uint32(0); i < index; i++ {
-				if !AreEqual(l.contents[i], r.contents[i]) {
+				if !AreEqual(lSlice[i], rSlice[i]) {
 					return false
 				}
 			}
@@ -563,7 +565,8 @@ func SeqFromArray(contents []interface{}, isString bool) Sequence {
 		return seq
 	}
 	result := New_ArraySequence_()
-	result.Ctor__(GoNativeArray{contents: contents}, isString)
+	underlying := &arrayStruct{contents: contents, dims: []int{len(contents)}}
+	result.Ctor__(GoNativeArray{underlying: underlying}, isString)
 	return result
 }
 
@@ -754,7 +757,7 @@ func (seq *LazySequence) ToByteArray() []byte {
 
 func ToByteArray(x Sequence) []byte {
 	if arr, ok := x.ToArray().(ByteNativeArray); ok {
-		return arr.contents
+		return arr.underlying.contents
 	}
 	arr := x.ToArray()
 	result := make([]byte, arr.Length())
@@ -768,31 +771,100 @@ func ToByteArray(x Sequence) []byte {
  * Arrays
  ******************************************************************************/
 
-// ByteNativeArray - optimized for uint8 sequences
-type ByteNativeArray struct{ contents []byte }
+/******************************************************************************
+ * Arrays
+ ******************************************************************************/
 
-func (a ByteNativeArray) Length() uint32                 { return uint32(len(a.contents)) }
-func (a ByteNativeArray) Select(i uint32) interface{}    { return a.contents[i] }
-func (a ByteNativeArray) Update(i uint32, t interface{}) { a.contents[i] = t.(uint8) }
-func (a ByteNativeArray) UpdateSubarray(i uint32, other ImmutableArray) {
+// GoNativeArray wraps the Array interface for external compatibility
+// while allowing optimized implementations internally
+type GoNativeArray struct {
+	underlying Array
+}
+
+// GoNativeArray methods delegate to underlying Array implementation
+func (g GoNativeArray) Length() uint32 {
+	return uint32(g.underlying.dimensionLength(0))
+}
+
+func (g GoNativeArray) Select(i uint32) interface{} {
+	return g.underlying.ArrayGet1(int(i))
+}
+
+func (g GoNativeArray) Update(i uint32, t interface{}) {
+	g.underlying.ArraySet1(t, int(i))
+}
+
+func (g GoNativeArray) UpdateSubarray(i uint32, other ImmutableArray) {
 	for j := uint32(0); j < other.Length(); j++ {
-		a.contents[i+j] = other.Select(j).(uint8)
+		g.underlying.ArraySet1(other.Select(j), int(i+j))
 	}
 }
-func (a ByteNativeArray) Freeze(size uint32) ImmutableArray { return a.Subarray(0, size) }
-func (a ByteNativeArray) Subarray(lo, hi uint32) ImmutableArray {
-	return ByteNativeArray{contents: a.contents[lo:hi]}
-}
-func (a ByteNativeArray) String() string { return "ByteNativeArray" }
 
-// Helper to create byte sequences
+func (g GoNativeArray) Freeze(size uint32) ImmutableArray {
+	return g.Subarray(0, size)
+}
+
+func (g GoNativeArray) Subarray(lo, hi uint32) ImmutableArray {
+	slice := g.underlying.anySlice(IntOfUint32(lo), IntOfUint32(hi))
+	return GoNativeArray{underlying: &arrayStruct{contents: slice, dims: []int{len(slice)}}}
+}
+
+func (g GoNativeArray) String() string {
+	return "dafny.GoNativeArray"
+}
+
+// ByteNativeArray wraps arrayForByte for byte sequence optimization
+type ByteNativeArray struct {
+	underlying *arrayForByte
+}
+
+func (b ByteNativeArray) Length() uint32 {
+	return uint32(b.underlying.dimensionLength(0))
+}
+
+func (b ByteNativeArray) Select(i uint32) interface{} {
+	return b.underlying.ArrayGet1Byte(int(i))
+}
+
+func (b ByteNativeArray) Update(i uint32, t interface{}) {
+	b.underlying.ArraySet1Byte(t.(uint8), int(i))
+}
+
+func (b ByteNativeArray) UpdateSubarray(i uint32, other ImmutableArray) {
+	// Fast path for ByteNativeArray
+	if otherByte, ok := other.(ByteNativeArray); ok {
+		copy(b.underlying.contents[i:], otherByte.underlying.contents)
+	} else {
+		for j := uint32(0); j < other.Length(); j++ {
+			b.underlying.ArraySet1Byte(other.Select(j).(uint8), int(i+j))
+		}
+	}
+}
+
+func (b ByteNativeArray) Freeze(size uint32) ImmutableArray {
+	return b.Subarray(0, size)
+}
+
+func (b ByteNativeArray) Subarray(lo, hi uint32) ImmutableArray {
+	return ByteNativeArray{underlying: &arrayForByte{
+		contents: b.underlying.contents[lo:hi],
+		dims:     []int{int(hi - lo)},
+	}}
+}
+
+func (b ByteNativeArray) String() string {
+	return "dafny.ByteNativeArray"
+}
+
+// Helper to create byte sequences using ByteNativeArray wrapper
 func newByteSeq(data []byte) Sequence {
 	result := New_ArraySequence_()
-	result.Ctor__(ByteNativeArray{contents: data}, false)
+	underlying := &arrayForByte{contents: data, dims: []int{len(data)}}
+	result.Ctor__(ByteNativeArray{underlying: underlying}, false)
 	return result
 }
 
-// Helper to try creating optimized uint8 sequence from slice
+// Helper to try creating optimized uint8 sequence
 func tryByteSeq(contents []interface{}) (Sequence, bool) {
 	if len(contents) > 0 {
 		if _, ok := contents[0].(uint8); ok {
@@ -820,69 +892,56 @@ func tryByteSeqInit(n uint32, init func(Int) interface{}) (Sequence, bool) {
 	return nil, false
 }
 
-// A GoNativeArray is a single dimensional Go slice,
-// wrapped up for the benefit of dafnyRuntime.dfy.
-// We should refactor to wrap an Array interface as defined below
-// to get the same optimization benefits for sequences of bytes and chars/CodePoints.
-type GoNativeArray struct {
-	contents []interface{}
-}
-
-func (CompanionStruct_NativeArray_) Make(length uint32) NativeArray {
-	contents := make([]interface{}, length)
-	return GoNativeArray{
-		contents: contents,
+// CompanionStruct_NativeArray_ functions work with Array interface through GoNativeArray wrapper
+func (CompanionStruct_NativeArray_) Make(length uint32) ImmutableArray {
+	underlying := &arrayStruct{
+		contents: make([]interface{}, length),
+		dims:     []int{int(length)},
 	}
+	return GoNativeArray{underlying: underlying}
 }
 
-func (CompanionStruct_NativeArray_) MakeWithInit(length uint32, init func(uint32) interface{}) NativeArray {
+func (CompanionStruct_NativeArray_) MakeWithInit(length uint32, init func(uint32) interface{}) ImmutableArray {
 	contents := make([]interface{}, length)
 	for i := uint32(0); i < length; i++ {
 		contents[i] = init(i)
 	}
-	return GoNativeArray{
+	underlying := &arrayStruct{
 		contents: contents,
+		dims:     []int{int(length)},
 	}
+	return GoNativeArray{underlying: underlying}
 }
 
-func (CompanionStruct_NativeArray_) Copy(other ImmutableArray) NativeArray {
+func (CompanionStruct_NativeArray_) Copy(other ImmutableArray) ImmutableArray {
+	// Fast path: if it's already a GoNativeArray, use the underlying Array
+	if goArray, ok := other.(GoNativeArray); ok {
+		slice := goArray.underlying.anySlice(Zero, IntOfUint32(other.Length()))
+		underlying := &arrayStruct{
+			contents: append([]interface{}(nil), slice...),
+			dims:     []int{len(slice)},
+		}
+		return GoNativeArray{underlying: underlying}
+	}
+
+	// Fast path: if it's a ByteNativeArray, copy efficiently
+	if byteArray, ok := other.(ByteNativeArray); ok {
+		data := make([]byte, len(byteArray.underlying.contents))
+		copy(data, byteArray.underlying.contents)
+		underlying := &arrayForByte{contents: data, dims: []int{len(data)}}
+		return ByteNativeArray{underlying: underlying}
+	}
+
+	// Generic path: copy through interface
 	contents := make([]interface{}, other.Length())
 	for i := uint32(0); i < other.Length(); i++ {
 		contents[i] = other.Select(i)
 	}
-	return GoNativeArray{contents: contents}
-}
-
-func (array GoNativeArray) Length() uint32 {
-	return uint32(len(array.contents))
-}
-
-func (array GoNativeArray) Select(i uint32) interface{} {
-	return array.contents[i]
-}
-
-func (array GoNativeArray) Update(i uint32, t interface{}) {
-	array.contents[i] = t
-}
-
-func (array GoNativeArray) UpdateSubarray(i uint32, other ImmutableArray) {
-	for j := uint32(0); j < other.Length(); j++ {
-		array.contents[i+j] = other.Select(j)
+	underlying := &arrayStruct{
+		contents: contents,
+		dims:     []int{len(contents)},
 	}
-}
-
-func (array GoNativeArray) Freeze(size uint32) ImmutableArray {
-	return array.Subarray(0, size)
-}
-
-func (array GoNativeArray) Subarray(lo uint32, hi uint32) ImmutableArray {
-	return GoNativeArray{
-		contents: array.contents[lo:hi],
-	}
-}
-
-func (array GoNativeArray) String() string {
-	return "dafny.GoNativeArray"
+	return GoNativeArray{underlying: underlying}
 }
 
 // Array is the general interface for arrays. Conceptually, it contains some
