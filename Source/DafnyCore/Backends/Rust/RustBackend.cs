@@ -94,12 +94,20 @@ public class RustBackend : DafnyExecutableBackend {
 
 
   public override async Task<bool> OnPostGenerate(string dafnyProgramName, string targetDirectory, IDafnyOutputWriter outputWriter) {
+    var usingStandardLibraries = Options.Get(CommonOptionBag.UseStandardLibraries) && Options.Get(CommonOptionBag.TranslateStandardLibrary);
+
     foreach (var keyValue in ImportFilesMapping(dafnyProgramName)) {
       var fullRustExternName = keyValue.Key;
       var expectedRustName = keyValue.Value;
+
+      // Skip FileIOInternalExterns.rs if we're using standard libraries (we generate the module structure instead)
+      if (usingStandardLibraries && expectedRustName.Contains("FileIOInternalExterns")) {
+        continue;
+      }
+
       var targetName = Path.Combine(targetDirectory, expectedRustName);
       if (fullRustExternName == targetName) {
-        return true;
+        continue;
       }
       File.Copy(fullRustExternName, targetName, true);
     }
@@ -107,7 +115,63 @@ public class RustBackend : DafnyExecutableBackend {
     if (Options.IncludeRuntime) {
       ImportRuntimeTo(Path.GetDirectoryName(targetDirectory));
     }
+
+    // Emit standard library resources if requested
+    if (usingStandardLibraries) {
+      EmitStandardLibraryResources(targetDirectory);
+      AddModuleDeclarations(dafnyProgramName, targetDirectory);
+    }
+
     return await base.OnPostGenerate(dafnyProgramName, targetDirectory, outputWriter);
+  }
+
+  private void AddModuleDeclarations(string dafnyProgramName, string targetDirectory) {
+    // Remove .dfy extension if present
+    var baseName = dafnyProgramName.EndsWith(".dfy") ? dafnyProgramName.Substring(0, dafnyProgramName.Length - 4) : dafnyProgramName;
+    baseName = Path.GetFileName(baseName); // Get just the filename without path
+    var mainFile = Path.Combine(targetDirectory, $"{baseName}.rs");
+
+    if (File.Exists(mainFile)) {
+      var content = File.ReadAllText(mainFile);
+
+      // Add module declarations after the #![cfg_attr...] line
+      if (content.Contains("#![cfg_attr(any(), rustfmt::skip)]")) {
+        content = content.Replace(
+          "#![cfg_attr(any(), rustfmt::skip)]",
+          "#![cfg_attr(any(), rustfmt::skip)]\n\nmod _dafny_externs;\nmod FileIOInternalExterns;"
+        );
+
+        // Remove any generated duplicate FileIOInternalExterns module
+        var duplicatePattern = @"pub mod FileIOInternalExterns \{\s*pub use crate::_dafny_externs::FileIOInternalExterns::\*;\s*\}";
+        content = System.Text.RegularExpressions.Regex.Replace(content, duplicatePattern, "");
+
+        File.WriteAllText(mainFile, content);
+      }
+    }
+  }
+
+  private void EmitStandardLibraryResources(string targetDirectory) {
+    var assembly = System.Reflection.Assembly.Load("DafnyPipeline");
+    var files = assembly.GetManifestResourceNames();
+    var header = "DafnyPipeline.DafnyStandardLibraries_rs";
+
+    foreach (var file in files.Where(f => f.StartsWith(header))) {
+      var parts = file.Split('.');
+      var relativePath = string.Join('/', parts.SkipLast(1).Skip(2)) + "." + parts.Last();
+      var targetPath = Path.Combine(targetDirectory, relativePath);
+
+      // Create directory if it doesn't exist
+      var directory = Path.GetDirectoryName(targetPath);
+      if (!Directory.Exists(directory)) {
+        Directory.CreateDirectory(directory);
+      }
+
+      // Extract and write the resource
+      using var stream = assembly.GetManifestResourceStream(file);
+      using var reader = new StreamReader(stream);
+      var content = reader.ReadToEnd();
+      File.WriteAllText(targetPath, content);
+    }
   }
 
   private string ComputeExeName(string targetFilename) {
@@ -184,6 +248,8 @@ public class RustBackend : DafnyExecutableBackend {
     Directory.CreateDirectory(runtimeDirectory);
 
     var assembly = System.Reflection.Assembly.Load("DafnyPipeline");
+
+    // Copy DafnyRuntimeRust files
     assembly.GetManifestResourceNames().Where(f => f.StartsWith("DafnyPipeline.DafnyRuntimeRust")).ToList().ForEach(f => {
       var stream = assembly.GetManifestResourceStream(f);
       var dotToSlashPath = "";
@@ -207,6 +273,57 @@ public class RustBackend : DafnyExecutableBackend {
       using var outFile = new FileStream(Path.Combine(runtimeDirectory, dotToSlashPath), FileMode.Create, FileAccess.Write);
       stream.CopyTo(outFile);
     });
+
+    // Copy DafnyStandardLibraries_rs extern files
+    var srcDirectory = Path.Combine(targetDirectory, "src");
+    if (!Directory.Exists(srcDirectory)) {
+      Directory.CreateDirectory(srcDirectory);
+    }
+
+    assembly.GetManifestResourceNames().Where(f => f.StartsWith("DafnyPipeline.DafnyStandardLibraries_rs")).ToList().ForEach(f => {
+      var stream = assembly.GetManifestResourceStream(f);
+      var dotToSlashPath = "";
+      var parts = f.Replace("DafnyPipeline.DafnyStandardLibraries_rs.", "").Split('.');
+      for (var i = 0; i < parts.Length; i++) {
+        dotToSlashPath += parts[i];
+
+        if (i < parts.Length - 2) {
+          dotToSlashPath += "/";
+        } else if (i == parts.Length - 2) {
+          // extension
+          dotToSlashPath += ".";
+        }
+      }
+
+      var containingDirectory = Path.Combine(srcDirectory, Path.GetDirectoryName(dotToSlashPath));
+      if (!Directory.Exists(containingDirectory)) {
+        Directory.CreateDirectory(containingDirectory);
+      }
+
+      using var outFile = new FileStream(Path.Combine(srcDirectory, dotToSlashPath), FileMode.Create, FileAccess.Write);
+      stream.CopyTo(outFile);
+    });
+
+    // Create _dafny_externs.rs module structure
+    var dafnyExternsPath = Path.Combine(srcDirectory, "_dafny_externs.rs");
+    File.WriteAllText(dafnyExternsPath, @"pub mod FileIOInternalExterns {
+    pub use crate::FileIOInternalExterns::Std_RsFileIOInternalExterns::_default;
+}");
+
+    // Create FileIOInternalExterns/mod.rs
+    var fileIOExternsDir = Path.Combine(srcDirectory, "FileIOInternalExterns");
+    if (Directory.Exists(fileIOExternsDir)) {
+      var modRsPath = Path.Combine(fileIOExternsDir, "mod.rs");
+      File.WriteAllText(modRsPath, @"pub mod Std_RsFileIOInternalExterns;
+pub use Std_RsFileIOInternalExterns::_default;");
+
+      // Create Std_RsFileIOInternalExterns/mod.rs
+      var stdRsDir = Path.Combine(fileIOExternsDir, "Std_RsFileIOInternalExterns");
+      if (Directory.Exists(stdRsDir)) {
+        var stdModRsPath = Path.Combine(stdRsDir, "mod.rs");
+        File.WriteAllText(stdModRsPath, @"include!(""Std_RsFileIOInternalExterns.rs"");");
+      }
+    }
   }
 
   public override Encoding OutputWriterEncoding => Encoding.UTF8;
