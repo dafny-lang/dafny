@@ -122,7 +122,7 @@ func TestNativeArrayFunctions(t *testing.T) {
 	}
 
 	// Test Copy function with GoNativeArray
-	arr3 := Companion_NativeArray_.Copy(arr2)
+	arr3 := Companion_NativeArray_.Copy(arr2.(GoNativeArray))
 	if goArr3, ok := arr3.(GoNativeArray); ok {
 		if goArr3.Length() != 3 {
 			t.Errorf("Expected length 3, got %d", goArr3.Length())

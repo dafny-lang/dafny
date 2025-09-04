@@ -775,7 +775,7 @@ func (g GoNativeArray) Freeze(size uint32) ImmutableArray {
 }
 
 func (g GoNativeArray) Subarray(lo, hi uint32) ImmutableArray {
-	return GoNativeArray{underlying: g.underlying.arrayGetRange1(int(lo), int(hi))}
+	return GoNativeArray{underlying: g.underlying.arrayGetRange1(IntOfUint32(lo), IntOfUint32(hi))}
 }
 
 func (g GoNativeArray) String() string {
@@ -796,7 +796,7 @@ type Array interface {
 	dimensionLength(dim int) int
 	ArrayGet1(index int) interface{}
 	ArraySet1(value interface{}, index int)
-	arrayGetRange1(lo, hi int) Array
+	arrayGetRange1(lo, hi Int) Array
 	arraySetRange1(index int, other Array)
 	anySlice(lo, hi Int) []interface{}
 	arrayCopy() Array
@@ -1073,11 +1073,19 @@ func (_this arrayStruct) ArraySet1(value interface{}, index int) {
 	_this.contents[index] = value
 }
 
-func (_this arrayStruct) arrayGetRange1(lo, hi int) Array {
-	newContents := _this.contents[lo:hi]
+func (_this arrayStruct) arrayGetRange1(lo, hi Int) Array {
+	if lo.IsNilInt() {
+		lo = Zero
+	}
+	if hi.IsNilInt() {
+		hi = IntOf(len(_this.contents))
+	}
+	iLo := lo.Int()
+	iHi := hi.Int()
+	newContents := _this.contents[iLo:iHi]
 	return &arrayStruct{
 		contents: newContents,
-		dims:     []int{int(hi - lo)},
+		dims:     []int{int(iHi - iLo)},
 	}
 }
 
@@ -1176,11 +1184,19 @@ func (_this arrayForByte) ArraySet1(value interface{}, index int) {
 	_this.contents[index] = value.(byte)
 }
 
-func (_this arrayForByte) arrayGetRange1(lo, hi int) Array {
-	newContents := _this.contents[lo:hi]
+func (_this arrayForByte) arrayGetRange1(lo, hi Int) Array {
+	if lo.IsNilInt() {
+		lo = Zero
+	}
+	if hi.IsNilInt() {
+		hi = IntOf(len(_this.contents))
+	}
+	iLo := lo.Int()
+	iHi := hi.Int()
+	newContents := _this.contents[iLo:iHi]
 	return &arrayForByte{
 		contents: newContents,
-		dims:     []int{int(hi - lo)},
+		dims:     []int{int(iHi - iLo)},
 	}
 }
 
@@ -1284,11 +1300,19 @@ func (_this arrayForChar) ArraySet1(value interface{}, index int) {
 	_this.contents[index] = value.(Char)
 }
 
-func (_this arrayForChar) arrayGetRange1(lo, hi int) Array {
-	newContents := _this.contents[lo:hi]
+func (_this arrayForChar) arrayGetRange1(lo, hi Int) Array {
+	if lo.IsNilInt() {
+		lo = Zero
+	}
+	if hi.IsNilInt() {
+		hi = IntOf(len(_this.contents))
+	}
+	iLo := lo.Int()
+	iHi := hi.Int()
+	newContents := _this.contents[iLo:iHi]
 	return &arrayForChar{
 		contents: newContents,
-		dims:     []int{int(hi - lo)},
+		dims:     []int{int(iHi - iLo)},
 	}
 }
 
@@ -1392,11 +1416,19 @@ func (_this arrayForCodePoint) ArraySet1(value interface{}, index int) {
 	_this.contents[index] = value.(CodePoint)
 }
 
-func (_this arrayForCodePoint) arrayGetRange1(lo, hi int) Array {
-	newContents := _this.contents[lo:hi]
+func (_this arrayForCodePoint) arrayGetRange1(lo, hi Int) Array {
+	if lo.IsNilInt() {
+		lo = Zero
+	}
+	if hi.IsNilInt() {
+		hi = IntOf(len(_this.contents))
+	}
+	iLo := lo.Int()
+	iHi := hi.Int()
+	newContents := _this.contents[iLo:iHi]
 	return &arrayForCodePoint{
 		contents: newContents,
-		dims:     []int{int(hi - lo)},
+		dims:     []int{int(iHi - iLo)},
 	}
 }
 
@@ -1532,8 +1564,9 @@ func ArrayRangeToSeq(array Array, lo, hi Int) Sequence {
 		_, isString = array.ArrayGet1(0).(Char)
 	}
 
-	anySlice := array.anySlice(lo, hi)
-	seq := SeqOf(anySlice...)
+	seq := New_ArraySequence_()
+	underlying := array.arrayGetRange1(lo, hi).arrayCopy()
+	seq.Ctor__(GoNativeArray{underlying: underlying}, false)
 	seq.IsString_set_(isString)
 	return seq
 }
