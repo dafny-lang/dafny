@@ -737,7 +737,7 @@ type GoNativeArray struct {
 	underlying Array
 }
 
-func (CompanionStruct_NativeArray_) Make(length uint32) ImmutableArray {
+func (CompanionStruct_NativeArray_) Make(length uint32) NativeArray {
 	underlying := &arrayStruct{
 		contents: make([]interface{}, length),
 		dims:     []int{int(length)},
@@ -745,12 +745,12 @@ func (CompanionStruct_NativeArray_) Make(length uint32) ImmutableArray {
 	return GoNativeArray{underlying: underlying}
 }
 
-func (CompanionStruct_NativeArray_) MakeWithInit(length uint32, init func(uint32) interface{}) ImmutableArray {
+func (CompanionStruct_NativeArray_) MakeWithInit(length uint32, init func(uint32) interface{}) NativeArray {
 	underlying := newArrayWithInitFn(init, int(length))
 	return GoNativeArray{underlying: underlying}
 }
 
-func (CompanionStruct_NativeArray_) Copy(other ImmutableArray) ImmutableArray {
+func (CompanionStruct_NativeArray_) Copy(other ImmutableArray) NativeArray {
 	return GoNativeArray{underlying: other.(GoNativeArray).underlying.arrayCopy()}
 }
 
