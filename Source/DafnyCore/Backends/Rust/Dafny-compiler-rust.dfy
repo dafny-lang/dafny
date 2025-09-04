@@ -3495,6 +3495,7 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
       }
 
       // Use the actual return type from the lambda if available, otherwise fall back to "_"
+      // Use the actual return type from the lambda if available, otherwise fall back to "_"
       var returnType := 
         if rInput.retType.Some? then
           rInput.retType.value
