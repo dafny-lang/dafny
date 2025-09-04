@@ -3494,7 +3494,7 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
         typeShapeArgs := typeShapeArgs + [typeShapeArg];
       }
 
-      var returnType := 
+      var returnType :=
         if rInput.retType.Some? then
           rInput.retType.value
         else
