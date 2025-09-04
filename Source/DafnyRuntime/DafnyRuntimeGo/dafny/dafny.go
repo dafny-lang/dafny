@@ -1008,7 +1008,7 @@ func newArrayWithInitFn(init func(uint32) interface{}, length int) Array {
 	if _, ok := value0.(byte); ok {
 		arr := make([]byte, length)
 		arr[0] = value0.(byte)
-		for i := range arr[1:] {
+		for i := 1; i < length; i++ {
 			arr[i] = init(uint32(i)).(byte)
 		}
 		return &arrayForByte{
@@ -1019,7 +1019,7 @@ func newArrayWithInitFn(init func(uint32) interface{}, length int) Array {
 	if _, ok := value0.(Char); ok {
 		arr := make([]Char, length)
 		arr[0] = value0.(Char)
-		for i := range arr {
+		for i := 1; i < length; i++ {
 			arr[i] = init(uint32(i)).(Char)
 		}
 		return &arrayForChar{
@@ -1031,7 +1031,7 @@ func newArrayWithInitFn(init func(uint32) interface{}, length int) Array {
 	// Use the default representation
 	arr := make([]interface{}, length)
 	arr[0] = value0
-	for i := range arr[1:] {
+	for i := 1; i < length; i++ {
 		arr[i] = init(uint32(i))
 	}
 	return &arrayStruct{
