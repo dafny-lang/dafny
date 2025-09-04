@@ -1,1 +1,1 @@
-// CHECK-L: AsIs-Compile-Expanded.dfy(18,10): Error: Feature not supported for this compilation target: Type test expressions (`x is T`)
+// CHECK-L: (0,-1): Error: Unsupported Invalid Operation: The Rust compiler requires `--enforce-determinism`

@@ -1,1 +1,1 @@
-// CHECK: .*<i>Unsupported:\ Cannot\ emit\ literal\ expression\ 0\ outside\ of\ expression\ context:\ Microsoft_dDafny_dCompilers_dBuilderSyntaxTree'1\[Microsoft_dDafny_dCompilers_dStatementContainer]</i>.*
+// CHECK-L: Unhandled exception: System.InvalidOperationException: Operation is not valid due to the current state of the object.

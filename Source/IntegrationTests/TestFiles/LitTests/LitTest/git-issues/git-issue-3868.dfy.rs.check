@@ -1,1 +1,2 @@
-// CHECK: .*<i>Type\ variance\ Co\ not\ supported</i>.*
+// CHECK-L: git-issue-3868.dfy(250,20): Error: this let-such-that expression is too advanced for the current compiler; Dafny's heuristics cannot find any bound for variable 'x'
+// CHECK-L: (0,-1): Error: Unsupported Invalid Operation: The Rust compiler requires `--enforce-determinism`

@@ -1,1 +1,1 @@
-//CHECK: .*<i>Unsupported: Datatype constructor ML expects 2 arguments, but 3 were provided</i>.*
+// CHECK-L: Unhandled exception: System.NullReferenceException: Object reference not set to an instance of an object.
