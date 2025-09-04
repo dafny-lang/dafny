@@ -3494,7 +3494,14 @@ module {:extern "DCOMP"} DafnyToRustCompiler {
         typeShapeArgs := typeShapeArgs + [typeShapeArg];
       }
 
-      var typeShape := R.DynType(R.FnType(typeShapeArgs, R.TIdentifier("_")));
+      // Use the actual return type from the lambda if available, otherwise fall back to "_"
+      var returnType := 
+        if rInput.retType.Some? then
+          rInput.retType.value
+        else
+          R.TIdentifier("_");
+
+      var typeShape := R.DynType(R.FnType(typeShapeArgs, returnType));
       if syncType.Sync? {
         typeShape := R.IntersectionType(typeShape, SyncSendType);
       }
