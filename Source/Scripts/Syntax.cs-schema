@@ -926,6 +926,11 @@ enum PredicateBodyOriginKind
     Extension
 }
 
+class Invariant : NodeWithOrigin
+{
+    List<AttributedExpression> clauses;
+}
+
 abstract class ExtremePredicate : Declaration
 {
     Boolean hasStaticKeyword;

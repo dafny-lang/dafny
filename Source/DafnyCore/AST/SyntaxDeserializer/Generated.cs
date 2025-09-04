@@ -1948,6 +1948,23 @@ namespace Microsoft.Dafny
             return (Predicate.BodyOriginKind)ordinal;
         }
 
+        public Invariant ReadInvariant()
+        {
+            var parameter0 = ReadAbstract<IOrigin>();
+            var parameter1 = ReadList<AttributedExpression>(() => ReadAttributedExpression());
+            return new Invariant(parameter0, parameter1);
+        }
+
+        public Invariant ReadInvariantOption()
+        {
+            if (ReadIsNull())
+            {
+                return default;
+            }
+
+            return ReadInvariant();
+        }
+
         public GreatestPredicate ReadGreatestPredicate()
         {
             var parameter0 = ReadAbstract<IOrigin>();
@@ -2727,6 +2744,11 @@ namespace Microsoft.Dafny
             if (actualType == typeof(Predicate))
             {
                 return ReadPredicate();
+            }
+
+            if (actualType == typeof(Invariant))
+            {
+                return ReadInvariant();
             }
 
             if (actualType == typeof(GreatestPredicate))
