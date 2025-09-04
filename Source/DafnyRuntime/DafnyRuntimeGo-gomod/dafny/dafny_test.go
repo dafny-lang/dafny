@@ -41,27 +41,27 @@ func TestLazySequence(t *testing.T) {
 	AssertImplementsSequence(lazySeq, t)
 }
 
-// Test byte sequence optimization using ByteNativeArray wrapper
+// Test byte sequence optimization using arrayForByte wrapper
 func TestByteSequenceOptimization(t *testing.T) {
 	// Test creating byte sequence from slice
 	data := []byte{1, 2, 3, 4, 5}
-	seq := SeqOf(data)
+	seq := SeqOfBytes(data)
 
 	// Verify it implements Sequence interface
 	AssertImplementsSequence(seq, t)
 
-	// Verify ToArray returns ByteNativeArray
-	// arr := seq.ToArray()
-	// if byteArr, ok := arr.(ByteNativeArray); ok {
-	// 	if byteArr.Length() != 5 {
-	// 		t.Errorf("Expected length 5, got %d", byteArr.Length())
-	// 	}
-	// 	if byteArr.Select(0).(uint8) != 1 {
-	// 		t.Errorf("Expected first element 1, got %v", byteArr.Select(0))
-	// 	}
-	// } else {
-	// 	t.Errorf("Expected ByteNativeArray, got %T", arr)
-	// }
+	// Verify ToArray returns GoNativeArray
+	arr := seq.ToArray()
+	if byteArr, ok := arr.(GoNativeArray); ok {
+		if byteArr.Length() != 5 {
+			t.Errorf("Expected length 5, got %d", byteArr.Length())
+		}
+		if byteArr.Select(0).(uint8) != 1 {
+			t.Errorf("Expected first element 1, got %v", byteArr.Select(0))
+		}
+	} else {
+		t.Errorf("Expected GoNativeArray, got %T", arr)
+	}
 }
 
 // Test optimization detection for uint8 vs non-uint8
@@ -69,15 +69,14 @@ func TestSeqOf(t *testing.T) {
 	// Test uint8 slice - should optimize
 	uint8Contents := []interface{}{uint8(1), uint8(2), uint8(3)}
 	seq := SeqFromArray(uint8Contents, false)
-	AssertSequenceIsBackedByByteArray(seq, t)
 	if !SequenceIsBackedByByteArray(seq) {
 		t.Error("Expected optimization for uint8 slice")
 	}
 
-	// Verify it returns ByteNativeArray
+	// Verify it returns GoNativeArray
 	arr := seq.ToArray()
 	if _, ok := arr.(GoNativeArray); !ok {
-		t.Errorf("Expected ByteNativeArray, got %T", arr)
+		t.Errorf("Expected GoNativeArray, got %T", arr)
 	}
 
 	// Test non-uint8 slice - should not optimize
@@ -122,7 +121,7 @@ func TestNativeArrayFunctions(t *testing.T) {
 	}
 
 	// Test Copy function with GoNativeArray
-	arr3 := Companion_NativeArray_.Copy(arr2)
+	arr3 := Companion_NativeArray_.Copy(arr2.(GoNativeArray))
 	if goArr3, ok := arr3.(GoNativeArray); ok {
 		if goArr3.Length() != 3 {
 			t.Errorf("Expected length 3, got %d", goArr3.Length())
@@ -134,7 +133,7 @@ func TestNativeArrayFunctions(t *testing.T) {
 		t.Errorf("Expected GoNativeArray, got %T", arr3)
 	}
 
-	// Test Copy function with ByteNativeArray
+	// Test Copy function with GoNativeArray
 	data := []byte{10, 20, 30}
 	byteSeq := SeqOfBytes(data)
 	byteArr := byteSeq.ToArray()
@@ -161,21 +160,4 @@ func AssertImplementsSequence(s interface{}, t *testing.T) {
 func SequenceIsBackedByByteArray(seq Sequence) bool {
 	_, ok := seq.(*ArraySequence)._values.(GoNativeArray).underlying.(*arrayForByte)
 	return ok
-}
-
-func AssertSequenceIsBackedByByteArray(seq Sequence, t *testing.T) {
-	as, ok := seq.(*ArraySequence)
-	if !ok {
-		t.Errorf("Expected %v to be an *ArraySequence", seq)
-	}
-
-	gna, ok := as._values.(GoNativeArray)
-	if !ok {
-		t.Errorf("Expected %v to implement the GoNativeArray interface", as._values)
-	}
-
-	_, ok = gna.underlying.(*arrayForByte)
-	if !ok {
-		t.Errorf("Expected %v to be an arrayForByte", gna.underlying)
-	}
 }
