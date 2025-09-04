@@ -720,8 +720,17 @@ func (seq *LazySequence) ToByteArray() []byte {
 
 func ToByteArray(x Sequence) []byte {
 	arr := x.ToArray()
-	result := make([]byte, arr.Length())
-	copy(result, arr.(GoNativeArray).underlying.(arrayForByte).contents)
+
+	length := arr.Length()
+	result := make([]byte, length)
+	// Optimize for the same kind of content array
+	if arrayByte, ok := arr.(GoNativeArray).underlying.(*arrayForByte); ok {
+		copy(result, arrayByte.contents)
+	} else {
+		for i := uint32(0); i < length; i++ {
+			result[i] = arr.Select(i).(byte)
+		}
+	}
 	return result
 }
 
