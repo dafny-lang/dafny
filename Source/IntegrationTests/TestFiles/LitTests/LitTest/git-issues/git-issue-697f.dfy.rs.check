@@ -1,1 +1,0 @@
-// CHECK-L: error[E0277]: the trait bound `EvenCell: num_traits::sign::Signed` is not satisfied
