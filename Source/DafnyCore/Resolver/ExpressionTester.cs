@@ -356,7 +356,7 @@ public class ExpressionTester {
                   expr, "a `decreases to` expression is allowed only in specification and ghost contexts");
       return false;
 
-    } else if (expr is ConcreteSyntaxExpression concreteSyntaxExpression) {
+    } else if (expr is ConcreteSyntaxExpression { ResolvedExpression: not null } concreteSyntaxExpression) {
       return CheckIsCompilable(concreteSyntaxExpression.ResolvedExpression, codeContext, insideBranchesOnly);
     }
 

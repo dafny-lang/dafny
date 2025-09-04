@@ -169,6 +169,22 @@ module _System {
 
   datatype /*_tuple#0*/ () = _#Make0
 
+  type {:compile false} /*_#Func2*/ (-T0, -T1) ~> +R {
+    ghost function requires(x0: T0, x1: T1): bool
+      reads reads(x0, x1)
+
+    ghost function reads(x0: T0, x1: T1): set<object?>
+      reads reads(x0, x1)
+  }
+
+  type {:compile false} /*_#PartialFunc2*/ (-T0, -T1) --> +R = f: (T0, T1) ~> R
+    | forall x0: T0, x1: T1 :: f.reads(x0, x1) == {}
+    /*special witness*/
+
+  type {:compile false} /*_#TotalFunc2*/ (-T0, -T1) -> +R = f: (T0, T1) --> R
+    | forall x0: T0, x1: T1 :: f.requires(x0, x1)
+    /*special witness*/
+
   type bv0 {
     function RotateLeft(w: nat): bv0
 
