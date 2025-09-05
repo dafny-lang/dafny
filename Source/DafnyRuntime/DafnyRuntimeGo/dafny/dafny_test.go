@@ -2,10 +2,6 @@ package dafny
 
 import "testing"
 
-// These tests are currently just useful sanity checks on the interface
-// between the manually-written and Dafny-generated Go code,
-// but could easily be expanded to include more unit tests in the future.
-
 func TestArraySequence(t *testing.T) {
 	arrSeq := MakeArraySequence()
 	AssertImplementsSequence(arrSeq, t)
@@ -68,7 +64,7 @@ func TestByteSequenceOptimization(t *testing.T) {
 func TestSeqOf(t *testing.T) {
 	// Test uint8 slice - should optimize
 	uint8Contents := []interface{}{uint8(1), uint8(2), uint8(3)}
-	seq := SeqFromArray(uint8Contents, false)
+	seq := SeqOf(uint8Contents...)
 	if !SequenceIsBackedByByteArray(seq) {
 		t.Error("Expected optimization for uint8 slice")
 	}
@@ -81,16 +77,33 @@ func TestSeqOf(t *testing.T) {
 
 	// Test non-uint8 slice - should not optimize
 	intContents := []interface{}{1, 2, 3}
-	seq2 := SeqFromArray(intContents, false)
+	seq2 := SeqOf(intContents...)
 	if SequenceIsBackedByByteArray(seq2) {
 		t.Error("Expected no optimization for int slice")
 	}
 
 	// Test empty slice - should not optimize
 	emptyContents := []interface{}{}
-	seq3 := SeqFromArray(emptyContents, false)
+	seq3 := SeqOf(emptyContents...)
 	if SequenceIsBackedByByteArray(seq3) {
 		t.Error("Expected no optimization for empty slice")
+	}
+}
+
+func TestSeqFromArray(t *testing.T) {
+	// Test uint8 slice - should not optimize
+	// (in fact it should use the array without copying)
+	uint8Contents := []interface{}{uint8(1), uint8(2), uint8(3)}
+	seq := SeqFromArray(uint8Contents, false)
+	if SequenceIsBackedByByteArray(seq) {
+		t.Error("Expected no optimization for int slice")
+	}
+
+	// Mutate the array (exactly as you're not supposed to :)
+	// and check the sequence changes.
+	uint8Contents[1] = uint8(42)
+	if seq.Select(1) != uint8(42) {
+		t.Errorf("Expected element at index 1 to be 42, got %v", seq.Select(1))
 	}
 }
 
@@ -150,6 +163,14 @@ func TestNativeArrayFunctions(t *testing.T) {
 	}
 }
 
+func TestArrayCopy(t *testing.T) {
+	arr := NewArray(Five)
+	copy := arr.arrayCopy()
+	if arr.(EqualsGeneric).EqualsGeneric(copy) {
+		t.Errorf("Expected array to not compare EqualsGeneric to its copy")
+	}
+}
+
 func AssertImplementsSequence(s interface{}, t *testing.T) {
 	_, ok := s.(Sequence)
 	if !ok {
@@ -161,3 +182,5 @@ func SequenceIsBackedByByteArray(seq Sequence) bool {
 	_, ok := seq.(*ArraySequence)._values.(GoNativeArray).underlying.(*arrayForByte)
 	return ok
 }
+
+

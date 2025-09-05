@@ -526,33 +526,29 @@ func SeqCreate(n uint32, init func(Int) interface{}) Sequence {
 	})
 }
 
+// WARNING: This function uses the given array directly without making a defensive copy.
+// This is only safe if the array never changes afterward.
 func SeqFromArray(contents []interface{}, isString bool) Sequence {
-	result := New_ArraySequence_()
-	underlying := newArrayWithValues(contents...)
-	result.Ctor__(GoNativeArray{underlying: underlying}, isString)
-	return result
+	return unsafeSeqWrappingDafnyArray(unsafeWrapArray(contents), false)
 }
 
 // SeqOf returns a sequence containing the given values.
 func SeqOf(values ...interface{}) Sequence {
-	result := New_ArraySequence_()
-	underlying := newArrayWithValues(values...)
-	result.Ctor__(GoNativeArray{underlying: underlying}, false)
-	return result
+	return unsafeSeqWrappingDafnyArray(newArrayWithValues(values...), false)
 }
 
 // SeqOfChars returns a sequence containing the given character values.
 func SeqOfChars(values ...Char) Sequence {
-	result := New_ArraySequence_()
-	underlying := NewArrayFromCharArray(values)
-	result.Ctor__(GoNativeArray{underlying: underlying}, false)
-	return result
+	return unsafeSeqWrappingDafnyArray(newArrayFromCharArray(values), true)
 }
 
 func SeqOfBytes(values []byte) Sequence {
+	return unsafeSeqWrappingDafnyArray(newArrayFromByteArray(values), false)
+}
+
+func unsafeSeqWrappingDafnyArray(array Array, isString bool) Sequence {
 	result := New_ArraySequence_()
-	underlying := NewArrayFromByteArray(values)
-	result.Ctor__(GoNativeArray{underlying: underlying}, false)
+	result.Ctor__(GoNativeArray{underlying: array}, isString)
 	return result
 }
 
@@ -859,7 +855,7 @@ func computeTotalArrayLength(dims ...Int) int {
 	return totalLength
 }
 
-func NewArrayFromCharArray(values []Char) Array {
+func newArrayFromCharArray(values []Char) Array {
 	contents := make([]Char, len(values))
 	copy(contents, values)
 	return &arrayForChar{
@@ -868,7 +864,7 @@ func NewArrayFromCharArray(values []Char) Array {
 	}
 }
 
-func NewArrayFromByteArray(values []byte) Array {
+func newArrayFromByteArray(values []byte) Array {
 	contents := make([]byte, len(values))
 	copy(contents, values)
 	return &arrayForByte{
@@ -877,6 +873,15 @@ func NewArrayFromByteArray(values []byte) Array {
 	}
 }
 
+// Uses the given array directly.
+// Only safe if this array is not used anywhere else afterwards!
+// Currently only used to support the existing publish SeqFromArray.
+func unsafeWrapArray(values []interface{}) Array {
+	return &arrayStruct{
+		contents: values,
+		dims:     []int{len(values)},
+	}
+}
 
 // NewArrayFromExample returns a new Array.
 // If "init" is non-nil, it is used to initialize all elements of the array.
@@ -1110,10 +1115,11 @@ func (_this arrayStruct) arraySetRange1(index int, other Array) {
 func (_this arrayStruct) arrayCopy() Array {
 	newContents := make([]interface{}, len(_this.contents))
 	copy(newContents, _this.contents)
+	newDims := make([]int, len(_this.dims))
+	copy(newDims, _this.dims)
 	return &arrayStruct{
 		contents: newContents,
-		// TODO: Does dims have to be copied as well?
-		dims:     _this.dims,
+		dims:    newDims,
 	}
 }
 
@@ -1221,10 +1227,11 @@ func (_this arrayForByte) arraySetRange1(index int, other Array) {
 func (_this arrayForByte) arrayCopy() Array {
 	newContents := make([]byte, len(_this.contents))
 	copy(newContents, _this.contents)
+	newDims := make([]int, len(_this.dims))
+	copy(newDims, _this.dims)
 	return &arrayForByte{
 		contents: newContents,
-		// TODO: Does dims have to be copied as well?
-		dims:     _this.dims,
+		dims:     newDims,
 	}
 }
 
@@ -1337,10 +1344,11 @@ func (_this arrayForChar) arraySetRange1(index int, other Array) {
 func (_this arrayForChar) arrayCopy() Array {
 	newContents := make([]Char, len(_this.contents))
 	copy(newContents, _this.contents)
+	newDims := make([]int, len(_this.dims))
+	copy(newDims, _this.dims)
 	return &arrayForChar{
 		contents: newContents,
-		// TODO: Does dims have to be copied as well?
-		dims:     _this.dims,
+		dims:     newDims,
 	}
 }
 
