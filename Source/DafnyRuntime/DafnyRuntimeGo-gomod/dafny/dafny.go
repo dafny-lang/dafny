@@ -529,7 +529,7 @@ func SeqCreate(n uint32, init func(Int) interface{}) Sequence {
 // WARNING: This function uses the given array directly without making a defensive copy.
 // This is only safe if the array never changes afterward.
 func SeqFromArray(contents []interface{}, isString bool) Sequence {
-	return unsafeSeqWrappingDafnyArray(unsafeWrapArray(contents), false)
+	return unsafeSeqWrappingDafnyArray(unsafeWrapArray(contents), isString)
 }
 
 // SeqOf returns a sequence containing the given values.
