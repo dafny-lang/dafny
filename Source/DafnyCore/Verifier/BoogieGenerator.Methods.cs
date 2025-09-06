@@ -4,6 +4,7 @@ using System.Diagnostics.Contracts;
 using System.Linq;
 using System.Text;
 using Microsoft.Boogie;
+using Microsoft.Dafny.Triggers;
 using Bpl = Microsoft.Boogie;
 using static Microsoft.Dafny.Util;
 using PODesc = Microsoft.Dafny.ProofObligationDescription;
@@ -83,6 +84,9 @@ namespace Microsoft.Dafny {
           AddAllocationAxiom(fieldDeclaration, f, c);
         } else if (member is Function function) {
           AddFunction_Top(function, includeAllMethods);
+          if (member.TryCastToInvariant(Options, reporter, MessageSource.Verifier, out var invariant)) {
+            AddConditionalInvariantAxiom(invariant);
+          }
         } else if (member is MethodOrConstructor method) {
           AddMethod_Top(method, false, includeAllMethods);
         } else {
@@ -486,6 +490,58 @@ namespace Microsoft.Dafny {
       }
     }
 
+    private void AddConditionalInvariantAxiom(Invariant invariant) {
+      var oldFuelContext = fuelContext;
+      fuelContext = FuelSetting.NewFuelContext(invariant);
+      var c = invariant.EnclosingClass;
+      Contract.Assert(currentModule == null);
+      currentModule = c.EnclosingModuleDefinition;
+      var heap = BplBoundVar("$heap", Predef.HeapType, out var heapExpr);
+      var etran = new ExpressionTranslator(this, Predef, heapExpr, invariant);
+      // axiom: forall $heap : Heap, $open : Set, this : `c` | $OpenHeapRelated($open, $heap) :: this in $open || this.invariant($heap)
+      var origin = invariant.Origin;
+      var thisType = UserDefinedType.FromTopLevelDecl(origin, c is ClassLikeDecl cd ? cd.NonNullTypeDecl : c);
+      var @this = BplBoundVar("o", TrType(thisType), out var thisExpr);
+      var thisExprDafny = new BoogieWrapper(thisExpr, thisType);
+      var @is = MkIs(thisExpr, thisType);
+      var isAlloc = MkIsAlloc(thisExpr, thisType, heapExpr);
+      var open = BplBoundVar("$Open", Predef.SetType, out var openExpr);
+      var openExprDafny = new BoogieWrapper(openExpr, program.SystemModuleManager.NonNullObjectSetType(origin));
+      var tyParams = MkTyParamBinders(GetTypeParams(c), out var tyParamTriggers);
+      var openHeapRelated = FunctionCall(origin, BuiltinFunction.OpenHeapRelated, null, openExpr, heapExpr);
+      var thisInOpen = etran.TrExpr(new BinaryExpr(origin, BinaryExpr.ResolvedOpcode.InSet, thisExprDafny, openExprDafny));
+      
+      // Mine the body of the invariant for triggers
+      var finder = new Triggers.QuantifierCollector(reporter);
+      BoundVar triggerBv = new(origin, "o", thisType);
+      var triggerMiningExpression = new ForallExpr(origin, [triggerBv], null,
+        Substitute(invariant.Body, new IdentifierExpr(origin, triggerBv), [])) { Type = Type.Bool /* resolve */ };
+      finder.Visit(triggerMiningExpression, null);
+      var _triggersCollector = new Triggers.TriggersCollector(finder.exprsInOldContext, reporter.Options, currentModule);
+      foreach (var quantifierCollection in finder.quantifierCollections) {
+        quantifierCollection.ComputeTriggers(_triggersCollector);
+        quantifierCollection.CommitTriggers(program.SystemModuleManager);
+      }
+      finder.ApplyPostActions();
+      var bodyTriggers = triggerMiningExpression.Attributes.AsEnumerable()
+        .Where(attr => attr.Name == "trigger")
+        .Select(attr => etran.TrExpr(Substitute(attr.Args[0], triggerBv, thisExprDafny)));
+      Trigger trigger = new(origin, true, [@is, openHeapRelated, thisInOpen],
+        new(origin, true, [@is, openHeapRelated, etran.TrExpr(invariant.Mention(origin, thisExprDafny, program.SystemModuleManager))]));
+      foreach (var bodyTrigger in bodyTriggers) {
+        trigger = new(origin, true, [@is, openHeapRelated, bodyTrigger], trigger);
+      }
+
+      var axiomBody = invariant.Use(origin, thisExprDafny, program.SystemModuleManager, etran, bv: open);
+      var axiom = BplForall(tyParams.Concat([heap, open, @this]), trigger, BplImp(
+          BplAnd([@is, isAlloc, openHeapRelated]),
+          BplAnd(etran.CanCallAssumption(axiomBody), etran.TrExpr(axiomBody))
+      ));
+      sink.AddTopLevelDeclaration(new Axiom(origin, axiom, $"conditional invariant axiom for {c.FullSanitizedName}"));
+      fuelContext = oldFuelContext;
+      currentModule = null;
+    }
+
     private void AddClassMember_Function(Function f) {
       Contract.Ensures(currentModule == null && codeContext == null);
       Contract.Ensures(currentModule == null && codeContext == null);
@@ -516,7 +572,10 @@ namespace Microsoft.Dafny {
       }
       // for a function in a class C that overrides a function in a trait J, add an axiom that connects J.F and C.F
       if (f.OverriddenFunction != null) {
-        sink.AddTopLevelDeclaration(FunctionOverrideAxiom(f.OverriddenFunction, f));
+        // You don't want the function override axiom for an invariant, since the overridden member may be unequal
+        if (!f.OverriddenFunction.TryCastToInvariant(options, reporter, MessageSource.Verifier, out _)) {
+          sink.AddTopLevelDeclaration(FunctionOverrideAxiom(f.OverriddenFunction, f));
+        }
       }
 
       // supply the connection between least/greatest predicates and prefix predicates
@@ -613,6 +672,11 @@ namespace Microsoft.Dafny {
 
       // check well-formedness of the preconditions, and then assume each one of them
       readsCheckDelayer.DoWithDelayedReadsChecks(false, wfo => {
+        // The check below may depend on the assumption that forall o :: o in open || o.invariant()
+        // Since we come in with the assumption that `this in open` (really, this is only true *after* well-formedness checking), we have to explicitly require this.invariant() if m is not a constructor
+        if (m is not Constructor) {
+          AddInvariantBoilerplate(m, new Assumption(wfo, localVariables), builder, etran);
+        }
         foreach (AttributedExpression p in ConjunctsOf(m.Req)) {
           CheckWellformedAndAssume(p.E, wfo, localVariables, builder, etran, "method requires clause");
         }
@@ -683,6 +747,10 @@ namespace Microsoft.Dafny {
       if (m.Ens.Count != 0) {
         builder.AddCaptureState(m.Ens[0].E.Origin, false, "post-state");
       }
+      
+      // After simulating execution of the method body, the invariant for all objects temporarily added to the open set (namely, this) has been re-established
+      // So we assume them to check well-formedness of the postconditions (EVEN if m is a constructor)
+      AddInvariantBoilerplate(m, new Assumption(wfOptions, localVariables), builder, etran);
 
       // check wellformedness of postconditions
       foreach (AttributedExpression p in ConjunctsOf(m.Ens)) {
@@ -824,12 +892,22 @@ namespace Microsoft.Dafny {
 
       var beforeOutTrackers = DefiniteAssignmentTrackers;
       m.Outs.ForEach(p => AddExistingDefiniteAssignmentTracker(p, m.IsGhost));
+      
+      // See method well-formedness check as to why; assume this's invariant if m is not the constructor
+      if (m is not Constructor) {
+        AddInvariantBoilerplate(m, new Assumption(new WFOptions(), localVariables), builder, etran);
+      }
+      
       // translate the body
       TrStmt(m.Body, builder, localVariables, etran);
       m.Outs.ForEach(p => CheckDefiniteAssignmentReturn(m.Body.EndToken, p, builder));
       if (m is { FunctionFromWhichThisIsByMethodDecl: { ByMethodTok: { } } fun }) {
         AssumeCanCallForByMethodDecl(m, builder);
       }
+      // Technically, we want to check forall o <- open - old(open) :: o.invariant()
+      // Under the assumption that old(open) = {} and open = {this}, it's easy enough to just check this.invariant()
+      // TODO(somayyas): when the time comes and we do need to quantify over open/old(open), we need to grab the actual invariant member of each `object`
+      AddInvariantBoilerplate(m, new Assertion(Dafny.ObjectInvariant.Kind.EndOfMethod), builder, etran);
       var stmts = builder.Collect(m.Body.StartToken); // EndToken might make more sense, but it requires updating most of the regression tests.
       DefiniteAssignmentTrackers = beforeOutTrackers;
       return stmts;
@@ -1744,6 +1822,10 @@ namespace Microsoft.Dafny {
         inParams.Add(new Boogie.Formal(Token.NoToken, new TypedIdent(m.Origin, "depth", Bpl.Type.Int), true));
       }
 
+      if (Options.Get(CommonOptionBag.CheckInvariants)) {
+        inParams.Add(ordinaryEtran.OpenFormal(Token.NoToken, out _, out _));
+      }
+
       var bodyKind = kind == MethodTranslationKind.SpecWellformedness || kind == MethodTranslationKind.Implementation;
       if (m is TwoStateLemma) {
         var prevHeapVar = new Boogie.Formal(m.Origin, new Boogie.TypedIdent(m.Origin, "previous$Heap", Predef.HeapType), true);
@@ -1812,6 +1894,21 @@ namespace Microsoft.Dafny {
             }
             index++;
           }
+        }
+        
+        if (options.Get(CommonOptionBag.CheckInvariants)) {
+          // frame condition: free requires $Open == {}
+          etran.OpenFormal(m.Origin, out var openExpr, out var openExprDafny);
+          req.Add(FreeRequires(m.Origin, etran.TrExpr(new BinaryExpr(m.Origin, BinaryExpr.ResolvedOpcode.SetEq,
+            new SetDisplayExpr(m.Origin, true, []) { Type = program.SystemModuleManager.NonNullObjectSetType(m.Origin) },
+            openExprDafny)), "frame condition for open set"));
+          /*if (m is { IsStatic: false } and not Constructor) {
+            var assertion = new BinaryExpr(m.Origin, BinaryExpr.ResolvedOpcode.NotInSet, new ThisExpr(m),
+              openExprDafny);
+            req.Add(Requires(m.Origin, false, assertion, etran.TrExpr(assertion), null, null, "callable invariant color condition"));
+          }*/
+          // lockstep condition: free requires OpenHeapRelated($Open, $Heap)
+          req.Add(FreeRequires(m.Origin, FunctionCall(m.Origin, BuiltinFunction.OpenHeapRelated, null, openExpr, etran.HeapExpr), "open lockstep condition"));
         }
 
         if (kind is MethodTranslationKind.SpecWellformedness or MethodTranslationKind.OverrideCheck) {

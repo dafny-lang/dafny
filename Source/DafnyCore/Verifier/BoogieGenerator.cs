@@ -785,7 +785,16 @@ namespace Microsoft.Dafny {
         // conversion functions
         AddBitvectorNatConversionFunction(w);
       }
-
+      
+      if (options.Get(CommonOptionBag.CheckInvariants)) {
+        // revealed function $OpenHeapRelated($open: Set, $heap: Heap): bool
+        sink.AddTopLevelDeclaration(new Bpl.Function(Bpl.Token.NoToken, "$OpenHeapRelated", [],
+          [new Bpl.Formal(Token.NoToken, new(Bpl.Token.NoToken, "$open", Predef.SetType), true),
+           new Bpl.Formal(Token.NoToken, new(Bpl.Token.NoToken, "$heap", Predef.HeapType), true) ],
+           new Bpl.Formal(Token.NoToken, new(Bpl.Token.NoToken, "", Bpl.Type.Bool), false))
+        );
+      }
+      
       foreach (TopLevelDecl d in program.SystemModuleManager.SystemModule.TopLevelDecls) {
         CurrentDeclaration = d;
         if (d is AbstractTypeDecl abstractType) {
@@ -1797,7 +1806,7 @@ namespace Microsoft.Dafny {
 
     ModuleDefinition currentModule = null;  // the module whose members are currently being translated
     ModuleDefinition forModule = null;  // the root module
-    ICallable codeContext = null;  // the method/iterator whose implementation is currently being translated or the function whose specification is being checked for well-formedness
+    ICallable codeContext = null;  // the method/iterator whose implementation is currently being translated or a(n) (function whose specification)
     Bpl.LocalVariable yieldCountVariable = null;  // non-null when an iterator body is being translated
     bool inBodyInitContext = false;  // true during the translation of the .BodyInit portion of a divided constructor body
 
@@ -2134,6 +2143,28 @@ namespace Microsoft.Dafny {
         (t, e) => builder.Add(TrAssumeCmd(t, e)),
         desc, kv);
     }
+    
+    public Expr CheckFrameExcludesOpen(IOrigin tok, List<FrameExpression> calleeFrame,
+      Expression receiverReplacement, Dictionary<IVariable, Expression /*!*/> substMap,
+      ExpressionTranslator /*!*/ etran) {
+      Contract.Requires(tok != null);
+      Contract.Requires(calleeFrame != null);
+      Contract.Requires(receiverReplacement == null || substMap != null);
+      Contract.Requires(etran != null);
+      Contract.Requires(Predef != null);
+
+      // emit: assert (forall o: ref, f: Field :: o != null && $Heap[o,alloc] && (o,f) in calleeFrame ==> o !in Open);
+      var oVar = new Bpl.BoundVariable(tok, new Bpl.TypedIdent(tok, "$o", Predef.RefType));
+      var o = new Bpl.IdentifierExpr(tok, oVar);
+      var fVar = new Bpl.BoundVariable(tok, new Bpl.TypedIdent(tok, "$f", Predef.FieldName(tok)));
+      var f = new Bpl.IdentifierExpr(tok, fVar);
+      var ante = Bpl.Expr.And(Bpl.Expr.Neq(o, Predef.Null), etran.IsAlloced(tok, o));
+      var oInCallee = InRWClause(tok, o, f, calleeFrame, etran, receiverReplacement, substMap);
+      etran.OpenFormal(tok, out _, out var openExprDafny);
+      var q = new Bpl.ForallExpr(tok, [], [oVar, fVar],
+        BplImp(BplAnd([ante, oInCallee]), etran.TrExpr(new BinaryExpr(tok, BinaryExpr.ResolvedOpcode.NotInSet, new BoogieWrapper(o, UserDefinedType.FromTopLevelDecl(tok, program.SystemModuleManager.ObjectDecl)), openExprDafny))));
+      return q;
+    }
 
     void CheckFrameSubset(IOrigin tok, List<FrameExpression> calleeFrame,
                           Expression receiverReplacement, Dictionary<IVariable, Expression/*!*/> substMap,
@@ -2196,6 +2227,65 @@ namespace Microsoft.Dafny {
         return;
       }
       builder.Add(Assert(tok, q, desc, builder.Context, kv));
+    }
+
+    interface InvariantBoilerplateMode;
+    record Assumption(WFOptions wfo, Variables locals) : InvariantBoilerplateMode;
+    record Assertion(ObjectInvariant.Kind kind) : InvariantBoilerplateMode;
+    
+    void AddInvariantBoilerplate(MethodOrFunction methodOrFunction, InvariantBoilerplateMode mode, BoogieStmtListBuilder builder, ExpressionTranslator etran) {
+      if (options.Get(CommonOptionBag.CheckInvariants)
+       && methodOrFunction is { IsStatic: false, EnclosingClass: TopLevelDeclWithMembers { Invariant: { } invariant } })
+      {
+        var @this = new ThisExpr(methodOrFunction);
+        IOrigin origin = mode is Assumption ? methodOrFunction.Origin : methodOrFunction.EndToken;
+
+        Expression assertion = invariant.Mention(origin, @this, program.SystemModuleManager);
+
+        if (methodOrFunction is Function || options.Get(MethodOrConstructor.ReadsClausesOnMethods)) {
+          var readsSubst = new Substituter(@this, [], []);
+          var callFrame = methodOrFunction.Reads.Expressions.ConvertAll(readsSubst.SubstFrameExpr);
+
+          // forall o | o in open :: (o !in readsFrame || o.invariant())
+          assertion = new BinaryExpr(origin, BinaryExpr.ResolvedOpcode.Or, assertion,
+            new BoogieWrapper(CheckFrameExcludesOpen(origin, callFrame, @this, [], etran), Type.Bool)
+
+          );
+        }
+
+        
+        if (mode is Assumption assume) {
+          // NB: disabling auto-assumption of receiver's invariant
+          // builder.Add(TrAssumeCmd(origin, etran.CanCallAssumption(assertion)));
+          // CheckWellformedAndAssume(assertion, assume.wfo, assume.locals, builder, etran, "object invariant");
+          
+          // etran.OpenFormal(origin, out _, out var openExprDafny);
+          // builder.Add(TrAssertCmd(origin, etran.TrExpr(new BinaryExpr(origin, BinaryExpr.ResolvedOpcode.NotInSet, @this, openExprDafny))));
+        } else if (mode is Assertion assert) {
+          // NB: no need to check receiver's invariant if open set is always empty
+          // builder.Add(TrAssumeCmd(origin, etran.CanCallAssumption(assertion)));
+          // builder.Add(TrAssertCmdDesc(origin, etran.TrExpr(assertion), new ObjectInvariant(assert.kind, assertion)));
+        }
+      }
+    }
+
+    void CheckInvariantAtCall(MethodOrFunction caller, MethodOrFunction callee, IOrigin tok, List<FrameExpression> calleeFrame, Expression receiver, Dictionary<IVariable, Expression> substMap, ExpressionTranslator etran, BoogieStmtListBuilder builder) {
+      if (options.Get(CommonOptionBag.CheckInvariants)
+      &&  caller is { IsStatic: false, EnclosingClass: TopLevelDeclWithMembers { Invariant: { } invariant } }
+      &&  !callee.Equals(invariant))
+      {
+        var thisExpr = new ThisExpr(caller);
+        var assertion = invariant.Mention(tok, thisExpr, program.SystemModuleManager);
+        if (callee is Function || options.Get(MethodOrConstructor.ReadsClausesOnMethods)) {
+          assertion = new BinaryExpr(tok, BinaryExpr.ResolvedOpcode.Or, new BoogieWrapper(
+              CheckFrameExcludesOpen(tok, calleeFrame, receiver, substMap, etran), Type.Bool), 
+            assertion);
+        }
+        // NB: because open set is always empty, the invariant of each object in the open set holds vacuously
+        // As a result, it doesn't matter whether the callee's frame excludes the open set or not
+        // builder.Add(TrAssumeCmd(tok, etran.CanCallAssumption(assertion)));
+        // builder.Add(TrAssertCmdDesc(tok, etran.TrExpr(assertion), new ObjectInvariant(Dafny.ObjectInvariant.Kind.Call, assertion)));
+      }
     }
 
     /// <summary>
@@ -4112,8 +4202,12 @@ namespace Microsoft.Dafny {
       Contract.Requires(tok != null);
       Contract.Requires(etran != null);
       Contract.Ensures(Contract.Result<AssumeCmd>() != null);
-
       return TrAssumeCmd(tok, FunctionCall(tok, BuiltinFunction.IsGoodHeap, null, etran.HeapExpr));
+    }
+
+    Bpl.AssumeCmd AssumeOpenHeapRelated(IOrigin tok, ExpressionTranslator etran) {
+      etran.OpenFormal(tok, out var openExpr, out _);
+      return TrAssumeCmd(tok, FunctionCall(tok, BuiltinFunction.OpenHeapRelated, null, openExpr, etran.HeapExpr));
     }
 
     /// <summary>

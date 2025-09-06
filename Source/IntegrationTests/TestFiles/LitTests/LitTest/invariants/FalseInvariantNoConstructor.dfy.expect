@@ -1,0 +1,2 @@
+FalseInvariantNoConstructor.dfy(4,6): Error: a class with an invariant must have at least one user-defined constructor
+1 resolution/type errors detected in FalseInvariantNoConstructor.dfy

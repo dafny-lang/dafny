@@ -121,6 +121,11 @@ public partial class BoogieGenerator {
       // of them), do the postponed reads checks.
       delayer.DoWithDelayedReadsChecks(false, wfo => {
         builder.Add(new CommentCmd("Check well-formedness of preconditions, and then assume them"));
+        // If the object has an invariant and f is a (non-invariant) instance function, then it can be assumed to check the well-formedness of its preconditions (see well-formedness check for methods for the general principle)
+        if (f is not Invariant) {
+          generator.AddInvariantBoilerplate(f, new Assumption(wfo, locals), builder, etran);
+        }
+
         foreach (AttributedExpression require in ConjunctsOf(f.Req)) {
           if (require.Label != null) {
             require.Label.E = (f is TwoStateFunction ? ordinaryEtran : etran.Old).TrExpr(require.E);
@@ -269,7 +274,12 @@ public partial class BoogieGenerator {
         args.Add(etran.HeapExpr);
       }
 
+      var open = etran.OpenFormal(f.Origin, out _, out _);
       foreach (Variable parameter in parameters) {
+        if (generator.Options.Get(CommonOptionBag.CheckInvariants) && parameter.Name.Equals(open.Name)) { // eugh comparing the names, but direct doesn't work
+          // Function calls don't see the open set
+          continue;
+        }
         args.Add(new Bpl.IdentifierExpr(f.Origin, parameter));
       }
 
@@ -324,6 +334,7 @@ public partial class BoogieGenerator {
           postCheckBuilder.Add(TrAssumeCmd(f.Result.Origin, wh));
         }
       }
+
       // Now for the ensures clauses
       foreach (AttributedExpression p in f.Ens) {
         // assume the postcondition for the benefit of checking the remaining postconditions
@@ -378,11 +389,35 @@ public partial class BoogieGenerator {
       foreach (var typeBoundAxiom in generator.TypeBoundAxioms(f.Origin, Concat(f.EnclosingClass.TypeArgs, f.TypeArgs))) {
         requires.Add(generator.Requires(f.Origin, true, null, typeBoundAxiom, null, null, null));
       }
+
+      if (generator.options.Get(CommonOptionBag.CheckInvariants)) {
+        // NB(somayyas): need to frame open here in case the function calls any invariant
+        etran.OpenFormal(f.Origin, out var openBoogie, out var openExprDafny);
+        var openIsEmpty = new BinaryExpr(f.Origin, BinaryExpr.ResolvedOpcode.SetEq, openExprDafny,
+          new SetDisplayExpr(f.Origin, true, [])
+            { Type = generator.program.SystemModuleManager.NonNullObjectSetType(f.Origin) });
+        requires.Add(generator.Requires(f.Origin, true, openIsEmpty, etran.TrExpr(openIsEmpty),
+          null, null, "open set frame condition"));
+        /*if (!f.IsStatic) {
+          var thisNotInOpen =
+            new BinaryExpr(f.Origin, BinaryExpr.ResolvedOpcode.NotInSet, new ThisExpr(f), openExprDafny);
+          requires.Add(generator.Requires(f.Origin, false, thisNotInOpen, etran.TrExpr(thisNotInOpen),
+            null, null, "public callable invariant color"));
+        }*/
+        if (f.ReadsHeap) {
+          requires.Add(generator.Requires(f.Origin, true, null,
+            generator.FunctionCall(f.Origin, BuiltinFunction.OpenHeapRelated, null, openBoogie, etran.HeapExpr), null,
+            null, "open lockstep condition"));
+        }
+      }
       return requires;
     }
 
     private List<Variable> GetParameters(Function f, ExpressionTranslator etran) {
       var inParams = new List<Variable>();
+      if (generator.Options.Get(CommonOptionBag.CheckInvariants)) {
+        inParams.Add(etran.OpenFormal(f.Origin, out _, out _));
+      }
       if (!f.IsStatic) {
         var th = new Bpl.IdentifierExpr(f.Origin, "this", generator.TrReceiverType(f));
         Expr wh = BplAnd(

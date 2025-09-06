@@ -1,0 +1,3 @@
+FalseInvariant.dfy(7,16): Error: invariant of enclosing class declaration could not be proved at the end of the initialization phase of this constructor
+
+Dafny program verifier finished with 1 verified, 1 error
