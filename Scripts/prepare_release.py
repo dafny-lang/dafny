@@ -270,6 +270,7 @@ class Release:
         HEADERS = {"Accept": "application/vnd.github.v3+json"}
         ENDPOINTS = (
             "https://api.github.com/repos/dafny-lang/dafny/issues?labels=release-blocker",
+            "https://api.github.com/search/issues?q=repo:dafny-lang/dafny%20state:open%20[PRERELEASE%20REGRESSION]",
             "https://api.github.com/repos/dafny-lang/ide-vscode/issues?labels=severity%3A+release-blocker",
         )
         for endpoint in ENDPOINTS:
