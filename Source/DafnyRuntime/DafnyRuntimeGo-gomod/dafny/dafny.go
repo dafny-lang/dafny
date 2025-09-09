@@ -742,7 +742,15 @@ type GoNativeArray struct {
 	underlying Array
 }
 
-func (CompanionStruct_NativeArray_) Make(length uint32, prototype NativeArray) NativeArray {
+func (CompanionStruct_NativeArray_) Make(length uint32) NativeArray {
+	underlying := &arrayStruct{
+		contents: make([]interface{}, length),
+		dims:     []int{int(length)},
+	}
+	return GoNativeArray{underlying: underlying}
+}
+
+func (CompanionStruct_NativeArray_) MakeWithPrototype(length uint32, prototype ImmutableArray) NativeArray {
 	underlying := prototype.(GoNativeArray).underlying.arrayNewOfSameType(int(length))
 	return GoNativeArray{underlying: underlying}
 }
