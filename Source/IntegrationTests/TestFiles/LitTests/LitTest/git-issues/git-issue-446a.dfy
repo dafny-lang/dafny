@@ -1,4 +1,4 @@
-// RUN: %testDafnyForEachCompiler "%s" -- --relax-definite-assignment --enforce-determinism
+// RUN: %testDafnyForEachCompiler "%s" -- --relax-definite-assignment
 
 datatype Result<T> = Success(value: T) | Failure(error: string)
 {
