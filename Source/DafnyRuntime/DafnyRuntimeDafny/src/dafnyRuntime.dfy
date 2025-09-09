@@ -159,6 +159,11 @@ abstract module {:options "/functionSyntax:4"} Dafny {
       ensures fresh(ret.Repr)
       ensures ret.Length() == length
 
+    static method {:axiom} {:extern} MakeWithPrototype<T>(length: size_t, prototype: ImmutableArray<T>) returns (ret: NativeArray<T>)
+      ensures ret.Valid()
+      ensures fresh(ret.Repr)
+      ensures ret.Length() == length
+
     static method {:axiom} {:extern} MakeWithInit<T>(length: size_t, initFn: size_t -> T) returns (ret: NativeArray<T>)
       ensures ret.Valid()
       ensures fresh(ret.Repr)
@@ -240,6 +245,17 @@ abstract module {:options "/functionSyntax:4"} Dafny {
       Repr := {this} + storage.Repr;
     }
 
+    constructor WithPrototype(length: size_t, prototype: ImmutableArray<T>)
+      ensures Valid()
+      ensures Value() == []
+      ensures fresh(Repr)
+    {
+      var storage := NativeArray<T>.MakeWithPrototype(length, prototype);
+      this.storage := storage;
+      size := 0;
+      Repr := {this} + storage.Repr;
+    }
+
     ghost function Value(): seq<T>
       requires Valid()
       reads this, Repr
@@ -297,8 +313,8 @@ abstract module {:options "/functionSyntax:4"} Dafny {
         newCapacity := Max(newCapacity, storage.Length() * TWO_SIZE);
       }
 
-      var newStorage := NativeArray<T>.Make(newCapacity);
       var values := storage.Freeze(size);
+      var newStorage := NativeArray<T>.MakeWithPrototype(newCapacity, values);
       newStorage.UpdateSubarray(0, values);
       storage := newStorage;
 
@@ -599,10 +615,22 @@ abstract module {:options "/functionSyntax:4"} Dafny {
       var c := new ConcatSequence(left', right');
       ret := new LazySequence(c);
     }
+
+    // TODO: clean up
+    method PrototypeArray() returns (ret: ImmutableArray<T>)
+      requires Valid()
+      decreases NodeCount, 1
   }
 
   class ArraySequence<T> extends Sequence<T> {
     const values: ImmutableArray<T>
+
+    method PrototypeArray() returns (ret: ImmutableArray<T>) 
+      requires Valid()
+      decreases NodeCount, 1
+    {
+      return values;
+    }
 
     ghost predicate Valid()
       decreases NodeCount, 0
@@ -653,6 +681,13 @@ abstract module {:options "/functionSyntax:4"} Dafny {
     const right: Sequence<T>
     const length: size_t
 
+    method PrototypeArray() returns (ret: ImmutableArray<T>) 
+      requires Valid()
+      decreases NodeCount, 1
+    {
+      ret := left.PrototypeArray();
+    }
+
     ghost predicate Valid()
       decreases NodeCount, 0
       ensures Valid() ==> 0 < NodeCount
@@ -702,7 +737,8 @@ abstract module {:options "/functionSyntax:4"} Dafny {
       ensures ret.Length() == Cardinality()
       ensures ret.values == Value()
     {
-      var builder := new Vector<T>(length);
+      var prototype := PrototypeArray();
+      var builder := new Vector<T>.WithPrototype(length, prototype);
       var stack := new Vector<Sequence<T>>(TEN_SIZE);
       AppendOptimized(builder, this, stack);
       ret := builder.Freeze();
@@ -813,6 +849,14 @@ abstract module {:options "/functionSyntax:4"} Dafny {
     ghost const value: seq<T>
     const box: AtomicBox<Sequence<T>>
     const length: size_t
+
+    method PrototypeArray() returns (ret: ImmutableArray<T>)
+      requires Valid()
+      decreases NodeCount, 1
+    {
+      var expr : Sequence<T> := box.Get();
+      ret := expr.PrototypeArray();
+    }
 
     ghost predicate Valid()
       decreases NodeCount, 0

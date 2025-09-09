@@ -742,11 +742,8 @@ type GoNativeArray struct {
 	underlying Array
 }
 
-func (CompanionStruct_NativeArray_) Make(length uint32) NativeArray {
-	underlying := &arrayStruct{
-		contents: make([]interface{}, length),
-		dims:     []int{int(length)},
-	}
+func (CompanionStruct_NativeArray_) Make(length uint32, prototype NativeArray) NativeArray {
+	underlying := prototype.(GoNativeArray).underlying.arrayNewOfSameType(int(length))
 	return GoNativeArray{underlying: underlying}
 }
 
@@ -806,6 +803,7 @@ type Array interface {
 	anySlice(lo, hi Int) []interface{}
 	arrayCopy() Array
 	arrayEqualUpTo(other Array, index int) bool
+	arrayNewOfSameType(length int) Array
 	// specializations
 	ArrayGet1Byte(index int) byte
 	ArraySet1Byte(value byte, index int)
@@ -953,6 +951,7 @@ func NewArrayFromExample(example interface{}, init interface{}, dims ...Int) Arr
 			arr[i] = init
 		}
 	}
+
 	return &arrayStruct{
 		contents: arr,
 		dims:     intDims,
@@ -1007,7 +1006,7 @@ func newArrayWithValues(values ...interface{}) Array {
 	}
 }
 
-// newArrayWithInitFn returns a new one-dimensional Array with the given initial values. 
+// newArrayWithInitFn returns a new one-dimensional Array with the given initial values.
 // It is currently only used internally, by CompanionStruct_NativeArray_.MakeWithInit.
 // It could potentially be used in the translation of Dafny array instantiations with initializing lambdas,
 // but that is currently rewritten by the single-pass compiler instead.
@@ -1119,7 +1118,7 @@ func (_this arrayStruct) arrayCopy() Array {
 	copy(newDims, _this.dims)
 	return &arrayStruct{
 		contents: newContents,
-		dims:    newDims,
+		dims:     newDims,
 	}
 }
 
@@ -1127,6 +1126,15 @@ func (_this arrayStruct) arrayEqualUpTo(other Array, index int) bool {
 	// Not much point in optimizing for the same type of content array
 	// since anySlice is cheap on arrayStructs.
 	return defaultArrayEqualUpTo(_this, other, uint32(index))
+}
+
+func (_this arrayStruct) arrayNewOfSameType(length int) Array {
+	conents := make([]interface{}, length)
+	dims := []int{length}
+	return &arrayStruct{
+		contents: conents,
+		dims:     dims,
+	}
 }
 
 func (_this arrayStruct) ArrayGet1Byte(index int) byte {
@@ -1241,6 +1249,15 @@ func (_this arrayForByte) arrayEqualUpTo(other Array, index int) bool {
 		return slices.Equal(_this.contents[:index], otherByte.contents[:index])
 	} else {
 		return defaultArrayEqualUpTo(_this, other, uint32(index))
+	}
+}
+
+func (_this arrayForByte) arrayNewOfSameType(length int) Array {
+	conents := make([]byte, length)
+	dims := []int{length}
+	return &arrayForByte{
+		contents: conents,
+		dims:     dims,
 	}
 }
 
@@ -1361,6 +1378,15 @@ func (_this arrayForChar) arrayEqualUpTo(other Array, index int) bool {
 	}
 }
 
+func (_this arrayForChar) arrayNewOfSameType(length int) Array {
+	conents := make([]Char, length)
+	dims := []int{length}
+	return &arrayForChar{
+		contents: conents,
+		dims:     dims,
+	}
+}
+
 func (_this arrayForChar) ArrayGet1Byte(index int) byte {
 	panic("Expected specialized array type that contains bytes, but found general-purpose array of interface{}")
 }
@@ -1464,7 +1490,7 @@ func (_this arrayForCodePoint) arrayCopy() Array {
 	return &arrayForCodePoint{
 		contents: newContents,
 		// TODO: Does dims have to be copied as well?
-		dims:     _this.dims,
+		dims: _this.dims,
 	}
 }
 
@@ -1474,6 +1500,15 @@ func (_this arrayForCodePoint) arrayEqualUpTo(other Array, index int) bool {
 		return slices.Equal(_this.contents[:index], otherCodePoint.contents[:index])
 	} else {
 		return defaultArrayEqualUpTo(_this, other, uint32(index))
+	}
+}
+
+func (_this arrayForCodePoint) arrayNewOfSameType(length int) Array {
+	conents := make([]CodePoint, length)
+	dims := []int{length}
+	return &arrayForCodePoint{
+		contents: conents,
+		dims:     dims,
 	}
 }
 
