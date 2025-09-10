@@ -88,7 +88,7 @@ TAIL_CALL_START:
 		_ = _0_concat
 		_0_concat = e.(*ConcatSequence)
 		if !(Companion_Default___.SizeAdditionInRange(stack.Size, Companion_Default___.ONE__SIZE())) {
-			panic("dafnyRuntime.dfy(790,6): " + (SeqOfString("expectation violation")).String())
+			panic("dafnyRuntime.dfy(805,6): " + (SeqOfString("expectation violation")).String())
 		}
 		(stack).AddLast((_0_concat).Right())
 		var _in0 *Vector = builder
@@ -150,7 +150,7 @@ TAIL_CALL_START:
 		}
 	} else {
 		if !(false) {
-			panic("dafnyRuntime.dfy(813,6): " + (SeqOfString("Unsupported Sequence implementation")).String())
+			panic("dafnyRuntime.dfy(828,6): " + (SeqOfString("Unsupported Sequence implementation")).String())
 		}
 	}
 }
@@ -185,6 +185,7 @@ type Sequence interface {
 	IsString() bool
 	IsString_set_(value bool)
 	Cardinality() uint32
+	PrototypeArray() ImmutableArray
 	Select(index uint32) interface{}
 	Drop(lo uint32) Sequence
 	Take(hi uint32) Sequence
@@ -192,7 +193,6 @@ type Sequence interface {
 	ToArray() ImmutableArray
 	Elements() Sequence
 	UniqueElements() Set
-	PrototypeArray() ImmutableArray
 }
 
 func (_static *CompanionStruct_Sequence_) SetString(_this Sequence) Sequence {
@@ -387,7 +387,7 @@ func (_static *CompanionStruct_Sequence_) Concatenate(left Sequence, right Seque
 	var ret Sequence = (Sequence)(nil)
 	_ = ret
 	if !(Companion_Default___.SizeAdditionInRange((left).Cardinality(), (right).Cardinality())) {
-		panic("dafnyRuntime.dfy(598,6): " + (Companion_Sequence_.Concatenate(Companion_Sequence_.Concatenate(SeqOfString("Concatenation result cardinality would be larger than the maximum ("), Companion_Helpers_.DafnyValueToDafnyString(Companion_Default___.SIZE__T__MAX())), SeqOfString(")"))).String())
+		panic("dafnyRuntime.dfy(616,6): " + (Companion_Sequence_.Concatenate(Companion_Sequence_.Concatenate(SeqOfString("Concatenation result cardinality would be larger than the maximum ("), Companion_Helpers_.DafnyValueToDafnyString(Companion_Default___.SIZE__T__MAX())), SeqOfString(")"))).String())
 	}
 	var _0_left_k Sequence
 	_ = _0_left_k
