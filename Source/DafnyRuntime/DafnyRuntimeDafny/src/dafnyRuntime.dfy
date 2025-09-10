@@ -625,7 +625,7 @@ abstract module {:options "/functionSyntax:4"} Dafny {
   class ArraySequence<T> extends Sequence<T> {
     const values: ImmutableArray<T>
 
-    method PrototypeArray() returns (ret: ImmutableArray<T>) 
+    method PrototypeArray() returns (ret: ImmutableArray<T>)
       requires Valid()
       decreases NodeCount, 1
     {
@@ -681,7 +681,7 @@ abstract module {:options "/functionSyntax:4"} Dafny {
     const right: Sequence<T>
     const length: size_t
 
-    method PrototypeArray() returns (ret: ImmutableArray<T>) 
+    method PrototypeArray() returns (ret: ImmutableArray<T>)
       requires Valid()
       decreases NodeCount, 1
     {
