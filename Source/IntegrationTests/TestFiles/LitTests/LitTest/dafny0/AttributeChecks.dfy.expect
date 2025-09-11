@@ -451,6 +451,15 @@ module MethodFrameClausesNotAllowed {
   {
   }
 }
+
+module Additions {
+  function Parameters(list: Blar<int>): int
+  {
+    3
+  }
+
+  datatype Blar<T> = Niz | Zons(T, Blar<T>)
+}
 AttributeChecks.dfy(19,19): Error: type of left argument to + (int) must agree with the result type (bool)
 AttributeChecks.dfy(19,19): Error: type of + must be of a numeric type, a bitvector type, ORDINAL, char, a sequence type, or a set-like or map-like type (instead got bool)
 AttributeChecks.dfy(29,37): Error: type of right argument to + (int) must agree with the result type (bool)
