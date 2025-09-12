@@ -171,6 +171,14 @@ class Slice:
         for i in range(self._start, self._stop, self._step):
             yield self._source[i]
 
+    def __bytes__(self):
+        """Efficient bytes conversion for Slice."""
+        if isinstance(self._source, list):
+            # Convert directly from the source list using the slice parameters
+            return bytes(self._source[self._start:self._stop:self._step])
+        else:
+            return bytes(list(self))
+
 class Seq:
     def __init__(self, iterable = None, isStr = False):
         '''
@@ -253,6 +261,26 @@ class Seq:
             # The .Elements call takes linear time, but a single element can be retrieved from a Slice in constant time.
             return self.elems[key]
         return self.Elements.__getitem__(key)
+
+    def __iter__(self):
+        """Efficient iteration for Dafny Seq."""
+        if isinstance(self.elems, list):
+            return iter(self.elems)
+        elif isinstance(self.elems, Slice):
+            return iter(self.elems)
+        else:
+            return iter(self.Elements)
+
+    def __bytes__(self):
+        """Efficient bytes conversion for Dafny Seq to avoid element-by-element iteration."""
+        # Direct access to avoid Elements property overhead
+        if isinstance(self.elems, list):
+            return bytes(self.elems)
+        elif isinstance(self.elems, Slice):
+            # For slices, create bytes from the slice efficiently
+            return bytes(self.elems)
+        else:
+            return bytes(self.Elements)
 
     def set(self, key, value):
         l = list(self.Elements)
