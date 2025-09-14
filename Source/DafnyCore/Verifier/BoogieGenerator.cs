@@ -2229,65 +2229,6 @@ namespace Microsoft.Dafny {
       builder.Add(Assert(tok, q, desc, builder.Context, kv));
     }
 
-    interface InvariantBoilerplateMode;
-    record Assumption(WFOptions wfo, Variables locals) : InvariantBoilerplateMode;
-    record Assertion(ObjectInvariant.Kind kind) : InvariantBoilerplateMode;
-    
-    void AddInvariantBoilerplate(MethodOrFunction methodOrFunction, InvariantBoilerplateMode mode, BoogieStmtListBuilder builder, ExpressionTranslator etran) {
-      if (options.Get(CommonOptionBag.CheckInvariants)
-       && methodOrFunction is { IsStatic: false, EnclosingClass: TopLevelDeclWithMembers { Invariant: { } invariant } })
-      {
-        var @this = new ThisExpr(methodOrFunction);
-        IOrigin origin = mode is Assumption ? methodOrFunction.Origin : methodOrFunction.EndToken;
-
-        Expression assertion = invariant.Mention(origin, @this, program.SystemModuleManager);
-
-        if (methodOrFunction is Function || options.Get(MethodOrConstructor.ReadsClausesOnMethods)) {
-          var readsSubst = new Substituter(@this, [], []);
-          var callFrame = methodOrFunction.Reads.Expressions.ConvertAll(readsSubst.SubstFrameExpr);
-
-          // forall o | o in open :: (o !in readsFrame || o.invariant())
-          assertion = new BinaryExpr(origin, BinaryExpr.ResolvedOpcode.Or, assertion,
-            new BoogieWrapper(CheckFrameExcludesOpen(origin, callFrame, @this, [], etran), Type.Bool)
-
-          );
-        }
-
-        
-        if (mode is Assumption assume) {
-          // NB: disabling auto-assumption of receiver's invariant
-          // builder.Add(TrAssumeCmd(origin, etran.CanCallAssumption(assertion)));
-          // CheckWellformedAndAssume(assertion, assume.wfo, assume.locals, builder, etran, "object invariant");
-          
-          // etran.OpenFormal(origin, out _, out var openExprDafny);
-          // builder.Add(TrAssertCmd(origin, etran.TrExpr(new BinaryExpr(origin, BinaryExpr.ResolvedOpcode.NotInSet, @this, openExprDafny))));
-        } else if (mode is Assertion assert) {
-          // NB: no need to check receiver's invariant if open set is always empty
-          // builder.Add(TrAssumeCmd(origin, etran.CanCallAssumption(assertion)));
-          // builder.Add(TrAssertCmdDesc(origin, etran.TrExpr(assertion), new ObjectInvariant(assert.kind, assertion)));
-        }
-      }
-    }
-
-    void CheckInvariantAtCall(MethodOrFunction caller, MethodOrFunction callee, IOrigin tok, List<FrameExpression> calleeFrame, Expression receiver, Dictionary<IVariable, Expression> substMap, ExpressionTranslator etran, BoogieStmtListBuilder builder) {
-      if (options.Get(CommonOptionBag.CheckInvariants)
-      &&  caller is { IsStatic: false, EnclosingClass: TopLevelDeclWithMembers { Invariant: { } invariant } }
-      &&  !callee.Equals(invariant))
-      {
-        var thisExpr = new ThisExpr(caller);
-        var assertion = invariant.Mention(tok, thisExpr, program.SystemModuleManager);
-        if (callee is Function || options.Get(MethodOrConstructor.ReadsClausesOnMethods)) {
-          assertion = new BinaryExpr(tok, BinaryExpr.ResolvedOpcode.Or, new BoogieWrapper(
-              CheckFrameExcludesOpen(tok, calleeFrame, receiver, substMap, etran), Type.Bool), 
-            assertion);
-        }
-        // NB: because open set is always empty, the invariant of each object in the open set holds vacuously
-        // As a result, it doesn't matter whether the callee's frame excludes the open set or not
-        // builder.Add(TrAssumeCmd(tok, etran.CanCallAssumption(assertion)));
-        // builder.Add(TrAssertCmdDesc(tok, etran.TrExpr(assertion), new ObjectInvariant(Dafny.ObjectInvariant.Kind.Call, assertion)));
-      }
-    }
-
     /// <summary>
     /// Returns true if it can statically determine that the expression q always evaluates to truth
     /// </summary>

@@ -830,7 +830,7 @@ namespace Microsoft.Dafny {
                     builder.Add(TrAssumeCmd(callExpr.Origin, etran.TrExpr(precond)));
                   }
                 }
-                if (wfOptions.DoReadsChecks || options.Get(CommonOptionBag.CheckInvariants)) {
+                if (wfOptions.DoReadsChecks) {
                   // check that the callee reads only what the caller is already allowed to read
 
                   // substitute actual args for parameters in description expression frames...
@@ -845,11 +845,6 @@ namespace Microsoft.Dafny {
                       e.Receiver, substMap, etran, etran.ReadsFrame(callExpr.Origin),
                       wfOptions.AssertSink(this, builder), (ta, qa) => builder.Add(new Bpl.AssumeCmd(ta, qa)), desc,
                       wfOptions.AssertKv);
-                  }
-
-                  if (options.Get(CommonOptionBag.CheckInvariants) && codeContext is MethodOrFunction caller) {
-                    // forall o <- open :: o in readsFrame ==> o.invariant()
-                    CheckInvariantAtCall(caller, e.Function, e.Origin, calleeFrame, e.Receiver, substMap, etran, builder);
                   }
                 }
               }
