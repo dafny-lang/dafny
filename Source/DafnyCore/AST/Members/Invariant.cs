@@ -6,8 +6,6 @@ using Microsoft.Boogie;
 namespace Microsoft.Dafny;
 
 // An invariant is...
-[SyntaxBaseType(typeof(NodeWithOrigin))]
-[method: SyntaxConstructor]
 public class Invariant([NotNull] IOrigin origin, [NotNull] List<AttributedExpression> clauses)
   : Predicate(origin,
     new(origin, "invariant"), // a predicate named "invariant"

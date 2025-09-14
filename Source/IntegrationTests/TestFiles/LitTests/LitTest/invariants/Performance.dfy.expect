@@ -1,4 +1,10 @@
-
-Dafny program verifier finished with 5 verified, 0 errors
-Total resources used is 33647
-Max resources used by VC is 8993
+Starting verification of mutation 1/1 with seed 0
+The total consumed resources are 44353
+The most demanding 10 verification tasks consumed these resources:
+Performance.dfy(7,16): 7300
+Performance.dfy(6,12): 7152
+Performance.dfy(20,2): 7012
+Performance.dfy(20,11): 6457
+Performance.dfy(8,4): 6237
+Performance.dfy(15,7): 5651
+Performance.dfy(23,7): 4544

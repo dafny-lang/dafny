@@ -702,10 +702,10 @@ holds at the end of that iteration of the loop.
 
 An invariant can have [custom error and success messages](#sec-error-attribute).
 
-#### 7.1.7.1 Class and Trait Invariant Clauses
+#### 7.1.7.1.1 Class and Trait Invariant Clauses
 
 With the `--check-invariants` flag enabled, Dafny supports invariant clauses within class and trait declarations.
-Such clauses constitute an _object invariant_ for the instances of such a declaration. As a result, it (almost) always
+Such clauses constitute an _object invariant_ for the instances of such a declaration. As a result, it always
 holds of an object. For example,
 
 ```dafny
@@ -713,22 +713,26 @@ holds of an object. For example,
 class Account {
   var credit: nat
   var debit: nat
-  invariant credit - debit >= 0 // Note: can't use Balance() here as it asserts this.invariant()
+  invariant credit - debit >= 0 // Note: can't use Balance() here as it implicitly assumes the invariant
   // ^ can be referred to as this.invariant()
+  constructor() {
+    credit := 0;
+    debit := 0;
+  }
   function Balance(): nat
     reads this
   {
     // uses the invariant to be well-defined (i.e., to be of type nat)
-    assert this.invariant(); credit - debit
+    credit - debit
   }
   method Withdraw(amount: nat)
     requires Balance() - amount >= 0
     ensures Balance() == old(Balance()) - amount
     modifies this
   {
-    // invariant holds before
+    // invariant holds before assignment
     debit := debit + amount;
-    // invariant holds after
+    // invariant holds after assignment
   }
   method Deposit(amount: nat)
     ensures Balance() == old(Balance()) + amount
@@ -739,8 +743,7 @@ class Account {
 }
 ```
 
-However, invariant checking is disabled within the body of an instance method until exit _unless_ it makes a call to
-another function or method. For example,
+Note that a _class_ with an invariant must declare at least one constructor so that its invariant does not hold vacuously. Furthermore, no object invariant cannot be broken (and then re-established) over the course of an instance method _except_ in the initialization phase of a constructor, although this may change in a future release. For example,
 
 ```dafny
 class C {
@@ -754,7 +757,7 @@ class C {
   method TemporarilyBreakInvariant()
     modifies this
   {
-     x := 0; // temporarily breaking the invariant here is allowed...
+     x := 0; // error: invariant does not hold after assignment
      UseInvariant(this); // error: invariant does not hold before call
      x := 1;
   }
@@ -766,7 +769,7 @@ class C {
 }
 ```
 
-Conversely, methods that are static or defined outside of the class/trait can never mutate an object in a way that
+As expected, methods that are static or defined outside of the class/trait can never mutate an object in a way that
 violates its invariant. For example,
 
 ```dafny
@@ -777,23 +780,22 @@ violates its invariant. For example,
 }
 ```
 
-At the moment, a class extending a trait that has an invariant cannot declare its own invariant and, vice versa,
-a class extending an ordinary trait _can_ declare its own invariant, _but not_ referring to fields declared in the trait.
+At the moment, a class extending a trait that has an invariant _can_ declare its own invariant, _but not_ referring to the fields declared in the trait.
 As a result, upcasting an instance of that class to its supertype is sound, because any modifications made to it
 are not read by the class’s invariant. For example,
 
 ```dafny
 <!-- %check-verify %options --type-system-refresh --check-invariants -->
-trait Base {
-  var x: int
-  function FooSpec(): int
-    reads this
-  method Foo() returns (r: int)
-    ensures r == FooSpec()
-  // If Base declared an invariant, then Derived couldn't
+trait Base extends object {
+   var x: int
+   function FooSpec(): int
+     reads this
+   method Foo() returns (r: int)
+     ensures r == FooSpec()
+   invariant x != 0
 }
 
-class Derived extends Base {
+class Ext extends Base {
   var y: int
   invariant y != 0 // note: invariant can't refer to x
   function FooSpec(): int
@@ -806,20 +808,25 @@ class Derived extends Base {
   {
     r := FooSpec();
   }
+  constructor() {
+    x := 1;
+    y := 1;
+  }
 }
 
 method Upcast(e: Ext)
   modifies e
 {
   var b := e as Base;
-  b.x := 0; // e's invariant is preserved here
-  e.y := 1; // and here
+  b.x := 1; // checks trait invariant
+  e.x := 1; // checks inherited invariant
+  e.y := 1; // checks derived invariant
 }
 ```
 
-Invariants are related to the `Valid()` idiom (e.g., of [`{:autocontracts}`](#sec-attributes-autocontracts)); however, invariants need not be made
+Invariants are related to the `Valid()` idiom (e.g., of [`{:autocontracts}`](#sec-attributes-autocontracts) and of [`Action`s in the standard library](https://github.com/dafny-lang/dafny/blob/master/Source/DafnyStandardLibraries/src/Std/Frames.dfy)); however, invariants need not be made
 explicit in specifications nor can they be invalidated except according to the rules
-above. Lastly, they are (currently) restricted to `reads this`. Invariants are also related to the constraints of subset
+above. Lastly, they are (currently) restricted to reading only fields of the current instance. Invariants are also related to the constraints of subset
 types, except that they can read from the heap.
 
 ## 7.2. Method Specification ([grammar](#g-method-specification)) {#sec-method-specification}

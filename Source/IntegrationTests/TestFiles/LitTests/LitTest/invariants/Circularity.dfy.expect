@@ -1,4 +1,5 @@
-Circularity.dfy(12,25): Error: cannot prove termination; try supplying a decreases clause
-Circularity.dfy(6,15): Error: decreases clause might not decrease
+Circularity.dfy(5,50): Error: cannot prove termination; try supplying a decreases clause
+Circularity.dfy(6,13): Error: decreases clause might not decrease
+Circularity.dfy(10,16): Error: invariant of enclosing class declaration could not be proved at the end of the initialization phase of this constructor
 
-Dafny program verifier finished with 1 verified, 2 errors
+Dafny program verifier finished with 0 verified, 3 errors
