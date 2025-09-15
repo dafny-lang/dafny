@@ -1102,7 +1102,7 @@ namespace Microsoft.Dafny {
               var heapReadingStatus = new HeapReadingStatus(true, false);
               var applied = FunctionCall(GetToken(applyExpr), BoogieGenerator.Apply(arity), Predef.BoxType,
                 Concat(Map(tt.TypeArgs, BoogieGenerator.TypeToTy),
-                  Concat(HeapExprForArrow(e.Function.Type).AsList(heapReadingStatus), Cons(TrExpr(e.Function), e.Args.ConvertAll(arg => TrArg(arg))))));
+                  Concat(HeapExprForArrow(applyExpr.Function.Type).AsList(heapReadingStatus), Cons(TrExpr(applyExpr.Function), applyExpr.Args.ConvertAll(arg => TrArg(arg))))));
 
         return BoogieGenerator.UnboxUnlessInherentlyBoxed(applied, tt.Result);
       }
