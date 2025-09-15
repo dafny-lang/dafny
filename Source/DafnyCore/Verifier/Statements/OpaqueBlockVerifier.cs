@@ -102,7 +102,7 @@ public static class OpaqueBlockVerifier {
   class OpaqueEnsuresDescription : ProofObligationDescription {
     public override string SuccessDescription => "ensures always holds";
 
-    public override string FailureDescription => "ensures might not hold";
+    public override string FailureDescription => "ensures could not be proved";
 
     public override string ShortDescription => "opaque block ensure clause";
     public override bool IsImplicit => false;

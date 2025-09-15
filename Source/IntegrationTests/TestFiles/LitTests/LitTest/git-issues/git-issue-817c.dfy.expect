@@ -1,10 +1,10 @@
-git-issue-817c.dfy(22,15): Error: left-hand sides this.data and data might refer to the same location
-git-issue-817c.dfy(29,15): Error: left-hand sides data and this.data might refer to the same location
-git-issue-817c.dfy(45,8): Error: left-hand sides i and i refer to the same location
-git-issue-817c.dfy(51,5): Error: left-hand sides i and i refer to the same location
-git-issue-817c.dfy(67,14): Error: left-hand sides ccc.data and c.data might refer to the same location
-git-issue-817c.dfy(75,17): Error: left-hand sides ccc.data and c.data might refer to the same location
-git-issue-817c.dfy(83,14): Error: left-hand sides aaa[2] and a[2] might refer to the same location
-git-issue-817c.dfy(91,14): Error: left-hand sides aaa[2] and a[2] might refer to the same location
+git-issue-817c.dfy(22,15): Error: left-hand sides this.data and data could not be proved to refer to different locations
+git-issue-817c.dfy(29,15): Error: left-hand sides data and this.data could not be proved to refer to different locations
+git-issue-817c.dfy(45,8): Error: left-hand sides i and i could not be proved to refer to different locations
+git-issue-817c.dfy(51,5): Error: left-hand sides i and i could not be proved to refer to different locations
+git-issue-817c.dfy(67,14): Error: left-hand sides ccc.data and c.data could not be proved to refer to different locations
+git-issue-817c.dfy(75,17): Error: left-hand sides ccc.data and c.data could not be proved to refer to different locations
+git-issue-817c.dfy(83,14): Error: left-hand sides aaa[2] and a[2] could not be proved to refer to different locations
+git-issue-817c.dfy(91,14): Error: left-hand sides aaa[2] and a[2] could not be proved to refer to different locations
 
 Dafny program verifier finished with 5 verified, 8 errors

@@ -1,9 +1,9 @@
-Frame.dfy(23,4): Error: assertion might not hold
-Frame.dfy(37,2): Error: assertion might not hold
-Frame.dfy(63,4): Error: assertion might not hold
+Frame.dfy(23,4): Error: assertion could not be proved
+Frame.dfy(37,2): Error: assertion could not be proved
+Frame.dfy(63,4): Error: assertion could not be proved
 Frame.dfy(66,18): Error: insufficient reads clause to read array element; Consider extracting a[0] to a local variable before the lambda expression, or adding 'reads a' in the enclosing lambda specification for resolution
 Frame.dfy(68,27): Error: insufficient reads clause to read array element; Consider adding 'reads a' in the enclosing lambda specification for resolution
 Frame.dfy(120,22): Error: function precondition could not be proved
-Frame.dfy(123,6): Error: assertion might not hold
+Frame.dfy(123,6): Error: assertion could not be proved
 
 Dafny program verifier finished with 6 verified, 7 errors

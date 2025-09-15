@@ -1,6 +1,6 @@
-ForbidNondeterminism.dfy(9,2): Error: field 'y', which is subject to definite-assignment rules, might be uninitialized at this point in the constructor body
+ForbidNondeterminism.dfy(9,2): Error: field 'y', which is subject to definite-assignment rules, could not be proved to be initialized at this point in the constructor body
 ForbidNondeterminism.dfy(14,11): Error: unless an initializer is provided for the array elements, a new array of 'int' must have empty size
 ForbidNondeterminism.dfy(15,11): Error: unless an initializer is provided for the array elements, a new array of 'bool' must have empty size
-ForbidNondeterminism.dfy(23,2): Error: field 'data', which is subject to definite-assignment rules, might be uninitialized at this point in the constructor body
+ForbidNondeterminism.dfy(23,2): Error: field 'data', which is subject to definite-assignment rules, could not be proved to be initialized at this point in the constructor body
 
 Dafny program verifier finished with 0 verified, 4 errors

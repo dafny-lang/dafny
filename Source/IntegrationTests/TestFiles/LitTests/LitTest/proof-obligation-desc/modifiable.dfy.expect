@@ -1,14 +1,14 @@
-modifiable.dfy(10,4): Error: assignment might update an object not in the enclosing context's modifies clause
+modifiable.dfy(10,4): Error: modified field could not be proved to be in the current modifies clause
  Asserted expression: this in {}
-modifiable.dfy(33,7): Error: assignment might update an object not in the enclosing context's modifies clause
+modifiable.dfy(33,7): Error: modified field could not be proved to be in the current modifies clause
  Asserted expression: s[0] == s[1] || s[0] == s[1] as C || s[0] in {s[1]} || s[0] in {s[1] as C}
-modifiable.dfy(42,6): Error: assignment might update an object field not in the enclosing context's modifies clause
+modifiable.dfy(42,6): Error: modified field could not be proved to be in the current modifies clause
  Asserted expression: c == s[1]
-modifiable.dfy(50,5): Error: assignment might update an array element not in the enclosing context's modifies clause
+modifiable.dfy(50,5): Error: modified array location could not be proved to be in the current modifies clause
  Asserted expression: a == b
-modifiable.dfy(59,5): Error: assignment might update an array element not in the enclosing context's modifies clause
+modifiable.dfy(59,5): Error: modified array location could not be proved to be in the current modifies clause
  Asserted expression: a == s[1]
-modifiable.dfy(66,5): Error: assignment might update an array element not in the enclosing context's modifies clause
+modifiable.dfy(66,5): Error: modified array location could not be proved to be in the current modifies clause
  Asserted expression: a in {}
 
 Dafny program verifier finished with 4 verified, 6 errors

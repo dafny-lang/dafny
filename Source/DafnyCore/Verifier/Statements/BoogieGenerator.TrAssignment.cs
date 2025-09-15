@@ -42,8 +42,8 @@ public partial class BoogieGenerator {
     BoogieStmtListBuilder builder, Variables locals, ExpressionTranslator etran, Statement stmt) {
     Contract.Requires(lhsBuilder != null);
     Contract.Requires(bLhss != null);
-    Contract.Requires(cce.NonNullElements(lhss));
-    Contract.Requires(cce.NonNullElements(rhss));
+    Contract.Requires(Cce.NonNullElements(lhss));
+    Contract.Requires(Cce.NonNullElements(rhss));
     Contract.Requires(builder != null);
     Contract.Requires(etran != null);
     Contract.Requires(Predef != null);
@@ -108,8 +108,8 @@ public partial class BoogieGenerator {
   List<Bpl.Expr> ProcessUpdateAssignRhss(List<Expression> lhss, List<AssignmentRhs> rhss,
     BoogieStmtListBuilder builder, Variables locals, ExpressionTranslator etran,
     Statement stmt) {
-    Contract.Requires(cce.NonNullElements(lhss));
-    Contract.Requires(cce.NonNullElements(rhss));
+    Contract.Requires(Cce.NonNullElements(lhss));
+    Contract.Requires(Cce.NonNullElements(rhss));
     Contract.Requires(builder != null);
     Contract.Requires(etran != null);
     Contract.Requires(Predef != null);
@@ -211,7 +211,7 @@ public partial class BoogieGenerator {
     out List<AssignToLhs> lhsBuilders, out List<Bpl.IdentifierExpr/*may be null*/> bLhss,
     out Bpl.Expr[] prevObj, out Bpl.Expr[] prevIndex, out string[] prevNames, Expression originalInitialLhs = null) {
 
-    Contract.Requires(cce.NonNullElements(lhss));
+    Contract.Requires(Cce.NonNullElements(lhss));
     Contract.Requires(builder != null);
     Contract.Requires(etran != null);
     Contract.Requires(Predef != null);
@@ -281,7 +281,7 @@ public partial class BoogieGenerator {
         prevObj[i] = obj;
         if (!useSurrogateLocal) {
           // check that the enclosing modifies clause allows this object to be written:  assert $_ModifiesFrame[obj]);
-          var desc = new Modifiable("an object", contextModFrames, fse.Obj, field);
+          var desc = new Modifiable("field", contextModFrames, fse.Obj, field);
           builder.Add(Assert(tok, Bpl.Expr.SelectTok(tok, etran.ModifiesFrame(tok), obj, GetField(fse)), desc, builder.Context));
         }
 
@@ -331,7 +331,7 @@ public partial class BoogieGenerator {
         prevObj[i] = obj;
         prevIndex[i] = fieldName;
         // check that the enclosing modifies clause allows this object to be written:  assert $_Frame[obj,index]);
-        var desc = new Modifiable("an array element", contextModFrames, sel.Seq, null);
+        var desc = new Modifiable("array location", contextModFrames, sel.Seq, null);
         builder.Add(Assert(tok, Bpl.Expr.SelectTok(tok, etran.ModifiesFrame(tok), obj, fieldName), desc, builder.Context));
 
         bLhss.Add(null);
@@ -356,7 +356,7 @@ public partial class BoogieGenerator {
           "$index" + i, Predef.FieldName(mse.Origin), builder, locals);
         prevObj[i] = obj;
         prevIndex[i] = fieldName;
-        var desc = new Modifiable("an array element", contextModFrames, mse.Array, null);
+        var desc = new Modifiable("array location", contextModFrames, mse.Array, null);
         builder.Add(Assert(tok, Bpl.Expr.SelectTok(tok, etran.ModifiesFrame(tok), obj, fieldName), desc, builder.Context));
 
         bLhss.Add(null);

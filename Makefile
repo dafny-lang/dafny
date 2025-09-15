@@ -39,12 +39,12 @@ tests:
 # make test name=<integration test filter> update=true                to update the test
 # make test name=<integration test filter>              build=false   don't build the solution
 test:
-	@DIR="$(DIR)" name="$(name)" update="$(update)" build="$(build)" bash scripts/test.sh
+	@DIR="$(DIR)" name="$(name)" update="$(update)" build="$(build)" bash Scripts/test.sh
 
 # Run Dafny on an integration test case directly in the folder itself.
 # make test-dafny name=<part of the path> action="run ..." [build=false]
 test-dafny:
-	@name="$(name)" DIR="$(DIR)" action="$(action)" NO_BUILD=$$( [ "${build}" = "false" ] && echo "true" || echo "false" ) bash scripts/test-dafny.sh
+	@name="$(name)" DIR="$(DIR)" action="$(action)" NO_BUILD=$$( [ "${build}" = "false" ] && echo "true" || echo "false" ) bash Scripts/test-dafny.sh
 
 tests-verbose:
 	(cd "${DIR}"; dotnet test --logger "console;verbosity=normal" Source/IntegrationTests )
@@ -60,34 +60,34 @@ refman-release: exe
 
 z3-mac:
 	mkdir -p "${DIR}"/Binaries/z3/bin
-	wget https://github.com/dafny-lang/solver-builds/releases/download/snapshot-2023-08-02/z3-4.12.1-x64-macos-11-bin.zip
-	unzip z3-4.12.1-x64-macos-11-bin.zip
-	rm z3-4.12.1-x64-macos-11-bin.zip
-	wget https://github.com/dafny-lang/solver-builds/releases/download/snapshot-2023-08-02/z3-4.8.5-x64-macos-11-bin.zip
-	unzip z3-4.8.5-x64-macos-11-bin.zip
-	rm z3-4.8.5-x64-macos-11-bin.zip
+	curl -L -O https://github.com/dafny-lang/solver-builds/releases/download/snapshot-2025-07-02/z3-4.14.1-x64-macos-13-bin.zip
+	unzip z3-4.14.1-x64-macos-13-bin.zip
+	rm z3-4.14.1-x64-macos-13-bin.zip
+	curl -L -O https://github.com/dafny-lang/solver-builds/releases/download/snapshot-2025-07-02/z3-4.12.1-x64-macos-13-bin.zip
+	unzip z3-4.12.1-x64-macos-13-bin.zip
+	rm z3-4.12.1-x64-macos-13-bin.zip
 	mv z3-* "${DIR}"/Binaries/z3/bin/
 	chmod +x "${DIR}"/Binaries/z3/bin/z3-*
 
 z3-mac-arm:
 	mkdir -p "${DIR}"/Binaries/z3/bin
-	wget https://github.com/dafny-lang/solver-builds/releases/download/snapshot-2023-08-02/z3-4.12.1-arm64-macos-11-bin.zip
-	unzip z3-4.12.1-arm64-macos-11-bin.zip
-	rm z3-4.12.1-arm64-macos-11-bin.zip
-	wget https://github.com/dafny-lang/solver-builds/releases/download/snapshot-2023-08-02/z3-4.8.5-x64-macos-11-bin.zip
-	unzip z3-4.8.5-x64-macos-11-bin.zip
-	rm z3-4.8.5-x64-macos-11-bin.zip
+	curl -L -O https://github.com/dafny-lang/solver-builds/releases/download/snapshot-2025-07-02/z3-4.14.1-arm64-macos-13-bin.zip
+	unzip z3-4.14.1-arm64-macos-13-bin.zip
+	rm z3-4.14.1-arm64-macos-13-bin.zip
+	curl -L -O https://github.com/dafny-lang/solver-builds/releases/download/snapshot-2025-07-02/z3-4.12.1-arm64-macos-13-bin.zip
+	unzip z3-4.12.1-arm64-macos-13-bin.zip
+	rm z3-4.12.1-arm64-macos-13-bin.zip
 	mv z3-* "${DIR}"/Binaries/z3/bin/
 	chmod +x "${DIR}"/Binaries/z3/bin/z3-*
 
 z3-ubuntu:
 	mkdir -p "${DIR}"/Binaries/z3/bin
-	wget https://github.com/dafny-lang/solver-builds/releases/download/snapshot-2023-08-02/z3-4.12.1-x64-ubuntu-20.04-bin.zip
-	unzip z3-4.12.1-x64-ubuntu-20.04-bin.zip
-	rm z3-4.12.1-x64-ubuntu-20.04-bin.zip
-	wget https://github.com/dafny-lang/solver-builds/releases/download/snapshot-2023-08-02/z3-4.8.5-x64-ubuntu-20.04-bin.zip
-	unzip z3-4.8.5-x64-ubuntu-20.04-bin.zip
-	rm z3-4.8.5-x64-ubuntu-20.04-bin.zip
+	wget https://github.com/dafny-lang/solver-builds/releases/download/snapshot-2025-07-02/z3-4.14.1-x64-ubuntu-22.04-bin.zip
+	unzip z3-4.14.1-x64-ubuntu-22.04-bin.zip
+	rm z3-4.14.1-x64-ubuntu-22.04-bin.zip
+	wget https://github.com/dafny-lang/solver-builds/releases/download/snapshot-2025-07-02/z3-4.12.1-x64-ubuntu-22.04-bin.zip
+	unzip z3-4.12.1-x64-ubuntu-22.04-bin.zip
+	rm z3-4.12.1-x64-ubuntu-22.04-bin.zip
 	mv z3-* "${DIR}"/Binaries/z3/bin/
 	chmod +x "${DIR}"/Binaries/z3/bin/z3-*
 

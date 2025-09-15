@@ -1,6 +1,6 @@
-Datatypes.dfy(82,10): Error: assertion might not hold
-Datatypes.dfy(170,6): Error: assertion might not hold
-Datatypes.dfy(172,6): Error: assertion might not hold
+Datatypes.dfy(82,10): Error: assertion could not be proved
+Datatypes.dfy(170,6): Error: assertion could not be proved
+Datatypes.dfy(172,6): Error: assertion could not be proved
 Datatypes.dfy(201,12): Error: destructor 'Car' can only be applied to datatype values constructed by 'XCons'
 Datatypes.dfy(204,16): Error: destructor 'Car' can only be applied to datatype values constructed by 'XCons'
 Datatypes.dfy(225,16): Error: destructor 'c' can only be applied to datatype values constructed by 'T''
@@ -12,7 +12,7 @@ Datatypes.dfy(349,4): Error: missing case in match expression: Nil
 Datatypes.dfy(356,7): Error: missing case in match expression: Cons(_, _)
 Datatypes.dfy(356,7): Error: missing case in match expression: Nil
 Datatypes.dfy(377,21): Error: RHS is not certain to look like the pattern 'AAA'
-Datatypes.dfy(493,6): Error: assertion might not hold
-Datatypes.dfy(495,6): Error: assertion might not hold
+Datatypes.dfy(493,6): Error: assertion could not be proved
+Datatypes.dfy(495,6): Error: assertion could not be proved
 
 Dafny program verifier finished with 29 verified, 15 errors

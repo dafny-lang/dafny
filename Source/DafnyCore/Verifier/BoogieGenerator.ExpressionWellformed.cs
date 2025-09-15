@@ -702,7 +702,7 @@ namespace Microsoft.Dafny {
                     CheckSubrange(result.Origin, etran.TrExpr(result), ee.Type, et, ee, returnBuilder);
                   });
                 }
-                Bpl.Cmd cmd = Bpl.Cmd.SimpleAssign(p.Origin, lhs, AdaptBoxing(p.Origin, etran.TrExpr(ee), cce.NonNull(ee.Type), et));
+                Bpl.Cmd cmd = Bpl.Cmd.SimpleAssign(p.Origin, lhs, AdaptBoxing(p.Origin, etran.TrExpr(ee), Cce.NonNull(ee.Type), et));
                 builder.Add(cmd);
                 if (!etran.UsesOldHeap) {
                   // the argument can't be assumed to be allocated for the old heap
@@ -1384,7 +1384,7 @@ namespace Microsoft.Dafny {
             break;
           }
         default:
-          Contract.Assert(false); throw new cce.UnreachableException();  // unexpected expression
+          Contract.Assert(false); throw new Cce.UnreachableException();  // unexpected expression
       }
 
       addResultCommands?.Invoke(builder, expr);

@@ -473,7 +473,7 @@ namespace Microsoft.Dafny {
             e.Type = Type.String();
             ResolveType(e.Origin, e.Type, resolutionContext, ResolveTypeOptionEnum.DontInfer, null);
           } else {
-            Contract.Assert(false); throw new cce.UnreachableException();  // unexpected literal type
+            Contract.Assert(false); throw new Cce.UnreachableException();  // unexpected literal type
           }
         }
       } else if (expr is ThisExpr) {
@@ -773,7 +773,7 @@ namespace Microsoft.Dafny {
             expr.Type = Type.Bool;
             break;
           default:
-            Contract.Assert(false); throw new cce.UnreachableException();  // unexpected unary operator
+            Contract.Assert(false); throw new Cce.UnreachableException();  // unexpected unary operator
         }
 
         // We do not have enough information to compute `e.ResolvedOp` yet.
@@ -975,7 +975,7 @@ namespace Microsoft.Dafny {
             break;
 
           default:
-            Contract.Assert(false); throw new cce.UnreachableException();  // unexpected operator
+            Contract.Assert(false); throw new Cce.UnreachableException();  // unexpected operator
         }
         // We should also fill in e.ResolvedOp, but we may not have enough information for that yet.  So, instead, delay
         // setting e.ResolvedOp until inside CheckTypeInference.
@@ -1191,7 +1191,7 @@ namespace Microsoft.Dafny {
         expr.Type = new InferredTypeProxy();
         return;
       } else {
-        Contract.Assert(false); throw new cce.UnreachableException();  // unexpected expression
+        Contract.Assert(false); throw new Cce.UnreachableException();  // unexpected expression
       }
 
       if (expr.Type == null) {
@@ -2836,7 +2836,7 @@ namespace Microsoft.Dafny {
           }
 
         } else {
-          Contract.Assert(false); throw new cce.UnreachableException();  // unexpected member type
+          Contract.Assert(false); throw new Cce.UnreachableException();  // unexpected member type
         }
         Contract.Assert(AllTypeConstraints.Count == 0);
       }
@@ -2891,7 +2891,7 @@ namespace Microsoft.Dafny {
     void AddDatatypeDependencyEdge(IndDatatypeDecl dt, Type tp, Graph<IndDatatypeDecl> dependencies) {
       Contract.Requires(dt != null);
       Contract.Requires(tp != null);
-      Contract.Requires(dependencies != null);  // more expensive check: Contract.Requires(cce.NonNullElements(dependencies));
+      Contract.Requires(dependencies != null);  // more expensive check: Contract.Requires(Cce.NonNullElements(dependencies));
 
       tp = tp.NormalizeExpand();
       var dependee = tp.AsIndDatatype;
@@ -3730,7 +3730,7 @@ namespace Microsoft.Dafny {
         } else if (s.Rhs is HavocRhs havocRhs) {
           havocRhs.Resolve(this, resolutionContext);
         } else {
-          Contract.Assert(false); throw new cce.UnreachableException();  // unexpected RHS
+          Contract.Assert(false); throw new Cce.UnreachableException();  // unexpected RHS
         }
 
       } else if (stmt is CallStmt) {
@@ -3991,7 +3991,7 @@ namespace Microsoft.Dafny {
       } else if (stmt is LabeledStatement) {
         // content already handled
       } else {
-        Contract.Assert(false); throw new cce.UnreachableException();
+        Contract.Assert(false); throw new Cce.UnreachableException();
       }
     }
 
@@ -4268,7 +4268,7 @@ namespace Microsoft.Dafny {
       } else if (type is SelfType) {
         // do nothing.
       } else {
-        Contract.Assert(false); throw new cce.UnreachableException();  // unexpected type
+        Contract.Assert(false); throw new Cce.UnreachableException();  // unexpected type
       }
       return null;
     }
@@ -5038,7 +5038,7 @@ namespace Microsoft.Dafny {
           }
         }
       } else {
-        Contract.Assert(false); throw new cce.UnreachableException();  // unexpected type
+        Contract.Assert(false); throw new Cce.UnreachableException();  // unexpected type
       }
     }
 
@@ -6036,9 +6036,9 @@ namespace Microsoft.Dafny {
       if (member == null) {
         // error has already been reported by ResolveMember
       } else if (member is MethodOrConstructor) {
-        reporter.Error(MessageSource.Resolver, e, "member {0} in type {1} refers to a method, but only functions can be used in this context", e.Name, cce.NonNull(ctype).Name);
+        reporter.Error(MessageSource.Resolver, e, "member {0} in type {1} refers to a method, but only functions can be used in this context", e.Name, Cce.NonNull(ctype).Name);
       } else if (!(member is Function)) {
-        reporter.Error(MessageSource.Resolver, e, "member {0} in type {1} does not refer to a function", e.Name, cce.NonNull(ctype).Name);
+        reporter.Error(MessageSource.Resolver, e, "member {0} in type {1} does not refer to a function", e.Name, Cce.NonNull(ctype).Name);
       } else {
         Function function = (Function)member;
         e.Function = function;

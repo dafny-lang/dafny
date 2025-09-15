@@ -219,12 +219,12 @@ public class Function : MethodOrFunction, TypeParameter.ParentType, ICallable, I
 
   [ContractInvariantMethod]
   void ObjectInvariant() {
-    Contract.Invariant(cce.NonNullElements(TypeArgs));
-    Contract.Invariant(cce.NonNullElements(Ins));
+    Contract.Invariant(Cce.NonNullElements(TypeArgs));
+    Contract.Invariant(Cce.NonNullElements(Ins));
     Contract.Invariant(ResultType != null);
-    Contract.Invariant(cce.NonNullElements(Req));
+    Contract.Invariant(Cce.NonNullElements(Req));
     Contract.Invariant(Reads != null);
-    Contract.Invariant(cce.NonNullElements(Ens));
+    Contract.Invariant(Cce.NonNullElements(Ens));
     Contract.Invariant(Decreases != null);
   }
 

@@ -149,7 +149,12 @@ namespace Microsoft.Dafny {
 
     private ProofDependencyManager proofDependencies;
 
-    // optimizing translation
+    /**
+     * The behavior around this field assumes that usages are visited before declarations
+     * which is only the case when the usage is in a different module than the declaration.
+     * However, we alleviate this problem by saying that any declaration must be kept
+     * if any code in that module is verified.
+     */
     readonly ISet<MemberDecl> referencedMembers = new HashSet<MemberDecl>();
 
     public void AddReferencedMember(MemberDecl m) {
@@ -164,9 +169,9 @@ namespace Microsoft.Dafny {
 
     [ContractInvariantMethod]
     void ObjectInvariant() {
-      Contract.Invariant(cce.NonNullDictionaryAndValues(classes));
-      Contract.Invariant(cce.NonNullDictionaryAndValues(fields));
-      Contract.Invariant(cce.NonNullDictionaryAndValues(fieldFunctions));
+      Contract.Invariant(Cce.NonNullDictionaryAndValues(classes));
+      Contract.Invariant(Cce.NonNullDictionaryAndValues(fields));
+      Contract.Invariant(Cce.NonNullDictionaryAndValues(fieldFunctions));
       Contract.Invariant(codeContext == null || codeContext.EnclosingModule == currentModule);
     }
 
@@ -714,8 +719,8 @@ namespace Microsoft.Dafny {
     Bpl.Program ReadPrelude() {
       string preludePath = options.DafnyPrelude;
       if (preludePath == null) {
-        //using (System.IO.Stream stream = cce.NonNull( System.Reflection.Assembly.GetExecutingAssembly().GetManifestResourceStream("DafnyPrelude.bpl")) // Use this once Spec#/VSIP supports designating a non-.resx project item as an embedded resource
-        string codebase = cce.NonNull(System.IO.Path.GetDirectoryName(cce.NonNull(System.Reflection.Assembly.GetExecutingAssembly().Location)));
+        //using (System.IO.Stream stream = Cce.NonNull( System.Reflection.Assembly.GetExecutingAssembly().GetManifestResourceStream("DafnyPrelude.bpl")) // Use this once Spec#/VSIP supports designating a non-.resx project item as an embedded resource
+        string codebase = Cce.NonNull(System.IO.Path.GetDirectoryName(Cce.NonNull(System.Reflection.Assembly.GetExecutingAssembly().Location)));
         preludePath = System.IO.Path.Combine(codebase, "DafnyPrelude.bpl");
       }
 
@@ -1350,7 +1355,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(formals != null);
       Contract.Ensures(Contract.ValueAtReturn(out bvs).Count == Contract.ValueAtReturn(out args).Count);
       Contract.Ensures(Contract.ValueAtReturn(out bvs) != null);
-      Contract.Ensures(cce.NonNullElements(Contract.ValueAtReturn(out args)));
+      Contract.Ensures(Cce.NonNullElements(Contract.ValueAtReturn(out args)));
 
       var varNameGen = CurrentIdGenerator.NestedFreshIdGenerator("a#");
       bvs = [];
@@ -1554,10 +1559,10 @@ namespace Microsoft.Dafny {
       readonly BoogieGenerator boogieGenerator;
       [ContractInvariantMethod]
       void ObjectInvariant() {
-        Contract.Invariant(cce.NonNullElements(Formals));
-        Contract.Invariant(cce.NonNullElements(ReplacementExprs));
+        Contract.Invariant(Cce.NonNullElements(Formals));
+        Contract.Invariant(Cce.NonNullElements(ReplacementExprs));
         Contract.Invariant(Formals.Count == ReplacementExprs.Count);
-        Contract.Invariant(cce.NonNullElements(ReplacementFormals));
+        Contract.Invariant(Cce.NonNullElements(ReplacementFormals));
         Contract.Invariant(SubstMap != null);
       }
 
@@ -2153,7 +2158,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(tok != null);
       Contract.Requires(frameIdentifier != null);
       Contract.Requires(frameIdentifier.Type != null);
-      Contract.Requires(cce.NonNullElements(frameClause));
+      Contract.Requires(Cce.NonNullElements(frameClause));
       Contract.Requires(builder != null);
       Contract.Requires(Predef != null);
 
@@ -2305,8 +2310,8 @@ namespace Microsoft.Dafny {
       Contract.Requires(o != null);
       // Contract.Requires(f != null); // f == null means approximate
       Contract.Requires(etran != null);
-      Contract.Requires(cce.NonNullElements(rw));
-      Contract.Requires(substMap == null || cce.NonNullDictionaryAndValues(substMap));
+      Contract.Requires(Cce.NonNullElements(rw));
+      Contract.Requires(substMap == null || Cce.NonNullDictionaryAndValues(substMap));
       Contract.Requires(Predef != null);
       Contract.Requires(receiverReplacement == null || substMap != null);
       Contract.Ensures(Contract.Result<Bpl.Expr>() != null);
@@ -2319,8 +2324,8 @@ namespace Microsoft.Dafny {
       Contract.Requires(o != null);
       // Contract.Requires(f != null); // f == null means approximate
       Contract.Requires(etran != null);
-      Contract.Requires(cce.NonNullElements(rw));
-      Contract.Requires(substMap == null || cce.NonNullDictionaryAndValues(substMap));
+      Contract.Requires(Cce.NonNullElements(rw));
+      Contract.Requires(substMap == null || Cce.NonNullDictionaryAndValues(substMap));
       Contract.Requires(Predef != null);
       Contract.Requires(receiverReplacement == null || substMap != null);
       Contract.Ensures(Contract.Result<Bpl.Expr>() != null);
@@ -2384,8 +2389,8 @@ namespace Microsoft.Dafny {
       Contract.Requires(boxO != null);
       // Contract.Requires(f != null); // f == null means approximate
       Contract.Requires(etran != null);
-      Contract.Requires(cce.NonNullElements(rw));
-      Contract.Requires(substMap == null || cce.NonNullDictionaryAndValues(substMap));
+      Contract.Requires(Cce.NonNullElements(rw));
+      Contract.Requires(substMap == null || Cce.NonNullDictionaryAndValues(substMap));
       Contract.Requires(Predef != null);
       Contract.Requires((substMap == null && receiverReplacement == null) || substMap != null);
       Contract.Ensures(Contract.Result<Bpl.Expr>() != null);
@@ -2512,41 +2517,6 @@ namespace Microsoft.Dafny {
       }
     }
 
-    /// <summary>
-    /// If "expr" is a binary boolean operation, then try to re-associate it to make the left argument smaller.
-    /// If it is possible, then "true" is returned and "expr" returns as the re-associated expression (no boolean simplifications are performed).
-    /// If not, then "false" is returned and "expr" is unchanged.
-    /// </summary>
-    bool ReAssociateToTheRight(ref Expression expr) {
-      if (expr is BinaryExpr top && Expression.StripParens(top.E0) is BinaryExpr left) {
-        // We have an expression of the form "(A oo B) pp C"
-        var A = left.E0;
-        var oo = left.ResolvedOp;
-        var B = left.E1;
-        var pp = top.ResolvedOp;
-        var C = top.E1;
-
-        if (oo == BinaryExpr.ResolvedOpcode.And && pp == BinaryExpr.ResolvedOpcode.And) {
-          // rewrite    (A && B) && C    into    A && (B && C)
-          expr = Expression.CreateAnd(A, Expression.CreateAnd(B, C, false), false);
-          return true;
-        } else if (oo == BinaryExpr.ResolvedOpcode.And && pp == BinaryExpr.ResolvedOpcode.Imp) {
-          // rewrite    (A && B) ==> C    into    A ==> (B ==> C)
-          expr = Expression.CreateImplies(A, Expression.CreateImplies(B, C, false), false);
-          return true;
-        } else if (oo == BinaryExpr.ResolvedOpcode.Or && pp == BinaryExpr.ResolvedOpcode.Or) {
-          // rewrite    (A || B) || C    into    A || (B || C)
-          expr = Expression.CreateOr(A, Expression.CreateOr(B, C, false), false);
-          return true;
-        } else if (oo == BinaryExpr.ResolvedOpcode.Imp && pp == BinaryExpr.ResolvedOpcode.Or) {
-          // rewrite    (A ==> B) || C    into    A ==> (B || C)
-          expr = Expression.CreateImplies(A, Expression.CreateOr(B, C, false), false);
-          return true;
-        }
-      }
-      return false;
-    }
-
     void CheckCasePatternShape<VT>(CasePattern<VT> pat, Expression dRhs, Bpl.Expr rhs, IOrigin rhsTok, Type rhsType, BoogieStmtListBuilder builder)
       where VT : class, IVariable {
       Contract.Requires(pat != null);
@@ -2622,13 +2592,13 @@ namespace Microsoft.Dafny {
     // Use trType to translate types in the args list
     Bpl.Expr ClassTyCon(UserDefinedType cl, List<Bpl.Expr> args) {
       Contract.Requires(cl != null);
-      Contract.Requires(cce.NonNullElements(args));
+      Contract.Requires(Cce.NonNullElements(args));
       return ClassTyCon(cl.ResolvedClass, args);
     }
 
     Bpl.Expr ClassTyCon(TopLevelDecl cl, List<Bpl.Expr> args) {
       Contract.Requires(cl != null);
-      Contract.Requires(cce.NonNullElements(args));
+      Contract.Requires(Cce.NonNullElements(args));
       return FunctionCall(cl.Origin, GetClassTyCon(cl), Predef.Ty, args);
     }
 
@@ -3111,7 +3081,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(modifiesClause != null);
       Contract.Requires(etranPre != null);
       Contract.Requires(etran != null);
-      Contract.Ensures(cce.NonNullElements(Contract.Result<List<BoilerplateTriple>>()));
+      Contract.Ensures(Cce.NonNullElements(Contract.Result<List<BoilerplateTriple>>()));
 
       var boilerplate = new List<BoilerplateTriple>();
       if (!canAllocate && modifiesClause.Count == 0) {
@@ -3155,7 +3125,7 @@ namespace Microsoft.Dafny {
       Contract.Requires(tok != null);
       Contract.Requires(etran != null);
       Contract.Requires(etranPre != null);
-      Contract.Requires(cce.NonNullElements(frame));
+      Contract.Requires(Cce.NonNullElements(frame));
       Contract.Requires(Predef != null);
       Contract.Ensures(Contract.Result<Bpl.Expr>() != null);
 
@@ -3326,7 +3296,7 @@ namespace Microsoft.Dafny {
       } else if (type is FieldType or UserDefinedType { ResolvedClass: ValuetypeDecl { Name: "field" } }) {
         return Predef.FieldType;
       } else {
-        Contract.Assert(false); throw new cce.UnreachableException();  // unexpected type
+        Contract.Assert(false); throw new Cce.UnreachableException();  // unexpected type
       }
     }
 
@@ -3780,7 +3750,7 @@ namespace Microsoft.Dafny {
       var idGen = new VerificationIdGenerator();
       foreach (Expression e in decreases) {
         Contract.Assert(e != null);
-        Bpl.LocalVariable bfVar = new Bpl.LocalVariable(e.Origin, new Bpl.TypedIdent(e.Origin, idGen.FreshId(varPrefix), TrType(cce.NonNull(e.Type))));
+        Bpl.LocalVariable bfVar = new Bpl.LocalVariable(e.Origin, new Bpl.TypedIdent(e.Origin, idGen.FreshId(varPrefix), TrType(Cce.NonNull(e.Type))));
         locals.GetOrAdd(bfVar);
         Bpl.IdentifierExpr bf = new Bpl.IdentifierExpr(e.Origin, bfVar);
         oldBfs.Add(bf);
@@ -3871,7 +3841,7 @@ namespace Microsoft.Dafny {
       } else if (type is FieldType) {
         return new Bpl.IdentifierExpr(Token.NoToken, "TField", Predef.Ty);
       } else {
-        Contract.Assert(false); throw new cce.UnreachableException();  // unexpected type
+        Contract.Assert(false); throw new Cce.UnreachableException();  // unexpected type
       }
     }
 
@@ -4897,7 +4867,7 @@ namespace Microsoft.Dafny {
     public static Expression Substitute(Expression expr, Expression receiverReplacement, Dictionary<IVariable, Expression/*!*/>/*!*/ substMap,
       Dictionary<TypeParameter, Type> typeMap = null, Label oldLabel = null) {
       Contract.Requires(expr != null);
-      Contract.Requires(cce.NonNullDictionaryAndValues(substMap));
+      Contract.Requires(Cce.NonNullDictionaryAndValues(substMap));
       Contract.Ensures(Contract.Result<Expression>() != null);
       var s = new Substituter(receiverReplacement, substMap, typeMap ?? new Dictionary<TypeParameter, Type>(), oldLabel);
       return s.Substitute(expr);
