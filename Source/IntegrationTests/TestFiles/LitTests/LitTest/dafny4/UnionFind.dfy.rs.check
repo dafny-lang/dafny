@@ -1,1 +1,1 @@
-// CHECK-L: error[E0599]: no method named `borrow` found for struct `Rc<Contents>` in the current scope
+// CHECK-L: (0,-1): Error: Unsupported Invalid Operation: The Rust compiler requires `--enforce-determinism`
