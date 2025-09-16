@@ -79,7 +79,8 @@ public static class OpaqueBlockVerifier {
     generator.ApplyModifiesEffect(block, beforeBlockExpressionTranslator, etran, builder, block.Modifies, true, block.IsGhost);
     if (assignedVariables.Any()) {
       builder.Add(new HavocCmd(Token.NoToken,
-        assignedVariables.Select(v => new BoogieIdentifierExpr(v.Origin, v.UniqueName)).ToList()));
+        assignedVariables.Select(v => new BoogieIdentifierExpr(v.Origin, v.UniqueName)).Concat(assignedVariables.SelectMany(
+          v => generator.DefiniteAssignmentTrackers.TryGetValue(v.UniqueName, out var trackedTracker) ? [trackedTracker.tracker] : System.Array.Empty<BoogieIdentifierExpr>())).ToList()));
     }
 
     foreach (var ensure in totalEnsures) {

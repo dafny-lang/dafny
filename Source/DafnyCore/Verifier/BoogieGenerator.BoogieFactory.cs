@@ -979,18 +979,6 @@ namespace Microsoft.Dafny {
       return e;
     }
 
-    HeapExpressions BplBoundVarHeap(string heapName, HeapReadingStatus heapReadingStatus, List<Bpl.Variable> bvars) {
-      var heapInfo = BplBoundVarHeap(heapName, heapReadingStatus, out var heapVar, out var referrersHeapVar);
-      if (heapReadingStatus.NeedsHeap) {
-        bvars.Add(heapVar);
-      }
-      if (heapReadingStatus.NeedsReferrersHeap) {
-        bvars.Add(referrersHeapVar);
-      }
-
-      return heapInfo;
-    }
-
     // Makes a formal variable
     static Bpl.Formal BplFormalVar(string/*?*/ name, Bpl.Type ty, bool incoming) {
       return BplFormalVar(name, ty, incoming, out _);
