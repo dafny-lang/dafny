@@ -77,7 +77,10 @@ public static class OpaqueBlockVerifier {
     generator.PathAsideBlock(block.Origin, blockBuilder, builder);
 
     generator.ApplyModifiesEffect(block, beforeBlockExpressionTranslator, etran, builder, block.Modifies, true, block.IsGhost);
-    builder.Add(new HavocCmd(Token.NoToken, assignedVariables.Select(v => new BoogieIdentifierExpr(v.Origin, v.UniqueName)).ToList()));
+    if (assignedVariables.Any()) {
+      builder.Add(new HavocCmd(Token.NoToken,
+        assignedVariables.Select(v => new BoogieIdentifierExpr(v.Origin, v.UniqueName)).ToList()));
+    }
 
     foreach (var ensure in totalEnsures) {
       generator.CheckWellformedAndAssume(ensure.E, new WFOptions(null, false),

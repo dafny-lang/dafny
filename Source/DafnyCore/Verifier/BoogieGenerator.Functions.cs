@@ -634,10 +634,10 @@ public partial class BoogieGenerator {
       Dictionary<IVariable, Expression> rhs_dict = new Dictionary<IVariable, Expression>();
       if (f is TwoStateFunction) {
         // also add previous-heap to the list of fixed arguments of the handle
-        var prevH = BplBoundVarHeap("$prevHeap", f.HeapReadingStatus, vars);
+        var prevH = BplBoundVar("$prevHeap", Predef.HeapType, vars);
+        formals.Add(BplFormalVar("h", Predef.HeapType, true));
         BplFormalVarHeap("h", f.HeapReadingStatus, true, formals);
-        Func<List<Bpl.Expr>, List<Bpl.Expr>> snocPrevHAux = f.ReadsHeap ? ((List<Expr> xs) => Snoc(xs, prevH.HeapExpr)) : ((List<Expr> xs) => xs);
-        WithPrevHeaps = f.ReadsReferrersHeap ? (xs => Snoc(snocPrevHAux(xs), prevH.ReferrersHeapExpr)) : snocPrevHAux;
+        WithPrevHeaps = xs => Snoc(xs, prevH);
       }
       if (f.IsStatic) {
         selfExpr = null;
@@ -678,8 +678,9 @@ public partial class BoogieGenerator {
         boxed_func_args.Add(boxed);
       }
 
-      var h = BplBoundVarHeap("$heap", f.HeapReadingStatus, vars);
-      var heapExpressions = h.AsList(f.HeapReadingStatus);
+      var h = BplBoundVar("$heap", Predef.HeapType, vars);
+      var heapExpressions = new List<Bpl.Expr>() { h };
+      //var heapExpressions = h.AsList(f.HeapReadingStatus);
       var WithHeaps = (List<Bpl.Expr> xs) => Concat(xs, heapExpressions);
 
       int arity = f.Ins.Count;
@@ -715,12 +716,12 @@ public partial class BoogieGenerator {
           AddOtherDefinition(GetOrCreateFunction(f), new Axiom(f.Origin,
               BplForall(Concat(vars, bvars), BplTrigger(lhs), Bpl.Expr.Eq(lhs, Bpl.Expr.True))));
         } else if (f.EnclosingClass is ArrowTypeDecl && f.Name == "reads") {
-          var args_h = WithHeaps(WithPrevHeaps(argsRequires));
+          var args_h = f.ReadsHeap ? WithHeaps(WithPrevHeaps(argsRequires)) : argsRequires;
           var pre = FunctionCall(f.Origin, Requires(arity), Bpl.Type.Bool, Concat(SnocSelf(args_h), lhs_args));
           AddOtherDefinition(GetOrCreateFunction(f), (new Axiom(f.Origin,
             BplForall(Concat(vars, bvars), BplTrigger(lhs), Bpl.Expr.Eq(lhs, pre)))));
         } else {
-          var args_h = WithHeaps(WithPrevHeaps(argsRequires));
+          var args_h = f.ReadsHeap ? WithHeaps(WithPrevHeaps(argsRequires)) : argsRequires;
           rhs = FunctionCall(f.Origin, RequiresName(f), Bpl.Type.Bool, Concat(SnocSelf(args_h), rhs_args));
           AddOtherDefinition(GetOrCreateFunction(f), new Axiom(f.Origin,
             BplForall(Concat(vars, bvars), BplTrigger(lhs), Bpl.Expr.Eq(lhs, rhs))));
@@ -739,18 +740,17 @@ public partial class BoogieGenerator {
         // be referred to.
 
         var fhandle = FunctionCall(f.Origin, name, Predef.HandleType, SnocSelf(WithPrevHeaps(args)));
-        Bpl.Expr lhs_inner = FunctionCall(f.Origin, Reads(arity), TrType(program.SystemModuleManager.ObjectSetType()),
-          Concat(tyargs, Concat(heapExpressions, Cons(fhandle, lhs_args))));
+        Bpl.Expr lhs_inner = FunctionCall(f.Origin, Reads(arity), TrType(program.SystemModuleManager.ObjectSetType()), Concat(tyargs, Concat(heapExpressions, Cons(fhandle, lhs_args))));
 
         Bpl.Expr bx; var bxVar = BplBoundVar("$bx", Predef.BoxType, out bx);
         Bpl.Expr unboxBx = FunctionCall(f.Origin, BuiltinFunction.Unbox, Predef.RefType, bx);
         Bpl.Expr lhs = IsSetMember(f.Origin, lhs_inner, bx, true);
 
-        var et = new ExpressionTranslator(this, Predef, h, f);
+        var et = new ExpressionTranslator(this, Predef, new HeapExpressions(h, null), f);
         var rhs = InRWClause_Aux(f.Origin, unboxBx, bx, null, f.Reads.Expressions, false, et, selfExpr, rhs_dict);
 
         if (f.EnclosingClass is ArrowTypeDecl) {
-          var args_h = WithHeaps(WithPrevHeaps(argsRequires));
+          var args_h = f.ReadsHeap ? WithHeaps(WithPrevHeaps(argsRequires)) : argsRequires;
           var precondition = FunctionCall(f.Origin, Requires(arity), Bpl.Type.Bool, Concat(SnocSelf(args_h), lhs_args));
           sink.AddTopLevelDeclaration(new Axiom(f.Origin,
             BplForall(Cons(bxVar, Concat(vars, bvars)), BplTrigger(lhs), BplImp(precondition, Bpl.Expr.Eq(lhs, rhs)))));
@@ -765,11 +765,11 @@ public partial class BoogieGenerator {
         // = [Unbox]Apply1(Ty.., F#Handle( Ty1, ..., TyN, Layer, self), Heap, [Box]arg1, ..., [Box]argN)
 
         var fhandle = FunctionCall(f.Origin, name, Predef.HandleType, SnocSelf(WithPrevHeaps(args)));
-        var args_h = WithHeaps(WithPrevHeaps(args));
+        var args_h = f.ReadsHeap ? WithHeaps(WithPrevHeaps(args)) : args;
         var lhs = FunctionCall(f.Origin, f.FullSanitizedName, TrType(f.ResultType), Concat(SnocSelf(args_h), func_args));
         var rhs = FunctionCall(f.Origin, Apply(arity), TrType(f.ResultType), Concat(tyargs, Concat(heapExpressions, Cons(fhandle, boxed_func_args))));
         var rhs_unboxed = UnboxUnlessInherentlyBoxed(rhs, f.ResultType);
-        var tr = BplTriggerHeap(this, f.Origin, lhs, f.ReadsHeap ? null : h.HeapExpr);
+        var tr = BplTriggerHeap(this, f.Origin, lhs, f.ReadsHeap ? null : h);
 
         AddOtherDefinition(GetOrCreateFunction(f), (new Axiom(f.Origin,
           BplForall(Concat(vars, func_vars), tr, Bpl.Expr.Eq(lhs, rhs_unboxed)))));

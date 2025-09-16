@@ -208,7 +208,10 @@ namespace Microsoft.Dafny {
       }
 
       private HeapExpressions OldHeapExpressions() {
-        return new HeapExpressions(new Boogie.OldExpr(HeapExpr.tok, HeapExpr), new Boogie.OldExpr(ReferrersHeapExpr.tok, ReferrersHeapExpr));
+        return new HeapExpressions(
+          new Boogie.OldExpr(HeapExpr.tok, HeapExpr),
+          ReferrersHeapExpr == null ? null :
+          new Boogie.OldExpr(ReferrersHeapExpr.tok, ReferrersHeapExpr));
       }
 
       public ExpressionTranslator OldAt(Label/*?*/ label) {
@@ -1099,10 +1102,10 @@ namespace Microsoft.Dafny {
 
         Expr TrArg(Expression arg) => BoogieGenerator.BoxIfNotNormallyBoxed(arg.Origin, TrExpr(arg), arg.Type);
 
-              var heapReadingStatus = new HeapReadingStatus(true, false);
-              var applied = FunctionCall(GetToken(applyExpr), BoogieGenerator.Apply(arity), Predef.BoxType,
-                Concat(Map(tt.TypeArgs, BoogieGenerator.TypeToTy),
-                  Concat(HeapExprForArrow(applyExpr.Function.Type).AsList(heapReadingStatus), Cons(TrExpr(applyExpr.Function), applyExpr.Args.ConvertAll(arg => TrArg(arg))))));
+        var heapReadingStatus = new HeapReadingStatus(true, false);
+        var applied = FunctionCall(GetToken(applyExpr), BoogieGenerator.Apply(arity), Predef.BoxType,
+          Concat(Map(tt.TypeArgs, BoogieGenerator.TypeToTy),
+            Concat(HeapExprForArrow(applyExpr.Function.Type).AsList(heapReadingStatus), Cons(TrExpr(applyExpr.Function), applyExpr.Args.ConvertAll(arg => TrArg(arg))))));
 
         return BoogieGenerator.UnboxUnlessInherentlyBoxed(applied, tt.Result);
       }

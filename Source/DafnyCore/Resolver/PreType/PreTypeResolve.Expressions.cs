@@ -805,7 +805,7 @@ namespace Microsoft.Dafny {
             if (innerCallEnclosingMethod != null) {
               var availableFormals = innerCallEnclosingMethod.Ins.Concat(innerCallEnclosingMethod.Outs);
               var formal = availableFormals.FirstOrDefault(formal => formal.Name == name.Value);
-              if (formal == null && name.Value == "this" && innerCallEnclosingMethod is {IsStatic: false}) {
+              if (formal == null && name.Value == "this" && innerCallEnclosingMethod is { IsStatic: false }) {
                 formal = innerCallEnclosingMethod.GetThisFormal();
               }
               if (formal == null) {

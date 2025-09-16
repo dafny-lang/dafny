@@ -71,12 +71,11 @@ public partial class BoogieGenerator {
             Id(tok, field.Name),
             Id(tok, "depth")))));
     }
-    
+
     public void UnassignLocalVariables(IOrigin tok, Variables locals,
       BoogieStmtListBuilder builder,
       ExpressionTranslator etran,
-      ImmutableDictionary<string, (object tracked, Boogie.IdentifierExpr tracker)>assignmentTrackers)
-    {
+      ImmutableDictionary<string, (object tracked, Boogie.IdentifierExpr tracker)> assignmentTrackers) {
       foreach (var trackedLocalVariable in assignmentTrackers) {
         var localVar = trackedLocalVariable.Value.tracked;
         if (localVar is LocalVariable l) {
@@ -97,7 +96,7 @@ public partial class BoogieGenerator {
 
     public void RemovePreAssign(IOrigin tok, Expression lhs, BoogieStmtListBuilder builder, Variables locals,
       ExpressionTranslator etran) {
-      if (!VerifyReferrers || !lhs.Type.MayInvolveReferences || CurrentDeclaration is Lemma or MethodOrConstructor {IsGhost: true}) {
+      if (!VerifyReferrers || !lhs.Type.MayInvolveReferences || CurrentDeclaration is Lemma or MethodOrConstructor { IsGhost: true }) {
         return;
       }
 
@@ -237,12 +236,11 @@ public partial class BoogieGenerator {
 
     public void AddPostAssign(IOrigin tok, Expression memloc, Expr rhsVariable, BoogieStmtListBuilder builder,
       ExpressionTranslator etran) {
-      if (!VerifyReferrers || !memloc.Type.MayInvolveReferences || BG.CurrentDeclaration is Lemma or MethodOrConstructor {IsGhost: true}) {
+      if (!VerifyReferrers || !memloc.Type.MayInvolveReferences || BG.CurrentDeclaration is Lemma or MethodOrConstructor { IsGhost: true }) {
         return;
       }
 
-      switch (memloc.Resolved)
-      {
+      switch (memloc.Resolved) {
         // Havoc the referrersHeap by default, unless we know what to do.
         case IdentifierExpr { Var: LocalVariable { } localVariable }
           when CurrentDeclaration is MethodOrConstructor m:
@@ -508,7 +506,7 @@ public partial class BoogieGenerator {
                 BG.ReadHeap(tok, etran.HeapExpr, nw, arrayIndexFieldName))))));
 
       builder.Add(new AssumeCmd(tok, forallExpr));
-      
+
       // For all objects in the array post-state, their referrers previously did not contain any memory locations from the new array. That makes it possible to consider all memory locations
       // as fresh
       /*
@@ -578,7 +576,7 @@ public partial class BoogieGenerator {
 
       builder.Add(new AssumeCmd(tok, forallExpr2));
 
-// Any new referrer's object must be the array
+      // Any new referrer's object must be the array
       // and any new referrer's field must be an index that is equal to the object.
       // That works only for one dimensional arrays though
       /*assume (forall bvs, $r: Box ::

@@ -19,7 +19,7 @@ public abstract class MethodOrConstructor : MethodOrFunction, TypeParameter.Pare
   private Formal? thisFormal; // In a method, it's an input parameter; in a constructor, it's an output parameter
 
   public Formal GetThisFormal() {
-    Contract.Assert(EnclosingClass is TopLevelDeclWithMembers );
+    Contract.Assert(EnclosingClass is TopLevelDeclWithMembers);
     if (thisFormal != null) {
       return thisFormal;
     }
