@@ -471,7 +471,6 @@ public partial class BoogieGenerator {
       var callsConstructor = allocateClass.InitCall is { Method: Constructor };
       Bpl.IdentifierExpr nw = GetNewVar_IdExpr(tok, locals);
       if (!callsConstructor) {
-        Contract.Assert(allocateClass.InitCall == null);
         SelectAllocateObject(tok, nw, allocateClass.Type, true, builder, etran);
         Bpl.Cmd heapAllocationRecorder = null;
         if (codeContext is IteratorDecl iter) {
@@ -485,7 +484,8 @@ public partial class BoogieGenerator {
         }
         CommitAllocatedObject(tok, nw, heapAllocationRecorder, builder, etran);
         Referrers.AssumeEmptyFor(nw, tok, builder, etran);
-      } else {
+      }
+      if (allocateClass.InitCall != null) {
         AddComment(builder, allocateClass.InitCall, "init call statement");
         TrCallStmt(allocateClass.InitCall, builder, locals, etran, nw);
       }
