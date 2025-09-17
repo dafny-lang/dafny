@@ -912,7 +912,9 @@ public partial class BoogieGenerator {
             var heapExpressions = BplLocalVarHeap(ss.Origin, "$Heap_at_" + label.AssignUniqueId(CurrentIdGenerator),
               new HeapReadingStatus(true, VerifyReferrers), locals);
             builder.Add(Bpl.Cmd.SimpleAssign(ss.Origin, (Bpl.IdentifierExpr)heapExpressions.HeapExpr, etran.HeapExpr));
-            builder.Add(Bpl.Cmd.SimpleAssign(ss.Origin, (Bpl.IdentifierExpr)heapExpressions.ReferrersHeapExpr, etran.ReferrersHeapExpr));
+            if (heapExpressions.ReferrersHeapExpr is Bpl.IdentifierExpr referrersHeapExpr) {
+              builder.Add(Bpl.Cmd.SimpleAssign(ss.Origin, referrersHeapExpr, etran.ReferrersHeapExpr));
+            }
           }
         }
       }
