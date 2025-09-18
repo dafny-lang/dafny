@@ -135,3 +135,4 @@
   </ItemGroup>
 
 </Project>
+<!-- Force rebuild after standard library update -->
