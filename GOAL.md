@@ -162,3 +162,5 @@ The Rust compiler is no longer marked as internal, has comprehensive test covera
 **The mission is 100% complete and successful!** 🚀
 
 **PR Link**: https://github.com/dafny-lang/dafny/pull/6359
+
+<!-- Trigger fresh CI run -->
