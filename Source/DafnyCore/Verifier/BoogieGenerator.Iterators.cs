@@ -80,6 +80,9 @@ namespace Microsoft.Dafny {
       var ens = new List<Bpl.Ensures>();
       // FREE PRECONDITIONS
       mod.Add(etran.HeapCastToIdentifierExpr);
+      if (Options.Get(CommonOptionBag.Referrers)) {
+        mod.Add(etran.ReferrerrsHeapCastToIdentifierExpr);
+      }
 
       if (kind != MethodTranslationKind.SpecWellformedness) {
         // USER-DEFINED SPECIFICATIONS

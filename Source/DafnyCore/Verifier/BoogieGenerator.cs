@@ -492,6 +492,9 @@ namespace Microsoft.Dafny {
       Bpl.Function tuple2Destructors0 = null;
       Bpl.Function tuple2Destructors1 = null;
       Bpl.Function tuple2Constructor = null;
+      Bpl.Procedure yieldHavoc = null;
+      Bpl.Procedure iterHavoc0 = null;
+      Bpl.Procedure iterHavoc1 = null;
       Bpl.TypeCtorDecl seqTypeCtor = null;
       Bpl.TypeCtorDecl fieldNameType = null;
       Bpl.TypeCtorDecl fieldFamilyNameType = null;
@@ -611,8 +614,17 @@ namespace Microsoft.Dafny {
           } else if (f.Name == "Tclass._System.object?") {
             objectTypeConstructor = f;
           }
+        } else if (d is Bpl.Procedure p) {
+          if (p.Name == "$YieldHavoc") {
+            yieldHavoc = p;
+          } else if (p.Name == "$IterHavoc0") {
+            iterHavoc0 = p;
+          } else if (p.Name == "$IterHavoc1") {
+            iterHavoc1 = p;
+          }
         }
       }
+
       if (seqTypeCtor == null) {
         options.OutputWriter.Exception("Dafny prelude is missing declaration of type Seq");
       } else if (setTypeCtor == null) {
@@ -697,7 +709,21 @@ namespace Microsoft.Dafny {
         options.OutputWriter.Exception("Dafny prelude is missing declaration of tuple2TypeConstructor");
       } else if (objectTypeConstructor == null) {
         options.OutputWriter.Exception("Dafny prelude is missing declaration of objectTypeConstructor");
+      } else if (yieldHavoc == null) {
+        options.OutputWriter.Exception("Dafny prelude is missing declaration of $YieldHavoc");
+      } else if (iterHavoc0 == null) {
+        options.OutputWriter.Exception("Dafny prelude is missing declaration of $IterHavoc0");
+      } else if (iterHavoc1 == null) {
+        options.OutputWriter.Exception("Dafny prelude is missing declaration of IterHavoc1");
       } else {
+        if (Options.Get(CommonOptionBag.Referrers)) {
+          // Add the referrers heap to the mods of the procedures of the iterator
+          var r = new Bpl.IdentifierExpr(yieldHavoc.tok, referrersHeap);
+          yieldHavoc.Modifies.Add(r);
+          iterHavoc0.Modifies.Add(r);
+          iterHavoc1.Modifies.Add(r);
+        }
+
         return new PredefinedDecls(charType, refType, boxType,
                                    setTypeCtor, isetTypeCtor, multiSetTypeCtor,
                                    mapTypeCtor, imapTypeCtor,
