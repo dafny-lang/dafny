@@ -286,7 +286,7 @@ public partial class BoogieGenerator {
       }
 
       var bField = BG.GetField(field);
-      var depth = Id(tok, "depth");
+      Boogie.Expr depth = Id(tok, "depth");
       if (deeperLevel) {
         depth = Expr.Add(depth, One(tok));
       }

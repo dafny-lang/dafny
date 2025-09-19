@@ -718,10 +718,9 @@ namespace Microsoft.Dafny {
       } else {
         if (Options.Get(CommonOptionBag.Referrers)) {
           // Add the referrers heap to the mods of the procedures of the iterator
-          var r = new Bpl.IdentifierExpr(yieldHavoc.tok, referrersHeap);
-          yieldHavoc.Modifies.Add(r);
-          iterHavoc0.Modifies.Add(r);
-          iterHavoc1.Modifies.Add(r);
+          yieldHavoc.Modifies.Add(Id(yieldHavoc.tok, referrersHeap));
+          iterHavoc0.Modifies.Add(Id(iterHavoc0.tok, referrersHeap));
+          iterHavoc1.Modifies.Add(Id(iterHavoc1.tok, referrersHeap));
         }
 
         return new PredefinedDecls(charType, refType, boxType,

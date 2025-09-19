@@ -641,13 +641,13 @@ namespace Microsoft.Dafny {
     }
 
 
-    static Bpl.Expr Id(Bpl.IToken tok, string name) {
+    static Bpl.IdentifierExpr Id(Bpl.IToken tok, string name) {
       return new Boogie.IdentifierExpr(tok, name);
     }
-    static Bpl.Expr Id(Bpl.IToken tok, Boogie.Constant constant) {
+    static Bpl.IdentifierExpr Id(Bpl.IToken tok, Boogie.Constant constant) {
       return new Boogie.IdentifierExpr(tok, constant);
     }
-    static Bpl.Expr Id(Bpl.IToken tok, Boogie.Variable constant) {
+    static Bpl.IdentifierExpr Id(Bpl.IToken tok, Boogie.Variable constant) {
       return new Boogie.IdentifierExpr(tok, constant);
     }
     static Bpl.Expr One(Bpl.IToken tok) {
