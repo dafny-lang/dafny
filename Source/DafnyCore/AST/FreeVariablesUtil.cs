@@ -116,29 +116,29 @@ namespace Microsoft.Dafny {
       }
 
       // visit subexpressions
-      bool uHeap = false, uOldHeap = false;
+      ExprHeapUsage subHeapUsage = new();
       Type uThis = null;
       if (expr is StmtExpr stmtExpr && includeStatements) {
         foreach (var subExpression in stmtExpr.S.SubExpressionsIncludingTransitiveSubStatements) {
-          ComputeFreeVariables(options, subExpression, fvs, ref heapUsage, freeHeapAtVariables, ref uThis, includeStatements);
+          ComputeFreeVariables(options, subExpression, fvs, ref subHeapUsage, freeHeapAtVariables, ref uThis, includeStatements);
         }
       }
       foreach (var subExpression in expr.SubExpressions) {
-        ComputeFreeVariables(options, subExpression, fvs, ref heapUsage, freeHeapAtVariables, ref uThis, includeStatements);
+        ComputeFreeVariables(options, subExpression, fvs, ref subHeapUsage, freeHeapAtVariables, ref uThis, includeStatements);
       }
       Contract.Assert(usesThis == null || uThis == null || usesThis.Equals(uThis));
-      usesThis = usesThis ?? uThis;
+      usesThis ??= uThis;
       var asOldExpr = expr as OldExpr;
       if (asOldExpr != null && asOldExpr.AtLabel == null) {
-        heapUsage.UseOldHeap |= uHeap | uOldHeap;
+        heapUsage.UseOldHeap |= subHeapUsage.UseHeap | subHeapUsage.UseOldHeap;
       } else if (asOldExpr != null) {
-        if (uHeap) {  // if not, then there was no real point in using an "old" expression
+        if (subHeapUsage.UseHeap) {  // if not, then there was no real point in using an "old" expression
           freeHeapAtVariables.Add(asOldExpr.AtLabel);
         }
-        heapUsage.UseOldHeap |= uOldHeap;
+        heapUsage.UseOldHeap |= subHeapUsage.UseOldHeap;
       } else {
-        heapUsage.UseHeap |= uHeap;
-        heapUsage.UseOldHeap |= uOldHeap;
+        heapUsage.UseHeap |= subHeapUsage.UseHeap;
+        heapUsage.UseOldHeap |= subHeapUsage.UseOldHeap;
       }
 
       if (expr is LetExpr) {
