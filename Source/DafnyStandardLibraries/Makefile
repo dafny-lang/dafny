@@ -93,3 +93,4 @@ check-examples:
 
 clean:
 	rm -rf build
+# Force rebuild with correct version
