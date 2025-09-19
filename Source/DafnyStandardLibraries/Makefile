@@ -94,3 +94,6 @@ check-examples:
 clean:
 	rm -rf build
 # Force rebuild with correct version
+build-binaries:
+	$(DAFNY) build -t:lib --no-verify src/Std/dfyconfig.toml --output:binaries/DafnyStandardLibraries.doo
+	make -C src/Std/TargetSpecific update-binary-all NO_VERIFY=true
