@@ -29,7 +29,7 @@ namespace Microsoft.Dafny.Compilers {
       var syncType = Options.Get(RustBackend.RustSyncOption)
         ? Defs.SyncType.create_Sync()
         : Defs.SyncType.create_NoSync();
-      c.__ctor(charType, pointerType, rootType, syncType);
+      c.constructor(charType, pointerType, rootType, syncType);
       return c;
     }
 

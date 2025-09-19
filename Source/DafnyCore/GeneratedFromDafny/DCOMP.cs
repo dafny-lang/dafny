@@ -35,7 +35,7 @@ namespace DCOMP {
     }
     public Std.Wrappers._IOption<Dafny.ISequence<Dafny.Rune>> error {get; set;}
     public Dafny.ISequence<Func<RAST._IMod, RAST._IMod>> optimizations {get; set;}
-    public void __ctor(Defs._ICharType charType, Defs._IPointerType pointerType, Defs._IRootType rootType, Defs._ISyncType syncType)
+    public void constructor(Defs._ICharType charType, Defs._IPointerType pointerType, Defs._IRootType rootType, Defs._ISyncType syncType)
     {
       (this)._charType = charType;
       (this)._pointerType = pointerType;
