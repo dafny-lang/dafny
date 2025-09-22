@@ -352,7 +352,7 @@ namespace Microsoft.Dafny {
             if (!export.Opaque) {
               nntd.Class.AddVisibilityScope(exportDecl.ThisScope, export.Opaque);
               // add the anonymous constructor, if any
-              var anonymousConstructor = nntd.Class.Members.Find(mdecl => mdecl.Name == "constructor");
+              var anonymousConstructor = nntd.Class.Members.Find(mdecl => mdecl.Name == "_ctor");
               if (anonymousConstructor != null) {
                 anonymousConstructor.AddVisibilityScope(exportDecl.ThisScope, false);
               }

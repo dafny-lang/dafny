@@ -58,7 +58,7 @@ public class Constructor : MethodOrConstructor {
 
   public bool HasName {
     get {
-      return Name != "constructor";
+      return Name != "_ctor";
     }
   }
 

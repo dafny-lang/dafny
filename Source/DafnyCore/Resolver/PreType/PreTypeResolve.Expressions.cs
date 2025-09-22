@@ -775,9 +775,9 @@ namespace Microsoft.Dafny {
             }
             var name = fieldLocation.Name;
             MethodOrConstructor innerCallEnclosingMethod = null;
-            if (fieldLocation.Lhs is NameSegment nameSegment && currentClass != null &&
+            if (fieldLocation.Lhs is NameSegment {Name: var n} nameSegment && currentClass != null &&
                 resolver.GetClassMembers(currentClass) is { } members &&
-                members.TryGetValue(nameSegment.Name, out var member) && member is MethodOrConstructor methodOrConstructor) {
+                members.TryGetValue(n == "constructor" ? "_ctor" : n, out var member) && member is MethodOrConstructor methodOrConstructor) {
               innerCallEnclosingMethod = methodOrConstructor;
               nameSegment.PreType = CreatePreTypeProxy(); // Never used, just in case.
             } else if (fieldLocation.Lhs is ExprDotName e) {
@@ -1425,7 +1425,7 @@ namespace Microsoft.Dafny {
         if (members == null || !members.TryGetValue(memberName, out var member)) {
           if (!reportErrorOnMissingMember) {
             // don't report any error
-          } else if (memberName == "constructor") {
+          } else if (memberName == "_ctor") {
             ReportError(tok, $"{receiverDecl.WhatKind} '{receiverDecl.Name}' does not have an anonymous constructor");
           } else {
             ReportMemberNotFoundError(tok, memberName, members, receiverDecl, resolutionContext);
@@ -1803,6 +1803,9 @@ namespace Microsoft.Dafny {
       Expression rWithArgs = null;  // the resolved expression after incorporating "args"
 
       var name = resolutionContext.InReveal ? HideRevealStmt.RevealLemmaPrefix + expr.SuffixName : expr.SuffixName;
+      if (name == "constructor") {
+        name = "_ctor";
+      }
       var lhs = expr.Lhs.Resolved ?? expr.Lhs; // Sometimes resolution comes later, but pre-types have already been set
       if (lhs is { PreType: PreTypePlaceholderModule }) {
         var ri = (ResolverIdentifierExpr)lhs;

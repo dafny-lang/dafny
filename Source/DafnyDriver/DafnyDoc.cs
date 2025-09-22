@@ -533,7 +533,7 @@ class DafnyDoc {
   public Info ExecutableInfo(bool register, MemberDecl m, TopLevelDeclWithMembers owner) {
     var name = m.Name;
     if (m is Constructor) {
-      if (name == "constructor") {
+      if (name == "_ctor") {
         name = owner.Name;
       } else {
         name = owner.Name + "." + m.Name;

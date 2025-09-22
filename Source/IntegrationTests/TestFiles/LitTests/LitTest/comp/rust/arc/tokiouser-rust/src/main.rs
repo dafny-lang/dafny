@@ -19,7 +19,7 @@ fn main() {
         returns42_copy.as_ref()(&int!(68))
     });
     let obj = UnderlyingObject::_allocate_object();
-    UnderlyingObject::constructor(&obj);
+    UnderlyingObject::_ctor(&obj);
     let obj = ::dafny_runtime::UpcastObject::<dyn UpperTrait>::upcast(::dafny_runtime::rd!(obj));
     let obj_copy = obj.clone();
     let obj_spawn = thread::spawn(move || {

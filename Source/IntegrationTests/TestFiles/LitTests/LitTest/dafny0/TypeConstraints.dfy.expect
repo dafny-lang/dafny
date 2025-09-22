@@ -575,7 +575,7 @@ module TraitStuff {
    * SCC at height 0:
    *   Aggregate
    * SCC at height 0:
-   *   Aggregate.constructor
+   *   Aggregate._ctor
    * SCC at height 0:
    *   Motorized
    * SCC at height 0:

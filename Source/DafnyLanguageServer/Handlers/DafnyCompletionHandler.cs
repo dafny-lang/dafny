@@ -161,7 +161,7 @@ namespace Microsoft.Dafny.LanguageServer.Handlers {
       }
 
       private static bool IsConstructor(ILegacySymbol symbol) {
-        return symbol is MethodSymbol method && method.Name == "constructor";
+        return symbol is MethodSymbol method && method.Name == "_ctor";
       }
 
       private CompletionItem CreateCompletionItem(string attributeName) {

@@ -260,7 +260,7 @@ func (_static *CompanionStruct_Sequence_) Subsequence(_this Sequence, lo uint32,
 		_1_subarray = Companion_ImmutableArray_.CastTo_(_out1)
 		var _nw0 *ArraySequence = New_ArraySequence_()
 		_ = _nw0
-		_nw0.Constructor(_1_subarray, false)
+		_nw0.Ctor__(_1_subarray, false)
 		ret = _nw0
 		return ret
 	}
@@ -291,7 +291,7 @@ func (_static *CompanionStruct_Sequence_) Create(cardinality uint32, initFn func
 	_1_frozen = Companion_ImmutableArray_.CastTo_(_out1)
 	var _nw0 *ArraySequence = New_ArraySequence_()
 	_ = _nw0
-	_nw0.Constructor(_1_frozen, false)
+	_nw0.Ctor__(_1_frozen, false)
 	ret = _nw0
 	return ret
 }
@@ -379,7 +379,7 @@ func (_static *CompanionStruct_Sequence_) Update(s Sequence, i uint32, t interfa
 	_2_newValueFrozen = Companion_ImmutableArray_.CastTo_(_out2)
 	var _nw0 *ArraySequence = New_ArraySequence_()
 	_ = _nw0
-	_nw0.Constructor(_2_newValueFrozen, false)
+	_nw0.Ctor__(_2_newValueFrozen, false)
 	ret = _nw0
 	return ret
 }
@@ -421,11 +421,11 @@ func (_static *CompanionStruct_Sequence_) Concatenate(left Sequence, right Seque
 	_ = _4_c
 	var _nw0 *ConcatSequence = New_ConcatSequence_()
 	_ = _nw0
-	_nw0.Constructor(_0_left_k, _2_right_k)
+	_nw0.Ctor__(_0_left_k, _2_right_k)
 	_4_c = _nw0
 	var _nw1 *LazySequence = New_LazySequence_()
 	_ = _nw1
-	_nw1.Constructor(_4_c)
+	_nw1.Ctor__(_4_c)
 	ret = _nw1
 	return ret
 }
@@ -748,7 +748,7 @@ func (_this *Vector) ParentTraits_() []*TraitID {
 var _ Validatable = &Vector{}
 var _ TraitOffspring = &Vector{}
 
-func (_this *Vector) Constructor(length uint32) {
+func (_this *Vector) Ctor__(length uint32) {
 	{
 		var _0_storage NativeArray
 		_ = _0_storage
@@ -969,7 +969,7 @@ func (_this *ArraySequence) PrototypeArray() ImmutableArray {
 		return ret
 	}
 }
-func (_this *ArraySequence) Constructor(value ImmutableArray, isString bool) {
+func (_this *ArraySequence) Ctor__(value ImmutableArray, isString bool) {
 	{
 		(_this)._values = value
 		(_this)._isString = isString
@@ -1092,7 +1092,7 @@ func (_this *ConcatSequence) PrototypeArray() ImmutableArray {
 		return ret
 	}
 }
-func (_this *ConcatSequence) Constructor(left Sequence, right Sequence) {
+func (_this *ConcatSequence) Ctor__(left Sequence, right Sequence) {
 	{
 		(_this)._left = left
 		(_this)._right = right
@@ -1125,7 +1125,7 @@ func (_this *ConcatSequence) ToArray() ImmutableArray {
 		_ = _2_stack
 		var _nw1 *Vector = New_Vector_()
 		_ = _nw1
-		_nw1.Constructor(Companion_Default___.TEN__SIZE())
+		_nw1.Ctor__(Companion_Default___.TEN__SIZE())
 		_2_stack = _nw1
 		Companion_Default___.AppendOptimized(_1_builder, _this, _2_stack)
 		var _out1 ImmutableArray
@@ -1252,7 +1252,7 @@ func (_this *LazySequence) PrototypeArray() ImmutableArray {
 		return ret
 	}
 }
-func (_this *LazySequence) Constructor(wrapped Sequence) {
+func (_this *LazySequence) Ctor__(wrapped Sequence) {
 	{
 		var _0_box AtomicBox
 		_ = _0_box
@@ -1294,7 +1294,7 @@ func (_this *LazySequence) ToArray() ImmutableArray {
 		_ = _1_arraySeq
 		var _nw0 *ArraySequence = New_ArraySequence_()
 		_ = _nw0
-		_nw0.Constructor(ret, false)
+		_nw0.Ctor__(ret, false)
 		_1_arraySeq = _nw0
 		((_this).Box()).Put(_1_arraySeq)
 		return ret

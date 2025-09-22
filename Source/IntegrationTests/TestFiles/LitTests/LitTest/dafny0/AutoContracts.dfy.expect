@@ -133,7 +133,7 @@ module OneModule {
    * SCC at height 2:
    *   C.TL
    * SCC at height 2:
-   *   C.constructor
+   *   C._ctor
    * SCC at height 1:
    *   C.Valid
    * SCC at height 0:
