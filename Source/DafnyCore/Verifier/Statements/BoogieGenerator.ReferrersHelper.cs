@@ -106,6 +106,10 @@ public partial class BoogieGenerator {
           when CurrentDeclaration is MethodOrConstructor m:
           RemovePreAssignLocalVar(tok, lhs, localVariable, m, builder, etran);
           return;
+        case IdentifierExpr { Var: Formal outFormal }
+          when CurrentDeclaration is MethodOrConstructor m:
+          RemovePreAssignOutFormal(tok, lhs, outFormal, m, builder, etran);
+          return;
         case MemberSelectExpr { Obj: var memberObj, Member: Field memberField }:
           RemovePreAssignMemberSelect(builder, locals, etran, tok, memberObj, memberField);
           return;
@@ -132,6 +136,24 @@ public partial class BoogieGenerator {
           ? assignmentTracker.tracker
           : null;
       RemovePreAssignField(tok, lhs, localVariable.GetLocalField(m), tracker, builder, etran);
+    }
+    
+    private void RemovePreAssignOutFormal(IOrigin tok, Expression lhs, Formal outFormal,
+      MethodOrConstructor m, BoogieStmtListBuilder builder, ExpressionTranslator etran) {
+      if (!CountsAsReferrer(outFormal) || m.IsGhost) {
+        return;
+      }
+      if (!lhs.Type.IsRefType) {
+        ReferrersNotSupportedHavocFallback(builder, etran, tok, $"{lhs} might involve references but is not a reference type");
+        return;
+      }
+
+      var tracker =
+        DefiniteAssignmentTrackers.TryGetValue(outFormal.AssignUniqueName(CurrentDeclaration.IdGenerator),
+          out var assignmentTracker)
+          ? assignmentTracker.tracker
+          : null;
+      RemovePreAssignField(tok, lhs, outFormal.GetLocalField(m), tracker, builder, etran);
     }
 
     private void RemovePreAssignField(IOrigin tok,
@@ -246,6 +268,10 @@ public partial class BoogieGenerator {
           when CurrentDeclaration is MethodOrConstructor m:
           AddPostAssignLocalVar(tok, etran.TrExpr(memloc), builder, etran, localVariable, m, false);
           return;
+        case IdentifierExpr { Var: Formal { } outFormal }
+          when CurrentDeclaration is MethodOrConstructor m:
+          AddPostAssignOutFormal(tok, etran.TrExpr(memloc), builder, etran, outFormal, m, false);
+          return;
         case MemberSelectExpr { Obj: var memberObj, Member: Field memberField }:
           AddPostAssignMemberSelect(tok, rhsVariable, builder, etran, memberObj, memberField);
           return;
@@ -262,6 +288,15 @@ public partial class BoogieGenerator {
       }
 
       AddPostAssignField(tok, bRhs, builder, etran, localVariable.GetLocalField(m), deeperLevel);
+    }
+    
+    private void AddPostAssignOutFormal(IOrigin tok, Expr bRhs, BoogieStmtListBuilder builder,
+      ExpressionTranslator etran, Formal formal, MethodOrConstructor m, bool deeperLevel) {
+      if (!CountsAsReferrer(formal) || m.IsGhost) {
+        return;
+      }
+
+      AddPostAssignField(tok, bRhs, builder, etran, formal.GetLocalField(m), deeperLevel);
     }
 
     public void AddAssignPreCallFormal(IOrigin tok, Expr bRhs, BoogieStmtListBuilder builder,

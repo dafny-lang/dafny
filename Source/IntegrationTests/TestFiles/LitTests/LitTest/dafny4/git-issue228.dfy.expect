@@ -134,6 +134,10 @@ module _System {
     const Floor: int
   }
 
+  type field {
+    const IsGhost: bool
+  }
+
   type ORDINAL {
     const IsLimit: bool
     const IsSucc: bool
