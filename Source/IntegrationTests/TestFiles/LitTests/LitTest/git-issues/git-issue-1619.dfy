@@ -171,16 +171,18 @@ ghost predicate G(m: MaybeEmpty)
 
 method G0() {
   var m: MaybeEmpty, other: int := *, *;
-  assume G(m); // error: use before definition (note, execution continues after this check under the assumption that m really has been assigned)
+  assert !assigned(m);
+  assume G(m); // error: use before definition. All further checks pass because m is known to be assigned and not assigned.
   assert exists m2 :: G(m2); // this passes (see previous line)
-  assert false; // error: assertion violation
+  assert false; // this passes
 }
 
 method G1() {
   var m: MaybeEmpty := *;
-  assume G(m); // error: use before definition
+  assert !assigned(m);
+  assume G(m); // error: use before definition. All further checks pass because m is known to be assigned and not assigned.
   assert exists m :: G(m);
-  assert false; // error: assertion violation
+  assert false; // this passes
 }
 
 method H<U(00)>() {
@@ -223,6 +225,8 @@ method HavocMultipleVar(n: nat) {
   x, p := *, *;
   if * {
     assert x < 9; // error: use before definition
+  }
+  if * {
     assert p < 10; // error: use before definition
   }
 
