@@ -134,7 +134,7 @@
     <EmbeddedResource Remove="..\DafnyRuntime\DafnyRuntimeRust\target\**"/>
   </ItemGroup>
 
-</Project>
+
   <!-- Force rebuild after standard library update -->
   <Target Name="RebuildStandardLibraries" BeforeTargets="Build">
     <Exec Command="make -C ../DafnyStandardLibraries build-binaries NO_VERIFY=true" />
