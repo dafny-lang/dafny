@@ -119,6 +119,10 @@ namespace Microsoft.Dafny {
             return Predef.ORDINAL_IsNat;
           } else if (f.Name == "IsGhost") {
             return Predef.IsGhostField;
+          } else if (f.Name == "Index") {
+            return Predef.InverseFieldIndex;
+          } else if (f.Name == "FDim") {
+            return Predef.FieldDimension;
           }
         } else if (f.FullSanitizedName == "_System.Tuple2._0") {
           return Predef.Tuple2Destructors0;

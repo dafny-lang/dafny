@@ -258,7 +258,7 @@ public partial class BoogieGenerator {
 
     public void AddPostAssign(IOrigin tok, Expression memloc, Expr rhsVariable, BoogieStmtListBuilder builder,
       ExpressionTranslator etran) {
-      if (!VerifyReferrers || !memloc.Type.MayInvolveReferences || BG.CurrentDeclaration is Lemma or MethodOrConstructor { IsGhost: true }) {
+      if (!VerifyReferrers || !memloc.Type.MayInvolveReferences) {
         return;
       }
 
@@ -283,7 +283,7 @@ public partial class BoogieGenerator {
 
     private void AddPostAssignLocalVar(IOrigin tok, Expr bRhs, BoogieStmtListBuilder builder,
       ExpressionTranslator etran, LocalVariable localVariable, MethodOrConstructor m, bool deeperLevel) {
-      if (!CountsAsReferrer(localVariable) || m.IsGhost) {
+      if (!CountsAsReferrer(localVariable)) {
         return;
       }
 
@@ -613,7 +613,7 @@ public partial class BoogieGenerator {
 
       // Any new referrer's object must be the array
       // and any new referrer's field must be an index that is equal to the object.
-      // That works only for one dimensional arrays though
+      // That works only for one dimensional arrays for now
       /*assume (forall bvs, $r: Box ::
         { Set#IsMember(readReferrers($ReferrersHeap, $Unbox(arrayIndexAt): ref), $r) }
         ante &&
@@ -626,11 +626,11 @@ public partial class BoogieGenerator {
         )
         ==>
         $Unbox(_System.Tuple2._0($Unbox($r): DatatypeType)): ref == $nw
+        && FDim($Unbox(_System.Tuple2._1($Unbox($r): DatatypeType)): Field) == 1
         && 0 <= IndexField_Inverse($Unbox(_System.Tuple2._1($Unbox($r): DatatypeType)): Field)
         && IndexField_Inverse($Unbox(_System.Tuple2._1($Unbox($r): DatatypeType)): Field) < bDim[1]
-        && $nw == $Unbox(_System.Tuple2._0($Unbox($r): DatatypeType)): ref
         && read($Heap, $nw, $Unbox(_System.Tuple2._1($Unbox($r): DatatypeType)): Field))
-           == read($Heap, $nw, IndexField(arrayinit#0#i0#0))
+           == read($Heap, $nw, arrayIndexFieldName)
       );
          */
       var newReferrers = BG.ReadReferrersHeap(tok, etran.ReferrersHeapExpr, arrayAtIndex);
@@ -656,25 +656,30 @@ public partial class BoogieGenerator {
         ante,
         setMember
       );
+      
+      // FDim($Unbox(_System.Tuple2._1($Unbox($r): DatatypeType)): Field) == 1
+      var fdimEq = Expr.Eq(
+        FunctionCall(tok, BG.Predef.FieldDimension.Name, Boogie.Type.Int, BG.ApplyUnbox(tok, tuple1, BG.Predef.FieldType)),
+         Boogie.Expr.Literal(1));
 
       var consequence = Expr.And(
         Expr.Eq(BG.ApplyUnbox(tok, tuple0, BG.Predef.RefType), nw),
         Expr.And(
+              fdimEq,
+              
+          Expr.And(
           Expr.Le(Expr.Literal(0),
             FunctionCall(tok, IndexfieldInverse, null, BG.ApplyUnbox(tok, tuple1, BG.Predef.FieldType))),
           Expr.And(
             Expr.Lt(
               FunctionCall(tok, IndexfieldInverse, null, BG.ApplyUnbox(tok, tuple1, BG.Predef.FieldType)),
               bDims[0]),
-            Expr.And(
-              Expr.Eq(nw, BG.ApplyUnbox(tok, tuple0, BG.Predef.RefType)),
               Expr.Eq(
                 BG.ReadHeap(tok, etran.HeapExpr, nw, BG.ApplyUnbox(tok, tuple1, BG.Predef.FieldType)),
                 BG.ReadHeap(tok, etran.HeapExpr, nw, arrayIndexFieldName))
-            )
           )
         )
-      );
+      ));
 
       forallExpr = new Boogie.ForallExpr(tok, forallVars, trigger, Expr.Imp(condition, consequence));
 

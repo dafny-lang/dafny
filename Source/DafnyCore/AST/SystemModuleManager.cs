@@ -182,6 +182,9 @@ public class SystemModuleManager {
     var isGhost = new SpecialField(SourceOrigin.NoToken, "IsGhost", SpecialField.ID.IsGhost, null, false, false, false, Type.Bool, null);
     AddMember(isGhost, ValuetypeVariety.Field);
 
+    var index = new SpecialField(SourceOrigin.NoToken, "Index", SpecialField.ID.IsGhost, null, false, false, false, Type.Int, null);
+    AddMember(index, ValuetypeVariety.Field);
+
     // Add "Keys", "Values", and "Items" to map, imap
     foreach (var typeVariety in new[] { ValuetypeVariety.Map, ValuetypeVariety.IMap }) {
       var vtd = valuetypeDecls[(int)typeVariety];

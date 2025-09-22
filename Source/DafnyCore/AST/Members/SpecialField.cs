@@ -20,7 +20,8 @@ public class SpecialField : Field {
     Reads,
     Modifies,
     New,
-    IsGhost
+    IsGhost,
+    Index
   }
   public ID SpecialId;
   public object IdParam;

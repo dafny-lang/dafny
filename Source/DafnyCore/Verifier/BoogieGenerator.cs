@@ -257,6 +257,8 @@ namespace Microsoft.Dafny {
       public readonly Bpl.Function ArrayLength;
       public readonly Bpl.Function RealFloor;
       public readonly Bpl.Function IsGhostField;
+      public readonly Bpl.Function InverseFieldIndex;
+      public readonly Bpl.Function FieldDimension;
       public readonly Bpl.Function ORDINAL_IsLimit;
       public readonly Bpl.Function ORDINAL_IsSucc;
       public readonly Bpl.Function ORDINAL_Offset;
@@ -307,6 +309,8 @@ namespace Microsoft.Dafny {
         Contract.Invariant(ArrayLength != null);
         Contract.Invariant(RealFloor != null);
         Contract.Invariant(IsGhostField != null);
+        Contract.Invariant(InverseFieldIndex != null);
+        Contract.Invariant(FieldDimension != null);
         Contract.Invariant(ORDINAL_IsLimit != null);
         Contract.Invariant(ORDINAL_IsSucc != null);
         Contract.Invariant(ORDINAL_Offset != null);
@@ -360,7 +364,8 @@ namespace Microsoft.Dafny {
       public PredefinedDecls(Bpl.TypeCtorDecl charType, Bpl.TypeCtorDecl refType, Bpl.TypeCtorDecl boxType,
                              Bpl.TypeCtorDecl setTypeCtor, Bpl.TypeSynonymDecl isetTypeCtor, Bpl.TypeCtorDecl multiSetTypeCtor,
                              Bpl.TypeCtorDecl mapTypeCtor, Bpl.TypeCtorDecl imapTypeCtor,
-                             Bpl.Function arrayLength, Bpl.Function realFloor, Bpl.Function isGhostField,
+                             Bpl.Function arrayLength, Bpl.Function realFloor, Bpl.Function isGhostField, Bpl.Function inverseFieldIndex,
+                             Bpl.Function fieldDimension,
                              Bpl.Function ORD_isLimit, Bpl.Function ORD_isSucc, Bpl.Function ORD_offset, Bpl.Function ORD_isNat,
                              Bpl.Function mapDomain, Bpl.Function imapDomain,
                              Bpl.Function mapValues, Bpl.Function imapValues, Bpl.Function mapItems, Bpl.Function imapItems,
@@ -423,6 +428,8 @@ namespace Microsoft.Dafny {
         this.ArrayLength = arrayLength;
         this.RealFloor = realFloor;
         this.IsGhostField = isGhostField;
+        this.InverseFieldIndex = inverseFieldIndex;
+        this.FieldDimension = fieldDimension;
         this.ORDINAL_IsLimit = ORD_isLimit;
         this.ORDINAL_IsSucc = ORD_isSucc;
         this.ORDINAL_Offset = ORD_offset;
@@ -477,6 +484,8 @@ namespace Microsoft.Dafny {
       Bpl.Function arrayLength = null;
       Bpl.Function realFloor = null;
       Bpl.Function isGhostField = null;
+      Bpl.Function indexFieldInverse = null;
+      Bpl.Function fieldDimension = null;
       Bpl.Function ORDINAL_isLimit = null;
       Bpl.Function ORDINAL_isSucc = null;
       Bpl.Function ORDINAL_offset = null;
@@ -583,6 +592,10 @@ namespace Microsoft.Dafny {
             realFloor = f;
           } else if (f.Name == "$IsGhostField") {
             isGhostField = f;
+          } else if (f.Name == "IndexField_Inverse") {
+            indexFieldInverse = f;
+          } else if (f.Name == "FDim") {
+            fieldDimension = f;
           } else if (f.Name == "ORD#IsLimit") {
             ORDINAL_isLimit = f;
           } else if (f.Name == "ORD#IsSucc") {
@@ -643,6 +656,10 @@ namespace Microsoft.Dafny {
         options.OutputWriter.Exception("Dafny prelude is missing declaration of function _System.real.Floor");
       } else if (isGhostField == null) {
         options.OutputWriter.Exception("Error: Dafny prelude is missing declaration of function $IsGhostField");
+      } else if (indexFieldInverse == null) {
+        options.OutputWriter.Exception("Error: Dafny prelude is missing declaration of function IndexField_Inverse");
+      } else if (fieldDimension == null) {
+        options.OutputWriter.Exception("Error: Dafny prelude is missing declaration of function FDim");
       } else if (ORDINAL_isLimit == null) {
         options.OutputWriter.Exception("Dafny prelude is missing declaration of function ORD#IsLimit");
       } else if (ORDINAL_isSucc == null) {
@@ -726,7 +743,7 @@ namespace Microsoft.Dafny {
         return new PredefinedDecls(charType, refType, boxType,
                                    setTypeCtor, isetTypeCtor, multiSetTypeCtor,
                                    mapTypeCtor, imapTypeCtor,
-                                   arrayLength, realFloor, isGhostField,
+                                   arrayLength, realFloor, isGhostField, indexFieldInverse, fieldDimension,
                                    ORDINAL_isLimit, ORDINAL_isSucc, ORDINAL_offset, ORDINAL_isNat,
                                    mapDomain, imapDomain,
                                    mapValues, imapValues, mapItems, imapItems,
