@@ -166,6 +166,17 @@ method ObjectFields() {
     assert a[r.1.Index] == t;
   }
   assert forall r: (object, field) <- referrers(t) - old@before(referrers(t)) :: r == a`[0];
-  //assert referrers(t) == {locals`t, u`tail, a`[0]}; // TODO
-  //assert referrers(u) == {locals`t, u`x, a`[1], a`[2]};
+  var _ := referrers(t) == old@before(referrers(t)) + (referrers(t) - old@before(referrers(t)));
+  assert referrers(t) == {locals`t, u`tail, a`[0]}; // TODO
+
+  forall r: (object, field) <- referrers(u) - old@before(referrers(u)) ensures r == a`[1] || r == a`[2] {
+    assert r.0 == a;
+    assert 0 <= r.1.Index < 3;
+    assert a[r.1.Index] == u;
+  }
+  assert forall r: (object, field) <- referrers(u) - old@before(referrers(u)) :: r == a`[1] || r == a`[2];
+  assert referrers(u) - old@before(referrers(u)) <= {a`[1], a`[2]};
+  assert referrers(u) - old@before(referrers(u)) == {a`[1], a`[2]};
+  var _ := referrers(u) == old@before(referrers(u)) + (referrers(u) - old@before(referrers(u)));
+  assert referrers(u) == {locals`u, u`x, a`[1], a`[2]};
 }
