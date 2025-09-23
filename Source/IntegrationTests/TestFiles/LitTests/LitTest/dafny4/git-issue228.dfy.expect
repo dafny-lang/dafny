@@ -136,6 +136,7 @@ module _System {
 
   type field {
     const IsGhost: bool
+    const Index: int
   }
 
   type ORDINAL {
