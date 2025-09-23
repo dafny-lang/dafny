@@ -636,7 +636,6 @@ public partial class BoogieGenerator {
         // also add previous-heap to the list of fixed arguments of the handle
         var prevH = BplBoundVar("$prevHeap", Predef.HeapType, vars);
         formals.Add(BplFormalVar("h", Predef.HeapType, true));
-        BplFormalVarHeap("h", f.HeapReadingStatus, true, formals);
         WithPrevHeaps = xs => Snoc(xs, prevH);
       }
       if (f.IsStatic) {
