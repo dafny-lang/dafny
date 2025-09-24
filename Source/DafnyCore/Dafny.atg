@@ -4734,6 +4734,7 @@ Ident<out Token/*!*/ x>
   | "reveal"     (. t.kind = _ident; .) // convert it to an ident
   | "field"      (. t.kind = _ident; .) // convert it to an ident
   | "locals"     (. t.kind = _ident; .) // convert it to an ident
+  | "referrers"  (. t.kind = _ident; .) // convert it to an ident
   )
   (. x = t; .)
   .

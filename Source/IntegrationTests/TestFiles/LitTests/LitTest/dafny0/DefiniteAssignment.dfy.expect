@@ -12,10 +12,8 @@ DefiniteAssignment.dfy(90,9): Error: variable 'y', which is subject to definite-
 DefiniteAssignment.dfy(99,5): Error: cannot establish the existence of LHS values that satisfy the such-that predicate. Note, no trigger was found for the such-that predicate, which may be the reason the proof failed. To give a trigger explicitly, use the {:trigger} attribute. For more information, see the section on quantifier instantiation rules in the reference manual.
 DefiniteAssignment.dfy(99,14): Error: variable 'e1', which is subject to definite-assignment rules, could not be proved to be initialized here
 DefiniteAssignment.dfy(132,7): Error: variable 'b', which is subject to definite-assignment rules, could not be proved to be initialized here
-DefiniteAssignment.dfy(133,0): Error: out-parameter 'g', which is subject to definite-assignment rules, could not be proved to be initialized at this return point
 DefiniteAssignment.dfy(148,8): Error: variable 'w', which is subject to definite-assignment rules, could not be proved to be initialized here
 DefiniteAssignment.dfy(242,12): Error: variable 'a', which is subject to definite-assignment rules, could not be proved to be initialized here
-DefiniteAssignment.dfy(243,12): Error: variable 'b', which is subject to definite-assignment rules, could not be proved to be initialized here
 DefiniteAssignment.dfy(281,13): Error: variable 'f', which is subject to definite-assignment rules, could not be proved to be initialized here
 DefiniteAssignment.dfy(286,13): Error: variable 'f', which is subject to definite-assignment rules, could not be proved to be initialized here
 DefiniteAssignment.dfy(294,13): Error: variable 'f', which is subject to definite-assignment rules, could not be proved to be initialized here
@@ -36,4 +34,4 @@ DefiniteAssignment.dfy(438,13): Error: variable 'g', which is subject to definit
 DefiniteAssignment.dfy(441,2): Error: out-parameter 'r'', which is subject to definite-assignment rules, could not be proved to be initialized at this return point
 DefiniteAssignment.dfy(449,2): Error: out-parameter 'r', which is subject to definite-assignment rules, could not be proved to be initialized at this return point
 
-Dafny program verifier finished with 14 verified, 37 errors
+Dafny program verifier finished with 14 verified, 35 errors
