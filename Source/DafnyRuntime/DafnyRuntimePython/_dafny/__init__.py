@@ -110,15 +110,19 @@ class Concat:
         return self.len
 
     def flatten(self):
-        l = []
+        l = NewMutableElems(self)
         q = deque([self])
         while q:
             e = q.pop()
-            if isinstance(e, list) or isinstance(e, Slice):
-                l += e
-            elif isinstance(e, Concat):
+            if isinstance(e, Concat):
                 q.append(e.r)
                 q.append(e.l)
+            elif isinstance(e, Slice):
+                # More efficient than l.extend(e) which relies on Slice.__iter__
+                l.extend(e.flatten())
+            else:
+                l.extend(e)
+            
         return l
 
 class Slice:
@@ -173,11 +177,24 @@ class Slice:
 
     def __bytes__(self):
         """Efficient bytes conversion for Slice."""
-        if isinstance(self._source, list):
-            # Convert directly from the source list using the slice parameters
-            return bytes(self._source[self._start:self._stop:self._step])
+        if isinstance(self._source, bytes):
+            return self.flatten()
         else:
-            return bytes(list(self))
+            return bytes(self.flatten())
+
+    def flatten(self):
+        # Convert directly from the source list using the slice parameters
+        return self._source[self._start:self._stop:self._step]
+
+def NewMutableElems(source):
+    if isinstance(source, Concat):
+        return NewMutableElems(source.l)
+    elif isinstance(source, Slice):
+        return NewMutableElems(source._source)
+    elif isinstance(source, bytes) or isinstance(source, bytearray):
+        return bytearray()
+    else:
+        return list()
 
 class Seq:
     def __init__(self, iterable = None, isStr = False):
@@ -208,6 +225,18 @@ class Seq:
             self.len = len(iterable)
             self.isStr = isStr
             return
+        elif isinstance(iterable, bytes):
+            # bytes are immutable so we don't need to make a defensive copy
+            self.elems = iterable
+            self.len = len(iterable)
+            self.isStr = isStr
+            return
+        elif isinstance(iterable, bytearray):
+            # Make a copy, but make it a bytes and not an inefficient list
+            self.elems = bytes(iterable)
+            self.len = len(iterable)
+            self.isStr = isStr
+            return
         else:
             self.elems = iterable if isinstance(iterable, Concat) else (list(iterable) if iterable is not None else [])
             self.len = len(self.elems)
@@ -224,10 +253,8 @@ class Seq:
 
     @property
     def Elements(self):
-        if isinstance(self.elems, Concat):
+        if isinstance(self.elems, Concat) or isinstance(self.elems, Slice):
             self.elems = self.elems.flatten()
-        if isinstance(self.elems, Slice):
-            self.elems = list(self.elems)
         return self.elems
 
     @property
@@ -273,14 +300,15 @@ class Seq:
 
     def __bytes__(self):
         """Efficient bytes conversion for Dafny Seq to avoid element-by-element iteration."""
-        # Direct access to avoid Elements property overhead
-        if isinstance(self.elems, list):
-            return bytes(self.elems)
-        elif isinstance(self.elems, Slice):
-            # For slices, create bytes from the slice efficiently
-            return bytes(self.elems)
+        
+        # Call Elements to force resolution of lazy operations (Concat or Slice)
+        self.Elements
+        
+        if isinstance(self.elems, bytes):
+            # bytes are immutable so it's safe to return without copying
+            return self.elems
         else:
-            return bytes(self.Elements)
+            return bytes(self.elems)
 
     def set(self, key, value):
         l = list(self.Elements)
@@ -294,13 +322,30 @@ class Seq:
         return hash(tuple(self.Elements))
 
     def __eq__(self, other: object) -> bool:
+        self._normalize(other)
         return self.Elements == other.Elements
 
     def __lt__(self, other):
+        self._normalize(other)
         return len(self) < len(other) and self == other[:len(self)]
 
     def __le__(self, other):
+        self._normalize(other)
         return len(self) <= len(other) and self == other[:len(self)]
+
+    @property
+    def _is_bytes(self):
+        return isinstance(self.elems, bytes) or isinstance(self.elems, bytearray)
+
+    def _normalize(self, other):
+        self.Elements
+        other.Elements
+
+        if self._is_bytes and not other._is_bytes:
+            other.elems = bytes(other.elems)
+        if not self._is_bytes and other._is_bytes:
+            self.elems = bytes(self.elems)
+
 
 # Convenience for translation when --unicode-char is enabled
 def SeqWithoutIsStrInference(__iterable = None):
