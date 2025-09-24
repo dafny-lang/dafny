@@ -388,13 +388,13 @@ public partial class BoogieGenerator {
       if (generator.options.Get(CommonOptionBag.CheckInvariants)) {
         // NB(somayyas): need to frame open here in case the function calls any invariant
         etran.OpenFormal(f.Origin, out var openBoogie, out var openExprDafny);
-        var openIsEmpty = new BinaryExpr(f.Origin, BinaryExpr.ResolvedOpcode.SetEq, openExprDafny,
-          new SetDisplayExpr(f.Origin, true, [])
+        var openFrame = new BinaryExpr(f.Origin, BinaryExpr.ResolvedOpcode.SetEq, openExprDafny,
+          new SetDisplayExpr(f.Origin, true, !f.IsStatic && f.EnclosingClass is TopLevelDeclWithMembers { Invariant: {} invariant } && generator.currentModule.CallGraph.Reaches(invariant, f) ? [new ThisExpr(f)] : [])
             { Type = generator.program.SystemModuleManager.NonNullObjectSetType(f.Origin) });
-        requires.Add(generator.Requires(f.Origin, true, openIsEmpty, etran.TrExpr(openIsEmpty),
+        requires.Add(generator.Requires(f.Origin, false, openFrame, etran.TrExpr(openFrame),
           null, null, "open set frame condition"));
         if (f.ReadsHeap) {
-          requires.Add(generator.Requires(f.Origin, true, null,
+          requires.Add(generator.Requires(f.Origin, false, null,
             generator.FunctionCall(f.Origin, BuiltinFunction.OpenHeapRelated, null, openBoogie, etran.HeapExpr), null,
             null, "open lockstep condition"));
         }

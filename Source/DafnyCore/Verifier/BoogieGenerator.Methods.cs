@@ -1879,13 +1879,13 @@ namespace Microsoft.Dafny {
         }
         
         if (options.Get(CommonOptionBag.CheckInvariants)) {
-          // frame condition: free requires $Open == {}
+          // frame condition: requires $Open == {}
           etran.OpenFormal(m.Origin, out var openExpr, out var openExprDafny);
-          req.Add(FreeRequires(m.Origin, etran.TrExpr(new BinaryExpr(m.Origin, BinaryExpr.ResolvedOpcode.SetEq,
+          req.Add(Requires(m.Origin, false, null, etran.TrExpr(new BinaryExpr(m.Origin, BinaryExpr.ResolvedOpcode.SetEq,
             new SetDisplayExpr(m.Origin, true, []) { Type = program.SystemModuleManager.NonNullObjectSetType(m.Origin) },
-            openExprDafny)), "frame condition for open set"));
-          // lockstep condition: free requires OpenHeapRelated($Open, $Heap)
-          req.Add(FreeRequires(m.Origin, FunctionCall(m.Origin, BuiltinFunction.OpenHeapRelated, null, openExpr, etran.HeapExpr), "open lockstep condition"));
+            openExprDafny)), null, null, "frame condition for open set"));
+          // lockstep condition: ensures OpenHeapRelated($Open, $Heap)
+          req.Add(Requires(m.Origin, false, null, FunctionCall(m.Origin, BuiltinFunction.OpenHeapRelated, null, openExpr, etran.HeapExpr), null, null, "open lockstep condition"));
         }
 
         if (kind is MethodTranslationKind.SpecWellformedness or MethodTranslationKind.OverrideCheck) {
@@ -1928,6 +1928,13 @@ namespace Microsoft.Dafny {
 
       List<Bpl.Ensures> GetEnsures() {
         var ens = new List<Bpl.Ensures>();
+        
+        if (options.Get(CommonOptionBag.CheckInvariants)) {
+          etran.OpenFormal(m.Origin, out var openExpr, out _);
+          // lockstep condition: free ensures OpenHeapRelated($Open, $Heap) (having a similar effect to free ensuring HeapSucc, for example)
+          AddEnsures(ens, new(m.Origin, true, FunctionCall(m.Origin, BuiltinFunction.OpenHeapRelated, null, openExpr, etran.HeapExpr), "open lockstep condition"));
+        }
+        
         if (kind is MethodTranslationKind.SpecWellformedness or MethodTranslationKind.OverrideCheck) {
           return ens;
         }

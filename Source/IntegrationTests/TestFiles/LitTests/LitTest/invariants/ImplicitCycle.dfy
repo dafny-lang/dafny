@@ -3,11 +3,19 @@
 
 class C {
   var valid: bool
-  lemma Call()
+  predicate Valid()
     ensures valid
+    reads this
   {
+    valid
   }
-  invariant (Call(); valid)
+  invariant Valid()
+  method Falsify()
+    modifies this
+  {
+    valid := false;
+    print 1 / 0;
+  }
   constructor() {
     valid := true;
   }
