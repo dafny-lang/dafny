@@ -210,6 +210,7 @@ class Seq:
         See docs/Compilation/StringsAndChars.md.
         '''
 
+        self._hash = None
         if isinstance(iterable, Seq):
             # Seqs' elements are immutable.
             # The new Seq can reference the original Seq's properties.
@@ -319,33 +320,37 @@ class Seq:
         return self.len
 
     def __hash__(self) -> int:
-        return hash(tuple(self.Elements))
+        if not self._hash:
+            h = self.len
+            if self.len > 0:
+                h ^= hash(self[0])
+            self._hash = h
+        return self._hash
 
     def __eq__(self, other: object) -> bool:
-        self._normalize(other)
-        return self.Elements == other.Elements
+        return len(self) == len(other) and self._eq_up_to(other, self.len)
 
     def __lt__(self, other):
-        self._normalize(other)
-        return len(self) < len(other) and self == other[:len(self)]
+        return len(self) < len(other) and self._eq_up_to(other, self.len)
 
     def __le__(self, other):
-        self._normalize(other)
-        return len(self) <= len(other) and self == other[:len(self)]
+        return len(self) <= len(other) and self._eq_up_to(other, self.len)
 
     @property
     def _is_bytes(self):
         return isinstance(self.elems, bytes) or isinstance(self.elems, bytearray)
 
-    def _normalize(self, other):
+    def _eq_up_to(self, other, index):
         self.Elements
         other.Elements
+        
+        if index == len(self) and index == len(other) and self._is_bytes and other._is_bytes:
+            return self.elems == other.elems
 
-        if self._is_bytes and not other._is_bytes:
-            other.elems = bytes(other.elems)
-        if not self._is_bytes and other._is_bytes:
-            self.elems = bytes(self.elems)
-
+        for i in range(index):
+            if self.elems[i] != other.elems[i]:
+                return False
+        return True
 
 # Convenience for translation when --unicode-char is enabled
 def SeqWithoutIsStrInference(__iterable = None):
