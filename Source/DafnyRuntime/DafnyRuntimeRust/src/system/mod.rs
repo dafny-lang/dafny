@@ -1,6 +1,9 @@
 #![allow(warnings, unconditional_panic)]
 #![allow(nonstandard_style)]
 #![cfg_attr(any(), rustfmt::skip)]
+mod _dafny_externs;
+mod FileIOInternalExterns;
+
 
 pub mod _System {
     pub use crate::DafnyInt;
