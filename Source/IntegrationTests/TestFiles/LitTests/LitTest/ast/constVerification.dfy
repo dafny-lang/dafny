@@ -5,6 +5,5 @@ type Even = x: int | x % 2 == 0
 opaque const ten: Even := 10
 
 trait T {}
-datatype D extends T = D() {}
-const d: D := D()
-const a: T := d
+datatype Crazy extends T = Crazy() {}
+const d: T := Crazy()
