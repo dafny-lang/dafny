@@ -306,6 +306,22 @@ namespace Microsoft.Dafny
             return ReadCharLiteralExpr();
         }
 
+        public WildcardExpr ReadWildcardExpr()
+        {
+            var parameter0 = ReadAbstract<IOrigin>();
+            return new WildcardExpr(parameter0);
+        }
+
+        public WildcardExpr ReadWildcardExprOption()
+        {
+            if (ReadIsNull())
+            {
+                return default;
+            }
+
+            return ReadWildcardExpr();
+        }
+
         public UnchangedExpr ReadUnchangedExpr()
         {
             var parameter0 = ReadAbstract<IOrigin>();
@@ -585,6 +601,24 @@ namespace Microsoft.Dafny
             }
 
             return ReadExpectStmt();
+        }
+
+        public AssumeStmt ReadAssumeStmt()
+        {
+            var parameter0 = ReadAbstract<IOrigin>();
+            var parameter2 = ReadAttributesOption();
+            var parameter1 = ReadAbstract<Expression>();
+            return new AssumeStmt(parameter0, parameter1, parameter2);
+        }
+
+        public AssumeStmt ReadAssumeStmtOption()
+        {
+            if (ReadIsNull())
+            {
+                return default;
+            }
+
+            return ReadAssumeStmt();
         }
 
         public AssertStmt ReadAssertStmt()
@@ -2319,6 +2353,11 @@ namespace Microsoft.Dafny
                 return ReadCharLiteralExpr();
             }
 
+            if (actualType == typeof(WildcardExpr))
+            {
+                return ReadWildcardExpr();
+            }
+
             if (actualType == typeof(UnchangedExpr))
             {
                 return ReadUnchangedExpr();
@@ -2392,6 +2431,11 @@ namespace Microsoft.Dafny
             if (actualType == typeof(ExpectStmt))
             {
                 return ReadExpectStmt();
+            }
+
+            if (actualType == typeof(AssumeStmt))
+            {
+                return ReadAssumeStmt();
             }
 
             if (actualType == typeof(AssertStmt))
