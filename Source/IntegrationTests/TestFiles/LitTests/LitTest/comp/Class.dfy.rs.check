@@ -1,1 +1,1 @@
-Encountered internal compilation exception: Could not find a part of the path '/local/home/mimayere/dafny/Source/IntegrationTests/TestFiles/LitTests/LitTest/comp/Class/Output/Class.dfy.dprint'.
+(0,-1): Error: Unsupported Invalid Operation: The Rust compiler requires `--enforce-determinism`
