@@ -511,11 +511,13 @@ namespace Microsoft.Dafny {
       Constraints.AddConfirmation(check, preType, tok, errorFormatString, onProxyAction);
     }
 
-    void AddComparableConstraint(PreType a, PreType b, IOrigin tok, bool allowBaseTypeCast, string errorFormatString) {
-      AddComparableConstraint(a, b, tok, allowBaseTypeCast, () => string.Format(errorFormatString, a, b));
+    void AddComparableConstraint(PreType a, PreType b, IOrigin tok, bool allowBaseTypeCast,
+      bool allowCommonSuperType, string errorFormatString) {
+      AddComparableConstraint(a, b, tok, allowBaseTypeCast, allowCommonSuperType, () => string.Format(errorFormatString, a, b));
     }
 
-    void AddComparableConstraint(PreType a, PreType b, IOrigin tok, bool allowBaseTypeCast, Func<string> errorMessage) {
+    void AddComparableConstraint(PreType a, PreType b, IOrigin tok, bool allowBaseTypeCast, bool allowCommonSuperType,
+      Func<string> errorMessage) {
       // A "comparable types" constraint involves a disjunction. This can get gnarly for inference, so the full disjunction
       // is checked post inference. The constraint can, however, be of use during inference, so we also add an approximate
       // constraint (which is set up NOT to generate any error messages by itself, since otherwise errors would be duplicated).
@@ -524,7 +526,7 @@ namespace Microsoft.Dafny {
       if (!allowBaseTypeCast) {
         AddComparableTypesDefault(a, b);
       }
-      Constraints.AddConfirmation(tok, () => CheckComparableTypes(a, b, allowBaseTypeCast), errorMessage);
+      Constraints.AddConfirmation(tok, () => CheckComparableTypes(a, b, allowBaseTypeCast, allowCommonSuperType), errorMessage);
     }
 
     private void AddComparableTypesDefault(PreType a, PreType b) {
@@ -546,18 +548,22 @@ namespace Microsoft.Dafny {
     /// is the disjunction
     ///     A ::> B    or    B ::> A
     ///
-    /// If "!allowConversion", then "X ::> Y" means
+    /// If "!allowConversion" and "!allowCommonSuperType", then "X ::> Y" means
     ///     X :> Y
     ///
-    /// If "allowConversion", then "X ::> Y" means
-    ///     X' :> Y', or
+    /// If "allowConversion", then "X ::> Y" also means
     ///     X' and Y' are various bv types, or
     ///     X' is int and Y' is in {int, char, bv, ORDINAL, real}.
     /// where X' and Y' are the newtype ancestors of X and Y, respectively.
+    ///
+    /// If "allowCommonSuperType", then "X<T> ::> Y<U>" also means
+    ///     T and U have common supertype S such that S :> T and S :> U.
+    ///
+    /// As we currently use this method, allowConversion ^ allowCommonSuperType holds.
     /// Additionally, under the legacy option /generalNewtypes:0 (which will be phased out over time), the latter also allows
     /// several additional cases, see IsConversionCompatible.
     /// </summary>
-    bool CheckComparableTypes(PreType a, PreType b, bool allowConversion) {
+    bool CheckComparableTypes(PreType a, PreType b, bool allowConversion, bool allowCommonSuperType) {
       if (PreType.Same(a, b)) {
         // this allows the case where "a" and "b" are proxies that are equal
         return true;
@@ -566,6 +572,9 @@ namespace Microsoft.Dafny {
         return false;
       }
       if (IsSuperPreTypeOf(aa, bb) || IsSuperPreTypeOf(bb, aa)) {
+        return true;
+      }
+      if (allowCommonSuperType && HaveCommonSuperPreType(aa, bb)) {
         return true;
       }
       if (!allowConversion) {
@@ -617,6 +626,35 @@ namespace Microsoft.Dafny {
       }
 
       return false;
+    }
+
+    bool HaveCommonSuperPreType(DPreType t, DPreType u) {
+      return PreTypeConstraints.MeetHeads(t.Decl, u.Decl, resolver.SystemModuleManager) is not null && ComparablePretypes(t, u);
+
+      bool ComparablePretypes(DPreType t, DPreType u) {
+        var joined = PreTypeConstraints.JoinHeads(t.Decl, u.Decl, resolver.SystemModuleManager);
+
+        if (joined is null) {
+          return false;
+        }
+
+        var tArgs = Constraints.GetTypeArgumentsForSuperType(joined, t, true);
+        var uArgs = Constraints.GetTypeArgumentsForSuperType(joined, u, true);
+        if (tArgs == null || uArgs == null) {
+          return false;
+        }
+
+        for (var i = 0; i < joined.TypeArgs.Count; i++) {
+          if (tArgs[i].Normalize() is not DPreType tt || uArgs[i].Normalize() is not DPreType uu) {
+            return false;
+          }
+
+          if (!ComparablePretypes(tt, uu)) {
+            return false;
+          }
+        }
+        return true;
+      }
     }
 
     bool ApproximateComparableConstraints(PreType a, PreType b, IOrigin tok, bool allowBaseTypeCast, string errorFormatString, bool reportErrors = true) {
