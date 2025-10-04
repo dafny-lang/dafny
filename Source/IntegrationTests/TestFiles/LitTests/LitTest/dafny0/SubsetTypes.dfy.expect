@@ -91,5 +91,5 @@ SubsetTypes.dfy(459,6): Error: assertion could not be proved
 SubsetTypes.dfy(464,4): Error: assertion could not be proved
 
 Dafny program verifier finished with 13 verified, 91 errors
-Total resources used is 738400
-Max resources used by VC is 76700
+Total resources used is 742300
+Max resources used by VC is 78600
