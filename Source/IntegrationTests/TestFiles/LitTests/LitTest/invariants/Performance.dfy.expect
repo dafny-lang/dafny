@@ -1,0 +1,12 @@
+Starting verification of mutation 1/1 with seed 0
+The total consumed resources are 54312
+The most demanding 10 verification tasks consumed these resources:
+Performance.dfy(7,16): 7300
+Performance.dfy(6,12): 7152
+Performance.dfy(20,2): 7012
+Performance.dfy(20,11): 6457
+Performance.dfy(8,4): 6237
+Performance.dfy(16,14): 6075
+Performance.dfy(16,14): 6073
+Performance.dfy(24,19): 4004
+Performance.dfy(24,19): 4002

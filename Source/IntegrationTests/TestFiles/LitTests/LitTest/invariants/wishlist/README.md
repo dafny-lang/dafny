@@ -1,0 +1,1 @@
+This directory contains tests that model desirable verification behaviors for invariants that are not yet implemented. For the moment, there is one test for disabling for the receiver's invariant within instance methods.

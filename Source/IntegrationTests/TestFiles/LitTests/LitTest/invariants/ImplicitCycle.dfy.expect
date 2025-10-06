@@ -1,0 +1,4 @@
+ImplicitCycle.dfy(10,4): Error: a postcondition could not be proved on this return path
+ImplicitCycle.dfy(7,12): Related location: this is the postcondition that could not be proved
+
+Dafny program verifier finished with 3 verified, 1 error

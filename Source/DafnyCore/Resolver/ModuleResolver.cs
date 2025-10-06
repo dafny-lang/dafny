@@ -1200,6 +1200,12 @@ namespace Microsoft.Dafny {
       if (reporter.Count(ErrorLevel.Error) == prevErrorCount) {
         FillInDefaultValueExpressions();
       }
+      
+      // To make sure that invariants are only reading uninherited fields
+      if (reporter.Count(ErrorLevel.Error) == prevErrorCount) {
+        var invariantVisitor = new InvariantVisitor(this);
+        invariantVisitor.VisitDeclarations(declarations);
+      }
 
       // ---------------------------------- Pass 1 ----------------------------------
       // This pass does the following:
@@ -2482,7 +2488,10 @@ namespace Microsoft.Dafny {
           // The class is not allowed to do anything with the field other than silently inherit it.
           reporter.Error(MessageSource.Resolver, member.Origin,
             $"{baseMember.WhatKindAndName} is inherited from {baseType.WhatKindAndName} and is not allowed to be re-declared");
-        } else if ((baseMember as Function)?.Body != null || (baseMember as Constructor)?.Body != null) {
+        } else if (!baseMember.TryCastToInvariant(Options, reporter, MessageSource.Resolver, out _) && ((baseMember as Function)?.Body != null || (baseMember as Constructor)?.Body != null)) {
+          // Overriding an existing invariant with an unrelated one is currently acceptable, as they have disjoint reads clauses
+          // In general you'd want them to be individually admissible
+          
           // the overridden member is a fully defined function or method, so the class is not allowed to do anything with it other than silently inherit it
           reporter.Error(MessageSource.Resolver, member.Origin,
             $"fully defined {baseMember.WhatKindAndName} is inherited from {baseType.WhatKindAndName} and is not allowed to be re-declared");

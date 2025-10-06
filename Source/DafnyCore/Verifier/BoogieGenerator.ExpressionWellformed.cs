@@ -839,9 +839,13 @@ namespace Microsoft.Dafny {
 
                   // ... but that substitution isn't needed for frames passed to CheckFrameSubset
                   var readsSubst = new Substituter(null, new Dictionary<IVariable, Expression>(), e.GetTypeArgumentSubstitutions());
-                  CheckFrameSubset(callExpr.Origin,
-                    e.Function.Reads.Expressions.ConvertAll(readsSubst.SubstFrameExpr),
-                    e.Receiver, substMap, etran, etran.ReadsFrame(callExpr.Origin), wfOptions.AssertSink(this, builder), (ta, qa) => builder.Add(new Bpl.AssumeCmd(ta, qa)), desc, wfOptions.AssertKv);
+                  var calleeFrame = e.Function.Reads.Expressions.ConvertAll(readsSubst.SubstFrameExpr);
+                  if (wfOptions.DoReadsChecks) {
+                    CheckFrameSubset(callExpr.Origin, calleeFrame,
+                      e.Receiver, substMap, etran, etran.ReadsFrame(callExpr.Origin),
+                      wfOptions.AssertSink(this, builder), (ta, qa) => builder.Add(new Bpl.AssumeCmd(ta, qa)), desc,
+                      wfOptions.AssertKv);
+                  }
                 }
               }
               Expression allowance = null;
