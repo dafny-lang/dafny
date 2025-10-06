@@ -4791,12 +4791,18 @@ namespace DCOMP {
         }
         _0_typeShapeArgs = Dafny.Sequence<RAST._IType>.Concat(_0_typeShapeArgs, Dafny.Sequence<RAST._IType>.FromElements(_2_typeShapeArg));
       }
-      RAST._IType _3_typeShape;
-      _3_typeShape = RAST.Type.create_DynType(RAST.Type.create_FnType(_0_typeShapeArgs, RAST.Type.create_TIdentifier(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("_"))));
-      if (((this).syncType).is_Sync) {
-        _3_typeShape = RAST.Type.create_IntersectionType(_3_typeShape, (this).SyncSendType);
+      RAST._IType _3_returnType;
+      if (((rInput).dtor_retType).is_Some) {
+        _3_returnType = ((rInput).dtor_retType).dtor_value;
+      } else {
+        _3_returnType = RAST.Type.create_TIdentifier(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("_"));
       }
-      r = RAST.Expr.create_TypeAscription(Dafny.Helpers.Id<Func<RAST._IExpr, RAST._IExpr>>((this).rcNew)(rInput), Dafny.Helpers.Id<Func<RAST._IType, RAST._IType>>((this).rc)(_3_typeShape));
+      RAST._IType _4_typeShape;
+      _4_typeShape = RAST.Type.create_DynType(RAST.Type.create_FnType(_0_typeShapeArgs, _3_returnType));
+      if (((this).syncType).is_Sync) {
+        _4_typeShape = RAST.Type.create_IntersectionType(_4_typeShape, (this).SyncSendType);
+      }
+      r = RAST.Expr.create_TypeAscription(Dafny.Helpers.Id<Func<RAST._IExpr, RAST._IExpr>>((this).rcNew)(rInput), Dafny.Helpers.Id<Func<RAST._IType, RAST._IType>>((this).rc)(_4_typeShape));
       return r;
     }
     public void GenExpr(DAST._IExpression e, Defs._ISelfInfo selfIdent, Defs._IEnvironment env, Defs._IOwnership expectedOwnership, out RAST._IExpr r, out Defs._IOwnership resultingOwnership, out Dafny.ISet<Dafny.ISequence<Dafny.Rune>> readIdents)
