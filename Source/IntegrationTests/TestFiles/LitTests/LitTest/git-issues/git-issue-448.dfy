@@ -15,8 +15,9 @@ codatatype Stream<G> = More(x: G, tail: Stream<int>)
 method Main() {
   var c: C;
   var s: Stream<bool>;
-  print s.x, "\n";  // error: "s" hasn't been initialized yet
   if * {
+    print s.x, "\n";  // error: "s" hasn't been initialized yet
+  } else if * {
     // Regression test:
     c.M();  // error: "c" hasn't been initialized yet
   } else if * {

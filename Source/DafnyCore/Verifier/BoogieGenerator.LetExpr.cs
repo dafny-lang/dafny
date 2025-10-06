@@ -161,10 +161,10 @@ namespace Microsoft.Dafny {
             LetSuchThatExprInfo info;
             {
               var FVs = new HashSet<IVariable>();
-              bool usesHeap = false, usesOldHeap = false;
+              ExprHeapUsage heapUsage = new();
               var FVsHeapAt = new HashSet<Label>();
               Type usesThis = null;
-              FreeVariablesUtil.ComputeFreeVariables(options, e.RHSs[0], FVs, ref usesHeap, ref usesOldHeap, FVsHeapAt,
+              FreeVariablesUtil.ComputeFreeVariables(options, e.RHSs[0], FVs, ref heapUsage, FVsHeapAt,
                 ref usesThis, false);
               var FTVs = new HashSet<TypeParameter>();
               foreach (var bv in e.BoundVars) {
@@ -173,8 +173,7 @@ namespace Microsoft.Dafny {
               }
 
               ComputeFreeTypeVariables(e.RHSs[0], FTVs);
-              info = new LetSuchThatExprInfo(e.Origin, BoogieGenerator.letSuchThatExprInfo.Count, FVs.ToList(), FTVs.ToList(), usesHeap,
-                usesOldHeap, FVsHeapAt, usesThis, BoogieGenerator.CurrentDeclaration);
+              info = new LetSuchThatExprInfo(e.Origin, BoogieGenerator.letSuchThatExprInfo.Count, FVs.ToList(), FTVs.ToList(), heapUsage, FVsHeapAt, usesThis, BoogieGenerator.CurrentDeclaration);
               BoogieGenerator.letSuchThatExprInfo.Add(e, info);
             }
 
@@ -300,7 +299,7 @@ namespace Microsoft.Dafny {
 
       public LetSuchThatExprInfo(IOrigin tok, int uniqueLetId,
         List<IVariable> freeVariables, List<TypeParameter> freeTypeVars,
-        bool usesHeap, bool usesOldHeap, ISet<Label> usesHeapAt, Type thisType, Declaration currentDeclaration) {
+        ExprHeapUsage heapUsage, ISet<Label> usesHeapAt, Type thisType, Declaration currentDeclaration) {
         Tok = tok;
         LetId = uniqueLetId;
         FTVs = freeTypeVars;
@@ -314,8 +313,8 @@ namespace Microsoft.Dafny {
           FV_Exprs.Add(idExpr);
         }
 
-        UsesHeap = usesHeap;
-        UsesOldHeap = usesOldHeap;
+        UsesHeap = heapUsage.UseHeap;
+        UsesOldHeap = heapUsage.UseOldHeap;
         // we convert the set of heap-at variables to a list here, once and for all; the order itself is not material, what matters is that we always use the same order
         UsesHeapAt = [.. usesHeapAt];
         ThisType = thisType;
@@ -396,9 +395,12 @@ namespace Microsoft.Dafny {
         return string.Format("$let#{0}$canCall", LetId);
       }
 
-      public Bpl.Expr HeapExpr(BoogieGenerator boogieGenerator, bool old) {
+      public HeapExpressions HeapExpr(BoogieGenerator boogieGenerator, bool old) {
         Contract.Requires(boogieGenerator != null);
-        return new Bpl.IdentifierExpr(Tok, old ? "$heap$old" : "$heap", boogieGenerator.Predef.HeapType);
+        return new HeapExpressions(
+          new Bpl.IdentifierExpr(Tok, old ? "$heap$old" : "$heap", boogieGenerator.Predef.HeapType),
+          new Bpl.IdentifierExpr(Tok, old ? "$referrersHeap$old" : "$referrersHeap", boogieGenerator.Predef.ReferrersHeapType)
+          );
       }
 
       /// <summary>

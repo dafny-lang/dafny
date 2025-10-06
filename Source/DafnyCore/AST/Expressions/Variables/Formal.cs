@@ -68,8 +68,8 @@ public class Formal : NonglobalVariable {
 
   public Field GetLocalField(MethodOrConstructor methodOrConstructor) {
     if (localField == null) {
-      localField = new SpecialField(Origin, Name, SpecialField.ID.UseIdParam, (object)Name, true,
-        false, false, Type, null) {
+      localField = new SpecialField(Origin, Name, SpecialField.ID.UseIdParam, Name, IsGhost,
+        this.IsMutable, this.IsMutable, Type, Attributes) {
         EnclosingClass = methodOrConstructor.EnclosingClass,
         EnclosingMethod = methodOrConstructor
       };

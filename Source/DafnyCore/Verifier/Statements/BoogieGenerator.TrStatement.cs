@@ -68,6 +68,10 @@ public partial class BoogieGenerator {
             method.Outs.ForEach(p => CheckDefiniteAssignmentReturn(stmt.Origin, p, builder));
           }
 
+          if (VerifyReferrers && codeContext is MethodOrConstructor) {
+            Referrers.UnassignLocalVariables(stmt.Origin, locals, builder, etran, DefiniteAssignmentTrackers);
+          }
+
           if (codeContext is MethodOrConstructor { FunctionFromWhichThisIsByMethodDecl: { ByMethodTok: { } } fun } method2) {
             AssumeCanCallForByMethodDecl(method2, builder);
           }
@@ -121,8 +125,12 @@ public partial class BoogieGenerator {
           // assume $IsGoodHeap($Heap);
           builder.Add(AssumeGoodHeap(s.Origin, etran));
           // assert YieldEnsures[subst];  // where 'subst' replaces "old(E)" with "E" being evaluated in $_OldIterHeap
-          var yeEtran = new ExpressionTranslator(this, Predef, etran.HeapExpr,
-            new Bpl.IdentifierExpr(s.Origin, "$_OldIterHeap", Predef.HeapType), iter);
+          var oldHeap = new HeapExpressions(
+            new Bpl.IdentifierExpr(s.Origin, "$_OldIterHeap", Predef.HeapType),
+            new Bpl.IdentifierExpr(s.Origin, "$_OldIterReferrersHeap", Predef.ReferrersHeapType)
+          );
+          var yeEtran = new ExpressionTranslator(this, Predef, etran.HeapExpressions,
+            oldHeap, iter);
 
           var rhss = s.Rhss == null
             ? dafnyOutExprs
@@ -276,8 +284,9 @@ public partial class BoogieGenerator {
           AddComment(builder, blockStmt1, "divided block before new;");
           var previousTrackers = DefiniteAssignmentTrackers;
           var tok = s.SeparatorTok ?? s.Origin;
+          var constructor = (Constructor)codeContext;
           // a DividedBlockStmt occurs only inside a Constructor body of a class
-          var cl = (ClassDecl)((Constructor)codeContext).EnclosingClass;
+          var cl = (ClassDecl)(constructor).EnclosingClass;
           var fields = Concat(cl.InheritedMembers, cl.Members).ConvertAll(member =>
             member is Field && !member.IsStatic && !member.IsInstanceIndependentConstant ? (Field)member : null);
           fields.RemoveAll(f => f == null);
@@ -286,10 +295,11 @@ public partial class BoogieGenerator {
           locals.AddRange(localSurrogates);
           var beforeTrackers = DefiniteAssignmentTrackers;
           fields.ForEach(f =>
-            AddDefiniteAssignmentTrackerSurrogate(f, cl, locals, codeContext is Constructor && codeContext.IsGhost));
+            AddDefiniteAssignmentTrackerSurrogate(f, cl, locals, codeContext is Constructor && codeContext.IsGhost, builder));
 
           Contract.Assert(!inBodyInitContext);
           inBodyInitContext = true;
+          Referrers.AssumeThisFresh(constructor, builder, etran);
           TrStmtList(s.BodyInit, builder, locals, etran);
           Contract.Assert(inBodyInitContext);
           inBodyInitContext = false;
@@ -325,6 +335,10 @@ public partial class BoogieGenerator {
       case BlockStmt blockStmt2: {
           var previousTrackers = DefiniteAssignmentTrackers;
           TrStmtList(blockStmt2.Body, builder, locals, etran, blockStmt2.EntireRange);
+          if (VerifyReferrers) {
+            Referrers.UnassignLocalVariables(blockStmt2.EndToken, locals, builder, etran,
+              DefiniteAssignmentTrackers.RemoveRange(previousTrackers.Keys));
+          }
           DefiniteAssignmentTrackers = previousTrackers;
           break;
         }
@@ -360,17 +374,17 @@ public partial class BoogieGenerator {
           // cause the change of the heap according to the given frame
           var suffix = CurrentIdGenerator.FreshId("modify#");
           string modifyFrameName = FrameVariablePrefix + suffix;
-          var preModifyHeapVar = locals.GetOrAdd(new Bpl.LocalVariable(s.Origin,
-            new Bpl.TypedIdent(s.Origin, "$PreModifyHeap$" + suffix, Predef.HeapType)));
+          var preModifyHeapName = "$PreModifyHeap$" + suffix;
+          var preModifyHeap = BplLocalVarHeap(s.Origin, preModifyHeapName, new HeapReadingStatus(true, VerifyReferrers),
+            locals);
           DefineFrame(s.Origin, etran.ModifiesFrame(s.Origin), s.Mod.Expressions, builder, locals, modifyFrameName);
           if (s.Body == null) {
-            var preModifyHeap = new Bpl.IdentifierExpr(s.Origin, preModifyHeapVar);
             // preModifyHeap := $Heap;
-            builder.Add(Bpl.Cmd.SimpleAssign(s.Origin, preModifyHeap, etran.HeapExpr));
+            builder.Add(Bpl.Cmd.SimpleAssign(s.Origin, (Bpl.IdentifierExpr)preModifyHeap.HeapExpr, etran.HeapExpr));
             // havoc $Heap;
             builder.Add(new Bpl.HavocCmd(s.Origin, [etran.HeapCastToIdentifierExpr]));
             // assume $HeapSucc(preModifyHeap, $Heap);   OR $HeapSuccGhost
-            builder.Add(TrAssumeCmd(s.Origin, HeapSucc(preModifyHeap, etran.HeapExpr, s.IsGhost)));
+            builder.Add(TrAssumeCmd(s.Origin, HeapSucc(preModifyHeap.HeapExpr, etran.HeapExpr, s.IsGhost)));
             // assume nothing outside the frame was changed
             var etranPreLoop = new ExpressionTranslator(this, Predef, preModifyHeap,
               this.CurrentDeclaration is IFrameScope fs ? fs : null);
@@ -528,6 +542,10 @@ public partial class BoogieGenerator {
       }
       if (needDefiniteAssignmentTracking) {
         var defassExpr = AddDefiniteAssignmentTracker(local, locals);
+        if (defassExpr != null) { // Add the assignment defassExpr := false;
+          builder.Add(Bpl.Cmd.SimpleAssign(local.Origin, defassExpr, Bpl.Expr.False));
+        }
+
         if (wh != null && defassExpr != null) {
           // make the "where" expression be "defass ==> wh", because we don't want to assume anything
           // before the variable has been assigned (for a variable that needs definite-assignment tracking
@@ -891,9 +909,12 @@ public partial class BoogieGenerator {
       if (processLabels) {
         if (ss is LabeledStatement labelledStatement) {
           foreach (var label in labelledStatement.Labels) {
-            var heapAt = locals.GetOrAdd(new Bpl.LocalVariable(ss.Origin,
-              new Bpl.TypedIdent(ss.Origin, "$Heap_at_" + label.AssignUniqueId(CurrentIdGenerator), Predef.HeapType)));
-            builder.Add(Bpl.Cmd.SimpleAssign(ss.Origin, new Bpl.IdentifierExpr(ss.Origin, heapAt), etran.HeapExpr));
+            var heapExpressions = BplLocalVarHeap(ss.Origin, "$Heap_at_" + label.AssignUniqueId(CurrentIdGenerator),
+              new HeapReadingStatus(true, VerifyReferrers), locals);
+            builder.Add(Bpl.Cmd.SimpleAssign(ss.Origin, (Bpl.IdentifierExpr)heapExpressions.HeapExpr, etran.HeapExpr));
+            if (heapExpressions.ReferrersHeapExpr is Bpl.IdentifierExpr referrersHeapExpr) {
+              builder.Add(Bpl.Cmd.SimpleAssign(ss.Origin, referrersHeapExpr, etran.ReferrersHeapExpr));
+            }
           }
         }
       }

@@ -1,0 +1,3 @@
+referrers-resolutionerrors.dfy(10,9): Error: referrers expects a instance of an class or an array (instead got int)
+referrers-resolutionerrors.dfy(11,9): Error: referrers expects a instance of an class or an array (instead got X)
+2 resolution/type errors detected in referrers-resolutionerrors.dfy

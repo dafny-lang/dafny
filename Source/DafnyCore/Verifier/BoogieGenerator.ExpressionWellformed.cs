@@ -926,7 +926,7 @@ namespace Microsoft.Dafny {
 
             CheckWellformed(e.Initializer, wfOptions, locals, builder, etran);
             var eType = e.Type.NormalizeToAncestorType().AsSeqType.Arg;
-            CheckElementInit(e.Origin, false, [e.N], eType, e.Initializer, null, builder, etran, wfOptions);
+            CheckElementInit(e.Origin, locals, false, [e.N], eType, e.Initializer, null, builder, etran, wfOptions);
             break;
           }
         case MultiSetFormingExpr formingExpr: {
@@ -1170,8 +1170,8 @@ namespace Microsoft.Dafny {
               var comprehensionEtran = etran;
               if (lam != null) {
                 // Havoc heap
-                locals.GetOrAdd(BplLocalVar(CurrentIdGenerator.FreshId((etran.UsesOldHeap ? "$Heap_at_" : "") + "$lambdaHeap#"), Predef.HeapType, out var lambdaHeap));
-                comprehensionEtran = new ExpressionTranslator(comprehensionEtran, lambdaHeap);
+                locals.Add(BplLocalVarHeap(CurrentIdGenerator.FreshId((etran.UsesOldHeap ? "$Heap_at_" : "") + "$lambdaHeap#"), out var lambdaHeapInfo));
+                comprehensionEtran = new ExpressionTranslator(comprehensionEtran, lambdaHeapInfo);
                 nextBuilder.Add(new HavocCmd(e.Origin, Singleton((Bpl.IdentifierExpr)comprehensionEtran.HeapExpr)));
                 nextBuilder.Add(new AssumeCmd(e.Origin, FunctionCall(e.Origin, BuiltinFunction.IsGoodHeap, null, comprehensionEtran.HeapExpr)));
                 nextBuilder.Add(new AssumeCmd(e.Origin, HeapSameOrSucc(etran.HeapExpr, comprehensionEtran.HeapExpr)));
@@ -1634,8 +1634,10 @@ namespace Microsoft.Dafny {
     ///     assert (forall i0,i1,i2,... :: 0 <= i0 < dims[0] && ... ==> init.requires(i0,i1,i2,...));
     /// and for a sequence ("!forArray"):
     ///     assert (forall i0 :: 0 <= i0 < dims[0] && ... ==> init.requires(i0));
+    ///
+    /// Also, if it is for an array, assume that all the elements of the array are given by the lambda function
     /// </summary>
-    private void CheckElementInit(IOrigin tok, bool forArray, List<Expression> dims, Type elementType, Expression init,
+    private void CheckElementInit(IOrigin tok, Variables locals, bool forArray, List<Expression> dims, Type elementType, Expression init,
       Bpl.IdentifierExpr/*?*/ nw, BoogieStmtListBuilder builder, ExpressionTranslator etran, WFOptions options) {
       Contract.Requires(tok != null);
       Contract.Requires(dims != null && dims.Count != 0);
@@ -1649,13 +1651,16 @@ namespace Microsoft.Dafny {
       var varNameGen = CurrentIdGenerator.NestedFreshIdGenerator(forArray ? "arrayinit#" : "seqinit#");
       var bvs = new List<Bpl.Variable>();
       var indices = new List<Bpl.Expr>();
+      var bDims = new List<Bpl.Expr>();
       for (var i = 0; i < dims.Count; i++) {
         var nm = varNameGen.FreshId(string.Format("#i{0}#", i));
         var bv = new Bpl.BoundVariable(tok, new Bpl.TypedIdent(tok, nm, Bpl.Type.Int));
         bvs.Add(bv);
         var ie = new Bpl.IdentifierExpr(tok, bv);
         indices.Add(ie);
-        ante = BplAnd(ante, BplAnd(Bpl.Expr.Le(Bpl.Expr.Literal(0), ie), Bpl.Expr.Lt(ie, etran.TrExpr(dims[i]))));
+        var bDim = etran.TrExpr(dims[i]);
+        bDims.Add(bDim);
+        ante = BplAnd(ante, BplAnd(Bpl.Expr.Le(Bpl.Expr.Literal(0), ie), Bpl.Expr.Lt(ie, bDim)));
       }
 
       var sourceType = init.Type.AsArrowType;
@@ -1665,7 +1670,7 @@ namespace Microsoft.Dafny {
         Cons(TypeToTy(sourceType.Result),
           Cons(etran.HeapExpr,
             Cons(etran.TrExpr(init),
-              indices.ConvertAll(idx => (Bpl.Expr)FunctionCall(tok, BuiltinFunction.Box, null, idx))))));
+              indices.ConvertAll(idx => (Bpl.Expr)ApplyBox(tok, idx))))));
       // check precond
       var pre = FunctionCall(tok, Requires(dims.Count), Bpl.Type.Bool, args);
       var q = new Bpl.ForallExpr(tok, bvs, BplImp(ante, pre));
@@ -1728,7 +1733,7 @@ namespace Microsoft.Dafny {
         // assume (forall i0,i1,i2,... :: { nw[i0,i1,i2,...] }
         //            0 <= i0 < ... && ... ==>
         //                CanCallAssumptions[[ init(i0,i1,i2,...) ]] &&
-        //                nw[i0,i1,i2,...] == init.requires(i0,i1,i2,...));
+        //                nw[i0,i1,i2,...] == init(i0,i1,i2,...));
         var dafnyInitApplication = new ApplyExpr(tok, init,
           bvs.ConvertAll(indexBv => (Expression)new BoogieWrapper(new Bpl.IdentifierExpr(indexBv.tok, indexBv), Type.Int)).ToList(),
           Token.NoToken) {
@@ -1736,11 +1741,13 @@ namespace Microsoft.Dafny {
         };
         var canCall = etran.CanCallAssumption(dafnyInitApplication);
 
-        var ai = ReadHeap(tok, etran.HeapExpr, nw, GetArrayIndexFieldName(tok, indices));
+        var arrayIndexFieldName = GetArrayIndexFieldName(tok, indices);
+        var ai = ReadHeap(tok, etran.HeapExpr, nw, arrayIndexFieldName);
         var ai_prime = UnboxUnlessBoxType(tok, ai, elementType);
         var tr = new Bpl.Trigger(tok, true, new List<Bpl.Expr> { ai });
         q = new Bpl.ForallExpr(tok, bvs, tr, BplImp(ante, BplAnd(canCall, Bpl.Expr.Eq(ai_prime, apply))));
         builder.Add(new Bpl.AssumeCmd(tok, q));
+        Referrers.AddArrayInitReferrer(tok, locals, init, bvs, tr, ante, ai_prime, arrayIndexFieldName, bDims, nw, builder, etran);
       }
     }
 

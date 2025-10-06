@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Diagnostics.Contracts;
 using DafnyCore.Verifier;
+using JetBrains.Annotations;
 using Microsoft.Boogie;
 using Bpl = Microsoft.Boogie;
 using PODesc = Microsoft.Dafny.ProofObligationDescription;
@@ -9,6 +10,7 @@ using PODesc = Microsoft.Dafny.ProofObligationDescription;
 namespace Microsoft.Dafny;
 
 public partial class BoogieGenerator {
+  private const string TrackingAttribute = "tracking";
 
 
   /// <summary>
@@ -73,6 +75,8 @@ public partial class BoogieGenerator {
         lhsType = null;  // for an array update, always make sure the value assigned is boxed
         rhsTypeConstraint = e.Array.Type.NormalizeExpand().TypeArgs[0];
       }
+
+      Referrers.RemovePreAssign(stmt.Origin, lhs, builder, locals, etran);
       var bRhs = TrAssignmentRhs(rhss[i].Origin, bLhss[i], null, lhsType, rhss[i], rhsTypeConstraint, builder, locals, etran, stmt);
       if (bLhss[i] != null) {
         Contract.Assert(bRhs == bLhss[i]);  // this is what the postcondition of TrAssignmentRhs promises
@@ -82,9 +86,22 @@ public partial class BoogieGenerator {
         Contract.Assert(bRhs != null);  // this is what the postcondition of TrAssignmentRhs promises
         finalRhss.Add(bRhs);
       }
+
+      Referrers.AddPostAssign(stmt.Origin, lhs, bRhs, builder, etran);
     }
     for (int i = 0; i < lhss.Count; i++) {
       lhsBuilder[i](finalRhss[i], rhss[i] is HavocRhs, builder, etran);
+    }
+  }
+
+  private ReferrersHelper referrers;
+  private ReferrersHelper Referrers {
+    get {
+      if (referrers == null) {
+        referrers = new ReferrersHelper(this);
+      }
+
+      return referrers;
     }
   }
 
@@ -466,6 +483,7 @@ public partial class BoogieGenerator {
           heapAllocationRecorder = Bpl.Cmd.SimpleAssign(tok, etran.HeapCastToIdentifierExpr, heapRhs);
         }
         CommitAllocatedObject(tok, nw, heapAllocationRecorder, builder, etran);
+        Referrers.AssumeEmptyFor(nw, tok, builder, etran);
       }
       if (allocateClass.InitCall != null) {
         AddComment(builder, allocateClass.InitCall, "init call statement");
@@ -509,6 +527,7 @@ public partial class BoogieGenerator {
       Bpl.IdentifierExpr nw = GetNewVar_IdExpr(tok, locals);
 
       SelectAllocateObject(tok, nw, allocateArray.Type, true, builder, etran);
+      Referrers.AssumeEmptyFor(nw, tok, builder, etran);
       int i = 0;
       foreach (Expression dim in allocateArray.ArrayDimensions) {
         // assume Array#Length($nw, i) == arraySize;
@@ -517,7 +536,7 @@ public partial class BoogieGenerator {
         i++;
       }
       if (allocateArray.ElementInit != null) {
-        CheckElementInit(tok, true, allocateArray.ArrayDimensions, allocateArray.ElementType, allocateArray.ElementInit, nw, builder, etran, new WFOptions());
+        CheckElementInit(tok, locals, true, allocateArray.ArrayDimensions, allocateArray.ElementType, allocateArray.ElementInit, nw, builder, etran, new WFOptions());
       } else if (allocateArray.InitDisplay != null) {
         int ii = 0;
         foreach (var v in allocateArray.InitDisplay) {

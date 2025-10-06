@@ -64,7 +64,7 @@ namespace Microsoft.Dafny {
             fieldDeclaration = GetReadonlyField(f);
             fuelContext = oldFuelContext;
             currentModule = null;
-            if (Options.Get(CommonOptionBag.Referrers)) {
+            if (VerifyReferrers) {
               // A constant is also treated as a memory location
               fieldDeclaration = GetField(f);
               sink.AddTopLevelDeclaration(fieldDeclaration);
@@ -951,19 +951,15 @@ namespace Microsoft.Dafny {
       currentModule = f.EnclosingClass.EnclosingModuleDefinition;
       codeContext = f;
 
-      Boogie.Expr prevHeap = null;
-      Boogie.Expr currHeap = null;
+      HeapExpressions prevHeap = null;
+      HeapExpressions currHeap = null;
       var ordinaryEtran = new ExpressionTranslator(this, Predef, f.Origin, f);
       ExpressionTranslator etran;
       var inParams_Heap = new List<Boogie.Variable>();
       if (f is TwoStateFunction) {
-        var prevHeapVar = new Boogie.Formal(f.Origin, new Boogie.TypedIdent(f.Origin, "previous$Heap", Predef.HeapType), true);
-        inParams_Heap.Add(prevHeapVar);
-        prevHeap = new Boogie.IdentifierExpr(f.Origin, prevHeapVar);
+        prevHeap = BplFormalVarHeap("previous$Heap", f.HeapReadingStatus, true, inParams_Heap);
         if (f.ReadsHeap) {
-          var currHeapVar = new Boogie.Formal(f.Origin, new Boogie.TypedIdent(f.Origin, "current$Heap", Predef.HeapType), true);
-          inParams_Heap.Add(currHeapVar);
-          currHeap = new Boogie.IdentifierExpr(f.Origin, currHeapVar);
+          currHeap = BplFormalVarHeap("current$Heap", f.HeapReadingStatus, true, inParams_Heap);
         }
         etran = new ExpressionTranslator(this, Predef, currHeap, prevHeap, f);
       } else {
@@ -1006,9 +1002,9 @@ namespace Microsoft.Dafny {
       var req = new List<Boogie.Requires>();
       if (f is TwoStateFunction) {
         // free requires prevHeap == Heap && HeapSucc(prevHeap, currHeap) && IsHeap(currHeap)
-        var a0 = Boogie.Expr.Eq(prevHeap, ordinaryEtran.HeapExpr);
-        var a1 = HeapSucc(prevHeap, currHeap);
-        var a2 = FunctionCall(f.Origin, BuiltinFunction.IsGoodHeap, null, currHeap);
+        var a0 = Boogie.Expr.Eq(prevHeap.HeapExpr, ordinaryEtran.HeapExpr);
+        var a1 = HeapSucc(prevHeap.HeapExpr, currHeap.HeapExpr);
+        var a2 = FunctionCall(f.Origin, BuiltinFunction.IsGoodHeap, null, currHeap.HeapExpr);
         req.Add(FreeRequires(f.Origin, BplAnd(a0, BplAnd(a1, a2)), null));
       }
       foreach (var typeBoundAxiom in TypeBoundAxioms(f.Origin, Concat(f.EnclosingClass.TypeArgs, f.TypeArgs))) {
@@ -1280,19 +1276,20 @@ namespace Microsoft.Dafny {
       Contract.Ensures(Contract.Result<Boogie.Axiom>() != null);
 
       bool readsHeap = f.ReadsHeap || overridingFunction.ReadsHeap;
+      bool readsReferrersHeap = f.ReadsReferrersHeap || overridingFunction.ReadsReferrersHeap;
+      var heapReadingStatus = new HeapReadingStatus(readsHeap, readsReferrersHeap);
 
       ExpressionTranslator etran;
       Boogie.BoundVariable bvPrevHeap = null;
+      Boogie.BoundVariable bvPrevReferrersHeap = null;
       if (f is TwoStateFunction) {
-        bvPrevHeap = new Boogie.BoundVariable(f.Origin, new Boogie.TypedIdent(f.Origin, "$prevHeap", Predef.HeapType));
-        etran = new ExpressionTranslator(this, Predef,
-          f.ReadsHeap ? new Boogie.IdentifierExpr(f.Origin, Predef.HeapVarName, Predef.HeapType) : null,
-          new Boogie.IdentifierExpr(f.Origin, bvPrevHeap),
-          f);
+        var heapExpressions = CurrentHeapInformation(f.Origin, heapReadingStatus);
+        var oldHeapExpressions = BplBoundVarHeap("$prevHeap", heapReadingStatus, out bvPrevHeap, out bvPrevReferrersHeap);
+        etran = new ExpressionTranslator(this, Predef, heapExpressions, oldHeapExpressions, f);
       } else if (readsHeap) {
         etran = new ExpressionTranslator(this, Predef, f.Origin, f);
       } else {
-        etran = new ExpressionTranslator(this, Predef, (Boogie.Expr)null, f);
+        etran = new ExpressionTranslator(this, Predef, new HeapExpressions(null, null), f);
       }
 
       // "forallFormals" is built to hold the bound variables of the quantification
@@ -1735,23 +1732,21 @@ namespace Microsoft.Dafny {
       currentModule = m.EnclosingClass.EnclosingModuleDefinition;
       codeContext = m;
       IsAllocContext = new IsAllocContext(options, m.IsGhost);
-      Boogie.Expr prevHeap = null;
-      Boogie.Expr currHeap = null;
+      HeapExpressions prevHeap = null;
+      HeapExpressions currHeap = null;
       var ordinaryEtran = new ExpressionTranslator(this, Predef, m.Origin, m);
       ExpressionTranslator etran;
       var inParams = new List<Boogie.Variable>();
-      if (Options.Get(CommonOptionBag.Referrers) && m is not Lemma) {
+      if (VerifyReferrers && m is not Lemma) {
         inParams.Add(new Boogie.Formal(Token.NoToken, new TypedIdent(m.Origin, "depth", Bpl.Type.Int), true));
       }
 
       var bodyKind = kind == MethodTranslationKind.SpecWellformedness || kind == MethodTranslationKind.Implementation;
+      var needsReferrersHeap = Options.Get(CommonOptionBag.Referrers);
+      var heapReadingStatus = new HeapReadingStatus(true, needsReferrersHeap);
       if (m is TwoStateLemma) {
-        var prevHeapVar = new Boogie.Formal(m.Origin, new Boogie.TypedIdent(m.Origin, "previous$Heap", Predef.HeapType), true);
-        var currHeapVar = new Boogie.Formal(m.Origin, new Boogie.TypedIdent(m.Origin, "current$Heap", Predef.HeapType), true);
-        inParams.Add(prevHeapVar);
-        inParams.Add(currHeapVar);
-        prevHeap = new Boogie.IdentifierExpr(m.Origin, prevHeapVar);
-        currHeap = new Boogie.IdentifierExpr(m.Origin, currHeapVar);
+        prevHeap = BplFormalVarHeap("previous$Heap", heapReadingStatus, true, inParams);
+        currHeap = BplFormalVarHeap("current$Heap", heapReadingStatus, true, inParams);
         etran = new ExpressionTranslator(this, Predef, currHeap, prevHeap, m);
       } else {
         etran = ordinaryEtran;
@@ -1763,6 +1758,9 @@ namespace Microsoft.Dafny {
       var name = MethodName(m, kind);
       var req = GetRequires();
       var mod = new List<Bpl.IdentifierExpr> { ordinaryEtran.HeapCastToIdentifierExpr };
+      if (Options.Get(CommonOptionBag.Referrers)) {
+        mod.Add(ordinaryEtran.ReferrerrsHeapCastToIdentifierExpr);
+      }
       var ens = GetEnsures();
       var proc = new Bpl.Procedure(m.Origin, name, [],
         inParams, outParams.Values.ToList(), false, req, mod, ens, etran.TrAttributes(m.Attributes, null));
@@ -1784,14 +1782,20 @@ namespace Microsoft.Dafny {
         if (kind == MethodTranslationKind.SpecWellformedness || kind == MethodTranslationKind.Implementation || kind == MethodTranslationKind.OverrideCheck) {  // the other cases have no need for a free precondition
           if (m is TwoStateLemma) {
             // free requires prevHeap == Heap && HeapSucc(prevHeap, currHeap) && IsHeap(currHeap)
-            var a0 = Boogie.Expr.Eq(prevHeap, ordinaryEtran.HeapExpr);
-            var a1 = HeapSucc(prevHeap, currHeap);
-            var a2 = FunctionCall(m.Origin, BuiltinFunction.IsGoodHeap, null, currHeap);
+            var a0 = Boogie.Expr.Eq(prevHeap.HeapExpr, ordinaryEtran.HeapExpr);
+            var a1 = HeapSucc(prevHeap.HeapExpr, currHeap.HeapExpr);
+            var a2 = FunctionCall(m.Origin, BuiltinFunction.IsGoodHeap, null, currHeap.HeapExpr);
             req.Add(FreeRequires(m.Origin, BplAnd(a0, BplAnd(a1, a2)), null));
           }
 
           foreach (var typeBoundAxiom in TypeBoundAxioms(m.Origin, Concat(m.EnclosingClass.TypeArgs, m.TypeArgs))) {
             req.Add(Requires(m.Origin, true, null, typeBoundAxiom, null, null, null));
+          }
+
+          if (VerifyReferrers) {
+            foreach (var i in m.Ins) {
+              Referrers.AddFreeRequires(i, m, ordinaryEtran, req);
+            }
           }
         }
         if (m is TwoStateLemma) {
@@ -1805,7 +1809,7 @@ namespace Microsoft.Dafny {
                 "in the two-state lemma's previous state" + IsAllocated.HelperFormal(formal),
                 dafnyFormalIdExpr
               );
-              var require = Requires(formal.Origin, false, null, MkIsAlloc(etran.TrExpr(dafnyFormalIdExpr), formal.Type, prevHeap),
+              var require = Requires(formal.Origin, false, null, MkIsAlloc(etran.TrExpr(dafnyFormalIdExpr), formal.Type, prevHeap.HeapExpr),
                 desc.FailureDescription, desc.SuccessDescription, null);
               require.Description = desc;
               req.Add(require);

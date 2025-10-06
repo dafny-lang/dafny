@@ -210,7 +210,7 @@ public partial class BoogieGenerator {
               // Note, the MkIsAlloc conjunct of "isness" implies that everything in the reads frame is allocated in "h0", which by HeapSucc(h0,h1) also implies the frame is allocated in "h1"
               IsSetMember(tok,
                 FunctionCall(tok, Reads(ad.Arity), objset_ty, Concat(types, Cons(hN, Cons(f, boxes)))),
-                FunctionCall(tok, BuiltinFunction.Box, null, o),
+                ApplyBox(tok, o),
                 true)
             ),
             Bpl.Expr.Eq(ReadHeap(tok, h0, o, fld), ReadHeap(tok, h1, o, fld))));
@@ -253,8 +253,9 @@ public partial class BoogieGenerator {
           Snoc(Map(Enumerable.Range(0, arity), i =>
             BplAnd(MkIs(boxes[i], types[i], true), Bpl.Expr.True)),
           BplAnd(MkIs(f, ClassTyCon(ad, types)), Bpl.Expr.True)));
+        var heapReadingStatus = new HeapReadingStatus(true, false);
 
-        var readsOne = FunctionCall(tok, Reads(arity), objset_ty, Concat(types, Cons(oneheap, Cons(f, boxes))));
+        var readsOne = FunctionCall(tok, Reads(arity), objset_ty, Concat(types, Concat(oneheap.AsList(heapReadingStatus), Cons(f, boxes))));
         var readsH = FunctionCall(tok, Reads(arity), objset_ty, Concat(types, Cons(h, Cons(f, boxes))));
         var empty = FunctionCall(tok, BuiltinFunction.SetEmpty, Predef.BoxType);
         var readsNothingOne = FunctionCall(tok, BuiltinFunction.SetEqual, null, readsOne, empty);
@@ -291,12 +292,13 @@ public partial class BoogieGenerator {
           Snoc(Map(Enumerable.Range(0, arity), i =>
             BplAnd(MkIs(boxes[i], types[i], true), Bpl.Expr.True)),
           BplAnd(MkIs(f, ClassTyCon(ad, types)), Bpl.Expr.True)));
+        var heapReadingStatus = new HeapReadingStatus(true, false);
 
-        var readsOne = FunctionCall(tok, Reads(arity), objset_ty, Concat(types, Cons(oneheap, Cons(f, boxes))));
+        var readsOne = FunctionCall(tok, Reads(arity), objset_ty, Concat(types, Concat(oneheap.AsList(heapReadingStatus), Cons(f, boxes))));
         var empty = FunctionCall(tok, BuiltinFunction.SetEmpty, Predef.BoxType);
         var readsNothingOne = FunctionCall(tok, BuiltinFunction.SetEqual, null, readsOne, empty);
 
-        var requiresOne = FunctionCall(tok, Requires(arity), Bpl.Type.Bool, Concat(types, Cons(oneheap, Cons(f, boxes))));
+        var requiresOne = FunctionCall(tok, Requires(arity), Bpl.Type.Bool, Concat(types, Concat(oneheap.AsList(heapReadingStatus), Cons(f, boxes))));
         var requiresH = FunctionCall(tok, Requires(arity), Bpl.Type.Bool, Concat(types, Cons(h, Cons(f, boxes))));
 
         sink.AddTopLevelDeclaration(new Axiom(tok, BplForall(bvars,
@@ -416,7 +418,7 @@ public partial class BoogieGenerator {
         var r = BplBoundVar("r", Predef.RefType, bvarsR);
         var rNonNull = Bpl.Expr.Neq(r, Predef.Null);
         var reads = FunctionCall(tok, Reads(ad.Arity), Predef.BoxType, Concat(types, Cons(h, Cons<Bpl.Expr>(f, boxes))));
-        var rInReads = IsSetMember(tok, reads, FunctionCall(tok, BuiltinFunction.Box, null, r), true);
+        var rInReads = IsSetMember(tok, reads, ApplyBox(tok, r), true);
         var rAlloc = IsAlloced(tok, h, r);
         var isAllocReads = BplForall(bvarsR, BplTrigger(rInReads), BplImp(BplAnd(rNonNull, rInReads), rAlloc));
 
@@ -613,7 +615,7 @@ public partial class BoogieGenerator {
     var unbox = FunctionCall(tok, BuiltinFunction.Unbox, tyRepr, bx);
     var box_is = MkIs(bx, typeTerm, true);
     var unbox_is = MkIs(unbox, typeTerm, false);
-    var box_unbox = FunctionCall(tok, BuiltinFunction.Box, null, unbox);
+    var box_unbox = ApplyBox(tok, unbox);
     sink.AddTopLevelDeclaration(
       new Axiom(tok,
         BplForall(Snoc(args, bxVar), BplTrigger(box_is),

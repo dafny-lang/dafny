@@ -459,6 +459,25 @@ namespace Microsoft.Dafny {
                 // the argument is allowed to have any type at all
                 expr.PreType = ConstrainResultToBoolFamily(expr.Origin, "assigned", "boolean literal used as if it had type {0}");
                 break;
+              case UnaryOpExpr.Opcode.Referrers:
+                // Verify that the context is a method or a constructor, not a function
+                if (resolutionContext.CodeContext is not MethodOrConstructor) {
+                  ReportError(opExpr, "referrers are currently supported only in methods or constructors (instead got {0})", resolutionContext.CodeContext is MemberDecl d ? d.WhatKind : "unknown");
+                }
+
+                // Verify that the expression is a unique object
+                AddConfirmation(PreTypeConstraints.CommonConfirmationBag.IsNullableRefType, e.E.PreType, opExpr.Origin, "referrers expects a instance of an class or an array (instead got {0})");
+
+                // Create a tuple type for (object, field)
+                var objectPreType = new DPreType(BuiltInTypeDecl(PreType.TypeNameObjectQ), []);
+                var fieldPreType = new DPreType(BuiltInTypeDecl(PreType.TypeNameField), []);
+                var tupleTypeArgs = new List<PreType> { objectPreType, fieldPreType };
+                var tuplePreType = new DPreType(resolver.SystemModuleManager.TupleType(opExpr.Origin, 2, true), tupleTypeArgs);
+
+                // Create the set type containing the tuple type
+                expr.PreType = new DPreType(BuiltInTypeDecl(PreType.TypeNameSet), [tuplePreType]);
+                break;
+
               default:
                 Contract.Assert(false); throw new Cce.UnreachableException();  // unexpected unary operator
             }
@@ -756,21 +775,35 @@ namespace Microsoft.Dafny {
             }
             var name = fieldLocation.Name;
             MethodOrConstructor innerCallEnclosingMethod = null;
-            if (fieldLocation.Lhs is NameSegment nameSegment && currentClass != null &&
+            if (fieldLocation.Lhs is NameSegment {Name: var n} nameSegment && currentClass != null &&
                 resolver.GetClassMembers(currentClass) is { } members &&
-                members.TryGetValue(nameSegment.Name, out var member)) {
-              if (EnclosingMethodCall == member) {
-                innerCallEnclosingMethod = EnclosingMethodCall;
-              } else if (EnclosingMethodCall != null) {
-                ReportError(fieldLocation.Lhs, "Expected 'locals' or the explicit name of the enclosing method call '{0}' as the left-hand-side of the memory location expression, got '{1}'", EnclosingMethodCall.Name, nameSegment.Name);
-                fieldLocation.PreType = CreatePreTypeProxy("field-location");
-                return;
-              } else {
-                ReportError(fieldLocation.Lhs, "Expected 'locals', got unrelated method name '{0}'", nameSegment.Name);
+                members.TryGetValue(n == "constructor" ? "_ctor" : n, out var member) && member is MethodOrConstructor methodOrConstructor) {
+              if (EnclosingMethodCall != methodOrConstructor) {
+                var errorMsg = "cannot refer to a method parameter if not in the scope of a call to that method";
+                if (methodOrConstructor == currentMethod) {
+                  errorMsg += " - to refer to the local parameter, use locals`{0} instead";
+                }
+                ReportError(fieldLocation.Lhs, errorMsg, name);
                 fieldLocation.PreType = CreatePreTypeProxy("field-location");
                 return;
               }
+              innerCallEnclosingMethod = methodOrConstructor;
               nameSegment.PreType = CreatePreTypeProxy(); // Never used, just in case.
+            } else if (fieldLocation.Lhs is ExprDotName e) {
+              ResolveDotSuffix(e, true, true, null, resolutionContext, true);
+              if (e.Resolved is not MemberSelectExpr mse) {
+                ReportError(fieldLocation.Lhs, "The only expr dot name allowed here is a method or constructor, but got something else", name);
+                fieldLocation.PreType = CreatePreTypeProxy("field-location");
+                return;
+              }
+
+              if (mse.Member is not MethodOrConstructor methodOrConstructor2) {
+                ReportError(fieldLocation.Lhs, "Expected method or constructor, got {0}", name, mse.Member.WhatKind);
+                fieldLocation.PreType = CreatePreTypeProxy("field-location");
+                return;
+              }
+              innerCallEnclosingMethod = methodOrConstructor2;
+              fieldLocation.Lhs.PreType ??= CreatePreTypeProxy(); // Never used, just in case.
             } else {
               ResolveExpression(fieldLocation.Lhs, resolutionContext);
             }
@@ -779,12 +812,15 @@ namespace Microsoft.Dafny {
             Field localField;
 
             if (innerCallEnclosingMethod != null) {
-              var formal = EnclosingInputParameterFormals.Find(name.Value);
+              var availableFormals = innerCallEnclosingMethod.Ins.Concat(innerCallEnclosingMethod.Outs);
+              var formal = availableFormals.FirstOrDefault(formal => formal.Name == name.Value);
+              if (formal == null && name.Value == "this" && innerCallEnclosingMethod is { IsStatic: false }) {
+                formal = innerCallEnclosingMethod.GetThisFormal();
+              }
               if (formal == null) {
                 // Let's give an hint about declared input parameters
                 var hints = new List<string>();
-                hints.AddRange(EnclosingInputParameterFormals.Names
-                  .Where(n => n != null).Select(n => $"{EnclosingMethodCall!.Name}`{n}"));
+                hints.AddRange(availableFormals.Select(n => $"{innerCallEnclosingMethod!.Name}`{n.Name}"));
                 hints.AddRange(Scope.Names
                   .Where(n => n != null).Select(n => $"locals`{n}"));
                 ReportError(fieldLocation, "input parameter '{0}' is not declared{1}", name, DidYouMeanOneOf(hints));
@@ -808,22 +844,27 @@ namespace Microsoft.Dafny {
               // We resolve the field as a local variable like for identifiers and name segments
               var v = scope.Find(name.Value);
               if (v == null) {
-                var f = EnclosingInputParameterFormals.Find(name.Value);
-                var hint = "";
-                if (f != null) {
-                  hint = DidYouMeanOneOf([$"{EnclosingMethodCall!.Name}`{name.Value}"]);
+                if (name.Value == "this" && method.EnclosingClass is not DefaultClassDecl) {
+                  // Special case: 'this' gets a special field as if it was an output variable.
+                  v = method.GetThisFormal();
                 } else {
-                  // We only suggest variables in scope.
-                  var hints = new List<string>();
-                  hints.AddRange(Scope.Names
-                    .Where(n => n != null).Select(n => $"locals`{n}"));
-                  hints.AddRange(EnclosingInputParameterFormals.Names
-                    .Where(n => n != null).Select(n => $"{EnclosingMethodCall!.Name}`{n}"));
-                  hint = DidYouMeanOneOf(hints);
+                  var f = EnclosingInputParameterFormals.Find(name.Value);
+                  var hint = "";
+                  if (f != null) {
+                    hint = DidYouMeanOneOf([$"{EnclosingMethodCall!.Name}`{name.Value}"]);
+                  } else {
+                    // We only suggest variables in scope.
+                    var hints = new List<string>();
+                    hints.AddRange(Scope.Names
+                      .Where(n => n != null).Select(n => $"locals`{n}"));
+                    hints.AddRange(EnclosingInputParameterFormals.Names
+                      .Where(n => n != null).Select(n => $"{EnclosingMethodCall!.Name}`{n}"));
+                    hint = DidYouMeanOneOf(hints);
+                  }
+                  ReportError(fieldLocation, "variable '{0}' is not declared{1}", name, hint);
+                  fieldLocation.PreType = CreatePreTypeProxy("field-location");
+                  return;
                 }
-                ReportError(fieldLocation, "variable '{0}' is not declared{1}", name, hint);
-                fieldLocation.PreType = CreatePreTypeProxy("field-location");
-                return;
               }
               if (v is not LocalVariable local) {
                 if (v is not Formal formal) {
@@ -1771,6 +1812,9 @@ namespace Microsoft.Dafny {
       Expression rWithArgs = null;  // the resolved expression after incorporating "args"
 
       var name = resolutionContext.InReveal ? HideRevealStmt.RevealLemmaPrefix + expr.SuffixName : expr.SuffixName;
+      if (name == "constructor") {
+        name = "_ctor";
+      }
       var lhs = expr.Lhs.Resolved ?? expr.Lhs; // Sometimes resolution comes later, but pre-types have already been set
       if (lhs is { PreType: PreTypePlaceholderModule }) {
         var ri = (ResolverIdentifierExpr)lhs;

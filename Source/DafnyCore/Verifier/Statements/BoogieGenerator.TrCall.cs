@@ -147,8 +147,8 @@ public partial class BoogieGenerator {
     }
 
     var ins = new List<Bpl.Expr>();
-    if (Options.Get(CommonOptionBag.Referrers) && callee is not Lemma) {
-      ins.Add(FunctionCall(tok, "+", Boogie.Type.Int, Id(tok, "depth"), One(tok)));
+    if (VerifyReferrers && callee is not Lemma) {
+      ins.Add(Bpl.Expr.Add(Id(tok, "depth"), One(tok)));
     }
     if (callee is TwoStateLemma) {
       ins.Add(etran.OldAt(atLabel).HeapExpr);
@@ -231,7 +231,11 @@ public partial class BoogieGenerator {
       directSubstMap.Add(formal, dActual);
       Bpl.Cmd cmd = Bpl.Cmd.SimpleAssign(formal.Origin, param, bActual);
       builder.Add(cmd);
+      Referrers.AddAssignPreCallFormal(cs.Origin, param, builder, etran, formal, method);
       ins.Add(AdaptBoxing(ToDafnyToken(param.tok), param, formal.Type.Subst(tySubst), formal.Type));
+    }
+    if (!method.IsStatic && method is not Constructor && bReceiver != null) {
+      Referrers.AddAssignPreCallFormal(cs.Origin, bReceiver, builder, etran, method.GetThisFormal(), method);
     }
 
     // Check that every parameter is available in the state in which the method is invoked; this means checking that it has
@@ -365,6 +369,15 @@ public partial class BoogieGenerator {
       call.IsFree = true;
     }
     builder.Add(call);
+
+    foreach (var formal in callee.Ins) {
+      var ie = substMap[formal];
+      var dActual = etran.TrExpr(ie);
+      Referrers.RemovePostCallFormal(cs.Origin, dActual, formal, method, builder, etran);
+    }
+    if (!method.IsStatic) {
+      Referrers.RemovePostCallFormal(cs.Origin, bReceiver, method.GetThisFormal(), method, builder, etran);
+    }
 
     // Unbox results as needed
     for (int i = 0; i < Lhss.Count; i++) {

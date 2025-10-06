@@ -893,7 +893,6 @@ module {:extract_boogie} Sets {
   {
     assert forall o :: In(a, o) == IsMember(a, o);
   }
-
 }
   // // the empty set could be of anything
   // //axiom (forall t: Ty :: { $Is(Set#Empty() : [Box]bool, TSet(t)) } $Is(Set#Empty() : [Box]bool, TSet(t)));

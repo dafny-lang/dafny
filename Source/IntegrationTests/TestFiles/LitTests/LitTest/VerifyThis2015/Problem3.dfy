@@ -1,4 +1,4 @@
-// RUN: %testDafnyForEachCompiler --refresh-exit-code=0 "%s"
+// RUN: %testDafnyForEachCompiler --solver-option="O:smt.qi.eager_threshold=100" --refresh-exit-code=0 "%s"
 // Rustan Leino
 // 12 April 2015
 // VerifyThis 2015

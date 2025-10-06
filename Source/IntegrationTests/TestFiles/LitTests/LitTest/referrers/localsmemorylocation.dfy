@@ -55,7 +55,7 @@ method CallSingleParam() {
   SingleParam(SingleParam`mem_i);
 }
 
-method OnlyStackMemoryLocations(t: TestLocals, s: set<(object, field)>)
+method OnlyStackMemoryLocations(t: TestLocals, ghost s: set<(object, field)>)
   requires forall r <- s :: r.0 == locals
   decreases *
 {

@@ -75,6 +75,11 @@ module _System {
     const Floor: int
   }
 
+  type field {
+    const IsGhost: bool
+    const Index: int
+  }
+
   type ORDINAL {
     const IsLimit: bool
     const IsSucc: bool

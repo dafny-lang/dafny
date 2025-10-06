@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Diagnostics.Contracts;
 using System.Linq;
 using Microsoft.Boogie;
 using DafnyIdentifierExpr = Microsoft.Dafny.IdentifierExpr;
@@ -60,7 +61,15 @@ public static class OpaqueBlockVerifier {
         new TypedIdent(block.Origin, uniqueId, generator.Predef.HeapType)));
       builder.Add(Cmd.SimpleAssign(block.Origin, new Boogie.IdentifierExpr(block.Origin, heapAtVariable), etran.HeapExpr));
 
-      beforeBlockExpressionTranslator = etran.WithHeapVariable(uniqueId);
+      beforeBlockExpressionTranslator = etran.WithHeapVariable(uniqueId, out var uniqueIdReferrers);
+
+      if (builder.Options.Get(CommonOptionBag.Referrers)) {
+        Contract.Assert(uniqueIdReferrers != null);
+        var referrersHeapAtVariable = locals.GetOrAdd(new Boogie.LocalVariable(block.Origin,
+          new TypedIdent(block.Origin, uniqueIdReferrers, generator.Predef.ReferrersHeapType)));
+        builder.Add(Cmd.SimpleAssign(block.Origin, new BoogieIdentifierExpr(block.Origin, referrersHeapAtVariable),
+          etran.ReferrersHeapExpr));
+      }
     } else {
       beforeBlockExpressionTranslator = etran;
     }
@@ -68,7 +77,11 @@ public static class OpaqueBlockVerifier {
     generator.PathAsideBlock(block.Origin, blockBuilder, builder);
 
     generator.ApplyModifiesEffect(block, beforeBlockExpressionTranslator, etran, builder, block.Modifies, true, block.IsGhost);
-    builder.Add(new HavocCmd(Token.NoToken, assignedVariables.Select(v => new BoogieIdentifierExpr(v.Origin, v.UniqueName)).ToList()));
+    if (assignedVariables.Any()) {
+      builder.Add(new HavocCmd(Token.NoToken,
+        assignedVariables.Select(v => new BoogieIdentifierExpr(v.Origin, v.UniqueName)).Concat(assignedVariables.SelectMany(
+          v => generator.DefiniteAssignmentTrackers.TryGetValue(v.UniqueName, out var trackedTracker) ? [trackedTracker.tracker] : System.Array.Empty<BoogieIdentifierExpr>())).ToList()));
+    }
 
     foreach (var ensure in totalEnsures) {
       generator.CheckWellformedAndAssume(ensure.E, new WFOptions(null, false),

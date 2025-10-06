@@ -32,22 +32,19 @@ namespace Microsoft.Dafny {
     public static void ComputeFreeVariables(DafnyOptions options, Expression expr, ISet<IVariable> fvs) {
       Contract.Requires(expr != null);
       Contract.Requires(fvs != null);
-      bool dontCare0 = false, dontCare1 = false;
       Type dontCareT = null;
       var dontCareHeapAt = new HashSet<Label>();
-      ComputeFreeVariables(options, expr, fvs, ref dontCare0, ref dontCare1, dontCareHeapAt, ref dontCareT, false);
+      ComputeFreeVariables(options, expr, fvs, ref ExprHeapUsage.DontCare, dontCareHeapAt, ref dontCareT, false);
     }
-    public static void ComputeFreeVariables(DafnyOptions options, Expression expr, ISet<IVariable> fvs, ref bool usesHeap, bool includeStatements = false) {
+    public static void ComputeFreeVariables(DafnyOptions options, Expression expr, ISet<IVariable> fvs, ref ExprHeapUsage exprHeapUsage, bool includeStatements = false) {
       Contract.Requires(expr != null);
       Contract.Requires(fvs != null);
-      bool dontCare1 = false;
       Type dontCareT = null;
       var dontCareHeapAt = new HashSet<Label>();
-      ComputeFreeVariables(options, expr, fvs, ref usesHeap, ref dontCare1, dontCareHeapAt, ref dontCareT, includeStatements);
+      ComputeFreeVariables(options, expr, fvs, ref exprHeapUsage, dontCareHeapAt, ref dontCareT, includeStatements);
     }
     public static void ComputeFreeVariables(DafnyOptions options, Expression expr,
-      ISet<IVariable> fvs,
-      ref bool usesHeap, ref bool usesOldHeap, ISet<Label> freeHeapAtVariables, ref Type usesThis,
+      ISet<IVariable> fvs, ref ExprHeapUsage heapUsage, ISet<Label> freeHeapAtVariables, ref Type usesThis,
       bool includeStatements) {
       Contract.Requires(expr != null);
 
@@ -62,7 +59,7 @@ namespace Microsoft.Dafny {
       } else if (expr is MemberSelectExpr) {
         var e = (MemberSelectExpr)expr;
         if (e.Member is not Field { IsMutable: false }) {
-          usesHeap = true;
+          heapUsage.UseHeap = true;
         }
         if (e.AtLabel != null) {
           freeHeapAtVariables.Add(e.AtLabel);
@@ -70,19 +67,22 @@ namespace Microsoft.Dafny {
       } else if (expr is SeqSelectExpr) {
         var e = (SeqSelectExpr)expr;
         if (e.Seq.Type.IsArrayType) {
-          usesHeap = true;
+          heapUsage.UseHeap = true;
         }
       } else if (expr is SeqUpdateExpr) {
         var e = (SeqUpdateExpr)expr;
         if (e.Seq.Type.IsArrayType) {
-          usesHeap = true;
+          heapUsage.UseHeap = true;
         }
       } else if (expr is MultiSelectExpr) {
-        usesHeap = true;
+        heapUsage.UseHeap = true;
       } else if (expr is FunctionCallExpr) {
         var e = (FunctionCallExpr)expr;
         if (e.Function == null || e.Function.ReadsHeap) {
-          usesHeap = true;
+          heapUsage.UseHeap = true;
+        }
+        if (e.Function == null || e.Function.ReadsReferrersHeap) {
+          heapUsage.UseReferrersHeap = true;
         }
         if (e.AtLabel != null) {
           freeHeapAtVariables.Add(e.AtLabel);
@@ -91,52 +91,54 @@ namespace Microsoft.Dafny {
         var e = (UnchangedExpr)expr;
         // Note, we don't have to look out for const fields here, because const fields
         // are not allowed in unchanged expressions.
-        usesHeap = true;
+        heapUsage.UseHeap = true;
         if (e.AtLabel == null) {
-          usesOldHeap = true;
+          heapUsage.UseOldHeap = true;
         } else {
           freeHeapAtVariables.Add(e.AtLabel);
         }
       } else if (expr is ApplyExpr) {
-        usesHeap = true; // because the translation of an ApplyExpr always throws in the heap variable
+        heapUsage.UseHeap = true; // because the translation of an ApplyExpr always throws in the heap variable
       } else if (expr is UnaryOpExpr) {
         var e = (UnaryOpExpr)expr;
         if (e.Op == UnaryOpExpr.Opcode.Fresh) {
           var f = (FreshExpr)e;
           if (f.AtLabel == null) {
-            usesOldHeap = true;
+            heapUsage.UseOldHeap = true;
           } else {
             freeHeapAtVariables.Add(f.AtLabel);
           }
         } else if (e.Op == UnaryOpExpr.Opcode.Allocated) {
-          usesHeap = true;
+          heapUsage.UseHeap = true;
+        } else if (e.Op == UnaryOpExpr.Opcode.Referrers) {
+          heapUsage.UseReferrersHeap = true;
         }
       }
 
       // visit subexpressions
-      bool uHeap = false, uOldHeap = false;
+      ExprHeapUsage subHeapUsage = new();
       Type uThis = null;
       if (expr is StmtExpr stmtExpr && includeStatements) {
         foreach (var subExpression in stmtExpr.S.SubExpressionsIncludingTransitiveSubStatements) {
-          ComputeFreeVariables(options, subExpression, fvs, ref uHeap, ref uOldHeap, freeHeapAtVariables, ref uThis, includeStatements);
+          ComputeFreeVariables(options, subExpression, fvs, ref subHeapUsage, freeHeapAtVariables, ref uThis, includeStatements);
         }
       }
       foreach (var subExpression in expr.SubExpressions) {
-        ComputeFreeVariables(options, subExpression, fvs, ref uHeap, ref uOldHeap, freeHeapAtVariables, ref uThis, includeStatements);
+        ComputeFreeVariables(options, subExpression, fvs, ref subHeapUsage, freeHeapAtVariables, ref uThis, includeStatements);
       }
       Contract.Assert(usesThis == null || uThis == null || usesThis.Equals(uThis));
-      usesThis = usesThis ?? uThis;
+      usesThis ??= uThis;
       var asOldExpr = expr as OldExpr;
       if (asOldExpr != null && asOldExpr.AtLabel == null) {
-        usesOldHeap |= uHeap | uOldHeap;
+        heapUsage.UseOldHeap |= subHeapUsage.UseHeap | subHeapUsage.UseOldHeap;
       } else if (asOldExpr != null) {
-        if (uHeap) {  // if not, then there was no real point in using an "old" expression
+        if (subHeapUsage.UseHeap) {  // if not, then there was no real point in using an "old" expression
           freeHeapAtVariables.Add(asOldExpr.AtLabel);
         }
-        usesOldHeap |= uOldHeap;
+        heapUsage.UseOldHeap |= subHeapUsage.UseOldHeap;
       } else {
-        usesHeap |= uHeap;
-        usesOldHeap |= uOldHeap;
+        heapUsage.UseHeap |= subHeapUsage.UseHeap;
+        heapUsage.UseOldHeap |= subHeapUsage.UseOldHeap;
       }
 
       if (expr is LetExpr) {

@@ -26,9 +26,31 @@ namespace Microsoft.Dafny {
           fc = new Constant(f.Origin, new TypedIdent(f.Origin, f.FullSanitizedName, Predef.FieldNameFamily(f.Origin)), true);
           fields.Add(f, fc);
           sink.AddTopLevelDeclaration(fc);
-          // No axiom necessary, they are added in the prelude
+          // We emit the axiom
+          /* axiom
+            (forall depth: int ::
+            { local_field(constant_field_family_name, depth) }
+                   $IsGhostField(local_field(constant_field_family_name, depth))) // if the field is a ghost field
+            OR
+                   !$IsGhostField(local_field(constant_field_family_name, depth))) // if the field is a ghost field
+            ; 
+          */
+          // Create the axiom for ghost field status
+          var depthVar = new Bpl.BoundVariable(f.Origin, new Bpl.TypedIdent(f.Origin, "depth", Bpl.Type.Int));
+          var depth = new Bpl.IdentifierExpr(f.Origin, depthVar);
+          var localFieldCall = FunctionCall(f.Origin, BuiltinFunction.LocalField, Predef.FieldName(f.Origin),
+            Bpl.Expr.Ident(fc), depth);
+          var isGhostCall = FunctionCall(f.Origin, BuiltinFunction.IsGhostField, Predef.FieldName(f.Origin), localFieldCall);
+
+          var body = f.IsGhost ? isGhostCall : Bpl.Expr.Not(isGhostCall);
+          var trigger = BplTrigger(localFieldCall);
+          var forall = new Bpl.ForallExpr(f.Origin, [depthVar], trigger, body);
+          var axFieldFamily = new Bpl.Axiom(f.Origin, forall);
+          AddOtherDefinition(fc, axFieldFamily);
+
           return fc;
         }
+
         // If 
         // const f: Field;
         Bpl.Type ty = Predef.FieldName(f.Origin);
@@ -44,7 +66,7 @@ namespace Microsoft.Dafny {
         Bpl.Expr cond = BplAnd(fdim, declType);
         var ig = FunctionCall(f.Origin, BuiltinFunction.IsGhostField, ty, Bpl.Expr.Ident(fc));
         cond = BplAnd(cond, f.IsGhost ? ig : Bpl.Expr.Not(ig));
-        if (Options.Get(CommonOptionBag.Referrers)) {
+        if (VerifyReferrers) {
           // We emit the axiom that field_family(_module.Test.x) == object_field;
           // so that local fields can be determined to be different from object fields
           // (which are not visible in the current scope)
@@ -95,6 +117,12 @@ namespace Microsoft.Dafny {
             return Predef.ORDINAL_Offset;
           } else if (f.Name == "IsNat") {
             return Predef.ORDINAL_IsNat;
+          } else if (f.Name == "IsGhost") {
+            return Predef.IsGhostField;
+          } else if (f.Name == "Index") {
+            return Predef.InverseFieldIndex;
+          } else if (f.Name == "FDim") {
+            return Predef.FieldDimension;
           }
         } else if (f.FullSanitizedName == "_System.Tuple2._0") {
           return Predef.Tuple2Destructors0;

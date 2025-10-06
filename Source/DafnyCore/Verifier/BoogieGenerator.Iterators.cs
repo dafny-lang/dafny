@@ -80,6 +80,9 @@ namespace Microsoft.Dafny {
       var ens = new List<Bpl.Ensures>();
       // FREE PRECONDITIONS
       mod.Add(etran.HeapCastToIdentifierExpr);
+      if (Options.Get(CommonOptionBag.Referrers)) {
+        mod.Add(etran.ReferrerrsHeapCastToIdentifierExpr);
+      }
 
       if (kind != MethodTranslationKind.SpecWellformedness) {
         // USER-DEFINED SPECIFICATIONS
@@ -211,7 +214,8 @@ namespace Microsoft.Dafny {
         []));
       // assume the implicit postconditions promised by MoveNext:
       // assume fresh(_new - old(_new));
-      var yeEtran = new ExpressionTranslator(this, Predef, etran.HeapExpr, new Bpl.IdentifierExpr(iter.Origin, "$_OldIterHeap", Predef.HeapType), iter);
+
+      var yeEtran = new ExpressionTranslator(this, Predef, etran.HeapExpressions, new HeapExpressions(new Bpl.IdentifierExpr(iter.Origin, "$_OldIterHeap", Predef.HeapType), null), iter);
       var old_nw = new OldExpr(iter.Origin, nw);
       old_nw.Type = nw.Type;  // resolve here
       var setDiff = new BinaryExpr(iter.Origin, BinaryExpr.Opcode.Sub, nw, old_nw);

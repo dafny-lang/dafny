@@ -14,6 +14,22 @@ public abstract class MethodOrConstructor : MethodOrFunction, TypeParameter.Pare
   IMethodCodeContext, ICanFormat, IHasDocstring, IHasSymbolChildren, ICanAutoRevealDependencies, ICanVerify {
   public abstract List<Formal> Outs { get; }
 
+  // Used for referrers
+  [FilledInDuringResolution]
+  private Formal? thisFormal; // In a method, it's an input parameter; in a constructor, it's an output parameter
+
+  public Formal GetThisFormal() {
+    Contract.Assert(EnclosingClass is TopLevelDeclWithMembers);
+    if (thisFormal != null) {
+      return thisFormal;
+    }
+    thisFormal = new Formal(StartToken, "this",
+      ModuleResolver.GetThisType(Origin, (TopLevelDeclWithMembers)EnclosingClass), this is not Constructor, IsGhost,
+      null);
+
+    return thisFormal;
+  }
+
   public static readonly Option<bool> ReadsClausesOnMethods = new("--reads-clauses-on-methods",
     "Allows reads clauses on methods (with a default of 'reads *') as well as functions."
   );

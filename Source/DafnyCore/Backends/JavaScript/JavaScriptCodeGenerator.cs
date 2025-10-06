@@ -1540,6 +1540,7 @@ namespace Microsoft.Dafny.Compilers {
         case "boolean":
         case "byte":
         case "catch":
+        case "constructor":
         case "continue":
         case "debugger":
         case "default":

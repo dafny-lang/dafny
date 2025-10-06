@@ -130,7 +130,7 @@ ghost method GM<G>() returns (g: G)
 {
   var a: G, b: G;
   a := b;  // error: since b has not been assigned
-}  // error: g was never assigned
+} // Nothing else is reported since we assumed b was assigned when it was not
 
 method MM<G(00)>(ghost x: int, g: G) returns (vv: G, ww: G)
 {

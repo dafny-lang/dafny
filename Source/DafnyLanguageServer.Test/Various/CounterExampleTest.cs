@@ -1049,8 +1049,9 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
       await SetUpOptions(optionSettings);
       var source = @"
       module M {
+        method init() returns (c: (int, bool) ~> real)
         method test() {
-          var c: (int, bool) ~> real;
+          var c: (int, bool) ~> real := init();
           var x := c(1, false);
           assert x == 2.4;
         }
@@ -1059,7 +1060,7 @@ namespace Microsoft.Dafny.LanguageServer.IntegrationTest.Various {
       await client.OpenDocumentAndWaitAsync(documentItem, CancellationToken);
       var counterExamples = (await RequestCounterExamples(documentItem.Uri)).
         OrderBy(counterexample => counterexample.Position).ToArray();
-      Assert.Equal(4, counterExamples.Count());
+      Assert.Equal(5, counterExamples.Count());
     }
 
     [Theory]
