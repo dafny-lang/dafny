@@ -778,6 +778,15 @@ namespace Microsoft.Dafny {
             if (fieldLocation.Lhs is NameSegment {Name: var n} nameSegment && currentClass != null &&
                 resolver.GetClassMembers(currentClass) is { } members &&
                 members.TryGetValue(n == "constructor" ? "_ctor" : n, out var member) && member is MethodOrConstructor methodOrConstructor) {
+              if (EnclosingMethodCall != methodOrConstructor) {
+                var errorMsg = "cannot refer to a method parameter if not in the scope of a call to that method";
+                if (methodOrConstructor == currentMethod) {
+                  errorMsg += " - to refer to the local parameter, use locals`{0} instead";
+                }
+                ReportError(fieldLocation.Lhs, errorMsg, name);
+                fieldLocation.PreType = CreatePreTypeProxy("field-location");
+                return;
+              }
               innerCallEnclosingMethod = methodOrConstructor;
               nameSegment.PreType = CreatePreTypeProxy(); // Never used, just in case.
             } else if (fieldLocation.Lhs is ExprDotName e) {

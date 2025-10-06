@@ -38,13 +38,13 @@ module Example0 {
 }
 
 module Example1 {
-  datatype Referrer = Referrer(obj: Node, field: int)
-  function On(n: Node, f: int): Referrer {
-    Referrer(n, f)
+  datatype Backref = Backref(obj: Node, field: int)
+  function On(n: Node, f: int): Backref {
+    Backref(n, f)
   }
 
   class Node {
-    ghost var referrers: set<Referrer>
+    ghost var backrefs: set<Backref>
 
     var value: int
   }
@@ -65,7 +65,7 @@ module Example1 {
     {
       this.head := new Node;
       this.owned := {head};
-      this.head.referrers := this.head.referrers + {On(this.head, 1)};
+      this.head.backrefs := this.head.backrefs + {On(this.head, 1)};
       assert false; // error
     }
   }
