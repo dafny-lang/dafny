@@ -1881,10 +1881,19 @@ namespace Microsoft.Dafny {
         if (options.Get(CommonOptionBag.CheckInvariants)) {
           // frame condition: requires $Open == {}
           etran.OpenFormal(m.Origin, out var openExpr, out var openExprDafny);
-          req.Add(Requires(m.Origin, false, null, etran.TrExpr(new BinaryExpr(m.Origin, BinaryExpr.ResolvedOpcode.SetEq,
-            new SetDisplayExpr(m.Origin, true, []) { Type = program.SystemModuleManager.NonNullObjectSetType(m.Origin) },
-            openExprDafny)), null, null, "frame condition for open set"));
-          // lockstep condition: ensures OpenHeapRelated($Open, $Heap)
+          Expression openFrame;
+          if (!m.IsStatic
+              && m.EnclosingClass is TopLevelDeclWithMembers { Invariant: { } invariant } 
+              && currentModule.CallGraph.Reaches(invariant, m)) {
+            openFrame = new LiteralExpr(m.Origin, true);
+          } else {
+            openFrame = new BinaryExpr(m.Origin, BinaryExpr.ResolvedOpcode.SetEq, openExprDafny,
+              new SetDisplayExpr(m.Origin, true, [])
+                { Type = program.SystemModuleManager.NonNullObjectSetType(m.Origin) });
+          }
+          // frame condition
+          req.Add(Requires(m.Origin, false, openFrame, etran.TrExpr(openFrame), null, null, "open set frame condition"));
+          // lockstep condition: requires OpenHeapRelated($Open, $Heap)
           req.Add(Requires(m.Origin, false, null, FunctionCall(m.Origin, BuiltinFunction.OpenHeapRelated, null, openExpr, etran.HeapExpr), null, null, "open lockstep condition"));
         }
 

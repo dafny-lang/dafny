@@ -1,3 +1,4 @@
-MethodCallInInvariantError.dfy(11,17): Error: decreases clause might not decrease
+MethodCallInInvariantError.dfy(8,2): Error: a postcondition could not be proved on this return path
+MethodCallInInvariantError.dfy(7,12): Related location: this is the postcondition that could not be proved
 
-Dafny program verifier finished with 3 verified, 1 error
+Dafny program verifier finished with 2 verified, 1 error
