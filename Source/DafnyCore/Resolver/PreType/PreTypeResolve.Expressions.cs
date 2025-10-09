@@ -12,6 +12,7 @@ using System.Numerics;
 using System.Diagnostics.Contracts;
 using DafnyCore;
 using JetBrains.Annotations;
+using Microsoft.BaseTypes;
 using ResolutionContext = Microsoft.Dafny.ResolutionContext;
 
 namespace Microsoft.Dafny {
@@ -46,6 +47,19 @@ namespace Microsoft.Dafny {
           }
         case NegationExpression expression: {
             var e = expression;
+
+            // Check if the user is trying to do -~0.1, which is not allowed
+            if (e.E is ApproximateExpr approxExpr) {
+              // Extract the literal value for a better error message
+              string literalStr = "...";
+              if (approxExpr.Expr is LiteralExpr lit && lit.Value is BaseTypes.BigDec dec) {
+                literalStr = dec.ToString();
+              }
+              resolver.ReportError(ResolutionErrors.ErrorId.r_approximate_prefix_after_negation, e.Origin,
+                $"The approximate literal prefix ~ cannot be used after unary negation. " +
+                $"Use ~-{literalStr} instead of -~{literalStr} to negate an approximate literal.");
+            }
+
             ResolveExpression(e.E, resolutionContext);
             e.PreType = CreatePreTypeProxy("result of unary -");
             AddSubtypeConstraint(e.PreType, e.E.PreType, e.E.Origin,
@@ -70,9 +84,10 @@ namespace Microsoft.Dafny {
                 Constraints.AddDefaultAdvice(e.PreType, CommonAdvice.Target.Int);
                 AddConfirmation(PreTypeConstraints.CommonConfirmationBag.IntOrBitvectorOrORDINAL, e.PreType, e.Origin, "integer literal used as if it had type {0}");
               } else if (e.Value is BaseTypes.BigDec) {
-                e.PreType = CreatePreTypeProxy($"real literal '{e.Value}'");
+                e.PreType = CreatePreTypeProxy($"decimal literal '{e.Value}'");
+                // Add Real advice as default, but it can be overridden by equality constraints from fp64 contexts
                 Constraints.AddDefaultAdvice(e.PreType, CommonAdvice.Target.Real);
-                AddConfirmation(PreTypeConstraints.CommonConfirmationBag.InRealFamily, e.PreType, e.Origin, "real literal used as if it had type {0}");
+                AddConfirmation(PreTypeConstraints.CommonConfirmationBag.InRealFamily, e.PreType, e.Origin, "decimal literal used as if it had type {0}");
               } else if (e.Value is bool boolValue) {
                 e.PreType = CreatePreTypeProxy($"boolean literal '{boolValue.ToString().ToLower()}'");
                 Constraints.AddDefaultAdvice(e.PreType, CommonAdvice.Target.Bool);
@@ -206,6 +221,11 @@ namespace Microsoft.Dafny {
           break;
         case MemberSelectExpr selectExpr: {
             var e = selectExpr;
+            // If the MemberSelectExpr is already resolved, don't process it again
+            if (e.WasResolved()) {
+              // Already resolved, nothing to do
+              break;
+            }
             Contract.Assert(false); // this case is always handled by ResolveExprDotCall
             break;
           }
@@ -465,6 +485,77 @@ namespace Microsoft.Dafny {
 
             break;
           }
+        case ApproximateExpr approximateExpr: {
+            var e = approximateExpr;
+            ResolveExpression(e.Expr, resolutionContext);
+
+            // Check that there's no space between ~ and the literal
+            // The ~ is at the start position, and the literal should be exactly 1 column after
+            var tildePos = e.Origin.EntireRange.StartToken;
+            var literalPos = e.Expr.Origin.EntireRange.StartToken;
+            // If they're on the same line and the literal isn't immediately after ~
+            if (tildePos.line == literalPos.line && literalPos.col - tildePos.col > 1) {
+              ReportError(e, "~ prefix must immediately precede the literal with no intervening space");
+            }
+
+            // Validate that the inner expression is a numeric literal (or a negation of one)
+            var innerExpr = e.Expr;
+
+            // Check for a negation - but just validate, don't consolidate yet
+            if (innerExpr is NegationExpression neg) {
+              innerExpr = neg.E;
+            }
+
+            if (innerExpr is LiteralExpr lit) {
+              if (lit.Value is BaseTypes.BigDec decValue) {
+                // This is a decimal literal, which is allowed with ~
+                // But we should only allow ~ on inexact values
+
+                // Check if the decimal is exactly representable as fp64
+                // fp64 has 53-bit significand and 11-bit exponent
+                var isExact = BigFloat.FromBigDec(decValue, 53, 11, out var floatValue);
+                if (isExact) {
+                  // The value is exactly representable, so ~ should not be allowed
+                  ReportError(e, $"The approximate literal prefix ~ is not allowed on the exactly representable value {decValue}. Remove the ~ prefix.");
+                }
+
+                // Store the computed BigFloat value to avoid recomputing it later
+                if (lit is DecimalLiteralExpr decLit) {
+                  decLit.ResolvedFloatValue = floatValue;
+                }
+
+                // The ~ prefix forces the type to fp64
+                e.PreType = new DPreType(BuiltInTypeDecl(PreType.TypeNameFp64), []);
+                // Just set the resolved expression to the inner expression (could be NegationExpression)
+                e.ResolvedExpression = e.Expr;
+                e.Expr.PreType = new DPreType(BuiltInTypeDecl(PreType.TypeNameFp64), []);
+              } else if (lit.Value is BigInteger) {
+                ReportError(e, "~ prefix not allowed on integer literals");
+                e.PreType = new DPreType(BuiltInTypeDecl(PreType.TypeNameInt), []);
+              } else if (lit.Value is bool) {
+                ReportError(e, "~ prefix not allowed on boolean literals");
+                e.PreType = new DPreType(BuiltInTypeDecl(PreType.TypeNameBool), []);
+              } else if (lit is CharLiteralExpr) {
+                ReportError(e, "~ prefix not allowed on character literals");
+                e.PreType = new DPreType(BuiltInTypeDecl(PreType.TypeNameChar), []);
+              } else if (lit is StringLiteralExpr) {
+                ReportError(e, "~ prefix not allowed on string literals");
+                e.PreType = new DPreType(BuiltInTypeDecl(PreType.TypeNameString), []);
+              } else {
+                ReportError(e, "~ prefix can only be applied to numeric literals");
+                e.PreType = CreatePreTypeProxy("error");
+              }
+            } else {
+              ReportError(e, "~ prefix can only be applied to numeric literals, not to variables or expressions");
+              e.PreType = e.Expr.PreType;
+            }
+
+            // Set the resolved expression for code generation if not already set
+            if (e.ResolvedExpression == null) {
+              e.ResolvedExpression = e.Expr;
+            }
+            break;
+          }
         case ConversionExpr conversionExpr: {
             var e = conversionExpr;
             ResolveExpression(e.E, resolutionContext);
@@ -487,6 +578,8 @@ namespace Microsoft.Dafny {
                     } else {
                       errorMessageFormat = "type conversion to a real-based type is allowed only from real (got {1})";
                     }
+                  } else if (familyDeclName == PreType.TypeNameFp64) {
+                    errorMessageFormat = "type conversion to fp64 is allowed only from int and real types (got {1})";
                   } else if (IsBitvectorName(familyDeclName)) {
                     errorMessageFormat = "type conversion to a bitvector-based type is allowed only from numeric and bitvector types, char, and ORDINAL (got {1})";
                   } else if (familyDeclName == PreType.TypeNameChar) {
@@ -1142,7 +1235,7 @@ namespace Microsoft.Dafny {
           Constraints.AddGuardedConstraint(() => {
             var left = e0.PreType.NormalizeWrtScope() as DPreType;
             var right = e1.PreType.NormalizeWrtScope() as DPreType;
-            if (left != null && left.Decl is IndDatatypeDecl) {
+            if (left is { Decl: IndDatatypeDecl }) {
               AddConfirmation(PreTypeConstraints.CommonConfirmationBag.RankOrderableOrTypeParameter, e1.PreType, tok,
                 $"arguments to rank comparison must be datatypes (got {e0.PreType} and {{0}})");
               return true;
@@ -1169,10 +1262,33 @@ namespace Microsoft.Dafny {
           break;
 
         case BinaryExpr.Opcode.Add:
-          resultPreType = CreatePreTypeProxy("result of +");
-          AddConfirmation(PreTypeConstraints.CommonConfirmationBag.Plussable, resultPreType, tok,
-            "type of + must be of a numeric type, a bitvector type, ORDINAL, char, a sequence type, or a set-like or map-like type (instead got {0})");
-          ConstrainOperandTypes(tok, opString, e0, e1, resultPreType);
+          // Check immediately if either operand is fp64
+          var e0Normalized = e0.PreType.Normalize();
+          var e1Normalized = e1.PreType.Normalize();
+
+
+          // Check if operands have fp64 type (either resolved or declared)
+          var e0IsFp64 = e0Normalized is DPreType { Decl.Name: PreType.TypeNameFp64 } ||
+                         e0 is IdentifierExpr { Var: LocalVariable { SyntacticType: Fp64Type } } ||
+                         e0 is IdentifierExpr { Var: BoundVar { SyntacticType: Fp64Type } };
+          var e1IsFp64 = e1Normalized is DPreType { Decl.Name: PreType.TypeNameFp64 } ||
+                         e1 is IdentifierExpr { Var: LocalVariable { SyntacticType: Fp64Type } } ||
+                         e1 is IdentifierExpr { Var: BoundVar { SyntacticType: Fp64Type } };
+
+          if (e0IsFp64 || e1IsFp64) {
+            // One operand is fp64, so result should be fp64
+            var fp64Type = new DPreType(BuiltInTypeDecl(PreType.TypeNameFp64), []);
+            resultPreType = fp64Type;
+
+            // Add equality constraints for both operands to ensure they are fp64
+            Constraints.AddEqualityConstraint(e0.PreType, fp64Type, tok, "fp64 arithmetic requires both operands to be fp64");
+            Constraints.AddEqualityConstraint(e1.PreType, fp64Type, tok, "fp64 arithmetic requires both operands to be fp64");
+          } else {
+            resultPreType = CreatePreTypeProxy("result of +");
+            AddConfirmation(PreTypeConstraints.CommonConfirmationBag.Plussable, resultPreType, tok,
+              "type of + must be of a numeric type, a bitvector type, ORDINAL, char, a sequence type, or a set-like or map-like type (instead got {0})");
+            ConstrainOperandTypes(tok, opString, e0, e1, resultPreType);
+          }
           break;
 
         case BinaryExpr.Opcode.Sub:
@@ -1199,6 +1315,21 @@ namespace Microsoft.Dafny {
             var a1 = e1.PreType;
             var familyDeclNameLeft = AncestorName(a0);
             var familyDeclNameRight = AncestorName(a1);
+
+            // Also check declared types for fp64
+            if (familyDeclNameLeft == null && e0 is IdentifierExpr id0) {
+              if (id0.Var is LocalVariable { SyntacticType: Fp64Type } ||
+                  id0.Var is BoundVar { SyntacticType: Fp64Type }) {
+                familyDeclNameLeft = PreType.TypeNameFp64;
+              }
+            }
+            if (familyDeclNameRight == null && e1 is IdentifierExpr id1) {
+              if (id1.Var is LocalVariable { SyntacticType: Fp64Type } ||
+                  id1.Var is BoundVar { SyntacticType: Fp64Type }) {
+                familyDeclNameRight = PreType.TypeNameFp64;
+              }
+            }
+
             if (familyDeclNameLeft is PreType.TypeNameMap or PreType.TypeNameImap) {
               var left = (DPreType)a0.UrAncestor(this);
               Contract.Assert(left.Arguments.Count == 2);
@@ -1221,6 +1352,17 @@ namespace Microsoft.Dafny {
               });
               AddConfirmation(PreTypeConstraints.CommonConfirmationBag.InSetFamily, a1, e1.Origin, messageFormat);
               return true;
+            } else if (familyDeclNameLeft == PreType.TypeNameFp64 || familyDeclNameRight == PreType.TypeNameFp64) {
+              // Special handling for fp64: if either operand is fp64, the result should be fp64
+              Constraints.DebugPrint($"    guard applies: Minusable {a0} {a1} with fp64");
+              var fp64Type = new DPreType(BuiltInTypeDecl(PreType.TypeNameFp64), []);
+              if (resultPreType.Normalize() is PreTypeProxy proxy) {
+                proxy.Set(fp64Type);
+              }
+              // Add equality constraints for both operands to ensure they are fp64
+              Constraints.AddEqualityConstraint(e0.PreType, fp64Type, tok, "fp64 arithmetic requires both operands to be fp64");
+              Constraints.AddEqualityConstraint(e1.PreType, fp64Type, tok, "fp64 arithmetic requires both operands to be fp64");
+              return true;
             } else if (familyDeclNameLeft != null || (familyDeclNameRight != null && familyDeclNameRight != PreType.TypeNameSet)) {
               Constraints.DebugPrint($"    guard applies: Minusable {a0} {a1}, converting to {a0} :> {a1}");
               AddSubtypeConstraint(a0, a1, tok, "type of right argument to - ({0}) must agree with the result type ({1})");
@@ -1234,10 +1376,36 @@ namespace Microsoft.Dafny {
           break;
 
         case BinaryExpr.Opcode.Mul:
-          resultPreType = CreatePreTypeProxy("result of *");
-          AddConfirmation(PreTypeConstraints.CommonConfirmationBag.Mullable, resultPreType, tok,
-            "type of * must be of a numeric type, bitvector type, or a set-like type (instead got {0})");
-          ConstrainOperandTypes(tok, opString, e0, e1, resultPreType);
+          // Check immediately if either operand is fp64
+          e0Normalized = e0.PreType.Normalize();
+          e1Normalized = e1.PreType.Normalize();
+
+          // Debug output
+          //Console.Error.WriteLine($"DEBUG: Mul operation: e0 type = {e0Normalized}, e1 type = {e1Normalized}");
+
+          // Check if operands have fp64 type (either resolved or declared)
+          e0IsFp64 = e0Normalized is DPreType { Decl.Name: PreType.TypeNameFp64 } ||
+                      e0 is IdentifierExpr { Var: LocalVariable { SyntacticType: Fp64Type } } ||
+                      e0 is IdentifierExpr { Var: BoundVar { SyntacticType: Fp64Type } };
+          e1IsFp64 = e1Normalized is DPreType { Decl.Name: PreType.TypeNameFp64 } ||
+                      e1 is IdentifierExpr { Var: LocalVariable { SyntacticType: Fp64Type } } ||
+                      e1 is IdentifierExpr { Var: BoundVar { SyntacticType: Fp64Type } };
+
+          if (e0IsFp64 || e1IsFp64) {
+            Constraints.DebugPrint($"    Detected fp64 operand in multiplication (resolved or declared), setting result to fp64");
+            // One operand is fp64, so result should be fp64
+            var fp64Type = new DPreType(BuiltInTypeDecl(PreType.TypeNameFp64), []);
+            resultPreType = fp64Type;
+
+            // Add equality constraints for both operands to ensure they are fp64
+            Constraints.AddEqualityConstraint(e0.PreType, fp64Type, tok, "fp64 arithmetic requires both operands to be fp64");
+            Constraints.AddEqualityConstraint(e1.PreType, fp64Type, tok, "fp64 arithmetic requires both operands to be fp64");
+          } else {
+            resultPreType = CreatePreTypeProxy("result of *");
+            AddConfirmation(PreTypeConstraints.CommonConfirmationBag.Mullable, resultPreType, tok,
+              "type of * must be of a numeric type, bitvector type, or a set-like type (instead got {0})");
+            ConstrainOperandTypes(tok, opString, e0, e1, resultPreType);
+          }
           break;
 
         case BinaryExpr.Opcode.In:
@@ -1265,9 +1433,31 @@ namespace Microsoft.Dafny {
           break;
 
         case BinaryExpr.Opcode.Div:
-          resultPreType = CreatePreTypeProxy("result of / operation");
-          AddConfirmation(PreTypeConstraints.CommonConfirmationBag.NumericOrBitvector, resultPreType, tok, "arguments to " + opString + " must be numeric or bitvector types (got {0})");
-          ConstrainOperandTypes(tok, opString, e0, e1, resultPreType);
+          // Check immediately if either operand is fp64
+          e0Normalized = e0.PreType.Normalize();
+          e1Normalized = e1.PreType.Normalize();
+
+          // Check if operands have fp64 type (either resolved or declared)
+          e0IsFp64 = e0Normalized is DPreType { Decl.Name: PreType.TypeNameFp64 } ||
+                      e0 is IdentifierExpr { Var: LocalVariable { SyntacticType: Fp64Type } } ||
+                      e0 is IdentifierExpr { Var: BoundVar { SyntacticType: Fp64Type } };
+          e1IsFp64 = e1Normalized is DPreType { Decl.Name: PreType.TypeNameFp64 } ||
+                      e1 is IdentifierExpr { Var: LocalVariable { SyntacticType: Fp64Type } } ||
+                      e1 is IdentifierExpr { Var: BoundVar { SyntacticType: Fp64Type } };
+
+          if (e0IsFp64 || e1IsFp64) {
+            // One operand is fp64, so result should be fp64
+            var fp64Type = new DPreType(BuiltInTypeDecl(PreType.TypeNameFp64), []);
+            resultPreType = fp64Type;
+
+            // Add equality constraints for both operands to ensure they are fp64
+            Constraints.AddEqualityConstraint(e0.PreType, fp64Type, tok, "fp64 arithmetic requires both operands to be fp64");
+            Constraints.AddEqualityConstraint(e1.PreType, fp64Type, tok, "fp64 arithmetic requires both operands to be fp64");
+          } else {
+            resultPreType = CreatePreTypeProxy("result of / operation");
+            AddConfirmation(PreTypeConstraints.CommonConfirmationBag.NumericOrBitvector, resultPreType, tok, "arguments to " + opString + " must be numeric or bitvector types (got {0})");
+            ConstrainOperandTypes(tok, opString, e0, e1, resultPreType);
+          }
           break;
 
         case BinaryExpr.Opcode.Mod:
@@ -1547,6 +1737,18 @@ namespace Microsoft.Dafny {
             return null;
           }
         }
+
+      } else if (name == "fp64") {
+        // Special handling for fp64 (on-demand initialization)
+        resolver.ProgramResolver.SystemModuleManager.EnsureFp64TypeInitialized(resolver.ProgramResolver);
+        var fp64Decl = resolver.ProgramResolver.SystemModuleManager.valuetypeDecls[(int)ValuetypeVariety.Fp64];
+
+        // Add to moduleInfo.TopLevels for future lookups
+        if (!resolver.moduleInfo.TopLevels.ContainsKey("fp64")) {
+          resolver.moduleInfo.TopLevels["fp64"] = fp64Decl;
+        }
+
+        r = CreateResolver_IdentifierExpr(expr.Origin, name, expr.OptTypeArguments, fp64Decl);
 
       } else if (resolver.moduleInfo.TopLevels.TryGetValue(name, out var decl)) {
         // ----- 3. Member of the enclosing module
@@ -1860,6 +2062,12 @@ namespace Microsoft.Dafny {
           }
         }
         var cd = r == null ? ty.AsTopLevelTypeWithMembersBypassInternalSynonym : null;
+
+        // Special handling for built-in types like fp64
+        if (cd == null && ty.IsFp64Type && ri.Decl is ValuetypeDecl valuetypeDecl) {
+          cd = valuetypeDecl;
+        }
+
         if (cd != null) {
           // ----- LHS is a type with members
           if (resolver.GetClassMembers(cd) is { } members && members.TryGetValue(name, out var member)) {
@@ -1867,10 +2075,18 @@ namespace Microsoft.Dafny {
               ReportError(expr.Origin, $"member '{name}' has not been imported in this scope and cannot be accessed here");
             }
             if (!member.IsStatic && !allowStaticReferenceToInstance) {
-              ReportError(expr.Origin, $"accessing member '{name}' requires an instance expression"); //TODO Unify with similar error messages
+              ReportError(expr.Origin, $"accessing member '{name}' requires an instance expression");
               // nevertheless, continue creating an expression that approximates a correct one
             }
-            var receiver = new StaticReceiverExpr(expr.Lhs.Origin, (UserDefinedType)ty.NormalizeExpand(), (TopLevelDeclWithMembers)member.EnclosingClass, false) {
+            // Create the appropriate type for the StaticReceiverExpr
+            UserDefinedType receiverType;
+            if (ty.IsFp64Type && ri.Decl is ValuetypeDecl vtDecl) {
+              // For built-in types like fp64, create a UserDefinedType from the ValuetypeDecl
+              receiverType = new UserDefinedType(expr.Origin, vtDecl.Name, vtDecl, ri.TypeArgs);
+            } else {
+              receiverType = (UserDefinedType)ty.NormalizeExpand();
+            }
+            var receiver = new StaticReceiverExpr(expr.Lhs.Origin, receiverType, (TopLevelDeclWithMembers)member.EnclosingClass, false) {
               ContainerExpression = expr.Lhs
             };
             receiver.PreType = Type2PreType(receiver.Type);

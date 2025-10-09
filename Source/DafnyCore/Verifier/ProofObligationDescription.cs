@@ -90,6 +90,98 @@ public class DivisorNonZero : ProofObligationDescription {
   }
 }
 
+public class Fp64EqualityPrecondition : ProofObligationDescription {
+  public override string SuccessDescription =>
+    "fp64 operand is never NaN for equality comparison";
+
+  public override string FailureDescription =>
+    "fp64 equality comparison requires that operands are not NaN";
+
+  public override string ShortDescription => "fp64 equality precondition";
+
+  private readonly Expression operand;
+
+  public Fp64EqualityPrecondition(Expression operand) {
+    this.operand = operand;
+  }
+
+  public override Expression GetAssertedExpr(DafnyOptions options) {
+    // For now, return a simple true expression since we can't easily construct
+    // the proper !operand.IsNaN expression here without more context
+    return new LiteralExpr(operand.Origin, true);
+  }
+}
+
+public class Fp64SignedZeroEqualityPrecondition : ProofObligationDescription {
+  public override string SuccessDescription =>
+    "fp64 equality comparison never compares +0.0 with -0.0";
+
+  public override string FailureDescription =>
+    "fp64 equality comparison requires that signed zeros have the same sign";
+
+  public override string ShortDescription => "fp64 signed zero equality precondition";
+
+  private readonly Expression operand0;
+  private readonly Expression operand1;
+
+  public Fp64SignedZeroEqualityPrecondition(Expression operand0, Expression operand1) {
+    this.operand0 = operand0;
+    this.operand1 = operand1;
+  }
+
+  public override Expression GetAssertedExpr(DafnyOptions options) {
+    // For now, return a simple true expression since we can't easily construct
+    // the proper !(x.IsZero && y.IsZero && x.IsNegative != y.IsNegative) expression here
+    return new LiteralExpr(operand0.Origin, true);
+  }
+}
+
+public class Fp64CollectionEqualityWellformedness : ProofObligationDescription {
+  public override string SuccessDescription =>
+    "equality comparison is supported for this type";
+
+  public override string FailureDescription {
+    get {
+      string typeName = GetTypeName();
+      return $"equality comparison of {typeName} is not supported in compiled code (use ghost context or compare elements individually)";
+    }
+  }
+
+  public override string ShortDescription => "fp64 collection equality";
+
+  private readonly Type collectionType;
+
+  public Fp64CollectionEqualityWellformedness(Type collectionType) {
+    this.collectionType = collectionType.NormalizeExpand();
+  }
+
+  private string GetTypeName() {
+    if (collectionType is SetType) {
+      return "set<fp64>";
+    } else if (collectionType is SeqType) {
+      return "seq<fp64>";
+    } else if (collectionType is MultiSetType) {
+      return "multiset<fp64>";
+    } else if (collectionType is MapType mapType) {
+      // Be more specific about map types
+      return mapType.Domain is Fp64Type ?
+        (mapType.Range is Fp64Type ? "map<fp64, fp64>" : "map<fp64, _>") :
+        "map<_, fp64>";
+    } else if (collectionType is UserDefinedType udt && udt.ResolvedClass != null) {
+      // Show the actual datatype name
+      return $"datatype '{udt.ResolvedClass.Name}' containing fp64";
+    } else if (collectionType != null) {
+      return $"type containing fp64";
+    }
+    return "type containing fp64";
+  }
+
+  public override Expression GetAssertedExpr(DafnyOptions options) {
+    // Return a simple false expression since this is always rejected
+    return new LiteralExpr(collectionType?.Origin ?? Microsoft.Dafny.Token.NoToken, false);
+  }
+}
+
 public abstract class ShiftOrRotateBound : ProofObligationDescription {
   protected readonly string shiftOrRotate;
   protected readonly Expression amount;
@@ -398,6 +490,78 @@ public class IsInteger : ProofObligationDescription {
       expr,
       new ConversionExpr(expr.Origin, new ExprDotName(expr.Origin, expr, new Name("Floor"), null), Type.Real)
     );
+  }
+}
+
+public class IsExactlyRepresentableAsFp64 : ProofObligationDescription {
+  public override string SuccessDescription =>
+    $"{prefix}the real value is exactly representable as fp64";
+
+  public override string FailureDescription =>
+    $"{prefix}the real value must be exactly representable as fp64 (if you want rounding, use the approximation operator ~)";
+
+  public override string ShortDescription => "is exactly representable as fp64";
+
+  private readonly string prefix;
+  private readonly Expression expr;
+
+  public IsExactlyRepresentableAsFp64(Expression expr, string prefix = "") {
+    this.expr = expr;
+    this.prefix = prefix;
+  }
+
+  public override Expression GetAssertedExpr(DafnyOptions options) {
+    // Express as: expr == (expr as fp64) as real
+    return new BinaryExpr(
+      expr.Origin,
+      BinaryExpr.Opcode.Eq,
+      expr,
+      new ConversionExpr(expr.Origin,
+        new ConversionExpr(expr.Origin, expr, new Fp64Type()),
+        Type.Real)
+    );
+  }
+}
+
+public class Fp64SqrtNonNegativePrecondition : ProofObligationDescription {
+  public override string SuccessDescription =>
+    "fp64.Sqrt argument is always non-negative";
+
+  public override string FailureDescription =>
+    "fp64.Sqrt requires a non-negative argument (negative values produce NaN)";
+
+  public override string ShortDescription => "fp64.Sqrt non-negative precondition";
+
+  private readonly Expression expr;
+
+  public Fp64SqrtNonNegativePrecondition(Expression expr) {
+    this.expr = expr;
+  }
+
+  public override Expression GetAssertedExpr(DafnyOptions options) {
+    var zero = Expression.CreateRealLiteral(expr.Origin, BaseTypes.BigDec.ZERO);
+    return new BinaryExpr(expr.Origin, BinaryExpr.Opcode.Ge, expr, zero);
+  }
+}
+
+public class Fp64ToIntFinitePrecondition : ProofObligationDescription {
+  public override string SuccessDescription =>
+    "fp64.ToInt argument is always finite";
+
+  public override string FailureDescription =>
+    "fp64.ToInt requires a finite argument (not NaN or infinity)";
+
+  public override string ShortDescription => "fp64.ToInt finite precondition";
+
+  private readonly Expression operand;
+
+  public Fp64ToIntFinitePrecondition(Expression operand) {
+    this.operand = operand;
+  }
+
+  public override Expression GetAssertedExpr(DafnyOptions options) {
+    // Express as: operand.IsFinite
+    return new ExprDotName(operand.Origin, operand, new Name("IsFinite"), null);
   }
 }
 
@@ -1727,6 +1891,35 @@ public class BoilerplateTriple : ProofObligationDescriptionCustomMessages {
     : base(errorMessage, successMessage) {
     this.DefaultSuccessDescription = comment;
     this.DefaultFailureDescription = comment;
+  }
+}
+
+public class IntToFp64ExactnessCheck : ProofObligationDescription {
+  public override string SuccessDescription =>
+    $"{prefix}the integer value is exactly representable as fp64";
+
+  public override string FailureDescription =>
+    $"{prefix}the integer value must be exactly representable as fp64 (integers outside ±2^53 cannot be exactly represented)";
+
+  public override string ShortDescription => "int to fp64 exactness check";
+
+  private readonly string prefix;
+  private readonly Expression expr;
+
+  public IntToFp64ExactnessCheck(Expression expr, string prefix = "") {
+    this.expr = expr;
+    this.prefix = prefix;
+  }
+
+  public override Expression GetAssertedExpr(DafnyOptions options) {
+    // The exactness check is: converting to fp64 and back to int preserves the value
+    // This properly handles all exactly representable integers, including:
+    // - All integers from -2^53 to 2^53
+    // - Even integers from ±2^53 to ±2^54
+    // - Multiples of 4 from ±2^54 to ±2^55
+    // - And so on up to about ±1.8e308
+    // The actual Boogie check performs the round-trip test, this is just for display
+    return Expression.CreateBoolLiteral(expr.Origin, true);
   }
 }
 

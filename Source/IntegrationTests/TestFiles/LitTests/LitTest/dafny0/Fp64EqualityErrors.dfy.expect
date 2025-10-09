@@ -1,0 +1,17 @@
+Fp64EqualityErrors.dfy(23,12): Error: fp64 equality comparison requires that operands are not NaN
+Fp64EqualityErrors.dfy(23,14): Error: fp64 equality comparison requires that signed zeros have the same sign
+Fp64EqualityErrors.dfy(23,17): Error: fp64 equality comparison requires that operands are not NaN
+Fp64EqualityErrors.dfy(30,14): Error: fp64 equality comparison requires that signed zeros have the same sign
+Fp64EqualityErrors.dfy(87,20): Error: fp64 equality comparison requires that operands are not NaN
+Fp64EqualityErrors.dfy(100,12): Error: fp64 equality comparison requires that operands are not NaN
+Fp64EqualityErrors.dfy(100,14): Error: fp64 equality comparison requires that signed zeros have the same sign
+Fp64EqualityErrors.dfy(100,17): Error: fp64 equality comparison requires that operands are not NaN
+Fp64EqualityErrors.dfy(109,15): Error: equality comparison of set<fp64> is not supported in compiled code (use ghost context or compare elements individually)
+Fp64EqualityErrors.dfy(116,21): Error: equality comparison of seq<fp64> is not supported in compiled code (use ghost context or compare elements individually)
+Fp64EqualityErrors.dfy(178,19): Error: equality comparison of datatype 'Container' containing fp64 is not supported in compiled code (use ghost context or compare elements individually)
+Fp64EqualityErrors.dfy(197,15): Error: equality comparison of datatype 'Nested' containing fp64 is not supported in compiled code (use ghost context or compare elements individually)
+Fp64EqualityErrors.dfy(237,29): Error: fp64 equality comparison requires that signed zeros have the same sign
+Fp64EqualityErrors.dfy(246,15): Error: equality comparison of set<fp64> is not supported in compiled code (use ghost context or compare elements individually)
+Fp64EqualityErrors.dfy(255,11): Error: equality comparison of set<fp64> is not supported in compiled code (use ghost context or compare elements individually)
+
+Dafny program verifier finished with 15 verified, 15 errors

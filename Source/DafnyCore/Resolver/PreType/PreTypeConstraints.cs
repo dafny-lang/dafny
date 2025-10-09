@@ -668,7 +668,7 @@ namespace Microsoft.Dafny {
         case CommonConfirmationBag.InIntFamily:
           return familyDeclName == PreType.TypeNameInt;
         case CommonConfirmationBag.InRealFamily:
-          return familyDeclName == PreType.TypeNameReal;
+          return familyDeclName == PreType.TypeNameReal || familyDeclName == PreType.TypeNameFp64;
         case CommonConfirmationBag.InBoolFamily:
           return familyDeclName == PreType.TypeNameBool;
         case CommonConfirmationBag.InCharFamily:
@@ -692,9 +692,9 @@ namespace Microsoft.Dafny {
         case CommonConfirmationBag.IntLikeOrBitvector:
           return familyDeclName == PreType.TypeNameInt || PreTypeResolver.IsBitvectorName(familyDeclName);
         case CommonConfirmationBag.NumericOrBitvector:
-          return familyDeclName is PreType.TypeNameInt or PreType.TypeNameReal || PreTypeResolver.IsBitvectorName(familyDeclName);
+          return familyDeclName is PreType.TypeNameInt or PreType.TypeNameReal or PreType.TypeNameFp64 || PreTypeResolver.IsBitvectorName(familyDeclName);
         case CommonConfirmationBag.NumericOrBitvectorOrCharOrORDINALOrSuchTrait:
-          if (familyDeclName is PreType.TypeNameInt or PreType.TypeNameReal or PreType.TypeNameChar or PreType.TypeNameORDINAL ||
+          if (familyDeclName is PreType.TypeNameInt or PreType.TypeNameReal or PreType.TypeNameFp64 or PreType.TypeNameChar or PreType.TypeNameORDINAL ||
               PreTypeResolver.IsBitvectorName(familyDeclName)) {
             return true;
           }
@@ -709,6 +709,7 @@ namespace Microsoft.Dafny {
           switch (familyDeclName) {
             case PreType.TypeNameInt:
             case PreType.TypeNameReal:
+            case PreType.TypeNameFp64:
             case PreType.TypeNameORDINAL:
             case PreType.TypeNameChar:
             case PreType.TypeNameSeq:
@@ -725,6 +726,7 @@ namespace Microsoft.Dafny {
           switch (familyDeclName) {
             case PreType.TypeNameInt:
             case PreType.TypeNameReal:
+            case PreType.TypeNameFp64:
             case PreType.TypeNameORDINAL:
             case PreType.TypeNameChar:
             case PreType.TypeNameSet:
@@ -740,6 +742,7 @@ namespace Microsoft.Dafny {
           switch (familyDeclName) {
             case PreType.TypeNameInt:
             case PreType.TypeNameReal:
+            case PreType.TypeNameFp64:
             case PreType.TypeNameSet:
             case PreType.TypeNameIset:
             case PreType.TypeNameMultiset:
@@ -754,6 +757,7 @@ namespace Microsoft.Dafny {
           switch (familyDeclName) {
             case PreType.TypeNameInt:
             case PreType.TypeNameReal:
+            case PreType.TypeNameFp64:
             case PreType.TypeNameORDINAL:
             case PreType.TypeNameChar:
             case PreType.TypeNameSet:
