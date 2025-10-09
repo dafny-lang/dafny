@@ -715,29 +715,33 @@ func (seq *LazySequence) ToByteArray() []byte {
 }
 
 func ToByteArray(x Sequence) []byte {
-	switch x := x.(type) {
+	result := make([]byte, x.Cardinality())
+	stack := []Sequence{x}
+	pos := uint32(0)
 
-	case *LazySequence:
-		return ToByteArray(x.Box().Get().(Sequence))
-	case *ConcatSequence:
-		leftByteArray := ToByteArray(x._left)
-		rightByteArray := ToByteArray(x._right)
-		return append(leftByteArray, rightByteArray...)
+	for len(stack) > 0 {
+		current := stack[len(stack)-1]
+		stack = stack[:len(stack)-1]
 
-	default:
-		arr := x.ToArray()
-		length := arr.Length()
-		result := make([]byte, length)
-		// Optimize for the same kind of content array
-		if arrayByte, ok := arr.(GoNativeArray).underlying.(*arrayForByte); ok {
-			copy(result, arrayByte.contents)
-		} else {
-			for i := uint32(0); i < length; i++ {
-				result[i] = arr.Select(i).(byte)
+		switch seq := current.(type) {
+		case *LazySequence:
+			stack = append(stack, seq.Box().Get().(Sequence))
+		case *ConcatSequence:
+			stack = append(stack, seq._right, seq._left)
+		default:
+			arr := seq.ToArray()
+			length := arr.Length()
+			if arrayByte, ok := arr.(GoNativeArray).underlying.(*arrayForByte); ok {
+				copy(result[pos:], arrayByte.contents)
+			} else {
+				for i := uint32(0); i < length; i++ {
+					result[pos+i] = arr.Select(i).(byte)
+				}
 			}
+			pos += length
 		}
-		return result
 	}
+	return result
 }
 
 /******************************************************************************
