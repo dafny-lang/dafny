@@ -74,6 +74,6 @@ some-terms-do-not-look-like-the-triggers-they-match.dfy(163,12): Info: Selected 
 some-terms-do-not-look-like-the-triggers-they-match.dfy(164,12): Info: Selected triggers: {x >= ms}
 some-terms-do-not-look-like-the-triggers-they-match.dfy(166,12): Warning: Could not find a trigger for this quantifier. Without a trigger, the quantifier may cause brittle verification. To silence this warning, add an explicit trigger using the {:trigger} attribute. For more information, see the section on quantifier instantiation rules in the reference manual.
 some-terms-do-not-look-like-the-triggers-they-match.dfy(167,12): Warning: Could not find a trigger for this quantifier. Without a trigger, the quantifier may cause brittle verification. To silence this warning, add an explicit trigger using the {:trigger} attribute. For more information, see the section on quantifier instantiation rules in the reference manual.
-some-terms-do-not-look-like-the-triggers-they-match.dfy(152,2): Error: assertion might not hold
+some-terms-do-not-look-like-the-triggers-they-match.dfy(152,2): Error: assertion could not be proved
 
 Dafny program verifier finished with 4 verified, 1 error

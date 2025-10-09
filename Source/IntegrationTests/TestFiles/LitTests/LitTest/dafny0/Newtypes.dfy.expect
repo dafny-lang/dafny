@@ -1,18 +1,18 @@
 Newtypes.dfy(74,10): Error: cannot find witness that shows type is inhabited (only tried 0); try giving a hint through a 'witness' or 'ghost witness' clause, or use 'witness *' to treat as a possibly empty type
 Newtypes.dfy(76,44): Error: possible division by zero
-Newtypes.dfy(87,13): Error: result of operation might violate newtype constraint for 'char8'
-Newtypes.dfy(95,11): Error: result of operation might violate newtype constraint for 'char8'
-Newtypes.dfy(97,13): Error: result of operation might violate newtype constraint for 'char8'
-Newtypes.dfy(104,15): Error: result of operation might violate newtype constraint for 'char8'
-Newtypes.dfy(177,13): Error: result of operation might violate newtype constraint for 'Even'
+Newtypes.dfy(87,13): Error: result of operation could not be proved to satisfy newtype constraint for 'char8'
+Newtypes.dfy(95,11): Error: result of operation could not be proved to satisfy newtype constraint for 'char8'
+Newtypes.dfy(97,13): Error: result of operation could not be proved to satisfy newtype constraint for 'char8'
+Newtypes.dfy(104,15): Error: result of operation could not be proved to satisfy newtype constraint for 'char8'
+Newtypes.dfy(177,13): Error: result of operation could not be proved to satisfy newtype constraint for 'Even'
 Newtypes.dfy(193,67): Error: index 0 out of range
 Newtypes.dfy(194,70): Error: index 1 out of range
-Newtypes.dfy(223,21): Error: new number of occurrences might be negative
-Newtypes.dfy(226,39): Error: result of operation might violate newtype constraint for 'Even'
-Newtypes.dfy(238,18): Error: result of operation might violate newtype constraint for 'N'
-Newtypes.dfy(278,18): Error: result of operation might violate newtype constraint for 'R'
-Newtypes.dfy(367,10): Error: trying witness 0: result of operation might violate newtype constraint for 'A'
-Newtypes.dfy(372,24): Error: result of operation might violate newtype constraint for 'A'
-Newtypes.dfy(373,30): Error: result of operation might violate newtype constraint for 'A'
+Newtypes.dfy(223,21): Error: new number of occurrences could not be proved to be non-negative
+Newtypes.dfy(226,39): Error: result of operation could not be proved to satisfy newtype constraint for 'Even'
+Newtypes.dfy(238,18): Error: result of operation could not be proved to satisfy newtype constraint for 'N'
+Newtypes.dfy(278,18): Error: result of operation could not be proved to satisfy newtype constraint for 'R'
+Newtypes.dfy(367,10): Error: trying witness 0: result of operation could not be proved to satisfy newtype constraint for 'A'
+Newtypes.dfy(372,24): Error: result of operation could not be proved to satisfy newtype constraint for 'A'
+Newtypes.dfy(373,30): Error: result of operation could not be proved to satisfy newtype constraint for 'A'
 
 Dafny program verifier finished with 43 verified, 16 errors

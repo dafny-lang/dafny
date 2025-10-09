@@ -1,13 +1,13 @@
 ForallStmt.dfy(33,9): Error: a precondition for this call could not be proved
 ForallStmt.dfy(59,13): Related location: this is the precondition that could not be proved
-ForallStmt.dfy(37,4): Error: target object might be null
+ForallStmt.dfy(37,4): Error: target object could not be proved to be non-null
 ForallStmt.dfy(41,17): Error: possible violation of postcondition of forall statement
-ForallStmt.dfy(46,6): Error: assertion might not hold
-ForallStmt.dfy(91,4): Error: assertion might not hold
+ForallStmt.dfy(46,6): Error: assertion could not be proved
+ForallStmt.dfy(91,4): Error: assertion could not be proved
 ForallStmt.dfy(97,19): Error: possible violation of postcondition of forall statement
 ForallStmt.dfy(119,11): Error: value does not satisfy the subset constraints of 'nat'
-ForallStmt.dfy(182,11): Error: left-hand sides for different forall-statement bound variables might refer to the same location (and right-hand sides might not be equivalent)
-ForallStmt.dfy(303,14): Error: assertion might not hold
+ForallStmt.dfy(182,11): Error: left-hand sides for different forall-statement bound variables could not be proved to refer to different locations (and right-hand sides could not be proved to be equivalent)
+ForallStmt.dfy(303,14): Error: assertion could not be proved
 ForallStmt.dfy(290,32): Related location: this proposition could not be proved
 
 Dafny program verifier finished with 19 verified, 9 errors

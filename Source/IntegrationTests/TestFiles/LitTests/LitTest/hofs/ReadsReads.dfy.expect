@@ -5,17 +5,17 @@ ReadsReads.dfy(40,4): Error: insufficient reads clause to invoke function
 ReadsReads.dfy(52,16): Error: function precondition could not be proved
 ReadsReads.dfy(52,16): Error: insufficient reads clause to invoke function
 ReadsReads.dfy(64,14): Error: insufficient reads clause to invoke function
-ReadsReads.dfy(93,18): Error: assertion might not hold
-ReadsReads.dfy(95,18): Error: assertion might not hold
-ReadsReads.dfy(105,18): Error: assertion might not hold
-ReadsReads.dfy(107,18): Error: assertion might not hold
-ReadsReads.dfy(179,4): Error: assertion might not hold
-ReadsReads.dfy(189,4): Error: assertion might not hold
-ReadsReads.dfy(199,4): Error: assertion might not hold
-ReadsReads.dfy(209,4): Error: assertion might not hold
-ReadsReads.dfy(242,4): Error: assertion might not hold
-ReadsReads.dfy(252,4): Error: assertion might not hold
-ReadsReads.dfy(262,4): Error: assertion might not hold
-ReadsReads.dfy(272,4): Error: assertion might not hold
+ReadsReads.dfy(93,18): Error: assertion could not be proved
+ReadsReads.dfy(95,18): Error: assertion could not be proved
+ReadsReads.dfy(105,18): Error: assertion could not be proved
+ReadsReads.dfy(107,18): Error: assertion could not be proved
+ReadsReads.dfy(179,4): Error: assertion could not be proved
+ReadsReads.dfy(189,4): Error: assertion could not be proved
+ReadsReads.dfy(199,4): Error: assertion could not be proved
+ReadsReads.dfy(209,4): Error: assertion could not be proved
+ReadsReads.dfy(242,4): Error: assertion could not be proved
+ReadsReads.dfy(252,4): Error: assertion could not be proved
+ReadsReads.dfy(262,4): Error: assertion could not be proved
+ReadsReads.dfy(272,4): Error: assertion could not be proved
 
 Dafny program verifier finished with 16 verified, 19 errors

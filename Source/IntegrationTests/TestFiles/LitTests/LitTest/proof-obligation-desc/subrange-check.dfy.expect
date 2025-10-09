@@ -1,4 +1,4 @@
-subrange-check.dfy(5,30): Error: value of expression (of type 'object?') is not known to be an instance of type 'object', because it might be null
+subrange-check.dfy(5,30): Error: value of expression (of type 'object?') is not known to be an instance of type 'object', because it could not be proved to be non-null
  Asserted expression: o is object
 subrange-check.dfy(6,28): Error: value does not satisfy the subset constraints of 'T -> U' (possible cause: it may be partial or have read effects)
  Asserted expression: p is T -> U

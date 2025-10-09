@@ -1,5 +1,5 @@
 Bug146.dfy(6,75): Error: insufficient reads clause to read array element; Consider adding 'reads world' in the enclosing function specification for resolution
-Bug146.dfy(37,25): Error: assertion might not hold
+Bug146.dfy(37,25): Error: assertion could not be proved
 Bug146.dfy(26,4): Related location: this proposition could not be proved
 
 Dafny program verifier finished with 2 verified, 2 errors

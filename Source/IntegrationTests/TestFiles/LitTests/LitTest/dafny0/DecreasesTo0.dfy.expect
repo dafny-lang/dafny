@@ -1,12 +1,12 @@
-DecreasesTo0.dfy(22,2): Error: assertion might not hold
-DecreasesTo0.dfy(26,2): Error: assertion might not hold
-DecreasesTo0.dfy(30,2): Error: assertion might not hold
-DecreasesTo0.dfy(34,2): Error: assertion might not hold
-DecreasesTo0.dfy(38,2): Error: assertion might not hold
-DecreasesTo0.dfy(42,2): Error: assertion might not hold
-DecreasesTo0.dfy(52,4): Error: assertion might not hold
-DecreasesTo0.dfy(56,4): Error: assertion might not hold
-DecreasesTo0.dfy(58,4): Error: assertion might not hold
-DecreasesTo0.dfy(67,2): Error: assertion might not hold
+DecreasesTo0.dfy(22,2): Error: assertion could not be proved
+DecreasesTo0.dfy(26,2): Error: assertion could not be proved
+DecreasesTo0.dfy(30,2): Error: assertion could not be proved
+DecreasesTo0.dfy(34,2): Error: assertion could not be proved
+DecreasesTo0.dfy(38,2): Error: assertion could not be proved
+DecreasesTo0.dfy(42,2): Error: assertion could not be proved
+DecreasesTo0.dfy(52,4): Error: assertion could not be proved
+DecreasesTo0.dfy(56,4): Error: assertion could not be proved
+DecreasesTo0.dfy(58,4): Error: assertion could not be proved
+DecreasesTo0.dfy(67,2): Error: assertion could not be proved
 
 Dafny program verifier finished with 4 verified, 10 errors
