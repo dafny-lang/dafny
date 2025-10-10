@@ -34,6 +34,7 @@ Feel free to report issues here on GitHub or to ask for questions on our :speech
 The easiest way to try out Dafny is to [install Dafny on your own machine in Visual Studio Code](https://github.com/dafny-lang/dafny/wiki/INSTALL#visual-studio-code)
 and follow along with the [Dafny tutorial](https://dafny-lang.github.io/dafny/OnlineTutorial/guide).
 You can also [download and install](https://github.com/dafny-lang/dafny/wiki/INSTALL#install-the-binaries) the Dafny CLI if you prefer to work from the command line.
+For CI/CD integration, see [DafnySetupCI](docs/DafnySetupCI.md) for GitHub Actions setup.
 
 ## Read more
 
