@@ -17,7 +17,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ ubuntu-latest, ubuntu-22.04, macos-13, windows-2022 ]
+        os: [ ubuntu-latest, ubuntu-22.04, macos-13, windows-2025 ]
         include:
         - os:  'ubuntu-latest'
           osn: 'ubuntu-22.04'
@@ -25,8 +25,8 @@ jobs:
           osn: 'ubuntu-22.04'
         - os:  'macos-13'
           osn: 'x64-macos-13'
-        - os:  'windows-2022'
-          osn: 'windows-2022'
+        - os:  'windows-2025'
+          osn: 'windows-2025'
     # There is no hosted environment for Ubuntu 14.04 or for debian
 
     # Java is installed by default, but we need to select 18
