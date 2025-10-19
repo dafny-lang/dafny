@@ -274,7 +274,7 @@ struct get_default<DafnyArray<U>> {
  *********************************************************/
 
 template <typename T>
-T* global_empty_ptr = new T[0];
+T* global_empty_ptr = new T[1];
 
 template <class T>
 struct DafnySequence {
