@@ -1255,14 +1255,14 @@ is, satisfying `d in m`), maps support the following operations:
  `m.Values`    | 11 | (i)`set<U>`    | the range of `m`
  `m.Items`     | 11 | (i)`set<(T,U)>`| set of pairs (t,u) in `m`
 
+The expression `t in m` says `t` is in the
+domain of `m` and `t !in m` is a syntactic shorthand for
+`!(t in m)`.[^fn-map-membership]
 `|fm|` denotes the number of mappings in `fm`, that is, the
 cardinality of the domain of `fm`.  Note that the cardinality operator
 is not supported for infinite maps.
 Expression `m[d]` returns the `U` value that `m` associates with `d`.
-Expression `m[t := u]` is a map like `m`, except that the
-element at key `t` is `u`.  The expression `t in m` says `t` is in the
-domain of `m` and `t !in m` is a syntactic shorthand for
-`!(t in m)`.[^fn-map-membership]
+Expression `m[t := u]` returns a map like `m`, except that key `t` maps to value `u`. If `t !in m`, the entry will be added; if `t in m`, its value will be updated.
 
 The expressions `m.Keys`, `m.Values`, and `m.Items` return, as sets,
 the domain, the range, and the 2-tuples holding the key-value
