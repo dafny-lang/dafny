@@ -8,7 +8,7 @@ module ExternalMath {
 
 module Std.Statistics {
   import opened ExternalMath
-  import opened Std.Collections.Seq
+  import opened Collections.Seq
 
   // A function to sum the elements of a sequence
   function Sum(s: seq<real>): real
