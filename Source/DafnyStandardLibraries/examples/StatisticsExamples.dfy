@@ -5,7 +5,6 @@ module TestStatistics {
   import opened Std.Statistics
   import opened Helpers
 
-  // NOTE: We assume AssertAndExpect is a helper available in the target environment.
 
   method {:test} TestSum() {
     AssertAndExpect(Sum([1.0, 2.0, 3.0, 4.0, 5.0]) == 15.0);
