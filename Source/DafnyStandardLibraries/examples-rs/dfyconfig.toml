@@ -1,0 +1,3 @@
+[options]
+standard-libraries = true
+reads-clauses-on-methods = true

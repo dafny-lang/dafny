@@ -38,6 +38,7 @@ check-binary-all:
 	make check-binary TARGETLANG=js
 	make check-binary TARGETLANG=go
 	make check-binary TARGETLANG=py
+	make check-binary TARGETLANG=rs
 
 update-binary: build-binary
 	cp ${DOO_FILE_SOURCE} ${DOO_FILE_TARGET}
@@ -49,6 +50,7 @@ update-binary-all:
 	make update-binary TARGETLANG=js
 	make update-binary TARGETLANG=go
 	make update-binary TARGETLANG=py
+	make update-binary TARGETLANG=rs
 
 test:
 	$(DAFNY) test -t:${TARGETLANG} ../../../examples/TargetSpecific/dfyconfig.toml --output:../../../build/stdlibexamples_targetspecific \
@@ -60,3 +62,4 @@ test-all:
 	make test TARGETLANG=js
 	make test TARGETLANG=go
 	make test TARGETLANG=py
+	make test TARGETLANG=rs

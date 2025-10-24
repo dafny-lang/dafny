@@ -15,6 +15,21 @@ verify:
 build-binary:
 	$(DAFNY) build -t:lib --hidden-no-verify=$(NO_VERIFY) src/Std/dfyconfig.toml --output:${DOO_FILE_SOURCE}
 
+build-binary-rs:
+	$(DAFNY) build -t:lib --hidden-no-verify=$(NO_VERIFY) --enforce-determinism --reads-clauses-on-methods \
+		src/Std/Wrappers.dfy \
+		src/Std/Collections/*.dfy \
+		src/Std/Relations.dfy \
+		src/Std/Functions.dfy \
+		src/Std/Math.dfy \
+		src/Std/BoundedInts.dfy \
+		src/Std/DynamicArray.dfy \
+		src/Std/Unicode/UnicodeBase.dfy \
+		`find src/Std/TargetSpecific -name '*-rs*.dfy' | grep -v FileIO5 | grep -v Concurrent | sort` \
+		--output:build/DafnyStandardLibraries-rs.doo
+
+
+
 check-binary: build-binary
 	unzip -o ${DOO_FILE_SOURCE} -d build/current
 	unzip -o ${DOO_FILE_TARGET} -d build/previous
@@ -59,7 +74,10 @@ test-js:
 	$(DAFNY) test $(VERIFY_OPTIONS) -t:js examples/nondeterministic/dfyconfig.toml --output:build/stdlibexamples_nondeterministic
 	TARGETLANG=js make -C src/Std/TargetSpecific test
 
-test: test-cs test-java test-go test-py test-js
+test-rs:
+	$(DAFNY) test $(VERIFY_OPTIONS) -t:rs examples-rs/dfyconfig.toml --enforce-determinism --output:build/stdlibexamples
+
+test: test-cs test-java test-go test-py test-js test-rs
 
 # We only generate coverage from the C# tests
 coverage: test-cs
@@ -75,3 +93,7 @@ check-examples:
 
 clean:
 	rm -rf build
+# Force rebuild with correct version
+build-binaries:
+	$(DAFNY) build -t:lib --no-verify src/Std/dfyconfig.toml --output:binaries/DafnyStandardLibraries.doo
+	make -C src/Std/TargetSpecific update-binary-all NO_VERIFY=true
