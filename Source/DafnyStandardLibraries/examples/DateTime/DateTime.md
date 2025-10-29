@@ -1,6 +1,9 @@
 # LocalDateTime
 
-dafny test --target:cs --standard-libraries Source/DafnyStandardLibraries/examples/DateTime/DurationExamples.dfy Source/DafnyStandardLibraries/src/Std/FileIOInternalExterns/DateTimeImpl.cs --allow-warnings
+dafny test --target:cs --standard-libraries Source/DafnyStandardLibraries/examples/DateTime/LocalDateTimeExamples.dfy Source/DafnyStandardLibraries/src/Std/FileIOInternalExterns/DateTimeImpl.cs --allow-warnings
+
+dafny test --target:cs --standard-libraries Source/DafnyStandardLibraries/examples/DateTime/DurationTimeExamples.dfy --allow-warnings
+
 
 Regarding the "absence of leap years every 4000 years," I checked how major programming languages determine leap years and found that none of them use the 4000-year rule. I think we can ignore this very rare rule.
 
