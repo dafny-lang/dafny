@@ -61,7 +61,7 @@ module LocalDateTime {
     LocalDateTime(year, month, day, hour, minute, second, millisecond)
   }
 
-  predicate IsInValidRange(year: int, month: int, day: int, hour: int := 0, minute: int := 0, second: int := 0, millisecond: int := 0)
+  predicate IsComponentsInValidRange(year: int, month: int, day: int, hour: int := 0, minute: int := 0, second: int := 0, millisecond: int := 0)
   {
     (MIN_YEAR as int) <= year <= (MAX_YEAR as int) && 
     0 <= month <= 255 &&
@@ -76,7 +76,7 @@ module LocalDateTime {
   predicate IsValidComponentRange(components: seq<int32>)
     requires |components| == 7
   {
-    IsInValidRange(components[0] as int, components[1] as int, components[2] as int, 
+    IsComponentsInValidRange(components[0] as int, components[1] as int, components[2] as int, 
                    components[3] as int, components[4] as int, components[5] as int, components[6] as int)
   }
 
@@ -345,7 +345,7 @@ module LocalDateTime {
         var second := ToInt(secondStr);
         var millisecond := ToInt(millisecondStr);
 
-        if IsInValidRange(year, month, day, hour, minute, second, millisecond) &&
+        if IsComponentsInValidRange(year, month, day, hour, minute, second, millisecond) &&
            DTUtils.IsValidDateTime(year as int32, month as uint8, day as uint8, hour as uint8, minute as uint8, second as uint8, millisecond as uint16) then
           Success(FromComponents(year as int32, month as uint8, day as uint8, hour as uint8, minute as uint8, second as uint8, millisecond as uint16))
         else
@@ -372,7 +372,7 @@ module LocalDateTime {
         var year := ToInt(yearStr);
         var month := ToInt(monthStr);
         var day := ToInt(dayStr);
-        if IsInValidRange(year, month, day) &&
+        if IsComponentsInValidRange(year, month, day) &&
            DTUtils.IsValidDateTime(year as int32, month as uint8, day as uint8, 0, 0, 0, 0) then
           Success(FromComponents(year as int32, month as uint8, day as uint8, 0, 0, 0, 0))
         else
