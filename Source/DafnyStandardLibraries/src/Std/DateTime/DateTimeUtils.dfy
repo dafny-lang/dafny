@@ -1,8 +1,8 @@
 include "DateTimeConstant.dfy"
 
-module DateTimeUtils {
-  import opened Std.Strings
-  import opened Std.BoundedInts
+module Std.DateTimeUtils {
+  import opened Strings
+  import opened BoundedInts
   import opened DateTimeConstant
 
   // Month names for better error messages
