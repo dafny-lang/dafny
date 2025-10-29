@@ -1,6 +1,5 @@
 
- // Optimized Duration Module for Dafny
-// Improvements: Better error handling, cleaner logic, no code duplication, performance optimizations
+
 
 include "DateTimeConstant.dfy"
 
