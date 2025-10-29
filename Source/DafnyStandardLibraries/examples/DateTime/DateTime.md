@@ -73,7 +73,7 @@ Includes helper functions for parsing numeric substrings (ParseNumericString, Pa
  -`Pow10(n)` → Computes 10ⁿ recursively for numeric parsing.
 - **Derived Computation**
  -`EpochDifference(epoch1, epoch2)`: Computes the absolute duration difference between two epoch millisecond timestamps, returning a valid Duration instance.
-##Test Commands
+## Test Commands
 ```
 dafny test --target:cs --standard-libraries Source/DafnyStandardLibraries/examples/DateTime/DurationExamples.dfy --allow-warnings
 ```
