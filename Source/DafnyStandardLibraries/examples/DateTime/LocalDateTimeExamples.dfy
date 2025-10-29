@@ -5,9 +5,9 @@ include "../Helpers.dfy"
 
 module TestLocalDateTime {
   import opened Std.BoundedInts
-  import LDT = LocalDateTime
-  import Duration = Duration
-  import DTUtils = DateTimeUtils
+  import LDT = Std.LocalDateTime
+  import Duration = Std.Duration
+  import DTUtils = Std.DateTimeUtils
   import opened Helpers
 
   method {:test} TestOfFunctionValidCases()

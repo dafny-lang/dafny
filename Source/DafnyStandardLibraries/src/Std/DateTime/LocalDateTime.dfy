@@ -2,10 +2,10 @@ include "Duration.dfy"
 include "DateTimeUtils.dfy"
 include "DateTimeConstant.dfy"
 
-module LocalDateTime {
-  import opened Std.Strings
-  import opened Std.Wrappers
-  import opened Std.BoundedInts
+module Std.LocalDateTime {
+  import opened Strings
+  import opened Wrappers
+  import opened BoundedInts
   import opened DateTimeConstant
   import Duration
   import DTUtils = DateTimeUtils

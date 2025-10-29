@@ -1,27 +1,33 @@
-# LocalDateTime
+# LocalDateTime module
 
-dafny test --target:cs --standard-libraries Source/DafnyStandardLibraries/examples/DateTime/LocalDateTimeExamples.dfy Source/DafnyStandardLibraries/src/Std/FileIOInternalExterns/DateTimeImpl.cs --allow-warnings
+The `LocalDateTime` module provides formally verified date and time functionality in Dafny without timezone information.  
+It ensures correctness using contracts (`requires`, `ensures`) and supports proof-based reasoning for temporal computations.
 
-dafny test --target:cs --standard-libraries Source/DafnyStandardLibraries/examples/DateTime/DurationTimeExamples.dfy --allow-warnings
+## File Descriptions
 
+- **`LocalDateTime.dfy`**  
+  Contains the full implementation of LocalDateTime operations, including creation, parsing, formatting, arithmetic, and comparison functions.  
+  It defines all verification contracts and imports external DateTime utilities. Uses epoch-time-based calculations for reliable date arithmetic.
 
-Regarding the "absence of leap years every 4000 years," I checked how major programming languages determine leap years and found that none of them use the 4000-year rule. I think we can ignore this very rare rule.
+- **`LocalDateTimeExamples.dfy`**  
+  Includes comprehensive test methods for validating the functionality of each operation using Dafny's `{:test}` annotation.  
+  These tests serve as verification examples that work with Dafny's formal proofs.
 
-The date calculation logic is now based on epoch time, so we have already avoided a lot of unnecessarily complex date-handling logic.
+- **`DateTimeImpl.cs`**  
+  Provides external implementations of core datetime operations, particularly epoch time conversions, leap year calculations, and current time access.
 
-The new logic first converts the LocalDateTime to an epoch time in milliseconds. It also converts the time to be added or subtracted into milliseconds. Then, it performs the addition or subtraction. Finally, it converts the resulting millisecond time back to a LocalDateTime.
+- **`DateTimeUtils.dfy`**  
+  Contains utility functions for date validation, day calculations, and formatting helpers.
 
-## Execute Verification
+- **`DateTimeConstant.dfy`**  
+  Defines time-related constants and bounded integer types used throughout the module.
 
-```
-dafny test --target:cs --standard-libraries LocalDateTime.dfy LocalDateTimeExamples.dfy  DateTimeImpl.cs --allow-warnings
-```
+## Function Descriptions
 
-## Run Test
-```
-dafny build LocalDateTimeExamples.dfy --target:cs LocalDateTimeExamples.dfy DateTimeImpl.cs --standard-libraries
-./LocalDateTimeExamples
-```
+- **Creation Functions**  
+  - `Of()`: Creates a LocalDateTime from individual components with validation
+  - `Now()`: Returns the current local date and time
+  - `FromSequenceComponents()`: Creates from a sequence of integer components
 
 
 

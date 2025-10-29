@@ -7,7 +7,7 @@
 include "../../src/Std/DateTime/Duration.dfy"
 include "../Helpers.dfy"
 module TestDuration {
-  import Duration
+  import Std.Duration
   import opened Std.BoundedInts
   import opened Helpers
 

@@ -1,13 +1,10 @@
-
-
-
 include "DateTimeConstant.dfy"
 
-module Duration {
+module Std.Duration {
   import opened DateTimeConstant
-  import opened Std.Strings
-  import opened Std.Collections.Seq
-  import opened Std.BoundedInts
+  import opened Strings
+  import opened Collections.Seq
+  import opened BoundedInts
 
   datatype Duration = Duration(
     seconds: uint32,
