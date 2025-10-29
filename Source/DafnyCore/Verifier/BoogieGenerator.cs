@@ -689,11 +689,9 @@ namespace Microsoft.Dafny {
       } else if (objectTypeConstructor == null) {
         options.OutputWriter.Exception("Dafny prelude is missing declaration of objectTypeConstructor");
       } else {
-        // Create fp64 literal expressions using concrete Boogie floating-point literals
-        // These are the actual IEEE 754 special values, not abstract constants
-        var fp64NaN = new Bpl.LiteralExpr(Token.NoToken, Microsoft.BaseTypes.BigFloat.FromString("0NaN53e11"));
-        var fp64PositiveInfinity = new Bpl.LiteralExpr(Token.NoToken, Microsoft.BaseTypes.BigFloat.FromString("0+oo53e11"));
-        var fp64NegativeInfinity = new Bpl.LiteralExpr(Token.NoToken, Microsoft.BaseTypes.BigFloat.FromString("0-oo53e11"));
+        var fp64NaN = new Bpl.LiteralExpr(Token.NoToken, BaseTypes.BigFloat.FromString("0NaN53e11"));
+        var fp64PositiveInfinity = new Bpl.LiteralExpr(Token.NoToken, BaseTypes.BigFloat.FromString("0+oo53e11"));
+        var fp64NegativeInfinity = new Bpl.LiteralExpr(Token.NoToken, BaseTypes.BigFloat.FromString("0-oo53e11"));
 
         return new PredefinedDecls(charType, refType, boxType,
                                    setTypeCtor, isetTypeCtor, multiSetTypeCtor,
@@ -3361,7 +3359,6 @@ namespace Microsoft.Dafny {
       } else if (type is RealType) {
         return Bpl.Type.Real;
       } else if (type is Fp64Type) {
-        // Map fp64 to Boogie's IEEE binary64 floating-point type
         return new Bpl.FloatType(53, 11); // 53-bit significand, 11-bit exponent (IEEE binary64)
       } else if (type is BigOrdinalType) {
         return Predef.BigOrdinalType;
