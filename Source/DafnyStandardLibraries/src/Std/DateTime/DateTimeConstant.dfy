@@ -1,5 +1,5 @@
-module DateTimeConstant {
-  import opened Std.BoundedInts
+module Std.DateTimeConstant {
+  import opened BoundedInts
 
   const MILLISECONDS_PER_SECOND: uint16 := 1000
   const SECONDS_PER_MINUTE: uint8 := 60
