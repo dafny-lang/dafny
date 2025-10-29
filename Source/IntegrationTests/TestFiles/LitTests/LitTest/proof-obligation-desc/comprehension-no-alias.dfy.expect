@@ -1,5 +1,5 @@
 comprehension-no-alias.dfy(6,4): Warning: Could not find a trigger for this quantifier. Without a trigger, the quantifier may cause brittle verification. To silence this warning, add an explicit trigger using the {:trigger} attribute. For more information, see the section on quantifier instantiation rules in the reference manual.
-comprehension-no-alias.dfy(6,45): Error: key expressions might be referring to the same value
+comprehension-no-alias.dfy(6,45): Error: key expressions could not be proved to refer to different values
  Asserted expression: forall x: nat, y: nat, x': nat, y': nat | x < i && y < j && x' < i && y' < j && (x != x' || y != y') :: x + y != x' + y' || x == x'
 
 Dafny program verifier finished with 0 verified, 1 error

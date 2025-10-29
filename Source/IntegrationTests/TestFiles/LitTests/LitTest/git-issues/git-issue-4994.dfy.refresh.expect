@@ -1,10 +1,10 @@
-git-issue-4994.dfy(12,4): Error: assertion might not hold
-git-issue-4994.dfy(14,4): Error: assertion might not hold
-git-issue-4994.dfy(16,4): Error: assertion might not hold
-git-issue-4994.dfy(18,4): Error: assertion might not hold
-git-issue-4994.dfy(25,4): Error: assertion might not hold
-git-issue-4994.dfy(27,4): Error: assertion might not hold
-git-issue-4994.dfy(29,4): Error: assertion might not hold
-git-issue-4994.dfy(31,4): Error: assertion might not hold
+git-issue-4994.dfy(12,4): Error: assertion could not be proved
+git-issue-4994.dfy(14,4): Error: assertion could not be proved
+git-issue-4994.dfy(16,4): Error: assertion could not be proved
+git-issue-4994.dfy(18,4): Error: assertion could not be proved
+git-issue-4994.dfy(25,4): Error: assertion could not be proved
+git-issue-4994.dfy(27,4): Error: assertion could not be proved
+git-issue-4994.dfy(29,4): Error: assertion could not be proved
+git-issue-4994.dfy(31,4): Error: assertion could not be proved
 
 Dafny program verifier finished with 1 verified, 8 errors

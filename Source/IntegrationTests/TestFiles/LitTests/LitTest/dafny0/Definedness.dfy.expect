@@ -1,23 +1,23 @@
 Definedness.dfy(11,6): Error: possible division by zero
 Definedness.dfy(18,15): Error: possible division by zero
-Definedness.dfy(27,15): Error: target object might be null
-Definedness.dfy(28,20): Error: target object might be null
+Definedness.dfy(27,15): Error: target object could not be proved to be non-null
+Definedness.dfy(28,20): Error: target object could not be proved to be non-null
 Definedness.dfy(29,16): Error: possible division by zero
-Definedness.dfy(36,15): Error: target object might be null
-Definedness.dfy(45,15): Error: target object might be null
-Definedness.dfy(53,17): Error: target object might be null
+Definedness.dfy(36,15): Error: target object could not be proved to be non-null
+Definedness.dfy(45,15): Error: target object could not be proved to be non-null
+Definedness.dfy(53,17): Error: target object could not be proved to be non-null
 Definedness.dfy(54,2): Error: a postcondition could not be proved on this return path
 Definedness.dfy(53,21): Related location: this is the postcondition that could not be proved
-Definedness.dfy(60,17): Error: target object might be null
+Definedness.dfy(60,17): Error: target object could not be proved to be non-null
 Definedness.dfy(61,2): Error: a postcondition could not be proved on this return path
 Definedness.dfy(60,21): Related location: this is the postcondition that could not be proved
 Definedness.dfy(68,2): Error: a postcondition could not be proved on this return path
 Definedness.dfy(67,21): Related location: this is the postcondition that could not be proved
-Definedness.dfy(88,6): Error: target object might be null
+Definedness.dfy(88,6): Error: target object could not be proved to be non-null
 Definedness.dfy(89,5): Error: function precondition could not be proved
 Definedness.dfy(79,15): Related location: this proposition could not be proved
-Definedness.dfy(89,9): Error: assignment might update an object not in the enclosing context's modifies clause
-Definedness.dfy(89,9): Error: target object might be null
+Definedness.dfy(89,9): Error: modified field could not be proved to be in the current modifies clause
+Definedness.dfy(89,9): Error: target object could not be proved to be non-null
 Definedness.dfy(90,10): Error: function precondition could not be proved
 Definedness.dfy(79,15): Related location: this proposition could not be proved
 Definedness.dfy(95,13): Error: possible division by zero
@@ -47,7 +47,7 @@ Definedness.dfy(196,22): Error: this loop invariant could not be proved on entry
 Definedness.dfy(196,27): Error: possible division by zero
 Definedness.dfy(219,2): Error: a postcondition could not be proved on this return path
 Definedness.dfy(217,45): Related location: this is the postcondition that could not be proved
-Definedness.dfy(224,21): Error: target object might be null
+Definedness.dfy(224,21): Error: target object could not be proved to be non-null
 Definedness.dfy(242,2): Error: a postcondition could not be proved on this return path
 Definedness.dfy(240,23): Related location: this is the postcondition that could not be proved
 

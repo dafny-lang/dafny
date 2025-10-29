@@ -23,21 +23,21 @@ git-issue-276a.dfy(7,10): Error: cannot find witness that shows type is inhabite
 git-issue-276a.dfy(7,26): Related location: this proposition could not be proved
 git-issue-276a.dfy(7,32): Error: possible division by zero
 git-issue-276a.dfy(8,32): Error: the real-based number must be an integer (if you want truncation, apply .Floor to the real-based number)
-git-issue-276a.dfy(9,42): Error: value to be converted might not fit in bv8
+git-issue-276a.dfy(9,42): Error: value to be converted could not be proved to fit in bv8
 git-issue-276a.dfy(10,34): Error: the real-based number must be an integer (if you want truncation, apply .Floor to the real-based number)
-git-issue-276a.dfy(11,33): Error: value to be converted might not fit in bv8
-git-issue-276a.dfy(12,41): Error: value to be converted might not fit in bv8
+git-issue-276a.dfy(11,33): Error: value to be converted could not be proved to fit in bv8
+git-issue-276a.dfy(12,41): Error: value to be converted could not be proved to fit in bv8
 git-issue-276a.dfy(13,10): Error: cannot find witness that shows type is inhabited (only tried 0); try giving a hint through a 'witness' or 'ghost witness' clause, or use 'witness *' to treat as a possibly empty type
 git-issue-276a.dfy(13,27): Related location: this proposition could not be proved
-git-issue-276a.dfy(13,39): Error: value to be converted might not fit in char
+git-issue-276a.dfy(13,39): Error: value to be converted could not be proved to fit in char
 git-issue-276a.dfy(14,10): Error: cannot find witness that shows type is inhabited (only tried 0); try giving a hint through a 'witness' or 'ghost witness' clause, or use 'witness *' to treat as a possibly empty type
 git-issue-276a.dfy(14,27): Related location: this proposition could not be proved
-git-issue-276a.dfy(14,47): Error: value to be converted might not fit in char
+git-issue-276a.dfy(14,47): Error: value to be converted could not be proved to fit in char
 git-issue-276a.dfy(15,41): Error: the real-based number must be an integer (if you want truncation, apply .Floor to the real-based number)
-git-issue-276a.dfy(16,40): Error: value to be converted might not fit in bv2
+git-issue-276a.dfy(16,40): Error: value to be converted could not be proved to fit in bv2
 git-issue-276a.dfy(17,10): Error: cannot find witness that shows type is inhabited (only tried 0); try giving a hint through a 'witness' or 'ghost witness' clause, or use 'witness *' to treat as a possibly empty type
 git-issue-276a.dfy(17,27): Related location: this proposition could not be proved
-git-issue-276a.dfy(17,53): Error: value to be converted might not fit in char
+git-issue-276a.dfy(17,53): Error: value to be converted could not be proved to fit in char
 git-issue-276a.dfy(18,41): Error: possible division by zero
 git-issue-276a.dfy(19,41): Error: possible division by zero
 git-issue-276a.dfy(20,10): Error: cannot find witness that shows type is inhabited (only tried 0); try giving a hint through a 'witness' or 'ghost witness' clause, or use 'witness *' to treat as a possibly empty type

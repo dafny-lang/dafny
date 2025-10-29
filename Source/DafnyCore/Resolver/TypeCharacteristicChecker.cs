@@ -234,7 +234,7 @@ namespace Microsoft.Dafny {
           visitor.VisitType(syn.Origin, syn.Rhs, false);
           if (!isAnExport) {
             if (syn.SupportsEquality && !syn.Rhs.SupportsEquality) {
-              reporter.Error(MessageSource.Resolver, syn.Origin, "type '{0}' declared as supporting equality, but the RHS type ({1}) might not{2}",
+              reporter.Error(MessageSource.Resolver, syn.Origin, "type '{0}' declared as supporting equality, but the RHS type ({1}) could not be proved to support equality{2}",
                 syn.Name, syn.Rhs, CheckTypeCharacteristicsVisitor.TypeEqualityErrorMessageHint(syn.Rhs));
             }
             if (syn.Characteristics.IsNonempty && !syn.Rhs.IsNonempty) {
