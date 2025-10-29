@@ -29,7 +29,37 @@ It ensures correctness using contracts (`requires`, `ensures`) and supports proo
   - `Now()`: Returns the current local date and time
   - `FromSequenceComponents()`: Creates from a sequence of integer components
 
+- **Parsing Functions**  
+  - `Parse()`: Parses strings in ISO8601 or DateOnly formats
+  - `ParseISO8601()`: Specifically handles "YYYY-MM-DDTHH:mm:ss.fff" format
+  - `ParseDateOnly()`: Handles "YYYY-MM-DD" format with time defaulting to midnight
 
+- **Arithmetic Operations**  
+  - `Plus/Minus` functions for days, hours, minutes, seconds, milliseconds
+  - `PlusDuration()/MinusDuration()`: Add or subtract Duration objects
+  - All operations use epoch-time conversion for accuracy across month/year boundaries
+
+- **Formatting Functions**  
+  - `ToString()`: Default ISO8601 string representation
+  - `Format()`: Supports multiple formats (ISO8601, DateOnly, TimeOnly, etc.)
+
+- **Comparison Functions**  
+  - `CompareLocal()`: Returns -1, 0, or 1 for ordering
+  - `IsBefore()`, `IsAfter()`, `IsEqual()`: Boolean comparison predicates
+
+- **Modification Functions**  
+  - `With` functions: Create new instances with modified components (year, month, day, etc.)
+  - Automatically handles date clamping (e.g., Feb 29 → Feb 28 in non-leap years)
+
+- **Getter Functions**  
+  - Individual component accessors: `GetYear()`, `GetMonth()`, `GetDay()`, etc.
+  - `IsValidLocalDateTime()`: Validates a LocalDateTime instance
+
+## Test Commands
+
+```bash
+dafny test --target:cs --standard-libraries Source/DafnyStandardLibraries/examples/DateTime/LocalDateTimeExamples.dfy Source/DafnyStandardLibraries/src/Std/FileIOInternalExterns/DateTimeImpl.cs --allow-warnings
+```
 
 # Duration
 The Duration module provides formally verified operations for representing and manipulating time durations in Dafny.
