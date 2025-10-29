@@ -152,7 +152,7 @@ public class SystemModuleManager {
         [TPVarianceSyntax.Covariant_Permissive, TPVarianceSyntax.Covariant_Strict],
         t => t.IsIMapType, typeArgs => new MapType(false, typeArgs[0], typeArgs[1]))
     ];
-    
+
     // Add all valuetype decls to system module (except fp64, which is added lazily on first use)
     SystemModule.SourceDecls.AddRange(valuetypeDecls.Where((_, i) => i != (int)ValuetypeVariety.Fp64));
 
@@ -244,7 +244,7 @@ public class SystemModuleManager {
 
   private void AddFp64StaticMethods(ValuetypeDecl enclosingType) {
     var fp64Type = new Fp64Type();
-    
+
     AddFp64StaticFunction(enclosingType, "Equal", [("x", fp64Type), ("y", fp64Type)], Type.Bool);
     AddFp64MathematicalFunctions(enclosingType);
     AddFp64InexactConversionMethods(enclosingType);
@@ -255,11 +255,11 @@ public class SystemModuleManager {
     CreateArrowTypeDecl(2);
 
     var fp64Type = new Fp64Type();
-    
+
     // Two-argument functions
     AddFp64StaticFunction(enclosingType, "Min", [("x", fp64Type), ("y", fp64Type)], fp64Type);
     AddFp64StaticFunction(enclosingType, "Max", [("x", fp64Type), ("y", fp64Type)], fp64Type);
-    
+
     // Single-argument functions
     AddFp64StaticFunction(enclosingType, "Abs", [("x", fp64Type)], fp64Type);
     AddFp64StaticFunction(enclosingType, "Floor", [("x", fp64Type)], fp64Type);

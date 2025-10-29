@@ -2311,6 +2311,10 @@ namespace Microsoft.Dafny {
       "IsNormal", "IsSubnormal", "Equal", "Sqrt"
     };
 
+    static readonly HashSet<string> ArithmeticConstraintNames = new() {
+      "Plussable", "Minusable", "Mullable", "Divable"
+    };
+
     bool IsFp64Member(string memberName) {
       return Fp64MemberNames.Contains(memberName);
     }
@@ -2324,10 +2328,7 @@ namespace Microsoft.Dafny {
       }
 
       if (IsFp64Operand(e.E0, leftType) || IsFp64Operand(e.E1, rightType)) {
-        // Prefer fp64 result when either operand is fp64
         ConstrainSubtypeRelation(Type.Fp64, expr.Type, expr.Origin, "fp64 arithmetic produces fp64 result");
-
-        // Also constrain literals to be fp64-compatible
         if (e.E0 is LiteralExpr) {
           ConstrainSubtypeRelation(Type.Fp64, e.E0.Type, expr.Origin, "fp64 arithmetic requires fp64-compatible literal");
         }
@@ -2342,8 +2343,48 @@ namespace Microsoft.Dafny {
     }
 
     bool IsFp64Operand(Expression expr, Type type) {
-      return type is Fp64Type || 
+      return type is Fp64Type ||
              (expr is IdentifierExpr { Var.Type: not null } id && id.Var.Type.NormalizeExpand() is Fp64Type);
+    }
+
+    bool TryResolveFp64Proxy(TypeProxy tProxy) {
+      // Strategy 1: Trace through constraints to find fp64 relationships
+      var visited = new HashSet<Type>();
+      if (TraceFp64Connection(tProxy, visited)) {
+        if (Options.Get(CommonOptionBag.TypeInferenceDebug)) {
+          Options.OutputWriter.Debug("  Found fp64 connection, assigning proxy");
+        }
+        AssignProxyAndHandleItsConstraints(tProxy, Type.Fp64, true);
+        return true;
+      }
+
+      // Strategy 2: Check if has numeric constraints compatible with fp64
+      if (HasNumericConstraints(tProxy)) {
+        AssignProxyAndHandleItsConstraints(tProxy, Type.Fp64, true);
+        return true;
+      }
+
+      // Strategy 3: Last resort - if no conflicting constraints, assume fp64
+      if (!HasConflictingConstraints(tProxy)) {
+        AssignProxyAndHandleItsConstraints(tProxy, Type.Fp64, true);
+        return true;
+      }
+
+      if (Options.Get(CommonOptionBag.TypeInferenceDebug)) {
+        Options.OutputWriter.Debug("  Could not resolve to fp64");
+      }
+      return false;
+    }
+
+    bool HasNumericConstraints(TypeProxy tProxy) {
+      return AllXConstraints.Any(xc => xc.Types.Contains(tProxy) && (
+        xc.ConstraintName is "NumericType" or "IntLikeOrBitvector" or "RealTypes" or "Orderable_Lt" or "Orderable_Gt" ||
+        ArithmeticConstraintNames.Contains(xc.ConstraintName)));
+    }
+
+    bool HasConflictingConstraints(TypeProxy tProxy) {
+      return AllTypeConstraints.Any(c => c.Sub == tProxy &&
+        c.Super.NormalizeExpand() is not TypeProxy and not Fp64Type and not RealType);
     }
 
     bool TraceFp64Connection(Type t, HashSet<Type> visited) {
@@ -2357,7 +2398,6 @@ namespace Microsoft.Dafny {
         return true;
       }
 
-      // For type proxies, check if they're involved in arithmetic with fp64
       if (t is TypeProxy proxy) {
         if (Options.Get(CommonOptionBag.TypeInferenceDebug)) {
           Options.OutputWriter.Debug("    TraceFp64Connection: Checking XConstraints for proxy {0}", t);
@@ -2365,30 +2405,16 @@ namespace Microsoft.Dafny {
         }
         // Check XConstraints that involve this proxy
         foreach (var xc in AllXConstraints) {
-          if ((xc.ConstraintName == "Mullable" || xc.ConstraintName == "Plussable" ||
-               xc.ConstraintName == "Minusable" || xc.ConstraintName == "Divable") &&
-              xc.Types.Contains(t)) {
+          if (ArithmeticConstraintNames.Contains(xc.ConstraintName) && xc.Types.Contains(t)) {
             if (Options.Get(CommonOptionBag.TypeInferenceDebug)) {
               Options.OutputWriter.Debug("      Found {0} constraint with types: {1}", xc.ConstraintName, string.Join(", ", xc.Types.Select(tt => tt.ToString())));
             }
-            // This proxy is involved in arithmetic
-            // Check if any other type in this constraint is fp64
             foreach (var otherType in xc.Types) {
               if (otherType != t && TraceFp64Connection(otherType, visited)) {
                 if (Options.Get(CommonOptionBag.TypeInferenceDebug)) {
                   Options.OutputWriter.Debug("      Found fp64 connection through {0}", xc.ConstraintName);
                 }
                 return true;
-              }
-            }
-
-            // Also check type constraints
-            foreach (var c in AllTypeConstraints) {
-              if ((c.Super == t || c.Sub == t)) {
-                var other = c.Super == t ? c.Sub : c.Super;
-                if (TraceFp64Connection(other, visited)) {
-                  return true;
-                }
               }
             }
           }
@@ -2404,7 +2430,6 @@ namespace Microsoft.Dafny {
         }
       }
 
-      // Also check if this type has been assigned fp64 through other means
       if (t is TypeProxy proxy2 && proxy2.T != null) {
         return TraceFp64Connection(proxy2.T, visited);
       }
@@ -3604,7 +3629,6 @@ namespace Microsoft.Dafny {
 
     private TopLevelDecl CreateBuiltinTypeDecl(string name, IOrigin origin) {
       // For built-in types, we need to return the corresponding ValuetypeDecl from the system module
-      // If looking for fp64, ensure it's initialized first
       if (name == "fp64") {
         ProgramResolver.SystemModuleManager.EnsureFp64TypeInitialized(ProgramResolver);
       }
@@ -4694,7 +4718,6 @@ namespace Microsoft.Dafny {
       }
       Contract.Assert(receiverType is NonProxyType);  // there are only two kinds of types: proxies and non-proxies
 
-      // Check if this is fp64 and ensure it's initialized before looking for members
       if (receiverType.IsFp64Type) {
         ProgramResolver.SystemModuleManager.EnsureFp64TypeInitialized(ProgramResolver);
       }
@@ -4809,7 +4832,7 @@ namespace Microsoft.Dafny {
         return Type.Real;
       }
 
-      // Special handling for fp64-only member access
+      // fp64 members require special resolution because fp64 is lazily initialized
       if (memberName != null && IsFp64Member(memberName)) {
         if (Options.Get(CommonOptionBag.TypeInferenceDebug)) {
           Options.OutputWriter.Debug("PartiallyResolveTypeForMemberSelection: checking fp64-only member {0} on type {1}", memberName, t);
@@ -4817,95 +4840,17 @@ namespace Microsoft.Dafny {
 
         // First, run a partial constraint solve to see if we can determine the type
         PartiallySolveTypeConstraints(false);
-
-        // Re-normalize after partial solving
         t = t.NormalizeExpand();
+
         if (!(t is TypeProxy)) {
           if (Options.Get(CommonOptionBag.TypeInferenceDebug)) {
             Options.OutputWriter.Debug("  Partial solving resolved to: {0}", t);
           }
-          return t;  // partial solving resolved it
+          return t;
         }
 
-        // If still a proxy, trace through constraints to find fp64 relationships
-        var visited = new HashSet<Type>();
-        if (TraceFp64Connection(t, visited)) {
-          if (Options.Get(CommonOptionBag.TypeInferenceDebug)) {
-            Options.OutputWriter.Debug("  Found fp64 connection, assigning proxy");
-          }
-          AssignProxyAndHandleItsConstraints((TypeProxy)t, Type.Fp64, true);
+        if (TryResolveFp64Proxy((TypeProxy)t)) {
           return Type.Fp64;
-        } else {
-          if (Options.Get(CommonOptionBag.TypeInferenceDebug)) {
-            Options.OutputWriter.Debug("  No fp64 connection found");
-          }
-        }
-
-        // Additional check: if we have Plussable/Mullable constraints with fp64, resolve to fp64
-        if (t is TypeProxy tProxy) {
-          foreach (var xc in AllXConstraints) {
-            if ((xc.ConstraintName == "Mullable" || xc.ConstraintName == "Plussable") && xc.Types.Contains(t)) {
-              // Check if any type in this constraint is already resolved to fp64
-              foreach (var constraintType in xc.Types) {
-                if (constraintType.IsFp64Type) {
-                  AssignProxyAndHandleItsConstraints(tProxy, Type.Fp64, true);
-                  return Type.Fp64;
-                }
-              }
-            }
-          }
-
-          // Last resort: check if this proxy has numeric constraints that would be compatible with fp64
-
-          // Check if the proxy has numeric-related constraints
-          bool hasNumericConstraints = false;
-          foreach (var xc in AllXConstraints) {
-            if (xc.Types.Contains(t)) {
-              switch (xc.ConstraintName) {
-                case "NumericType":
-                case "IntLikeOrBitvector":
-                case "RealTypes":
-                case "Orderable_Lt":
-                case "Orderable_Gt":
-                case "Plussable":
-                case "Minusable":
-                case "Mullable":
-                case "Divable":
-                  hasNumericConstraints = true;
-                  break;
-              }
-            }
-          }
-
-          if (hasNumericConstraints) {
-            AssignProxyAndHandleItsConstraints(tProxy, Type.Fp64, true);
-            return Type.Fp64;
-          }
-
-          // Very aggressive last resort: if accessing an fp64 member on a type proxy,
-          // and the proxy doesn't have conflicting constraints, resolve to fp64
-          // This is necessary because by the time member access happens, the arithmetic
-          // constraints that would link to fp64 may have already been processed
-          bool canBeFp64 = true;
-
-          // Check if there are any constraints that would prevent this from being fp64
-          foreach (var c in AllTypeConstraints) {
-            if (c.Sub == t) {
-              var superNorm = c.Super.NormalizeExpand();
-              // If constrained to be a subtype of something that isn't compatible with fp64
-              if (superNorm is not TypeProxy && !(superNorm is Fp64Type) && !(superNorm is RealType)) {
-                canBeFp64 = false;
-                break;
-              }
-            }
-          }
-
-          if (canBeFp64) {
-            // This is a heuristic: if we're accessing an fp64-specific member,
-            // the type should be fp64
-            AssignProxyAndHandleItsConstraints(tProxy, Type.Fp64, true);
-            return Type.Fp64;
-          }
         }
       }
 
@@ -5244,7 +5189,7 @@ namespace Microsoft.Dafny {
         joinType = Type.Join(joinType, Type.HeadWithProxyArgs(t), SystemModuleManager);  // the only way this can succeed is if we obtain a (non-null or nullable) trait
         Contract.Assert(joinType == null ||
                         joinType.IsObjectQ || joinType.IsObject ||
-                        joinType is BasicType ||  // Allow built-in types like fp64, int, etc.
+                        joinType is BasicType ||
                         (joinType is UserDefinedType udt && (udt.ResolvedClass is TraitDecl || (udt.ResolvedClass is NonNullTypeDecl nntd && nntd.Class is TraitDecl))));
         return joinType != null;
       }
@@ -6089,7 +6034,6 @@ namespace Microsoft.Dafny {
                 // nevertheless, continue creating an expression that approximates a correct one
               }
 
-              // For built-in types like fp64, create a StaticReceiverExpr with the ValuetypeDecl
               var receiver = new StaticReceiverExpr(expr.Lhs.Origin, valuetypeDecl, false, null) {
                 ContainerExpression = expr.Lhs
               };
@@ -6103,7 +6047,6 @@ namespace Microsoft.Dafny {
         }
       } else if (lhs != null) {
         // ----- 4. Look up name in the type of the Lhs
-        // If looking for static members on fp64, ensure it's initialized
         if (expr.Lhs.Type.IsFp64Type) {
           ProgramResolver.SystemModuleManager.EnsureFp64TypeInitialized(ProgramResolver);
         }
@@ -6115,7 +6058,6 @@ namespace Microsoft.Dafny {
             AddAssignableConstraint(expr.Origin, tentativeReceiverType, receiver.Type, "receiver type ({1}) does not have a member named " + name);
             r = ResolveExprDotCall(expr.Origin, expr.SuffixNameNode, receiver, tentativeReceiverType, member, expr.OptTypeArguments, resolutionContext, allowMethodCall);
           } else {
-            // Handle built-in types (like fp64) which have ValuetypeDecl
             if (tentativeReceiverType.IsFp64Type && member.EnclosingClass is ValuetypeDecl vtd) {
               receiver = new StaticReceiverExpr(expr.Origin, vtd, false, lhs);
             } else {
@@ -6196,7 +6138,6 @@ namespace Microsoft.Dafny {
           rr.TypeApplicationAtEnclosingClass.AddRange(rType.AsParentType(member.EnclosingClass).TypeArgs);
         }
       } else {
-        // For built-in types like fp64, int, etc., there are no type parameters
         var vtd = ProgramResolver.SystemModuleManager.AsValuetypeDecl(rType);
         if (vtd != null) {
           Contract.Assert(vtd.TypeArgs.Count == rType.TypeArgs.Count);

@@ -507,7 +507,7 @@ namespace Microsoft.Dafny {
                   // The value is exactly representable, so ~ is forbidden
                   ReportError(e, $"The approximate literal prefix ~ is not allowed on the exactly representable value {decValue}. Remove the ~ prefix.");
                 }
-                
+
                 if (lit is DecimalLiteralExpr decLit) {
                   decLit.ResolvedFloatValue = floatValue;
                 }
