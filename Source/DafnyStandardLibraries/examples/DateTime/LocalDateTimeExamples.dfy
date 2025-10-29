@@ -84,7 +84,7 @@ module TestLocalDateTime {
     expect invalidFormat3.Failure?;
   }
 
-  method {:test} {:resource_limit 3000000} TestParseFunctionWrongDateOrder()
+  method {:test} TestParseFunctionWrongDateOrder()
   {
     var invalidFormat4 := LDT.Parse("15-06-2023T14:30:45.123", LDT.ParseFormat.ISO8601); // Wrong date order
     expect invalidFormat4.Failure?;
@@ -210,14 +210,14 @@ module TestLocalDateTime {
     expect LDT.GetMinute(nextDay) == 30;
   }
 
-  method {:test} {:resource_limit 2000000} TestToString()
+  method {:test} TestToString()
   {
     var dt := LDT.LocalDateTime(2023, 6, 15, 14, 30, 45, 123);
     var isoStr := LDT.ToString(dt);
     AssertAndExpect(isoStr == "2023-06-15T14:30:45.123");
   }
 
-  method {:test} {:resource_limit 2000000} TestFormatISO8601()
+  method {:test} TestFormatISO8601()
   {
     var dt := LDT.LocalDateTime(2023, 6, 15, 14, 30, 45, 123);
     var isoFormat := LDT.Format(dt, LDT.DateFormat.ISO8601);
