@@ -1090,10 +1090,66 @@ namespace Microsoft.Dafny {
               Bpl.Expr.Eq(intFromBv,
                 new NAryExpr(tok, new IfThenElse(tok),
                   [Bpl.Expr.Ge(natFromBv, signBit),
-                   Bpl.Expr.Neg(Bpl.Expr.Sub(pow64, natFromBv)),
-                   natFromBv])))));
+                    Bpl.Expr.Neg(Bpl.Expr.Sub(pow64, natFromBv)),
+                    natFromBv])))));
         }
       }
+    }
+
+    private bool fp64TypeConstantCreated = false;
+
+    private void EnsureFp64TypeConstantExists() {
+      if (fp64TypeConstantCreated || Predef?.Ty == null || sink == null) {
+        return;
+      }
+
+      var tok = Token.NoToken;
+      var fp64Type = new Bpl.FloatType(tok, 53, 11);
+      var tFp64 = new Bpl.Constant(tok, new Bpl.TypedIdent(tok, "TFp64", Predef.Ty), true);
+      var tagFp64 = new Bpl.Constant(tok, new Bpl.TypedIdent(tok, "TagFp64", Predef.TyTag), true);
+
+      // axiom Tag(TFp64) == TagFp64;
+      var tagAxiom = new Bpl.Axiom(tok,
+        Bpl.Expr.Eq(
+          FunctionCall(tok, "Tag", Predef.TyTag, new Bpl.IdentifierExpr(tok, tFp64)),
+          new Bpl.IdentifierExpr(tok, tagFp64)));
+      tFp64.DefinitionAxioms.Add(tagAxiom);
+
+      sink.AddTopLevelDeclaration(tagFp64);
+      sink.AddTopLevelDeclaration(tFp64);
+
+      // Essential axioms matching TInt pattern
+      var tFp64Expr = new Bpl.IdentifierExpr(tok, "TFp64", Predef.Ty);
+
+      // $Is axiom: (forall v: fp64 :: { $Is(v, TFp64) } $Is(v, TFp64))
+      var vVar = new BoundVariable(tok, new TypedIdent(tok, "v", fp64Type));
+      var vExpr = new Bpl.IdentifierExpr(tok, vVar);
+      var isV = FunctionCall(tok, BuiltinFunction.Is, null, vExpr, tFp64Expr);
+      var isAxiom = new Bpl.ForallExpr(tok, [vVar], BplTrigger(isV), isV);
+      sink.AddTopLevelDeclaration(new Axiom(tok, isAxiom));
+
+      // Boxing axiom: (forall bx: Box :: { $IsBox(bx, TFp64) } $IsBox(bx, TFp64) ==> $Box($Unbox(bx): fp64) == bx && $Is($Unbox(bx): fp64, TFp64))
+      var bxVar = new BoundVariable(tok, new TypedIdent(tok, "bx", Predef.BoxType));
+      var bxExpr = new Bpl.IdentifierExpr(tok, bxVar);
+      var isBox = FunctionCall(tok, BuiltinFunction.IsBox, null, bxExpr, tFp64Expr);
+      var unbox = FunctionCall(tok, BuiltinFunction.Unbox, fp64Type, bxExpr);
+      var boxUnbox = FunctionCall(tok, BuiltinFunction.Box, null, unbox);
+      var isUnbox = FunctionCall(tok, BuiltinFunction.Is, null, unbox, tFp64Expr);
+      var boxAxiom = new Bpl.ForallExpr(tok, [bxVar],
+        BplTrigger(isBox),
+        Expr.Imp(isBox, Expr.And(Expr.Eq(boxUnbox, bxExpr), isUnbox)));
+      sink.AddTopLevelDeclaration(new Axiom(tok, boxAxiom));
+
+      // $IsAlloc axiom: (forall h: Heap, v: fp64 :: { $IsAlloc(v, TFp64, h) } $IsAlloc(v, TFp64, h))
+      var hVar = new BoundVariable(tok, new TypedIdent(tok, "h", Predef.HeapType));
+      var hExpr = new Bpl.IdentifierExpr(tok, hVar);
+      var vVar2 = new BoundVariable(tok, new TypedIdent(tok, "v", fp64Type));
+      var vExpr2 = new Bpl.IdentifierExpr(tok, vVar2);
+      var isAlloc = FunctionCall(tok, BuiltinFunction.IsAlloc, null, vExpr2, tFp64Expr, hExpr);
+      var isAllocAxiom = new Bpl.ForallExpr(tok, [hVar, vVar2], BplTrigger(isAlloc), isAlloc);
+      sink.AddTopLevelDeclaration(new Axiom(tok, isAllocAxiom));
+
+      fp64TypeConstantCreated = true;
     }
 
     private void AddFp64Functions() {
@@ -1107,7 +1163,7 @@ namespace Microsoft.Dafny {
       var boolType = Bpl.Type.Bool;
       var bv64Type = BplBvType(64);
 
-      AddFp64TypeInfrastructure(fp64Type);
+      EnsureFp64TypeConstantExists();
 
       // Predicate functions
       AddFp64Function("fp64_is_nan", "fp.isNaN", [fp64Type], boolType);
@@ -1149,72 +1205,6 @@ namespace Microsoft.Dafny {
       AddFp64Function("fp64_truncate", "fp.roundToIntegral RTZ", [fp64Type], fp64Type);
       AddFp64Function("fp64_sqrt", "fp.sqrt RNE", [fp64Type], fp64Type);
       AddFp64Function("fp64_to_sbv64_RTZ", "(_ fp.to_sbv 64) RTZ", [fp64Type], bv64Type);
-    }
-
-    private bool fp64TypeConstantCreated = false;
-
-    private void EnsureFp64TypeConstantExists() {
-      if (fp64TypeConstantCreated || Predef?.Ty == null || sink == null) {
-        return;
-      }
-
-      var tok = Token.NoToken;
-      var tFp64 = new Bpl.Constant(tok, new Bpl.TypedIdent(tok, "TFp64", Predef.Ty), true);
-      var tagFp64 = new Bpl.Constant(tok, new Bpl.TypedIdent(tok, "TagFp64", Predef.TyTag), true);
-
-      sink.AddTopLevelDeclaration(tFp64);
-      sink.AddTopLevelDeclaration(tagFp64);
-      sink.AddTopLevelDeclaration(new Bpl.Axiom(tok,
-        Bpl.Expr.Eq(
-          FunctionCall(tok, "Tag", Predef.TyTag, new Bpl.IdentifierExpr(tok, tFp64)),
-          new Bpl.IdentifierExpr(tok, tagFp64))));
-
-      fp64TypeConstantCreated = true;
-    }
-
-    private void AddFp64TypeInfrastructure(Bpl.Type fp64Type) {
-      var tok = Token.NoToken;
-
-      EnsureFp64TypeConstantExists();
-      var xParam = BplFormalVar(null, fp64Type, true);
-      var litFp64 = new Bpl.Function(tok, "LitFp64", [],
-        [xParam], BplFormalVar(null, fp64Type, false),
-        null, new Bpl.QKeyValue(tok, "identity", []));
-      sink.AddTopLevelDeclaration(litFp64);
-      var xVar = new BoundVariable(tok, new TypedIdent(tok, "x", fp64Type));
-      var xExpr = new Bpl.IdentifierExpr(tok, xVar);
-      var litCall = FunctionCall(tok, "LitFp64", fp64Type, xExpr);
-      var boxLit = FunctionCall(tok, BuiltinFunction.Box, null, litCall);
-      var boxX = FunctionCall(tok, BuiltinFunction.Box, null, xExpr);
-      var litBox = FunctionCall(tok, "Lit", Predef.BoxType, boxX);
-      var trigger = BplTrigger(boxLit);
-      var eqExpr = Expr.Eq(boxLit, litBox);
-      var litAxiom = new Bpl.ForallExpr(tok, [xVar], trigger, eqExpr);
-      var axiom = new Axiom(tok, litAxiom);
-      sink.AddTopLevelDeclaration(axiom);
-      var bxVar = new BoundVariable(tok, new TypedIdent(tok, "bx", Predef.BoxType));
-      var bxExpr = new Bpl.IdentifierExpr(tok, bxVar);
-      var tFp64Expr = new Bpl.IdentifierExpr(tok, "TFp64", Predef.Ty);
-      var isBox = FunctionCall(tok, BuiltinFunction.IsBox, null, bxExpr, tFp64Expr);
-      var unbox = FunctionCall(tok, BuiltinFunction.Unbox, fp64Type, bxExpr);
-      var boxUnbox = FunctionCall(tok, BuiltinFunction.Box, null, unbox);
-      var isUnbox = FunctionCall(tok, BuiltinFunction.Is, null, unbox, tFp64Expr);
-      var boxAxiom = new Bpl.ForallExpr(tok, [bxVar],
-        BplTrigger(isBox),
-        Expr.Imp(isBox, Expr.And(Expr.Eq(boxUnbox, bxExpr), isUnbox)));
-      sink.AddTopLevelDeclaration(new Axiom(tok, boxAxiom));
-      var vVar = new BoundVariable(tok, new TypedIdent(tok, "v", fp64Type));
-      var vExpr = new Bpl.IdentifierExpr(tok, vVar);
-      var isV = FunctionCall(tok, BuiltinFunction.Is, null, vExpr, tFp64Expr);
-      var isAxiom = new Bpl.ForallExpr(tok, [vVar], BplTrigger(isV), isV);
-      sink.AddTopLevelDeclaration(new Axiom(tok, isAxiom));
-      var hVar = new BoundVariable(tok, new TypedIdent(tok, "h", Predef.HeapType));
-      var hExpr = new Bpl.IdentifierExpr(tok, hVar);
-      var vVar2 = new BoundVariable(tok, new TypedIdent(tok, "v", fp64Type));
-      var vExpr2 = new Bpl.IdentifierExpr(tok, vVar2);
-      var isAlloc = FunctionCall(tok, BuiltinFunction.IsAlloc, null, vExpr2, tFp64Expr, hExpr);
-      var isAllocAxiom = new Bpl.ForallExpr(tok, [hVar, vVar2], BplTrigger(isAlloc), isAlloc);
-      sink.AddTopLevelDeclaration(new Axiom(tok, isAllocAxiom));
     }
 
     private void AddFp64Function(string name, string builtinName, List<Bpl.Type> argTypes, Bpl.Type returnType) {
@@ -3937,9 +3927,7 @@ namespace Microsoft.Dafny {
       } else if (type is RealType) {
         return new Bpl.IdentifierExpr(Token.NoToken, "TReal", Predef.Ty);
       } else if (type is Fp64Type) {
-        // Ensure TFp64 type constant exists
         EnsureFp64TypeConstantExists();
-        // Map fp64 to Boogie's IEEE binary64 floating-point type identifier
         return new Bpl.IdentifierExpr(Token.NoToken, "TFp64", Predef.Ty);
       } else if (type is BitvectorType) {
         var t = (BitvectorType)type;

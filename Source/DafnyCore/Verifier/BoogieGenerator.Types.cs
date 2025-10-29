@@ -1178,11 +1178,15 @@ public partial class BoogieGenerator {
       if (toType.IsNumericBased(Type.NumericPersuasion.Int)) {
         // do nothing
       } else if (toType.IsFp64Type) {
-        // int to fp64: use SMT-LIB to_fp operation
+        // int to fp64: unwrap any Lit wrappers to help Z3
+        r = RemoveLit(r);
         r = FunctionCall(tok, BuiltinFunction.IntToReal, null, r);
+        r = RemoveLit(r);  // Remove LitReal wrapper if present
         r = FunctionCall(tok, "real_to_fp64_RNE", BplFp64Type, r);
       } else if (toType.IsNumericBased(Type.NumericPersuasion.Real)) {
+        r = RemoveLit(r);
         r = FunctionCall(tok, BuiltinFunction.IntToReal, null, r);
+        r = RemoveLit(r);
       } else if (toType.IsCharType) {
         r = FunctionCall(tok, BuiltinFunction.CharFromInt, null, r);
       } else if (toType.IsBitVectorType) {
@@ -1394,6 +1398,10 @@ public partial class BoogieGenerator {
         if (fromType.IsCharType) {
           rhs = FunctionCall(expr.Origin, "char#ToInt", Bpl.Type.Int, rhs);
         }
+        // Remove Lit wrappers for fp64-related conversions to avoid Z3 issues
+        if (toType.IsFp64Type || fromType.IsFp64Type) {
+          rhs = RemoveLit(rhs);
+        }
         builder.Add(Bpl.Cmd.SimpleAssign(tok, o, rhs));
       }
     }
@@ -1441,7 +1449,8 @@ public partial class BoogieGenerator {
       // Dafny's solver configuration is adjusted, users may experience timeouts when converting
       // integers to fp64.
       PutSourceIntoLocal();
-      var asReal = FunctionCall(tok, BuiltinFunction.IntToReal, null, o);
+      Bpl.Expr asReal = FunctionCall(tok, BuiltinFunction.IntToReal, null, o);
+      asReal = RemoveLit(asReal);
       var asFp64 = FunctionCall(tok, "real_to_fp64_RNE", BplFp64Type, asReal);
       var backToReal = FunctionCall(tok, "fp64_to_real", Bpl.Type.Real, asFp64);
       var isExact = Bpl.Expr.Binary(tok, Bpl.BinaryOperator.Opcode.Eq, backToReal, asReal);

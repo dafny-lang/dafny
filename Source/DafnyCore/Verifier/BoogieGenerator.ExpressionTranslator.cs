@@ -1261,11 +1261,11 @@ namespace Microsoft.Dafny {
             case "FromReal":
               return CallFp64Function("real_to_fp64_RNE", BoogieGenerator.BplFp64Type, TrExpr(expr.Args[0]));
             case "ToInt": {
-              var arg = TrExpr(expr.Args[0]);
-              var truncatedFp = CallFp64Function("fp64_truncate", BoogieGenerator.BplFp64Type, arg);
-              var toReal = CallFp64Function("fp64_to_real", Bpl.Type.Real, truncatedFp);
-              return BoogieGenerator.FunctionCall(GetToken(expr), BuiltinFunction.RealToInt, null, toReal);
-            }
+                var arg = TrExpr(expr.Args[0]);
+                var truncatedFp = CallFp64Function("fp64_truncate", BoogieGenerator.BplFp64Type, arg);
+                var toReal = CallFp64Function("fp64_to_real", Bpl.Type.Real, truncatedFp);
+                return BoogieGenerator.FunctionCall(GetToken(expr), BuiltinFunction.RealToInt, null, toReal);
+              }
           }
         }
 

@@ -605,10 +605,13 @@ method ConversionExamples() {
 }
 ```
 
-**Note**: There is a known issue with Z3 that may cause verification timeouts when converting
-integers or reals to `fp64` using the `as` operator. This is due to the interaction between
-the exactness check and Z3's floating-point reasoning. The issue occurs with Dafny's default
-solver configuration and may be resolved in future Z3 or Dafny updates.
+**Note**: There is a known limitation with conversions to `fp64` using the `as` operator:
+
+- **Direct literal conversions work**: `42 as fp64`, `0.5 as fp64` verify successfully.
+- **Variable conversions may timeout**: Converting a variable to fp64 (e.g., `var i := 42; i as fp64`)
+  may cause verification timeouts due to Z3's difficulty combining quantifiers and floats.
+
+To avoid this limitation, use direct literal conversions where possible.
 
 #### 5.2.3.8. Inexact Conversion Methods
 
