@@ -55,22 +55,42 @@ module LocalDateTime {
     (dt.year as int, dt.month as int, dt.day as int, dt.hour as int, dt.minute as int, dt.second as int, dt.millisecond as int)
   }
 
-
   function FromComponents(year: int32, month: uint8, day: uint8, hour: uint8, minute: uint8, second: uint8, millisecond: uint16): LocalDateTime
     requires DTUtils.IsValidDateTime(year, month, day, hour, minute, second, millisecond)
   {
     LocalDateTime(year, month, day, hour, minute, second, millisecond)
   }
 
+  predicate IsInValidRange(year: int, month: int, day: int, hour: int := 0, minute: int := 0, second: int := 0, millisecond: int := 0)
+  {
+    (MIN_YEAR as int) <= year <= (MAX_YEAR as int) && 
+    0 <= month <= 255 &&
+    0 <= day <= 255 && 
+    0 <= hour <= 255 &&
+    0 <= minute <= 255 && 
+    0 <= second <= 255 &&
+    0 <= millisecond <= 65535
+  }
+
+  // Helper predicate for component sequences
+  predicate IsValidComponentRange(components: seq<int32>)
+    requires |components| == 7
+  {
+    IsInValidRange(components[0] as int, components[1] as int, components[2] as int, 
+                   components[3] as int, components[4] as int, components[5] as int, components[6] as int)
+  }
+
   function FromSequenceComponents(components: seq<int32>): LocalDateTime
     requires |components| == 7
+    requires IsValidComponentRange(components)
+    requires DTUtils.IsValidDateTime(components[0], components[1] as uint8, components[2] as uint8, components[3] as uint8, components[4] as uint8, components[5] as uint8, components[6] as uint16)
   {
     FromComponents(components[0], components[1] as uint8, components[2] as uint8, components[3] as uint8, components[4] as uint8, components[5] as uint8, components[6] as uint16)
   }
 
   // Modification functions
   function WithYear(dt: LocalDateTime, newYear: int32): LocalDateTime
-    requires IsValidLocalDateTime(dt)
+    requires IsValidLocalDateTime(dt) && MIN_YEAR <= newYear <= MAX_YEAR
     ensures IsValidLocalDateTime(WithYear(dt, newYear))
   {
     var newDay := DTUtils.ClampDay(newYear, dt.month, dt.day);
@@ -265,7 +285,9 @@ module LocalDateTime {
     ensures result.Success? ==> IsValidLocalDateTime(result.value)
   {
     var components := DTUtils.GetNowComponents();
-    if |components| == 7 && DTUtils.IsValidDateTime(components[0], components[1] as uint8, components[2] as uint8, components[3] as uint8, components[4] as uint8, components[5] as uint8, components[6] as uint16) {
+    if |components| == 7 && 
+       IsValidComponentRange(components) &&
+       DTUtils.IsValidDateTime(components[0], components[1] as uint8, components[2] as uint8, components[3] as uint8, components[4] as uint8, components[5] as uint8, components[6] as uint16) {
       result := Success(FromSequenceComponents(components));
     } else {
       result := Failure("Failed to get current time components");
@@ -323,10 +345,11 @@ module LocalDateTime {
         var second := ToInt(secondStr);
         var millisecond := ToInt(millisecondStr);
 
-        if DTUtils.IsValidDateTime(year as int32, month as uint8, day as uint8, hour as uint8, minute as uint8, second as uint8, millisecond as uint16) then
+        if IsInValidRange(year, month, day, hour, minute, second, millisecond) &&
+           DTUtils.IsValidDateTime(year as int32, month as uint8, day as uint8, hour as uint8, minute as uint8, second as uint8, millisecond as uint16) then
           Success(FromComponents(year as int32, month as uint8, day as uint8, hour as uint8, minute as uint8, second as uint8, millisecond as uint16))
         else
-          Failure(DTUtils.GetValidationError(year as int32, month as uint8, day as uint8, hour as uint8, minute as uint8, second as uint8, millisecond as uint16))
+          Failure("Invalid date/time values")
     }
 
   // Parse date only format: YYYY-MM-DD (time defaults to 00:00:00.000)
@@ -349,10 +372,11 @@ module LocalDateTime {
         var year := ToInt(yearStr);
         var month := ToInt(monthStr);
         var day := ToInt(dayStr);
-        if DTUtils.IsValidDateTime(year as int32, month as uint8, day as uint8, 0, 0, 0, 0) then
+        if IsInValidRange(year, month, day) &&
+           DTUtils.IsValidDateTime(year as int32, month as uint8, day as uint8, 0, 0, 0, 0) then
           Success(FromComponents(year as int32, month as uint8, day as uint8, 0, 0, 0, 0))
         else
-          Failure(DTUtils.GetValidationError(year as int32, month as uint8, day as uint8, 0, 0, 0, 0))
+          Failure("Invalid date values")
   }
 
 
