@@ -2306,39 +2306,24 @@ namespace Microsoft.Dafny {
       return proxy;
     }
 
+    static readonly HashSet<string> Fp64MemberNames = new() {
+      "IsInfinite", "IsFinite", "IsNaN", "IsZero", "IsPositive", "IsNegative",
+      "IsNormal", "IsSubnormal", "Equal", "Sqrt"
+    };
+
     bool IsFp64Member(string memberName) {
-      return memberName == "IsInfinite" || memberName == "IsFinite" || memberName == "IsNaN" ||
-             memberName == "IsZero" || memberName == "IsPositive" || memberName == "IsNegative" ||
-             memberName == "IsNormal" || memberName == "IsSubnormal" ||
-             memberName == "Equal" || memberName == "Sqrt";
+      return Fp64MemberNames.Contains(memberName);
     }
 
     void HandleFp64ArithmeticConstraints(BinaryExpr e, Expression expr) {
-      // Apply fp64 constraints only if both operands are numeric or type proxies
       var leftType = e.E0.Type?.NormalizeExpand();
       var rightType = e.E1.Type?.NormalizeExpand();
 
-      bool leftIsNumericOrProxy = leftType == null || leftType is TypeProxy ||
-                                   leftType.IsNumericBased() || leftType is Fp64Type;
-      bool rightIsNumericOrProxy = rightType == null || rightType is TypeProxy ||
-                                    rightType.IsNumericBased() || rightType is Fp64Type;
-
-      if (!leftIsNumericOrProxy || !rightIsNumericOrProxy) {
-        // Skip fp64 constraints for non-numeric types
+      if (!IsNumericOrProxyOrFp64(leftType) || !IsNumericOrProxyOrFp64(rightType)) {
         return;
       }
 
-      bool hasFp64Operand = false;
-
-      if (leftType is Fp64Type || (e.E0 is IdentifierExpr idLeft && idLeft.Var?.Type?.NormalizeExpand() is Fp64Type)) {
-        hasFp64Operand = true;
-      }
-
-      if (rightType is Fp64Type || (e.E1 is IdentifierExpr idRight && idRight.Var?.Type?.NormalizeExpand() is Fp64Type)) {
-        hasFp64Operand = true;
-      }
-
-      if (hasFp64Operand) {
+      if (IsFp64Operand(e.E0, leftType) || IsFp64Operand(e.E1, rightType)) {
         // Prefer fp64 result when either operand is fp64
         ConstrainSubtypeRelation(Type.Fp64, expr.Type, expr.Origin, "fp64 arithmetic produces fp64 result");
 
@@ -2350,6 +2335,15 @@ namespace Microsoft.Dafny {
           ConstrainSubtypeRelation(Type.Fp64, e.E1.Type, expr.Origin, "fp64 arithmetic requires fp64-compatible literal");
         }
       }
+    }
+
+    bool IsNumericOrProxyOrFp64(Type type) {
+      return type == null || type is TypeProxy || type.IsNumericBased() || type is Fp64Type;
+    }
+
+    bool IsFp64Operand(Expression expr, Type type) {
+      return type is Fp64Type || 
+             (expr is IdentifierExpr { Var.Type: not null } id && id.Var.Type.NormalizeExpand() is Fp64Type);
     }
 
     bool TraceFp64Connection(Type t, HashSet<Type> visited) {
