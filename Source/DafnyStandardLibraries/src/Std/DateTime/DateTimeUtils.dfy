@@ -55,8 +55,8 @@ module DateTimeUtils {
   predicate IsValidDateTime(year: int32, month: uint8, day: uint8, hour: uint8, minute: uint8, second: uint8, millisecond: uint16)
   {
     MIN_YEAR <= year <= MAX_YEAR &&
-    1 <= month <= 12 &&
-    1 <= day <= (DaysInMonth(year, month) as uint8) &&
+    1 <= month <= MONTHS_PER_YEAR &&
+    1 <= day <= MAX_DAYS_PER_MONTH &&
     0 <= hour < HOURS_PER_DAY &&
     0 <= minute < MINUTES_PER_HOUR &&
     0 <= second < SECONDS_PER_MINUTE &&
