@@ -308,6 +308,7 @@ module Duration {
     ensures ParseString(text).Valid()
   {
     var len := |text|;
+     
     var hPos := FindCharOrNeg(text, 'H');
     var mPos := FindCharOrNeg(text, 'M');
     var sPos := FindCharOrNeg(text, 'S');
