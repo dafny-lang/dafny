@@ -84,7 +84,7 @@ module TestLocalDateTime {
     expect invalidFormat3.Failure?;
   }
 
-  method {:test} {:resource_limit 3000000} TestParseFunctionWrongDateOrder()
+  method {:test} TestParseFunctionWrongDateOrder()
   {
     var invalidFormat4 := LDT.Parse("15-06-2023T14:30:45.123", LDT.ParseFormat.ISO8601); // Wrong date order
     expect invalidFormat4.Failure?;

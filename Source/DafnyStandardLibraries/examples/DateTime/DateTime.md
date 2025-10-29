@@ -37,8 +37,7 @@ It models durations data structure and provides:
 ## How to execute Duration Test Sample
 
 ```
-dafny build TestDuration.dfy --standard-libraries
-./TestLocalDateTime
+dafny test --target:cs --standard-libraries Source/DafnyStandardLibraries/examples/DateTime/DurationExamples.dfy --allow-warnings
 ```
 
 # ZonedDateTime

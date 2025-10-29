@@ -70,8 +70,9 @@ module DateTimeUtils {
   {
     // Returns 0=Sunday, 1=Monday, ..., 6=Saturday
     var t := [0, 3, 2, 5, 0, 3, 5, 1, 4, 6, 2, 4];
-    var y := if month < 3 then year - 1 else year;
-    (y + y/4 - y/100 + y/400 + t[month-1] + (day as int32)) % 7
+    var y := if month < 3 then (year as int) - 1 else (year as int);
+    var result := (y + y/4 - y/100 + y/400 + t[month-1] + (day as int)) % 7;
+    result as int32
   }
 
   // Convert time portion to total milliseconds since midnight
