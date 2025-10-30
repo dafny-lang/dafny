@@ -12,7 +12,7 @@ module Std.Duration {
   ) {
 
     ghost predicate Valid() {
-      millis < 1000
+      millis < (MILLISECONDS_PER_SECOND as uint32)
     }
   }
 
@@ -22,7 +22,7 @@ module Std.Duration {
 
     var product := (d.seconds as uint64) * (MILLISECONDS_PER_SECOND as uint64);
     var sum := product + (d.millis as uint64);
-    if sum > (0xFFFFFFFF as uint64) then 0xFFFFFFFF as uint32 else sum as uint32
+    if sum > (OUTER_BOUNDS as uint64) then OUTER_BOUNDS as uint32 else sum as uint32
   }
 
   
@@ -68,7 +68,7 @@ module Std.Duration {
     var ms1 := ToTotalMilliseconds(d1);
     var ms2 := ToTotalMilliseconds(d2);
     var sum := (ms1 as uint64) + (ms2 as uint64);
-    var result_ms := if sum > (0xFFFFFFFF as uint64) then 0xFFFFFFFF as uint32 else sum as uint32;
+    var result_ms := if sum > (OUTER_BOUNDS as uint64) then OUTER_BOUNDS as uint32 else sum as uint32;
     FromMilliseconds(result_ms)
   }
 
@@ -78,10 +78,12 @@ module Std.Duration {
   {
     var ms1 := ToTotalMilliseconds(d1);
     var ms2 := ToTotalMilliseconds(d2);
+    FromMilliseconds(ms1 - ms2)
+    /** 
     if ms1 >= ms2 then
       FromMilliseconds(ms1 - ms2)
     else
-      Duration(0, 0)
+      Duration(0, 0)*/
   }
 
   /// Scale duration by a factor
@@ -91,7 +93,7 @@ module Std.Duration {
   {
     var ms := ToTotalMilliseconds(d);
     var product := (ms as uint64) * (factor as uint64);
-    var result_ms := if product > (0xFFFFFFFF as uint64) then 0xFFFFFFFF as uint32 else product as uint32;
+    var result_ms := if product > (OUTER_BOUNDS as uint64) then OUTER_BOUNDS as uint32 else product as uint32;
     FromMilliseconds(result_ms)
   }
 
@@ -211,7 +213,7 @@ module Std.Duration {
     ensures FromSeconds(s).Valid()
   {
     var product := (s as uint64) * (MILLISECONDS_PER_SECOND as uint64);
-    var result_ms := if product > (0xFFFFFFFF as uint64) then 0xFFFFFFFF as uint32 else product as uint32;
+    var result_ms := if product > (OUTER_BOUNDS as uint64) then OUTER_BOUNDS as uint32 else product as uint32;
     FromMilliseconds(result_ms)
   }
 
@@ -219,7 +221,7 @@ module Std.Duration {
     ensures FromMinutes(m).Valid()
   {
     var product := (m as uint64) * (MILLISECONDS_PER_MINUTE as uint64);
-    var result_ms := if product > (0xFFFFFFFF as uint64) then 0xFFFFFFFF as uint32 else product as uint32;
+    var result_ms := if product > (OUTER_BOUNDS as uint64) then OUTER_BOUNDS as uint32 else product as uint32;
     FromMilliseconds(result_ms)
   }
 
@@ -227,7 +229,7 @@ module Std.Duration {
     ensures FromHours(h).Valid()
   {
     var product := (h as uint64) * (MILLISECONDS_PER_HOUR as uint64);
-    var result_ms := if product > (0xFFFFFFFF as uint64) then 0xFFFFFFFF as uint32 else product as uint32;
+    var result_ms := if product > (OUTER_BOUNDS as uint64) then OUTER_BOUNDS as uint32 else product as uint32;
     FromMilliseconds(result_ms)
   }
 
@@ -235,7 +237,7 @@ module Std.Duration {
     ensures FromDays(d).Valid()
   {
     var product := (d as uint64) * (MILLISECONDS_PER_DAY as uint64);
-    var result_ms := if product > (0xFFFFFFFF as uint64) then 0xFFFFFFFF as uint32 else product as uint32;
+    var result_ms := if product > (OUTER_BOUNDS as uint64) then OUTER_BOUNDS as uint32 else product as uint32;
     FromMilliseconds(result_ms)
   }
 
@@ -294,7 +296,7 @@ module Std.Duration {
       var substr := text[start..end];
       if |substr| > 0 && IsNumeric(substr) then 
         var parsed := ParseNumericString(substr);
-        if parsed <= 0xFFFFFFFF then parsed as uint32 else 0xFFFFFFFF as uint32
+        if parsed <= OUTER_BOUNDS then parsed as uint32 else OUTER_BOUNDS as uint32
       else 
         0
   }
@@ -341,8 +343,8 @@ module Std.Duration {
     var hour_mult := (hour as uint64) * (SECONDS_PER_HOUR as uint64);
     var minute_mult := (minute as uint64) * (SECONDS_PER_MINUTE as uint64);
     var totalSeconds_val := hour_mult + minute_mult + (second as uint64);
-    var totalSeconds := if totalSeconds_val > (0xFFFFFFFF as uint64) 
-                        then 0xFFFFFFFF as uint32 
+    var totalSeconds := if totalSeconds_val > (OUTER_BOUNDS as uint64) 
+                        then OUTER_BOUNDS as uint32 
                         else totalSeconds_val as uint32;
     
     Duration(totalSeconds, millisecond)
