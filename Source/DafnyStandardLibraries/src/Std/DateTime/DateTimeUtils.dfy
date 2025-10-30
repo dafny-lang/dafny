@@ -30,7 +30,7 @@ module Std.DateTimeUtils {
 
   // Days in month calculation
   function DaysInMonth(year: int32, month: uint8): uint8
-    requires 1 <= month <= 12
+    requires 1 <= month <= MONTHS_PER_YEAR
   {
     if month == 2 then
       if IsLeapYear(year) then 29 else 28
@@ -46,7 +46,7 @@ module Std.DateTimeUtils {
 
   // Month name getter
   function GetMonthName(month: uint8): string
-    requires 1 <= month <= 12
+    requires 1 <= month <= MONTHS_PER_YEAR
   {
     MONTH_NAMES[month - 1]
   }
@@ -66,7 +66,7 @@ module Std.DateTimeUtils {
 
   // Day of week calculation using Sakamoto's algorithm
   function GetDayOfWeek(year: int32, month: uint8, day: uint8): int32
-    requires 1 <= month <= 12 && 1 <= day <= DaysInMonth(year, month)
+    requires 1 <= month <= MONTHS_PER_YEAR && 1 <= day <= DaysInMonth(year, month)
   {
     // Returns 0=Sunday, 1=Monday, ..., 6=Saturday
     var t := [0, 3, 2, 5, 0, 3, 5, 1, 4, 6, 2, 4];
@@ -115,7 +115,7 @@ module Std.DateTimeUtils {
   // Generate detailed error messages for validation failures
   function GetValidationError(year: int32, month: uint8, day: uint8, hour: uint8, minute: uint8, second: uint8, millisecond: uint16): string
   {
-    if month < 1 || month > 12 then "Invalid month: " + OfInt(month as int) + " (must be 1-12)"
+    if month < 1 || month > MONTHS_PER_YEAR then "Invalid month: " + OfInt(month as int) + " (must be 1-12)"
     else if day < 1 || day > (DaysInMonth(year, month) as uint8) then "Invalid day: " + OfInt(day as int) + " for " + GetMonthName(month) + " " + OfInt(year as int) + " (max: " + OfInt(DaysInMonth(year, month) as int) + ")"
     else if hour >= HOURS_PER_DAY then "Invalid hour: " + OfInt(hour as int) + " (must be 0-23)"
     else if minute >= MINUTES_PER_HOUR then "Invalid minute: " + OfInt(minute as int) + " (must be 0-59)"
@@ -126,7 +126,7 @@ module Std.DateTimeUtils {
 
   // Clamp day to valid range when changing year or month
   function ClampDay(year: int32, month: uint8, desiredDay: uint8): uint8
-    requires 1 <= month <= 12
+    requires 1 <= month <= MONTHS_PER_YEAR
     requires desiredDay >= 1
     ensures 1 <= ClampDay(year, month, desiredDay) <= DaysInMonth(year, month)
     ensures desiredDay <= DaysInMonth(year, month) ==> ClampDay(year, month, desiredDay) == desiredDay
