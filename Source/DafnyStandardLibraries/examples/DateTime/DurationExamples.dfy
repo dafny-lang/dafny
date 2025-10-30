@@ -1,8 +1,4 @@
-// Test file for Optimized Duration Module
-// This test is compatible with the optimized Duration_Optimized.dfy
 
-// Test file for Optimized Duration Module
-// This test is compatible with the optimized Duration_Optimized.dfy
 
 include "../../src/Std/DateTime/Duration.dfy"
 include "../Helpers.dfy"
@@ -29,10 +25,10 @@ module TestDuration {
     
     // Addition
     var d3 := Duration.Plus(d1, d2);
-    
-    // Subtraction (safe - d2 > d1, returns 0)
-    var d4 := Duration.Minus(d1, d2);
-    AssertAndExpect(d4 == Duration.Duration(0, 0));
+    AssertAndExpect(d3 == Duration.Duration(2, 5));
+    //Minus
+    var d4 := Duration.Minus(d2, d1);
+    AssertAndExpect(d4 == Duration.Duration(0, 1));
   }
 
   method {:test} TestComparison() {
