@@ -1,3 +1,12 @@
+/*******************************************************************************
+ *  Copyright by the contributors to the Dafny Project
+ *  SPDX-License-Identifier: MIT 
+ *******************************************************************************/
+
+/**
+Defines time-related constants and bounded integer types used throughout the module.
+*/
+
 module Std.DateTimeConstant {
   import opened BoundedInts
 

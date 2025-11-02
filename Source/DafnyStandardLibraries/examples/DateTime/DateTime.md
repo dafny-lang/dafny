@@ -3,25 +3,6 @@
 The `LocalDateTime` module provides formally verified date and time functionality in Dafny without timezone information.  
 It ensures correctness using contracts (`requires`, `ensures`) and supports proof-based reasoning for temporal computations.
 
-## File Descriptions
-
-- **`LocalDateTime.dfy`**  
-  Contains the full implementation of LocalDateTime operations, including creation, parsing, formatting, arithmetic, and comparison functions.  
-  It defines all verification contracts and imports external DateTime utilities. Uses epoch-time-based calculations for reliable date arithmetic.
-
-- **`LocalDateTimeExamples.dfy`**  
-  Includes comprehensive test methods for validating the functionality of each operation using Dafny's `{:test}` annotation.  
-  These tests serve as verification examples that work with Dafny's formal proofs.
-
-- **`DateTimeImpl.cs`**  
-  Provides external implementations of core datetime operations, particularly epoch time conversions, leap year calculations, and current time access.
-
-- **`DateTimeUtils.dfy`**  
-  Contains utility functions for date validation, day calculations, and formatting helpers.
-
-- **`DateTimeConstant.dfy`**  
-  Defines time-related constants and bounded integer types used throughout the module.
-
 ## Function Descriptions
 
 - **Creation Functions**  
@@ -58,7 +39,7 @@ It ensures correctness using contracts (`requires`, `ensures`) and supports proo
 ## Test Commands
 
 ```bash
-dafny test --target:cs --standard-libraries Source/DafnyStandardLibraries/examples/DateTime/LocalDateTimeExamples.dfy Source/DafnyStandardLibraries/src/Std/FileIOInternalExterns/DateTimeImpl.cs --allow-warnings
+dafny test --target:cs --standard-libraries Source/DafnyStandardLibraries/examples/DateTime/LocalDateTimeExamples.dfy Source/DafnyStandardLibraries/src/Std/FileIOInternalExterns/DateTimeInternalExterns/DateTimeImpl.cs --allow-warnings
 ```
 
 # Duration

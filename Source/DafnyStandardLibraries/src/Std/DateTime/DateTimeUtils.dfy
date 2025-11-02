@@ -1,3 +1,12 @@
+/*******************************************************************************
+ *  Copyright by the contributors to the Dafny Project
+ *  SPDX-License-Identifier: MIT 
+ *******************************************************************************/
+
+/**
+Contains utility functions for date validation, day calculations, and formatting helpers.
+*/
+
 include "DateTimeConstant.dfy"
 
 module Std.DateTimeUtils {
@@ -61,18 +70,6 @@ module Std.DateTimeUtils {
     0 <= minute < MINUTES_PER_HOUR &&
     0 <= second < SECONDS_PER_MINUTE &&
     0 <= millisecond < MILLISECONDS_PER_SECOND
-  }
-
-
-  // Day of week calculation using Sakamoto's algorithm
-  function GetDayOfWeek(year: int32, month: uint8, day: uint8): int32
-    requires 1 <= month <= MONTHS_PER_YEAR && 1 <= day <= DaysInMonth(year, month)
-  {
-    // Returns 0=Sunday, 1=Monday, ..., 6=Saturday
-    var t := [0, 3, 2, 5, 0, 3, 5, 1, 4, 6, 2, 4];
-    var y := if month < 3 then (year as int) - 1 else (year as int);
-    var result := (y + y/4 - y/100 + y/400 + t[month-1] + (day as int)) % 7;
-    result as int32
   }
 
   // Convert time portion to total milliseconds since midnight
