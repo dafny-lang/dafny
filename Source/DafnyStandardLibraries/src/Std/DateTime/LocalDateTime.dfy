@@ -1,3 +1,16 @@
+/*******************************************************************************
+ *  Copyright by the contributors to the Dafny Project
+ *  SPDX-License-Identifier: MIT 
+ *******************************************************************************/
+
+/**   
+Contains the full implementation of LocalDateTime operations, including creation, parsing,
+formatting, arithmetic, and comparison functions.
+
+It defines all verification contracts and imports external DateTime utilities. Uses
+epoch-time-based calculations for reliable date arithmetic.
+*/
+
 include "Duration.dfy"
 include "DateTimeUtils.dfy"
 include "DateTimeConstant.dfy"
