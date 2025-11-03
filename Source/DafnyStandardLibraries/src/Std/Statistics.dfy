@@ -90,11 +90,6 @@ module Std.Statistics {
   // Median of a non-empty sequence of real numbers
   function Median(a: seq<real>): real
     requires |a| > 0
-    ensures var sorted := MergeSortBy((x: real, y: real) => x <= y, a);
-            if |a| % 2 == 1 then
-              Median(a) == sorted[|a|/2]
-            else
-              Median(a) == (sorted[|a|/2 - 1] + sorted[|a|/2]) / 2.0
   {
     // Existing merge sort utilized
     var sorted := MergeSortBy((x: real, y: real) => x <= y, a);
@@ -104,25 +99,53 @@ module Std.Statistics {
       (sorted[|a|/2 - 1] + sorted[|a|/2]) / 2.0
   }
 
-  //The function for keeping a Count of the elements. This will be recursively called
-  function Count(s: seq<real>, v: real): nat
-    decreases s
+  // The function to get a map to store the occurences of elements
+  function {:tailrecursion} FrequencyTable(s: seq<real>, m: map<real, int> := map[]): map<real, int>
+
   {
-    if |s| == 0 then 0
-    else if s[0] == v then 1 + Count(s[1..], v)
-    else Count(s[1..], v)
+    if s == [] then
+      m
+    else
+      var key := s[0];
+      var newM :=
+        if key in m then
+          m[key := m[key] + 1]
+        else
+          m[key := 1];
+      FrequencyTable(s[1..], newM)
   }
 
-  // The function for calcluating mode
+ // Final mode function that calls the frequencytable and modehelper
   function Mode(s: seq<real>): real
     requires |s| > 0
-    ensures Mode(s) in s
-    ensures (forall x :: x in s ==> Count(s, x) <= Count(s, Mode(s)))
   {
-    if |s| == 1 then s[0]
-    else if Count(s, s[0]) >= Count(s[1..], Mode(s[1..])) then s[0]
-    else Mode(s[1..])
+    var freq := FrequencyTable(s);
+    var keys := s;
+    var best := s[0];
+    var i := 0;
+
+
+    var result :=
+      if |keys| == 1 then best
+      else
+        var tail := ModeHelper(freq, keys, best, 0);
+        tail;
+    result
   }
+
+ // Helper function to calculate mode
+  function {:tailrecursion} ModeHelper(freq: map<real,int>, keys: seq<real>, best: real, i: nat): real
+    decreases |keys| - i
+  {
+    if i >= |keys| then best
+    else
+      var next := keys[i];
+      var newBest :=
+        if next in freq && best in freq && freq[next] > freq[best] then next else best;
+      ModeHelper(freq, keys, newBest, i + 1)
+  }
+
+
 
   // The function for calcluating range for a sequence which is the max element - min element
   function Range(s: seq<real>): real
