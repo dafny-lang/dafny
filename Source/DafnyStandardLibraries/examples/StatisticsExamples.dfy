@@ -82,22 +82,22 @@ module TestStatistics {
   
   // Testcase for checking mode calculation
   method {:test} Test_Mode() {
-    AssertAndExpect(Mode([1.0, 2.0, 2.0, 3.0]) == 2.0);
+    expect Mode([1.0, 2.0, 2.0, 3.0]) == 2.0;
   }
 
   // Testcase for checking mode with multiple occurences for multiple elements
   method {:test} Test_Mode_Multiple() {
-    AssertAndExpect(Mode([5.0, 5.0, 7.0, 7.0, 7.0, 9.0]) == 7.0);
+    expect Mode([5.0, 5.0, 7.0, 7.0, 7.0, 9.0]) == 7.0;
   }
 
   // Testcase for checking mode for a single element sequence
   method {:test} Test_Mode_Single() {
-    AssertAndExpect(Mode([42.0]) == 42.0);
+    expect Mode([42.0]) == 42.0;
   }
 
   // Testcase for checking mode for equal occurences for 2 elements
   method {:test} Test_Mode_Equal() {
-    AssertAndExpect(Mode([4.0, 4.0, 6.0, 6.0]) == 4.0 || Mode([4.0, 4.0, 6.0, 6.0]) == 6.0);
+    expect Mode([4.0, 4.0, 6.0, 6.0]) == 4.0 || Mode([4.0, 4.0, 6.0, 6.0]) == 6.0;
   }
 
   // Testcase for range with multiple elements
