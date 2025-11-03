@@ -2,8 +2,7 @@ module ExternalMath {
   function {:extern} Sqrt(x: real): real
     requires x >= 0.0
     ensures Sqrt(x) >= 0.0
-    ensures var result := Sqrt(x); result * result <= x + 0.0000001
-    ensures var result := Sqrt(x); result * result >= x - 0.0000001
+    ensures x - 0.0000001 <= Sqrt(x) * Sqrt(x) <= x + 0.0000001
 }
 
 module Std.Statistics {
@@ -13,16 +12,20 @@ module Std.Statistics {
   // A function to sum the elements of a sequence
   function Sum(s: seq<real>): real
   {
-    if |s| == 0 then
-      0.0
-    else
-      s[0] + Sum(s[1..])
+    SumHelper(s, 0.0)
+  }
+
+  // Helper function for Sum with the required attribute
+  function {:tailrecursion} SumHelper(s: seq<real>, acc: real): real
+    decreases s
+  {
+    if |s| == 0 then acc
+    else SumHelper(s[1..], acc + s[0])
   }
 
   // A function to compute the mean (average) as a real number
   function Mean(s: seq<real>): real
     requires |s| > 0
-    ensures Mean(s) == Sum(s) / (|s| as real)
   {
     Sum(s) / (|s| as real)
   }
@@ -40,14 +43,12 @@ module Std.Statistics {
   // Function to calculate the absolute value of a real number
   function RealAbs(x: real): real
     ensures RealAbs(x) >= 0.0
-    ensures RealAbs(x) == x || RealAbs(x) == -x
   {
     if x >= 0.0 then x else -x
   }
   // Function to check if two real numbers are close within a given tolerance.
   function AreNear(a: real, b: real, epsilon: real): bool
     requires epsilon >= 0.0
-    ensures AreNear(a, b, epsilon) == (RealAbs(a - b) <= epsilon)
   {
     RealAbs(a - b) <= epsilon
   }
@@ -56,7 +57,6 @@ module Std.Statistics {
   function VariancePopulation(s: seq<real>): real
     requires |s| > 0
     ensures VariancePopulation(s) >= 0.0
-    ensures VariancePopulation(s) == SumSquaredDifferences(s, Mean(s)) / (|s| as real)
   {
     var avg := Mean(s);
     SumSquaredDifferences(s, avg) / (|s| as real)

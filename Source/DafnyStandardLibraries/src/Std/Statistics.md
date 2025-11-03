@@ -50,7 +50,7 @@ Run the following commands :
 ```bash
 
 # Build Statistics.dfy 
-dafny build  --target:cs --standard-libraries statistics.dfy ../src/Std/FileIOInternalExterns/Std/FileIOInternalExterns/ExternalMath.cs --allow-warnings 
+dafny build  --target:cs --standard-libraries ./dafny/Source/DafnyStandardLibraries/src/Std/Statistics.dfy ./dafny/Source/DafnyStandardLibraries/src/Std/FileIOInternalExterns/Std/FileIOInternalExterns/ExternalMath.cs --allow-warnings 
 
 # Run associated test file
-dafny test --target:cs --standard-libraries StatisticsExamples.dfy FileIOInternalExterns/Std/FileIOInternalExterns/ExternalMath.cs --allow-warnings
+dafny test --target:cs --standard-libraries ./dafny/Source/DafnyStandardLibraries/examples/StatisticsExamples.dfy ./dafny/Source/DafnyStandardLibraries/src/Std/FileIOInternalExterns/Std/FileIOInternalExterns/ExternalMath.cs --allow-warnings
