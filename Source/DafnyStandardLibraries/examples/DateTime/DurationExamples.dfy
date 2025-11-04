@@ -78,16 +78,7 @@ module TestDuration {
     AssertAndExpect(Duration.ToTotalMilliseconds(oneHour) == (3600000 as uint64));
 
   }
-/** 
-  method {:test} TestSequenceAggregation() {
-    var d_1 := Duration.Duration(0, 500);
-    var d_3 := Duration.Duration(1, 500);
-    
-    var durations := [d_1, d_3];
-    var minD := Duration.MinSeq(durations);
-    var maxD := Duration.MaxSeq(durations);
-    
-  }*/
+
 
   method {:test} TestEdgeCases() {
     var d5 := Duration.FromMilliseconds(1000);
@@ -128,4 +119,27 @@ module TestDuration {
     AssertAndExpect(str[0] == 'P');
     AssertAndExpect(str[1] == 'T');
   }
+
+method {:test} TestSequenceAggregation() {
+  var d1 := Duration.Duration(0, 500);
+  var d2 := Duration.Duration(1, 200);
+  var d3 := Duration.Duration(1, 500);
+  var durations := [d1, d2, d3];
+  
+  var maxD := Duration.MaxByDuration(durations);
+  var minD := Duration.MinByDuration(durations);
+  
+  Duration.LemmaMaxByReturnsValid(durations);
+  Duration.LemmaMinByReturnsValid(durations);
+  
+  // Runtime checks only (not verified by Dafny)
+  expect Duration.Compare(maxD, d1) >= 0;
+  expect Duration.Compare(maxD, d2) >= 0;
+  expect Duration.Compare(maxD, d3) >= 0;
+  
+  expect Duration.Compare(minD, d1) <= 0;
+  expect Duration.Compare(minD, d2) <= 0;
+  expect Duration.Compare(minD, d3) <= 0;
+}
+
 }
