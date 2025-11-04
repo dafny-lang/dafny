@@ -269,7 +269,12 @@ public partial class BoogieGenerator {
         args.Add(etran.HeapExpr);
       }
 
+      var open = etran.OpenFormal(f.Origin, out _, out _);
       foreach (Variable parameter in parameters) {
+        if (generator.Options.Get(CommonOptionBag.CheckInvariants) && parameter.Name.Equals(open.Name)) { // eugh comparing the names, but direct doesn't work
+          // Function calls don't see the open set
+          continue;
+        }
         args.Add(new Bpl.IdentifierExpr(f.Origin, parameter));
       }
 
@@ -324,6 +329,7 @@ public partial class BoogieGenerator {
           postCheckBuilder.Add(TrAssumeCmd(f.Result.Origin, wh));
         }
       }
+
       // Now for the ensures clauses
       foreach (AttributedExpression p in f.Ens) {
         // assume the postcondition for the benefit of checking the remaining postconditions
@@ -378,11 +384,37 @@ public partial class BoogieGenerator {
       foreach (var typeBoundAxiom in generator.TypeBoundAxioms(f.Origin, Concat(f.EnclosingClass.TypeArgs, f.TypeArgs))) {
         requires.Add(generator.Requires(f.Origin, true, null, typeBoundAxiom, null, null, null));
       }
+
+      if (generator.options.Get(CommonOptionBag.CheckInvariants)) {
+        // NB(somayyas): need to frame open here in case the function calls any invariant
+        etran.OpenFormal(f.Origin, out var openBoogie, out var openExprDafny);
+        Expression openFrame;
+        if (!f.IsStatic
+         && f.EnclosingClass is TopLevelDeclWithMembers { Invariant: { } invariant } 
+         && !f.Equals(invariant)
+         && generator.currentModule.CallGraph.Reaches(invariant, f)) {
+          openFrame = new LiteralExpr(f.Origin, true);
+        } else {
+          openFrame = new BinaryExpr(f.Origin, BinaryExpr.ResolvedOpcode.SetEq, openExprDafny,
+            new SetDisplayExpr(f.Origin, true, [])
+              { Type = generator.program.SystemModuleManager.NonNullObjectSetType(f.Origin) });
+        }
+        requires.Add(generator.Requires(f.Origin, false, openFrame, etran.TrExpr(openFrame),
+          null, null, "open set frame condition"));
+        if (f.ReadsHeap) {
+          requires.Add(generator.Requires(f.Origin, false, null,
+            generator.FunctionCall(f.Origin, BuiltinFunction.OpenHeapRelated, null, openBoogie, etran.HeapExpr), null,
+            null, "open lockstep condition"));
+        }
+      }
       return requires;
     }
 
     private List<Variable> GetParameters(Function f, ExpressionTranslator etran) {
       var inParams = new List<Variable>();
+      if (generator.Options.Get(CommonOptionBag.CheckInvariants)) {
+        inParams.Add(etran.OpenFormal(f.Origin, out _, out _));
+      }
       if (!f.IsStatic) {
         var th = new Bpl.IdentifierExpr(f.Origin, "this", generator.TrReceiverType(f));
         Expr wh = BplAnd(

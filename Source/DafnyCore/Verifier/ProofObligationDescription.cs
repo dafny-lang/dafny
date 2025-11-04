@@ -1730,6 +1730,33 @@ public class BoilerplateTriple : ProofObligationDescriptionCustomMessages {
   }
 }
 
+public class ObjectInvariant(ObjectInvariant.Kind kind, Expression assertion) : ProofObligationDescription {
+  public enum Kind {
+    Call,
+    Assignment,
+    EndOfMethod,
+    EndOfCtorFirstPhase
+  }
+
+  string KindToString(bool success) => kind switch {
+    Kind.Call => $"for receiver of the caller {(success ? "successfully" : "could not be")} proved before method or function call",
+    Kind.Assignment => $"for receiver of assignment {(success ? "successfully" : "could not be")} proved afterward",
+    Kind.EndOfMethod => $"of enclosing class or trait declaration {(success ? "successfully" : "could not be")} proved at end of this method",
+    Kind.EndOfCtorFirstPhase => $"of enclosing class declaration {(success ? "successfully" : "could not be")} proved at the end of the initialization phase of this constructor"
+  };
+  
+  public override string SuccessDescription => $"invariant {KindToString(true)}";
+  public override string FailureDescription => $"invariant {KindToString(false)}";
+  public override string ShortDescription => "object invariant";
+
+  public override Expression GetAssertedExpr(DafnyOptions options) {
+    if (options.Get(CommonOptionBag.CheckInvariants)) {
+      return assertion;
+    }
+    return base.GetAssertedExpr(options);
+  }
+}
+
 internal class Utils {
   public static Expression MakeCharBoundsCheck(DafnyOptions options, Expression expr) {
     return options.Get(CommonOptionBag.UnicodeCharacters)

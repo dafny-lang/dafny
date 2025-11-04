@@ -139,6 +139,8 @@ namespace Microsoft.Dafny {
       IsHeapAnchor,
       HeapSucc,
       HeapSuccGhost,
+      
+      OpenHeapRelated,
 
       DynamicType,  // allocated type (of object reference)
       TypeTuple,
@@ -546,6 +548,11 @@ namespace Microsoft.Dafny {
           Contract.Assert(typeInstantiation == null);
           return FunctionCall(tok, "$HeapSuccGhost", Bpl.Type.Bool, args);
 
+        case BuiltinFunction.OpenHeapRelated:
+          Contract.Assert(args.Length == 2);
+          Contract.Assert(typeInstantiation == null);
+          return FunctionCall(tok, "$OpenHeapRelated", Bpl.Type.Bool, args);
+        
         case BuiltinFunction.DynamicType:
           Contract.Assert(args.Length == 1);
           Contract.Assert(typeInstantiation == null);

@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Diagnostics.Contracts;
+using System.Linq;
 using DafnyCore.Verifier;
 using Microsoft.Boogie;
 using Bpl = Microsoft.Boogie;
@@ -32,6 +33,36 @@ public partial class BoogieGenerator {
 
     var rhss = new List<AssignmentRhs>() { rhs };
     ProcessRhss(lhsBuilder, bLhss, lhss, rhss, builder, locals, etran, stmt);
+    
+    if (options.Get(CommonOptionBag.CheckInvariants)) {
+      var tok = lhs.Origin;
+      // If fse is being assigned externally and it has an invariant, it better be true after the fact
+      // However, if we're in the first phase of a constructor and fse.Obj == this, then disable invariant checking
+      // NB: for somayyas@: logic here is different enough to be separate from AddInvariantBoilerPlate()
+      if (lhs is MemberSelectExpr fse && fse.Member.EnclosingClass is TopLevelDeclWithMembers { Invariant: { } invariant }) {
+        // NB: if fse.Member is an inherited member, then decl is already the supertype =>
+        //   invariant is already the overridden member (if at all, which is what we want)
+        // NB: need to write out the Use here to avoid a malformed Boogie AST
+        Expression assertion = new BinaryExpr(tok, BinaryExpr.ResolvedOpcode.Or,
+          new BinaryExpr(tok, BinaryExpr.ResolvedOpcode.InSet, fse.Obj,
+            new BoogieWrapper(new Bpl.IdentifierExpr(tok, "$Open", Predef.SetType),
+              program.SystemModuleManager.NonNullObjectSetType(tok))),
+          invariant.Mention(tok, fse.Obj, program.SystemModuleManager));
+        // fse.Obj in $Open || fse.Obj.invariant()
+        if (codeContext is Constructor ctor && inBodyInitContext) {
+          // Disable checking the invariant if fse.Obj == this
+          assertion = new BinaryExpr(tok, BinaryExpr.ResolvedOpcode.Or,
+            new BinaryExpr(tok, BinaryExpr.ResolvedOpcode.EqCommon, fse.Obj, new ThisExpr(ctor)),
+            assertion);
+        }
+        builder.Add(TrAssumeCmd(tok, etran.CanCallAssumption(assertion)));
+        builder.Add(TrAssertCmdDesc(tok, etran.TrExpr(assertion),
+          new ObjectInvariant(Dafny.ObjectInvariant.Kind.Assignment, assertion)));
+      }
+      // NB: assume OpenHeapRelated *after* checking the above invariant, otherwise it'll trigger the invariant axiom and render the proof state inconsistent
+      builder.Add(AssumeOpenHeapRelated(tok, etran));
+    }
+    
     builder.AddCaptureState(stmt);
   }
 

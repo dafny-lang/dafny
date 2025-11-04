@@ -120,6 +120,10 @@ public partial class BoogieGenerator {
           builder.Add(TrAssumeCmd(s.Origin, YieldCountAssumption(iter, etran)));
           // assume $IsGoodHeap($Heap);
           builder.Add(AssumeGoodHeap(s.Origin, etran));
+          if (options.Get(CommonOptionBag.CheckInvariants)) {
+            // assume $OpenHeapRelated($Open, $Heap);
+            builder.Add(AssumeOpenHeapRelated(s.Origin, etran));
+          }
           // assert YieldEnsures[subst];  // where 'subst' replaces "old(E)" with "E" being evaluated in $_OldIterHeap
           var yeEtran = new ExpressionTranslator(this, Predef, etran.HeapExpr,
             new Bpl.IdentifierExpr(s.Origin, "$_OldIterHeap", Predef.HeapType), iter);
@@ -308,7 +312,20 @@ public partial class BoogieGenerator {
             surr = CondApplyUnbox(tok, surr, fields[i].Type, mse.Type);
             builder.Add(new Bpl.AssumeCmd(tok, Bpl.Expr.Eq(etran.TrExpr(mse), surr)));
           }
-
+          
+          if (options.Get(CommonOptionBag.CheckInvariants) && cl is TopLevelDeclWithMembers { Invariant: { } invariant }) {
+            // have to do this check before `this` is committed, otherwise the invariant will trivially hold
+            AddComment(builder, blockStmt1, "checking invariant of this");
+            var assertion = invariant.Mention(tok, th, program.SystemModuleManager);
+            // if the invariant overrides a trait invariant, we have to assert that too
+            if (invariant.OverriddenMember is not null) {
+              assertion = new BinaryExpr(tok, BinaryExpr.ResolvedOpcode.And, assertion,
+                (invariant.OverriddenMember as Invariant).Mention(tok, th, program.SystemModuleManager));
+            }
+            builder.Add(TrAssumeCmd(tok, etran.CanCallAssumption(assertion)));
+            builder.Add(TrAssertCmdDesc(tok, etran.TrExpr(assertion), new ObjectInvariant(Dafny.ObjectInvariant.Kind.EndOfCtorFirstPhase, assertion)));
+          }
+          
           CommitAllocatedObject(tok, bplThis, null, builder, etran);
 
           AddComment(builder, blockStmt1, "divided block after new;");
@@ -759,6 +776,10 @@ public partial class BoogieGenerator {
     builder.Add(cmd);
     // assume $IsGoodHeap($Heap)
     builder.Add(AssumeGoodHeap(tok, etran));
+    if (options.Get(CommonOptionBag.CheckInvariants)) {
+      // assume $OpenHeapRelated($Open, $Heap);
+      builder.Add(AssumeOpenHeapRelated(tok, etran));
+    }
   }
 
   private string GetObjFieldDetails(Expression lhs, ExpressionTranslator etran, out Bpl.Expr obj, out Bpl.Expr F) {
@@ -828,6 +849,10 @@ public partial class BoogieGenerator {
     builder.Add(AssumeGoodHeap(tok, etran));
     // assume $IsHeapAnchor($Heap);
     builder.Add(new Bpl.AssumeCmd(tok, FunctionCall(tok, BuiltinFunction.IsHeapAnchor, null, etran.HeapExpr)));
+    if (options.Get(CommonOptionBag.CheckInvariants)) {
+      // assume $OpenHeapRelated($Open, $Heap);
+      builder.Add(AssumeOpenHeapRelated(tok, etran));
+    }
   }
 
   public void IntroduceAndAssignExistentialVars(ExistsExpr exists, BoogieStmtListBuilder builder,

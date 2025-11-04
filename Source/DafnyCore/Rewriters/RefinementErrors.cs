@@ -98,5 +98,6 @@ public class RefinementErrors {
     ref_invalid_field_assignment,
     ref_invalid_new_assignments,
     ref_invalid_assignment_rhs,
+    ref_invariant_refines_invariant
   }
 }

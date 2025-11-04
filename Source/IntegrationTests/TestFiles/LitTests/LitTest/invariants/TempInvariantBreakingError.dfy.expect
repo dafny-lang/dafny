@@ -1,0 +1,4 @@
+TempInvariantBreakingError.dfy(18,5): Error: invariant for receiver of assignment could not be proved afterward
+TempInvariantBreakingError.dfy(52,7): Error: invariant for receiver of assignment could not be proved afterward
+
+Dafny program verifier finished with 5 verified, 2 errors

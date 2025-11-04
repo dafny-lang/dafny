@@ -1,0 +1,4 @@
+Expressivity.dfy(15,9): Error: value does not satisfy the subset constraints of 'nat'
+Expressivity.dfy(28,4): Error: invariant for receiver of assignment could not be proved afterward
+
+Dafny program verifier finished with 1 verified, 2 errors

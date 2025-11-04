@@ -68,7 +68,6 @@ class PreTypeToTypeVisitor : ASTVisitor<IASTVisitorContext> {
     } else if (decl is SubsetTypeDecl subsetTypeDecl) {
       PreType2TypeUtil.Combine(subsetTypeDecl.Var.Type, subsetTypeDecl.Var.PreType, false);
     }
-
     base.VisitOneDeclaration(decl);
   }
 

@@ -112,7 +112,6 @@ namespace Microsoft.Dafny {
         if (prefixLemma != null) {
           VisitMethod(prefixLemma);
         }
-
       } else {
         Contract.Assert(false);
         throw new Cce.UnreachableException(); // unexpected member type

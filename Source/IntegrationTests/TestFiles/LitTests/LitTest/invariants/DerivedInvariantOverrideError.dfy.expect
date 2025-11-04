@@ -1,0 +1,5 @@
+DerivedInvariantOverrideError.dfy(26,16): Error: invariant of enclosing class declaration could not be proved at the end of the initialization phase of this constructor
+DerivedInvariantOverrideError.dfy(39,6): Error: invariant for receiver of assignment could not be proved afterward
+DerivedInvariantOverrideError.dfy(41,6): Error: invariant for receiver of assignment could not be proved afterward
+
+Dafny program verifier finished with 7 verified, 3 errors
