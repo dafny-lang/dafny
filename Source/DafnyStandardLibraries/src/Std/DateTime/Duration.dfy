@@ -360,10 +360,12 @@ module Std.Duration {
 }
 */
 include "DateTimeConstant.dfy"
+include "../Collections/SeqExt.dfy"
 
 module Std.Duration {
   import opened DateTimeConstant
   import opened Strings
+  import opened Collections.SeqExt
   import opened Collections.Seq
   import opened BoundedInts
   import opened Arithmetic.Power
@@ -752,4 +754,75 @@ module Std.Duration {
                          else (epoch2 - epoch1) as uint32;
     FromMilliseconds(diff)
   }
+
+
+    /// Test MaxBy with a sequence of durations
+  /// This function demonstrates finding the maximum duration in a sequence
+  function MaxByDuration(durations: seq<Duration>): Duration
+    requires |durations| > 0
+    requires forall i :: 0 <= i < |durations| ==> durations[i].Valid()
+  {
+    MaxBy(durations, Compare)
+  }
+
+  /// Test MinBy with a sequence of durations
+  /// This function demonstrates finding the minimum duration in a sequence
+  function MinByDuration(durations: seq<Duration>): Duration
+    requires |durations| > 0
+    requires forall i :: 0 <= i < |durations| ==> durations[i].Valid()
+  {
+    MinBy(durations, Compare)
+  }
+
+
+lemma LemmaMaxByReturnsValid(durations: seq<Duration>)
+requires |durations| > 0
+requires forall i :: 0 <= i < |durations| ==> durations[i].Valid()
+ensures MaxByDuration(durations).Valid()
+{
+  // MaxByHelper returns one of the input elements, which are all valid
+  LemmaMaxByHelperReturnsValid(durations, 1, durations[0]);
+}
+
+lemma LemmaMaxByHelperReturnsValid(s: seq<Duration>, idx: nat, current: Duration)
+requires idx <= |s|
+requires current.Valid()
+requires forall i :: 0 <= i < |s| ==> s[i].Valid()
+ensures MaxByHelper(s, idx, current, Compare).Valid()
+decreases |s| - idx
+{
+  if idx == |s| {
+    // Base case: return current, which is valid
+  } else {
+    // Recursive case: next is either current or s[idx], both valid
+    var next := if Compare(current, s[idx]) < 0 then s[idx] else current;
+    assert next.Valid();
+    LemmaMaxByHelperReturnsValid(s, idx + 1, next);
+  }
+}
+
+lemma LemmaMinByReturnsValid(durations: seq<Duration>)
+requires |durations| > 0
+requires forall i :: 0 <= i < |durations| ==> durations[i].Valid()
+ensures MinByDuration(durations).Valid()
+{
+  LemmaMinByHelperReturnsValid(durations, 1, durations[0]);
+}
+
+lemma LemmaMinByHelperReturnsValid(s: seq<Duration>, idx: nat, current: Duration)
+requires idx <= |s|
+requires current.Valid()
+requires forall i :: 0 <= i < |s| ==> s[i].Valid()
+ensures MinByHelper(s, idx, current, Compare).Valid()
+decreases |s| - idx
+{
+  if idx == |s| {
+    // Base case: return current, which is valid
+  } else {
+    // Recursive case: next is either current or s[idx], both valid
+    var next := if Compare(current, s[idx]) > 0 then s[idx] else current;
+    assert next.Valid();
+    LemmaMinByHelperReturnsValid(s, idx + 1, next);
+  }
+}
 }
