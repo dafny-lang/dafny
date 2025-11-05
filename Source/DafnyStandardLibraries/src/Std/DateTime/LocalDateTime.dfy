@@ -155,98 +155,91 @@ module Std.LocalDateTime {
 
   // Plus methods
   // Epoch-based date time arithmetic
-  function Plus(dt: LocalDateTime, millisToAdd: int): LocalDateTime
+  function Plus(dt: LocalDateTime, millisToAdd: int): Result<LocalDateTime, string>
     requires IsValidLocalDateTime(dt)
-    ensures IsValidLocalDateTime(Plus(dt, millisToAdd))
   {
-    var epochMillis := DTUtils.ToEpochTimeMillisecondsFunc(dt.year, dt.month, dt.day, dt.hour, dt.minute, dt.second, dt.millisecond);
-    var newEpochMillis := epochMillis + millisToAdd;
-    var components := DTUtils.FromEpochTimeMillisecondsFunc(newEpochMillis);
-    FromSequenceComponents(components)
+    var epochMillisResult := DTUtils.ToEpochTimeMilliseconds(dt.year, dt.month, dt.day, dt.hour, dt.minute, dt.second, dt.millisecond);
+    if epochMillisResult.Failure? then
+      Failure(epochMillisResult.error)
+    else
+      var newEpochMillis := epochMillisResult.value + millisToAdd;
+      var components := DTUtils.FromEpochTimeMillisecondsFunc(newEpochMillis);
+      if IsValidComponentRange(components) && DTUtils.IsValidDateTime(components[0], components[1] as uint8, components[2] as uint8, components[3] as uint8, components[4] as uint8, components[5] as uint8, components[6] as uint16) then
+        Success(FromSequenceComponents(components))
+      else
+        Failure("Result date/time is out of valid range")
   }
 
-  function PlusDays(dt: LocalDateTime, days: int): LocalDateTime
+  function PlusDays(dt: LocalDateTime, days: int): Result<LocalDateTime, string>
     requires IsValidLocalDateTime(dt)
-    ensures IsValidLocalDateTime(PlusDays(dt, days))
   {
     Plus(dt, days * (MILLISECONDS_PER_DAY as int))
   }
 
-  function PlusHours(dt: LocalDateTime, hours: int): LocalDateTime
+  function PlusHours(dt: LocalDateTime, hours: int): Result<LocalDateTime, string>
     requires IsValidLocalDateTime(dt)
-    ensures IsValidLocalDateTime(PlusHours(dt, hours))
   {
     Plus(dt, hours * (MILLISECONDS_PER_HOUR as int))
   }
 
-  function PlusMinutes(dt: LocalDateTime, minutes: int): LocalDateTime
+  function PlusMinutes(dt: LocalDateTime, minutes: int): Result<LocalDateTime, string>
     requires IsValidLocalDateTime(dt)
-    ensures IsValidLocalDateTime(PlusMinutes(dt, minutes))
   {
     Plus(dt, minutes * (MILLISECONDS_PER_MINUTE as int))
   }
 
-  function PlusSeconds(dt: LocalDateTime, seconds: int): LocalDateTime
+  function PlusSeconds(dt: LocalDateTime, seconds: int): Result<LocalDateTime, string>
     requires IsValidLocalDateTime(dt)
-    ensures IsValidLocalDateTime(PlusSeconds(dt, seconds))
   {
     Plus(dt, seconds * (MILLISECONDS_PER_SECOND as int))
   }
 
-  function PlusMilliseconds(dt: LocalDateTime, milliseconds: int): LocalDateTime
+  function PlusMilliseconds(dt: LocalDateTime, milliseconds: int): Result<LocalDateTime, string>
     requires IsValidLocalDateTime(dt)
-    ensures IsValidLocalDateTime(PlusMilliseconds(dt, milliseconds))
   {
     Plus(dt, milliseconds)
   }
 
-  function PlusDuration(dt: LocalDateTime, duration: Duration.Duration): LocalDateTime
+  function PlusDuration(dt: LocalDateTime, duration: Duration.Duration): Result<LocalDateTime, string>
     requires IsValidLocalDateTime(dt)
-    ensures IsValidLocalDateTime(PlusDuration(dt, duration))
   {
     var totalMillis := (duration.seconds as int) * (MILLISECONDS_PER_SECOND as int) + (duration.millis as int);
     Plus(dt, totalMillis)
   }
 
   // Minus methods
-  function MinusDays(dt: LocalDateTime, days: int): LocalDateTime
+  function MinusDays(dt: LocalDateTime, days: int): Result<LocalDateTime, string>
     requires IsValidLocalDateTime(dt)
-    ensures IsValidLocalDateTime(MinusDays(dt, days))
   {
     PlusDays(dt, -days)
   }
 
-  function MinusHours(dt: LocalDateTime, hours: int): LocalDateTime
+  function MinusHours(dt: LocalDateTime, hours: int): Result<LocalDateTime, string>
     requires IsValidLocalDateTime(dt)
-    ensures IsValidLocalDateTime(MinusHours(dt, hours))
   {
     PlusHours(dt, -hours)
   }
 
-  function MinusMinutes(dt: LocalDateTime, minutes: int): LocalDateTime
+  function MinusMinutes(dt: LocalDateTime, minutes: int): Result<LocalDateTime, string>
     requires IsValidLocalDateTime(dt)
-    ensures IsValidLocalDateTime(MinusMinutes(dt, minutes))
   {
     PlusMinutes(dt, -minutes)
   }
 
-  function MinusSeconds(dt: LocalDateTime, seconds: int): LocalDateTime
+  function MinusSeconds(dt: LocalDateTime, seconds: int): Result<LocalDateTime, string>
     requires IsValidLocalDateTime(dt)
-    ensures IsValidLocalDateTime(MinusSeconds(dt, seconds))
   {
     PlusSeconds(dt, -seconds)
   }
 
-  function MinusMilliseconds(dt: LocalDateTime, milliseconds: int): LocalDateTime
+  function MinusMilliseconds(dt: LocalDateTime, milliseconds: int): Result<LocalDateTime, string>
     requires IsValidLocalDateTime(dt)
-    ensures IsValidLocalDateTime(MinusMilliseconds(dt, milliseconds))
   {
     PlusMilliseconds(dt, -milliseconds)
   }
 
-  function MinusDuration(dt: LocalDateTime, duration: Duration.Duration): LocalDateTime
+  function MinusDuration(dt: LocalDateTime, duration: Duration.Duration): Result<LocalDateTime, string>
     requires IsValidLocalDateTime(dt)
-    ensures IsValidLocalDateTime(MinusDuration(dt, duration))
   {
     var totalMillis := (duration.seconds as int) * (MILLISECONDS_PER_SECOND as int) + (duration.millis as int);
     Plus(dt, -totalMillis)
