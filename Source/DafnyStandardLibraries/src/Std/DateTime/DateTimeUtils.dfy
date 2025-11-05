@@ -13,14 +13,24 @@ module Std.DateTimeUtils {
   import opened Strings
   import opened BoundedInts
   import opened DateTimeConstant
+  import opened Wrappers
 
   // Month names for better error messages
   const MONTH_NAMES: seq<string> := ["January", "February", "March", "April", "May", "June",
                                      "July", "August", "September", "October", "November", "December"]
 
-  // Function versions for use in function contexts
-  function {:extern "DateTimeImpl", "ToEpochTimeMilliseconds"}
-    {:axiom} ToEpochTimeMillisecondsFunc(year: int32, month: uint8, day: uint8, hour: uint8, minute: uint8, second: uint8, millisecond: uint16): int
+
+  function {:extern "DateTimeImpl", "INTERNAL__ToEpochTimeMilliseconds"}
+    {:axiom} INTERNAL__ToEpochTimeMilliseconds(year: int32, month: uint8, day: uint8, hour: uint8, minute: uint8, second: uint8, millisecond: uint16): (bool, int, string)
+
+  function ToEpochTimeMilliseconds(year: int32, month: uint8, day: uint8, hour: uint8, minute: uint8, second: uint8, millisecond: uint16): Result<int, string>
+  {
+    var (isError, epochMilliseconds, errorMsg) := INTERNAL__ToEpochTimeMilliseconds(year, month, day, hour, minute, second, millisecond);
+    if isError then
+      Failure(errorMsg)
+    else
+      Success(epochMilliseconds)
+  }
 
   function {:extern "DateTimeImpl", "FromEpochTimeMilliseconds"}
     {:axiom} FromEpochTimeMillisecondsFunc(epochMillis: int): seq<int32>
