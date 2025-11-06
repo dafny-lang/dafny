@@ -20,14 +20,19 @@ public static class DateTimeImpl
     return Sequence<int>.FromArray(components);
   }
 
-  public static _System._ITuple3<bool, BigInteger, ISequence<Dafny.Rune>> INTERNAL__ToEpochTimeMilliseconds(
+  public static _System._ITuple3<
+    bool,
+    BigInteger,
+    ISequence<Dafny.Rune>
+  > INTERNAL__ToEpochTimeMilliseconds(
     int year,
     uint month,
     uint day,
     uint hour,
     uint minute,
     uint second,
-    uint millisecond
+    uint millisecond,
+    TimeSpan? offset = null
   )
   {
     try
@@ -40,20 +45,20 @@ public static class DateTimeImpl
         (int)minute,
         (int)second,
         (int)millisecond,
-        TimeSpan.Zero
+        offset ?? TimeSpan.Zero
       ).ToUnixTimeMilliseconds();
-      
+
       return _System.Tuple3<bool, BigInteger, ISequence<Dafny.Rune>>.create(
-        false, 
-        epochMilliseconds, 
+        false,
+        epochMilliseconds,
         Sequence<Rune>.Empty
       );
     }
     catch (Exception e)
     {
       return _System.Tuple3<bool, BigInteger, ISequence<Dafny.Rune>>.create(
-        true, 
-        0, 
+        true,
+        0,
         Sequence<Rune>.UnicodeFromString(e.Message)
       );
     }
