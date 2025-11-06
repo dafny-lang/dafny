@@ -809,8 +809,10 @@ namespace Microsoft.Dafny {
         var innerExpr = e.Expr;
 
         // Check for negation
+        bool isNegated = false;
         if (innerExpr is NegationExpression neg) {
           innerExpr = neg.E;
+          isNegated = true;
         }
 
         if (innerExpr is LiteralExpr lit) {
@@ -820,7 +822,8 @@ namespace Microsoft.Dafny {
             // Check if exactly representable as fp64 (53-bit significand, 11-bit exponent)
             var isExact = BigFloat.FromBigDec(decValue, 53, 11, out var floatValue);
             if (isExact) {
-              reporter.Error(MessageSource.Resolver, expr, $"The approximate literal prefix ~ is not allowed on the exactly representable value {decValue}. Remove the ~ prefix.");
+              var valueToReport = isNegated ? -decValue : decValue;
+              reporter.Error(MessageSource.Resolver, expr, $"The approximate literal prefix ~ is not allowed on the exactly representable value {valueToReport}. Remove the ~ prefix.");
             }
 
             // Store computed BigFloat value

@@ -495,28 +495,28 @@ namespace Microsoft.Dafny {
 
             // Validate that the inner expression is a numeric literal (or a negation of one)
             var innerExpr = e.Expr;
+            bool isNegated = false;
 
             if (innerExpr is NegationExpression neg) {
               innerExpr = neg.E;
+              isNegated = true;
             }
 
             if (innerExpr is LiteralExpr lit) {
               if (lit.Value is BigDec decValue) {
                 var isExact = BigFloat.FromBigDec(decValue, 53, 11, out var floatValue);
                 if (isExact) {
-                  // The value is exactly representable, so ~ is forbidden
-                  ReportError(e, $"The approximate literal prefix ~ is not allowed on the exactly representable value {decValue}. Remove the ~ prefix.");
+                  var valueToReport = isNegated ? -decValue : decValue;
+                  ReportError(e, $"The approximate literal prefix ~ is not allowed on the exactly representable value {valueToReport}. Remove the ~ prefix.");
                 }
 
                 if (lit is DecimalLiteralExpr decLit) {
                   decLit.ResolvedFloatValue = floatValue;
                 }
 
-                // The ~ prefix forces the type to fp64
                 e.PreType = new DPreType(BuiltInTypeDecl(PreType.TypeNameFp64), []);
                 e.ResolvedExpression = e.Expr;
                 e.Expr.PreType = new DPreType(BuiltInTypeDecl(PreType.TypeNameFp64), []);
-                // Also set PreType on the inner literal
                 lit.PreType = new DPreType(BuiltInTypeDecl(PreType.TypeNameFp64), []);
               } else if (lit.Value is BigInteger) {
                 ReportError(e, "~ prefix not allowed on integer literals");
