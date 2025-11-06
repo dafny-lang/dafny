@@ -2006,7 +2006,7 @@ namespace Dafny {
             floatAsDoubleBits |= sig;
           }
           if (isNegative) {
-            floatAsDoubleBits |= 0x8000_0000_0000_0000UL;
+            floatAsDoubleBits |= signMask;
           }
 
           return BitConverter.Int64BitsToDouble((long)floatAsDoubleBits);
@@ -2015,7 +2015,7 @@ namespace Dafny {
       // Double format subnormal - store directly
       var subnormalBits = (ulong)quotient;
       if (isNegative) {
-        subnormalBits |= 0x8000_0000_0000_0000UL;
+        subnormalBits |= signMask;
       }
 
       return BitConverter.Int64BitsToDouble((long)subnormalBits);
