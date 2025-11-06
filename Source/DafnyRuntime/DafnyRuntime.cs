@@ -1986,7 +1986,7 @@ namespace Dafny {
       }
 
       var expBits64 = (ulong)adjustedExponent << DOUBLE_SIGNIFICAND_FIELD_BITS;
-      var signBit64 = isNegative ? signMask : 0;
+      var signBit64 = isNegative ? 0x8000_0000_0000_0000UL : 0;
       var doubleBits = signBit64 | expBits64 | significandField64;
       return BitConverter.Int64BitsToDouble((long)doubleBits);
     }
@@ -2006,7 +2006,7 @@ namespace Dafny {
             floatAsDoubleBits |= sig;
           }
           if (isNegative) {
-            floatAsDoubleBits |= signMask;
+            floatAsDoubleBits |= 0x8000_0000_0000_0000UL;
           }
 
           return BitConverter.Int64BitsToDouble((long)floatAsDoubleBits);
@@ -2015,7 +2015,7 @@ namespace Dafny {
       // Double format subnormal - store directly
       var subnormalBits = (ulong)quotient;
       if (isNegative) {
-        subnormalBits |= signMask;
+        subnormalBits |= 0x8000_0000_0000_0000UL;
       }
 
       return BitConverter.Int64BitsToDouble((long)subnormalBits);
