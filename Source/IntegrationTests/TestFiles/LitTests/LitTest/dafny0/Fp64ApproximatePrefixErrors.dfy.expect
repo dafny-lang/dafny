@@ -1,4 +1,4 @@
-Fp64ApproximatePrefixErrors.dfy(13,18): Error: The approximate literal prefix ~ is not allowed on the exactly representable value 5e-1. Remove the ~ prefix.
+Fp64ApproximatePrefixErrors.dfy(13,18): Error: The approximate literal prefix ~ is not allowed on the exactly representable value -5e-1. Remove the ~ prefix.
 Fp64ApproximatePrefixErrors.dfy(11,15): Error: RHS (of type fp64) not assignable to LHS (of type real)
 Fp64ApproximatePrefixErrors.dfy(12,15): Error: RHS (of type fp64) not assignable to LHS (of type real)
 Fp64ApproximatePrefixErrors.dfy(14,15): Error: RHS (of type fp64) not assignable to LHS (of type real)

@@ -514,9 +514,10 @@ namespace Microsoft.Dafny {
 
                 // The ~ prefix forces the type to fp64
                 e.PreType = new DPreType(BuiltInTypeDecl(PreType.TypeNameFp64), []);
-                // Just set the resolved expression to the inner expression (could be NegationExpression)
                 e.ResolvedExpression = e.Expr;
                 e.Expr.PreType = new DPreType(BuiltInTypeDecl(PreType.TypeNameFp64), []);
+                // Also set PreType on the inner literal
+                lit.PreType = new DPreType(BuiltInTypeDecl(PreType.TypeNameFp64), []);
               } else if (lit.Value is BigInteger) {
                 ReportError(e, "~ prefix not allowed on integer literals");
                 e.PreType = new DPreType(BuiltInTypeDecl(PreType.TypeNameInt), []);

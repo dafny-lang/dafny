@@ -11,7 +11,7 @@ public partial class BoogieGenerator {
 
     private Expr TranslateBinaryExpr(BinaryExpr binaryExpr) {
       var e0Type = binaryExpr.E0.Type.NormalizeToAncestorType(); // used when making decisions about what Boogie operator/functions to use
-      bool isReal = e0Type.IsNumericBased(Type.NumericPersuasion.Real);
+      bool isReal = e0Type.IsNumericBased(Type.NumericPersuasion.Real) || e0Type.IsNumericBased(Type.NumericPersuasion.Float);
       int bvWidth = e0Type.IsBitVectorType ? e0Type.AsBitVectorType.Width : -1;  // -1 indicates "not a bitvector type"
       Expr e0 = TrExpr(binaryExpr.E0);
       if (binaryExpr.ResolvedOp == BinaryExpr.ResolvedOpcode.InSet) {

@@ -1357,9 +1357,9 @@ public abstract class Type : NodeWithOrigin {
     } else if (a.IsBoolType || a.IsCharType || a.IsBitVectorType || a.IsBigOrdinalType || a.IsTypeParameter || a.IsInternalTypeSynonym || a is TypeProxy) {
       return a.Equals(b) ? a : null;
     } else if (a is RealVarietiesSupertype) {
-      return b is RealVarietiesSupertype || b.IsNumericBased(NumericPersuasion.Real) ? b : null;
+      return b is RealVarietiesSupertype || b.IsNumericBased(NumericPersuasion.Real) || b.IsNumericBased(NumericPersuasion.Float) ? b : null;
     } else if (b is RealVarietiesSupertype) {
-      return a.IsNumericBased(NumericPersuasion.Real) ? a : null;
+      return a.IsNumericBased(NumericPersuasion.Real) || a.IsNumericBased(NumericPersuasion.Float) ? a : null;
     } else if (a.IsNumericBased()) {
       // Note, for join, we choose not to step down to IntVarietiesSupertype or RealVarietiesSupertype
       return a.Equals(b) ? a : null;
@@ -1545,9 +1545,9 @@ public abstract class Type : NodeWithOrigin {
     } else if (b is IntVarietiesSupertype) {
       return a.IsNumericBased(NumericPersuasion.Int) || a.IsBigOrdinalType || a.IsBitVectorType ? a : null;
     } else if (a is RealVarietiesSupertype) {
-      return b is RealVarietiesSupertype || b.IsNumericBased(NumericPersuasion.Real) ? b : null;
+      return b is RealVarietiesSupertype || b.IsNumericBased(NumericPersuasion.Real) || b.IsNumericBased(NumericPersuasion.Float) ? b : null;
     } else if (b is RealVarietiesSupertype) {
-      return a.IsNumericBased(NumericPersuasion.Real) ? a : null;
+      return a.IsNumericBased(NumericPersuasion.Real) || a.IsNumericBased(NumericPersuasion.Float) ? a : null;
     }
 
     var towerA = GetTowerOfSubsetTypes(a);
@@ -2182,7 +2182,7 @@ public abstract class TypeProxy : Type {
       return Family.Char;
     } else if (t.IsNumericBased(NumericPersuasion.Int) || t is IntVarietiesSupertype) {
       return Family.IntLike;
-    } else if (t.IsNumericBased(NumericPersuasion.Real) || t is RealVarietiesSupertype) {
+    } else if (t.IsNumericBased(NumericPersuasion.Real) || t.IsNumericBased(NumericPersuasion.Float) || t is RealVarietiesSupertype) {
       return Family.RealLike;
     } else if (t.IsBigOrdinalType) {
       return Family.Ordinal;

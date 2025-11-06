@@ -831,6 +831,8 @@ namespace Microsoft.Dafny {
             expr.Type = Type.Fp64;
             e.ResolvedExpression = e.Expr;
             e.Expr.Type = Type.Fp64;
+            // Also set type on the inner literal so CheckTypeInferenceVisitor sees it
+            lit.Type = Type.Fp64;
           } else if (lit.Value is BigInteger) {
             reporter.Error(MessageSource.Resolver, expr, "~ prefix not allowed on integer literals");
             expr.Type = Type.Int;

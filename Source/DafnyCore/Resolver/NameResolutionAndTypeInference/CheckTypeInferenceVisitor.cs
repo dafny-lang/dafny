@@ -125,26 +125,23 @@ class CheckTypeInferenceVisitor : ASTVisitor<TypeInferenceCheckingContext> {
         } else if (e.E.Type.IsNumericBased(Type.NumericPersuasion.Float)) {
           var d = (BigDec)lit.Value;
           Contract.Assert(!d.IsNegative);
-          // Special case for fp64 negative zero
+          // For fp64 types, always create DecimalLiteralExpr with ResolvedFloatValue
           if (d.IsZero) {
-            // For -0.0 in fp64, create a DecimalLiteralExpr with negative zero
-            var negZeroLiteral = new DecimalLiteralExpr(e.Origin, BigDec.ZERO) {
+            resolved = new DecimalLiteralExpr(e.Origin, BigDec.ZERO) {
               Type = e.E.Type,
-              ResolvedFloatValue = BigFloat.CreateZero(true, 53, 11) // negative zero
+              ResolvedFloatValue = BigFloat.CreateZero(true, 53, 11)
             };
-            resolved = negZeroLiteral;
           } else {
-            // For fp64 types, preserve ResolvedFloatValue when creating negative literal
+            BigFloat negatedFloat;
             if (lit is DecimalLiteralExpr decLit && decLit.ResolvedFloatValue != null) {
-              var negatedFloat = -decLit.ResolvedFloatValue.Value;
-              var negDecLiteral = new DecimalLiteralExpr(e.Origin, -d) {
-                Type = e.Type,
-                ResolvedFloatValue = negatedFloat
-              };
-              resolved = negDecLiteral;
+              negatedFloat = -decLit.ResolvedFloatValue.Value;
             } else {
-              resolved = new LiteralExpr(e.Origin, -d);
+              BigFloat.FromBigDec(-d, 53, 11, out negatedFloat);
             }
+            resolved = new DecimalLiteralExpr(e.Origin, -d) {
+              Type = e.Type,
+              ResolvedFloatValue = negatedFloat
+            };
           }
         } else if (e.E.Type.IsNumericBased(Type.NumericPersuasion.Int)) {
           var n = (BigInteger)lit.Value;
