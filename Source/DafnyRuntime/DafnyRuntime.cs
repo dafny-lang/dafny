@@ -1878,7 +1878,7 @@ namespace Dafny {
       return (float)result;
     }
 
-    // Convert rational to IEEE 754 floating-point with proper rounding
+    // Convert rational to IEEE 754 floating-point with RNE
     private double ToFloatingPointImpl(int significandSize, int exponentSize) {
       var bias = (1 << (exponentSize - 1)) - 1;
       var significandFieldBits = significandSize - 1;
@@ -2006,7 +2006,7 @@ namespace Dafny {
             floatAsDoubleBits |= sig;
           }
           if (isNegative) {
-            floatAsDoubleBits |= 0x8000000000000000UL;
+            floatAsDoubleBits |= 0x8000_0000_0000_0000UL;
           }
 
           return BitConverter.Int64BitsToDouble((long)floatAsDoubleBits);
@@ -2015,7 +2015,7 @@ namespace Dafny {
       // Double format subnormal - store directly
       var subnormalBits = (ulong)quotient;
       if (isNegative) {
-        subnormalBits |= 0x8000000000000000UL;
+        subnormalBits |= 0x8000_0000_0000_0000UL;
       }
 
       return BitConverter.Int64BitsToDouble((long)subnormalBits);

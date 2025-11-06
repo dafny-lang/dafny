@@ -942,6 +942,8 @@ public partial class BoogieGenerator {
       return Expression.CreateIntLiteral(tok, 0);
     } else if (typ.IsNumericBased(Type.NumericPersuasion.Real)) {
       return Expression.CreateRealLiteral(tok, BaseTypes.BigDec.ZERO);
+    } else if (typ.IsNumericBased(Type.NumericPersuasion.Float)) {
+      return new DecimalLiteralExpr(tok, BaseTypes.BigDec.ZERO) { Type = typ };
     } else if (typ.IsBigOrdinalType) {
       return Expression.CreateNatLiteral(tok, 0, Type.BigOrdinal);
     } else if (typ.IsBitVectorType) {
@@ -1271,8 +1273,7 @@ public partial class BoogieGenerator {
         Contract.Assert(false, $"No translation implemented from {fromType} to {toType}");
       }
       return r;
-    } else if (fromType.IsNumericBased(Type.NumericPersuasion.Real) && !fromType.IsFp64Type) {
-      // Handle real conversions but exclude fp64 (which has NumericPersuasion.Real)
+    } else if (fromType.IsNumericBased(Type.NumericPersuasion.Real)) {
       if (toType.IsFp64Type) {
         // real to fp64: use SMT-LIB to_fp operation
         r = FunctionCall(tok, "real_to_fp64_RNE", BplFp64Type, r);
@@ -1415,7 +1416,7 @@ public partial class BoogieGenerator {
       return;
     }
 
-    if (fromType.IsNumericBased(Type.NumericPersuasion.Real) && !fromType.IsFp64Type && !toType.IsNumericBased(Type.NumericPersuasion.Real)) {
+    if (fromType.IsNumericBased(Type.NumericPersuasion.Real) && !toType.IsNumericBased(Type.NumericPersuasion.Real)) {
       // this operation is well-formed only if the real-based number represents an integer
       //   assert Real(Int(o)) == o;
       PutSourceIntoLocal();
@@ -1425,7 +1426,7 @@ public partial class BoogieGenerator {
       builder.Add(Assert(tok, e, new IsInteger(expr, errorMsgPrefix), builder.Context));
     }
 
-    if (fromType.IsNumericBased(Type.NumericPersuasion.Real) && !fromType.IsFp64Type && toType.IsFp64Type) {
+    if (fromType.IsNumericBased(Type.NumericPersuasion.Real) && toType.IsFp64Type) {
       // real to fp64: check exact representability
       // TODO: This well-formedness check can cause verification timeouts due to a Z3 issue.
       // The problem occurs when Z3's auto_config is disabled and case_split=3 is set (Dafny's default options).
@@ -1457,7 +1458,7 @@ public partial class BoogieGenerator {
       builder.Add(Assert(tok, isExact, new IntToFp64ExactnessCheck(expr, errorMsgPrefix), builder.Context));
     }
 
-    if (fromType.IsFp64Type && toType.IsNumericBased(Type.NumericPersuasion.Real) && !toType.IsFp64Type) {
+    if (fromType.IsFp64Type && toType.IsNumericBased(Type.NumericPersuasion.Real)) {
       // fp64 to real: require finite value
       PutSourceIntoLocal();
       var isFinite = FunctionCall(tok, "fp64_is_finite", Bpl.Type.Bool, o);
@@ -1531,8 +1532,8 @@ public partial class BoogieGenerator {
           new BinaryExpr(expr.Origin, BinaryExpr.Opcode.Le, new LiteralExpr(expr.Origin, 0), expr),
           new BinaryExpr(expr.Origin, BinaryExpr.Opcode.Lt, expr, dafnyBound)
         );
-      } else if (fromType.IsNumericBased(Type.NumericPersuasion.Real) && !fromType.IsFp64Type) {
-        // Check "Int(expr) < (1 << toWidth)" in type "int" for real (not fp64)
+      } else if (fromType.IsNumericBased(Type.NumericPersuasion.Real)) {
+        // Check "Int(expr) < (1 << toWidth)" in type "int" for real
         PutSourceIntoLocal();
         var bound = Bpl.Expr.Literal(toBound);
         var oi = FunctionCall(tok, BuiltinFunction.RealToInt, null, o);

@@ -116,13 +116,17 @@ class CheckTypeInferenceVisitor : ASTVisitor<TypeInferenceCheckingContext> {
       var e = (NegationExpression)expr;
       Expression resolved = null;
       if (e.E is LiteralExpr lit) { // note, not e.E.Resolved, since we don't want to do this for double negations
-        // For real-based types, integer-based types, and bi (but not bitvectors), "-" followed by a literal is
+        // For real-based types, float types, integer-based types, and bi (but not bitvectors), "-" followed by a literal is
         // just a literal expression with a negative value
         if (e.E.Type.IsNumericBased(Type.NumericPersuasion.Real)) {
           var d = (BigDec)lit.Value;
           Contract.Assert(!d.IsNegative);
+          resolved = new LiteralExpr(e.Origin, -d);
+        } else if (e.E.Type.IsNumericBased(Type.NumericPersuasion.Float)) {
+          var d = (BigDec)lit.Value;
+          Contract.Assert(!d.IsNegative);
           // Special case for fp64 negative zero
-          if (d.IsZero && e.E.Type.IsFp64Type) {
+          if (d.IsZero) {
             // For -0.0 in fp64, create a DecimalLiteralExpr with negative zero
             var negZeroLiteral = new DecimalLiteralExpr(e.Origin, BigDec.ZERO) {
               Type = e.E.Type,
@@ -131,7 +135,7 @@ class CheckTypeInferenceVisitor : ASTVisitor<TypeInferenceCheckingContext> {
             resolved = negZeroLiteral;
           } else {
             // For fp64 types, preserve ResolvedFloatValue when creating negative literal
-            if (e.Type.IsFp64Type && lit is DecimalLiteralExpr decLit && decLit.ResolvedFloatValue != null) {
+            if (lit is DecimalLiteralExpr decLit && decLit.ResolvedFloatValue != null) {
               var negatedFloat = -decLit.ResolvedFloatValue.Value;
               var negDecLiteral = new DecimalLiteralExpr(e.Origin, -d) {
                 Type = e.Type,
@@ -157,6 +161,8 @@ class CheckTypeInferenceVisitor : ASTVisitor<TypeInferenceCheckingContext> {
           Expression zero;
           if (e.E.Type.IsNumericBased(Type.NumericPersuasion.Real)) {
             zero = new LiteralExpr(e.Origin, BaseTypes.BigDec.ZERO);
+          } else if (e.E.Type.IsNumericBased(Type.NumericPersuasion.Float)) {
+            zero = new DecimalLiteralExpr(e.Origin, BaseTypes.BigDec.ZERO);
           } else {
             Contract.Assert(e.E.Type.IsNumericBased(Type.NumericPersuasion.Int) || e.E.Type.NormalizeToAncestorType().IsBitVectorType);
             zero = new LiteralExpr(e.Origin, 0);

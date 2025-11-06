@@ -350,7 +350,7 @@ public abstract class Type : NodeWithOrigin {
     var t = NormalizeExpand();
     return t.IsIntegerType || t.IsRealType || t.IsFp64Type || t.AsNewtype?.BaseType.IsNumericBased() == true;
   }
-  public enum NumericPersuasion { Int, Real }
+  public enum NumericPersuasion { Int, Real, Float }
   [System.Diagnostics.Contracts.Pure]
   public bool IsNumericBased(NumericPersuasion p) {
     Type t = this;
@@ -359,8 +359,11 @@ public abstract class Type : NodeWithOrigin {
       if (t.IsIntegerType) {
         return p == NumericPersuasion.Int;
       }
-      if (t.IsRealType || t.IsFp64Type) {
+      if (t.IsRealType) {
         return p == NumericPersuasion.Real;
+      }
+      if (t.IsFp64Type) {
+        return p == NumericPersuasion.Float;
       }
       if (t.AsNewtype is not { } newtypeDecl) {
         return false;
