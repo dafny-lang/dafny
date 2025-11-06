@@ -1818,9 +1818,9 @@ namespace Dafny {
 
       // Double-specific values
       const int exptBias = 1023;
-      const ulong signMask = 0x8000000000000000;
-      const ulong exptMask = 0x7FF0000000000000;
-      const ulong mantMask = 0x000FFFFFFFFFFFFF;
+      const ulong signMask = 0x8000_0000_0000_0000;
+      const ulong exptMask = 0x7FF0_0000_0000_0000;
+      const ulong mantMask = 0x000F_FFFF_FFFF_FFFF;
       const int mantBits = 52;
       ulong bits = BitConverter.ToUInt64(BitConverter.GetBytes(n), 0);
 
@@ -1986,7 +1986,7 @@ namespace Dafny {
       }
 
       var expBits64 = (ulong)adjustedExponent << DOUBLE_SIGNIFICAND_FIELD_BITS;
-      var signBit64 = isNegative ? 0x8000000000000000UL : 0;
+      var signBit64 = isNegative ? 0x8000_0000_0000_0000UL : 0;
       var doubleBits = signBit64 | expBits64 | significandField64;
       return BitConverter.Int64BitsToDouble((long)doubleBits);
     }
