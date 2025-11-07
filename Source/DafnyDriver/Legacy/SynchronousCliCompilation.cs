@@ -213,7 +213,7 @@ namespace Microsoft.Dafny {
         var asLibrary = !options.Get(CommonOptionBag.TranslateStandardLibrary);
 
         var reporter = new ConsoleErrorReporter(options);
-        if (options.CompilerName is null or "cs" or "java" or "go" or "py" or "js") {
+        if (options.CompilerName is null or "cs" or "java" or "go" or "py" or "js" or "rs") {
           var targetName = options.CompilerName ?? "notarget";
           var stdlibDooUri = DafnyMain.StandardLibrariesDooUriTarget[targetName];
           options.CliRootSourceUris.Add(stdlibDooUri);
@@ -223,8 +223,12 @@ namespace Microsoft.Dafny {
         }
 
         options.CliRootSourceUris.Add(DafnyMain.StandardLibrariesDooUri);
-        await foreach (var targetAgnosticFile in DafnyFile.CreateAndValidate(OnDiskFileSystem.Instance, reporter, options, DafnyMain.StandardLibrariesDooUri, Token.Cli, asLibrary)) {
-          dafnyFiles.Add(targetAgnosticFile);
+        // Rust uses only target-specific library (DafnyStandardLibraries-rs.doo) because
+        // the full standard library contains ORDINAL types that are incompatible with Rust compilation
+        if (options.CompilerName != "rs") {
+          await foreach (var targetAgnosticFile in DafnyFile.CreateAndValidate(OnDiskFileSystem.Instance, reporter, options, DafnyMain.StandardLibrariesDooUri, Token.Cli, asLibrary)) {
+            dafnyFiles.Add(targetAgnosticFile);
+          }
         }
       }
 
