@@ -44,7 +44,7 @@ else
     echo "--- test_cs script completed with $error_count error(s) ---"
 fi
 
-rm -rf a.dfy b.dfy c.dfy c.dll c.exe c.runtimeconfig.json
+rm -rf a.dfy b.dfy c.dfy c.cs c.csproj c.deps.json c.pdb c.dll c c.runtimeconfig.json obj
 rm $tmp $tmpx
 
 exit $error_count
