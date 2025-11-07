@@ -44,7 +44,7 @@ else
     echo "--- test_js script completed with $error_count error(s) ---"
 fi
 
-rm -rf a.dfy b.dfy c.dfy c.js
+rm -rf a.dfy b.dfy c.dfy c.js c-js.dtr node_modules package.json package-lock.json
 rm $tmp $tmpx
 
 exit $error_count
