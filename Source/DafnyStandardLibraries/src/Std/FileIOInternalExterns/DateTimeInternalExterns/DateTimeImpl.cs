@@ -32,11 +32,12 @@ public static class DateTimeImpl
     uint minute,
     uint second,
     uint millisecond,
-    TimeSpan? offset = null
+    int? offsetMinutes = null
   )
   {
     try
     {
+      var offset = TimeSpan.FromMinutes(offsetMinutes ?? 0);
       var epochMilliseconds = new DateTimeOffset(
         year,
         (int)month,
@@ -45,7 +46,7 @@ public static class DateTimeImpl
         (int)minute,
         (int)second,
         (int)millisecond,
-        offset ?? TimeSpan.Zero
+        offset
       ).ToUnixTimeMilliseconds();
 
       return _System.Tuple3<bool, BigInteger, ISequence<Dafny.Rune>>.create(
@@ -66,12 +67,13 @@ public static class DateTimeImpl
 
   public static ISequence<int> FromEpochTimeMilliseconds(
     BigInteger epochMilliseconds,
-    TimeSpan? offset = null
+    int? offsetMinutes = null
   )
   {
+    var offset = TimeSpan.FromMinutes(offsetMinutes ?? 0);
     DateTimeOffset dateTimeOffset = DateTimeOffset
       .FromUnixTimeMilliseconds((long)epochMilliseconds)
-      .ToOffset(offset ?? TimeSpan.Zero);
+      .ToOffset(offset);
     var components = new int[]
     {
       dateTimeOffset.Year,
