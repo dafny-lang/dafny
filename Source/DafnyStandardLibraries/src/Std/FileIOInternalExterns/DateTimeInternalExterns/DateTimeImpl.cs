@@ -32,12 +32,15 @@ public static class DateTimeImpl
     uint minute,
     uint second,
     uint millisecond,
-    int? offsetMinutes = null
+    BigInteger? offsetMinutes = null
   )
   {
     try
     {
-      var offset = TimeSpan.FromMinutes(offsetMinutes ?? 0);
+      var offset = TimeSpan.Zero;
+      if (offsetMinutes != null) {
+        offset = TimeSpan.FromMinutes((double)offsetMinutes);
+      }
       var epochMilliseconds = new DateTimeOffset(
         year,
         (int)month,
@@ -67,10 +70,13 @@ public static class DateTimeImpl
 
   public static ISequence<int> FromEpochTimeMilliseconds(
     BigInteger epochMilliseconds,
-    int? offsetMinutes = null
+    BigInteger? offsetMinutes = null
   )
   {
-    var offset = TimeSpan.FromMinutes(offsetMinutes ?? 0);
+    var offset = TimeSpan.Zero;
+    if (offsetMinutes != null) {
+      offset = TimeSpan.FromMinutes((double)offsetMinutes);
+    }
     DateTimeOffset dateTimeOffset = DateTimeOffset
       .FromUnixTimeMilliseconds((long)epochMilliseconds)
       .ToOffset(offset);
