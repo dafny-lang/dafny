@@ -85,8 +85,12 @@ public static class ZonedDateTimeImpl
         {
             var offsets = tz.GetAmbiguousTimeOffsets(local);
 
-            var chosen = preference < 0 ? offsets.MinBy(o => o)  // PreferEarlier: choose the earlier offset
-                        : offsets.MaxBy(o => o); // PreferLater: choose the later offset
+            DateTimeOffset Make(DateTime dt, TimeSpan off) =>
+                new DateTimeOffset(dt, off); // auto compares using UTC instants
+
+            var chosen = preference < 0
+                ? offsets.MinBy(off => Make(local, off))   // Prefer earlier UTC instant
+                : offsets.MaxBy(off => Make(local, off));  // Prefer later UTC instant
 
             // Return the chosen offset and the local time   
             var dto = new DateTimeOffset(local, chosen);
