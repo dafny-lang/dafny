@@ -65,6 +65,7 @@ public static class VerifyCommand {
 
     var resolution = await compilation.Resolution;
 
+    var before = DateTime.Now;
     if (resolution != null) {
       Subject<CanVerifyResult> verificationResults = new();
 
@@ -78,7 +79,10 @@ public static class VerifyCommand {
       await proofDependenciesReported;
     }
 
-    return await compilation.GetAndReportExitCode();
+    var exitCode = await compilation.GetAndReportExitCode();
+    var after = DateTime.Now;
+    compilation.PerformanceLogger.TrackTime("totalVerification", [], after - before);
+    return exitCode;
   }
 
   public static async Task ReportVerificationSummary(
