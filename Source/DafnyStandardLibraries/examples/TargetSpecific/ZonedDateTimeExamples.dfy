@@ -212,7 +212,7 @@ module TestZonedDateTime {
     }
 
     method {:test} TestWithNotNormalCase() {
-        var ldt1 := LDT.LocalDateTime(2023, 3, 14, 15, 9, 26, 535);
+        var ldt1 := LDT.LocalDateTime(2020, 2, 29, 15, 9, 26, 535);
         var zdt1 := ZDT.ZonedDateTime(ldt1, "UTC", 0);
         AssertAndExpect(ZDT.IsValidZonedDateTime(zdt1));
 
@@ -314,12 +314,12 @@ module TestZonedDateTime {
         }
 
         // Test PlusSeconds
-        var plusSecondsResult := ZDT.PlusSeconds(baseZDT, 5000);
+        var plusSecondsResult := ZDT.PlusSeconds(baseZDT, 120);
         expect plusSecondsResult.Success?;
         if plusSecondsResult.Success? {
             var result := plusSecondsResult.value;
             expect result.local.minute == 32;
-            expect result.local.second == 5;
+            expect result.local.second == 45;
         }
 
         // Test PlusMilliseconds
@@ -362,7 +362,7 @@ module TestZonedDateTime {
         expect minusHoursResult.Success?;
         if minusHoursResult.Success? {
             var result := minusHoursResult.value;
-            expect result.local.day == 15;
+            expect result.local.day == 14;
             expect result.local.hour == 23;
         }
 
@@ -389,7 +389,7 @@ module TestZonedDateTime {
         expect minusMillisecondsResult.Success?;
         if minusMillisecondsResult.Success? {
             var result := minusMillisecondsResult.value;
-            expect result.local.second == 45;
+            expect result.local.second == 44;
             expect result.local.millisecond == 923;
         }
 
