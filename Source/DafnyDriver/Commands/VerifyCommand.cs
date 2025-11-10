@@ -61,22 +61,26 @@ public static class VerifyCommand {
     }
 
     var compilation = CliCompilation.Create(options);
-    compilation.Start();
 
-    var resolution = await compilation.Resolution;
+    var resolution = await compilation.PerformanceLogger.TrackAsync("resolution", [], () => {
+      compilation.Start();
+      return compilation.Resolution;
+    });
 
     var before = DateTime.Now;
     if (resolution != null) {
       Subject<CanVerifyResult> verificationResults = new();
 
       ReportVerificationDiagnostics(compilation, verificationResults);
-      var verificationSummarized = ReportVerificationSummary(compilation, verificationResults);
-      var proofDependenciesReported = ReportProofDependencies(compilation, resolution, verificationResults);
-      var verificationResultsLogged = LogVerificationResults(compilation, resolution, verificationResults);
-      compilation.VerifyAllLazily().ToObservable().Subscribe(verificationResults);
-      await verificationSummarized;
-      await verificationResultsLogged;
-      await proofDependenciesReported;
+      await compilation.PerformanceLogger.TrackAsync("verifyAll", [], async () => {
+        var verificationSummarized = ReportVerificationSummary(compilation, verificationResults);
+        var proofDependenciesReported = ReportProofDependencies(compilation, resolution, verificationResults);
+        var verificationResultsLogged = LogVerificationResults(compilation, resolution, verificationResults);
+        compilation.VerifyAllLazily().ToObservable().Subscribe(verificationResults);
+        await verificationSummarized;
+        await verificationResultsLogged;
+        await proofDependenciesReported;
+      });
     }
 
     var exitCode = await compilation.GetAndReportExitCode();
