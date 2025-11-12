@@ -1,0 +1,23 @@
+Fp64ApproximatePrefixErrors.dfy(13,18): Error: The approximate literal prefix ~ is not allowed on the exactly representable value -5e-1. Remove the ~ prefix.
+Fp64ApproximatePrefixErrors.dfy(11,15): Error: RHS (of type fp64) not assignable to LHS (of type real)
+Fp64ApproximatePrefixErrors.dfy(12,15): Error: RHS (of type fp64) not assignable to LHS (of type real)
+Fp64ApproximatePrefixErrors.dfy(14,15): Error: RHS (of type fp64) not assignable to LHS (of type real)
+Fp64ApproximatePrefixErrors.dfy(18,17): Error: The approximate literal prefix ~ cannot be used after unary negation. Use ~-1e-1 instead of -~1e-1 to negate an approximate literal.
+Fp64ApproximatePrefixErrors.dfy(24,15): Error: The approximate literal prefix ~ cannot be used after unary negation. Use ~-1e-1 instead of -~1e-1 to negate an approximate literal.
+Fp64ApproximatePrefixErrors.dfy(25,15): Error: The approximate literal prefix ~ cannot be used after unary negation. Use ~-5e-1 instead of -~5e-1 to negate an approximate literal.
+Fp64ApproximatePrefixErrors.dfy(25,16): Error: The approximate literal prefix ~ is not allowed on the exactly representable value 5e-1. Remove the ~ prefix.
+Fp64ApproximatePrefixErrors.dfy(34,20): Error: ~ prefix can only be applied to numeric literals, not to variables or expressions
+Fp64ApproximatePrefixErrors.dfy(35,20): Error: ~ prefix can only be applied to numeric literals, not to variables or expressions
+Fp64ApproximatePrefixErrors.dfy(36,20): Error: ~ prefix can only be applied to numeric literals, not to variables or expressions
+Fp64ApproximatePrefixErrors.dfy(43,20): Error: The approximate literal prefix ~ is not allowed on the exactly representable value 1e0. Remove the ~ prefix.
+Fp64ApproximatePrefixErrors.dfy(44,20): Error: The approximate literal prefix ~ is not allowed on the exactly representable value 5e-1. Remove the ~ prefix.
+Fp64ApproximatePrefixErrors.dfy(45,20): Error: The approximate literal prefix ~ is not allowed on the exactly representable value 25e-2. Remove the ~ prefix.
+Fp64ApproximatePrefixErrors.dfy(46,20): Error: The approximate literal prefix ~ is not allowed on the exactly representable value 2e0. Remove the ~ prefix.
+Fp64ApproximatePrefixErrors.dfy(47,20): Error: The approximate literal prefix ~ is not allowed on the exactly representable value 4e0. Remove the ~ prefix.
+Fp64ApproximatePrefixErrors.dfy(48,20): Error: The approximate literal prefix ~ is not allowed on the exactly representable value 125e-3. Remove the ~ prefix.
+Fp64ApproximatePrefixErrors.dfy(53,17): Error: ~ prefix not allowed on integer literals
+Fp64ApproximatePrefixErrors.dfy(54,17): Error: ~ prefix not allowed on integer literals
+Fp64ApproximatePrefixErrors.dfy(55,17): Error: ~ prefix not allowed on integer literals
+Fp64ApproximatePrefixErrors.dfy(58,17): Error: ~ prefix not allowed on character literals
+Fp64ApproximatePrefixErrors.dfy(59,19): Error: ~ prefix not allowed on string literals
+22 resolution/type errors detected in Fp64ApproximatePrefixErrors.dfy

@@ -177,7 +177,12 @@ abstract class Flow {
 
     if (a is BasicType) {
       Contract.Assert(b is BasicType);
-      Contract.Assert(a.Equals(b, true));
+
+      if (!a.Equals(b, true)) {
+        // No join exists between different basic types
+        return null;
+      }
+
       return a;
 
     } else if (a is CollectionType) {
