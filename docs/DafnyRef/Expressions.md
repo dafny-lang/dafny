@@ -323,7 +323,7 @@ with the result being of the given type. The following combinations
 of conversions are permitted:
 
 * Any type to itself
-* Any int or real based numeric type or bit-vector type to another int or real based numeric type or bit-vector type
+* Any int-based or real-based numeric type or bit-vector type to another int-based or real-based numeric type or bit-vector type
 * Any base type to a subset or newtype with that base
 * Any subset or newtype to its base type or a subset or newtype of the same base
 * Any type to a subset or newtype that has the type as its base
@@ -392,9 +392,9 @@ Examples:
 A unary expression applies 
 
 - logical complement (`!` -- [Section 5.2.1](#sec-booleans)),
-- bit-wise complement (`!` -- [Section 5.2.3](#sec-bit-vector-types)),
+- bit-wise complement (`!` -- [Section 5.2.4](#sec-bit-vector-types)),
 - numeric negation (`-` -- [Section 5.2.2](#sec-numeric-types)), or
-- bit-vector negation (`-` -- [Section 5.2.3](#sec-bit-vector-types))
+- bit-vector negation (`-` -- [Section 5.2.4](#sec-bit-vector-types))
 
 to its operand.
 

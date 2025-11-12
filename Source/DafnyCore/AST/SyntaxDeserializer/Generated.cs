@@ -934,6 +934,23 @@ namespace Microsoft.Dafny
             return ReadStringLiteralExpr();
         }
 
+        public DecimalLiteralExpr ReadDecimalLiteralExpr()
+        {
+            var parameter0 = ReadAbstract<IOrigin>();
+            var parameter1 = ReadAbstract<Object>();
+            return new DecimalLiteralExpr(parameter0, parameter1);
+        }
+
+        public DecimalLiteralExpr ReadDecimalLiteralExprOption()
+        {
+            if (ReadIsNull())
+            {
+                return default;
+            }
+
+            return ReadDecimalLiteralExpr();
+        }
+
         public CharLiteralExpr ReadCharLiteralExpr()
         {
             var parameter0 = ReadAbstract<IOrigin>();
@@ -1224,6 +1241,23 @@ namespace Microsoft.Dafny
             }
 
             return ReadNegationExpression();
+        }
+
+        public ApproximateExpr ReadApproximateExpr()
+        {
+            var parameter0 = ReadAbstract<IOrigin>();
+            var parameter1 = ReadAbstract<Expression>();
+            return new ApproximateExpr(parameter0, parameter1);
+        }
+
+        public ApproximateExpr ReadApproximateExprOption()
+        {
+            if (ReadIsNull())
+            {
+                return default;
+            }
+
+            return ReadApproximateExpr();
         }
 
         public ExprDotName ReadExprDotName()
@@ -1613,6 +1647,22 @@ namespace Microsoft.Dafny
             }
 
             return ReadBigOrdinalType();
+        }
+
+        public Fp64Type ReadFp64Type()
+        {
+            var parameter0 = ReadAbstract<IOrigin>();
+            return new Fp64Type(parameter0);
+        }
+
+        public Fp64Type ReadFp64TypeOption()
+        {
+            if (ReadIsNull())
+            {
+                return default;
+            }
+
+            return ReadFp64Type();
         }
 
         public RealType ReadRealType()
@@ -2536,6 +2586,11 @@ namespace Microsoft.Dafny
                 return ReadStringLiteralExpr();
             }
 
+            if (actualType == typeof(DecimalLiteralExpr))
+            {
+                return ReadDecimalLiteralExpr();
+            }
+
             if (actualType == typeof(CharLiteralExpr))
             {
                 return ReadCharLiteralExpr();
@@ -2609,6 +2664,11 @@ namespace Microsoft.Dafny
             if (actualType == typeof(NegationExpression))
             {
                 return ReadNegationExpression();
+            }
+
+            if (actualType == typeof(ApproximateExpr))
+            {
+                return ReadApproximateExpr();
             }
 
             if (actualType == typeof(ExprDotName))
@@ -2714,6 +2774,11 @@ namespace Microsoft.Dafny
             if (actualType == typeof(BigOrdinalType))
             {
                 return ReadBigOrdinalType();
+            }
+
+            if (actualType == typeof(Fp64Type))
+            {
+                return ReadFp64Type();
             }
 
             if (actualType == typeof(RealType))
