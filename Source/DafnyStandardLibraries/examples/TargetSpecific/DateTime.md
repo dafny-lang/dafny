@@ -39,7 +39,7 @@ It ensures correctness using contracts (`requires`, `ensures`) and supports proo
 ## Test Commands
 
 ```bash
-dafny test --target:cs --standard-libraries Source/DafnyStandardLibraries/examples/DateTime/LocalDateTimeExamples.dfy Source/DafnyStandardLibraries/src/Std/DateTimeExterns/DateTimeImpl.cs --allow-warnings
+dafny test --target:cs --standard-libraries Source/DafnyStandardLibraries/examples/TargetSpecific/LocalDateTimeExamples.dfy Source/DafnyStandardLibraries/src/Std/DateTimeExterns/DateTimeImpl.cs --allow-warnings
 ```
 
 # Duration
@@ -92,6 +92,6 @@ Includes helper functions for parsing numeric substrings (ParseNumericString, Pa
  -`EpochDifference(epoch1, epoch2)`: Computes the absolute duration difference between two epoch millisecond timestamps, returning a valid Duration instance.
 ## Test Commands
 ```
-dafny test --target:cs --standard-libraries Source/DafnyStandardLibraries/examples/DateTime/DurationExamples.dfy --allow-warnings
+dafny test --target:cs --standard-libraries Source/DafnyStandardLibraries/examples/TargetSpecific/DurationExamples.dfy --allow-warnings
 ```
 This command runs Dafny’s formal verification and executable tests for all Duration operations, ensuring correctness in both logic and implementation.
