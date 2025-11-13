@@ -1,5 +1,5 @@
-include "../src/Std/Statistics.dfy"
-include "Helpers.dfy"
+include "../../src/Std/TargetSpecific/Statistics.dfy"
+include "../Helpers.dfy"
 
 module TestStatistics {
   import opened Std.Statistics
@@ -21,44 +21,53 @@ module TestStatistics {
     AssertAndExpect(Mean([-10.0, 0.0, 10.0, 20.0]) == 5.0);
   }
 
-  method {:test} TestVariance() {
+  method {:test} TestVariance_DataSet1() {
     var data := [1.0, 2.0, 3.0, 4.0, 5.0];
     AssertAndExpect(VariancePopulation(data) == 2.0);
     AssertAndExpect(VarianceSample(data) == 2.5);
-
+  }
+  
+  method {:test} TestVariance_DataSet2() {
     var data2 := [6.0, 7.0, 8.0, 9.0, 10.0];
     AssertAndExpect(VariancePopulation(data2) == 2.0);
     AssertAndExpect(VarianceSample(data2) == 2.5);
-
+  }
+  
+  method {:test} TestVariance_DataSet3_Decimals() {
+    // Example with decimals
     var data3 := [1.5, 2.5, 3.5, 4.5, 5.5];
     AssertAndExpect(VariancePopulation(data3) == 2.0);
     AssertAndExpect(VarianceSample(data3) == 2.5);
   }
 
-  method {:test} TestStandardDeviation() {
+    method {:test} TestStandardDeviation_DataSet1() {
     var eps := 0.000001;
-
-   
     var data := [1.0, 2.0, 3.0, 4.0, 5.0];
     AssertAndExpect(AreNear(StdDevPopulation(data) * StdDevPopulation(data), 2.0, eps));
     AssertAndExpect(AreNear(StdDevSample(data) * StdDevSample(data), 2.5, eps));
-
+  }
+  
+  method {:test} TestStandardDeviation_DataSet2() {
+    var eps := 0.000001;
     var data2 := [6.0, 7.0, 8.0, 9.0, 10.0];
     AssertAndExpect(AreNear(StdDevPopulation(data2) * StdDevPopulation(data2), 2.0, eps));
     AssertAndExpect(AreNear(StdDevSample(data2) * StdDevSample(data2), 2.5, eps));
-
+  }
+  
+  method {:test} TestStandardDeviation_DataSet3_Boundary() {
+    var eps := 0.000001;
     var data3 := [1.0, 3.0];
     AssertAndExpect(AreNear(StdDevPopulation(data3) * StdDevPopulation(data3), 1.0, eps));
     AssertAndExpect(AreNear(StdDevSample(data3) * StdDevSample(data3), 2.0, eps));
   }
 
   // Testcase for median in odd case
-  method {:test} Test_Median_Odd_Case() {
+  method {:test} {:rlimit 50000} Test_Median_Odd_Case() {
     AssertAndExpect(Median([3.0, 1.0, 2.0]) == 2.0);
   }
 
   // Testcase for median in even case
-  method {:test} Test_Median_Even_Case() {
+  method {:test} {:rlimit 1000000} Test_Median_Even_Case() {
     AssertAndExpect(Median([4.0, 2.0, 3.0, 1.0]) == (2.0 + 3.0) / 2.0);
   }
 
@@ -73,7 +82,7 @@ module TestStatistics {
   }
 
   // Testcase for checking already sorted case in median for even elements
-  method {:test} Test_Median_Even_Case_Sorted_Sequence() {
+  method {:test} {:rlimit 500000} Test_Median_Even_Case_Sorted_Sequence() {
     AssertAndExpect(Median([1.0, 2.0, 3.0, 4.0]) == (2.0 + 3.0) / 2.0);
   }
   
@@ -94,11 +103,11 @@ module TestStatistics {
 
   // Testcase for checking mode for equal occurences for 2 elements
   method {:test} Test_Mode_Equal() {
-    expect Mode([4.0, 4.0, 6.0, 6.0]) == 4.0 || Mode([4.0, 4.0, 6.0, 6.0]) == 6.0;
+    expect Mode([ 6.0, 6.0, 4.0, 4.0]) == 6.0;
   }
 
   // Testcase for range with multiple elements
-  method {:test} Test_Range() {
+  method {:test}  {:rlimit 50000} Test_Range() {
     AssertAndExpect(Range([1.0, 3.0, 5.0]) == 4.0);
   }
 
@@ -108,12 +117,12 @@ module TestStatistics {
   }
 
   // Testcase for range with  sorted sequence in increasing order
-  method {:test} Test_Range_Sorted_Sequence() {
+  method {:test}  {:rlimit 50000} Test_Range_Sorted_Sequence() {
     AssertAndExpect(Range([1.0, 2.0, 3.0, 4.0]) == 3.0);
   }
 
   // Testcase for range with sorted sequence in descending order
-  method {:test} Test_Range_Descending_Sequence() {
+  method {:test}  {:rlimit 50000} Test_Range_Descending_Sequence() {
     AssertAndExpect(Range([9.0, 7.0, 5.0, 3.0]) == 6.0);
   }
 }
