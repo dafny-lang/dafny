@@ -253,13 +253,13 @@ module TestLocalDateTime {
     var dt := LDT.LocalDateTime(2023, 6, 15, 14, 30, 45, 123);
 
     var dateOnly := LDT.Format(dt, LDT.DateFormat.DateOnly);
-    AssertAndExpect(dateOnly == "2023-06-15");
+    expect dateOnly == "2023-06-15";
 
     var timeOnly := LDT.Format(dt, LDT.DateFormat.TimeOnly);
-    AssertAndExpect(timeOnly == "14:30:45");
+    expect timeOnly == "14:30:45";
 
     var dateTimeSpace := LDT.Format(dt, LDT.DateFormat.DateTimeSpace);
-    AssertAndExpect(dateTimeSpace == "2023-06-15 14:30:45");
+    expect dateTimeSpace == "2023-06-15 14:30:45";
   }
 
   method {:test} TestFormatFunctionSlashFormats()
@@ -267,10 +267,10 @@ module TestLocalDateTime {
     var dt := LDT.LocalDateTime(2023, 6, 15, 14, 30, 45, 123);
 
     var ddmmyyyy := LDT.Format(dt, LDT.DateFormat.DateSlashDDMMYYYY);
-    AssertAndExpect(ddmmyyyy == "15/06/2023");
+    expect ddmmyyyy == "15/06/2023";
 
     var mmddyyyy := LDT.Format(dt, LDT.DateFormat.DateSlashMMDDYYYY);
-    AssertAndExpect(mmddyyyy == "06/15/2023");
+    expect mmddyyyy == "06/15/2023";
   }
 
   method {:test} TestWithNormalCase() {
