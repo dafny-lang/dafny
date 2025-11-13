@@ -26,13 +26,13 @@ module TestStatistics {
     AssertAndExpect(VariancePopulation(data) == 2.0);
     AssertAndExpect(VarianceSample(data) == 2.5);
   }
-  
+
   method {:test} TestVariance_DataSet2() {
     var data2 := [6.0, 7.0, 8.0, 9.0, 10.0];
     AssertAndExpect(VariancePopulation(data2) == 2.0);
     AssertAndExpect(VarianceSample(data2) == 2.5);
   }
-  
+
   method {:test} TestVariance_DataSet3_Decimals() {
     // Example with decimals
     var data3 := [1.5, 2.5, 3.5, 4.5, 5.5];
@@ -40,20 +40,20 @@ module TestStatistics {
     AssertAndExpect(VarianceSample(data3) == 2.5);
   }
 
-    method {:test} TestStandardDeviation_DataSet1() {
+  method {:test} TestStandardDeviation_DataSet1() {
     var eps := 0.000001;
     var data := [1.0, 2.0, 3.0, 4.0, 5.0];
     AssertAndExpect(AreNear(StdDevPopulation(data) * StdDevPopulation(data), 2.0, eps));
     AssertAndExpect(AreNear(StdDevSample(data) * StdDevSample(data), 2.5, eps));
   }
-  
+
   method {:test} TestStandardDeviation_DataSet2() {
     var eps := 0.000001;
     var data2 := [6.0, 7.0, 8.0, 9.0, 10.0];
     AssertAndExpect(AreNear(StdDevPopulation(data2) * StdDevPopulation(data2), 2.0, eps));
     AssertAndExpect(AreNear(StdDevSample(data2) * StdDevSample(data2), 2.5, eps));
   }
-  
+
   method {:test} TestStandardDeviation_DataSet3_Boundary() {
     var eps := 0.000001;
     var data3 := [1.0, 3.0];
@@ -85,7 +85,7 @@ module TestStatistics {
   method {:test} {:rlimit 500000} Test_Median_Even_Case_Sorted_Sequence() {
     AssertAndExpect(Median([1.0, 2.0, 3.0, 4.0]) == (2.0 + 3.0) / 2.0);
   }
-  
+
   // Testcase for checking mode calculation
   method {:test} Test_Mode() {
     expect Mode([1.0, 2.0, 2.0, 3.0]) == 2.0;
