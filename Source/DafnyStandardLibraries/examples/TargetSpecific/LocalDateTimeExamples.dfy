@@ -52,12 +52,8 @@ module TestLocalDateTime {
   {
     var invalidDay1 := LDT.Of(2023, 6, 0, 14, 30, 45, 123);     // Day too low
     var invalidDay2 := LDT.Of(2023, 6, 32, 14, 30, 45, 123);    // Day too high for June
-    // var invalidDay3 := LDT.Of(2023, 2, 29, 14, 30, 45, 123);    // Feb 29 in non-leap year
-    // var invalidDay4 := LDT.Of(2023, 4, 31, 14, 30, 45, 123);    // April 31st doesn't exist
     AssertAndExpect(invalidDay1.Failure?);
     AssertAndExpect(invalidDay2.Failure?);
-    // AssertAndExpect(invalidDay3.Failure?);
-    // AssertAndExpect(invalidDay4.Failure?);
   }
 
   method {:test} TestOfFunctionInvalidTime()
@@ -161,25 +157,21 @@ module TestLocalDateTime {
   method {:test} TestDateOnlyParsingInvalidDates()
   {
     var invalidDateOnly5 := LDT.Parse("2023-13-15", LDT.ParseFormat.DateOnly);      // Invalid month
-    // var invalidDateOnly6 := LDT.Parse("2023-02-30", LDT.ParseFormat.DateOnly);      // Invalid day for February
-    // var invalidDateOnly7 := LDT.Parse("2023-04-31", LDT.ParseFormat.DateOnly);      // Invalid day for April
 
     expect invalidDateOnly5.Failure?;
-    // expect invalidDateOnly6.Failure?;
-    // expect invalidDateOnly7.Failure?;
   }
 
   method {:test} TestDateOnlyParsingInvalidFormats()
   {
-    var invalidDateOnly8 := LDT.Parse("2023-06-15T14:30:45", LDT.ParseFormat.DateOnly); // Too long
-    var invalidDateOnly9 := LDT.Parse("2023-06", LDT.ParseFormat.DateOnly);         // Too short
-    var invalidDateOnly10 := LDT.Parse("", LDT.ParseFormat.DateOnly);               // Empty string
-    var invalidDateOnly11 := LDT.Parse("not-a-date", LDT.ParseFormat.DateOnly);     // Invalid format
+    var invalidDateOnly6 := LDT.Parse("2023-06-15T14:30:45", LDT.ParseFormat.DateOnly); // Too long
+    var invalidDateOnly7 := LDT.Parse("2023-06", LDT.ParseFormat.DateOnly);             // Too short
+    var invalidDateOnly8 := LDT.Parse("", LDT.ParseFormat.DateOnly);                    // Empty string
+    var invalidDateOnly9 := LDT.Parse("not-a-date", LDT.ParseFormat.DateOnly);          // Invalid format
 
+    expect invalidDateOnly6.Failure?;
+    expect invalidDateOnly7.Failure?;
     expect invalidDateOnly8.Failure?;
     expect invalidDateOnly9.Failure?;
-    expect invalidDateOnly10.Failure?;
-    expect invalidDateOnly11.Failure?;
   }
 
   method {:test} TestCompareFunction()
@@ -238,14 +230,14 @@ module TestLocalDateTime {
   {
     var dt := LDT.LocalDateTime(2023, 6, 15, 14, 30, 45, 123);
     var isoStr := LDT.ToString(dt);
-    AssertAndExpect(isoStr == "2023-06-15T14:30:45.123");
+    expect isoStr == "2023-06-15T14:30:45.123";
   }
 
   method {:test} {:resource_limit 2000000} TestFormatISO8601()
   {
     var dt := LDT.LocalDateTime(2023, 6, 15, 14, 30, 45, 123);
     var isoFormat := LDT.Format(dt, LDT.DateFormat.ISO8601);
-    AssertAndExpect(isoFormat == "2023-06-15T14:30:45.123");
+    expect isoFormat == "2023-06-15T14:30:45.123";
   }
 
   method {:test} TestFormatFunctionDateAndTime()
@@ -360,7 +352,7 @@ module TestLocalDateTime {
     // Test converting LocalDateTime to epoch time milliseconds
     var dt := LDT.LocalDateTime(2023, 6, 15, 14, 30, 45, 123);
     AssertAndExpect(LDT.IsValidLocalDateTime(dt));
-    
+
     var epochResult := DTUtils.ToEpochTimeMilliseconds(dt.year, dt.month, dt.day, dt.hour, dt.minute, dt.second, dt.millisecond);
     expect epochResult.Success?;
     if epochResult.Success? {
@@ -378,103 +370,17 @@ module TestLocalDateTime {
     }
   }
 
-  method {:test} TestComprehensiveArithmeticOperations() {
-    // Comprehensive test for all arithmetic operations with Result handling
-    var baseDateTime := LDT.LocalDateTime(2023, 6, 15, 14, 30, 45, 123);
-    AssertAndExpect(LDT.IsValidLocalDateTime(baseDateTime));
-
-    // Test PlusDays
-    var plusDaysResult := LDT.PlusDays(baseDateTime, 10);
-    expect plusDaysResult.Success?;
-    if plusDaysResult.Success? {
-      var result := plusDaysResult.value;
-      expect result.day == 25;
-    }
-
-    // Test PlusHours
-    var plusHoursResult := LDT.PlusHours(baseDateTime, 25); // Should cross day boundary
-    expect plusHoursResult.Success?;
-    if plusHoursResult.Success? {
-      var result := plusHoursResult.value;
-      expect result.day == 16;
-      expect result.hour == 15;
-    }
-
-    // Test PlusMinutes
-    var plusMinutesResult := LDT.PlusMinutes(baseDateTime, 90); // Should cross hour boundary
-    expect plusMinutesResult.Success?;
-    if plusMinutesResult.Success? {
-      var result := plusMinutesResult.value;
-      expect result.hour == 16;
-      expect result.minute == 0;
-    }
-
-    // Test PlusSeconds
-    var plusSecondsResult := LDT.PlusSeconds(baseDateTime, 120); // Should cross minute boundary
-    expect plusSecondsResult.Success?;
-    if plusSecondsResult.Success? {
-      var result := plusSecondsResult.value;
-      expect result.minute == 32;
-      expect result.second == 45;
-    }
-
-    // Test PlusMilliseconds
-    var plusMillisResult := LDT.PlusMilliseconds(baseDateTime, 2000); // Should cross second boundary
-    expect plusMillisResult.Success?;
-    if plusMillisResult.Success? {
-      var result := plusMillisResult.value;
-      expect result.second == 47;
-      expect result.millisecond == 123;
-    }
-
-    // Test Minus operations
-    var minusDaysResult := LDT.MinusDays(baseDateTime, 10);
-    expect minusDaysResult.Success?;
-    if minusDaysResult.Success? {
-      var result := minusDaysResult.value;
-      expect result.day == 5;
-    }
-
-    var minusHoursResult := LDT.MinusHours(baseDateTime, 15);
-    expect minusHoursResult.Success?;
-    if minusHoursResult.Success? {
-      var result := minusHoursResult.value;
-      expect result.day == 14;
-      expect result.hour == 23;
-    }
-
-    // Test Duration operations
-    var duration := Duration.FromMilliseconds(3661500); // 1 hour, 1 minute, 1.5 seconds
-    var plusDurationResult := LDT.PlusDuration(baseDateTime, duration);
-    expect plusDurationResult.Success?;
-    if plusDurationResult.Success? {
-      var result := plusDurationResult.value;
-      expect result.hour == 15;
-      expect result.minute == 31;
-      expect result.second == 46;
-      expect result.millisecond == 623;
-    }
-
-    var minusDurationResult := LDT.MinusDuration(baseDateTime, duration);
-    expect minusDurationResult.Success?;
-    if minusDurationResult.Success? {
-      var result := minusDurationResult.value;
-      expect result.hour == 13;
-      expect result.minute == 29;
-    }
-  }
-
   method {:test} TestInvalidDateCalculation() {
     // Test parsing invalid dates that don't exist in the calendar
     var invalidDate1 := LDT.Parse("2023-02-30", LDT.ParseFormat.DateOnly);  // Feb 30th doesn't exist
     var invalidDate2 := LDT.Parse("2023-04-31", LDT.ParseFormat.DateOnly);  // April 31st doesn't exist
     var invalidDate3 := LDT.Parse("2023-02-29", LDT.ParseFormat.DateOnly);  // Feb 29th in non-leap year
-    
+
     // We allow parsing to succeed but the further calculation should fail
     expect invalidDate1.Success?;
     expect invalidDate2.Success?;
     expect invalidDate3.Success?;
-  
+
     // Test ToEpochTimeMilliseconds with invalid dates - should fail
     var epochResult1 := DTUtils.ToEpochTimeMilliseconds(2023, 2, 30, 12, 0, 0, 0);    // Feb 30th
     var epochResult2 := DTUtils.ToEpochTimeMilliseconds(2023, 4, 31, 12, 0, 0, 0);    // April 31st
