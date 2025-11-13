@@ -39,7 +39,7 @@ It ensures correctness using contracts (`requires`, `ensures`) and supports proo
 ## Test Commands
 
 ```bash
-dafny test --target:cs --standard-libraries Source/DafnyStandardLibraries/examples/DateTime/LocalDateTimeExamples.dfy Source/DafnyStandardLibraries/src/Std/FileIOInternalExterns/DateTimeInternalExterns/DateTimeImpl.cs --allow-warnings
+dafny test --target:cs --standard-libraries Source/DafnyStandardLibraries/examples/DateTime/LocalDateTimeExamples.dfy Source/DafnyStandardLibraries/src/Std/DateTimeExterns/DateTimeImpl.cs --allow-warnings
 ```
 
 
