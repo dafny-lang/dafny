@@ -1,5 +1,5 @@
 module ExternalMath {
-  function {:extern} Sqrt(x: real): real
+  function {:extern}{:axiom} Sqrt(x: real): real
     requires x >= 0.0
     ensures Sqrt(x) >= 0.0
     ensures x - 0.0000001 <= Sqrt(x) * Sqrt(x) <= x + 0.0000001
@@ -101,7 +101,8 @@ module Std.Statistics {
 
   // The function to get a map to store the occurences of elements
   function {:tailrecursion} FrequencyTable(s: seq<real>, m: map<real, int> := map[]): map<real, int>
-
+  ensures m.Keys <= FrequencyTable(s, m).Keys
+  ensures forall x :: x in s ==> x in FrequencyTable(s, m)
   {
     if s == [] then
       m
@@ -128,20 +129,23 @@ module Std.Statistics {
     var result :=
       if |keys| == 1 then best
       else
-        var tail := ModeHelper(freq, keys, best, 0);
-        tail;
+        ModeHelper(freq, keys, best, 0);
+        
     result
   }
 
  // Helper function to calculate mode
   function {:tailrecursion} ModeHelper(freq: map<real,int>, keys: seq<real>, best: real, i: nat): real
+    requires forall x :: x in keys ==> x in freq
+    requires best in keys
     decreases |keys| - i
+    
   {
     if i >= |keys| then best
     else
       var next := keys[i];
       var newBest :=
-        if next in freq && best in freq && freq[next] > freq[best] then next else best;
+        if freq[next] > freq[best] then next else best;
       ModeHelper(freq, keys, newBest, i + 1)
   }
 

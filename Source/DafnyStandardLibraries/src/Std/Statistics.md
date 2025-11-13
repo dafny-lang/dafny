@@ -39,7 +39,7 @@ It ensures correctness using contracts (`requires`, `ensures`) and supports proo
 
 - **Mode**  
   Identifies the most frequently occurring element in a sequence.  
-  Verification ensures that, if multiple values share the same frequency, one valid mode is returned deterministically.
+  Verification ensures that when multiple elements occur with equal highest frequency, the earliest one is selected.
 
 ---
 
@@ -50,7 +50,7 @@ Run the following commands :
 ```bash
 
 # Build Statistics.dfy 
-dafny build  --target:cs --standard-libraries ./dafny/Source/DafnyStandardLibraries/src/Std/Statistics.dfy ./dafny/Source/DafnyStandardLibraries/src/Std/FileIOInternalExterns/Std/FileIOInternalExterns/ExternalMath.cs --allow-warnings 
+dafny build  --target:cs --standard-libraries ./dafny/Source/DafnyStandardLibraries/src/Std/TargetSpecific/Statistics.dfy ./dafny/Source/DafnyStandardLibraries/src/Std/StatisticsExterns/ExternalMath.cs
 
 # Run associated test file
-dafny test --target:cs --standard-libraries ./dafny/Source/DafnyStandardLibraries/examples/StatisticsExamples.dfy ./dafny/Source/DafnyStandardLibraries/src/Std/FileIOInternalExterns/Std/FileIOInternalExterns/ExternalMath.cs --allow-warnings
+dafny test --target:cs --standard-libraries ./dafny/Source/DafnyStandardLibraries/examples/TargetSpecific/StatisticsExamples.dfy ./dafny/Source/DafnyStandardLibraries/src/Std/StatisticsExterns/ExternalMath.cs
