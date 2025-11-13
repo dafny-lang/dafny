@@ -24,7 +24,7 @@ module Std.LocalDateTime {
   import DTUtils = DateTimeUtils
 
   // Supported date format patterns
-  datatype DateFormat = 
+  datatype DateFormat =
     | ISO8601                    // yyyy-MM-ddTHH:mm:ss.fff
     | DateOnly                   // yyyy-MM-dd
     | TimeOnly                   // HH:mm:ss
@@ -76,11 +76,11 @@ module Std.LocalDateTime {
 
   predicate IsComponentsInValidRange(year: int, month: int, day: int, hour: int := 0, minute: int := 0, second: int := 0, millisecond: int := 0)
   {
-    (MIN_YEAR as int) <= year <= (MAX_YEAR as int) && 
+    (MIN_YEAR as int) <= year <= (MAX_YEAR as int) &&
     0 <= month <= 255 &&
-    0 <= day <= 255 && 
+    0 <= day <= 255 &&
     0 <= hour <= 255 &&
-    0 <= minute <= 255 && 
+    0 <= minute <= 255 &&
     0 <= second <= 255 &&
     0 <= millisecond <= 65535
   }
@@ -89,8 +89,8 @@ module Std.LocalDateTime {
   predicate IsValidComponentRange(components: seq<int32>)
     requires |components| == 7
   {
-    IsComponentsInValidRange(components[0] as int, components[1] as int, components[2] as int, 
-                   components[3] as int, components[4] as int, components[5] as int, components[6] as int)
+    IsComponentsInValidRange(components[0] as int, components[1] as int, components[2] as int,
+                             components[3] as int, components[4] as int, components[5] as int, components[6] as int)
   }
 
   function FromSequenceComponents(components: seq<int32>): LocalDateTime
@@ -291,7 +291,7 @@ module Std.LocalDateTime {
     ensures result.Success? ==> IsValidLocalDateTime(result.value)
   {
     var components := DTUtils.GetNowComponents();
-    if |components| == 7 && 
+    if |components| == 7 &&
        IsValidComponentRange(components) &&
        DTUtils.IsValidDateTime(components[0], components[1] as uint8, components[2] as uint8, components[3] as uint8, components[4] as uint8, components[5] as uint8, components[6] as uint16) {
       result := Success(FromSequenceComponents(components));
@@ -303,10 +303,10 @@ module Std.LocalDateTime {
   // Creation functions
   function Of(year: int32, month: uint8, day: uint8, hour: uint8, minute: uint8, second: uint8, millisecond: uint16): Result<LocalDateTime, string>
   {
-      if DTUtils.IsValidDateTime(year, month, day, hour, minute, second, millisecond) then
-        Success(FromComponents(year, month, day, hour, minute, second, millisecond))
-      else
-        Failure(DTUtils.GetValidationError(year, month, day, hour, minute, second, millisecond))
+    if DTUtils.IsValidDateTime(year, month, day, hour, minute, second, millisecond) then
+      Success(FromComponents(year, month, day, hour, minute, second, millisecond))
+    else
+      Failure(DTUtils.GetValidationError(year, month, day, hour, minute, second, millisecond))
   }
 
   function Parse(text: string, format: ParseFormat): Result<LocalDateTime, string>
@@ -356,7 +356,7 @@ module Std.LocalDateTime {
           Success(FromComponents(year as int32, month as uint8, day as uint8, hour as uint8, minute as uint8, second as uint8, millisecond as uint16))
         else
           Failure("Invalid date/time values")
-    }
+  }
 
   // Parse date only format: YYYY-MM-DD (time defaults to 00:00:00.000)
   function ParseDateOnly(text: string): Result<LocalDateTime, string>
@@ -406,12 +406,12 @@ module Std.LocalDateTime {
   {
     var (year, month, day, hour, minute, second, millisecond) := ToIntComponents(dt);
     match format
-      case ISO8601 => ToString(dt)
-      case DateOnly => OfInt(year) + "-" + DTUtils.PadWithZeros(month, 2) + "-" + DTUtils.PadWithZeros(day, 2)
-      case TimeOnly => DTUtils.PadWithZeros(hour, 2) + ":" + DTUtils.PadWithZeros(minute, 2) + ":" + DTUtils.PadWithZeros(second, 2)
-      case DateTimeSpace => OfInt(year) + "-" + DTUtils.PadWithZeros(month, 2) + "-" + DTUtils.PadWithZeros(day, 2) + " " +
-                           DTUtils.PadWithZeros(hour, 2) + ":" + DTUtils.PadWithZeros(minute, 2) + ":" + DTUtils.PadWithZeros(second, 2)
-      case DateSlashDDMMYYYY => DTUtils.PadWithZeros(day, 2) + "/" + DTUtils.PadWithZeros(month, 2) + "/" + OfInt(year)
-      case DateSlashMMDDYYYY => DTUtils.PadWithZeros(month, 2) + "/" + DTUtils.PadWithZeros(day, 2) + "/" + OfInt(year)
+    case ISO8601 => ToString(dt)
+    case DateOnly => OfInt(year) + "-" + DTUtils.PadWithZeros(month, 2) + "-" + DTUtils.PadWithZeros(day, 2)
+    case TimeOnly => DTUtils.PadWithZeros(hour, 2) + ":" + DTUtils.PadWithZeros(minute, 2) + ":" + DTUtils.PadWithZeros(second, 2)
+    case DateTimeSpace => OfInt(year) + "-" + DTUtils.PadWithZeros(month, 2) + "-" + DTUtils.PadWithZeros(day, 2) + " " +
+    DTUtils.PadWithZeros(hour, 2) + ":" + DTUtils.PadWithZeros(minute, 2) + ":" + DTUtils.PadWithZeros(second, 2)
+    case DateSlashDDMMYYYY => DTUtils.PadWithZeros(day, 2) + "/" + DTUtils.PadWithZeros(month, 2) + "/" + OfInt(year)
+    case DateSlashMMDDYYYY => DTUtils.PadWithZeros(month, 2) + "/" + DTUtils.PadWithZeros(day, 2) + "/" + OfInt(year)
   }
 }

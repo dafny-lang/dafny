@@ -16,7 +16,7 @@ module Std.DateTimeConstant {
   const HOURS_PER_DAY: uint8 := 24
   const MONTHS_PER_YEAR: uint8 := 12
   const DURATION_YEAR: uint16 := 9999
-  
+
   const MIN_YEAR: int32 := -999999999
   const MAX_YEAR: int32 := 999999999
   const MAX_DAYS_PER_MONTH: uint8 := 31
