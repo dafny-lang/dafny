@@ -10,9 +10,9 @@ operation using Dafny's {:test} annotation.
 These tests serve as verification examples that work with Dafny's formal proofs.
 */
 
-include "../../src/Std/DateTime/LocalDateTime.dfy"
-include "../../src/Std/DateTime/Duration.dfy"
-include "../../src/Std/DateTime/DateTimeUtils.dfy"
+include "../../src/Std/TargetSpecific/LocalDateTime.dfy"
+include "../../src/Std/TargetSpecific/Duration.dfy"
+include "../../src/Std/TargetSpecific/DateTimeUtils.dfy"
 include "../Helpers.dfy"
 
 module TestLocalDateTime {
