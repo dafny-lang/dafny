@@ -7,14 +7,14 @@ It ensures correctness using contracts (`requires`, `ensures`) and supports proo
 
 - **`Statistics.dfy`**  
   This Contains the full implementation of all statistical functions, including Sum, Mean, Variance, StdDev, Range, Mode, and Median.  
-  It defines all verification contracts and imports `MergeSortBy` from Dafny’s standard library. It also uses an extern Sqrt function for handling floating-point computations 
+  It defines all verification contracts and imports `MergeSortBy` from Dafny’s standard library. It also uses an extern Sqrt function for handling floating-point computations.
 
 - **`Statistics_Test.dfy`**  
   Includes test methods for validating the functionality of each operation using Dafny’s `{ :test }` annotation.  
   These tests serve as verification that works with Dafny’s formal proofs.
 
 - **`ExternalMath.cs`**  
-  Provides the external implementation of mathematical operations particularly square root 
+  Provides the external implementation of mathematical operations particularly square root. 
 
 
 ## Function Descriptions
@@ -41,18 +41,5 @@ It ensures correctness using contracts (`requires`, `ensures`) and supports proo
   Identifies the most frequently occurring element in a sequence.  
   Verification ensures that when multiple elements occur with equal highest frequency, the earliest one is selected.
 
----
 
-## Build and Test Commands
 
-Run the following commands :
-
-```bash
-
-# Build Statistics.dfy 
-dafny build  --target:cs --standard-libraries ./dafny/Source/DafnyStandardLibraries/src/Std/TargetSpecific/Statistics.dfy ./dafny/Source/DafnyStandardLibraries/src/Std/StatisticsExterns/ExternalMath.cs
-
-# Run associated test file
-dafny test --target:cs --standard-libraries ./dafny/Source/DafnyStandardLibraries/examples/TargetSpecific/StatisticsExamples.dfy ./dafny/Source/DafnyStandardLibraries/src/Std/StatisticsExterns/ExternalMath.cs
-
-```

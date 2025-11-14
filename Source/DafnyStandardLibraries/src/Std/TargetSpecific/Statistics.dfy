@@ -101,8 +101,8 @@ module Std.Statistics {
 
   // The function to get a map to store the occurences of elements
   function {:tailrecursion} FrequencyTable(s: seq<real>, m: map<real, int> := map[]): map<real, int>
-    ensures m.Keys <= FrequencyTable(s, m).Keys
-    ensures forall x :: x in s ==> x in FrequencyTable(s, m)
+  ensures m.Keys <= FrequencyTable(s, m).Keys
+  ensures forall x :: x in s ==> x in FrequencyTable(s, m)
   {
     if s == [] then
       m
@@ -116,7 +116,7 @@ module Std.Statistics {
       FrequencyTable(s[1..], newM)
   }
 
-  // Final mode function that calls the frequencytable and modehelper
+ // Final mode function that calls the frequencytable and modehelper
   function Mode(s: seq<real>): real
     requires |s| > 0
   {
@@ -130,16 +130,16 @@ module Std.Statistics {
       if |keys| == 1 then best
       else
         ModeHelper(freq, keys, best, 0);
-
+        
     result
   }
 
-  // Helper function to calculate mode
+ // Helper function to calculate mode
   function {:tailrecursion} ModeHelper(freq: map<real,int>, keys: seq<real>, best: real, i: nat): real
     requires forall x :: x in keys ==> x in freq
     requires best in keys
     decreases |keys| - i
-
+    
   {
     if i >= |keys| then best
     else
