@@ -43,22 +43,22 @@ module TestStatistics {
   method {:test} TestStandardDeviation_DataSet1() {
     var eps := 0.000001;
     var data := [1.0, 2.0, 3.0, 4.0, 5.0];
-    AssertAndExpect(AreNear(StdDevPopulation(data) * StdDevPopulation(data), 2.0, eps));
-    AssertAndExpect(AreNear(StdDevSample(data) * StdDevSample(data), 2.5, eps));
+    expect AreNear(StdDevPopulation(data) * StdDevPopulation(data), 2.0, eps);
+    expect AreNear(StdDevSample(data) * StdDevSample(data), 2.5, eps);
   }
 
   method {:test} TestStandardDeviation_DataSet2() {
     var eps := 0.000001;
     var data2 := [6.0, 7.0, 8.0, 9.0, 10.0];
-    AssertAndExpect(AreNear(StdDevPopulation(data2) * StdDevPopulation(data2), 2.0, eps));
-    AssertAndExpect(AreNear(StdDevSample(data2) * StdDevSample(data2), 2.5, eps));
+    expect AreNear(StdDevPopulation(data2) * StdDevPopulation(data2), 2.0, eps);
+    expect AreNear(StdDevSample(data2) * StdDevSample(data2), 2.5, eps);
   }
 
   method {:test} TestStandardDeviation_DataSet3_Boundary() {
     var eps := 0.000001;
     var data3 := [1.0, 3.0];
-    AssertAndExpect(AreNear(StdDevPopulation(data3) * StdDevPopulation(data3), 1.0, eps));
-    AssertAndExpect(AreNear(StdDevSample(data3) * StdDevSample(data3), 2.0, eps));
+    expect AreNear(StdDevPopulation(data3) * StdDevPopulation(data3), 1.0, eps);
+    expect AreNear(StdDevSample(data3) * StdDevSample(data3), 2.0, eps);
   }
 
   // Testcase for median in odd case

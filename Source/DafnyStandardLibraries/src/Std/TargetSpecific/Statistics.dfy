@@ -2,7 +2,6 @@ module ExternalMath {
   function {:extern}{:axiom} Sqrt(x: real): real
     requires x >= 0.0
     ensures Sqrt(x) >= 0.0
-    ensures x - 0.0000001 <= Sqrt(x) * Sqrt(x) <= x + 0.0000001
 }
 
 module Std.Statistics {
