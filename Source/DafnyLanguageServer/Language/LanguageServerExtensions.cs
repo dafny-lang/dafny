@@ -40,8 +40,9 @@ namespace Microsoft.Dafny.LanguageServer.Language {
             serviceProvider.GetRequiredService<INotificationPublisher>(),
             compilation))
         .AddSingleton(CreateVerifier)
-        .AddSingleton<CreateCompilation>(serviceProvider => (engine, compilation) => new Compilation(
+        .AddSingleton<CreateCompilation>(serviceProvider => (engine, performanceLogger, compilation) => new Compilation(
           serviceProvider.GetRequiredService<ILogger<Compilation>>(),
+          performanceLogger,
           serviceProvider.GetRequiredService<IFileSystem>(),
           serviceProvider.GetRequiredService<ITextDocumentLoader>(),
           serviceProvider.GetRequiredService<IProgramVerifier>(),
@@ -53,6 +54,7 @@ namespace Microsoft.Dafny.LanguageServer.Language {
 
     private static IProgramVerifier CreateVerifier(IServiceProvider serviceProvider) {
       return new DafnyProgramVerifier(
+        new VoidPerformanceLogger(),
         serviceProvider.GetRequiredService<ILogger<DafnyProgramVerifier>>()
       );
     }
