@@ -2,6 +2,7 @@
 using System;
 using System.Collections.Generic;
 using System.CommandLine;
+using System.Diagnostics;
 using System.Linq;
 using System.Reactive.Subjects;
 using System.Threading;
@@ -67,7 +68,6 @@ public static class VerifyCommand {
       return compilation.Resolution;
     });
 
-    var before = DateTime.Now;
     if (resolution != null) {
       Subject<CanVerifyResult> verificationResults = new();
 
@@ -84,8 +84,6 @@ public static class VerifyCommand {
     }
 
     var exitCode = await compilation.GetAndReportExitCode();
-    var after = DateTime.Now;
-    compilation.PerformanceLogger.TrackTime("totalVerification", [], after - before);
     return exitCode;
   }
 

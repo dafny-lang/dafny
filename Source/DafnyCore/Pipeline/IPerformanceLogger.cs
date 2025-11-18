@@ -1,43 +1,42 @@
 #nullable enable
 using System;
+using System.Diagnostics;
 using System.IO;
 using System.Threading.Tasks;
 
 namespace Microsoft.Dafny;
 
 public interface IPerformanceLogger {
-  void TrackTime(string activity, string[] arguments, TimeSpan span);
+  void TrackTime(string activity, string[] arguments, long millis);
 
   async Task<T> TrackAsync<T>(string activity, string[] arguments, Func<Task<T>> getTask) {
-    var before = DateTime.Now;
+    Stopwatch sw = Stopwatch.StartNew();
     var result = await getTask();
-    TrackTime(activity, arguments, DateTime.Now - before);
+    TrackTime(activity, arguments, sw.ElapsedMilliseconds);
     return result;
   }
   
   async Task TrackAsync(string activity, string[] arguments, Func<Task> getTask) {
-    var before = DateTime.Now;
+    Stopwatch sw = Stopwatch.StartNew();
     await getTask();
-    TrackTime(activity, arguments, DateTime.Now - before);
+    TrackTime(activity, arguments, sw.ElapsedMilliseconds);
   }
   
   T Track<T>(string activity, string[] arguments, Func<T> doActivity) {
-    var before = DateTime.Now;
+    Stopwatch sw = Stopwatch.StartNew();
     var result = doActivity();
-    TrackTime(activity, arguments, DateTime.Now - before);
+    TrackTime(activity, arguments, sw.ElapsedMilliseconds);
     return result;
   }
 }
 
 public class VoidPerformanceLogger : IPerformanceLogger {
-  public void TrackTime(string activity, string[] arguments, TimeSpan span) {
+  public void TrackTime(string activity, string[] arguments, long millis) {
   }
 }
 
 public class PerformanceLogger(IDafnyOutputWriter outputWriter) : IPerformanceLogger {
-  public record Entry(string Activity, string[] Arguments, TimeSpan Span);
-
-  public void TrackTime(string activity, string[] arguments, TimeSpan span) {
-    _ = outputWriter.Status($"Time to do {activity} was {span.Milliseconds}ms");
+  public void TrackTime(string activity, string[] arguments, long millis) {
+    _ = outputWriter.Status($"Time to do {activity} was {millis}ms");
   }
 }
