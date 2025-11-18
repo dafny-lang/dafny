@@ -82,9 +82,23 @@ namespace Microsoft.Dafny {
         }
         return bvDecl;
       } else {
+        // If looking for fp64, ensure it's in the preTypeBuiltins cache
+        if (name == "fp64") {
+          if (!preTypeInferenceModuleState.PreTypeBuiltins.ContainsKey("fp64")) {
+            var fp64Decl = resolver.ProgramResolver.SystemModuleManager.valuetypeDecls[(int)ValuetypeVariety.Fp64];
+            resolver.ProgramResolver.SystemModuleManager.EnsureFp64TypeInitialized(resolver.ProgramResolver);
+
+            preTypeInferenceModuleState.PreTypeBuiltins.Add("fp64", fp64Decl);
+            FillInPreTypesInSignature(fp64Decl);
+            foreach (var member in fp64Decl.Members) {
+              FillInPreTypesInSignature(member);
+            }
+          }
+          return preTypeInferenceModuleState.PreTypeBuiltins.GetValueOrDefault("fp64");
+        }
         decl = null;
         foreach (var valueTypeDecl in resolver.ProgramResolver.SystemModuleManager.valuetypeDecls) {
-          if (valueTypeDecl.Name == name) {
+          if (valueTypeDecl != null && valueTypeDecl.Name == name) {
             // bool, int, real, ORDINAL, map, imap
             decl = valueTypeDecl;
             break;
@@ -106,7 +120,9 @@ namespace Microsoft.Dafny {
           }
         }
       }
-      preTypeInferenceModuleState.PreTypeBuiltins.Add(name, decl);
+      if (decl != null && !preTypeInferenceModuleState.PreTypeBuiltins.ContainsKey(name)) {
+        preTypeInferenceModuleState.PreTypeBuiltins.Add(name, decl);
+      }
       return decl;
     }
 
@@ -228,6 +244,8 @@ namespace Microsoft.Dafny {
         decl = BuiltInTypeDecl(PreType.TypeNameInt);
       } else if (type is RealType) {
         decl = BuiltInTypeDecl(PreType.TypeNameReal);
+      } else if (type is Fp64Type) {
+        decl = BuiltInTypeDecl(PreType.TypeNameFp64);
       } else if (type is FieldType) {
         decl = BuiltInTypeDecl(PreType.TypeNameField);
       } else if (type is BigOrdinalType) {
@@ -528,7 +546,7 @@ namespace Microsoft.Dafny {
     }
 
     private void AddComparableTypesDefault(PreType a, PreType b) {
-      // The "comparable types" constraint may be useful as a bound if nothing else is known about a proxy. 
+      // The "comparable types" constraint may be useful as a bound if nothing else is known about a proxy.
       if (a.Normalize() is PreTypeProxy aPreTypeProxy) {
         Constraints.AddCompatibleBounds(aPreTypeProxy, b);
       }
@@ -614,6 +632,16 @@ namespace Microsoft.Dafny {
             (toFamily is PreType.TypeNameInt or PreType.TypeNameReal or PreType.TypeNameChar or PreType.TypeNameORDINAL)) {
           return true;
         }
+      }
+
+      // fp64 conversions
+      if (toFamily == PreType.TypeNameFp64) {
+        // Conversions TO fp64 are allowed only from int and real
+        return fromFamily is PreType.TypeNameInt or PreType.TypeNameReal;
+      }
+      if (fromFamily == PreType.TypeNameFp64) {
+        // Conversions FROM fp64 are allowed only to int and real
+        return toFamily is PreType.TypeNameInt or PreType.TypeNameReal;
       }
 
       return false;

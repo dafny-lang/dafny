@@ -52,6 +52,8 @@ public static class PreType2TypeUtil {
         return Type.Int;
       case PreType.TypeNameReal:
         return Type.Real;
+      case PreType.TypeNameFp64:
+        return new Fp64Type();
       case PreType.TypeNameORDINAL:
         return Type.BigOrdinal;
       case PreType.TypeNameField:
