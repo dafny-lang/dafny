@@ -1,1 +1,1 @@
-// L-CHECK: error: `_` cannot be a raw identifier
+(0,-1): Error: Unsupported Invalid Operation: The Rust compiler requires `--enforce-determinism`
