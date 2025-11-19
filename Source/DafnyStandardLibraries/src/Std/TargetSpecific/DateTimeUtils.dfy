@@ -20,7 +20,7 @@ module Std.DateTimeUtils {
                                      "July", "August", "September", "October", "November", "December"]
 
 
-  function {:extern "DateTimeImpl", "INTERNAL__ToEpochTimeMilliseconds"}
+  function {:extern "DateTimeImpl.__default", "INTERNAL__ToEpochTimeMilliseconds"}
     {:axiom} INTERNAL__ToEpochTimeMilliseconds(year: int32, month: uint8, day: uint8, hour: uint8, minute: uint8, second: uint8, millisecond: uint16): (bool, int, string)
 
   function ToEpochTimeMilliseconds(year: int32, month: uint8, day: uint8, hour: uint8, minute: uint8, second: uint8, millisecond: uint16): Result<int, string>
@@ -32,19 +32,19 @@ module Std.DateTimeUtils {
       Success(epochMilliseconds)
   }
 
-  function {:extern "DateTimeImpl", "FromEpochTimeMilliseconds"}
+  function {:extern "DateTimeImpl.__default", "FromEpochTimeMilliseconds"}
     {:axiom} FromEpochTimeMillisecondsFunc(epochMillis: int): seq<int32>
     ensures |FromEpochTimeMillisecondsFunc(epochMillis)| == 7
     ensures var components := FromEpochTimeMillisecondsFunc(epochMillis);
             IsValidDateTime(components[0], components[1] as uint8, components[2] as uint8, components[3] as uint8, components[4] as uint8, components[5] as uint8, components[6] as uint16)
 
   // External method for getting current time components
-  method {:extern "DateTimeImpl", "GetNowComponents"}
+  method {:extern "DateTimeImpl.__default", "GetNowComponents"}
     {:axiom} GetNowComponents() returns (components: seq<int32>)
     ensures |components| == 7
 
   // Leap year calculation using extern implementation
-  function {:extern "DateTimeImpl", "IsLeapYear"}
+  function {:extern "DateTimeImpl.__default", "IsLeapYear"}
     {:axiom} IsLeapYear(year: int32): bool
 
   // Days in month calculation
