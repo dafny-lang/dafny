@@ -1,8 +1,8 @@
-include "../../src/Std/DateTime/LocalDateTime.dfy"
-include "../../src/Std/DateTime/Duration.dfy"
-include "../../src/Std/DateTime/DateTimeUtils.dfy"
-include "../../src/Std/DateTime/DateTimeConstant.dfy"
-include "../../src/Std/DateTime/ZonedDateTime.dfy"
+include "../../src/Std/TargetSpecific/LocalDateTime.dfy"
+include "../../src/Std/TargetSpecific/Duration.dfy"
+include "../../src/Std/TargetSpecific/DateTimeUtils.dfy"
+include "../../src/Std/TargetSpecific/DateTimeConstant.dfy"
+include "../../src/Std/TargetSpecific/ZonedDateTime.dfy"
 include "../Helpers.dfy"
 
 module TestZonedDateTime {
