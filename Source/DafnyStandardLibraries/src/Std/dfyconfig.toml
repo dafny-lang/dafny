@@ -7,8 +7,7 @@ excludes = [
 #   "Std/Collections/Set.dfy",
 #   "Std/Functions.dfy",
 #   "Std/Relations.dfy",
-#   "Std/Termination.dfy",
-#   "Std/DateTime/*.dfy"
+#   "Std/Termination.dfy"
 # ]
 
 [options]

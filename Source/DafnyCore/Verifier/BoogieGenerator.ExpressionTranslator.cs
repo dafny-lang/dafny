@@ -663,6 +663,9 @@ namespace Microsoft.Dafny {
         switch (e.ResolvedOp) {
           case UnaryOpExpr.ResolvedOpcode.Lit:
             return MaybeLit(arg);
+          case UnaryOpExpr.ResolvedOpcode.Fp64Negate:
+            var negResult = FunctionCall(GetToken(opExpr), "fp64_neg", new FloatType(53, 11), arg);
+            return BoogieGenerator.IsLit(arg) ? MaybeLit(negResult, new FloatType(53, 11)) : negResult;
           case UnaryOpExpr.ResolvedOpcode.BVNot:
             var bvWidth = opExpr.Type.NormalizeToAncestorType().AsBitVectorType.Width;
             var bvType = BoogieGenerator.BplBvType(bvWidth);
@@ -884,8 +887,18 @@ namespace Microsoft.Dafny {
           } else {
             return MaybeLit(Boogie.Expr.Literal(n));
           }
-        } else if (e.Value is BaseTypes.BigDec) {
-          return MaybeLit(Boogie.Expr.Literal((BaseTypes.BigDec)e.Value));
+        } else if (e.Value is BigDec) {
+          if (e.Type.IsFp64Type) {
+            // For DecimalLiteralExpr with fp64 type, use the precomputed float value if available
+            if (e is DecimalLiteralExpr { ResolvedFloatValue: not null } decLit) {
+              return MaybeLit(new Bpl.LiteralExpr(GetToken(e), decLit.ResolvedFloatValue.Value), BoogieGenerator.TrType(e.Type));
+            }
+
+            Contract.Assert(false, $"fp64 literal without ResolvedFloatValue: {e.Value} (type: {e.GetType().Name})");
+            throw new Cce.UnreachableException();
+          } else {
+            return MaybeLit(Expr.Literal((BigDec)e.Value));
+          }
         } else {
           Contract.Assert(false); throw new Cce.UnreachableException();  // unexpected literal
         }
@@ -1054,6 +1067,49 @@ namespace Microsoft.Dafny {
       private Expr TranslateMemberSelectExpr(MemberSelectExpr selectExpr) {
         return selectExpr.MemberSelectCase(
           field => {
+            // Special handling for fp64 static constants
+            if (field is StaticSpecialField && field.EnclosingClass is ValuetypeDecl { Name: "fp64" }) {
+              // Helper to create fp64 constants
+              Expr CreateFp64Constant(string numerator, string denominator = "1") {
+                if (BigFloat.FromRational(BigInteger.Parse(numerator), BigInteger.Parse(denominator), 53, 11, out var floatValue)) {
+                  return Expr.Literal(floatValue);
+                }
+                throw new InvalidOperationException($"Failed to create fp64 constant {field.Name}");
+              }
+
+              var result = field.Name switch {
+                "NaN" => BoogieGenerator.Predef.Fp64NaN,
+                "PositiveInfinity" => BoogieGenerator.Predef.Fp64PositiveInfinity,
+                "NegativeInfinity" => BoogieGenerator.Predef.Fp64NegativeInfinity,
+                "Pi" => CreateFp64Constant("7074237752028440", "2251799813685248"),  // 2^51
+                "E" => CreateFp64Constant("6121026514868073", "2251799813685248"),   // 2^51
+                "MaxValue" => CreateFp64Constant("179769313486231570814527423731704356798070567525844996598917476803157260780028538760589558632766878171540458953514382464234321326889464182768467546703537516986049910576551282076245490090389328944075868508455133942304583236903222948165808559332123348274797826204144723168738177180919299881250404026184124858368"),
+                "MinValue" => CreateFp64Constant("-179769313486231570814527423731704356798070567525844996598917476803157260780028538760589558632766878171540458953514382464234321326889464182768467546703537516986049910576551282076245490090389328944075868508455133942304583236903222948165808559332123348274797826204144723168738177180919299881250404026184124858368"),
+                "MinNormal" => CreateFp64Constant("1", BigInteger.Pow(2, 1022).ToString()),
+                "MinSubnormal" => CreateFp64Constant("1", BigInteger.Pow(2, 1074).ToString()),
+                "Epsilon" => CreateFp64Constant("1", BigInteger.Pow(2, 52).ToString()),
+                _ => throw new NotImplementedException($"fp64 static member {field.Name} not implemented")
+              };
+              return result;
+            }
+
+            // Special handling for fp64 classification predicates
+            if (field is SpecialField && field.EnclosingClass is ValuetypeDecl { Name: "fp64" }) {
+              var obj = TrExpr(selectExpr.Obj);
+              var functionName = field.Name switch {
+                "IsNaN" => "fp64_is_nan",
+                "IsFinite" => "fp64_is_finite",
+                "IsInfinite" => "fp64_is_infinite",
+                "IsNormal" => "fp64_is_normal",
+                "IsSubnormal" => "fp64_is_subnormal",
+                "IsZero" => "fp64_is_zero",
+                "IsPositive" => "fp64_is_positive",
+                "IsNegative" => "fp64_is_negative",
+                _ => throw new NotImplementedException($"fp64 predicate {field.Name} not implemented")
+              };
+              return FunctionCall(GetToken(selectExpr), functionName, Bpl.Type.Bool, obj);
+            }
+
             var useSurrogateLocal = BoogieGenerator.inBodyInitContext && Expression.AsThis(selectExpr.Obj) != null && !field.IsInstanceIndependentConstant;
             var fType = BoogieGenerator.TrType(field.Type);
             if (useSurrogateLocal) {
@@ -1179,12 +1235,43 @@ namespace Microsoft.Dafny {
           var w = expr.Type.AsBitVectorType.Width;
           Expression arg = expr.Args[0];
           return TrToFunctionCall(GetToken(expr), "RightRotate_bv" + w, BoogieGenerator.BplBvType(w), TrExpr(expr.Receiver), BoogieGenerator.ConvertExpression(GetToken(expr), TrExpr(arg), arg.Type, expr.Type), false);
-        } else {
-          bool argsAreLitDummy;
-          var args = FunctionInvocationArguments(expr, null, null, true, out argsAreLitDummy);
-          var id = new Boogie.IdentifierExpr(GetToken(expr), expr.Function.FullSanitizedName, BoogieGenerator.TrType(expr.Type));
-          return new Boogie.NAryExpr(GetToken(expr), new Boogie.FunctionCall(id), args);
+        } else if (expr.Function.EnclosingClass is ValuetypeDecl { Name: "fp64" }) {
+          // Helper for fp64 function calls
+          Expr CallFp64Function(string functionName, Boogie.Type returnType, params Expr[] args) {
+            return FunctionCall(GetToken(expr), functionName, returnType, args);
+          }
+
+          switch (name) {
+            case "Equal":
+              return CallFp64Function("fp64_equal", Bpl.Type.Bool, TrExpr(expr.Args[0]), TrExpr(expr.Args[1]));
+            case "Min":
+              return CallFp64Function("fp64_min", BoogieGenerator.BplFp64Type, TrExpr(expr.Args[0]), TrExpr(expr.Args[1]));
+            case "Max":
+              return CallFp64Function("fp64_max", BoogieGenerator.BplFp64Type, TrExpr(expr.Args[0]), TrExpr(expr.Args[1]));
+            case "Abs":
+              return CallFp64Function("fp64_abs", BoogieGenerator.BplFp64Type, TrExpr(expr.Args[0]));
+            case "Floor":
+              return CallFp64Function("fp64_floor", BoogieGenerator.BplFp64Type, TrExpr(expr.Args[0]));
+            case "Ceiling":
+              return CallFp64Function("fp64_ceiling", BoogieGenerator.BplFp64Type, TrExpr(expr.Args[0]));
+            case "Round":
+              return CallFp64Function("fp64_round", BoogieGenerator.BplFp64Type, TrExpr(expr.Args[0]));
+            case "Sqrt":
+              return CallFp64Function("fp64_sqrt", BoogieGenerator.BplFp64Type, TrExpr(expr.Args[0]));
+            case "FromReal":
+              return CallFp64Function("real_to_fp64_RNE", BoogieGenerator.BplFp64Type, TrExpr(expr.Args[0]));
+            case "ToInt": {
+                var arg = TrExpr(expr.Args[0]);
+                var truncatedFp = CallFp64Function("fp64_truncate", BoogieGenerator.BplFp64Type, arg);
+                var toReal = CallFp64Function("fp64_to_real", Bpl.Type.Real, truncatedFp);
+                return BoogieGenerator.FunctionCall(GetToken(expr), BuiltinFunction.RealToInt, null, toReal);
+              }
+          }
         }
+
+        var args = FunctionInvocationArguments(expr, null, null, true, out _);
+        var id = new Bpl.IdentifierExpr(GetToken(expr), expr.Function.FullSanitizedName, BoogieGenerator.TrType(expr.Type));
+        return new NAryExpr(GetToken(expr), new FunctionCall(id), args);
       }
       public Expr TrToFunctionCall(Boogie.IToken tok, string function, Boogie.Type returnType, Boogie.Expr e0, Boogie.Expr e1, bool liftLit) {
         Boogie.Expr re = FunctionCall(tok, function, returnType, e0, e1);

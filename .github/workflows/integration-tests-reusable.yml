@@ -77,14 +77,10 @@ jobs:
       uses: actions/setup-dotnet@v4
       with:
         dotnet-version: 6.0.x
-    - name: C++ for ubuntu 20.04
+    - name: C++ for ubuntu 22.04
       if: matrix.os == 'ubuntu-22.04'
       run: |
         sudo apt-get install -y build-essential
-    - name: Choose the right C++ for ubuntu 20.04
-      if: matrix.os == 'ubuntu-22.04'
-      run: |
-        sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-9 60
     - name: Set up oldest supported JDK
       if: matrix.target-language-version != 'newest'
       uses: actions/setup-java@v4
@@ -108,7 +104,7 @@ jobs:
       run: go install golang.org/x/tools/cmd/goimports@latest
     - name: Set up Python
       uses: actions/setup-python@v5
-      with: 
+      with:
         python-version: '3.11'
     - name: Upgrade outdated pip
       run: python -m pip install --upgrade pip
@@ -182,7 +178,7 @@ jobs:
         dotnet test --logger trx --logger "console;verbosity=normal" --collect:"XPlat Code Coverage" --settings dafny/Source/IntegrationTests/coverlet.runsettings dafny/Source/IntegrationTests/IntegrationTests.csproj
     - name: Generate tests (non-Windows)
       ## This step creates lit tests from examples in documentation
-      ## These are then picked up by the integration tests below 
+      ## These are then picked up by the integration tests below
       ## and both tested and included in coverage metrics
       if: runner.os != 'Windows'
       run: |

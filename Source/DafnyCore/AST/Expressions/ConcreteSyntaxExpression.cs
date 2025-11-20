@@ -37,8 +37,10 @@ public abstract class ConcreteSyntaxExpression : Expression {
 
   public override IEnumerable<Expression> TerminalExpressions {
     get {
-      foreach (var e in ResolvedExpression.TerminalExpressions) {
-        yield return e;
+      if (ResolvedExpression != null) {
+        foreach (var e in ResolvedExpression.TerminalExpressions) {
+          yield return e;
+        }
       }
     }
   }
