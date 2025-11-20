@@ -1,5 +1,13 @@
 
-include "../../src/Std/DateTime/Duration.dfy"
+/*******************************************************************************
+ *  Copyright by the contributors to the Dafny Project
+ *  SPDX-License-Identifier: MIT 
+ *******************************************************************************/
+
+/**
+Defines Duration module functionality like timestamp parsing and arithmetic calculation.
+*/
+include "../../src/Std/TargetSpecific/Duration.dfy"
 include "../Helpers.dfy"
 module TestDuration {
  import Std.Duration
@@ -13,10 +21,6 @@ module TestDuration {
    var parsedResult := Duration.ParseString("PT9650H30M45.123S");
    expect Duration.GetMilliseconds(parsedResult) == 123;
 }
-
-
-
-
 
 
  method {:test} TestArithmetic() {
@@ -142,7 +146,6 @@ method {:test} TestSequenceAggregation() {
  var minD := Duration.MinByDuration(durations);
   Duration.LemmaMaxByReturnsValid(durations);
  Duration.LemmaMinByReturnsValid(durations);
-  // Runtime checks only (not verified by Dafny)
  expect Duration.Compare(maxD, d1) >= 0;
  expect Duration.Compare(maxD, d2) >= 0;
  expect Duration.Compare(maxD, d3) >= 0;
