@@ -26,6 +26,7 @@ public class UnaryOpExpr : UnaryExpr, ICloneable<UnaryOpExpr> {
     Allocated,
     Lit,
     Assigned,
+    Fp32Negate,
     Fp64Negate,
   }
 
@@ -47,6 +48,7 @@ public class UnaryOpExpr : UnaryExpr, ICloneable<UnaryOpExpr> {
         (Opcode.Allocated, _) => ResolvedOpcode.Allocated,
         (Opcode.Lit, _) => ResolvedOpcode.Lit,
         (Opcode.Assigned, _) => ResolvedOpcode.Assigned,
+        (Opcode.Negate, Fp32Type _) => ResolvedOpcode.Fp32Negate,
         (Opcode.Negate, Fp64Type _) => ResolvedOpcode.Fp64Negate,
         _ => ResolvedOpcode.YetUndetermined // Unreachable
       };

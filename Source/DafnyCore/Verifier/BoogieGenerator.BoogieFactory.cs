@@ -22,6 +22,7 @@ namespace Microsoft.Dafny {
       }
     }
 
+    public Bpl.Type BplFp32Type => new Bpl.FloatType(Token.NoToken, 24, 8);
     public Bpl.Type BplFp64Type => new Bpl.FloatType(Token.NoToken, 53, 11);
 
     internal Bpl.Expr BplBvLiteralExpr(Bpl.IToken tok, BaseTypes.BigNum n, BitvectorType bitvectorType) {

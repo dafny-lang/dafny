@@ -504,20 +504,37 @@ namespace Microsoft.Dafny {
 
             if (innerExpr is LiteralExpr lit) {
               if (lit.Value is BigDec decValue) {
-                var isExact = BigFloat.FromBigDec(decValue, 53, 11, out var floatValue);
-                if (isExact) {
-                  var valueToReport = isNegated ? -decValue : decValue;
-                  ReportError(e, $"The approximate literal prefix ~ is not allowed on the exactly representable value {valueToReport}. Remove the ~ prefix.");
-                }
+                // Create a proxy that can be constrained to fp32 or fp64
+                var floatProxy = CreatePreTypeProxy("approximate literal");
 
-                if (lit is DecimalLiteralExpr decLit) {
-                  decLit.ResolvedFloatValue = floatValue;
-                }
+                // Add default advice for fp64, but allow fp32 from context
+                Constraints.AddDefaultAdvice(floatProxy, CommonAdvice.Target.Fp64);
 
-                e.PreType = new DPreType(BuiltInTypeDecl(PreType.TypeNameFp64), []);
+                // Add confirmation that it must be fp32 or fp64 (not real)
+                AddConfirmation(PreTypeConstraints.CommonConfirmationBag.InFloatFamily, floatProxy, e.Origin, "approximate literal used as if it had type {0}");
+
+                e.PreType = floatProxy;
                 e.ResolvedExpression = e.Expr;
-                e.Expr.PreType = new DPreType(BuiltInTypeDecl(PreType.TypeNameFp64), []);
-                lit.PreType = new DPreType(BuiltInTypeDecl(PreType.TypeNameFp64), []);
+                e.Expr.PreType = floatProxy;
+                lit.PreType = floatProxy;
+
+                // Mark as approximate literal using IsApproximate flag
+                if (lit is DecimalLiteralExpr decLit) {
+                  decLit.IsApproximate = true;
+                }
+                // Also set on e.Expr if different
+                if (e.Expr is DecimalLiteralExpr exprDecLit && exprDecLit != lit) {
+                  exprDecLit.IsApproximate = true;
+                }
+
+                // Check exact representability for fp32 (default for approximate literals)
+                var (significandBits, exponentBits) = (24, 8); // fp32 precision
+                var checkValue = isNegated ? -decValue : decValue;
+                var (isExact, _) = FloatLiteralValidator.ValidateAndCompute(checkValue, significandBits, exponentBits);
+                if (isExact) {
+                  ReportError(e,
+                    $"The approximate literal prefix ~ is not allowed on the exactly representable value {checkValue}. Remove the ~ prefix.");
+                }
               } else if (lit.Value is BigInteger) {
                 ReportError(e, "~ prefix not allowed on integer literals");
                 e.PreType = new DPreType(BuiltInTypeDecl(PreType.TypeNameInt), []);
@@ -564,8 +581,8 @@ namespace Microsoft.Dafny {
                     } else {
                       errorMessageFormat = "type conversion to a real-based type is allowed only from real (got {1})";
                     }
-                  } else if (familyDeclName == PreType.TypeNameFp64) {
-                    errorMessageFormat = "type conversion to fp64 is allowed only from int and real types (got {1})";
+                  } else if (familyDeclName is PreType.TypeNameFp32 or PreType.TypeNameFp64) {
+                    errorMessageFormat = $"type conversion to {familyDeclName} is allowed only from numeric types (int, real, fp32, fp64) (got {{1}})";
                   } else if (IsBitvectorName(familyDeclName)) {
                     errorMessageFormat = "type conversion to a bitvector-based type is allowed only from numeric and bitvector types, char, and ORDINAL (got {1})";
                   } else if (familyDeclName == PreType.TypeNameChar) {
@@ -1636,17 +1653,22 @@ namespace Microsoft.Dafny {
           }
         }
 
-      } else if (name == "fp64") {
-        // Special handling for fp64 (on-demand initialization)
-        resolver.ProgramResolver.SystemModuleManager.EnsureFp64TypeInitialized(resolver.ProgramResolver);
-        var fp64Decl = resolver.ProgramResolver.SystemModuleManager.valuetypeDecls[(int)ValuetypeVariety.Fp64];
+      } else if (name is "fp32" or "fp64") {
+        // Special handling for float types (on-demand initialization)
+        var variety = name == "fp32" ? ValuetypeVariety.Fp32 : ValuetypeVariety.Fp64;
+        if (name == "fp32") {
+          resolver.ProgramResolver.SystemModuleManager.EnsureFp32TypeInitialized(resolver.ProgramResolver);
+        } else {
+          resolver.ProgramResolver.SystemModuleManager.EnsureFp64TypeInitialized(resolver.ProgramResolver);
+        }
+        var floatDecl = resolver.ProgramResolver.SystemModuleManager.valuetypeDecls[(int)variety];
 
         // Add to moduleInfo.TopLevels for future lookups
-        if (!resolver.moduleInfo.TopLevels.ContainsKey("fp64")) {
-          resolver.moduleInfo.TopLevels["fp64"] = fp64Decl;
+        if (!resolver.moduleInfo.TopLevels.ContainsKey(name)) {
+          resolver.moduleInfo.TopLevels[name] = floatDecl;
         }
 
-        r = CreateResolver_IdentifierExpr(expr.Origin, name, expr.OptTypeArguments, fp64Decl);
+        r = CreateResolver_IdentifierExpr(expr.Origin, name, expr.OptTypeArguments, floatDecl);
 
       } else if (resolver.moduleInfo.TopLevels.TryGetValue(name, out var decl)) {
         // ----- 3. Member of the enclosing module
@@ -1961,8 +1983,8 @@ namespace Microsoft.Dafny {
         }
         var cd = r == null ? ty.AsTopLevelTypeWithMembersBypassInternalSynonym : null;
 
-        // Special handling for built-in types like fp64
-        if (cd == null && ty.IsFp64Type && ri.Decl is ValuetypeDecl valuetypeDecl) {
+        // Special handling for built-in types like fp32 and fp64
+        if (cd == null && ty.IsFloatingPointType && ri.Decl is ValuetypeDecl valuetypeDecl) {
           cd = valuetypeDecl;
         }
 
@@ -1978,8 +2000,8 @@ namespace Microsoft.Dafny {
             }
             // Create the appropriate type for the StaticReceiverExpr
             UserDefinedType receiverType;
-            if (ty.IsFp64Type && ri.Decl is ValuetypeDecl vtDecl) {
-              // For built-in types like fp64, create a UserDefinedType from the ValuetypeDecl
+            if (ty.IsFloatingPointType && ri.Decl is ValuetypeDecl vtDecl) {
+              // For built-in types like fp32/fp64, create a UserDefinedType from the ValuetypeDecl
               receiverType = new UserDefinedType(expr.Origin, vtDecl.Name, vtDecl, ri.TypeArgs);
             } else {
               receiverType = (UserDefinedType)ty.NormalizeExpand();

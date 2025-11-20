@@ -1593,6 +1593,8 @@ namespace Microsoft.Dafny.Compilers {
         return "BigInteger";
       } else if (xType is RealType) {
         return "Dafny.BigRational";
+      } else if (xType.IsFp32Type) {
+        return "float";
       } else if (xType.IsFp64Type) {
         return "double";
       } else if (xType is BitvectorType) {
@@ -1702,6 +1704,8 @@ namespace Microsoft.Dafny.Compilers {
         return "BigInteger.Zero";
       } else if (xType is RealType) {
         return "Dafny.BigRational.ZERO";
+      } else if (xType.IsFp32Type) {
+        return "0.0f";
       } else if (xType.IsFp64Type) {
         return "0.0";
       } else if (xType is BitvectorType) {
@@ -2266,22 +2270,24 @@ namespace Microsoft.Dafny.Compilers {
       } else if (e.Value is BigInteger bigInteger) {
         EmitIntegerLiteral(bigInteger, wr);
       } else if (e.Value is BigDec n) {
-        if (e.Type.IsFp64Type) {
-          // Use precomputed float value for fp64 decimal literals
+        if (e.Type.IsFloatingPointType) {
+          // Use precomputed float value for floating-point decimal literals
           if (e is DecimalLiteralExpr { ResolvedFloatValue: not null } decLit) {
             // Use exact IEEE 754 value from resolution
             var bigFloat = decLit.ResolvedFloatValue.Value;
             var s = "";
             if (bigFloat.IsInfinity) {
-              s += "double.";
+              var typeName = e.Type.IsFp32Type ? "float" : "double";
+              s += $"{typeName}.";
               s += bigFloat.IsPositive ? "Positive" : "Negative";
               s += "Infinity";
             } else {
-              s = bigFloat.ToDecimalString() + 'd';
+              var suffix = e.Type.IsFp32Type ? 'f' : 'd';
+              s = bigFloat.ToDecimalString() + suffix;
             }
             wr.Write(s);
           } else {
-            Contract.Assert(false, $"fp64 literal without ResolvedFloatValue: {e.Value} (type: {e.GetType().Name})");
+            Contract.Assert(false, $"float literal without ResolvedFloatValue: {e.Value} (type: {e.GetType().Name})");
           }
         } else if (0 <= n.Exponent) {
           wr.Write("new Dafny.BigRational(BigInteger.Parse(\"{0}", n.Mantissa);
@@ -2677,66 +2683,66 @@ namespace Microsoft.Dafny.Compilers {
           compiledName = "_new";
           break;
         case SpecialField.ID.IsNaN:
-          preString = "double.IsNaN(";
+          preString = receiverType.IsFp32Type ? "float.IsNaN(" : "double.IsNaN(";
           postString = ")";
           break;
         case SpecialField.ID.IsFinite:
-          preString = "double.IsFinite(";
+          preString = receiverType.IsFp32Type ? "float.IsFinite(" : "double.IsFinite(";
           postString = ")";
           break;
         case SpecialField.ID.IsInfinite:
-          preString = "double.IsInfinity(";
+          preString = receiverType.IsFp32Type ? "float.IsInfinity(" : "double.IsInfinity(";
           postString = ")";
           break;
         case SpecialField.ID.IsNormal:
-          preString = "double.IsNormal(";
+          preString = receiverType.IsFp32Type ? "float.IsNormal(" : "double.IsNormal(";
           postString = ")";
           break;
         case SpecialField.ID.IsSubnormal:
-          preString = "double.IsSubnormal(";
+          preString = receiverType.IsFp32Type ? "float.IsSubnormal(" : "double.IsSubnormal(";
           postString = ")";
           break;
         case SpecialField.ID.IsZero:
           preString = "(";
-          postString = " == 0.0)";
+          postString = receiverType.IsFp32Type ? " == 0.0f)" : " == 0.0)";
           break;
         case SpecialField.ID.IsNegative:
-          preString = "double.IsNegative(";
+          preString = receiverType.IsFp32Type ? "float.IsNegative(" : "double.IsNegative(";
           postString = ")";
           break;
         case SpecialField.ID.IsPositive:
-          preString = "Dafny.Helpers.Fp64IsPositive(";
+          preString = receiverType.IsFp32Type ? "Dafny.Helpers.Fp32IsPositive(" : "Dafny.Helpers.Fp64IsPositive(";
           postString = ")";
           break;
         case SpecialField.ID.NaN:
-          preString = "double.NaN";
+          preString = receiverType.IsFp32Type ? "float.NaN" : "double.NaN";
           break;
         case SpecialField.ID.PositiveInfinity:
-          preString = "double.PositiveInfinity";
+          preString = receiverType.IsFp32Type ? "float.PositiveInfinity" : "double.PositiveInfinity";
           break;
         case SpecialField.ID.NegativeInfinity:
-          preString = "double.NegativeInfinity";
+          preString = receiverType.IsFp32Type ? "float.NegativeInfinity" : "double.NegativeInfinity";
           break;
         case SpecialField.ID.Pi:
-          preString = "Math.PI";
+          preString = receiverType.IsFp32Type ? "(float)Math.PI" : "Math.PI";
           break;
         case SpecialField.ID.E:
-          preString = "Math.E";
+          preString = receiverType.IsFp32Type ? "(float)Math.E" : "Math.E";
           break;
         case SpecialField.ID.MaxValue:
-          preString = "double.MaxValue";
+          preString = receiverType.IsFp32Type ? "float.MaxValue" : "double.MaxValue";
           break;
         case SpecialField.ID.MinValue:
-          preString = "double.MinValue";
+          preString = receiverType.IsFp32Type ? "float.MinValue" : "double.MinValue";
           break;
         case SpecialField.ID.MinNormal:
-          preString = "2.2250738585072014e-308";
+          preString = receiverType.IsFp32Type ? "1.17549435e-38f" : "2.2250738585072014e-308";
           break;
         case SpecialField.ID.MinSubnormal:
-          preString = "double.Epsilon";
+          preString = receiverType.IsFp32Type ? "float.Epsilon" : "double.Epsilon";
           break;
         case SpecialField.ID.Epsilon:
-          preString = "Math.Pow(2, -52)";
+          preString = receiverType.IsFp32Type ? "(float)Math.Pow(2, -23)" : "Math.Pow(2, -52)";
           break;
         default:
           Contract.Assert(false); // unexpected ID
@@ -2747,8 +2753,9 @@ namespace Microsoft.Dafny.Compilers {
     protected override void CompileFunctionCallExpr(FunctionCallExpr e, ConcreteSyntaxTree wr, bool inLetExprBody,
         ConcreteSyntaxTree wStmts, FCE_Arg_Translator tr, bool alreadyCoerced = false) {
 
-      // Handle fp64 special functions
-      if (e.Function is SpecialFunction && e.Function.EnclosingClass?.Name == "fp64") {
+      // Handle fp32 and fp64 special functions
+      if (e.Function is SpecialFunction && (e.Function.EnclosingClass?.Name == "fp32" || e.Function.EnclosingClass?.Name == "fp64")) {
+        var isFp32 = e.Function.EnclosingClass?.Name == "fp32";
         switch (e.Function.Name) {
           case "Equal":
             wr.Write("(");
@@ -2760,7 +2767,7 @@ namespace Microsoft.Dafny.Compilers {
           case "FromReal":
             wr.Write("(");
             tr(e.Args[0], wr, inLetExprBody, wStmts);
-            wr.Write(").ToDouble()");
+            wr.Write(isFp32 ? ").ToFloat()" : ").ToDouble()");
             return;
           case "ToInt":
             wr.Write("((System.Numerics.BigInteger)Math.Truncate(");
@@ -2787,21 +2794,25 @@ namespace Microsoft.Dafny.Compilers {
             wr.Write(")");
             return;
           case "Floor":
+            if (isFp32) wr.Write("(float)");
             wr.Write("Math.Floor(");
             tr(e.Args[0], wr, inLetExprBody, wStmts);
             wr.Write(")");
             return;
           case "Ceiling":
+            if (isFp32) wr.Write("(float)");
             wr.Write("Math.Ceiling(");
             tr(e.Args[0], wr, inLetExprBody, wStmts);
             wr.Write(")");
             return;
           case "Round":
+            if (isFp32) wr.Write("(float)");
             wr.Write("Math.Round(");
             tr(e.Args[0], wr, inLetExprBody, wStmts);
             wr.Write(", MidpointRounding.ToEven)");
             return;
           case "Sqrt":
+            if (isFp32) wr.Write("(float)");
             wr.Write("Math.Sqrt(");
             tr(e.Args[0], wr, inLetExprBody, wStmts);
             wr.Write(")");
@@ -3235,6 +3246,7 @@ namespace Microsoft.Dafny.Compilers {
             wr.Write(".Count)");
           }
           break;
+        case ResolvedUnaryOp.Fp32Negate:
         case ResolvedUnaryOp.Fp64Negate:
           TrParenExpr("-", expr, wr, inLetExprBody, wStmts);
           break;
@@ -3245,7 +3257,7 @@ namespace Microsoft.Dafny.Compilers {
 
     static bool IsDirectlyComparable(Type t) {
       Contract.Requires(t != null);
-      return t.IsBoolType || t.IsCharType || t.IsIntegerType || t.IsRealType || t.IsFp64Type || t.AsNewtype != null || t.IsBitVectorType || t.IsBigOrdinalType || t.IsRefType;
+      return t.IsBoolType || t.IsCharType || t.IsIntegerType || t.IsRealType || t.IsFp32Type || t.IsFp64Type || t.AsNewtype != null || t.IsBitVectorType || t.IsBigOrdinalType || t.IsRefType;
     }
 
     protected override void CompileBinOp(BinaryExpr.ResolvedOpcode op,

@@ -42,6 +42,13 @@ public class XConstraint {
     convertedIntoOtherTypeConstraints = false;
     moreXConstraints = false;
     var t = Types[0].NormalizeExpand();
+
+    // ArtificialTypes (like FloatVarietiesSupertype) should not be processed in XConstraints
+    // They are only used in SubtypeRelation constraints
+    if (t is ArtificialType) {
+      return false;
+    }
+
     if (t is TypeProxy) {
       switch (ConstraintName) {
         case "Assignable":
@@ -86,6 +93,11 @@ public class XConstraint {
             return true;
           } else if (Type.FromSameHead(t, u, out var tUp, out var uUp)) {
             resolver.ConstrainAssignableTypeArgs(tUp, tUp.TypeArgs, uUp.TypeArgs, errorMsg, out moreXConstraints);
+            return true;
+          } else if (u is NonProxyType) {
+            // RHS is concrete - LHS proxy should be assignable from RHS
+            resolver.ConstrainSubtypeRelation(u, t, errorMsg);
+            convertedIntoOtherTypeConstraints = true;
             return true;
           } else if (fullstrength && t is NonProxyType) {
             // We convert Assignable(t, u) to the subtype constraint base(t) :> u.

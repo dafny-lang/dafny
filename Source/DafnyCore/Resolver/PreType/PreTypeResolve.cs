@@ -244,6 +244,8 @@ namespace Microsoft.Dafny {
         decl = BuiltInTypeDecl(PreType.TypeNameInt);
       } else if (type is RealType) {
         decl = BuiltInTypeDecl(PreType.TypeNameReal);
+      } else if (type is Fp32Type) {
+        decl = BuiltInTypeDecl(PreType.TypeNameFp32);
       } else if (type is Fp64Type) {
         decl = BuiltInTypeDecl(PreType.TypeNameFp64);
       } else if (type is FieldType) {
@@ -634,14 +636,24 @@ namespace Microsoft.Dafny {
         }
       }
 
+      // fp32 conversions
+      if (toFamily == PreType.TypeNameFp32) {
+        // Conversions TO fp32 are allowed from int, real, fp32, and fp64
+        return fromFamily is PreType.TypeNameInt or PreType.TypeNameReal or PreType.TypeNameFp32 or PreType.TypeNameFp64;
+      }
+      if (fromFamily == PreType.TypeNameFp32) {
+        // Conversions FROM fp32 are allowed to int, real, fp32, and fp64
+        return toFamily is PreType.TypeNameInt or PreType.TypeNameReal or PreType.TypeNameFp32 or PreType.TypeNameFp64;
+      }
+
       // fp64 conversions
       if (toFamily == PreType.TypeNameFp64) {
-        // Conversions TO fp64 are allowed only from int and real
-        return fromFamily is PreType.TypeNameInt or PreType.TypeNameReal;
+        // Conversions TO fp64 are allowed from int, real, fp32, and fp64
+        return fromFamily is PreType.TypeNameInt or PreType.TypeNameReal or PreType.TypeNameFp32 or PreType.TypeNameFp64;
       }
       if (fromFamily == PreType.TypeNameFp64) {
-        // Conversions FROM fp64 are allowed only to int and real
-        return toFamily is PreType.TypeNameInt or PreType.TypeNameReal;
+        // Conversions FROM fp64 are allowed to int, real, fp32, and fp64
+        return toFamily is PreType.TypeNameInt or PreType.TypeNameReal or PreType.TypeNameFp32 or PreType.TypeNameFp64;
       }
 
       return false;
@@ -859,7 +871,10 @@ namespace Microsoft.Dafny {
       }
 
       void ComputePreTypeField(Field field) {
-        Contract.Assume(field.PreType == null); // precondition
+        if (field.PreType != null) {
+          // Field already has PreType set (e.g., from a previous pass or special field initialization)
+          return;
+        }
         field.PreType = CreateTemporaryPreTypeProxy();
         field.PreType = Type2PreType(field.Type);
         if (field is ConstantField cfield) {

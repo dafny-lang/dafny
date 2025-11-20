@@ -90,6 +90,48 @@ public class DivisorNonZero : ProofObligationDescription {
   }
 }
 
+public class Fp32EqualityPrecondition : ProofObligationDescription {
+  public override string SuccessDescription =>
+    "fp32 operand is never NaN for equality comparison";
+
+  public override string FailureDescription =>
+    "fp32 equality comparison requires that operands are not NaN";
+
+  public override string ShortDescription => "fp32 equality precondition";
+
+  private readonly Expression operand;
+
+  public Fp32EqualityPrecondition(Expression operand) {
+    this.operand = operand;
+  }
+
+  public override Expression GetAssertedExpr(DafnyOptions options) {
+    return new LiteralExpr(operand.Origin, true);
+  }
+}
+
+public class Fp32SignedZeroEqualityPrecondition : ProofObligationDescription {
+  public override string SuccessDescription =>
+    "fp32 equality comparison never compares +0.0 with -0.0";
+
+  public override string FailureDescription =>
+    "fp32 equality comparison requires that signed zeros have the same sign";
+
+  public override string ShortDescription => "fp32 signed zero equality precondition";
+
+  private readonly Expression operand0;
+  private readonly Expression operand1;
+
+  public Fp32SignedZeroEqualityPrecondition(Expression operand0, Expression operand1) {
+    this.operand0 = operand0;
+    this.operand1 = operand1;
+  }
+
+  public override Expression GetAssertedExpr(DafnyOptions options) {
+    return new LiteralExpr(operand0.Origin, true);
+  }
+}
+
 public class Fp64EqualityPrecondition : ProofObligationDescription {
   public override string SuccessDescription =>
     "fp64 operand is never NaN for equality comparison";
@@ -133,6 +175,49 @@ public class Fp64SignedZeroEqualityPrecondition : ProofObligationDescription {
     // For now, return a simple true expression since we can't easily construct
     // the proper !(x.IsZero && y.IsZero && x.IsNegative != y.IsNegative) expression here
     return new LiteralExpr(operand0.Origin, true);
+  }
+}
+
+public class Fp32CollectionEqualityWellformedness : ProofObligationDescription {
+  public override string SuccessDescription =>
+    "equality comparison is supported for this type";
+
+  public override string FailureDescription {
+    get {
+      string typeName = GetTypeName();
+      return $"equality comparison of {typeName} is not supported in compiled code (use ghost context or compare elements individually)";
+    }
+  }
+
+  public override string ShortDescription => "fp32 collection equality";
+
+  private readonly Type collectionType;
+
+  public Fp32CollectionEqualityWellformedness(Type collectionType) {
+    this.collectionType = collectionType.NormalizeExpand();
+  }
+
+  private string GetTypeName() {
+    if (collectionType is SetType) {
+      return "set<fp32>";
+    } else if (collectionType is SeqType) {
+      return "seq<fp32>";
+    } else if (collectionType is MultiSetType) {
+      return "multiset<fp32>";
+    } else if (collectionType is MapType mapType) {
+      return mapType.Domain is Fp32Type ?
+        (mapType.Range is Fp32Type ? "map<fp32, fp32>" : "map<fp32, _>") :
+        "map<_, fp32>";
+    } else if (collectionType is UserDefinedType udt && udt.ResolvedClass != null) {
+      return $"datatype '{udt.ResolvedClass.Name}' containing fp32";
+    } else if (collectionType != null) {
+      return $"type containing fp32";
+    }
+    return "type containing fp32";
+  }
+
+  public override Expression GetAssertedExpr(DafnyOptions options) {
+    return new LiteralExpr(collectionType?.Origin ?? Microsoft.Dafny.Token.NoToken, false);
   }
 }
 
@@ -519,6 +604,39 @@ public class IsExactlyRepresentableAsFp64 : ProofObligationDescription {
       new ConversionExpr(expr.Origin,
         new ConversionExpr(expr.Origin, expr, new Fp64Type()),
         Type.Real)
+    );
+  }
+}
+
+public class IsExactlyRepresentableAsFp32 : ProofObligationDescription {
+  public override string SuccessDescription =>
+    $"{prefix}the value is exactly representable as fp32";
+
+  public override string FailureDescription =>
+    $"{prefix}the value must be exactly representable as fp32 (if you want rounding, use the approximation operator ~)";
+
+  public override string ShortDescription => "is exactly representable as fp32";
+
+  private readonly string prefix;
+  private readonly Expression expr;
+
+  public IsExactlyRepresentableAsFp32(Expression expr, string prefix = "") {
+    this.expr = expr;
+    this.prefix = prefix;
+  }
+
+  public override Expression GetAssertedExpr(DafnyOptions options) {
+    // For real→fp32: expr == (expr as fp32) as real
+    // For fp64→fp32: expr == (expr as fp32) as fp64
+    var sourceType = expr.Type.NormalizeExpand();
+    Type targetType = sourceType.IsNumericBased(Type.NumericPersuasion.Real) ? Type.Real : new Fp64Type();
+    return new BinaryExpr(
+      expr.Origin,
+      BinaryExpr.Opcode.Eq,
+      expr,
+      new ConversionExpr(expr.Origin,
+        new ConversionExpr(expr.Origin, expr, new Fp32Type()),
+        targetType)
     );
   }
 }
@@ -1918,6 +2036,35 @@ public class IntToFp64ExactnessCheck : ProofObligationDescription {
     // - Even integers from ±2^53 to ±2^54
     // - Multiples of 4 from ±2^54 to ±2^55
     // - And so on up to about ±1.8e308
+    // The actual Boogie check performs the round-trip test, this is just for display
+    return Expression.CreateBoolLiteral(expr.Origin, true);
+  }
+}
+
+public class IntToFp32ExactnessCheck : ProofObligationDescription {
+  public override string SuccessDescription =>
+    $"{prefix}the integer value is exactly representable as fp32";
+
+  public override string FailureDescription =>
+    $"{prefix}the integer value must be exactly representable as fp32 (integers outside ±2^24 cannot be exactly represented)";
+
+  public override string ShortDescription => "int to fp32 exactness check";
+
+  private readonly string prefix;
+  private readonly Expression expr;
+
+  public IntToFp32ExactnessCheck(Expression expr, string prefix = "") {
+    this.expr = expr;
+    this.prefix = prefix;
+  }
+
+  public override Expression GetAssertedExpr(DafnyOptions options) {
+    // The exactness check is: converting to fp32 and back to int preserves the value
+    // This properly handles all exactly representable integers, including:
+    // - All integers from -2^24 to 2^24
+    // - Even integers from ±2^24 to ±2^25
+    // - Multiples of 4 from ±2^25 to ±2^26
+    // - And so on up to about ±3.4e38
     // The actual Boogie check performs the round-trip test, this is just for display
     return Expression.CreateBoolLiteral(expr.Origin, true);
   }
