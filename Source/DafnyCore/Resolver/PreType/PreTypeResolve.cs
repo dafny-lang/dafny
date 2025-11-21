@@ -871,10 +871,7 @@ namespace Microsoft.Dafny {
       }
 
       void ComputePreTypeField(Field field) {
-        if (field.PreType != null) {
-          // Field already has PreType set (e.g., from a previous pass or special field initialization)
-          return;
-        }
+        Contract.Assume(field.PreType == null); // precondition
         field.PreType = CreateTemporaryPreTypeProxy();
         field.PreType = Type2PreType(field.Type);
         if (field is ConstantField cfield) {
