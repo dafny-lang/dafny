@@ -90,95 +90,61 @@ public class DivisorNonZero : ProofObligationDescription {
   }
 }
 
-public class Fp32EqualityPrecondition : ProofObligationDescription {
-  public override string SuccessDescription =>
-    "fp32 operand is never NaN for equality comparison";
-
-  public override string FailureDescription =>
-    "fp32 equality comparison requires that operands are not NaN";
-
-  public override string ShortDescription => "fp32 equality precondition";
-
+public class FloatEqualityPrecondition : ProofObligationDescription {
+  private readonly string floatTypeName;
   private readonly Expression operand;
 
-  public Fp32EqualityPrecondition(Expression operand) {
+  public FloatEqualityPrecondition(Expression operand, Type floatType) {
     this.operand = operand;
+    this.floatTypeName = floatType.IsFp32Type ? "fp32" : "fp64";
   }
+
+  public override string SuccessDescription =>
+    $"{floatTypeName} operand is never NaN for equality comparison";
+
+  public override string FailureDescription =>
+    $"{floatTypeName} equality comparison requires that operands are not NaN";
+
+  public override string ShortDescription => $"{floatTypeName} equality precondition";
 
   public override Expression GetAssertedExpr(DafnyOptions options) {
     return new LiteralExpr(operand.Origin, true);
   }
 }
 
-public class Fp32SignedZeroEqualityPrecondition : ProofObligationDescription {
-  public override string SuccessDescription =>
-    "fp32 equality comparison never compares +0.0 with -0.0";
-
-  public override string FailureDescription =>
-    "fp32 equality comparison requires that signed zeros have the same sign";
-
-  public override string ShortDescription => "fp32 signed zero equality precondition";
-
+public class FloatSignedZeroEqualityPrecondition : ProofObligationDescription {
+  private readonly string floatTypeName;
   private readonly Expression operand0;
   private readonly Expression operand1;
 
-  public Fp32SignedZeroEqualityPrecondition(Expression operand0, Expression operand1) {
+  public FloatSignedZeroEqualityPrecondition(Expression operand0, Expression operand1, Type floatType) {
     this.operand0 = operand0;
     this.operand1 = operand1;
+    this.floatTypeName = floatType.IsFp32Type ? "fp32" : "fp64";
   }
+
+  public override string SuccessDescription =>
+    $"{floatTypeName} equality comparison never compares +0.0 with -0.0";
+
+  public override string FailureDescription =>
+    $"{floatTypeName} equality comparison requires that signed zeros have the same sign";
+
+  public override string ShortDescription => $"{floatTypeName} signed zero equality precondition";
 
   public override Expression GetAssertedExpr(DafnyOptions options) {
     return new LiteralExpr(operand0.Origin, true);
   }
 }
 
-public class Fp64EqualityPrecondition : ProofObligationDescription {
-  public override string SuccessDescription =>
-    "fp64 operand is never NaN for equality comparison";
+public class FloatCollectionEqualityWellformedness : ProofObligationDescription {
+  private readonly Type collectionType;
+  private readonly string floatTypeName;
 
-  public override string FailureDescription =>
-    "fp64 equality comparison requires that operands are not NaN";
-
-  public override string ShortDescription => "fp64 equality precondition";
-
-  private readonly Expression operand;
-
-  public Fp64EqualityPrecondition(Expression operand) {
-    this.operand = operand;
+  public FloatCollectionEqualityWellformedness(Type collectionType, Type floatType) {
+    this.collectionType = collectionType.NormalizeExpand();
+    this.floatTypeName = floatType.IsFp32Type ? "fp32" : "fp64";
   }
 
-  public override Expression GetAssertedExpr(DafnyOptions options) {
-    // For now, return a simple true expression since we can't easily construct
-    // the proper !operand.IsNaN expression here without more context
-    return new LiteralExpr(operand.Origin, true);
-  }
-}
-
-public class Fp64SignedZeroEqualityPrecondition : ProofObligationDescription {
-  public override string SuccessDescription =>
-    "fp64 equality comparison never compares +0.0 with -0.0";
-
-  public override string FailureDescription =>
-    "fp64 equality comparison requires that signed zeros have the same sign";
-
-  public override string ShortDescription => "fp64 signed zero equality precondition";
-
-  private readonly Expression operand0;
-  private readonly Expression operand1;
-
-  public Fp64SignedZeroEqualityPrecondition(Expression operand0, Expression operand1) {
-    this.operand0 = operand0;
-    this.operand1 = operand1;
-  }
-
-  public override Expression GetAssertedExpr(DafnyOptions options) {
-    // For now, return a simple true expression since we can't easily construct
-    // the proper !(x.IsZero && y.IsZero && x.IsNegative != y.IsNegative) expression here
-    return new LiteralExpr(operand0.Origin, true);
-  }
-}
-
-public class Fp32CollectionEqualityWellformedness : ProofObligationDescription {
   public override string SuccessDescription =>
     "equality comparison is supported for this type";
 
@@ -189,80 +155,32 @@ public class Fp32CollectionEqualityWellformedness : ProofObligationDescription {
     }
   }
 
-  public override string ShortDescription => "fp32 collection equality";
-
-  private readonly Type collectionType;
-
-  public Fp32CollectionEqualityWellformedness(Type collectionType) {
-    this.collectionType = collectionType.NormalizeExpand();
-  }
+  public override string ShortDescription => $"{floatTypeName} collection equality";
 
   private string GetTypeName() {
     if (collectionType is SetType) {
-      return "set<fp32>";
+      return $"set<{floatTypeName}>";
     } else if (collectionType is SeqType) {
-      return "seq<fp32>";
+      return $"seq<{floatTypeName}>";
     } else if (collectionType is MultiSetType) {
-      return "multiset<fp32>";
+      return $"multiset<{floatTypeName}>";
     } else if (collectionType is MapType mapType) {
-      return mapType.Domain is Fp32Type ?
-        (mapType.Range is Fp32Type ? "map<fp32, fp32>" : "map<fp32, _>") :
-        "map<_, fp32>";
+      bool domainIsFloat = (floatTypeName == "fp32" && mapType.Domain is Fp32Type) || 
+                           (floatTypeName == "fp64" && mapType.Domain is Fp64Type);
+      bool rangeIsFloat = (floatTypeName == "fp32" && mapType.Range is Fp32Type) || 
+                          (floatTypeName == "fp64" && mapType.Range is Fp64Type);
+      return domainIsFloat ?
+        (rangeIsFloat ? $"map<{floatTypeName}, {floatTypeName}>" : $"map<{floatTypeName}, _>") :
+        $"map<_, {floatTypeName}>";
     } else if (collectionType is UserDefinedType udt && udt.ResolvedClass != null) {
-      return $"datatype '{udt.ResolvedClass.Name}' containing fp32";
+      return $"datatype '{udt.ResolvedClass.Name}' containing {floatTypeName}";
     } else if (collectionType != null) {
-      return $"type containing fp32";
+      return $"type containing {floatTypeName}";
     }
-    return "type containing fp32";
+    return $"type containing {floatTypeName}";
   }
 
   public override Expression GetAssertedExpr(DafnyOptions options) {
-    return new LiteralExpr(collectionType?.Origin ?? Microsoft.Dafny.Token.NoToken, false);
-  }
-}
-
-public class Fp64CollectionEqualityWellformedness : ProofObligationDescription {
-  public override string SuccessDescription =>
-    "equality comparison is supported for this type";
-
-  public override string FailureDescription {
-    get {
-      string typeName = GetTypeName();
-      return $"equality comparison of {typeName} is not supported in compiled code (use ghost context or compare elements individually)";
-    }
-  }
-
-  public override string ShortDescription => "fp64 collection equality";
-
-  private readonly Type collectionType;
-
-  public Fp64CollectionEqualityWellformedness(Type collectionType) {
-    this.collectionType = collectionType.NormalizeExpand();
-  }
-
-  private string GetTypeName() {
-    if (collectionType is SetType) {
-      return "set<fp64>";
-    } else if (collectionType is SeqType) {
-      return "seq<fp64>";
-    } else if (collectionType is MultiSetType) {
-      return "multiset<fp64>";
-    } else if (collectionType is MapType mapType) {
-      // Be more specific about map types
-      return mapType.Domain is Fp64Type ?
-        (mapType.Range is Fp64Type ? "map<fp64, fp64>" : "map<fp64, _>") :
-        "map<_, fp64>";
-    } else if (collectionType is UserDefinedType udt && udt.ResolvedClass != null) {
-      // Show the actual datatype name
-      return $"datatype '{udt.ResolvedClass.Name}' containing fp64";
-    } else if (collectionType != null) {
-      return $"type containing fp64";
-    }
-    return "type containing fp64";
-  }
-
-  public override Expression GetAssertedExpr(DafnyOptions options) {
-    // Return a simple false expression since this is always rejected
     return new LiteralExpr(collectionType?.Origin ?? Microsoft.Dafny.Token.NoToken, false);
   }
 }
@@ -1997,59 +1915,42 @@ public class BoilerplateTriple : ProofObligationDescriptionCustomMessages {
   }
 }
 
-public class IntToFp64ExactnessCheck : ProofObligationDescription {
-  public override string SuccessDescription =>
-    $"{prefix}the integer value is exactly representable as fp64";
-
-  public override string FailureDescription =>
-    $"{prefix}the integer value must be exactly representable as fp64 (integers outside ±2^53 cannot be exactly represented)";
-
-  public override string ShortDescription => "int to fp64 exactness check";
-
+public class IntToFloatExactnessCheck : ProofObligationDescription {
+  private readonly string floatTypeName;
+  private readonly string mantissaBits;
+  private readonly string maxExponent;
   private readonly string prefix;
   private readonly Expression expr;
 
-  public IntToFp64ExactnessCheck(Expression expr, string prefix = "") {
+  public IntToFloatExactnessCheck(Expression expr, Type floatType, string prefix = "") {
     this.expr = expr;
     this.prefix = prefix;
+    if (floatType.IsFp32Type) {
+      this.floatTypeName = "fp32";
+      this.mantissaBits = "2^24";
+      this.maxExponent = "3.4e38";
+    } else {
+      this.floatTypeName = "fp64";
+      this.mantissaBits = "2^53";
+      this.maxExponent = "1.8e308";
+    }
   }
 
-  public override Expression GetAssertedExpr(DafnyOptions options) {
-    // The exactness check is: converting to fp64 and back to int preserves the value
-    // This properly handles all exactly representable integers, including:
-    // - All integers from -2^53 to 2^53
-    // - Even integers from ±2^53 to ±2^54
-    // - Multiples of 4 from ±2^54 to ±2^55
-    // - And so on up to about ±1.8e308
-    // The actual Boogie check performs the round-trip test, this is just for display
-    return Expression.CreateBoolLiteral(expr.Origin, true);
-  }
-}
-
-public class IntToFp32ExactnessCheck : ProofObligationDescription {
   public override string SuccessDescription =>
-    $"{prefix}the integer value is exactly representable as fp32";
+    $"{prefix}the integer value is exactly representable as {floatTypeName}";
 
   public override string FailureDescription =>
-    $"{prefix}the integer value must be exactly representable as fp32 (integers outside ±2^24 cannot be exactly represented)";
+    $"{prefix}the integer value must be exactly representable as {floatTypeName} (integers outside ±{mantissaBits} cannot be exactly represented)";
 
-  public override string ShortDescription => "int to fp32 exactness check";
-
-  private readonly string prefix;
-  private readonly Expression expr;
-
-  public IntToFp32ExactnessCheck(Expression expr, string prefix = "") {
-    this.expr = expr;
-    this.prefix = prefix;
-  }
+  public override string ShortDescription => $"int to {floatTypeName} exactness check";
 
   public override Expression GetAssertedExpr(DafnyOptions options) {
-    // The exactness check is: converting to fp32 and back to int preserves the value
+    // The exactness check is: converting to float and back to int preserves the value
     // This properly handles all exactly representable integers, including:
-    // - All integers from -2^24 to 2^24
-    // - Even integers from ±2^24 to ±2^25
-    // - Multiples of 4 from ±2^25 to ±2^26
-    // - And so on up to about ±3.4e38
+    // - All integers from -{mantissaBits} to {mantissaBits}
+    // - Even integers from ±{mantissaBits} to ±{mantissaBits}*2
+    // - Multiples of 4 from ±{mantissaBits}*2 to ±{mantissaBits}*4
+    // - And so on up to about ±{maxExponent}
     // The actual Boogie check performs the round-trip test, this is just for display
     return Expression.CreateBoolLiteral(expr.Origin, true);
   }

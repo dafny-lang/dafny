@@ -1166,23 +1166,23 @@ namespace Microsoft.Dafny {
                     if (e.E0.Type.IsFp32Type) {
                       var isNaN = GenerateFp32Check(e.E0, "fp32_is_nan");
                       builder.Add(Assert(GetToken(e.E0), Bpl.Expr.Not(isNaN),
-                        new Fp32EqualityPrecondition(e.E0), builder.Context, wfOptions.AssertKv));
+                        new FloatEqualityPrecondition(e.E0, new Fp32Type()), builder.Context, wfOptions.AssertKv));
                     }
                     if (e.E0.Type.IsFp64Type) {
                       var isNaN = GenerateFp64Check(e.E0, "fp64_is_nan");
                       builder.Add(Assert(GetToken(e.E0), Bpl.Expr.Not(isNaN),
-                        new Fp64EqualityPrecondition(e.E0), builder.Context, wfOptions.AssertKv));
+                        new FloatEqualityPrecondition(e.E0, new Fp64Type()), builder.Context, wfOptions.AssertKv));
                     }
 
                     if (e.E1.Type.IsFp32Type) {
                       var isNaN = GenerateFp32Check(e.E1, "fp32_is_nan");
                       builder.Add(Assert(GetToken(e.E1), Bpl.Expr.Not(isNaN),
-                        new Fp32EqualityPrecondition(e.E1), builder.Context, wfOptions.AssertKv));
+                        new FloatEqualityPrecondition(e.E1, new Fp32Type()), builder.Context, wfOptions.AssertKv));
                     }
                     if (e.E1.Type.IsFp64Type) {
                       var isNaN = GenerateFp64Check(e.E1, "fp64_is_nan");
                       builder.Add(Assert(GetToken(e.E1), Bpl.Expr.Not(isNaN),
-                        new Fp64EqualityPrecondition(e.E1), builder.Context, wfOptions.AssertKv));
+                        new FloatEqualityPrecondition(e.E1, new Fp64Type()), builder.Context, wfOptions.AssertKv));
                     }
 
                     // Check signed zero precondition: !(x.IsZero && y.IsZero && x.IsNegative != y.IsNegative)
@@ -1198,7 +1198,7 @@ namespace Microsoft.Dafny {
                       );
 
                       builder.Add(Assert(GetToken(expr), Bpl.Expr.Not(bothZerosDifferentSign),
-                        new Fp32SignedZeroEqualityPrecondition(e.E0, e.E1), builder.Context, wfOptions.AssertKv));
+                        new FloatSignedZeroEqualityPrecondition(e.E0, e.E1, new Fp32Type()), builder.Context, wfOptions.AssertKv));
                     }
                     if (e.E0.Type.IsFp64Type && e.E1.Type.IsFp64Type) {
                       var e0IsZero = GenerateFp64Check(e.E0, "fp64_is_zero");
@@ -1214,16 +1214,16 @@ namespace Microsoft.Dafny {
 
                       // The precondition is that the above condition is false
                       builder.Add(Assert(GetToken(expr), Bpl.Expr.Not(bothZerosDifferentSign),
-                        new Fp64SignedZeroEqualityPrecondition(e.E0, e.E1), builder.Context, wfOptions.AssertKv));
+                        new FloatSignedZeroEqualityPrecondition(e.E0, e.E1, new Fp64Type()), builder.Context, wfOptions.AssertKv));
                     }
                   } else if (ContainsFp32(e.E0.Type, null) || ContainsFp32(e.E1.Type, null)) {
                     // Collections or datatypes containing fp32 need well-formedness checks
                     builder.Add(Assert(GetToken(e), Bpl.Expr.False,
-                      new Fp32CollectionEqualityWellformedness(e.E0.Type), builder.Context, wfOptions.AssertKv));
+                      new FloatCollectionEqualityWellformedness(e.E0.Type, new Fp32Type()), builder.Context, wfOptions.AssertKv));
                   } else if (ContainsFp64(e.E0.Type, null) || ContainsFp64(e.E1.Type, null)) {
                     // Collections or datatypes containing fp64 need well-formedness checks
                     builder.Add(Assert(GetToken(e), Bpl.Expr.False,
-                      new Fp64CollectionEqualityWellformedness(e.E0.Type), builder.Context, wfOptions.AssertKv));
+                      new FloatCollectionEqualityWellformedness(e.E0.Type, new Fp64Type()), builder.Context, wfOptions.AssertKv));
                   } else if (CheckTypeCharacteristicsVisitor.CanCompareWith(e.E0) || CheckTypeCharacteristicsVisitor.CanCompareWith(e.E1)) {
                     // everything's fine
                   } else {

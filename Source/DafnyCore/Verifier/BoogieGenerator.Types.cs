@@ -1482,7 +1482,7 @@ public partial class BoogieGenerator {
       var asFp32 = FunctionCall(tok, "real_to_fp32_RNE", BplFp32Type, asReal);
       var backToReal = FunctionCall(tok, "fp32_to_real", Bpl.Type.Real, asFp32);
       var isExact = Bpl.Expr.Binary(tok, Bpl.BinaryOperator.Opcode.Eq, backToReal, asReal);
-      builder.Add(Assert(tok, isExact, new IntToFp32ExactnessCheck(expr, errorMsgPrefix), builder.Context));
+      builder.Add(Assert(tok, isExact, new IntToFloatExactnessCheck(expr, new Fp32Type(), errorMsgPrefix), builder.Context));
     }
 
     if (fromType.IsNumericBased(Type.NumericPersuasion.Int) && toType.IsFp64Type) {
@@ -1499,7 +1499,7 @@ public partial class BoogieGenerator {
       var asFp64 = FunctionCall(tok, "real_to_fp64_RNE", BplFp64Type, asReal);
       var backToReal = FunctionCall(tok, "fp64_to_real", Bpl.Type.Real, asFp64);
       var isExact = Bpl.Expr.Binary(tok, Bpl.BinaryOperator.Opcode.Eq, backToReal, asReal);
-      builder.Add(Assert(tok, isExact, new IntToFp64ExactnessCheck(expr, errorMsgPrefix), builder.Context));
+      builder.Add(Assert(tok, isExact, new IntToFloatExactnessCheck(expr, new Fp64Type(), errorMsgPrefix), builder.Context));
     }
 
     if (fromType.IsFp64Type && toType.IsNumericBased(Type.NumericPersuasion.Real)) {
