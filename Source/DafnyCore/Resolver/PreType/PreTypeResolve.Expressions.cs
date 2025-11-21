@@ -527,7 +527,7 @@ namespace Microsoft.Dafny {
                   exprDecLit.IsApproximate = true;
                 }
 
-                // Check exact representability for fp32 (default for approximate literals)
+                // Check exact representability for fp32 (if exact in fp32, it's exact in fp64 too)
                 var (significandBits, exponentBits) = (24, 8); // fp32 precision
                 var checkValue = isNegated ? -decValue : decValue;
                 var (isExact, _) = FloatLiteralValidator.ValidateAndCompute(checkValue, significandBits, exponentBits);

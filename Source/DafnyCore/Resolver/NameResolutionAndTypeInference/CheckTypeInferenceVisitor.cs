@@ -228,7 +228,7 @@ class CheckTypeInferenceVisitor : ASTVisitor<TypeInferenceCheckingContext> {
           return;
         }
 
-        // Recompute if null OR if type precision doesn't match stored value
+        // Compute float value if not yet computed, or if type precision changed during inference
         bool wasNull = decimalLiteral.ResolvedFloatValue == null;
         bool needsRecompute = wasNull;
         if (!needsRecompute) {
@@ -241,7 +241,7 @@ class CheckTypeInferenceVisitor : ASTVisitor<TypeInferenceCheckingContext> {
           var (significandBits, exponentBits) = normalizedType.FloatPrecision;
           var (isExact, floatValue) = FloatLiteralValidator.ValidateAndCompute(decValue, significandBits, exponentBits);
           decimalLiteral.ResolvedFloatValue = floatValue;
-          // Only error if this is a non-approximate literal (ResolvedFloatValue was null initially)
+          // Report inexact error only on first computation (not on type precision changes)
           if (!isExact && wasNull) {
             var typeName = normalizedType.IsFp32Type ? "fp32" : "fp64";
             resolver.ReportError(ResolutionErrors.ErrorId.r_inexact_fp64_literal_without_prefix, e.Origin,
