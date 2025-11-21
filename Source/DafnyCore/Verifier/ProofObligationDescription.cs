@@ -578,67 +578,63 @@ public class IsInteger : ProofObligationDescription {
   }
 }
 
-public class IsExactlyRepresentableAsFp64 : ProofObligationDescription {
-  public override string SuccessDescription =>
-    $"{prefix}the real value is exactly representable as fp64";
-
-  public override string FailureDescription =>
-    $"{prefix}the real value must be exactly representable as fp64 (if you want rounding, use the approximation operator ~)";
-
-  public override string ShortDescription => "is exactly representable as fp64";
-
+public class IsExactlyRepresentableAsFloat : ProofObligationDescription {
+  private readonly string floatTypeName;
+  private readonly Type floatType;
   private readonly string prefix;
   private readonly Expression expr;
 
-  public IsExactlyRepresentableAsFp64(Expression expr, string prefix = "") {
+  public IsExactlyRepresentableAsFloat(Expression expr, Type floatType, string prefix = "") {
     this.expr = expr;
+    this.floatType = floatType;
+    this.floatTypeName = floatType.IsFp32Type ? "fp32" : "fp64";
     this.prefix = prefix;
   }
 
+  public override string SuccessDescription =>
+    $"{prefix}the {(expr.Type.IsNumericBased(Type.NumericPersuasion.Real) ? "real " : "")}value is exactly representable as {floatTypeName}";
+
+  public override string FailureDescription =>
+    $"{prefix}the {(expr.Type.IsNumericBased(Type.NumericPersuasion.Real) ? "real " : "")}value must be exactly representable as {floatTypeName} (if you want rounding, use the approximation operator ~)";
+
+  public override string ShortDescription => $"is exactly representable as {floatTypeName}";
+
   public override Expression GetAssertedExpr(DafnyOptions options) {
-    // Express as: expr == (expr as fp64) as real
+    // For real→float: expr == (expr as float) as real
+    // For fp64→fp32: expr == (expr as fp32) as fp64
+    // For fp32→fp64: expr == (expr as fp64) as fp32 (though this always succeeds)
+    var sourceType = expr.Type.NormalizeExpand();
+    Type targetType;
+    if (sourceType.IsNumericBased(Type.NumericPersuasion.Real)) {
+      targetType = Type.Real;
+    } else if (floatType.IsFp32Type && sourceType is Fp64Type) {
+      targetType = new Fp64Type();
+    } else if (floatType is Fp64Type && sourceType.IsFp32Type) {
+      targetType = new Fp32Type();
+    } else {
+      targetType = Type.Real; // fallback
+    }
+    
     return new BinaryExpr(
       expr.Origin,
       BinaryExpr.Opcode.Eq,
       expr,
       new ConversionExpr(expr.Origin,
-        new ConversionExpr(expr.Origin, expr, new Fp64Type()),
-        Type.Real)
+        new ConversionExpr(expr.Origin, expr, floatType),
+        targetType)
     );
   }
 }
 
-public class IsExactlyRepresentableAsFp32 : ProofObligationDescription {
-  public override string SuccessDescription =>
-    $"{prefix}the value is exactly representable as fp32";
+// Backward compatibility wrappers
+public class IsExactlyRepresentableAsFp64 : IsExactlyRepresentableAsFloat {
+  public IsExactlyRepresentableAsFp64(Expression expr, string prefix = "") 
+    : base(expr, new Fp64Type(), prefix) { }
+}
 
-  public override string FailureDescription =>
-    $"{prefix}the value must be exactly representable as fp32 (if you want rounding, use the approximation operator ~)";
-
-  public override string ShortDescription => "is exactly representable as fp32";
-
-  private readonly string prefix;
-  private readonly Expression expr;
-
-  public IsExactlyRepresentableAsFp32(Expression expr, string prefix = "") {
-    this.expr = expr;
-    this.prefix = prefix;
-  }
-
-  public override Expression GetAssertedExpr(DafnyOptions options) {
-    // For real→fp32: expr == (expr as fp32) as real
-    // For fp64→fp32: expr == (expr as fp32) as fp64
-    var sourceType = expr.Type.NormalizeExpand();
-    Type targetType = sourceType.IsNumericBased(Type.NumericPersuasion.Real) ? Type.Real : new Fp64Type();
-    return new BinaryExpr(
-      expr.Origin,
-      BinaryExpr.Opcode.Eq,
-      expr,
-      new ConversionExpr(expr.Origin,
-        new ConversionExpr(expr.Origin, expr, new Fp32Type()),
-        targetType)
-    );
-  }
+public class IsExactlyRepresentableAsFp32 : IsExactlyRepresentableAsFloat {
+  public IsExactlyRepresentableAsFp32(Expression expr, string prefix = "") 
+    : base(expr, new Fp32Type(), prefix) { }
 }
 
 public class Fp64SqrtNonNegativePrecondition : ProofObligationDescription {
