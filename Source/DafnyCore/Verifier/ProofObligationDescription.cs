@@ -626,17 +626,6 @@ public class IsExactlyRepresentableAsFloat : ProofObligationDescription {
   }
 }
 
-// Backward compatibility wrappers
-public class IsExactlyRepresentableAsFp64 : IsExactlyRepresentableAsFloat {
-  public IsExactlyRepresentableAsFp64(Expression expr, string prefix = "") 
-    : base(expr, new Fp64Type(), prefix) { }
-}
-
-public class IsExactlyRepresentableAsFp32 : IsExactlyRepresentableAsFloat {
-  public IsExactlyRepresentableAsFp32(Expression expr, string prefix = "") 
-    : base(expr, new Fp32Type(), prefix) { }
-}
-
 public class Fp64SqrtNonNegativePrecondition : ProofObligationDescription {
   public override string SuccessDescription =>
     "fp64.Sqrt argument is always non-negative";
