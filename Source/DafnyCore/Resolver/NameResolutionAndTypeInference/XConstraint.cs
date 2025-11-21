@@ -42,7 +42,6 @@ public class XConstraint {
     convertedIntoOtherTypeConstraints = false;
     moreXConstraints = false;
     var t = Types[0].NormalizeExpand();
-
     if (t is TypeProxy) {
       switch (ConstraintName) {
         case "Assignable":
