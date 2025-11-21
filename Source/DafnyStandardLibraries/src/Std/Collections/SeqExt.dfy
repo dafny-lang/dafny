@@ -16,15 +16,15 @@ module Std.Collections.SeqExt {
    *
    ***********************************************************/
 
-  /// Find the maximum element in a sequence using a comparator function
-  ///
-  /// The comparator function should return:
-  ///   -1 if a < b (first argument is less than second)
-  ///    0 if a == b (equal)
-  ///    1 if a > b (first argument is greater than second)
-  ///
-  /// Example usage with Duration:
-  ///   var maxDuration := MaxBy(durations, Duration.Compare)
+/// Find the maximum element in a sequence using a comparator function
+///
+/// The comparator function should return:
+///   -1 if a < b (first argument is less than second)
+///    0 if a == b (equal)
+///    1 if a > b (first argument is greater than second)
+///
+/// Example usage with Duration:
+///   var maxDuration := MaxBy(durations, Duration.Compare)
   function MaxBy<T>(s: seq<T>, comparator: (T, T) -> int): T
     requires |s| > 0
     decreases |s|
@@ -32,7 +32,7 @@ module Std.Collections.SeqExt {
     MaxByHelper(s, 1, s[0], comparator)
   }
 
-  /// Helper function for MaxBy - iterates through sequence tracking the maximum
+/// Helper function for MaxBy - iterates through sequence tracking the maximum
   function MaxByHelper<T>(s: seq<T>, idx: nat, current: T, comparator: (T, T) -> int): T
     requires idx <= |s|
     decreases |s| - idx
@@ -45,15 +45,15 @@ module Std.Collections.SeqExt {
       MaxByHelper(s, idx + 1, next, comparator)
   }
 
-  /// Find the minimum element in a sequence using a comparator function
-  ///
-  /// The comparator function should return:
-  ///   -1 if a < b (first argument is less than second)
-  ///    0 if a == b (equal)
-  ///    1 if a > b (first argument is greater than second)
-  ///
-  /// Example usage with Duration:
-  ///   var minDuration := MinBy(durations, Duration.Compare)
+/// Find the minimum element in a sequence using a comparator function
+///
+/// The comparator function should return:
+///   -1 if a < b (first argument is less than second)
+///    0 if a == b (equal)
+///    1 if a > b (first argument is greater than second)
+///
+/// Example usage with Duration:
+///   var minDuration := MinBy(durations, Duration.Compare)
   function MinBy<T>(s: seq<T>, comparator: (T, T) -> int): T
     requires |s| > 0
     decreases |s|
@@ -61,7 +61,7 @@ module Std.Collections.SeqExt {
     MinByHelper(s, 1, s[0], comparator)
   }
 
-  /// Helper function for MinBy - iterates through sequence tracking the minimum
+/// Helper function for MinBy - iterates through sequence tracking the minimum
   function MinByHelper<T>(s: seq<T>, idx: nat, current: T, comparator: (T, T) -> int): T
     requires idx <= |s|
     decreases |s| - idx
