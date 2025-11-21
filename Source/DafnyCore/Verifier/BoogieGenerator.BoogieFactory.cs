@@ -25,6 +25,11 @@ namespace Microsoft.Dafny {
     public Bpl.Type BplFp32Type => new Bpl.FloatType(Token.NoToken, 24, 8);
     public Bpl.Type BplFp64Type => new Bpl.FloatType(Token.NoToken, 53, 11);
 
+    public Bpl.Type BplFloatType(Type dafnyType) {
+      Contract.Requires(dafnyType.IsFloatingPointType);
+      return dafnyType.IsFp32Type ? BplFp32Type : BplFp64Type;
+    }
+
     internal Bpl.Expr BplBvLiteralExpr(Bpl.IToken tok, BaseTypes.BigNum n, BitvectorType bitvectorType) {
       Contract.Requires(tok != null);
       Contract.Requires(bitvectorType != null);
