@@ -2767,7 +2767,7 @@ namespace Microsoft.Dafny.Compilers {
           case "FromReal":
             wr.Write("(");
             tr(e.Args[0], wr, inLetExprBody, wStmts);
-            wr.Write(isFp32 ? ").ToFloat()" : ").ToDouble()");
+            wr.Write(isFp32 ? ").ToSingle()" : ").ToDouble()");
             return;
           case "ToInt":
             wr.Write("((System.Numerics.BigInteger)Math.Truncate(");

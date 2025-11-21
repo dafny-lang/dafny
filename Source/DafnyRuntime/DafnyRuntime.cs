@@ -1885,10 +1885,6 @@ namespace Dafny {
       return ToFloatingPointImpl(53, 11);
     }
 
-    public float ToFloat() {
-      return ToSingle();
-    }
-
     public float ToSingle() {
       var result = ToFloatingPointImpl(24, 8);
       return (float)result;
