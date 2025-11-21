@@ -43,12 +43,6 @@ public class XConstraint {
     moreXConstraints = false;
     var t = Types[0].NormalizeExpand();
 
-    // ArtificialTypes (like FloatVarietiesSupertype) should not be processed in XConstraints
-    // They are only used in SubtypeRelation constraints
-    if (t is ArtificialType) {
-      return false;
-    }
-
     if (t is TypeProxy) {
       switch (ConstraintName) {
         case "Assignable":
