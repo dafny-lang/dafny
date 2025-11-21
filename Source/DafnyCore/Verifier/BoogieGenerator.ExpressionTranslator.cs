@@ -663,8 +663,7 @@ namespace Microsoft.Dafny {
         switch (e.ResolvedOp) {
           case UnaryOpExpr.ResolvedOpcode.Lit:
             return MaybeLit(arg);
-          case UnaryOpExpr.ResolvedOpcode.Fp32Negate:
-          case UnaryOpExpr.ResolvedOpcode.Fp64Negate:
+          case UnaryOpExpr.ResolvedOpcode.FloatNegate:
             var (significand, exponent) = opExpr.E.Type.FloatPrecision;
             var prefix = opExpr.E.Type.IsFp32Type ? "fp32" : "fp64";
             var floatType = new FloatType(significand, exponent);

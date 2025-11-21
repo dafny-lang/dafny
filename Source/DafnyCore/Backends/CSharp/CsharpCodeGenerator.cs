@@ -3246,8 +3246,7 @@ namespace Microsoft.Dafny.Compilers {
             wr.Write(".Count)");
           }
           break;
-        case ResolvedUnaryOp.Fp32Negate:
-        case ResolvedUnaryOp.Fp64Negate:
+        case ResolvedUnaryOp.FloatNegate:
           TrParenExpr("-", expr, wr, inLetExprBody, wStmts);
           break;
         default:

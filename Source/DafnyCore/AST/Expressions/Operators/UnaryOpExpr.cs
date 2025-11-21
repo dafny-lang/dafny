@@ -26,8 +26,7 @@ public class UnaryOpExpr : UnaryExpr, ICloneable<UnaryOpExpr> {
     Allocated,
     Lit,
     Assigned,
-    Fp32Negate,
-    Fp64Negate,
+    FloatNegate,
   }
 
   private ResolvedOpcode _ResolvedOp = ResolvedOpcode.YetUndetermined;
@@ -48,8 +47,8 @@ public class UnaryOpExpr : UnaryExpr, ICloneable<UnaryOpExpr> {
         (Opcode.Allocated, _) => ResolvedOpcode.Allocated,
         (Opcode.Lit, _) => ResolvedOpcode.Lit,
         (Opcode.Assigned, _) => ResolvedOpcode.Assigned,
-        (Opcode.Negate, Fp32Type _) => ResolvedOpcode.Fp32Negate,
-        (Opcode.Negate, Fp64Type _) => ResolvedOpcode.Fp64Negate,
+        (Opcode.Negate, Fp32Type _) => ResolvedOpcode.FloatNegate,
+        (Opcode.Negate, Fp64Type _) => ResolvedOpcode.FloatNegate,
         _ => ResolvedOpcode.YetUndetermined // Unreachable
       };
       Contract.Assert(_ResolvedOp != ResolvedOpcode.YetUndetermined);
