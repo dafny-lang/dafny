@@ -2683,23 +2683,23 @@ namespace Microsoft.Dafny.Compilers {
           compiledName = "_new";
           break;
         case SpecialField.ID.IsNaN:
-          preString = receiverType.IsFp32Type ? "float.IsNaN(" : "double.IsNaN(";
+          preString = $"{(receiverType.IsFp32Type ? "float" : "double")}.IsNaN(";
           postString = ")";
           break;
         case SpecialField.ID.IsFinite:
-          preString = receiverType.IsFp32Type ? "float.IsFinite(" : "double.IsFinite(";
+          preString = $"{(receiverType.IsFp32Type ? "float" : "double")}.IsFinite(";
           postString = ")";
           break;
         case SpecialField.ID.IsInfinite:
-          preString = receiverType.IsFp32Type ? "float.IsInfinity(" : "double.IsInfinity(";
+          preString = $"{(receiverType.IsFp32Type ? "float" : "double")}.IsInfinity(";
           postString = ")";
           break;
         case SpecialField.ID.IsNormal:
-          preString = receiverType.IsFp32Type ? "float.IsNormal(" : "double.IsNormal(";
+          preString = $"{(receiverType.IsFp32Type ? "float" : "double")}.IsNormal(";
           postString = ")";
           break;
         case SpecialField.ID.IsSubnormal:
-          preString = receiverType.IsFp32Type ? "float.IsSubnormal(" : "double.IsSubnormal(";
+          preString = $"{(receiverType.IsFp32Type ? "float" : "double")}.IsSubnormal(";
           postString = ")";
           break;
         case SpecialField.ID.IsZero:
@@ -2707,7 +2707,7 @@ namespace Microsoft.Dafny.Compilers {
           postString = receiverType.IsFp32Type ? " == 0.0f)" : " == 0.0)";
           break;
         case SpecialField.ID.IsNegative:
-          preString = receiverType.IsFp32Type ? "float.IsNegative(" : "double.IsNegative(";
+          preString = $"{(receiverType.IsFp32Type ? "float" : "double")}.IsNegative(";
           postString = ")";
           break;
         case SpecialField.ID.IsPositive:
@@ -2715,13 +2715,13 @@ namespace Microsoft.Dafny.Compilers {
           postString = ")";
           break;
         case SpecialField.ID.NaN:
-          preString = receiverType.IsFp32Type ? "float.NaN" : "double.NaN";
+          preString = $"{(receiverType.IsFp32Type ? "float" : "double")}.NaN";
           break;
         case SpecialField.ID.PositiveInfinity:
-          preString = receiverType.IsFp32Type ? "float.PositiveInfinity" : "double.PositiveInfinity";
+          preString = $"{(receiverType.IsFp32Type ? "float" : "double")}.PositiveInfinity";
           break;
         case SpecialField.ID.NegativeInfinity:
-          preString = receiverType.IsFp32Type ? "float.NegativeInfinity" : "double.NegativeInfinity";
+          preString = $"{(receiverType.IsFp32Type ? "float" : "double")}.NegativeInfinity";
           break;
         case SpecialField.ID.Pi:
           preString = receiverType.IsFp32Type ? "(float)Math.PI" : "Math.PI";
@@ -2730,16 +2730,16 @@ namespace Microsoft.Dafny.Compilers {
           preString = receiverType.IsFp32Type ? "(float)Math.E" : "Math.E";
           break;
         case SpecialField.ID.MaxValue:
-          preString = receiverType.IsFp32Type ? "float.MaxValue" : "double.MaxValue";
+          preString = $"{(receiverType.IsFp32Type ? "float" : "double")}.MaxValue";
           break;
         case SpecialField.ID.MinValue:
-          preString = receiverType.IsFp32Type ? "float.MinValue" : "double.MinValue";
+          preString = $"{(receiverType.IsFp32Type ? "float" : "double")}.MinValue";
           break;
         case SpecialField.ID.MinNormal:
           preString = receiverType.IsFp32Type ? "1.17549435e-38f" : "2.2250738585072014e-308";
           break;
         case SpecialField.ID.MinSubnormal:
-          preString = receiverType.IsFp32Type ? "float.Epsilon" : "double.Epsilon";
+          preString = $"{(receiverType.IsFp32Type ? "float" : "double")}.Epsilon";
           break;
         case SpecialField.ID.Epsilon:
           preString = receiverType.IsFp32Type ? "(float)Math.Pow(2, -23)" : "Math.Pow(2, -52)";
@@ -3256,7 +3256,7 @@ namespace Microsoft.Dafny.Compilers {
 
     static bool IsDirectlyComparable(Type t) {
       Contract.Requires(t != null);
-      return t.IsBoolType || t.IsCharType || t.IsIntegerType || t.IsRealType || t.IsFp32Type || t.IsFp64Type || t.AsNewtype != null || t.IsBitVectorType || t.IsBigOrdinalType || t.IsRefType;
+      return t.IsBoolType || t.IsCharType || t.IsIntegerType || t.IsRealType || t.IsFloatingPointType || t.AsNewtype != null || t.IsBitVectorType || t.IsBigOrdinalType || t.IsRefType;
     }
 
     protected override void CompileBinOp(BinaryExpr.ResolvedOpcode op,

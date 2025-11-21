@@ -1667,7 +1667,7 @@ namespace Microsoft.Dafny {
           }
           break;
         } else if (su is FloatVarietiesSupertype) {
-          if (t.IsFp32Type || t.IsFp64Type) {
+          if (t.IsFloatingPointType) {
             // good, approximate literal can be fp32 or fp64
           } else {
             // hijack the setting of proxy; default to fp64
@@ -1832,7 +1832,7 @@ namespace Microsoft.Dafny {
           return null;
         }
       } else if (super is FloatVarietiesSupertype) {
-        if (sub.IsFp32Type || sub.IsFp64Type || super.Equals(sub)) {
+        if (sub.IsFloatingPointType || super.Equals(sub)) {
           return [];
         } else {
           return null;
@@ -6141,7 +6141,7 @@ namespace Microsoft.Dafny {
             AddAssignableConstraint(expr.Origin, tentativeReceiverType, receiver.Type, "receiver type ({1}) does not have a member named " + name);
             r = ResolveExprDotCall(expr.Origin, expr.SuffixNameNode, receiver, tentativeReceiverType, member, expr.OptTypeArguments, resolutionContext, allowMethodCall);
           } else {
-            if ((tentativeReceiverType.IsFp64Type || tentativeReceiverType.IsFp32Type) && member.EnclosingClass is ValuetypeDecl vtd) {
+            if (tentativeReceiverType.IsFloatingPointType && member.EnclosingClass is ValuetypeDecl vtd) {
               receiver = new StaticReceiverExpr(expr.Origin, vtd, false, lhs);
             } else {
               receiver = new StaticReceiverExpr(expr.Origin, (UserDefinedType)tentativeReceiverType, (TopLevelDeclWithMembers)member.EnclosingClass, false, lhs);

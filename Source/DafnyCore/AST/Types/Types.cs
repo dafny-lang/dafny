@@ -1558,9 +1558,9 @@ public abstract class Type : NodeWithOrigin {
     } else if (b is IntVarietiesSupertype) {
       return a.IsNumericBased(NumericPersuasion.Int) || a.IsBigOrdinalType || a.IsBitVectorType ? a : null;
     } else if (a is FloatVarietiesSupertype) {
-      return b is FloatVarietiesSupertype || b.IsFp32Type || b.IsFp64Type ? b : null;
+      return b is FloatVarietiesSupertype || b.IsFloatingPointType ? b : null;
     } else if (b is FloatVarietiesSupertype) {
-      return a.IsFp32Type || a.IsFp64Type ? a : null;
+      return a.IsFloatingPointType ? a : null;
     } else if (a is RealVarietiesSupertype) {
       return b is RealVarietiesSupertype || b.IsNumericBased(NumericPersuasion.Real) || b.IsNumericBased(NumericPersuasion.Float) ? b : null;
     } else if (b is RealVarietiesSupertype) {

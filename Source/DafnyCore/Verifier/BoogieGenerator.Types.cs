@@ -1433,7 +1433,7 @@ public partial class BoogieGenerator {
           rhs = FunctionCall(expr.Origin, "char#ToInt", Bpl.Type.Int, rhs);
         }
         // Remove Lit wrappers for fp32/fp64-related conversions to avoid Z3 issues
-        if (toType.IsFp32Type || toType.IsFp64Type || fromType.IsFp32Type || fromType.IsFp64Type) {
+        if (toType.IsFloatingPointType || fromType.IsFloatingPointType) {
           rhs = RemoveLit(rhs);
         }
         builder.Add(Bpl.Cmd.SimpleAssign(tok, o, rhs));

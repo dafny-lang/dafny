@@ -1147,7 +1147,7 @@ namespace Microsoft.Dafny {
                   }
 
                   // Check for fp32/fp64 equality first, as they require special preconditions
-                  if (e.E0.Type.IsFp32Type || e.E1.Type.IsFp32Type || e.E0.Type.IsFp64Type || e.E1.Type.IsFp64Type) {
+                  if (e.E0.Type.IsFloatingPointType || e.E1.Type.IsFloatingPointType) {
                     // fp32/fp64 support equality with preconditions per spec section 5.3
                     // Well-formedness: !x.IsNaN && !y.IsNaN && !(x.IsZero && y.IsZero && x.IsNegative != y.IsNegative)
 
