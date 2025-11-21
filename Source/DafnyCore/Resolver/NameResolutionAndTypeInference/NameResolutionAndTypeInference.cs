@@ -988,7 +988,7 @@ namespace Microsoft.Dafny {
               AddXConstraint(e.Origin, "Plussable", expr.Type, "type of + must be of a numeric type, a bitvector type, ORDINAL, char, a sequence type, or a set-like or map-like type (instead got {0})");
               ConstrainSubtypeRelation(expr.Type, e.E0.Type, expr.Origin, "type of left argument to + ({0}) must agree with the result type ({1})", e.E0.Type, expr.Type);
               ConstrainSubtypeRelation(expr.Type, e.E1.Type, expr.Origin, "type of right argument to + ({0}) must agree with the result type ({1})", e.E1.Type, expr.Type);
-              HandleFp64ArithmeticConstraints(e, expr);
+              HandleFloatArithmeticConstraints(e, expr);
             }
             break;
 
@@ -1011,7 +1011,7 @@ namespace Microsoft.Dafny {
               } else {
                 ConstrainSubtypeRelation(expr.Type, e.E1.Type, expr.Origin, "type of right argument to - ({0}) must agree with the result type ({1})", e.E1.Type, expr.Type);
               }
-              HandleFp64ArithmeticConstraints(e, expr);
+              HandleFloatArithmeticConstraints(e, expr);
             }
             break;
 
@@ -1020,7 +1020,7 @@ namespace Microsoft.Dafny {
               AddXConstraint(e.Origin, "Mullable", expr.Type, "type of * must be of a numeric type, bitvector type, or a set-like type (instead got {0})");
               ConstrainSubtypeRelation(expr.Type, e.E0.Type, expr.Origin, "type of left argument to * ({0}) must agree with the result type ({1})", e.E0.Type, expr.Type);
               ConstrainSubtypeRelation(expr.Type, e.E1.Type, expr.Origin, "type of right argument to * ({0}) must agree with the result type ({1})", e.E1.Type, expr.Type);
-              HandleFp64ArithmeticConstraints(e, expr);
+              HandleFloatArithmeticConstraints(e, expr);
             }
             break;
 
@@ -1041,7 +1041,7 @@ namespace Microsoft.Dafny {
             ConstrainSubtypeRelation(expr.Type, e.E1.Type,
               expr, "type of right argument to " + BinaryExpr.OpcodeString(e.Op) + " ({0}) must agree with the result type ({1})",
               e.E1.Type, expr.Type);
-            HandleFp64ArithmeticConstraints(e, expr);
+            HandleFloatArithmeticConstraints(e, expr);
             break;
 
           case BinaryExpr.Opcode.Mod:
@@ -2356,12 +2356,7 @@ namespace Microsoft.Dafny {
       return proxy;
     }
 
-    static readonly HashSet<string> Fp32MemberNames = new() {
-      "IsInfinite", "IsFinite", "IsNaN", "IsZero", "IsPositive", "IsNegative",
-      "IsNormal", "IsSubnormal", "Equal", "Sqrt"
-    };
-
-    static readonly HashSet<string> Fp64MemberNames = new() {
+    static readonly HashSet<string> FloatMemberNames = new() {
       "IsInfinite", "IsFinite", "IsNaN", "IsZero", "IsPositive", "IsNegative",
       "IsNormal", "IsSubnormal", "Equal", "Sqrt"
     };
@@ -2370,24 +2365,20 @@ namespace Microsoft.Dafny {
       "Plussable", "Minusable", "Mullable", "Divable"
     };
 
-    bool IsFp32Member(string memberName) {
-      return Fp32MemberNames.Contains(memberName);
+    bool IsFloatMember(string memberName) {
+      return FloatMemberNames.Contains(memberName);
     }
 
-    bool IsFp64Member(string memberName) {
-      return Fp64MemberNames.Contains(memberName);
-    }
-
-    void HandleFp64ArithmeticConstraints(BinaryExpr e, Expression expr) {
+    void HandleFloatArithmeticConstraints(BinaryExpr e, Expression expr) {
       var leftType = e.E0.Type?.NormalizeExpand();
       var rightType = e.E1.Type?.NormalizeExpand();
 
-      if (!IsNumericOrProxyOrFp64(leftType) || !IsNumericOrProxyOrFp64(rightType)) {
+      if (!IsNumericOrProxyOrFloat(leftType) || !IsNumericOrProxyOrFloat(rightType)) {
         return;
       }
 
       // Check for fp32 first
-      if (IsFp32Operand(e.E0, leftType) || IsFp32Operand(e.E1, rightType)) {
+      if (IsFloatOperand(e.E0, leftType, Type.Fp32) || IsFloatOperand(e.E1, rightType, Type.Fp32)) {
         ConstrainSubtypeRelation(Type.Fp32, expr.Type, expr.Origin, "fp32 arithmetic produces fp32 result");
         if (e.E0 is LiteralExpr) {
           ConstrainSubtypeRelation(Type.Fp32, e.E0.Type, expr.Origin, "fp32 arithmetic requires fp32-compatible literal");
@@ -2395,7 +2386,7 @@ namespace Microsoft.Dafny {
         if (e.E1 is LiteralExpr) {
           ConstrainSubtypeRelation(Type.Fp32, e.E1.Type, expr.Origin, "fp32 arithmetic requires fp32-compatible literal");
         }
-      } else if (IsFp64Operand(e.E0, leftType) || IsFp64Operand(e.E1, rightType)) {
+      } else if (IsFloatOperand(e.E0, leftType, Type.Fp64) || IsFloatOperand(e.E1, rightType, Type.Fp64)) {
         ConstrainSubtypeRelation(Type.Fp64, expr.Type, expr.Origin, "fp64 arithmetic produces fp64 result");
         if (e.E0 is LiteralExpr) {
           ConstrainSubtypeRelation(Type.Fp64, e.E0.Type, expr.Origin, "fp64 arithmetic requires fp64-compatible literal");
@@ -2406,169 +2397,111 @@ namespace Microsoft.Dafny {
       }
     }
 
-    bool IsNumericOrProxyOrFp64(Type type) {
+    bool IsNumericOrProxyOrFloat(Type type) {
       return type == null || type is TypeProxy || type.IsNumericBased() || type is Fp32Type || type is Fp64Type;
     }
 
-    bool IsFp32Operand(Expression expr, Type type) {
-      return type is Fp32Type ||
-             (expr is IdentifierExpr { Var.Type: not null } id && id.Var.Type.NormalizeExpand() is Fp32Type);
+    bool IsFloatOperand(Expression expr, Type type, Type floatType) {
+      return type.Equals(floatType) ||
+             (expr is IdentifierExpr { Var.Type: not null } id && id.Var.Type.NormalizeExpand().Equals(floatType));
     }
 
-    bool IsFp64Operand(Expression expr, Type type) {
-      return type is Fp64Type ||
-             (expr is IdentifierExpr { Var.Type: not null } id && id.Var.Type.NormalizeExpand() is Fp64Type);
+    bool TryResolveFp32Proxy(TypeProxy tProxy) {
+      var visited = new HashSet<Type>();
+      if (TraceFloatConnection(tProxy, Type.Fp32, visited)) {
+        if (Options.Get(CommonOptionBag.TypeInferenceDebug)) {
+          Options.OutputWriter.Debug("  Found fp32 connection, assigning proxy");
+        }
+        AssignProxyAndHandleItsConstraints(tProxy, Type.Fp32, true);
+        return true;
+      }
+      return false;
     }
 
     bool TryResolveFp64Proxy(TypeProxy tProxy) {
-      // Strategy 1: Trace through constraints to find fp64 relationships
       var visited = new HashSet<Type>();
-      if (TraceFp64Connection(tProxy, visited)) {
+      if (TraceFloatConnection(tProxy, Type.Fp64, visited)) {
         if (Options.Get(CommonOptionBag.TypeInferenceDebug)) {
           Options.OutputWriter.Debug("  Found fp64 connection, assigning proxy");
         }
         AssignProxyAndHandleItsConstraints(tProxy, Type.Fp64, true);
         return true;
       }
-
-      // Strategy 2: Check if has numeric constraints compatible with fp64
-      if (HasNumericConstraints(tProxy)) {
-        AssignProxyAndHandleItsConstraints(tProxy, Type.Fp64, true);
-        return true;
-      }
-
-      // Strategy 3: Last resort - if no conflicting constraints, assume fp64
-      if (!HasConflictingConstraints(tProxy)) {
-        AssignProxyAndHandleItsConstraints(tProxy, Type.Fp64, true);
-        return true;
-      }
-
-      if (Options.Get(CommonOptionBag.TypeInferenceDebug)) {
-        Options.OutputWriter.Debug("  Could not resolve to fp64");
-      }
       return false;
     }
 
-    bool HasNumericConstraints(TypeProxy tProxy) {
-      return AllXConstraints.Any(xc => xc.Types.Contains(tProxy) && (
-        xc.ConstraintName is "NumericType" or "IntLikeOrBitvector" or "RealTypes" or "Orderable_Lt" or "Orderable_Gt" ||
-        ArithmeticConstraintNames.Contains(xc.ConstraintName)));
-    }
-
-    bool HasConflictingConstraints(TypeProxy tProxy) {
-      return AllTypeConstraints.Any(c => c.Sub == tProxy &&
-        c.Super.NormalizeExpand() is not TypeProxy and not Fp64Type and not RealType);
-    }
-
-    bool TraceFp64Connection(Type t, HashSet<Type> visited) {
+    bool TraceFloatConnection(Type t, Type floatType, HashSet<Type> visited) {
       if (t == null || visited.Contains(t)) return false;
       visited.Add(t);
 
-      if (t.IsFp64Type) {
+      if (t.Equals(floatType)) {
         if (Options.Get(CommonOptionBag.TypeInferenceDebug)) {
-          Options.OutputWriter.Debug("    TraceFp64Connection: Found fp64 type directly");
+          Options.OutputWriter.Debug($"    TraceFloatConnection: Found {floatType} type directly");
         }
         return true;
       }
 
       if (t is TypeProxy proxy) {
         if (Options.Get(CommonOptionBag.TypeInferenceDebug)) {
-          Options.OutputWriter.Debug("    TraceFp64Connection: Checking XConstraints for proxy {0}", t);
-          Options.OutputWriter.Debug("      Total XConstraints: {0}", AllXConstraints.Count);
+          Options.OutputWriter.Debug($"    TraceFloatConnection: Checking constraints for proxy {t}");
         }
-        // Check XConstraints that involve this proxy
+
+        // Check TypeConstraints for direct float connections
+        foreach (var tc in AllTypeConstraints) {
+          if (tc.Sub == proxy && tc.Super.NormalizeExpand().Equals(floatType)) {
+            return true;
+          }
+          if (tc.Super == proxy && tc.Sub.NormalizeExpand().Equals(floatType)) {
+            return true;
+          }
+          // Trace through proxy-to-proxy constraints
+          if (tc.Sub == proxy && tc.Super is TypeProxy superProxy) {
+            if (TraceFloatConnection(superProxy, floatType, visited)) {
+              return true;
+            }
+          }
+          if (tc.Super == proxy && tc.Sub is TypeProxy subProxy) {
+            if (TraceFloatConnection(subProxy, floatType, visited)) {
+              return true;
+            }
+          }
+        }
+
+        // Check arithmetic constraints
         foreach (var xc in AllXConstraints) {
           if (ArithmeticConstraintNames.Contains(xc.ConstraintName) && xc.Types.Contains(t)) {
             if (Options.Get(CommonOptionBag.TypeInferenceDebug)) {
-              Options.OutputWriter.Debug("      Found {0} constraint with types: {1}", xc.ConstraintName, string.Join(", ", xc.Types.Select(tt => tt.ToString())));
+              Options.OutputWriter.Debug($"      Found {xc.ConstraintName} constraint with types: {string.Join(", ", xc.Types.Select(tt => tt.ToString()))}");
             }
             foreach (var otherType in xc.Types) {
-              if (otherType != t && TraceFp64Connection(otherType, visited)) {
-                if (Options.Get(CommonOptionBag.TypeInferenceDebug)) {
-                  Options.OutputWriter.Debug("      Found fp64 connection through {0}", xc.ConstraintName);
+              if (otherType != t) {
+                if (otherType.NormalizeExpand().Equals(floatType)) {
+                  return true;
                 }
-                return true;
+                if (TraceFloatConnection(otherType, floatType, visited)) {
+                  if (Options.Get(CommonOptionBag.TypeInferenceDebug)) {
+                    Options.OutputWriter.Debug($"      Found {floatType} connection through {xc.ConstraintName}");
+                  }
+                  return true;
+                }
               }
             }
           }
         }
       }
 
-      // Check all constraints involving this type
+      // Check all TypeConstraints involving this type
       foreach (var c in AllTypeConstraints) {
-        if (c.Super == t && TraceFp64Connection(c.Sub, visited)) {
+        if (c.Super == t && TraceFloatConnection(c.Sub, floatType, visited)) {
           return true;
-        } else if (c.Sub == t && TraceFp64Connection(c.Super, visited)) {
+        } else if (c.Sub == t && TraceFloatConnection(c.Super, floatType, visited)) {
           return true;
         }
       }
 
+      // Follow assigned proxy
       if (t is TypeProxy proxy2 && proxy2.T != null) {
-        return TraceFp64Connection(proxy2.T, visited);
-      }
-
-      return false;
-    }
-
-    bool TraceFp32Connection(TypeProxy proxy, HashSet<Type> visited) {
-      if (visited.Contains(proxy)) {
-        return false;
-      }
-      visited.Add(proxy);
-
-      // Check if directly constrained to fp32
-      foreach (var tc in AllTypeConstraints) {
-        if (tc.Sub == proxy && tc.Super.NormalizeExpand() is Fp32Type) {
-          return true;
-        }
-        if (tc.Super == proxy && tc.Sub.NormalizeExpand() is Fp32Type) {
-          return true;
-        }
-        // Trace through proxy-to-proxy constraints
-        if (tc.Sub == proxy && tc.Super is TypeProxy superProxy) {
-          if (TraceFp32Connection(superProxy, visited)) {
-            return true;
-          }
-        }
-        if (tc.Super == proxy && tc.Sub is TypeProxy subProxy) {
-          if (TraceFp32Connection(subProxy, visited)) {
-            return true;
-          }
-        }
-      }
-
-      // Check assignable constraints
-      foreach (var xc in AllXConstraints) {
-        if (xc.ConstraintName == "Assignable" && xc.Types.Length >= 2) {
-          if (xc.Types[0] == proxy && xc.Types[1].NormalizeExpand() is Fp32Type) {
-            return true;
-          }
-          if (xc.Types[1] == proxy && xc.Types[0].NormalizeExpand() is Fp32Type) {
-            return true;
-          }
-          // Trace through proxy-to-proxy assignable constraints
-          if (xc.Types[0] == proxy && xc.Types[1] is TypeProxy proxy1) {
-            if (TraceFp32Connection(proxy1, visited)) {
-              return true;
-            }
-          }
-          if (xc.Types[1] == proxy && xc.Types[0] is TypeProxy proxy0) {
-            if (TraceFp32Connection(proxy0, visited)) {
-              return true;
-            }
-          }
-        }
-        // Check arithmetic constraints
-        if (ArithmeticConstraintNames.Contains(xc.ConstraintName) && xc.Types.Contains(proxy)) {
-          foreach (var otherType in xc.Types) {
-            if (otherType != proxy && otherType is TypeProxy otherProxy && TraceFp32Connection(otherProxy, visited)) {
-              return true;
-            }
-            if (otherType.NormalizeExpand() is Fp32Type) {
-              return true;
-            }
-          }
-        }
+        return TraceFloatConnection(proxy2.T, floatType, visited);
       }
 
       return false;
@@ -4973,7 +4906,7 @@ namespace Microsoft.Dafny {
       }
 
       // fp32/fp64 members require special resolution because they are lazily initialized
-      if (memberName != null && (IsFp32Member(memberName) || IsFp64Member(memberName))) {
+      if (memberName != null && IsFloatMember(memberName)) {
         if (Options.Get(CommonOptionBag.TypeInferenceDebug)) {
           Options.OutputWriter.Debug("PartiallyResolveTypeForMemberSelection: checking fp32/fp64 member {0} on type {1}", memberName, t);
         }
@@ -4991,16 +4924,12 @@ namespace Microsoft.Dafny {
         }
 
         // Check for fp32 first
-        if (IsFp32Member(memberName) && TraceFp32Connection((TypeProxy)t, new HashSet<Type>())) {
-          if (Options.Get(CommonOptionBag.TypeInferenceDebug)) {
-            Options.OutputWriter.Debug("  Found fp32 connection for member access");
-          }
-          AssignProxyAndHandleItsConstraints((TypeProxy)t, Type.Fp32, true);
+        if (IsFloatMember(memberName) && TryResolveFp32Proxy((TypeProxy)t)) {
           return Type.Fp32;
         }
 
         // Then check for fp64
-        if (IsFp64Member(memberName) && TryResolveFp64Proxy((TypeProxy)t)) {
+        if (IsFloatMember(memberName) && TryResolveFp64Proxy((TypeProxy)t)) {
           return Type.Fp64;
         }
       }
