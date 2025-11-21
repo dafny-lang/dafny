@@ -1918,7 +1918,6 @@ public class BoilerplateTriple : ProofObligationDescriptionCustomMessages {
 public class IntToFloatExactnessCheck : ProofObligationDescription {
   private readonly string floatTypeName;
   private readonly string mantissaBits;
-  private readonly string maxExponent;
   private readonly string prefix;
   private readonly Expression expr;
 
@@ -1928,11 +1927,9 @@ public class IntToFloatExactnessCheck : ProofObligationDescription {
     if (floatType.IsFp32Type) {
       this.floatTypeName = "fp32";
       this.mantissaBits = "2^24";
-      this.maxExponent = "3.4e38";
     } else {
       this.floatTypeName = "fp64";
       this.mantissaBits = "2^53";
-      this.maxExponent = "1.8e308";
     }
   }
 
@@ -1950,7 +1947,7 @@ public class IntToFloatExactnessCheck : ProofObligationDescription {
     // - All integers from -{mantissaBits} to {mantissaBits}
     // - Even integers from ±{mantissaBits} to ±{mantissaBits}*2
     // - Multiples of 4 from ±{mantissaBits}*2 to ±{mantissaBits}*4
-    // - And so on up to about ±{maxExponent}
+    // - And so on up to the maximum representable value
     // The actual Boogie check performs the round-trip test, this is just for display
     return Expression.CreateBoolLiteral(expr.Origin, true);
   }
