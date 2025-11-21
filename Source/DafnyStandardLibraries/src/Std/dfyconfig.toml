@@ -8,7 +8,6 @@ excludes = [
 #   "Std/Functions.dfy",
 #   "Std/Relations.dfy",
 #   "Std/Termination.dfy"
-#   "Std/Statistics.dfy"
 # ]
 
 [options]
