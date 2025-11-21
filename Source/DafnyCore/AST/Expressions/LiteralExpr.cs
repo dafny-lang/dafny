@@ -154,6 +154,12 @@ public class DecimalLiteralExpr : LiteralExpr, ICloneable<DecimalLiteralExpr> {
   /// </summary>
   public BigFloat? ResolvedFloatValue { get; set; }
 
+  /// <summary>
+  /// True if this literal is part of an approximate literal expression (~prefix).
+  /// Used to skip exact representability checks.
+  /// </summary>
+  public bool IsApproximate { get; set; }
+
   [SyntaxConstructor]
   public DecimalLiteralExpr(IOrigin origin, object value)
     : base(origin, value) {

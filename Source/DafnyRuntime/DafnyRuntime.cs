@@ -1389,6 +1389,14 @@ namespace Dafny {
       return value >= 0.0 && !(value == 0.0 && 1.0 / value < 0.0);
     }
 
+    // fp32.IsPositive helper - matches SMT-LIB fp.isPositive semantics
+    // Returns true for positive values including +0.0, false for -0.0, negative values, and NaN
+    public static bool Fp32IsPositive(float value) {
+      // >= 0.0f excludes negatives and NaN but includes both zeros
+      // 1.0f/(-0.0f) gives -Infinity, allowing us to detect and exclude -0.0f
+      return value >= 0.0f && !(value == 0.0f && 1.0f / value < 0.0f);
+    }
+
     public static int ToIntChecked(BigInteger i, string msg) {
       if (i > Int32.MaxValue || i < Int32.MinValue) {
         if (msg == null) {
@@ -1867,6 +1875,10 @@ namespace Dafny {
 
     public static BigRational FromDouble(double n) {
       return new BigRational(n);
+    }
+
+    public static BigRational FromFloat(float f) {
+      return new BigRational((double)f);
     }
 
     public double ToDouble() {

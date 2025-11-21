@@ -87,6 +87,11 @@ public class XConstraint {
           } else if (Type.FromSameHead(t, u, out var tUp, out var uUp)) {
             resolver.ConstrainAssignableTypeArgs(tUp, tUp.TypeArgs, uUp.TypeArgs, errorMsg, out moreXConstraints);
             return true;
+          } else if (u is NonProxyType) {
+            // RHS is concrete - LHS proxy should be assignable from RHS
+            resolver.ConstrainSubtypeRelation(u, t, errorMsg);
+            convertedIntoOtherTypeConstraints = true;
+            return true;
           } else if (fullstrength && t is NonProxyType) {
             // We convert Assignable(t, u) to the subtype constraint base(t) :> u.
             resolver.ConstrainAssignable((NonProxyType)t, u, errorMsg, out moreXConstraints, fullstrength);
