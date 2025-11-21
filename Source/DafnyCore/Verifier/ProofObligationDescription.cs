@@ -165,9 +165,9 @@ public class FloatCollectionEqualityWellformedness : ProofObligationDescription 
     } else if (collectionType is MultiSetType) {
       return $"multiset<{floatTypeName}>";
     } else if (collectionType is MapType mapType) {
-      bool domainIsFloat = (floatTypeName == "fp32" && mapType.Domain is Fp32Type) || 
+      bool domainIsFloat = (floatTypeName == "fp32" && mapType.Domain is Fp32Type) ||
                            (floatTypeName == "fp64" && mapType.Domain is Fp64Type);
-      bool rangeIsFloat = (floatTypeName == "fp32" && mapType.Range is Fp32Type) || 
+      bool rangeIsFloat = (floatTypeName == "fp32" && mapType.Range is Fp32Type) ||
                           (floatTypeName == "fp64" && mapType.Range is Fp64Type);
       return domainIsFloat ?
         (rangeIsFloat ? $"map<{floatTypeName}, {floatTypeName}>" : $"map<{floatTypeName}, _>") :
@@ -532,7 +532,7 @@ public class IsExactlyRepresentableAsFloat : ProofObligationDescription {
     } else {
       targetType = Type.Real; // fallback
     }
-    
+
     return new BinaryExpr(
       expr.Origin,
       BinaryExpr.Opcode.Eq,
