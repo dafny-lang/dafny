@@ -1696,7 +1696,8 @@ namespace Microsoft.Dafny {
 
     private void CheckForCyclesAmongRedirectingTypes(RedirectingTypeDecl dd, HashSet<ICallable> cycleErrorHasBeenReported) {
       var enclosingModule = dd.EnclosingModule;
-      if (enclosingModule.CallGraph.GetSCCSize(dd) != 1) {
+      if (enclosingModule.CallGraph.GetSCCSize(dd) != 1 ||
+          enclosingModule.CallGraph.FindVertex(dd).Successors.Any(v => v.N == dd)) {
         var r = enclosingModule.CallGraph.GetSCCRepresentative(dd);
         if (cycleErrorHasBeenReported.Contains(r)) {
           // An error has already been reported for this cycle, so don't report another.
