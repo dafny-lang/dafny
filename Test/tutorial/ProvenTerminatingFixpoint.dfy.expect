@@ -1,0 +1,21 @@
+ProvenTerminatingFixpoint.dfy(47,33): Error: cannot prove termination; try supplying a decreases clause
+ProvenTerminatingFixpoint.dfy(72,14): Error: value does not satisfy the subset constraints of '(nat --> nat, nat) -> nat' (possible cause: it may be partial or have read effects)
+ProvenTerminatingFixpoint.dfy(85,14): Error: value does not satisfy the subset constraints of '(nat --> nat, nat) -> nat' (possible cause: it may be partial or have read effects)
+ProvenTerminatingFixpoint.dfy(96,4): Error: function precondition might not hold
+ProvenTerminatingFixpoint.dfy(106,58): Error: function precondition might not hold
+ProvenTerminatingFixpoint.dfy(107,18): Related location
+ProvenTerminatingFixpoint.dfy(109,49): Error: function precondition might not hold
+ProvenTerminatingFixpoint.dfy(107,18): Related location
+ProvenTerminatingFixpoint.dfy(121,49): Error: function precondition might not hold
+ProvenTerminatingFixpoint.dfy(118,13): Related location
+ProvenTerminatingFixpoint.dfy(119,20): Related location
+ProvenTerminatingFixpoint.dfy(137,4): Error: function precondition might not hold
+ProvenTerminatingFixpoint.dfy(118,13): Related location
+ProvenTerminatingFixpoint.dfy(119,20): Related location
+ProvenTerminatingFixpoint.dfy(137,14): Error: value does not satisfy the subset constraints of '(nat --> nat, nat) --> nat' (possible cause: it may have read effects)
+ProvenTerminatingFixpoint.dfy(150,4): Error: function precondition might not hold
+ProvenTerminatingFixpoint.dfy(118,13): Related location
+ProvenTerminatingFixpoint.dfy(119,20): Related location
+ProvenTerminatingFixpoint.dfy(150,14): Error: value does not satisfy the subset constraints of '(nat --> nat, nat) --> nat' (possible cause: it may have read effects)
+
+Dafny program verifier finished with 9 verified, 11 errors
