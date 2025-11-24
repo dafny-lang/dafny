@@ -154,8 +154,9 @@ public class SystemModuleManager {
         t => t.IsIMapType, typeArgs => new MapType(false, typeArgs[0], typeArgs[1]))
     ];
 
-    // Add all valuetype decls to system module (except fp64, which is added lazily on first use)
-    SystemModule.SourceDecls.AddRange(valuetypeDecls.Where((_, i) => i != (int)ValuetypeVariety.Fp64));
+    // Add all valuetype decls to system module (except fp32 and fp64, which are added lazily on first use)
+    SystemModule.SourceDecls.AddRange(valuetypeDecls.Where((_, i) => 
+      i != (int)ValuetypeVariety.Fp32 && i != (int)ValuetypeVariety.Fp64));
 
     // Resolution error handling relies on being able to get to the 0-tuple declaration
     TupleType(Token.NoToken, 0, true);
@@ -185,9 +186,7 @@ public class SystemModuleManager {
     var isNat = new SpecialField(SourceOrigin.NoToken, "IsNat", SpecialField.ID.IsNat, null, false, false, false, Type.Bool, null);
     AddMember(isNat, ValuetypeVariety.BigOrdinal);
 
-    // Initialize fp32 and fp64 members eagerly
-    InitializeFp32Members();
-    InitializeFp64Members();
+    // Note: fp32 and fp64 members are initialized lazily on first use
 
     // Add "Keys", "Values", and "Items" to map, imap
     foreach (var typeVariety in new[] { ValuetypeVariety.Map, ValuetypeVariety.IMap }) {
