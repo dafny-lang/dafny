@@ -155,7 +155,7 @@ public class SystemModuleManager {
     ];
 
     // Add all valuetype decls to system module (except fp32 and fp64, which are added lazily on first use)
-    SystemModule.SourceDecls.AddRange(valuetypeDecls.Where((_, i) => 
+    SystemModule.SourceDecls.AddRange(valuetypeDecls.Where((_, i) =>
       i != (int)ValuetypeVariety.Fp32 && i != (int)ValuetypeVariety.Fp64));
 
     // Resolution error handling relies on being able to get to the 0-tuple declaration

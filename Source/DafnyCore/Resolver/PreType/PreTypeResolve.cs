@@ -87,7 +87,7 @@ namespace Microsoft.Dafny {
           if (!preTypeInferenceModuleState.PreTypeBuiltins.ContainsKey(name)) {
             var variety = name == "fp32" ? ValuetypeVariety.Fp32 : ValuetypeVariety.Fp64;
             var floatDecl = resolver.ProgramResolver.SystemModuleManager.valuetypeDecls[(int)variety];
-            
+
             if (name == "fp32") {
               resolver.ProgramResolver.SystemModuleManager.EnsureFp32TypeInitialized(resolver.ProgramResolver);
             } else {
