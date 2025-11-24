@@ -127,7 +127,8 @@ enum UnaryOpExprOpcode
     Fresh,
     Allocated,
     Lit,
-    Assigned
+    Assigned,
+    Negate
 }
 
 class FreshExpr : UnaryExpr
@@ -178,6 +179,10 @@ class LiteralExpr : Expression
 class StringLiteralExpr : LiteralExpr
 {
     Boolean isVerbatim;
+}
+
+class DecimalLiteralExpr : LiteralExpr
+{
 }
 
 class CharLiteralExpr : LiteralExpr
@@ -557,6 +562,11 @@ class NegationExpression : ConcreteSyntaxExpression
     Expression e;
 }
 
+class ApproximateExpr : ConcreteSyntaxExpression
+{
+    Expression expr;
+}
+
 abstract class SuffixExpr : ConcreteSyntaxExpression
 {
     Expression lhs;
@@ -699,6 +709,14 @@ class BitvectorType : BasicType
 }
 
 class BigOrdinalType : BasicType
+{
+}
+
+class Fp32Type : BasicType
+{
+}
+
+class Fp64Type : BasicType
 {
 }
 
