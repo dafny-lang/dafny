@@ -113,13 +113,13 @@ jobs:
           dotnet tool run coco "Source/DafnyCore/Dafny.atg" -namespace Microsoft.Dafny -frames "Source/DafnyCore/Coco"
 
       - name: Download integration test artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v6
         with:
           pattern: integration-test-results-ubuntu-22.04-*
           merge-multiple: true
 
       - name: Download unit test artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v6
         with:
           name: unit-test-results-ubuntu-22.04
 
