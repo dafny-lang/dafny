@@ -3694,12 +3694,14 @@ namespace Microsoft.Dafny {
     /// Note: 1 and 2a are not used now, but they will be of interest when async task types are supported.
     /// </summary>
     private bool IsBuiltinTypeName(string name) {
-      return name == PreType.TypeNameFp64 || name == PreType.TypeNameInt || name == PreType.TypeNameReal || name == PreType.TypeNameBool || name == PreType.TypeNameChar || name == PreType.TypeNameORDINAL;
+      return name == PreType.TypeNameFp32 || name == PreType.TypeNameFp64 || name == PreType.TypeNameInt || name == PreType.TypeNameReal || name == PreType.TypeNameBool || name == PreType.TypeNameChar || name == PreType.TypeNameORDINAL;
     }
 
     private TopLevelDecl CreateBuiltinTypeDecl(string name, IOrigin origin) {
       // For built-in types, we need to return the corresponding ValuetypeDecl from the system module
-      if (name == "fp64") {
+      if (name == "fp32") {
+        ProgramResolver.SystemModuleManager.EnsureFp32TypeInitialized(ProgramResolver);
+      } else if (name == "fp64") {
         ProgramResolver.SystemModuleManager.EnsureFp64TypeInitialized(ProgramResolver);
       }
       foreach (var vtd in ProgramResolver.SystemModuleManager.valuetypeDecls) {
@@ -4791,7 +4793,9 @@ namespace Microsoft.Dafny {
       }
       Contract.Assert(receiverType is NonProxyType);  // there are only two kinds of types: proxies and non-proxies
 
-      if (receiverType.IsFp64Type) {
+      if (receiverType.IsFp32Type) {
+        ProgramResolver.SystemModuleManager.EnsureFp32TypeInitialized(ProgramResolver);
+      } else if (receiverType.IsFp64Type) {
         ProgramResolver.SystemModuleManager.EnsureFp64TypeInitialized(ProgramResolver);
       }
 
@@ -6130,7 +6134,9 @@ namespace Microsoft.Dafny {
         }
       } else if (lhs != null) {
         // ----- 4. Look up name in the type of the Lhs
-        if (expr.Lhs.Type.IsFp64Type) {
+        if (expr.Lhs.Type.IsFp32Type) {
+          ProgramResolver.SystemModuleManager.EnsureFp32TypeInitialized(ProgramResolver);
+        } else if (expr.Lhs.Type.IsFp64Type) {
           ProgramResolver.SystemModuleManager.EnsureFp64TypeInitialized(ProgramResolver);
         }
         member = ResolveMember(expr.Origin, expr.Lhs.Type, name, out var tentativeReceiverType);

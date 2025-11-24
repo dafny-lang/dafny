@@ -310,6 +310,11 @@ public class SystemModuleManager {
 
     var fp32TypeDecl = valuetypeDecls[(int)ValuetypeVariety.Fp32];
 
+    // Add fp32 to system module if not already there
+    if (!SystemModule.SourceDecls.Contains(fp32TypeDecl)) {
+      SystemModule.SourceDecls.Add(fp32TypeDecl);
+    }
+
     // Register fp32 in systemNameInfo.TopLevels for name resolution
     systemNameInfo.TopLevels.TryAdd("fp32", fp32TypeDecl);
 
@@ -328,7 +333,18 @@ public class SystemModuleManager {
       return;
     }
 
+    // Initialize both fp32 and fp64 members together (they share implementation)
     InitializeFp32Members();
+    InitializeFp64Members();
+
+    // Add both to system module
+    if (!SystemModule.SourceDecls.Contains(fp32TypeDecl)) {
+      SystemModule.SourceDecls.Add(fp32TypeDecl);
+    }
+    var fp64TypeDecl = valuetypeDecls[(int)ValuetypeVariety.Fp64];
+    if (!SystemModule.SourceDecls.Contains(fp64TypeDecl)) {
+      SystemModule.SourceDecls.Add(fp64TypeDecl);
+    }
   }
 
   public void EnsureFp64TypeInitialized(ProgramResolver programResolver) {

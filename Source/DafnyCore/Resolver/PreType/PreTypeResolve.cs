@@ -82,19 +82,25 @@ namespace Microsoft.Dafny {
         }
         return bvDecl;
       } else {
-        // If looking for fp64, ensure it's in the preTypeBuiltins cache
-        if (name == "fp64") {
-          if (!preTypeInferenceModuleState.PreTypeBuiltins.ContainsKey("fp64")) {
-            var fp64Decl = resolver.ProgramResolver.SystemModuleManager.valuetypeDecls[(int)ValuetypeVariety.Fp64];
-            resolver.ProgramResolver.SystemModuleManager.EnsureFp64TypeInitialized(resolver.ProgramResolver);
+        // If looking for fp32 or fp64, ensure it's in the preTypeBuiltins cache
+        if (name is "fp32" or "fp64") {
+          if (!preTypeInferenceModuleState.PreTypeBuiltins.ContainsKey(name)) {
+            var variety = name == "fp32" ? ValuetypeVariety.Fp32 : ValuetypeVariety.Fp64;
+            var floatDecl = resolver.ProgramResolver.SystemModuleManager.valuetypeDecls[(int)variety];
+            
+            if (name == "fp32") {
+              resolver.ProgramResolver.SystemModuleManager.EnsureFp32TypeInitialized(resolver.ProgramResolver);
+            } else {
+              resolver.ProgramResolver.SystemModuleManager.EnsureFp64TypeInitialized(resolver.ProgramResolver);
+            }
 
-            preTypeInferenceModuleState.PreTypeBuiltins.Add("fp64", fp64Decl);
-            FillInPreTypesInSignature(fp64Decl);
-            foreach (var member in fp64Decl.Members) {
+            preTypeInferenceModuleState.PreTypeBuiltins.Add(name, floatDecl);
+            FillInPreTypesInSignature(floatDecl);
+            foreach (var member in floatDecl.Members) {
               FillInPreTypesInSignature(member);
             }
           }
-          return preTypeInferenceModuleState.PreTypeBuiltins.GetValueOrDefault("fp64");
+          return preTypeInferenceModuleState.PreTypeBuiltins.GetValueOrDefault(name);
         }
         decl = null;
         foreach (var valueTypeDecl in resolver.ProgramResolver.SystemModuleManager.valuetypeDecls) {
