@@ -67,7 +67,9 @@ module Std.Statistics {
     ensures VarianceSample(s) >= 0.0
   {
     var avg := Mean(s);
-    (SumSquaredDifferences(s, avg)) / ((|s| - 1) as real)
+    var nMinus1 := ((|s| - 1) as real);
+    assert nMinus1 > 0 as real;
+    (SumSquaredDifferences(s, avg)) / nMinus1
   }
 
   // A function to calculate Population Standard Deviation
