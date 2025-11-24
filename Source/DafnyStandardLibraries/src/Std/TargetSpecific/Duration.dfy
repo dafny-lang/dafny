@@ -404,12 +404,12 @@ module Std.Duration {
 
 
 include "DateTimeConstant.dfy"
-include "../Collections/SeqExt.dfy"
+//include "../Collections/SeqExt.dfy"
 
 module Std.Duration {
   import opened DateTimeConstant
   import opened Strings
-  import opened Collections.SeqExt
+  //import opened Collections.SeqExt
   import opened Collections.Seq
   import opened BoundedInts
   import opened Arithmetic.Power
