@@ -63,7 +63,7 @@ jobs:
             chmod: true
     env:
       solutionPath: Source/Dafny.sln
-      z3BaseUri: https://github.com/dafny-lang/solver-builds/releases/download/snapshot-2024-04-10
+      z3BaseUri: https://github.com/dafny-lang/solver-builds/releases/download/snapshot-2025-07-02
       Logging__LogLevel__Microsoft: Debug
     steps:
     - uses: actions/checkout@v4
