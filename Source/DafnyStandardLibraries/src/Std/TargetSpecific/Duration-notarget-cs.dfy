@@ -34,7 +34,6 @@ module Std.Duration {
     Duration(secondsValue, millis)
   }
 
-
   // Compare two durations: returns -1 (less), 0 (equal), 1 (greater)
   function Compare(d1: Duration, d2: Duration): int
     requires d1.Valid() && d2.Valid()
@@ -46,13 +45,11 @@ module Std.Duration {
     else 0
   }
 
-
   function Less(d1: Duration, d2: Duration): bool
     requires d1.Valid() && d2.Valid()
   {
     ToTotalMilliseconds(d1) < ToTotalMilliseconds(d2)
   }
-
 
   function LessOrEqual(d1: Duration, d2: Duration): bool
     requires d1.Valid() && d2.Valid()
@@ -81,8 +78,9 @@ module Std.Duration {
     var ms2 := ToTotalMilliseconds(d2);
     FromMilliseconds((ms1 - ms2) as uint32)
   }
-
+  
   // Scale duration by a factor
+  @ResourceLimit("1e7")
   function Scale(d: Duration, factor: uint32): Duration
     requires d.Valid()
     requires ToTotalMilliseconds(d) * (factor as uint64) <= (0xFFFFFFFF as uint64)
@@ -94,6 +92,7 @@ module Std.Duration {
   }
 
   // Divide duration by a divisor
+  @ResourceLimit("1e7")
   function Divide(d: Duration, divisor: uint32): Duration
     requires d.Valid() && divisor > 0
     ensures Divide(d, divisor).Valid()
@@ -102,13 +101,13 @@ module Std.Duration {
   }
 
   // Modulo operation on durations
+  @ResourceLimit("1e7")
   function Mod(d1: Duration, d2: Duration): Duration
     requires d1.Valid() && d2.Valid() && ToTotalMilliseconds(d2) > 0
     ensures Mod(d1, d2).Valid()
   {
     FromMilliseconds((ToTotalMilliseconds(d1) % ToTotalMilliseconds(d2)) as uint32)
   }
-
 
   // Maximum of two durations
   function Max(d1: Duration, d2: Duration): Duration
@@ -125,7 +124,6 @@ module Std.Duration {
   {
     if Less(d1, d2) then d1 else d2
   }
-
 
   function ToTotalSeconds(d: Duration): uint64
     requires d.Valid()
@@ -219,7 +217,8 @@ module Std.Duration {
     else forall i :: 0 <= i < |s| ==> s[i] >= '0' && s[i] <= '9'
   }
 
-  function ParseNumericString(s: string): Result<nat, string>
+  @ResourceLimit("1e7")
+  function ParseNumericString(s: string): Result<int, string>
     requires IsNumeric(s)
     decreases |s|
   {
@@ -230,12 +229,13 @@ module Std.Duration {
       match ParseNumericString(s[1..])
       case Success(restValue) =>
         var pow := Pow(10, |s| - 1);
-        Success(digit * pow + restValue)
+        var result := digit * pow + restValue;
+        Success(result)
       case Failure(err) =>
         Failure(err)
   }
 
-
+  @ResourceLimit("1e7")
   function ParseComponent(text: string, start: int, end: int): Result<uint32, string>
     requires start >= 0 && end >= 0 && start <= end && end <= |text|
   {
@@ -256,6 +256,7 @@ module Std.Duration {
         Failure("Non-numeric characters in component")
   }
 
+  @ResourceLimit("1e7")
   function ParseString(text: string): Result<Duration, string>
     requires |text| >= 2
     requires text[0..2] == "PT"
@@ -312,12 +313,11 @@ module Std.Duration {
             var minute_mult := (minute as uint64) * (SECONDS_PER_MINUTE as uint64);
             var totalSeconds_val := hour_mult + minute_mult + (second as uint64);
 
-            if totalSeconds_val <= 0xFFFFFFFFFFFFFFFF then
+            if totalSeconds_val <= DURATION_TOTAL_SECONDS_OUTER_BOUND then
               Success(Duration(totalSeconds_val, millisecond as uint16))
             else
               Failure("Total seconds exceeds maximum uint64")
   }
-
 
   function EpochDifference(epoch1: uint32, epoch2: uint32): Duration
     ensures EpochDifference(epoch1, epoch2).Valid()
@@ -327,4 +327,3 @@ module Std.Duration {
     FromMilliseconds(diff)
   }
 }
-

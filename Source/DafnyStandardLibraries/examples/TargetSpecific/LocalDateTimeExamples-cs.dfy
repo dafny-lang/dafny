@@ -400,6 +400,7 @@ module TestLocalDateTime {
     expect DTUtils.DaysInYear(2020) == 366; // Leap year
   }
 
+  @ResourceLimit("1e7")
   method {:test} TestPlusDays() {
     // Test day overflow across month boundary
     var june29 := LDT.LocalDateTime(2023, 6, 29, 10, 0, 0, 0);
@@ -428,6 +429,7 @@ module TestLocalDateTime {
     }
   }
 
+  @ResourceLimit("1e7")
   method {:test} TestPlusHours() {
     // Test hour overflow across day boundary
     var lateNight := LDT.LocalDateTime(2023, 6, 15, 22, 30, 45, 123);
@@ -445,6 +447,7 @@ module TestLocalDateTime {
     }
   }
 
+  @ResourceLimit("1e7")
   method {:test} TestPlusMinutes() {
     // Test minute overflow across hour boundary
     var dt := LDT.LocalDateTime(2023, 6, 15, 14, 55, 45, 123);
@@ -460,6 +463,7 @@ module TestLocalDateTime {
     }
   }
 
+  @ResourceLimit("1e7")
   method {:test} TestPlusSeconds() {
     // Test second overflow across minute boundary
     var dt := LDT.LocalDateTime(2023, 6, 15, 14, 30, 55, 123);
@@ -475,6 +479,7 @@ module TestLocalDateTime {
     }
   }
 
+  @ResourceLimit("1e7")
   method {:test} TestPlusMilliseconds() {
     // Test millisecond overflow across second boundary
     var dt := LDT.LocalDateTime(2023, 6, 15, 14, 30, 45, 950);
@@ -489,6 +494,7 @@ module TestLocalDateTime {
     }
   }
 
+  @ResourceLimit("1e7")
   method {:test} TestMinusDays() {
     // Test day underflow across month boundary
     var july2 := LDT.LocalDateTime(2023, 7, 2, 10, 0, 0, 0);
@@ -517,6 +523,7 @@ module TestLocalDateTime {
     }
   }
 
+  @ResourceLimit("1e7")
   method {:test} TestMinusHours() {
     // Test hour underflow across day boundary
     var earlyMorning := LDT.LocalDateTime(2023, 6, 16, 3, 30, 45, 123);
@@ -534,6 +541,7 @@ module TestLocalDateTime {
     }
   }
 
+  @ResourceLimit("1e7")
   method {:test} TestMinusMinutes() {
     // Test minute underflow across hour boundary
     var dt := LDT.LocalDateTime(2023, 6, 15, 15, 5, 45, 123);
@@ -549,6 +557,7 @@ module TestLocalDateTime {
     }
   }
 
+  @ResourceLimit("1e7")
   method {:test} TestMinusSeconds() {
     // Test second underflow across minute boundary
     var dt := LDT.LocalDateTime(2023, 6, 15, 14, 31, 5, 123);
@@ -564,6 +573,7 @@ module TestLocalDateTime {
     }
   }
 
+  @ResourceLimit("1e7")
   method {:test} TestMinusMilliseconds() {
     // Test millisecond underflow across second boundary
     var dt := LDT.LocalDateTime(2023, 6, 15, 14, 30, 46, 50);
