@@ -15,10 +15,8 @@ module Std.DateTimeUtils {
   import opened DateTimeConstant
   import opened Wrappers
 
-  // Month names for better error messages
   const MONTH_NAMES: seq<string> := ["January", "February", "March", "April", "May", "June",
                                      "July", "August", "September", "October", "November", "December"]
-
 
   function {:extern "DateTimeImpl.__default", "INTERNAL__ToEpochTimeMilliseconds"}
     {:axiom} INTERNAL__ToEpochTimeMilliseconds(year: int32, month: uint8, day: uint8, hour: uint8, minute: uint8, second: uint8, millisecond: uint16): (bool, int, string)
