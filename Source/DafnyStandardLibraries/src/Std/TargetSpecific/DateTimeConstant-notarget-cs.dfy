@@ -21,6 +21,8 @@ module Std.DateTimeConstant {
   const MAX_YEAR: int32 := 999999999
   const MAX_DAYS_PER_MONTH: uint8 := 31
 
+  const DURATION_TOTAL_SECONDS_OUTER_BOUND: uint64 := 0xFFFFFFFFFFFFFFFF
+
   // Derived constants for performance
   const MILLISECONDS_PER_MINUTE: uint16 := (SECONDS_PER_MINUTE as uint16) * MILLISECONDS_PER_SECOND
   const MILLISECONDS_PER_HOUR: uint32 := (MINUTES_PER_HOUR as uint32) * (MILLISECONDS_PER_MINUTE as uint32)
