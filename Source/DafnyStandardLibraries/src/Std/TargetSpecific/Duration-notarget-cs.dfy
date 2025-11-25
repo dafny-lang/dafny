@@ -35,7 +35,7 @@ module Std.Duration {
   }
 
 
-  /// Compare two durations: returns -1 (less), 0 (equal), 1 (greater)
+  // Compare two durations: returns -1 (less), 0 (equal), 1 (greater)
   function Compare(d1: Duration, d2: Duration): int
     requires d1.Valid() && d2.Valid()
   {
@@ -60,7 +60,7 @@ module Std.Duration {
     ToTotalMilliseconds(d1) <= ToTotalMilliseconds(d2)
   }
 
-  /// Add two durations
+  // Add two durations
   function Plus(d1: Duration, d2: Duration): Duration
     requires d1.Valid() && d2.Valid()
     requires ToTotalMilliseconds(d1) + ToTotalMilliseconds(d2) <= (0xFFFFFFFF as uint64)
@@ -82,7 +82,7 @@ module Std.Duration {
     FromMilliseconds((ms1 - ms2) as uint32)
   }
 
-  /// Scale duration by a factor
+  // Scale duration by a factor
   function Scale(d: Duration, factor: uint32): Duration
     requires d.Valid()
     requires ToTotalMilliseconds(d) * (factor as uint64) <= (0xFFFFFFFF as uint64)
@@ -93,7 +93,7 @@ module Std.Duration {
     FromMilliseconds(product as uint32)
   }
 
-  /// Divide duration by a divisor
+  // Divide duration by a divisor
   function Divide(d: Duration, divisor: uint32): Duration
     requires d.Valid() && divisor > 0
     ensures Divide(d, divisor).Valid()
@@ -101,7 +101,7 @@ module Std.Duration {
     FromMilliseconds((ToTotalMilliseconds(d) / (divisor as uint64)) as uint32)
   }
 
-  /// Modulo operation on durations
+  // Modulo operation on durations
   function Mod(d1: Duration, d2: Duration): Duration
     requires d1.Valid() && d2.Valid() && ToTotalMilliseconds(d2) > 0
     ensures Mod(d1, d2).Valid()
@@ -110,7 +110,7 @@ module Std.Duration {
   }
 
 
-  /// Maximum of two durations
+  // Maximum of two durations
   function Max(d1: Duration, d2: Duration): Duration
     requires d1.Valid() && d2.Valid()
     ensures Max(d1, d2).Valid()
@@ -118,7 +118,7 @@ module Std.Duration {
     if Less(d1, d2) then d2 else d1
   }
 
-  /// Minimum of two durations
+  // Minimum of two durations
   function Min(d1: Duration, d2: Duration): Duration
     requires d1.Valid() && d2.Valid()
     ensures Min(d1, d2).Valid()
@@ -193,7 +193,7 @@ module Std.Duration {
 
   function GetMilliseconds(d: Duration): uint16 { d.millis }
 
-  /// Convert duration to ISO 8601 format: PT[H]H[M]M[S]S.sssS
+  // Convert duration to ISO 8601 format: PT[H]H[M]M[S]S.sssS
   function ToString(d: Duration): string
     requires d.Valid()
   {
@@ -205,7 +205,7 @@ module Std.Duration {
     OfInt(d.millis as int) + "S"
   }
 
-  /// Helper to safely find a character in a string
+  // Helper to safely find a character in a string
   function FindCharOrNeg(text: string, ch: char): int
   {
     match IndexOfOption(text, ch)
