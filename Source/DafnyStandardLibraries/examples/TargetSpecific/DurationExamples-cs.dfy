@@ -1,15 +1,15 @@
+
+
 /*******************************************************************************
  *  Copyright by the contributors to the Dafny Project
  *  SPDX-License-Identifier: MIT 
  *******************************************************************************/
 
 /**
-Includes comprehensive test methods for validating the functionality of each
-operation using Dafny's {:test} annotation.
-
-These tests serve as verification examples that work with Dafny's formal proofs.
+Defines Duration module functionality like timestamp parsing and arithmetic calculation.
 */
-
+include "../../src/Std/TargetSpecific/Duration.dfy"
+include "../Helpers.dfy"
 module TestDuration {
   import Std.Duration
   import opened Std.BoundedInts
@@ -25,6 +25,7 @@ module TestDuration {
   method {:test} TestArithmetic() {
     var d1 := Duration.Duration(1, 2);
     var d2 := Duration.Duration(1, 3);
+
     // Compute total ms
     var total1 := Duration.ToTotalMilliseconds(d1);
     AssertAndExpect(total1 == 1002);
@@ -32,7 +33,6 @@ module TestDuration {
     // Addition
     var d3 := Duration.Plus(d1, d2);
     AssertAndExpect(d3 == Duration.Duration(2, 5));
-
     //Minus
     var d4 := Duration.Minus(d2, d1);
     AssertAndExpect(d4 == Duration.Duration(0, 1));
@@ -78,25 +78,25 @@ module TestDuration {
     AssertAndExpect(Duration.ToTotalMilliseconds(oneSec) == 1000);
 
     var oneMin := Duration.FromMinutes(1);
-    AssertAndExpect(Duration.ToTotalMilliseconds(oneMin) == (60000 as int));
+    AssertAndExpect(Duration.ToTotalMilliseconds(oneMin) == (60000 as uint64));
 
-    var oneHour :=  Duration.Duration(3600, 0);
-    AssertAndExpect(Duration.ToTotalMilliseconds(oneHour) == 3600000);
+    var oneHour := Duration.FromHours(1);
+    AssertAndExpect(Duration.ToTotalMilliseconds(oneHour) == (3600000 as uint64));
   }
 
   method {:test} TestEdgeCases() {
     var d5 := Duration.FromMilliseconds(1000);
     var d6 := Duration.FromMilliseconds(999);
+
     AssertAndExpect(Duration.Less(d6, d5));
     AssertAndExpect(!Duration.Less(d5, d6));
     AssertAndExpect(Duration.Compare(d5, d5) == 0);
     AssertAndExpect(Duration.Compare(d5, d6) == 1);
     AssertAndExpect(Duration.Compare(d6, d5) == -1);
   }
-
   method {:test} TestEpochDifference() {
-    var e1: int := 5000;
-    var e2: int := 8000;
+    var e1: uint32 := 5000;
+    var e2: uint32 := 8000;
     var dd := Duration.EpochDifference(e1, e2);
     AssertAndExpect(Duration.ToTotalMilliseconds(dd) == 3000);
   }
@@ -146,3 +146,5 @@ module TestDuration {
     expect CompareHelper(minD, d3) == 0;
   }
 }
+
+
