@@ -49,10 +49,10 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-22.04, windows-2022, macos-latest]
+        os: [ubuntu-22.04, windows-2022, macos-15]
         iteration: ${{ fromJson(needs.populate-matrix-dimensions.outputs.iterations) }}
         include:
-          - os: macos-latest
+          - os: macos-15
             suffix: osx
             chmod: true
           - os: windows-2022
