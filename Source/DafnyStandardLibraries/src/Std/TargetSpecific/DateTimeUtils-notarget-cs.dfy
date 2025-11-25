@@ -7,8 +7,6 @@
 Contains utility functions for date validation, day calculations, and formatting helpers.
 */
 
-include "DateTimeConstant.dfy"
-
 module Std.DateTimeUtils {
   import opened Strings
   import opened BoundedInts

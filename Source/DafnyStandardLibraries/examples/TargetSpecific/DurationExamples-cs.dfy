@@ -14,6 +14,7 @@ module TestDuration {
   import opened Std.BoundedInts
   import opened Helpers
   import opened Std.Collections.Seq
+
   method {:test} TestOfParseString() {
     var parsedResult := Duration.ParseString("PT9650H30M45.123S");
     expect parsedResult.Success?;
@@ -71,7 +72,6 @@ module TestDuration {
     AssertAndExpect(dmax == scaled);
   }
 
-
   method {:test} TestUnitConversions() {
     var oneSec := Duration.FromSeconds(1);
     AssertAndExpect(Duration.ToTotalMilliseconds(oneSec) == 1000);
@@ -81,8 +81,6 @@ module TestDuration {
 
     var oneHour := Duration.FromHours(1);
     AssertAndExpect(Duration.ToTotalMilliseconds(oneHour) == (3600000 as uint64));
-
-
   }
 
   method {:test} TestEdgeCases() {
@@ -124,28 +122,28 @@ module TestDuration {
     AssertAndExpect(str[1] == 'T');
   }
 
-function CompareHelper(d1: Duration.Duration, d2: Duration.Duration): int
-  ensures -1 <= CompareHelper(d1, d2) <= 1
-{
-  if d1.seconds < d2.seconds then -1
-  else if d1.seconds > d2.seconds then 1
-  else if d1.millis < d2.millis then -1
-  else if d1.millis > d2.millis then 1
-  else 0
-}
+  function CompareHelper(d1: Duration.Duration, d2: Duration.Duration): int
+    ensures -1 <= CompareHelper(d1, d2) <= 1
+  {
+    if d1.seconds < d2.seconds then -1
+    else if d1.seconds > d2.seconds then 1
+    else if d1.millis < d2.millis then -1
+    else if d1.millis > d2.millis then 1
+    else 0
+  }
 
-method {:test} TestMaxByWithCompareHelper() {
-  var d1 := Duration.Duration(1, 100);   
-  var d2 := Duration.Duration(2, 50);    
-  var d3 := Duration.Duration(0, 999);   
-  var durations := [d1, d2, d3];
-  
-  var maxD := MaxBy(durations, CompareHelper);
-  var minD := MinBy(durations, CompareHelper);
-  
-  expect CompareHelper(maxD, d2) == 0;
-  expect CompareHelper(minD, d3) == 0;
-}
+  method {:test} TestMaxByWithCompareHelper() {
+    var d1 := Duration.Duration(1, 100);
+    var d2 := Duration.Duration(2, 50);
+    var d3 := Duration.Duration(0, 999);
+    var durations := [d1, d2, d3];
+
+    var maxD := MaxBy(durations, CompareHelper);
+    var minD := MinBy(durations, CompareHelper);
+
+    expect CompareHelper(maxD, d2) == 0;
+    expect CompareHelper(minD, d3) == 0;
+  }
 }
 
 

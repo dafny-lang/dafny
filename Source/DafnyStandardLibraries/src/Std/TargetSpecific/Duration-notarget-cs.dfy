@@ -1,7 +1,3 @@
-
-
-include "DateTimeConstant.dfy"
-
 module Std.Duration {
   import opened DateTimeConstant
   import opened Strings
