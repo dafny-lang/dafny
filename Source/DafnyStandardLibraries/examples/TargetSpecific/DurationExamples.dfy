@@ -7,8 +7,7 @@
 /**
 Defines Duration module functionality like timestamp parsing and arithmetic calculation.
 */
-include "../../src/Std/TargetSpecific/Duration.dfy"
-include "../Helpers.dfy"
+
 module TestDuration {
   import Std.Duration
   import opened Std.BoundedInts

@@ -11,6 +11,10 @@ It defines all verification contracts and imports external DateTime utilities. U
 epoch-time-based calculations for reliable date arithmetic.
 */
 
+include "Duration.dfy"
+include "DateTimeUtils.dfy"
+include "DateTimeConstant.dfy"
+
 module Std.LocalDateTime {
   import opened Strings
   import opened Wrappers
@@ -136,7 +140,7 @@ module Std.LocalDateTime {
   }
 
   function WithSecond(dt: LocalDateTime, newSecond: uint8): LocalDateTime
-    requires IsValidLocalDateTime(dt) && newSecond <= SECONDS_PER_MINUTE
+    requires IsValidLocalDateTime(dt) && newSecond < SECONDS_PER_MINUTE
     ensures IsValidLocalDateTime(WithSecond(dt, newSecond))
   {
     FromComponents(dt.year, dt.month, dt.day, dt.hour, dt.minute, newSecond, dt.millisecond)
