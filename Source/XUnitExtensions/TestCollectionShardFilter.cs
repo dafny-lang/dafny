@@ -43,7 +43,7 @@ namespace XUnitExtensions {
     private InvalidOperationException InTheTowelAndExit(String message) {
       Console.Error.WriteLine(message);
       Environment.Exit(1);
-      
+
       // Never actually reached, but makes the compiler happy.
       return new InvalidOperationException(message);
     }

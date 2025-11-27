@@ -46,6 +46,7 @@ jobs:
         run: echo "iterations=[`seq -s , 1 5`]" >> $GITHUB_OUTPUT
       - name: Populate shard list
         id: populate-shard-list
+        working-directory: .
         run: echo "shard-list=[`seq -s , 1 ${{ inputs.num_shards }}`]" >> $GITHUB_OUTPUT
     outputs:
       iterations: ${{ steps.populate-iterations-normal.outputs.iterations }} ${{ steps.populate-iterations-soak.outputs.iterations }}
