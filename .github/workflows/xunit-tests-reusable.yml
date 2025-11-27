@@ -7,12 +7,18 @@ on:
         required: false
         type: boolean
         default: false
+      num_shards:
+        required: true
+        type: number
   workflow_call:
     inputs:
       soak_test:
         required: false
         type: boolean
         default: false
+      num_shards:
+        required: true
+        type: number
 
 ## In the matrix:
 ##  os - name of the Github actions runner
@@ -38,19 +44,24 @@ jobs:
         if: inputs.soak_test
         working-directory: .
         run: echo "iterations=[`seq -s , 1 5`]" >> $GITHUB_OUTPUT
+      - name: Populate shard list
+        id: populate-shard-list
+        run: echo "shard-list=[`seq -s , 1 ${{ inputs.num_shards }}`]" >> $GITHUB_OUTPUT
     outputs:
       iterations: ${{ steps.populate-iterations-normal.outputs.iterations }} ${{ steps.populate-iterations-soak.outputs.iterations }}
+      shard-list: ${{ steps.populate-shard-list.outputs.shard-list }}
   
   build:
     needs: populate-matrix-dimensions
     runs-on: ${{matrix.os}}
     timeout-minutes: 60
-    name: ${{matrix.suffix}} (${{matrix.iteration}})
+    name: ${{matrix.suffix}} [${{matrix.shard}}] (${{matrix.iteration}})
     strategy:
       fail-fast: false
       matrix:
         os: [ubuntu-22.04, windows-2022, macos-14]
         iteration: ${{ fromJson(needs.populate-matrix-dimensions.outputs.iterations) }}
+        shard: ${{ fromJson(needs.populate-matrix-dimensions.outputs.shard-list) }}
         include:
           - os: macos-14
             suffix: osx
@@ -103,6 +114,9 @@ jobs:
         dotnet test --no-restore --blame-crash --blame-hang-timeout 360s --logger "console;verbosity=normal" --logger trx --collect:"XPlat Code Coverage" --settings Source/DafnyLanguageServer.Test/coverlet.runsettings Source/DafnyLanguageServer.Test
     - name: Run DafnyLanguageServer Tests
       if: "!inputs.soak_test"
+      env:
+        XUNIT_SHARD: ${{ matrix.shard }}
+        XUNIT_SHARD_COUNT: ${{ inputs.num_shards }}
       run: |
         ##  Note that, for some mysterious reason, --collect doesn't work with the DafnyLanguageServer.Test package
         dotnet coverage collect -o DafnyLanguageServer.Test.coverage dotnet test --no-restore --blame-hang-timeout 360s --logger "console;verbosity=normal" --logger trx Source/DafnyLanguageServer.Test

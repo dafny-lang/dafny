@@ -27,6 +27,7 @@
     <ProjectReference Include="..\DafnyCore.Test\DafnyCore.Test.csproj" />
     <ProjectReference Include="..\DafnyLanguageServer\DafnyLanguageServer.csproj" />
     <ProjectReference Include="..\DafnyPipeline\DafnyPipeline.csproj" />
+    <ProjectReference Include="..\XUnitExtensions\XUnitExtensions.csproj" />
   </ItemGroup>
 
   <ItemGroup>
