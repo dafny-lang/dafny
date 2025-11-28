@@ -139,7 +139,7 @@ jobs:
     - uses: actions/upload-artifact@v4
       if: always() && !inputs.soak_test
       with:
-        name: unit-test-results-${{ matrix.os }}
+        name: unit-test-results-${{ matrix.os }}-${{ matrix.shard }}
         path: |
           dafny/Source/*/TestResults/*.trx
           dafny/Source/*/TestResults/*/coverage.cobertura.xml
