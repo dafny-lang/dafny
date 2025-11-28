@@ -123,7 +123,7 @@ jobs:
       - name: Download unit test artifacts
         uses: actions/download-artifact@v4
         with:
-          name: unit-test-results-ubuntu-22.04-*
+          pattern: unit-test-results-ubuntu-22.04-*
           merge-multiple: true
 
       - name: Merge reports
