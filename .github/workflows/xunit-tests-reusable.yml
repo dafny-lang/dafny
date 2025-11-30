@@ -164,4 +164,4 @@ jobs:
         path: |
           dafny/Source/*/TestResults/*.trx
           dafny/Source/*/TestResults/*/coverage.cobertura.xml
-          dafny/DafnyLanguageServer.Test.coverage
+          dafny/DafnyLanguageServer.Test.*.coverage
