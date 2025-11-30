@@ -35,7 +35,7 @@ namespace XUnitExtensions {
       return sorted;
     }
 
-    // Helper method to log a message before throwing.
+    // Helper method to log a message before exiting.
     // The XUnit framework doesn't consider orderers critical
     // so it will swallow our exceptions and continue.
     // The sharding is costly to silently ignore
