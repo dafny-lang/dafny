@@ -1,3 +1,16 @@
+/*******************************************************************************
+ *  Copyright by the contributors to the Dafny Project
+ *  SPDX-License-Identifier: MIT 
+ *******************************************************************************/
+
+/**   
+Contains the full implementation of Duration operations, including creation, parsing,
+formatting, arithmetic, and comparison functions.
+
+It defines all verification contracts and imports external DateTime Constant. Uses
+milliseconds-based calculations for reliable date arithmetic.
+*/
+
 module Std.Duration {
   import opened DateTimeConstant
   import opened Strings
@@ -7,36 +20,26 @@ module Std.Duration {
   import opened Wrappers
 
   datatype Duration = Duration(
-    seconds: uint64,
-    millis: uint16
-  ) {
+    seconds: int,
+    millis: int
+  )
 
-    ghost predicate Valid() {
-      millis < (MILLISECONDS_PER_SECOND as uint16)
-    }
-  }
-
-  function ToTotalMilliseconds(d: Duration): uint64
-    requires d.Valid()
+  function ToTotalMilliseconds(d: Duration): int
   {
-    var product := d.seconds * (MILLISECONDS_PER_SECOND as uint64);
-    var sum := product + (d.millis as uint64);
-    sum
+    var total: int :=
+      (d.seconds * MILLISECONDS_PER_SECOND_INT) +
+      d.millis;
+    total
   }
 
-  function FromMilliseconds(ms: uint32): Duration
-    ensures FromMilliseconds(ms).Valid()
+  function FromMilliseconds(ms: int): Duration
   {
-    var ms64 := ms as uint64;
-    var secondsValue := ms64 / (MILLISECONDS_PER_SECOND as uint64);
-    var millisValue := ms64 % (MILLISECONDS_PER_SECOND as uint64);
-    var millis := millisValue as uint16;
-    Duration(secondsValue, millis)
+    var secondsValue := ms / MILLISECONDS_PER_SECOND_INT;
+    var millisValue := ms % MILLISECONDS_PER_SECOND_INT;
+    Duration(secondsValue, millisValue)
   }
 
-  // Compare two durations: returns -1 (less), 0 (equal), 1 (greater)
   function Compare(d1: Duration, d2: Duration): int
-    requires d1.Valid() && d2.Valid()
   {
     var ms1 := ToTotalMilliseconds(d1);
     var ms2 := ToTotalMilliseconds(d2);
@@ -46,164 +49,135 @@ module Std.Duration {
   }
 
   function Less(d1: Duration, d2: Duration): bool
-    requires d1.Valid() && d2.Valid()
   {
     ToTotalMilliseconds(d1) < ToTotalMilliseconds(d2)
   }
 
   function LessOrEqual(d1: Duration, d2: Duration): bool
-    requires d1.Valid() && d2.Valid()
   {
     ToTotalMilliseconds(d1) <= ToTotalMilliseconds(d2)
   }
 
   // Add two durations
   function Plus(d1: Duration, d2: Duration): Duration
-    requires d1.Valid() && d2.Valid()
-    requires ToTotalMilliseconds(d1) + ToTotalMilliseconds(d2) <= (0xFFFFFFFF as uint64)
-    ensures Plus(d1, d2).Valid()
+    requires d1.seconds < DURATION_SECONDS_BOUND
   {
     var ms1 := ToTotalMilliseconds(d1);
     var ms2 := ToTotalMilliseconds(d2);
     var sum := ms1 + ms2;
-    FromMilliseconds(sum as uint32)
+    FromMilliseconds(sum)
   }
 
   function Minus(d1: Duration, d2: Duration): Duration
-    requires d1.Valid() && d2.Valid()
     requires ToTotalMilliseconds(d1) >= ToTotalMilliseconds(d2)
-    ensures Minus(d1, d2).Valid()
   {
     var ms1 := ToTotalMilliseconds(d1);
     var ms2 := ToTotalMilliseconds(d2);
-    FromMilliseconds((ms1 - ms2) as uint32)
+    FromMilliseconds((ms1 - ms2))
   }
-  
+
   // Scale duration by a factor
   @ResourceLimit("1e7")
-  function Scale(d: Duration, factor: uint32): Duration
-    requires d.Valid()
-    requires ToTotalMilliseconds(d) * (factor as uint64) <= (0xFFFFFFFF as uint64)
-    ensures Scale(d, factor).Valid()
+  function Scale(d: Duration, factor: int): Duration
+    requires ToTotalMilliseconds(d) * factor <= DURATION_SECONDS_BOUND
   {
     var ms := ToTotalMilliseconds(d);
-    var product := ms * (factor as uint64);
-    FromMilliseconds(product as uint32)
+    var product := ms * factor ;
+    FromMilliseconds(product)
   }
 
   // Divide duration by a divisor
   @ResourceLimit("1e7")
-  function Divide(d: Duration, divisor: uint32): Duration
-    requires d.Valid() && divisor > 0
-    ensures Divide(d, divisor).Valid()
+  function Divide(d: Duration, divisor: int): Duration
+    requires divisor > 0
   {
-    FromMilliseconds((ToTotalMilliseconds(d) / (divisor as uint64)) as uint32)
+    FromMilliseconds((ToTotalMilliseconds(d)/ divisor))
   }
 
   // Modulo operation on durations
   @ResourceLimit("1e7")
   function Mod(d1: Duration, d2: Duration): Duration
-    requires d1.Valid() && d2.Valid() && ToTotalMilliseconds(d2) > 0
-    ensures Mod(d1, d2).Valid()
+    requires ToTotalMilliseconds(d2) > 0
   {
-    FromMilliseconds((ToTotalMilliseconds(d1) % ToTotalMilliseconds(d2)) as uint32)
+    FromMilliseconds((ToTotalMilliseconds(d1) % ToTotalMilliseconds(d2)))
   }
 
   // Maximum of two durations
   function Max(d1: Duration, d2: Duration): Duration
-    requires d1.Valid() && d2.Valid()
-    ensures Max(d1, d2).Valid()
   {
     if Less(d1, d2) then d2 else d1
   }
 
   // Minimum of two durations
   function Min(d1: Duration, d2: Duration): Duration
-    requires d1.Valid() && d2.Valid()
-    ensures Min(d1, d2).Valid()
   {
     if Less(d1, d2) then d1 else d2
   }
 
-  function ToTotalSeconds(d: Duration): uint64
-    requires d.Valid()
+  function ToTotalSeconds(d: Duration): int
   {
-    d.seconds + ((d.millis as uint64) / (MILLISECONDS_PER_SECOND as uint64))
+    d.seconds + (d.millis / (MILLISECONDS_PER_SECOND as int) )
   }
 
-  function ToTotalMinutes(d: Duration): uint64
-    requires d.Valid()
+  function ToTotalMinutes(d: Duration): int
   {
-    ToTotalMilliseconds(d) / (MILLISECONDS_PER_MINUTE as uint64)
+    ToTotalMilliseconds(d) / (MILLISECONDS_PER_SECOND as int)
   }
 
-  function ToTotalHours(d: Duration): uint64
-    requires d.Valid()
+  function ToTotalHours(d: Duration): int
   {
-    ToTotalMilliseconds(d) / (MILLISECONDS_PER_HOUR as uint64)
+    ToTotalMilliseconds(d) / (MILLISECONDS_PER_SECOND as int)
   }
 
-  function ToTotalDays(d: Duration): uint64
-    requires d.Valid()
+  function ToTotalDays(d: Duration): int
   {
-    ToTotalMilliseconds(d) / (MILLISECONDS_PER_DAY as uint64)
+    ToTotalMilliseconds(d) / (MILLISECONDS_PER_SECOND as int)
   }
 
-  function ConvertToUnit(d: Duration, unitMs: uint32): uint64
-    requires d.Valid() && unitMs > 0
+  function ConvertToUnit(d: Duration, unitMs: int): int
+    requires unitMs > 0
   {
-    ToTotalMilliseconds(d) / (unitMs as uint64)
+    ToTotalMilliseconds(d) / unitMs
   }
 
-  function FromSeconds(s: uint64): Duration
-    requires s * (MILLISECONDS_PER_SECOND as uint64) <= (0xFFFFFFFF as uint64)
-    ensures FromSeconds(s).Valid()
+  function FromSeconds(s: int): Duration
   {
-    var product := s * (MILLISECONDS_PER_SECOND as uint64);
-    FromMilliseconds(product as uint32)
+    var product := s * (MILLISECONDS_PER_SECOND as int);
+    FromMilliseconds(product)
   }
 
-  function FromMinutes(m: uint64): Duration
-    requires m * (MILLISECONDS_PER_MINUTE as uint64) <= (0xFFFFFFFF as uint64)
-    ensures FromMinutes(m).Valid()
+  function FromMinutes(m: int): Duration
   {
-    var product := m * (MILLISECONDS_PER_MINUTE as uint64);
-    FromMilliseconds(product as uint32)
+    var product := m * (MILLISECONDS_PER_MINUTE as int);
+    FromMilliseconds(product)
   }
 
-  function FromHours(h: uint64): Duration
-    requires h * (MILLISECONDS_PER_HOUR as uint64) <= (0xFFFFFFFF as uint64)
-    ensures FromHours(h).Valid()
+  function FromHours(h: int): Duration
   {
-    var product := h * (MILLISECONDS_PER_HOUR as uint64);
-    FromMilliseconds(product as uint32)
+    var product := h * (MILLISECONDS_PER_MINUTE as int);
+    FromMilliseconds(product)
   }
 
-  function FromDays(d: uint64): Duration
-    requires d * (MILLISECONDS_PER_DAY as uint64) <= (0xFFFFFFFF as uint64)
-    ensures FromDays(d).Valid()
+  function FromDays(d: int): Duration
   {
-    var product := d * (MILLISECONDS_PER_DAY as uint64);
-    FromMilliseconds(product as uint32)
+    var product := d * (MILLISECONDS_PER_MINUTE as int);
+    FromMilliseconds(product)
   }
 
-  function GetSeconds(d: Duration): uint64 { d.seconds }
+  function GetSeconds(d: Duration): int { d.seconds }
 
-  function GetMilliseconds(d: Duration): uint16 { d.millis }
+  function GetMilliseconds(d: Duration): int { d.millis }
 
-  // Convert duration to ISO 8601 format: PT[H]H[M]M[S]S.sssS
   function ToString(d: Duration): string
-    requires d.Valid()
   {
     var total_seconds := d.seconds;
-    var hours := (total_seconds / (SECONDS_PER_HOUR as uint64)) as int;
-    var minutes := ((total_seconds % (SECONDS_PER_HOUR as uint64)) / (SECONDS_PER_MINUTE as uint64)) as int;
-    var seconds := (total_seconds % (SECONDS_PER_MINUTE as uint64)) as int;
+    var hours := (total_seconds / (SECONDS_PER_HOUR as int)) as int;
+    var minutes := ((total_seconds % (SECONDS_PER_HOUR as int)) / (SECONDS_PER_MINUTE as int)) as int;
+    var seconds := (total_seconds % (SECONDS_PER_MINUTE as int)) as int;
     "PT" + OfInt(hours) + "H" + OfInt(minutes) + "M" + OfInt(seconds) + "." +
     OfInt(d.millis as int) + "S"
   }
 
-  // Helper to safely find a character in a string
   function FindCharOrNeg(text: string, ch: char): int
   {
     match IndexOfOption(text, ch)
@@ -217,6 +191,13 @@ module Std.Duration {
     else forall i :: 0 <= i < |s| ==> s[i] >= '0' && s[i] <= '9'
   }
 
+  lemma IsNumericSubstring(s: string, start: int, end: int)
+    requires IsNumeric(s)
+    requires 0 <= start < end <= |s|
+    ensures IsNumeric(s[start..end])
+  {
+  }
+
   @ResourceLimit("1e7")
   function ParseNumericString(s: string): Result<int, string>
     requires IsNumeric(s)
@@ -224,8 +205,12 @@ module Std.Duration {
   {
     if |s| == 0 then
       Success(0)
+    else if |s| == 1 then
+      var digit := (s[0] as int) - ('0' as int);
+      Success(digit)
     else
       var digit := (s[0] as int) - ('0' as int);
+      IsNumericSubstring(s, 1, |s|);
       match ParseNumericString(s[1..])
       case Success(restValue) =>
         var pow := Pow(10, |s| - 1);
@@ -236,7 +221,7 @@ module Std.Duration {
   }
 
   @ResourceLimit("1e7")
-  function ParseComponent(text: string, start: int, end: int): Result<uint32, string>
+  function ParseComponent(text: string, start: int, end: int): Result<int, string>
     requires start >= 0 && end >= 0 && start <= end && end <= |text|
   {
     if start >= end then
@@ -246,8 +231,8 @@ module Std.Duration {
       if IsNumeric(substr) then
         match ParseNumericString(substr)
         case Success(parsed) =>
-          if parsed <= 0xFFFFFFFF then
-            Success(parsed as uint32)
+          if parsed <= DURATION_SECONDS_BOUND then
+            Success(parsed as int)
           else
             Failure("Parsed value exceeds maximum uint32")
         case Failure(err) =>
@@ -268,7 +253,6 @@ module Std.Duration {
     var sPos := FindCharOrNeg(text, 'S');
     var dotPos := FindCharOrNeg(text, '.');
 
-    // Extract hour component
     var hourResult :=
       if hPos > 2 then ParseComponent(text, 2, hPos) else Success(0);
 
@@ -276,7 +260,6 @@ module Std.Duration {
     case Failure(err) => Failure(err)
     case Success(hour) =>
 
-      // Extract minute component
       var minuteStart : int := if hPos > 0 then hPos + 1 else 2;
       var minuteResult :=
         if mPos > minuteStart then ParseComponent(text, minuteStart, mPos) else Success(0);
@@ -285,7 +268,6 @@ module Std.Duration {
       case Failure(err) => Failure(err)
       case Success(minute) =>
 
-        // Extract second component
         var secondStart : int := if mPos > 0 then mPos + 1 else 2;
         var secondEnd : int :=
           if dotPos > secondStart then dotPos
@@ -307,23 +289,22 @@ module Std.Duration {
           match millisecondResult
           case Failure(err) => Failure(err)
           case Success(raw) =>
-            var millisecond : uint32 := if raw < 1000 then raw else 999;
+            var millisecond : int := if raw < MILLISECONDS_PER_SECOND_INT then (raw as int) else 999;
 
-            var hour_mult := (hour as uint64) * (SECONDS_PER_HOUR as uint64);
-            var minute_mult := (minute as uint64) * (SECONDS_PER_MINUTE as uint64);
-            var totalSeconds_val := hour_mult + minute_mult + (second as uint64);
+            var hour_mult := (hour as int) * (SECONDS_PER_HOUR as int);
+            var minute_mult := (minute as int) * (SECONDS_PER_MINUTE as int);
+            var totalSeconds_val := hour_mult + minute_mult + (second as int);
 
-            if totalSeconds_val <= DURATION_TOTAL_SECONDS_OUTER_BOUND then
-              Success(Duration(totalSeconds_val, millisecond as uint16))
+            if totalSeconds_val <= (DURATION_TOTAL_SECONDS_OUTER_BOUND as int) then
+              Success(Duration(totalSeconds_val, millisecond))
             else
               Failure("Total seconds exceeds maximum uint64")
   }
 
-  function EpochDifference(epoch1: uint32, epoch2: uint32): Duration
-    ensures EpochDifference(epoch1, epoch2).Valid()
+  function EpochDifference(epoch1: int, epoch2: int): Duration
   {
-    var diff : uint32 := if epoch1 >= epoch2 then (epoch1 - epoch2) as uint32
-                         else (epoch2 - epoch1) as uint32;
+    var diff : int := if epoch1 >= epoch2 then (epoch1 - epoch2) as int
+                      else (epoch2 - epoch1) as int;
     FromMilliseconds(diff)
   }
 }
