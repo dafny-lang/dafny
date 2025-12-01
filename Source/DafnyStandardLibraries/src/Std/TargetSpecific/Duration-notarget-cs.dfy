@@ -1,3 +1,15 @@
+/*******************************************************************************
+ *  Copyright by the contributors to the Dafny Project
+ *  SPDX-License-Identifier: MIT 
+ *******************************************************************************/
+
+/**   
+Contains the full implementation of Duration operations, including creation, parsing,
+formatting, arithmetic, and comparison functions.
+
+It defines all verification contracts and imports external DateTime Constant. Uses
+milliseconds-based calculations for reliable date arithmetic.
+*/
 
 module Std.Duration {
   import opened DateTimeConstant
@@ -15,9 +27,8 @@ module Std.Duration {
   function ToTotalMilliseconds(d: Duration): int
   
   {
-    // compute in mathematical integers
     var total: int :=
-      (d.seconds * 1000) +
+      (d.seconds * DURATION_MILLISECONDS_CALC) +
       d.millis;
     total 
   }
@@ -25,13 +36,11 @@ module Std.Duration {
 
   function FromMilliseconds(ms: int): Duration
   {
-   // var ms32 := ms as uint32;
-    var secondsValue := ms / 1000;
-    var millisValue := ms % 1000;
+    var secondsValue := ms / DURATION_MILLISECONDS_CALC;
+    var millisValue := ms % DURATION_MILLISECONDS_CALC;
     Duration(secondsValue, millisValue)
   }
 
-  // Compare two durations: returns -1 (less), 0 (equal), 1 (greater)
   function Compare(d1: Duration, d2: Duration): int
   {
     var ms1 := ToTotalMilliseconds(d1);
@@ -53,8 +62,7 @@ module Std.Duration {
 
   // Add two durations
   function Plus(d1: Duration, d2: Duration): Duration
-   // requires ToTotalMilliseconds(d1) + ToTotalMilliseconds(d2) <= (0xFFFFFFFF as uint64)
-   requires d1.seconds < 0xFFFFFFFF
+   requires d1.seconds < DURATION_SECONDS_BOUND
   {
     var ms1 := ToTotalMilliseconds(d1);
     var ms2 := ToTotalMilliseconds(d2);
@@ -73,7 +81,7 @@ module Std.Duration {
   // Scale duration by a factor
   @ResourceLimit("1e7")
   function Scale(d: Duration, factor: int): Duration
-    requires ToTotalMilliseconds(d) * factor <= 0xFFFFFFFF 
+    requires ToTotalMilliseconds(d) * factor <= DURATION_SECONDS_BOUND
   {
     var ms := ToTotalMilliseconds(d);
     var product := ms * factor ;
@@ -135,28 +143,24 @@ module Std.Duration {
   }
 
   function FromSeconds(s: int): Duration
-    //requires s * (MILLISECONDS_PER_SECOND as uint64) <= (0xFFFFFFFF as uint64)
   {
     var product := s * (MILLISECONDS_PER_SECOND as int);
     FromMilliseconds(product)
   }
 
   function FromMinutes(m: int): Duration
-   // requires m * (MILLISECONDS_PER_MINUTE as uint64) <= (0xFFFFFFFF as uint64)
   {
     var product := m * (MILLISECONDS_PER_MINUTE as int);
     FromMilliseconds(product)
   }
 
   function FromHours(h: int): Duration
-    //requires h * (MILLISECONDS_PER_HOUR as uint64) <= (0xFFFFFFFF as uint64)
   {
     var product := h * (MILLISECONDS_PER_MINUTE as int);
     FromMilliseconds(product)
   }
 
   function FromDays(d: int): Duration
-    //requires d * (MILLISECONDS_PER_DAY as uint64) <= (0xFFFFFFFF as uint64)
   {
     var product := d * (MILLISECONDS_PER_MINUTE as int);
     FromMilliseconds(product)
@@ -165,7 +169,7 @@ module Std.Duration {
   function GetSeconds(d: Duration): int { d.seconds }
 
   function GetMilliseconds(d: Duration): int { d.millis }
-  // Convert duration to ISO 8601 format: PT[H]H[M]M[S]S.sssS
+
   function ToString(d: Duration): string
   {
     var total_seconds := d.seconds;
@@ -176,7 +180,6 @@ module Std.Duration {
     OfInt(d.millis as int) + "S"
   }
 
-  // Helper to safely find a character in a string
   function FindCharOrNeg(text: string, ch: char): int
   {
     match IndexOfOption(text, ch)
@@ -209,7 +212,7 @@ function ParseNumericString(s: string): Result<int, string>
     Success(digit)
   else
     var digit := (s[0] as int) - ('0' as int);
-    IsNumericSubstring(s, 1, |s|);  // Now |s| > 1 is guaranteed
+    IsNumericSubstring(s, 1, |s|);  
     match ParseNumericString(s[1..])
     case Success(restValue) =>
       var pow := Pow(10, |s| - 1);
@@ -230,7 +233,7 @@ function ParseNumericString(s: string): Result<int, string>
       if IsNumeric(substr) then
         match ParseNumericString(substr)
         case Success(parsed) =>
-          if parsed <= 0xFFFFFFFF then
+          if parsed <= DURATION_SECONDS_BOUND then
             Success(parsed as int)
           else
             Failure("Parsed value exceeds maximum uint32")
@@ -252,7 +255,6 @@ function ParseNumericString(s: string): Result<int, string>
     var sPos := FindCharOrNeg(text, 'S');
     var dotPos := FindCharOrNeg(text, '.');
 
-    // Extract hour component
     var hourResult :=
       if hPos > 2 then ParseComponent(text, 2, hPos) else Success(0);
 
@@ -260,7 +262,6 @@ function ParseNumericString(s: string): Result<int, string>
     case Failure(err) => Failure(err)
     case Success(hour) =>
 
-      // Extract minute component
       var minuteStart : int := if hPos > 0 then hPos + 1 else 2;
       var minuteResult :=
         if mPos > minuteStart then ParseComponent(text, minuteStart, mPos) else Success(0);
@@ -269,7 +270,6 @@ function ParseNumericString(s: string): Result<int, string>
       case Failure(err) => Failure(err)
       case Success(minute) =>
 
-        // Extract second component
         var secondStart : int := if mPos > 0 then mPos + 1 else 2;
         var secondEnd : int :=
           if dotPos > secondStart then dotPos
@@ -291,7 +291,7 @@ function ParseNumericString(s: string): Result<int, string>
           match millisecondResult
           case Failure(err) => Failure(err)
           case Success(raw) =>
-            var millisecond : int := if raw < 1000 then (raw as int) else 999;
+            var millisecond : int := if raw < DURATION_MILLISECONDS_CALC then (raw as int) else 999;
 
             var hour_mult := (hour as int) * (SECONDS_PER_HOUR as int);
             var minute_mult := (minute as int) * (SECONDS_PER_MINUTE as int);
