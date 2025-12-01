@@ -985,13 +985,13 @@ namespace DAST {
           }
           {
             Dafny.ISequence<DAST._IType> _7_newtypeArgs = ((System.Func<Dafny.ISequence<DAST._IType>>) (() => {
-              BigInteger dim12 = new BigInteger((_1_typeArgs).Count);
-              var arr12 = new DAST._IType[Dafny.Helpers.ToIntChecked(dim12, "array size exceeds memory limit")];
-              for (int i12 = 0; i12 < dim12; i12++) {
-                var _8_i = (BigInteger) i12;
-                arr12[(int)(_8_i)] = ((_1_typeArgs).Select(_8_i)).RemoveSynonyms();
+              BigInteger dim13 = new BigInteger((_1_typeArgs).Count);
+              var arr13 = new DAST._IType[Dafny.Helpers.ToIntChecked(dim13, "array size exceeds memory limit")];
+              for (int i13 = 0; i13 < dim13; i13++) {
+                var _8_i = (BigInteger) i13;
+                arr13[(int)(_8_i)] = ((_1_typeArgs).Select(_8_i)).RemoveSynonyms();
               }
-              return Dafny.Sequence<DAST._IType>.FromArray(arr12);
+              return Dafny.Sequence<DAST._IType>.FromArray(arr13);
             }))();
             return DAST.Type.create_UserDefined(DAST.ResolvedType.create(_0_path, _7_newtypeArgs, _2_typeKind, _3_attributes, _4_properMethods, _5_extendedTypes));
           }
