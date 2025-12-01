@@ -25,19 +25,17 @@ module Std.Duration {
   )
 
   function ToTotalMilliseconds(d: Duration): int
-  
   {
     var total: int :=
-      (d.seconds * DURATION_MILLISECONDS_CALC) +
+      (d.seconds * MILLISECONDS_PER_SECOND_INT) +
       d.millis;
-    total 
+    total
   }
-
 
   function FromMilliseconds(ms: int): Duration
   {
-    var secondsValue := ms / DURATION_MILLISECONDS_CALC;
-    var millisValue := ms % DURATION_MILLISECONDS_CALC;
+    var secondsValue := ms / MILLISECONDS_PER_SECOND_INT;
+    var millisValue := ms % MILLISECONDS_PER_SECOND_INT;
     Duration(secondsValue, millisValue)
   }
 
@@ -62,7 +60,7 @@ module Std.Duration {
 
   // Add two durations
   function Plus(d1: Duration, d2: Duration): Duration
-   requires d1.seconds < DURATION_SECONDS_BOUND
+    requires d1.seconds < DURATION_SECONDS_BOUND
   {
     var ms1 := ToTotalMilliseconds(d1);
     var ms2 := ToTotalMilliseconds(d2);
@@ -77,7 +75,7 @@ module Std.Duration {
     var ms2 := ToTotalMilliseconds(d2);
     FromMilliseconds((ms1 - ms2))
   }
-  
+
   // Scale duration by a factor
   @ResourceLimit("1e7")
   function Scale(d: Duration, factor: int): Duration
@@ -116,7 +114,7 @@ module Std.Duration {
     if Less(d1, d2) then d1 else d2
   }
 
-  function ToTotalSeconds(d: Duration): int 
+  function ToTotalSeconds(d: Duration): int
   {
     d.seconds + (d.millis / (MILLISECONDS_PER_SECOND as int) )
   }
@@ -128,18 +126,18 @@ module Std.Duration {
 
   function ToTotalHours(d: Duration): int
   {
-    ToTotalMilliseconds(d) / (MILLISECONDS_PER_SECOND as int) 
+    ToTotalMilliseconds(d) / (MILLISECONDS_PER_SECOND as int)
   }
 
   function ToTotalDays(d: Duration): int
   {
-    ToTotalMilliseconds(d) / (MILLISECONDS_PER_SECOND as int) 
+    ToTotalMilliseconds(d) / (MILLISECONDS_PER_SECOND as int)
   }
 
   function ConvertToUnit(d: Duration, unitMs: int): int
     requires unitMs > 0
   {
-    ToTotalMilliseconds(d) / unitMs 
+    ToTotalMilliseconds(d) / unitMs
   }
 
   function FromSeconds(s: int): Duration
@@ -193,34 +191,34 @@ module Std.Duration {
     else forall i :: 0 <= i < |s| ==> s[i] >= '0' && s[i] <= '9'
   }
 
-lemma IsNumericSubstring(s: string, start: int, end: int)
-  requires IsNumeric(s)
-  requires 0 <= start < end <= |s|
-  ensures IsNumeric(s[start..end])
-{
-}
+  lemma IsNumericSubstring(s: string, start: int, end: int)
+    requires IsNumeric(s)
+    requires 0 <= start < end <= |s|
+    ensures IsNumeric(s[start..end])
+  {
+  }
 
-@ResourceLimit("1e7")
-function ParseNumericString(s: string): Result<int, string>
-  requires IsNumeric(s)
-  decreases |s|
-{
-  if |s| == 0 then
-    Success(0)
-  else if |s| == 1 then
-    var digit := (s[0] as int) - ('0' as int);
-    Success(digit)
-  else
-    var digit := (s[0] as int) - ('0' as int);
-    IsNumericSubstring(s, 1, |s|);  
-    match ParseNumericString(s[1..])
-    case Success(restValue) =>
-      var pow := Pow(10, |s| - 1);
-      var result := digit * pow + restValue;
-      Success(result)
-    case Failure(err) =>
-      Failure(err)
-}
+  @ResourceLimit("1e7")
+  function ParseNumericString(s: string): Result<int, string>
+    requires IsNumeric(s)
+    decreases |s|
+  {
+    if |s| == 0 then
+      Success(0)
+    else if |s| == 1 then
+      var digit := (s[0] as int) - ('0' as int);
+      Success(digit)
+    else
+      var digit := (s[0] as int) - ('0' as int);
+      IsNumericSubstring(s, 1, |s|);
+      match ParseNumericString(s[1..])
+      case Success(restValue) =>
+        var pow := Pow(10, |s| - 1);
+        var result := digit * pow + restValue;
+        Success(result)
+      case Failure(err) =>
+        Failure(err)
+  }
 
   @ResourceLimit("1e7")
   function ParseComponent(text: string, start: int, end: int): Result<int, string>
@@ -291,7 +289,7 @@ function ParseNumericString(s: string): Result<int, string>
           match millisecondResult
           case Failure(err) => Failure(err)
           case Success(raw) =>
-            var millisecond : int := if raw < DURATION_MILLISECONDS_CALC then (raw as int) else 999;
+            var millisecond : int := if raw < MILLISECONDS_PER_SECOND_INT then (raw as int) else 999;
 
             var hour_mult := (hour as int) * (SECONDS_PER_HOUR as int);
             var minute_mult := (minute as int) * (SECONDS_PER_MINUTE as int);
@@ -306,7 +304,7 @@ function ParseNumericString(s: string): Result<int, string>
   function EpochDifference(epoch1: int, epoch2: int): Duration
   {
     var diff : int := if epoch1 >= epoch2 then (epoch1 - epoch2) as int
-                         else (epoch2 - epoch1) as int;
+                      else (epoch2 - epoch1) as int;
     FromMilliseconds(diff)
   }
 }

@@ -619,10 +619,10 @@ module TestLocalDateTime {
   method {:test} TestNow() {
     var nowResult := LDT.Now();
     expect nowResult.Success?;
-    
+
     if nowResult.Success? {
       var now := nowResult.value;
-      expect LDT.IsValidLocalDateTime(now);    
+      expect LDT.IsValidLocalDateTime(now);
     }
   }
 }
