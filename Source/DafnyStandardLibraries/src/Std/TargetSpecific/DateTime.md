@@ -54,12 +54,6 @@ It ensures correctness using contracts (`requires`, `ensures`) and supports proo
   - Individual component accessors: `GetYear()`, `GetMonth()`, `GetDay()`, etc.
   - `IsValidLocalDateTime()`: Validates a LocalDateTime instance.
 
-## Test Commands
-
-```bash
-dafny test --target:cs --standard-libraries Source/DafnyStandardLibraries/examples/TargetSpecific/LocalDateTimeExamples.dfy Source/DafnyStandardLibraries/src/Std/DateTimeExterns/DateTimeImpl.cs --allow-warnings
-```
-
 # Duration module
 
 The `Duration` module provides formally verified operations for representing and manipulating time durations in Dafny.  
@@ -118,9 +112,3 @@ This module underpins temporal computations in the LocalDateTime system by enabl
 
 - **Derived Computation**  
   - `EpochDifference(epoch1, epoch2)`: Computes the absolute duration difference between two epoch millisecond timestamps, returning a valid Duration instance.
-
-## Test Commands
-
-```bash
-dafny test --target:cs --standard-libraries Source/DafnyStandardLibraries/examples/TargetSpecific/DurationExamples.dfy --allow-warnings
-```
