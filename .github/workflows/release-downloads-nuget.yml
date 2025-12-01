@@ -31,7 +31,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ ubuntu-22.04, macos-13, windows-2022 ]
+        os: [ ubuntu-22.04, macos-14, windows-2022 ]
 
     steps:
     - name: OS
@@ -109,7 +109,7 @@ jobs:
         # Hopefully we can automatically populate this list in the future,
         # but note we need to skip Dafny since nuget install doesn't work for dotnet tools.
         library-name: [ DafnyPipeline, DafnyServer, DafnyLanguageServer, DafnyRuntime, DafnyCore, DafnyDriver ]
-        os: [ ubuntu-latest, ubuntu-22.04, macos-13, windows-2022 ]
+        os: [ ubuntu-latest, ubuntu-22.04, macos-14, windows-2022 ]
 
     steps:
     # Verify that the dependencies of the libraries we publish (e.g. DafnyLanguageServer)
