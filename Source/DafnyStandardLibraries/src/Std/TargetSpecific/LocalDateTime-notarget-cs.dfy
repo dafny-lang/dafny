@@ -136,7 +136,7 @@ module Std.LocalDateTime {
   }
 
   function WithSecond(dt: LocalDateTime, newSecond: uint8): LocalDateTime
-    requires IsValidLocalDateTime(dt) && newSecond < SECONDS_PER_MINUTE
+    requires IsValidLocalDateTime(dt) && newSecond <= SECONDS_PER_MINUTE
     ensures IsValidLocalDateTime(WithSecond(dt, newSecond))
   {
     FromComponents(dt.year, dt.month, dt.day, dt.hour, dt.minute, newSecond, dt.millisecond)
