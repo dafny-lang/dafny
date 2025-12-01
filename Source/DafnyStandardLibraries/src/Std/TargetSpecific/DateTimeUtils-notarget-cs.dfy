@@ -74,33 +74,9 @@ module Std.DateTimeUtils {
     1 <= day <= MAX_DAYS_PER_MONTH &&
     0 <= hour < HOURS_PER_DAY &&
     0 <= minute < MINUTES_PER_HOUR &&
-    0 <= second < SECONDS_PER_MINUTE &&
+    // Support leap second feature
+    0 <= second <= SECONDS_PER_MINUTE &&
     0 <= millisecond < MILLISECONDS_PER_SECOND
-  }
-
-  // Convert time portion to total milliseconds since midnight
-  function TimeToMilliseconds(hour: uint8, minute: uint8, second: uint8, millisecond: uint16): int
-    requires 0 <= hour < HOURS_PER_DAY && 0 <= minute < MINUTES_PER_HOUR
-    requires 0 <= second < SECONDS_PER_MINUTE && 0 <= millisecond < MILLISECONDS_PER_SECOND
-    ensures 0 <= TimeToMilliseconds(hour, minute, second, millisecond) < (MILLISECONDS_PER_DAY as int)
-  {
-    (((hour as int) * (MINUTES_PER_HOUR as int) + (minute as int)) * (SECONDS_PER_MINUTE as int) + (second as int)) * (MILLISECONDS_PER_SECOND as int) + (millisecond as int)
-  }
-
-  // Convert total milliseconds back to time components
-  function MillisecondsToTime(millis: int): (uint8, uint8, uint8, uint16)
-    requires 0 <= millis < (MILLISECONDS_PER_DAY as int)
-    ensures var (h, m, s, ms) := MillisecondsToTime(millis);
-            0 <= h < HOURS_PER_DAY && 0 <= m < MINUTES_PER_HOUR &&
-            0 <= s < SECONDS_PER_MINUTE && 0 <= ms < MILLISECONDS_PER_SECOND
-  {
-    var totalSeconds := millis / (MILLISECONDS_PER_SECOND as int);
-    var ms := millis % (MILLISECONDS_PER_SECOND as int);
-    var totalMinutes := totalSeconds / (SECONDS_PER_MINUTE as int);
-    var s := totalSeconds % (SECONDS_PER_MINUTE as int);
-    var h := totalMinutes / (MINUTES_PER_HOUR as int);
-    var m := totalMinutes % (MINUTES_PER_HOUR as int);
-    (h as uint8, m as uint8, s as uint8, ms as uint16)
   }
 
   // Helper function for padding numbers with zeros
@@ -122,7 +98,7 @@ module Std.DateTimeUtils {
     else if day < 1 || day > (DaysInMonth(year, month) as uint8) then "Invalid day: " + OfInt(day as int) + " for " + GetMonthName(month) + " " + OfInt(year as int) + " (max: " + OfInt(DaysInMonth(year, month) as int) + ")"
     else if hour >= HOURS_PER_DAY then "Invalid hour: " + OfInt(hour as int) + " (must be 0-23)"
     else if minute >= MINUTES_PER_HOUR then "Invalid minute: " + OfInt(minute as int) + " (must be 0-59)"
-    else if second >= SECONDS_PER_MINUTE then "Invalid second: " + OfInt(second as int) + " (must be 0-59)"
+    else if second > SECONDS_PER_MINUTE then "Invalid second: " + OfInt(second as int) + " (must be 0-60)"
     else if millisecond >= MILLISECONDS_PER_SECOND then "Invalid millisecond: " + OfInt(millisecond as int) + " (must be 0-999)"
     else "Invalid date/time"
   }

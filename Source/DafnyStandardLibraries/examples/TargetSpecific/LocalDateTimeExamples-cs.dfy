@@ -33,6 +33,12 @@ module TestLocalDateTime {
       AssertAndExpect(leapDt.year == 2020 && leapDt.month == 2 && leapDt.day == 29);
       AssertAndExpect(LDT.IsValidLocalDateTime(leapDt));
     }
+
+    var leapSecondResult := LDT.Of(2016, 12, 31, 23, 59, 60, 0);
+    if leapSecondResult.Success? {
+      var leapSecondDt := leapSecondResult.value;
+      AssertAndExpect(LDT.IsValidLocalDateTime(leapSecondDt));
+    }
   }
 
   method {:test} TestOfFunctionInvalidMonths()
@@ -55,7 +61,7 @@ module TestLocalDateTime {
   {
     var invalidHour := LDT.Of(2023, 6, 15, 24, 30, 45, 123);   // Hour too high
     var invalidMinute := LDT.Of(2023, 6, 15, 14, 60, 45, 123); // Minute too high
-    var invalidSecond := LDT.Of(2023, 6, 15, 14, 30, 60, 123); // Second too high
+    var invalidSecond := LDT.Of(2023, 6, 15, 14, 30, 61, 123); // Second too high
     var invalidMs := LDT.Of(2023, 6, 15, 14, 30, 45, 1000);    // Millisecond too high
     AssertAndExpect(invalidHour.Failure?);
     AssertAndExpect(invalidMinute.Failure?);
@@ -334,7 +340,7 @@ module TestLocalDateTime {
     var invalid_minute_dt := LDT.LocalDateTime(2023, 3, 14, 15, 60, 26, 535);
     AssertAndExpect(!LDT.IsValidLocalDateTime(invalid_minute_dt));
 
-    var invalid_second_dt := LDT.LocalDateTime(2023, 3, 14, 15, 9, 60, 535);
+    var invalid_second_dt := LDT.LocalDateTime(2023, 3, 14, 15, 9, 61, 535);
     AssertAndExpect(!LDT.IsValidLocalDateTime(invalid_second_dt));
 
     var invalid_millisecond_dt := LDT.LocalDateTime(2023, 3, 14, 15, 9, 26, 1000);
