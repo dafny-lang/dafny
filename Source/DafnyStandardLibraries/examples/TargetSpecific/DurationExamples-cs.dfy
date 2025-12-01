@@ -4,7 +4,10 @@
  *******************************************************************************/
 
 /**
-Defines Duration module functionality like timestamp parsing and arithmetic calculation.
+Includes comprehensive test methods for validating the functionality of each
+operation using Dafny's {:test} annotation.
+
+These tests serve as verification examples that work with Dafny's formal proofs.
 */
 
 module TestDuration {
