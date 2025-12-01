@@ -23,7 +23,7 @@ module Std.DateTimeConstant {
 
   const DURATION_TOTAL_SECONDS_OUTER_BOUND: uint64 := 0xFFFFFFFFFFFFFFFF
   const DURATION_SECONDS_BOUND: int := 0xFFFFFFFF
-  const DURATION_MILLISECONDS_CALC: int := 1000
+  const MILLISECONDS_PER_SECOND_INT: int := 1000
 
   // Derived constants for performance
   const MILLISECONDS_PER_MINUTE: uint16 := (SECONDS_PER_MINUTE as uint16) * MILLISECONDS_PER_SECOND
