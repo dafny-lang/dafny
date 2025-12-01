@@ -547,7 +547,7 @@ struct DafnySet {
 
     bool disjoint(const DafnySet<T>& other) {
         for (auto const& elt:set) {
-            if (other.find(elt) != other.set.end()) {
+            if (other.set.find(elt) != other.set.end()) {
                 return false;
             }
         }
