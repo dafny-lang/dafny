@@ -1308,6 +1308,9 @@ namespace Microsoft.Dafny {
       } else if (expr is WildcardExpr) {
         wr.Write("*");
 
+      } else if (expr is DoubleWildcardExpr) {
+        wr.Write("**");
+
       } else if (expr is StmtExpr) {
         var e = (StmtExpr)expr;
         bool parensNeeded;

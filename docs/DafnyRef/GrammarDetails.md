@@ -686,7 +686,7 @@ MethodSpec =
 ````grammar
 FunctionSpec =
   { RequiresClause(allowLabel: true)
-  | ReadsClause(allowLemma: false, allowLambda: false, allowWild: true)
+  | ReadsClause(allowLemma: false, allowLambda: false, allowWild: true, allowDoubleWild: true)
   | EnsuresClause(allowLambda: false)
   | DecreasesClause(allowWildcard: false, allowLambda: false)
   }
@@ -697,7 +697,7 @@ FunctionSpec =
 
 ````grammar
 LambdaSpec =
-  { ReadsClause(allowLemma: true, allowLambda: false, allowWild: true)
+  { ReadsClause(allowLemma: true, allowLambda: false, allowWild: true, allowDoubleWild: false)
   | "requires" Expression(allowLemma: false, allowLambda: false)
   }
 ````
@@ -708,7 +708,7 @@ LambdaSpec =
 ````grammar
 IteratorSpec =
   { ReadsClause(allowLemma: false, allowLambda: false,
-                                  allowWild: false)
+                allowWild: false, allowDoubleWild: true)
   | ModifiesClause(allowLambda: false)
   | [ "yield" ] RequiresClause(allowLabel: !isYield)
   | [ "yield" ] EnsuresClause(allowLambda: false)
@@ -785,10 +785,10 @@ InvariantClause_ =
 ([discussion](#sec-reads-clause)) 
 
 ````grammar
-ReadsClause(allowLemma, allowLambda, allowWild) =
+ReadsClause(allowLemma, allowLambda, allowWild, allowDoubleWild) =
   "reads" { Attribute }
-  PossiblyWildFrameExpression(allowLemma, allowLambda, allowWild)
-  { "," PossiblyWildFrameExpression(allowLemma, allowLambda, allowWild) }
+  PossiblyWildFrameExpression(allowLemma, allowLambda, allowWild, allowDoubleWild)
+  { "," PossiblyWildFrameExpression(allowLemma, allowLambda, allowWild, allowDoubleWild) }
 ````
 
 #### 17.2.5.12. Frame expressions {#g-frame-expression}
@@ -802,8 +802,9 @@ FrameExpression(allowLemma, allowLambda) =
 
 FrameField = "`" IdentOrDigits
 
-PossiblyWildFrameExpression(allowLemma, allowLambda, allowWild) =
+PossiblyWildFrameExpression(allowLemma, allowLambda, allowWild, allowDoubleWild) =
   ( "*"  // error if !allowWild and '*'
+  | "**"  // error if !allowDoubleWild and '**'
   | FrameExpression(allowLemma, allowLambda)
   )
 ````
