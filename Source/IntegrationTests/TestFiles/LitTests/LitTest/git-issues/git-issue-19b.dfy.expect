@@ -9,5 +9,10 @@ git-issue-19b.dfy(115,4): Error: a postcondition could not be proved on this ret
 git-issue-19b.dfy(113,14): Related location: this is the postcondition that could not be proved
 git-issue-19b.dfy(131,36): Error: a precondition for this call could not be proved
 git-issue-19b.dfy(124,17): Related location: this is the precondition that could not be proved
+git-issue-19b.dfy(177,4): Error: assertion could not be proved
+git-issue-19b.dfy(184,18): Error: assertion could not be proved
+git-issue-19b.dfy(167,4): Related location: this proposition could not be proved
+git-issue-19b.dfy(212,20): Error: assertion could not be proved
+git-issue-19b.dfy(195,4): Related location: this proposition could not be proved
 
-Dafny program verifier finished with 19 verified, 9 errors
+Dafny program verifier finished with 21 verified, 12 errors

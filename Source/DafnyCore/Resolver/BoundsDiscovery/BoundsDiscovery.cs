@@ -18,7 +18,7 @@ namespace Microsoft.Dafny {
         readonly bool inLambdaExpression;
 
         public bool AllowedToDependOnAllocationState =>
-          !(astVisitorContext is Function or ConstantField or RedirectingTypeDecl || inLambdaExpression);
+          !(astVisitorContext is Function { ReadsDoubleStar: false } or ConstantField or RedirectingTypeDecl || inLambdaExpression);
 
         public string Kind {
           get {
@@ -196,8 +196,7 @@ namespace Microsoft.Dafny {
           if (whereToLookForBounds != null) {
             e.Bounds = DiscoverBestBounds_MultipleVars_AllowReordering(e.BoundVars, whereToLookForBounds, polarity);
             if (!context.AllowedToDependOnAllocationState) {
-              foreach (var bv in BoundedPool.MissingBounds(e.BoundVars, e.Bounds,
-                         BoundedPool.PoolVirtues.IndependentOfAlloc)) {
+              foreach (var bv in BoundedPool.MissingBounds(e.BoundVars, e.Bounds, BoundedPool.PoolVirtues.IndependentOfAlloc)) {
                 var how = Attributes.Contains(e.Attributes, "_reads") ? "(implicitly by using a function in a reads clause) " : "";
                 var message =
                   $"a {e.WhatKind} involved in a {context.Kind} {how}is not allowed to depend on the set of allocated references," +

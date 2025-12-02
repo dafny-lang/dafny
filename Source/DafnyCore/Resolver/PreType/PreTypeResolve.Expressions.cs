@@ -463,7 +463,7 @@ namespace Microsoft.Dafny {
               case UnaryOpExpr.Opcode.Allocated:
                 // the argument is allowed to have any type at all
                 opExpr.PreType = ConstrainResultToBoolFamily(opExpr.Origin, "allocated", "boolean literal used as if it had type {0}");
-                if ((resolutionContext.CodeContext is Function && !resolutionContext.InOld) ||
+                if ((resolutionContext.CodeContext is Function { ReadsDoubleStar: false } && !resolutionContext.InOld) ||
                     resolutionContext.CodeContext is ConstantField ||
                     CodeContextWrapper.Unwrap(resolutionContext.CodeContext) is RedirectingTypeDecl) {
                   var declKind = CodeContextWrapper.Unwrap(resolutionContext.CodeContext) is RedirectingTypeDecl redir
