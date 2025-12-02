@@ -82,5 +82,8 @@ ParseErrors.dfy(272,35): Error: arrow-type arguments may not be declared as 'gho
 ParseErrors.dfy(280,0): Error: openparen expected
 ParseErrors.dfy(283,17): Error: openparen expected
 ParseErrors.dfy(289,17): Error: openparen expected
-ParseErrors.dfy(298,10): Error: invalid NewtypeDecl
-80 parse errors detected in ParseErrors.dfy
+ParseErrors.dfy(299,29): Error: A '**' frame expression is not permitted here
+ParseErrors.dfy(303,8): Error: A '*' frame expression is not permitted here
+ParseErrors.dfy(308,8): Error: A '**' frame expression is not permitted here
+ParseErrors.dfy(314,10): Error: invalid NewtypeDecl
+83 parse errors detected in ParseErrors.dfy
