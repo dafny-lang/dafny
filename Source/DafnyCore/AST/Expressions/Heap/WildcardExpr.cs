@@ -16,3 +16,18 @@ public class WildcardExpr : Expression, ICloneable<WildcardExpr> {  // a Wildcar
     return new WildcardExpr(cloner, this);
   }
 }
+
+public class DoubleWildcardExpr : Expression, ICloneable<DoubleWildcardExpr> {  // a DoubleWildcardExpr can occur only in reads clauses
+
+  public DoubleWildcardExpr(Cloner cloner, DoubleWildcardExpr original) : base(cloner, original) {
+  }
+
+  public DoubleWildcardExpr(IOrigin origin)
+    : base(origin) {
+    Contract.Requires(origin != null);
+  }
+
+  public DoubleWildcardExpr Clone(Cloner cloner) {
+    return new DoubleWildcardExpr(cloner, this);
+  }
+}
