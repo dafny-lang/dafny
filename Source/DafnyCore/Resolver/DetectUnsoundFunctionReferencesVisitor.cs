@@ -12,18 +12,30 @@ class DetectUnsoundFunctionReferencesVisitor : ResolverBottomUpVisitor {
     this.context = context;
   }
 
-  public static void Check(Function function, ModuleResolver resolver) {
-    var visitor = new DetectUnsoundFunctionReferencesVisitor(resolver, function);
+  public static void Check(ICallable callable, ModuleResolver resolver) {
+    var visitor = new DetectUnsoundFunctionReferencesVisitor(resolver, callable);
     visitor.doDecreasesChecks = false;
-    visitor.Visit(function);
+    if (callable is Function function) {
+      visitor.VisitFunctionWithoutByMethod(function);
+    } else {
+      visitor.Visit(callable);
+    }
     visitor.doDecreasesChecks = true;
-    visitor.Visit(function.Decreases.Expressions);
+    visitor.Visit(callable.Decreases.Expressions);
   }
 
   protected override void VisitOneExpr(Expression expr) {
-    if (!doDecreasesChecks && expr is MemberSelectExpr { Member: Function fn } && ModuleDefinition.InSameSCC(context, fn)) {
-      resolver.reporter.Error(MessageSource.Resolver, expr.Origin,
-        "cannot use naked function in recursive setting. Possible solution: eta expansion.");
+    if (expr is MemberSelectExpr { Member: Function fn }) {
+      if (fn.ReadsDoubleStar) {
+        resolver.reporter.Error(MessageSource.Resolver, expr.Origin,
+          "a function declared with 'reads **' can only be used if applied to arguments");
+      }
+
+      if (!doDecreasesChecks && ModuleDefinition.InSameSCC(context, fn)) {
+        resolver.reporter.Error(MessageSource.Resolver, expr.Origin,
+          "cannot use naked function in recursive setting. Possible solution: eta expansion.");
+      }
+
     }
 
     if (doDecreasesChecks && expr is FunctionCallExpr callExpr && ModuleDefinition.InSameSCC(context, callExpr.Function)) {

@@ -1279,8 +1279,8 @@ namespace Microsoft.Dafny {
 
       // A function is not allowed to be used naked (that is, without being applied to arguments) in its own SCC.
       // Also, a function is not allowed to be used in any way inside a "decreases" clause its its own SCC.
-      foreach (var function in ModuleDefinition.AllFunctions(declarations)) {
-        DetectUnsoundFunctionReferencesVisitor.Check(function, this);
+      foreach (var callable in ModuleDefinition.AllCallables(declarations)) {
+        DetectUnsoundFunctionReferencesVisitor.Check(callable, this);
       }
 
       // An inductive datatype is allowed to be defined as an empty type. For example, in

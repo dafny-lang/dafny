@@ -131,7 +131,9 @@ namespace Microsoft.Dafny {
       }
 
       public ExpressionTranslator(BoogieGenerator boogieGenerator, PredefinedDecls predef, Boogie.Expr heap, IFrameScope scope, string thisVar)
-        : this(boogieGenerator, predef, heap, thisVar, null, new FuelSetting(boogieGenerator, 1), null, scope, "$_ReadsFrame", "$_ModifiesFrame", false) {
+        : this(boogieGenerator, predef, heap, thisVar, null, new FuelSetting(boogieGenerator, 1), null,
+          scope,
+          scope is Function { ReadsDoubleStar: true } ? null : "$_ReadsFrame", "$_ModifiesFrame", false) {
         Contract.Requires(boogieGenerator != null);
         Contract.Requires(predef != null);
         Contract.Requires(thisVar != null);
