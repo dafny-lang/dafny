@@ -540,7 +540,7 @@ namespace DafnyTestGeneration {
               return base.CloneExpr(expr);
             }
           case OldExpr or UnchangedExpr or FreshExpr or LetExpr or
-            LetOrFailExpr or ComprehensionExpr or WildcardExpr or StmtExpr:
+            LetOrFailExpr or ComprehensionExpr or WildcardExpr or DoubleWildcardExpr or StmtExpr:
             isValidExpression = false;
             return base.CloneExpr(expr);
           default:

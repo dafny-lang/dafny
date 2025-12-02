@@ -1226,7 +1226,7 @@ namespace Microsoft.Dafny {
         Contract.Assert(e.Term.Type != null);
         scope.PopMarker();
         expr.Type = SelectAppropriateArrowType(e.Origin, e.BoundVars.ConvertAll(v => v.Type), e.Body.Type, e.Reads.Expressions.Count != 0, e.Range != null, SystemModuleManager);
-      } else if (expr is WildcardExpr) {
+      } else if (expr is WildcardExpr or DoubleWildcardExpr) {
         expr.Type = SystemModuleManager.ObjectSetType();
       } else if (expr is StmtExpr) {
         var e = (StmtExpr)expr;

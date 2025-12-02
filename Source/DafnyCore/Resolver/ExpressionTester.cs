@@ -622,7 +622,7 @@ public class ExpressionTester {
     } else if (expr is LambdaExpr) {
       var e = (LambdaExpr)expr;
       return UsesSpecFeatures(e.Term);
-    } else if (expr is WildcardExpr) {
+    } else if (expr is WildcardExpr or DoubleWildcardExpr) {
       return false;
     } else if (expr is StmtExpr) {
       var e = (StmtExpr)expr;

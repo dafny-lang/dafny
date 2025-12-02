@@ -213,6 +213,7 @@ public partial class BoogieGenerator {
       bodyCheckBuilder.Add(new CommentCmd("Check well-formedness of body and result subset type constraint"));
       if (f.Body != null && generator.RevealedInScope(f)) {
         var doReadsChecks = etran.readsFrame != null;
+        Contract.Assert(!f.ReadsDoubleStar || !doReadsChecks);
         var wfo = new WFOptions(null, doReadsChecks, doReadsChecks, false);
 
         void CheckPostcondition(BoogieStmtListBuilder innerBuilder, Expression innerBody) {

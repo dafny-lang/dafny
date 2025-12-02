@@ -2262,6 +2262,8 @@ namespace Microsoft.Dafny {
       Contract.Requires(builder != null);
       Contract.Requires(Predef != null);
 
+      Contract.Assert(!Function.FrameReadsDoubleStar(frameClause));
+
       if (etran == null) {
         // This is the common case. It means that the frame will be defined in terms of the usual variable $Heap.
         // The one case where a frame is needed for a different heap is for lambda expressions, because they may
@@ -2310,6 +2312,11 @@ namespace Microsoft.Dafny {
       Contract.Requires(etran != null);
       Contract.Requires(makeAssert != null);
       Contract.Requires(Predef != null);
+
+      if (Function.FrameReadsDoubleStar(calleeFrame)) {
+        makeAssert(tok, Bpl.Expr.False, desc, kv);
+        return;
+      }
 
       foreach (var frameExpression in calleeFrame) {
         var e = substMap != null ? Substitute(frameExpression.E, receiverReplacement, substMap) : frameExpression.E;

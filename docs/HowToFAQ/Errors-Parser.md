@@ -552,6 +552,26 @@ So it does not make sense to list `*` along with something more specific.
 If you mean that the function should be able to read anything, just list `*`.
 Otherwise, omit the `*` and list expressions containing all the objects that are read.
 
+## **Error: A 'reads' clause that contains '**' is not allowed to contain any other expressions** {#p_reads_star_star_must_be_alone}
+
+```dafny
+const a: object
+function f(): int
+  reads **, a
+{
+  0
+}
+```
+
+A reads clause lists the objects whose fields the function is allowed to read (or expressions 
+containing such objects). This gives gives the verifier a "frame axiom", which tells the verifier that heap
+modifications outside the reads set do not affect the result value of the function.
+`reads **` suppresses the generation of the frame axiom and correspondingly removes any reads restrictions
+for the function.
+It does not make sense to list `**` along with something more specific.
+If you mean that the function should have no read restrictions and no frame axiom, then just list `**`.
+Otherwise, omit the `**` and list expressions containing all the objects that are read.
+
 ## **Error: out-parameters cannot have default-value expressions** {#p_no_defaults_for_out_parameters}
 
 ```dafny
@@ -886,6 +906,18 @@ iterator Gen(start: int) yields (x: int)
 
 A `reads *` clause means the reads clause allows the functions it specifies to read anything.
 Such a clause is not allowed in an iterator specification.
+Insert a specific reads expression.
+
+## **Error: A '**' frame expression is not permitted here** {#p_no_double_wild_frame_expression}
+
+```dafny
+method Lambda() {
+  var f := (x: object) reads ** => 3;
+}
+```
+
+A `reads **` clause on a function says that no frame axiom will be generated for the function.
+This is not supported for anonymous function (aka lambda expressions) or iterators.
 Insert a specific reads expression.
 
 ## **Warning: _kind_ refinement is deprecated** {#p_deprecated_statement_refinement}

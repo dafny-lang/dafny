@@ -785,7 +785,7 @@ namespace Microsoft.Dafny {
             lambdaExpr.PreType = BuiltInArrowType(e.BoundVars.ConvertAll(v => v.PreType), e.Body.PreType, e.Reads.Expressions.Count != 0, e.Range != null);
             break;
           }
-        case WildcardExpr: {
+        case WildcardExpr or DoubleWildcardExpr: {
             var obj = new DPreType(BuiltInTypeDecl(PreType.TypeNameObjectQ), []);
             expr.PreType = new DPreType(BuiltInTypeDecl(PreType.TypeNameSet), [obj]);
             break;

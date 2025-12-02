@@ -189,6 +189,8 @@ namespace Microsoft.Dafny.Triggers {
         return ShallowEq((StmtExpr)expr1, (StmtExpr)expr2);
       } else if (expr1 is WildcardExpr && expr2 is WildcardExpr) {
         return ShallowEq((WildcardExpr)expr1, (WildcardExpr)expr2);
+      } else if (expr1 is DoubleWildcardExpr && expr2 is DoubleWildcardExpr) {
+        return ShallowEq((DoubleWildcardExpr)expr1, (DoubleWildcardExpr)expr2);
       } else if (expr1 is ComprehensionExpr && expr2 is ComprehensionExpr) {
         return ShallowEq((ComprehensionExpr)expr1, (ComprehensionExpr)expr2);
       } else if (expr1 is LetExpr && expr2 is LetExpr) {
@@ -264,6 +266,10 @@ namespace Microsoft.Dafny.Triggers {
     }
 
     private static bool ShallowEq(WildcardExpr expr1, WildcardExpr expr2) {
+      return true;
+    }
+
+    private static bool ShallowEq(DoubleWildcardExpr expr1, DoubleWildcardExpr expr2) {
       return true;
     }
 
