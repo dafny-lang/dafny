@@ -92,7 +92,9 @@ public partial class BoogieGenerator {
 
       builder.AddCaptureState(f.Origin, false, "initial state");
 
-      generator.DefineFrame(f.Origin, etran.ReadsFrame(f.Origin), f.Reads.Expressions, builder, locals, null);
+      if (etran.readsFrame != null) {
+        generator.DefineFrame(f.Origin, etran.ReadsFrame(f.Origin), f.Reads.Expressions, builder, locals, null);
+      }
       generator.InitializeFuelConstant(f.Origin, builder, etran);
 
       var delayer = new ReadsCheckDelayer(etran, null, locals, builderInitializationArea, builder);
@@ -235,11 +237,13 @@ public partial class BoogieGenerator {
 
         generator.CheckWellformedWithResult(f.Body, wfo, locals, bodyCheckBuilder, etran, CheckPostcondition);
 
-        // var b$reads_guards#0 : bool  ...
-        locals.AddRange(wfo.Locals.Values);
-        // b$reads_guards#0 := true   ...
-        foreach (var cmd in wfo.AssignLocals) {
-          builderInitializationArea.Add(cmd);
+        if (doReadsChecks) {
+          // var b$reads_guards#0 : bool  ...
+          locals.AddRange(wfo.Locals.Values);
+          // b$reads_guards#0 := true   ...
+          foreach (var cmd in wfo.AssignLocals) {
+            builderInitializationArea.Add(cmd);
+          }
         }
       }
       bodyCheckBuilder.Add(TrAssumeCmd(f.Origin, Expr.False));
