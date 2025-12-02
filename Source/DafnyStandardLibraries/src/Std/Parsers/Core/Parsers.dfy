@@ -806,7 +806,7 @@ abstract module Std.Parsers.Core
   }
 
   opaque function StringToInt(s: string): int
-    // Converts a string to a string
+    // Converts a string to an integer
     decreases |s|
   {
     if |s| == 0 then 0 else
