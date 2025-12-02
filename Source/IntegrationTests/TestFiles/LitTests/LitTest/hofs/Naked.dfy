@@ -117,3 +117,22 @@ module FunctionByMethod {
     f := FBM3; // this is allowed
   }
 }
+
+module NakedReadStarStar {
+  function F(): real
+    reads **
+  {
+    3.5
+  }
+
+  function StarStarUseInsideFunction(): real
+    reads **
+  {
+    var f := F; // error: un-applied reads-** functions are not supported
+    3.6
+  }
+
+  method StarStarUseInsideMethod() returns (g: () ~> real) {
+    g := F; // error: un-applied reads-** functions are not supported
+  }
+}

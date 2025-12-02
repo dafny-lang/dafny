@@ -1,46 +1,46 @@
-// RUN: %testDafnyForEachResolver --expect-exit-code=4 "%s" -- --allow-deprecation
+// RUN: %testDafnyForEachResolver --expect-exit-code=4 "%s"
 
 
 // Checking that the reads clause also is checked over requires
 
-class C { var u : int; }
+class C { var u : int }
 
 ghost function nope1(c : C):()
-     requires c.u > 0;
+     requires c.u > 0
 {()}
 
 ghost function ok1(c : C):()
-     requires c.u > 0;
-     reads c;
+     requires c.u > 0
+     reads c
 {()}
 
 ghost function nope2(c : C?):()
-     requires c != null && c.u > 0;
-     reads if c != null then {} else {c};
+     requires c != null && c.u > 0
+     reads if c != null then {} else {c}
 {()}
 
 ghost function ok2(c : C?):()
-     requires c != null && c.u > 0;
-     reads if c != null then {c} else {};
+     requires c != null && c.u > 0
+     reads if c != null then {c} else {}
 {()}
 
 ghost function nope3(xs : seq<C>):()
-     requires |xs| > 0 && xs[0].u > 0;
+     requires |xs| > 0 && xs[0].u > 0
 {()}
 
 ghost function ok3(xs : seq<C>):()
-     requires |xs| > 0 && xs[0].u > 0;
-     reads xs;
+     requires |xs| > 0 && xs[0].u > 0
+     reads xs
 {()}
 
 ghost function nope4(c : C, xs : set<C>):()
-     requires c !in xs ==> c.u > 0;
-     reads xs;
+     requires c !in xs ==> c.u > 0
+     reads xs
 {()}
 
 ghost function ok4(c : C, xs : set<C>):()
-     requires c in xs ==> c.u > 0;
-     reads xs;
+     requires c in xs ==> c.u > 0
+     reads xs
 {()}
 
 // reads over itself
@@ -53,11 +53,11 @@ class R {
 }
 
 ghost function nope5(r : R?):()
-  reads if r != null then {r.r} else {};
+  reads if r != null then {r.r} else {}
 {()}
 
 ghost function ok5(r : R?):()
-  reads if r != null then {r, r.r} else {};
+  reads if r != null then {r, r.r} else {}
 {()}
 
 // Reads checking where there are circularities among the expressions
@@ -162,4 +162,64 @@ class ConstInitializers {
   {
     x + x
   }
+}
+
+function StarStarFunction(c: Cell): int
+  reads **
+{
+  c.data
+}
+
+function StarCaller(c: Cell): int
+  reads *
+{
+  StarStarFunction(c) // error: StarStarFunction reads **, caller reads less
+}
+
+function StarStarCaller(c: Cell): int
+  reads **
+{
+  StarStarFunction(c)
+}
+
+// ------ test omission of frame axiom -----
+
+function UStar(): int
+  reads *
+function UStarStar(): int
+  reads **
+
+method TestFrameAxiom(c: Cell)
+  modifies c
+{
+  var u, v := UStar(), UStarStar();
+  c.data := c.data + 1;
+  if
+  case true =>
+    assert u == UStar(); // error: cannot prove
+  case true =>
+    assert v == UStarStar(); // error: cannot prove
+}
+
+method TestFrameAxiomNew0()
+{
+  var u, v := UStar(), UStarStar();
+  var c := new Cell;
+  if
+  case true =>
+    assert u == UStar(); // fine
+  case true =>
+    assert v == UStarStar(); // error: cannot prove
+}
+
+method TestFrameAxiomNew1()
+{
+  var u, v := UStar(), UStarStar();
+  var c := new Cell;
+  c.data := c.data + 1;
+  if
+  case true =>
+    assert u == UStar(); // fine
+  case true =>
+    assert v == UStarStar(); // error: cannot prove
 }
