@@ -235,13 +235,13 @@ namespace RAST {
     public static RAST._IExpr SystemTuple(Dafny.ISequence<RAST._IExpr> elements) {
       Dafny.ISequence<Dafny.Rune> _0_size = Std.Strings.__default.OfNat(new BigInteger((elements).Count));
       return RAST.Expr.create_StructBuild(((((RAST.__default.dafny__runtime).MSel(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("_System"))).MSel(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("Tuple"), _0_size))).MSel(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("_T"), _0_size))).AsExpr(), ((System.Func<Dafny.ISequence<RAST._IAssignIdentifier>>) (() => {
-  BigInteger dim13 = new BigInteger((elements).Count);
-  var arr13 = new RAST._IAssignIdentifier[Dafny.Helpers.ToIntChecked(dim13, "array size exceeds memory limit")];
-  for (int i13 = 0; i13 < dim13; i13++) {
-    var _1_i = (BigInteger) i13;
-    arr13[(int)(_1_i)] = RAST.AssignIdentifier.create(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("_"), Std.Strings.__default.OfNat(_1_i)), (elements).Select(_1_i));
+  BigInteger dim14 = new BigInteger((elements).Count);
+  var arr14 = new RAST._IAssignIdentifier[Dafny.Helpers.ToIntChecked(dim14, "array size exceeds memory limit")];
+  for (int i14 = 0; i14 < dim14; i14++) {
+    var _1_i = (BigInteger) i14;
+    arr14[(int)(_1_i)] = RAST.AssignIdentifier.create(Dafny.Sequence<Dafny.Rune>.Concat(Dafny.Sequence<Dafny.Rune>.UnicodeFromString("_"), Std.Strings.__default.OfNat(_1_i)), (elements).Select(_1_i));
   }
-  return Dafny.Sequence<RAST._IAssignIdentifier>.FromArray(arr13);
+  return Dafny.Sequence<RAST._IAssignIdentifier>.FromArray(arr14);
 }))());
     }
     public static RAST._IType MaybeUninitType(RAST._IType underlying) {
@@ -2479,13 +2479,13 @@ namespace RAST {
     public abstract _IFields DowncastClone();
     public RAST._IFields ToNamelessFields() {
       return RAST.Fields.create_NamelessFields(((System.Func<Dafny.ISequence<RAST._INamelessField>>) (() => {
-  BigInteger dim14 = new BigInteger(((this).dtor_fields).Count);
-  var arr14 = new RAST._INamelessField[Dafny.Helpers.ToIntChecked(dim14, "array size exceeds memory limit")];
-  for (int i14 = 0; i14 < dim14; i14++) {
-    var _0_i = (BigInteger) i14;
-    arr14[(int)(_0_i)] = (((this).dtor_fields).Select(_0_i)).ToNamelessField();
+  BigInteger dim15 = new BigInteger(((this).dtor_fields).Count);
+  var arr15 = new RAST._INamelessField[Dafny.Helpers.ToIntChecked(dim15, "array size exceeds memory limit")];
+  for (int i15 = 0; i15 < dim15; i15++) {
+    var _0_i = (BigInteger) i15;
+    arr15[(int)(_0_i)] = (((this).dtor_fields).Select(_0_i)).ToNamelessField();
   }
-  return Dafny.Sequence<RAST._INamelessField>.FromArray(arr14);
+  return Dafny.Sequence<RAST._INamelessField>.FromArray(arr15);
 }))());
     }
     public Dafny.ISequence<Dafny.Rune> _ToString(Dafny.ISequence<Dafny.Rune> ind, bool newLine)
