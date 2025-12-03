@@ -1,9 +1,9 @@
 <!-- %check-resolve %default %useHeadings %check-ids -->
 
-<!-- The file Errors-Parser.template is used along with Parser-Errors.cs to produce Errors-Parser.md.
+<!-- The file Errors-Parser.template is used along with ParserErrors.cs to produce Errors-Parser.md.
      Errors-Parser.template holds the structure of the markdown file and the examples of each error message.
-     Parser-Errors.cs holds the text of error explanations, so they are just in the source code rather than duplicated also in markdown.
-     The content of Errors-Parser.template and Parser-Errors.cs are tied together by the errorids.
+     ParserErrors.cs holds the text of error explanations, so they are just in the source code rather than duplicated also in markdown.
+     The content of Errors-Parser.template and ParserErrors.cs are tied together by the errorids.
      Thus Errors-Parser.md is a generated file that should not be edited itself.
      The program make-error-catalog does the file generation.
 -->
