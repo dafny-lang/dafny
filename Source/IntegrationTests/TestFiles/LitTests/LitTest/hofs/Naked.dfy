@@ -135,4 +135,11 @@ module NakedReadStarStar {
   method StarStarUseInsideMethod() returns (g: () ~> real) {
     g := F; // error: un-applied reads-** functions are not supported
   }
+
+  function JustOneErrorMessageAboutStarStar(): int
+    reads **
+    decreases var f := JustOneErrorMessageAboutStarStar; 10 // error: un-applied reads-** functions are not supported, and error: using function naked in its own definition
+  {
+    2
+  }
 }
