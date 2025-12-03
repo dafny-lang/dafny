@@ -1,5 +1,5 @@
 ---
-title: "Why does Dafny complain about this use of a set constructor: `set i: int | Contains(i)`?"
+title: Why does Dafny complain about this use of a set constructor: `set i: int | Contains(i)`?
 ---
 
 ## Question

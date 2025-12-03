@@ -1,11 +1,11 @@
 ---
-title: "What does `forall v :: v in vals ==> false` evaluate to if `vals` is non-empty?"
+title: What does `forall v :: v in vals ==> false` evaluate to if `vals` is nonempty?
 ---
 
 ## Question
 
-What does `forall v :: v in vals ==> false` evaluate to if `vals` is non-empty?
-Should it be false? I’m having some problem proving the last assertion in Dafny.
+What does `forall v :: v in vals ==> false` evaluate to if `vals` is nonempty?
+Should it be `false`? I’m having some problem proving the last assertion in Dafny.
 
 ```dafny
 assert vals != [];

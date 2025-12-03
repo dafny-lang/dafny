@@ -2,11 +2,11 @@
 title: How do I say 'reads if x then this\`y else this\`z'? Dafny complains about the 'this'.
 ---
 
-## Question: 
+## Question 
 
 How do I say 'reads if x then this\`y else this\`z'? Dafny complains about the 'this'.
 
-## Answer:
+## Answer
 
 Here is some sample code that show a workaround.
 
