@@ -140,20 +140,15 @@ module TestDuration {
     var d3 := Duration.Duration(0, 999);
     var durations := [d1, d2, d3];
 
-    var lessThan := (a: Duration.Duration, b: Duration.Duration) => 
-      if a.seconds < b.seconds then true
-      else if a.seconds > b.seconds then false
-      else a.millis < b.millis;
-  
+    var lessThan := (a: Duration.Duration, b: Duration.Duration) =>
+        if a.seconds < b.seconds then true
+        else if a.seconds > b.seconds then false
+        else a.millis < b.millis;
 
     var maxD := MaxBy(durations, lessThan);
     var minD := MinBy(durations, lessThan);
 
-  
     expect maxD == d2;
     expect minD == d3;
-
-   // expect CompareHelper(maxD, d2) == 0;
-  //  expect CompareHelper(minD, d3) == 0;
   }
 }
