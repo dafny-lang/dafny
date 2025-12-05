@@ -82,12 +82,12 @@ z3-mac-arm:
 
 z3-ubuntu:
 	mkdir -p "${DIR}"/Binaries/z3/bin
-	wget https://github.com/dafny-lang/solver-builds/releases/download/snapshot-2025-12-05/z3-4.12.1-x64-ubuntu-24.04-bin.zip
-	unzip z3-4.12.1-x64-ubuntu-24.04-bin.zip
-	rm z3-4.12.1-x64-ubuntu-24.04-bin.zip
-	wget https://github.com/dafny-lang/solver-builds/releases/download/snapshot-2025-12-05/z3-4.15.4-x64-ubuntu-24.04-bin.zip
-	unzip z3-4.15.4-x64-ubuntu-24.04-bin.zip
-	rm z3-4.15.4-x64-ubuntu-24.04-bin.zip
+	wget https://github.com/dafny-lang/solver-builds/releases/download/snapshot-2025-12-05/z3-4.12.1-x64-ubuntu-22.04-bin.zip
+	unzip z3-4.12.1-x64-ubuntu-22.04-bin.zip
+	rm z3-4.12.1-x64-ubuntu-22.04-bin.zip
+	wget https://github.com/dafny-lang/solver-builds/releases/download/snapshot-2025-12-05/z3-4.15.4-x64-ubuntu-22.04-bin.zip
+	unzip z3-4.15.4-x64-ubuntu-22.04-bin.zip
+	rm z3-4.15.4-x64-ubuntu-22.04-bin.zip
 	mv z3-* "${DIR}"/Binaries/z3/bin/
 	chmod +x "${DIR}"/Binaries/z3/bin/z3-*
 

@@ -31,15 +31,15 @@ jobs:
       - name: Populate OS list (all platforms)
         id: populate-os-list-all
         if: inputs.all_platforms
-        run: echo "os-list=[\"ubuntu-24.04\", \"macos-26\", \"windows-2025\"]" >> $GITHUB_OUTPUT
+        run: echo "os-list=[\"ubuntu-22.04\", \"macos-14\", \"windows-2022\"]" >> $GITHUB_OUTPUT
       - name: Populate OS list (one platform)
         id: populate-os-list-one
         if: "!inputs.all_platforms"
-        run: echo "os-list=[\"ubuntu-24.04\"]" >> $GITHUB_OUTPUT
+        run: echo "os-list=[\"ubuntu-22.04\"]" >> $GITHUB_OUTPUT
       - name: Populate OS mapping for package.py
         id: populate-os-mapping
         run: |
-          echo "os-mapping={\"ubuntu-24.04\": \"ubuntu\", \"macos-26\": \"macos\", \"windows-2025\": \"windows\"}" >> $GITHUB_OUTPUT
+          echo "os-mapping={\"ubuntu-22.04\": \"ubuntu\", \"macos-14\": \"macos\", \"windows-2022\": \"windows\"}" >> $GITHUB_OUTPUT
       - name: Populate target runtime version list (all platforms)
         id: populate-target-runtime-version-all
         if: inputs.all_platforms
@@ -78,7 +78,7 @@ jobs:
       with:
         dotnet-version: 6.0.x
     - name: C++ for ubuntu 22.04
-      if: matrix.os == 'ubuntu-24.04'
+      if: matrix.os == 'ubuntu-22.04'
       run: |
         sudo apt-get install -y build-essential
     - name: Set up oldest supported JDK
@@ -161,7 +161,7 @@ jobs:
       run: |
         sudo apt-get update && sudo apt-get install -qq libarchive-tools
         mkdir -p dafny/Binaries/z3/bin
-        wget -qO- https://github.com/dafny-lang/solver-builds/releases/download/snapshot-2025-12-05/z3-4.15.4-x64-ubuntu-24.04-bin.zip | bsdtar -xf -
+        wget -qO- https://github.com/dafny-lang/solver-builds/releases/download/snapshot-2025-12-05/z3-4.15.4-x64-ubuntu-22.04-bin.zip | bsdtar -xf -
         mv z3-4.15.4 dafny/Binaries/z3/bin/
         chmod +x dafny/Binaries/z3/bin/z3-4.15.4
         mkdir -p unzippedRelease/dafny/z3/bin
