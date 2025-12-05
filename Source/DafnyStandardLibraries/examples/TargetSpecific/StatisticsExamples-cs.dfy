@@ -1,5 +1,3 @@
-include "../../src/Std/TargetSpecific/Statistics.dfy"
-include "../Helpers.dfy"
 
 module TestStatistics {
   import opened Std.Statistics
@@ -21,18 +19,21 @@ module TestStatistics {
     AssertAndExpect(Mean([-10.0, 0.0, 10.0, 20.0]) == 5.0);
   }
 
+  @ResourceLimit("1e7")
   method {:test} TestVariance_DataSet1() {
     var data := [1.0, 2.0, 3.0, 4.0, 5.0];
     AssertAndExpect(VariancePopulation(data) == 2.0);
     AssertAndExpect(VarianceSample(data) == 2.5);
   }
 
+  @ResourceLimit("1e7")
   method {:test} TestVariance_DataSet2() {
     var data2 := [6.0, 7.0, 8.0, 9.0, 10.0];
     AssertAndExpect(VariancePopulation(data2) == 2.0);
     AssertAndExpect(VarianceSample(data2) == 2.5);
   }
 
+  @ResourceLimit("1e7")
   method {:test} TestVariance_DataSet3_Decimals() {
     // Example with decimals
     var data3 := [1.5, 2.5, 3.5, 4.5, 5.5];
