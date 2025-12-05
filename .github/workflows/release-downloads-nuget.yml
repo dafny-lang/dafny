@@ -18,7 +18,7 @@ on:
 
 env:
   dotnet-version: 8.0.x # SDK Version for running Dafny (TODO: should this be an older version?)
-  z3BaseUri: https://github.com/dafny-lang/solver-builds/releases/download/snapshot-2025-07-02
+  z3BaseUri: https://github.com/dafny-lang/solver-builds/releases/download/snapshot-2025-12-05
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -31,7 +31,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ ubuntu-22.04, macos-13, windows-2022 ]
+        os: [ ubuntu-24.04, macos-26, windows-2025 ]
 
     steps:
     - name: OS
@@ -48,26 +48,26 @@ jobs:
     - name: Load Z3
       shell: pwsh
       run: |
-        Invoke-WebRequest ${{env.z3BaseUri}}/z3-4.12.1-x64-${{matrix.os}}-bin.zip -OutFile z3-4.12.1.zip
-        Expand-Archive z3-4.12.1.zip .
-        Remove-Item z3-4.12.1.zip
+        Invoke-WebRequest ${{env.z3BaseUri}}/z3-4.15.4-x64-${{matrix.os}}-bin.zip -OutFile z3-4.15.4.zip
+        Expand-Archive z3-4.15.4.zip .
+        Remove-Item z3-4.15.4.zip
     - name: Set up Z3 (Windows)
       if: runner.os == 'Windows'
       run: |
         mkdir bin
-        mv z3-4.12.1.exe bin/z3.exe
+        mv z3-4.15.4.exe bin/z3.exe
     - name: Set up Z3 (non-Windows)
       if: runner.os != 'Windows'
       run: |
         mkdir bin
-        mv z3-4.12.1 bin/z3
+        mv z3-4.15.4 bin/z3
         chmod +x bin/z3
     - name: Set Path
       if: runner.os != 'Windows'
       run: echo "${PWD}/bin" >> $GITHUB_PATH
     - name: Set Path - Windows
       if: runner.os == 'Windows'
-      run: $((Resolve-Path -Path "bin").providerPath) | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append   
+      run: $((Resolve-Path -Path "bin").providerPath) | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
     - name: Download NuGet package
       run: dotnet tool install --global Dafny
     ## Record versions, checking that executables run

@@ -19,8 +19,8 @@ import ntpath
 
 # Configuration
 
-Z3_VERSIONS = [ "4.12.1", "4.14.1" ]
-Z3_URL_BASE = "https://github.com/dafny-lang/solver-builds/releases/download/snapshot-2025-07-02"
+Z3_VERSIONS = [ "4.12.1", "4.15.4" ]
+Z3_URL_BASE = "https://github.com/dafny-lang/solver-builds/releases/download/snapshot-2025-12-05"
 
 ## How many times we allow ourselves to try to download Z3
 Z3_MAX_DOWNLOAD_ATTEMPTS = 5
@@ -287,10 +287,10 @@ def main():
 
     # Z3
     flush("* Downloading Z3 releases")
-    releases = [ Release("macos-13",       "x64", args.version, args.out),
-                 Release("macos-13",     "arm64", args.version, args.out),
-                 Release("ubuntu-22.04",   "x64", args.version, args.out),
-                 Release("windows-2022",   "x64", args.version, args.out) ]
+    releases = [ Release("macos-26",       "x64", args.version, args.out),
+                 Release("macos-26",     "arm64", args.version, args.out),
+                 Release("ubuntu-24.04",   "x64", args.version, args.out),
+                 Release("windows-2025",   "x64", args.version, args.out) ]
     if args.os:
         releases = list(filter(lambda release: release.os_name == args.os, releases))
     if args.platform:
