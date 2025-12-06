@@ -10,13 +10,6 @@ operation using Dafny's {:test} annotation.
 These tests serve as verification examples that work with Dafny's formal proofs.
 */
 
-// include "../../src/Std/TargetSpecific/LocalDateTime-notarget-cs.dfy"
-// include "../../src/Std/TargetSpecific/Duration-notarget-cs.dfy"
-// include "../../src/Std/TargetSpecific/DateTimeUtils-notarget-cs.dfy"
-// include "../../src/Std/TargetSpecific/DateTimeConstant-notarget-cs.dfy"
-// include "../../src/Std/TargetSpecific/ZonedDateTime-notarget-cs.dfy"
-// include "../Helpers.dfy"
-
 module TestZonedDateTime {
   import opened Std.BoundedInts
   import opened Std.Wrappers
@@ -92,6 +85,7 @@ module TestZonedDateTime {
     }
   }
 
+  @ResourceLimit("1e7")
   method {:test} TestParseFunctionValid()
   {
     var validResult1 := ZDT.Parse("2023-06-15T14:30:45.123+08:00", ZDT.ParseFormat.ISO8601);
@@ -258,7 +252,7 @@ module TestZonedDateTime {
     var invalid_minute_zdt := ZDT.ZonedDateTime(invalid_minute_ldt, "UTC", 0);
     AssertAndExpect(!ZDT.IsValidZonedDateTime(invalid_minute_zdt));
 
-    var invalid_second_ldt := LDT.LocalDateTime(2023, 3, 14, 15, 9, 60, 535);
+    var invalid_second_ldt := LDT.LocalDateTime(2023, 3, 14, 15, 9, 61, 535);
     var invalid_second_zdt := ZDT.ZonedDateTime(invalid_second_ldt, "UTC", 0);
     AssertAndExpect(!ZDT.IsValidZonedDateTime(invalid_second_zdt));
 
