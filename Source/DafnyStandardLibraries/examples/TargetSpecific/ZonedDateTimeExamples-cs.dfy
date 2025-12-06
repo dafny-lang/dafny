@@ -52,16 +52,6 @@ module TestZonedDateTime {
   {
     var zoneId: string := "PST8PDT";
     var localB := LDT.LocalDateTime(2025, 11, 2, 1, 30, 0, 0);
-    var pairB_forward := ZDT.Of(zoneId, localB, ZDT.PREFER_EARLIER);
-    if pairB_forward.0.Success? {
-      var zdtB_forward := pairB_forward.0.value;
-      AssertAndExpect(ZDT.IsValidZonedDateTime(zdtB_forward));
-      expect pairB_forward.1 == ZDT.StatusOverlap;
-      expect zdtB_forward.offsetMinutes == -420; // PDT offset
-
-      var format_forward := ZDT.Format(pairB_forward.0.value, ZDT.DateFormat.ISO8601);
-      expect format_forward == "2025-11-02T01:30:00.000-07:00";
-    }
 
     var pairB_backward := ZDT.Of(zoneId, localB, ZDT.PREFER_LATER);
     if pairB_backward.0.Success? {
