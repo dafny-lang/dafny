@@ -1,0 +1,12 @@
+Fp32ApproximatePrefixErrors.dfy(18,17): Error: The approximate literal prefix ~ cannot be used after unary negation. Use ~-1e-1 instead of -~1e-1 to negate an approximate literal.
+Fp32ApproximatePrefixErrors.dfy(24,15): Error: The approximate literal prefix ~ cannot be used after unary negation. Use ~-1e-1 instead of -~1e-1 to negate an approximate literal.
+Fp32ApproximatePrefixErrors.dfy(25,15): Error: The approximate literal prefix ~ cannot be used after unary negation. Use ~-5e-1 instead of -~5e-1 to negate an approximate literal.
+Fp32ApproximatePrefixErrors.dfy(34,20): Error: ~ prefix can only be applied to numeric literals, not to variables or expressions
+Fp32ApproximatePrefixErrors.dfy(35,20): Error: ~ prefix can only be applied to numeric literals, not to variables or expressions
+Fp32ApproximatePrefixErrors.dfy(36,20): Error: ~ prefix can only be applied to numeric literals, not to variables or expressions
+Fp32ApproximatePrefixErrors.dfy(53,17): Error: ~ prefix not allowed on integer literals
+Fp32ApproximatePrefixErrors.dfy(54,17): Error: ~ prefix not allowed on integer literals
+Fp32ApproximatePrefixErrors.dfy(55,17): Error: ~ prefix not allowed on integer literals
+Fp32ApproximatePrefixErrors.dfy(58,17): Error: ~ prefix not allowed on character literals
+Fp32ApproximatePrefixErrors.dfy(59,19): Error: ~ prefix not allowed on string literals
+11 resolution/type errors detected in Fp32ApproximatePrefixErrors.dfy
