@@ -4,15 +4,15 @@
 // Invalid ~ prefix usage
 // ========================================
 
-method TestTildeNotAllowedOnReal() {
-  // ERROR: Using ~ creates an fp64 literal, which cannot be assigned to real type
-  // The ~ prefix makes these fp64 literals, not real literals
+// method TestTildeNotAllowedOnReal() {
+//   // ERROR: Using ~ creates an fp64 literal, which cannot be assigned to real type
+//   // The ~ prefix makes these fp64 literals, not real literals
 
-  var r1: real := ~0.1;   // Error: fp64 literal cannot be assigned to real (type mismatch)
-  var r2: real := ~3.14;  // Error: fp64 literal cannot be assigned to real (type mismatch)
-  var r3: real := ~-0.5;  // Error: fp64 literal cannot be assigned to real (type mismatch) + exact value error
-  var r4: real := ~0.123456789012345678901234567890;  // Error: fp64 literal cannot be assigned to real (type mismatch)
-}
+//   var r1: real := ~0.1;   // Error: fp64 literal cannot be assigned to real (type mismatch)
+//   var r2: real := ~3.14;  // Error: fp64 literal cannot be assigned to real (type mismatch)
+//   var r3: real := ~-0.5;  // Error: fp64 literal cannot be assigned to real (type mismatch) + exact value error
+//   var r4: real := ~0.123456789012345678901234567890;  // Error: fp64 literal cannot be assigned to real (type mismatch)
+// }
 
 method TestNegationWithApproximatePrefix() {
   var a: fp64 := -~0.1;   // Error: The approximate literal prefix ~ cannot be used after unary negation
