@@ -30,4 +30,8 @@ method TestTypeAwareValidation() {
 
   var ok: fp32 := ~16777217.0;  // OK: inexact in fp32, ~ is appropriate
   var bad: fp64 := ~16777217.0; // Error: exact in fp64, ~ not allowed
+
+  // Test type inference with 'as' conversion
+  var ok2 := ~16777217.0 as fp32;  // OK: inferred as fp32, inexact in fp32
+  var bad2 := ~16777217.0 as fp64; // Error: inferred as fp64, exact in fp64
 }
