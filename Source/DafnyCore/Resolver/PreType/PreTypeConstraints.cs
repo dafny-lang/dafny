@@ -194,6 +194,9 @@ namespace Microsoft.Dafny {
     }
 
     void ApplyFloatFallbackDefaults() {
+      if (floatProxiesNeedingDefault.Count == 0) {
+        return;
+      }
       var fp64 = PreTypeResolver.Type2PreType(Type.Fp64);
       foreach (var preType in floatProxiesNeedingDefault) {
         if (preType.Normalize() is PreTypeProxy proxy) {
