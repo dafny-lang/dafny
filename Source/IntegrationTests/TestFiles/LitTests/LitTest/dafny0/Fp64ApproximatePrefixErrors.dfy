@@ -10,7 +10,7 @@ method TestTildeNotAllowedOnReal() {
 
   var r1: real := ~0.1;   // Error: fp64 literal cannot be assigned to real (type mismatch)
   var r2: real := ~3.14;  // Error: fp64 literal cannot be assigned to real (type mismatch)
-  var r3: real := ~-0.5;  // Error: fp64 literal cannot be assigned to real (type mismatch) + exact value error
+  var r3: real := ~-0.5;  // Error: fp64 literal cannot be assigned to real (type mismatch)
   var r4: real := ~0.123456789012345678901234567890;  // Error: fp64 literal cannot be assigned to real (type mismatch)
 }
 

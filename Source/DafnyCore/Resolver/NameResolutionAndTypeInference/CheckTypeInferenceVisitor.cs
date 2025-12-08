@@ -125,23 +125,29 @@ class CheckTypeInferenceVisitor : ASTVisitor<TypeInferenceCheckingContext> {
         } else if (e.E.Type.IsNumericBased(Type.NumericPersuasion.Float)) {
           var d = (BigDec)lit.Value;
           Contract.Assert(!d.IsNegative);
-          // For fp64 types, always create DecimalLiteralExpr with ResolvedFloatValue
+          var (significandBits, exponentBits) = e.E.Type.FloatPrecision;
+
           if (d.IsZero) {
             resolved = new DecimalLiteralExpr(e.Origin, BigDec.ZERO) {
               Type = e.E.Type,
-              ResolvedFloatValue = BigFloat.CreateZero(true, 53, 11)
+              ResolvedFloatValue = BigFloat.CreateZero(true, significandBits, exponentBits)
             };
           } else {
             BigFloat negatedFloat;
             if (lit is DecimalLiteralExpr decLit && decLit.ResolvedFloatValue != null) {
               negatedFloat = -decLit.ResolvedFloatValue.Value;
             } else {
-              BigFloat.FromBigDec(-d, 53, 11, out negatedFloat);
+              negatedFloat = FloatLiteralValidator.ComputeNegatedFloat(d, significandBits, exponentBits);
             }
-            resolved = new DecimalLiteralExpr(e.Origin, -d) {
+            var negatedLit = new DecimalLiteralExpr(e.Origin, -d) {
               Type = e.Type,
               ResolvedFloatValue = negatedFloat
             };
+            // Preserve IsApproximate flag from original literal
+            if (lit is DecimalLiteralExpr origDecLit) {
+              negatedLit.IsApproximate = origDecLit.IsApproximate;
+            }
+            resolved = negatedLit;
           }
         } else if (e.E.Type.IsNumericBased(Type.NumericPersuasion.Int)) {
           var n = (BigInteger)lit.Value;
@@ -150,8 +156,8 @@ class CheckTypeInferenceVisitor : ASTVisitor<TypeInferenceCheckingContext> {
         }
       }
       if (resolved == null) {
-        // For fp64, use UnaryOpExpr with Negate opcode for IEEE 754 compliance
-        if (e.E.Type.IsFp64Type) {
+        // For floating-point types, use UnaryOpExpr with Negate opcode for IEEE 754 compliance
+        if (e.E.Type.IsFloatingPointType) {
           resolved = new UnaryOpExpr(e.Origin, UnaryOpExpr.Opcode.Negate, e.E);
         } else {
           // Treat all other expressions "-e" as "0 - e"
@@ -180,12 +186,18 @@ class CheckTypeInferenceVisitor : ASTVisitor<TypeInferenceCheckingContext> {
         e.ResolvedExpression ??= e.Expr;
       }
 
-      // Set ResolvedFloatValue for fp64 literals without validation
+      // Validate and set ResolvedFloatValue for float literals
       Expression toCheck = e.ResolvedExpression ?? e.Expr;
-      if (toCheck is DecimalLiteralExpr decLit && decLit.Type.IsFp64Type && decLit.ResolvedFloatValue == null) {
-        var decValue = (BigDec)decLit.Value;
-        BigFloat.FromBigDec(decValue, 53, 11, out var floatValue);
-        decLit.ResolvedFloatValue = floatValue;
+      if (toCheck is DecimalLiteralExpr decLit) {
+        var resolvedType = e.Type.Normalize();
+
+        if (resolvedType.IsFloatingPointType) {
+          var decValue = (BigDec)decLit.Value;
+          var (significandBits, exponentBits) = resolvedType.FloatPrecision;
+          var (isExact, floatValue) = FloatLiteralValidator.ValidateAndCompute(decValue, significandBits, exponentBits);
+
+          decLit.ResolvedFloatValue = floatValue;
+        }
       }
     } else if (expr is LiteralExpr) {
       var e = (LiteralExpr)expr;
@@ -204,13 +216,42 @@ class CheckTypeInferenceVisitor : ASTVisitor<TypeInferenceCheckingContext> {
         }
       }
 
-      if (e is DecimalLiteralExpr decimalLiteral && e.Type.IsFp64Type && e.Value is BigDec decValue) {
-        if (decimalLiteral.ResolvedFloatValue == null) {
-          var isExact = BigFloat.FromBigDec(decValue, 53, 11, out var floatValue);
-          decimalLiteral.ResolvedFloatValue = floatValue;
-          if (!isExact) {
+      if (e is DecimalLiteralExpr decimalLiteral && e.Value is BigDec decValue) {
+        var normalizedType = e.Type.Normalize();
+
+        if (!normalizedType.IsFloatingPointType) {
+          return;
+        }
+
+        if (decimalLiteral.IsApproximate) {
+          var (significandBits, exponentBits) = normalizedType.FloatPrecision;
+          var (isExact, _) = FloatLiteralValidator.ValidateAndCompute(decValue, significandBits, exponentBits);
+          if (isExact) {
+            var typeName = normalizedType.FloatTypeName;
             resolver.ReportError(ResolutionErrors.ErrorId.r_inexact_fp64_literal_without_prefix, e.Origin,
-              $"The literal {decValue} is not exactly representable as an fp64 value. " +
+              $"The approximate literal prefix ~ is not allowed on value {decValue} which is exactly representable as {typeName}. Remove the ~ prefix.");
+          }
+          return;
+        }
+
+        // Compute float value if not yet computed, or if type precision changed during inference
+        bool wasNull = decimalLiteral.ResolvedFloatValue == null;
+        bool needsRecompute = wasNull;
+        if (!needsRecompute) {
+          var (currentMantissa, currentExponent) = normalizedType.FloatPrecision;
+          var storedValue = decimalLiteral.ResolvedFloatValue.Value;
+          needsRecompute = currentMantissa != storedValue.SignificandSize || currentExponent != storedValue.ExponentSize;
+        }
+
+        if (needsRecompute) {
+          var (significandBits, exponentBits) = normalizedType.FloatPrecision;
+          var (isExact, floatValue) = FloatLiteralValidator.ValidateAndCompute(decValue, significandBits, exponentBits);
+          decimalLiteral.ResolvedFloatValue = floatValue;
+          // Report inexact error only on first computation (not on type precision changes)
+          if (!isExact && wasNull) {
+            var typeName = normalizedType.FloatTypeName;
+            resolver.ReportError(ResolutionErrors.ErrorId.r_inexact_fp64_literal_without_prefix, e.Origin,
+              $"The literal {decValue} is not exactly representable as an {typeName} value. " +
               $"Use the approximate literal syntax ~{decValue} to explicitly acknowledge rounding.");
           }
         }
@@ -464,7 +505,6 @@ class CheckTypeInferenceVisitor : ASTVisitor<TypeInferenceCheckingContext> {
     if (t is TypeProxy) {
       var proxy = (TypeProxy)t;
       if (!UnderspecifiedTypeProxies.Contains(proxy)) {
-        // report an error for this TypeProxy only once
         resolver.ReportError(ResolutionErrors.ErrorId.r_var_type_undetermined, tok, "the type of this {0} is underspecified", what);
         UnderspecifiedTypeProxies.Add(proxy);
       }
