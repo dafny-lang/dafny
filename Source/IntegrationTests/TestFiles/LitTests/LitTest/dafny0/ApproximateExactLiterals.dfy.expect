@@ -10,4 +10,5 @@ ApproximateExactLiterals.dfy(21,21): Error: The approximate literal prefix ~ is 
 ApproximateExactLiterals.dfy(22,21): Error: The approximate literal prefix ~ is not allowed on value 2e0 which is exactly representable as fp64. Remove the ~ prefix.
 ApproximateExactLiterals.dfy(23,21): Error: The approximate literal prefix ~ is not allowed on value 4e0 which is exactly representable as fp64. Remove the ~ prefix.
 ApproximateExactLiterals.dfy(24,21): Error: The approximate literal prefix ~ is not allowed on value 125e-3 which is exactly representable as fp64. Remove the ~ prefix.
-12 resolution/type errors detected in ApproximateExactLiterals.dfy
+ApproximateExactLiterals.dfy(32,20): Error: The approximate literal prefix ~ is not allowed on value 16777217e0 which is exactly representable as fp64. Remove the ~ prefix.
+13 resolution/type errors detected in ApproximateExactLiterals.dfy

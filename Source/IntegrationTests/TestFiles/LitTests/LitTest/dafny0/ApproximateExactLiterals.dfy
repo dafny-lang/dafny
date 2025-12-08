@@ -23,3 +23,11 @@ method TestTildeOnExactFp64Literals() {
   var bad5: fp64 := ~4.0;   // Error: ~ not allowed; 4.0 is exactly representable in fp64
   var bad6: fp64 := ~0.125; // Error: ~ not allowed; 0.125 is exactly representable in fp64
 }
+
+method TestTypeAwareValidation() {
+  // KEY TEST: Type-aware validation checks exactness in the TARGET type
+  // 16777217.0 is inexact in fp32 but exact in fp64
+
+  var ok: fp32 := ~16777217.0;  // OK: inexact in fp32, ~ is appropriate
+  var bad: fp64 := ~16777217.0; // Error: exact in fp64, ~ not allowed
+}
