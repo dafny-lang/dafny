@@ -16,7 +16,7 @@ public abstract class ConcreteAssignStatement : Statement, ICanFormat {
 
   public ConcreteAssignStatement(IOrigin origin, List<Expression> lhss, Attributes attributes = null)
     : base(origin, attributes) {
-    Contract.Requires(cce.NonNullElements(lhss));
+    Contract.Requires(Cce.NonNullElements(lhss));
     Lhss = lhss;
   }
 

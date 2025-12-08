@@ -571,10 +571,12 @@ public partial class Parser {
       case _nat:
       case _int:
       case _real:
+      case _fp64:
       case _ORDINAL:
       case _string:
       case _object_q:
       case _object:
+      case _field:
         pt = scanner.Peek();
         return true;
       case _arrayToken:
@@ -614,10 +616,6 @@ public partial class Parser {
         }
         return IsTypeSequence(ref pt, _closeparen);
       default:
-        if (AcceptReferrers() && pt.val == "field") {
-          pt = scanner.Peek();
-          return true;
-        }
         return false;
     }
   }

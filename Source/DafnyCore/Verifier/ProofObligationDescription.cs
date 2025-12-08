@@ -72,7 +72,7 @@ public abstract class ProofObligationDescription : Boogie.ProofObligationDescrip
 
 public class DivisorNonZero : ProofObligationDescription {
   public override string SuccessDescription =>
-    "divisor is always non-zero.";
+    "divisor is always non-zero";
 
   public override string FailureDescription =>
     "possible division by zero";
@@ -87,6 +87,98 @@ public class DivisorNonZero : ProofObligationDescription {
 
   public override Expression GetAssertedExpr(DafnyOptions options) {
     return new BinaryExpr(divisor.Origin, BinaryExpr.Opcode.Neq, divisor, new LiteralExpr(divisor.Origin, 0));
+  }
+}
+
+public class Fp64EqualityPrecondition : ProofObligationDescription {
+  public override string SuccessDescription =>
+    "fp64 operand is never NaN for equality comparison";
+
+  public override string FailureDescription =>
+    "fp64 equality comparison requires that operands are not NaN";
+
+  public override string ShortDescription => "fp64 equality precondition";
+
+  private readonly Expression operand;
+
+  public Fp64EqualityPrecondition(Expression operand) {
+    this.operand = operand;
+  }
+
+  public override Expression GetAssertedExpr(DafnyOptions options) {
+    // For now, return a simple true expression since we can't easily construct
+    // the proper !operand.IsNaN expression here without more context
+    return new LiteralExpr(operand.Origin, true);
+  }
+}
+
+public class Fp64SignedZeroEqualityPrecondition : ProofObligationDescription {
+  public override string SuccessDescription =>
+    "fp64 equality comparison never compares +0.0 with -0.0";
+
+  public override string FailureDescription =>
+    "fp64 equality comparison requires that signed zeros have the same sign";
+
+  public override string ShortDescription => "fp64 signed zero equality precondition";
+
+  private readonly Expression operand0;
+  private readonly Expression operand1;
+
+  public Fp64SignedZeroEqualityPrecondition(Expression operand0, Expression operand1) {
+    this.operand0 = operand0;
+    this.operand1 = operand1;
+  }
+
+  public override Expression GetAssertedExpr(DafnyOptions options) {
+    // For now, return a simple true expression since we can't easily construct
+    // the proper !(x.IsZero && y.IsZero && x.IsNegative != y.IsNegative) expression here
+    return new LiteralExpr(operand0.Origin, true);
+  }
+}
+
+public class Fp64CollectionEqualityWellformedness : ProofObligationDescription {
+  public override string SuccessDescription =>
+    "equality comparison is supported for this type";
+
+  public override string FailureDescription {
+    get {
+      string typeName = GetTypeName();
+      return $"equality comparison of {typeName} is not supported in compiled code (use ghost context or compare elements individually)";
+    }
+  }
+
+  public override string ShortDescription => "fp64 collection equality";
+
+  private readonly Type collectionType;
+
+  public Fp64CollectionEqualityWellformedness(Type collectionType) {
+    this.collectionType = collectionType.NormalizeExpand();
+  }
+
+  private string GetTypeName() {
+    if (collectionType is SetType) {
+      return "set<fp64>";
+    } else if (collectionType is SeqType) {
+      return "seq<fp64>";
+    } else if (collectionType is MultiSetType) {
+      return "multiset<fp64>";
+    } else if (collectionType is MapType mapType) {
+      // Be more specific about map types
+      return mapType.Domain is Fp64Type ?
+        (mapType.Range is Fp64Type ? "map<fp64, fp64>" : "map<fp64, _>") :
+        "map<_, fp64>";
+    } else if (collectionType is UserDefinedType udt && udt.ResolvedClass != null) {
+      // Show the actual datatype name
+      return $"datatype '{udt.ResolvedClass.Name}' containing fp64";
+    } else if (collectionType != null) {
+      return $"type containing fp64";
+    }
+    return "type containing fp64";
+  }
+
+  public override Expression GetAssertedExpr(DafnyOptions options) {
+    // Return a simple false expression since this is always rejected
+    return new LiteralExpr(collectionType?.Origin ?? Microsoft.Dafny.Token.NoToken, false);
   }
 }
 
@@ -144,7 +236,7 @@ public class ConversionIsNatural : ProofObligationDescription {
     $"{prefix}value to be converted is always a natural number";
 
   public override string FailureDescription =>
-    $"{prefix}value to be converted might be bigger than every natural number";
+    $"{prefix}value to be converted could not be proved to be a natural number";
 
   public override string ShortDescription => "converted value is natural";
 
@@ -166,7 +258,7 @@ public class ConversionSatisfiesConstraints : ProofObligationDescription {
     $"{prefix}result of operation never violates {kind} constraints for '{name}'";
 
   public override string FailureDescription =>
-    $"{prefix}result of operation might violate {kind} constraint for '{name}'";
+    $"{prefix}result of operation could not be proved to satisfy {kind} constraint for '{name}'";
 
   public override string ShortDescription => "conversion satisfies type constraints";
 
@@ -192,7 +284,7 @@ public class OrdinalSubtractionIsNatural : ProofObligationDescription {
     "RHS of ORDINAL subtraction is always a natural number";
 
   public override string FailureDescription =>
-    "RHS of ORDINAL subtraction must be a natural number, but the given RHS might be larger";
+    "RHS of ORDINAL subtraction must be a natural number, but the given RHS could not be proved to be a natural number";
 
   public override string ShortDescription => "ordinal subtraction is natural";
 
@@ -209,10 +301,10 @@ public class OrdinalSubtractionIsNatural : ProofObligationDescription {
 
 public class OrdinalSubtractionUnderflow : ProofObligationDescription {
   public override string SuccessDescription =>
-    "ORDINAL subtraction will never go below limit ordinal";
+    "ORDINAL subtraction will remain above limit ordinal";
 
   public override string FailureDescription =>
-    "ORDINAL subtraction might underflow a limit ordinal (that is, RHS might be too large)";
+    "ORDINAL subtraction could not be proved to remain above limit ordinal (that is, RHS could not be proved to be sufficiently small)";
 
   public override string ShortDescription => "ordinal subtraction underflow";
 
@@ -236,10 +328,10 @@ public class OrdinalSubtractionUnderflow : ProofObligationDescription {
 
 public class CharOverflow : ProofObligationDescription {
   public override string SuccessDescription =>
-    "char addition will not overflow";
+    "char addition will remain below maximum";
 
   public override string FailureDescription =>
-    "char addition might overflow";
+    "char addition could not be proved to remain below maximum";
 
   public override string ShortDescription => "char overflow";
 
@@ -264,10 +356,10 @@ public class CharOverflow : ProofObligationDescription {
 
 public class CharUnderflow : ProofObligationDescription {
   public override string SuccessDescription =>
-    "char subtraction will not underflow";
+    "char subtraction will remain above minimum";
 
   public override string FailureDescription =>
-    "char subtraction might underflow";
+    "char subtraction could not be proved to remain above minimum";
 
   public override string ShortDescription => "char underflow";
 
@@ -295,7 +387,7 @@ public class ConversionFit : ProofObligationDescription {
     $"{prefix}{what} to be converted will always fit in {toType}";
 
   public override string FailureDescription =>
-    $"{prefix}{what} to be converted might not fit in {toType}";
+    $"{prefix}{what} to be converted could not be proved to fit in {toType}";
 
   public override string ShortDescription => "conversion fit";
 
@@ -321,7 +413,7 @@ public class NonNegative : ProofObligationDescription {
     $"{what} is never negative";
 
   public override string FailureDescription =>
-    $"{what} might be negative";
+    $"{what} could not be proved to be non-negative";
 
   public override string ShortDescription => "non-negative";
 
@@ -401,6 +493,78 @@ public class IsInteger : ProofObligationDescription {
   }
 }
 
+public class IsExactlyRepresentableAsFp64 : ProofObligationDescription {
+  public override string SuccessDescription =>
+    $"{prefix}the real value is exactly representable as fp64";
+
+  public override string FailureDescription =>
+    $"{prefix}the real value must be exactly representable as fp64 (if you want rounding, use the approximation operator ~)";
+
+  public override string ShortDescription => "is exactly representable as fp64";
+
+  private readonly string prefix;
+  private readonly Expression expr;
+
+  public IsExactlyRepresentableAsFp64(Expression expr, string prefix = "") {
+    this.expr = expr;
+    this.prefix = prefix;
+  }
+
+  public override Expression GetAssertedExpr(DafnyOptions options) {
+    // Express as: expr == (expr as fp64) as real
+    return new BinaryExpr(
+      expr.Origin,
+      BinaryExpr.Opcode.Eq,
+      expr,
+      new ConversionExpr(expr.Origin,
+        new ConversionExpr(expr.Origin, expr, new Fp64Type()),
+        Type.Real)
+    );
+  }
+}
+
+public class Fp64SqrtNonNegativePrecondition : ProofObligationDescription {
+  public override string SuccessDescription =>
+    "fp64.Sqrt argument is always non-negative";
+
+  public override string FailureDescription =>
+    "fp64.Sqrt requires a non-negative argument (negative values produce NaN)";
+
+  public override string ShortDescription => "fp64.Sqrt non-negative precondition";
+
+  private readonly Expression expr;
+
+  public Fp64SqrtNonNegativePrecondition(Expression expr) {
+    this.expr = expr;
+  }
+
+  public override Expression GetAssertedExpr(DafnyOptions options) {
+    var zero = Expression.CreateRealLiteral(expr.Origin, BaseTypes.BigDec.ZERO);
+    return new BinaryExpr(expr.Origin, BinaryExpr.Opcode.Ge, expr, zero);
+  }
+}
+
+public class Fp64ToIntFinitePrecondition : ProofObligationDescription {
+  public override string SuccessDescription =>
+    "fp64.ToInt argument is always finite";
+
+  public override string FailureDescription =>
+    "fp64.ToInt requires a finite argument (not NaN or infinity)";
+
+  public override string ShortDescription => "fp64.ToInt finite precondition";
+
+  private readonly Expression operand;
+
+  public Fp64ToIntFinitePrecondition(Expression operand) {
+    this.operand = operand;
+  }
+
+  public override Expression GetAssertedExpr(DafnyOptions options) {
+    // Express as: operand.IsFinite
+    return new ExprDotName(operand.Origin, operand, new Name("IsFinite"), null);
+  }
+}
+
 //// Object properties
 
 public class NonNull : ProofObligationDescription {
@@ -408,7 +572,7 @@ public class NonNull : ProofObligationDescription {
     $"{PluralSuccess}{what} is never null";
 
   public override string FailureDescription =>
-    $"{PluralFailure}{what} might be null";
+    $"{PluralFailure}{what} could not be proved to be non-null";
 
   public override string ShortDescription => $"{what} non-null";
   private readonly string what;
@@ -542,7 +706,7 @@ public class AssertStatementDescription : ProofObligationDescriptionCustomMessag
     "assertion always holds";
 
   public override string DefaultFailureDescription =>
-    "assertion might not hold";
+    "assertion could not be proved";
 
   public override string ShortDescription => "assert statement";
 
@@ -775,8 +939,8 @@ public class TraitFrame : ProofObligationDescription {
 
   public override string FailureDescription =>
     isModify
-      ? $"{whatKind} might modify an object not in the parent trait context's modifies clause"
-      : $"{whatKind} might read an object not in the parent trait context's reads clause";
+      ? $"modified object in {whatKind} could not be proved to be in the parent trait's modifies clause"
+      : $"accessed object in {whatKind} could not be proved to be in the parent trait's reads clause";
 
   public override string ShortDescription =>
     isModify ? "trait modifies" : "trait reads";
@@ -827,7 +991,7 @@ public class ModifyFrameSubset : ProofObligationDescription {
       $"{whatKind} is allowed by context's modifies clause";
 
   public override string FailureDescription =>
-      $"{whatKind} might violate context's modifies clause";
+      $"modified object in {whatKind} could not be proved to be in the current modifies clause";
 
   public override string ShortDescription => "modify frame subset";
 
@@ -851,7 +1015,7 @@ public class FrameDereferenceNonNull : ProofObligationDescription {
     "frame expression does not dereference null";
 
   public override string FailureDescription =>
-    "frame expression might dereference null";
+    "frame expression could not be proved to be non-null";
 
   public override string ShortDescription => "frame dereference";
 
@@ -873,7 +1037,7 @@ public class Terminates : ProofObligationDescription {
   public override string FailureDescription =>
     (inferredDescreases
       ? ("cannot prove termination; try supplying a decreases clause" + (isLoop ? " for the loop" : ""))
-      : $"decreases {FormDescription} might not decrease") +
+      : $"decreases {FormDescription} could not be proved to decrease") +
     (hint is null ? "" : $" ({hint})");
 
   public override string ShortDescription => "termination";
@@ -981,7 +1145,7 @@ public class Modifiable : ProofObligationDescription {
     $"{description} is in the enclosing context's modifies clause";
 
   public override string FailureDescription =>
-    $"assignment might update {description} not in the enclosing context's modifies clause";
+    $"modified {description} could not be proved to be in the current modifies clause";
 
   public override string ShortDescription => "modifiable";
 
@@ -1224,7 +1388,7 @@ public class WitnessCheck : ProofObligationDescription {
 
   public override string FailureDescription =>
     witnessString is null
-      ? "the given witness expression might not satisfy constraint"
+      ? "the given witness expression could not be proved to satisfy constraint"
       : (witnessString == "" ? $"{errMsg}{hintMsg}" : $"{errMsg} (only tried {witnessString}){hintMsg}");
 
   public override string ShortDescription => "witness check";
@@ -1326,7 +1490,7 @@ public class ForallLHSUnique : ProofObligationDescription {
     "left-hand sides of forall-statement bound variables are unique (or right-hand sides are equivalent)";
 
   public override string FailureDescription =>
-    "left-hand sides for different forall-statement bound variables might refer to the same location (and right-hand sides might not be equivalent)";
+    "left-hand sides for different forall-statement bound variables could not be proved to refer to different locations (and right-hand sides could not be proved to be equivalent)";
 
   public override string ShortDescription => "forall bound unique";
 
@@ -1363,7 +1527,7 @@ public class ElementInDomain : ProofObligationDescription {
     "element is in domain";
 
   public override string FailureDescription =>
-    "element might not be in domain";
+    "element could not be proved to be in domain";
 
   public override string ShortDescription => "element in domain";
 
@@ -1384,7 +1548,7 @@ public class DefiniteAssignment : ProofObligationDescription {
     $"{kind} '{name}', which is subject to definite-assignment rules, is always initialized {where}";
 
   public override string FailureDescription =>
-    $"{kind} '{name}', which is subject to definite-assignment rules, might be uninitialized {where}";
+    $"{kind} '{name}', which is subject to definite-assignment rules, could not be proved to be initialized {where}";
 
   public override string ShortDescription => "definite assignment";
 
@@ -1483,7 +1647,7 @@ public class ComprehensionNoAlias : ProofObligationDescription {
     "key expressions refer to unique values";
 
   public override string FailureDescription =>
-    "key expressions might be referring to the same value";
+    "key expressions could not be proved to refer to different values";
 
   public override string ShortDescription => "unique key expressions";
 
@@ -1515,7 +1679,7 @@ public class DistinctLHS : ProofObligationDescription {
     $"left-hand sides {lhsa} and {lhsb} are distinct";
 
   public override string FailureDescription =>
-    $"{when}left-hand sides {lhsa} and {lhsb} {might}refer to the same location{whenSuffix}";
+    $"{when}left-hand sides {lhsa} and {lhsb} could not be proved to refer to different locations{whenSuffix}";
 
   public override string ShortDescription => "distinct lhs";
 
@@ -1727,6 +1891,35 @@ public class BoilerplateTriple : ProofObligationDescriptionCustomMessages {
     : base(errorMessage, successMessage) {
     this.DefaultSuccessDescription = comment;
     this.DefaultFailureDescription = comment;
+  }
+}
+
+public class IntToFp64ExactnessCheck : ProofObligationDescription {
+  public override string SuccessDescription =>
+    $"{prefix}the integer value is exactly representable as fp64";
+
+  public override string FailureDescription =>
+    $"{prefix}the integer value must be exactly representable as fp64 (integers outside ±2^53 cannot be exactly represented)";
+
+  public override string ShortDescription => "int to fp64 exactness check";
+
+  private readonly string prefix;
+  private readonly Expression expr;
+
+  public IntToFp64ExactnessCheck(Expression expr, string prefix = "") {
+    this.expr = expr;
+    this.prefix = prefix;
+  }
+
+  public override Expression GetAssertedExpr(DafnyOptions options) {
+    // The exactness check is: converting to fp64 and back to int preserves the value
+    // This properly handles all exactly representable integers, including:
+    // - All integers from -2^53 to 2^53
+    // - Even integers from ±2^53 to ±2^54
+    // - Multiples of 4 from ±2^54 to ±2^55
+    // - And so on up to about ±1.8e308
+    // The actual Boogie check performs the round-trip test, this is just for display
+    return Expression.CreateBoolLiteral(expr.Origin, true);
   }
 }
 

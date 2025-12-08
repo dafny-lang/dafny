@@ -149,7 +149,7 @@ public static class BoogieOptionBag {
 
     OptionRegistry.RegisterGlobalOption(BoogieArguments, OptionCompatibility.CheckOptionMatches);
     OptionRegistry.RegisterGlobalOption(NoVerify, OptionCompatibility.OptionLibraryImpliesLocalError);
-    OptionRegistry.RegisterOption(HiddenNoVerify, OptionScope.Cli);
+    OptionRegistry.RegisterGlobalOption(HiddenNoVerify, OptionCompatibility.NoOpOptionCheck);
     OptionRegistry.RegisterOption(Cores, OptionScope.Cli);
     OptionRegistry.RegisterOption(VerificationTimeLimit, OptionScope.Cli);
     OptionRegistry.RegisterOption(VerificationErrorLimit, OptionScope.Cli);

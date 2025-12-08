@@ -9,6 +9,7 @@ using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 using System.Linq;
 using System.Numerics;
+using Microsoft.BaseTypes;
 using Microsoft.Boogie;
 
 namespace Microsoft.Dafny;
@@ -110,7 +111,83 @@ class CheckTypeInferenceVisitor : ASTVisitor<TypeInferenceCheckingContext> {
   }
 
   protected override void PostVisitOneExpression(Expression expr, TypeInferenceCheckingContext context) {
-    if (expr is LiteralExpr) {
+    // Handle NegationExpression first, as ApproximateExpr may depend on it
+    if (expr is NegationExpression) {
+      var e = (NegationExpression)expr;
+      Expression resolved = null;
+      if (e.E is LiteralExpr lit) { // note, not e.E.Resolved, since we don't want to do this for double negations
+        // For real-based types, float types, integer-based types, and bi (but not bitvectors), "-" followed by a literal is
+        // just a literal expression with a negative value
+        if (e.E.Type.IsNumericBased(Type.NumericPersuasion.Real)) {
+          var d = (BigDec)lit.Value;
+          Contract.Assert(!d.IsNegative);
+          resolved = new LiteralExpr(e.Origin, -d);
+        } else if (e.E.Type.IsNumericBased(Type.NumericPersuasion.Float)) {
+          var d = (BigDec)lit.Value;
+          Contract.Assert(!d.IsNegative);
+          // For fp64 types, always create DecimalLiteralExpr with ResolvedFloatValue
+          if (d.IsZero) {
+            resolved = new DecimalLiteralExpr(e.Origin, BigDec.ZERO) {
+              Type = e.E.Type,
+              ResolvedFloatValue = BigFloat.CreateZero(true, 53, 11)
+            };
+          } else {
+            BigFloat negatedFloat;
+            if (lit is DecimalLiteralExpr decLit && decLit.ResolvedFloatValue != null) {
+              negatedFloat = -decLit.ResolvedFloatValue.Value;
+            } else {
+              BigFloat.FromBigDec(-d, 53, 11, out negatedFloat);
+            }
+            resolved = new DecimalLiteralExpr(e.Origin, -d) {
+              Type = e.Type,
+              ResolvedFloatValue = negatedFloat
+            };
+          }
+        } else if (e.E.Type.IsNumericBased(Type.NumericPersuasion.Int)) {
+          var n = (BigInteger)lit.Value;
+          Contract.Assert(0 <= n);
+          resolved = new LiteralExpr(e.Origin, -n);
+        }
+      }
+      if (resolved == null) {
+        // For fp64, use UnaryOpExpr with Negate opcode for IEEE 754 compliance
+        if (e.E.Type.IsFp64Type) {
+          resolved = new UnaryOpExpr(e.Origin, UnaryOpExpr.Opcode.Negate, e.E);
+        } else {
+          // Treat all other expressions "-e" as "0 - e"
+          Expression zero;
+          if (e.E.Type.IsNumericBased(Type.NumericPersuasion.Real)) {
+            zero = new LiteralExpr(e.Origin, BaseTypes.BigDec.ZERO);
+          } else if (e.E.Type.IsNumericBased(Type.NumericPersuasion.Float)) {
+            zero = new DecimalLiteralExpr(e.Origin, BaseTypes.BigDec.ZERO);
+          } else {
+            Contract.Assert(e.E.Type.IsNumericBased(Type.NumericPersuasion.Int) || e.E.Type.NormalizeToAncestorType().IsBitVectorType);
+            zero = new LiteralExpr(e.Origin, 0);
+          }
+          zero.Type = expr.Type;
+          resolved = new BinaryExpr(e.Origin, BinaryExpr.Opcode.Sub, zero, e.E) {
+            ResolvedOp = BinaryExpr.ResolvedOpcode.Sub
+          };
+        }
+      }
+      resolved.Type = expr.Type;
+      e.ResolvedExpression = resolved;
+    } else if (expr is ApproximateExpr) {
+      var e = (ApproximateExpr)expr;
+      if (e.Expr is NegationExpression { ResolvedExpression: not null } neg) {
+        e.ResolvedExpression = neg.ResolvedExpression;
+      } else {
+        e.ResolvedExpression ??= e.Expr;
+      }
+
+      // Set ResolvedFloatValue for fp64 literals without validation
+      Expression toCheck = e.ResolvedExpression ?? e.Expr;
+      if (toCheck is DecimalLiteralExpr decLit && decLit.Type.IsFp64Type && decLit.ResolvedFloatValue == null) {
+        var decValue = (BigDec)decLit.Value;
+        BigFloat.FromBigDec(decValue, 53, 11, out var floatValue);
+        decLit.ResolvedFloatValue = floatValue;
+      }
+    } else if (expr is LiteralExpr) {
       var e = (LiteralExpr)expr;
       if (e.Type.IsBitVectorType || e.Type.IsBigOrdinalType) {
         var n = (BigInteger)e.Value;
@@ -124,6 +201,18 @@ class CheckTypeInferenceVisitor : ASTVisitor<TypeInferenceCheckingContext> {
         if (n < 0 || e.Origin.val == "-0") {
           Contract.Assert(e.Origin.val == "-0");  // this and the "if" above tests that "n < 0" happens only when the token is "-0"
           resolver.ReportError(ResolutionErrors.ErrorId.r_no_unary_minus_in_case_patterns, e.Origin, "unary minus (-{0}, type {1}) not allowed in case pattern", absN, e.Type);
+        }
+      }
+
+      if (e is DecimalLiteralExpr decimalLiteral && e.Type.IsFp64Type && e.Value is BigDec decValue) {
+        if (decimalLiteral.ResolvedFloatValue == null) {
+          var isExact = BigFloat.FromBigDec(decValue, 53, 11, out var floatValue);
+          decimalLiteral.ResolvedFloatValue = floatValue;
+          if (!isExact) {
+            resolver.ReportError(ResolutionErrors.ErrorId.r_inexact_fp64_literal_without_prefix, e.Origin,
+              $"The literal {decValue} is not exactly representable as an fp64 value. " +
+              $"Use the approximate literal syntax ~{decValue} to explicitly acknowledge rounding.");
+          }
         }
       }
 
@@ -343,36 +432,6 @@ class CheckTypeInferenceVisitor : ASTVisitor<TypeInferenceCheckingContext> {
               break;
           }
         }
-      } else if (expr is NegationExpression) {
-        var e = (NegationExpression)expr;
-        Expression resolved = null;
-        if (e.E is LiteralExpr lit) { // note, not e.E.Resolved, since we don't want to do this for double negations
-          // For real-based types, integer-based types, and bi (but not bitvectors), "-" followed by a literal is
-          // just a literal expression with a negative value
-          if (e.E.Type.IsNumericBased(Type.NumericPersuasion.Real)) {
-            var d = (BaseTypes.BigDec)lit.Value;
-            Contract.Assert(!d.IsNegative);
-            resolved = new LiteralExpr(e.Origin, -d);
-          } else if (e.E.Type.IsNumericBased(Type.NumericPersuasion.Int)) {
-            var n = (BigInteger)lit.Value;
-            Contract.Assert(0 <= n);
-            resolved = new LiteralExpr(e.Origin, -n);
-          }
-        }
-        if (resolved == null) {
-          // Treat all other expressions "-e" as "0 - e"
-          Expression zero;
-          if (e.E.Type.IsNumericBased(Type.NumericPersuasion.Real)) {
-            zero = new LiteralExpr(e.Origin, BaseTypes.BigDec.ZERO);
-          } else {
-            Contract.Assert(e.E.Type.IsNumericBased(Type.NumericPersuasion.Int) || e.E.Type.NormalizeToAncestorType().IsBitVectorType);
-            zero = new LiteralExpr(e.Origin, 0);
-          }
-          zero.Type = expr.Type;
-          resolved = new BinaryExpr(e.Origin, BinaryExpr.Opcode.Sub, zero, e.E) { ResolvedOp = BinaryExpr.ResolvedOpcode.Sub };
-        }
-        resolved.Type = expr.Type;
-        e.ResolvedExpression = resolved;
       }
     }
 

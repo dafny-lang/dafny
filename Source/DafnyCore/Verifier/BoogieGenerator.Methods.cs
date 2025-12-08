@@ -45,7 +45,7 @@ namespace Microsoft.Dafny {
         CurrentDeclaration = member;
         var ignored =
           filesWhereOnlyMembersAreVerified.Contains(member.Origin.Uri) &&
-          !member.HasUserAttribute("only", out _);
+          Attributes.Find(member.Attributes, "only") is null;
         if (ignored) {
           assertionOnlyFilter = _ => false;
         } else {
@@ -86,7 +86,7 @@ namespace Microsoft.Dafny {
         } else if (member is MethodOrConstructor method) {
           AddMethod_Top(method, false, includeAllMethods);
         } else {
-          Contract.Assert(false); throw new cce.UnreachableException();  // unexpected member
+          Contract.Assert(false); throw new Cce.UnreachableException();  // unexpected member
         }
         ResetAssertionOnlyFilter();
       }
@@ -173,7 +173,9 @@ namespace Microsoft.Dafny {
     }
 
     void AddMethod_Top(MethodOrConstructor m, bool isByMethod, bool includeAllMethods) {
-      if (!includeAllMethods && !InVerificationScope(m) && !referencedMembers.Contains(m)) {
+      if (!includeAllMethods &&
+          m.EnclosingClass.EnclosingModuleDefinition != forModule &&
+          !referencedMembers.Contains(m)) {
         // do nothing
         return;
       }

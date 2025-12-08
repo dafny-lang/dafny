@@ -103,17 +103,25 @@ namespace Microsoft.Dafny.Compilers {
                 var tas = TypeArgumentInstantiation.ListFromClass(field.EnclosingClass, typeArgs);
                 EmitTypeDescriptorsActuals(tas, e.Origin, wr.ForkInParens());
               } else {
-                void WriteObj(ConcreteSyntaxTree w) {
-                  //Contract.Assert(!sf.IsStatic);
-                  w = EmitCoercionIfNecessary(e.Obj.Type, UserDefinedType.UpcastToMemberEnclosingType(e.Obj.Type, e.Member),
-                    e.Origin, w);
-                  TrParenExpr(e.Obj, w, inLetExprBody, wStmts);
-                }
+                // Special handling for static special fields (like fp64.NaN)
+                if (field.IsStatic && field is SpecialField && preStr != "") {
+                  // GetSpecialFieldInfo already provided the complete reference in preStr
+                } else {
+                  void WriteObj(ConcreteSyntaxTree w) {
+                    if (field.IsStatic) {
+                      w.Write("{0}", TypeName_Companion(e.Obj.Type, w, e.Origin, field));
+                    } else {
+                      w = EmitCoercionIfNecessary(e.Obj.Type, UserDefinedType.UpcastToMemberEnclosingType(e.Obj.Type, e.Member),
+                        e.Origin, w);
+                      TrParenExpr(e.Obj, w, inLetExprBody, wStmts);
+                    }
+                  }
 
-                var typeArgs = CombineAllTypeArguments(e.Member, e.TypeApplicationAtEnclosingClass,
-                  e.TypeApplicationJustMember);
-                EmitMemberSelect(WriteObj, e.Obj.Type, e.Member, typeArgs, e.TypeArgumentSubstitutionsWithParents(),
-                  selectExpr.Type).EmitRead(wr);
+                  var typeArgs = CombineAllTypeArguments(e.Member, e.TypeApplicationAtEnclosingClass,
+                    e.TypeApplicationJustMember);
+                  EmitMemberSelect(WriteObj, e.Obj.Type, e.Member, typeArgs, e.TypeArgumentSubstitutionsWithParents(),
+                    selectExpr.Type).EmitRead(wr);
+                }
               }
 
               wr.Write(postStr);
@@ -284,7 +292,7 @@ namespace Microsoft.Dafny.Compilers {
           }
         case OldExpr:
           Contract.Assert(false);
-          throw new cce.UnreachableException(); // 'old' is always a ghost
+          throw new Cce.UnreachableException(); // 'old' is always a ghost
         case UnaryOpExpr opExpr: {
             var e = opExpr;
             if (e.ResolvedOp == UnaryOpExpr.ResolvedOpcode.BVNot) {
@@ -594,7 +602,7 @@ namespace Microsoft.Dafny.Compilers {
           }
         default:
           Contract.Assert(false);
-          throw new cce.UnreachableException(); // unexpected expression
+          throw new Cce.UnreachableException(); // unexpected expression
       }
 
       ConcreteSyntaxTree EmitGuardFragment(List<(Expression conj, ISet<IVariable> frees)> unusedConjuncts,

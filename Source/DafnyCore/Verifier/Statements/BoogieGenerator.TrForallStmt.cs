@@ -170,6 +170,7 @@ public partial class BoogieGenerator {
       Contract.Assert(s0.Method.Ins.Count == s0.Args.Count);
       var callEtran = new ExpressionTranslator(this, Predef, etran.HeapExpr, initHeap, etran.scope);
       Bpl.Expr anteCanCalls, ante;
+      Bpl.Expr typeAndAdditionalAntecedents;
       Bpl.Expr post = Bpl.Expr.True;
       Bpl.Trigger tr;
       if (forallExpressions != null) {
@@ -179,28 +180,28 @@ public partial class BoogieGenerator {
           expr = quantifierExpr;
         }
         boundVars = expr.BoundVars;
-        ante = initEtran.TrBoundVariablesRename(boundVars, bvars, out substMap);
+        typeAndAdditionalAntecedents = initEtran.TrBoundVariablesRename(boundVars, bvars, out substMap);
+        if (additionalRange != null) {
+          typeAndAdditionalAntecedents = BplAnd(typeAndAdditionalAntecedents, additionalRange(substMap, initEtran));
+        }
         tr = TrTrigger(callEtran, expr.Attributes, expr.Origin, bvars, substMap, s0.MethodSelect.TypeArgumentSubstitutionsWithParents());
 
         var p = Substitute(expr.Range, null, substMap);
         anteCanCalls = initEtran.CanCallAssumption(p);
-        ante = BplAnd(ante, initEtran.TrExpr(p));
-        if (additionalRange != null) {
-          ante = BplAnd(ante, additionalRange(substMap, initEtran));
-        }
+        ante = initEtran.TrExpr(p);
         p = Substitute(expr.Term, null, substMap);
         post = BplAnd(post, callEtran.CanCallAssumption(p));
         post = BplAnd(post, callEtran.TrExpr(p));
       } else {
-        ante = initEtran.TrBoundVariablesRename(boundVars, bvars, out substMap);
+        typeAndAdditionalAntecedents = initEtran.TrBoundVariablesRename(boundVars, bvars, out substMap);
+        if (additionalRange != null) {
+          // additionalRange produces something of the form canCallAssumptions ==> TrExpr
+          typeAndAdditionalAntecedents = BplAnd(typeAndAdditionalAntecedents, additionalRange(substMap, initEtran));
+        }
 
         var p = Substitute(range, null, substMap);
         anteCanCalls = initEtran.CanCallAssumption(p);
-        ante = BplAnd(ante, initEtran.TrExpr(p));
-        if (additionalRange != null) {
-          // additionalRange produces something of the form canCallAssumptions ==> TrExpr
-          ante = BplAnd(ante, additionalRange(substMap, initEtran));
-        }
+        ante = initEtran.TrExpr(p);
 
         var receiver = new BoogieWrapper(initEtran.TrExpr(Substitute(s0.Receiver, null, substMap, s0.MethodSelect.TypeArgumentSubstitutionsWithParents())), s0.Receiver.Type);
         for (int i = 0; i < s0.Method.Ins.Count; i++) {
@@ -235,6 +236,7 @@ public partial class BoogieGenerator {
       if (includeCanCalls) {
         body = BplAnd(anteCanCalls, body);
       }
+      body = BplImp(typeAndAdditionalAntecedents, body);
       var qq = new Bpl.ForallExpr(tok, bvars, tr, body);
       exporter.Add(TrAssumeCmd(tok, qq));
     }
@@ -323,7 +325,7 @@ public partial class BoogieGenerator {
       MemberSelectExpr e => (e.Obj, e.Member as Field),
       SeqSelectExpr e => (e.Seq, null),
       MultiSelectExpr e => (e.Array, null),
-      _ => throw new cce.UnreachableException()
+      _ => throw new Cce.UnreachableException()
     };
     var desc = new Modifiable(description, GetContextModifiesFrames(), lhsObj, lhsField);
     definedness.Add(Assert(lhs.Origin, Bpl.Expr.SelectTok(lhs.Origin, etran.ModifiesFrame(lhs.Origin), obj, F),

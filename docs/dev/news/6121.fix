@@ -1,1 +1,0 @@
-Fix crash that could occur when a `forall` statement was used inside a `match` `case`

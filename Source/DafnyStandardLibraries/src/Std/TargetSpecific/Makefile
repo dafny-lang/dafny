@@ -26,6 +26,10 @@ check-binary: build-binary
 	unzip -o ${DOO_FILE_SOURCE} -d ../../../build/current-${TARGETLANG}
 	unzip -o ${DOO_FILE_TARGET} -d ../../../build/rebuilt-${TARGETLANG}
 	diff ../../../build/current-${TARGETLANG} ../../../build/rebuilt-${TARGETLANG}
+# Explicitly check for --hidden-no-verify since Dafny itself doesn't
+	grep "hidden-no-verify = false" ../../../build/current-${TARGETLANG}/manifest.toml || \
+		(echo "ERROR: doo file built with --hidden-no-verify, rebuild without this option" && exit 1)
+
 
 check-binary-all:
 	make check-binary TARGETLANG=notarget
@@ -45,3 +49,14 @@ update-binary-all:
 	make update-binary TARGETLANG=js
 	make update-binary TARGETLANG=go
 	make update-binary TARGETLANG=py
+
+test:
+	$(DAFNY) test -t:${TARGETLANG} ../../../examples/TargetSpecific/dfyconfig.toml --output:../../../build/stdlibexamples_targetspecific \
+		`find ../../../examples/TargetSpecific -name '*-${TARGETLANG}*.dfy' | sort`
+
+test-all:
+	make test TARGETLANG=cs
+	make test TARGETLANG=java
+	make test TARGETLANG=js
+	make test TARGETLANG=go
+	make test TARGETLANG=py

@@ -32,6 +32,10 @@ public class ResolutionErrors {
     r_subset_type_base_undetermined,
     r_shared_destructors_have_different_types,
     r_literal_too_large_for_bitvector,
+    r_inexact_fp64_literal_without_prefix,
+    r_approximate_prefix_on_exact_fp64_literal,
+    r_approximate_prefix_on_real_literal,
+    r_approximate_prefix_after_negation,
     r_no_unary_minus_in_case_patterns,
     r_type_parameter_undetermined,
     r_bound_variable_undetermined,
@@ -105,13 +109,13 @@ The `{:only}` attribute accepts an optional argument ""after"" or ""before"" to 
 ", Replace("before", "Replace with \"before\""));
     Add(ErrorId.r_member_only_assumes_other,
       @"
-When annotating a member with the `{:only}` attribute, all other members of any declaration in the same file are not verified.
+When annotating a member with the `@VerifyOnly` attribute, all other members of any declaration in the same file are not verified.
 This is a good way to focus on a method, a function or a lemma and its proof, but this annotation has to be removed once finished.
 This warning is a reminder about it.
-", Remove(true, "Finish focusing and remove {:only}"));
+", Remove(true, "Finish focusing and remove @VerifyOnly"));
     Add(ErrorId.r_member_only_has_no_before_after,
         @"
-The `{:only}` attribute on members does not accept optional argument like ""after"" or ""before"" like the `{:only}` attribute on assertions can.
+The `@VerifyOnly` attribute on members does not accept optional argument like ""after"" or ""before"" like the `{:only}` attribute on assertions can.
 ",
         Remove(true, "Remove this unused argument"));
   }

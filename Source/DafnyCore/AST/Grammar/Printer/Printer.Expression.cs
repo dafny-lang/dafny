@@ -890,7 +890,7 @@ namespace Microsoft.Dafny {
               break;
             default:
               Contract.Assert(false);
-              throw new cce.UnreachableException(); // unexpected unary opcode
+              throw new Cce.UnreachableException(); // unexpected unary opcode
           }
 
           bool parensNeeded = ParensNeeded(opBindingStrength, contextBindingStrength, fragileContext);
@@ -993,7 +993,7 @@ namespace Microsoft.Dafny {
             opBindingStrength = BindingStrengthEquiv; break;
           default:
             Contract.Assert(false);
-            throw new cce.UnreachableException(); // unexpected binary operator
+            throw new Cce.UnreachableException(); // unexpected binary operator
         }
 
         bool parensNeeded = ParensNeeded(opBindingStrength, contextBindingStrength, fragileContext);
@@ -1377,6 +1377,21 @@ namespace Microsoft.Dafny {
         if (parensNeeded) {
           wr.Write(")");
         }
+
+      } else if (expr is ApproximateExpr) {
+        var e = (ApproximateExpr)expr;
+        var parensNeeded = ParensNeeded(BindingStrengthUnaryPrefix, contextBindingStrength, fragileContext);
+
+        if (parensNeeded) {
+          wr.Write("(");
+        }
+
+        wr.Write("~");
+        PrintExpr(e.Expr, BindingStrengthUnaryPrefix, false, parensNeeded || isRightmost, !parensNeeded && isFollowedBySemicolon,
+          -1, keyword);
+        if (parensNeeded) {
+          wr.Write(")");
+        }
       } else if (expr is NestedMatchExpr) {
         var e = (NestedMatchExpr)expr;
         var parensNeeded = !isRightmost && !e.UsesOptionalBraces;
@@ -1535,7 +1550,7 @@ namespace Microsoft.Dafny {
         wr.Write("locals");
       } else {
         Contract.Assert(false);
-        throw new cce.UnreachableException(); // unexpected expression
+        throw new Cce.UnreachableException(); // unexpected expression
       }
     }
 

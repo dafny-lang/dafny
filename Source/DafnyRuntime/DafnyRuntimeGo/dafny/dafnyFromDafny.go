@@ -88,7 +88,7 @@ TAIL_CALL_START:
 		_ = _0_concat
 		_0_concat = e.(*ConcatSequence)
 		if !(Companion_Default___.SizeAdditionInRange(stack.Size, Companion_Default___.ONE__SIZE())) {
-			panic("dafnyRuntime.dfy(754,6): " + (SeqOfString("expectation violation")).String())
+			panic("dafnyRuntime.dfy(805,6): " + (SeqOfString("expectation violation")).String())
 		}
 		(stack).AddLast((_0_concat).Right())
 		var _in0 *Vector = builder
@@ -150,7 +150,7 @@ TAIL_CALL_START:
 		}
 	} else {
 		if !(false) {
-			panic("dafnyRuntime.dfy(777,6): " + (SeqOfString("Unsupported Sequence implementation")).String())
+			panic("dafnyRuntime.dfy(828,6): " + (SeqOfString("Unsupported Sequence implementation")).String())
 		}
 	}
 }
@@ -185,6 +185,7 @@ type Sequence interface {
 	IsString() bool
 	IsString_set_(value bool)
 	Cardinality() uint32
+	PrototypeArray() ImmutableArray
 	Select(index uint32) interface{}
 	Drop(lo uint32) Sequence
 	Take(hi uint32) Sequence
@@ -386,7 +387,7 @@ func (_static *CompanionStruct_Sequence_) Concatenate(left Sequence, right Seque
 	var ret Sequence = (Sequence)(nil)
 	_ = ret
 	if !(Companion_Default___.SizeAdditionInRange((left).Cardinality(), (right).Cardinality())) {
-		panic("dafnyRuntime.dfy(582,6): " + (Companion_Sequence_.Concatenate(Companion_Sequence_.Concatenate(SeqOfString("Concatenation result cardinality would be larger than the maximum ("), Companion_Helpers_.DafnyValueToDafnyString(Companion_Default___.SIZE__T__MAX())), SeqOfString(")"))).String())
+		panic("dafnyRuntime.dfy(616,6): " + (Companion_Sequence_.Concatenate(Companion_Sequence_.Concatenate(SeqOfString("Concatenation result cardinality would be larger than the maximum ("), Companion_Helpers_.DafnyValueToDafnyString(Companion_Default___.SIZE__T__MAX())), SeqOfString(")"))).String())
 	}
 	var _0_left_k Sequence
 	_ = _0_left_k
@@ -759,6 +760,18 @@ func (_this *Vector) Ctor__(length uint32) {
 		(_this).Size = uint32(0)
 	}
 }
+func (_this *Vector) WithPrototype(length uint32, prototype ImmutableArray) {
+	{
+		var _0_storage NativeArray
+		_ = _0_storage
+		var _out0 NativeArray
+		_ = _out0
+		_out0 = Companion_NativeArray_.CastTo_(Companion_NativeArray_.MakeWithPrototype(length, prototype))
+		_0_storage = Companion_NativeArray_.CastTo_(_out0)
+		(_this).Storage = _0_storage
+		(_this).Size = uint32(0)
+	}
+}
 func (_this *Vector) Select(index uint32) interface{} {
 	{
 		return (_this.Storage).Select(index)
@@ -796,20 +809,20 @@ func (_this *Vector) EnsureCapacity(newMinCapacity uint32) {
 		if ((_this.Storage).Length()) <= ((Companion_Default___.SIZE__T__MAX()) / (Companion_Default___.TWO__SIZE())) {
 			_0_newCapacity = (_this).Max(_0_newCapacity, ((_this.Storage).Length())*(Companion_Default___.TWO__SIZE()))
 		}
-		var _1_newStorage NativeArray
-		_ = _1_newStorage
-		var _out0 NativeArray
+		var _1_values ImmutableArray
+		_ = _1_values
+		var _out0 ImmutableArray
 		_ = _out0
-		_out0 = Companion_NativeArray_.CastTo_(Companion_NativeArray_.Make(_0_newCapacity))
-		_1_newStorage = Companion_NativeArray_.CastTo_(_out0)
-		var _2_values ImmutableArray
-		_ = _2_values
-		var _out1 ImmutableArray
+		_out0 = Companion_ImmutableArray_.CastTo_((_this.Storage).Freeze(_this.Size))
+		_1_values = Companion_ImmutableArray_.CastTo_(_out0)
+		var _2_newStorage NativeArray
+		_ = _2_newStorage
+		var _out1 NativeArray
 		_ = _out1
-		_out1 = Companion_ImmutableArray_.CastTo_((_this.Storage).Freeze(_this.Size))
-		_2_values = Companion_ImmutableArray_.CastTo_(_out1)
-		(_1_newStorage).UpdateSubarray(uint32(0), _2_values)
-		(_this).Storage = _1_newStorage
+		_out1 = Companion_NativeArray_.CastTo_(Companion_NativeArray_.MakeWithPrototype(_0_newCapacity, _1_values))
+		_2_newStorage = Companion_NativeArray_.CastTo_(_out1)
+		(_2_newStorage).UpdateSubarray(uint32(0), _1_values)
+		(_this).Storage = _2_newStorage
 	}
 }
 func (_this *Vector) RemoveLast() interface{} {
@@ -947,6 +960,15 @@ func (_this *ArraySequence) Take(hi uint32) Sequence {
 	_out1 = Companion_Sequence_.Take(_this, hi)
 	return _out1
 }
+func (_this *ArraySequence) PrototypeArray() ImmutableArray {
+	{
+		var ret ImmutableArray = (ImmutableArray)(nil)
+		_ = ret
+		ret = (_this).Values()
+		return ret
+		return ret
+	}
+}
 func (_this *ArraySequence) Ctor__(value ImmutableArray, isString bool) {
 	{
 		(_this)._values = value
@@ -1059,6 +1081,17 @@ func (_this *ConcatSequence) Take(hi uint32) Sequence {
 	_out2 = Companion_Sequence_.Take(_this, hi)
 	return _out2
 }
+func (_this *ConcatSequence) PrototypeArray() ImmutableArray {
+	{
+		var ret ImmutableArray = (ImmutableArray)(nil)
+		_ = ret
+		var _out0 ImmutableArray
+		_ = _out0
+		_out0 = Companion_ImmutableArray_.CastTo_(((_this).Left()).PrototypeArray())
+		ret = Companion_ImmutableArray_.CastTo_(_out0)
+		return ret
+	}
+}
 func (_this *ConcatSequence) Ctor__(left Sequence, right Sequence) {
 	{
 		(_this)._left = left
@@ -1076,23 +1109,29 @@ func (_this *ConcatSequence) ToArray() ImmutableArray {
 	{
 		var ret ImmutableArray = (ImmutableArray)(nil)
 		_ = ret
-		var _0_builder *Vector
-		_ = _0_builder
+		var _0_prototype ImmutableArray
+		_ = _0_prototype
+		var _out0 ImmutableArray
+		_ = _out0
+		_out0 = Companion_ImmutableArray_.CastTo_((_this).PrototypeArray())
+		_0_prototype = Companion_ImmutableArray_.CastTo_(_out0)
+		var _1_builder *Vector
+		_ = _1_builder
 		var _nw0 *Vector = New_Vector_()
 		_ = _nw0
-		_nw0.Ctor__((_this).Length())
-		_0_builder = _nw0
-		var _1_stack *Vector
-		_ = _1_stack
+		_nw0.WithPrototype((_this).Length(), _0_prototype)
+		_1_builder = _nw0
+		var _2_stack *Vector
+		_ = _2_stack
 		var _nw1 *Vector = New_Vector_()
 		_ = _nw1
 		_nw1.Ctor__(Companion_Default___.TEN__SIZE())
-		_1_stack = _nw1
-		Companion_Default___.AppendOptimized(_0_builder, _this, _1_stack)
-		var _out0 ImmutableArray
-		_ = _out0
-		_out0 = Companion_ImmutableArray_.CastTo_((_0_builder).Freeze())
-		ret = Companion_ImmutableArray_.CastTo_(_out0)
+		_2_stack = _nw1
+		Companion_Default___.AppendOptimized(_1_builder, _this, _2_stack)
+		var _out1 ImmutableArray
+		_ = _out1
+		_out1 = Companion_ImmutableArray_.CastTo_((_1_builder).Freeze())
+		ret = Companion_ImmutableArray_.CastTo_(_out1)
 		return ret
 	}
 }
@@ -1195,6 +1234,23 @@ func (_this *LazySequence) Take(hi uint32) Sequence {
 	_ = _out3
 	_out3 = Companion_Sequence_.Take(_this, hi)
 	return _out3
+}
+func (_this *LazySequence) PrototypeArray() ImmutableArray {
+	{
+		var ret ImmutableArray = (ImmutableArray)(nil)
+		_ = ret
+		var _0_expr Sequence
+		_ = _0_expr
+		var _out0 interface{}
+		_ = _out0
+		_out0 = ((_this).Box()).Get()
+		_0_expr = Companion_Sequence_.CastTo_(Companion_Sequence_.CastTo_(_out0))
+		var _out1 ImmutableArray
+		_ = _out1
+		_out1 = Companion_ImmutableArray_.CastTo_((_0_expr).PrototypeArray())
+		ret = Companion_ImmutableArray_.CastTo_(_out1)
+		return ret
+	}
 }
 func (_this *LazySequence) Ctor__(wrapped Sequence) {
 	{

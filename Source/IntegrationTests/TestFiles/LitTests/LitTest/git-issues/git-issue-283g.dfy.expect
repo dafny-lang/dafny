@@ -1,4 +1,4 @@
-git-issue-283g.dfy(36,14): Error: real literal used as if it had type int
+git-issue-283g.dfy(36,14): Error: decimal literal used as if it had type int
 git-issue-283g.dfy(42,16): Error: literal pattern (of type int) cannot be used with source type real
 git-issue-283g.dfy(21,23): Error: literal pattern (of type int) cannot be used with source type string
 git-issue-283g.dfy(104,10): Error: Could not resolve the type of the source of the match expression. Please provide additional typing annotations.

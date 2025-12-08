@@ -43,53 +43,53 @@ DirtyLoops.dfy(452,6): Warning: this loop has no body (loop frame: i, $Heap)
 DirtyLoops.dfy(468,6): Warning: this loop has no body (loop frame: i, $Heap)
 DirtyLoops.dfy(485,6): Warning: this loop has no body (loop frame: j, $Heap)
 DirtyLoops.dfy(515,2): Warning: Could not find a trigger for this quantifier. Without a trigger, the quantifier may cause brittle verification. To silence this warning, add an explicit trigger using the {:trigger} attribute. For more information, see the section on quantifier instantiation rules in the reference manual.
-DirtyLoops.dfy(30,2): Error: assertion might not hold
-DirtyLoops.dfy(39,2): Error: assertion might not hold
-DirtyLoops.dfy(48,2): Error: assertion might not hold
-DirtyLoops.dfy(57,2): Error: assertion might not hold
-DirtyLoops.dfy(59,2): Error: assertion might not hold
-DirtyLoops.dfy(70,2): Error: assertion might not hold
-DirtyLoops.dfy(72,2): Error: assertion might not hold
-DirtyLoops.dfy(82,2): Error: assertion might not hold
-DirtyLoops.dfy(83,2): Error: assertion might not hold
-DirtyLoops.dfy(90,2): Error: assertion might not hold
-DirtyLoops.dfy(110,2): Error: assertion might not hold
-DirtyLoops.dfy(122,2): Error: assertion might not hold
-DirtyLoops.dfy(136,2): Error: assertion might not hold
-DirtyLoops.dfy(137,2): Error: assertion might not hold
-DirtyLoops.dfy(149,2): Error: assertion might not hold
-DirtyLoops.dfy(151,2): Error: assertion might not hold
-DirtyLoops.dfy(164,2): Error: assertion might not hold
-DirtyLoops.dfy(165,2): Error: assertion might not hold
-DirtyLoops.dfy(180,2): Error: assertion might not hold
-DirtyLoops.dfy(181,2): Error: assertion might not hold
-DirtyLoops.dfy(193,2): Error: assertion might not hold
-DirtyLoops.dfy(195,2): Error: assertion might not hold
-DirtyLoops.dfy(196,2): Error: assertion might not hold
-DirtyLoops.dfy(208,2): Error: assertion might not hold
-DirtyLoops.dfy(221,2): Error: assertion might not hold
-DirtyLoops.dfy(234,2): Error: assertion might not hold
-DirtyLoops.dfy(244,2): Error: assertion might not hold
-DirtyLoops.dfy(253,2): Error: assertion might not hold
-DirtyLoops.dfy(261,2): Error: assertion might not hold
-DirtyLoops.dfy(270,2): Error: assertion might not hold
-DirtyLoops.dfy(285,2): Error: assertion might not hold
-DirtyLoops.dfy(297,2): Error: assertion might not hold
-DirtyLoops.dfy(298,2): Error: assertion might not hold
-DirtyLoops.dfy(308,2): Error: assertion might not hold
-DirtyLoops.dfy(309,2): Error: assertion might not hold
-DirtyLoops.dfy(321,2): Error: assertion might not hold
-DirtyLoops.dfy(356,2): Error: assertion might not hold
-DirtyLoops.dfy(369,2): Error: assertion might not hold
-DirtyLoops.dfy(380,2): Error: assertion might not hold
+DirtyLoops.dfy(30,2): Error: assertion could not be proved
+DirtyLoops.dfy(39,2): Error: assertion could not be proved
+DirtyLoops.dfy(48,2): Error: assertion could not be proved
+DirtyLoops.dfy(57,2): Error: assertion could not be proved
+DirtyLoops.dfy(59,2): Error: assertion could not be proved
+DirtyLoops.dfy(70,2): Error: assertion could not be proved
+DirtyLoops.dfy(72,2): Error: assertion could not be proved
+DirtyLoops.dfy(82,2): Error: assertion could not be proved
+DirtyLoops.dfy(83,2): Error: assertion could not be proved
+DirtyLoops.dfy(90,2): Error: assertion could not be proved
+DirtyLoops.dfy(110,2): Error: assertion could not be proved
+DirtyLoops.dfy(122,2): Error: assertion could not be proved
+DirtyLoops.dfy(136,2): Error: assertion could not be proved
+DirtyLoops.dfy(137,2): Error: assertion could not be proved
+DirtyLoops.dfy(149,2): Error: assertion could not be proved
+DirtyLoops.dfy(151,2): Error: assertion could not be proved
+DirtyLoops.dfy(164,2): Error: assertion could not be proved
+DirtyLoops.dfy(165,2): Error: assertion could not be proved
+DirtyLoops.dfy(180,2): Error: assertion could not be proved
+DirtyLoops.dfy(181,2): Error: assertion could not be proved
+DirtyLoops.dfy(193,2): Error: assertion could not be proved
+DirtyLoops.dfy(195,2): Error: assertion could not be proved
+DirtyLoops.dfy(196,2): Error: assertion could not be proved
+DirtyLoops.dfy(208,2): Error: assertion could not be proved
+DirtyLoops.dfy(221,2): Error: assertion could not be proved
+DirtyLoops.dfy(234,2): Error: assertion could not be proved
+DirtyLoops.dfy(244,2): Error: assertion could not be proved
+DirtyLoops.dfy(253,2): Error: assertion could not be proved
+DirtyLoops.dfy(261,2): Error: assertion could not be proved
+DirtyLoops.dfy(270,2): Error: assertion could not be proved
+DirtyLoops.dfy(285,2): Error: assertion could not be proved
+DirtyLoops.dfy(297,2): Error: assertion could not be proved
+DirtyLoops.dfy(298,2): Error: assertion could not be proved
+DirtyLoops.dfy(308,2): Error: assertion could not be proved
+DirtyLoops.dfy(309,2): Error: assertion could not be proved
+DirtyLoops.dfy(321,2): Error: assertion could not be proved
+DirtyLoops.dfy(356,2): Error: assertion could not be proved
+DirtyLoops.dfy(369,2): Error: assertion could not be proved
+DirtyLoops.dfy(380,2): Error: assertion could not be proved
 DirtyLoops.dfy(401,18): Error: this loop invariant could not be proved on entry
  Related message: loop invariant violation
-DirtyLoops.dfy(414,16): Error: target object might be null
-DirtyLoops.dfy(452,6): Error: loop modifies clause might violate context's modifies clause
-DirtyLoops.dfy(468,6): Error: loop modifies clause might violate context's modifies clause
-DirtyLoops.dfy(485,6): Error: loop modifies clause might violate context's modifies clause
-DirtyLoops.dfy(506,22): Error: assertion might not hold
-DirtyLoops.dfy(533,2): Error: assertion might not hold
+DirtyLoops.dfy(414,16): Error: target object could not be proved to be non-null
+DirtyLoops.dfy(452,6): Error: modified object in loop modifies clause could not be proved to be in the current modifies clause
+DirtyLoops.dfy(468,6): Error: modified object in loop modifies clause could not be proved to be in the current modifies clause
+DirtyLoops.dfy(485,6): Error: modified object in loop modifies clause could not be proved to be in the current modifies clause
+DirtyLoops.dfy(506,22): Error: assertion could not be proved
+DirtyLoops.dfy(533,2): Error: assertion could not be proved
 
 Dafny program verifier finished with 22 verified, 46 errors
 DirtyLoops.dfy.tmp.dprint.dfy(408,2): Warning: the conclusion of the body of this forall statement will not be known outside the forall statement; consider using an 'ensures' clause

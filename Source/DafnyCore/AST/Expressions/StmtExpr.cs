@@ -64,6 +64,8 @@ public class StmtExpr : Expression, ICanFormat, ICloneable<StmtExpr> {
         return stmt.Expr;
       case CalcStmt stmt:
         return stmt.Result;
+      case ForallStmt:
+        return CreateBoolLiteral(Origin, true);  // one could wrap a `forall` expression around the `ensures` clause, but "true" is conservative and much simpler :)
       case HideRevealStmt:
         return CreateBoolLiteral(Origin, true);  // one could use the definition axiom or the referenced labeled assertions, but "true" is conservative and much simpler :)
       case AssignStatement:
@@ -71,7 +73,7 @@ public class StmtExpr : Expression, ICanFormat, ICloneable<StmtExpr> {
       case BlockByProofStmt stmt:
         return GetStatementConclusion(stmt.Body);
       default:
-        Contract.Assert(false); throw new cce.UnreachableException();  // unexpected statement
+        Contract.Assert(false); throw new Cce.UnreachableException();  // unexpected statement
     }
   }
 

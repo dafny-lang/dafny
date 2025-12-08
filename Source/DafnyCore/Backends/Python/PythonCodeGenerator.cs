@@ -36,7 +36,8 @@ namespace Microsoft.Dafny.Compilers {
     public override IReadOnlySet<Feature> UnsupportedFeatures => new HashSet<Feature> {
       Feature.SubsetTypeTests,
       Feature.MethodSynthesis,
-      Feature.RuntimeCoverageReport
+      Feature.RuntimeCoverageReport,
+      Feature.StandardLibrariesActionsExterns
     };
 
     public override string ModuleSeparator => "_";
@@ -60,10 +61,34 @@ namespace Microsoft.Dafny.Compilers {
     protected override string True { get => "True"; }
     protected override string False { get => "False"; }
     protected override string Conj { get => "and"; }
-    private static readonly IEnumerable<string> Keywords = new HashSet<string> { "False", "None", "True", "and", "as"
+    private static readonly IEnumerable<string> ReservedNames = new HashSet<string> {
+      // Keywords
+        "False", "None", "True", "and", "as"
       , "assert", "async", "await", "break", "class", "continue", "def", "del", "enum", "elif", "else", "except"
       , "finally", "for", "from", "global", "if", "import", "in", "is", "lambda", "nonlocal", "not", "or", "pass"
-      , "raise", "return", "try", "while", "with", "yield" };
+      , "raise", "return", "try", "while", "with", "yield"
+      ,
+     // Built-in functions
+        "abs", "aiter", "all", "anext", "any", "ascii"
+      , "bin", "bool", "breakpoint", "bytearray", "bytes"
+      , "callable", "chr", "classmethod", "compile", "complex"
+      , "delattr", "dict", "dir", "divmod"
+      , "enumerate", "eval", "exec"
+      , "filter", "float", "format", "frozenset"
+      , "getattr", "globals"
+      , "hasattr", "hash", "help", "hex"
+      , "id", "input", "int", "isinstance", "issubclass", "iter"
+      , "len", "list", "locals"
+      , "map", "max", "memoryview", "min"
+      , "next"
+      , "object", "oct", "open", "ord"
+      , "pow", "print", "property"
+      , "range", "repr", "reversed", "round"
+      , "set", "setattr", "slice", "sorted", "staticmethod", "str", "sum", "super"
+      , "tuple", "type"
+      , "vars"
+      , "zip"
+    };
     protected override void EmitHeader(Program program, ConcreteSyntaxTree wr) {
       wr.WriteLine($"# Dafny program {program.Name} compiled into Python");
       if (Options.IncludeRuntime) {
@@ -218,7 +243,7 @@ namespace Microsoft.Dafny.Compilers {
     protected override string GetHelperModuleName() => DafnyRuntimeModule;
 
     private static string MangleName(string name) {
-      if (Keywords.Contains(name)) {
+      if (ReservedNames.Contains(name)) {
         name = $"{name}_";
       } else {
         while (name.StartsWith("_")) {
@@ -527,7 +552,7 @@ namespace Microsoft.Dafny.Compilers {
           name = "int"; break;
         default:
           Contract.Assert(false); // unexpected native type
-          throw new cce.UnreachableException(); // to please the compiler
+          throw new Cce.UnreachableException(); // to please the compiler
       }
     }
 
@@ -577,7 +602,7 @@ namespace Microsoft.Dafny.Compilers {
       }
 
       public void InitializeField(Field field, Type instantiatedFieldType, TopLevelDeclWithMembers enclosingClass) {
-        throw new cce.UnreachableException();
+        throw new Cce.UnreachableException();
       }
 
       public ConcreteSyntaxTree ErrorWriter() => MethodWriter;
@@ -698,9 +723,9 @@ namespace Microsoft.Dafny.Compilers {
           ClassLikeDecl or NonNullTypeDecl => $"{DafnyDefaults}.pointer",
           DatatypeDecl => DatatypeDescriptor(udt, udt.TypeArgs, udt.Origin),
           NewtypeDecl or SubsetTypeDecl => CustomDescriptor(udt),
-          _ => throw new cce.UnreachableException()
+          _ => throw new Cce.UnreachableException()
         },
-        _ => throw new cce.UnreachableException()
+        _ => throw new Cce.UnreachableException()
       };
 
       string TypeParameterDescriptor(TypeParameter typeParameter) {
@@ -789,7 +814,7 @@ namespace Microsoft.Dafny.Compilers {
 
       // TODO: I'm not 100% sure this is exhaustive yet
       Contract.Assert(false);
-      throw new cce.UnreachableException();
+      throw new Cce.UnreachableException();
     }
 
     private string FullName(TopLevelDecl decl) {
@@ -890,7 +915,7 @@ namespace Microsoft.Dafny.Compilers {
       }
 
       Contract.Assert(false);
-      throw new cce.UnreachableException();  // unexpected type
+      throw new Cce.UnreachableException();  // unexpected type
     }
 
     protected override string TypeName_UDT(string fullCompileName, List<TypeParameter.TPVariance> variance,
@@ -1164,7 +1189,7 @@ namespace Microsoft.Dafny.Compilers {
               break;
             default:
               // TODO: This may not be exhaustive
-              throw new cce.UnreachableException();
+              throw new Cce.UnreachableException();
           }
           break;
       }
@@ -1636,7 +1661,7 @@ namespace Microsoft.Dafny.Compilers {
           TrParenExpr("not", expr, wr, inLetExprBody, wStmts);
           break;
         default:
-          Contract.Assert(false); throw new cce.UnreachableException();  // unexpected unary expression
+          Contract.Assert(false); throw new Cce.UnreachableException();  // unexpected unary expression
       }
     }
 
@@ -1791,7 +1816,7 @@ namespace Microsoft.Dafny.Compilers {
     }
 
     protected override void TrStmtList(IReadOnlyList<Statement> stmts, ConcreteSyntaxTree writer) {
-      Contract.Requires(cce.NonNullElements(stmts));
+      Contract.Requires(Cce.NonNullElements(stmts));
       Contract.Requires(writer != null);
       var listWriter = new ConcreteSyntaxTree();
       base.TrStmtList(stmts, listWriter);

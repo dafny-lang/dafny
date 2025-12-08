@@ -1129,8 +1129,8 @@ namespace Microsoft.Dafny {
       string moduleDescription, bool isAnExport) {
 
       Contract.Requires(declarations != null);
-      Contract.Requires(cce.NonNullElements(datatypeDependencies.GetVertices()));
-      Contract.Requires(cce.NonNullElements(codatatypeDependencies.GetVertices()));
+      Contract.Requires(Cce.NonNullElements(datatypeDependencies.GetVertices()));
+      Contract.Requires(Cce.NonNullElements(codatatypeDependencies.GetVertices()));
       Contract.Requires(AllTypeConstraints.Count == 0);
 
       Contract.Ensures(AllTypeConstraints.Count == 0);
@@ -1493,12 +1493,12 @@ namespace Microsoft.Dafny {
       }
 
       foreach (var member in declarations.OfType<TopLevelDeclWithMembers>().SelectMany(d => d.Members)) {
-        if (member.HasUserAttribute("only", out var attribute)) {
+        if (Attributes.Find(member.Attributes, "only") is { } attribute) {
           reporter.Warning(MessageSource.Verifier, ResolutionErrors.ErrorId.r_member_only_assumes_other.ToString(), attribute.Origin,
-            "Members with {:only} temporarily disable the verification of other members in the entire file");
+            "Members with @VerifyOnly temporarily disable the verification of other members in the entire file");
           if (attribute.Args.Count >= 1) {
             reporter.Warning(MessageSource.Verifier, ResolutionErrors.ErrorId.r_member_only_has_no_before_after.ToString(), attribute.Args[0].Origin,
-              "{:only} on members does not support arguments");
+              "@VerifyOnly on members does not support arguments");
           }
         }
       }
@@ -2415,7 +2415,7 @@ namespace Microsoft.Dafny {
           }
 
         } else {
-          Contract.Assert(false); throw new cce.UnreachableException();  // unexpected member type
+          Contract.Assert(false); throw new Cce.UnreachableException();  // unexpected member type
         }
       }
 
@@ -2467,52 +2467,52 @@ namespace Microsoft.Dafny {
           continue;
         }
 
-        var traitMember = member.OverriddenMember;
-        var trait = traitMember.EnclosingClass;
-        if (trait is not TraitDecl) {
+        var baseMember = member.OverriddenMember;
+        var baseType = baseMember.EnclosingClass;
+        if (baseType is not TraitDecl or ClassDecl) {
           reporter.Error(MessageSource.Resolver, member.Origin,
-            $"{traitMember.WhatKindAndName} is inherited from {trait.WhatKindAndName} and is not allowed to be re-declared in {cl.WhatKindAndName}");
-        } else if (traitMember.IsStatic) {
+            $"{baseMember.WhatKindAndName} is inherited from {baseType.WhatKindAndName} and is not allowed to be re-declared in {cl.WhatKindAndName}");
+        } else if (baseMember.IsStatic) {
           reporter.Error(MessageSource.Resolver, member.Origin,
-            $"static {traitMember.WhatKindAndName} is inherited from trait '{trait.Name}' and is not allowed to be re-declared");
+            $"static {baseMember.WhatKindAndName} is inherited from {baseType.WhatKindAndName} and is not allowed to be re-declared");
         } else if (member.IsStatic) {
           reporter.Error(MessageSource.Resolver, member.Origin,
-            $"static member '{member.Name}' overrides non-static member in trait '{trait.Name}'");
-        } else if (traitMember is Field) {
+            $"static member '{member.Name}' overrides non-static member in {baseType.WhatKindAndName}");
+        } else if (baseMember is Field) {
           // The class is not allowed to do anything with the field other than silently inherit it.
           reporter.Error(MessageSource.Resolver, member.Origin,
-            $"{traitMember.WhatKindAndName} is inherited from trait '{trait.Name}' and is not allowed to be re-declared");
-        } else if ((traitMember as Function)?.Body != null || (traitMember as MethodOrConstructor)?.Body != null) {
+            $"{baseMember.WhatKindAndName} is inherited from {baseType.WhatKindAndName} and is not allowed to be re-declared");
+        } else if ((baseMember as Function)?.Body != null || (baseMember as Constructor)?.Body != null) {
           // the overridden member is a fully defined function or method, so the class is not allowed to do anything with it other than silently inherit it
           reporter.Error(MessageSource.Resolver, member.Origin,
-            $"fully defined {traitMember.WhatKindAndName} is inherited from trait '{trait.Name}' and is not allowed to be re-declared");
-        } else if (member is Method != traitMember is Method ||
-                   member is Lemma != traitMember is Lemma ||
-                   member is TwoStateLemma != traitMember is TwoStateLemma ||
-                   member is LeastLemma != traitMember is LeastLemma ||
-                   member is GreatestLemma != traitMember is GreatestLemma ||
-                   member is Function != traitMember is Function ||
-                   member is TwoStateFunction != traitMember is TwoStateFunction ||
-                   member is LeastPredicate != traitMember is LeastPredicate ||
-                   member is GreatestPredicate != traitMember is GreatestPredicate) {
+            $"fully defined {baseMember.WhatKindAndName} is inherited from {baseType.WhatKindAndName} and is not allowed to be re-declared");
+        } else if (member is Method != baseMember is Method ||
+                   member is Lemma != baseMember is Lemma ||
+                   member is TwoStateLemma != baseMember is TwoStateLemma ||
+                   member is LeastLemma != baseMember is LeastLemma ||
+                   member is GreatestLemma != baseMember is GreatestLemma ||
+                   member is Function != baseMember is Function ||
+                   member is TwoStateFunction != baseMember is TwoStateFunction ||
+                   member is LeastPredicate != baseMember is LeastPredicate ||
+                   member is GreatestPredicate != baseMember is GreatestPredicate) {
           reporter.Error(MessageSource.Resolver, member.Origin,
-            $"{traitMember.WhatKindAndName} in '{trait.Name}' can only be overridden by a {traitMember.WhatKind} (got {member.WhatKind})");
-        } else if (member.IsGhost != traitMember.IsGhost) {
+            $"{baseMember.WhatKindAndName} in {baseType.WhatKindAndName} can only be overridden by a {baseMember.WhatKind} (got {member.WhatKind})");
+        } else if (member.IsGhost != baseMember.IsGhost) {
           reporter.Error(MessageSource.Resolver, member.Origin,
-            $"overridden {traitMember.WhatKindAndName} in '{cl.Name}' has different ghost/compiled status than in trait '{trait.Name}'");
-        } else if (!member.IsOpaque && traitMember.IsOpaque) {
+            $"overridden {baseMember.WhatKindAndName} in '{cl.Name}' has different ghost/compiled status than in {baseType.WhatKindAndName}");
+        } else if (!member.IsOpaque && baseMember.IsOpaque) {
           reporter.Error(MessageSource.Resolver, member.Origin,
-            $"overridden {traitMember.WhatKindAndName} in '{cl.Name}' must be 'opaque' since the member is 'opaque' in trait '{trait.Name}'");
+            $"overridden {baseMember.WhatKindAndName} in '{cl.Name}' must be 'opaque' since the member is 'opaque' in {baseType.WhatKindAndName}");
         } else {
           // Copy trait member's extern attribute onto class member if class does not provide one
-          if (!Attributes.Contains(member.Attributes, "extern") && Attributes.Contains(traitMember.Attributes, "extern")) {
-            var traitExternArgs = Attributes.FindExpressions(traitMember.Attributes, "extern");
+          if (!Attributes.Contains(member.Attributes, "extern") && Attributes.Contains(baseMember.Attributes, "extern")) {
+            var traitExternArgs = Attributes.FindExpressions(baseMember.Attributes, "extern");
             member.Attributes = new Attributes("extern", traitExternArgs, member.Attributes);
           }
 
-          if (traitMember is Method) {
+          if (baseMember is Method) {
             var classMethod = (Method)member;
-            var traitMethod = (Method)traitMember;
+            var traitMethod = (Method)baseMember;
             classMethod.OverriddenMethod = traitMethod;
 
             CheckOverride_MethodParameters(classMethod, traitMethod, cl.ParentFormalTypeParametersToActuals);
@@ -2524,14 +2524,14 @@ namespace Microsoft.Dafny {
                 $"not allowed to override a terminating method with a possibly non-terminating method ('{classMethod.Name}')");
             }
 
-          } else if (traitMember is Function) {
+          } else if (baseMember is Function) {
             var classFunction = (Function)member;
-            var traitFunction = (Function)traitMember;
+            var traitFunction = (Function)baseMember;
             classFunction.OverriddenFunction = traitFunction;
 
             CheckOverride_FunctionParameters(classFunction, traitFunction, cl.ParentFormalTypeParametersToActuals);
 
-          } else if (traitMember is Constructor) {
+          } else if (baseMember is Constructor) {
             throw new Exception("traits can not contain constructors");
           } else {
             Contract.Assert(false); // unexpected member
@@ -2733,7 +2733,7 @@ namespace Microsoft.Dafny {
     /// </summary>
     void SccStratosphereCheck(IndDatatypeDecl startingPoint, Graph<IndDatatypeDecl/*!*/>/*!*/ dependencies) {
       Contract.Requires(startingPoint != null);
-      Contract.Requires(dependencies != null);  // more expensive check: Contract.Requires(cce.NonNullElements(dependencies));
+      Contract.Requires(dependencies != null);  // more expensive check: Contract.Requires(Cce.NonNullElements(dependencies));
 
       var scc = dependencies.GetSCC(startingPoint);
       int totalCleared = 0;
@@ -2881,7 +2881,7 @@ namespace Microsoft.Dafny {
 
     void DetermineEqualitySupport(IndDatatypeDecl startingPoint, Graph<IndDatatypeDecl/*!*/>/*!*/ dependencies) {
       Contract.Requires(startingPoint != null);
-      Contract.Requires(dependencies != null);  // more expensive check: Contract.Requires(cce.NonNullElements(dependencies));
+      Contract.Requires(dependencies != null);  // more expensive check: Contract.Requires(Cce.NonNullElements(dependencies));
 
       var scc = dependencies.GetSCC(startingPoint);
 
@@ -3977,7 +3977,7 @@ namespace Microsoft.Dafny {
         case BinaryExpr.Opcode.BitwiseOr: return BinaryExpr.ResolvedOpcode.BitwiseOr;
         case BinaryExpr.Opcode.BitwiseXor: return BinaryExpr.ResolvedOpcode.BitwiseXor;
         default:
-          Contract.Assert(false); throw new cce.UnreachableException();  // unexpected operator
+          Contract.Assert(false); throw new Cce.UnreachableException();  // unexpected operator
       }
     }
 

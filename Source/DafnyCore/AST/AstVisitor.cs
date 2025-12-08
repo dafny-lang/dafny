@@ -115,7 +115,7 @@ namespace Microsoft.Dafny {
 
       } else {
         Contract.Assert(false);
-        throw new cce.UnreachableException(); // unexpected member type
+        throw new Cce.UnreachableException(); // unexpected member type
       }
     }
 

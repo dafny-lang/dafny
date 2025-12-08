@@ -75,7 +75,10 @@ TOKENS
         .
   digits = digit {['_'] digit}.
   hexdigits = "0x" hexdigit {['_'] hexdigit}.
-  decimaldigits = digit {['_'] digit} '.' digit {['_'] digit}.
+  realnumber = digit {['_'] digit}
+               ( '.' digit {['_'] digit} ['e' ['-'] digit {['_'] digit}]
+               | 'e' ['-'] digit {['_'] digit}
+               ).
   // NOTE: all alphabetic strings used in the grammar become reserved words automatically
   // The reason to include a definition here is so that a token can be referred to by its 'kind',
   // as in la.kind == _bool
@@ -86,6 +89,7 @@ TOKENS
   int = "int".
   nat = "nat".
   real = "real".
+  fp64 = "fp64".
   ORDINAL = "ORDINAL".
   object = "object". // Keeping object and object? as literals simplifies ident
   object_q = "object?".
@@ -600,7 +604,7 @@ TraitDecl<DeclModifierData dmodIn, ModuleDefinition/*!*/ module, out TraitDecl/*
 
 /*------------------------------------------------------------------------*/
 ClassMemberDecl<. DeclModifierData dmod, List<MemberDecl> mm, bool allowConstructors, bool moduleLevelDecl.>
-= (. Contract.Requires(cce.NonNullElements(mm));
+= (. Contract.Requires(Cce.NonNullElements(mm));
      MethodOrConstructor/*!*/ m;
      Function/*!*/ f;
   .)
@@ -674,7 +678,7 @@ DatatypeDecl<DeclModifierData dmod, ModuleDefinition/*!*/ module, out DatatypeDe
 DatatypeMemberName<out Token id> = NoUSIdentOrDigits<out id> .
 
 DatatypeMemberDecl<.List<DatatypeCtor/*!*/>/*!*/ ctors.>
-= (. Contract.Requires(cce.NonNullElements(ctors));
+= (. Contract.Requires(Cce.NonNullElements(ctors));
      Attributes attrs = null;
      Token/*!*/ id;
      List<Formal/*!*/> formals = new List<Formal/*!*/>();
@@ -707,7 +711,7 @@ TypeMembers<. ModuleDefinition/*!*/ module, List<MemberDecl> members .>
 
 /*------------------------------------------------------------------------*/
 FieldDecl<.DeclModifierData dmod, List<MemberDecl> mm.>
-= (. Contract.Requires(cce.NonNullElements(mm));
+= (. Contract.Requires(Cce.NonNullElements(mm));
      Attributes attrs = null;
      Type/*!*/ ty;
      Name name;
@@ -730,7 +734,7 @@ FieldDecl<.DeclModifierData dmod, List<MemberDecl> mm.>
 
 /*------------------------------------------------------------------------*/
 ConstantFieldDecl<.DeclModifierData dmod, List<MemberDecl/*!*/>/*!*/ mm, bool moduleLevelDecl.>
-= (. Contract.Requires(cce.NonNullElements(mm));
+= (. Contract.Requires(Cce.NonNullElements(mm));
      Type/*!*/ ty;
      Expression e = null;
      if (moduleLevelDecl && dmod.StaticToken != null) {
@@ -1068,7 +1072,7 @@ IteratorDecl<DeclModifierData dmod, ModuleDefinition module, out IteratorDecl/*!
 TypeVariableName<out Name name> = Name<out name> .
 
 GenericParameters<.List<TypeParameter> typeParameters, bool allowVariance.>
-= (. Contract.Requires(cce.NonNullElements(typeParameters)); .)
+= (. Contract.Requires(Cce.NonNullElements(typeParameters)); .)
   // If a "<" combined with a Variance symbol could be a new token, then the parser here will need to be more complex,
   // since, for example, a < followed immediately by a Variance symbol would scan as the wrong token.
   // Fortunately that is not currently the case.
@@ -1364,11 +1368,11 @@ InvariantClause<. List<AttributedExpression> invariants.> =
 /*------------------------------------------------------------------------*/
 MethodSpec<.bool isGhost, List<AttributedExpression> req, List<FrameExpression> reads, List<FrameExpression> mod, List<AttributedExpression> ens,
             List<Expression> decreases, ref Attributes decAttrs, ref Attributes modAttrs, ref Attributes readsAttrs, string caption, bool performThisDeprecatedCheck.>
-= (. Contract.Requires(cce.NonNullElements(req));
-     Contract.Requires(cce.NonNullElements(reads));
-     Contract.Requires(cce.NonNullElements(mod));
-     Contract.Requires(cce.NonNullElements(ens));
-     Contract.Requires(cce.NonNullElements(decreases));
+= (. Contract.Requires(Cce.NonNullElements(req));
+     Contract.Requires(Cce.NonNullElements(reads));
+     Contract.Requires(Cce.NonNullElements(mod));
+     Contract.Requires(Cce.NonNullElements(ens));
+     Contract.Requires(Cce.NonNullElements(decreases));
   .)
   SYNC
   { ReadsClause<reads, ref readsAttrs, false, false, true>
@@ -1400,7 +1404,7 @@ IteratorSpec<.List<FrameExpression/*!*/>/*!*/ reads, List<FrameExpression/*!*/>/
 
 /*------------------------------------------------------------------------*/
 Formals<.bool incoming, bool allowGhostKeyword, bool allowNewKeyword, bool allowOlderKeyword, List<Formal> formals.>
-= (. Contract.Requires(cce.NonNullElements(formals));
+= (. Contract.Requires(Cce.NonNullElements(formals));
      Type ty;
      bool isGhost;
      bool isOld;
@@ -1449,7 +1453,7 @@ ParameterDefaultValue<bool incoming, out Expression defaultValue>
 
 /*------------------------------------------------------------------------*/
 FormalsOptionalIds<.List<Formal/*!*/>/*!*/ formals.>
-= (. Contract.Requires(cce.NonNullElements(formals));
+= (. Contract.Requires(Cce.NonNullElements(formals));
      SourceOrigin/*!*/ range;  Type/*!*/ ty;  Name/*!*/ name;  bool isGhost;  Expression/*?*/ defaultValue;
      bool isNameOnly;
      Attributes attributes;
@@ -1490,6 +1494,7 @@ TypeAndToken<out Token tok, out Type ty, bool inExpressionContext>
   | "int"                           (. tok = t; startToken = t; ty = new IntType(); ty.SetOrigin(t); .)
   | "nat"                           (. tok = t; startToken = t; ty = new UserDefinedType(tok, tok.val, null); .)
   | "real"                          (. tok = t; startToken = t; ty = new RealType(); ty.SetOrigin(t); .)
+  | "fp64"                          (. tok = t; startToken = t; ty = new Fp64Type(); ty.SetOrigin(t); .)
   | IF(la.val == "field" && AcceptReferrers())
     "field"                         (. tok = t; startToken = t; ty = new FieldType(); ty.SetOrigin(t); .)
   | "ORDINAL"                       (. tok = t; startToken = t; ty = new BigOrdinalType(); ty.SetOrigin(t); .)
@@ -1667,7 +1672,7 @@ OptGenericInstantiation<.out List<Type> gt, bool inExpressionContext.>  /* NOTE:
 
 /*------------------------------------------------------------------------*/
 GenericInstantiation<.List<Type> gt.>
-= (. Contract.Requires(cce.NonNullElements(gt)); Type/*!*/ ty; .)
+= (. Contract.Requires(Cce.NonNullElements(gt)); Type/*!*/ ty; .)
   "<"
   (
     ">" (. SemErr(ErrorId.p_no_empty_type_parameter_list, t, "empty type parameter lists are not permitted"); .)
@@ -2023,9 +2028,9 @@ FunctionDecl<DeclModifierData dmod, out Function/*!*/ f>
 
 /*------------------------------------------------------------------------*/
 FunctionSpec<.List<AttributedExpression> reqs, List<FrameExpression> reads, List<AttributedExpression> ens, List<Expression> decreases, ref Attributes decAttrs, ref Attributes readsAttrs.>
-= (. Contract.Requires(cce.NonNullElements(reqs));
-     Contract.Requires(cce.NonNullElements(reads));
-     Contract.Requires(decreases == null || cce.NonNullElements(decreases));
+= (. Contract.Requires(Cce.NonNullElements(reqs));
+     Contract.Requires(Cce.NonNullElements(reads));
+     Contract.Requires(decreases == null || Cce.NonNullElements(decreases));
   .)
   SYNC
   { RequiresClause<reqs, true>
@@ -2127,7 +2132,7 @@ FrameExpression<out FrameExpression fe, bool allowLemma, bool allowLambda>
       FrameField<out id> 
       (. 
         if(AcceptReferrers()) {
-          throw new cce.UnreachableException();
+          throw new Cce.UnreachableException();
         }
         fieldName = id.val;
         feTok = id;
@@ -2762,7 +2767,7 @@ WhileStmt<out Statement stmt>
                                       alternatives, usesOptionalBraces, [], attrs);
        .)
   |
-    ( Guard<out guard>           (. Contract.Assume(guard == null || cce.Owner.None(guard)); .)
+    ( Guard<out guard>           (. Contract.Assume(guard == null || Cce.Owner.None(guard)); .)
     | ellipsis                   (. guardEllipsis = t; 
                                     errors.Deprecated(ErrorId.p_deprecated_statement_refinement, t, "the ... refinement feature in statements is deprecated");
                                  .)
@@ -3696,6 +3701,8 @@ UnaryExpression<out Expression e, bool allowLemma, bool allowLambda, bool allowB
     UnaryExpression<out e, allowLemma, allowLambda, allowBitwiseOps>  (. e = new NegationExpression(new SourceOrigin(x, t, x), e); .)
   | NegOp                                           (. x = t; .)
     UnaryExpression<out e, allowLemma, allowLambda, allowBitwiseOps>  (. e = new UnaryOpExpr(new SourceOrigin(x, t, x), UnaryOpExpr.Opcode.Not, e); .)
+  | "~"                                             (. x = t; .)
+    UnaryExpression<out e, allowLemma, allowLambda, allowBitwiseOps>  (. e = new ApproximateExpr(new SourceOrigin(x, t, x), e); .)
   | PrimaryExpression<out e, allowLemma, allowLambda, allowBitwiseOps>
   )
   .
@@ -3762,8 +3769,12 @@ ConstAtomExpression<out Expression e>
     "|"
   | "assigned"                                 (. x = t; .)
     "(" NameSegment<out e> ")"                 (. e = new UnaryOpExpr(x, UnaryOpExpr.Opcode.Assigned, e); .)
-  | IF(AcceptReferrersAndBacktick())           (. e = new ImplicitThisExpr(la); .)
-    FieldLocationSuffix<ref e>
+  | "`"                                        (. if (!AcceptReferrers()) {
+                                                 SemErr(ErrorId.p_needs_referrers, t, "To use field location expressions, you need --referrers");
+                                               }
+                                               Token backtick = t;
+                                               e = new ImplicitThisExpr(t); .)
+    FieldLocationBody<ref e, backtick>
   | ParensExpression<out e>
   ) (. if(x!= null) { e.SetOrigin(new SourceOrigin(x, t, e.Center)); } .)
   .
@@ -3776,8 +3787,9 @@ LiteralExpression<out Expression e>
   ( "false"                                    (. e = new LiteralExpr(t, false); .)
   | "true"                                     (. e = new LiteralExpr(t, true); .)
   | "null"                                     (. e = new LiteralExpr(t); .)
+  | IF(la.kind == _digits && scanner.Peek().kind == _dot) Dec<out d> (. e = new DecimalLiteralExpr(t, d); .)
   | Nat<out n>                                 (. e = new LiteralExpr(t, n); .)
-  | Dec<out d>                                 (. e = new LiteralExpr(t, d); .)
+  | Dec<out d>                                 (. e = new DecimalLiteralExpr(t, d); .)
   | charToken                                  (. string s = t.val.Substring(1, t.val.Length - 2);
                                                   Util.ValidateEscaping(theOptions, t, s, false, errors);
                                                   if (Util.UnescapedCharacters(theOptions, s, false).Count() > 1) {
@@ -3799,7 +3811,7 @@ PossiblyNegatedLiteralExpr<out Expression e>
   .)
   ( "-"                                        (. var x = t; .)
     ( Nat<out n>                               (. e = new NegationExpression(x, new LiteralExpr(t, n)); .)
-    | Dec<out d>                               (. e = new NegationExpression(x, new LiteralExpr(t, d)); .)
+    | Dec<out d>                               (. e = new NegationExpression(x, new DecimalLiteralExpr(t, d)); .)
     )
   | LiteralExpression<out e>
   )
@@ -4506,7 +4518,11 @@ Suffix<ref Expression e>
 
 FieldLocationSuffix<ref Expression e>
 = "`"                                    (. Token backtick = t; .)
-  ( IF(IsIdentifier(la.kind))            (. Name name = null; .)
+  FieldLocationBody<ref e, backtick>
+  .
+
+FieldLocationBody<ref Expression e, Token backtick>
+= ( (. Name name = null; .)
     NoDigitName<out name>
     (.
       e = new FieldLocationExpression(e, backtick, name);
@@ -4713,6 +4729,8 @@ Ident<out Token/*!*/ x>
   | "reveal"     (. t.kind = _ident; .) // convert it to an ident
   | "field"      (. t.kind = _ident; .) // convert it to an ident
   | "locals"     (. t.kind = _ident; .) // convert it to an ident
+  // Allow fp64 as identifier for static member access (fp64.NaN, fp64.Equal, etc.)
+  | "fp64"       (. t.kind = _ident; .) // convert it to an ident
   )
   (. x = t; .)
   .
@@ -4734,11 +4752,11 @@ DotSuffix<out Token x, out Token y>
   .)
   ( Ident<out x>
   | digits         (. x = t; .)
-  | decimaldigits  (. x = t;
+  | realnumber  (. x = t;
                       int exponent = x.val.IndexOf('e');
                       if (0 <= exponent) {
                         // this is not a legal field/destructor name
-                        // Also it is not currently reachable, because decimaldigits does not yet support exponents
+                        // Scientific notation is not allowed in field/destructor names
                         SemErr(ErrorId.p_invalid_name_after_dot, x, "invalid name after a '.'");
                       } else {
                         int dot = x.val.IndexOf('.');
@@ -4898,17 +4916,26 @@ Nat<out BigInteger n>
 
 /*------------------------------------------------------------------------*/
 Dec<out BaseTypes.BigDec d>
-= (. d = BaseTypes.BigDec.ZERO; .)
-  (decimaldigits
-    (. var S = Util.RemoveUnderscores(t.val);
-       try {
-         d = BaseTypes.BigDec.FromString(S);
-       } catch (System.FormatException) {
-         SemErr(ErrorId.p_bad_decimal_number_format, t, "incorrectly formatted number");
-         d = BaseTypes.BigDec.ZERO;
-       }
-    .)
+= (. d = BaseTypes.BigDec.ZERO; string S = ""; .)
+  ( realnumber                              (. S = Util.RemoveUnderscores(t.val); .)
+  | digits                                  (. var digitToken = t; .)
+    "."                                     (. if (t.pos != digitToken.pos + digitToken.val.Length) {
+                                                 SemErr(ErrorId.p_bad_decimal_number_format, new SourceOrigin(digitToken, t), "invalid real literal (no whitespace allowed before trailing dot)");
+                                               }
+                                               S = Util.RemoveUnderscores(digitToken.val) + ".0"; .)
+  | "."                                     (. var dotToken = t; .)
+    ( digits | realnumber )                 (. if (t.pos != dotToken.pos + 1) {
+                                                 SemErr(ErrorId.p_bad_decimal_number_format, new SourceOrigin(dotToken, t), "invalid real literal (no whitespace allowed after leading dot)");
+                                               }
+                                               S = "0." + Util.RemoveUnderscores(t.val); .)
   )
+  (. try {
+       d = BaseTypes.BigDec.FromString(S);
+     } catch (System.FormatException) {
+       SemErr(ErrorId.p_bad_decimal_number_format, t, "incorrectly formatted number");
+       d = BaseTypes.BigDec.ZERO;
+     }
+  .)
   .
 
 /*------------------------------------------------------------------------*/

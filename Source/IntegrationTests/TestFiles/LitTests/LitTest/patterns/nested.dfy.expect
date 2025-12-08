@@ -2,6 +2,6 @@ nested.dfy(8,6): Warning: this forall statement has no body
 nested.dfy(8,6): Warning: Could not find a trigger for this quantifier. Without a trigger, the quantifier may cause brittle verification. To silence this warning, add an explicit trigger using the {:trigger} attribute. For more information, see the section on quantifier instantiation rules in the reference manual.
 nested.dfy(16,11): Warning: Could not find a trigger for this quantifier. Without a trigger, the quantifier may cause brittle verification. To silence this warning, add an explicit trigger using the {:trigger} attribute. For more information, see the section on quantifier instantiation rules in the reference manual.
 nested.dfy(8,28): Error: match has no cases and this is only allowed when the verifier can prove the match is unreachable
-nested.dfy(16,4): Error: assertion might not hold
+nested.dfy(16,4): Error: assertion could not be proved
 
 Dafny program verifier finished with 0 verified, 2 errors
