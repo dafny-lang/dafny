@@ -220,11 +220,17 @@ class CheckTypeInferenceVisitor : ASTVisitor<TypeInferenceCheckingContext> {
         var normalizedType = e.Type.Normalize();
 
         if (!normalizedType.IsFloatingPointType) {
-          return; // Not a float type, skip
+          return;
         }
 
-        // Skip validation for approximate literals
         if (decimalLiteral.IsApproximate) {
+          var (significandBits, exponentBits) = normalizedType.FloatPrecision;
+          var (isExact, _) = FloatLiteralValidator.ValidateAndCompute(decValue, significandBits, exponentBits);
+          if (isExact) {
+            var typeName = normalizedType.IsFp32Type ? "fp32" : "fp64";
+            resolver.ReportError(ResolutionErrors.ErrorId.r_inexact_fp64_literal_without_prefix, e.Origin,
+              $"The approximate literal prefix ~ is not allowed on value {decValue} which is exactly representable as {typeName}. Remove the ~ prefix.");
+          }
           return;
         }
 
@@ -499,7 +505,6 @@ class CheckTypeInferenceVisitor : ASTVisitor<TypeInferenceCheckingContext> {
     if (t is TypeProxy) {
       var proxy = (TypeProxy)t;
       if (!UnderspecifiedTypeProxies.Contains(proxy)) {
-        // report an error for this TypeProxy only once
         resolver.ReportError(ResolutionErrors.ErrorId.r_var_type_undetermined, tok, "the type of this {0} is underspecified", what);
         UnderspecifiedTypeProxies.Add(proxy);
       }

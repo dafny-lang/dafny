@@ -807,13 +807,9 @@ namespace Microsoft.Dafny {
         // Validate inner expression is numeric literal or negation
         var innerExpr = e.Expr;
 
-        // Check for negation
-        bool isNegated = false;
         if (innerExpr is NegationExpression neg) {
-          // Resolve the negation's inner expression
           ResolveExpression(neg.E, resolutionContext);
           innerExpr = neg.E;
-          isNegated = true;
         }
 
         if (innerExpr is LiteralExpr lit) {
@@ -825,7 +821,6 @@ namespace Microsoft.Dafny {
             e.Expr.Type = floatProxy;
             lit.Type = floatProxy;
 
-            // Mark the literal as approximate
             if (lit is DecimalLiteralExpr decLit) {
               decLit.IsApproximate = true;
             }
@@ -833,16 +828,7 @@ namespace Microsoft.Dafny {
               exprDecLit.IsApproximate = true;
             }
 
-            // Check exact representability for fp32 (default for approximate literals)
-            var (significandBits, exponentBits) = (24, 8); // fp32 precision
-            var checkValue = isNegated ? -decValue : decValue;
-            var (isExact, _) = FloatLiteralValidator.ValidateAndCompute(checkValue, significandBits, exponentBits);
-            if (isExact) {
-              reporter.Error(MessageSource.Resolver, expr,
-                $"The approximate literal prefix ~ is not allowed on the exactly representable value {checkValue}. Remove the ~ prefix.");
-            }
-
-            // Add FloatVarietiesSupertype constraint (fp32 or fp64 only, not real)
+            // Constrain to fp32 or fp64 (not real). Exactness validated after type resolution.
             ConstrainSubtypeRelation(new FloatVarietiesSupertype(), floatProxy, e.Origin, "approximate literal is used as if it had type {0}", floatProxy);
           } else if (lit.Value is BigInteger) {
             reporter.Error(MessageSource.Resolver, expr, "~ prefix not allowed on integer literals");
@@ -874,10 +860,13 @@ namespace Microsoft.Dafny {
             AddXConstraint(expr.Origin, "NumericOrBitvectorOrCharOrORDINAL", e.E.Type, "type conversion to an int-based type is allowed only from numeric and bitvector types, char, and ORDINAL (got {0})");
           } else if (e.ToType.IsNumericBased(Type.NumericPersuasion.Real)) {
             AddXConstraint(expr.Origin, "NumericOrBitvectorOrCharOrORDINAL", e.E.Type, "type conversion to a real-based type is allowed only from numeric and bitvector types, char, and ORDINAL (got {0})");
-          } else if (e.ToType.IsFp32Type) {
-            AddXConstraint(expr.Origin, "NumericOrBitvectorOrCharOrORDINAL", e.E.Type, "type conversion to fp32 is allowed only from numeric and bitvector types, char, and ORDINAL (got {0})");
-          } else if (e.ToType.IsFp64Type) {
-            AddXConstraint(expr.Origin, "NumericOrBitvectorOrCharOrORDINAL", e.E.Type, "type conversion to fp64 is allowed only from numeric and bitvector types, char, and ORDINAL (got {0})");
+          } else if (e.ToType.IsFp32Type || e.ToType.IsFp64Type) {
+            var typeName = e.ToType.IsFp32Type ? "fp32" : "fp64";
+            AddXConstraint(expr.Origin, "NumericOrBitvectorOrCharOrORDINAL", e.E.Type, $"type conversion to {typeName} is allowed only from numeric and bitvector types, char, and ORDINAL (got {{0}})");
+            // For approximate literals, add subtype constraint to enable type inference
+            if (e.E is ConcreteSyntaxExpression { ResolvedExpression: DecimalLiteralExpr { IsApproximate: true } }) {
+              ConstrainSubtypeRelation(e.ToType, e.E.Type, expr.Origin, "");
+            }
           } else if (e.ToType.IsBitVectorType) {
             AddXConstraint(expr.Origin, "NumericOrBitvectorOrCharOrORDINAL", e.E.Type, "type conversion to a bitvector-based type is allowed only from numeric and bitvector types, char, and ORDINAL (got {0})");
           } else if (e.ToType.IsCharType) {

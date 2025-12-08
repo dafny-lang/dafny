@@ -30,6 +30,7 @@ namespace Microsoft.Dafny {
     private readonly List<Advice> defaultAdvice = [];
     private List<(PreTypeProxy, PreType)> compatibleBounds = [];
     private List<Confirmation> confirmations = [];
+    private readonly List<PreType> floatProxiesNeedingDefault = [];
 
     public PreTypeConstraints(PreTypeResolver preTypeResolver) {
       this.PreTypeResolver = preTypeResolver;
@@ -184,9 +185,21 @@ namespace Microsoft.Dafny {
 
       PartiallySolveTypeConstraints(null, true);
 
+      // Apply fp64 default to any remaining unresolved float proxies
+      ApplyFloatFallbackDefaults();
+
       PrintLegend();
       ConfirmTypeConstraints();
       ClearState();
+    }
+
+    void ApplyFloatFallbackDefaults() {
+      var fp64 = PreTypeResolver.Type2PreType(Type.Fp64);
+      foreach (var preType in floatProxiesNeedingDefault) {
+        if (preType.Normalize() is PreTypeProxy proxy) {
+          proxy.Set(fp64);
+        }
+      }
     }
 
     void ClearState() {
@@ -196,6 +209,7 @@ namespace Microsoft.Dafny {
       defaultAdvice.Clear();
       compatibleBounds.Clear();
       confirmations.Clear();
+      floatProxiesNeedingDefault.Clear();
       PreTypeResolver.allPreTypeProxies.Clear();
     }
 
@@ -577,6 +591,9 @@ namespace Microsoft.Dafny {
     }
 
     public void AddConfirmation(CommonConfirmationBag check, PreType preType, IOrigin tok, string errorFormatString, Action onProxyAction) {
+      if (check == CommonConfirmationBag.InFloatFamily) {
+        floatProxiesNeedingDefault.Add(preType);
+      }
       confirmations.Add(new Confirmation(
         () => ConfirmConstraint(check, preType, null),
         () => string.Format(errorFormatString, preType),

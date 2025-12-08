@@ -493,13 +493,10 @@ namespace Microsoft.Dafny {
               ReportError(e, "~ prefix must immediately precede the literal with no intervening space");
             }
 
-            // Validate that the inner expression is a numeric literal (or a negation of one)
             var innerExpr = e.Expr;
-            bool isNegated = false;
 
             if (innerExpr is NegationExpression neg) {
               innerExpr = neg.E;
-              isNegated = true;
             }
 
             if (innerExpr is LiteralExpr lit) {
@@ -507,8 +504,8 @@ namespace Microsoft.Dafny {
                 // Create a proxy that can be constrained to fp32 or fp64
                 var floatProxy = CreatePreTypeProxy("approximate literal");
 
-                // Add default advice for fp64, but allow fp32 from context
-                Constraints.AddDefaultAdvice(floatProxy, CommonAdvice.Target.Fp64);
+                // Don't add default advice - let context (e.g., 'as fp32') determine the type
+                // Fallback to fp64 is applied later for unresolved proxies
 
                 // Add confirmation that it must be fp32 or fp64 (not real)
                 AddConfirmation(PreTypeConstraints.CommonConfirmationBag.InFloatFamily, floatProxy, e.Origin, "approximate literal used as if it had type {0}");
@@ -518,23 +515,13 @@ namespace Microsoft.Dafny {
                 e.Expr.PreType = floatProxy;
                 lit.PreType = floatProxy;
 
-                // Mark as approximate literal using IsApproximate flag
                 if (lit is DecimalLiteralExpr decLit) {
                   decLit.IsApproximate = true;
                 }
-                // Also set on e.Expr if different
                 if (e.Expr is DecimalLiteralExpr exprDecLit && exprDecLit != lit) {
                   exprDecLit.IsApproximate = true;
                 }
 
-                // Check exact representability for fp32 (if exact in fp32, it's exact in fp64 too)
-                var (significandBits, exponentBits) = (24, 8); // fp32 precision
-                var checkValue = isNegated ? -decValue : decValue;
-                var (isExact, _) = FloatLiteralValidator.ValidateAndCompute(checkValue, significandBits, exponentBits);
-                if (isExact) {
-                  ReportError(e,
-                    $"The approximate literal prefix ~ is not allowed on the exactly representable value {checkValue}. Remove the ~ prefix.");
-                }
               } else if (lit.Value is BigInteger) {
                 ReportError(e, "~ prefix not allowed on integer literals");
                 e.PreType = new DPreType(BuiltInTypeDecl(PreType.TypeNameInt), []);
@@ -601,7 +588,16 @@ namespace Microsoft.Dafny {
                 }
                 return string.Format(errorMessageFormat, toPreType, e.E.PreType);
               };
-              AddComparableConstraint(toPreType, e.E.PreType, expr.Origin, true, errorMessage);
+
+              // For approximate literals with fp32/fp64 target, use equality to infer the target type
+              if (toPreType.Normalize() is DPreType dtoPreType2 &&
+                  (dtoPreType2.Decl.Name == PreType.TypeNameFp32 || dtoPreType2.Decl.Name == PreType.TypeNameFp64) &&
+                  e.E is ConcreteSyntaxExpression { ResolvedExpression: DecimalLiteralExpr { IsApproximate: true } }) {
+                Constraints.AddEqualityConstraint(toPreType, e.E.PreType, expr.Origin, errorMessage());
+                Constraints.AddDefaultAdvice(e.E.PreType, dtoPreType2.Decl.Name == PreType.TypeNameFp32 ? CommonAdvice.Target.Fp32 : CommonAdvice.Target.Fp64);
+              } else {
+                AddComparableConstraint(toPreType, e.E.PreType, expr.Origin, true, errorMessage);
+              }
               e.PreType = toPreType;
             } else {
               e.PreType = CreatePreTypeProxy("'as' target type");

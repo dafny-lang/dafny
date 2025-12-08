@@ -3570,6 +3570,9 @@ namespace Microsoft.Dafny.Compilers {
         if (toType.IsFp64Type) {
           // fp64 -> fp64, no conversion needed
           wr.Append(Expr(fromExpr, inLetExprBody, wStmts));
+        } else if (toType.IsFp32Type) {
+          wr.Write("(float)");
+          TrParenExpr(fromExpr, wr, inLetExprBody, wStmts);
         } else if (toType.IsNumericBased(Type.NumericPersuasion.Int)) {
           // fp64 -> int (exact conversion only)
           // C# truncates towards zero, which matches what we want for exact integers
