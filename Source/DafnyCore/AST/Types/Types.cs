@@ -346,6 +346,12 @@ public abstract class Type : NodeWithOrigin {
   public bool IsFp32Type => NormalizeExpand() is Fp32Type;
   public bool IsFp64Type => NormalizeExpand() is Fp64Type;
   public bool IsFloatingPointType => IsFp32Type || IsFp64Type;
+  
+  /// <summary>
+  /// Returns the Dafny type name for floating-point types ("fp32" or "fp64").
+  /// Should only be called on types where IsFloatingPointType is true.
+  /// </summary>
+  public string FloatTypeName => IsFp32Type ? "fp32" : "fp64";
   public bool IsStringType => AsSeqType?.Arg.IsCharType == true;
   public BitvectorType AsBitVectorType => NormalizeExpand() as BitvectorType;
 

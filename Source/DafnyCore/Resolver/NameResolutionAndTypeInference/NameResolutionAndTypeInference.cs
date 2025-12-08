@@ -861,7 +861,7 @@ namespace Microsoft.Dafny {
           } else if (e.ToType.IsNumericBased(Type.NumericPersuasion.Real)) {
             AddXConstraint(expr.Origin, "NumericOrBitvectorOrCharOrORDINAL", e.E.Type, "type conversion to a real-based type is allowed only from numeric and bitvector types, char, and ORDINAL (got {0})");
           } else if (e.ToType.IsFp32Type || e.ToType.IsFp64Type) {
-            var typeName = e.ToType.IsFp32Type ? "fp32" : "fp64";
+            var typeName = e.ToType.FloatTypeName;
             AddXConstraint(expr.Origin, "NumericOrBitvectorOrCharOrORDINAL", e.E.Type, $"type conversion to {typeName} is allowed only from numeric and bitvector types, char, and ORDINAL (got {{0}})");
             // For approximate literals, add subtype constraint to enable type inference
             if (e.E is ConcreteSyntaxExpression { ResolvedExpression: DecimalLiteralExpr { IsApproximate: true } }) {

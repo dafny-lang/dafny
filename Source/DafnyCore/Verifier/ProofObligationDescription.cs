@@ -96,7 +96,7 @@ public class FloatEqualityPrecondition : ProofObligationDescription {
 
   public FloatEqualityPrecondition(Expression operand, Type floatType) {
     this.operand = operand;
-    this.floatTypeName = floatType.IsFp32Type ? "fp32" : "fp64";
+    this.floatTypeName = floatType.FloatTypeName;
   }
 
   public override string SuccessDescription =>
@@ -120,7 +120,7 @@ public class FloatSignedZeroEqualityPrecondition : ProofObligationDescription {
   public FloatSignedZeroEqualityPrecondition(Expression operand0, Expression operand1, Type floatType) {
     this.operand0 = operand0;
     this.operand1 = operand1;
-    this.floatTypeName = floatType.IsFp32Type ? "fp32" : "fp64";
+    this.floatTypeName = floatType.FloatTypeName;
   }
 
   public override string SuccessDescription =>
@@ -142,7 +142,7 @@ public class FloatCollectionEqualityWellformedness : ProofObligationDescription 
 
   public FloatCollectionEqualityWellformedness(Type collectionType, Type floatType) {
     this.collectionType = collectionType.NormalizeExpand();
-    this.floatTypeName = floatType.IsFp32Type ? "fp32" : "fp64";
+    this.floatTypeName = floatType.FloatTypeName;
   }
 
   public override string SuccessDescription =>
@@ -505,7 +505,7 @@ public class IsExactlyRepresentableAsFloat : ProofObligationDescription {
   public IsExactlyRepresentableAsFloat(Expression expr, Type floatType, string prefix = "") {
     this.expr = expr;
     this.floatType = floatType;
-    this.floatTypeName = floatType.IsFp32Type ? "fp32" : "fp64";
+    this.floatTypeName = floatType.FloatTypeName;
     this.prefix = prefix;
   }
 

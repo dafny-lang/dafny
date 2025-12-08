@@ -665,7 +665,7 @@ namespace Microsoft.Dafny {
             return MaybeLit(arg);
           case UnaryOpExpr.ResolvedOpcode.FloatNegate:
             var (significand, exponent) = opExpr.E.Type.FloatPrecision;
-            var prefix = opExpr.E.Type.IsFp32Type ? "fp32" : "fp64";
+            var prefix = opExpr.E.Type.FloatTypeName;
             var floatType = new FloatType(significand, exponent);
             var negResult = FunctionCall(GetToken(opExpr), $"{prefix}_neg", floatType, arg);
             return BoogieGenerator.IsLit(arg) ? MaybeLit(negResult, floatType) : negResult;

@@ -227,7 +227,7 @@ class CheckTypeInferenceVisitor : ASTVisitor<TypeInferenceCheckingContext> {
           var (significandBits, exponentBits) = normalizedType.FloatPrecision;
           var (isExact, _) = FloatLiteralValidator.ValidateAndCompute(decValue, significandBits, exponentBits);
           if (isExact) {
-            var typeName = normalizedType.IsFp32Type ? "fp32" : "fp64";
+            var typeName = normalizedType.FloatTypeName;
             resolver.ReportError(ResolutionErrors.ErrorId.r_inexact_fp64_literal_without_prefix, e.Origin,
               $"The approximate literal prefix ~ is not allowed on value {decValue} which is exactly representable as {typeName}. Remove the ~ prefix.");
           }
@@ -249,7 +249,7 @@ class CheckTypeInferenceVisitor : ASTVisitor<TypeInferenceCheckingContext> {
           decimalLiteral.ResolvedFloatValue = floatValue;
           // Report inexact error only on first computation (not on type precision changes)
           if (!isExact && wasNull) {
-            var typeName = normalizedType.IsFp32Type ? "fp32" : "fp64";
+            var typeName = normalizedType.FloatTypeName;
             resolver.ReportError(ResolutionErrors.ErrorId.r_inexact_fp64_literal_without_prefix, e.Origin,
               $"The literal {decValue} is not exactly representable as an {typeName} value. " +
               $"Use the approximate literal syntax ~{decValue} to explicitly acknowledge rounding.");
