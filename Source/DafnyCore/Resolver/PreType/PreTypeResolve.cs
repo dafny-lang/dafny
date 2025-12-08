@@ -89,7 +89,7 @@ namespace Microsoft.Dafny {
             var floatDecl = resolver.ProgramResolver.SystemModuleManager.valuetypeDecls[(int)variety];
 
             if (name == "fp32") {
-              resolver.ProgramResolver.SystemModuleManager.EnsureFp32TypeInitialized(resolver.ProgramResolver);
+              resolver.ProgramResolver.SystemModuleManager.EnsureFloatTypesInitialized(resolver.ProgramResolver);
             } else {
               resolver.ProgramResolver.SystemModuleManager.EnsureFp64TypeInitialized(resolver.ProgramResolver);
             }

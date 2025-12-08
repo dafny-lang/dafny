@@ -3689,7 +3689,7 @@ namespace Microsoft.Dafny {
     private TopLevelDecl CreateBuiltinTypeDecl(string name, IOrigin origin) {
       // For built-in types, we need to return the corresponding ValuetypeDecl from the system module
       if (name == "fp32") {
-        ProgramResolver.SystemModuleManager.EnsureFp32TypeInitialized(ProgramResolver);
+        ProgramResolver.SystemModuleManager.EnsureFloatTypesInitialized(ProgramResolver);
       } else if (name == "fp64") {
         ProgramResolver.SystemModuleManager.EnsureFp64TypeInitialized(ProgramResolver);
       }
@@ -4783,7 +4783,7 @@ namespace Microsoft.Dafny {
       Contract.Assert(receiverType is NonProxyType);  // there are only two kinds of types: proxies and non-proxies
 
       if (receiverType.IsFp32Type) {
-        ProgramResolver.SystemModuleManager.EnsureFp32TypeInitialized(ProgramResolver);
+        ProgramResolver.SystemModuleManager.EnsureFloatTypesInitialized(ProgramResolver);
       } else if (receiverType.IsFp64Type) {
         ProgramResolver.SystemModuleManager.EnsureFp64TypeInitialized(ProgramResolver);
       }
@@ -6124,7 +6124,7 @@ namespace Microsoft.Dafny {
       } else if (lhs != null) {
         // ----- 4. Look up name in the type of the Lhs
         if (expr.Lhs.Type.IsFp32Type) {
-          ProgramResolver.SystemModuleManager.EnsureFp32TypeInitialized(ProgramResolver);
+          ProgramResolver.SystemModuleManager.EnsureFloatTypesInitialized(ProgramResolver);
         } else if (expr.Lhs.Type.IsFp64Type) {
           ProgramResolver.SystemModuleManager.EnsureFp64TypeInitialized(ProgramResolver);
         }

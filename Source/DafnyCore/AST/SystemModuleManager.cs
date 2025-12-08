@@ -305,8 +305,8 @@ public class SystemModuleManager {
   }
 
   // Initialize fp64 type and add to system module on first reference
-  public void EnsureFp32TypeInitialized(ProgramResolver programResolver) {
-    EnsureFp32TypeInitialized();
+  public void EnsureFloatTypesInitialized(ProgramResolver programResolver) {
+    EnsureFloatTypesInitialized();
 
     var fp32TypeDecl = valuetypeDecls[(int)ValuetypeVariety.Fp32];
 
@@ -325,7 +325,7 @@ public class SystemModuleManager {
     programResolver.AddSystemClass(fp32TypeDecl, memberDictionary);
   }
 
-  private void EnsureFp32TypeInitialized() {
+  private void EnsureFloatTypesInitialized() {
     var fp32TypeDecl = valuetypeDecls[(int)ValuetypeVariety.Fp32];
 
     // Check if already initialized by looking for "Min" member
@@ -704,7 +704,7 @@ public class SystemModuleManager {
   public ValuetypeDecl AsValuetypeDecl(Type t) {
     Contract.Requires(t != null);
     if (t.IsFp32Type) {
-      EnsureFp32TypeInitialized();
+      EnsureFloatTypesInitialized();
     }
     if (t.IsFp64Type) {
       EnsureFp64TypeInitialized();

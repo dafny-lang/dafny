@@ -1566,6 +1566,10 @@ namespace Microsoft.Dafny.Compilers {
       }
     }
 
+    private static string CSharpFloatTypeName(Type type) {
+      return type.IsFp32Type ? "float" : "double";
+    }
+
     protected override ConcreteSyntaxTree EmitTailCallStructure(MemberDecl member, ConcreteSyntaxTree wr) {
       Contract.Assume(member is Method { IsTailRecursive: true } or Function { IsTailRecursive: true }); // precondition
       if (!member.IsStatic && !NeedsCustomReceiver(member)) {
@@ -2683,23 +2687,23 @@ namespace Microsoft.Dafny.Compilers {
           compiledName = "_new";
           break;
         case SpecialField.ID.IsNaN:
-          preString = $"{(receiverType.IsFp32Type ? "float" : "double")}.IsNaN(";
+          preString = $"{(CSharpFloatTypeName(receiverType))}.IsNaN(";
           postString = ")";
           break;
         case SpecialField.ID.IsFinite:
-          preString = $"{(receiverType.IsFp32Type ? "float" : "double")}.IsFinite(";
+          preString = $"{(CSharpFloatTypeName(receiverType))}.IsFinite(";
           postString = ")";
           break;
         case SpecialField.ID.IsInfinite:
-          preString = $"{(receiverType.IsFp32Type ? "float" : "double")}.IsInfinity(";
+          preString = $"{(CSharpFloatTypeName(receiverType))}.IsInfinity(";
           postString = ")";
           break;
         case SpecialField.ID.IsNormal:
-          preString = $"{(receiverType.IsFp32Type ? "float" : "double")}.IsNormal(";
+          preString = $"{(CSharpFloatTypeName(receiverType))}.IsNormal(";
           postString = ")";
           break;
         case SpecialField.ID.IsSubnormal:
-          preString = $"{(receiverType.IsFp32Type ? "float" : "double")}.IsSubnormal(";
+          preString = $"{(CSharpFloatTypeName(receiverType))}.IsSubnormal(";
           postString = ")";
           break;
         case SpecialField.ID.IsZero:
@@ -2707,7 +2711,7 @@ namespace Microsoft.Dafny.Compilers {
           postString = receiverType.IsFp32Type ? " == 0.0f)" : " == 0.0)";
           break;
         case SpecialField.ID.IsNegative:
-          preString = $"{(receiverType.IsFp32Type ? "float" : "double")}.IsNegative(";
+          preString = $"{(CSharpFloatTypeName(receiverType))}.IsNegative(";
           postString = ")";
           break;
         case SpecialField.ID.IsPositive:
@@ -2715,13 +2719,13 @@ namespace Microsoft.Dafny.Compilers {
           postString = ")";
           break;
         case SpecialField.ID.NaN:
-          preString = $"{(receiverType.IsFp32Type ? "float" : "double")}.NaN";
+          preString = $"{(CSharpFloatTypeName(receiverType))}.NaN";
           break;
         case SpecialField.ID.PositiveInfinity:
-          preString = $"{(receiverType.IsFp32Type ? "float" : "double")}.PositiveInfinity";
+          preString = $"{(CSharpFloatTypeName(receiverType))}.PositiveInfinity";
           break;
         case SpecialField.ID.NegativeInfinity:
-          preString = $"{(receiverType.IsFp32Type ? "float" : "double")}.NegativeInfinity";
+          preString = $"{(CSharpFloatTypeName(receiverType))}.NegativeInfinity";
           break;
         case SpecialField.ID.Pi:
           preString = receiverType.IsFp32Type ? "(float)Math.PI" : "Math.PI";
@@ -2730,16 +2734,16 @@ namespace Microsoft.Dafny.Compilers {
           preString = receiverType.IsFp32Type ? "(float)Math.E" : "Math.E";
           break;
         case SpecialField.ID.MaxValue:
-          preString = $"{(receiverType.IsFp32Type ? "float" : "double")}.MaxValue";
+          preString = $"{(CSharpFloatTypeName(receiverType))}.MaxValue";
           break;
         case SpecialField.ID.MinValue:
-          preString = $"{(receiverType.IsFp32Type ? "float" : "double")}.MinValue";
+          preString = $"{(CSharpFloatTypeName(receiverType))}.MinValue";
           break;
         case SpecialField.ID.MinNormal:
           preString = receiverType.IsFp32Type ? "1.17549435e-38f" : "2.2250738585072014e-308";
           break;
         case SpecialField.ID.MinSubnormal:
-          preString = $"{(receiverType.IsFp32Type ? "float" : "double")}.Epsilon";
+          preString = $"{(CSharpFloatTypeName(receiverType))}.Epsilon";
           break;
         case SpecialField.ID.Epsilon:
           preString = receiverType.IsFp32Type ? "(float)Math.Pow(2, -23)" : "Math.Pow(2, -52)";
@@ -2754,7 +2758,7 @@ namespace Microsoft.Dafny.Compilers {
         ConcreteSyntaxTree wStmts, FCE_Arg_Translator tr, bool alreadyCoerced = false) {
 
       // Handle fp32 and fp64 special functions
-      if (e.Function is SpecialFunction && (e.Function.EnclosingClass?.Name == "fp32" || e.Function.EnclosingClass?.Name == "fp64")) {
+      if (e.Function is SpecialFunction && e.Function.EnclosingClass?.Name is "fp32" or "fp64") {
         var isFp32 = e.Function.EnclosingClass?.Name == "fp32";
         switch (e.Function.Name) {
           case "Equal":

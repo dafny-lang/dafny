@@ -1653,7 +1653,7 @@ namespace Microsoft.Dafny {
         // Special handling for float types (on-demand initialization)
         var variety = name == "fp32" ? ValuetypeVariety.Fp32 : ValuetypeVariety.Fp64;
         if (name == "fp32") {
-          resolver.ProgramResolver.SystemModuleManager.EnsureFp32TypeInitialized(resolver.ProgramResolver);
+          resolver.ProgramResolver.SystemModuleManager.EnsureFloatTypesInitialized(resolver.ProgramResolver);
         } else {
           resolver.ProgramResolver.SystemModuleManager.EnsureFp64TypeInitialized(resolver.ProgramResolver);
         }
