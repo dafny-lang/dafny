@@ -124,29 +124,14 @@ module TestDuration {
     AssertAndExpect(str[1] == 'T');
   }
 
-  function CompareHelper(d1: Duration.Duration, d2: Duration.Duration): int
-    ensures -1 <= CompareHelper(d1, d2) <= 1
-  {
-    if d1.seconds < d2.seconds then -1
-    else if d1.seconds > d2.seconds then 1
-    else if d1.millis < d2.millis then -1
-    else if d1.millis > d2.millis then 1
-    else 0
-  }
-
   method {:test} TestMaxByWithCompareHelper() {
     var d1 := Duration.Duration(1, 100);
     var d2 := Duration.Duration(2, 50);
     var d3 := Duration.Duration(0, 999);
     var durations := [d1, d2, d3];
 
-    var lessThan := (a: Duration.Duration, b: Duration.Duration) =>
-        if a.seconds < b.seconds then true
-        else if a.seconds > b.seconds then false
-        else a.millis < b.millis;
-
-    var maxD := MaxBy(durations, lessThan);
-    var minD := MinBy(durations, lessThan);
+    var maxD := MaxBy(durations, Duration.Less);
+    var minD := MinBy(durations, Duration.Less);
 
     expect maxD == d2;
     expect minD == d3;
