@@ -614,7 +614,7 @@ method SpecialValueBehavior() {
 }
 ```
 
-#### 5.2.3.7. Type Conversions
+#### 5.2.3.8. Type Conversions
 
 Both `fp32` and `fp64` types support conversions to and from other numeric types using the `as` operator:
 
@@ -671,7 +671,7 @@ method ConversionExamples() {
 
 To avoid this limitation, use direct literal conversions where possible.
 
-#### 5.2.3.8. Inexact Conversion Methods
+#### 5.2.3.9. Inexact Conversion Methods
 
 In addition to the exact conversions using the `as` operator, both `fp32` and `fp64` provide static methods
 for conversions that may involve rounding or truncation:
@@ -720,7 +720,7 @@ method ToIntPreconditionExamples() {
 }
 ```
 
-#### 5.2.3.9. Comparison of Numeric Types
+#### 5.2.3.10. Comparison of Numeric Types
 
 | Aspect | int | real | fp64 |
 |--------|-----|------|------|
