@@ -610,7 +610,7 @@ method SpecialValueBehavior() {
   assert absNegInf == fp64.PositiveInfinity;
   assert minInf == fp64.NegativeInfinity;
 
-  // Preconditions prevent invalid operations
+  // Well-formedness checks prevent invalid operations
   // var sqrtNeg := fp64.Sqrt(-1.0);   // ERROR: negative input not allowed
   // var floorNaN := fp64.Floor(fp64.NaN); // ERROR: NaN not allowed
 }
@@ -708,7 +708,7 @@ method InexactConversions() {
 }
 
 // This method demonstrates the precondition check
-method ToIntPreconditionExamples() {
+method ToIntWellformednessExamples() {
   var finite: fp64 := 42.5;
   var i := fp64.ToInt(finite);  // OK: finite value
   assert i == 42;
