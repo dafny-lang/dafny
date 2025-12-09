@@ -136,6 +136,56 @@ public class FloatSignedZeroEqualityPrecondition : ProofObligationDescription {
   }
 }
 
+public class FloatInvalidOperationPrecondition : ProofObligationDescription {
+  private readonly string operation;
+  private readonly Expression operand0;
+  private readonly Expression operand1;
+  private readonly string floatTypeName;
+
+  public FloatInvalidOperationPrecondition(string operation, Expression operand0, Expression operand1, Type floatType) {
+    this.operation = operation;
+    this.operand0 = operand0;
+    this.operand1 = operand1;
+    this.floatTypeName = floatType.IsFp32Type ? "fp32" : "fp64";
+  }
+
+  public override string SuccessDescription =>
+    $"{floatTypeName} {operation} never produces invalid operation";
+
+  public override string FailureDescription =>
+    $"{floatTypeName} {operation} has invalid operand combination (e.g., ∞+(-∞), ∞*0, 0/0, ∞/∞)";
+
+  public override string ShortDescription => $"{floatTypeName} {operation} invalid operation precondition";
+
+  public override Expression GetAssertedExpr(DafnyOptions options) {
+    return new LiteralExpr(operand0.Origin, true);
+  }
+}
+
+public class FloatNaNPrecondition : ProofObligationDescription {
+  private readonly string operation;
+  private readonly Expression operand;
+  private readonly string floatTypeName;
+
+  public FloatNaNPrecondition(string operation, Expression operand, Type floatType) {
+    this.operation = operation;
+    this.operand = operand;
+    this.floatTypeName = floatType.IsFp32Type ? "fp32" : "fp64";
+  }
+
+  public override string SuccessDescription =>
+    $"{floatTypeName} operand is never NaN for {operation}";
+
+  public override string FailureDescription =>
+    $"{floatTypeName} {operation} requires that operands are not NaN";
+
+  public override string ShortDescription => $"{floatTypeName} {operation} NaN precondition";
+
+  public override Expression GetAssertedExpr(DafnyOptions options) {
+    return new LiteralExpr(operand.Origin, true);
+  }
+}
+
 public class FloatCollectionEqualityWellformedness : ProofObligationDescription {
   private readonly Type collectionType;
   private readonly string floatTypeName;
@@ -544,20 +594,22 @@ public class IsExactlyRepresentableAsFloat : ProofObligationDescription {
   }
 }
 
-public class Fp64SqrtNonNegativePrecondition : ProofObligationDescription {
+public class FloatSqrtNonNegativePrecondition : ProofObligationDescription {
+  private readonly Expression expr;
+  private readonly string floatTypeName;
+
+  public FloatSqrtNonNegativePrecondition(Expression expr, Type floatType) {
+    this.expr = expr;
+    this.floatTypeName = floatType.IsFp32Type ? "fp32" : "fp64";
+  }
+
   public override string SuccessDescription =>
-    "fp64.Sqrt argument is always non-negative";
+    $"{floatTypeName}.Sqrt argument is always non-negative";
 
   public override string FailureDescription =>
-    "fp64.Sqrt requires a non-negative argument (negative values produce NaN)";
+    $"{floatTypeName}.Sqrt requires a non-negative argument (negative values produce NaN)";
 
-  public override string ShortDescription => "fp64.Sqrt non-negative precondition";
-
-  private readonly Expression expr;
-
-  public Fp64SqrtNonNegativePrecondition(Expression expr) {
-    this.expr = expr;
-  }
+  public override string ShortDescription => $"{floatTypeName}.Sqrt non-negative precondition";
 
   public override Expression GetAssertedExpr(DafnyOptions options) {
     var zero = Expression.CreateRealLiteral(expr.Origin, BaseTypes.BigDec.ZERO);
@@ -565,23 +617,24 @@ public class Fp64SqrtNonNegativePrecondition : ProofObligationDescription {
   }
 }
 
-public class Fp64ToIntFinitePrecondition : ProofObligationDescription {
-  public override string SuccessDescription =>
-    "fp64.ToInt argument is always finite";
-
-  public override string FailureDescription =>
-    "fp64.ToInt requires a finite argument (not NaN or infinity)";
-
-  public override string ShortDescription => "fp64.ToInt finite precondition";
-
+public class FloatToIntFinitePrecondition : ProofObligationDescription {
   private readonly Expression operand;
+  private readonly string floatTypeName;
 
-  public Fp64ToIntFinitePrecondition(Expression operand) {
+  public FloatToIntFinitePrecondition(Expression operand, Type floatType) {
     this.operand = operand;
+    this.floatTypeName = floatType.IsFp32Type ? "fp32" : "fp64";
   }
 
+  public override string SuccessDescription =>
+    $"{floatTypeName}.ToInt argument is always finite";
+
+  public override string FailureDescription =>
+    $"{floatTypeName}.ToInt requires a finite argument (not NaN or infinity)";
+
+  public override string ShortDescription => $"{floatTypeName}.ToInt finite precondition";
+
   public override Expression GetAssertedExpr(DafnyOptions options) {
-    // Express as: operand.IsFinite
     return new ExprDotName(operand.Origin, operand, new Name("IsFinite"), null);
   }
 }

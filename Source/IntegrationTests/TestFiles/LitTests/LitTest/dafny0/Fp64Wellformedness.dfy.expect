@@ -1,0 +1,43 @@
+Fp64Wellformedness.dfy(9,7): Error: fp64 arithmetic requires that operands are not NaN
+Fp64Wellformedness.dfy(9,9): Error: fp64 addition has invalid operand combination (e.g., ∞+(-∞), ∞*0, 0/0, ∞/∞)
+Fp64Wellformedness.dfy(9,11): Error: fp64 arithmetic requires that operands are not NaN
+Fp64Wellformedness.dfy(13,7): Error: fp64 arithmetic requires that operands are not NaN
+Fp64Wellformedness.dfy(13,9): Error: fp64 subtraction has invalid operand combination (e.g., ∞+(-∞), ∞*0, 0/0, ∞/∞)
+Fp64Wellformedness.dfy(13,11): Error: fp64 arithmetic requires that operands are not NaN
+Fp64Wellformedness.dfy(17,7): Error: fp64 arithmetic requires that operands are not NaN
+Fp64Wellformedness.dfy(17,9): Error: fp64 multiplication has invalid operand combination (e.g., ∞+(-∞), ∞*0, 0/0, ∞/∞)
+Fp64Wellformedness.dfy(17,11): Error: fp64 arithmetic requires that operands are not NaN
+Fp64Wellformedness.dfy(21,7): Error: fp64 division requires that operands are not NaN
+Fp64Wellformedness.dfy(21,9): Error: fp64 division has invalid operand combination (e.g., ∞+(-∞), ∞*0, 0/0, ∞/∞)
+Fp64Wellformedness.dfy(21,9): Error: possible division by zero
+Fp64Wellformedness.dfy(21,11): Error: fp64 division requires that operands are not NaN
+Fp64Wellformedness.dfy(25,8): Error: fp64 negation requires that operands are not NaN
+Fp64Wellformedness.dfy(33,14): Error: fp64 addition has invalid operand combination (e.g., ∞+(-∞), ∞*0, 0/0, ∞/∞)
+Fp64Wellformedness.dfy(38,14): Error: fp64 subtraction has invalid operand combination (e.g., ∞+(-∞), ∞*0, 0/0, ∞/∞)
+Fp64Wellformedness.dfy(43,11): Error: fp64 multiplication has invalid operand combination (e.g., ∞+(-∞), ∞*0, 0/0, ∞/∞)
+Fp64Wellformedness.dfy(47,11): Error: fp64 division has invalid operand combination (e.g., ∞+(-∞), ∞*0, 0/0, ∞/∞)
+Fp64Wellformedness.dfy(52,11): Error: fp64 division has invalid operand combination (e.g., ∞+(-∞), ∞*0, 0/0, ∞/∞)
+Fp64Wellformedness.dfy(58,7): Error: fp64 comparison requires that operands are not NaN
+Fp64Wellformedness.dfy(58,11): Error: fp64 comparison requires that operands are not NaN
+Fp64Wellformedness.dfy(62,7): Error: fp64 comparison requires that operands are not NaN
+Fp64Wellformedness.dfy(62,12): Error: fp64 comparison requires that operands are not NaN
+Fp64Wellformedness.dfy(66,7): Error: fp64 comparison requires that operands are not NaN
+Fp64Wellformedness.dfy(66,11): Error: fp64 comparison requires that operands are not NaN
+Fp64Wellformedness.dfy(70,7): Error: fp64 comparison requires that operands are not NaN
+Fp64Wellformedness.dfy(70,12): Error: fp64 comparison requires that operands are not NaN
+Fp64Wellformedness.dfy(76,18): Error: fp64 Floor requires that operands are not NaN
+Fp64Wellformedness.dfy(80,20): Error: fp64 Ceiling requires that operands are not NaN
+Fp64Wellformedness.dfy(84,18): Error: fp64 Round requires that operands are not NaN
+Fp64Wellformedness.dfy(88,16): Error: fp64 Abs requires that operands are not NaN
+Fp64Wellformedness.dfy(92,16): Error: fp64.Sqrt requires a non-negative argument (negative values produce NaN)
+Fp64Wellformedness.dfy(92,17): Error: fp64 Sqrt requires that operands are not NaN
+Fp64Wellformedness.dfy(96,16): Error: fp64.Sqrt requires a non-negative argument (negative values produce NaN)
+Fp64Wellformedness.dfy(100,16): Error: fp64 Min requires that operands are not NaN
+Fp64Wellformedness.dfy(100,19): Error: fp64 Min requires that operands are not NaN
+Fp64Wellformedness.dfy(104,16): Error: fp64 Max requires that operands are not NaN
+Fp64Wellformedness.dfy(104,19): Error: fp64 Max requires that operands are not NaN
+Fp64Wellformedness.dfy(108,17): Error: fp64.ToInt requires a finite argument (not NaN or infinity)
+Fp64Wellformedness.dfy(113,17): Error: fp64.ToInt requires a finite argument (not NaN or infinity)
+Fp64Wellformedness.dfy(118,17): Error: fp64.ToInt requires a finite argument (not NaN or infinity)
+
+Dafny program verifier finished with 5 verified, 41 errors

@@ -1,0 +1,43 @@
+Fp32Wellformedness.dfy(9,7): Error: fp32 arithmetic requires that operands are not NaN
+Fp32Wellformedness.dfy(9,9): Error: fp32 addition has invalid operand combination (e.g., ∞+(-∞), ∞*0, 0/0, ∞/∞)
+Fp32Wellformedness.dfy(9,11): Error: fp32 arithmetic requires that operands are not NaN
+Fp32Wellformedness.dfy(13,7): Error: fp32 arithmetic requires that operands are not NaN
+Fp32Wellformedness.dfy(13,9): Error: fp32 subtraction has invalid operand combination (e.g., ∞+(-∞), ∞*0, 0/0, ∞/∞)
+Fp32Wellformedness.dfy(13,11): Error: fp32 arithmetic requires that operands are not NaN
+Fp32Wellformedness.dfy(17,7): Error: fp32 arithmetic requires that operands are not NaN
+Fp32Wellformedness.dfy(17,9): Error: fp32 multiplication has invalid operand combination (e.g., ∞+(-∞), ∞*0, 0/0, ∞/∞)
+Fp32Wellformedness.dfy(17,11): Error: fp32 arithmetic requires that operands are not NaN
+Fp32Wellformedness.dfy(21,7): Error: fp32 division requires that operands are not NaN
+Fp32Wellformedness.dfy(21,9): Error: fp32 division has invalid operand combination (e.g., ∞+(-∞), ∞*0, 0/0, ∞/∞)
+Fp32Wellformedness.dfy(21,9): Error: possible division by zero
+Fp32Wellformedness.dfy(21,11): Error: fp32 division requires that operands are not NaN
+Fp32Wellformedness.dfy(25,8): Error: fp32 negation requires that operands are not NaN
+Fp32Wellformedness.dfy(33,14): Error: fp32 addition has invalid operand combination (e.g., ∞+(-∞), ∞*0, 0/0, ∞/∞)
+Fp32Wellformedness.dfy(38,14): Error: fp32 subtraction has invalid operand combination (e.g., ∞+(-∞), ∞*0, 0/0, ∞/∞)
+Fp32Wellformedness.dfy(43,11): Error: fp32 multiplication has invalid operand combination (e.g., ∞+(-∞), ∞*0, 0/0, ∞/∞)
+Fp32Wellformedness.dfy(47,11): Error: fp32 division has invalid operand combination (e.g., ∞+(-∞), ∞*0, 0/0, ∞/∞)
+Fp32Wellformedness.dfy(52,11): Error: fp32 division has invalid operand combination (e.g., ∞+(-∞), ∞*0, 0/0, ∞/∞)
+Fp32Wellformedness.dfy(58,7): Error: fp32 comparison requires that operands are not NaN
+Fp32Wellformedness.dfy(58,11): Error: fp32 comparison requires that operands are not NaN
+Fp32Wellformedness.dfy(62,7): Error: fp32 comparison requires that operands are not NaN
+Fp32Wellformedness.dfy(62,12): Error: fp32 comparison requires that operands are not NaN
+Fp32Wellformedness.dfy(66,7): Error: fp32 comparison requires that operands are not NaN
+Fp32Wellformedness.dfy(66,11): Error: fp32 comparison requires that operands are not NaN
+Fp32Wellformedness.dfy(70,7): Error: fp32 comparison requires that operands are not NaN
+Fp32Wellformedness.dfy(70,12): Error: fp32 comparison requires that operands are not NaN
+Fp32Wellformedness.dfy(76,18): Error: fp32 Floor requires that operands are not NaN
+Fp32Wellformedness.dfy(80,20): Error: fp32 Ceiling requires that operands are not NaN
+Fp32Wellformedness.dfy(84,18): Error: fp32 Round requires that operands are not NaN
+Fp32Wellformedness.dfy(88,16): Error: fp32 Abs requires that operands are not NaN
+Fp32Wellformedness.dfy(92,16): Error: fp32.Sqrt requires a non-negative argument (negative values produce NaN)
+Fp32Wellformedness.dfy(92,17): Error: fp32 Sqrt requires that operands are not NaN
+Fp32Wellformedness.dfy(96,16): Error: fp32.Sqrt requires a non-negative argument (negative values produce NaN)
+Fp32Wellformedness.dfy(100,16): Error: fp32 Min requires that operands are not NaN
+Fp32Wellformedness.dfy(100,19): Error: fp32 Min requires that operands are not NaN
+Fp32Wellformedness.dfy(104,16): Error: fp32 Max requires that operands are not NaN
+Fp32Wellformedness.dfy(104,19): Error: fp32 Max requires that operands are not NaN
+Fp32Wellformedness.dfy(108,17): Error: fp32.ToInt requires a finite argument (not NaN or infinity)
+Fp32Wellformedness.dfy(113,17): Error: fp32.ToInt requires a finite argument (not NaN or infinity)
+Fp32Wellformedness.dfy(118,17): Error: fp32.ToInt requires a finite argument (not NaN or infinity)
+
+Dafny program verifier finished with 5 verified, 41 errors
