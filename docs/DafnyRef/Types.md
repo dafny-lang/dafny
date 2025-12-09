@@ -505,7 +505,7 @@ method EqualityExample(x: fp64, y: fp64) {
   }
 
   // Simpler: just use fp64.Equal when unsure about values
-  var maybeNaN := if !x.IsNaN && fp64.Less(x, 0.0) then fp64.NaN else x;
+  var maybeNaN := if !x.IsNaN && x.IsNegative then fp64.NaN else x;
   // var bad := maybeNaN == x;  // ERROR: cannot prove maybeNaN is not NaN
   var safe := fp64.Equal(maybeNaN, x);  // Always works, no preconditions
 
@@ -598,20 +598,21 @@ Special value behavior:
 <!-- %check-verify -->
 ```dafny
 method SpecialValueBehavior() {
-  var nan := fp64.NaN;
   var inf := fp64.PositiveInfinity;
-  var neg: fp64 := -1.0;
+  var negInf := fp64.NegativeInfinity;
 
-  // Math functions have preconditions (require !IsNaN, Sqrt requires !IsNegative)
-  // var sqrtNeg := fp64.Sqrt(neg);   // ERROR: negative input not allowed
-  // var floorNaN := fp64.Floor(nan); // ERROR: NaN not allowed
-  
-  // Valid uses with non-NaN values
-  var sqrtInf := fp64.Sqrt(inf);   // Returns positive infinity
-  var absNegInf := fp64.Abs(fp64.NegativeInfinity); // Returns positive infinity
+  // Math functions work with infinity when preconditions are met
+  var sqrtInf := fp64.Sqrt(inf);        // Returns positive infinity
+  var absNegInf := fp64.Abs(negInf);    // Returns positive infinity
+  var minInf := fp64.Min(inf, negInf);  // Returns negative infinity
 
   assert sqrtInf == fp64.PositiveInfinity;
   assert absNegInf == fp64.PositiveInfinity;
+  assert minInf == fp64.NegativeInfinity;
+
+  // Preconditions prevent invalid operations
+  // var sqrtNeg := fp64.Sqrt(-1.0);   // ERROR: negative input not allowed
+  // var floorNaN := fp64.Floor(fp64.NaN); // ERROR: NaN not allowed
 }
 ```
 
