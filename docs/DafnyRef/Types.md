@@ -520,17 +520,17 @@ method EqualityExample(x: fp64, y: fp64) {
 For operations that may involve NaN or invalid infinity combinations, both `fp32` and `fp64` provide unchecked static methods:
 
 **Arithmetic methods:**
-- `fp32.Add(x, y)` / `fp64.Add(x, y)` - Addition without preconditions
-- `fp32.Sub(x, y)` / `fp64.Sub(x, y)` - Subtraction without preconditions
-- `fp32.Mul(x, y)` / `fp64.Mul(x, y)` - Multiplication without preconditions
-- `fp32.Div(x, y)` / `fp64.Div(x, y)` - Division without preconditions
-- `fp32.Neg(x)` / `fp64.Neg(x)` - Negation without preconditions
+- `fp32.Add(x, y)` / `fp64.Add(x, y)` - Addition without well-formedness checks
+- `fp32.Sub(x, y)` / `fp64.Sub(x, y)` - Subtraction without well-formedness checks
+- `fp32.Mul(x, y)` / `fp64.Mul(x, y)` - Multiplication without well-formedness checks
+- `fp32.Div(x, y)` / `fp64.Div(x, y)` - Division without well-formedness checks
+- `fp32.Neg(x)` / `fp64.Neg(x)` - Negation without well-formedness checks
 
 **Comparison methods:**
-- `fp32.Less(x, y)` / `fp64.Less(x, y)` - Less than without preconditions
-- `fp32.LessOrEqual(x, y)` / `fp64.LessOrEqual(x, y)` - Less than or equal without preconditions
-- `fp32.Greater(x, y)` / `fp64.Greater(x, y)` - Greater than without preconditions
-- `fp32.GreaterOrEqual(x, y)` / `fp64.GreaterOrEqual(x, y)` - Greater than or equal without preconditions
+- `fp32.Less(x, y)` / `fp64.Less(x, y)` - Less than without well-formedness checks
+- `fp32.LessOrEqual(x, y)` / `fp64.LessOrEqual(x, y)` - Less than or equal without well-formedness checks
+- `fp32.Greater(x, y)` / `fp64.Greater(x, y)` - Greater than without well-formedness checks
+- `fp32.GreaterOrEqual(x, y)` / `fp64.GreaterOrEqual(x, y)` - Greater than or equal without well-formedness checks
 
 These methods follow IEEE 754 semantics exactly, including producing NaN for invalid operations and returning false for all comparisons involving NaN.
 
