@@ -78,7 +78,7 @@ namespace Microsoft.Dafny {
         //     Constrain beta :> b
         // else do nothing for now
         if (ptSuper.Decl is not TraitDecl) {
-          var arguments = CreateProxiesForTypesAccordingToVariance(tok, ptSuper.Decl.TypeArgs, ptSuper.Arguments, false, ReportErrors, constraints);
+          var arguments = CreateProxiesForTypesAccordingToVariance(tok, ptSuper.Decl.TypeArgs, ptSuper.Arguments, false, ReportErrors, this, constraints);
           var pt = new DPreType(ptSuper.Decl, arguments, KeepIfTypeSynonym(ptSuper.PrintablePreType));
           constraints.AddEqualityConstraint(pt, sub, tok, ErrorFormatString, null, ReportErrors);
           return true;
@@ -94,7 +94,7 @@ namespace Microsoft.Dafny {
         if (PreTypeResolver.HasTraitSupertypes(ptSub)) {
           // there are parent traits
         } else {
-          var arguments = CreateProxiesForTypesAccordingToVariance(tok, ptSub.Decl.TypeArgs, ptSub.Arguments, true, ReportErrors, constraints);
+          var arguments = CreateProxiesForTypesAccordingToVariance(tok, ptSub.Decl.TypeArgs, ptSub.Arguments, true, ReportErrors, this, constraints);
           var pt = new DPreType(ptSub.Decl, arguments, KeepIfTypeSynonym(ptSub.PrintablePreType));
           constraints.AddEqualityConstraint(super, pt, tok, ErrorFormatString, null, ReportErrors);
           return true;
@@ -150,7 +150,7 @@ namespace Microsoft.Dafny {
     ///   - else a new proxy constrained by:  ai :> proxy
     /// </summary>
     static List<PreType> CreateProxiesForTypesAccordingToVariance(IOrigin tok, List<TypeParameter> parameters, List<PreType> arguments,
-      bool proxiesAreSupertypes, bool reportErrors, PreTypeConstraints state) {
+      bool proxiesAreSupertypes, bool reportErrors, PreTypeConstraint baseError, PreTypeConstraints state) {
       Contract.Requires(parameters.Count == arguments.Count);
 
       if (parameters.All(tp => tp.Variance == TypeParameter.TPVariance.Non)) {
@@ -166,10 +166,11 @@ namespace Microsoft.Dafny {
           var co = tp.Variance == TypeParameter.TPVariance.Co ? "co" : "contra";
           var proxy = state.PreTypeResolver.CreatePreTypeProxy($"type used in {co}variance constraint");
           newArgs.Add(proxy);
+          var errorFormatString = $"covariant type parameter '{tp.Name}' would require {{1}} :> {{0}}";
           if ((tp.Variance == TypeParameter.TPVariance.Co) == proxiesAreSupertypes) {
-            state.AddSubtypeConstraint(proxy, arguments[i], tok, "bad", null, reportErrors); // TODO: improve error message
+            state.AddSubtypeConstraint(proxy, arguments[i], tok, errorFormatString, baseError, reportErrors);
           } else {
-            state.AddSubtypeConstraint(arguments[i], proxy, tok, "bad", null, reportErrors); // TODO: improve error message
+            state.AddSubtypeConstraint(arguments[i], proxy, tok, errorFormatString, baseError, reportErrors);
           }
         }
       }
