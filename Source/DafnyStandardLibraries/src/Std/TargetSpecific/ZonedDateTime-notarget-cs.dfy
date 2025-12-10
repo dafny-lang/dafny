@@ -107,13 +107,13 @@ module Std.ZonedDateTime {
         result := Failure("Invalid ZonedDateTime created");
       }
     } else {
-        result := Failure("Failed to get current ZonedDateTime components");
+      result := Failure("Failed to get current ZonedDateTime components");
     }
   }
 
   // Creation function with preference for resolving local date-time
-  function Of(zoneId: string, local: LDT.LocalDateTime, 
-    overlapPreference: OverlapResolutionPreference := OverlapResolutionPreference.ERROR, gapPreference: GapResolutionPreference := GapResolutionPreference.ERROR): 
+  function Of(zoneId: string, local: LDT.LocalDateTime,
+              overlapPreference: OverlapResolutionPreference := OverlapResolutionPreference.ERROR, gapPreference: GapResolutionPreference := GapResolutionPreference.ERROR):
     (Result<ZonedDateTime, string>, Status)
     requires LDT.IsValidLocalDateTime(local)
   {
@@ -142,14 +142,14 @@ module Std.ZonedDateTime {
       var off := p[1] as int16;
 
       var ny := p[2] as int32; var nm := p[3] as uint8; var nd := p[4] as uint8;
-      var hh := p[5] as uint8; var mm := p[6] as uint8; var ss := p[7] as uint8; var ms := p[8] as uint16;
+                                                        var hh := p[5] as uint8; var mm := p[6] as uint8; var ss := p[7] as uint8; var ms := p[8] as uint16;
 
-      var normLocal := LDT.LocalDateTime(ny, nm, nd, hh, mm, ss, ms);
-      var normZoned := ZonedDateTime(normLocal, zoneId, off);
-      if IsValidZonedDateTime(normZoned) then
-        (Success(normZoned), status')
-      else
-        (Failure("Normalized local is invalid"), status')
+                                                                                                                                   var normLocal := LDT.LocalDateTime(ny, nm, nd, hh, mm, ss, ms);
+                                                                                                                                   var normZoned := ZonedDateTime(normLocal, zoneId, off);
+                                                                                                                                   if IsValidZonedDateTime(normZoned) then
+                                                                                                                                     (Success(normZoned), status')
+                                                                                                                                   else
+                                                                                                                                     (Failure("Normalized local is invalid"), status')
   }
 
   // ZonedDateTime getter functions (bounded integers for efficient storage)
