@@ -245,6 +245,18 @@ public class SystemModuleManager {
 
   private void AddFloatStaticMethods(ValuetypeDecl enclosingType, Type floatType) {
     AddFloatStaticFunction(enclosingType, "Equal", [("x", floatType), ("y", floatType)], Type.Bool);
+    // Unchecked arithmetic methods - no NaN or invalid operation preconditions
+    // These allow testing IEEE 754 edge cases (e.g., inf/inf = NaN, nan + x = NaN)
+    AddFloatStaticFunction(enclosingType, "Add", [("x", floatType), ("y", floatType)], floatType);
+    AddFloatStaticFunction(enclosingType, "Sub", [("x", floatType), ("y", floatType)], floatType);
+    AddFloatStaticFunction(enclosingType, "Mul", [("x", floatType), ("y", floatType)], floatType);
+    AddFloatStaticFunction(enclosingType, "Div", [("x", floatType), ("y", floatType)], floatType);
+    AddFloatStaticFunction(enclosingType, "Neg", [("x", floatType)], floatType);
+    // Unchecked comparison methods - no NaN preconditions (always return false for NaN)
+    AddFloatStaticFunction(enclosingType, "Less", [("x", floatType), ("y", floatType)], Type.Bool);
+    AddFloatStaticFunction(enclosingType, "LessOrEqual", [("x", floatType), ("y", floatType)], Type.Bool);
+    AddFloatStaticFunction(enclosingType, "Greater", [("x", floatType), ("y", floatType)], Type.Bool);
+    AddFloatStaticFunction(enclosingType, "GreaterOrEqual", [("x", floatType), ("y", floatType)], Type.Bool);
     AddFloatMathematicalFunctions(enclosingType, floatType);
     AddFloatInexactConversionMethods(enclosingType, floatType);
   }

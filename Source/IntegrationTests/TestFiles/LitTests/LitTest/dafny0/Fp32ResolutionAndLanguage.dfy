@@ -108,6 +108,8 @@ method TestVariableDeclarations() {
 }
 
 method TestMethodParameters(x: fp32, y: fp32) returns (result: fp32)
+  requires !x.IsNaN && !y.IsNaN
+  requires !(x.IsInfinite && y.IsInfinite && x.IsPositive != y.IsPositive)
   ensures result == x + y
 {
   result := x + y;
