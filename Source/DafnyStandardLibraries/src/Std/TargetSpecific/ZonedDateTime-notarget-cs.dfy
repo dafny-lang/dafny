@@ -62,21 +62,23 @@ module Std.ZonedDateTime {
   predicate IsValidZonedDateTime(zd: ZonedDateTime)
   {
     LDT.IsValidLocalDateTime(zd.local) &&
-    -18*60 <= zd.offsetMinutes <= 18*60 &&
+    MIN_OFFSET_MINUTES <= zd.offsetMinutes <= MAX_OFFSET_MINUTES &&
     0 <= |zd.zoneId|
   }
 
   // Create a ZonedDateTime from components, resolving local date-time with preference
   function {:extern "ZonedDateTimeImpl.__default", "ResolveLocal"} {:axiom} ResolveLocalImpl(zoneId: string,
-                                                                                             year: int32, month: uint8, day: uint8, hour: uint8, 
+                                                                                             year: int32, month: uint8, day: uint8, hour: uint8,
                                                                                              minute: uint8, second: uint8, millisecond: uint16,
                                                                                              overlapPreferenceIndex: int8, gapPreferenceIndex: int8) : (result: seq<int32>)
-    ensures |result| == 9 && LDT.IsValidComponentRange(result[2..9])
+    ensures |result| == 9 && LDT.IsValidComponentRange(result[2..9]) &&
+            MIN_OFFSET_MINUTES as int32 <= result[1] <= MAX_OFFSET_MINUTES as int32
 
   // Helper method to create ZonedDateTime from components
   function {:extern "ZonedDateTimeImpl.__default", "NowZoned"} {:axiom} NowZonedImpl(): seq<int32>
     ensures |NowZonedImpl()| == 8 &&
-            LDT.IsValidComponentRange(NowZonedImpl()[1..8])
+            LDT.IsValidComponentRange(NowZonedImpl()[1..8]) &&
+            MIN_OFFSET_MINUTES as int32 <= NowZonedImpl()[0] <= MAX_OFFSET_MINUTES as int32
 
   function {:extern "ZonedDateTimeImpl.__default", "GetNowZoneId"} {:axiom} GetNowZoneIdImpl(): seq<char>
     ensures |GetNowZoneIdImpl()| > 0

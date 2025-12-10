@@ -57,13 +57,14 @@ module TestZonedDateTime {
     expect pairB.1 == ZDT.StatusError;
   }
 
+  @ResourceLimit("1e7")
   method {:test} TestOfFunctionLeapYear()
   {
     var ldt2 := LDT.LocalDateTime(2020, 2, 29, 0, 0, 0, 0);
     var leapYearResult := ZDT.Of("America/New_York", ldt2);
     if leapYearResult.0.Success? {
       var leapDt := leapYearResult.0.value.local;
-      AssertAndExpect(LDT.IsValidLocalDateTime(leapDt));
+      expect LDT.IsValidLocalDateTime(leapDt);
     }
   }
 
