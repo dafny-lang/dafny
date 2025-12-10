@@ -7,6 +7,7 @@
 //-----------------------------------------------------------------------------
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Numerics;
 using System.Diagnostics.Contracts;
@@ -339,6 +340,7 @@ namespace Microsoft.Dafny {
           }
         case MemberSelectExpr selectExpr: {
             MemberSelectExpr e = selectExpr;
+            //Console.WriteLIne($"Checking MemberSelectExpr:{e} with Obj {e.Obj} of type {e.Obj.GetType().FullName} with shouldCheckRead: {wfOptions.DoReadsChecks}");
             CheckWellformed(e.Obj, wfOptions, locals, builder, etran);
             if (e.Obj.Type.IsRefType) {
               if (inBodyInitContext && Expression.AsThis(e.Obj) != null && !e.Member.IsInstanceIndependentConstant) {
@@ -1474,6 +1476,7 @@ namespace Microsoft.Dafny {
           }
         case ConcreteSyntaxExpression expression: {
             var e = expression;
+            //Console.WriteLIne($"Concrete Syntax Expression check {e} where resolved expression = {e.ResolvedExpression} with type {e.ResolvedExpression.GetType().FullName} and read check enabled? {wfOptions.DoReadsChecks}");
             CheckWellformedWithResult(e.ResolvedExpression, wfOptions, locals, builder, etran, addResultCommands);
             addResultCommands = null;
             break;
@@ -1816,15 +1819,19 @@ namespace Microsoft.Dafny {
       var q = new Bpl.ForallExpr(tok, bvs, BplImp(ante, pre));
       var indicesDesc = new IndicesInDomain(forArray ? "array" : "sequence", dims, init);
       builder.Add(AssertAndForget(builder.Context, tok, q, indicesDesc));
-      if (!forArray && options.DoReadsChecks) {
+      if (options.DoReadsChecks) {
         // unwrap renamed local lambdas
         var unwrappedFunc = init;
+        //Console.WriteLIne($"[DEBUG] Type of unwrappedFunc: {unwrappedFunc.GetType().FullName} Where Expr = {unwrappedFunc}");
         while (unwrappedFunc is ConcreteSyntaxExpression { ResolvedExpression: not null } cse) {
           unwrappedFunc = cse.ResolvedExpression;
         }
+        //Console.WriteLIne($"[DEBUG] Resolved Type of unwrappedFunc: {unwrappedFunc.GetType().FullName} Where Expr = {unwrappedFunc}");
         if (unwrappedFunc is IdentifierExpr { Origin: var origin, DafnyName: var dafnyName }) {
+          //Console.WriteLIne("[DEBUG]: IDENTIFIER");
           unwrappedFunc = new IdentifierExpr(origin, dafnyName);
         }
+         
         // check read effects
         Type objset = program.SystemModuleManager.ObjectSetType();
         Expression wrap = new BoogieWrapper(
@@ -1837,12 +1844,26 @@ namespace Microsoft.Dafny {
         };
 
         Utils.MakeQuantifierVarsForDims(dims, out var indexVars, out var indexVarExprs, out var indicesRange);
+        
+        if (unwrappedFunc is MemberSelectExpr {Obj: var obj, Member: var member}) {
+          if (member is Function func) {
+            // A member function will pass the check below because it is a member function so it can read from c.
+            // What's the best way to preserve the current checking structure (.read calls) while making this work?
+            
+            // * We could create a dummy lambda that calls the member function which doesn't seem too great
+            // * Or, we could just manually verify that we have a reads to whatever the function is. 
+          } 
+        }
+        //Console.WriteLIne($"[DEBUG] Final Type of unwrappedFunc: {unwrappedFunc.GetType().FullName} Where Expr = {unwrappedFunc}");
+        
         var readsCall = new ApplyExpr(
           Token.NoToken,
           new ExprDotName(Token.NoToken, unwrappedFunc, new Name("reads"), null),
           indexVarExprs,
           Token.NoToken
         );
+        
+        //Console.WriteLIne($"Generated read call {readsCall}");
         readsCall.Type = objset;
         var contextReads = GetContextReadsFrames();
         var readsDescExpr = new ForallExpr(
@@ -1852,7 +1873,7 @@ namespace Microsoft.Dafny {
           Utils.MakeDafnyFrameCheck(contextReads, readsCall, null),
           null
         );
-        var readsDesc = new ReadFrameSubset("invoke the function passed as an argument to the sequence constructor", readsDescExpr);
+        var readsDesc = new ReadFrameSubset($"invoke the function passed as an argument to the {(forArray ? "array" : "sequence")} constructor", readsDescExpr);
         CheckFrameSubset(tok, [reads], null, null,
           etran, etran.ReadsFrame(tok), maker, (ta, qa) => builder.Add(new Bpl.AssumeCmd(ta, qa)), readsDesc, options.AssertKv);
       }
