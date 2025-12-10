@@ -1,3 +1,3 @@
-git-issue-3496.dfy(5,2): Warning: assume statement has no {:axiom} annotation
+git-issue-3496.dfy(5,2): Warning: program contains an assume statement (to suppress this warning, annotate the statement with {:axiom})
 
 Dafny program verifier did not attempt verification
