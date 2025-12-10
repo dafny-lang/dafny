@@ -103,7 +103,7 @@ reservedword =
     "const" | "constructor" | "continue" |
     "datatype" | "decreases" |
     "else" | "ensures" | "exists" | "expect" | "export" | "extends" |
-    "false" | "for" | "forall" | "fp64" | "fresh" | "function" | "ghost" |
+    "false" | "for" | "forall" | "fp32" | "fp64" | "fresh" | "function" | "ghost" |
     "if" | "imap" | "import" | "in" | "include" |
     "int" | "invariant" | "is" | "iset" | "iterator" |
     "label" | "lemma" | "map" | "match" | "method" |
@@ -322,7 +322,7 @@ NameSegmentForTypeName = Ident [ GenericInstantiation ]
 BoolType_ = "bool"
 IntType_ = "int"
 RealType_ = "real"
-FloatType_ = "fp64"
+FloatType_ = "fp32" | "fp64"
 BitVectorType_ = bvToken
 OrdinalType_ = "ORDINAL"
 CharType_ = "char"

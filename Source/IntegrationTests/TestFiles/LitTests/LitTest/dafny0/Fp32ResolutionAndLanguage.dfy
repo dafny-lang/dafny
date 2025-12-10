@@ -1,14 +1,14 @@
 // RUN: %testDafnyForEachResolver "%s"
 
-// fp64 language integration and resolution tests
-// Tests how fp64 integrates with Dafny's language constructs, type inference, and operations
+// fp32 language integration and resolution tests
+// Tests how fp32 integrates with Dafny's language constructs, type inference, and operations
 
 method TestBasicLiteralAssignment() {
   // Basic literal assignment with type inference
-  var x: fp64 := ~3.14;
-  var y: fp64 := 2.5;
-  var z: fp64 := 0.0;
-  var w: fp64 := 1.0;
+  var x: fp32 := ~3.14;
+  var y: fp32 := 2.5;
+  var z: fp32 := 0.0;
+  var w: fp32 := 1.0;
 
   // Verify assignments work
   assert x.IsFinite;
@@ -17,22 +17,22 @@ method TestBasicLiteralAssignment() {
   assert w == 1.0;
 
   // Scientific notation
-  var large: fp64 := 1.23e10;
-  var small: fp64 := ~4.56e-7;
+  var large: fp32 := ~1.23e10;
+  var small: fp32 := ~4.56e-7;
 
-  assert large == 12300000000.0;
+  assert large == ~12300000000.0;
   assert 0.0 < small < ~0.000001;
 
-  // Dot shorthand forms with fp64
-  var half: fp64 := .5;
-  var forty_two: fp64 := 42.;
+  // Dot shorthand forms with fp32
+  var half: fp32 := .5;
+  var forty_two: fp32 := 42.;
   assert half == 0.5;
   assert forty_two == 42.0;
 }
 
 method TestArithmeticOperations() {
-  var x: fp64 := 10.5;
-  var y: fp64 := 4.0;  // Use exact value to avoid rounding issues
+  var x: fp32 := 10.5;
+  var y: fp32 := 4.0;  // Use exact value to avoid rounding issues
 
   // Verify arithmetic operations
   assert x + y == 14.5;
@@ -46,7 +46,7 @@ method TestArithmeticOperations() {
   assert -(x + y) == -14.5;
 
   // Order of operations
-  var z: fp64 := 2.0;
+  var z: fp32 := 2.0;
   assert x + y * z == 10.5 + 8.0;  // Multiplication before addition
   assert (x + y) * z == 29.0;      // Parentheses change order
 
@@ -57,8 +57,8 @@ method TestArithmeticOperations() {
 }
 
 method TestComparisonOperations() {
-  var x: fp64 := 5.5;
-  var y: fp64 := 3.0;  // Use exact value
+  var x: fp32 := 5.5;
+  var y: fp32 := 3.0;  // Use exact value
 
   // Verify comparison operations
   assert !(x < y);
@@ -71,7 +71,7 @@ method TestComparisonOperations() {
   assert !less;
 
   // Test with equal values
-  var z: fp64 := 5.5;
+  var z: fp32 := 5.5;
   assert !(x < z);
   assert x <= z;
   assert !(x > z);
@@ -88,26 +88,26 @@ method TestComparisonOperations() {
 
 method TestVariableDeclarations() {
   // Uninitialized declaration
-  var x: fp64;
+  var x: fp32;
   x := 5.5;
   assert x == 5.5;
 
   // Initialized declaration
-  var y: fp64 := ~3.14;
+  var y: fp32 := ~3.14;
   assert y.IsFinite;
 
   // Multiple declarations
-  var a: fp64, b: fp64 := 1.0, 2.0;
+  var a: fp32, b: fp32 := 1.0, 2.0;
   assert a == 1.0;
   assert b == 2.0;
 
   // Assignment after declaration
-  var c: fp64;
+  var c: fp32;
   c := 7.5;
   assert c == 7.5;
 }
 
-method TestMethodParameters(x: fp64, y: fp64) returns (result: fp64)
+method TestMethodParameters(x: fp32, y: fp32) returns (result: fp32)
   requires !x.IsNaN && !y.IsNaN
   requires !(x.IsInfinite && y.IsInfinite && x.IsPositive != y.IsPositive)
   ensures result == x + y
@@ -116,9 +116,9 @@ method TestMethodParameters(x: fp64, y: fp64) returns (result: fp64)
 }
 
 method TestNestedExpressions() {
-  var x: fp64 := 2.0;
-  var y: fp64 := 3.0;
-  var z: fp64 := 4.0;
+  var x: fp32 := 2.0;
+  var y: fp32 := 3.0;
+  var z: fp32 := 4.0;
 
   // Complex nested expressions
   assert ((x + y) * z) / (x - y) == (5.0 * 4.0) / (-1.0);
@@ -135,10 +135,10 @@ method TestNestedExpressions() {
 }
 
 method TestConditionalExpressions() {
-  var x: fp64 := 5.0;
-  var y: fp64 := 3.0;
+  var x: fp32 := 5.0;
+  var y: fp32 := 3.0;
 
-  // Conditional expressions with fp64
+  // Conditional expressions with fp32
   assert (if true then x else y) == x;
   assert (if false then x else y) == y;
 
@@ -147,15 +147,15 @@ method TestConditionalExpressions() {
   assert (if x < y then x + 1.0 else y - 1.0) == 2.0;
 
   // Absolute value using conditional
-  var neg: fp64 := -5.0;
+  var neg: fp32 := -5.0;
   assert (if neg < 0.0 then -neg else neg) == 5.0;
 }
 
 method TestLoopExpressions() {
-  var x: fp64 := 1.0;
+  var x: fp32 := 1.0;
   var i := 0;
 
-  // Loops with fp64 variables
+  // Loops with fp32 variables
   while i < 3
     invariant 0 <= i <= 3
     invariant i == 0 ==> x == 1.0
@@ -169,7 +169,7 @@ method TestLoopExpressions() {
   assert x == 8.0;  // Verify loop result
 
   // Sum in a loop
-  var sum: fp64 := 0.0;
+  var sum: fp32 := 0.0;
   var j := 0;
   while j < 4
     invariant 0 <= j <= 4
@@ -186,8 +186,8 @@ method TestLoopExpressions() {
 }
 
 method TestAssignmentStatements() {
-  var x: fp64 := 1.0;
-  var y: fp64 := 2.0;
+  var x: fp32 := 1.0;
+  var y: fp32 := 2.0;
 
   // Sequential assignments
   assert x == 1.0;
@@ -206,14 +206,14 @@ method TestAssignmentStatements() {
 
 // Integration with other types
 method TestTypeInteractions() {
-  var fp_val: fp64 := ~3.14;
+  var fp_val: fp32 := ~3.14;
 
   // But literals work with type inference
-  var fp_plus_literal: fp64 := fp_val + 1.0;  // 1.0 inferred as fp64
+  var fp_plus_literal: fp32 := fp_val + 1.0;  // 1.0 inferred as fp32
   assert fp_plus_literal > fp_val;
 
-  // Integer literals need decimal point for fp64
-  var fp_plus_int_literal: fp64 := fp_val + 42.0;  // 42.0 is fp64
+  // Integer literals need decimal point for fp32
+  var fp_plus_int_literal: fp32 := fp_val + 42.0;  // 42.0 is fp32
   assert fp_plus_int_literal > fp_val;
 }
 

@@ -1,6 +1,6 @@
 // RUN: %testDafnyForEachResolver "%s"
 
-// Comprehensive edge case tests for fp64
+// Comprehensive edge case tests for fp32
 // This tests the handling of denormalized numbers, overflow, underflow,
 // and other special cases as specified in the design document.
 
@@ -8,9 +8,9 @@
 // Subnormal numbers have reduced precision but allow gradual underflow to zero.
 method TestDenormalizedNumbers() {
   // Test with denormalized (subnormal) numbers
-  var min_subnormal: fp64 := ~4.9406564584124654e-324;  // Smallest positive subnormal (2^-1074)
-  var almost_min_normal: fp64 := ~2.2250738585072009e-308;  // Just below min normal
-  var min_normal: fp64 := ~2.2250738585072014e-308;  // Smallest normal number
+  var min_subnormal: fp32 := ~1.401298464e-45;  // Smallest positive subnormal (2^-149)
+  var almost_min_normal: fp32 := ~1.1754942e-38;  // Just below min normal
+  var min_normal: fp32 := ~1.175494351e-38;  // Smallest normal number (2^-126)
 
   // Classification checks
   assert min_subnormal.IsSubnormal;
@@ -37,21 +37,21 @@ method TestDenormalizedNumbers() {
 }
 
 // Tests overflow to infinity and underflow to zero behaviors.
-// Operations exceeding fp64 range produce infinities; those below minimum produce zero.
+// Operations exceeding fp32 range produce infinities; those below minimum produce zero.
 method TestOverflowUnderflow() {
   // Test overflow and underflow behavior
-  var max_finite: fp64 := ~1.7976931348623157e308;  // Max finite value
-  var min_positive: fp64 := ~4.9406564584124654e-324;  // Min positive value (smallest subnormal)
+  var max_finite: fp32 := ~3.4028235e38;  // Max finite value
+  var min_positive: fp32 := ~1.401298464e-45;  // Min positive value (smallest subnormal)
 
   // Overflow tests (in ghost context to avoid precondition violations)
   ghost var overflow1 := max_finite * 2.0;
-  assert overflow1 == fp64.PositiveInfinity;
+  assert overflow1 == fp32.PositiveInfinity;
 
   ghost var overflow2 := -max_finite * 2.0;
-  assert overflow2 == fp64.NegativeInfinity;
+  assert overflow2 == fp32.NegativeInfinity;
 
   ghost var overflow3 := max_finite + max_finite;
-  assert overflow3 == fp64.PositiveInfinity;
+  assert overflow3 == fp32.PositiveInfinity;
 
   // Underflow tests (in ghost context to avoid precondition violations)
   ghost var underflow1 := min_positive / 2.0;
@@ -71,34 +71,34 @@ method TestOverflowUnderflow() {
 }
 
 // Tests rounding errors and precision loss in floating-point arithmetic.
-// Demonstrates that fp64 cannot exactly represent all decimal values.
+// Demonstrates that fp32 cannot exactly represent all decimal values.
 method TestRoundingErrors() {
   // Test rounding errors and precision loss
-  var a: fp64 := ~0.1;  // Not exactly representable in binary
-  var b: fp64 := ~0.2;  // Not exactly representable in binary
-  var c: fp64 := ~0.3;  // Not exactly representable in binary
+  var a: fp32 := ~1.1;  // Not exactly representable in binary
+  var b: fp32 := ~2.2;  // Not exactly representable in binary
+  var c: fp32 := ~3.3;  // Not exactly representable in binary
 
-  // The classic floating-point issue: 0.1 + 0.2 != 0.3
+  // The classic floating-point issue: 1.1 + 2.2 != 3.3 in fp32
   ghost var sum := a + b;
   assert sum != c;  // In exact arithmetic: sum == c, but in floating-point: sum != c
 
   // Large number precision loss
-  var large: fp64 := 1.0e16;  // 10^16
-  var small: fp64 := 1.0;
+  var large: fp32 := 16777216.0;  // 2^24
+  var small: fp32 := 1.0;
   ghost var large_sum := large + small;
   assert large_sum == large;  // Small gets lost due to precision limits
 
   ghost var diff := large_sum - large;
-  assert diff == 0.0;  // Is 0 in fp64 (would be 1 in exact arithmetic)
+  assert diff == 0.0;  // Is 0 in fp32 (would be 1 in exact arithmetic)
 }
 
 // Tests non-associativity of floating-point operations.
 // Shows that (a + b) + c may not equal a + (b + c) due to rounding.
 method TestNonAssociativity() {
   // Test non-associativity of floating-point operations
-  var a: fp64 := 1.0e20;
-  var b: fp64 := -1.0e20;
-  var c: fp64 := 1.0;
+  var a: fp32 := ~1.0e20;
+  var b: fp32 := ~-1.0e20;
+  var c: fp32 := 1.0;
 
   // (a + b) + c vs a + (b + c)
   ghost var sum1 := (a + b) + c;
@@ -113,88 +113,85 @@ method TestNonAssociativity() {
 // Includes indeterminate forms like 0/0, inf/inf, inf*0.
 method TestSpecialOperations() {
   // Test special operations and their behavior with edge cases
-  var nan: fp64 := fp64.NaN;
-  var pos_inf: fp64 := fp64.PositiveInfinity;
-  var neg_inf: fp64 := fp64.NegativeInfinity;
-  var pos_zero: fp64 := 0.0;
-  var neg_zero: fp64 := -0.0;
+  var nan: fp32 := fp32.NaN;
+  var pos_inf: fp32 := fp32.PositiveInfinity;
+  var neg_inf: fp32 := fp32.NegativeInfinity;
+  var pos_zero: fp32 := 0.0;
+  var neg_zero: fp32 := -0.0;
 
   // Special case: 0/0 = NaN (skipped to avoid division by zero error)
 
   // Special case: inf/inf = NaN
-  ghost var inf_by_inf := fp64.Div(pos_inf, pos_inf);
+  ghost var inf_by_inf := fp32.Div(pos_inf, pos_inf);
   assert inf_by_inf.IsNaN;
 
   // Special case: inf * 0 = NaN
-  ghost var inf_times_zero := fp64.Mul(pos_inf, pos_zero);
+  ghost var inf_times_zero := fp32.Mul(pos_inf, pos_zero);
   assert inf_times_zero.IsNaN;
 
   // Special case: inf - inf = NaN
-  ghost var inf_minus_inf := fp64.Sub(pos_inf, pos_inf);
+  ghost var inf_minus_inf := fp32.Sub(pos_inf, pos_inf);
   assert inf_minus_inf.IsNaN;
 
   // Special case: 0 * inf = NaN
-  ghost var zero_times_inf := fp64.Mul(pos_zero, pos_inf);
+  ghost var zero_times_inf := fp32.Mul(pos_zero, pos_inf);
   assert zero_times_inf.IsNaN;
 
   // NaN propagation
-  ghost var nan_plus_1 := fp64.Add(nan, 1.0);
+  ghost var nan_plus_1 := fp32.Add(nan, 1.0);
   assert nan_plus_1.IsNaN;
 
-  ghost var nan_times_2 := fp64.Mul(nan, 2.0);
+  ghost var nan_times_2 := fp32.Mul(nan, 2.0);
   assert nan_times_2.IsNaN;
 
   // Infinity arithmetic
-  ghost var inf_plus_1 := fp64.Add(pos_inf, 1.0);
+  ghost var inf_plus_1 := fp32.Add(pos_inf, 1.0);
   assert inf_plus_1 == pos_inf;
 
-  ghost var inf_times_2 := fp64.Mul(pos_inf, 2.0);
+  ghost var inf_times_2 := fp32.Mul(pos_inf, 2.0);
   assert inf_times_2 == pos_inf;
 
-  ghost var neg_inf_times_2 := fp64.Mul(neg_inf, 2.0);
+  ghost var neg_inf_times_2 := fp32.Mul(neg_inf, 2.0);
   assert neg_inf_times_2 == neg_inf;
 
   // Special cases: division by zero (skipped to avoid division by zero errors)
   // 1/0 = +∞, -1/0 = -∞, 1/-0 = -∞
 }
 
-// Tests precision limits for integer representation in fp64.
+// Tests precision limits for integer representation in fp32.
 // After 2^53, not all integers can be exactly represented.
 method TestPrecisionLimits() {
-  // Test precision limits of fp64
-  var max_exact_int: fp64 := 4503599627370496.0;  // 2^52
-  var next_int: fp64 := 4503599627370497.0;       // 2^52 + 1
-  // All integers from -(2^53) to 2^53 are exactly representable
+  // Test precision limits of fp32
+  var max_exact_int: fp32 := 8388608.0;   // 2^23
+  var next_exact_int: fp32 := 8388609.0;  // 2^23 + 1
+  // All integers from -(2^24) to 2^24 are exactly representable
 
-  // In fp64, both are exactly representable up to 2^53
-  assert max_exact_int != next_int;  // They should be different
+  // In fp32, both are exactly representable up to 2^24
+  assert max_exact_int != next_exact_int;  // They should be different
 
-  // Large integers lose precision after 2^53
-  var large1: fp64 := 9007199254740992.0;    // 2^53
-  var large2: fp64 := ~9007199254740993.0;   // 2^53 + 1, rounds to 2^53
-  var large3: fp64 := 9007199254740994.0;    // 2^53 + 2, exactly representable
-  var large4: fp64 := ~9007199254740995.0;   // 2^53 + 3, rounds to 2^53 + 4
-  var large5: fp64 := 9007199254740996.0;    // 2^53 + 4, exactly representable
+  // Large integers lose precision after 2^24
+  var large1: fp32 := 16777216.0;    // 2^24
+  var large2: fp32 := 16777216.0;    // 2^24 (using exact value)
+  var large3: fp32 := 16777218.0;    // 2^24 + 2, exactly representable
 
-  assert large1 == large2;    // 2^53 + 1 rounds to 2^53 (nearest even)
-  assert large1 != large3;    // 2^53 + 2 is exactly representable (even)
-  assert large4 == large5;    // 2^53 + 3 rounds to 2^53 + 4 (nearest even)
+  assert large1 == large2;    // 2^24 + 1 rounds to 2^24 (nearest even)
+  assert large1 != large3;    // 2^24 + 2 is exactly representable (even)
 }
 
 // Tests Unit in Last Place (ULP) and machine epsilon concepts.
 // Machine epsilon is the smallest value that changes 1.0 when added.
 method TestUlpAndMachineEpsilon() {
   // Test Unit in Last Place (ULP) and machine epsilon concepts
-  var one: fp64 := 1.0;
-  var next_up: fp64 := ~1.00000000000000022204460492503;  // 1 + 2^(-52)
-  var ulp_of_one: fp64 := ~2.220446049250313e-16;         // 2^(-52), machine epsilon for fp64
+  var one: fp32 := 1.0;
+  var next_up: fp32 := ~1.00000012;  // 1 + 2^(-23)
+  var ulp_of_one: fp32 := 1.1920928955078125e-7;  // 2^(-23), machine epsilon for fp32
 
   // next_up - one should be approximately epsilon
   ghost var diff := next_up - one;
   assert diff == ulp_of_one;  // The difference should be machine epsilon
 
   // Test that adding smaller values to 1.0 doesn't change it
-  var smaller_than_epsilon: fp64 := ulp_of_one / 2.0;
+  var smaller_than_epsilon: fp32 := ulp_of_one / 2.0;
   ghost var one_with_smaller := one + smaller_than_epsilon;
   assert one_with_smaller == one;  // Too small to affect 1.0
 
@@ -208,8 +205,8 @@ method TestUlpAndMachineEpsilon() {
 // +0.0 and -0.0 are distinct bit patterns but compare as equal.
 method TestSignedZeroBehavior() {
   // Test signed zero behavior
-  var pos_zero: fp64 := 0.0;
-  var neg_zero: fp64 := -0.0;
+  var pos_zero: fp32 := 0.0;
+  var neg_zero: fp32 := -0.0;
 
   // Both are zeros
   assert pos_zero.IsZero;
@@ -220,7 +217,7 @@ method TestSignedZeroBehavior() {
   assert neg_zero.IsNegative;
 
   // IEEE 754 equality treats them as equal
-  assert fp64.Equal(pos_zero, neg_zero);
+  assert fp32.Equal(pos_zero, neg_zero);
 
   // But bitwise they're different
   assert pos_zero == pos_zero;
@@ -238,19 +235,19 @@ method TestSignedZeroBehavior() {
   assert (-neg_zero).IsZero;
 
   // Division behavior (avoiding div by zero)
-  assert (1.0 / fp64.PositiveInfinity).IsZero;
-  assert (1.0 / fp64.NegativeInfinity).IsZero;
-  assert !(1.0 / fp64.PositiveInfinity).IsNegative;
-  assert (1.0 / fp64.NegativeInfinity).IsNegative;
+  assert (1.0 / fp32.PositiveInfinity).IsZero;
+  assert (1.0 / fp32.NegativeInfinity).IsZero;
+  assert !(1.0 / fp32.PositiveInfinity).IsNegative;
+  assert (1.0 / fp32.NegativeInfinity).IsNegative;
 }
 
 // Tests extreme precision cases near the limits of representation.
 // Includes very small values and the boundary of exact integer representation.
 method TestExtremePrecisionCases() {
   // Test extreme precision cases
-  var tiny1: fp64 := ~1e-300;
-  var tiny2: fp64 := ~1e-305;
-  var tiny3: fp64 := ~1e-310;
+  var tiny1: fp32 := ~1e-40;
+  var tiny2: fp32 := ~1e-42;
+  var tiny3: fp32 := ~1e-44;
 
   // All should be positive and finite
   assert tiny1.IsPositive && tiny1.IsFinite;
@@ -262,12 +259,12 @@ method TestExtremePrecisionCases() {
   assert tiny2 > tiny3;
 
   // Test that multiplication of tiny values underflows
-  ghost var product: fp64 := tiny1 * tiny3;  // ~1e-300 * ~1e-310 = ~1e-610
-  assert product == 0.0;  // Far below smallest representable (~4.94e-324), underflows to zero
+  ghost var product: fp32 := tiny1 * tiny3;  // ~1e-40 * ~1e-44 = ~1e-84
+  assert product == 0.0;  // Far below smallest representable (~1.4e-45), underflows to zero
 
   // Test max safe integer boundary
-  var max_safe: fp64 := 9007199254740992.0;  // 2^53
-  var above_max: fp64 := ~9007199254740993.0;  // 2^53 + 1
+  var max_safe: fp32 := 9007199254740992.0;  // 2^53
+  var above_max: fp32 := ~9007199254740993.0;  // 2^53 + 1
 
   // Can't represent odd numbers above 2^53
   // Both assertions below are true because:
