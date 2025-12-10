@@ -436,7 +436,14 @@ Both `fp32` and `fp64` types support standard arithmetic operations following IE
 - Unary negation (`-`)
 - Comparisons (`<`, `<=`, `>`, `>=`)
 
-Note that due to floating-point rounding, familiar mathematical properties may not hold:
+**Well-formedness checks**: All these arithmetic operations and comparisons require that operands are not NaN. Additionally, certain combinations of infinity values produce invalid operations:
+
+- Addition: `∞ + (-∞)` is invalid
+- Subtraction: `∞ - ∞` is invalid
+- Multiplication: `∞ * 0` is invalid
+- Division: `0 / 0` and `∞ / ∞` are invalid
+
+These well-formedness checks are performed by Dafny. To help it, use the classification predicates (`.IsNaN`, `.IsInfinite`, `.IsZero`).
 
 <!-- %check-verify -->
 ```dafny
@@ -445,11 +452,14 @@ method FloatingPointArithmetic() {
   var b: fp64 := ~0.2;
   var c: fp64 := ~0.3;
 
-  // This assertion would fail - floating-point arithmetic is not exact
-  // assert a + b == c;  // 0.1 + 0.2 != 0.3 in fp64
-
-  // We can actually prove they are NOT equal
   assert a + b != c;  // 0.1 + 0.2 != 0.3 due to rounding
+}
+
+method SafeArithmetic(x: fp64, y: fp64) returns (result: fp64)
+  requires !x.IsNaN && !y.IsNaN
+  requires !(x.IsInfinite && y.IsInfinite && x.IsPositive != y.IsPositive)
+{
+  result := x + y;  // OK: preconditions established
 }
 ```
 
@@ -465,8 +475,9 @@ Both `fp32` and `fp64` types have equality semantics that differ from IEEE 754. 
   relaxed, and `==` performs bitwise comparison where NaN equals itself and positive/negative
   zero are distinct.
 
-- The static methods `fp32.Equal(a, b)` and `fp64.Equal(a, b)` always provide IEEE 754 equality semantics without
-  well-formedness restrictions (NaN is not equal to anything including itself, and ±0 are equal).
+- The static methods `fp32.Equal(a, b)` and `fp64.Equal(a, b)` provide IEEE 754 equality
+  semantics without well-formedness restrictions (NaN is not equal to anything including itself,
+  and ±0 are equal).
 
 <!-- %check-verify -->
 ```dafny
@@ -494,7 +505,7 @@ method EqualityExample(x: fp64, y: fp64) {
   }
 
   // Simpler: just use fp64.Equal when unsure about values
-  var maybeNaN := if x < 0.0 then fp64.NaN else x;
+  var maybeNaN := if !x.IsNaN && x.IsNegative then fp64.NaN else x;
   // var bad := maybeNaN == x;  // ERROR: cannot prove maybeNaN is not NaN
   var safe := fp64.Equal(maybeNaN, x);  // Always works, no preconditions
 
@@ -504,19 +515,62 @@ method EqualityExample(x: fp64, y: fp64) {
 }
 ```
 
-#### 5.2.3.6. Mathematical Functions
+#### 5.2.3.6. Unchecked Arithmetic and Comparison Methods
 
-Both `fp32` and `fp64` types provide static methods for common mathematical operations. Most functions
-follow IEEE 754 semantics and gracefully handle special values, but some have preconditions
-to prevent NaN results:
+For operations that may involve NaN or invalid infinity combinations, both `fp32` and `fp64` provide unchecked static methods:
 
-- `fp32.Abs(x)` / `fp64.Abs(x)` - Absolute value (preserves NaN, converts -∞ to +∞). No preconditions.
-- `fp32.Sqrt(x)` / `fp64.Sqrt(x)` - Square root. **Requires**: x ≥ 0.0 (non-negative) to prevent NaN result. Returns √x for finite x ≥ 0, returns +∞ for x = +∞.
-- `fp32.Min(x, y)` / `fp64.Min(x, y)` - Minimum of two values (propagates NaN)
-- `fp32.Max(x, y)` / `fp64.Max(x, y)` - Maximum of two values (propagates NaN)
-- `fp32.Floor(x)` / `fp64.Floor(x)` - Round down to nearest integer (preserves NaN and infinities)
-- `fp32.Ceiling(x)` / `fp64.Ceiling(x)` - Round up to nearest integer (preserves NaN and infinities)
-- `fp32.Round(x)` / `fp64.Round(x)` - Round to nearest integer, ties to even (preserves NaN and infinities)
+**Arithmetic methods:**
+- `fp32.Add(x, y)` / `fp64.Add(x, y)` - Addition without well-formedness checks
+- `fp32.Sub(x, y)` / `fp64.Sub(x, y)` - Subtraction without well-formedness checks
+- `fp32.Mul(x, y)` / `fp64.Mul(x, y)` - Multiplication without well-formedness checks
+- `fp32.Div(x, y)` / `fp64.Div(x, y)` - Division without well-formedness checks
+- `fp32.Neg(x)` / `fp64.Neg(x)` - Negation without well-formedness checks
+
+**Comparison methods:**
+- `fp32.Less(x, y)` / `fp64.Less(x, y)` - Less than without well-formedness checks
+- `fp32.LessOrEqual(x, y)` / `fp64.LessOrEqual(x, y)` - Less than or equal without well-formedness checks
+- `fp32.Greater(x, y)` / `fp64.Greater(x, y)` - Greater than without well-formedness checks
+- `fp32.GreaterOrEqual(x, y)` / `fp64.GreaterOrEqual(x, y)` - Greater than or equal without well-formedness checks
+
+These methods follow IEEE 754 semantics exactly, including producing NaN for invalid operations and returning false for all comparisons involving NaN.
+
+<!-- %check-verify -->
+```dafny
+method EdgeCaseTesting() {
+  var nan := fp64.NaN;
+  var inf := fp64.PositiveInfinity;
+
+  // These would fail with operators due to wellformedness checks:
+  // var bad1 := nan + 1.0;      // ERROR: fp64 arithmetic requires that operands are not NaN
+  // var bad2 := inf - inf;      // ERROR: fp64 subtraction has invalid operand combination
+  // var bad3 := nan < 1.0;      // ERROR: fp64 comparison requires that operands are not NaN
+
+  // But work with unchecked static methods:
+  var result1 := fp64.Add(nan, 1.0);
+  var result2 := fp64.Sub(inf, inf);
+  var result3 := fp64.Less(nan, 1.0);
+
+  assert result1.IsNaN;  // NaN propagates
+  assert result2.IsNaN;  // ∞ - ∞ = NaN
+  assert !result3;       // NaN < anything = false
+}
+```
+
+**Recommendation**: Use operators (`+`, `-`, `*`, `/`, `<`, etc.) by default for their safety guarantees. Only use these unchecked static methods when you specifically need to handle edge cases or rely on IEEE 754 behavior.
+
+#### 5.2.3.7. Mathematical Functions
+
+Both `fp32` and `fp64` types provide static methods for common mathematical operations. All functions
+require that operands are not NaN, and some have additional preconditions:
+
+- `fp32.Abs(x)` / `fp64.Abs(x)` - Absolute value. **Requires**: `!x.IsNaN`.
+- `fp32.Sqrt(x)` / `fp64.Sqrt(x)` - Square root. **Requires**: `!x.IsNaN` and `x ≥ 0.0` (non-negative). Returns √x for finite x ≥ 0, returns +∞ for x = +∞.
+- `fp32.Min(x, y)` / `fp64.Min(x, y)` - Minimum of two values. **Requires**: `!x.IsNaN && !y.IsNaN`.
+- `fp32.Max(x, y)` / `fp64.Max(x, y)` - Maximum of two values. **Requires**: `!x.IsNaN && !y.IsNaN`.
+- `fp32.Floor(x)` / `fp64.Floor(x)` - Round down to nearest integer. **Requires**: `!x.IsNaN`.
+- `fp32.Ceiling(x)` / `fp64.Ceiling(x)` - Round up to nearest integer. **Requires**: `!x.IsNaN`.
+- `fp32.Round(x)` / `fp64.Round(x)` - Round to nearest integer, ties to even. **Requires**: `!x.IsNaN`.
+- `fp32.ToInt(x)` / `fp64.ToInt(x)` - Convert to integer. **Requires**: `x.IsFinite`.
 
 <!-- %check-verify -->
 ```dafny
@@ -544,23 +598,25 @@ Special value behavior:
 <!-- %check-verify -->
 ```dafny
 method SpecialValueBehavior() {
-  var nan := fp64.NaN;
   var inf := fp64.PositiveInfinity;
-  var neg: fp64 := -1.0;
+  var negInf := fp64.NegativeInfinity;
 
-  // Sqrt has a precondition: requires non-negative input
-  // var sqrtNeg := fp64.Sqrt(neg);   // ERROR: negative input not allowed
-  var sqrtInf := fp64.Sqrt(inf);   // Returns positive infinity
-  var floorNaN := fp64.Floor(nan); // Returns NaN
-  var absNegInf := fp64.Abs(fp64.NegativeInfinity); // Returns positive infinity
+  // Math functions work with infinity when preconditions are met
+  var sqrtInf := fp64.Sqrt(inf);        // Returns positive infinity
+  var absNegInf := fp64.Abs(negInf);    // Returns positive infinity
+  var minInf := fp64.Min(inf, negInf);  // Returns negative infinity
 
   assert sqrtInf == fp64.PositiveInfinity;
-  assert floorNaN.IsNaN;
   assert absNegInf == fp64.PositiveInfinity;
+  assert minInf == fp64.NegativeInfinity;
+
+  // Well-formedness checks prevent invalid operations
+  // var sqrtNeg := fp64.Sqrt(-1.0);   // ERROR: negative input not allowed
+  // var floorNaN := fp64.Floor(fp64.NaN); // ERROR: NaN not allowed
 }
 ```
 
-#### 5.2.3.7. Type Conversions
+#### 5.2.3.8. Type Conversions
 
 Both `fp32` and `fp64` types support conversions to and from other numeric types using the `as` operator:
 
@@ -617,7 +673,7 @@ method ConversionExamples() {
 
 To avoid this limitation, use direct literal conversions where possible.
 
-#### 5.2.3.8. Inexact Conversion Methods
+#### 5.2.3.9. Inexact Conversion Methods
 
 In addition to the exact conversions using the `as` operator, both `fp32` and `fp64` provide static methods
 for conversions that may involve rounding or truncation:
@@ -652,7 +708,7 @@ method InexactConversions() {
 }
 
 // This method demonstrates the precondition check
-method ToIntPreconditionExamples() {
+method ToIntWellformednessExamples() {
   var finite: fp64 := 42.5;
   var i := fp64.ToInt(finite);  // OK: finite value
   assert i == 42;
@@ -666,7 +722,7 @@ method ToIntPreconditionExamples() {
 }
 ```
 
-#### 5.2.3.9. Comparison of Numeric Types
+#### 5.2.3.10. Comparison of Numeric Types
 
 | Aspect | int | real | fp64 |
 |--------|-----|------|------|
