@@ -1310,7 +1310,7 @@ namespace Microsoft.Dafny.Compilers {
       ConcreteSyntaxTree wStmts);  // Immediately Invoked Function Expression
     protected abstract ConcreteSyntaxTree CreateIIFE1(int source, Type resultType, IOrigin resultTok, string bvName,
       ConcreteSyntaxTree wr, ConcreteSyntaxTree wStmts);  // Immediately Invoked Function Expression
-    public enum ResolvedUnaryOp { BoolNot, BitwiseNot, Cardinality, Fp64Negate }
+    public enum ResolvedUnaryOp { BoolNot, BitwiseNot, Cardinality, FloatNegate }
 
     protected static readonly Dictionary<UnaryOpExpr.ResolvedOpcode, ResolvedUnaryOp> UnaryOpCodeMap = new() {
       [UnaryOpExpr.ResolvedOpcode.BVNot] = ResolvedUnaryOp.BitwiseNot,
@@ -1319,7 +1319,7 @@ namespace Microsoft.Dafny.Compilers {
       [UnaryOpExpr.ResolvedOpcode.SetCard] = ResolvedUnaryOp.Cardinality,
       [UnaryOpExpr.ResolvedOpcode.MultiSetCard] = ResolvedUnaryOp.Cardinality,
       [UnaryOpExpr.ResolvedOpcode.MapCard] = ResolvedUnaryOp.Cardinality,
-      [UnaryOpExpr.ResolvedOpcode.Fp64Negate] = ResolvedUnaryOp.Fp64Negate
+      [UnaryOpExpr.ResolvedOpcode.FloatNegate] = ResolvedUnaryOp.FloatNegate
     };
 
     protected abstract void EmitUnaryExpr(ResolvedUnaryOp op, Expression expr, bool inLetExprBody,
