@@ -26,8 +26,8 @@ namespace ZonedDateTimeImpl {
             ISequence<Rune> zoneIdSeq,
             int year, int month, int day,
             int hour, int minute, int second, int millisecond,
-            BigInteger preference) {
-            int pref = (int)preference;
+            int overlapPreference,
+            int gapPreference) {
 
             string zoneId = new string(zoneIdSeq.Elements.Select(r => (char)r.Value).ToArray());
             var tz = GetTz(zoneId);
@@ -38,7 +38,18 @@ namespace ZonedDateTimeImpl {
 
             // Check if the time is INVALID (does not exist, e.g., during spring DST transition)
             if (tz.IsInvalidTime(local)) {
-                if (preference == 0 /* SHIFT_FORWARD */) {
+                // If preference is ERROR, return error
+                if (gapPreference == 0 /* ERROR */) {
+                    var errorComponents = new int[]
+                    {
+                        3 /* ERROR */,
+                        0,
+                        0, 0, 0,
+                        0, 0, 0, 0
+                    };
+                    return Pack.Ints(errorComponents);
+                }
+                if (gapPreference == 1 /* SHIFT_FORWARD */) {
                     // Shift forward to the next valid time
                     DateTime probe = local;
                     while (tz.IsInvalidTime(probe)) {
@@ -48,10 +59,10 @@ namespace ZonedDateTimeImpl {
                     var offset = tz.GetUtcOffset(probe);
                     var components = new int[]
                     {
-                    2 /* GAP */,
-                    (int)offset.TotalMinutes,
-                    probe.Year, probe.Month, probe.Day,
-                    probe.Hour, probe.Minute, probe.Second, probe.Millisecond
+                        2 /* GAP */,
+                        (int)offset.TotalMinutes,
+                        probe.Year, probe.Month, probe.Day,
+                        probe.Hour, probe.Minute, probe.Second, probe.Millisecond
                     };
                     return Pack.Ints(components);
                 }
@@ -64,10 +75,10 @@ namespace ZonedDateTimeImpl {
                     var offset = tz.GetUtcOffset(probe);
                     var components = new int[]
                     {
-                    2 /* GAP */,
-                    (int)offset.TotalMinutes,
-                    probe.Year, probe.Month, probe.Day,
-                    probe.Hour, probe.Minute, probe.Second, probe.Millisecond
+                        2 /* GAP */,
+                        (int)offset.TotalMinutes,
+                        probe.Year, probe.Month, probe.Day,
+                        probe.Hour, probe.Minute, probe.Second, probe.Millisecond
                     };
                     return Pack.Ints(components);
                 }
@@ -77,12 +88,24 @@ namespace ZonedDateTimeImpl {
             // Check if the time is OVERLAP 
             // (there are two possible times if clocks were set back during DST transition)
             if (tz.IsAmbiguousTime(local)) {
+                // If preference is ERROR, return error
+                if (overlapPreference == 0 /* ERROR */) {
+                    var errorComponents = new int[]
+                    {
+                        3 /* ERROR */,
+                        0,
+                        0, 0, 0,
+                        0, 0, 0, 0
+                    };
+                    return Pack.Ints(errorComponents);
+                }
+
                 var offsets = tz.GetAmbiguousTimeOffsets(local);
 
                 DateTimeOffset Make(DateTime dt, TimeSpan off) =>
                     new DateTimeOffset(dt, off); // auto compares using UTC instants
 
-                var chosen = preference < 0
+                var chosen = overlapPreference == -1
                     ? offsets.MinBy(off => Make(local, off))   // Prefer earlier UTC instant
                     : offsets.MaxBy(off => Make(local, off));  // Prefer later UTC instant
 
@@ -91,10 +114,10 @@ namespace ZonedDateTimeImpl {
                 var norm = dto.LocalDateTime;
                 var components = new int[]
                 {
-                1 /* OVERLAP */,
-                (int)chosen.TotalMinutes,
-                norm.Year, norm.Month, norm.Day,
-                norm.Hour, norm.Minute, norm.Second, norm.Millisecond
+                    1 /* OVERLAP */,
+                    (int)chosen.TotalMinutes,
+                    norm.Year, norm.Month, norm.Day,
+                    norm.Hour, norm.Minute, norm.Second, norm.Millisecond
                 };
                 return Pack.Ints(components);
             }

@@ -22,7 +22,7 @@ module TestZonedDateTime {
   method {:test} TestOfFunctionValidCases()
   {
     var ldt1 := LDT.LocalDateTime(2023, 6, 15, 14, 30, 45, 123);
-    var result1 := ZDT.Of("America/New_York", ldt1, -1);
+    var result1 := ZDT.Of("America/New_York", ldt1);
     if result1.0.Success? {
       var dt1 := result1.0.value;
       AssertAndExpect(ZDT.IsValidZonedDateTime(dt1));
@@ -36,7 +36,7 @@ module TestZonedDateTime {
   {
     var zoneId: string := "PST8PDT";
     var localA := LDT.LocalDateTime(2025, 3, 9, 2, 15, 0, 0);
-    var pairA := ZDT.Of(zoneId, localA, ZDT.SHIFT_FORWARD);
+    var pairA := ZDT.Of(zoneId, localA, ZDT.OverlapResolutionPreference.ERROR, ZDT.GapResolutionPreference.ShiftForward);
     if pairA.0.Success? {
       var zdtA := pairA.0.value;
       AssertAndExpect(ZDT.IsValidZonedDateTime(zdtA));
@@ -48,10 +48,19 @@ module TestZonedDateTime {
     }
   }
 
+  method {:test} TestOfFunctionGapCase_Error()
+  {
+    var zoneId: string := "PST8PDT";
+    var localB := LDT.LocalDateTime(2025, 3, 9, 2, 15, 0, 0);
+    var pairB := ZDT.Of(zoneId, localB, ZDT.OverlapResolutionPreference.ERROR, ZDT.GapResolutionPreference.ERROR);
+    expect pairB.0.Failure?;
+    expect pairB.1 == ZDT.StatusError;
+  }
+
   method {:test} TestOfFunctionLeapYear()
   {
     var ldt2 := LDT.LocalDateTime(2020, 2, 29, 0, 0, 0, 0);
-    var leapYearResult := ZDT.Of("America/New_York", ldt2, -1);
+    var leapYearResult := ZDT.Of("America/New_York", ldt2);
     if leapYearResult.0.Success? {
       var leapDt := leapYearResult.0.value.local;
       AssertAndExpect(LDT.IsValidLocalDateTime(leapDt));
@@ -123,7 +132,8 @@ module TestZonedDateTime {
     AssertAndExpect(isoStr == "+08:00");
   }
 
-  method {:test} {:resource_limit 5000000} TestFormatISO8601()
+  @ResourceLimit("1e7")
+  method {:test} TestFormatISO8601()
   {
     var ldt := LDT.LocalDateTime(2023, 6, 15, 14, 30, 45, 123);
     var zdt := ZDT.ZonedDateTime(ldt, "Asia/Shanghai", 480);
