@@ -82,19 +82,25 @@ namespace Microsoft.Dafny {
         }
         return bvDecl;
       } else {
-        // If looking for fp64, ensure it's in the preTypeBuiltins cache
-        if (name == "fp64") {
-          if (!preTypeInferenceModuleState.PreTypeBuiltins.ContainsKey("fp64")) {
-            var fp64Decl = resolver.ProgramResolver.SystemModuleManager.valuetypeDecls[(int)ValuetypeVariety.Fp64];
-            resolver.ProgramResolver.SystemModuleManager.EnsureFp64TypeInitialized(resolver.ProgramResolver);
+        // If looking for fp32 or fp64, ensure it's in the preTypeBuiltins cache
+        if (name is "fp32" or "fp64") {
+          if (!preTypeInferenceModuleState.PreTypeBuiltins.ContainsKey(name)) {
+            var variety = name == "fp32" ? ValuetypeVariety.Fp32 : ValuetypeVariety.Fp64;
+            var floatDecl = resolver.ProgramResolver.SystemModuleManager.valuetypeDecls[(int)variety];
 
-            preTypeInferenceModuleState.PreTypeBuiltins.Add("fp64", fp64Decl);
-            FillInPreTypesInSignature(fp64Decl);
-            foreach (var member in fp64Decl.Members) {
+            if (name == "fp32") {
+              resolver.ProgramResolver.SystemModuleManager.EnsureFloatTypesInitialized(resolver.ProgramResolver);
+            } else {
+              resolver.ProgramResolver.SystemModuleManager.EnsureFp64TypeInitialized(resolver.ProgramResolver);
+            }
+
+            preTypeInferenceModuleState.PreTypeBuiltins.Add(name, floatDecl);
+            FillInPreTypesInSignature(floatDecl);
+            foreach (var member in floatDecl.Members) {
               FillInPreTypesInSignature(member);
             }
           }
-          return preTypeInferenceModuleState.PreTypeBuiltins.GetValueOrDefault("fp64");
+          return preTypeInferenceModuleState.PreTypeBuiltins.GetValueOrDefault(name);
         }
         decl = null;
         foreach (var valueTypeDecl in resolver.ProgramResolver.SystemModuleManager.valuetypeDecls) {
@@ -244,6 +250,8 @@ namespace Microsoft.Dafny {
         decl = BuiltInTypeDecl(PreType.TypeNameInt);
       } else if (type is RealType) {
         decl = BuiltInTypeDecl(PreType.TypeNameReal);
+      } else if (type is Fp32Type) {
+        decl = BuiltInTypeDecl(PreType.TypeNameFp32);
       } else if (type is Fp64Type) {
         decl = BuiltInTypeDecl(PreType.TypeNameFp64);
       } else if (type is FieldType) {
@@ -634,14 +642,24 @@ namespace Microsoft.Dafny {
         }
       }
 
+      // fp32 conversions
+      if (toFamily == PreType.TypeNameFp32) {
+        // Conversions TO fp32 are allowed from int, real, fp32, and fp64
+        return fromFamily is PreType.TypeNameInt or PreType.TypeNameReal or PreType.TypeNameFp32 or PreType.TypeNameFp64;
+      }
+      if (fromFamily == PreType.TypeNameFp32) {
+        // Conversions FROM fp32 are allowed to int, real, fp32, and fp64
+        return toFamily is PreType.TypeNameInt or PreType.TypeNameReal or PreType.TypeNameFp32 or PreType.TypeNameFp64;
+      }
+
       // fp64 conversions
       if (toFamily == PreType.TypeNameFp64) {
-        // Conversions TO fp64 are allowed only from int and real
-        return fromFamily is PreType.TypeNameInt or PreType.TypeNameReal;
+        // Conversions TO fp64 are allowed from int, real, fp32, and fp64
+        return fromFamily is PreType.TypeNameInt or PreType.TypeNameReal or PreType.TypeNameFp32 or PreType.TypeNameFp64;
       }
       if (fromFamily == PreType.TypeNameFp64) {
-        // Conversions FROM fp64 are allowed only to int and real
-        return toFamily is PreType.TypeNameInt or PreType.TypeNameReal;
+        // Conversions FROM fp64 are allowed to int, real, fp32, and fp64
+        return toFamily is PreType.TypeNameInt or PreType.TypeNameReal or PreType.TypeNameFp32 or PreType.TypeNameFp64;
       }
 
       return false;
