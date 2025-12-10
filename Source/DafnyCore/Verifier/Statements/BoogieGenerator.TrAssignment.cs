@@ -477,7 +477,12 @@ public partial class BoogieGenerator {
     } else if (rhs is AllocateArray allocateArray) {
       int j = 0;
       foreach (Expression dim in allocateArray.ArrayDimensions) {
-        CheckWellformed(dim, new WFOptions(), locals, builder, etran);
+        // Check dimension reads
+        var options = new WFOptions();
+        if (etran.readsFrame != null) {
+          options = options.WithReadsChecks(true);
+        }
+        CheckWellformed(dim, options, locals, builder, etran);
         var desc = new NonNegative(allocateArray.ArrayDimensions.Count == 1
           ? "array size" : $"array size (dimension {j})", dim);
         builder.Add(Assert(GetToken(dim), Bpl.Expr.Le(Bpl.Expr.Literal(0), etran.TrExpr(dim)), desc, builder.Context));
