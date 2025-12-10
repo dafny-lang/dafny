@@ -1158,67 +1158,6 @@ namespace Microsoft.Dafny {
               dims == 1 ? "_" : "(" + Util.Comma(dims, x => "_") + ")");
             return $"array-allocation initialization expression expected to have type '{{0}}' (instead got '{{1}}'){hintString}";
           });
-
-          // if new T[EE] (elementInit) with lambda, verify read
-          if (Options.Get(MethodOrConstructor.ReadsClausesOnMethods)) {
-            var enclosingMethod = resolutionContext.CodeContext as MethodOrConstructor;
-            if (enclosingMethod != null) {
-              if (allocateArray.ElementInit is LambdaExpr lambda) {
-                var methodReads = enclosingMethod.Reads.Expressions ?? [];
-                foreach (var read in methodReads) {
-                  ResolveFrameExpression(read, FrameExpressionUse.Reads, resolutionContext.CodeContext);
-                }
-                var lambdaReads = lambda.Reads.Expressions ?? [];
-                foreach (var read in lambdaReads) {
-                  ResolveFrameExpression(read, FrameExpressionUse.Reads, resolutionContext.CodeContext);
-                }
-                var methodAllowsAll = methodReads.Any(fe => fe.E is WildcardExpr);
-                if (!methodAllowsAll) {
-                  bool IsCoveredByMethod(FrameExpression lfe) {
-                    bool ExactMatch(FrameExpression a, FrameExpression b) {
-                      var ae = Expression.StripParens(a.E.Resolved ?? a.E);
-                      var be = Expression.StripParens(b.E.Resolved ?? b.E);
-                      switch (ae) {
-                        case IdentifierExpr aId when be is IdentifierExpr bId:
-                          return aId.Var == bId.Var;
-                        case MemberSelectExpr aMs when be is MemberSelectExpr bMs:
-                          return aMs.Member == bMs.Member &&
-                                 Expression.StripParens(aMs.Obj.Resolved ?? aMs.Obj) is IdentifierExpr aRecv &&
-                                 Expression.StripParens(bMs.Obj.Resolved ?? bMs.Obj) is IdentifierExpr bRecv &&
-                                 aRecv.Var == bRecv.Var;
-                        case MemberSelectExpr aMs2 when be is IdentifierExpr bObj:
-                          return Expression.StripParens(aMs2.Obj.Resolved ?? aMs2.Obj) is IdentifierExpr aRecv2 && aRecv2.Var == bObj.Var;
-                        case SeqSelectExpr aSel when be is IdentifierExpr bArr: {
-                            var aSeq = Expression.StripParens(aSel.Seq.Resolved ?? aSel.Seq);
-                            return aSeq is IdentifierExpr aArrId && aArrId.Var == bArr.Var;
-                          }
-                        case MultiSelectExpr aMul when be is IdentifierExpr bArr2: {
-                            var aArr = Expression.StripParens(aMul.Array.Resolved ?? aMul.Array);
-                            return aArr is IdentifierExpr aArrId2 && aArrId2.Var == bArr2.Var;
-                          }
-                        default:
-                          return false;
-                      }
-                    }
-
-                    foreach (var mfe in methodReads) {
-                      if (mfe.E is WildcardExpr) { return true; }
-                      if (ExactMatch(lfe, mfe)) { return true; }
-                    }
-                    return false;
-                  }
-
-                  foreach (var lfe in lambdaReads) {
-                    if (!IsCoveredByMethod(lfe)) {
-                      ReportError(allocateArray.ElementInit,
-                        "insufficient reads clause to invoke the function passed as an argument to the array constructor");
-                      break;
-                    }
-                  }
-                }
-              }
-            }
-          }
         } else if (allocateArray.InitDisplay != null) {
           foreach (var v in allocateArray.InitDisplay) {
             ResolveExpression(v, resolutionContext);
