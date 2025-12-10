@@ -11,7 +11,7 @@ method ReadUnapplied(c: Cell)
     var init := (i: int) reads c => 300;
     var arr := new int[10](init); // error: insufficient reads 
   case true =>
-    var arr := new int[10](c.IndexToElement); // error: insufficient reads 
+    var arr := new int[10](c.IndexToElement); // error: insufficient reads
 }
 
 method ReadUnappliedInArrayDimensionSizeExpressions(c: Cell)

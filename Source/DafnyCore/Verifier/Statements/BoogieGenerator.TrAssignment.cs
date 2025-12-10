@@ -392,6 +392,7 @@ public partial class BoogieGenerator {
     Contract.Ensures(bGivenLhs == null || Contract.Result<Bpl.Expr>() == bGivenLhs);
 
     Bpl.IdentifierExpr bLhs;
+    var wfOptions = new WFOptions().WithReadsChecks(etran.readsFrame != null);
     if (bGivenLhs != null) {
       bLhs = bGivenLhs;
     } else {
@@ -477,25 +478,20 @@ public partial class BoogieGenerator {
     } else if (rhs is AllocateArray allocateArray) {
       int j = 0;
       foreach (Expression dim in allocateArray.ArrayDimensions) {
-        // Check dimension reads
-        var options = new WFOptions();
-        if (etran.readsFrame != null) {
-          options = options.WithReadsChecks(true);
-        }
-        CheckWellformed(dim, options, locals, builder, etran);
+        CheckWellformed(dim, wfOptions, locals, builder, etran);
         var desc = new NonNegative(allocateArray.ArrayDimensions.Count == 1
           ? "array size" : $"array size (dimension {j})", dim);
         builder.Add(Assert(GetToken(dim), Bpl.Expr.Le(Bpl.Expr.Literal(0), etran.TrExpr(dim)), desc, builder.Context));
         j++;
       }
       if (allocateArray.ElementInit != null) {
-        CheckWellformed(allocateArray.ElementInit, new WFOptions(), locals, builder, etran);
+        CheckWellformed(allocateArray.ElementInit, wfOptions, locals, builder, etran);
       } else if (allocateArray.InitDisplay != null) {
         var dim = allocateArray.ArrayDimensions[0];
         var desc = new ArrayInitSizeValid(allocateArray, dim);
         builder.Add(Assert(GetToken(dim), Bpl.Expr.Eq(etran.TrExpr(dim), Bpl.Expr.Literal(allocateArray.InitDisplay.Count)), desc, builder.Context));
         foreach (var v in allocateArray.InitDisplay) {
-          CheckWellformed(v, new WFOptions(), locals, builder, etran);
+          CheckWellformed(v, wfOptions, locals, builder, etran);
         }
       } else if (options.DefiniteAssignmentLevel == 0) {
         // cool
@@ -521,13 +517,8 @@ public partial class BoogieGenerator {
         builder.Add(TrAssumeCmd(tok, Bpl.Expr.Eq(arrayLength, etran.TrExpr(dim))));
         i++;
       }
-      if (allocateArray.ElementInit != null) {
-        var options = new WFOptions();
-        // if reads are enabled then check 
-        if (etran.readsFrame != null) {
-          options = options.WithReadsChecks(true);
-        }
-        CheckElementInit(tok, true, allocateArray.ArrayDimensions, allocateArray.ElementType, allocateArray.ElementInit, nw, builder, etran, options);
+      if (allocateArray.ElementInit != null) { 
+        CheckElementInit(tok, true, allocateArray.ArrayDimensions, allocateArray.ElementType, allocateArray.ElementInit, nw, builder, etran, wfOptions);
       } else if (allocateArray.InitDisplay != null) {
         int ii = 0;
         foreach (var v in allocateArray.InitDisplay) {
