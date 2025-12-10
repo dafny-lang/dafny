@@ -517,7 +517,12 @@ public partial class BoogieGenerator {
         i++;
       }
       if (allocateArray.ElementInit != null) {
-        CheckElementInit(tok, true, allocateArray.ArrayDimensions, allocateArray.ElementType, allocateArray.ElementInit, nw, builder, etran, new WFOptions());
+        var options = new WFOptions();
+        // if reads are enabled then check 
+        if (etran.readsFrame != null) {
+          options = options.WithReadsChecks(true);
+        }
+        CheckElementInit(tok, true, allocateArray.ArrayDimensions, allocateArray.ElementType, allocateArray.ElementInit, nw, builder, etran, options);
       } else if (allocateArray.InitDisplay != null) {
         int ii = 0;
         foreach (var v in allocateArray.InitDisplay) {

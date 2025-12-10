@@ -1,2 +1,3 @@
-read-array-allocation-invalid-read.dfy(9,27): Error: insufficient reads clause to invoke the function passed as an argument to the array constructor
-1 resolution/type errors detected in read-array-allocation-invalid-read.dfy
+read-array-allocation-invalid-read.dfy(9,15): Error: insufficient reads clause to invoke the function passed as an argument to the array constructor
+
+Dafny program verifier finished with 1 verified, 1 error
