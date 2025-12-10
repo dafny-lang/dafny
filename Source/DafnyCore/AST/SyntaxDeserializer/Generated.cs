@@ -1597,6 +1597,22 @@ namespace Microsoft.Dafny
             return ReadBigOrdinalType();
         }
 
+        public Fp32Type ReadFp32Type()
+        {
+            var parameter0 = ReadAbstract<IOrigin>();
+            return new Fp32Type(parameter0);
+        }
+
+        public Fp32Type ReadFp32TypeOption()
+        {
+            if (ReadIsNull())
+            {
+                return default;
+            }
+
+            return ReadFp32Type();
+        }
+
         public Fp64Type ReadFp64Type()
         {
             var parameter0 = ReadAbstract<IOrigin>();
@@ -2707,6 +2723,11 @@ namespace Microsoft.Dafny
             if (actualType == typeof(BigOrdinalType))
             {
                 return ReadBigOrdinalType();
+            }
+
+            if (actualType == typeof(Fp32Type))
+            {
+                return ReadFp32Type();
             }
 
             if (actualType == typeof(Fp64Type))

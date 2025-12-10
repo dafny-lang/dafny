@@ -89,6 +89,7 @@ TOKENS
   int = "int".
   nat = "nat".
   real = "real".
+  fp32 = "fp32".
   fp64 = "fp64".
   ORDINAL = "ORDINAL".
   object = "object". // Keeping object and object? as literals simplifies ident
@@ -1497,6 +1498,7 @@ TypeAndToken<out Token tok, out Type ty, bool inExpressionContext>
   | "int"                           (. tok = t; startToken = t; ty = new IntType(); ty.SetOrigin(t); .)
   | "nat"                           (. tok = t; startToken = t; ty = new UserDefinedType(tok, tok.val, null); .)
   | "real"                          (. tok = t; startToken = t; ty = new RealType(); ty.SetOrigin(t); .)
+  | "fp32"                          (. tok = t; startToken = t; ty = new Fp32Type(); ty.SetOrigin(t); .)
   | "fp64"                          (. tok = t; startToken = t; ty = new Fp64Type(); ty.SetOrigin(t); .)
   | IF(la.val == "field" && AcceptReferrers())
     "field"                         (. tok = t; startToken = t; ty = new FieldType(); ty.SetOrigin(t); .)
@@ -4737,7 +4739,8 @@ Ident<out Token/*!*/ x>
   | "reveal"     (. t.kind = _ident; .) // convert it to an ident
   | "field"      (. t.kind = _ident; .) // convert it to an ident
   | "locals"     (. t.kind = _ident; .) // convert it to an ident
-  // Allow fp64 as identifier for static member access (fp64.NaN, fp64.Equal, etc.)
+  // Allow fp32 and fp64 as identifier for static member access (fp32.NaN, fp64.NaN, etc.)
+  | "fp32"       (. t.kind = _ident; .) // convert it to an ident
   | "fp64"       (. t.kind = _ident; .) // convert it to an ident
   )
   (. x = t; .)

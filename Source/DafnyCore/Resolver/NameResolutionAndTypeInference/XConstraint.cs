@@ -87,6 +87,12 @@ public class XConstraint {
           } else if (Type.FromSameHead(t, u, out var tUp, out var uUp)) {
             resolver.ConstrainAssignableTypeArgs(tUp, tUp.TypeArgs, uUp.TypeArgs, errorMsg, out moreXConstraints);
             return true;
+          } else if (u is NonProxyType && (u.IsFp32Type || u.IsFp64Type)) {
+            // For float types specifically, RHS concrete means LHS proxy should be assignable from RHS
+            // This helps resolve float type inference without breaking other numeric types like ORDINAL
+            resolver.ConstrainSubtypeRelation(u, t, errorMsg);
+            convertedIntoOtherTypeConstraints = true;
+            return true;
           } else if (fullstrength && t is NonProxyType) {
             // We convert Assignable(t, u) to the subtype constraint base(t) :> u.
             resolver.ConstrainAssignable((NonProxyType)t, u, errorMsg, out moreXConstraints, fullstrength);

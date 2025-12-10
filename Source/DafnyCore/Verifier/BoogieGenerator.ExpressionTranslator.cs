@@ -665,9 +665,12 @@ namespace Microsoft.Dafny {
         switch (e.ResolvedOp) {
           case UnaryOpExpr.ResolvedOpcode.Lit:
             return MaybeLit(arg);
-          case UnaryOpExpr.ResolvedOpcode.Fp64Negate:
-            var negResult = FunctionCall(GetToken(opExpr), "fp64_neg", new FloatType(53, 11), arg);
-            return BoogieGenerator.IsLit(arg) ? MaybeLit(negResult, new FloatType(53, 11)) : negResult;
+          case UnaryOpExpr.ResolvedOpcode.FloatNegate:
+            var (significand, exponent) = opExpr.E.Type.FloatPrecision;
+            var prefix = opExpr.E.Type.FloatTypeName;
+            var floatType = new FloatType(significand, exponent);
+            var negResult = FunctionCall(GetToken(opExpr), $"{prefix}_neg", floatType, arg);
+            return BoogieGenerator.IsLit(arg) ? MaybeLit(negResult, floatType) : negResult;
           case UnaryOpExpr.ResolvedOpcode.BVNot:
             var bvWidth = opExpr.Type.NormalizeToAncestorType().AsBitVectorType.Width;
             var bvType = BoogieGenerator.BplBvType(bvWidth);
@@ -890,13 +893,13 @@ namespace Microsoft.Dafny {
             return MaybeLit(Boogie.Expr.Literal(n));
           }
         } else if (e.Value is BigDec) {
-          if (e.Type.IsFp64Type) {
-            // For DecimalLiteralExpr with fp64 type, use the precomputed float value if available
+          if (e.Type.IsFloatingPointType) {
+            // For DecimalLiteralExpr with floating point type, use the precomputed float value if available
             if (e is DecimalLiteralExpr { ResolvedFloatValue: not null } decLit) {
               return MaybeLit(new Bpl.LiteralExpr(GetToken(e), decLit.ResolvedFloatValue.Value), BoogieGenerator.TrType(e.Type));
             }
 
-            Contract.Assert(false, $"fp64 literal without ResolvedFloatValue: {e.Value} (type: {e.GetType().Name})");
+            Contract.Assert(false, $"floating point literal without ResolvedFloatValue: {e.Value} (type: {e.GetType().Name})");
             throw new Cce.UnreachableException();
           } else {
             return MaybeLit(Expr.Literal((BigDec)e.Value));
@@ -1069,6 +1072,31 @@ namespace Microsoft.Dafny {
       private Expr TranslateMemberSelectExpr(MemberSelectExpr selectExpr) {
         return selectExpr.MemberSelectCase(
           field => {
+            // Special handling for fp32 static constants
+            if (field is StaticSpecialField && field.EnclosingClass is ValuetypeDecl { Name: "fp32" }) {
+              Expr CreateFp32Constant(string numerator, string denominator = "1") {
+                if (BigFloat.FromRational(BigInteger.Parse(numerator), BigInteger.Parse(denominator), 24, 8, out var floatValue)) {
+                  return Expr.Literal(floatValue);
+                }
+                throw new InvalidOperationException($"Failed to create fp32 constant {field.Name}");
+              }
+
+              var result = field.Name switch {
+                "NaN" => BoogieGenerator.Predef.Fp32NaN,
+                "PositiveInfinity" => BoogieGenerator.Predef.Fp32PositiveInfinity,
+                "NegativeInfinity" => BoogieGenerator.Predef.Fp32NegativeInfinity,
+                "Pi" => CreateFp32Constant("13176795", "4194304"),  // 2^22
+                "E" => CreateFp32Constant("11398091", "4194304"),   // 2^22
+                "MaxValue" => CreateFp32Constant("340282346638528859811704183484516925440"),
+                "MinValue" => CreateFp32Constant("-340282346638528859811704183484516925440"),
+                "MinNormal" => CreateFp32Constant("1", BigInteger.Pow(2, 126).ToString()),
+                "MinSubnormal" => CreateFp32Constant("1", BigInteger.Pow(2, 149).ToString()),
+                "Epsilon" => CreateFp32Constant("1", BigInteger.Pow(2, 23).ToString()),
+                _ => throw new NotImplementedException($"fp32 static member {field.Name} not implemented")
+              };
+              return result;
+            }
+
             // Special handling for fp64 static constants
             if (field is StaticSpecialField && field.EnclosingClass is ValuetypeDecl { Name: "fp64" }) {
               // Helper to create fp64 constants
@@ -1095,19 +1123,20 @@ namespace Microsoft.Dafny {
               return result;
             }
 
-            // Special handling for fp64 classification predicates
-            if (field is SpecialField && field.EnclosingClass is ValuetypeDecl { Name: "fp64" }) {
+            // Special handling for float classification predicates
+            if (field is SpecialField && field is not StaticSpecialField && field.EnclosingClass is ValuetypeDecl vtd && vtd.Name is "fp32" or "fp64") {
               var obj = TrExpr(selectExpr.Obj);
+              var prefix = vtd.Name;
               var functionName = field.Name switch {
-                "IsNaN" => "fp64_is_nan",
-                "IsFinite" => "fp64_is_finite",
-                "IsInfinite" => "fp64_is_infinite",
-                "IsNormal" => "fp64_is_normal",
-                "IsSubnormal" => "fp64_is_subnormal",
-                "IsZero" => "fp64_is_zero",
-                "IsPositive" => "fp64_is_positive",
-                "IsNegative" => "fp64_is_negative",
-                _ => throw new NotImplementedException($"fp64 predicate {field.Name} not implemented")
+                "IsNaN" => $"{prefix}_is_nan",
+                "IsFinite" => $"{prefix}_is_finite",
+                "IsInfinite" => $"{prefix}_is_infinite",
+                "IsNormal" => $"{prefix}_is_normal",
+                "IsSubnormal" => $"{prefix}_is_subnormal",
+                "IsZero" => $"{prefix}_is_zero",
+                "IsPositive" => $"{prefix}_is_positive",
+                "IsNegative" => $"{prefix}_is_negative",
+                _ => throw new NotImplementedException($"{prefix} predicate {field.Name} not implemented")
               };
               return FunctionCall(GetToken(selectExpr), functionName, Bpl.Type.Bool, obj);
             }
@@ -1237,35 +1266,37 @@ namespace Microsoft.Dafny {
           var w = expr.Type.AsBitVectorType.Width;
           Expression arg = expr.Args[0];
           return TrToFunctionCall(GetToken(expr), "RightRotate_bv" + w, BoogieGenerator.BplBvType(w), TrExpr(expr.Receiver), BoogieGenerator.ConvertExpression(GetToken(expr), TrExpr(arg), arg.Type, expr.Type), false);
-        } else if (expr.Function.EnclosingClass is ValuetypeDecl { Name: "fp64" }) {
-          // Helper for fp64 function calls
-          Expr CallFp64Function(string functionName, Boogie.Type returnType, params Expr[] args) {
+        } else if (expr.Function.EnclosingClass is ValuetypeDecl vt && (vt.Name == "fp64" || vt.Name == "fp32")) {
+          var floatType = vt.Name;
+          var boogieType = floatType == "fp64" ? BoogieGenerator.BplFp64Type : BoogieGenerator.BplFp32Type;
+
+          Expr CallFloatFunction(string functionName, Boogie.Type returnType, params Expr[] args) {
             return FunctionCall(GetToken(expr), functionName, returnType, args);
           }
 
           switch (name) {
             case "Equal":
-              return CallFp64Function("fp64_equal", Bpl.Type.Bool, TrExpr(expr.Args[0]), TrExpr(expr.Args[1]));
+              return CallFloatFunction($"{floatType}_equal", Bpl.Type.Bool, TrExpr(expr.Args[0]), TrExpr(expr.Args[1]));
             case "Min":
-              return CallFp64Function("fp64_min", BoogieGenerator.BplFp64Type, TrExpr(expr.Args[0]), TrExpr(expr.Args[1]));
+              return CallFloatFunction($"{floatType}_min", boogieType, TrExpr(expr.Args[0]), TrExpr(expr.Args[1]));
             case "Max":
-              return CallFp64Function("fp64_max", BoogieGenerator.BplFp64Type, TrExpr(expr.Args[0]), TrExpr(expr.Args[1]));
+              return CallFloatFunction($"{floatType}_max", boogieType, TrExpr(expr.Args[0]), TrExpr(expr.Args[1]));
             case "Abs":
-              return CallFp64Function("fp64_abs", BoogieGenerator.BplFp64Type, TrExpr(expr.Args[0]));
+              return CallFloatFunction($"{floatType}_abs", boogieType, TrExpr(expr.Args[0]));
             case "Floor":
-              return CallFp64Function("fp64_floor", BoogieGenerator.BplFp64Type, TrExpr(expr.Args[0]));
+              return CallFloatFunction($"{floatType}_floor", boogieType, TrExpr(expr.Args[0]));
             case "Ceiling":
-              return CallFp64Function("fp64_ceiling", BoogieGenerator.BplFp64Type, TrExpr(expr.Args[0]));
+              return CallFloatFunction($"{floatType}_ceiling", boogieType, TrExpr(expr.Args[0]));
             case "Round":
-              return CallFp64Function("fp64_round", BoogieGenerator.BplFp64Type, TrExpr(expr.Args[0]));
+              return CallFloatFunction($"{floatType}_round", boogieType, TrExpr(expr.Args[0]));
             case "Sqrt":
-              return CallFp64Function("fp64_sqrt", BoogieGenerator.BplFp64Type, TrExpr(expr.Args[0]));
+              return CallFloatFunction($"{floatType}_sqrt", boogieType, TrExpr(expr.Args[0]));
             case "FromReal":
-              return CallFp64Function("real_to_fp64_RNE", BoogieGenerator.BplFp64Type, TrExpr(expr.Args[0]));
+              return CallFloatFunction($"real_to_{floatType}_RNE", boogieType, TrExpr(expr.Args[0]));
             case "ToInt": {
                 var arg = TrExpr(expr.Args[0]);
-                var truncatedFp = CallFp64Function("fp64_truncate", BoogieGenerator.BplFp64Type, arg);
-                var toReal = CallFp64Function("fp64_to_real", Bpl.Type.Real, truncatedFp);
+                var truncatedFp = CallFloatFunction($"{floatType}_truncate", boogieType, arg);
+                var toReal = CallFloatFunction($"{floatType}_to_real", Bpl.Type.Real, truncatedFp);
                 return BoogieGenerator.FunctionCall(GetToken(expr), BuiltinFunction.RealToInt, null, toReal);
               }
           }
