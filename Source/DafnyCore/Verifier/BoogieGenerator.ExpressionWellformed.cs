@@ -1046,6 +1046,8 @@ namespace Microsoft.Dafny {
                   Bpl.Expr zero;
                   if (e.E1.Type.NormalizeToAncestorType() is BitvectorType bitvectorType) {
                     zero = BplBvLiteralExpr(e.Origin, BaseTypes.BigNum.ZERO, bitvectorType);
+                  } else if (e.E1.Type.IsFp32Type) {
+                    zero = Bpl.Expr.Literal(BaseTypes.BigFloat.CreateZero(false, 24, 8));
                   } else if (e.E1.Type.IsFp64Type) {
                     zero = Bpl.Expr.Literal(BaseTypes.BigFloat.CreateZero(false, 53, 11));
                   } else if (e.E1.Type.IsNumericBased(Type.NumericPersuasion.Real)) {
@@ -1104,6 +1106,27 @@ namespace Microsoft.Dafny {
               case BinaryExpr.ResolvedOpcode.MapNeq:
                 CheckWellformed(e.E1, wfOptions, locals, builder, etran);
                 if (e.InCompiledContext) {
+                  // Helper to check if a type contains fp32 (directly or indirectly)
+                  bool ContainsFp32(Type type, ISet<DatatypeDecl> visitedDatatypes) {
+                    type = type.NormalizeExpand();
+
+                    if (type is Fp32Type) {
+                      return true;
+                    } else if (type is CollectionType collType) {
+                      return ContainsFp32(collType.Arg, visitedDatatypes);
+                    } else if (type is MapType mapType) {
+                      return ContainsFp32(mapType.Domain, visitedDatatypes) || ContainsFp32(mapType.Range, visitedDatatypes);
+                    } else if (type is UserDefinedType { ResolvedClass: DatatypeDecl dt }) {
+                      if (visitedDatatypes?.Contains(dt) == true) {
+                        return false;
+                      }
+                      visitedDatatypes ??= new HashSet<DatatypeDecl>();
+                      visitedDatatypes.Add(dt);
+                      return dt.Ctors.Any(ctor => ctor.Formals.Any(f => !f.IsGhost && ContainsFp32(f.Type, visitedDatatypes)));
+                    }
+                    return false;
+                  }
+
                   // Helper to check if a type contains fp64 (directly or indirectly)
                   bool ContainsFp64(Type type, ISet<DatatypeDecl> visitedDatatypes) {
                     type = type.NormalizeExpand();
@@ -1125,31 +1148,60 @@ namespace Microsoft.Dafny {
                     return false;
                   }
 
-                  // Check for fp64 equality first, as it requires special preconditions
-                  if (e.E0.Type.IsFp64Type || e.E1.Type.IsFp64Type) {
-                    // fp64 supports equality with preconditions per spec section 5.3
+                  // Check for fp32/fp64 equality first, as they require special preconditions
+                  if (e.E0.Type.IsFloatingPointType || e.E1.Type.IsFloatingPointType) {
+                    // fp32/fp64 support equality with preconditions per spec section 5.3
                     // Well-formedness: !x.IsNaN && !y.IsNaN && !(x.IsZero && y.IsZero && x.IsNegative != y.IsNegative)
 
                     // Helper to generate fp64 property checks
+                    Bpl.Expr GenerateFp32Check(Expression operand, string functionName) {
+                      var value = etran.TrExpr(operand);
+                      return FunctionCall(operand.Origin, functionName, Bpl.Type.Bool, value);
+                    }
+
                     Bpl.Expr GenerateFp64Check(Expression operand, string functionName) {
                       var value = etran.TrExpr(operand);
                       return FunctionCall(operand.Origin, functionName, Bpl.Type.Bool, value);
                     }
 
                     // Check NaN preconditions
+                    if (e.E0.Type.IsFp32Type) {
+                      var isNaN = GenerateFp32Check(e.E0, "fp32_is_nan");
+                      builder.Add(Assert(GetToken(e.E0), Bpl.Expr.Not(isNaN),
+                        new FloatEqualityPrecondition(e.E0, new Fp32Type()), builder.Context, wfOptions.AssertKv));
+                    }
                     if (e.E0.Type.IsFp64Type) {
                       var isNaN = GenerateFp64Check(e.E0, "fp64_is_nan");
                       builder.Add(Assert(GetToken(e.E0), Bpl.Expr.Not(isNaN),
-                        new Fp64EqualityPrecondition(e.E0), builder.Context, wfOptions.AssertKv));
+                        new FloatEqualityPrecondition(e.E0, new Fp64Type()), builder.Context, wfOptions.AssertKv));
                     }
 
+                    if (e.E1.Type.IsFp32Type) {
+                      var isNaN = GenerateFp32Check(e.E1, "fp32_is_nan");
+                      builder.Add(Assert(GetToken(e.E1), Bpl.Expr.Not(isNaN),
+                        new FloatEqualityPrecondition(e.E1, new Fp32Type()), builder.Context, wfOptions.AssertKv));
+                    }
                     if (e.E1.Type.IsFp64Type) {
                       var isNaN = GenerateFp64Check(e.E1, "fp64_is_nan");
                       builder.Add(Assert(GetToken(e.E1), Bpl.Expr.Not(isNaN),
-                        new Fp64EqualityPrecondition(e.E1), builder.Context, wfOptions.AssertKv));
+                        new FloatEqualityPrecondition(e.E1, new Fp64Type()), builder.Context, wfOptions.AssertKv));
                     }
 
                     // Check signed zero precondition: !(x.IsZero && y.IsZero && x.IsNegative != y.IsNegative)
+                    if (e.E0.Type.IsFp32Type && e.E1.Type.IsFp32Type) {
+                      var e0IsZero = GenerateFp32Check(e.E0, "fp32_is_zero");
+                      var e1IsZero = GenerateFp32Check(e.E1, "fp32_is_zero");
+                      var e0IsNegative = GenerateFp32Check(e.E0, "fp32_is_negative");
+                      var e1IsNegative = GenerateFp32Check(e.E1, "fp32_is_negative");
+
+                      var bothZerosDifferentSign = Bpl.Expr.And(
+                        Bpl.Expr.And(e0IsZero, e1IsZero),
+                        Bpl.Expr.Neq(e0IsNegative, e1IsNegative)
+                      );
+
+                      builder.Add(Assert(GetToken(expr), Bpl.Expr.Not(bothZerosDifferentSign),
+                        new FloatSignedZeroEqualityPrecondition(e.E0, e.E1, new Fp32Type()), builder.Context, wfOptions.AssertKv));
+                    }
                     if (e.E0.Type.IsFp64Type && e.E1.Type.IsFp64Type) {
                       var e0IsZero = GenerateFp64Check(e.E0, "fp64_is_zero");
                       var e1IsZero = GenerateFp64Check(e.E1, "fp64_is_zero");
@@ -1164,12 +1216,16 @@ namespace Microsoft.Dafny {
 
                       // The precondition is that the above condition is false
                       builder.Add(Assert(GetToken(expr), Bpl.Expr.Not(bothZerosDifferentSign),
-                        new Fp64SignedZeroEqualityPrecondition(e.E0, e.E1), builder.Context, wfOptions.AssertKv));
+                        new FloatSignedZeroEqualityPrecondition(e.E0, e.E1, new Fp64Type()), builder.Context, wfOptions.AssertKv));
                     }
+                  } else if (ContainsFp32(e.E0.Type, null) || ContainsFp32(e.E1.Type, null)) {
+                    // Collections or datatypes containing fp32 need well-formedness checks
+                    builder.Add(Assert(GetToken(e), Bpl.Expr.False,
+                      new FloatCollectionEqualityWellformedness(e.E0.Type, new Fp32Type()), builder.Context, wfOptions.AssertKv));
                   } else if (ContainsFp64(e.E0.Type, null) || ContainsFp64(e.E1.Type, null)) {
                     // Collections or datatypes containing fp64 need well-formedness checks
                     builder.Add(Assert(GetToken(e), Bpl.Expr.False,
-                      new Fp64CollectionEqualityWellformedness(e.E0.Type), builder.Context, wfOptions.AssertKv));
+                      new FloatCollectionEqualityWellformedness(e.E0.Type, new Fp64Type()), builder.Context, wfOptions.AssertKv));
                   } else if (CheckTypeCharacteristicsVisitor.CanCompareWith(e.E0) || CheckTypeCharacteristicsVisitor.CanCompareWith(e.E1)) {
                     // everything's fine
                   } else {

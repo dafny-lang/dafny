@@ -91,6 +91,7 @@ namespace Microsoft.Dafny {
       Char,
       Int,
       Real,
+      Fp32,
       Fp64,
       String,
       Object
@@ -116,6 +117,7 @@ namespace Microsoft.Dafny {
         Target.Char => preTypeResolver.Type2PreType(Type.Char),
         Target.Int => preTypeResolver.Type2PreType(Type.Int),
         Target.Real => preTypeResolver.Type2PreType(Type.Real),
+        Target.Fp32 => preTypeResolver.Type2PreType(Type.Fp32),
         Target.Fp64 => preTypeResolver.Type2PreType(Type.Fp64),
         Target.String => preTypeResolver.Type2PreType(StringDecl()),
         Target.Object => preTypeResolver.Type2PreType(preTypeResolver.resolver.SystemModuleManager.ObjectQ()),
