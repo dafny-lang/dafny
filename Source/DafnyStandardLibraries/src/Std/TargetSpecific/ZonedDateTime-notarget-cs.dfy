@@ -24,16 +24,24 @@ module Std.ZonedDateTime {
   // StatusUnique: only one valid offset
   // StatusOverlap: two valid offsets
   // StatusGap: no valid offset, need to shift forward
-  datatype Status = StatusUnique | StatusOverlap | StatusGap
+  // StatusError: error in resolving local date-time
+  datatype Status = StatusUnique | StatusOverlap | StatusGap | StatusError
 
-  // Preference for resolving local date-time in overlap or gap
-  // -1: prefer earlier offset in overlap
-  //  1: prefer later offset in overlap
-  //  0: shift forward in gap
-  type Preference = int
-  const PREFER_EARLIER: Preference := -1
-  const PREFER_LATER:   Preference :=  1
-  const SHIFT_FORWARD:  Preference :=  0
+  // Overlap Resolution Preference for resolving local date-time in overlap
+  // PreferEarlier: prefer earlier offset in overlap
+  // PreferLater: prefer later offset in overlap
+  // ERROR: raise error if overlap occurs
+  datatype OverlapResolutionPreference =
+    | PreferEarlier
+    | PreferLater
+    | ERROR
+
+  // Gap Resolution Preference for resolving local date-time in gap
+  // ShiftForward: shift forward to next valid time in gap
+  // ERROR: raise error if gap occurs
+  datatype GapResolutionPreference =
+    | ShiftForward
+    | ERROR
 
   datatype ParseFormat =
     | ISO8601       // yyyy-MM-ddTHH:mm:ss.fff±HH:mm or yyyy-MM-ddTHH:mm:ss.fffZ
@@ -47,7 +55,7 @@ module Std.ZonedDateTime {
   datatype ZonedDateTime = ZonedDateTime(
     local: LDT.LocalDateTime,
     zoneId: string,
-    offsetMinutes: int  // offset in minutes from UTC
+    offsetMinutes: int16  // offset in minutes from UTC
   )
 
   // Invariant: valid local date-time, valid offset (-18h to +18h), zone ID (could be empty)
@@ -60,10 +68,10 @@ module Std.ZonedDateTime {
 
   // Create a ZonedDateTime from components, resolving local date-time with preference
   function {:extern "ZonedDateTimeImpl.__default", "ResolveLocal"} {:axiom} ResolveLocalImpl(zoneId: string,
-                                                                                             year: int32, month: uint8, day: uint8, hour: uint8, minute: uint8, second: uint8, millisecond: uint16,
-                                                                                             preference: int) :seq<int32>
-    ensures |ResolveLocalImpl(zoneId, year, month, day, hour, minute, second, millisecond, preference)| == 9 &&
-            LDT.IsValidComponentRange(ResolveLocalImpl(zoneId, year, month, day, hour, minute, second, millisecond, preference)[2..9])
+                                                                                             year: int32, month: uint8, day: uint8, hour: uint8, 
+                                                                                             minute: uint8, second: uint8, millisecond: uint16,
+                                                                                             overlapPreferenceIndex: int8, gapPreferenceIndex: int8) : (result: seq<int32>)
+    ensures |result| == 9 && LDT.IsValidComponentRange(result[2..9])
 
   // Helper method to create ZonedDateTime from components
   function {:extern "ZonedDateTimeImpl.__default", "NowZoned"} {:axiom} NowZonedImpl(): seq<int32>
@@ -74,12 +82,12 @@ module Std.ZonedDateTime {
     ensures |GetNowZoneIdImpl()| > 0
 
   // Get current ZonedDateTime
-  function Now(): Result<ZonedDateTime, string>
-    ensures Now().Success? ==> IsValidZonedDateTime(Now().value)
+  method Now() returns (result: Result<ZonedDateTime, string>)
+    ensures result.Success? ==> IsValidZonedDateTime(result.value)
   {
     var components := NowZonedImpl();
-    if |components| == 8 then
-      var off := components[0] as int;
+    if |components| == 8 {
+      var off := components[0] as int16;
       var year := components[1] as int32;
       var month := components[2] as uint8;
       var day := components[3] as uint8;
@@ -91,35 +99,55 @@ module Std.ZonedDateTime {
 
       var zid := GetNowZoneIdImpl();
       var zdt := ZonedDateTime(local, zid, off);
-      if IsValidZonedDateTime(zdt) then
-        Success(zdt)
-      else
-        Failure("Invalid ZonedDateTime created")
-    else
-      Failure("Failed to get current ZonedDateTime components")
+      if IsValidZonedDateTime(zdt) {
+        result := Success(zdt);
+      } else {
+        result := Failure("Invalid ZonedDateTime created");
+      }
+    } else {
+        result := Failure("Failed to get current ZonedDateTime components");
+    }
   }
 
   // Creation function with preference for resolving local date-time
-  function Of(zoneId: string, local: LDT.LocalDateTime, preference: Preference): (Result<ZonedDateTime, string>, Status)
+  function Of(zoneId: string, local: LDT.LocalDateTime, 
+    overlapPreference: OverlapResolutionPreference := OverlapResolutionPreference.ERROR, gapPreference: GapResolutionPreference := GapResolutionPreference.ERROR): 
+    (Result<ZonedDateTime, string>, Status)
     requires LDT.IsValidLocalDateTime(local)
   {
-    var p := ResolveLocalImpl(zoneId, local.year, local.month, local.day, local.hour, local.minute, local.second, local.millisecond, preference);
+    var overlapPreferenceIndex: int8 :=
+      match overlapPreference {
+        case PreferEarlier => -1
+        case PreferLater   => 1
+        case ERROR         => 0
+      };
+    var gapPreferenceIndex: int8 :=
+      match gapPreference {
+        case ShiftForward => 1
+        case ERROR        => 0
+      };
+    var p := ResolveLocalImpl(zoneId, local.year, local.month, local.day, local.hour, local.minute, local.second, local.millisecond, overlapPreferenceIndex, gapPreferenceIndex);
 
     var status' :=
       if p[0] as int == 0 then StatusUnique
       else if p[0] as int == 1 then StatusOverlap
-      else StatusGap;
-    var off     := p[1] as int;
+      else if p[0] as int == 2 then StatusGap
+      else StatusError;
 
-    var ny := p[2] as int32; var nm := p[3] as uint8; var nd := p[4] as uint8;
-                                                      var hh := p[5] as uint8; var mm := p[6] as uint8; var ss := p[7] as uint8; var ms := p[8] as uint16;
+    if status' == StatusError then
+      (Failure("Error in resolving local date-time, please specify DST resolution preferences"), status')
+    else
+      var off := p[1] as int16;
 
-                                                                                                                                 var normLocal := LDT.LocalDateTime(ny, nm, nd, hh, mm, ss, ms);
-                                                                                                                                 var normZoned := ZonedDateTime(normLocal, zoneId, off);
-                                                                                                                                 if IsValidZonedDateTime(normZoned) then
-                                                                                                                                   (Success(normZoned), status')
-                                                                                                                                 else
-                                                                                                                                   (Failure("Normalized local is invalid"), status')
+      var ny := p[2] as int32; var nm := p[3] as uint8; var nd := p[4] as uint8;
+      var hh := p[5] as uint8; var mm := p[6] as uint8; var ss := p[7] as uint8; var ms := p[8] as uint16;
+
+      var normLocal := LDT.LocalDateTime(ny, nm, nd, hh, mm, ss, ms);
+      var normZoned := ZonedDateTime(normLocal, zoneId, off);
+      if IsValidZonedDateTime(normZoned) then
+        (Success(normZoned), status')
+      else
+        (Failure("Normalized local is invalid"), status')
   }
 
   // ZonedDateTime getter functions (bounded integers for efficient storage)
@@ -132,7 +160,7 @@ module Std.ZonedDateTime {
   function GetMillisecond(dt: ZonedDateTime): uint16 { dt.local.millisecond }
   function GetLocalDateTime(dt: ZonedDateTime): LDT.LocalDateTime { dt.local }
   function GetZoneId(dt: ZonedDateTime): string { dt.zoneId }
-  function GetOffsetMinutes(dt: ZonedDateTime): int { dt.offsetMinutes }
+  function GetOffsetMinutes(dt: ZonedDateTime): int16 { dt.offsetMinutes }
 
   // Modification functions
   function WithYear(dt: ZonedDateTime, newYear: int32): ZonedDateTime
@@ -189,11 +217,11 @@ module Std.ZonedDateTime {
   function {:extern "DateTimeImpl.__default", "INTERNAL__ToEpochTimeMilliseconds"}
     {:axiom} INTERNAL__ToEpochTimeMilliseconds(year: int32, month: uint8, day: uint8,
                                              hour: uint8, minute: uint8, second: uint8,
-                                             millisecond: uint16, offsetMinutes: int): (bool, int, string)
+                                             millisecond: uint16, offsetMinutes: int16): (bool, int, string)
 
   function ToEpochTimeMilliseconds(year: int32, month: uint8, day: uint8,
                                    hour: uint8, minute: uint8, second: uint8,
-                                   millisecond: uint16, offsetMinutes: int): Result<int, string>
+                                   millisecond: uint16, offsetMinutes: int16): Result<int, string>
   {
     var (isError, epochMilliseconds, errorMsg) := INTERNAL__ToEpochTimeMilliseconds(year, month, day,
                                                                                     hour, minute, second,
@@ -204,7 +232,7 @@ module Std.ZonedDateTime {
       Success(epochMilliseconds)
   }
 
-  function {:extern "DateTimeImpl.__default", "FromEpochTimeMilliseconds"} {:axiom} FromEpochTimeMillisecondsFunc(epochMillis: int, offsetMinutes: int): seq<int32>
+  function {:extern "DateTimeImpl.__default", "FromEpochTimeMilliseconds"} {:axiom} FromEpochTimeMillisecondsFunc(epochMillis: int, offsetMinutes: int16): seq<int32>
     ensures |FromEpochTimeMillisecondsFunc(epochMillis, offsetMinutes)| == 7
     ensures var components := FromEpochTimeMillisecondsFunc(epochMillis, offsetMinutes);
             DTUtils.IsValidDateTime(components[0],
@@ -329,7 +357,7 @@ module Std.ZonedDateTime {
   }
 
   // Helper function to parse offset suffix ±HH:mm or Z
-  function ParseOffsetMinutesSuffix(suffix: string): Result<int, string>
+  function ParseOffsetMinutesSuffix(suffix: string): Result<int16, string>
   {
     if |suffix| == 1 then
       if suffix[0] == 'Z'
@@ -354,7 +382,7 @@ module Std.ZonedDateTime {
           else
             var mins := hh * 60 + mm;
             var sign := if suffix[0] == '-' then -1 else 1;
-            Success(sign * mins)
+            Success(sign * mins as int16)
     else
       Failure("Invalid offset: expected 'Z' or ±HH:mm")
   }
@@ -405,8 +433,8 @@ module Std.ZonedDateTime {
       var mm := absOffset % 60;
       var sign := if dt.offsetMinutes < 0 then "-" else "+";
       sign +
-      (if hh < 10 then "0" + OfInt(hh) else OfInt(hh)) + ":" +
-      (if mm < 10 then "0" + OfInt(mm) else OfInt(mm))
+      (if hh < 10 then "0" + OfInt(hh as int) else OfInt(hh as int)) + ":" +
+      (if mm < 10 then "0" + OfInt(mm as int) else OfInt(mm as int))
   }
 
   // Custom date formatting
