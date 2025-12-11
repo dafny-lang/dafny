@@ -122,36 +122,36 @@ method TestSpecialOperations() {
   // Special case: 0/0 = NaN (skipped to avoid division by zero error)
 
   // Special case: inf/inf = NaN
-  ghost var inf_by_inf := pos_inf / pos_inf;
+  ghost var inf_by_inf := fp32.Div(pos_inf, pos_inf);
   assert inf_by_inf.IsNaN;
 
   // Special case: inf * 0 = NaN
-  ghost var inf_times_zero := pos_inf * pos_zero;
+  ghost var inf_times_zero := fp32.Mul(pos_inf, pos_zero);
   assert inf_times_zero.IsNaN;
 
   // Special case: inf - inf = NaN
-  ghost var inf_minus_inf := pos_inf - pos_inf;
+  ghost var inf_minus_inf := fp32.Sub(pos_inf, pos_inf);
   assert inf_minus_inf.IsNaN;
 
   // Special case: 0 * inf = NaN
-  ghost var zero_times_inf := pos_zero * pos_inf;
+  ghost var zero_times_inf := fp32.Mul(pos_zero, pos_inf);
   assert zero_times_inf.IsNaN;
 
   // NaN propagation
-  ghost var nan_plus_1 := nan + 1.0;
+  ghost var nan_plus_1 := fp32.Add(nan, 1.0);
   assert nan_plus_1.IsNaN;
 
-  ghost var nan_times_2 := nan * 2.0;
+  ghost var nan_times_2 := fp32.Mul(nan, 2.0);
   assert nan_times_2.IsNaN;
 
   // Infinity arithmetic
-  ghost var inf_plus_1 := pos_inf + 1.0;
+  ghost var inf_plus_1 := fp32.Add(pos_inf, 1.0);
   assert inf_plus_1 == pos_inf;
 
-  ghost var inf_times_2 := pos_inf * 2.0;
+  ghost var inf_times_2 := fp32.Mul(pos_inf, 2.0);
   assert inf_times_2 == pos_inf;
 
-  ghost var neg_inf_times_2 := neg_inf * 2.0;
+  ghost var neg_inf_times_2 := fp32.Mul(neg_inf, 2.0);
   assert neg_inf_times_2 == neg_inf;
 
   // Special cases: division by zero (skipped to avoid division by zero errors)

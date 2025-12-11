@@ -1277,6 +1277,28 @@ namespace Microsoft.Dafny {
           switch (name) {
             case "Equal":
               return CallFloatFunction($"{floatType}_equal", Bpl.Type.Bool, TrExpr(expr.Args[0]), TrExpr(expr.Args[1]));
+            // Unchecked arithmetic methods - translate to same Boogie operators as +, -, *, / operators
+            case "Add":
+              return Expr.Binary(GetToken(expr), BinaryOperator.Opcode.Add, TrExpr(expr.Args[0]), TrExpr(expr.Args[1]));
+            case "Sub":
+              return Expr.Binary(GetToken(expr), BinaryOperator.Opcode.Sub, TrExpr(expr.Args[0]), TrExpr(expr.Args[1]));
+            case "Mul":
+              return Expr.Binary(GetToken(expr), BinaryOperator.Opcode.Mul, TrExpr(expr.Args[0]), TrExpr(expr.Args[1]));
+            case "Div":
+              // RealDiv is used for floating point division (same as / operator for fp32/fp64)
+              return Expr.Binary(GetToken(expr), BinaryOperator.Opcode.RealDiv, TrExpr(expr.Args[0]), TrExpr(expr.Args[1]));
+            case "Neg":
+              // Negation uses fp64_neg/fp32_neg function (not unary operator)
+              return CallFloatFunction($"{floatType}_neg", boogieType, TrExpr(expr.Args[0]));
+            // Unchecked comparison methods - translate to same Boogie operators as <, <=, >, >= operators
+            case "Less":
+              return Expr.Binary(GetToken(expr), BinaryOperator.Opcode.Lt, TrExpr(expr.Args[0]), TrExpr(expr.Args[1]));
+            case "LessOrEqual":
+              return Expr.Binary(GetToken(expr), BinaryOperator.Opcode.Le, TrExpr(expr.Args[0]), TrExpr(expr.Args[1]));
+            case "Greater":
+              return Expr.Binary(GetToken(expr), BinaryOperator.Opcode.Gt, TrExpr(expr.Args[0]), TrExpr(expr.Args[1]));
+            case "GreaterOrEqual":
+              return Expr.Binary(GetToken(expr), BinaryOperator.Opcode.Ge, TrExpr(expr.Args[0]), TrExpr(expr.Args[1]));
             case "Min":
               return CallFloatFunction($"{floatType}_min", boogieType, TrExpr(expr.Args[0]), TrExpr(expr.Args[1]));
             case "Max":
