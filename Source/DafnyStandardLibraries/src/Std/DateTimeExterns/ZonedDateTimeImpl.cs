@@ -26,8 +26,8 @@ namespace ZonedDateTimeImpl {
             ISequence<Rune> zoneIdSeq,
             int year, int month, int day,
             int hour, int minute, int second, int millisecond,
-            int overlapPreference,
-            int gapPreference) {
+            Std.ZonedDateTime._IOverlapResolutionPreference overlapPreference,
+            Std.ZonedDateTime._IGapResolutionPreference gapPreference) {
 
             string zoneId = new string(zoneIdSeq.Elements.Select(r => (char)r.Value).ToArray());
             var tz = GetTz(zoneId);
@@ -39,7 +39,7 @@ namespace ZonedDateTimeImpl {
             // Check if the time is INVALID (does not exist, e.g., during spring DST transition)
             if (tz.IsInvalidTime(local)) {
                 // If preference is ERROR, return error
-                if (gapPreference == 0 /* ERROR */) {
+                if (gapPreference.is_Error /* ERROR */) {
                     var errorComponents = new int[]
                     {
                         3 /* ERROR */,
@@ -49,7 +49,7 @@ namespace ZonedDateTimeImpl {
                     };
                     return Pack.Ints(errorComponents);
                 }
-                if (gapPreference == 1 /* SHIFT_FORWARD */) {
+                if (gapPreference.is_ShiftForward /* SHIFT_FORWARD */) {
                     // Shift forward to the next valid time
                     DateTime probe = local;
                     while (tz.IsInvalidTime(probe)) {
@@ -66,22 +66,8 @@ namespace ZonedDateTimeImpl {
                     };
                     return Pack.Ints(components);
                 }
-                {
-                    DateTime probe = local.AddMinutes(1);
-                    while (tz.IsInvalidTime(probe)) {
-                        probe = probe.AddMinutes(1);
-                    }
-
-                    var offset = tz.GetUtcOffset(probe);
-                    var components = new int[]
-                    {
-                        2 /* GAP */,
-                        (int)offset.TotalMinutes,
-                        probe.Year, probe.Month, probe.Day,
-                        probe.Hour, probe.Minute, probe.Second, probe.Millisecond
-                    };
-                    return Pack.Ints(components);
-                }
+                // Exception: unknown gap preference
+                throw new Exception("Unknown gap resolution preference");
             }
 
             // It's a valid time
@@ -89,7 +75,7 @@ namespace ZonedDateTimeImpl {
             // (there are two possible times if clocks were set back during DST transition)
             if (tz.IsAmbiguousTime(local)) {
                 // If preference is ERROR, return error
-                if (overlapPreference == 0 /* ERROR */) {
+                if (overlapPreference.is_Error /* ERROR */) {
                     var errorComponents = new int[]
                     {
                         3 /* ERROR */,
@@ -105,7 +91,7 @@ namespace ZonedDateTimeImpl {
                 DateTimeOffset Make(DateTime dt, TimeSpan off) =>
                     new DateTimeOffset(dt, off); // auto compares using UTC instants
 
-                var chosen = overlapPreference == -1
+                var chosen = overlapPreference.is_PreferEarlier
                     ? offsets.MinBy(off => Make(local, off))   // Prefer earlier UTC instant
                     : offsets.MaxBy(off => Make(local, off));  // Prefer later UTC instant
 
