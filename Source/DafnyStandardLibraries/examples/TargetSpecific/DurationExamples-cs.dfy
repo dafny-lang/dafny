@@ -10,6 +10,7 @@ operation using Dafny's {:test} annotation.
 These tests serve as verification examples that work with Dafny's formal proofs.
 */
 
+
 module TestDuration {
   import Std.Duration
   import opened Std.BoundedInts
@@ -123,26 +124,16 @@ module TestDuration {
     AssertAndExpect(str[1] == 'T');
   }
 
-  function CompareHelper(d1: Duration.Duration, d2: Duration.Duration): int
-    ensures -1 <= CompareHelper(d1, d2) <= 1
-  {
-    if d1.seconds < d2.seconds then -1
-    else if d1.seconds > d2.seconds then 1
-    else if d1.millis < d2.millis then -1
-    else if d1.millis > d2.millis then 1
-    else 0
-  }
-
   method {:test} TestMaxByWithCompareHelper() {
     var d1 := Duration.Duration(1, 100);
     var d2 := Duration.Duration(2, 50);
     var d3 := Duration.Duration(0, 999);
     var durations := [d1, d2, d3];
 
-    var maxD := MaxBy(durations, CompareHelper);
-    var minD := MinBy(durations, CompareHelper);
+    var maxD := MaxBy(durations, Duration.Less);
+    var minD := MinBy(durations, Duration.Less);
 
-    expect CompareHelper(maxD, d2) == 0;
-    expect CompareHelper(minD, d3) == 0;
+    expect maxD == d2;
+    expect minD == d3;
   }
 }

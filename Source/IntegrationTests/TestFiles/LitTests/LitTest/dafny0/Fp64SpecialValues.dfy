@@ -183,31 +183,31 @@ method TestUsefulDerivedConstants() {
 
 method TestHardcodedLiterals() {
   // Test that specific hardcoded literal approximations round to expected fp64 values
-  
+
   // Smallest positive normal number
   var min_normal_literal: fp64 := ~2.2250738585072014e-308;  // Should round to 2^(-1022)
   assert min_normal_literal == fp64.MinNormal;
-  
-  // Smallest positive subnormal number  
+
+  // Smallest positive subnormal number
   var min_subnormal_literal: fp64 := ~4.9406564584124654e-324;  // Should round to 2^(-1074)
   assert min_subnormal_literal == fp64.MinSubnormal;
-  
+
   // Largest finite number
   var max_value_literal: fp64 := ~1.7976931348623157e308;  // Should round to (2-2^(-52))*2^1023
   assert max_value_literal == fp64.MaxValue;
-  
+
   // Machine epsilon (difference between 1.0 and next representable number)
   var epsilon_literal: fp64 := ~2.220446049250313e-16;  // Should round to 2^(-52)
   assert epsilon_literal == fp64.Epsilon;
-  
+
   // Values close to 1.0
   var next_up_1: fp64 := ~1.0000000000000002;  // Should round to 1 + 2^(-52)
   var next_down_1: fp64 := ~0.9999999999999999;  // Should round to 1 - 2^(-53)
-  
+
   // Verify next_up_1 is the next representable value after 1.0
   assert next_up_1 > 1.0;
   assert next_up_1 == 1.0 + fp64.Epsilon;
-  
+
   // Verify next_down_1 is the previous representable value before 1.0
   assert next_down_1 < 1.0;
 }
@@ -218,32 +218,32 @@ method TestNaNBehavior() {
   var x: fp64 := 1.0;
 
   // NaN propagation in arithmetic - all produce NaN
-  var nan_plus_x := nan + x;
+  var nan_plus_x := fp64.Add(nan, x);
   assert nan_plus_x.IsNaN;  // NaN + anything = NaN
 
-  var nan_minus_x := nan - x;
+  var nan_minus_x := fp64.Sub(nan, x);
   assert nan_minus_x.IsNaN;  // NaN - anything = NaN
 
-  var nan_times_x := nan * x;
+  var nan_times_x := fp64.Mul(nan, x);
   assert nan_times_x.IsNaN;  // NaN * anything = NaN
 
-  var nan_div_x := nan / x;
+  var nan_div_x := fp64.Div(nan, x);
   assert nan_div_x.IsNaN;  // NaN / anything = NaN
 
-  var x_div_nan := x / nan;
+  var x_div_nan := fp64.Div(x, nan);
   assert x_div_nan.IsNaN;  // anything / NaN = NaN
 
-  // NaN comparisons - all return false
-  var nan_less_x := nan < x;
+  // NaN comparisons - all return false per IEEE 754
+  var nan_less_x := fp64.Less(nan, x);
   assert !nan_less_x;  // NaN < anything = false
 
-  var nan_greater_x := nan > x;
+  var nan_greater_x := fp64.Greater(nan, x);
   assert !nan_greater_x;  // NaN > anything = false
 
-  var nan_less_eq_x := nan <= x;
+  var nan_less_eq_x := fp64.LessOrEqual(nan, x);
   assert !nan_less_eq_x;  // NaN <= anything = false
 
-  var nan_greater_eq_x := nan >= x;
+  var nan_greater_eq_x := fp64.GreaterOrEqual(nan, x);
   assert !nan_greater_eq_x;  // NaN >= anything = false
 
   // NaN equality per IEEE 754
@@ -254,10 +254,10 @@ method TestNaNBehavior() {
   assert !nan_equal_x;  // NaN != anything
 
   // Also test comparisons with NaN on the right
-  assert !(x < nan);   // anything < NaN = false
-  assert !(x > nan);   // anything > NaN = false
-  assert !(x <= nan);  // anything <= NaN = false
-  assert !(x >= nan);  // anything >= NaN = false
+  assert !fp64.Less(x, nan);           // anything < NaN = false
+  assert !fp64.Greater(x, nan);        // anything > NaN = false
+  assert !fp64.LessOrEqual(x, nan);    // anything <= NaN = false
+  assert !fp64.GreaterOrEqual(x, nan); // anything >= NaN = false
 }
 
 method TestInfinityBehavior() {
@@ -305,19 +305,19 @@ method TestInfinityBehavior() {
   assert x_div_neg_inf.IsZero && x_div_neg_inf.IsNegative;  // positive / -∞ = -0
 
   // Special cases that produce NaN
-  var pos_inf_minus_pos_inf := pos_inf - pos_inf;
+  var pos_inf_minus_pos_inf := fp64.Sub(pos_inf, pos_inf);
   assert pos_inf_minus_pos_inf.IsNaN;  // ∞ - ∞ = NaN
 
-  var pos_inf_div_pos_inf := pos_inf / pos_inf;
+  var pos_inf_div_pos_inf := fp64.Div(pos_inf, pos_inf);
   assert pos_inf_div_pos_inf.IsNaN;  // ∞ / ∞ = NaN
 
-  var zero_times_pos_inf := 0.0 * pos_inf;
+  var zero_times_pos_inf := fp64.Mul(0.0, pos_inf);
   assert zero_times_pos_inf.IsNaN;  // 0 * ∞ = NaN
 
-  var neg_inf_plus_inf := neg_inf + pos_inf;
+  var neg_inf_plus_inf := fp64.Add(neg_inf, pos_inf);
   assert neg_inf_plus_inf.IsNaN;  // -∞ + ∞ = NaN
 
-  var zero_times_neg_inf := 0.0 * neg_inf;
+  var zero_times_neg_inf := fp64.Mul(0.0, neg_inf);
   assert zero_times_neg_inf.IsNaN;  // 0 * -∞ = NaN
 
   // Special cases that produce infinity
@@ -336,6 +336,36 @@ method TestInfinityBehavior() {
   assert pos_inf > neg_inf;  // +∞ > -∞
 }
 
+method TestStaticArithmeticMethods() {
+  // Test that static arithmetic methods work correctly for normal cases
+  var x: fp64 := 5.0;
+  var y: fp64 := 3.0;
+
+  // Normal arithmetic
+  assert fp64.Add(1.0, 2.0) == 3.0;
+  assert fp64.Sub(5.0, 3.0) == 2.0;
+  assert fp64.Mul(2.0, 3.0) == 6.0;
+  assert fp64.Div(6.0, 2.0) == 3.0;
+  assert fp64.Neg(5.0) == -5.0;
+
+  // Equivalence with operators (when preconditions hold)
+  assert fp64.Add(x, y) == x + y;
+  assert fp64.Sub(x, y) == x - y;
+  assert fp64.Mul(x, y) == x * y;
+  assert fp64.Div(x, y) == x / y;
+
+  // Negation edge cases
+  var nan := fp64.NaN;
+  var inf := fp64.PositiveInfinity;
+  var neg_inf := fp64.NegativeInfinity;
+
+  assert fp64.Neg(nan).IsNaN;
+  assert fp64.Neg(inf) == neg_inf;
+  assert fp64.Neg(neg_inf) == inf;
+  assert fp64.Neg(0.0) == -0.0;
+  assert fp64.Neg(-0.0) == 0.0;
+}
+
 method Main() {
   TestZeroValues();
   TestBoundaryValues();
@@ -347,4 +377,5 @@ method Main() {
   TestHardcodedLiterals();
   TestNaNBehavior();
   TestInfinityBehavior();
+  TestStaticArithmeticMethods();
 }
