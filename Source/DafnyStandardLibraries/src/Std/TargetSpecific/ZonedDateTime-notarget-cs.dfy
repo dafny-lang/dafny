@@ -30,18 +30,18 @@ module Std.ZonedDateTime {
   // Overlap Resolution Preference for resolving local date-time in overlap
   // PreferEarlier: prefer earlier offset in overlap
   // PreferLater: prefer later offset in overlap
-  // ERROR: raise error if overlap occurs
+  // Error: raise error if overlap occurs
   datatype OverlapResolutionPreference =
     | PreferEarlier
     | PreferLater
-    | ERROR
+    | Error
 
   // Gap Resolution Preference for resolving local date-time in gap
   // ShiftForward: shift forward to next valid time in gap
-  // ERROR: raise error if gap occurs
+  // Error: raise error if gap occurs
   datatype GapResolutionPreference =
     | ShiftForward
-    | ERROR
+    | Error
 
   datatype ParseFormat =
     | ISO8601       // yyyy-MM-ddTHH:mm:ss.fff±HH:mm or yyyy-MM-ddTHH:mm:ss.fffZ
@@ -70,7 +70,8 @@ module Std.ZonedDateTime {
   function {:extern "ZonedDateTimeImpl.__default", "ResolveLocal"} {:axiom} ResolveLocalImpl(zoneId: string,
                                                                                              year: int32, month: uint8, day: uint8, hour: uint8,
                                                                                              minute: uint8, second: uint8, millisecond: uint16,
-                                                                                             overlapPreferenceIndex: int8, gapPreferenceIndex: int8) : (result: seq<int32>)
+                                                                                             overlapPref: OverlapResolutionPreference,
+                                                                                             gapPref: GapResolutionPreference) : (result: seq<int32>)
     ensures |result| == 9 && LDT.IsValidComponentRange(result[2..9]) &&
             MIN_OFFSET_MINUTES as int32 <= result[1] <= MAX_OFFSET_MINUTES as int32
 
@@ -113,22 +114,11 @@ module Std.ZonedDateTime {
 
   // Creation function with preference for resolving local date-time
   function Of(zoneId: string, local: LDT.LocalDateTime,
-              overlapPreference: OverlapResolutionPreference := OverlapResolutionPreference.ERROR, gapPreference: GapResolutionPreference := GapResolutionPreference.ERROR):
+              overlapPreference: OverlapResolutionPreference := OverlapResolutionPreference.Error, gapPreference: GapResolutionPreference := GapResolutionPreference.Error):
     (Result<ZonedDateTime, string>, Status)
     requires LDT.IsValidLocalDateTime(local)
   {
-    var overlapPreferenceIndex: int8 :=
-      match overlapPreference {
-        case PreferEarlier => -1
-        case PreferLater   => 1
-        case ERROR         => 0
-      };
-    var gapPreferenceIndex: int8 :=
-      match gapPreference {
-        case ShiftForward => 1
-        case ERROR        => 0
-      };
-    var p := ResolveLocalImpl(zoneId, local.year, local.month, local.day, local.hour, local.minute, local.second, local.millisecond, overlapPreferenceIndex, gapPreferenceIndex);
+    var p := ResolveLocalImpl(zoneId, local.year, local.month, local.day, local.hour, local.minute, local.second, local.millisecond, overlapPreference, gapPreference);
 
     var status' :=
       if p[0] as int == 0 then StatusUnique
@@ -142,14 +132,14 @@ module Std.ZonedDateTime {
       var off := p[1] as int16;
 
       var ny := p[2] as int32; var nm := p[3] as uint8; var nd := p[4] as uint8;
-                                                        var hh := p[5] as uint8; var mm := p[6] as uint8; var ss := p[7] as uint8; var ms := p[8] as uint16;
+      var hh := p[5] as uint8; var mm := p[6] as uint8; var ss := p[7] as uint8; var ms := p[8] as uint16;
 
-                                                                                                                                   var normLocal := LDT.LocalDateTime(ny, nm, nd, hh, mm, ss, ms);
-                                                                                                                                   var normZoned := ZonedDateTime(normLocal, zoneId, off);
-                                                                                                                                   if IsValidZonedDateTime(normZoned) then
-                                                                                                                                     (Success(normZoned), status')
-                                                                                                                                   else
-                                                                                                                                     (Failure("Normalized local is invalid"), status')
+      var normLocal := LDT.LocalDateTime(ny, nm, nd, hh, mm, ss, ms);
+      var normZoned := ZonedDateTime(normLocal, zoneId, off);
+      if IsValidZonedDateTime(normZoned) then
+        (Success(normZoned), status')
+      else
+        (Failure("Normalized local is invalid"), status')
   }
 
   // ZonedDateTime getter functions (bounded integers for efficient storage)

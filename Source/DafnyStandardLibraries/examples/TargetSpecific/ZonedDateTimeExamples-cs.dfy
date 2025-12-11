@@ -36,7 +36,7 @@ module TestZonedDateTime {
   {
     var zoneId: string := "PST8PDT";
     var localA := LDT.LocalDateTime(2025, 3, 9, 2, 15, 0, 0);
-    var pairA := ZDT.Of(zoneId, localA, ZDT.OverlapResolutionPreference.ERROR, ZDT.GapResolutionPreference.ShiftForward);
+    var pairA := ZDT.Of(zoneId, localA, ZDT.OverlapResolutionPreference.Error, ZDT.GapResolutionPreference.ShiftForward);
     if pairA.0.Success? {
       var zdtA := pairA.0.value;
       AssertAndExpect(ZDT.IsValidZonedDateTime(zdtA));
@@ -52,7 +52,7 @@ module TestZonedDateTime {
   {
     var zoneId: string := "PST8PDT";
     var localB := LDT.LocalDateTime(2025, 3, 9, 2, 15, 0, 0);
-    var pairB := ZDT.Of(zoneId, localB, ZDT.OverlapResolutionPreference.ERROR, ZDT.GapResolutionPreference.ERROR);
+    var pairB := ZDT.Of(zoneId, localB, ZDT.OverlapResolutionPreference.Error, ZDT.GapResolutionPreference.Error);
     expect pairB.0.Failure?;
     expect pairB.1 == ZDT.StatusError;
   }
