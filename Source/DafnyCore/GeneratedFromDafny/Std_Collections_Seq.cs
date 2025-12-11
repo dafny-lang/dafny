@@ -191,49 +191,47 @@ namespace Std.Collections.Seq {
         goto TAIL_CALL_START;
       }
     }
-    public static __T MaxBy<__T>(Dafny.ISequence<__T> s, Func<__T, __T, BigInteger> comparator)
+    public static __T MaxBy<__T>(Dafny.ISequence<__T> s, Func<__T, __T, bool> lessThan)
     {
-      return Std.Collections.Seq.__default.MaxByHelper<__T>(s, BigInteger.One, (s).Select(BigInteger.Zero), comparator);
+      return Std.Collections.Seq.__default.MaxByHelper<__T>(s, BigInteger.One, (s).Select(BigInteger.Zero), lessThan);
     }
-    public static __T MaxByHelper<__T>(Dafny.ISequence<__T> s, BigInteger idx, __T current, Func<__T, __T, BigInteger> comparator)
+    public static __T MaxByHelper<__T>(Dafny.ISequence<__T> s, BigInteger idx, __T current, Func<__T, __T, bool> lessThan)
     {
     TAIL_CALL_START: ;
       if ((idx) == (new BigInteger((s).Count))) {
         return current;
       } else {
-        BigInteger _0_cmp = Dafny.Helpers.Id<Func<__T, __T, BigInteger>>(comparator)(current, (s).Select(idx));
-        __T _1_next = (((_0_cmp).Sign == -1) ? ((s).Select(idx)) : (current));
+        __T _0_next = ((Dafny.Helpers.Id<Func<__T, __T, bool>>(lessThan)(current, (s).Select(idx))) ? ((s).Select(idx)) : (current));
         Dafny.ISequence<__T> _in0 = s;
         BigInteger _in1 = (idx) + (BigInteger.One);
-        __T _in2 = _1_next;
-        Func<__T, __T, BigInteger> _in3 = comparator;
+        __T _in2 = _0_next;
+        Func<__T, __T, bool> _in3 = lessThan;
         s = _in0;
         idx = _in1;
         current = _in2;
-        comparator = _in3;
+        lessThan = _in3;
         goto TAIL_CALL_START;
       }
     }
-    public static __T MinBy<__T>(Dafny.ISequence<__T> s, Func<__T, __T, BigInteger> comparator)
+    public static __T MinBy<__T>(Dafny.ISequence<__T> s, Func<__T, __T, bool> lessThan)
     {
-      return Std.Collections.Seq.__default.MinByHelper<__T>(s, BigInteger.One, (s).Select(BigInteger.Zero), comparator);
+      return Std.Collections.Seq.__default.MinByHelper<__T>(s, BigInteger.One, (s).Select(BigInteger.Zero), lessThan);
     }
-    public static __T MinByHelper<__T>(Dafny.ISequence<__T> s, BigInteger idx, __T current, Func<__T, __T, BigInteger> comparator)
+    public static __T MinByHelper<__T>(Dafny.ISequence<__T> s, BigInteger idx, __T current, Func<__T, __T, bool> lessThan)
     {
     TAIL_CALL_START: ;
       if ((idx) == (new BigInteger((s).Count))) {
         return current;
       } else {
-        BigInteger _0_cmp = Dafny.Helpers.Id<Func<__T, __T, BigInteger>>(comparator)(current, (s).Select(idx));
-        __T _1_next = (((_0_cmp).Sign == 1) ? ((s).Select(idx)) : (current));
+        __T _0_next = ((Dafny.Helpers.Id<Func<__T, __T, bool>>(lessThan)((s).Select(idx), current)) ? ((s).Select(idx)) : (current));
         Dafny.ISequence<__T> _in0 = s;
         BigInteger _in1 = (idx) + (BigInteger.One);
-        __T _in2 = _1_next;
-        Func<__T, __T, BigInteger> _in3 = comparator;
+        __T _in2 = _0_next;
+        Func<__T, __T, bool> _in3 = lessThan;
         s = _in0;
         idx = _in1;
         current = _in2;
-        comparator = _in3;
+        lessThan = _in3;
         goto TAIL_CALL_START;
       }
     }
