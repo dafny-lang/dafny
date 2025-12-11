@@ -726,6 +726,10 @@ class BigOrdinalType : BasicType
 {
 }
 
+class Fp32Type : BasicType
+{
+}
+
 class Fp64Type : BasicType
 {
 }

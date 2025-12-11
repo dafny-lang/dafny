@@ -1,0 +1,16 @@
+Fp64ApproximatePrefixErrors.dfy(11,18): Error: approximate literal used as if it had type real
+Fp64ApproximatePrefixErrors.dfy(12,18): Error: approximate literal used as if it had type real
+Fp64ApproximatePrefixErrors.dfy(13,18): Error: approximate literal used as if it had type real
+Fp64ApproximatePrefixErrors.dfy(14,18): Error: approximate literal used as if it had type real
+Fp64ApproximatePrefixErrors.dfy(18,17): Error: The approximate literal prefix ~ cannot be used after unary negation. Use ~-1e-1 instead of -~1e-1 to negate an approximate literal.
+Fp64ApproximatePrefixErrors.dfy(24,15): Error: The approximate literal prefix ~ cannot be used after unary negation. Use ~-1e-1 instead of -~1e-1 to negate an approximate literal.
+Fp64ApproximatePrefixErrors.dfy(25,15): Error: The approximate literal prefix ~ cannot be used after unary negation. Use ~-5e-1 instead of -~5e-1 to negate an approximate literal.
+Fp64ApproximatePrefixErrors.dfy(34,20): Error: ~ prefix can only be applied to numeric literals, not to variables or expressions
+Fp64ApproximatePrefixErrors.dfy(35,20): Error: ~ prefix can only be applied to numeric literals, not to variables or expressions
+Fp64ApproximatePrefixErrors.dfy(36,20): Error: ~ prefix can only be applied to numeric literals, not to variables or expressions
+Fp64ApproximatePrefixErrors.dfy(53,17): Error: ~ prefix not allowed on integer literals
+Fp64ApproximatePrefixErrors.dfy(54,17): Error: ~ prefix not allowed on integer literals
+Fp64ApproximatePrefixErrors.dfy(55,17): Error: ~ prefix not allowed on integer literals
+Fp64ApproximatePrefixErrors.dfy(58,17): Error: ~ prefix not allowed on character literals
+Fp64ApproximatePrefixErrors.dfy(59,19): Error: ~ prefix not allowed on string literals
+15 resolution/type errors detected in Fp64ApproximatePrefixErrors.dfy

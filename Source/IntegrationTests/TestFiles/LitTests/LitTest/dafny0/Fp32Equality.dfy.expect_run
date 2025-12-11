@@ -1,0 +1,64 @@
+
+Dafny program verifier did not attempt verification
+=== Test 1: Compiled Equality Preconditions ===
+1.0 == 2.0: false
+1.0 == 1.0: true
++Inf == +Inf: true
++0.0 == -0.0 (IEEE 754 via fp32.Equal): true
++0.0 == +0.0 (Dafny's == with same bit pattern): true
+
+=== Test 2: Static Equal Method ===
+fp32.Equal(1.0, 1.0): true
+fp32.Equal(NaN, NaN): false
+fp32.Equal(1.0, NaN): false
+fp32.Equal(+Inf, +Inf): true
+fp32.Equal(+Inf, -Inf): false
+fp32.Equal(+0.0, -0.0): true
+
+=== Test 3: Signed Zero Precondition Pattern ===
+=== Demonstrating the Signed Zero Precondition Pattern ===
+Can use == for +0 and -0? false
+  Note: They ARE equal per IEEE 754: true
+Can use == for +0 and +0? true, Result: true
+Can use == for 1.0 and 1.0? true, Result: true
+
+For IEEE 754 semantics, always use fp32.Equal:
+fp32.Equal(+0, -0) = true (different bits, same value)
+fp32.Equal(+0, +0) = true (same bits, same value)
+
+=== Test 4: Dafny == vs IEEE 754 Comparison ===
+=== Dafny's == vs IEEE 754 (fp32.Equal) ===
+Comparison               | IEEE 754 (fp32.Equal) | Dafny == (compiled) | Dafny == (ghost)
+-------------------------|-----------------------|---------------------|------------------
+NaN == NaN               | false               | FORBIDDEN            | true (reflexive)
+1.0 == NaN               | false               | FORBIDDEN            | false
++0.0 == -0.0             | true                | FORBIDDEN            | false (bitwise)
++0.0 == +0.0             | true                | true                | true
+1.0 == 1.0               | true                | true                | true
++Inf == +Inf             | true                | true                | true
+
+KEY INSIGHTS:
+- Dafny's == is bitwise equality, NOT IEEE 754 equality!
+- In ghost context, == is reflexive (even for NaN) but still bitwise for different values
+
+=== Test 9: Disequality ===
+1.0 != 2.0: true
+!fp32.Equal(1.0, NaN): true
+
+=== Test 10: Conditional Equality ===
+x equals target: true
+
+=== Test 11: Arithmetic Signed Zeros ===
+Computed +0: IsNegative = false
+Computed -0: IsNegative = true
+Can compare with ==? No (different signed zeros)
+IEEE 754 equal: true
+
+=== Test 12: Derived Value Preconditions ===
+Direct comparison: x == y is true
+diff IsZero: true, IsNegative: false
+neg_diff IsZero: true, IsNegative: true
+Precondition for == is satisfied? No - different signed zeros detected
+fp32.Equal(diff, neg_diff): true (IEEE 754: +0 == -0)
+
+All tests passed!

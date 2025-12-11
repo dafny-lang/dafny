@@ -7,12 +7,18 @@ on:
         required: false
         type: boolean
         default: false
+      num_shards:
+        required: true
+        type: number
   workflow_call:
     inputs:
       soak_test:
         required: false
         type: boolean
         default: false
+      num_shards:
+        required: true
+        type: number
 
 ## In the matrix:
 ##  os - name of the Github actions runner
@@ -38,21 +44,27 @@ jobs:
         if: inputs.soak_test
         working-directory: .
         run: echo "iterations=[`seq -s , 1 5`]" >> $GITHUB_OUTPUT
+      - name: Populate shard list
+        id: populate-shard-list
+        working-directory: .
+        run: echo "shard-list=[`seq -s , 1 ${{ inputs.num_shards }}`]" >> $GITHUB_OUTPUT
     outputs:
       iterations: ${{ steps.populate-iterations-normal.outputs.iterations }} ${{ steps.populate-iterations-soak.outputs.iterations }}
+      shard-list: ${{ steps.populate-shard-list.outputs.shard-list }}
   
   build:
     needs: populate-matrix-dimensions
     runs-on: ${{matrix.os}}
     timeout-minutes: 60
-    name: ${{matrix.suffix}} (${{matrix.iteration}})
+    name: ${{matrix.suffix}} [${{matrix.shard}}] (${{matrix.iteration}})
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-22.04, windows-2022, macos-13]
+        os: [ubuntu-22.04, windows-2022, macos-14]
         iteration: ${{ fromJson(needs.populate-matrix-dimensions.outputs.iterations) }}
+        shard: ${{ fromJson(needs.populate-matrix-dimensions.outputs.shard-list) }}
         include:
-          - os: macos-13
+          - os: macos-14
             suffix: osx
             chmod: true
           - os: windows-2022
@@ -63,7 +75,7 @@ jobs:
             chmod: true
     env:
       solutionPath: Source/Dafny.sln
-      z3BaseUri: https://github.com/dafny-lang/solver-builds/releases/download/snapshot-2024-04-10
+      z3BaseUri: https://github.com/dafny-lang/solver-builds/releases/download/snapshot-2025-07-02
       Logging__LogLevel__Microsoft: Debug
     steps:
     - uses: actions/checkout@v4
@@ -96,36 +108,60 @@ jobs:
       run: dotnet build --no-restore ${{env.solutionPath}}
     - name: Run DafnyCore Tests
       if: "!inputs.soak_test"
+      env:
+        XUNIT_SHARD: ${{ matrix.shard }}
+        XUNIT_SHARD_COUNT: ${{ inputs.num_shards }}
       run: dotnet test --no-restore --logger "console;verbosity=normal" --logger trx --collect:"XPlat Code Coverage" --settings Source/DafnyCore.Test/coverlet.runsettings Source/DafnyCore.Test
     - name: Run DafnyLanguageServer Tests (soak test - iteration ${{matrix.iteration}})
       if: inputs.soak_test
+      env:
+        XUNIT_SHARD: ${{ matrix.shard }}
+        XUNIT_SHARD_COUNT: ${{ inputs.num_shards }}
       run: |
         dotnet test --no-restore --blame-crash --blame-hang-timeout 360s --logger "console;verbosity=normal" --logger trx --collect:"XPlat Code Coverage" --settings Source/DafnyLanguageServer.Test/coverlet.runsettings Source/DafnyLanguageServer.Test
     - name: Run DafnyLanguageServer Tests
       if: "!inputs.soak_test"
+      env:
+        XUNIT_SHARD: ${{ matrix.shard }}
+        XUNIT_SHARD_COUNT: ${{ inputs.num_shards }}
       run: |
         ##  Note that, for some mysterious reason, --collect doesn't work with the DafnyLanguageServer.Test package
-        dotnet coverage collect -o DafnyLanguageServer.Test.coverage dotnet test --no-restore --blame-hang-timeout 360s --logger "console;verbosity=normal" --logger trx Source/DafnyLanguageServer.Test
+        dotnet coverage collect -o DafnyLanguageServer.Test.${{ matrix.shard }}.coverage dotnet test --no-restore --blame-hang-timeout 360s --logger "console;verbosity=normal" --logger trx Source/DafnyLanguageServer.Test
     - name: Run DafnyDriver Tests
       if: "!inputs.soak_test"
+      env:
+        XUNIT_SHARD: ${{ matrix.shard }}
+        XUNIT_SHARD_COUNT: ${{ inputs.num_shards }}
       run: dotnet test --no-restore --logger "console;verbosity=normal" --logger trx --collect:"XPlat Code Coverage" --settings Source/DafnyDriver.Test/coverlet.runsettings Source/DafnyDriver.Test
     - name: Run DafnyPipeline Tests
       if: "!inputs.soak_test"
+      env:
+        XUNIT_SHARD: ${{ matrix.shard }}
+        XUNIT_SHARD_COUNT: ${{ inputs.num_shards }}
       run: dotnet test --no-restore --logger "console;verbosity=normal" --logger trx --collect:"XPlat Code Coverage" --settings Source/DafnyPipeline.Test/coverlet.runsettings Source/DafnyPipeline.Test
     - name: Run DafnyTestGeneration Tests
       if: "!inputs.soak_test"
+      env:
+        XUNIT_SHARD: ${{ matrix.shard }}
+        XUNIT_SHARD_COUNT: ${{ inputs.num_shards }}
       run: dotnet test --no-restore --blame-hang-timeout 5m --logger "console;verbosity=normal" --logger trx --collect:"XPlat Code Coverage" --settings Source/DafnyTestGeneration.Test/coverlet.runsettings Source/DafnyTestGeneration.Test
     - name: Run AutoExtern Tests
       if: "!inputs.soak_test"
+      env:
+        XUNIT_SHARD: ${{ matrix.shard }}
+        XUNIT_SHARD_COUNT: ${{ inputs.num_shards }}
       run: dotnet test --no-restore --logger "console;verbosity=normal" --logger trx --collect:"XPlat Code Coverage" --settings Source/AutoExtern.Test/coverlet.runsettings Source/AutoExtern.Test
     - name: Run DafnyRuntime Tests
       if: "!inputs.soak_test"
+      env:
+        XUNIT_SHARD: ${{ matrix.shard }}
+        XUNIT_SHARD_COUNT: ${{ inputs.num_shards }}
       run: dotnet test --no-restore --logger "console;verbosity=normal" --logger trx --collect:"XPlat Code Coverage" --settings Source/DafnyRuntime.Tests/coverlet.runsettings Source/DafnyRuntime.Tests
     - uses: actions/upload-artifact@v4
       if: always() && !inputs.soak_test
       with:
-        name: unit-test-results-${{ matrix.os }}
+        name: unit-test-results-${{ matrix.os }}-${{ matrix.shard }}
         path: |
           dafny/Source/*/TestResults/*.trx
           dafny/Source/*/TestResults/*/coverage.cobertura.xml
-          dafny/DafnyLanguageServer.Test.coverage
+          dafny/DafnyLanguageServer.Test.*.coverage
