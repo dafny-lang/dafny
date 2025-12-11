@@ -130,9 +130,13 @@ module Std.ZonedDateTime {
       (Failure("Error in resolving local date-time, please specify DST resolution preferences"), status')
     else
       var off := p[1] as int16;
-
-      var ny := p[2] as int32; var nm := p[3] as uint8; var nd := p[4] as uint8;
-      var hh := p[5] as uint8; var mm := p[6] as uint8; var ss := p[7] as uint8; var ms := p[8] as uint16;
+      var ny := p[2] as int32;
+      var nm := p[3] as uint8;
+      var nd := p[4] as uint8;
+      var hh := p[5] as uint8;
+      var mm := p[6] as uint8;
+      var ss := p[7] as uint8;
+      var ms := p[8] as uint16;
 
       var normLocal := LDT.LocalDateTime(ny, nm, nd, hh, mm, ss, ms);
       var normZoned := ZonedDateTime(normLocal, zoneId, off);
