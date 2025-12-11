@@ -34,7 +34,7 @@ namespace DateTimeImpl
       uint minute,
       uint second,
       uint millisecond,
-      BigInteger? offsetMinutes = null
+      int? offsetMinutes = null
     )
     {
       try
@@ -73,7 +73,7 @@ namespace DateTimeImpl
 
     public static ISequence<int> FromEpochTimeMilliseconds(
       BigInteger epochMilliseconds,
-      BigInteger? offsetMinutes = null
+      int? offsetMinutes = null
     )
     {
       var offset = TimeSpan.Zero;

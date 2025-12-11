@@ -20,6 +20,8 @@ module Std.DateTimeConstant {
   const MIN_YEAR: int32 := -999999999
   const MAX_YEAR: int32 := 999999999
   const MAX_DAYS_PER_MONTH: uint8 := 31
+  const MIN_OFFSET_MINUTES: int16 := -1080
+  const MAX_OFFSET_MINUTES: int16 := 1080
 
   const DURATION_TOTAL_SECONDS_OUTER_BOUND: uint64 := 0xFFFFFFFFFFFFFFFF
   const DURATION_SECONDS_BOUND: int := 0xFFFFFFFF
