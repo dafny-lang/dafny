@@ -153,6 +153,7 @@ Our design balances mathematical precision with real-world complexity:
 
 The `LocalDateTime` datatype represents a calendar date and wall-clock time without timezone information:
 
+<!-- %no-check -->
 ```dafny
 datatype LocalDateTime = LocalDateTime(
   year: int32,
@@ -177,6 +178,7 @@ This checks month boundaries (1-12), days within each month (including leap year
 
 The `ZonedDateTime` datatype adds timezone context through a zone identifier and explicit offset:
 
+<!-- %no-check -->
 ```dafny
 datatype ZonedDateTime = ZonedDateTime(
     local: LDT.LocalDateTime,
@@ -202,6 +204,7 @@ We cap offsets at ±18 hours (1080 minutes) to align with practical timezone lim
 
 LocalDateTime construction validates components and returns a Result:
 
+<!-- %no-check -->
 ```dafny
 function Of(year: int32, month: uint8, day: uint8,
            hour: uint8, minute: uint8, second: uint8,
@@ -218,6 +221,7 @@ function Of(year: int32, month: uint8, day: uint8,
 
 ZonedDateTime construction requires DST ambiguity resolution. We represent the outcome explicitly:
 
+<!-- %no-check -->
 ```dafny
   datatype Status = StatusUnique | StatusOverlap | StatusGap | StatusError
 
@@ -233,6 +237,7 @@ ZonedDateTime construction requires DST ambiguity resolution. We represent the o
 
 The constructor uses a single extern to perform platform-aware resolution:
 
+<!-- %no-check -->
 ```dafny
 function {:extern "ZonedDateTimeImpl.__default", "ResolveLocal"} {:axiom} ResolveLocalImpl(zoneId: string,
                                                                                            year: int32, month: uint8, day: uint8, hour: uint8, 
@@ -243,6 +248,7 @@ function {:extern "ZonedDateTimeImpl.__default", "ResolveLocal"} {:axiom} Resolv
 
 We wrap it in a verified `Of` that produces a ZonedDateTime and the Status:
 
+<!-- %no-check -->
 ```dafny
 function Of(zoneId: string, local: LDT.LocalDateTime, 
     overlapPreference: OverlapResolutionPreference := OverlapResolutionPreference.Error, gapPreference: GapResolutionPreference := GapResolutionPreference.Error): 
@@ -275,6 +281,7 @@ These rules are implemented once in the extern and reflected in verified postcon
 
 ### LocalDateTime transformations
 
+<!-- %no-check -->
 ```dafny
 function WithYear(dt: LocalDateTime, newYear: int32): LocalDateTime
   requires IsValidLocalDateTime(dt) && MIN_YEAR <= newYear <= MAX_YEAR
@@ -291,6 +298,7 @@ function WithYear(dt: LocalDateTime, newYear: int32): LocalDateTime
 
 ZonedDateTime provides similar transformations, but they must account for timezone context. When changing date components, the offset may need to be recalculated if the new date falls in a different DST regime:
 
+<!-- %no-check -->
 ```dafny
 function WithYear(dt: ZonedDateTime, newYear: int32): ZonedDateTime
   requires IsValidZonedDateTime(dt) && MIN_YEAR <= newYear <= MAX_YEAR
@@ -305,6 +313,7 @@ function WithYear(dt: ZonedDateTime, newYear: int32): ZonedDateTime
 
 ### LocalDateTime parsing
 
+<!-- %no-check -->
 ```dafny
 datatype ParseFormat =
   | ISO8601       // yyyy-MM-ddTHH:mm:ss.fff
@@ -325,6 +334,7 @@ The ISO8601 parser validates in layers: length, separators, numeric components, 
 
 ZonedDateTime parsing is stricter, requiring explicit offset suffixes:
 
+<!-- %no-check -->
 ```dafny
 datatype ParseFormat =
   | ISO8601      // yyyy-MM-ddTHH:mm:ss.fffZ or yyyy-MM-ddTHH:mm:ss.fff±HH:mm
@@ -359,6 +369,7 @@ We avoid calendar arithmetic complexity by converting to epoch milliseconds, per
 
 For timezone-agnostic times, we convert to epoch milliseconds without timezone context (treating the local time as if it were UTC):
 
+<!-- %no-check -->
 ```dafny
 function Plus(dt: LocalDateTime, millisToAdd: int): Result<LocalDateTime, string>
   requires IsValidLocalDateTime(dt)
@@ -383,6 +394,7 @@ function Plus(dt: LocalDateTime, millisToAdd: int): Result<LocalDateTime, string
 
 All convenience methods delegate to this core function:
 
+<!-- %no-check -->
 ```dafny
 function PlusDays(dt: LocalDateTime, days: int): Result<LocalDateTime, string>
 {
@@ -394,6 +406,7 @@ function PlusDays(dt: LocalDateTime, days: int): Result<LocalDateTime, string>
 
 For timezone-aware times, epoch conversion accounts for the UTC offset. This is where ZonedDateTime gets more complex and interesting:
 
+<!-- %no-check -->
 ```dafny
 function ToEpochTimeMilliseconds(year: int32, month: uint8, day: uint8,
                                    hour: uint8, minute: uint8, second: uint8,
@@ -415,6 +428,7 @@ When adding time to a ZonedDateTime, we:
 3. Convert back to local components
 4. Re-resolve the local time in the timezone (in case we crossed a DST boundary)
 
+<!-- %no-check -->
 ```dafny
 function Plus(dt: ZonedDateTime, millisToAdd: int): Result<ZonedDateTime, string>
     requires IsValidZonedDateTime(dt)
@@ -448,6 +462,7 @@ Both types provide lexicographic ordering and three-way comparison (-1, 0, 1).
 
 ### LocalDateTime comparison
 
+<!-- %no-check -->
 ```dafny
 function CompareLocal(dt1: LocalDateTime, dt2: LocalDateTime): int
 {
@@ -467,6 +482,7 @@ All comparison predicates (`IsBefore`, `IsAfter`, `IsEqual`) delegate to this si
 
 ### LocalDateTime formatting
 
+<!-- %no-check -->
 ```dafny
 datatype DateFormat =
   | ISO8601                    // yyyy-MM-ddTHH:mm:ss.fff
@@ -489,6 +505,7 @@ function Format(dt: LocalDateTime, format: DateFormat): string
 
 ZonedDateTime formatting always includes an explicit offset suffix:
 
+<!-- %no-check -->
 ```dafny
 datatype DateFormat = ISO8601 | DateOnly
 
@@ -522,6 +539,7 @@ requires IsValidZonedDateTime(dt)
 
 ### LocalDateTime tests
 
+<!-- %no-check -->
 ```dafny
 method {:test} TestOfFunctionValidCases()
 {
@@ -541,6 +559,7 @@ method {:test} TestOfFunctionValidCases()
 
 ZonedDateTime tests document DST behavior explicitly:
 
+<!-- %no-check -->
 ```dafny
 method {:test} TestOfFunctionGapCase()
 {
@@ -565,6 +584,7 @@ These tests both demonstrate usage and lock down behavior so downstream users ca
 
 Both modules integrate with the Duration library for rich temporal arithmetic:
 
+<!-- %no-check -->
 ```dafny
 function PlusDuration(dt: LocalDateTime, duration: Duration.Duration): Result<LocalDateTime, string>
 {
@@ -613,6 +633,7 @@ The `Std.Duration` module provides a focused, practical companion to LocalDateTi
 
 ### Core representation
 
+<!-- %no-check -->
 ```dafny
 datatype Duration = Duration(
     seconds: int,
@@ -638,6 +659,7 @@ By normalizing through total milliseconds, we ensure consistent handling. This i
 
 All duration arithmetic routes through milliseconds to prevent overflow and maintain precision:
 
+<!-- %no-check -->
 ```dafny
 function Plus(d1: Duration, d2: Duration): Duration
 requires d1.seconds < DURATION_SECONDS_BOUND
@@ -665,6 +687,7 @@ Duration parsing follows ISO-8601: `PTxHyMz.wS` (for example, `PT2H30M45.500S` m
 
 Duration composes naturally with both LocalDateTime and ZonedDateTime:
 
+<!-- %no-check -->
 ```dafny
 function EpochDifference(epoch1: int, epoch2: int): Duration
 {
