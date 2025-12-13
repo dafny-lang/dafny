@@ -1,2 +1,1 @@
-// CHECK-L: Arrays.dfy(540,22): Error: Unsupported Invalid Operation: Creation of object of type MyClass requires a constructor
-
+(0,-1): Error: Unsupported Invalid Operation: The Rust compiler requires `--enforce-determinism`
