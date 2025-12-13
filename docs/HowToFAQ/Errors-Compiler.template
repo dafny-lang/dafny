@@ -160,7 +160,7 @@ method m()
 
 <!-- INSERT-TEXT -->
 
-## **Warning: assume statement has no {:axiom} annotation** {#r_assume_statement_without_axiom}
+## **Warning: program contains an assume statement (to suppress this warning, annotate the statement with {:axiom})** {#r_assume_statement_without_axiom}
 
 <!-- %check-run -->
 ```dafny
