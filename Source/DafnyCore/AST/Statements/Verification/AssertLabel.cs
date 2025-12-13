@@ -2,7 +2,7 @@ using System.Diagnostics.Contracts;
 
 namespace Microsoft.Dafny;
 
-public class AssertLabel : Label {
+public class AssertLabel : Label, ICloneable<AssertLabel> {
 
   [FilledInDuringTranslation]
   public Boogie.Expr E;
@@ -11,5 +11,9 @@ public class AssertLabel : Label {
     : base(tok, name) {
     Contract.Requires(tok != null);
     Contract.Requires(name != null);
+  }
+
+  public AssertLabel Clone(Cloner cloner) {
+    return cloner.CloneAssertLabel(this);
   }
 }
