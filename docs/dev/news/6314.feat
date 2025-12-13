@@ -1,0 +1,1 @@
+Allow value traits (those that do not extend from object), to declare const fields without initializers. 

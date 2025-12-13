@@ -1,4 +1,4 @@
-// RUN: %testDafnyForEachResolver --expect-exit-code=2 "%s"
+// RUN: %testDafnyForEachResolver --expect-exit-code=2 "%s" -- --general-traits=datatype
 
 
 module AutoInitRegressions {
@@ -42,6 +42,13 @@ module AutoInitRegressions {
     static const Static: Y  // error: Y is not auto-init
     const Instance: Y  // error: Y is not auto-init
   }
+
+  trait PossiblyDatatypeTrait {
+    static const StaticField: Y  // error: Y is not nonempty
+    const InstanceField: Y
+  }    
+
+  datatype PossiblyDatatypeTraitImpl extends PossiblyDatatypeTrait = PossiblyDatatypeTraitImpl { } // error
 }
 
 module NonemptyRegressions {
@@ -79,4 +86,11 @@ module NonemptyRegressions {
     ghost static const Static: Y  // error: Y is not nonempty
     ghost const Instance: Y  // error: Y is not nonempty
   }
+
+  trait PossiblyDatatypeTrait {
+    ghost static const StaticField: Y  // error: Y is not nonempty
+    ghost const InstanceField: Y
+  }    
+
+  datatype PossiblyDatatypeTraitImpl extends PossiblyDatatypeTrait = PossiblyDatatypeTraitImpl { } // error
 }
