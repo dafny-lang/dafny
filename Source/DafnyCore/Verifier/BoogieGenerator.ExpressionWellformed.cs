@@ -104,6 +104,7 @@ namespace Microsoft.Dafny {
 
     public List<Bpl.AssignCmd> AssignLocals {
       get {
+        Contract.Requires(Locals != null);  // AssignLocals should be called only if the constructor was called with saveReadsChecks
         return Map(Locals.Values, l =>
           Bpl.Cmd.SimpleAssign(l.tok,
             new Bpl.IdentifierExpr(Token.NoToken, l),
@@ -312,6 +313,7 @@ namespace Microsoft.Dafny {
           break;
         case ThisExpr:
         case WildcardExpr:
+        case DoubleWildcardExpr:
         case BoogieWrapper:
           // always allowed
           break;

@@ -777,8 +777,9 @@ namespace Microsoft.Dafny {
           case UnaryOpExpr.Opcode.Allocated:
             // the argument is allowed to have any type at all
             expr.Type = Type.Bool;
-            if (
-              ((resolutionContext.CodeContext is Function && !resolutionContext.InOld) || resolutionContext.CodeContext is ConstantField || CodeContextWrapper.Unwrap(resolutionContext.CodeContext) is RedirectingTypeDecl)) {
+            if ((resolutionContext.CodeContext is Function { ReadsDoubleStar: false } && !resolutionContext.InOld) ||
+                resolutionContext.CodeContext is ConstantField ||
+                CodeContextWrapper.Unwrap(resolutionContext.CodeContext) is RedirectingTypeDecl) {
               var declKind = CodeContextWrapper.Unwrap(resolutionContext.CodeContext) is RedirectingTypeDecl redir ? redir.WhatKind : ((MemberDecl)resolutionContext.CodeContext).WhatKind;
               reporter.Error(MessageSource.Resolver, expr, "a {0} definition is not allowed to depend on the set of allocated references", declKind);
             }
@@ -1225,7 +1226,7 @@ namespace Microsoft.Dafny {
         Contract.Assert(e.Term.Type != null);
         scope.PopMarker();
         expr.Type = SelectAppropriateArrowType(e.Origin, e.BoundVars.ConvertAll(v => v.Type), e.Body.Type, e.Reads.Expressions.Count != 0, e.Range != null, SystemModuleManager);
-      } else if (expr is WildcardExpr) {
+      } else if (expr is WildcardExpr or DoubleWildcardExpr) {
         expr.Type = SystemModuleManager.ObjectSetType();
       } else if (expr is StmtExpr) {
         var e = (StmtExpr)expr;

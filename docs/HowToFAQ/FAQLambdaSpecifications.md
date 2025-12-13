@@ -1,5 +1,5 @@
 ---
-title: "How do I write specifications for a lambda expression in a sequence constructor?"
+title: How do I write specifications for a lambda expression in a sequence constructor?
 ---
 
 ## Question

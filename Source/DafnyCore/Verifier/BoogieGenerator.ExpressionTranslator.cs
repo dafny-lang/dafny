@@ -46,7 +46,7 @@ namespace Microsoft.Dafny {
       public readonly BoogieGenerator BoogieGenerator;
       public readonly string This;
       public readonly string readsFrame; // the name of the context's frame variable for reading state.
-                                         // May be null to indicate the context's reads frame is * and doesn't require any reads checks.
+                                         // May be null to indicate the context's reads frame is ** and doesn't require any reads checks.
       public readonly IFrameScope scope; // lambda, function or predicate
       public readonly string modifiesFrame; // the name of the context's frame variable for writing state.
       readonly Function applyLimited_CurrentFunction;
@@ -131,7 +131,9 @@ namespace Microsoft.Dafny {
       }
 
       public ExpressionTranslator(BoogieGenerator boogieGenerator, PredefinedDecls predef, Boogie.Expr heap, IFrameScope scope, string thisVar)
-        : this(boogieGenerator, predef, heap, thisVar, null, new FuelSetting(boogieGenerator, 1), null, scope, "$_ReadsFrame", "$_ModifiesFrame", false) {
+        : this(boogieGenerator, predef, heap, thisVar, null, new FuelSetting(boogieGenerator, 1), null,
+          scope,
+          scope is Function { ReadsDoubleStar: true } ? null : "$_ReadsFrame", "$_ModifiesFrame", false) {
         Contract.Requires(boogieGenerator != null);
         Contract.Requires(predef != null);
         Contract.Requires(thisVar != null);
@@ -1745,7 +1747,7 @@ BplBoundVar(varNameGen.FreshId(string.Format("#{0}#", bv.Name)), Predef.BoxType,
         Contract.Requires(BoogieGenerator.Predef != null);
         Contract.Ensures(Contract.Result<Boogie.Expr>() != null);
 
-        if (expr is LiteralExpr || expr is ThisExpr || expr is IdentifierExpr || expr is WildcardExpr || expr is BoogieWrapper) {
+        if (expr is LiteralExpr or ThisExpr or IdentifierExpr or WildcardExpr or DoubleWildcardExpr or BoogieWrapper) {
           return Boogie.Expr.True;
         } else if (expr is DisplayExpression) {
           DisplayExpression e = (DisplayExpression)expr;

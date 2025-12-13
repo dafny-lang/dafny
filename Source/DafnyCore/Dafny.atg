@@ -1342,15 +1342,18 @@ DecreasesClause<.List<Expression> decreases, ref Attributes attrs,
 
 /*------------------------------------------------------------------------*/
 ReadsClause<.List<FrameExpression/*!*/>/*!*/ reads, ref Attributes attrs,
-                  bool allowLemma, bool allowLambda, bool allowWild.>
+                  bool allowLemma, bool allowLambda, bool allowWild, bool allowDoubleWild.>
 = "reads"
   (. FrameExpression fe; .)
   { Attribute<ref attrs> }
-  PossiblyWildFrameExpression<out fe, allowLemma, allowLambda, allowWild>          (. reads.Add(fe); .)
-  { "," PossiblyWildFrameExpression<out fe, allowLemma, allowLambda, allowWild>    (. reads.Add(fe); .)
+  PossiblyWildFrameExpression<out fe, allowLemma, allowLambda, allowWild, allowDoubleWild>          (. reads.Add(fe); .)
+  { "," PossiblyWildFrameExpression<out fe, allowLemma, allowLambda, allowWild, allowDoubleWild>    (. reads.Add(fe); .)
   }
   (. if (allowWild && reads.Count > 1 && reads.Exists(fe => fe.E is WildcardExpr)) {
        SemErr(ErrorId.p_reads_star_must_be_alone, reads.First(fe => fe.E is WildcardExpr).Origin, "A 'reads' clause that contains '*' is not allowed to contain any other expressions");
+     }
+     if (allowDoubleWild && reads.Count > 1 && reads.Exists(fe => fe.E is DoubleWildcardExpr)) {
+       SemErr(ErrorId.p_reads_star_star_must_be_alone, reads.First(fe => fe.E is DoubleWildcardExpr).Origin, "A 'reads' clause that contains '**' is not allowed to contain any other expressions");
      }
   .)
   OldSemi
@@ -1376,7 +1379,7 @@ MethodSpec<.bool isGhost, List<AttributedExpression> req, List<FrameExpression> 
      Contract.Requires(Cce.NonNullElements(decreases));
   .)
   SYNC
-  { ReadsClause<reads, ref readsAttrs, false, false, true>
+  { ReadsClause<reads, ref readsAttrs, false, false, true, false>
   | ModifiesClause<ref mod, ref modAttrs, false, performThisDeprecatedCheck>
   | RequiresClause<req, true>
   | EnsuresClause<ens, false>
@@ -1391,7 +1394,7 @@ IteratorSpec<.List<FrameExpression/*!*/>/*!*/ reads, List<FrameExpression/*!*/>/
               ref Attributes readsAttrs, ref Attributes modAttrs, ref Attributes decrAttrs.>
 =
   SYNC
-  { ReadsClause<reads, ref readsAttrs, false, false, false>
+  { ReadsClause<reads, ref readsAttrs, false, false, false, false>
   | ModifiesClause<ref mod, ref modAttrs, false, false>
   | (. bool isYield = false; .)
     [ "yield"                                                (. isYield = true; .)
@@ -2036,7 +2039,7 @@ FunctionSpec<.List<AttributedExpression> reqs, List<FrameExpression> reads, List
   .)
   SYNC
   { RequiresClause<reqs, true>
-  | ReadsClause<reads, ref readsAttrs, false, false, true>
+  | ReadsClause<reads, ref readsAttrs, false, false, true, true>
   | EnsuresClause<ens, false>
   | (. var decreasesToken = la;
        var decreasesForbidden = decreases == null;
@@ -2092,7 +2095,7 @@ PossiblyWildExpression<out Expression e, bool allowLambda, bool allowWild>
 
 /*------------------------------------------------------------------------*/
 PossiblyWildFrameExpression<out FrameExpression fe, bool allowLemma,
-                            bool allowLambda, bool allowWild>
+                            bool allowLambda, bool allowWild, bool allowDoubleWild>
 = (. Contract.Ensures(Contract.ValueAtReturn(out fe) != null); fe = dummyFrameExpr; .)
   /* A reads clause can list a wildcard, which allows the enclosing function to
    * read anything.  In many cases, and in particular in all cases where
@@ -2103,6 +2106,11 @@ PossiblyWildFrameExpression<out FrameExpression fe, bool allowLemma,
   ( "*"                        (. fe = new FrameExpression(t, new WildcardExpr(t), null);
                                   if (!allowWild) {
                                      SemErr(ErrorId.p_no_wild_frame_expression, t, "A '*' frame expression is not permitted here");
+                                  }
+                               .)
+  | "**"                       (. fe = new FrameExpression(t, new DoubleWildcardExpr(t), null);
+                                  if (!allowDoubleWild) {
+                                     SemErr(ErrorId.p_no_double_wild_frame_expression, t, "A '**' frame expression is not permitted here");
                                   }
                                .)
   | FrameExpression<out fe, allowLemma, allowLambda>
@@ -3848,7 +3856,7 @@ LambdaExpression<out Expression e, bool allowLemma, bool allowBitwiseOps>
 
 // Coco says LambdaSpec is deletable. This is OK (it might be empty).
 LambdaSpec<.ref List<FrameExpression> reads, ref Attributes readsAttrs, ref Expression req.>
-= { ReadsClause<reads, ref readsAttrs, true, false, true>
+= { ReadsClause<reads, ref readsAttrs, true, false, true, false>
   | "requires"                             (. Expression ee; .)
     Expression<out ee, true, false>        (. req = req == null ? ee : new BinaryExpr(new SourceOrigin(req.StartToken, ee.EndToken, req.Center), BinaryExpr.Opcode.And, req, ee); .)
   }

@@ -708,7 +708,7 @@ public partial class BoogieGenerator {
 
       }
 
-      {
+      if (!f.ReadsDoubleStar) {
         // As a first approximation, the following axiom is of the form:
         // Reads(Ty.., F#Handle( Ty1, ..., TyN, Layer, self), Heap, arg1, ..., argN)
         //   =  $Frame_F(args...)
@@ -782,6 +782,11 @@ public partial class BoogieGenerator {
   void AddFrameAxiom(Function f) {
     Contract.Requires(f != null);
     Contract.Requires(sink != null && Predef != null);
+
+    if (f.ReadsDoubleStar) {
+      // A `reads **` says "don't emit a frame axiom".
+      return;
+    }
 
     var comment = "frame axiom for " + f.FullSanitizedName;
     // This is the general case

@@ -54,7 +54,7 @@ namespace Microsoft.Dafny {
         if (ty != e.Type) {
           return new BoogieGenerator.BoogieWrapper(e.Expr, ty);
         }
-      } else if (expr is WildcardExpr) {
+      } else if (expr is WildcardExpr or DoubleWildcardExpr) {
         // nothing to substitute
       } else if (expr is ThisExpr) {
         if (receiverReplacement == null) {

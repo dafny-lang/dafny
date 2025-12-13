@@ -10,4 +10,11 @@ Naked.dfy(49,10): Error: cannot use naked function in recursive setting. Possibl
 Naked.dfy(56,12): Error: cannot use naked function in recursive setting. Possible solution: eta expansion.
 Naked.dfy(60,13): Error: cannot use naked function in recursive setting. Possible solution: eta expansion.
 Naked.dfy(67,12): Error: cannot use naked function in recursive setting. Possible solution: eta expansion.
-12 resolution/type errors detected in Naked.dfy
+Naked.dfy(74,13): Error: cannot use naked function in recursive setting. Possible solution: eta expansion.
+Naked.dfy(79,13): Error: cannot use naked function in recursive setting. Possible solution: eta expansion.
+Naked.dfy(87,13): Error: cannot use naked function in recursive setting. Possible solution: eta expansion.
+Naked.dfy(131,13): Error: a function declared with 'reads **' can only be used if applied to arguments
+Naked.dfy(136,9): Error: a function declared with 'reads **' can only be used if applied to arguments
+Naked.dfy(141,23): Error: a function declared with 'reads **' can only be used if applied to arguments
+Naked.dfy(141,23): Error: cannot use naked function in recursive setting. Possible solution: eta expansion.
+19 resolution/type errors detected in Naked.dfy

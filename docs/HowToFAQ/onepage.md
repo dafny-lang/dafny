@@ -19,7 +19,7 @@ For now you will need to implement your own methods that convert values to strin
 # Where do I put the reads clause in a subset type?
 
 
-## Question:
+## Question
 
 This example
 ```dafny
@@ -31,7 +31,7 @@ generates this error:
 ```
 but there is no obvious place to put a `reads` clause.
 
-## Answer:
+## Answer
 
 There is no place for the `reads` clause because no such clause should be needed.
 A type definition is not allowed to depend on a mutable field;
@@ -75,14 +75,21 @@ specification languages.
 # Can datatypes extend traits?
 
 
-## Question:
+## Question
 
 I heard a rumor of datatypes extending traits coming in the pipeline. How will that work? Will we be able to use `is` and `as` with such types?
 
-## Answer:
+## Answer
 
-Yes, datatypes extending traits are coming (but not immediately).
-The traits would need to be declared when the datatype is declared; the trait cannot be added later on.
+Yes, datatypes can extend traits. To enable this functionality, you need to supply the command-line options
+`--type-system-refresh --general-traits=datatype` (and, while you're at it, we suggest you also use `--general-newtypes`).
+These options will become the default in Dafny 5.0.
+
+Under these options, a trait is no longer necessarily a reference type. If you want to restrict a trait `MyTrait` to be a reference type,
+declare it with `trait MyTrait extends object`.
+
+The traits need to be declared when the datatype is declared; the trait cannot be added later on.
+
 `is` and `as` are possible.
 
 # What is the difference between a type and a newtype?
@@ -186,7 +193,7 @@ Here the module `Mod.A`, which is an unspecified refinement of `Interface` insid
 # Why does Dafny need an obvious assert?
 
 
-## Question:
+## Question
 
 Why does Dafny need the assert in this example:
 ```
@@ -852,7 +859,7 @@ the name `R` for a module and the name `Result` for the datatype. The following 
 {% include_relative FAQNameConflict1.dfy %}
 ```
 
-# "Is there a way to prevent 'Warning: note, this forall statement has no body' from occurring? I have a forall loop with no body that results in the lemma verifying, but if I add a body (even an empty body) the lemma doesn't verify."
+# Is there a way to prevent 'Warning: note, this forall statement has no body' from occurring? I have a forall loop with no body that results in the lemma verifying, but if I add a body (even an empty body) the lemma doesn't verify.
 
 
 ## Question
@@ -1281,13 +1288,13 @@ data: in the above `a.i` is well-defined if `a.A?` is true, in which case it has
 
 There is more description of datatypes [here](../DafnyRef/DafnyRef#sec-algebraic-datatype).
 
-# "What does `forall v :: v in vals ==> false` evaluate to if `vals` is non-empty?"
+# What does `forall v :: v in vals ==> false` evaluate to if `vals` is nonempty?
 
 
 ## Question
 
-What does `forall v :: v in vals ==> false` evaluate to if `vals` is non-empty?
-Should it be false? I’m having some problem proving the last assertion in Dafny.
+What does `forall v :: v in vals ==> false` evaluate to if `vals` is nonempty?
+Should it be `false`? I’m having some problem proving the last assertion in Dafny.
 
 ```dafny
 assert vals != [];
@@ -1306,7 +1313,7 @@ Here are two references that explain triggers in more detail:
 - [A wiki page on triggers](https://github.com/dafny-lang/dafny/wiki/FAQ#how-does-dafny-handle-quantifiers-ive-heard-about-triggers-what-are-those)
 - [Pages 2--4 of this paper](https://pit-claudel.fr/clement/papers/dafny-trigger-selection-CAV16.pdf)
 
-# "Why does Dafny complain about this use of a set constructor: `set i: int | Contains(i)`?"
+# Why does Dafny complain about this use of a set constructor: `set i: int | Contains(i)`?
 
 
 ## Question
@@ -1545,16 +1552,16 @@ method inf(i: int)
 Eventually you should put an actual termination metric in place of the `*` and prove termination.
 The reference manual has more information about termination metrics [in the section on `decreases` clauses](../DafnyRef/DafnyRef#sec-decreases-clause).
 
-# What does {:termination false} do on trait? It looks like it is required if I want to extend traits from other modules.
+# What do {:termination false} and @AssumeCrossModuleTermination do? It looks one of them is required if I want to extend traits from other modules.
 
 
 ## Question
 
-What does `{:termination false}` do on trait? It looks like it is required if I want to extend traits from other modules.
+What do `{:termination false}` and `@AssumeCrossModuleTermination` do? It looks one of them is required if I want to extend traits from other modules.
 
 ## Answer
 
-The attribute turns off termination checking for the trait. Here is an example
+These attributes allow a class to extend a trait from another module, even though termination checking may then miss cases of non-termination. Here is an example
 ```dafny
 module foo1 {
 
@@ -1580,15 +1587,19 @@ module foo2 {
   }
 }
 ```
-In this example, omitting `{:termination false}` provokes the error "class 'Boz' is in a different module than trait 'foo1.Foo'. A class may only extend a trait in the same module, unless the parent trait is annotated with {:termination false}.".
+In this example, omitting `{:termination false}` provokes the error "class 'Boz' is in a different module than trait 'foo1.Foo'. A class may only extend a trait in the same module, 
+unless the class is annotated with `@AssumeCrossModuleTermination` or the parent trait is annotated with `{:termination false}`.".
 
-The `{:termination false}` is only needed when there is dynamic dispatch across module boundaries.
-It does put the onus on the user to prove termiation, as Dafny is no longer doing so.
+These attributes are only needed when there is dynamic dispatch across module boundaries.
+It does put the onus on the user to prove termiation, as Dafny may successfully verify the program even if some execution paths may never terminate.
 The origin of this situation has to do with the interaction of current decreases clauses and traits.
 
 Dafny decreases clauses were designed before the language had dynamic dispatch via trait members. As such, decreases clauses are made to be as simple as possible within each module, and decreases clauses are unnecessary across modules. When dynamic dispatch was added to the language, a draconian restriction was put in place to maintain soundness, namely to disallow dynamic dispatch across module boundaries. This is enforced by insisting that a class that implements a trait is declared in the same module that declares the trait.
 
-The draconian restriction outlaws the useful case where a trait is placed in a library. Indeed, we are seeing this in [`dafny-lang/libraries`](https://github.com/dafny-lang/libraries/) now. So, Dafny supports a way for users to lift the draconian restriction and instead take responsibility themselves for termination of dynamically dispatched calls via a trait--it is to mark the trait with `{:termination false}`.
+The draconian restriction outlaws the useful case where a trait is placed in a library. 
+The recommended approach is to NOT add `{:termination false}` to the trait,
+but instead expect that any extending classes declared in other modules add `@AssumeCrossModuleTermination`.
+This ensures that users of the library are made aware of this unsoundness and must opt-in to it.
 
 The status of solutions to this problem are discussed [here](https://github.com/dafny-lang/dafny/issues/1588).
 
@@ -1924,7 +1935,7 @@ However, there are some limitations:
 - Primarily, the `new` operator may not be used in a specification, so new class objects cannot be allocated in the spec
 - Note also that class objects are on the heap; as heap objects they will need to be mentioned in reads clauses.
 
-# "How do I write specifications for a lambda expression in a sequence constructor?"
+# How do I write specifications for a lambda expression in a sequence constructor?
 
 
 ## Question
@@ -1983,7 +1994,7 @@ function Firsts2(cs: seq<C>): seq<int>
 # I have a lemma and later an assert stating the postcondition of the lemma, but it fails to prove. Why and how do I fix it?
 
 
-## Question: I have a lemma and later an assert stating the postcondition of the lemma, but it fails to prove. Why and how do I fix it?
+## Question
 
 I have this lemma
 ```dafny
@@ -2016,7 +2027,7 @@ assume |schema| == |map k <- schema.Keys :: fn(k) := schema[k]|;
 assert |schema| == |map k <- schema.Keys :: fn(k) := schema[k]|;
 ```
 
-## Answer:
+## Answer
 
 The explanation is a little involved, and in the end gets into a weakness of Dafny. But these is a workaround. Here goes:
 
@@ -2088,14 +2099,14 @@ function SimpleCanon<K>(t: TableName, k: K): int
 
 It manually introduces a function `MyMap`, and by using it in both caller and callee, the code verifies.
 
-# Why can't I write 'forall t: Test :: t.i == 1' for an object t?
+# Why can't I write `forall t: Test :: t.i == 1` for an object `t`?
 
 
-## Question:
+## Question
 
-Why can't I write `forall t: Test :: t.i == 1` for an object t?
+Why can\'t I write `forall t: Test :: t.i == 1` for an object `t`?
 
-## Answer:
+## Answer
 
 This code
 
@@ -2131,11 +2142,11 @@ which could have been a pool of Test objects created from the start anyway, and 
 # How do I say 'reads if x then this\`y else this\`z'? Dafny complains about the 'this'.
 
 
-## Question: 
+## Question 
 
 How do I say 'reads if x then this\`y else this\`z'? Dafny complains about the 'this'.
 
-## Answer:
+## Answer
 
 Here is some sample code that show a workaround.
 
@@ -2153,12 +2164,12 @@ trait Test {
 # How do I model extern methods that return objects?
 
 
-## Question: 
+## Question 
 
 How do I model extern methods that return objects?
 
 
-## Answer:
+## Answer
 
 When modeling extern functions that return objects, it's usually not good to have specifications that return objects. 
 It's better to have a predicate that takes the input of a function, an object, and relates the two to each other.
@@ -2271,10 +2282,10 @@ Writing the constructor like this
 
 solves the problem.
 
-# "Why does Dafny not know this obvious property of maps?"
+# Why does Dafny not know this obvious property of maps?
 
 
-** Question: Why does Dafny not know this obvious property of maps?
+** Question
 
 I have this simple program:
 
@@ -2880,7 +2891,7 @@ The code in the original question is fixed like this:
 {% include_relative ERROR_InsufficientReads1.dfy %}
 ```
 
-# Cannot export mutable field 'x' without revealing its enclosing class 'A'
+# "Cannot export mutable field 'x' without revealing its enclosing class 'A'"
 
 
 An example of this error is the code

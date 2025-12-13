@@ -2,12 +2,12 @@
 title: How do I model extern methods that return objects?
 ---
 
-## Question: 
+## Question 
 
 How do I model extern methods that return objects?
 
 
-## Answer:
+## Answer
 
 When modeling extern functions that return objects, it's usually not good to have specifications that return objects. 
 It's better to have a predicate that takes the input of a function, an object, and relates the two to each other.

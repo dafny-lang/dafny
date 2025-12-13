@@ -2075,6 +2075,7 @@ internal class Utils {
   /// permit read/modification access to all objects, arrays, and/or sets of objects/arrays in the `subsetFrames`.
   /// </summary>
   public static Expression MakeDafnyMultiFrameCheck(List<FrameExpression> supersetFrames, List<FrameExpression> subsetFrames) {
+    Contract.Assert(!Function.FrameReadsDoubleStar(supersetFrames));
     if (subsetFrames.Count == 0) {
       return null;
     }
@@ -2088,6 +2089,7 @@ internal class Utils {
   /// permit read/modification access to an object/array (or set of objects/arrays).
   /// </summary>
   public static Expression MakeDafnyFrameCheck(List<FrameExpression> frames, Expression objOrObjSet, Field field) {
+    Contract.Assert(!Function.FrameReadsDoubleStar(frames));
     if (frames.Any(frame => frame.E is WildcardExpr)) {
       return new LiteralExpr(Token.NoToken, true);
     }

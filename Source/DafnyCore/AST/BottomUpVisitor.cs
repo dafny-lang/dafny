@@ -64,13 +64,15 @@ public class BottomUpVisitor {
     //TODO More?
   }
   public void Visit(Function function) {
+    VisitFunctionWithoutByMethod(function);
+    if (function.ByMethodBody != null) { Visit(function.ByMethodBody); }
+  }
+  public void VisitFunctionWithoutByMethod(Function function) {
     Visit(function.Req);
     Visit(function.Reads.Expressions);
     Visit(function.Ens);
     Visit(function.Decreases.Expressions);
     if (function.Body != null) { Visit(function.Body); }
-    if (function.ByMethodBody != null) { Visit(function.ByMethodBody); }
-    //TODO More?
   }
   public void Visit(Expression expr) {
     Contract.Requires(expr != null);

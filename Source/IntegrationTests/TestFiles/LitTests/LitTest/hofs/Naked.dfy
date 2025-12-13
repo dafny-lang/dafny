@@ -68,3 +68,78 @@ module ReadsGenerics {
     { (a, b) }
   }
 }
+
+module MutualRecursion {
+  function F(n: nat): int {
+    var g := G; // error: not allowed to use un-applied mutually recursive function
+    if n == 0 then 0 else
+      G(n - 1)
+  }
+  function G(n: nat): int {
+    var f := F; // error: not allowed to use un-applied mutually recursive function
+    if n == 0 then 0 else
+      F(n - 1)
+  }
+}
+
+module FunctionByMethod {
+  function FBM0(): int {
+    var f := FBM0; // error: use of un-applied recursive function
+    3
+  } by method {
+    return 3;
+  }
+
+  function FBM1(): int {
+    3
+  } by method {
+    var f := FBM1; // this is allowed
+    return 3;
+  }
+
+  function FBM2(): int {
+    3
+  } by method {
+    var f := GetMeTheFunction2();
+    return 3;
+  }
+  function GetMeTheFunction2(): () -> int {
+    FBM2 // this is allowed
+  }
+
+  function FBM3(): int {
+    3
+  } by method {
+    var f := GetMeTheFunction3();
+    return 3;
+  }
+  method GetMeTheFunction3() returns (f: () -> int) {
+    f := FBM3; // this is allowed
+  }
+}
+
+module NakedReadStarStar {
+  function F(): real
+    reads **
+  {
+    3.5
+  }
+
+  function StarStarUseInsideFunction(): real
+    reads **
+  {
+    var f := F; // error: un-applied reads-** functions are not supported
+    3.6
+  }
+
+  method StarStarUseInsideMethod() returns (g: () ~> real) {
+    g := F; // error: un-applied reads-** functions are not supported
+  }
+
+  function JustOneErrorMessageAboutStarStar(): int
+    reads **
+    decreases var f := JustOneErrorMessageAboutStarStar; 10 // error: un-applied reads-** functions are not supported, and error: using function naked in its own definition
+  {
+    2
+  }
+}
