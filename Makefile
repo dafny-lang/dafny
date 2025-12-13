@@ -20,7 +20,7 @@ format-dfy:
 	(cd "${DIR}"/Source/DafnyCore ; make format)
 	(cd "${DIR}"/Source/DafnyStandardLibraries ; make format)
 
-dfy-to-cs: 
+dfy-to-cs:
 	(cd "${DIR}"/Source/DafnyCore ; bash DafnyGeneratedFromDafny.sh)
 
 dfy-to-cs-exe: dfy-to-cs exe-3
@@ -60,34 +60,34 @@ refman-release: exe
 
 z3-mac:
 	mkdir -p "${DIR}"/Binaries/z3/bin
-	curl -L -O https://github.com/dafny-lang/solver-builds/releases/download/snapshot-2025-07-02/z3-4.14.1-x64-macos-14-bin.zip
-	unzip z3-4.14.1-x64-macos-14-bin.zip
-	rm z3-4.14.1-x64-macos-14-bin.zip
-	curl -L -O https://github.com/dafny-lang/solver-builds/releases/download/snapshot-2025-07-02/z3-4.12.1-x64-macos-14-bin.zip
-	unzip z3-4.12.1-x64-macos-14-bin.zip
-	rm z3-4.12.1-x64-macos-14-bin.zip
+	curl -L -O https://github.com/dafny-lang/solver-builds/releases/download/snapshot-2025-12-05/z3-4.12.1-x64-macos-26-bin.zip
+	unzip z3-4.12.1-x64-macos-26-bin.zip
+	rm z3-4.12.1-x64-macos-26-bin.zip
+	curl -L -O https://github.com/dafny-lang/solver-builds/releases/download/snapshot-2025-12-05/z3-4.15.4-x64-macos-26-bin.zip
+	unzip z3-4.15.4-x64-macos-26-bin.zip
+	rm z3-4.15.4-x64-macos-26-bin.zip
 	mv z3-* "${DIR}"/Binaries/z3/bin/
 	chmod +x "${DIR}"/Binaries/z3/bin/z3-*
 
 z3-mac-arm:
 	mkdir -p "${DIR}"/Binaries/z3/bin
-	curl -L -O https://github.com/dafny-lang/solver-builds/releases/download/snapshot-2025-07-02/z3-4.14.1-arm64-macos-14-bin.zip
-	unzip z3-4.14.1-arm64-macos-14-bin.zip
-	rm z3-4.14.1-arm64-macos-14-bin.zip
-	curl -L -O https://github.com/dafny-lang/solver-builds/releases/download/snapshot-2025-07-02/z3-4.12.1-arm64-macos-14-bin.zip
-	unzip z3-4.12.1-arm64-macos-14-bin.zip
-	rm z3-4.12.1-arm64-macos-14-bin.zip
+	curl -L -O https://github.com/dafny-lang/solver-builds/releases/download/snapshot-2025-12-05/z3-4.12.1-arm64-macos-26-bin.zip
+	unzip z3-4.12.1-arm64-macos-26-bin.zip
+	rm z3-4.12.1-arm64-macos-26-bin.zip
+	curl -L -O https://github.com/dafny-lang/solver-builds/releases/download/snapshot-2025-12-05/z3-4.15.4-arm64-macos-26-bin.zip
+	unzip z3-4.15.4-arm64-macos-26-bin.zip
+	rm z3-4.15.4-arm64-macos-26-bin.zip
 	mv z3-* "${DIR}"/Binaries/z3/bin/
 	chmod +x "${DIR}"/Binaries/z3/bin/z3-*
 
 z3-ubuntu:
 	mkdir -p "${DIR}"/Binaries/z3/bin
-	wget https://github.com/dafny-lang/solver-builds/releases/download/snapshot-2025-07-02/z3-4.14.1-x64-ubuntu-22.04-bin.zip
-	unzip z3-4.14.1-x64-ubuntu-22.04-bin.zip
-	rm z3-4.14.1-x64-ubuntu-22.04-bin.zip
-	wget https://github.com/dafny-lang/solver-builds/releases/download/snapshot-2025-07-02/z3-4.12.1-x64-ubuntu-22.04-bin.zip
+	wget https://github.com/dafny-lang/solver-builds/releases/download/snapshot-2025-12-05/z3-4.12.1-x64-ubuntu-22.04-bin.zip
 	unzip z3-4.12.1-x64-ubuntu-22.04-bin.zip
 	rm z3-4.12.1-x64-ubuntu-22.04-bin.zip
+	wget https://github.com/dafny-lang/solver-builds/releases/download/snapshot-2025-12-05/z3-4.15.4-x64-ubuntu-22.04-bin.zip
+	unzip z3-4.15.4-x64-ubuntu-22.04-bin.zip
+	rm z3-4.15.4-x64-ubuntu-22.04-bin.zip
 	mv z3-* "${DIR}"/Binaries/z3/bin/
 	chmod +x "${DIR}"/Binaries/z3/bin/z3-*
 
@@ -146,7 +146,7 @@ gen-integration: gen-schema gen-deserializer
 PARSED_AST_FILE=Source/Scripts/Syntax.cs-schema
 gen-schema:
 	./script.sh generate-syntax-schema $(PARSED_AST_FILE)
-  
+
 GENERATED_DESERIALIZER_FILE=Source/DafnyCore/AST/SyntaxDeserializer/generated.cs
 gen-deserializer:
 	./script.sh generate-syntax-deserializer ${GENERATED_DESERIALIZER_FILE}

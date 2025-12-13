@@ -59,10 +59,10 @@ jobs:
     ## Record versions, checking that dafny runs
     - name: Versions
       run: |
+        dafny/z3/bin/z3-4.15.4 -version
         dafny/z3/bin/z3-4.12.1 -version
-        dafny/z3/bin/z3-4.14.1 -version
         dafny/dafny -version
-    
+
     ## Check that a simple program compiles and runs on each supported platform
     - name: run quicktests
       run: |
