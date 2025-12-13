@@ -1612,7 +1612,7 @@ namespace Microsoft.Dafny.Compilers {
     private string CharTypeDescriptorName => $"_dafny.{CharTypeNameProper}Type";
     private string CharTypeNameProper => UnicodeCharEnabled ? "CodePoint" : "Char";
 
-    internal override string TypeName(Type type, ConcreteSyntaxTree wr, IOrigin tok, MemberDecl/*?*/ member = null) {
+    public override string TypeName(Type type, ConcreteSyntaxTree wr, IOrigin tok, MemberDecl/*?*/ member = null) {
       Contract.Ensures(Contract.Result<string>() != null);
       Contract.Assume(type != null);  // precondition; this ought to be declared as a Requires in the superclass
 
@@ -1847,7 +1847,7 @@ namespace Microsoft.Dafny.Compilers {
       return string.Format("{0}{1}_{2}", ptr, TypeName(UserDefinedType.FromTopLevelDecl(ctor.Origin, ctor.EnclosingDatatype), wr, ctor.Origin), ctor.GetCompileName(Options));
     }
 
-    internal override string TypeName_Companion(Type type, ConcreteSyntaxTree wr, IOrigin tok, MemberDecl/*?*/ member) {
+    public override string TypeName_Companion(Type type, ConcreteSyntaxTree wr, IOrigin tok, MemberDecl/*?*/ member) {
       type = UserDefinedType.UpcastToMemberEnclosingType(type, member);
       // XXX This duplicates some of the logic in UserDefinedTypeName, but if we
       // don't do it here, we end up passing the name of the module to
