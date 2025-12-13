@@ -78,7 +78,7 @@ jobs:
       z3BaseUri: https://github.com/dafny-lang/solver-builds/releases/download/snapshot-2025-07-02
       Logging__LogLevel__Microsoft: Debug
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v5
       with:
         path: dafny
         submodules: recursive

@@ -113,7 +113,7 @@ jobs:
     - uses: actions/setup-node@v4
     - run: npm install bignumber.js
     - name: Checkout Dafny
-      uses: actions/checkout@v4
+      uses: actions/checkout@v5
       with:
         path: dafny
         ref: ${{ inputs.ref }}
