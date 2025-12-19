@@ -672,30 +672,30 @@ public partial class BoogieGenerator {
   /// In substitutionMappings, a mapping "x := null" says for the caller to quantify over "x".
   /// Any non-null mappings, say "x := e0, y := e1" say that "x" and "y" have been replaced by "e0" and "e1" in "expression"
   /// to form "expressionWithSubstitutions".
-  /// 
+  ///
   /// The reason for returning substitutionMappings rather than just a list of variables is so that the caller can
   /// apply these substitutions in triggers that were computed for the entire "expression". Therefore, each non-null
-  /// mapping "x := e" is one where "e" is acceptable in a trigger. 
+  /// mapping "x := e" is one where "e" is acceptable in a trigger.
   ///
   /// Here is an example. Assuming that the types of a,b,c are nonempty and that we obtain
   ///
   ///   GuessWitnesses(c):  0, a, b
   ///   GuessWitnesses(b):  10
   ///   GuessWitnesses(a):  88
-  ///  
+  ///
   /// then GeneratePartialGuesses works as follows:
   ///
   ///   GeneratePartialGuesses([a, b, c], X || Y(a) || Z(a, c)) {
   ///     yield ([], X) // since X does not mention a or b or c
-  /// 
+  ///
   ///     GeneratePartialGuesses([b, c], Y(a) || Z(a, c)) {
   ///       yield ([], Y(a)) // since Y(a) does not mention b or c
-  /// 
+  ///
   ///       GeneratePartialGuesses([c], Z(a, c)) {
   ///         GeneratePartialGuesses([], Z(a, c)) {
   ///           yield ([], Z(a, c)) // no vars
   ///         }
-  /// 
+  ///
   ///         yield ([c:=null], Z(a, c)) // quantify over c
   ///         yield ([c:=0], Z(a, 0)) // guess c := 0
   ///         yield ([c:=a], Z(a, a)) // guess c := a
@@ -711,7 +711,7 @@ public partial class BoogieGenerator {
   ///
   ///     yield ([a:=null], Y(a)) // quantify over a
   ///     yield ([a:=88], Y(88)) // guess a := 88
-  ///  
+  ///
   ///     yield ([a:=null, c:=null], Z(a, c)) // quantify over a
   ///     yield ([a:=88, c:=null], Z(88, c)) // guess a := 88
   ///
@@ -729,15 +729,15 @@ public partial class BoogieGenerator {
   ///   }
   ///
   /// From these yields, the caller (GenerateAndCheckGuesses) will then emit the following disjuncts:
-  /// 
+  ///
   ///   XCallCall ==> X
-  /// 
+  ///
   ///   exists a :: Is(a, A) && (YCanCall(a) ==> Y(a))
   ///   YCanCall(88) ==> Y(88)
-  /// 
+  ///
   ///   exists a, c :: Is(a, A) && Is(c, C) && (ZCanCall(a, b) ==> Z(a, c))
   ///   exists c :: Is(c, C) && (ZCanCall(88, c) ==> Z(88, c))
-  /// 
+  ///
   ///   exists a :: Is(a, A) && (ZCanCall(a, 0) ==> Z(a, 0))
   ///   ZCanCall(88, 0) ==> Z(88, 0)
   ///
@@ -802,7 +802,7 @@ public partial class BoogieGenerator {
       return (a, expression);
     }
 
-    // Place the left-most var-independent disjuncts into "a" and the rest into "b". 
+    // Place the left-most var-independent disjuncts into "a" and the rest into "b".
     // The loop below has the effect of:
     //         var d: List<Expression> := Expression.Disjuncts(expression);
     //         var (prefix, rest) :|
@@ -942,6 +942,8 @@ public partial class BoogieGenerator {
       return Expression.CreateIntLiteral(tok, 0);
     } else if (typ.IsNumericBased(Type.NumericPersuasion.Real)) {
       return Expression.CreateRealLiteral(tok, BaseTypes.BigDec.ZERO);
+    } else if (typ.IsNumericBased(Type.NumericPersuasion.Float)) {
+      return new DecimalLiteralExpr(tok, BaseTypes.BigDec.ZERO) { Type = typ };
     } else if (typ.IsBigOrdinalType) {
       return Expression.CreateNatLiteral(tok, 0, Type.BigOrdinal);
     } else if (typ.IsBitVectorType) {
@@ -1059,7 +1061,7 @@ public partial class BoogieGenerator {
   /// <summary>
   /// Generate $Is (if "!generateIsAlloc") or $IsAlloc (if "generateIsAlloc") axioms for the newtype/subset-type "dd",
   /// whose printable name is "fullName".
-  /// 
+  ///
   /// Given that the type "dd" is
   ///
   ///     (new)type dd<X> = x: Base<Y> | constraint
@@ -1074,7 +1076,7 @@ public partial class BoogieGenerator {
   ///         { $Is(o, Tclass.dd) }
   ///         $Is(o, Tclass.Base) && (constraintCanCall ==> constraint) ==>
   ///             $Is(o, Tclass.dd));
-  /// 
+  ///
   /// and the $IsAlloc axiom has the form
   ///
   ///     axiom (forall o: dd, $h: Heap ::
@@ -1177,14 +1179,70 @@ public partial class BoogieGenerator {
     } else if (fromType.IsNumericBased(Type.NumericPersuasion.Int)) {
       if (toType.IsNumericBased(Type.NumericPersuasion.Int)) {
         // do nothing
-      } else if (toType.IsNumericBased(Type.NumericPersuasion.Real)) {
+      } else if (toType.IsFp32Type) {
+        // int to fp32: unwrap any Lit wrappers to help Z3
+        r = RemoveLit(r);
         r = FunctionCall(tok, BuiltinFunction.IntToReal, null, r);
+        r = RemoveLit(r);  // Remove LitReal wrapper if present
+        r = FunctionCall(tok, "real_to_fp32_RNE", BplFp32Type, r);
+      } else if (toType.IsFp64Type) {
+        // int to fp64: unwrap any Lit wrappers to help Z3
+        r = RemoveLit(r);
+        r = FunctionCall(tok, BuiltinFunction.IntToReal, null, r);
+        r = RemoveLit(r);  // Remove LitReal wrapper if present
+        r = FunctionCall(tok, "real_to_fp64_RNE", BplFp64Type, r);
+      } else if (toType.IsNumericBased(Type.NumericPersuasion.Real)) {
+        r = RemoveLit(r);
+        r = FunctionCall(tok, BuiltinFunction.IntToReal, null, r);
+        r = RemoveLit(r);
       } else if (toType.IsCharType) {
         r = FunctionCall(tok, BuiltinFunction.CharFromInt, null, r);
       } else if (toType.IsBitVectorType) {
         r = IntToBV(tok, r, toType);
       } else if (toType.IsBigOrdinalType) {
         r = FunctionCall(tok, "ORD#FromNat", Predef.BigOrdinalType, r);
+      } else {
+        Contract.Assert(false, $"No translation implemented from {fromType} to {toType}");
+      }
+      return r;
+    } else if (fromType.IsFp32Type) {
+      if (toType.IsFp32Type) {
+        // do nothing
+        return r;
+      } else if (toType.IsFp64Type) {
+        // fp32 to fp64: use SMT-LIB fp.to_fp operation
+        r = FunctionCall(tok, "fp32_to_fp64", BplFp64Type, r);
+      } else if (toType.IsNumericBased(Type.NumericPersuasion.Int)) {
+        // fp32 to int: use SMT-LIB fp.to_sbv then convert to int
+        r = FunctionCall(tok, "fp32_to_sbv32_RTZ", BplBvType(32), r);
+        r = FunctionCall(tok, "int_from_bv32", Bpl.Type.Int, r);
+      } else if (toType.IsNumericBased(Type.NumericPersuasion.Real)) {
+        // fp32 to real: use SMT-LIB fp.to_real (only defined for finite values)
+        var isFinite = FunctionCall(tok, "fp32_is_finite", Bpl.Type.Bool, r);
+        var finiteConversion = FunctionCall(tok, "fp32_to_real", Bpl.Type.Real, r);
+        var zero = Bpl.Expr.Literal(BaseTypes.BigDec.ZERO);
+        r = new NAryExpr(tok, new IfThenElse(tok), new List<Bpl.Expr> { isFinite, finiteConversion, zero });
+      } else {
+        Contract.Assert(false, $"No translation implemented from {fromType} to {toType}");
+      }
+      return r;
+    } else if (fromType.IsFp64Type) {
+      if (toType.IsFp64Type) {
+        // do nothing
+        return r;
+      } else if (toType.IsFp32Type) {
+        // fp64 to fp32: use SMT-LIB fp.to_fp operation
+        r = FunctionCall(tok, "fp64_to_fp32_RNE", BplFp32Type, r);
+      } else if (toType.IsNumericBased(Type.NumericPersuasion.Int)) {
+        // fp64 to int: use SMT-LIB fp.to_sbv then convert to int
+        r = FunctionCall(tok, "fp64_to_sbv64_RTZ", BplBvType(64), r);
+        r = FunctionCall(tok, "int_from_bv64", Bpl.Type.Int, r);
+      } else if (toType.IsNumericBased(Type.NumericPersuasion.Real)) {
+        // fp64 to real: use SMT-LIB fp.to_real (only defined for finite values)
+        var isFinite = FunctionCall(tok, "fp64_is_finite", Bpl.Type.Bool, r);
+        var finiteConversion = FunctionCall(tok, "fp64_to_real", Bpl.Type.Real, r);
+        var zero = Bpl.Expr.Literal(BaseTypes.BigDec.ZERO);
+        r = new NAryExpr(tok, new IfThenElse(tok), new List<Bpl.Expr> { isFinite, finiteConversion, zero });
       } else {
         Contract.Assert(false, $"No translation implemented from {fromType} to {toType}");
       }
@@ -1246,7 +1304,13 @@ public partial class BoogieGenerator {
       }
       return r;
     } else if (fromType.IsNumericBased(Type.NumericPersuasion.Real)) {
-      if (toType.IsNumericBased(Type.NumericPersuasion.Real)) {
+      if (toType.IsFp32Type) {
+        // real to fp32: use SMT-LIB to_fp operation
+        r = FunctionCall(tok, "real_to_fp32_RNE", BplFp32Type, r);
+      } else if (toType.IsFp64Type) {
+        // real to fp64: use SMT-LIB to_fp operation
+        r = FunctionCall(tok, "real_to_fp64_RNE", BplFp64Type, r);
+      } else if (toType.IsNumericBased(Type.NumericPersuasion.Real)) {
         // do nothing
       } else if (toType.IsNumericBased(Type.NumericPersuasion.Int)) {
         r = FunctionCall(tok, BuiltinFunction.RealToInt, null, r);
@@ -1278,6 +1342,23 @@ public partial class BoogieGenerator {
         r = IntToBV(tok, r, toType);
       } else if (toType.IsBigOrdinalType) {
         // do nothing
+      } else {
+        Contract.Assert(false, $"No translation implemented from {fromType} to {toType}");
+      }
+      return r;
+    } else if (fromType.IsFp64Type) {
+      if (toType.IsFp64Type) {
+        // do nothing
+      } else if (toType.IsNumericBased(Type.NumericPersuasion.Int)) {
+        // fp64 to int: use SMT-LIB fp.to_sbv then convert to int
+        r = FunctionCall(tok, "fp64_to_sbv64_RTZ", BplBvType(64), r);
+        r = FunctionCall(tok, "int_from_bv64", Bpl.Type.Int, r);
+      } else if (toType.IsNumericBased(Type.NumericPersuasion.Real)) {
+        // fp64 to real: use SMT-LIB fp.to_real (only defined for finite values)
+        var isFinite = FunctionCall(tok, "fp64_is_finite", Bpl.Type.Bool, r);
+        var finiteConversion = FunctionCall(tok, "fp64_to_real", Bpl.Type.Real, r);
+        var zero = Bpl.Expr.Literal(BaseTypes.BigDec.ZERO);
+        r = new NAryExpr(tok, new IfThenElse(tok), new List<Bpl.Expr> { isFinite, finiteConversion, zero });
       } else {
         Contract.Assert(false, $"No translation implemented from {fromType} to {toType}");
       }
@@ -1335,6 +1416,7 @@ public partial class BoogieGenerator {
     Contract.Requires(etran != null);
     Contract.Requires(errorMsgPrefix != null);
 
+
     var toTypeFamily = toType.NormalizeToAncestorType();
     var fromType = expr.Type;
     var fromTypeFamily = expr.Type.NormalizeToAncestorType();
@@ -1350,6 +1432,10 @@ public partial class BoogieGenerator {
         if (fromType.IsCharType) {
           rhs = FunctionCall(expr.Origin, "char#ToInt", Bpl.Type.Int, rhs);
         }
+        // Remove Lit wrappers for fp32/fp64-related conversions to avoid Z3 issues
+        if (toType.IsFloatingPointType || fromType.IsFloatingPointType) {
+          rhs = RemoveLit(rhs);
+        }
         builder.Add(Bpl.Cmd.SimpleAssign(tok, o, rhs));
       }
     }
@@ -1363,7 +1449,7 @@ public partial class BoogieGenerator {
       return;
     }
 
-    if (fromType.IsNumericBased(Type.NumericPersuasion.Real) && !toType.IsNumericBased(Type.NumericPersuasion.Real)) {
+    if (fromType.IsNumericBased(Type.NumericPersuasion.Real) && !toType.IsNumericBased(Type.NumericPersuasion.Real) && !toType.IsFp32Type && !toType.IsFp64Type) {
       // this operation is well-formed only if the real-based number represents an integer
       //   assert Real(Int(o)) == o;
       PutSourceIntoLocal();
@@ -1373,11 +1459,113 @@ public partial class BoogieGenerator {
       builder.Add(Assert(tok, e, new IsInteger(expr, errorMsgPrefix), builder.Context));
     }
 
+    if (fromType.IsNumericBased(Type.NumericPersuasion.Real) && toType.IsFp64Type) {
+      // real to fp64: check exact representability
+      // TODO: This well-formedness check can cause verification timeouts due to a Z3 issue.
+      // The problem occurs when Z3's auto_config is disabled and case_split=3 is set (Dafny's default options).
+      // The interaction between the LitReal identity function's quantifier axiom and floating-point
+      // round-trip reasoning causes Z3 to fail to find a proof. Until this is resolved in Z3 or
+      // Dafny's solver configuration is adjusted, users may experience timeouts when converting
+      // real literals to fp64.
+      PutSourceIntoLocal();
+      Bpl.Expr asFp64 = FunctionCall(tok, "real_to_fp64_RNE", BplFp64Type, o);
+      Bpl.Expr backToReal = FunctionCall(tok, "fp64_to_real", Bpl.Type.Real, asFp64);
+      Bpl.Expr isExact = Bpl.Expr.Binary(tok, Bpl.BinaryOperator.Opcode.Eq, backToReal, o);
+      builder.Add(Assert(tok, isExact, new IsExactlyRepresentableAsFloat(expr, new Fp64Type(), errorMsgPrefix), builder.Context));
+    }
+
+    if (fromType.IsNumericBased(Type.NumericPersuasion.Int) && toType.IsFp32Type) {
+      // int to fp32: check exact representability
+      PutSourceIntoLocal();
+      Bpl.Expr asReal = FunctionCall(tok, BuiltinFunction.IntToReal, null, o);
+      asReal = RemoveLit(asReal);
+      var asFp32 = FunctionCall(tok, "real_to_fp32_RNE", BplFp32Type, asReal);
+      var backToReal = FunctionCall(tok, "fp32_to_real", Bpl.Type.Real, asFp32);
+      var isExact = Bpl.Expr.Binary(tok, Bpl.BinaryOperator.Opcode.Eq, backToReal, asReal);
+      builder.Add(Assert(tok, isExact, new IntToFloatExactnessCheck(expr, new Fp32Type(), errorMsgPrefix), builder.Context));
+    }
+
+    if (fromType.IsNumericBased(Type.NumericPersuasion.Int) && toType.IsFp64Type) {
+      // int to fp64: check exact representability
+      // TODO: This well-formedness check causes verification timeouts due to the same Z3 issue
+      // as real-to-fp64 conversion. The interaction between integer-to-real conversion and
+      // floating-point round-trip reasoning causes Z3 to fail when auto_config is disabled
+      // and case_split=3 is set (Dafny's default options). Until this is resolved in Z3 or
+      // Dafny's solver configuration is adjusted, users may experience timeouts when converting
+      // integers to fp64.
+      PutSourceIntoLocal();
+      Bpl.Expr asReal = FunctionCall(tok, BuiltinFunction.IntToReal, null, o);
+      asReal = RemoveLit(asReal);
+      var asFp64 = FunctionCall(tok, "real_to_fp64_RNE", BplFp64Type, asReal);
+      var backToReal = FunctionCall(tok, "fp64_to_real", Bpl.Type.Real, asFp64);
+      var isExact = Bpl.Expr.Binary(tok, Bpl.BinaryOperator.Opcode.Eq, backToReal, asReal);
+      builder.Add(Assert(tok, isExact, new IntToFloatExactnessCheck(expr, new Fp64Type(), errorMsgPrefix), builder.Context));
+    }
+
+    if (fromType.IsFp64Type && toType.IsNumericBased(Type.NumericPersuasion.Real)) {
+      // fp64 to real: require finite value
+      PutSourceIntoLocal();
+      var isFinite = FunctionCall(tok, "fp64_is_finite", Bpl.Type.Bool, o);
+      builder.Add(Assert(tok, isFinite, new ConversionFit("fp64 value", toType, expr, errorMsgPrefix), builder.Context));
+    }
+
+    if (fromType.IsFp64Type && toType.IsNumericBased(Type.NumericPersuasion.Int)) {
+      // fp64 to int: require exact integer value
+      PutSourceIntoLocal();
+      // First convert to real, then check if it's an integer
+      var asReal = FunctionCall(tok, "fp64_to_real", Bpl.Type.Real, o);
+      var asInt = FunctionCall(tok, BuiltinFunction.RealToInt, null, asReal);
+      var backToReal = FunctionCall(tok, BuiltinFunction.IntToReal, null, asInt);
+      var isExactInt = Bpl.Expr.Binary(tok, Bpl.BinaryOperator.Opcode.Eq, backToReal, asReal);
+      // Also check that it's finite
+      var isFinite = FunctionCall(tok, "fp64_is_finite", Bpl.Type.Bool, o);
+      var condition = BplAnd(isFinite, isExactInt);
+      builder.Add(Assert(tok, condition, new IsInteger(expr, errorMsgPrefix), builder.Context));
+    }
+
+    if (fromType.IsNumericBased(Type.NumericPersuasion.Real) && toType.IsFp32Type) {
+      // real to fp32: check exact representability
+      PutSourceIntoLocal();
+      Bpl.Expr asFp32 = FunctionCall(tok, "real_to_fp32_RNE", BplFp32Type, o);
+      Bpl.Expr backToReal = FunctionCall(tok, "fp32_to_real", Bpl.Type.Real, asFp32);
+      Bpl.Expr isExact = Bpl.Expr.Binary(tok, Bpl.BinaryOperator.Opcode.Eq, backToReal, o);
+      builder.Add(Assert(tok, isExact, new IsExactlyRepresentableAsFloat(expr, new Fp32Type(), errorMsgPrefix), builder.Context));
+    }
+
+    if (fromType.IsFp32Type && toType.IsNumericBased(Type.NumericPersuasion.Real)) {
+      // fp32 to real: require finite value
+      PutSourceIntoLocal();
+      var isFinite = FunctionCall(tok, "fp32_is_finite", Bpl.Type.Bool, o);
+      builder.Add(Assert(tok, isFinite, new ConversionFit("fp32 value", toType, expr, errorMsgPrefix), builder.Context));
+    }
+
+    if (fromType.IsFp32Type && toType.IsNumericBased(Type.NumericPersuasion.Int)) {
+      // fp32 to int: require exact integer value
+      PutSourceIntoLocal();
+      var asReal = FunctionCall(tok, "fp32_to_real", Bpl.Type.Real, o);
+      var asInt = FunctionCall(tok, BuiltinFunction.RealToInt, null, asReal);
+      var backToReal = FunctionCall(tok, BuiltinFunction.IntToReal, null, asInt);
+      var isExactInt = Bpl.Expr.Binary(tok, Bpl.BinaryOperator.Opcode.Eq, backToReal, asReal);
+      var isFinite = FunctionCall(tok, "fp32_is_finite", Bpl.Type.Bool, o);
+      var condition = BplAnd(isFinite, isExactInt);
+      builder.Add(Assert(tok, condition, new IsInteger(expr, errorMsgPrefix), builder.Context));
+    }
+
+    if (fromType.IsFp64Type && toType.IsFp32Type) {
+      // fp64 to fp32: check exact representability
+      PutSourceIntoLocal();
+      Bpl.Expr asFp32 = FunctionCall(tok, "fp64_to_fp32_RNE", BplFp32Type, o);
+      Bpl.Expr backToFp64 = FunctionCall(tok, "fp32_to_fp64", BplFp64Type, asFp32);
+      Bpl.Expr isExact = Bpl.Expr.Binary(tok, Bpl.BinaryOperator.Opcode.Eq, backToFp64, o);
+      builder.Add(Assert(tok, isExact, new IsExactlyRepresentableAsFloat(expr, new Fp32Type(), errorMsgPrefix), builder.Context));
+    }
+
     if (fromType.IsBigOrdinalType && !toType.IsBigOrdinalType) {
       PutSourceIntoLocal();
       Bpl.Expr boundsCheck = FunctionCall(tok, "ORD#IsNat", Bpl.Type.Bool, o);
       builder.Add(Assert(tok, boundsCheck, new ConversionIsNatural(errorMsgPrefix, expr), builder.Context));
     }
+
 
     if (toTypeFamily.IsBitVectorType) {
       var toWidth = toTypeFamily.AsBitVectorType.Width;
@@ -1405,8 +1593,28 @@ public partial class BoogieGenerator {
         dafnyBoundsCheck = Expression.CreateAnd(
           Expression.CreateLess(Expression.CreateIntLiteral(expr.Origin, 0), expr),
           Expression.CreateAtMost(expr, dafnyBound));
+      } else if (fromType.IsFp64Type) {
+        // Check that fp64 value can fit in target bit-vector
+        // First check it's a finite value that represents an integer
+        PutSourceIntoLocal();
+        var isFinite = FunctionCall(tok, "fp64_is_finite", Bpl.Type.Bool, o);
+        var toReal = FunctionCall(tok, "fp64_to_real", Bpl.Type.Real, o);
+        var toInt = FunctionCall(tok, BuiltinFunction.RealToInt, null, toReal);
+        var backToReal = FunctionCall(tok, BuiltinFunction.IntToReal, null, toInt);
+        var isInteger = Bpl.Expr.Eq(backToReal, toReal);
+
+        // Then check the integer value is in bounds for the target bit-vector
+        var bound = Bpl.Expr.Literal(toBound);
+        var inBounds = BplAnd(Bpl.Expr.Le(Bpl.Expr.Literal(0), toInt), Bpl.Expr.Lt(toInt, bound));
+        boundsCheck = BplAnd(isFinite, BplAnd(isInteger, inBounds));
+
+        // Check fp64 value is in range
+        dafnyBoundsCheck = new BinaryExpr(expr.Origin, BinaryExpr.Opcode.And,
+          new BinaryExpr(expr.Origin, BinaryExpr.Opcode.Le, new LiteralExpr(expr.Origin, 0), expr),
+          new BinaryExpr(expr.Origin, BinaryExpr.Opcode.Lt, expr, dafnyBound)
+        );
       } else if (fromType.IsNumericBased(Type.NumericPersuasion.Real)) {
-        // Check "Int(expr) < (1 << toWidth)" in type "int"
+        // Check "Int(expr) < (1 << toWidth)" in type "int" for real
         PutSourceIntoLocal();
         var bound = Bpl.Expr.Literal(toBound);
         var oi = FunctionCall(tok, BuiltinFunction.RealToInt, null, o);

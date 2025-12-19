@@ -61,6 +61,7 @@ The sections below describe how to use each library:
 - [Std.Parsers](src/Std/Parsers/README.md) -- parser combinators
 - [Std.Relations](src/Std/Relations.md) -- properties of relations
 - [Std.Strings](src/Std/Strings.md) -- utilities for strings, especially converting to and from string representations of common types
+- [Std.Statistics](src/Std/Statistics.md) -- utilities for statistical computations such as mean, median, mode, range, variance, and standard deviation
 - [Std.Termination](src/Std/Termination.md) -- a datatype for representing Dafny decreases clauses and extensions
 - [Std.Unicode](src/Std/Unicode/Unicode.md) -- implementations of basic algorithms from Unicode 15.0
 - [Std.Wrappers](src/Std/Wrappers.md) -- simple datatypes to support common patterns, such as optional values or the result of operations that can fail

@@ -441,6 +441,43 @@ module Std.Collections.Seq {
     else Zip(DropLast(xs), DropLast(ys)) + [(Last(xs), Last(ys))]
   }
 
+
+  function MaxBy<T>(s: seq<T>, lessThan: (T, T) -> bool): T
+    requires |s| > 0
+    decreases |s|
+  {
+    MaxByHelper(s, 1, s[0], lessThan)
+  }
+
+  function MaxByHelper<T>(s: seq<T>, idx: nat, current: T, lessThan: (T, T) -> bool): T
+    requires idx <= |s|
+    decreases |s| - idx
+  {
+    if idx == |s| then
+      current
+    else
+      var next := if lessThan(current, s[idx]) then s[idx] else current;
+      MaxByHelper(s, idx + 1, next, lessThan)
+  }
+
+  function MinBy<T>(s: seq<T>, lessThan: (T, T) -> bool): T
+    requires |s| > 0
+    decreases |s|
+  {
+    MinByHelper(s, 1, s[0], lessThan)
+  }
+
+  function MinByHelper<T>(s: seq<T>, idx: nat, current: T, lessThan: (T, T) -> bool): T
+    requires idx <= |s|
+    decreases |s| - idx
+  {
+    if idx == |s| then
+      current
+    else
+      var next := if lessThan(s[idx], current) then s[idx] else current;
+      MinByHelper(s, idx + 1, next, lessThan)
+  }
+
   /* Unzipping and zipping a sequence results in the original sequence */
   lemma LemmaZipOfUnzip<A, B>(xs: seq<(A, B)>)
     ensures Zip(Unzip(xs).0, Unzip(xs).1) == xs
@@ -1268,4 +1305,5 @@ module Std.Collections.Seq {
       }
     }
   }
+
 }

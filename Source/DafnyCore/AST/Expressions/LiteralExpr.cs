@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 using System.Numerics;
-
+using Microsoft.BaseTypes;
 
 namespace Microsoft.Dafny;
 
@@ -143,6 +143,39 @@ public class CharLiteralExpr : LiteralExpr, ICloneable<CharLiteralExpr> {
 
   public new CharLiteralExpr Clone(Cloner cloner) {
     return new CharLiteralExpr(cloner, this);
+  }
+}
+
+public class DecimalLiteralExpr : LiteralExpr, ICloneable<DecimalLiteralExpr> {
+  /// <summary>
+  /// If this literal is assigned to a floating-point type during resolution,
+  /// this field stores the computed BigFloat value to avoid recomputation.
+  /// Null if not yet resolved or if assigned to a real type.
+  /// </summary>
+  public BigFloat? ResolvedFloatValue { get; set; }
+
+  /// <summary>
+  /// True if this literal is part of an approximate literal expression (~prefix).
+  /// Used to skip exact representability checks.
+  /// </summary>
+  public bool IsApproximate { get; set; }
+
+  [SyntaxConstructor]
+  public DecimalLiteralExpr(IOrigin origin, object value)
+    : base(origin, value) {
+    Contract.Requires(value is BigDec);
+  }
+
+  public DecimalLiteralExpr(IOrigin origin, BigDec value)
+    : base(origin, value) {
+  }
+
+  private DecimalLiteralExpr(Cloner cloner, DecimalLiteralExpr original) : base(cloner, original) {
+    ResolvedFloatValue = original.ResolvedFloatValue;
+  }
+
+  public new DecimalLiteralExpr Clone(Cloner cloner) {
+    return new DecimalLiteralExpr(cloner, this);
   }
 }
 

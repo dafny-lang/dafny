@@ -21,3 +21,4 @@ jobs:
     uses: ./.github/workflows/xunit-tests-reusable.yml
     with:
         soak_test: true
+        num_shards: 2

@@ -89,6 +89,8 @@ TOKENS
   int = "int".
   nat = "nat".
   real = "real".
+  fp32 = "fp32".
+  fp64 = "fp64".
   ORDINAL = "ORDINAL".
   object = "object". // Keeping object and object? as literals simplifies ident
   object_q = "object?".
@@ -1493,6 +1495,8 @@ TypeAndToken<out Token tok, out Type ty, bool inExpressionContext>
   | "int"                           (. tok = t; startToken = t; ty = new IntType(); ty.SetOrigin(t); .)
   | "nat"                           (. tok = t; startToken = t; ty = new UserDefinedType(tok, tok.val, null); .)
   | "real"                          (. tok = t; startToken = t; ty = new RealType(); ty.SetOrigin(t); .)
+  | "fp32"                          (. tok = t; startToken = t; ty = new Fp32Type(); ty.SetOrigin(t); .)
+  | "fp64"                          (. tok = t; startToken = t; ty = new Fp64Type(); ty.SetOrigin(t); .)
   | IF(la.val == "field" && AcceptReferrers())
     "field"                         (. tok = t; startToken = t; ty = new FieldType(); ty.SetOrigin(t); .)
   | "ORDINAL"                       (. tok = t; startToken = t; ty = new BigOrdinalType(); ty.SetOrigin(t); .)
@@ -3699,6 +3703,8 @@ UnaryExpression<out Expression e, bool allowLemma, bool allowLambda, bool allowB
     UnaryExpression<out e, allowLemma, allowLambda, allowBitwiseOps>  (. e = new NegationExpression(new SourceOrigin(x, t, x), e); .)
   | NegOp                                           (. x = t; .)
     UnaryExpression<out e, allowLemma, allowLambda, allowBitwiseOps>  (. e = new UnaryOpExpr(new SourceOrigin(x, t, x), UnaryOpExpr.Opcode.Not, e); .)
+  | "~"                                             (. x = t; .)
+    UnaryExpression<out e, allowLemma, allowLambda, allowBitwiseOps>  (. e = new ApproximateExpr(new SourceOrigin(x, t, x), e); .)
   | PrimaryExpression<out e, allowLemma, allowLambda, allowBitwiseOps>
   )
   .
@@ -3783,9 +3789,9 @@ LiteralExpression<out Expression e>
   ( "false"                                    (. e = new LiteralExpr(t, false); .)
   | "true"                                     (. e = new LiteralExpr(t, true); .)
   | "null"                                     (. e = new LiteralExpr(t); .)
-  | IF(la.kind == _digits && scanner.Peek().kind == _dot) Dec<out d> (. e = new LiteralExpr(t, d); .)
+  | IF(la.kind == _digits && scanner.Peek().kind == _dot) Dec<out d> (. e = new DecimalLiteralExpr(t, d); .)
   | Nat<out n>                                 (. e = new LiteralExpr(t, n); .)
-  | Dec<out d>                                 (. e = new LiteralExpr(t, d); .)
+  | Dec<out d>                                 (. e = new DecimalLiteralExpr(t, d); .)
   | charToken                                  (. string s = t.val.Substring(1, t.val.Length - 2);
                                                   Util.ValidateEscaping(theOptions, t, s, false, errors);
                                                   if (Util.UnescapedCharacters(theOptions, s, false).Count() > 1) {
@@ -3807,7 +3813,7 @@ PossiblyNegatedLiteralExpr<out Expression e>
   .)
   ( "-"                                        (. var x = t; .)
     ( Nat<out n>                               (. e = new NegationExpression(x, new LiteralExpr(t, n)); .)
-    | Dec<out d>                               (. e = new NegationExpression(x, new LiteralExpr(t, d)); .)
+    | Dec<out d>                               (. e = new NegationExpression(x, new DecimalLiteralExpr(t, d)); .)
     )
   | LiteralExpression<out e>
   )
@@ -4725,6 +4731,9 @@ Ident<out Token/*!*/ x>
   | "reveal"     (. t.kind = _ident; .) // convert it to an ident
   | "field"      (. t.kind = _ident; .) // convert it to an ident
   | "locals"     (. t.kind = _ident; .) // convert it to an ident
+  // Allow fp32 and fp64 as identifier for static member access (fp32.NaN, fp64.NaN, etc.)
+  | "fp32"       (. t.kind = _ident; .) // convert it to an ident
+  | "fp64"       (. t.kind = _ident; .) // convert it to an ident
   )
   (. x = t; .)
   .

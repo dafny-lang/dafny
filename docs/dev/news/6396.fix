@@ -1,0 +1,1 @@
+Fix crash in decreases clause with non-reference trait

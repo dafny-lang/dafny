@@ -30,6 +30,8 @@ namespace Microsoft.Dafny {
     public const string TypeNameChar = "char";
     public const string TypeNameInt = "int";
     public const string TypeNameReal = "real";
+    public const string TypeNameFp32 = "fp32";
+    public const string TypeNameFp64 = "fp64";
     public const string TypeNameORDINAL = "ORDINAL";
     public const string TypeNameBvPrefix = "bv";
     public const string TypeNameSet = "set";

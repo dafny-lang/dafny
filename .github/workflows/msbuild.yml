@@ -66,6 +66,8 @@ jobs:
     needs: check-deep-tests
     if: always() && (( github.event_name == 'pull_request' && (needs.check-deep-tests.result == 'success' || contains(github.event.pull_request.labels.*.name, 'run-deep-tests'))) || ( github.event_name == 'push' && ( github.ref_name == 'master' || vars.TEST_ON_FORK == 'true' )))
     uses: ./.github/workflows/xunit-tests-reusable.yml
+    with:
+      num_shards: 2
 
   integration-tests:
     needs: check-deep-tests
@@ -121,12 +123,13 @@ jobs:
       - name: Download unit test artifacts
         uses: actions/download-artifact@v4
         with:
-          name: unit-test-results-ubuntu-22.04
+          pattern: unit-test-results-ubuntu-22.04-*
+          merge-multiple: true
 
       - name: Merge reports
         run: |
           # Convert the coverage data from the language server to Cobertura format
-          dotnet coverage merge DafnyLanguageServer.Test.coverage -o DafnyLanguageServer.Test.Cobertura.xml -f cobertura
+          dotnet coverage merge DafnyLanguageServer.Test.*.coverage -o DafnyLanguageServer.Test.Cobertura.xml -f cobertura
           # Generate a combined report, including xUnit results but not
           # LSP results
           reportgenerator \

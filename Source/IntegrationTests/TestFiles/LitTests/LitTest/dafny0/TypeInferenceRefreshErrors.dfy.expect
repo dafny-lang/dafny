@@ -22,7 +22,7 @@ TypeInferenceRefreshErrors.dfy(124,12): Error: unresolved identifier: x
 TypeInferenceRefreshErrors.dfy(124,16): Error: unresolved identifier: y
 TypeInferenceRefreshErrors.dfy(124,14): Error: type of + must be of a numeric type, a bitvector type, ORDINAL, char, a sequence type, or a set-like or map-like type (instead got ?6)
 TypeInferenceRefreshErrors.dfy(131,11): Error: literal (84848484848484848) is too large for the bitvector type bv7
-TypeInferenceRefreshErrors.dfy(140,11): Error: real literal used as if it had type bv7
+TypeInferenceRefreshErrors.dfy(140,11): Error: decimal literal used as if it had type bv7
 TypeInferenceRefreshErrors.dfy(143,11): Error: integer literal used as if it had type real
 TypeInferenceRefreshErrors.dfy(144,11): Error: integer literal used as if it had type real
 TypeInferenceRefreshErrors.dfy(145,11): Error: integer literal used as if it had type real
@@ -51,4 +51,6 @@ TypeInferenceRefreshErrors.dfy(290,9): Error: string literal "}" used as if it h
 TypeInferenceRefreshErrors.dfy(291,9): Error: string literal "{0}" used as if it had type int
 TypeInferenceRefreshErrors.dfy(293,9): Error: character literal used as if it had type int
 TypeInferenceRefreshErrors.dfy(294,9): Error: character literal used as if it had type int
-50 resolution/type errors detected in TypeInferenceRefreshErrors.dfy
+TypeInferenceRefreshErrors.dfy(304,17): Error: Function body type mismatch (expected set<object>, got set<set<?4>>) (covariant type parameter 'T' would require set<?4> :> object)
+TypeInferenceRefreshErrors.dfy(313,17): Error: Function body type mismatch (expected set<object> -> bool, got set<set<?7>> -> bool) (contravariant type parameter 'T0' would require set<set<?7>> :> set<object>) (covariant type parameter 'T' would require set<?7> :> object)
+52 resolution/type errors detected in TypeInferenceRefreshErrors.dfy

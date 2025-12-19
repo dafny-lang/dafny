@@ -362,19 +362,19 @@ public partial class BoogieGenerator {
       less = FunctionCall(tok, "ORD#Less", Bpl.Type.Bool, e0, e1);
       atmost = BplOr(eq, less);
 
-    } else if (ty0.IsTypeParameter || ty0.IsAbstractType) {
-      eq = Bpl.Expr.Eq(e0, e1);
-      less = Bpl.Expr.False;
-      atmost = BplOr(less, eq);
-
-    } else {
+    } else if (ty0.IsRefType && ty1.IsRefType) {
       // reference type
-      Contract.Assert(ty0.IsRefType);  // otherwise, unexpected type
       var b0 = Bpl.Expr.Neq(e0, Predef.Null);
       var b1 = Bpl.Expr.Neq(e1, Predef.Null);
       eq = BplIff(b0, b1);
       less = BplAnd(Bpl.Expr.Not(b0), b1);
       atmost = BplImp(b0, b1);
+
+    } else {
+      Contract.Assert(ty0.IsTypeParameter || ty0.IsAbstractType || ty0.IsTraitType);  // otherwise, unexpected type
+      eq = Bpl.Expr.Eq(e0, e1);
+      less = Bpl.Expr.False;
+      atmost = BplOr(less, eq);
     }
 
     less.tok = tok;

@@ -7,6 +7,11 @@ using System.Numerics;
 
 namespace Microsoft.Dafny;
 
+/// <summary>
+/// This rewriter performs two tasks:
+/// 1. Optimizes bitvector shift operations by shrinking shift amounts
+/// 2. Collects type information (bitvector widths and float types) needed for Boogie function generation
+/// </summary>
 public class BitvectorOptimization : IRewriter {
   private readonly SystemModuleManager systemModuleManager;
   public BitvectorOptimization(Program program, ErrorReporter reporter) : base(reporter) {
@@ -44,6 +49,17 @@ public class BitvectorOptimizationVisitor : BottomUpVisitor {
   }
 
   protected override void VisitOneExpr(Expression expr) {
+    // Collect float types for Boogie function generation
+    if (expr.Type != null) {
+      if (expr.Type.IsFp32Type) {
+        systemModuleManager.FloatWidths.Add(32);
+        systemModuleManager.Bitwidths.Add(32); // fp32 needs bv32 for int conversion
+      } else if (expr.Type.IsFp64Type) {
+        systemModuleManager.FloatWidths.Add(64);
+        systemModuleManager.Bitwidths.Add(64); // fp64 needs bv64 for int conversion
+      }
+    }
+
     if (expr is { Type.AsBitVectorType: { } bvType }) {
 
       if (expr is BinaryExpr binExpr && IsShiftOp(binExpr.Op)) {

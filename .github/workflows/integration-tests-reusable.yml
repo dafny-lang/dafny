@@ -31,7 +31,7 @@ jobs:
       - name: Populate OS list (all platforms)
         id: populate-os-list-all
         if: inputs.all_platforms
-        run: echo "os-list=[\"ubuntu-22.04\", \"macos-13\", \"windows-2022\"]" >> $GITHUB_OUTPUT
+        run: echo "os-list=[\"ubuntu-22.04\", \"macos-14\", \"windows-2022\"]" >> $GITHUB_OUTPUT
       - name: Populate OS list (one platform)
         id: populate-os-list-one
         if: "!inputs.all_platforms"
@@ -39,7 +39,7 @@ jobs:
       - name: Populate OS mapping for package.py
         id: populate-os-mapping
         run: |
-          echo "os-mapping={\"ubuntu-22.04\": \"ubuntu\", \"macos-13\": \"macos\", \"windows-2022\": \"windows\"}" >> $GITHUB_OUTPUT
+          echo "os-mapping={\"ubuntu-22.04\": \"ubuntu\", \"macos-14\": \"macos\", \"windows-2022\": \"windows\"}" >> $GITHUB_OUTPUT
       - name: Populate target runtime version list (all platforms)
         id: populate-target-runtime-version-all
         if: inputs.all_platforms
@@ -77,14 +77,10 @@ jobs:
       uses: actions/setup-dotnet@v4
       with:
         dotnet-version: 6.0.x
-    - name: C++ for ubuntu 20.04
+    - name: C++ for ubuntu 22.04
       if: matrix.os == 'ubuntu-22.04'
       run: |
         sudo apt-get install -y build-essential
-    - name: Choose the right C++ for ubuntu 20.04
-      if: matrix.os == 'ubuntu-22.04'
-      run: |
-        sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-9 60
     - name: Set up oldest supported JDK
       if: matrix.target-language-version != 'newest'
       uses: actions/setup-java@v4
@@ -108,7 +104,7 @@ jobs:
       run: go install golang.org/x/tools/cmd/goimports@latest
     - name: Set up Python
       uses: actions/setup-python@v5
-      with: 
+      with:
         python-version: '3.11'
     - name: Upgrade outdated pip
       run: python -m pip install --upgrade pip
@@ -165,7 +161,7 @@ jobs:
       run: |
         sudo apt-get update && sudo apt-get install -qq libarchive-tools
         mkdir -p dafny/Binaries/z3/bin
-        wget -qO- https://github.com/dafny-lang/solver-builds/releases/download/snapshot-2023-08-02/z3-4.12.1-x64-ubuntu-20.04-bin.zip | bsdtar -xf -
+        wget -qO- https://github.com/dafny-lang/solver-builds/releases/download/snapshot-2025-07-02/z3-4.12.1-x64-ubuntu-22.04-bin.zip | bsdtar -xf -
         mv z3-4.12.1 dafny/Binaries/z3/bin/
         chmod +x dafny/Binaries/z3/bin/z3-4.12.1
         mkdir -p unzippedRelease/dafny/z3/bin
@@ -182,7 +178,7 @@ jobs:
         dotnet test --logger trx --logger "console;verbosity=normal" --collect:"XPlat Code Coverage" --settings dafny/Source/IntegrationTests/coverlet.runsettings dafny/Source/IntegrationTests/IntegrationTests.csproj
     - name: Generate tests (non-Windows)
       ## This step creates lit tests from examples in documentation
-      ## These are then picked up by the integration tests below 
+      ## These are then picked up by the integration tests below
       ## and both tested and included in coverage metrics
       if: runner.os != 'Windows'
       run: |

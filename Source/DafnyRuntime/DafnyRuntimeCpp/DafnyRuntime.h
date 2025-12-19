@@ -274,7 +274,7 @@ struct get_default<DafnyArray<U>> {
  *********************************************************/
 
 template <typename T>
-T* global_empty_ptr = new T[0];
+T* global_empty_ptr = new T[1];
 
 template <class T>
 struct DafnySequence {
@@ -547,7 +547,7 @@ struct DafnySet {
 
     bool disjoint(const DafnySet<T>& other) {
         for (auto const& elt:set) {
-            if (other.find(elt) != other.set.end()) {
+            if (other.set.find(elt) != other.set.end()) {
                 return false;
             }
         }

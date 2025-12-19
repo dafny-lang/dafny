@@ -593,7 +593,7 @@ axiom (forall o: ref :: {_System.array.Length(o)} 0 <= _System.array.Length(o));
 // ---------------------------------------------------------------
 
 function Int(x: real): int { int(x) }
-function Real(x: int): real { real(x) }
+function {:inline} Real(x: int): real { real(x) }
 axiom (forall i: int :: { Int(Real(i)) } Int(Real(i)) == i);
 
 function {:inline} _System.real.Floor(x: real): int { Int(x) }

@@ -30,6 +30,7 @@ namespace Microsoft.Dafny {
     private readonly List<Advice> defaultAdvice = [];
     private List<(PreTypeProxy, PreType)> compatibleBounds = [];
     private List<Confirmation> confirmations = [];
+    private readonly List<PreType> floatProxiesNeedingDefault = [];
 
     public PreTypeConstraints(PreTypeResolver preTypeResolver) {
       this.PreTypeResolver = preTypeResolver;
@@ -184,9 +185,24 @@ namespace Microsoft.Dafny {
 
       PartiallySolveTypeConstraints(null, true);
 
+      // Apply fp64 default to any remaining unresolved float proxies
+      ApplyFloatFallbackDefaults();
+
       PrintLegend();
       ConfirmTypeConstraints();
       ClearState();
+    }
+
+    void ApplyFloatFallbackDefaults() {
+      if (floatProxiesNeedingDefault.Count == 0) {
+        return;
+      }
+      var fp64 = PreTypeResolver.Type2PreType(Type.Fp64);
+      foreach (var preType in floatProxiesNeedingDefault) {
+        if (preType.Normalize() is PreTypeProxy proxy) {
+          proxy.Set(fp64);
+        }
+      }
     }
 
     void ClearState() {
@@ -196,6 +212,7 @@ namespace Microsoft.Dafny {
       defaultAdvice.Clear();
       compatibleBounds.Clear();
       confirmations.Clear();
+      floatProxiesNeedingDefault.Clear();
       PreTypeResolver.allPreTypeProxies.Clear();
     }
 
@@ -577,6 +594,9 @@ namespace Microsoft.Dafny {
     }
 
     public void AddConfirmation(CommonConfirmationBag check, PreType preType, IOrigin tok, string errorFormatString, Action onProxyAction) {
+      if (check == CommonConfirmationBag.InFloatFamily) {
+        floatProxiesNeedingDefault.Add(preType);
+      }
       confirmations.Add(new Confirmation(
         () => ConfirmConstraint(check, preType, null),
         () => string.Format(errorFormatString, preType),
@@ -623,6 +643,7 @@ namespace Microsoft.Dafny {
     public enum CommonConfirmationBag {
       InIntFamily,
       InRealFamily,
+      InFloatFamily,
       InBoolFamily,
       InCharFamily,
       InSetFamily,
@@ -668,7 +689,9 @@ namespace Microsoft.Dafny {
         case CommonConfirmationBag.InIntFamily:
           return familyDeclName == PreType.TypeNameInt;
         case CommonConfirmationBag.InRealFamily:
-          return familyDeclName == PreType.TypeNameReal;
+          return familyDeclName == PreType.TypeNameReal || familyDeclName == PreType.TypeNameFp64 || familyDeclName == PreType.TypeNameFp32;
+        case CommonConfirmationBag.InFloatFamily:
+          return familyDeclName == PreType.TypeNameFp32 || familyDeclName == PreType.TypeNameFp64;
         case CommonConfirmationBag.InBoolFamily:
           return familyDeclName == PreType.TypeNameBool;
         case CommonConfirmationBag.InCharFamily:
@@ -692,9 +715,9 @@ namespace Microsoft.Dafny {
         case CommonConfirmationBag.IntLikeOrBitvector:
           return familyDeclName == PreType.TypeNameInt || PreTypeResolver.IsBitvectorName(familyDeclName);
         case CommonConfirmationBag.NumericOrBitvector:
-          return familyDeclName is PreType.TypeNameInt or PreType.TypeNameReal || PreTypeResolver.IsBitvectorName(familyDeclName);
+          return familyDeclName is PreType.TypeNameInt or PreType.TypeNameReal or PreType.TypeNameFp32 or PreType.TypeNameFp64 || PreTypeResolver.IsBitvectorName(familyDeclName);
         case CommonConfirmationBag.NumericOrBitvectorOrCharOrORDINALOrSuchTrait:
-          if (familyDeclName is PreType.TypeNameInt or PreType.TypeNameReal or PreType.TypeNameChar or PreType.TypeNameORDINAL ||
+          if (familyDeclName is PreType.TypeNameInt or PreType.TypeNameReal or PreType.TypeNameFp32 or PreType.TypeNameFp64 or PreType.TypeNameChar or PreType.TypeNameORDINAL ||
               PreTypeResolver.IsBitvectorName(familyDeclName)) {
             return true;
           }
@@ -709,6 +732,8 @@ namespace Microsoft.Dafny {
           switch (familyDeclName) {
             case PreType.TypeNameInt:
             case PreType.TypeNameReal:
+            case PreType.TypeNameFp32:
+            case PreType.TypeNameFp64:
             case PreType.TypeNameORDINAL:
             case PreType.TypeNameChar:
             case PreType.TypeNameSeq:
@@ -725,6 +750,8 @@ namespace Microsoft.Dafny {
           switch (familyDeclName) {
             case PreType.TypeNameInt:
             case PreType.TypeNameReal:
+            case PreType.TypeNameFp32:
+            case PreType.TypeNameFp64:
             case PreType.TypeNameORDINAL:
             case PreType.TypeNameChar:
             case PreType.TypeNameSet:
@@ -740,6 +767,8 @@ namespace Microsoft.Dafny {
           switch (familyDeclName) {
             case PreType.TypeNameInt:
             case PreType.TypeNameReal:
+            case PreType.TypeNameFp32:
+            case PreType.TypeNameFp64:
             case PreType.TypeNameSet:
             case PreType.TypeNameIset:
             case PreType.TypeNameMultiset:
@@ -754,6 +783,8 @@ namespace Microsoft.Dafny {
           switch (familyDeclName) {
             case PreType.TypeNameInt:
             case PreType.TypeNameReal:
+            case PreType.TypeNameFp32:
+            case PreType.TypeNameFp64:
             case PreType.TypeNameORDINAL:
             case PreType.TypeNameChar:
             case PreType.TypeNameSet:
