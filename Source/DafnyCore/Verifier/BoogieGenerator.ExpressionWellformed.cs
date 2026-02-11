@@ -248,6 +248,19 @@ namespace Microsoft.Dafny {
       }
     }
 
+    private void CheckFloatNaN(Expression operand, string operation, BoogieStmtListBuilder builder,
+                               ExpressionTranslator etran, WFOptions wfOptions) {
+      if (operand.Type.IsFp32Type) {
+        var isNaN = FunctionCall(operand.Origin, "fp32_is_nan", Bpl.Type.Bool, etran.TrExpr(operand));
+        builder.Add(Assert(GetToken(operand), Bpl.Expr.Not(isNaN),
+          new FloatNaNPrecondition(operation, operand, new Fp32Type()), builder.Context, wfOptions.AssertKv));
+      } else if (operand.Type.IsFp64Type) {
+        var isNaN = FunctionCall(operand.Origin, "fp64_is_nan", Bpl.Type.Bool, etran.TrExpr(operand));
+        builder.Add(Assert(GetToken(operand), Bpl.Expr.Not(isNaN),
+          new FloatNaNPrecondition(operation, operand, new Fp64Type()), builder.Context, wfOptions.AssertKv));
+      }
+    }
+
     /// <summary>
     /// Check the well-formedness of "expr" (but don't leave hanging around any assumptions that affect control flow)
     /// </summary>
@@ -986,6 +999,10 @@ namespace Microsoft.Dafny {
               CheckWellformed(e.E, wfOptions, locals, builder, etran);
             }
 
+            if (e is UnaryOpExpr { Op: UnaryOpExpr.Opcode.Negate } && e.E.Type.IsFloatingPointType) {
+              CheckFloatNaN(e.E, "negation", builder, etran, wfOptions);
+            }
+
             if (e is ConversionExpr ee) {
               CheckResultToBeInType(unaryExpr.Origin, ee.E, ee.ToType, locals, builder, etran, ee.messagePrefix);
             }
@@ -1014,6 +1031,43 @@ namespace Microsoft.Dafny {
               case BinaryExpr.ResolvedOpcode.Sub:
               case BinaryExpr.ResolvedOpcode.Mul:
                 CheckWellformed(e.E1, wfOptions, locals, builder, etran);
+                if (e.E0.Type.IsFloatingPointType) {
+                  CheckFloatNaN(e.E0, "arithmetic", builder, etran, wfOptions);
+                }
+                if (e.E1.Type.IsFloatingPointType) {
+                  CheckFloatNaN(e.E1, "arithmetic", builder, etran, wfOptions);
+                }
+                if (e.E0.Type.IsFloatingPointType && e.E1.Type.IsFloatingPointType) {
+                  var e0 = etran.TrExpr(e.E0);
+                  var e1 = etran.TrExpr(e.E1);
+                  string funcPrefix = e.E0.Type.IsFp32Type ? "fp32" : "fp64";
+
+                  if (e.ResolvedOp == BinaryExpr.ResolvedOpcode.Add) {
+                    var e0IsInf = FunctionCall(e.E0.Origin, $"{funcPrefix}_is_infinite", Bpl.Type.Bool, e0);
+                    var e1IsInf = FunctionCall(e.E1.Origin, $"{funcPrefix}_is_infinite", Bpl.Type.Bool, e1);
+                    var e0IsPos = FunctionCall(e.E0.Origin, $"{funcPrefix}_is_positive", Bpl.Type.Bool, e0);
+                    var e1IsPos = FunctionCall(e.E1.Origin, $"{funcPrefix}_is_positive", Bpl.Type.Bool, e1);
+                    var invalidInfAdd = Bpl.Expr.And(Bpl.Expr.And(e0IsInf, e1IsInf), Bpl.Expr.Neq(e0IsPos, e1IsPos));
+                    builder.Add(Assert(GetToken(expr), Bpl.Expr.Not(invalidInfAdd),
+                      new FloatInvalidOperationPrecondition("addition", e.E0, e.E1, e.E0.Type), builder.Context, wfOptions.AssertKv));
+                  } else if (e.ResolvedOp == BinaryExpr.ResolvedOpcode.Sub) {
+                    var e0IsInf = FunctionCall(e.E0.Origin, $"{funcPrefix}_is_infinite", Bpl.Type.Bool, e0);
+                    var e1IsInf = FunctionCall(e.E1.Origin, $"{funcPrefix}_is_infinite", Bpl.Type.Bool, e1);
+                    var e0IsPos = FunctionCall(e.E0.Origin, $"{funcPrefix}_is_positive", Bpl.Type.Bool, e0);
+                    var e1IsPos = FunctionCall(e.E1.Origin, $"{funcPrefix}_is_positive", Bpl.Type.Bool, e1);
+                    var invalidInfSub = Bpl.Expr.And(Bpl.Expr.And(e0IsInf, e1IsInf), Bpl.Expr.Eq(e0IsPos, e1IsPos));
+                    builder.Add(Assert(GetToken(expr), Bpl.Expr.Not(invalidInfSub),
+                      new FloatInvalidOperationPrecondition("subtraction", e.E0, e.E1, e.E0.Type), builder.Context, wfOptions.AssertKv));
+                  } else if (e.ResolvedOp == BinaryExpr.ResolvedOpcode.Mul) {
+                    var e0IsInf = FunctionCall(e.E0.Origin, $"{funcPrefix}_is_infinite", Bpl.Type.Bool, e0);
+                    var e1IsInf = FunctionCall(e.E1.Origin, $"{funcPrefix}_is_infinite", Bpl.Type.Bool, e1);
+                    var e0IsZero = FunctionCall(e.E0.Origin, $"{funcPrefix}_is_zero", Bpl.Type.Bool, e0);
+                    var e1IsZero = FunctionCall(e.E1.Origin, $"{funcPrefix}_is_zero", Bpl.Type.Bool, e1);
+                    var invalidInfMul = Bpl.Expr.Or(Bpl.Expr.And(e0IsInf, e1IsZero), Bpl.Expr.And(e1IsInf, e0IsZero));
+                    builder.Add(Assert(GetToken(expr), Bpl.Expr.Not(invalidInfMul),
+                      new FloatInvalidOperationPrecondition("multiplication", e.E0, e.E1, e.E0.Type), builder.Context, wfOptions.AssertKv));
+                  }
+                }
                 if (e.ResolvedOp == BinaryExpr.ResolvedOpcode.Sub && e.E0.Type.IsBigOrdinalType) {
                   var rhsIsNat = FunctionCall(binaryExpr.Origin, "ORD#IsNat", Bpl.Type.Bool, etran.TrExpr(e.E1));
                   builder.Add(Assert(GetToken(expr), rhsIsNat,
@@ -1054,6 +1108,24 @@ namespace Microsoft.Dafny {
                     zero = Bpl.Expr.Literal(0);
                   }
                   CheckWellformed(e.E1, wfOptions, locals, builder, etran);
+                  if (e.E0.Type.IsFloatingPointType) {
+                    CheckFloatNaN(e.E0, "division", builder, etran, wfOptions);
+                  }
+                  if (e.E1.Type.IsFloatingPointType) {
+                    CheckFloatNaN(e.E1, "division", builder, etran, wfOptions);
+                  }
+                  if (e.E0.Type.IsFloatingPointType && e.E1.Type.IsFloatingPointType) {
+                    var e0 = etran.TrExpr(e.E0);
+                    var e1 = etran.TrExpr(e.E1);
+                    string funcPrefix = e.E0.Type.IsFp32Type ? "fp32" : "fp64";
+                    var e0IsZero = FunctionCall(e.E0.Origin, $"{funcPrefix}_is_zero", Bpl.Type.Bool, e0);
+                    var e1IsZero = FunctionCall(e.E1.Origin, $"{funcPrefix}_is_zero", Bpl.Type.Bool, e1);
+                    var e0IsInf = FunctionCall(e.E0.Origin, $"{funcPrefix}_is_infinite", Bpl.Type.Bool, e0);
+                    var e1IsInf = FunctionCall(e.E1.Origin, $"{funcPrefix}_is_infinite", Bpl.Type.Bool, e1);
+                    var invalidDiv = Bpl.Expr.Or(Bpl.Expr.And(e0IsZero, e1IsZero), Bpl.Expr.And(e0IsInf, e1IsInf));
+                    builder.Add(Assert(GetToken(expr), Bpl.Expr.Not(invalidDiv),
+                      new FloatInvalidOperationPrecondition("division", e.E0, e.E1, e.E0.Type), builder.Context, wfOptions.AssertKv));
+                  }
                   builder.Add(Assert(GetToken(expr), Bpl.Expr.Neq(etran.TrExpr(e.E1), zero),
                     new DivisorNonZero(e.E1), builder.Context, wfOptions.AssertKv));
                 }
@@ -1250,6 +1322,18 @@ namespace Microsoft.Dafny {
                     CheckOperand(e.E0);
                     CheckOperand(e.E1);
                   }
+                }
+                break;
+              case BinaryExpr.ResolvedOpcode.Lt:
+              case BinaryExpr.ResolvedOpcode.Le:
+              case BinaryExpr.ResolvedOpcode.Ge:
+              case BinaryExpr.ResolvedOpcode.Gt:
+                CheckWellformed(e.E1, wfOptions, locals, builder, etran);
+                if (e.E0.Type.IsFloatingPointType) {
+                  CheckFloatNaN(e.E0, "comparison", builder, etran, wfOptions);
+                }
+                if (e.E1.Type.IsFloatingPointType) {
+                  CheckFloatNaN(e.E1, "comparison", builder, etran, wfOptions);
                 }
                 break;
               default:
@@ -1665,14 +1749,42 @@ namespace Microsoft.Dafny {
         var arg = etran.TrExpr(expr.Args[0]);
         var isFinite = FunctionCall(GetToken(expr), "fp64_is_finite", Bpl.Type.Bool, arg);
         builder.Add(Assert(GetToken(expr), isFinite,
-          new Fp64ToIntFinitePrecondition(expr.Args[0]), builder.Context, options.AssertKv));
-      } else if (expr.Function.Name == "Sqrt" && expr.Function.EnclosingClass is ValuetypeDecl { Name: "fp64" }) {
-        // fp64.Sqrt requires the argument to be non-negative to avoid NaN result
+          new FloatToIntFinitePrecondition(expr.Args[0], new Fp64Type()), builder.Context, options.AssertKv));
+      } else if (expr.Function.Name == "ToInt" && expr.Function.EnclosingClass is ValuetypeDecl { Name: "fp32" }) {
+        // fp32.ToInt requires the argument to be finite (not NaN or infinity)
         Contract.Assert(expr.Args.Count == 1);
+        var arg = etran.TrExpr(expr.Args[0]);
+        var isFinite = FunctionCall(GetToken(expr), "fp32_is_finite", Bpl.Type.Bool, arg);
+        builder.Add(Assert(GetToken(expr), isFinite,
+          new FloatToIntFinitePrecondition(expr.Args[0], new Fp32Type()), builder.Context, options.AssertKv));
+      } else if (expr.Function.Name == "Sqrt" && expr.Function.EnclosingClass is ValuetypeDecl { Name: "fp64" }) {
+        // fp64.Sqrt requires !NaN and non-negative
+        Contract.Assert(expr.Args.Count == 1);
+        CheckFloatNaN(expr.Args[0], "Sqrt", builder, etran, options);
         var arg = etran.TrExpr(expr.Args[0]);
         var isNotNegative = Bpl.Expr.Not(FunctionCall(GetToken(expr), "fp64_is_negative", Bpl.Type.Bool, arg));
         builder.Add(Assert(GetToken(expr), isNotNegative,
-          new Fp64SqrtNonNegativePrecondition(expr.Args[0]), builder.Context, options.AssertKv));
+          new FloatSqrtNonNegativePrecondition(expr.Args[0], new Fp64Type()), builder.Context, options.AssertKv));
+      } else if (expr.Function.Name == "Sqrt" && expr.Function.EnclosingClass is ValuetypeDecl { Name: "fp32" }) {
+        // fp32.Sqrt requires !NaN and non-negative
+        Contract.Assert(expr.Args.Count == 1);
+        CheckFloatNaN(expr.Args[0], "Sqrt", builder, etran, options);
+        var arg = etran.TrExpr(expr.Args[0]);
+        var isNotNegative = Bpl.Expr.Not(FunctionCall(GetToken(expr), "fp32_is_negative", Bpl.Type.Bool, arg));
+        builder.Add(Assert(GetToken(expr), isNotNegative,
+          new FloatSqrtNonNegativePrecondition(expr.Args[0], new Fp32Type()), builder.Context, options.AssertKv));
+      } else if ((expr.Function.Name == "Floor" || expr.Function.Name == "Ceiling" ||
+                  expr.Function.Name == "Round" || expr.Function.Name == "Abs") &&
+                 expr.Function.EnclosingClass is ValuetypeDecl { Name: "fp32" or "fp64" }) {
+        // These functions require !NaN
+        Contract.Assert(expr.Args.Count == 1);
+        CheckFloatNaN(expr.Args[0], expr.Function.Name, builder, etran, options);
+      } else if ((expr.Function.Name == "Min" || expr.Function.Name == "Max") &&
+                 expr.Function.EnclosingClass is ValuetypeDecl { Name: "fp32" or "fp64" }) {
+        // Min/Max require both operands !NaN
+        Contract.Assert(expr.Args.Count == 2);
+        CheckFloatNaN(expr.Args[0], expr.Function.Name, builder, etran, options);
+        CheckFloatNaN(expr.Args[1], expr.Function.Name, builder, etran, options);
       }
     }
 
