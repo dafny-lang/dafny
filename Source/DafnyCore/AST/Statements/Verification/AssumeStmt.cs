@@ -37,7 +37,8 @@ public class AssumeStmt : PredicateStmt, ICloneable<AssumeStmt>, ICanFormat {
     base.GenResolve(resolver, context);
 
     if (!resolver.Options.Get(CommonOptionBag.AllowAxioms) && !this.IsExplicitAxiom()) {
-      resolver.Reporter.Warning(MessageSource.Verifier, ResolutionErrors.ErrorId.r_assume_statement_without_axiom, Origin, "assume statement has no {:axiom} annotation");
+      resolver.Reporter.Warning(MessageSource.Verifier, ResolutionErrors.ErrorId.r_assume_statement_without_axiom, Origin,
+        "program contains an assume statement (to suppress this warning, annotate the statement with {:axiom})");
     }
   }
 
