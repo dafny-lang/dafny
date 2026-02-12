@@ -1,0 +1,7 @@
+git-issue-6430.dfy(43,4): Error: assertion could not be proved
+   |
+43 |     assert o1 == o2; // error: should not be provable
+   |     ^^^^^^
+
+
+Dafny program verifier finished with 3 verified, 1 error
