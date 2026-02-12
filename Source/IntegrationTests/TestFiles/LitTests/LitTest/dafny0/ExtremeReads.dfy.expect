@@ -1,36 +1,192 @@
-ExtremeReads.dfy(47,12): Error: assertion could not be proved
-ExtremeReads.dfy(13,21): Related location: this proposition could not be proved
-ExtremeReads.dfy(50,12): Error: assertion could not be proved
-ExtremeReads.dfy(13,21): Related location: this proposition could not be proved
-ExtremeReads.dfy(69,12): Error: assertion could not be proved
-ExtremeReads.dfy(20,21): Related location: this proposition could not be proved
-ExtremeReads.dfy(83,12): Error: assertion could not be proved
-ExtremeReads.dfy(26,3): Related location: this proposition could not be proved
-ExtremeReads.dfy(105,12): Error: assertion could not be proved
-ExtremeReads.dfy(89,3): Related location: this proposition could not be proved
-ExtremeReads.dfy(127,16): Error: assertion could not be proved
-ExtremeReads.dfy(9,19): Related location: this proposition could not be proved
-ExtremeReads.dfy(127,16): Error: assertion could not be proved
-ExtremeReads.dfy(13,21): Related location: this proposition could not be proved
-ExtremeReads.dfy(130,16): Error: assertion could not be proved
-ExtremeReads.dfy(9,19): Related location: this proposition could not be proved
-ExtremeReads.dfy(130,16): Error: assertion could not be proved
-ExtremeReads.dfy(13,21): Related location: this proposition could not be proved
-ExtremeReads.dfy(149,16): Error: assertion could not be proved
-ExtremeReads.dfy(16,19): Related location: this proposition could not be proved
-ExtremeReads.dfy(149,16): Error: assertion could not be proved
-ExtremeReads.dfy(20,21): Related location: this proposition could not be proved
-ExtremeReads.dfy(168,16): Error: assertion could not be proved
-ExtremeReads.dfy(23,19): Related location: this proposition could not be proved
-ExtremeReads.dfy(168,16): Error: assertion could not be proved
-ExtremeReads.dfy(26,3): Related location: this proposition could not be proved
-ExtremeReads.dfy(171,16): Error: assertion could not be proved
-ExtremeReads.dfy(23,19): Related location: this proposition could not be proved
-ExtremeReads.dfy(171,16): Error: assertion could not be proved
-ExtremeReads.dfy(26,3): Related location: this proposition could not be proved
-ExtremeReads.dfy(181,16): Error: assertion could not be proved
-ExtremeReads.dfy(86,16): Related location: this proposition could not be proved
-ExtremeReads.dfy(181,16): Error: assertion could not be proved
-ExtremeReads.dfy(89,3): Related location: this proposition could not be proved
+Source/IntegrationTests/TestFiles/LitTests/LitTest/dafny0/ExtremeReads.dfy(44,12): Error: assertion could not be proved
+   |
+44 |     assert P(c);  // a newly allocated object does not affect P(c)
+   |             ^
 
-Dafny program verifier finished with 10 verified, 17 errors
+Source/IntegrationTests/TestFiles/LitTests/LitTest/dafny0/ExtremeReads.dfy(13,21): Related location: this proposition could not be proved
+   |
+13 |   c.next != null && P(c.next)
+   |                      ^
+
+Source/IntegrationTests/TestFiles/LitTests/LitTest/dafny0/ExtremeReads.dfy(47,12): Error: assertion could not be proved
+   |
+47 |     assert P(c);  // error: ... and we no longer know if P(c) holds
+   |             ^
+
+Source/IntegrationTests/TestFiles/LitTests/LitTest/dafny0/ExtremeReads.dfy(13,21): Related location: this proposition could not be proved
+   |
+13 |   c.next != null && P(c.next)
+   |                      ^
+
+Source/IntegrationTests/TestFiles/LitTests/LitTest/dafny0/ExtremeReads.dfy(50,12): Error: assertion could not be proved
+   |
+50 |     assert P(c);  // error: same reason as above
+   |             ^
+
+Source/IntegrationTests/TestFiles/LitTests/LitTest/dafny0/ExtremeReads.dfy(13,21): Related location: this proposition could not be proved
+   |
+13 |   c.next != null && P(c.next)
+   |                      ^
+
+Source/IntegrationTests/TestFiles/LitTests/LitTest/dafny0/ExtremeReads.dfy(69,12): Error: assertion could not be proved
+   |
+69 |     assert Q(c);  // error: can't tell it's still the same
+   |             ^
+
+Source/IntegrationTests/TestFiles/LitTests/LitTest/dafny0/ExtremeReads.dfy(20,21): Related location: this proposition could not be proved
+   |
+20 |   c.next != null && Q(c)
+   |                      ^
+
+Source/IntegrationTests/TestFiles/LitTests/LitTest/dafny0/ExtremeReads.dfy(83,12): Error: assertion could not be proved
+   |
+83 |     assert R(c);  // error: can't tell it's still the same
+   |             ^
+
+Source/IntegrationTests/TestFiles/LitTests/LitTest/dafny0/ExtremeReads.dfy(26,3): Related location: this proposition could not be proved
+   |
+26 |   R(c)
+   |    ^
+
+Source/IntegrationTests/TestFiles/LitTests/LitTest/dafny0/ExtremeReads.dfy(105,12): Error: assertion could not be proved
+    |
+105 |     assert V(c);  // error: can't tell if V(c) holds here
+    |             ^
+
+Source/IntegrationTests/TestFiles/LitTests/LitTest/dafny0/ExtremeReads.dfy(89,3): Related location: this proposition could not be proved
+   |
+89 |   V(c)
+   |    ^
+
+Source/IntegrationTests/TestFiles/LitTests/LitTest/dafny0/ExtremeReads.dfy(124,16): Error: assertion could not be proved
+    |
+124 |     assert P#[k](c);  // a newly allocated object does not affect P(c)
+    |                 ^
+
+Source/IntegrationTests/TestFiles/LitTests/LitTest/dafny0/ExtremeReads.dfy(9,19): Related location: this proposition could not be proved
+  |
+9 | greatest predicate P(c: C?)
+  |                    ^
+
+Source/IntegrationTests/TestFiles/LitTests/LitTest/dafny0/ExtremeReads.dfy(124,16): Error: assertion could not be proved
+    |
+124 |     assert P#[k](c);  // a newly allocated object does not affect P(c)
+    |                 ^
+
+Source/IntegrationTests/TestFiles/LitTests/LitTest/dafny0/ExtremeReads.dfy(13,21): Related location: this proposition could not be proved
+   |
+13 |   c.next != null && P(c.next)
+   |                      ^
+
+Source/IntegrationTests/TestFiles/LitTests/LitTest/dafny0/ExtremeReads.dfy(127,16): Error: assertion could not be proved
+    |
+127 |     assert P#[k](c);  // error (x2): ... and we no longer know if P(c) holds
+    |                 ^
+
+Source/IntegrationTests/TestFiles/LitTests/LitTest/dafny0/ExtremeReads.dfy(9,19): Related location: this proposition could not be proved
+  |
+9 | greatest predicate P(c: C?)
+  |                    ^
+
+Source/IntegrationTests/TestFiles/LitTests/LitTest/dafny0/ExtremeReads.dfy(130,16): Error: assertion could not be proved
+    |
+130 |     assert P#[k](c);  // error (x2): same reason as above
+    |                 ^
+
+Source/IntegrationTests/TestFiles/LitTests/LitTest/dafny0/ExtremeReads.dfy(9,19): Related location: this proposition could not be proved
+  |
+9 | greatest predicate P(c: C?)
+  |                    ^
+
+Source/IntegrationTests/TestFiles/LitTests/LitTest/dafny0/ExtremeReads.dfy(130,16): Error: assertion could not be proved
+    |
+130 |     assert P#[k](c);  // error (x2): same reason as above
+    |                 ^
+
+Source/IntegrationTests/TestFiles/LitTests/LitTest/dafny0/ExtremeReads.dfy(13,21): Related location: this proposition could not be proved
+   |
+13 |   c.next != null && P(c.next)
+   |                      ^
+
+Source/IntegrationTests/TestFiles/LitTests/LitTest/dafny0/ExtremeReads.dfy(149,16): Error: assertion could not be proved
+    |
+149 |     assert Q#[k](c);  // error (x2): can't tell it's still the same
+    |                 ^
+
+Source/IntegrationTests/TestFiles/LitTests/LitTest/dafny0/ExtremeReads.dfy(16,19): Related location: this proposition could not be proved
+   |
+16 | greatest predicate Q(c: C?)
+   |                    ^
+
+Source/IntegrationTests/TestFiles/LitTests/LitTest/dafny0/ExtremeReads.dfy(149,16): Error: assertion could not be proved
+    |
+149 |     assert Q#[k](c);  // error (x2): can't tell it's still the same
+    |                 ^
+
+Source/IntegrationTests/TestFiles/LitTests/LitTest/dafny0/ExtremeReads.dfy(20,21): Related location: this proposition could not be proved
+   |
+20 |   c.next != null && Q(c)
+   |                      ^
+
+Source/IntegrationTests/TestFiles/LitTests/LitTest/dafny0/ExtremeReads.dfy(168,16): Error: assertion could not be proved
+    |
+168 |     assert R#[k](c);  // error (x2): the lemma doesn't immediately tell us this
+    |                 ^
+
+Source/IntegrationTests/TestFiles/LitTests/LitTest/dafny0/ExtremeReads.dfy(23,19): Related location: this proposition could not be proved
+   |
+23 | greatest predicate R(c: C?)
+   |                    ^
+
+Source/IntegrationTests/TestFiles/LitTests/LitTest/dafny0/ExtremeReads.dfy(168,16): Error: assertion could not be proved
+    |
+168 |     assert R#[k](c);  // error (x2): the lemma doesn't immediately tell us this
+    |                 ^
+
+Source/IntegrationTests/TestFiles/LitTests/LitTest/dafny0/ExtremeReads.dfy(26,3): Related location: this proposition could not be proved
+   |
+26 |   R(c)
+   |    ^
+
+Source/IntegrationTests/TestFiles/LitTests/LitTest/dafny0/ExtremeReads.dfy(171,16): Error: assertion could not be proved
+    |
+171 |     assert R#[k](c);  // error (x2): can't tell it's still the same
+    |                 ^
+
+Source/IntegrationTests/TestFiles/LitTests/LitTest/dafny0/ExtremeReads.dfy(23,19): Related location: this proposition could not be proved
+   |
+23 | greatest predicate R(c: C?)
+   |                    ^
+
+Source/IntegrationTests/TestFiles/LitTests/LitTest/dafny0/ExtremeReads.dfy(171,16): Error: assertion could not be proved
+    |
+171 |     assert R#[k](c);  // error (x2): can't tell it's still the same
+    |                 ^
+
+Source/IntegrationTests/TestFiles/LitTests/LitTest/dafny0/ExtremeReads.dfy(26,3): Related location: this proposition could not be proved
+   |
+26 |   R(c)
+   |    ^
+
+Source/IntegrationTests/TestFiles/LitTests/LitTest/dafny0/ExtremeReads.dfy(181,16): Error: assertion could not be proved
+    |
+181 |     assert V#[k](c);  // error (x2): can't tell if V(c) holds here
+    |                 ^
+
+Source/IntegrationTests/TestFiles/LitTests/LitTest/dafny0/ExtremeReads.dfy(86,16): Related location: this proposition could not be proved
+   |
+86 | least predicate V(c: C?)
+   |                 ^
+
+Source/IntegrationTests/TestFiles/LitTests/LitTest/dafny0/ExtremeReads.dfy(181,16): Error: assertion could not be proved
+    |
+181 |     assert V#[k](c);  // error (x2): can't tell if V(c) holds here
+    |                 ^
+
+Source/IntegrationTests/TestFiles/LitTests/LitTest/dafny0/ExtremeReads.dfy(89,3): Related location: this proposition could not be proved
+   |
+89 |   V(c)
+   |    ^
+
+
+Dafny program verifier finished with 10 verified, 19 errors
