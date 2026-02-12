@@ -1,17 +1,5 @@
 TerminationDemos.dfy(100,2): Error: a postcondition could not be proved on this return path
-    |
-100 |   {
-    |   ^
-
 TerminationDemos.dfy(99,26): Related location: this is the postcondition that could not be proved
-   |
-99 |     ensures list.IsAcyclic()
-   |                           ^
-
 TerminationDemos.dfy(85,20): Related location: this proposition could not be proved
-   |
-85 |       next.IsAcyclic())
-   |                     ^
-
 
 Dafny program verifier finished with 11 verified, 1 error
