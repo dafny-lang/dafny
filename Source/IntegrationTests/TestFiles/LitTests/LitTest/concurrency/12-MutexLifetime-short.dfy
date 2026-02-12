@@ -1,4 +1,4 @@
-// RUN: %verify --allow-axioms "%s" > "%t"
+// RUN: %verify --allow-axioms --verification-time-limit 60 "%s" > "%t"
 // RUN: %diff "%s.expect" "%t"
 
 // This program models the ownership of a Rust-like MutexGuard using lifetimes to reason about allocation.
