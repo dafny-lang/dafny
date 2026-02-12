@@ -1,18 +1,122 @@
-Datatypes.dfy(82,10): Error: assertion could not be proved
-Datatypes.dfy(170,6): Error: assertion could not be proved
-Datatypes.dfy(172,6): Error: assertion could not be proved
-Datatypes.dfy(201,12): Error: destructor 'Car' can only be applied to datatype values constructed by 'XCons'
-Datatypes.dfy(204,16): Error: destructor 'Car' can only be applied to datatype values constructed by 'XCons'
-Datatypes.dfy(225,16): Error: destructor 'c' can only be applied to datatype values constructed by 'T''
-Datatypes.dfy(297,9): Error: a postcondition could not be proved on this return path
-Datatypes.dfy(295,14): Related location: this is the postcondition that could not be proved
-Datatypes.dfy(298,11): Error: missing case in match expression: Appendix(_)
-Datatypes.dfy(349,4): Error: missing case in match expression: Cons(_, _)
-Datatypes.dfy(349,4): Error: missing case in match expression: Nil
-Datatypes.dfy(356,7): Error: missing case in match expression: Cons(_, _)
-Datatypes.dfy(356,7): Error: missing case in match expression: Nil
-Datatypes.dfy(377,21): Error: RHS is not certain to look like the pattern 'AAA'
-Datatypes.dfy(493,6): Error: assertion could not be proved
-Datatypes.dfy(495,6): Error: assertion could not be proved
+Source/IntegrationTests/TestFiles/LitTests/LitTest/dafny0/Datatypes.dfy(30,2): Error: a postcondition could not be proved on this return path
+   |
+30 |   {
+   |   ^
 
-Dafny program verifier finished with 29 verified, 15 errors
+Source/IntegrationTests/TestFiles/LitTests/LitTest/dafny0/Datatypes.dfy(29,18): Related location: this is the postcondition that could not be proved
+   |
+29 |     ensures r.Repr(Cons(d, L))
+   |                   ^
+
+Source/IntegrationTests/TestFiles/LitTests/LitTest/dafny0/Datatypes.dfy(17,44): Related location: this proposition could not be proved
+   |
+17 |       data == d && next != null && next.Repr(cdr)
+   |                                             ^
+
+Source/IntegrationTests/TestFiles/LitTests/LitTest/dafny0/Datatypes.dfy(60,2): Error: a postcondition could not be proved on this return path
+   |
+60 |   {
+   |   ^
+
+Source/IntegrationTests/TestFiles/LitTests/LitTest/dafny0/Datatypes.dfy(59,16): Related location: this is the postcondition that could not be proved
+   |
+59 |     ensures Repr(r, Cons(d, L))
+   |                 ^
+
+Source/IntegrationTests/TestFiles/LitTests/LitTest/dafny0/Datatypes.dfy(48,38): Related location: this proposition could not be proved
+   |
+48 |       n != null && n.data == d && Repr(n.next, cdr)
+   |                                       ^
+
+Source/IntegrationTests/TestFiles/LitTests/LitTest/dafny0/Datatypes.dfy(82,10): Error: assertion could not be proved
+   |
+82 |           assert y != p;  // error: if p is car(a), then it and y may very well be equal
+   |           ^^^^^^
+
+Source/IntegrationTests/TestFiles/LitTests/LitTest/dafny0/Datatypes.dfy(170,6): Error: assertion could not be proved
+    |
+170 |       assert d.XCons?;  // error
+    |       ^^^^^^
+
+Source/IntegrationTests/TestFiles/LitTests/LitTest/dafny0/Datatypes.dfy(172,6): Error: assertion could not be proved
+    |
+172 |       assert d.XNil?;  // error
+    |       ^^^^^^
+
+Source/IntegrationTests/TestFiles/LitTests/LitTest/dafny0/Datatypes.dfy(201,12): Error: destructor 'Car' can only be applied to datatype values constructed by 'XCons'
+    |
+201 |   ensures r.Car == 5  // error: specification is not well-formed (since r might not be an XCons)
+    |             ^^^
+
+Source/IntegrationTests/TestFiles/LitTests/LitTest/dafny0/Datatypes.dfy(204,16): Error: destructor 'Car' can only be applied to datatype values constructed by 'XCons'
+    |
+204 |     var x0 := d.Car;  // error: d might not be an XCons
+    |                 ^^^
+
+Source/IntegrationTests/TestFiles/LitTests/LitTest/dafny0/Datatypes.dfy(225,16): Error: destructor 'c' can only be applied to datatype values constructed by 'T''
+    |
+225 |       u := T'(t.c, t.a, t.b);  // error: t may be NotATriple
+    |                 ^
+
+Source/IntegrationTests/TestFiles/LitTests/LitTest/dafny0/Datatypes.dfy(296,2): Error: a postcondition could not be proved on this return path
+    |
+296 |   {
+    |   ^
+
+Source/IntegrationTests/TestFiles/LitTests/LitTest/dafny0/Datatypes.dfy(295,14): Related location: this is the postcondition that could not be proved
+    |
+295 |     ensures 0 <= y
+    |               ^^
+
+Source/IntegrationTests/TestFiles/LitTests/LitTest/dafny0/Datatypes.dfy(298,11): Error: missing case in match expression: Appendix(_)
+    |
+298 |       y := match xs  // error: missing case Appendix
+    |            ^^^^^
+
+Source/IntegrationTests/TestFiles/LitTests/LitTest/dafny0/Datatypes.dfy(349,4): Error: missing case in match expression: Cons(_, _)
+    |
+349 |     match xs  // error: missing cases
+    |     ^^^^^
+
+Source/IntegrationTests/TestFiles/LitTests/LitTest/dafny0/Datatypes.dfy(349,4): Error: missing case in match expression: Nil
+    |
+349 |     match xs  // error: missing cases
+    |     ^^^^^
+
+Source/IntegrationTests/TestFiles/LitTests/LitTest/dafny0/Datatypes.dfy(356,7): Error: missing case in match expression: Cons(_, _)
+    |
+356 |       (match ys)  // error: missing cases
+    |        ^^^^^
+
+Source/IntegrationTests/TestFiles/LitTests/LitTest/dafny0/Datatypes.dfy(356,7): Error: missing case in match expression: Nil
+    |
+356 |       (match ys)  // error: missing cases
+    |        ^^^^^
+
+Source/IntegrationTests/TestFiles/LitTests/LitTest/dafny0/Datatypes.dfy(377,13): Error: variable 'v', which is subject to definite-assignment rules, could not be proved to be initialized here
+    |
+377 |     var w := v + var AAA(u) := m; u;  // error: m may not be an AAA
+    |              ^
+
+Source/IntegrationTests/TestFiles/LitTests/LitTest/dafny0/Datatypes.dfy(377,21): Error: RHS is not certain to look like the pattern 'AAA'
+    |
+377 |     var w := v + var AAA(u) := m; u;  // error: m may not be an AAA
+    |                      ^^^
+
+Source/IntegrationTests/TestFiles/LitTests/LitTest/dafny0/Datatypes.dfy(377,31): Error: variable 'm', which is subject to definite-assignment rules, could not be proved to be initialized here
+    |
+377 |     var w := v + var AAA(u) := m; u;  // error: m may not be an AAA
+    |                                ^
+
+Source/IntegrationTests/TestFiles/LitTests/LitTest/dafny0/Datatypes.dfy(493,6): Error: assertion could not be proved
+    |
+493 |       assert c.value != 0.7; // error: the type of "c" is Result<real>
+    |       ^^^^^^
+
+Source/IntegrationTests/TestFiles/LitTests/LitTest/dafny0/Datatypes.dfy(495,6): Error: assertion could not be proved
+    |
+495 |       assert v.value != 0.7; // error: the type of "c" is Result<real>
+    |       ^^^^^^
+
+
+Dafny program verifier finished with 28 verified, 19 errors
